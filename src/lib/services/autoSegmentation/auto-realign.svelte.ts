@@ -1,8 +1,8 @@
 import { SubtitleClip } from '$lib/classes';
 import { globalState } from '$lib/runes/main.svelte';
 import { getAutoSegmentationAudioClips } from './audio';
-import { computeWbwTimestampsForClipsSliced } from './review';
-import { AUTO_REALIGN_DEBOUNCE_MS, AUTO_REALIGN_TIMEOUT_MS, type RealignWindow } from './types';
+import { computeRealignWindow, computeWbwTimestampsForClipsSliced } from './review';
+import { AUTO_REALIGN_DEBOUNCE_MS, AUTO_REALIGN_TIMEOUT_MS } from './types';
 
 /**
  * Re-alignement WBW automatique et « abstrait » déclenché par les éditions de sous-titres.
@@ -39,22 +39,6 @@ const pendingGroups = new Map<string, PendingGroup>();
  */
 export function getAutoRealignStatus(clipId: number): AutoRealignStatus {
 	return statusByClipId[clipId] ? 'computing' : 'idle';
-}
-
-/**
- * Calcule la fenêtre audio (ms, coordonnées timeline) couvrant un ensemble de clips consécutifs.
- *
- * @param {SubtitleClip[]} clips Clips concernés.
- * @returns {RealignWindow} Fenêtre `[startMs, endMs]` à trancher/téléverser.
- */
-export function computeRealignWindow(clips: SubtitleClip[]): RealignWindow {
-	const starts = clips.map((clip) =>
-		Math.round((clip.alignmentMetadata?.timeFrom ?? clip.startTime / 1000) * 1000)
-	);
-	const ends = clips.map((clip) =>
-		Math.round((clip.alignmentMetadata?.timeTo ?? clip.endTime / 1000) * 1000)
-	);
-	return { startMs: Math.min(...starts), endMs: Math.max(...ends) };
 }
 
 /**

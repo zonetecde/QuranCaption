@@ -6,9 +6,26 @@
 	import StyleEditorSettings from './StyleEditorSettings.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectEditorTabs } from '$lib/classes';
+	import {
+		DEFAULT_STYLE_PANEL_WIDTH,
+		PROJECT_EDITOR_PANEL_WIDTHS,
+		PROJECT_EDITOR_TIMELINE_HEIGHT
+	} from '$lib/constants/projectEditor';
+
+	const STYLE_PANEL_WIDTHS = PROJECT_EDITOR_PANEL_WIDTHS.style;
 
 	/** Ouverture de la librairie de presets (état géré dans globalState). */
 	let presetLibraryOpen = $derived(globalState.presetLibrary.libraryOpen);
+	let stylePanelWidth = $derived(
+		globalState.settings?.persistentUiState.projectEditorLayout.stylePanelWidth ??
+			DEFAULT_STYLE_PANEL_WIDTH
+	);
+	let stylePanelMinWidth = $derived(
+		presetLibraryOpen ? STYLE_PANEL_WIDTHS.expandedMin : STYLE_PANEL_WIDTHS.min
+	);
+	let displayedStylePanelWidth = $derived(
+		Math.max(stylePanelMinWidth, Math.min(STYLE_PANEL_WIDTHS.max, stylePanelWidth))
+	);
 
 	/** Ouvre la librairie de presets. */
 	function openPresetLibrary() {
@@ -56,23 +73,34 @@
 <div class="flex-grow w-full max-w-full flex overflow-hidden h-full min-h-0">
 	<!-- Assets -->
 	<section
-		class={(presetLibraryOpen ? '2xl:w-[700px] w-[600px]' : '2xl:w-[350px] w-[300px]') +
-			' flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col transition-[width] duration-200'}
+		class="flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col transition-[width] duration-200"
+		style={`width: ${displayedStylePanelWidth}px;`}
 	>
 		<StyleEditorSettings {presetLibraryOpen} {openPresetLibrary} {closePresetLibrary} />
 	</section>
+	<DiviseurRedimensionnable
+		orientation="vertical"
+		bind:value={globalState.settings!.persistentUiState.projectEditorLayout.stylePanelWidth}
+		displayedValue={displayedStylePanelWidth}
+		min={stylePanelMinWidth}
+		max={STYLE_PANEL_WIDTHS.max}
+		dataTestId="style-panel-resizer"
+	/>
 	<section class="flex-1 min-w-0 flex flex-row max-h-full min-h-0">
 		<section class="w-full min-w-0 flex flex-col min-h-0">
 			<!-- Video preview -->
 			<VideoPreview showControls />
 
-			<DiviseurRedimensionnable />
+			<DiviseurRedimensionnable
+				orientation="horizontal"
+				bind:value={globalState.settings!.persistentUiState.projectEditorLayout.upperSectionHeight}
+				min={PROJECT_EDITOR_TIMELINE_HEIGHT.min}
+				max={PROJECT_EDITOR_TIMELINE_HEIGHT.max}
+				unit="percent"
+			/>
 
 			<!-- Timeline -->
 			<Timeline />
 		</section>
 	</section>
 </div>
-
-<style>
-</style>

@@ -4,6 +4,29 @@
 		"name": "General",
 		"description": "General styling options for subtitles",
 		"icon": "settings",
+		"ui": {
+			"panel": { "id": "essentials", "icon": "text_fields", "label": "text", "order": 0, "categoryOrder": 0 },
+			"groups": [
+				{
+					"id": "basics",
+					"styleIds": ["show-subtitles", "mushaf-style", "text-direction"]
+				},
+				{
+					"id": "verseNumber",
+					"styleIds": [
+						"show-verse-number",
+						"verse-number-new-line",
+						"verse-number-format",
+						"verse-number-position",
+						"verse-number-numeral-system"
+					]
+				},
+				{
+					"id": "decorations",
+					"styleIds": ["show-decorative-brackets", "decorative-brackets-font-family"]
+				}
+			]
+		},
 		"styles": [
 			{
 				"id": "show-subtitles",
@@ -24,6 +47,16 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "123"
+			},
+			{
+				"id": "verse-number-new-line",
+				"name": "Verse Number on New Line",
+				"description": "Always place the verse number on a new line",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "keyboard_return"
 			},
 			{
 				"id": "text-direction",
@@ -72,7 +105,7 @@
 				"description": "Choose the Arabic script source for Quran subtitles.",
 				"value": "Uthmani",
 				"valueType": "select",
-				"options": ["Uthmani", "Indopak", "Tajweed", "Soosi"],
+				"options": ["Uthmani", "Indopak", "Tajweed", "Soosi", "Minimal Quran"],
 				"css": "",
 				"tailwind": false,
 				"icon": "menu_book"
@@ -126,6 +159,37 @@
 		"name": "Text Styling",
 		"description": "Control the appearance and formatting of subtitle text",
 		"icon": "text_fields",
+		"ui": {
+			"panel": { "id": "essentials", "icon": "text_fields", "label": "text", "order": 0, "categoryOrder": 1 },
+			"groups": [
+				{
+					"id": "typography",
+					"styleIds": [
+						"font-family",
+						"font-size",
+						"font-weight",
+						"enable-italic",
+						"text-transform"
+					]
+				},
+				{
+					"id": "colors",
+					"styleIds": ["text-color", "verse-number-color", "opacity"]
+				},
+				{
+					"id": "spacing",
+					"styleIds": [
+					"letter-spacing",
+					"word-spacing",
+					"line-height",
+					"max-height",
+					"max-line",
+					"vertical-text-alignment"
+				],
+				"shared": true
+			}
+			]
+		},
 		"styles": [
 		{
 			"id": "text-color",
@@ -295,9 +359,51 @@
 	},
 	{
 		"id": "word-by-word-highlight",
-		"name": "Word by word highlight",
-		"description": "Highlight Arabic words over time when word-by-word timestamps are available",
+		"name": "WBW Effect",
+		"description": "Apply timed word-by-word effects when WBW timestamps are available",
 		"icon": "lyrics",
+		"ui": {
+			"panel": { "id": "word-by-word", "icon": "format_paint", "label": "word-by-word-highlight", "order": 4, "categoryOrder": 0 },
+			"groups": [
+				{
+					"id": "basics",
+					"styleIds": [
+						"wbw-show-current-word-only",
+						"wbw-reveal-on-recitation",
+						"wbw-always-show-verse-number",
+						"wbw-reveal-specific-word-style",
+						"wbw-persist-color"
+					]
+				},
+				{
+					"id": "colors",
+					"styleIds": ["enable-wbw-highlight", "wbw-color"]
+				},
+				{
+					"id": "decorations",
+					"styleIds": [
+						"enable-wbw-underline",
+						"wbw-underline-thickness",
+						"enable-wbw-glow",
+						"wbw-glow-color",
+						"wbw-glow-blur",
+						"enable-wbw-background",
+						"wbw-bg-color",
+						"enable-wbw-line-background",
+						"wbw-line-background-color",
+						"wbw-line-background-position",
+						"wbw-line-background-height",
+						"wbw-line-background-padding",
+						"enable-wbw-current-word-opacity",
+						"wbw-current-word-opacity"
+					]
+				},
+				{
+					"id": "advanced",
+					"styleIds": ["wbw-current-word-custom-css"]
+				}
+			]
+		},
 		"styles": [
 			{
 				"id": "wbw-show-current-word-only",
@@ -331,23 +437,13 @@
 			},
 			{
 				"id": "wbw-persist-color",
-				"name": "Persist highlighted words",
-				"description": "Keep previously highlighted words colored after they have been read",
+				"name": "Persist WBW effect",
+				"description": "Keep the active WBW effect on previously recited words",
 				"value": false,
 				"valueType": "boolean",
 				"css": "",
 				"tailwind": false,
 				"icon": "format_color_fill"
-			},
-			{
-				"id": "wbw-reveal-specific-word-style",
-				"name": "Reveal specific word style on recitation",
-				"description": "Hide custom word styles until their linked word is recited",
-				"value": false,
-				"valueType": "boolean",
-				"css": "",
-				"tailwind": false,
-				"icon": "format_paint"
 			},
 			{
 				"id": "enable-wbw-underline",
@@ -444,8 +540,109 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "highlight"
+			},
+			{
+				"id": "enable-wbw-line-background",
+				"name": "Enable WBW Line Background",
+				"description": "Highlight recited words with the rounded line background style",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "view_stream"
+			},
+			{
+				"id": "wbw-line-background-color",
+				"name": "WBW Bar Color",
+				"description": "Color applied to the line background of highlighted words",
+				"value": "#facc15",
+				"valueType": "color",
+				"css": "",
+				"tailwind": false,
+				"icon": "palette"
+			},
+			{
+				"id": "wbw-line-background-position",
+				"name": "WBW Bar Position",
+				"description": "Adjust the WBW bar position when the subtitle line background is disabled",
+				"value": 15,
+				"valueType": "number",
+				"valueMin": -100,
+				"valueMax": 100,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "height"
+			},
+			{
+				"id": "wbw-line-background-height",
+				"name": "WBW Bar Height",
+				"description": "Adjust the WBW bar height when the subtitle line background is disabled",
+				"value": 50,
+				"valueType": "number",
+				"valueMin": 1,
+				"valueMax": 200,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "line_weight"
+			},
+			{
+				"id": "wbw-line-background-padding",
+				"name": "WBW Bar Horizontal Padding",
+				"description": "Add equal horizontal spacing to both ends of the WBW bar",
+				"value": 0,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 100,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "space_bar"
+			},
+			{
+				"id": "enable-wbw-current-word-opacity",
+				"name": "Enable current word opacity",
+				"description": "Override the opacity of the current WBW word",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "toggle_on"
+			},
+			{
+				"id": "wbw-current-word-opacity",
+				"name": "Current word opacity",
+				"description": "Opacity applied to the current WBW word",
+				"value": 1,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 1,
+				"step": 0.05,
+				"css": "",
+				"tailwind": false,
+				"icon": "opacity"
+			},
+			{
+				"id": "wbw-reveal-specific-word-style",
+				"name": "Reveal specific word style on recitation",
+				"description": "Hide custom word styles until their linked word is recited",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "format_paint"
+			},
+			{
+				"id": "wbw-current-word-custom-css",
+				"name": "Custom CSS (current word)",
+				"description": "Custom CSS applied to the current WBW word",
+				"value": "",
+				"valueType": "text",
+				"css": "",
+				"tailwind": false,
+				"icon": "code"
 			}
-		
 		]
 	},
 	{
@@ -453,6 +650,9 @@
 		"name": "Position & Layout",
 		"description": "Control the position and spacing of subtitles on screen",
 		"icon": "open_with",
+		"ui": {
+			"panel": { "id": "layout", "icon": "open_with", "label": "positioning", "order": 1, "categoryOrder": 0 }
+		},
 		"styles": [
 			{
 				"id": "reactive-y-position",
@@ -550,6 +750,30 @@
 		"name": "Background & Container",
 		"description": "Style the background and container of subtitles",
 		"icon": "square",
+		"ui": {
+			"panel": { "id": "appearance", "icon": "format_color_fill", "label": "background", "order": 2, "categoryOrder": 0 },
+			"headerStyle": "background-enable",
+			"groups": [
+				{
+					"id": "layout",
+				"styleIds": ["max-height", "width", "vertical-text-alignment"],
+					"shared": true
+				},
+				{
+					"id": "basics",
+					"styleIds": ["background-enable", "background-color", "background-opacity"]
+				},
+				{
+					"id": "spacing",
+					"styleIds": ["border-radius", "background-horizontal-padding"]
+				},
+				{
+					"id": "timing",
+					"styleIds": ["always-show", "time-appearance", "time-disappearance"]
+				},
+				{ "id": "advanced", "styleIds": ["background-css"] }
+			]
+		},
 		"styles": [
 			{
 				"id": "background-enable",
@@ -560,6 +784,36 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "toggle_on"
+			},
+			{
+				"id": "always-show",
+				"name": "Always Show",
+				"description": "Always show the background (ignore timing)",
+				"value": true,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "visibility"
+			},
+			{
+				"id": "time-appearance",
+				"name": "Time Appearance",
+				"description": "Change the time where the background appears",
+				"value": 0,
+				"valueType": "time",
+				"css": "",
+				"tailwind": false,
+				"icon": "access_time"
+			},
+			{
+				"id": "time-disappearance",
+				"name": "Time Disappearance",
+				"description": "Change the time where the background disappears",
+				"value": 10000,
+				"valueType": "time",
+				"css": "",
+				"tailwind": false,
+				"icon": "access_time"
 			},
 			{
 				"id": "background-color",
@@ -625,6 +879,10 @@
 		"name": "Container Border",
 		"description": "Add borders around subtitle containers",
 		"icon": "border_all",
+		"ui": {
+			"panel": { "id": "appearance", "icon": "format_color_fill", "label": "background", "order": 2, "categoryOrder": 1 },
+			"headerStyle": "border-enable"
+		},
 		"styles": [
 			{
 				"id": "border-enable",
@@ -684,6 +942,10 @@
 		"name": "Shadow Effects",
 		"description": "Add shadow effects to text and containers",
 		"icon": "filter_drama",
+		"ui": {
+			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 3 },
+			"headerStyle": "shadow-enable"
+		},
 		"styles": [
 			{
 				"id": "shadow-enable",
@@ -746,6 +1008,10 @@
 		"name": "Text Outline",
 		"description": "Add outlines and strokes around text",
 		"icon": "border_outer",
+		"ui": {
+			"panel": { "id": "appearance", "icon": "format_color_fill", "label": "background", "order": 2, "categoryOrder": 3 },
+			"headerStyle": "outline-enable"
+		},
 		"styles": [
 			{
 				"id": "outline-enable",
@@ -783,10 +1049,72 @@
 		]
 	},
 	{
+		"id": "line-background",
+		"name": "Line Background",
+		"description": "Add a rounded background bar behind each subtitle line",
+		"icon": "view_stream",
+		"ui": {
+			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 2 },
+			"headerStyle": "line-background-enable"
+		},
+		"styles": [
+			{
+				"id": "line-background-enable",
+				"name": "Enable Line Background",
+				"description": "Enable or disable the background bar behind each subtitle line",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "toggle_on"
+			},
+			{
+				"id": "line-background-color",
+				"name": "Bar Color",
+				"description": "Set the color of the background bar",
+				"value": "#f5deb3",
+				"valueType": "color",
+				"css": "--line-background-color: {value};",
+				"tailwind": false,
+				"icon": "palette"
+			},
+			{
+				"id": "line-background-position",
+				"name": "Bar Position",
+				"description": "Adjust the vertical position of the background bar relative to the text",
+				"value": 15,
+				"valueType": "number",
+				"valueMin": -100,
+				"valueMax": 100,
+				"step": 1,
+				"css": "--line-background-position: {value}px;",
+				"tailwind": false,
+				"icon": "height"
+			},
+			{
+				"id": "line-background-height",
+				"name": "Bar Height",
+				"description": "Adjust the height of the background bar",
+				"value": 50,
+				"valueType": "number",
+				"valueMin": 1,
+				"valueMax": 200,
+				"step": 1,
+				"css": "--line-background-height: {value}px;",
+				"tailwind": false,
+				"icon": "line_weight"
+			}
+		]
+	},
+	{
 		"id": "text-glow",
 		"name": "Text Glow",
 		"description": "Add a glow effect to the text",
 		"icon": "wb_incandescent",
+		"ui": {
+			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 0 },
+			"headerStyle": "text-glow-enable"
+		},
 		"styles": [
 			{
 				"id": "text-glow-enable",
@@ -827,6 +1155,10 @@
 		"name": "Neon Effect",
 		"description": "Add a neon light effect to the text",
 		"icon": "light_mode",
+		"ui": {
+			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 1 },
+			"headerStyle": "text-neon-enable"
+		},
 		"styles": [
 			{
 				"id": "text-neon-enable",
@@ -867,6 +1199,9 @@
 		"name": "Visual Effects",
 		"description": "Add visual effects and filters to enhance subtitle appearance",
 		"icon": "auto_fix_high",
+		"ui": {
+			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 4 }
+		},
 		"styles": [
 			{
 				"id": "opacity",
@@ -924,6 +1259,9 @@
 		"name": "Animation & Transitions",
 		"description": "Add motion and transition effects to subtitles",
 		"icon": "animation",
+		"ui": {
+			"panel": { "id": "effects", "icon": "auto_fix_high", "label": "effects", "order": 3, "categoryOrder": 5 }
+		},
 		"styles": [
 			{
 				"id": "scale",
@@ -956,6 +1294,9 @@
 		"name": "Custom CSS",
 		"description": "Add your own custom CSS to fully customize subtitle appearance",
 		"icon": "code",
+		"ui": {
+			"panel": { "id": "advanced", "icon": "code", "label": "custom-css", "order": 5, "categoryOrder": 0 }
+		},
 		"styles": [
 			{
 				"id": "custom-css",

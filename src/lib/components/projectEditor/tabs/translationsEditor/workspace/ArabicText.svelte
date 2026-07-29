@@ -38,6 +38,12 @@
 
 	let arabicDisplayParts = $derived(() => subtitle.getArabicRenderParts());
 	let words = $derived(() => arabicDisplayParts().text.split(' ').filter(Boolean));
+	let arabicVerseNumberSuffix = $derived(() => {
+		if (arabicDisplayParts().suffix) return arabicDisplayParts().suffix;
+		if (!(subtitle instanceof SubtitleClip) || !subtitle.isLastWordsOfVerse) return '';
+
+		return ` ${String(subtitle.verse).replace(/\d/g, (digit) => '٠١٢٣٤٥٦٧٨٩'[Number(digit)])}`;
+	});
 	let wbwTranslationWords = $state<string[]>([]);
 	let wbwTranslationRequestId = 0;
 	let activeInlineFlags = $derived(() => ({
@@ -227,13 +233,13 @@
 			</button>
 		{/each}
 
-		{#if arabicDisplayParts().suffix}
+		{#if arabicVerseNumberSuffix()}
 			<span
 				style={arabicDisplayParts().suffixFontFamily
 					? `font-family: ${arabicDisplayParts().suffixFontFamily};`
 					: ''}
 			>
-				{arabicDisplayParts().suffix}
+				{arabicVerseNumberSuffix()}
 			</span>
 		{/if}
 	</div>

@@ -29,6 +29,7 @@ RecitersManager.loadReciters();
 
 // Load la police d'écriture du Mushaf
 QPCFontProvider.loadQPC2Data();
+QPCFontProvider.loadImportedFonts();
 
 // Charge les exports
 ExportService.loadExports();

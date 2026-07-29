@@ -9,6 +9,7 @@
 		getSubtitleClipsWithoutWbwTimestamps,
 		markSubtitlesWithoutWbwTimestampsForReview
 	} from '$lib/services/AutoSegmentation';
+	import { isWbwComputeBusy, runWbwCompute } from '$lib/services/WbwComputeStore.svelte';
 
 	let missingWbwSegmentsCount = $derived(getSubtitleClipsWithoutWbwTimestamps().length);
 	let missingWbwSegmentsMarkedCount = $derived(
@@ -16,39 +17,52 @@
 			.length
 	);
 
-	let isComputing = $state(false);
+	// Occupation hébergée hors composant (store de module) : survit au démontage du
+	// Subtitles Editor lors d'une bascule d'onglet/fenêtre dans QC, donc le bouton
+	// retrouve son état occupé au remontage et un double calcul est bloqué.
+	const projectId = $derived(globalState.currentProject?.detail.id ?? -1);
+	const isComputing = $derived(isWbwComputeBusy(projectId));
 
 	/**
 	 * Calcule à la demande les timestamps WBW manquants via l'API du Universal Aligner.
+	 *
+	 * Délègue au store (détaché du composant) : la bascule d'onglet/fenêtre dans QC
+	 * n'interrompt plus le calcul, et une notification annonce la fin. Les clips ciblés
+	 * sont capturés par référence à l'intérieur de `computeMissingWbwTimestamps`, donc
+	 * les résultats se posent sur les bons sous-titres même après une bascule.
 	 */
-	async function handleComputeWbwTimestamps(): Promise<void> {
-		if (isComputing) return;
-		const targetCount = missingWbwSegmentsCount;
-		if (targetCount <= 0) {
+	function handleComputeWbwTimestamps(): void {
+		const project = globalState.currentProject;
+		if (!project || isComputing) return;
+		if (missingWbwSegmentsCount <= 0) {
 			toast(get(LL).editor.noMissingWbw());
 			return;
 		}
 
-		isComputing = true;
-		try {
-			const { enriched, total } = await computeMissingWbwTimestamps();
-			if (enriched > 0) {
-				toast.success(
-					get(LL).editor.wbwTimestampsComputed({
-						enriched,
-						total,
-						plural: total > 1 ? 's' : ''
-					})
-				);
-			} else {
-				toast.error(get(LL).editor.noWbwTimestampsComputed());
+		const computeLabel = get(LL).editor.computeTimestamps();
+		void runWbwCompute({
+			projectId: project.detail.id,
+			errorTitle: get(LL).editor.failedToComputeWbwTimestamps(),
+			run: async () => {
+				const { enriched, total } = await computeMissingWbwTimestamps();
+				if (enriched > 0) {
+					return {
+						title: computeLabel,
+						body: get(LL).editor.wbwTimestampsComputed({
+							enriched,
+							total,
+							plural: total > 1 ? 's' : ''
+						}),
+						level: 'success'
+					};
+				}
+				return {
+					title: computeLabel,
+					body: get(LL).editor.noWbwTimestampsComputed(),
+					level: 'error'
+				};
 			}
-		} catch (error) {
-			console.error('[WBW] Failed to compute timestamps:', error);
-			toast.error(get(LL).editor.failedToComputeWbwTimestamps());
-		} finally {
-			isComputing = false;
-		}
+		});
 	}
 
 	/**
@@ -83,10 +97,10 @@
 	<div class="rounded-lg border border-sky-400/25 bg-sky-500/10 p-3 space-y-3">
 		<div class="flex items-center justify-between gap-2">
 			<div class="flex items-center gap-1.5">
-				<span class="material-icons text-sky-300 text-sm">flag</span>
+				<span class="material-icons text-primary text-sm">flag</span>
 				<span class="text-xs text-secondary">{$LL.editor.markMissingWbw()}</span>
 			</div>
-			<span class="text-xs font-bold text-sky-300"
+			<span class="text-xs font-bold text-primary"
 				>{get(LL).editor.markedCount({ count: missingWbwSegmentsMarkedCount })}</span
 			>
 		</div>
@@ -105,14 +119,14 @@
 
 		<div class="space-y-2">
 			<button
-				class="w-full px-2 py-1.5 rounded-md bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 font-medium flex items-center justify-center gap-1.5 hover:bg-emerald-500/30 transition cursor-pointer text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+				class="w-full px-2 py-1.5 rounded-md bg-emerald-500/20 border border-emerald-400/40 text-primary font-medium flex items-center justify-center gap-1.5 hover:bg-emerald-500/30 transition cursor-pointer text-xs disabled:opacity-60 disabled:cursor-not-allowed"
 				type="button"
 				onclick={handleComputeWbwTimestamps}
 				disabled={isComputing}
 			>
 				{#if isComputing}
 					<span
-						class="h-3.5 w-3.5 rounded-full border-2 border-emerald-200 border-t-transparent animate-spin"
+						class="h-3.5 w-3.5 rounded-full border-2 border-[var(--text-primary)] border-t-transparent animate-spin"
 					></span>
 				{:else}
 					<span class="material-icons text-sm!">auto_awesome</span>
@@ -123,7 +137,7 @@
 
 		<div class="grid grid-cols-3 gap-2">
 			<button
-				class="px-2 py-1.5 rounded-md bg-sky-500/20 border border-sky-400/40 text-sky-200 font-medium flex items-center justify-center gap-1.5 hover:bg-sky-500/30 transition cursor-pointer text-xs disabled:opacity-60 disabled:cursor-not-allowed {missingWbwSegmentsMarkedCount <=
+				class="px-2 py-1.5 rounded-md bg-sky-500/20 border border-sky-400/40 text-primary font-medium flex items-center justify-center gap-1.5 hover:bg-sky-500/30 transition cursor-pointer text-xs disabled:opacity-60 disabled:cursor-not-allowed {missingWbwSegmentsMarkedCount <=
 				0
 					? 'col-span-3'
 					: 'col-span-2'}"

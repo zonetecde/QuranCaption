@@ -37,10 +37,12 @@
 
 	let totalDuration = $derived(() => {
 		// Récupère la fin du clip le plus loin dans la timeline
+		const project = globalState.currentProject;
 		const longestClipEnd =
-			globalState.currentProject?.content.timeline.getLongestTrackDuration() ?? new Duration(0);
+			project?.content.timeline.getLongestTrackDuration() ?? new Duration(0);
 
-		globalState.currentProject!.detail.duration = longestClipEnd;
+		// Pas de projet ouvert (fermeture/rechargement HMR) : ne pas déréférencer null.
+		if (project) project.detail.duration = longestClipEnd;
 
 		if (!longestClipEnd.isNull())
 			return new Duration(
@@ -917,7 +919,8 @@
 <section
 	class="overflow-hidden min-w-0 timeline-section flex-1 min-h-0"
 	style={useSplitHeight
-		? `height: ${100 - globalState.currentProject!.projectEditorState.upperSectionHeight}%;`
+		? `height: ${100 -
+				globalState.settings!.persistentUiState.projectEditorLayout.upperSectionHeight}%;`
 		: ''}
 >
 	<div class="timeline-container select-none" onwheel={handleMouseWheelWheeling}>
@@ -1059,6 +1062,21 @@
 						style="left: {(globalState.getExportState.videoEndTime / 1000) * timelineState().zoom +
 							timelineLeftHeaderWidthPx}px;"
 					></div>
+					{#each globalState.getExportState.skipRanges ?? [] as range}
+						<div
+							class="skip-range-overlay"
+							style="left: {(range.startTime / 1000) * timelineState().zoom + 180}px;
+								width: {(Math.max(0, range.endTime - range.startTime) / 1000) * timelineState().zoom}px;"
+						></div>
+						<div
+							class="skip-range-border skip-start"
+							style="left: {(range.startTime / 1000) * timelineState().zoom + 180}px;"
+						></div>
+						<div
+							class="skip-range-border skip-end"
+							style="left: {(range.endTime / 1000) * timelineState().zoom + 180}px;"
+						></div>
+					{/each}
 				{/if}
 			</div>
 		</div>
@@ -1333,5 +1351,43 @@
 		background: #22c55e;
 		clip-path: polygon(0 0, 100% 0, 50% 100%);
 		box-shadow: 0 2px 6px rgba(34, 197, 94, 0.4);
+	}
+
+	.skip-range-overlay {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		background: rgba(168, 85, 247, 0.28);
+		border: 1px solid rgba(168, 85, 247, 0.55);
+		border-radius: 4px;
+		z-index: 1;
+		pointer-events: none;
+	}
+
+	.skip-range-border {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		width: 3px;
+		background: #a855f7;
+		z-index: 1;
+		pointer-events: none;
+		box-shadow: 0 0 8px rgba(168, 85, 247, 0.65);
+	}
+
+	.skip-range-border.skip-end {
+		margin-left: -3px;
+	}
+
+	.skip-range-border::after {
+		content: '';
+		position: absolute;
+		top: -6px;
+		left: -3px;
+		width: 9px;
+		height: 12px;
+		background: #a855f7;
+		clip-path: polygon(0 0, 100% 0, 50% 100%);
+		box-shadow: 0 2px 6px rgba(168, 85, 247, 0.5);
 	}
 </style>

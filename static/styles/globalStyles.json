@@ -4,6 +4,30 @@
 		"name": "General Settings",
 		"description": "Configure general settings for the video",
 		"icon": "animation",
+		"ui": {
+			"panel": { "id": "video", "icon": "movie", "label": "general", "order": 0, "categoryOrder": 0 },
+			"groups": [
+				{
+					"id": "layout",
+					"styleIds": [
+						"video-dimension",
+						"media-fill",
+						"media-scale",
+						"media-position-x",
+						"media-position-y"
+					]
+				},
+				{ "id": "spacing", "styleIds": ["anti-collision", "spacing"] },
+				{
+					"id": "timing",
+					"styleIds": ["fade-duration", "video-and-audio-fade"]
+				},
+				{
+					"id": "transitions",
+					"styleIds": ["video-clip-transition", "video-clip-transition-duration"]
+				}
+			]
+		},
 		"styles": [
 			{
 				"id": "video-dimension",
@@ -17,6 +41,55 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "screen_rotation"
+			},
+			{
+				"id": "media-fill",
+				"name": "Fill Frame",
+				"description": "Crop background videos and images to fill the entire frame",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "crop_free"
+			},
+			{
+				"id": "media-scale",
+				"name": "Zoom",
+				"description": "Zoom the background media",
+				"value": 100,
+				"valueType": "number",
+				"valueMin": 100,
+				"valueMax": 300,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "zoom_in"
+			},
+			{
+				"id": "media-position-x",
+				"name": "Horizontal Position",
+				"description": "Move the background media horizontally relative to the center",
+				"value": 0,
+				"valueType": "number",
+				"valueMin": -100,
+				"valueMax": 100,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "swap_horiz"
+			},
+			{
+				"id": "media-position-y",
+				"name": "Vertical Position",
+				"description": "Move the background media vertically relative to the center",
+				"value": 0,
+				"valueType": "number",
+				"valueMin": -100,
+				"valueMax": 100,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "swap_vert"
 			},
 			{
 				"id": "fade-duration",
@@ -101,6 +174,44 @@
 		"name": "Overlay",
 		"description": "Add a color overlay on top of the video",
 		"icon": "layers",
+		"ui": {
+			"panel": { "id": "overlay", "icon": "layers", "label": "overlay", "order": 1, "categoryOrder": 0 },
+			"headerStyle": "overlay-enable",
+			"groups": [
+				{
+					"id": "basics",
+					"styleIds": ["overlay-enable", "overlay-color", "overlay-opacity", "overlay-blur"]
+				},
+				{
+					"id": "fade",
+					"styleIds": [
+						"background-overlay-mode",
+						"background-overlay-fade-intensity",
+						"background-overlay-fade-coverage",
+						"background-overlay-fade-softness",
+						"background-overlay-fade-curve",
+						"background-overlay-fade-invert",
+						"background-overlay-fade-position-x",
+						"background-overlay-fade-position-y",
+						"background-overlay-fade-width",
+						"background-overlay-fade-height"
+					]
+				},
+				{
+					"id": "videoFrame",
+					"styleIds": [
+						"video-frame-enable",
+						"video-frame-content-above",
+						"video-frame-color",
+						"video-frame-vertical-size",
+						"video-frame-horizontal-size",
+						"video-frame-radius",
+						"video-frame-softness"
+					]
+				},
+				{ "id": "advanced", "styleIds": ["overlay-custom-css"] }
+			]
+		},
 		"styles": [
 			{
 				"id": "overlay-enable",
@@ -138,10 +249,26 @@
 			{
 				"id": "background-overlay-mode",
 				"name": "Overlay Mode",
-				"description": "Uniform or vertical fade (up, down, or center)",
+				"description": "Choose the direction or shape of the overlay fade",
 				"value": "uniform",
 				"valueType": "select",
-				"options": ["uniform", "fade-up", "fade-down", "fade-center"],
+				"options": [
+					"uniform",
+					"fade-up",
+					"fade-down",
+					"fade-center",
+					"fade-left",
+					"fade-right",
+					"fade-left-right",
+					"fade-top-bottom",
+					"fade-four-corners",
+					"fade-four-sides",
+					"fade-vignette",
+					"fade-top-left",
+					"fade-top-right",
+					"fade-bottom-left",
+					"fade-bottom-right"
+				],
 				"css": "",
 				"tailwind": false,
 				"icon": "gradient"
@@ -162,7 +289,7 @@
 			{
 				"id": "background-overlay-fade-coverage",
 				"name": "Fade Coverage",
-				"description": "Controls how much vertical area is used by fade versus non-fade zones",
+				"description": "Control how much of the overlay is occupied by the fade",
 				"value": 0.75,
 				"valueType": "number",
 				"valueMin": 0,
@@ -171,6 +298,92 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "gradient"
+			},
+			{
+				"id": "background-overlay-fade-softness",
+				"name": "Fade Softness",
+				"description": "Control how gradually the fade transitions between its light and strong areas",
+				"value": 1,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 1,
+				"step": 0.01,
+				"css": "",
+				"tailwind": false,
+				"icon": "blur_linear"
+			},
+			{
+				"id": "background-overlay-fade-curve",
+				"name": "Fade Curve",
+				"description": "Choose how the fade opacity progresses through its transition",
+				"value": "linear",
+				"valueType": "select",
+				"options": ["linear", "ease-in", "ease-out", "smooth"],
+				"css": "",
+				"tailwind": false,
+				"icon": "ssid_chart"
+			},
+			{
+				"id": "background-overlay-fade-invert",
+				"name": "Invert Fade",
+				"description": "Swap the strong and light areas of the fade",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "invert_colors"
+			},
+			{
+				"id": "background-overlay-fade-position-x",
+				"name": "Fade Horizontal Position",
+				"description": "Move the center of the fade horizontally",
+				"value": 0.5,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 1,
+				"step": 0.01,
+				"css": "",
+				"tailwind": false,
+				"icon": "swap_horiz"
+			},
+			{
+				"id": "background-overlay-fade-position-y",
+				"name": "Fade Vertical Position",
+				"description": "Move the center of the fade vertically",
+				"value": 0.5,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 1,
+				"step": 0.01,
+				"css": "",
+				"tailwind": false,
+				"icon": "swap_vert"
+			},
+			{
+				"id": "background-overlay-fade-width",
+				"name": "Fade Width",
+				"description": "Control the horizontal size of radial and corner fades",
+				"value": 1,
+				"valueType": "number",
+				"valueMin": 0.1,
+				"valueMax": 2,
+				"step": 0.01,
+				"css": "",
+				"tailwind": false,
+				"icon": "width_normal"
+			},
+			{
+				"id": "background-overlay-fade-height",
+				"name": "Fade Height",
+				"description": "Control the vertical size of radial and corner fades",
+				"value": 1,
+				"valueType": "number",
+				"valueMin": 0.1,
+				"valueMax": 2,
+				"step": 0.01,
+				"css": "",
+				"tailwind": false,
+				"icon": "height"
 			},
 			{
 				"id": "overlay-blur",
@@ -182,6 +395,88 @@
 				"valueMax": 30,
 				"step": 0.1,
 				"css": "--overlay-blur: {value}px;",
+				"tailwind": false,
+				"icon": "blur_on"
+			},
+			{
+				"id": "video-frame-enable",
+				"name": "Video Frame",
+				"description": "Enable or disable a global frame around the video",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "crop_16_9"
+			},
+			{
+				"id": "video-frame-content-above",
+				"name": "Content Above Frame",
+				"description": "Display subtitles and visual elements above the frame while keeping the overlay below it",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "flip_to_front"
+			},
+			{
+				"id": "video-frame-vertical-size",
+				"name": "Top & Bottom Thickness",
+				"description": "Set the top and bottom frame thickness as a percentage",
+				"value": 8,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 45,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "height"
+			},
+			{
+				"id": "video-frame-color",
+				"name": "Frame Color",
+				"description": "Choose the color of the global video frame",
+				"value": "#000000",
+				"valueType": "color",
+				"css": "",
+				"tailwind": false,
+				"icon": "palette"
+			},
+			{
+				"id": "video-frame-horizontal-size",
+				"name": "Left & Right Thickness",
+				"description": "Set the left and right frame thickness as a percentage",
+				"value": 8,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 45,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "width_normal"
+			},
+			{
+				"id": "video-frame-radius",
+				"name": "Corner Roundness",
+				"description": "Round the inner corners of the video frame as a percentage",
+				"value": 4,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 50,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "rounded_corner"
+			},
+			{
+				"id": "video-frame-softness",
+				"name": "Edge Softness",
+				"description": "Soften the inner edge of the video frame as a percentage",
+				"value": 0,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 5,
+				"step": 0.1,
+				"css": "",
 				"tailwind": false,
 				"icon": "blur_on"
 			},
@@ -202,6 +497,42 @@
 		"name": "Surah Name",
 		"description": "Control display of the Surah name",
 		"icon": "title",
+		"ui": {
+			"panel": { "id": "on-screen", "icon": "branding_watermark", "label": "onScreenElements", "order": 2, "categoryOrder": 0, "categoryNavigation": true },
+			"headerStyle": "show-surah-name",
+			"groups": [
+				{
+					"id": "basics",
+					"styleIds": ["show-surah-name", "surah-show-arabic", "surah-show-latin"]
+				},
+				{
+					"id": "typography",
+					"styleIds": [
+						"surah-name-format",
+						"surah-calligraphy-style",
+						"surah-size",
+						"surah-latin-spacing",
+						"surah-latin-text-style"
+					]
+				},
+				{
+					"id": "layout",
+					"styleIds": [
+						"surah-name-vertical-position",
+						"surah-name-horizontal-position",
+						"surah-opacity"
+					]
+				},
+				{
+					"id": "timing",
+					"styleIds": [
+						"surah-name-always-show",
+						"surah-name-time-appearance",
+						"surah-name-time-disappearance"
+					]
+				}
+			]
+		},
 		"styles": [
 			{
 				"id": "show-surah-name",
@@ -369,6 +700,46 @@
 		"name": "Reciter Name",
 		"description": "Control display of the Reciter name",
 		"icon": "person",
+		"ui": {
+			"panel": { "id": "on-screen", "icon": "branding_watermark", "label": "onScreenElements", "order": 2, "categoryOrder": 1, "categoryNavigation": true },
+			"headerStyle": "show-reciter-name",
+			"groups": [
+				{
+					"id": "basics",
+					"styleIds": [
+						"show-reciter-name",
+						"reciter-name",
+						"reciter-show-arabic",
+						"reciter-show-latin"
+					]
+				},
+				{
+					"id": "typography",
+					"styleIds": [
+						"reciter-name-format",
+						"reciter-size",
+						"reciter-latin-spacing",
+						"reciter-latin-text-style"
+					]
+				},
+				{
+					"id": "layout",
+					"styleIds": [
+						"reciter-name-vertical-position",
+						"reciter-name-horizontal-position",
+						"reciter-opacity"
+					]
+				},
+				{
+					"id": "timing",
+					"styleIds": [
+						"reciter-name-always-show",
+						"reciter-name-time-appearance",
+						"reciter-name-time-disappearance"
+					]
+				}
+			]
+		},
 		"styles": [
 			{
 				"id": "show-reciter-name",
@@ -534,6 +905,28 @@
 		"name": "Ayah Container",
 		"description": "Add a decorative background image behind the ayah",
 		"icon": "gradient",
+		"ui": {
+			"panel": { "id": "on-screen", "icon": "branding_watermark", "label": "onScreenElements", "order": 2, "categoryOrder": 3, "categoryNavigation": true },
+			"groups": [
+				{
+					"id": "basics",
+					"styleIds": ["ayah-container-image", "ayah-container-stretch"]
+				},
+				{
+					"id": "layout",
+					"styleIds": [
+						"ayah-container-vertical-position",
+						"ayah-container-horizontal-position",
+						"ayah-container-width",
+						"ayah-container-height"
+					]
+				},
+				{
+					"id": "timing",
+					"styleIds": ["always-show", "time-appearance", "time-disappearance"]
+				}
+			]
+		},
 		"styles": [
 			{
 				"id": "ayah-container-image",
@@ -643,6 +1036,21 @@
 		"name": "Verse Number (Separated From Text)",
 		"description": "Control display of the Verse number",
 		"icon": "format_list_numbered",
+		"ui": {
+			"panel": { "id": "on-screen", "icon": "branding_watermark", "label": "onScreenElements", "order": 2, "categoryOrder": 2, "categoryNavigation": true },
+			"headerStyle": "show-verse-number",
+			"groups": [
+				{ "id": "basics", "styleIds": ["show-verse-number"] },
+				{
+					"id": "typography",
+					"styleIds": ["verse-number-format", "verse-number-text-style"]
+				},
+				{
+					"id": "layout",
+					"styleIds": ["verse-number-vertical-position", "verse-number-horizontal-position"]
+				}
+			]
+		},
 		"styles": [
 			{
 				"id": "show-verse-number",

@@ -94,7 +94,9 @@
 
 	async function openProjectButtonClick() {
 		// Ouvre le projet
-		globalState.currentProject = await ProjectService.load(projectDetail.id);
+		const project = await ProjectService.load(projectDetail.id);
+		await MigrationService.HydrateStyleEditorUiMetadata(project);
+		globalState.currentProject = project;
 
 		// Migration si besoin
 		MigrationService.FromQC313ToQC314();

@@ -17,7 +17,10 @@ export default defineConfig({
 					protocol: 'ws',
 					host: tauriDevHost
 				}
-			: undefined
+			: undefined,
+		watch: {
+			ignored: ['**/src-tauri/target/**']
+		}
 	},
 	test: {
 		projects: [

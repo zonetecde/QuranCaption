@@ -198,15 +198,23 @@ L'overlay se compose de **deux divs** :
 
 ### Modes de dégradé
 
-| Mode          | Description                                                    |
-| ------------- | -------------------------------------------------------------- |
-| `uniform`     | Couleur unie (`background-color`) avec opacité                 |
-| `fade-up`     | Dégradé linéaire du haut (opaque) vers le centre (transparent) |
-| `fade-down`   | Dégradé linéaire du haut (transparent) vers le bas (opaque)    |
-| `fade-center` | Dégradé avec fondu aux extrémités, opaque au centre            |
+| Mode                                    | Description                                           |
+| --------------------------------------- | ----------------------------------------------------- |
+| `uniform`                               | Couleur unie (`background-color`) avec opacité        |
+| `fade-up`, `fade-down`                  | Fade vertical historique                              |
+| `fade-center`                           | Centre fort et bords haut/bas atténués                |
+| `fade-left`, `fade-right`               | Fade depuis un côté horizontal                        |
+| `fade-left-right`, `fade-top-bottom`    | Fade symétrique depuis deux côtés opposés             |
+| `fade-four-corners`                     | Fade radial ancré aux quatre coins                    |
+| `fade-four-sides`                       | Fade rectangulaire continu depuis les quatre bords    |
+| `fade-vignette`                         | Vignette elliptique positionnable et redimensionnable |
+| `fade-top-left`, `fade-top-right`       | Fade radial ancré à un coin supérieur                 |
+| `fade-bottom-left`, `fade-bottom-right` | Fade radial ancré à un coin inférieur                 |
 
-Les paramètres `fadeIntensity` (différence d'opacité bord/centre) et `fadeCoverage` (étendue du
-fondu) sont configurables.
+L'intensité, la couverture, la douceur, la courbe et l'inversion sont configurables pour tous les
+fades. La position est utilisée par la vignette ; la largeur et la hauteur s'appliquent à la
+vignette et aux fades de coins. Les trois fades historiques conservent leur CSS lorsque ces nouveaux
+réglages gardent leurs valeurs par défaut.
 
 ---
 
@@ -588,6 +596,10 @@ En mode export (`isExportCapturePreview = true`) :
   `display: inline`
 - Les segments sans styles inline sont concaténés avec leur suffixe pour éviter des coupures de span
   parasites dans `modern-screenshot`
+- Sous Windows et Linux, les polices système utilisées sont temporairement réduites aux caractères
+  visibles avant `domToBlob()`. Le DOM et ses alignements CSS restent inchangés. Voir
+  [Polices système et capture d'export](system-font-export.md).
+- macOS conserve son chemin spécifique qui redessine le texte sur canvas.
 
 ---
 
@@ -602,6 +614,7 @@ En mode export (`isExportCapturePreview = true`) :
 | `helpers/antiCollision.ts`       | Résolution des collisions entre sous-titres                                  |
 | `helpers/reactiveFontSize.ts`    | Ajustement réactif de la taille de police                                    |
 | `helpers/overlayCss.ts`          | CSS des effets d'overlay et padding de fond                                  |
+| `services/SystemFontSubset.ts`   | Réduction HarfBuzz des polices système avant les captures DOM                |
 | `helpers/decorativeBrackets.ts`  | Glyphes décoratifs pour les crochets arabes                                  |
 | `visualMergeOverlayUtils.ts`     | Utilitaires de fusion visuelle (segments, chevauchements)                    |
 | `wordByWordHighlightUtils.ts`    | Calcul de l'état et du CSS du highlight WBW                                  |

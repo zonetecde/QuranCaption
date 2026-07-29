@@ -16,6 +16,7 @@
 		createPlainOverlaySegment,
 		getMergedClipsWithoutWordOverlap,
 		getVisibleTranslationSegments as getVisibleTranslationSegmentsUtil,
+		hasSharedMergedTranslation,
 		isVisualMergeTargetMerged,
 		type OverlayTextSegment
 	} from './visualMergeOverlayUtils';
@@ -23,6 +24,7 @@
 	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 	import {
 		type WordByWordHighlightState,
+		getWordByWordLineBackgroundClass,
 		getWordByWordHighlightProgress,
 		getWordByWordHighlightState,
 		getWordByWordWordCss,
@@ -71,6 +73,11 @@
 		words: SegmentationWordTimestamp[];
 		clipStartTimeS: number;
 		maxRevealedUnitIndexByWordIndex: number[];
+	};
+
+	type TranslationWbwHighlight = {
+		wordIndex: number;
+		progress: number;
 	};
 
 	let cachedWbwRenderDataKey = '';
@@ -284,7 +291,7 @@
 		let previousWordFlags: TranslationInlineStyleFlags | null = null;
 		for (let index = 0; index < tokens.length; index++) {
 			const token = tokens[index];
-			if (!token.isWord && previousWordFlags?.lineBreak) continue;
+			if (!token.isWord && previousWordFlags?.lineBreak && /^\s+$/.test(token.text)) continue;
 			const flags =
 				token.isWord && token.wordIndex !== null
 					? getInlineStyleFlagsForWordIndex(translation.inlineStyleRuns ?? [], token.wordIndex)
@@ -355,6 +362,10 @@
 
 		const group = currentVisualMergeGroup();
 		if (!group) {
+			cachedWbwRenderData = null;
+			return cachedWbwRenderData;
+		}
+		if (hasSharedMergedTranslation(group.clips, edition)) {
 			cachedWbwRenderData = null;
 			return cachedWbwRenderData;
 		}
@@ -466,26 +477,110 @@
 		let wbwCss = '';
 		let inlineRevealProgress = 1;
 		const wbwWordIndexes = segment.wbwWordIndexes ?? [];
-		if (wbwWordIndexes.length > 0 && state.enabled) {
-			let bestIndex = wbwWordIndexes[0];
-			let bestProgress = 0;
-			for (const index of wbwWordIndexes) {
-				if (!shouldComputeWordByWordProgress(index, state)) continue;
+		const highlight = getTranslationSegmentHighlight(segment, state);
+		if (highlight) {
+			const { wordIndex: bestIndex, progress: bestProgress } = highlight;
 
-				const progress = getWordByWordHighlightProgress(index, state, wbwPreviewFadeDuration());
-				if (progress > bestProgress || bestProgress === 0) {
-					bestIndex = index;
-					bestProgress = progress;
-				}
-			}
-
-			if (bestProgress > 0 || state.underlineEnabled || state.revealWordsOnRecitation) {
+			if (
+				bestProgress > 0 ||
+				state.underlineEnabled ||
+				state.revealWordsOnRecitation ||
+				state.currentWordCustomCss.trim() ||
+				state.currentWordOpacityEnabled
+			) {
 				wbwCss = getWordByWordWordCss(bestIndex, state, bestProgress, wbwPreviewFadeDuration());
 			}
 			inlineRevealProgress = getInlineStyleRevealProgress(wbwWordIndexes, bestProgress, state);
 		}
 
 		return `${wbwCss} ${getForcedRevealCss(segment, state, data)} ${getRevealedInlineStyleCss(segment, inlineRevealProgress, state)} ${segment.extraCss ?? ''}`.trim();
+	}
+
+	/**
+	 * Résout le mot WBW le plus avancé lié à un segment de traduction.
+	 * @param {TranslationWbwOverlaySegment} segment Segment à évaluer.
+	 * @param {WordByWordHighlightState} state État WBW courant.
+	 * @returns {TranslationWbwHighlight | null} Mot et progression retenus, ou `null` sans mapping.
+	 */
+	function getTranslationSegmentHighlight(
+		segment: TranslationWbwOverlaySegment,
+		state: WordByWordHighlightState
+	): TranslationWbwHighlight | null {
+		const wbwWordIndexes = segment.wbwWordIndexes ?? [];
+		if (wbwWordIndexes.length === 0 || !state.enabled) return null;
+
+		let wordIndex = wbwWordIndexes[0];
+		let progress = 0;
+		for (const index of wbwWordIndexes) {
+			if (!shouldComputeWordByWordProgress(index, state)) continue;
+
+			const candidateProgress = getWordByWordHighlightProgress(
+				index,
+				state,
+				wbwPreviewFadeDuration()
+			);
+			if (candidateProgress > progress || progress === 0) {
+				wordIndex = index;
+				progress = candidateProgress;
+			}
+		}
+
+		return { wordIndex, progress };
+	}
+
+	/**
+	 * Retourne les classes de barre WBW d'un segment de traduction.
+	 * @param {number} segmentIndex Index du segment à évaluer.
+	 * @param {TranslationWbwOverlaySegment[]} segments Segments visibles dans l'ordre du texte.
+	 * @param {TranslationWbwOverlaySegment} segment Segment à évaluer.
+	 * @param {WordByWordHighlightState} state État WBW courant.
+	 * @returns {string} Classes CSS de la barre WBW, ou chaîne vide.
+	 */
+	function getTranslationSegmentLineBackgroundClass(
+		segmentIndex: number,
+		segments: TranslationWbwOverlaySegment[],
+		segment: TranslationWbwOverlaySegment,
+		state: WordByWordHighlightState
+	): string {
+		const highlight = getTranslationSegmentHighlight(segment, state);
+		if (!highlight) return '';
+
+		let previousHighlight: TranslationWbwHighlight | null = null;
+		for (let index = segmentIndex - 1; index >= 0; index--) {
+			if (segments[index].flags.lineBreak) break;
+			previousHighlight = getTranslationSegmentHighlight(segments[index], state);
+			if (previousHighlight) break;
+		}
+
+		let nextHighlight: TranslationWbwHighlight | null = null;
+		if (!segment.flags.lineBreak) {
+			for (let index = segmentIndex + 1; index < segments.length; index++) {
+				nextHighlight = getTranslationSegmentHighlight(segments[index], state);
+				if (nextHighlight) break;
+				if (segments[index].flags.lineBreak) break;
+			}
+		}
+
+		/**
+		 * Indique si un segment voisin prolonge la barre courante.
+		 * @param {TranslationWbwHighlight | null} neighbor Highlight du voisin.
+		 * @returns {boolean} `true` si les deux segments doivent être raccordés.
+		 */
+		const isConnected = (neighbor: TranslationWbwHighlight | null): boolean =>
+			!!neighbor &&
+			neighbor.progress > 0 &&
+			(state.persistColor || neighbor.wordIndex === highlight.wordIndex);
+		return getWordByWordLineBackgroundClass(
+			highlight.wordIndex,
+			state,
+			highlight.progress,
+			wbwPreviewFadeDuration(),
+			{
+				previous: isConnected(previousHighlight),
+				next:
+					isConnected(nextHighlight) && (!state.persistColor || (nextHighlight?.progress ?? 0) >= 1)
+			}
+		);
 	}
 
 	/**
@@ -605,6 +700,7 @@
 			cursorTimeS: getTimelineSettings().cursorPosition / 1000,
 			words: data?.words ?? [],
 			clipStartTimeS: data?.clipStartTimeS,
+			baseOpacity: subtitleOpacity,
 			getStyleValue: (styleId) =>
 				referenceClip ? styles.getEffectiveValue(styleId as never, referenceClip.id) : false
 		});
@@ -648,23 +744,37 @@
 		horizontalStyleId: 'horizontal-position'
 	}}
 	class={`translation absolute subtitle select-none z-10 ${edition} ${tailwind} ${helperStyles}`}
-	style={`opacity: ${subtitleOpacity}; ${css}; ${runtimeLayoutCss}; ${backgroundHorizontalPaddingCss} white-space: pre-line;`}
+	style={`opacity: ${wbwState().enabled ? 1 : subtitleOpacity}; ${css}; ${runtimeLayoutCss}; ${backgroundHorizontalPaddingCss} white-space: pre-line;`}
 >
+	<!-- Le wrapper externe porte le layout flex, le fond interne reste fragmentable par ligne. -->
 	<span class="translation-inline-flow">
-		{#if true}
-			{@const state = wbwState()}
-			{@const data = wbwRenderData()}
-			{#each state.enabled && data ? visibleWbwSegments() : visibleSegments() as segment (segment.key)}
-				{@const segmentStyle = getTranslationSegmentCss(segment, state, data)}
-				{#if segmentStyle}
-					<span style={segmentStyle}>{segment.text}</span>
-				{:else}
-					{segment.text}
-				{/if}
-				{#if segment.flags.lineBreak}
-					<br />
-				{/if}
-			{/each}
-		{/if}
+		<span class="line-background">
+			{#if true}
+				{@const state = wbwState()}
+				{@const data = wbwRenderData()}
+				{@const renderedSegments = state.enabled && data ? visibleWbwSegments() : visibleSegments()}
+				{#each renderedSegments as segment, segmentIndex (segment.key)}
+					{@const segmentStyle = getTranslationSegmentCss(segment, state, data)}
+					{@const segmentClass = getTranslationSegmentLineBackgroundClass(
+						segmentIndex,
+						renderedSegments,
+						segment,
+						state
+					)}
+					{#if state.enabled && data}
+						<span class={segmentClass} style={segmentStyle}>
+							<span class="wbw-line-background-text">{segment.text}</span>
+						</span>
+					{:else if segmentStyle || segmentClass}
+						<span class={segmentClass} style={segmentStyle}>{segment.text}</span>
+					{:else}
+						{segment.text}
+					{/if}
+					{#if segment.flags.lineBreak}
+						<br />
+					{/if}
+				{/each}
+			{/if}
+		</span>
 	</span>
 </p>

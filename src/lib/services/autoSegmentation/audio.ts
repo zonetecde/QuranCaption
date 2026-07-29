@@ -1,5 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { globalState } from '$lib/runes/main.svelte';
+import type { Project } from '$lib/classes/Project';
+import { TrackType } from '$lib/classes/enums';
 import type {
 	AutoSegmentationAudioClip,
 	AutoSegmentationAudioInfo,
@@ -10,13 +12,14 @@ import type {
 /**
  * Extrait les clips audio présents sur la timeline du projet.
  *
+ * @param {Project | null} project Projet explicite, ou projet global par défaut.
  * @returns {AutoSegmentationAudioClip[]} Liste des clips audio triés par temps de début.
  */
-export function getAutoSegmentationAudioClips(): AutoSegmentationAudioClip[] {
-	const project = globalState.currentProject;
-	const audioTrack = globalState.getAudioTrack;
-
-	if (!project || !audioTrack) return [];
+export function getAutoSegmentationAudioClips(
+	project: Project | null = globalState.currentProject
+): AutoSegmentationAudioClip[] {
+	if (!project) return [];
+	const audioTrack = project.content.timeline.getFirstTrack(TrackType.Audio);
 
 	const clips: AutoSegmentationAudioClip[] = [];
 
@@ -49,10 +52,13 @@ export function getAutoSegmentationAudioClips(): AutoSegmentationAudioClip[] {
 /**
  * Récupère les informations du premier clip audio du projet.
  *
+ * @param {Project | null} project Projet explicite, ou projet global par défaut.
  * @returns {AutoSegmentationAudioInfo | null} Infos du premier clip, ou null si aucun clip audio.
  */
-export function getAutoSegmentationAudioInfo(): AutoSegmentationAudioInfo | null {
-	const clips = getAutoSegmentationAudioClips();
+export function getAutoSegmentationAudioInfo(
+	project: Project | null = globalState.currentProject
+): AutoSegmentationAudioInfo | null {
+	const clips = getAutoSegmentationAudioClips(project);
 	if (clips.length === 0) return null;
 
 	const first = clips[0];
@@ -66,10 +72,13 @@ export function getAutoSegmentationAudioInfo(): AutoSegmentationAudioInfo | null
 /**
  * Calcule la durée totale des clips audio en secondes.
  *
+ * @param {Project | null} project Projet explicite, ou projet global par défaut.
  * @returns {number} Durée audio totale en secondes.
  */
-export function getAutoSegmentationAudioDurationS(): number {
-	const clips = getAutoSegmentationAudioClips();
+export function getAutoSegmentationAudioDurationS(
+	project: Project | null = globalState.currentProject
+): number {
+	const clips = getAutoSegmentationAudioClips(project);
 	if (clips.length === 0) return 0;
 	const totalMs = clips.reduce((sum, clip) => sum + Math.max(0, clip.endMs - clip.startMs), 0);
 	return totalMs / 1000;

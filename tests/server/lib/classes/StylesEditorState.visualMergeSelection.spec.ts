@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { SubtitleClip } from '$lib/classes/Clip.svelte';
-import { ProjectEditorState } from '$lib/classes/ProjectEditorState.svelte';
+import { ProjectEditorState, StylesEditorState } from '$lib/classes/ProjectEditorState.svelte';
 import { SubtitleTrack } from '$lib/classes/Track.svelte';
 import { Timeline } from '$lib/classes/Timeline.svelte';
 import { globalState } from '$lib/runes/main.svelte';
@@ -93,5 +93,18 @@ describe('styles editor merge selection', () => {
 		projectEditorState.stylesEditor.removeSelection(first.id);
 
 		expect(projectEditorState.stylesEditor.selectedSubtitles).toEqual([]);
+	});
+});
+
+describe('styles editor navigation persistence', () => {
+	it('restores the active category of each style panel', () => {
+		const state = new StylesEditorState();
+		state.currentPanel = 'on-screen';
+		state.activePanelCategoryIds['on-screen'] = 'verse-number';
+
+		const restored = StylesEditorState.fromJSON(state.toJSON()) as StylesEditorState;
+
+		expect(restored.currentPanel).toBe('on-screen');
+		expect(restored.activePanelCategoryIds['on-screen']).toBe('verse-number');
 	});
 });

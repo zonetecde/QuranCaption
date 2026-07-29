@@ -79,6 +79,7 @@ class ShortcutService {
 	 * Gère les événements keyup
 	 */
 	private static handleKeyUp(event: KeyboardEvent): void {
+		if (typeof event.key !== 'string') return;
 		const key = event.key.toLowerCase();
 		const shortcut = this.shortcuts.get(key);
 

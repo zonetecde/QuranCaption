@@ -27,6 +27,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { resolveCurrentSurahFromClips } from '$lib/services/ExportCaptureTiming';
 import { scheduleWbwRealign } from '$lib/services/autoSegmentation/auto-realign.svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import type { ProjectTranslation } from './ProjectTranslation.svelte.js';
 
 export type VisualMergeSelection = {
 	clips: SubtitleClip[];
@@ -453,6 +454,8 @@ export class Track extends SerializableBase {
 }
 
 export class AssetTrack extends Track {
+	volumePercent: number = $state(100);
+
 	constructor(type: TrackType) {
 		super(type);
 	}
@@ -460,33 +463,21 @@ export class AssetTrack extends Track {
 	addAsset(asset: Asset): boolean {
 		ProjectHistoryManager.begin('add asset clip');
 		try {
-			// Récupère le dernier clip de la piste, s'il existe
-			const lastClip = this.clips.length > 0 ? this.clips[this.clips.length - 1] : null;
-
-			if (lastClip) {
-				// Prevent adding if an existing clip has the loop option enabled
-				if (this.clips.some((c) => c instanceof AssetClip && (c as AssetClip).loopUntilAudioEnd)) {
-					ModalManager.errorModal(
-						get(LL).editor.clipAdditionError(),
-						get(LL).editor.cannotAddMoreClips()
-					);
-					return false;
-				}
-
-				// S'il y a un dernier clip alors qu'on essaie de mettre une image dans la timeline (= mettre une image en
-				// tant que background pour la vidéo), alors on informe l'utilisateur que ce n'est pas possible.
-				if (asset.type === AssetType.Image) {
-					ModalManager.errorModal(
-						get(LL).editor.backgroundImageError(),
-						get(LL).editor.cannotAddBackgroundImage()
-					);
-					return false;
-				}
-
-				this.clips.push(
-					new AssetClip(lastClip.endTime + 1, lastClip.endTime + asset.duration.ms + 1, asset.id)
+			const result = this.addAssetHeadless(asset);
+			if (result === 'looped') {
+				ModalManager.errorModal(
+					get(LL).editor.clipAdditionError(),
+					get(LL).editor.cannotAddMoreClips()
 				);
-			} else this.clips.push(new AssetClip(0, asset.duration.ms, asset.id));
+				return false;
+			}
+			if (result === 'image') {
+				ModalManager.errorModal(
+					get(LL).editor.backgroundImageError(),
+					get(LL).editor.cannotAddBackgroundImage()
+				);
+				return false;
+			}
 
 			// Trigger la réactivité dans la videopreview pour afficher le clip ajouté (si le curseur est dessus)
 			setTimeout(() => {
@@ -500,6 +491,27 @@ export class AssetTrack extends Track {
 		} finally {
 			ProjectHistoryManager.commit();
 		}
+	}
+
+	/**
+	 * Insère un clip d'asset sans historique, modal ni effet de preview.
+	 * @param {Asset} asset Asset à placer après le dernier clip.
+	 * @returns {'added' | 'looped' | 'image'} Résultat de l'insertion.
+	 */
+	addAssetHeadless(asset: Asset): 'added' | 'looped' | 'image' {
+		const lastClip = this.clips.length > 0 ? this.clips[this.clips.length - 1] : null;
+		if (lastClip) {
+			if (this.clips.some((clip) => clip instanceof AssetClip && clip.loopUntilAudioEnd)) {
+				return 'looped';
+			}
+			if (asset.type === AssetType.Image) return 'image';
+			this.clips.push(
+				new AssetClip(lastClip.endTime + 1, lastClip.endTime + asset.duration.ms + 1, asset.id)
+			);
+		} else {
+			this.clips.push(new AssetClip(0, asset.duration.ms, asset.id));
+		}
+		return 'added';
 	}
 }
 
@@ -1387,7 +1399,9 @@ export class SubtitleTrack extends Track {
 		verse: Verse,
 		firstWordIndex: number,
 		lastWordIndex: number,
-		surah: number
+		surah: number,
+		projectTranslation: ProjectTranslation | null = globalState.currentProject?.content
+			.projectTranslation ?? null
 	): Promise<{
 		isFullVerse: boolean;
 		isLastWordsOfVerse: boolean;
@@ -1398,12 +1412,8 @@ export class SubtitleTrack extends Track {
 
 		// Prépare les traductions du sous-titre
 		let translations: { [key: string]: VerseTranslation } = {};
-		if (globalState.currentProject)
-			translations = await globalState.getProjectTranslation.getTranslations(
-				surah,
-				verse.id,
-				isFullVerse
-			);
+		if (projectTranslation)
+			translations = await projectTranslation.getTranslations(surah, verse.id, isFullVerse);
 
 		return {
 			isFullVerse,

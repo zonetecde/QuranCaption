@@ -58,6 +58,7 @@ export default class Exportation extends SerializableBase {
 	exportLogs: ExportLogEntry[] = $state([]);
 	date: string;
 	totalExportTimeMs: number | null;
+	sourceProjectId: number | null;
 
 	constructor(
 		exportId: number,
@@ -73,7 +74,8 @@ export default class Exportation extends SerializableBase {
 		currentTreatedTime: number = 0,
 		errorLog: string = '',
 		exportKind: ExportKind = ExportKind.Video,
-		exportLabel: string = ''
+		exportLabel: string = '',
+		sourceProjectId: number | null = null
 	) {
 		super();
 		const safeStartTime = videoStartTime ?? 0;
@@ -103,6 +105,7 @@ export default class Exportation extends SerializableBase {
 		this.currentBatchSize = $state(null);
 		this.date = $state(new Date().toISOString());
 		this.totalExportTimeMs = $state(null);
+		this.sourceProjectId = sourceProjectId;
 	}
 
 	/**

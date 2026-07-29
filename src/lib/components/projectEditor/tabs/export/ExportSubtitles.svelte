@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Exporter from '$lib/classes/Exporter';
+	import Settings from '$lib/classes/Settings.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
@@ -21,22 +22,17 @@
 	]);
 
 	onMount(() => {
-		for (const target of Object.keys(globalState.getExportState.includedTarget)) {
-			if (!subtitleExportTargets.includes(target)) {
-				delete globalState.getExportState.includedTarget[target];
-				delete globalState.getExportState.exportVerseNumbers[target];
-			}
-		}
+		const settings = globalState.settings!.subtitleExportSettings;
 
 		for (const target of subtitleExportTargets) {
-			// Si le target n'existe toujours pas dans globalState.getExportState.exportVerseNumbers, l'ajoute
-			if (!globalState.getExportState.exportVerseNumbers[target]) {
-				globalState.getExportState.exportVerseNumbers[target] = target === 'arabic' ? true : false; // Par défaut seul l'arabe a ses numéros de verset
+			if (!(target in settings.exportVerseNumbers)) {
+				settings.exportVerseNumbers[target] = target === 'arabic';
 			}
-			if (!globalState.getExportState.includedTarget[target]) {
-				globalState.getExportState.includedTarget[target] = true; // Par défaut on exporte tout
+			if (!(target in settings.includedTarget)) {
+				settings.includedTarget[target] = true;
 			}
 		}
+		void Settings.save();
 	});
 </script>
 
@@ -60,7 +56,8 @@
 					type="radio"
 					name="subtitle-format"
 					value="SRT"
-					bind:group={globalState.getExportState.subtitleFormat}
+					bind:group={globalState.settings!.subtitleExportSettings.subtitleFormat}
+					onchange={() => void Settings.save()}
 					class="w-4 h-4 text-accent-primary"
 				/>
 				<span class="text-secondary group-hover:text-primary transition-colors">
@@ -73,7 +70,8 @@
 					type="radio"
 					name="subtitle-format"
 					value="VTT"
-					bind:group={globalState.getExportState.subtitleFormat}
+					bind:group={globalState.settings!.subtitleExportSettings.subtitleFormat}
+					onchange={() => void Settings.save()}
 					class="w-4 h-4 text-accent-primary"
 				/>
 				<span class="text-secondary group-hover:text-primary transition-colors">
@@ -93,13 +91,14 @@
 
 		<div class="space-y-4">
 			{#each subtitleExportTargets as target (target)}
-				{@const included = globalState.getExportState.includedTarget[target]}
+				{@const included = globalState.settings!.subtitleExportSettings.includedTarget[target]}
 				<div class="bg-accent rounded-lg p-4 border border-color">
 					<!-- Main content checkbox -->
 					<div class="flex items-start gap-3 mb-3">
 						<input
 							type="checkbox"
-							bind:checked={globalState.getExportState.includedTarget[target]}
+							bind:checked={globalState.settings!.subtitleExportSettings.includedTarget[target]}
+							onchange={() => void Settings.save()}
 							class="w-4 h-4 mt-0.5 rounded"
 							id="include-{target}"
 						/>
@@ -128,18 +127,13 @@
 						<div class="flex items-start gap-3">
 							<input
 								type="checkbox"
-								bind:checked={globalState.getExportState.exportVerseNumbers[target]}
+								bind:checked={
+									globalState.settings!.subtitleExportSettings.exportVerseNumbers[target]
+								}
 								class="w-4 h-4 mt-0.5 rounded"
 								id="verse-numbers-{target}"
 								disabled={!included}
-								onchange={(event: Event) => {
-									const input = event.target as HTMLInputElement;
-									// Set le style 'show-verse-number' car les méthodes getText() se base dessus
-									// pour afficher les numéros de verset
-									globalState.getVideoStyle
-										.getStylesOfTarget(target)
-										.setStyle('show-verse-number', input.checked);
-								}}
+								onchange={() => void Settings.save()}
 							/>
 							<div class="flex-1">
 								<label for="verse-numbers-{target}" class="cursor-pointer">
@@ -173,41 +167,21 @@
 												type="radio"
 												name="arabic-format"
 												value={format}
-												bind:group={globalState.getExportState.arabicTextFormat}
+												bind:group={globalState.settings!.subtitleExportSettings.arabicTextFormat}
 												class="sr-only"
 												disabled={!included}
-												onchange={(event: Event) => {
-													const input = event.target as HTMLInputElement;
-													// Modifie la police d'écriture dans la vidéo (car c'est elle
-													// qui détermine le texte sous-titre pour les polices QPC)
-													const fontFamily = globalState.getStyle('arabic', 'font-family')!.value;
-
-													if (
-														input.value === 'Plain' &&
-														(fontFamily === 'QPC1' || fontFamily === 'QPC2')
-													) {
-														globalState.getVideoStyle
-															.getStylesOfTarget('arabic')
-															.setStyle('font-family', 'Hafs');
-													} else if (input.value === 'V1' || input.value === 'V2') {
-														globalState.getVideoStyle
-															.getStylesOfTarget('arabic')
-															.setStyle('font-family', 'QPC' + input.value[1]);
-													}
-
-													globalState.updateVideoPreviewUI();
-												}}
+												onchange={() => void Settings.save()}
 											/>
 											<div
 												class="cursor-pointer rounded-lg border px-3 py-2 text-center flex flex-col items-center justify-center text-sm font-medium transition-all duration-200 h-full {globalState
-													.getExportState.arabicTextFormat === format
+													.settings!.subtitleExportSettings.arabicTextFormat === format
 													? 'bg-accent-primary text-black border-accent-primary'
 													: 'bg-accent border-color text-secondary hover:border-accent-primary hover:text-primary'}"
 											>
 												{format === 'Plain' ? 'Plain' : `QPC ${format}`}
 												<div
-													class="text-xs mt-1 {globalState.getExportState.arabicTextFormat ===
-													format
+													class="text-xs mt-1 {globalState.settings!.subtitleExportSettings
+														.arabicTextFormat === format
 														? 'text-black/80'
 														: 'text-thirdly'}"
 												>
@@ -238,7 +212,8 @@
 					type="text"
 					class="input w-full"
 					placeholder={globalState.currentProject?.detail.generateExportFileName()}
-					bind:value={globalState.getExportState.customFileName}
+					bind:value={globalState.settings!.subtitleExportSettings.customFileName}
+					onchange={() => void Settings.save()}
 				/>
 				<p class="text-thirdly text-xs italic">
 					{$LL.export.fileExtensionAddedAutomatically()}

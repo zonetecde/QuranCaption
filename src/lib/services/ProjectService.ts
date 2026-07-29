@@ -1,8 +1,19 @@
-import { Project, ProjectDetail, Utilities, VideoStyle } from '$lib/classes';
+import { Project, ProjectContent, ProjectDetail, Utilities, VideoStyle } from '$lib/classes';
 import { readDir, remove, writeTextFile, readTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
+import { projectJsonReferencesQuaCache, pruneOrphanedQuaCache } from '$lib/services/QuaAudioCache';
 import type { ImportedProjectPayload } from '$lib/types/project';
+import { DEFAULT_PROJECT_TYPE, type ProjectType } from '$lib/types/projectType';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
+import toast from 'svelte-5-french-toast';
+
+export interface CreateEmptyProjectOptions {
+	name: string;
+	reciter: string;
+	projectType?: ProjectType;
+}
 
 /**
  * Service pour gérer les projets.
@@ -63,6 +74,7 @@ export class ProjectService {
 			return ProjectDetail.fromJSON(projectData.detail) as ProjectDetail;
 		} catch (error) {
 			console.warn(`Impossible de charger le projet ${projectId}:`, error);
+			toast.error(`${get(LL).home.projectFileInvalid()} (${fileName})`);
 			return null;
 		}
 	}
@@ -80,6 +92,31 @@ export class ProjectService {
 
 	static async getProjectsFolderPath(): Promise<string> {
 		return this.ensureFolder(this.projectsFolder);
+	}
+
+	/**
+	 * Crée et sauvegarde un projet vide sans l'ouvrir.
+	 * @param {CreateEmptyProjectOptions} options Métadonnées du nouveau projet.
+	 * @returns {Promise<Project>} Projet créé et sauvegardé.
+	 */
+	static async createEmptyProject(options: CreateEmptyProjectOptions): Promise<Project> {
+		const project = new Project(
+			new ProjectDetail(
+				options.name.trim(),
+				options.reciter.trim(),
+				undefined,
+				undefined,
+				options.projectType ?? DEFAULT_PROJECT_TYPE
+			),
+			await ProjectContent.getDefaultProjectContent()
+		);
+		const projectsPath = await this.ensureFolder(this.projectsFolder);
+		while (await exists(await join(projectsPath, `${project.detail.id}.json`))) {
+			project.detail.id = Utilities.randomId();
+		}
+
+		await project.save();
+		return project;
 	}
 
 	/**
@@ -160,13 +197,27 @@ export class ProjectService {
 	/**
 	 * Supprime un projet de l'ordinateur.
 	 * @param projectId L'id du projet à supprimer
+	 * @param options `sweepQuaCache` (défaut true) : après suppression, purge les
+	 *   fichiers du cache audio QUA que plus aucun projet ne référence.
 	 */
-	static async delete(projectId: number): Promise<void> {
+	static async delete(
+		projectId: number,
+		options: { sweepQuaCache?: boolean } = {}
+	): Promise<void> {
 		const projectsPath = await join(await appDataDir(), this.projectsFolder);
+
+		// Détecte AVANT suppression si ce projet référençait le cache QUA : la purge
+		// (coûteuse, scanne tous les projets) ne se déclenche que dans ce cas.
+		let referencedQuaCache = false;
 
 		try {
 			// Construis le chemin d'accès vers le projet
 			const filePath = await join(projectsPath, `${projectId}.json`);
+			try {
+				referencedQuaCache = projectJsonReferencesQuaCache(await readTextFile(filePath));
+			} catch {
+				// JSON illisible/déjà absent : rien à purger pour ce projet.
+			}
 			await remove(filePath);
 
 			// Supprime le dossier des assets associés au projet
@@ -174,6 +225,13 @@ export class ProjectService {
 			await remove(assetsPath, { recursive: true });
 		} catch (_e) {
 			// Le projet n'avait pas d'asset
+		}
+
+		// Purge « eager » du cache partagé : l'audio QUA vit hors du dossier par
+		// projet, donc le remove ci-dessus ne le touche pas. On supprime ici tout
+		// fichier de cache devenu orphelin (plus référencé par aucun projet).
+		if ((options.sweepQuaCache ?? true) && referencedQuaCache) {
+			await pruneOrphanedQuaCache();
 		}
 
 		// Le supprime de la liste des projets

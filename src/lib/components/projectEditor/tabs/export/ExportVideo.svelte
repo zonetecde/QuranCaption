@@ -1,6 +1,6 @@
 ﻿<script lang="ts">
 	import Exporter from '$lib/classes/Exporter';
-	import Settings from '$lib/classes/Settings.svelte';
+	import Settings, { type PerformanceProfile } from '$lib/classes/Settings.svelte';
 	import type { FadeValue } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { slide } from 'svelte/transition';
@@ -9,14 +9,69 @@
 	import { VerseRange } from '$lib/classes';
 	import ExportFolderPicker from './ExportFolderPicker.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import type { ExportSkipRange } from '$lib/classes/ProjectEditorState.svelte';
 
-	type PerformanceProfile = 'fastest' | 'balanced' | 'low_cpu';
 	type VideoCodec = 'h264' | 'h265';
 
 	const performanceProfileIds: PerformanceProfile[] = ['fastest', 'balanced', 'low_cpu'];
 	const videoCodecIds: VideoCodec[] = ['h264', 'h265'];
 
 	let showAdvancedSettings = $state(false);
+	let skipCopy = $derived(
+		$LL.export as unknown as {
+			addSkip: () => string;
+			skip: () => string;
+			setSkipStartToCursor: () => string;
+			setSkipEndToCursor: () => string;
+			removeSkip: () => string;
+		}
+	);
+
+	/**
+	 * Ajoute une zone ignorée d'une seconde à la position du curseur.
+	 * @returns {void}
+	 */
+	function addSkipRange(): void {
+		const startTime = Math.max(0, Math.round(globalState.getTimelineState.cursorPosition));
+		ProjectHistoryManager.track('add export skip range', () => {
+			globalState.getExportState.skipRanges.push({ startTime, endTime: startTime + 1000 });
+		});
+	}
+
+	/**
+	 * Place une borne de zone ignorée sur le curseur de la timeline.
+	 * @param {ExportSkipRange} range Zone ignorée à modifier.
+	 * @param {'start' | 'end'} boundary Borne à déplacer.
+	 * @returns {void}
+	 */
+	function setSkipBoundary(range: ExportSkipRange, boundary: 'start' | 'end'): void {
+		const cursorTime = Math.max(0, Math.round(globalState.getTimelineState.cursorPosition));
+		ProjectHistoryManager.track(`set export skip ${boundary}`, () => {
+			if (boundary === 'start') {
+				range.startTime = cursorTime;
+				if (range.startTime >= range.endTime) range.endTime = range.startTime + 1000;
+				return;
+			}
+
+			range.endTime = cursorTime;
+			if (range.endTime <= range.startTime) {
+				range.startTime = Math.max(0, range.endTime - 1000);
+				if (range.endTime === range.startTime) range.endTime += 1000;
+			}
+		});
+	}
+
+	/**
+	 * Supprime une zone ignorée de l'export.
+	 * @param {number} index Index de la zone à supprimer.
+	 * @returns {void}
+	 */
+	function removeSkipRange(index: number): void {
+		ProjectHistoryManager.track('remove export skip range', () => {
+			globalState.getExportState.skipRanges.splice(index, 1);
+		});
+	}
 
 	/**
 	 * Normalise et sauvegarde le nombre de WebViews utilisees pour capturer les frames.
@@ -29,6 +84,53 @@
 			Math.min(8, Math.round(globalState.settings.exportSettings.parallelCaptureWorkers || 4))
 		);
 		await Settings.save();
+	}
+
+	/**
+	 * Sauvegarde le profil de performance global de l'export video.
+	 * @param {PerformanceProfile} profile Profil selectionne.
+	 * @returns {Promise<void>}
+	 */
+	async function savePerformanceProfile(profile: PerformanceProfile): Promise<void> {
+		if (!globalState.settings) return;
+		globalState.settings.exportSettings.performanceProfile = profile;
+		await Settings.save();
+	}
+
+	/**
+	 * Active ou désactive l'export limité à la récitation avec prise en charge de l'annulation.
+	 * @param {boolean} enabled Nouvel état de l'option.
+	 * @returns {void}
+	 */
+	function setExportOnlyRecitation(enabled: boolean): void {
+		ProjectHistoryManager.track('toggle recitation-only export', () => {
+			globalState.getExportState.exportOnlyRecitation = enabled;
+		});
+	}
+
+	/**
+	 * Modifie la marge conservée autour des coupures de récitation.
+	 * @param {number} marginMs Marge en millisecondes.
+	 * @returns {void}
+	 */
+	function setRecitationCutMargin(marginMs: number): void {
+		ProjectHistoryManager.track('set recitation export cut margin', () => {
+			globalState.getExportState.recitationCutMarginMs = Math.max(0, Math.round(marginMs || 0));
+		});
+	}
+
+	/**
+	 * Modifie la durée minimale de silence qui déclenche une coupure.
+	 * @param {number} durationMs Durée en millisecondes.
+	 * @returns {void}
+	 */
+	function setRecitationMinimumSilence(durationMs: number): void {
+		ProjectHistoryManager.track('set recitation export minimum silence', () => {
+			globalState.getExportState.recitationMinimumSilenceMs = Math.max(
+				0,
+				Math.round(durationMs || 0)
+			);
+		});
 	}
 
 	// Initialize export state values if not set
@@ -86,8 +188,56 @@
 				/>
 			</div>
 
-			<!-- Duration Preview -->
-			<div class="mt-4 p-3 bg-secondary rounded-lg border border-color">
+			<div class="mt-3 flex flex-col items-center justify-between">
+				<button
+					type="button"
+					class="w-full inline-flex items-center gap-1.5 rounded-md border border-violet-500/40 bg-violet-500/10 px-2.5 py-1 text-xs font-medium text-violet-300 transition-colors hover:bg-violet-500/20"
+					onclick={addSkipRange}
+				>
+					<span class="material-icons text-[17px]!">add</span>
+					{skipCopy.addSkip()}
+				</button>
+
+				{#if (globalState.getExportState.skipRanges ?? []).length > 0}
+					<div class="mt-3 space-y-2 w-full">
+						{#each globalState.getExportState.skipRanges ?? [] as range, index}
+							<div class="rounded-md border border-violet-500/35 bg-violet-500/10 p-2.5">
+								<div class="mb-2 flex items-center justify-between gap-2">
+									<span class="text-xs font-medium text-violet-300">
+										{skipCopy.skip()}
+										{index + 1} · {formatDuration(range.startTime)}–{formatDuration(range.endTime)}
+									</span>
+									<button
+										type="button"
+										class="material-icons rounded p-0.5 text-base text-thirdly transition-colors hover:bg-violet-500/20 hover:text-violet-300"
+										title={skipCopy.removeSkip()}
+										onclick={() => removeSkipRange(index)}>close</button
+									>
+								</div>
+								<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+									<button
+										type="button"
+										class="rounded border border-violet-500/30 bg-secondary px-2 py-1.5 text-xs text-secondary transition-colors hover:border-violet-400 hover:text-violet-300"
+										onclick={() => setSkipBoundary(range, 'start')}
+									>
+										{skipCopy.setSkipStartToCursor()}
+									</button>
+									<button
+										type="button"
+										class="rounded border border-violet-500/30 bg-secondary px-2 py-1.5 text-xs text-secondary transition-colors hover:border-violet-400 hover:text-violet-300"
+										onclick={() => setSkipBoundary(range, 'end')}
+									>
+										{skipCopy.setSkipEndToCursor()}
+									</button>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
+
+			<!-- Export summary -->
+			<div class="mt-4 space-y-3 rounded-lg border border-color bg-secondary p-3">
 				<div class="flex items-center justify-between text-sm">
 					<span class="text-secondary">{$LL.export.exportDuration()}</span>
 					<span class="text-accent-primary font-medium">
@@ -100,11 +250,8 @@
 						)}
 					</span>
 				</div>
-			</div>
 
-			<!-- Verse Range Preview -->
-			<div class="mt-4 p-3 bg-secondary rounded-lg border border-color">
-				<div class="flex items-center justify-between text-sm">
+				<div class="flex items-center justify-between border-t border-color pt-3 text-sm">
 					<span class="text-secondary min-w-[150px]">{$LL.export.exportVerseRange()}</span>
 					<span class="text-accent-primary font-medium">
 						{VerseRange.getExportVerseRange().toString()}
@@ -189,6 +336,12 @@
 							class="input w-full"
 							placeholder={globalState.currentProject?.detail.generateExportFileName()}
 							bind:value={globalState.getExportState.customFileName}
+							onfocus={() => {
+								if (!globalState.getExportState.customFileName.trim()) {
+									globalState.getExportState.customFileName =
+										globalState.currentProject?.detail.generateExportFileName() ?? '';
+								}
+							}}
 						/>
 						<p class="text-thirdly text-xs italic">
 							{$LL.export.extensionAddedAutomatically()}
@@ -238,41 +391,79 @@
 
 		{#if showAdvancedSettings}
 			<div class="mt-3 rounded-lg border border-color bg-accent p-4" transition:slide>
-				<div class="mb-4">
-					<h4 class="text-base font-medium text-secondary mb-1">{$LL.export.background()}</h4>
-					<label class="mt-2 flex items-start gap-3 cursor-pointer select-none">
-						<input
-							type="checkbox"
-							class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
-							bind:checked={globalState.getExportState.exportWithoutBackground}
-						/>
-						<span class="text-sm text-primary">
-							{$LL.export.exportWithoutBackground()}
-							<span class="block text-xs text-thirdly mt-1">
-								{$LL.export.rendersOnlyOverlay()}
+				<section class="mb-6">
+					<h4 class="text-base font-medium text-secondary mb-3">
+						{$LL.export.recitationContent()}
+					</h4>
+					<div class="rounded-lg border border-color bg-secondary p-4">
+						<label class="flex items-start gap-3 cursor-pointer select-none">
+							<input
+								type="checkbox"
+								class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
+								checked={globalState.getExportState.exportOnlyRecitation}
+								onchange={(event) =>
+									setExportOnlyRecitation((event.currentTarget as HTMLInputElement).checked)}
+							/>
+							<span class="text-sm text-primary">
+								{$LL.export.exportOnlyRecitation()}
+								<span class="block text-xs text-thirdly mt-1">
+									{$LL.export.exportOnlyRecitationDescription()}
+								</span>
 							</span>
-						</span>
-					</label>
+						</label>
 
-					{#if globalState.getExportState.exportWithoutBackground}
-						<div class="mt-3">
-							<label class="block text-sm text-primary mb-2" for="transparent-export-format">
-								{$LL.export.transparentExportFormat()}
-							</label>
-							<select
-								id="transparent-export-format"
-								class="input w-full"
-								bind:value={globalState.getExportState.transparentExportFormat}
-							>
-								<option value="mov_prores_4444">{$LL.export.movQtrleRecommended()}</option>
-								<option value="webm_vp9_alpha">{$LL.export.webmVp9()}</option>
-							</select>
-							<p class="text-xs text-thirdly mt-2">
-								{$LL.export.movQtrleCompatibility()}
-							</p>
-						</div>
-					{/if}
-				</div>
+						{#if globalState.getExportState.exportOnlyRecitation}
+							<div class="mt-4 border-t border-color pt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+								<div>
+									<label
+										class="block text-sm font-medium text-primary mb-2"
+										for="recitation-cut-margin"
+									>
+										{$LL.export.recitationCutMargin()}
+									</label>
+									<input
+										id="recitation-cut-margin"
+										type="number"
+										min="0"
+										step="50"
+										class="input w-full h-10"
+										value={globalState.getExportState.recitationCutMarginMs}
+										onchange={(event) =>
+											setRecitationCutMargin(
+												(event.currentTarget as HTMLInputElement).valueAsNumber
+											)}
+									/>
+									<p class="text-xs text-thirdly mt-2">
+										{$LL.export.recitationCutMarginDescription()}
+									</p>
+								</div>
+								<div>
+									<label
+										class="block text-sm font-medium text-primary mb-2"
+										for="recitation-minimum-silence"
+									>
+										{$LL.export.recitationMinimumSilence()}
+									</label>
+									<input
+										id="recitation-minimum-silence"
+										type="number"
+										min="0"
+										step="100"
+										class="input w-full h-10"
+										value={globalState.getExportState.recitationMinimumSilenceMs}
+										onchange={(event) =>
+											setRecitationMinimumSilence(
+												(event.currentTarget as HTMLInputElement).valueAsNumber
+											)}
+									/>
+									<p class="text-xs text-thirdly mt-2">
+										{$LL.export.recitationMinimumSilenceDescription()}
+									</p>
+								</div>
+							</div>
+						{/if}
+					</div>
+				</section>
 
 				<div class="mb-4">
 					<h4 class="text-base font-medium text-secondary mb-1">
@@ -329,41 +520,76 @@
 							{$LL.export.videoCodecDescription()}
 						</p>
 					</div>
+
+					<div class="grid grid-cols-1 gap-3">
+						{#each performanceProfileIds as id (id)}
+							{@const label =
+								id === 'fastest'
+									? $LL.export.fastest()
+									: id === 'balanced'
+										? $LL.export.balanced()
+										: $LL.export.lowCpu()}
+							{@const desc =
+								id === 'fastest'
+									? $LL.export.fastestDescription()
+									: id === 'balanced'
+										? $LL.export.balancedDescription()
+										: $LL.export.lowCpuDescription()}
+							<button
+								type="button"
+								class="rounded-xl border p-4 text-left transition-colors"
+								class:border-accent-primary={globalState.settings.exportSettings
+									.performanceProfile === id}
+								class:bg-secondary={globalState.settings.exportSettings.performanceProfile === id}
+								class:border-color={globalState.settings.exportSettings.performanceProfile !== id}
+								onclick={() => void savePerformanceProfile(id)}
+							>
+								<div class="flex items-center justify-between gap-3">
+									<p class="text-sm font-medium text-primary">{label}</p>
+									{#if globalState.settings.exportSettings.performanceProfile === id}
+										<span class="material-icons text-accent-primary text-lg">check_circle</span>
+									{/if}
+								</div>
+								<p class="mt-1 text-xs text-thirdly">{desc}</p>
+							</button>
+						{/each}
+					</div>
 				{/if}
 
-				<div class="grid grid-cols-1 gap-3">
-					{#each performanceProfileIds as id (id)}
-						{@const label =
-							id === 'fastest'
-								? $LL.export.fastest()
-								: id === 'balanced'
-									? $LL.export.balanced()
-									: $LL.export.lowCpu()}
-						{@const desc =
-							id === 'fastest'
-								? $LL.export.fastestDescription()
-								: id === 'balanced'
-									? $LL.export.balancedDescription()
-									: $LL.export.lowCpuDescription()}
-						<button
-							type="button"
-							class="rounded-xl border p-4 text-left transition-colors"
-							class:border-accent-primary={globalState.getExportState.performanceProfile === id}
-							class:bg-secondary={globalState.getExportState.performanceProfile === id}
-							class:border-color={globalState.getExportState.performanceProfile !== id}
-							onclick={() => {
-								globalState.getExportState.performanceProfile = id;
-							}}
-						>
-							<div class="flex items-center justify-between gap-3">
-								<p class="text-sm font-medium text-primary">{label}</p>
-								{#if globalState.getExportState.performanceProfile === id}
-									<span class="material-icons text-accent-primary text-lg">check_circle</span>
-								{/if}
-							</div>
-							<p class="mt-1 text-xs text-thirdly">{desc}</p>
-						</button>
-					{/each}
+				<div class="mb-4 mt-4">
+					<h4 class="text-base font-medium text-secondary mb-1">{$LL.export.background()}</h4>
+					<label class="mt-2 flex items-start gap-3 cursor-pointer select-none">
+						<input
+							type="checkbox"
+							class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
+							bind:checked={globalState.getExportState.exportWithoutBackground}
+						/>
+						<span class="text-sm text-primary">
+							{$LL.export.exportWithoutBackground()}
+							<span class="block text-xs text-thirdly mt-1">
+								{$LL.export.rendersOnlyOverlay()}
+							</span>
+						</span>
+					</label>
+
+					{#if globalState.getExportState.exportWithoutBackground}
+						<div class="">
+							<label class="block text-sm text-primary mb-2" for="transparent-export-format">
+								{$LL.export.transparentExportFormat()}
+							</label>
+							<select
+								id="transparent-export-format"
+								class="input w-full"
+								bind:value={globalState.getExportState.transparentExportFormat}
+							>
+								<option value="mov_prores_4444">{$LL.export.movQtrleRecommended()}</option>
+								<option value="webm_vp9_alpha">{$LL.export.webmVp9()}</option>
+							</select>
+							<p class="text-xs text-thirdly mt-2">
+								{$LL.export.movQtrleCompatibility()}
+							</p>
+						</div>
+					{/if}
 				</div>
 			</div>
 		{/if}

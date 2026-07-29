@@ -26,6 +26,9 @@ export type AppPage = 'home' | 'ai-video';
 export type AndroidOrientation = 'portrait' | 'landscape';
 
 class GlobalState {
+	// Style dont la contrainte est temporairement visualisée dans la preview.
+	hoveredStylePreviewHelper: StyleName | null = $state(null);
+
 	// Liste des détails des projets de l'utilisateur
 	userProjectsDetails: ProjectDetail[] = $state([]);
 
@@ -157,7 +160,7 @@ class GlobalState {
 			| 'notifications'
 			| 'ai-key'
 			| 'stock-media'
-			| 'quran-integration'
+			| 'default-values'
 			| 'backup'
 			| 'support'
 			| 'contact'

@@ -25,6 +25,9 @@ export class ProjectEditorState extends SerializableBase {
 	// Indique si on montre ou non l'indication "Drop your files here"
 	showDropScreen: boolean = $state(false);
 
+	// Indique si l'utilisateur a déjà répondu à la proposition d'adapter les dimensions au média.
+	hasAnsweredVideoDimensionPrompt: boolean = $state(false);
+
 	// Indique quelle(s) section(s) de l'éditeur sont étendues
 	sections: {
 		[name: string]: {
@@ -49,9 +52,6 @@ export class ProjectEditorState extends SerializableBase {
 
 	// Export
 	export: ExportState = $state(new ExportState());
-
-	// Hauteur de la section supérieure dans chaque onglet
-	upperSectionHeight: number = $state(68);
 }
 
 export class StylesEditorState extends SerializableBase {
@@ -66,6 +66,12 @@ export class StylesEditorState extends SerializableBase {
 
 	// Indique la requête de recherche actuelle dans l'éditeur de styles
 	searchQuery: string = $state('');
+
+	// Indique le panneau actuellement affiché dans l'éditeur de styles
+	currentPanel: string = $state('');
+
+	// Indique la catégorie active dans chaque panneau de l'éditeur de styles
+	activePanelCategoryIds: Record<string, string> = $state({});
 
 	// Indique les sous-titres actuellement sélectionnés dans l'éditeur de styles
 	selectedSubtitles: Array<SubtitleClip | PredefinedSubtitleClip> = $state([]);
@@ -352,6 +358,9 @@ export class SubtitlesEditorState extends SerializableBase {
 }
 
 export class TranslationsEditorState extends SerializableBase {
+	// Indique la position du scroll dans l'éditeur de traductions
+	scrollPosition: number = $state(0);
+
 	// Indique si l'utilisateur montre les instructions pour utiliser l'IA
 	showAIInstructions: boolean = $state(false);
 
@@ -408,6 +417,14 @@ export class TranslationsEditorState extends SerializableBase {
 	}
 }
 
+export const DEFAULT_RECITATION_CUT_MARGIN_MS = 350;
+export const DEFAULT_RECITATION_MINIMUM_SILENCE_MS = 3000;
+
+export interface ExportSkipRange {
+	startTime: number;
+	endTime: number;
+}
+
 export class ExportState extends SerializableBase {
 	// Indique le type d'export choisie
 	selectedChoice: 'video' | 'subtitles' | 'chapters' | 'project' = $state('video');
@@ -438,8 +455,11 @@ export class ExportState extends SerializableBase {
 	// Indique la partie de la vidéo à exporter
 	videoStartTime: number = $state(0);
 	videoEndTime: number = $state(0);
+	skipRanges: ExportSkipRange[] = $state([]);
 	fps: number = $state(30);
-	performanceProfile: 'fastest' | 'balanced' | 'low_cpu' = $state('fastest');
+	exportOnlyRecitation: boolean = $state(false);
+	recitationCutMarginMs: number = $state(DEFAULT_RECITATION_CUT_MARGIN_MS);
+	recitationMinimumSilenceMs: number = $state(DEFAULT_RECITATION_MINIMUM_SILENCE_MS);
 	exportWithoutBackground: boolean = $state(false);
 	transparentExportFormat: 'mov_prores_4444' | 'webm_vp9_alpha' = $state('mov_prores_4444');
 	customFileName: string = $state('');

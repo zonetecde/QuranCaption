@@ -6,6 +6,7 @@ import {
 	createEmptySegmentationContext,
 	filterWordsForVerse,
 	getSegmentWords,
+	splitWordsAtReferenceReset,
 	type SegmentationSegment,
 	type SegmentationWordTimestamp
 } from '$lib/services/AutoSegmentation';
@@ -49,6 +50,42 @@ describe('filterWordsForVerse', () => {
 
 	it('returns empty for empty input', () => {
 		expect(filterWordsForVerse([], 1, 1)).toEqual([]);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// splitWordsAtReferenceReset
+// ---------------------------------------------------------------------------
+describe('splitWordsAtReferenceReset', () => {
+	it('splits a repeated verse passage into monotonic word groups', () => {
+		const words: SegmentationWordTimestamp[] = [
+			...Array.from({ length: 7 }, (_, index) => ({
+				location: `2:156:${index + 1}`,
+				start: index,
+				end: index + 1
+			})),
+			...Array.from({ length: 6 }, (_, index) => ({
+				location: `2:156:${index + 5}`,
+				start: index + 7,
+				end: index + 8
+			}))
+		];
+
+		expect(
+			splitWordsAtReferenceReset(words).map((group) => group.map((word) => word.location))
+		).toEqual([
+			['2:156:1', '2:156:2', '2:156:3', '2:156:4', '2:156:5', '2:156:6', '2:156:7'],
+			['2:156:5', '2:156:6', '2:156:7', '2:156:8', '2:156:9', '2:156:10']
+		]);
+	});
+
+	it('keeps a monotonic passage in one group', () => {
+		const words: SegmentationWordTimestamp[] = [
+			{ location: '2:156:1', start: 0, end: 1 },
+			{ location: '2:156:2', start: 1, end: 2 }
+		];
+
+		expect(splitWordsAtReferenceReset(words)).toEqual([words]);
 	});
 });
 

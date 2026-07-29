@@ -4,6 +4,7 @@ import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { globalState } from '$lib/runes/main.svelte';
 import type {
+	AutoSegmentationExecutionOptions,
 	AutoSegmentationOptions,
 	AutoSegmentationResult,
 	LocalAsrMode,
@@ -19,7 +20,17 @@ import {
 import { parseSegmentationResponseFromThrownError } from './parsing';
 import { enrichSegmentationResponseWithWordTimestamps } from './enrichment';
 import { applySegmentationResponseToProject } from './apply-segmentation';
-import { beginAudioNormalizationIfNeeded } from './audio-normalize.svelte';
+import {
+	beginAudioNormalizationIfNeeded,
+	normalizeAudioForProject
+} from './audio-normalize.svelte';
+import type { Project } from '$lib/classes/Project';
+import { TrackType } from '$lib/classes/enums';
+import type { SubtitleTrack } from '$lib/classes/Track.svelte';
+import {
+	AutoSegmentationExecutionCoordinator,
+	getAutoSegmentationBusyMessage
+} from '$lib/services/AutoSegmentationExecutionCoordinator';
 
 /**
  * Détecte les erreurs de quota GPU cloud qui justifient un retry sur CPU.
@@ -201,23 +212,18 @@ function resolveContextModelName(
 }
 
 /**
- * Applique la sortie de segmentation au projet.
- *
- * Étapes :
- * - Confirmer l'écrasement si des sous-titres existent déjà
- * - Invoquer la commande Rust (rééchantillonnage + API de segmentation)
- * - Convertir les segments en SubtitleClip / PredefinedSubtitleClip
- * - Normaliser les petits gaps et insérer les clips de silence
- * - Rafraîchir l'UI du projet et retourner le résumé
- *
+ * Exécute la pipeline existante sur une instance de projet explicite.
+ * @param {Project} project Projet cible, sans changement du projet global.
  * @param {AutoSegmentationOptions} options Options de segmentation.
  * @param {SegmentationMode} [mode] Mode de traitement ('api' ou 'local').
- *   Si non spécifié, utilise le mode préféré.
+ * @param {AutoSegmentationExecutionOptions} executionOptions Effets UI et écrasement autorisés.
  * @returns {Promise<AutoSegmentationResult | null>} Résumé du résultat ou null en cas d'erreur.
  */
-export async function runAutoSegmentation(
+export async function runAutoSegmentationForProject(
+	project: Project,
 	options: AutoSegmentationOptions = {},
-	mode?: SegmentationMode
+	mode?: SegmentationMode,
+	executionOptions: AutoSegmentationExecutionOptions = {}
 ): Promise<AutoSegmentationResult | null> {
 	const minSilenceMs: number = options.minSilenceMs ?? 200;
 	const minSpeechMs: number = options.minSpeechMs ?? 1000;
@@ -246,22 +252,30 @@ export async function runAutoSegmentation(
 		`[AutoSegmentation] requestedMode=${requestedMode} localAsrMode=${localAsrMode} device=${device} allowCloudFallback=${allowCloudFallbackEffective}`
 	);
 
-	const audioInfo = getAutoSegmentationAudioInfo();
-	const audioClips = getAutoSegmentationAudioClips();
+	const audioInfo = getAutoSegmentationAudioInfo(project);
+	const audioClips = getAutoSegmentationAudioClips(project);
 	if (!audioInfo || audioClips.length === 0) {
 		return { status: 'failed', message: 'No audio clip found in the project.' };
 	}
 
 	// Re-timing audio en parallèle de la segmentation (point d'attente : apply).
-	beginAudioNormalizationIfNeeded();
+	const audioNormalizationPromise = executionOptions.headless
+		? normalizeAudioForProject(project)
+		: undefined;
+	if (!executionOptions.headless) beginAudioNormalizationIfNeeded();
 
-	const subtitleTrack = globalState.getSubtitleTrack;
+	const subtitleTrack = project.content.timeline.getFirstTrack(TrackType.Subtitle) as SubtitleTrack;
 	if (subtitleTrack.clips.length > 0) {
-		const confirmOverwrite: boolean = await ModalManager.confirmModal(
-			get(LL).editor.subtitlesAlreadyExist(),
-			true
-		);
-		if (!confirmOverwrite) return { status: 'cancelled' };
+		if (executionOptions.headless && executionOptions.overwriteExistingSubtitles !== true) {
+			return { status: 'cancelled' };
+		}
+		if (!executionOptions.headless && executionOptions.overwriteExistingSubtitles !== true) {
+			const confirmOverwrite: boolean = await ModalManager.confirmModal(
+				get(LL).editor.subtitlesAlreadyExist(),
+				true
+			);
+			if (!confirmOverwrite) return { status: 'cancelled' };
+		}
 	}
 
 	if (onRunConfirmed) {
@@ -418,6 +432,7 @@ export async function runAutoSegmentation(
 			legacyWhisperModel
 		);
 
+		executionOptions.onApplying?.();
 		return await applySegmentationResponseToProject({
 			response,
 			fillBySilence,
@@ -432,11 +447,38 @@ export async function runAutoSegmentation(
 			modelName: contextModelName,
 			device,
 			warningOverride: fallbackWarning,
-			payloadForLog: payload
+			payloadForLog: payload,
+			project,
+			headless: executionOptions.headless,
+			audioNormalizationPromise
 		});
 	} catch (error) {
 		console.error('Segmentation request failed:', error);
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		return { status: 'failed', message: errorMessage };
+	}
+}
+
+/**
+ * Lance la segmentation manuelle du projet actuellement ouvert avec un verrou partagé.
+ * @param {AutoSegmentationOptions} options Options de segmentation.
+ * @param {SegmentationMode} [mode] Mode de traitement.
+ * @returns {Promise<AutoSegmentationResult | null>} Résultat de la segmentation.
+ */
+export async function runAutoSegmentation(
+	options: AutoSegmentationOptions = {},
+	mode?: SegmentationMode
+): Promise<AutoSegmentationResult | null> {
+	const release = AutoSegmentationExecutionCoordinator.tryAcquire('manual');
+	if (!release) {
+		return { status: 'failed', message: getAutoSegmentationBusyMessage() };
+	}
+
+	try {
+		const project = globalState.currentProject;
+		if (!project) return { status: 'failed', message: get(LL).home.anErrorOccurred() };
+		return await runAutoSegmentationForProject(project, options, mode);
+	} finally {
+		release();
 	}
 }

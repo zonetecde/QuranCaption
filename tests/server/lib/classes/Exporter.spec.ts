@@ -1,10 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
+import Exporter, {
 	DEFAULT_YTB_CHAPTERS_FORMAT,
 	formatYouTubeChapterLine,
+	resolveProjectVideoExportRange,
 	type YouTubeChapterFormatValues
 } from '$lib/classes/Exporter';
+import { SubtitleClip, type Project } from '$lib/classes';
+
+afterEach(() => vi.restoreAllMocks());
 
 const baseValues: YouTubeChapterFormatValues = {
 	timestamp: '0:03',
@@ -50,5 +54,34 @@ describe('YouTube chapter formatting', () => {
 		});
 
 		expect(line).toBe('0:03  <unknown>');
+	});
+});
+
+describe('Project video export range', () => {
+	it('keeps a project-specific range lasting at least one second', () => {
+		expect(resolveProjectVideoExportRange(1_250, 5_250, 10_000)).toEqual([1_250, 5_250]);
+	});
+
+	it('uses the full audio duration when the project range is shorter than one second', () => {
+		expect(resolveProjectVideoExportRange(500, 1_400, 10_000)).toEqual([0, 10_000]);
+		expect(resolveProjectVideoExportRange(0, 0, 10_000)).toEqual([0, 10_000]);
+	});
+});
+
+describe('Subtitle JSON export', () => {
+	it('generates the same project-scoped JSON payload used by individual exports', () => {
+		const clip = new SubtitleClip(250, 1250, 1, 2, 0, 1, 'verse', [], true, true);
+		const project = {
+			detail: { id: 42, name: 'Al-Fatiha', reciter: 'Reciter' },
+			content: { timeline: { getFirstTrack: () => ({ clips: [clip] }) } }
+		} as unknown as Project;
+
+		const generated = Exporter.generateSubtitlesJson(project);
+		const payload = JSON.parse(generated.content);
+
+		expect(generated.segmentCount).toBe(1);
+		expect(payload.project).toEqual({ id: 42, name: 'Al-Fatiha', reciter: 'Reciter' });
+		expect(payload.segmentCount).toBe(1);
+		expect(payload.segments[0]).toMatchObject({ startTimeMs: 250, endTimeMs: 1250 });
 	});
 });

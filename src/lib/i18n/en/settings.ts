@@ -7,6 +7,22 @@ const settings = {
 	aiKey: 'AI Key',
 	stockMedia: 'Stock',
 	quranComIntegration: 'Quran.com Integration',
+	defaultValues: 'Default Values',
+	defaultValuesDescription: 'Choose the values used automatically when a field is left empty.',
+	defaultExportFileName: 'Default export file name',
+	defaultExportFileNameDescription:
+		'Customize the format used when the Video File Name field is left empty.',
+	defaultYouTubeMetadata: 'Default YouTube metadata',
+	defaultYouTubeMetadataDescription:
+		'Pre-fill YouTube uploads. Leave the title empty to use the exported file name.',
+	defaultYouTubeTitle: 'Default video title',
+	defaultYouTubeDescription: 'Default video description',
+	fileNamePlaceholders: 'Available placeholders',
+	placeholderProjectName: 'Project name',
+	placeholderReciter: 'Reciter name',
+	placeholderVerseRange: 'Exported verse range',
+	placeholderSurah: 'Comma-separated names of the surahs in the export',
+	placeholderSurahNumber: 'Comma-separated surah numbers in the export',
 	backup: 'Backup',
 	support: 'Support',
 	contact: 'Contact',
@@ -41,7 +57,7 @@ const settings = {
 	joinDiscord: 'Join Discord',
 	projectBackup: 'Project Backup',
 	backupDescription:
-		'Export all projects into one backup file, or import a full backup later. Your projects are always stored locally on your machine.',
+		'Export all projects into one backup file, or import a full backup later. Your data is always stored locally on your machine.',
 	openProjectsFolder: 'Open projects folder',
 	exportAllProjects: 'Export all projects',
 	exportAllProjectsDescription:
@@ -51,7 +67,7 @@ const settings = {
 	exportingBackup: 'Exporting backup...',
 	importBackup: 'Import a backup',
 	importBackupDescription:
-		'Load every project from a backup JSON file. New projects will be added without removing existing ones.',
+		'Load every project from a backup JSON file. New items will be added without removing existing ones.',
 	importNonDestructive:
 		'Import is non-destructive \u2014 any new projects found in the backup will be added without removing existing ones.',
 	importingBackup: 'Importing backup...',

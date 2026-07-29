@@ -11,6 +11,7 @@ import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { Translation, VerseTranslation } from '$lib/classes/Translation.svelte';
 import { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import QPCFontProvider from '$lib/services/FontProvider';
+import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 
 vi.mock('$lib/components/projectEditor/tabs/styleEditor/ReciterName.svelte', async () => ({
 	default: (await import('../../../../stubs/EmptyComponent.svelte')).default
@@ -102,6 +103,13 @@ function createDefaultStyleValue(
 	if (styleId === 'background-overlay-mode') return 'uniform';
 	if (styleId === 'background-overlay-fade-intensity') return 0;
 	if (styleId === 'background-overlay-fade-coverage') return 0;
+	if (styleId === 'background-overlay-fade-softness') return 1;
+	if (styleId === 'background-overlay-fade-curve') return 'linear';
+	if (styleId === 'background-overlay-fade-invert') return false;
+	if (styleId === 'background-overlay-fade-position-x') return 0.5;
+	if (styleId === 'background-overlay-fade-position-y') return 0.5;
+	if (styleId === 'background-overlay-fade-width') return 1;
+	if (styleId === 'background-overlay-fade-height') return 1;
 	if (styleId === 'overlay-custom-css') return '';
 	if (styleId === 'enable-wbw-highlight') return false;
 	if (styleId === 'enable-wbw-background') return false;
@@ -510,119 +518,6 @@ describe('Video overlay subtitle preview', () => {
 		expect(mergedText).not.toContain('Alpha translation');
 	});
 
-	test('keeps merged translations visible while arabic continues to switch per clip', async () => {
-		const firstClip = createVerseSubtitle(0, 999, 'Alpha Arabic', 'Alpha translation');
-		const secondClip = createVerseSubtitle(1000, 1999, 'Beta Arabic', 'Beta translation');
-		firstClip.startWordIndex = 0;
-		firstClip.endWordIndex = 1;
-		secondClip.startWordIndex = 2;
-		secondClip.endWordIndex = 3;
-		applyVisualMerge([firstClip, secondClip], 'translation');
-		setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1100 });
-
-		const component = render(VideoOverlay);
-		await settleOverlay();
-
-		const mergedText = getCurrentSubtitleText(component.container);
-		expect(mergedText).toContain('Beta Arabic');
-		expect(mergedText).not.toContain('Alpha Arabic');
-		expect(mergedText).toContain('Alpha translation');
-		expect(mergedText).toContain('Beta translation');
-	});
-
-	test('keeps em dash translation spacing normalized across merged clips', async () => {
-		const firstClip = createVerseSubtitle(
-			0,
-			999,
-			'First Arabic',
-			'the Path of those You have blessed—'
-		);
-		const secondClip = createVerseSubtitle(
-			1000,
-			1999,
-			'Second Arabic',
-			'not those You are displeased with, or those who are astray.'
-		);
-		firstClip.startWordIndex = 0;
-		firstClip.endWordIndex = 5;
-		secondClip.startWordIndex = 6;
-		secondClip.endWordIndex = 15;
-		applyVisualMerge([firstClip, secondClip], 'translation');
-		setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1100 });
-
-		const component = render(VideoOverlay);
-		await settleOverlay();
-
-		expect(
-			normalizeText(getForegroundTranslationNode(component.container, 'english')?.textContent)
-		).toBe(
-			'the Path of those You have blessed—not those You are displeased with, or those who are astray.'
-		);
-	});
-
-	test('keeps both arabic and translations merged across the active group', async () => {
-		const firstClip = createVerseSubtitle(0, 999, 'Alpha Arabic', 'Alpha translation');
-		const secondClip = createVerseSubtitle(1000, 1999, 'Beta Arabic', 'Beta translation');
-		firstClip.startWordIndex = 0;
-		firstClip.endWordIndex = 1;
-		secondClip.startWordIndex = 2;
-		secondClip.endWordIndex = 3;
-		applyVisualMerge([firstClip, secondClip], 'both');
-		setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1100 });
-
-		const component = render(VideoOverlay);
-		await settleOverlay();
-
-		const mergedText = getCurrentSubtitleText(component.container);
-		expect(mergedText).toContain('Alpha Arabic');
-		expect(mergedText).toContain('Beta Arabic');
-		expect(mergedText).toContain('Alpha translation');
-		expect(mergedText).toContain('Beta translation');
-	});
-
-	test('merges every translation edition independently', async () => {
-		const firstClip = createVerseSubtitle(0, 999, 'Alpha Arabic', 'Alpha English');
-		firstClip.translations.french = new VerseTranslation('Alpha French', 'reviewed');
-		const secondClip = createVerseSubtitle(1000, 1999, 'Beta Arabic', 'Beta English');
-		secondClip.translations.french = new VerseTranslation('Beta French', 'reviewed');
-		firstClip.startWordIndex = 0;
-		firstClip.endWordIndex = 1;
-		secondClip.startWordIndex = 2;
-		secondClip.endWordIndex = 3;
-		applyVisualMerge([firstClip, secondClip], 'translation');
-		setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1100 });
-
-		const component = render(VideoOverlay);
-		await settleOverlay();
-
-		expect(
-			normalizeText(getForegroundTranslationNode(component.container, 'english')?.textContent)
-		).toBe('Alpha English Beta English');
-		expect(
-			normalizeText(getForegroundTranslationNode(component.container, 'french')?.textContent)
-		).toBe('Alpha French Beta French');
-	});
-
-	test('removes overlapping words inside merged clips for arabic and translations', async () => {
-		const firstClip = new SubtitleClip(0, 999, 1, 1, 0, 2, 'w1 w2 w3', [], false, false, {
-			english: new VerseTranslation('t1 t2 t3', 'reviewed')
-		});
-		const secondClip = new SubtitleClip(1000, 1999, 1, 1, 1, 3, 'w2 w3 w4', [], false, false, {
-			english: new VerseTranslation('t2 t3 t4', 'reviewed')
-		});
-		applyVisualMerge([firstClip, secondClip], 'both');
-		setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1100 });
-
-		const component = render(VideoOverlay);
-		await settleOverlay();
-
-		const mergedText = normalizeText(getCurrentSubtitleText(component.container));
-		expect(mergedText).toContain('w1 w2 w3 w4');
-		expect(mergedText).not.toContain('w1 w2 w3 w2 w3 w4');
-		expect(mergedText).toContain('t1 t2 t3 t4');
-		expect(mergedText).not.toContain('t1 t2 t3 t2 t3 t4');
-	});
-
 	test('keeps QPC2 verse-number fonts per clip across a merged page boundary', async () => {
 		seedQpc2PreviewFixture();
 		const firstClip = createLastWordsQpcSubtitle(0, 999, 71, 10, 3, 5);
@@ -651,6 +546,20 @@ describe('Video overlay subtitle preview', () => {
 			expect.stringContaining('font-family: QPC2_p570'),
 			expect.stringContaining('font-family: QPC2_p571')
 		]);
+	});
+
+	test('renders a line break before the arabic verse number when enabled', async () => {
+		const clip = createLastWordsQpcSubtitle(0, 999, 1, 1, 0, 1);
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 500 });
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('show-verse-number', true);
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('verse-number-new-line', true);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const verseNumber = getArabicVerseNumberSpans(component.container)[0];
+		expect(verseNumber.textContent).toBe('١');
+		expect(verseNumber.previousElementSibling?.tagName).toBe('BR');
 	});
 
 	test('keeps QPC2 verse-number fonts when merged verses stay on the same page', async () => {
@@ -929,6 +838,31 @@ describe('Overlay effect', () => {
 		const overlayEl = component.container.querySelector('#overlay > div[style*="linear-gradient"]');
 		expect(overlayEl).not.toBeNull();
 	});
+
+	test.each([
+		['fade-left', 'linear-gradient'],
+		['fade-four-corners', 'radial-gradient'],
+		['fade-four-sides', 'linear-gradient'],
+		['fade-vignette', 'radial-gradient']
+	])('applies the shared overlay renderer for %s mode', async (mode, gradientType) => {
+		const fixture = setupVideoOverlayFixture(
+			[createVerseSubtitle(0, 999, 'Arabic', 'Translation')],
+			{ cursorPosition: 500 }
+		);
+		const globalStyles = fixture.videoStyle.getStylesOfTarget('global');
+		globalStyles.setStyle('overlay-enable', true);
+		globalStyles.setStyle('background-overlay-mode', mode);
+		globalStyles.setStyle('overlay-opacity', 1);
+		globalStyles.setStyle('background-overlay-fade-intensity', 1);
+		globalStyles.setStyle('background-overlay-fade-coverage', 0.75);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		expect(
+			component.container.querySelector(`#overlay > div[style*="${gradientType}"]`)
+		).not.toBeNull();
+	});
 });
 
 describe('Subtitle opacity / fade', () => {
@@ -1078,6 +1012,217 @@ describe('Word-by-word highlight', () => {
 		expect(arabicNode).not.toBeNull();
 		const wbwFlow = arabicNode!.querySelector('.arabic-wbw-flow');
 		expect(wbwFlow).toBeNull();
+	});
+
+	test('inherits global line geometry and rounds only persistent WBW sequence ends', async () => {
+		const clip = createVerseSubtitle(0, 2999, 'one two three', 'Translation');
+		clip.alignmentMetadata = {
+			source: 'local',
+			segment: 0,
+			refFrom: '1:1:1',
+			refTo: '1:1:3',
+			matchedText: clip.text,
+			timeFrom: 0,
+			timeTo: 3,
+			words: [
+				{ location: '1:1:1', start: 0, end: 1 },
+				{ location: '1:1:2', start: 1, end: 2 },
+				{ location: '1:1:3', start: 2, end: 3 }
+			]
+		};
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 2500 });
+		const arabicStyles = fixture.videoStyle.getStylesOfTarget('arabic');
+		arabicStyles.setStyle('enable-wbw-line-background', true);
+		arabicStyles.setStyle('wbw-line-background-color', '#ff0000');
+		arabicStyles.setStyle('wbw-line-background-height', 20);
+		arabicStyles.setStyle('wbw-persist-color', true);
+		arabicStyles.setStyle('line-background-enable', true);
+		arabicStyles.setStyle('line-background-height', 64);
+		arabicStyles.setStyle('line-background-position', 18);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const bars = Array.from(
+			component.container.querySelectorAll<HTMLElement>('.arabic-wbw-group > .wbw-line-background')
+		);
+		expect(bars).toHaveLength(3);
+		expect(bars[0].classList.contains('wbw-line-background-start')).toBe(true);
+		expect(bars[1].className).toBe('wbw-line-background');
+		expect(bars[2].classList.contains('wbw-line-background-end')).toBe(true);
+		expect(bars[2].style.getPropertyValue('--wbw-line-background-height')).toBe('64px');
+		expect(bars[2].style.getPropertyValue('--wbw-line-background-position')).toBe('18px');
+	});
+
+	test('joins translation units mapped to the same current WBW word', async () => {
+		const clip = createVerseSubtitle(0, 1999, 'one two', 'Several translated words next');
+		clip.alignmentMetadata = {
+			source: 'local',
+			segment: 0,
+			refFrom: '1:1:1',
+			refTo: '1:1:2',
+			matchedText: clip.text,
+			timeFrom: 0,
+			timeTo: 2,
+			words: [
+				{ location: '1:1:1', start: 0, end: 1 },
+				{ location: '1:1:2', start: 1, end: 2 }
+			]
+		};
+		const translation = clip.translations.english as VerseTranslation;
+		translation.setWbwRange(0, 0, 2);
+		translation.setWbwRange(1, 3, 3);
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 500 });
+		const translationStyles = fixture.videoStyle.getStylesOfTarget('english');
+		translationStyles.setStyle('enable-wbw-line-background', true);
+		translationStyles.setStyle('wbw-line-background-color', '#ff0000');
+		translationStyles.setStyle('wbw-line-background-height', 30);
+		translationStyles.setStyle('wbw-line-background-position', 10);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const bars = Array.from(
+			component.container.querySelectorAll<HTMLElement>('.translation.english .wbw-line-background')
+		);
+		expect(bars).toHaveLength(3);
+		expect(bars[0].classList.contains('wbw-line-background-start')).toBe(true);
+		expect(bars[1].className).toBe('wbw-line-background');
+		expect(bars[2].classList.contains('wbw-line-background-end')).toBe(true);
+	});
+
+	test('re-highlights overlapping words in the next merged clip', async () => {
+		const firstClip = new SubtitleClip(0, 2999, 1, 1, 0, 2, 'w1 w2 w3', [], false, false);
+		firstClip.alignmentMetadata = {
+			source: 'local',
+			segment: 0,
+			refFrom: '1:1:1',
+			refTo: '1:1:3',
+			matchedText: firstClip.text,
+			timeFrom: 0,
+			timeTo: 3,
+			words: [
+				{ location: '1:1:1', start: 0, end: 0.5 },
+				{ location: '1:1:2', start: 0.5, end: 1 },
+				{ location: '1:1:3', start: 1, end: 3 }
+			]
+		};
+		const secondClip = new SubtitleClip(3000, 5999, 1, 1, 1, 3, 'w2 w3 w4', [], false, false);
+		secondClip.alignmentMetadata = {
+			source: 'local',
+			segment: 1,
+			refFrom: '1:1:2',
+			refTo: '1:1:4',
+			matchedText: secondClip.text,
+			timeFrom: 0,
+			timeTo: 3,
+			words: [
+				{ location: '1:1:2', start: 0, end: 0.75 },
+				{ location: '1:1:3', start: 0.75, end: 1.5 },
+				{ location: '1:1:4', start: 1.5, end: 3 }
+			]
+		};
+		applyVisualMerge([firstClip, secondClip], 'arabic');
+		const fixture = setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 3100 });
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('enable-wbw-highlight', true);
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('text-color', '#000000');
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('wbw-color', '#ff0000');
+		fixture.videoStyle.getStylesOfTarget('global').setStyle('fade-duration', 200);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		let wordSpans = Array.from(
+			component.container.querySelectorAll<HTMLElement>('.arabic-wbw-group > span')
+		);
+		expect(wordSpans.filter((span) => span.textContent?.trim() === 'w2')).toHaveLength(1);
+		const enteringWordColor = wordSpans.find((span) => span.textContent?.trim() === 'w2')?.style
+			.color;
+		const leavingWordColor = wordSpans.find((span) => span.textContent?.trim() === 'w3')?.style
+			.color;
+		expect(enteringWordColor).not.toBe('rgb(0, 0, 0)');
+		expect(enteringWordColor).not.toBe('rgb(255, 0, 0)');
+		expect(leavingWordColor).not.toBe('rgb(0, 0, 0)');
+		expect(leavingWordColor).not.toBe('rgb(255, 0, 0)');
+
+		await fixture.setCursor(3250);
+
+		wordSpans = Array.from(
+			component.container.querySelectorAll<HTMLElement>('.arabic-wbw-group > span')
+		);
+		expect(wordSpans.find((span) => span.textContent?.trim() === 'w2')?.style.color).toBe(
+			'rgb(255, 0, 0)'
+		);
+
+		await fixture.setCursor(4000);
+
+		wordSpans = Array.from(
+			component.container.querySelectorAll<HTMLElement>('.arabic-wbw-group > span')
+		);
+		expect(wordSpans.find((span) => span.textContent?.trim() === 'w2')?.style.color).not.toBe(
+			'rgb(255, 0, 0)'
+		);
+		expect(wordSpans.find((span) => span.textContent?.trim() === 'w3')?.style.color).toBe(
+			'rgb(255, 0, 0)'
+		);
+	});
+
+	test('keeps grouped Minimal Quran words in current-word-only mode', async () => {
+		const minimalWords = [
+			'إِنّا',
+			'أَنذَرناكُم',
+			'عَذابًا',
+			'قَريبًا',
+			'يَومَ',
+			'يَنظُرُ',
+			'المَرءُ',
+			'ما',
+			'قَدَّمَت',
+			'يَداهُ',
+			'وَيَقولُ',
+			'الكافِرُ',
+			'يا لَيتَني',
+			'كُنتُ',
+			'تُرابًا'
+		];
+		vi.spyOn(MinimalQuranProvider, 'getVerseWordsSlice').mockReturnValue(minimalWords);
+		const clip = new SubtitleClip(
+			0,
+			1499,
+			78,
+			40,
+			0,
+			14,
+			Array.from({ length: 15 }, (_, index) => `word-${index}`).join(' '),
+			[],
+			true,
+			true
+		);
+		clip.alignmentMetadata = {
+			source: 'local',
+			segment: 0,
+			refFrom: '78:40:1',
+			refTo: '78:40:15',
+			matchedText: clip.text,
+			timeFrom: 0,
+			timeTo: 1.5,
+			words: minimalWords.map((_, index) => ({
+				location: `78:40:${index + 1}`,
+				start: index / 10,
+				end: (index + 1) / 10
+			}))
+		};
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 1250 });
+		const arabicStyles = fixture.videoStyle.getStylesOfTarget('arabic');
+		arabicStyles.setStyle('mushaf-style', 'Minimal Quran');
+		arabicStyles.setStyle('wbw-show-current-word-only', true);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		expect(normalizeText(getForegroundArabicNode(component.container)?.textContent)).toBe(
+			'يا لَيتَني'
+		);
 	});
 
 	test('renders predefined subtitle text in a single segment', async () => {

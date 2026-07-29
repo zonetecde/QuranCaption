@@ -5,13 +5,16 @@ import { Edition, Utilities } from '.';
 import { Duration } from './index.js';
 import { VerseRange } from './VerseRange.svelte';
 import { Status } from './Status';
-import type { ClipWithTranslation } from './Clip.svelte';
+import type { ClipWithTranslation, SubtitleClip } from './Clip.svelte';
+import type { AssetTrack, SubtitleTrack } from './Track.svelte';
 import { VerseTranslation } from './Translation.svelte';
+import { Quran } from './Quran';
 import {
 	DEFAULT_PROJECT_TYPE,
 	normalizeProjectType,
 	type ProjectType
 } from '$lib/types/projectType';
+import { DEFAULT_EXPORT_FILE_NAME_FORMAT } from '$lib/constants/export';
 
 export class ProjectDetail extends SerializableBase {
 	static NAME_MAX_LENGTH: number = 50;
@@ -37,6 +40,9 @@ export class ProjectDetail extends SerializableBase {
 	 * Crée une nouvelle instance de ProjectDetail
 	 * @param name Nom du projet
 	 * @param reciter Nom du réciteur
+	 * @param createdAt Date de création éventuelle
+	 * @param updatedAt Date de modification éventuelle
+	 * @param projectType Type du projet
 	 */
 	constructor(
 		name: string,
@@ -77,6 +83,39 @@ export class ProjectDetail extends SerializableBase {
 		this.duration = new Duration(globalState.getAudioTrack.getDuration().ms || 0);
 		this.updateVideoPercentageCaptioned();
 		this.updateVerseRange();
+	}
+
+	/**
+	 * Met à jour les détails média depuis une piste audio explicite.
+	 * @param {AssetTrack} audioTrack Piste du projet traité en arrière-plan.
+	 * @returns {void}
+	 */
+	public updateMediaDetailAttributes(audioTrack: AssetTrack): void {
+		this.duration = new Duration(audioTrack.getDuration().ms || 0);
+		this.percentageCaptioned = 0;
+	}
+
+	/**
+	 * Met à jour les détails vidéo depuis les pistes explicites d'un projet.
+	 * @param {AssetTrack} audioTrack Piste audio du projet.
+	 * @param {SubtitleTrack} subtitleTrack Piste de sous-titres du projet.
+	 * @returns {void}
+	 */
+	public updateVideoDetailAttributesForTracks(
+		audioTrack: AssetTrack,
+		subtitleTrack: SubtitleTrack
+	): void {
+		const totalDuration = audioTrack.getDuration().ms || 0;
+		const captionedDuration = subtitleTrack.getDuration().ms || 0;
+		let percentage = totalDuration > 0 ? (captionedDuration / totalDuration) * 100 : 0;
+		if (percentage >= 97) percentage = 100;
+		this.duration = new Duration(totalDuration);
+		this.percentageCaptioned = Math.floor(percentage);
+		this.verseRange = VerseRange.getVerseRangeFromClips(
+			subtitleTrack.clips.filter((clip) => clip.type === 'Subtitle') as SubtitleClip[],
+			0,
+			captionedDuration
+		);
 	}
 
 	private updateVideoPercentageCaptioned() {
@@ -148,17 +187,28 @@ export class ProjectDetail extends SerializableBase {
 			return sanitized;
 		}
 
-		// Nom du projet (Nom du récitateur) - Al Insan 12-21, XXX
-		const finalFileName =
-			globalState.currentProject!.detail.name +
-			' ' +
-			(globalState.currentProject!.detail.reciter
-				? '(' + globalState.currentProject!.detail.reciter + ') - '
-				: '- ') +
-			VerseRange.getVerseRange(
-				globalState.getExportState.videoStartTime,
-				globalState.getExportState.videoEndTime
-			).toStringForExportFile();
+		const verseRange = VerseRange.getVerseRange(
+			globalState.getExportState.videoStartTime,
+			globalState.getExportState.videoEndTime
+		);
+		const surahNumbers = verseRange.parts.map((part) => part.surah);
+		const values = {
+			project_name: this.name,
+			reciter: this.reciter,
+			verse_range: verseRange.toStringForExportFile(),
+			surah: surahNumbers
+				.map((surahNumber) => Quran.getSurahsNames()[surahNumber - 1]?.transliteration)
+				.filter(Boolean)
+				.join(', '),
+			surah_number: surahNumbers.join(', ')
+		};
+		const format =
+			globalState.settings?.defaultValuesSettings.exportFileNameFormat.trim() ||
+			DEFAULT_EXPORT_FILE_NAME_FORMAT;
+		const finalFileName = Object.entries(values).reduce(
+			(fileName, [placeholder, value]) => fileName.replaceAll(`{${placeholder}}`, value),
+			format
+		);
 		return finalFileName.replace(/[/\\:*?"<>|]/g, '');
 	}
 

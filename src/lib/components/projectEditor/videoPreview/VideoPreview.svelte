@@ -6,8 +6,10 @@
 	import { Howl } from 'howler';
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { getStyleName } from '$lib/i18n/styleMapper';
 	import { get } from 'svelte/store';
 	import ShortcutService from '$lib/services/ShortcutService';
+	import Settings from '$lib/classes/Settings.svelte';
 	import VideoPreviewControlsBar from './VideoPreviewControlsBar.svelte';
 	import VideoOverlay from './VideoOverlay.svelte';
 
@@ -21,6 +23,40 @@
 
 	const isLinux = $derived(navigator?.userAgent?.toLowerCase()?.includes('linux') ?? false);
 	let lastTimeErrorShown = 0; // Timestamp of the last error shown (prevent spam)
+	let antiCollisionNoticeCopy = $derived(
+		$LL.editor as unknown as {
+			antiCollisionNotice: () => string;
+			antiCollisionNoticeHelpEnabled: () => string;
+			antiCollisionNoticeHelpAlternative: () => string;
+			antiCollisionNoticeHelpAnd: () => string;
+			antiCollisionNoticeHelpTargets: () => string;
+		}
+	);
+
+	let showAntiCollisionNotice = $derived(
+		typeof window !== 'undefined' &&
+			!window.location.pathname.includes('/exporter') &&
+			Boolean(globalState.settings?.persistentUiState.showAntiCollisionNotice) &&
+			Boolean(globalState.getStyle('global', 'anti-collision').value)
+	);
+
+	/**
+	 * Masque définitivement l'avertissement d'anti-collision et sauvegarde ce choix.
+	 * @returns {Promise<void>} Promesse résolue après la sauvegarde des paramètres.
+	 */
+	async function dismissAntiCollisionNotice(): Promise<void> {
+		const settings = globalState.settings;
+		if (!settings) return;
+
+		settings.persistentUiState.showAntiCollisionNotice = false;
+		try {
+			await Settings.save();
+		} catch (error) {
+			settings.persistentUiState.showAntiCollisionNotice = true;
+			console.error('Failed to persist anti-collision notice dismissal:', error);
+			toast.error(get(LL).common.unexpectedError());
+		}
+	}
 
 	// === ÉTATS RÉACTIFS DÉRIVÉS ===
 	// Récupère les paramètres de la timeline depuis l'état global
@@ -69,6 +105,30 @@
 		return clip instanceof AssetClip && clip.loopUntilAudioEnd;
 	});
 
+	let backgroundMediaStyle = $derived.by(() => {
+		const mediaFill = Boolean(globalState.getStyle('global', 'media-fill')?.value);
+		const scale = Math.min(
+			3,
+			Math.max(1, Number(globalState.getStyle('global', 'media-scale')?.value ?? 100) / 100)
+		);
+		const positionX =
+			(Math.min(
+				100,
+				Math.max(-100, Number(globalState.getStyle('global', 'media-position-x')?.value ?? 0))
+			) +
+				100) /
+			200;
+		const positionY =
+			(Math.min(
+				100,
+				Math.max(-100, Number(globalState.getStyle('global', 'media-position-y')?.value ?? 0))
+			) +
+				100) /
+			200;
+
+		return `position: absolute; width: ${scale * 100}% !important; height: ${scale * 100}% !important; max-width: none; left: ${-(scale - 1) * positionX * 100}%; top: ${-(scale - 1) * positionY * 100}%; object-fit: ${mediaFill ? 'cover' : 'contain'}; object-position: ${positionX * 100}% ${positionY * 100}%;`;
+	});
+
 	// === ÉTATS LOCAUX ===
 	let videoElement = $state<HTMLVideoElement | null>(null); // Référence à l'élément <video> HTML
 	type VideoClipTransitionMode = 'none' | 'fade-through-black' | 'crossfade';
@@ -77,7 +137,7 @@
 
 	// Effect qui redimensionne la vidéo quand la hauteur de la prévisualisation change
 	$effect(() => {
-		const _ = globalState.currentProject?.projectEditorState.upperSectionHeight;
+		const _ = globalState.settings?.persistentUiState.projectEditorLayout.upperSectionHeight;
 
 		resizeVideoToFitScreen();
 	});
@@ -89,6 +149,11 @@
 		untrack(() => {
 			setupAudio(); // Configure le nouveau fichier audio avec Howler
 		});
+	});
+
+	$effect(() => {
+		const volumePercent = globalState.getAudioTrack.volumePercent;
+		untrack(() => applyAudioVolume(volumePercent));
 	});
 
 	// Effect principal de synchronisation - se déclenche quand le curseur bouge
@@ -513,7 +578,16 @@
 	}
 
 	// === GESTION AUDIO AVEC HOWLER ===
+	type BoostedMediaElement = HTMLMediaElement & {
+		__quranCaptionAudioBoost?: {
+			context: AudioContext;
+			source: MediaElementAudioSourceNode;
+			gain: GainNode;
+		};
+	};
+
 	let audioHowl: Howl | null = null; // Instance Howler pour la lecture audio
+	let audioBoostContext: AudioContext | null = null;
 	let isPlaying = $state(false); // État de lecture global
 	let audioUpdateInterval: ReturnType<typeof setInterval> | null = null; // Intervalle pour la mise à jour du curseur audio
 	let audioSpeed = $state(1); // Vitesse de lecture audio
@@ -677,6 +751,53 @@
 	}
 
 	/**
+	 * Applique le volume de la piste à Howler, y compris au-delà de 100 %.
+	 * @param {number} volumePercent Volume demandé entre 0 et 200.
+	 * @returns {void}
+	 */
+	function applyAudioVolume(volumePercent: number): void {
+		if (!audioHowl) return;
+
+		const volume = Math.min(2, Math.max(0, volumePercent / 100));
+		audioHowl.volume(Math.min(1, volume));
+		const node = (
+			audioHowl as unknown as {
+				_sounds?: Array<{ _node?: GainNode | HTMLMediaElement }>;
+			}
+		)._sounds?.[0]?._node;
+
+		if (node instanceof HTMLMediaElement) {
+			const mediaElement = node as BoostedMediaElement;
+			if (mediaElement.crossOrigin !== 'anonymous') {
+				// Web Audio exige une requête CORS explicite pour les URLs du protocole asset Tauri.
+				mediaElement.crossOrigin = 'anonymous';
+				mediaElement.load();
+			}
+			let boost = mediaElement.__quranCaptionAudioBoost;
+			if (volume > 1 && !boost) {
+				try {
+					const context = new AudioContext();
+					const source = context.createMediaElementSource(mediaElement);
+					const gain = context.createGain();
+					source.connect(gain).connect(context.destination);
+					boost = { context, source, gain };
+					mediaElement.__quranCaptionAudioBoost = boost;
+				} catch (error) {
+					console.warn('Unable to amplify the reused HTML audio element:', error);
+					return;
+				}
+			}
+			if (boost) {
+				boost.gain.gain.value = Math.max(1, volume);
+				audioBoostContext = boost.context;
+			}
+			return;
+		}
+
+		if (node?.gain) node.gain.value = volume;
+	}
+
+	/**
 	 * Configure et initialise l'instance Howler pour l'audio actuel
 	 */
 	function setupAudio() {
@@ -699,6 +820,7 @@
 				html5: !isLinux, // Use Web Audio API only on Linux for better compatibility
 				rate: audioSpeed, // Vitesse de lecture initiale
 				onplay: () => {
+					void audioBoostContext?.resume();
 					// Synchronise la position dans l'audio avec la position du curseur
 					seekAudio(getCurrentAudioTimeToPlay());
 
@@ -760,6 +882,7 @@
 					goNextAudio();
 				}
 			});
+			applyAudioVolume(globalState.getAudioTrack.volumePercent);
 		}
 	}
 
@@ -783,14 +906,20 @@
 			loop: true, // Répète en boucle pour simuler une lecture continue
 			volume: 0, // Volume à 0 pour être réellement silencieux
 			onplay: () => {
-				isPlaying = true;
-				globalState.getVideoPreviewState.isPlaying = true;
+				// Protection: si l'utilisateur a déjà mis pause avant que Howl
+				// ait fini de charger, on ne démarre pas la lecture.
+				if (!isPlaying) {
+					audioHowl?.pause();
+					return;
+				}
 
 				// Démarre la mise à jour du curseur
 				if (!audioUpdateInterval) {
 					audioUpdateInterval = setInterval(() => {
 						// Avance le curseur manuellement de 10ms à chaque intervalle
-						getTimelineSettings().cursorPosition += 10;
+						if (isPlaying) {
+							getTimelineSettings().cursorPosition += 10;
+						}
 					}, 10);
 				}
 			},
@@ -814,6 +943,8 @@
 		// Vérification de la présence de médias
 		if (!currentVideo() && !currentAudio()) {
 			// Si aucun média, joue silent.ogg pour simuler une lecture
+			isPlaying = true;
+			globalState.getVideoPreviewState.isPlaying = true;
 			playSilentAudio();
 			return;
 		}
@@ -1015,7 +1146,7 @@
 	class:flex-1={!useSplitHeight}
 	id="video-preview-section"
 	style={showControls && useSplitHeight
-		? `height: ${globalState.currentProject!.projectEditorState.upperSectionHeight}%;`
+		? `height: ${globalState.settings!.persistentUiState.projectEditorLayout.upperSectionHeight}%;`
 		: ''}
 >
 	<div
@@ -1023,7 +1154,67 @@
 		id="preview-container"
 	>
 		<!-- Conteneur de la prévisualisation vidéo avec mise à l'échelle -->
-		<div class="relative origin-top-left bg-black" id="preview">
+		<div class="relative origin-top-left overflow-hidden bg-black" id="preview">
+			{#if showAntiCollisionNotice}
+				<div
+					class="absolute left-6 top-6 z-30 flex max-w-[calc(100%_-_3rem)] items-center gap-4 rounded-lg border border-amber-500/45 bg-slate-900/85 px-5 py-3 text-[28px] leading-tight text-white/90 shadow-md backdrop-blur-sm"
+				>
+					<span class="material-icons-outlined text-4xl text-amber-500" aria-hidden="true">
+						warning_amber
+					</span>
+					<span>{antiCollisionNoticeCopy.antiCollisionNotice()}</span>
+					<span class="group relative">
+						<button
+							type="button"
+							class="flex h-10 w-10 items-center justify-center rounded-full text-[28px] text-white/70 hover:bg-white/10 hover:text-white focus-visible:bg-white/10 focus-visible:text-white border-2 border-amber-500/70"
+							aria-label={get(LL).common.question()}
+							aria-describedby="anti-collision-notice-tooltip"
+						>
+							?
+						</button>
+						<span
+							id="anti-collision-notice-tooltip"
+							class="absolute left-[-16px] top-[calc(100%+16px)] hidden w-[min(840px,80vw)] rounded-lg border border-white/15 bg-slate-900/95 px-6 py-5 text-[26px] leading-relaxed text-white shadow-lg group-hover:block group-focus-within:block"
+							role="tooltip"
+						>
+							<span class="font-mono font-semibold text-amber-300">{$LL.status.video()}</span>
+							→
+							<span class="font-mono font-semibold text-amber-300">
+								{getStyleName('general', $LL)}
+							</span>
+							→
+							<span class="font-mono font-semibold text-amber-300">
+								{getStyleName('anti-collision', $LL)}
+							</span>
+							{' '}
+							{antiCollisionNoticeCopy.antiCollisionNoticeHelpEnabled()}
+							<br /><br />
+							{antiCollisionNoticeCopy.antiCollisionNoticeHelpAlternative()}
+							{' '}
+							<span class="font-mono font-semibold text-amber-300">
+								{getStyleName('max-height', $LL)}
+							</span>
+							{' '}
+							{antiCollisionNoticeCopy.antiCollisionNoticeHelpAnd()}
+							{' '}
+							<span class="font-mono font-semibold text-amber-300">
+								{getStyleName('vertical-text-alignment', $LL)}
+							</span>
+							{' '}
+							{antiCollisionNoticeCopy.antiCollisionNoticeHelpTargets()}
+						</span>
+					</span>
+					<button
+						type="button"
+						class="flex h-10 w-10 items-center justify-center rounded-full text-white/70 hover:bg-white/10 hover:text-white focus-visible:bg-white/10 focus-visible:text-white"
+						onclick={dismissAntiCollisionNotice}
+						aria-label={get(LL).common.dismiss()}
+						title={get(LL).common.dismiss()}
+					>
+						<span class="material-icons-outlined text-3xl" aria-hidden="true">close</span>
+					</button>
+				</div>
+			{/if}
 			{#if !globalState.getVideoPreviewState.showVideosAndAudios}
 				{#if currentVideo()}
 					{@const transitionState = videoClipTransitionState()}
@@ -1033,7 +1224,7 @@
 						muted
 						loop={isVideoLooping()}
 						onended={goNextVideo}
-						style={`opacity: ${transitionState.currentOpacity};`}
+						style={`${backgroundMediaStyle} opacity: ${transitionState.currentOpacity};`}
 					></video>
 					{#if transitionState.showCrossfadeNotice}
 						<div class="crossfade-preview-notice">{getCrossfadePreviewNotice()}</div>
@@ -1041,7 +1232,7 @@
 				{:else if currentImage()}
 					<img
 						src={`${convertFileSrc(currentImage()!.filePath)}?v=${currentImage()!.mediaReloadToken}`}
-						class="w-full h-full object-cover"
+						style={backgroundMediaStyle}
 						alt=""
 					/>
 				{/if}

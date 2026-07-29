@@ -111,7 +111,7 @@ export type WbwTranslationStatusEventPayload = {
 export type WbwTranslationChunkEventPayload = {
 	batchId: string;
 	delta: string;
-	accumulatedText: string;
+	kind?: 'reasoning' | 'response';
 };
 
 export type WbwTranslationCompleteEventPayload = {

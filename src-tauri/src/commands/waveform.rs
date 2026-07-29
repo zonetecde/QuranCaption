@@ -48,7 +48,7 @@ pub async fn get_audio_waveform(file_path: String) -> Result<Vec<f32>, String> {
 
     for chunk in raw_data.chunks_exact(2) {
         let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
-        let abs_sample = sample.abs() as f32 / 32768.0;
+        let abs_sample = (sample as f32).abs() / 32768.0;
         if abs_sample > chunk_max {
             chunk_max = abs_sample;
         }

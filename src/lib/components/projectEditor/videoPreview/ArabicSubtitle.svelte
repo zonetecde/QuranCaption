@@ -14,7 +14,6 @@
 	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 	import {
 		createPlainOverlaySegment,
-		getMergedClipsWithoutWordOverlap,
 		getVisibleArabicSegments as getVisibleArabicSegmentsUtil,
 		isVisualMergeTargetMerged,
 		type OverlayTextSegment
@@ -23,8 +22,9 @@
 		type WordByWordHighlightState,
 		getWordByWordHighlightState as computeWordByWordHighlightState,
 		getWordByWordHighlightProgress as computeWordByWordHighlightProgress,
+		getWordByWordLineBackgroundClass,
+		getWordByWordVerseNumberOpacity,
 		getWordByWordWordCss as buildWordByWordWordCss,
-		getWordByWordWordOpacity,
 		interpolateCssColor
 	} from './wordByWordHighlightUtils';
 	import {
@@ -102,6 +102,10 @@
 	/** Affiche-t-on les crochets décoratifs ? */
 	let showDecorativeBrackets = $derived(() => {
 		return Boolean(globalState.getStyle('arabic', 'show-decorative-brackets').value);
+	});
+
+	let verseNumberOnNewLine = $derived(() => {
+		return Boolean(globalState.getStyle('arabic', 'verse-number-new-line').value);
 	});
 
 	/** Paire de glyphes brute pour les crochets décoratifs. */
@@ -215,7 +219,7 @@
 				segments.push(
 					createPlainOverlaySegment(
 						`${keyPrefix}-suffix`,
-						displayParts.suffix,
+						verseNumberOnNewLine() ? displayParts.suffix.trimStart() : displayParts.suffix,
 						suffixFontCss + 'color: var(--verse-number-color);'
 					)
 				);
@@ -239,7 +243,7 @@
 			...baseSegments,
 			createPlainOverlaySegment(
 				`${keyPrefix}-suffix`,
-				displayParts.suffix,
+				verseNumberOnNewLine() ? displayParts.suffix.trimStart() : displayParts.suffix,
 				suffixFontCss + 'color: var(--verse-number-color);'
 			)
 		];
@@ -306,13 +310,13 @@
 	 * Sélectionne le timing à utiliser pour un mot dans le clip courant.
 	 *
 	 * Priorités :
-	 * 1. Timing correspondant au clipId courant.
+	 * 1. Timing déjà commencé correspondant au clipId courant.
 	 * 2. Timing actif (curseur dans [start, end]).
 	 * 3. Dernier timing passé.
-	 * 4. Premier timing disponible.
+	 * 4. Timing futur du clip courant, puis premier timing disponible.
 	 *
 	 * @param timings - Timings disponibles pour ce mot.
-	 * @param cursorTimeS - Position du curseur en secondes.
+	 * @param cursorTimeS - Position du curseur en secondes dans le groupe fusionné.
 	 * @param currentClipId - ID du clip courant (pour le matching prioritaire).
 	 * @returns Le timing sélectionné, ou `null` si aucun.
 	 */
@@ -326,14 +330,14 @@
 		);
 		if (validTimings.length === 0) return null;
 
-		// Priorité 1 : timing correspondant au clip courant
-		if (currentClipId !== null) {
-			const currentClipTiming = validTimings.find(
-				(timing) =>
-					(timing as SegmentationWordTimestamp & { clipId?: number }).clipId === currentClipId
-			);
-			if (currentClipTiming) return currentClipTiming;
-		}
+		const currentClipTiming =
+			currentClipId === null
+				? undefined
+				: validTimings.find(
+						(timing) =>
+							(timing as SegmentationWordTimestamp & { clipId?: number }).clipId === currentClipId
+					);
+		if (currentClipTiming && currentClipTiming.start <= cursorTimeS) return currentClipTiming;
 
 		// Priorité 2 : timing actif
 		const activeTiming = validTimings.find(
@@ -347,8 +351,8 @@
 			return pastTimings[pastTimings.length - 1];
 		}
 
-		// Priorité 4 : premier timing
-		return validTimings[0];
+		// Priorité 4 : timing futur du clip courant, puis premier timing
+		return currentClipTiming ?? validTimings[0];
 	}
 
 	/**
@@ -384,10 +388,7 @@
 		if (!(subtitle instanceof SubtitleClip)) return null;
 
 		const mergedGroup = currentVisualMergeGroup();
-		const sourceClips =
-			mergedGroup && isArabicMerged()
-				? getMergedClipsWithoutWordOverlap(mergedGroup.clips)
-				: [subtitle];
+		const sourceClips = mergedGroup && isArabicMerged() ? mergedGroup.clips : [subtitle];
 
 		const shouldUseMergedSource =
 			mergedGroup &&
@@ -411,13 +412,18 @@
 
 		for (const sourceClip of sourceClips) {
 			const displayParts = sourceClip.getArabicRenderParts('preview');
-			const visibleWords = displayParts.text.split(/\s+/).filter(Boolean);
+			const visibleWords = displayParts.words ?? displayParts.text.split(/\s+/).filter(Boolean);
 			const alignmentWords = sourceClip.alignmentMetadata?.words ?? [];
-			const visibleWordCount = Math.min(visibleWords.length, alignmentWords.length);
+			const dedupedAlignmentWords = alignmentWords.filter(
+				(word, index, words) =>
+					!word.location ||
+					words.findIndex((candidate) => candidate.location === word.location) === index
+			);
+			const visibleWordCount = Math.min(visibleWords.length, dedupedAlignmentWords.length);
 			const visibleAlignmentWords =
 				visibleWordCount > 0
-					? alignmentWords.slice(alignmentWords.length - visibleWordCount)
-					: alignmentWords.slice();
+					? dedupedAlignmentWords.slice(dedupedAlignmentWords.length - visibleWordCount)
+					: dedupedAlignmentWords.slice();
 			const clipOffsetS = shouldUseMergedSource
 				? (sourceClip.startTime - mergedGroup!.startTime) / 1000
 				: 0;
@@ -475,8 +481,10 @@
 				extraCss: getSubtitleQpcFontCss(sourceClip)
 			};
 
-			groups.push(group);
-			totalWordCount += groupWords.length;
+			if (groupWords.length > 0) {
+				groups.push(group);
+				totalWordCount += groupWords.length;
+			}
 			visibleWordTexts = words.map((word) => word.text);
 		}
 
@@ -511,12 +519,13 @@
 						(word) =>
 							selectWordTimingForCurrentClip(
 								word.timings,
-								getTimelineSettings().cursorPosition / 1000,
+								getTimelineSettings().cursorPosition / 1000 - (renderData?.clipStartTimeS ?? 0),
 								currentClipId
 							) ?? word.timings[0]
 					)
 					.filter((word): word is SegmentationWordTimestamp => word !== null) ?? [],
 			clipStartTimeS: renderData?.clipStartTimeS,
+			baseOpacity: subtitleOpacity,
 			getStyleValue: (styleId) =>
 				styleReferenceClip
 					? arabicStyles.getEffectiveValue(styleId as never, styleReferenceClip.id)
@@ -641,6 +650,17 @@
 		return Boolean(styles.getEffectiveValue('show-subtitles', referenceClip?.id));
 	});
 
+	let shouldForceRtlJustify = $derived(() => {
+		const subtitle = currentSubtitle();
+		if (!(subtitle instanceof SubtitleClip)) return false;
+
+		const referenceClip = arabicReferenceClip();
+		const styles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+		return (
+			String(styles.getEffectiveValue('horizontal-text-alignment', referenceClip?.id)) === 'justify'
+		);
+	});
+
 	/** CSS de capture qui garde le `display: block` attendu par modern-screenshot. */
 	let exportCaptureLayoutCss = $derived(() => {
 		if (!isArabicSubtitleVisible()) return '';
@@ -681,8 +701,11 @@
 			verticalStyleId: 'vertical-position',
 			horizontalStyleId: 'horizontal-position'
 		}}
+		dir={shouldForceRtlJustify() ? 'rtl' : undefined}
 		class={'arabic absolute subtitle select-none z-10 ' + tailwind + helperStyles}
-		style="opacity: {subtitleOpacity}; {css}; {runtimeLayoutCss}; {backgroundHorizontalPaddingCss} white-space: pre-line; {exportCaptureLayoutCss()}"
+		style="opacity: {wbwState().enabled
+			? 1
+			: subtitleOpacity}; {css}; {runtimeLayoutCss}; {backgroundHorizontalPaddingCss} white-space: pre-line; {exportCaptureLayoutCss()}"
 	>
 		{#if currentSubtitle() instanceof SubtitleClip || currentSubtitle() instanceof PredefinedSubtitleClip}
 			{@const subtitle = currentSubtitle()}
@@ -698,7 +721,7 @@
 
 				{#if state.enabled && subtitle instanceof SubtitleClip}
 					<!-- Rendu WBW avec crochets décoratifs -->
-					<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
+					<span class="arabic-wbw-flow line-background" dir="rtl" style="unicode-bidi: isolate;">
 						{#each groups as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
 							<span
 								class="arabic-wbw-group"
@@ -713,6 +736,12 @@
 										wbwPreviewFadeDuration()
 									)}
 									<span
+										class={getWordByWordLineBackgroundClass(
+											wordIndex,
+											state,
+											highlightProgress,
+											wbwPreviewFadeDuration()
+										)}
 										style={getCombinedWordByWordCss(
 											wordIndex,
 											state,
@@ -720,26 +749,27 @@
 											wordEntry.flags
 										)}
 									>
-										{wordEntry.text}{i < group.words.length - 1 && !wordEntry.flags.lineBreak
-											? ' '
-											: ''}
+										<span class="wbw-line-background-text">
+											{wordEntry.text}
+										</span>
 									</span>
+									{i < group.words.length - 1 && !wordEntry.flags.lineBreak ? ' ' : ''}
 									{#if wordEntry.flags.lineBreak}
 										<br />
 									{/if}
 								{/each}
 								{#if group.suffix}
-									{@const suffixOpacity = state.alwaysShowVerseNumber
-										? 1
-										: getWordByWordWordOpacity(
-												group.startWordIndex + group.words.length - 1,
-												state,
-												wbwPreviewFadeDuration()
-											)}
+									{#if verseNumberOnNewLine()}<br />{/if}
 									{@const lastWordIndex = group.startWordIndex + group.words.length - 1}
 									{@const lastWordProgress = computeWordByWordHighlightProgress(
 										lastWordIndex,
 										state,
+										wbwPreviewFadeDuration()
+									)}
+									{@const suffixOpacity = getWordByWordVerseNumberOpacity(
+										lastWordIndex,
+										state,
+										lastWordProgress,
 										wbwPreviewFadeDuration()
 									)}
 									{@const lastWordWbwCss = buildWordByWordWordCss(
@@ -750,6 +780,7 @@
 										state.verseNumberColor
 									)}
 									<span
+										class="wbw-line-background-text"
 										style={(group.suffixFontFamily
 											? `font-family: ${group.suffixFontFamily}; `
 											: '') +
@@ -757,7 +788,7 @@
 											lastWordWbwCss +
 											` opacity: ${suffixOpacity};`}
 									>
-										{group.suffix}
+										{verseNumberOnNewLine() ? group.suffix.trimStart() : group.suffix}
 									</span>
 								{/if}
 							</span>
@@ -774,7 +805,7 @@
 				<span style={bracketCss}>{glyphs.closing}</span>
 			{:else if state.enabled && subtitle instanceof SubtitleClip}
 				<!-- Rendu WBW sans crochets décoratifs -->
-				<span class="arabic-wbw-flow" dir="rtl" style="unicode-bidi: isolate;">
+				<span class="arabic-wbw-flow line-background" dir="rtl" style="unicode-bidi: isolate;">
 					{#each groups as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
 						<span
 							class="arabic-wbw-group"
@@ -789,6 +820,12 @@
 									wbwPreviewFadeDuration()
 								)}
 								<span
+									class={getWordByWordLineBackgroundClass(
+										wordIndex,
+										state,
+										highlightProgress,
+										wbwPreviewFadeDuration()
+									)}
 									style={getCombinedWordByWordCss(
 										wordIndex,
 										state,
@@ -796,26 +833,27 @@
 										wordEntry.flags
 									)}
 								>
-									{wordEntry.text}{i < group.words.length - 1 && !wordEntry.flags.lineBreak
-										? ' '
-										: ''}
+									<span class="wbw-line-background-text">
+										{wordEntry.text}
+									</span>
 								</span>
+								{i < group.words.length - 1 && !wordEntry.flags.lineBreak ? ' ' : ''}
 								{#if wordEntry.flags.lineBreak}
 									<br />
 								{/if}
 							{/each}
 							{#if group.suffix}
-								{@const suffixOpacity = state.alwaysShowVerseNumber
-									? 1
-									: getWordByWordWordOpacity(
-											group.startWordIndex + group.words.length - 1,
-											state,
-											wbwPreviewFadeDuration()
-										)}
+								{#if verseNumberOnNewLine()}<br />{/if}
 								{@const lastWordIndex = group.startWordIndex + group.words.length - 1}
 								{@const lastWordProgress = computeWordByWordHighlightProgress(
 									lastWordIndex,
 									state,
+									wbwPreviewFadeDuration()
+								)}
+								{@const suffixOpacity = getWordByWordVerseNumberOpacity(
+									lastWordIndex,
+									state,
+									lastWordProgress,
 									wbwPreviewFadeDuration()
 								)}
 								{@const lastWordWbwCss = buildWordByWordWordCss(
@@ -826,6 +864,7 @@
 									state.verseNumberColor
 								)}
 								<span
+									class="wbw-line-background-text"
 									style={(group.suffixFontFamily
 										? `font-family: ${group.suffixFontFamily}; `
 										: '') +
@@ -833,7 +872,7 @@
 										lastWordWbwCss +
 										` opacity: ${suffixOpacity};`}
 								>
-									{group.suffix}
+									{verseNumberOnNewLine() ? group.suffix.trimStart() : group.suffix}
 								</span>
 							{/if}
 						</span>
@@ -851,8 +890,9 @@
 {/if}
 
 {#snippet overlaySegmentsContent(segments: OverlayTextSegment[])}
-	<span class="translation-inline-flow">
+	<span class="translation-inline-flow line-background">
 		{#each segments as segment (segment.key)}
+			{#if verseNumberOnNewLine() && segment.key.endsWith('-suffix')}<br />{/if}
 			{@const segmentStyle = `${getInlineStyleCss(segment.flags)} ${segment.extraCss ?? ''}`.trim()}
 			{#if segmentStyle}
 				<span style={segmentStyle}>{segment.text}</span>

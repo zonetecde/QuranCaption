@@ -41,6 +41,8 @@
 	import CustomText from '../tabs/styleEditor/CustomText.svelte';
 	import CustomImage from '../tabs/styleEditor/CustomImage.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
+	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
+	import QPCFontProvider from '$lib/services/FontProvider';
 	import {
 		getBackgroundClipIdForTarget as getBackgroundClipIdForTargetUtil,
 		getReferenceClipForTarget as getReferenceClipForTargetUtil,
@@ -54,6 +56,10 @@
 
 	// Helpers extraits
 	import { getOverlayLayerCss } from './helpers/overlayCss';
+	import {
+		resolveOverlayVisualState,
+		resolveTimedVisualState
+	} from '$lib/services/StyleVisualResolver';
 	import { applyReactiveFontSize } from './helpers/reactiveFontSize';
 	import { resolveSubtitleCollisions } from './helpers/antiCollision';
 
@@ -252,19 +258,50 @@
 	let overlaySettings = $derived(() => {
 		const clipId = currentVideoClip()?.id;
 		const globalStyles = globalState.getVideoStyle.getStylesOfTarget('global');
+		return resolveOverlayVisualState(globalStyles, clipId);
+	});
+
+	let videoFrameSettings = $derived.by(() => {
+		const verticalSize = Math.min(
+			45,
+			Math.max(0, Number(globalState.getStyle('global', 'video-frame-vertical-size')?.value ?? 8))
+		);
+		const horizontalSize = Math.min(
+			45,
+			Math.max(0, Number(globalState.getStyle('global', 'video-frame-horizontal-size')?.value ?? 8))
+		);
+		const radius = Math.min(
+			50,
+			Math.max(0, Number(globalState.getStyle('global', 'video-frame-radius')?.value ?? 4))
+		);
+		const softness = Math.min(
+			5,
+			Math.max(0, Number(globalState.getStyle('global', 'video-frame-softness')?.value ?? 0))
+		);
+		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
+			| { width: number; height: number }
+			| undefined;
+		const width = Math.max(1, Number(dimensions?.width ?? 1920));
+		const height = Math.max(1, Number(dimensions?.height ?? 1080));
+		const innerWidth = width * (1 - horizontalSize / 50);
+		const innerHeight = height * (1 - verticalSize / 50);
+		const radiusPixels = (radius / 100) * Math.min(innerWidth, innerHeight);
+		const radiusX = (radiusPixels / width) * 100;
+		const radiusY = (radiusPixels / height) * 100;
+		const softnessPixels = (softness / 100) * Math.min(width, height);
+		const softnessX = (softnessPixels / width) * 100;
+		const softnessY = (softnessPixels / height) * 100;
+		const left = horizontalSize;
+		const top = verticalSize;
+		const right = 100 - horizontalSize;
+		const bottom = 100 - verticalSize;
+
 		return {
-			enable: Boolean(globalStyles.getEffectiveValue('overlay-enable', clipId)),
-			blur: Number(globalStyles.getEffectiveValue('overlay-blur', clipId)),
-			opacity: Number(globalStyles.getEffectiveValue('overlay-opacity', clipId)),
-			color: String(globalStyles.getEffectiveValue('overlay-color', clipId)),
-			mode: String(globalStyles.getEffectiveValue('background-overlay-mode', clipId)),
-			fadeIntensity: Number(
-				globalStyles.getEffectiveValue('background-overlay-fade-intensity', clipId)
-			),
-			fadeCoverage: Number(
-				globalStyles.getEffectiveValue('background-overlay-fade-coverage', clipId)
-			),
-			customCSS: String(globalStyles.getEffectiveValue('overlay-custom-css', clipId))
+			enable: Boolean(globalState.getStyle('global', 'video-frame-enable')?.value),
+			contentAbove: Boolean(globalState.getStyle('global', 'video-frame-content-above')?.value),
+			color: String(globalState.getStyle('global', 'video-frame-color')?.value ?? '#000000'),
+			softness: `${softnessX} ${softnessY}`,
+			path: `M -100 -100 H 200 V 200 H -100 Z M ${left + radiusX} ${top} H ${right - radiusX} A ${radiusX} ${radiusY} 0 0 1 ${right} ${top + radiusY} V ${bottom - radiusY} A ${radiusX} ${radiusY} 0 0 1 ${right - radiusX} ${bottom} H ${left + radiusX} A ${radiusX} ${radiusY} 0 0 1 ${left} ${bottom - radiusY} V ${top + radiusY} A ${radiusX} ${radiusY} 0 0 1 ${left + radiusX} ${top} Z`
 		};
 	});
 
@@ -368,6 +405,31 @@
 		return maxOpacity;
 	});
 
+	let backgroundOpacity = $derived((target: string) => {
+		const styles = globalState.getVideoStyle.getStylesOfTarget(target);
+		const alwaysShowStyle = styles.findStyle('always-show');
+		if (!alwaysShowStyle) return 1;
+
+		const clipId = getBackgroundClipIdForTarget(target);
+		const timing = resolveTimedVisualState(
+			styles,
+			{
+				alwaysShow: 'always-show',
+				startTime: 'time-appearance',
+				endTime: 'time-disappearance'
+			},
+			clipId
+		);
+		return getTimedOverlayOpacity({
+			alwaysShow: timing.alwaysShow,
+			maxOpacity: 1,
+			currentTime: getTimelineSettings().cursorPosition,
+			fadeDuration: fadeDuration(),
+			startTime: timing.startTime,
+			endTime: timing.endTime
+		});
+	});
+
 	/**
 	 * Génère le CSS complet pour une cible de style, en excluant
 	 * certaines catégories si demandé.
@@ -391,8 +453,8 @@
 	 * Classes CSS d'aide visuelle pour l'édition de style.
 	 *
 	 * Quand on édite une cible dans l'onglet Style, on ajoute une classe
-	 * de fond semi-transparent si les sections "width" ou "max-height"
-	 * sont en mode étendu (pour visualiser les contraintes).
+	 * de fond semi-transparent pendant le survol des contrôles "width"
+	 * ou "max-height" afin de visualiser leurs contraintes.
 	 *
 	 * @param target - Cible de style.
 	 * @returns Classes CSS additionnelles.
@@ -407,10 +469,8 @@
 			let classes = ' ';
 
 			if (
-				globalState.getSectionsState['width'] &&
-				globalState.getSectionsState['max-height'] &&
-				(globalState.getSectionsState['width'].extended ||
-					globalState.getSectionsState['max-height'].extended)
+				globalState.hoveredStylePreviewHelper === 'width' ||
+				globalState.hoveredStylePreviewHelper === 'max-height'
 			) {
 				classes += 'bg-[#11A2AF]/50 ';
 			}
@@ -953,6 +1013,15 @@
 				const abortSignal = currentAbortController.signal;
 
 				try {
+					if (isExportCapturePreview()) {
+						await QPCFontProvider.waitForFontsInElement(
+							document.getElementById('subtitles-container')
+						);
+						if (abortSignal.aborted) return;
+						await tick();
+						await wait(abortSignal);
+					}
+
 					// Étape 1 : Réinitialise les positions Y réactives
 					resetRuntimeYOffsets(targets);
 
@@ -1029,9 +1098,8 @@
 				}
 			});
 
-			if (layoutCompleted) {
-				cacheRuntimeLayout(layoutKey, targets);
-			}
+			if (!layoutCompleted) return;
+			cacheRuntimeLayout(layoutKey, targets);
 
 			// Réaffiche les sous-titres
 			const currentSubtitlesContainer = document.getElementById('subtitles-container');
@@ -1079,7 +1147,7 @@
 	<!-- Couche 3.5 : Ayah Container (au-dessus de l'overlay, en-dessous des sous-titres) -->
 	<AyahContainer />
 
-	<!-- Couche 4 : Fonds des sous-titres (toujours visibles) -->
+	<!-- Couche 4 : Fonds des sous-titres -->
 	<div
 		id="subtitles-backgrounds"
 		class="absolute inset-0 z-1 flex flex-col items-center justify-center"
@@ -1091,7 +1159,7 @@
 				helperStyles('arabic')}
 			style="{getCss('arabic', getBackgroundClipIdForTarget('arabic'))}; {getRuntimeLayoutCss(
 				'arabic'
-			)}"
+			)} opacity: {backgroundOpacity('arabic')};"
 		></div>
 
 		<!-- Fonds des traductions -->
@@ -1104,7 +1172,7 @@
 						helperStyles(edition)}
 					style="{getCss(edition, getBackgroundClipIdForTarget(edition))}; {getRuntimeLayoutCss(
 						edition
-					)}"
+					)} opacity: {backgroundOpacity(edition)};"
 				></div>
 			{/if}
 		{/each}
@@ -1170,6 +1238,37 @@
 			{/if}
 		{/each}
 	</div>
+
+	{#if videoFrameSettings.enable}
+		<!-- À z-0, l'overlay déclaré avant reste dessous et les contenus à partir de z-1 passent dessus. -->
+		<svg
+			class={`pointer-events-none absolute inset-0 h-full w-full ${videoFrameSettings.contentAbove ? 'z-0' : 'z-20'}`}
+			viewBox="0 0 100 100"
+			preserveAspectRatio="none"
+			aria-hidden="true"
+		>
+			<defs>
+				<filter
+					id="video-frame-softness-filter"
+					filterUnits="userSpaceOnUse"
+					x="-200"
+					y="-200"
+					width="500"
+					height="500"
+					color-interpolation-filters="sRGB"
+				>
+					<feGaussianBlur stdDeviation={videoFrameSettings.softness}></feGaussianBlur>
+				</filter>
+			</defs>
+			<path
+				d={videoFrameSettings.path}
+				fill={videoFrameSettings.color}
+				filter="url(#video-frame-softness-filter)"
+				fill-rule="evenodd"
+				clip-rule="evenodd"
+			></path>
+		</svg>
+	{/if}
 </div>
 
 <!-- ===================================================================== -->
@@ -1177,6 +1276,68 @@
 <!-- ===================================================================== -->
 
 <style>
+	/** Clone le décor sur chaque fragment créé par le retour à la ligne automatique. */
+	:global(#subtitles-container .line-background) {
+		position: relative;
+		z-index: 0;
+		-webkit-box-decoration-break: clone;
+		box-decoration-break: clone;
+		padding-inline: calc(var(--line-background-height, 0px) / 2);
+		padding-block: calc(
+			var(--line-background-height) / 2 +
+				max(var(--line-background-position), calc(0px - var(--line-background-position)))
+		);
+		background:
+			radial-gradient(circle closest-side, var(--line-background-color) 99%, transparent) left
+				calc(50% + var(--line-background-position)) / var(--line-background-height)
+				var(--line-background-height) no-repeat,
+			radial-gradient(circle closest-side, var(--line-background-color) 99%, transparent) right
+				calc(50% + var(--line-background-position)) / var(--line-background-height)
+				var(--line-background-height) no-repeat,
+			linear-gradient(var(--line-background-color), var(--line-background-color)) center
+				calc(50% + var(--line-background-position)) / calc(100% - var(--line-background-height))
+				var(--line-background-height) no-repeat;
+	}
+
+	/** Dessine la barre WBW hors du flux pour qu'une position basse ne la coupe pas. */
+	:global(#subtitles-container .wbw-line-background) {
+		position: relative;
+	}
+
+	:global(#subtitles-container .wbw-line-background::before) {
+		position: absolute;
+		z-index: 0;
+		top: calc(50% + var(--wbw-line-background-position) - var(--wbw-line-background-height) / 2);
+		inset-inline: -0.15em;
+		height: var(--wbw-line-background-height);
+		background: var(--wbw-line-background-color);
+		content: '';
+		pointer-events: none;
+	}
+
+	/** Maintient tous les glyphes au-dessus des barres WBW voisines. */
+	:global(#subtitles-container .wbw-line-background-text) {
+		position: relative;
+		z-index: 1;
+	}
+
+	:global(#subtitles-container .wbw-line-background-single::before) {
+		inset-inline: calc(0px - var(--wbw-line-background-padding));
+		border-radius: 999px;
+	}
+
+	:global(#subtitles-container .wbw-line-background-start::before) {
+		inset-inline-start: calc(0px - var(--wbw-line-background-padding));
+		border-start-start-radius: 999px;
+		border-end-start-radius: 999px;
+	}
+
+	:global(#subtitles-container .wbw-line-background-end::before) {
+		inset-inline-end: calc(0px - var(--wbw-line-background-padding));
+		border-start-end-radius: 999px;
+		border-end-end-radius: 999px;
+	}
+
 	/**
 	 * Conteneur inline pour les segments de traduction.
 	 * `white-space: inherit` assure que le parent (qui a `pre-line`)

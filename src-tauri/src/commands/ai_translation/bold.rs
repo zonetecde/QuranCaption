@@ -23,18 +23,13 @@ fn emit_bold_status(app_handle: &tauri::AppHandle, batch_id: &str, step: &str, m
     );
 }
 
-fn emit_bold_chunk(
-    app_handle: &tauri::AppHandle,
-    batch_id: &str,
-    delta: &str,
-    accumulated_text: &str,
-) {
+fn emit_bold_chunk(app_handle: &tauri::AppHandle, batch_id: &str, delta: &str, kind: &str) {
     let _ = app_handle.emit(
         "advanced-ai-bold-chunk",
         json!({
             "batchId": batch_id,
             "delta": delta,
-            "accumulatedText": accumulated_text
+            "kind": kind
         }),
     );
 }
@@ -83,13 +78,14 @@ pub async fn run_advanced_ai_bold_batch_streaming(
     let body = if is_chat_completions {
         prompts::build_chat_completions_body(
             &request.model,
+            prompts::is_deepseek_endpoint(&endpoint).then_some(request.reasoning_effort.as_str()),
             prompts::ADVANCED_BOLD_SYSTEM_PROMPT,
             &user_prompt,
         )
     } else {
         prompts::build_responses_api_body(
             &request.model,
-            &request.reasoning_effort,
+            prompts::is_openai_endpoint(&endpoint).then_some(request.reasoning_effort.as_str()),
             prompts::ADVANCED_BOLD_SYSTEM_PROMPT,
             &user_prompt,
             "advanced_bold_batch",

@@ -363,9 +363,12 @@ export function getVisibleTranslationSegments(
 
 	if (!(subtitle instanceof SubtitleClip)) return [];
 
-	const groups = getMergedClipsWithoutWordOverlap(mergedGroup!.clips).map((clip) =>
-		getTranslationOverlaySegments(edition, clip)
-	);
+	const mergedClips = getMergedClipsWithoutWordOverlap(mergedGroup!.clips);
+	if (hasSharedMergedTranslation(mergedClips, edition)) {
+		return getTranslationOverlaySegments(edition, mergedClips[mergedClips.length - 1]);
+	}
+
+	const groups = mergedClips.map((clip) => getTranslationOverlaySegments(edition, clip));
 	const hasCjkSegments = groups.some((segments) =>
 		segments.some((segment) => hasCjkText(segment.text))
 	);
@@ -389,4 +392,16 @@ export function getVisibleTranslationSegments(
 	}
 
 	return output;
+}
+
+/**
+ * Indique si tous les clips fusionnes partagent la meme traduction source.
+ * @param {SubtitleClip[]} clips Clips du groupe fusionne.
+ * @param {string} edition Edition de traduction.
+ * @returns {boolean} `true` si une seule traduction doit etre rendue.
+ */
+export function hasSharedMergedTranslation(clips: SubtitleClip[], edition: string): boolean {
+	if (clips.length <= 1) return false;
+	const translation = clips[0].translations[edition];
+	return !!translation && clips.every((clip) => clip.translations[edition] === translation);
 }

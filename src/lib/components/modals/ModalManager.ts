@@ -11,8 +11,19 @@ import AudioCutterModal from './tools/AudioCutterModal.svelte';
 import BookmarkVerseModal from './BookmarkVerseModal.svelte';
 import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
 import AiWbwTranslationModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiWbwTranslationModal.svelte';
+import AskIAModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AskIAModal.svelte';
+import type { Edition } from '$lib/classes';
 import { type UpdateInfo } from '$lib/services/VersionService.svelte';
 import LL from '$lib/i18n/i18n-svelte';
+import YouTubeUploadModal from '../YouTubeUploadModal.svelte';
+import type Exportation from '$lib/classes/Exportation.svelte';
+
+type YouTubePublicationUpdate = {
+	status: 'uploading' | 'published' | 'failed';
+	progress: number;
+	url?: string;
+	error?: string;
+};
 
 export default class ModalManager {
 	static async confirmModal(text: string, yesNo: boolean = false): Promise<boolean> {
@@ -219,6 +230,37 @@ export default class ModalManager {
 		});
 	}
 
+	/**
+	 * Ouvre la modale de publication YouTube pour un export terminé.
+	 *
+	 * @param {Exportation} exportation Export vidéo à publier.
+	 * @param {(update: YouTubePublicationUpdate) => void} onUpdate Callback de progression.
+	 * @returns {Promise<void>} Résolution après fermeture de la modale.
+	 */
+	static async youtubeUploadModal(
+		exportation: Exportation,
+		onUpdate: (update: YouTubePublicationUpdate) => void
+	): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			const modal = mount(YouTubeUploadModal, {
+				target: container,
+				props: {
+					exportation,
+					onUpdate,
+					close: () => {
+						unmount(modal);
+						container.remove();
+						resolve();
+					}
+				}
+			});
+		});
+	}
+
 	static async bookmarkVerseModal(surah: number, verse: number): Promise<void> {
 		return new Promise<void>((resolve) => {
 			const container = document.createElement('div');
@@ -278,6 +320,31 @@ export default class ModalManager {
 			const modal = mount(AiWbwTranslationModal, {
 				target: container,
 				props: {
+					close: () => {
+						unmount(modal);
+						container.remove();
+						resolve();
+					}
+				}
+			});
+		});
+	}
+
+	/**
+	 * Ouvre la modale de traduction IA au niveau de la page.
+	 * @param {Edition} edition Édition de traduction à traiter.
+	 * @returns {Promise<void>} Résolution après fermeture de la modale.
+	 */
+	static async askTranslationModal(edition: Edition): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			const modal = mount(AskIAModal, {
+				target: container,
+				props: {
+					edition,
 					close: () => {
 						unmount(modal);
 						container.remove();

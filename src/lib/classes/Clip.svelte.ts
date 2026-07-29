@@ -18,8 +18,10 @@ import type { Category, StyleName } from './VideoStyle.svelte';
 import { Quran } from './Quran';
 import QPCFontProvider from '$lib/services/FontProvider';
 import SoosiProvider from '$lib/services/SoosiProvider';
+import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 import type { SubtitleAlignmentMetadata } from '$lib/services/AutoSegmentation';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import type { ProjectTranslation } from './ProjectTranslation.svelte';
 
 type ClipType =
 	| 'Silence'
@@ -31,6 +33,7 @@ type ClipType =
 
 type ArabicRenderParts = {
 	text: string;
+	words?: string[];
 	suffix: string;
 	suffixFontFamily: string | null;
 };
@@ -493,6 +496,22 @@ export class SubtitleClip extends ClipWithTranslation {
 		const fontFamily = globalState.getStyle('arabic', 'font-family')!;
 		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
 
+		if (mushafStyle === 'Minimal Quran') {
+			const words =
+				MinimalQuranProvider.getVerseWordsSlice(
+					this.surah,
+					this.verse,
+					this.startWordIndex,
+					this.endWordIndex
+				) ?? undefined;
+			return {
+				text: words?.join(' ') ?? this.text,
+				words,
+				suffix: showVerseNumber ? ` ${this.latinToArabicNumbers(this.verse)}` : '',
+				suffixFontFamily: null
+			};
+		}
+
 		if (mushafStyle === 'Soosi') {
 			const soosiText = SoosiProvider.getVerseSlice(
 				this.surah,
@@ -528,15 +547,17 @@ export class SubtitleClip extends ClipWithTranslation {
 		const qpcVersion: '1' | '2' =
 			mushafStyle === 'Tajweed' ? '2' : fontFamily.value === 'QPC1' ? '1' : '2';
 
+		const words = QPCFontProvider.getQuranVerseGlyphWords(
+			this.surah,
+			this.verse,
+			this.startWordIndex,
+			this.endWordIndex,
+			qpcVersion
+		);
+
 		return {
-			text: QPCFontProvider.getQuranVerseGlyph(
-				this.surah,
-				this.verse,
-				this.startWordIndex,
-				this.endWordIndex,
-				false,
-				qpcVersion
-			),
+			text: words.join(' '),
+			words,
 			suffix: showVerseNumber
 				? ` ${QPCFontProvider.getQuranVerseGlyph(
 						this.surah,
@@ -576,6 +597,19 @@ export class SubtitleClip extends ClipWithTranslation {
 		// En fonction de la police d'écriture, renvoie le bon texte
 		const fontFamily = globalState.getStyle('arabic', 'font-family')!;
 		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
+
+		if (mushafStyle === 'Minimal Quran') {
+			const minimalText =
+				MinimalQuranProvider.getVerseSlice(
+					this.surah,
+					this.verse,
+					this.startWordIndex,
+					this.endWordIndex
+				) ?? this.text;
+			return globalState.getStyle('arabic', 'show-verse-number').value
+				? this.getTextWithVerseNumber(minimalText)
+				: minimalText;
+		}
 
 		if (mushafStyle === 'Soosi') {
 			const soosiText =
@@ -875,6 +909,7 @@ export function getForcedFontForPredefinedSubtitle(
 
 export class PredefinedSubtitleClip extends ClipWithTranslation {
 	predefinedSubtitleType: PredefinedSubtitleType = $state('Other');
+	alignmentMetadata: SubtitleAlignmentMetadata | null = $state(null);
 
 	constructor(
 		startTime: number = 0,
@@ -882,7 +917,9 @@ export class PredefinedSubtitleClip extends ClipWithTranslation {
 		type: PredefinedSubtitleType = 'Other',
 		text: string = '',
 		comeFromIA: boolean = false,
-		confidence: number | null = null
+		confidence: number | null = null,
+		projectTranslation: ProjectTranslation | null = globalState.currentProject?.content
+			.projectTranslation ?? null
 	) {
 		const isDeserializationCall = arguments.length === 0;
 		const canonicalType = canonicalizePredefinedSubtitleType(type);
@@ -892,13 +929,12 @@ export class PredefinedSubtitleClip extends ClipWithTranslation {
 		const translations: { [key: string]: Translation } = {};
 
 		// Recupere les traductions ajoutees au projet
-		if (!isDeserializationCall && globalState.currentProject)
-			for (const edition of globalState.getProjectTranslation.addedTranslationEditions) {
-				translations[edition.name] =
-					globalState.getProjectTranslation.getPredefinedSubtitleTranslation(
-						edition,
-						canonicalType
-					);
+		if (!isDeserializationCall && projectTranslation)
+			for (const edition of projectTranslation.addedTranslationEditions) {
+				translations[edition.name] = projectTranslation.getPredefinedSubtitleTranslation(
+					edition,
+					canonicalType
+				);
 			}
 
 		super(_text, startTime, endTime, 'Pre-defined Subtitle', translations, comeFromIA, confidence);

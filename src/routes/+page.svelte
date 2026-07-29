@@ -122,7 +122,9 @@
 		}`}
 	>
 		{#if globalState.currentProject !== null}
-			<ProjectEditor />
+			{#key globalState.currentProject.detail.id}
+				<ProjectEditor />
+			{/key}
 		{:else if globalState.currentPage === 'ai-video'}
 			<AiVideoPage />
 		{:else}

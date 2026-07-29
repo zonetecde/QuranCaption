@@ -1,6 +1,5 @@
 use std::fs;
 use std::path::Path;
-use std::process::Command;
 use std::time::UNIX_EPOCH;
 
 use super::codec;
@@ -11,11 +10,53 @@ use super::types::{
     VideoInput,
 };
 
+/// Construit le filtre FFmpeg de cadrage partagé par les vidéos et images de fond.
+///
+/// Le mode normal conserve entièrement le média avec des bandes éventuelles. Les deux modes
+/// appliquent le zoom puis recadrent selon une position relative au centre.
+pub fn build_background_fit_filter(
+    w: i32,
+    h: i32,
+    media_fill: bool,
+    media_scale: f64,
+    media_position_x: f64,
+    media_position_y: f64,
+) -> String {
+    let scale = (media_scale / 100.0).clamp(1.0, 3.0);
+    let scaled_w = ((w as f64 * scale).round() as i32).max(w);
+    let scaled_h = ((h as f64 * scale).round() as i32).max(h);
+    let position_x = ((media_position_x.clamp(-100.0, 100.0) + 100.0) / 200.0).clamp(0.0, 1.0);
+    let position_y = ((media_position_y.clamp(-100.0, 100.0) + 100.0) / 200.0).clamp(0.0, 1.0);
+
+    if !media_fill {
+        return format!(
+            "scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)*{:.6}:(oh-ih)*{:.6}:color=black,crop={}:{}:(in_w-{})*{:.6}:(in_h-{})*{:.6}",
+            scaled_w,
+            scaled_h,
+            scaled_w,
+            scaled_h,
+            position_x,
+            position_y,
+            w,
+            h,
+            w,
+            position_x,
+            h,
+            position_y
+        );
+    }
+
+    format!(
+        "scale={}:{}:force_original_aspect_ratio=increase,crop={}:{}:(in_w-{})*{:.6}:(in_h-{})*{:.6}",
+        scaled_w, scaled_h, w, h, w, position_x, h, position_y
+    )
+}
+
 // ---------------------------------------------------------------------------
-// Pré-traitement vidéo (scale + pad + blur + fps)
+// Pré-traitement vidéo (cadrage + blur + fps)
 // ---------------------------------------------------------------------------
 
-/// Prétraite une vidéo source : redimensionne (contain), applique un flou optionnel,
+/// Prétraite une vidéo source : applique le cadrage demandé, puis un flou optionnel,
 /// ajuste le fps et découpe la plage temporelle demandée.
 ///
 /// # Paramètres
@@ -31,6 +72,10 @@ pub fn ffmpeg_preprocess_video(
     prefer_hw: bool,
     start_ms: Option<i32>,
     duration_ms: Option<i32>,
+    media_fill: bool,
+    media_scale: f64,
+    media_position_x: f64,
+    media_position_y: f64,
     blur: Option<f64>,
     loop_video: bool,
     performance_profile: ExportPerformanceProfile,
@@ -52,11 +97,15 @@ pub fn ffmpeg_preprocess_video(
     let tmp_path = ffmpeg_utils::build_temp_output_path(dst_path);
     let tmp_output = tmp_path.to_string_lossy().to_string();
 
-    // Construction du filtre vidéo : scale → pad → blur optionnel → fps
-    let mut vf_parts = vec![
-        format!("scale=w={}:h={}:force_original_aspect_ratio=decrease", w, h),
-        format!("pad={}:{}:(ow-iw)/2:(oh-ih)/2:color=black", w, h),
-    ];
+    // Construction du filtre vidéo : cadrage → blur optionnel → fps
+    let mut vf_parts = vec![build_background_fit_filter(
+        w,
+        h,
+        media_fill,
+        media_scale,
+        media_position_x,
+        media_position_y,
+    )];
 
     // Ajouter le flou si spécifié et > 0
     if let Some(blur_value) = blur {
@@ -123,7 +172,7 @@ pub fn ffmpeg_preprocess_video(
     cmd.push(tmp_output);
 
     println!(
-        "[preproc] ffmpeg scale+pad (contain) -> {}",
+        "[preproc] ffmpeg cadrage du fond -> {}",
         Path::new(dst)
             .file_name()
             .unwrap_or_default()
@@ -180,8 +229,8 @@ pub fn ffmpeg_preprocess_video(
 // Création de vidéo à partir d'une image fixe
 // ---------------------------------------------------------------------------
 
-/// Crée une vidéo à partir d'une image fixe, avec redimensionnement (cover/crop)
-/// et flou optionnel.
+/// Crée une vidéo à partir d'une image fixe, avec le cadrage demandé
+/// et flou optionnel, en émettant la progression FFmpeg pour l'export courant.
 pub fn create_video_from_image(
     image_path: &str,
     output_path: &str,
@@ -190,9 +239,15 @@ pub fn create_video_from_image(
     fps: i32,
     duration_s: f64,
     prefer_hw: bool,
+    media_fill: bool,
+    media_scale: f64,
+    media_position_x: f64,
+    media_position_y: f64,
     blur: Option<f64>,
     performance_profile: ExportPerformanceProfile,
-) -> Result<(), Box<dyn std::error::Error>> {
+    export_id: &str,
+    app_handle: &tauri::AppHandle,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
     let ffmpeg_exe = ffmpeg_utils::resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
     let dst_path = Path::new(output_path);
     if let Some(parent) = dst_path.parent() {
@@ -201,11 +256,15 @@ pub fn create_video_from_image(
     let tmp_path = ffmpeg_utils::build_temp_output_path(dst_path);
     let tmp_output = tmp_path.to_string_lossy().to_string();
 
-    // Filtre : scale up → crop → blur optionnel
-    let mut vf_parts = vec![
-        format!("scale={}:{}:force_original_aspect_ratio=increase", w, h),
-        format!("crop={}:{}:(in_w-{})/2:(in_h-{})/2", w, h, w, h),
-    ];
+    // Filtre : cadrage → blur optionnel
+    let mut vf_parts = vec![build_background_fit_filter(
+        w,
+        h,
+        media_fill,
+        media_scale,
+        media_position_x,
+        media_position_y,
+    )];
 
     if let Some(blur_value) = blur {
         if blur_value > 0.0 {
@@ -223,57 +282,67 @@ pub fn create_video_from_image(
         performance_profile,
     );
 
-    let mut cmd = Command::new(&ffmpeg_exe);
-    cmd.args(&[
-        "-y",
-        "-hide_banner",
-        "-loglevel",
-        "warning",
-        "-loop",
-        "1",
-        "-i",
-        image_path,
-        "-vf",
-        &video_filter,
-        "-c:v",
-        &codec,
-        "-r",
-        &fps.to_string(),
-        "-t",
-        &format!("{:.6}", duration_s),
-    ]);
+    let mut cmd = vec![
+        ffmpeg_exe,
+        "-y".to_string(),
+        "-hide_banner".to_string(),
+        "-loglevel".to_string(),
+        "warning".to_string(),
+        "-nostats".to_string(),
+        "-progress".to_string(),
+        "pipe:2".to_string(),
+        "-loop".to_string(),
+        "1".to_string(),
+        "-i".to_string(),
+        image_path.to_string(),
+        "-vf".to_string(),
+        video_filter,
+        "-c:v".to_string(),
+        codec.clone(),
+        "-r".to_string(),
+        fps.to_string(),
+        "-t".to_string(),
+        format!("{:.6}", duration_s),
+    ];
 
-    codec::append_thread_cap(&mut cmd, performance_profile);
+    if let Some(thread_cap) = codec::compute_ffmpeg_thread_cap(performance_profile) {
+        cmd.extend_from_slice(&["-threads".to_string(), thread_cap.to_string()]);
+    }
 
     if let Some(Some(preset)) = codec_extra.get("preset") {
-        cmd.arg("-preset").arg(preset);
+        cmd.extend_from_slice(&["-preset".to_string(), preset.clone()]);
     }
 
-    for param in codec_params {
-        cmd.arg(param);
+    cmd.extend(codec_params);
+
+    if codec.contains("nvenc") && !matches!(performance_profile, ExportPerformanceProfile::Balanced)
+    {
+        cmd.extend_from_slice(&["-cq".to_string(), "23".to_string()]);
     }
 
-    if codec.contains("nvenc") {
-        cmd.args(&["-cq", "23"]);
-    }
-
-    cmd.arg(&tmp_output);
-
-    ffmpeg_utils::configure_command_no_window(&mut cmd);
+    cmd.push(tmp_output);
 
     println!(
         "[preproc][IMG] Création vidéo depuis image: {} -> {}",
         image_path, output_path
     );
-    println!("[preproc][IMG] Commande: {:?}", cmd);
-
-    let status = cmd.status()?;
-    if !status.success() {
+    let progress_context = Some(FfmpegProgressContext {
+        base_time_s: 0.0,
+        total_time_s: duration_s.max(0.001),
+        local_duration_s: duration_s.max(0.001),
+        suppress_error_event: false,
+        current_batch_size: None,
+    });
+    if let Err(error) = ffmpeg_runner::run_ffmpeg_command(
+        export_id,
+        &cmd,
+        progress_context,
+        Some("Processing Background"),
+        None,
+        app_handle,
+    ) {
         fs::remove_file(&tmp_path).ok();
-        return Err(Box::new(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "FFmpeg image-to-video failed",
-        )));
+        return Err(error);
     }
 
     if !ffmpeg_utils::is_cached_video_valid(&tmp_path, duration_s.max(0.001)) {
@@ -309,6 +378,10 @@ pub fn preprocess_background_videos(
     prefer_hw: bool,
     start_time_ms: i32,
     duration_ms: Option<i32>,
+    media_fill: bool,
+    media_scale: f64,
+    media_position_x: f64,
+    media_position_y: f64,
     blur: Option<f64>,
     performance_profile: ExportPerformanceProfile,
     export_id: &str,
@@ -317,7 +390,7 @@ pub fn preprocess_background_videos(
 ) -> Vec<PreparedBackgroundVideo> {
     let mut out_paths = Vec::new();
     let cache_dir = std::env::temp_dir().join("qurancaption-preproc");
-    let preproc_cache_version = "fit-v9-profile";
+    let preproc_cache_version = "fit-v12-media-layout";
     fs::create_dir_all(&cache_dir).ok();
     let total_inputs = video_inputs.len().max(1);
     let clamped_total_s = total_duration_s.max(0.001);
@@ -370,7 +443,7 @@ pub fn preprocess_background_videos(
         };
         let mtime = file_mtime_sec(image_path);
         let hash_input = format!(
-            "{}-{}-{}x{}-{}-dur{}-mtime{}-profile{:?}-hw{}{}",
+            "{}-{}-{}x{}-{}-dur{}-mtime{}-profile{:?}-hw{}-fill{}-scale{}-x{}-y{}{}",
             preproc_cache_version,
             image_path,
             w,
@@ -380,6 +453,10 @@ pub fn preprocess_background_videos(
             mtime,
             performance_profile,
             prefer_hw,
+            media_fill,
+            media_scale,
+            media_position_x,
+            media_position_y,
             blur_suffix
         );
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
@@ -404,8 +481,14 @@ pub fn preprocess_background_videos(
                 fps,
                 duration_s,
                 prefer_hw,
+                media_fill,
+                media_scale,
+                media_position_x,
+                media_position_y,
                 blur,
                 performance_profile,
+                export_id,
+                app_handle,
             ) {
                 Ok(_) => {
                     println!("[background] path=preprocessed-generated");
@@ -444,9 +527,13 @@ pub fn preprocess_background_videos(
         i64::MAX
     };
 
-    // Détection du cas "direct single pass": une seule vidéo, pas de blur, pas de loop
+    // Détection du cas "direct single pass": une seule vidéo sans blur.
+    // La boucle est ignorée plus bas si la source couvre déjà toute la durée nécessaire.
     let can_direct_single_pass = video_inputs.len() == 1
-        && !video_inputs[0].loop_until_audio_end.unwrap_or(false)
+        && !media_fill
+        && (media_scale - 100.0).abs() < f64::EPSILON
+        && media_position_x.abs() < f64::EPSILON
+        && media_position_y.abs() < f64::EPSILON
         && !blur.map_or(false, |b| b > 0.0);
 
     // Parcourir les vidéos et extraire uniquement les segments pertinents
@@ -530,7 +617,7 @@ pub fn preprocess_background_videos(
         let should_prefer_hw = prefer_hw && !(cfg!(target_os = "macos") && is_loop);
 
         let hash_input = format!(
-            "{}-{}-{}x{}-{}-start{}-len{}-mtime{}-profile{:?}-hw{}{}{}",
+            "{}-{}-{}x{}-{}-start{}-len{}-mtime{}-profile{:?}-hw{}-fill{}-scale{}-x{}-y{}{}{}",
             preproc_cache_version,
             vid_path,
             w,
@@ -541,6 +628,10 @@ pub fn preprocess_background_videos(
             mtime,
             performance_profile,
             should_prefer_hw,
+            media_fill,
+            media_scale,
+            media_position_x,
+            media_position_y,
             blur_suffix,
             loop_suffix
         );
@@ -551,7 +642,7 @@ pub fn preprocess_background_videos(
 
         let must_regenerate = !ffmpeg_utils::is_cached_video_valid(&dst, expected_duration_s);
 
-        // Voie directe simple : une seule vidéo sans blur ni loop, pas de cache
+        // Voie directe simple : une seule vidéo sans blur couvrant toute la durée, pas de cache
         if must_regenerate && can_direct_single_pass && idx == 0 {
             let src_duration_s = video_durations_ms[0] as f64 / 1000.0;
             let available_s = (src_duration_s - (start_within as f64 / 1000.0)).max(0.0);
@@ -594,6 +685,10 @@ pub fn preprocess_background_videos(
                 should_prefer_hw,
                 Some(start_within as i32),
                 Some(take_ms as i32),
+                media_fill,
+                media_scale,
+                media_position_x,
+                media_position_y,
                 blur,
                 is_loop,
                 performance_profile,

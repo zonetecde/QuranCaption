@@ -316,10 +316,14 @@ export async function automaticSplitSubtitleAtWord(
  *
  * @param {object} options Options de subdivision.
  * @param {(clip: SubtitleClip) => boolean} options.shouldSplitClip Filtre optionnel des clips a subdiviser.
+ * @param {(leftClip: SubtitleClip, rightClip: SubtitleClip) => void} options.onSplit Callback optionnel apres chaque coupe.
  * @returns {Promise<number>} Nombre de coupes appliquées.
  */
 export async function subdivideLongSubtitleSegments(
-	options: { shouldSplitClip?: (clip: SubtitleClip) => boolean } = {}
+	options: {
+		shouldSplitClip?: (clip: SubtitleClip) => boolean;
+		onSplit?: (leftClip: SubtitleClip, rightClip: SubtitleClip) => void;
+	} = {}
 ): Promise<number> {
 	ProjectHistoryManager.begin('subdivide subtitles');
 	try {
@@ -353,6 +357,7 @@ export async function subdivideLongSubtitleSegments(
 
 				const rightClip = await splitSubtitleClipLocally(clip, splitWordIndex);
 				if (!rightClip) continue;
+				options.onSplit?.(clip, rightClip);
 
 				splitCount += 1;
 				madeProgress = true;

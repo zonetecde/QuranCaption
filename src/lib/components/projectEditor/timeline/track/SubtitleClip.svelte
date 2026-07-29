@@ -17,11 +17,13 @@
 	import toast from 'svelte-5-french-toast';
 	import {
 		computeWbwTimestampsForClips,
+		isWbwTimestampClip,
 		scheduleWbwRealign,
 		getAutoRealignStatus,
 		AUTO_REALIGN_DRAG_THRESHOLD_MS
 	} from '$lib/services/AutoSegmentation';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { stripWbwDisplayMarkers } from '$lib/services/WbwHelper';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let {
@@ -40,7 +42,7 @@
 
 	// Vrai si ce sous-titre Quran n'a pas encore de timestamps mot à mot.
 	let isMissingWbwTimestamps = $derived(
-		clip instanceof SubtitleClip && (clip.alignmentMetadata?.words.length ?? 0) === 0
+		isWbwTimestampClip(clip) && (clip.alignmentMetadata?.words.length ?? 0) === 0
 	);
 
 	let positionLeft = $derived(() => {
@@ -144,7 +146,8 @@
 	 * @returns {string} Texte lisible du mot.
 	 */
 	function getWordBoundaryLabel(word: { location: string; word?: string }): string {
-		const directLabel = String(word.word ?? '').trim();
+		// Retire le petit zéro rond « lettre muette » à l'affichage uniquement.
+		const directLabel = stripWbwDisplayMarkers(String(word.word ?? '').trim());
 		if (directLabel) return directLabel;
 		if (!(clip instanceof SubtitleClip)) return String(word.location ?? '').trim();
 
@@ -156,7 +159,7 @@
 	}
 
 	const wordBoundaryMarkers = $derived(() => {
-		if (!(clip instanceof SubtitleClip)) return [];
+		if (!isWbwTimestampClip(clip)) return [];
 		if ((clip.alignmentMetadata?.words.length ?? 0) === 0) return [];
 
 		const clipDurationMs = Math.max(1, clip.endTime - clip.startTime);
@@ -195,6 +198,8 @@
 			didDrag = false;
 			if (clip instanceof SubtitleClip) {
 				isResizing = true;
+			}
+			if (clip instanceof SubtitleClip || clip.type === 'Silence') {
 				dragBoundaryStartMs = clip.startTime;
 			}
 			globalState.getTimelineState.showCursor = false;
@@ -219,15 +224,16 @@
 		if (clip.type !== 'Silence' && !(clip instanceof SubtitleClip)) {
 			clip.markAsManualEdit();
 		}
-		if (clip instanceof SubtitleClip) {
-			isResizing = false;
+		if (clip instanceof SubtitleClip || clip.type === 'Silence') {
+			if (clip instanceof SubtitleClip) isResizing = false;
 			const movedMs =
 				dragBoundaryStartMs === null ? 0 : Math.abs(clip.startTime - dragBoundaryStartMs);
 			dragBoundaryStartMs = null;
 			if (didDrag && movedMs > AUTO_REALIGN_DRAG_THRESHOLD_MS) {
-				// Un drag à gauche déplace aussi la fin du clip précédent → réaligner les deux.
+				// Un drag à gauche déplace aussi la fin du clip précédent → réaligner les sous-titres touchés.
 				const previous = (track as SubtitleTrack).getClipBefore(clip.id);
-				const group = previous instanceof SubtitleClip ? [previous, clip] : [clip];
+				const group = clip instanceof SubtitleClip ? [clip] : [];
+				if (previous instanceof SubtitleClip) group.unshift(previous);
 				scheduleWbwRealign(group, { reason: 'drag' });
 			}
 		}
@@ -244,6 +250,8 @@
 		didDrag = false;
 		if (clip instanceof SubtitleClip) {
 			isResizing = true;
+		}
+		if (clip instanceof SubtitleClip || clip.type === 'Silence') {
 			dragBoundaryStartMs = clip.endTime;
 		}
 		document.addEventListener('mousemove', onRightDragging);
@@ -267,15 +275,16 @@
 		if (clip.type !== 'Silence' && !(clip instanceof SubtitleClip)) {
 			clip.markAsManualEdit();
 		}
-		if (clip instanceof SubtitleClip) {
-			isResizing = false;
+		if (clip instanceof SubtitleClip || clip.type === 'Silence') {
+			if (clip instanceof SubtitleClip) isResizing = false;
 			const movedMs =
 				dragBoundaryStartMs === null ? 0 : Math.abs(clip.endTime - dragBoundaryStartMs);
 			dragBoundaryStartMs = null;
 			if (didDrag && movedMs > AUTO_REALIGN_DRAG_THRESHOLD_MS) {
-				// Un drag à droite recale aussi le début du clip suivant → réaligner les deux.
+				// Un drag à droite recale aussi le début du clip suivant → réaligner les sous-titres touchés.
 				const next = (track as SubtitleTrack).getClipAfter(clip.id);
-				const group = next instanceof SubtitleClip ? [clip, next] : [clip];
+				const group = clip instanceof SubtitleClip ? [clip] : [];
+				if (next instanceof SubtitleClip) group.push(next);
 				scheduleWbwRealign(group, { reason: 'drag' });
 			}
 		}
@@ -453,7 +462,7 @@
 	 * @returns {Promise<void>}
 	 */
 	async function generateWbwTimestampsFromContextMenu(): Promise<void> {
-		if (!(clip instanceof SubtitleClip)) return;
+		if (!isWbwTimestampClip(clip)) return;
 
 		currentMenu.set(null);
 		await tick();
@@ -750,6 +759,15 @@
 			</div></Item
 		>
 	{/if}
+	{#if isMissingWbwTimestamps}
+		<Divider />
+		<Item on:click={generateWbwTimestampsFromContextMenu}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">auto_awesome</span>Generate WBW
+				timestamps
+			</div></Item
+		>
+	{/if}
 	{#if clip.type === 'Subtitle'}
 		<Divider />
 		<Item on:click={editSubtitleFromQuickEditorContextMenu}
@@ -764,14 +782,6 @@
 				>{$LL.editor.editTranslationContext()}
 			</div></Item
 		>
-		{#if isMissingWbwTimestamps}
-			<Item on:click={generateWbwTimestampsFromContextMenu}
-				><div class="btn-icon">
-					<span class="material-icons-outlined text-sm mr-1">auto_awesome</span>Generate WBW
-					timestamps
-				</div></Item
-			>
-		{/if}
 		<Item on:click={editWbwTimestampFromContextMenu}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">timeline</span

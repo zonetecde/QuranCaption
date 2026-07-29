@@ -1,6 +1,11 @@
 import type { SubtitleClip } from '$lib/classes/Clip.svelte';
 import { Utilities } from '$lib/classes/misc/Utilities';
 import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
+import {
+	isWordByWordVisualEnabled,
+	type ResolveStyleValue
+} from '$lib/services/StyleVisualResolver';
+export { isWordByWordVisualEnabled as isWordByWordHighlightEnabled } from '$lib/services/StyleVisualResolver';
 
 export type WordByWordHighlightState = {
 	enabled: boolean;
@@ -11,47 +16,29 @@ export type WordByWordHighlightState = {
 	revealSpecificWordStyle: boolean;
 	revealWordsOnRecitation: boolean;
 	alwaysShowVerseNumber: boolean;
+	baseOpacity: number;
 	baseColor: string;
 	verseNumberColor: string;
 	color: string;
 	backgroundEnabled: boolean;
 	backgroundColor: string;
+	lineBackgroundEnabled: boolean;
+	lineBackgroundColor: string;
+	lineBackgroundPosition: number;
+	lineBackgroundHeight: number;
+	lineBackgroundPadding: number;
 	underlineEnabled: boolean;
 	underlineThickness: number;
 	glowEnabled: boolean;
 	glowColor: string;
 	glowBlur: number;
+	currentWordOpacityEnabled: boolean;
+	currentWordCustomCss: string;
+	currentWordOpacity: number;
 	clipStartTimeS: number;
 	cursorTimeS: number;
 	words: SegmentationWordTimestamp[];
 };
-
-type ResolveStyleValue = (styleId: string) => string | number | boolean;
-
-/**
- * Indique si au moins un effet WBW nécessite d'activer le rendu mot a mot.
- * @param {ResolveStyleValue} getStyleValue Lecteur de styles effectifs.
- * @returns {boolean} `true` si un effet WBW est actif.
- */
-export function isWordByWordHighlightEnabled(getStyleValue: ResolveStyleValue): boolean {
-	const highlightEnabled = Boolean(getStyleValue('enable-wbw-highlight'));
-	const underlineEnabled = Boolean(getStyleValue('enable-wbw-underline'));
-	const glowEnabled = Boolean(getStyleValue('enable-wbw-glow'));
-	const revealSpecificWordStyle = Boolean(getStyleValue('wbw-reveal-specific-word-style'));
-	const revealWordsOnRecitation = Boolean(getStyleValue('wbw-reveal-on-recitation'));
-	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
-	const showCurrentWordOnly = Boolean(getStyleValue('wbw-show-current-word-only'));
-
-	return (
-		showCurrentWordOnly ||
-		highlightEnabled ||
-		underlineEnabled ||
-		glowEnabled ||
-		revealSpecificWordStyle ||
-		revealWordsOnRecitation ||
-		backgroundEnabled
-	);
-}
 
 /**
  * Retourne l'état désactivé par défaut du highlight mot à mot.
@@ -67,16 +54,25 @@ export function getDisabledWordByWordHighlightState(): WordByWordHighlightState 
 		revealSpecificWordStyle: false,
 		revealWordsOnRecitation: false,
 		alwaysShowVerseNumber: false,
+		baseOpacity: 1,
 		baseColor: '',
 		verseNumberColor: '',
 		color: '',
 		backgroundEnabled: false,
 		backgroundColor: '',
+		lineBackgroundEnabled: false,
+		lineBackgroundColor: '',
+		lineBackgroundPosition: 0,
+		lineBackgroundHeight: 1,
+		lineBackgroundPadding: 0,
 		underlineEnabled: false,
 		underlineThickness: 1,
 		glowEnabled: false,
 		glowColor: '',
 		glowBlur: 10,
+		currentWordOpacityEnabled: false,
+		currentWordCustomCss: '',
+		currentWordOpacity: 1,
 		clipStartTimeS: 0,
 		cursorTimeS: 0,
 		words: []
@@ -119,6 +115,7 @@ export function getWordByWordHighlightState(params: {
 	getStyleValue: ResolveStyleValue;
 	words?: SegmentationWordTimestamp[];
 	clipStartTimeS?: number;
+	baseOpacity?: number;
 }): WordByWordHighlightState {
 	const { subtitle, isArabicMerged, cursorTimeS, getStyleValue } = params;
 	const words = params.words ?? subtitle?.alignmentMetadata?.words ?? [];
@@ -134,7 +131,15 @@ export function getWordByWordHighlightState(params: {
 	const revealSpecificWordStyle = Boolean(getStyleValue('wbw-reveal-specific-word-style'));
 	const revealWordsOnRecitation = Boolean(getStyleValue('wbw-reveal-on-recitation'));
 	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
-	const isEnabled = isWordByWordHighlightEnabled(getStyleValue);
+	const lineBackgroundEnabled = Boolean(getStyleValue('enable-wbw-line-background'));
+	const globalLineBackgroundEnabled = Boolean(getStyleValue('line-background-enable'));
+	const isEnabled = isWordByWordVisualEnabled(getStyleValue);
+	const currentWordOpacityEnabled = Boolean(getStyleValue('enable-wbw-current-word-opacity'));
+	const currentWordCustomCss = String(getStyleValue('wbw-current-word-custom-css') ?? '');
+	const currentWordOpacityValue = Number(getStyleValue('wbw-current-word-opacity') ?? 1);
+	const currentWordOpacity = Number.isFinite(currentWordOpacityValue)
+		? Utilities.clamp01(currentWordOpacityValue)
+		: 1;
 	if (!isEnabled) return getDisabledWordByWordHighlightState();
 
 	const wbwTimingEpsilonS = 0.0005;
@@ -170,16 +175,36 @@ export function getWordByWordHighlightState(params: {
 		alwaysShowVerseNumber: showCurrentWordOnly
 			? false
 			: Boolean(getStyleValue('wbw-always-show-verse-number')),
+		baseOpacity: Utilities.clamp01(Number(params.baseOpacity ?? 1)),
 		baseColor: String(getStyleValue('text-color') ?? ''),
 		verseNumberColor: String(getStyleValue('verse-number-color') ?? ''),
 		color: String(getStyleValue('wbw-color') ?? ''),
 		backgroundEnabled: showCurrentWordOnly ? false : backgroundEnabled,
 		backgroundColor: String(getStyleValue('wbw-bg-color') ?? ''),
+		lineBackgroundEnabled,
+		lineBackgroundColor: String(getStyleValue('wbw-line-background-color') ?? ''),
+		lineBackgroundPosition: Number(
+			getStyleValue(
+				globalLineBackgroundEnabled ? 'line-background-position' : 'wbw-line-background-position'
+			) ?? 0
+		),
+		lineBackgroundHeight: Math.max(
+			1,
+			Number(
+				getStyleValue(
+					globalLineBackgroundEnabled ? 'line-background-height' : 'wbw-line-background-height'
+				) ?? 1
+			)
+		),
+		lineBackgroundPadding: Math.max(0, Number(getStyleValue('wbw-line-background-padding') ?? 0)),
 		underlineEnabled: showCurrentWordOnly ? false : underlineEnabled,
 		underlineThickness: Number(getStyleValue('wbw-underline-thickness') ?? 1),
 		glowEnabled: showCurrentWordOnly ? false : glowEnabled,
 		glowColor: String(getStyleValue('wbw-glow-color') ?? ''),
 		glowBlur: Number(getStyleValue('wbw-glow-blur') ?? 10),
+		currentWordOpacityEnabled,
+		currentWordCustomCss,
+		currentWordOpacity,
 		clipStartTimeS,
 		cursorTimeS,
 		words
@@ -303,8 +328,14 @@ export function getWordByWordWordCss(
 ): string {
 	const parts: string[] = [];
 	const clampedProgress = Utilities.clamp01(highlightProgress);
-	const opacity = getWordByWordWordOpacity(wordIndex, state, fadeDurationMs);
+	const opacity = getWordByWordWordOpacity(wordIndex, state, fadeDurationMs, true, clampedProgress);
 	const effectiveBaseColor = baseColorOverride ?? state.baseColor;
+	const customCss = wordIndex === state.activeWordIndex ? state.currentWordCustomCss : '';
+	const shouldWriteOpacity =
+		state.revealWordsOnRecitation ||
+		state.showCurrentWordOnly ||
+		state.currentWordOpacityEnabled ||
+		state.baseOpacity !== 1;
 
 	if (state.underlineEnabled) {
 		parts.push('text-decoration-line: underline;');
@@ -314,9 +345,10 @@ export function getWordByWordWordCss(
 	}
 
 	if (clampedProgress === 0 || fadeDurationMs < 0) {
-		if (state.revealWordsOnRecitation || state.showCurrentWordOnly) {
+		if (shouldWriteOpacity) {
 			parts.push(`opacity: ${opacity};`);
 		}
+		if (customCss.trim()) parts.push(customCss);
 		return parts.join(' ');
 	}
 
@@ -328,6 +360,18 @@ export function getWordByWordWordCss(
 			`background-color: ${interpolateCssColor('', state.backgroundColor, clampedProgress)};`
 		);
 	}
+	if (
+		state.lineBackgroundEnabled &&
+		state.lineBackgroundColor &&
+		state.lineBackgroundColor !== '#00000000'
+	) {
+		parts.push(
+			`--wbw-line-background-color: ${interpolateCssColor('', state.lineBackgroundColor, clampedProgress)};`
+		);
+		parts.push(`--wbw-line-background-position: ${state.lineBackgroundPosition}px;`);
+		parts.push(`--wbw-line-background-height: ${state.lineBackgroundHeight}px;`);
+		parts.push(`--wbw-line-background-padding: ${state.lineBackgroundPadding}px;`);
+	}
 	if (state.glowEnabled && state.glowColor && state.glowColor !== '#00000000') {
 		const glowColor = interpolateCssColor('', state.glowColor, clampedProgress);
 		const glowBlur = Math.max(0, state.glowBlur);
@@ -335,24 +379,79 @@ export function getWordByWordWordCss(
 			`text-shadow: 0 0 ${glowBlur * 0.5}px ${glowColor}, 0 0 ${glowBlur}px ${glowColor}, 0 0 ${glowBlur * 1.5}px ${glowColor}, 0 0 ${glowBlur * 2}px ${glowColor};`
 		);
 	}
-	if (state.revealWordsOnRecitation || state.showCurrentWordOnly) {
+	if (shouldWriteOpacity) {
 		parts.push(`opacity: ${opacity};`);
 	}
+	if (customCss.trim()) parts.push(customCss);
 	return parts.join(' ');
+}
+
+/**
+ * Retourne les classes de barre WBW d'un mot selon ses voisins actuellement surlignés.
+ * @param {number} wordIndex Index du mot dans le clip.
+ * @param {WordByWordHighlightState} state Etat de highlight courant.
+ * @param {number} highlightProgress Progression du highlight entre 0 et 1.
+ * @param {number} fadeDurationMs Durée de fade à réutiliser pour la preview.
+ * @param {{ previous: boolean; next: boolean }} [connectedNeighbors] Connexions visuelles déjà résolues.
+ * @returns {string} Classes CSS de la barre WBW, ou chaîne vide.
+ */
+export function getWordByWordLineBackgroundClass(
+	wordIndex: number,
+	state: WordByWordHighlightState,
+	highlightProgress: number,
+	fadeDurationMs: number,
+	connectedNeighbors?: { previous: boolean; next: boolean }
+): string {
+	if (
+		!state.lineBackgroundEnabled ||
+		!state.lineBackgroundColor ||
+		state.lineBackgroundColor === '#00000000' ||
+		highlightProgress <= 0 ||
+		fadeDurationMs < 0
+	) {
+		return '';
+	}
+
+	if (!state.persistColor && !connectedNeighbors) {
+		return 'wbw-line-background wbw-line-background-single';
+	}
+
+	const hasPrevious =
+		connectedNeighbors?.previous ??
+		getWordByWordHighlightProgress(wordIndex - 1, state, fadeDurationMs) > 0;
+	const hasNext =
+		connectedNeighbors?.next ??
+		getWordByWordHighlightProgress(wordIndex + 1, state, fadeDurationMs) >= 1;
+
+	if (!hasPrevious && !hasNext) return 'wbw-line-background wbw-line-background-single';
+	if (!hasPrevious) return 'wbw-line-background wbw-line-background-start';
+	if (!hasNext) return 'wbw-line-background wbw-line-background-end';
+	return 'wbw-line-background';
 }
 
 /**
  * Retourne l'opacité à appliquer à un mot WBW selon son état de recitation.
  * @param {WordByWordHighlightState} state Etat de highlight courant.
  * @param {number} fadeDurationMs Durée de fade à réutiliser pour la preview.
+ * @param {boolean} useCurrentWordOpacity Indique si l'opacité custom du mot courant doit être appliquée.
+ * @param {number | null} highlightProgress Progression WBW à utiliser pour interpoler l'opacité custom.
  * @returns {number} Opacité normalisée entre 0 et 1.
  */
 export function getWordByWordWordOpacity(
 	wordIndex: number,
 	state: WordByWordHighlightState,
-	fadeDurationMs: number
+	fadeDurationMs: number,
+	useCurrentWordOpacity: boolean = true,
+	highlightProgress: number | null = null
 ): number {
-	if ((!state.revealWordsOnRecitation && !state.showCurrentWordOnly) || !state.enabled) return 1;
+	if (!state.enabled) return 1;
+
+	const activeWordOpacity =
+		useCurrentWordOpacity && state.currentWordOpacityEnabled
+			? state.baseOpacity +
+				(state.currentWordOpacity - state.baseOpacity) * Utilities.clamp01(highlightProgress ?? 0)
+			: state.baseOpacity;
+	if (!state.revealWordsOnRecitation && !state.showCurrentWordOnly) return activeWordOpacity;
 
 	const word = state.words[wordIndex];
 	if (!word) return 0;
@@ -363,37 +462,64 @@ export function getWordByWordWordOpacity(
 
 	if (state.showCurrentWordOnly) {
 		if (fadeDurationS === 0) {
-			return currentTimeS >= wordStartTimeS && currentTimeS <= wordEndTimeS ? 1 : 0;
+			return currentTimeS >= wordStartTimeS && currentTimeS <= wordEndTimeS ? activeWordOpacity : 0;
 		}
 
 		const wordDurationS = Math.max(0, wordEndTimeS - wordStartTimeS);
 		const effectiveFadeDurationS = Math.min(fadeDurationS, wordDurationS / 2);
 		if (effectiveFadeDurationS <= 0) {
-			return currentTimeS >= wordStartTimeS && currentTimeS <= wordEndTimeS ? 1 : 0;
+			return currentTimeS >= wordStartTimeS && currentTimeS <= wordEndTimeS ? activeWordOpacity : 0;
 		}
 
 		if (currentTimeS < wordStartTimeS || currentTimeS > wordEndTimeS) return 0;
 		if (currentTimeS <= wordStartTimeS + effectiveFadeDurationS) {
-			return Utilities.clamp01((currentTimeS - wordStartTimeS) / effectiveFadeDurationS);
+			return (
+				Utilities.clamp01((currentTimeS - wordStartTimeS) / effectiveFadeDurationS) *
+				activeWordOpacity
+			);
 		}
 		if (currentTimeS >= wordEndTimeS - effectiveFadeDurationS) {
-			return Utilities.clamp01((wordEndTimeS - currentTimeS) / effectiveFadeDurationS);
+			return (
+				Utilities.clamp01((wordEndTimeS - currentTimeS) / effectiveFadeDurationS) *
+				activeWordOpacity
+			);
 		}
-		return 1;
+		return activeWordOpacity;
 	}
 
-	if (wordIndex < state.activeWordIndex) return 1;
+	if (wordIndex < state.activeWordIndex) return state.baseOpacity;
 	if (wordIndex > state.activeWordIndex) return 0;
-	if (state.activeWordIndex >= state.words.length) return 1;
+	if (state.activeWordIndex >= state.words.length) return state.baseOpacity;
 
 	if (fadeDurationS === 0) {
-		return currentTimeS >= wordStartTimeS ? 1 : 0;
+		return currentTimeS >= wordStartTimeS ? activeWordOpacity : 0;
 	}
 
 	if (currentTimeS < wordStartTimeS) return 0;
 	if (currentTimeS <= wordStartTimeS + fadeDurationS) {
-		return Utilities.clamp01((currentTimeS - wordStartTimeS) / fadeDurationS);
+		return Utilities.clamp01((currentTimeS - wordStartTimeS) / fadeDurationS) * activeWordOpacity;
 	}
-	if (currentTimeS <= wordEndTimeS) return 1;
-	return 1;
+	if (currentTimeS <= wordEndTimeS) return activeWordOpacity;
+	return activeWordOpacity;
+}
+
+/**
+ * Retourne l'opacité du numéro de verset synchronisée avec le dernier mot.
+ * @param {number} wordIndex Index du dernier mot du verset.
+ * @param {WordByWordHighlightState} state État de highlight courant.
+ * @param {number} highlightProgress Progression WBW du dernier mot.
+ * @param {number} fadeDurationMs Durée de fade à réutiliser pour la preview.
+ * @returns {number} Opacité finale du numéro de verset.
+ */
+export function getWordByWordVerseNumberOpacity(
+	wordIndex: number,
+	state: WordByWordHighlightState,
+	highlightProgress: number,
+	fadeDurationMs: number
+): number {
+	if (!state.alwaysShowVerseNumber) {
+		return getWordByWordWordOpacity(wordIndex, state, fadeDurationMs, true, highlightProgress);
+	}
+	if (!state.currentWordOpacityEnabled) return 1;
+	return 1 + (state.currentWordOpacity - 1) * Utilities.clamp01(highlightProgress);
 }

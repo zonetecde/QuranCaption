@@ -60,6 +60,7 @@
 	let explorerSelection = $state<ExplorerSelection>(ALL_PROJECTS_SELECTION);
 	let currentSortProperty = $state<keyof ProjectDetail>('updatedAt');
 	let isSortAscending = $state(false);
+	let isExplorerVisible = $state(true);
 	let homePreferencesInitialized = $state(false);
 
 	let promise: Promise<void | ProjectDetail[]> | undefined = $state(undefined);
@@ -67,7 +68,6 @@
 		label: string;
 		target?: ExplorerSelection;
 	};
-
 	/**
 	 * Affiche le popup pour créer un nouveau projet.
 	 */
@@ -89,6 +89,13 @@
 	function toggleSortMenu() {
 		sortMenuVisible = !sortMenuVisible;
 		filterMenuVisible = false;
+	}
+
+	/**
+	 * Bascule l'affichage de l'explorateur de projets.
+	 */
+	function toggleExplorerVisibility() {
+		isExplorerVisible = !isExplorerVisible;
 	}
 
 	/**
@@ -114,6 +121,9 @@
 		return [...projects].sort((a, b) => {
 			let valueA = a[currentSortProperty];
 			let valueB = b[currentSortProperty];
+			if (valueA === null && valueB === null) return 0;
+			if (valueA === null) return isSortAscending ? -1 : 1;
+			if (valueB === null) return isSortAscending ? 1 : -1;
 
 			if (valueA instanceof Date && valueB instanceof Date) {
 				valueA = valueA.getTime();
@@ -146,6 +156,7 @@
 		globalState.settings.persistentUiState.homeSortProperty = currentSortProperty;
 		globalState.settings.persistentUiState.homeSortAscending = isSortAscending;
 		globalState.settings.persistentUiState.homeExplorerSelection = explorerSelection;
+		globalState.settings.persistentUiState.homeExplorerVisible = isExplorerVisible;
 		Settings.save();
 	}
 
@@ -347,9 +358,7 @@
 		);
 	});
 	let projectsPerPage = $derived.by(() => getProjectsPerPage());
-	let totalPages = $derived.by(() =>
-		Math.max(1, Math.ceil(searchedProjects.length / projectsPerPage))
-	);
+	let totalPages = $derived.by(() => Math.max(1, Math.ceil(searchedProjects.length / projectsPerPage)));
 	let paginatedProjects = $derived.by(() => {
 		const startIndex = (currentPage - 1) * projectsPerPage;
 		return searchedProjects.slice(startIndex, startIndex + projectsPerPage);
@@ -371,6 +380,7 @@
 		currentSortProperty = settings.persistentUiState.homeSortProperty ?? 'updatedAt';
 		isSortAscending = settings.persistentUiState.homeSortAscending ?? false;
 		explorerSelection = settings.persistentUiState.homeExplorerSelection ?? ALL_PROJECTS_SELECTION;
+		isExplorerVisible = settings.persistentUiState.homeExplorerVisible ?? true;
 		homePreferencesInitialized = true;
 	});
 
@@ -397,6 +407,7 @@
 		currentSortProperty;
 		isSortAscending;
 		explorerSelection;
+		isExplorerVisible;
 		persistHomePreferences();
 	});
 
@@ -674,8 +685,12 @@
 						<ProjectDetailCardSkeleton isListView={true} count={8} />
 					</div>
 				{:then}
-					{#if sortedSelectedProjects.length === 0}
-						{#if globalState.uiState.selectedStatuses.length === 0}
+					{#if searchedProjects.length === 0}
+						{#if globalState.uiState.searchQuery}
+							<p class="mt-4">
+								{$LL.home.noProjectsMatchSearch({ query: globalState.uiState.searchQuery })}
+							</p>
+						{:else if globalState.uiState.selectedStatuses.length === 0}
 							<p class="mt-4">
 								{$LL.home.noProjectsMatchFilter()}
 							</p>
@@ -688,10 +703,6 @@
 								{$LL.home.noProjectsInFolder()}
 							</p>
 						{/if}
-					{:else if searchedProjects.length === 0}
-						<p class="mt-4">
-							{$LL.home.noProjectsMatchSearch({ query: globalState.uiState.searchQuery })}
-						</p>
 					{:else}
 						<div placeholder="Project cards" class="mt-4 grid grid-cols-1 gap-3">
 							{#each paginatedProjects as project (project.id)}

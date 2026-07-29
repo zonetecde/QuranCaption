@@ -13,6 +13,7 @@
 	import AiActivityLogCard from './shared/AiActivityLogCard.svelte';
 	import AiBatchOverviewCard from './shared/AiBatchOverviewCard.svelte';
 	import AiRunStatusCard from './shared/AiRunStatusCard.svelte';
+	import AiStreamingWorkerGrid from './shared/AiStreamingWorkerGrid.svelte';
 	import TranslationsEditorModalShell from './shared/TranslationsEditorModalShell.svelte';
 	import VerseRangeSelector from './VerseRangeSelector.svelte';
 	import {
@@ -30,11 +31,18 @@
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
+	import {
+		AiStreamChunkBuffer,
+		runAiWorkerPool,
+		type AiStreamChunkUpdate,
+		type AiStreamWorker
+	} from '$lib/services/AiWorkerPool';
 
 	type ActivityEntry = WbwTranslationActivityEntry;
 	type StatusEventPayload = WbwTranslationStatusEventPayload;
 	type ChunkEventPayload = WbwTranslationChunkEventPayload;
 	type CompleteEventPayload = WbwTranslationCompleteEventPayload;
+	const AI_TRANSLATION_WORKER_COUNT = 3;
 
 	let { close }: { close: () => void } = $props();
 
@@ -102,10 +110,7 @@
 	let failedBatches = $state(0);
 	let successfulSegments = $state(0);
 	let failedSegments = $state(0);
-	let currentBatchId = $state('');
-	let currentBatchStep = $state('idle');
-	let currentBatchLabel = $state('');
-	let streamedResponse = $state('');
+	let workers: AiStreamWorker[] = $state(createIdleWorkers());
 	let latestSummary = $state('');
 	let activityLog: ActivityEntry[] = $state([]);
 	let batchUsageById: Record<string, AdvancedTrimUsage> = $state({});
@@ -113,6 +118,23 @@
 	let activityCounter = 0;
 	let activeBatchIds = new Set<string>();
 	let aiWbwTranslationNoteSaveTimeoutId: number | null = null;
+	const chunkBuffer = new AiStreamChunkBuffer(applyBufferedChunks);
+
+	/**
+	 * Crée les trois emplacements de workers affichés dans le modal.
+	 *
+	 * @returns {AiStreamWorker[]} Workers initialisés au repos.
+	 */
+	function createIdleWorkers(): AiStreamWorker[] {
+		return Array.from({ length: AI_TRANSLATION_WORKER_COUNT }, (_, index) => ({
+			workerId: index + 1,
+			batchId: '',
+			batchLabel: '',
+			step: 'idle',
+			reasoning: '',
+			response: ''
+		}));
+	}
 
 	/**
 	 * Synchronise la plage sélectionnée avec la durée disponible.
@@ -191,7 +213,7 @@
 		step: string,
 		message: string,
 		tone: ActivityTone = 'info',
-		batchId: string = currentBatchId
+		batchId: string = ''
 	): void {
 		activityCounter += 1;
 		activityLog = [
@@ -222,19 +244,32 @@
 	 * @returns {void}
 	 */
 	function resetRunState(): void {
+		chunkBuffer.clear();
 		completedBatches = 0;
 		successfulBatches = 0;
 		failedBatches = 0;
 		successfulSegments = 0;
 		failedSegments = 0;
-		currentBatchId = '';
-		currentBatchStep = 'idle';
-		currentBatchLabel = '';
-		streamedResponse = '';
+		workers = createIdleWorkers();
 		latestSummary = '';
 		activityLog = [];
 		batchUsageById = {};
 		activeBatchIds = new Set<string>();
+	}
+
+	/**
+	 * Ajoute les deltas regroupés aux workers correspondants.
+	 *
+	 * @param {AiStreamChunkUpdate[]} chunks Deltas regroupés par batch.
+	 * @returns {void}
+	 */
+	function applyBufferedChunks(chunks: AiStreamChunkUpdate[]): void {
+		for (const chunk of chunks) {
+			const worker = workers.find((item) => item.batchId === chunk.batchId);
+			if (!worker) continue;
+			worker.reasoning += chunk.reasoning;
+			worker.response += chunk.response;
+		}
 	}
 
 	/**
@@ -246,8 +281,8 @@
 	function handleStatusEvent(event: { payload: StatusEventPayload }): void {
 		const payload = event.payload;
 		if (!activeBatchIds.has(payload.batchId)) return;
-		currentBatchId = payload.batchId;
-		currentBatchStep = payload.step;
+		const worker = workers.find((item) => item.batchId === payload.batchId);
+		if (worker) worker.step = payload.step;
 		addActivity(
 			payload.step,
 			payload.message,
@@ -265,8 +300,7 @@
 	function handleChunkEvent(event: { payload: ChunkEventPayload }): void {
 		const payload = event.payload;
 		if (!activeBatchIds.has(payload.batchId)) return;
-		if (payload.batchId !== currentBatchId) return;
-		streamedResponse = payload.accumulatedText;
+		chunkBuffer.push(payload.batchId, payload.kind ?? 'response', payload.delta);
 	}
 
 	/**
@@ -278,9 +312,9 @@
 	function handleCompleteEvent(event: { payload: CompleteEventPayload }): void {
 		const payload = event.payload;
 		if (!activeBatchIds.has(payload.batchId)) return;
-		if (payload.batchId === currentBatchId) {
-			streamedResponse = payload.rawText;
-		}
+		chunkBuffer.flush();
+		const worker = workers.find((item) => item.batchId === payload.batchId);
+		if (worker) worker.response = payload.rawText;
 		if (payload.usage) {
 			batchUsageById = {
 				...batchUsageById,
@@ -341,125 +375,139 @@
 			return;
 		}
 
-		if (aiWbwTranslationBatches().length === 0) {
+		const batches = aiWbwTranslationBatches();
+		if (batches.length === 0) {
 			toast.error(get(LL).editor.noEligibleTranslatedSegments());
 			return;
 		}
 
 		resetRunState();
 		isRunning = true;
-		activeBatchIds = new Set<string>(aiWbwTranslationBatches().map((batch) => batch.batchId));
+		activeBatchIds = new Set<string>(batches.map((batch) => batch.batchId));
 		addActivity(
 			'queued',
 			get(LL).editor.aiWbwTranslationStarting({
 				segments: aiWbwTranslationEstimate().totalSegments,
-				batches: aiWbwTranslationBatches().length
+				batches: batches.length
 			})
 		);
 
 		const reportLines: string[] = [];
 		let blockingFailure = false;
 
-		for (let batchIndex = 0; batchIndex < aiWbwTranslationBatches().length; batchIndex++) {
-			const batch = aiWbwTranslationBatches()[batchIndex];
-			currentBatchId = batch.batchId;
-			currentBatchLabel = get(LL).editor.batchProgress({
-				current: batchIndex + 1,
-				total: aiWbwTranslationBatches().length
-			});
-			streamedResponse = '';
-
-			addActivity(
-				'queued',
-				get(LL).editor.aiWbwTranslationBatchQueued({
-					label: currentBatchLabel,
-					segments: batch.segments.length,
-					words: batch.wordCount
-				}),
-				'info',
-				batch.batchId
-			);
-
-			try {
-				const response = await runAiWbwTranslationBatchStreaming({
-					apiKey,
-					endpoint,
-					model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
-					reasoningEffort: globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
-					batchId: batch.batchId,
-					customPromptNote: globalState.settings!.aiTranslationSettings.aiWbwTranslationCustomNote,
-					batch: batch.request
+		await runAiWorkerPool(
+			batches,
+			AI_TRANSLATION_WORKER_COUNT,
+			async (batch, batchIndex, workerIndex) => {
+				const worker = workers[workerIndex];
+				const batchLabel = get(LL).editor.batchProgress({
+					current: batchIndex + 1,
+					total: batches.length
 				});
+				worker.batchId = batch.batchId;
+				worker.batchLabel = batchLabel;
+				worker.step = 'queued';
+				worker.reasoning = '';
+				worker.response = '';
 
-				streamedResponse = response.rawText;
 				addActivity(
-					'validating',
-					get(LL).editor.validatingBatch({ label: currentBatchLabel }),
+					'queued',
+					get(LL).editor.aiWbwTranslationBatchQueued({
+						label: batchLabel,
+						segments: batch.segments.length,
+						words: batch.wordCount
+					}),
 					'info',
 					batch.batchId
 				);
 
-				const validation = validateAiWbwTranslationBatchResult(batch, response.parsed);
-				const applyReport = applyAiWbwTranslationValidationSuccess(
-					edition,
-					validation.validSegments
-				);
-				const validationFailedSegments = batch.segments.length - validation.validSegments.length;
+				try {
+					const response = await runAiWbwTranslationBatchStreaming({
+						apiKey,
+						endpoint,
+						model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
+						reasoningEffort:
+							globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
+						batchId: batch.batchId,
+						customPromptNote:
+							globalState.settings!.aiTranslationSettings.aiWbwTranslationCustomNote,
+						batch: batch.request
+					});
 
-				if (validationFailedSegments === 0 && applyReport.erroredSegments === 0) {
-					successfulBatches++;
-				} else {
-					failedBatches++;
-				}
-
-				successfulSegments += applyReport.appliedSegments;
-				failedSegments += validationFailedSegments + applyReport.erroredSegments;
-
-				if (applyReport.appliedSegments > 0) {
+					chunkBuffer.flush();
+					worker.response = response.rawText;
+					worker.step = 'validating';
 					addActivity(
-						'applied',
-						get(LL).editor.aiWbwTranslationAppliedSegments({
-							applied: applyReport.appliedSegments,
-							total: batch.segments.length
-						}),
-						'success',
+						'validating',
+						get(LL).editor.validatingBatch({ label: batchLabel }),
+						'info',
 						batch.batchId
 					);
-				}
 
-				if (validation.errors.length > 0) {
-					reportLines.push(`${currentBatchLabel}`, ...validation.errors);
-					for (const error of validation.errors) {
-						addActivity('failed', error, 'error', batch.batchId);
+					const validation = validateAiWbwTranslationBatchResult(batch, response.parsed);
+					const applyReport = applyAiWbwTranslationValidationSuccess(
+						edition,
+						validation.validSegments
+					);
+					const validationFailedSegments = batch.segments.length - validation.validSegments.length;
+
+					if (validationFailedSegments === 0 && applyReport.erroredSegments === 0) {
+						successfulBatches++;
+						worker.step = 'completed';
+					} else {
+						failedBatches++;
+						worker.step = 'failed';
 					}
-				}
 
-				if (applyReport.errors.length > 0) {
-					reportLines.push(...applyReport.errors);
-					for (const error of applyReport.errors) {
-						addActivity('failed', error, 'error', batch.batchId);
+					successfulSegments += applyReport.appliedSegments;
+					failedSegments += validationFailedSegments + applyReport.erroredSegments;
+
+					if (applyReport.appliedSegments > 0) {
+						addActivity(
+							'applied',
+							get(LL).editor.aiWbwTranslationAppliedSegments({
+								applied: applyReport.appliedSegments,
+								total: batch.segments.length
+							}),
+							'success',
+							batch.batchId
+						);
 					}
-				}
-			} catch (error) {
-				failedBatches++;
-				failedSegments += batch.segments.length;
-				const message = error instanceof Error ? error.message : String(error);
-				reportLines.push(`${currentBatchLabel}`, message);
-				addActivity('failed', message, 'error', batch.batchId);
 
-				if (isBlockingError(message)) {
-					blockingFailure = true;
-					completedBatches = batchIndex + 1;
-					break;
-				}
-			}
+					if (validation.errors.length > 0) {
+						reportLines.push(batchLabel, ...validation.errors);
+						for (const error of validation.errors) {
+							addActivity('failed', error, 'error', batch.batchId);
+						}
+					}
 
-			completedBatches = batchIndex + 1;
-		}
+					if (applyReport.errors.length > 0) {
+						reportLines.push(...applyReport.errors);
+						for (const error of applyReport.errors) {
+							addActivity('failed', error, 'error', batch.batchId);
+						}
+					}
+				} catch (error) {
+					failedBatches++;
+					failedSegments += batch.segments.length;
+					worker.step = 'failed';
+					const message = error instanceof Error ? error.message : String(error);
+					reportLines.push(batchLabel, message);
+					addActivity('failed', message, 'error', batch.batchId);
+
+					if (isBlockingError(message)) {
+						blockingFailure = true;
+					}
+				} finally {
+					chunkBuffer.flush();
+					completedBatches++;
+				}
+			},
+			() => blockingFailure
+		);
 
 		isRunning = false;
 		activeBatchIds = new Set<string>();
-		currentBatchStep = blockingFailure ? 'failed' : 'idle';
 		latestSummary = get(LL).editor.aiWbwTranslationRunSummary({
 			successful: successfulSegments,
 			total: aiWbwTranslationEstimate().totalSegments,
@@ -508,6 +556,7 @@
 	});
 
 	onDestroy(() => {
+		chunkBuffer.clear();
 		if (aiWbwTranslationNoteSaveTimeoutId !== null) {
 			window.clearTimeout(aiWbwTranslationNoteSaveTimeoutId);
 			aiWbwTranslationNoteSaveTimeoutId = null;
@@ -737,7 +786,10 @@
 				? $LL.editor.aiWbwTranslationInProgress()
 				: $LL.editor.latestAiWbwTranslationRun()}
 			subtitle={isRunning
-				? `${currentBatchLabel || $LL.editor.preparingBatches()}`
+				? $LL.editor.batchProgress({
+						current: completedBatches,
+						total: aiWbwTranslationBatches().length
+					})
 				: latestSummary || $LL.editor.noSummaryYet()}
 			progressPercent={getProgressPercent()}
 			metrics={[
@@ -749,18 +801,7 @@
 			columnsClass="grid-cols-2"
 		/>
 
-		{#if streamedResponse}
-			<div class="rounded-xl border border-color bg-secondary p-4">
-				<div class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-thirdly">
-					{$LL.editor.latestStreamedJson()}
-				</div>
-				<div
-					class="max-h-48 overflow-y-auto rounded-lg border border-color bg-accent px-3 py-2 text-[12px] leading-5 [font-family:Consolas,monospace]"
-				>
-					<pre class="whitespace-pre-wrap break-words text-secondary">{streamedResponse}</pre>
-				</div>
-			</div>
-		{/if}
+		<AiStreamingWorkerGrid {workers} />
 
 		<AiActivityLogCard {activityLog} maxHeightClass="max-h-[420px]" />
 	</div>

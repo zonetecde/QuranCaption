@@ -26,13 +26,17 @@
 		for (const clip of globalState.getSubtitleClips) {
 			if (clip instanceof SubtitleClip) {
 				uniqueSurahs.add(clip.surah);
-				if (uniqueSurahs.size > 1) {
+				if (uniqueSurahs.size > 3) {
 					break;
 				}
 			}
 		}
 
-		if (uniqueSurahs.size === 1 && globalState.getExportState.ytbChaptersChoice === 'Each Surah') {
+		if (
+			uniqueSurahs.size >= 1 &&
+			uniqueSurahs.size <= 3 &&
+			globalState.getExportState.ytbChaptersChoice === 'Each Surah'
+		) {
 			globalState.getExportState.ytbChaptersChoice = 'Each Verse';
 		}
 	});
@@ -149,8 +153,10 @@
 			<div class="flex items-start gap-3">
 				<div class="text-blue-400 text-lg flex-shrink-0">ℹ️</div>
 				<div>
-					<span class="text-blue-200 text-sm font-medium">{$LL.export.youtubeIntegration()}</span>
-					<p class="text-blue-100/80 text-xs mt-1">
+					<span class="text-[var(--text-primary)] text-sm font-medium"
+						>{$LL.export.youtubeIntegration()}</span
+					>
+					<p class="text-secondary text-xs mt-1">
 						{$LL.export.youtubeIntegrationDescription()}
 					</p>
 				</div>

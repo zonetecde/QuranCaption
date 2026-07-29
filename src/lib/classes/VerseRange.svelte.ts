@@ -1,6 +1,7 @@
 import { globalState } from '$lib/runes/main.svelte';
 import { SerializableBase } from './misc/SerializableBase';
 import { Quran } from './Quran';
+import type { SubtitleClip } from './Clip.svelte';
 
 type VersePart = {
 	surah: number;
@@ -24,9 +25,24 @@ export class VerseRange extends SerializableBase {
 	 * @param endTime Fin du segment
 	 */
 	static getVerseRange(startTime: number, endTime: number): VerseRange {
+		return this.getVerseRangeFromClips(globalState.getSubtitleClips, startTime, endTime);
+	}
+
+	/**
+	 * Calcule une plage de versets depuis des clips explicites.
+	 * @param {SubtitleClip[]} subtitleClips Clips Quran du projet concerné.
+	 * @param {number} startTime Début du segment.
+	 * @param {number} endTime Fin du segment.
+	 * @returns {VerseRange} Plage calculée sans lire le projet global.
+	 */
+	static getVerseRangeFromClips(
+		subtitleClips: SubtitleClip[],
+		startTime: number,
+		endTime: number
+	): VerseRange {
 		const parts: VersePart[] = [];
 
-		for (const subtitleClip of globalState.getSubtitleClips) {
+		for (const subtitleClip of subtitleClips) {
 			// Vérifie que le sous-titre est dans les limites du segment
 			// Laisse une marge de 1 seconde pour considérer le sous-titre comme sélectionné
 			if (!(subtitleClip.startTime >= startTime - 1000 && subtitleClip.endTime <= endTime + 1000)) {

@@ -22,6 +22,7 @@
 		"fs:allow-read-dir",
 		"fs:allow-exists",
 		"fs:allow-open",
+		"fs:allow-copy-file",
 		"fs:allow-appdata-read-recursive",
 		"fs:allow-appdata-write-recursive",
 		"fs:allow-appdata-meta-recursive",

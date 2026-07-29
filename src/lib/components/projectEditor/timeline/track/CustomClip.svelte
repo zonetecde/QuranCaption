@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { type Track } from '$lib/classes';
+	import type { Track } from '$lib/classes';
+	import { CustomImageClip } from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
@@ -199,8 +200,12 @@
 	{#if !(clip instanceof GlobalTimedOverlayTimelineClip)}
 		<Item on:click={removeClip}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">remove</span
-				>{$LL.editor.removeCustomText()}
+				<span class="material-icons-outlined text-sm mr-1">remove</span>{clip instanceof
+				CustomImageClip
+					? ((
+							$LL.editor as typeof $LL.editor & { removeCustomImage?: () => string }
+						).removeCustomImage?.() ?? `${$LL.common.remove()} ${$LL.editor.customImage()}`)
+					: $LL.editor.removeCustomText()}
 			</div></Item
 		>
 	{/if}

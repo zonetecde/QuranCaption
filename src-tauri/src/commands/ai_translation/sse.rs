@@ -67,6 +67,15 @@ pub fn extract_chat_completion_delta(payload: &Value) -> Option<&str> {
         .find_map(|choice| choice.get("delta")?.get("content")?.as_str())
 }
 
+/// Extrait le delta de raisonnement d'un chunk Chat Completions DeepSeek.
+pub fn extract_chat_completion_reasoning_delta(payload: &Value) -> Option<&str> {
+    payload
+        .get("choices")?
+        .as_array()?
+        .iter()
+        .find_map(|choice| choice.get("delta")?.get("reasoning_content")?.as_str())
+}
+
 /// Extrait l'usage éventuel d'un chunk Chat Completions.
 pub fn extract_chat_completion_usage(payload: &Value) -> Option<Value> {
     payload
@@ -109,5 +118,34 @@ pub fn extract_completed_output_text(payload: &Value) -> Option<String> {
         None
     } else {
         Some(parts.join(""))
+    }
+}
+
+/// Extrait le résumé de raisonnement d'une réponse OpenAI terminée.
+pub fn extract_completed_reasoning_summary(payload: &Value) -> Option<String> {
+    let output = payload.get("response")?.get("output")?.as_array()?;
+    let mut parts: Vec<String> = Vec::new();
+
+    for item in output {
+        if item.get("type").and_then(Value::as_str) != Some("reasoning") {
+            continue;
+        }
+
+        let Some(summary) = item.get("summary").and_then(Value::as_array) else {
+            continue;
+        };
+        for summary_item in summary {
+            if let Some(text) = summary_item.get("text").and_then(Value::as_str) {
+                if !text.is_empty() {
+                    parts.push(text.to_string());
+                }
+            }
+        }
+    }
+
+    if parts.is_empty() {
+        None
+    } else {
+        Some(parts.join("\n"))
     }
 }

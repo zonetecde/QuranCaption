@@ -38,6 +38,7 @@ export {
 	createEmptySegmentationContext,
 	getSegmentWords,
 	filterWordsForVerse,
+	splitWordsAtReferenceReset,
 	buildSubtitleAlignmentMetadata,
 	buildStoredAlignedSegment,
 	refreshSegmentationContextFromTrack
@@ -50,15 +51,13 @@ export {
 	getSubtitleClipsWithoutWbwTimestamps,
 	markSubtitlesWithoutWbwTimestampsForReview,
 	clearWbwTimestampReview,
+	computeRealignWindow,
 	computeMissingWbwTimestamps,
 	computeWbwTimestampsForClips,
-	computeWbwTimestampsForClipsSliced
+	computeWbwTimestampsForClipsSliced,
+	isWbwTimestampClip
 } from './autoSegmentation/review';
-export {
-	scheduleWbwRealign,
-	getAutoRealignStatus,
-	computeRealignWindow
-} from './autoSegmentation/auto-realign.svelte';
+export { scheduleWbwRealign, getAutoRealignStatus } from './autoSegmentation/auto-realign.svelte';
 export {
 	hydrateSubtitleClipRange,
 	splitSubtitleClipLocally,
@@ -72,7 +71,10 @@ export {
 } from './autoSegmentation/enrichment';
 export { estimateSegmentationDuration } from './autoSegmentation/estimate';
 export { applySegmentationResponseToProject } from './autoSegmentation/apply-segmentation';
-export { runAutoSegmentation } from './autoSegmentation/run-segmentation';
+export {
+	runAutoSegmentation,
+	runAutoSegmentationForProject
+} from './autoSegmentation/run-segmentation';
 export { runAutoSegmentationFromImportedJson } from './autoSegmentation/run-imported';
 export { applyPreloadSegmentsToProject } from './autoSegmentation/run-preload';
 export { runNativeSegmentation } from './autoSegmentation/run-native';
@@ -116,5 +118,6 @@ export type {
 	PredefinedType,
 	SegmentationClipTemplate,
 	ApplySegmentationResponseParams,
+	AutoSegmentationExecutionOptions,
 	CoverageGapDependencies
 } from './autoSegmentation/types';

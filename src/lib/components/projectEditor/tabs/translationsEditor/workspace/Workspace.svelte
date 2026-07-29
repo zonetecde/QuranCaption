@@ -22,6 +22,7 @@
 	}: {
 		setAddTranslationModalVisibility: (visible: boolean) => void;
 	} = $props();
+	const project = globalState.currentProject!;
 
 	let editionsToShowInEditor = $derived(() =>
 		globalState.currentProject!.content.projectTranslation.addedTranslationEditions.filter(
@@ -116,7 +117,7 @@
 	}
 
 	function translationsEditorState() {
-		return globalState.currentProject!.projectEditorState.translationsEditor;
+		return project.projectEditorState.translationsEditor;
 	}
 
 	/**
@@ -137,9 +138,9 @@
 		getGroupIndexForClipId,
 		getVisibleCount: () => visibleCount,
 		setVisibleCount: (count) => {
-			visibleCount = count;
+			visibleCount = Math.min(count + PAGE_SIZE, subtitlesInGroups().length);
 		},
-		saveProject: () => globalState.currentProject?.save(false)
+		saveProject: () => project.save(false)
 	});
 
 	let allSubtitlesInGroups = $derived(() => {

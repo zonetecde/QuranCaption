@@ -21,12 +21,15 @@
 	import ExportService, { type ExportProgress } from '$lib/services/ExportService';
 	import {
 		buildBlurSegmentsForRange,
+		excludeTimeRanges,
+		getRecitationRangesForExport,
 		type BlurSegment,
 		type TimeRange
 	} from '$lib/services/OverlayBlurSegmentation';
 	import {
 		calculateCaptureTimingsForRange,
 		getExportWordByWordHighlightTimings as getExportWordByWordHighlightTimingsUtil,
+		getExportWordByWordHiddenArabicTimings as getExportWordByWordHiddenArabicTimingsUtil,
 		getBlankImageFileName,
 		getBlankVisualStateKey,
 		hasTiming,
@@ -34,6 +37,7 @@
 		type ExportTimedOverlayCaptureClip,
 		type ExportSubtitleCaptureClip,
 		type ExportSubtitleWbwSourceClip,
+		type ExportSubtitleWbwTimingOptions,
 		type ExportCaptureTimingResult,
 		type ExportFrameCaptureJob,
 		type ExportFrameCopyJob,
@@ -42,10 +46,7 @@
 	import type { ExportFadeSettings } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import QPCFontProvider from '$lib/services/FontProvider';
 	import SoosiProvider from '$lib/services/SoosiProvider';
-	import {
-		SUBDIVIDE_MAX_DURATION_DISABLED,
-		subdivideLongSubtitleSegments
-	} from '$lib/services/AutoSegmentation';
+	import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 	import { getAllWindows, type BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
 	import Exportation, { ExportState, type ExportLogLevel } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
@@ -61,7 +62,11 @@
 		SubtitleClip
 	} from '$lib/classes/Clip.svelte';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
-	import { isWordByWordHighlightEnabled } from '$lib/components/projectEditor/videoPreview/wordByWordHighlightUtils';
+	import {
+		isWordByWordVisualEnabled,
+		resolveOverlayVisualState,
+		resolveTimedVisualState
+	} from '$lib/services/StyleVisualResolver';
 	import type { StyleName } from '$lib/classes/VideoStyle.svelte';
 
 	// Affichage ou non des fenêtres
@@ -85,7 +90,6 @@
 	const WORKER_ERROR_EVENT = 'export-capture-worker-error';
 	const EXPORT_LOG_EVENT = 'export-log-main';
 	const WORKER_READY_TIMEOUT_MS = 45_000;
-
 	let activeVideoSegments: TimeRange[] = [];
 	let currentRenderingSegmentIndex = 0;
 	let isSegmentedVideoExport = false;
@@ -94,6 +98,7 @@
 	let hasCompletedCapturingFrames = false;
 	let hasSecondarySegmentProgress = false;
 	let processingBackgroundProgress = 0;
+	let captureWorkerWindows: WebviewWindow[] = [];
 
 	/**
 	 * Retourne le nom du blank deja planifie pour la sourate courante.
@@ -548,111 +553,11 @@
 		if (globalState.getStyle('arabic', 'mushaf-style')?.value === 'Soosi') {
 			await SoosiProvider.prefetch();
 		}
+		if (globalState.getStyle('arabic', 'mushaf-style')?.value === 'Minimal Quran') {
+			await MinimalQuranProvider.prefetch();
+		}
 
 		exportData = ExportService.findExportById(Number(id))!;
-	}
-
-	/**
-	 * Indique si un clip doit etre predecoupe en mots uniques pour l'export.
-	 * @param {SubtitleClip} clip Clip Quran a tester.
-	 * @returns {boolean} true si le clip affiche seulement le mot courant.
-	 */
-	function shouldSplitCurrentWordOnlySubtitleForExport(clip: SubtitleClip): boolean {
-		return Boolean(
-			globalState.getVideoStyle
-				.getStylesOfTarget('arabic')
-				.getEffectiveValue('wbw-show-current-word-only' as StyleName, clip.id)
-		);
-	}
-
-	type CurrentWordOnlySplitSource = {
-		startTime: number;
-		endTime: number;
-		surah: number;
-		verse: number;
-		startWordIndex: number;
-		endWordIndex: number;
-	};
-
-	/**
-	 * Retourne les clips sources a retrouver apres split pour merger leur traduction.
-	 * @returns {CurrentWordOnlySplitSource[]} Clips sources compatibles.
-	 */
-	function getCurrentWordOnlySplitSources(): CurrentWordOnlySplitSource[] {
-		return globalState.getSubtitleTrack.clips
-			.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
-			.filter(shouldSplitCurrentWordOnlySubtitleForExport)
-			.map((clip) => ({
-				startTime: clip.startTime,
-				endTime: clip.endTime,
-				surah: clip.surah,
-				verse: clip.verse,
-				startWordIndex: clip.startWordIndex,
-				endWordIndex: clip.endWordIndex
-			}));
-	}
-
-	/**
-	 * Applique un visual merge translation aux clips crees depuis chaque source splittee.
-	 * @param {CurrentWordOnlySplitSource[]} sources Clips sources captures avant le split.
-	 * @returns {number} Nombre de groupes mergees.
-	 */
-	function mergeSplitTranslationsForExport(sources: CurrentWordOnlySplitSource[]): number {
-		let mergeCount = 0;
-
-		for (const source of sources) {
-			const splitClips = globalState.getSubtitleTrack.clips.filter(
-				(clip): clip is SubtitleClip =>
-					clip instanceof SubtitleClip &&
-					clip.surah === source.surah &&
-					clip.verse === source.verse &&
-					clip.startTime >= source.startTime &&
-					clip.endTime <= source.endTime &&
-					clip.startWordIndex >= source.startWordIndex &&
-					clip.endWordIndex <= source.endWordIndex
-			);
-
-			if (splitClips.length <= 1) continue;
-			if (globalState.getSubtitleTrack.applyVisualMerge(splitClips, 'translation')) {
-				mergeCount += 1;
-			}
-		}
-
-		return mergeCount;
-	}
-
-	/**
-	 * Simule le split UI avec max words = 1 et split aux stop signs desactive.
-	 * @returns {Promise<number>} Nombre de coupes appliquees.
-	 */
-	async function splitCurrentWordOnlySubtitlesForExport(): Promise<number> {
-		const splitSources = getCurrentWordOnlySplitSources();
-		if (splitSources.length === 0) return 0;
-
-		const state = globalState.getSubtitlesEditorState;
-		const previousMaxWords = state.subdivideMaxWordsPerSegment;
-		const previousMaxDuration = state.subdivideMaxDurationPerSegment;
-		const previousOnlySplitAtStopSigns = state.subdivideOnlySplitAtStopSigns;
-
-		state.subdivideMaxWordsPerSegment = 1;
-		state.subdivideMaxDurationPerSegment = SUBDIVIDE_MAX_DURATION_DISABLED + 1;
-		state.subdivideOnlySplitAtStopSigns = false;
-
-		try {
-			const splitCount = await subdivideLongSubtitleSegments({
-				shouldSplitClip: shouldSplitCurrentWordOnlySubtitleForExport
-			});
-			const translationMergeCount = mergeSplitTranslationsForExport(splitSources);
-			await emitExportLog('info', 'Current-word subtitles split and translation-merged', {
-				splitCount,
-				translationMergeCount
-			});
-			return splitCount;
-		} finally {
-			state.subdivideMaxWordsPerSegment = previousMaxWords;
-			state.subdivideMaxDurationPerSegment = previousMaxDuration;
-			state.subdivideOnlySplitAtStopSigns = previousOnlySplitAtStopSigns;
-		}
 	}
 
 	/**
@@ -685,15 +590,14 @@
 	}
 
 	/**
-	 * Execute le mode worker: attendre les jobs du coordinator, capturer, puis fermer.
+	 * Execute le mode worker et traite successivement les lots envoyés par le coordinator.
 	 * @param {number} workerId Index du worker courant.
 	 * @returns {Promise<void>}
 	 */
 	async function runCaptureWorker(workerId: number): Promise<void> {
-		const unlisten = await listen<CaptureWorkerStartPayload>(WORKER_START_EVENT, async (event) => {
+		await listen<CaptureWorkerStartPayload>(WORKER_START_EVENT, async (event) => {
 			const data = event.payload;
 			if (data.exportId !== exportId || data.workerId !== workerId) return;
-			unlisten();
 
 			try {
 				await emitExportLog('info', 'Capture worker started', {
@@ -702,8 +606,9 @@
 					subfolder: data.subfolder
 				});
 				let completed = 0;
+				const retryJobs: ExportFrameCaptureJob[] = [];
 				for (const job of data.jobs) {
-					await captureFrameJob(job, data.subfolder);
+					if (await captureFrameJob(job, data.subfolder)) retryJobs.push(job);
 					completed += 1;
 					await emitToCoordinator(WORKER_PROGRESS_EVENT, {
 						exportId,
@@ -711,6 +616,15 @@
 						completed,
 						total: data.jobs.length
 					} satisfies CaptureWorkerProgressPayload);
+				}
+				if (retryJobs.length > 0) {
+					await emitExportLog('warn', 'Capture worker retrying layout timeouts', {
+						workerId,
+						jobs: retryJobs.length
+					});
+					for (const job of retryJobs) {
+						await captureFrameJob(job, data.subfolder);
+					}
 				}
 
 				await emitToCoordinator(WORKER_COMPLETE_EVENT, {
@@ -731,8 +645,6 @@
 					workerId,
 					error: error instanceof Error ? error.message : String(error)
 				} satisfies CaptureWorkerErrorPayload);
-			} finally {
-				await getCurrentWebviewWindow().close();
 			}
 		});
 
@@ -764,12 +676,10 @@
 		}
 
 		await loadExportProject(id);
-		const currentWordOnlySplitCount = await splitCurrentWordOnlySubtitlesForExport();
 		await emitExportLog('info', 'Export project loaded', {
 			file: exportData?.finalFileName,
 			start: exportData?.videoStartTime,
-			end: exportData?.videoEndTime,
-			currentWordOnlySplitCount
+			end: exportData?.videoEndTime
 		});
 
 		await mkdir(await join(ExportService.exportFolder, exportId), {
@@ -790,6 +700,7 @@
 			await emitExportLog('info', 'Export started');
 			await startExport();
 		} catch (error) {
+			await closeCaptureWorkerWindows();
 			console.error('Export failed:', error);
 			await emitExportLog('error', 'Export failed', {
 				error: error instanceof Error ? error.message : String(error)
@@ -809,7 +720,33 @@
 
 		const exportStart = Math.round(exportData.videoStartTime);
 		const exportEnd = Math.round(exportData.videoEndTime);
-		const totalDuration = exportEnd - exportStart;
+		const recitationRanges = globalState.getExportState.exportOnlyRecitation
+			? getRecitationRangesForExport(
+					globalState.getSubtitleTrack.clips,
+					exportStart,
+					exportEnd,
+					globalState.getExportState.recitationMinimumSilenceMs ?? 3000,
+					globalState.getExportState.recitationCutMarginMs ?? 350
+				)
+			: [{ start: exportStart, end: exportEnd }];
+		if (recitationRanges.length === 0) {
+			throw new Error(get(LL).export.noRecitationInExportRange());
+		}
+		const exportRanges = excludeTimeRanges(
+			recitationRanges,
+			(globalState.getExportState.skipRanges ?? []).map((range) => ({
+				start: range.startTime,
+				end: range.endTime
+			}))
+		);
+		if (exportRanges.length === 0) {
+			const exportCopy = get(LL).export as unknown as { noContentAfterSkips: () => string };
+			throw new Error(exportCopy.noContentAfterSkips());
+		}
+		const totalDuration = exportRanges.reduce(
+			(duration, range) => duration + range.end - range.start,
+			0
+		);
 
 		console.log(`Export duration: ${totalDuration}ms (${totalDuration / 1000 / 60} minutes)`);
 		await emitExportLog('info', 'Export duration computed', {
@@ -818,11 +755,17 @@
 			duration: totalDuration
 		});
 
-		const blurSegments = getBlurSegmentsForRange(exportStart, exportEnd);
+		const blurSegments = exportRanges.flatMap((range) =>
+			getBlurSegmentsForRange(range.start, range.end)
+		);
 		await emitExportLog('info', 'Blur segments computed', {
 			segments: blurSegments.length
 		});
-		if (blurSegments.length > 1) {
+		const hasCuts =
+			exportRanges.length !== 1 ||
+			exportRanges[0].start !== exportStart ||
+			exportRanges[0].end !== exportEnd;
+		if (hasCuts || blurSegments.length > 1) {
 			await handleSegmentedExport(blurSegments, totalDuration);
 			return;
 		}
@@ -836,11 +779,8 @@
 		const roundedTime = Math.round(time);
 		const clip = globalState.getVideoTrack.getCurrentClip(roundedTime);
 		const clipId = clip?.id;
-		return Number(
-			globalState.getVideoStyle
-				.getStylesOfTarget('global')
-				.getEffectiveValue('overlay-blur', clipId)
-		);
+		return resolveOverlayVisualState(globalState.getVideoStyle.getStylesOfTarget('global'), clipId)
+			.blur;
 	}
 
 	function getVideoBlurBoundaries(rangeStart: number, rangeEnd: number): number[] {
@@ -892,6 +832,7 @@
 			);
 			segmentBlankImageIndexes.set(segmentIndex, blankTimings);
 		}
+		await closeCaptureWorkerWindows();
 
 		hasCompletedCapturingFrames = true;
 		refreshSecondarySegmentProgressVisibility();
@@ -1009,9 +950,9 @@
 	/**
 	 * Capture une image blank source partagee entre les workers.
 	 * @param {ExportBlankSourceJob} job Job blank source.
-	 * @returns {Promise<void>}
+	 * @returns {Promise<boolean>} true si la capture a continue apres un timeout de layout.
 	 */
-	async function captureBlankSourceJob(job: ExportBlankSourceJob): Promise<void> {
+	async function captureBlankSourceJob(job: ExportBlankSourceJob): Promise<boolean> {
 		await emitExportLog('info', 'Blank source capture waiting', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
@@ -1020,8 +961,8 @@
 		globalState.getTimelineState.movePreviewTo = job.captureTiming;
 		globalState.getTimelineState.cursorPosition = job.captureTiming;
 		globalState.updateVideoPreviewUI();
-		await wait(job.captureTiming);
-		await emitExportLog('info', 'Blank source layout ready', {
+		const layoutTimedOut = await wait(job.captureTiming);
+		await emitExportLog(layoutTimedOut ? 'warn' : 'info', 'Blank source layout wait completed', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
 			file: job.fileName
@@ -1032,40 +973,43 @@
 			captureTiming: job.captureTiming,
 			file: job.fileName
 		});
+		return layoutTimedOut;
 	}
 
 	/**
 	 * Capture une frame numerotee avec la preview du renderer courant.
 	 * @param {ExportFrameCaptureJob} job Job de capture.
 	 * @param {string | null} subfolder Sous-dossier de sortie, ou null.
-	 * @returns {Promise<void>}
+	 * @returns {Promise<boolean>} true si la capture a continue apres un timeout de layout.
 	 */
 	async function captureFrameJob(
 		job: ExportFrameCaptureJob,
 		subfolder: string | null
-	): Promise<void> {
+	): Promise<boolean> {
 		await emitExportLog('info', 'Frame capture waiting', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
 			file: job.fileName,
 			subfolder,
-			reusableBlank: job.reusableBlankFileName
+			reusableBlank: job.reusableBlankFileName,
+			hideArabicText: job.hideArabicText
 		});
 		globalState.getTimelineState.movePreviewTo = job.captureTiming;
 		globalState.getTimelineState.cursorPosition = job.captureTiming;
 		globalState.updateVideoPreviewUI();
-		await wait(job.captureTiming);
-		await emitExportLog('info', 'Frame layout ready', {
+		const layoutTimedOut = await wait(job.captureTiming);
+		await emitExportLog(layoutTimedOut ? 'warn' : 'info', 'Frame layout wait completed', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
 			file: job.fileName
 		});
-		await takeScreenshot(job.fileName, subfolder, job.reusableBlankFileName);
+		await takeScreenshot(job.fileName, subfolder, job.reusableBlankFileName, job.hideArabicText);
 		await emitExportLog('info', 'Frame captured', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
 			file: job.fileName
 		});
+		return layoutTimedOut;
 	}
 
 	/**
@@ -1084,13 +1028,23 @@
 			jobs: jobs.length,
 			subfolder
 		});
+		const retryJobs: ExportFrameCaptureJob[] = [];
 		for (let index = 0; index < jobs.length; index++) {
 			const job = jobs[index];
-			await captureFrameJob(job, subfolder);
+			if (await captureFrameJob(job, subfolder)) retryJobs.push(job);
 			onProgress(index + 1, job.timing);
 
 			if ((index + 1) % 20 === 0) {
 				await new Promise((resolve) => setTimeout(resolve, 50));
+			}
+		}
+		if (retryJobs.length > 0) {
+			await emitExportLog('warn', 'Serial capture retrying layout timeouts', {
+				jobs: retryJobs.length,
+				subfolder
+			});
+			for (const job of retryJobs) {
+				await captureFrameJob(job, subfolder);
 			}
 		}
 		await emitExportLog('info', 'Serial capture completed', {
@@ -1173,6 +1127,7 @@
 					}
 				})
 		);
+		captureWorkerWindows = [];
 	}
 
 	/**
@@ -1196,6 +1151,13 @@
 		const readyWorkers = new Set<number>();
 		const completeWorkers = new Set<number>();
 		const unlisteners: Array<() => void> = [];
+		const openWindowLabels = new Set((await getAllWindows()).map((window) => window.label));
+		const canReuseWorkers =
+			captureWorkerWindows.length === buckets.length &&
+			captureWorkerWindows.every((window) => openWindowLabels.has(window.label));
+		if (canReuseWorkers) {
+			for (let workerId = 0; workerId < buckets.length; workerId++) readyWorkers.add(workerId);
+		}
 		let readyTimeout: ReturnType<typeof setTimeout> | undefined;
 		let resolveReady: () => void = () => {};
 		let rejectReady: (error: Error) => void = () => {};
@@ -1205,6 +1167,10 @@
 		const readyPromise = new Promise<void>((resolve, reject) => {
 			resolveReady = resolve;
 			rejectReady = reject;
+			if (canReuseWorkers) {
+				resolve();
+				return;
+			}
 			readyTimeout = setTimeout(() => {
 				void emitExportLog('error', 'Timeout waiting for capture workers', {
 					ready: readyWorkers.size,
@@ -1278,13 +1244,17 @@
 			})
 		);
 
-		await closeCaptureWorkerWindows();
-		const workerWindows = await openCaptureWorkerWindows(buckets);
+		if (!canReuseWorkers) {
+			await closeCaptureWorkerWindows();
+			captureWorkerWindows = await openCaptureWorkerWindows(buckets);
+		} else {
+			await emitExportLog('info', 'Reusing capture workers', { workers: buckets.length });
+		}
 		try {
 			await readyPromise;
 			await emitExportLog('info', 'All capture workers ready', { workers: buckets.length });
 			await Promise.all(
-				workerWindows.map((w, workerId) =>
+				captureWorkerWindows.map((w, workerId) =>
 					w.emit(WORKER_START_EVENT, {
 						exportId,
 						workerId,
@@ -1299,7 +1269,6 @@
 		} finally {
 			if (readyTimeout) clearTimeout(readyTimeout);
 			for (const unlisten of unlisteners) unlisten();
-			await closeCaptureWorkerWindows();
 		}
 	}
 
@@ -1359,10 +1328,20 @@
 			onProgress(lastReportedCompleted, totalJobs, timing);
 		};
 
+		const retryBlankSourceJobs: ExportBlankSourceJob[] = [];
 		for (const job of plan.blankSourceJobs) {
-			await captureBlankSourceJob(job);
+			if (await captureBlankSourceJob(job)) retryBlankSourceJobs.push(job);
 			completed += 1;
 			reportProgress(completed, job.timing);
+		}
+		if (retryBlankSourceJobs.length > 0) {
+			await emitExportLog('warn', 'Retrying blank source layout timeouts', {
+				jobs: retryBlankSourceJobs.length,
+				subfolder
+			});
+			for (const job of retryBlankSourceJobs) {
+				await captureBlankSourceJob(job);
+			}
 		}
 
 		const completedBeforeCaptures = completed;
@@ -1492,14 +1471,19 @@
 				startTime: Math.round(segmentStart), // Le startTime pour l'audio/vidéo de fond
 				duration: Math.round(segmentDuration),
 				audios: audios,
+				audioVolume: globalState.getAudioTrack.volumePercent,
 				videos: videos,
+				mediaFill: Boolean(globalState.getStyle('global', 'media-fill')?.value),
+				mediaScale: Number(globalState.getStyle('global', 'media-scale')?.value ?? 100),
+				mediaPositionX: Number(globalState.getStyle('global', 'media-position-x')?.value ?? 0),
+				mediaPositionY: Number(globalState.getStyle('global', 'media-position-y')?.value ?? 0),
 				blur: blur,
 				videoFadeInEnabled: false,
 				videoFadeOutEnabled: false,
 				audioFadeInEnabled: false,
 				audioFadeOutEnabled: false,
 				exportFadeDurationMs: 0,
-				performanceProfile: globalState.getExportState.performanceProfile,
+				performanceProfile: globalState.settings?.exportSettings.performanceProfile ?? 'balanced',
 				videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
 				videoClipTransitionMode: getVideoClipTransitionMode(),
 				videoClipTransitionDurationMs: getVideoClipTransitionDurationMs(),
@@ -1538,7 +1522,7 @@
 				audioFadeInEnabled: exportFadeSettings.audioFadeInEnabled,
 				audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
 				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
-				performanceProfile: globalState.getExportState.performanceProfile,
+				performanceProfile: globalState.settings?.exportSettings.performanceProfile ?? 'balanced',
 				videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat
@@ -1603,6 +1587,7 @@
 				totalTime: totalDuration
 			} as ExportProgress);
 		});
+		await closeCaptureWorkerWindows();
 
 		const normalizedBlankTimings = plan.blankImageIndexes;
 
@@ -1633,33 +1618,57 @@
 			};
 		});
 
-		if (globalState.getStyle('global', 'show-surah-name')!.value === true) {
+		const globalStyles = globalState.getVideoStyle.getStylesOfTarget('global');
+		const surahName = resolveTimedVisualState(globalStyles, {
+			enabled: 'show-surah-name',
+			alwaysShow: 'surah-name-always-show',
+			startTime: 'surah-name-time-appearance',
+			endTime: 'surah-name-time-disappearance'
+		});
+		if (surahName.enabled) {
 			timedOverlayClips.push({
 				id: 'surah-name',
-				startTime: globalState.getStyle('global', 'surah-name-time-appearance')!.value as number,
-				endTime: globalState.getStyle('global', 'surah-name-time-disappearance')!.value as number,
-				alwaysShow: Boolean(globalState.getStyle('global', 'surah-name-always-show')!.value)
+				startTime: surahName.startTime,
+				endTime: surahName.endTime,
+				alwaysShow: surahName.alwaysShow
 			});
 		}
 
-		if (
-			globalState.getStyle('global', 'show-reciter-name')!.value === true &&
-			globalState.currentProject?.detail.reciter !== 'not set'
-		) {
+		const reciterName = resolveTimedVisualState(globalStyles, {
+			enabled: 'show-reciter-name',
+			alwaysShow: 'reciter-name-always-show',
+			startTime: 'reciter-name-time-appearance',
+			endTime: 'reciter-name-time-disappearance'
+		});
+		if (reciterName.enabled && globalState.currentProject?.detail.reciter !== 'not set') {
 			timedOverlayClips.push({
 				id: 'reciter-name',
-				startTime: globalState.getStyle('global', 'reciter-name-time-appearance')!.value as number,
-				endTime: globalState.getStyle('global', 'reciter-name-time-disappearance')!.value as number,
-				alwaysShow: Boolean(globalState.getStyle('global', 'reciter-name-always-show')!.value)
+				startTime: reciterName.startTime,
+				endTime: reciterName.endTime,
+				alwaysShow: reciterName.alwaysShow
 			});
 		}
 
-		if (Boolean(globalState.getStyle('global', 'ayah-container-image')?.value)) {
+		if (globalState.getStyle('global', 'ayah-container-image')?.value) {
 			timedOverlayClips.push({
 				id: 'ayah-container',
 				startTime: globalState.getStyle('global', 'time-appearance')!.value as number,
 				endTime: globalState.getStyle('global', 'time-disappearance')!.value as number,
 				alwaysShow: Boolean(globalState.getStyle('global', 'always-show')!.value)
+			});
+		}
+
+		for (const stylesData of globalState.getVideoStyle.styles) {
+			if (stylesData.target === 'global') continue;
+			if (stylesData.findStyle('background-enable')?.value !== true) continue;
+			if (stylesData.findStyle('always-show')?.value === true) continue;
+
+			timedOverlayClips.push({
+				id: `${stylesData.target}-background-container`,
+				startTime: stylesData.findStyle('time-appearance')?.value as number,
+				endTime: stylesData.findStyle('time-disappearance')?.value as number,
+				alwaysShow: false,
+				preventBlankReuse: true
 			});
 		}
 
@@ -1671,6 +1680,8 @@
 			(clip) => {
 				const wbwHighlightTimings =
 					clip instanceof SubtitleClip ? getExportWordByWordHighlightTimings(clip) : undefined;
+				const wbwHiddenArabicTimings =
+					clip instanceof SubtitleClip ? getExportWordByWordHiddenArabicTimings(clip) : undefined;
 
 				return {
 					id: clip.id,
@@ -1696,7 +1707,8 @@
 							clip.visualMergeMode === null)
 							? clip.visualMergeMode
 							: undefined,
-					wbwHighlightTimings
+					wbwHighlightTimings,
+					wbwHiddenArabicTimings
 				};
 			}
 		);
@@ -1712,16 +1724,11 @@
 	}
 
 	/**
-	 * Retourne les timings WBW à capturer pour l'export d'un clip.
-	 *
-	 * Pour un merge visuel arabe, la résolution finale est faite dans
-	 * `ExportCaptureTiming.getExportWordByWordHighlightTimings()`: le helper agrège les timings
-	 * de tout le groupe afin que les mots partagés puissent être recapturés sur chaque clip.
-	 *
+	 * Prépare les options communes pour les helpers WBW d'export.
 	 * @param {SubtitleClip} clip Clip Quran à inspecter.
-	 * @returns {number[] | undefined} Timings absolus en millisecondes, ou `undefined`.
+	 * @returns {ExportSubtitleWbwTimingOptions} Options prêtes pour les helpers de timing.
 	 */
-	function getExportWordByWordHighlightTimings(clip: SubtitleClip): number[] | undefined {
+	function getExportWordByWordTimingOptions(clip: SubtitleClip): ExportSubtitleWbwTimingOptions {
 		const subtitleClips = globalState.getSubtitleTrack.clips.filter(
 			(candidate): candidate is SubtitleClip => candidate instanceof SubtitleClip
 		);
@@ -1744,20 +1751,58 @@
 			alignmentMetadata: candidate.alignmentMetadata
 		}));
 
-		const arabicTimings = getExportWordByWordHighlightTimingsUtil({
+		return {
 			clip: exportClip,
 			subtitleClips: exportSubtitleClips,
 			isWbwEnabledForClipId: (clipId) =>
-				isWordByWordHighlightEnabled((styleId) =>
+				isWordByWordVisualEnabled((styleId) =>
 					globalState.getVideoStyle
 						.getStylesOfTarget('arabic')
 						.getEffectiveValue(styleId as StyleName, clipId)
+				),
+			isShowCurrentWordOnlyEnabledForClipId: (clipId) =>
+				Boolean(
+					globalState.getVideoStyle
+						.getStylesOfTarget('arabic')
+						.getEffectiveValue('wbw-show-current-word-only', clipId)
 				)
-		});
+		};
+	}
+
+	/**
+	 * Retourne les timings WBW à capturer pour l'export d'un clip.
+	 *
+	 * Pour un merge visuel arabe, la résolution finale est faite dans
+	 * `ExportCaptureTiming.getExportWordByWordHighlightTimings()`: le helper agrège les timings
+	 * de tout le groupe afin que les mots partagés puissent être recapturés sur chaque clip.
+	 *
+	 * @param {SubtitleClip} clip Clip Quran à inspecter.
+	 * @returns {number[] | undefined} Timings absolus en millisecondes, ou `undefined`.
+	 */
+	function getExportWordByWordHighlightTimings(clip: SubtitleClip): number[] | undefined {
+		const subtitleClips = globalState.getSubtitleTrack.clips.filter(
+			(candidate): candidate is SubtitleClip => candidate instanceof SubtitleClip
+		);
+
+		const arabicTimings = getExportWordByWordHighlightTimingsUtil(
+			getExportWordByWordTimingOptions(clip)
+		);
 
 		const translationTimings = getExportTranslationWordByWordHighlightTimings(clip, subtitleClips);
 		const timings = [...(arabicTimings ?? []), ...(translationTimings ?? [])];
 		return timings.length > 0 ? Array.from(new Set(timings)).sort((a, b) => a - b) : undefined;
+	}
+
+	/**
+	 * Retourne les timings WBW ou le texte arabe doit être forcé invisible pendant l'export.
+	 * @param {SubtitleClip} clip Clip Quran à inspecter.
+	 * @returns {number[] | undefined} Timings absolus en millisecondes, ou `undefined`.
+	 */
+	function getExportWordByWordHiddenArabicTimings(clip: SubtitleClip): number[] | undefined {
+		const timings = getExportWordByWordHiddenArabicTimingsUtil(
+			getExportWordByWordTimingOptions(clip)
+		);
+		return timings.length > 0 ? timings : undefined;
 	}
 
 	/**
@@ -1795,7 +1840,7 @@
 
 				const styles = globalState.getVideoStyle.getStylesOfTarget(edition.name);
 				const isVisible = Boolean(styles.getEffectiveValue('show-subtitles', sourceClip.id));
-				const isWbwEnabled = isWordByWordHighlightEnabled((styleId) =>
+				const isWbwEnabled = isWordByWordVisualEnabled((styleId) =>
 					styles.getEffectiveValue(styleId as StyleName, sourceClip.id)
 				);
 				if (!isVisible || !isWbwEnabled) return [];
@@ -1867,14 +1912,19 @@
 				startTime: exportStart,
 				duration: Math.round(duration),
 				audios: audios,
+				audioVolume: globalState.getAudioTrack.volumePercent,
 				videos: videos,
+				mediaFill: Boolean(globalState.getStyle('global', 'media-fill')?.value),
+				mediaScale: Number(globalState.getStyle('global', 'media-scale')?.value ?? 100),
+				mediaPositionX: Number(globalState.getStyle('global', 'media-position-x')?.value ?? 0),
+				mediaPositionY: Number(globalState.getStyle('global', 'media-position-y')?.value ?? 0),
 				blur: blur,
 				videoFadeInEnabled: exportFadeSettings.videoFadeInEnabled,
 				videoFadeOutEnabled: exportFadeSettings.videoFadeOutEnabled,
 				audioFadeInEnabled: exportFadeSettings.audioFadeInEnabled,
 				audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
 				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
-				performanceProfile: globalState.getExportState.performanceProfile,
+				performanceProfile: globalState.settings?.exportSettings.performanceProfile ?? 'balanced',
 				videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
 				videoClipTransitionMode: getVideoClipTransitionMode(),
 				videoClipTransitionDurationMs: getVideoClipTransitionDurationMs(),
@@ -1894,6 +1944,7 @@
 	}
 
 	async function finalCleanup() {
+		await closeCaptureWorkerWindows();
 		try {
 			// Supprime le dossier temporaire des images
 			await remove(await join(ExportService.exportFolder, exportId), {
@@ -1928,7 +1979,8 @@
 	async function takeScreenshot(
 		fileName: string,
 		subfolder: string | null = null,
-		reusableBlankFileName: string | null = null
+		reusableBlankFileName: string | null = null,
+		hideArabicText: boolean = false
 	) {
 		// L'element a transformer en image
 		const node = document.getElementById('overlay')!;
@@ -1937,16 +1989,27 @@
 		// afin d'éviter une capture en cours de fade-in, et masquer les sous-titres (arabe/traduction).
 		const isBlankScreenshot = fileName.startsWith('blank_');
 		const forcedOverlayElements: { el: HTMLElement; prev: string }[] = [];
+		const forcedArabicTextElements: { el: HTMLElement; prev: string }[] = [];
 		if (isBlankScreenshot) {
+			const keepSubtitleBackgrounds = hasVisibleSubtitleBackground(node);
 			node.querySelectorAll<HTMLElement>('[data-overlay-max-opacity]').forEach((el) => {
 				forcedOverlayElements.push({ el, prev: el.style.opacity });
 				el.style.opacity = el.dataset.overlayMaxOpacity!;
 			});
-			for (const id of ['subtitles-container', 'subtitles-backgrounds']) {
+			for (const id of [
+				'subtitles-container',
+				...(keepSubtitleBackgrounds ? [] : ['subtitles-backgrounds'])
+			]) {
 				const el = node.querySelector<HTMLElement>(`#${id}`);
 				if (el) forcedOverlayElements.push({ el, prev: el.style.opacity });
 				if (el) el.style.opacity = '0';
 			}
+		}
+		if (hideArabicText) {
+			node.querySelectorAll<HTMLElement>('#subtitles-container .arabic *').forEach((el) => {
+				forcedArabicTextElements.push({ el, prev: el.style.visibility });
+				el.style.visibility = 'hidden';
+			});
 		}
 
 		// En sachant que node.clientWidth = 1920 et node.clientHeight = 1080,
@@ -1978,16 +2041,22 @@
 				scale
 			});
 			if (!useLiveTextCanvasCapture) {
-				const blob: Blob | null = await domToBlob(node, {
-					width: node.clientWidth * scale,
-					height: node.clientHeight * scale,
-					style: {
-						// Garder la logique historique de mise a l'echelle pour preserver le centrage.
-						transform: 'scale(' + scale + ')',
-						transformOrigin: 'top left'
-					},
-					quality: 1
-				});
+				const restoreSystemFonts = await QPCFontProvider.applySystemFontSubsetsForScreenshot(node);
+				let blob: Blob | null = null;
+				try {
+					blob = await domToBlob(node, {
+						width: node.clientWidth * scale,
+						height: node.clientHeight * scale,
+						style: {
+							// Garder la logique historique de mise a l'echelle pour preserver le centrage.
+							transform: 'scale(' + scale + ')',
+							transformOrigin: 'top left'
+						},
+						quality: 1
+					});
+				} finally {
+					restoreSystemFonts();
+				}
 
 				if (!blob) throw new Error('domToBlob returned null');
 
@@ -2038,6 +2107,9 @@
 			// Restaurer l'opacité originale des overlays forcés
 			for (const { el, prev } of forcedOverlayElements) {
 				el.style.opacity = prev;
+			}
+			for (const { el, prev } of forcedArabicTextElements) {
+				el.style.visibility = prev;
 			}
 		}
 	}
@@ -2146,9 +2218,9 @@
 	/**
 	 * Attend que le layout de sous-titres soit stable avant une capture.
 	 * @param {number} timing Timing capture courant.
-	 * @returns {Promise<void>} Promise resolue quand la capture peut commencer.
+	 * @returns {Promise<boolean>} true si l'attente a atteint le timeout.
 	 */
-	async function wait(timing: number) {
+	async function wait(timing: number): Promise<boolean> {
 		// globalState.updateVideoPreviewUI();
 		console.log(`Waiting for frame at ${timing}ms...`);
 
@@ -2179,11 +2251,13 @@
 		}
 
 		const subtitlesContainer = document.getElementById('subtitles-container') as HTMLElement | null;
+		let layoutTimedOut = false;
 		if (
 			expectsSubtitle &&
 			(!subtitlesContainer || !isSubtitleLayoutReady(subtitlesContainer, timingKey))
 		) {
-			await emitExportLog('error', 'Layout wait timed out', {
+			layoutTimedOut = true;
+			await emitExportLog('warn', 'Layout wait timed out, continuing capture', {
 				timing,
 				timingKey,
 				expectsSubtitle,
@@ -2191,14 +2265,14 @@
 				layoutTiming: subtitlesContainer?.dataset.exportLayoutTiming,
 				layoutState: subtitlesContainer?.dataset.exportLayoutState
 			});
-			throw new Error(`Timeout waiting for subtitle layout at ${timing}ms.`);
 		}
 		if (
 			!expectsSubtitle &&
 			subtitlesContainer &&
 			!isSubtitleLayoutReady(subtitlesContainer, timingKey)
 		) {
-			await emitExportLog('error', 'Layout clear wait timed out', {
+			layoutTimedOut = true;
+			await emitExportLog('warn', 'Layout clear wait timed out, continuing capture', {
 				timing,
 				timingKey,
 				expectsSubtitle,
@@ -2206,9 +2280,8 @@
 				layoutTiming: subtitlesContainer.dataset.exportLayoutTiming,
 				layoutState: subtitlesContainer.dataset.exportLayoutState
 			});
-			throw new Error(`Timeout waiting for subtitles to clear at ${timing}ms.`);
 		}
-		await emitExportLog('info', 'Layout wait ready', {
+		await emitExportLog(layoutTimedOut ? 'warn' : 'info', 'Layout wait completed', {
 			timing,
 			timingKey,
 			expectsSubtitle,
@@ -2221,6 +2294,7 @@
 		await waitForAnimationFrame();
 		await QPCFontProvider.waitForFontsInElement(document.getElementById('overlay'));
 		await emitExportLog('info', 'Fonts ready for capture', { timing });
+		return layoutTimedOut;
 	}
 </script>
 

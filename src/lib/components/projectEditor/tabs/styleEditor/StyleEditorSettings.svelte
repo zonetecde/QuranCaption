@@ -1,23 +1,27 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
-	import { onMount } from 'svelte';
-	import Section from '../../Section.svelte';
-	import StyleComponent from './Style.svelte';
+	import { onMount, tick } from 'svelte';
 	import PresetLibrary from './presets/components/PresetLibrary.svelte';
-	import { slide } from 'svelte/transition';
 	import { CustomTextClip } from '$lib/classes';
-	import { ClipWithTranslation, type VisualMergeMode } from '$lib/classes/Clip.svelte';
+	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
+	import type { Category, Style, StyleName } from '$lib/classes/VideoStyle.svelte';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
-	import ModalManager from '$lib/components/modals/ModalManager';
-	import {
-		canMergeArabicVisualModes,
-		getActiveVisualMergeGroupId,
-		getActiveVisualMergeMode
-	} from './visualMergeStyleUtils';
-	import { getStyleName, getStyleDescription } from '$lib/i18n/styleMapper';
+	import { getStyleName } from '$lib/i18n/styleMapper';
 	import { get } from 'svelte/store';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import CustomContentPanel from './CustomContentPanel.svelte';
+	import StyleCategoryBlock from './StyleCategoryBlock.svelte';
+	import StyleEditorHeader from './StyleEditorHeader.svelte';
+	import { getVisibleCustomStyles } from './customContentStyleUtils';
+	import type {
+		StyleControlGroup,
+		StyleGroupCopyKey,
+		StylePanel,
+		StyleUiCopyKey
+	} from './styleEditorTypes';
+
+	type FeatureState = 'active' | 'inactive' | 'mixed';
 
 	let {
 		presetLibraryOpen,
@@ -29,53 +33,26 @@
 		closePresetLibrary: () => void;
 	} = $props();
 
-	const getCategoriesToDisplay = $derived(() => {
-		const target = globalState.getStylesState.getCurrentSelection();
-		const categories = globalState.getVideoStyle.getStylesOfTarget(target).categories;
-
-		// Quand des clips vidéo sont sélectionnés dans l'onglet Style,
-		// on n'affiche que la catégorie Overlay côté global.
-		if (target === 'global' && globalState.getStylesState.selectedVideos.length > 0) {
-			return categories.filter((category) => category.id === 'overlay');
-		}
-
-		return categories;
-	});
-
-	const hasWordByWordTimestamps = $derived(() =>
-		globalState.getSubtitleTrack.hasWordByWordTimestamps()
-	);
+	let stylesContainer: HTMLDivElement | undefined = $state();
 
 	const currentStyleTarget = $derived(() => globalState.getStylesState.getCurrentSelection());
 	const styleSearchQuery = $derived(() =>
 		globalState.getStylesState.searchQuery.toLowerCase().trim()
 	);
-
-	let stylesContainer: HTMLDivElement | undefined = $state();
-	let styleSearchLabelCache = new Map<string, string>();
-
-	const visualMergeSelection = $derived(() =>
-		globalState.getSubtitleTrack.getVisualMergeSelection(
-			globalState.getStylesState.selectedSubtitles
-		)
+	const hasWordByWordTimestamps = $derived(() =>
+		globalState.getSubtitleTrack.hasWordByWordTimestamps()
 	);
 
-	const activeVisualMergeMode = $derived(() => {
-		return getActiveVisualMergeMode(
-			globalState.getStylesState.selectedSubtitles,
-			globalState.getSubtitleTrack
-		);
-	});
+	const stylePanels = $derived(() => getStylePanels());
+	const visiblePanels = $derived(() => {
+		if (styleSearchQuery() === '') {
+			const currentPanel = stylePanels().find(
+				(panel) => panel.id === globalState.getStylesState.currentPanel
+			);
+			return currentPanel ? [currentPanel] : [];
+		}
 
-	const activeVisualMergeGroupId = $derived(() => {
-		return getActiveVisualMergeGroupId(
-			globalState.getStylesState.selectedSubtitles,
-			activeVisualMergeMode()
-		);
-	});
-
-	const canMergeArabicModes = $derived(() => {
-		return canMergeArabicVisualModes(visualMergeSelection(), globalState.getSubtitleTrack);
+		return stylePanels().filter((panel) => panelHasSearchResult(panel));
 	});
 
 	onMount(async () => {
@@ -87,7 +64,7 @@
 		stylesContainer!.scrollTop =
 			globalState.currentProject!.projectEditorState.stylesEditor.scrollPosition;
 
-		// S'il manque des styles à une traduction, on les ajoute
+		// S'il manque des styles à une traduction, on les ajoute.
 		for (const translation of globalState.getProjectTranslation.addedTranslationEditions) {
 			if (globalState.getVideoStyle.doesTargetStyleExist(translation.name)) continue;
 
@@ -109,151 +86,248 @@
 		globalState.getStylesState.currentSelectionTranslation = translations[0].name;
 	}
 
-	function clearSearch() {
+	/**
+	 * Retourne les catégories réellement accessibles pour la cible et la sélection en cours.
+	 * @returns {Category[]} Catégories disponibles.
+	 */
+	function getCategoriesToDisplay(): Category[] {
+		const target = currentStyleTarget();
+		const categories = globalState.getVideoStyle.getStylesOfTarget(target).categories;
+
+		// Les sélections de clips vidéo ne peuvent modifier que l'overlay.
+		if (target === 'global' && globalState.getStylesState.selectedVideos.length > 0) {
+			return categories.filter((category) => category.id === 'overlay');
+		}
+
+		return categories;
+	}
+
+	/**
+	 * Regroupe les catégories techniques en panneaux compréhensibles par l'utilisateur.
+	 * @returns {StylePanel[]} Panneaux de style disponibles.
+	 */
+	function getStylePanels(): StylePanel[] {
+		const panels = new Map<string, StylePanel>();
+		for (const category of getCategoriesToDisplay()) {
+			const panelMetadata = category.ui?.panel;
+			if (!panelMetadata) continue;
+
+			const panel = panels.get(panelMetadata.id) ?? {
+				id: panelMetadata.id,
+				icon: panelMetadata.icon,
+				label: panelMetadata.label,
+				order: panelMetadata.order,
+				categoryNavigation: panelMetadata.categoryNavigation,
+				categoryIds: []
+			};
+			panel.categoryIds.push(category.id);
+			panels.set(panel.id, panel);
+		}
+
+		const availablePanels = [...panels.values()].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+		if (
+			currentStyleTarget() === 'global' &&
+			globalState.getStylesState.selectedVideos.length === 0 &&
+			globalState.getStylesState.selectedSubtitles.length === 0
+		) {
+			availablePanels.push({
+				id: 'custom-content',
+				icon: 'add_photo_alternate',
+				label: 'customElements',
+				categoryIds: [],
+				customContent: true
+			});
+		}
+
+		return availablePanels;
+	}
+
+	/**
+	 * Retourne les catégories affichées dans un panneau.
+	 * @param {StylePanel} panel Panneau à résoudre.
+	 * @returns {Category[]} Catégories du panneau.
+	 */
+	function getPanelCategories(panel: StylePanel): Category[] {
+		return getCategoriesToDisplay()
+			.filter((category) => panel.categoryIds.includes(category.id))
+			.sort((a, b) => (a.ui?.panel.categoryOrder ?? 0) - (b.ui?.panel.categoryOrder ?? 0));
+	}
+
+	/**
+	 * Retourne la catégorie active d'un panneau possédant une sous-navigation.
+	 * @param {StylePanel} panel Panneau à résoudre.
+	 * @returns {string} Identifiant de la catégorie active.
+	 */
+	function getActivePanelCategoryId(panel: StylePanel): string {
+		const categories = getPanelCategories(panel);
+		const activeCategoryId = globalState.getStylesState.activePanelCategoryIds[panel.id];
+		return categories.some((category) => category.id === activeCategoryId)
+			? activeCategoryId
+			: (categories[0]?.id ?? '');
+	}
+
+	/**
+	 * Retourne les catégories à afficher selon la sous-navigation et la recherche.
+	 * @param {StylePanel} panel Panneau à filtrer.
+	 * @returns {Category[]} Catégories visibles dans le panneau.
+	 */
+	function getVisiblePanelCategories(panel: StylePanel): Category[] {
+		const categories = getPanelCategories(panel);
+		if (!panel.categoryNavigation || styleSearchQuery() !== '') return categories;
+
+		const activeCategoryId = getActivePanelCategoryId(panel);
+		return categories.filter((category) => category.id === activeCategoryId);
+	}
+
+	/**
+	 * Sélectionne une catégorie dans la sous-navigation d'un panneau.
+	 * @param {string} panelId Identifiant du panneau parent.
+	 * @param {string} categoryId Identifiant de la catégorie choisie.
+	 * @returns {void}
+	 */
+	function selectPanelCategory(panelId: string, categoryId: string): void {
+		globalState.getStylesState.activePanelCategoryIds[panelId] = categoryId;
+	}
+
+	/**
+	 * Retourne le libellé localisé d'un panneau de style.
+	 * @param {StylePanel} panel Panneau à traduire.
+	 * @returns {string} Libellé du panneau.
+	 */
+	function getPanelLabel(panel: StylePanel): string {
+		const LL_ = get(LL);
+		const copy = (LL_.style as unknown as Record<string, (() => string) | undefined>)[panel.label];
+		return copy?.() || getStyleName(panel.label, LL_);
+	}
+
+	/**
+	 * Lit une microcopie ajoutée au dictionnaire de style en attendant la génération i18n du hook.
+	 * @param {StyleUiCopyKey} key Clé de microcopie à résoudre.
+	 * @returns {string} Texte localisé.
+	 */
+	function getStyleUiCopy(key: StyleUiCopyKey): string {
+		return (get(LL).style as unknown as Record<StyleUiCopyKey, () => string>)[key]();
+	}
+
+	/**
+	 * Met à jour le panneau actif et replace le contenu en haut.
+	 * @param {string} panelId Identifiant du panneau choisi.
+	 * @returns {void}
+	 */
+	function selectPanel(panelId: string): void {
+		globalState.getStylesState.currentPanel = panelId;
+		globalState.getStylesState.searchQuery = '';
+		stylesContainer?.scrollTo({ top: 0, behavior: 'smooth' });
+	}
+
+	/**
+	 * Efface la recherche de styles.
+	 * @returns {void}
+	 */
+	function clearSearch(): void {
 		globalState.getStylesState.searchQuery = '';
 	}
 
 	/**
-	 * Retourne le libellé localisé normalisé d'un style ou d'une catégorie.
-	 * @param {string} id Identifiant de style ou catégorie.
-	 * @returns {string} Libellé normalisé pour la recherche.
+	 * Retourne les IDs de clips concernés par les styles de la cible active.
+	 * @returns {number[]} IDs de clips sélectionnés.
 	 */
-	function getCachedSearchLabel(id: string): string {
-		const cached = styleSearchLabelCache.get(id);
-		if (cached !== undefined) return cached;
+	function getSelectedStyleClipIds(): number[] {
+		if (currentStyleTarget() !== 'global') {
+			return globalState.getStylesState.selectedSubtitles.map((subtitle) => subtitle.id);
+		}
 
-		const label = getStyleName(id, get(LL)).toLowerCase();
-		styleSearchLabelCache.set(id, label);
-		return label;
+		return globalState.getStylesState.selectedVideos.map((clip) => clip.id);
+	}
+
+	/**
+	 * Retourne les valeurs effectives d'un style pour la portée en cours.
+	 * @param {string} styleId Identifiant du style à résoudre.
+	 * @param {Category} [category] Catégorie contenant le style lorsque disponible.
+	 * @returns {unknown[]} Valeurs globales ou valeurs effectives de la sélection.
+	 */
+	function getEffectiveStyleValues(styleId: string, category?: Category): unknown[] {
+		const target = currentStyleTarget();
+		const selectedClipIds = getSelectedStyleClipIds();
+		const styles = globalState.getVideoStyle.getStylesOfTarget(target);
+
+		if (selectedClipIds.length > 0) {
+			return selectedClipIds.map((clipId) =>
+				styles.getEffectiveValue(styleId as StyleName, clipId)
+			);
+		}
+
+		const style =
+			category?.getStyle(styleId as StyleName) ?? styles.findStyle(styleId as StyleName);
+		return [style?.value];
+	}
+
+	/**
+	 * Résout l'état effectif d'un toggle, y compris pour une sélection de clips.
+	 * @param {string} styleId Identifiant du style parent.
+	 * @param {Category} [category] Catégorie contenant le style lorsque disponible.
+	 * @returns {FeatureState} État actif, inactif ou mixte.
+	 */
+	function getFeatureState(styleId: string, category?: Category): FeatureState {
+		const values = getEffectiveStyleValues(styleId, category).map(Boolean);
+		if (values.every(Boolean)) return 'active';
+		if (values.some(Boolean)) return 'mixed';
+		return 'inactive';
+	}
+
+	/**
+	 * Indique si un style parent est actif ou possède des valeurs mixtes dans la sélection.
+	 * @param {string} styleId Identifiant du style parent.
+	 * @param {Category} [category] Catégorie contenant le style.
+	 * @returns {boolean} `true` si les réglages enfants restent utiles.
+	 */
+	function isFeatureEnabled(styleId: string, category?: Category): boolean {
+		return getFeatureState(styleId, category) !== 'inactive';
+	}
+
+	/**
+	 * Indique si au moins une valeur effective de hauteur maximale est nulle.
+	 * @returns {boolean} `true` lorsque le fond ne peut pas être rendu correctement.
+	 */
+	function isBackgroundMaxHeightMissing(): boolean {
+		return getEffectiveStyleValues('max-height').some((value) => Number(value) === 0);
 	}
 
 	/**
 	 * Vérifie si un style ou sa catégorie correspond à la recherche courante.
-	 * @param {{ id: string; name: string }} style Style évalué.
-	 * @param {{ id: string; name: string }} category Catégorie optionnelle du style.
-	 * @returns {boolean} `true` si le style doit être affiché.
+	 * @param {Style} style Style évalué.
+	 * @param {Category} category Catégorie du style.
+	 * @returns {boolean} `true` si le style correspond.
 	 */
-	function matchesStyleSearch(
-		style: { id: string; name: string },
-		category?: { id: string; name: string }
-	): boolean {
+	function matchesStyleSearch(style: Style, category: Category): boolean {
 		const query = styleSearchQuery();
 		if (query === '') return true;
 
+		const LL_ = get(LL);
 		return (
 			style.name.toLowerCase().includes(query) ||
-			getCachedSearchLabel(style.id).includes(query) ||
-			(category?.name.toLowerCase().includes(query) ?? false) ||
-			(category ? getCachedSearchLabel(category.id).includes(query) : false)
+			getStyleName(style.id, LL_).toLowerCase().includes(query) ||
+			category.name.toLowerCase().includes(query) ||
+			getStyleName(category.id, LL_).toLowerCase().includes(query)
 		);
 	}
 
 	/**
-	 * Applique un merge visuel sur la sélection courante.
-	 * @param {VisualMergeMode} mode Mode de merge choisi.
-	 * @returns {void}
+	 * Retourne le type d'aide à afficher pour le panneau WBW courant.
+	 * @returns {'arabic' | 'translation' | null} Type d'aide requis.
 	 */
-	function applyVisualMerge(mode: VisualMergeMode): void {
-		globalState.getSubtitleTrack.applyVisualMerge(
-			globalState.getStylesState.selectedSubtitles,
-			mode
-		);
-	}
-
-	/**
-	 * Retourne la classe du bouton de merge selon le mode actif.
-	 * @param {VisualMergeMode} mode Mode représenté par le bouton.
-	 * @returns {string} Classes CSS à appliquer.
-	 */
-	function getMergeButtonClass(mode: VisualMergeMode): string {
-		return (
-			'py-1.5 2xl:text-sm text-xs 2xl:px-2 ' +
-			(activeVisualMergeMode() === mode ? 'btn-accent' : 'btn')
-		);
-	}
-
-	/**
-	 * Retire le merge visuel du groupe actuellement sélectionné.
-	 * @returns {void}
-	 */
-	function unmergeSelectedVisualGroup(): void {
-		const groupId = activeVisualMergeGroupId();
-		if (!groupId) return;
-		globalState.getSubtitleTrack.unmergeVisualGroup(groupId);
-	}
-
-	/**
-	 * Ouvre la librairie de presets de style.
-	 */
-	function toggleImportExportMenu() {
-		openPresetLibrary();
-	}
-
-	/**
-	 * Désactive les styles de timing (appearance/disappearance) des overlays globaux
-	 * lorsque leur style always-show vaut `true`.
-	 */
-	function isGlobalTimedOverlayStyleDisabled(categoryId: string, styleId: string): boolean {
-		const alwaysShowStyleId =
-			categoryId === 'surah-name'
-				? 'surah-name-always-show'
-				: categoryId === 'reciter-name'
-					? 'reciter-name-always-show'
-					: categoryId === 'ayah-container'
-						? 'always-show'
-						: null;
-
-		const isTimingStyle =
-			(categoryId === 'surah-name' &&
-				(styleId === 'surah-name-time-appearance' ||
-					styleId === 'surah-name-time-disappearance')) ||
-			(categoryId === 'reciter-name' &&
-				(styleId === 'reciter-name-time-appearance' ||
-					styleId === 'reciter-name-time-disappearance')) ||
-			(categoryId === 'ayah-container' &&
-				(styleId === 'time-appearance' || styleId === 'time-disappearance'));
-
-		if (!alwaysShowStyleId || !isTimingStyle) return false;
-		return Boolean(globalState.getStyle('global', alwaysShowStyleId).value);
-	}
-
-	/**
-	 * Désactive certains styles WBW selon leurs toggles parents, sans bloquer toute la catégorie.
-	 * @param {string} categoryId Identifiant de la catégorie courante.
-	 * @param {string} styleId Identifiant du style courant.
-	 * @returns {boolean} true si le style doit être désactivé.
-	 */
-	function isWordByWordStyleDisabled(categoryId: string, styleId: string): boolean {
-		if (categoryId !== 'word-by-word-highlight') return false;
+	function getWordByWordHintTarget(): 'arabic' | 'translation' | null {
 		const target = currentStyleTarget();
-		const showCurrentWordOnly = Boolean(
-			globalState.getStyle(target, 'wbw-show-current-word-only')?.value
-		);
-
-		if (showCurrentWordOnly && styleId !== 'wbw-show-current-word-only') return true;
-
-		if (styleId === 'wbw-color' || styleId === 'wbw-persist-color') {
-			return !Boolean(globalState.getStyle(target, 'enable-wbw-highlight')?.value);
+		if (target === 'arabic' && !hasWordByWordTimestamps()) return 'arabic';
+		if (target !== 'global' && target !== 'arabic' && !hasTranslationWbwMappings()) {
+			return 'translation';
 		}
-
-		if (styleId === 'wbw-bg-color') {
-			return !Boolean(globalState.getStyle(target, 'enable-wbw-background')?.value);
-		}
-
-		if (styleId === 'wbw-underline-thickness') {
-			return !Boolean(globalState.getStyle(target, 'enable-wbw-underline')?.value);
-		}
-
-		if (styleId === 'wbw-glow-color' || styleId === 'wbw-glow-blur') {
-			return !Boolean(globalState.getStyle(target, 'enable-wbw-glow')?.value);
-		}
-
-		return false;
+		return null;
 	}
 
 	/**
 	 * Indique si la traduction sélectionnée possède au moins un mapping WBW.
-	 *
 	 * @returns {boolean} `true` si une range WBW existe pour cette édition.
 	 */
 	function hasTranslationWbwMappings(): boolean {
@@ -268,43 +342,506 @@
 	}
 
 	/**
-	 * Indique si un hint WBW doit être affiché pour la cible courante.
-	 *
-	 * @returns {'arabic' | 'translation' | null} Type de hint à afficher.
+	 * Masque les styles incompatibles avec la cible ou une sélection locale.
+	 * @param {Category} category Catégorie du style.
+	 * @param {Style} style Style évalué.
+	 * @returns {boolean} `true` si le style ne doit jamais être affiché dans ce contexte.
 	 */
-	function getWordByWordHintTarget(): 'arabic' | 'translation' | null {
+	function isStyleUnsupported(category: Category, style: Style): boolean {
+		const selection = globalState.getStylesState.currentSelection;
+		const selectedSubtitles = globalState.getStylesState.selectedSubtitles.length > 0;
+
+		if (style.id === 'reactive-font-size' || style.id === 'reactive-y-position') return true;
+		if (
+			category.id === 'general' &&
+			['media-fill', 'media-scale', 'media-position-x', 'media-position-y'].includes(style.id) &&
+			globalState.getVideoTrack.clips.length === 0
+		)
+			return true;
+
+		if (
+			selection === 'arabic' &&
+			[
+				'verse-number-format',
+				'verse-number-position',
+				'verse-number-numeral-system',
+				'text-direction'
+			].includes(style.id)
+		)
+			return true;
+
+		if (style.id === 'show-decorative-brackets' && selection !== 'arabic') return true;
+		if (style.id === 'decorative-brackets-font-family' && selection !== 'arabic') return true;
+		if (style.id === 'mushaf-style' && selection !== 'arabic') return true;
+		if (style.id === 'verse-number-new-line' && selection !== 'arabic') return true;
+
+		if (
+			style.id === 'decorative-brackets-font-family' &&
+			!isFeatureEnabled('show-decorative-brackets', category)
+		)
+			return true;
+
+		if (
+			selectedSubtitles &&
+			[
+				'show-subtitles',
+				'show-verse-number',
+				'verse-number-new-line',
+				'show-decorative-brackets',
+				'mushaf-style',
+				'decorative-brackets-font-family',
+				'verse-number-format',
+				'max-height',
+				'max-line',
+				'verse-number-position',
+				'verse-number-numeral-system',
+				'text-direction'
+			].includes(style.id)
+		)
+			return true;
+
+		if (
+			category.id === 'word-by-word-highlight' &&
+			['wbw-always-show-verse-number', 'wbw-show-current-word-only'].includes(style.id) &&
+			selection !== 'arabic'
+		)
+			return true;
+
+		return false;
+	}
+
+	/**
+	 * Indique si le mushaf sélectionné impose la police arabe.
+	 * @returns {boolean} `true` si la police ne peut pas être modifiée manuellement.
+	 */
+	function isMushafFontLocked(): boolean {
+		return (
+			globalState.getStylesState.currentSelection === 'arabic' &&
+			!['Uthmani', 'Minimal Quran'].includes(
+				String(globalState.getStyle('arabic', 'mushaf-style')?.value)
+			)
+		);
+	}
+
+	/**
+	 * Détermine si un style est actuellement inutile parce que son prérequis est inactif.
+	 * Les résultats de recherche conservent ces styles, mais les rendent inactifs.
+	 * @param {Category} category Catégorie du style.
+	 * @param {Style} style Style évalué.
+	 * @returns {boolean} `true` si le style dépend d'une fonctionnalité inactive.
+	 */
+	function isStyleInactiveByDependency(category: Category, style: Style): boolean {
+		const id = style.id;
 		const target = currentStyleTarget();
-		if (target === 'arabic' && !hasWordByWordTimestamps()) return 'arabic';
-		if (target !== 'global' && target !== 'arabic' && !hasTranslationWbwMappings()) {
-			return 'translation';
+
+		if (target !== 'global' && id !== 'show-subtitles' && !isFeatureEnabled('show-subtitles')) {
+			return true;
 		}
-		return null;
+
+		if (
+			target !== 'global' &&
+			[
+				'verse-number-color',
+				'verse-number-new-line',
+				'verse-number-format',
+				'verse-number-position',
+				'verse-number-numeral-system'
+			].includes(id) &&
+			!isFeatureEnabled('show-verse-number')
+		)
+			return true;
+
+		if (category.id === 'general') {
+			if (id === 'video-clip-transition-duration') {
+				return (
+					!isFeatureEnabled('video-clip-transition', category) ||
+					getEffectiveStyleValues('video-clip-transition', category).every(
+						(value) => value === 'none'
+					)
+				);
+			}
+			if (id === 'spacing') return !isFeatureEnabled('anti-collision', category);
+		}
+
+		if (category.id === 'overlay') {
+			if (
+				[
+					'video-frame-enable',
+					'video-frame-content-above',
+					'video-frame-color',
+					'video-frame-vertical-size',
+					'video-frame-horizontal-size',
+					'video-frame-radius',
+					'video-frame-softness'
+				].includes(id)
+			) {
+				return id !== 'video-frame-enable' && !isFeatureEnabled('video-frame-enable', category);
+			}
+			if (id !== 'overlay-enable' && !isFeatureEnabled('overlay-enable', category)) return true;
+			const overlayModes = getEffectiveStyleValues('background-overlay-mode', category).map(String);
+			if (
+				[
+					'background-overlay-fade-intensity',
+					'background-overlay-fade-coverage',
+					'background-overlay-fade-softness',
+					'background-overlay-fade-curve',
+					'background-overlay-fade-invert',
+					'background-overlay-fade-position-x',
+					'background-overlay-fade-position-y',
+					'background-overlay-fade-width',
+					'background-overlay-fade-height'
+				].includes(id) &&
+				overlayModes.every((value) => value === 'uniform')
+			)
+				return true;
+			if (
+				['background-overlay-fade-position-x', 'background-overlay-fade-position-y'].includes(id) &&
+				overlayModes.every((value) => value !== 'fade-vignette')
+			)
+				return true;
+			if (
+				['background-overlay-fade-width', 'background-overlay-fade-height'].includes(id) &&
+				overlayModes.every(
+					(value) =>
+						value !== 'fade-vignette' &&
+						value !== 'fade-four-corners' &&
+						!['fade-top-left', 'fade-top-right', 'fade-bottom-left', 'fade-bottom-right'].includes(
+							value
+						)
+				)
+			)
+				return true;
+		}
+
+		if (category.id === 'surah-name') {
+			if (id !== 'show-surah-name' && !isFeatureEnabled('show-surah-name', category)) return true;
+			if (
+				['surah-name-time-appearance', 'surah-name-time-disappearance'].includes(id) &&
+				isFeatureEnabled('surah-name-always-show', category)
+			)
+				return true;
+			if (
+				['surah-calligraphy-style', 'surah-size'].includes(id) &&
+				!isFeatureEnabled('surah-show-arabic', category)
+			)
+				return true;
+			if (
+				['surah-name-format', 'surah-latin-spacing'].includes(id) &&
+				!isFeatureEnabled('surah-show-latin', category)
+			)
+				return true;
+			if (
+				id === 'surah-latin-text-style' &&
+				!isFeatureEnabled('surah-show-arabic', category) &&
+				!isFeatureEnabled('surah-show-latin', category)
+			)
+				return true;
+		}
+
+		if (category.id === 'reciter-name') {
+			if (
+				id !== 'show-reciter-name' &&
+				id !== 'reciter-name' &&
+				!isFeatureEnabled('show-reciter-name', category)
+			)
+				return true;
+			if (
+				['reciter-name-time-appearance', 'reciter-name-time-disappearance'].includes(id) &&
+				isFeatureEnabled('reciter-name-always-show', category)
+			)
+				return true;
+			if (id === 'reciter-size' && !isFeatureEnabled('reciter-show-arabic', category)) return true;
+			if (
+				['reciter-name-format', 'reciter-latin-spacing', 'reciter-latin-text-style'].includes(id) &&
+				!isFeatureEnabled('reciter-show-latin', category)
+			)
+				return true;
+		}
+
+		if (category.id === 'ayah-container') {
+			if (id !== 'ayah-container-image' && !isFeatureEnabled('ayah-container-image', category))
+				return true;
+			if (
+				['time-appearance', 'time-disappearance'].includes(id) &&
+				isFeatureEnabled('always-show', category)
+			)
+				return true;
+		}
+
+		if (category.id === 'verse-number') {
+			return id !== 'show-verse-number' && !isFeatureEnabled('show-verse-number', category);
+		}
+
+		if (category.id === 'background') {
+			if (
+				!['background-enable', 'max-height', 'width'].includes(id) &&
+				!isFeatureEnabled('background-enable', category)
+			)
+				return true;
+			if (
+				['time-appearance', 'time-disappearance'].includes(id) &&
+				isFeatureEnabled('always-show', category)
+			)
+				return true;
+		}
+
+		const categoryEnablers: Record<string, string> = {
+			border: 'border-enable',
+			shadow: 'shadow-enable',
+			outline: 'outline-enable',
+			'text-glow': 'text-glow-enable',
+			'text-neon': 'text-neon-enable',
+			'line-background': 'line-background-enable'
+		};
+		const enabler = categoryEnablers[category.id];
+		if (enabler && id !== enabler && !isFeatureEnabled(enabler, category)) return true;
+
+		if (category.id === 'word-by-word-highlight') {
+			if (getWordByWordHintTarget()) return true;
+
+			if (
+				isFeatureEnabled('wbw-show-current-word-only', category) &&
+				![
+					'wbw-show-current-word-only',
+					'wbw-current-word-custom-css',
+					'enable-wbw-current-word-opacity',
+					'wbw-current-word-opacity',
+					'enable-wbw-line-background',
+					'wbw-line-background-color',
+					'wbw-line-background-position',
+					'wbw-line-background-height',
+					'wbw-line-background-padding'
+				].includes(id)
+			)
+				return true;
+
+			if (id === 'wbw-current-word-opacity') {
+				return !isFeatureEnabled('enable-wbw-current-word-opacity', category);
+			}
+			if (id === 'wbw-color') {
+				return !isFeatureEnabled('enable-wbw-highlight', category);
+			}
+			if (id === 'wbw-persist-color') {
+				return ![
+					'enable-wbw-highlight',
+					'enable-wbw-underline',
+					'enable-wbw-glow',
+					'enable-wbw-background',
+					'enable-wbw-line-background',
+					'enable-wbw-current-word-opacity'
+				].some((styleId) => isFeatureEnabled(styleId, category));
+			}
+			if (id === 'wbw-bg-color') return !isFeatureEnabled('enable-wbw-background', category);
+			if (
+				[
+					'wbw-line-background-color',
+					'wbw-line-background-position',
+					'wbw-line-background-height',
+					'wbw-line-background-padding'
+				].includes(id)
+			) {
+				return !isFeatureEnabled('enable-wbw-line-background', category);
+			}
+			if (id === 'wbw-underline-thickness') {
+				return !isFeatureEnabled('enable-wbw-underline', category);
+			}
+			if (['wbw-glow-color', 'wbw-glow-blur'].includes(id)) {
+				return !isFeatureEnabled('enable-wbw-glow', category);
+			}
+			if (id === 'wbw-always-show-verse-number') {
+				return !isFeatureEnabled('wbw-reveal-on-recitation', category);
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Résout les styles rattachés visuellement à une catégorie par les métadonnées JSON.
+	 * @param {Category} category Catégorie d'affichage.
+	 * @returns {Style[]} Styles ordonnés pour cette catégorie.
+	 */
+	function getDisplayCategoryStyles(category: Category): Style[] {
+		const categories = getCategoriesToDisplay();
+		const localStyleIds = new Set(category.styles.map((style) => style.id));
+		const groupedStyleIds =
+			category.ui?.groups?.flatMap((group) =>
+				group.styleIds.filter(
+					(styleId) => styleSearchQuery() === '' || !group.shared || localStyleIds.has(styleId)
+				)
+			) ?? [];
+		const groupedStyles = groupedStyleIds.flatMap((styleId) => {
+			const style = categories
+				.flatMap((candidate) => candidate.styles)
+				.find((candidate) => candidate.id === styleId);
+			return style ? [style] : [];
+		});
+		const stylesClaimedByAnotherCategory = new Set(
+			categories
+				.filter((candidate) => candidate.id !== category.id)
+				.flatMap(
+					(candidate) =>
+						candidate.ui?.groups
+							?.filter((group) => !group.shared)
+							.flatMap((group) => group.styleIds) ?? []
+				)
+		);
+		const localStyles = category.styles.filter(
+			(style) => !stylesClaimedByAnotherCategory.has(style.id)
+		);
+
+		return [
+			...new Map([...groupedStyles, ...localStyles].map((style) => [style.id, style])).values()
+		];
+	}
+
+	/**
+	 * Retourne les styles pertinents à afficher dans une catégorie.
+	 * @param {Category} category Catégorie à filtrer.
+	 * @returns {Style[]} Styles visibles.
+	 */
+	function getVisibleStyles(category: Category): Style[] {
+		const styles = getDisplayCategoryStyles(category);
+		const headerStyleId = category.ui?.headerStyle;
+
+		return styles.filter((style) => {
+			if (style.id === headerStyleId) return false;
+			if (isStyleUnsupported(category, style) || !matchesStyleSearch(style, category)) return false;
+			return (
+				styleSearchQuery() !== '' ||
+				(category.id === 'background' && isBackgroundMaxHeightMissing()) ||
+				!isStyleInactiveByDependency(category, style)
+			);
+		});
+	}
+
+	/**
+	 * Retourne le booléen principal à afficher dans l'en-tête d'une catégorie.
+	 * @param {Category} category Catégorie affichée.
+	 * @returns {Style | undefined} Style principal de la catégorie.
+	 */
+	function getCategoryHeaderStyle(category: Category): Style | undefined {
+		const styleId = category.ui?.headerStyle;
+		return category.styles.find((style) => style.id === styleId && style.valueType === 'boolean');
+	}
+
+	/**
+	 * Convertit l'identifiant JSON d'un groupe vers sa clé de traduction.
+	 * @param {string} groupId Identifiant du groupe.
+	 * @returns {StyleGroupCopyKey} Clé de traduction correspondante.
+	 */
+	function getStyleGroupCopyKey(groupId: string): StyleGroupCopyKey {
+		return `group${groupId.charAt(0).toUpperCase()}${groupId.slice(1)}` as StyleGroupCopyKey;
+	}
+
+	/**
+	 * Réorganise les longues catégories en groupes visuels sans masquer de style.
+	 * @param {Category} category Catégorie affichée.
+	 * @param {Style[]} styles Styles visibles de la catégorie.
+	 * @returns {StyleControlGroup[]} Groupes ordonnés à afficher.
+	 */
+	function getStyleControlGroups(category: Category, styles: Style[]): StyleControlGroup[] {
+		if (styleSearchQuery() !== '') return [{ styles }];
+
+		const definitions = category.ui?.groups;
+		if (!definitions) return [{ styles }];
+
+		const stylesById = new Map(styles.map((style) => [style.id, style]));
+		const groups = definitions
+			.map(({ id, styleIds }) => ({
+				label: getStyleGroupCopyKey(id),
+				styles: styleIds.flatMap((styleId) => {
+					const style = stylesById.get(styleId);
+					if (!style) return [];
+					stylesById.delete(styleId);
+					return [style];
+				})
+			}))
+			.filter((group) => group.styles.length > 0);
+
+		const remainingStyles = styles.filter((style) => stylesById.has(style.id));
+		if (remainingStyles.length > 0) {
+			const advancedGroup = groups.find((group) => group.label === 'groupAdvanced');
+			if (advancedGroup) advancedGroup.styles.push(...remainingStyles);
+			else groups.push({ label: 'groupAdvanced', styles: remainingStyles });
+		}
+
+		return groups.length > 1 ? groups : [{ styles }];
+	}
+
+	/**
+	 * Indique si un style rendu par la recherche doit être désactivé.
+	 * @param {Category} category Catégorie du style.
+	 * @param {Style} style Style évalué.
+	 * @returns {boolean} `true` si le style ne peut pas être modifié dans son contexte actuel.
+	 */
+	function isStyleDisabled(category: Category, style: Style): boolean {
+		return (
+			(style.id === 'font-family' && isMushafFontLocked()) ||
+			(category.id === 'background' &&
+				!['max-height', 'width'].includes(style.id) &&
+				isBackgroundMaxHeightMissing()) ||
+			(category.id === 'word-by-word-highlight' &&
+				['wbw-line-background-position', 'wbw-line-background-height'].includes(style.id) &&
+				isFeatureEnabled('line-background-enable')) ||
+			(styleSearchQuery() !== '' && isStyleInactiveByDependency(category, style))
+		);
+	}
+
+	/**
+	 * Indique si un panneau possède au moins un résultat de recherche.
+	 * @param {StylePanel} panel Panneau à vérifier.
+	 * @returns {boolean} `true` si le panneau contient un résultat.
+	 */
+	function panelHasSearchResult(panel: StylePanel): boolean {
+		if (panel.customContent) {
+			return globalState.getCustomClipTrack.clips.some((clip) => {
+				const category = (clip as CustomTextClip).category;
+				return !!category && getVisibleCustomStyles(category, styleSearchQuery()).length > 0;
+			});
+		}
+
+		return getPanelCategories(panel).some((category) => {
+			const headerStyle = getCategoryHeaderStyle(category);
+			return (
+				getVisibleStyles(category).length > 0 ||
+				(!!headerStyle && matchesStyleSearch(headerStyle, category))
+			);
+		});
 	}
 
 	$effect(() => {
-		const _ = globalState.getStylesState.scrollAndHighlight;
-
-		if (_) {
-			// Scroll to the highlighted category
-			const category = globalState.getStylesState.scrollAndHighlight;
-			const element = stylesContainer!.querySelector(`[data-category="${category}"]`);
-			if (element) {
-				element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-				// Le met en jaune pendant 2 secondes
-				element.classList.add('highlight');
-				setTimeout(() => {
-					element.classList.remove('highlight');
-				}, 2000);
-			}
-
-			globalState.getStylesState.scrollAndHighlight = null;
-		}
+		if (globalState.getStylesState.currentSelection !== 'translation') return;
+		ensureCurrentTranslationSelection();
 	});
 
 	$effect(() => {
-		if (globalState.getStylesState.currentSelection !== 'translation') return;
+		const panels = stylePanels();
+		if (panels.some((panel) => panel.id === globalState.getStylesState.currentPanel)) return;
+		globalState.getStylesState.currentPanel = panels[0]?.id ?? '';
+	});
 
-		ensureCurrentTranslationSelection();
+	$effect(() => {
+		const categoryId = globalState.getStylesState.scrollAndHighlight;
+		if (!categoryId) return;
+
+		const panel = stylePanels().find((candidate) => candidate.categoryIds.includes(categoryId));
+		globalState.getStylesState.currentPanel = panel?.id ?? stylePanels()[0]?.id ?? '';
+		if (panel?.categoryNavigation) {
+			globalState.getStylesState.activePanelCategoryIds[panel.id] = categoryId;
+		}
+		globalState.getStylesState.searchQuery = '';
+
+		void tick().then(() => {
+			const element = stylesContainer?.querySelector(`[data-category="${categoryId}"]`);
+			if (!element) return;
+
+			element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			element.classList.add('highlight');
+			setTimeout(() => element.classList.remove('highlight'), 2000);
+		});
+
+		globalState.getStylesState.scrollAndHighlight = null;
 	});
 </script>
 
@@ -314,517 +851,176 @@
 	{#if presetLibraryOpen}
 		<PresetLibrary onBack={closePresetLibrary} />
 	{:else}
-		<!-- En-tête avec icône -->
-		<div class="flex gap-x-2 items-center px-3 mb-2 mt-4 style-editor-header-row">
-			<span class="material-icons-outlined text-accent text-2xl">auto_fix_high</span>
-			<h2 class="text-xl font-semibold text-primary tracking-wide">{$LL.style.styleEditor()}</h2>
-
-			<div class="relative ml-auto">
-				<button
-					class="import-export-button style-presets-button btn-accent flex flex-row items-center px-2 py-1 gap-x-2 text-sm"
-					onclick={toggleImportExportMenu}
-					title={$LL.editor.saveStylesTooltip()}
-				>
-					<div class="flex flex-col">
-						<span class="material-icons-outlined text-[22px]!">style</span>
-						<span class="material-icons-outlined text-[22px]!">public</span>
-					</div>
-					<span class="flex flex-col items-start leading-none">
-						<span class="font-bold">{$LL.editor.presetsLabel()}</span>
-						<span class="text-[10px] font-medium opacity-85 text-left"
-							>{$LL.editor.saveStylesCommunityPresets()}</span
-						>
-					</span>
-				</button>
-			</div>
-		</div>
-
+		<StyleEditorHeader panels={stylePanels()} {openPresetLibrary} {getPanelLabel} {selectPanel} />
 		<div
-			class="flex flex-col px-3 py-3 bg-[var(--bg-primary)]/60 border border-b-0 rounded-b-none border-[var(--border-color)]/50 rounded-xl gap-y-2 style-editor-top-controls"
-		>
-			<p class="text-sm text-secondary style-editor-target-label">{$LL.editor.chooseTarget()}</p>
-			<div data-tour-id="style-subtabs" class="w-full grid grid-cols-3 gap-2">
-				{#each ['global', 'arabic', 'translation'] as selection (selection)}
-					<button
-						onclick={() => {
-							globalState.getStylesState.currentSelection = selection as
-								| 'global'
-								| 'arabic'
-								| 'translation';
-						}}
-						class={'py-1.5 px-2 rounded-lg flex items-center justify-center gap-1  ' +
-							(globalState.getStylesState.currentSelection === selection
-								? 'btn-accent ring-1 ring-white/20'
-								: 'btn hover:ring-1 hover:ring-white/10')}
-						aria-pressed={globalState.getStylesState.currentSelection === selection}
-						title={selection === 'arabic'
-							? $LL.editor.arabic()
-							: selection === 'translation'
-								? $LL.editor.translation()
-								: $LL.editor.global()}
-					>
-						{#if selection === 'arabic'}
-							{$LL.editor.arabic()}
-						{:else if selection === 'translation'}
-							{$LL.editor.translation()}
-						{:else}
-							{$LL.editor.global()}
-						{/if}
-					</button>
-				{/each}
-			</div>
-
-			{#if globalState.getStylesState.currentSelection === 'translation'}
-				{#if globalState.getProjectTranslation.addedTranslationEditions.length > 0}
-					<div class="flex items-center gap-2 mt-1">
-						<span class="material-icons-outlined text-secondary text-sm"> translate </span>
-						<select
-							class="flex-1"
-							bind:value={globalState.getStylesState.currentSelectionTranslation}
-							transition:slide
-							title={$LL.editor.selectTranslation()}
-						>
-							{#each globalState.getProjectTranslation.addedTranslationEditions as translation (translation.name)}
-								<option value={translation.name}>{translation.author}</option>
-							{/each}
-						</select>
-					</div>
-				{:else}
-					<p class="text-secondary text-sm mt-1 text-center">{$LL.editor.noTranslationsYet()}</p>
-				{/if}
-			{/if}
-
-			<!-- search bar -->
-			<div class="mt-1">
-				<div class="relative">
-					<span
-						class="material-icons-outlined absolute left-2 top-1/2 -translate-y-1/2 text-secondary text-sm"
-						>search</span
-					>
-					<input
-						type="text"
-						placeholder={$LL.style.searchStyles()}
-						class="w-full pl-10! pr-8 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)] focus:ring-1 focus:ring-white/20"
-						bind:value={globalState.getStylesState.searchQuery}
-					/>
-					{#if globalState.getStylesState.searchQuery}
-						<button
-							title={$LL.editor.clearSearch()}
-							onclick={clearSearch}
-							class="absolute right-2 top-1/2 -translate-y-1/2 text-secondary hover:text-primary"
-						>
-							<span class="material-icons-outlined text-sm">close</span>
-						</button>
-					{/if}
-				</div>
-			</div>
-
-			<!-- Clips actuellement sélectionnés -->
-			{#if globalState.getStylesState.selectedSubtitles.length > 0}
-				<div
-					class="mt-2 flex items-center justify-between bg-white/5 border border-[var(--border-color)] rounded-lg px-2 py-1"
-				>
-					<div class="flex items-center gap-2 text-secondary text-sm">
-						<span class="material-icons-outlined text-base">select_all</span>
-						<span class="style-selection-count-label">
-							{$LL.editor.subtitlesSelected({
-								count: globalState.getStylesState.selectedSubtitles.length,
-								plural: globalState.getStylesState.selectedSubtitles.length > 1 ? 's' : ''
-							})}
-						</span>
-					</div>
-					<button
-						class="btn px-2 py-1 rounded-md flex items-center gap-1"
-						onclick={() => {
-							globalState.getStylesState.clearSelection();
-						}}
-						title={$LL.editor.clearSelection()}
-					>
-						<span class="material-icons-outlined text-sm">backspace</span>
-						<span class="text-sm">{$LL.common.clear()}</span>
-					</button>
-				</div>
-
-				{#if visualMergeSelection() && canMergeArabicModes()}
-					<div class="rounded-lg border border-emerald-400/30 bg-emerald-500/8 px-3 py-2">
-						<div class="flex items-start gap-2 text-sm text-[var(--text-primary)]">
-							<span class="material-icons-outlined text-base mt-0.5">merge_type</span>
-							<div class="flex-1">
-								<p class="font-medium">{$LL.editor.visualMerge()}</p>
-								<p class="mt-0.5 text-xs leading-relaxed text-secondary visual-merge-description">
-									{$LL.editor.visualMergeDescription()}
-								</p>
-							</div>
-						</div>
-
-						<div class="mt-2 grid grid-cols-3 gap-2">
-							<button
-								data-testid="Merge Arabic"
-								class={getMergeButtonClass('arabic')}
-								onclick={() => applyVisualMerge('arabic')}
-							>
-								{$LL.editor.arabic()}
-							</button>
-							<button
-								data-testid="Merge Translation"
-								class={getMergeButtonClass('translation')}
-								onclick={() => applyVisualMerge('translation')}
-							>
-								{$LL.editor.translation()}
-							</button>
-							<button
-								data-testid="Merge Both"
-								class={getMergeButtonClass('both')}
-								onclick={() => applyVisualMerge('both')}
-							>
-								{$LL.editor.both()}
-							</button>
-						</div>
-
-						{#if activeVisualMergeGroupId()}
-							<button
-								class="btn mt-2 w-full py-1.5 2xl:text-sm text-xs"
-								onclick={unmergeSelectedVisualGroup}
-							>
-								{$LL.editor.unmergeGroup()}
-							</button>
-						{/if}
-					</div>
-				{/if}
-			{/if}
-
-			{#if globalState.getStylesState.selectedVideos.length > 0}
-				<div
-					class="mt-2 flex items-center justify-between bg-white/5 border border-[var(--border-color)] rounded-lg px-2 py-1"
-				>
-					<div class="flex items-center gap-2 text-secondary text-sm">
-						<span class="material-icons-outlined text-base">movie</span>
-						<span class="style-selection-count-label">
-							{$LL.editor.videoClipsSelected({
-								count: globalState.getStylesState.selectedVideos.length,
-								plural: globalState.getStylesState.selectedVideos.length > 1 ? 's' : ''
-							})}
-						</span>
-					</div>
-					<button
-						class="btn px-2 py-1 rounded-md flex items-center gap-1"
-						onclick={() => {
-							globalState.getStylesState.clearSelection();
-						}}
-						title={$LL.editor.clearSelection()}
-					>
-						<span class="material-icons-outlined text-sm">backspace</span>
-						<span class="text-sm">{$LL.common.clear()}</span>
-					</button>
-				</div>
-			{/if}
-
-			{#if globalState.getStylesState.selectedSubtitles.length <= 1}
-				<div
-					class="mt-2 flex items-start gap-2 rounded-lg border border-sky-400/35 bg-sky-500/8 px-2 py-1.5 text-[var(--text-primary)] style-selection-hint-box"
-				>
-					<span class="material-icons-outlined text-base mt-0.5">info</span>
-					<p class="text-xs leading-relaxed style-selection-hint-label">
-						{$LL.editor.clickToSelect()}
-					</p>
-				</div>
-			{/if}
-		</div>
-		<div
-			class="flex flex-col gap-y-2 px-1 bg-[var(--bg-primary)]/60 rounded-xl border border-[var(--border-color)]/50 overflow-y-auto pb-10 rounded-t-none border-t-2 flex-1 py-1"
+			class="style-settings-scroll flex-1 min-h-0 overflow-y-auto px-3 py-3"
 			bind:this={stylesContainer}
-			onscroll={(_e) => {
+			onscroll={() => {
 				globalState.currentProject!.projectEditorState.stylesEditor.scrollPosition =
 					stylesContainer?.scrollTop || 0;
 			}}
 		>
 			{#if globalState.getStylesState.getCurrentSelection() === 'global' && globalState.getStylesState.selectedSubtitles.length > 0}
-				<div
-					class="mt-4 flex items-start gap-2 bg-amber-500/10 border border-amber-400/40 rounded-lg px-3 py-2 text-amber-200"
-				>
-					<span class="material-icons-outlined text-base mt-0.5">info</span>
-					<p class="text-sm">
-						{$LL.editor.cannotEditGlobalWithSelection()}
-					</p>
+				<div class="style-empty-state border-amber-400/40 bg-amber-500/10 text-amber-100">
+					<span class="material-icons-outlined text-xl">info</span>
+					<p>{$LL.editor.cannotEditGlobalWithSelection()}</p>
+				</div>
+			{:else if globalState.getStylesState.currentSelection === 'translation' && globalState.getProjectTranslation.addedTranslationEditions.length === 0}
+				<div class="style-empty-state">
+					<span class="material-icons-outlined text-xl">translate</span>
+					<p>{$LL.editor.noTranslationsYet()}</p>
+				</div>
+			{:else if styleSearchQuery() !== '' && visiblePanels().length === 0}
+				<div class="style-empty-state">
+					<span class="material-icons-outlined text-xl">search_off</span>
+					<p>{getStyleUiCopy('noMatchingStyles')}</p>
+					<button type="button" class="btn mt-2 px-3 py-1.5 text-xs" onclick={clearSearch}>
+						{$LL.editor.clearSearch()}
+					</button>
 				</div>
 			{:else}
-				{#each getCategoriesToDisplay() as category (category.id)}
-					<Section
-						name={getStyleName(category.id, get(LL)) || category.name}
-						icon={category.icon}
-						contentClasses="border-x border-b border-[var(--border-color)] rounded-b-lg -mt-1 pt-1"
-						classes="-mb-1 bg-white/10 pl-0.5 rounded-t-lg"
-						dataCategory={globalState.getStylesState.currentSelection === 'translation'
-							? globalState.getStylesState.currentSelectionTranslation
-							: category.id}
+				{#each visiblePanels() as panel (panel.id)}
+					<div
+						id={'style-panel-' + panel.id}
+						class="style-panel-content"
+						aria-label={getPanelLabel(panel)}
 					>
-						{#if category.id === 'background'}
-							<div
-								class="mx-2 mb-2 flex items-start gap-2 rounded-md border border-sky-400/35 bg-sky-500/8 px-2 py-1.5 translate-y-1.5 text-[var(--text-primary)]"
-							>
-								<span
-									class="material-icons-outlined text-sm mt-0.5"
-									title={$LL.editor.backgroundVisibilityHint()}>info</span
-								>
-								<p class="text-xs leading-relaxed">
-									{$LL.editor.backgroundVisibilityHint()}
-								</p>
+						{#if styleSearchQuery() !== '' && panel.customContent}
+							<div class="style-panel-result-heading">
+								<span class="material-icons-outlined text-accent text-[18px]!">{panel.icon}</span>
+								<h3>{getPanelLabel(panel)}</h3>
 							</div>
 						{/if}
 
-						{#if category.id === 'word-by-word-highlight' && getWordByWordHintTarget()}
-							<div
-								class="mx-2 mb-2 translate-y-1.5 rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-amber-100"
-							>
-								<div class="flex items-start gap-2">
-									<span class="material-icons-outlined text-sm mt-0.5">info</span>
-									<div class="min-w-0">
-										{#if getWordByWordHintTarget() === 'translation'}
-											<p class="text-xs leading-relaxed">
-												{$LL.style.translationWbwMissingMappingInfo()}
-											</p>
-										{:else}
-											<p class="text-xs leading-relaxed">
-												{$LL.style.wbwMissingInfo()}
-											</p>
-											<p class="mt-1 text-xs leading-relaxed">
-												{$LL.style.wbwStep1()}
-											</p>
-											<p class="mt-1 text-xs leading-relaxed">
-												{$LL.style.wbwStep2()}
-											</p>
-										{/if}
-									</div>
+						{#if panel.customContent}
+							<CustomContentPanel />
+						{:else}
+							{#if panel.categoryNavigation && styleSearchQuery() === ''}
+								<div class="style-category-tabs" aria-label={getPanelLabel(panel)}>
+									{#each getPanelCategories(panel) as category (category.id)}
+										{@const categoryLabel = getStyleName(category.id, get(LL))}
+										<button
+											type="button"
+											aria-pressed={getActivePanelCategoryId(panel) === category.id}
+											class:style-category-tab-active={getActivePanelCategoryId(panel) ===
+												category.id}
+											class="style-category-tab"
+											onclick={() => selectPanelCategory(panel.id, category.id)}
+										>
+											<span class="material-icons-outlined text-[16px]!">{category.icon}</span>
+											<span>{categoryLabel}</span>
+										</button>
+									{/each}
 								</div>
-							</div>
-						{/if}
+							{/if}
 
-						{#each category.styles as style (style.id)}
-							{#if matchesStyleSearch(style, category)}
-								<!-- 
-							Cas spécial : on ne peut pas avoir de séparateur entre le numéro de verset et le verset
-							pour le texte Coranique, ni changer sa position. Empêche donc l'affichage de ces styles dans ce cas précis.
-							
-							Deuxième cas spécial : on ne veut pas pouvoir individuellement modifier les styles suivants:
-								- show-subtitles
-								- show-verse-number
-								- show-decorative-brackets
-								- mushaf-style
-								- text-direction
-								- decorative-brackets-font-family
-								- verse-number-format
-								- verse-number-position
-								- max-height
-								- max-line
-							Empêche donc l'affichage de ces deux styles si on a une sélection de sous-titre en cours.
-
-							Troisième cas :
-							On empêche l'affichage du style "reactive-font-size" et "reactive-y-position" qui sont des styles utilitaire censé être non-visible. 
-
-							Quatrième cas :
-							On empêche la modification du font-family style si on a pas "Uthmani" de sélectionné pour le style du mushaf, car Indopak et Tajweed ont des fonts spécifique
-								  -->
-								{#if !(globalState.getStylesState.currentSelection === 'arabic' && (style.id === 'verse-number-format' || style.id === 'verse-number-position' || style.id === 'verse-number-numeral-system' || style.id === 'text-direction')) && !(style.id === 'show-decorative-brackets' && globalState.getStylesState.currentSelection !== 'arabic') && !(style.id === 'decorative-brackets-font-family' && globalState.getStylesState.currentSelection !== 'arabic') && !(style.id === 'mushaf-style' && globalState.getStylesState.currentSelection !== 'arabic') && !(globalState.getStylesState.currentSelection === 'arabic' && style.id === 'font-family' && globalState.getStyle('arabic', 'mushaf-style')?.value !== 'Uthmani') && !(style.id === 'decorative-brackets-font-family' && !globalState.getStyle('arabic', 'show-decorative-brackets').value) && !(globalState.getStylesState.selectedSubtitles.length > 0 && (style.id === 'show-subtitles' || style.id === 'show-verse-number' || style.id === 'show-decorative-brackets' || style.id === 'mushaf-style' || style.id === 'decorative-brackets-font-family' || style.id === 'verse-number-format' || style.id === 'max-height' || style.id === 'max-line' || style.id === 'verse-number-position' || style.id === 'verse-number-numeral-system' || style.id === 'text-direction')) && !(category.id === 'word-by-word-highlight' && (style.id === 'wbw-always-show-verse-number' || style.id === 'wbw-show-current-word-only') && globalState.getStylesState.currentSelection !== 'arabic') && style.id !== 'reactive-font-size' && style.id !== 'reactive-y-position'}
-									<!-- On veut désactiver certains style, comme par exemple
-							 - Si on a le style "Always Show" pour les customs text d'enable, alors on disable les styles permettant
-							 de set les propriétés de temps de début d'affichage et de fin d'affichage -->
-									{@const toDisable =
-										(category.id.includes('custom-text') &&
-											category.getStyle('always-show')?.value &&
-											(style.id === 'time-appearance' || style.id === 'time-disappearance')) ||
-										isGlobalTimedOverlayStyleDisabled(category.id, style.id) ||
-										isWordByWordStyleDisabled(category.id, style.id) ||
-										(category.id === 'word-by-word-highlight' &&
-											!category.getStyle('wbw-reveal-on-recitation')?.value &&
-											style.id === 'wbw-always-show-verse-number')}
-									<!-- Si la recherche est vide ou si le nom du style correspond à la requête de recherche -->
-									<StyleComponent
-										{style}
-										target={globalState.getStylesState.getCurrentSelection()}
-										disabled={toDisable as boolean}
-										applyValueSimple={(v) => {
-											style.value = v as typeof style.value;
-										}}
+							{#each getVisiblePanelCategories(panel) as category (category.id)}
+								{@const visibleStyles = getVisibleStyles(category)}
+								{@const styleGroups = getStyleControlGroups(category, visibleStyles)}
+								{@const headerStyle = getCategoryHeaderStyle(category)}
+								{#if visibleStyles.length > 0 || (headerStyle && (styleSearchQuery() === '' || matchesStyleSearch(headerStyle, category))) || category.id === 'word-by-word-highlight'}
+									<StyleCategoryBlock
+										{category}
+										{visibleStyles}
+										{styleGroups}
+										{headerStyle}
+										target={currentStyleTarget()}
+										searchActive={styleSearchQuery() !== ''}
+										mushafFontLocked={isMushafFontLocked()}
+										backgroundRequiresMaxHeight={category.id === 'background' &&
+											isBackgroundMaxHeightMissing()}
+										wordByWordHint={getWordByWordHintTarget()}
+										{isStyleDisabled}
+										{getStyleUiCopy}
 									/>
 								{/if}
-							{/if}
-						{/each}
-
-						{#if category.id === 'general' && globalState.getStylesState.currentSelection === 'global' && styleSearchQuery() === ''}
-							<div class="mx-2 border-t border-color py-2">
-								<div class="flex items-start justify-between gap-3">
-									<div class="min-w-0">
-										<div class="flex flex-row justify-between items-center">
-											<p class="text-sm font-medium text-primary">{$LL.style.hifzMode()}</p>
-											<button
-												type="button"
-												class="btn py-1 px-2 text-sm"
-												onclick={() => {
-													void ModalManager.hifzRepetitionModal();
-												}}
-											>
-												{$LL.style.enableHifzMode()}
-											</button>
-										</div>
-										<p class="text-xs leading-relaxed text-secondary mt-1 italic">
-											{$LL.style.createMemorizationVideos()}
-										</p>
-									</div>
-								</div>
-							</div>
-						{/if}
-					</Section>
-				{/each}
-
-				<!-- Ajoute maintenant les customs texts -->
-				{#if globalState.getStylesState.currentSelection === 'global' && globalState.getStylesState.selectedVideos.length === 0}
-					{#each globalState.getCustomClipTrack.clips as customTextClip (customTextClip.id)}
-						{@const category = (customTextClip as CustomTextClip).category!}
-						<Section
-							name={getStyleName(category.id, get(LL)) || category.name}
-							icon={category.icon}
-							contentClasses="border-x border-b border-[var(--border-color)] rounded-b-lg -mt-1 pt-1"
-							classes="-mb-1 bg-white/10 pl-0.5 rounded-t-lg"
-						>
-							{#each category.styles as style (style.id)}
-								{#if matchesStyleSearch(style)}
-									{@const toDisable =
-										category.getStyle('always-show')!.value &&
-										(style.id === 'time-appearance' || style.id === 'time-disappearance')}
-
-									<!-- prettier-ignore -->
-									<StyleComponent
-								{style}
-								applyValueSimple={(v) => {
-									const targetCustomClip = globalState.getCustomClipTrack.getCustomClipWithId(
-										category.id
-									);
-									if (!targetCustomClip) {
-										style.value = v as typeof style.value;
-										return;
-									}
-
-									// Harmonise begin/end pour éviter un état clip/style incoherent.
-									if (style.id === 'time-appearance' && typeof v === 'number') {
-										const endStyle = category.getStyle('time-disappearance');
-										const currentEnd = Number(endStyle?.value ?? 0);
-
-										if (v > currentEnd) {
-											const endFallback = v + 3000;
-											if (endStyle) endStyle.value = endFallback;
-											targetCustomClip.setEndTime(endFallback);
-										}
-
-										targetCustomClip.setStartTime(v);
-										style.value = v as typeof style.value;
-										return;
-									}
-
-									if (style.id === 'time-disappearance' && typeof v === 'number') {
-										const beginStyle = category.getStyle('time-appearance');
-										const currentBegin = Number(beginStyle?.value ?? 0);
-
-										if (v < currentBegin) {
-											const endFallback = v + 3000;
-											if (beginStyle) beginStyle.value = v;
-											targetCustomClip.setStartTime(v);
-											targetCustomClip.setEndTime(endFallback);
-											style.value = endFallback as typeof style.value;
-											return;
-										}
-
-										targetCustomClip.setEndTime(v);
-										style.value = v as typeof style.value;
-										return;
-									}
-
-									style.value = v as typeof style.value;
-								}}
-								disabled={toDisable as boolean}
-							/>
-								{/if}
 							{/each}
-						</Section>
-					{/each}
-				{/if}
-			{/if}
-
-			{#if globalState.getStylesState.getCurrentSelection() === 'global' && globalState.getStylesState.selectedVideos.length === 0}
-				<div class="grid grid-cols-2 mb-20 gap-x-1.5 mt-4 pr-2">
-					<!-- Bouton pour ajouter un texte custom -->
-					<button
-						class="btn-accent mx-auto px-2 py-2 rounded-md flex items-center justify-center gap-1"
-						onclick={async () => {
-							await globalState.getVideoStyle.addCustomClip('text');
-						}}
-						title={$LL.editor.addCustomText()}
-					>
-						<span class="material-icons-outlined text-sm">add</span>
-						{$LL.editor.customText()}
-					</button>
-					<!-- Bouton pour ajouter un texte custom -->
-					<button
-						class="btn-accent mx-auto px-2 py-2 rounded-md flex items-center justify-center gap-1"
-						onclick={async () => {
-							await globalState.getVideoStyle.addCustomClip('image');
-						}}
-						title={$LL.editor.addCustomText()}
-					>
-						<span class="material-icons-outlined text-sm">add</span>
-						{$LL.editor.customImage()}
-					</button>
-				</div>
+						{/if}
+					</div>
+				{/each}
 			{/if}
 		</div>
 	{/if}
 </div>
 
 <style>
-	@media (max-width: 1440px) {
-		.style-selection-count-label,
-		.style-selection-hint-label {
-			font-size: 0.625rem;
-			line-height: 1.1;
-		}
+	.style-panel-content {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
 	}
 
-	.style-presets-button {
-		box-shadow:
-			0 0 0 2px color-mix(in srgb, var(--accent-primary) 35%, transparent),
-			0 8px 18px rgb(0 0 0 / 24%);
+	.style-panel-result-heading {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		font-size: 0.85rem;
+		font-weight: 700;
+		color: var(--text-primary);
 	}
 
-	.style-presets-button:hover {
-		transform: translateY(-1px);
+	.style-category-tabs {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0.35rem;
+		margin-bottom: 0.1rem;
 	}
 
-	@media (max-height: 780px), (max-width: 420px) {
-		.style-editor-target-label,
-		.visual-merge-description,
-		.style-selection-hint-box {
-			display: none;
-		}
+	.style-category-tab {
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
+		gap: 0.35rem;
+		width: 100%;
+		min-width: 0;
+		border: 1px solid transparent;
+		border-radius: 0.6rem;
+		padding: 0.45rem 0.55rem;
+		background: var(--bg-accent);
+		color: var(--text-secondary);
+		font-size: 0.7rem;
+		font-weight: 600;
+		line-height: 1.2;
+		text-align: left;
+		cursor: pointer;
+		transition: 150ms ease;
+	}
 
-		.style-selection-count-label {
-			display: -webkit-box;
-			-webkit-line-clamp: 1;
-			-webkit-box-orient: vertical;
-			overflow: hidden;
-		}
+	.style-category-tab > span:last-child {
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
 
-		.style-editor-header-row {
-			margin-top: 0.5rem;
-			margin-bottom: 0.25rem;
-		}
+	.style-category-tab:hover {
+		border-color: var(--border-color);
+		color: var(--text-primary);
+	}
 
-		.style-editor-top-controls {
-			padding-top: 0.5rem;
-			padding-bottom: 0.5rem;
-			gap: 0.375rem;
-		}
+	.style-category-tab-active,
+	.style-category-tab-active:hover {
+		border-color: var(--accent-primary);
+		background: color-mix(in srgb, var(--accent-primary) 28%, var(--bg-secondary));
+		color: var(--text-primary);
+	}
 
-		.style-presets-button {
-			padding: 0.375rem 0.625rem;
-		}
+	:global(.style-category-block.highlight) {
+		border-color: #facc15;
+		background: color-mix(in srgb, #facc15 12%, var(--bg-secondary));
+	}
+
+	.style-empty-state {
+		display: flex;
+		min-height: 8rem;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.45rem;
+		padding: 1rem;
+		border: 1px dashed var(--border-color);
+		border-radius: 0.75rem;
+		background: color-mix(in srgb, var(--bg-accent) 45%, transparent);
+		color: var(--text-secondary);
+		font-size: 0.8rem;
+		text-align: center;
 	}
 </style>

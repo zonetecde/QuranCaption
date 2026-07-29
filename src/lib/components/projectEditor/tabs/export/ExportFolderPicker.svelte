@@ -9,9 +9,7 @@
 
 	const LL_ = get(LL);
 
-	let {
-		description = LL_.export.exportFolderDescription()
-	}: { description?: string } = $props();
+	let { description = LL_.export.exportFolderDescription() }: { description?: string } = $props();
 
 	let currentExportFolder = $state('');
 
@@ -82,7 +80,7 @@
 			}}
 		/>
 		<button class="btn-accent px-3 py-2 text-sm cursor-pointer" onclick={changeExportFolder}>
-			>{$LL.export.browse()}
+			{$LL.export.browse()}
 		</button>
 	</div>
 	{#if globalState.settings?.persistentUiState.videoExportFolder}

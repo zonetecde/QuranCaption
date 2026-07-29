@@ -192,6 +192,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
           PUBLIC_POSTHOG_KEY: ${{ secrets.PUBLIC_POSTHOG_KEY }}
           PUBLIC_POSTHOG_HOST: ${{ secrets.PUBLIC_POSTHOG_HOST }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
         with:
           tagName: ${{ inputs.tag }}
           releaseName: 'Quran Caption ${{ inputs.tag }}'

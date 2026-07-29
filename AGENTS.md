@@ -23,7 +23,11 @@ Rules:
 - When implementing a feature that mutates project state (style changes, clip edits, translations,
   etc.), always wrap it with `ProjectHistoryManager` (`.track()`, `.begin()`/`.commit()`, or
   `.trackAsync()`) so it supports undo/redo.
+- Before adding, moving, renaming, or changing a video style or its editor layout, read
+  `documentations/style-json.md` and follow its JSON metadata, localization, dependency, undo/redo,
+  and migration checklist.
 - Stop at the requested scope. Do not add extra improvements.
+- Never create a Git commit unless the user explicitly asks for it.
 - When several solutions are possible, choose the most minimal one that is correct and maintainable.
 
 Before coding:
@@ -41,6 +45,8 @@ When done:
 - Prefer conventional commit style when it fits (for example: `fix(...)`, `feat(...)`,
   `refactor(...)`).
 - Make sure both commit messages describe the actual change, not a vague intention.
+- Always make both commit messages sufficiently detailed and explicit to describe what changed and
+  the concrete behavior it enables, even when this makes them longer.
 
 Code quality requirements:
 
@@ -55,3 +61,6 @@ Example:
 
 - English: `fix(export): black glitches are now gone`
 - French: `fix(export): suppression du glitch des vidéos noires`
+- English feature: `feat(style): added a style to allow video text to be above the framed overlay`
+- French feature:
+  `feat(style): ajout d’un style pour afficher le texte vidéo au-dessus de l’overlay encadré`

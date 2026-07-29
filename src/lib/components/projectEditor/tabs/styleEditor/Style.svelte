@@ -1,77 +1,59 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
-	import { convertFileSrc, invoke } from '@tauri-apps/api/core';
-	import { open } from '@tauri-apps/plugin-dialog';
 	import { onDestroy, onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
 	import type { CustomClip } from '$lib/classes/Clip.svelte';
-	import type {
-		DimensionValue,
-		FadeValue
-	} from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import { default as StyleComponent } from '$lib/components/projectEditor/tabs/styleEditor/Style.svelte';
-	import { ProjectDetail } from '$lib/classes';
-	import RecitersManager from '$lib/classes/Reciter';
-	import EditableText from '$lib/components/misc/EditableText.svelte';
-	import { ProjectService } from '$lib/services/ProjectService';
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 	import { getStyleName, getStyleDescription } from '$lib/i18n/styleMapper';
-	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import { applyStyleMutation } from '$lib/services/StyleMutationService';
+	import AyahImageControl from './controls/AyahImageControl.svelte';
+	import BracketsFontControl from './controls/BracketsFontControl.svelte';
+	import ColorControl from './controls/ColorControl.svelte';
+	import DimensionControl from './controls/DimensionControl.svelte';
+	import FadeControl from './controls/FadeControl.svelte';
+	import FileControl from './controls/FileControl.svelte';
+	import FontFamilyControl from './controls/FontFamilyControl.svelte';
+	import NumberControl from './controls/NumberControl.svelte';
+	import ReciterControl from './controls/ReciterControl.svelte';
+	import SelectControl from './controls/SelectControl.svelte';
+	import TextControl from './controls/TextControl.svelte';
+	import TimeControl from './controls/TimeControl.svelte';
+	import { asDimensionValue, asFadeValue, hasFadeEnabled, msToTimeValue } from './controls/utils';
 
 	const LL_ = get(LL);
-	let systemFontsPromise: Promise<string[]> | null = null;
+
+	/**
+	 * Lit une microcopie ajoutée au dictionnaire de style en attendant la génération i18n du hook.
+	 * @param {'mixedValue' | 'localOverride'} key Clé de microcopie à résoudre.
+	 * @returns {string} Texte localisé.
+	 */
+	function getStyleUiCopy(key: 'mixedValue' | 'localOverride'): string {
+		return (get(LL).style as unknown as Record<'mixedValue' | 'localOverride', () => string>)[
+			key
+		]();
+	}
 
 	let {
 		style,
 		target,
 		disabled,
+		showControl = false,
+		headerControl = false,
 		applyValueSimple
 	}: {
 		style: Style;
 		target?: string;
 		disabled: boolean;
+		showControl?: boolean;
+		headerControl?: boolean;
 		applyValueSimple: (value: Style['value']) => void;
 	} = $props();
 
 	type StyleValue = Style['value'];
-
-	/**
-	 * Charge la liste des polices système une seule fois pour tous les contrôles.
-	 * @returns {Promise<string[]>} Liste des polices système.
-	 */
-	function getSystemFonts(): Promise<string[]> {
-		systemFontsPromise ??= invoke<string[]>('get_system_fonts');
-		return systemFontsPromise;
-	}
-
-	function asDimensionValue(value: unknown): DimensionValue {
-		if (
-			typeof value === 'object' &&
-			value !== null &&
-			'width' in value &&
-			'height' in value &&
-			typeof (value as DimensionValue).width === 'number' &&
-			typeof (value as DimensionValue).height === 'number'
-		) {
-			return value as DimensionValue;
-		}
-		return { width: 1920, height: 1080 };
-	}
-
-	function asFadeValue(value: unknown): FadeValue {
-		const raw = (typeof value === 'object' && value !== null ? value : {}) as Partial<FadeValue>;
-
-		return {
-			fadeDurationMs: typeof raw.fadeDurationMs === 'number' ? raw.fadeDurationMs : 1000,
-			videoFadeInEnabled: !!raw.videoFadeInEnabled,
-			videoFadeOutEnabled: !!raw.videoFadeOutEnabled,
-			audioFadeInEnabled: !!raw.audioFadeInEnabled,
-			audioFadeOutEnabled: !!raw.audioFadeOutEnabled
-		};
-	}
 
 	onMount(async () => {
 		// Par défaut fermé
@@ -86,47 +68,9 @@
 			// On charge les styles composites
 			await globalState.getVideoStyle.getStylesOfTarget(target).loadCompositeStyles();
 		}
-
-		// Si le style est sur le récitateur du projet, bind la valeur au récitateur du projet
-		if (style.valueType === 'reciter') {
-			inputValue = globalState.currentProject!.detail.reciter;
-		}
-
-		// Si le style est un file, bind la valeur actuelle
-		if (style.valueType === 'file' && style.value) {
-			selectedFilePath = style.value as string;
-		}
 	});
 
 	let extended = $state(false);
-	let selectedOrientation = $state('landscape');
-	let selectedQuality = $state('1080p');
-	let selectedFilePath = $state('');
-	let isColorHistoryTransactionOpen = false;
-
-	const ayahContainerImages = [
-		...Array.from({ length: 20 }, (_, i) => `banniere_${i + 20}.png`),
-		...Array.from({ length: 10 }, (_, i) => `banniere_${i + 10}.png`)
-	];
-
-	// Function to open file selector
-	async function selectFile() {
-		const result = await open({
-			multiple: false,
-			directory: false,
-			filters: [
-				{
-					name: 'Image Files',
-					extensions: ['png', 'jpg', 'jpeg', 'gif']
-				}
-			]
-		});
-
-		if (result) {
-			selectedFilePath = result as string;
-			applyValue(selectedFilePath);
-		}
-	}
 
 	$effect(() => {
 		globalState.getSectionsState[style.id] = {
@@ -134,42 +78,8 @@
 		};
 	});
 
-	// Initialize orientation and quality based on current dimensions
 	$effect(() => {
-		if (style.valueType === 'dimension') {
-			const current = asDimensionValue(style.value);
-			// Detect current orientation and quality
-			if (current.width > current.height) {
-				selectedOrientation = 'landscape';
-			} else {
-				selectedOrientation = 'portrait';
-			}
-
-			// Detect quality based on exact dimensions (not just >= comparison)
-			const maxDimension = Math.max(current.width, current.height);
-			const minDimension = Math.min(current.width, current.height);
-
-			if (maxDimension === 3840 && minDimension === 2160) {
-				selectedQuality = '2160p';
-			} else if (maxDimension === 2560 && minDimension === 1440) {
-				selectedQuality = '1440p';
-			} else if (maxDimension === 1920 && minDimension === 1080) {
-				selectedQuality = '1080p';
-			} else if (maxDimension === 1280 && minDimension === 720) {
-				selectedQuality = '720p';
-			} else {
-				// Pour les dimensions custom, choisir la qualité la plus proche
-				if (maxDimension >= 3000) {
-					selectedQuality = '2160p';
-				} else if (maxDimension >= 2000) {
-					selectedQuality = '1440p';
-				} else if (maxDimension >= 1500) {
-					selectedQuality = '1080p';
-				} else {
-					selectedQuality = '720p';
-				}
-			}
-		}
+		if (showControl) extended = true;
 	});
 
 	// Gestion sélection de clips
@@ -180,6 +90,13 @@
 		'background-overlay-mode',
 		'background-overlay-fade-intensity',
 		'background-overlay-fade-coverage',
+		'background-overlay-fade-softness',
+		'background-overlay-fade-curve',
+		'background-overlay-fade-invert',
+		'background-overlay-fade-position-x',
+		'background-overlay-fade-position-y',
+		'background-overlay-fade-width',
+		'background-overlay-fade-height',
 		'overlay-custom-css',
 		'overlay-blur'
 	]);
@@ -239,169 +156,21 @@
 		inputValue = eff.value as StyleValue;
 	});
 
-	function coerce(val: unknown): StyleValue {
-		if (style.valueType === 'number') return Number(val);
-		if (style.valueType === 'boolean') return Boolean(val);
-		if (style.valueType === 'dimension') return asDimensionValue(val);
-		if (style.valueType === 'fade') return asFadeValue(val);
-		return val as StyleValue;
-	}
-
 	function applyValue(v: unknown) {
-		ProjectHistoryManager.begin('set style value');
-		try {
-			const value = coerce(v);
-			if (selectedClipIds().length > 0) {
-				if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-					globalState.getVideoStyle
-						.getStylesOfTarget(target!)
-						.setStyleForClips(selectedClipIds(), style.id as StyleName, value);
-				} else {
-					applyValueSimple(value);
-				}
-			} else {
-				applyValueSimple(value);
-			}
-
-			// Déclenche un refresh éventuel (ex: max-height fit)
-			if (
-				style.id === 'max-height' ||
-				style.id === 'max-line' ||
-				style.id === 'font-size' ||
-				style.id === 'word-spacing' ||
-				style.id === 'font-family'
-			) {
-				globalState.updateVideoPreviewUI();
-			}
-		} finally {
-			ProjectHistoryManager.commit();
-		}
-	}
-
-	/**
-	 * Démarre une transaction unique pour les changements continus du color picker.
-	 * @returns {void}
-	 */
-	function beginColorHistoryTransaction(): void {
-		if (isColorHistoryTransactionOpen) return;
-		ProjectHistoryManager.begin('set color style');
-		isColorHistoryTransactionOpen = true;
-	}
-
-	/**
-	 * Valide la transaction color picker une seule fois à la fin de l'interaction.
-	 * @returns {void}
-	 */
-	function commitColorHistoryTransaction(): void {
-		if (!isColorHistoryTransactionOpen) return;
-		ProjectHistoryManager.commit();
-		isColorHistoryTransactionOpen = false;
-	}
-
-	/**
-	 * Applique une couleur en live sans créer une entrée undo à chaque drag.
-	 * @param {string} value Couleur sélectionnée.
-	 * @returns {void}
-	 */
-	function applyColorPickerValue(value: string): void {
-		beginColorHistoryTransaction();
-		applyValue(value);
+		const result = applyStyleMutation({
+			videoStyle: globalState.getVideoStyle,
+			style,
+			target,
+			clipIds: selectedClipIds(),
+			value: v,
+			applyBaseValue: applyValueSimple
+		});
+		if (result.refreshPreview) globalState.updateVideoPreviewUI();
+		if (result.showTajweedWarning) toast(get(LL).editor.tajweedFontWarning());
 	}
 
 	function applySelectValue(value: string) {
-		ProjectHistoryManager.begin('set select style');
-		try {
-			// Style global arabe (non-overridable): choix du mushaf
-			if (target === 'arabic' && style.id === 'mushaf-style') {
-				const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
-				arabicStyles.setStyle('mushaf-style', value);
-
-				if (value === 'Indopak') {
-					arabicStyles.setStyle('font-family', 'IndoPak');
-				} else if (value === 'Tajweed') {
-					arabicStyles.setStyle('font-family', 'QPC2');
-					toast(get(LL).editor.tajweedFontWarning());
-				} else if (value === 'Soosi') {
-					arabicStyles.setStyle('font-family', 'Soosi');
-				} else {
-					arabicStyles.setStyle('font-family', 'Hafs');
-				}
-
-				globalState.updateVideoPreviewUI();
-				return;
-			}
-
-			// Si l'utilisateur choisit explicitement la police IndoPak, synchroniser le style mushaf.
-			if (target === 'arabic' && style.id === 'font-family' && selectedClipIds().length === 0) {
-				const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
-				if (value === 'IndoPak') {
-					arabicStyles.setStyle('mushaf-style', 'Indopak');
-				} else if (value === 'Soosi') {
-					arabicStyles.setStyle('mushaf-style', 'Soosi');
-				} else if (
-					arabicStyles.findStyle('mushaf-style')?.value === 'Tajweed' &&
-					value !== 'QPC2'
-				) {
-					arabicStyles.setStyle('mushaf-style', 'Uthmani');
-				}
-			}
-
-			applyValue(value);
-		} finally {
-			ProjectHistoryManager.commit();
-		}
-	}
-
-	/**
-	 * Applique les dimensions sélectionnées à la vidéo
-	 */
-	function applySelectedDimensions() {
-		const dimensions = getDimensionsFromSelection(selectedOrientation, selectedQuality);
-		applyValue(dimensions);
-	}
-
-	/**
-	 * Récupère les dimensions en fonction de l'orientation et de la qualité sélectionnées
-	 * @param orientation L'orientation de la vidéo (landscape ou portrait)
-	 * @param quality La qualité de la vidéo (720p, 1080p, etc.)
-	 */
-	function getDimensionsFromSelection(orientation: string, quality: string) {
-		const isLandscape = orientation === 'landscape';
-
-		let width: number, height: number;
-
-		switch (quality) {
-			case '720p':
-				width = isLandscape ? 1280 : 720;
-				height = isLandscape ? 720 : 1280;
-				break;
-			case '1080p':
-				width = isLandscape ? 1920 : 1080;
-				height = isLandscape ? 1080 : 1920;
-				break;
-			case '1440p':
-				width = isLandscape ? 2560 : 1440;
-				height = isLandscape ? 1440 : 2560;
-				break;
-			case '2160p':
-				width = isLandscape ? 3840 : 2160;
-				height = isLandscape ? 2160 : 3840;
-				break;
-			default:
-				width = isLandscape ? 1920 : 1080;
-				height = isLandscape ? 1080 : 1920;
-		}
-
-		return { width, height };
-	}
-
-	/**
-	 * Prévisualise la résolution de la vidéo après application des dimensions
-	 */
-	function getPreviewResolution(): string {
-		if (!selectedOrientation || !selectedQuality) return '';
-		const dimensions = getDimensionsFromSelection(selectedOrientation, selectedQuality);
-		return `${dimensions.width}×${dimensions.height}`;
+		applyValue(value);
 	}
 
 	/**
@@ -427,23 +196,10 @@
 	});
 
 	onDestroy(() => {
-		commitColorHistoryTransaction();
+		if (globalState.hoveredStylePreviewHelper === style.id) {
+			globalState.hoveredStylePreviewHelper = null;
+		}
 	});
-
-	/**
-	 * Permet de convertir un temps en ms en un temps capable d'être affiché
-	 * dans un input de type 'time'
-	 * @param value La valeur à convertir
-	 */
-	function msToTimeValue(value: number): string {
-		const totalSeconds = Math.floor(value / 1000);
-		const hh = Math.floor(totalSeconds / 3600);
-		const mm = Math.floor((totalSeconds % 3600) / 60);
-		const ss = totalSeconds % 60;
-		const pad = (n: number) => String(n).padStart(2, '0');
-
-		return `${pad(hh)}:${pad(mm)}:${pad(ss)}`;
-	}
 
 	function getStyleValue() {
 		if (style.valueType === 'composite') {
@@ -454,20 +210,11 @@
 			const dimension = asDimensionValue(style.value);
 			return dimension.width + 'x' + dimension.height;
 		} else if (style.valueType === 'fade') {
-			const fadeValue = getFadeValue();
-			return `${fadeValue.audioFadeInEnabled || fadeValue.audioFadeOutEnabled || fadeValue.videoFadeOutEnabled || fadeValue.videoFadeInEnabled ? LL_.common.enabled() + ' - ' + fadeValue.fadeDurationMs + LL_.common.ms() : LL_.common.disabled()}`;
+			const fadeValue = asFadeValue(style.value);
+			return `${hasFadeEnabled(fadeValue) ? LL_.common.enabled() + ' - ' + fadeValue.fadeDurationMs + LL_.common.ms() : LL_.common.disabled()}`;
 		} else if (style.valueType === 'ayah-image') {
 			return style.value ? String(style.value) : LL_.common.none();
 		} else return String(style.value);
-	}
-
-	function getFadeValue(): FadeValue {
-		return asFadeValue(style.value);
-	}
-
-	function updateFadeValue(partial: Partial<FadeValue>) {
-		const nextValue = { ...getFadeValue(), ...partial };
-		applyValue(nextValue);
 	}
 
 	function getHeaderPreviewStyle() {
@@ -522,6 +269,19 @@
 				if (didSyncCustomClip) return;
 			}
 
+			if (target && target !== 'global') {
+				const targetEndStyle = globalState.getVideoStyle
+					.getStylesOfTarget(target)
+					.findStyle(endStyleId);
+				if (targetEndStyle) {
+					const currentEnd = Number(targetEndStyle.value ?? 0);
+					if (cursorMs > currentEnd) {
+						targetEndStyle.value = endFallback;
+					}
+					return;
+				}
+			}
+
 			// Cas style global (surah/reciter): simple mise a jour du style global.
 			const globalEndStyle = globalState.getStyle('global', endStyleId);
 			const currentEnd = Number(globalEndStyle.value ?? 0);
@@ -561,6 +321,20 @@
 			if (didSyncCustomClip) return;
 		}
 
+		if (target && target !== 'global') {
+			const targetBeginStyle = globalState.getVideoStyle
+				.getStylesOfTarget(target)
+				.findStyle(beginStyleId);
+			if (targetBeginStyle) {
+				const currentBegin = Number(targetBeginStyle.value ?? 0);
+				if (cursorMs < currentBegin) {
+					targetBeginStyle.value = cursorMs;
+					style.value = endFallback;
+				}
+				return;
+			}
+		}
+
 		const globalBeginStyle = globalState.getStyle('global', beginStyleId);
 		const currentBegin = Number(globalBeginStyle.value ?? 0);
 		if (cursorMs < currentBegin) {
@@ -570,560 +344,274 @@
 	}
 </script>
 
-<div
-	class={'flex flex-col duration-150 rounded-xl overflow-hidden ' +
-		(extended ? 'bg-accent/40 ring-1 ring-color my-2' : 'hover:bg-accent/20') +
-		(isMixed()
-			? ' border border-fuchsia-400/60'
-			: isOverridden()
-				? ' border border-amber-400/60'
-				: ' border border-transparent')}
->
-	<!-- Header -->
+{#if headerControl}
+	<div class="flex items-center gap-1" class:opacity-50={disabled}>
+		{#if selectedClipIds().length > 0 && (isOverridden() || isMixed())}
+			<button
+				type="button"
+				class="grid size-7 place-items-center rounded-md text-secondary transition-colors hover:bg-[var(--bg-accent)] hover:text-primary"
+				title={$LL.editor.resetOverrideSelection()}
+				onclick={(event) => {
+					event.stopPropagation();
+					clearOverride();
+				}}
+			>
+				<span class="material-icons-outlined text-[16px]!">restart_alt</span>
+			</button>
+		{/if}
+		<label
+			class="inline-flex origin-right scale-75 cursor-pointer select-none items-center"
+			title={getStyleName(style.id, get(LL))}
+		>
+			<input
+				type="checkbox"
+				class="peer sr-only"
+				aria-label={getStyleName(style.id, get(LL))}
+				checked={Boolean(inputValue)}
+				indeterminate={isMixed()}
+				{disabled}
+				onchange={(event) => applyValue((event.target as HTMLInputElement).checked)}
+			/>
+			<div
+				class="relative h-6 w-11 rounded-full border border-color bg-[var(--bg-accent)]
+					transition-colors duration-150 peer-checked:bg-[var(--accent-primary)]
+					peer-indeterminate:bg-fuchsia-500 peer-checked:[&>span]:translate-x-5
+					peer-indeterminate:[&>span]:translate-x-2.5"
+			>
+				<span
+					class="absolute left-1 top-0.75 h-4 w-4 rounded-full bg-white shadow transition-transform duration-150"
+				></span>
+			</div>
+		</label>
+	</div>
+{:else}
 	<div
-		class={'flex items-center justify-between py-1.25 px-2 cursor-pointer select-none ' +
-			(extended ? 'border-b border-color ' : '') +
-			(disabled ? 'opacity-50 pointer-events-none' : '')}
-		onclick={() => {
-			// Impossible d'étendre un style booléen, comme on a le switch directement pour le mettre en true/false
-			if (style.valueType !== 'boolean') extended = !extended;
-			else applyValue(!inputValue);
+		class={'style-control flex flex-col duration-150 ' +
+			(showControl
+				? 'style-control-direct '
+				: 'rounded-xl overflow-hidden ' +
+					(extended
+						? 'bg-[var(--bg-accent)]/20 ring-1 ring-[var(--border-color)]'
+						: 'hover:bg-[var(--bg-accent)]/20')) +
+			(showControl
+				? isMixed()
+					? ' style-control-direct-mixed'
+					: isOverridden()
+						? ' style-control-direct-overridden'
+						: ''
+				: isMixed()
+					? ' border border-fuchsia-400/60'
+					: isOverridden()
+						? ' border border-amber-400/60'
+						: ' border border-transparent') +
+			(showControl && style.valueType === 'number' ? ' style-control-number' : '') +
+			(disabled ? ' opacity-50 pointer-events-none' : '')}
+		onmouseenter={() => {
+			if (style.id === 'width' || style.id === 'max-height') {
+				globalState.hoveredStylePreviewHelper = style.id as StyleName;
+			}
+		}}
+		onmouseleave={() => {
+			if (globalState.hoveredStylePreviewHelper === style.id) {
+				globalState.hoveredStylePreviewHelper = null;
+			}
 		}}
 	>
-		<div class="flex items-center gap-2">
-			<span class="material-icons-outlined text-[20px]! text-secondary">{style.icon}</span>
-			<span class="text-sm text-primary font-medium">{getStyleName(style.id, get(LL))}</span>
-		</div>
-		{#key selectedClipIds().length + String(inputValue)}
-			<div class="flex items-center gap-2 text-xs text-secondary">
-				{#if selectedClipIds().length > 0}
-					{#if getEffectiveForSelection().mixed}
-						<span
-							class="px-1.5 py-0.5 rounded bg-fuchsia-500/15 text-fuchsia-200 border border-fuchsia-400/40 flex items-center gap-1"
+		<!-- Header -->
+		<div
+			class={'flex items-center justify-between select-none ' +
+				(showControl
+					? 'style-control-direct-header '
+					: 'py-1.25 px-2 ' + (extended ? 'border-b border-color ' : '')) +
+				(showControl ? '' : 'cursor-pointer')}
+			title={showControl ? getStyleDescription(style.id, get(LL)) : undefined}
+			onclick={() => {
+				if (showControl) return;
+				// Impossible d'étendre un style booléen, comme on a le switch directement pour le mettre en true/false
+				if (style.valueType !== 'boolean') extended = !extended;
+				else applyValue(!inputValue);
+			}}
+		>
+			<div class="flex items-center gap-2">
+				<span
+					class={'material-icons-outlined text-secondary ' +
+						(showControl ? 'text-[18px]!' : 'text-[20px]!')}>{style.icon}</span
+				>
+				<span class="text-sm text-primary font-medium">{getStyleName(style.id, get(LL))}</span>
+			</div>
+			{#key selectedClipIds().length + String(inputValue)}
+				<div class="flex items-center gap-2 text-xs text-secondary">
+					{#if style.valueType === 'boolean'}
+						<label
+							class="inline-flex items-center cursor-pointer select-none scale-75 origin-right"
 						>
-							<span class="material-icons-outlined text-[12px]">scatter_plot</span>
-							mixte
-						</span>
-					{:else if getEffectiveForSelection().overridden}
-						<span
-							class="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-200 border border-amber-400/40 flex items-center gap-1 cursor-auto"
-						>
-							<span class="material-icons-outlined text-[12px]">auto_fix_high</span>
-							override:
-							<span style={getHeaderPreviewStyle()}>{getEffectiveForSelection().value}</span>
-						</span>
-					{:else}
-						<span style={getHeaderPreviewStyle()}>{String(inputValue)}</span>
-					{/if}
-				{:else if style.valueType === 'time'}
-					<span>{msToTimeValue(Number(inputValue))}</span>
-				{:else if style.valueType === 'boolean'}
-					<label class="inline-flex items-center cursor-pointer select-none scale-75 origin-right">
-						<input
-							type="checkbox"
-							class="sr-only peer"
-							checked={Boolean(inputValue)}
-							onchange={(e) => applyValue((e.target as HTMLInputElement).checked)}
-						/>
-						<div
-							class="relative w-11 h-6 rounded-full border border-color bg-[var(--bg-accent)]
+							<input
+								type="checkbox"
+								class="sr-only peer"
+								checked={Boolean(inputValue)}
+								indeterminate={isMixed()}
+								onchange={(e) => applyValue((e.target as HTMLInputElement).checked)}
+							/>
+							<div
+								class="relative w-11 h-6 rounded-full border border-color bg-[var(--bg-accent)]
 			transition-colors duration-150 peer-checked:bg-[var(--accent-primary)]
-			peer-checked:[&>span]:translate-x-5"
-						>
-							<span
-								class="absolute left-1 top-0.75 w-4 h-4 bg-white rounded-full shadow
-				transition-transform duration-150"
+			peer-indeterminate:bg-fuchsia-500 peer-checked:[&>span]:translate-x-5
+			peer-indeterminate:[&>span]:translate-x-2.5"
 							>
+								<span
+									class="absolute left-1 top-0.75 w-4 h-4 bg-white rounded-full shadow
+				transition-transform duration-150"
+								>
+								</span>
+							</div>
+						</label>
+					{:else if selectedClipIds().length > 0}
+						{#if getEffectiveForSelection().mixed}
+							<span
+								class="px-1.5 py-0.5 rounded bg-fuchsia-500/15 text-fuchsia-200 border border-fuchsia-400/40 flex items-center gap-1"
+							>
+								<span class="material-icons-outlined text-[12px]">scatter_plot</span>
+								{getStyleUiCopy('mixedValue')}
 							</span>
-						</div>
-					</label>
-				{:else}
-					<span class="truncate max-w-[140px]" style={getHeaderPreviewStyle()}
-						>{getStyleValue()}</span
-					>
+						{:else if getEffectiveForSelection().overridden}
+							<span
+								class="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-200 border border-amber-400/40 flex items-center gap-1 cursor-auto"
+							>
+								<span class="material-icons-outlined text-[12px]">auto_fix_high</span>
+								{getStyleUiCopy('localOverride')}:
+								<span style={getHeaderPreviewStyle()}>{getEffectiveForSelection().value}</span>
+							</span>
+						{:else}
+							<span style={getHeaderPreviewStyle()}>{String(inputValue)}</span>
+						{/if}
+					{:else if style.valueType === 'time' && !showControl}
+						<span>{msToTimeValue(Number(inputValue))}</span>
+					{:else if !showControl}
+						<span class="truncate max-w-[140px]" style={getHeaderPreviewStyle()}
+							>{getStyleValue()}</span
+						>
+					{/if}
+
+					{#if selectedClipIds().length > 0 && (getEffectiveForSelection().overridden || getEffectiveForSelection().mixed)}
+						<button
+							class="ml-1 text-[11px] px-2 py-1 rounded border hover:opacity-90 duration-100 flex items-center gap-1 cursor-pointer"
+							title={$LL.editor.resetOverrideSelection()}
+							onclick={(e) => {
+								e.stopPropagation();
+								clearOverride();
+							}}
+						>
+							<span class="material-icons-outlined text-[12px]">restart_alt</span>
+							{$LL.common.reset()}
+						</button>
+					{/if}
+				</div>
+			{/key}
+		</div>
+
+		{#if (extended || showControl) && style.valueType !== 'boolean'}
+			<div class={showControl ? 'style-control-direct-body' : 'my-2 px-2'} transition:slide>
+				{#if !showControl || ['dimension', 'fade', 'composite', 'ayah-image', 'file', 'reciter'].includes(style.valueType)}
+					<p class="text-xs text-secondary mb-2 flex items-center gap-1">
+						<span class="material-icons-outlined text-[12px]">info</span>
+						{getStyleDescription(style.id, get(LL))}
+					</p>
 				{/if}
 
-				{#if selectedClipIds().length > 0 && (getEffectiveForSelection().overridden || getEffectiveForSelection().mixed)}
-					<button
-						class="ml-1 text-[11px] px-2 py-1 rounded border hover:opacity-90 duration-100 flex items-center gap-1 cursor-pointer"
-						title={$LL.editor.resetOverrideSelection()}
-						onclick={(e) => {
-							e.stopPropagation();
-							clearOverride();
-						}}
-					>
-						<span class="material-icons-outlined text-[12px]">restart_alt</span>
-						{$LL.common.reset()}
-					</button>
+				<!-- Modificateur de valeur -->
+				{#if style.valueType === 'number'}
+					<NumberControl {style} value={inputValue} onChange={applyValue} />
+				{:else if style.valueType === 'color'}
+					<ColorControl value={inputValue} onChange={applyValue} />
+				{:else if style.id === 'font-family'}
+					<FontFamilyControl value={inputValue} onChange={applySelectValue} />
+				{:else if style.valueType === 'select'}
+					<SelectControl {style} value={inputValue} onChange={applySelectValue} />
+				{:else if style.valueType === 'brackets-font'}
+					<BracketsFontControl {style} value={inputValue} onChange={applyValue} />
+				{:else if style.valueType === 'text'}
+					<TextControl {style} value={inputValue} onChange={applyValue} />
+				{:else if style.valueType === 'time'}
+					<TimeControl
+						value={inputValue}
+						onChange={applyValue}
+						onUsePreviewCursor={syncTimeRangeAfterPreviewCursor}
+					/>
+				{:else if style.valueType === 'reciter'}
+					<ReciterControl />
+				{:else if style.valueType === 'file'}
+					<FileControl value={inputValue} {disabled} onChange={applyValue} />
+				{:else if style.valueType === 'ayah-image'}
+					<AyahImageControl value={inputValue} {disabled} onChange={applyValue} />
+				{:else if style.valueType === 'dimension'}
+					<DimensionControl value={inputValue} onChange={applyValue} />
+				{:else if style.valueType === 'fade'}
+					<FadeControl value={inputValue} onChange={applyValue} />
+				{:else if style.valueType === 'composite'}
+					<div class="style-control-list">
+						{#each globalState.getVideoStyle
+							.getStylesOfTarget(target!)
+							.getCompositeStyles(style.id as StyleName) as subStyle (subStyle.id)}
+							<StyleComponent
+								style={subStyle}
+								target={style.id}
+								disabled={false}
+								showControl
+								applyValueSimple={(v) => {
+									subStyle.value = v;
+								}}
+							/>
+						{/each}
+					</div>
 				{/if}
 			</div>
-		{/key}
+		{/if}
 	</div>
+{/if}
 
-	{#if extended}
-		<div class="my-2 px-2" transition:slide>
-			<p class="text-xs text-secondary mb-2 flex items-center gap-1">
-				<span class="material-icons-outlined text-[12px]">info</span>
-				{getStyleDescription(style.id, get(LL))}
-			</p>
+<style>
+	.style-control-direct {
+		border-bottom: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
+		background: transparent;
+	}
 
-			<!-- Modificateur de valeur -->
-			{#if style.valueType === 'number'}
-				<div class="flex gap-x-2 items-center">
-					<input
-						class="w-full accent-accent"
-						type="range"
-						min={style.valueMin}
-						max={style.valueMax}
-						step={style.step || 1}
-						value={inputValue}
-						onpointerdown={() => ProjectHistoryManager.begin('adjust style slider')}
-						onpointerup={() => ProjectHistoryManager.commit()}
-						onblur={() => ProjectHistoryManager.commit()}
-						oninput={(e) => {
-							inputValue = (e.target as HTMLInputElement).value;
-							applyValue((e.target as HTMLInputElement).value);
-						}}
-					/>
+	.style-control-direct-header {
+		min-height: 2.6rem;
+		padding: 0.55rem 0.15rem;
+	}
 
-					<!-- met aussi un input number -->
-					<div class="relative">
-						<input
-							type="number"
-							min={style.valueMin}
-							max={style.valueMax}
-							step={style.step || 1}
-							value={inputValue}
-							oninput={(e) => {
-								inputValue = (e.target as HTMLInputElement).value;
-								applyValue((e.target as HTMLInputElement).value);
-							}}
-							class="w-24"
-						/>
-					</div>
-				</div>
-			{:else if style.valueType === 'color'}
-				<div class="flex gap-x-2 items-center">
-					<input
-						type="color"
-						value={String(inputValue)}
-						class="w-full h-8 rounded"
-						oninput={(e) => applyColorPickerValue((e.target as HTMLInputElement).value)}
-						onblur={commitColorHistoryTransaction}
-						onchange={commitColorHistoryTransaction}
-					/>
-					<div class="relative">
-						<input
-							type="text"
-							value={String(inputValue)}
-							class="w-24"
-							oninput={(e) => applyValue((e.target as HTMLInputElement).value)}
-						/>
-					</div>
-				</div>
-			{:else if style.valueType === 'select'}
-				<div class="relative">
-					<select
-						class="w-full mt-1"
-						value={String(inputValue)}
-						onchange={(e) => {
-							void applySelectValue((e.target as HTMLSelectElement).value);
-						}}
-					>
-						{#if style.id === 'font-family'}
-							{#await getSystemFonts()}
-								<option value="" disabled selected>{$LL.editor.loadingFonts()}</option>
-							{:then fontsRaw}
-								{@const fonts = fontsRaw as string[]}
-								<option value="QPC2">Uthamic Mushaf QPC2</option>
-								<option value="QPC1">Uthamic Mushaf QPC1</option>
-								<option value="Hafs">Hafs</option>
-								<option value="IndoPak">IndoPak</option>
-								<option value="Soosi">Soosi (Abu Amr)</option>
-								{#each fonts as font (`${font}`)}
-									<option value={font}>{font}</option>
-								{/each}
-							{:catch error}
-								<option value="" disabled
-									>{$LL.editor.errorLoadingFonts({ error: error.message })}</option
-								>
-							{/await}
-						{:else}
-							{#each style.options || [] as option (`${option}`)}
-								<option value={option}>{option}</option>
-							{/each}
-						{/if}
-					</select>
-				</div>
-			{:else if style.valueType === 'brackets-font'}
-				<div class="relative">
-					<select
-						class="w-full mt-1"
-						style="font-family: 'QPC2BSML', serif;"
-						value={String(inputValue)}
-						onchange={(e) => {
-							applyValue((e.target as HTMLSelectElement).value);
-						}}
-					>
-						{#each style.options || [] as option (`${option}`)}
-							<option value={option} style="font-family: 'QPC2BSML', serif;">{option}</option>
-						{/each}
-					</select>
-				</div>
-			{:else if style.valueType === 'text'}
-				{#if style.id.includes('css')}
-					<div class="relative">
-						<textarea
-							value={String(inputValue)}
-							class="w-full mono"
-							rows="5"
-							oninput={(e) => applyValue((e.target as HTMLTextAreaElement).value)}
-						></textarea>
-					</div>
-				{:else}
-					<div class="relative">
-						<input
-							type="text"
-							value={String(inputValue)}
-							class="w-full mono"
-							oninput={(e) => applyValue((e.target as HTMLInputElement).value)}
-						/>
-					</div>
-				{/if}
-			{:else if style.valueType === 'time'}
-				<div class="relative flex flex-row gap-x-2 items-center">
-					<input
-						type="time"
-						class="w-full"
-						oninput={(e) => {
-							// Convertis en ms et applique
-							const timeString = (e.target as HTMLInputElement).value;
-							const [hh, mm, ss] = timeString.split(':').map(Number);
-							const totalSeconds = hh * 3600 + mm * 60 + ss;
-							applyValue(totalSeconds * 1000);
-						}}
-						value={msToTimeValue(style.value as number)}
-					/>
-					<span>{$LL.export.orText()}</span>
-					<button
-						class="btn-accent text-sm py-1 min-w-[150px]"
-						title={$LL.editor.usePreviewCursorTime()}
-						onclick={() => {
-							const currentPreviewTime = globalState.getTimelineState.cursorPosition;
-							applyValue(currentPreviewTime);
-							syncTimeRangeAfterPreviewCursor(currentPreviewTime);
-						}}
-					>
-						{$LL.editor.usePreviewCursorTime()}
-					</button>
-				</div>
-			{:else if style.valueType === 'reciter'}
-				{@const reciter = RecitersManager.getReciterObject(
-					globalState.currentProject!.detail.reciter
-				)}
-				<div class="flex flex-col gap-x-2">
-					<EditableText
-						text="Enter project reciter"
-						bind:value={globalState.currentProject!.detail.reciter}
-						maxLength={ProjectDetail.RECITER_MAX_LENGTH}
-						placeholder={globalState.currentProject!.detail.reciter}
-						textClasses="font-semibold"
-						action={async () => {
-							await ProjectService.saveDetail(globalState.currentProject!.detail); // Sauvegarde le projet
-						}}
-						inputType="reciters"
-					/>
+	.style-control-direct-body {
+		padding: 0.1rem 0.15rem 0.75rem;
+	}
 
-					{#if reciter.number !== -1}
-						<p class="reciters-font text-3xl -mr-3 text-center">
-							{reciter.number}
-						</p>
-					{:else}
-						<p class="text-sm mt-2 text-yellow-500">
-							<span class="material-icons align-middle text-[18px]!">block</span>
-							{$LL.editor.arabicCalligraphyUnavailable()}
-						</p>
-					{/if}
-				</div>
-			{:else if style.valueType === 'file'}
-				<div class="flex flex-col gap-4">
-					<div class="flex flex-col gap-2">
-						<button
-							type="button"
-							onclick={selectFile}
-							class="btn-accent w-full flex items-center justify-center py-2 px-3 rounded-md text-sm cursor-pointer transition-colors duration-200"
-							{disabled}
-						>
-							<span class="material-icons mr-2 text-base">folder_open</span>
-							Pick an image
-						</button>
-					</div>
-					{#if selectedFilePath}
-						<div class="bg-gray-100 dark:bg-gray-800 p-3 rounded-md">
-							<p class="text-sm text-gray-700 dark:text-gray-300 font-mono break-all">
-								{selectedFilePath}
-							</p>
-						</div>
-					{/if}
-				</div>
-			{:else if style.valueType === 'ayah-image'}
-				<div class="flex flex-col gap-3">
-					<p class="text-xs text-secondary flex items-center gap-1">
-						<span class="material-icons-outlined text-[12px]">info</span>
-						New banners made by @isaglace on Discord.
-					</p>
+	.style-control-number .style-control-direct-header {
+		min-height: 2.25rem;
+		padding: 0.45rem 0.15rem 0.2rem;
+	}
 
-					<div class="grid grid-cols-2 gap-2">
-						<button
-							type="button"
-							onclick={selectFile}
-							class="btn-accent w-full flex items-center justify-center py-1.5 px-3 rounded-md text-sm cursor-pointer transition-colors duration-200"
-							{disabled}
-						>
-							<span class="material-icons mr-2 text-base">folder_open</span>
-							{#if style.value && !ayahContainerImages.includes(String(style.value))}
-								{String(style.value).split('\\').pop()}
-							{:else}
-								{$LL.common.import()}
-							{/if}
-						</button>
+	.style-control-number .style-control-direct-body {
+		padding-top: 0;
+	}
 
-						<button
-							type="button"
-							onclick={() => applyValue('')}
-							class={'w-full flex items-center justify-center py-1.5 px-3 rounded-md text-sm cursor-pointer transition-colors duration-200 ' +
-								(style.value === ''
-									? 'bg-accent/60 ring-1 ring-color'
-									: 'bg-gray-100 dark:bg-gray-800')}
-						>
-							<span class="material-icons mr-2 text-base">hide_image</span>
-							{$LL.common.none()}
-						</button>
-					</div>
-					<div class="grid grid-cols-4 gap-2">
-						{#each ayahContainerImages as img (img)}
-							{@const selected = String(style.value) === img}
-							<button
-								type="button"
-								onclick={() => applyValue(img)}
-								class={'relative aspect-video rounded-md overflow-hidden border-2 transition-all duration-150 cursor-pointer ' +
-									(selected
-										? 'ring-2 ring-[var(--accent-primary)] border-accent scale-105'
-										: 'border-color hover:border-accent/50')}
-							>
-								<img
-									src={'/ayah-container/' + img}
-									alt={img}
-									class="w-full h-full object-cover"
-									loading="lazy"
-								/>
-								{#if selected}
-									<span
-										class="absolute top-1 right-1 material-icons text-[16px]! text-white drop-shadow-md"
-									>
-										check_circle
-									</span>
-								{/if}
-							</button>
-						{/each}
-					</div>
-				</div>
-			{:else if style.valueType === 'dimension'}
-				<div class="flex flex-col gap-4">
-					<!-- Orientation Selection -->
-					<div class="flex flex-col gap-2">
-						<p class="text-sm font-medium">Orientation:</p>
-						<div class="flex gap-4">
-							{#each [{ value: 'landscape', label: 'Landscape' }, { value: 'portrait', label: 'Portrait' }] as orientation (orientation.value)}
-								<label class="flex items-center gap-2 cursor-pointer">
-									<input
-										type="radio"
-										name="orientation"
-										value={orientation.value}
-										bind:group={selectedOrientation}
-										class="accent-accent"
-									/>
-									<span class="text-sm">{orientation.label}</span>
-								</label>
-							{/each}
-						</div>
-					</div>
+	.style-control-direct-mixed,
+	.style-control-direct-overridden {
+		padding-left: 0.4rem;
+	}
 
-					<!-- Quality Selection -->
-					<div class="flex flex-col gap-2">
-						<p class="text-sm font-medium">Quality:</p>
-						<div class="flex gap-4 flex-wrap">
-							{#each [{ value: '720p', label: '720p', width: 1280, height: 720 }, { value: '1080p', label: '1080p', width: 1920, height: 1080 }, { value: '1440p', label: '1440p (2K)', width: 2560, height: 1440 }, { value: '2160p', label: '2160p (4K)', width: 3840, height: 2160 }] as quality (quality.value)}
-								<label class="flex items-center gap-2 cursor-pointer">
-									<input
-										type="radio"
-										name="quality"
-										value={quality.value}
-										bind:group={selectedQuality}
-										class="accent-accent"
-									/>
-									<span class="text-sm">{quality.label}</span>
-								</label>
-							{/each}
-						</div>
-					</div>
+	.style-control-direct-mixed {
+		border-left: 2px solid rgb(232 121 249 / 70%);
+	}
 
-					<!-- Apply Button -->
-					<button
-						class="btn-accent w-full py-2 mt-2"
-						onclick={() => applySelectedDimensions()}
-						disabled={!selectedOrientation || !selectedQuality}
-					>
-						Apply {getPreviewResolution()}
-					</button>
+	.style-control-direct-overridden {
+		border-left: 2px solid rgb(251 191 36 / 70%);
+	}
 
-					<!-- Custom Dimensions -->
-					<div class="flex flex-col gap-2">
-						<p class="text-sm font-medium">Custom dimensions:</p>
-						<div class="flex flex-row items-center gap-x-2">
-							<input
-								type="number"
-								class="w-full"
-								oninput={(e) => {
-									const width = parseInt((e.target as HTMLInputElement).value);
-									const height = asDimensionValue(style.value).height;
-									applyValue({ width, height });
-								}}
-								value={asDimensionValue(style.value).width}
-								min="256"
-								max="7680"
-							/>
-							<span>×</span>
-							<input
-								type="number"
-								class="w-full"
-								oninput={(e) => {
-									const width = asDimensionValue(style.value).width;
-									const height = parseInt((e.target as HTMLInputElement).value);
-									applyValue({ width, height });
-								}}
-								value={asDimensionValue(style.value).height}
-								min="144"
-								max="4320"
-							/>
-						</div>
-					</div>
-				</div>
-			{:else if style.valueType === 'fade'}
-				{@const fadeValue = getFadeValue()}
-				<div class="flex flex-col gap-4">
-					<!-- Note: fade effects apply only to exported videos and are not shown in the preview -->
-					<div class="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
-						<p class="text-sm text-gray-700 dark:text-gray-300">
-							Note: Fade effects are applied only to exported videos and will not appear in the
-							preview.
-						</p>
-					</div>
+	.style-control-list {
+		display: flex;
+		flex-direction: column;
+	}
 
-					<div class="flex flex-col gap-2">
-						<p class="text-sm font-medium">Fade Duration:</p>
-						<input
-							type="number"
-							class="w-full"
-							min="0"
-							max="10000"
-							step="100"
-							value={fadeValue.fadeDurationMs}
-							oninput={(e) => {
-								updateFadeValue({
-									fadeDurationMs: Math.max(
-										0,
-										parseInt((e.target as HTMLInputElement).value || '0', 10)
-									)
-								});
-							}}
-						/>
-					</div>
-
-					<div class="flex flex-col gap-2">
-						<p class="text-sm font-medium">Fade In:</p>
-						<div class="flex gap-4">
-							<label class="flex items-center gap-2 cursor-pointer">
-								<input
-									type="checkbox"
-									class="accent-accent"
-									checked={fadeValue.videoFadeInEnabled}
-									onchange={(e) => {
-										updateFadeValue({
-											videoFadeInEnabled: (e.target as HTMLInputElement).checked
-										});
-									}}
-								/>
-								<span class="material-icons-outlined text-[18px]! text-secondary">movie</span>
-								<span class="text-sm">{$LL.editor.videoFadeLabel()}</span>
-							</label>
-							<label class="flex items-center gap-2 cursor-pointer">
-								<input
-									type="checkbox"
-									class="accent-accent"
-									checked={fadeValue.audioFadeInEnabled}
-									onchange={(e) => {
-										updateFadeValue({
-											audioFadeInEnabled: (e.target as HTMLInputElement).checked
-										});
-									}}
-								/>
-								<span class="material-icons-outlined text-[18px]! text-secondary">graphic_eq</span>
-								<span class="text-sm">{$LL.editor.audioFadeLabel()}</span>
-							</label>
-						</div>
-					</div>
-
-					<div class="flex flex-col gap-2">
-						<p class="text-sm font-medium">Fade Out:</p>
-						<div class="flex gap-4">
-							<label class="flex items-center gap-2 cursor-pointer">
-								<input
-									type="checkbox"
-									class="accent-accent"
-									checked={fadeValue.videoFadeOutEnabled}
-									onchange={(e) => {
-										updateFadeValue({
-											videoFadeOutEnabled: (e.target as HTMLInputElement).checked
-										});
-									}}
-								/>
-								<span class="material-icons-outlined text-[18px]! text-secondary">movie</span>
-								<span class="text-sm">{$LL.editor.videoFadeLabel()}</span>
-							</label>
-							<label class="flex items-center gap-2 cursor-pointer">
-								<input
-									type="checkbox"
-									class="accent-accent"
-									checked={fadeValue.audioFadeOutEnabled}
-									onchange={(e) => {
-										updateFadeValue({
-											audioFadeOutEnabled: (e.target as HTMLInputElement).checked
-										});
-									}}
-								/>
-								<span class="material-icons-outlined text-[18px]! text-secondary">graphic_eq</span>
-								<span class="text-sm">{$LL.editor.audioFadeLabel()}</span>
-							</label>
-						</div>
-					</div>
-				</div>
-			{:else if style.valueType === 'composite'}
-				<div class="flex flex-col gap-2">
-					{#each globalState.getVideoStyle
-						.getStylesOfTarget(target!)
-						.getCompositeStyles(style.id as StyleName) as subStyle (subStyle.id)}
-						<StyleComponent
-							style={subStyle}
-							target={style.id}
-							disabled={false}
-							applyValueSimple={(v) => {
-								subStyle.value = v;
-							}}
-						/>
-					{/each}
-				</div>
-			{/if}
-		</div>
-	{/if}
-</div>
+	:global(.style-control-list > .style-control-direct:last-child) {
+		border-bottom: 0;
+	}
+</style>

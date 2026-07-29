@@ -6,6 +6,8 @@ node_modules
 .netlify
 .wrangler
 /.svelte-kit
+# Nested .svelte-kit dirs generated when svelte-check runs from a subfolder.
+.svelte-kit/
 /build
 
 # OS

@@ -10,6 +10,7 @@
 	import DropOverlay from '../videoEditor/assetsManager/DropOverlay.svelte';
 	import SubtitlesEditorSettings from './SubtitlesEditorSettings.svelte';
 	import SubtitlesList from './SubtitlesList.svelte';
+	import SubtitlePresetPicker from './SubtitlePresetPicker.svelte';
 	import SubtitlesWorkspace from './SubtitlesWorkspace.svelte';
 	import VersePicker from './VersePicker.svelte';
 	import { getDroppedJsonPath } from './drop';
@@ -21,6 +22,8 @@
 	let unlistenDrop: (() => void) | null = null;
 	let leftDrawerOpen = $state(false);
 	let rightDrawerOpen = $state(false);
+	let presetPickerOpen = $state(false);
+	let lastEditedSubtitleId: number | null = null;
 	let leftDrawerElement: HTMLElement | null = $state(null);
 	let rightDrawerElement: HTMLElement | null = $state(null);
 	let gestureSide: 'left' | 'right' | null = $state(null);
@@ -40,6 +43,14 @@
 	let rightDrawerProgress = $derived(
 		gestureSide === 'right' ? gestureProgress : rightDrawerOpen ? 1 : 0
 	);
+
+	$effect(() => {
+		const editedSubtitleId = globalState.getSubtitlesEditorState.editSubtitle?.id ?? null;
+		if (editedSubtitleId !== null && editedSubtitleId !== lastEditedSubtitleId) {
+			presetPickerOpen = true;
+		}
+		lastEditedSubtitleId = editedSubtitleId;
+	});
 
 	/**
 	 * Démarre le suivi d'un geste horizontal sur un tiroir.
@@ -292,6 +303,7 @@
 			useSplitHeight={false}
 			showVersePicker={false}
 			showPlaybackControls
+			onTogglePresetPicker={() => (presetPickerOpen = !presetPickerOpen)}
 		/>
 	</section>
 
@@ -301,6 +313,11 @@
 			visibleTrackTypes={[TrackType.Audio, TrackType.Subtitle]}
 			fitTracksToHeight
 		/>
+		{#if presetPickerOpen}
+			<div class="preset-picker-overlay">
+				<SubtitlePresetPicker onClose={() => (presetPickerOpen = false)} />
+			</div>
+		{/if}
 	</section>
 
 	{#if !leftDrawerOpen && !rightDrawerOpen}
@@ -401,10 +418,19 @@
 	}
 
 	.subtitles-editor-timeline {
+		position: relative;
 		flex: 0 0 min(32dvh, 260px);
 		border: 1px solid var(--border-color);
 		border-radius: 12px;
 		background: var(--timeline-bg-primary);
+	}
+
+	.preset-picker-overlay {
+		position: absolute;
+		inset: 0;
+		z-index: 120;
+		overflow: hidden;
+		border-radius: inherit;
 	}
 
 	.drawer-toggle {

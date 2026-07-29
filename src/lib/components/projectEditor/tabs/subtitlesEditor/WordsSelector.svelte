@@ -458,7 +458,6 @@
 
 				// Si on était en train de diviser un sous-titre, on passe au suivant
 				const didAdvance = advanceSplitEditIfNeeded(currentEdited?.id ?? null);
-				toast.success(get(LL).editor.subtitleUpdated());
 				if (!didAdvance) {
 					globalState.getSubtitlesEditorState.editSubtitle = null; // Reset l'édition après modification
 					await selectNextWord();

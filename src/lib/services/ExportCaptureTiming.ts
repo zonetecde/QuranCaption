@@ -668,6 +668,7 @@ export function buildExportCaptureJobPlan({
 	const captureJobs: ExportFrameCaptureJob[] = [];
 	const copyJobs: ExportFrameCopyJob[] = [];
 	const blankImageIndexes = new Set<number>();
+	const imageIndexesByTiming = new Map<number, number>();
 	const normalizedWorkerCount = Math.max(1, Math.floor(workerCount));
 	const workerBuckets: ExportFrameCaptureJob[][] = Array.from(
 		{ length: normalizedWorkerCount },
@@ -703,6 +704,7 @@ export function buildExportCaptureJobPlan({
 		}
 
 		const imageIndex = Math.max(Math.round(timing - rangeStart + base + nextImageIndexOffset), 0);
+		imageIndexesByTiming.set(timing, imageIndex);
 		const blankTimingInfo = hasTiming(timings.blankImgs, timing);
 		const isBlankImage = isBlankCaptureTiming(timing);
 
@@ -711,11 +713,11 @@ export function buildExportCaptureJobPlan({
 		}
 
 		const sourceTimingForDuplication = timings.duplicableTimings.get(timing);
-		if (sourceTimingForDuplication !== undefined) {
-			const sourceIndex = Math.max(
-				Math.round(sourceTimingForDuplication - rangeStart - fadeDuration),
-				0
-			);
+		const sourceIndex =
+			sourceTimingForDuplication !== undefined
+				? imageIndexesByTiming.get(sourceTimingForDuplication)
+				: undefined;
+		if (sourceIndex !== undefined) {
 			copyJobs.push({
 				kind: 'copy',
 				timing,

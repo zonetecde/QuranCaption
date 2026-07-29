@@ -994,7 +994,13 @@
 		</div>
 
 		<!-- Timeline Tracks Area -->
-		<div class="timeline-tracks" onscroll={syncScroll} id="timeline" bind:this={timelineTracksDiv}>
+		<div
+			class="timeline-tracks"
+			class:fit-tracks-to-height={fitTracksToHeight}
+			onscroll={syncScroll}
+			id="timeline"
+			bind:this={timelineTracksDiv}
+		>
 			<div
 				class="tracks-content grid outline-none"
 				class:fit-tracks-to-height={fitTracksToHeight}
@@ -1231,6 +1237,14 @@
 		background: var(--timeline-bg-secondary);
 	}
 
+	.timeline-tracks.fit-tracks-to-height {
+		scrollbar-width: none;
+	}
+
+	.timeline-tracks.fit-tracks-to-height::-webkit-scrollbar {
+		display: none;
+	}
+
 	.tracks-content {
 		min-height: calc(100% - 4px);
 		position: relative;
@@ -1238,7 +1252,7 @@
 	}
 
 	.tracks-content.fit-tracks-to-height {
-		height: calc(100% - 4px);
+		height: 100%;
 	}
 
 	/* Timeline Grid */

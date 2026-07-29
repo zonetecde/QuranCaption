@@ -198,11 +198,12 @@ describe('buildExportCaptureJobPlan', () => {
 			{
 				kind: 'copy',
 				timing: 800,
-				sourceFileName: '100',
+				sourceFileName: '200',
 				targetFileName: 900,
 				reason: 'duplicable'
 			}
 		]);
+		expect(plan.captureJobs.map((job) => job.fileName)).toContain(plan.copyJobs[0].sourceFileName);
 	});
 
 	it('splits capture jobs into stable temporal quarters', () => {

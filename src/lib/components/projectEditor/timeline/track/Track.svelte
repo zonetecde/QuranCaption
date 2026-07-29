@@ -277,7 +277,7 @@
 					>
 						<span class="material-icons text-sm! -ml-1">graphic_eq</span>
 					</label>
-					<input
+					<!-- <input
 						type="range"
 						min="0"
 						max="200"
@@ -292,7 +292,7 @@
 					/>
 					<span class="w-8 text-right text-[10px] text-[var(--text-secondary)]">
 						{(track as AssetTrack).volumePercent}%
-					</span>
+					</span> -->
 				</section>
 			</div>
 		{/if}

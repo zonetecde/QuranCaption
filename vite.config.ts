@@ -7,6 +7,11 @@ const vitestBrowserHeadless =
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
+	server: {
+		watch: {
+			ignored: ['**/src-tauri/target/**']
+		}
+	},
 	test: {
 		projects: [
 			{

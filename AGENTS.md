@@ -1,5 +1,15 @@
 # Minimal implementation rules
 
+## Mobile-only branch scope
+
+This branch targets the 100% mobile version of QuranCaption.
+
+- No desktop compatibility is expected or required.
+- Do not add desktop fallbacks, responsive desktop variants, or platform checks such as
+  `isMobilePlatform` to preserve desktop behavior.
+- Implement UI and behavior directly for mobile unless the user explicitly requests another
+  platform.
+
 When implementing a feature, always prefer the smallest correct change.
 
 Rules:

@@ -8,6 +8,7 @@
 	import { VersionService, type UpdateInfo } from '$lib/services/VersionService.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 
 	let { update, resolve }: { update: UpdateInfo; resolve: () => void } = $props();
 	let html = `<p>${get(LL).home.loadingUpdate()}</p>`;
@@ -238,6 +239,7 @@
 
 <div
 	class="bg-secondary border-color border rounded-2xl w-[600px] max-w-[90vw] h-[500px] shadow-2xl shadow-black flex flex-col relative"
+	use:mobileModalSheet={dismissModal}
 	transition:slide
 >
 	<!-- Header with gradient background -->

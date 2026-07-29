@@ -11,6 +11,7 @@
 	import ThemeButton, { type ThemeConfig } from './ThemeButton.svelte';
 	import Section from '$lib/components/projectEditor/Section.svelte';
 	import { DONATION_WALLETS } from '$lib/constants/donation';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 
 	import SupportFeedbackModal from '$lib/components/home/modals/SupportFeedbackModal.svelte';
 	import LanguageSwitcher from '$lib/components/misc/LanguageSwitcher.svelte';
@@ -151,6 +152,7 @@
 
 <div
 	class="bg-secondary border border-color rounded-2xl w-[800px] max-w-[94vw] h-[640px] p-0 shadow-2xl shadow-black/50 flex flex-col relative overflow-hidden"
+	use:mobileModalSheet={() => resolve(false)}
 	transition:slide
 >
 	<!-- Header -->

@@ -6,6 +6,7 @@
 	import { readDir } from '@tauri-apps/plugin-fs';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 
 	let { close } = $props();
 
@@ -87,6 +88,7 @@
 
 <div
 	class="bg-secondary border-color border rounded-2xl w-[800px] 2xl:max-h-screen max-h-[700px] overflow-auto shadow-2xl shadow-black flex flex-col relative"
+	use:mobileModalSheet={closeModal}
 >
 	<!-- Header with gradient background -->
 	<div

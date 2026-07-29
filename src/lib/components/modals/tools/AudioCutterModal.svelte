@@ -7,6 +7,7 @@
 	import toast from 'svelte-5-french-toast';
 	import { get } from 'svelte/store';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 
 	interface Props {
 		close: () => void;
@@ -113,6 +114,7 @@
 
 <div
 	class="bg-secondary w-[500px] rounded-xl shadow-2xl overflow-hidden border border-color animate-in fade-in zoom-in duration-200"
+	use:mobileModalSheet={close}
 >
 	<!-- Header -->
 	<div

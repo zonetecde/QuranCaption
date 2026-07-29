@@ -4,6 +4,7 @@
 	import toast from 'svelte-5-french-toast';
 	import { get } from 'svelte/store';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 
 	let { close } = $props();
 
@@ -55,6 +56,7 @@
 
 <div
 	class="bg-secondary border-color border rounded-2xl w-[500px] max-w-[90vw] shadow-2xl shadow-black flex flex-col relative overflow-hidden"
+	use:mobileModalSheet={close}
 	transition:slide
 >
 	<!-- Header -->

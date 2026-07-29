@@ -5,6 +5,7 @@
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 
 	let {
 		surah,
@@ -200,7 +201,10 @@
 </script>
 
 <div class="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 px-4">
-	<div class="w-full max-w-2xl rounded-2xl border border-color bg-primary shadow-2xl">
+	<div
+		class="w-full max-w-2xl rounded-2xl border border-color bg-primary shadow-2xl"
+		use:mobileModalSheet={resolve}
+	>
 		<div class="flex items-start justify-between gap-4 border-b border-color px-6 py-5">
 			<div class="space-y-1">
 				<div class="flex items-center gap-3">

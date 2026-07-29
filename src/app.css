@@ -609,6 +609,62 @@ body {
 	align-items: center;
 }
 
+.mobile-modal-sheet-wrapper {
+	align-items: flex-end !important;
+	padding: 28px 0 0 !important;
+	background: rgb(0 0 0 / 45%);
+	z-index: 999 !important;
+}
+
+.mobile-modal-sheet-content {
+	display: contents;
+}
+
+.mobile-modal-sheet-panel {
+	position: relative !important;
+	inset: auto !important;
+	width: 100% !important;
+	height: calc(100dvh - 28px) !important;
+	max-width: 100% !important;
+	max-height: calc(100dvh - 28px) !important;
+	margin: 0 !important;
+	border-radius: 1rem 1rem 0 0 !important;
+	overflow: hidden !important;
+	transition: transform 180ms ease-out;
+	animation: mobile-modal-sheet-open 180ms ease-out;
+}
+
+.mobile-modal-sheet-panel::before {
+	position: absolute;
+	top: 7px;
+	left: 50%;
+	z-index: 10;
+	width: 42px;
+	height: 4px;
+	border-radius: 999px;
+	background: var(--border-color);
+	content: '';
+	transform: translateX(-50%);
+	pointer-events: none;
+}
+
+.mobile-modal-sheet-panel > :first-child {
+	touch-action: pan-x;
+}
+
+.mobile-modal-sheet-panel.is-dragging {
+	transition: none;
+}
+
+@keyframes mobile-modal-sheet-open {
+	from {
+		transform: translateY(100%);
+	}
+	to {
+		transform: translateY(0);
+	}
+}
+
 .btn {
 	background-color: var(--bg-secondary);
 	border: var(--border-w) solid var(--border-color);

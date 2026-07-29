@@ -14,6 +14,7 @@
 		PROJECT_TYPE_OPTIONS,
 		type ProjectType
 	} from '$lib/types/projectType';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 
 	let { close } = $props();
 
@@ -51,6 +52,7 @@
 
 <div
 	class="create-project-modal relative flex max-h-[min(92vh,48rem)] w-[min(100%-1.5rem,42rem)] flex-col overflow-hidden rounded-2xl border border-color bg-secondary shadow-2xl shadow-black"
+	use:mobileModalSheet={close}
 >
 	<div
 		class="rounded-t-2xl border-b border-color bg-gradient-to-r from-accent to-bg-accent px-4 py-4 sm:px-6 sm:py-5"

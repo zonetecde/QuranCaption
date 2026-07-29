@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { slide } from 'svelte/transition';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 
 	let {
 		close,
@@ -29,6 +30,7 @@
 
 <div
 	class={`bg-secondary border-color border rounded-2xl shadow-2xl shadow-black flex flex-col relative overflow-hidden ${shellClass}`}
+	use:mobileModalSheet={close}
 	transition:slide
 >
 	<div class="bg-gradient-to-r from-accent to-bg-accent px-6 py-4 border-b border-color">

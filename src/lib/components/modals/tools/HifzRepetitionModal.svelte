@@ -11,6 +11,7 @@
 		normalizeSilenceBetweenRepetitionsMultiplier,
 		type HifzRepeatTarget
 	} from '$lib/services/HifzHelper';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 
 	type HifzGenerationProgressEvent = {
 		progress?: number;
@@ -182,6 +183,7 @@
 
 <div
 	class="bg-secondary border-color border rounded-2xl w-[540px] max-w-[90vw] max-h-[710px] shadow-2xl shadow-black flex flex-col relative overflow-hidden"
+	use:mobileModalSheet={close}
 	transition:slide
 >
 	<div class="bg-gradient-to-r from-accent to-bg-accent px-6 py-4 border-b border-color shrink-0">

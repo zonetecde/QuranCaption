@@ -13,6 +13,7 @@
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 
 	let { close } = $props();
 	let selectedTranslations: Edition[] = $state([]);
@@ -306,6 +307,7 @@
 
 <div
 	class="bg-secondary border-color border rounded-2xl w-[800px] h-[700px] shadow-2xl shadow-black flex flex-col relative overflow-hidden"
+	use:mobileModalSheet={close}
 >
 	<!-- Header with gradient background -->
 	<div class="bg-gradient-to-r from-accent to-bg-accent px-6 py-4 border-b border-color">

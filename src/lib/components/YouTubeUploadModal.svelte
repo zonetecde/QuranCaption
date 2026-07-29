@@ -9,6 +9,7 @@
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 
 	type AuthStatus = {
 		configured: boolean;
@@ -254,6 +255,7 @@
 
 <div
 	class="border-color bg-secondary relative flex max-h-[90vh] w-[680px] max-w-full flex-col overflow-hidden rounded-2xl border shadow-2xl shadow-black"
+	use:mobileModalSheet={close}
 	transition:slide
 	role="dialog"
 	aria-modal="true"

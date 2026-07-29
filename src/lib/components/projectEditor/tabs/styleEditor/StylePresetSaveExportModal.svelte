@@ -4,6 +4,7 @@
 	import { slide } from 'svelte/transition';
 	import { CustomClip } from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 
 	type ModalMode = 'save' | 'export';
 
@@ -88,6 +89,7 @@
 
 <div
 	class="w-[520px] max-w-[92vw] overflow-hidden rounded-2xl border border-color bg-secondary shadow-2xl shadow-black/60"
+	use:mobileModalSheet={close}
 	transition:slide={{ duration: 180 }}
 	role="dialog"
 	aria-modal="true"

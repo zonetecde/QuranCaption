@@ -6,6 +6,7 @@
 	import { fade } from 'svelte/transition';
 	import { get } from 'svelte/store';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 
 	let {
 		close,
@@ -121,6 +122,7 @@
 >
 	<div
 		class="bg-secondary border-color border rounded-2xl w-[680px] max-w-full max-h-[90vh] overflow-auto shadow-2xl shadow-black flex flex-col relative"
+		use:mobileModalSheet={closeModal}
 	>
 		<!-- Header with gradient background -->
 		<div

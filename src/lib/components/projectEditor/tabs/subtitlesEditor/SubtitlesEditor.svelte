@@ -10,6 +10,7 @@
 	import SubtitlesEditorSettings from './SubtitlesEditorSettings.svelte';
 	import SubtitlesList from './SubtitlesList.svelte';
 	import SubtitlesWorkspace from './SubtitlesWorkspace.svelte';
+	import VersePicker from './VersePicker.svelte';
 	import { getDroppedJsonPath } from './drop';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { runAutoSegmentationFromImportedJson } from '$lib/services/AutoSegmentation';
@@ -247,8 +248,42 @@
 />
 
 <div class="subtitles-editor-mobile-shell">
+	<section class="subtitles-editor-toolbar">
+		<button
+			class="drawer-toggle"
+			class:drawer-open={leftDrawerOpen}
+			type="button"
+			aria-label={$LL.editor.subtitlesEditor()}
+			aria-expanded={leftDrawerOpen}
+			onclick={() => {
+				leftDrawerOpen = !leftDrawerOpen;
+				rightDrawerOpen = false;
+			}}
+		>
+			<span class="material-icons">tune</span>
+		</button>
+
+		<div class="subtitles-editor-verse-picker">
+			<VersePicker />
+		</div>
+
+		<button
+			class="drawer-toggle"
+			class:drawer-open={rightDrawerOpen}
+			type="button"
+			aria-label={$LL.editor.subtitles()}
+			aria-expanded={rightDrawerOpen}
+			onclick={() => {
+				rightDrawerOpen = !rightDrawerOpen;
+				leftDrawerOpen = false;
+			}}
+		>
+			<span class="material-icons">view_list</span>
+		</button>
+	</section>
+
 	<section class="subtitles-editor-workspace">
-		<SubtitlesWorkspace useSplitHeight={false} />
+		<SubtitlesWorkspace useSplitHeight={false} showVersePicker={false} />
 	</section>
 
 	<section class="subtitles-editor-timeline">
@@ -271,34 +306,6 @@
 			onpointerdown={(event) => startDrawerGesture('right', event, false)}
 		></div>
 	{/if}
-
-	<button
-		class="drawer-toggle drawer-toggle-left"
-		class:drawer-open={leftDrawerOpen}
-		type="button"
-		aria-label={$LL.editor.subtitlesEditor()}
-		aria-expanded={leftDrawerOpen}
-		onclick={() => {
-			leftDrawerOpen = !leftDrawerOpen;
-			rightDrawerOpen = false;
-		}}
-	>
-		<span class="material-icons">tune</span>
-	</button>
-
-	<button
-		class="drawer-toggle drawer-toggle-right"
-		class:drawer-open={rightDrawerOpen}
-		type="button"
-		aria-label={$LL.editor.subtitles()}
-		aria-expanded={rightDrawerOpen}
-		onclick={() => {
-			rightDrawerOpen = !rightDrawerOpen;
-			leftDrawerOpen = false;
-		}}
-	>
-		<span class="material-icons">view_list</span>
-	</button>
 
 	{#if leftDrawerProgress > 0 || rightDrawerProgress > 0}
 		<button
@@ -362,6 +369,18 @@
 		flex: 1 1 0;
 	}
 
+	.subtitles-editor-toolbar {
+		display: flex;
+		flex-shrink: 0;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.subtitles-editor-verse-picker {
+		min-width: 0;
+		flex: 1;
+	}
+
 	.subtitles-editor-timeline {
 		flex: 0 0 min(32dvh, 260px);
 		border: 1px solid var(--border-color);
@@ -370,10 +389,9 @@
 	}
 
 	.drawer-toggle {
-		position: absolute;
-		top: 1rem;
 		z-index: 40;
 		display: flex;
+		flex-shrink: 0;
 		height: 2.5rem;
 		width: 2.5rem;
 		align-items: center;
@@ -383,14 +401,6 @@
 		background: var(--bg-secondary);
 		color: var(--text-primary);
 		box-shadow: 0 4px 14px rgb(0 0 0 / 30%);
-	}
-
-	.drawer-toggle-left {
-		left: 1rem;
-	}
-
-	.drawer-toggle-right {
-		right: 1rem;
 	}
 
 	.drawer-toggle.drawer-open {

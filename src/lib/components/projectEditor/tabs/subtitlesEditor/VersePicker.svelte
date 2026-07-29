@@ -54,9 +54,9 @@
 </script>
 
 <section
-	class="w-full flex gap-3 items-center px-3 bg-secondary border border-color rounded-lg py-2"
+	class="verse-picker w-full flex gap-3 items-center px-3 bg-secondary border border-color rounded-lg py-2"
 >
-	<div class="flex gap-2 items-center">
+	<div class="verse-picker-help flex gap-2 items-center">
 		<div class="flex gap-2 items-center group relative" data-tour-id="subtitles-help-button">
 			<span class="material-icons text-2xl!">help</span>
 			<div
@@ -115,9 +115,9 @@
 	</div>
 
 	<!-- Surah Selector with Autocomplete -->
-	<div class="flex items-center gap-2 ml-auto">
-		<span class="text-sm font-medium text-secondary">{$LL.editor.surahLabel()}</span>
-		<div class="min-w-[200px]">
+	<div class="surah-picker flex min-w-0 flex-1 items-center gap-2 ml-auto">
+		<span class="picker-label text-sm font-medium text-secondary">{$LL.editor.surahLabel()}</span>
+		<div class="surah-input min-w-0 flex-1">
 			<AutocompleteInput
 				showEverything
 				clearOnFocus
@@ -131,18 +131,18 @@
 	</div>
 
 	<!-- Separator -->
-	<div class="flex items-center">
+	<div class="picker-separator flex items-center">
 		<span class="text-lg font-bold text-accent mx-2">:</span>
 	</div>
 
 	<!-- Verse Selector -->
-	<div class="flex items-center gap-2">
-		<span class="text-sm font-medium text-secondary">{$LL.editor.verseLabel()}</span>
+	<div class="verse-input-group flex items-center gap-2">
+		<span class="picker-label text-sm font-medium text-secondary">{$LL.editor.verseLabel()}</span>
 		<input
 			type="number"
 			min="1"
 			placeholder="1"
-			class="bg-accent border border-color text-primary rounded-lg px-3 py-2 text-sm font-medium text-center w-20"
+			class="verse-input bg-accent border border-color text-primary rounded-lg px-3 py-2 text-sm font-medium text-center w-20"
 			max={Quran.getVerseCount(subtitlesEditorState().selectedSurah)}
 			onchange={() => {
 				subtitlesEditorState().startWordIndex = 0;
@@ -152,3 +152,44 @@
 		/>
 	</div>
 </section>
+
+<style>
+	.surah-input {
+		min-width: 200px;
+	}
+
+	@media (max-width: 640px) {
+		.verse-picker {
+			gap: 0.5rem;
+			padding: 0.35rem 0.5rem;
+		}
+
+		.verse-picker-help,
+		.picker-label {
+			display: none;
+		}
+
+		.picker-separator span {
+			margin-right: 0;
+			margin-left: 0;
+		}
+
+		.surah-picker {
+			margin-left: 0;
+		}
+
+		.surah-input {
+			min-width: 0;
+		}
+
+		.verse-input-group {
+			flex-shrink: 0;
+		}
+
+		.verse-input {
+			width: 3.5rem;
+			padding-right: 0.5rem;
+			padding-left: 0.5rem;
+		}
+	}
+</style>

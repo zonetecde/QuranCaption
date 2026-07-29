@@ -6,22 +6,153 @@
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 	import Timeline from '../../timeline/Timeline.svelte';
-	import VideoPreview from '../../videoPreview/VideoPreview.svelte';
-	import DiviseurRedimensionnable from '../DiviseurRedimensionnable.svelte';
 	import DropOverlay from '../videoEditor/assetsManager/DropOverlay.svelte';
 	import SubtitlesEditorSettings from './SubtitlesEditorSettings.svelte';
 	import SubtitlesList from './SubtitlesList.svelte';
 	import SubtitlesWorkspace from './SubtitlesWorkspace.svelte';
 	import { getDroppedJsonPath } from './drop';
-	import {
-		PROJECT_EDITOR_PANEL_WIDTHS,
-		PROJECT_EDITOR_TIMELINE_HEIGHT
-	} from '$lib/constants/projectEditor';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { runAutoSegmentationFromImportedJson } from '$lib/services/AutoSegmentation';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import { TrackType } from '$lib/classes';
 
 	let unlistenDrop: (() => void) | null = null;
+	let leftDrawerOpen = $state(false);
+	let rightDrawerOpen = $state(false);
+	let leftDrawerElement: HTMLElement | null = $state(null);
+	let rightDrawerElement: HTMLElement | null = $state(null);
+	let gestureSide: 'left' | 'right' | null = $state(null);
+	let gestureStartedOpen = false;
+	let gestureDragging = $state(false);
+	let gestureStartX = 0;
+	let gestureStartY = 0;
+	let gestureProgress = $state(0);
+
+	const EDGE_SWIPE_WIDTH_PX = 28;
+	const GESTURE_DIRECTION_THRESHOLD_PX = 6;
+	const GESTURE_COMMIT_DISTANCE_PX = 48;
+
+	let leftDrawerProgress = $derived(
+		gestureSide === 'left' ? gestureProgress : leftDrawerOpen ? 1 : 0
+	);
+	let rightDrawerProgress = $derived(
+		gestureSide === 'right' ? gestureProgress : rightDrawerOpen ? 1 : 0
+	);
+
+	/**
+	 * Démarre le suivi d'un geste horizontal sur un tiroir.
+	 *
+	 * @param {'left' | 'right'} side Côté du tiroir manipulé.
+	 * @param {PointerEvent} event Événement pointeur initial.
+	 * @param {boolean} startedOpen Indique si le tiroir était ouvert au début du geste.
+	 * @returns {void}
+	 */
+	function startDrawerGesture(
+		side: 'left' | 'right',
+		event: PointerEvent,
+		startedOpen: boolean
+	): void {
+		if (!event.isPrimary || gestureSide) return;
+		if (
+			startedOpen &&
+			event.target instanceof Element &&
+			event.target.closest('button, input, select, textarea, a, label, [contenteditable="true"]')
+		) {
+			return;
+		}
+
+		gestureSide = side;
+		gestureStartedOpen = startedOpen;
+		gestureDragging = false;
+		gestureStartX = event.clientX;
+		gestureStartY = event.clientY;
+		gestureProgress = startedOpen ? 1 : 0;
+	}
+
+	/**
+	 * Met à jour progressivement la position du tiroir pendant le swipe.
+	 *
+	 * @param {PointerEvent} event Événement de déplacement du pointeur.
+	 * @returns {void}
+	 */
+	function updateDrawerGesture(event: PointerEvent): void {
+		if (!gestureSide) return;
+
+		const deltaX = event.clientX - gestureStartX;
+		const deltaY = event.clientY - gestureStartY;
+		if (!gestureDragging) {
+			if (
+				Math.abs(deltaX) < GESTURE_DIRECTION_THRESHOLD_PX &&
+				Math.abs(deltaY) < GESTURE_DIRECTION_THRESHOLD_PX
+			) {
+				return;
+			}
+			if (Math.abs(deltaY) > Math.abs(deltaX)) {
+				cancelDrawerGesture();
+				return;
+			}
+			gestureDragging = true;
+		}
+
+		event.preventDefault();
+		const drawer = gestureSide === 'left' ? leftDrawerElement : rightDrawerElement;
+		const drawerWidth = drawer?.getBoundingClientRect().width || 1;
+		const direction = gestureSide === 'left' ? 1 : -1;
+		const initialProgress = gestureStartedOpen ? 1 : 0;
+		gestureProgress = Math.min(
+			1,
+			Math.max(0, initialProgress + (deltaX * direction) / drawerWidth)
+		);
+	}
+
+	/**
+	 * Termine le swipe et ouvre ou ferme le tiroir selon la distance parcourue.
+	 *
+	 * @param {PointerEvent} event Événement de fin du pointeur.
+	 * @returns {void}
+	 */
+	function finishDrawerGesture(event: PointerEvent): void {
+		if (!gestureSide) return;
+
+		const side = gestureSide;
+		const direction = side === 'left' ? 1 : -1;
+		const directedDistance = (event.clientX - gestureStartX) * direction;
+		const passedDistance = gestureStartedOpen
+			? directedDistance <= -GESTURE_COMMIT_DISTANCE_PX
+			: directedDistance >= GESTURE_COMMIT_DISTANCE_PX;
+		const shouldOpen = gestureDragging
+			? gestureStartedOpen
+				? !passedDistance && gestureProgress >= 0.5
+				: passedDistance || gestureProgress >= 0.5
+			: gestureStartedOpen;
+
+		if (side === 'left') {
+			leftDrawerOpen = shouldOpen;
+			if (shouldOpen) rightDrawerOpen = false;
+		} else {
+			rightDrawerOpen = shouldOpen;
+			if (shouldOpen) leftDrawerOpen = false;
+		}
+		resetDrawerGesture();
+	}
+
+	/**
+	 * Annule le geste courant sans modifier l'état du tiroir.
+	 * @returns {void}
+	 */
+	function cancelDrawerGesture(): void {
+		resetDrawerGesture();
+	}
+
+	/**
+	 * Réinitialise les données temporaires du geste.
+	 * @returns {void}
+	 */
+	function resetDrawerGesture(): void {
+		gestureSide = null;
+		gestureDragging = false;
+		gestureProgress = 0;
+	}
 
 	/**
 	 * Applique au projet un export JSON Quranic Universal Aligner déposé.
@@ -109,73 +240,229 @@
 	});
 </script>
 
-<div class="flex-grow w-full max-w-full flex overflow-hidden h-full min-h-0">
-	<!-- Assets -->
-	<section
-		class="flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col"
-		style={`width: ${globalState.settings!.persistentUiState.projectEditorLayout.subtitlesEditorLeftPanelWidth}px;`}
+<svelte:window
+	onpointermove={updateDrawerGesture}
+	onpointerup={finishDrawerGesture}
+	onpointercancel={cancelDrawerGesture}
+/>
+
+<div class="subtitles-editor-mobile-shell">
+	<section class="subtitles-editor-workspace">
+		<SubtitlesWorkspace useSplitHeight={false} />
+	</section>
+
+	<section class="subtitles-editor-timeline">
+		<Timeline
+			useSplitHeight={false}
+			visibleTrackTypes={[TrackType.Audio, TrackType.Subtitle]}
+			fitTracksToHeight
+		/>
+	</section>
+
+	{#if !leftDrawerOpen && !rightDrawerOpen}
+		<div
+			class="edge-swipe-zone edge-swipe-zone-left"
+			style={`width: ${EDGE_SWIPE_WIDTH_PX}px;`}
+			onpointerdown={(event) => startDrawerGesture('left', event, false)}
+		></div>
+		<div
+			class="edge-swipe-zone edge-swipe-zone-right"
+			style={`width: ${EDGE_SWIPE_WIDTH_PX}px;`}
+			onpointerdown={(event) => startDrawerGesture('right', event, false)}
+		></div>
+	{/if}
+
+	<button
+		class="drawer-toggle drawer-toggle-left"
+		class:drawer-open={leftDrawerOpen}
+		type="button"
+		aria-label={$LL.editor.subtitlesEditor()}
+		aria-expanded={leftDrawerOpen}
+		onclick={() => {
+			leftDrawerOpen = !leftDrawerOpen;
+			rightDrawerOpen = false;
+		}}
+	>
+		<span class="material-icons">tune</span>
+	</button>
+
+	<button
+		class="drawer-toggle drawer-toggle-right"
+		class:drawer-open={rightDrawerOpen}
+		type="button"
+		aria-label={$LL.editor.subtitles()}
+		aria-expanded={rightDrawerOpen}
+		onclick={() => {
+			rightDrawerOpen = !rightDrawerOpen;
+			leftDrawerOpen = false;
+		}}
+	>
+		<span class="material-icons">view_list</span>
+	</button>
+
+	{#if leftDrawerProgress > 0 || rightDrawerProgress > 0}
+		<button
+			class="drawer-backdrop"
+			type="button"
+			aria-label={$LL.common.close()}
+			style:opacity={Math.max(leftDrawerProgress, rightDrawerProgress) * 0.45}
+			onclick={() => {
+				leftDrawerOpen = false;
+				rightDrawerOpen = false;
+			}}
+		></button>
+	{/if}
+
+	<aside
+		class="mobile-drawer mobile-drawer-left"
+		class:open={leftDrawerOpen}
+		class:dragging={gestureSide === 'left' && gestureDragging}
+		style:transform={`translateX(${(leftDrawerProgress - 1) * 100}%)`}
+		bind:this={leftDrawerElement}
+		onpointerdown={(event) => startDrawerGesture('left', event, true)}
 	>
 		<SubtitlesEditorSettings />
-	</section>
-	<DiviseurRedimensionnable
-		orientation="vertical"
-		bind:value={
-			globalState.settings!.persistentUiState.projectEditorLayout.subtitlesEditorLeftPanelWidth
-		}
-		min={PROJECT_EDITOR_PANEL_WIDTHS.subtitlesLeft.min}
-		max={PROJECT_EDITOR_PANEL_WIDTHS.subtitlesLeft.max}
-		dataTestId="subtitles-left-panel-resizer"
-	/>
-	<section class="flex-1 min-w-0 flex flex-row max-h-full min-h-0">
-		<section class="w-full min-w-0 flex flex-col min-h-0">
-			<!-- Video preview -->
-			<SubtitlesWorkspace />
+	</aside>
 
-			<DiviseurRedimensionnable
-				orientation="horizontal"
-				bind:value={globalState.settings!.persistentUiState.projectEditorLayout.upperSectionHeight}
-				min={PROJECT_EDITOR_TIMELINE_HEIGHT.min}
-				max={PROJECT_EDITOR_TIMELINE_HEIGHT.max}
-				unit="percent"
-			/>
-
-			<!-- Timeline -->
-			<Timeline />
-		</section>
-	</section>
-	<!-- Settings -->
-	<DiviseurRedimensionnable
-		orientation="vertical"
-		bind:value={
-			globalState.settings!.persistentUiState.projectEditorLayout.subtitlesEditorRightPanelWidth
-		}
-		min={PROJECT_EDITOR_PANEL_WIDTHS.subtitlesRight.min}
-		max={PROJECT_EDITOR_PANEL_WIDTHS.subtitlesRight.max}
-		reverse
-		dataTestId="subtitles-right-panel-resizer"
-	/>
-	<section
-		class="flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col border border-color rounded-lg border-l-0 relative"
-		style={`width: ${globalState.settings!.persistentUiState.projectEditorLayout.subtitlesEditorRightPanelWidth}px;`}
+	<aside
+		class="mobile-drawer mobile-drawer-right"
+		class:open={rightDrawerOpen}
+		class:dragging={gestureSide === 'right' && gestureDragging}
+		style:transform={`translateX(${(1 - rightDrawerProgress) * 100}%)`}
+		bind:this={rightDrawerElement}
+		onpointerdown={(event) => startDrawerGesture('right', event, true)}
 	>
-		<VideoPreview showControls={false} />
-
-		<button
-			class="flex items-center justify-center w-8 h-8 text-[var(--text-on-hover)] bg-accent/20 hover:bg-accent rounded-full transition-colors cursor-pointer duration-200 absolute top-2 right-2 z-20 border-2 border-color"
-			onclick={() => {
-				globalState.getVideoPreviewState.togglePlayPause();
-			}}
-		>
-			<span class="material-icons text-xl pt-0.25">
-				{globalState.getVideoPreviewState.isPlaying ? 'pause' : 'play_arrow'}
-			</span>
-		</button>
-
-		<div class="flex-1 min-h-0 overflow-hidden z-15">
+		<div class="h-full min-h-0 overflow-hidden">
 			<SubtitlesList />
 		</div>
-	</section>
+	</aside>
 </div>
 
 <style>
+	.subtitles-editor-mobile-shell {
+		position: relative;
+		display: flex;
+		height: 100%;
+		min-height: 0;
+		width: 100%;
+		flex-direction: column;
+		gap: 0.5rem;
+		overflow: hidden;
+		padding: 0.5rem;
+	}
+
+	.subtitles-editor-workspace,
+	.subtitles-editor-timeline {
+		display: flex;
+		min-height: 0;
+		overflow: hidden;
+	}
+
+	.subtitles-editor-workspace {
+		flex: 1 1 0;
+	}
+
+	.subtitles-editor-timeline {
+		flex: 0 0 min(32dvh, 260px);
+		border: 1px solid var(--border-color);
+		border-radius: 12px;
+		background: var(--timeline-bg-primary);
+	}
+
+	.drawer-toggle {
+		position: absolute;
+		top: 1rem;
+		z-index: 40;
+		display: flex;
+		height: 2.5rem;
+		width: 2.5rem;
+		align-items: center;
+		justify-content: center;
+		border: 1px solid var(--border-color);
+		border-radius: 9999px;
+		background: var(--bg-secondary);
+		color: var(--text-primary);
+		box-shadow: 0 4px 14px rgb(0 0 0 / 30%);
+	}
+
+	.drawer-toggle-left {
+		left: 1rem;
+	}
+
+	.drawer-toggle-right {
+		right: 1rem;
+	}
+
+	.drawer-toggle.drawer-open {
+		color: var(--accent-primary);
+	}
+
+	.drawer-backdrop {
+		position: absolute;
+		inset: 0;
+		z-index: 45;
+		background: rgb(0 0 0);
+	}
+
+	.edge-swipe-zone {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		z-index: 35;
+		touch-action: none;
+	}
+
+	.edge-swipe-zone-left {
+		left: 0;
+	}
+
+	.edge-swipe-zone-right {
+		right: 0;
+	}
+
+	.mobile-drawer {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		z-index: 50;
+		width: min(88vw, 360px);
+		overflow: hidden;
+		pointer-events: none;
+		touch-action: pan-y;
+		background: var(--bg-secondary);
+		box-shadow: 0 0 24px rgb(0 0 0 / 45%);
+		transition: transform 0.2s ease;
+	}
+
+	.mobile-drawer-left {
+		left: 0;
+	}
+
+	.mobile-drawer-right {
+		right: 0;
+	}
+
+	.mobile-drawer.open {
+		pointer-events: auto;
+	}
+
+	.mobile-drawer.dragging {
+		pointer-events: auto;
+		transition: none;
+	}
+
+	.mobile-drawer :global(*) {
+		touch-action: pan-y;
+	}
+
+	@media (orientation: landscape) {
+		.subtitles-editor-mobile-shell {
+			gap: 0.4rem;
+			padding: 0.4rem;
+		}
+
+		.subtitles-editor-timeline {
+			flex-basis: min(38dvh, 220px);
+		}
+	}
 </style>

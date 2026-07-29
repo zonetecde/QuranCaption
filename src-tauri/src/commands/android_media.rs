@@ -1,11 +1,179 @@
 use std::path::Path;
 
-use jni::objects::{JObject, JString, JValue};
+use jni::objects::{JLongArray, JObject, JString, JValue};
 use jni::JavaVM;
 
 const METADATA_KEY_DURATION: i32 = 9;
 const METADATA_KEY_VIDEO_WIDTH: i32 = 18;
 const METADATA_KEY_VIDEO_HEIGHT: i32 = 19;
+pub struct AndroidAudioPlayer {
+    vm: JavaVM,
+}
+
+impl AndroidAudioPlayer {
+    /// Ouvre une passerelle vers le singleton Media3 Android.
+    ///
+    /// @returns Passerelle JNI prête à recevoir des commandes.
+    pub fn new() -> Result<Self, String> {
+        let context = ndk_context::android_context();
+        let vm = unsafe { JavaVM::from_raw(context.vm().cast()) }
+            .map_err(|e| format!("Unable to access Android JVM: {}", e))?;
+        Ok(Self { vm })
+    }
+
+    /// Charge un fichier dans Media3.
+    ///
+    /// @param path Chemin absolu du fichier audio.
+    /// @param position_ms Position initiale en millisecondes.
+    /// @param speed Vitesse de lecture.
+    /// @param volume Volume compris entre 0 et 1.
+    /// @returns Erreur JNI éventuelle.
+    pub fn load(
+        &self,
+        path: &str,
+        position_ms: i64,
+        speed: f32,
+        volume: f32,
+    ) -> Result<(), String> {
+        let mut env = self.env()?;
+        let path = env
+            .new_string(path)
+            .map_err(|e| format!("Unable to build Android audio path: {}", e))?;
+        let path = JObject::from(path);
+        let activity = Self::activity();
+        env.call_method(
+            &activity,
+            "nativeAudioLoad",
+            "(Ljava/lang/String;JFF)V",
+            &[
+                JValue::Object(&path),
+                JValue::Long(position_ms),
+                JValue::Float(speed),
+                JValue::Float(volume),
+            ],
+        )
+        .map_err(|e| format!("Unable to load Android audio: {}", e))?;
+        Ok(())
+    }
+
+    /// Lance Media3 à une position donnée.
+    ///
+    /// @param position_ms Position de départ en millisecondes.
+    /// @returns Erreur JNI éventuelle.
+    pub fn play(&self, position_ms: i64) -> Result<(), String> {
+        self.call_long("nativeAudioPlay", position_ms)
+    }
+
+    /// Met Media3 en pause.
+    ///
+    /// @returns Erreur JNI éventuelle.
+    pub fn pause(&self) -> Result<(), String> {
+        self.call_void("nativeAudioPause")
+    }
+
+    /// Déplace Media3 à une position donnée.
+    ///
+    /// @param position_ms Position cible en millisecondes.
+    /// @returns Erreur JNI éventuelle.
+    pub fn seek(&self, position_ms: i64) -> Result<(), String> {
+        self.call_long("nativeAudioSeek", position_ms)
+    }
+
+    /// Modifie la vitesse de Media3.
+    ///
+    /// @param speed Nouvelle vitesse de lecture.
+    /// @returns Erreur JNI éventuelle.
+    pub fn set_speed(&self, speed: f32) -> Result<(), String> {
+        self.call_float("nativeAudioSetSpeed", speed)
+    }
+
+    /// Modifie le volume de Media3.
+    ///
+    /// @param volume Volume compris entre 0 et 1.
+    /// @returns Erreur JNI éventuelle.
+    pub fn set_volume(&self, volume: f32) -> Result<(), String> {
+        self.call_float("nativeAudioSetVolume", volume)
+    }
+
+    /// Lit la position, l'état de lecture et l'état de fin Media3.
+    ///
+    /// @returns Tableau d'état du lecteur.
+    pub fn state(&self) -> Result<[i64; 3], String> {
+        let mut env = self.env()?;
+        let activity = Self::activity();
+        let array = env
+            .call_method(&activity, "nativeAudioGetState", "()[J", &[])
+            .and_then(|value| value.l())
+            .map(JLongArray::from)
+            .map_err(|e| format!("Unable to read Android audio state: {}", e))?;
+        let mut state = [0_i64; 3];
+        env.get_long_array_region(&array, 0, &mut state)
+            .map_err(|e| format!("Unable to decode Android audio state: {}", e))?;
+        Ok(state)
+    }
+
+    /// Libère Media3.
+    ///
+    /// @returns Erreur JNI éventuelle.
+    pub fn release(&self) -> Result<(), String> {
+        self.call_void("nativeAudioRelease")
+    }
+
+    /// Attache le thread courant à la JVM Android.
+    ///
+    /// @returns Environnement JNI attaché.
+    fn env(&self) -> Result<jni::AttachGuard<'_>, String> {
+        self.vm
+            .attach_current_thread()
+            .map_err(|e| format!("Unable to attach Android JVM thread: {}", e))
+    }
+
+    /// Retourne l'activité Tauri conservée par le contexte Android.
+    ///
+    /// @returns Référence JNI vers MainActivity.
+    fn activity<'a>() -> JObject<'a> {
+        let context = ndk_context::android_context();
+        unsafe { JObject::from_raw(context.context().cast()) }
+    }
+
+    /// Appelle une méthode Media3 sans argument.
+    ///
+    /// @param method Nom de la méthode Kotlin.
+    /// @returns Erreur JNI éventuelle.
+    fn call_void(&self, method: &str) -> Result<(), String> {
+        let mut env = self.env()?;
+        let activity = Self::activity();
+        env.call_method(&activity, method, "()V", &[])
+            .map_err(|e| format!("Unable to call Android audio {}: {}", method, e))?;
+        Ok(())
+    }
+
+    /// Appelle une méthode Media3 avec une position.
+    ///
+    /// @param method Nom de la méthode Kotlin.
+    /// @param value Valeur longue transmise.
+    /// @returns Erreur JNI éventuelle.
+    fn call_long(&self, method: &str, value: i64) -> Result<(), String> {
+        let mut env = self.env()?;
+        let activity = Self::activity();
+        env.call_method(&activity, method, "(J)V", &[JValue::Long(value)])
+            .map_err(|e| format!("Unable to call Android audio {}: {}", method, e))?;
+        Ok(())
+    }
+
+    /// Appelle une méthode Media3 avec une valeur flottante.
+    ///
+    /// @param method Nom de la méthode Kotlin.
+    /// @param value Valeur flottante transmise.
+    /// @returns Erreur JNI éventuelle.
+    fn call_float(&self, method: &str, value: f32) -> Result<(), String> {
+        let mut env = self.env()?;
+        let activity = Self::activity();
+        env.call_method(&activity, method, "(F)V", &[JValue::Float(value)])
+            .map_err(|e| format!("Unable to call Android audio {}: {}", method, e))?;
+        Ok(())
+    }
+}
 
 /// Lit la durée d'un média via MediaMetadataRetriever Android.
 ///

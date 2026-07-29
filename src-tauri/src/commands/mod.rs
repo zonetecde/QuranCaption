@@ -15,6 +15,8 @@ pub mod downloads;
 pub mod files;
 /// Commandes multimédia et utilitaires ffmpeg/ffprobe.
 pub mod media;
+/// Commandes du lecteur audio natif Android.
+pub mod native_audio;
 /// Commandes de capture d'écran.
 pub mod screenshot;
 /// Commandes de segmentation cloud/local.

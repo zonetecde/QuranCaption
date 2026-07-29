@@ -1,7 +1,7 @@
 ﻿<script lang="ts">
 	import { ProjectEditorTabs, TrackType, AssetClip } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { convertFileSrc } from '@tauri-apps/api/core';
+	import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 	import { onDestroy, onMount, untrack } from 'svelte';
 	import { Howl } from 'howler';
 	import toast from 'svelte-5-french-toast';
@@ -22,6 +22,7 @@
 	} = $props();
 
 	const isLinux = $derived(navigator?.userAgent?.toLowerCase()?.includes('linux') ?? false);
+	const isAndroid = /android/i.test(navigator?.userAgent ?? '');
 	let lastTimeErrorShown = 0; // Timestamp of the last error shown (prevent spam)
 	let antiCollisionNoticeCopy = $derived(
 		$LL.editor as unknown as {
@@ -233,6 +234,7 @@
 		if (!usesReleasedFile) return;
 
 		pause();
+		if (nativeAudioActive) void invoke('native_audio_release');
 		if (audioHowl) {
 			audioHowl.unload();
 			audioHowl = null;
@@ -323,7 +325,9 @@
 		if (videoElement) {
 			videoElement.playbackRate = speed;
 		}
-		if (audioHowl) {
+		if (nativeAudioActive) {
+			void invoke('native_audio_set_speed', { speed });
+		} else if (audioHowl) {
 			audioHowl.rate(speed);
 		}
 	}
@@ -421,6 +425,35 @@
 	 * Plus précis que la vidéo pour la synchronisation
 	 */
 	function handleAudioTimeUpdate() {
+		if (nativeAudioActive && isPlaying) {
+			if (nativeAudioPollPending) return;
+			nativeAudioPollPending = true;
+			void invoke<{ positionMs: number; isPlaying: boolean; ended: boolean }>(
+				'native_audio_get_state'
+			)
+				.then((state) => {
+					nativeAudioPositionMs = state.positionMs;
+					const currentAudioClip = globalState.getAudioTrack?.getCurrentClip();
+					if (currentAudioClip) {
+						getTimelineSettings().cursorPosition =
+							currentAudioClip.startTime + nativeAudioPositionMs;
+					}
+					if (state.ended && !nativeAudioEndHandled) {
+						nativeAudioEndHandled = true;
+						if (audioUpdateInterval) {
+							clearInterval(audioUpdateInterval);
+							audioUpdateInterval = null;
+						}
+						goNextAudio();
+					}
+				})
+				.catch((error) => console.error('Media3 state error:', error))
+				.finally(() => {
+					nativeAudioPollPending = false;
+				});
+			return;
+		}
+
 		if (audioHowl && isPlaying) {
 			const currentAudioClip = globalState.getAudioTrack?.getCurrentClip();
 
@@ -568,6 +601,11 @@
 	};
 
 	let audioHowl: Howl | null = null; // Instance Howler pour la lecture audio
+	let nativeAudioActive = false;
+	let nativeAudioPositionMs = 0;
+	let nativeAudioPollPending = false;
+	let nativeAudioEndHandled = false;
+	let nativeAudioLoadPromise: Promise<unknown> | null = null;
 	let audioBoostContext: AudioContext | null = null;
 	let isPlaying = $state(false); // État de lecture global
 	let audioUpdateInterval: ReturnType<typeof setInterval> | null = null; // Intervalle pour la mise à jour du curseur audio
@@ -662,6 +700,9 @@
 	 */
 	function getPreviewRenderCursorPosition(): number {
 		const audioClip = globalState.getAudioTrack?.getCurrentClip();
+		if (nativeAudioActive && audioClip) {
+			return audioClip.startTime + nativeAudioPositionMs;
+		}
 		if (audioHowl && audioClip) {
 			return audioClip.startTime + audioHowl.seek() * 1000;
 		}
@@ -737,6 +778,13 @@
 	 * @returns {void}
 	 */
 	function applyAudioVolume(volumePercent: number): void {
+		if (nativeAudioActive) {
+			const volume = globalState.getVideoPreviewState.showVideosAndAudios
+				? 0
+				: Math.min(1, Math.max(0, volumePercent / 100));
+			void invoke('native_audio_set_volume', { volume });
+			return;
+		}
 		if (!audioHowl) return;
 
 		const volume = Math.min(2, Math.max(0, volumePercent / 100));
@@ -783,6 +831,7 @@
 	 */
 	function setupAudio() {
 		const audioAsset = currentAudio();
+		const wasNativeAudioActive = nativeAudioActive;
 
 		// Nettoyage de l'instance précédente
 		if (audioHowl) {
@@ -793,8 +842,33 @@
 			clearInterval(audioUpdateInterval);
 			audioUpdateInterval = null;
 		}
+		nativeAudioActive = isAndroid && Boolean(audioAsset);
+		if (wasNativeAudioActive && !nativeAudioActive) {
+			void invoke('native_audio_release');
+		}
+		nativeAudioEndHandled = false;
 
 		if (audioAsset) {
+			if (nativeAudioActive) {
+				nativeAudioPositionMs = getCurrentAudioTimeToPlay() * 1000;
+				const volume = globalState.getVideoPreviewState.showVideosAndAudios
+					? 0
+					: Math.min(1, Math.max(0, globalState.getAudioTrack.volumePercent / 100));
+				nativeAudioLoadPromise = invoke('native_audio_load', {
+					filePath: audioAsset.filePath,
+					positionMs: Math.round(nativeAudioPositionMs),
+					speed: audioSpeed,
+					volume
+				}).catch((error) => {
+					console.error('Media3 load error:', error);
+					if (Date.now() - lastTimeErrorShown > 5000) {
+						toast.error(get(LL).editor.audioFailedToPlay({ error: JSON.stringify(error) }));
+						lastTimeErrorShown = Date.now();
+					}
+				});
+				return;
+			}
+
 			audioHowl = new Howl({
 				mute: globalState.getVideoPreviewState.showVideosAndAudios,
 				src: [`${convertFileSrc(audioAsset.filePath)}?v=${audioAsset.mediaReloadToken}`],
@@ -938,7 +1012,24 @@
 		globalState.getVideoPreviewState.isPlaying = true;
 
 		// Lance la lecture audio et vidéo simultanément
-		if (audioHowl) {
+		if (nativeAudioActive) {
+			nativeAudioEndHandled = false;
+			nativeAudioPositionMs = getCurrentAudioTimeToPlay() * 1000;
+			void (nativeAudioLoadPromise ?? Promise.resolve())
+				.then(() => {
+					if (!isPlaying) return;
+					return invoke('native_audio_play', {
+						positionMs: Math.round(nativeAudioPositionMs)
+					});
+				})
+				.catch((error) => {
+					console.error('Media3 play error:', error);
+					pause();
+				});
+			if (!audioUpdateInterval) {
+				audioUpdateInterval = setInterval(handleAudioTimeUpdate, 30);
+			}
+		} else if (audioHowl) {
 			audioHowl.play();
 		}
 		if (videoElement) {
@@ -955,7 +1046,9 @@
 		stopTransitionAnimationClock();
 
 		// Pause audio et vidéo
-		if (audioHowl) {
+		if (nativeAudioActive) {
+			void invoke('native_audio_pause');
+		} else if (audioHowl) {
 			audioHowl.pause();
 
 			// Si c'est un audio silencieux (pas de média réel), on le décharge complètement
@@ -985,7 +1078,12 @@
 	 * @param val - Position en secondes
 	 */
 	function seekAudio(val: number) {
-		if (audioHowl) {
+		if (nativeAudioActive) {
+			nativeAudioPositionMs = val * 1000;
+			void (nativeAudioLoadPromise ?? Promise.resolve()).then(() =>
+				invoke('native_audio_seek', { positionMs: Math.round(nativeAudioPositionMs) })
+			);
+		} else if (audioHowl) {
 			audioHowl.seek(val);
 		}
 	}
@@ -1023,7 +1121,15 @@
 			}
 		}
 
-		if (audioHowl) {
+		if (nativeAudioActive) {
+			const positionMs = getCurrentAudioTimeToPlay() * 1000;
+			nativeAudioPositionMs = positionMs;
+			void (nativeAudioLoadPromise ?? Promise.resolve()).then(() =>
+				invoke(shouldKeepPlaying && isPlaying ? 'native_audio_play' : 'native_audio_seek', {
+					positionMs: Math.round(positionMs)
+				})
+			);
+		} else if (audioHowl) {
 			seekAudio(getCurrentAudioTimeToPlay());
 
 			if (shouldKeepPlaying && audio && !audioHowl.playing()) {

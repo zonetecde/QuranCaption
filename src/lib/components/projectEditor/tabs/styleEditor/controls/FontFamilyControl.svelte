@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { invoke } from '@tauri-apps/api/core';
 	import { open } from '@tauri-apps/plugin-dialog';
-	import { tick } from 'svelte';
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -40,7 +39,6 @@
 	let isImporting = $state(false);
 	let searchQuery = $state('');
 	let importedFonts: ImportedFont[] = $state([]);
-	let searchInput: HTMLInputElement | undefined = $state();
 	let triggerButton: HTMLButtonElement | undefined = $state();
 	const selectedLabel = $derived(
 		importedFonts.find((font) => font.family === String(value))?.label ??
@@ -127,15 +125,12 @@
 	}
 
 	/**
-	 * Ouvre ou ferme le panneau et place le focus dans la recherche.
-	 * @returns {Promise<void>} Promesse résolue après la mise à jour du DOM.
+	 * Ouvre ou ferme le panneau sans déplacer le focus.
+	 * @returns {void}
 	 */
-	async function togglePanel(): Promise<void> {
+	function togglePanel(): void {
 		isOpen = !isOpen;
 		searchQuery = '';
-		if (!isOpen) return;
-		await tick();
-		searchInput?.focus();
 	}
 
 	/**
@@ -230,7 +225,6 @@
 						search
 					</span>
 					<input
-						bind:this={searchInput}
 						bind:value={searchQuery}
 						type="text"
 						role="searchbox"

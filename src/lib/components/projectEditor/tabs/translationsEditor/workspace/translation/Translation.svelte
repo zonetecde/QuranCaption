@@ -49,7 +49,6 @@
 	// Variables pour gérer le glisser-déposer
 	let isDragging = $state(false);
 	let dragStartIndex = $state(-1);
-	let activePointerId: number | null = null;
 
 	let originalTranslation: string = $state('');
 	let originalTranslationUnits = $derived(() => getTranslationTrimUnits(originalTranslation));
@@ -442,26 +441,14 @@
 		);
 	}
 
-	/**
-	 * Démarre la sélection tactile ou souris sur un mot.
-	 *
-	 * @param {number} i Index du premier mot sélectionné.
-	 * @param {PointerEvent} event Événement pointeur initial.
-	 * @returns {void}
-	 */
-	function handlePointerDown(i: number, event: PointerEvent): void {
-		if (activePointerId !== null) return;
+	function handleMouseDown(i: number, event: MouseEvent): void {
 		if (translation().type === 'verse' && !isInlineStyleMode() && !isTranslationWbwMappingMode()) {
 			beginWordSelectionEditing();
 			event.preventDefault();
-			if (event.currentTarget instanceof HTMLElement) {
-				event.currentTarget.setPointerCapture(event.pointerId);
-			}
 			ProjectHistoryManager.begin('trim translation');
 			isTrimHistoryTransaction = true;
 			isDragging = true;
 			dragStartIndex = i;
-			activePointerId = event.pointerId;
 			wordClicked(i);
 		}
 	}
@@ -482,40 +469,20 @@
 		}
 	}
 
-	/**
-	 * Met à jour la plage avec le mot actuellement sous le pointeur.
-	 *
-	 * @param {PointerEvent} event Événement de déplacement du pointeur.
-	 * @returns {void}
-	 */
-	function handlePointerMove(event: PointerEvent): void {
-		if (!isDragging || event.pointerId !== activePointerId) return;
-
-		const wordElement = document
-			.elementFromPoint(event.clientX, event.clientY)
-			?.closest('[data-translation-word-index]');
-		if (!(wordElement instanceof HTMLElement)) return;
-
-		const wordIndex = Number(wordElement.dataset.translationWordIndex);
-		if (Number.isInteger(wordIndex)) handleMouseEnter(wordIndex);
-	}
-
-	/**
-	 * Termine la sélection et valide la transaction d'historique.
-	 *
-	 * @param {PointerEvent} event Événement de fin du pointeur.
-	 * @returns {void}
-	 */
-	function handlePointerUp(event: PointerEvent): void {
-		if (event.pointerId !== activePointerId) return;
-
+	function handleMouseUp(): void {
 		const shouldFlush = isDragging;
 		isDragging = false;
 		dragStartIndex = -1;
-		activePointerId = null;
 		if (shouldFlush) {
 			ProjectHistoryManager.commit();
 			isTrimHistoryTransaction = false;
+		}
+	}
+
+	// Gestionnaire global pour le mouseup
+	function handleGlobalMouseUp(): void {
+		if (isDragging) {
+			handleMouseUp();
 		}
 	}
 
@@ -591,6 +558,9 @@
 
 <div
 	class="flex flex-col gap-3 mt-4 p-4 bg-accent border border-color rounded-lg transition-all duration-200 group"
+	onmouseleave={() => {
+		handleMouseUp();
+	}}
 >
 	{#if translation()}
 		{@const status = translation().status}
@@ -653,12 +623,10 @@
 		{#if translation().type === 'verse' && !isInlineStyleMode() && !isTranslationWbwMappingMode()}
 			<!-- Affiche la traduction complète du verset mot à mot -->
 			<div
-				class="flex flex-row select-none touch-none flex-wrap items-center gap-y-1 opacity-100"
+				class="flex flex-row select-none flex-wrap items-center gap-y-1 opacity-100"
 				dir={translationDirection()}
 				role="presentation"
-				onpointermove={handlePointerMove}
-				onpointerup={handlePointerUp}
-				onpointercancel={handlePointerUp}
+				onmouseup={handleGlobalMouseUp}
 				transition:slide
 			>
 				{#each originalTranslationUnits() as unit, i (`${i}-${unit.text}`)}
@@ -697,8 +665,8 @@
 								}`
 							: 'translation-word-not-selected text-secondary hover:bg-secondary hover:border-border-color hover:text-primary rounded-md'}
 						{isDragging ? 'select-none' : ''}"
-						data-translation-word-index={i}
-						onpointerdown={(event) => handlePointerDown(i, event)}
+						onmousedown={(event) => handleMouseDown(i, event)}
+						onmouseenter={() => handleMouseEnter(i)}
 						ondragstart={(event) => event.preventDefault()}
 					>
 						{unit.text}

@@ -159,22 +159,22 @@
 </script>
 
 <!-- Export Video Configuration -->
-<div class="p-6 bg-secondary rounded-lg border border-color" transition:slide>
+<div class="min-w-0 rounded-lg bg-secondary p-3" transition:slide>
 	<!-- Section Title -->
-	<div class="mb-6">
-		<h3 class="text-lg font-semibold text-primary mb-2">{$LL.export.exportVideo()}</h3>
-		<p class="text-thirdly text-sm">
+	<div class="mb-4">
+		<h3 class="mb-1 text-base font-semibold text-primary">{$LL.export.exportVideo()}</h3>
+		<p class="text-xs leading-snug text-thirdly">
 			{$LL.export.configureExportSettings()}
 		</p>
 	</div>
 
 	<!-- Time Range Selection -->
-	<div data-tour-id="export-range" class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.exportRange()}</h4>
-		<p class="text-thirdly text-sm mb-4">{$LL.export.selectTimeRange()}</p>
+	<div data-tour-id="export-range" class="mb-4">
+		<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.exportRange()}</h4>
+		<p class="mb-3 text-xs leading-snug text-thirdly">{$LL.export.selectTimeRange()}</p>
 
-		<div class="bg-accent rounded-lg p-4 border border-color">
-			<div class="grid grid-cols-1 grid-rows-2 gap-4">
+		<div class="rounded-lg border border-color bg-accent p-3">
+			<div class="grid grid-cols-1 grid-rows-2 gap-3">
 				<!-- Start Time -->
 				<TimeInput
 					label={$LL.export.startTime()}
@@ -191,7 +191,7 @@
 			<div class="mt-3 flex flex-col items-center justify-between">
 				<button
 					type="button"
-					class="w-full inline-flex items-center gap-1.5 rounded-md border border-violet-500/40 bg-violet-500/10 px-2.5 py-1 text-xs font-medium text-violet-300 transition-colors hover:bg-violet-500/20"
+					class="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-violet-500/40 bg-violet-500/10 px-2.5 text-xs font-medium text-violet-300 transition-colors hover:bg-violet-500/20"
 					onclick={addSkipRange}
 				>
 					<span class="material-icons text-[17px]!">add</span>
@@ -200,7 +200,7 @@
 
 				{#if (globalState.getExportState.skipRanges ?? []).length > 0}
 					<div class="mt-3 space-y-2 w-full">
-						{#each globalState.getExportState.skipRanges ?? [] as range, index}
+						{#each globalState.getExportState.skipRanges ?? [] as range, index (range)}
 							<div class="rounded-md border border-violet-500/35 bg-violet-500/10 p-2.5">
 								<div class="mb-2 flex items-center justify-between gap-2">
 									<span class="text-xs font-medium text-violet-300">
@@ -209,12 +209,12 @@
 									</span>
 									<button
 										type="button"
-										class="material-icons rounded p-0.5 text-base text-thirdly transition-colors hover:bg-violet-500/20 hover:text-violet-300"
+										class="material-icons flex h-8 w-8 shrink-0 items-center justify-center rounded text-base text-thirdly transition-colors hover:bg-violet-500/20 hover:text-violet-300"
 										title={skipCopy.removeSkip()}
 										onclick={() => removeSkipRange(index)}>close</button
 									>
 								</div>
-								<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+								<div class="grid grid-cols-1 gap-2">
 									<button
 										type="button"
 										class="rounded border border-violet-500/30 bg-secondary px-2 py-1.5 text-xs text-secondary transition-colors hover:border-violet-400 hover:text-violet-300"
@@ -251,9 +251,11 @@
 					</span>
 				</div>
 
-				<div class="flex items-center justify-between border-t border-color pt-3 text-sm">
-					<span class="text-secondary min-w-[150px]">{$LL.export.exportVerseRange()}</span>
-					<span class="text-accent-primary font-medium">
+				<div
+					class="flex min-w-0 items-center justify-between gap-3 border-t border-color pt-3 text-sm"
+				>
+					<span class="min-w-0 text-secondary">{$LL.export.exportVerseRange()}</span>
+					<span class="min-w-0 break-words text-right font-medium text-accent-primary">
 						{VerseRange.getExportVerseRange().toString()}
 					</span>
 				</div>
@@ -261,12 +263,12 @@
 		</div>
 	</div>
 
-	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">
+	<div class="mb-4">
+		<h4 class="mb-2 text-sm font-medium text-secondary">
 			{$LL.export.videoQualityOrientation()}
 		</h4>
-		<div class="bg-accent rounded-lg p-4 border border-color">
-			<p class="text-thirdly text-sm mb-4">
+		<div class="rounded-lg border border-color bg-accent p-3">
+			<p class="mb-3 text-xs leading-snug text-thirdly">
 				{$LL.export.setResolutionOrientation()}
 			</p>
 
@@ -284,10 +286,10 @@
 		</div>
 	</div>
 
-	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.videoAudioFade()}</h4>
-		<div class="bg-accent rounded-lg p-4 border border-color">
-			<p class="text-thirdly text-sm mb-4">
+	<div class="mb-4">
+		<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.videoAudioFade()}</h4>
+		<div class="rounded-lg border border-color bg-accent p-3">
+			<p class="mb-3 text-xs leading-snug text-thirdly">
 				{$LL.export.enableDisableFade()}
 			</p>
 
@@ -301,11 +303,11 @@
 			/>
 		</div>
 	</div>
-	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.performanceSettings()}</h4>
-		<div class="bg-accent rounded-lg p-4 border border-color">
+	<div class="mb-4">
+		<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.performanceSettings()}</h4>
+		<div class="rounded-lg border border-color bg-accent p-3">
 			<div class="flex flex-col gap-3">
-				<p class="text-thirdly text-sm leading-snug">
+				<p class="text-xs leading-snug text-thirdly">
 					{$LL.export.setFpsDescription()}
 				</p>
 				<input
@@ -321,12 +323,12 @@
 	</div>
 
 	<!-- Video Filename & Export Location -->
-	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.videoFileName()}</h4>
-		<div class="bg-accent rounded-lg p-4 border border-color">
-			<div class="flex flex-col gap-6">
+	<div class="mb-4">
+		<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.videoFileName()}</h4>
+		<div class="rounded-lg border border-color bg-accent p-3">
+			<div class="flex flex-col gap-4">
 				<div>
-					<p class="text-thirdly text-sm mb-4">
+					<p class="mb-3 text-xs leading-snug text-thirdly">
 						{$LL.export.enterFileName()}
 					</p>
 
@@ -356,20 +358,10 @@
 		</div>
 	</div>
 
-	<!-- Export Button -->
-	<div class="flex flex-col items-center">
-		<button class="btn-accent px-6 py-3 font-medium" onclick={Exporter.exportVideo}>
-			{$LL.export.exportButton()}
-		</button>
-		<p class="text-thirdly text-xs mt-2 text-center">
-			{$LL.export.startExportDescription()}
-		</p>
-	</div>
-
-	<div class="mt-5">
+	<div class="mt-4">
 		<button
 			type="button"
-			class="w-full flex items-center justify-between rounded-lg border border-color bg-accent px-4 py-3 text-left transition-colors hover:bg-primary/60"
+			class="flex w-full items-center justify-between rounded-lg border border-color bg-accent p-3 text-left transition-colors hover:bg-primary/60"
 			onclick={() => {
 				showAdvancedSettings = !showAdvancedSettings;
 			}}
@@ -390,12 +382,12 @@
 		</button>
 
 		{#if showAdvancedSettings}
-			<div class="mt-3 rounded-lg border border-color bg-accent p-4" transition:slide>
-				<section class="mb-6">
-					<h4 class="text-base font-medium text-secondary mb-3">
+			<div class="mt-3 rounded-lg border border-color bg-accent p-3" transition:slide>
+				<section class="mb-4">
+					<h4 class="mb-2 text-sm font-medium text-secondary">
 						{$LL.export.recitationContent()}
 					</h4>
-					<div class="rounded-lg border border-color bg-secondary p-4">
+					<div class="rounded-lg border border-color bg-secondary p-3">
 						<label class="flex items-start gap-3 cursor-pointer select-none">
 							<input
 								type="checkbox"
@@ -413,7 +405,7 @@
 						</label>
 
 						{#if globalState.getExportState.exportOnlyRecitation}
-							<div class="mt-4 border-t border-color pt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+							<div class="mt-4 grid grid-cols-1 gap-4 border-t border-color pt-4">
 								<div>
 									<label
 										class="block text-sm font-medium text-primary mb-2"
@@ -475,7 +467,7 @@
 				</div>
 
 				{#if globalState.settings}
-					<div class="mb-4 rounded-lg border border-color bg-secondary p-4">
+					<div class="mb-3 rounded-lg border border-color bg-secondary p-3">
 						<label
 							class="block text-sm font-medium text-primary mb-2"
 							for="parallel-capture-workers"
@@ -497,7 +489,7 @@
 						</p>
 					</div>
 
-					<div class="mb-4 rounded-lg border border-color bg-secondary p-4">
+					<div class="mb-3 rounded-lg border border-color bg-secondary p-3">
 						<label class="block text-sm font-medium text-primary mb-2" for="video-codec">
 							{$LL.export.videoCodec()}
 						</label>
@@ -537,7 +529,7 @@
 										: $LL.export.lowCpuDescription()}
 							<button
 								type="button"
-								class="rounded-xl border p-4 text-left transition-colors"
+								class="rounded-xl border p-3 text-left transition-colors"
 								class:border-accent-primary={globalState.settings.exportSettings
 									.performanceProfile === id}
 								class:bg-secondary={globalState.settings.exportSettings.performanceProfile === id}
@@ -593,5 +585,15 @@
 				</div>
 			</div>
 		{/if}
+	</div>
+
+	<!-- Export Button -->
+	<div class="mt-4 flex flex-col items-center">
+		<button class="btn-accent h-11 w-full px-4 font-medium" onclick={Exporter.exportVideo}>
+			{$LL.export.exportButton()}
+		</button>
+		<p class="mt-2 text-center text-xs text-thirdly">
+			{$LL.export.startExportDescription()}
+		</p>
 	</div>
 </div>

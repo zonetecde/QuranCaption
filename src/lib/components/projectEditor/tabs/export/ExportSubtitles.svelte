@@ -37,21 +37,25 @@
 </script>
 
 <!-- Export Subtitles Configuration -->
-<div class="p-6 bg-secondary rounded-lg border border-color" transition:slide>
+<div class="min-w-0 rounded-lg bg-secondary p-3" transition:slide>
 	<!-- Section Title -->
-	<div class="mb-6">
-		<h3 class="text-lg font-semibold text-primary mb-2">{$LL.export.exportSubtitlesHeading()}</h3>
-		<p class="text-thirdly text-sm">
+	<div class="mb-4">
+		<h3 class="mb-1 text-base font-semibold text-primary">{$LL.export.exportSubtitlesHeading()}</h3>
+		<p class="text-xs leading-snug text-thirdly">
 			{$LL.export.exportSubtitlesDescription()}
 		</p>
 	</div>
 
 	<!-- Subtitle Format Selection -->
-	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.subtitleFormat()}</h4>
-		<p class="text-thirdly text-sm mb-3">{$LL.export.subtitleFormatDescription()}</p>
-		<div class="flex gap-4">
-			<label class="flex items-center gap-2 cursor-pointer group">
+	<div class="mb-4">
+		<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.subtitleFormat()}</h4>
+		<p class="mb-3 text-xs leading-snug text-thirdly">
+			{$LL.export.subtitleFormatDescription()}
+		</p>
+		<div class="grid grid-cols-2 gap-2">
+			<label
+				class="group flex min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-color bg-accent p-3"
+			>
 				<input
 					type="radio"
 					name="subtitle-format"
@@ -60,12 +64,14 @@
 					onchange={() => void Settings.save()}
 					class="w-4 h-4 text-accent-primary"
 				/>
-				<span class="text-secondary group-hover:text-primary transition-colors">
+				<span class="min-w-0 text-sm text-secondary transition-colors group-hover:text-primary">
 					SRT
-					<span class="text-thirdly text-xs block">{$LL.export.srtFormat()}</span>
+					<span class="block text-[11px] leading-tight text-thirdly">{$LL.export.srtFormat()}</span>
 				</span>
 			</label>
-			<label class="flex items-center gap-2 cursor-pointer group">
+			<label
+				class="group flex min-w-0 cursor-pointer items-center gap-2 rounded-lg border border-color bg-accent p-3"
+			>
 				<input
 					type="radio"
 					name="subtitle-format"
@@ -74,25 +80,25 @@
 					onchange={() => void Settings.save()}
 					class="w-4 h-4 text-accent-primary"
 				/>
-				<span class="text-secondary group-hover:text-primary transition-colors">
+				<span class="min-w-0 text-sm text-secondary transition-colors group-hover:text-primary">
 					VTT
-					<span class="text-thirdly text-xs block">{$LL.export.vttFormat()}</span>
+					<span class="block text-[11px] leading-tight text-thirdly">{$LL.export.vttFormat()}</span>
 				</span>
 			</label>
 		</div>
 	</div>
 
 	<!-- Content Selection -->
-	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.contentSelection()}</h4>
-		<p class="text-thirdly text-sm mb-4">
+	<div class="mb-4">
+		<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.contentSelection()}</h4>
+		<p class="mb-3 text-xs leading-snug text-thirdly">
 			{$LL.export.contentSelectionDescription()}
 		</p>
 
-		<div class="space-y-4">
+		<div class="space-y-3">
 			{#each subtitleExportTargets as target (target)}
 				{@const included = globalState.settings!.subtitleExportSettings.includedTarget[target]}
-				<div class="bg-accent rounded-lg p-4 border border-color">
+				<div class="rounded-lg border border-color bg-accent p-3">
 					<!-- Main content checkbox -->
 					<div class="flex items-start gap-3 mb-3">
 						<input
@@ -123,7 +129,7 @@
 					</div>
 
 					<!-- Verse numbers option -->
-					<div class="ml-7 {!included ? 'opacity-50 pointer-events-none' : ''}">
+					<div class="ml-6 {!included ? 'opacity-50 pointer-events-none' : ''}">
 						<div class="flex items-start gap-3">
 							<input
 								type="checkbox"
@@ -160,9 +166,9 @@
 								<p class="text-thirdly text-xs mb-3">
 									{$LL.export.arabicTextFormatDescription()}
 								</p>
-								<div class="flex gap-2">
+								<div class="grid min-w-0 grid-cols-3 gap-1.5">
 									{#each ['Plain', 'V1', 'V2'] as format (format)}
-										<label class="flex-1">
+										<label class="min-w-0">
 											<input
 												type="radio"
 												name="arabic-format"
@@ -173,15 +179,15 @@
 												onchange={() => void Settings.save()}
 											/>
 											<div
-												class="cursor-pointer rounded-lg border px-3 py-2 text-center flex flex-col items-center justify-center text-sm font-medium transition-all duration-200 h-full {globalState
+												class="flex h-full min-w-0 cursor-pointer flex-col items-center justify-center rounded-lg border px-1.5 py-2 text-center text-xs font-medium transition-all duration-200 {globalState
 													.settings!.subtitleExportSettings.arabicTextFormat === format
 													? 'bg-accent-primary text-black border-accent-primary'
 													: 'bg-accent border-color text-secondary hover:border-accent-primary hover:text-primary'}"
 											>
 												{format === 'Plain' ? 'Plain' : `QPC ${format}`}
 												<div
-													class="text-xs mt-1 {globalState.settings!.subtitleExportSettings
-														.arabicTextFormat === format
+													class="mt-1 line-clamp-2 text-[10px] leading-tight {globalState.settings!
+														.subtitleExportSettings.arabicTextFormat === format
 														? 'text-black/80'
 														: 'text-thirdly'}"
 												>
@@ -200,10 +206,10 @@
 	</div>
 
 	<!-- Export Filename -->
-	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.exportFileName()}</h4>
-		<div class="bg-accent rounded-lg p-4 border border-color">
-			<p class="text-thirdly text-sm mb-4">
+	<div class="mb-4">
+		<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.exportFileName()}</h4>
+		<div class="rounded-lg border border-color bg-accent p-3">
+			<p class="mb-3 text-xs leading-snug text-thirdly">
 				{$LL.export.enterExportFileName()}
 			</p>
 
@@ -223,16 +229,16 @@
 	</div>
 
 	<!-- Export Folder -->
-	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.exportFolder()}</h4>
-		<div class="bg-accent rounded-lg p-4 border border-color">
+	<div class="mb-4">
+		<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.exportFolder()}</h4>
+		<div class="rounded-lg border border-color bg-accent p-3">
 			<ExportFolderPicker />
 		</div>
 	</div>
 
 	<!-- Export Button -->
 	<div class="flex flex-col items-center">
-		<button class="btn-accent px-6 py-3 font-medium" onclick={Exporter.exportSubtitles}>
+		<button class="btn-accent h-11 w-full px-4 font-medium" onclick={Exporter.exportSubtitles}>
 			{$LL.export.exportSubtitlesButton()}
 		</button>
 		<p class="text-thirdly text-xs mt-2 text-center">

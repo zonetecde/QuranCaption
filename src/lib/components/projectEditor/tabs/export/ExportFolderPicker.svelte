@@ -61,14 +61,14 @@
 </script>
 
 {#if description}
-	<p class="text-thirdly text-sm mb-4">{description}</p>
+	<p class="mb-3 text-xs leading-snug text-thirdly">{description}</p>
 {/if}
 
-<div class="flex flex-col gap-2 w-full">
-	<div class="flex items-center gap-2 w-full">
+<div class="flex w-full min-w-0 flex-col gap-2">
+	<div class="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
 		<input
 			type="text"
-			class="flex-1 min-w-0 bg-secondary border border-color rounded p-2 text-sm text-secondary"
+			class="h-10 min-w-0 w-full rounded border border-color bg-secondary p-2 text-xs text-secondary"
 			title={currentExportFolder}
 			bind:value={currentExportFolder}
 			oninput={(event) => setCustomExportFolder((event.currentTarget as HTMLInputElement).value)}
@@ -79,13 +79,13 @@
 				}
 			}}
 		/>
-		<button class="btn-accent px-3 py-2 text-sm cursor-pointer" onclick={changeExportFolder}>
+		<button class="btn-accent h-10 cursor-pointer px-3 text-xs" onclick={changeExportFolder}>
 			{$LL.export.browse()}
 		</button>
 	</div>
 	{#if globalState.settings?.persistentUiState.videoExportFolder}
 		<button
-			class="text-accent-primary text-xs self-start cursor-pointer ml-auto opacity-50 hover:underline underline-offset-2"
+			class="ml-auto min-h-8 cursor-pointer text-xs text-accent-primary opacity-70 underline-offset-2 hover:underline"
 			onclick={resetExportFolder}
 		>
 			{$LL.export.resetToDefault()}

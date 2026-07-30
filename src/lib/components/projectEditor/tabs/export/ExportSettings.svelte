@@ -13,7 +13,12 @@
 
 	// Export choices
 	const choices: { id: ExportChoiceId; label: () => string; icon: string; hint: () => string }[] = [
-		{ id: 'video', label: () => LL_.export.videoExportOption(), icon: 'movie', hint: () => LL_.export.videoExportDescription() },
+		{
+			id: 'video',
+			label: () => LL_.export.videoExportOption(),
+			icon: 'movie',
+			hint: () => LL_.export.videoExportDescription()
+		},
 		{
 			id: 'subtitles',
 			label: () => LL_.export.subtitlesExportOption(),
@@ -26,7 +31,12 @@
 			icon: 'schedule',
 			hint: () => LL_.export.youtubeChaptersDescription()
 		},
-		{ id: 'project', label: () => LL_.export.projectDataOption(), icon: 'folder', hint: () => LL_.export.projectDataDescription() }
+		{
+			id: 'project',
+			label: () => LL_.export.projectDataOption(),
+			icon: 'folder',
+			hint: () => LL_.export.projectDataDescription()
+		}
 	];
 
 	function select(id: ExportChoiceId) {
@@ -35,17 +45,17 @@
 </script>
 
 <div
-	class="bg-secondary h-full border border-color mx-0.5 rounded-xl relative flex flex-col shadow overflow-auto"
+	class="bg-secondary relative mx-0.5 flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-color shadow"
 >
 	<!-- En-tête avec icône -->
-	<div class="flex gap-x-2 items-center justify-center px-3 mb-2 mt-4">
-		<span class="material-icons-outlined text-accent text-2xl">upload_file</span>
-		<h2 class="text-xl font-semibold text-primary tracking-wide">{$LL.export.exportHeading()}</h2>
+	<div class="flex shrink-0 items-center gap-2 border-b border-color px-3 py-2.5">
+		<span class="material-icons-outlined text-accent text-xl">upload_file</span>
+		<h2 class="truncate text-base font-semibold text-primary">{$LL.export.exportHeading()}</h2>
 	</div>
 
-	<div class="mt-4 px-3 pb-4">
+	<div class="min-h-0 min-w-0 flex-1 overflow-y-auto px-3 py-3">
 		<div
-			class="grid grid-cols-2 gap-3 mb-3"
+			class="grid min-w-0 grid-cols-4 gap-1.5"
 			role="radiogroup"
 			aria-label={$LL.export.exportType()}
 			tabindex="0"
@@ -57,46 +67,38 @@
 					data-choice={c.id}
 					aria-checked={globalState.getExportState.selectedChoice === c.id}
 					onclick={() => select(c.id)}
-					class="group relative flex flex-col items-start rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 ring-accent/70 hover:bg-white/10 hover:border-white/20 [&.selected]:border-accent/60 [&.selected]:bg-accent/10 cursor-pointer group"
+					class="group relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 px-1.5 py-2 text-center transition focus-visible:outline-none focus-visible:ring-2 ring-accent/70 hover:bg-white/10 hover:border-white/20 [&.selected]:border-accent/60 [&.selected]:bg-accent/10 cursor-pointer"
 					class:selected={globalState.getExportState.selectedChoice === c.id}
 					title={c.hint()}
 				>
-					<div class="flex flex-row items-center gap-x-2">
-						<span
-							class="material-icons-outlined text-base md:text-lg opacity-80 group-[.selected]:text-accent transition-colors"
-							>{c.icon}</span
-						>
-						<span class="flex flex-col">
-							<span
-								class="font-medium tracking-wide text-sm md:text-[0.83rem] group-[.selected]:text-accent"
-								>{c.label()}</span
-							>
-						</span>
-					</div>
-
 					<span
-						class="max-h-0 mt-0 group-hover:mt-3 group-hover:max-h-40 opacity-0 group-hover:opacity-100 transition-all duration-200 md:text-xs text-secondary/70 leading-snug"
-						>{c.hint()}</span
+						class="material-icons-outlined text-lg opacity-80 transition-colors group-[.selected]:text-accent"
+						>{c.icon}</span
 					>
-
-					{#if globalState.getExportState.selectedChoice === c.id}
-						<span class="absolute top-2 right-2 material-icons-outlined text-accent text-sm"
-							>check_circle</span
-						>
-					{/if}
+					<span
+						class="line-clamp-2 text-[10px] font-medium leading-tight group-[.selected]:text-accent"
+					>
+						{c.label()}
+					</span>
 				</button>
 			{/each}
 		</div>
 
+		<p class="mt-2 text-xs leading-snug text-thirdly">
+			{choices.find((choice) => choice.id === globalState.getExportState.selectedChoice)?.hint()}
+		</p>
+
 		<!-- Dynamic panel depending on selection -->
-		{#if globalState.getExportState.selectedChoice === 'video'}
-			<ExportVideo />
-		{:else if globalState.getExportState.selectedChoice === 'subtitles'}
-			<ExportSubtitles />
-		{:else if globalState.getExportState.selectedChoice === 'chapters'}
-			<ExportYtbChapters />
-		{:else if globalState.getExportState.selectedChoice === 'project'}
-			<ExportProjectData />
-		{/if}
+		<div class="mt-3 min-w-0">
+			{#if globalState.getExportState.selectedChoice === 'video'}
+				<ExportVideo />
+			{:else if globalState.getExportState.selectedChoice === 'subtitles'}
+				<ExportSubtitles />
+			{:else if globalState.getExportState.selectedChoice === 'chapters'}
+				<ExportYtbChapters />
+			{:else if globalState.getExportState.selectedChoice === 'project'}
+				<ExportProjectData />
+			{/if}
+		</div>
 	</div>
 </div>

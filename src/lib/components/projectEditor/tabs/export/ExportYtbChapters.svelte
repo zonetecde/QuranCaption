@@ -6,9 +6,6 @@
 	import { slide } from 'svelte/transition';
 	import ExportFolderPicker from './ExportFolderPicker.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
-	import { get } from 'svelte/store';
-
-	const LL_ = get(LL);
 
 	const chapterPlaceholders = [
 		'<timestamp>',
@@ -43,23 +40,25 @@
 </script>
 
 <!-- Export YouTube Chapters Configuration -->
-<div class="p-6 bg-secondary rounded-lg border border-color" transition:slide>
+<div class="min-w-0 rounded-lg bg-secondary p-3" transition:slide>
 	<!-- Section Title -->
-	<div class="mb-6">
-		<h3 class="text-lg font-semibold text-primary mb-2">{$LL.export.exportYoutubeChapters()}</h3>
-		<p class="text-thirdly text-sm">
+	<div class="mb-4">
+		<h3 class="mb-1 text-base font-semibold text-primary">{$LL.export.exportYoutubeChapters()}</h3>
+		<p class="text-xs leading-snug text-thirdly">
 			{$LL.export.exportYoutubeChaptersDescription()}
 		</p>
 	</div>
 
 	<!-- Chapter Generation Options -->
-	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.chapterGeneration()}</h4>
-		<p class="text-thirdly text-sm mb-4">{$LL.export.chapterGenerationDescription()}</p>
+	<div class="mb-4">
+		<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.chapterGeneration()}</h4>
+		<p class="mb-3 text-xs leading-snug text-thirdly">
+			{$LL.export.chapterGenerationDescription()}
+		</p>
 
-		<div class="space-y-4">
+		<div class="space-y-2">
 			<label
-				class="flex items-center gap-3 cursor-pointer group bg-accent rounded-lg p-4 border border-color hover:border-accent-primary transition-colors"
+				class="group flex cursor-pointer items-start gap-3 rounded-lg border border-color bg-accent p-3 transition-colors hover:border-accent-primary"
 			>
 				<input
 					type="radio"
@@ -84,7 +83,7 @@
 			</label>
 
 			<label
-				class="flex items-center gap-3 cursor-pointer group bg-accent rounded-lg p-4 border border-color hover:border-accent-primary transition-colors"
+				class="group flex cursor-pointer items-start gap-3 rounded-lg border border-color bg-accent p-3 transition-colors hover:border-accent-primary"
 			>
 				<input
 					type="radio"
@@ -111,16 +110,16 @@
 	</div>
 
 	<!-- Custom Format -->
-	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">Chapter Format</h4>
-		<div class="space-y-4">
+	<div class="mb-4">
+		<h4 class="mb-2 text-sm font-medium text-secondary">Chapter Format</h4>
+		<div class="space-y-3">
 			<div>
 				<label for="ytb-chapters-format" class="text-secondary text-sm font-medium">
 					Text format
 				</label>
 				<textarea
 					id="ytb-chapters-format"
-					class="mt-2 min-h-24 w-full rounded-lg border border-color bg-accent p-3 text-sm text-primary outline-none focus:border-accent-primary"
+					class="mt-2 min-h-20 w-full rounded-lg border border-color bg-accent p-3 text-sm text-primary outline-none focus:border-accent-primary"
 					bind:value={globalState.getExportState.ytbChaptersFormat}
 				></textarea>
 				<p class="mt-2 text-xs text-thirdly">
@@ -134,7 +133,7 @@
 				</label>
 				<select
 					id="ytb-chapters-translation"
-					class="mt-2 w-full rounded-lg border border-color bg-accent p-3 text-sm text-primary outline-none focus:border-accent-primary"
+					class="mt-2 h-10 min-w-0 w-full rounded-lg border border-color bg-accent px-2 text-sm text-primary outline-none focus:border-accent-primary"
 					bind:value={globalState.getExportState.ytbChaptersTranslationEditionName}
 				>
 					<option value="">No translation</option>
@@ -147,9 +146,9 @@
 	</div>
 
 	<!-- Usage Instructions -->
-	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.howToUse()}</h4>
-		<div class="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+	<div class="mb-4">
+		<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.howToUse()}</h4>
+		<div class="rounded-lg border border-blue-500/20 bg-blue-500/10 p-3">
 			<div class="flex items-start gap-3">
 				<div class="text-blue-400 text-lg flex-shrink-0">ℹ️</div>
 				<div>
@@ -165,10 +164,10 @@
 	</div>
 
 	<!-- Export Filename -->
-	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.exportFileName()}</h4>
-		<div class="bg-accent rounded-lg p-4 border border-color">
-			<p class="text-thirdly text-sm mb-4">
+	<div class="mb-4">
+		<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.exportFileName()}</h4>
+		<div class="rounded-lg border border-color bg-accent p-3">
+			<p class="mb-3 text-xs leading-snug text-thirdly">
 				{$LL.export.enterExportFileName()}
 			</p>
 
@@ -187,16 +186,16 @@
 	</div>
 
 	<!-- Export Folder -->
-	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.exportFolder()}</h4>
-		<div class="bg-accent rounded-lg p-4 border border-color">
+	<div class="mb-4">
+		<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.exportFolder()}</h4>
+		<div class="rounded-lg border border-color bg-accent p-3">
 			<ExportFolderPicker />
 		</div>
 	</div>
 
 	<!-- Export Button -->
 	<div class="flex flex-col items-center">
-		<button class="btn-accent px-6 py-3 font-medium" onclick={Exporter.exportYtbChapters}>
+		<button class="btn-accent h-11 w-full px-4 font-medium" onclick={Exporter.exportYtbChapters}>
 			{$LL.export.exportYoutubeChaptersButton()}
 		</button>
 		<p class="text-thirdly text-xs mt-2 text-center">

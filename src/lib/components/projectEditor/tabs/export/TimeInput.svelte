@@ -1,10 +1,7 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
-	import { get } from 'svelte/store';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
-
-	const LL_ = get(LL);
 
 	let {
 		label,
@@ -42,16 +39,16 @@
 </script>
 
 <div>
-	<label for="time-input-{label}" class="block text-secondary text-sm font-medium mb-2">
+	<label for="time-input-{label}" class="mb-1.5 block text-xs font-medium text-secondary">
 		{label}
 	</label>
 
-	<div class="relative flex flex-col 2xl:flex-row gap-2 items-center">
+	<div class="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
 		<input
 			id="time-input-{label}"
 			type="time"
 			step="1"
-			class="w-full px-3 py-2 bg-secondary border border-color rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent"
+			class="h-10 min-w-0 w-full rounded-lg border border-color bg-secondary px-2 text-sm text-primary focus:border-transparent focus:outline-none focus:ring-2 focus:ring-accent-primary"
 			oninput={(e) => {
 				// Convertis en ms et applique
 				const timeString = (e.target as HTMLInputElement).value;
@@ -62,18 +59,16 @@
 			value={msToTimeValue(value)}
 			{placeholder}
 		/>
-		<div class=" flex flex-row items-center gap-x-2">
-			<span class="text-thirdly text-sm">{$LL.export.orText()}</span>
-			<button
-				class="btn-accent text-sm py-1 px-3 min-w-[150px] whitespace-nowrap"
-				title={$LL.export.cursorTimeTitle()}
-				onclick={() => {
-					const currentPreviewTime = globalState.getTimelineState.cursorPosition;
-					applyValue(currentPreviewTime);
-				}}
-			>
-				{$LL.export.useCursorTime()}
-			</button>
-		</div>
+		<button
+			class="btn-accent flex h-10 max-w-32 items-center justify-center gap-1 px-2 text-[11px] leading-tight"
+			title={$LL.export.cursorTimeTitle()}
+			onclick={() => {
+				const currentPreviewTime = globalState.getTimelineState.cursorPosition;
+				applyValue(currentPreviewTime);
+			}}
+		>
+			<span class="material-icons-outlined shrink-0 text-sm">my_location</span>
+			<span class="line-clamp-2">{$LL.export.useCursorTime()}</span>
+		</button>
 	</div>
 </div>

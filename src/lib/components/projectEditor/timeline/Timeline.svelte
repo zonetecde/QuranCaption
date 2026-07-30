@@ -1070,19 +1070,22 @@
 						style="left: {(globalState.getExportState.videoEndTime / 1000) * timelineState().zoom +
 							timelineLeftHeaderWidthPx}px;"
 					></div>
-					{#each globalState.getExportState.skipRanges ?? [] as range}
+					{#each globalState.getExportState.skipRanges ?? [] as range (range)}
 						<div
 							class="skip-range-overlay"
-							style="left: {(range.startTime / 1000) * timelineState().zoom + 180}px;
+							style="left: {(range.startTime / 1000) * timelineState().zoom +
+								timelineLeftHeaderWidthPx}px;
 								width: {(Math.max(0, range.endTime - range.startTime) / 1000) * timelineState().zoom}px;"
 						></div>
 						<div
 							class="skip-range-border skip-start"
-							style="left: {(range.startTime / 1000) * timelineState().zoom + 180}px;"
+							style="left: {(range.startTime / 1000) * timelineState().zoom +
+								timelineLeftHeaderWidthPx}px;"
 						></div>
 						<div
 							class="skip-range-border skip-end"
-							style="left: {(range.endTime / 1000) * timelineState().zoom + 180}px;"
+							style="left: {(range.endTime / 1000) * timelineState().zoom +
+								timelineLeftHeaderWidthPx}px;"
 						></div>
 					{/each}
 				{/if}

@@ -1,4 +1,3 @@
-import { getCurrentWindow } from '@tauri-apps/api/window';
 import {
 	AssetClip,
 	ClipWithTranslation,
@@ -9,9 +8,6 @@ import {
 import { ProjectEditorTabs } from './enums';
 import { SerializableBase } from './misc/SerializableBase';
 import { globalState } from '$lib/runes/main.svelte';
-import ModalManager from '$lib/components/modals/ModalManager';
-import LL from '$lib/i18n/i18n-svelte';
-import { get } from 'svelte/store';
 import type { StoredSegmentationContext } from '$lib/services/AutoSegmentation';
 
 /**
@@ -277,22 +273,9 @@ export class VideoPreviewState extends SerializableBase {
 	// Fonction pour scroll la timeline à la position du curseur, sera définie par le composant Timeline
 	scrollTimelineToCursor: () => void = () => {};
 
-	async toggleFullScreen() {
-		const appWindow = getCurrentWindow();
-
-		try {
-			globalState.currentProject!.projectEditorState.videoPreview.isFullscreen =
-				!globalState.currentProject!.projectEditorState.videoPreview.isFullscreen;
-			await appWindow.setFullscreen(
-				globalState.currentProject!.projectEditorState.videoPreview.isFullscreen
-			);
-		} catch (err: unknown) {
-			ModalManager.errorModal(
-				get(LL).common.error(),
-				get(LL).common.unexpectedError(),
-				JSON.stringify(err)
-			);
-		}
+	toggleFullScreen() {
+		globalState.currentProject!.projectEditorState.videoPreview.isFullscreen =
+			!globalState.currentProject!.projectEditorState.videoPreview.isFullscreen;
 	}
 }
 

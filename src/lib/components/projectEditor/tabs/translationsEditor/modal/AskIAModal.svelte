@@ -50,7 +50,7 @@
 	let aiPrompt: string = $state('');
 	let aiResponse: string = $state('');
 	let activeTab: 'legacy' | 'advanced' = $state(
-		globalState.settings?.aiTranslationSettings?.activeModalTab ?? 'legacy'
+		globalState.settings?.aiTranslationSettings?.activeModalTab ?? 'advanced'
 	);
 
 	// Variables pour le slider de sélection de plage

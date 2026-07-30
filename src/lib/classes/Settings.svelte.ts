@@ -182,7 +182,7 @@ export default class Settings extends SerializableBase {
 		advancedAlsoAskReviewed: false,
 		aiBoldCustomNote: '',
 		aiWbwTranslationCustomNote: '',
-		activeModalTab: 'legacy'
+		activeModalTab: 'advanced'
 	});
 
 	stockMediaSettings = $state<StockMediaSettings>({

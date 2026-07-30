@@ -15,6 +15,8 @@ export const PROJECT_EDITOR_STYLE_SECTION_HEIGHTS = {
 	timeline: { default: 10, min: 7, max: 14 }
 } as const;
 
+export const PROJECT_EDITOR_VIDEO_TIMELINE_HEIGHT = { min: 7, max: 40 } as const;
+
 export const DEFAULT_STYLE_PANEL_WIDTH = PROJECT_EDITOR_PANEL_WIDTHS.style.default;
 
 export const DEFAULT_PROJECT_EDITOR_LAYOUT = {

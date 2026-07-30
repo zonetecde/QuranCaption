@@ -552,6 +552,7 @@
 					backgroundDiv.style.backgroundColor = '#11151c';
 					backgroundDiv.style.background =
 						'repeating-linear-gradient(45deg, #161b22, #161b22 5px, #11151c 5px, #11151c 25px)';
+					backgroundDiv.addEventListener('click', exitMobileFullscreen);
 					document.body.appendChild(backgroundDiv);
 				}
 
@@ -1258,6 +1259,23 @@
 		// Sinon ne fait rien (cas vidéo qui se termine sans prochaine vidéo)
 	}
 
+	/**
+	 * Quitte le plein écran mobile depuis la vidéo ou son arrière-plan quadrillé.
+	 * @param {MouseEvent} event Événement de clic reçu par la vidéo ou son arrière-plan.
+	 * @returns {void}
+	 */
+	function exitMobileFullscreen(event: MouseEvent): void {
+		if (!isAndroid || !globalState.getVideoPreviewState.isFullscreen) return;
+		if (
+			event.target instanceof Element &&
+			event.target.closest('button, input, select, textarea, a, [contenteditable="true"]')
+		) {
+			return;
+		}
+		globalState.getVideoPreviewState.isFullscreen = false;
+		resizeVideoToFitScreen();
+	}
+
 	onMount(() => {
 		// Si Quran Caption a été quitté en fullscreen, on enlève le fullscreen.
 		if (globalState.getVideoPreviewState.isFullscreen) {
@@ -1287,6 +1305,7 @@
 	<div
 		class="w-full h-full flex flex-col relative overflow-hidden background-primary"
 		id="preview-container"
+		onclick={exitMobileFullscreen}
 	>
 		<!-- Conteneur de la prévisualisation vidéo avec mise à l'échelle -->
 		<div class="relative origin-top-left overflow-hidden bg-black" id="preview">

@@ -2937,6 +2937,7 @@ const es = {
 		errorCopiedToClipboard: 'Error copiado al portapapeles',
 		failedToCopyError: 'Error al copiar el error',
 		openFile: 'Abrir archivo',
+		shareFile: 'Compartir archivo',
 		batchSize: 'Tamaño del lote',
 		statePending: 'En espera',
 		stateRecording: 'Grabando',

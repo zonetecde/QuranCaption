@@ -1614,6 +1614,7 @@ const id = {
 		errorCopiedToClipboard: 'Error disalin ke clipboard',
 		failedToCopyError: 'Gagal menyalin error',
 		openFile: 'Buka file',
+		shareFile: 'Bagikan file',
 		batchSize: 'Ukuran batch',
 		statePending: 'Menunggu',
 		stateRecording: 'Merekam',

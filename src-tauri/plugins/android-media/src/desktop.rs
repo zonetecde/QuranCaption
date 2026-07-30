@@ -47,6 +47,11 @@ impl<R: Runtime> AndroidMedia<R> {
         Err(Error::UnsupportedPlatform)
     }
 
+    /// Refuse le partage d'une URI Android hors Android.
+    pub fn share_uri(&self, _uri: String, _mime_type: String) -> Result<bool> {
+        Err(Error::UnsupportedPlatform)
+    }
+
     /// Refuse l'import d'une URI Android hors Android.
     pub fn import_uri(&self, _uri: String, _destination_dir: String) -> Result<String> {
         Err(Error::UnsupportedPlatform)

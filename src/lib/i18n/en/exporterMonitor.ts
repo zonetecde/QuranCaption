@@ -15,6 +15,7 @@ const exporterMonitor = {
 	errorCopiedToClipboard: 'Error copied to clipboard',
 	failedToCopyError: 'Failed to copy error',
 	openFile: 'Open file',
+	shareFile: 'Share file',
 	batchSize: 'Batch size',
 	statePending: 'Waiting',
 	stateRecording: 'Recording',

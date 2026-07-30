@@ -94,6 +94,14 @@ impl<R: Runtime> AndroidMedia<R> {
             .map_err(Into::into)
     }
 
+    /// Partage une URI Android avec une application choisie par l'utilisateur.
+    pub fn share_uri(&self, uri: String, mime_type: String) -> Result<bool> {
+        self.0
+            .run_mobile_plugin::<OpenUriResponse>("shareUri", OpenUriRequest { uri, mime_type })
+            .map(|response| response.opened)
+            .map_err(Into::into)
+    }
+
     /// Importe le contenu d'une URI Android dans un dossier local.
     pub fn import_uri(&self, uri: String, destination_dir: String) -> Result<String> {
         self.0

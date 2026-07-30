@@ -2944,6 +2944,7 @@ const de = {
 		errorCopiedToClipboard: 'Fehler in die Zwischenablage kopiert',
 		failedToCopyError: 'Fehler konnte nicht kopiert werden',
 		openFile: 'Datei öffnen',
+		shareFile: 'Datei teilen',
 		batchSize: 'Stapelgröße',
 		statePending: 'Wartend',
 		stateRecording: 'Aufnahme',

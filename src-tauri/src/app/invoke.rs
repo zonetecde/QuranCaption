@@ -12,6 +12,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::auth::quran_auth_secure_delete,
         commands::android_export::publish_android_export,
         commands::android_export::open_android_export,
+        commands::android_export::share_android_export,
         commands::android_export::import_android_media,
         commands::android_export::set_android_export_keep_screen_on,
         commands::android_export::start_android_export_foreground_service,

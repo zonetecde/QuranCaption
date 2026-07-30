@@ -216,6 +216,32 @@
 	}
 
 	/**
+	 * Ouvre la feuille de partage Android pour un fichier exporté.
+	 * @param {Exportation} exportation Export à partager.
+	 * @returns {Promise<void>}
+	 */
+	async function shareExportedFile(exportation: Exportation): Promise<void> {
+		try {
+			if (
+				exportation.finalFilePath.startsWith('content://') ||
+				(await exists(exportation.finalFilePath))
+			) {
+				const shared = await invoke<boolean>('share_android_export', {
+					uri: exportation.finalFilePath,
+					mimeType: getMimeType(exportation.finalFileName)
+				});
+				if (shared) return;
+			}
+		} catch (error) {
+			console.error('Unable to share exported file:', error);
+		}
+		ModalManager.errorModal(
+			get(LL).exporterMonitor.fileNotFound(),
+			get(LL).exporterMonitor.exportedFileNotFound()
+		);
+	}
+
+	/**
 	 * Annule un export actif ou retire une entrée terminée, puis persiste la liste.
 	 * @param {Exportation} exportation Export ciblé.
 	 * @returns {Promise<void>}
@@ -502,25 +528,40 @@
 										<span>{get(LL).export.durationColumn()}</span>
 										<strong>{formatDuration(exportation.videoLength)}</strong>
 									</div>
-									<div class="col-span-2 flex min-w-0 gap-2">
-										<div class="detail-pill min-w-0 flex-1">
+								{/if}
+								<div class="col-span-2 flex min-w-0 gap-2">
+									<div class="detail-pill min-w-0 flex-1">
+										{#if exportation.exportKind === ExportKind.Video}
 											<span>{get(LL).export.versesColumn()}</span>
 											<strong class="truncate">{exportation.verseRange}</strong>
-										</div>
-										<button
-											type="button"
-											class="small-action shrink-0 whitespace-nowrap"
-											onclick={() => toggleExportLogs(exportation.exportId)}
-										>
-											<span class="material-icons text-[16px]!">terminal</span>
-										</button>
-									</div>
-								{:else}
-									<div class="col-span-2 flex min-w-0 gap-2">
-										<div class="detail-pill min-w-0 flex-1">
+										{:else}
 											<span>{get(LL).export.typeColumn()}</span>
 											<strong>{exportation.exportLabel || get(LL).export.textExport()}</strong>
-										</div>
+										{/if}
+									</div>
+
+									{#if exportation.currentState === ExportState.Exported}
+										<button
+											type="button"
+											class="btn-accent inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 px-3 text-xs font-medium whitespace-nowrap"
+											onclick={() => openExportedFile(exportation)}
+										>
+											<span class="material-icons text-[18px]!">play_circle</span>
+											{monitorMessage('openFile')}
+										</button>
+
+										{#if exportation.exportLabel === 'Project data'}
+											<button
+												type="button"
+												class="small-action shrink-0 justify-center px-3!"
+												onclick={() => shareExportedFile(exportation)}
+												aria-label={monitorMessage('shareFile')}
+												title={monitorMessage('shareFile')}
+											>
+												<span class="material-icons text-[18px]!">share</span>
+											</button>
+										{/if}
+									{:else}
 										<button
 											type="button"
 											class="small-action shrink-0 whitespace-nowrap"
@@ -528,8 +569,8 @@
 										>
 											<span class="material-icons text-[16px]!">terminal</span>
 										</button>
-									</div>
-								{/if}
+									{/if}
+								</div>
 							</div>
 
 							{#if exportation.currentState === ExportState.Error && exportation.errorLog}
@@ -549,19 +590,6 @@
 									</div>
 									<pre
 										class="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words text-[11px] text-red-200">{exportation.errorLog}</pre>
-								</div>
-							{/if}
-
-							{#if exportation.currentState === ExportState.Exported}
-								<div class="mt-3 flex flex-wrap items-center justify-end gap-2">
-									<button
-										type="button"
-										class="btn-accent min-h-11 px-4 text-sm font-medium"
-										onclick={() => openExportedFile(exportation)}
-									>
-										<span class="material-icons mr-2 text-[18px]!">play_circle</span>
-										{monitorMessage('openFile')}
-									</button>
 								</div>
 							{/if}
 

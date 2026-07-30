@@ -2676,6 +2676,7 @@ const zh = {
 		errorCopiedToClipboard: '错误已复制到剪贴板',
 		failedToCopyError: '复制错误失败',
 		openFile: '打开文件',
+		shareFile: '分享文件',
 		batchSize: '批次大小',
 		statePending: '等待中',
 		stateRecording: '录制中',

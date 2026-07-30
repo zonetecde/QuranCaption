@@ -268,15 +268,7 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
 
         hostActivity.runOnUiThread {
             try {
-                val uri = if (args.uri.startsWith("content://")) {
-                    Uri.parse(args.uri)
-                } else {
-                    FileProvider.getUriForFile(
-                        hostActivity,
-                        "${hostActivity.packageName}.fileprovider",
-                        localFile(args.uri),
-                    )
-                }
+                val uri = shareableUri(args.uri)
                 val intent = Intent(Intent.ACTION_VIEW).apply {
                     setDataAndType(uri, args.mimeType.ifBlank { "*/*" })
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -294,6 +286,35 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
                 )
             } catch (error: Exception) {
                 reject(invoke, "Failed to open URI", error)
+            }
+        }
+    }
+
+    /**
+     * Ouvre la feuille de partage Android pour une URI ou un fichier local.
+     *
+     * @param invoke Appel Tauri contenant le fichier et son type MIME.
+     */
+    @Command
+    fun shareUri(invoke: Invoke) {
+        val args = try {
+            invoke.parseArgs(OpenUriArgs::class.java)
+        } catch (error: Exception) {
+            reject(invoke, "Failed to parse share arguments", error)
+            return
+        }
+
+        hostActivity.runOnUiThread {
+            try {
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = args.mimeType.ifBlank { "*/*" }
+                    putExtra(Intent.EXTRA_STREAM, shareableUri(args.uri))
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                hostActivity.startActivity(Intent.createChooser(intent, null))
+                invoke.resolve(JSObject().apply { put("opened", true) })
+            } catch (error: Exception) {
+                reject(invoke, "Failed to share URI", error)
             }
         }
     }
@@ -540,6 +561,21 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
         } else {
             File(value)
         }
+    }
+
+    /**
+     * Convertit un chemin local en URI partageable ou conserve une URI de contenu existante.
+     *
+     * @param value URI ou chemin local.
+     * @return URI lisible par une application Android externe.
+     */
+    private fun shareableUri(value: String): Uri {
+        if (value.startsWith("content://")) return Uri.parse(value)
+        return FileProvider.getUriForFile(
+            hostActivity,
+            "${hostActivity.packageName}.fileprovider",
+            localFile(value),
+        )
     }
 
     /**

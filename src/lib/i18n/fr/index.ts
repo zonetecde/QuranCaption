@@ -2966,6 +2966,7 @@ const fr = {
 		errorCopiedToClipboard: 'Erreur copiée dans le presse-papier',
 		failedToCopyError: 'Échec de copie de l\u2019erreur',
 		openFile: 'Ouvrir le fichier',
+		shareFile: 'Partager le fichier',
 		batchSize: 'Taille du lot',
 		statePending: 'En attente',
 		stateRecording: 'Enregistrement',

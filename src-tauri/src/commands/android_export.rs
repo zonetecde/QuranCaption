@@ -65,6 +65,33 @@ pub async fn open_android_export(
     }
 }
 
+/// Partage un fichier exporté avec une application Android compatible.
+///
+/// @param app_handle Handle de l'application.
+/// @param uri URI ou chemin local du fichier.
+/// @param mime_type Type MIME transmis à ACTION_SEND.
+/// @returns `true` lorsque la feuille de partage a été ouverte.
+#[tauri::command]
+pub async fn share_android_export(
+    app_handle: tauri::AppHandle,
+    uri: String,
+    mime_type: String,
+) -> Result<bool, String> {
+    #[cfg(target_os = "android")]
+    {
+        return app_handle
+            .android_media()
+            .share_uri(uri, mime_type)
+            .map_err(|error| error.to_string());
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (app_handle, uri, mime_type);
+        Ok(false)
+    }
+}
+
 /// Copie un média SAF vers un chemin privé persistant utilisable par FFmpeg.
 ///
 /// @param app_handle Handle de l'application.

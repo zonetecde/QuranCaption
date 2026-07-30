@@ -28,6 +28,8 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.7.0")
     implementation("dev.ffmpegkit-maintained:ffmpeg-kit-full:8.1.7")
+    implementation("io.github.junkfood02.youtubedl-android:library:0.18.1")
+    implementation("io.github.junkfood02.youtubedl-android:ffmpeg:0.18.1")
     implementation("com.arthenica:smart-exception-java:0.2.1")
     implementation(project(":tauri-android"))
 }

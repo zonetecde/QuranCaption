@@ -73,6 +73,34 @@ pub(crate) struct ImportUriResponse {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct DownloadYoutubeRequest {
+    pub(crate) url: String,
+    pub(crate) download_type: String,
+    pub(crate) download_path: String,
+    pub(crate) download_request_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct StartYoutubeDownloadResponse {
+    pub(crate) started: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct YoutubeDownloadSessionRequest {
+    pub(crate) download_request_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct YoutubeDownloadSessionSnapshot {
+    pub state: String,
+    pub progress: f64,
+    pub path: String,
+    pub error: String,
+}
+
+#[derive(Debug, Serialize)]
 pub(crate) struct KeepScreenOnRequest {
     pub(crate) enabled: bool,
 }

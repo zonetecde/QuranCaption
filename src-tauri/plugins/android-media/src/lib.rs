@@ -17,7 +17,7 @@ pub use desktop::AndroidMedia;
 pub use error::{Error, Result};
 #[cfg(target_os = "android")]
 pub use mobile::AndroidMedia;
-pub use models::FfmpegSessionSnapshot;
+pub use models::{FfmpegSessionSnapshot, YoutubeDownloadSessionSnapshot};
 
 /// Ajoute l'accès aux services multimédias Android aux gestionnaires Tauri.
 pub trait AndroidMediaExt<R: Runtime> {

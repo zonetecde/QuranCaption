@@ -9,6 +9,8 @@ use crate::binaries;
 use crate::path_utils;
 use crate::utils::process::configure_command_no_window;
 use tauri::Emitter;
+#[cfg(target_os = "android")]
+use tauri_plugin_android_media::AndroidMediaExt;
 
 /// Emet un evenement de progression du telechargement YouTube vers le frontend.
 ///
@@ -123,6 +125,53 @@ pub async fn download_from_youtube(
     download_request_id: Option<String>,
     app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
+    #[cfg(target_os = "android")]
+    {
+        let download_request_id = download_request_id.clone().unwrap_or_else(|| {
+            format!(
+                "req-{}",
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|duration| duration.as_millis())
+                    .unwrap_or(0)
+            )
+        });
+        let started = app_handle
+            .android_media()
+            .start_youtube_download(
+                url.clone(),
+                _type.clone(),
+                download_path.clone(),
+                download_request_id.clone(),
+            )
+            .map_err(|error| error.to_string())?;
+        if !started {
+            return Err("Unable to start yt-dlp".to_string());
+        }
+
+        loop {
+            let snapshot = app_handle
+                .android_media()
+                .poll_youtube_download(download_request_id.clone())
+                .map_err(|error| error.to_string())?;
+            emit_youtube_download_progress(
+                &app_handle,
+                &download_request_id,
+                snapshot.progress.clamp(0.0, 100.0),
+                "downloading",
+            );
+
+            match snapshot.state.as_str() {
+                "COMPLETED" => return Ok(snapshot.path),
+                "FAILED" => {
+                    emit_youtube_download_error(&app_handle, &download_request_id, &snapshot.error);
+                    return Err(snapshot.error);
+                }
+                _ => tokio::time::sleep(std::time::Duration::from_millis(200)).await,
+            }
+        }
+    }
+
     let download_path_buf = path_utils::normalize_input_path(&download_path);
     let download_path_str = download_path_buf.to_string_lossy().to_string();
     if let Err(e) = fs::create_dir_all(&download_path_buf) {

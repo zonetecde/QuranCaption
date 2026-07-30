@@ -30,6 +30,7 @@ export class AnalyticsService {
 				persistence: 'localStorage',
 				autocapture: false // Disable autocapture to keep data clean and focused
 			});
+			posthog.register({ platform: 'desktop' });
 
 			// Register super properties that become part of every event
 			// Race strict timeout to prevent blocking init if Tauri IPC hangs

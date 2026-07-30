@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-
 	type TranslationWordSelectorItem = {
 		text: string;
 		wordIndex: number;
@@ -26,6 +24,10 @@
 	let dragStartIndex = $state(-1);
 	let selectionStart = $state(-1);
 	let selectionEnd = $state(-1);
+	let activePointerId: number | null = null;
+	let selectorElement: HTMLElement | null = $state(null);
+
+	const POINTER_TOLERANCE_PX = 24;
 
 	/**
 	 * Réinitialise la sélection temporaire.
@@ -37,6 +39,7 @@
 		dragStartIndex = -1;
 		selectionStart = -1;
 		selectionEnd = -1;
+		activePointerId = null;
 	}
 
 	/**
@@ -50,29 +53,75 @@
 	}
 
 	/**
-	 * Démarre une sélection à la souris.
+	 * Retourne le mot sous le pointeur, ou le plus proche dans la zone du sélecteur.
+	 *
+	 * @param {number} clientX Position horizontale du pointeur.
+	 * @param {number} clientY Position verticale du pointeur.
+	 * @returns {number | null} Index du mot trouvé, sinon `null`.
+	 */
+	function getWordIndexAtPoint(clientX: number, clientY: number): number | null {
+		if (!selectorElement) return null;
+
+		const selectorRect = selectorElement.getBoundingClientRect();
+		if (
+			clientX < selectorRect.left - POINTER_TOLERANCE_PX ||
+			clientX > selectorRect.right + POINTER_TOLERANCE_PX ||
+			clientY < selectorRect.top - POINTER_TOLERANCE_PX ||
+			clientY > selectorRect.bottom + POINTER_TOLERANCE_PX
+		) {
+			return null;
+		}
+
+		let closestWordIndex: number | null = null;
+		let closestDistance = Number.POSITIVE_INFINITY;
+		for (const wordElement of selectorElement.querySelectorAll<HTMLElement>(
+			'[data-translation-style-word-index]'
+		)) {
+			const rect = wordElement.getBoundingClientRect();
+			const deltaX = Math.max(rect.left - clientX, 0, clientX - rect.right);
+			const deltaY = Math.max(rect.top - clientY, 0, clientY - rect.bottom);
+			const distance = deltaX * deltaX + deltaY * deltaY;
+			if (distance >= closestDistance) continue;
+
+			const wordIndex = Number(wordElement.dataset.translationStyleWordIndex);
+			if (!Number.isInteger(wordIndex)) continue;
+			closestDistance = distance;
+			closestWordIndex = wordIndex;
+		}
+
+		return closestWordIndex;
+	}
+
+	/**
+	 * Démarre une sélection tactile ou souris.
 	 *
 	 * @param {number} wordIndex Index du mot cliqué.
-	 * @param {MouseEvent} event Événement souris source.
+	 * @param {PointerEvent} event Événement pointeur source.
 	 * @returns {void}
 	 */
-	function handleMouseDown(wordIndex: number, event: MouseEvent): void {
+	function handlePointerDown(wordIndex: number, event: PointerEvent): void {
+		if (activePointerId !== null || event.button !== 0) return;
 		event.preventDefault();
+		selectorElement?.setPointerCapture(event.pointerId);
 		isDragging = true;
 		dragStartIndex = wordIndex;
 		selectionStart = wordIndex;
 		selectionEnd = wordIndex;
+		activePointerId = event.pointerId;
 	}
 
 	/**
-	 * Étend la sélection pendant le survol.
+	 * Étend la sélection jusqu'au mot actuellement sous le pointeur.
 	 *
-	 * @param {number} wordIndex Index du mot survolé.
+	 * @param {PointerEvent} event Événement de déplacement du pointeur.
 	 * @returns {void}
 	 */
-	function handleMouseEnter(wordIndex: number): void {
-		if (!isDragging) return;
+	function handlePointerMove(event: PointerEvent): void {
+		if (!isDragging || event.pointerId !== activePointerId) return;
+		if (event.cancelable) event.preventDefault();
 
+		const wordIndex = getWordIndexAtPoint(event.clientX, event.clientY);
+		if (wordIndex === null) return;
 		selectionStart = Math.min(dragStartIndex, wordIndex);
 		selectionEnd = Math.max(dragStartIndex, wordIndex);
 	}
@@ -80,9 +129,11 @@
 	/**
 	 * Termine le drag et transmet la plage sélectionnée.
 	 *
+	 * @param {PointerEvent} event Événement de fin du pointeur.
 	 * @returns {void}
 	 */
-	function finishSelection(): void {
+	function finishSelection(event: PointerEvent): void {
+		if (event.pointerId !== activePointerId) return;
 		if (!isDragging || selectionStart === -1 || selectionEnd === -1) {
 			resetSelection();
 			return;
@@ -92,31 +143,38 @@
 		resetSelection();
 	}
 
-	onMount(() => {
-		window.addEventListener('mouseup', finishSelection);
-
-		return () => {
-			window.removeEventListener('mouseup', finishSelection);
-		};
-	});
+	/**
+	 * Annule proprement un geste interrompu par le système.
+	 *
+	 * @param {PointerEvent} event Événement d'annulation du pointeur.
+	 * @returns {void}
+	 */
+	function cancelSelection(event: PointerEvent): void {
+		if (event.pointerId === activePointerId) resetSelection();
+	}
 </script>
 
+<svelte:window
+	onpointermove={handlePointerMove}
+	onpointerup={finishSelection}
+	onpointercancel={cancelSelection}
+/>
+
 <div
-	class="translation-style-flow select-none"
+	class="translation-style-flow select-none touch-none"
 	dir={direction}
-	onmouseup={finishSelection}
-	onmouseleave={finishSelection}
+	bind:this={selectorElement}
 	role="presentation"
 >
 	{#each words as word (`${word.wordIndex}-${word.text}`)}
 		{@const isSelected = isDragSelected(word.wordIndex) || isWordSelected(word.wordIndex)}
 		<button
-			class={`translation-word-style text-sm transition-all duration-150 ${showHoverEffect ? 'translation-word-style-hoverable' : ''} ${
+			class={`translation-word-style touch-none text-sm transition-all duration-150 ${showHoverEffect ? 'translation-word-style-hoverable' : ''} ${
 				isSelected ? 'translation-word-style-selected text-primary shadow-sm' : 'text-primary'
 			}`}
 			style={word.style ?? ''}
-			onmousedown={(event) => handleMouseDown(word.wordIndex, event)}
-			onmouseenter={() => handleMouseEnter(word.wordIndex)}
+			data-translation-style-word-index={word.wordIndex}
+			onpointerdown={(event) => handlePointerDown(word.wordIndex, event)}
 			ondragstart={(event) => event.preventDefault()}
 		>
 			{word.text}
@@ -155,6 +213,7 @@
 		line-height: 1.7;
 		color: var(--text-primary);
 		cursor: text;
+		touch-action: none;
 	}
 
 	.translation-word-style-hoverable:hover {

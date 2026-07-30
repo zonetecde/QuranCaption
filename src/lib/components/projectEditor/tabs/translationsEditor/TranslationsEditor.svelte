@@ -1,68 +1,68 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
+	import MobileSideDrawers from '$lib/components/misc/MobileSideDrawers.svelte';
 	import AddTranslationModal from './modal/AddTranslationModal.svelte';
 	import TranslationInlineStylePanel from './TranslationInlineStylePanel.svelte';
-	import MobileRightDrawer from '$lib/components/misc/MobileRightDrawer.svelte';
 	import TranslationsEditorSettings from './leftPanel/TranslationsEditorSettings.svelte';
 	import Workspace from './workspace/Workspace.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
-	import DiviseurRedimensionnable from '../DiviseurRedimensionnable.svelte';
-	import { globalState } from '$lib/runes/main.svelte';
-	import { PROJECT_EDITOR_PANEL_WIDTHS } from '$lib/constants/projectEditor';
 
 	let addTranslationModalVisibility = $state(false);
+	let leftDrawerOpen = $state(false);
+	let rightDrawerOpen = $state(false);
 </script>
 
-<div class="relative flex-grow w-full max-w-full flex overflow-hidden h-full min-h-0">
-	<!-- Assets -->
-	<section
-		class="flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col"
-		style={`width: ${globalState.settings!.persistentUiState.projectEditorLayout.translationsEditorLeftPanelWidth}px;`}
-	>
-		<TranslationsEditorSettings
+<div class="translations-editor-mobile-shell">
+	<section class="translations-editor-toolbar">
+		<button
+			class="drawer-toggle"
+			class:drawer-open={leftDrawerOpen}
+			type="button"
+			aria-label={$LL.editor.translations()}
+			aria-expanded={leftDrawerOpen}
+			onclick={() => {
+				leftDrawerOpen = !leftDrawerOpen;
+				rightDrawerOpen = false;
+			}}
+		>
+			<span class="material-icons">tune</span>
+		</button>
+
+		<h2 class="translations-editor-title">{$LL.editor.translations()}</h2>
+
+		<button
+			class="drawer-toggle"
+			class:drawer-open={rightDrawerOpen}
+			type="button"
+			aria-label={$LL.editor.wordStyles()}
+			aria-expanded={rightDrawerOpen}
+			onclick={() => {
+				rightDrawerOpen = !rightDrawerOpen;
+				leftDrawerOpen = false;
+			}}
+		>
+			<span class="material-icons">format_paint</span>
+		</button>
+	</section>
+
+	<section class="translations-editor-workspace">
+		<Workspace
 			setAddTranslationModalVisibility={(visible: boolean) =>
 				(addTranslationModalVisibility = visible)}
 		/>
 	</section>
-	<DiviseurRedimensionnable
-		orientation="vertical"
-		bind:value={
-			globalState.settings!.persistentUiState.projectEditorLayout.translationsEditorLeftPanelWidth
-		}
-		min={PROJECT_EDITOR_PANEL_WIDTHS.translationsLeft.min}
-		max={PROJECT_EDITOR_PANEL_WIDTHS.translationsLeft.max}
-		dataTestId="translations-left-panel-resizer"
-	/>
-	<section class="flex-1 min-w-0 flex flex-row max-h-full min-h-0">
-		<section class="w-full min-w-0 flex flex-col min-h-0">
-			<Workspace
+
+	<MobileSideDrawers bind:leftOpen={leftDrawerOpen} bind:rightOpen={rightDrawerOpen}>
+		{#snippet leftContent()}
+			<TranslationsEditorSettings
 				setAddTranslationModalVisibility={(visible: boolean) =>
 					(addTranslationModalVisibility = visible)}
 			/>
-		</section>
-	</section>
-
-	<DiviseurRedimensionnable
-		orientation="vertical"
-		bind:value={
-			globalState.settings!.persistentUiState.projectEditorLayout.translationsEditorRightPanelWidth
-		}
-		min={PROJECT_EDITOR_PANEL_WIDTHS.translationsRight.min}
-		max={PROJECT_EDITOR_PANEL_WIDTHS.translationsRight.max}
-		reverse
-		class="hidden 2xl:block"
-		dataTestId="translations-right-panel-resizer"
-	/>
-	<section
-		class="hidden 2xl:flex flex-shrink-0 max-h-full overflow-hidden flex-col border-l border-color border-t ml-1 rounded-lg bg-secondary"
-		style={`width: ${globalState.settings!.persistentUiState.projectEditorLayout.translationsEditorRightPanelWidth}px;`}
-	>
-		<TranslationInlineStylePanel />
-	</section>
-
-	<MobileRightDrawer title={$LL.editor.wordStyles()} icon="tune" triggerTopClass="top-0">
-		<TranslationInlineStylePanel />
-	</MobileRightDrawer>
+		{/snippet}
+		{#snippet rightContent()}
+			<TranslationInlineStylePanel />
+		{/snippet}
+	</MobileSideDrawers>
 </div>
 
 {#if addTranslationModalVisibility}
@@ -70,3 +70,69 @@
 		<AddTranslationModal close={() => (addTranslationModalVisibility = false)} />
 	</div>
 {/if}
+
+<style>
+	.translations-editor-mobile-shell {
+		position: relative;
+		display: flex;
+		height: 100%;
+		min-height: 0;
+		width: 100%;
+		flex-direction: column;
+		gap: 0.5rem;
+		overflow: hidden;
+		padding: 0.5rem;
+	}
+
+	.translations-editor-toolbar {
+		display: flex;
+		flex-shrink: 0;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.translations-editor-title {
+		min-width: 0;
+		flex: 1;
+		overflow: hidden;
+		text-align: center;
+		font-size: 1rem;
+		font-weight: 600;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		color: var(--text-primary);
+	}
+
+	.translations-editor-workspace {
+		display: flex;
+		flex: 1 1 0;
+		min-height: 0;
+		overflow: hidden;
+	}
+
+	.drawer-toggle {
+		z-index: 40;
+		display: flex;
+		flex-shrink: 0;
+		height: 2.5rem;
+		width: 2.5rem;
+		align-items: center;
+		justify-content: center;
+		border: 1px solid var(--border-color);
+		border-radius: 9999px;
+		background: var(--bg-secondary);
+		color: var(--text-primary);
+		box-shadow: 0 4px 14px rgb(0 0 0 / 30%);
+	}
+
+	.drawer-toggle.drawer-open {
+		color: var(--accent-primary);
+	}
+
+	@media (orientation: landscape) {
+		.translations-editor-mobile-shell {
+			gap: 0.4rem;
+			padding: 0.4rem;
+		}
+	}
+</style>

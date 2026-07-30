@@ -114,7 +114,7 @@ pub enum CodecUsage {
 }
 
 /// Entrée vidéo de fond pour l'export.
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Debug, Clone)]
 pub struct VideoInput {
     /// Chemin vers le fichier vidéo.
     pub path: String,

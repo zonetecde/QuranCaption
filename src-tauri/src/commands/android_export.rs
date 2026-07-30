@@ -128,3 +128,174 @@ pub async fn set_android_export_keep_screen_on(
         Ok(enabled)
     }
 }
+
+/// Démarre le service Android au premier plan et sa notification de progression.
+///
+/// @param app_handle Handle de l'application.
+/// @param export_id Identifiant de l'export actif.
+/// @param file_name Nom affiché dans la notification.
+/// @param state État initial brut.
+/// @param state_labels Table JSON des états localisés.
+/// @param capturing_hint Consigne affichée pendant les captures WebView.
+/// @param background_hint Consigne affichée pendant le rendu natif.
+/// @param completion_hint Message affiché après publication.
+/// @param cancel_label Libellé de l'action d'annulation.
+/// @param cancelling_label Libellé affiché après annulation.
+/// @param channel_name Nom localisé du canal Android.
+/// @returns `true` lorsque le service a été demandé.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn start_android_export_foreground_service(
+    app_handle: tauri::AppHandle,
+    export_id: String,
+    file_name: String,
+    state: String,
+    state_labels: String,
+    capturing_hint: String,
+    background_hint: String,
+    completion_hint: String,
+    cancel_label: String,
+    cancelling_label: String,
+    channel_name: String,
+) -> Result<bool, String> {
+    #[cfg(target_os = "android")]
+    {
+        return app_handle
+            .android_media()
+            .start_export_service(
+                export_id,
+                file_name,
+                state,
+                state_labels,
+                capturing_hint,
+                background_hint,
+                completion_hint,
+                cancel_label,
+                cancelling_label,
+                channel_name,
+            )
+            .map_err(|error| error.to_string());
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (
+            app_handle,
+            export_id,
+            file_name,
+            state,
+            state_labels,
+            capturing_hint,
+            background_hint,
+            completion_hint,
+            cancel_label,
+            cancelling_label,
+            channel_name,
+        );
+        Ok(true)
+    }
+}
+
+/// Met à jour la notification et renvoie une éventuelle annulation Android.
+///
+/// @param app_handle Handle de l'application.
+/// @param export_id Identifiant de l'export actif.
+/// @param progress Pourcentage de la phase courante.
+/// @param state État brut utilisé pour la traduction native.
+/// @returns `true` lorsqu'une annulation a été demandée depuis la notification.
+#[tauri::command]
+pub async fn update_android_export_foreground_service(
+    app_handle: tauri::AppHandle,
+    export_id: String,
+    progress: i32,
+    state: String,
+) -> Result<bool, String> {
+    #[cfg(target_os = "android")]
+    {
+        return app_handle
+            .android_media()
+            .update_export_service(export_id, progress.clamp(0, 100), state)
+            .map_err(|error| error.to_string());
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (app_handle, export_id, progress, state);
+        Ok(false)
+    }
+}
+
+/// Autorise la mise en arrière-plan après la dernière capture WebView.
+///
+/// @param app_handle Handle de l'application.
+/// @param export_id Identifiant de l'export actif.
+/// @returns `true` lorsque le service a reçu la bascule.
+#[tauri::command]
+pub async fn mark_android_export_background_ready(
+    app_handle: tauri::AppHandle,
+    export_id: String,
+) -> Result<bool, String> {
+    #[cfg(target_os = "android")]
+    {
+        return app_handle
+            .android_media()
+            .mark_export_background_ready(export_id)
+            .map_err(|error| error.to_string());
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (app_handle, export_id);
+        Ok(true)
+    }
+}
+
+/// Arrête le service Android lorsque l'export a terminé son nettoyage.
+///
+/// @param app_handle Handle de l'application.
+/// @param export_id Identifiant de l'export terminé.
+/// @returns `true` lorsque l'arrêt a été demandé.
+#[tauri::command]
+pub async fn stop_android_export_foreground_service(
+    app_handle: tauri::AppHandle,
+    export_id: String,
+) -> Result<bool, String> {
+    #[cfg(target_os = "android")]
+    {
+        return app_handle
+            .android_media()
+            .stop_export_service(export_id)
+            .map_err(|error| error.to_string());
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (app_handle, export_id);
+        Ok(true)
+    }
+}
+
+/// Lit le marqueur d'annulation posé depuis la notification.
+///
+/// @param app_handle Handle de l'application.
+/// @param export_id Identifiant de l'export actif.
+/// @returns `true` si l'utilisateur a utilisé l'action Android.
+#[tauri::command]
+pub async fn is_android_export_notification_cancelled(
+    app_handle: tauri::AppHandle,
+    export_id: String,
+) -> Result<bool, String> {
+    #[cfg(target_os = "android")]
+    {
+        return app_handle
+            .android_media()
+            .is_export_cancellation_requested(export_id)
+            .map_err(|error| error.to_string());
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = (app_handle, export_id);
+        Ok(false)
+    }
+}

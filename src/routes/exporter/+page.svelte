@@ -104,6 +104,11 @@
 	let cancellationRequested = false;
 	let cleanupStarted = false;
 	let exporterUnlisteners: Array<() => void> = [];
+	let exportForegroundServiceStarted = false;
+	let exportBackgroundReady = false;
+	let notificationUpdateRunning = false;
+	let notificationCancellationCheckRunning = false;
+	let pendingNotificationUpdate: { progress: number; state: ExportState } | null = null;
 	type PngEncoderWorkerResponse = {
 		requestId: number;
 		blob?: Blob;
@@ -218,6 +223,7 @@
 			export_id: string;
 			current_state?: string;
 			current_batch_size?: number;
+			current_segment_index?: number;
 		};
 	};
 	type ExportCompleteEvent = { payload: { filename: string; exportId: string } };
@@ -350,10 +356,14 @@
 			export_id: string;
 			current_state?: string;
 			current_batch_size?: number;
+			current_segment_index?: number;
 		};
 
 		// Vérifie que c'est bien pour cette exportation
 		if (data.export_id !== exportId) return;
+		if (data.current_segment_index !== undefined) {
+			currentRenderingSegmentIndex = data.current_segment_index;
+		}
 
 		if (
 			data.current_state &&
@@ -500,11 +510,176 @@
 			mergingFilesCurrentSegment,
 			mergingFilesTotalSegments
 		};
+		queueAndroidExportNotificationUpdate(payload.progress, payload.currentState);
 		if (window.parent !== window) {
 			window.parent.postMessage({ type: 'export-renderer-progress-main', payload }, '*');
 			return;
 		}
 		await emit('export-progress-main', payload);
+	}
+
+	/**
+	 * Retourne les textes localisés transmis une seule fois au service Android.
+	 * @returns {Record<string, string>} Libellés de notification et des états d'export.
+	 */
+	function getAndroidExportNotificationCopy(): Record<string, string> {
+		const monitor = get(LL).exporterMonitor as unknown as Record<string, () => string>;
+		return {
+			channelName: monitor.exportNotificationChannel(),
+			capturingHint: monitor.exportKeepOpenCapturing(),
+			backgroundHint: monitor.exportCanRunInBackground(),
+			completionHint: monitor.exportCompletedTapToView(),
+			cancelLabel: monitor.cancelExport(),
+			cancellingLabel: monitor.exportCancelling(),
+			[ExportState.WaitingForRecord]: monitor.statePending(),
+			[ExportState.Recording]: monitor.stateRecording(),
+			[ExportState.AddingAudio]: monitor.stateAddingAudio(),
+			[ExportState.ProcessingBackground]: monitor.stateProcessingBackground(),
+			[ExportState.AddingSubtitles]: monitor.stateRendering(),
+			[ExportState.CreatingVideo]: monitor.stateRendering(),
+			[ExportState.MergingFiles]: monitor.stateMerging(),
+			[ExportState.CapturingFrames]: monitor.stateCapturing(),
+			[ExportState.Initializing]: monitor.stateInitializing(),
+			[ExportState.Exported]: monitor.stateExported(),
+			[ExportState.Error]: monitor.stateError(),
+			[ExportState.Canceled]: monitor.stateCanceled()
+		};
+	}
+
+	/**
+	 * Démarre le service au premier plan avant toute capture dépendante de la WebView.
+	 * @returns {Promise<void>}
+	 */
+	async function startAndroidExportForegroundService(): Promise<void> {
+		if (!exportData || currentCaptureWorkerId !== null || exportForegroundServiceStarted) return;
+		const copy = getAndroidExportNotificationCopy();
+		const stateLabels = Object.fromEntries(
+			Object.values(ExportState).map((state) => [state, copy[state]])
+		);
+		try {
+			await invoke('start_android_export_foreground_service', {
+				exportId,
+				fileName: exportData.finalFileName,
+				state: ExportState.Initializing,
+				stateLabels: JSON.stringify(stateLabels),
+				capturingHint: copy.capturingHint,
+				backgroundHint: copy.backgroundHint,
+				completionHint: copy.completionHint,
+				cancelLabel: copy.cancelLabel,
+				cancellingLabel: copy.cancellingLabel,
+				channelName: copy.channelName
+			});
+			exportForegroundServiceStarted = true;
+			const cancellationPoll = window.setInterval(() => {
+				void syncAndroidExportNotificationCancellation();
+			}, 750);
+			exporterUnlisteners.push(() => window.clearInterval(cancellationPoll));
+		} catch (error) {
+			console.warn('Unable to start Android export foreground service:', error);
+		}
+	}
+
+	/**
+	 * Relève l'action Annuler même lorsqu'aucune frame ne vient de publier de progression.
+	 * @returns {Promise<void>}
+	 */
+	async function syncAndroidExportNotificationCancellation(): Promise<void> {
+		if (
+			!exportForegroundServiceStarted ||
+			cancellationRequested ||
+			notificationCancellationCheckRunning
+		) {
+			return;
+		}
+		notificationCancellationCheckRunning = true;
+		try {
+			const cancelled = await invoke<boolean>('is_android_export_notification_cancelled', {
+				exportId
+			});
+			if (cancelled) {
+				cancellationRequested = true;
+				await invoke('cancel_export', { exportId });
+			}
+		} catch (error) {
+			console.warn('Unable to read Android export cancellation:', error);
+		} finally {
+			notificationCancellationCheckRunning = false;
+		}
+	}
+
+	/**
+	 * Coalesce les mises à jour rapides de capture avant de les envoyer au service Android.
+	 * @param {number} progress Pourcentage de la phase courante.
+	 * @param {ExportState} state État brut de l'export.
+	 * @returns {void}
+	 */
+	function queueAndroidExportNotificationUpdate(progress: number, state: ExportState): void {
+		if (!exportForegroundServiceStarted || currentCaptureWorkerId !== null) return;
+		pendingNotificationUpdate = {
+			progress: Math.round(Math.min(100, Math.max(0, progress))),
+			state
+		};
+		if (!notificationUpdateRunning) void flushAndroidExportNotificationUpdates();
+	}
+
+	/**
+	 * Envoie la dernière progression disponible et relaie une annulation système au moteur Rust.
+	 * @returns {Promise<void>}
+	 */
+	async function flushAndroidExportNotificationUpdates(): Promise<void> {
+		notificationUpdateRunning = true;
+		try {
+			while (pendingNotificationUpdate && exportForegroundServiceStarted) {
+				const update = pendingNotificationUpdate;
+				pendingNotificationUpdate = null;
+				const cancelled = await invoke<boolean>('update_android_export_foreground_service', {
+					exportId,
+					progress: update.progress,
+					state: update.state
+				});
+				if (cancelled && !cancellationRequested) {
+					cancellationRequested = true;
+					await invoke('cancel_export', { exportId });
+				}
+			}
+		} catch (error) {
+			console.warn('Unable to update Android export notification:', error);
+		} finally {
+			notificationUpdateRunning = false;
+			if (pendingNotificationUpdate && exportForegroundServiceStarted) {
+				void flushAndroidExportNotificationUpdates();
+			}
+		}
+	}
+
+	/**
+	 * Autorise l'arrière-plan après le démarrage du premier traitement FFmpeg natif.
+	 * @returns {Promise<void>}
+	 */
+	async function markAndroidExportBackgroundReady(): Promise<void> {
+		if (!exportForegroundServiceStarted || exportBackgroundReady) return;
+		try {
+			await invoke('mark_android_export_background_ready', { exportId });
+			exportBackgroundReady = true;
+			await setExportScreenAwake(false);
+		} catch (error) {
+			console.warn('Unable to mark Android export as background-ready:', error);
+		}
+	}
+
+	/**
+	 * Arrête le service lorsque le workflow d'export est entièrement terminé.
+	 * @returns {Promise<void>}
+	 */
+	async function stopAndroidExportForegroundService(): Promise<void> {
+		if (!exportForegroundServiceStarted) return;
+		exportForegroundServiceStarted = false;
+		pendingNotificationUpdate = null;
+		try {
+			await invoke('stop_android_export_foreground_service', { exportId });
+		} catch (error) {
+			console.warn('Unable to stop Android export foreground service:', error);
+		}
 	}
 
 	/**
@@ -847,6 +1022,10 @@
 				start: exportData?.videoStartTime,
 				end: exportData?.videoEndTime
 			});
+			if (!isWorker) {
+				await startAndroidExportForegroundService();
+				await emitExportLog('info', 'Android foreground export service requested');
+			}
 
 			await mkdir(await join(ExportService.exportFolder, exportId), {
 				baseDir: BaseDirectory.AppData,
@@ -866,6 +1045,16 @@
 			await startExport();
 		} catch (error) {
 			await closeCaptureWorkerRenderers();
+			if (!isWorker && !cancellationRequested) {
+				try {
+					cancellationRequested = await invoke<boolean>(
+						'is_android_export_notification_cancelled',
+						{ exportId }
+					);
+				} catch {
+					// Le marqueur Rust reste la source de secours si le service Android est indisponible.
+				}
+			}
 			console.error('Export failed:', error);
 			await emitExportLog('error', 'Export failed', {
 				error: error instanceof Error ? error.message : String(error)
@@ -878,14 +1067,14 @@
 				} satisfies CaptureWorkerErrorPayload);
 				return;
 			}
-			if (!cancellationRequested) {
-				await emitProgress({
-					exportId: Number(exportId),
-					progress: 100,
-					currentState: ExportState.Error,
-					errorLog: JSON.stringify(error, Object.getOwnPropertyNames(error))
-				} as ExportProgress);
-			}
+			await emitProgress({
+				exportId: Number(exportId),
+				progress: 100,
+				currentState: cancellationRequested ? ExportState.Canceled : ExportState.Error,
+				errorLog: cancellationRequested
+					? undefined
+					: JSON.stringify(error, Object.getOwnPropertyNames(error))
+			} as ExportProgress);
 			await finalCleanup();
 		}
 	});
@@ -998,7 +1187,6 @@
 		mergingFilesTotalSegments = activeVideoSegments.length + 1;
 		refreshSecondarySegmentProgressVisibility();
 
-		const generatedVideoFiles: string[] = [];
 		const segmentBlankImageIndexes = new Map<number, number[]>();
 		for (let segmentIndex = 0; segmentIndex < renderSegments.length; segmentIndex++) {
 			const segment = renderSegments[segmentIndex];
@@ -1030,26 +1218,10 @@
 			totalTime: totalDuration
 		} as ExportProgress);
 
-		for (let segmentIndex = 0; segmentIndex < renderSegments.length; segmentIndex++) {
-			const segment = renderSegments[segmentIndex];
-			const segmentImageFolder = `segment_${segmentIndex}`;
-			const segmentDuration = segment.end - segment.start;
-			currentRenderingSegmentIndex = segmentIndex;
-
-			const segmentVideoPath = await generateVideoForSegment(
-				segmentIndex,
-				segmentImageFolder,
-				segment.start,
-				segmentDuration,
-				segment.blur,
-				segmentBlankImageIndexes.get(segmentIndex) ?? []
-			);
-
-			generatedVideoFiles.push(segmentVideoPath);
-		}
-
-		await concatenateVideos(generatedVideoFiles);
-		const publishedFilePath = await publishExportOutput();
+		const publishedFilePath = await generateSegmentedVideo(
+			renderSegments,
+			segmentBlankImageIndexes
+		);
 		isSegmentedVideoExport = false;
 		refreshSecondarySegmentProgressVisibility();
 
@@ -1059,7 +1231,8 @@
 			currentState: ExportState.Exported,
 			currentTime: totalDuration,
 			totalTime: totalDuration,
-			finalFilePath: publishedFilePath
+			finalFilePath: publishedFilePath,
+			nativeNotificationCompleted: true
 		} as ExportProgress);
 		await finalCleanup();
 	}
@@ -1648,148 +1821,77 @@
 		return plan.blankImageIndexes;
 	}
 
-	async function generateVideoForSegment(
-		segmentIndex: number,
-		segmentImageFolder: string,
-		segmentStart: number,
-		segmentDuration: number,
-		blur: number = globalState.getStyle('global', 'overlay-blur')!.value as number,
-		blankTimings: number[] = []
+	/**
+	 * Rend et concatène tous les segments dans une seule commande native résistante à la suspension.
+	 * @param {BlurSegment[]} renderSegments Segments visuels déjà capturés.
+	 * @param {Map<number, number[]>} blankImageIndexes Images sans sous-titres par segment.
+	 * @returns {Promise<string>} URI Android du fichier final publié.
+	 */
+	async function generateSegmentedVideo(
+		renderSegments: BlurSegment[],
+		blankImageIndexes: Map<number, number[]>
 	): Promise<string> {
+		if (!exportData?.destinationUri) throw new Error('ANDROID_EXPORT_DESTINATION_MISSING');
 		currentVideoExportState = ExportState.AddingSubtitles;
-
+		const exportFadeSettings = getExportFadeSettings();
 		const fadeDuration = Math.round(
 			globalState.getStyle('global', 'fade-duration')!.value as number
 		);
-
-		// Récupère le chemin de fichier de tous les audios du projet
-		const audios: string[] = globalState.getAudioTrack.clips.map(
+		const audios = globalState.getAudioTrack.clips.map(
 			(clip) =>
 				globalState.currentProject!.content.getAssetById((clip as AssetClip).assetId).filePath
 		);
-
-		// Récupère le chemin de fichier de toutes les vidéos du projet
 		const videos = globalState.getVideoTrack.clips.map((clip) => ({
 			path: globalState.currentProject!.content.getAssetById((clip as AssetClip).assetId).filePath,
 			loop_until_audio_end: (clip as AssetClip).loopUntilAudioEnd
 		}));
-
-		const segmentVideoExtension =
-			(globalState.getExportState.exportWithoutBackground ?? false)
-				? globalState.getExportState.transparentExportFormat === 'webm_vp9_alpha'
-					? 'webm'
-					: 'mov'
-				: 'mp4';
-		const segmentVideoFileName = `segment_${segmentIndex}_video.${segmentVideoExtension}`;
-		const segmentFinalFilePath = await join(
-			await appDataDir(),
-			ExportService.exportFolder,
-			exportId,
-			segmentVideoFileName
+		const extension = globalState.getExportState.exportWithoutBackground
+			? globalState.getExportState.transparentExportFormat === 'webm_vp9_alpha'
+				? 'webm'
+				: 'mov'
+			: 'mp4';
+		const exportRoot = await join(await appDataDir(), ExportService.exportFolder, exportId);
+		const segments = await Promise.all(
+			renderSegments.map(async (segment, index) => ({
+				imgsFolder: await join(exportRoot, `segment_${index}`),
+				finalFilePath: await join(exportRoot, `segment_${index}_video.${extension}`),
+				startTime: Math.round(segment.start),
+				duration: Math.round(segment.end - segment.start),
+				blur: segment.blur,
+				blankTimings: blankImageIndexes.get(index) ?? []
+			}))
 		);
-
-		console.log(`Generating video for segment ${segmentIndex}: ${segmentFinalFilePath}`);
-
-		try {
-			await invoke('export_video', {
-				exportId: exportId,
-				imgsFolder: await join(
-					await appDataDir(),
-					ExportService.exportFolder,
-					exportId,
-					segmentImageFolder
-				),
-				finalFilePath: segmentFinalFilePath,
-				fps: exportData!.fps,
-				fadeDuration: fadeDuration,
-				startTime: Math.round(segmentStart), // Le startTime pour l'audio/vidéo de fond
-				duration: Math.round(segmentDuration),
-				audios: audios,
-				audioVolume: globalState.getAudioTrack.volumePercent,
-				videos: videos,
-				mediaFill: Boolean(globalState.getStyle('global', 'media-fill')?.value),
-				mediaScale: Number(globalState.getStyle('global', 'media-scale')?.value ?? 100),
-				mediaPositionX: Number(globalState.getStyle('global', 'media-position-x')?.value ?? 0),
-				mediaPositionY: Number(globalState.getStyle('global', 'media-position-y')?.value ?? 0),
-				blur: blur,
-				videoFadeInEnabled: false,
-				videoFadeOutEnabled: false,
-				audioFadeInEnabled: false,
-				audioFadeOutEnabled: false,
-				exportFadeDurationMs: 0,
-				performanceProfile: globalState.settings?.exportSettings.performanceProfile ?? 'balanced',
-				videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
-				videoClipTransitionMode: getVideoClipTransitionMode(),
-				videoClipTransitionDurationMs: getVideoClipTransitionDurationMs(),
-				blankTimings,
-				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
-				transparentExportFormat: globalState.getExportState.transparentExportFormat
-			});
-
-			console.log(`[OK] Segment ${segmentIndex} video generated successfully`);
-			return segmentFinalFilePath;
-		} catch (e: unknown) {
-			console.error(`[ERROR] Error generating segment ${segmentIndex} video:`, e);
-			throw e;
-		}
-	}
-
-	async function concatenateVideos(videoFilePaths: string[]) {
-		console.log('Starting video concatenation...');
-		const exportFadeSettings = getExportFadeSettings();
-		currentVideoExportState = ExportState.MergingFiles;
-
-		emitProgress({
-			exportId: Number(exportId),
-			progress: 0,
-			currentState: ExportState.MergingFiles,
-			currentTime: 0
-		} as ExportProgress);
-
-		try {
-			const finalVideoPath = await invoke('concat_videos', {
-				exportId: exportId,
-				videoPaths: videoFilePaths,
-				outputPath: exportData!.finalFilePath,
-				videoFadeInEnabled: exportFadeSettings.videoFadeInEnabled,
-				videoFadeOutEnabled: exportFadeSettings.videoFadeOutEnabled,
-				audioFadeInEnabled: exportFadeSettings.audioFadeInEnabled,
-				audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
-				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
-				performanceProfile: globalState.settings?.exportSettings.performanceProfile ?? 'balanced',
-				videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
-				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
-				transparentExportFormat: globalState.getExportState.transparentExportFormat
-			});
-
-			console.log('[OK] Videos concatenated successfully:', finalVideoPath);
-
-			emitProgress({
-				exportId: Number(exportId),
-				progress: 100,
-				currentState: ExportState.MergingFiles,
-				currentTime: exportData!.videoEndTime - exportData!.videoStartTime
-			} as ExportProgress);
-
-			// Supprimer les vidéos de segments individuelles
-			for (const videoPath of videoFilePaths) {
-				try {
-					await remove(videoPath, { baseDir: BaseDirectory.AppData });
-					console.log(`Deleted segment video: ${videoPath}`);
-				} catch (e) {
-					console.warn(`Could not delete segment video ${videoPath}:`, e);
-				}
-			}
-		} catch (e: unknown) {
-			console.error('[ERROR] Error concatenating videos:', e);
-			emitProgress({
-				exportId: Number(exportId),
-				progress: 100,
-				currentState: ExportState.Error,
-				errorLog: JSON.stringify(e, Object.getOwnPropertyNames(e))
-			} as ExportProgress);
-			throw e;
-		}
+		const nativeExport = invoke<string>('export_segmented_video', {
+			exportId,
+			segments,
+			outputPath: exportData!.finalFilePath,
+			destinationUri: exportData!.destinationUri,
+			fps: exportData!.fps,
+			fadeDuration,
+			audios,
+			audioVolume: globalState.getAudioTrack.volumePercent,
+			videos,
+			mediaFill: Boolean(globalState.getStyle('global', 'media-fill')?.value),
+			mediaScale: Number(globalState.getStyle('global', 'media-scale')?.value ?? 100),
+			mediaPositionX: Number(globalState.getStyle('global', 'media-position-x')?.value ?? 0),
+			mediaPositionY: Number(globalState.getStyle('global', 'media-position-y')?.value ?? 0),
+			videoFadeInEnabled: exportFadeSettings.videoFadeInEnabled,
+			videoFadeOutEnabled: exportFadeSettings.videoFadeOutEnabled,
+			audioFadeInEnabled: exportFadeSettings.audioFadeInEnabled,
+			audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
+			exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
+			performanceProfile: globalState.settings?.exportSettings.performanceProfile ?? 'balanced',
+			videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
+			videoClipTransitionMode: getVideoClipTransitionMode(),
+			videoClipTransitionDurationMs: getVideoClipTransitionDurationMs(),
+			exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
+			transparentExportFormat: globalState.getExportState.transparentExportFormat
+		});
+		await markAndroidExportBackgroundReady();
+		const publishedPath = await nativeExport;
+		exportForegroundServiceStarted = false;
+		pendingNotificationUpdate = null;
+		return publishedPath;
 	}
 
 	async function handleNormalExport(
@@ -1829,8 +1931,12 @@
 		await deleteBlankImages();
 
 		// Générer la vidéo normale
-		await generateNormalVideo(exportStart, totalDuration, blur, normalizedBlankTimings);
-		const publishedFilePath = await publishExportOutput();
+		const publishedFilePath = await generateNormalVideo(
+			exportStart,
+			totalDuration,
+			blur,
+			normalizedBlankTimings
+		);
 
 		await emitProgress({
 			exportId: Number(exportId),
@@ -1838,26 +1944,12 @@
 			currentState: ExportState.Exported,
 			currentTime: totalDuration,
 			totalTime: totalDuration,
-			finalFilePath: publishedFilePath
+			finalFilePath: publishedFilePath,
+			nativeNotificationCompleted: true
 		} as ExportProgress);
 
 		// Nettoyage
 		await finalCleanup();
-	}
-
-	/**
-	 * Copie le rendu privé vers l'URI choisie avec le sélecteur de documents Android.
-	 * @returns {Promise<string>} URI publique conservée par le moniteur.
-	 */
-	async function publishExportOutput(): Promise<string> {
-		if (!exportData?.destinationUri) {
-			throw new Error('ANDROID_EXPORT_DESTINATION_MISSING');
-		}
-
-		return await invoke<string>('publish_android_export', {
-			sourcePath: exportData.finalFilePath,
-			destinationUri: exportData.destinationUri
-		});
 	}
 
 	/**
@@ -2128,7 +2220,8 @@
 		duration: number,
 		blur: number,
 		blankTimings: number[] = []
-	) {
+	): Promise<string> {
+		if (!exportData?.destinationUri) throw new Error('ANDROID_EXPORT_DESTINATION_MISSING');
 		currentVideoExportState = ExportState.AddingSubtitles;
 
 		emitProgress({
@@ -2162,10 +2255,11 @@
 		await deleteBlankImages();
 
 		try {
-			await invoke('export_video', {
+			const nativeExport = invoke<string>('export_video', {
 				exportId: exportId,
 				imgsFolder: await join(await appDataDir(), ExportService.exportFolder, exportId),
 				finalFilePath: exportData!.finalFilePath,
+				destinationUri: exportData!.destinationUri,
 				fps: exportData!.fps,
 				fadeDuration: fadeDuration,
 				startTime: exportStart,
@@ -2191,6 +2285,11 @@
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat
 			});
+			await markAndroidExportBackgroundReady();
+			const publishedPath = await nativeExport;
+			exportForegroundServiceStarted = false;
+			pendingNotificationUpdate = null;
+			return publishedPath;
 		} catch (e: unknown) {
 			emitProgress({
 				exportId: Number(exportId),
@@ -2213,6 +2312,7 @@
 			console.warn('Could not close capture workers:', error);
 		}
 		await setExportScreenAwake(false);
+		await stopAndroidExportForegroundService();
 		await ExportService.deleteProjectFile(Number(exportId));
 		try {
 			// Supprime le dossier temporaire des images

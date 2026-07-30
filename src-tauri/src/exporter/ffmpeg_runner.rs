@@ -83,6 +83,14 @@ pub fn emit_export_progress(
         "current_batch_size": current_batch_size
     });
 
+    #[cfg(target_os = "android")]
+    {
+        let _ = app_handle.android_media().update_export_service(
+            export_id.to_string(),
+            progress.round().clamp(0.0, 100.0) as i32,
+            current_state.unwrap_or_default().to_string(),
+        );
+    }
     let _ = app_handle.emit("export-progress", progress_data);
 }
 
@@ -465,6 +473,13 @@ pub fn run_ffmpeg_command(
     }
 
     let snapshot = loop {
+        if app_handle
+            .android_media()
+            .is_export_cancellation_requested(export_id.to_string())
+            .unwrap_or(false)
+        {
+            mark_export_cancelled(export_id);
+        }
         if is_export_cancelled(export_id) {
             let _ = app_handle.android_media().cancel_ffmpeg(session_id);
         }
@@ -514,6 +529,17 @@ pub fn run_ffmpeg_command(
     ensure_export_not_cancelled(export_id)?;
 
     if snapshot.return_code == Some(0) {
+        if let Some(context) = progress_context {
+            emit_export_progress(
+                app_handle,
+                export_id,
+                100.0,
+                context.total_time_s,
+                context.total_time_s,
+                progress_state,
+                context.current_batch_size,
+            );
+        }
         return Ok(());
     }
 
@@ -558,6 +584,11 @@ pub fn run_ffmpeg_command(
         snapshot.return_code,
         log_write_path.to_string_lossy().replace('\\', "/"),
         log_content
+    );
+    let _ = app_handle.android_media().update_export_service(
+        export_id.to_string(),
+        100,
+        "Error".to_string(),
     );
     if !suppress_error_event {
         let _ = app_handle.emit(

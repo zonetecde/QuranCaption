@@ -14,7 +14,7 @@ val tauriProperties = Properties().apply {
 }
 
 android {
-    compileSdk = 34
+    compileSdk = 35
     namespace = "com.qurancaption"
     sourceSets.getByName("main") {
         jniLibs.srcDir("../../../android-binaries")

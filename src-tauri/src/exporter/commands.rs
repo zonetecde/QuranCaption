@@ -53,6 +53,7 @@ pub async fn export_video(
     export_id: String,
     imgs_folder: String,
     final_file_path: String,
+    destination_uri: Option<String>,
     fps: i32,
     fade_duration: i32,
     start_time: i32,
@@ -335,15 +336,181 @@ pub async fn export_video(
         .to_string_lossy()
         .to_string();
 
+    let published_path =
+        publish_completed_android_export(&app, &export_id, &out_path_str, destination_uri)?;
     let completion_data = serde_json::json!({
         "filename": output_file_name,
         "exportId": export_id,
-        "fullPath": out_path_str
+        "fullPath": published_path
     });
 
     let _ = app.emit("export-complete", completion_data);
 
-    Ok(out_path_str)
+    Ok(published_path)
+}
+
+/// Publie la sortie Android puis transforme la notification en confirmation de réussite.
+///
+/// @param app Handle Tauri donnant accès au plugin Android.
+/// @param export_id Identifiant de l'export final.
+/// @param local_path Chemin privé produit par FFmpeg.
+/// @param destination_uri URI SAF choisie par l'utilisateur, absente pour un segment intermédiaire.
+/// @returns URI publiée, ou chemin local lorsqu'aucune publication n'est demandée.
+fn publish_completed_android_export(
+    app: &tauri::AppHandle,
+    export_id: &str,
+    local_path: &str,
+    destination_uri: Option<String>,
+) -> Result<String, String> {
+    #[cfg(target_os = "android")]
+    if let Some(destination_uri) = destination_uri {
+        let published_path = app
+            .android_media()
+            .publish_file(local_path.to_string(), destination_uri)
+            .map_err(|error| format!("Unable to publish Android export: {}", error))?;
+        match app.android_media().update_export_service(
+            export_id.to_string(),
+            100,
+            "Exported".to_string(),
+        ) {
+            Ok(_) => println!(
+                "[android-export] Completion notification requested for {}",
+                export_id
+            ),
+            Err(error) => eprintln!(
+                "[android-export] Failed to request completion notification for {}: {}",
+                export_id, error
+            ),
+        }
+        return Ok(published_path);
+    }
+
+    #[cfg(not(target_os = "android"))]
+    let _ = (app, export_id, destination_uri);
+    Ok(local_path.to_string())
+}
+
+/// Segment déjà capturé que le workflow natif doit rendre avant la concaténation finale.
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SegmentedExportPart {
+    imgs_folder: String,
+    final_file_path: String,
+    start_time: i32,
+    duration: i32,
+    blur: f64,
+    blank_timings: Vec<i32>,
+}
+
+/// Rend tous les segments et publie leur concaténation dans une seule commande native.
+///
+/// Cette orchestration ne dépend plus des reprises JavaScript entre deux appels FFmpeg.
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub async fn export_segmented_video(
+    export_id: String,
+    segments: Vec<SegmentedExportPart>,
+    output_path: String,
+    destination_uri: Option<String>,
+    fps: i32,
+    fade_duration: i32,
+    audios: Option<Vec<String>>,
+    audio_volume: Option<f64>,
+    videos: Option<Vec<VideoInput>>,
+    media_fill: Option<bool>,
+    media_scale: Option<f64>,
+    media_position_x: Option<f64>,
+    media_position_y: Option<f64>,
+    video_fade_in_enabled: Option<bool>,
+    video_fade_out_enabled: Option<bool>,
+    audio_fade_in_enabled: Option<bool>,
+    audio_fade_out_enabled: Option<bool>,
+    export_fade_duration_ms: Option<i32>,
+    export_without_background: Option<bool>,
+    transparent_export_format: Option<String>,
+    video_codec: Option<ExportVideoCodec>,
+    video_clip_transition_mode: Option<VideoClipTransitionMode>,
+    video_clip_transition_duration_ms: Option<i32>,
+    performance_profile: ExportPerformanceProfile,
+    app: tauri::AppHandle,
+) -> Result<String, String> {
+    let mut generated_video_paths = Vec::with_capacity(segments.len());
+    for (index, segment) in segments.into_iter().enumerate() {
+        let _ = app.emit(
+            "export-progress",
+            serde_json::json!({
+                "export_id": export_id,
+                "progress": 0,
+                "current_time": 0,
+                "total_time": segment.duration as f64 / 1000.0,
+                "current_state": "Adding Subtitles",
+                "current_segment_index": index
+            }),
+        );
+        #[cfg(target_os = "android")]
+        let _ = app.android_media().update_export_service(
+            export_id.clone(),
+            0,
+            "Adding Subtitles".to_string(),
+        );
+
+        let video_path = export_video(
+            export_id.clone(),
+            segment.imgs_folder,
+            segment.final_file_path,
+            None,
+            fps,
+            fade_duration,
+            segment.start_time,
+            Some(segment.duration),
+            audios.clone(),
+            audio_volume,
+            videos.clone(),
+            media_fill,
+            media_scale,
+            media_position_x,
+            media_position_y,
+            Some(segment.blur),
+            Some(false),
+            Some(false),
+            Some(false),
+            Some(false),
+            Some(0),
+            export_without_background,
+            transparent_export_format.clone(),
+            video_codec,
+            video_clip_transition_mode,
+            video_clip_transition_duration_ms,
+            Some(segment.blank_timings),
+            performance_profile,
+            app.clone(),
+        )
+        .await?;
+        generated_video_paths.push(video_path);
+    }
+
+    let published_path = concat_videos(
+        export_id,
+        generated_video_paths.clone(),
+        output_path,
+        destination_uri,
+        video_fade_in_enabled,
+        video_fade_out_enabled,
+        audio_fade_in_enabled,
+        audio_fade_out_enabled,
+        export_fade_duration_ms,
+        export_without_background,
+        transparent_export_format,
+        video_codec,
+        performance_profile,
+        app,
+    )
+    .await?;
+
+    for video_path in generated_video_paths {
+        let _ = fs::remove_file(video_path);
+    }
+    Ok(published_path)
 }
 
 type ExportError = Box<dyn std::error::Error + Send + Sync + 'static>;
@@ -2022,6 +2189,7 @@ pub async fn concat_videos(
     export_id: String,
     video_paths: Vec<String>,
     output_path: String,
+    destination_uri: Option<String>,
     video_fade_in_enabled: Option<bool>,
     video_fade_out_enabled: Option<bool>,
     audio_fade_in_enabled: Option<bool>,
@@ -2033,7 +2201,9 @@ pub async fn concat_videos(
     performance_profile: ExportPerformanceProfile,
     app: tauri::AppHandle,
 ) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
+    let completion_export_id = export_id.clone();
+    let concat_app = app.clone();
+    let local_path = tokio::task::spawn_blocking(move || {
         concat_videos_sync(
             export_id,
             video_paths,
@@ -2047,11 +2217,12 @@ pub async fn concat_videos(
             transparent_export_format,
             video_codec,
             performance_profile,
-            app,
+            concat_app,
         )
     })
     .await
-    .map_err(|error| format!("Erreur interne de concaténation: {}", error))?
+    .map_err(|error| format!("Erreur interne de concaténation: {}", error))??;
+    publish_completed_android_export(&app, &completion_export_id, &local_path, destination_uri)
 }
 
 /// Exécute la concaténation sur un thread bloquant dédié.

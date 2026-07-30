@@ -2930,6 +2930,12 @@ const de = {
 		cancelExport: 'Export abbrechen',
 		cancelExportConfirm:
 			'Sind Sie sicher, dass Sie diesen Export abbrechen möchten? Ihr Fortschritt geht verloren.',
+		exportNotificationChannel: 'Videoexporte',
+		exportKeepOpenCapturing: 'Lassen Sie Quran Caption während der Frame-Erfassung geöffnet.',
+		exportCanRunInBackground:
+			'Sie können Quran Caption jetzt verlassen; der Export wird fortgesetzt.',
+		exportCompletedTapToView: 'Export abgeschlossen. Zum Anzeigen tippen.',
+		exportCancelling: 'Export wird abgebrochen',
 		fileNotFound: 'Datei nicht gefunden',
 		exportedFileNotFound:
 			'Die exportierte Datei wurde nicht gefunden. Sie wurde möglicherweise verschoben oder gelöscht.',

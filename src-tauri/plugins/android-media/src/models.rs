@@ -82,6 +82,60 @@ pub(crate) struct KeepScreenOnResponse {
     pub(crate) enabled: bool,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct StartExportServiceRequest {
+    pub(crate) export_id: String,
+    pub(crate) file_name: String,
+    pub(crate) state: String,
+    pub(crate) state_labels: String,
+    pub(crate) capturing_hint: String,
+    pub(crate) background_hint: String,
+    pub(crate) completion_hint: String,
+    pub(crate) cancel_label: String,
+    pub(crate) cancelling_label: String,
+    pub(crate) channel_name: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct UpdateExportServiceRequest {
+    pub(crate) export_id: String,
+    pub(crate) state: String,
+    pub(crate) progress: i32,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ExportServiceRequest {
+    pub(crate) export_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct StartExportServiceResponse {
+    pub(crate) started: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct UpdateExportServiceResponse {
+    pub(crate) cancelled: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct BackgroundReadyResponse {
+    pub(crate) ready: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct StopExportServiceResponse {
+    pub(crate) stopped: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct ExportCancellationResponse {
+    pub(crate) cancelled: bool,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FfmpegSessionSnapshot {

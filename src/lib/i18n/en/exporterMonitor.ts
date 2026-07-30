@@ -3,6 +3,11 @@ const exporterMonitor = {
 	closeExportMonitor: 'Close export monitor',
 	cancelExport: 'Cancel Export',
 	cancelExportConfirm: 'Are you sure you want to cancel this export? Your progress will be lost.',
+	exportNotificationChannel: 'Video exports',
+	exportKeepOpenCapturing: 'Keep Quran Caption open while frames are being captured.',
+	exportCanRunInBackground: 'You can now leave Quran Caption; the export will continue.',
+	exportCompletedTapToView: 'Export complete. Tap to view it.',
+	exportCancelling: 'Cancelling export',
 	fileNotFound: 'File not found',
 	exportedFileNotFound:
 		'The exported file could not be found. It might have been moved or deleted.',

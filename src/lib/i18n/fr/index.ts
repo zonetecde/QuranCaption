@@ -2952,6 +2952,12 @@ const fr = {
 		cancelExport: 'Annuler l\u2019export',
 		cancelExportConfirm:
 			'Êtes-vous sûr de vouloir annuler cet export\u00a0? Votre progression sera perdue.',
+		exportNotificationChannel: 'Exports vidéo',
+		exportKeepOpenCapturing: 'Gardez Quran Caption ouvert pendant la capture des frames.',
+		exportCanRunInBackground:
+			'Vous pouvez maintenant quitter Quran Caption\u00a0; l\u2019export continuera.',
+		exportCompletedTapToView: 'Export terminé. Appuyez pour le consulter.',
+		exportCancelling: 'Annulation de l\u2019export',
 		fileNotFound: 'Fichier introuvable',
 		exportedFileNotFound:
 			'Le fichier exporté est introuvable. Il a peut-être été déplacé ou supprimé.',

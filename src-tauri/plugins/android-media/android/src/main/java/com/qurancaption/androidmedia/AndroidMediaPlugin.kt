@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.OpenableColumns
 import android.view.WindowManager
 import app.tauri.Logger
@@ -65,6 +66,32 @@ class ImportUriArgs {
 @InvokeArg
 class KeepScreenOnArgs {
     var enabled: Boolean = false
+}
+
+@InvokeArg
+class StartExportServiceArgs {
+    lateinit var exportId: String
+    lateinit var fileName: String
+    lateinit var state: String
+    lateinit var stateLabels: String
+    lateinit var capturingHint: String
+    lateinit var backgroundHint: String
+    lateinit var completionHint: String
+    lateinit var cancelLabel: String
+    lateinit var cancellingLabel: String
+    lateinit var channelName: String
+}
+
+@InvokeArg
+class UpdateExportServiceArgs {
+    lateinit var exportId: String
+    lateinit var state: String
+    var progress: Int = 0
+}
+
+@InvokeArg
+class ExportServiceArgs {
+    lateinit var exportId: String
 }
 
 @TauriPlugin
@@ -337,6 +364,132 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
             } catch (error: Exception) {
                 reject(invoke, "Failed to update screen flag", error)
             }
+        }
+    }
+
+    /**
+     * Démarre le service Android au premier plan qui protège et affiche l'export.
+     *
+     * @param invoke Appel Tauri contenant l'identifiant et les textes localisés.
+     */
+    @Command
+    fun startExportService(invoke: Invoke) {
+        try {
+            val args = invoke.parseArgs(StartExportServiceArgs::class.java)
+            require(args.exportId.isNotBlank()) { "Export id cannot be empty" }
+            val intent = Intent(hostActivity, ExportForegroundService::class.java).apply {
+                action = ExportForegroundService.ACTION_START
+                putExtra(ExportForegroundService.EXTRA_EXPORT_ID, args.exportId)
+                putExtra(ExportForegroundService.EXTRA_FILE_NAME, args.fileName)
+                putExtra(ExportForegroundService.EXTRA_STATE, args.state)
+                putExtra(ExportForegroundService.EXTRA_PROGRESS, 0)
+                putExtra(ExportForegroundService.EXTRA_STATE_LABELS, args.stateLabels)
+                putExtra(ExportForegroundService.EXTRA_CAPTURING_HINT, args.capturingHint)
+                putExtra(ExportForegroundService.EXTRA_BACKGROUND_HINT, args.backgroundHint)
+                putExtra(ExportForegroundService.EXTRA_COMPLETION_HINT, args.completionHint)
+                putExtra(ExportForegroundService.EXTRA_CANCEL_LABEL, args.cancelLabel)
+                putExtra(ExportForegroundService.EXTRA_CANCELLING_LABEL, args.cancellingLabel)
+                putExtra(ExportForegroundService.EXTRA_CHANNEL_NAME, args.channelName)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                hostActivity.startForegroundService(intent)
+            } else {
+                hostActivity.startService(intent)
+            }
+            invoke.resolve(JSObject().apply { put("started", true) })
+        } catch (error: Exception) {
+            reject(invoke, "Failed to start export service", error)
+        }
+    }
+
+    /**
+     * Met à jour la notification et renvoie le marqueur d'annulation natif.
+     *
+     * @param invoke Appel Tauri contenant la phase et la progression.
+     */
+    @Command
+    fun updateExportService(invoke: Invoke) {
+        try {
+            val args = invoke.parseArgs(UpdateExportServiceArgs::class.java)
+            hostActivity.startService(
+                Intent(hostActivity, ExportForegroundService::class.java).apply {
+                    action = ExportForegroundService.ACTION_UPDATE
+                    putExtra(ExportForegroundService.EXTRA_EXPORT_ID, args.exportId)
+                    putExtra(ExportForegroundService.EXTRA_STATE, args.state)
+                    putExtra(ExportForegroundService.EXTRA_PROGRESS, args.progress)
+                }
+            )
+            invoke.resolve(
+                JSObject().apply {
+                    put(
+                        "cancelled",
+                        ExportForegroundService.isCancellationRequested(hostActivity, args.exportId)
+                    )
+                }
+            )
+        } catch (error: Exception) {
+            reject(invoke, "Failed to update export service", error)
+        }
+    }
+
+    /**
+     * Bascule la notification vers le message autorisant l'arrière-plan.
+     *
+     * @param invoke Appel Tauri contenant l'identifiant d'export.
+     */
+    @Command
+    fun markExportBackgroundReady(invoke: Invoke) {
+        try {
+            val args = invoke.parseArgs(ExportServiceArgs::class.java)
+            hostActivity.startService(
+                Intent(hostActivity, ExportForegroundService::class.java).apply {
+                    action = ExportForegroundService.ACTION_BACKGROUND_READY
+                    putExtra(ExportForegroundService.EXTRA_EXPORT_ID, args.exportId)
+                }
+            )
+            invoke.resolve(JSObject().apply { put("ready", true) })
+        } catch (error: Exception) {
+            reject(invoke, "Failed to update export background state", error)
+        }
+    }
+
+    /**
+     * Arrête le service et retire sa notification.
+     *
+     * @param invoke Appel Tauri contenant l'identifiant d'export.
+     */
+    @Command
+    fun stopExportService(invoke: Invoke) {
+        try {
+            invoke.parseArgs(ExportServiceArgs::class.java)
+            val stopped = hostActivity.stopService(
+                Intent(hostActivity, ExportForegroundService::class.java)
+            )
+            invoke.resolve(JSObject().apply { put("stopped", stopped) })
+        } catch (error: Exception) {
+            reject(invoke, "Failed to stop export service", error)
+        }
+    }
+
+    /**
+     * Lit le marqueur posé par l'action Annuler de la notification.
+     *
+     * @param invoke Appel Tauri contenant l'identifiant d'export.
+     */
+    @Command
+    fun isExportCancellationRequested(invoke: Invoke) {
+        try {
+            val args = invoke.parseArgs(ExportServiceArgs::class.java)
+            invoke.resolve(
+                JSObject().apply {
+                    put(
+                        "cancelled",
+                        ExportForegroundService.isCancellationRequested(hostActivity, args.exportId)
+                    )
+                }
+            )
+        } catch (error: Exception) {
+            reject(invoke, "Failed to read export cancellation state", error)
         }
     }
 

@@ -1600,6 +1600,12 @@ const id = {
 		closeExportMonitor: 'Tutup monitor export',
 		cancelExport: 'Batalkan export',
 		cancelExportConfirm: 'Yakin ingin membatalkan export ini? Progres kamu akan hilang.',
+		exportNotificationChannel: 'Ekspor video',
+		exportKeepOpenCapturing: 'Biarkan Quran Caption tetap terbuka saat frame sedang diambil.',
+		exportCanRunInBackground:
+			'Kamu sekarang dapat meninggalkan Quran Caption; ekspor akan terus berjalan.',
+		exportCompletedTapToView: 'Ekspor selesai. Ketuk untuk melihatnya.',
+		exportCancelling: 'Membatalkan ekspor',
 		fileNotFound: 'File tidak ditemukan',
 		exportedFileNotFound: 'File hasil export tidak ditemukan. Mungkin sudah dipindah atau dihapus.',
 		errorCopiedToClipboard: 'Error disalin ke clipboard',

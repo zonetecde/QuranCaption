@@ -6,10 +6,13 @@ use tauri::{
 
 use crate::{
     models::{
-        CancelFfmpegResponse, ExecuteFfprobeRequest, ExecuteFfprobeResponse, FfmpegSessionRequest,
-        FfmpegSessionSnapshot, ImportUriRequest, ImportUriResponse, KeepScreenOnRequest,
-        KeepScreenOnResponse, OpenUriRequest, OpenUriResponse, PublishFileRequest,
-        PublishFileResponse, StartFfmpegRequest, StartFfmpegResponse,
+        BackgroundReadyResponse, CancelFfmpegResponse, ExecuteFfprobeRequest,
+        ExecuteFfprobeResponse, ExportCancellationResponse, ExportServiceRequest,
+        FfmpegSessionRequest, FfmpegSessionSnapshot, ImportUriRequest, ImportUriResponse,
+        KeepScreenOnRequest, KeepScreenOnResponse, OpenUriRequest, OpenUriResponse,
+        PublishFileRequest, PublishFileResponse, StartExportServiceRequest,
+        StartExportServiceResponse, StartFfmpegRequest, StartFfmpegResponse,
+        StopExportServiceResponse, UpdateExportServiceRequest, UpdateExportServiceResponse,
     },
     Result,
 };
@@ -113,6 +116,94 @@ impl<R: Runtime> AndroidMedia<R> {
                 KeepScreenOnRequest { enabled },
             )
             .map(|response| response.enabled)
+            .map_err(Into::into)
+    }
+
+    /// Démarre le service Android au premier plan dédié à l'export.
+    #[allow(clippy::too_many_arguments)]
+    pub fn start_export_service(
+        &self,
+        export_id: String,
+        file_name: String,
+        state: String,
+        state_labels: String,
+        capturing_hint: String,
+        background_hint: String,
+        completion_hint: String,
+        cancel_label: String,
+        cancelling_label: String,
+        channel_name: String,
+    ) -> Result<bool> {
+        self.0
+            .run_mobile_plugin::<StartExportServiceResponse>(
+                "startExportService",
+                StartExportServiceRequest {
+                    export_id,
+                    file_name,
+                    state,
+                    state_labels,
+                    capturing_hint,
+                    background_hint,
+                    completion_hint,
+                    cancel_label,
+                    cancelling_label,
+                    channel_name,
+                },
+            )
+            .map(|response| response.started)
+            .map_err(Into::into)
+    }
+
+    /// Met à jour la notification et retourne son marqueur d'annulation.
+    pub fn update_export_service(
+        &self,
+        export_id: String,
+        progress: i32,
+        state: String,
+    ) -> Result<bool> {
+        self.0
+            .run_mobile_plugin::<UpdateExportServiceResponse>(
+                "updateExportService",
+                UpdateExportServiceRequest {
+                    export_id,
+                    state,
+                    progress,
+                },
+            )
+            .map(|response| response.cancelled)
+            .map_err(Into::into)
+    }
+
+    /// Indique au service que la phase dépendante de la WebView est terminée.
+    pub fn mark_export_background_ready(&self, export_id: String) -> Result<bool> {
+        self.0
+            .run_mobile_plugin::<BackgroundReadyResponse>(
+                "markExportBackgroundReady",
+                ExportServiceRequest { export_id },
+            )
+            .map(|response| response.ready)
+            .map_err(Into::into)
+    }
+
+    /// Arrête le service d'export et retire sa notification.
+    pub fn stop_export_service(&self, export_id: String) -> Result<bool> {
+        self.0
+            .run_mobile_plugin::<StopExportServiceResponse>(
+                "stopExportService",
+                ExportServiceRequest { export_id },
+            )
+            .map(|response| response.stopped)
+            .map_err(Into::into)
+    }
+
+    /// Lit l'annulation demandée depuis la notification système.
+    pub fn is_export_cancellation_requested(&self, export_id: String) -> Result<bool> {
+        self.0
+            .run_mobile_plugin::<ExportCancellationResponse>(
+                "isExportCancellationRequested",
+                ExportServiceRequest { export_id },
+            )
+            .map(|response| response.cancelled)
             .map_err(Into::into)
     }
 }

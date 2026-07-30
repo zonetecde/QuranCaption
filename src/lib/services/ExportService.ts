@@ -324,7 +324,7 @@ export function applyExportProgress(data: ExportProgress): void {
 				exportation.totalExportTimeMs = Math.max(0, Date.now() - startMs);
 			}
 
-			if (exportation.exportKind === ExportKind.Video) {
+			if (exportation.exportKind === ExportKind.Video && !data.nativeNotificationCompleted) {
 				void notifyLongTaskCompletion({
 					title: get(LL).settings.videoExportFinished(),
 					body: exportation.finalFileName,
@@ -378,6 +378,7 @@ export interface ExportProgress {
 	currentBatchSize?: number;
 	errorLog?: string;
 	finalFilePath?: string;
+	nativeNotificationCompleted?: boolean;
 }
 
 export interface ExportLogPayload extends ExportLogEntry {

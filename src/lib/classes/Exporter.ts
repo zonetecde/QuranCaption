@@ -8,6 +8,7 @@ import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { save } from '@tauri-apps/plugin-dialog';
+import { isPermissionGranted, requestPermission } from '@tauri-apps/plugin-notification';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 import ExportFileService from '$lib/services/ExportFileService';
 import SoosiProvider from '$lib/services/SoosiProvider';
@@ -85,6 +86,18 @@ export function resolveProjectVideoExportRange(
 }
 
 export default class Exporter {
+	/**
+	 * Demande au moment du geste utilisateur l'autorisation Android nécessaire à la notification.
+	 * @returns {Promise<void>} Promise résolue même si l'autorisation est refusée.
+	 */
+	private static async requestExportNotificationPermission(): Promise<void> {
+		try {
+			if (!(await isPermissionGranted())) await requestPermission();
+		} catch (error) {
+			console.warn('Unable to request export notification permission:', error);
+		}
+	}
+
 	private static queueIntervalId: number | null = null;
 	private static isQueueTickRunning = false;
 	private static isExportListenerSetup = false;
@@ -710,6 +723,7 @@ export default class Exporter {
 			throw error;
 		}
 		if (!destinationUri) return;
+		await Exporter.requestExportNotificationPermission();
 
 		// Génère un ID d'export unique.
 		const exportId = Utilities.randomId().toString();
@@ -762,6 +776,7 @@ export default class Exporter {
 		finalFileName: string,
 		finalFilePath: string
 	): Promise<number> {
+		await Exporter.requestExportNotificationPermission();
 		const exportId = Utilities.randomId();
 		const shouldQueue =
 			Exporter.hasActiveVideoExport() || Exporter.getNextPendingVideoExport() !== undefined;

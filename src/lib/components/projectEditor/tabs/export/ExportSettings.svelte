@@ -45,7 +45,7 @@
 </script>
 
 <div
-	class="bg-secondary relative mx-0.5 flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-color shadow"
+	class="bg-secondary relative flex h-full min-w-0 flex-1 flex-col overflow-hidden"
 >
 	<!-- En-tête avec icône -->
 	<div class="flex shrink-0 items-center gap-2 border-b border-color px-3 py-2.5">

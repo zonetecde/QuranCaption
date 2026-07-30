@@ -144,7 +144,8 @@
 
 	.style-editor-settings {
 		flex: 1 1 0;
-		width: 100%;
+		width: calc(100% + 1rem);
 		min-width: 0;
+		margin-inline: -0.5rem;
 	}
 </style>

@@ -918,7 +918,7 @@
 </script>
 
 <div
-	class="bg-secondary relative mx-0.5 flex h-full min-w-0 flex-1 flex-col rounded-xl border border-color shadow"
+	class="bg-secondary relative flex h-full min-w-0 flex-1 flex-col"
 >
 	{#if presetLibraryOpen}
 		<PresetLibrary onBack={closePresetLibrary} />

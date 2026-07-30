@@ -7,7 +7,6 @@
 	} from '$lib/classes/Exportation.svelte';
 	import ExportService from '$lib/services/ExportService';
 	import { exists } from '@tauri-apps/plugin-fs';
-	import { openPath } from '@tauri-apps/plugin-opener';
 	import { invoke } from '@tauri-apps/api/core';
 	import ModalManager from './modals/ModalManager';
 	import { fade } from 'svelte/transition';
@@ -197,15 +196,15 @@
 	 */
 	async function openExportedFile(exportation: Exportation): Promise<void> {
 		try {
-			if (exportation.finalFilePath.startsWith('content://')) {
+			if (
+				exportation.finalFilePath.startsWith('content://') ||
+				(await exists(exportation.finalFilePath))
+			) {
 				const opened = await invoke<boolean>('open_android_export', {
 					uri: exportation.finalFilePath,
 					mimeType: getMimeType(exportation.finalFileName)
 				});
 				if (opened) return;
-			} else if (await exists(exportation.finalFilePath)) {
-				await openPath(exportation.finalFilePath);
-				return;
 			}
 		} catch (error) {
 			console.error('Unable to open exported file:', error);

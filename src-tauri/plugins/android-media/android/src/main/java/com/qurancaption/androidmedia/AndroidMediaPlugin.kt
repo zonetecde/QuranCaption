@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
 import android.view.WindowManager
+import androidx.core.content.FileProvider
 import app.tauri.Logger
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
@@ -267,8 +268,17 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
 
         hostActivity.runOnUiThread {
             try {
+                val uri = if (args.uri.startsWith("content://")) {
+                    Uri.parse(args.uri)
+                } else {
+                    FileProvider.getUriForFile(
+                        hostActivity,
+                        "${hostActivity.packageName}.fileprovider",
+                        localFile(args.uri),
+                    )
+                }
                 val intent = Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(Uri.parse(args.uri), args.mimeType.ifBlank { "*/*" })
+                    setDataAndType(uri, args.mimeType.ifBlank { "*/*" })
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
                 val opened = try {

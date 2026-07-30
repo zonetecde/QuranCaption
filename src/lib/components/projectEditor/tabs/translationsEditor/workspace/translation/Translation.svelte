@@ -8,7 +8,6 @@
 		sliceTranslationTrimUnits,
 		tokenizeTranslationText,
 		type TranslationInlineStyleFlags,
-		type TranslationInlineTextSegment,
 		VerseTranslation
 	} from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -250,13 +249,6 @@
 					getInlineStyleFlagsForWordIndex(translation().inlineStyleRuns ?? [], token.wordIndex)
 				)
 			}));
-	}
-
-	/**
-	 * Construit la liste de segments texte/styles pour le rendu final de la traduction.
-	 */
-	function getStyledSegments(): TranslationInlineTextSegment[] {
-		return translation().getInlineStyledSegments();
 	}
 
 	/**
@@ -663,7 +655,7 @@
 										? 'translation-word-first-selected translation-word-last-selected'
 										: selectedEdgeClass
 								}`
-							: 'translation-word-not-selected text-secondary hover:bg-secondary hover:border-border-color hover:text-primary rounded-md'}
+							: 'translation-word-not-selected text-secondary opacity-80 hover:bg-secondary hover:border-border-color hover:text-primary rounded-md'}
 						{isDragging ? 'select-none' : ''}"
 						onmousedown={(event) => handleMouseDown(i, event)}
 						onmouseenter={() => handleMouseEnter(i)}
@@ -675,13 +667,9 @@
 			</div>
 		{/if}
 
-		<!-- Indicateur de sélection - toujours visible -->
-		<div class="p-2 bg-secondary border border-color rounded-md relative">
-			{#if translation().type === 'verse' && !isInlineStyleMode() && !isTranslationWbwMappingMode()}
-				<!-- toggle: brute force -->
-				<label
-					class="absolute top-1 right-1.75 text-primary opacity-40 hover:opacity-100 duration-200 cursor-pointer"
-				>
+		{#if translation().type === 'verse' && !isInlineStyleMode() && !isTranslationWbwMappingMode()}
+			<div class="flex justify-end -my-2">
+				<label class="cursor-pointer text-primary opacity-40 duration-200 hover:opacity-100">
 					<span class="text-xs">{$LL.editor.manuallyEdit()}</span>
 					<!-- prettier-ignore -->
 					<input
@@ -704,105 +692,82 @@
 						class="w-2 h-2 scale-75 rounded"
 					/>
 				</label>
-			{/if}
+			</div>
+		{/if}
 
-			<p class="text-xs text-thirdly mb-1">
-				{isTranslationWbwMappingMode()
-					? $LL.editor.translationWbwMapping()
-					: isInlineStyleMode()
-						? $LL.editor.styledSubtitleTranslation()
-						: $LL.editor.subtitleTranslation()}
-			</p>
-
-			{#if translation().type === 'verse' && isTranslationWbwMappingMode()}
-				<div class="space-y-2">
-					<div class="flex justify-end">
-						<button
-							type="button"
-							class="rounded-md border border-red-500/35 px-2 py-1 text-xs text-red-300 hover:bg-red-500/10"
-							onclick={clearAllWbwMappings}
-						>
-							{$LL.editor.clearAllWbwMappings()}
-						</button>
-					</div>
-					{#each arabicWords() as arabicWord, arabicWordIndex (`${subtitle.id}-wbw-map-${arabicWordIndex}-${arabicWord}`)}
-						<div class="rounded-lg border border-color bg-primary/30 px-3 py-2">
-							<div class="mb-2 flex items-center justify-between gap-3 text-xs text-secondary">
-								<div class="flex min-w-0 items-center gap-2">
-									<span class="font-semibold text-primary arabic text-base" dir="rtl">
-										{arabicWord}
-									</span>
-									<span class="shrink-0" dir={wbwTranslationDirection()}>
-										{getWbwHelperWordLabel(arabicWordIndex)}
-									</span>
-								</div>
-								<button
-									type="button"
-									class="shrink-0 rounded-md border border-color px-2 py-1 hover:bg-accent"
-									onclick={() => clearCurrentWbwMapping(arabicWordIndex)}
-								>
-									{$LL.editor.clearCurrentWbwMapping()}
-								</button>
-							</div>
-							<TranslationWordSelector
-								words={getTrimmedTranslationWords()}
-								direction={translationDirection()}
-								isWordSelected={(wordIndex) =>
-									isWbwUnitSelectedForArabicWord(arabicWordIndex, wordIndex)}
-								onSelection={(start, end) => applyWbwMappingSelection(arabicWordIndex, start, end)}
-							/>
-						</div>
-					{/each}
-				</div>
-			{:else if translation().type === 'verse' && isInlineStyleMode()}
-				<TranslationWordSelector
-					words={getTrimmedTranslationWords()}
-					direction={translationDirection()}
-					onSelection={applyInlineStylesFromSelection}
-				/>
-			{:else if translation().type === 'verse' && !translation().isBruteForce}
-				<p
-					class="text-sm font-medium whitespace-pre-line"
-					dir={translationDirection()}
-					ondblclick={() => {
-						ProjectHistoryManager.track('edit translation manually', () => {
-							(subtitle.translations[edition.name] as VerseTranslation).isBruteForce = true;
-							translation().updateStatus('reviewed', edition);
-							// Met le focus sur l'input de traduction
-							setTimeout(() => {
-								if (translationInput) {
-									translationInput.focus();
-								}
-							}, 0);
-						});
-					}}
-				>
-					{#each getStyledSegments() as segment, index (`${index}-${segment.text}`)}
-						<span style={getInlineStyleCss(segment)}>
-							{segment.text}
-							{#if segment.lineBreak}
-								<span class="material-icons translation-inline-line-break" aria-hidden="true">
-									keyboard_return
-								</span>
-							{/if}
-						</span>
-					{/each}
+		{#if translation().type !== 'verse' || isTranslationWbwMappingMode() || isInlineStyleMode() || translation().isBruteForce}
+			<div class="relative rounded-md border border-color bg-secondary p-2">
+				<p class="text-xs text-thirdly mb-1">
+					{isTranslationWbwMappingMode()
+						? $LL.editor.translationWbwMapping()
+						: isInlineStyleMode()
+							? $LL.editor.styledSubtitleTranslation()
+							: $LL.editor.subtitleTranslation()}
 				</p>
-			{:else}
-				<!-- prettier-ignore -->
-				<input
-					bind:this={translationInput}
-					type="text"
-					value={editableTranslationValue}
-					onfocus={handleTranslationInputFocus}
-					oninput={handleTranslationInput}
-					onblur={handleTranslationInputBlur}
-					class="w-full bg-secondary text-primary border border-color rounded-md px-2 py-1 text-sm"
-					dir={translationDirection()}
-					placeholder={$LL.translations.enterTranslationHere()}
-				/>
-			{/if}
-		</div>
+
+				{#if translation().type === 'verse' && isTranslationWbwMappingMode()}
+					<div class="space-y-2">
+						<div class="flex justify-end">
+							<button
+								type="button"
+								class="rounded-md border border-red-500/35 px-2 py-1 text-xs text-red-300 hover:bg-red-500/10"
+								onclick={clearAllWbwMappings}
+							>
+								{$LL.editor.clearAllWbwMappings()}
+							</button>
+						</div>
+						{#each arabicWords() as arabicWord, arabicWordIndex (`${subtitle.id}-wbw-map-${arabicWordIndex}-${arabicWord}`)}
+							<div class="rounded-lg border border-color bg-primary/30 px-3 py-2">
+								<div class="mb-2 flex items-center justify-between gap-3 text-xs text-secondary">
+									<div class="flex min-w-0 items-center gap-2">
+										<span class="font-semibold text-primary arabic text-base" dir="rtl">
+											{arabicWord}
+										</span>
+										<span class="shrink-0" dir={wbwTranslationDirection()}>
+											{getWbwHelperWordLabel(arabicWordIndex)}
+										</span>
+									</div>
+									<button
+										type="button"
+										class="shrink-0 rounded-md border border-color px-2 py-1 hover:bg-accent"
+										onclick={() => clearCurrentWbwMapping(arabicWordIndex)}
+									>
+										{$LL.editor.clearCurrentWbwMapping()}
+									</button>
+								</div>
+								<TranslationWordSelector
+									words={getTrimmedTranslationWords()}
+									direction={translationDirection()}
+									isWordSelected={(wordIndex) =>
+										isWbwUnitSelectedForArabicWord(arabicWordIndex, wordIndex)}
+									onSelection={(start, end) =>
+										applyWbwMappingSelection(arabicWordIndex, start, end)}
+								/>
+							</div>
+						{/each}
+					</div>
+				{:else if translation().type === 'verse' && isInlineStyleMode()}
+					<TranslationWordSelector
+						words={getTrimmedTranslationWords()}
+						direction={translationDirection()}
+						onSelection={applyInlineStylesFromSelection}
+					/>
+				{:else}
+					<!-- prettier-ignore -->
+					<input
+						bind:this={translationInput}
+						type="text"
+						value={editableTranslationValue}
+						onfocus={handleTranslationInputFocus}
+						oninput={handleTranslationInput}
+						onblur={handleTranslationInputBlur}
+						class="w-full bg-secondary text-primary border border-color rounded-md px-2 py-1 text-sm"
+						dir={translationDirection()}
+						placeholder={$LL.translations.enterTranslationHere()}
+					/>
+				{/if}
+			</div>
+		{/if}
 	{/if}
 </div>
 

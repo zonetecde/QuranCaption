@@ -451,9 +451,6 @@
 						<span class="material-icons-outlined text-accent-primary">brush</span>
 						<div class="min-w-0">
 							<p class="text-sm font-semibold">{$LL.editor.wordStylingActive()}</p>
-							<p class="mt-1 text-xs leading-relaxed text-secondary">
-								{$LL.editor.wordStylesDescription()}
-							</p>
 						</div>
 					</div>
 					<div class="flex shrink-0 gap-2">

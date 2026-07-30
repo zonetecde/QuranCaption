@@ -6,10 +6,25 @@
 	import TranslationsEditorSettings from './leftPanel/TranslationsEditorSettings.svelte';
 	import Workspace from './workspace/Workspace.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { globalState } from '$lib/runes/main.svelte';
 
 	let addTranslationModalVisibility = $state(false);
 	let leftDrawerOpen = $state(false);
 	let rightDrawerOpen = $state(false);
+	let visibleEditions = $derived(
+		globalState.currentProject!.content.projectTranslation.addedTranslationEditions.filter(
+			(edition) => edition.showInTranslationsEditor
+		)
+	);
+	let progressEdition = $derived(visibleEditions.length === 1 ? visibleEditions[0] : null);
+	let reviewPercentage = $derived(
+		progressEdition
+			? Math.min(
+					100,
+					Math.max(0, globalState.currentProject!.detail.translations[progressEdition.author] ?? 0)
+				)
+			: 0
+	);
 </script>
 
 <div class="translations-editor-mobile-shell">
@@ -51,6 +66,21 @@
 				(addTranslationModalVisibility = visible)}
 		/>
 	</section>
+
+	{#if progressEdition}
+		<section class="translation-review-progress">
+			<div
+				class="translation-review-track"
+				role="progressbar"
+				aria-label={$LL.editor.percentageReviewed()}
+				aria-valuemin="0"
+				aria-valuemax="100"
+				aria-valuenow={reviewPercentage}
+			>
+				<div class="translation-review-bar" style={`width: ${reviewPercentage}%;`}></div>
+			</div>
+		</section>
+	{/if}
 
 	<MobileSideDrawers bind:leftOpen={leftDrawerOpen} bind:rightOpen={rightDrawerOpen}>
 		{#snippet leftContent()}
@@ -110,6 +140,24 @@
 		overflow: hidden;
 	}
 
+	.translation-review-progress {
+		width: calc(100% + 1rem);
+		flex-shrink: 0;
+		margin: 0 -0.5rem -0.5rem;
+	}
+
+	.translation-review-track {
+		height: 0.35rem;
+		overflow: hidden;
+		background: var(--border-color);
+	}
+
+	.translation-review-bar {
+		height: 100%;
+		background: var(--accent-primary);
+		transition: width 0.3s ease-in-out;
+	}
+
 	.drawer-toggle {
 		z-index: 40;
 		display: flex;
@@ -133,6 +181,11 @@
 		.translations-editor-mobile-shell {
 			gap: 0.4rem;
 			padding: 0.4rem;
+		}
+
+		.translation-review-progress {
+			width: calc(100% + 0.8rem);
+			margin: 0 -0.4rem -0.4rem;
 		}
 	}
 </style>

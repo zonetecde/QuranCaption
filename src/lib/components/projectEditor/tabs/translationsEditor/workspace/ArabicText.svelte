@@ -35,6 +35,7 @@
 	let inlineDragStartIndex = $state(-1);
 	let inlineSelectionStart = $state(-1);
 	let inlineSelectionEnd = $state(-1);
+	let openTooltipWordIndex: number | null = $state(null);
 
 	let arabicDisplayParts = $derived(() => subtitle.getArabicRenderParts());
 	let words = $derived(() => arabicDisplayParts().text.split(' ').filter(Boolean));
@@ -173,7 +174,7 @@
 
 {#if subtitle instanceof ClipWithTranslation}
 	<div
-		class="text-3xl flex flex-row arabic text-right gap-x-2 flex-wrap gap-y-2"
+		class="flex flex-row arabic text-right text-[1.75rem] gap-x-2 flex-wrap gap-y-2"
 		dir="rtl"
 		onmouseleave={finishInlineDrag}
 	>
@@ -196,7 +197,7 @@
 			{@const flags = getInlineStyleFlagsForWordIndex(subtitle.arabicInlineStyleRuns, i)}
 			<button
 				type="button"
-				class="word group relative flex flex-col items-center gap-y-2 rounded-md p-0 ring-1 ring-transparent transition-colors {isOverlapWord
+				class="word relative flex flex-col items-center gap-y-2 rounded-md p-0 ring-1 ring-transparent transition-colors {isOverlapWord
 					? 'overlap-arabic-word'
 					: ''} {isInlineSelected ? 'arabic-inline-selected' : ''} {isWbwMappingActive
 					? 'arabic-wbw-active'
@@ -210,6 +211,10 @@
 				onclick={() => {
 					if (isTranslationWbwMappingMode()) {
 						translationsEditorState().translationWbwActiveArabicWordIndex = i;
+						return;
+					}
+					if (!isInlineStyleMode()) {
+						openTooltipWordIndex = openTooltipWordIndex === i ? null : i;
 					}
 				}}
 			>
@@ -223,7 +228,10 @@
 				</span>
 
 				<span
-					class="word-translation-tooltip group-hover:block hidden text-sm absolute top-10 w-max px-1.5 border-2 rounded-lg text-center z-20"
+					class="word-translation-tooltip absolute top-10 z-20 w-max rounded-lg border-2 px-1.5 text-center text-sm {openTooltipWordIndex ===
+					i
+						? 'block'
+						: 'hidden'}"
 					dir={wbwTranslationDirection()}
 				>
 					{subtitle instanceof SubtitleClip
@@ -301,5 +309,11 @@
 		font-size: 0.55em;
 		vertical-align: 0.05em;
 		color: var(--accent-primary);
+	}
+
+	@media (hover: hover) {
+		.word:hover .word-translation-tooltip {
+			display: block;
+		}
 	}
 </style>

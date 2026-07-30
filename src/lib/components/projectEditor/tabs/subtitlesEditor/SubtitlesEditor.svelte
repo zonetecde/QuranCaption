@@ -18,6 +18,7 @@
 	import { runAutoSegmentationFromImportedJson } from '$lib/services/AutoSegmentation';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import { TrackType } from '$lib/classes';
+	import DiviseurRedimensionnable from '../DiviseurRedimensionnable.svelte';
 
 	let unlistenDrop: (() => void) | null = null;
 	let leftDrawerOpen = $state(false);
@@ -36,12 +37,23 @@
 	const EDGE_SWIPE_WIDTH_PX = 28;
 	const GESTURE_DIRECTION_THRESHOLD_PX = 6;
 	const GESTURE_COMMIT_DISTANCE_PX = 48;
+	const WORKSPACE_HEIGHT_MIN = 35;
+	const WORKSPACE_HEIGHT_MAX = 80;
 
 	let leftDrawerProgress = $derived(
 		gestureSide === 'left' ? gestureProgress : leftDrawerOpen ? 1 : 0
 	);
 	let rightDrawerProgress = $derived(
 		gestureSide === 'right' ? gestureProgress : rightDrawerOpen ? 1 : 0
+	);
+	let workspaceHeight = $derived(
+		Math.max(
+			WORKSPACE_HEIGHT_MIN,
+			Math.min(
+				WORKSPACE_HEIGHT_MAX,
+				globalState.settings!.persistentUiState.projectEditorLayout.upperSectionHeight
+			)
+		)
 	);
 
 	$effect(() => {
@@ -298,27 +310,42 @@
 		</button>
 	</section>
 
-	<section class="subtitles-editor-workspace">
-		<SubtitlesWorkspace
-			useSplitHeight={false}
-			showVersePicker={false}
-			showPlaybackControls
-			onTogglePresetPicker={() => (presetPickerOpen = !presetPickerOpen)}
-		/>
-	</section>
+	<div class="subtitles-editor-content">
+		<section
+			class="subtitles-editor-workspace"
+			style={`flex-basis: ${workspaceHeight}%;`}
+		>
+			<SubtitlesWorkspace
+				useSplitHeight={false}
+				showVersePicker={false}
+				showPlaybackControls
+				onTogglePresetPicker={() => (presetPickerOpen = !presetPickerOpen)}
+			/>
+		</section>
 
-	<section class="subtitles-editor-timeline">
-		<Timeline
-			useSplitHeight={false}
-			visibleTrackTypes={[TrackType.Audio, TrackType.Subtitle]}
-			fitTracksToHeight
+		<DiviseurRedimensionnable
+			orientation="horizontal"
+			bind:value={globalState.settings!.persistentUiState.projectEditorLayout.upperSectionHeight}
+			displayedValue={workspaceHeight}
+			min={WORKSPACE_HEIGHT_MIN}
+			max={WORKSPACE_HEIGHT_MAX}
+			unit="percent"
+			dataTestId="subtitles-timeline-resizer"
 		/>
-		{#if presetPickerOpen}
-			<div class="preset-picker-overlay">
-				<SubtitlePresetPicker onClose={() => (presetPickerOpen = false)} />
-			</div>
-		{/if}
-	</section>
+
+		<section class="subtitles-editor-timeline">
+			<Timeline
+				useSplitHeight={false}
+				visibleTrackTypes={[TrackType.Audio, TrackType.Subtitle]}
+				fitTracksToHeight
+			/>
+			{#if presetPickerOpen}
+				<div class="preset-picker-overlay">
+					<SubtitlePresetPicker onClose={() => (presetPickerOpen = false)} />
+				</div>
+			{/if}
+		</section>
+	</div>
 
 	{#if !leftDrawerOpen && !rightDrawerOpen}
 		<div
@@ -391,8 +418,17 @@
 		overflow: hidden;
 	}
 
-	.subtitles-editor-workspace {
+	.subtitles-editor-content {
+		display: flex;
 		flex: 1 1 0;
+		min-height: 0;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	.subtitles-editor-workspace {
+		flex-grow: 0;
+		flex-shrink: 0;
 	}
 
 	.playback-engine {
@@ -419,7 +455,7 @@
 
 	.subtitles-editor-timeline {
 		position: relative;
-		flex: 0 0 min(32dvh, 230px);
+		flex: 1 1 0;
 		border: 1px solid var(--border-color);
 		border-radius: 12px;
 		background: var(--timeline-bg-primary);
@@ -514,10 +550,6 @@
 		.subtitles-editor-mobile-shell {
 			gap: 0.4rem;
 			padding: 0.4rem;
-		}
-
-		.subtitles-editor-timeline {
-			flex-basis: min(28.5dvh, 165px);
 		}
 	}
 </style>

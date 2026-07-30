@@ -159,7 +159,8 @@
 						</div>
 						<div>
 							<h3 class="text-xl font-bold text-primary">
-								{numberOfV2Projects} {$LL.migration.projectsFound()}
+								{numberOfV2Projects}
+								{$LL.migration.projectsFound()}
 							</h3>
 							<p class="text-thirdly">{$LL.migration.readyToImport()}</p>
 						</div>
@@ -176,7 +177,9 @@
 						<div class="flex items-start gap-3">
 							<div class="w-2 h-2 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
 							<div>
-								<span class="text-secondary text-sm font-medium">{$LL.migration.projectAssets()}</span>
+								<span class="text-secondary text-sm font-medium"
+									>{$LL.migration.projectAssets()}</span
+								>
 								<p class="text-thirdly text-xs mt-1">
 									{$LL.migration.projectAssetsDesc()}
 								</p>
@@ -185,14 +188,18 @@
 						<div class="flex items-start gap-3">
 							<div class="w-2 h-2 bg-green-400 rounded-full mt-2 flex-shrink-0"></div>
 							<div>
-								<span class="text-secondary text-sm font-medium">{$LL.migration.translations()}</span>
+								<span class="text-secondary text-sm font-medium"
+									>{$LL.migration.translations()}</span
+								>
 								<p class="text-thirdly text-xs mt-1">{$LL.migration.translationsDesc()}</p>
 							</div>
 						</div>
 						<div class="flex items-start gap-3">
 							<div class="w-2 h-2 bg-yellow-400 rounded-full mt-2 flex-shrink-0"></div>
 							<div>
-								<span class="text-secondary text-sm font-medium">{$LL.migration.styleLimitations()}</span>
+								<span class="text-secondary text-sm font-medium"
+									>{$LL.migration.styleLimitations()}</span
+								>
 								<p class="text-thirdly text-xs mt-1">
 									{$LL.migration.styleLimitationsDesc()}
 								</p>
@@ -201,7 +208,8 @@
 						<div class="flex items-start gap-3">
 							<div class="w-2 h-2 bg-red-400 rounded-full mt-2 flex-shrink-0"></div>
 							<div>
-								<span class="text-secondary text-sm font-medium">{$LL.migration.customTexts()}</span>
+								<span class="text-secondary text-sm font-medium">{$LL.migration.customTexts()}</span
+								>
 								<p class="text-thirdly text-xs mt-1">{$LL.migration.customTextsDesc()}</p>
 							</div>
 						</div>
@@ -214,7 +222,9 @@
 				>
 					<div class="flex items-center gap-2 mb-2">
 						<span class="material-icons text-accent-primary text-lg">wifi</span>
-						<span class="text-secondary font-medium text-sm">{$LL.migration.internetRequired()}</span>
+						<span class="text-secondary font-medium text-sm"
+							>{$LL.migration.internetRequired()}</span
+						>
 					</div>
 					<p class="text-thirdly text-xs">
 						{$LL.migration.internetRequiredDesc()}
@@ -240,7 +250,8 @@
 
 					<div class="flex items-center justify-between text-sm">
 						<span class="text-thirdly">
-							{$LL.migration.processing()} <span class="text-secondary font-medium">{currentProjectName}</span>
+							{$LL.migration.processing()}
+							<span class="text-secondary font-medium">{currentProjectName}</span>
 						</span>
 						<span class="text-secondary">
 							{successfulImports + failedImports} / {numberOfV2Projects}

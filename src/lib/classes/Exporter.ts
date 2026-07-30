@@ -16,7 +16,6 @@ import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 import Exportation, { ExportKind, ExportState } from './Exportation.svelte';
 import type { Project } from './Project';
 import { ProjectService } from '$lib/services/ProjectService';
-import ModalManager from '$lib/components/modals/ModalManager';
 import {
 	getRecitationRangesForExport,
 	mapTimeToExportRanges

@@ -249,7 +249,10 @@
 
 		// Timings natifs optionnels : on ne les propose/applique que si le projet ciblé
 		// est toujours ouvert (la confirmation + segmentation lisent l'état global).
-		if (option.supportsNativeTiming && globalState.currentProject?.detail.id === project.detail.id) {
+		if (
+			option.supportsNativeTiming &&
+			globalState.currentProject?.detail.id === project.detail.id
+		) {
 			const normalizedFullPath = fullPath.replace(/\\/g, '/').replace(/\/+/g, '/');
 			const addedAsset = projectContent.assets.find(
 				(asset) => asset.filePath === normalizedFullPath

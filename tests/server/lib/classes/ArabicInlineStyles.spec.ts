@@ -257,7 +257,7 @@ describe('arabic inline styles', () => {
 	it('keeps WBW timestamps and preserves global word positions when the subtitle start changes', () => {
 		const clip = new SubtitleClip(1_000, 5_000, 102, 8, 0, 2, 'one two three', [], false, false);
 		clip.alignmentMetadata = {
-			source: 'local',
+			source: 'api',
 			segment: 0,
 			refFrom: '102:8:1',
 			refTo: '102:8:3',
@@ -287,7 +287,7 @@ describe('arabic inline styles', () => {
 	it('keeps WBW timestamps and pins the last word to the new subtitle end', () => {
 		const clip = new SubtitleClip(1_000, 5_000, 102, 8, 0, 2, 'one two three', [], false, false);
 		clip.alignmentMetadata = {
-			source: 'local',
+			source: 'api',
 			segment: 0,
 			refFrom: '102:8:1',
 			refTo: '102:8:3',

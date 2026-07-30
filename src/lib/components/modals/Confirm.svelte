@@ -23,7 +23,9 @@
 		<div class="flex items-center justify-center w-10 h-10 bg-accent rounded-full">
 			<span class="material-icons text-lg text-accent">help_outline</span>
 		</div>
-		<h2 class="text-lg font-semibold text-primary">{!yesNo ? $LL.common.confirmation() : $LL.common.question()}</h2>
+		<h2 class="text-lg font-semibold text-primary">
+			{!yesNo ? $LL.common.confirmation() : $LL.common.question()}
+		</h2>
 	</div>
 
 	<!-- Divider -->

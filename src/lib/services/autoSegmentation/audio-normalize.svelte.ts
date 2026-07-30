@@ -1,7 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { globalState } from '$lib/runes/main.svelte';
-import { Duration } from '$lib/classes';
-import type { Asset } from '$lib/classes';
+import { Duration, type Asset } from '$lib/classes';
 import type { Project } from '$lib/classes/Project';
 import { TrackType } from '$lib/classes/enums';
 import { WaveformService } from '$lib/services/WaveformService.svelte';
@@ -10,8 +9,8 @@ import { WaveformService } from '$lib/services/WaveformService.svelte';
  * Re-timing audio "transparent" déclenché par l'auto-segmentation.
  *
  * Contexte : certains médias annoncent une durée (PTS) plus longue que leur
- * contenu audio réel. Les moteurs d'alignement (cloud, local, Whisper, import
- * JSON, surah-splitter) travaillent sur l'audio décodé (temps réel du contenu),
+ * contenu audio réel. Les flux d'alignement cloud et JSON travaillent sur
+ * l'audio décodé (temps réel du contenu),
  * tandis que la lecture/export de QC suit les PTS du conteneur. Les sous-titres
  * alignés dérivent donc progressivement. On régénère ici des PTS contigus sur
  * l'asset audio (sans toucher à la vidéo) pour que les deux horloges coïncident.

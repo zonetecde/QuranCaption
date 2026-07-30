@@ -21,10 +21,7 @@ const PROJECTS_FOLDER = 'projects/';
 
 /** Normalise un chemin pour comparaison : `/` uniforme, doublons réduits, minuscule (Windows). */
 function normalizeForCompare(filePath: string): string {
-	return filePath
-		.replace(/\\/g, '/')
-		.replace(/\/+/g, '/')
-		.toLowerCase();
+	return filePath.replace(/\\/g, '/').replace(/\/+/g, '/').toLowerCase();
 }
 
 /** Dossier du cache (`<appData>/qua-audio-cache`), créé si absent. */

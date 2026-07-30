@@ -1,13 +1,7 @@
-import { invoke } from '@tauri-apps/api/core';
 import { globalState } from '$lib/runes/main.svelte';
 import type { Project } from '$lib/classes/Project';
 import { TrackType } from '$lib/classes/enums';
-import type {
-	AutoSegmentationAudioClip,
-	AutoSegmentationAudioInfo,
-	LocalSegmentationStatus,
-	SegmentationMode
-} from './types';
+import type { AutoSegmentationAudioClip, AutoSegmentationAudioInfo } from './types';
 
 /**
  * Extrait les clips audio présents sur la timeline du projet.
@@ -82,94 +76,4 @@ export function getAutoSegmentationAudioDurationS(
 	if (clips.length === 0) return 0;
 	const totalMs = clips.reduce((sum, clip) => sum + Math.max(0, clip.endMs - clip.startMs), 0);
 	return totalMs / 1000;
-}
-
-/**
- * Vérifie si la segmentation locale est disponible et prête.
- *
- * @param {string} [hfToken] Token Hugging Face optionnel.
- * @returns {Promise<LocalSegmentationStatus>} Statut détaillé des moteurs locaux.
- */
-export async function checkLocalSegmentationStatus(
-	hfToken?: string
-): Promise<LocalSegmentationStatus> {
-	try {
-		const result = await invoke('check_local_segmentation_ready', {
-			hfToken: hfToken && hfToken.trim().length > 0 ? hfToken : undefined
-		});
-		return result as LocalSegmentationStatus;
-	} catch (error) {
-		console.error('Failed to check local segmentation status:', error);
-		return {
-			ready: false,
-			pythonInstalled: false,
-			packagesInstalled: false,
-			message: 'Failed to check local segmentation status',
-			engines: {
-				legacy: {
-					ready: false,
-					venvExists: false,
-					packagesInstalled: false,
-					usable: false,
-					message: 'Status check failed'
-				},
-				multi: {
-					ready: false,
-					venvExists: false,
-					packagesInstalled: false,
-					usable: false,
-					tokenRequired: true,
-					tokenProvided: false,
-					message: 'Status check failed'
-				},
-				muaalem: {
-					ready: false,
-					venvExists: false,
-					packagesInstalled: false,
-					usable: false,
-					message: 'Status check failed'
-				},
-				surahSplitter: {
-					ready: false,
-					venvExists: false,
-					packagesInstalled: false,
-					usable: false,
-					message: 'Status check failed'
-				}
-			}
-		};
-	}
-}
-
-/**
- * Installe les dépendances pour la segmentation locale.
- *
- * @param {'legacy' | 'multi' | 'muaalem' | 'surah_splitter'} engine Moteur cible.
- * @param {string} [hfToken] Token Hugging Face optionnel.
- * @returns {Promise<void>}
- */
-export async function installLocalSegmentationDeps(
-	engine: 'legacy' | 'multi' | 'muaalem' | 'surah_splitter',
-	hfToken?: string
-): Promise<void> {
-	try {
-		await invoke('install_local_segmentation_deps', {
-			engine,
-			hfToken: hfToken && hfToken.trim().length > 0 ? hfToken : undefined
-		});
-	} catch (error) {
-		console.error('Failed to install local segmentation deps:', error);
-		throw error;
-	}
-}
-
-/**
- * Récupère le mode de segmentation préféré.
- * Retourne 'local' si prêt, sinon 'api'.
- *
- * @returns {Promise<SegmentationMode>} Mode de segmentation préféré.
- */
-export async function getPreferredSegmentationMode(): Promise<SegmentationMode> {
-	const status = await checkLocalSegmentationStatus();
-	return status.ready ? 'local' : 'api';
 }

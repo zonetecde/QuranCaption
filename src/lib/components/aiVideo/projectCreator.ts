@@ -8,7 +8,6 @@ import {
 } from '$lib/classes';
 import { Quran } from '$lib/classes/Quran';
 import { globalState } from '$lib/runes/main.svelte';
-import { discordService } from '$lib/services/DiscordService';
 import { Mp3QuranService } from '$lib/services/Mp3QuranService';
 import { ProjectService } from '$lib/services/ProjectService';
 import { runAutoSegmentation } from '$lib/services/AutoSegmentation';
@@ -113,7 +112,6 @@ export async function createAiVideoProject(): Promise<void> {
 		// Ouvre le projet en arriere-plan (l'overlay reste visible)
 		globalState.currentProject = project;
 		globalState.currentPage = 'home';
-		discordService.setEditingState();
 
 		const assetFolder = await ProjectService.getAssetFolderForProject(project.detail.id);
 		const backgroundVideoUrl =
@@ -220,39 +218,19 @@ export async function createAiVideoProject(): Promise<void> {
 		// ── 4. Auto-segmentation ──
 		setStatus(get(LL).aiVideo.generatingSubtitles());
 		const segmentationSettings = globalState.settings?.autoSegmentationSettings;
-		const useLocalUniversalAligner =
-			segmentationSettings?.mode === 'local' &&
-			segmentationSettings.localAsrMode === 'multi_aligner';
 		const segResult = await runAutoSegmentation(
-			useLocalUniversalAligner
-				? {
-						minSilenceMs: segmentationSettings.minSilenceMs,
-						minSpeechMs: segmentationSettings.minSpeechMs,
-						padMs: segmentationSettings.padMs,
-						localAsrMode: segmentationSettings.localAsrMode,
-						multiAlignerModel: segmentationSettings.multiAlignerModel,
-						cloudModel: segmentationSettings.cloudModel,
-						device: segmentationSettings.device,
-						hfToken: segmentationSettings.hfToken,
-						allowCloudFallback: false,
-						includeWbwTimestamps: segmentationSettings.includeWbwTimestamps,
-						fillBySilence: segmentationSettings.fillBySilence,
-						extendBeforeSilence: segmentationSettings.extendBeforeSilence,
-						extendBeforeSilenceMs: segmentationSettings.extendBeforeSilenceMs
-					}
-				: {
-						minSilenceMs: segmentationSettings?.minSilenceMs,
-						minSpeechMs: segmentationSettings?.minSpeechMs,
-						padMs: segmentationSettings?.padMs,
-						localAsrMode: 'multi_aligner',
-						cloudModel: segmentationSettings?.cloudModel,
-						device: segmentationSettings?.device,
-						includeWbwTimestamps: segmentationSettings?.includeWbwTimestamps,
-						fillBySilence: segmentationSettings?.fillBySilence,
-						extendBeforeSilence: segmentationSettings?.extendBeforeSilence,
-						extendBeforeSilenceMs: segmentationSettings?.extendBeforeSilenceMs
-					},
-			useLocalUniversalAligner ? 'local' : 'api'
+			{
+				minSilenceMs: segmentationSettings?.minSilenceMs,
+				minSpeechMs: segmentationSettings?.minSpeechMs,
+				padMs: segmentationSettings?.padMs,
+				cloudModel: segmentationSettings?.cloudModel,
+				device: segmentationSettings?.device,
+				includeWbwTimestamps: segmentationSettings?.includeWbwTimestamps,
+				fillBySilence: segmentationSettings?.fillBySilence,
+				extendBeforeSilence: segmentationSettings?.extendBeforeSilence,
+				extendBeforeSilenceMs: segmentationSettings?.extendBeforeSilenceMs
+			},
+			'api'
 		);
 		console.log('[AiVideo] Segmentation result:', segResult);
 

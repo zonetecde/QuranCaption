@@ -41,13 +41,7 @@
 	const indeterminate = $derived(busy && percent === null);
 </script>
 
-<button
-	class="download-btn btn-accent"
-	type="button"
-	{onclick}
-	{disabled}
-	aria-busy={busy}
->
+<button class="download-btn btn-accent" type="button" {onclick} {disabled} aria-busy={busy}>
 	{#if busy && percent !== null}
 		<span class="download-btn__fill" style="width: {percent}%"></span>
 	{:else if indeterminate}

@@ -176,7 +176,9 @@
 		const successParts: string[] = [];
 		if (addedCount > 0) {
 			successParts.push(
-				addedCount === 1 ? get(LL).common.addedToCollection() : get(LL).common.addedToCollections({ count: addedCount })
+				addedCount === 1
+					? get(LL).common.addedToCollection()
+					: get(LL).common.addedToCollections({ count: addedCount })
 			);
 		}
 		if (removedCount > 0) {
@@ -186,7 +188,9 @@
 					: get(LL).common.removedFromCollections({ count: removedCount })
 			);
 		}
-		toast.success(get(LL).common.verseWasUpdated({ verseKey, changes: successParts.join(' and ') }));
+		toast.success(
+			get(LL).common.verseWasUpdated({ verseKey, changes: successParts.join(' and ') })
+		);
 
 		if (failedOperations.length > 0) {
 			toast.error(get(LL).common.someOperationsFailed({ list: failedOperations.join(', ') }));
@@ -341,7 +345,9 @@
 										<div class="min-w-0">
 											<p class="truncate text-sm font-medium text-primary">{collection.name}</p>
 											<p class="text-xs text-thirdly">
-												{$LL.common.updatedDate({ date: new Date(collection.updatedAt).toLocaleString() })}
+												{$LL.common.updatedDate({
+													date: new Date(collection.updatedAt).toLocaleString()
+												})}
 											</p>
 										</div>
 										<div
@@ -364,7 +370,10 @@
 
 		<div class="flex items-center justify-between gap-3 border-t border-color px-6 py-4">
 			<p class="text-xs text-thirdly">
-				{$LL.common.collectionsSelected({ count: selectedCollectionIds.length, plural: selectedCollectionIds.length === 1 ? '' : 's' })}
+				{$LL.common.collectionsSelected({
+					count: selectedCollectionIds.length,
+					plural: selectedCollectionIds.length === 1 ? '' : 's'
+				})}
 			</p>
 
 			<div class="flex items-center gap-3">

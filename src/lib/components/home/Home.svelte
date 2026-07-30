@@ -13,7 +13,6 @@
 	import Settings from '$lib/classes/Settings.svelte';
 	import TourManager from '$lib/components/tour/TourManager';
 	import { setupTutorialProject } from '$lib/services/TutorialService';
-	import { VersionService } from '$lib/services/VersionService.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import MigrationService from '$lib/services/MigrationService';
 	import AndroidMediaService from '$lib/services/AndroidMediaService';
@@ -425,21 +424,6 @@
 	});
 
 	onMount(async () => {
-		await VersionService.init();
-
-		// Verifie les mises a jour
-		if (VersionService.latestUpdate?.hasUpdate) {
-			if (!globalState.settings) return;
-
-			// Vérifie que ça fait pas plus de 24h qu'on a fermé le modal
-			const lastClosed = new Date(
-				globalState.settings.persistentUiState.lastClosedUpdateModal || 0
-			);
-			if (Date.now() - lastClosed.getTime() > 24 * 60 * 60 * 1000) {
-				ModalManager.newUpdateModal(VersionService.latestUpdate);
-			}
-		}
-
 		if (globalState.userProjectsDetails.length > 0) {
 			// Retrie juste dans l'ordre de updatetime
 			globalState.userProjectsDetails = globalState.userProjectsDetails.sort(

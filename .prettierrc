@@ -8,6 +8,7 @@
 	"semi": true,
 	"singleQuote": true,
 	"tabWidth": 2,
+	"endOfLine": "auto",
 	"trailingComma": "none",
 	"plugins": ["prettier-plugin-svelte"],
 	"overrides": [

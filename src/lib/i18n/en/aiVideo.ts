@@ -79,7 +79,8 @@ const aiVideo = {
 	textAiEndpoint: 'Text AI endpoint',
 	modelLabelSpan: 'Model',
 	reasoningEffort: 'Reasoning effort',
-	aiSelectedReciterError: 'AI selected a reciter that could not be resolved. Please pick one manually in the review.',
+	aiSelectedReciterError:
+		'AI selected a reciter that could not be resolved. Please pick one manually in the review.',
 	subtitlesFailed: 'Subtitles failed: {message}. Project created without subtitles.',
 	failedToCreateProject: 'Failed to create project: {error}',
 	aiTrimBatchFailed: 'AI trim batch {batch} failed: {error}',
@@ -117,12 +118,16 @@ const aiVideo = {
 	preparingReview: 'Preparing review...',
 	generateAiPlan: 'Generate AI Plan',
 	reviewContinue: 'Review & Continue',
-	aiWillChoose: 'AI will use your configured API to select a verse range and, if needed, a reciter.',
+	aiWillChoose:
+		'AI will use your configured API to select a verse range and, if needed, a reciter.',
 	videoPromptPlaceholder: 'Visual description for the AI video generator...',
-	videoPromptDescription: 'This prompt will be sent to the video generation API. Edit it to adjust the visual style.',
-	youtubeReviewHint: 'The YouTube video will be downloaded and used as the background during project creation.',
+	videoPromptDescription:
+		'This prompt will be sent to the video generation API. Edit it to adjust the visual style.',
+	youtubeReviewHint:
+		'The YouTube video will be downloaded and used as the background during project creation.',
 	noBackgroundReviewHint: 'The project will be created without any background video.',
-	mockedVideoHint: 'Video generation is currently mocked. A real AI-generated background will be added later.',
+	mockedVideoHint:
+		'Video generation is currently mocked. A real AI-generated background will be added later.',
 	creatingProjectStatus: 'Creating project...',
 	downloadingBgVideo: 'Downloading background video...',
 	addingBgVideo: 'Adding background video...',

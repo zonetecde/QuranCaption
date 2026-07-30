@@ -34,7 +34,10 @@
 
 		const subtitleCount = globalState.getSubtitleTrack.clips.length;
 		if (subtitleCount === 0) {
-			await ModalManager.errorModal(get(LL).editor.noSubtitlesToRemove(), get(LL).editor.noSubtitlesError());
+			await ModalManager.errorModal(
+				get(LL).editor.noSubtitlesToRemove(),
+				get(LL).editor.noSubtitlesError()
+			);
 			return;
 		}
 

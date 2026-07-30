@@ -1,7 +1,3 @@
-use tauri::Manager;
-
-use crate::binaries;
-
 mod invoke;
 
 /// Construit et lance l'application Tauri avec plugins, setup et commandes IPC.
@@ -14,36 +10,13 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_android_media::init());
-    #[cfg(all(desktop, not(debug_assertions)))]
-    let builder = {
-        builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.unminimize();
-                let _ = window.set_focus();
-            }
-        }))
-    };
-    #[cfg(any(mobile, debug_assertions))]
-    let builder = builder;
     let builder = invoke::register_invoke_handler(builder);
 
     builder
         .setup(|app| {
-            // Initialisation de la résolution des binaires embarqués.
-            if let Ok(resource_dir) = app.path().resource_dir() {
-                binaries::init_resource_dir(resource_dir);
-            }
-            #[cfg(target_os = "android")]
             crate::commands::android_media::initialize_ffmpeg(app.handle().clone())
                 .map_err(std::io::Error::other)?;
-
-            // Initialisation du plugin updater (desktop uniquement).
-            #[cfg(desktop)]
-            app.handle()
-                .plugin(tauri_plugin_updater::Builder::new().build())?;
 
             // Activation du logging Tauri en debug pour faciliter le diagnostic local.
             if cfg!(debug_assertions) {

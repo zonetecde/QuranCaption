@@ -81,9 +81,7 @@
 		// Si on veut changer le sous-titre en Qur'an
 		if (presetChoice === "Qur'an") {
 			// Alors on explique à l'utilisateur qu'il doit sélectionner les mots
-			await ModalManager.confirmModal(
-				$LL.editor.makeQuranSubtitleConfirm()
-			);
+			await ModalManager.confirmModal($LL.editor.makeQuranSubtitleConfirm());
 		} else {
 			// Sinon on applique le changement de sous-titre
 			const subtitleTrack = globalState.getSubtitleTrack;
@@ -274,7 +272,9 @@
 								>
 								{$LL.editor.wbwTutorialBoundaries()}
 							</p>
-							<p class="text-[11px] text-yellow-100/90"><strong>{$LL.editor.wbwTutorialEscape()}</strong></p>
+							<p class="text-[11px] text-yellow-100/90">
+								<strong>{$LL.editor.wbwTutorialEscape()}</strong>
+							</p>
 						</div>
 					{/if}
 				</div>
@@ -301,7 +301,6 @@
 					</div>
 				</div>
 			{/if}
-
 		</div>
 	{:else}
 		<!-- Playback Speed Section -->

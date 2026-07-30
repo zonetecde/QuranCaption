@@ -200,10 +200,7 @@ export class ProjectService {
 	 * @param options `sweepQuaCache` (défaut true) : après suppression, purge les
 	 *   fichiers du cache audio QUA que plus aucun projet ne référence.
 	 */
-	static async delete(
-		projectId: number,
-		options: { sweepQuaCache?: boolean } = {}
-	): Promise<void> {
+	static async delete(projectId: number, options: { sweepQuaCache?: boolean } = {}): Promise<void> {
 		const projectsPath = await join(await appDataDir(), this.projectsFolder);
 
 		// Détecte AVANT suppression si ce projet référençait le cache QUA : la purge

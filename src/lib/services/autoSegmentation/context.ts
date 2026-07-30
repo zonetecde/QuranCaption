@@ -97,13 +97,13 @@ export function splitWordsAtReferenceReset(
 /**
  * Construit la métadonnée d'alignement persistée sur un sous-titre Quran.
  *
- * @param {'api' | 'local' | 'import'} source Source de la segmentation.
+ * @param {'api' | 'import'} source Source de la segmentation.
  * @param {SegmentationSegment} segment Segment source.
  * @param {SegmentationWordTimestamp[]} words Liste des mots associés au clip.
  * @returns {SubtitleAlignmentMetadata | null} Métadonnée prête à persister.
  */
 export function buildSubtitleAlignmentMetadata(
-	source: 'api' | 'local' | 'import',
+	source: 'api' | 'import',
 	segment: SegmentationSegment,
 	words: SegmentationWordTimestamp[]
 ): SubtitleAlignmentMetadata | null {

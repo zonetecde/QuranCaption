@@ -27,9 +27,7 @@
 	</div>
 	<div class="flex items-center justify-between gap-3 border-t border-color p-3">
 		<p class="min-w-0 text-xs text-secondary">
-			{publishPreviewBlob
-				? $LL.style.previewReady()
-				: $LL.style.subtitleRequiredForPreview()}
+			{publishPreviewBlob ? $LL.style.previewReady() : $LL.style.subtitleRequiredForPreview()}
 		</p>
 		<button
 			class="btn shrink-0 px-3 py-1.5 text-xs"

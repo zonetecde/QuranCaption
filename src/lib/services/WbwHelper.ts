@@ -592,11 +592,11 @@ function syncManualWordByWordDraftToClip(
 	markWordByWordEditAsManual(clip);
 	clip.needsWbwTimestampReview = false;
 	clip.alignmentMetadata = buildSubtitleAlignmentMetadata(
-		clip.alignmentMetadata?.source ?? 'local',
+		clip.alignmentMetadata?.source === 'import' ? 'import' : 'api',
 		segment,
 		draftWords
 	) ?? {
-		source: clip.alignmentMetadata?.source ?? 'local',
+		source: clip.alignmentMetadata?.source === 'import' ? 'import' : 'api',
 		segment: segment.segment ?? 0,
 		refFrom: segment.ref_from ?? '',
 		refTo: segment.ref_to ?? '',

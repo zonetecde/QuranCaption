@@ -9,6 +9,7 @@
 	<h1 class="text-3xl font-extrabold tracking-tight">Quran Caption</h1>
 
 	<button class="btn ml-auto btn-icon px-6 py-3">
-		<span class="material-icons-outlined mr-2 text-base">settings</span> {$LL.settings.settings()}
+		<span class="material-icons-outlined mr-2 text-base">settings</span>
+		{$LL.settings.settings()}
 	</button>
 </div>

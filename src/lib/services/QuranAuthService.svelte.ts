@@ -654,9 +654,7 @@ class QuranAuthService {
 
 		const clientId = this.getSessionClientId(session, accessToken);
 		if (!clientId) {
-			throw new Error(
-				get(LL).settings.clientIdMissing()
-			);
+			throw new Error(get(LL).settings.clientIdMissing());
 		}
 
 		return { accessToken, clientId };

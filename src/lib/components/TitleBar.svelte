@@ -2,7 +2,6 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import ExportService from '$lib/services/ExportService';
-	import { discordService } from '$lib/services/DiscordService';
 	import ExportMonitor from './ExportMonitor.svelte';
 	import ModalManager from './modals/ModalManager';
 	import Settings from './settings/Settings.svelte';
@@ -18,7 +17,6 @@
 			globalState.currentProject = null;
 		}
 		globalState.currentPage = 'home';
-		discordService.setIdleState();
 	}
 </script>
 

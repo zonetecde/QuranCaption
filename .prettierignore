@@ -9,6 +9,8 @@ bun.lockb
 *.woff2
 
 # Dependencies / generated
+AGENTS.md
+.pytest_cache
 node_modules
 .svelte-kit
 build

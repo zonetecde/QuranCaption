@@ -26,7 +26,23 @@ use crate::binaries;
 use crate::path_utils;
 use crate::utils::process::configure_command_no_window;
 
-use super::diagnostics::{format_ffprobe_exec_failed, map_ffprobe_resolve_error};
+const FFPROBE_NOT_FOUND_ERROR: &str = "FFPROBE_NOT_FOUND";
+const FFPROBE_NOT_EXECUTABLE_ERROR: &str = "FFPROBE_NOT_EXECUTABLE";
+const FFPROBE_EXEC_FAILED_ERROR_PREFIX: &str = "FFPROBE_EXEC_FAILED:";
+
+/// Convertit une erreur de résolution ffprobe en message attendu côté frontend.
+fn map_ffprobe_resolve_error(err: binaries::BinaryResolveError) -> String {
+    match err.code.as_str() {
+        "BINARY_NOT_FOUND" => FFPROBE_NOT_FOUND_ERROR.to_string(),
+        "BINARY_NOT_EXECUTABLE" => format!("{}: {}", FFPROBE_NOT_EXECUTABLE_ERROR, err.details),
+        _ => format!("{}{}", FFPROBE_EXEC_FAILED_ERROR_PREFIX, err.details),
+    }
+}
+
+/// Formate une erreur d'exécution ffprobe avec le préfixe contractuel IPC.
+fn format_ffprobe_exec_failed(details: &str) -> String {
+    format!("{}{}", FFPROBE_EXEC_FAILED_ERROR_PREFIX, details.trim())
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

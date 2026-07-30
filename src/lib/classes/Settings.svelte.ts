@@ -20,30 +20,11 @@ import {
 } from '$lib/constants/projectEditor';
 
 export type AutoSegmentationSettings = {
-	mode: 'api' | 'local';
-	localAsrMode: 'legacy_whisper' | 'multi_aligner' | 'muaalem_local' | 'surah_splitter';
 	minSilenceMs: number;
 	minSpeechMs: number;
 	padMs: number;
-	legacyWhisperModel: 'tiny' | 'base' | 'medium' | 'large';
-	multiAlignerModel:
-		| 'Base'
-		| 'Large'
-		| 'Muaalem-v3.2'
-		| 'Open-Tadabur-Small'
-		| 'Open-DeepDML-Small-Mix'
-		| 'Open-DeepDML-Medium-Mix'
-		| 'Open-IJyad-Large-V3'
-		| 'Open-Naazim-Large-V3-Turbo'
-		| 'Open-Legacy-Tiny'
-		| 'Open-Legacy-Base'
-		| 'Open-Legacy-Medium'
-		| 'Open-Legacy-Large'
-		| 'SurahSplitter-Base-Quran';
 	cloudModel: 'Base' | 'Large';
-	surahSplitterSurah: number | null;
 	device: 'GPU' | 'CPU';
-	hfToken: string;
 	includeWbwTimestamps: boolean;
 	fillBySilence: boolean; // Si true, insère des SilenceClip. Sinon, étend les sous-titres.
 	extendBeforeSilence: boolean; // If true, extend subtitles before silence clips.
@@ -156,17 +137,11 @@ export default class Settings extends SerializableBase {
 	});
 
 	autoSegmentationSettings = $state<AutoSegmentationSettings>({
-		mode: 'api',
-		localAsrMode: 'legacy_whisper',
 		minSilenceMs: 200,
 		minSpeechMs: 1000,
 		padMs: 100,
-		legacyWhisperModel: 'base',
-		multiAlignerModel: 'Base',
 		cloudModel: 'Base',
-		surahSplitterSurah: null,
 		device: 'GPU',
-		hfToken: '',
 		includeWbwTimestamps: false,
 		fillBySilence: true,
 		extendBeforeSilence: false,
@@ -621,12 +596,10 @@ export default class Settings extends SerializableBase {
 		MigrationService.FromQC327ToQC328();
 		MigrationService.FromQC331ToQC332();
 		MigrationService.FromQC332ToQC333();
-		MigrationService.FromQC333ToQC334();
 		MigrationService.FromQC334ToQC335();
 		MigrationService.FromQC339ToQC340();
 		MigrationService.FromQC343ToQC344();
 		MigrationService.FromQC347ToQC348();
-		MigrationService.FromQC348ToQC349();
 		if (MigrationService.FromQC3614ToQC3615(previousVersion)) shouldSave = true;
 
 		if (

@@ -102,7 +102,9 @@
 				<span class="material-icons-outlined text-lg text-accent-primary">style</span>
 			</div>
 			<div class="min-w-0">
-				<h2 class="truncate text-base font-semibold text-primary">{$LL.style.stylePresetModal()}</h2>
+				<h2 class="truncate text-base font-semibold text-primary">
+					{$LL.style.stylePresetModal()}
+				</h2>
 				<p class="text-xs text-secondary">
 					{mode === 'save' ? $LL.style.saveCurrentStyles() : $LL.style.exportCurrentStyles()}
 				</p>
@@ -134,13 +136,17 @@
 
 		<div class="space-y-2">
 			<div class="flex items-center justify-between gap-3">
-				<span class="text-xs font-medium uppercase text-thirdly">{$LL.style.customClipsLabel()}</span>
+				<span class="text-xs font-medium uppercase text-thirdly"
+					>{$LL.style.customClipsLabel()}</span
+				>
 				<span class="text-[11px] text-thirdly">{includedClipIds.size}/{customClips().length}</span>
 			</div>
 
 			<div class="max-h-48 overflow-y-auto rounded-lg border border-color bg-primary/40 p-2">
 				{#if customClips().length === 0}
-					<div class="px-2 py-5 text-center text-xs text-thirdly">{$LL.style.noCustomClipsInProject()}</div>
+					<div class="px-2 py-5 text-center text-xs text-thirdly">
+						{$LL.style.noCustomClipsInProject()}
+					</div>
 				{:else}
 					<div class="space-y-1">
 						{#each customClips() as customClip (customClip.id)}
@@ -184,7 +190,11 @@
 				onclick={() => submit(mode)}
 				disabled={!canSubmit()}
 			>
-				{isBusy ? $LL.common.processing() : (primaryLabel() === 'save' ? $LL.style.savePresetAction() : $LL.style.exportJsonAction())}
+				{isBusy
+					? $LL.common.processing()
+					: primaryLabel() === 'save'
+						? $LL.style.savePresetAction()
+						: $LL.style.exportJsonAction()}
 			</button>
 		</div>
 	</div>

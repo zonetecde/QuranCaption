@@ -61,7 +61,6 @@ describe('ProjectDetail project type', () => {
 		delete serialized.batchOrder;
 
 		const restored = ProjectDetail.fromJSON(serialized) as ProjectDetail;
-
 	});
 
 	it('formats the default export file name with the configured placeholders', () => {

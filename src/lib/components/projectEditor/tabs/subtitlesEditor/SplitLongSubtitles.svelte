@@ -38,7 +38,9 @@
 			return;
 		}
 
-		toast.success(LL_.editor.splitApplied({ count: splitCount, plural: splitCount > 1 ? 's were' : ' was' }));
+		toast.success(
+			LL_.editor.splitApplied({ count: splitCount, plural: splitCount > 1 ? 's were' : ' was' })
+		);
 	}
 
 	$effect(() => {

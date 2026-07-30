@@ -179,7 +179,7 @@ async function materializeTemplate(
 	endMs: number,
 	alignmentStartMs: number,
 	alignmentEndMs: number,
-	segmentationSource: 'api' | 'local' | 'import',
+	segmentationSource: 'api' | 'import',
 	segmentsApplied: { value: number },
 	lowConfidenceSegments: { value: number },
 	coverageGapSegments: { value: number },
@@ -318,16 +318,6 @@ async function materializeTemplate(
 }
 
 /**
- * Indique si la réponse provient de la pipeline locale Muaalem v3.2.
- *
- * @param {ApplySegmentationResponseParams} params Paramètres d'application.
- * @returns {boolean} True si le moteur est Muaalem v3.2.
- */
-function isMuaalemLocalV32(params: ApplySegmentationResponseParams): boolean {
-	return params.segmentationSource === 'local' && params.modelName === 'Muaalem-v3.2';
-}
-
-/**
  * Traite un segment cross-verse en le découpant en plusieurs clips
  * (un par verset), en utilisant ou non les timestamps WBW.
  *
@@ -345,7 +335,7 @@ async function processCrossVerseSegment(
 		confidence: number | null;
 		isLowConfidence: boolean;
 		needsCoverageReview: boolean;
-		segmentationSource: 'api' | 'local' | 'import';
+		segmentationSource: 'api' | 'import';
 		includeWbwTimestamps: boolean;
 		modelName?: string | null;
 	},
@@ -360,14 +350,9 @@ async function processCrossVerseSegment(
 		confidence,
 		isLowConfidence,
 		needsCoverageReview,
-		segmentationSource,
-		includeWbwTimestamps,
-		modelName
+		includeWbwTimestamps
 	} = params;
 
-	const isLocalMultiAligner =
-		segmentationSource === 'local' && (modelName === 'Base' || modelName === 'Large');
-	const forceLowConfidenceFallback = isLocalMultiAligner && !includeWbwTimestamps;
 	const segmentWords = getSegmentWords(segment);
 	const useWbwBoundaries = includeWbwTimestamps && segmentWords.length > 0;
 	const segmentStartMsRaw = (segment.time_from ?? 0) * 1000;
@@ -495,10 +480,6 @@ async function processCrossVerseSegment(
 	for (const def of splitDefinitions) {
 		const verse = await Quran.getVerse(def.surah, def.verseNumber);
 		if (!verse) continue;
-		const clipConfidence = forceLowConfidenceFallback
-			? Math.min(confidence ?? 0.5, 0.5)
-			: confidence;
-		const clipIsLowConfidence = forceLowConfidenceFallback ? true : isLowConfidence;
 		await pushSubtitleTemplate(
 			{
 				segment,
@@ -509,8 +490,8 @@ async function processCrossVerseSegment(
 				startIndex: def.startIndex,
 				endIndex: def.endIndex,
 				verse,
-				confidence: clipConfidence,
-				isLowConfidence: clipIsLowConfidence,
+				confidence,
+				isLowConfidence,
 				needsReview: splitNeedsReview || def.needsReview,
 				needsCoverageReview
 			},
@@ -578,7 +559,6 @@ export async function applySegmentationResponseToProject(
 	const reviewSegments = { value: 0 };
 	const storedAlignedSegments: StoredAlignedSegment[] = [];
 	const clipTemplates: SegmentationClipTemplate[] = [];
-	const isMuaalemLocal = isMuaalemLocalV32(params);
 
 	const orderedSegments: SegmentationSegment[] = [...segments].sort(
 		(a, b) => (a.time_from ?? 0) - (b.time_from ?? 0)
@@ -600,13 +580,11 @@ export async function applySegmentationResponseToProject(
 	};
 
 	// Détection des gaps de couverture
-	const coverageGapIndices = isMuaalemLocal
-		? new Set<number>()
-		: await detectCoverageGapIndices(orderedSegments, {
-				getVerseWordCount,
-				getVerseCount: (surah) => Quran.getVerseCount(surah),
-				getSurahCount: () => Quran.getSurahs().length
-			});
+	const coverageGapIndices = await detectCoverageGapIndices(orderedSegments, {
+		getVerseWordCount,
+		getVerseCount: (surah) => Quran.getVerseCount(surah),
+		getSurahCount: () => Quran.getSurahs().length
+	});
 
 	const segmentErrors: string[] = [];
 
@@ -627,7 +605,7 @@ export async function applySegmentationResponseToProject(
 		const needsCoverageReview: boolean =
 			coverageGapIndices.has(segmentIndex) ||
 			segment.has_missing_words === true ||
-			(!isMuaalemLocal && segment.potentially_undersegmented === true);
+			segment.potentially_undersegmented === true;
 
 		// Types prédéfinis (Basmala, Isti'adha, etc.)
 		const predefinedType: PredefinedType | null = getPredefinedType(

@@ -338,7 +338,7 @@
 										{#if action.def.keys?.[1]}
 											<span
 												class="text-[10px] text-thirdly bg-secondary/60 border border-border-color rounded-full px-2 py-0.5"
-												title="{$LL.settings.aSecondKeyAlreadyDefined()}">+1</span
+												title={$LL.settings.aSecondKeyAlreadyDefined()}>+1</span
 											>
 										{/if}
 									{/if}
@@ -372,7 +372,7 @@
 		<button
 			class="px-2 py-1 rounded-md border border-border-color text-xs text-primary bg-white/5 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-accent/50 min-w-[84px] flex items-center justify-center gap-1"
 			onclick={(e) => onCapture(category, action, index, e)}
-			title="{$LL.settings.clickToSetKey()}"
+			title={$LL.settings.clickToSetKey()}
 		>
 			{#if capturing && capturing.category === category && capturing.action === action && capturing.index === index}
 				<span

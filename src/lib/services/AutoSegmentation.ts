@@ -4,10 +4,7 @@
 export {
 	getAutoSegmentationAudioClips,
 	getAutoSegmentationAudioInfo,
-	getAutoSegmentationAudioDurationS,
-	checkLocalSegmentationStatus,
-	installLocalSegmentationDeps,
-	getPreferredSegmentationMode
+	getAutoSegmentationAudioDurationS
 } from './autoSegmentation/audio';
 export {
 	asNonEmptyString,
@@ -69,7 +66,6 @@ export {
 	getSegmentationMfaTimestampsDirect,
 	enrichSegmentationResponseWithWordTimestamps
 } from './autoSegmentation/enrichment';
-export { estimateSegmentationDuration } from './autoSegmentation/estimate';
 export { applySegmentationResponseToProject } from './autoSegmentation/apply-segmentation';
 export {
 	runAutoSegmentation,
@@ -103,17 +99,12 @@ export type {
 	SegmentationResponse,
 	ImportedSegmentationParseResult,
 	SegmentationMode,
-	LocalAsrMode,
-	LegacyWhisperModelSize,
 	MultiAlignerModel,
 	SegmentationDevice,
-	LocalEngineStatus,
-	LocalSegmentationStatus,
 	AutoSegmentationOptions,
 	AutoSegmentationResult,
 	AutoSegmentationAudioInfo,
 	AutoSegmentationAudioClip,
-	DurationEstimateResult,
 	VerseRef,
 	PredefinedType,
 	SegmentationClipTemplate,

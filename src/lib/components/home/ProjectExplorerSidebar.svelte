@@ -155,8 +155,8 @@
 						type="button"
 						class="tree-toggle"
 						data-explorer-toggle={reciterNode.reciter}
-					title={isExpanded(reciterNode.reciter) ? $LL.home.collapse() : $LL.home.expand()}
-					onclick={(event) => handleToggleClick(event, reciterNode.reciter)}
+						title={isExpanded(reciterNode.reciter) ? $LL.home.collapse() : $LL.home.expand()}
+						onclick={(event) => handleToggleClick(event, reciterNode.reciter)}
 					>
 						<span
 							class={`material-icons-outlined tree-chevron ${isExpanded(reciterNode.reciter) ? 'expanded' : ''}`}
@@ -225,9 +225,9 @@
 											<button
 												type="button"
 												class="tree-mini-toggle"
-											title={isTypeExpanded(typeNode.reciter, typeNode.projectType)
-												? $LL.home.collapse()
-												: $LL.home.expand()}
+												title={isTypeExpanded(typeNode.reciter, typeNode.projectType)
+													? $LL.home.collapse()
+													: $LL.home.expand()}
 												onclick={(event) => {
 													event.stopPropagation();
 													toggleType(typeNode.reciter, typeNode.projectType);

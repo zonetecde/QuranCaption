@@ -85,7 +85,9 @@
 			</p>
 		</div>
 	{:else if aiv.video.sourceMode === 'none'}
-		<p class="rounded-xl border border-dashed border-color bg-bg-secondary px-4 py-3 text-xs text-thirdly">
+		<p
+			class="rounded-xl border border-dashed border-color bg-bg-secondary px-4 py-3 text-xs text-thirdly"
+		>
 			{$LL.aiVideo.noBackgroundDescription()}
 		</p>
 	{/if}

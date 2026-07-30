@@ -1039,7 +1039,7 @@ describe('Word-by-word highlight', () => {
 	test('inherits global line geometry and rounds only persistent WBW sequence ends', async () => {
 		const clip = createVerseSubtitle(0, 2999, 'one two three', 'Translation');
 		clip.alignmentMetadata = {
-			source: 'local',
+			source: 'api',
 			segment: 0,
 			refFrom: '1:1:1',
 			refTo: '1:1:3',
@@ -1079,7 +1079,7 @@ describe('Word-by-word highlight', () => {
 	test('joins translation units mapped to the same current WBW word', async () => {
 		const clip = createVerseSubtitle(0, 1999, 'one two', 'Several translated words next');
 		clip.alignmentMetadata = {
-			source: 'local',
+			source: 'api',
 			segment: 0,
 			refFrom: '1:1:1',
 			refTo: '1:1:2',
@@ -1116,7 +1116,7 @@ describe('Word-by-word highlight', () => {
 	test('re-highlights overlapping words in the next merged clip', async () => {
 		const firstClip = new SubtitleClip(0, 2999, 1, 1, 0, 2, 'w1 w2 w3', [], false, false);
 		firstClip.alignmentMetadata = {
-			source: 'local',
+			source: 'api',
 			segment: 0,
 			refFrom: '1:1:1',
 			refTo: '1:1:3',
@@ -1131,7 +1131,7 @@ describe('Word-by-word highlight', () => {
 		};
 		const secondClip = new SubtitleClip(3000, 5999, 1, 1, 1, 3, 'w2 w3 w4', [], false, false);
 		secondClip.alignmentMetadata = {
-			source: 'local',
+			source: 'api',
 			segment: 1,
 			refFrom: '1:1:2',
 			refTo: '1:1:4',
@@ -1221,7 +1221,7 @@ describe('Word-by-word highlight', () => {
 			true
 		);
 		clip.alignmentMetadata = {
-			source: 'local',
+			source: 'api',
 			segment: 0,
 			refFrom: '78:40:1',
 			refTo: '78:40:15',
@@ -1263,7 +1263,7 @@ describe('Word-by-word highlight', () => {
 		const firstClip = createVerseSubtitle(0, 999, 'Alpha Beta', 'Alpha translation');
 		const secondClip = createVerseSubtitle(1000, 1999, 'Gamma Delta', 'Beta translation');
 		firstClip.alignmentMetadata = {
-			source: 'local',
+			source: 'api',
 			segment: 0,
 			refFrom: '1:1:1',
 			refTo: '1:1:2',

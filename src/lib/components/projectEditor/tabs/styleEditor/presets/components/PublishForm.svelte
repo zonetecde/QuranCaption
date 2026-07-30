@@ -72,9 +72,7 @@
 				/>
 			</label>
 			<label class="block space-y-1.5">
-				<span class="text-xs font-medium text-secondary"
-					>{$LL.style.tagsOptional()}</span
-				>
+				<span class="text-xs font-medium text-secondary">{$LL.style.tagsOptional()}</span>
 				<input
 					bind:value={globalState.presetLibrary.publishTags}
 					class="h-9 w-full rounded-md border border-color bg-primary px-3 text-sm text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
@@ -83,9 +81,7 @@
 				/>
 			</label>
 			<label class="block space-y-1.5">
-				<span class="text-xs font-medium text-secondary"
-					>{$LL.style.descriptionOptional()}</span
-				>
+				<span class="text-xs font-medium text-secondary">{$LL.style.descriptionOptional()}</span>
 				<textarea
 					bind:value={globalState.presetLibrary.publishDescription}
 					class="min-h-20 w-full resize-none rounded-md border border-color bg-primary px-3 py-2 text-sm text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
@@ -97,7 +93,8 @@
 
 		{#if getCustomClipsForUI().length > 0}
 			<div class="space-y-2 rounded-lg border border-color bg-primary/50 px-3 py-3">
-				<span class="text-xs font-medium text-secondary">{$LL.editor.styleOverlaysToInclude()}</span>
+				<span class="text-xs font-medium text-secondary">{$LL.editor.styleOverlaysToInclude()}</span
+				>
 				<p class="text-xs text-thirdly">
 					{$LL.style.customImagesNotBundled()}
 				</p>

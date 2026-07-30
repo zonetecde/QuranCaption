@@ -122,10 +122,12 @@
 		}
 
 		const query = normalizeText(value);
-		filteredSuggestions = withCustomFirstOption(
-			value,
-			suggestions.filter((s) => normalizeText(s.label).includes(query))
+		const matchingSuggestions = suggestions.filter((suggestion) =>
+			normalizeText(suggestion.label).includes(query)
 		);
+		filteredSuggestions = isStringSuggestionsMode
+			? matchingSuggestions
+			: withCustomFirstOption(value, matchingSuggestions);
 
 		showSuggestions = filteredSuggestions.length > 0;
 		selectedSuggestionIndex = 0;
@@ -290,7 +292,7 @@
 						type="button"
 					>
 						<span class="material-icons text-accent-primary text-sm"
-							>{suggestion.isCustom ? 'edit' : icon}</span
+							>{suggestion.isCustom ? 'star' : icon}</span
 						>
 						<span class="text-primary font-medium">{suggestion.label}</span>
 					</button>
@@ -347,7 +349,7 @@
 								type="button"
 							>
 								<span class="material-icons text-sm text-accent-primary">
-									{suggestion.isCustom ? 'edit' : icon}
+									{suggestion.isCustom ? 'star' : icon}
 								</span>
 								<span class="text-primary font-medium">{suggestion.label}</span>
 							</button>

@@ -83,18 +83,8 @@
 	},
 	"bundle": {
 		"active": true,
-		"createUpdaterArtifacts": true,
-		"targets": [
-			"deb",
-			"appimage",
-			"app",
-			"dmg",
-			"nsis"
-		],
 		"resources": [
-			"binaries/**/*",
-			"resources/notifications/**/*",
-			"python/**/*"
+			"resources/notifications/**/*"
 		],
 		"icon": [
 			"icons/32x32.png",
@@ -102,42 +92,9 @@
 			"icons/128x128@2x.png",
 			"icons/icon.icns",
 			"icons/icon.ico"
-		],
-		"macOS": {
-			"entitlements": null,
-			"exceptionDomain": "",
-			"frameworks": [],
-			"providerShortName": null,
-			"signingIdentity": null,
-			"hardenedRuntime": true,
-			"minimumSystemVersion": "10.13"
-		},
-		"linux": {
-			"deb": {
-				"depends": [
-					"libc6",
-					"libgtk-3-0",
-					"libwebkit2gtk-4.1-0"
-				]
-			}
-		}
+		]
 	},
 	"plugins": {
-		"deep-link": {
-			"desktop": {
-				"schemes": [
-					"qurancaption"
-				]
-			}
-		},
-		"updater": {
-			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc1RkVENzQxMDIzODU2MzUKUldRMVZqZ0NRZGYrZFVBbHVpUXkzbHpzR2luSEZZRWpFaVd5Vm9KaWJKNjNlcmxXVE1TOTZBUW0K",
-			"endpoints": [
-				"https://github.com/zonetecde/QuranCaption/releases/latest/download/latest.json"
-			],
-			"windows": {
-				"installMode": "passive"
-			}
-		}
+		"deep-link": {}
 	}
 }

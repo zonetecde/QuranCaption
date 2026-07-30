@@ -139,13 +139,13 @@ describe('buildSubtitleAlignmentMetadata', () => {
 	});
 
 	it('returns null when segment index is missing', () => {
-		const meta = buildSubtitleAlignmentMetadata('local', {}, words);
+		const meta = buildSubtitleAlignmentMetadata('api', {}, words);
 		expect(meta).toBeNull();
 	});
 
 	it('returns null when refFrom is empty', () => {
 		const meta = buildSubtitleAlignmentMetadata(
-			'local',
+			'api',
 			{ segment: 1, time_from: 0, time_to: 1, ref_from: '', ref_to: '' },
 			words
 		);

@@ -91,7 +91,9 @@
 				{$LL.aiVideo.downloadedVideoOrientation()}
 			</p>
 		{:else if aiv.video.sourceMode === 'none'}
-			<div class="rounded-xl border border-dashed border-color bg-bg-secondary px-4 py-3 text-sm text-thirdly">
+			<div
+				class="rounded-xl border border-dashed border-color bg-bg-secondary px-4 py-3 text-sm text-thirdly"
+			>
 				{$LL.aiVideo.noBackgroundDescription()}
 			</div>
 		{:else}
@@ -144,7 +146,9 @@
 
 			<div class="flex gap-3">
 				<div class="flex-1 space-y-1">
-					<label for="review-ayah-start" class="text-xs text-thirdly">{$LL.aiVideo.fromAyah()}</label>
+					<label for="review-ayah-start" class="text-xs text-thirdly"
+						>{$LL.aiVideo.fromAyah()}</label
+					>
 					<input
 						id="review-ayah-start"
 						type="number"
@@ -226,7 +230,9 @@
 				<div>
 					<span class="text-thirdly text-xs">{$LL.aiVideo.resolutionLabel()}</span>
 					<p class="text-primary font-medium">
-						{aiv.video.resolution === 'portrait' ? $LL.aiVideo.portrait916() : $LL.aiVideo.landscape169()}
+						{aiv.video.resolution === 'portrait'
+							? $LL.aiVideo.portrait916()
+							: $LL.aiVideo.landscape169()}
 					</p>
 				</div>
 			{/if}

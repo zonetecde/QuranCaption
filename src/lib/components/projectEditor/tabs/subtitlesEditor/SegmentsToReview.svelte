@@ -132,7 +132,9 @@
 			<div
 				class="min-h-16 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-2 py-2 flex flex-col justify-between"
 			>
-				<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">{$LL.editor.lowConfidence()}</p>
+				<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">
+					{$LL.editor.lowConfidence()}
+				</p>
 				<p class="text-sm font-semibold leading-none text-yellow-300 self-start">
 					{lowConfidenceSegmentsNeedingReview}
 				</p>
@@ -140,7 +142,9 @@
 			<div
 				class="min-h-16 rounded-md border border-orange-500/30 bg-orange-500/10 px-2 py-2 flex flex-col justify-between"
 			>
-				<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">{$LL.editor.coverageIssues()}</p>
+				<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">
+					{$LL.editor.coverageIssues()}
+				</p>
 				<p class="text-sm font-semibold leading-none text-orange-300 self-start">
 					{coverageSegmentsNeedingReview}
 				</p>
@@ -149,7 +153,9 @@
 				class="min-h-16 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-2 flex flex-col justify-between"
 			>
 				<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">
-					{$LL.editor.tooLong()}{missingWbwTimestampsCount > 0 ? ` / ${$LL.editor.missingWbwTimestampsShort()}` : ''}
+					{$LL.editor.tooLong()}{missingWbwTimestampsCount > 0
+						? ` / ${$LL.editor.missingWbwTimestampsShort()}`
+						: ''}
 				</p>
 				<p class="text-sm font-semibold leading-none text-rose-300 self-start">
 					{longSegmentsNeedingReview + missingWbwTimestampsCount}

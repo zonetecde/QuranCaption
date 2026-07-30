@@ -48,7 +48,9 @@
 		const success = globalState.getSubtitleTrack.shiftAllClips(offsetMs, fromMs);
 		if (success) {
 			const scope = fromMs > 0 ? ` (from ${fromMs / 1000}s onward)` : '';
-			toast.success(get(LL).tools.subtitlesShifted({ amount: shiftAmount, unit, direction, scope }));
+			toast.success(
+				get(LL).tools.subtitlesShifted({ amount: shiftAmount, unit, direction, scope })
+			);
 			close();
 		}
 	}
@@ -113,7 +115,9 @@
 
 		<!-- Amount Input -->
 		<div class="space-y-2">
-			<label for="shift-amount" class="text-sm font-medium text-primary block">{$LL.tools.shiftAmount()}</label>
+			<label for="shift-amount" class="text-sm font-medium text-primary block"
+				>{$LL.tools.shiftAmount()}</label
+			>
 			<div class="flex gap-2">
 				<input
 					id="shift-amount"

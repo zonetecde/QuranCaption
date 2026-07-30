@@ -240,7 +240,9 @@
 		{#if isRunning}
 			<div class="rounded-xl border border-color bg-accent/50 p-4 space-y-3">
 				<div class="flex items-center justify-between gap-3 text-xs">
-					<span class="text-secondary">{hifzProgressMessage || $LL.tools.generatingHifzAudio()}</span>
+					<span class="text-secondary"
+						>{hifzProgressMessage || $LL.tools.generatingHifzAudio()}</span
+					>
 					<span class="font-semibold text-primary">{Math.round(hifzProgress)}%</span>
 				</div>
 				<div class="h-2 overflow-hidden rounded-full bg-secondary">
@@ -380,7 +382,9 @@
 				{/if}
 			</div>
 			<div class="flex gap-3">
-				<button class="btn px-5 py-2 text-sm" onclick={close} disabled={isRunning}>{$LL.common.cancel()}</button>
+				<button class="btn px-5 py-2 text-sm" onclick={close} disabled={isRunning}
+					>{$LL.common.cancel()}</button
+				>
 				<button
 					class="btn-accent px-5 py-2 text-sm flex items-center gap-2"
 					onclick={applyHifzRepetition}

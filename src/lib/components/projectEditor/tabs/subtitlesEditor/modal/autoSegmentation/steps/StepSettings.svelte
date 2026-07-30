@@ -27,7 +27,8 @@
 
 	<div class="space-y-3 rounded-xl border border-color p-4">
 		<label for="min-silence-range" class="block text-sm text-secondary"
-			>{$LL.editor.minSilenceLabel()}: <span class="font-mono text-primary">{wizard.minSilenceMs}ms</span></label
+			>{$LL.editor.minSilenceLabel()}:
+			<span class="font-mono text-primary">{wizard.minSilenceMs}ms</span></label
 		>
 		<input
 			id="min-silence-range"
@@ -40,7 +41,8 @@
 			class="w-full accent-accent-primary"
 		/>
 		<label for="min-speech-range" class="block text-sm text-secondary"
-			>{$LL.editor.minSpeechLabel()}: <span class="font-mono text-primary">{wizard.minSpeechMs}ms</span></label
+			>{$LL.editor.minSpeechLabel()}:
+			<span class="font-mono text-primary">{wizard.minSpeechMs}ms</span></label
 		>
 		<input
 			id="min-speech-range"
@@ -53,7 +55,8 @@
 			class="w-full accent-accent-primary"
 		/>
 		<label for="pad-range" class="block text-sm text-secondary"
-			>{$LL.editor.paddingLabel()}: <span class="font-mono text-primary">{wizard.padMs}ms</span></label
+			>{$LL.editor.paddingLabel()}:
+			<span class="font-mono text-primary">{wizard.padMs}ms</span></label
 		>
 		<input
 			id="pad-range"
@@ -77,16 +80,12 @@
 						wizard.setIncludeWbwTimestamps((e.currentTarget as HTMLInputElement).checked)}
 					disabled={!wizard.supportsWbwTimestamps()}
 					class="accent-accent-primary disabled:cursor-not-allowed disabled:opacity-50"
-				/> {$LL.editor.includeWbwTimestamps()}</label
+				/>
+				{$LL.editor.includeWbwTimestamps()}</label
 			>
 			<p class="text-xs text-thirdly">
 				{$LL.editor.wbwTimestampsDescription()}
 			</p>
-			{#if !wizard.supportsWbwTimestamps()}
-				<p class="text-xs text-yellow-400">
-					{$LL.editor.wbwTimestampsOnlyMuaalem()}
-				</p>
-			{/if}
 		</div>
 
 		<label class="flex items-center gap-2 text-sm text-secondary"
@@ -95,7 +94,8 @@
 				checked={wizard.fillBySilence}
 				onchange={(e) => wizard.setFillBySilence((e.currentTarget as HTMLInputElement).checked)}
 				class="accent-accent-primary"
-			/> {$LL.editor.fillGapsWithSilence()}</label
+			/>
+			{$LL.editor.fillGapsWithSilence()}</label
 		>
 		{#if wizard.fillBySilence}
 			<div class="flex items-center gap-2 text-sm text-secondary">
@@ -106,7 +106,8 @@
 						onchange={(e) =>
 							wizard.setExtendBeforeSilence((e.currentTarget as HTMLInputElement).checked)}
 						class="accent-accent-primary"
-					/> {$LL.editor.extendSubtitleBeforeSilence()}</label
+					/>
+					{$LL.editor.extendSubtitleBeforeSilence()}</label
 				>
 				<input
 					id="extend-before-silence-ms"

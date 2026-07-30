@@ -71,7 +71,8 @@
 	>
 		<!-- En-tête avec boutons Check All / Uncheck All -->
 		<div class="px-3 py-2 border-b border-[var(--border-color)] flex justify-between">
-			<span class="text-sm font-medium text-[var(--text-primary)]">{$LL.home.filterByStatus()}</span>
+			<span class="text-sm font-medium text-[var(--text-primary)]">{$LL.home.filterByStatus()}</span
+			>
 			<div class="flex gap-2 pb-1">
 				<button
 					class="btn px-2 text-xs text-[var(--accent-primary)] hover:text-[var(--accent-secondary)] transition-colors"
@@ -103,7 +104,8 @@
 					/>
 					<div class="flex items-center gap-2">
 						<span class="w-3 h-3 rounded-full" style={`background-color: ${status.color}`}></span>
-						<span class="text-sm text-[var(--text-primary)]">{getStatusLabel(status, get(LL))}</span>
+						<span class="text-sm text-[var(--text-primary)]">{getStatusLabel(status, get(LL))}</span
+						>
 					</div>
 				</label>
 			{/each}

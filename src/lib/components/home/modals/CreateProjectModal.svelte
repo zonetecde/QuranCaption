@@ -7,7 +7,6 @@
 	import { get } from 'svelte/store';
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
 	import RecitersManager from '$lib/classes/Reciter';
-	import { discordService } from '$lib/services/DiscordService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import {
 		DEFAULT_PROJECT_TYPE,
@@ -42,9 +41,6 @@
 
 		// Ouvre le projet
 		globalState.currentProject = project;
-
-		// Discord Rich Presence
-		discordService.setEditingState();
 
 		close();
 	}

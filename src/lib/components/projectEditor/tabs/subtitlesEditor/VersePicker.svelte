@@ -53,9 +53,7 @@
 	});
 </script>
 
-<section
-	class="verse-picker w-full flex gap-3 items-center px-3 bg-secondary rounded-lg py-2"
->
+<section class="verse-picker w-full flex gap-3 items-center px-3 bg-secondary rounded-lg py-2">
 	<div class="verse-picker-help flex gap-2 items-center">
 		<div class="flex gap-2 items-center group relative" data-tour-id="subtitles-help-button">
 			<span class="material-icons text-2xl!">help</span>

@@ -68,9 +68,9 @@ export async function downloadAndApply(preset: CommunityStylePreset): Promise<vo
 	if (state.downloadingPresetId) return;
 
 	const confirmed = await ModalManager.confirmModal(
-			get(LL).editor.overwriteStylesConfirm({ name: preset.name }),
-			false
-		);
+		get(LL).editor.overwriteStylesConfirm({ name: preset.name }),
+		false
+	);
 	if (!confirmed) return;
 
 	state.downloadingPresetId = preset.id;
@@ -90,10 +90,7 @@ export async function downloadAndApply(preset: CommunityStylePreset): Promise<vo
 		// Vérifie les polices externes manquantes
 		const missing = await checkMissingFonts(styleData);
 		if (missing.length > 0) {
-			await ModalManager.confirmModal(
-				get(LL).editor.fontsNotInstalled(),
-				false
-			);
+			await ModalManager.confirmModal(get(LL).editor.fontsNotInstalled(), false);
 		}
 	} catch (error) {
 		toast.error(error instanceof Error ? error.message : String(error));

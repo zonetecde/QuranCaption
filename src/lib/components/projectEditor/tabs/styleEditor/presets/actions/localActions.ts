@@ -86,9 +86,9 @@ export async function exportJson(name: string, includedClipIds: Set<number>): Pr
  */
 export async function applyPreset(preset: SavedVideoStylePreset): Promise<void> {
 	const confirmed = await ModalManager.confirmModal(
-			get(LL).editor.overwriteStylesConfirm({ name: preset.name }),
-			false
-		);
+		get(LL).editor.overwriteStylesConfirm({ name: preset.name }),
+		false
+	);
 	if (!confirmed) return;
 
 	await globalState.getVideoStyle.importStyles(preset.data);
@@ -102,7 +102,10 @@ export async function applyPreset(preset: SavedVideoStylePreset): Promise<void> 
  * @returns {Promise<void>}
  */
 export async function deletePreset(preset: SavedVideoStylePreset): Promise<void> {
-	const confirmed = await ModalManager.confirmModal(get(LL).modals.deleteItem({ name: preset.name }), false);
+	const confirmed = await ModalManager.confirmModal(
+		get(LL).modals.deleteItem({ name: preset.name }),
+		false
+	);
 	if (!confirmed || !globalState.settings) return;
 
 	globalState.settings.savedVideoStylePresets = globalState.settings.savedVideoStylePresets.filter(

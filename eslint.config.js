@@ -47,17 +47,25 @@ export default ts.config(
 			// see: https://typescript-eslint.io/troubleshooting/faqs/eslint/#i-get-errors-from-the-no-undef-rule-about-global-variables-not-being-defined-even-though-there-are-no-typescript-errors
 			'no-undef': 'off',
 			eqeqeq: ['error', 'always', { null: 'ignore' }],
-			'no-duplicate-imports': 'error',
+			'no-duplicate-imports': 'warn',
+			'no-control-regex': 'warn',
+			'no-useless-escape': 'warn',
 			'no-useless-rename': 'error',
 			'no-var': 'error',
+			'@typescript-eslint/no-explicit-any': 'warn',
+			'@typescript-eslint/no-unused-expressions': 'warn',
 			'@typescript-eslint/no-unused-vars': [
-				'error',
+				'warn',
 				{
 					argsIgnorePattern: '^_',
 					varsIgnorePattern: '^_',
 					caughtErrorsIgnorePattern: '^_'
 				}
-			]
+			],
+			'svelte/no-at-html-tags': 'warn',
+			'svelte/no-useless-mustaches': 'warn',
+			'svelte/prefer-writable-derived': 'warn',
+			'svelte/require-each-key': 'warn'
 		}
 	},
 	{

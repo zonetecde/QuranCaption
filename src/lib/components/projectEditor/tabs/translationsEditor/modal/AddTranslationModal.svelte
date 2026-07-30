@@ -642,15 +642,15 @@
 			</div>
 
 			<div class="flex gap-3">
-				<button class="btn px-4 py-2 font-medium" onclick={close}>
+				<button class="btn px-3 py-1.5 text-sm font-medium" onclick={close}>
 					{$LL.common.cancel()}
 				</button>
 				<button
-					class="btn-accent flex items-center gap-2 px-4 py-2 font-medium disabled:cursor-not-allowed disabled:opacity-50"
+					class="btn-accent flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
 					onclick={addTranslationButtonClick}
 					disabled={selectedTranslations.length === 0}
 				>
-					<span class="material-icons text-lg">add</span>
+					<span class="material-icons text-base">add</span>
 					{$LL.translations.addTranslation()}
 				</button>
 			</div>

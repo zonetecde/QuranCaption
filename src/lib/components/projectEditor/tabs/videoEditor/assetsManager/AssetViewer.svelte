@@ -33,7 +33,8 @@
 	let cbrProgress = $state(0);
 	let cbrProgressStatus = $state('');
 	let mediaKey = $state(0);
-	let isExpanded = $derived(false);
+	let isPreviewOpen = $state(false);
+	let isActionsOpen = $state(false);
 
 	function assetTypeLabel(type: string): string {
 		const ll = get(LL);
@@ -210,53 +211,69 @@
 </script>
 
 <div
-	class="flex flex-col p-4 bg-secondary border border-color rounded-xl shadow-lg transition-all duration-300 select-none
-	       bg-accent hover:border-[var(--accent-primary)] hover:shadow-xl hover:shadow-blue-500/10 hover:scale-[1.02] group"
-	role="button"
-	tabindex="0"
+	class="group select-none overflow-hidden rounded-md border border-color bg-secondary transition-colors hover:border-[var(--accent-primary)]/50 hover:bg-black/10"
 >
-	<div
-		class="flex flex-row gap-3 items-center relative"
-		onmousedown={() => (isExpanded = !isExpanded)}
-	>
-		<div
-			class="flex-shrink-0 p-2 rounded-lg bg-accent transition-colors duration-300
-		            group-hover:bg-[var(--accent-primary)] group-hover:text-black"
+	<div class="flex min-w-0 items-center gap-1 p-1.5">
+		<button
+			class="flex min-w-0 flex-1 items-center gap-2 rounded-sm px-1.5 py-1 text-left outline-none transition-colors hover:bg-white/5 focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
+			type="button"
+			title={asset.fileName}
+			onclick={() => (isPreviewOpen = !isPreviewOpen)}
 		>
-			<span
-				class="material-icons text-3xl text-accent transition-colors duration-300
-			             group-hover:text-black"
-			>
-				{asset.type === 'video' ? 'video_library' : asset.type === 'audio' ? 'music_note' : 'image'}
+			<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-black/20">
+				<span class="material-icons text-lg! text-thirdly">
+					{asset.type === AssetType.Video
+						? 'video_library'
+						: asset.type === AssetType.Audio
+							? 'music_note'
+							: 'image'}
+				</span>
 			</span>
-		</div>
-		<div class="flex-1 min-w-0">
-			<p
-				class="text-sm font-semibold text-primary truncate group-hover:text-[var(--text-on-hover)] transition-colors duration-300"
-			>
-				{asset.fileName}
-			</p>
-			<p
-				class="text-xs text-thirdly mt-1 group-hover:text-[var(--text-secondary-on-hover)] transition-colors duration-300"
-			>
-				{assetTypeLabel(asset.type)}
-			</p>
-		</div>
-		<!-- warning icon -->
-		{#if !asset.exists}
-			<div class="flex-shrink-0 p-1 rounded-full bg-red-500/20 border border-red-500/30">
-				<span
-					class="material-icons text-lg text-red-400"
-					title={get(LL).editor.fileNotFoundOnDiskLabel()}>warning</span
-				>
-			</div>
-		{/if}
+			<span class="min-w-0 flex-1">
+				<span class="block truncate text-sm font-medium text-primary">{asset.fileName}</span>
+				<span class="mt-0.5 flex items-center gap-1 truncate text-[11px] text-thirdly">
+					{assetTypeLabel(asset.type)}
+					{#if !asset.exists}
+						<span
+							class="material-icons text-sm text-red-400"
+							title={get(LL).editor.fileNotFoundOnDiskLabel()}>warning</span
+						>
+					{/if}
+				</span>
+			</span>
+		</button>
+		<button
+			data-tour-id="asset-timeline-actions"
+			class="btn-accent flex h-10 w-10 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+			type="button"
+			aria-label={get(LL).editor.addToTimelineLabel()}
+			disabled={!asset.exists}
+			onclick={() =>
+				asset.type === AssetType.Video
+					? addInTheTimelineButtonClick(true, true)
+					: asset.type === AssetType.Audio
+						? addInTheTimelineButtonClick(false, true)
+						: addInTheTimelineButtonClick(true, false)}
+		>
+			<span class="material-icons text-lg!">add_to_queue</span>
+		</button>
+		<button
+			class="btn flex h-10 w-10 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
+			class:text-accent={isActionsOpen}
+			type="button"
+			title={get(LL).common.actions()}
+			aria-label={get(LL).common.actions()}
+			aria-expanded={isActionsOpen}
+			onclick={() => (isActionsOpen = !isActionsOpen)}
+		>
+			<span class="material-icons text-lg!">more_horiz</span>
+		</button>
 	</div>
 	{#if asset.type === AssetType.Audio}
-		{#if isExpanded}
-			<div transition:slide class="mt-4 p-3 bg-accent rounded-lg border border-color">
+		{#if isPreviewOpen && asset.exists}
+			<div transition:slide class="border-t border-color p-1.5">
 				{#key mediaKey}
-					<audio class="w-full h-8 opacity-80" controls>
+					<audio class="h-8 w-full opacity-80" controls>
 						<source
 							src={`${convertFileSrc(asset.filePath)}?v=${asset.mediaReloadToken}`}
 							type="audio/mp3"
@@ -267,10 +284,10 @@
 			</div>
 		{/if}
 	{:else if asset.type === AssetType.Video}
-		{#if isExpanded}
-			<div transition:slide class="mt-4 p-2 bg-accent rounded-lg border border-color">
+		{#if isPreviewOpen && asset.exists}
+			<div transition:slide class="border-t border-color p-1.5">
 				{#key mediaKey}
-					<video class="w-full h-[180px] rounded-lg object-cover" controls>
+					<video class="h-44 w-full rounded-sm object-cover" controls>
 						<track kind="captions" />
 						<source
 							src={`${convertFileSrc(asset.filePath)}?v=${asset.mediaReloadToken}`}
@@ -282,18 +299,18 @@
 			</div>
 		{/if}
 	{:else if asset.type === AssetType.Image}
-		{#if isExpanded}
-			<div transition:slide class="mt-4 p-2 bg-accent rounded-lg border border-color">
+		{#if isPreviewOpen && asset.exists}
+			<div transition:slide class="border-t border-color p-1.5">
 				<img
-					class="w-full h-[180px] object-contain rounded-lg"
+					class="h-32 w-full rounded-sm object-contain"
 					src={`${convertFileSrc(asset.filePath)}?v=${asset.mediaReloadToken}`}
 					alt={asset.fileName}
 				/>
 			</div>
 		{/if}
 	{/if}
-	{#if isExpanded}
-		<div class="mt-4 space-y-3" transition:slide>
+	{#if isActionsOpen}
+		<div class="space-y-3 border-t border-color p-2" transition:slide>
 			<!-- Action Buttons -->
 			<div class="flex flex-wrap gap-2">
 				{#if asset.exists}

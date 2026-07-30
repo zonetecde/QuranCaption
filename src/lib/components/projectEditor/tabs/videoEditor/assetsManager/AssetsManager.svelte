@@ -21,11 +21,26 @@
 
 	let activeTab = $state<AssetsTab>('qua');
 	let showSourceTabs = $state(false);
+	let assetIdsBeforeImport = $state<number[]>([]);
 
 	$effect(() => {
 		if (stockMediaOpen) {
+			if (!showSourceTabs) {
+				assetIdsBeforeImport = globalState.currentProject!.content.assets.map((asset) => asset.id);
+			}
 			showSourceTabs = true;
 			activeTab = 'stock';
+		}
+	});
+
+	$effect(() => {
+		if (
+			showSourceTabs &&
+			globalState.currentProject!.content.assets.some(
+				(asset) => !assetIdsBeforeImport.includes(asset.id)
+			)
+		) {
+			showProjectAssets();
 		}
 	});
 
@@ -34,6 +49,7 @@
 	 * @returns {void}
 	 */
 	function revealSourceTabs(): void {
+		assetIdsBeforeImport = globalState.currentProject!.content.assets.map((asset) => asset.id);
 		showSourceTabs = true;
 		activeTab = 'qua';
 		closeStockMedia();

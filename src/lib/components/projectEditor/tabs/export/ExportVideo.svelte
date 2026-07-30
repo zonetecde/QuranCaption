@@ -16,6 +16,8 @@
 	const performanceProfileIds: PerformanceProfile[] = ['fastest', 'balanced', 'low_cpu'];
 	const videoCodecIds: VideoCodec[] = ['h264', 'h265'];
 
+	let showVideoQualitySettings = $state(false);
+	let showVideoAudioFadeSettings = $state(false);
 	let showAdvancedSettings = $state(false);
 	let skipCopy = $derived(
 		$LL.export as unknown as {
@@ -263,96 +265,77 @@
 	</div>
 
 	<div class="mb-4">
-		<h4 class="mb-2 text-sm font-medium text-secondary">
-			{$LL.export.videoQualityOrientation()}
-		</h4>
-		<div class="rounded-lg border border-color bg-accent p-3">
-			<p class="mb-3 text-xs leading-snug text-thirdly">
-				{$LL.export.setResolutionOrientation()}
-			</p>
+		<button
+			type="button"
+			class="flex w-full items-center justify-between rounded-lg border border-color bg-accent p-3 text-left transition-colors hover:bg-primary/60"
+			onclick={() => (showVideoQualitySettings = !showVideoQualitySettings)}
+			aria-expanded={showVideoQualitySettings}
+		>
+			<span class="text-sm font-medium text-primary">
+				{$LL.export.videoQualityOrientation()}
+			</span>
+			<span
+				class="material-icons text-secondary transition-transform duration-200"
+				style={`transform: rotate(${showVideoQualitySettings ? 180 : 0}deg);`}
+			>
+				expand_more
+			</span>
+		</button>
 
-			<Style
-				style={globalState.getStyle('global', 'video-dimension')!}
-				target="global"
-				applyValueSimple={(v) => {
-					globalState.getStyle('global', 'video-dimension')!.value = v as {
-						width: number;
-						height: number;
-					};
-				}}
-				disabled={false}
-			/>
-		</div>
-	</div>
-
-	<div class="mb-4">
-		<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.videoAudioFade()}</h4>
-		<div class="rounded-lg border border-color bg-accent p-3">
-			<p class="mb-3 text-xs leading-snug text-thirdly">
-				{$LL.export.enableDisableFade()}
-			</p>
-
-			<Style
-				style={globalState.getStyle('global', 'video-and-audio-fade')!}
-				target="global"
-				applyValueSimple={(v) => {
-					globalState.getStyle('global', 'video-and-audio-fade')!.value = v as FadeValue;
-				}}
-				disabled={false}
-			/>
-		</div>
-	</div>
-	<div class="mb-4">
-		<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.performanceSettings()}</h4>
-		<div class="rounded-lg border border-color bg-accent p-3">
-			<div class="flex flex-col gap-3">
-				<p class="text-xs leading-snug text-thirdly">
-					{$LL.export.setFpsDescription()}
+		{#if showVideoQualitySettings}
+			<div class="mt-2 rounded-lg border border-color bg-accent p-3" transition:slide>
+				<p class="mb-3 text-xs leading-snug text-thirdly">
+					{$LL.export.setResolutionOrientation()}
 				</p>
-				<input
-					type="number"
-					min="5"
-					max="60"
-					step="1"
-					class="input w-full h-10"
-					bind:value={globalState.getExportState.fps}
+
+				<Style
+					style={globalState.getStyle('global', 'video-dimension')!}
+					target="global"
+					applyValueSimple={(v) => {
+						globalState.getStyle('global', 'video-dimension')!.value = v as {
+							width: number;
+							height: number;
+						};
+					}}
+					disabled={false}
 				/>
 			</div>
-		</div>
+		{/if}
 	</div>
 
-	<!-- Video Filename & Export Location -->
 	<div class="mb-4">
-		<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.videoFileName()}</h4>
-		<div class="rounded-lg border border-color bg-accent p-3">
-			<div class="flex flex-col gap-4">
-				<div>
-					<p class="mb-3 text-xs leading-snug text-thirdly">
-						{$LL.export.enterFileName()}
-					</p>
+		<button
+			type="button"
+			class="flex w-full items-center justify-between rounded-lg border border-color bg-accent p-3 text-left transition-colors hover:bg-primary/60"
+			onclick={() => (showVideoAudioFadeSettings = !showVideoAudioFadeSettings)}
+			aria-expanded={showVideoAudioFadeSettings}
+		>
+			<span class="text-sm font-medium text-primary">{$LL.export.videoAudioFade()}</span>
+			<span
+				class="material-icons text-secondary transition-transform duration-200"
+				style={`transform: rotate(${showVideoAudioFadeSettings ? 180 : 0}deg);`}
+			>
+				expand_more
+			</span>
+		</button>
 
-					<div class="flex flex-col gap-2">
-						<input
-							type="text"
-							class="input w-full"
-							placeholder={globalState.currentProject?.detail.generateExportFileName()}
-							bind:value={globalState.getExportState.customFileName}
-							onfocus={() => {
-								if (!globalState.getExportState.customFileName.trim()) {
-									globalState.getExportState.customFileName =
-										globalState.currentProject?.detail.generateExportFileName() ?? '';
-								}
-							}}
-						/>
-						<p class="text-thirdly text-xs italic">
-							{$LL.export.extensionAddedAutomatically()}
-						</p>
-					</div>
-				</div>
+		{#if showVideoAudioFadeSettings}
+			<div class="mt-2 rounded-lg border border-color bg-accent p-3" transition:slide>
+				<p class="mb-3 text-xs leading-snug text-thirdly">
+					{$LL.export.enableDisableFade()}
+				</p>
+
+				<Style
+					style={globalState.getStyle('global', 'video-and-audio-fade')!}
+					target="global"
+					applyValueSimple={(v) => {
+						globalState.getStyle('global', 'video-and-audio-fade')!.value = v as FadeValue;
+					}}
+					disabled={false}
+				/>
 			</div>
-		</div>
+		{/if}
 	</div>
-
 	<div class="mt-4">
 		<button
 			type="button"
@@ -378,6 +361,39 @@
 
 		{#if showAdvancedSettings}
 			<div class="mt-3 rounded-lg border border-color bg-accent p-3" transition:slide>
+				<section class="mb-4">
+					<h4 class="mb-2 text-sm font-medium text-secondary">
+						{$LL.export.videoFileName()}
+					</h4>
+					<div class="rounded-lg border border-color bg-secondary p-3">
+						<div class="flex flex-col gap-4">
+							<div>
+								<p class="mb-3 text-xs leading-snug text-thirdly">
+									{$LL.export.enterFileName()}
+								</p>
+
+								<div class="flex flex-col gap-2">
+									<input
+										type="text"
+										class="input w-full"
+										placeholder={globalState.currentProject?.detail.generateExportFileName()}
+										bind:value={globalState.getExportState.customFileName}
+										onfocus={() => {
+											if (!globalState.getExportState.customFileName.trim()) {
+												globalState.getExportState.customFileName =
+													globalState.currentProject?.detail.generateExportFileName() ?? '';
+											}
+										}}
+									/>
+									<p class="text-thirdly text-xs italic">
+										{$LL.export.extensionAddedAutomatically()}
+									</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				</section>
+
 				<section class="mb-4">
 					<h4 class="mb-2 text-sm font-medium text-secondary">
 						{$LL.export.recitationContent()}
@@ -449,6 +465,27 @@
 								</div>
 							</div>
 						{/if}
+					</div>
+				</section>
+
+				<section class="mb-4">
+					<h4 class="mb-2 text-sm font-medium text-secondary">
+						{$LL.export.performanceSettings()}
+					</h4>
+					<div class="rounded-lg border border-color bg-secondary p-3">
+						<div class="flex flex-col gap-3">
+							<p class="text-xs leading-snug text-thirdly">
+								{$LL.export.setFpsDescription()}
+							</p>
+							<input
+								type="number"
+								min="5"
+								max="60"
+								step="1"
+								class="input w-full h-10"
+								bind:value={globalState.getExportState.fps}
+							/>
+						</div>
 					</div>
 				</section>
 

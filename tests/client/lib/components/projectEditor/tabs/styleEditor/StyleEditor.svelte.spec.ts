@@ -3,10 +3,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import StyleEditor from '$lib/components/projectEditor/tabs/styleEditor/StyleEditor.svelte';
 import Settings from '$lib/classes/Settings.svelte';
-import {
-	DEFAULT_STYLE_PANEL_WIDTH,
-	PROJECT_EDITOR_PANEL_WIDTHS
-} from '$lib/constants/projectEditor';
+import { PROJECT_EDITOR_STYLE_SECTION_HEIGHTS } from '$lib/constants/projectEditor';
 import { globalState } from '$lib/runes/main.svelte';
 
 vi.mock('$lib/components/projectEditor/timeline/Timeline.svelte', async () => ({
@@ -21,9 +18,7 @@ vi.mock('$lib/components/projectEditor/tabs/styleEditor/StyleEditorSettings.svel
 	default: (await import('../../../../../stubs/EmptyComponent.svelte')).default
 }));
 
-describe('style editor panel resizer', () => {
-	const stylePanelWidths = PROJECT_EDITOR_PANEL_WIDTHS.style;
-
+describe('style editor section resizers', () => {
 	afterEach(() => {
 		cleanup();
 		vi.restoreAllMocks();
@@ -32,54 +27,31 @@ describe('style editor panel resizer', () => {
 		globalState.presetLibrary.libraryOpen = false;
 	});
 
-	test('uses a larger default width and bounds it while dragging', () => {
+	test('resizes the preview and timeline within their mobile bounds', () => {
 		const settings = new Settings();
 		globalState.settings = settings;
 		vi.spyOn(Settings, 'save').mockResolvedValue();
-		expect(settings.persistentUiState.projectEditorLayout.stylePanelWidth).toBe(
-			DEFAULT_STYLE_PANEL_WIDTH
-		);
 
 		const component = render(StyleEditor);
-		const resizer = component.getByTestId('style-panel-resizer').element();
+		const previewResizer = component.getByTestId('style-preview-resizer').element();
+		const timelineResizer = component.getByTestId('style-timeline-resizer').element();
 
-		resizer.dispatchEvent(
-			new PointerEvent('pointerdown', {
-				bubbles: true,
-				button: 0,
-				clientX: DEFAULT_STYLE_PANEL_WIDTH
-			})
+		previewResizer.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Home' }));
+		expect(settings.persistentUiState.projectEditorLayout.stylePreviewHeight).toBe(
+			PROJECT_EDITOR_STYLE_SECTION_HEIGHTS.preview.min
 		);
-		document.dispatchEvent(
-			new PointerEvent('pointermove', {
-				bubbles: true,
-				clientX: DEFAULT_STYLE_PANEL_WIDTH + 120
-			})
-		);
-		expect(settings.persistentUiState.projectEditorLayout.stylePanelWidth).toBe(
-			DEFAULT_STYLE_PANEL_WIDTH + 120
+		previewResizer.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'End' }));
+		expect(settings.persistentUiState.projectEditorLayout.stylePreviewHeight).toBe(
+			PROJECT_EDITOR_STYLE_SECTION_HEIGHTS.preview.max
 		);
 
-		document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: -200 }));
-		expect(settings.persistentUiState.projectEditorLayout.stylePanelWidth).toBe(
-			stylePanelWidths.min
+		timelineResizer.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Home' }));
+		expect(settings.persistentUiState.projectEditorLayout.styleTimelineHeight).toBe(
+			PROJECT_EDITOR_STYLE_SECTION_HEIGHTS.timeline.min
 		);
-
-		document.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 1000 }));
-		expect(settings.persistentUiState.projectEditorLayout.stylePanelWidth).toBe(
-			stylePanelWidths.max
-		);
-
-		document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
-
-		resizer.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Home' }));
-		expect(settings.persistentUiState.projectEditorLayout.stylePanelWidth).toBe(
-			stylePanelWidths.min
-		);
-
-		resizer.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' }));
-		expect(settings.persistentUiState.projectEditorLayout.stylePanelWidth).toBe(
-			stylePanelWidths.min + 20
+		timelineResizer.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'End' }));
+		expect(settings.persistentUiState.projectEditorLayout.styleTimelineHeight).toBe(
+			PROJECT_EDITOR_STYLE_SECTION_HEIGHTS.timeline.max
 		);
 	});
 });

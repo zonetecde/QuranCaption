@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
-	import { onMount, tick } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import PresetLibrary from './presets/components/PresetLibrary.svelte';
 	import { CustomTextClip } from '$lib/classes';
 	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
@@ -22,6 +22,9 @@
 	} from './styleEditorTypes';
 
 	type FeatureState = 'active' | 'inactive' | 'mixed';
+	const SECONDARY_HEADER_SLIDE_DURATION = 180;
+	const SECONDARY_HEADER_REVEAL_DISTANCE = 48;
+	const SECONDARY_HEADER_REVEAL_WINDOW = 120;
 
 	let {
 		presetLibraryOpen,
@@ -34,6 +37,13 @@
 	} = $props();
 
 	let stylesContainer: HTMLDivElement | undefined = $state();
+	let secondaryHeaderVisible = $state(true);
+	let previousScrollTop = 0;
+	let upwardScrollDistance = 0;
+	let upwardScrollStartedAt = 0;
+	let downwardScrollDistance = 0;
+	let suppressHeaderDirection = false;
+	let headerTransitionTimeout: ReturnType<typeof setTimeout> | undefined;
 
 	const currentStyleTarget = $derived(() => globalState.getStylesState.getCurrentSelection());
 	const styleSearchQuery = $derived(() =>
@@ -61,8 +71,10 @@
 			globalState.getVideoStyle.ensureStylesSchemaUpToDate()
 		);
 
-		stylesContainer!.scrollTop =
+		const scrollPosition =
 			globalState.currentProject!.projectEditorState.stylesEditor.scrollPosition;
+		previousScrollTop = scrollPosition;
+		stylesContainer!.scrollTop = scrollPosition;
 
 		// S'il manque des styles à une traduction, on les ajoute.
 		for (const translation of globalState.getProjectTranslation.addedTranslationEditions) {
@@ -71,6 +83,66 @@
 			await globalState.getVideoStyle.addStylesForEdition(translation.name);
 		}
 	});
+
+	onDestroy(() => clearTimeout(headerTransitionTimeout));
+
+	/**
+	 * Masque ou affiche les contrôles secondaires selon la direction du scroll.
+	 * @returns {void}
+	 */
+	function handleStylesScroll(): void {
+		const scrollTop = stylesContainer?.scrollTop ?? 0;
+		const delta = scrollTop - previousScrollTop;
+		const now = performance.now();
+		previousScrollTop = scrollTop;
+		globalState.currentProject!.projectEditorState.stylesEditor.scrollPosition = scrollTop;
+
+		if (suppressHeaderDirection) {
+			upwardScrollDistance = 0;
+			downwardScrollDistance = 0;
+			return;
+		}
+
+		let shouldShow = scrollTop <= 4;
+		let shouldHide = false;
+
+		if (delta < 0 && !shouldShow) {
+			if (
+				upwardScrollStartedAt === 0 ||
+				now - upwardScrollStartedAt > SECONDARY_HEADER_REVEAL_WINDOW
+			) {
+				upwardScrollStartedAt = now;
+				upwardScrollDistance = 0;
+			}
+			upwardScrollDistance += -delta;
+			downwardScrollDistance = 0;
+			shouldShow =
+				upwardScrollDistance >= SECONDARY_HEADER_REVEAL_DISTANCE &&
+				now - upwardScrollStartedAt <= SECONDARY_HEADER_REVEAL_WINDOW;
+		} else if (delta > 0) {
+			upwardScrollDistance = 0;
+			upwardScrollStartedAt = 0;
+			downwardScrollDistance += delta;
+			shouldHide = scrollTop > 4 && downwardScrollDistance > 6;
+		}
+
+		if ((!shouldShow && !shouldHide) || secondaryHeaderVisible === shouldShow) {
+			return;
+		}
+
+		secondaryHeaderVisible = shouldShow;
+		upwardScrollDistance = 0;
+		upwardScrollStartedAt = 0;
+		downwardScrollDistance = 0;
+		suppressHeaderDirection = true;
+		clearTimeout(headerTransitionTimeout);
+		headerTransitionTimeout = setTimeout(() => {
+			requestAnimationFrame(() => {
+				previousScrollTop = stylesContainer?.scrollTop ?? 0;
+				suppressHeaderDirection = false;
+			});
+		}, SECONDARY_HEADER_SLIDE_DURATION + 40);
+	}
 
 	/**
 	 * Sélectionne la première traduction disponible si la sélection courante est vide ou invalide.
@@ -851,99 +923,112 @@
 	{#if presetLibraryOpen}
 		<PresetLibrary onBack={closePresetLibrary} />
 	{:else}
-		<StyleEditorHeader panels={stylePanels()} {openPresetLibrary} {getPanelLabel} {selectPanel} />
 		<div
-			class="style-settings-scroll flex-1 min-h-0 overflow-y-auto px-3 py-3"
+			class="style-settings-scroll flex-1 min-h-0 overflow-y-auto"
 			bind:this={stylesContainer}
-			onscroll={() => {
-				globalState.currentProject!.projectEditorState.stylesEditor.scrollPosition =
-					stylesContainer?.scrollTop || 0;
-			}}
+			onscroll={handleStylesScroll}
 		>
-			{#if globalState.getStylesState.getCurrentSelection() === 'global' && globalState.getStylesState.selectedSubtitles.length > 0}
-				<div class="style-empty-state border-amber-400/40 bg-amber-500/10 text-amber-100">
-					<span class="material-icons-outlined text-xl">info</span>
-					<p>{$LL.editor.cannotEditGlobalWithSelection()}</p>
-				</div>
-			{:else if globalState.getStylesState.currentSelection === 'translation' && globalState.getProjectTranslation.addedTranslationEditions.length === 0}
-				<div class="style-empty-state">
-					<span class="material-icons-outlined text-xl">translate</span>
-					<p>{$LL.editor.noTranslationsYet()}</p>
-				</div>
-			{:else if styleSearchQuery() !== '' && visiblePanels().length === 0}
-				<div class="style-empty-state">
-					<span class="material-icons-outlined text-xl">search_off</span>
-					<p>{getStyleUiCopy('noMatchingStyles')}</p>
-					<button type="button" class="btn mt-2 px-3 py-1.5 text-xs" onclick={clearSearch}>
-						{$LL.editor.clearSearch()}
-					</button>
-				</div>
-			{:else}
-				{#each visiblePanels() as panel (panel.id)}
-					<div
-						id={'style-panel-' + panel.id}
-						class="style-panel-content"
-						aria-label={getPanelLabel(panel)}
-					>
-						{#if styleSearchQuery() !== '' && panel.customContent}
-							<div class="style-panel-result-heading">
-								<span class="material-icons-outlined text-accent text-[18px]!">{panel.icon}</span>
-								<h3>{getPanelLabel(panel)}</h3>
-							</div>
-						{/if}
-
-						{#if panel.customContent}
-							<CustomContentPanel />
-						{:else}
-							{#if panel.categoryNavigation && styleSearchQuery() === ''}
-								<div class="style-category-tabs" aria-label={getPanelLabel(panel)}>
-									{#each getPanelCategories(panel) as category (category.id)}
-										{@const categoryLabel = getStyleName(category.id, get(LL))}
-										<button
-											type="button"
-											aria-pressed={getActivePanelCategoryId(panel) === category.id}
-											class:style-category-tab-active={getActivePanelCategoryId(panel) ===
-												category.id}
-											class="style-category-tab"
-											onclick={() => selectPanelCategory(panel.id, category.id)}
-										>
-											<span class="material-icons-outlined text-[16px]!">{category.icon}</span>
-											<span>{categoryLabel}</span>
-										</button>
-									{/each}
+			<StyleEditorHeader
+				panels={stylePanels()}
+				{openPresetLibrary}
+				{getPanelLabel}
+				{selectPanel}
+				secondaryControlsVisible={secondaryHeaderVisible}
+			/>
+			<div class="style-settings-content p-2">
+				{#if globalState.getStylesState.getCurrentSelection() === 'global' && globalState.getStylesState.selectedSubtitles.length > 0}
+					<div class="style-empty-state border-amber-400/40 bg-amber-500/10 text-amber-100">
+						<span class="material-icons-outlined text-xl">info</span>
+						<p>{$LL.editor.cannotEditGlobalWithSelection()}</p>
+					</div>
+				{:else if globalState.getStylesState.currentSelection === 'translation' && globalState.getProjectTranslation.addedTranslationEditions.length === 0}
+					<div class="style-empty-state">
+						<span class="material-icons-outlined text-xl">translate</span>
+						<p>{$LL.editor.noTranslationsYet()}</p>
+					</div>
+				{:else if styleSearchQuery() !== '' && visiblePanels().length === 0}
+					<div class="style-empty-state">
+						<span class="material-icons-outlined text-xl">search_off</span>
+						<p>{getStyleUiCopy('noMatchingStyles')}</p>
+						<button type="button" class="btn mt-2 px-3 py-1.5 text-xs" onclick={clearSearch}>
+							{$LL.editor.clearSearch()}
+						</button>
+					</div>
+				{:else}
+					{#each visiblePanels() as panel (panel.id)}
+						<div
+							id={'style-panel-' + panel.id}
+							class="style-panel-content"
+							aria-label={getPanelLabel(panel)}
+						>
+							{#if styleSearchQuery() !== '' && panel.customContent}
+								<div class="style-panel-result-heading">
+									<span class="material-icons-outlined text-accent text-[18px]!">
+										{panel.icon}
+									</span>
+									<h3>{getPanelLabel(panel)}</h3>
 								</div>
 							{/if}
 
-							{#each getVisiblePanelCategories(panel) as category (category.id)}
-								{@const visibleStyles = getVisibleStyles(category)}
-								{@const styleGroups = getStyleControlGroups(category, visibleStyles)}
-								{@const headerStyle = getCategoryHeaderStyle(category)}
-								{#if visibleStyles.length > 0 || (headerStyle && (styleSearchQuery() === '' || matchesStyleSearch(headerStyle, category))) || category.id === 'word-by-word-highlight'}
-									<StyleCategoryBlock
-										{category}
-										{visibleStyles}
-										{styleGroups}
-										{headerStyle}
-										target={currentStyleTarget()}
-										searchActive={styleSearchQuery() !== ''}
-										mushafFontLocked={isMushafFontLocked()}
-										backgroundRequiresMaxHeight={category.id === 'background' &&
-											isBackgroundMaxHeightMissing()}
-										wordByWordHint={getWordByWordHintTarget()}
-										{isStyleDisabled}
-										{getStyleUiCopy}
-									/>
+							{#if panel.customContent}
+								<CustomContentPanel />
+							{:else}
+								{#if panel.categoryNavigation && styleSearchQuery() === ''}
+									<div class="style-category-tabs" aria-label={getPanelLabel(panel)}>
+										{#each getPanelCategories(panel) as category (category.id)}
+											{@const categoryLabel = getStyleName(category.id, get(LL))}
+											<button
+												type="button"
+												aria-pressed={getActivePanelCategoryId(panel) === category.id}
+												class:style-category-tab-active={getActivePanelCategoryId(panel) ===
+													category.id}
+												class="style-category-tab"
+												onclick={() => selectPanelCategory(panel.id, category.id)}
+											>
+												<span class="material-icons-outlined text-[16px]!">{category.icon}</span>
+												<span>{categoryLabel}</span>
+											</button>
+										{/each}
+									</div>
 								{/if}
-							{/each}
-						{/if}
-					</div>
-				{/each}
-			{/if}
+
+								{#each getVisiblePanelCategories(panel) as category (category.id)}
+									{@const visibleStyles = getVisibleStyles(category)}
+									{@const styleGroups = getStyleControlGroups(category, visibleStyles)}
+									{@const headerStyle = getCategoryHeaderStyle(category)}
+									{#if visibleStyles.length > 0 || (headerStyle && (styleSearchQuery() === '' || matchesStyleSearch(headerStyle, category))) || category.id === 'word-by-word-highlight'}
+										<StyleCategoryBlock
+											{category}
+											{visibleStyles}
+											{styleGroups}
+											{headerStyle}
+											target={currentStyleTarget()}
+											searchActive={styleSearchQuery() !== ''}
+											mushafFontLocked={isMushafFontLocked()}
+											backgroundRequiresMaxHeight={category.id === 'background' &&
+												isBackgroundMaxHeightMissing()}
+											wordByWordHint={getWordByWordHintTarget()}
+											{isStyleDisabled}
+											{getStyleUiCopy}
+										/>
+									{/if}
+								{/each}
+							{/if}
+						</div>
+					{/each}
+				{/if}
+			</div>
 		</div>
 	{/if}
 </div>
 
 <style>
+	.style-settings-scroll {
+		display: flex;
+		flex-direction: column;
+		scroll-padding-top: 2.75rem;
+	}
+
 	.style-panel-content {
 		display: flex;
 		flex-direction: column;
@@ -960,19 +1045,23 @@
 	}
 
 	.style-category-tabs {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		display: flex;
 		gap: 0.35rem;
 		margin-bottom: 0.1rem;
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+
+	.style-category-tabs::-webkit-scrollbar {
+		display: none;
 	}
 
 	.style-category-tab {
 		display: flex;
+		flex: 0 0 auto;
 		align-items: center;
 		justify-content: flex-start;
 		gap: 0.35rem;
-		width: 100%;
-		min-width: 0;
 		border: 1px solid transparent;
 		border-radius: 0.6rem;
 		padding: 0.45rem 0.55rem;

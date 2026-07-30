@@ -5,26 +5,28 @@
 	import DiviseurRedimensionnable from '../DiviseurRedimensionnable.svelte';
 	import StyleEditorSettings from './StyleEditorSettings.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { ProjectEditorTabs } from '$lib/classes';
-	import {
-		DEFAULT_STYLE_PANEL_WIDTH,
-		PROJECT_EDITOR_PANEL_WIDTHS,
-		PROJECT_EDITOR_TIMELINE_HEIGHT
-	} from '$lib/constants/projectEditor';
-
-	const STYLE_PANEL_WIDTHS = PROJECT_EDITOR_PANEL_WIDTHS.style;
+	import { ProjectEditorTabs, TrackType } from '$lib/classes';
+	import { PROJECT_EDITOR_STYLE_SECTION_HEIGHTS } from '$lib/constants/projectEditor';
 
 	/** Ouverture de la librairie de presets (état géré dans globalState). */
 	let presetLibraryOpen = $derived(globalState.presetLibrary.libraryOpen);
-	let stylePanelWidth = $derived(
-		globalState.settings?.persistentUiState.projectEditorLayout.stylePanelWidth ??
-			DEFAULT_STYLE_PANEL_WIDTH
+	let previewHeight = $derived(
+		Math.max(
+			PROJECT_EDITOR_STYLE_SECTION_HEIGHTS.preview.min,
+			Math.min(
+				PROJECT_EDITOR_STYLE_SECTION_HEIGHTS.preview.max,
+				globalState.settings!.persistentUiState.projectEditorLayout.stylePreviewHeight
+			)
+		)
 	);
-	let stylePanelMinWidth = $derived(
-		presetLibraryOpen ? STYLE_PANEL_WIDTHS.expandedMin : STYLE_PANEL_WIDTHS.min
-	);
-	let displayedStylePanelWidth = $derived(
-		Math.max(stylePanelMinWidth, Math.min(STYLE_PANEL_WIDTHS.max, stylePanelWidth))
+	let timelineHeight = $derived(
+		Math.max(
+			PROJECT_EDITOR_STYLE_SECTION_HEIGHTS.timeline.min,
+			Math.min(
+				PROJECT_EDITOR_STYLE_SECTION_HEIGHTS.timeline.max,
+				globalState.settings!.persistentUiState.projectEditorLayout.styleTimelineHeight
+			)
+		)
 	);
 
 	/** Ouvre la librairie de presets. */
@@ -70,37 +72,77 @@
 	});
 </script>
 
-<div class="flex-grow w-full max-w-full flex overflow-hidden h-full min-h-0">
-	<!-- Assets -->
-	<section
-		class="flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col transition-[width] duration-200"
-		style={`width: ${displayedStylePanelWidth}px;`}
-	>
+<div class="style-editor-mobile-shell">
+	<section class="style-editor-preview" style={`flex-basis: ${previewHeight}%;`}>
+		<VideoPreview showControls useSplitHeight={false} />
+	</section>
+
+	<DiviseurRedimensionnable
+		orientation="horizontal"
+		bind:value={globalState.settings!.persistentUiState.projectEditorLayout.stylePreviewHeight}
+		displayedValue={previewHeight}
+		min={PROJECT_EDITOR_STYLE_SECTION_HEIGHTS.preview.min}
+		max={PROJECT_EDITOR_STYLE_SECTION_HEIGHTS.preview.max}
+		unit="percent"
+		dataTestId="style-preview-resizer"
+	/>
+
+	<section class="style-editor-timeline" style={`flex-basis: ${timelineHeight}%;`}>
+		<Timeline useSplitHeight={false} visibleTrackTypes={[TrackType.Subtitle]} fitTracksToHeight />
+	</section>
+
+	<DiviseurRedimensionnable
+		orientation="horizontal"
+		bind:value={globalState.settings!.persistentUiState.projectEditorLayout.styleTimelineHeight}
+		displayedValue={timelineHeight}
+		min={PROJECT_EDITOR_STYLE_SECTION_HEIGHTS.timeline.min}
+		max={PROJECT_EDITOR_STYLE_SECTION_HEIGHTS.timeline.max}
+		unit="percent"
+		dataTestId="style-timeline-resizer"
+	/>
+
+	<section class="style-editor-settings">
 		<StyleEditorSettings {presetLibraryOpen} {openPresetLibrary} {closePresetLibrary} />
 	</section>
-	<DiviseurRedimensionnable
-		orientation="vertical"
-		bind:value={globalState.settings!.persistentUiState.projectEditorLayout.stylePanelWidth}
-		displayedValue={displayedStylePanelWidth}
-		min={stylePanelMinWidth}
-		max={STYLE_PANEL_WIDTHS.max}
-		dataTestId="style-panel-resizer"
-	/>
-	<section class="flex-1 min-w-0 flex flex-row max-h-full min-h-0">
-		<section class="w-full min-w-0 flex flex-col min-h-0">
-			<!-- Video preview -->
-			<VideoPreview showControls />
-
-			<DiviseurRedimensionnable
-				orientation="horizontal"
-				bind:value={globalState.settings!.persistentUiState.projectEditorLayout.upperSectionHeight}
-				min={PROJECT_EDITOR_TIMELINE_HEIGHT.min}
-				max={PROJECT_EDITOR_TIMELINE_HEIGHT.max}
-				unit="percent"
-			/>
-
-			<!-- Timeline -->
-			<Timeline />
-		</section>
-	</section>
 </div>
+
+<style>
+	.style-editor-mobile-shell {
+		display: flex;
+		height: 100%;
+		min-height: 0;
+		width: 100%;
+		flex-direction: column;
+		overflow: hidden;
+		padding: 0.5rem;
+	}
+
+	.style-editor-preview,
+	.style-editor-timeline,
+	.style-editor-settings {
+		display: flex;
+		min-height: 0;
+		overflow: hidden;
+	}
+
+	.style-editor-preview,
+	.style-editor-timeline {
+		flex-grow: 0;
+		flex-shrink: 0;
+		border: 1px solid var(--border-color);
+		border-radius: 12px;
+	}
+
+	.style-editor-preview {
+		flex-direction: column;
+		background: var(--bg-primary);
+	}
+
+	.style-editor-timeline {
+		background: var(--timeline-bg-primary);
+	}
+
+	.style-editor-settings {
+		flex: 1 1 0;
+	}
+</style>

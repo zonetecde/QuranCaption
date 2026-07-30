@@ -508,6 +508,22 @@ export default class Settings extends SerializableBase {
 			settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
 			shouldSave = true;
 		} else {
+			// Migre les proportions du premier layout mobile vers la zone de styles agrandie.
+			if (
+				projectEditorLayout.stylePreviewHeight === 34 &&
+				projectEditorLayout.styleTimelineHeight === 18
+			) {
+				projectEditorLayout.stylePreviewHeight = DEFAULT_PROJECT_EDITOR_LAYOUT.stylePreviewHeight;
+				projectEditorLayout.styleTimelineHeight = DEFAULT_PROJECT_EDITOR_LAYOUT.styleTimelineHeight;
+				shouldSave = true;
+			} else if (
+				projectEditorLayout.stylePreviewHeight === 28 &&
+				projectEditorLayout.styleTimelineHeight === 11
+			) {
+				projectEditorLayout.styleTimelineHeight = DEFAULT_PROJECT_EDITOR_LAYOUT.styleTimelineHeight;
+				shouldSave = true;
+			}
+
 			const usesPreviousDefaults =
 				projectEditorLayout.upperSectionHeight === 68 &&
 				projectEditorLayout.videoEditorPanelWidth === 300 &&

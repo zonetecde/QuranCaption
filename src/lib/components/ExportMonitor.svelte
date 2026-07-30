@@ -550,7 +550,7 @@
 											{monitorMessage('openFile')}
 										</button>
 
-										{#if exportation.exportLabel === 'Project data'}
+										{#if exportation.exportLabel === 'Project data' || exportation.finalFileName.startsWith('qurancaption_backup_')}
 											<button
 												type="button"
 												class="small-action shrink-0 justify-center px-3!"

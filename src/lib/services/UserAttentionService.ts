@@ -1,7 +1,6 @@
 import { resolveResource } from '@tauri-apps/api/path';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { getCurrentWindow, UserAttentionType } from '@tauri-apps/api/window';
-import { globalState } from '$lib/runes/main.svelte';
 import {
 	isPermissionGranted,
 	requestPermission,
@@ -99,8 +98,6 @@ async function requestWindowAttention(level: AttentionLevel): Promise<void> {
  * @returns {Promise<void>} Promise résolue après la tentative d'envoi.
  */
 async function showDesktopNotification(title: string, body: string): Promise<void> {
-	if (globalState.settings?.persistentUiState.desktopNotificationsEnabled === false) return;
-
 	try {
 		let permissionGranted = await isPermissionGranted();
 		if (!permissionGranted) {

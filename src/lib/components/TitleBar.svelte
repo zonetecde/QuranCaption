@@ -36,7 +36,7 @@
 		<span class="material-icons">home</span>
 	</button>
 
-	<div class="min-w-0 flex-1 text-center">
+	<div class="app-bar-title min-w-0 text-center">
 		<p class="truncate text-sm font-semibold text-primary">
 			{globalState.currentProject?.detail.name ?? 'Quran Caption'}
 		</p>
@@ -44,7 +44,7 @@
 
 	<button
 		type="button"
-		class="app-bar-button"
+		class="app-bar-button app-bar-settings"
 		onclick={ModalManager.settingsModal}
 		disabled={globalState.uiState.isTourActive}
 		aria-label={$LL.settings.settings()}
@@ -90,11 +90,12 @@
 
 <style>
 	.mobile-app-bar {
+		position: relative;
 		display: flex;
-		min-height: calc(3.5rem + env(safe-area-inset-top));
-		align-items: flex-end;
+		min-height: calc(2.75rem + env(safe-area-inset-top));
+		align-items: center;
 		gap: 0.25rem;
-		padding: env(safe-area-inset-top) 0.5rem 0.25rem;
+		padding: env(safe-area-inset-top) 0.5rem 0;
 		background: var(--bg-titlebar);
 		border-bottom: 1px solid var(--border-color);
 		z-index: 60;
@@ -102,14 +103,27 @@
 
 	.app-bar-button {
 		display: flex;
-		width: 3rem;
-		height: 3rem;
-		flex: 0 0 3rem;
+		width: 2.75rem;
+		height: 2.75rem;
+		flex: 0 0 2.75rem;
 		align-items: center;
 		justify-content: center;
-		border-radius: 0.9rem;
+		border-radius: 0.75rem;
 		color: var(--text-primary);
 		transition: background-color 120ms ease;
+	}
+
+	.app-bar-title {
+		position: absolute;
+		top: calc(env(safe-area-inset-top) + 1.375rem);
+		left: 50%;
+		width: calc(100% - 11.5rem);
+		transform: translate(-50%, -50%);
+		pointer-events: none;
+	}
+
+	.app-bar-settings {
+		margin-left: auto;
 	}
 
 	.app-bar-button:active {

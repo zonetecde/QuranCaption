@@ -117,7 +117,7 @@
 <svelte:window onkeydown={handleWindowKeyDown} />
 
 <div
-	class="fixed inset-0 z-30 flex items-center justify-center bg-black/55 backdrop-blur-sm p-3"
+	class="support-feedback-modal fixed inset-0 z-30 flex items-center justify-center bg-black/55 backdrop-blur-sm p-3"
 	transition:fade
 >
 	<div
@@ -334,6 +334,10 @@
 </div>
 
 <style>
+	.support-feedback-modal {
+		z-index: 10001 !important;
+	}
+
 	/* Enhanced gradient backgrounds */
 	.bg-gradient-to-r.from-accent.to-bg-accent {
 		background: linear-gradient(135deg, var(--bg-accent) 0%, var(--bg-secondary) 100%);

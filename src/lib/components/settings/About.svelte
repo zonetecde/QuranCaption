@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { VersionService } from '$lib/services/VersionService.svelte';
-	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { onMount } from 'svelte';
 	import TourManager from '$lib/components/tour/TourManager';
 	import Settings from '$lib/classes/Settings.svelte';
@@ -8,7 +7,6 @@
 	import MigrationService from '$lib/services/MigrationService';
 	import { setupTutorialProject } from '$lib/services/TutorialService';
 	import LL from '$lib/i18n/i18n-svelte';
-	import QuranIntegrationSettings from './QuranIntegrationSettings.svelte';
 
 	let version = $state('');
 	let isOrganizingProjects = $state(false);
@@ -74,6 +72,4 @@
 				: $LL.settings.organizeProjectFolders()}
 		</button>
 	</div>
-
-	<QuranIntegrationSettings compact />
 </div>

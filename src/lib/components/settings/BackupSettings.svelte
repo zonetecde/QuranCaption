@@ -1,9 +1,9 @@
 <script lang="ts">
 	import Exporter from '$lib/classes/Exporter';
 	import ModalManager from '$lib/components/modals/ModalManager';
+	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import type { ImportedProjectPayload } from '$lib/types/project';
-	import { invoke } from '@tauri-apps/api/core';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import toast from 'svelte-5-french-toast';
@@ -21,6 +21,7 @@
 		isExporting = true;
 		try {
 			await Exporter.backupAllProjects();
+			globalState.uiState.isSettingsOpen = false;
 			toast.success(get(LL).settings.backupExported());
 		} catch (error) {
 			console.error('Failed to export projects backup:', error);
@@ -74,20 +75,6 @@
 			isImporting = false;
 		}
 	}
-
-	async function openProjectsDirectory() {
-		try {
-			const projectsFolder = await ProjectService.getProjectsFolderPath();
-			await invoke('open_directory', { directoryPath: projectsFolder });
-		} catch (error) {
-			console.error('Failed to open projects directory:', error);
-			await ModalManager.errorModal(
-				get(LL).settings.unableToOpenProjectsFolder(),
-				get(LL).settings.couldNotOpenProjectsDir(),
-				JSON.stringify(error, Object.getOwnPropertyNames(error))
-			);
-		}
-	}
 </script>
 
 <div class="space-y-6">
@@ -96,11 +83,6 @@
 		<p class="text-sm text-thirdly">
 			{$LL.settings.backupDescription()}
 		</p>
-		<div class="pt-1">
-			<button class="btn px-4 py-2 text-sm" onclick={() => void openProjectsDirectory()}>
-				{$LL.settings.openProjectsFolder()}
-			</button>
-		</div>
 	</div>
 
 	<div class="grid gap-4 xl:grid-rows-2">

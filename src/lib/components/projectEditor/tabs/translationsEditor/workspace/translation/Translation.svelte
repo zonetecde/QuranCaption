@@ -574,15 +574,11 @@
 				{:else if translationMetadata()}
 					<div class="w-5 h-5 rounded-sm bg-black border border-color shrink-0"></div>
 				{/if}
-				<div>
-					<p class="text-primary text-sm font-medium">{edition.language}</p>
-					<p class="text-thirdly text-xs">{edition.author}</p>
-				</div>
+				<p class="text-primary text-sm font-medium">{edition.language}</p>
 			</div>
 
 			<div class="ml-auto">
 				<div class="flex items-center gap-2">
-					<span class="text-xs text-secondary font-medium">{$LL.editor.statusLabel()}</span>
 					<div
 						class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-200 {status ===
 							'ai error' || status === 'error'
@@ -627,10 +623,7 @@
 		{#if translation().type === 'verse' && !isInlineStyleMode() && !isTranslationWbwMappingMode()}
 			<!-- Affiche la traduction complète du verset mot à mot -->
 			<div
-				class="flex flex-row select-none flex-wrap items-center gap-y-1 duration-300 {translation()
-					.isBruteForce
-					? 'opacity-[0.14] group-hover:opacity-[0.55]'
-					: 'opacity-20 group-hover:opacity-100'}"
+				class="flex flex-row select-none flex-wrap items-center gap-y-1 opacity-100"
 				dir={translationDirection()}
 				role="presentation"
 				onmouseup={handleGlobalMouseUp}

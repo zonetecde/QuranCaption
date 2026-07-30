@@ -442,7 +442,7 @@
 			</button>
 		</div>
 	{:else}
-		<div class="flex min-h-full p-4 flex-col bg-secondary gap-y-3 h-full">
+		<div class="flex min-h-full flex-col bg-secondary gap-y-3 h-full">
 			{#if translationsEditorState().isInlineStyleMode}
 				<div
 					class="sticky top-0 z-20 flex items-start justify-between gap-3 rounded-xl border border-[var(--accent-primary)]/45 bg-[color-mix(in_srgb,var(--accent-primary)_14%,var(--bg-secondary))] px-4 py-3 text-primary shadow-lg backdrop-blur"
@@ -475,7 +475,7 @@
 						{@const firstClipInGroup = globalState.getSubtitleTrack.clips[group[0]] as
 							| SubtitleClip
 							| PredefinedSubtitleClip}
-						<div class="border border-color rounded px-4 py-4 text-primary relative space-y-7">
+						<div class="text-primary relative space-y-7 py-3 px-2">
 							{#if firstClipInGroup instanceof SubtitleClip}
 								<!-- Affiche le numéro de verset en haut à gauche -->
 								<div
@@ -498,7 +498,7 @@
 								>
 									{#if lastRead.highlightedClipId === clip.id}
 										<div
-											class="absolute left-6 top-0 z-10 -translate-y-1/2 rounded-full border border-[var(--accent-primary)]/35 bg-[var(--bg-primary)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-primary"
+											class="absolute left-6 top-3 z-10 -translate-y-1/2 rounded-full border border-[var(--accent-primary)]/35 bg-[var(--bg-primary)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-primary"
 										>
 											{$LL.editor.lastRead()}
 										</div>

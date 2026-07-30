@@ -1236,6 +1236,7 @@ const id = {
 		videoExportDescription: 'Ekspor video hasil render penuh',
 		subtitlesExportOption: 'Subtitle',
 		subtitlesExportDescription: 'Generate file caption .srt / .vtt',
+		youtubeChaptersOption: 'Chapter YT',
 		youtubeChaptersDescription: 'Daftar chapter dengan timestamp',
 		projectDataDescription: 'Ekspor data mentah proyek',
 		exportSubtitlesHeading: 'Ekspor Subtitle',

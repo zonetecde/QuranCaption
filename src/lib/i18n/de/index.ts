@@ -1959,7 +1959,7 @@ const de = {
 		videoExportDescription: 'Das vollständig gerenderte Video exportieren',
 		subtitlesExportOption: 'Untertitel',
 		subtitlesExportDescription: 'Eine .srt / .vtt Untertiteldatei generieren',
-		youtubeChaptersOption: 'YouTube-Kapitel',
+		youtubeChaptersOption: 'YT-Kapitel',
 		youtubeChaptersDescription: 'Liste mit Zeitstempel-Kapiteln',
 		projectDataOption: 'Projektdaten',
 		projectDataDescription: 'Rohdaten des Projekts exportieren',

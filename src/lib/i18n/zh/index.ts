@@ -1785,7 +1785,7 @@ const zh = {
 		videoExportDescription: '导出完整的渲染视频',
 		subtitlesExportOption: '字幕',
 		subtitlesExportDescription: '生成 .srt / .vtt 字幕文件',
-		youtubeChaptersOption: 'YouTube 章节',
+		youtubeChaptersOption: 'YT 章节',
 		youtubeChaptersDescription: '带时间戳的章节列表',
 		projectDataOption: '项目数据',
 		projectDataDescription: '导出原始项目数据',

@@ -87,7 +87,7 @@ const export_ = {
 	videoExportDescription: 'Export full rendered video',
 	subtitlesExportOption: 'Subtitles',
 	subtitlesExportDescription: 'Generate .srt / .vtt caption file',
-	youtubeChaptersOption: 'YouTube Chapters',
+	youtubeChaptersOption: 'YT Chapters',
 	youtubeChaptersDescription: 'Timestamped chapter list',
 	projectDataOption: 'Project Data',
 	projectDataDescription: 'Export project raw data',

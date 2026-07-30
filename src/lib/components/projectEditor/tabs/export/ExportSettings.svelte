@@ -47,15 +47,9 @@
 <div
 	class="bg-secondary relative flex h-full min-w-0 flex-1 flex-col overflow-hidden"
 >
-	<!-- En-tête avec icône -->
-	<div class="flex shrink-0 items-center gap-2 border-b border-color px-3 py-2.5">
-		<span class="material-icons-outlined text-accent text-xl">upload_file</span>
-		<h2 class="truncate text-base font-semibold text-primary">{$LL.export.exportHeading()}</h2>
-	</div>
-
 	<div class="min-h-0 min-w-0 flex-1 overflow-y-auto px-3 py-3">
 		<div
-			class="grid min-w-0 grid-cols-4 gap-1.5"
+			class="export-choice-tabs grid min-w-0 grid-cols-4 gap-1.5"
 			role="radiogroup"
 			aria-label={$LL.export.exportType()}
 			tabindex="0"
@@ -67,19 +61,12 @@
 					data-choice={c.id}
 					aria-checked={globalState.getExportState.selectedChoice === c.id}
 					onclick={() => select(c.id)}
-					class="group relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-lg border border-white/10 bg-white/5 px-1.5 py-2 text-center transition focus-visible:outline-none focus-visible:ring-2 ring-accent/70 hover:bg-white/10 hover:border-white/20 [&.selected]:border-accent/60 [&.selected]:bg-accent/10 cursor-pointer"
-					class:selected={globalState.getExportState.selectedChoice === c.id}
+					class="export-choice-tab"
+					class:export-choice-tab-active={globalState.getExportState.selectedChoice === c.id}
 					title={c.hint()}
 				>
-					<span
-						class="material-icons-outlined text-lg opacity-80 transition-colors group-[.selected]:text-accent"
-						>{c.icon}</span
-					>
-					<span
-						class="line-clamp-2 text-[10px] font-medium leading-tight group-[.selected]:text-accent"
-					>
-						{c.label()}
-					</span>
+					<span class="material-icons-outlined text-[16px]!">{c.icon}</span>
+					<span>{c.label()}</span>
 				</button>
 			{/each}
 		</div>
@@ -102,3 +89,34 @@
 		</div>
 	</div>
 </div>
+
+<style>
+	.export-choice-tab {
+		display: flex;
+		min-width: 0;
+		align-items: center;
+		justify-content: center;
+		gap: 0.35rem;
+		border: 1px solid var(--border-color);
+		border-radius: 0.55rem;
+		padding: 0.38rem 0.25rem;
+		background: color-mix(in srgb, var(--bg-secondary) 85%, transparent);
+		color: var(--text-secondary);
+		font-size: 0.68rem;
+		font-weight: 600;
+		white-space: nowrap;
+		cursor: pointer;
+		transition: 150ms ease;
+	}
+
+	.export-choice-tab:hover {
+		background: var(--bg-accent);
+		color: var(--text-primary);
+	}
+
+	.export-choice-tab-active {
+		border-color: color-mix(in srgb, var(--accent-primary) 70%, var(--border-color));
+		background: color-mix(in srgb, var(--accent-primary) 18%, var(--bg-secondary));
+		color: var(--accent-primary);
+	}
+</style>

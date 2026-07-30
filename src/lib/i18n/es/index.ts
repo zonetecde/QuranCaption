@@ -1955,7 +1955,7 @@ const es = {
 		videoExportDescription: 'Exportar el video completo renderizado',
 		subtitlesExportOption: 'Subtítulos',
 		subtitlesExportDescription: 'Generar un archivo de subtítulos .srt / .vtt',
-		youtubeChaptersOption: 'Capítulos YouTube',
+		youtubeChaptersOption: 'Capítulos YT',
 		youtubeChaptersDescription: 'Lista de capítulos con marcas de tiempo',
 		projectDataOption: 'Datos del proyecto',
 		projectDataDescription: 'Exportar los datos brutos del proyecto',

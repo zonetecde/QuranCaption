@@ -434,6 +434,28 @@ describe('Video overlay subtitle preview', () => {
 		expect(getCurrentSubtitleText(component.container)).toContain('Beta translation');
 	});
 
+	test('keeps the subtitle container visible while an overlay element is dragged', async () => {
+		setupVideoOverlayFixture(
+			[createVerseSubtitle(0, 999, 'Dragged Arabic', 'Dragged translation')],
+			{ cursorPosition: 100 }
+		);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		globalState.getVideoPreviewState.showAlignmentGridWhileDragging = true;
+		globalState.getTimelineState.previewRefreshToken++;
+		await tick();
+
+		const subtitleContainer = getSubtitlesContainer(component.container);
+		expect(subtitleContainer).not.toBeNull();
+		expect(subtitleContainer!.style.opacity).toBe('1');
+		expect(subtitleContainer!.dataset.exportLayoutState).toBe('ready');
+
+		globalState.getVideoPreviewState.showAlignmentGridWhileDragging = false;
+		await settleOverlay();
+	});
+
 	test('shows the next subtitle again after crossing a gap during playback', async () => {
 		const fixture = setupVideoOverlayFixture(
 			[

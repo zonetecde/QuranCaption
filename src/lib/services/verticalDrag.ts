@@ -24,20 +24,34 @@ export interface VerticalDragOptions {
 export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 	let startY = 0;
 	let startX = 0;
+	let scaleY = 1;
+	let scaleX = 1;
 	let originVertical = 0;
 	let originHorizontal = 0;
 	let dragging = false;
+	let activePointerId: number | null = null;
 	let opts = options;
 	let isStuckToZero = false; // Pour le sticky behavior horizontal
 	const HORIZONTAL_STICK_RANGE = 50; // Zone de stick autour de 0 (-50 à +50)
+	const hadTouchNone = node.classList.contains('touch-none');
 
-	function mousedown(e: MouseEvent) {
-		if (e.button !== 0) return;
+	/**
+	 * Démarre le déplacement avec la souris, le stylet ou le toucher.
+	 * @param {PointerEvent} e Événement initial du pointeur.
+	 * @returns {void}
+	 */
+	function pointerdown(e: PointerEvent) {
+		if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
 		e.preventDefault();
 		ProjectHistoryManager.begin('drag style position');
 		startY = e.clientY;
 		startX = e.clientX;
+		const preview = node.closest<HTMLElement>('#preview');
+		const previewBounds = preview?.getBoundingClientRect();
+		scaleY = preview && previewBounds ? previewBounds.height / preview.offsetHeight || 1 : 1;
+		scaleX = preview && previewBounds ? previewBounds.width / preview.offsetWidth || 1 : 1;
 		isStuckToZero = false;
+		activePointerId = e.pointerId;
 
 		// Mode automatique avec globalState
 		if (opts.target && opts.verticalStyleId) {
@@ -85,19 +99,27 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		}
 
 		dragging = true;
+		node.setPointerCapture(e.pointerId);
 		globalState.getVideoPreviewState.showAlignmentGridWhileDragging = true;
-		document.addEventListener('mousemove', mousemove);
-		document.addEventListener('mouseup', mouseup);
+		document.addEventListener('pointermove', pointermove);
+		document.addEventListener('pointerup', pointerup);
+		document.addEventListener('pointercancel', pointerup);
 		const cls = opts.classWhileDragging || 'dragging-vertical';
 		node.classList.add(cls);
 	}
 
-	function mousemove(e: MouseEvent) {
-		if (!dragging) return;
+	/**
+	 * Applique le déplacement du pointeur dans le repère interne de la preview.
+	 * @param {PointerEvent} e Événement de déplacement du pointeur.
+	 * @returns {void}
+	 */
+	function pointermove(e: PointerEvent) {
+		if (!dragging || e.pointerId !== activePointerId) return;
+		e.preventDefault();
 		globalState.getVideoPreviewState.showAlignmentGridWhileDragging = true;
 
 		// Gestion du drag vertical
-		const deltaY = e.clientY - startY;
+		const deltaY = (e.clientY - startY) / scaleY;
 		let verticalVal = originVertical + deltaY;
 
 		// Mode automatique avec globalState pour le vertical
@@ -138,7 +160,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 
 		// Gestion du drag horizontal (si activé)
 		if (opts.horizontalStyleId || opts.applyHorizontal) {
-			const deltaX = e.clientX - startX;
+			const deltaX = (e.clientX - startX) / scaleX;
 			let horizontalVal = originHorizontal + deltaX;
 
 			// Sticky behavior près de zéro
@@ -192,8 +214,23 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 				opts.applyHorizontal(horizontalVal);
 			}
 		}
+	}
 
-		// Déclenche un refresh si nécessaire pour certains styles
+	/**
+	 * Termine le déplacement actif et valide son historique.
+	 * @param {PointerEvent} e Événement final du pointeur.
+	 * @returns {void}
+	 */
+	function pointerup(e: PointerEvent) {
+		if (!dragging || e.pointerId !== activePointerId) return;
+		dragging = false;
+		activePointerId = null;
+		globalState.getVideoPreviewState.showAlignmentGridWhileDragging = false;
+		document.removeEventListener('pointermove', pointermove);
+		document.removeEventListener('pointerup', pointerup);
+		document.removeEventListener('pointercancel', pointerup);
+		const cls = opts.classWhileDragging || 'dragging-vertical';
+		node.classList.remove(cls);
 		if (
 			opts.verticalStyleId === 'vertical-position' ||
 			opts.verticalStyleId === 'horizontal-position' ||
@@ -202,20 +239,11 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		) {
 			globalState.updateVideoPreviewUI();
 		}
-	}
-
-	function mouseup() {
-		if (!dragging) return;
-		dragging = false;
-		globalState.getVideoPreviewState.showAlignmentGridWhileDragging = false;
-		document.removeEventListener('mousemove', mousemove);
-		document.removeEventListener('mouseup', mouseup);
-		const cls = opts.classWhileDragging || 'dragging-vertical';
-		node.classList.remove(cls);
 		ProjectHistoryManager.commit();
 	}
 
-	node.addEventListener('mousedown', mousedown);
+	node.addEventListener('pointerdown', pointerdown);
+	node.classList.add('touch-none');
 	if (!node.style.cursor) node.style.cursor = 'move';
 
 	return {
@@ -224,9 +252,11 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		},
 		destroy() {
 			globalState.getVideoPreviewState.showAlignmentGridWhileDragging = false;
-			node.removeEventListener('mousedown', mousedown);
-			document.removeEventListener('mousemove', mousemove);
-			document.removeEventListener('mouseup', mouseup);
+			node.removeEventListener('pointerdown', pointerdown);
+			document.removeEventListener('pointermove', pointermove);
+			document.removeEventListener('pointerup', pointerup);
+			document.removeEventListener('pointercancel', pointerup);
+			if (!hadTouchNone) node.classList.remove('touch-none');
 			ProjectHistoryManager.cancel();
 		}
 	};

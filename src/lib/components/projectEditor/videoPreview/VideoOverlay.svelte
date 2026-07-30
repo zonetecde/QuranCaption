@@ -923,6 +923,16 @@
 		(async () => {
 			const subtitlesContainer = document.getElementById('subtitles-container');
 
+			if (globalState.getVideoPreviewState.showAlignmentGridWhileDragging) {
+				// La position reste réactive, mais le layout coûteux attend la fin du drag.
+				currentAbortController?.abort();
+				if (subtitlesContainer) {
+					subtitlesContainer.style.opacity = '1';
+					markExportLayoutState(subtitlesContainer, 'ready');
+				}
+				return;
+			}
+
 			const subtitle = currentSubtitle();
 			if (!subtitle) {
 				lastSubtitleId = 0;

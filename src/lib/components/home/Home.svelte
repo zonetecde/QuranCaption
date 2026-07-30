@@ -14,7 +14,6 @@
 	import TourManager from '$lib/components/tour/TourManager';
 	import { setupTutorialProject } from '$lib/services/TutorialService';
 	import { ProjectService } from '$lib/services/ProjectService';
-	import MigrationService from '$lib/services/MigrationService';
 	import AndroidMediaService from '$lib/services/AndroidMediaService';
 
 	import InputWithIcon from '../misc/InputWithIcon.svelte';
@@ -26,7 +25,6 @@
 	import ProjectDetailCardSkeleton from './ProjectDetailCardSkeleton.svelte';
 	import ProjectExplorerSidebar from './ProjectExplorerSidebar.svelte';
 	import CreateProjectModal from './modals/CreateProjectModal.svelte';
-	import MigrationFromV2Modal from './modals/MigrationFromV2Modal.svelte';
 	import {
 		ALL_PROJECTS_SELECTION,
 		buildProjectExplorerTree,
@@ -41,7 +39,6 @@
 		type DragPointer
 	} from './dragUtils';
 
-	let migrationFromV2ModalVisibility = $state(false);
 	let createNewProjectModalVisible = $state(false);
 
 	// Etats pour les menus de filtrage et tri
@@ -439,18 +436,6 @@
 			promise = ProjectService.loadUserProjectsDetails();
 		}
 
-		if (promise) {
-			promise.then(async () => {
-				// Vérifie si des données de Quran Caption 2 sont présentes
-				if (
-					(await MigrationService.hasQCV2Data()) &&
-					globalState.userProjectsDetails.length === 0
-				) {
-					migrationFromV2ModalVisibility = true;
-				}
-			});
-		}
-
 		if (globalState.settings && !globalState.settings.persistentUiState.hasSeenTour) {
 			if (promise) await promise;
 			try {
@@ -770,12 +755,6 @@
 {#if createNewProjectModalVisible}
 	<div class="modal-wrapper" transition:fade>
 		<CreateProjectModal close={() => (createNewProjectModalVisible = false)} />
-	</div>
-{/if}
-
-{#if migrationFromV2ModalVisibility}
-	<div class="modal-wrapper" transition:fade>
-		<MigrationFromV2Modal close={() => (migrationFromV2ModalVisibility = false)} />
 	</div>
 {/if}
 

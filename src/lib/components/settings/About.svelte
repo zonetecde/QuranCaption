@@ -4,12 +4,10 @@
 	import TourManager from '$lib/components/tour/TourManager';
 	import Settings from '$lib/classes/Settings.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import MigrationService from '$lib/services/MigrationService';
 	import { setupTutorialProject } from '$lib/services/TutorialService';
 	import LL from '$lib/i18n/i18n-svelte';
 
 	let version = $state('');
-	let isOrganizingProjects = $state(false);
 	onMount(async () => {
 		version = await VersionService.getAppVersion();
 	});
@@ -50,26 +48,6 @@
 		>
 			<span class="material-icons text-base">school</span>
 			{$LL.settings.restartTutorial()}
-		</button>
-
-		<button
-			class="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
-			style="background: var(--bg-accent); color: var(--text-secondary);"
-			disabled={isOrganizingProjects}
-			onclick={async () => {
-				if (isOrganizingProjects) return;
-				isOrganizingProjects = true;
-				try {
-					await MigrationService.organizeExistingProjectsIntoSubCategories();
-				} finally {
-					isOrganizingProjects = false;
-				}
-			}}
-		>
-			<span class="material-icons text-base">auto_awesome</span>
-			{isOrganizingProjects
-				? $LL.settings.organizingProjects()
-				: $LL.settings.organizeProjectFolders()}
 		</button>
 	</div>
 </div>

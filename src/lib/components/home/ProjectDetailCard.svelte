@@ -12,7 +12,6 @@
 	import ProjectTypeSelector from './ProjectTypeSelector.svelte';
 	import { Status } from '$lib/classes/Status';
 	import { slide } from 'svelte/transition';
-	import MigrationService from '$lib/services/MigrationService';
 	import { onDestroy } from 'svelte';
 	import Exporter from '$lib/classes/Exporter';
 	import toast from 'svelte-5-french-toast';
@@ -94,13 +93,7 @@
 	async function openProjectButtonClick() {
 		// Ouvre le projet
 		const project = await ProjectService.load(projectDetail.id);
-		await MigrationService.HydrateStyleEditorUiMetadata(project);
 		globalState.currentProject = project;
-
-		// Migration si besoin
-		MigrationService.FromQC313ToQC314();
-		MigrationService.FromQC326ToQC327();
-		MigrationService.FromQC334ToQC335_2();
 	}
 
 	// Gestion du menu de statut

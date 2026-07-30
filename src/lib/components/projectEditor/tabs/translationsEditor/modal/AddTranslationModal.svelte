@@ -7,8 +7,6 @@
 		type QdcAvailableTranslationsMap,
 		type TranslationLanguageData
 	} from '$lib/services/QdcTranslationService';
-	import { open } from '@tauri-apps/plugin-dialog';
-	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import { onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -20,9 +18,6 @@
 	let searchQuery: string = $state('');
 	let translationPreviews: Record<string, Record<string, string>> = $state({});
 	let isLoadingPreview = $state(false);
-	let isImportingTxt = $state(false);
-	let showTxtImportHelp = $state(false);
-	let txtImportError: string | null = $state(null);
 	let activeTranslationsTab = $state<'quran-api' | 'quran-com-api'>('quran-api');
 	let qdcTranslations = $state<QdcAvailableTranslationsMap>({});
 	let isLoadingQdcTranslations = $state(false);
@@ -154,129 +149,6 @@
 		}
 	}
 
-	function cleanTxtLine(line: string): string {
-		// Keep the verse line exactly as provided by user (including verse numbers in text).
-		return line.replace(/^\uFEFF/, '').trim();
-	}
-
-	async function importTranslationFromTxt() {
-		showTxtImportHelp = true;
-		txtImportError = null;
-
-		if (isImportingTxt) return;
-
-		try {
-			isImportingTxt = true;
-
-			const selection = await open({
-				multiple: false,
-				directory: false,
-				filters: [{ name: 'Text', extensions: ['txt'] }]
-			});
-
-			if (!selection || Array.isArray(selection)) return;
-
-			const quranSubtitles = globalState.getSubtitleClips.filter(
-				(subtitle) => subtitle.surah > 0 && subtitle.verse > 0
-			);
-
-			if (quranSubtitles.length === 0) {
-				throw new Error('No Quran verses found in this project.');
-			}
-
-			const surahSet = new Set<number>(quranSubtitles.map((subtitle) => subtitle.surah));
-			if (surahSet.size !== 1) {
-				throw new Error(
-					'TXT import supports only one surah at a time. Please use a project containing a single surah.'
-				);
-			}
-
-			const surah = Array.from(surahSet)[0];
-			const neededVerseNumbers = Array.from(
-				new Set<number>(quranSubtitles.map((subtitle) => subtitle.verse))
-			).sort((a, b) => a - b);
-
-			const rawFile = await readTextFile(selection);
-			const normalized = rawFile.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-			const lines = normalized.split('\n');
-			if (lines.length > 0 && lines[lines.length - 1].trim() === '') {
-				lines.pop();
-			}
-			const cleanedLines = lines.map(cleanTxtLine);
-
-			const missingVerses: number[] = [];
-			const downloadedTranslations: Record<string, string> = {};
-
-			for (const verse of neededVerseNumbers) {
-				const txtLine = cleanedLines[verse - 1];
-				if (!txtLine || txtLine.trim() === '') {
-					missingVerses.push(verse);
-					continue;
-				}
-				downloadedTranslations[`${surah}:${verse}`] = txtLine;
-			}
-
-			if (missingVerses.length > 0) {
-				throw new Error(`Missing lines for verses: ${missingVerses.join(', ')}`);
-			}
-
-			const availableLanguages = Object.keys(globalState.availableTranslations);
-			if (availableLanguages.length === 0) {
-				throw new Error(get(LL).editor.noTranslationsAvailable());
-			}
-			const language = availableLanguages.includes('English') ? 'English' : availableLanguages[0];
-			const direction =
-				globalState.availableTranslations[language]?.translations?.[0]?.direction || 'ltr';
-
-			const now = new Date();
-			const uniqueSuffix = now.getTime();
-			const formattedTime = now.toLocaleTimeString([], {
-				hour: '2-digit',
-				minute: '2-digit',
-				second: '2-digit'
-			});
-
-			const edition = new Edition(
-				`txt-manual-${uniqueSuffix}`,
-				`txt-manual-${uniqueSuffix}`,
-				`TXT Import S${surah} (${formattedTime})`,
-				language,
-				direction,
-				'manual-txt-import',
-				'Manual txt import (one line per verse, without basmala)',
-				'',
-				''
-			);
-
-			await globalState.currentProject?.content.projectTranslation.addTranslation(
-				edition,
-				downloadedTranslations
-			);
-
-			AnalyticsService.trackTranslationAdded(
-				edition.name,
-				edition.author,
-				edition.key,
-				edition.language
-			);
-
-			toast.success(get(LL).translations.txtImportSuccess({ count: neededVerseNumbers.length, surah }));
-			close();
-		} catch (error: unknown) {
-			txtImportError =
-				error && typeof error === 'object' && 'message' in error
-					? String((error as { message?: unknown }).message ?? '')
-					: get(LL).translations.failedToImportTxt();
-			if (!txtImportError) {
-				txtImportError = get(LL).translations.failedToImportTxt();
-			}
-			toast.error(txtImportError);
-			console.error('Error importing txt translation:', error);
-		} finally {
-			isImportingTxt = false;
-		}
-	}
-
 	let recentTranslations: Edition[] = $state([]);
 
 	onMount(async () => {
@@ -306,11 +178,11 @@
 </script>
 
 <div
-	class="bg-secondary border-color border rounded-2xl w-[800px] h-[700px] shadow-2xl shadow-black flex flex-col relative overflow-hidden"
+	class="relative flex h-[700px] w-full flex-col overflow-hidden rounded-2xl border border-color bg-secondary shadow-2xl shadow-black"
 	use:mobileModalSheet={close}
 >
 	<!-- Header with gradient background -->
-	<div class="bg-gradient-to-r from-accent to-bg-accent px-6 py-4 border-b border-color">
+	<div class="border-b border-color bg-gradient-to-r from-accent to-bg-accent px-4 py-3">
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-3">
 				<div class="w-8 h-8 bg-accent-primary rounded-full flex items-center justify-center">
@@ -334,25 +206,35 @@
 		</div>
 	</div>
 	<!-- Search bar -->
-	<div class="px-6 py-4 border-b border-color bg-primary">
-		<div class="flex items-center gap-3">
-			<div class="relative flex-1">
-				<input
-					type="text"
-					placeholder={$LL.editor.searchLanguagesOrAuthors()}
-					bind:value={searchQuery}
-					class="w-full pr-4 py-3 bg-secondary border border-color rounded-xl text-primary focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-opacity-20 transition-all duration-200"
-					style="padding-left: 40px; "
-				/>
+	<div class="space-y-3 border-b border-color bg-primary px-4 py-3">
+		<div class="relative w-full">
+			<input
+				type="text"
+				placeholder={$LL.editor.searchLanguagesOrAuthors()}
+				bind:value={searchQuery}
+				class="w-full rounded-xl border border-color bg-secondary py-3 pr-4 pl-10! text-primary transition-all duration-200 focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-opacity-20"
+			/>
 
-				<span class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-thirdly"
-					>search</span
-				>
-			</div>
+			<span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 transform text-thirdly"
+				>search</span
+			>
+		</div>
 
-			<div class="flex shrink-0 items-center rounded-xl border border-color bg-secondary p-1">
+		<div class="flex items-center justify-between gap-3">
+			{#if recentTranslations.length > 0 && !searchQuery}
+				<div class="flex min-w-0 items-center gap-2">
+					<span class="material-icons text-accent-primary text-sm">history</span>
+					<span class="truncate text-sm font-medium text-primary">
+						{$LL.editor.recentTranslations()}
+					</span>
+				</div>
+			{:else}
+				<div></div>
+			{/if}
+
+			<div class="flex shrink-0 items-center rounded-lg border border-color bg-secondary p-0.5">
 				<button
-					class="px-3 py-1.5 rounded-lg text-sm transition-all duration-200 {activeTranslationsTab ===
+					class="rounded-md px-2 py-1 text-xs transition-all duration-200 {activeTranslationsTab ===
 					'quran-api'
 						? 'bg-[rgba(88,166,255,0.14)] text-primary shadow-[inset_0_0_0_1px_rgba(88,166,255,0.35)]'
 						: 'text-thirdly hover:text-primary'}"
@@ -362,7 +244,7 @@
 					{$LL.editor.quranApi()}
 				</button>
 				<button
-					class="px-3 py-1.5 rounded-lg text-sm transition-all duration-200 {activeTranslationsTab ===
+					class="rounded-md px-2 py-1 text-xs transition-all duration-200 {activeTranslationsTab ===
 					'quran-com-api'
 						? 'bg-[rgba(88,166,255,0.14)] text-primary shadow-[inset_0_0_0_1px_rgba(88,166,255,0.35)]'
 						: 'text-thirdly hover:text-primary'}"
@@ -375,123 +257,49 @@
 		</div>
 
 		{#if recentTranslations.length > 0 && !searchQuery}
-			<div class="mt-3 flex items-start gap-3">
-				<div class="flex shrink-0 items-center gap-2 pt-1">
-					<span class="material-icons text-accent-primary text-sm">history</span>
-					<span class="text-sm font-medium text-primary">{$LL.editor.recentTranslations()}</span>
-				</div>
-				<div class="flex flex-1 flex-wrap justify-end gap-2">
-					{#each recentTranslations.slice(0, 8) as translation (translation.key)}
-						{@const isSelected = isTranslationSelected(translation)}
-						{@const isQdcTranslation = QdcTranslationService.isQdcEdition(translation)}
-						<button
-							class="px-3 py-1.5 text-xs bg-secondary border border-color rounded-lg hover:border-accent-primary transition-all duration-200 flex items-center gap-1.5
+			<div class="recent-translations-scroll flex w-full gap-2 overflow-x-auto pb-1">
+				{#each recentTranslations as translation (translation.key)}
+					{@const isSelected = isTranslationSelected(translation)}
+					{@const isQdcTranslation = QdcTranslationService.isQdcEdition(translation)}
+					<button
+						class="flex shrink-0 items-center gap-1.5 rounded-lg border border-color bg-secondary px-2.5 py-1.5 text-xs transition-all duration-200 hover:border-accent-primary
 							       {isSelected ? 'border-accent-primary bg-[rgba(88,166,255,0.1)]' : ''}"
-							onclick={() => toggleTranslationSelection(translation)}
-						>
-							{#if isSelected}
-								<span class="material-icons text-accent-primary" style="font-size: 12px;"
-									>check_circle</span
-								>
-							{:else}
-								<span class="material-icons text-thirdly opacity-50" style="font-size: 12px;"
-									>add_circle_outline</span
-								>
-							{/if}
-							<span class="text-primary font-medium">{translation.author}</span>
-							<span class="text-[10px] uppercase tracking-wide text-thirdly">
-								({isQdcTranslation ? 'QDC' : 'QAPI'})
-							</span>
-						</button>
-					{/each}
-					{#if recentTranslations.length > 8}
-						<span class="px-2 py-1.5 text-xs text-thirdly bg-accent rounded-lg border border-color">
-							{$LL.editor.moreCount({ count: recentTranslations.length - 8 })}
+						onclick={() => toggleTranslationSelection(translation)}
+					>
+						{#if isSelected}
+							<span class="material-icons text-accent-primary" style="font-size: 12px;"
+								>check_circle</span
+							>
+						{:else}
+							<span class="material-icons text-thirdly opacity-50" style="font-size: 12px;"
+								>add_circle_outline</span
+							>
+						{/if}
+						<span class="text-primary font-medium">{translation.author}</span>
+						<span class="text-[10px] uppercase tracking-wide text-thirdly">
+							({isQdcTranslation ? 'QDC' : 'QAPI'})
 						</span>
-					{/if}
-				</div>
+					</button>
+				{/each}
 			</div>
 		{/if}
 	</div>
 	<!-- Content area -->
 	<div class="flex-1 overflow-hidden">
 		{#if selectedTranslations.length > 0}
-			<!-- Two column layout: Selection + Preview -->
-			<div class="h-full flex">
-				<!-- Left column: Selection -->
-				<div class="w-1/2 border-r border-color overflow-y-auto px-6 py-4">
-					<div class="mb-4">
-						<h3 class="text-lg font-semibold text-primary mb-2">{$LL.translations.availableTranslations()}</h3>
-						<p class="text-sm text-thirdly">
+			<div class="h-full overflow-y-auto">
+				<!-- Selection -->
+				<div class="px-3 py-3">
+					<div class="mb-3">
+						<h3 class="mb-1 text-base font-semibold text-primary">
+							{$LL.translations.availableTranslations()}
+						</h3>
+						<p class="text-xs text-thirdly">
 							{$LL.editor.translationsSelected({ count: selectedTranslations.length })}
 						</p>
 					</div>
 
-					<div class="space-y-4">
-						{#if activeTranslationsTab === 'quran-api'}
-							<!-- Import from TXT section -->
-							<div class="bg-accent border border-color rounded-lg overflow-hidden">
-								<!-- TXT Import header -->
-								<div
-									class="flex items-center gap-3 p-3 bg-gradient-to-r from-bg-secondary to-bg-accent border-b border-color"
-								>
-									<span class="material-icons text-accent-primary">note_add</span>
-									<div>
-										<h4 class="font-semibold text-primary">{$LL.editor.importFromTxt()}</h4>
-										<p class="text-xs text-thirdly">{$LL.editor.loadCustomTranslation()}</p>
-									</div>
-								</div>
-
-								<!-- TXT Import button -->
-								<div class="p-3">
-									<button
-										class="w-full p-3 bg-secondary border border-color rounded-lg hover:border-accent-primary hover:bg-[rgba(88,166,255,0.05)] transition-all duration-200 text-left flex items-center justify-between group"
-										onclick={importTranslationFromTxt}
-										disabled={isImportingTxt}
-									>
-										<div class="flex items-center gap-2">
-											<span
-												class="material-icons text-thirdly group-hover:text-accent-primary transition-colors duration-200"
-											>
-												{isImportingTxt ? 'hourglass_top' : 'upload_file'}
-											</span>
-											<span
-												class="font-medium text-primary group-hover:text-accent-primary transition-colors duration-200 text-sm"
-											>
-												{isImportingTxt
-													? $LL.editor.importingTxt()
-													: $LL.editor.browseAndImportTxt()}
-											</span>
-										</div>
-										<span
-											class="material-icons text-thirdly text-sm opacity-50 group-hover:opacity-100 transition-opacity"
-										>
-											chevron_right
-										</span>
-									</button>
-
-									{#if showTxtImportHelp}
-										<div class="mt-3 p-3 bg-accent border border-color rounded-lg">
-											<p class="text-xs text-secondary font-medium mb-2">{$LL.editor.formatExpected()}</p>
-											<p class="text-xs text-thirdly">
-												{$LL.editor.txtFormatDescription()}
-											</p>
-											<div
-												class="mt-2 text-xs text-thirdly font-mono leading-relaxed bg-secondary rounded p-2 border border-color"
-											>
-												<p>{$LL.editor.txtSampleLine1()}</p>
-												<p>{$LL.editor.txtSampleLine2()}</p>
-												<p>{$LL.editor.txtSampleLine3()}</p>
-											</div>
-											{#if txtImportError}
-												<p class="mt-2 text-xs text-red-400 font-medium">{txtImportError}</p>
-											{/if}
-										</div>
-									{/if}
-								</div>
-							</div>
-						{/if}
-
+					<div class="space-y-3">
 						{#if activeTranslationsTab === 'quran-com-api' && isLoadingQdcTranslations}
 							<div class="bg-accent border border-color rounded-lg p-6 text-center">
 								<div
@@ -510,28 +318,30 @@
 							{@const translations = activeFilteredTranslations()[language].translations}
 
 							<!-- Language section -->
-							<div class="bg-accent border border-color rounded-lg overflow-hidden">
+							<div class="overflow-hidden rounded-lg border border-color bg-accent">
 								<!-- Language header -->
 								<div
-									class="flex items-center gap-3 p-3 bg-gradient-to-r from-bg-secondary to-bg-accent border-b border-color"
+									class="flex items-center gap-2 border-b border-color bg-gradient-to-r from-bg-secondary to-bg-accent p-2"
 								>
 									{#if translationFlag}
-										<img src={translationFlag} alt={language} class="w-6 h-6 shadow-lg" />
+										<img src={translationFlag} alt={language} class="h-5 w-5 shadow-lg" />
 									{:else}
-										<div class="w-6 h-6 rounded-sm bg-black border border-color shrink-0"></div>
+										<div class="h-5 w-5 shrink-0 rounded-sm border border-color bg-black"></div>
 									{/if}
 									<div>
-										<h4 class="font-semibold text-primary">{language}</h4>
-										<p class="text-xs text-thirdly">{$LL.editor.availableCount({ count: translations.length })}</p>
+										<h4 class="text-sm font-semibold text-primary">{language}</h4>
+										<p class="text-[11px] text-thirdly">
+											{$LL.editor.availableCount({ count: translations.length })}
+										</p>
 									</div>
 								</div>
 
 								<!-- Translations -->
-								<div class="p-3 space-y-2">
+								<div class="space-y-1.5 p-2">
 									{#each translations as translationDetail (translationDetail.key)}
 										{@const isSelected = isTranslationSelected(translationDetail)}
 										<button
-											class="w-full p-3 bg-secondary border border-color rounded-lg hover:border-accent-primary transition-all duration-200 text-left
+											class="w-full rounded-md border border-color bg-secondary p-2 text-left transition-all duration-200 hover:border-accent-primary
 											       {isSelected ? 'border-accent-primary bg-[rgba(88,166,255,0.1)]' : ''}"
 											onclick={() => toggleTranslationSelection(translationDetail)}
 										>
@@ -540,7 +350,7 @@
 													{#if translationDetail.comments === 'Ponctuation' || translationDetail.comments === 'Saheeh International'}
 														<span class="material-icons text-yellow-200 text-sm">star</span>
 													{/if}
-													<span class="font-medium text-primary text-sm"
+													<span class="text-xs font-medium text-primary"
 														>{translationDetail.author}</span
 													>
 												</div>
@@ -562,10 +372,12 @@
 					</div>
 				</div>
 
-				<!-- Right column: Preview -->
-				<div class="w-1/2 overflow-y-auto px-6 py-4">
+				<!-- Preview -->
+				<div class="border-t border-color px-3 py-3">
 					<div class="mb-4">
-						<h3 class="text-lg font-semibold text-primary mb-2">{$LL.editor.translationPreviews()}</h3>
+						<h3 class="text-lg font-semibold text-primary mb-2">
+							{$LL.editor.translationPreviews()}
+						</h3>
 						<p class="text-sm text-thirdly">
 							{$LL.editor.previewDescription()}
 						</p>
@@ -632,7 +444,12 @@
 												{verseKey}
 											</span>
 											{#if surah && verse}
-												<span class="text-xs text-thirdly">{$LL.editor.surahAndVerse({ surah: Number(surah), verse: Number(verse) })}</span>
+												<span class="text-xs text-thirdly"
+													>{$LL.editor.surahAndVerse({
+														surah: Number(surah),
+														verse: Number(verse)
+													})}</span
+												>
 											{/if}
 										</div>
 
@@ -697,7 +514,7 @@
 			</div>
 		{:else}
 			<!-- Original single column layout when no translation selected -->
-			<div class="h-full overflow-y-auto px-6 py-4 space-y-4">
+			<div class="h-full space-y-3 overflow-y-auto px-3 py-3">
 				{#if activeTranslationsTab === 'quran-com-api' && isLoadingQdcTranslations}
 					<div class="flex flex-col items-center justify-center h-full text-center">
 						<div
@@ -710,7 +527,9 @@
 						<div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center mb-4">
 							<span class="material-icons text-red-400 text-2xl">error_outline</span>
 						</div>
-						<h3 class="text-lg font-semibold text-primary mb-2">{$LL.editor.qdcApiUnavailable()}</h3>
+						<h3 class="text-lg font-semibold text-primary mb-2">
+							{$LL.editor.qdcApiUnavailable()}
+						</h3>
 						<p class="text-thirdly max-w-md">{qdcTranslationsError}</p>
 					</div>
 				{:else if Object.keys(activeFilteredTranslations()).length === 0}
@@ -719,7 +538,9 @@
 						<div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center mb-4">
 							<span class="material-icons text-thirdly text-2xl">search_off</span>
 						</div>
-						<h3 class="text-lg font-semibold text-primary mb-2">{$LL.editor.noTranslationsFoundModal()}</h3>
+						<h3 class="text-lg font-semibold text-primary mb-2">
+							{$LL.editor.noTranslationsFoundModal()}
+						</h3>
 						<p class="text-thirdly max-w-md">
 							{#if searchQuery}
 								{$LL.editor.noTranslationsMatchSearch()}
@@ -734,108 +555,44 @@
 						{/if}
 					</div>
 				{:else}
-					<!-- Import from TXT section at top (hidden when searching) -->
-					{#if !searchQuery && activeTranslationsTab === 'quran-api'}
-						<div class="bg-accent border border-color rounded-xl overflow-hidden">
-							<!-- TXT Import header -->
-							<div
-								class="flex items-center gap-3 p-4 bg-gradient-to-r from-bg-secondary to-bg-accent border-b border-color"
-							>
-								<span class="material-icons text-accent-primary">note_add</span>
-								<div>
-									<h3 class="font-bold text-lg text-primary">{$LL.editor.importFromTxt()}</h3>
-									<p class="text-sm text-thirdly">{$LL.editor.loadCustomTranslation()}</p>
-								</div>
-							</div>
-
-							<!-- TXT Import button -->
-							<div class="p-4">
-								<button
-									class="w-full p-4 bg-secondary border border-color rounded-lg hover:border-accent-primary hover:bg-[rgba(88,166,255,0.05)] transition-all duration-200 text-left flex items-center justify-between group"
-									onclick={importTranslationFromTxt}
-									disabled={isImportingTxt}
-								>
-									<div class="flex items-center gap-2">
-										<span
-											class="material-icons text-thirdly group-hover:text-accent-primary transition-colors duration-200"
-										>
-											{isImportingTxt ? 'hourglass_top' : 'upload_file'}
-										</span>
-										<span
-											class="font-medium text-primary group-hover:text-accent-primary transition-colors duration-200"
-										>
-											{isImportingTxt
-												? $LL.editor.importingTxt()
-												: $LL.editor.browseAndImportTxt()}
-										</span>
-									</div>
-									<span
-										class="material-icons text-thirdly opacity-50 group-hover:opacity-100 transition-opacity"
-									>
-										chevron_right
-									</span>
-								</button>
-
-								{#if showTxtImportHelp}
-									<div class="mt-3 p-3 bg-accent border border-color rounded-lg">
-										<p class="text-xs text-secondary font-medium mb-2">{$LL.editor.formatExpected()}</p>
-										<p class="text-xs text-thirdly">
-											{$LL.editor.txtFormatDescription()}
-										</p>
-										<div
-											class="mt-2 text-xs text-thirdly font-mono leading-relaxed bg-secondary rounded p-2 border border-color"
-										>
-											<p>{$LL.editor.txtSampleLine1()}</p>
-											<p>{$LL.editor.txtSampleLine2()}</p>
-											<p>{$LL.editor.txtSampleLine3()}</p>
-										</div>
-										{#if txtImportError}
-											<p class="mt-2 text-xs text-red-400 font-medium">{txtImportError}</p>
-										{/if}
-									</div>
-								{/if}
-							</div>
-						</div>
-					{/if}
-
 					{#each Object.keys(activeFilteredTranslations()) as language (language)}
 						{@const translationFlag = activeFilteredTranslations()[language].flag}
 						{@const translations = activeFilteredTranslations()[language].translations}
 
 						<!-- Language section -->
-						<div class="bg-accent border border-color rounded-xl overflow-hidden">
+						<div class="overflow-hidden rounded-lg border border-color bg-accent">
 							<!-- Language header -->
 							<div
-								class="flex items-center gap-3 p-4 bg-gradient-to-r from-bg-secondary to-bg-accent border-b border-color"
+								class="flex items-center gap-2 border-b border-color bg-gradient-to-r from-bg-secondary to-bg-accent p-2"
 							>
 								<div class="relative">
 									{#if translationFlag}
-										<img src={translationFlag} alt={language} class="w-8 h-8 shadow-lg" />
+										<img src={translationFlag} alt={language} class="h-5 w-5 shadow-lg" />
 									{:else}
-										<div class="w-8 h-8 rounded-sm bg-black border border-color shrink-0"></div>
+										<div class="h-5 w-5 shrink-0 rounded-sm border border-color bg-black"></div>
 									{/if}
 								</div>
 								<div>
-									<h3 class="font-bold text-lg text-primary">{language}</h3>
-									<p class="text-sm text-thirdly">
+									<h3 class="text-sm font-semibold text-primary">{language}</h3>
+									<p class="text-xs text-thirdly">
 										{$LL.editor.availableCount({ count: translations.length })}
 									</p>
 								</div>
 							</div>
 
 							<!-- Translations grid -->
-							<div class="p-4">
-								<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+							<div class="p-2">
+								<div class="grid grid-cols-1 gap-2">
 									{#each translations as translationDetail (translationDetail.key)}
 										{@const isSelected = isTranslationSelected(translationDetail)}
 										<button
-											class="group relative p-4 bg-secondary border border-color rounded-lg hover:border-accent-primary hover:bg-[rgba(88,166,255,0.05)] transition-all duration-200 text-left cursor-pointer
+											class="group relative cursor-pointer rounded-md border border-color bg-secondary p-2.5 text-left transition-all duration-200 hover:border-accent-primary hover:bg-[rgba(88,166,255,0.05)]
 											       {isSelected ? 'border-accent-primary bg-[rgba(88,166,255,0.1)]' : ''}"
 											onclick={() => toggleTranslationSelection(translationDetail)}
 										>
 											<!-- Selection indicator -->
 											<div
-												class="absolute top-2 right-2 w-5 h-5 rounded-full border-2 border-accent-primary flex items-center justify-center transition-all duration-200
+												class="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full border-2 border-accent-primary transition-all duration-200
 												       {isSelected
 													? 'bg-accent-primary'
 													: 'group-hover:bg-accent-primary group-hover:bg-opacity-20'}"
@@ -846,9 +603,9 @@
 											</div>
 
 											<!-- Content -->
-											<div class="pr-8 cursor-pointer">
+											<div class="cursor-pointer pr-6">
 												<h4
-													class="font-semibold text-primary group-hover:text-accent-primary transition-colors duration-200 flex items-center"
+													class="flex items-center text-sm font-semibold text-primary transition-colors duration-200 group-hover:text-accent-primary"
 												>
 													{#if translationDetail.comments === 'Ponctuation' || translationDetail.comments === 'Saheeh International'}
 														<!-- star icon -->
@@ -873,31 +630,25 @@
 		{/if}
 	</div>
 	<!-- Footer with action buttons -->
-	<div class="border-t border-color bg-primary px-6 py-4">
+	<div class="border-t border-color bg-primary px-3 py-3">
 		<div class="flex items-center justify-between">
 			<div class="flex items-center gap-2 text-sm text-thirdly">
 				{#if selectedTranslations.length > 0}
 					<span class="material-icons text-accent-secondary">check_circle</span>
 					<span>
-						{$LL.editor.selectedCount({ count: selectedTranslations.length })} <strong class="text-accent-primary">{selectedTranslations.length}</strong>
-						{#if selectedTranslations.length === 1}
-							(<strong class="text-accent-primary">{selectedTranslations[0].author}</strong>)
-						{/if}
+						{$LL.editor.selectedCount({ count: selectedTranslations.length })}
 					</span>
-				{:else}
-					<span class="material-icons">info</span>
-					<span>{$LL.editor.pleaseSelectTranslations()}</span>
-				{/if}
+				{:else}{/if}
 			</div>
 
 			<div class="flex gap-3">
-				<button class="btn px-6 py-2.5 font-medium" onclick={close} disabled={isImportingTxt}>
+				<button class="btn px-4 py-2 font-medium" onclick={close}>
 					{$LL.common.cancel()}
 				</button>
 				<button
-					class="btn-accent px-6 py-2.5 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+					class="btn-accent flex items-center gap-2 px-4 py-2 font-medium disabled:cursor-not-allowed disabled:opacity-50"
 					onclick={addTranslationButtonClick}
-					disabled={selectedTranslations.length === 0 || isImportingTxt}
+					disabled={selectedTranslations.length === 0}
 				>
 					<span class="material-icons text-lg">add</span>
 					{$LL.translations.addTranslation()}
@@ -927,6 +678,21 @@
 	.overflow-y-auto::-webkit-scrollbar-thumb:hover {
 		background: var(--timeline-scrollbar-hover);
 	}
+
+	.recent-translations-scroll::-webkit-scrollbar {
+		height: 4px;
+	}
+
+	.recent-translations-scroll {
+		scrollbar-width: thin;
+		scrollbar-color: var(--timeline-scrollbar) transparent;
+	}
+
+	.recent-translations-scroll::-webkit-scrollbar-thumb {
+		border-radius: 9999px;
+		background: var(--timeline-scrollbar);
+	}
+
 	/* Line clamp utility for text truncation */
 	.line-clamp-2 {
 		display: -webkit-box;

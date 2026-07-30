@@ -5,8 +5,40 @@
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<script>
-			if (!window.__TAURI_INTERNALS__ && window.parent !== window) {
-				window.__TAURI_INTERNALS__ = window.parent.__TAURI_INTERNALS__;
+			if (window.parent !== window) {
+				const pendingInvocations = new Map();
+				const rendererExportId = new URLSearchParams(window.location.search).get('id');
+				let invocationSequence = 0;
+
+				const invokeBridge = (command, args, options) => {
+					const requestId = `${Date.now()}-${invocationSequence++}`;
+					return new Promise((resolve, reject) => {
+						pendingInvocations.set(requestId, { resolve, reject });
+						window.parent.postMessage(
+							{
+								type: 'export-renderer-invoke-main',
+								requestId,
+								exportId: rendererExportId,
+								command,
+								args,
+								options
+							},
+							'*'
+						);
+					});
+				};
+				window.__QURAN_CAPTION_INVOKE_BRIDGE__ = invokeBridge;
+
+				window.addEventListener('message', (event) => {
+					if (event.source !== window.parent) return;
+					const data = event.data;
+					if (data?.type !== 'export-renderer-invoke-result-main') return;
+					const pending = pendingInvocations.get(data.requestId);
+					if (!pending) return;
+					pendingInvocations.delete(data.requestId);
+					if (data.error) pending.reject(new Error(data.error));
+					else pending.resolve(data.result);
+				});
 			}
 		</script>
 

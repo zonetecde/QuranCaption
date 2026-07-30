@@ -89,6 +89,7 @@
 	const WORKER_ERROR_EVENT = 'export-capture-worker-error';
 	const EXPORT_LOG_EVENT = 'export-log-main';
 	const WORKER_READY_TIMEOUT_MS = 45_000;
+	const SCREENSHOT_TIMEOUT_MS = 60_000;
 	let activeVideoSegments: TimeRange[] = [];
 	let currentRenderingSegmentIndex = 0;
 	let isSegmentedVideoExport = false;
@@ -204,6 +205,18 @@
 	};
 	type CancelExportRendererPayload = {
 		exportId: string;
+	};
+	type ExportRendererNativeEventMessage = {
+		type?: 'export-renderer-native-event-main';
+		eventName?: string;
+		payload?: unknown;
+	};
+	type EmbeddedTauriBridgeWindow = Window & {
+		__QURAN_CAPTION_INVOKE_BRIDGE__?: (
+			command: string,
+			args?: unknown,
+			options?: unknown
+		) => Promise<unknown>;
 	};
 
 	function getExportFadeSettings(): ExportFadeSettings {
@@ -432,6 +445,10 @@
 			mergingFilesCurrentSegment,
 			mergingFilesTotalSegments
 		};
+		if (window.parent !== window) {
+			window.parent.postMessage({ type: 'export-renderer-progress-main', payload }, '*');
+			return;
+		}
 		await emit('export-progress-main', payload);
 	}
 
@@ -451,7 +468,7 @@
 
 		const contextSuffix = Object.keys(context).length > 0 ? ` ${JSON.stringify(context)}` : '';
 		const fullMessage = `${message}${contextSuffix}`;
-		const source = getCurrentWebviewWindow().label;
+		const source = window.parent !== window ? 'android-renderer' : getCurrentWebviewWindow().label;
 
 		if (level === 'error') {
 			console.error(`[export:${exportId}:${source}] ${fullMessage}`);
@@ -469,6 +486,10 @@
 			message: fullMessage
 		};
 
+		if (window.parent !== window) {
+			window.parent.postMessage({ type: 'export-renderer-log-main', payload }, '*');
+			return;
+		}
 		await emit(EXPORT_LOG_EVENT, payload);
 	}
 
@@ -686,21 +707,49 @@
 		exportId = id;
 		const isWorker = params.get('mode') === CAPTURE_WORKER_MODE;
 		const workerId = Number(params.get('worker') ?? '0');
+		const bridgeWindow = window as EmbeddedTauriBridgeWindow;
 
 		try {
+			await emitExportLog('info', 'Export renderer mounted', {
+				embedded: window.parent !== window,
+				hasInvokeBridge: Boolean(bridgeWindow.__QURAN_CAPTION_INVOKE_BRIDGE__)
+			});
 			if (!isWorker) {
-				// Ecoute les evenements de progression d'export donnes par Rust
-				exporterUnlisteners.push(
-					await listen('export-progress', exportProgress),
-					await listen('export-complete', exportComplete),
-					await listen('export-error', exportError),
-					await listen<CancelExportRendererPayload>('cancel-export-renderer', (event) => {
-						if (event.payload.exportId === exportId) cancellationRequested = true;
-					})
-				);
+				/**
+				 * Reçoit les événements natifs relayés par la frame principale Android.
+				 * @param {MessageEvent<ExportRendererNativeEventMessage>} event Message du parent.
+				 * @returns {void}
+				 */
+				const handleNativeEvent = (event: MessageEvent<ExportRendererNativeEventMessage>) => {
+					if (event.source !== window.parent) return;
+					const data = event.data;
+					if (data?.type !== 'export-renderer-native-event-main') return;
+					if (data.eventName === 'export-progress') {
+						void exportProgress({ payload: data.payload } as ExportProgressEvent);
+					} else if (data.eventName === 'export-complete') {
+						void exportComplete({ payload: data.payload } as ExportCompleteEvent);
+					} else if (data.eventName === 'export-error') {
+						void exportError({ payload: data.payload } as ExportErrorEvent);
+					} else if (
+						data.eventName === 'cancel-export-renderer' &&
+						(data.payload as CancelExportRendererPayload | undefined)?.exportId === exportId
+					) {
+						cancellationRequested = true;
+					}
+				};
+				window.addEventListener('message', handleNativeEvent);
+				exporterUnlisteners.push(() => window.removeEventListener('message', handleNativeEvent));
+				await emitExportLog('info', 'Native event relay installed');
+				await emitExportLog('info', 'Checking native cancellation marker', { exportId });
 				cancellationRequested = await invoke<boolean>('is_export_cancelled', { exportId });
+				await emitExportLog('info', 'Native cancellation marker checked', {
+					exportId,
+					cancellationRequested
+				});
 				ensureCaptureNotCancelled();
+				await emitExportLog('info', 'Enabling Android keep-screen-on');
 				await setExportScreenAwake(true);
+				await emitExportLog('info', 'Android keep-screen-on requested');
 			}
 
 			await emitExportLog('info', 'Export window initialized', {
@@ -708,6 +757,7 @@
 				workerId: isWorker ? workerId : undefined
 			});
 
+			await emitExportLog('info', 'Loading export project JSON', { exportId: id });
 			await loadExportProject(id);
 			await emitExportLog('info', 'Export project loaded', {
 				file: exportData?.finalFileName,
@@ -2126,16 +2176,18 @@
 				const restoreSystemFonts = await QPCFontProvider.applySystemFontSubsetsForScreenshot(node);
 				let blob: Blob | null = null;
 				try {
-					blob = await domToBlob(node, {
-						width: node.clientWidth * scale,
-						height: node.clientHeight * scale,
-						style: {
-							// Garder la logique historique de mise a l'echelle pour preserver le centrage.
-							transform: 'scale(' + scale + ')',
-							transformOrigin: 'top left'
-						},
-						quality: 1
-					});
+					blob = await withScreenshotTimeout(
+						domToBlob(node, {
+							width: node.clientWidth * scale,
+							height: node.clientHeight * scale,
+							style: {
+								// Garder la logique historique de mise a l'echelle pour preserver le centrage.
+								transform: 'scale(' + scale + ')',
+								transformOrigin: 'top left'
+							},
+							quality: 1
+						})
+					);
 				} finally {
 					restoreSystemFonts();
 				}
@@ -2193,6 +2245,28 @@
 			for (const { el, prev } of forcedArabicTextElements) {
 				el.style.visibility = prev;
 			}
+		}
+	}
+
+	/**
+	 * Empêche une capture DOM Android de laisser l'export bloqué indéfiniment.
+	 * @param {Promise<Blob | null>} capture Capture PNG en cours.
+	 * @returns {Promise<Blob | null>} Résultat de la capture avant expiration.
+	 */
+	async function withScreenshotTimeout(capture: Promise<Blob | null>): Promise<Blob | null> {
+		let timeoutId: ReturnType<typeof setTimeout> | undefined;
+		try {
+			return await Promise.race([
+				capture,
+				new Promise<never>((_, reject) => {
+					timeoutId = setTimeout(
+						() => reject(new Error('EXPORT_SCREENSHOT_TIMEOUT')),
+						SCREENSHOT_TIMEOUT_MS
+					);
+				})
+			]);
+		} finally {
+			if (timeoutId !== undefined) clearTimeout(timeoutId);
 		}
 	}
 
@@ -2376,6 +2450,7 @@
 
 		await waitForAnimationFrame();
 		ensureCaptureNotCancelled();
+		await emitExportLog('info', 'Waiting for capture fonts', { timing });
 		await QPCFontProvider.waitForFontsInElement(document.getElementById('overlay'));
 		ensureCaptureNotCancelled();
 		await emitExportLog('info', 'Fonts ready for capture', { timing });

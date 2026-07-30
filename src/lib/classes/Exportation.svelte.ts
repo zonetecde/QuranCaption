@@ -127,7 +127,7 @@ export default class Exportation extends SerializableBase {
 	 * @returns {void}
 	 */
 	addExportLog(log: ExportLogEntry): void {
-		this.exportLogs = [...(this.exportLogs ?? []), log];
+		this.exportLogs = [...(this.exportLogs ?? []).slice(-499), log];
 	}
 
 	isOnGoing() {

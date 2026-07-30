@@ -2,7 +2,12 @@
 	import Home from '$lib/components/home/Home.svelte';
 	import AiVideoPage from '$lib/components/aiVideo/AiVideoPage.svelte';
 
-	import ExportService from '$lib/services/ExportService';
+	import ExportService, {
+		applyExportLog,
+		applyExportProgress,
+		type ExportLogPayload,
+		type ExportProgress
+	} from '$lib/services/ExportService';
 	import DonationFloatingButton from '$lib/components/misc/DonationFloatingButton.svelte';
 	import DonationProgressBar from '$lib/components/misc/DonationProgressBar.svelte';
 	import ProjectEditor from '$lib/components/projectEditor/ProjectEditor.svelte';
@@ -19,12 +24,35 @@
 	import Settings from '$lib/classes/Settings.svelte';
 	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
 	import { listen } from '@tauri-apps/api/event';
+	import { invoke, type InvokeArgs, type InvokeOptions } from '@tauri-apps/api/core';
 
 	let allowWindowClose = false;
 	let isHandlingCloseRequest = false;
 	let unlistenCloseRequest: (() => void) | undefined;
 	let unlistenRendererFinished: (() => void) | undefined;
+	let unlistenExportNativeEvents: Array<() => void> = [];
 	let exportRenderer: HTMLIFrameElement | undefined;
+
+	/**
+	 * Résume une valeur IPC sans injecter de gros buffers dans le moniteur.
+	 * @param {unknown} value Valeur à décrire.
+	 * @returns {string} Description compacte et sérialisable.
+	 */
+	function summarizeRendererInvokeValue(value: unknown): string {
+		try {
+			const json = JSON.stringify(value, (_key, nestedValue) => {
+				if (nestedValue instanceof Uint8Array) return `Uint8Array(${nestedValue.byteLength})`;
+				if (nestedValue instanceof ArrayBuffer) return `ArrayBuffer(${nestedValue.byteLength})`;
+				if (typeof nestedValue === 'string' && nestedValue.length > 240) {
+					return `${nestedValue.slice(0, 240)}…(${nestedValue.length})`;
+				}
+				return nestedValue;
+			});
+			return (json ?? String(value)).slice(0, 1200);
+		} catch {
+			return Object.prototype.toString.call(value);
+		}
+	}
 
 	/**
 	 * Synchronise l'orientation Android courante dans l'etat global partage.
@@ -49,7 +77,88 @@
 	 */
 	function handleExportRendererMessage(event: MessageEvent): void {
 		if (event.source !== exportRenderer?.contentWindow) return;
-		const data = event.data as { type?: string; exportId?: string } | null;
+		const data = event.data as
+			| { type?: 'export-renderer-finished-main'; exportId?: string }
+			| { type?: 'export-renderer-progress-main'; payload?: ExportProgress }
+			| { type?: 'export-renderer-log-main'; payload?: ExportLogPayload }
+			| {
+					type?: 'export-renderer-invoke-main';
+					requestId?: string;
+					exportId?: string;
+					command?: string;
+					args?: InvokeArgs;
+					options?: InvokeOptions;
+			  }
+			| null;
+
+		if (
+			data?.type === 'export-renderer-invoke-main' &&
+			data.requestId &&
+			data.command &&
+			event.source
+		) {
+			const source = event.source as WindowProxy;
+			const startedAt = performance.now();
+			const diagnosticExportId = Number(data.exportId);
+			if (Number.isFinite(diagnosticExportId)) {
+				applyExportLog({
+					exportId: diagnosticExportId,
+					timestamp: new Date().toISOString(),
+					source: 'android-ipc-parent',
+					level: 'info',
+					message: `IPC → ${data.command} args=${summarizeRendererInvokeValue(data.args)}`
+				});
+			}
+			void invoke(data.command, data.args, data.options).then(
+				(result) => {
+					if (Number.isFinite(diagnosticExportId)) {
+						applyExportLog({
+							exportId: diagnosticExportId,
+							timestamp: new Date().toISOString(),
+							source: 'android-ipc-parent',
+							level: 'info',
+							message: `IPC ✓ ${data.command} ${Math.round(performance.now() - startedAt)}ms result=${summarizeRendererInvokeValue(result)}`
+						});
+					}
+					source.postMessage(
+						{
+							type: 'export-renderer-invoke-result-main',
+							requestId: data.requestId,
+							result
+						},
+						'*'
+					);
+				},
+				(error) => {
+					if (Number.isFinite(diagnosticExportId)) {
+						applyExportLog({
+							exportId: diagnosticExportId,
+							timestamp: new Date().toISOString(),
+							source: 'android-ipc-parent',
+							level: 'error',
+							message: `IPC ✗ ${data.command} ${Math.round(performance.now() - startedAt)}ms error=${error instanceof Error ? error.message : String(error)}`
+						});
+					}
+					source.postMessage(
+						{
+							type: 'export-renderer-invoke-result-main',
+							requestId: data.requestId,
+							error: error instanceof Error ? error.message : String(error)
+						},
+						'*'
+					);
+				}
+			);
+			return;
+		}
+		if (data?.type === 'export-renderer-progress-main' && data.payload) {
+			applyExportProgress(data.payload);
+			return;
+		}
+		if (data?.type === 'export-renderer-log-main' && data.payload) {
+			applyExportLog(data.payload);
+			return;
+		}
 		if (
 			data?.type === 'export-renderer-finished-main' &&
 			data.exportId === globalState.uiState.activeExportId
@@ -116,6 +225,25 @@
 				}
 			}
 		);
+		for (const eventName of [
+			'export-progress',
+			'export-complete',
+			'export-error',
+			'cancel-export-renderer'
+		]) {
+			unlistenExportNativeEvents.push(
+				await listen(eventName, (event) => {
+					exportRenderer?.contentWindow?.postMessage(
+						{
+							type: 'export-renderer-native-event-main',
+							eventName,
+							payload: event.payload
+						},
+						'*'
+					);
+				})
+			);
+		}
 
 		// Init le gestionnaire de shortcuts
 		ShortcutService.init();
@@ -141,6 +269,8 @@
 	onDestroy(() => {
 		unlistenCloseRequest?.();
 		unlistenRendererFinished?.();
+		for (const unlisten of unlistenExportNativeEvents) unlisten();
+		unlistenExportNativeEvents = [];
 	});
 </script>
 

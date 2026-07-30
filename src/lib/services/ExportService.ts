@@ -246,7 +246,15 @@ export default class ExportService {
  * @returns {void}
  */
 function exportLog(event: TauriEvent<ExportLogPayload>): void {
-	const data = event.payload;
+	applyExportLog(event.payload);
+}
+
+/**
+ * Ajoute un log transmis directement par le renderer embarqué.
+ * @param {ExportLogPayload} data Log reçu du renderer.
+ * @returns {void}
+ */
+export function applyExportLog(data: ExportLogPayload): void {
 	const exportation = globalState.exportations.find(
 		(exp) => exp.exportId === Number(data.exportId)
 	);
@@ -262,8 +270,15 @@ function exportLog(event: TauriEvent<ExportLogPayload>): void {
 }
 
 function exportProgress(event: TauriEvent<ExportProgress>): void {
-	const data = event.payload as ExportProgress;
+	applyExportProgress(event.payload);
+}
 
+/**
+ * Applique une progression transmise directement par le renderer embarqué.
+ * @param {ExportProgress} data Progression reçue du renderer.
+ * @returns {void}
+ */
+export function applyExportProgress(data: ExportProgress): void {
 	const exportation = globalState.exportations.find((exp) => exp.exportId === data.exportId);
 	if (exportation) {
 		const wasExported = exportation.currentState === ExportState.Exported;

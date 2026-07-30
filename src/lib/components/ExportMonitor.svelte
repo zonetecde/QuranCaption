@@ -514,16 +514,14 @@
 							{/if}
 
 							<div class="mt-3 flex flex-wrap items-center justify-end gap-2">
-								{#if exportation.exportLogs.length > 0}
-									<button
-										type="button"
-										class="small-action"
-										onclick={() => toggleExportLogs(exportation.exportId)}
-									>
-										<span class="material-icons text-[16px]!">terminal</span>
-										{get(LL).export.exportLogs()}
-									</button>
-								{/if}
+								<button
+									type="button"
+									class="small-action"
+									onclick={() => toggleExportLogs(exportation.exportId)}
+								>
+									<span class="material-icons text-[16px]!">terminal</span>
+									{get(LL).export.exportLogs()}
+								</button>
 								{#if exportation.currentState === ExportState.Exported}
 									<button
 										type="button"
@@ -549,14 +547,18 @@
 										</button>
 									</div>
 									<div class="max-h-52 space-y-2 overflow-auto font-mono text-[10px]">
-										{#each exportation.exportLogs as log, index (index)}
-											<div class="break-words text-secondary">
-												<span class="text-thirdly">{formatExportLogTime(log.timestamp)}</span>
-												<span class="mx-1 uppercase">{log.level}</span>
-												<span class="text-accent-primary">[{log.source}]</span>
-												{log.message}
-											</div>
-										{/each}
+										{#if exportation.exportLogs.length === 0}
+											<p class="text-secondary">{get(LL).export.noExportLogs()}</p>
+										{:else}
+											{#each exportation.exportLogs as log, index (index)}
+												<div class="break-words text-secondary">
+													<span class="text-thirdly">{formatExportLogTime(log.timestamp)}</span>
+													<span class="mx-1 uppercase">{log.level}</span>
+													<span class="text-accent-primary">[{log.source}]</span>
+													{log.message}
+												</div>
+											{/each}
+										{/if}
 									</div>
 								</div>
 							{/if}

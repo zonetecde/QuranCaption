@@ -5,9 +5,27 @@ import { defineConfig } from 'vite';
 const vitestBrowserHeadless =
 	Reflect.get(globalThis, 'process')?.env?.VITEST_BROWSER_HEADLESS !== 'false';
 const tauriDevHost = Reflect.get(globalThis, 'process')?.env?.TAURI_DEV_HOST;
+const tauriCoreBridgePath = decodeURIComponent(
+	new URL('./src/lib/services/TauriCoreBridge.ts', import.meta.url).pathname
+).replace(/^\/([A-Za-z]:\/)/, '$1');
+const tauriPathBridgePath = decodeURIComponent(
+	new URL('./src/lib/services/TauriPathBridge.ts', import.meta.url).pathname
+).replace(/^\/([A-Za-z]:\/)/, '$1');
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
+	resolve: {
+		alias: [
+			{
+				find: /^@tauri-apps\/api\/core$/,
+				replacement: tauriCoreBridgePath
+			},
+			{
+				find: /^@tauri-apps\/api\/path$/,
+				replacement: tauriPathBridgePath
+			}
+		]
+	},
 	server: {
 		port: 5173,
 		strictPort: true,

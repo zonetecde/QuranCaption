@@ -6,6 +6,8 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { getSharedWizard } from '../sharedWizard';
 	import LL from '$lib/i18n/i18n-svelte';
+	import AndroidMediaService from '$lib/services/AndroidMediaService';
+	import { globalState } from '$lib/runes/main.svelte';
 
 	const wizard = getSharedWizard();
 	let isDragOver = $state(false);
@@ -30,7 +32,12 @@
 			filters: [{ name: 'JSON', extensions: ['json'] }]
 		});
 		if (!selection || Array.isArray(selection)) return;
-		await loadJsonFilePath(selection);
+		await loadJsonFilePath(
+			await AndroidMediaService.materializeSelectedFile(
+				selection,
+				globalState.currentProject?.detail.id ?? 0
+			)
+		);
 	}
 
 	/** Binds desktop drag-and-drop events through the Tauri webview API. */
@@ -96,7 +103,9 @@
 				{$LL.editor.browseJsonFile()}
 			</button>
 			{#if wizard.importedJsonFileName}
-				<p class="mt-2 text-xs text-thirdly">{$LL.editor.loadedFileLabel()}: {wizard.importedJsonFileName}</p>
+				<p class="mt-2 text-xs text-thirdly">
+					{$LL.editor.loadedFileLabel()}: {wizard.importedJsonFileName}
+				</p>
 			{/if}
 		</div>
 
@@ -121,7 +130,8 @@
 					checked={wizard.fillBySilence}
 					onchange={(e) => wizard.setFillBySilence((e.currentTarget as HTMLInputElement).checked)}
 					class="accent-accent-primary"
-				/> {$LL.editor.fillGapsWithSilence()}</label
+				/>
+				{$LL.editor.fillGapsWithSilence()}</label
 			>
 			{#if wizard.fillBySilence}
 				<div class="flex items-center gap-2 text-sm text-secondary">
@@ -132,7 +142,8 @@
 							onchange={(e) =>
 								wizard.setExtendBeforeSilence((e.currentTarget as HTMLInputElement).checked)}
 							class="accent-accent-primary"
-						/> {$LL.editor.extendSubtitleBeforeSilence()}</label
+						/>
+						{$LL.editor.extendSubtitleBeforeSilence()}</label
 					>
 					<input
 						id="import-extend-before-silence-ms"

@@ -23,6 +23,8 @@
 
 	const isLinux = $derived(navigator?.userAgent?.toLowerCase()?.includes('linux') ?? false);
 	const isAndroid = /android/i.test(navigator?.userAgent ?? '');
+	const isExportRenderer =
+		typeof window !== 'undefined' && window.location.pathname.includes('/exporter');
 	const NATIVE_SILENCE_PATH = '__qurancaption_silence__';
 	let lastTimeErrorShown = 0; // Timestamp of the last error shown (prevent spam)
 	let antiCollisionNoticeCopy = $derived(
@@ -848,6 +850,14 @@
 		if (audioUpdateInterval) {
 			clearInterval(audioUpdateInterval);
 			audioUpdateInterval = null;
+		}
+		// FFmpeg lit directement les fichiers audio; le renderer caché ne doit pas
+		// remplacer le lecteur Media3 singleton utilisé par le projet visible.
+		if (isExportRenderer) {
+			nativeAudioActive = false;
+			nativeAudioSilent = false;
+			nativeAudioLoadPromise = null;
+			return;
 		}
 		if (!audioAsset && isAndroid && isPlaying) {
 			playSilentAudio();

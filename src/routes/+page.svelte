@@ -6,6 +6,7 @@
 	import DonationFloatingButton from '$lib/components/misc/DonationFloatingButton.svelte';
 	import DonationProgressBar from '$lib/components/misc/DonationProgressBar.svelte';
 	import ProjectEditor from '$lib/components/projectEditor/ProjectEditor.svelte';
+	import TitleBar from '$lib/components/TitleBar.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import ShortcutService from '$lib/services/ShortcutService';
 	import { discordService } from '$lib/services/DiscordService';
@@ -17,10 +18,13 @@
 	import { Toaster } from 'svelte-5-french-toast';
 	import Settings from '$lib/classes/Settings.svelte';
 	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
+	import { listen } from '@tauri-apps/api/event';
 
 	let allowWindowClose = false;
 	let isHandlingCloseRequest = false;
 	let unlistenCloseRequest: (() => void) | undefined;
+	let unlistenRendererFinished: (() => void) | undefined;
+	let exportRenderer: HTMLIFrameElement | undefined;
 
 	/**
 	 * Synchronise l'orientation Android courante dans l'etat global partage.
@@ -36,6 +40,22 @@
 			height,
 			orientation: width > height ? 'landscape' : 'portrait'
 		};
+	}
+
+	/**
+	 * Termine localement un renderer si le pont événementiel Tauri est indisponible.
+	 * @param {MessageEvent} event Message émis par l'iframe d'export courante.
+	 * @returns {void}
+	 */
+	function handleExportRendererMessage(event: MessageEvent): void {
+		if (event.source !== exportRenderer?.contentWindow) return;
+		const data = event.data as { type?: string; exportId?: string } | null;
+		if (
+			data?.type === 'export-renderer-finished-main' &&
+			data.exportId === globalState.uiState.activeExportId
+		) {
+			globalState.uiState.activeExportId = null;
+		}
 	}
 
 	async function cancelOngoingExports() {
@@ -78,13 +98,25 @@
 	onMount(() => {
 		syncAndroidViewport();
 		window.addEventListener('resize', syncAndroidViewport);
+		window.addEventListener('message', handleExportRendererMessage);
 
 		return () => {
 			window.removeEventListener('resize', syncAndroidViewport);
+			window.removeEventListener('message', handleExportRendererMessage);
 		};
 	});
 
 	onMount(async () => {
+		ExportService.setupListener();
+		unlistenRendererFinished = await listen<{ exportId: string }>(
+			'export-renderer-finished-main',
+			(event) => {
+				if (globalState.uiState.activeExportId === event.payload.exportId) {
+					globalState.uiState.activeExportId = null;
+				}
+			}
+		);
+
 		// Init le gestionnaire de shortcuts
 		ShortcutService.init();
 
@@ -108,12 +140,14 @@
 
 	onDestroy(() => {
 		unlistenCloseRequest?.();
+		unlistenRendererFinished?.();
 	});
 </script>
 
 <Toaster />
 
-<div class="flex flex-col h-screen overflow-hidden">
+<div class="flex h-[100dvh] flex-col overflow-hidden">
+	<TitleBar />
 	<main
 		class={`flex-1 overflow-auto ${
 			globalState.currentProject === null && globalState.currentPage === 'home'
@@ -164,6 +198,20 @@
 			</div>
 		</div>
 	{/if}
+
+	{#if globalState.uiState.activeExportId}
+		<iframe
+			bind:this={exportRenderer}
+			class="export-renderer"
+			src={`/exporter?${new URLSearchParams({
+				id: globalState.uiState.activeExportId,
+				embedded: '1'
+			})}`}
+			title={$LL.export.exportVideo()}
+			aria-hidden="true"
+			tabindex="-1"
+		></iframe>
+	{/if}
 </div>
 
 <style>
@@ -174,5 +222,15 @@
 
 	.home-scroll-host::-webkit-scrollbar {
 		display: none;
+	}
+
+	.export-renderer {
+		position: fixed;
+		top: 0;
+		left: -12000px;
+		width: 1920px;
+		height: 1080px;
+		border: 0;
+		pointer-events: none;
 	}
 </style>

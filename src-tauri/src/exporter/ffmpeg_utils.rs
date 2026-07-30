@@ -15,6 +15,7 @@ use super::constants;
 ///
 /// Cherche d'abord dans les binaires embarqués (`binaries::resolve_binary`),
 /// puis tente le PATH système.
+#[cfg(not(target_os = "android"))]
 pub fn resolve_ffmpeg_binary() -> Option<String> {
     if let Some(path) = binaries::resolve_binary("ffmpeg") {
         return Some(path);
@@ -33,9 +34,16 @@ pub fn resolve_ffmpeg_binary() -> Option<String> {
     None
 }
 
+/// Retourne un marqueur de binaire dont les arguments seront confiés à FFmpegKit.
+#[cfg(target_os = "android")]
+pub fn resolve_ffmpeg_binary() -> Option<String> {
+    Some("ffmpegkit".to_string())
+}
+
 /// Résout le chemin vers l'exécutable FFprobe.
 ///
 /// Cherche d'abord dans les binaires embarqués, puis tente le PATH système.
+#[cfg(not(target_os = "android"))]
 pub fn resolve_ffprobe_binary() -> String {
     if let Some(path) = binaries::resolve_binary("ffprobe") {
         return path;
@@ -137,6 +145,7 @@ pub fn is_image_file(path: &str) -> bool {
 
 /// Obtient la durée d'un fichier média via `ffprobe`, avec cache basé sur la
 /// signature du fichier (taille + date de modification).
+#[cfg(not(target_os = "android"))]
 pub fn ffprobe_duration_sec(path: &str) -> f64 {
     // Construction de la signature de cache : (taille, timestamp modification)
     let cache_signature = fs::metadata(path).ok().map(|metadata| {
@@ -195,7 +204,55 @@ pub fn ffprobe_duration_sec(path: &str) -> f64 {
     duration
 }
 
+/// Obtient la durée d'un média Android sans lancer de sous-processus FFprobe.
+#[cfg(target_os = "android")]
+pub fn ffprobe_duration_sec(path: &str) -> f64 {
+    let cache_signature = fs::metadata(path).ok().map(|metadata| {
+        let modified = metadata
+            .modified()
+            .ok()
+            .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
+            .map(|duration| duration.as_nanos())
+            .unwrap_or(0);
+        (metadata.len(), modified)
+    });
+    if let Some((len, modified)) = cache_signature {
+        if let Ok(cache) = constants::FFPROBE_DURATION_CACHE.lock() {
+            if let Some((cached_len, cached_modified, duration)) = cache.get(path) {
+                if *cached_len == len && *cached_modified == modified {
+                    return *duration;
+                }
+            }
+        }
+    }
+
+    let arguments = vec![
+        "-v".to_string(),
+        "error".to_string(),
+        "-show_entries".to_string(),
+        "format=duration".to_string(),
+        "-of".to_string(),
+        "default=noprint_wrappers=1:nokey=1".to_string(),
+        path.to_string(),
+    ];
+    let duration = crate::commands::android_media::execute_ffprobe(&arguments)
+        .ok()
+        .filter(|result| result.success)
+        .and_then(|result| result.output.trim().parse::<f64>().ok())
+        .filter(|duration| duration.is_finite() && *duration > 0.0)
+        .unwrap_or(0.0);
+    if duration > 0.0 {
+        if let Some((len, modified)) = cache_signature {
+            if let Ok(mut cache) = constants::FFPROBE_DURATION_CACHE.lock() {
+                cache.insert(path.to_string(), (len, modified, duration));
+            }
+        }
+    }
+    duration
+}
+
 /// Vérifie si un fichier vidéo contient une piste audio via `ffprobe`.
+#[cfg(not(target_os = "android"))]
 pub fn video_has_audio(path: &str) -> bool {
     let exe = resolve_ffprobe_binary();
 
@@ -219,6 +276,25 @@ pub fn video_has_audio(path: &str) -> bool {
         Ok(out) => !out.stdout.is_empty(),
         Err(_) => false,
     }
+}
+
+/// Vérifie la présence audio via FFprobeKit Android.
+#[cfg(target_os = "android")]
+pub fn video_has_audio(path: &str) -> bool {
+    let arguments = vec![
+        "-v".to_string(),
+        "error".to_string(),
+        "-select_streams".to_string(),
+        "a:0".to_string(),
+        "-show_entries".to_string(),
+        "stream=index".to_string(),
+        "-of".to_string(),
+        "csv=p=0".to_string(),
+        path.to_string(),
+    ];
+    crate::commands::android_media::execute_ffprobe(&arguments)
+        .map(|result| result.success && !result.output.trim().is_empty())
+        .unwrap_or(false)
 }
 
 // ---------------------------------------------------------------------------

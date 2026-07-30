@@ -26,12 +26,15 @@ function parseIsoDateMs(value: string): number | null {
 export interface AddExportOptions {
 	finalFileName?: string;
 	finalFilePath?: string;
+	destinationUri?: string | null;
 	exportLabel?: string;
 	sourceProjectId?: number;
 }
 
 export default class ExportService {
 	static exportFolder: string = 'exports/';
+	private static isListenerSetup = false;
+	private static progressSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
 	constructor() {}
 
@@ -125,7 +128,8 @@ export default class ExportService {
 				'',
 				ExportKind.Video,
 				options.exportLabel ?? '',
-				options.sourceProjectId ?? null
+				options.sourceProjectId ?? null,
+				options.destinationUri ?? null
 			)
 		);
 
@@ -211,9 +215,24 @@ export default class ExportService {
 	}
 
 	static setupListener() {
+		if (this.isListenerSetup) return;
+		this.isListenerSetup = true;
+
 		// Écoute les événements de progression d'export donné par Rust
-		listen('export-progress-main', exportProgress);
-		listen('export-log-main', exportLog);
+		void listen('export-progress-main', exportProgress);
+		void listen('export-log-main', exportLog);
+	}
+
+	/**
+	 * Regroupe les sauvegardes fréquentes de progression pour limiter les écritures Android.
+	 * @returns {void}
+	 */
+	static scheduleProgressSave(): void {
+		if (this.progressSaveTimer !== null) return;
+		this.progressSaveTimer = setTimeout(() => {
+			this.progressSaveTimer = null;
+			void this.saveExports();
+		}, 750);
 	}
 
 	static currentlyExportingProjects() {
@@ -268,6 +287,7 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 		exportation.percentageProgress = data.progress;
 		exportation.currentState = data.currentState;
 		exportation.currentTreatedTime = data.currentTime;
+		if (data.finalFilePath) exportation.finalFilePath = data.finalFilePath;
 		exportation.hasSecondarySegmentProgress = data.hasSecondarySegmentProgress ?? false;
 		exportation.processingBackgroundProgress = data.processingBackgroundProgress ?? 0;
 		exportation.processingBackgroundCurrentSegment = data.processingBackgroundCurrentSegment ?? 0;
@@ -317,7 +337,15 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 		}
 	}
 
-	ExportService.saveExports();
+	if (
+		data.currentState === ExportState.Exported ||
+		data.currentState === ExportState.Error ||
+		data.currentState === ExportState.Canceled
+	) {
+		void ExportService.saveExports();
+	} else {
+		ExportService.scheduleProgressSave();
+	}
 }
 
 export interface ExportProgress {
@@ -334,6 +362,7 @@ export interface ExportProgress {
 	mergingFilesTotalSegments?: number;
 	currentBatchSize?: number;
 	errorLog?: string;
+	finalFilePath?: string;
 }
 
 export interface ExportLogPayload extends ExportLogEntry {

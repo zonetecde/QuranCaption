@@ -1,6 +1,6 @@
-import { getAllWindows } from '@tauri-apps/api/window';
 import { SerializableBase } from './misc/SerializableBase';
 import { invoke } from '@tauri-apps/api/core';
+import { emit } from '@tauri-apps/api/event';
 
 export enum ExportState {
 	WaitingForRecord = 'Pending',
@@ -35,6 +35,7 @@ export default class Exportation extends SerializableBase {
 	exportId: number;
 	finalFileName: string;
 	finalFilePath: string;
+	destinationUri: string | null;
 	exportKind: ExportKind;
 	exportLabel: string;
 	videoDimensions: { width: number; height: number };
@@ -75,7 +76,8 @@ export default class Exportation extends SerializableBase {
 		errorLog: string = '',
 		exportKind: ExportKind = ExportKind.Video,
 		exportLabel: string = '',
-		sourceProjectId: number | null = null
+		sourceProjectId: number | null = null,
+		destinationUri: string | null = null
 	) {
 		super();
 		const safeStartTime = videoStartTime ?? 0;
@@ -83,6 +85,7 @@ export default class Exportation extends SerializableBase {
 		this.exportId = exportId;
 		this.finalFileName = finalFileName;
 		this.finalFilePath = finalFilePath;
+		this.destinationUri = destinationUri;
 		this.exportKind = $state(exportKind ?? ExportKind.Video);
 		this.exportLabel = $state(exportLabel ?? '');
 		this.videoDimensions = videoDimensions ?? { width: 0, height: 0 };
@@ -142,31 +145,18 @@ export default class Exportation extends SerializableBase {
 	}
 
 	async cancelExport() {
-		if (
-			this.currentState === ExportState.Initializing ||
-			this.currentState === ExportState.ProcessingBackground ||
-			this.currentState === ExportState.AddingSubtitles ||
-			this.currentState === ExportState.CreatingVideo ||
-			this.currentState === ExportState.MergingFiles
-		) {
-			console.log('Canceling export', this.exportId);
-			// Envoie à rust de tuer le processus ffmpeg pour cette exportation
-			await invoke('cancel_export', { exportId: this.exportId.toString() });
-		}
-
-		// Ferme la fenêtre d'exportation si elle est ouverte
-		(await getAllWindows()).forEach((win) => {
-			console.log(win.label, this.exportId.toString());
-			if (
-				win.label === this.exportId.toString() ||
-				win.label.startsWith(`${this.exportId.toString()}-capture-`)
-			) {
-				win.close();
-				// La fenêtre d'exportation va supprimer le dossier temporaire des images à sa fermeture
-			}
-		});
-
-		// Set state to canceled
+		console.log('Canceling export', this.exportId);
 		this.currentState = ExportState.Canceled;
+		try {
+			// Le marqueur natif doit exister avant l'événement pour couvrir le montage tardif du renderer.
+			await invoke('cancel_export', { exportId: this.exportId.toString() });
+		} catch (error) {
+			console.warn('Unable to cancel native export:', error);
+		}
+		try {
+			await emit('cancel-export-renderer', { exportId: this.exportId.toString() });
+		} catch (error) {
+			console.warn('Unable to notify export renderer:', error);
+		}
 	}
 }

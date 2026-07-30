@@ -161,6 +161,8 @@ export class Asset extends SerializableBase {
 	}
 
 	private normalizeFilePath(filePath: string): string {
+		if (/^[a-z][a-z\d+.-]*:\/\//i.test(filePath)) return filePath;
+
 		// Nettoie le chemin en supprimant les doubles slashes et normalise les séparateurs
 		let normalized = filePath.replace(/\\/g, '/');
 

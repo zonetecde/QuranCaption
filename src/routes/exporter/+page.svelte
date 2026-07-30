@@ -6,8 +6,8 @@
 	import { invoke } from '@tauri-apps/api/core';
 	import { getCurrentWebviewWindow, WebviewWindow } from '@tauri-apps/api/webviewWindow';
 	import { LogicalPosition } from '@tauri-apps/api/dpi';
-	import { listen } from '@tauri-apps/api/event';
-	import { onMount } from 'svelte';
+	import { emit, listen } from '@tauri-apps/api/event';
+	import { onDestroy, onMount } from 'svelte';
 	import {
 		exists,
 		BaseDirectory,
@@ -81,7 +81,6 @@
 	// Récupère les données d'export de la vidéo
 	let exportData: Exportation | undefined;
 
-	const DEFAULT_PARALLEL_CAPTURE_WORKERS = 4;
 	const CAPTURE_WORKER_MODE = 'capture-worker';
 	const WORKER_READY_EVENT = 'export-capture-worker-ready';
 	const WORKER_START_EVENT = 'export-capture-worker-start';
@@ -99,6 +98,9 @@
 	let hasSecondarySegmentProgress = false;
 	let processingBackgroundProgress = 0;
 	let captureWorkerWindows: WebviewWindow[] = [];
+	let cancellationRequested = false;
+	let cleanupStarted = false;
+	let exporterUnlisteners: Array<() => void> = [];
 
 	/**
 	 * Retourne le nom du blank deja planifie pour la sourate courante.
@@ -199,6 +201,9 @@
 		source: string;
 		level: ExportLogLevel;
 		message: string;
+	};
+	type CancelExportRendererPayload = {
+		exportId: string;
 	};
 
 	function getExportFadeSettings(): ExportFadeSettings {
@@ -399,14 +404,6 @@
 		if (data.exportId !== exportId) return;
 
 		console.log(`[OK] Export complete! File saved as: ${data.filename}`);
-
-		if (!isSegmentedVideoExport) {
-			await emitProgress({
-				exportId: Number(exportId),
-				progress: 100,
-				currentState: ExportState.Exported
-			} as ExportProgress);
-		}
 	}
 
 	async function exportError(event: ExportErrorEvent) {
@@ -435,7 +432,7 @@
 			mergingFilesCurrentSegment,
 			mergingFilesTotalSegments
 		};
-		(await getAllWindows()).find((w) => w.label === 'main')!.emit('export-progress-main', payload);
+		await emit('export-progress-main', payload);
 	}
 
 	/**
@@ -472,7 +469,7 @@
 			message: fullMessage
 		};
 
-		await (await getAllWindows()).find((w) => w.label === 'main')?.emit(EXPORT_LOG_EVENT, payload);
+		await emit(EXPORT_LOG_EVENT, payload);
 	}
 
 	/**
@@ -557,7 +554,30 @@
 			await MinimalQuranProvider.prefetch();
 		}
 
-		exportData = ExportService.findExportById(Number(id))!;
+		await ExportService.loadExports();
+		exportData = ExportService.findExportById(Number(id));
+		if (!exportData) throw new Error(`Export ${id} is missing from the persisted queue`);
+	}
+
+	/**
+	 * Interrompt les boucles de capture dès que l'annulation Android est demandée.
+	 * @returns {void}
+	 */
+	function ensureCaptureNotCancelled(): void {
+		if (cancellationRequested) throw new Error('EXPORT_CANCELLED');
+	}
+
+	/**
+	 * Demande à Android de garder l'écran actif pendant le rendu.
+	 * @param {boolean} enabled État souhaité.
+	 * @returns {Promise<void>}
+	 */
+	async function setExportScreenAwake(enabled: boolean): Promise<void> {
+		try {
+			await invoke('set_android_export_keep_screen_on', { enabled });
+		} catch (error) {
+			console.warn('Unable to update Android screen flag:', error);
+		}
 	}
 
 	/**
@@ -575,7 +595,10 @@
 			(globalState.getStyle('global', 'fade-duration')!.value as number) / 2;
 
 		let videoElement: HTMLElement | null = null;
+		const previewDeadline = Date.now() + 30_000;
 		do {
+			ensureCaptureNotCancelled();
+			if (Date.now() >= previewDeadline) throw new Error('EXPORT_PREVIEW_NOT_READY');
 			await new Promise((resolve) => setTimeout(resolve, 100));
 			videoElement = document.getElementById('video-preview-section') as HTMLElement | null;
 			if (!videoElement) continue;
@@ -663,40 +686,49 @@
 		exportId = id;
 		const isWorker = params.get('mode') === CAPTURE_WORKER_MODE;
 		const workerId = Number(params.get('worker') ?? '0');
-		await emitExportLog('info', 'Export window initialized', {
-			mode: isWorker ? 'worker' : 'coordinator',
-			workerId: isWorker ? workerId : undefined
-		});
-
-		if (!isWorker) {
-			// Ecoute les evenements de progression d'export donnes par Rust
-			listen('export-progress', exportProgress);
-			listen('export-complete', exportComplete);
-			listen('export-error', exportError);
-		}
-
-		await loadExportProject(id);
-		await emitExportLog('info', 'Export project loaded', {
-			file: exportData?.finalFileName,
-			start: exportData?.videoStartTime,
-			end: exportData?.videoEndTime
-		});
-
-		await mkdir(await join(ExportService.exportFolder, exportId), {
-			baseDir: BaseDirectory.AppData,
-			recursive: true
-		});
-		await emitExportLog('info', 'Export image folder ready');
-
-		await prepareVideoPreviewForExport();
-		await emitExportLog('info', 'Video preview ready');
-
-		if (isWorker) {
-			await runCaptureWorker(workerId);
-			return;
-		}
 
 		try {
+			if (!isWorker) {
+				// Ecoute les evenements de progression d'export donnes par Rust
+				exporterUnlisteners.push(
+					await listen('export-progress', exportProgress),
+					await listen('export-complete', exportComplete),
+					await listen('export-error', exportError),
+					await listen<CancelExportRendererPayload>('cancel-export-renderer', (event) => {
+						if (event.payload.exportId === exportId) cancellationRequested = true;
+					})
+				);
+				cancellationRequested = await invoke<boolean>('is_export_cancelled', { exportId });
+				ensureCaptureNotCancelled();
+				await setExportScreenAwake(true);
+			}
+
+			await emitExportLog('info', 'Export window initialized', {
+				mode: isWorker ? 'worker' : 'coordinator',
+				workerId: isWorker ? workerId : undefined
+			});
+
+			await loadExportProject(id);
+			await emitExportLog('info', 'Export project loaded', {
+				file: exportData?.finalFileName,
+				start: exportData?.videoStartTime,
+				end: exportData?.videoEndTime
+			});
+
+			await mkdir(await join(ExportService.exportFolder, exportId), {
+				baseDir: BaseDirectory.AppData,
+				recursive: true
+			});
+			await emitExportLog('info', 'Export image folder ready');
+
+			await prepareVideoPreviewForExport();
+			await emitExportLog('info', 'Video preview ready');
+
+			if (isWorker) {
+				await runCaptureWorker(workerId);
+				return;
+			}
+
 			await emitExportLog('info', 'Export started');
 			await startExport();
 		} catch (error) {
@@ -705,13 +737,22 @@
 			await emitExportLog('error', 'Export failed', {
 				error: error instanceof Error ? error.message : String(error)
 			});
-			emitProgress({
-				exportId: Number(exportId),
-				progress: 100,
-				currentState: ExportState.Error,
-				errorLog: JSON.stringify(error, Object.getOwnPropertyNames(error))
-			} as ExportProgress);
+			if (!cancellationRequested) {
+				await emitProgress({
+					exportId: Number(exportId),
+					progress: 100,
+					currentState: ExportState.Error,
+					errorLog: JSON.stringify(error, Object.getOwnPropertyNames(error))
+				} as ExportProgress);
+			}
+			await finalCleanup();
 		}
+	});
+
+	onDestroy(() => {
+		for (const unlisten of exporterUnlisteners) unlisten();
+		exporterUnlisteners = [];
+		void setExportScreenAwake(false);
 	});
 
 	async function startExport() {
@@ -865,17 +906,19 @@
 		}
 
 		await concatenateVideos(generatedVideoFiles);
-		await finalCleanup();
+		const publishedFilePath = await publishExportOutput();
 		isSegmentedVideoExport = false;
 		refreshSecondarySegmentProgressVisibility();
 
-		emitProgress({
+		await emitProgress({
 			exportId: Number(exportId),
 			progress: 100,
 			currentState: ExportState.Exported,
 			currentTime: totalDuration,
-			totalTime: totalDuration
+			totalTime: totalDuration,
+			finalFilePath: publishedFilePath
 		} as ExportProgress);
+		await finalCleanup();
 	}
 
 	async function createSegmentImageFolder(segmentImageFolder: string) {
@@ -906,12 +949,7 @@
 	 * @returns {number} Nombre de workers borne entre 1 et 8.
 	 */
 	function getParallelCaptureWorkerCount(): number {
-		const configured = globalState.settings?.exportSettings?.parallelCaptureWorkers;
-		if (typeof configured !== 'number' || Number.isNaN(configured)) {
-			return DEFAULT_PARALLEL_CAPTURE_WORKERS;
-		}
-
-		return Math.max(1, Math.min(8, Math.round(configured)));
+		return 1;
 	}
 
 	/**
@@ -953,6 +991,7 @@
 	 * @returns {Promise<boolean>} true si la capture a continue apres un timeout de layout.
 	 */
 	async function captureBlankSourceJob(job: ExportBlankSourceJob): Promise<boolean> {
+		ensureCaptureNotCancelled();
 		await emitExportLog('info', 'Blank source capture waiting', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
@@ -962,6 +1001,7 @@
 		globalState.getTimelineState.cursorPosition = job.captureTiming;
 		globalState.updateVideoPreviewUI();
 		const layoutTimedOut = await wait(job.captureTiming);
+		ensureCaptureNotCancelled();
 		await emitExportLog(layoutTimedOut ? 'warn' : 'info', 'Blank source layout wait completed', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
@@ -986,6 +1026,7 @@
 		job: ExportFrameCaptureJob,
 		subfolder: string | null
 	): Promise<boolean> {
+		ensureCaptureNotCancelled();
 		await emitExportLog('info', 'Frame capture waiting', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
@@ -998,6 +1039,7 @@
 		globalState.getTimelineState.cursorPosition = job.captureTiming;
 		globalState.updateVideoPreviewUI();
 		const layoutTimedOut = await wait(job.captureTiming);
+		ensureCaptureNotCancelled();
 		await emitExportLog(layoutTimedOut ? 'warn' : 'info', 'Frame layout wait completed', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
@@ -1030,6 +1072,7 @@
 		});
 		const retryJobs: ExportFrameCaptureJob[] = [];
 		for (let index = 0; index < jobs.length; index++) {
+			ensureCaptureNotCancelled();
 			const job = jobs[index];
 			if (await captureFrameJob(job, subfolder)) retryJobs.push(job);
 			onProgress(index + 1, job.timing);
@@ -1115,19 +1158,17 @@
 	 * @returns {Promise<void>}
 	 */
 	async function closeCaptureWorkerWindows(): Promise<void> {
-		const windows = await getAllWindows();
-		await Promise.all(
-			windows
-				.filter((w) => w.label.startsWith(`${exportId}-capture-`))
-				.map(async (w) => {
-					try {
-						await w.close();
-					} catch (error) {
-						console.warn('Unable to close capture worker:', error);
-					}
-				})
-		);
+		const windows = captureWorkerWindows;
 		captureWorkerWindows = [];
+		await Promise.all(
+			windows.map(async (w) => {
+				try {
+					await w.close();
+				} catch (error) {
+					console.warn('Unable to close capture worker:', error);
+				}
+			})
+		);
 	}
 
 	/**
@@ -1286,6 +1327,7 @@
 	): Promise<void> {
 		await emitExportLog('info', 'Copy jobs started', { jobs: jobs.length, subfolder });
 		for (let index = 0; index < jobs.length; index++) {
+			ensureCaptureNotCancelled();
 			const job = jobs[index];
 			await duplicateScreenshot(job.sourceFileName, job.targetFileName, subfolder);
 			onProgress(index + 1, job.timing);
@@ -1330,6 +1372,7 @@
 
 		const retryBlankSourceJobs: ExportBlankSourceJob[] = [];
 		for (const job of plan.blankSourceJobs) {
+			ensureCaptureNotCancelled();
 			if (await captureBlankSourceJob(job)) retryBlankSourceJobs.push(job);
 			completed += 1;
 			reportProgress(completed, job.timing);
@@ -1596,9 +1639,34 @@
 
 		// Générer la vidéo normale
 		await generateNormalVideo(exportStart, totalDuration, blur, normalizedBlankTimings);
+		const publishedFilePath = await publishExportOutput();
+
+		await emitProgress({
+			exportId: Number(exportId),
+			progress: 100,
+			currentState: ExportState.Exported,
+			currentTime: totalDuration,
+			totalTime: totalDuration,
+			finalFilePath: publishedFilePath
+		} as ExportProgress);
 
 		// Nettoyage
 		await finalCleanup();
+	}
+
+	/**
+	 * Copie le rendu privé vers l'URI choisie avec le sélecteur de documents Android.
+	 * @returns {Promise<string>} URI publique conservée par le moniteur.
+	 */
+	async function publishExportOutput(): Promise<string> {
+		if (!exportData?.destinationUri) {
+			throw new Error('ANDROID_EXPORT_DESTINATION_MISSING');
+		}
+
+		return await invoke<string>('publish_android_export', {
+			sourcePath: exportData.finalFilePath,
+			destinationUri: exportData.destinationUri
+		});
 	}
 
 	/**
@@ -1944,7 +2012,15 @@
 	}
 
 	async function finalCleanup() {
-		await closeCaptureWorkerWindows();
+		if (cleanupStarted) return;
+		cleanupStarted = true;
+		try {
+			await closeCaptureWorkerWindows();
+		} catch (error) {
+			console.warn('Could not close capture workers:', error);
+		}
+		await setExportScreenAwake(false);
+		await ExportService.deleteProjectFile(Number(exportId));
 		try {
 			// Supprime le dossier temporaire des images
 			await remove(await join(ExportService.exportFolder, exportId), {
@@ -1957,8 +2033,14 @@
 			console.warn('Could not remove temporary folder:', e);
 		}
 
-		// Ferme la fenêtre d'export
-		getCurrentWebviewWindow().close();
+		try {
+			await emit('export-renderer-finished-main', { exportId });
+		} catch (error) {
+			console.warn('Could not emit renderer completion:', error);
+		}
+		if (window.parent !== window) {
+			window.parent.postMessage({ type: 'export-renderer-finished-main', exportId }, '*');
+		}
 	}
 
 	/**
@@ -2237,6 +2319,7 @@
 		});
 
 		while (Date.now() - startTime <= timeout) {
+			ensureCaptureNotCancelled();
 			const subtitlesContainer = document.getElementById(
 				'subtitles-container'
 			) as HTMLElement | null;
@@ -2292,7 +2375,9 @@
 		});
 
 		await waitForAnimationFrame();
+		ensureCaptureNotCancelled();
 		await QPCFontProvider.waitForFontsInElement(document.getElementById('overlay'));
+		ensureCaptureNotCancelled();
 		await emitExportLog('info', 'Fonts ready for capture', { timing });
 		return layoutTimedOut;
 	}

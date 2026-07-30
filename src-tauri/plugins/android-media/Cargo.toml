@@ -1,0 +1,15 @@
+[package]
+name = "tauri-plugin-android-media"
+version = "0.1.0"
+description = "Android media bridge for Quran Caption"
+edition = "2021"
+rust-version = "1.77.2"
+links = "tauri-plugin-android-media"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+tauri = { version = "2", default-features = false }
+thiserror = "2"

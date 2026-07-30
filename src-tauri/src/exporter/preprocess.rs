@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::Path;
 use std::time::UNIX_EPOCH;
+use tauri::Manager;
 
 use super::codec;
 use super::ffmpeg_runner;
@@ -389,7 +390,11 @@ pub fn preprocess_background_videos(
     app_handle: &tauri::AppHandle,
 ) -> Vec<PreparedBackgroundVideo> {
     let mut out_paths = Vec::new();
-    let cache_dir = std::env::temp_dir().join("qurancaption-preproc");
+    let cache_dir = app_handle
+        .path()
+        .app_cache_dir()
+        .unwrap_or_else(|_| std::env::temp_dir())
+        .join("qurancaption-preproc");
     let preproc_cache_version = "fit-v12-media-layout";
     fs::create_dir_all(&cache_dir).ok();
     let total_inputs = video_inputs.len().max(1);

@@ -5,6 +5,7 @@
 	import { getReciterOptionKey, isSurahAvailableForReciter } from '../reciterLoader';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import LL from '$lib/i18n/i18n-svelte';
+	import AndroidMediaService from '$lib/services/AndroidMediaService';
 
 	const aiv = globalState.aiVideo;
 
@@ -81,7 +82,7 @@
 			filters: [{ name: 'Audio', extensions: ['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac'] }]
 		});
 		if (file) {
-			aiv.audio.localPath = file;
+			aiv.audio.localPath = await AndroidMediaService.materializeSelectedFile(String(file), 0);
 			aiv.audio.useLocal = true;
 		}
 	}

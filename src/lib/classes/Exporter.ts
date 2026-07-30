@@ -1,6 +1,4 @@
 import { globalState } from '$lib/runes/main.svelte';
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
-import { LogicalPosition } from '@tauri-apps/api/dpi';
 import { PredefinedSubtitleClip, SubtitleClip } from './Clip.svelte';
 import SubtitleFileContentGenerator from './misc/SubtitleFileContentGenerator';
 import { Quran } from './Quran';
@@ -8,13 +6,12 @@ import { Utilities } from './misc/Utilities';
 import ExportService from '$lib/services/ExportService';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
-import { BaseDirectory, join } from '@tauri-apps/api/path';
-import { exists, remove } from '@tauri-apps/plugin-fs';
+import { appDataDir, join } from '@tauri-apps/api/path';
+import { save } from '@tauri-apps/plugin-dialog';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 import ExportFileService from '$lib/services/ExportFileService';
 import SoosiProvider from '$lib/services/SoosiProvider';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
-import type { BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
 import Exportation, { ExportKind, ExportState } from './Exportation.svelte';
 import type { Project } from './Project';
 import { ProjectService } from '$lib/services/ProjectService';
@@ -114,6 +111,8 @@ export default class Exporter {
 	 * @returns {boolean}
 	 */
 	private static hasActiveVideoExport(): boolean {
+		if (globalState.uiState.activeExportId !== null) return true;
+
 		return globalState.exportations.some((exp) => {
 			if (exp.exportKind !== ExportKind.Video) return false;
 			return (
@@ -159,7 +158,7 @@ export default class Exporter {
 			nextExport.currentTreatedTime = 0;
 			await ExportService.saveExports();
 
-			await Exporter.openExportWindow(nextExport.exportId.toString());
+			Exporter.startExportRenderer(nextExport.exportId.toString());
 		} catch (error) {
 			console.error('Unable to start next pending export:', error);
 			if (nextExport && nextExport.currentState === ExportState.CapturingFrames) {
@@ -173,47 +172,13 @@ export default class Exporter {
 		}
 	}
 
-	private static async openExportWindow(exportId: string) {
-		// Créer une fenêtre Tauri avec la bonne taille
-		const w = new WebviewWindow(exportId, {
-			center: false,
-			decorations: false,
-			visible: true,
-			focus: false,
-			skipTaskbar: true,
-			preventOverflow: false,
-			x: -10000,
-			y: -10000,
-			backgroundThrottling: 'disabled' as BackgroundThrottlingPolicy,
-			alwaysOnTop: false,
-			alwaysOnBottom: true,
-			title: 'QC - ' + exportId,
-			url: '/exporter?' + new URLSearchParams({ id: exportId }) // Met en paramètre l'ID de l'export pour que l'exportateur puisse le récupérer
-		});
-
-		w.once('tauri://created', async () => {
-			try {
-				await w.setPosition(new LogicalPosition(-10000, -10000));
-			} catch (error) {
-				console.warn('Unable to move export window off-screen:', error);
-			}
-		});
-
-		// listen  to close
-		w.listen('tauri://close-requested', async () => {
-			try {
-				// Supprime le dossier temporaire des images
-				await remove(await join(ExportService.exportFolder, exportId), {
-					baseDir: BaseDirectory.AppData,
-					recursive: true
-				});
-			} catch (error) {
-				console.error('Error removing temporary images folder:', error);
-			} finally {
-				// ferme la fenêtre
-				await w.destroy();
-			}
-		});
+	/**
+	 * Monte le renderer d'export isolé dans la WebView Android principale.
+	 * @param {string} exportId Identifiant de l'export à démarrer.
+	 * @returns {void}
+	 */
+	private static startExportRenderer(exportId: string): void {
+		globalState.uiState.activeExportId = exportId;
 	}
 
 	/**
@@ -733,19 +698,27 @@ export default class Exporter {
 			: 'mp4';
 		const exportFileName =
 			globalState.currentProject!.detail.generateExportFileName() + '.' + videoExtension;
-		const exportFilePath = await join(await ExportService.getExportFolder(), exportFileName);
-		if (await exists(exportFilePath)) {
-			const confirmOverwrite = await ModalManager.confirmModal(
-				get(LL).export.overwriteExistingVideo(),
-				true
-			);
-			if (!confirmOverwrite) {
-				return;
-			}
+		let destinationUri: string | null;
+		try {
+			destinationUri = await save({
+				defaultPath: exportFileName,
+				filters: [{ name: get(LL).export.exportVideo(), extensions: [videoExtension] }]
+			});
+		} catch (error) {
+			// Le sélecteur Android rejette actuellement la promesse lorsque l'utilisateur revient en arrière.
+			if (String(error).includes('File picker cancelled')) return;
+			throw error;
 		}
+		if (!destinationUri) return;
 
 		// Génère un ID d'export unique.
 		const exportId = Utilities.randomId().toString();
+		const exportFilePath = await join(
+			await appDataDir(),
+			ExportService.exportFolder,
+			exportId,
+			`output.${videoExtension}`
+		);
 		const shouldQueue =
 			Exporter.hasActiveVideoExport() || Exporter.getNextPendingVideoExport() !== undefined;
 
@@ -759,6 +732,9 @@ export default class Exporter {
 
 		// Ajoute à la liste des exports en cours
 		await ExportService.addExport(project, shouldQueue ? 'recording' : 'stable', {
+			finalFileName: exportFileName,
+			finalFilePath: exportFilePath,
+			destinationUri,
 			sourceProjectId: sourceProject.detail.id
 		});
 
@@ -770,7 +746,7 @@ export default class Exporter {
 		Exporter.ensureBackgroundWorkersStarted();
 
 		if (!shouldQueue) {
-			await Exporter.openExportWindow(exportId);
+			Exporter.startExportRenderer(exportId);
 		}
 	}
 
@@ -778,7 +754,7 @@ export default class Exporter {
 	 * Ajoute un projet explicite à la queue vidéo existante sans modifier le projet courant.
 	 * @param {Project} sourceProject Projet sauvegardé contenant ses propres réglages d'export.
 	 * @param {string} finalFileName Nom final déjà sécurisé.
-	 * @param {string} finalFilePath Chemin final réservé sans écrasement.
+	 * @param {string} finalFilePath Destination Android réservée sans écrasement.
 	 * @returns {Promise<number>} Identifiant runtime visible dans l'Export Monitor.
 	 */
 	static async queueProjectVideo(
@@ -791,6 +767,13 @@ export default class Exporter {
 			Exporter.hasActiveVideoExport() || Exporter.getNextPendingVideoExport() !== undefined;
 		const project = sourceProject.clone();
 		const exportSettings = project.projectEditorState.export;
+		const videoExtension = finalFileName.split('.').pop() || 'mp4';
+		const internalFilePath = await join(
+			await appDataDir(),
+			ExportService.exportFolder,
+			exportId.toString(),
+			`output.${videoExtension}`
+		);
 		const [videoStartTime, videoEndTime] = resolveProjectVideoExportRange(
 			exportSettings.videoStartTime,
 			exportSettings.videoEndTime,
@@ -802,13 +785,14 @@ export default class Exporter {
 		await ExportService.saveProject(project);
 		await ExportService.addExport(project, shouldQueue ? 'recording' : 'stable', {
 			finalFileName,
-			finalFilePath,
+			finalFilePath: internalFilePath,
+			destinationUri: finalFilePath,
 			exportLabel: sourceProject.detail.name,
 			sourceProjectId: sourceProject.detail.id
 		});
 		globalState.uiState.showExportMonitor = true;
 		Exporter.ensureBackgroundWorkersStarted();
-		if (!shouldQueue) await Exporter.openExportWindow(exportId.toString());
+		if (!shouldQueue) Exporter.startExportRenderer(exportId.toString());
 		return exportId;
 	}
 }

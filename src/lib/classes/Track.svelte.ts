@@ -24,6 +24,7 @@ import { Translation, VerseTranslation } from './Translation.svelte.js';
 import ModalManager from '$lib/components/modals/ModalManager.js';
 import type { Category } from './VideoStyle.svelte.js';
 import { open } from '@tauri-apps/plugin-dialog';
+import AndroidMediaService from '$lib/services/AndroidMediaService';
 import { resolveCurrentSurahFromClips } from '$lib/services/ExportCaptureTiming';
 import { scheduleWbwRealign } from '$lib/services/autoSegmentation/auto-realign.svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
@@ -1705,7 +1706,10 @@ export class CustomTextTrack extends Track {
 				});
 
 				if (result) {
-					imagePath = result as string;
+					imagePath = await AndroidMediaService.materializeSelectedFile(
+						result as string,
+						globalState.currentProject?.detail.id ?? 0
+					);
 					customClipCategory.getStyle('filepath')!.value = imagePath;
 				} else {
 					return; // Annule l'ajout du clip si aucun fichier n'est sélectionné

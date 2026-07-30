@@ -8,6 +8,7 @@
 	import { open } from '@tauri-apps/plugin-dialog';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
+	import AndroidMediaService from '$lib/services/AndroidMediaService';
 
 	let {
 		compact = false,
@@ -75,7 +76,10 @@
 		if (!files) return;
 
 		for (let i = 0; i < files.length; i++) {
-			const element = files[i];
+			const element = await AndroidMediaService.materializeSelectedFile(
+				files[i],
+				globalState.currentProject?.detail.id ?? 0
+			);
 			globalState.currentProject?.content.addAsset(element);
 		}
 	}

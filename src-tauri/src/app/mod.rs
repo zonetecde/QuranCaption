@@ -14,7 +14,8 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_process::init());
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_android_media::init());
     #[cfg(all(desktop, not(debug_assertions)))]
     let builder = {
         builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
@@ -35,6 +36,9 @@ pub fn run() {
             if let Ok(resource_dir) = app.path().resource_dir() {
                 binaries::init_resource_dir(resource_dir);
             }
+            #[cfg(target_os = "android")]
+            crate::commands::android_media::initialize_ffmpeg(app.handle().clone())
+                .map_err(std::io::Error::other)?;
 
             // Initialisation du plugin updater (desktop uniquement).
             #[cfg(desktop)]

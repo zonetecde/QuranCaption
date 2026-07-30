@@ -25,6 +25,7 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { stripWbwDisplayMarkers } from '$lib/services/WbwHelper';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import AndroidMediaService from '$lib/services/AndroidMediaService';
 
 	let {
 		clip = $bindable(),
@@ -337,7 +338,12 @@
 
 		if (!result || Array.isArray(result)) return;
 
-		clip.setAssociatedImagePath(result);
+		clip.setAssociatedImagePath(
+			await AndroidMediaService.materializeSelectedFile(
+				result,
+				globalState.currentProject?.detail.id ?? 0
+			)
+		);
 		globalState.updateVideoPreviewUI();
 	}
 

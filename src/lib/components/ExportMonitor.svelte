@@ -5,41 +5,29 @@
 		ExportState,
 		type ExportLogEntry
 	} from '$lib/classes/Exportation.svelte';
+	import ExportService from '$lib/services/ExportService';
 	import { exists } from '@tauri-apps/plugin-fs';
+	import { openPath } from '@tauri-apps/plugin-opener';
 	import { invoke } from '@tauri-apps/api/core';
 	import ModalManager from './modals/ModalManager';
-	import { slide } from 'svelte/transition';
-	import { onMount, onDestroy } from 'svelte';
+	import { fade } from 'svelte/transition';
+	import { onDestroy, onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
-	import { openUrl } from '@tauri-apps/plugin-opener';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 
-	type ExportTimingSnapshot = {
-		exportStartMs: number;
-		stepStartMs: number;
-		lastStep: number | null;
-		completedAtMs: number | null;
-	};
-
-	type YouTubePublicationState = {
-		status: 'uploading' | 'published' | 'failed';
-		progress: number;
-		url?: string;
-		error?: string;
-	};
-
-	const exportTimingSnapshots = new Map<number, ExportTimingSnapshot>();
-
-	// Variable réactive pour forcer les mises à jour
+	const exportStartedAt = new Map<number, number>();
 	let currentTime = $state(Date.now());
 	let intervalId: ReturnType<typeof setInterval> | undefined;
 	let expandedLogsByExportId = $state<Record<number, boolean>>({});
-	let youtubePublications = $state<Record<number, YouTubePublicationState>>({});
+	let ongoingCount = $derived(
+		globalState.exportations.filter((exportation) => exportation.isOnGoing()).length
+	);
 
 	/**
-	 * Résout un message localisé ajouté au moniteur d'exports.
-	 * @param {string} key Clé du message.
+	 * Résout une nouvelle clé du moniteur sans dépendre des types i18n régénérés au commit.
+	 * @param {string} key Clé de traduction du moniteur.
 	 * @returns {string} Texte localisé.
 	 */
 	function monitorMessage(key: string): string {
@@ -48,306 +36,220 @@
 	}
 
 	/**
-	 * Conserve l'état de publication YouTube d'un export.
-	 * @param {number} exportId Identifiant de l'export.
-	 * @param {YouTubePublicationState} update Nouvel état de publication.
+	 * Ferme la feuille du moniteur d'exports.
 	 * @returns {void}
 	 */
-	function updateYouTubePublication(exportId: number, update: YouTubePublicationState): void {
-		youtubePublications[exportId] = update;
+	function closeMonitor(): void {
+		globalState.uiState.showExportMonitor = false;
 	}
 
 	/**
-	 * Ouvre la modale YouTube via le gestionnaire global.
-	 * @param {Exportation} exportation Export vidéo à publier.
+	 * Ferme le moniteur avec la touche Échap.
+	 * @param {KeyboardEvent} event Événement clavier global.
 	 * @returns {void}
 	 */
-	function openYouTubeUpload(exportation: Exportation): void {
-		void ModalManager.youtubeUploadModal(exportation, (update) =>
-			updateYouTubePublication(exportation.exportId, update)
-		);
+	function handleWindowKeydown(event: KeyboardEvent): void {
+		if (event.key === 'Escape' && globalState.uiState.showExportMonitor) closeMonitor();
 	}
 
-	// Fonction pour formater la durée en format lisible
+	/**
+	 * Formate une durée en horodatage lisible.
+	 * @param {number} ms Durée en millisecondes.
+	 * @returns {string} Durée HH:MM:SS ou MM:SS.
+	 */
 	function formatDuration(ms: number): string {
-		const totalSeconds = Math.floor(ms / 1000);
+		const totalSeconds = Math.max(0, Math.floor(ms / 1000));
 		const hours = Math.floor(totalSeconds / 3600);
 		const minutes = Math.floor((totalSeconds % 3600) / 60);
 		const seconds = totalSeconds % 60;
-
-		if (hours > 0) {
-			return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-		} else {
-			return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-		}
-	}
-
-	// Fonction pour formater le temps actuel traité
-	function formatCurrentTime(ms: number): string {
-		const totalSeconds = Math.floor(ms / 1000);
-		const minutes = Math.floor(totalSeconds / 60);
-		const seconds = totalSeconds % 60;
-		return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+		return hours > 0
+			? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+			: `${minutes}:${seconds.toString().padStart(2, '0')}`;
 	}
 
 	/**
-	 * Retourne un timestamp valide en millisecondes depuis une date ISO.
-	 * Si la date est invalide, utilise `fallbackMs`.
+	 * Retourne le temps total mémorisé ou calculé depuis le lancement du monitor.
+	 * @param {Exportation} exportation Export affiché.
+	 * @returns {number} Temps écoulé en millisecondes.
 	 */
-	function parseDateMs(value: string, fallbackMs: number): number {
-		const parsed = new Date(value).getTime();
-		return Number.isFinite(parsed) ? parsed : fallbackMs;
+	function getElapsedMs(exportation: Exportation): number {
+		if (typeof exportation.totalExportTimeMs === 'number') return exportation.totalExportTimeMs;
+		const parsedDate = new Date(exportation.date).getTime();
+		const start =
+			exportStartedAt.get(exportation.exportId) ??
+			(Number.isFinite(parsedDate) ? parsedDate : currentTime);
+		exportStartedAt.set(exportation.exportId, start);
+		return Math.max(0, currentTime - start);
 	}
 
 	/**
-	 * Retourne l'indice d'étape principal (1..3) selon l'état courant.
+	 * Estime le temps restant à partir de la progression globale.
+	 * @param {Exportation} exportation Export affiché.
+	 * @returns {number | null} Temps restant ou null si le ratio est insuffisant.
 	 */
-	function getStepIndex(state: ExportState): number | null {
-		return getStepInfo(state)?.current ?? null;
-	}
-
-	/**
-	 * Crée/actualise le snapshot temporel d'un export pour stabiliser
-	 * le chrono global et les transitions entre étapes.
-	 */
-	function getTimingSnapshot(exportation: Exportation, now: number): ExportTimingSnapshot {
-		let snapshot = exportTimingSnapshots.get(exportation.exportId);
-		const stepIndex = getStepIndex(exportation.currentState);
-
-		if (!snapshot) {
-			const startMs = parseDateMs(exportation.date, now);
-			snapshot = {
-				exportStartMs: startMs,
-				stepStartMs: now,
-				lastStep: stepIndex,
-				completedAtMs: null
-			};
-			exportTimingSnapshots.set(exportation.exportId, snapshot);
-		}
-
-		if (snapshot.lastStep !== stepIndex && stepIndex !== null) {
-			snapshot.stepStartMs = now;
-			snapshot.lastStep = stepIndex;
-		}
-
-		if (exportation.currentState === ExportState.Exported && snapshot.completedAtMs === null) {
-			snapshot.completedAtMs = now;
-		}
-
-		return snapshot;
-	}
-
-	/**
-	 * Calcule le temps écoulé global d'export depuis le début.
-	 * Quand l'export est terminé, le temps est figé.
-	 */
-	function getExportElapsedMs(exportation: Exportation, now: number): number {
-		if (exportation.currentState === ExportState.Exported) {
-			const storedTotal = getStoredTotalExportMs(exportation);
-			if (storedTotal !== null) {
-				return storedTotal;
-			}
-		}
-
-		const snapshot = getTimingSnapshot(exportation, now);
-		const endMs = snapshot.completedAtMs ?? now;
-		return Math.max(0, endMs - snapshot.exportStartMs);
-	}
-
-	/**
-	 * Retourne le total sauvegardé d'un export terminé.
-	 * Les anciens exports (avant ajout de ce champ) renvoient `null`.
-	 */
-	function getStoredTotalExportMs(exportation: Exportation): number | null {
-		const value = exportation.totalExportTimeMs;
-		return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
-	}
-
-	/**
-	 * Estime le temps restant d'un export à partir du ratio temps écoulé / progression.
-	 * Retourne `null` si l'estimation n'est pas encore fiable (démarrage, 0%, 100%).
-	 */
-	function getEstimatedRemainingMs(exportation: Exportation, now: number): number | null {
-		if (!exportation.isOnGoing()) return null;
-
+	function getRemainingMs(exportation: Exportation): number | null {
 		const progress = clampProgress(exportation.percentageProgress);
-		if (progress <= 0 || progress >= 100) return null;
-
-		const snapshot = getTimingSnapshot(exportation, now);
-		const elapsedMs = Math.max(0, now - snapshot.stepStartMs);
-		// Évite une estimation instable pendant les toutes premières secondes.
-		if (elapsedMs < 3000) return null;
-
-		const estimatedTotalMs = (elapsedMs * 100) / progress;
-		const remainingMs = Math.max(0, estimatedTotalMs - elapsedMs);
-		return Number.isFinite(remainingMs) ? remainingMs : null;
-	}
-
-	function isTextExport(exportation: Exportation): boolean {
-		return exportation.exportKind === ExportKind.Text;
-	}
-
-	function getStepInfo(state: ExportState): { current: number; total: number } | null {
-		switch (state) {
-			case ExportState.CapturingFrames:
-				return { current: 1, total: 3 };
-			case ExportState.Initializing:
-			case ExportState.ProcessingBackground:
-				return { current: 2, total: 3 };
-			case ExportState.AddingSubtitles:
-			case ExportState.CreatingVideo:
-			case ExportState.MergingFiles:
-				return { current: 3, total: 3 };
-			default:
-				return null;
-		}
-	}
-
-	function getFileExtension(fileName: string): string {
-		const trimmed = (fileName || '').trim();
-		const dotIndex = trimmed.lastIndexOf('.');
-		if (dotIndex === -1 || dotIndex === trimmed.length - 1) {
-			return 'FILE';
-		}
-		return trimmed.slice(dotIndex + 1).toUpperCase();
+		const elapsed = getElapsedMs(exportation);
+		if (!exportation.isOnGoing() || progress <= 0 || progress >= 100 || elapsed < 3000) return null;
+		return Math.max(0, (elapsed * 100) / progress - elapsed);
 	}
 
 	/**
-	 * Retourne le libelle de taille du batch courant pendant le rendu video.
-	 */
-	function getCurrentBatchSizeLabel(exportation: Exportation): string {
-		if (
-			exportation.currentState !== ExportState.AddingSubtitles &&
-			exportation.currentState !== ExportState.CreatingVideo
-		) {
-			return '';
-		}
-
-		const batchSize = exportation.currentBatchSize;
-		return typeof batchSize === 'number' && batchSize > 0 ? `${batchSize}` : '';
-	}
-
-	/**
-	 * Contraint une progression dans l'intervalle [0, 100] pour protéger l'UI.
+	 * Contraint une progression à l'intervalle affichable.
+	 * @param {number} progress Progression brute.
+	 * @returns {number} Progression comprise entre 0 et 100.
 	 */
 	function clampProgress(progress: number): number {
 		return Math.max(0, Math.min(100, progress || 0));
 	}
 
 	/**
-	 * Formate un suffixe de type "(x/N)" pour les étapes répétées par segment.
+	 * Retourne le libellé localisé d'un état d'export.
+	 * @param {ExportState} state État métier.
+	 * @returns {string} Libellé localisé.
 	 */
-	function getSegmentLabel(current: number, total: number): string {
-		if (total <= 1) return '';
-		const safeCurrent = Math.max(1, Math.min(total, current || 1));
-		return ` (${safeCurrent}/${total})`;
+	function getStateLabel(state: ExportState): string {
+		const keys: Record<ExportState, string> = {
+			[ExportState.WaitingForRecord]: 'statePending',
+			[ExportState.Recording]: 'stateRecording',
+			[ExportState.AddingAudio]: 'stateAddingAudio',
+			[ExportState.ProcessingBackground]: 'stateProcessingBackground',
+			[ExportState.AddingSubtitles]: 'stateRendering',
+			[ExportState.CreatingVideo]: 'stateRendering',
+			[ExportState.MergingFiles]: 'stateMerging',
+			[ExportState.CapturingFrames]: 'stateCapturing',
+			[ExportState.Initializing]: 'stateInitializing',
+			[ExportState.Exported]: 'stateExported',
+			[ExportState.Error]: 'stateError',
+			[ExportState.Canceled]: 'stateCanceled'
+		};
+		return monitorMessage(keys[state]);
 	}
 
-	// Fonction pour obtenir la couleur selon l'état
-	function getStateColor(state: ExportState): string {
-		switch (state) {
-			case ExportState.WaitingForRecord:
-				return 'text-yellow-400';
-			case ExportState.Recording:
-				return 'text-blue-400';
-			case ExportState.AddingAudio:
-				return 'text-purple-400';
-			case ExportState.Exported:
-				return 'text-green-400';
-			case ExportState.Error:
-				return 'text-red-400';
-			case ExportState.Canceled:
-				return 'text-gray-400';
-			case ExportState.ProcessingBackground:
-				return 'text-orange-400';
-			case ExportState.AddingSubtitles:
-			case ExportState.CreatingVideo:
-				return 'text-purple-400';
-			case ExportState.MergingFiles:
-				return 'text-cyan-400';
-			case ExportState.CapturingFrames:
-				return 'text-blue-400';
-			case ExportState.Initializing:
-				return 'text-yellow-400';
-			default:
-				return 'text-gray-400';
-		}
-	}
-
-	// Fonction pour obtenir l'icône selon l'état
+	/**
+	 * Retourne l'icône Material associée à un état.
+	 * @param {ExportState} state État métier.
+	 * @returns {string} Nom de l'icône.
+	 */
 	function getStateIcon(state: ExportState): string {
 		switch (state) {
-			case ExportState.WaitingForRecord:
-				return 'schedule';
-			case ExportState.Recording:
-				return 'videocam';
-			case ExportState.AddingAudio:
-				return 'audio_file';
 			case ExportState.Exported:
 				return 'check_circle';
 			case ExportState.Error:
 				return 'error';
 			case ExportState.Canceled:
 				return 'cancel';
-			case ExportState.ProcessingBackground:
-				return 'movie_filter';
-			case ExportState.AddingSubtitles:
-				return 'subtitles';
-			case ExportState.CreatingVideo:
-				return 'movie_creation';
-			case ExportState.MergingFiles:
-				return 'merge_type';
+			case ExportState.WaitingForRecord:
+				return 'schedule';
 			case ExportState.CapturingFrames:
 				return 'photo_camera';
-			case ExportState.Initializing:
-				return 'hourglass_top';
+			case ExportState.ProcessingBackground:
+				return 'movie_filter';
+			case ExportState.MergingFiles:
+				return 'merge_type';
 			default:
-				return 'help';
+				return 'movie_creation';
 		}
 	}
 
-	// Fonction pour ouvrir le fichier exporté
-	async function openExportedFile(filePath: string) {
-		if (await exists(filePath)) {
-			await invoke('open_explorer_with_file_selected', { filePath });
+	/**
+	 * Retourne la couleur de statut adaptée au thème.
+	 * @param {ExportState} state État métier.
+	 * @returns {string} Classes Tailwind.
+	 */
+	function getStateColor(state: ExportState): string {
+		if (state === ExportState.Exported) return 'text-green-400';
+		if (state === ExportState.Error) return 'text-red-400';
+		if (state === ExportState.Canceled) return 'text-thirdly';
+		if (state === ExportState.ProcessingBackground) return 'text-orange-400';
+		if (state === ExportState.MergingFiles) return 'text-cyan-400';
+		return 'text-accent-primary';
+	}
+
+	/**
+	 * Formate le compteur d'un segment répété.
+	 * @param {number} current Segment courant.
+	 * @param {number} total Nombre total de segments.
+	 * @returns {string} Suffixe (x/N) ou chaîne vide.
+	 */
+	function getSegmentLabel(current: number, total: number): string {
+		if (total <= 1) return '';
+		return ` (${Math.max(1, Math.min(total, current || 1))}/${total})`;
+	}
+
+	/**
+	 * Retourne le type MIME à utiliser pour ouvrir un export Android.
+	 * @param {string} fileName Nom du fichier.
+	 * @returns {string} Type MIME compatible avec ACTION_VIEW.
+	 */
+	function getMimeType(fileName: string): string {
+		const extension = fileName.split('.').pop()?.toLowerCase();
+		if (extension === 'webm') return 'video/webm';
+		if (extension === 'mov') return 'video/quicktime';
+		if (extension === 'mp4') return 'video/mp4';
+		return 'text/plain';
+	}
+
+	/**
+	 * Ouvre le média publié ou le fichier texte exporté.
+	 * @param {Exportation} exportation Export à ouvrir.
+	 * @returns {Promise<void>}
+	 */
+	async function openExportedFile(exportation: Exportation): Promise<void> {
+		try {
+			if (exportation.finalFilePath.startsWith('content://')) {
+				const opened = await invoke<boolean>('open_android_export', {
+					uri: exportation.finalFilePath,
+					mimeType: getMimeType(exportation.finalFileName)
+				});
+				if (opened) return;
+			} else if (await exists(exportation.finalFilePath)) {
+				await openPath(exportation.finalFilePath);
+				return;
+			}
+		} catch (error) {
+			console.error('Unable to open exported file:', error);
+		}
+		ModalManager.errorModal(
+			get(LL).exporterMonitor.fileNotFound(),
+			get(LL).exporterMonitor.exportedFileNotFound()
+		);
+	}
+
+	/**
+	 * Annule un export actif ou retire une entrée terminée, puis persiste la liste.
+	 * @param {Exportation} exportation Export ciblé.
+	 * @returns {Promise<void>}
+	 */
+	async function removeOrCancelExport(exportation: Exportation): Promise<void> {
+		if (exportation.isOnGoing()) {
+			const confirmed = await ModalManager.confirmModal(
+				get(LL).exporterMonitor.cancelExportConfirm()
+			);
+			if (!confirmed) return;
+			await exportation.cancelExport();
 		} else {
-			ModalManager.errorModal(
-				get(LL).exporterMonitor.fileNotFound(),
-				get(LL).exporterMonitor.exportedFileNotFound()
+			globalState.exportations = globalState.exportations.filter(
+				(item) => item.exportId !== exportation.exportId
 			);
 		}
+		await ExportService.saveExports();
 	}
 
-	async function copyErrorLog(errorLog: string) {
-		try {
-			let normalizedError = errorLog;
-
-			// If error was JSON-stringified, decode escaped characters first.
-			try {
-				const parsed = JSON.parse(errorLog);
-				if (typeof parsed === 'string') {
-					normalizedError = parsed;
-				}
-			} catch {
-				// Keep raw string fallback.
-			}
-
-			normalizedError = normalizedError
-				.replaceAll('\\r\\n', '\n')
-				.replaceAll('\\n', '\n')
-				.replaceAll('\\t', '\t');
-
-			await navigator.clipboard.writeText(normalizedError);
-			toast.success(get(LL).exporterMonitor.errorCopiedToClipboard());
-		} catch {
-			toast.error(get(LL).exporterMonitor.failedToCopyError());
-		}
-	}
-
-	// Lifecycle hooks pour gérer l'intervalle
 	/**
-	 * Ouvre ou ferme le panneau de logs d'un export.
-	 * @param {number} exportId Identifiant de l'export affiche.
+	 * Retire toutes les entrées qui ne sont plus actives.
+	 * @returns {Promise<void>}
+	 */
+	async function clearCompletedExports(): Promise<void> {
+		globalState.exportations = globalState.exportations.filter((exportation) =>
+			exportation.isOnGoing()
+		);
+		await ExportService.saveExports();
+	}
+
+	/**
+	 * Ouvre ou ferme les logs techniques d'un export.
+	 * @param {number} exportId Identifiant de l'export.
 	 * @returns {void}
 	 */
 	function toggleExportLogs(exportId: number): void {
@@ -358,502 +260,437 @@
 	}
 
 	/**
-	 * Formate l'heure d'une ligne de log en HH:MM:SS.
-	 * @param {string} timestamp Date ISO de la ligne.
-	 * @returns {string} Heure lisible ou valeur brute si invalide.
+	 * Formate l'heure d'une ligne de log.
+	 * @param {string} timestamp Date ISO.
+	 * @returns {string} Heure locale.
 	 */
 	function formatExportLogTime(timestamp: string): string {
 		const date = new Date(timestamp);
-		if (Number.isNaN(date.getTime())) return timestamp;
-		return date.toLocaleTimeString(undefined, {
-			hour: '2-digit',
-			minute: '2-digit',
-			second: '2-digit'
-		});
+		return Number.isNaN(date.getTime()) ? timestamp : date.toLocaleTimeString();
 	}
 
 	/**
-	 * Retourne la couleur du niveau de log.
-	 * @param {ExportLogEntry['level']} level Niveau de log.
-	 * @returns {string} Classes CSS Tailwind.
-	 */
-	function getExportLogLevelColor(level: ExportLogEntry['level']): string {
-		if (level === 'error') return 'text-red-300';
-		if (level === 'warn') return 'text-yellow-300';
-		return 'text-blue-300';
-	}
-
-	/**
-	 * Copie toutes les lignes de log d'un export.
-	 * @param {ExportLogEntry[]} logs Lignes de log a copier.
+	 * Copie les logs techniques dans le presse-papiers.
+	 * @param {ExportLogEntry[]} logs Logs à copier.
 	 * @returns {Promise<void>}
 	 */
 	async function copyExportLogs(logs: ExportLogEntry[]): Promise<void> {
 		try {
-			const text = logs
-				.map((log) => `[${log.timestamp}] [${log.level}] [${log.source}] ${log.message}`)
-				.join('\n');
-
-			await navigator.clipboard.writeText(text);
+			await navigator.clipboard.writeText(
+				logs
+					.map((log) => `[${log.timestamp}] [${log.level}] [${log.source}] ${log.message}`)
+					.join('\n')
+			);
 			toast.success(get(LL).common.logsCopiedToClipboard());
 		} catch {
 			toast.error(get(LL).common.error());
 		}
 	}
 
+	/**
+	 * Copie le diagnostic d'une erreur d'export.
+	 * @param {string} errorLog Erreur brute.
+	 * @returns {Promise<void>}
+	 */
+	async function copyErrorLog(errorLog: string): Promise<void> {
+		try {
+			await navigator.clipboard.writeText(errorLog.replaceAll('\\n', '\n'));
+			toast.success(get(LL).exporterMonitor.errorCopiedToClipboard());
+		} catch {
+			toast.error(get(LL).exporterMonitor.failedToCopyError());
+		}
+	}
+
 	onMount(() => {
-		// Mettre à jour le temps actuel toutes les secondes
 		intervalId = setInterval(() => {
 			currentTime = Date.now();
 		}, 1000);
 	});
 
 	onDestroy(() => {
-		// Nettoyer l'intervalle quand le composant est détruit
-		if (intervalId) {
-			clearInterval(intervalId);
-		}
+		if (intervalId) clearInterval(intervalId);
 	});
 </script>
 
+<svelte:window onkeydown={handleWindowKeydown} />
+
 {#if globalState.uiState.showExportMonitor}
-	<div
-		class="absolute top-12 right-4 w-[650px] max-h-[500px] bg-gray-900 border border-gray-700 rounded-lg shadow-2xl z-[999] overflow-hidden"
-		role="dialog"
-		aria-labelledby="export-monitor-title"
-		transition:slide
-	>
-		<!-- Header -->
-		<div class="flex items-center justify-between p-4 border-b border-gray-700">
-			<div class="flex items-center gap-2">
-				<span class="material-icons text-blue-400">download</span>
-				<h3 id="export-monitor-title" class="text-lg font-semibold text-white">
-					{$LL.exporterMonitor.exportsMonitor()}
-				</h3>
-				<div class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
-					{globalState.exportations.length}
+	<div class="modal-wrapper export-monitor-backdrop" transition:fade={{ duration: 120 }}>
+		<dialog
+			open
+			use:mobileModalSheet={closeMonitor}
+			class="export-monitor-sheet border border-color bg-primary"
+			aria-modal="true"
+			aria-labelledby="export-monitor-title"
+		>
+			<header class="export-monitor-header">
+				<div class="flex min-w-0 items-center gap-3">
+					<div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent">
+						<span class="material-icons text-accent-primary">download</span>
+					</div>
+					<div class="min-w-0">
+						<h2 id="export-monitor-title" class="truncate text-base font-semibold text-primary">
+							{$LL.exporterMonitor.exportsMonitor()}
+						</h2>
+						<p class="text-xs text-thirdly">
+							{get(LL).export.inProgressCount({ count: ongoingCount })}
+						</p>
+					</div>
 				</div>
-			</div>
-			<button
-				class="text-gray-400 hover:text-white transition-colors cursor-pointer"
-				onclick={() => (globalState.uiState.showExportMonitor = false)}
-				aria-label={$LL.exporterMonitor.closeExportMonitor()}
-			>
-				<span class="material-icons">close</span>
-			</button>
-		</div>
+				<button
+					type="button"
+					class="touch-button"
+					onclick={closeMonitor}
+					aria-label={$LL.exporterMonitor.closeExportMonitor()}
+				>
+					<span class="material-icons">close</span>
+				</button>
+			</header>
 
-		{#if globalState.exportations.length > 0}
-			<!-- Exports List -->
-			<div
-				class="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-gray-600"
-			>
-				{#each globalState.exportations as exportation (exportation.exportId)}
-					<div class="p-2 border-b border-gray-800 last:border-b-0 relative">
-						<!-- delete cross -->
-						<button
-							class="absolute top-2 right-2 text-gray-400 hover:text-white transition-colors cursor-pointer"
-							onclick={async (e) => {
-								e.stopPropagation();
-
-								if (exportation.isOnGoing()) {
-									const resp = await ModalManager.confirmModal(
-										get(LL).exporterMonitor.cancelExportConfirm()
-									);
-
-									if (resp) {
-										await exportation.cancelExport();
-									}
-								} else {
-									// Remove from the list if not ongoing
-									globalState.exportations = globalState.exportations.filter(
-										(e) => e.exportId !== exportation.exportId
-									);
-								}
-							}}
-							title={exportation.isOnGoing()
-								? $LL.exporterMonitor.cancelExport()
-								: $LL.common.remove()}
-						>
-							<span class="material-icons">
-								{#if exportation.isOnGoing()}
-									cancel
-								{:else}
-									delete
-								{/if}
-							</span>
-						</button>
-
-						<!-- Export Header -->
-						<div class="flex items-start justify-between mb-2">
-							<div class="flex-1 min-w-0">
-								<h4 class="text-white font-medium truncate mb-1" title={exportation.finalFileName}>
-									{exportation.finalFileName}
-								</h4>
-								{#if isTextExport(exportation) && exportation.exportLabel}
-									<div class="text-xs text-gray-400 truncate">{exportation.exportLabel}</div>
-								{/if}
-								<div class="flex items-center justify-between gap-2 text-sm">
-									<div class="flex items-center gap-2 min-w-0">
-										<span class="material-icons text-xs {getStateColor(exportation.currentState)}">
-											{getStateIcon(exportation.currentState)}
-										</span>
-										<span class={getStateColor(exportation.currentState)}>
-											{exportation.currentState}
-										</span>
-									</div>
-									{#if exportation.currentState === ExportState.Exported && getStoredTotalExportMs(exportation) !== null}
-										<span class="text-xs text-gray-300 ml-auto whitespace-nowrap">
-											{get(LL).export.totalLabel()}
-											<span class="monospaced"
-												>{formatCurrentTime(getExportElapsedMs(exportation, currentTime))}</span
-											>
-										</span>
+			<div class="export-monitor-list">
+				{#if globalState.exportations.length === 0}
+					<div class="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
+						<span class="material-icons text-4xl text-thirdly">inbox</span>
+						<p class="text-sm text-secondary">{get(LL).export.noOngoingExports()}</p>
+					</div>
+				{:else}
+					{#each globalState.exportations as exportation (exportation.exportId)}
+						<article class="export-card">
+							<div class="flex items-start gap-3">
+								<div class="min-w-0 flex-1">
+									<h3 class="truncate text-sm font-semibold text-primary">
+										{exportation.finalFileName}
+									</h3>
+									{#if exportation.exportLabel}
+										<p class="truncate text-xs text-thirdly">{exportation.exportLabel}</p>
 									{/if}
-								</div>
-							</div>
-						</div>
-
-						<!-- Progress Bar (only if in progress) -->
-						{#if exportation.isOnGoing()}
-							<div class="mb-2">
-								<div class="flex items-center justify-between text-xs text-gray-400 mb-1">
-									<span>{get(LL).export.progressLabel()}</span>
-									<span>{Math.round(clampProgress(exportation.percentageProgress))}%</span>
-								</div>
-								<div class="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
 									<div
-										class="h-2 transition-all duration-300 ease-out bg-gradient-to-r from-blue-400 to-purple-300"
-										style="width: {clampProgress(exportation.percentageProgress)}%"
-									></div>
-								</div>
-								{#if exportation.hasSecondarySegmentProgress}
-									<div class="mt-2">
-										<div class="flex items-center justify-between text-xs text-gray-400 mb-1">
-											<span>
-												{get(LL).export.processingBgVideo()}{getSegmentLabel(
-													exportation.processingBackgroundCurrentSegment,
-													exportation.processingBackgroundTotalSegments
-												)}
-											</span>
-											<span
-												>{Math.round(
-													clampProgress(exportation.processingBackgroundProgress)
-												)}%</span
-											>
-										</div>
-										<div class="w-full bg-gray-700 rounded-full h-1.5 overflow-hidden">
-											<div
-												class="h-1.5 transition-all duration-300 ease-out bg-gradient-to-r from-orange-400 to-amber-300"
-												style="width: {clampProgress(exportation.processingBackgroundProgress)}%"
-											></div>
-										</div>
-									</div>
-									<div class="mt-2">
-										<div class="flex items-center justify-between text-xs text-gray-400 mb-1">
-											<span>
-												{get(LL).export.mergingFiles()}{getSegmentLabel(
-													exportation.mergingFilesCurrentSegment,
-													exportation.mergingFilesTotalSegments
-												)}
-											</span>
-											<span>{Math.round(clampProgress(exportation.mergingFilesProgress))}%</span>
-										</div>
-										<div class="w-full bg-gray-700 rounded-full h-1.5 overflow-hidden">
-											<div
-												class="h-1.5 transition-all duration-300 ease-out bg-gradient-to-r from-cyan-400 to-sky-300"
-												style="width: {clampProgress(exportation.mergingFilesProgress)}%"
-											></div>
-										</div>
-									</div>
-								{:else}
-									<div class="flex items-center justify-between text-xs text-gray-500 mt-1">
-										<span>
-											{#if getStepInfo(exportation.currentState)}
-												{get(LL).export.stepOf({
-													current: getStepInfo(exportation.currentState)?.current ?? 1,
-													total: getStepInfo(exportation.currentState)?.total ?? 1
-												})}
-											{:else}
-												{get(LL).export.progressLabel()}
-											{/if}
-										</span>
-									</div>
-								{/if}
-								<div class="flex justify-between text-xs text-gray-400 mt-1">
-									{#if exportation.currentTreatedTime > 0}
-										<div>
-											{get(LL).export.processedTime()}
-											<span class="monospaced"
-												>{formatCurrentTime(exportation.currentTreatedTime)} / {formatDuration(
-													exportation.videoLength
-												)}</span
-											>
-											{getCurrentBatchSizeLabel(exportation)
-												? `- Current batch size: ${getCurrentBatchSizeLabel(exportation)}`
-												: ''}
-										</div>
-									{:else}
-										<div>
-											{get(LL).export.processedTime()}
-											<span class="monospaced"
-												>0:00 / {formatDuration(exportation.videoLength)}</span
-											>
-										</div>
-									{/if}
-									<div class="ml-auto">
-										{get(LL).export.exportTime()}<span class="monospaced"
-											>{' '}
-											{formatCurrentTime(getExportElapsedMs(exportation, currentTime))}
-										</span>{#if getEstimatedRemainingMs(exportation, currentTime) !== null}
-											<span class="monospaced">
-												{' '}({formatCurrentTime(
-													getEstimatedRemainingMs(exportation, currentTime) || 0
-												)}
-												{get(LL).export.estimated()})
-											</span>
-										{:else}
-											<span class="monospaced">
-												{' '}{get(LL).export.emptyEstimated()}
-											</span>
-										{/if}
+										class={`mt-1 flex items-center gap-1.5 text-xs ${getStateColor(exportation.currentState)}`}
+									>
+										<span class="material-icons text-[16px]!"
+											>{getStateIcon(exportation.currentState)}</span
+										>
+										<span>{getStateLabel(exportation.currentState)}</span>
 									</div>
 								</div>
-							</div>
-						{/if}
-
-						<!-- Export Details -->
-						{#if isTextExport(exportation)}
-							<div class="grid grid-cols-2 grid-rows-1 gap-2 text-xs">
-								<div class="bg-gray-800/50 rounded-lg p-1">
-									<div class="text-gray-400 mb-1 text-center">{get(LL).export.typeColumn()}</div>
-									<div class="text-white font-mono text-center">
-										{exportation.exportLabel || get(LL).export.textExport()}
-									</div>
-								</div>
-
-								<div class="bg-gray-800/50 rounded-lg p-1">
-									<div class="text-gray-400 mb-1 text-center">{get(LL).export.formatColumn()}</div>
-									<div class="text-white font-mono text-center">
-										{getFileExtension(exportation.finalFileName)}
-									</div>
-								</div>
-							</div>
-						{:else}
-							<div class="grid grid-cols-4 grid-rows-1 gap-2 text-xs">
-								<div class="bg-gray-800/50 rounded-lg p-1">
-									<div class="text-gray-400 mb-1 text-center">
-										{get(LL).export.dimensionsColumn()}
-									</div>
-									<div class="text-white font-mono text-center">
-										{exportation.videoDimensions.width}×{exportation.videoDimensions.height}
-									</div>
-								</div>
-
-								<div class="bg-gray-800/50 rounded-lg p-1">
-									<div class="text-gray-400 mb-1 text-center">
-										{get(LL).export.durationColumn()}
-									</div>
-									<div class="text-white font-mono text-center">
-										{formatDuration(exportation.videoLength)}
-									</div>
-								</div>
-
-								<div class="bg-gray-800/50 rounded-lg p-1 col-span-2">
-									<div class="text-gray-400 mb-1 text-center">{get(LL).export.versesColumn()}</div>
-									<div class="text-white truncate text-center" title={exportation.verseRange}>
-										{exportation.verseRange}
-									</div>
-								</div>
-							</div>
-						{/if}
-
-						{#if !isTextExport(exportation) && exportation.isOnGoing()}
-							<div
-								class="mt-1 flex justify-end absolute right-2 bottom-2 gap-1 opacity-20 hover:opacity-100 transition-opacity"
-							>
 								<button
 									type="button"
-									class="relative flex size-7 items-center justify-center rounded-md border border-gray-700 bg-gray-800/40 text-gray-400 transition-colors hover:bg-gray-800 hover:text-cyan-300 cursor-pointer"
-									onclick={() => toggleExportLogs(exportation.exportId)}
-									title={get(LL).export.exportLogs()}
-									aria-label={get(LL).export.exportLogs()}
+									class="touch-button shrink-0"
+									onclick={() => removeOrCancelExport(exportation)}
+									aria-label={exportation.isOnGoing()
+										? $LL.exporterMonitor.cancelExport()
+										: $LL.common.remove()}
 								>
-									<span class="material-icons text-[16px]">terminal</span>
+									<span class="material-icons text-[20px]!">
+										{exportation.isOnGoing() ? 'cancel' : 'delete'}
+									</span>
 								</button>
 							</div>
 
+							{#if exportation.isOnGoing()}
+								<div class="mt-4">
+									<div class="mb-1.5 flex items-center justify-between text-xs text-secondary">
+										<span>{get(LL).export.progressLabel()}</span>
+										<strong>{Math.round(clampProgress(exportation.percentageProgress))}%</strong>
+									</div>
+									<div class="progress-track">
+										<div
+											class="progress-value"
+											style={`width: ${clampProgress(exportation.percentageProgress)}%`}
+										></div>
+									</div>
+
+									{#if exportation.hasSecondarySegmentProgress}
+										<div class="mt-3 space-y-2">
+											<div>
+												<div class="mb-1 flex justify-between gap-3 text-[11px] text-thirdly">
+													<span>
+														{get(LL).export.processingBgVideo()}{getSegmentLabel(
+															exportation.processingBackgroundCurrentSegment,
+															exportation.processingBackgroundTotalSegments
+														)}
+													</span>
+													<span
+														>{Math.round(
+															clampProgress(exportation.processingBackgroundProgress)
+														)}%</span
+													>
+												</div>
+												<div class="progress-track h-1.5!">
+													<div
+														class="h-full rounded-full bg-orange-400"
+														style={`width: ${clampProgress(exportation.processingBackgroundProgress)}%`}
+													></div>
+												</div>
+											</div>
+											<div>
+												<div class="mb-1 flex justify-between gap-3 text-[11px] text-thirdly">
+													<span>
+														{get(LL).export.mergingFiles()}{getSegmentLabel(
+															exportation.mergingFilesCurrentSegment,
+															exportation.mergingFilesTotalSegments
+														)}
+													</span>
+													<span>{Math.round(clampProgress(exportation.mergingFilesProgress))}%</span
+													>
+												</div>
+												<div class="progress-track h-1.5!">
+													<div
+														class="h-full rounded-full bg-cyan-400"
+														style={`width: ${clampProgress(exportation.mergingFilesProgress)}%`}
+													></div>
+												</div>
+											</div>
+										</div>
+									{/if}
+
+									<div
+										class="mt-3 flex flex-wrap justify-between gap-x-4 gap-y-1 text-[11px] text-thirdly"
+									>
+										<span>
+											{get(LL).export.processedTime()}
+											{formatDuration(exportation.currentTreatedTime)} / {formatDuration(
+												exportation.videoLength
+											)}
+										</span>
+										<span>
+											{get(LL).export.exportTime()}
+											{formatDuration(getElapsedMs(exportation))}
+											{#if getRemainingMs(exportation) !== null}
+												· {formatDuration(getRemainingMs(exportation) ?? 0)}
+												{get(LL).export.estimated()}
+											{/if}
+										</span>
+										{#if exportation.currentBatchSize}
+											<span>{monitorMessage('batchSize')}: {exportation.currentBatchSize}</span>
+										{/if}
+									</div>
+								</div>
+							{/if}
+
+							<div class="mt-4 grid grid-cols-2 gap-2 text-xs">
+								{#if exportation.exportKind === ExportKind.Video}
+									<div class="detail-pill">
+										<span>{get(LL).export.dimensionsColumn()}</span>
+										<strong
+											>{exportation.videoDimensions.width}×{exportation.videoDimensions
+												.height}</strong
+										>
+									</div>
+									<div class="detail-pill">
+										<span>{get(LL).export.durationColumn()}</span>
+										<strong>{formatDuration(exportation.videoLength)}</strong>
+									</div>
+									<div class="detail-pill col-span-2">
+										<span>{get(LL).export.versesColumn()}</span>
+										<strong class="truncate">{exportation.verseRange}</strong>
+									</div>
+								{:else}
+									<div class="detail-pill col-span-2">
+										<span>{get(LL).export.typeColumn()}</span>
+										<strong>{exportation.exportLabel || get(LL).export.textExport()}</strong>
+									</div>
+								{/if}
+							</div>
+
+							{#if exportation.currentState === ExportState.Error && exportation.errorLog}
+								<div class="mt-3 rounded-xl border border-red-500/40 bg-red-500/10 p-3">
+									<div class="flex items-center justify-between gap-3">
+										<p class="text-xs font-semibold text-red-300">
+											{get(LL).export.exportErrorTitle()}
+										</p>
+										<button
+											type="button"
+											class="small-action"
+											onclick={() => copyErrorLog(exportation.errorLog)}
+										>
+											<span class="material-icons text-[15px]!">content_copy</span>
+											{get(LL).export.copyErrorButton()}
+										</button>
+									</div>
+									<pre
+										class="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words text-[11px] text-red-200">{exportation.errorLog}</pre>
+								</div>
+							{/if}
+
+							<div class="mt-3 flex flex-wrap items-center justify-end gap-2">
+								{#if exportation.exportLogs.length > 0}
+									<button
+										type="button"
+										class="small-action"
+										onclick={() => toggleExportLogs(exportation.exportId)}
+									>
+										<span class="material-icons text-[16px]!">terminal</span>
+										{get(LL).export.exportLogs()}
+									</button>
+								{/if}
+								{#if exportation.currentState === ExportState.Exported}
+									<button
+										type="button"
+										class="btn-accent min-h-11 px-4 text-sm font-medium"
+										onclick={() => openExportedFile(exportation)}
+									>
+										<span class="material-icons mr-2 text-[18px]!">play_circle</span>
+										{monitorMessage('openFile')}
+									</button>
+								{/if}
+							</div>
+
 							{#if expandedLogsByExportId[exportation.exportId]}
-								<div
-									class="mt-1 max-h-48 overflow-y-auto rounded-md border border-gray-700 bg-black/50 p-2 font-mono text-[11px] leading-4 text-gray-300"
-								>
+								<div class="mt-3 rounded-xl border border-color bg-accent p-3">
 									<div class="mb-2 flex justify-end">
 										<button
 											type="button"
-											class="flex items-center gap-1 rounded border border-gray-700 px-2 py-0.5 text-[11px] text-gray-300 transition-colors hover:bg-gray-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+											class="small-action"
 											onclick={() => copyExportLogs(exportation.exportLogs)}
-											disabled={exportation.exportLogs.length === 0}
-											title={`${get(LL).common.copy()} ${get(LL).export.exportLogs()}`}
-											aria-label={`${get(LL).common.copy()} ${get(LL).export.exportLogs()}`}
 										>
-											<span class="material-icons text-[13px]">content_copy</span>
+											<span class="material-icons text-[15px]!">content_copy</span>
 											{get(LL).common.copy()}
 										</button>
 									</div>
-									{#if exportation.exportLogs.length === 0}
-										<div class="text-gray-500">{get(LL).export.noExportLogs()}</div>
-									{:else}
+									<div class="max-h-52 space-y-2 overflow-auto font-mono text-[10px]">
 										{#each exportation.exportLogs as log, index (index)}
-											<div class="grid grid-cols-[72px_44px_110px_1fr] gap-2">
-												<span class="text-gray-500">{formatExportLogTime(log.timestamp)}</span>
-												<span class={getExportLogLevelColor(log.level)}>{log.level}</span>
-												<span class="truncate text-cyan-300" title={log.source}>{log.source}</span>
-												<span class="whitespace-pre-wrap break-words">{log.message}</span>
+											<div class="break-words text-secondary">
+												<span class="text-thirdly">{formatExportLogTime(log.timestamp)}</span>
+												<span class="mx-1 uppercase">{log.level}</span>
+												<span class="text-accent-primary">[{log.source}]</span>
+												{log.message}
 											</div>
 										{/each}
-									{/if}
+									</div>
 								</div>
 							{/if}
-						{/if}
-
-						<!-- Error Message (if error) -->
-						{#if exportation.currentState === ExportState.Error && exportation.errorLog}
-							<div class="mt-2 p-1 bg-red-900/30 border border-red-700 rounded-lg">
-								<div class="flex items-center justify-between text-red-400 text-sm mb-1">
-									<div class="flex items-center gap-2">
-										<span class="material-icons text-sm">error</span>
-										<span class="font-medium">{get(LL).export.exportErrorTitle()}</span>
-									</div>
-									<button
-										class="text-xs px-2 py-0.5 rounded border border-red-600 hover:bg-red-800/30 transition-colors cursor-pointer flex items-center gap-1"
-										onclick={() => copyErrorLog(exportation.errorLog)}
-										title={get(LL).export.copyExportError()}
-									>
-										<span class="material-icons text-[14px]">content_copy</span>
-										{get(LL).export.copyErrorButton()}
-									</button>
-								</div>
-								<div
-									class="text-red-300 text-xs font-mono bg-red-950/50 p-1 rounded overflow-auto max-h-[100px]"
-								>
-									{#if exportation.errorLog.includes('allocate memory')}
-										<p>
-											It appears your computer cannot allocate enough memory for the export process.
-											Try the following:
-										</p>
-										<ol class="ml-4 list-decimal text-sm">
-											<li>Reduce the batch size.</li>
-											<li>Lower the video resolution.</li>
-											<li>Remove any background video.</li>
-											<li>Close other applications to free up memory for the export.</li>
-										</ol>
-									{/if}
-
-									<pre class="whitespace-pre-wrap break-words">{exportation.errorLog}</pre>
-								</div>
-							</div>
-						{/if}
-
-						<!-- Export Success Info (if completed) -->
-						{#if exportation.currentState === ExportState.Exported}
-							{@const publication = youtubePublications[exportation.exportId]}
-							<div class="mt-2 p-1 bg-green-900/10 border border-green-600/30 rounded-lg">
-								<div class="flex items-center gap-2 text-green-200 text-sm mb-1">
-									<span class="material-icons text-sm">check_circle</span>
-									<span class="font-medium">{get(LL).export.exportCompleted()}</span>
-									{#if !isTextExport(exportation)}
-										{#if publication?.status === 'uploading'}
-											<span class="ml-auto text-[11px] text-green-100/60">
-												{monitorMessage('youtubePublishing')} · {publication.progress}%
-											</span>
-										{:else if publication?.status === 'published'}
-											<button
-												type="button"
-												class="ml-auto rounded px-2 py-0.5 text-[11px] font-normal text-green-100/60 hover:bg-green-800/30 hover:text-green-100"
-												onclick={() => publication.url && openUrl(publication.url)}
-											>
-												{monitorMessage('youtubePublished')}
-											</button>
-										{:else}
-											<button
-												type="button"
-												class="ml-auto flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-normal text-green-100/60 hover:bg-green-800/30 hover:text-green-100"
-												onclick={() => openYouTubeUpload(exportation)}
-											>
-												<span class="material-icons text-xs">upload</span>
-												{publication?.status === 'failed'
-													? monitorMessage('youtubeRetry')
-													: monitorMessage('youtubePublish')}
-											</button>
-										{/if}
-									{/if}
-								</div>
-								<div
-									class="text-green-100/80 text-xs flex gap-x-2"
-									title={exportation.finalFilePath}
-								>
-									📁<button
-										class="select-text! truncate cursor-pointer"
-										onclick={() => openExportedFile(exportation.finalFilePath)}
-									>
-										{exportation.finalFilePath}</button
-									>
-								</div>
-								{#if publication?.error}
-									<p
-										class="mt-1 text-xs"
-										class:text-amber-300={publication.status === 'published'}
-										class:text-red-300={publication.status === 'failed'}
-									>
-										{publication.error}
-									</p>
-								{/if}
-							</div>
-						{/if}
-					</div>
-				{/each}
+						</article>
+					{/each}
+				{/if}
 			</div>
-		{:else}
-			<div class="p-3 text-center flex items-center flex-col py-10 gap-y-2">
-				<span class="material-icons text-[30px]!">info</span>
-				<p>{get(LL).export.noOngoingExports()}</p>
-			</div>
-		{/if}
 
-		<!-- Footer Actions -->
-		<div class="p-3 border-t border-gray-700 bg-gray-800/50">
-			<div class="flex items-center justify-between">
-				<div class="text-xs text-gray-400">
-					{get(LL).export.inProgressCount({
-						count: globalState.exportations.filter((e) => e.isOnGoing()).length
-					})}
-				</div>
-				{#if globalState.exportations.some((e) => !e.isOnGoing())}
-					<button
-						class="text-xs text-gray-400 hover:text-white transition-colors cursor-pointer"
-						onclick={() => {
-							// Remove completed/error/canceled exports
-							globalState.exportations = globalState.exportations.filter((e) => e.isOnGoing());
-						}}
-					>
+			<footer class="export-monitor-footer">
+				<span class="text-xs text-thirdly"
+					>{get(LL).export.inProgressCount({ count: ongoingCount })}</span
+				>
+				{#if globalState.exportations.some((exportation) => !exportation.isOnGoing())}
+					<button type="button" class="small-action" onclick={clearCompletedExports}>
 						{get(LL).export.clearCompleted()}
 					</button>
 				{/if}
-			</div>
-		</div>
+			</footer>
+		</dialog>
 	</div>
 {/if}
 
 <style>
-	.scrollbar-thin {
-		scrollbar-width: thin;
+	.export-monitor-backdrop {
+		z-index: 9000;
 	}
 
-	.scrollbar-track-gray-800 {
-		scrollbar-color: #374151 #1f2937;
+	.export-monitor-sheet {
+		display: flex;
+		width: 100%;
+		height: calc(100dvh - 28px);
+		flex-direction: column;
+		overflow: hidden;
+		padding: 0;
+		border-radius: 1rem 1rem 0 0;
+		color: inherit;
+		box-shadow: 0 -18px 60px rgb(0 0 0 / 35%);
 	}
 
-	.scrollbar-thumb-gray-600 {
-		scrollbar-color: #4b5563 #374151;
+	.export-monitor-header,
+	.export-monitor-footer {
+		display: flex;
+		flex: 0 0 auto;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		border-color: var(--border-color);
+		background: var(--bg-primary);
+	}
+
+	.export-monitor-header {
+		min-height: 4.75rem;
+		padding: 1rem 0.9rem 0.75rem;
+		border-bottom-width: 1px;
+	}
+
+	.export-monitor-footer {
+		min-height: calc(3.75rem + env(safe-area-inset-bottom));
+		padding: 0.65rem 1rem calc(0.65rem + env(safe-area-inset-bottom));
+		border-top-width: 1px;
+	}
+
+	.export-monitor-list {
+		min-height: 0;
+		flex: 1 1 auto;
+		overflow-y: auto;
+		padding: 0.75rem;
+		overscroll-behavior: contain;
+	}
+
+	.export-card {
+		margin-bottom: 0.75rem;
+		padding: 0.9rem;
+		border: 1px solid var(--border-color);
+		border-radius: 1rem;
+		background: var(--bg-secondary);
+	}
+
+	.touch-button {
+		display: inline-flex;
+		width: 2.75rem;
+		height: 2.75rem;
+		align-items: center;
+		justify-content: center;
+		border-radius: 0.8rem;
+		color: var(--text-secondary);
+	}
+
+	.touch-button:active,
+	.small-action:active {
+		background: var(--bg-accent);
+		color: var(--text-primary);
+	}
+
+	.progress-track {
+		width: 100%;
+		height: 0.55rem;
+		overflow: hidden;
+		border-radius: 9999px;
+		background: var(--bg-accent);
+	}
+
+	.progress-value {
+		height: 100%;
+		border-radius: inherit;
+		background: linear-gradient(90deg, var(--accent-primary), #a78bfa);
+		transition: width 220ms ease-out;
+	}
+
+	.detail-pill {
+		display: flex;
+		min-width: 0;
+		flex-direction: column;
+		gap: 0.2rem;
+		padding: 0.65rem;
+		border-radius: 0.75rem;
+		background: var(--bg-accent);
+		color: var(--text-thirdly);
+	}
+
+	.detail-pill strong {
+		color: var(--text-primary);
+		font-weight: 600;
+	}
+
+	.small-action {
+		display: inline-flex;
+		min-height: 2.75rem;
+		align-items: center;
+		gap: 0.35rem;
+		border: 1px solid var(--border-color);
+		border-radius: 0.75rem;
+		padding: 0 0.75rem;
+		color: var(--text-secondary);
+		font-size: 0.75rem;
 	}
 </style>

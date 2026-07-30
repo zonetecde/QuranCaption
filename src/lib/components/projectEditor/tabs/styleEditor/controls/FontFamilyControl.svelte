@@ -5,6 +5,8 @@
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import QPCFontProvider, { type ImportedFont } from '$lib/services/FontProvider';
+	import AndroidMediaService from '$lib/services/AndroidMediaService';
+	import { globalState } from '$lib/runes/main.svelte';
 	import type { StyleControlValue } from './types';
 
 	type FontPreview = 'latin' | 'arabic' | 'qpc1' | 'qpc2' | 'imported';
@@ -184,7 +186,11 @@
 
 		isImporting = true;
 		try {
-			const font = await QPCFontProvider.importFontFromFile(sourcePath);
+			const localSourcePath = await AndroidMediaService.materializeSelectedFile(
+				sourcePath,
+				globalState.currentProject?.detail.id ?? 0
+			);
+			const font = await QPCFontProvider.importFontFromFile(localSourcePath);
 			importedFonts = [...importedFonts, font].sort((a, b) => a.label.localeCompare(b.label));
 			selectFont(font.family);
 		} catch (error) {

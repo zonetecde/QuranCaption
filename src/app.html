@@ -3,7 +3,12 @@
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<script>
+			if (!window.__TAURI_INTERNALS__ && window.parent !== window) {
+				window.__TAURI_INTERNALS__ = window.parent.__TAURI_INTERNALS__;
+			}
+		</script>
 
 		%sveltekit.head%
 	</head>

@@ -7,7 +7,6 @@
 	import TimeInput from './TimeInput.svelte';
 	import Style from '../styleEditor/Style.svelte';
 	import { VerseRange } from '$lib/classes';
-	import ExportFolderPicker from './ExportFolderPicker.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import type { ExportSkipRange } from '$lib/classes/ProjectEditorState.svelte';
@@ -71,19 +70,6 @@
 		ProjectHistoryManager.track('remove export skip range', () => {
 			globalState.getExportState.skipRanges.splice(index, 1);
 		});
-	}
-
-	/**
-	 * Normalise et sauvegarde le nombre de WebViews utilisees pour capturer les frames.
-	 * @returns {Promise<void>}
-	 */
-	async function saveParallelCaptureWorkers(): Promise<void> {
-		if (!globalState.settings) return;
-		globalState.settings.exportSettings.parallelCaptureWorkers = Math.max(
-			1,
-			Math.min(8, Math.round(globalState.settings.exportSettings.parallelCaptureWorkers || 4))
-		);
-		await Settings.save();
 	}
 
 	/**
@@ -350,10 +336,6 @@
 						</p>
 					</div>
 				</div>
-
-				<div class="border-t border-color pt-4">
-					<ExportFolderPicker description={$LL.export.chooseExportLocation()} />
-				</div>
 			</div>
 		</div>
 	</div>
@@ -467,28 +449,6 @@
 				</div>
 
 				{#if globalState.settings}
-					<div class="mb-3 rounded-lg border border-color bg-secondary p-3">
-						<label
-							class="block text-sm font-medium text-primary mb-2"
-							for="parallel-capture-workers"
-						>
-							{$LL.export.parallelCaptureWorkers()}
-						</label>
-						<input
-							id="parallel-capture-workers"
-							type="number"
-							min="1"
-							max="8"
-							step="1"
-							class="input w-full h-10"
-							bind:value={globalState.settings.exportSettings.parallelCaptureWorkers}
-							onchange={saveParallelCaptureWorkers}
-						/>
-						<p class="text-xs text-thirdly mt-2">
-							{$LL.export.parallelCaptureWorkersDescription()}
-						</p>
-					</div>
-
 					<div class="mb-3 rounded-lg border border-color bg-secondary p-3">
 						<label class="block text-sm font-medium text-primary mb-2" for="video-codec">
 							{$LL.export.videoCodec()}

@@ -16,6 +16,7 @@
 	import { VersionService } from '$lib/services/VersionService.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import MigrationService from '$lib/services/MigrationService';
+	import AndroidMediaService from '$lib/services/AndroidMediaService';
 
 	import InputWithIcon from '../misc/InputWithIcon.svelte';
 	import ModalManager from '../modals/ModalManager';
@@ -358,7 +359,9 @@
 		);
 	});
 	let projectsPerPage = $derived.by(() => getProjectsPerPage());
-	let totalPages = $derived.by(() => Math.max(1, Math.ceil(searchedProjects.length / projectsPerPage)));
+	let totalPages = $derived.by(() =>
+		Math.max(1, Math.ceil(searchedProjects.length / projectsPerPage))
+	);
 	let paginatedProjects = $derived.by(() => {
 		const startIndex = (currentPage - 1) * projectsPerPage;
 		return searchedProjects.slice(startIndex, startIndex + projectsPerPage);
@@ -486,7 +489,7 @@
 
 		for (let index = 0; index < files.length; index++) {
 			try {
-				const filePath = files[index];
+				const filePath = await AndroidMediaService.materializeSelectedFile(files[index], 0);
 				const json = JSON.parse((await readTextFile(filePath)).toString());
 				await ProjectService.importProject(json);
 			} catch (error) {

@@ -1,4 +1,6 @@
 import { open } from '@tauri-apps/plugin-dialog';
+import { globalState } from '$lib/runes/main.svelte';
+import AndroidMediaService from '$lib/services/AndroidMediaService';
 import type { FadeValue } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 export { asDimensionValue, asFadeValue } from '$lib/services/StyleMutationService';
 
@@ -39,5 +41,10 @@ export async function pickImageFile(): Promise<string | null> {
 		directory: false,
 		filters: [{ name: 'Image Files', extensions: ['png', 'jpg', 'jpeg', 'gif'] }]
 	});
-	return result ? String(result) : null;
+	return result
+		? await AndroidMediaService.materializeSelectedFile(
+				String(result),
+				globalState.currentProject?.detail.id ?? 0
+			)
+		: null;
 }

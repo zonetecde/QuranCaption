@@ -28,6 +28,7 @@ import {
 	applyStylePresetToProject,
 	getPresetTranslationTargets
 } from '$lib/services/StylePresetApplicationService';
+import AndroidMediaService from '$lib/services/AndroidMediaService';
 
 export type StyleValueType =
 	| 'color'
@@ -1314,7 +1315,11 @@ export class VideoStyle extends SerializableBase {
 		if (!file) return;
 
 		try {
-			const json = JSON.parse((await readTextFile(file)).toString());
+			const localFile = await AndroidMediaService.materializeSelectedFile(
+				String(file),
+				globalState.currentProject?.detail.id ?? 0
+			);
+			const json = JSON.parse((await readTextFile(localFile)).toString());
 			await globalState.getVideoStyle.importStyles(json);
 		} catch (error) {
 			ModalManager.errorModal(

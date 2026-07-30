@@ -12,6 +12,7 @@
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+	import AndroidMediaService from '$lib/services/AndroidMediaService';
 
 	type CbrConversionProgressEvent = {
 		conversionRequestId: string;
@@ -61,7 +62,10 @@
 
 		if (!file) return;
 
-		const element = file;
+		const element = await AndroidMediaService.materializeSelectedFile(
+			String(file),
+			globalState.currentProject?.detail.id ?? 0
+		);
 		asset.updateFilePath(element);
 	}
 

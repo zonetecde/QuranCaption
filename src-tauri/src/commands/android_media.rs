@@ -1,12 +1,16 @@
 use std::path::Path;
+use std::sync::OnceLock;
+use std::time::Duration;
 
 use jni::objects::{JLongArray, JObject, JString, JValue};
 use jni::JavaVM;
-use serde::Deserialize;
+use tauri_plugin_android_media::AndroidMediaExt;
 
 const METADATA_KEY_DURATION: i32 = 9;
+const METADATA_KEY_HAS_AUDIO: i32 = 16;
 const METADATA_KEY_VIDEO_WIDTH: i32 = 18;
 const METADATA_KEY_VIDEO_HEIGHT: i32 = 19;
+static ANDROID_APP_HANDLE: OnceLock<tauri::AppHandle> = OnceLock::new();
 
 /// Résultat d'une commande FFmpegKit Android.
 pub struct AndroidFfmpegOutput {
@@ -14,12 +18,14 @@ pub struct AndroidFfmpegOutput {
     pub output: String,
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AndroidFfmpegResponse {
-    code: i32,
-    output: String,
-    failure_stack_trace: String,
+/// Conserve le handle Tauri nécessaire aux conversions FFmpegKit partagées.
+///
+/// @param app_handle Handle de l'application Android initialisée.
+/// @returns Erreur si un autre handle avait déjà été enregistré.
+pub fn initialize_ffmpeg(app_handle: tauri::AppHandle) -> Result<(), String> {
+    ANDROID_APP_HANDLE
+        .set(app_handle)
+        .map_err(|_| "Android FFmpeg handle is already initialized".to_string())
 }
 
 /// Exécute FFmpegKit dans Android avec une liste d'arguments préservée.
@@ -27,55 +33,50 @@ struct AndroidFfmpegResponse {
 /// @param arguments Arguments FFmpeg sans le nom du binaire.
 /// @returns Code de réussite et sortie complète de FFmpegKit.
 pub fn execute_ffmpeg(arguments: &[String]) -> Result<AndroidFfmpegOutput, String> {
-    let context = ndk_context::android_context();
-    let vm = unsafe { JavaVM::from_raw(context.vm().cast()) }
-        .map_err(|e| format!("Unable to access Android JVM: {}", e))?;
-    let mut env = vm
-        .attach_current_thread()
-        .map_err(|e| format!("Unable to attach Android JVM thread: {}", e))?;
-    let string_class = env
-        .find_class("java/lang/String")
-        .map_err(|e| format!("Unable to resolve Android String class: {}", e))?;
-    let arguments_array = env
-        .new_object_array(arguments.len() as i32, string_class, JObject::null())
-        .map_err(|e| format!("Unable to allocate FFmpeg arguments: {}", e))?;
+    let app_handle = ANDROID_APP_HANDLE
+        .get()
+        .ok_or_else(|| "Android FFmpeg handle is not initialized".to_string())?;
+    let session_id = app_handle
+        .android_media()
+        .start_ffmpeg(arguments.to_vec())
+        .map_err(|error| error.to_string())?;
 
-    for (index, argument) in arguments.iter().enumerate() {
-        let value = env
-            .new_string(argument)
-            .map_err(|e| format!("Unable to encode FFmpeg argument: {}", e))?;
-        env.set_object_array_element(&arguments_array, index as i32, value)
-            .map_err(|e| format!("Unable to set FFmpeg argument: {}", e))?;
+    loop {
+        let snapshot = match app_handle.android_media().poll_ffmpeg(session_id) {
+            Ok(snapshot) => snapshot,
+            Err(error) => {
+                let _ = app_handle.android_media().cancel_ffmpeg(session_id);
+                return Err(error.to_string());
+            }
+        };
+        if snapshot.state == "COMPLETED" || snapshot.state == "FAILED" {
+            let output = if snapshot.failure_stack_trace.is_empty() {
+                snapshot.output
+            } else {
+                format!("{}\n{}", snapshot.output, snapshot.failure_stack_trace)
+            };
+            return Ok(AndroidFfmpegOutput {
+                success: snapshot.return_code == Some(0),
+                output,
+            });
+        }
+        std::thread::sleep(Duration::from_millis(100));
     }
+}
 
-    let arguments_object = JObject::from(arguments_array);
-    let activity = unsafe { JObject::from_raw(context.context().cast()) };
-    let response = env
-        .call_method(
-            &activity,
-            "nativeFfmpegExecute",
-            "([Ljava/lang/String;)Ljava/lang/String;",
-            &[JValue::Object(&arguments_object)],
-        )
-        .and_then(|value| value.l())
-        .map(JString::from)
-        .map_err(|e| format!("Unable to execute Android FFmpeg: {}", e))?;
-    let response: String = env
-        .get_string(&response)
-        .map(Into::into)
-        .map_err(|e| format!("Unable to read Android FFmpeg result: {}", e))?;
-    let response: AndroidFfmpegResponse = serde_json::from_str(&response)
-        .map_err(|e| format!("Unable to decode Android FFmpeg result: {}", e))?;
-    let output = if response.failure_stack_trace.is_empty() {
-        response.output
-    } else {
-        format!("{}\n{}", response.output, response.failure_stack_trace)
-    };
-
-    Ok(AndroidFfmpegOutput {
-        success: response.code == 0,
-        output,
-    })
+/// Exécute FFprobeKit dans Android avec une liste d'arguments préservée.
+///
+/// @param arguments Arguments FFprobe sans le nom du binaire.
+/// @returns Code de réussite et sortie complète de FFprobeKit.
+pub fn execute_ffprobe(arguments: &[String]) -> Result<AndroidFfmpegOutput, String> {
+    let app_handle = ANDROID_APP_HANDLE
+        .get()
+        .ok_or_else(|| "Android FFmpeg handle is not initialized".to_string())?;
+    let (success, output) = app_handle
+        .android_media()
+        .execute_ffprobe(arguments.to_vec())
+        .map_err(|error| error.to_string())?;
+    Ok(AndroidFfmpegOutput { success, output })
 }
 
 pub struct AndroidAudioPlayer {
@@ -258,6 +259,18 @@ pub fn get_duration_ms(file_path: &Path) -> Result<i64, String> {
         duration
             .parse::<i64>()
             .map_err(|e| format!("Android media duration metadata is invalid: {}", e))
+    })
+}
+
+/// Indique si un média expose une piste audio via MediaMetadataRetriever Android.
+///
+/// @param file_path Chemin du fichier média à analyser.
+/// @returns `true` lorsque la métadonnée Android confirme une piste audio.
+pub fn has_audio(file_path: &Path) -> Result<bool, String> {
+    with_retriever(file_path, |env, retriever| {
+        Ok(extract_metadata(env, retriever, METADATA_KEY_HAS_AUDIO)?
+            .map(|value| value.eq_ignore_ascii_case("yes") || value == "1")
+            .unwrap_or(false))
     })
 }
 

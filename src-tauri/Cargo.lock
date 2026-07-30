@@ -3778,6 +3778,7 @@ dependencies = [
  "sysinfo",
  "tauri",
  "tauri-build",
+ "tauri-plugin-android-media",
  "tauri-plugin-deep-link",
  "tauri-plugin-dialog",
  "tauri-plugin-fs",
@@ -5128,6 +5129,16 @@ dependencies = [
  "tauri-utils",
  "toml 0.9.6",
  "walkdir",
+]
+
+[[package]]
+name = "tauri-plugin-android-media"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.12",
 ]
 
 [[package]]

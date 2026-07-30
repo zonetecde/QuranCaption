@@ -9,6 +9,7 @@
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
+	import AndroidMediaService from '$lib/services/AndroidMediaService';
 
 	let isExporting = $state(false);
 	let isImporting = $state(false);
@@ -48,7 +49,8 @@
 		importSummary = '';
 
 		try {
-			const rawContent = await readTextFile(file);
+			const localFile = await AndroidMediaService.materializeSelectedFile(file, 0);
+			const rawContent = await readTextFile(localFile);
 			const backupProjects = JSON.parse(rawContent.toString()) as ImportedProjectPayload[];
 			const result = await ProjectService.importProjectsBackup(backupProjects);
 

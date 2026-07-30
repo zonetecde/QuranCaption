@@ -1,17 +1,26 @@
 use std::fs;
+#[cfg(not(target_os = "android"))]
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
+#[cfg(not(target_os = "android"))]
 use std::process::{Command, ExitStatus, Stdio};
+#[cfg(not(target_os = "android"))]
 use std::sync::{Arc, Mutex};
+#[cfg(target_os = "android")]
+use std::time::Duration;
 
 use tauri::{Emitter, Manager};
+#[cfg(target_os = "android")]
+use tauri_plugin_android_media::AndroidMediaExt;
 
 use super::constants;
+#[cfg(not(target_os = "android"))]
 use super::ffmpeg_utils::configure_command_no_window;
+#[cfg(not(target_os = "android"))]
 use super::memory;
-use super::types::{
-    FfmpegProgressContext, MemoryLimitExceededError, MemoryMonitorConfig, MemoryMonitorState,
-};
+use super::types::{FfmpegProgressContext, MemoryMonitorConfig};
+#[cfg(not(target_os = "android"))]
+use super::types::{MemoryLimitExceededError, MemoryMonitorState};
 
 // ---------------------------------------------------------------------------
 // Gestion de l'annulation
@@ -29,13 +38,6 @@ pub fn is_export_cancelled(export_id: &str) -> bool {
 pub fn mark_export_cancelled(export_id: &str) {
     if let Ok(mut cancelled) = constants::CANCELLED_EXPORTS.lock() {
         cancelled.insert(export_id.to_string());
-    }
-}
-
-/// Retire le marqueur d'annulation d'un export.
-pub fn clear_export_cancelled(export_id: &str) {
-    if let Ok(mut cancelled) = constants::CANCELLED_EXPORTS.lock() {
-        cancelled.remove(export_id);
     }
 }
 
@@ -90,6 +92,7 @@ pub fn emit_export_progress(
 
 /// Retourne une description lisible du statut de sortie d'un processus.
 /// Sur Unix, inclut le signal de terminaison s'il est disponible.
+#[cfg(not(target_os = "android"))]
 fn exit_status_details(status: &ExitStatus) -> String {
     #[cfg(unix)]
     {
@@ -154,6 +157,7 @@ fn is_ffmpeg_progress_line(line: &str) -> bool {
 /// * `progress_state` - Libellé de l'étape en cours (ex: "Processing Background").
 /// * `memory_monitor` - Configuration du watcher RAM (optionnel).
 /// * `app_handle` - Handle Tauri pour émettre les événements de progression.
+#[cfg(not(target_os = "android"))]
 pub fn run_ffmpeg_command(
     export_id: &str,
     cmd: &[String],
@@ -392,6 +396,179 @@ pub fn run_ffmpeg_command(
     ensure_export_not_cancelled(export_id)?;
 
     Ok(())
+}
+
+/// Exécute FFmpegKit sur Android avec progression, annulation et journal d'échec.
+///
+/// # Paramètres
+/// * `export_id` - Identifiant unique de l'export.
+/// * `cmd` - Commande FFmpeg complète dont le premier élément représente le binaire.
+/// * `progress_context` - Contexte de progression éventuel.
+/// * `progress_state` - Étape affichée dans le moniteur.
+/// * `_memory_monitor` - Configuration desktop ignorée sur Android.
+/// * `app_handle` - Handle Tauri utilisé par le plugin et les événements.
+#[cfg(target_os = "android")]
+pub fn run_ffmpeg_command(
+    export_id: &str,
+    cmd: &[String],
+    progress_context: Option<FfmpegProgressContext>,
+    progress_state: Option<&str>,
+    _memory_monitor: Option<MemoryMonitorConfig>,
+    app_handle: &tauri::AppHandle,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+    ensure_export_not_cancelled(export_id)?;
+    if cmd.len() < 2 {
+        return Err(Box::new(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "FFmpeg arguments are missing",
+        )));
+    }
+
+    let preview = if cmd.len() > 14 {
+        format!("{} ...", cmd[..14].join(" "))
+    } else {
+        cmd.join(" ")
+    };
+    println!("[ffmpegkit] {}", preview);
+
+    let mut arguments = Vec::with_capacity(cmd.len().saturating_sub(1));
+    let mut index = 1;
+    while index < cmd.len() {
+        if cmd[index] == "-progress" && cmd.get(index + 1).map(String::as_str) == Some("pipe:2") {
+            index += 2;
+            continue;
+        }
+        arguments.push(cmd[index].clone());
+        index += 1;
+    }
+
+    let session_id = app_handle
+        .android_media()
+        .start_ffmpeg(arguments)
+        .map_err(|error| {
+            Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                error.to_string(),
+            )) as Box<dyn std::error::Error + Send + Sync + 'static>
+        })?;
+    match constants::ACTIVE_ANDROID_EXPORTS.lock() {
+        Ok(mut active_exports) => {
+            active_exports.insert(export_id.to_string(), session_id);
+        }
+        Err(_) => {
+            let _ = app_handle.android_media().cancel_ffmpeg(session_id);
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Failed to lock active Android exports",
+            )));
+        }
+    }
+
+    let snapshot = loop {
+        if is_export_cancelled(export_id) {
+            let _ = app_handle.android_media().cancel_ffmpeg(session_id);
+        }
+
+        let snapshot = match app_handle.android_media().poll_ffmpeg(session_id) {
+            Ok(snapshot) => snapshot,
+            Err(error) => {
+                let _ = app_handle.android_media().cancel_ffmpeg(session_id);
+                if let Ok(mut active_exports) = constants::ACTIVE_ANDROID_EXPORTS.lock() {
+                    active_exports.remove(export_id);
+                }
+                return Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    error.to_string(),
+                )));
+            }
+        };
+
+        if let Some(context) = progress_context {
+            let local_time_s = (snapshot.time_ms / 1000.0).min(context.local_duration_s);
+            let current_time_s = (context.base_time_s + local_time_s).min(context.total_time_s);
+            let progress = if context.total_time_s > 0.0 {
+                (current_time_s / context.total_time_s * 100.0).min(100.0)
+            } else {
+                0.0
+            };
+            emit_export_progress(
+                app_handle,
+                export_id,
+                progress,
+                current_time_s,
+                context.total_time_s,
+                progress_state,
+                context.current_batch_size,
+            );
+        }
+
+        if snapshot.state == "COMPLETED" || snapshot.state == "FAILED" {
+            break snapshot;
+        }
+        std::thread::sleep(Duration::from_millis(200));
+    };
+
+    if let Ok(mut active_exports) = constants::ACTIVE_ANDROID_EXPORTS.lock() {
+        active_exports.remove(export_id);
+    }
+    ensure_export_not_cancelled(export_id)?;
+
+    if snapshot.return_code == Some(0) {
+        return Ok(());
+    }
+
+    let suppress_error_event = progress_context
+        .map(|context| context.suppress_error_event)
+        .unwrap_or(false);
+    let output = [snapshot.output, snapshot.failure_stack_trace]
+        .into_iter()
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    let log_filename = format!("ffmpeg_failed_{}.txt", timestamp);
+    let log_relative_path = PathBuf::from("logs").join(&log_filename);
+    let log_write_path = app_handle
+        .path()
+        .app_data_dir()
+        .map(|dir| dir.join(&log_relative_path))
+        .unwrap_or_else(|_| PathBuf::from(&log_filename));
+    let log_content = format!(
+        "FFmpegKit Export Failure Log\n============================\nTimestamp: {}\nExport ID: {}\nReturn Code: {:?}\n\nFFmpeg Command:\n{}\n\nOutput:\n{}\n",
+        timestamp,
+        export_id,
+        snapshot.return_code,
+        cmd.join(" "),
+        if output.is_empty() {
+            "No FFmpegKit output captured"
+        } else {
+            &output
+        }
+    );
+    if let Some(parent) = log_write_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(&log_write_path, &log_content)?;
+
+    let error_msg = format!(
+        "FFmpegKit failed during video exportation (code {:?})\n\nSee the log file: {}\n\n{}",
+        snapshot.return_code,
+        log_write_path.to_string_lossy().replace('\\', "/"),
+        log_content
+    );
+    if !suppress_error_event {
+        let _ = app_handle.emit(
+            "export-error",
+            serde_json::json!({ "export_id": export_id, "error": error_msg }),
+        );
+    }
+    Err(Box::new(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        error_msg,
+    )))
 }
 
 // ---------------------------------------------------------------------------

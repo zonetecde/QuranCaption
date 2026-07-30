@@ -258,6 +258,7 @@ fn test_nvenc_with_larger_resolution(ffmpeg_path: Option<&str>) -> bool {
 /// - `codec` : nom du codec FFmpeg (ex: "libx264", "h264_nvenc")
 /// - `params_supplémentaires` : arguments FFmpeg supplémentaires (pix_fmt, crf, bitrate...)
 /// - `extra` : options optionnelles (preset)
+#[cfg(not(target_os = "android"))]
 pub fn choose_best_codec(
     prefer_hw: bool,
     width: i32,
@@ -407,7 +408,38 @@ pub fn choose_best_codec(
     (codec, params, extra)
 }
 
+/// Sélectionne l'encodeur H.264 logiciel inclus dans FFmpegKit Android.
+#[cfg(target_os = "android")]
+pub fn choose_best_codec(
+    _prefer_hw: bool,
+    width: i32,
+    height: i32,
+    usage: CodecUsage,
+    _performance_profile: ExportPerformanceProfile,
+) -> (String, Vec<String>, HashMap<String, Option<String>>) {
+    let high_resolution = is_high_resolution_export(width, height);
+    let bitrate = match (high_resolution, usage) {
+        (true, CodecUsage::Intermediate) => "32M",
+        (true, CodecUsage::Final) => "24M",
+        (false, CodecUsage::Intermediate) => "12M",
+        (false, CodecUsage::Final) => "8M",
+    };
+    let mut extra = HashMap::new();
+    extra.insert("preset".to_string(), None);
+    (
+        "libopenh264".to_string(),
+        vec![
+            "-pix_fmt".to_string(),
+            "yuv420p".to_string(),
+            "-b:v".to_string(),
+            bitrate.to_string(),
+        ],
+        extra,
+    )
+}
+
 /// Sélectionne le codec H.265 final en privilégiant l'encodeur matériel si disponible.
+#[cfg(not(target_os = "android"))]
 pub fn choose_h265_codec(
     prefer_hw: bool,
     width: i32,
@@ -481,6 +513,35 @@ pub fn choose_h265_codec(
             "yuv420p".to_string(),
             "-crf".to_string(),
             "24".to_string(),
+            "-tag:v".to_string(),
+            "hvc1".to_string(),
+        ],
+        extra,
+    )
+}
+
+/// Sélectionne l'encodeur H.265 logiciel disponible dans FFmpegKit Android.
+#[cfg(target_os = "android")]
+pub fn choose_h265_codec(
+    _prefer_hw: bool,
+    width: i32,
+    height: i32,
+    _performance_profile: ExportPerformanceProfile,
+) -> (String, Vec<String>, HashMap<String, Option<String>>) {
+    let bitrate = if is_high_resolution_export(width, height) {
+        "18M"
+    } else {
+        "7M"
+    };
+    let mut extra = HashMap::new();
+    extra.insert("preset".to_string(), None);
+    (
+        "libkvazaar".to_string(),
+        vec![
+            "-pix_fmt".to_string(),
+            "yuv420p".to_string(),
+            "-b:v".to_string(),
+            bitrate.to_string(),
             "-tag:v".to_string(),
             "hvc1".to_string(),
         ],

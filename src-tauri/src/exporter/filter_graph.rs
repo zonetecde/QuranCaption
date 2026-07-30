@@ -3,6 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
+use tauri::Manager;
 
 use super::batching;
 use super::codec;
@@ -31,6 +32,7 @@ pub(crate) enum XfadeHardwareBackend {
 ///
 /// # Retourne
 /// `true` si le backend peut enchainer plusieurs transitions, sinon `false`.
+#[cfg(not(target_os = "android"))]
 fn probe_xfade_backend_available(ffmpeg_exe: &str, backend: XfadeHardwareBackend) -> bool {
     let (cache, name, filter, init_device, device) = match backend {
         XfadeHardwareBackend::Vulkan => (
@@ -149,6 +151,7 @@ fn probe_xfade_backend_available(ffmpeg_exe: &str, backend: XfadeHardwareBackend
 ///
 /// # Retourne
 /// Backend GPU utilisable, ou CPU si aucun backend GPU ne passe le test.
+#[cfg(not(target_os = "android"))]
 fn choose_xfade_backend(ffmpeg_exe: &str) -> XfadeHardwareBackend {
     if probe_xfade_backend_available(ffmpeg_exe, XfadeHardwareBackend::Vulkan) {
         return XfadeHardwareBackend::Vulkan;
@@ -158,6 +161,12 @@ fn choose_xfade_backend(ffmpeg_exe: &str) -> XfadeHardwareBackend {
     }
 
     println!("[gpu][xfade] aucun backend GPU utilisable, fallback CPU");
+    XfadeHardwareBackend::Cpu
+}
+
+/// Force les transitions CPU lorsque FFmpeg s'exécute dans FFmpegKit Android.
+#[cfg(target_os = "android")]
+fn choose_xfade_backend(_ffmpeg_exe: &str) -> XfadeHardwareBackend {
     XfadeHardwareBackend::Cpu
 }
 
@@ -1116,7 +1125,10 @@ pub fn render_ffmpeg_filter_complex_single(
     let tmp_dir = if let Some(cwd) = imgs_cwd {
         PathBuf::from(cwd)
     } else {
-        std::env::temp_dir()
+        app_handle
+            .path()
+            .app_cache_dir()
+            .unwrap_or_else(|_| std::env::temp_dir())
     };
     fs::create_dir_all(&tmp_dir).ok();
 

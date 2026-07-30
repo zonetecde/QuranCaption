@@ -8,7 +8,7 @@ use super::batching;
 use super::codec;
 use super::ffmpeg_runner;
 use super::ffmpeg_utils;
-use super::types::{ExportPerformanceProfile, FfmpegProgressContext};
+use super::types::{CodecUsage, ExportPerformanceProfile, FfmpegProgressContext};
 
 // ---------------------------------------------------------------------------
 // Fichier de concaténation FFmpeg
@@ -611,6 +611,17 @@ pub fn concat_internal_batch_videos(
             "yuva420p".to_string(),
         ]);
     } else {
+        #[cfg(target_os = "android")]
+        {
+            let (video_codec, video_params, video_extra) =
+                codec::choose_best_codec(false, 0, 0, CodecUsage::Final, performance_profile);
+            cmd.extend_from_slice(&["-c:v".to_string(), video_codec]);
+            if let Some(Some(preset)) = video_extra.get("preset") {
+                cmd.extend_from_slice(&["-preset".to_string(), preset.clone()]);
+            }
+            cmd.extend(video_params);
+        }
+        #[cfg(not(target_os = "android"))]
         cmd.extend_from_slice(&[
             "-c:v".to_string(),
             "libx264".to_string(),

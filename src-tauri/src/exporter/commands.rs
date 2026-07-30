@@ -6,7 +6,9 @@ use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
+#[cfg(target_os = "android")]
+use tauri_plugin_android_media::AndroidMediaExt;
 
 use super::batching;
 use super::codec;
@@ -78,7 +80,6 @@ pub async fn export_video(
     app: tauri::AppHandle,
 ) -> Result<String, String> {
     let t0 = Instant::now();
-    ffmpeg_runner::clear_export_cancelled(&export_id);
 
     // ---- Logs de démarrage ----
     println!("[start_export] export_id={}", export_id);
@@ -325,7 +326,6 @@ pub async fn export_video(
     // ---- Finalisation ----
     let export_time_s = t0.elapsed().as_secs_f64();
     *constants::LAST_EXPORT_TIME_S.lock().unwrap() = Some(export_time_s);
-    ffmpeg_runner::clear_export_cancelled(&export_id);
     println!("[done] Export terminé en {:.2}s", export_time_s);
     println!("[metric] export_time_seconds={:.3}", export_time_s);
 
@@ -416,7 +416,10 @@ fn export_error(message: impl Into<String>) -> ExportError {
 }
 
 /// Cree un dossier temporaire unique pour les fichiers intermediaires.
-fn create_temp_export_dir(export_id: &str) -> ExportResult<TempExportDir> {
+fn create_temp_export_dir(
+    export_id: &str,
+    app_handle: &tauri::AppHandle,
+) -> ExportResult<TempExportDir> {
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_nanos())
@@ -431,7 +434,11 @@ fn create_temp_export_dir(export_id: &str) -> ExportResult<TempExportDir> {
             }
         })
         .collect();
-    let path = std::env::temp_dir().join(format!(
+    let temp_root = app_handle
+        .path()
+        .app_cache_dir()
+        .unwrap_or_else(|_| std::env::temp_dir());
+    let path = temp_root.join(format!(
         "qurancaption-fast-export-{}-{}-{}",
         safe_export_id,
         std::process::id(),
@@ -921,7 +928,30 @@ fn build_overlay_concat_plan(
                     })
                     .collect();
 
+                #[cfg(not(target_os = "android"))]
                 tasks.par_iter().try_for_each(|task| -> ExportResult<()> {
+                    ffmpeg_runner::ensure_export_not_cancelled(export_id)?;
+                    let blended = if compose_black {
+                        blend_opaque_regions(
+                            current_visible.as_ref().expect("image visible courante"),
+                            next_visible.as_ref().expect("image visible suivante"),
+                            &changed_regions,
+                            task.numerator,
+                            task.denominator,
+                        )
+                    } else {
+                        blend_premultiplied_regions(
+                            &current,
+                            &next,
+                            &changed_regions,
+                            task.numerator,
+                            task.denominator,
+                        )
+                    };
+                    write_overlay_frame(&task.output_path, &blended, frame_format)
+                })?;
+                #[cfg(target_os = "android")]
+                tasks.iter().try_for_each(|task| -> ExportResult<()> {
                     ffmpeg_runner::ensure_export_not_cancelled(export_id)?;
                     let blended = if compose_black {
                         blend_opaque_regions(
@@ -1192,7 +1222,7 @@ fn run_fast_export(
         .cloned()
         .collect();
 
-    let mut temp_dir = create_temp_export_dir(export_id)?;
+    let mut temp_dir = create_temp_export_dir(export_id, &app_handle)?;
 
     ffmpeg_runner::emit_export_progress(
         &app_handle,
@@ -1230,7 +1260,7 @@ fn run_fast_export(
                 error
             );
             fs::remove_dir_all(&temp_dir.path).ok();
-            temp_dir = create_temp_export_dir(export_id)?;
+            temp_dir = create_temp_export_dir(export_id, &app_handle)?;
             build_overlay_concat_plan(
                 export_id,
                 image_paths,
@@ -1900,54 +1930,82 @@ fn build_background_transition_chain(
 /// Marque l'export comme annulé (vérifié par `ensure_export_not_cancelled`)
 /// et tue le processus FFmpeg associé s'il est encore actif.
 #[tauri::command]
-pub fn cancel_export(export_id: String) -> Result<String, String> {
+pub fn cancel_export(export_id: String, app_handle: tauri::AppHandle) -> Result<String, String> {
     println!(
         "[cancel_export] Demande d'annulation pour export_id: {}",
         export_id
     );
     ffmpeg_runner::mark_export_cancelled(&export_id);
 
-    let mut active_exports = constants::ACTIVE_EXPORTS
-        .lock()
-        .map_err(|_| "Failed to lock active exports")?;
+    #[cfg(target_os = "android")]
+    {
+        let session_id = constants::ACTIVE_ANDROID_EXPORTS
+            .lock()
+            .map_err(|_| "Failed to lock active Android exports")?
+            .remove(&export_id);
+        if let Some(session_id) = session_id {
+            app_handle
+                .android_media()
+                .cancel_ffmpeg(session_id)
+                .map_err(|error| error.to_string())?;
+        }
+        return Ok(format!("Annulation demandée pour l'export {}", export_id));
+    }
 
-    if let Some(process_ref) = active_exports.remove(&export_id) {
-        if let Ok(mut process_guard) = process_ref.lock() {
-            if let Some(mut child) = process_guard.take() {
-                match child.kill() {
-                    Ok(_) => {
-                        println!(
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = app_handle;
+        let mut active_exports = constants::ACTIVE_EXPORTS
+            .lock()
+            .map_err(|_| "Failed to lock active exports")?;
+
+        if let Some(process_ref) = active_exports.remove(&export_id) {
+            if let Ok(mut process_guard) = process_ref.lock() {
+                if let Some(mut child) = process_guard.take() {
+                    match child.kill() {
+                        Ok(_) => {
+                            println!(
                             "[cancel_export] Processus FFmpeg tué avec succès pour export_id: {}",
                             export_id
                         );
-                        let _ = child.wait(); // Nettoyer le processus zombie
-                        Ok(format!("Export {} annulé avec succès", export_id))
+                            let _ = child.wait(); // Nettoyer le processus zombie
+                            Ok(format!("Export {} annulé avec succès", export_id))
+                        }
+                        Err(e) => {
+                            println!(
+                                "[cancel_export] Erreur lors de l'arrêt du processus: {:?}",
+                                e
+                            );
+                            Err(format!("Erreur lors de l'annulation: {}", e))
+                        }
                     }
-                    Err(e) => {
-                        println!(
-                            "[cancel_export] Erreur lors de l'arrêt du processus: {:?}",
-                            e
-                        );
-                        Err(format!("Erreur lors de l'annulation: {}", e))
-                    }
+                } else {
+                    println!(
+                        "[cancel_export] Aucun processus actif trouvé pour export_id: {}",
+                        export_id
+                    );
+                    Err(format!("Aucun processus actif pour l'export {}", export_id))
                 }
             } else {
-                println!(
-                    "[cancel_export] Aucun processus actif trouvé pour export_id: {}",
-                    export_id
-                );
-                Err(format!("Aucun processus actif pour l'export {}", export_id))
+                Err("Failed to lock process".to_string())
             }
         } else {
-            Err("Failed to lock process".to_string())
+            println!(
+                "[cancel_export] Export_id non trouvé dans les exports actifs: {}",
+                export_id
+            );
+            Ok(format!("Annulation demandée pour l'export {}", export_id))
         }
-    } else {
-        println!(
-            "[cancel_export] Export_id non trouvé dans les exports actifs: {}",
-            export_id
-        );
-        Ok(format!("Annulation demandée pour l'export {}", export_id))
     }
+}
+
+/// Indique si une annulation a déjà été demandée pour un export.
+///
+/// Cette vérification ferme la course entre l'appui sur Annuler et le montage
+/// différé du renderer Android.
+#[tauri::command]
+pub fn is_export_cancelled(export_id: String) -> bool {
+    ffmpeg_runner::is_export_cancelled(&export_id)
 }
 
 // ---------------------------------------------------------------------------
@@ -1961,6 +2019,44 @@ pub fn cancel_export(export_id: String) -> Result<String, String> {
 /// traitement n'est nécessaire.
 #[tauri::command]
 pub async fn concat_videos(
+    export_id: String,
+    video_paths: Vec<String>,
+    output_path: String,
+    video_fade_in_enabled: Option<bool>,
+    video_fade_out_enabled: Option<bool>,
+    audio_fade_in_enabled: Option<bool>,
+    audio_fade_out_enabled: Option<bool>,
+    export_fade_duration_ms: Option<i32>,
+    export_without_background: Option<bool>,
+    transparent_export_format: Option<String>,
+    video_codec: Option<ExportVideoCodec>,
+    performance_profile: ExportPerformanceProfile,
+    app: tauri::AppHandle,
+) -> Result<String, String> {
+    tokio::task::spawn_blocking(move || {
+        concat_videos_sync(
+            export_id,
+            video_paths,
+            output_path,
+            video_fade_in_enabled,
+            video_fade_out_enabled,
+            audio_fade_in_enabled,
+            audio_fade_out_enabled,
+            export_fade_duration_ms,
+            export_without_background,
+            transparent_export_format,
+            video_codec,
+            performance_profile,
+            app,
+        )
+    })
+    .await
+    .map_err(|error| format!("Erreur interne de concaténation: {}", error))?
+}
+
+/// Exécute la concaténation sur un thread bloquant dédié.
+#[allow(clippy::too_many_arguments)]
+fn concat_videos_sync(
     export_id: String,
     video_paths: Vec<String>,
     output_path: String,
@@ -2222,6 +2318,17 @@ pub async fn concat_videos(
             }
             cmd.extend(vparams);
         } else {
+            #[cfg(target_os = "android")]
+            {
+                let (vcodec, vparams, vextra) =
+                    codec::choose_best_codec(false, 0, 0, CodecUsage::Final, performance_profile);
+                cmd.extend_from_slice(&["-c:v".to_string(), vcodec]);
+                if let Some(Some(preset)) = vextra.get("preset") {
+                    cmd.extend_from_slice(&["-preset".to_string(), preset.clone()]);
+                }
+                cmd.extend(vparams);
+            }
+            #[cfg(not(target_os = "android"))]
             cmd.extend_from_slice(&[
                 "-c:v".to_string(),
                 "libx264".to_string(),

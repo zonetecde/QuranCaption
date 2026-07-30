@@ -1,5 +1,7 @@
 /// Commandes IA de trimming/traduction.
 pub mod ai_translation;
+/// Publication et import de médias via les URI Android.
+pub mod android_export;
 #[cfg(target_os = "android")]
 /// Helpers multimédia natifs Android.
 pub mod android_media;

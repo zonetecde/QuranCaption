@@ -1,0 +1,87 @@
+name: Build & Release Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Android release tag (e.g. QCM-1.0.0). Must match tauri.conf.json.'
+        required: true
+        type: string
+
+jobs:
+  build-and-release-android:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Android release tag
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          APP_VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          test "$RELEASE_TAG" = "QCM-$APP_VERSION" || {
+            echo "Expected tag QCM-$APP_VERSION, received $RELEASE_TAG"
+            exit 1
+          }
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Configure Android signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          test -n "$KEYSTORE_BASE64"
+          test -n "$STORE_PASSWORD"
+          test -n "$KEY_PASSWORD"
+          test -n "$KEY_ALIAS"
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/qurancaption-upload.jks"
+          {
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyPassword=$KEY_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "storeFile=$RUNNER_TEMP/qurancaption-upload.jks"
+          } > src-tauri/gen/android/keystore.properties
+
+      - name: Build signed APK and create Android release
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          mobile: android
+          args: --apk --target aarch64 --ci
+          tagName: ${{ inputs.tag }}
+          releaseName: 'Quran Caption Mobile v__VERSION__'
+          releaseBody: 'Download the APK below to install this Android update.'
+          releaseDraft: false
+          prerelease: true
+          generateReleaseNotes: true
+          uploadUpdaterJson: false
+          uploadUpdaterSignatures: false
+          releaseAssetNamePattern: 'QuranCaption.Android.ARM64[ext]'

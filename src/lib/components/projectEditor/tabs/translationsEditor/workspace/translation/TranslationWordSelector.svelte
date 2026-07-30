@@ -12,11 +12,13 @@
 		words,
 		direction = 'ltr',
 		isWordSelected = () => false,
+		showHoverEffect = true,
 		onSelection
 	}: {
 		words: TranslationWordSelectorItem[];
 		direction?: 'ltr' | 'rtl';
 		isWordSelected?: (wordIndex: number) => boolean;
+		showHoverEffect?: boolean;
 		onSelection: (startWordIndex: number, endWordIndex: number) => void;
 	} = $props();
 
@@ -109,7 +111,7 @@
 	{#each words as word (`${word.wordIndex}-${word.text}`)}
 		{@const isSelected = isDragSelected(word.wordIndex) || isWordSelected(word.wordIndex)}
 		<button
-			class={`translation-word-style text-sm transition-all duration-150 ${
+			class={`translation-word-style text-sm transition-all duration-150 ${showHoverEffect ? 'translation-word-style-hoverable' : ''} ${
 				isSelected ? 'translation-word-style-selected text-primary shadow-sm' : 'text-primary'
 			}`}
 			style={word.style ?? ''}
@@ -155,7 +157,7 @@
 		cursor: text;
 	}
 
-	.translation-word-style:hover {
+	.translation-word-style-hoverable:hover {
 		background: color-mix(in srgb, var(--accent-primary) 16%, transparent);
 	}
 
@@ -163,7 +165,7 @@
 		background: color-mix(in srgb, var(--accent-primary) 22%, transparent);
 	}
 
-	.translation-word-style-selected:hover {
+	.translation-word-style-hoverable.translation-word-style-selected:hover {
 		background: color-mix(in srgb, var(--accent-primary) 66%, transparent);
 	}
 </style>

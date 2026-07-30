@@ -90,7 +90,9 @@
 			/>
 		{/snippet}
 		{#snippet rightContent()}
-			<TranslationInlineStylePanel />
+			<div class="h-full min-h-0 overflow-y-auto">
+				<TranslationInlineStylePanel />
+			</div>
 		{/snippet}
 	</MobileSideDrawers>
 </div>

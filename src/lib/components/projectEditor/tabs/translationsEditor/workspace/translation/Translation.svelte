@@ -738,6 +738,7 @@
 								<TranslationWordSelector
 									words={getTrimmedTranslationWords()}
 									direction={translationDirection()}
+									showHoverEffect={false}
 									isWordSelected={(wordIndex) =>
 										isWbwUnitSelectedForArabicWord(arabicWordIndex, wordIndex)}
 									onSelection={(start, end) =>

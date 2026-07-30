@@ -1215,7 +1215,7 @@ const id = {
 			'H.265 dapat mengurangi ukuran file, tetapi H.264 tetap menjadi opsi paling kompatibel. Ekspor transparan menggunakan kodeknya sendiri.',
 		parallelCaptureWorkers: 'Parallel capture workers',
 		parallelCaptureWorkersDescription:
-			'Jumlah WebView tersembunyi yang dipakai untuk capture frame PNG. Default 4; nilai 1 menonaktifkan parallel capture.',
+			'Tidak disarankan di ponsel: memakai lebih dari 1 renderer sering memperlambat ekspor karena renderer berbagi CPU dan memori. Default 1; maksimum 4.',
 		fastest: 'Paling cepat',
 		fastestDescription:
 			'Export paling cepat. Bisa memakai hardware encoding, yang kadang menimbulkan artifact pada background 4K yang detail.',

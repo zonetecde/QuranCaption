@@ -1931,7 +1931,7 @@ const es = {
 			'H.265 puede reducir el tamaño del archivo, pero H.264 sigue siendo la opción más compatible. Las exportaciones transparentes usan su propio códec.',
 		parallelCaptureWorkers: 'Workers de captura paralela',
 		parallelCaptureWorkersDescription:
-			'Número de WebViews ocultas usadas para capturar frames PNG. El valor predeterminado es 4; 1 desactiva la captura paralela.',
+			'No se recomienda modificarlo en teléfonos: usar más de 1 renderer suele ralentizar la exportación porque comparten CPU y memoria. Valor predeterminado: 1; máximo: 4.',
 		fastest: 'Más rápido',
 		fastestDescription:
 			'Exportación más rápida. Puede usar codificación por hardware, con riesgo de artefactos en fondos 4K detallados.',
@@ -2367,8 +2367,7 @@ const es = {
 		importingBackup: 'Importando copia de seguridad...',
 		backupExported: 'Copia de seguridad exportada con éxito.',
 		importedProjects: '{count} proyectos importados desde la copia de seguridad.',
-		backupLoadedAllPresent:
-			'Copia de seguridad cargada. Todos los proyectos ya estaban presentes.',
+		backupLoadedAllPresent: 'Copia de seguridad cargada. Todos los proyectos ya estaban presentes.',
 		backupImportFinished: 'Importación de copia de seguridad finalizada.',
 		backupExportFailed: 'Error al exportar la copia de seguridad',
 		unableToExportProjects: 'No se pudieron exportar todos los proyectos.',

@@ -31,7 +31,32 @@
 	let unlistenCloseRequest: (() => void) | undefined;
 	let unlistenRendererFinished: (() => void) | undefined;
 	let unlistenExportNativeEvents: Array<() => void> = [];
-	let exportRenderer: HTMLIFrameElement | undefined;
+	let exportRenderer = $state<HTMLIFrameElement | undefined>(undefined);
+	let captureRendererExportId = $state<string | null>(null);
+	let captureRendererIds = $state<number[]>([]);
+	let captureRendererElements = $state<Array<HTMLIFrameElement | undefined>>([]);
+
+	/**
+	 * Retourne l'identifiant du renderer de capture correspondant à une source de message.
+	 * @param {MessageEventSource | null} source Source du message reçu.
+	 * @returns {number | null} Identifiant du worker, ou null si la source est inconnue.
+	 */
+	function getCaptureRendererWorkerId(source: MessageEventSource | null): number | null {
+		for (let workerId = 0; workerId < captureRendererElements.length; workerId++) {
+			if (source === captureRendererElements[workerId]?.contentWindow) return workerId;
+		}
+		return null;
+	}
+
+	/**
+	 * Démonte tous les renderers de capture de l'export courant.
+	 * @returns {void}
+	 */
+	function clearCaptureRenderers(): void {
+		captureRendererExportId = null;
+		captureRendererIds = [];
+		captureRendererElements = [];
+	}
 
 	/**
 	 * Résume une valeur IPC sans injecter de gros buffers dans le moniteur.
@@ -76,11 +101,33 @@
 	 * @returns {void}
 	 */
 	function handleExportRendererMessage(event: MessageEvent): void {
-		if (event.source !== exportRenderer?.contentWindow) return;
+		const isCoordinator = event.source === exportRenderer?.contentWindow;
+		const sourceWorkerId = getCaptureRendererWorkerId(event.source);
+		if (!isCoordinator && sourceWorkerId === null) return;
 		const data = event.data as
 			| { type?: 'export-renderer-finished-main'; exportId?: string }
 			| { type?: 'export-renderer-progress-main'; payload?: ExportProgress }
 			| { type?: 'export-renderer-log-main'; payload?: ExportLogPayload }
+			| {
+					type?: 'export-renderer-workers-create-main';
+					exportId?: string;
+					count?: number;
+			  }
+			| { type?: 'export-renderer-workers-close-main'; exportId?: string }
+			| {
+					type?: 'export-renderer-worker-event-main';
+					exportId?: string;
+					workerId?: number;
+					eventName?: string;
+					payload?: unknown;
+			  }
+			| {
+					type?: 'export-renderer-worker-command-main';
+					exportId?: string;
+					workerId?: number;
+					eventName?: string;
+					payload?: unknown;
+			  }
 			| {
 					type?: 'export-renderer-invoke-main';
 					requestId?: string;
@@ -100,11 +147,15 @@
 			const source = event.source as WindowProxy;
 			const startedAt = performance.now();
 			const diagnosticExportId = Number(data.exportId);
+			const diagnosticSource =
+				sourceWorkerId === null
+					? 'android-ipc-parent'
+					: `android-ipc-parent-worker-${sourceWorkerId}`;
 			if (Number.isFinite(diagnosticExportId)) {
 				applyExportLog({
 					exportId: diagnosticExportId,
 					timestamp: new Date().toISOString(),
-					source: 'android-ipc-parent',
+					source: diagnosticSource,
 					level: 'info',
 					message: `IPC → ${data.command} args=${summarizeRendererInvokeValue(data.args)}`
 				});
@@ -115,7 +166,7 @@
 						applyExportLog({
 							exportId: diagnosticExportId,
 							timestamp: new Date().toISOString(),
-							source: 'android-ipc-parent',
+							source: diagnosticSource,
 							level: 'info',
 							message: `IPC ✓ ${data.command} ${Math.round(performance.now() - startedAt)}ms result=${summarizeRendererInvokeValue(result)}`
 						});
@@ -134,7 +185,7 @@
 						applyExportLog({
 							exportId: diagnosticExportId,
 							timestamp: new Date().toISOString(),
-							source: 'android-ipc-parent',
+							source: diagnosticSource,
 							level: 'error',
 							message: `IPC ✗ ${data.command} ${Math.round(performance.now() - startedAt)}ms error=${error instanceof Error ? error.message : String(error)}`
 						});
@@ -151,7 +202,7 @@
 			);
 			return;
 		}
-		if (data?.type === 'export-renderer-progress-main' && data.payload) {
+		if (data?.type === 'export-renderer-progress-main' && data.payload && isCoordinator) {
 			applyExportProgress(data.payload);
 			return;
 		}
@@ -160,9 +211,63 @@
 			return;
 		}
 		if (
-			data?.type === 'export-renderer-finished-main' &&
+			data?.type === 'export-renderer-workers-create-main' &&
+			isCoordinator &&
 			data.exportId === globalState.uiState.activeExportId
 		) {
+			const count = Math.max(1, Math.min(4, Math.round(data.count ?? 1)));
+			captureRendererExportId = data.exportId;
+			captureRendererIds = Array.from({ length: count }, (_, workerId) => workerId);
+			return;
+		}
+		if (
+			data?.type === 'export-renderer-workers-close-main' &&
+			isCoordinator &&
+			data.exportId === captureRendererExportId
+		) {
+			clearCaptureRenderers();
+			return;
+		}
+		if (
+			data?.type === 'export-renderer-worker-event-main' &&
+			sourceWorkerId !== null &&
+			data.exportId === globalState.uiState.activeExportId &&
+			data.workerId === sourceWorkerId &&
+			data.eventName
+		) {
+			exportRenderer?.contentWindow?.postMessage(
+				{
+					type: 'export-renderer-worker-event-renderer',
+					eventName: data.eventName,
+					payload: data.payload
+				},
+				'*'
+			);
+			return;
+		}
+		if (
+			data?.type === 'export-renderer-worker-command-main' &&
+			isCoordinator &&
+			data.exportId === captureRendererExportId &&
+			typeof data.workerId === 'number' &&
+			data.eventName
+		) {
+			captureRendererElements[data.workerId]?.contentWindow?.postMessage(
+				{
+					type: 'export-renderer-worker-command-renderer',
+					eventName: data.eventName,
+					payload: data.payload
+				},
+				'*'
+			);
+			return;
+		}
+		if (
+			data?.type === 'export-renderer-finished-main' &&
+			isCoordinator &&
+			data.exportId === globalState.uiState.activeExportId
+		) {
+			clearCaptureRenderers();
 			globalState.uiState.activeExportId = null;
 		}
 	}
@@ -221,6 +326,7 @@
 			'export-renderer-finished-main',
 			(event) => {
 				if (globalState.uiState.activeExportId === event.payload.exportId) {
+					clearCaptureRenderers();
 					globalState.uiState.activeExportId = null;
 				}
 			}
@@ -233,14 +339,17 @@
 		]) {
 			unlistenExportNativeEvents.push(
 				await listen(eventName, (event) => {
-					exportRenderer?.contentWindow?.postMessage(
-						{
-							type: 'export-renderer-native-event-main',
-							eventName,
-							payload: event.payload
-						},
-						'*'
-					);
+					const message = {
+						type: 'export-renderer-native-event-main',
+						eventName,
+						payload: event.payload
+					};
+					exportRenderer?.contentWindow?.postMessage(message, '*');
+					if (eventName === 'cancel-export-renderer') {
+						for (const renderer of captureRendererElements) {
+							renderer?.contentWindow?.postMessage(message, '*');
+						}
+					}
 				})
 			);
 		}
@@ -335,12 +444,30 @@
 			class="export-renderer"
 			src={`/exporter?${new URLSearchParams({
 				id: globalState.uiState.activeExportId,
-				embedded: '1'
+				embedded: '1',
+				workers: String(globalState.settings?.exportSettings.parallelCaptureWorkers ?? 1)
 			})}`}
 			title={$LL.export.exportVideo()}
 			aria-hidden="true"
 			tabindex="-1"
 		></iframe>
+		{#if captureRendererExportId === globalState.uiState.activeExportId}
+			{#each captureRendererIds as workerId (workerId)}
+				<iframe
+					bind:this={captureRendererElements[workerId]}
+					class="export-renderer"
+					src={`/exporter?${new URLSearchParams({
+						id: globalState.uiState.activeExportId,
+						embedded: '1',
+						mode: 'capture-worker',
+						worker: String(workerId)
+					})}`}
+					title={`${$LL.export.parallelCaptureWorkers()} ${workerId + 1}`}
+					aria-hidden="true"
+					tabindex="-1"
+				></iframe>
+			{/each}
+		{/if}
 	{/if}
 </div>
 

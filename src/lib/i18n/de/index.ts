@@ -1935,7 +1935,7 @@ const de = {
 			'H.265 kann die Dateigröße reduzieren, aber H.264 bleibt die kompatibelste Option. Transparente Exporte verwenden ihren eigenen Codec.',
 		parallelCaptureWorkers: 'Parallele Capture-Worker',
 		parallelCaptureWorkersDescription:
-			'Anzahl ausgeblendeter WebViews fuer die PNG-Frame-Erfassung. Standard ist 4; 1 deaktiviert die parallele Erfassung.',
+			'Auf Smartphones nicht empfohlen: Mehr als 1 Renderer verlangsamt den Export oft, da sich die Renderer CPU und Speicher teilen. Standard: 1; Maximum: 4.',
 		fastest: 'Am schnellsten',
 		fastestDescription:
 			'Schnellster Export. Kann Hardware-Encoding nutzen, wodurch bei detailreichen 4K-Hintergründen Artefakte entstehen können.',

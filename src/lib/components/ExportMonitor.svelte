@@ -481,14 +481,32 @@
 										<span>{get(LL).export.durationColumn()}</span>
 										<strong>{formatDuration(exportation.videoLength)}</strong>
 									</div>
-									<div class="detail-pill col-span-2">
-										<span>{get(LL).export.versesColumn()}</span>
-										<strong class="truncate">{exportation.verseRange}</strong>
+									<div class="col-span-2 flex min-w-0 gap-2">
+										<div class="detail-pill min-w-0 flex-1">
+											<span>{get(LL).export.versesColumn()}</span>
+											<strong class="truncate">{exportation.verseRange}</strong>
+										</div>
+										<button
+											type="button"
+											class="small-action shrink-0 whitespace-nowrap"
+											onclick={() => toggleExportLogs(exportation.exportId)}
+										>
+											<span class="material-icons text-[16px]!">terminal</span>
+										</button>
 									</div>
 								{:else}
-									<div class="detail-pill col-span-2">
-										<span>{get(LL).export.typeColumn()}</span>
-										<strong>{exportation.exportLabel || get(LL).export.textExport()}</strong>
+									<div class="col-span-2 flex min-w-0 gap-2">
+										<div class="detail-pill min-w-0 flex-1">
+											<span>{get(LL).export.typeColumn()}</span>
+											<strong>{exportation.exportLabel || get(LL).export.textExport()}</strong>
+										</div>
+										<button
+											type="button"
+											class="small-action shrink-0 whitespace-nowrap"
+											onclick={() => toggleExportLogs(exportation.exportId)}
+										>
+											<span class="material-icons text-[16px]!">terminal</span>
+										</button>
 									</div>
 								{/if}
 							</div>
@@ -513,16 +531,8 @@
 								</div>
 							{/if}
 
-							<div class="mt-3 flex flex-wrap items-center justify-end gap-2">
-								<button
-									type="button"
-									class="small-action"
-									onclick={() => toggleExportLogs(exportation.exportId)}
-								>
-									<span class="material-icons text-[16px]!">terminal</span>
-									{get(LL).export.exportLogs()}
-								</button>
-								{#if exportation.currentState === ExportState.Exported}
+							{#if exportation.currentState === ExportState.Exported}
+								<div class="mt-3 flex flex-wrap items-center justify-end gap-2">
 									<button
 										type="button"
 										class="btn-accent min-h-11 px-4 text-sm font-medium"
@@ -531,8 +541,8 @@
 										<span class="material-icons mr-2 text-[18px]!">play_circle</span>
 										{monitorMessage('openFile')}
 									</button>
-								{/if}
-							</div>
+								</div>
+							{/if}
 
 							{#if expandedLogsByExportId[exportation.exportId]}
 								<div class="mt-3 rounded-xl border border-color bg-accent p-3">

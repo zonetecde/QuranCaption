@@ -4,9 +4,8 @@
 	import VideoPreview from '$lib/components/projectEditor/videoPreview/VideoPreview.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { invoke } from '@tauri-apps/api/core';
-	import { getCurrentWebviewWindow, WebviewWindow } from '@tauri-apps/api/webviewWindow';
-	import { LogicalPosition } from '@tauri-apps/api/dpi';
-	import { emit, listen } from '@tauri-apps/api/event';
+	import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+	import { emit } from '@tauri-apps/api/event';
 	import { onDestroy, onMount } from 'svelte';
 	import {
 		exists,
@@ -47,7 +46,6 @@
 	import QPCFontProvider from '$lib/services/FontProvider';
 	import SoosiProvider from '$lib/services/SoosiProvider';
 	import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
-	import { getAllWindows, type BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
 	import Exportation, { ExportState, type ExportLogLevel } from '$lib/classes/Exportation.svelte';
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -73,9 +71,6 @@
 		resolveTimedVisualState
 	} from '$lib/services/StyleVisualResolver';
 	import type { StyleName } from '$lib/classes/VideoStyle.svelte';
-
-	// Affichage ou non des fenêtres
-	const DEBUG_EXPORT_MODE = false;
 
 	// Contient l'ID de l'export
 	let exportId = '';
@@ -103,7 +98,9 @@
 	let hasCompletedCapturingFrames = false;
 	let hasSecondarySegmentProgress = false;
 	let processingBackgroundProgress = 0;
-	let captureWorkerWindows: WebviewWindow[] = [];
+	let captureWorkerIds: number[] = [];
+	let configuredParallelCaptureWorkers = 1;
+	let currentCaptureWorkerId: number | null = null;
 	let cancellationRequested = false;
 	let cleanupStarted = false;
 	let exporterUnlisteners: Array<() => void> = [];
@@ -256,6 +253,16 @@
 	};
 	type ExportRendererNativeEventMessage = {
 		type?: 'export-renderer-native-event-main';
+		eventName?: string;
+		payload?: unknown;
+	};
+	type CaptureWorkerEventMessage = {
+		type?: 'export-renderer-worker-event-renderer';
+		eventName?: string;
+		payload?: unknown;
+	};
+	type CaptureWorkerCommandMessage = {
+		type?: 'export-renderer-worker-command-renderer';
 		eventName?: string;
 		payload?: unknown;
 	};
@@ -516,7 +523,12 @@
 
 		const contextSuffix = Object.keys(context).length > 0 ? ` ${JSON.stringify(context)}` : '';
 		const fullMessage = `${message}${contextSuffix}`;
-		const source = window.parent !== window ? 'android-renderer' : getCurrentWebviewWindow().label;
+		const source =
+			window.parent !== window
+				? currentCaptureWorkerId === null
+					? 'android-renderer'
+					: `android-capture-${currentCaptureWorkerId}`
+				: getCurrentWebviewWindow().label;
 
 		if (level === 'error') {
 			console.error(`[export:${exportId}:${source}] ${fullMessage}`);
@@ -589,23 +601,22 @@
 	}
 
 	/**
-	 * Retourne le label stable d'une fenetre worker de capture.
-	 * @param {number} workerId Index du worker.
-	 * @returns {string} Label de fenetre Tauri.
-	 */
-	function getCaptureWorkerLabel(workerId: number): string {
-		return `${exportId}-capture-${workerId}`;
-	}
-
-	/**
-	 * Envoie un evenement a la fenetre coordinator de l'export.
-	 * @param {string} eventName Nom de l'evenement Tauri.
+	 * Envoie un événement du renderer de capture au coordinateur via la page Android.
+	 * @param {string} eventName Nom de l'événement.
 	 * @param {unknown} payload Donnees a transmettre.
 	 * @returns {Promise<void>}
 	 */
 	async function emitToCoordinator(eventName: string, payload: unknown): Promise<void> {
-		const coordinator = (await getAllWindows()).find((w) => w.label === exportId);
-		await coordinator?.emit(eventName, payload);
+		window.parent.postMessage(
+			{
+				type: 'export-renderer-worker-event-main',
+				exportId,
+				workerId: currentCaptureWorkerId,
+				eventName,
+				payload
+			},
+			'*'
+		);
 	}
 
 	/**
@@ -687,8 +698,22 @@
 	 * @returns {Promise<void>}
 	 */
 	async function runCaptureWorker(workerId: number): Promise<void> {
-		await listen<CaptureWorkerStartPayload>(WORKER_START_EVENT, async (event) => {
-			const data = event.payload;
+		/**
+		 * Traite une commande de capture relayée par la page Android.
+		 * @param {MessageEvent<CaptureWorkerCommandMessage>} event Commande du coordinateur.
+		 * @returns {Promise<void>}
+		 */
+		const handleWorkerCommand = async (
+			event: MessageEvent<CaptureWorkerCommandMessage>
+		): Promise<void> => {
+			if (
+				event.source !== window.parent ||
+				event.data?.type !== 'export-renderer-worker-command-renderer' ||
+				event.data.eventName !== WORKER_START_EVENT
+			) {
+				return;
+			}
+			const data = event.data.payload as CaptureWorkerStartPayload;
 			if (data.exportId !== exportId || data.workerId !== workerId) return;
 
 			try {
@@ -738,7 +763,9 @@
 					error: error instanceof Error ? error.message : String(error)
 				} satisfies CaptureWorkerErrorPayload);
 			}
-		});
+		};
+		window.addEventListener('message', handleWorkerCommand);
+		exporterUnlisteners.push(() => window.removeEventListener('message', handleWorkerCommand));
 
 		await emitToCoordinator(WORKER_READY_EVENT, {
 			exportId,
@@ -755,6 +782,12 @@
 		exportId = id;
 		const isWorker = params.get('mode') === CAPTURE_WORKER_MODE;
 		const workerId = Number(params.get('worker') ?? '0');
+		const requestedWorkerCount = Number(params.get('workers') ?? '1');
+		configuredParallelCaptureWorkers = Math.max(
+			1,
+			Math.min(4, Number.isFinite(requestedWorkerCount) ? Math.round(requestedWorkerCount) : 1)
+		);
+		currentCaptureWorkerId = isWorker ? workerId : null;
 		const bridgeWindow = window as EmbeddedTauriBridgeWindow;
 
 		try {
@@ -762,32 +795,33 @@
 				embedded: window.parent !== window,
 				hasInvokeBridge: Boolean(bridgeWindow.__QURAN_CAPTION_INVOKE_BRIDGE__)
 			});
+			/**
+			 * Reçoit les événements natifs relayés par la frame principale Android.
+			 * @param {MessageEvent<ExportRendererNativeEventMessage>} event Message du parent.
+			 * @returns {void}
+			 */
+			const handleNativeEvent = (event: MessageEvent<ExportRendererNativeEventMessage>) => {
+				if (event.source !== window.parent) return;
+				const data = event.data;
+				if (data?.type !== 'export-renderer-native-event-main') return;
+				if (!isWorker && data.eventName === 'export-progress') {
+					void exportProgress({ payload: data.payload } as ExportProgressEvent);
+				} else if (!isWorker && data.eventName === 'export-complete') {
+					void exportComplete({ payload: data.payload } as ExportCompleteEvent);
+				} else if (!isWorker && data.eventName === 'export-error') {
+					void exportError({ payload: data.payload } as ExportErrorEvent);
+				} else if (
+					data.eventName === 'cancel-export-renderer' &&
+					(data.payload as CancelExportRendererPayload | undefined)?.exportId === exportId
+				) {
+					cancellationRequested = true;
+				}
+			};
+			window.addEventListener('message', handleNativeEvent);
+			exporterUnlisteners.push(() => window.removeEventListener('message', handleNativeEvent));
+			await emitExportLog('info', 'Native event relay installed');
+
 			if (!isWorker) {
-				/**
-				 * Reçoit les événements natifs relayés par la frame principale Android.
-				 * @param {MessageEvent<ExportRendererNativeEventMessage>} event Message du parent.
-				 * @returns {void}
-				 */
-				const handleNativeEvent = (event: MessageEvent<ExportRendererNativeEventMessage>) => {
-					if (event.source !== window.parent) return;
-					const data = event.data;
-					if (data?.type !== 'export-renderer-native-event-main') return;
-					if (data.eventName === 'export-progress') {
-						void exportProgress({ payload: data.payload } as ExportProgressEvent);
-					} else if (data.eventName === 'export-complete') {
-						void exportComplete({ payload: data.payload } as ExportCompleteEvent);
-					} else if (data.eventName === 'export-error') {
-						void exportError({ payload: data.payload } as ExportErrorEvent);
-					} else if (
-						data.eventName === 'cancel-export-renderer' &&
-						(data.payload as CancelExportRendererPayload | undefined)?.exportId === exportId
-					) {
-						cancellationRequested = true;
-					}
-				};
-				window.addEventListener('message', handleNativeEvent);
-				exporterUnlisteners.push(() => window.removeEventListener('message', handleNativeEvent));
-				await emitExportLog('info', 'Native event relay installed');
 				await emitExportLog('info', 'Checking native cancellation marker', { exportId });
 				cancellationRequested = await invoke<boolean>('is_export_cancelled', { exportId });
 				await emitExportLog('info', 'Native cancellation marker checked', {
@@ -802,7 +836,8 @@
 
 			await emitExportLog('info', 'Export window initialized', {
 				mode: isWorker ? 'worker' : 'coordinator',
-				workerId: isWorker ? workerId : undefined
+				workerId: isWorker ? workerId : undefined,
+				parallelCaptureWorkers: isWorker ? undefined : configuredParallelCaptureWorkers
 			});
 
 			await emitExportLog('info', 'Loading export project JSON', { exportId: id });
@@ -830,11 +865,19 @@
 			await emitExportLog('info', 'Export started');
 			await startExport();
 		} catch (error) {
-			await closeCaptureWorkerWindows();
+			await closeCaptureWorkerRenderers();
 			console.error('Export failed:', error);
 			await emitExportLog('error', 'Export failed', {
 				error: error instanceof Error ? error.message : String(error)
 			});
+			if (isWorker) {
+				await emitToCoordinator(WORKER_ERROR_EVENT, {
+					exportId,
+					workerId,
+					error: error instanceof Error ? error.message : String(error)
+				} satisfies CaptureWorkerErrorPayload);
+				return;
+			}
 			if (!cancellationRequested) {
 				await emitProgress({
 					exportId: Number(exportId),
@@ -852,7 +895,7 @@
 		exporterUnlisteners = [];
 		destroyReusableScreenshotContext();
 		destroyPngEncoderWorker();
-		void setExportScreenAwake(false);
+		if (currentCaptureWorkerId === null) void setExportScreenAwake(false);
 	});
 
 	async function startExport() {
@@ -973,7 +1016,7 @@
 			);
 			segmentBlankImageIndexes.set(segmentIndex, blankTimings);
 		}
-		await closeCaptureWorkerWindows();
+		await closeCaptureWorkerRenderers();
 
 		hasCompletedCapturingFrames = true;
 		refreshSecondarySegmentProgressVisibility();
@@ -1045,11 +1088,11 @@
 	}
 
 	/**
-	 * Retourne le nombre de WebViews workers configure pour la capture PNG.
-	 * @returns {number} Nombre de workers borne entre 1 et 8.
+	 * Retourne le nombre de renderers iframe configuré pour la capture PNG.
+	 * @returns {number} Nombre de workers borné entre 1 et 4.
 	 */
 	function getParallelCaptureWorkerCount(): number {
-		return 1;
+		return configuredParallelCaptureWorkers;
 	}
 
 	/**
@@ -1250,82 +1293,75 @@
 	}
 
 	/**
-	 * Ouvre les fenetres workers offscreen pour la capture parallele.
+	 * Demande à la page Android de monter les iframes de capture parallèle.
 	 * @param {ExportFrameCaptureJob[][]} buckets Jobs assignes a chaque worker.
-	 * @returns {Promise<WebviewWindow[]>} Fenetres workers creees.
+	 * @returns {Promise<number[]>} Identifiants des renderers créés.
 	 */
-	async function openCaptureWorkerWindows(
-		buckets: ExportFrameCaptureJob[][]
-	): Promise<WebviewWindow[]> {
-		const windows: WebviewWindow[] = [];
+	async function openCaptureWorkerRenderers(buckets: ExportFrameCaptureJob[][]): Promise<number[]> {
+		const workerIds = buckets.map((_, workerId) => workerId);
 		for (let workerId = 0; workerId < buckets.length; workerId++) {
-			const label = getCaptureWorkerLabel(workerId);
-			await emitExportLog('info', 'Opening capture worker', {
+			await emitExportLog('info', 'Opening capture renderer', {
 				workerId,
-				label,
 				jobs: buckets[workerId].length
 			});
-			const w = new WebviewWindow(label, {
-				center: false,
-				decorations: false,
-				visible: true,
-				focus: false,
-				skipTaskbar: true,
-				preventOverflow: false,
-				x: DEBUG_EXPORT_MODE ? workerId * 100 : -10000,
-				y: DEBUG_EXPORT_MODE ? workerId * 100 : -10000,
-				backgroundThrottling: 'disabled' as BackgroundThrottlingPolicy,
-				alwaysOnTop: false,
-				alwaysOnBottom: DEBUG_EXPORT_MODE ? false : true,
-				title: 'QC Capture - ' + label,
-				url:
-					'/exporter?' +
-					new URLSearchParams({
-						id: exportId,
-						mode: CAPTURE_WORKER_MODE,
-						worker: workerId.toString()
-					})
-			});
-
-			w.once('tauri://created', async () => {
-				try {
-					if (!DEBUG_EXPORT_MODE) await w.setPosition(new LogicalPosition(-10000, -10000));
-					await emitExportLog('info', 'Capture worker window created', { workerId, label });
-				} catch (error) {
-					console.warn('Unable to move capture worker off-screen:', error);
-					await emitExportLog('warn', 'Unable to move capture worker off-screen', {
-						workerId,
-						error: error instanceof Error ? error.message : String(error)
-					});
-				}
-			});
-
-			windows.push(w);
 		}
-
-		return windows;
+		window.parent.postMessage(
+			{
+				type: 'export-renderer-workers-create-main',
+				exportId,
+				count: workerIds.length
+			},
+			'*'
+		);
+		return workerIds;
 	}
 
 	/**
-	 * Ferme toutes les fenetres workers de l'export courant.
+	 * Demande à la page Android de démonter tous les renderers de capture.
 	 * @returns {Promise<void>}
 	 */
-	async function closeCaptureWorkerWindows(): Promise<void> {
-		const windows = captureWorkerWindows;
-		captureWorkerWindows = [];
-		await Promise.all(
-			windows.map(async (w) => {
-				try {
-					await w.close();
-				} catch (error) {
-					console.warn('Unable to close capture worker:', error);
-				}
-			})
+	async function closeCaptureWorkerRenderers(): Promise<void> {
+		captureWorkerIds = [];
+		window.parent.postMessage(
+			{
+				type: 'export-renderer-workers-close-main',
+				exportId
+			},
+			'*'
 		);
 	}
 
 	/**
-	 * Execute les captures avec plusieurs WebViews Tauri independantes.
+	 * Écoute un événement de capture relayé par la page Android.
+	 * @param {string} eventName Nom de l'événement attendu.
+	 * @param {(payload: T) => void} handler Gestionnaire du payload reçu.
+	 * @returns {() => void} Fonction de désinscription.
+	 */
+	function listenToCaptureWorkerEvent<T>(
+		eventName: string,
+		handler: (payload: T) => void
+	): () => void {
+		/**
+		 * Filtre les messages du parent avant de transmettre leur payload.
+		 * @param {MessageEvent<CaptureWorkerEventMessage>} event Message relayé.
+		 * @returns {void}
+		 */
+		const listener = (event: MessageEvent<CaptureWorkerEventMessage>): void => {
+			if (
+				event.source !== window.parent ||
+				event.data?.type !== 'export-renderer-worker-event-renderer' ||
+				event.data.eventName !== eventName
+			) {
+				return;
+			}
+			handler(event.data.payload as T);
+		};
+		window.addEventListener('message', listener);
+		return () => window.removeEventListener('message', listener);
+	}
+
+	/**
+	 * Execute les captures avec plusieurs iframes renderer independantes.
 	 * @param {ExportFrameCaptureJob[][]} buckets Jobs decoupes par worker.
 	 * @param {string | null} subfolder Sous-dossier de sortie, ou null.
 	 * @param {(completed: number) => void} onProgress Callback de progression agregée.
@@ -1345,10 +1381,9 @@
 		const readyWorkers = new Set<number>();
 		const completeWorkers = new Set<number>();
 		const unlisteners: Array<() => void> = [];
-		const openWindowLabels = new Set((await getAllWindows()).map((window) => window.label));
 		const canReuseWorkers =
-			captureWorkerWindows.length === buckets.length &&
-			captureWorkerWindows.every((window) => openWindowLabels.has(window.label));
+			captureWorkerIds.length === buckets.length &&
+			captureWorkerIds.every((workerId, index) => workerId === index);
 		if (canReuseWorkers) {
 			for (let workerId = 0; workerId < buckets.length; workerId++) readyWorkers.add(workerId);
 		}
@@ -1380,8 +1415,7 @@
 		});
 
 		unlisteners.push(
-			await listen<CaptureWorkerLifecyclePayload>(WORKER_READY_EVENT, (event) => {
-				const data = event.payload;
+			listenToCaptureWorkerEvent<CaptureWorkerLifecyclePayload>(WORKER_READY_EVENT, (data) => {
 				if (data.exportId !== exportId) return;
 				readyWorkers.add(data.workerId);
 				void emitExportLog('info', 'Capture worker reported ready', {
@@ -1397,8 +1431,7 @@
 		);
 
 		unlisteners.push(
-			await listen<CaptureWorkerProgressPayload>(WORKER_PROGRESS_EVENT, (event) => {
-				const data = event.payload;
+			listenToCaptureWorkerEvent<CaptureWorkerProgressPayload>(WORKER_PROGRESS_EVENT, (data) => {
 				if (data.exportId !== exportId) return;
 				workerProgress[data.workerId] = data.completed;
 				onProgress(workerProgress.reduce((sum, value) => sum + value, 0));
@@ -1406,8 +1439,7 @@
 		);
 
 		unlisteners.push(
-			await listen<CaptureWorkerLifecyclePayload>(WORKER_COMPLETE_EVENT, (event) => {
-				const data = event.payload;
+			listenToCaptureWorkerEvent<CaptureWorkerLifecyclePayload>(WORKER_COMPLETE_EVENT, (data) => {
 				if (data.exportId !== exportId) return;
 				completeWorkers.add(data.workerId);
 				workerProgress[data.workerId] = buckets[data.workerId]?.length ?? 0;
@@ -1422,8 +1454,7 @@
 		);
 
 		unlisteners.push(
-			await listen<CaptureWorkerErrorPayload>(WORKER_ERROR_EVENT, (event) => {
-				const data = event.payload;
+			listenToCaptureWorkerEvent<CaptureWorkerErrorPayload>(WORKER_ERROR_EVENT, (data) => {
 				if (data.exportId !== exportId) return;
 				const error = new Error(`Capture worker ${data.workerId} failed: ${data.error}`);
 				void emitExportLog('error', 'Capture worker reported error', {
@@ -1439,24 +1470,31 @@
 		);
 
 		if (!canReuseWorkers) {
-			await closeCaptureWorkerWindows();
-			captureWorkerWindows = await openCaptureWorkerWindows(buckets);
+			await closeCaptureWorkerRenderers();
+			captureWorkerIds = await openCaptureWorkerRenderers(buckets);
 		} else {
 			await emitExportLog('info', 'Reusing capture workers', { workers: buckets.length });
 		}
 		try {
 			await readyPromise;
 			await emitExportLog('info', 'All capture workers ready', { workers: buckets.length });
-			await Promise.all(
-				captureWorkerWindows.map((w, workerId) =>
-					w.emit(WORKER_START_EVENT, {
+			for (const workerId of captureWorkerIds) {
+				window.parent.postMessage(
+					{
+						type: 'export-renderer-worker-command-main',
 						exportId,
 						workerId,
-						jobs: buckets[workerId],
-						subfolder
-					} satisfies CaptureWorkerStartPayload)
-				)
-			);
+						eventName: WORKER_START_EVENT,
+						payload: {
+							exportId,
+							workerId,
+							jobs: buckets[workerId],
+							subfolder
+						} satisfies CaptureWorkerStartPayload
+					},
+					'*'
+				);
+			}
 			await emitExportLog('info', 'Capture jobs sent to workers', { workers: buckets.length });
 			await completePromise;
 			await emitExportLog('info', 'Parallel capture completed', { workers: buckets.length });
@@ -1543,7 +1581,7 @@
 		const completedBeforeCaptures = completed;
 		if (plan.captureJobs.length > 0) {
 			if (plan.workerBuckets.length <= 1) {
-				await closeCaptureWorkerWindows();
+				await closeCaptureWorkerRenderers();
 				await runSerialCaptureJobs(plan.captureJobs, subfolder, (captureCompleted, timing) => {
 					reportProgress(completedBeforeCaptures + captureCompleted, timing);
 				});
@@ -1557,7 +1595,7 @@
 					await emitExportLog('warn', 'Parallel capture failed, retrying serial capture', {
 						error: error instanceof Error ? error.message : String(error)
 					});
-					await closeCaptureWorkerWindows();
+					await closeCaptureWorkerRenderers();
 					await runSerialCaptureJobs(plan.captureJobs, subfolder, (captureCompleted, timing) => {
 						reportProgress(completedBeforeCaptures + captureCompleted, timing);
 					});
@@ -1783,7 +1821,7 @@
 				totalTime: totalDuration
 			} as ExportProgress);
 		});
-		await closeCaptureWorkerWindows();
+		await closeCaptureWorkerRenderers();
 
 		const normalizedBlankTimings = plan.blankImageIndexes;
 
@@ -2170,7 +2208,7 @@
 		destroyReusableScreenshotContext();
 		destroyPngEncoderWorker();
 		try {
-			await closeCaptureWorkerWindows();
+			await closeCaptureWorkerRenderers();
 		} catch (error) {
 			console.warn('Could not close capture workers:', error);
 		}

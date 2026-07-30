@@ -109,7 +109,7 @@ export default class Settings extends SerializableBase {
 	private static readonly DEFAULT_EXPORT_SETTINGS: ExportSettings = {
 		batchSizeMode: 'auto',
 		batchSize: 64,
-		parallelCaptureWorkers: 4,
+		parallelCaptureWorkers: 1,
 		videoCodec: 'h264',
 		performanceProfile: 'balanced'
 	};
@@ -663,7 +663,7 @@ export default class Settings extends SerializableBase {
 		} else {
 			const normalizedParallelCaptureWorkers = Math.max(
 				1,
-				Math.min(8, Math.round(settings.exportSettings.parallelCaptureWorkers))
+				Math.min(4, Math.round(settings.exportSettings.parallelCaptureWorkers))
 			);
 			if (settings.exportSettings.parallelCaptureWorkers !== normalizedParallelCaptureWorkers) {
 				settings.exportSettings.parallelCaptureWorkers = normalizedParallelCaptureWorkers;

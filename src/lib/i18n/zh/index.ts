@@ -1766,7 +1766,7 @@ const zh = {
 			'H.265 可以减小文件体积，但 H.264 兼容性最好。透明导出会使用自己的编码。',
 		parallelCaptureWorkers: '并行捕获 workers',
 		parallelCaptureWorkersDescription:
-			'用于 PNG 帧捕获的隐藏 WebViews 数量。默认值为 4；1 会禁用并行捕获。',
+			'不建议在手机上修改：使用超过 1 个渲染器通常会因争用 CPU 和内存而减慢导出。默认值为 1，最大值为 4。',
 		fastest: '最快',
 		fastestDescription: '最快导出。可能使用硬件编码，在细节丰富的 4K 背景上可能出现压缩伪影。',
 		balanced: '均衡',

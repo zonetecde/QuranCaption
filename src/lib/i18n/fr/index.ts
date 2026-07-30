@@ -1938,7 +1938,7 @@ const fr = {
 			'H.265 peut réduire la taille du fichier, mais H.264 reste l\u2019option la plus compatible. Les exports transparents utilisent leur propre codec.',
 		parallelCaptureWorkers: 'Workers de capture parallèle',
 		parallelCaptureWorkersDescription:
-			'Nombre de WebViews masquées utilisées pour capturer les frames PNG. La valeur par défaut est 4 ; 1 désactive la capture parallèle.',
+			'Modification déconseillée sur téléphone : utiliser plus d’un renderer ralentit souvent l’export, car les renderers se partagent le processeur et la mémoire. Valeur par défaut : 1 ; maximum : 4.',
 		fastest: 'Le plus rapide',
 		fastestDescription:
 			'Export le plus rapide. Peut utiliser l\u2019encodage matériel, avec un risque d\u2019artefacts sur les fonds 4K détaillés.',

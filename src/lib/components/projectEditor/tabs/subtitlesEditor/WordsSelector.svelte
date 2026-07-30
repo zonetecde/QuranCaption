@@ -1,26 +1,16 @@
 <script lang="ts">
 	import { SubtitleClip } from '$lib/classes';
-	import {
-		ClipWithTranslation,
-		type PredefinedSubtitleClip,
-		type PredefinedSubtitleType
-	} from '$lib/classes/Clip.svelte';
+	import { ClipWithTranslation, type PredefinedSubtitleClip } from '$lib/classes/Clip.svelte';
 	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { automaticSplitSubtitleAtWord } from '$lib/services/AutoSegmentation';
 	import {
 		ensureManualWordByWordEditStateIsValid,
-		exitManualWordByWordEdit,
-		handleManualWordByWordEditShortcutKeyDown,
-		handleManualWordByWordEditShortcutKeyUp,
 		moveManualWordByWordSelection,
-		openManualWordByWordEditFromShortcut,
 		stampManualWordByWordCurrentWordAtCursor,
 		syncManualWordByWordSelectionFromVerseWord,
 		syncVerseSelectionWithManualWordByWordIndex
 	} from '$lib/services/WbwHelper';
-	import ShortcutService from '$lib/services/ShortcutService';
-	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import { onDestroy, onMount, tick, untrack } from 'svelte';
@@ -35,25 +25,6 @@
 	let suppressNextWordClick = $state(false);
 	let wordContextMenu: ContextMenu | undefined = $state(undefined);
 	let contextMenuWordIndex: number | null = $state(null);
-	let editShortcutLongPressTimer: ReturnType<typeof setTimeout> | null = $state(null);
-	let didTriggerManualWbwEdit = $state(false);
-	let didRegisterEditLastSubtitleShortcut = false;
-
-	const wbwShortcutHandlers = {
-		getTimer: () => editShortcutLongPressTimer,
-		setTimer: (timer: ReturnType<typeof setTimeout> | null) => {
-			editShortcutLongPressTimer = timer;
-		},
-		getDidTrigger: () => didTriggerManualWbwEdit,
-		setDidTrigger: (value: boolean) => {
-			didTriggerManualWbwEdit = value;
-		},
-		onShortPress: () => {
-			editCurrentOrLastSubtitle();
-		},
-		onLongPress: () => openManualWordByWordEditFromShortcut(),
-		delayMs: 500
-	};
 
 	function goNextVerse() {
 		if (
@@ -117,216 +88,12 @@
 	);
 
 	onMount(() => {
-		// Set up les shortcuts pour sélectionner les mots
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.SELECT_NEXT_WORD,
-			onKeyDown: selectNextWord
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.SELECT_PREVIOUS_WORD,
-			onKeyDown: selectPreviousWord
-		});
-
-		// Set up les shortcuts divers
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.RESET_START_CURSOR,
-			onKeyDown: () => {
-				subtitlesEditorState().startWordIndex = subtitlesEditorState().endWordIndex;
-			}
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.SELECT_ALL_WORDS,
-			onKeyDown: async () => {
-				subtitlesEditorState().startWordIndex = 0;
-				subtitlesEditorState().endWordIndex = (await selectedVerse())!.words.length - 1;
-			}
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.SET_END_TO_LAST,
-			onKeyDown: async () => {
-				subtitlesEditorState().endWordIndex = (await selectedVerse())!.getNextPunctuationMarkIndex(
-					subtitlesEditorState().endWordIndex
-				);
-			}
-		});
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.SET_END_TO_PREVIOUS,
-			onKeyDown: async () => {
-				const verse = await selectedVerse();
-				if (!verse) return; // Sans verset actif, on ne peut pas chercher de ponctuation
-
-				const previousEndIndex = verse.getPreviousPunctuationMarkIndex(
-					subtitlesEditorState().endWordIndex
-				);
-
-				if (previousEndIndex === subtitlesEditorState().endWordIndex) {
-					return; // Déjà sur un signe d'arrêt, on ne bouge pas
-				}
-
-				subtitlesEditorState().endWordIndex = previousEndIndex;
-				if (subtitlesEditorState().startWordIndex > subtitlesEditorState().endWordIndex) {
-					// Garde une sélection valide en ramenant le début sur la fin
-					subtitlesEditorState().startWordIndex = subtitlesEditorState().endWordIndex;
-				}
-			}
-		});
-
-		// Set up les shortcuts d'action
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_SUBTITLE,
-			onKeyDown: addSubtitle
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.REMOVE_LAST_SUBTITLE,
-			onKeyDown: removeLastSubtitle
-		});
-
-		// N'enregistre pas le raccourci E quand WordsSelector est rendu dans l'overlay rapide de la timeline
-		// pour éviter d'écraser le gestionnaire du Timeline.svelte.
-		if (!globalState.shared.quickTimelineEditor.active) {
-			ShortcutService.registerShortcut({
-				key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE,
-				onKeyDown: (event) => handleManualWordByWordEditShortcutKeyDown(event, wbwShortcutHandlers),
-				onKeyUp: () => handleManualWordByWordEditShortcutKeyUp(wbwShortcutHandlers)
-			});
-			didRegisterEditLastSubtitleShortcut = true;
-		}
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_SILENCE,
-			onKeyDown: addSilence
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_BASMALA,
-			onKeyDown: () => addPredefinedSubtitle('Basmala')
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_ISTIADHAH,
-			onKeyDown: () => addPredefinedSubtitle("Isti'adha")
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_AMIN,
-			onKeyDown: () => addPredefinedSubtitle('Amin')
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_TAKBIR,
-			onKeyDown: () => addPredefinedSubtitle('Takbir')
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_TAHMEED,
-			onKeyDown: () => addPredefinedSubtitle('Tahmeed')
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_TASLEEM,
-			onKeyDown: () => addPredefinedSubtitle('Tasleem')
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_SADAQA,
-			onKeyDown: () => addPredefinedSubtitle('Sadaqa')
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_CUSTOM_TEXT_CLIP,
-			onKeyDown: () => addCustomTextClip()
-		});
-
-		ShortcutService.registerShortcut({
-			key: { keys: ['Escape'], description: get(LL).editor.exitSubtitleEditing() },
-			onKeyDown: () => {
-				if (globalState.shared.wbwEdit.active) {
-					exitManualWordByWordEdit();
-					return;
-				}
-
-				globalState.getSubtitlesEditorState.editSubtitle = null;
-				globalState.getSubtitlesEditorState.pendingSplitEditNextId = null;
-			}
-		});
-
 		document.addEventListener('mouseup', handleGlobalWordMouseUp);
 	});
 
 	onDestroy(() => {
-		// Clean up les shortcuts
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.SUBTITLES_EDITOR.SELECT_NEXT_WORD
-		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.SUBTITLES_EDITOR.SELECT_PREVIOUS_WORD
-		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.SUBTITLES_EDITOR.RESET_START_CURSOR
-		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.SUBTITLES_EDITOR.SELECT_ALL_WORDS
-		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.SUBTITLES_EDITOR.SET_END_TO_LAST
-		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.SUBTITLES_EDITOR.SET_END_TO_PREVIOUS
-		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_SUBTITLE
-		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.SUBTITLES_EDITOR.REMOVE_LAST_SUBTITLE
-		);
-		if (didRegisterEditLastSubtitleShortcut) {
-			ShortcutService.unregisterShortcut(
-				globalState.settings!.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE
-			);
-		}
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_SILENCE
-		);
-
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_BASMALA
-		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_ISTIADHAH
-		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_AMIN
-		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_TAKBIR
-		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_TAHMEED
-		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_TASLEEM
-		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.PREDEFINED_SUBTITLES.ADD_SADAQA
-		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_CUSTOM_TEXT_CLIP
-		);
-		ShortcutService.unregisterShortcut({
-			keys: ['Escape'],
-			description: get(LL).editor.exitSubtitleEditing()
-		});
-
 		document.removeEventListener('mouseup', handleGlobalWordMouseUp);
 		currentMenu.set(null);
-		if (editShortcutLongPressTimer) {
-			clearTimeout(editShortcutLongPressTimer);
-			editShortcutLongPressTimer = null;
-		}
 	});
 
 	/**
@@ -357,38 +124,11 @@
 		return true;
 	}
 
-	function editCurrentOrLastSubtitle(): void {
-		ProjectHistoryManager.track('edit subtitle shortcut', () => {
-			const subtitleTrack = globalState.getSubtitleTrack;
-			if (subtitleTrack.clips.length <= 0) return;
-
-			const cursorPosition = globalState.getTimelineState.cursorPosition;
-			const clipUnderCursor = subtitleTrack.getCurrentClip(cursorPosition);
-
-			let clip: SubtitleClip | PredefinedSubtitleClip | null = null;
-			if (clipUnderCursor) {
-				clip = clipUnderCursor as SubtitleClip | PredefinedSubtitleClip;
-			} else {
-				clip = subtitleTrack.getLastClip() as SubtitleClip | PredefinedSubtitleClip | null;
-			}
-
-			if (!clip) return;
-
-			// Modifie le sous-titre
-			if (globalState.getSubtitlesEditorState.editSubtitle?.id === clip.id) {
-				// Si on est déjà en train de modifier ce sous-titre, on le quitte
-				globalState.getSubtitlesEditorState.editSubtitle = null;
-				return;
-			}
-			globalState.getSubtitlesEditorState.editSubtitle = clip;
-		});
-	}
-
 	/**
 	 * Sélectionne le mot suivant dans le verset.
 	 * Si on est à la fin du verset, passe au verset suivant.
 	 */
-	async function selectNextWord() {
+	export async function selectNextWord() {
 		if (globalState.shared.wbwEdit.active) {
 			moveManualWordByWordSelection(1);
 			syncVerseSelectionWithManualWordByWordIndex(subtitlesEditorState);
@@ -407,7 +147,7 @@
 	 * Sélectionne le mot précédent dans le verset.
 	 * Si on est au début du verset, passe au verset précédent.
 	 */
-	async function selectPreviousWord() {
+	export async function selectPreviousWord() {
 		if (globalState.shared.wbwEdit.active) {
 			moveManualWordByWordSelection(-1);
 			syncVerseSelectionWithManualWordByWordIndex(subtitlesEditorState);
@@ -421,7 +161,7 @@
 			subtitlesEditorState().endWordIndex -= 1;
 		} else {
 			// Passe au verse précédent si on est au début du verset
-			goPreviousVerse();
+			await goPreviousVerse();
 		}
 	}
 
@@ -430,7 +170,7 @@
 	/**
 	 * Ajoute une sous-titre avec les mots sélectionnés.
 	 */
-	async function addSubtitle() {
+	export async function addSubtitle() {
 		if (globalState.shared.wbwEdit.active) {
 			stampManualWordByWordCurrentWordAtCursor();
 			return;
@@ -484,52 +224,12 @@
 	}
 
 	/**
-	 * Ajoute un silence à la timeline (shortcut ADD_SILENCE).
-	 * Utilisé pour ajouter un espace vide entre les sous-titres.
-	 */
-	function addSilence(): void {
-		const subtitleTrack = globalState.getSubtitleTrack;
-
-		const success = subtitleTrack.addSilence();
-		if (success) globalState.currentProject!.detail.updateVideoDetailAttributes();
-	}
-
-	function addPredefinedSubtitle(type: PredefinedSubtitleType) {
-		const subtitleTrack = globalState.getSubtitleTrack;
-
-		const success = subtitleTrack.addPredefinedSubtitle(type);
-		if (success) globalState.currentProject!.detail.updateVideoDetailAttributes();
-	}
-
-	/**
 	 * Réinitialise les indices de début et de fin des mots sélectionnés.
 	 * Utilisé pour réinitialiser la sélection après un changement de verset
 	 */
 	function resetFirstAndLastWordIndex() {
 		subtitlesEditorState().startWordIndex = 0;
 		subtitlesEditorState().endWordIndex = 0;
-	}
-
-	/**
-	 * Supprime le dernier sous-titre de la timeline (shortcut REMOVE_LAST_SUBTITLE).
-	 */
-	function removeLastSubtitle(): void {
-		const subtitleTrack = globalState.getSubtitleTrack;
-
-		// Si un sous-titre est en cours d'édition, on le supprime explicitement plutôt que le dernier ajouté
-		const editedSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
-		if (editedSubtitle) {
-			subtitleTrack.removeClip(editedSubtitle.id, true);
-			globalState.getSubtitlesEditorState.editSubtitle = null;
-			globalState.currentProject!.detail.updateVideoDetailAttributes();
-			globalState.updateVideoPreviewUI();
-			return;
-		}
-
-		subtitleTrack.removeLastClip();
-
-		globalState.currentProject!.detail.updateVideoDetailAttributes();
-		globalState.updateVideoPreviewUI();
 	}
 
 	/**
@@ -715,30 +415,6 @@
 			}
 		});
 	});
-
-	/**
-	 * Ajoute un custom text clip à la timeline entre le dernier sous-titre et la position actuelle du curseur.
-	 */
-	function addCustomTextClip(): void {
-		const cursorPosition = globalState.getTimelineState.cursorPosition;
-		const lastSubtitleEndTime = globalState.getSubtitleTrack.getLastClip()?.endTime;
-		const threeSecondsInMs = 3000;
-
-		let startTime = lastSubtitleEndTime ?? Math.max(0, cursorPosition - threeSecondsInMs);
-		let endTime = cursorPosition;
-
-		// Si le dernier sous-titre finit après le curseur, on crée un clip de 3s qui se termine au curseur.
-		if (lastSubtitleEndTime !== undefined && lastSubtitleEndTime > cursorPosition) {
-			startTime = Math.max(0, cursorPosition - threeSecondsInMs);
-		}
-
-		// Sécurise une plage valide même sur les cas limites (ex: curseur à la fin exacte du dernier sous-titre).
-		if (endTime <= startTime) {
-			endTime = startTime + threeSecondsInMs;
-		}
-
-		globalState.getVideoStyle.addCustomClip('text', startTime, endTime);
-	}
 </script>
 
 <section

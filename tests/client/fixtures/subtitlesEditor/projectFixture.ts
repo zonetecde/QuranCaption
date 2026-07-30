@@ -239,24 +239,6 @@ export function setupSubtitlesEditorProjectFixture(
 	const removeLastClip = vi.spyOn(subtitleTrack, 'removeLastClip');
 
 	const settings = new Settings();
-	settings.shortcuts.SUBTITLES_EDITOR.SELECT_NEXT_WORD.keys = ['ArrowRight'];
-	settings.shortcuts.SUBTITLES_EDITOR.SELECT_PREVIOUS_WORD.keys = ['ArrowLeft'];
-	settings.shortcuts.SUBTITLES_EDITOR.RESET_START_CURSOR.keys = ['Home'];
-	settings.shortcuts.SUBTITLES_EDITOR.SELECT_ALL_WORDS.keys = ['A'];
-	settings.shortcuts.SUBTITLES_EDITOR.SET_END_TO_LAST.keys = ['End'];
-	settings.shortcuts.SUBTITLES_EDITOR.SET_END_TO_PREVIOUS.keys = ['PageUp'];
-	settings.shortcuts.SUBTITLES_EDITOR.ADD_SUBTITLE.keys = ['Enter'];
-	settings.shortcuts.SUBTITLES_EDITOR.REMOVE_LAST_SUBTITLE.keys = ['Backspace'];
-	settings.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE.keys = ['E'];
-	settings.shortcuts.SUBTITLES_EDITOR.ADD_SILENCE.keys = ['S'];
-	settings.shortcuts.SUBTITLES_EDITOR.ADD_CUSTOM_TEXT_CLIP.keys = ['C'];
-	settings.shortcuts.PREDEFINED_SUBTITLES.ADD_BASMALA.keys = ['B'];
-	settings.shortcuts.PREDEFINED_SUBTITLES.ADD_ISTIADHAH.keys = ['I'];
-	(settings.shortcuts.PREDEFINED_SUBTITLES.ADD_AMIN.keys as string[]) = ['M'];
-	(settings.shortcuts.PREDEFINED_SUBTITLES.ADD_TAKBIR.keys as string[]) = ['T'];
-	(settings.shortcuts.PREDEFINED_SUBTITLES.ADD_TAHMEED.keys as string[]) = ['H'];
-	(settings.shortcuts.PREDEFINED_SUBTITLES.ADD_TASLEEM.keys as string[]) = ['L'];
-	(settings.shortcuts.PREDEFINED_SUBTITLES.ADD_SADAQA.keys as string[]) = ['D'];
 	globalState.settings = settings;
 
 	return {

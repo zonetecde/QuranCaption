@@ -145,17 +145,6 @@
 	}
 
 	/**
-	 * Ferme le panneau avec Échap et restitue le focus au déclencheur.
-	 * @param {KeyboardEvent} event Événement clavier global.
-	 * @returns {void}
-	 */
-	function handleWindowKeydown(event: KeyboardEvent): void {
-		if (!isOpen || event.key !== 'Escape') return;
-		closePanel();
-		triggerButton?.focus();
-	}
-
-	/**
 	 * Applique une police puis ferme le panneau flottant.
 	 * @param {string} fontFamily Famille de police sélectionnée.
 	 * @returns {void}
@@ -202,7 +191,7 @@
 	}
 </script>
 
-<svelte:window onclick={closePanel} onkeydown={handleWindowKeydown} />
+<svelte:window onclick={closePanel} />
 
 <div class="relative" onclick={(event) => event.stopPropagation()}>
 	<button

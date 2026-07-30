@@ -7,9 +7,6 @@ import {
 	type SegmentationSegment,
 	type SegmentationWordTimestamp
 } from '$lib/services/AutoSegmentation';
-import toast from 'svelte-5-french-toast';
-import LL from '$lib/i18n/i18n-svelte';
-import { get } from 'svelte/store';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 export type ManualWordByWordDraftWord = SegmentationWordTimestamp & {
@@ -40,91 +37,6 @@ export function stripWbwDisplayMarkers(text: string): string {
 
 type SubtitlesEditorState = typeof globalState.getSubtitlesEditorState;
 export type SubtitlesEditorStateAccessor = () => SubtitlesEditorState;
-
-export type ManualWbwShortcutHandlers = {
-	getTimer: () => ReturnType<typeof setTimeout> | null;
-	setTimer: (timer: ReturnType<typeof setTimeout> | null) => void;
-	getDidTrigger: () => boolean;
-	setDidTrigger: (value: boolean) => void;
-	onShortPress: () => void;
-	onLongPress: () => void | Promise<void>;
-	delayMs?: number;
-};
-
-/**
- * Retourne le clip Quran sous le curseur pour ouvrir l'édition WBW.
- *
- * @returns {SubtitleClip | null} Clip Quran cible, sinon `null`.
- */
-export function resolveManualWordByWordTargetClip(): SubtitleClip | null {
-	const subtitleTrack = globalState.getSubtitleTrack;
-	if (subtitleTrack.clips.length <= 0) return null;
-
-	const cursorPosition = globalState.getTimelineState.cursorPosition;
-	const clipUnderCursor = subtitleTrack.getCurrentClip(cursorPosition);
-	if (clipUnderCursor instanceof SubtitleClip) {
-		return clipUnderCursor;
-	}
-
-	return null;
-}
-
-/**
- * Lance l'ouverture du mode WBW manuel depuis le raccourci `E`.
- *
- * @returns {Promise<void>}
- */
-export async function openManualWordByWordEditFromShortcut(): Promise<void> {
-	const clip = resolveManualWordByWordTargetClip();
-	if (!clip) return;
-
-	const success = await enterManualWordByWordEdit(clip);
-	if (!success) {
-		toast.error(get(LL).editor.cannotEnterWordEditMode());
-	}
-}
-
-/**
- * Démarre le timer d'appui long du raccourci d'édition.
- *
- * @param {KeyboardEvent} event Événement natif du raccourci.
- * @param {ManualWbwShortcutHandlers} handlers Handlers et état mutable.
- * @returns {void}
- */
-export function handleManualWordByWordEditShortcutKeyDown(
-	event: KeyboardEvent,
-	handlers: ManualWbwShortcutHandlers
-): void {
-	if (event.repeat || handlers.getTimer()) return;
-
-	handlers.setDidTrigger(false);
-	const delay = handlers.delayMs ?? 500;
-	const timer = setTimeout(() => {
-		handlers.setTimer(null);
-		handlers.setDidTrigger(true);
-		void handlers.onLongPress();
-	}, delay);
-	handlers.setTimer(timer);
-}
-
-/**
- * Termine le raccourci d'édition et décide entre appui court et appui long.
- *
- * @param {ManualWbwShortcutHandlers} handlers Handlers et état mutable.
- * @returns {void}
- */
-export function handleManualWordByWordEditShortcutKeyUp(handlers: ManualWbwShortcutHandlers): void {
-	const timer = handlers.getTimer();
-	if (timer) {
-		clearTimeout(timer);
-		handlers.setTimer(null);
-		if (!handlers.getDidTrigger()) {
-			handlers.onShortPress();
-		}
-	}
-
-	handlers.setDidTrigger(false);
-}
 
 /**
  * Synchronise la sélection WBW locale depuis un mot cliqué dans le sélecteur de verset.

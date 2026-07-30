@@ -15,16 +15,18 @@
 		showPlaybackControls?: boolean;
 		onTogglePresetPicker?: () => void;
 	} = $props();
+	let wordsSelector: {
+		selectNextWord: () => Promise<void>;
+		selectPreviousWord: () => Promise<void>;
+		addSubtitle: () => Promise<void>;
+	} | null = $state(null);
 
 	/**
-	 * Déclenche le même raccourci que la touche clavier demandée.
-	 *
-	 * @param {string} key Valeur de KeyboardEvent.key à simuler.
-	 * @returns {void}
+	 * Valide la sélection de mots courante depuis les contrôles tactiles.
+	 * @returns {Promise<void>} Promesse résolue après l'ajout du sous-titre.
 	 */
-	function triggerKeyboardShortcut(key: string): void {
-		document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
-		document.dispatchEvent(new KeyboardEvent('keyup', { key, bubbles: true, cancelable: true }));
+	export async function addSubtitle(): Promise<void> {
+		await wordsSelector?.addSubtitle();
 	}
 </script>
 
@@ -45,7 +47,7 @@
 
 		<!-- Affichage des mots du verset - prend toute la hauteur restante -->
 		<div class="flex-1 min-h-0">
-			<WordsSelector />
+			<WordsSelector bind:this={wordsSelector} />
 		</div>
 
 		{#if showPlaybackControls}
@@ -65,16 +67,16 @@
 					<button
 						class="playback-control-button"
 						type="button"
-						aria-label={$LL.settings.shortcutAction.MOVE_BACKWARD()}
-						onclick={() => triggerKeyboardShortcut('ArrowLeft')}
+						aria-label={$LL.common.back()}
+						onclick={() => void wordsSelector?.selectPreviousWord()}
 					>
 						<span class="material-icons">chevron_left</span>
 					</button>
 					<button
 						class="playback-control-button playback-control-button-primary"
 						type="button"
-						aria-label={$LL.settings.shortcutAction.PLAY_PAUSE()}
-						onclick={() => triggerKeyboardShortcut(' ')}
+						aria-label={$LL.editor.playbackControls()}
+						onclick={() => globalState.getVideoPreviewState.togglePlayPause()}
 					>
 						<span class="material-icons">
 							{globalState.getVideoPreviewState.isPlaying ? 'pause' : 'play_arrow'}
@@ -83,8 +85,8 @@
 					<button
 						class="playback-control-button"
 						type="button"
-						aria-label={$LL.settings.shortcutAction.MOVE_FORWARD()}
-						onclick={() => triggerKeyboardShortcut('ArrowRight')}
+						aria-label={$LL.common.next()}
+						onclick={() => void wordsSelector?.selectNextWord()}
 					>
 						<span class="material-icons">chevron_right</span>
 					</button>
@@ -94,8 +96,8 @@
 					<button
 						class="playback-control-button playback-control-button-validate w-20!"
 						type="button"
-						aria-label={$LL.settings.shortcutAction.ADD_SUBTITLE()}
-						onclick={() => triggerKeyboardShortcut('Enter')}
+						aria-label={$LL.common.confirm()}
+						onclick={() => void addSubtitle()}
 					>
 						<span class="material-icons">check</span>
 					</button>
@@ -150,13 +152,6 @@
 		width: 2.75rem;
 		background: var(--accent-primary);
 		color: var(--text-on-accent);
-	}
-
-	.playback-control-button-preset {
-		border-color: var(--accent-primary);
-		background: color-mix(in srgb, var(--accent-primary) 18%, var(--bg-secondary));
-		color: var(--accent-primary);
-		box-shadow: 0 3px 10px color-mix(in srgb, var(--accent-primary) 20%, transparent);
 	}
 
 	.playback-control-button-validate {

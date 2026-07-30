@@ -80,13 +80,6 @@
 			buttonLabel: $LL.common.next()
 		},
 		{
-			targetId: 'subtitles-help-button',
-			title: $LL.tour.stepShortcutsTitle(),
-			description: $LL.tour.stepShortcutsDesc(),
-			advanceMode: 'button',
-			buttonLabel: $LL.common.next()
-		},
-		{
 			targetId: 'auto-segment-button',
 			title: $LL.tour.stepAutoSegmentTitle(),
 			description: $LL.tour.stepAutoSegmentDesc(),

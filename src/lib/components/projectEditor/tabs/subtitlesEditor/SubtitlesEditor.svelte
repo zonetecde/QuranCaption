@@ -26,6 +26,7 @@
 	let rightDrawerOpen = $state(false);
 	let presetPickerOpen = $state(false);
 	let lastEditedSubtitleId: number | null = null;
+	let subtitlesWorkspace: { addSubtitle: () => Promise<void> } | null = $state(null);
 
 	const WORKSPACE_HEIGHT_MIN = 35;
 	const WORKSPACE_HEIGHT_MAX = 80;
@@ -176,6 +177,7 @@
 	<div class="subtitles-editor-content">
 		<section class="subtitles-editor-workspace" style={`flex-basis: ${workspaceHeight}%;`}>
 			<SubtitlesWorkspace
+				bind:this={subtitlesWorkspace}
 				useSplitHeight={false}
 				showVersePicker={false}
 				showPlaybackControls
@@ -201,7 +203,10 @@
 			/>
 			{#if presetPickerOpen}
 				<div class="preset-picker-overlay">
-					<SubtitlePresetPicker onClose={() => (presetPickerOpen = false)} />
+					<SubtitlePresetPicker
+						onClose={() => (presetPickerOpen = false)}
+						onAddQuranSubtitle={() => subtitlesWorkspace?.addSubtitle()}
+					/>
 				</div>
 			{/if}
 		</section>

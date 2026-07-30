@@ -77,14 +77,6 @@
 			isBusy = false;
 		}
 	}
-
-	function handleKeydown(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
-			close();
-		} else if (event.key === 'Enter' && event.ctrlKey) {
-			void submit(mode);
-		}
-	}
 </script>
 
 <div
@@ -93,8 +85,6 @@
 	transition:slide={{ duration: 180 }}
 	role="dialog"
 	aria-modal="true"
-	tabindex="-1"
-	onkeydown={handleKeydown}
 >
 	<div class="flex items-center justify-between gap-4 border-b border-color bg-primary px-5 py-4">
 		<div class="flex min-w-0 items-center gap-3">

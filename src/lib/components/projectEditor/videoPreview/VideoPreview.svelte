@@ -8,7 +8,6 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { getStyleName } from '$lib/i18n/styleMapper';
 	import { get } from 'svelte/store';
-	import ShortcutService from '$lib/services/ShortcutService';
 	import Settings from '$lib/classes/Settings.svelte';
 	import VideoPreviewControlsBar from './VideoPreviewControlsBar.svelte';
 	import VideoOverlay from './VideoOverlay.svelte';
@@ -268,60 +267,6 @@
 
 		// Force la synchronisation initiale vidéo/audio avec la position du curseur
 		triggerVideoAndAudioToFitCursor();
-		// Set les shortcuts pour le preview
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.PLAY_PAUSE,
-			onKeyDown: (_e) => {
-				togglePlayPause();
-			}
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.MOVE_FORWARD,
-			onKeyDown: (_e) => {
-				const currentTime = getTimelineSettings().cursorPosition;
-				getTimelineSettings().cursorPosition = currentTime + 2000; // Avance de 2 secondes
-				getTimelineSettings().movePreviewTo = currentTime + 2000;
-				globalState.getVideoPreviewState.scrollTimelineToCursor();
-			}
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.MOVE_BACKWARD,
-			onKeyDown: (_e) => {
-				const currentTime = getTimelineSettings().cursorPosition;
-				getTimelineSettings().cursorPosition = Math.max(1, currentTime - 2000); // Recule de 2 secondes
-				getTimelineSettings().movePreviewTo = Math.max(1, currentTime - 2000);
-				globalState.getVideoPreviewState.scrollTimelineToCursor();
-			}
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.INCREASE_SPEED,
-			onKeyDown: (_e) => {
-				setPlaybackSpeed(getSpeed() + 1);
-			},
-			onKeyUp: (_e) => {
-				setPlaybackSpeed(getSpeed());
-			}
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.TOGGLE_FULLSCREEN,
-			onKeyDown: (_e) => {
-				globalState.getVideoPreviewState.toggleFullScreen();
-			}
-		});
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings!.shortcuts.VIDEO_PREVIEW.GO_TO_START,
-			onKeyDown: (_e) => {
-				pause(); // Arrête la lecture
-				getTimelineSettings().cursorPosition = 1; // Revient au début (1ms pour éviter les bugs)
-				getTimelineSettings().movePreviewTo = 1; // Force la mise à jour de la prévisualisation
-				globalState.getVideoPreviewState.scrollTimelineToCursor();
-			}
-		});
 	});
 
 	function setPlaybackSpeed(speed: number) {
@@ -366,18 +311,6 @@
 		if (backgroundDiv) {
 			backgroundDiv.remove();
 		}
-
-		// Enlève tout les shortcuts enregistrés
-		ShortcutService.unregisterShortcut(globalState.settings!.shortcuts.VIDEO_PREVIEW.PLAY_PAUSE);
-		ShortcutService.unregisterShortcut(globalState.settings!.shortcuts.VIDEO_PREVIEW.MOVE_FORWARD);
-		ShortcutService.unregisterShortcut(globalState.settings!.shortcuts.VIDEO_PREVIEW.MOVE_BACKWARD);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.VIDEO_PREVIEW.INCREASE_SPEED
-		);
-		ShortcutService.unregisterShortcut(
-			globalState.settings!.shortcuts.VIDEO_PREVIEW.TOGGLE_FULLSCREEN
-		);
-		ShortcutService.unregisterShortcut(globalState.settings!.shortcuts.VIDEO_PREVIEW.GO_TO_START);
 	});
 
 	// Effect pour s'assurer que l'événement ontimeupdate est toujours assigné à l'élément vidéo
@@ -1285,14 +1218,6 @@
 		globalState.getVideoPreviewState.togglePlayPause = togglePlayPause;
 	});
 </script>
-
-<svelte:window
-	onkeydown={(e) => {
-		if (e.key === 'Escape' && globalState.getVideoPreviewState.isFullscreen) {
-			globalState.getVideoPreviewState.toggleFullScreen();
-		}
-	}}
-/>
 
 <section
 	class="overflow-hidden min-h-0"

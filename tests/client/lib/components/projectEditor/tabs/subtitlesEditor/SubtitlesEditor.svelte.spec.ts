@@ -12,13 +12,6 @@ import {
 	seedSubtitlesEditorQuranFixture
 } from '../../../../../fixtures/subtitlesEditor/projectFixture';
 
-vi.mock('$lib/services/ShortcutService', () => ({
-	default: {
-		registerShortcut: vi.fn(),
-		unregisterShortcut: vi.fn()
-	}
-}));
-
 vi.mock('svelte-5-french-toast', () => ({
 	default: {
 		error: vi.fn(),

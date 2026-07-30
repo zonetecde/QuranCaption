@@ -12,7 +12,6 @@
 		min: number;
 		max: number;
 		unit?: DividerUnit;
-		step?: number;
 		reverse?: boolean;
 		displayedValue?: number;
 		class?: string;
@@ -25,7 +24,6 @@
 		min,
 		max,
 		unit = 'pixels',
-		step,
 		reverse = false,
 		displayedValue,
 		class: className = '',
@@ -66,17 +64,6 @@
 	function getContainerSize(divider: HTMLElement): number {
 		const rect = divider.parentElement?.getBoundingClientRect();
 		return Math.max(1, orientation === 'vertical' ? (rect?.width ?? 1) : (rect?.height ?? 1));
-	}
-
-	/**
-	 * Applique une nouvelle taille et sauvegarde les préférences utilisateur.
-	 * @param {number} nextValue Taille demandée.
-	 * @returns {void}
-	 */
-	function setKeyboardValue(nextValue: number): void {
-		value = clampValue(nextValue);
-		void Settings.save();
-		if (orientation === 'horizontal') WaveformService.clearAllCache();
 	}
 
 	/**
@@ -132,32 +119,6 @@
 		if (orientation === 'horizontal') WaveformService.clearAllCache();
 	}
 
-	/**
-	 * Redimensionne avec le clavier lorsque le séparateur est focalisé.
-	 * @param {KeyboardEvent} event Événement clavier.
-	 * @returns {void}
-	 */
-	function handleKeydown(event: KeyboardEvent): void {
-		const keyboardStep = step ?? (unit === 'percent' ? 2 : 20);
-		const direction = reverse ? -1 : 1;
-		let nextValue: number | null = null;
-
-		if (event.key === 'Home') nextValue = min;
-		else if (event.key === 'End') nextValue = max;
-		else if (orientation === 'vertical' && event.key === 'ArrowLeft')
-			nextValue = currentValue - keyboardStep * direction;
-		else if (orientation === 'vertical' && event.key === 'ArrowRight')
-			nextValue = currentValue + keyboardStep * direction;
-		else if (orientation === 'horizontal' && event.key === 'ArrowUp')
-			nextValue = currentValue - keyboardStep * direction;
-		else if (orientation === 'horizontal' && event.key === 'ArrowDown')
-			nextValue = currentValue + keyboardStep * direction;
-
-		if (nextValue === null) return;
-		event.preventDefault();
-		setKeyboardValue(nextValue);
-	}
-
 	onDestroy(stopResize);
 </script>
 
@@ -169,10 +130,8 @@
 	aria-valuemin={min}
 	aria-valuemax={max}
 	aria-valuenow={Math.round(currentValue)}
-	tabindex="0"
 	data-testid={dataTestId}
 	onpointerdown={startResize}
-	onkeydown={handleKeydown}
 ></div>
 
 <style>

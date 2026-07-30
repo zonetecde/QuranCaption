@@ -157,7 +157,6 @@ class GlobalState {
 			orientation: 'portrait' as AndroidOrientation
 		},
 		settingsTab: 'support' as
-			| 'shortcuts'
 			| 'theme'
 			| 'notifications'
 			| 'ai-key'

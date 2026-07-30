@@ -3,6 +3,7 @@ import { get } from 'svelte/store';
 import Confirm from './Confirm.svelte';
 import Input from './Input.svelte';
 import Error from './Error.svelte';
+import NewUpdateModal from '../home/modals/NewUpdateModal.svelte';
 import DeleteConfirmation from './DeleteConfirmation.svelte';
 import ShiftSubtitlesModal from './tools/ShiftSubtitlesModal.svelte';
 import HifzRepetitionModal from './tools/HifzRepetitionModal.svelte';
@@ -12,6 +13,7 @@ import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/m
 import AiWbwTranslationModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiWbwTranslationModal.svelte';
 import AskIAModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AskIAModal.svelte';
 import type { Edition } from '$lib/classes';
+import type { UpdateInfo } from '$lib/services/VersionService.svelte';
 import LL from '$lib/i18n/i18n-svelte';
 
 export default class ModalManager {
@@ -69,6 +71,32 @@ export default class ModalManager {
 	static async settingsModal(): Promise<void> {
 		const { globalState } = await import('$lib/runes/main.svelte');
 		globalState.uiState.isSettingsOpen = !globalState.uiState.isSettingsOpen;
+	}
+
+	/**
+	 * Ouvre la modale présentant une nouvelle version Android.
+	 *
+	 * @param {UpdateInfo} update Informations de la release disponible.
+	 * @returns {Promise<void>} Résolution après fermeture de la modale.
+	 */
+	static async newUpdateModal(update: UpdateInfo): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			const modal = mount(NewUpdateModal, {
+				target: container,
+				props: {
+					update,
+					resolve: () => {
+						unmount(modal);
+						container.remove();
+						resolve();
+					}
+				}
+			});
+		});
 	}
 
 	static async errorModal(title: string, message: string, logs?: string): Promise<void> {

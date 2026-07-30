@@ -3,9 +3,6 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
-	import { get } from 'svelte/store';
-
-	const LL_ = get(LL);
 
 	let subtitlesEditorState = $derived(() => globalState.getSubtitlesEditorState);
 
@@ -77,37 +74,6 @@
 						></iframe>
 					</div>
 				</div>
-
-				<div class="border-t border-color my-3"></div>
-
-				{@html $LL.editor.spaceToPlayPause()}
-				<br />
-				{@html $LL.editor.arrowsToSelectWords()}
-				<br />
-				{@html $LL.editor.enterToAddSubtitleWalkthrough()}
-
-				<!-- separator line -->
-				<div class="border-t border-color my-3"></div>
-
-				<!-- list of shortcuts -->
-				{#each Object.entries(globalState.settings!.shortcuts.SUBTITLES_EDITOR)
-					.concat(Object.entries(globalState.settings!.shortcuts.PREDEFINED_SUBTITLES || {}))
-					.concat(Object.entries(globalState.settings!.shortcuts.VIDEO_PREVIEW)) as [_action, shortcut], index (`${shortcut.name}-${index}`)}
-					<div class="flex items-center justify-between py-1 border-b border-color last:border-0">
-						<div class="flex flex-col">
-							<span class="text-sm font-medium text-secondary"
-								>{(get(LL).settings.shortcutAction as Record<string, () => string>)[_action]?.() ||
-									shortcut.name}</span
-							>
-							<span class="text-xs italic font-medium text-secondary"
-								>{(get(LL).settings.shortcutActionDesc as Record<string, () => string>)[
-									_action
-								]?.() || shortcut.description}</span
-							>
-						</div>
-						<span class="font-mono bg-accent px-1 rounded-sm">{shortcut.keys.join(', ')}</span>
-					</div>
-				{/each}
 			</div>
 		</div>
 	</div>

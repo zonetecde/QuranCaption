@@ -1,11 +1,10 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
 	import Timeline from '../../timeline/Timeline.svelte';
 	import VideoPreview from '../../videoPreview/VideoPreview.svelte';
 	import DiviseurRedimensionnable from '../DiviseurRedimensionnable.svelte';
 	import StyleEditorSettings from './StyleEditorSettings.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { ProjectEditorTabs, TrackType } from '$lib/classes';
+	import { TrackType } from '$lib/classes';
 	import { PROJECT_EDITOR_STYLE_SECTION_HEIGHTS } from '$lib/constants/projectEditor';
 
 	/** Ouverture de la librairie de presets (état géré dans globalState). */
@@ -38,38 +37,6 @@
 	function closePresetLibrary() {
 		globalState.presetLibrary.libraryOpen = false;
 	}
-
-	/**
-	 * Handle the keyboard shortcut for selecting all subtitles.
-	 * @param event The keyboard event
-	 */
-	function handleSelectAllSubtitlesShortcut(event: KeyboardEvent) {
-		if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'a') return;
-		if (globalState.currentProject?.projectEditorState.currentTab !== ProjectEditorTabs.Style)
-			return;
-
-		// Vérifie qu'on ne cible pas un champ de saisie
-		const target = event.target;
-		if (
-			target instanceof HTMLInputElement ||
-			target instanceof HTMLTextAreaElement ||
-			target instanceof HTMLSelectElement ||
-			(target instanceof HTMLElement && target.isContentEditable)
-		) {
-			return;
-		}
-
-		event.preventDefault();
-		globalState.getStylesState.selectAllSubtitles();
-	}
-
-	onMount(() => {
-		document.addEventListener('keydown', handleSelectAllSubtitlesShortcut, true);
-	});
-
-	onDestroy(() => {
-		document.removeEventListener('keydown', handleSelectAllSubtitlesShortcut, true);
-	});
 </script>
 
 <div class="style-editor-mobile-shell">

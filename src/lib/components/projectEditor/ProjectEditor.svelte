@@ -4,7 +4,6 @@
 	import ProjectSearchOverlay from './ProjectSearchOverlay.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectEditorTabs } from '$lib/classes';
-	import { goToAdjacentSubtitleFromCursor } from '$lib/services/SubtitleNavigation';
 	import VideoEditor from './tabs/videoEditor/VideoEditor.svelte';
 	import SubtitlesEditor from './tabs/subtitlesEditor/SubtitlesEditor.svelte';
 	import TranslationsEditor from './tabs/translationsEditor/TranslationsEditor.svelte';
@@ -24,34 +23,6 @@
 	let searchOverlayVisible = $state(false);
 	let searchOverlay: { focusInput: () => Promise<void>; containsFocus: () => boolean } | null =
 		$state(null);
-
-	function isTypingTarget(target: EventTarget | null): boolean {
-		return (
-			target instanceof HTMLInputElement ||
-			target instanceof HTMLTextAreaElement ||
-			target instanceof HTMLSelectElement ||
-			(target instanceof HTMLElement && target.isContentEditable)
-		);
-	}
-
-	/**
-	 * Navigation sous-titres via ArrowUp / ArrowDown
-	 * active seulement dans Video editor, Style et Export.
-	 */
-	function handleSubtitleNavigationShortcut(event: KeyboardEvent): void {
-		const tab = globalState.currentProject?.projectEditorState.currentTab;
-		const isTabAllowed =
-			tab === ProjectEditorTabs.VideoEditor ||
-			tab === ProjectEditorTabs.Style ||
-			tab === ProjectEditorTabs.Export;
-		if (!isTabAllowed) return;
-		if (isTypingTarget(event.target)) return;
-
-		if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
-
-		event.preventDefault();
-		goToAdjacentSubtitleFromCursor(event.key === 'ArrowUp' ? 'next' : 'previous');
-	}
 
 	/**
 	 * Ouvre la recherche projet et focalise son champ.
@@ -78,53 +49,6 @@
 		globalState.shared.projectSearch.openRequest = 0;
 		void openProjectSearch();
 	});
-
-	/**
-	 * Gère le raccourci Ctrl/Cmd+F du projet.
-	 * @param {KeyboardEvent} event Événement clavier.
-	 * @returns {void}
-	 */
-	function handleProjectSearchShortcut(event: KeyboardEvent): void {
-		if (event.key === 'Escape' && searchOverlayVisible) {
-			event.preventDefault();
-			closeProjectSearch();
-			return;
-		}
-
-		if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'f') return;
-
-		if (searchOverlayVisible && searchOverlay?.containsFocus()) {
-			return;
-		}
-
-		if (isTypingTarget(event.target)) return;
-
-		event.preventDefault();
-		void openProjectSearch();
-	}
-
-	/**
-	 * Gère les raccourcis undo/redo du projet courant.
-	 * @param {KeyboardEvent} event Événement clavier.
-	 * @returns {void}
-	 */
-	function handleProjectHistoryShortcut(event: KeyboardEvent): void {
-		if (!(event.ctrlKey || event.metaKey)) return;
-		if (isTypingTarget(event.target)) return;
-
-		const key = event.key.toLowerCase();
-		const isUndo = key === 'z' && !event.shiftKey;
-		const isRedo = (key === 'z' && event.shiftKey) || key === 'y';
-		if (!isUndo && !isRedo) return;
-
-		event.preventDefault();
-		if (isUndo) {
-			ProjectHistoryManager.undo();
-			return;
-		}
-
-		ProjectHistoryManager.redo();
-	}
 
 	/**
 	 * Sérialise le projet courant pour détecter une mutation réelle.
@@ -223,9 +147,6 @@
 			globalState.closeAllMenus();
 		};
 		window.addEventListener('mousedown', handleGlobalClick, true);
-		window.addEventListener('keydown', handleProjectSearchShortcut, true);
-		window.addEventListener('keydown', handleSubtitleNavigationShortcut, true);
-		window.addEventListener('keydown', handleProjectHistoryShortcut, true);
 
 		return () => {
 			ProjectHistoryManager.clear();
@@ -234,9 +155,6 @@
 			}
 			clearScheduledSave();
 			window.removeEventListener('mousedown', handleGlobalClick, true);
-			window.removeEventListener('keydown', handleProjectSearchShortcut, true);
-			window.removeEventListener('keydown', handleSubtitleNavigationShortcut, true);
-			window.removeEventListener('keydown', handleProjectHistoryShortcut, true);
 		};
 	});
 </script>

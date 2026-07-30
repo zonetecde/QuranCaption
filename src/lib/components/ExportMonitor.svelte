@@ -43,15 +43,6 @@
 	}
 
 	/**
-	 * Ferme le moniteur avec la touche Échap.
-	 * @param {KeyboardEvent} event Événement clavier global.
-	 * @returns {void}
-	 */
-	function handleWindowKeydown(event: KeyboardEvent): void {
-		if (event.key === 'Escape' && globalState.uiState.showExportMonitor) closeMonitor();
-	}
-
-	/**
 	 * Formate une durée en horodatage lisible.
 	 * @param {number} ms Durée en millisecondes.
 	 * @returns {string} Durée HH:MM:SS ou MM:SS.
@@ -336,8 +327,6 @@
 		if (intervalId) clearInterval(intervalId);
 	});
 </script>
-
-<svelte:window onkeydown={handleWindowKeydown} />
 
 {#if globalState.uiState.showExportMonitor}
 	<div class="modal-wrapper export-monitor-backdrop" transition:fade={{ duration: 120 }}>

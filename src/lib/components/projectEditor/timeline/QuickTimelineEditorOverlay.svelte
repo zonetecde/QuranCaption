@@ -7,7 +7,7 @@
 	import TranslationInlineStylePanel from '../tabs/translationsEditor/TranslationInlineStylePanel.svelte';
 	import ArabicText from '../tabs/translationsEditor/workspace/ArabicText.svelte';
 	import Translation from '../tabs/translationsEditor/workspace/translation/Translation.svelte';
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
@@ -124,38 +124,6 @@
 	function stopTimelineWheelPropagation(event: WheelEvent): void {
 		event.stopPropagation();
 	}
-
-	/**
-	 * Ferme l'overlay rapide avec Echap.
-	 * @param {KeyboardEvent} event Evenement clavier courant.
-	 * @returns {void}
-	 */
-	function handleQuickTimelineEditorEscape(event: KeyboardEvent): void {
-		if (event.key !== 'Escape' || !quickTimelineEditor().active) return;
-
-		event.preventDefault();
-		event.stopPropagation();
-		closeQuickTimelineEditorOverlay();
-	}
-
-	/**
-	 * Retourne le label lisible d'un raccourci configuré.
-	 * @param {string[] | undefined} keys Liste des touches configurées.
-	 * @param {string} fallback Texte de repli si aucune touche n'est définie.
-	 * @returns {string} Raccourci formaté pour l'UI.
-	 */
-	function formatShortcutLabel(keys: string[] | undefined, fallback: string): string {
-		if (!keys || keys.length === 0) return fallback;
-		return keys.map((key) => key.toUpperCase()).join(' / ');
-	}
-
-	onMount(() => {
-		window.addEventListener('keydown', handleQuickTimelineEditorEscape, true);
-
-		return () => {
-			window.removeEventListener('keydown', handleQuickTimelineEditorEscape, true);
-		};
-	});
 
 	onDestroy(() => {
 		if (quickTimelineEditor().active) {

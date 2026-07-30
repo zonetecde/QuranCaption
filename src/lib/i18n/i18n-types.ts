@@ -7184,7 +7184,7 @@ type RootTranslation = {
 		 */
 		settings: string;
 		/**
-		 * C​u​s​t​o​m​i​z​e​ ​y​o​u​r​ ​e​x​p​e​r​i​e​n​c​e​,​ ​s​h​o​r​t​c​u​t​s​,​ ​a​n​d​ ​b​a​c​k​u​p​s
+		 * C​u​s​t​o​m​i​z​e​ ​y​o​u​r​ ​e​x​p​e​r​i​e​n​c​e​ ​a​n​d​ ​b​a​c​k​u​p​s
 		 */
 		customizeExperience: string;
 		/**
@@ -17876,7 +17876,7 @@ export type TranslationFunctions = {
 		 */
 		settings: () => LocalizedString;
 		/**
-		 * Customize your experience, shortcuts, and backups
+		 * Customize your experience and backups
 		 */
 		customizeExperience: () => LocalizedString;
 		/**

@@ -2294,7 +2294,7 @@ const de = {
 	},
 	settings: {
 		settings: 'Einstellungen',
-		customizeExperience: 'Passen Sie Ihr Erlebnis, Tastenkürzel und Backups an',
+		customizeExperience: 'Passen Sie Ihr Erlebnis und Ihre Backups an',
 		shortcuts: 'Tastenkürzel',
 		theme: 'Design',
 		notifications: 'Benachrichtigungen',

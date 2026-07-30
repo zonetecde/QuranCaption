@@ -2085,7 +2085,7 @@ const zh = {
 	},
 	settings: {
 		settings: '设置',
-		customizeExperience: '自定义您的体验、快捷键和备份',
+		customizeExperience: '自定义您的体验和备份',
 		shortcuts: '快捷键',
 		theme: '主题',
 		notifications: '通知',

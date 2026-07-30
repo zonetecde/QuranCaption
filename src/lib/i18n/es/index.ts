@@ -2291,7 +2291,7 @@ const es = {
 	},
 	settings: {
 		settings: 'Configuración',
-		customizeExperience: 'Personalice su experiencia, atajos y copias de seguridad',
+		customizeExperience: 'Personalice su experiencia y sus copias de seguridad',
 		shortcuts: 'Atajos',
 		theme: 'Tema',
 		notifications: 'Notificaciones',

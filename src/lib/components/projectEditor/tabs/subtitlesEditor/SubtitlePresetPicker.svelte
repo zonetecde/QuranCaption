@@ -10,7 +10,13 @@
 
 	type SpecialPreset = Exclude<PredefinedSubtitleType, 'Other'> | 'Silence';
 
-	let { onClose }: { onClose: () => void } = $props();
+	let {
+		onClose,
+		onAddQuranSubtitle
+	}: {
+		onClose: () => void;
+		onAddQuranSubtitle: () => Promise<void> | undefined;
+	} = $props();
 	let selectedPreset = $state<SpecialPreset | "Qur'an" | null>(null);
 	let editedSubtitle = $derived(globalState.getSubtitlesEditorState.editSubtitle);
 	let isEditing = $derived(
@@ -90,20 +96,6 @@
 	}
 
 	/**
-	 * Déclenche le raccourci Entrée utilisé pour valider la sélection de mots.
-	 *
-	 * @returns {void}
-	 */
-	function triggerEnterShortcut(): void {
-		document.dispatchEvent(
-			new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
-		);
-		document.dispatchEvent(
-			new KeyboardEvent('keyup', { key: 'Enter', bubbles: true, cancelable: true })
-		);
-	}
-
-	/**
 	 * Valide le choix courant en mode ajout ou modification.
 	 *
 	 * @returns {void}
@@ -112,7 +104,7 @@
 		if (!selectedPreset) return;
 
 		if (selectedPreset === "Qur'an") {
-			triggerEnterShortcut();
+			void onAddQuranSubtitle();
 			onClose();
 			return;
 		}

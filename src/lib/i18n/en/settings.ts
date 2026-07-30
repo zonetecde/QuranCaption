@@ -1,6 +1,6 @@
 const settings = {
 	settings: 'Settings',
-	customizeExperience: 'Customize your experience, shortcuts, and backups',
+	customizeExperience: 'Customize your experience and backups',
 	shortcuts: 'Shortcuts',
 	theme: 'Theme',
 	notifications: 'Notifications',

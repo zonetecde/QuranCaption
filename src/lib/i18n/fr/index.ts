@@ -2316,7 +2316,7 @@ const fr = {
 	},
 	settings: {
 		settings: 'Paramètres',
-		customizeExperience: 'Personnalisez votre expérience, raccourcis et sauvegardes',
+		customizeExperience: 'Personnalisez votre expérience et vos sauvegardes',
 		shortcuts: 'Raccourcis',
 		theme: 'Thème',
 		notifications: 'Notifications',

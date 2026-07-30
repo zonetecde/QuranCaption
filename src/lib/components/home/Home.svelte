@@ -15,6 +15,7 @@
 	import { setupTutorialProject } from '$lib/services/TutorialService';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import AndroidMediaService from '$lib/services/AndroidMediaService';
+	import { VersionService } from '$lib/services/VersionService.svelte';
 
 	import InputWithIcon from '../misc/InputWithIcon.svelte';
 	import ModalManager from '../modals/ModalManager';
@@ -421,6 +422,16 @@
 	});
 
 	onMount(async () => {
+		await VersionService.init();
+		if (VersionService.latestUpdate?.hasUpdate && globalState.settings) {
+			const lastClosed = new Date(
+				globalState.settings.persistentUiState.lastClosedUpdateModal || 0
+			);
+			if (Date.now() - lastClosed.getTime() > 24 * 60 * 60 * 1000) {
+				void ModalManager.newUpdateModal(VersionService.latestUpdate);
+			}
+		}
+
 		if (globalState.userProjectsDetails.length > 0) {
 			// Retrie juste dans l'ordre de updatetime
 			globalState.userProjectsDetails = globalState.userProjectsDetails.sort(

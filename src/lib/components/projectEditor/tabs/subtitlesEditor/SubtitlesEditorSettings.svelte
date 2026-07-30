@@ -1,7 +1,5 @@
 <script lang="ts">
-	import { AssetClip, PredefinedSubtitleClip, SilenceClip, SubtitleClip } from '$lib/classes';
-	import { canonicalizePredefinedSubtitleType } from '$lib/classes/Clip.svelte';
-	import ModalManager from '$lib/components/modals/ModalManager';
+	import { AssetClip, SubtitleClip } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { enterManualWordByWordEdit, exitManualWordByWordEdit } from '$lib/services/WbwHelper';
 	import AutoSegmentationModal from './modal/AutoSegmentationModal.svelte';
@@ -11,130 +9,11 @@
 	import SplitLongSubtitles from './SplitLongSubtitles.svelte';
 
 	import { fade } from 'svelte/transition';
-	import { onDestroy, onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 
-	let presetChoice: string = $state('');
 	let autoSegmentationModalVisible = $state(false);
-
-	type SpecialPreset =
-		| 'Silence'
-		| 'Basmala'
-		| "Isti'adha"
-		| 'Amin'
-		| 'Takbir'
-		| 'Tahmeed'
-		| 'Tasleem'
-		| 'Sadaqa';
-
-	function isSpecialPreset(value: string): value is SpecialPreset {
-		return (
-			value === 'Silence' ||
-			value === 'Basmala' ||
-			value === "Isti'adha" ||
-			value === 'Amin' ||
-			value === 'Takbir' ||
-			value === 'Tahmeed' ||
-			value === 'Tasleem' ||
-			value === 'Sadaqa'
-		);
-	}
-
-	function isEditableSubtitle(
-		clip: { type?: string } | null
-	): clip is SubtitleClip | PredefinedSubtitleClip | SilenceClip {
-		return (
-			!!clip &&
-			(clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle' || clip.type === 'Silence')
-		);
-	}
-
-	$effect(() => {
-		const editSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
-		if (editSubtitle) {
-			switch (editSubtitle.type) {
-				case 'Silence':
-					presetChoice = 'Silence';
-					break;
-				case 'Pre-defined Subtitle': {
-					const predefinedSubtitle = editSubtitle as PredefinedSubtitleClip;
-					const normalizedType = canonicalizePredefinedSubtitleType(
-						predefinedSubtitle.predefinedSubtitleType
-					);
-					presetChoice = normalizedType === 'Other' ? '' : normalizedType;
-					break;
-				}
-				case 'Subtitle':
-					presetChoice = "Qur'an";
-					break;
-				default:
-					presetChoice = '';
-			}
-		} else {
-			presetChoice = '';
-		}
-	});
-
-	async function applySubtitleChanges() {
-		// Si on veut changer le sous-titre en Qur'an
-		if (presetChoice === "Qur'an") {
-			// Alors on explique à l'utilisateur qu'il doit sélectionner les mots
-			await ModalManager.confirmModal($LL.editor.makeQuranSubtitleConfirm());
-		} else {
-			// Sinon on applique le changement de sous-titre
-			const subtitleTrack = globalState.getSubtitleTrack;
-			const editSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
-			if (!isSpecialPreset(presetChoice) || !isEditableSubtitle(editSubtitle)) {
-				return;
-			}
-			subtitleTrack.editSubtitleToSpecial(editSubtitle, presetChoice);
-
-			// Si un ID de sous-titre suivant est en attente (après une division), on passe à ce sous-titre
-			const pendingId = globalState.getSubtitlesEditorState.pendingSplitEditNextId;
-			if (pendingId && editSubtitle.id !== pendingId) {
-				const nextClip = subtitleTrack.getClipById(pendingId);
-				globalState.getSubtitlesEditorState.editSubtitle = nextClip ?? null;
-			} else {
-				globalState.getSubtitlesEditorState.editSubtitle = null;
-			}
-			globalState.getSubtitlesEditorState.pendingSplitEditNextId = null;
-		}
-	}
-
-	function handleEditModeShortcut(event: KeyboardEvent) {
-		const editSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
-		if (!isEditableSubtitle(editSubtitle)) return;
-
-		if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-			return;
-		}
-
-		const key = event.key.toLowerCase();
-		let newPreset: string | null = null;
-
-		if (key === 's') newPreset = 'Silence';
-		else if (key === 'b') newPreset = 'Basmala';
-		else if (key === 'i') newPreset = "Isti'adha";
-
-		if (!newPreset) return;
-
-		event.preventDefault();
-		event.stopPropagation();
-		event.stopImmediatePropagation();
-
-		presetChoice = newPreset;
-		void applySubtitleChanges();
-	}
-
-	onMount(() => {
-		document.addEventListener('keydown', handleEditModeShortcut, true);
-	});
-
-	onDestroy(() => {
-		document.removeEventListener('keydown', handleEditModeShortcut, true);
-	});
 
 	/**
 	 * Ouvre le mode d'edition WBW manuel pour le sous-titre courant.
@@ -149,29 +28,6 @@
 		if (!success) {
 			toast.error(get(LL).editor.cannotEnterWordEditMode());
 		}
-	}
-
-	/**
-	 * Retourne le raccourci d'édition configuré par l'utilisateur sous forme lisible.
-	 *
-	 * @returns {string} Raccourci formate pour l'UI.
-	 */
-	function getEditShortcutLabel(): string {
-		const keys = globalState.settings?.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE.keys ?? [];
-		if (keys.length === 0) return get(LL).editor.editKey();
-		return keys.map((key) => key.toUpperCase()).join(' + ');
-	}
-
-	/**
-	 * Retourne le label lisible d'un raccourci configuré.
-	 *
-	 * @param {string[] | undefined} keys Liste des touches configurées.
-	 * @param {string} fallback Texte de repli si aucune touche n'est définie.
-	 * @returns {string} Raccourci formaté pour l'UI.
-	 */
-	function formatShortcutLabel(keys: string[] | undefined, fallback: string): string {
-		if (!keys || keys.length === 0) return fallback;
-		return keys.map((key) => key.toUpperCase()).join(' / ');
 	}
 </script>
 
@@ -237,46 +93,6 @@
 							</button>
 						{/if}
 					</div>
-
-					<p class="text-[9px] -mt-1 text-secondary">
-						{$LL.editor.wbwShortcutNote({ shortcut: getEditShortcutLabel() })}
-					</p>
-
-					{#if globalState.shared.wbwEdit.active}
-						<div class="rounded-md bg-yellow-400/8 border border-yellow-400/15 p-1 -mx-1 space-y-2">
-							<p class="text-[11px] text-yellow-100/90">{$LL.editor.wbwTutorialTitle()}</p>
-							<div class="relative w-full overflow-hidden rounded-md" style="padding-top: 56.25%;">
-								<iframe
-									class="absolute inset-0 h-full w-full"
-									src="https://www.youtube.com/embed/HGhMKZjuKFo"
-									title={$LL.editor.wbwTutorialIframeTitle()}
-									allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-									allowfullscreen
-								></iframe>
-							</div>
-							<p class="text-[11px] text-yellow-100/90">
-								<strong>{$LL.editor.wbwTutorialEnter()}</strong>
-							</p>
-							<p class="text-[11px] text-yellow-100/90">
-								<strong>{$LL.editor.wbwTutorialArrows()}</strong>
-							</p>
-							<p class="text-[11px] text-yellow-100/90">
-								<strong
-									>{formatShortcutLabel(
-										globalState.settings?.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_START.keys,
-										'n'
-									)}/{formatShortcutLabel(
-										globalState.settings?.shortcuts.SUBTITLES_EDITOR.SET_LAST_SUBTITLE_END.keys,
-										'm'
-									)}:</strong
-								>
-								{$LL.editor.wbwTutorialBoundaries()}
-							</p>
-							<p class="text-[11px] text-yellow-100/90">
-								<strong>{$LL.editor.wbwTutorialEscape()}</strong>
-							</p>
-						</div>
-					{/if}
 				</div>
 			{/if}
 

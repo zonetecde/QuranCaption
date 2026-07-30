@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { onDestroy, onMount } from 'svelte';
 
 	let {
 		open = $bindable(false),
@@ -19,20 +18,6 @@
 	function closeDrawer(): void {
 		open = false;
 	}
-
-	function handleGlobalKeyDown(event: KeyboardEvent): void {
-		if (event.key === 'Escape' && open) {
-			closeDrawer();
-		}
-	}
-
-	onMount(() => {
-		document.addEventListener('keydown', handleGlobalKeyDown);
-	});
-
-	onDestroy(() => {
-		document.removeEventListener('keydown', handleGlobalKeyDown);
-	});
 </script>
 
 <button

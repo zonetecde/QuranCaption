@@ -51,18 +51,6 @@
 		reviewRating = star;
 	}
 
-	function handleStarKeyDown(event: KeyboardEvent, star: number) {
-		if (event.key !== 'Enter' && event.key !== ' ') return;
-		event.preventDefault();
-		setRating(star);
-	}
-
-	function handleWindowKeyDown(event: KeyboardEvent) {
-		if (event.key !== 'Escape') return;
-		event.preventDefault();
-		closeModal();
-	}
-
 	async function submit() {
 		if (!canSubmit) return;
 
@@ -115,8 +103,6 @@
 		}
 	}
 </script>
-
-<svelte:window onkeydown={handleWindowKeyDown} />
 
 <div
 	class="support-feedback-modal fixed inset-0 z-30 flex items-center justify-center bg-black/55 backdrop-blur-sm p-3"
@@ -203,7 +189,6 @@
 								onclick={() => setRating(star)}
 								onmouseenter={() => (hoveredRating = star)}
 								onmouseleave={() => (hoveredRating = 0)}
-								onkeydown={(event) => handleStarKeyDown(event, star)}
 								aria-label={$LL.common.rateStar({ star, plural: star > 1 ? 's' : '' })}
 							>
 								<span

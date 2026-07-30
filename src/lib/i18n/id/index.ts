@@ -480,7 +480,7 @@ const id = {
 	settings: {
 		...baseEn.settings,
 		settings: 'Pengaturan',
-		customizeExperience: 'Atur pengalaman, shortcut, dan backup kamu',
+		customizeExperience: 'Atur pengalaman dan backup kamu',
 		shortcuts: 'Pintasan',
 		theme: 'Tema',
 		notifications: 'Notifikasi',

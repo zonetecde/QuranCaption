@@ -13,59 +13,17 @@ import {
 	setupSubtitlesEditorProjectFixture
 } from '../../../../../fixtures/subtitlesEditor/projectFixture';
 
-const shortcutMock = vi.hoisted(() => {
-	type ShortcutHandler = {
-		description: string;
-		onKeyDown: (event: KeyboardEvent) => unknown;
-		onKeyUp?: (event: KeyboardEvent) => unknown;
-	};
-
-	const shortcuts = new Map<string, ShortcutHandler>();
-	const registerShortcut = vi.fn(
-		(options: {
-			key: { keys: string[]; description: string };
-			onKeyDown: (event: KeyboardEvent) => unknown;
-			onKeyUp?: (event: KeyboardEvent) => unknown;
-		}) => {
-			for (const key of options.key.keys) {
-				shortcuts.set(key.toLowerCase(), {
-					description: options.key.description,
-					onKeyDown: options.onKeyDown,
-					onKeyUp: options.onKeyUp
-				});
-			}
-		}
-	);
-
-	const unregisterShortcut = vi.fn((key: { keys: string[]; description: string }) => {
-		let deleted = false;
-		for (const shortcutKey of key.keys) {
-			deleted = shortcuts.delete(shortcutKey.toLowerCase()) || deleted;
-		}
-		return deleted;
-	});
-
-	const reset = () => {
-		shortcuts.clear();
-		registerShortcut.mockClear();
-		unregisterShortcut.mockClear();
-	};
-
-	return { shortcuts, registerShortcut, unregisterShortcut, reset };
-});
+type WordsSelectorExports = {
+	selectNextWord: () => Promise<void>;
+	selectPreviousWord: () => Promise<void>;
+	addSubtitle: () => Promise<void>;
+};
 
 const toastMock = vi.hoisted(() => ({
 	error: vi.fn(),
 	info: vi.fn(),
 	success: vi.fn(),
 	warning: vi.fn()
-}));
-
-vi.mock('$lib/services/ShortcutService', () => ({
-	default: {
-		registerShortcut: shortcutMock.registerShortcut,
-		unregisterShortcut: shortcutMock.unregisterShortcut
-	}
 }));
 
 vi.mock('svelte-5-french-toast', () => ({
@@ -155,27 +113,15 @@ async function waitForWord(component: ReturnType<typeof render>, label: string) 
 	throw new Error(`Word "${label}" was not rendered in time.`);
 }
 
-async function triggerShortcut(key: string) {
-	const shortcut = shortcutMock.shortcuts.get(key.toLowerCase());
-	if (!shortcut) {
-		throw new Error(`Shortcut "${key}" is not registered.`);
-	}
-
-	await Promise.resolve(shortcut.onKeyDown(new KeyboardEvent('keydown', { key, bubbles: true })));
-	await tick();
-}
-
 describe('WordsSelector', () => {
 	beforeEach(() => {
 		seedSubtitlesEditorQuranFixture();
-		shortcutMock.reset();
 	});
 
 	afterEach(() => {
 		cleanup();
 		vi.restoreAllMocks();
 		resetSubtitlesEditorProjectFixture();
-		shortcutMock.reset();
 	});
 
 	test('renders the current verse, selection classes, translations and transliterations', async () => {
@@ -266,7 +212,6 @@ describe('WordsSelector', () => {
 		expect(getSelectedWordLabels(component.container)).toEqual(['W2V2-2', 'W2V2-3']);
 
 		cleanup();
-		shortcutMock.reset();
 		resetSubtitlesEditorProjectFixture();
 		seedSubtitlesEditorQuranFixture();
 
@@ -285,25 +230,7 @@ describe('WordsSelector', () => {
 		expect(fixture.spies.updateVideoDetailAttributes).not.toHaveBeenCalled();
 	});
 
-	test('registers every shortcut on mount and unregisters them on unmount', async () => {
-		setupSubtitlesEditorProjectFixture();
-		const component = render(WordsSelector);
-
-		await tick();
-
-		for (const key of ['arrowright', 'arrowleft', 'home', 'a', 'end', 'pageup', 'enter']) {
-			expect(shortcutMock.shortcuts.has(key)).toBe(true);
-		}
-		expect(shortcutMock.shortcuts.has('escape')).toBe(true);
-		expect(shortcutMock.registerShortcut).toHaveBeenCalled();
-
-		component.unmount();
-
-		expect(shortcutMock.shortcuts.size).toBe(0);
-		expect(shortcutMock.unregisterShortcut).toHaveBeenCalled();
-	});
-
-	test('navigates to the next verse and then the next surah with SELECT_NEXT_WORD', async () => {
+	test('navigates to the next verse and then the next surah with the mobile action', async () => {
 		setupSubtitlesEditorProjectFixture({
 			quranSurahs: punctuationQuranFixture,
 			initialSurah: 1,
@@ -315,7 +242,7 @@ describe('WordsSelector', () => {
 		const component = render(WordsSelector);
 
 		await waitForWord(component, 'A3');
-		await triggerShortcut('ArrowRight');
+		await (component.component as unknown as WordsSelectorExports).selectNextWord();
 
 		expect(globalState.getSubtitlesEditorState.selectedVerse).toBe(2);
 		expect(globalState.getSubtitlesEditorState.startWordIndex).toBe(0);
@@ -327,7 +254,7 @@ describe('WordsSelector', () => {
 		globalState.getSubtitlesEditorState.endWordIndex = 1;
 		await tick();
 
-		await triggerShortcut('ArrowRight');
+		await (component.component as unknown as WordsSelectorExports).selectNextWord();
 
 		expect(globalState.getSubtitlesEditorState.selectedSurah).toBe(2);
 		expect(globalState.getSubtitlesEditorState.selectedVerse).toBe(1);
@@ -336,7 +263,7 @@ describe('WordsSelector', () => {
 		await waitForWord(component, 'C1');
 	});
 
-	test('navigates backward within the range, within the verse and across surahs with SELECT_PREVIOUS_WORD', async () => {
+	test('navigates backward within the range, verse and surah with the mobile action', async () => {
 		setupSubtitlesEditorProjectFixture({
 			quranSurahs: punctuationQuranFixture,
 			initialSurah: 2,
@@ -349,63 +276,23 @@ describe('WordsSelector', () => {
 
 		await waitForWord(component, 'C1');
 
-		await triggerShortcut('ArrowLeft');
+		await (component.component as unknown as WordsSelectorExports).selectPreviousWord();
 		expect(globalState.getSubtitlesEditorState.startWordIndex).toBe(0);
 		expect(globalState.getSubtitlesEditorState.endWordIndex).toBe(0);
 
 		globalState.getSubtitlesEditorState.startWordIndex = 1;
 		globalState.getSubtitlesEditorState.endWordIndex = 1;
 		await tick();
-		await triggerShortcut('ArrowLeft');
+		await (component.component as unknown as WordsSelectorExports).selectPreviousWord();
 		expect(globalState.getSubtitlesEditorState.startWordIndex).toBe(0);
 		expect(globalState.getSubtitlesEditorState.endWordIndex).toBe(0);
 
-		await triggerShortcut('ArrowLeft');
+		await (component.component as unknown as WordsSelectorExports).selectPreviousWord();
 		expect(globalState.getSubtitlesEditorState.selectedSurah).toBe(1);
 		expect(globalState.getSubtitlesEditorState.selectedVerse).toBe(2);
 		expect(globalState.getSubtitlesEditorState.startWordIndex).toBe(1);
 		expect(globalState.getSubtitlesEditorState.endWordIndex).toBe(1);
 		await waitForWord(component, 'B2');
-	});
-
-	test('supports reset, select-all and punctuation shortcuts', async () => {
-		setupSubtitlesEditorProjectFixture({
-			quranSurahs: punctuationQuranFixture,
-			initialSurah: 1,
-			initialVerse: 1,
-			startWordIndex: 1,
-			endWordIndex: 3
-		});
-
-		const component = render(WordsSelector);
-		await waitForWord(component, 'A1');
-
-		await triggerShortcut('Home');
-		expect(globalState.getSubtitlesEditorState.startWordIndex).toBe(3);
-		expect(globalState.getSubtitlesEditorState.endWordIndex).toBe(3);
-
-		await triggerShortcut('A');
-		expect(globalState.getSubtitlesEditorState.startWordIndex).toBe(0);
-		expect(globalState.getSubtitlesEditorState.endWordIndex).toBe(3);
-
-		globalState.getSubtitlesEditorState.startWordIndex = 0;
-		globalState.getSubtitlesEditorState.endWordIndex = 0;
-		await tick();
-		await triggerShortcut('End');
-		expect(globalState.getSubtitlesEditorState.endWordIndex).toBe(2);
-
-		globalState.getSubtitlesEditorState.startWordIndex = 3;
-		globalState.getSubtitlesEditorState.endWordIndex = 3;
-		await tick();
-		await triggerShortcut('PageUp');
-		expect(globalState.getSubtitlesEditorState.startWordIndex).toBe(2);
-		expect(globalState.getSubtitlesEditorState.endWordIndex).toBe(2);
-
-		globalState.getSubtitlesEditorState.startWordIndex = 0;
-		globalState.getSubtitlesEditorState.endWordIndex = 0;
-		await tick();
-		await triggerShortcut('PageUp');
-		expect(globalState.getSubtitlesEditorState.endWordIndex).toBe(0);
 	});
 
 	test('adds a subtitle with the selected verse and does not advance on failure', async () => {
@@ -420,7 +307,7 @@ describe('WordsSelector', () => {
 		const component = render(WordsSelector);
 		await waitForWord(component, 'P0 ۛ');
 
-		await triggerShortcut('Enter');
+		await (component.component as unknown as WordsSelectorExports).addSubtitle();
 		expect(fixture.spies.addSubtitle).toHaveBeenCalledTimes(1);
 		expect(fixture.spies.addSubtitle.mock.calls[0][1]).toBe(1);
 		expect(fixture.spies.addSubtitle.mock.calls[0][2]).toBe(2);
@@ -432,64 +319,8 @@ describe('WordsSelector', () => {
 		globalState.getSubtitlesEditorState.startWordIndex = 0;
 		globalState.getSubtitlesEditorState.endWordIndex = 0;
 		await tick();
-		await triggerShortcut('Enter');
+		await (component.component as unknown as WordsSelectorExports).addSubtitle();
 		expect(globalState.getSubtitlesEditorState.startWordIndex).toBe(0);
 		expect(globalState.getSubtitlesEditorState.endWordIndex).toBe(0);
-	});
-
-	test('handles silence, predefined subtitle and escape shortcuts', async () => {
-		const fixture = setupSubtitlesEditorProjectFixture({
-			editSubtitle: new SubtitleClip(0, 100, 1, 1, 0, 0, 'Edit', [], false, false),
-			pendingSplitEditNextId: 123
-		});
-
-		render(WordsSelector);
-		await tick();
-
-		await triggerShortcut('S');
-		expect(fixture.spies.addSilence).toHaveBeenCalledTimes(1);
-
-		await triggerShortcut('B');
-		await triggerShortcut('I');
-		await triggerShortcut('M');
-		await triggerShortcut('T');
-		await triggerShortcut('H');
-		await triggerShortcut('L');
-		await triggerShortcut('D');
-		expect(fixture.spies.addPredefinedSubtitle.mock.calls.map(([type]) => type)).toEqual([
-			'Basmala',
-			"Isti'adha",
-			'Amin',
-			'Takbir',
-			'Tahmeed',
-			'Tasleem',
-			'Sadaqa'
-		]);
-
-		await triggerShortcut('Escape');
-		expect(globalState.getSubtitlesEditorState.editSubtitle).toBeNull();
-		expect(globalState.getSubtitlesEditorState.pendingSplitEditNextId).toBeNull();
-	});
-
-	test('adds a custom text clip with the expected time range in all supported cursor scenarios', async () => {
-		const fixture = setupSubtitlesEditorProjectFixture({
-			timelineCursorPosition: 5000
-		});
-
-		render(WordsSelector);
-		await tick();
-
-		await triggerShortcut('C');
-		expect(fixture.spies.addCustomClip).toHaveBeenLastCalledWith('text', 2999, 5000);
-
-		globalState.getTimelineState.cursorPosition = 2500;
-		await tick();
-		await triggerShortcut('C');
-		expect(fixture.spies.addCustomClip).toHaveBeenLastCalledWith('text', 0, 2500);
-
-		globalState.getTimelineState.cursorPosition = 50;
-		await tick();
-		await triggerShortcut('C');
-		expect(fixture.spies.addCustomClip).toHaveBeenLastCalledWith('text', 0, 50);
 	});
 });

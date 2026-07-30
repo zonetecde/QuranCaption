@@ -14,17 +14,22 @@
 					const requestId = `${Date.now()}-${invocationSequence++}`;
 					return new Promise((resolve, reject) => {
 						pendingInvocations.set(requestId, { resolve, reject });
-						window.parent.postMessage(
-							{
-								type: 'export-renderer-invoke-main',
-								requestId,
-								exportId: rendererExportId,
-								command,
-								args,
-								options
-							},
-							'*'
-						);
+						const message = {
+							type: 'export-renderer-invoke-main',
+							requestId,
+							exportId: rendererExportId,
+							command,
+							args,
+							options
+						};
+						const transferableBuffer =
+							command === 'plugin:fs|write_file' &&
+							ArrayBuffer.isView(args) &&
+							args.buffer instanceof ArrayBuffer
+								? args.buffer
+								: null;
+
+						window.parent.postMessage(message, '*', transferableBuffer ? [transferableBuffer] : []);
 					});
 				};
 				window.__QURAN_CAPTION_INVOKE_BRIDGE__ = invokeBridge;

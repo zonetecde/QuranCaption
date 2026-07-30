@@ -288,7 +288,13 @@ export class QPCFontProvider {
 	static async applySystemFontSubsetsForScreenshot(
 		element: Element | null | undefined
 	): Promise<() => void> {
-		if (!element || typeof document === 'undefined') return () => {};
+		if (
+			!element ||
+			typeof document === 'undefined' ||
+			this.registeredSystemFontFaceRules.size === 0
+		) {
+			return () => {};
+		}
 
 		const textsByFamily = new Map<string, string>();
 		const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);

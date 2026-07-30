@@ -52,7 +52,12 @@
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
-	import { domToBlob } from 'modern-screenshot';
+	import {
+		createContext,
+		destroyContext,
+		domToCanvas,
+		type Context as ScreenshotContext
+	} from 'modern-screenshot';
 	import { captureMacOsOverlayPngBytes, shouldRedrawExportTextWithCanvas } from './MacOSExport';
 	import {
 		ClipWithTranslation,
@@ -102,6 +107,49 @@
 	let cancellationRequested = false;
 	let cleanupStarted = false;
 	let exporterUnlisteners: Array<() => void> = [];
+	type PngEncoderWorkerResponse = {
+		requestId: number;
+		blob?: Blob;
+		durationMs?: number;
+		error?: string;
+	};
+	let reusableScreenshotContext: ScreenshotContext<HTMLElement> | null = null;
+	let reusableScreenshotContextKey = '';
+	let pngEncoderWorker: Worker | null = null;
+	let pngEncoderWorkerUnavailable = false;
+	let pngEncoderWorkerFallbackReason: string | null = null;
+	let pngEncoderRequestSequence = 0;
+	let pendingPngEncodings = new Map<
+		number,
+		{
+			resolve: (result: { blob: Blob; durationMs: number }) => void;
+			reject: (error: Error) => void;
+		}
+	>();
+	let lastPngEncodingMode: 'worker' | 'main-thread' = 'main-thread';
+	let lastImageBitmapMs = 0;
+	let lastWorkerEncodeMs = 0;
+	let screenshotDomPhases = {
+		startedAt: 0,
+		cloneMs: 0,
+		embedMs: 0,
+		foreignObjectMs: 0
+	};
+	let screenshotPerformance = {
+		count: 0,
+		totalMs: 0,
+		maxMs: 0,
+		contextMs: 0,
+		fontSubsetMs: 0,
+		cloneMs: 0,
+		embedMs: 0,
+		rasterMs: 0,
+		pngEncodeMs: 0,
+		domCaptureMs: 0,
+		blobReadMs: 0,
+		writeMs: 0,
+		bytes: 0
+	};
 
 	/**
 	 * Retourne le nom du blank deja planifie pour la sourate courante.
@@ -802,6 +850,8 @@
 	onDestroy(() => {
 		for (const unlisten of exporterUnlisteners) unlisten();
 		exporterUnlisteners = [];
+		destroyReusableScreenshotContext();
+		destroyPngEncoderWorker();
 		void setExportScreenAwake(false);
 	});
 
@@ -1076,6 +1126,7 @@
 		job: ExportFrameCaptureJob,
 		subfolder: string | null
 	): Promise<boolean> {
+		const jobStartedAt = performance.now();
 		ensureCaptureNotCancelled();
 		await emitExportLog('info', 'Frame capture waiting', {
 			timing: job.timing,
@@ -1088,18 +1139,24 @@
 		globalState.getTimelineState.movePreviewTo = job.captureTiming;
 		globalState.getTimelineState.cursorPosition = job.captureTiming;
 		globalState.updateVideoPreviewUI();
+		const waitStartedAt = performance.now();
 		const layoutTimedOut = await wait(job.captureTiming);
+		const waitMs = performance.now() - waitStartedAt;
 		ensureCaptureNotCancelled();
 		await emitExportLog(layoutTimedOut ? 'warn' : 'info', 'Frame layout wait completed', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
 			file: job.fileName
 		});
+		const screenshotStartedAt = performance.now();
 		await takeScreenshot(job.fileName, subfolder, job.reusableBlankFileName, job.hideArabicText);
 		await emitExportLog('info', 'Frame captured', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
-			file: job.fileName
+			file: job.fileName,
+			waitMs: Math.round(waitMs),
+			screenshotMs: Math.round(performance.now() - screenshotStartedAt),
+			totalMs: Math.round(performance.now() - jobStartedAt)
 		});
 		return layoutTimedOut;
 	}
@@ -1116,6 +1173,7 @@
 		subfolder: string | null,
 		onProgress: (completed: number, timing?: number) => void
 	): Promise<void> {
+		const performanceBefore = { ...screenshotPerformance };
 		await emitExportLog('info', 'Serial capture started', {
 			jobs: jobs.length,
 			subfolder
@@ -1140,9 +1198,54 @@
 				await captureFrameJob(job, subfolder);
 			}
 		}
+		const capturedScreenshots = screenshotPerformance.count - performanceBefore.count;
+		const totalScreenshotMs = screenshotPerformance.totalMs - performanceBefore.totalMs;
 		await emitExportLog('info', 'Serial capture completed', {
 			jobs: jobs.length,
-			subfolder
+			subfolder,
+			performance:
+				capturedScreenshots > 0
+					? {
+							screenshots: capturedScreenshots,
+							averageMs: Math.round(totalScreenshotMs / capturedScreenshots),
+							exportMaxMs: Math.round(screenshotPerformance.maxMs),
+							contextAverageMs: Math.round(
+								(screenshotPerformance.contextMs - performanceBefore.contextMs) /
+									capturedScreenshots
+							),
+							fontSubsetAverageMs: Math.round(
+								(screenshotPerformance.fontSubsetMs - performanceBefore.fontSubsetMs) /
+									capturedScreenshots
+							),
+							cloneAverageMs: Math.round(
+								(screenshotPerformance.cloneMs - performanceBefore.cloneMs) / capturedScreenshots
+							),
+							embedAverageMs: Math.round(
+								(screenshotPerformance.embedMs - performanceBefore.embedMs) / capturedScreenshots
+							),
+							rasterAverageMs: Math.round(
+								(screenshotPerformance.rasterMs - performanceBefore.rasterMs) / capturedScreenshots
+							),
+							pngEncodeAverageMs: Math.round(
+								(screenshotPerformance.pngEncodeMs - performanceBefore.pngEncodeMs) /
+									capturedScreenshots
+							),
+							domCaptureAverageMs: Math.round(
+								(screenshotPerformance.domCaptureMs - performanceBefore.domCaptureMs) /
+									capturedScreenshots
+							),
+							blobReadAverageMs: Math.round(
+								(screenshotPerformance.blobReadMs - performanceBefore.blobReadMs) /
+									capturedScreenshots
+							),
+							writeAverageMs: Math.round(
+								(screenshotPerformance.writeMs - performanceBefore.writeMs) / capturedScreenshots
+							),
+							averageBytes: Math.round(
+								(screenshotPerformance.bytes - performanceBefore.bytes) / capturedScreenshots
+							)
+						}
+					: null
 		});
 	}
 
@@ -2064,6 +2167,8 @@
 	async function finalCleanup() {
 		if (cleanupStarted) return;
 		cleanupStarted = true;
+		destroyReusableScreenshotContext();
+		destroyPngEncoderWorker();
 		try {
 			await closeCaptureWorkerWindows();
 		} catch (error) {
@@ -2108,12 +2213,214 @@
 		return new Blob([bytes], { type: 'image/png' });
 	}
 
+	/**
+	 * Détruit le contexte de capture DOM partagé par le renderer courant.
+	 * @returns {void}
+	 */
+	function destroyReusableScreenshotContext(): void {
+		if (!reusableScreenshotContext) return;
+		destroyContext(reusableScreenshotContext);
+		reusableScreenshotContext = null;
+		reusableScreenshotContextKey = '';
+	}
+
+	/**
+	 * Retourne un contexte modern-screenshot réutilisable pour les dimensions demandées.
+	 * @param {HTMLElement} node Racine DOM à capturer.
+	 * @param {number} width Largeur finale de capture.
+	 * @param {number} height Hauteur finale de capture.
+	 * @param {number} scale Échelle appliquée à la racine.
+	 * @returns {Promise<ScreenshotContext<HTMLElement>>} Contexte prêt pour la prochaine capture.
+	 */
+	async function getReusableScreenshotContext(
+		node: HTMLElement,
+		width: number,
+		height: number,
+		scale: number
+	): Promise<ScreenshotContext<HTMLElement>> {
+		const contextKey = `${node.clientWidth}:${node.clientHeight}:${width}:${height}:${scale}`;
+		if (reusableScreenshotContext && reusableScreenshotContextKey === contextKey) {
+			return reusableScreenshotContext;
+		}
+
+		destroyReusableScreenshotContext();
+		reusableScreenshotContext = await createContext(node, {
+			width,
+			height,
+			style: {
+				// Garder la logique historique de mise a l'echelle pour preserver le centrage.
+				transform: 'scale(' + scale + ')',
+				transformOrigin: 'top left'
+			},
+			quality: 1,
+			autoDestruct: false,
+			onCloneNode: () => {
+				const now = performance.now();
+				screenshotDomPhases.cloneMs = now - screenshotDomPhases.startedAt;
+			},
+			onEmbedNode: () => {
+				const now = performance.now();
+				screenshotDomPhases.embedMs =
+					now - screenshotDomPhases.startedAt - screenshotDomPhases.cloneMs;
+			},
+			onCreateForeignObjectSvg: () => {
+				const now = performance.now();
+				screenshotDomPhases.foreignObjectMs =
+					now -
+					screenshotDomPhases.startedAt -
+					screenshotDomPhases.cloneMs -
+					screenshotDomPhases.embedMs;
+			}
+		});
+		reusableScreenshotContextKey = contextKey;
+		return reusableScreenshotContext;
+	}
+
+	/**
+	 * Résout une réponse de l'encodeur PNG exécuté dans le Web Worker.
+	 * @param {MessageEvent<PngEncoderWorkerResponse>} event Réponse du worker.
+	 * @returns {void}
+	 */
+	function handlePngEncoderWorkerMessage(event: MessageEvent<PngEncoderWorkerResponse>): void {
+		const pending = pendingPngEncodings.get(event.data.requestId);
+		if (!pending) return;
+		pendingPngEncodings.delete(event.data.requestId);
+
+		if (event.data.error || !event.data.blob) {
+			pending.reject(new Error(event.data.error || 'ANDROID_PNG_WORKER_EMPTY_RESULT'));
+			return;
+		}
+
+		pending.resolve({
+			blob: event.data.blob,
+			durationMs: event.data.durationMs ?? 0
+		});
+	}
+
+	/**
+	 * Désactive l'encodeur PNG worker après une erreur d'exécution.
+	 * @param {ErrorEvent} event Erreur remontée par le worker.
+	 * @returns {void}
+	 */
+	function handlePngEncoderWorkerError(event: ErrorEvent): void {
+		pngEncoderWorkerUnavailable = true;
+		pngEncoderWorkerFallbackReason = event.message || 'ANDROID_PNG_WORKER_FAILED';
+		const error = new Error(event.message || 'ANDROID_PNG_WORKER_FAILED');
+		for (const pending of pendingPngEncodings.values()) pending.reject(error);
+		pendingPngEncodings.clear();
+		pngEncoderWorker?.terminate();
+		pngEncoderWorker = null;
+	}
+
+	/**
+	 * Retourne l'encodeur PNG worker lorsqu'il est supporté par la WebView.
+	 * @returns {Worker | null} Worker partagé ou null lorsque le fallback est requis.
+	 */
+	function getPngEncoderWorker(): Worker | null {
+		if (pngEncoderWorkerUnavailable) return null;
+		if (
+			typeof Worker === 'undefined' ||
+			typeof OffscreenCanvas === 'undefined' ||
+			typeof createImageBitmap === 'undefined'
+		) {
+			pngEncoderWorkerUnavailable = true;
+			pngEncoderWorkerFallbackReason = 'ANDROID_PNG_WORKER_UNSUPPORTED';
+			return null;
+		}
+		if (pngEncoderWorker) return pngEncoderWorker;
+
+		try {
+			pngEncoderWorker = new Worker(new URL('./PngEncoder.worker.ts', import.meta.url), {
+				type: 'module'
+			});
+			pngEncoderWorker.addEventListener('message', handlePngEncoderWorkerMessage);
+			pngEncoderWorker.addEventListener('error', handlePngEncoderWorkerError);
+			return pngEncoderWorker;
+		} catch (error) {
+			console.warn('Unable to create Android PNG encoder worker:', error);
+			pngEncoderWorkerUnavailable = true;
+			pngEncoderWorkerFallbackReason = error instanceof Error ? error.message : String(error);
+			return null;
+		}
+	}
+
+	/**
+	 * Arrête l'encodeur PNG worker et rejette ses requêtes encore actives.
+	 * @returns {void}
+	 */
+	function destroyPngEncoderWorker(): void {
+		const error = new Error('ANDROID_PNG_WORKER_DESTROYED');
+		for (const pending of pendingPngEncodings.values()) pending.reject(error);
+		pendingPngEncodings.clear();
+		pngEncoderWorker?.terminate();
+		pngEncoderWorker = null;
+	}
+
+	/**
+	 * Encode un canvas en PNG sur le thread principal en solution de repli.
+	 * @param {HTMLCanvasElement} canvas Canvas final à encoder.
+	 * @returns {Promise<Blob>} Image PNG encodée.
+	 */
+	async function encodeScreenshotCanvasAsPngOnMainThread(canvas: HTMLCanvasElement): Promise<Blob> {
+		return await new Promise<Blob>((resolve, reject) => {
+			canvas.toBlob((blob) => {
+				if (blob) resolve(blob);
+				else reject(new Error('EXPORT_SCREENSHOT_PNG_ENCODING_FAILED'));
+			}, 'image/png');
+		});
+	}
+
+	/**
+	 * Encode un canvas en PNG dans un worker pour éviter l'attente idle de Chromium Android.
+	 * @param {HTMLCanvasElement} canvas Canvas final à encoder.
+	 * @returns {Promise<Blob>} Image PNG encodée.
+	 */
+	async function encodeScreenshotCanvasAsPng(canvas: HTMLCanvasElement): Promise<Blob> {
+		lastPngEncodingMode = 'main-thread';
+		lastImageBitmapMs = 0;
+		lastWorkerEncodeMs = 0;
+		const worker = getPngEncoderWorker();
+		if (!worker) return await encodeScreenshotCanvasAsPngOnMainThread(canvas);
+
+		let bitmap: ImageBitmap | null = null;
+		const requestId = pngEncoderRequestSequence++;
+		try {
+			const imageBitmapStartedAt = performance.now();
+			bitmap = await createImageBitmap(canvas);
+			lastImageBitmapMs = performance.now() - imageBitmapStartedAt;
+			const resultPromise = new Promise<{ blob: Blob; durationMs: number }>((resolve, reject) => {
+				pendingPngEncodings.set(requestId, { resolve, reject });
+			});
+
+			try {
+				worker.postMessage({ requestId, bitmap }, [bitmap]);
+				bitmap = null;
+			} catch (error) {
+				pendingPngEncodings.delete(requestId);
+				throw error;
+			}
+
+			const result = await resultPromise;
+			lastPngEncodingMode = 'worker';
+			lastWorkerEncodeMs = result.durationMs;
+			return result.blob;
+		} catch (error) {
+			bitmap?.close();
+			console.warn('Android PNG worker failed, using main-thread fallback:', error);
+			pngEncoderWorkerUnavailable = true;
+			pngEncoderWorkerFallbackReason = error instanceof Error ? error.message : String(error);
+			destroyPngEncoderWorker();
+			return await encodeScreenshotCanvasAsPngOnMainThread(canvas);
+		}
+	}
+
 	async function takeScreenshot(
 		fileName: string,
 		subfolder: string | null = null,
 		reusableBlankFileName: string | null = null,
 		hideArabicText: boolean = false
 	) {
+		const screenshotStartedAt = performance.now();
 		// L'element a transformer en image
 		const node = document.getElementById('overlay')!;
 
@@ -2173,32 +2480,89 @@
 				scale
 			});
 			if (!useLiveTextCanvasCapture) {
+				const fontSubsetStartedAt = performance.now();
 				const restoreSystemFonts = await QPCFontProvider.applySystemFontSubsetsForScreenshot(node);
+				const fontSubsetMs = performance.now() - fontSubsetStartedAt;
 				let blob: Blob | null = null;
+				let contextMs = 0;
+				let domCaptureMs = 0;
+				let cloneMs = 0;
+				let embedMs = 0;
+				let rasterMs = 0;
+				let pngEncodeMs = 0;
 				try {
-					blob = await withScreenshotTimeout(
-						domToBlob(node, {
-							width: node.clientWidth * scale,
-							height: node.clientHeight * scale,
-							style: {
-								// Garder la logique historique de mise a l'echelle pour preserver le centrage.
-								transform: 'scale(' + scale + ')',
-								transformOrigin: 'top left'
-							},
-							quality: 1
-						})
+					const contextStartedAt = performance.now();
+					const context = await getReusableScreenshotContext(
+						node,
+						node.clientWidth * scale,
+						node.clientHeight * scale,
+						scale
 					);
+					contextMs = performance.now() - contextStartedAt;
+					context.fontFamilies.clear();
+					context.shadowRoots.length = 0;
+					screenshotDomPhases = {
+						startedAt: performance.now(),
+						cloneMs: 0,
+						embedMs: 0,
+						foreignObjectMs: 0
+					};
+					const domCaptureStartedAt = performance.now();
+					const rasterStartedAt = performance.now();
+					const canvas = await withScreenshotTimeout(domToCanvas(context));
+					rasterMs = performance.now() - rasterStartedAt;
+					const pngEncodeStartedAt = performance.now();
+					blob = await withScreenshotTimeout(encodeScreenshotCanvasAsPng(canvas));
+					pngEncodeMs = performance.now() - pngEncodeStartedAt;
+					domCaptureMs = performance.now() - domCaptureStartedAt;
+					cloneMs = screenshotDomPhases.cloneMs;
+					embedMs = screenshotDomPhases.embedMs;
 				} finally {
 					restoreSystemFonts();
 				}
 
-				if (!blob) throw new Error('domToBlob returned null');
-
+				const blobReadStartedAt = performance.now();
 				const buffer = await blob.arrayBuffer();
 				const bytes = new Uint8Array(buffer);
+				const byteLength = bytes.byteLength;
+				const blobReadMs = performance.now() - blobReadStartedAt;
 
+				const writeStartedAt = performance.now();
 				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
+				const writeMs = performance.now() - writeStartedAt;
+				const totalMs = performance.now() - screenshotStartedAt;
+				screenshotPerformance.count += 1;
+				screenshotPerformance.totalMs += totalMs;
+				screenshotPerformance.maxMs = Math.max(screenshotPerformance.maxMs, totalMs);
+				screenshotPerformance.contextMs += contextMs;
+				screenshotPerformance.fontSubsetMs += fontSubsetMs;
+				screenshotPerformance.cloneMs += cloneMs;
+				screenshotPerformance.embedMs += embedMs;
+				screenshotPerformance.rasterMs += rasterMs;
+				screenshotPerformance.pngEncodeMs += pngEncodeMs;
+				screenshotPerformance.domCaptureMs += domCaptureMs;
+				screenshotPerformance.blobReadMs += blobReadMs;
+				screenshotPerformance.writeMs += writeMs;
+				screenshotPerformance.bytes += byteLength;
 				console.log('Screenshot saved to:', filePathWithName);
+				await emitExportLog('info', 'Screenshot performance', {
+					file: fileName,
+					totalMs: Math.round(totalMs),
+					contextMs: Math.round(contextMs),
+					fontSubsetMs: Math.round(fontSubsetMs),
+					cloneMs: Math.round(cloneMs),
+					embedMs: Math.round(embedMs),
+					rasterMs: Math.round(rasterMs),
+					pngEncodeMs: Math.round(pngEncodeMs),
+					pngEncodingMode: lastPngEncodingMode,
+					pngWorkerFallbackReason: pngEncoderWorkerFallbackReason,
+					imageBitmapMs: Math.round(lastImageBitmapMs),
+					workerEncodeMs: Math.round(lastWorkerEncodeMs),
+					domCaptureMs: Math.round(domCaptureMs),
+					blobReadMs: Math.round(blobReadMs),
+					writeMs: Math.round(writeMs),
+					bytes: byteLength
+				});
 				await emitExportLog('info', 'Screenshot saved', {
 					file: fileName,
 					path: filePathWithName
@@ -2250,10 +2614,10 @@
 
 	/**
 	 * Empêche une capture DOM Android de laisser l'export bloqué indéfiniment.
-	 * @param {Promise<Blob | null>} capture Capture PNG en cours.
-	 * @returns {Promise<Blob | null>} Résultat de la capture avant expiration.
+	 * @param {Promise<T>} capture Étape de capture en cours.
+	 * @returns {Promise<T>} Résultat de l'étape avant expiration.
 	 */
-	async function withScreenshotTimeout(capture: Promise<Blob | null>): Promise<Blob | null> {
+	async function withScreenshotTimeout<T>(capture: Promise<T>): Promise<T> {
 		let timeoutId: ReturnType<typeof setTimeout> | undefined;
 		try {
 			return await Promise.race([
@@ -2451,9 +2815,13 @@
 		await waitForAnimationFrame();
 		ensureCaptureNotCancelled();
 		await emitExportLog('info', 'Waiting for capture fonts', { timing });
+		const fontWaitStartedAt = performance.now();
 		await QPCFontProvider.waitForFontsInElement(document.getElementById('overlay'));
 		ensureCaptureNotCancelled();
-		await emitExportLog('info', 'Fonts ready for capture', { timing });
+		await emitExportLog('info', 'Fonts ready for capture', {
+			timing,
+			elapsedMs: Math.round(performance.now() - fontWaitStartedAt)
+		});
 		return layoutTimedOut;
 	}
 </script>

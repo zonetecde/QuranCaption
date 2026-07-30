@@ -400,6 +400,28 @@
 										></div>
 									</div>
 
+									{#if exportation.exportKind === ExportKind.Video}
+										{#if exportation.currentState === ExportState.CapturingFrames}
+											<div class="export-guidance export-guidance-capture">
+												<span class="material-icons export-guidance-icon">phone_android</span>
+												<div class="min-w-0">
+													<p>{monitorMessage('exportKeepOpenCapturing')}</p>
+													{#if exportation.hasWordByWordStyles}
+														<div class="export-wbw-hint">
+															<span class="material-icons">speed</span>
+															<span>{monitorMessage('captureWbwSlowHint')}</span>
+														</div>
+													{/if}
+												</div>
+											</div>
+										{:else if exportation.currentState !== ExportState.WaitingForRecord && exportation.currentState !== ExportState.Recording}
+											<div class="export-guidance export-guidance-background">
+												<span class="material-icons export-guidance-icon">home</span>
+												<p>{monitorMessage('exportCanRunInBackground')}</p>
+											</div>
+										{/if}
+									{/if}
+
 									{#if exportation.hasSecondarySegmentProgress}
 										<div class="mt-3 space-y-2">
 											<div>
@@ -676,6 +698,50 @@
 		border-radius: inherit;
 		background: linear-gradient(90deg, var(--accent-primary), #a78bfa);
 		transition: width 220ms ease-out;
+	}
+
+	.export-guidance {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.6rem;
+		margin-top: 0.8rem;
+		padding: 0.7rem 0.75rem;
+		border: 1px solid;
+		border-radius: 0.8rem;
+		font-size: 0.72rem;
+		line-height: 1.45;
+	}
+
+	.export-guidance-icon {
+		flex: 0 0 auto;
+		font-size: 1.15rem !important;
+	}
+
+	.export-guidance-capture {
+		border-color: color-mix(in srgb, #f59e0b 35%, var(--border-color));
+		background: color-mix(in srgb, #f59e0b 9%, var(--bg-accent));
+		color: color-mix(in srgb, #fbbf24 75%, var(--text-primary));
+	}
+
+	.export-guidance-background {
+		border-color: color-mix(in srgb, var(--accent-primary) 35%, var(--border-color));
+		background: color-mix(in srgb, var(--accent-primary) 9%, var(--bg-accent));
+		color: var(--text-secondary);
+	}
+
+	.export-wbw-hint {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.4rem;
+		margin-top: 0.55rem;
+		padding-top: 0.55rem;
+		border-top: 1px solid color-mix(in srgb, currentcolor 20%, transparent);
+		color: var(--text-secondary);
+	}
+
+	.export-wbw-hint .material-icons {
+		flex: 0 0 auto;
+		font-size: 1rem !important;
 	}
 
 	.detail-pill {

@@ -60,6 +60,7 @@ export default class Exportation extends SerializableBase {
 	date: string;
 	totalExportTimeMs: number | null;
 	sourceProjectId: number | null;
+	hasWordByWordStyles: boolean;
 
 	constructor(
 		exportId: number,
@@ -77,7 +78,8 @@ export default class Exportation extends SerializableBase {
 		exportKind: ExportKind = ExportKind.Video,
 		exportLabel: string = '',
 		sourceProjectId: number | null = null,
-		destinationUri: string | null = null
+		destinationUri: string | null = null,
+		hasWordByWordStyles: boolean = false
 	) {
 		super();
 		const safeStartTime = videoStartTime ?? 0;
@@ -109,6 +111,7 @@ export default class Exportation extends SerializableBase {
 		this.date = $state(new Date().toISOString());
 		this.totalExportTimeMs = $state(null);
 		this.sourceProjectId = sourceProjectId;
+		this.hasWordByWordStyles = $state(hasWordByWordStyles);
 	}
 
 	/**

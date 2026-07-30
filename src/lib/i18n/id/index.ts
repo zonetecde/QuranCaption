@@ -1606,6 +1606,8 @@ const id = {
 			'Kamu sekarang dapat meninggalkan Quran Caption; ekspor akan terus berjalan.',
 		exportCompletedTapToView: 'Ekspor selesai. Ketuk untuk melihatnya.',
 		exportCancelling: 'Membatalkan ekspor',
+		captureWbwSlowHint:
+			'Jika pengambilan frame terasa lambat, nonaktifkan gaya kata per kata (WBW) agar lebih cepat.',
 		fileNotFound: 'File tidak ditemukan',
 		exportedFileNotFound: 'File hasil export tidak ditemukan. Mungkin sudah dipindah atau dihapus.',
 		errorCopiedToClipboard: 'Error disalin ke clipboard',

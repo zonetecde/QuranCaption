@@ -2958,6 +2958,8 @@ const fr = {
 			'Vous pouvez maintenant quitter Quran Caption\u00a0; l\u2019export continuera.',
 		exportCompletedTapToView: 'Export terminé. Appuyez pour le consulter.',
 		exportCancelling: 'Annulation de l\u2019export',
+		captureWbwSlowHint:
+			'Si la capture vous semble lente, désactivez les styles mot à mot (WBW) pour l\u2019accélérer.',
 		fileNotFound: 'Fichier introuvable',
 		exportedFileNotFound:
 			'Le fichier exporté est introuvable. Il a peut-être été déplacé ou supprimé.',

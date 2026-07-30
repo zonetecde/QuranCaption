@@ -2929,6 +2929,8 @@ const es = {
 		exportCanRunInBackground: 'Ya puede salir de Quran Caption; la exportación continuará.',
 		exportCompletedTapToView: 'Exportación completada. Toque para verla.',
 		exportCancelling: 'Cancelando exportación',
+		captureWbwSlowHint:
+			'Si la captura parece lenta, desactive los estilos palabra por palabra (WBW) para acelerarla.',
 		fileNotFound: 'Archivo no encontrado',
 		exportedFileNotFound:
 			'El archivo exportado no se encuentra. Puede haber sido movido o eliminado.',

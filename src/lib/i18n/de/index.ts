@@ -2936,6 +2936,8 @@ const de = {
 			'Sie können Quran Caption jetzt verlassen; der Export wird fortgesetzt.',
 		exportCompletedTapToView: 'Export abgeschlossen. Zum Anzeigen tippen.',
 		exportCancelling: 'Export wird abgebrochen',
+		captureWbwSlowHint:
+			'Wenn die Erfassung langsam ist, deaktivieren Sie die Wort-für-Wort-Stile (WBW).',
 		fileNotFound: 'Datei nicht gefunden',
 		exportedFileNotFound:
 			'Die exportierte Datei wurde nicht gefunden. Sie wurde möglicherweise verschoben oder gelöscht.',

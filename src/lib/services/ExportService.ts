@@ -13,6 +13,8 @@ import { AnalyticsService } from './AnalyticsService';
 import { notifyLongTaskCompletion } from './UserAttentionService';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
+import { isWordByWordVisualEnabled } from './StyleVisualResolver';
+import type { StyleName } from '$lib/classes/VideoStyle.svelte';
 
 /**
  * Parse une date ISO en timestamp millisecondes.
@@ -21,6 +23,26 @@ import { get } from 'svelte/store';
 function parseIsoDateMs(value: string): number | null {
 	const parsed = new Date(value).getTime();
 	return Number.isFinite(parsed) ? parsed : null;
+}
+
+/**
+ * Détermine si le projet exporté utilise au moins un effet visuel mot à mot.
+ * @param {Project} project Projet figé pour l'export.
+ * @returns {boolean} `true` si un style WBW global ou spécifique à un clip est actif.
+ */
+function projectUsesWordByWordStyles(project: Project): boolean {
+	const subtitleClipIds = project.content.timeline
+		.getFirstTrack(TrackType.Subtitle)
+		.clips.map((clip) => clip.id);
+	return project.content.videoStyle.styles.some(
+		(styles) =>
+			isWordByWordVisualEnabled((styleId) => styles.getEffectiveValue(styleId as StyleName)) ||
+			subtitleClipIds.some((clipId) =>
+				isWordByWordVisualEnabled((styleId) =>
+					styles.getEffectiveValue(styleId as StyleName, clipId)
+				)
+			)
+	);
 }
 
 export interface AddExportOptions {
@@ -129,7 +151,8 @@ export default class ExportService {
 				ExportKind.Video,
 				options.exportLabel ?? '',
 				options.sourceProjectId ?? null,
-				options.destinationUri ?? null
+				options.destinationUri ?? null,
+				projectUsesWordByWordStyles(project)
 			)
 		);
 

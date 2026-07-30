@@ -10,7 +10,7 @@
 	let isLoadingCommunity = $derived(globalState.presetLibrary.isLoadingCommunity);
 </script>
 
-<section class="space-y-3 border-t border-color pt-4">
+<section class="min-w-0 space-y-3 border-t border-color pt-4">
 	<div>
 		<h3 class="text-sm font-semibold text-primary">{$LL.style.communityPresetsHeading()}</h3>
 		<p class="text-xs text-secondary">{$LL.style.communityPresetsDescription()}</p>
@@ -32,9 +32,9 @@
 			</div>
 		</div>
 	{:else if isLoadingCommunity}
-		<div class="grid grid-cols-2 gap-3">
+		<div class="grid grid-cols-1 gap-2">
 			{#each Array(4) as _, index (index)}
-				<div class="h-44 animate-pulse rounded-lg border border-color bg-primary/50"></div>
+				<div class="h-28 animate-pulse rounded-lg border border-color bg-primary/50"></div>
 			{/each}
 		</div>
 	{:else if communityPresets.length === 0}
@@ -46,7 +46,7 @@
 			<p class="text-xs text-thirdly">{$LL.style.noCommunityPresetsMessage()}</p>
 		</div>
 	{:else}
-		<div class="grid grid-cols-2 gap-3">
+		<div class="grid grid-cols-1 gap-2">
 			{#each communityPresets as preset (preset.id)}
 				<PresetCard {preset} />
 			{/each}

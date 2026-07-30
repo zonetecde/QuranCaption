@@ -4,6 +4,8 @@
 	import { loadCommunity, loadPopularTags } from '../actions/communityActions';
 	import { getDefaultPresetName } from '../actions/presetUtils';
 	import { savePreset, exportJson } from '../actions/localActions';
+	import { openPublishForm } from '../actions/publishActions';
+	import LL from '$lib/i18n/i18n-svelte';
 	import PresetHeader from './PresetHeader.svelte';
 	import LocalSection from './LocalSection.svelte';
 	import CommunitySection from './CommunitySection.svelte';
@@ -44,13 +46,31 @@
 	}
 </script>
 
-<div class="flex h-full min-h-0 flex-col">
+<div class="flex h-full min-h-0 min-w-0 w-full flex-col overflow-hidden">
 	<PresetHeader {onBack} />
 
 	{#if publishMode}
 		<PublishForm />
 	{:else}
-		<div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
+		<div class="min-h-0 min-w-0 flex-1 space-y-4 overflow-y-auto px-3 py-3">
+			<div class="grid grid-cols-2 gap-2">
+				<button
+					class="btn flex min-h-10 min-w-0 items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium"
+					type="button"
+					onclick={openPublishForm}
+				>
+					<span class="material-icons-outlined shrink-0 text-base">public</span>
+					<span class="line-clamp-2 leading-tight">{$LL.style.publishPreset()}</span>
+				</button>
+				<button
+					class="btn-accent flex min-h-10 min-w-0 items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium"
+					type="button"
+					onclick={() => (globalState.presetLibrary.modalMode = 'save')}
+				>
+					<span class="material-icons-outlined shrink-0 text-base">add</span>
+					<span class="line-clamp-2 leading-tight">{$LL.style.saveLocally()}</span>
+				</button>
+			</div>
 			<LocalSection />
 			<CommunitySection />
 		</div>

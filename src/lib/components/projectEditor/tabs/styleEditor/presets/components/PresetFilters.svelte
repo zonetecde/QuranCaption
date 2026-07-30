@@ -6,7 +6,6 @@
 		CommunityPresetSort
 	} from '$lib/services/StylePresetLibraryService';
 
-	let communitySearchQuery = $derived(globalState.presetLibrary.communitySearchQuery);
 	let selectedSort = $derived(globalState.presetLibrary.selectedSort);
 	let selectedOrientation = $derived(globalState.presetLibrary.selectedOrientation);
 	let selectedTag = $derived(globalState.presetLibrary.selectedTag);
@@ -25,7 +24,7 @@
 	}
 </script>
 
-<div class="grid grid-cols-2 gap-2">
+<div class="grid min-w-0 grid-cols-2 gap-2">
 	<label class="relative col-span-2 block">
 		<span
 			class="material-icons-outlined pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-sm text-thirdly"
@@ -42,7 +41,7 @@
 	<select
 		value={selectedSort}
 		onchange={(e) => setSort(e.currentTarget.value as CommunityPresetSort)}
-		class="h-9 text-xs"
+		class="h-9 min-w-0 w-full text-xs"
 	>
 		<option value="newest">{$LL.style.sortNewest()}</option>
 		<option value="most_downloaded">{$LL.style.sortMostDownloaded()}</option>
@@ -51,7 +50,7 @@
 	<select
 		value={selectedOrientation}
 		onchange={(e) => setOrientation(e.currentTarget.value as CommunityPresetOrientation | 'all')}
-		class="h-9 text-xs"
+		class="h-9 min-w-0 w-full text-xs"
 	>
 		<option value="all">{$LL.style.allOrientations()}</option>
 		<option value="landscape">{$LL.style.orientationLandscape()}</option>

@@ -144,5 +144,7 @@
 
 	.style-editor-settings {
 		flex: 1 1 0;
+		width: 100%;
+		min-width: 0;
 	}
 </style>

@@ -4,9 +4,6 @@
 	import { getResolutionLabel } from '../actions/presetUtils';
 	import type { CommunityStylePreset } from '$lib/services/StylePresetLibraryService';
 	import LL from '$lib/i18n/i18n-svelte';
-	import { get } from 'svelte/store';
-
-	const LL_ = get(LL);
 
 	let { preset }: { preset: CommunityStylePreset } = $props();
 
@@ -24,34 +21,27 @@
 	}
 </script>
 
-<article class="group overflow-hidden rounded-lg border border-color bg-primary/50">
+<article class="group min-w-0 overflow-hidden rounded-lg border border-color bg-primary/50">
 	<button
-		class="block w-full text-left"
+		class="flex min-w-0 w-full text-left"
 		type="button"
 		onclick={() => downloadAndApply(preset)}
 		disabled={downloadingPresetId !== null}
 	>
-		<div class="relative aspect-video w-full overflow-hidden bg-black/30">
+		<div class="relative aspect-video w-28 shrink-0 self-stretch overflow-hidden bg-black/30">
 			<img
 				class="h-full w-full object-cover"
 				src={preset.previewUrl}
 				alt={preset.name}
 				loading="lazy"
 			/>
-			{#if preset.description}
-				<div
-					class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent px-2 pb-1.5 pt-6 opacity-0 transition-opacity group-hover:opacity-100"
-				>
-					<p class="line-clamp-2 text-[11px] leading-tight text-white/90">
-						{preset.description}
-					</p>
-				</div>
-			{/if}
 		</div>
-		<div class="space-y-2 p-2">
+		<div class="min-w-0 flex-1 space-y-1.5 p-2">
 			<div class="min-w-0">
 				<h4 class="truncate text-sm font-semibold text-primary">{preset.name}</h4>
-				<p class="truncate text-xs text-secondary">{$LL.style.presetAuthor({ author: preset.authorName })}</p>
+				<p class="truncate text-[11px] text-secondary">
+					{$LL.style.presetAuthor({ author: preset.authorName })}
+				</p>
 			</div>
 			<div class="flex flex-wrap gap-1">
 				<span
@@ -65,17 +55,17 @@
 					{getResolutionLabel(preset.resolution)}
 				</span>
 			</div>
-			<div class="min-h-[18px]">
-				{#if preset.tags.length > 0}
-					<div class="flex gap-1 overflow-hidden">
-						{#each preset.tags.slice(0, 3) as tag (tag)}
-							<span class="truncate rounded bg-black/25 px-1.5 py-0.5 text-[10px] text-thirdly">
-								#{tag}
-							</span>
-						{/each}
-					</div>
-				{/if}
-			</div>
+			{#if preset.description}
+				<p class="line-clamp-2 text-[11px] leading-snug text-thirdly">{preset.description}</p>
+			{:else if preset.tags.length > 0}
+				<div class="flex gap-1 overflow-hidden">
+					{#each preset.tags.slice(0, 2) as tag (tag)}
+						<span class="truncate rounded bg-black/25 px-1.5 py-0.5 text-[10px] text-thirdly">
+							#{tag}
+						</span>
+					{/each}
+				</div>
+			{/if}
 		</div>
 	</button>
 	<div

@@ -1,14 +1,14 @@
 import { tick } from 'svelte';
-import { invoke } from '@tauri-apps/api/core';
+import { domToBlob } from 'modern-screenshot';
 import { globalState } from '$lib/runes/main.svelte';
 import { publishCommunityPreset } from '$lib/services/StylePresetLibraryService';
+import QPCFontProvider from '$lib/services/FontProvider';
 import { loadPopularTags } from './communityActions';
 import {
 	buildStyleData,
 	getCurrentResolution,
 	getDefaultPresetName,
 	getPublishTags,
-	setsEqual,
 	wait
 } from './presetUtils';
 import LL from '$lib/i18n/i18n-svelte';
@@ -97,9 +97,8 @@ export function setPublishPreviewBlob(blob: Blob): void {
  * Process:
  * 1. Sélectionne un sous-titre aléatoire
  * 2. Cache les overlays customs non inclus dans le preset
- * 3. Passe en plein écran si nécessaire
- * 4. Capture l'écran via l'API native
- * 5. Restaure l'état initial
+ * 3. Capture directement la preview vidéo
+ * 4. Restaure l'état initial
  *
  * @returns {Promise<void>}
  */
@@ -118,8 +117,6 @@ export async function generatePublishPreview(): Promise<void> {
 			return;
 		}
 
-		const wasFullscreen = globalState.getVideoPreviewState.isFullscreen;
-
 		// Seeks vers le timing choisi
 		globalState.getTimelineState.cursorPosition = timing;
 		globalState.getTimelineState.movePreviewTo = timing;
@@ -136,18 +133,29 @@ export async function generatePublishPreview(): Promise<void> {
 			}
 		});
 
-		await tick();
-		await wait(350); // Laisser le temps au rendu après le seek
-
-		if (!wasFullscreen) {
-			await globalState.getVideoPreviewState.toggleFullScreen();
-			await wait(500); // Laisser le temps au plein écran de s'activer
-		}
-
 		try {
-			const bytes = new Uint8Array(await invoke<number[]>('capture_window_screenshot'));
-			const blob = new Blob([bytes], { type: 'image/jpeg' });
-			setPublishPreviewBlob(blob);
+			await tick();
+			await wait(350); // Laisser le temps au rendu après le seek
+
+			const preview = document.getElementById('preview');
+			if (!(preview instanceof HTMLElement)) throw new Error(get(LL).common.unexpectedError());
+
+			const restoreSystemFonts = await QPCFontProvider.applySystemFontSubsetsForScreenshot(preview);
+			try {
+				const blob = await domToBlob(preview, {
+					width: preview.clientWidth,
+					height: preview.clientHeight,
+					type: 'image/jpeg',
+					quality: 0.92,
+					style: {
+						transform: 'none',
+						transformOrigin: 'top left'
+					}
+				});
+				setPublishPreviewBlob(blob);
+			} finally {
+				restoreSystemFonts();
+			}
 
 			// Enregistre la sélection courante pour détecter les changements ultérieurs
 			state.lastCapturedInclusion = new Set(state.includedCustomClipIds);
@@ -156,10 +164,6 @@ export async function generatePublishPreview(): Promise<void> {
 			saved.forEach((opacity, element) => {
 				element.style.opacity = opacity;
 			});
-		}
-
-		if (!wasFullscreen) {
-			await globalState.getVideoPreviewState.toggleFullScreen();
 		}
 	} catch (error) {
 		state.publishError = error instanceof Error ? error.message : String(error);

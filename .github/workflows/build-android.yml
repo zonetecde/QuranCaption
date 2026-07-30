@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate Android release tag
+      - name: Validate tag and configure Android version
         env:
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
@@ -26,6 +26,10 @@ jobs:
             echo "Expected tag QCM-$APP_VERSION, received $RELEASE_TAG"
             exit 1
           }
+          IFS=. read -r VERSION_MAJOR VERSION_MINOR VERSION_PATCH <<< "$APP_VERSION"
+          VERSION_CODE=$((VERSION_MAJOR * 1000000 + VERSION_MINOR * 1000 + VERSION_PATCH))
+          printf 'tauri.android.versionName=%s\ntauri.android.versionCode=%s\n' \
+            "$APP_VERSION" "$VERSION_CODE" > src-tauri/gen/android/app/tauri.properties
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -92,4 +96,4 @@ jobs:
           generateReleaseNotes: true
           uploadUpdaterJson: false
           uploadUpdaterSignatures: false
-          releaseAssetNamePattern: 'QuranCaption.Android.ARM64[ext]'
+          releaseAssetNamePattern: 'QuranCaption.Android[ext]'

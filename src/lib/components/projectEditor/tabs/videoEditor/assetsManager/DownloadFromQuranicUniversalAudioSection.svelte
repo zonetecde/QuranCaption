@@ -35,7 +35,8 @@
 	type QuaMode = 'audio_segments' | 'audio_only';
 
 	let mode = $state<QuaMode>('audio_segments');
-	let recitations: QuaRecitation[] = $state([]);
+	let segmentRecitations: QuaRecitation[] = $state([]);
+	let audioRecitations: QuaRecitation[] = $state([]);
 	let surahsList: Surah[] = $state([]);
 	let selectedSlug = $state('');
 	// La clé string pilote le SearchableSelect ; l'id numérique en est dérivé.
@@ -60,14 +61,38 @@
 
 	// Récitation choisie et ses chapitres disponibles.
 	const selectedRecitation = $derived(
-		selectedSlug ? (recitations.find((item) => item.slug === selectedSlug) ?? null) : null
+		selectedSlug
+			? ([...segmentRecitations, ...audioRecitations].find((item) => item.slug === selectedSlug) ??
+					null)
+			: null
 	);
 	const availableChapters = $derived<number[]>(selectedRecitation?.chapters ?? []);
 
 	// Options du select de récitation (recherche par label dans le catalogue).
 	const recitationOptions = $derived(
-		recitations.map((recitation) => ({ value: recitation.slug, label: recitation.label }))
+		[
+			...segmentRecitations.map((recitation) => ({
+				value: recitation.slug,
+				label: formatReciterName(recitation.label),
+				searchAliases: [recitation.label, recitation.label.replace(/\bmohammed\b/gi, 'Muhammed')],
+				icon: 'verified'
+			})),
+			...audioRecitations.map((recitation) => ({
+				value: recitation.slug,
+				label: formatReciterName(recitation.label),
+				searchAliases: [recitation.label, recitation.label.replace(/\bmohammed\b/gi, 'Muhammed')]
+			}))
+		].sort((a, b) => a.label.localeCompare(b.label))
 	);
+
+	/**
+	 * Uniformise la graphie de Muhammad dans les noms affichés.
+	 * @param {string} label Nom fourni par le catalogue.
+	 * @returns {string} Nom avec la graphie Muhammad.
+	 */
+	function formatReciterName(label: string): string {
+		return label.replace(/\bmohammed\b/gi, 'Muhammad');
+	}
 
 	// Sourate sélectionnée : id numérique dérivé de la clé string du select.
 	const selectedSurahId = $derived(selectedSurahKey ? Number.parseInt(selectedSurahKey, 10) : -1);
@@ -98,20 +123,21 @@
 	});
 
 	/**
-	 * Charge le catalogue correspondant au mode courant : récitations publiées
-	 * (audio + segments) ou catalogue audio-only (récitateurs non publiés).
+	 * Charge les catalogues avec segments et audio seul pour alimenter le sélecteur commun.
+	 * @returns {Promise<void>}
 	 */
 	async function loadRecitations(): Promise<void> {
 		isLoadingRecitations = true;
 		try {
-			recitations =
-				mode === 'audio_only'
-					? await QuranicUniversalAudioService.getAudioRecitations()
-					: await QuranicUniversalAudioService.getRecitations();
+			[segmentRecitations, audioRecitations] = await Promise.all([
+				QuranicUniversalAudioService.getRecitations(),
+				QuranicUniversalAudioService.getAudioRecitations()
+			]);
 		} catch (error) {
 			console.error('Error fetching Quranic Universal Audio recitations:', error);
 			toast.error(get(LL).editor.failedToLoadReciters());
-			recitations = [];
+			segmentRecitations = [];
+			audioRecitations = [];
 		} finally {
 			isLoadingRecitations = false;
 		}
@@ -125,11 +151,13 @@
 		selectedSurahKey = '';
 		ayahFrom = 1;
 		ayahTo = 1;
-		void loadRecitations();
 	}
 
-	/** Réinitialise la sélection de sourate/versets quand la récitation change. */
+	/** Adapte le mode au catalogue du récitateur et réinitialise la sourate/les versets. */
 	function onRecitationChange(): void {
+		mode = segmentRecitations.some((recitation) => recitation.slug === selectedSlug)
+			? 'audio_segments'
+			: 'audio_only';
 		selectedSurahKey = '';
 		ayahFrom = 1;
 		ayahTo = 1;
@@ -492,6 +520,7 @@
 				searchPlaceholder={get(LL).aiVideo.searchRecitersPlaceholder()}
 				emptyMessage={get(LL).aiVideo.noRecitersFound()}
 				maxHeightClass="max-h-72"
+				wrapOptions
 				disabled={isLoadingRecitations}
 				onChange={onRecitationChange}
 			/>

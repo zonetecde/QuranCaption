@@ -13,19 +13,20 @@
 	let {
 		compact = false,
 		buttonOnly = false,
-		plainList = false,
-		onRevealSources
+		plainList = false
 	}: {
 		compact?: boolean;
 		buttonOnly?: boolean;
 		plainList?: boolean;
-		onRevealSources?: (() => void) | undefined;
 	} = $props();
 
 	let unlisten: () => void;
 	let dropZone = $state<HTMLDivElement | undefined>(undefined);
 
 	onMount(async () => {
+		// La liste du projet reste montée derrière la feuille et porte déjà l'écouteur global.
+		if (buttonOnly) return;
+
 		unlisten = await getCurrentWebview().onDragDropEvent((event) => {
 			if (event.payload.type === 'over') {
 				if (!globalState.currentProject!.projectEditorState.showDropScreen)
@@ -105,32 +106,30 @@
 	</div>
 {:else if buttonOnly}
 	<div bind:this={dropZone}>
-		<button
-			class="btn-accent w-full flex items-center justify-center py-2 px-3 rounded-md text-sm cursor-pointer transition-colors duration-200"
-			type="button"
-			onclick={addAssetButtonClick}
-		>
-			<span class="material-icons mr-2 text-base">upload_file</span>{get(LL).editor.uploadFile()}
+		<button class="project-assets-file-picker" type="button" onclick={addAssetButtonClick}>
+			<span class="project-assets-file-picker-icon material-icons-outlined">folder_open</span>
+			<span class="min-w-0 flex-1 text-left">
+				<strong class="block truncate text-sm text-primary">
+					{(get(LL).editor as unknown as { selectFromFile: () => string }).selectFromFile()}
+				</strong>
+			</span>
+			<span class="material-icons text-[20px] text-thirdly">chevron_right</span>
 		</button>
 	</div>
 {:else if plainList}
-	<div bind:this={dropZone} class="project-assets-plain-list">
-		<div class="flex flex-col gap-2">
-			{#each globalState.currentProject!.content.assets as asset (asset.id)}
-				<AssetViewer {asset} />
-			{/each}
-		</div>
-
-		<button
-			class="project-assets-floating-add px-6"
-			type="button"
-			aria-label={get(LL).editor.addAssetLabel()}
-			title={get(LL).editor.addAssetLabel()}
-			onclick={() => onRevealSources?.()}
-		>
-			<span class="material-icons text-[18px]">add</span>
-			{get(LL).editor.addAssetLabel()}
-		</button>
+	<div bind:this={dropZone}>
+		{#if globalState.currentProject!.content.assets.length === 0}
+			<div class="project-assets-empty">
+				<span class="material-icons-outlined text-2xl text-thirdly">perm_media</span>
+				<p class="text-sm font-semibold text-primary">{get(LL).editor.projectAssetsLabel()}</p>
+			</div>
+		{:else}
+			<div class="flex flex-col gap-2">
+				{#each globalState.currentProject!.content.assets as asset (asset.id)}
+					<AssetViewer {asset} />
+				{/each}
+			</div>
+		{/if}
 	</div>
 {:else}
 	<Section icon="folder_open" name={get(LL).editor.projectAssetsLabel()}>
@@ -177,24 +176,42 @@
 		padding: 0 0.7rem;
 	}
 
-	.project-assets-plain-list {
-		position: relative;
-		padding-bottom: 3rem;
+	.project-assets-file-picker {
+		display: flex;
+		min-height: 5rem;
+		width: 100%;
+		align-items: center;
+		gap: 0.75rem;
+		border: 1px dashed color-mix(in srgb, var(--accent-primary) 55%, var(--border-color));
+		border-radius: 0.8rem;
+		padding: 0.8rem;
+		background: color-mix(in srgb, var(--accent-primary) 8%, var(--bg-secondary));
 	}
 
-	.project-assets-floating-add {
-		position: absolute;
-		left: 50%;
-		transform: translateX(-50%);
-		bottom: 0;
+	.project-assets-file-picker-icon {
 		display: inline-flex;
-		height: 2.25rem;
+		height: 2.75rem;
+		width: 2.75rem;
+		flex: 0 0 auto;
 		align-items: center;
 		justify-content: center;
-		border: 1px solid var(--accent);
-		border-radius: 9999px;
-		background: var(--bg-accent);
-		color: var(--text-primary);
-		box-shadow: 0 6px 18px rgba(0, 0, 0, 0.24);
+		border-radius: 0.75rem;
+		background: var(--accent-primary);
+		color: #fff;
+		font-size: 1.4rem;
+	}
+
+	.project-assets-empty {
+		display: flex;
+		min-height: 7rem;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.3rem;
+		border: 1px dashed var(--border-color);
+		border-radius: 0.75rem;
+		padding: 1rem;
+		background: color-mix(in srgb, var(--bg-primary) 55%, transparent);
+		text-align: center;
 	}
 </style>

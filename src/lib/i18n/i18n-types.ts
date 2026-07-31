@@ -2303,6 +2303,18 @@ type RootTranslation = {
 		 */
 		uploadFile: string;
 		/**
+		 * S​e​l​e​c​t​ ​a​ ​f​i​l​e
+		 */
+		selectFromFile: string;
+		/**
+		 * F​i​l​e
+		 */
+		fileLabel: string;
+		/**
+		 * Q​U​A
+		 */
+		quaShortLabel: string;
+		/**
 		 * D​r​a​g​ ​a​n​d​ ​d​r​o​p​ ​a​n​ ​a​u​d​i​o​ ​f​i​l​e​ ​h​e​r​e
 		 */
 		dragAndDropFile: string;
@@ -13059,6 +13071,18 @@ export type TranslationFunctions = {
 		 * Upload File
 		 */
 		uploadFile: () => LocalizedString;
+		/**
+		 * Select a file
+		 */
+		selectFromFile: () => LocalizedString;
+		/**
+		 * File
+		 */
+		fileLabel: () => LocalizedString;
+		/**
+		 * QUA
+		 */
+		quaShortLabel: () => LocalizedString;
 		/**
 		 * Drag and drop an audio file here
 		 */

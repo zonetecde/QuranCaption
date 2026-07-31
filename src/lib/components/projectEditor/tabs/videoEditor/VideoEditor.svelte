@@ -13,6 +13,7 @@
 	} from '$lib/constants/projectEditor';
 
 	let stockMediaOpen = $derived(globalState.stockMediaLibrary.libraryOpen);
+	let assetImporterOpen = $state(false);
 	let previewHeight = $derived(
 		Math.max(
 			PROJECT_EDITOR_STYLE_SECTION_HEIGHTS.preview.min,
@@ -72,10 +73,25 @@
 				<span class="material-icons text-[20px]">video_library</span>
 				<span>{get(LL).editor.assets()}</span>
 			</span>
+			<button
+				class="video-editor-assets-add"
+				type="button"
+				onclick={() => (assetImporterOpen = true)}
+				aria-label={get(LL).editor.addAssetLabel()}
+			>
+				<span class="material-icons text-[18px]">add</span>
+				<span>{get(LL).editor.addAssetLabel()}</span>
+			</button>
 		</div>
 
 		<section class="video-editor-assets-content">
-			<AssetsManager {stockMediaOpen} showHeader={false} embedded />
+			<AssetsManager
+				{stockMediaOpen}
+				showHeader={false}
+				embedded
+				importOpen={assetImporterOpen}
+				onCloseImport={() => (assetImporterOpen = false)}
+			/>
 		</section>
 	</section>
 </div>
@@ -143,6 +159,22 @@
 		gap: 0.625rem;
 		font-size: 0.8rem;
 		font-weight: 600;
+	}
+
+	.video-editor-assets-add {
+		display: inline-flex;
+		height: 2rem;
+		flex: 0 0 auto;
+		align-items: center;
+		justify-content: center;
+		gap: 0.25rem;
+		border: 1px solid color-mix(in srgb, var(--accent-primary) 55%, var(--border-color));
+		border-radius: 9999px;
+		padding: 0 0.7rem 0 0.5rem;
+		background: color-mix(in srgb, var(--accent-primary) 14%, var(--bg-secondary));
+		color: var(--accent-primary);
+		font-size: 0.7rem;
+		font-weight: 700;
 	}
 
 	.video-editor-assets-content {

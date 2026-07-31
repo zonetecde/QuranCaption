@@ -2,6 +2,8 @@
 	type SearchableSelectOption = {
 		value: string;
 		label: string;
+		icon?: string;
+		searchAliases?: string[];
 		disabled?: boolean;
 	};
 
@@ -15,6 +17,7 @@
 		disabled?: boolean;
 		/** Classe Tailwind de hauteur max du panneau déroulant (défaut `max-h-60`). */
 		maxHeightClass?: string;
+		wrapOptions?: boolean;
 		onChange?: (value: string) => void;
 	};
 
@@ -27,6 +30,7 @@
 		emptyMessage = 'No options found',
 		disabled = false,
 		maxHeightClass = 'max-h-60',
+		wrapOptions = false,
 		onChange
 	}: Props = $props();
 
@@ -44,7 +48,9 @@
 		let isHeaderMatch = false;
 
 		for (const option of options) {
-			const isMatch = normalizeText(option.label).includes(query);
+			const isMatch = [option.label, ...(option.searchAliases ?? [])].some((candidate) =>
+				normalizeText(candidate).includes(query)
+			);
 			if (option.disabled) {
 				currentHeader = option;
 				isHeaderMatch = isMatch;
@@ -156,7 +162,10 @@
 		placeholder={isOpen ? searchPlaceholder : placeholder}
 		autocomplete="off"
 		{disabled}
-		class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary text-sm placeholder:text-thirdly disabled:opacity-50 disabled:cursor-not-allowed"
+		class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary text-sm placeholder:text-thirdly disabled:opacity-50 disabled:cursor-not-allowed {selectedOption?.icon &&
+		!isOpen
+			? 'pr-10'
+			: ''}"
 		onfocus={openDropdown}
 		onclick={openDropdown}
 		oninput={(event) => {
@@ -166,6 +175,14 @@
 		onkeydown={handleKeydown}
 		onblur={closeDropdown}
 	/>
+	{#if selectedOption?.icon && !isOpen}
+		<span
+			class="material-icons-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[16px] text-[var(--accent-primary)]"
+			aria-hidden="true"
+		>
+			{selectedOption.icon}
+		</span>
+	{/if}
 
 	{#if isOpen}
 		<div
@@ -188,11 +205,27 @@
 							selectOption(option);
 						}}
 					>
-						{labelParts.before}{#if labelParts.match}
-							<mark class="rounded bg-[var(--accent-primary)]/25 px-0.5 text-accent-primary"
-								>{labelParts.match}</mark
+						<span class="flex min-w-0 items-center justify-between gap-2">
+							<span
+								class="min-w-0 {wrapOptions
+									? 'line-clamp-2 whitespace-normal break-words leading-snug'
+									: 'truncate'}"
 							>
-						{/if}{labelParts.after}
+								{labelParts.before}{#if labelParts.match}
+									<mark class="rounded bg-[var(--accent-primary)]/25 px-0.5 text-accent-primary"
+										>{labelParts.match}</mark
+									>
+								{/if}{labelParts.after}
+							</span>
+							{#if option.icon}
+								<span
+									class="material-icons-outlined shrink-0 text-[16px] text-[var(--accent-primary)]"
+									aria-hidden="true"
+								>
+									{option.icon}
+								</span>
+							{/if}
+						</span>
 					</button>
 				{/each}
 			{/if}

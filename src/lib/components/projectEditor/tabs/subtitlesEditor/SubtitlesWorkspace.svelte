@@ -273,7 +273,7 @@
 	}
 
 	.playback-control-button-set-end {
-		transform: rotate(90deg);
+		transform: rotate(-90deg);
 	}
 
 	.playback-control-button-set-start {

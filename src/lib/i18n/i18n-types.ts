@@ -2465,6 +2465,22 @@ type RootTranslation = {
 		 */
 		playbackControls: string;
 		/**
+		 * I​n​s​e​r​t​ ​s​i​l​e​n​c​e​,​ ​b​a​s​m​a​l​a​,​ ​o​r​ ​a​n​o​t​h​e​r​ ​p​r​e​s​e​t
+		 */
+		controlHelpPreset: string;
+		/**
+		 * L​e​t​ ​A​I​ ​g​e​n​e​r​a​t​e​ ​t​h​e​ ​s​u​b​t​i​t​l​e​s
+		 */
+		controlHelpAi: string;
+		/**
+		 * G​o​ ​t​o​ ​t​h​e​ ​p​r​e​v​i​o​u​s​ ​v​e​r​s​e
+		 */
+		controlHelpPreviousVerse: string;
+		/**
+		 * G​o​ ​t​o​ ​t​h​e​ ​n​e​x​t​ ​v​e​r​s​e
+		 */
+		controlHelpNextVerse: string;
+		/**
 		 * V​o​l​u​m​e
 		 */
 		volumeLabel: string;
@@ -13203,6 +13219,22 @@ export type TranslationFunctions = {
 		 * Playback Controls
 		 */
 		playbackControls: () => LocalizedString;
+		/**
+		 * Insert silence, basmala, or another preset
+		 */
+		controlHelpPreset: () => LocalizedString;
+		/**
+		 * Let AI generate the subtitles
+		 */
+		controlHelpAi: () => LocalizedString;
+		/**
+		 * Go to the previous verse
+		 */
+		controlHelpPreviousVerse: () => LocalizedString;
+		/**
+		 * Go to the next verse
+		 */
+		controlHelpNextVerse: () => LocalizedString;
 		/**
 		 * Volume
 		 */

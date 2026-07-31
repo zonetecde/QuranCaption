@@ -8,12 +8,16 @@
 		useSplitHeight = true,
 		showVersePicker = true,
 		showPlaybackControls = false,
+		showControlHelp = false,
+		onCloseControlHelp = () => {},
 		onTogglePresetPicker = () => {},
 		onOpenAutoSegmentation = () => {}
 	}: {
 		useSplitHeight?: boolean;
 		showVersePicker?: boolean;
 		showPlaybackControls?: boolean;
+		showControlHelp?: boolean;
+		onCloseControlHelp?: () => void;
 		onTogglePresetPicker?: () => void;
 		onOpenAutoSegmentation?: () => void;
 	} = $props();
@@ -28,6 +32,7 @@
 		selectNextVerse: () => void;
 		selectPreviousVerse: () => Promise<void>;
 	} | null = $state(null);
+	let controlHelpCopy = $derived($LL.editor as unknown as Record<string, () => string>);
 
 	/**
 	 * Valide la sélection de mots courante depuis les contrôles tactiles.
@@ -51,9 +56,20 @@
 	}
 </script>
 
+{#if showControlHelp}
+	<div class="control-help-backdrop"></div>
+	<button
+		class="control-help-dismiss"
+		type="button"
+		aria-label={$LL.common.close()}
+		onclick={onCloseControlHelp}
+	></button>
+{/if}
+
 <section
 	data-tour-id="verse-picker-area"
 	class="w-full max-w-full overflow-hidden min-h-0 bg-primary border border-color rounded-lg shadow-lg"
+	class:control-help-active={showControlHelp}
 	style={useSplitHeight
 		? `height: ${globalState.settings!.persistentUiState.projectEditorLayout.upperSectionHeight}%;`
 		: 'height: 100%;'}
@@ -78,6 +94,7 @@
 						class="playback-control-button playback-control-button-validate playback-control-button-predefined"
 						type="button"
 						aria-label={$LL.editor.predefinedLabel()}
+						data-help={controlHelpCopy.controlHelpPreset()}
 						onclick={onTogglePresetPicker}
 					>
 						<span class="material-icons">dashboard_customize</span>
@@ -86,6 +103,7 @@
 						class="playback-control-button playback-control-button-validate playback-control-button-ai"
 						type="button"
 						aria-label={$LL.batch.aiSegmentation()}
+						data-help={controlHelpCopy.controlHelpAi()}
 						onclick={onOpenAutoSegmentation}
 					>
 						<span class="playback-control-ai-icon" aria-hidden="true"
@@ -96,6 +114,7 @@
 						class="playback-control-button playback-control-button-delete"
 						type="button"
 						aria-label={$LL.settings.shortcutAction.REMOVE_LAST_SUBTITLE()}
+						data-help={$LL.settings.shortcutActionDesc.REMOVE_LAST_SUBTITLE()}
 						onclick={() => wordsSelector?.removeLastSubtitle()}
 					>
 						<span class="material-icons text-[20px]!">backspace</span>
@@ -104,6 +123,7 @@
 						class="playback-control-button playback-control-button-edit"
 						type="button"
 						aria-label={$LL.settings.shortcutAction.EDIT_LAST_SUBTITLE()}
+						data-help={$LL.settings.shortcutActionDesc.EDIT_LAST_SUBTITLE()}
 						onclick={() => wordsSelector?.editCurrentOrLastSubtitle()}
 					>
 						<span class="material-icons">edit</span>
@@ -115,6 +135,7 @@
 						class="playback-control-button playback-control-button-verse-previous"
 						type="button"
 						aria-label={$LL.common.back()}
+						data-help={controlHelpCopy.controlHelpPreviousVerse()}
 						onclick={() => void wordsSelector?.selectPreviousVerse()}
 					>
 						−
@@ -123,6 +144,7 @@
 						class="playback-control-button playback-control-button-up"
 						type="button"
 						aria-label={$LL.settings.shortcutAction.SELECT_NEXT_WORD()}
+						data-help={$LL.settings.shortcutActionDesc.SELECT_NEXT_WORD()}
 						onclick={() => void wordsSelector?.selectNextWord()}
 					>
 						<span class="material-icons">keyboard_arrow_up</span>
@@ -131,6 +153,7 @@
 						class="playback-control-button playback-control-button-verse-next"
 						type="button"
 						aria-label={$LL.common.next()}
+						data-help={controlHelpCopy.controlHelpNextVerse()}
 						onclick={() => wordsSelector?.selectNextVerse()}
 					>
 						+
@@ -140,6 +163,7 @@
 							class="playback-control-button"
 							type="button"
 							aria-label={$LL.settings.shortcutAction.MOVE_BACKWARD()}
+							data-help={$LL.settings.shortcutActionDesc.MOVE_BACKWARD()}
 							onclick={() => movePlaybackCursor(-2000)}
 						>
 							<span class="material-icons">chevron_left</span>
@@ -148,6 +172,7 @@
 							class="playback-control-button playback-control-button-primary"
 							type="button"
 							aria-label={$LL.editor.playbackControls()}
+							data-help={$LL.settings.shortcutActionDesc.PLAY_PAUSE()}
 							onclick={() => globalState.getVideoPreviewState.togglePlayPause()}
 						>
 							<span class="material-icons">
@@ -158,6 +183,7 @@
 							class="playback-control-button"
 							type="button"
 							aria-label={$LL.settings.shortcutAction.MOVE_FORWARD()}
+							data-help={$LL.settings.shortcutActionDesc.MOVE_FORWARD()}
 							onclick={() => movePlaybackCursor(2000)}
 						>
 							<span class="material-icons">chevron_right</span>
@@ -167,6 +193,7 @@
 						class="playback-control-button playback-control-button-down"
 						type="button"
 						aria-label={$LL.settings.shortcutAction.SELECT_PREVIOUS_WORD()}
+						data-help={$LL.settings.shortcutActionDesc.SELECT_PREVIOUS_WORD()}
 						onclick={() => void wordsSelector?.selectPreviousWord()}
 					>
 						<span class="material-icons">keyboard_arrow_down</span>
@@ -178,6 +205,7 @@
 						class="playback-control-button playback-control-button-set-end"
 						type="button"
 						aria-label={$LL.settings.shortcutAction.SET_LAST_SUBTITLE_END()}
+						data-help={$LL.settings.shortcutActionDesc.SET_LAST_SUBTITLE_END()}
 						onclick={() => wordsSelector?.setLastSubtitleEndTime()}
 					>
 						<span class="material-icons">vertical_align_bottom</span>
@@ -186,6 +214,7 @@
 						class="playback-control-button playback-control-button-set-start"
 						type="button"
 						aria-label={$LL.settings.shortcutAction.SET_LAST_SUBTITLE_START()}
+						data-help={$LL.settings.shortcutActionDesc.SET_LAST_SUBTITLE_START()}
 						onclick={() => wordsSelector?.setLastSubtitleStartTime()}
 					>
 						<span class="material-icons">vertical_align_top</span>
@@ -194,6 +223,7 @@
 						class="playback-control-button playback-control-button-validate playback-control-button-confirm"
 						type="button"
 						aria-label={$LL.common.confirm()}
+						data-help={$LL.settings.shortcutActionDesc.ADD_SUBTITLE()}
 						onclick={() => void addSubtitle()}
 					>
 						<span class="material-icons">check</span>
@@ -205,6 +235,28 @@
 </section>
 
 <style>
+	.control-help-backdrop,
+	.control-help-dismiss {
+		position: fixed;
+		inset: 0;
+	}
+
+	.control-help-backdrop {
+		z-index: 1000;
+		background: rgb(2 8 18 / 88%);
+		backdrop-filter: blur(2px);
+	}
+
+	.control-help-dismiss {
+		z-index: 1003;
+		border: 0;
+		background: transparent;
+	}
+
+	.control-help-active {
+		overflow: visible;
+	}
+
 	.playback-controls {
 		box-sizing: border-box;
 		display: grid;
@@ -215,6 +267,156 @@
 		gap: 0.75rem;
 		height: 6.5rem;
 		padding-top: 0.5rem;
+	}
+
+	.control-help-active .playback-controls {
+		position: relative;
+		z-index: 1002;
+		border: 1px solid color-mix(in srgb, var(--border-color) 80%, white);
+		border-radius: 1rem;
+		background: var(--bg-primary);
+		box-shadow:
+			0 0 0 0.35rem var(--bg-primary),
+			0 0 2rem rgb(0 0 0 / 65%);
+	}
+
+	.control-help-active .playback-control-side .playback-control-button,
+	.control-help-active .playback-control-horizontal .playback-control-button {
+		position: relative;
+	}
+
+	.control-help-active .playback-control-button-set-end,
+	.control-help-active .playback-control-button-set-start {
+		transform: none;
+	}
+
+	.control-help-active .playback-control-button-set-end > span,
+	.control-help-active .playback-control-button-set-start > span {
+		transform: rotate(-90deg);
+	}
+
+	.control-help-active .playback-control-button::before {
+		--help-distance: 2.2rem;
+		position: absolute;
+		z-index: 2;
+		left: 50%;
+		width: 0.4rem;
+		height: var(--help-distance);
+		background: white;
+		content: '';
+		transform: translateX(-50%);
+	}
+
+	.control-help-active .playback-control-button::after {
+		--help-distance: 2.2rem;
+		position: absolute;
+		z-index: 2;
+		left: 50%;
+		width: max-content;
+		max-width: min(8rem, 24vw);
+		padding: 0.35rem 0.45rem;
+		border: 1px solid rgb(255 255 255 / 35%);
+		border-radius: 0.5rem;
+		background: rgb(20 27 36 / 96%);
+		color: white;
+		content: attr(data-help);
+		font-size: 0.65rem;
+		font-weight: 500;
+		line-height: 1.2;
+		text-align: center;
+		transform: translateX(-50%);
+	}
+
+	.control-help-active .playback-control-button-delete::before,
+	.control-help-active .playback-control-button-delete::after,
+	.control-help-active .playback-control-button-up::before,
+	.control-help-active .playback-control-button-up::after,
+	.control-help-active .playback-control-button-set-end::before,
+	.control-help-active .playback-control-button-set-end::after,
+	.control-help-active .playback-control-button-edit::before,
+	.control-help-active .playback-control-button-edit::after,
+	.control-help-active .playback-control-button-primary::before,
+	.control-help-active .playback-control-button-primary::after,
+	.control-help-active .playback-control-button-set-start::before,
+	.control-help-active .playback-control-button-set-start::after {
+		--help-distance: 4.8rem;
+	}
+
+	.control-help-active .playback-control-button-delete::before,
+	.control-help-active .playback-control-button-delete::after,
+	.control-help-active .playback-control-button-edit::before,
+	.control-help-active .playback-control-button-edit::after {
+		--help-distance: 6.2rem;
+	}
+
+	.control-help-active .playback-control-button-primary::before,
+	.control-help-active .playback-control-button-primary::after {
+		--help-distance: 5.5rem;
+	}
+
+	.control-help-active .playback-control-button-down::before,
+	.control-help-active .playback-control-button-down::after {
+		--help-distance: 7.2rem;
+	}
+
+	.control-help-active .playback-control-button-confirm::before,
+	.control-help-active .playback-control-button-confirm::after {
+		--help-distance: 11rem;
+	}
+
+	.control-help-active .playback-control-button-predefined::after,
+	.control-help-active .playback-control-button-ai::after {
+		left: 0;
+		transform: none;
+	}
+
+	.control-help-active .playback-control-button-verse-previous::after,
+	.control-help-active .playback-control-horizontal .playback-control-button:first-child::after {
+		transform: translateX(-35%);
+	}
+
+	.control-help-active .playback-control-button-confirm::after {
+		right: 0;
+		left: auto;
+		transform: none;
+	}
+
+	.control-help-active .playback-control-button-predefined::before,
+	.control-help-active .playback-control-button-delete::before,
+	.control-help-active .playback-control-button-verse-previous::before,
+	.control-help-active .playback-control-button-up::before,
+	.control-help-active .playback-control-button-verse-next::before,
+	.control-help-active .playback-control-button-set-end::before,
+	.control-help-active .playback-control-button-confirm::before {
+		bottom: calc(100% + 0.2rem);
+		clip-path: polygon(45% 0, 55% 0, 55% 82%, 100% 82%, 50% 100%, 0 82%, 45% 82%);
+	}
+
+	.control-help-active .playback-control-button-predefined::after,
+	.control-help-active .playback-control-button-delete::after,
+	.control-help-active .playback-control-button-verse-previous::after,
+	.control-help-active .playback-control-button-up::after,
+	.control-help-active .playback-control-button-verse-next::after,
+	.control-help-active .playback-control-button-set-end::after,
+	.control-help-active .playback-control-button-confirm::after {
+		bottom: calc(100% + var(--help-distance));
+	}
+
+	.control-help-active .playback-control-button-ai::before,
+	.control-help-active .playback-control-button-edit::before,
+	.control-help-active .playback-control-horizontal .playback-control-button::before,
+	.control-help-active .playback-control-button-down::before,
+	.control-help-active .playback-control-button-set-start::before {
+		top: calc(100% + 0.2rem);
+		clip-path: polygon(50% 0, 100% 18%, 55% 18%, 55% 100%, 45% 100%, 45% 18%, 0 18%);
+	}
+
+	.control-help-active .playback-control-button-ai::after,
+	.control-help-active .playback-control-button-edit::after,
+	.control-help-active .playback-control-horizontal .playback-control-button::after,
+	.control-help-active .playback-control-button-down::after,
+	.control-help-active .playback-control-button-set-start::after {
+		top: calc(100% + var(--help-distance));
 	}
 
 	.playback-control-center {

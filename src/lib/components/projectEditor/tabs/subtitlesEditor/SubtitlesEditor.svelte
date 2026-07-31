@@ -28,6 +28,7 @@
 	let rightDrawerOpen = $state(false);
 	let presetPickerOpen = $state(false);
 	let autoSegmentationModalOpen = $state(false);
+	let controlHelpOpen = $state(false);
 	let lastEditedSubtitleId: number | null = null;
 	let subtitlesWorkspace: { addSubtitle: () => Promise<void> } | null = $state(null);
 
@@ -144,19 +145,30 @@
 	</div>
 
 	<section class="subtitles-editor-toolbar">
-		<button
-			class="drawer-toggle"
-			class:drawer-open={leftDrawerOpen}
-			type="button"
-			aria-label={$LL.editor.subtitlesEditor()}
-			aria-expanded={leftDrawerOpen}
-			onclick={() => {
-				leftDrawerOpen = !leftDrawerOpen;
-				rightDrawerOpen = false;
-			}}
-		>
-			<span class="material-icons">tune</span>
-		</button>
+		<div class="toolbar-actions">
+			<button
+				class="drawer-toggle"
+				class:drawer-open={leftDrawerOpen}
+				type="button"
+				aria-label={$LL.editor.subtitlesEditor()}
+				aria-expanded={leftDrawerOpen}
+				onclick={() => {
+					leftDrawerOpen = !leftDrawerOpen;
+					rightDrawerOpen = false;
+				}}
+			>
+				<span class="material-icons">tune</span>
+			</button>
+			<button
+				class="drawer-toggle"
+				type="button"
+				aria-label={$LL.editor.playbackControls()}
+				aria-expanded={controlHelpOpen}
+				onclick={() => (controlHelpOpen = true)}
+			>
+				<span class="material-icons">help_outline</span>
+			</button>
+		</div>
 
 		<div class="subtitles-editor-verse-picker">
 			<VersePicker />
@@ -177,13 +189,19 @@
 		</button>
 	</section>
 
-	<div class="subtitles-editor-content">
-		<section class="subtitles-editor-workspace" style={`flex-basis: ${workspaceHeight}%;`}>
+	<div class="subtitles-editor-content" class:control-help-open={controlHelpOpen}>
+		<section
+			class="subtitles-editor-workspace"
+			class:control-help-open={controlHelpOpen}
+			style={`flex-basis: ${workspaceHeight}%;`}
+		>
 			<SubtitlesWorkspace
 				bind:this={subtitlesWorkspace}
 				useSplitHeight={false}
 				showVersePicker={false}
 				showPlaybackControls
+				showControlHelp={controlHelpOpen}
+				onCloseControlHelp={() => (controlHelpOpen = false)}
 				onTogglePresetPicker={() => (presetPickerOpen = !presetPickerOpen)}
 				onOpenAutoSegmentation={() => (autoSegmentationModalOpen = true)}
 			/>
@@ -262,9 +280,17 @@
 		overflow: hidden;
 	}
 
+	.subtitles-editor-content.control-help-open {
+		overflow: visible;
+	}
+
 	.subtitles-editor-workspace {
 		flex-grow: 0;
 		flex-shrink: 0;
+	}
+
+	.subtitles-editor-workspace.control-help-open {
+		overflow: visible;
 	}
 
 	.playback-engine {
@@ -282,6 +308,11 @@
 		flex-shrink: 0;
 		align-items: center;
 		gap: 0.5rem;
+	}
+
+	.toolbar-actions {
+		display: flex;
+		gap: 0.35rem;
 	}
 
 	.subtitles-editor-verse-picker {

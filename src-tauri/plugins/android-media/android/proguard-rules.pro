@@ -1,2 +1,2 @@
 -keep class com.qurancaption.androidmedia.AndroidMediaPlugin { *; }
--keep class com.fasterxml.jackson.** { *; }
+-keep class com.fasterxml.jackson.databind.ObjectMapper { *; }

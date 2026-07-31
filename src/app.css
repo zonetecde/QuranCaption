@@ -634,6 +634,12 @@ body {
 	animation: mobile-modal-sheet-open 180ms ease-out;
 }
 
+.mobile-modal-sheet-panel {
+	height: 90dvh !important;
+	max-height: 90dvh !important;
+	padding-bottom: max(40px, env(safe-area-inset-bottom)) !important;
+}
+
 .mobile-modal-sheet-panel::before {
 	position: absolute;
 	top: 7px;

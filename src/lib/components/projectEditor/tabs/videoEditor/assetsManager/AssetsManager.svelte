@@ -247,7 +247,7 @@
 		flex: 1;
 		flex-direction: column;
 		gap: 0.75rem;
-		padding: 0.75rem 0.75rem 40px;
+		padding: 0.75rem;
 	}
 
 	.assets-import-choices {

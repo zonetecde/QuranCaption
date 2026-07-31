@@ -8,6 +8,10 @@
 	import Settings from './settings/Settings.svelte';
 	import { fade } from 'svelte/transition';
 
+	let isHomePage = $derived(
+		globalState.currentProject === null && globalState.currentPage === 'home'
+	);
+
 	/**
 	 * Sauvegarde le projet courant puis revient à l'accueil mobile.
 	 * @returns {Promise<void>}
@@ -22,18 +26,21 @@
 </script>
 
 <header class="mobile-app-bar">
-	<button
-		type="button"
-		class="app-bar-button"
-		onclick={goHome}
-		disabled={globalState.uiState.isTourActive}
-		aria-label={$LL.settings.atHomeMenu()}
-		aria-current={globalState.currentProject === null && globalState.currentPage === 'home'
-			? 'page'
-			: undefined}
-	>
-		<span class="material-icons">home</span>
-	</button>
+	{#if isHomePage}
+		<div class="app-bar-logo" aria-hidden="true">
+			<img src="/favicon.png" alt="" />
+		</div>
+	{:else}
+		<button
+			type="button"
+			class="app-bar-button"
+			onclick={goHome}
+			disabled={globalState.uiState.isTourActive}
+			aria-label={$LL.settings.atHomeMenu()}
+		>
+			<span class="material-icons">home</span>
+		</button>
+	{/if}
 
 	{#if VersionService.latestUpdate?.hasUpdate}
 		<button
@@ -49,7 +56,7 @@
 	{/if}
 
 	<div class="app-bar-title min-w-0 text-center">
-		<p class="truncate text-sm font-semibold text-primary">
+		<p class:app-bar-brand-title={isHomePage} class="app-bar-title-text truncate text-primary">
 			{globalState.currentProject?.detail.name ?? 'Quran Caption'}
 		</p>
 	</div>
@@ -108,8 +115,15 @@
 		align-items: center;
 		gap: 0.25rem;
 		padding: env(safe-area-inset-top) 0.5rem 0;
-		background: var(--bg-titlebar);
+		background:
+			linear-gradient(
+				90deg,
+				color-mix(in srgb, var(--accent-primary) 5%, transparent),
+				transparent 32%
+			),
+			var(--bg-titlebar);
 		border-bottom: 1px solid var(--border-color);
+		box-shadow: 0 1px 8px rgb(0 0 0 / 8%);
 		z-index: 60;
 	}
 
@@ -125,6 +139,22 @@
 		transition: background-color 120ms ease;
 	}
 
+	.app-bar-logo {
+		display: flex;
+		width: 2.75rem;
+		height: 2.75rem;
+		flex: 0 0 2.75rem;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.app-bar-logo img {
+		width: 2rem;
+		height: 2rem;
+		border-radius: 0.6rem;
+		box-shadow: 0 3px 10px rgb(0 0 0 / 18%);
+	}
+
 	.app-bar-title {
 		position: absolute;
 		top: calc(env(safe-area-inset-top) + 1.375rem);
@@ -132,6 +162,18 @@
 		width: calc(100% - 11.5rem);
 		transform: translate(-50%, -50%);
 		pointer-events: none;
+	}
+
+	.app-bar-title-text {
+		font-size: 0.9rem;
+		font-weight: 650;
+		letter-spacing: -0.01em;
+	}
+
+	.app-bar-brand-title {
+		font-size: 1.05rem;
+		font-weight: 800;
+		letter-spacing: -0.025em;
 	}
 
 	.app-bar-settings {

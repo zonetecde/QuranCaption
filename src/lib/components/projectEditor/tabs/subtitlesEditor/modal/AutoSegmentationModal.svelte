@@ -81,9 +81,3 @@
 		{/if}
 	</section>
 </div>
-
-<style>
-	.mobile-sheet-footer {
-		padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
-	}
-</style>

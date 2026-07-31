@@ -615,7 +615,8 @@
 		{#if translation().type === 'verse' && !isInlineStyleMode() && !isTranslationWbwMappingMode()}
 			<!-- Affiche la traduction complète du verset mot à mot -->
 			<div
-				class="flex flex-row select-none flex-wrap items-center gap-y-1 opacity-100"
+				class="flex flex-row select-none flex-wrap items-center opacity-100"
+				style="row-gap: calc(0.25rem * var(--translation-text-spacing-scale));"
 				dir={translationDirection()}
 				role="presentation"
 				onmouseup={handleGlobalMouseUp}
@@ -644,7 +645,7 @@
 						previousSubtitleTranslationStartIndex <= i &&
 						i <= previousSubtitleTranslationEndIndex}
 					<button
-						class="translation-word text-sm cursor-pointer px-1 py-1 transition-all duration-200 border-2 border-transparent
+						class="translation-word cursor-pointer transition-all duration-200 border-2 border-transparent
 						{isPreviousSubtitleTranslation && !isSelected
 							? 'bg-yellow-500/10 hover:bg-yellow-500/20! hover:border-yellow-400/20! rounded-none border-yellow-400/10'
 							: ''}
@@ -660,6 +661,7 @@
 						onmousedown={(event) => handleMouseDown(i, event)}
 						onmouseenter={() => handleMouseEnter(i)}
 						ondragstart={(event) => event.preventDefault()}
+						style="font-size: calc(0.875rem * var(--translation-text-scale)); padding: calc(0.25rem * var(--translation-text-spacing-scale));"
 					>
 						{unit.text}
 					</button>

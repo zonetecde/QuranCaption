@@ -11,6 +11,7 @@
 	let addTranslationModalVisibility = $state(false);
 	let leftDrawerOpen = $state(false);
 	let rightDrawerOpen = $state(false);
+	let textSizeLevel = $state(-1);
 	let visibleEditions = $derived(
 		globalState.currentProject!.content.projectTranslation.addedTranslationEditions.filter(
 			(edition) => edition.showInTranslationsEditor
@@ -42,6 +43,26 @@
 		>
 			<span class="material-icons">tune</span>
 		</button>
+		<div class="text-size-controls">
+			<button
+				type="button"
+				title={$LL.editor.zoomOut()}
+				aria-label={$LL.editor.zoomOut()}
+				disabled={textSizeLevel === -5}
+				onclick={() => (textSizeLevel = Math.max(-5, textSizeLevel - 1))}
+			>
+				−
+			</button>
+			<button
+				type="button"
+				title={$LL.editor.zoomIn()}
+				aria-label={$LL.editor.zoomIn()}
+				disabled={textSizeLevel === 3}
+				onclick={() => (textSizeLevel = Math.min(3, textSizeLevel + 1))}
+			>
+				+
+			</button>
+		</div>
 
 		<h2 class="translations-editor-title">{$LL.editor.translations()}</h2>
 
@@ -60,7 +81,10 @@
 		</button>
 	</section>
 
-	<section class="translations-editor-workspace">
+	<section
+		class="translations-editor-workspace"
+		style={`--translation-text-scale: ${1 + textSizeLevel * 0.1}; --translation-text-spacing-scale: ${textSizeLevel >= -1 ? 1 : 1 + (textSizeLevel + 1) * 0.2};`}
+	>
 		<Workspace
 			setAddTranslationModalVisibility={(visible: boolean) =>
 				(addTranslationModalVisibility = visible)}
@@ -177,6 +201,33 @@
 
 	.drawer-toggle.drawer-open {
 		color: var(--accent-primary);
+	}
+
+	.text-size-controls {
+		display: flex;
+		overflow: hidden;
+		border: 1px solid var(--border-color);
+		border-radius: 0.375rem;
+		background: color-mix(in srgb, var(--bg-primary) 85%, transparent);
+		box-shadow: 0 1px 3px rgb(0 0 0 / 20%);
+	}
+
+	.text-size-controls button {
+		display: flex;
+		height: 1.5rem;
+		width: 1.75rem;
+		align-items: center;
+		justify-content: center;
+		color: var(--text-secondary);
+		font-size: 0.875rem;
+	}
+
+	.text-size-controls button + button {
+		border-left: 1px solid var(--border-color);
+	}
+
+	.text-size-controls button:disabled {
+		opacity: 0.3;
 	}
 
 	@media (orientation: landscape) {

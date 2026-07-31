@@ -169,7 +169,7 @@
 	{#each words as word (`${word.wordIndex}-${word.text}`)}
 		{@const isSelected = isDragSelected(word.wordIndex) || isWordSelected(word.wordIndex)}
 		<button
-			class={`translation-word-style touch-none text-sm transition-all duration-150 ${showHoverEffect ? 'translation-word-style-hoverable' : ''} ${
+			class={`translation-word-style touch-none transition-all duration-150 ${showHoverEffect ? 'translation-word-style-hoverable' : ''} ${
 				isSelected ? 'translation-word-style-selected text-primary shadow-sm' : 'text-primary'
 			}`}
 			style={word.style ?? ''}
@@ -209,7 +209,7 @@
 	}
 
 	.translation-style-flow {
-		font-size: 0.95rem;
+		font-size: calc(0.95rem * var(--translation-text-scale));
 		line-height: 1.7;
 		color: var(--text-primary);
 		cursor: text;

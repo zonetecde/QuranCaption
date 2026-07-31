@@ -174,7 +174,8 @@
 
 {#if subtitle instanceof ClipWithTranslation}
 	<div
-		class="flex flex-row arabic text-right text-[1.75rem] gap-x-2 flex-wrap gap-y-2"
+		class="flex flex-row arabic text-right flex-wrap"
+		style="font-size: calc(1.75rem * var(--translation-text-scale)); column-gap: calc(0.5rem * var(--translation-text-spacing-scale)); row-gap: calc(0.5rem * var(--translation-text-spacing-scale));"
 		dir="rtl"
 		onmouseleave={finishInlineDrag}
 	>
@@ -197,7 +198,7 @@
 			{@const flags = getInlineStyleFlagsForWordIndex(subtitle.arabicInlineStyleRuns, i)}
 			<button
 				type="button"
-				class="word relative flex flex-col items-center gap-y-2 rounded-md p-0 ring-1 ring-transparent transition-colors {isOverlapWord
+				class="word relative flex flex-col items-center rounded-md p-0 ring-1 ring-transparent transition-colors {isOverlapWord
 					? 'overlap-arabic-word'
 					: ''} {isInlineSelected ? 'arabic-inline-selected' : ''} {isWbwMappingActive
 					? 'arabic-wbw-active'
@@ -208,6 +209,7 @@
 					: 'cursor-default'}"
 				onmousedown={(event) => handleInlineMouseDown(i, event)}
 				onmouseenter={() => handleInlineMouseEnter(i)}
+				style={`row-gap: calc(0.5rem * var(--translation-text-spacing-scale));`}
 				onclick={() => {
 					if (isTranslationWbwMappingMode()) {
 						translationsEditorState().translationWbwActiveArabicWordIndex = i;
@@ -228,10 +230,11 @@
 				</span>
 
 				<span
-					class="word-translation-tooltip absolute top-10 z-20 w-max rounded-lg border-2 px-1.5 text-center text-sm {openTooltipWordIndex ===
+					class="word-translation-tooltip absolute top-10 z-20 w-max rounded-lg border-2 px-1.5 text-center {openTooltipWordIndex ===
 					i
 						? 'block'
 						: 'hidden'}"
+					style="font-size: calc(0.875rem * var(--translation-text-scale));"
 					dir={wbwTranslationDirection()}
 				>
 					{subtitle instanceof SubtitleClip
@@ -254,17 +257,16 @@
 
 	{#if subtitle instanceof SubtitleClip && !isInlineStyleMode() && !isTranslationWbwMappingMode()}
 		<p
-			class="text-sm text-thirdly mt-1 space-x-1 {wbwTranslationDirection() === 'rtl'
-				? 'text-right'
-				: 'text-left'}"
+			class="text-thirdly mt-1 {wbwTranslationDirection() === 'rtl' ? 'text-right' : 'text-left'}"
+			style="font-size: calc(0.875rem * var(--translation-text-scale));"
 			dir={wbwTranslationDirection()}
 		>
 			{#each wbwTranslationWords as word, i (`${subtitle.id}-wbw-${i}`)}
 				{@const wordIndex = subtitle.startWordIndex + i}
 				<span
-					class={overlapEndWordIndex !== null && wordIndex <= overlapEndWordIndex
+					class="wbw-word {overlapEndWordIndex !== null && wordIndex <= overlapEndWordIndex
 						? 'overlap-wbw-word'
-						: ''}
+						: ''}"
 				>
 					{word}
 				</span>
@@ -288,6 +290,10 @@
 		text-decoration-color: var(--translation-overlap-decoration);
 		text-decoration-thickness: 1px;
 		text-underline-offset: 0.2rem;
+	}
+
+	.wbw-word {
+		margin-inline-end: calc(0.25rem * var(--translation-text-spacing-scale));
 	}
 
 	.arabic-inline-selected {

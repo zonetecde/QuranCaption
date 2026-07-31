@@ -4,6 +4,7 @@
 	import ExportService from '$lib/services/ExportService';
 	import ExportMonitor from './ExportMonitor.svelte';
 	import ModalManager from './modals/ModalManager';
+	import { VersionService } from '$lib/services/VersionService.svelte';
 	import Settings from './settings/Settings.svelte';
 	import { fade } from 'svelte/transition';
 
@@ -33,6 +34,19 @@
 	>
 		<span class="material-icons">home</span>
 	</button>
+
+	{#if VersionService.latestUpdate?.hasUpdate}
+		<button
+			type="button"
+			class="app-bar-button relative"
+			onclick={() => void ModalManager.newUpdateModal(VersionService.latestUpdate!)}
+			disabled={globalState.uiState.isTourActive}
+			aria-label={$LL.home.updateAvailableTitle()}
+		>
+			<span class="material-icons">system_update</span>
+			<span class="absolute top-2 right-2 h-2 w-2 rounded-full bg-blue-400 animate-pulse"></span>
+		</button>
+	{/if}
 
 	<div class="app-bar-title min-w-0 text-center">
 		<p class="truncate text-sm font-semibold text-primary">

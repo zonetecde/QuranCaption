@@ -10,6 +10,7 @@ export interface UpdateInfo {
 type GitHubRelease = {
 	tag_name?: string;
 	draft?: boolean;
+	prerelease?: boolean;
 	body?: string;
 	html_url?: string;
 };
@@ -101,7 +102,12 @@ class VersionService {
 
 			const releases = payload
 				.filter(isGitHubRelease)
-				.filter((release) => !release.draft && /^QCM-\d+\.\d+\.\d+$/i.test(release.tag_name ?? ''));
+				.filter(
+					(release) =>
+						!release.draft &&
+						!release.prerelease &&
+						/^QCM-\d+\.\d+\.\d+$/i.test(release.tag_name ?? '')
+				);
 			if (releases.length === 0) return noUpdate;
 
 			const newer = releases

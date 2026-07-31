@@ -13,7 +13,7 @@ describe('VersionService Android updates', () => {
 		getVersionMock.mockResolvedValue('1.0.0');
 	});
 
-	it('detects the highest QCM release, including GitHub prereleases', async () => {
+	it('ignores GitHub prereleases', async () => {
 		vi.stubGlobal(
 			'fetch',
 			vi.fn().mockResolvedValue(
@@ -32,10 +32,10 @@ describe('VersionService Android updates', () => {
 		);
 
 		await expect(VersionService.checkForUpdates()).resolves.toEqual({
-			hasUpdate: true,
-			changelog: '## QCM-1.0.1\n\nAndroid changes',
-			latestVersion: '1.0.1',
-			releaseUrl: 'https://github.com/zonetecde/QuranCaption/releases/tag/QCM-1.0.1'
+			hasUpdate: false,
+			changelog: '',
+			latestVersion: '0.0.0',
+			releaseUrl: ''
 		});
 	});
 

@@ -40,6 +40,7 @@
 	} = $props();
 
 	let trackLeftPartWidthPx = $derived(globalState.isAndroidPortrait ? 88 : 180);
+	let trackHeight = $state(56);
 
 	let visibleClips = $derived(() => track.getClipsInRange(visibleRangeStartMs, visibleRangeEndMs));
 
@@ -225,12 +226,17 @@
 <div
 	class={`flex-1 ${fitAvailableHeight ? 'min-h-0' : 'min-h-[56px]'} border-b border-[var(--timeline-track-border)] relative select-none`}
 	style="background: linear-gradient(90deg, var(--timeline-bg-accent) 0%, transparent 200px);"
+	bind:clientHeight={trackHeight}
 >
 	<div
 		class="left-0 top-0 bottom-0 h-full border-r border-[var(--timeline-track-border)] flex items-center px-3 gap-2 z-20 track-left-part sticky"
 		style="width: {trackLeftPartWidthPx}px; background: linear-gradient(135deg, var(--timeline-bg-accent) 0%, var(--timeline-bg-secondary) 100%);"
 	>
-		<span class="material-icons text-base opacity-80">{track.getIcon()}</span>
+		<span
+			class="material-icons leading-none opacity-80"
+			style={`font-size: ${Math.min(24, Math.max(10, trackHeight * 0.45))}px;`}
+			>{track.getIcon()}</span
+		>
 		<span
 			class="text-[var(--text-secondary)] text-xs font-medium truncate"
 			class:hidden={globalState.isAndroidPortrait}

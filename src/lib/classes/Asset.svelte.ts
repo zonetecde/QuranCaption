@@ -93,8 +93,22 @@ export class Asset extends SerializableBase {
 	 */
 	async addToTimeline(asVideo: boolean, asAudio: boolean, skipDimensionPrompt = false) {
 		let wasAddedToVideo = false;
+		let wasAddedToAudio = false;
 		if (asVideo) wasAddedToVideo = globalState.getVideoTrack.addAsset(this);
-		if (asAudio) globalState.getAudioTrack.addAsset(this);
+		if (asAudio) wasAddedToAudio = globalState.getAudioTrack.addAsset(this);
+
+		if (wasAddedToVideo || wasAddedToAudio) {
+			const addedClipEnds = [
+				wasAddedToVideo ? globalState.getVideoTrack.clips.at(-1)?.endTime : undefined,
+				wasAddedToAudio ? globalState.getAudioTrack.clips.at(-1)?.endTime : undefined
+			].filter((endTime): endTime is number => endTime !== undefined);
+			const addedClipEnd = Math.max(...addedClipEnds);
+			setTimeout(() => {
+				globalState.getTimelineState.cursorPosition = addedClipEnd;
+				globalState.getTimelineState.movePreviewTo = addedClipEnd;
+				globalState.getVideoPreviewState.scrollTimelineToCursor();
+			}, 0);
+		}
 
 		if (asVideo && wasAddedToVideo && this.type === AssetType.Video) {
 			// Demande à l'utilisateur s'il veut que le format de les dimensions de la vidéo soient appliquées au projet

@@ -13,6 +13,8 @@
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import AndroidMediaService from '$lib/services/AndroidMediaService';
+	import ContextMenu, { Item } from 'svelte-contextmenu';
+	import { showContextMenuInViewport } from '$lib/services/ContextMenuService';
 
 	type CbrConversionProgressEvent = {
 		conversionRequestId: string;
@@ -35,6 +37,7 @@
 	let mediaKey = $state(0);
 	let isPreviewOpen = $state(false);
 	let isActionsOpen = $state(false);
+	let timelineContextMenu: ContextMenu | undefined = $state(undefined);
 
 	function assetTypeLabel(type: string): string {
 		const ll = get(LL);
@@ -248,12 +251,12 @@
 			type="button"
 			aria-label={get(LL).editor.addToTimelineLabel()}
 			disabled={!asset.exists}
-			onclick={() =>
+			onclick={(event) =>
 				asset.type === AssetType.Video
-					? addInTheTimelineButtonClick(true, true)
+					? void showContextMenuInViewport(timelineContextMenu, event)
 					: asset.type === AssetType.Audio
 						? addInTheTimelineButtonClick(false, true)
-						: addInTheTimelineButtonClick(true, false)}
+						: void showContextMenuInViewport(timelineContextMenu, event)}
 		>
 			<span class="material-icons text-lg!">add_to_queue</span>
 		</button>
@@ -421,63 +424,39 @@
 					</p>
 				</div>
 			{/if}
-
-			<!-- Timeline Actions -->
-			{#if asset.exists}
-				<div data-tour-id="asset-timeline-actions" class="space-y-2 pt-2 border-t border-color">
-					<h4 class="text-xs font-medium text-thirdly uppercase tracking-wide">
-						{get(LL).editor.addToTimelineLabel()}
-					</h4>
-					{#if asset.type === AssetType.Video}
-						<div class="space-y-2">
-							<button
-								class="btn-accent w-full flex items-center justify-center gap-2 text-sm font-medium
-								       py-3 px-4 rounded-lg hover:scale-[1.02] transition-all duration-200"
-								onclick={() => addInTheTimelineButtonClick(true, true)}
-							>
-								<span class="material-icons text-lg">video_library</span>
-								{get(LL).editor.videoAndAudio()}
-							</button>
-							<div class="grid grid-cols-2 gap-2">
-								<button
-									class="btn-accent flex items-center justify-center gap-2 text-xs font-medium
-									       py-2 px-3 rounded-lg hover:scale-[1.02] transition-all duration-200"
-									onclick={() => addInTheTimelineButtonClick(true, false)}
-								>
-									<span class="material-icons text-sm">videocam</span>
-									{get(LL).editor.videoOnly()}
-								</button>
-								<button
-									class="btn-accent flex items-center justify-center gap-2 text-xs font-medium
-									       py-2 px-3 rounded-lg hover:scale-[1.02] transition-all duration-200"
-									onclick={() => addInTheTimelineButtonClick(false, true)}
-								>
-									<span class="material-icons text-sm">music_note</span>
-									{get(LL).editor.audioOnly()}
-								</button>
-							</div>
-						</div>
-					{:else if asset.type === AssetType.Audio}
-						<button
-							class="btn-accent w-full flex items-center justify-center gap-2 text-sm font-medium
-							       py-3 px-4 rounded-lg hover:scale-[1.02] transition-all duration-200"
-							onclick={() => addInTheTimelineButtonClick(false, true)}
-						>
-							<span class="material-icons text-lg">music_note</span>
-							{get(LL).editor.addToTimelineLabel()}
-						</button>
-					{:else if asset.type === AssetType.Image}
-						<button
-							class="btn-accent w-full flex items-center justify-center gap-2 text-sm font-medium
-							       py-3 px-4 rounded-lg hover:scale-[1.02] transition-all duration-200"
-							onclick={() => addInTheTimelineButtonClick(true, false)}
-						>
-							<span class="material-icons text-lg">image</span>
-							{get(LL).editor.setAsBackground()}
-						</button>
-					{/if}
-				</div>
-			{/if}
 		</div>
 	{/if}
 </div>
+
+<ContextMenu bind:this={timelineContextMenu}>
+	<li class="pointer-events-none px-2 py-1 text-xs font-medium text-thirdly" role="presentation">
+		{get(LL).editor.addToTimelineLabel()}
+	</li>
+	{#if asset.type === AssetType.Video}
+		<Item on:click={() => addInTheTimelineButtonClick(true, true)}>
+			<div class="btn-icon">
+				<span class="material-icons-outlined mr-1 text-sm">video_library</span>
+				{get(LL).editor.videoAndAudio()}
+			</div>
+		</Item>
+		<Item on:click={() => addInTheTimelineButtonClick(true, false)}>
+			<div class="btn-icon">
+				<span class="material-icons-outlined mr-1 text-sm">videocam</span>
+				{get(LL).editor.videoOnly()}
+			</div>
+		</Item>
+		<Item on:click={() => addInTheTimelineButtonClick(false, true)}>
+			<div class="btn-icon">
+				<span class="material-icons-outlined mr-1 text-sm">music_note</span>
+				{get(LL).editor.audioOnly()}
+			</div>
+		</Item>
+	{:else if asset.type === AssetType.Image}
+		<Item on:click={() => addInTheTimelineButtonClick(true, false)}>
+			<div class="btn-icon">
+				<span class="material-icons-outlined mr-1 text-sm">image</span>
+				{get(LL).editor.setAsBackground()}
+			</div>
+		</Item>
+	{/if}
+</ContextMenu>

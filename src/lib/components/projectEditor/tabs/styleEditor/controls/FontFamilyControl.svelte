@@ -34,6 +34,7 @@
 	const BUILTIN_FONT_VALUES = new Set(BUILTIN_FONTS.map((font) => font.value));
 
 	let availableFontsPromise: Promise<string[]> | null = null;
+	let fontPreviewLoadQueue: Promise<void> = Promise.resolve();
 	let { value, onChange }: { value: StyleControlValue; onChange: (value: string) => void } =
 		$props();
 
@@ -65,6 +66,31 @@
 	}
 
 	/**
+	 * Charge l’aperçu d’une police système uniquement lorsque sa ligne devient visible.
+	 * @param {HTMLElement} node Élément affichant l’aperçu.
+	 * @param {FontOption} font Police associée à la ligne.
+	 * @returns {{ destroy: () => void }} Nettoyage de l’observateur de visibilité.
+	 */
+	function loadVisibleSystemFont(node: HTMLElement, font: FontOption): { destroy: () => void } {
+		if (font.preview !== 'latin') return { destroy: () => {} };
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (!entries[0]?.isIntersecting) return;
+				// Les gros fichiers Android sont chargés séquentiellement pour limiter le pic mémoire.
+				fontPreviewLoadQueue = fontPreviewLoadQueue.then(() =>
+					QPCFontProvider.loadSystemFonts([font.value])
+				);
+				observer.disconnect();
+			},
+			{ rootMargin: '80px 0px' }
+		);
+		observer.observe(node);
+
+		return { destroy: () => observer.disconnect() };
+	}
+
+	/**
 	 * Lit une microcopie du sélecteur avant la génération i18n du hook pre-commit.
 	 * @param {FontControlCopyKey} key Clé de traduction à lire.
 	 * @returns {string} Texte localisé.
@@ -72,6 +98,10 @@
 	function getFontControlCopy(key: FontControlCopyKey): string {
 		return (get(LL).editor as unknown as Record<FontControlCopyKey, () => string>)[key]();
 	}
+
+	$effect(() => {
+		void QPCFontProvider.loadSystemFonts([String(value)]);
+	});
 
 	/**
 	 * Construit et filtre les options de police affichées dans le panneau.
@@ -285,6 +315,7 @@
 										</span>
 									{:else}
 										<span
+											use:loadVisibleSystemFont={font}
 											class="w-full truncate text-base leading-7 text-secondary group-hover:text-primary"
 											dir={font.preview === 'latin' ? 'ltr' : 'rtl'}
 											style:font-family={getPreviewFontFamily(font)}

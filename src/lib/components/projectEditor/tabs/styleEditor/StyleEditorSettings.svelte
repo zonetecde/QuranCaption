@@ -44,6 +44,7 @@
 	let downwardScrollDistance = 0;
 	let suppressHeaderDirection = false;
 	let headerTransitionTimeout: ReturnType<typeof setTimeout> | undefined;
+	let stylesSchemaReady = $state(false);
 
 	const currentStyleTarget = $derived(() => globalState.getStylesState.getCurrentSelection());
 	const styleSearchQuery = $derived(() =>
@@ -53,7 +54,7 @@
 		globalState.getSubtitleTrack.hasWordByWordTimestamps()
 	);
 
-	const stylePanels = $derived(() => getStylePanels());
+	const stylePanels = $derived(() => (stylesSchemaReady ? getStylePanels() : []));
 	const visiblePanels = $derived(() => {
 		if (styleSearchQuery() === '') {
 			const currentPanel = stylePanels().find(
@@ -82,6 +83,8 @@
 
 			await globalState.getVideoStyle.addStylesForEdition(translation.name);
 		}
+
+		stylesSchemaReady = true;
 	});
 
 	onDestroy(() => clearTimeout(headerTransitionTimeout));

@@ -1,8 +1,8 @@
-#[cfg(desktop)]
+#[cfg(any(desktop, target_os = "android"))]
 use std::collections::HashSet;
 use std::fs;
 use std::io::{BufRead, BufReader};
-#[cfg(desktop)]
+#[cfg(any(desktop, target_os = "android"))]
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -159,11 +159,135 @@ pub fn get_system_fonts() -> Result<Vec<String>, String> {
     Ok(font_names)
 }
 
-/// Retourne une liste vide tant que l'enumeration des polices mobile est desactivee.
+/// Retourne les familles de polices installées dans les dossiers système Android.
 #[tauri::command]
-#[cfg(mobile)]
+#[cfg(target_os = "android")]
+pub fn get_system_fonts() -> Result<Vec<String>, String> {
+    let mut families = HashSet::new();
+    for directory in [
+        "/system/fonts",
+        "/product/fonts",
+        "/system_ext/fonts",
+        "/vendor/fonts",
+        "/data/fonts",
+    ] {
+        collect_android_font_families(Path::new(directory), &mut families);
+    }
+
+    let mut families: Vec<String> = families.into_iter().collect();
+    families.sort();
+    Ok(families)
+}
+
+/// Retourne une liste vide sur les plateformes mobiles autres qu'Android.
+#[tauri::command]
+#[cfg(all(mobile, not(target_os = "android")))]
 pub fn get_system_fonts() -> Result<Vec<String>, String> {
     Ok(Vec::new())
+}
+
+/// Parcourt un dossier Android et collecte les familles déclarées par chaque fichier de police.
+///
+/// @param directory Dossier de polices à parcourir.
+/// @param families Ensemble des familles déjà trouvées.
+/// @returns Rien.
+#[cfg(target_os = "android")]
+fn collect_android_font_families(directory: &Path, families: &mut HashSet<String>) {
+    let Ok(entries) = fs::read_dir(directory) else {
+        return;
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_android_font_families(&path, families);
+        } else if is_android_font_path(&path) {
+            collect_font_file_families(&path, families);
+        }
+    }
+}
+
+/// Lit les métadonnées OpenType d'un fichier et ajoute ses noms de famille.
+///
+/// @param path Fichier de police Android.
+/// @param families Ensemble des familles déjà trouvées.
+/// @returns Rien.
+#[cfg(target_os = "android")]
+fn collect_font_file_families(path: &Path, families: &mut HashSet<String>) {
+    let Ok(data) = fs::read(path) else {
+        return;
+    };
+    let face_count = ttf_parser::fonts_in_collection(&data).unwrap_or(1);
+
+    for face_index in 0..face_count {
+        let Ok(face) = ttf_parser::Face::parse(&data, face_index) else {
+            continue;
+        };
+        families.extend(font_face_family_names(&face));
+    }
+}
+
+/// Retourne les noms de famille CSS déclarés par une face OpenType.
+///
+/// @param face Face de police analysée.
+/// @returns Noms typographiques, ou anciens noms de famille en repli.
+#[cfg(target_os = "android")]
+fn font_face_family_names(face: &ttf_parser::Face<'_>) -> Vec<String> {
+    let mut legacy_families = Vec::new();
+    let mut typographic_families = Vec::new();
+
+    for name in face.names() {
+        let Some(value) = name.to_string() else {
+            continue;
+        };
+        let value = value.trim();
+        if value.is_empty() {
+            continue;
+        }
+
+        if name.name_id == ttf_parser::name_id::TYPOGRAPHIC_FAMILY {
+            typographic_families.push(value.to_string());
+        } else if name.name_id == ttf_parser::name_id::FAMILY {
+            legacy_families.push(value.to_string());
+        }
+    }
+
+    if typographic_families.is_empty() {
+        legacy_families
+    } else {
+        typographic_families
+    }
+}
+
+/// Retourne la première valeur Unicode d'un champ de nom OpenType.
+///
+/// @param face Face de police analysée.
+/// @param name_id Identifiant OpenType du champ demandé.
+/// @returns Nom décodé lorsqu'il existe.
+#[cfg(target_os = "android")]
+fn font_face_name(face: &ttf_parser::Face<'_>, name_id: u16) -> Option<String> {
+    face.names()
+        .into_iter()
+        .find(|name| name.name_id == name_id)
+        .and_then(|name| name.to_string())
+        .map(|name| name.trim().to_string())
+        .filter(|name| !name.is_empty())
+}
+
+/// Indique si un chemin Android correspond à un format de police OpenType pris en charge.
+///
+/// @param path Chemin à vérifier.
+/// @returns `true` pour une police TTF, TTC, OTF ou OTC.
+#[cfg(target_os = "android")]
+fn is_android_font_path(path: &Path) -> bool {
+    path.extension()
+        .map(|extension| {
+            matches!(
+                extension.to_string_lossy().to_ascii_lowercase().as_str(),
+                "ttf" | "ttc" | "otf" | "otc"
+            )
+        })
+        .unwrap_or(false)
 }
 
 /// Resolves selected system font families to concrete font files.
@@ -216,13 +340,140 @@ pub fn get_system_font_sources(
     Ok(sources)
 }
 
-/// Retourne une liste vide tant que les sources de polices mobile sont desactivees.
+/// Résout les familles Android demandées vers leurs fichiers de police système.
 #[tauri::command]
-#[cfg(mobile)]
+#[cfg(target_os = "android")]
+pub fn get_system_font_sources(
+    font_families: Vec<String>,
+) -> Result<Vec<SystemFontSource>, String> {
+    let requested: HashSet<String> = font_families
+        .into_iter()
+        .map(|family| family.trim().to_string())
+        .filter(|family| !family.is_empty())
+        .collect();
+    let mut sources = Vec::new();
+    let mut seen_sources = HashSet::new();
+
+    for directory in [
+        "/system/fonts",
+        "/product/fonts",
+        "/system_ext/fonts",
+        "/vendor/fonts",
+        "/data/fonts",
+    ] {
+        collect_android_font_sources(
+            Path::new(directory),
+            &requested,
+            &mut seen_sources,
+            &mut sources,
+        );
+    }
+
+    sources.sort_by(|a, b| {
+        a.family
+            .cmp(&b.family)
+            .then(a.font_weight.cmp(&b.font_weight))
+            .then(a.font_style.cmp(&b.font_style))
+            .then(a.path.cmp(&b.path))
+    });
+    Ok(sources)
+}
+
+/// Retourne une liste vide sur les plateformes mobiles autres qu'Android.
+#[tauri::command]
+#[cfg(all(mobile, not(target_os = "android")))]
 pub fn get_system_font_sources(
     _font_families: Vec<String>,
 ) -> Result<Vec<SystemFontSource>, String> {
     Ok(Vec::new())
+}
+
+/// Parcourt les dossiers Android pour retrouver les fichiers des familles demandées.
+///
+/// @param directory Dossier de polices à parcourir.
+/// @param requested Familles demandées par le navigateur.
+/// @param seen_sources Identifiants des faces déjà ajoutées.
+/// @param sources Sources résolues.
+/// @returns Rien.
+#[cfg(target_os = "android")]
+fn collect_android_font_sources(
+    directory: &Path,
+    requested: &HashSet<String>,
+    seen_sources: &mut HashSet<String>,
+    sources: &mut Vec<SystemFontSource>,
+) {
+    let Ok(entries) = fs::read_dir(directory) else {
+        return;
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_android_font_sources(&path, requested, seen_sources, sources);
+        } else if is_android_font_path(&path) {
+            collect_android_font_file_sources(&path, requested, seen_sources, sources);
+        }
+    }
+}
+
+/// Extrait les faces demandées d'un fichier de police Android.
+///
+/// @param path Fichier de police à analyser.
+/// @param requested Familles demandées par le navigateur.
+/// @param seen_sources Identifiants des faces déjà ajoutées.
+/// @param sources Sources résolues.
+/// @returns Rien.
+#[cfg(target_os = "android")]
+fn collect_android_font_file_sources(
+    path: &Path,
+    requested: &HashSet<String>,
+    seen_sources: &mut HashSet<String>,
+    sources: &mut Vec<SystemFontSource>,
+) {
+    let Ok(data) = fs::read(path) else {
+        return;
+    };
+    let face_count = ttf_parser::fonts_in_collection(&data).unwrap_or(1);
+
+    for face_index in 0..face_count {
+        let Ok(face) = ttf_parser::Face::parse(&data, face_index) else {
+            continue;
+        };
+        let Some(family) = font_face_family_names(&face)
+            .into_iter()
+            .find(|family| requested.contains(family))
+        else {
+            continue;
+        };
+        let key = format!("{}:{}:{}", family, path.display(), face_index);
+        if !seen_sources.insert(key) {
+            continue;
+        }
+
+        let full_name =
+            font_face_name(&face, ttf_parser::name_id::FULL_NAME).unwrap_or_else(|| family.clone());
+        let postscript_name = font_face_name(&face, ttf_parser::name_id::POST_SCRIPT_NAME);
+        let font_style = if face.is_italic() {
+            "italic"
+        } else if face.is_oblique() {
+            "oblique"
+        } else {
+            "normal"
+        };
+
+        sources.push(SystemFontSource {
+            family: family.clone(),
+            source_family: family,
+            full_name,
+            postscript_name,
+            path: path.to_string_lossy().to_string(),
+            font_index: face_index,
+            format: font_format_for_path(path),
+            font_weight: face.weight().to_number(),
+            font_weight_range: None,
+            font_style: font_style.to_string(),
+        });
+    }
 }
 
 #[cfg(desktop)]
@@ -410,7 +661,7 @@ fn is_supported_font_path(path: &Path) -> bool {
     )
 }
 
-#[cfg(desktop)]
+#[cfg(any(desktop, target_os = "android"))]
 fn font_format_for_path(path: &Path) -> Option<String> {
     let extension = path.extension()?.to_string_lossy().to_ascii_lowercase();
     match extension.as_str() {

@@ -281,6 +281,15 @@ export class QPCFontProvider {
 	}
 
 	/**
+	 * Charge les fichiers correspondant aux familles système demandées.
+	 * @param {string[]} fontFamilies Familles système à enregistrer dans le navigateur.
+	 * @returns {Promise<void>} Promesse résolue après l'ajout des règles `@font-face`.
+	 */
+	static loadSystemFonts(fontFamilies: string[]): Promise<void> {
+		return this.registerSystemFontFacesIfNeeded(fontFamilies);
+	}
+
+	/**
 	 * Remplace temporairement les polices système par des sous-ensembles adaptés à la capture.
 	 * @param {Element | null | undefined} element Élément dont le texte sera capturé.
 	 * @returns {Promise<() => void>} Fonction restaurant les règles de police originales.

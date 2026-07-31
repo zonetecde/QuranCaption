@@ -48,3 +48,4 @@ tauri-plugin-android-media = { path = "plugins/android-media" }
 [target.'cfg(target_os = "android")'.dependencies]
 jni = "0.21"
 ndk-context = "0.1"
+ttf-parser = "0.25.1"

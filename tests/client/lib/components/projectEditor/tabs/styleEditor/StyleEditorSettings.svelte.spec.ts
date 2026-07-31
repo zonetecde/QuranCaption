@@ -73,4 +73,40 @@ describe('style editor visual merge actions', () => {
 
 		expect(component.container.textContent).not.toContain('Visual merge');
 	});
+
+	test('shows style panels after the style schema is hydrated', async () => {
+		let finishHydration: (() => void) | undefined;
+		const hydration = new Promise<void>((resolve) => {
+			finishHydration = resolve;
+		});
+		const videoStyle = createMockVideoStyle();
+		videoStyle.ensureStylesSchemaUpToDate.mockImplementation(async () => {
+			await hydration;
+			videoStyle.getStylesOfTarget().categories = [
+				{
+					id: 'typography',
+					styles: [],
+					ui: {
+						panel: { id: 'text', icon: 'text_fields', label: 'text', order: 0 }
+					}
+				}
+			];
+		});
+
+		const projectEditorState = new ProjectEditorState();
+		globalState.currentProject = {
+			projectEditorState,
+			content: {
+				timeline: new Timeline(),
+				projectTranslation: { addedTranslationEditions: [] },
+				videoStyle
+			}
+		} as never;
+
+		render(StyleEditorSettings);
+		expect(projectEditorState.stylesEditor.currentPanel).toBe('');
+
+		finishHydration?.();
+		await vi.waitFor(() => expect(projectEditorState.stylesEditor.currentPanel).toBe('text'));
+	});
 });

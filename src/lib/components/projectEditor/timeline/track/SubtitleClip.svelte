@@ -13,6 +13,7 @@
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import type { SubtitleTrack } from '$lib/classes/Track.svelte';
 	import { onDestroy, tick } from 'svelte';
+	import { get } from 'svelte/store';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import toast from 'svelte-5-french-toast';
 	import {
@@ -40,6 +41,42 @@
 	} = $props();
 
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
+
+	/**
+	 * Affiche le menu contextuel en le maintenant dans le viewport mobile.
+	 * @param event Événement ayant déclenché l'ouverture du menu.
+	 * @returns Une promesse résolue après le repositionnement du menu.
+	 */
+	async function showContextMenu(event: MouseEvent): Promise<void> {
+		contextMenu?.show(event);
+		await tick();
+
+		const menu = get(currentMenu) as HTMLElement | null;
+		if (!menu) return;
+
+		const margin = 8;
+		const viewport = window.visualViewport;
+		const viewportLeft = viewport?.offsetLeft ?? 0;
+		const viewportTop = viewport?.offsetTop ?? 0;
+		const viewportWidth = viewport?.width ?? window.innerWidth;
+		const viewportHeight = viewport?.height ?? window.innerHeight;
+
+		menu.style.maxWidth = `${viewportWidth - margin * 2}px`;
+		menu.style.maxHeight = `${viewportHeight - margin * 2}px`;
+		menu.style.overflow = 'auto';
+
+		const rect = menu.getBoundingClientRect();
+		let left = Number.parseFloat(menu.style.left);
+		let top = Number.parseFloat(menu.style.top);
+
+		left += Math.max(viewportLeft + margin - rect.left, 0);
+		left -= Math.max(rect.right - (viewportLeft + viewportWidth - margin), 0);
+		top += Math.max(viewportTop + margin - rect.top, 0);
+		top -= Math.max(rect.bottom - (viewportTop + viewportHeight - margin), 0);
+
+		menu.style.left = `${left}px`;
+		menu.style.top = `${top}px`;
+	}
 
 	// Vrai si ce sous-titre Quran n'a pas encore de timestamps mot à mot.
 	let isMissingWbwTimestamps = $derived(
@@ -561,7 +598,7 @@
 	style="width: {clip.getWidth()}px; left: {positionLeft()}px;"
 	oncontextmenu={(e) => {
 		e.preventDefault();
-		contextMenu!.show(e);
+		void showContextMenu(e);
 	}}
 	onclick={handleClipClick}
 >

@@ -81,7 +81,7 @@
 
 			const result = await invoke<string>('download_from_youtube', {
 				url: url.trim(),
-				type: type,
+				downloadType: type,
 				downloadPath: downloadPath,
 				downloadRequestId: activeDownloadRequestId
 			});

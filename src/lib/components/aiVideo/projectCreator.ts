@@ -132,7 +132,7 @@ export async function createAiVideoProject(): Promise<void> {
 			setStatus(get(LL).aiVideo.downloadingBgVideo());
 			const backgroundVideoPath = await invoke<string>('download_from_youtube', {
 				url: backgroundVideoUrl,
-				type: 'video_no_audio',
+				downloadType: 'video_no_audio',
 				downloadPath: assetFolder
 			});
 

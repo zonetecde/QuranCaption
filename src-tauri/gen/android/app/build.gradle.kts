@@ -22,7 +22,7 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
-    compileSdk = 35
+    compileSdk = 36
     namespace = "com.qurancaption"
     sourceSets.getByName("main") {
         jniLibs.srcDir("../../../android-binaries")
@@ -31,7 +31,7 @@ android {
         manifestPlaceholders["usesCleartextTraffic"] = "false"
         applicationId = "com.qurancaption"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 36
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
@@ -66,6 +66,8 @@ android {
             }
             isMinifyEnabled = true
             packaging {
+                // Keep native libraries compressed/extracted. Quran Caption executes native media
+                // binaries at runtime, and this keeps their filesystem behavior unchanged.
                 jniLibs.useLegacyPackaging = true
                 jniLibs.keepDebugSymbols.add("*/libffmpeg_exec.so")
                 jniLibs.keepDebugSymbols.add("*/libffprobe_exec.so")

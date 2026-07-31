@@ -4,6 +4,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
+	import { showContextMenuInViewport } from '$lib/services/ContextMenuService';
 	import { onDestroy } from 'svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import {
@@ -163,8 +164,7 @@
 		: 'cursor-move'}"
 	style="width: {clip.getWidth()}px; left: {positionLeft()}px;"
 	oncontextmenu={(e) => {
-		e.preventDefault();
-		contextMenu!.show(e);
+		void showContextMenuInViewport(contextMenu, e);
 	}}
 	onmousedown={startClipDragging}
 >

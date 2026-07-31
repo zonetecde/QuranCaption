@@ -16,6 +16,7 @@
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
+	import { showContextMenuInViewport } from '$lib/services/ContextMenuService';
 	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
@@ -467,9 +468,8 @@
 			return;
 		}
 
-		event.preventDefault();
 		contextMenuWordIndex = wordIndex;
-		wordContextMenu?.show(event);
+		void showContextMenuInViewport(wordContextMenu, event);
 	}
 
 	/**

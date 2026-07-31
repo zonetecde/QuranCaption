@@ -14,6 +14,7 @@
 	import { SubtitleTrack } from '$lib/classes/Track.svelte';
 	import { getTimelineCustomClips, type TimelineCustomClipLike } from './timelineCustomClip';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
+	import { showContextMenuInViewport } from '$lib/services/ContextMenuService';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { AssetTrack } from '$lib/classes/Track.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
@@ -177,7 +178,7 @@
 		event.stopPropagation();
 		if (button.action === 'split') return;
 		quickMergeContextTarget = button;
-		quickMergeContextMenu?.show(event);
+		void showContextMenuInViewport(quickMergeContextMenu, event);
 	}
 
 	/**

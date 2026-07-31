@@ -6,6 +6,7 @@
 	import { getStatusLabel } from '$lib/i18n/statusMapper';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
+	import { showContextMenuInViewport } from '$lib/services/ContextMenuService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import EditableText from '../misc/EditableText.svelte';
 	import ModalManager from '../modals/ModalManager';
@@ -248,11 +249,8 @@
 					inputType="reciters"
 				/>
 			</div>
-			{#if isListView}
-				<ProjectTypeSelector {projectDetail} onBeforeOpen={() => (showStatusMenu = false)} />
-			{/if}
 
-			<p class="text-xs text-[var(--text-secondary)] mb-1">
+			<p class="text-xs text-[var(--text-secondary)] my-1">
 				{$LL.home.durationLabel()}
 				{projectDetail.duration.getFormattedTime(false)}
 			</p>
@@ -341,7 +339,7 @@
 			</button>
 			<button
 				class="btn btn-secondary btn-sm p-1.5 flex items-center"
-				onclick={contextMenu!.createHandler()}
+				onclick={(event) => void showContextMenuInViewport(contextMenu, event)}
 			>
 				<span class="material-icons-outlined text-sm">more_horiz</span>
 			</button>

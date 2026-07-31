@@ -191,15 +191,10 @@
 	 */
 	async function importFont(): Promise<void> {
 		if (isImporting) return;
+		// Les filtres forcent ACTION_PICK sur Android ; le format est validé après la copie.
 		const sourcePath = await open({
 			multiple: false,
-			directory: false,
-			filters: [
-				{
-					name: getFontControlCopy('fontFiles'),
-					extensions: ['ttf', 'otf', 'woff', 'woff2']
-				}
-			]
+			directory: false
 		});
 		if (!sourcePath || Array.isArray(sourcePath)) return;
 

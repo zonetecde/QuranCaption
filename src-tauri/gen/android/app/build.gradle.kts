@@ -65,6 +65,9 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
             isMinifyEnabled = true
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
+            }
             packaging {
                 // Keep native libraries compressed/extracted. Quran Caption executes native media
                 // binaries at runtime, and this keeps their filesystem behavior unchanged.

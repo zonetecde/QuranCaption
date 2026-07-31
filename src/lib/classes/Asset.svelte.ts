@@ -92,12 +92,14 @@ export class Asset extends SerializableBase {
 	 * @returns {Promise<void>}
 	 */
 	async addToTimeline(asVideo: boolean, asAudio: boolean, skipDimensionPrompt = false) {
+		const videoTrackWasEmpty = asVideo && globalState.getVideoTrack.clips.length === 0;
+		const audioTrackWasEmpty = asAudio && globalState.getAudioTrack.clips.length === 0;
 		let wasAddedToVideo = false;
 		let wasAddedToAudio = false;
 		if (asVideo) wasAddedToVideo = globalState.getVideoTrack.addAsset(this);
 		if (asAudio) wasAddedToAudio = globalState.getAudioTrack.addAsset(this);
 
-		if (wasAddedToVideo || wasAddedToAudio) {
+		if ((wasAddedToVideo && !videoTrackWasEmpty) || (wasAddedToAudio && !audioTrackWasEmpty)) {
 			const addedClipEnds = [
 				wasAddedToVideo ? globalState.getVideoTrack.clips.at(-1)?.endTime : undefined,
 				wasAddedToAudio ? globalState.getAudioTrack.clips.at(-1)?.endTime : undefined

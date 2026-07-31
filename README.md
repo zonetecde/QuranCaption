@@ -44,6 +44,13 @@ No video editing experience required.
 
 ---
 
+## Other Versions
+
+- 📱 **Mobile version:** available on the [`mobile-qc`](https://github.com/zonetecde/QuranCaption/tree/mobile-qc) branch.
+- 🗂️ **Quran Caption v2:** available on the [`QuranCaption-2`](https://github.com/zonetecde/QuranCaption/tree/QuranCaption-2) branch.
+
+---
+
 ## Features
 
 ### 🤖 AI Subtitle Generation

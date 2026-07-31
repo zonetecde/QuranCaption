@@ -54,6 +54,21 @@
 		globalState.getTimelineState.movePreviewTo = newPosition;
 		globalState.getVideoPreviewState.scrollTimelineToCursor();
 	}
+
+	/**
+	 * Ajoute rapidement un silence ou une basmala à la position courante.
+	 *
+	 * @param {'Silence' | 'Basmala'} preset Preset à ajouter.
+	 * @returns {void}
+	 */
+	function addQuickPreset(preset: 'Silence' | 'Basmala'): void {
+		const subtitleTrack = globalState.getSubtitleTrack;
+		const success =
+			preset === 'Silence'
+				? subtitleTrack.addSilence()
+				: subtitleTrack.addPredefinedSubtitle('Basmala');
+		if (success) globalState.currentProject!.detail.updateVideoDetailAttributes();
+	}
 </script>
 
 {#if showControlHelp}
@@ -198,6 +213,24 @@
 					>
 						<span class="material-icons">keyboard_arrow_down</span>
 					</button>
+					<button
+						class="playback-control-button playback-control-button-quick-basmala text-xs!"
+						type="button"
+						aria-label={$LL.settings.shortcutAction.ADD_BASMALA()}
+						data-help={$LL.settings.shortcutActionDesc.ADD_BASMALA()}
+						onclick={() => addQuickPreset('Basmala')}
+					>
+						﷽
+					</button>
+					<button
+						class="playback-control-button playback-control-button-quick-silence"
+						type="button"
+						aria-label={$LL.settings.shortcutAction.ADD_SILENCE()}
+						data-help={$LL.settings.shortcutActionDesc.ADD_SILENCE()}
+						onclick={() => addQuickPreset('Silence')}
+					>
+						<span class="material-icons text-[14px]!">space_bar</span>
+					</button>
 				</div>
 
 				<div class="playback-control-side playback-control-side-right">
@@ -298,7 +331,7 @@
 	.control-help-active .playback-control-button::before {
 		--help-distance: 2.2rem;
 		position: absolute;
-		z-index: 2;
+		z-index: 1;
 		left: 50%;
 		width: 0.4rem;
 		height: var(--help-distance);
@@ -359,6 +392,16 @@
 		--help-distance: 7.2rem;
 	}
 
+	.control-help-active .playback-control-button-quick-basmala::before,
+	.control-help-active .playback-control-button-quick-basmala::after {
+		--help-distance: 11rem;
+	}
+
+	.control-help-active .playback-control-button-quick-silence::before,
+	.control-help-active .playback-control-button-quick-silence::after {
+		--help-distance: 11rem;
+	}
+
 	.control-help-active .playback-control-button-confirm::before,
 	.control-help-active .playback-control-button-confirm::after {
 		--help-distance: 11rem;
@@ -406,6 +449,8 @@
 	.control-help-active .playback-control-button-edit::before,
 	.control-help-active .playback-control-horizontal .playback-control-button::before,
 	.control-help-active .playback-control-button-down::before,
+	.control-help-active .playback-control-button-quick-basmala::before,
+	.control-help-active .playback-control-button-quick-silence::before,
 	.control-help-active .playback-control-button-set-start::before {
 		top: calc(100% + 0.2rem);
 		clip-path: polygon(50% 0, 100% 18%, 55% 18%, 55% 100%, 45% 100%, 45% 18%, 0 18%);
@@ -415,6 +460,8 @@
 	.control-help-active .playback-control-button-edit::after,
 	.control-help-active .playback-control-horizontal .playback-control-button::after,
 	.control-help-active .playback-control-button-down::after,
+	.control-help-active .playback-control-button-quick-basmala::after,
+	.control-help-active .playback-control-button-quick-silence::after,
 	.control-help-active .playback-control-button-set-start::after {
 		top: calc(100% + var(--help-distance));
 	}
@@ -527,20 +574,36 @@
 	}
 
 	.playback-control-button-verse-previous,
-	.playback-control-button-verse-next {
+	.playback-control-button-verse-next,
+	.playback-control-button-quick-basmala,
+	.playback-control-button-quick-silence {
 		position: absolute;
-		top: 0;
 		font-size: 1.25rem;
 		height: 1.45rem;
 		font-weight: 600;
+	}
+
+	.playback-control-button-verse-previous,
+	.playback-control-button-verse-next {
+		top: 0;
 	}
 
 	.playback-control-button-verse-previous {
 		left: 0;
 	}
 
-	.playback-control-button-verse-next {
+	.playback-control-button-verse-next,
+	.playback-control-button-quick-silence {
 		right: 0;
+	}
+
+	.playback-control-button-quick-basmala,
+	.playback-control-button-quick-silence {
+		bottom: 0;
+	}
+
+	.playback-control-button-quick-basmala {
+		left: 0;
 	}
 
 	.playback-control-button-up {

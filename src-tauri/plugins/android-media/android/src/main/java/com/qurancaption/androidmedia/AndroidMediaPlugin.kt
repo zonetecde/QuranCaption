@@ -3,11 +3,13 @@ package com.qurancaption.androidmedia
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
 import android.view.WindowManager
 import androidx.core.content.FileProvider
+import androidx.core.view.WindowInsetsControllerCompat
 import app.tauri.Logger
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
@@ -124,6 +126,12 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
     private val hostActivity = activity
     private var youtubeDlUpdateAttempted = false
     private val youtubeDownloadSessions = ConcurrentHashMap<String, YoutubeDownloadSession>()
+
+    init {
+        hostActivity.window.navigationBarColor = Color.BLACK
+        WindowInsetsControllerCompat(hostActivity.window, hostActivity.window.decorView)
+            .isAppearanceLightNavigationBars = false
+    }
 
     /**
      * Démarre FFmpegKit sur son exécuteur asynchrone et renvoie immédiatement l'identifiant.

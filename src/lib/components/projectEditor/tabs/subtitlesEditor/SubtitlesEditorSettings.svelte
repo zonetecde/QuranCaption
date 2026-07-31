@@ -199,7 +199,6 @@
 			<h3 class="text-sm font-medium text-secondary mb-3">{$LL.editor.aiAssistedSegmentation()}</h3>
 			<div class="bg-accent rounded-lg p-4 space-y-3">
 				<button
-					data-tour-id="auto-segment-button"
 					class="btn-accent w-full px-3 py-2 rounded-md text-xs flex items-center justify-center gap-2"
 					type="button"
 					title={$LL.editor.autoSegmentButton()}

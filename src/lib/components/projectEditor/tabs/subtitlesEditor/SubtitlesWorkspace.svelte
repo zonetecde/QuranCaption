@@ -117,6 +117,7 @@
 					<button
 						class="playback-control-button playback-control-button-validate playback-control-button-ai"
 						type="button"
+						data-tour-id="auto-segment-button"
 						aria-label={$LL.batch.aiSegmentation()}
 						data-help={controlHelpCopy.controlHelpAi()}
 						onclick={onOpenAutoSegmentation}

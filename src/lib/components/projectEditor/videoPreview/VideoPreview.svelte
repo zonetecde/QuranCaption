@@ -110,6 +110,12 @@
 		resizeVideoToFitScreen();
 	});
 
+	$effect(() => {
+		void invoke('set_android_landscape_allowed', {
+			allowed: globalState.getVideoPreviewState.isFullscreen
+		}).catch((error) => console.error('Android orientation error:', error));
+	});
+
 	// Effect qui recharge l'audio quand l'asset audio change
 	$effect(() => {
 		const audio = currentAudio();
@@ -269,6 +275,7 @@
 
 	onDestroy(() => {
 		pause(); // Met en pause la lecture pour éviter les fuites de mémoire
+		void invoke('set_android_landscape_allowed', { allowed: false });
 
 		// Supprime la div de fond fullscreen si elle existe
 		const backgroundDiv = document.getElementById('fullscreen-background');

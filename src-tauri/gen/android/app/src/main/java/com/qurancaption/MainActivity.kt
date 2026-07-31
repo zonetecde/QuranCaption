@@ -1,6 +1,7 @@
 package com.qurancaption
 
 import android.content.Context
+import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -60,6 +61,20 @@ class MainActivity : TauriActivity() {
     /** Transmet la libération audio JNI au lecteur Media3. */
     @Keep
     fun nativeAudioRelease() = NativeAudioPlayer.release()
+
+    /**
+     * Autorise la rotation complète uniquement pendant le plein écran vidéo.
+     *
+     * @param allowed Vrai pour suivre le capteur, faux pour verrouiller le portrait.
+     */
+    @Keep
+    fun nativeSetLandscapeAllowed(allowed: Boolean) = runOnUiThread {
+        requestedOrientation = if (allowed) {
+            ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+    }
 
     /**
      * Exécute une commande FFmpegKit transmise par Rust.

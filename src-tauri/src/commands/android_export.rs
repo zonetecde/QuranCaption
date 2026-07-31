@@ -156,6 +156,24 @@ pub async fn set_android_export_keep_screen_on(
     }
 }
 
+/// Autorise le paysage Android uniquement pour la prévisualisation plein écran.
+///
+/// @param allowed `true` pour suivre le capteur, `false` pour forcer le portrait.
+/// @returns Erreur native éventuelle.
+#[tauri::command]
+pub fn set_android_landscape_allowed(allowed: bool) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        return crate::commands::android_media::set_landscape_allowed(allowed);
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = allowed;
+        Ok(())
+    }
+}
+
 /// Démarre le service Android au premier plan et sa notification de progression.
 ///
 /// @param app_handle Handle de l'application.

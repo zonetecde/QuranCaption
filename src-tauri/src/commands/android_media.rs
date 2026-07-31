@@ -28,6 +28,28 @@ pub fn initialize_ffmpeg(app_handle: tauri::AppHandle) -> Result<(), String> {
         .map_err(|_| "Android FFmpeg handle is already initialized".to_string())
 }
 
+/// Autorise le paysage Android ou restaure le verrouillage en portrait.
+///
+/// @param allowed `true` pour suivre le capteur, `false` pour forcer le portrait.
+/// @returns Erreur JNI éventuelle.
+pub fn set_landscape_allowed(allowed: bool) -> Result<(), String> {
+    let context = ndk_context::android_context();
+    let vm = unsafe { JavaVM::from_raw(context.vm().cast()) }
+        .map_err(|e| format!("Unable to access Android JVM: {}", e))?;
+    let mut env = vm
+        .attach_current_thread()
+        .map_err(|e| format!("Unable to attach Android orientation thread: {}", e))?;
+    let activity = unsafe { JObject::from_raw(context.context().cast()) };
+    env.call_method(
+        &activity,
+        "nativeSetLandscapeAllowed",
+        "(Z)V",
+        &[JValue::Bool(if allowed { 1 } else { 0 })],
+    )
+    .map_err(|e| format!("Unable to update Android orientation: {}", e))?;
+    Ok(())
+}
+
 /// Exécute FFmpegKit dans Android avec une liste d'arguments préservée.
 ///
 /// @param arguments Arguments FFmpeg sans le nom du binaire.

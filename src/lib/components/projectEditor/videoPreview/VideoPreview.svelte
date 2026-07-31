@@ -9,6 +9,7 @@
 	import { get } from 'svelte/store';
 	import VideoPreviewControlsBar from './VideoPreviewControlsBar.svelte';
 	import VideoOverlay from './VideoOverlay.svelte';
+	import { playableLocalVideo } from '$lib/services/PlayableLocalVideo';
 
 	let {
 		showControls,
@@ -1210,9 +1211,15 @@
 					{@const transitionState = videoClipTransitionState()}
 					<video
 						bind:this={videoElement}
-						src={`${convertFileSrc(currentVideo()!.filePath)}?v=${currentVideo()!.mediaReloadToken}`}
+						use:playableLocalVideo={{
+							filePath: currentVideo()!.filePath,
+							reloadToken: currentVideo()!.mediaReloadToken
+						}}
 						muted
 						loop={isVideoLooping()}
+						playsinline
+						preload="auto"
+						onloadedmetadata={syncMediaToCursorPosition}
 						onended={goNextVideo}
 						style={`${backgroundMediaStyle} opacity: ${transitionState.currentOpacity};`}
 					></video>

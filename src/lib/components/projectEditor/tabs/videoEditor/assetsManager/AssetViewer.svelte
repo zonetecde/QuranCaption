@@ -15,6 +15,7 @@
 	import AndroidMediaService from '$lib/services/AndroidMediaService';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { showContextMenuInViewport } from '$lib/services/ContextMenuService';
+	import { playableLocalVideo } from '$lib/services/PlayableLocalVideo';
 
 	type CbrConversionProgressEvent = {
 		conversionRequestId: string;
@@ -290,12 +291,17 @@
 		{#if isPreviewOpen && asset.exists}
 			<div transition:slide class="border-t border-color p-1.5">
 				{#key mediaKey}
-					<video class="h-44 w-full rounded-sm object-cover" controls>
+					<video
+						class="h-44 w-full rounded-sm object-cover"
+						controls
+						playsinline
+						preload="auto"
+						use:playableLocalVideo={{
+							filePath: asset.filePath,
+							reloadToken: asset.mediaReloadToken
+						}}
+					>
 						<track kind="captions" />
-						<source
-							src={`${convertFileSrc(asset.filePath)}?v=${asset.mediaReloadToken}`}
-							type="video/mp4"
-						/>
 						{get(LL).editor.browserNoVideoSupport()}
 					</video>
 				{/key}

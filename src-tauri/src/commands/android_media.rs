@@ -55,6 +55,18 @@ pub fn set_landscape_allowed(allowed: bool) -> Result<(), String> {
 /// @param arguments Arguments FFmpeg sans le nom du binaire.
 /// @returns Code de réussite et sortie complète de FFmpegKit.
 pub fn execute_ffmpeg(arguments: &[String]) -> Result<AndroidFfmpegOutput, String> {
+    execute_ffmpeg_with_progress(arguments, |_| {})
+}
+
+/// Exécute FFmpegKit dans Android et relaie le temps traité à mesure qu'il progresse.
+///
+/// @param arguments Arguments FFmpeg sans le nom du binaire.
+/// @param on_progress Callback recevant le temps traité par FFmpegKit en millisecondes.
+/// @returns Code de réussite et sortie complète de FFmpegKit.
+pub fn execute_ffmpeg_with_progress(
+    arguments: &[String],
+    mut on_progress: impl FnMut(f64),
+) -> Result<AndroidFfmpegOutput, String> {
     let app_handle = ANDROID_APP_HANDLE
         .get()
         .ok_or_else(|| "Android FFmpeg handle is not initialized".to_string())?;
@@ -62,6 +74,7 @@ pub fn execute_ffmpeg(arguments: &[String]) -> Result<AndroidFfmpegOutput, Strin
         .android_media()
         .start_ffmpeg(arguments.to_vec())
         .map_err(|error| error.to_string())?;
+    let mut last_time_ms = 0.0;
 
     loop {
         let snapshot = match app_handle.android_media().poll_ffmpeg(session_id) {
@@ -71,6 +84,10 @@ pub fn execute_ffmpeg(arguments: &[String]) -> Result<AndroidFfmpegOutput, Strin
                 return Err(error.to_string());
             }
         };
+        if snapshot.time_ms > last_time_ms {
+            last_time_ms = snapshot.time_ms;
+            on_progress(last_time_ms);
+        }
         if snapshot.state == "COMPLETED" || snapshot.state == "FAILED" {
             let output = if snapshot.failure_stack_trace.is_empty() {
                 snapshot.output

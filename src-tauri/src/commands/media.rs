@@ -1207,6 +1207,7 @@ fn convert_audio_to_cbr_blocking(
         return Err(format!("File not found: {}", file_path_str));
     }
 
+    #[cfg(not(target_os = "android"))]
     let ffmpeg_path =
         binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
     let extension = file_path
@@ -1242,13 +1243,17 @@ fn convert_audio_to_cbr_blocking(
     );
 
     // Paramètres ffmpeg distincts pour flux audio pur vs conteneur vidéo.
-    let mut cmd = Command::new(&ffmpeg_path);
     let is_audio_only = matches!(
         extension.to_lowercase().as_str(),
         "mp3" | "wav" | "flac" | "aac" | "ogg" | "m4a"
     );
-    if is_audio_only {
-        cmd.args([
+    #[cfg(target_os = "android")]
+    let video_codec = "libopenh264";
+    #[cfg(not(target_os = "android"))]
+    let video_codec = "libx264";
+    let temp_path_str = temp_path.to_string_lossy().to_string();
+    let ffmpeg_arguments = if is_audio_only {
+        vec![
             "-nostdin",
             "-hide_banner",
             "-i",
@@ -1266,10 +1271,10 @@ fn convert_audio_to_cbr_blocking(
             "-progress",
             "pipe:1",
             "-y",
-            temp_path.to_string_lossy().as_ref(),
-        ]);
+            &temp_path_str,
+        ]
     } else {
-        cmd.args([
+        vec![
             "-nostdin",
             "-hide_banner",
             "-i",
@@ -1285,7 +1290,7 @@ fn convert_audio_to_cbr_blocking(
             "-b:a",
             "64k",
             "-vcodec",
-            "libx264",
+            video_codec,
             "-acodec",
             "aac",
             "-strict",
@@ -1294,61 +1299,95 @@ fn convert_audio_to_cbr_blocking(
             "2",
             "-ar",
             "44100",
+            "-movflags",
+            "+faststart",
             "-progress",
             "pipe:1",
             "-y",
-            temp_path.to_string_lossy().as_ref(),
-        ]);
-    }
-    cmd.stdout(Stdio::piped());
-    cmd.stderr(Stdio::piped());
-    configure_command_no_window(&mut cmd);
+            &temp_path_str,
+        ]
+    };
 
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| format!("Unable to execute ffmpeg: {}", e))?;
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| "Failed to capture ffmpeg progress".to_string())?;
-    let stderr = child
-        .stderr
-        .take()
-        .ok_or_else(|| "Failed to capture ffmpeg stderr".to_string())?;
-    let stderr_handle = thread::spawn(move || {
-        let reader = BufReader::new(stderr);
-        reader
-            .lines()
-            .map_while(Result::ok)
-            .collect::<Vec<String>>()
-            .join("\n")
-    });
+    #[cfg(target_os = "android")]
+    let (conversion_succeeded, stderr) = {
+        let arguments = ffmpeg_arguments
+            .iter()
+            .map(|argument| (*argument).to_string())
+            .collect::<Vec<String>>();
+        let output =
+            super::android_media::execute_ffmpeg_with_progress(&arguments, |current_time_ms| {
+                let current_time_s = current_time_ms / 1000.0;
+                let progress = if total_duration_s > 0.0 {
+                    (current_time_s / total_duration_s * 100.0).clamp(0.0, 99.5)
+                } else {
+                    0.0
+                };
+                emit_cbr_conversion_progress(
+                    &app_handle,
+                    &conversion_request_id,
+                    progress,
+                    current_time_s,
+                    total_duration_s,
+                    "converting",
+                );
+            })?;
+        (output.success, output.output)
+    };
 
-    let reader = BufReader::new(stdout);
-    for line in reader.lines().map_while(Result::ok) {
-        if let Some(current_time_s) = parse_ffmpeg_progress_time_s(&line) {
-            let progress = if total_duration_s > 0.0 {
-                (current_time_s / total_duration_s * 100.0).clamp(0.0, 99.5)
-            } else {
-                0.0
-            };
-            emit_cbr_conversion_progress(
-                &app_handle,
-                &conversion_request_id,
-                progress,
-                current_time_s,
-                total_duration_s,
-                "converting",
-            );
+    #[cfg(not(target_os = "android"))]
+    let (conversion_succeeded, stderr) = {
+        let mut cmd = Command::new(&ffmpeg_path);
+        cmd.args(&ffmpeg_arguments);
+        cmd.stdout(Stdio::piped());
+        cmd.stderr(Stdio::piped());
+        configure_command_no_window(&mut cmd);
+
+        let mut child = cmd
+            .spawn()
+            .map_err(|e| format!("Unable to execute ffmpeg: {}", e))?;
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| "Failed to capture ffmpeg progress".to_string())?;
+        let stderr = child
+            .stderr
+            .take()
+            .ok_or_else(|| "Failed to capture ffmpeg stderr".to_string())?;
+        let stderr_handle = thread::spawn(move || {
+            let reader = BufReader::new(stderr);
+            reader
+                .lines()
+                .map_while(Result::ok)
+                .collect::<Vec<String>>()
+                .join("\n")
+        });
+
+        let reader = BufReader::new(stdout);
+        for line in reader.lines().map_while(Result::ok) {
+            if let Some(current_time_s) = parse_ffmpeg_progress_time_s(&line) {
+                let progress = if total_duration_s > 0.0 {
+                    (current_time_s / total_duration_s * 100.0).clamp(0.0, 99.5)
+                } else {
+                    0.0
+                };
+                emit_cbr_conversion_progress(
+                    &app_handle,
+                    &conversion_request_id,
+                    progress,
+                    current_time_s,
+                    total_duration_s,
+                    "converting",
+                );
+            }
         }
-    }
 
-    let status = child
-        .wait()
-        .map_err(|e| format!("Unable to wait for ffmpeg: {}", e))?;
-    let stderr = stderr_handle.join().unwrap_or_default();
+        let status = child
+            .wait()
+            .map_err(|e| format!("Unable to wait for ffmpeg: {}", e))?;
+        (status.success(), stderr_handle.join().unwrap_or_default())
+    };
 
-    if status.success() {
+    if conversion_succeeded {
         if let Err(e) = std::fs::remove_file(&file_path) {
             let _ = std::fs::remove_file(&temp_path);
             return Err(format!("Failed to remove original file: {}", e));

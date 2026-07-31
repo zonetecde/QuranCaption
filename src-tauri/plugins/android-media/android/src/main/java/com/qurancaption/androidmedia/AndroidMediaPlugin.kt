@@ -525,15 +525,22 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
                 request
                     .addOption(
                         "--format",
-                        "bestvideo[height<=1080][ext=mp4]/bestvideo[height<=1080]"
+                        "bestvideo[vcodec^=avc1][height<=1080][ext=mp4]"
                     )
                     .addOption("--remux-video", "mp4")
                 "mp4"
             }
             "video" -> {
                 request
-                    .addOption("--format", "bv*+ba/b")
+                    .addOption(
+                        "--format",
+                        "bestvideo[vcodec^=avc1][height<=1080][ext=mp4]+bestaudio[acodec^=mp4a][ext=m4a]/best[vcodec^=avc1][acodec^=mp4a][height<=1080][ext=mp4]"
+                    )
                     .addOption("--merge-output-format", "mp4")
+                    .addOption(
+                        "--postprocessor-args",
+                        "Merger+ffmpeg_o:-movflags +faststart"
+                    )
                 "mp4"
             }
             else -> error("Invalid type: must be 'audio', 'video' or 'video_no_audio'")

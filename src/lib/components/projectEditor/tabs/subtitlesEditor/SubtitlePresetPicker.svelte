@@ -133,8 +133,23 @@
 
 <section class="preset-picker">
 	<header class="preset-picker-header">
-		<span class="material-icons text-accent">dashboard_customize</span>
-		<h3>{$LL.editor.predefinedLabel()}</h3>
+		<div class="preset-picker-title">
+			<span class="material-icons text-accent">dashboard_customize</span>
+			<h3>{$LL.editor.predefinedLabel()}</h3>
+		</div>
+		<div class="preset-picker-actions">
+			<button class="preset-action-button" type="button" onclick={cancel}>
+				{$LL.common.cancel()}
+			</button>
+			<button
+				class="preset-action-button preset-action-button-primary"
+				type="button"
+				disabled={!selectedPreset}
+				onclick={() => void applyPreset()}
+			>
+				{$LL.common.apply()}
+			</button>
+		</div>
 	</header>
 
 	<div class="preset-grid">
@@ -162,20 +177,6 @@
 			</button>
 		{/each}
 	</div>
-
-	<footer class="preset-picker-actions">
-		<button class="preset-action-button" type="button" onclick={cancel}>
-			{$LL.common.cancel()}
-		</button>
-		<button
-			class="preset-action-button preset-action-button-primary"
-			type="button"
-			disabled={!selectedPreset}
-			onclick={() => void applyPreset()}
-		>
-			{$LL.common.apply()}
-		</button>
-	</footer>
 </section>
 
 <style>
@@ -193,11 +194,17 @@
 		display: flex;
 		flex-shrink: 0;
 		align-items: center;
-		justify-content: center;
-		gap: 0.4rem;
+		justify-content: space-between;
+		gap: 0.5rem;
 		color: var(--text-primary);
 		font-size: 0.8rem;
 		font-weight: 600;
+	}
+
+	.preset-picker-title {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
 	}
 
 	.preset-grid {

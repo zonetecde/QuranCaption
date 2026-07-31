@@ -7656,7 +7656,7 @@ type RootTranslation = {
 		 */
 		organizeProjectFolders: string;
 		/**
-		 * Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​i​s​ ​a​ ​d​e​s​k​t​o​p​ ​a​p​p​l​i​c​a​t​i​o​n​ ​t​h​a​t​ ​t​r​a​n​s​f​o​r​m​s​ ​Q​u​r​a​n​i​c​ ​r​e​c​i​t​a​t​i​o​n​s​ ​i​n​t​o​ ​b​e​a​u​t​i​f​u​l​l​y​ ​c​a​p​t​i​o​n​e​d​ ​v​i​d​e​o​s​.​ ​I​t​ ​c​o​m​b​i​n​e​s​ ​a​u​d​i​o​ ​p​r​o​c​e​s​s​i​n​g​ ​w​i​t​h​ ​Q​u​r​a​n​i​c​ ​t​e​x​t​ ​t​o​ ​c​r​e​a​t​e​ ​p​r​o​f​e​s​s​i​o​n​a​l​-​q​u​a​l​i​t​y​ ​s​u​b​t​i​t​l​e​d​ ​v​i​d​e​o​s​ ​f​o​r​ ​s​h​a​r​i​n​g​,​ ​l​e​a​r​n​i​n​g​,​ ​a​n​d​ ​d​a​w​a​h​.
+		 * Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​i​s​ ​a​ ​d​e​s​k​t​o​p​ ​a​n​d​ ​m​o​b​i​l​e​ ​a​p​p​l​i​c​a​t​i​o​n​ ​t​h​a​t​ ​t​r​a​n​s​f​o​r​m​s​ ​Q​u​r​a​n​i​c​ ​r​e​c​i​t​a​t​i​o​n​s​ ​i​n​t​o​ ​b​e​a​u​t​i​f​u​l​l​y​ ​c​a​p​t​i​o​n​e​d​ ​v​i​d​e​o​s​.​ ​I​t​ ​c​o​m​b​i​n​e​s​ ​a​u​d​i​o​ ​p​r​o​c​e​s​s​i​n​g​ ​w​i​t​h​ ​Q​u​r​a​n​i​c​ ​t​e​x​t​ ​t​o​ ​c​r​e​a​t​e​ ​p​r​o​f​e​s​s​i​o​n​a​l​-​q​u​a​l​i​t​y​ ​s​u​b​t​i​t​l​e​d​ ​v​i​d​e​o​s​ ​f​o​r​ ​s​h​a​r​i​n​g​,​ ​l​e​a​r​n​i​n​g​,​ ​a​n​d​ ​d​a​w​a​h​.
 		 */
 		aboutDescription: string;
 		/**
@@ -18372,7 +18372,7 @@ export type TranslationFunctions = {
 		 */
 		organizeProjectFolders: () => LocalizedString;
 		/**
-		 * Quran Caption is a desktop application that transforms Quranic recitations into beautifully captioned videos. It combines audio processing with Quranic text to create professional-quality subtitled videos for sharing, learning, and dawah.
+		 * Quran Caption is a desktop and mobile application that transforms Quranic recitations into beautifully captioned videos. It combines audio processing with Quranic text to create professional-quality subtitled videos for sharing, learning, and dawah.
 		 */
 		aboutDescription: () => LocalizedString;
 		/**

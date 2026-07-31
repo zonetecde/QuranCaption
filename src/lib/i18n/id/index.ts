@@ -583,7 +583,7 @@ const id = {
 		organizingProjects: 'Sedang merapikan proyek...',
 		organizeProjectFolders: 'Rapikan folder proyek',
 		aboutDescription:
-			'Quran Caption adalah aplikasi desktop yang mengubah bacaan Quran menjadi video bercaption yang indah. Aplikasi ini menggabungkan pemrosesan audio dengan teks Quran untuk membuat video subtitle berkualitas profesional untuk dibagikan, dipelajari, dan dakwah.',
+			'Quran Caption adalah aplikasi desktop dan seluler yang mengubah bacaan Quran menjadi video bercaption yang indah. Aplikasi ini menggabungkan pemrosesan audio dengan teks Quran untuk membuat video subtitle berkualitas profesional untuk dibagikan, dipelajari, dan dakwah.',
 		versionLabel: 'Versi {version}',
 		restartTutorial: 'Mulai ulang tutorial',
 		connected: 'Terhubung',

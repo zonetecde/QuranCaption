@@ -2427,7 +2427,7 @@ const de = {
 		organizingProjects: 'Projekte werden organisiert...',
 		organizeProjectFolders: 'Projektordner organisieren',
 		aboutDescription:
-			'Quran Caption ist eine Desktop-Anwendung, die Koranrezitationen in wunderschön untertitelte Videos verwandelt. Sie kombiniert Audioverarbeitung mit Korantext, um professionell untertitelte Videos zum Teilen, Lernen und für die Dawah zu erstellen.',
+			'Quran Caption ist eine Desktop- und Mobilanwendung, die Koranrezitationen in wunderschön untertitelte Videos verwandelt. Sie kombiniert Audioverarbeitung mit Korantext, um professionell untertitelte Videos zum Teilen, Lernen und für die Dawah zu erstellen.',
 		versionLabel: 'Version {version}',
 		restartTutorial: 'Tutorial neu starten',
 		connected: 'Verbunden',

@@ -24,21 +24,7 @@
 	import SortMenu from './SortMenu.svelte';
 	import ProjectDetailCard from './ProjectDetailCard.svelte';
 	import ProjectDetailCardSkeleton from './ProjectDetailCardSkeleton.svelte';
-	import ProjectExplorerSidebar from './ProjectExplorerSidebar.svelte';
 	import CreateProjectModal from './modals/CreateProjectModal.svelte';
-	import {
-		ALL_PROJECTS_SELECTION,
-		buildProjectExplorerTree,
-		filterProjectsForSelection,
-		resolveDropTargetUpdate,
-		type ExplorerSelection
-	} from './homeExplorer';
-	import {
-		getDragPointerPosition,
-		getExplorerNodeIdFromElement,
-		getExplorerSelectionFromElement,
-		type DragPointer
-	} from './dragUtils';
 
 	let createNewProjectModalVisible = $state(false);
 
@@ -46,26 +32,13 @@
 	let filterMenuVisible = $state(false);
 	let sortMenuVisible = $state(false);
 
-	// Etat du drag interne homepage -> explorateur
-	let draggingProjectId = $state<number | null>(null);
-	let draggingProject = $state<ProjectDetail | null>(null);
-	let activeDropNodeId = $state<string | null>(null);
-	let dragPointer = $state<DragPointer>({ x: 0, y: 0 });
-
 	// Pagination locale de la liste visible
 	let currentPage = $state(1);
-	let mobileExplorerOpen = $state(false);
-	let explorerSelection = $state<ExplorerSelection>(ALL_PROJECTS_SELECTION);
 	let currentSortProperty = $state<keyof ProjectDetail>('updatedAt');
 	let isSortAscending = $state(false);
-	let isExplorerVisible = $state(true);
 	let homePreferencesInitialized = $state(false);
 
 	let promise: Promise<void | ProjectDetail[]> | undefined = $state(undefined);
-	type SelectionBreadcrumbItem = {
-		label: string;
-		target?: ExplorerSelection;
-	};
 	/**
 	 * Affiche le popup pour créer un nouveau projet.
 	 */
@@ -87,13 +60,6 @@
 	function toggleSortMenu() {
 		sortMenuVisible = !sortMenuVisible;
 		filterMenuVisible = false;
-	}
-
-	/**
-	 * Bascule l'affichage de l'explorateur de projets.
-	 */
-	function toggleExplorerVisibility() {
-		isExplorerVisible = !isExplorerVisible;
 	}
 
 	/**
@@ -146,20 +112,18 @@
 	}
 
 	/**
-	 * Sauvegarde les préférences de tri et d'explorer dans les settings pour les réappliquer au prochain chargement de la page
+	 * Sauvegarde les préférences de tri dans les settings pour les réappliquer au prochain chargement de la page
 	 */
 	function persistHomePreferences() {
 		if (!globalState.settings || !homePreferencesInitialized) return;
 
 		globalState.settings.persistentUiState.homeSortProperty = currentSortProperty;
 		globalState.settings.persistentUiState.homeSortAscending = isSortAscending;
-		globalState.settings.persistentUiState.homeExplorerSelection = explorerSelection;
-		globalState.settings.persistentUiState.homeExplorerVisible = isExplorerVisible;
 		Settings.save();
 	}
 
 	/**
-	 * Base project set used by the explorer tree and the right pane.
+	 * Returns the projects matching the active status filter.
 	 */
 	function getStatusFilteredProjects(): ProjectDetail[] {
 		if (globalState.uiState.selectedStatuses.length === 0) {
@@ -171,84 +135,6 @@
 		);
 	}
 
-	function isSelectionAvailable(selection: ExplorerSelection, projects: ProjectDetail[]): boolean {
-		if (selection.kind === 'all') return true;
-		if (selection.kind === 'reciter') {
-			return projects.some((project) => project.reciter === selection.reciter);
-		}
-
-		// Type folders always exist under a visible reciter node, even when their project count is 0.
-		if (selection.kind === 'type') {
-			return projects.some((project) => project.reciter === selection.reciter);
-		}
-
-		// Year nodes only exist when at least one project matches that year bucket.
-		return filterProjectsForSelection(projects, selection).length > 0;
-	}
-
-	function getSelectionDescription(selection: ExplorerSelection, count: number): string {
-		if (selection.kind === 'all') {
-			return get(LL).home.projectsAcrossAll({ count });
-		}
-
-		if (selection.kind === 'reciter') {
-			return get(LL).home.projectsForReciter({ count });
-		}
-
-		if (selection.kind === 'year') {
-			return get(LL).home.projectsForYear({ count, year: String(selection.year) });
-		}
-
-		return get(LL).home.projectsInSubfolder({ count });
-	}
-
-	function getSelectionBreadcrumb(selection: ExplorerSelection): SelectionBreadcrumbItem[] {
-		switch (selection.kind) {
-			case 'all':
-				return [{ label: get(LL).home.allProjects() }];
-			case 'reciter':
-				return [
-					{ label: get(LL).home.all(), target: ALL_PROJECTS_SELECTION },
-					{ label: selection.reciter }
-				];
-			case 'type':
-				return [
-					{ label: get(LL).home.all(), target: ALL_PROJECTS_SELECTION },
-					{
-						label: selection.reciter,
-						target: { kind: 'reciter', reciter: selection.reciter }
-					},
-					{ label: selection.projectType }
-				];
-			case 'year':
-				return [
-					{ label: get(LL).home.all(), target: ALL_PROJECTS_SELECTION },
-					{
-						label: selection.reciter,
-						target: { kind: 'reciter', reciter: selection.reciter }
-					},
-					{
-						label: selection.projectType,
-						target: {
-							kind: 'type',
-							reciter: selection.reciter,
-							projectType: selection.projectType
-						}
-					},
-					{ label: selection.year }
-				];
-		}
-	}
-
-	/**
-	 * Centralizes explorer navigation so desktop and mobile stay in sync.
-	 */
-	function selectExplorerNode(selection: ExplorerSelection) {
-		explorerSelection = selection;
-		currentPage = 1;
-		mobileExplorerOpen = false;
-	}
-
 	/**
 	 * Keeps the "5 rows max" rule consistent between list and responsive grid layouts.
 	 */
@@ -256,102 +142,15 @@
 		return 5;
 	}
 
-	/**
-	 * Opens or closes the mobile explorer drawer.
-	 */
-	function toggleMobileExplorer() {
-		mobileExplorerOpen = !mobileExplorerOpen;
-	}
-
-	function clearDragState() {
-		draggingProjectId = null;
-		draggingProject = null;
-		activeDropNodeId = null;
-	}
-
-	/**
-	 * Tracks the pointer-driven drag preview and the explorer node currently hovered.
-	 */
-	function handlePointerMove(event: PointerEvent) {
-		if (!draggingProject) return;
-
-		dragPointer = getDragPointerPosition(event);
-
-		const elementUnderPointer = document.elementFromPoint(event.clientX, event.clientY);
-		activeDropNodeId = getExplorerNodeIdFromElement(elementUnderPointer);
-	}
-
-	/**
-	 * Resolves the hovered explorer node on pointer release and applies the move if possible.
-	 */
-	async function handlePointerUp(event: PointerEvent) {
-		if (!draggingProject) return;
-
-		const targetSelection = getExplorerSelectionFromElement(
-			document.elementFromPoint(event.clientX, event.clientY)
-		);
-
-		if (targetSelection) {
-			await handleProjectDrop(targetSelection);
-		} else {
-			clearDragState();
-		}
-	}
-
-	/**
-	 * Initializes the ephemeral drag state shared by the card list and the explorer sidebar.
-	 */
-	function startProjectDrag(project: ProjectDetail, event: PointerEvent) {
-		draggingProjectId = project.id;
-		draggingProject = project;
-		dragPointer = getDragPointerPosition(event);
-		activeDropNodeId = null;
-	}
-
-	/**
-	 * Persists reciter/type changes after a folder drop and clears the transient drag state.
-	 */
-	async function handleProjectDrop(target: ExplorerSelection) {
-		if (draggingProjectId === null) return;
-
-		const project = globalState.userProjectsDetails.find(
-			(projectDetail) => projectDetail.id === draggingProjectId
-		);
-		if (!project) {
-			clearDragState();
-			return;
-		}
-
-		const update = resolveDropTargetUpdate(target);
-		if (
-			update &&
-			(project.reciter !== update.reciter || project.projectType !== update.projectType)
-		) {
-			project.reciter = update.reciter;
-			project.projectType = update.projectType;
-			await ProjectService.saveDetail(project, false);
-		}
-
-		clearDragState();
-	}
-
-	// 1. Status filter -> 2. explorer selection -> 3. sort/search -> 4. page slice
+	// 1. Status filter -> 2. sort/search -> 3. page slice
 	let statusFilteredProjects = $derived.by(() => getStatusFilteredProjects());
-	let explorerTree = $derived.by(() => buildProjectExplorerTree(statusFilteredProjects));
-	let selectedProjects = $derived.by(() => {
-		if (!isSelectionAvailable(explorerSelection, statusFilteredProjects)) {
-			return statusFilteredProjects;
-		}
-
-		return filterProjectsForSelection(statusFilteredProjects, explorerSelection);
-	});
-	let sortedSelectedProjects = $derived.by(() => sortProjects(selectedProjects));
+	let sortedProjects = $derived.by(() => sortProjects(statusFilteredProjects));
 	let searchedProjects = $derived.by(() => {
 		if (globalState.uiState.searchQuery === '') {
-			return sortedSelectedProjects;
+			return sortedProjects;
 		}
 
-		return sortedSelectedProjects.filter((project) =>
+		return sortedProjects.filter((project) =>
 			project.matchSearchQuery(globalState.uiState.searchQuery)
 		);
 	});
@@ -363,15 +162,6 @@
 		const startIndex = (currentPage - 1) * projectsPerPage;
 		return searchedProjects.slice(startIndex, startIndex + projectsPerPage);
 	});
-	let selectionBreadcrumb = $derived.by(() => getSelectionBreadcrumb(explorerSelection));
-
-	$effect(() => {
-		// Replie la sélection vers "All" si le dossier actif n'existe plus avec le filtre courant.
-		if (!isSelectionAvailable(explorerSelection, statusFilteredProjects)) {
-			explorerSelection = ALL_PROJECTS_SELECTION;
-		}
-	});
-
 	$effect(() => {
 		const settings = globalState.settings;
 		if (!settings || homePreferencesInitialized) return;
@@ -379,8 +169,6 @@
 		// Set les préférences de l'utilisateur ou ceux par défaut si premier lancement
 		currentSortProperty = settings.persistentUiState.homeSortProperty ?? 'updatedAt';
 		isSortAscending = settings.persistentUiState.homeSortAscending ?? false;
-		explorerSelection = settings.persistentUiState.homeExplorerSelection ?? ALL_PROJECTS_SELECTION;
-		isExplorerVisible = settings.persistentUiState.homeExplorerVisible ?? true;
 		homePreferencesInitialized = true;
 	});
 
@@ -398,27 +186,9 @@
 	});
 
 	$effect(() => {
-		if (globalState.isAndroidLandscape) {
-			mobileExplorerOpen = false;
-		}
-	});
-
-	$effect(() => {
 		currentSortProperty;
 		isSortAscending;
-		explorerSelection;
-		isExplorerVisible;
 		persistHomePreferences();
-	});
-
-	onMount(() => {
-		window.addEventListener('pointermove', handlePointerMove);
-		window.addEventListener('pointerup', handlePointerUp);
-
-		return () => {
-			window.removeEventListener('pointermove', handlePointerMove);
-			window.removeEventListener('pointerup', handlePointerUp);
-		};
 	});
 
 	onMount(async () => {
@@ -519,22 +289,7 @@
 			</section>
 		</div>
 
-		<div
-			class={`mt-6 grid items-start gap-6 ${
-				globalState.isAndroidLandscape ? 'grid-cols-[240px_minmax(0,1fr)]' : 'grid-cols-1'
-			}`}
-		>
-			{#if globalState.isAndroidLandscape}
-				<div>
-					<ProjectExplorerSidebar
-						tree={explorerTree}
-						selection={explorerSelection}
-						{activeDropNodeId}
-						onSelectionChange={selectExplorerNode}
-					/>
-				</div>
-			{/if}
-
+		<div class="mt-6">
 			<section class="min-w-0">
 				<div
 					placeholder="Recent projects"
@@ -542,48 +297,11 @@
 				>
 					<div>
 						<h3 class="flex items-center gap-2 text-2xl font-semibold text-primary">
-							{#each selectionBreadcrumb as item, index (item.label + index)}
-								{#if item.target}
-									<button
-										type="button"
-										class="cursor-pointer text-left hover:underline"
-										onclick={() => selectExplorerNode(item.target!)}
-									>
-										{item.label}
-									</button>
-								{:else}
-									<span>{item.label}</span>
-								{/if}
-								{#if index < selectionBreadcrumb.length - 1}
-									<span class="text-[var(--text-secondary)]">/</span>
-								{/if}
-							{/each}
+							{$LL.home.allProjects()}
 						</h3>
-						{#if draggingProjectId !== null}
-							<p class="mt-1 text-sm text-[var(--accent-primary)]">
-								{$LL.home.dragHint()}
-							</p>
-						{:else}
-							<p class="mt-1 text-sm text-[var(--text-secondary)]">
-								{getSelectionDescription(explorerSelection, sortedSelectedProjects.length)}
-							</p>
-						{/if}
 					</div>
 
 					<div class="flex flex-col gap-3 xl:justify-end">
-						<!-- {#if globalState.isAndroidPortrait}
-							<button
-								class="btn btn-icon h-10 self-start px-3"
-								type="button"
-								aria-label={$LL.home.projectExplorer()}
-								title={$LL.home.projectExplorer()}
-								onclick={toggleMobileExplorer}
-							>
-								<span class="material-icons-outlined text-base">folder_open</span>
-								<span>{$LL.home.projectExplorer()}</span>
-							</button>
-						{/if} -->
-
 						{#if totalPages > 1}
 							<div
 								class="flex h-10 items-center gap-1 self-start rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] px-2 text-sm text-[var(--text-secondary)]"
@@ -683,7 +401,7 @@
 							</p>
 						{:else}
 							<p class="mt-4">
-								{$LL.home.noProjectsInFolder()}
+								{$LL.home.noProjectsMatchFilter()}
 							</p>
 						{/if}
 					{:else}
@@ -693,10 +411,6 @@
 									projectDetail={project}
 									isListView={true}
 									isTutorial={project.name === 'Tutorial Project'}
-									draggable={true}
-									isActiveDrag={draggingProjectId === project.id}
-									onProjectDragStart={startProjectDrag}
-									onProjectDragEnd={clearDragState}
 								/>
 							{/each}
 						</div>
@@ -708,60 +422,6 @@
 
 	<Footer />
 </div>
-
-{#if globalState.isAndroidPortrait && mobileExplorerOpen}
-	<button
-		type="button"
-		class="fixed inset-0 z-40 bg-black/45"
-		aria-label={$LL.home.projectExplorer()}
-		onclick={() => (mobileExplorerOpen = false)}
-	></button>
-
-	<aside
-		class="fixed inset-y-0 left-0 z-50 w-[min(88vw,22rem)] overflow-y-auto border-r border-[var(--border-color)] bg-[var(--bg-primary)] px-4 py-5 shadow-2xl"
-	>
-		<div class="mb-4 flex items-center justify-between gap-3">
-			<div>
-				<p class="text-sm font-semibold text-[var(--text-primary)]">
-					{$LL.home.projectExplorer()}
-				</p>
-				<p class="text-xs text-[var(--text-secondary)]">
-					{getSelectionDescription(explorerSelection, sortedSelectedProjects.length)}
-				</p>
-			</div>
-			<button
-				type="button"
-				class="btn-icon flex h-10 w-10 items-center justify-center rounded-xl text-[var(--text-secondary)]"
-				aria-label={$LL.home.collapse()}
-				title={$LL.home.collapse()}
-				onclick={() => (mobileExplorerOpen = false)}
-			>
-				<span class="material-icons-outlined">close</span>
-			</button>
-		</div>
-
-		<ProjectExplorerSidebar
-			tree={explorerTree}
-			selection={explorerSelection}
-			{activeDropNodeId}
-			onSelectionChange={selectExplorerNode}
-		/>
-	</aside>
-{/if}
-
-{#if draggingProject}
-	<div
-		class="pointer-events-none fixed left-0 top-0 z-50 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)]/92 px-3 py-2 shadow-2xl backdrop-blur-md"
-		style={`transform: translate(${dragPointer.x}px, ${dragPointer.y}px) translate(-50%, -50%);`}
-	>
-		<p class="max-w-56 truncate text-sm font-semibold text-[var(--text-primary)]">
-			{draggingProject.name}
-		</p>
-		<p class="mt-1 text-xs text-[var(--text-secondary)]">
-			{draggingProject.reciter} • {draggingProject.projectType}
-		</p>
-	</div>
-{/if}
 
 {#if createNewProjectModalVisible}
 	<div class="modal-wrapper" transition:fade>

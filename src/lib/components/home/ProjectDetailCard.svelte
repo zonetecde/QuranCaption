@@ -23,29 +23,12 @@
 	let {
 		projectDetail = $bindable(),
 		isListView = true,
-		isTutorial = false,
-		draggable = false,
-		isActiveDrag = false,
-		onProjectDragStart,
-		onProjectDragEnd
+		isTutorial = false
 	}: {
 		projectDetail: ProjectDetail;
 		isListView?: boolean;
 		isTutorial?: boolean;
-		draggable?: boolean;
-		isActiveDrag?: boolean;
-		onProjectDragStart?: (projectDetail: ProjectDetail, event: PointerEvent) => void;
-		onProjectDragEnd?: () => void;
 	} = $props();
-
-	let isDragging = $state(false);
-
-	$effect(() => {
-		// Keep the local visual state aligned with the homepage drag lifecycle.
-		if (!isActiveDrag && isDragging) {
-			isDragging = false;
-		}
-	});
 
 	async function deleteProjectButtonClick(e: MouseEvent) {
 		if (e.button !== 0) return; // Only handle left click
@@ -128,55 +111,16 @@
 		e.stopPropagation();
 		showProjectDetails = !showProjectDetails;
 	}
-
-	/**
-	 * Starts the custom pointer-driven drag used by the homepage explorer.
-	 */
-	function handlePointerDragStart(event: PointerEvent) {
-		if (event.button !== 0 || !draggable) return;
-		const target = event.target;
-		if (
-			target instanceof HTMLElement &&
-			target.closest('[data-no-drag], button, input, textarea, select, a, [contenteditable="true"]')
-		) {
-			return;
-		}
-		event.stopPropagation();
-		event.preventDefault();
-		isDragging = true;
-		onProjectDragStart?.(projectDetail, event);
-	}
-
-	function handleDragHandlePointerDown(event: PointerEvent) {
-		if (event.button !== 0 || !draggable) return;
-		event.stopPropagation();
-		event.preventDefault();
-		isDragging = true;
-		onProjectDragStart?.(projectDetail, event);
-	}
-
-	function handlePointerDragEnd() {
-		if (!draggable) return;
-		isDragging = false;
-		onProjectDragEnd?.();
-	}
 </script>
 
 <div
-	class={`relative bg-secondary backdrop-blur-[10px] border border-[var(--border-color)] rounded-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex flex-col justify-between transition-all duration-300 ${
-		draggable ? 'hover:-translate-y-1 hover:shadow-2xl' : 'hover:shadow-2xl'
-	} ${isDragging ? 'scale-[0.98] opacity-70 cursor-grabbing' : ''}`}
+	class="relative bg-secondary backdrop-blur-[10px] border border-[var(--border-color)] rounded-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex flex-col justify-between transition-all duration-300 hover:shadow-2xl"
 	data-tour-id={isTutorial ? 'tutorial-project-card' : undefined}
 	data-project-card={projectDetail.id}
 >
 	<div>
 		{#if !isListView}
-			<section
-				class={`relative h-40 w-full rounded-t-lg bg-white/80 object-cover ${
-					draggable ? 'cursor-grab active:cursor-grabbing' : ''
-				}`}
-				onpointerdown={handlePointerDragStart}
-			>
+			<section class="relative h-40 w-full rounded-t-lg bg-white/80 object-cover">
 				<div class="absolute right-3 top-3">
 					<ProjectTypeSelector
 						{projectDetail}
@@ -219,8 +163,6 @@
 					{#if showStatusMenu}
 						<ul
 							class="absolute top-full right-0 mt-1 w-40 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-xl py-1 z-20 backdrop-blur-sm"
-							data-no-drag
-							onpointerdown={(event) => event.stopPropagation()}
 						>
 							{#each statuses as s (s.status)}
 								<li
@@ -321,16 +263,6 @@
 		</div>
 
 		<div class={`flex items-center gap-x-2 ${isListView ? 'justify-end' : ''}`}>
-			{#if isListView && draggable}
-				<button
-					class="h-8 w-8 pt-1 rounded-[4px] border border-[var(--border-color)] bg-[var(--bg-primary)]/40 text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-primary)]/70 hover:text-[var(--text-primary)] cursor-grab active:cursor-grabbing"
-					type="button"
-					title={$LL.home.dragCard()}
-					onpointerdown={handleDragHandlePointerDown}
-				>
-					<span class="material-icons-outlined text-[14px] leading-none">drag_indicator</span>
-				</button>
-			{/if}
 			<button
 				class={`btn-accent text-xs py-2 ${isListView ? 'flex-1 h-full' : 'flex-grow'}`}
 				onclick={openProjectButtonClick}

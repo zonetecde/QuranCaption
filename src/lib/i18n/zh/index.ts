@@ -2205,7 +2205,7 @@ const zh = {
 		organizingProjects: '组织项目中...',
 		organizeProjectFolders: '组织项目文件夹',
 		aboutDescription:
-			'Quran Caption 是一款桌面应用，可将古兰经诵读转化为精美字幕视频。它结合音频处理与古兰经文本，创建专业品质的字幕视频，用于分享、学习和宣教。',
+			'Quran Caption 是一款桌面和移动应用，可将古兰经诵读转化为精美字幕视频。它结合音频处理与古兰经文本，创建专业品质的字幕视频，用于分享、学习和宣教。',
 		versionLabel: '版本 {version}',
 		restartTutorial: '重新开始教程',
 		connected: '已连接',

@@ -7,7 +7,6 @@ import { VersionService } from '$lib/services/VersionService.svelte';
 import type { VideoStyleFileData } from './VideoStyle.svelte';
 import type { ProjectDetail } from './ProjectDetail.svelte';
 import { DEFAULT_EXPORT_FILE_NAME_FORMAT } from '$lib/constants/export';
-import type { ExplorerSelection } from '$lib/components/home/homeExplorer';
 import {
 	WBW_TRANSLATION_LANGUAGES,
 	type WbwTranslationLanguageCode
@@ -82,8 +81,6 @@ export type SavedVideoStylePreset = {
 };
 
 const DEFAULT_TEXT_AI_ENDPOINT = 'https://api.openai.com/v1/responses';
-const DEFAULT_HOME_EXPLORER_SELECTION: ExplorerSelection = { kind: 'all' };
-
 export default class Settings extends SerializableBase {
 	private static settingsFile: string = 'settings.json';
 	private static readonly DEFAULT_EXPORT_SETTINGS: ExportSettings = {
@@ -100,8 +97,6 @@ export default class Settings extends SerializableBase {
 		projectCardView: 'grid' as 'grid' | 'list',
 		homeSortProperty: 'updatedAt' as keyof ProjectDetail,
 		homeSortAscending: false,
-		homeExplorerSelection: DEFAULT_HOME_EXPLORER_SELECTION as ExplorerSelection,
-		homeExplorerVisible: true,
 		showWaveforms: true,
 		lastClosedUpdateModal: new Date(0).toISOString(),
 		lastClosedDonationPromptModal: new Date(0).toISOString(),

@@ -70,7 +70,6 @@
 			class="inline-flex cursor-pointer items-center gap-1 rounded-full border-0 bg-[var(--bg-primary)]/30 px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em] text-[var(--text-primary)]/90 backdrop-blur-sm hover:bg-[var(--bg-primary)]/45"
 			style="margin: 0; appearance: none;"
 			data-project-type
-			data-no-drag
 		>
 			<span class="material-icons-outlined text-xs">folder_special</span>
 			{projectDetail.projectType}
@@ -79,7 +78,6 @@
 		{#if isOpen}
 			<ul
 				class="absolute right-0 top-full z-20 mt-1 w-44 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] py-1 shadow-xl backdrop-blur-sm"
-				data-no-drag
 				onpointerdown={stopPointerPropagation}
 			>
 				{#each PROJECT_TYPE_OPTIONS as option (option)}
@@ -109,7 +107,6 @@
 		{#if isOpen}
 			<ul
 				class="absolute left-12 top-full z-20 mt-1 w-44 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] py-1 shadow-xl backdrop-blur-sm"
-				data-no-drag
 				onpointerdown={stopPointerPropagation}
 			>
 				{#each PROJECT_TYPE_OPTIONS as option (option)}

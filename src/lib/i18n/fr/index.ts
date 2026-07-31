@@ -2449,7 +2449,7 @@ const fr = {
 		organizingProjects: 'Organisation des projets...',
 		organizeProjectFolders: 'Organiser les dossiers de projets',
 		aboutDescription:
-			"Quran Caption est une application de bureau qui transforme les récitations coraniques en vidéos magnifiquement sous-titrées. Elle combine le traitement audio avec le texte coranique pour créer des vidéos sous-titrées de qualité professionnelle pour le partage, l'apprentissage et la dawah.",
+			"Quran Caption est une application pour ordinateur et mobile qui transforme les récitations coraniques en vidéos magnifiquement sous-titrées. Elle combine le traitement audio avec le texte coranique pour créer des vidéos sous-titrées de qualité professionnelle pour le partage, l'apprentissage et la dawah.",
 		versionLabel: 'Version {version}',
 		restartTutorial: 'Redémarrer le tutoriel',
 		connected: 'Connecté',

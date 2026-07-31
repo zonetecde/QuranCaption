@@ -122,7 +122,7 @@ const settings = {
 	organizingProjects: 'Organizing Projects...',
 	organizeProjectFolders: 'Organize Project Folders',
 	aboutDescription:
-		'Quran Caption is a desktop application that transforms Quranic recitations into beautifully captioned videos. It combines audio processing with Quranic text to create professional-quality subtitled videos for sharing, learning, and dawah.',
+		'Quran Caption is a desktop and mobile application that transforms Quranic recitations into beautifully captioned videos. It combines audio processing with Quranic text to create professional-quality subtitled videos for sharing, learning, and dawah.',
 	versionLabel: 'Version {version}',
 	restartTutorial: 'Restart Tutorial',
 	connected: 'Connected',

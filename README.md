@@ -27,7 +27,7 @@
 
 <br/>
 
-[![Demo Video](https://img.youtube.com/vi/Ree94CLsBcY/maxresdefault.jpg)](https://youtu.be/Ree94CLsBcY)
+[![Demo Video](https://github.com/user-attachments/assets/06571012-7484-4b30-9e27-bbb6fb8f74e8)](https://youtu.be/Ree94CLsBcY)
 <sub>▶ Click to watch the demo</sub>
 
 </div>
@@ -36,7 +36,7 @@
 
 ## What is Quran Caption?
 
-Quran Caption is a desktop video editor built specifically for Quranic recitations. Upload an audio
+Quran Caption is a desktop and mobile video editor built specifically for Quranic recitations. Upload an audio
 or video file, let the AI generate perfectly-timed subtitles, pick your translation(s), customize
 the look, and export — ready for YouTube, TikTok, or Instagram.
 
@@ -47,7 +47,7 @@ No video editing experience required.
 ## Other Versions
 
 - 📱 **Mobile version:** available on the [`mobile-qc`](https://github.com/zonetecde/QuranCaption/tree/mobile-qc) branch.
-- 🗂️ **Quran Caption v2:** available on the [`QuranCaption-2`](https://github.com/zonetecde/QuranCaption/tree/QuranCaption-2) branch.
+- 🗂️ **Old Quran Caption v2:** available on the [`QuranCaption-2`](https://github.com/zonetecde/QuranCaption/tree/QuranCaption-2) branch.
 
 ---
 
@@ -92,11 +92,9 @@ Output videos optimized for any platform — YouTube, Instagram Reels, TikTok, a
 
 ## Screenshots
 
-<img width="1920" alt="Quran Caption editor" src="https://github.com/user-attachments/assets/3875c5c9-2537-414c-a7cc-973e306fb302" />
+<img width="1920" alt="image" src="https://github.com/user-attachments/assets/94df548f-f1c7-46a4-a7ba-3b84222be0ee" />
 
-<img width="1920" alt="Quran Caption translations panel" src="https://github.com/user-attachments/assets/f2ec1ddc-14bc-4b54-8a2d-5e7aea83458f" />
-
-<img width="1920" alt="Quran Caption customization" src="https://github.com/user-attachments/assets/0119f716-f918-48d6-9b23-38530a65ae51" />
+<img width="1920" alt="image" src="https://github.com/user-attachments/assets/3e478503-c129-438b-9cbb-a2e207262d72" />
 
 ---
 
@@ -104,46 +102,11 @@ Output videos optimized for any platform — YouTube, Instagram Reels, TikTok, a
 
 | Platform                         | Link                                                                                                                  |
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| 🪟 Windows                       | [Direct download (.exe)](https://github.com/zonetecde/QuranCaption/releases/latest/download/QuranCaption.Windows.exe) |
+| 🪟 Windows                       | [Installation guide](https://qurancaption.com/documentation/download-and-installation)   |
 | 🍎 macOS (Apple Silicon & Intel) | [Installation guide](https://qurancaption.com/documentation/download-and-installation)                                |
 | 🐧 Linux (Ubuntu, Debian, Arch)  | [Installation guide](https://qurancaption.com/documentation/download-and-installation)                                |
 
 Free and open source. Always.
-
----
-
-## Trusted by creators
-
-Quran Caption is used by channels from small community pages to dedicated Quran media teams:
-
-[@QuranCaption](https://www.youtube.com/@QuranCaption) ·
-[@SimpleQuran-tv](https://www.youtube.com/@SimpleQuran-tv) ·
-[@curlyhairedmuslim](https://www.youtube.com/@curlyhairedmuslim) ·
-[@quran.español](https://www.youtube.com/@quran.español) ·
-[@QuranTheNūr](https://www.youtube.com/@QuranTheNūr) ·
-[@quran_traduit](https://www.youtube.com/@quran_traduit) ·
-[@quranicoasis1](https://www.youtube.com/@quranicoasis1) ·
-[@MasjidDTWS](https://www.youtube.com/@MasjidDTWS) · and hundreds more 🤲
-
----
-
-## Stats
-
-<div align="center">
-
-| 📥 Downloads | 🌍 Languages | 🎬 Videos Created | ⭐ Rating |
-| :----------: | :----------: | :---------------: | :-------: |
-|    7 000+    |     40+      |      10 000+      |  4.8 / 5  |
-
-</div>
-
----
-
-## Documentation
-
-Full documentation — installation, features, style editor, export settings — at:
-
-**[qurancaption.com/documentation](https://qurancaption.com/documentation)**
 
 ---
 
@@ -158,12 +121,6 @@ After cloning, you'll need to add `ffmpeg`, `ffprobe`, and `yt-dlp` binaries to
 
 **Stack:** Svelte · TypeScript · Rust · Tauri · Python · Tailwind CSS
 
----
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/image?repos=zonetecde/QuranCaption&type=date&legend=top-left)](https://www.star-history.com/?repos=zonetecde%2FQuranCaption&type=date&legend=top-left)
-
 ## Contributing
 
 Issues and pull requests are welcome. If you've found a bug or have a feature idea, open an issue or
@@ -173,7 +130,7 @@ jump into the [Discord](https://discord.gg/Hxfqq2QA2J).
 
 <div align="center">
 
-Made with ❤️ by [Rayane Staszewski](https://rayanestaszewski.fr)
+Made by [Rayane Staszewski](https://rayanestaszewski.fr)
 
 [Website](https://qurancaption.com) · [Discord](https://discord.gg/Hxfqq2QA2J) ·
 [Ko-fi](https://ko-fi.com/vzero)

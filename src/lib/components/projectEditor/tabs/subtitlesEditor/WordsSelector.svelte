@@ -29,6 +29,7 @@
 	let suppressNextWordClick = $state(false);
 	let wordContextMenu: ContextMenu | undefined = $state(undefined);
 	let contextMenuWordIndex: number | null = $state(null);
+	let wordSizeLevel = $state(-1);
 
 	function goNextVerse() {
 		if (
@@ -529,12 +530,37 @@
 </script>
 
 <section
-	class={'w-full h-full overflow-y-auto bg-secondary border duration-100 rounded-lg ' +
+	class={'relative w-full h-full overflow-y-auto bg-secondary border duration-100 rounded-lg ' +
 		(subtitlesEditorState().editSubtitle ? 'border-yellow-500' : ' border-color')}
 >
 	<div
+		class="absolute left-0 top-0 z-30 flex overflow-hidden rounded-br-md rounded-tl-lg border-r border-b border-color bg-primary/85 shadow-sm backdrop-blur-sm"
+	>
+		<button
+			type="button"
+			class="flex h-6 w-7 items-center justify-center text-sm text-thirdly transition-colors hover:bg-accent hover:text-primary disabled:opacity-30"
+			title={$LL.editor.zoomOut()}
+			aria-label={$LL.editor.zoomOut()}
+			disabled={wordSizeLevel === -5}
+			onclick={() => (wordSizeLevel = Math.max(-5, wordSizeLevel - 1))}
+		>
+			−
+		</button>
+		<button
+			type="button"
+			class="flex h-6 w-7 items-center justify-center border-l border-color text-sm text-thirdly transition-colors hover:bg-accent hover:text-primary disabled:opacity-30"
+			title={$LL.editor.zoomIn()}
+			aria-label={$LL.editor.zoomIn()}
+			disabled={wordSizeLevel === 3}
+			onclick={() => (wordSizeLevel = Math.min(3, wordSizeLevel + 1))}
+		>
+			+
+		</button>
+	</div>
+	<div
 		class="min-h-full flex flex-row-reverse flex-wrap justify-start content-center xl:leading-[4.5rem] lg:leading-[3rem] leading-[2.5rem]
-	           px-6 text-[2rem] xl:text-5xl arabic py-4"
+	           px-6 text-[2rem] xl:text-5xl arabic pb-4 pt-9"
+		style={`--wbw-word-scale: ${1 + wordSizeLevel * 0.1}; --wbw-word-spacing-scale: ${wordSizeLevel >= -1 ? 1 : 1 + (wordSizeLevel + 1) * 0.2};`}
 		onmouseleave={stopWordDrag}
 	>
 		{#await selectedVerse() then verse}
@@ -550,8 +576,8 @@
 						subtitlesEditorState().startWordIndex === subtitlesEditorState().endWordIndex}
 
 					<button
-						class="word-button flex h-fit flex-col outline-none text-center px-3 cursor-pointer
-					       transition-all border-2 duration-200 border-transparent py-1.5 -mx-0.5 select-none
+						class="word-button flex h-fit flex-col outline-none text-center cursor-pointer
+					       transition-all border-2 duration-200 border-transparent -mx-0.5 select-none
 					       {isSelected
 							? `word-selected text-[var(--text-on-selected-word)]  ${
 									isSingleSelected
@@ -568,16 +594,26 @@
 						onclick={() => handleWordClick(index)}
 						oncontextmenu={(event) => handleWordContextMenu(index, event)}
 						ondragstart={(event) => event.preventDefault()}
+						style="padding: calc(0.375rem * var(--wbw-word-spacing-scale)) calc(0.75rem * var(--wbw-word-spacing-scale));"
 					>
-						<p class="text-center w-full font-medium leading-[1.65]">{word.arabic}</p>
+						<p
+							class="text-center w-full font-medium leading-[1.65]"
+							style="font-size: calc(1em * var(--wbw-word-scale));"
+						>
+							{word.arabic}
+						</p>
 						{#if subtitlesEditorState().showWordTranslation}
-							<p class="xl:text-sm text-[10px] text-thirdly font-normal leading-none opacity-80">
+							<p
+								class="text-thirdly font-normal leading-none opacity-80"
+								style="font-size: calc(0.625rem * var(--wbw-word-scale));"
+							>
 								{word.translation}
 							</p>
 						{/if}
 						{#if subtitlesEditorState().showWordTransliteration}
 							<p
-								class="xl:text-sm text-[10px] text-thirdly font-normal leading-none opacity-70 italic"
+								class="text-thirdly font-normal leading-none opacity-70 italic"
+								style="font-size: calc(0.625rem * var(--wbw-word-scale));"
 							>
 								{word.transliteration}
 							</p>

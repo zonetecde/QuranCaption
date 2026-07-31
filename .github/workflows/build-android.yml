@@ -79,7 +79,7 @@ jobs:
             echo "storeFile=$RUNNER_TEMP/qurancaption-upload.jks"
           } > src-tauri/gen/android/keystore.properties
 
-      - name: Build signed Android App Bundle and create Android release
+      - name: Build signed APK and Android App Bundle and create Android release
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.ANDROID_RELEASE_TOKEN }}
@@ -87,10 +87,10 @@ jobs:
           PUBLIC_POSTHOG_HOST: ${{ secrets.PUBLIC_POSTHOG_HOST }}
         with:
           mobile: android
-          args: --aab --target aarch64 --ci
+          args: --apk --aab --target aarch64 --ci
           tagName: ${{ inputs.tag }}
           releaseName: 'Quran Caption Mobile v__VERSION__'
-          releaseBody: 'Signed Android App Bundle for Google Play distribution.'
+          releaseBody: 'Signed APK for direct installation and signed Android App Bundle for Google Play distribution.'
           releaseDraft: false
           prerelease: true
           generateReleaseNotes: true

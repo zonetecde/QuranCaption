@@ -6,11 +6,14 @@
 	import { automaticSplitSubtitleAtWord } from '$lib/services/AutoSegmentation';
 	import {
 		ensureManualWordByWordEditStateIsValid,
+		moveManualWordByWordSelectedWordEndToCursor,
+		moveManualWordByWordSelectedWordStartToCursor,
 		moveManualWordByWordSelection,
 		stampManualWordByWordCurrentWordAtCursor,
 		syncManualWordByWordSelectionFromVerseWord,
 		syncVerseSelectionWithManualWordByWordIndex
 	} from '$lib/services/WbwHelper';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import { onDestroy, onMount, tick, untrack } from 'svelte';
@@ -122,6 +125,114 @@
 
 		globalState.getSubtitlesEditorState.editSubtitle = null;
 		return true;
+	}
+
+	/**
+	 * Définit la fin du sous-titre sous le curseur, ou du dernier sous-titre si le curseur est hors clip.
+	 * @returns {void}
+	 */
+	export function setLastSubtitleEndTime(): void {
+		if (globalState.shared.wbwEdit.active) {
+			moveManualWordByWordSelectedWordEndToCursor();
+			return;
+		}
+
+		const subtitleTrack = globalState.getSubtitleTrack;
+		const cursorPosition = globalState.getTimelineState.cursorPosition;
+		const currentClip = subtitleTrack.getCurrentClip(cursorPosition);
+
+		if (currentClip) {
+			if (cursorPosition <= currentClip.startTime + 50) return;
+
+			currentClip.setEndTime(cursorPosition);
+			subtitleTrack.getClipAfter(currentClip.id)?.setStartTime(cursorPosition + 1);
+		} else {
+			subtitleTrack.getLastClip()?.setEndTime(cursorPosition);
+		}
+
+		globalState.currentProject?.detail.updateVideoDetailAttributes();
+		globalState.updateVideoPreviewUI();
+	}
+
+	/**
+	 * Définit le début du sous-titre sous le curseur et recale le sous-titre précédent.
+	 * @returns {void}
+	 */
+	export function setLastSubtitleStartTime(): void {
+		if (globalState.shared.wbwEdit.active) {
+			moveManualWordByWordSelectedWordStartToCursor();
+			return;
+		}
+
+		const subtitleTrack = globalState.getSubtitleTrack;
+		const cursorPosition = globalState.getTimelineState.cursorPosition;
+		const currentClip = subtitleTrack.getCurrentClip(cursorPosition);
+
+		if (!currentClip || cursorPosition >= currentClip.endTime - 50) return;
+
+		currentClip.setStartTime(cursorPosition);
+		subtitleTrack.getClipBefore(currentClip.id)?.setEndTime(cursorPosition - 1);
+		globalState.currentProject?.detail.updateVideoDetailAttributes();
+		globalState.updateVideoPreviewUI();
+	}
+
+	/**
+	 * Supprime le sous-titre en cours d'édition, ou le dernier sous-titre de la timeline.
+	 * @returns {void}
+	 */
+	export function removeLastSubtitle(): void {
+		const subtitleTrack = globalState.getSubtitleTrack;
+		const editedSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
+
+		if (editedSubtitle) {
+			subtitleTrack.removeClip(editedSubtitle.id, true);
+			globalState.getSubtitlesEditorState.editSubtitle = null;
+		} else {
+			subtitleTrack.removeLastClip();
+		}
+
+		globalState.currentProject?.detail.updateVideoDetailAttributes();
+		globalState.updateVideoPreviewUI();
+	}
+
+	/**
+	 * Ouvre ou ferme l'édition du sous-titre sous le curseur, ou du dernier sous-titre.
+	 * @returns {void}
+	 */
+	export function editCurrentOrLastSubtitle(): void {
+		ProjectHistoryManager.track('edit subtitle shortcut', () => {
+			const subtitleTrack = globalState.getSubtitleTrack;
+			const subtitleClips = subtitleTrack.clips.filter(
+				(clip): clip is ClipWithTranslation => clip instanceof ClipWithTranslation
+			);
+			if (subtitleClips.length === 0) return;
+
+			const clipUnderCursor = subtitleTrack.getCurrentClip(
+				globalState.getTimelineState.cursorPosition
+			);
+			const clip =
+				clipUnderCursor instanceof ClipWithTranslation ? clipUnderCursor : subtitleClips.at(-1);
+			if (!clip) return;
+
+			globalState.getSubtitlesEditorState.editSubtitle =
+				globalState.getSubtitlesEditorState.editSubtitle?.id === clip.id ? null : clip;
+		});
+	}
+
+	/**
+	 * Sélectionne le verset suivant.
+	 * @returns {void}
+	 */
+	export function selectNextVerse(): void {
+		goNextVerse();
+	}
+
+	/**
+	 * Sélectionne le verset précédent.
+	 * @returns {Promise<void>}
+	 */
+	export async function selectPreviousVerse(): Promise<void> {
+		await goPreviousVerse();
 	}
 
 	/**

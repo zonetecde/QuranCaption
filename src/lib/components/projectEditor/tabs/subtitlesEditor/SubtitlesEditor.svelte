@@ -3,6 +3,7 @@
 	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mount, onDestroy, onMount } from 'svelte';
+	import { fade } from 'svelte/transition';
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 	import Timeline from '../../timeline/Timeline.svelte';
@@ -20,11 +21,13 @@
 	import { TrackType } from '$lib/classes';
 	import DiviseurRedimensionnable from '../DiviseurRedimensionnable.svelte';
 	import MobileSideDrawers from '$lib/components/misc/MobileSideDrawers.svelte';
+	import AutoSegmentationModal from './modal/AutoSegmentationModal.svelte';
 
 	let unlistenDrop: (() => void) | null = null;
 	let leftDrawerOpen = $state(false);
 	let rightDrawerOpen = $state(false);
 	let presetPickerOpen = $state(false);
+	let autoSegmentationModalOpen = $state(false);
 	let lastEditedSubtitleId: number | null = null;
 	let subtitlesWorkspace: { addSubtitle: () => Promise<void> } | null = $state(null);
 
@@ -182,6 +185,7 @@
 				showVersePicker={false}
 				showPlaybackControls
 				onTogglePresetPicker={() => (presetPickerOpen = !presetPickerOpen)}
+				onOpenAutoSegmentation={() => (autoSegmentationModalOpen = true)}
 			/>
 		</section>
 
@@ -222,6 +226,12 @@
 			</div>
 		{/snippet}
 	</MobileSideDrawers>
+
+	{#if autoSegmentationModalOpen}
+		<div class="modal-wrapper" transition:fade>
+			<AutoSegmentationModal close={() => (autoSegmentationModalOpen = false)} />
+		</div>
+	{/if}
 </div>
 
 <style>

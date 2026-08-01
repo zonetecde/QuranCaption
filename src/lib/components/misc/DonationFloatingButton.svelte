@@ -187,9 +187,9 @@
 	}
 </script>
 
-{#if isPromptVisible}
+{#if !isPromptVisible}
 	<section
-		class="support-prompt fixed bottom-3 right-3 xl:bottom-5 xl:right-5 z-20 w-[420px] max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-1.5rem)] overflow-auto rounded-2xl"
+		class="support-prompt fixed bottom-3 right-3 pb-8 xl:bottom-5 xl:right-5 z-100 w-[420px] max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-1.5rem)] overflow-auto rounded-2xl"
 	>
 		<div class="prompt-header px-4 py-3.5 flex items-start justify-between gap-3">
 			<div class="flex items-start gap-3 min-w-0">

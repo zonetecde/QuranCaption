@@ -25,8 +25,13 @@
 	import ProjectDetailCard from './ProjectDetailCard.svelte';
 	import ProjectDetailCardSkeleton from './ProjectDetailCardSkeleton.svelte';
 	import CreateProjectModal from './modals/CreateProjectModal.svelte';
+	import FirstLaunchLanguageModal from './modals/FirstLaunchLanguageModal.svelte';
+
+	const SIMULATE_FIRST_LAUNCH = false;
 
 	let createNewProjectModalVisible = $state(false);
+	let firstLaunchLanguageModalVisible = $state(false);
+	let firstLaunchSimulationApplied = false;
 
 	// Etats pour les menus de filtrage et tri
 	let filterMenuVisible = $state(false);
@@ -194,6 +199,17 @@
 		persistHomePreferences();
 	});
 
+	$effect(() => {
+		const settings = globalState.settings;
+		if (!SIMULATE_FIRST_LAUNCH || !settings || firstLaunchSimulationApplied) return;
+
+		firstLaunchSimulationApplied = true;
+		settings.persistentUiState.language = 'en';
+		settings.persistentUiState.hasSelectedLanguage = false;
+		settings.persistentUiState.hasSeenTour = false;
+		settings.persistentUiState.lastClosedDonationBanner = new Date(0).toISOString();
+	});
+
 	onMount(async () => {
 		await VersionService.init();
 		if (VersionService.latestUpdate?.hasUpdate && globalState.settings) {
@@ -226,6 +242,10 @@
 				await setupTutorialProject();
 			} catch (error) {
 				console.warn('Tutorial project setup failed:', error);
+			}
+			if (!globalState.settings.persistentUiState.hasSelectedLanguage) {
+				firstLaunchLanguageModalVisible = true;
+				return;
 			}
 			setTimeout(() => TourManager.start(), 600);
 		}
@@ -433,6 +453,15 @@
 	<div class="modal-wrapper" transition:fade>
 		<CreateProjectModal close={() => (createNewProjectModalVisible = false)} />
 	</div>
+{/if}
+
+{#if firstLaunchLanguageModalVisible}
+	<FirstLaunchLanguageModal
+		confirm={() => {
+			firstLaunchLanguageModalVisible = false;
+			setTimeout(() => TourManager.start(), 200);
+		}}
+	/>
 {/if}
 
 <style>

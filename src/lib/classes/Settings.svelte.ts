@@ -118,6 +118,7 @@ export default class Settings extends SerializableBase {
 		themeIntensity: 100,
 		editorPanelScalePercent: -15,
 		hasSeenTour: false,
+		hasSelectedLanguage: false,
 		language: 'en' as 'en' | 'fr' | 'de' | 'es' | 'zh' | 'id',
 		theme: 'default' as
 			| 'default'
@@ -233,6 +234,11 @@ export default class Settings extends SerializableBase {
 		let shouldSave = false;
 
 		// Migrations ================
+		if (typeof settingsData.persistentUiState?.hasSelectedLanguage !== 'boolean') {
+			settings.persistentUiState.hasSelectedLanguage = true;
+			shouldSave = true;
+		}
+
 		const projectEditorLayout = settings.persistentUiState.projectEditorLayout as
 			| Partial<ProjectEditorLayout>
 			| undefined;

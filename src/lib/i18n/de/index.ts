@@ -2956,6 +2956,7 @@ const de = {
 		openFile: 'Datei öffnen',
 		shareFile: 'Datei teilen',
 		batchSize: 'Stapelgröße',
+		fileSize: 'Dateigröße',
 		statePending: 'Wartend',
 		stateRecording: 'Aufnahme',
 		stateAddingAudio: 'Audio wird hinzugefügt',

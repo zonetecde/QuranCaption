@@ -61,6 +61,17 @@
 	}
 
 	/**
+	 * Formate une taille de fichier avec une unité lisible.
+	 * @param {number | null | undefined} bytes Taille en octets.
+	 * @returns {string} Taille formatée ou tiret si elle est indisponible.
+	 */
+	function formatFileSize(bytes: number | null | undefined): string {
+		if (typeof bytes !== 'number') return '—';
+		const megabytes = bytes / 1024 / 1024;
+		return megabytes >= 1024 ? `${(megabytes / 1024).toFixed(1)} GB` : `${megabytes.toFixed(1)} MB`;
+	}
+
+	/**
 	 * Retourne le temps total mémorisé ou calculé depuis le lancement du monitor.
 	 * @param {Exportation} exportation Export affiché.
 	 * @returns {number} Temps écoulé en millisecondes.
@@ -508,7 +519,9 @@
 								</div>
 							{/if}
 
-							<div class="mt-4 grid grid-cols-2 gap-2 text-xs">
+							<div
+								class={`mt-4 grid gap-2 text-xs ${exportation.exportKind === ExportKind.Video && exportation.currentState === ExportState.Exported ? 'grid-cols-3' : 'grid-cols-2'}`}
+							>
 								{#if exportation.exportKind === ExportKind.Video}
 									<div class="detail-pill">
 										<span>{get(LL).export.dimensionsColumn()}</span>
@@ -521,8 +534,14 @@
 										<span>{get(LL).export.durationColumn()}</span>
 										<strong>{formatDuration(exportation.videoLength)}</strong>
 									</div>
+									{#if exportation.currentState === ExportState.Exported}
+										<div class="detail-pill">
+											<span>{monitorMessage('fileSize')}</span>
+											<strong>{formatFileSize(exportation.fileSizeBytes)}</strong>
+										</div>
+									{/if}
 								{/if}
-								<div class="col-span-2 flex min-w-0 gap-2">
+								<div class="col-span-full flex min-w-0 gap-2">
 									<div class="detail-pill min-w-0 flex-1">
 										{#if exportation.exportKind === ExportKind.Video}
 											<span>{get(LL).export.versesColumn()}</span>

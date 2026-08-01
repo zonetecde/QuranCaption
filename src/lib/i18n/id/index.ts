@@ -1627,6 +1627,7 @@ const id = {
 		openFile: 'Buka file',
 		shareFile: 'Bagikan file',
 		batchSize: 'Ukuran batch',
+		fileSize: 'Ukuran file',
 		statePending: 'Menunggu',
 		stateRecording: 'Merekam',
 		stateAddingAudio: 'Menambahkan audio',

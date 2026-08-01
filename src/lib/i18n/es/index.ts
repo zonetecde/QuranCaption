@@ -2949,6 +2949,7 @@ const es = {
 		openFile: 'Abrir archivo',
 		shareFile: 'Compartir archivo',
 		batchSize: 'Tamaño del lote',
+		fileSize: 'Tamaño del archivo',
 		statePending: 'En espera',
 		stateRecording: 'Grabando',
 		stateAddingAudio: 'Añadiendo audio',

@@ -2978,6 +2978,7 @@ const fr = {
 		openFile: 'Ouvrir le fichier',
 		shareFile: 'Partager le fichier',
 		batchSize: 'Taille du lot',
+		fileSize: 'Taille du fichier',
 		statePending: 'En attente',
 		stateRecording: 'Enregistrement',
 		stateAddingAudio: 'Ajout de l\u2019audio',

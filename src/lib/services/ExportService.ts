@@ -326,6 +326,7 @@ export function applyExportProgress(data: ExportProgress): void {
 		exportation.currentState = data.currentState;
 		exportation.currentTreatedTime = data.currentTime;
 		if (data.finalFilePath) exportation.finalFilePath = data.finalFilePath;
+		if (typeof data.fileSizeBytes === 'number') exportation.fileSizeBytes = data.fileSizeBytes;
 		exportation.hasSecondarySegmentProgress = data.hasSecondarySegmentProgress ?? false;
 		exportation.processingBackgroundProgress = data.processingBackgroundProgress ?? 0;
 		exportation.processingBackgroundCurrentSegment = data.processingBackgroundCurrentSegment ?? 0;
@@ -401,6 +402,7 @@ export interface ExportProgress {
 	currentBatchSize?: number;
 	errorLog?: string;
 	finalFilePath?: string;
+	fileSizeBytes?: number;
 	nativeNotificationCompleted?: boolean;
 }
 

@@ -9497,6 +9497,10 @@ type RootTranslation = {
 		 */
 		batchSize: string;
 		/**
+		 * F​i​l​e​ ​s​i​z​e
+		 */
+		fileSize: string;
+		/**
 		 * W​a​i​t​i​n​g
 		 */
 		statePending: string;
@@ -20204,6 +20208,10 @@ export type TranslationFunctions = {
 		 * Batch size
 		 */
 		batchSize: () => LocalizedString;
+		/**
+		 * File size
+		 */
+		fileSize: () => LocalizedString;
 		/**
 		 * Waiting
 		 */

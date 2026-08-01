@@ -2686,6 +2686,7 @@ const zh = {
 		openFile: '打开文件',
 		shareFile: '分享文件',
 		batchSize: '批次大小',
+		fileSize: '文件大小',
 		statePending: '等待中',
 		stateRecording: '录制中',
 		stateAddingAudio: '正在添加音频',

@@ -59,6 +59,7 @@ export default class Exportation extends SerializableBase {
 	exportLogs: ExportLogEntry[] = $state([]);
 	date: string;
 	totalExportTimeMs: number | null;
+	fileSizeBytes: number | null;
 	sourceProjectId: number | null;
 	hasWordByWordStyles: boolean;
 
@@ -110,6 +111,7 @@ export default class Exportation extends SerializableBase {
 		this.currentBatchSize = $state(null);
 		this.date = $state(new Date().toISOString());
 		this.totalExportTimeMs = $state(null);
+		this.fileSizeBytes = $state(null);
 		this.sourceProjectId = sourceProjectId;
 		this.hasWordByWordStyles = $state(hasWordByWordStyles);
 	}

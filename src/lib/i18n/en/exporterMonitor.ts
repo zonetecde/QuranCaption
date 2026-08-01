@@ -17,6 +17,7 @@ const exporterMonitor = {
 	openFile: 'Open file',
 	shareFile: 'Share file',
 	batchSize: 'Batch size',
+	fileSize: 'File size',
 	statePending: 'Waiting',
 	stateRecording: 'Recording',
 	stateAddingAudio: 'Adding audio',

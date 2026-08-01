@@ -14,7 +14,8 @@
 		writeFile,
 		remove,
 		readFile,
-		readDir
+		readDir,
+		stat
 	} from '@tauri-apps/plugin-fs';
 	import { appDataDir, join } from '@tauri-apps/api/path';
 	import ExportService, { type ExportProgress } from '$lib/services/ExportService';
@@ -1222,6 +1223,7 @@
 			renderSegments,
 			segmentBlankImageIndexes
 		);
+		const fileSizeBytes = await getGeneratedFileSizeBytes();
 		isSegmentedVideoExport = false;
 		refreshSecondarySegmentProgressVisibility();
 
@@ -1232,6 +1234,7 @@
 			currentTime: totalDuration,
 			totalTime: totalDuration,
 			finalFilePath: publishedFilePath,
+			fileSizeBytes,
 			nativeNotificationCompleted: true
 		} as ExportProgress);
 		await finalCleanup();
@@ -1937,6 +1940,7 @@
 			blur,
 			normalizedBlankTimings
 		);
+		const fileSizeBytes = await getGeneratedFileSizeBytes();
 
 		await emitProgress({
 			exportId: Number(exportId),
@@ -1945,6 +1949,7 @@
 			currentTime: totalDuration,
 			totalTime: totalDuration,
 			finalFilePath: publishedFilePath,
+			fileSizeBytes,
 			nativeNotificationCompleted: true
 		} as ExportProgress);
 
@@ -2333,6 +2338,19 @@
 		}
 		if (window.parent !== window) {
 			window.parent.postMessage({ type: 'export-renderer-finished-main', exportId }, '*');
+		}
+	}
+
+	/**
+	 * Lit la taille du rendu local avant la suppression du dossier temporaire.
+	 * @returns {Promise<number | undefined>} Taille du fichier en octets, si disponible.
+	 */
+	async function getGeneratedFileSizeBytes(): Promise<number | undefined> {
+		try {
+			return (await stat(exportData!.finalFilePath)).size;
+		} catch (error) {
+			console.warn('Could not read generated file size:', error);
+			return undefined;
 		}
 	}
 

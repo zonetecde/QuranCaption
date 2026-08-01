@@ -32,7 +32,7 @@
 </script>
 
 <div class="translations-editor-mobile-shell">
-	<section class="translations-editor-toolbar">
+	<section class="translations-editor-toolbar" style={`--editor-panel-scale: ${panelScale};`}>
 		<button
 			class="drawer-toggle"
 			class:drawer-open={leftDrawerOpen}
@@ -162,6 +162,7 @@
 		flex-shrink: 0;
 		align-items: center;
 		gap: 0.5rem;
+		zoom: var(--editor-panel-scale);
 	}
 
 	.translations-editor-title {

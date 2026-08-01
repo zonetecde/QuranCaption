@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { PROJECT_EDITOR_SUBTITLES_WORDS_HEIGHT } from '$lib/constants/projectEditor';
+	import DiviseurRedimensionnable from '../DiviseurRedimensionnable.svelte';
 	import VersePicker from './VersePicker.svelte';
 	import WordsSelector from './WordsSelector.svelte';
 
@@ -33,6 +35,22 @@
 		selectPreviousVerse: () => Promise<void>;
 	} | null = $state(null);
 	let controlHelpCopy = $derived($LL.editor as unknown as Record<string, () => string>);
+	let wordsHeight = $derived(
+		Math.max(
+			PROJECT_EDITOR_SUBTITLES_WORDS_HEIGHT.min,
+			Math.min(
+				PROJECT_EDITOR_SUBTITLES_WORDS_HEIGHT.max,
+				globalState.settings!.persistentUiState.projectEditorLayout.subtitlesWordsHeight
+			)
+		)
+	);
+	let controlBarExpansion = $derived(
+		Math.max(
+			0,
+			(PROJECT_EDITOR_SUBTITLES_WORDS_HEIGHT.default - wordsHeight) /
+				(PROJECT_EDITOR_SUBTITLES_WORDS_HEIGHT.default - PROJECT_EDITOR_SUBTITLES_WORDS_HEIGHT.min)
+		)
+	);
 
 	/**
 	 * Valide la sélection de mots courante depuis les contrôles tactiles.
@@ -98,12 +116,32 @@
 		{/if}
 
 		<!-- Affichage des mots du verset - prend toute la hauteur restante -->
-		<div class="flex-1 min-h-0">
+		<div
+			class="min-h-0"
+			class:flex-1={!showPlaybackControls}
+			class:words-selector-resizable={showPlaybackControls}
+			style:flex-basis={showPlaybackControls ? `${wordsHeight}%` : undefined}
+		>
 			<WordsSelector bind:this={wordsSelector} />
 		</div>
 
 		{#if showPlaybackControls}
-			<div class="playback-controls">
+			<DiviseurRedimensionnable
+				orientation="horizontal"
+				bind:value={
+					globalState.settings!.persistentUiState.projectEditorLayout.subtitlesWordsHeight
+				}
+				displayedValue={wordsHeight}
+				min={PROJECT_EDITOR_SUBTITLES_WORDS_HEIGHT.min}
+				max={PROJECT_EDITOR_SUBTITLES_WORDS_HEIGHT.max}
+				unit="percent"
+				dataTestId="subtitles-words-resizer"
+			/>
+
+			<div
+				class="playback-controls"
+				style={`--playback-button-height: ${2.25 + controlBarExpansion * 6.25}rem; --playback-small-button-height: ${1.45 + controlBarExpansion * 5.55}rem;`}
+			>
 				<div class="playback-control-side playback-control-side-left">
 					<button
 						class="playback-control-button playback-control-button-validate playback-control-button-predefined"
@@ -269,6 +307,10 @@
 </section>
 
 <style>
+	.words-selector-resizable {
+		flex: 0 1 auto;
+	}
+
 	.control-help-backdrop,
 	.control-help-dismiss {
 		position: fixed;
@@ -294,12 +336,12 @@
 	.playback-controls {
 		box-sizing: border-box;
 		display: grid;
-		flex-shrink: 0;
+		min-height: 6.5rem;
+		flex: 1 1 0;
 		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
 		grid-template-rows: repeat(2, minmax(0, 1fr));
 		align-items: center;
 		gap: 0.75rem;
-		height: 6.5rem;
 		padding-top: 0.5rem;
 	}
 
@@ -522,11 +564,11 @@
 		grid-column: 1;
 	}
 
-	.playback-control-button-set-end {
+	.playback-control-button-set-end span {
 		transform: rotate(-90deg);
 	}
 
-	.playback-control-button-set-start {
+	.playback-control-button-set-start span {
 		transform: rotate(-90deg);
 	}
 
@@ -536,7 +578,7 @@
 
 	.playback-control-button {
 		display: flex;
-		height: 2.25rem;
+		height: var(--playback-button-height, 2.25rem);
 		width: 2.25rem;
 		align-items: center;
 		justify-content: center;
@@ -565,10 +607,14 @@
 		gap: 0.75rem;
 	}
 
+	.playback-control-horizontal .playback-control-button:not(.playback-control-button-primary) {
+		height: 2.25rem;
+	}
+
 	.playback-control-button-up,
 	.playback-control-button-down {
 		position: absolute;
-		height: 1.45rem;
+		height: var(--playback-small-button-height, 1.45rem);
 		width: 1.45rem;
 		left: 50%;
 		transform: translateX(-50%);
@@ -580,7 +626,7 @@
 	.playback-control-button-quick-silence {
 		position: absolute;
 		font-size: 1.25rem;
-		height: 1.45rem;
+		height: var(--playback-small-button-height, 1.45rem);
 		font-weight: 600;
 	}
 

@@ -920,7 +920,7 @@
 	});
 </script>
 
-<div class="bg-secondary relative flex h-full min-w-0 flex-1 flex-col">
+<div class="style-editor-scale bg-secondary relative flex h-full min-w-0 flex-1 flex-col">
 	{#if presetLibraryOpen}
 		<PresetLibrary onBack={closePresetLibrary} />
 	{:else}
@@ -1024,6 +1024,12 @@
 </div>
 
 <style>
+	.style-editor-scale {
+		max-width: 100%;
+		height: 125%;
+		zoom: 0.8;
+	}
+
 	.style-settings-scroll {
 		display: flex;
 		flex-direction: column;

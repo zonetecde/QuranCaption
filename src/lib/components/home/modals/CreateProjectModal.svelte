@@ -8,7 +8,7 @@
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
 	import RecitersManager from '$lib/classes/Reciter';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
-	import { androidBackButton } from '$lib/services/mobileModalSheet';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 	import {
 		DEFAULT_PROJECT_TYPE,
 		PROJECT_TYPE_OPTIONS,
@@ -48,7 +48,7 @@
 
 <div
 	class="create-project-modal relative flex max-h-[min(92vh,48rem)] w-[min(100%-1.5rem,42rem)] flex-col overflow-hidden rounded-2xl border border-color bg-secondary shadow-2xl shadow-black"
-	use:androidBackButton={close}
+	use:mobileModalSheet={close}
 >
 	<div
 		class="rounded-t-2xl border-b border-color bg-gradient-to-r from-accent to-bg-accent px-4 py-4 sm:px-6 sm:py-5"
@@ -118,7 +118,6 @@
 				icon="person"
 				labelIcon="record_voice_over"
 				label={$LL.home.reciter()}
-				useModalSuggestions={true}
 				onEnterPress={createProjectButtonClick}
 			/>
 		</div>
@@ -201,22 +200,6 @@
 	/* Character counter styling */
 	.absolute span {
 		backdrop-filter: blur(4px);
-	}
-
-	/* Modal entrance animation */
-	.create-project-modal {
-		animation: modalSlideIn 0.3s ease-out;
-	}
-
-	@keyframes modalSlideIn {
-		from {
-			opacity: 0;
-			transform: scale(0.95) translateY(-20px);
-		}
-		to {
-			opacity: 1;
-			transform: scale(1) translateY(0);
-		}
 	}
 
 	/* Icon rotation on close button hover */

@@ -220,6 +220,14 @@
 		}
 	}
 
+	/**
+	 * Met la prévisualisation en pause lorsque l'application quitte le premier plan.
+	 * @returns {void}
+	 */
+	function pauseWhenAppIsHidden(): void {
+		if (document.visibilityState === 'hidden' && isPlaying) pause();
+	}
+
 	onDestroy(() => {
 		if (audioHowl) {
 			audioHowl.unload(); // Libère les ressources audio
@@ -228,6 +236,7 @@
 
 		window.removeEventListener('resize', resizeVideoToFitScreen);
 		window.removeEventListener('qurancaption-release-asset-media', releaseAssetMedia);
+		document.removeEventListener('visibilitychange', pauseWhenAppIsHidden);
 	});
 
 	// === CYCLE DE VIE DU COMPOSANT ===
@@ -235,6 +244,7 @@
 		resizeVideoToFitScreen(); // Redimensionne initial
 		window.addEventListener('resize', resizeVideoToFitScreen); // Écoute le redimensionnement de fenêtre
 		window.addEventListener('qurancaption-release-asset-media', releaseAssetMedia);
+		document.addEventListener('visibilitychange', pauseWhenAppIsHidden);
 
 		// Force la synchronisation initiale vidéo/audio avec la position du curseur
 		triggerVideoAndAudioToFitCursor();

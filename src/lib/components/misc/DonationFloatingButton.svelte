@@ -187,7 +187,7 @@
 	}
 </script>
 
-{#if !isPromptVisible}
+{#if isPromptVisible}
 	<section
 		class="support-prompt fixed bottom-3 right-3 pb-8 xl:bottom-5 xl:right-5 z-100 w-[420px] max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-1.5rem)] overflow-auto rounded-2xl"
 	>

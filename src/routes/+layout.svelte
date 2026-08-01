@@ -8,6 +8,7 @@
 	import { setLocale } from '$lib/i18n/i18n-svelte';
 	import { isLocale } from '$lib/i18n/i18n-util';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import { setupAndroidBackGuard } from '$lib/services/mobileModalSheet';
 
 	let { children } = $props();
 
@@ -17,6 +18,7 @@
 
 	onMount(() => {
 		initializeClassRegistry();
+		return setupAndroidBackGuard();
 	});
 
 	const currentTheme = $derived(globalState.settings?.persistentUiState?.theme || 'default');

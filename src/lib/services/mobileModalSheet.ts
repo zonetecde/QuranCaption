@@ -13,6 +13,7 @@ const modalHistoryStack: ModalHistoryEntry[] = [];
 let nextModalHistoryId = 0;
 let ignoredPopstates = 0;
 let isHistoryListenerRegistered = false;
+let androidBackGuards = 0;
 
 /**
  * Ferme le modal au premier plan lorsque la navigation Android revient en arrière.
@@ -26,9 +27,38 @@ function closeTopModalFromHistory(): void {
 	}
 
 	const entry = modalHistoryStack.at(-1);
-	if (!entry) return;
+	if (!entry) {
+		if (androidBackGuards > 0) history.pushState({ ...history.state }, '');
+		return;
+	}
 	entry.closedFromHistory = true;
 	entry.onClose();
+}
+
+/**
+ * Installe l'écouteur partagé du bouton retour Android.
+ *
+ * @returns {void}
+ */
+function ensureHistoryListener(): void {
+	if (isHistoryListenerRegistered) return;
+	window.addEventListener('popstate', closeTopModalFromHistory);
+	isHistoryListenerRegistered = true;
+}
+
+/**
+ * Empêche le bouton retour Android de quitter l'application sans action explicite.
+ *
+ * @returns {() => void} Suppression de la garde.
+ */
+export function setupAndroidBackGuard(): () => void {
+	ensureHistoryListener();
+	androidBackGuards += 1;
+	if (androidBackGuards === 1) history.pushState({ ...history.state }, '');
+
+	return () => {
+		androidBackGuards = Math.max(0, androidBackGuards - 1);
+	};
 }
 
 /**
@@ -45,10 +75,7 @@ function registerModalHistory(onClose: () => void): () => void {
 	};
 	modalHistoryStack.push(entry);
 
-	if (!isHistoryListenerRegistered) {
-		window.addEventListener('popstate', closeTopModalFromHistory);
-		isHistoryListenerRegistered = true;
-	}
+	ensureHistoryListener();
 	history.pushState({ ...history.state, [MODAL_HISTORY_KEY]: entry.id }, '');
 
 	return () => {

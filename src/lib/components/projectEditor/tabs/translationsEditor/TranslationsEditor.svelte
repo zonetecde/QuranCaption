@@ -141,6 +141,7 @@
 	}
 
 	.translations-editor-toolbar {
+		position: relative;
 		display: flex;
 		flex-shrink: 0;
 		align-items: center;
@@ -148,15 +149,21 @@
 	}
 
 	.translations-editor-title {
-		min-width: 0;
-		flex: 1;
+		position: absolute;
+		left: 50%;
+		max-width: calc(100% - 13rem);
 		overflow: hidden;
+		transform: translateX(-50%);
 		text-align: center;
 		font-size: 1rem;
 		font-weight: 600;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		color: var(--text-primary);
+	}
+
+	.translations-editor-toolbar > .drawer-toggle:last-child {
+		margin-left: auto;
 	}
 
 	.translations-editor-workspace {

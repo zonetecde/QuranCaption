@@ -30,6 +30,9 @@
 	let wordContextMenu: ContextMenu | undefined = $state(undefined);
 	let contextMenuWordIndex: number | null = $state(null);
 	let wordSizeLevel = $state(-1);
+	let panelScale = $derived(
+		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
+	);
 
 	function goNextVerse() {
 		if (
@@ -535,6 +538,7 @@
 >
 	<div
 		class="absolute left-0 top-0 z-30 flex overflow-hidden rounded-br-md rounded-tl-lg border-r border-b border-color bg-primary/85 shadow-sm backdrop-blur-sm"
+		style={`zoom: ${panelScale};`}
 	>
 		<button
 			type="button"
@@ -560,7 +564,7 @@
 	<div
 		class="min-h-full flex flex-row-reverse flex-wrap justify-start content-center xl:leading-[4.5rem] lg:leading-[3rem] leading-[2.5rem]
 	           px-6 text-[2rem] xl:text-5xl arabic pb-4 pt-9"
-		style={`--wbw-word-scale: ${1 + wordSizeLevel * 0.1}; --wbw-word-spacing-scale: ${wordSizeLevel >= -1 ? 1 : 1 + (wordSizeLevel + 1) * 0.2};`}
+		style={`--wbw-word-scale: ${(1 + wordSizeLevel * 0.1) * panelScale}; --wbw-word-spacing-scale: ${(wordSizeLevel >= -1 ? 1 : 1 + (wordSizeLevel + 1) * 0.2) * panelScale}; padding: calc(2.25rem * ${panelScale}) calc(1.5rem * ${panelScale}) calc(1rem * ${panelScale});`}
 		onmouseleave={stopWordDrag}
 	>
 		{#await selectedVerse() then verse}

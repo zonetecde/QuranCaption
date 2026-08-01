@@ -23,6 +23,9 @@
 	let ongoingCount = $derived(
 		globalState.exportations.filter((exportation) => exportation.isOnGoing()).length
 	);
+	let panelScale = $derived(
+		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
+	);
 
 	/**
 	 * Résout une nouvelle clé du moniteur sans dépendre des types i18n régénérés au commit.
@@ -333,7 +336,8 @@
 		<dialog
 			open
 			use:mobileModalSheet={closeMonitor}
-			class="export-monitor-sheet border border-color bg-primary"
+			class="export-monitor-sheet export-monitor-ui-scale border border-color bg-primary"
+			style={`--editor-panel-scale: ${panelScale}; --editor-panel-height: ${100 / panelScale}%;`}
 			aria-modal="true"
 			aria-labelledby="export-monitor-title"
 		>
@@ -644,6 +648,16 @@
 		border-radius: 1rem 1rem 0 0;
 		color: inherit;
 		box-shadow: 0 -18px 60px rgb(0 0 0 / 35%);
+	}
+
+	.export-monitor-ui-scale {
+		display: flex;
+		min-width: 0;
+		max-width: 100%;
+		height: var(--editor-panel-height);
+		flex: 1;
+		flex-direction: column;
+		zoom: var(--editor-panel-scale);
 	}
 
 	.export-monitor-header,

@@ -50,9 +50,24 @@
 	);
 	let isSupportModalOpen = $state(false);
 	let settingsMenuOpen = $state(true);
+	let panelScale = $derived(
+		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
+	);
 	let defaultValuesCopy = $derived($LL.settings as unknown as { defaultValues: () => string });
+	let interfaceCopy = $derived(
+		$LL.settings as unknown as {
+			userInterface: () => string;
+			editorPanelScale: () => string;
+			editorPanelScaleDescription: () => string;
+		}
+	);
 	let settingsSections = $derived([
 		{ name: $LL.settings.support(), tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' },
+		{
+			name: interfaceCopy.userInterface(),
+			tab: SettingsTab.USER_INTERFACE,
+			icon: 'display_settings'
+		},
 		{ name: $LL.settings.theme(), tab: SettingsTab.THEME, icon: 'light_mode' },
 		{ name: $LL.settings.aiKey(), tab: SettingsTab.AI_KEY, icon: 'key' },
 		{ name: $LL.settings.stockMedia(), tab: SettingsTab.STOCK_MEDIA, icon: 'public' },
@@ -164,7 +179,8 @@
 </script>
 
 <div
-	class="bg-secondary border border-color rounded-2xl w-full h-full p-0 shadow-2xl shadow-black/50 flex flex-col relative overflow-hidden"
+	class="settings-ui-scale bg-secondary border border-color rounded-2xl w-full h-full p-0 shadow-2xl shadow-black/50 flex flex-col relative overflow-hidden"
+	style={`--editor-panel-scale: ${panelScale}; --editor-panel-height: ${100 / panelScale}%;`}
 	use:mobileModalSheet={() => resolve(false)}
 	transition:slide
 >
@@ -225,7 +241,37 @@
 		{:else}
 			<!-- Content -->
 			<div class="h-full p-4 overflow-auto">
-				{#if globalState.uiState.settingsTab === SettingsTab.THEME}
+				{#if globalState.uiState.settingsTab === SettingsTab.USER_INTERFACE}
+					<div class="space-y-4">
+						<h3 class="text-lg font-medium text-primary">{interfaceCopy.userInterface()}</h3>
+						<p class="text-sm text-thirdly">{interfaceCopy.editorPanelScaleDescription()}</p>
+
+						{#if globalState.settings}
+							<div class="rounded-xl border border-color bg-primary p-4 space-y-3">
+								<div class="flex items-center justify-between gap-3">
+									<label for="editor-panel-scale" class="text-sm font-medium text-primary">
+										{interfaceCopy.editorPanelScale()}
+									</label>
+									<span class="w-12 text-right font-mono text-sm text-accent-primary">
+										{globalState.settings.persistentUiState.editorPanelScalePercent > 0
+											? '+'
+											: ''}{globalState.settings.persistentUiState.editorPanelScalePercent}%
+									</span>
+								</div>
+								<input
+									id="editor-panel-scale"
+									type="range"
+									min="-60"
+									max="0"
+									step="5"
+									class="w-full accent-accent-primary"
+									bind:value={globalState.settings.persistentUiState.editorPanelScalePercent}
+									onchange={() => void Settings.save()}
+								/>
+							</div>
+						{/if}
+					</div>
+				{:else if globalState.uiState.settingsTab === SettingsTab.THEME}
 					<!-- Theme Selection -->
 					<div class="space-y-4">
 						<h3 class="text-lg font-medium text-primary">{$LL.settings.theme()}</h3>
@@ -400,6 +446,16 @@
 {/if}
 
 <style>
+	.settings-ui-scale {
+		display: flex;
+		min-width: 0;
+		max-width: 100%;
+		height: var(--editor-panel-height);
+		flex: 1;
+		flex-direction: column;
+		zoom: var(--editor-panel-scale);
+	}
+
 	.selected {
 		background-color: var(--bg-accent) !important;
 		color: var(--text-primary) !important;

@@ -2,6 +2,10 @@ const settings = {
 	settings: 'Settings',
 	customizeExperience: 'Customize your experience and backups',
 	shortcuts: 'Shortcuts',
+	userInterface: 'User interface',
+	editorPanelScale: 'Interface size',
+	editorPanelScaleDescription:
+		'Adjust the size of supported interface elements throughout the app.',
 	theme: 'Theme',
 	notifications: 'Notifications',
 	aiKey: 'AI Key',

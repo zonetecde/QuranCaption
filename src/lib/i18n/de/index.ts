@@ -2303,6 +2303,10 @@ const de = {
 		settings: 'Einstellungen',
 		customizeExperience: 'Passen Sie Ihr Erlebnis und Ihre Backups an',
 		shortcuts: 'Tastenkürzel',
+		userInterface: 'Benutzeroberfläche',
+		editorPanelScale: 'Größe der Benutzeroberfläche',
+		editorPanelScaleDescription:
+			'Passt die Größe unterstützter Oberflächenelemente in der gesamten App an.',
 		theme: 'Design',
 		notifications: 'Benachrichtigungen',
 		aiKey: 'KI-Schlussel',

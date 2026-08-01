@@ -2325,6 +2325,10 @@ const fr = {
 		settings: 'Paramètres',
 		customizeExperience: 'Personnalisez votre expérience et vos sauvegardes',
 		shortcuts: 'Raccourcis',
+		userInterface: 'Interface utilisateur',
+		editorPanelScale: 'Taille de l’interface',
+		editorPanelScaleDescription:
+			'Ajustez la taille des éléments d’interface pris en charge dans toute l’application.',
 		theme: 'Thème',
 		notifications: 'Notifications',
 		aiKey: 'Clé IA',

@@ -2300,6 +2300,10 @@ const es = {
 		settings: 'Configuración',
 		customizeExperience: 'Personalice su experiencia y sus copias de seguridad',
 		shortcuts: 'Atajos',
+		userInterface: 'Interfaz de usuario',
+		editorPanelScale: 'Tamaño de la interfaz',
+		editorPanelScaleDescription:
+			'Ajusta el tamaño de los elementos de interfaz compatibles en toda la aplicación.',
 		theme: 'Tema',
 		notifications: 'Notificaciones',
 		aiKey: 'Clave IA',

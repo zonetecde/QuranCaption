@@ -116,6 +116,7 @@ export default class Settings extends SerializableBase {
 		] as TrackType[],
 		desktopNotificationsEnabled: true,
 		themeIntensity: 100,
+		editorPanelScalePercent: -15,
 		hasSeenTour: false,
 		language: 'en' as 'en' | 'fr' | 'de' | 'es' | 'zh' | 'id',
 		theme: 'default' as
@@ -232,41 +233,6 @@ export default class Settings extends SerializableBase {
 		let shouldSave = false;
 
 		// Migrations ================
-		if (!settings.exportSettings || typeof settings.exportSettings !== 'object') {
-			settings.exportSettings = {} as ExportSettings;
-			shouldSave = true;
-		}
-		if (!settings.defaultValuesSettings || typeof settings.defaultValuesSettings !== 'object') {
-			settings.defaultValuesSettings = {
-				exportFileNameFormat: DEFAULT_EXPORT_FILE_NAME_FORMAT,
-				youtubeVideoTitle: '',
-				youtubeVideoDescription: ''
-			};
-			shouldSave = true;
-		} else {
-			if (!settings.defaultValuesSettings.exportFileNameFormat?.trim()) {
-				settings.defaultValuesSettings.exportFileNameFormat = DEFAULT_EXPORT_FILE_NAME_FORMAT;
-				shouldSave = true;
-			}
-			if (typeof settings.defaultValuesSettings.youtubeVideoTitle !== 'string') {
-				settings.defaultValuesSettings.youtubeVideoTitle = '';
-				shouldSave = true;
-			}
-			if (typeof settings.defaultValuesSettings.youtubeVideoDescription !== 'string') {
-				settings.defaultValuesSettings.youtubeVideoDescription = '';
-				shouldSave = true;
-			}
-		}
-		if (!settings.subtitleExportSettings || typeof settings.subtitleExportSettings !== 'object') {
-			settings.subtitleExportSettings = {
-				subtitleFormat: 'SRT',
-				includedTarget: { arabic: true },
-				exportVerseNumbers: { arabic: true },
-				arabicTextFormat: 'Plain',
-				customFileName: ''
-			};
-			shouldSave = true;
-		}
 		const projectEditorLayout = settings.persistentUiState.projectEditorLayout as
 			| Partial<ProjectEditorLayout>
 			| undefined;
@@ -314,59 +280,18 @@ export default class Settings extends SerializableBase {
 				}
 			}
 		}
-		if (typeof settings.persistentUiState.showTimelineWheelHints !== 'boolean') {
-			settings.persistentUiState.showTimelineWheelHints = true;
-			shouldSave = true;
-		}
-		if (typeof settings.persistentUiState.showAntiCollisionNotice !== 'boolean') {
-			settings.persistentUiState.showAntiCollisionNotice = true;
-			shouldSave = true;
-		}
-		if (!Array.isArray(settings.persistentUiState.timelineTrackOrder)) {
-			settings.persistentUiState.timelineTrackOrder = [
-				TrackType.CustomClip,
-				TrackType.Subtitle,
-				TrackType.Video,
-				TrackType.Audio
-			];
-			shouldSave = true;
-		}
-		if (typeof settings.persistentUiState.desktopNotificationsEnabled !== 'boolean') {
-			settings.persistentUiState.desktopNotificationsEnabled = true;
-			shouldSave = true;
-		}
+
+		// Migration : validation du paramètre editorPanelScalePercent
+		const editorPanelScalePercent = settings.persistentUiState.editorPanelScalePercent;
 		if (
-			!WBW_TRANSLATION_LANGUAGES.some(
-				(language) => language.code === settings.persistentUiState.wbwTranslationLanguage
-			)
+			!Number.isInteger(editorPanelScalePercent) ||
+			editorPanelScalePercent < -60 ||
+			editorPanelScalePercent > 0 ||
+			editorPanelScalePercent % 5 !== 0
 		) {
-			settings.persistentUiState.wbwTranslationLanguage = 'en';
+			settings.persistentUiState.editorPanelScalePercent = -15;
 			shouldSave = true;
 		}
-		if (typeof settings.persistentUiState.styleLibraryDeviceId !== 'string') {
-			settings.persistentUiState.styleLibraryDeviceId = '';
-			shouldSave = true;
-		}
-		if (typeof settings.persistentUiState.language !== 'string') {
-			settings.persistentUiState.language = 'en';
-			shouldSave = true;
-		}
-		if (!settings.aiTranslationSettings.textAiApiEndpoint?.trim()) {
-			settings.aiTranslationSettings.textAiApiEndpoint = DEFAULT_TEXT_AI_ENDPOINT;
-			shouldSave = true;
-		}
-		if (typeof settings.aiTranslationSettings.aiWbwTranslationCustomNote !== 'string') {
-			settings.aiTranslationSettings.aiWbwTranslationCustomNote = '';
-			shouldSave = true;
-		}
-		if (!settings.stockMediaSettings || typeof settings.stockMediaSettings !== 'object') {
-			settings.stockMediaSettings = {
-				pexelsApiKey: '',
-				pixabayApiKey: ''
-			};
-			shouldSave = true;
-		}
-		// ==========================
 
 		// Regarde la version des settings. Si c'est pas la même, ça veut dire
 		// que l'utilisateur vient de mettre à jour
@@ -381,98 +306,7 @@ export default class Settings extends SerializableBase {
 			shouldSave = true;
 		}
 
-		if (
-			typeof settings.exportSettings.batchSize !== 'number' ||
-			Number.isNaN(settings.exportSettings.batchSize)
-		) {
-			settings.exportSettings.batchSize = Settings.DEFAULT_EXPORT_SETTINGS.batchSize;
-			shouldSave = true;
-		}
-
-		if (
-			settings.exportSettings.batchSizeMode === 'auto' &&
-			settings.exportSettings.batchSize === 12
-		) {
-			settings.exportSettings.batchSize = Settings.DEFAULT_EXPORT_SETTINGS.batchSize;
-			shouldSave = true;
-		}
-
-		if (
-			settings.exportSettings.batchSizeMode !== 'auto' &&
-			settings.exportSettings.batchSizeMode !== 'fixed'
-		) {
-			settings.exportSettings.batchSizeMode = Settings.DEFAULT_EXPORT_SETTINGS.batchSizeMode;
-			shouldSave = true;
-		}
-
-		if (
-			typeof settings.exportSettings.parallelCaptureWorkers !== 'number' ||
-			Number.isNaN(settings.exportSettings.parallelCaptureWorkers)
-		) {
-			settings.exportSettings.parallelCaptureWorkers =
-				Settings.DEFAULT_EXPORT_SETTINGS.parallelCaptureWorkers;
-			shouldSave = true;
-		} else {
-			const normalizedParallelCaptureWorkers = Math.max(
-				1,
-				Math.min(4, Math.round(settings.exportSettings.parallelCaptureWorkers))
-			);
-			if (settings.exportSettings.parallelCaptureWorkers !== normalizedParallelCaptureWorkers) {
-				settings.exportSettings.parallelCaptureWorkers = normalizedParallelCaptureWorkers;
-				shouldSave = true;
-			}
-		}
-
-		if (
-			settings.exportSettings.videoCodec !== 'h264' &&
-			settings.exportSettings.videoCodec !== 'h265'
-		) {
-			settings.exportSettings.videoCodec = Settings.DEFAULT_EXPORT_SETTINGS.videoCodec;
-			shouldSave = true;
-		}
-
-		if (
-			settings.exportSettings.performanceProfile !== 'fastest' &&
-			settings.exportSettings.performanceProfile !== 'balanced' &&
-			settings.exportSettings.performanceProfile !== 'low_cpu'
-		) {
-			settings.exportSettings.performanceProfile =
-				Settings.DEFAULT_EXPORT_SETTINGS.performanceProfile;
-			shouldSave = true;
-		}
-
-		if ('chunkSize' in (settings.exportSettings as Record<string, unknown>)) {
-			delete (settings.exportSettings as Record<string, unknown>).chunkSize;
-			shouldSave = true;
-		}
-
-		if (
-			settings.subtitleExportSettings.subtitleFormat !== 'SRT' &&
-			settings.subtitleExportSettings.subtitleFormat !== 'VTT'
-		) {
-			settings.subtitleExportSettings.subtitleFormat = 'SRT';
-			shouldSave = true;
-		}
-		if (!settings.subtitleExportSettings.includedTarget) {
-			settings.subtitleExportSettings.includedTarget = {};
-			shouldSave = true;
-		}
-		if (!settings.subtitleExportSettings.exportVerseNumbers) {
-			settings.subtitleExportSettings.exportVerseNumbers = {};
-			shouldSave = true;
-		}
-		if (
-			settings.subtitleExportSettings.arabicTextFormat !== 'Plain' &&
-			settings.subtitleExportSettings.arabicTextFormat !== 'V1' &&
-			settings.subtitleExportSettings.arabicTextFormat !== 'V2'
-		) {
-			settings.subtitleExportSettings.arabicTextFormat = 'Plain';
-			shouldSave = true;
-		}
-		if (typeof settings.subtitleExportSettings.customFileName !== 'string') {
-			settings.subtitleExportSettings.customFileName = '';
-			shouldSave = true;
-		}
+		// Migration si nécessaire ici
 
 		if (shouldSave) {
 			await this.save();
@@ -481,6 +315,7 @@ export default class Settings extends SerializableBase {
 }
 
 export enum SettingsTab {
+	USER_INTERFACE = 'user-interface',
 	THEME = 'theme',
 	NOTIFICATIONS = 'notifications',
 	AI_KEY = 'ai-key',

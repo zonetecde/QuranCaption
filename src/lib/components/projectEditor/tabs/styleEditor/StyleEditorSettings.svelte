@@ -45,6 +45,9 @@
 	let suppressHeaderDirection = false;
 	let headerTransitionTimeout: ReturnType<typeof setTimeout> | undefined;
 	let stylesSchemaReady = $state(false);
+	let panelScale = $derived(
+		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
+	);
 
 	const currentStyleTarget = $derived(() => globalState.getStylesState.getCurrentSelection());
 	const styleSearchQuery = $derived(() =>
@@ -920,7 +923,10 @@
 	});
 </script>
 
-<div class="style-editor-scale bg-secondary relative flex h-full min-w-0 flex-1 flex-col">
+<div
+	class="style-editor-scale bg-secondary relative flex h-full min-w-0 flex-1 flex-col"
+	style={`--editor-panel-scale: ${panelScale}; --editor-panel-height: ${100 / panelScale}%;`}
+>
 	{#if presetLibraryOpen}
 		<PresetLibrary onBack={closePresetLibrary} />
 	{:else}
@@ -1026,8 +1032,8 @@
 <style>
 	.style-editor-scale {
 		max-width: 100%;
-		height: 125%;
-		zoom: 0.8;
+		height: var(--editor-panel-height);
+		zoom: var(--editor-panel-scale);
 	}
 
 	.style-settings-scroll {

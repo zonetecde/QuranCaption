@@ -12,6 +12,9 @@
 	let leftDrawerOpen = $state(false);
 	let rightDrawerOpen = $state(false);
 	let textSizeLevel = $state(-1);
+	let panelScale = $derived(
+		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
+	);
 	let visibleEditions = $derived(
 		globalState.currentProject!.content.projectTranslation.addedTranslationEditions.filter(
 			(edition) => edition.showInTranslationsEditor
@@ -85,10 +88,15 @@
 		class="translations-editor-workspace"
 		style={`--translation-text-scale: ${1 + textSizeLevel * 0.1}; --translation-text-spacing-scale: ${textSizeLevel >= -1 ? 1 : 1 + (textSizeLevel + 1) * 0.2};`}
 	>
-		<Workspace
-			setAddTranslationModalVisibility={(visible: boolean) =>
-				(addTranslationModalVisibility = visible)}
-		/>
+		<div
+			class="editor-ui-scale"
+			style={`--editor-panel-scale: ${panelScale}; --editor-panel-height: ${100 / panelScale}%;`}
+		>
+			<Workspace
+				setAddTranslationModalVisibility={(visible: boolean) =>
+					(addTranslationModalVisibility = visible)}
+			/>
+		</div>
 	</section>
 
 	{#if progressEdition}
@@ -108,13 +116,21 @@
 
 	<MobileSideDrawers bind:leftOpen={leftDrawerOpen} bind:rightOpen={rightDrawerOpen}>
 		{#snippet leftContent()}
-			<TranslationsEditorSettings
-				setAddTranslationModalVisibility={(visible: boolean) =>
-					(addTranslationModalVisibility = visible)}
-			/>
+			<div
+				class="editor-ui-scale h-full min-h-0 overflow-y-auto"
+				style={`--editor-panel-scale: ${panelScale}; --editor-panel-height: ${100 / panelScale}%;`}
+			>
+				<TranslationsEditorSettings
+					setAddTranslationModalVisibility={(visible: boolean) =>
+						(addTranslationModalVisibility = visible)}
+				/>
+			</div>
 		{/snippet}
 		{#snippet rightContent()}
-			<div class="h-full min-h-0 overflow-y-auto">
+			<div
+				class="editor-ui-scale h-full min-h-0 overflow-y-auto"
+				style={`--editor-panel-scale: ${panelScale}; --editor-panel-height: ${100 / panelScale}%;`}
+			>
 				<TranslationInlineStylePanel />
 			</div>
 		{/snippet}
@@ -171,6 +187,16 @@
 		flex: 1 1 0;
 		min-height: 0;
 		overflow: hidden;
+	}
+
+	.editor-ui-scale {
+		display: flex;
+		min-width: 0;
+		max-width: 100%;
+		height: var(--editor-panel-height);
+		flex: 1;
+		flex-direction: column;
+		zoom: var(--editor-panel-scale);
 	}
 
 	.translation-review-progress {

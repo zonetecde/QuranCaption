@@ -31,6 +31,9 @@
 	// Etats pour les menus de filtrage et tri
 	let filterMenuVisible = $state(false);
 	let sortMenuVisible = $state(false);
+	let panelScale = $derived(
+		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
+	);
 
 	// Pagination locale de la liste visible
 	let currentPage = $state(1);
@@ -256,7 +259,10 @@
 </script>
 
 <div class="home-page flex min-h-full flex-col overflow-auto overflow-x-hidden">
-	<div class="mb-8 mt-6 flex-grow px-4 sm:px-5 lg:px-8 xl:mt-14 xl:px-12">
+	<div
+		class="home-ui-scale mb-8 mt-6 flex-grow px-4 sm:px-5 lg:px-8 xl:mt-14 xl:px-12"
+		style={`--editor-panel-scale: ${panelScale};`}
+	>
 		<div
 			placeholder="Upper section"
 			class="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-center"
@@ -430,4 +436,9 @@
 {/if}
 
 <style>
+	.home-ui-scale {
+		min-width: 0;
+		max-width: 100%;
+		zoom: var(--editor-panel-scale);
+	}
 </style>

@@ -482,6 +482,10 @@ const id = {
 		settings: 'Pengaturan',
 		customizeExperience: 'Atur pengalaman dan backup kamu',
 		shortcuts: 'Pintasan',
+		userInterface: 'Antarmuka pengguna',
+		editorPanelScale: 'Ukuran antarmuka',
+		editorPanelScaleDescription:
+			'Sesuaikan ukuran elemen antarmuka yang didukung di seluruh aplikasi.',
 		theme: 'Tema',
 		notifications: 'Notifikasi',
 		stockMedia: 'Stok',

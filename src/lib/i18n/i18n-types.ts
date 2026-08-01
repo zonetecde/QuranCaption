@@ -7220,6 +7220,18 @@ type RootTranslation = {
 		 */
 		shortcuts: string;
 		/**
+		 * U​s​e​r​ ​i​n​t​e​r​f​a​c​e
+		 */
+		userInterface: string;
+		/**
+		 * I​n​t​e​r​f​a​c​e​ ​s​i​z​e
+		 */
+		editorPanelScale: string;
+		/**
+		 * A​d​j​u​s​t​ ​t​h​e​ ​s​i​z​e​ ​o​f​ ​s​u​p​p​o​r​t​e​d​ ​i​n​t​e​r​f​a​c​e​ ​e​l​e​m​e​n​t​s​ ​t​h​r​o​u​g​h​o​u​t​ ​t​h​e​ ​a​p​p​.
+		 */
+		editorPanelScaleDescription: string;
+		/**
 		 * T​h​e​m​e
 		 */
 		theme: string;
@@ -17939,6 +17951,18 @@ export type TranslationFunctions = {
 		 * Shortcuts
 		 */
 		shortcuts: () => LocalizedString;
+		/**
+		 * User interface
+		 */
+		userInterface: () => LocalizedString;
+		/**
+		 * Interface size
+		 */
+		editorPanelScale: () => LocalizedString;
+		/**
+		 * Adjust the size of supported interface elements throughout the app.
+		 */
+		editorPanelScaleDescription: () => LocalizedString;
 		/**
 		 * Theme
 		 */

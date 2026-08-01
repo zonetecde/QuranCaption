@@ -29,6 +29,9 @@
 	let presetPickerOpen = $state(false);
 	let autoSegmentationModalOpen = $state(false);
 	let controlHelpOpen = $state(false);
+	let panelScale = $derived(
+		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
+	);
 	let lastEditedSubtitleId: number | null = null;
 	let subtitlesWorkspace: { addSubtitle: () => Promise<void> } | null = $state(null);
 
@@ -144,7 +147,10 @@
 		<VideoPreview showControls={false} useSplitHeight={false} />
 	</div>
 
-	<section class="subtitles-editor-toolbar">
+	<section
+		class="subtitles-content-scale subtitles-editor-toolbar"
+		style={`--editor-panel-scale: ${panelScale};`}
+	>
 		<div class="toolbar-actions">
 			<button
 				class="drawer-toggle"
@@ -217,7 +223,10 @@
 			dataTestId="subtitles-timeline-resizer"
 		/>
 
-		<section class="subtitles-editor-timeline">
+		<section
+			class="subtitles-content-scale subtitles-editor-timeline"
+			style={`--editor-panel-scale: ${panelScale};`}
+		>
 			<Timeline
 				useSplitHeight={false}
 				visibleTrackTypes={[TrackType.Audio, TrackType.Subtitle]}
@@ -236,10 +245,18 @@
 
 	<MobileSideDrawers bind:leftOpen={leftDrawerOpen} bind:rightOpen={rightDrawerOpen}>
 		{#snippet leftContent()}
-			<SubtitlesEditorSettings />
+			<div
+				class="editor-ui-scale h-full min-h-0 overflow-y-auto"
+				style={`--editor-panel-scale: ${panelScale}; --editor-panel-height: ${100 / panelScale}%;`}
+			>
+				<SubtitlesEditorSettings />
+			</div>
 		{/snippet}
 		{#snippet rightContent()}
-			<div class="h-full min-h-0 overflow-hidden">
+			<div
+				class="editor-ui-scale h-full min-h-0 overflow-hidden"
+				style={`--editor-panel-scale: ${panelScale}; --editor-panel-height: ${100 / panelScale}%;`}
+			>
 				<SubtitlesList autoScrollEnabled={rightDrawerOpen} />
 			</div>
 		{/snippet}
@@ -282,6 +299,19 @@
 
 	.subtitles-editor-content.control-help-open {
 		overflow: visible;
+	}
+
+	.subtitles-content-scale {
+		min-width: 0;
+		max-width: 100%;
+		zoom: var(--editor-panel-scale);
+	}
+
+	.editor-ui-scale {
+		min-width: 0;
+		max-width: 100%;
+		height: var(--editor-panel-height);
+		zoom: var(--editor-panel-scale);
 	}
 
 	.subtitles-editor-workspace {

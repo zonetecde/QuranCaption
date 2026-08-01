@@ -10,6 +10,9 @@
 	type ExportChoiceId = 'video' | 'subtitles' | 'chapters' | 'project';
 
 	const LL_ = get(LL);
+	let panelScale = $derived(
+		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
+	);
 
 	// Export choices
 	const choices: { id: ExportChoiceId; label: () => string; icon: string; hint: () => string }[] = [
@@ -44,8 +47,11 @@
 	}
 </script>
 
-<div class="bg-secondary relative flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-	<div class="min-h-0 min-w-0 flex-1 overflow-y-auto px-3 py-3">
+<div
+	class="export-settings-scale bg-secondary relative flex h-full min-w-0 flex-1 flex-col overflow-hidden"
+	style={`--editor-panel-scale: ${panelScale}; --editor-panel-height: ${100 / panelScale}%;`}
+>
+	<div class="min-h-0 min-w-0 flex-1 overflow-y-auto px-2 py-3">
 		<div
 			class="export-choice-tabs grid min-w-0 grid-cols-4 gap-1.5"
 			role="radiogroup"
@@ -69,10 +75,6 @@
 			{/each}
 		</div>
 
-		<p class="mt-2 text-xs leading-snug text-thirdly">
-			{choices.find((choice) => choice.id === globalState.getExportState.selectedChoice)?.hint()}
-		</p>
-
 		<!-- Dynamic panel depending on selection -->
 		<div class="mt-3 min-w-0">
 			{#if globalState.getExportState.selectedChoice === 'video'}
@@ -89,6 +91,12 @@
 </div>
 
 <style>
+	.export-settings-scale {
+		max-width: 100%;
+		height: var(--editor-panel-height);
+		zoom: var(--editor-panel-scale);
+	}
+
 	.export-choice-tab {
 		display: flex;
 		min-width: 0;

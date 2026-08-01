@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { get } from 'svelte/store';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { androidBackButton } from '$lib/services/mobileModalSheet';
 	import toast from 'svelte-5-french-toast';
 	import { slide } from 'svelte/transition';
 
@@ -20,6 +21,7 @@
 <div
 	class="bg-secondary border border-color rounded-2xl w-[500px] max-w-[90vw] p-6 shadow-2xl shadow-black/50
 	       flex flex-col relative backdrop-blur-sm"
+	use:androidBackButton={resolve}
 	transition:slide
 >
 	<!-- Header with error icon -->

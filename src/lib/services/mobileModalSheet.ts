@@ -1,6 +1,79 @@
 const DRAG_CLOSE_DISTANCE_PX = 80;
 const DRAG_TITLE_HEIGHT_PX = 112;
 const INTERACTIVE_SELECTOR = 'button, input, select, textarea, a, label, [contenteditable="true"]';
+const MODAL_HISTORY_KEY = 'quranCaptionModal';
+
+type ModalHistoryEntry = {
+	id: number;
+	onClose: () => void;
+	closedFromHistory: boolean;
+};
+
+const modalHistoryStack: ModalHistoryEntry[] = [];
+let nextModalHistoryId = 0;
+let ignoredPopstates = 0;
+let isHistoryListenerRegistered = false;
+
+/**
+ * Ferme le modal au premier plan lorsque la navigation Android revient en arrière.
+ *
+ * @returns {void}
+ */
+function closeTopModalFromHistory(): void {
+	if (ignoredPopstates > 0) {
+		ignoredPopstates -= 1;
+		return;
+	}
+
+	const entry = modalHistoryStack.at(-1);
+	if (!entry) return;
+	entry.closedFromHistory = true;
+	entry.onClose();
+}
+
+/**
+ * Associe un modal à une entrée d'historique consommée par le bouton retour Android.
+ *
+ * @param {() => void} onClose Fermeture du modal.
+ * @returns {() => void} Suppression du modal de l'historique.
+ */
+function registerModalHistory(onClose: () => void): () => void {
+	const entry: ModalHistoryEntry = {
+		id: ++nextModalHistoryId,
+		onClose,
+		closedFromHistory: false
+	};
+	modalHistoryStack.push(entry);
+
+	if (!isHistoryListenerRegistered) {
+		window.addEventListener('popstate', closeTopModalFromHistory);
+		isHistoryListenerRegistered = true;
+	}
+	history.pushState({ ...history.state, [MODAL_HISTORY_KEY]: entry.id }, '');
+
+	return () => {
+		const index = modalHistoryStack.indexOf(entry);
+		if (index !== -1) modalHistoryStack.splice(index, 1);
+		if (!entry.closedFromHistory && history.state?.[MODAL_HISTORY_KEY] === entry.id) {
+			ignoredPopstates += 1;
+			history.back();
+		}
+	};
+}
+
+/**
+ * Action Svelte fermant un modal avec le bouton retour Android.
+ *
+ * @param {HTMLElement} _element Élément racine du modal.
+ * @param {() => void} onClose Fermeture du modal.
+ * @returns {{ destroy: () => void }} Cycle de vie de l'action.
+ */
+export function androidBackButton(
+	_element: HTMLElement,
+	onClose: () => void
+): { destroy: () => void } {
+	return { destroy: registerModalHistory(onClose) };
+}
 
 /**
  * Transforme un panneau de modal en feuille mobile refermable.
@@ -10,13 +83,14 @@ const INTERACTIVE_SELECTOR = 'button, input, select, textarea, a, label, [conten
  * @returns {() => void} Nettoyage des écouteurs et styles temporaires.
  */
 export function setupMobileModalSheet(panel: HTMLElement, onClose: () => void): () => void {
+	const unregisterModalHistory = registerModalHistory(onClose);
 	const directParent = panel.parentElement;
 	const wrapper =
 		directParent &&
 		(directParent.classList.contains('modal-wrapper') || directParent.classList.contains('fixed'))
 			? directParent
 			: (panel.closest<HTMLElement>('.modal-wrapper') ?? directParent);
-	if (!wrapper) return () => {};
+	if (!wrapper) return unregisterModalHistory;
 
 	const contentWrapper = panel.parentElement !== wrapper ? panel.parentElement : null;
 	if (wrapper.parentElement !== document.body) document.body.appendChild(wrapper);
@@ -94,6 +168,7 @@ export function setupMobileModalSheet(panel: HTMLElement, onClose: () => void): 
 	wrapper.addEventListener('pointerdown', closeFromBackdrop);
 
 	return () => {
+		unregisterModalHistory();
 		panel.removeEventListener('pointerdown', startDrag);
 		panel.removeEventListener('pointermove', moveDrag);
 		panel.removeEventListener('pointerup', endDrag);

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import LL from '$lib/i18n/i18n-svelte';
+	import { androidBackButton } from '$lib/services/mobileModalSheet';
 	import { slide } from 'svelte/transition';
 
 	let {
@@ -16,6 +17,7 @@
 <div
 	class="bg-secondary border border-color rounded-2xl w-[500px] max-w-[90vw] p-6 shadow-2xl shadow-black/50
 	       flex flex-col relative backdrop-blur-sm"
+	use:androidBackButton={() => resolve(false)}
 	transition:slide
 >
 	<!-- Header with icon -->

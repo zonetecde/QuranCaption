@@ -1,5 +1,6 @@
 <script lang="ts">
 	import LL from '$lib/i18n/i18n-svelte';
+	import { androidBackButton } from '$lib/services/mobileModalSheet';
 	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import AutocompleteInput from '../misc/AutocompleteInput.svelte';
@@ -52,6 +53,7 @@
 
 <div
 	class="bg-secondary border border-color rounded-2xl w-[500px] max-w-[90vw] p-6 shadow-2xl shadow-black/50 flex flex-col relative backdrop-blur-sm"
+	use:androidBackButton={handleCancel}
 	transition:fade
 >
 	<!-- Header with icon -->

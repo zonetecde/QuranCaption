@@ -1,5 +1,6 @@
 <script lang="ts">
 	import LL from '$lib/i18n/i18n-svelte';
+	import { androidBackButton } from '$lib/services/mobileModalSheet';
 	import { onMount, tick } from 'svelte';
 
 	type Props = {
@@ -303,7 +304,10 @@
 </div>
 
 {#if useModalSuggestions && modalVisible}
-	<div class="fixed inset-0 z-[1200] bg-black/55 backdrop-blur-sm">
+	<div
+		class="fixed inset-0 z-[1200] bg-black/55 backdrop-blur-sm"
+		use:androidBackButton={closeSuggestionsModal}
+	>
 		<div class="flex h-full flex-col bg-primary">
 			<div class="border-b border-color px-4 py-4">
 				<div class="mb-3 flex items-center justify-between gap-3">

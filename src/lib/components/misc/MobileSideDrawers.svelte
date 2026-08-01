@@ -1,5 +1,6 @@
 <script lang="ts">
 	import LL from '$lib/i18n/i18n-svelte';
+	import { androidBackButton } from '$lib/services/mobileModalSheet';
 	import type { Snippet } from 'svelte';
 
 	let {
@@ -144,6 +145,16 @@
 		gestureDragging = false;
 		gestureProgress = 0;
 	}
+
+	/**
+	 * Ferme les deux tiroirs latéraux.
+	 *
+	 * @returns {void}
+	 */
+	function closeDrawers(): void {
+		leftOpen = false;
+		rightOpen = false;
+	}
 </script>
 
 <svelte:window
@@ -151,6 +162,10 @@
 	onpointerup={finishDrawerGesture}
 	onpointercancel={cancelDrawerGesture}
 />
+
+{#if leftOpen || rightOpen}
+	<div class="hidden" use:androidBackButton={closeDrawers}></div>
+{/if}
 
 {#if !leftOpen && !rightOpen}
 	<div
@@ -171,10 +186,7 @@
 		type="button"
 		aria-label={$LL.common.close()}
 		style:opacity={Math.max(leftDrawerProgress, rightDrawerProgress) * 0.45}
-		onclick={() => {
-			leftOpen = false;
-			rightOpen = false;
-		}}
+		onclick={closeDrawers}
 	></button>
 {/if}
 

@@ -67,7 +67,7 @@
 		dataTestId="video-timeline-resizer"
 	/>
 
-	<section class="video-editor-assets-tray">
+	<section class="video-editor-assets-tray" data-tour-id="assets-manager">
 		<div class="video-editor-assets-header">
 			<span class="video-editor-assets-header-title">
 				<span class="material-icons text-[20px]">video_library</span>
@@ -182,10 +182,6 @@
 		min-height: 0;
 		overflow: auto;
 		padding: 0.75rem;
-	}
-
-	.video-editor-assets-content :global([data-tour-id='assets-manager']) {
-		background: transparent;
 	}
 
 	@media (orientation: landscape) {

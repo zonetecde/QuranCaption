@@ -1532,28 +1532,28 @@ const id = {
 		...baseEn.tour,
 		stepCreateProjectTitle: 'Buat project baru',
 		stepCreateProjectDesc:
-			'Tombol ini memungkinkan kamu membuat project Quran Caption baru dari nol. Kamu bisa import audio, video, atau download bacaan Quran.',
+			'Tombol ini membuka formulir untuk memberi nama project baru dan memilih qari.',
 		stepOpenTutorialTitle: 'Buka project tutorial',
 		stepOpenTutorialDesc:
-			'Project tutorial dengan Surah Al-Fatihah oleh Yasser Al-Dosari sudah dibuat untuk kamu. Klik card-nya untuk membuka dan mengikuti tutorial.',
-		stepVideoEditorTitle: 'Editor Video',
+			'Project tutorial dengan Surah Al-Fatihah oleh Yasser Al-Dosari sudah dibuat untuk kamu. Ketuk card-nya untuk membuka dan mengikuti tutorial.',
+		stepVideoEditorTitle: 'Aset project kamu',
 		stepVideoEditorDesc:
-			'Di sini kamu mengimpor bacaan Quran. Tarik file audio/video atau download dari sumber online. Editor ini mengelola semua media kamu.',
+			'Area Aset berisi file yang digunakan project. Ketuk Tambah Aset untuk mengimpor file atau mengunduh bacaan Quran.',
 		stepAddToTimelineTitle: 'Tambahkan ke timeline',
 		stepAddToTimelineDesc:
-			'Arahkan mouse ke kartu aset di daftar sebelah kiri, lalu klik "Add to Timeline". Ini akan menempatkan bacaan Quran ke area editing utama.',
-		stepSubtitlesEditorTitle: 'Buka Subtitles Editor',
+			'Ketuk tombol + pada aset bacaan untuk menambahkannya ke timeline audio.',
+		stepSubtitlesEditorTitle: 'Buka Subtitle',
 		stepSubtitlesEditorDesc:
-			'Buka tab Subtitles Editor untuk mulai menambahkan teks Quran. Di sinilah kamu menyelaraskan setiap ayat dengan audio.',
+			'Buka tab Subtitle untuk menambahkan teks Quran dan menyelaraskan setiap ayat dengan audio.',
 		stepManualSegmentationTitle: 'Segmentasi manual',
 		stepManualSegmentationDesc:
-			'Subtitle ditambahkan secara real-time saat bacaan Quran diputar. Ketik atau pilih ayat, lalu ayat itu akan muncul di posisi playback saat ini.',
-		stepShortcutsTitle: 'Shortcut & panduan',
+			'Pilih surah dan ayat, pilih kata-kata yang dibaca, lalu ketuk tanda centang untuk membuat subtitle di posisi playback saat ini.',
+		stepShortcutsTitle: 'Kontrol & panduan',
 		stepShortcutsDesc:
-			'Arahkan mouse ke ikon ? untuk melihat semua shortcut yang tersedia. Ini bisa mempercepat proses segmentasi secara signifikan.',
-		stepAutoSegmentTitle: 'Auto-Segment dengan AI',
+			'Ketuk ikon ? untuk melihat kontrol yang tersedia. Kontrol ini mempercepat segmentasi manual.',
+		stepAutoSegmentTitle: 'Subtitle AI',
 		stepAutoSegmentDesc:
-			'Lebih suka otomatis? Klik Auto-Segment agar AI mendeteksi batas surah dan timing ayat dari audio.',
+			'Ketuk IA Subtitles agar AI mengenali ayat yang dibaca dan membuat timing-nya dari audio.',
 		stepTranslationsTitle: 'Buka Terjemahan',
 		stepTranslationsDesc:
 			'Buka tab Translations untuk menambahkan subtitle terjemahan di bawah teks Arab.',
@@ -1562,20 +1562,20 @@ const id = {
 			'Perhatikan bagaimana ayat 1:7 dibacakan dalam dua bagian. Kamu bisa membagi terjemahan agar cocok dengan cara Qari membacanya.',
 		stepStyleTitle: 'Buka Gaya',
 		stepStyleDesc: 'Buka tab Style untuk mengatur tampilan visual caption dan overlay video kamu.',
-		stepStyleCategoriesTitle: 'Tiga kategori style',
+		stepStyleCategoriesTitle: 'Video, Arab, dan Terjemahan',
 		stepStyleCategoriesDesc:
-			'Global — overlay video, nama Qari. Surah — Qari dan nama surah. Ayat — font, warna, ukuran, animasi.',
+			'Video mengatur latar dan overlay video. Arab mengatur subtitle Quran. Terjemahan mengatur subtitle terjemahan.',
 		stepExportTitle: 'Buka Ekspor',
 		stepExportDesc: 'Terakhir, buka tab Ekspor untuk merender video dengan caption kamu.',
-		stepExportVideoTitle: 'Ekspor video kamu',
+		stepExportVideoTitle: 'Pilih rentang ekspor',
 		stepExportVideoDesc:
-			'Gunakan input rentang untuk memilih rentang waktu, pilih kualitas, lalu klik Export untuk membuat video final kamu.',
-		hintClickTutorialCard: 'Klik card project tutorial untuk lanjut',
-		hintHoverAndAdd: 'Arahkan mouse ke asset lalu klik "Add to Timeline" untuk lanjut',
-		hintClickSubtitlesTab: 'Klik tab "Editor subtitle" untuk lanjut',
-		hintClickTranslationsTab: 'Klik tab "Terjemahan" untuk lanjut',
-		hintClickStyleTab: 'Klik tab "Gaya" untuk lanjut',
-		hintClickExportTab: 'Klik tab "Ekspor" untuk lanjut',
+			'Atur waktu mulai dan selesai di sini, lalu tambahkan bagian yang ingin dilewati jika perlu. Setelah itu periksa kualitas di bawah dan ketuk Ekspor.',
+		hintClickTutorialCard: 'Ketuk card project tutorial untuk lanjut',
+		hintHoverAndAdd: 'Ketuk tombol + pada aset bacaan untuk lanjut',
+		hintClickSubtitlesTab: 'Ketuk tab "Subtitle" untuk lanjut',
+		hintClickTranslationsTab: 'Ketuk tab "Terjemahan" untuk lanjut',
+		hintClickStyleTab: 'Ketuk tab "Gaya" untuk lanjut',
+		hintClickExportTab: 'Ketuk tab "Ekspor" untuk lanjut',
 		skipTutorial: 'Lewati tutorial'
 	},
 	migration: {

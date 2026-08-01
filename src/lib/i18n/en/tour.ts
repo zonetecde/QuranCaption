@@ -1,28 +1,28 @@
 const tour = {
 	stepCreateProjectTitle: 'Create a new project',
 	stepCreateProjectDesc:
-		'This button lets you create a new Quran Caption project from scratch. You can import audio, video, or download recitations.',
+		'This button opens the form where you can name a new project and choose its reciter.',
 	stepOpenTutorialTitle: 'Open the tutorial project',
 	stepOpenTutorialDesc:
-		'A tutorial project with Surah Al-Fatihah by Yasser Al-Dosari has been created for you. Click its card to open it and follow along.',
-	stepVideoEditorTitle: 'The Video Editor',
+		'A tutorial project with Surah Al-Fatihah by Yasser Al-Dosari has been created for you. Tap its card to open it and follow along.',
+	stepVideoEditorTitle: 'Your project assets',
 	stepVideoEditorDesc:
-		'Here you import your Quran recitation. Drag audio/video files or download from online sources. The editor manages all your media.',
+		'The Assets area contains the media used by your project. Tap Add asset to import a file or download a recitation.',
 	stepAddToTimelineTitle: 'Add to the timeline',
 	stepAddToTimelineDesc:
-		'Hover over the asset card in the list on the left, then click "Add to Timeline". This places the recitation into the main editing area.',
-	stepSubtitlesEditorTitle: 'Go to Subtitles Editor',
+		'Tap the + button on the recitation asset to add it to the audio timeline.',
+	stepSubtitlesEditorTitle: 'Go to Subtitles',
 	stepSubtitlesEditorDesc:
-		'Head to the Subtitles Editor to start adding Quranic text. This is where you align each verse with the audio.',
+		'Head to the Subtitles tab to start adding Quranic text. This is where you align each verse with the audio.',
 	stepManualSegmentationTitle: 'Manual segmentation',
 	stepManualSegmentationDesc:
-		'Subtitles are added in real time as the recitation plays. Type or select a verse, and it will appear at the current playback position.',
-	stepShortcutsTitle: 'Shortcuts & walkthrough',
+		'Choose the surah and verse, select the words being recited, then tap the checkmark to create a subtitle at the current playback position.',
+	stepShortcutsTitle: 'Controls & walkthrough',
 	stepShortcutsDesc:
-		'Hover the ? icon to see all available shortcuts. These speed up the segmentation process significantly.',
-	stepAutoSegmentTitle: 'Auto-Segment with AI',
+		'Tap the ? icon to see the available controls. They make manual segmentation much faster.',
+	stepAutoSegmentTitle: 'AI Subtitles',
 	stepAutoSegmentDesc:
-		'Prefer automation? Click Auto-Segment to have the AI detect surah boundaries and verse timings from the audio.',
+		'Tap IA Subtitles to let the AI identify the recited verses and create their timings from the audio.',
 	stepTranslationsTitle: 'Go to Translations',
 	stepTranslationsDesc:
 		'Head to the Translations tab to add translated subtitles below the Arabic text.',
@@ -32,20 +32,20 @@ const tour = {
 	stepStyleTitle: 'Go to Style',
 	stepStyleDesc:
 		'Head to the Style tab to customize the visual appearance of your captions and video overlay.',
-	stepStyleCategoriesTitle: 'Three style categories',
+	stepStyleCategoriesTitle: 'Video, Arabic, and Translation',
 	stepStyleCategoriesDesc:
-		'Global \u2014 video overlay, reciter name. Surah \u2014 reciter and surah name. Verse \u2014 font, color, size, animations.',
+		'Video controls the background and video overlay. Arabic styles the Quranic captions. Translation styles the translated captions.',
 	stepExportTitle: 'Go to Export',
 	stepExportDesc: 'Finally, head to the Export tab to render your captioned video.',
-	stepExportVideoTitle: 'Export your video',
+	stepExportVideoTitle: 'Choose the export range',
 	stepExportVideoDesc:
-		'Use the range inputs to select the time range, choose quality, and click Export to create your final video.',
-	hintClickTutorialCard: 'Click the tutorial project card to continue',
-	hintHoverAndAdd: 'Hover the asset and click "Add to Timeline" to continue',
-	hintClickSubtitlesTab: 'Click the "Subtitles editor" tab to continue',
-	hintClickTranslationsTab: 'Click the "Translations" tab to continue',
-	hintClickStyleTab: 'Click the "Style" tab to continue',
-	hintClickExportTab: 'Click the "Export" tab to continue',
+		'Set the start and end times here, and optionally add sections to skip. You can then review the quality settings below and tap Export.',
+	hintClickTutorialCard: 'Tap the tutorial project card to continue',
+	hintHoverAndAdd: 'Tap the + button on the recitation asset to continue',
+	hintClickSubtitlesTab: 'Tap the "Subtitles" tab to continue',
+	hintClickTranslationsTab: 'Tap the "Translations" tab to continue',
+	hintClickStyleTab: 'Tap the "Style" tab to continue',
+	hintClickExportTab: 'Tap the "Export" tab to continue',
 	skipTutorial: 'Skip tutorial'
 };
 

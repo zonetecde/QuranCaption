@@ -58,7 +58,6 @@
 </script>
 
 <div
-	data-tour-id="assets-manager"
 	class={`bg-secondary h-full relative overflow-auto ${
 		embedded ? 'space-y-4 px-0 py-0' : 'border border-color rounded-lg py-6 px-2 space-y-6'
 	}`}

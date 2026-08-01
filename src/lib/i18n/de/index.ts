@@ -2572,28 +2572,28 @@ const de = {
 	tour: {
 		stepCreateProjectTitle: 'Neues Projekt erstellen',
 		stepCreateProjectDesc:
-			'Mit dieser Schaltfläche können Sie ein neues Quran Caption-Projekt von Grund auf erstellen. Sie können Audio, Video importieren oder Rezitationen herunterladen.',
+			'Diese Schaltfläche öffnet das Formular, in dem Sie ein neues Projekt benennen und den Rezitator auswählen.',
 		stepOpenTutorialTitle: 'Tutorial-Projekt öffnen',
 		stepOpenTutorialDesc:
-			'Ein Tutorial-Projekt mit Sure Al-Fatihah von Yasser Al-Dosari wurde für Sie erstellt. Klicken Sie auf seine Karte, um es zu öffnen und der Anleitung zu folgen.',
-		stepVideoEditorTitle: 'Der Video-Editor',
+			'Ein Tutorial-Projekt mit Sure Al-Fatihah von Yasser Al-Dosari wurde für Sie erstellt. Tippen Sie auf die Karte, um es zu öffnen und der Anleitung zu folgen.',
+		stepVideoEditorTitle: 'Ihre Projektmedien',
 		stepVideoEditorDesc:
-			'Hier importieren Sie Ihre Koranrezitation. Ziehen Sie Audio-/Videodateien per Drag & Drop oder laden Sie sie aus Online-Quellen herunter. Der Editor verwaltet alle Ihre Medien.',
+			'Der Bereich Elemente enthält die im Projekt verwendeten Dateien. Tippen Sie auf Element hinzufügen, um eine Datei zu importieren oder eine Rezitation herunterzuladen.',
 		stepAddToTimelineTitle: 'Zur Timeline hinzufügen',
 		stepAddToTimelineDesc:
-			'Fahren Sie mit der Maus über die Elementkarte in der linken Liste und klicken Sie dann auf « Zur Timeline hinzufügen ». Dies platziert die Rezitation im Hauptbearbeitungsbereich.',
-		stepSubtitlesEditorTitle: 'Zum Untertitel-Editor gehen',
+			'Tippen Sie auf die Schaltfläche + des Rezitationselements, um es zur Audio-Timeline hinzuzufügen.',
+		stepSubtitlesEditorTitle: 'Zu den Untertiteln gehen',
 		stepSubtitlesEditorDesc:
-			'Gehen Sie zum Untertitel-Editor, um mit dem Hinzufügen des Korantextes zu beginnen. Hier richten Sie jeden Vers mit dem Audio aus.',
+			'Öffnen Sie den Tab Untertitel, um Korantext hinzuzufügen und jeden Vers mit dem Audio auszurichten.',
 		stepManualSegmentationTitle: 'Manuelle Segmentierung',
 		stepManualSegmentationDesc:
-			'Untertitel werden in Echtzeit hinzugefügt, während die Rezitation abgespielt wird. Tippen oder wählen Sie einen Vers aus, und er erscheint an der aktuellen Wiedergabeposition.',
-		stepShortcutsTitle: 'Tastenkürzel und Rundgang',
+			'Wählen Sie Sure und Vers sowie die rezitierten Wörter aus. Tippen Sie dann auf das Häkchen, um an der aktuellen Wiedergabeposition einen Untertitel zu erstellen.',
+		stepShortcutsTitle: 'Steuerung und Rundgang',
 		stepShortcutsDesc:
-			'Fahren Sie mit der Maus über das ?-Symbol, um alle verfügbaren Tastenkürzel anzuzeigen. Diese beschleunigen den Segmentierungsprozess erheblich.',
-		stepAutoSegmentTitle: 'Automatische Segmentierung mit KI',
+			'Tippen Sie auf das ?-Symbol, um die verfügbaren Steuerelemente anzuzeigen. Sie beschleunigen die manuelle Segmentierung erheblich.',
+		stepAutoSegmentTitle: 'KI-Untertitel',
 		stepAutoSegmentDesc:
-			'Bevorzugen Sie Automatisierung? Klicken Sie auf Auto-Segmentierung, damit die KI Suren-Grenzen und Vers-Zeitdaten aus dem Audio erkennt.',
+			'Tippen Sie auf IA Subtitles, damit die KI die rezitierten Verse erkennt und ihre Zeitangaben aus dem Audio erstellt.',
 		stepTranslationsTitle: 'Zu den Übersetzungen gehen',
 		stepTranslationsDesc:
 			'Gehen Sie zum Tab Übersetzungen, um übersetzte Untertitel unter dem arabischen Text hinzuzufügen.',
@@ -2603,22 +2603,21 @@ const de = {
 		stepStyleTitle: 'Zum Stil gehen',
 		stepStyleDesc:
 			'Gehen Sie zum Tab Stil, um das visuelle Erscheinungsbild Ihrer Untertitel und der Videoüberlagerung anzupassen.',
-		stepStyleCategoriesTitle: 'Drei Stilkategorien',
+		stepStyleCategoriesTitle: 'Video, Arabisch und Übersetzung',
 		stepStyleCategoriesDesc:
-			'Global — Videoüberlagerung, Name des Rezitators. Sure — Name des Rezitators und der Sure. Verse — Schriftart, Farbe, Größe, Animationen.',
+			'Video steuert Hintergrund und Videoüberlagerung. Arabisch gestaltet die Koranuntertitel. Übersetzung gestaltet die übersetzten Untertitel.',
 		stepExportTitle: 'Zum Export gehen',
 		stepExportDesc:
 			'Gehen Sie schließlich zum Tab Export, um Ihr untertiteltes Video zu generieren.',
-		stepExportVideoTitle: 'Ihr Video exportieren',
+		stepExportVideoTitle: 'Exportbereich auswählen',
 		stepExportVideoDesc:
-			'Verwenden Sie die Bereichsregler, um die Dauer auszuwählen, wählen Sie die Qualität und klicken Sie auf Exportieren, um Ihr endgültiges Video zu erstellen.',
-		hintClickTutorialCard: 'Klicken Sie auf die Tutorial-Projektkarte, um fortzufahren',
-		hintHoverAndAdd:
-			'Fahren Sie über das Element und klicken Sie auf « Zur Timeline hinzufügen », um fortzufahren',
-		hintClickSubtitlesTab: 'Klicken Sie auf den Tab « Untertitel-Editor », um fortzufahren',
-		hintClickTranslationsTab: 'Klicken Sie auf den Tab « Übersetzungen », um fortzufahren',
-		hintClickStyleTab: 'Klicken Sie auf den Tab « Stil », um fortzufahren',
-		hintClickExportTab: 'Klicken Sie auf den Tab « Export », um fortzufahren',
+			'Legen Sie hier Start- und Endzeit fest und fügen Sie optional zu überspringende Abschnitte hinzu. Prüfen Sie danach unten die Qualität und tippen Sie auf Exportieren.',
+		hintClickTutorialCard: 'Tippen Sie auf die Tutorial-Projektkarte, um fortzufahren',
+		hintHoverAndAdd: 'Tippen Sie auf die Schaltfläche + des Rezitationselements, um fortzufahren',
+		hintClickSubtitlesTab: 'Tippen Sie auf den Tab « Untertitel », um fortzufahren',
+		hintClickTranslationsTab: 'Tippen Sie auf den Tab « Übersetzungen », um fortzufahren',
+		hintClickStyleTab: 'Tippen Sie auf den Tab « Stil », um fortzufahren',
+		hintClickExportTab: 'Tippen Sie auf den Tab « Export », um fortzufahren',
 		skipTutorial: 'Tutorial überspringen'
 	},
 	modals: {

@@ -148,6 +148,7 @@ class GlobalState {
 		// Identifiant du renderer d'export monté dans la WebView Android principale.
 		activeExportId: null as string | null,
 		isSettingsOpen: false,
+		openSettingsSectionDirectly: false,
 		selectedStatuses: Status.getAllStatuses(),
 		filteredProjects: [] as ProjectDetail[],
 		searchQuery: '',

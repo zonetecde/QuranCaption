@@ -49,7 +49,8 @@
 		'settings_support'
 	);
 	let isSupportModalOpen = $state(false);
-	let settingsMenuOpen = $state(true);
+	let settingsMenuOpen = $state(!globalState.uiState.openSettingsSectionDirectly);
+	globalState.uiState.openSettingsSectionDirectly = false;
 	let panelScale = $derived(
 		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
 	);

@@ -82,6 +82,7 @@
 
 	function handleDonateClick() {
 		globalState.uiState.settingsTab = SettingsTab.SUPPORT;
+		globalState.uiState.openSettingsSectionDirectly = true;
 		globalState.uiState.isSettingsOpen = true;
 	}
 

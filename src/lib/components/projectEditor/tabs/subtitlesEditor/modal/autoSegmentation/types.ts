@@ -12,7 +12,8 @@ export type AiVersion =
 	| 'multi_v2'
 	| 'multi_v2_local'
 	| 'muaalem_local'
-	| 'surah_splitter';
+	| 'surah_splitter'
+	| 'quran_word_timing';
 
 /** Represents a wizard navigation item. */
 export type WizardStep = {

@@ -1,0 +1,5 @@
+numpy
+librosa
+pyloudnorm
+sherpa-onnx>=1.10.32
+requests

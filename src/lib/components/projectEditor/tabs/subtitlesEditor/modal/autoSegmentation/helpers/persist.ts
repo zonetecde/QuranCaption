@@ -14,6 +14,7 @@ export function deriveAiVersion(settings?: AutoSegmentationSettings): AiVersion 
 		if (settings.localAsrMode === 'legacy_whisper') return 'muaalem_local';
 		if (settings.localAsrMode === 'muaalem_local') return 'muaalem_local';
 		if (settings.localAsrMode === 'surah_splitter') return 'surah_splitter';
+		if (settings.localAsrMode === 'quran_word_timing') return 'quran_word_timing';
 		if ((settings.localAsrMode as string) === 'open_multi_aligner') return 'muaalem_local';
 		return 'multi_v2_local';
 	}
@@ -43,13 +44,15 @@ export function deriveSelectionState(settings?: AutoSegmentationSettings): Wizar
 		mode:
 			aiVersion === 'multi_v2_local' ||
 			aiVersion === 'muaalem_local' ||
-			aiVersion === 'surah_splitter'
+			aiVersion === 'surah_splitter' ||
+			aiVersion === 'quran_word_timing'
 				? 'local'
 				: (settings?.mode ?? 'api'),
 		runtime:
 			aiVersion === 'multi_v2_local' ||
 			aiVersion === 'muaalem_local' ||
-			aiVersion === 'surah_splitter'
+			aiVersion === 'surah_splitter' ||
+			aiVersion === 'quran_word_timing'
 				? 'local'
 				: settings?.mode === 'local'
 					? 'cloud'
@@ -59,7 +62,9 @@ export function deriveSelectionState(settings?: AutoSegmentationSettings): Wizar
 				? 'muaalem_local'
 				: aiVersion === 'surah_splitter'
 					? 'surah_splitter'
-					: 'multi_aligner',
+					: aiVersion === 'quran_word_timing'
+						? 'quran_word_timing'
+						: 'multi_aligner',
 		legacyModel: settings?.legacyWhisperModel ?? 'base',
 		multiModel:
 			aiVersion === 'muaalem_local'

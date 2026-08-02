@@ -379,6 +379,15 @@ pub(crate) fn resolve_engine_python_exe(
     let python_exe = get_venv_python_exe(&venv_dir);
     if python_exe.exists() {
         Ok(python_exe)
+    } else if matches!(engine, LocalSegmentationEngine::QuranWordTiming) {
+        let venv_dir = create_venv_if_missing(app_handle, engine)?;
+        let python_exe = get_venv_python_exe(&venv_dir);
+        if python_exe.exists() {
+            Ok(python_exe)
+        } else {
+            let system_python = resolve_system_python(MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR)?;
+            Ok(PathBuf::from(system_python.command))
+        }
     } else {
         Err(format!(
             "{} local environment is not installed yet. Install dependencies first.",

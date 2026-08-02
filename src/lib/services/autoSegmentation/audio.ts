@@ -144,12 +144,12 @@ export async function checkLocalSegmentationStatus(
 /**
  * Installe les dépendances pour la segmentation locale.
  *
- * @param {'legacy' | 'multi' | 'muaalem' | 'surah_splitter'} engine Moteur cible.
+ * @param {'legacy' | 'multi' | 'muaalem' | 'surah_splitter' | 'quran_word_timing'} engine Moteur cible.
  * @param {string} [hfToken] Token Hugging Face optionnel.
  * @returns {Promise<void>}
  */
 export async function installLocalSegmentationDeps(
-	engine: 'legacy' | 'multi' | 'muaalem' | 'surah_splitter',
+	engine: 'legacy' | 'multi' | 'muaalem' | 'surah_splitter' | 'quran_word_timing',
 	hfToken?: string
 ): Promise<void> {
 	try {

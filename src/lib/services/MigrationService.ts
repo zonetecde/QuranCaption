@@ -1,4 +1,4 @@
-﻿import {
+import {
 	Asset,
 	Duration,
 	PredefinedSubtitleClip,
@@ -710,7 +710,8 @@ export default class MigrationService {
 				| 'multi_aligner'
 				| 'open_multi_aligner'
 				| 'muaalem_local'
-				| 'surah_splitter';
+				| 'surah_splitter'
+				| 'quran_word_timing';
 			multiAlignerModel?: string;
 			includeWbwTimestamps?: boolean;
 		};

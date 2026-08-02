@@ -542,3 +542,28 @@ pub async fn segment_quran_audio_local_surah_splitter(
         None,
     )
 }
+
+/// Exécute la segmentation locale via le moteur hors-ligne WordTiming.
+pub async fn segment_quran_audio_local_word_timing(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    min_silence_ms: Option<u32>,
+    min_speech_ms: Option<u32>,
+    pad_ms: Option<u32>,
+) -> Result<serde_json::Value, String> {
+    let extra_args = Vec::new();
+
+    run_local_segmentation_script(
+        app_handle,
+        LocalSegmentationEngine::QuranWordTiming,
+        audio_path,
+        audio_clips,
+        min_silence_ms,
+        min_speech_ms,
+        pad_ms,
+        extra_args,
+        None,
+    )
+}
+

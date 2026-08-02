@@ -21,7 +21,12 @@ import {
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
-	localAsrMode: 'legacy_whisper' | 'multi_aligner' | 'muaalem_local' | 'surah_splitter';
+	localAsrMode:
+		| 'legacy_whisper'
+		| 'multi_aligner'
+		| 'muaalem_local'
+		| 'surah_splitter'
+		| 'quran_word_timing';
 	minSilenceMs: number;
 	minSpeechMs: number;
 	padMs: number;

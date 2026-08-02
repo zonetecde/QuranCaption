@@ -24,8 +24,15 @@ export const WIZARD_STEPS_CLOUD_V2: WizardStep[] = [
 	{ key: 'review', title: 'Review', subtitle: 'Check and launch', icon: 'play_arrow' }
 ];
 
+/** Ordered steps for the offline word-timing path (skips setup & settings steps). */
+export const WIZARD_STEPS_quran_word_timing: WizardStep[] = [
+	{ key: 'version', title: 'Method', subtitle: 'Choose your workflow', icon: 'auto_awesome' },
+	{ key: 'review', title: 'Review', subtitle: 'Check and launch', icon: 'play_arrow' }
+];
+
 /** Returns the active step sequence for the selected AI version. */
 export function getWizardSteps(aiVersion: AiVersion, _runtime: WizardRuntime): WizardStep[] {
+	if (aiVersion === 'quran_word_timing') return WIZARD_STEPS_quran_word_timing;
 	return aiVersion === 'multi_v2' ? WIZARD_STEPS_CLOUD_V2 : WIZARD_STEPS_V2;
 }
 

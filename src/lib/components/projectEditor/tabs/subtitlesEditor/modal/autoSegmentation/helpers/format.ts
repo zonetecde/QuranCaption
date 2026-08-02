@@ -59,6 +59,9 @@ export function getSelectedModelLabel(
 	multiModel: MultiAlignerModel,
 	cloudModel: MultiAlignerModel
 ): string {
+	if (version === 'quran_word_timing') {
+		return get(LL).editor.quranwordtimingLabel();
+	}
 	if (version === 'legacy_v1') {
 		return (
 			LEGACY_MODEL_OPTIONS.find((option) => option.value === legacyModel)?.label ?? legacyModel

@@ -233,6 +233,28 @@ pub async fn segment_quran_audio_local_surah_splitter(
     .await
 }
 
+/// Lance la segmentation locale en mode hors-ligne WordTiming.
+#[tauri::command]
+pub async fn segment_quran_audio_local_word_timing(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    min_silence_ms: Option<u32>,
+    min_speech_ms: Option<u32>,
+    pad_ms: Option<u32>,
+) -> Result<serde_json::Value, String> {
+    segmentation::segment_quran_audio_local_word_timing(
+        app_handle,
+        audio_path,
+        audio_clips,
+        min_silence_ms,
+        min_speech_ms,
+        pad_ms,
+    )
+    .await
+}
+
+
 /// Genere une nouvelle piste audio Hifz en repetant chaque segment fourni.
 #[tauri::command]
 pub async fn generate_hifz_audio(

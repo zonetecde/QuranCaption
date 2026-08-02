@@ -29,7 +29,7 @@
 		{#if wizard.currentStatusProgress !== null}
 			<div class="mt-3">
 				<div class="mb-1 flex items-center justify-between text-[11px] text-thirdly">
-					<span>{$LL.editor.uploadProgress()}</span>
+					<span class="truncate pr-2">{wizard.currentStatus || $LL.editor.uploadProgress()}</span>
 					<span>{Math.round(wizard.currentStatusProgress)}%</span>
 				</div>
 				<div class="h-2 overflow-hidden rounded-full bg-thirdly/25">

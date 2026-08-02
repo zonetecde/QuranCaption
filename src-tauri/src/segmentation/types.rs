@@ -90,6 +90,8 @@ pub enum LocalSegmentationEngine {
     MuaalemLocal,
     /// Pipeline locale Surah Splitter basee sur WhisperX et detection d'ayahs.
     SurahSplitter,
+    /// Pipeline locale hors-ligne WordTiming basee sur FastConformer et CTC.
+    QuranWordTiming,
 }
 
 impl LocalSegmentationEngine {
@@ -102,8 +104,9 @@ impl LocalSegmentationEngine {
                 Ok(Self::MuaalemLocal)
             }
             "surah_splitter" | "surah-splitter" => Ok(Self::SurahSplitter),
+            "word_timing" | "word_timing_offline" | "quran_word_timing" => Ok(Self::QuranWordTiming),
             _ => Err(format!(
-                "Unknown local segmentation engine '{}'. Expected 'legacy', 'multi', 'muaalem', or 'surah_splitter'.",
+                "Unknown local segmentation engine '{}'. Expected 'legacy', 'multi', 'muaalem', 'surah_splitter', or 'word_timing_offline'.",
                 raw
             )),
         }
@@ -116,6 +119,7 @@ impl LocalSegmentationEngine {
             Self::MultiAligner => "multi",
             Self::MuaalemLocal => "muaalem",
             Self::SurahSplitter => "surah_splitter",
+            Self::QuranWordTiming => "word_timing_offline",
         }
     }
 
@@ -126,6 +130,7 @@ impl LocalSegmentationEngine {
             Self::MultiAligner => "Multi-Aligner",
             Self::MuaalemLocal => "Muaalem Local",
             Self::SurahSplitter => "Surah Splitter",
+            Self::QuranWordTiming => "Quran Karim words alignment",
         }
     }
 
@@ -136,6 +141,7 @@ impl LocalSegmentationEngine {
             Self::MultiAligner => "python/quran-multi-aligner/requirements.txt",
             Self::MuaalemLocal => "python/muaalem_requirements.txt",
             Self::SurahSplitter => "python/surah_splitter_requirements.txt",
+            Self::QuranWordTiming => "python/word_timing_requirements.txt",
         }
     }
 
@@ -146,6 +152,7 @@ impl LocalSegmentationEngine {
             Self::MultiAligner => "python/local_multi_aligner_segmenter.py",
             Self::MuaalemLocal => "python/local_muaalem_segmenter.py",
             Self::SurahSplitter => "python/local_surah_splitter_segmenter.py",
+            Self::QuranWordTiming => "python/local_word_timing_segmenter.py",
         }
     }
 
@@ -187,6 +194,15 @@ impl LocalSegmentationEngine {
                 "loguru",
                 "rich",
                 "pydub",
+            ],
+            Self::QuranWordTiming => &[
+                "numpy",
+                "librosa",
+                "pyloudnorm",
+                "onnxruntime",
+                "kaldi_native_fbank",
+                "sherpa_onnx",
+                "qua_sdk",
             ],
         }
     }

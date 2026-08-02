@@ -97,7 +97,12 @@ export type ImportedSegmentationParseResult = {
  * Mode de traitement de la segmentation.
  */
 export type SegmentationMode = 'api' | 'local';
-export type LocalAsrMode = 'legacy_whisper' | 'multi_aligner' | 'muaalem_local' | 'surah_splitter';
+export type LocalAsrMode =
+	| 'legacy_whisper'
+	| 'multi_aligner'
+	| 'muaalem_local'
+	| 'surah_splitter'
+	| 'quran_word_timing';
 export type LegacyWhisperModelSize = 'tiny' | 'base' | 'medium' | 'large';
 export type MultiAlignerModel =
 	| 'Base'
@@ -138,6 +143,7 @@ export type LocalSegmentationStatus = {
 		multi: LocalEngineStatus;
 		muaalem: LocalEngineStatus;
 		surahSplitter: LocalEngineStatus;
+		quranwordtiming?: LocalEngineStatus;
 	};
 };
 

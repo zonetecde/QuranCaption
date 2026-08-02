@@ -1,0 +1,14 @@
+# Ignore ONNX models
+*.onnx
+data/onnx/*.onnx
+
+# Ignore python caches
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
+
+# Ignore IDE files
+.vscode/
+.idea/

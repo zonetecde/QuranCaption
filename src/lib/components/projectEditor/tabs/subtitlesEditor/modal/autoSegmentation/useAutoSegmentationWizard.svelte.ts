@@ -63,7 +63,9 @@ export function useAutoSegmentationWizard() {
 	let localStatus = $state<LocalSegmentationStatus | null>(null);
 	let isCheckingStatus = $state(false);
 	let isInstallingDeps = $state(false);
-	let installingEngine = $state<'legacy' | 'multi' | 'muaalem' | 'surah_splitter' | null>(null);
+	let installingEngine = $state<
+		'legacy' | 'multi' | 'muaalem' | 'surah_splitter' | 'quran_word_timing' | null
+	>(null);
 	let installStatus = $state('');
 	let currentStatus = $state('');
 	let currentStatusProgress = $state<number | null>(null);
@@ -91,6 +93,8 @@ export function useAutoSegmentationWizard() {
 		if (selection.localAsrMode === 'muaalem_local') return localStatus?.engines?.muaalem ?? null;
 		if (selection.localAsrMode === 'surah_splitter')
 			return localStatus?.engines?.surahSplitter ?? null;
+		if (selection.localAsrMode === 'quran_word_timing')
+			return localStatus?.engines?.quranwordtiming ?? null;
 		return localStatus?.engines?.multi ?? null;
 	});
 	const supportsWbwTimestamps = $derived(
@@ -98,7 +102,8 @@ export function useAutoSegmentationWizard() {
 			selection.aiVersion === 'multi_v2' ||
 			selection.aiVersion === 'multi_v2_local' ||
 			(selection.aiVersion === 'muaalem_local' && selection.multiModel === 'Muaalem-v3.2') ||
-			selection.aiVersion === 'surah_splitter'
+			selection.aiVersion === 'surah_splitter' ||
+			selection.aiVersion === 'quran_word_timing'
 	);
 
 	const audioInfo = $derived(() => getAutoSegmentationAudioInfo());
@@ -209,6 +214,14 @@ export function useAutoSegmentationWizard() {
 				selection.multiModel = 'Muaalem-v3.2';
 				persistPatch({ multiAlignerModel: selection.multiModel });
 			}
+		} else if (aiVersion === 'quran_word_timing') {
+			selection.mode = 'local';
+			selection.runtime = 'local';
+			selection.localAsrMode = 'quran_word_timing';
+			if (!includeWbwTimestamps) {
+				includeWbwTimestamps = true;
+				persistPatch({ includeWbwTimestamps: true });
+			}
 		} else if (aiVersion === 'surah_splitter') {
 			selection.mode = 'local';
 			selection.runtime = 'local';
@@ -308,7 +321,7 @@ export function useAutoSegmentationWizard() {
 
 	/** Installs local dependencies for one engine with streamed status text. */
 	async function installEngine(
-		engine: 'legacy' | 'multi' | 'muaalem' | 'surah_splitter'
+		engine: 'legacy' | 'multi' | 'muaalem' | 'surah_splitter' | 'quran_word_timing'
 	): Promise<void> {
 		if (isInstallingDeps) return;
 		isInstallingDeps = true;

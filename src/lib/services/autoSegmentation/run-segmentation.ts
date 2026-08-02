@@ -326,6 +326,12 @@ export async function runAutoSegmentationForProject(
 				});
 			}
 
+			if (localAsrMode === 'quran_word_timing') {
+				return await invoke('segment_quran_audio_local_word_timing', {
+					...basePayload
+				});
+			}
+
 			return await invoke('segment_quran_audio_local_multi', {
 				...basePayload,
 				modelName: multiAlignerModel,

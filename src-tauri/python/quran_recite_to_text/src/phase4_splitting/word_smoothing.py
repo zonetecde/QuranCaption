@@ -21,9 +21,7 @@ def smooth_word_timestamps(segments: list[SegmentInfo], max_stretch_s: float | N
     if max_stretch_s is None:
         max_stretch_s = WORD_SMOOTHING_MAX_STRETCH_S
 
-    total_segs = len(segments)
-
-    for seg_idx, seg in enumerate(segments):
+    for seg in segments:
         if not seg.words or seg.start_time is None or seg.end_time is None:
             continue
 
@@ -39,20 +37,8 @@ def smooth_word_timestamps(segments: list[SegmentInfo], max_stretch_s: float | N
                 next_start = seg.words[i + 1].get("start")
                 next_bound_rel = next_start if next_start is not None else orig_end + max_stretch_s
             else:
-                next_bound_rel = orig_end + max_stretch_s
-                for next_idx in range(seg_idx + 1, total_segs):
-                    next_seg = segments[next_idx]
-                    if next_seg.words and next_seg.start_time is not None:
-                        first_word_start = next_seg.words[0].get("start", 0.0)
-                        abs_next_start = next_seg.start_time + first_word_start
-                        next_bound_rel = abs_next_start - seg.start_time
-                        break
+                next_bound_rel = max(orig_end, seg.end_time - seg.start_time)
 
             stretched_end = min(orig_end + max_stretch_s, next_bound_rel)
             new_end = max(orig_end, stretched_end)
             w["end"] = round(new_end, 4)
-
-            if i == num_words - 1:
-                new_abs_end = round(seg.start_time + new_end, 3)
-                if new_abs_end > seg.end_time:
-                    seg.end_time = new_abs_end

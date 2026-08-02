@@ -123,7 +123,7 @@ def process_audio(
     from src.phase4_splitting.ayah_split import split_segments_at_ayah_boundaries
     segments = split_segments_at_ayah_boundaries(
         segments,
-        min_word_gap_s=max(0.5, min_silence_ms / 1000.0),
+        min_word_gap_s=min_silence_ms / 1000.0,
     )
 
     # Eliminate fake-repeat / trailing-fragment segments caused by VAD chunk

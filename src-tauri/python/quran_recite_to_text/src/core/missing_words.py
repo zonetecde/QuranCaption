@@ -81,39 +81,56 @@ def extract_missing_word_refs(segments: list[SegmentInfo]) -> list[str]:
 
 
 def recompute_missing_words(segments: list[SegmentInfo]) -> None:
-    """Recomputes has_missing_words flags for all segments based on word coverage."""
-    missing_refs = set(extract_missing_word_refs(segments))
+    """Marks the segment immediately before each missing canonical word range."""
+    qi = get_quran_index()
+    missing_indices = []
+    for ref in extract_missing_word_refs(segments):
+        indices = qi.ref_to_indices(ref)
+        if indices:
+            missing_indices.append(indices[0])
 
+    segment_bounds: list[tuple[int, int] | None] = []
+    flags = []
     for seg in segments:
-        seg_locs = set()
-        if seg.matched_ref and ":" in seg.matched_ref:
-            parts = seg.matched_ref.split("-") if "-" in seg.matched_ref else (seg.matched_ref, seg.matched_ref)
-            try:
-                sp, ep = parts[0].split(":"), parts[1].split(":")
-                s_surah, s_ayah = int(sp[0]), int(sp[1])
-                e_surah, e_ayah = int(ep[0]), int(ep[1])
-                for ayah in range(s_ayah, e_ayah + 1):
-                    seg_locs.add((s_surah, ayah))
-            except (ValueError, IndexError):
-                pass
+        word_indices = []
+        for word in seg.words or []:
+            location = word.get("location")
+            indices = qi.ref_to_indices(location) if location else None
+            if indices and not word.get("is_missing"):
+                word_indices.append(indices[0])
+        segment_bounds.append(
+            (min(word_indices), max(word_indices)) if word_indices else None
+        )
+        flags.append(any(word.get("is_missing") for word in seg.words or []))
 
-        # Check if any missing ref belongs to this segment's surah/ayah
-        has_missing = False
-        for loc in missing_refs:
-            parts = loc.split(":")
-            if len(parts) >= 2:
-                try:
-                    loc_sa = (int(parts[0]), int(parts[1]))
-                    if loc_sa in seg_locs:
-                        has_missing = True
-                        break
-                except ValueError:
-                    pass
+    for missing_index in missing_indices:
+        containing = [
+            index
+            for index, bounds in enumerate(segment_bounds)
+            if bounds and bounds[0] <= missing_index <= bounds[1]
+        ]
+        if containing:
+            flags[containing[-1]] = True
+            continue
 
-        # Also check if any word in seg.words has is_missing = True
-        if not has_missing and seg.words:
-            has_missing = any(w.get("is_missing") for w in seg.words)
+        previous = [
+            (bounds[1], index)
+            for index, bounds in enumerate(segment_bounds)
+            if bounds and bounds[1] < missing_index
+        ]
+        if previous:
+            flags[max(previous)[1]] = True
+            continue
 
+        following = [
+            (bounds[0], index)
+            for index, bounds in enumerate(segment_bounds)
+            if bounds and bounds[0] > missing_index
+        ]
+        if following:
+            flags[min(following)[1]] = True
+
+    for seg, has_missing in zip(segments, flags):
         seg.has_missing_words = has_missing
 
 

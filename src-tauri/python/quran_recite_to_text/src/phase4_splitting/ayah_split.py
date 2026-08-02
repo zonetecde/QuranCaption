@@ -91,7 +91,7 @@ def split_segments_at_ayah_boundaries(
         prev_key: str | None = None
         prev_word_num: int | None = None
 
-        for w in seg.words:
+        for word_index, w in enumerate(seg.words):
             loc: str | None = w.get("location")
             if not loc or loc.startswith("0:0:"):
                 # Special-segment words (location 0:0:N) — attach to current group
@@ -102,6 +102,12 @@ def split_segments_at_ayah_boundaries(
                 continue
 
             key, word_num = _ayah_key_and_word(loc)
+            acoustic_gap = (
+                seg._acoustic_word_gaps[word_index]
+                if seg._acoustic_word_gaps
+                and word_index < len(seg._acoustic_word_gaps)
+                else None
+            )
 
             if not groups:
                 groups.append(_new_group(key, "first", w))
@@ -118,10 +124,16 @@ def split_segments_at_ayah_boundaries(
                 previous_word = groups[-1]["words"][-1]
                 previous_end = previous_word.get("end")
                 current_start = w.get("start")
+                word_gap = (
+                    acoustic_gap
+                    if acoustic_gap is not None
+                    else current_start - previous_end
+                    if previous_end is not None and current_start is not None
+                    else None
+                )
                 if (
-                    previous_end is not None
-                    and current_start is not None
-                    and current_start - previous_end >= min_word_gap_s
+                    word_gap is not None
+                    and word_gap >= min_word_gap_s
                 ):
                     groups.append(_new_group(key, "word_gap", w))
                 else:
@@ -267,6 +279,9 @@ def split_segments_at_ayah_boundaries(
                 repeated_text=sub_rep_text,
                 words=sub_words,
                 _original_alignment_idx=seg._original_alignment_idx,
+                _preserve_split_before=(
+                    not is_first and grp["reason"] in {"word_gap", "repetition"}
+                ),
             )
             result.append(sub_seg)
 

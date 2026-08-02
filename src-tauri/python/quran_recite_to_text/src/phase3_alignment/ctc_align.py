@@ -41,6 +41,33 @@ def _find_unmatched_affixes(transcribed_text: str, matched_text: str) -> tuple[l
     return prefix, suffix
 
 
+def _map_asr_words_to_reference(
+    asr_words: list[dict], ref_words: list[str]
+) -> tuple[dict[int, dict], set[int]]:
+    """Maps ASR words to canonical indices and returns unambiguously missing indices."""
+    if not asr_words or not ref_words:
+        return {}, set()
+
+    from src.phase2_matching.normalize import normalize_arabic
+    import difflib
+
+    asr_norm = [normalize_arabic(word.get("word", "")) for word in asr_words]
+    ref_norm = [normalize_arabic(word) for word in ref_words]
+    mapping: dict[int, dict] = {}
+    missing: set[int] = set()
+
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(
+        None, asr_norm, ref_norm, autojunk=False
+    ).get_opcodes():
+        if tag == "insert":
+            missing.update(range(j1, j2))
+        elif tag == "equal" or (tag == "replace" and i2 - i1 == j2 - j1):
+            for asr_index, ref_index in zip(range(i1, i2), range(j1, j2)):
+                mapping[ref_index] = asr_words[asr_index]
+
+    return mapping, missing
+
+
 def _strip_diacritics(text: str) -> str:
     return _DIAC_RE.sub('', text)
 
@@ -247,6 +274,8 @@ def run_ctc_alignment(
     vocab = _load_vocab(vocab_path)
     char_to_id = _build_char_to_id(vocab)
     logprobs_list = stage_metrics.get("logprobs", [])
+    asr_words_list = stage_metrics.get("asr_words", [])
+    silence_intervals = stage_metrics.get("silence_intervals", [])
 
     if not logprobs_list:
         return
@@ -271,6 +300,11 @@ def run_ctc_alignment(
 
         prefix_words, suffix_words = _find_unmatched_affixes(transcribed_text, matched_text)
         ref_words = matched_text.split()
+        asr_words_entry = asr_words_list[i] if i < len(asr_words_list) else None
+        asr_words = asr_words_entry[0] if isinstance(asr_words_entry, tuple) else asr_words_entry
+        asr_word_mapping, missing_word_indices = _map_asr_words_to_reference(
+            asr_words or [], ref_words
+        )
         full_words = prefix_words + ref_words + suffix_words
 
         token_ids: list[int] = []
@@ -380,7 +414,10 @@ def run_ctc_alignment(
             existing_locs.append(None)
 
         new_words = []
+        mapped_asr_words = []
         for j, (word, wt) in enumerate(zip(ref_words, word_times)):
+            if j in missing_word_indices:
+                continue
             if word in ["۞", "۩"] or word.startswith("۞") or word.startswith("۩"):
                 continue
             entry: dict = {"word": word}
@@ -391,5 +428,28 @@ def run_ctc_alignment(
             entry["start"] = round(s, 4) if s is not None else None
             entry["end"] = round(e, 4) if e is not None else None
             new_words.append(entry)
+            mapped_asr_words.append(asr_word_mapping.get(j))
 
         seg.words = new_words
+        seg._acoustic_word_gaps = [None]
+        for previous_asr_word, current_asr_word in zip(
+            mapped_asr_words, mapped_asr_words[1:]
+        ):
+            if previous_asr_word and current_asr_word:
+                previous_end = previous_asr_word["end"]
+                current_start = current_asr_word["start"]
+                seg._acoustic_word_gaps.append(
+                    max(
+                        (
+                            max(
+                                0.0,
+                                min(current_start, silence_end)
+                                - max(previous_end, silence_start),
+                            )
+                            for silence_start, silence_end in silence_intervals
+                        ),
+                        default=0.0,
+                    )
+                )
+            else:
+                seg._acoustic_word_gaps.append(None)

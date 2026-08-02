@@ -16,7 +16,7 @@ os.environ["OPENBLAS_NUM_THREADS"] = "2"
 from qua_sdk.schemas import Audio, Region, Regions, Emissions
 from src.phase2_matching.normalize import normalize_arabic
 from src.phase1_transcribe.fastconformer import FastConformerONNX
-from src.phase1_transcribe.silence import detect_non_silent_chunks
+from src.phase1_transcribe.silence import detect_acoustic_silences, detect_non_silent_chunks
 
 
 def run_asr_cpu(
@@ -58,6 +58,11 @@ def run_asr_cpu(
         adaptive=False,
         expected_chunks=expected_chunks,
         sample_rate=sample_rate
+    )
+    silence_intervals = detect_acoustic_silences(
+        audio_pcm,
+        min_silence_len_ms=min_silence_ms,
+        sample_rate=sample_rate,
     )
 
     regions_list = []
@@ -197,6 +202,7 @@ def run_asr_cpu(
         "segmentation": {},
         "recognition": {},
         "asr_words": asr_words_list,
-        "logprobs": logprobs_list
+        "logprobs": logprobs_list,
+        "silence_intervals": silence_intervals,
     }
     return (regions, emissions, stage_metrics, asr_time)

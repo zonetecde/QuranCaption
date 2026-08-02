@@ -137,6 +137,42 @@ def _detect_non_silent_fast(
     return final_chunks
 
 
+def detect_acoustic_silences(
+    audio_data: np.ndarray | str | Path,
+    min_silence_len_ms: int = 1200,
+    sample_rate: int = 16000,
+) -> List[Tuple[float, float]]:
+    """Returns qualifying acoustic silence intervals in seconds."""
+    if isinstance(audio_data, (str, Path)):
+        y, sr = librosa.load(str(audio_data), sr=sample_rate, mono=True)
+    else:
+        y, sr = audio_data, sample_rate
+
+    if len(y) == 0:
+        return []
+
+    frame_length = 2048
+    hop_length = 512
+    rms = librosa.feature.rms(y=y, frame_length=frame_length, hop_length=hop_length)[0]
+    rms_db = librosa.amplitude_to_db(rms, ref=np.max)
+    adaptive_top_db = float(
+        np.clip(abs(np.percentile(rms_db, 75)) + 20.0, 32.0, 45.0)
+    )
+    non_silent = librosa.effects.split(
+        y,
+        top_db=adaptive_top_db,
+        frame_length=frame_length,
+        hop_length=hop_length,
+    )
+
+    minimum_samples = int((min_silence_len_ms / 1000.0) * sr)
+    return [
+        (previous_end / sr, next_start / sr)
+        for (_, previous_end), (next_start, _) in zip(non_silent, non_silent[1:])
+        if next_start - previous_end >= minimum_samples
+    ]
+
+
 def _detect_non_silent_chunks_raw(
     audio_data: np.ndarray | str | Path,
     min_silence_len: int = 1200,

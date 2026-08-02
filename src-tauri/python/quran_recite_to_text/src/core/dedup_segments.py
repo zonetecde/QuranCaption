@@ -100,6 +100,8 @@ def _trim_head_overlap(current: SegmentInfo, nxt: SegmentInfo) -> SegmentInfo | 
     """Trims duplicate head word from nxt if it matches current's last word location."""
     if _is_genuine_repeat(current) or _is_genuine_repeat(nxt):
         return None
+    if nxt.start_time - current.end_time > ADJACENT_GAP_THRESH_S:
+        return None
 
     curr_words = current.words or []
     nxt_words = nxt.words or []
@@ -352,7 +354,7 @@ def _extend_end(seg: SegmentInfo, new_end: float) -> SegmentInfo:
 
 
 def merge_continuous_vad_splits(segments: list[SegmentInfo]) -> list[SegmentInfo]:
-    """Merge adjacent segments if they are in the same Ayah and gap < 0.4s."""
+    """Merge close same-Ayah VAD segments unless an acoustic split must be retained."""
     MIN_SPLIT_GAP_S = 0.4
     if not segments:
         return segments
@@ -370,7 +372,7 @@ def merge_continuous_vad_splits(segments: list[SegmentInfo]) -> list[SegmentInfo
         same_ayah = (len(c_parts) >= 2 and len(n_parts) >= 2 and 
                      c_parts[0] == n_parts[0] and c_parts[1] == n_parts[1])
                      
-        if same_ayah:
+        if same_ayah and not nxt._preserve_split_before:
             curr_words = current.words or []
             nxt_words = nxt.words or []
             last_word = curr_words[-1] if curr_words else None

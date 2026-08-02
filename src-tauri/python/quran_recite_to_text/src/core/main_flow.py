@@ -47,7 +47,7 @@ def process_audio(
         profile_name: Transcription profile preset ('auto', 'fast', 'noisy', 'clean', 'sliding').
         return_profiling: If True, returns (json_output, profiling).
         progress_callback: Optional callable(pct, msg) for progress tracking.
-        min_silence_ms: Minimum silence duration used to split speech chunks.
+        min_silence_ms: Requested silence threshold for chunk detection and subtitle splitting.
         pad_ms: Maximum adaptive padding added around speech chunks.
     """
     if audio_data is None:
@@ -121,7 +121,10 @@ def process_audio(
     # 1-to-1 Ayah chunks for high-precision alignment.
     # All metadata (repetitions, wrap_word_ranges, error) is preserved.
     from src.phase4_splitting.ayah_split import split_segments_at_ayah_boundaries
-    segments = split_segments_at_ayah_boundaries(segments)
+    segments = split_segments_at_ayah_boundaries(
+        segments,
+        min_word_gap_s=max(0.5, min_silence_ms / 1000.0),
+    )
 
     # Eliminate fake-repeat / trailing-fragment segments caused by VAD chunk
     # audio overlap or edge-cuts.  Runs AFTER ayah_split so the dedup sees

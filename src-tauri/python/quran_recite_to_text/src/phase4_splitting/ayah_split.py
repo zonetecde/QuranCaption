@@ -50,15 +50,13 @@ def _new_group(key: str | None, reason: str, first_word: dict) -> dict:
     return {"key": key, "reason": reason, "words": [first_word]}
 
 
-def split_segments_at_ayah_boundaries(segments: list[SegmentInfo]) -> list[SegmentInfo]:
-    """Splits multi-ayah or multi-reading segments into individual per-ayah segments.
+def split_segments_at_ayah_boundaries(
+    segments: list[SegmentInfo], min_word_gap_s: float = 0.5
+) -> list[SegmentInfo]:
+    """Splits segments at ayah, repetition, and meaningful intra-ayah pause boundaries.
 
-    Only splits at an ayah (or repetition) boundary when there is a meaningful
-    silence gap between the last word of the current group and the first word
-    of the next group. If the reciter read through without pausing (gap == 0 or
-    below MIN_SPLIT_GAP_S), the boundary is ignored and the groups are merged
-    back — matching the reference project's behaviour where a continuous reading
-    of two ayahs is kept as one segment (e.g. 52:9:1->52:10:3).
+    Ayah boundaries require a small meaningful silence gap, repetition boundaries
+    are always retained, and pauses within one ayah use ``min_word_gap_s``.
 
     Preserves all metadata from the parent segment including:
     - has_repeated_words / wrap_word_ranges / repeated_ranges / repeated_text
@@ -87,6 +85,7 @@ def split_segments_at_ayah_boundaries(segments: list[SegmentInfo]) -> list[Segme
         # A new group is opened when:
         #   a) the ayah key changes            → reason "ayah_boundary"
         #   b) the word index goes backward    → reason "repetition"
+        #   c) two words in one ayah have a meaningful pause → reason "word_gap"
         # ----------------------------------------------------------------
         groups: list[dict] = []
         prev_key: str | None = None
@@ -115,6 +114,18 @@ def split_segments_at_ayah_boundaries(segments: list[SegmentInfo]) -> list[Segme
             ):
                 # Backward word index within the same ayah = repetition boundary
                 groups.append(_new_group(key, "repetition", w))
+            elif key == prev_key:
+                previous_word = groups[-1]["words"][-1]
+                previous_end = previous_word.get("end")
+                current_start = w.get("start")
+                if (
+                    previous_end is not None
+                    and current_start is not None
+                    and current_start - previous_end >= min_word_gap_s
+                ):
+                    groups.append(_new_group(key, "word_gap", w))
+                else:
+                    groups[-1]["words"].append(w)
             else:
                 groups[-1]["words"].append(w)
 
@@ -131,7 +142,7 @@ def split_segments_at_ayah_boundaries(segments: list[SegmentInfo]) -> list[Segme
         # ----------------------------------------------------------------
         # Step 2: Merge back adjacent ayah-boundary groups that have no
         # meaningful silence gap (the reciter read continuously).
-        # Repetition boundaries are ALWAYS kept.
+        # Repetition and intra-ayah pause boundaries are ALWAYS kept.
         # ----------------------------------------------------------------
         merged: list[dict] = [groups[0]]
         for grp in groups[1:]:

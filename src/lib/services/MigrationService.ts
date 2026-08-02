@@ -699,7 +699,7 @@ export default class MigrationService {
 	}
 
 	/**
-	 * Migre l'ancien moteur open local vers le nouveau moteur Muaalem local.
+	 * Migre les anciens moteurs locaux retirés vers Quran Word Timing.
 	 */
 	static FromQC348ToQC349(): void {
 		if (!globalState.settings) return;
@@ -719,34 +719,14 @@ export default class MigrationService {
 		let hasChanges = false;
 
 		if (
-			autoSegmentationSettings.localAsrMode === 'open_multi_aligner' ||
-			autoSegmentationSettings.localAsrMode === 'legacy_whisper'
+			['open_multi_aligner', 'legacy_whisper', 'muaalem_local'].includes(
+				autoSegmentationSettings.localAsrMode ?? ''
+			)
 		) {
-			autoSegmentationSettings.localAsrMode = 'muaalem_local';
+			autoSegmentationSettings.localAsrMode = 'quran_word_timing';
+			autoSegmentationSettings.multiAlignerModel = 'Base';
+			autoSegmentationSettings.includeWbwTimestamps = true;
 			hasChanges = true;
-		}
-
-		if (autoSegmentationSettings.localAsrMode === 'muaalem_local') {
-			const validModels = new Set([
-				'Muaalem-v3.2',
-				'Open-Tadabur-Small',
-				'Open-DeepDML-Small-Mix',
-				'Open-DeepDML-Medium-Mix',
-				'Open-IJyad-Large-V3',
-				'Open-Naazim-Large-V3-Turbo',
-				'Open-Legacy-Tiny',
-				'Open-Legacy-Base',
-				'Open-Legacy-Medium',
-				'Open-Legacy-Large'
-			]);
-			if (!validModels.has(autoSegmentationSettings.multiAlignerModel ?? '')) {
-				autoSegmentationSettings.multiAlignerModel = 'Muaalem-v3.2';
-				hasChanges = true;
-			}
-			if (autoSegmentationSettings.includeWbwTimestamps !== true) {
-				autoSegmentationSettings.includeWbwTimestamps = true;
-				hasChanges = true;
-			}
 		}
 
 		if (hasChanges) {

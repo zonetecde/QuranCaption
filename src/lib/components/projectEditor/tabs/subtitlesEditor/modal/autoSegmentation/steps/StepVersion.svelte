@@ -66,6 +66,37 @@
 		<button
 			type="button"
 			class="rounded-xl border p-4 text-left transition-colors"
+			class:border-accent-primary={wizard.selection.aiVersion === 'quran_word_timing'}
+			class:bg-accent={wizard.selection.aiVersion === 'quran_word_timing'}
+			class:border-color={wizard.selection.aiVersion !== 'quran_word_timing'}
+			onclick={() => wizard.onVersionChange('quran_word_timing')}
+		>
+			<div class="mb-3 flex items-start justify-between gap-3">
+				<div class="flex items-center gap-2 text-primary">
+					<span class="material-icons">offline_bolt</span>{$LL.editor.quranwordtimingLabel()}
+				</div>
+				<span
+					class="inline-flex items-center rounded-full border border-accent-primary bg-accent-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--bg-primary)] text-center opacity-40"
+				>
+					{`${$LL.editor.offlineLabel()} ${$LL.editor.recommendedLabel()}`}
+				</span>
+			</div>
+			<p class="text-sm font-medium text-primary">
+				{$LL.editor.quranwordtimingDesc()}
+			</p>
+			<p class="mt-3 text-xs text-thirdly">
+				{$LL.editor.quranwordtimingDetail()}
+			</p>
+			<div
+				class="mt-3 inline-flex items-center rounded-full border border-color px-2 py-1 text-[11px] text-thirdly"
+			>
+				{$LL.editor.offlineLabel()}
+			</div>
+		</button>
+
+		<button
+			type="button"
+			class="rounded-xl border p-4 text-left transition-colors"
 			class:border-accent-primary={wizard.selection.aiVersion === 'surah_splitter'}
 			class:bg-accent={wizard.selection.aiVersion === 'surah_splitter'}
 			class:border-color={wizard.selection.aiVersion !== 'surah_splitter'}
@@ -79,54 +110,6 @@
 			</p>
 			<p class="mt-3 text-xs text-thirdly">
 				{$LL.editor.surahSplitterLocalDetail()} <br />{$LL.editor.surahSplitterSingleSurahNote()}
-			</p>
-			<div
-				class="mt-3 inline-flex items-center rounded-full border border-color px-2 py-1 text-[11px] text-thirdly"
-			>
-				{$LL.editor.offlineLabel()}
-			</div>
-		</button>
-
-		<button
-			type="button"
-			class="rounded-xl border p-4 text-left transition-colors"
-			class:border-accent-primary={wizard.selection.aiVersion === 'muaalem_local'}
-			class:bg-accent={wizard.selection.aiVersion === 'muaalem_local'}
-			class:border-color={wizard.selection.aiVersion !== 'muaalem_local'}
-			onclick={() => wizard.onVersionChange('muaalem_local')}
-		>
-			<div class="mb-1 flex items-center gap-2 text-primary">
-				<span class="material-icons">offline_bolt</span>{$LL.editor.muaalemLocalLabel()}
-			</div>
-			<p class="text-sm font-medium text-primary">
-				{$LL.editor.muaalemLocalDesc()}
-			</p>
-			<p class="mt-3 text-xs text-thirdly">
-				{$LL.editor.muaalemLocalDetail()}
-			</p>
-			<div
-				class="mt-3 inline-flex items-center rounded-full border border-color px-2 py-1 text-[11px] text-thirdly"
-			>
-				{$LL.editor.offlineLabel()}
-			</div>
-		</button>
-
-		<button
-			type="button"
-			class="rounded-xl border p-4 text-left transition-colors"
-			class:border-accent-primary={wizard.selection.aiVersion === 'quran_word_timing'}
-			class:bg-accent={wizard.selection.aiVersion === 'quran_word_timing'}
-			class:border-color={wizard.selection.aiVersion !== 'quran_word_timing'}
-			onclick={() => wizard.onVersionChange('quran_word_timing')}
-		>
-			<div class="mb-1 flex items-center gap-2 text-primary">
-				<span class="material-icons">offline_bolt</span>{$LL.editor.quranwordtimingLabel()}
-			</div>
-			<p class="text-sm font-medium text-primary">
-				{$LL.editor.quranwordtimingDesc()}
-			</p>
-			<p class="mt-3 text-xs text-thirdly">
-				{$LL.editor.quranwordtimingDetail()}
 			</p>
 			<div
 				class="mt-3 inline-flex items-center rounded-full border border-color px-2 py-1 text-[11px] text-thirdly"

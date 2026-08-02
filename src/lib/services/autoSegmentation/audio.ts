@@ -122,13 +122,6 @@ export async function checkLocalSegmentationStatus(
 					tokenProvided: false,
 					message: 'Status check failed'
 				},
-				muaalem: {
-					ready: false,
-					venvExists: false,
-					packagesInstalled: false,
-					usable: false,
-					message: 'Status check failed'
-				},
 				surahSplitter: {
 					ready: false,
 					venvExists: false,
@@ -144,12 +137,12 @@ export async function checkLocalSegmentationStatus(
 /**
  * Installe les dépendances pour la segmentation locale.
  *
- * @param {'legacy' | 'multi' | 'muaalem' | 'surah_splitter' | 'quran_word_timing'} engine Moteur cible.
+ * @param {'legacy' | 'multi' | 'surah_splitter' | 'quran_word_timing'} engine Moteur cible.
  * @param {string} [hfToken] Token Hugging Face optionnel.
  * @returns {Promise<void>}
  */
 export async function installLocalSegmentationDeps(
-	engine: 'legacy' | 'multi' | 'muaalem' | 'surah_splitter' | 'quran_word_timing',
+	engine: 'legacy' | 'multi' | 'surah_splitter' | 'quran_word_timing',
 	hfToken?: string
 ): Promise<void> {
 	try {

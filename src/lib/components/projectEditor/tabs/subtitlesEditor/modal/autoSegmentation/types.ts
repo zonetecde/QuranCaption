@@ -11,7 +11,6 @@ export type AiVersion =
 	| 'legacy_v1'
 	| 'multi_v2'
 	| 'multi_v2_local'
-	| 'muaalem_local'
 	| 'surah_splitter'
 	| 'quran_word_timing';
 

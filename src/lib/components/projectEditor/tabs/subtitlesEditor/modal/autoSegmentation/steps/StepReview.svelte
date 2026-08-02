@@ -12,9 +12,7 @@
 					? 'Private Local Quranic Universal Aligner'
 					: wizard.selection.aiVersion === 'surah_splitter'
 						? 'Surah Splitter Local'
-						: wizard.selection.aiVersion === 'quran_word_timing'
-							? $LL.editor.quranwordtimingLabel()
-							: 'Muaalem Local'
+						: $LL.editor.quranwordtimingLabel()
 	);
 </script>
 
@@ -75,13 +73,6 @@
 				class="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-300"
 			>
 				{$LL.editor.tokenRequiredHint()}
-			</div>
-		{/if}
-		{#if wizard.selection.aiVersion === 'muaalem_local'}
-			<div
-				class="rounded-lg border border-yellow-500/10 bg-yellow-500/2 px-3 py-2 text-xs text-yellow-300/90 mt-4"
-			>
-				{$LL.editor.muaalemReviewHint()}
 			</div>
 		{/if}
 		{#if wizard.selection.aiVersion === 'surah_splitter'}

@@ -7,7 +7,6 @@
 	const wizard = getSharedWizard();
 	const isCloud = $derived(() => wizard.selection.aiVersion === 'multi_v2');
 	const isLocalV2 = $derived(() => wizard.selection.aiVersion === 'multi_v2_local');
-	const isMuaalemLocal = $derived(() => wizard.selection.aiVersion === 'muaalem_local');
 	const isSurahSplitter = $derived(() => wizard.selection.aiVersion === 'surah_splitter');
 	const isLegacy = $derived(() => wizard.selection.aiVersion === 'legacy_v1');
 </script>
@@ -20,8 +19,6 @@
 				{$LL.editor.prepareMethodCloudDesc()}
 			{:else if isLocalV2()}
 				{$LL.editor.prepareMethodLocalV2Desc()}
-			{:else if isMuaalemLocal()}
-				{$LL.editor.prepareMethodMuaalemDesc()}
 			{:else if isSurahSplitter()}
 				{$LL.editor.prepareMethodSurahSplitterDesc()}
 			{:else}
@@ -44,7 +41,9 @@
 		<div class="space-y-4">
 			{#if isLocalV2()}
 				<div class="rounded-xl border border-color bg-accent/70 p-3">
-					<div class="mb-2 text-xs uppercase text-thirdly">{$LL.editor.huggingFaceTokenLabel()}</div>
+					<div class="mb-2 text-xs uppercase text-thirdly">
+						{$LL.editor.huggingFaceTokenLabel()}
+					</div>
 					<p class="mb-2 text-xs text-thirdly">
 						{$LL.editor.hfTokenRequiredHint()}
 					</p>
@@ -89,17 +88,6 @@
 						isInstalled={!!wizard.localStatus?.engines?.multi?.ready}
 						onInstall={() => void wizard.installEngine('multi')}
 					/>
-				{:else if isMuaalemLocal()}
-					<p class="text-xs text-thirdly">
-						{$LL.editor.noTokenRequiredHint()}
-					</p>
-					<LocalEngineCard
-						title={$LL.editor.muaalemLocal()}
-						status={wizard.localStatus?.engines?.muaalem ?? null}
-						isInstalling={wizard.isInstallingDeps && wizard.installingEngine === 'muaalem'}
-						isInstalled={!!wizard.localStatus?.engines?.muaalem?.ready}
-						onInstall={() => void wizard.installEngine('muaalem')}
-					/>
 				{:else}
 					<p class="text-xs text-thirdly">
 						{$LL.editor.noTokenRequiredSurahSplitterHint()}
@@ -121,11 +109,6 @@
 				{/if}
 			</div>
 
-			{#if isMuaalemLocal()}
-				<div class="rounded-xl border border-color bg-accent/40 p-3 text-xs text-thirdly">
-					{$LL.editor.muaalemLocalHint()}
-				</div>
-			{/if}
 			{#if isSurahSplitter()}
 				<div class="rounded-xl border border-color bg-accent/40 p-3 text-xs text-thirdly">
 					{$LL.editor.surahSplitterLocalHint()}

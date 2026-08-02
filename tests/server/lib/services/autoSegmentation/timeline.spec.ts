@@ -49,6 +49,20 @@ describe('closeSmallSubtitleGaps', () => {
 		expect(clips[1].startTime).toBe(101);
 	});
 
+	it('moves the next clip after the previous one when they overlap', () => {
+		const clips = [mockClip(748, 4668), mockClip(3548, 18108), mockClip(18108, 28768)];
+		closeSmallSubtitleGaps(asOptionalClips(clips), 200);
+		expect(clips[1].startTime).toBe(4669);
+		expect(clips[2].startTime).toBe(18109);
+	});
+
+	it('preserves duration when a clip is fully covered by the previous one', () => {
+		const clips = [mockClip(0, 500), mockClip(100, 200)];
+		closeSmallSubtitleGaps(asOptionalClips(clips), 200);
+		expect(clips[1].startTime).toBe(501);
+		expect(clips[1].endTime).toBe(601);
+	});
+
 	it('handles multiple gaps', () => {
 		const clips = [mockClip(0, 100), mockClip(110, 200), mockClip(230, 350)];
 		closeSmallSubtitleGaps(asOptionalClips(clips), 15);

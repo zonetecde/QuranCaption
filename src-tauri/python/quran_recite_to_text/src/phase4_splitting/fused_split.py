@@ -161,10 +161,13 @@ def _split_fused_segments(segments):
                 verse_text = verse_text[len(_BASMALA_TEXT):].lstrip()
 
             verse_words, basmala_words = None, None
+            verse_asr_gaps, verse_acoustic_gaps = None, None
+            verse_start = basmala_end
             if seg.words:
                 split_rel = basmala_end - seg.start_time
                 b_list, v_list = [], []
-                for w in seg.words:
+                v_asr_gaps, v_acoustic_gaps = [], []
+                for word_index, w in enumerate(seg.words):
                     w_copy = dict(w)
                     loc = w_copy.get("location", "")
                     if loc.startswith("0:0:"):
@@ -175,8 +178,32 @@ def _split_fused_segments(segments):
                         if w_copy.get("end") is not None:
                             w_copy["end"] = max(0.0, round(w_copy["end"] - split_rel, 4))
                         v_list.append(w_copy)
+                        v_asr_gaps.append(
+                            seg._asr_word_gaps[word_index]
+                            if seg._asr_word_gaps and word_index < len(seg._asr_word_gaps)
+                            else None
+                        )
+                        v_acoustic_gaps.append(
+                            seg._acoustic_word_gaps[word_index]
+                            if seg._acoustic_word_gaps
+                            and word_index < len(seg._acoustic_word_gaps)
+                            else None
+                        )
+
+                verse_offset = v_list[0].get("start") if v_list else None
+                if verse_offset is not None and verse_offset > 0:
+                    verse_start += verse_offset
+                    for word in v_list:
+                        if word.get("start") is not None:
+                            word["start"] = max(0.0, round(word["start"] - verse_offset, 4))
+                        if word.get("end") is not None:
+                            word["end"] = max(0.0, round(word["end"] - verse_offset, 4))
                 basmala_words = b_list or None
                 verse_words = v_list or None
+                verse_asr_gaps = ([None] + v_asr_gaps[1:]) if v_asr_gaps else None
+                verse_acoustic_gaps = (
+                    [None] + v_acoustic_gaps[1:] if v_acoustic_gaps else None
+                )
 
             new_segments.append(SegmentInfo(
                 start_time=seg.start_time, end_time=basmala_end,
@@ -185,12 +212,14 @@ def _split_fused_segments(segments):
                 words=basmala_words,
             ))
             new_segments.append(SegmentInfo(
-                start_time=basmala_end, end_time=seg.end_time,
+                start_time=verse_start, end_time=seg.end_time,
                 transcribed_text=seg.transcribed_text, matched_text=verse_text,
                 matched_ref=verse_ref, match_score=seg.match_score,
                 error=seg.error, has_missing_words=seg.has_missing_words,
                 words=verse_words,
                 _original_alignment_idx=seg._original_alignment_idx,
+                _asr_word_gaps=verse_asr_gaps,
+                _acoustic_word_gaps=verse_acoustic_gaps,
             ))
 
     return new_segments

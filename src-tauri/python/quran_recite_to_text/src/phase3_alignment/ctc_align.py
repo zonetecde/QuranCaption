@@ -431,6 +431,7 @@ def run_ctc_alignment(
             mapped_asr_words.append(asr_word_mapping.get(j))
 
         seg.words = new_words
+        seg._asr_word_gaps = [None]
         seg._acoustic_word_gaps = [None]
         for previous_asr_word, current_asr_word in zip(
             mapped_asr_words, mapped_asr_words[1:]
@@ -438,6 +439,7 @@ def run_ctc_alignment(
             if previous_asr_word and current_asr_word:
                 previous_end = previous_asr_word["end"]
                 current_start = current_asr_word["start"]
+                seg._asr_word_gaps.append(max(0.0, current_start - previous_end))
                 seg._acoustic_word_gaps.append(
                     max(
                         (
@@ -452,4 +454,5 @@ def run_ctc_alignment(
                     )
                 )
             else:
+                seg._asr_word_gaps.append(None)
                 seg._acoustic_word_gaps.append(None)

@@ -37,6 +37,7 @@ class SegmentInfo:
     segment_number: int = 0
     words: Optional[list] = None
     _original_alignment_idx: Optional[int] = None
+    _asr_word_gaps: Optional[list] = None
     _acoustic_word_gaps: Optional[list] = None
     _preserve_split_before: bool = False
     split_group_id: Optional[str] = None

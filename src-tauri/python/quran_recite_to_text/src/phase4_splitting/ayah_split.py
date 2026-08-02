@@ -16,6 +16,9 @@ from typing import Any
 from src.core.segment_types import SegmentInfo
 
 
+WAQF_MARKS = frozenset("ۖۗۘۚۛۜ")
+
+
 def _ayah_key_and_word(location: str | None):
     if not location:
         return None, None
@@ -86,6 +89,7 @@ def split_segments_at_ayah_boundaries(
         #   a) the ayah key changes            → reason "ayah_boundary"
         #   b) the word index goes backward    → reason "repetition"
         #   c) two words in one ayah have a meaningful pause → reason "word_gap"
+        #   d) a waqf mark is followed by a clear ASR gap   → reason "waqf"
         # ----------------------------------------------------------------
         groups: list[dict] = []
         prev_key: str | None = None
@@ -108,6 +112,11 @@ def split_segments_at_ayah_boundaries(
                 and word_index < len(seg._acoustic_word_gaps)
                 else None
             )
+            asr_gap = (
+                seg._asr_word_gaps[word_index]
+                if seg._asr_word_gaps and word_index < len(seg._asr_word_gaps)
+                else None
+            )
 
             if not groups:
                 groups.append(_new_group(key, "first", w))
@@ -124,18 +133,23 @@ def split_segments_at_ayah_boundaries(
                 previous_word = groups[-1]["words"][-1]
                 previous_end = previous_word.get("end")
                 current_start = w.get("start")
-                word_gap = (
-                    acoustic_gap
-                    if acoustic_gap is not None
-                    else current_start - previous_end
+                ctc_gap = (
+                    current_start - previous_end
                     if previous_end is not None and current_start is not None
                     else None
                 )
-                if (
-                    word_gap is not None
-                    and word_gap >= min_word_gap_s
-                ):
+                has_waqf = any(mark in previous_word.get("word", "") for mark in WAQF_MARKS)
+                waqf_gap = asr_gap if asr_gap is not None else ctc_gap
+                if acoustic_gap is not None and acoustic_gap >= min_word_gap_s:
                     groups.append(_new_group(key, "word_gap", w))
+                elif (
+                    has_waqf
+                    and waqf_gap is not None
+                    and waqf_gap >= max(0.4, min_word_gap_s)
+                ):
+                    # FastConformer timestamps advance in 80ms frames, so 400ms
+                    # safely represents the upstream model's nominal 0.5s waqf gap.
+                    groups.append(_new_group(key, "waqf", w))
                 else:
                     groups[-1]["words"].append(w)
             else:
@@ -280,7 +294,7 @@ def split_segments_at_ayah_boundaries(
                 words=sub_words,
                 _original_alignment_idx=seg._original_alignment_idx,
                 _preserve_split_before=(
-                    not is_first and grp["reason"] in {"word_gap", "repetition"}
+                    not is_first and grp["reason"] in {"word_gap", "repetition", "waqf"}
                 ),
             )
             result.append(sub_seg)

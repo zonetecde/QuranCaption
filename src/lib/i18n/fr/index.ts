@@ -1049,6 +1049,9 @@ const fr = {
 		bestLocalAccuracy: 'Meilleure précision locale',
 		privateLocalQuranicAlignerDetail:
 			'S\u2019exécute sur votre machine avec la pile privée locale Quranic Universal Aligner. Nécessite une installation Python et un token Hugging Face.',
+		quranwordtimingLabel: 'Quran Karim words alignment',
+		quranwordtimingDesc: 'Aligneur d\u2019Ayahs - Aucune connexion internet requise',
+		quranwordtimingDetail: 'Reconnaissance vocale coranique hors ligne et alignement mot par mot.',
 		offlineLabel: 'Hors ligne',
 		advancedLabel: 'Avancé',
 		importHuggingFaceJson: 'Importer un JSON Hugging Face',

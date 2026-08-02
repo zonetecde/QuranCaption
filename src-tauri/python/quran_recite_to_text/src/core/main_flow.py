@@ -152,7 +152,13 @@ def process_audio(
     # Both smooth and inject mutate seg.words in-place before serialization.
     # Controlled by ENABLE_WORD_SMOOTHING in config.py.
     from src.phase4_splitting.word_smoothing import smooth_word_timestamps
-    smooth_word_timestamps(segments)
+    smooth_word_timestamps(
+        segments,
+        audio_data=audio,
+        sample_rate=sample_rate,
+        min_silence_ms=min_silence_ms,
+        pad_ms=pad_ms,
+    )
 
     # Optional: inject missing (unrecited) words into the words array.
     # Runs before serialization so injected words appear in the output JSON.

@@ -30,6 +30,10 @@ def _detect_non_silent_fast(
 
     total_duration_ms = int((len(y) / sr) * 1000)
 
+    # Rule 1: Audio under 3 minutes (180,000ms) -> Single Pass
+    if total_duration_ms <= 180000:
+        return [(0, total_duration_ms)]
+
     # Dynamic adaptive top_db estimation based on signal peak & RMS energy
     frame_length = 2048
     hop_length = 512
@@ -69,9 +73,29 @@ def _detect_non_silent_fast(
             else:
                 raw_chunks.append((start_ms, end_ms))
 
+    # Rule 2: Post-process & Merge micro-chunks (< 5000ms) or small gaps (< 2500ms)
+    merged_chunks = []
+    min_chunk_dur_ms = 5000   # 5 seconds min chunk target
+    max_gap_ms = 2500         # 2.5 seconds max gap to merge
+
+    for start_ms, end_ms in raw_chunks:
+        if not merged_chunks:
+            merged_chunks.append([start_ms, end_ms])
+        else:
+            prev_start_ms, prev_end_ms = merged_chunks[-1]
+            gap = start_ms - prev_end_ms
+            prev_dur = prev_end_ms - prev_start_ms
+            curr_dur = end_ms - start_ms
+
+            # Merge if gap is small OR if either chunk is a micro-chunk
+            if gap <= max_gap_ms or prev_dur < min_chunk_dur_ms or curr_dur < min_chunk_dur_ms:
+                merged_chunks[-1][1] = max(prev_end_ms, end_ms)
+            else:
+                merged_chunks.append([start_ms, end_ms])
+
     # Convert back to tuples and split oversized chunks (> 35s) at local RMS energy minima
     final_chunks = []
-    for s_ms, e_ms in raw_chunks:
+    for s_ms, e_ms in merged_chunks:
         chunk_dur_ms = e_ms - s_ms
         if chunk_dur_ms <= 38000:
             final_chunks.append((s_ms, e_ms))

@@ -431,6 +431,20 @@ def run_ctc_alignment(
             mapped_asr_words.append(asr_word_mapping.get(j))
 
         seg.words = new_words
+        if stage_metrics.get("multi_chapter") and new_words:
+            first_asr_word = asr_word_mapping.get(0)
+            prefix_duration = (
+                first_asr_word["start"] - seg.start_time
+                if first_asr_word
+                else new_words[0].get("start")
+            )
+            if prefix_duration is not None and prefix_duration > 0:
+                seg.start_time = round(seg.start_time + prefix_duration, 3)
+                for word in new_words:
+                    if word.get("start") is not None:
+                        word["start"] = round(max(0.0, word["start"] - prefix_duration), 4)
+                    if word.get("end") is not None:
+                        word["end"] = round(max(0.0, word["end"] - prefix_duration), 4)
         seg._asr_word_gaps = [None]
         seg._acoustic_word_gaps = [None]
         for previous_asr_word, current_asr_word in zip(

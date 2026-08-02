@@ -124,6 +124,7 @@ def process_audio(
     segments = split_segments_at_ayah_boundaries(
         segments,
         min_word_gap_s=min_silence_ms / 1000.0,
+        split_all_ayahs=bool(stage_metrics.get("multi_chapter")),
     )
 
     # Eliminate fake-repeat / trailing-fragment segments caused by VAD chunk
@@ -132,8 +133,41 @@ def process_audio(
     #   1. Overlap artifacts  (nxt.start < current.end, ref is subset)
     #   2. Trailing fragments (gap ≈ 0, 1-2 words already in previous seg)
     # Genuine reciter repetitions (wrap_word_ranges set) are never removed.
-    from src.core.dedup_segments import dedup_vad_overlaps
+    from src.core.dedup_segments import dedup_vad_overlaps, _merge_two_segments
     segments = dedup_vad_overlaps(segments)
+
+    if stage_metrics.get("multi_chapter"):
+        # Rejoin a one-word recovery fragment without consuming the following repeat.
+        merged_segments = []
+        segment_index = 0
+        while segment_index < len(segments):
+            if segment_index + 2 < len(segments):
+                current, continuation, repeated = segments[segment_index:segment_index + 3]
+                current_words = current.words or []
+                current_loc = current_words[0].get("location") if len(current_words) == 1 else None
+                continuation_loc = (
+                    continuation.words[0].get("location")
+                    if continuation.words else None
+                )
+                repeated_loc = repeated.words[0].get("location") if repeated.words else None
+                try:
+                    current_ref = tuple(map(int, current_loc.split(":")))
+                    continuation_ref = tuple(map(int, continuation_loc.split(":")))
+                    repeated_ref = tuple(map(int, repeated_loc.split(":")))
+                except (AttributeError, ValueError):
+                    current_ref = continuation_ref = repeated_ref = None
+                if (
+                    current_ref
+                    and continuation_ref[:2] == current_ref[:2] == repeated_ref[:2]
+                    and continuation_ref[2] == current_ref[2] + 1
+                    and repeated_ref[2] <= current_ref[2]
+                ):
+                    merged_segments.append(_merge_two_segments(current, continuation))
+                    segment_index += 2
+                    continue
+            merged_segments.append(segments[segment_index])
+            segment_index += 1
+        segments = merged_segments
 
     # Fuse adjacent segments belonging to the SAME Ayah when the reciter
     # recited continuously without a long pause (e.g. 17:56:1-9 + 17:56:10-13 -> 17:56:1-13).
@@ -158,7 +192,22 @@ def process_audio(
         sample_rate=sample_rate,
         min_silence_ms=min_silence_ms,
         pad_ms=pad_ms,
+        bridge_unsplit_gaps=bool(stage_metrics.get("multi_chapter")),
     )
+    if stage_metrics.get("multi_chapter"):
+        for previous, current in zip(segments, segments[1:]):
+            if current.start_time > previous.end_time:
+                continue
+            old_start = current.start_time
+            current.start_time = round(previous.end_time + 0.001, 3)
+            offset = current.start_time - old_start
+            for word in current.words or []:
+                if word.get("start") is not None:
+                    word["start"] = round(max(0.0, word["start"] - offset), 4)
+                if word.get("end") is not None:
+                    word["end"] = round(max(0.0, word["end"] - offset), 4)
+            if current.end_time <= current.start_time:
+                current.end_time = round(current.start_time + 0.04, 3)
 
     # Optional: inject missing (unrecited) words into the words array.
     # Runs before serialization so injected words appear in the output JSON.

@@ -51,6 +51,22 @@ fn run_local_segmentation_script(
     );
 
     let mut _merged_guard: Option<TempFileGuard> = None;
+    let word_timing_regions = audio_clips
+        .as_ref()
+        .filter(|clips| {
+            matches!(engine, LocalSegmentationEngine::QuranWordTiming)
+                && (clips.len() > 1 || clips.first().map_or(false, |clip| clip.start_ms > 0))
+        })
+        .map(|clips| {
+            clips
+                .iter()
+                .filter_map(|clip| {
+                    let start_ms = clip.start_ms.max(0);
+                    let end_ms = clip.end_ms.max(start_ms);
+                    (end_ms > start_ms).then_some([start_ms, end_ms])
+                })
+                .collect::<Vec<_>>()
+        });
     let audio_path = if let Some(clips) = audio_clips.as_ref().filter(|c| !c.is_empty()) {
         println!(
             "[segmentation][local][debug] received {} audio clip(s)",
@@ -171,6 +187,10 @@ fn run_local_segmentation_script(
     if let Some(ms) = pad_ms {
         args.push("--pad-ms".to_string());
         args.push(ms.to_string());
+    }
+    if let Some(regions) = word_timing_regions.filter(|regions| !regions.is_empty()) {
+        args.push("--audio-regions-ms".to_string());
+        args.push(serde_json::to_string(&regions).map_err(|error| error.to_string())?);
     }
     args.append(&mut extra_args);
     println!("[segmentation][local][debug] python args={:?}", args);

@@ -54,7 +54,9 @@ def _new_group(key: str | None, reason: str, first_word: dict) -> dict:
 
 
 def split_segments_at_ayah_boundaries(
-    segments: list[SegmentInfo], min_word_gap_s: float = 0.5
+    segments: list[SegmentInfo],
+    min_word_gap_s: float = 0.5,
+    split_all_ayahs: bool = False,
 ) -> list[SegmentInfo]:
     """Splits segments at ayah, repetition, and meaningful intra-ayah pause boundaries.
 
@@ -173,6 +175,9 @@ def split_segments_at_ayah_boundaries(
         merged: list[dict] = [groups[0]]
         for grp in groups[1:]:
             if grp["reason"] == "ayah_boundary":
+                if split_all_ayahs:
+                    merged.append(grp)
+                    continue
                 prev_words = merged[-1]["words"]
                 last_end = prev_words[-1].get("end")
                 next_start = grp["words"][0].get("start")

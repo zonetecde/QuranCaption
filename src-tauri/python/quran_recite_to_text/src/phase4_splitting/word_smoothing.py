@@ -57,6 +57,7 @@ def smooth_word_timestamps(
     sample_rate: int = 16000,
     min_silence_ms: int = 200,
     pad_ms: int = 100,
+    bridge_unsplit_gaps: bool = False,
 ) -> None:
     """Extends final word timestamps to acoustic speech boundaries in-place."""
     if not segments:
@@ -124,6 +125,15 @@ def smooth_word_timestamps(
                     max_start_s=(next_word_start + 0.1) if next_word_start is not None else None,
                 )
                 if silence is None:
+                    if (
+                        bridge_unsplit_gaps
+                        and next_word_start is not None
+                        and next_word_start - last_word_end <= 3.0
+                    ):
+                        end_updates[index] = max(
+                            last_word_end,
+                            next_word_start - 0.001,
+                        )
                     continue
 
                 silence_start, silence_end = silence

@@ -10,7 +10,7 @@ import onnxruntime as ort
 import kaldi_native_fbank as knf
 
 MODEL_DIR = Path(__file__).parent.parent.parent / "data" / "onnx"
-FASTCONFORMER_ONNX_PATH = str(MODEL_DIR / "qurankarim-fastconformer-q8.onnx")
+FASTCONFORMER_ONNX_PATH = str(MODEL_DIR / "qurankarim-fastconformer-mixed.onnx")
 FASTCONFORMER_TOKENS_PATH = str(MODEL_DIR / "tokens.txt")
 
 FC_SAMPLE_RATE = 16000
@@ -37,7 +37,7 @@ class FastConformerONNX:
     def _load_model(self):
         if not os.path.exists(FASTCONFORMER_ONNX_PATH):
             os.makedirs(os.path.dirname(FASTCONFORMER_ONNX_PATH), exist_ok=True)
-            url = "https://github.com/Iam-Muslim/QuranReciteToText/releases/download/model/qurankarim-fastconformer-q8.onnx"
+            url = "https://github.com/Iam-Muslim/QuranReciteToText/releases/download/model/qurankarim-fastconformer-mixed.onnx"
             urllib.request.urlretrieve(url, FASTCONFORMER_ONNX_PATH)
 
         sess_opts = ort.SessionOptions()

@@ -604,8 +604,8 @@ export function useAutoSegmentationWizard() {
 	/** Applies preset timings and persists the timing trio. */
 	function applyPreset(preset: SegmentationPreset): void {
 		minSilenceMs = preset.minSilenceMs;
-		minSpeechMs = preset.minSpeechMs;
 		padMs = preset.padMs;
+		if (selection.aiVersion !== 'quran_word_timing') minSpeechMs = preset.minSpeechMs;
 		persistPatch({ minSilenceMs, minSpeechMs, padMs });
 	}
 
@@ -613,7 +613,7 @@ export function useAutoSegmentationWizard() {
 	function isPresetActive(preset: SegmentationPreset): boolean {
 		return (
 			minSilenceMs === preset.minSilenceMs &&
-			minSpeechMs === preset.minSpeechMs &&
+			(selection.aiVersion === 'quran_word_timing' || minSpeechMs === preset.minSpeechMs) &&
 			padMs === preset.padMs
 		);
 	}

@@ -24,9 +24,10 @@ export const WIZARD_STEPS_CLOUD_V2: WizardStep[] = [
 	{ key: 'review', title: 'Review', subtitle: 'Check and launch', icon: 'play_arrow' }
 ];
 
-/** Ordered steps for the offline word-timing path (skips setup & settings steps). */
+/** Ordered steps for the offline word-timing path. */
 export const WIZARD_STEPS_quran_word_timing: WizardStep[] = [
 	{ key: 'version', title: 'Method', subtitle: 'Choose your workflow', icon: 'auto_awesome' },
+	{ key: 'settings', title: 'Settings', subtitle: 'Timing and behavior', icon: 'tune' },
 	{ key: 'review', title: 'Review', subtitle: 'Check and launch', icon: 'play_arrow' }
 ];
 

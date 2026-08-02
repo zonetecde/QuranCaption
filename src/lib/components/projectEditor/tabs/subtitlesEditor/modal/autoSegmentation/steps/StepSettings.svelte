@@ -40,20 +40,22 @@
 			oninput={(e) => wizard.setMinSilence(Number((e.currentTarget as HTMLInputElement).value))}
 			class="w-full accent-accent-primary"
 		/>
-		<label for="min-speech-range" class="block text-sm text-secondary"
-			>{$LL.editor.minSpeechLabel()}:
-			<span class="font-mono text-primary">{wizard.minSpeechMs}ms</span></label
-		>
-		<input
-			id="min-speech-range"
-			type="range"
-			min="500"
-			max="3000"
-			step="50"
-			value={wizard.minSpeechMs}
-			oninput={(e) => wizard.setMinSpeech(Number((e.currentTarget as HTMLInputElement).value))}
-			class="w-full accent-accent-primary"
-		/>
+		{#if wizard.selection.aiVersion !== 'quran_word_timing'}
+			<label for="min-speech-range" class="block text-sm text-secondary"
+				>{$LL.editor.minSpeechLabel()}:
+				<span class="font-mono text-primary">{wizard.minSpeechMs}ms</span></label
+			>
+			<input
+				id="min-speech-range"
+				type="range"
+				min="500"
+				max="3000"
+				step="50"
+				value={wizard.minSpeechMs}
+				oninput={(e) => wizard.setMinSpeech(Number((e.currentTarget as HTMLInputElement).value))}
+				class="w-full accent-accent-primary"
+			/>
+		{/if}
 		<label for="pad-range" class="block text-sm text-secondary"
 			>{$LL.editor.paddingLabel()}:
 			<span class="font-mono text-primary">{wizard.padMs}ms</span></label

@@ -65,7 +65,9 @@
 		<div class="text-secondary">
 			{$LL.editor.presetTimingSummary()}:
 			<span class="text-primary font-semibold"
-				>{wizard.minSilenceMs}ms silence, {wizard.minSpeechMs}ms speech, {wizard.padMs}ms padding</span
+				>{wizard.minSilenceMs}ms silence, {#if wizard.selection.aiVersion !== 'quran_word_timing'}{wizard.minSpeechMs}ms
+					speech,
+				{/if}{wizard.padMs}ms padding</span
 			>
 		</div>
 		{#if wizard.selection.aiVersion === 'multi_v2_local' && !wizard.selection.hfToken.trim()}

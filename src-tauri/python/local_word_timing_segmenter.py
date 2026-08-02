@@ -82,9 +82,21 @@ def main() -> int:
         if not args.verbose:
             with open(os.devnull, "w", encoding="utf-8") as null_file:
                 with contextlib.redirect_stdout(null_file), contextlib.redirect_stderr(null_file):
-                    payload = process_audio(args.audio_path, model_name="Base", progress_callback=progress_cb)
+                    payload = process_audio(
+                        args.audio_path,
+                        model_name="Base",
+                        progress_callback=progress_cb,
+                        min_silence_ms=args.min_silence_ms,
+                        pad_ms=args.pad_ms,
+                    )
         else:
-            payload = process_audio(args.audio_path, model_name="Base", progress_callback=progress_cb)
+            payload = process_audio(
+                args.audio_path,
+                model_name="Base",
+                progress_callback=progress_cb,
+                min_silence_ms=args.min_silence_ms,
+                pad_ms=args.pad_ms,
+            )
 
         emit_status_to_stderr(original_stderr_file, "formatting", "Formatting word timestamps...", progress=90)
         result = build_segment_export(payload, include_words=True)

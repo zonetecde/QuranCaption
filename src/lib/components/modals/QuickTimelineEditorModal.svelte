@@ -4,6 +4,8 @@
 	import { enterManualWordByWordEdit, exitManualWordByWordEdit } from '$lib/services/WbwHelper';
 	import VersePicker from '../projectEditor/tabs/subtitlesEditor/VersePicker.svelte';
 	import WordsSelector from '../projectEditor/tabs/subtitlesEditor/WordsSelector.svelte';
+	import SubtitlesWorkspace from '../projectEditor/tabs/subtitlesEditor/SubtitlesWorkspace.svelte';
+	import SubtitlePresetPicker from '../projectEditor/tabs/subtitlesEditor/SubtitlePresetPicker.svelte';
 	import TranslationInlineStylePanel from '../projectEditor/tabs/translationsEditor/TranslationInlineStylePanel.svelte';
 	import ArabicText from '../projectEditor/tabs/translationsEditor/workspace/ArabicText.svelte';
 	import Translation from '../projectEditor/tabs/translationsEditor/workspace/translation/Translation.svelte';
@@ -55,6 +57,17 @@
 
 	let isOpeningQuickWbwTimestampMode = $state(false);
 	let isClosing = $state(false);
+	let presetPickerOpen = $state(false);
+	let subtitlesWorkspace: { addSubtitle: () => Promise<void> } | null = $state(null);
+	let selectedWbwEditionName = $state('');
+
+	// Initialise l'édition WBW sélectionnée avec la première édition visible.
+	$effect(() => {
+		const editions = editionsToShow();
+		if (!selectedWbwEditionName && editions.length > 0) {
+			selectedWbwEditionName = editions[0].name;
+		}
+	});
 
 	// Ferme le modal quand active passe à false (appel externe depuis Navigator)
 	$effect(() => {
@@ -185,14 +198,33 @@
 					</section>
 				</div>
 			{:else if isSubtitleMode()}
-				<div class="min-h-0 flex-1 flex flex-col gap-3 p-3">
-					<VersePicker />
+				<div class="min-h-0 flex-1 flex flex-col p-3">
 					<div class="min-h-0 flex-1">
-						<WordsSelector />
+						<SubtitlesWorkspace
+							bind:this={subtitlesWorkspace}
+							useSplitHeight={false}
+							showVersePicker={true}
+							showPlaybackControls={true}
+							onTogglePresetPicker={() => (presetPickerOpen = !presetPickerOpen)}
+							onOpenAutoSegmentation={() => {}}
+						/>
 					</div>
+					{#if presetPickerOpen}
+						<div class="mt-3">
+							<SubtitlePresetPicker
+								onClose={() => (presetPickerOpen = false)}
+								onAddQuranSubtitle={() => subtitlesWorkspace?.addSubtitle()}
+							/>
+						</div>
+					{/if}
 				</div>
 			{:else if isWbwMode()}
-				<div class="min-h-0 flex-1 p-3">
+				<div class="min-h-0 flex-1 overflow-y-auto p-3 space-y-4">
+					<ArabicText subtitle={clip()!} />
+
+					{#each editionsToShow() as edition (edition.name)}
+						<Translation {edition} subtitle={clip()!} previousSubtitle={previousSubtitle()} />
+					{/each}
 					<TranslationInlineStylePanel />
 				</div>
 			{:else}

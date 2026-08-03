@@ -100,17 +100,22 @@
 	}
 
 	/**
-	 * Ajoute rapidement un silence ou une basmala à la position courante.
-	 *
-	 * @param {'Silence' | 'Basmala'} preset Preset à ajouter.
+	 * Divise le sous-titre sous le curseur en deux à la position du curseur.
+	 * @returns {Promise<void>}
+	 */
+	async function splitSubtitleAtCursor(): Promise<void> {
+		const cursorPosition = globalState.getTimelineState.cursorPosition;
+		const currentClip = globalState.getSubtitleTrack.getCurrentClip(cursorPosition);
+		if (!currentClip) return;
+		await globalState.getSubtitleTrack.splitSubtitle(currentClip.id);
+	}
+
+	/**
+	 * Ajoute rapidement un silence à la position courante.
 	 * @returns {void}
 	 */
-	function addQuickPreset(preset: 'Silence' | 'Basmala'): void {
-		const subtitleTrack = globalState.getSubtitleTrack;
-		const success =
-			preset === 'Silence'
-				? subtitleTrack.addSilence()
-				: subtitleTrack.addPredefinedSubtitle('Basmala');
+	function addQuickSilence(): void {
+		const success = globalState.getSubtitleTrack.addSilence();
 		if (success) globalState.currentProject!.detail.updateVideoDetailAttributes();
 	}
 </script>
@@ -314,20 +319,20 @@
 							<span class="material-icons">keyboard_arrow_down</span>
 						</button>
 						<button
-							class="playback-control-button playback-control-button-quick-basmala text-xs!"
+							class="playback-control-button playback-control-button-quick-split text-xs!"
 							type="button"
-							aria-label={$LL.settings.shortcutAction.ADD_BASMALA()}
-							data-help={$LL.settings.shortcutActionDesc.ADD_BASMALA()}
-							onclick={() => addQuickPreset('Basmala')}
+							aria-label={$LL.settings.shortcutAction.SPLIT_SUBTITLE()}
+							data-help={$LL.settings.shortcutActionDesc.SPLIT_SUBTITLE()}
+							onclick={() => void splitSubtitleAtCursor()}
 						>
-							﷽
+							<span class="material-icons text-[14px]!">call_split</span>
 						</button>
 						<button
 							class="playback-control-button playback-control-button-quick-silence"
 							type="button"
 							aria-label={$LL.settings.shortcutAction.ADD_SILENCE()}
 							data-help={$LL.settings.shortcutActionDesc.ADD_SILENCE()}
-							onclick={() => addQuickPreset('Silence')}
+							onclick={addQuickSilence}
 						>
 							<span class="material-icons text-[14px]!">space_bar</span>
 						</button>
@@ -501,8 +506,8 @@
 		--help-distance: 7.2rem;
 	}
 
-	.control-help-active .playback-control-button-quick-basmala::before,
-	.control-help-active .playback-control-button-quick-basmala::after {
+	.control-help-active .playback-control-button-quick-split::before,
+	.control-help-active .playback-control-button-quick-split::after {
 		--help-distance: 11rem;
 	}
 
@@ -558,7 +563,7 @@
 	.control-help-active .playback-control-button-edit::before,
 	.control-help-active .playback-control-horizontal .playback-control-button::before,
 	.control-help-active .playback-control-button-down::before,
-	.control-help-active .playback-control-button-quick-basmala::before,
+	.control-help-active .playback-control-button-quick-split::before,
 	.control-help-active .playback-control-button-quick-silence::before,
 	.control-help-active .playback-control-button-set-start::before {
 		top: calc(100% + 0.2rem);
@@ -569,7 +574,7 @@
 	.control-help-active .playback-control-button-edit::after,
 	.control-help-active .playback-control-horizontal .playback-control-button::after,
 	.control-help-active .playback-control-button-down::after,
-	.control-help-active .playback-control-button-quick-basmala::after,
+	.control-help-active .playback-control-button-quick-split::after,
 	.control-help-active .playback-control-button-quick-silence::after,
 	.control-help-active .playback-control-button-set-start::after {
 		top: calc(100% + var(--help-distance));
@@ -688,7 +693,7 @@
 
 	.playback-control-button-verse-previous,
 	.playback-control-button-verse-next,
-	.playback-control-button-quick-basmala,
+	.playback-control-button-quick-split,
 	.playback-control-button-quick-silence {
 		position: absolute;
 		font-size: 1.25rem;
@@ -710,12 +715,12 @@
 		right: 0;
 	}
 
-	.playback-control-button-quick-basmala,
+	.playback-control-button-quick-split,
 	.playback-control-button-quick-silence {
 		bottom: 0;
 	}
 
-	.playback-control-button-quick-basmala {
+	.playback-control-button-quick-split {
 		left: 0;
 	}
 

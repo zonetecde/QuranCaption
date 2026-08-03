@@ -224,10 +224,7 @@
 			dataTestId="subtitles-timeline-resizer"
 		/>
 
-		<section
-			class="subtitles-content-scale subtitles-editor-timeline"
-			style={`--editor-panel-scale: ${panelScale};`}
-		>
+		<section class="subtitles-editor-timeline" style={`--editor-panel-scale: ${panelScale};`}>
 			<Timeline
 				useSplitHeight={false}
 				visibleTrackTypes={[TrackType.Audio, TrackType.Subtitle]}

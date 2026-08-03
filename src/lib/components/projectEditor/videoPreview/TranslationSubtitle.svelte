@@ -230,7 +230,9 @@
 		}
 
 		const textParts = translation.getFormattedTextParts(editionName, subtitle);
-		const tokens = tokenizeTranslationText(textParts.text);
+		// Utilise le texte brut (avec espaces après les tirets longs) pour que
+		// la tokénisation WBW soit cohérente avec celle du sélecteur d'édition.
+		const tokens = tokenizeTranslationText(translation.text);
 		const rangesByUnit = new Map<number, number[]>();
 		for (const range of normalizedRanges) {
 			for (let index = range.startUnitIndex; index <= range.endUnitIndex; index++) {

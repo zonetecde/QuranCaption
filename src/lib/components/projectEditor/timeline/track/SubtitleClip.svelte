@@ -430,12 +430,12 @@
 	): Promise<void> {
 		if (!(clip instanceof SubtitleClip)) return;
 
-		// Ferme le menu avant d'afficher l'overlay pour éviter de garder le context menu ouvert.
+		// Ferme le menu avant d'afficher la modale pour éviter de garder le context menu ouvert.
 		currentMenu.set(null);
 		await tick();
 
 		// Le mode "translation" force la saisie classique, le mode "wbw" active le word styling.
-		globalState.openQuickTimelineEditor(clip.id, mode);
+		await globalState.openQuickTimelineEditor(clip.id, mode);
 	}
 
 	/**

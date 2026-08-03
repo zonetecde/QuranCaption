@@ -14,7 +14,6 @@
 	import { markClipAsVerified } from '$lib/classes/Clip.svelte';
 	import { getTimelineCustomClips } from './track/timelineCustomClip';
 	import Settings from '$lib/classes/Settings.svelte';
-	import QuickTimelineEditorOverlay from './QuickTimelineEditorOverlay.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let {
@@ -515,10 +514,6 @@
 				{/if}
 			</div>
 		</div>
-
-		{#if globalState.shared.quickTimelineEditor.active}
-			<QuickTimelineEditorOverlay />
-		{/if}
 	</div>
 </section>
 

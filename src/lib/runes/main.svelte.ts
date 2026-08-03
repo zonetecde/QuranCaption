@@ -276,12 +276,12 @@ class GlobalState {
 	}
 
 	/**
-	 * Ouvre l'éditeur rapide superposé à la timeline pour un clip donné.
+	 * Ouvre l'éditeur rapide dans une modale en feuille du bas pour un clip donné.
 	 * @param {number} clipId ID du clip à éditer.
 	 * @param {QuickTimelineEditorMode} mode Mode de l'éditeur rapide.
-	 * @returns {void}
+	 * @returns {Promise<void>} Promesse résolue quand la modale est fermée.
 	 */
-	openQuickTimelineEditor(clipId: number, mode: QuickTimelineEditorMode): void {
+	async openQuickTimelineEditor(clipId: number, mode: QuickTimelineEditorMode): Promise<void> {
 		if (!this.currentProject) return;
 
 		const translationsState = this.getTranslationsState;
@@ -315,13 +315,11 @@ class GlobalState {
 				| null;
 			subtitlesEditorState.pendingSplitEditNextId = null;
 		}
-	}
 
-	/**
-	 * Ferme l'éditeur rapide de la timeline et restaure le mode inline précédent.
-	 * @returns {void}
-	 */
-	closeQuickTimelineEditor(): void {
+		const { default: ModalManager } = await import('$lib/components/modals/ModalManager');
+		await ModalManager.quickTimelineEditorModal();
+
+		// Restaure l'état précédent après fermeture de la modale.
 		const previousInlineStyleMode = this.shared.quickTimelineEditor.previousInlineStyleMode;
 		if (this.currentProject && previousInlineStyleMode !== null) {
 			this.getTranslationsState.isInlineStyleMode = previousInlineStyleMode;
@@ -342,6 +340,14 @@ class GlobalState {
 		this.shared.quickTimelineEditor.previousInlineStyleMode = null;
 		this.shared.quickTimelineEditor.previousEditSubtitleId = null;
 		this.shared.quickTimelineEditor.previousPendingSplitEditNextId = null;
+	}
+
+	/**
+	 * Demande la fermeture de la modale d'édition rapide.
+	 * @returns {void}
+	 */
+	closeQuickTimelineEditor(): void {
+		this.shared.quickTimelineEditor.active = false;
 	}
 
 	getEditionFromAuthor(author: string): Edition | null {

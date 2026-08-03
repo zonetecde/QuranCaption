@@ -9,6 +9,7 @@ import ShiftSubtitlesModal from './tools/ShiftSubtitlesModal.svelte';
 import HifzRepetitionModal from './tools/HifzRepetitionModal.svelte';
 import AudioCutterModal from './tools/AudioCutterModal.svelte';
 import BookmarkVerseModal from './BookmarkVerseModal.svelte';
+import QuickTimelineEditorModal from './QuickTimelineEditorModal.svelte';
 import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
 import AiWbwTranslationModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiWbwTranslationModal.svelte';
 import AskIAModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AskIAModal.svelte';
@@ -308,6 +309,30 @@ export default class ModalManager {
 				target: container,
 				props: {
 					edition,
+					close: () => {
+						unmount(modal);
+						container.remove();
+						resolve();
+					}
+				}
+			});
+		});
+	}
+
+	/**
+	 * Ouvre la modale d'édition rapide de sous-titre en feuille du bas.
+	 *
+	 * @returns {Promise<void>} Résolution après fermeture de la modale.
+	 */
+	static async quickTimelineEditorModal(): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			const modal = mount(QuickTimelineEditorModal, {
+				target: container,
+				props: {
 					close: () => {
 						unmount(modal);
 						container.remove();

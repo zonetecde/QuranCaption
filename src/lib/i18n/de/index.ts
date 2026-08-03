@@ -9,6 +9,8 @@ const de = {
 		no: 'Nein',
 		close: 'Schließen',
 		back: 'Zurück',
+		undo: 'Rückgängig',
+		redo: 'Wiederholen',
 		next: 'Weiter',
 		finish: 'Fertigstellen',
 		disabled: 'Deaktiviert',

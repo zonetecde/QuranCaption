@@ -9,6 +9,8 @@ const zh = {
 		no: '否',
 		close: '关闭',
 		back: '返回',
+		undo: '撤销',
+		redo: '重做',
 		next: '下一步',
 		finish: '完成',
 		disabled: '已禁用',

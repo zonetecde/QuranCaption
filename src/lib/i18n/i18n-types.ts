@@ -46,6 +46,14 @@ type RootTranslation = {
 		 */
 		back: string;
 		/**
+		 * U​n​d​o
+		 */
+		undo: string;
+		/**
+		 * R​e​d​o
+		 */
+		redo: string;
+		/**
 		 * N​e​x​t
 		 */
 		next: string;
@@ -10899,6 +10907,14 @@ export type TranslationFunctions = {
 		 * Back
 		 */
 		back: () => LocalizedString;
+		/**
+		 * Undo
+		 */
+		undo: () => LocalizedString;
+		/**
+		 * Redo
+		 */
+		redo: () => LocalizedString;
 		/**
 		 * Next
 		 */

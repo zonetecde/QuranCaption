@@ -9,6 +9,8 @@ const fr = {
 		no: 'Non',
 		close: 'Fermer',
 		back: 'Retour',
+		undo: 'Annuler',
+		redo: 'Rétablir',
 		next: 'Suivant',
 		finish: 'Terminer',
 		disabled: 'Désactivé',

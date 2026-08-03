@@ -9,6 +9,8 @@ const es = {
 		no: 'No',
 		close: 'Cerrar',
 		back: 'Atrás',
+		undo: 'Deshacer',
+		redo: 'Rehacer',
 		next: 'Siguiente',
 		finish: 'Finalizar',
 		disabled: 'Desactivado',

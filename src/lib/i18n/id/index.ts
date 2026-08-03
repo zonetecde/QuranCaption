@@ -13,6 +13,8 @@ const id = {
 		no: 'Tidak',
 		close: 'Tutup',
 		back: 'Kembali',
+		undo: 'Urungkan',
+		redo: 'Ulangi',
 		next: 'Lanjut',
 		finish: 'Selesai',
 		disabled: 'Nonaktif',

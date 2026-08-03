@@ -7,6 +7,10 @@
 	import { VersionService } from '$lib/services/VersionService.svelte';
 	import Settings from './settings/Settings.svelte';
 	import { fade } from 'svelte/transition';
+	import {
+		ProjectHistoryManager,
+		projectHistoryAvailability
+	} from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let isHomePage = $derived(
 		globalState.currentProject === null && globalState.currentPage === 'home'
@@ -39,6 +43,26 @@
 			aria-label={$LL.settings.atHomeMenu()}
 		>
 			<span class="material-icons">home</span>
+		</button>
+
+		<button
+			type="button"
+			class="app-bar-button"
+			onclick={() => ProjectHistoryManager.undo()}
+			disabled={!$projectHistoryAvailability.canUndo || globalState.uiState.isTourActive}
+			aria-label={($LL.common as unknown as Record<string, string>).undo}
+		>
+			<span class="material-icons">undo</span>
+		</button>
+
+		<button
+			type="button"
+			class="app-bar-button"
+			onclick={() => ProjectHistoryManager.redo()}
+			disabled={!$projectHistoryAvailability.canRedo || globalState.uiState.isTourActive}
+			aria-label={($LL.common as unknown as Record<string, string>).redo}
+		>
+			<span class="material-icons">redo</span>
 		</button>
 	{/if}
 

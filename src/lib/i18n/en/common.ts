@@ -6,6 +6,8 @@ const common = {
 	no: 'No',
 	close: 'Close',
 	back: 'Back',
+	undo: 'Undo',
+	redo: 'Redo',
 	next: 'Next',
 	finish: 'Finish',
 	disabled: 'Disabled',

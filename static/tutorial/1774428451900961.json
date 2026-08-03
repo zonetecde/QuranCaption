@@ -20,7 +20,7 @@
     "name": "Tutorial Project",
     "reciter": "Yasser Al-Dosari",
     "createdAt": "2026-03-25T08:47:31.900Z",
-    "updatedAt": "2026-03-25T08:58:51.259Z",
+    "updatedAt": "2026-08-03T11:52:43.308Z",
     "percentageCaptioned": 100,
     "status": {
       "__className": "Status",
@@ -46,37 +46,145 @@
           "type": "Subtitle",
           "clips": [
             {
-              "__className": "PredefinedSubtitleClip",
-              "id": 1774428495736480,
-              "type": "Pre-defined Subtitle",
-              "predefinedSubtitleType": "Basmala",
-              "translations": {
-                "eng-mustafakhattaba": {
-                  "__className": "PredefinedSubtitleTranslation",
-                  "type": "predefined",
-                  "text": "In the name of Allah, the Most Gracious, the Most Merciful",
-                  "status": "completed by default"
-                }
-              },
-              "text": "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيم",
-              "associatedImagePath": null,
-              "comeFromIA": false,
-              "confidence": null,
-              "needsReview": false,
-              "needsCoverageReview": false,
-              "startTime": 1,
-              "endTime": 3254.482,
-              "duration": 3253.482,
+              "__className": "SilenceClip",
+              "id": 1785757033065212,
+              "type": "Silence",
+              "startTime": 0,
+              "endTime": 199,
+              "duration": 199,
               "showWaveform": false
             },
             {
               "__className": "SubtitleClip",
-              "id": 1774428500629565,
+              "id": 1785757616952739,
               "type": "Subtitle",
+              "isHydratingIndopakText": false,
+              "surah": 1,
+              "verse": 1,
+              "startWordIndex": 0,
+              "endWordIndex": 3,
+              "indopakText": "بِسۡمِ اللهِ الرَّحۡمٰنِ الرَّحِيۡمِ",
+              "wbwTranslation": [
+                "In (the) name",
+                "(of) Allah",
+                "the Most Gracious",
+                "the Most Merciful"
+              ],
+              "isFullVerse": true,
+              "isLastWordsOfVerse": true,
+              "alignmentMetadata": {
+                "source": "api",
+                "segment": 1,
+                "refFrom": "1:1:1",
+                "refTo": "1:1:4",
+                "matchedText": "بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ",
+                "timeFrom": 0.2,
+                "timeTo": 3.22,
+                "words": [
+                  {
+                    "location": "1:1:1",
+                    "start": 0,
+                    "end": 0.58
+                  },
+                  {
+                    "location": "1:1:2",
+                    "start": 0.58,
+                    "end": 1.21
+                  },
+                  {
+                    "location": "1:1:3",
+                    "start": 1.21,
+                    "end": 2.16
+                  },
+                  {
+                    "location": "1:1:4",
+                    "start": 2.16,
+                    "end": 3.02
+                  }
+                ]
+              },
+              "wbwTimestampsManuallyEdited": false,
+              "visualMergeGroupId": null,
+              "visualMergeMode": null,
+              "hasBeenVerified": false,
+              "translations": {
+                "__className": "Translation",
+                "type": "other",
+                "eng-mustafakhattaba": {
+                  "__className": "VerseTranslation",
+                  "type": "verse",
+                  "startWordIndex": 0,
+                  "endWordIndex": 9,
+                  "isBruteForce": false,
+                  "inlineStyleRuns": [
+                    {
+                      "startWordIndex": 6,
+                      "endWordIndex": 9,
+                      "bold": true,
+                      "italic": false,
+                      "underline": false,
+                      "color": null
+                    }
+                  ],
+                  "wbwRanges": [
+                    {
+                      "arabicWordIndex": 0,
+                      "startUnitIndex": 0,
+                      "endUnitIndex": 2
+                    },
+                    {
+                      "arabicWordIndex": 1,
+                      "startUnitIndex": 3,
+                      "endUnitIndex": 4
+                    },
+                    {
+                      "arabicWordIndex": 2,
+                      "startUnitIndex": 5,
+                      "endUnitIndex": 7
+                    },
+                    {
+                      "arabicWordIndex": 3,
+                      "startUnitIndex": 8,
+                      "endUnitIndex": 9
+                    }
+                  ],
+                  "text": "In the Name of Allah— the Most Compassionate, Most Merciful.",
+                  "status": "completed by default"
+                }
+              },
+              "text": "بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ",
+              "arabicInlineStyleRuns": [],
+              "associatedImagePath": null,
+              "needsLongReview": false,
+              "needsWbwTimestampReview": false,
+              "comeFromIA": false,
+              "confidence": null,
+              "needsReview": false,
+              "needsCoverageReview": false,
+              "startTime": 200,
+              "endTime": 3220,
+              "duration": 3020,
+              "showWaveform": false
+            },
+            {
+              "__className": "SilenceClip",
+              "id": 1785757033065816,
+              "type": "Silence",
+              "startTime": 3221,
+              "endTime": 3359,
+              "duration": 138,
+              "showWaveform": false
+            },
+            {
+              "__className": "SubtitleClip",
+              "id": 1785757033064579,
+              "type": "Subtitle",
+              "isHydratingIndopakText": false,
               "surah": 1,
               "verse": 2,
               "startWordIndex": 0,
               "endWordIndex": 3,
+              "indopakText": "اَلۡحَمۡدُ لِلّٰهِ رَبِّ الۡعٰلَمِيۡنَۙ",
               "wbwTranslation": [
                 "All praises and thanks",
                 "(be) to Allah",
@@ -85,6 +193,41 @@
               ],
               "isFullVerse": true,
               "isLastWordsOfVerse": true,
+              "alignmentMetadata": {
+                "source": "api",
+                "segment": 2,
+                "refFrom": "1:2:1",
+                "refTo": "1:2:4",
+                "matchedText": "ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَـٰلَمِينَ",
+                "timeFrom": 3.36,
+                "timeTo": 9.1,
+                "words": [
+                  {
+                    "location": "1:2:1",
+                    "start": 0,
+                    "end": 0.54
+                  },
+                  {
+                    "location": "1:2:2",
+                    "start": 0.54,
+                    "end": 1.29
+                  },
+                  {
+                    "location": "1:2:3",
+                    "start": 1.29,
+                    "end": 1.79
+                  },
+                  {
+                    "location": "1:2:4",
+                    "start": 1.79,
+                    "end": 5.74
+                  }
+                ]
+              },
+              "wbwTimestampsManuallyEdited": false,
+              "visualMergeGroupId": null,
+              "visualMergeMode": null,
+              "hasBeenVerified": false,
               "translations": {
                 "__className": "Translation",
                 "type": "other",
@@ -94,35 +237,106 @@
                   "startWordIndex": 0,
                   "endWordIndex": 8,
                   "isBruteForce": false,
+                  "inlineStyleRuns": [
+                    {
+                      "startWordIndex": 5,
+                      "endWordIndex": 8,
+                      "bold": true,
+                      "italic": false,
+                      "underline": false,
+                      "color": null
+                    }
+                  ],
+                  "wbwRanges": [
+                    {
+                      "arabicWordIndex": 0,
+                      "startUnitIndex": 0,
+                      "endUnitIndex": 1
+                    },
+                    {
+                      "arabicWordIndex": 1,
+                      "startUnitIndex": 2,
+                      "endUnitIndex": 4
+                    },
+                    {
+                      "arabicWordIndex": 2,
+                      "startUnitIndex": 5,
+                      "endUnitIndex": 5
+                    },
+                    {
+                      "arabicWordIndex": 3,
+                      "startUnitIndex": 6,
+                      "endUnitIndex": 8
+                    }
+                  ],
                   "text": "All praise is for Allah— Lord of all worlds,",
                   "status": "completed by default"
                 }
               },
               "text": "ٱلۡحَمۡدُ لِلَّهِ رَبِّ ٱلۡعَٰلَمِينَ",
+              "arabicInlineStyleRuns": [],
               "associatedImagePath": null,
-              "comeFromIA": false,
-              "confidence": null,
+              "needsLongReview": false,
+              "needsWbwTimestampReview": false,
+              "comeFromIA": true,
+              "confidence": 0.885,
               "needsReview": false,
               "needsCoverageReview": false,
-              "startTime": 3255.482,
-              "endTime": 9148.194,
-              "duration": 5892.7119999999995,
+              "startTime": 3360,
+              "endTime": 9100,
+              "duration": 5740,
+              "showWaveform": false
+            },
+            {
+              "__className": "SilenceClip",
+              "id": 1785757033065817,
+              "type": "Silence",
+              "startTime": 9101,
+              "endTime": 9799,
+              "duration": 698,
               "showWaveform": false
             },
             {
               "__className": "SubtitleClip",
-              "id": 1774428503974563,
+              "id": 1785757033064580,
               "type": "Subtitle",
+              "isHydratingIndopakText": false,
               "surah": 1,
               "verse": 3,
               "startWordIndex": 0,
               "endWordIndex": 1,
+              "indopakText": "الرَّحۡمٰنِ الرَّحِيۡمِۙ",
               "wbwTranslation": [
                 "The Most Gracious",
                 "the Most Merciful"
               ],
               "isFullVerse": true,
               "isLastWordsOfVerse": true,
+              "alignmentMetadata": {
+                "source": "api",
+                "segment": 3,
+                "refFrom": "1:3:1",
+                "refTo": "1:3:2",
+                "matchedText": "ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ",
+                "timeFrom": 9.8,
+                "timeTo": 15.76,
+                "words": [
+                  {
+                    "location": "1:3:1",
+                    "start": 0,
+                    "end": 1.17
+                  },
+                  {
+                    "location": "1:3:2",
+                    "start": 1.17,
+                    "end": 5.96
+                  }
+                ]
+              },
+              "wbwTimestampsManuallyEdited": false,
+              "visualMergeGroupId": null,
+              "visualMergeMode": null,
+              "hasBeenVerified": false,
               "translations": {
                 "__className": "Translation",
                 "type": "other",
@@ -132,29 +346,65 @@
                   "startWordIndex": 0,
                   "endWordIndex": 4,
                   "isBruteForce": false,
+                  "inlineStyleRuns": [
+                    {
+                      "startWordIndex": 1,
+                      "endWordIndex": 4,
+                      "bold": true,
+                      "italic": false,
+                      "underline": false,
+                      "color": null
+                    }
+                  ],
+                  "wbwRanges": [
+                    {
+                      "arabicWordIndex": 0,
+                      "startUnitIndex": 0,
+                      "endUnitIndex": 2
+                    },
+                    {
+                      "arabicWordIndex": 1,
+                      "startUnitIndex": 3,
+                      "endUnitIndex": 4
+                    }
+                  ],
                   "text": "the Most Compassionate, Most Merciful,",
                   "status": "completed by default"
                 }
               },
               "text": "ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ",
+              "arabicInlineStyleRuns": [],
               "associatedImagePath": null,
-              "comeFromIA": false,
-              "confidence": null,
+              "needsLongReview": false,
+              "needsWbwTimestampReview": false,
+              "comeFromIA": true,
+              "confidence": 1,
               "needsReview": false,
               "needsCoverageReview": false,
-              "startTime": 9149.194,
-              "endTime": 15782.439999999999,
-              "duration": 6633.245999999999,
+              "startTime": 9800,
+              "endTime": 15760,
+              "duration": 5960,
+              "showWaveform": false
+            },
+            {
+              "__className": "SilenceClip",
+              "id": 1785757033065818,
+              "type": "Silence",
+              "startTime": 15761,
+              "endTime": 16239,
+              "duration": 478,
               "showWaveform": false
             },
             {
               "__className": "SubtitleClip",
-              "id": 1774428507221946,
+              "id": 1785757033064581,
               "type": "Subtitle",
+              "isHydratingIndopakText": false,
               "surah": 1,
               "verse": 4,
               "startWordIndex": 0,
               "endWordIndex": 2,
+              "indopakText": "مٰلِكِ يَوۡمِ الدِّيۡنِؕ",
               "wbwTranslation": [
                 "Master",
                 "(of the) Day",
@@ -162,6 +412,36 @@
               ],
               "isFullVerse": true,
               "isLastWordsOfVerse": true,
+              "alignmentMetadata": {
+                "source": "api",
+                "segment": 4,
+                "refFrom": "1:4:1",
+                "refTo": "1:4:3",
+                "matchedText": "مَـٰلِكِ يَوْمِ ٱلدِّينِ",
+                "timeFrom": 16.24,
+                "timeTo": 22.235,
+                "words": [
+                  {
+                    "location": "1:4:1",
+                    "start": 0,
+                    "end": 0.81
+                  },
+                  {
+                    "location": "1:4:2",
+                    "start": 0.81,
+                    "end": 1.31
+                  },
+                  {
+                    "location": "1:4:3",
+                    "start": 1.31,
+                    "end": 5.995
+                  }
+                ]
+              },
+              "wbwTimestampsManuallyEdited": false,
+              "visualMergeGroupId": null,
+              "visualMergeMode": null,
+              "hasBeenVerified": false,
               "translations": {
                 "__className": "Translation",
                 "type": "other",
@@ -171,29 +451,78 @@
                   "startWordIndex": 0,
                   "endWordIndex": 5,
                   "isBruteForce": false,
+                  "inlineStyleRuns": [
+                    {
+                      "startWordIndex": 0,
+                      "endWordIndex": 0,
+                      "bold": true,
+                      "italic": false,
+                      "underline": false,
+                      "color": null
+                    },
+                    {
+                      "startWordIndex": 3,
+                      "endWordIndex": 5,
+                      "bold": true,
+                      "italic": false,
+                      "underline": false,
+                      "color": null
+                    }
+                  ],
+                  "wbwRanges": [
+                    {
+                      "arabicWordIndex": 0,
+                      "startUnitIndex": 0,
+                      "endUnitIndex": 0
+                    },
+                    {
+                      "arabicWordIndex": 1,
+                      "startUnitIndex": 1,
+                      "endUnitIndex": 3
+                    },
+                    {
+                      "arabicWordIndex": 2,
+                      "startUnitIndex": 4,
+                      "endUnitIndex": 5
+                    }
+                  ],
                   "text": "Master of the Day of Judgment.",
                   "status": "completed by default"
                 }
               },
               "text": "مَٰلِكِ يَوۡمِ ٱلدِّينِ",
+              "arabicInlineStyleRuns": [],
               "associatedImagePath": null,
-              "comeFromIA": false,
-              "confidence": null,
+              "needsLongReview": false,
+              "needsWbwTimestampReview": false,
+              "comeFromIA": true,
+              "confidence": 1,
               "needsReview": false,
               "needsCoverageReview": false,
-              "startTime": 15783.439999999999,
-              "endTime": 22308.405,
-              "duration": 6524.965,
+              "startTime": 16240,
+              "endTime": 22235,
+              "duration": 5995,
+              "showWaveform": false
+            },
+            {
+              "__className": "SilenceClip",
+              "id": 1785757033065819,
+              "type": "Silence",
+              "startTime": 22236,
+              "endTime": 22434,
+              "duration": 198,
               "showWaveform": false
             },
             {
               "__className": "SubtitleClip",
-              "id": 1774428510632513,
+              "id": 1785757033064709,
               "type": "Subtitle",
+              "isHydratingIndopakText": false,
               "surah": 1,
               "verse": 5,
               "startWordIndex": 0,
               "endWordIndex": 3,
+              "indopakText": "اِيَّاكَ نَعۡبُدُ وَاِيَّاكَ نَسۡتَعِيۡنُؕ",
               "wbwTranslation": [
                 "You Alone",
                 "we worship",
@@ -202,6 +531,41 @@
               ],
               "isFullVerse": true,
               "isLastWordsOfVerse": true,
+              "alignmentMetadata": {
+                "source": "api",
+                "segment": 5,
+                "refFrom": "1:5:1",
+                "refTo": "1:5:4",
+                "matchedText": "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ",
+                "timeFrom": 22.435,
+                "timeTo": 29.095,
+                "words": [
+                  {
+                    "location": "1:5:1",
+                    "start": 0,
+                    "end": 0.93
+                  },
+                  {
+                    "location": "1:5:2",
+                    "start": 0.93,
+                    "end": 1.54
+                  },
+                  {
+                    "location": "1:5:3",
+                    "start": 1.54,
+                    "end": 2.51
+                  },
+                  {
+                    "location": "1:5:4",
+                    "start": 2.51,
+                    "end": 6.66
+                  }
+                ]
+              },
+              "wbwTimestampsManuallyEdited": false,
+              "visualMergeGroupId": null,
+              "visualMergeMode": null,
+              "hasBeenVerified": false,
               "translations": {
                 "__className": "Translation",
                 "type": "other",
@@ -211,29 +575,83 @@
                   "startWordIndex": 0,
                   "endWordIndex": 10,
                   "isBruteForce": false,
+                  "inlineStyleRuns": [
+                    {
+                      "startWordIndex": 2,
+                      "endWordIndex": 3,
+                      "bold": true,
+                      "italic": false,
+                      "underline": false,
+                      "color": null
+                    },
+                    {
+                      "startWordIndex": 7,
+                      "endWordIndex": 10,
+                      "bold": true,
+                      "italic": false,
+                      "underline": false,
+                      "color": null
+                    }
+                  ],
+                  "wbwRanges": [
+                    {
+                      "arabicWordIndex": 0,
+                      "startUnitIndex": 0,
+                      "endUnitIndex": 1
+                    },
+                    {
+                      "arabicWordIndex": 1,
+                      "startUnitIndex": 2,
+                      "endUnitIndex": 3
+                    },
+                    {
+                      "arabicWordIndex": 2,
+                      "startUnitIndex": 4,
+                      "endUnitIndex": 6
+                    },
+                    {
+                      "arabicWordIndex": 3,
+                      "startUnitIndex": 7,
+                      "endUnitIndex": 10
+                    }
+                  ],
                   "text": "You ˹alone˺ we worship and You ˹alone˺ we ask for help.",
                   "status": "completed by default"
                 }
               },
               "text": "إِيَّاكَ نَعۡبُدُ وَإِيَّاكَ نَسۡتَعِينُ",
+              "arabicInlineStyleRuns": [],
               "associatedImagePath": null,
-              "comeFromIA": false,
-              "confidence": null,
+              "needsLongReview": false,
+              "needsWbwTimestampReview": false,
+              "comeFromIA": true,
+              "confidence": 1,
               "needsReview": false,
               "needsCoverageReview": false,
-              "startTime": 22309.405,
-              "endTime": 29123.554,
-              "duration": 6814.149000000001,
+              "startTime": 22435,
+              "endTime": 29095,
+              "duration": 6660,
+              "showWaveform": false
+            },
+            {
+              "__className": "SilenceClip",
+              "id": 1785757033065820,
+              "type": "Silence",
+              "startTime": 29096,
+              "endTime": 29554,
+              "duration": 458,
               "showWaveform": false
             },
             {
               "__className": "SubtitleClip",
-              "id": 1774428513561497,
+              "id": 1785757033064710,
               "type": "Subtitle",
+              "isHydratingIndopakText": false,
               "surah": 1,
               "verse": 6,
               "startWordIndex": 0,
               "endWordIndex": 2,
+              "indopakText": "اِهۡدِنَا الصِّرَاطَ الۡمُسۡتَقِيۡمَۙ",
               "wbwTranslation": [
                 "Guide us",
                 "(to) the path",
@@ -241,6 +659,36 @@
               ],
               "isFullVerse": true,
               "isLastWordsOfVerse": true,
+              "alignmentMetadata": {
+                "source": "api",
+                "segment": 6,
+                "refFrom": "1:6:1",
+                "refTo": "1:6:3",
+                "matchedText": "ٱهْدِنَا ٱلصِّرَٰطَ ٱلْمُسْتَقِيمَ",
+                "timeFrom": 29.555,
+                "timeTo": 32.185,
+                "words": [
+                  {
+                    "location": "1:6:1",
+                    "start": 0,
+                    "end": 0.66
+                  },
+                  {
+                    "location": "1:6:2",
+                    "start": 0.66,
+                    "end": 1.46
+                  },
+                  {
+                    "location": "1:6:3",
+                    "start": 1.46,
+                    "end": 2.63
+                  }
+                ]
+              },
+              "wbwTimestampsManuallyEdited": false,
+              "visualMergeGroupId": null,
+              "visualMergeMode": null,
+              "hasBeenVerified": false,
               "translations": {
                 "__className": "Translation",
                 "type": "other",
@@ -250,29 +698,69 @@
                   "startWordIndex": 0,
                   "endWordIndex": 5,
                   "isBruteForce": false,
+                  "inlineStyleRuns": [
+                    {
+                      "startWordIndex": 0,
+                      "endWordIndex": 1,
+                      "bold": true,
+                      "italic": false,
+                      "underline": false,
+                      "color": null
+                    },
+                    {
+                      "startWordIndex": 4,
+                      "endWordIndex": 5,
+                      "bold": true,
+                      "italic": false,
+                      "underline": false,
+                      "color": null
+                    }
+                  ],
+                  "wbwRanges": [
+                    {
+                      "arabicWordIndex": 0,
+                      "startUnitIndex": 0,
+                      "endUnitIndex": 1
+                    },
+                    {
+                      "arabicWordIndex": 1,
+                      "startUnitIndex": 2,
+                      "endUnitIndex": 3
+                    },
+                    {
+                      "arabicWordIndex": 2,
+                      "startUnitIndex": 4,
+                      "endUnitIndex": 5
+                    }
+                  ],
                   "text": "Guide us along the Straight Path,",
                   "status": "completed by default"
                 }
               },
               "text": "ٱهۡدِنَا ٱلصِّرَٰطَ ٱلۡمُسۡتَقِيمَ",
+              "arabicInlineStyleRuns": [],
               "associatedImagePath": null,
-              "comeFromIA": false,
-              "confidence": null,
+              "needsLongReview": false,
+              "needsWbwTimestampReview": false,
+              "comeFromIA": true,
+              "confidence": 0.961,
               "needsReview": false,
               "needsCoverageReview": false,
-              "startTime": 29124.554,
-              "endTime": 32025.001000000004,
-              "duration": 2900.4470000000038,
+              "startTime": 29555,
+              "endTime": 32185,
+              "duration": 2630,
               "showWaveform": false
             },
             {
               "__className": "SubtitleClip",
-              "id": 1774428516797177,
+              "id": 1785757033064805,
               "type": "Subtitle",
+              "isHydratingIndopakText": false,
               "surah": 1,
               "verse": 7,
               "startWordIndex": 0,
               "endWordIndex": 3,
+              "indopakText": "صِرَاطَ الَّذِيۡنَ اَنۡعَمۡتَ عَلَيۡهِمۡ ۙ",
               "wbwTranslation": [
                 "(The) path",
                 "(of) those",
@@ -281,6 +769,41 @@
               ],
               "isFullVerse": false,
               "isLastWordsOfVerse": false,
+              "alignmentMetadata": {
+                "source": "api",
+                "segment": 7,
+                "refFrom": "1:7:1",
+                "refTo": "1:7:4",
+                "matchedText": "صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِمْ",
+                "timeFrom": 32.185,
+                "timeTo": 35.955,
+                "words": [
+                  {
+                    "location": "1:7:1",
+                    "start": 0,
+                    "end": 0.7
+                  },
+                  {
+                    "location": "1:7:2",
+                    "start": 0.7,
+                    "end": 1.51
+                  },
+                  {
+                    "location": "1:7:3",
+                    "start": 1.51,
+                    "end": 2.38
+                  },
+                  {
+                    "location": "1:7:4",
+                    "start": 2.38,
+                    "end": 3.77
+                  }
+                ]
+              },
+              "wbwTimestampsManuallyEdited": false,
+              "visualMergeGroupId": null,
+              "visualMergeMode": null,
+              "hasBeenVerified": false,
               "translations": {
                 "__className": "Translation",
                 "type": "other",
@@ -290,29 +813,75 @@
                   "startWordIndex": 0,
                   "endWordIndex": 6,
                   "isBruteForce": false,
+                  "inlineStyleRuns": [
+                    {
+                      "startWordIndex": 4,
+                      "endWordIndex": 6,
+                      "bold": true,
+                      "italic": false,
+                      "underline": false,
+                      "color": null
+                    }
+                  ],
+                  "wbwRanges": [
+                    {
+                      "arabicWordIndex": 0,
+                      "startUnitIndex": 0,
+                      "endUnitIndex": 1
+                    },
+                    {
+                      "arabicWordIndex": 1,
+                      "startUnitIndex": 2,
+                      "endUnitIndex": 3
+                    },
+                    {
+                      "arabicWordIndex": 2,
+                      "startUnitIndex": 4,
+                      "endUnitIndex": 5
+                    },
+                    {
+                      "arabicWordIndex": 3,
+                      "startUnitIndex": 6,
+                      "endUnitIndex": 6
+                    }
+                  ],
                   "text": "the Path of those You have blessed—",
                   "status": "reviewed"
                 }
               },
               "text": "صِرَٰطَ ٱلَّذِينَ أَنۡعَمۡتَ عَلَيۡهِمۡ",
+              "arabicInlineStyleRuns": [],
               "associatedImagePath": null,
-              "comeFromIA": false,
-              "confidence": null,
+              "needsLongReview": false,
+              "needsWbwTimestampReview": false,
+              "comeFromIA": true,
+              "confidence": 0.961,
               "needsReview": false,
               "needsCoverageReview": false,
-              "startTime": 32026.001000000004,
-              "endTime": 35942.025,
-              "duration": 3916.0239999999976,
+              "startTime": 32185,
+              "endTime": 35955,
+              "duration": 3770,
+              "showWaveform": false
+            },
+            {
+              "__className": "SilenceClip",
+              "id": 1785757033065821,
+              "type": "Silence",
+              "startTime": 35956,
+              "endTime": 36374,
+              "duration": 418,
               "showWaveform": false
             },
             {
               "__className": "SubtitleClip",
-              "id": 1774428522518135,
+              "id": 1785757033064806,
               "type": "Subtitle",
+              "isHydratingIndopakText": false,
               "surah": 1,
               "verse": 7,
               "startWordIndex": 4,
               "endWordIndex": 8,
+              "indopakText": "غَيۡرِ الۡمَغۡضُوۡبِ عَلَيۡهِمۡ وَلَا الضَّآلِّيۡنَ",
               "wbwTranslation": [
                 "not (of)",
                 "those who earned (Your) wrath",
@@ -322,6 +891,46 @@
               ],
               "isFullVerse": false,
               "isLastWordsOfVerse": true,
+              "alignmentMetadata": {
+                "source": "api",
+                "segment": 8,
+                "refFrom": "1:7:5",
+                "refTo": "1:7:9",
+                "matchedText": "غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ",
+                "timeFrom": 36.375,
+                "timeTo": 46.67,
+                "words": [
+                  {
+                    "location": "1:7:5",
+                    "start": 0,
+                    "end": 0.63
+                  },
+                  {
+                    "location": "1:7:6",
+                    "start": 0.63,
+                    "end": 1.68
+                  },
+                  {
+                    "location": "1:7:7",
+                    "start": 1.68,
+                    "end": 2.49
+                  },
+                  {
+                    "location": "1:7:8",
+                    "start": 2.49,
+                    "end": 2.9
+                  },
+                  {
+                    "location": "1:7:9",
+                    "start": 2.9,
+                    "end": 10.295
+                  }
+                ]
+              },
+              "wbwTimestampsManuallyEdited": false,
+              "visualMergeGroupId": null,
+              "visualMergeMode": null,
+              "hasBeenVerified": false,
               "translations": {
                 "__className": "Translation",
                 "type": "other",
@@ -331,19 +940,67 @@
                   "startWordIndex": 7,
                   "endWordIndex": 17,
                   "isBruteForce": false,
+                  "inlineStyleRuns": [
+                    {
+                      "startWordIndex": 2,
+                      "endWordIndex": 5,
+                      "bold": true,
+                      "italic": false,
+                      "underline": false,
+                      "color": null
+                    },
+                    {
+                      "startWordIndex": 8,
+                      "endWordIndex": 10,
+                      "bold": true,
+                      "italic": false,
+                      "underline": false,
+                      "color": null
+                    }
+                  ],
+                  "wbwRanges": [
+                    {
+                      "arabicWordIndex": 0,
+                      "startUnitIndex": 0,
+                      "endUnitIndex": 0
+                    },
+                    {
+                      "arabicWordIndex": 1,
+                      "startUnitIndex": 1,
+                      "endUnitIndex": 4
+                    },
+                    {
+                      "arabicWordIndex": 2,
+                      "startUnitIndex": 5,
+                      "endUnitIndex": 5
+                    },
+                    {
+                      "arabicWordIndex": 3,
+                      "startUnitIndex": 6,
+                      "endUnitIndex": 7
+                    },
+                    {
+                      "arabicWordIndex": 4,
+                      "startUnitIndex": 8,
+                      "endUnitIndex": 10
+                    }
+                  ],
                   "text": "not those You are displeased with, or those who are astray.",
                   "status": "automatically trimmed"
                 }
               },
               "text": "غَيۡرِ ٱلۡمَغۡضُوبِ عَلَيۡهِمۡ وَلَا ٱلضَّآلِّينَ",
+              "arabicInlineStyleRuns": [],
               "associatedImagePath": null,
-              "comeFromIA": false,
-              "confidence": null,
+              "needsLongReview": false,
+              "needsWbwTimestampReview": false,
+              "comeFromIA": true,
+              "confidence": 1,
               "needsReview": false,
               "needsCoverageReview": false,
-              "startTime": 35943.025,
-              "endTime": 46784.804000000004,
-              "duration": 10841.779000000002,
+              "startTime": 36375,
+              "endTime": 46670,
+              "duration": 10295,
               "showWaveform": false
             }
           ]
@@ -494,6 +1151,112 @@
                   "value": 10,
                   "valueMin": -25,
                   "valueMax": 200
+                },
+                {
+                  "__className": "Style",
+                  "name": "Fill Frame",
+                  "description": "Crop background videos and images to fill the entire frame",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "crop_free",
+                  "id": "media-fill",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Zoom",
+                  "description": "Zoom the background media",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "zoom_in",
+                  "id": "media-scale",
+                  "value": 100,
+                  "valueMin": 100,
+                  "valueMax": 300
+                },
+                {
+                  "__className": "Style",
+                  "name": "Horizontal Position",
+                  "description": "Move the background media horizontally relative to the center",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "swap_horiz",
+                  "id": "media-position-x",
+                  "value": 0,
+                  "valueMin": -100,
+                  "valueMax": 100
+                },
+                {
+                  "__className": "Style",
+                  "name": "Vertical Position",
+                  "description": "Move the background media vertically relative to the center",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "swap_vert",
+                  "id": "media-position-y",
+                  "value": 0,
+                  "valueMin": -100,
+                  "valueMax": 100
+                },
+                {
+                  "__className": "Style",
+                  "name": "Video & Audio Fade",
+                  "description": "Configure export fade in/out for video and audio.",
+                  "valueType": "fade",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "slow_motion_video",
+                  "id": "video-and-audio-fade",
+                  "value": {
+                    "fadeDurationMs": 1000,
+                    "videoFadeInEnabled": false,
+                    "videoFadeOutEnabled": false,
+                    "audioFadeInEnabled": false,
+                    "audioFadeOutEnabled": false
+                  },
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Video Clip Transition",
+                  "description": "Transition between timeline video clips.",
+                  "valueType": "select",
+                  "options": [
+                    "none",
+                    "fade-through-black",
+                    "crossfade"
+                  ],
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "movie_filter",
+                  "id": "video-clip-transition",
+                  "value": "none",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Video Clip Transition Duration",
+                  "description": "Duration of video clip transitions in milliseconds.",
+                  "valueType": "number",
+                  "step": 50,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "timer",
+                  "id": "video-clip-transition-duration",
+                  "value": 500,
+                  "valueMin": 0,
+                  "valueMax": 4000
                 }
               ]
             },
@@ -553,7 +1316,18 @@
                     "uniform",
                     "fade-up",
                     "fade-down",
-                    "fade-center"
+                    "fade-center",
+                    "fade-left",
+                    "fade-right",
+                    "fade-left-right",
+                    "fade-top-bottom",
+                    "fade-four-corners",
+                    "fade-four-sides",
+                    "fade-vignette",
+                    "fade-top-left",
+                    "fade-top-right",
+                    "fade-bottom-left",
+                    "fade-bottom-right"
                   ],
                   "css": "",
                   "tailwind": false,
@@ -617,6 +1391,203 @@
                   "value": "",
                   "valueMin": -540,
                   "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Fade Softness",
+                  "description": "Control how gradually the fade transitions between its light and strong areas",
+                  "valueType": "number",
+                  "step": 0.01,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "blur_linear",
+                  "id": "background-overlay-fade-softness",
+                  "value": 1,
+                  "valueMin": 0,
+                  "valueMax": 1
+                },
+                {
+                  "__className": "Style",
+                  "name": "Fade Curve",
+                  "description": "Choose how the fade opacity progresses through its transition",
+                  "valueType": "select",
+                  "options": [
+                    "linear",
+                    "ease-in",
+                    "ease-out",
+                    "smooth"
+                  ],
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "ssid_chart",
+                  "id": "background-overlay-fade-curve",
+                  "value": "linear",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Invert Fade",
+                  "description": "Swap the strong and light areas of the fade",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "invert_colors",
+                  "id": "background-overlay-fade-invert",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Fade Horizontal Position",
+                  "description": "Move the center of the fade horizontally",
+                  "valueType": "number",
+                  "step": 0.01,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "swap_horiz",
+                  "id": "background-overlay-fade-position-x",
+                  "value": 0.5,
+                  "valueMin": 0,
+                  "valueMax": 1
+                },
+                {
+                  "__className": "Style",
+                  "name": "Fade Vertical Position",
+                  "description": "Move the center of the fade vertically",
+                  "valueType": "number",
+                  "step": 0.01,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "swap_vert",
+                  "id": "background-overlay-fade-position-y",
+                  "value": 0.5,
+                  "valueMin": 0,
+                  "valueMax": 1
+                },
+                {
+                  "__className": "Style",
+                  "name": "Fade Width",
+                  "description": "Control the horizontal size of radial and corner fades",
+                  "valueType": "number",
+                  "step": 0.01,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "width_normal",
+                  "id": "background-overlay-fade-width",
+                  "value": 1,
+                  "valueMin": 0.1,
+                  "valueMax": 2
+                },
+                {
+                  "__className": "Style",
+                  "name": "Fade Height",
+                  "description": "Control the vertical size of radial and corner fades",
+                  "valueType": "number",
+                  "step": 0.01,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "height",
+                  "id": "background-overlay-fade-height",
+                  "value": 1,
+                  "valueMin": 0.1,
+                  "valueMax": 2
+                },
+                {
+                  "__className": "Style",
+                  "name": "Video Frame",
+                  "description": "Enable or disable a global frame around the video",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "crop_16_9",
+                  "id": "video-frame-enable",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Content Above Frame",
+                  "description": "Display subtitles and visual elements above the frame while keeping the overlay below it",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "flip_to_front",
+                  "id": "video-frame-content-above",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Top & Bottom Thickness",
+                  "description": "Set the top and bottom frame thickness as a percentage",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "height",
+                  "id": "video-frame-vertical-size",
+                  "value": 8,
+                  "valueMin": 0,
+                  "valueMax": 45
+                },
+                {
+                  "__className": "Style",
+                  "name": "Frame Color",
+                  "description": "Choose the color of the global video frame",
+                  "valueType": "color",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "video-frame-color",
+                  "value": "#000000",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Left & Right Thickness",
+                  "description": "Set the left and right frame thickness as a percentage",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "width_normal",
+                  "id": "video-frame-horizontal-size",
+                  "value": 8,
+                  "valueMin": 0,
+                  "valueMax": 45
+                },
+                {
+                  "__className": "Style",
+                  "name": "Corner Roundness",
+                  "description": "Round the inner corners of the video frame as a percentage",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "rounded_corner",
+                  "id": "video-frame-radius",
+                  "value": 4,
+                  "valueMin": 0,
+                  "valueMax": 50
+                },
+                {
+                  "__className": "Style",
+                  "name": "Edge Softness",
+                  "description": "Soften the inner edge of the video frame as a percentage",
+                  "valueType": "number",
+                  "step": 0.1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "blur_on",
+                  "id": "video-frame-softness",
+                  "value": 0,
+                  "valueMin": 0,
+                  "valueMax": 5
                 }
               ]
             },
@@ -955,6 +1926,62 @@
                       "valueMax": 50
                     }
                   ],
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Always Show",
+                  "description": "Always show the Surah name (ignore timing)",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "visibility",
+                  "id": "surah-name-always-show",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Time Appearance",
+                  "description": "Change the time where the Surah name appears",
+                  "valueType": "time",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "access_time",
+                  "id": "surah-name-time-appearance",
+                  "value": 0,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Time Disappearance",
+                  "description": "Change the time where the Surah name disappears",
+                  "valueType": "time",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "access_time",
+                  "id": "surah-name-time-disappearance",
+                  "value": 10000,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Calligraphy Style",
+                  "description": "Choose the Surah name calligraphy font",
+                  "valueType": "select",
+                  "options": [
+                    "Calligraphy 1",
+                    "Calligraphy 2"
+                  ],
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "draw",
+                  "id": "surah-calligraphy-style",
+                  "value": "Calligraphy 1",
                   "valueMin": -540,
                   "valueMax": 540
                 }
@@ -1310,6 +2337,45 @@
                   ],
                   "valueMin": -540,
                   "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Always Show",
+                  "description": "Always show the Reciter name (ignore timing)",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "visibility",
+                  "id": "reciter-name-always-show",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Time Appearance",
+                  "description": "Change the time where the Reciter name appears",
+                  "valueType": "time",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "access_time",
+                  "id": "reciter-name-time-appearance",
+                  "value": 0,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Time Disappearance",
+                  "description": "Change the time where the Reciter name disappears",
+                  "valueType": "time",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "access_time",
+                  "id": "reciter-name-time-disappearance",
+                  "value": 10000,
+                  "valueMin": -540,
+                  "valueMax": 540
                 }
               ]
             },
@@ -1584,6 +2650,135 @@
                   "valueMax": 540
                 }
               ]
+            },
+            {
+              "__className": "Category",
+              "name": "Ayah Container",
+              "description": "Add a decorative background image behind the ayah",
+              "icon": "gradient",
+              "id": "ayah-container",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Container Image",
+                  "description": "Select a decorative container image for the ayah",
+                  "valueType": "ayah-image",
+                  "options": [],
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "image",
+                  "id": "ayah-container-image",
+                  "value": "",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Vertical Position",
+                  "description": "Change the vertical position of the container (pixels from center)",
+                  "valueType": "number",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "vertical_align_center",
+                  "id": "ayah-container-vertical-position",
+                  "value": 0,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Horizontal Position",
+                  "description": "Change the horizontal position of the container (pixels from center)",
+                  "valueType": "number",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "horizontal_rule",
+                  "id": "ayah-container-horizontal-position",
+                  "value": 0,
+                  "valueMin": -960,
+                  "valueMax": 960
+                },
+                {
+                  "__className": "Style",
+                  "name": "Always Show",
+                  "description": "Always show the text (ignore timing)",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "visibility",
+                  "id": "always-show",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Time Appearance",
+                  "description": "Change the time where the text appears",
+                  "valueType": "time",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "access_time",
+                  "id": "time-appearance",
+                  "value": 0,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Time Disappearance",
+                  "description": "Change the time where the text disappears",
+                  "valueType": "time",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "access_time",
+                  "id": "time-disappearance",
+                  "value": 10000,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Width",
+                  "description": "Width of the container in percentage (stretches the image if ratio is not respected)",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "fit_screen",
+                  "id": "ayah-container-width",
+                  "value": 80,
+                  "valueMin": 1,
+                  "valueMax": 100
+                },
+                {
+                  "__className": "Style",
+                  "name": "Height",
+                  "description": "Height of the container in percentage (stretches the image if ratio is not respected)",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "height",
+                  "id": "ayah-container-height",
+                  "value": 50,
+                  "valueMin": 1,
+                  "valueMax": 100
+                },
+                {
+                  "__className": "Style",
+                  "name": "Stretch",
+                  "description": "Stretch the image to fill the container (otherwise it fits inside preserving ratio)",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "fit_screen",
+                  "id": "ayah-container-stretch",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
             }
           ],
           "target": "global",
@@ -1702,6 +2897,60 @@
                   "icon": "123",
                   "id": "verse-number-position",
                   "value": "before",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Verse Number on New Line",
+                  "description": "Always place the verse number on a new line",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "keyboard_return",
+                  "id": "verse-number-new-line",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Mushaf",
+                  "description": "Choose the Arabic script source for Quran subtitles.",
+                  "valueType": "select",
+                  "options": [
+                    "Uthmani",
+                    "Indopak",
+                    "Tajweed",
+                    "Soosi",
+                    "Minimal Quran"
+                  ],
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "menu_book",
+                  "id": "mushaf-style",
+                  "value": "Uthmani",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Verse Number Numerals",
+                  "description": "Choose how verse number digits are written in translations.",
+                  "valueType": "select",
+                  "options": [
+                    "Western Arabic",
+                    "Arabic-Indic",
+                    "Persian",
+                    "Urdu",
+                    "Bengali",
+                    "Hindi"
+                  ],
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "pin",
+                  "id": "verse-number-numeral-system",
+                  "value": "Western Arabic",
                   "valueMin": -540,
                   "valueMax": 540
                 }
@@ -1871,6 +3120,39 @@
                   "value": "none",
                   "valueMin": 10,
                   "valueMax": 100
+                },
+                {
+                  "__className": "Style",
+                  "name": "Verse Number Color",
+                  "description": "Change the color of the verse number",
+                  "valueType": "color",
+                  "css": "--verse-number-color: {value};",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "verse-number-color",
+                  "value": "#ffffff",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Max Line",
+                  "description": "Limit text to a maximum number of rendered lines. Infinite = no limit.",
+                  "valueType": "select",
+                  "options": [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "Infinite"
+                  ],
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_line_spacing",
+                  "id": "max-line",
+                  "value": "Infinite",
+                  "valueMin": -540,
+                  "valueMax": 540
                 }
               ]
             },
@@ -2054,6 +3336,58 @@
                   "value": "",
                   "valueMin": -540,
                   "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Always Show",
+                  "description": "Always show the background (ignore timing)",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "visibility",
+                  "id": "always-show",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Time Appearance",
+                  "description": "Change the time where the background appears",
+                  "valueType": "time",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "access_time",
+                  "id": "time-appearance",
+                  "value": 0,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Time Disappearance",
+                  "description": "Change the time where the background disappears",
+                  "valueType": "time",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "access_time",
+                  "id": "time-disappearance",
+                  "value": 10000,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Horizontal Padding",
+                  "description": "Add left and right padding when using a background",
+                  "valueType": "number",
+                  "css": "padding-left: {value}px; padding-right: {value}px;",
+                  "tailwind": false,
+                  "icon": "padding",
+                  "id": "background-horizontal-padding",
+                  "value": 0,
+                  "valueMin": 0,
+                  "valueMax": 200
                 }
               ]
             },
@@ -2464,6 +3798,370 @@
                   "valueMax": 540
                 }
               ]
+            },
+            {
+              "__className": "Category",
+              "name": "WBW Effect",
+              "description": "Apply timed word-by-word effects when WBW timestamps are available",
+              "icon": "lyrics",
+              "id": "word-by-word-highlight",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Show current word only",
+                  "description": "Show only the word currently being recited",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "filter_1",
+                  "id": "wbw-show-current-word-only",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Enable wbw highlight",
+                  "description": "Enable or disable timed word-by-word highlighting",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "enable-wbw-highlight",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Word-by-word color",
+                  "description": "Color applied to highlighted words",
+                  "valueType": "color",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "wbw-color",
+                  "value": "#facc15",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Persist WBW effect",
+                  "description": "Keep the active WBW effect on previously recited words",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_color_fill",
+                  "id": "wbw-persist-color",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Enable underline",
+                  "description": "Underline highlighted words",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_underlined",
+                  "id": "enable-wbw-underline",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Underline thickness",
+                  "description": "Thickness of the wbw underline in pixels",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "line_weight",
+                  "id": "wbw-underline-thickness",
+                  "value": 5,
+                  "valueMin": 1,
+                  "valueMax": 12
+                },
+                {
+                  "__className": "Style",
+                  "name": "Enable wbw glow",
+                  "description": "Add a glow around highlighted words",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "flare",
+                  "id": "enable-wbw-glow",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Glow color",
+                  "description": "Glow color applied to highlighted words",
+                  "valueType": "color",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "wbw-glow-color",
+                  "value": "#facc15",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Glow blur",
+                  "description": "Set the blur radius of the wbw glow",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "blur_on",
+                  "id": "wbw-glow-blur",
+                  "value": 10,
+                  "valueMin": 0,
+                  "valueMax": 50
+                },
+                {
+                  "__className": "Style",
+                  "name": "Reveal words on recitation",
+                  "description": "Keep future words hidden until they are recited, then fade them up to the Arabic opacity",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "visibility_off",
+                  "id": "wbw-reveal-on-recitation",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Always Show Verse Number",
+                  "description": "Keep the verse number visible at all times during word-by-word highlighting. When disabled, the verse number fades in together with the last word of the verse.",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "123",
+                  "id": "wbw-always-show-verse-number",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Enable wbw background",
+                  "description": "Enable a background color behind highlighted words",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "highlight",
+                  "id": "enable-wbw-background",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Background color",
+                  "description": "Background color applied to highlighted words",
+                  "valueType": "color",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "highlight",
+                  "id": "wbw-bg-color",
+                  "value": "#2d2a14",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Enable WBW Line Background",
+                  "description": "Highlight recited words with the rounded line background style",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "view_stream",
+                  "id": "enable-wbw-line-background",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "WBW Bar Color",
+                  "description": "Color applied to the line background of highlighted words",
+                  "valueType": "color",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "wbw-line-background-color",
+                  "value": "#facc15",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "WBW Bar Position",
+                  "description": "Adjust the WBW bar position when the subtitle line background is disabled",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "height",
+                  "id": "wbw-line-background-position",
+                  "value": 15,
+                  "valueMin": -100,
+                  "valueMax": 100
+                },
+                {
+                  "__className": "Style",
+                  "name": "WBW Bar Height",
+                  "description": "Adjust the WBW bar height when the subtitle line background is disabled",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "line_weight",
+                  "id": "wbw-line-background-height",
+                  "value": 50,
+                  "valueMin": 1,
+                  "valueMax": 200
+                },
+                {
+                  "__className": "Style",
+                  "name": "WBW Bar Horizontal Padding",
+                  "description": "Add equal horizontal spacing to both ends of the WBW bar",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "space_bar",
+                  "id": "wbw-line-background-padding",
+                  "value": 0,
+                  "valueMin": 0,
+                  "valueMax": 100
+                },
+                {
+                  "__className": "Style",
+                  "name": "Enable current word opacity",
+                  "description": "Override the opacity of the current WBW word",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "enable-wbw-current-word-opacity",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Current word opacity",
+                  "description": "Opacity applied to the current WBW word",
+                  "valueType": "number",
+                  "step": 0.05,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "opacity",
+                  "id": "wbw-current-word-opacity",
+                  "value": 1,
+                  "valueMin": 0,
+                  "valueMax": 1
+                },
+                {
+                  "__className": "Style",
+                  "name": "Reveal specific word style on recitation",
+                  "description": "Hide custom word styles until their linked word is recited",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_paint",
+                  "id": "wbw-reveal-specific-word-style",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Custom CSS (current word)",
+                  "description": "Custom CSS applied to the current WBW word",
+                  "valueType": "text",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "code",
+                  "id": "wbw-current-word-custom-css",
+                  "value": "",
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Line Background",
+              "description": "Add a rounded background bar behind each subtitle line",
+              "icon": "view_stream",
+              "id": "line-background",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Enable Line Background",
+                  "description": "Enable or disable the background bar behind each subtitle line",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "line-background-enable",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Bar Color",
+                  "description": "Set the color of the background bar",
+                  "valueType": "color",
+                  "css": "--line-background-color: {value};",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "line-background-color",
+                  "value": "#f5deb3",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Bar Position",
+                  "description": "Adjust the vertical position of the background bar relative to the text",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "--line-background-position: {value}px;",
+                  "tailwind": false,
+                  "icon": "height",
+                  "id": "line-background-position",
+                  "value": 15,
+                  "valueMin": -100,
+                  "valueMax": 100
+                },
+                {
+                  "__className": "Style",
+                  "name": "Bar Height",
+                  "description": "Adjust the height of the background bar",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "--line-background-height: {value}px;",
+                  "tailwind": false,
+                  "icon": "line_weight",
+                  "id": "line-background-height",
+                  "value": 50,
+                  "valueMin": 1,
+                  "valueMax": 200
+                }
+              ]
             }
           ],
           "target": "arabic",
@@ -2582,6 +4280,60 @@
                   "icon": "123",
                   "id": "verse-number-position",
                   "value": "before",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Verse Number on New Line",
+                  "description": "Always place the verse number on a new line",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "keyboard_return",
+                  "id": "verse-number-new-line",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Mushaf",
+                  "description": "Choose the Arabic script source for Quran subtitles.",
+                  "valueType": "select",
+                  "options": [
+                    "Uthmani",
+                    "Indopak",
+                    "Tajweed",
+                    "Soosi",
+                    "Minimal Quran"
+                  ],
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "menu_book",
+                  "id": "mushaf-style",
+                  "value": "Uthmani",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Verse Number Numerals",
+                  "description": "Choose how verse number digits are written in translations.",
+                  "valueType": "select",
+                  "options": [
+                    "Western Arabic",
+                    "Arabic-Indic",
+                    "Persian",
+                    "Urdu",
+                    "Bengali",
+                    "Hindi"
+                  ],
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "pin",
+                  "id": "verse-number-numeral-system",
+                  "value": "Western Arabic",
                   "valueMin": -540,
                   "valueMax": 540
                 }
@@ -2751,6 +4503,39 @@
                   "value": "none",
                   "valueMin": 10,
                   "valueMax": 100
+                },
+                {
+                  "__className": "Style",
+                  "name": "Verse Number Color",
+                  "description": "Change the color of the verse number",
+                  "valueType": "color",
+                  "css": "--verse-number-color: {value};",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "verse-number-color",
+                  "value": "#ffffff",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Max Line",
+                  "description": "Limit text to a maximum number of rendered lines. Infinite = no limit.",
+                  "valueType": "select",
+                  "options": [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "Infinite"
+                  ],
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_line_spacing",
+                  "id": "max-line",
+                  "value": "Infinite",
+                  "valueMin": -540,
+                  "valueMax": 540
                 }
               ]
             },
@@ -2934,6 +4719,58 @@
                   "value": "",
                   "valueMin": -540,
                   "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Always Show",
+                  "description": "Always show the background (ignore timing)",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "visibility",
+                  "id": "always-show",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Time Appearance",
+                  "description": "Change the time where the background appears",
+                  "valueType": "time",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "access_time",
+                  "id": "time-appearance",
+                  "value": 0,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Time Disappearance",
+                  "description": "Change the time where the background disappears",
+                  "valueType": "time",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "access_time",
+                  "id": "time-disappearance",
+                  "value": 10000,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Horizontal Padding",
+                  "description": "Add left and right padding when using a background",
+                  "valueType": "number",
+                  "css": "padding-left: {value}px; padding-right: {value}px;",
+                  "tailwind": false,
+                  "icon": "padding",
+                  "id": "background-horizontal-padding",
+                  "value": 0,
+                  "valueMin": 0,
+                  "valueMax": 200
                 }
               ]
             },
@@ -3342,6 +5179,370 @@
                   "value": "",
                   "valueMin": -540,
                   "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "WBW Effect",
+              "description": "Apply timed word-by-word effects when WBW timestamps are available",
+              "icon": "lyrics",
+              "id": "word-by-word-highlight",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Show current word only",
+                  "description": "Show only the word currently being recited",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "filter_1",
+                  "id": "wbw-show-current-word-only",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Enable wbw highlight",
+                  "description": "Enable or disable timed word-by-word highlighting",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "enable-wbw-highlight",
+                  "value": true,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Word-by-word color",
+                  "description": "Color applied to highlighted words",
+                  "valueType": "color",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "wbw-color",
+                  "value": "#facc15",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Persist WBW effect",
+                  "description": "Keep the active WBW effect on previously recited words",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_color_fill",
+                  "id": "wbw-persist-color",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Enable underline",
+                  "description": "Underline highlighted words",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_underlined",
+                  "id": "enable-wbw-underline",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Underline thickness",
+                  "description": "Thickness of the wbw underline in pixels",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "line_weight",
+                  "id": "wbw-underline-thickness",
+                  "value": 5,
+                  "valueMin": 1,
+                  "valueMax": 12
+                },
+                {
+                  "__className": "Style",
+                  "name": "Enable wbw glow",
+                  "description": "Add a glow around highlighted words",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "flare",
+                  "id": "enable-wbw-glow",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Glow color",
+                  "description": "Glow color applied to highlighted words",
+                  "valueType": "color",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "wbw-glow-color",
+                  "value": "#facc15",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Glow blur",
+                  "description": "Set the blur radius of the wbw glow",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "blur_on",
+                  "id": "wbw-glow-blur",
+                  "value": 10,
+                  "valueMin": 0,
+                  "valueMax": 50
+                },
+                {
+                  "__className": "Style",
+                  "name": "Reveal words on recitation",
+                  "description": "Keep future words hidden until they are recited, then fade them up to the Arabic opacity",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "visibility_off",
+                  "id": "wbw-reveal-on-recitation",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Always Show Verse Number",
+                  "description": "Keep the verse number visible at all times during word-by-word highlighting. When disabled, the verse number fades in together with the last word of the verse.",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "123",
+                  "id": "wbw-always-show-verse-number",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Enable wbw background",
+                  "description": "Enable a background color behind highlighted words",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "highlight",
+                  "id": "enable-wbw-background",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Background color",
+                  "description": "Background color applied to highlighted words",
+                  "valueType": "color",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "highlight",
+                  "id": "wbw-bg-color",
+                  "value": "#2d2a14",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Enable WBW Line Background",
+                  "description": "Highlight recited words with the rounded line background style",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "view_stream",
+                  "id": "enable-wbw-line-background",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "WBW Bar Color",
+                  "description": "Color applied to the line background of highlighted words",
+                  "valueType": "color",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "wbw-line-background-color",
+                  "value": "#facc15",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "WBW Bar Position",
+                  "description": "Adjust the WBW bar position when the subtitle line background is disabled",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "height",
+                  "id": "wbw-line-background-position",
+                  "value": 15,
+                  "valueMin": -100,
+                  "valueMax": 100
+                },
+                {
+                  "__className": "Style",
+                  "name": "WBW Bar Height",
+                  "description": "Adjust the WBW bar height when the subtitle line background is disabled",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "line_weight",
+                  "id": "wbw-line-background-height",
+                  "value": 50,
+                  "valueMin": 1,
+                  "valueMax": 200
+                },
+                {
+                  "__className": "Style",
+                  "name": "WBW Bar Horizontal Padding",
+                  "description": "Add equal horizontal spacing to both ends of the WBW bar",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "space_bar",
+                  "id": "wbw-line-background-padding",
+                  "value": 0,
+                  "valueMin": 0,
+                  "valueMax": 100
+                },
+                {
+                  "__className": "Style",
+                  "name": "Enable current word opacity",
+                  "description": "Override the opacity of the current WBW word",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "enable-wbw-current-word-opacity",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Current word opacity",
+                  "description": "Opacity applied to the current WBW word",
+                  "valueType": "number",
+                  "step": 0.05,
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "opacity",
+                  "id": "wbw-current-word-opacity",
+                  "value": 1,
+                  "valueMin": 0,
+                  "valueMax": 1
+                },
+                {
+                  "__className": "Style",
+                  "name": "Reveal specific word style on recitation",
+                  "description": "Hide custom word styles until their linked word is recited",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "format_paint",
+                  "id": "wbw-reveal-specific-word-style",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Custom CSS (current word)",
+                  "description": "Custom CSS applied to the current WBW word",
+                  "valueType": "text",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "code",
+                  "id": "wbw-current-word-custom-css",
+                  "value": "",
+                  "valueMin": -540,
+                  "valueMax": 540
+                }
+              ]
+            },
+            {
+              "__className": "Category",
+              "name": "Line Background",
+              "description": "Add a rounded background bar behind each subtitle line",
+              "icon": "view_stream",
+              "id": "line-background",
+              "styles": [
+                {
+                  "__className": "Style",
+                  "name": "Enable Line Background",
+                  "description": "Enable or disable the background bar behind each subtitle line",
+                  "valueType": "boolean",
+                  "css": "",
+                  "tailwind": false,
+                  "icon": "toggle_on",
+                  "id": "line-background-enable",
+                  "value": false,
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Bar Color",
+                  "description": "Set the color of the background bar",
+                  "valueType": "color",
+                  "css": "--line-background-color: {value};",
+                  "tailwind": false,
+                  "icon": "palette",
+                  "id": "line-background-color",
+                  "value": "#f5deb3",
+                  "valueMin": -540,
+                  "valueMax": 540
+                },
+                {
+                  "__className": "Style",
+                  "name": "Bar Position",
+                  "description": "Adjust the vertical position of the background bar relative to the text",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "--line-background-position: {value}px;",
+                  "tailwind": false,
+                  "icon": "height",
+                  "id": "line-background-position",
+                  "value": 15,
+                  "valueMin": -100,
+                  "valueMax": 100
+                },
+                {
+                  "__className": "Style",
+                  "name": "Bar Height",
+                  "description": "Adjust the height of the background bar",
+                  "valueType": "number",
+                  "step": 1,
+                  "css": "--line-background-height: {value}px;",
+                  "tailwind": false,
+                  "icon": "line_weight",
+                  "id": "line-background-height",
+                  "value": 50,
+                  "valueMin": 1,
+                  "valueMax": 200
                 }
               ]
             }
@@ -3545,10 +5746,10 @@
     "timeline": {
       "__className": "TimelineState",
       "zoom": 29.25,
-      "cursorPosition": 15453.051452991454,
+      "cursorPosition": 0,
       "showCursor": true,
-      "movePreviewTo": 15453.051452991454,
-      "scrollX": 450
+      "movePreviewTo": 0,
+      "scrollX": 0
     },
     "videoPreview": {
       "__className": "VideoPreviewState",

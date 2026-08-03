@@ -6,8 +6,16 @@
 	let {
 		style,
 		value,
-		onChange
-	}: { style: Style; value: StyleControlValue; onChange: ApplyStyleControlValue } = $props();
+		onChange,
+		onInteractionStart = () => {},
+		onInteractionEnd = () => {}
+	}: {
+		style: Style;
+		value: StyleControlValue;
+		onChange: ApplyStyleControlValue;
+		onInteractionStart?: () => void;
+		onInteractionEnd?: () => void;
+	} = $props();
 
 	type RangePointerIntent = 'idle' | 'pending' | 'horizontal' | 'vertical';
 
@@ -27,6 +35,7 @@
 	function beginRangeMutation(): void {
 		if (rangeMutationActive) return;
 		rangeMutationActive = true;
+		onInteractionStart();
 		beginStyleMutation('adjust style slider');
 	}
 
@@ -105,6 +114,7 @@
 		}
 
 		if (rangeMutationActive) commitStyleMutation();
+		onInteractionEnd();
 		activePointerId = null;
 		pointerIntent = 'idle';
 		rangeMutationActive = false;

@@ -520,7 +520,21 @@
 
 				<!-- Modificateur de valeur -->
 				{#if style.valueType === 'number'}
-					<NumberControl {style} value={inputValue} onChange={applyValue} />
+					<NumberControl
+						{style}
+						value={inputValue}
+						onChange={applyValue}
+						onInteractionStart={() => {
+							if (style.id === 'width' || style.id === 'max-height') {
+								globalState.hoveredStylePreviewHelper = style.id as StyleName;
+							}
+						}}
+						onInteractionEnd={() => {
+							if (globalState.hoveredStylePreviewHelper === style.id) {
+								globalState.hoveredStylePreviewHelper = null;
+							}
+						}}
+					/>
 				{:else if style.valueType === 'color'}
 					<ColorControl value={inputValue} onChange={applyValue} />
 				{:else if style.id === 'font-family'}

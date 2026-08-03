@@ -50,9 +50,6 @@
 
 	$effect(() => {
 		const editedSubtitleId = globalState.getSubtitlesEditorState.editSubtitle?.id ?? null;
-		if (editedSubtitleId !== null && editedSubtitleId !== lastEditedSubtitleId) {
-			presetPickerOpen = true;
-		}
 		lastEditedSubtitleId = editedSubtitleId;
 	});
 
@@ -209,7 +206,9 @@
 				showControlHelp={controlHelpOpen}
 				onCloseControlHelp={() => (controlHelpOpen = false)}
 				onTogglePresetPicker={() => (presetPickerOpen = !presetPickerOpen)}
-				onClosePresetPicker={() => (presetPickerOpen = false)}
+				onClosePresetPicker={() => {
+					presetPickerOpen = false;
+				}}
 				onOpenAutoSegmentation={() => (autoSegmentationModalOpen = true)}
 			/>
 		</section>
@@ -233,7 +232,9 @@
 			{#if presetPickerOpen}
 				<div class="preset-picker-overlay">
 					<SubtitlePresetPicker
-						onClose={() => (presetPickerOpen = false)}
+						onClose={() => {
+							presetPickerOpen = false;
+						}}
 						onAddQuranSubtitle={() => subtitlesWorkspace?.addSubtitle()}
 					/>
 				</div>

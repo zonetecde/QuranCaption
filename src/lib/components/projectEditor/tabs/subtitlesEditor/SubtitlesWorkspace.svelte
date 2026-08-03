@@ -104,6 +104,8 @@
 
 	/**
 	 * Divise le sous-titre sous le curseur en deux.
+	 * Si le sous-titre n'a pas de timestamps WBW, entre en mode édition séquentielle
+	 * (partie gauche d'abord, puis partie droite après validation).
 	 * @param {boolean} forceExactCursor Si true, coupe exactement à la position du curseur.
 	 *   Si false, coupe au mot le plus proche.
 	 * @returns {Promise<void>}
@@ -112,7 +114,28 @@
 		const cursorPosition = globalState.getTimelineState.cursorPosition;
 		const currentClip = globalState.getSubtitleTrack.getCurrentClip(cursorPosition);
 		if (!currentClip) return;
-		await globalState.getSubtitleTrack.splitSubtitle(currentClip.id, { forceExactCursor });
+
+		const leftClipId = currentClip.id;
+		const leftClipIndex = globalState.getSubtitleTrack.clips.findIndex(
+			(clip) => clip.id === leftClipId
+		);
+
+		const didSplit = await globalState.getSubtitleTrack.splitSubtitle(currentClip.id, {
+			forceExactCursor
+		});
+		if (!didSplit) return;
+
+		// Seul les SubtitleClip bénéficient de l'édition séquentielle après split.
+		if (!(currentClip instanceof SubtitleClip)) return;
+
+		// Après le split, le clip original (leftClipId) est la partie gauche,
+		// et un nouveau clip est inséré juste après (rightClip).
+		const rightClip = globalState.getSubtitleTrack.clips[leftClipIndex + 1];
+		if (!(rightClip instanceof SubtitleClip)) return;
+
+		// Passe en mode édition sur la partie gauche, et programme la partie droite.
+		globalState.getSubtitlesEditorState.editSubtitle = currentClip;
+		globalState.getSubtitlesEditorState.pendingSplitEditNextId = rightClip.id;
 	}
 
 	/**

@@ -1,6 +1,10 @@
 <script lang="ts">
+	import { SubtitleClip } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { enterManualWordByWordEdit, exitManualWordByWordEdit } from '$lib/services/WbwHelper';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
+	import toast from 'svelte-5-french-toast';
 	import { PROJECT_EDITOR_SUBTITLES_WORDS_HEIGHT } from '$lib/constants/projectEditor';
 	import DiviseurRedimensionnable from '../DiviseurRedimensionnable.svelte';
 	import VersePicker from './VersePicker.svelte';
@@ -13,6 +17,7 @@
 		showControlHelp = false,
 		onCloseControlHelp = () => {},
 		onTogglePresetPicker = () => {},
+		onClosePresetPicker = () => {},
 		onOpenAutoSegmentation = () => {}
 	}: {
 		useSplitHeight?: boolean;
@@ -21,6 +26,7 @@
 		showControlHelp?: boolean;
 		onCloseControlHelp?: () => void;
 		onTogglePresetPicker?: () => void;
+		onClosePresetPicker?: () => void;
 		onOpenAutoSegmentation?: () => void;
 	} = $props();
 	let wordsSelector: {
@@ -35,6 +41,25 @@
 		selectPreviousVerse: () => Promise<void>;
 	} | null = $state(null);
 	let controlHelpCopy = $derived($LL.editor as unknown as Record<string, () => string>);
+
+	const editSubtitle = $derived(globalState.getSubtitlesEditorState.editSubtitle);
+	const isEditingSubtitle = $derived(editSubtitle instanceof SubtitleClip);
+	const isWbwEditActive = $derived(globalState.shared.wbwEdit.active);
+
+	/**
+	 * Ouvre le mode d'édition WBW manuel pour le sous-titre en cours d'édition.
+	 * @returns {Promise<void>}
+	 */
+	async function startWbwTimestampEdit(): Promise<void> {
+		if (!(editSubtitle instanceof SubtitleClip)) return;
+		const success = await enterManualWordByWordEdit(editSubtitle);
+		if (!success) {
+			toast.error(get(LL).editor.cannotEnterWordEditMode());
+			return;
+		}
+		onClosePresetPicker();
+	}
+
 	let wordsHeight = $derived(
 		Math.max(
 			PROJECT_EDITOR_SUBTITLES_WORDS_HEIGHT.min,
@@ -58,6 +83,7 @@
 	 */
 	export async function addSubtitle(): Promise<void> {
 		await wordsSelector?.addSubtitle();
+		onClosePresetPicker();
 	}
 
 	/**
@@ -125,6 +151,30 @@
 			<WordsSelector bind:this={wordsSelector} />
 		</div>
 
+		{#if isEditingSubtitle}
+			<div class="flex-shrink-0 pb-1">
+				{#if isWbwEditActive}
+					<button
+						type="button"
+						class="w-full rounded-b-lg border border-yellow-400/40 bg-yellow-400/15 py-2 text-xs font-medium text-yellow-200 transition-colors hover:bg-yellow-400/25"
+						onclick={() => exitManualWordByWordEdit()}
+					>
+						<span class="material-icons-outlined text-sm mr-1 align-middle">close</span>
+						{$LL.editor.exit()}
+					</button>
+				{:else}
+					<button
+						type="button"
+						class="w-full rounded-b-lg border border-yellow-400/30 bg-yellow-400/10 py-2 text-xs font-medium text-yellow-200 transition-colors hover:bg-yellow-400/20"
+						onclick={() => void startWbwTimestampEdit()}
+					>
+						<span class="material-icons-outlined text-sm mr-1 align-middle">timeline</span>
+						{$LL.editor.editWbw()}
+					</button>
+				{/if}
+			</div>
+		{/if}
+
 		{#if showPlaybackControls}
 			<DiviseurRedimensionnable
 				orientation="horizontal"
@@ -142,7 +192,11 @@
 				class="playback-controls"
 				style={`--playback-button-height: ${2.25 + controlBarExpansion * 6.25}rem; --playback-small-button-height: ${1.45 + controlBarExpansion * 5.55}rem;`}
 			>
-				<div class="playback-control-side playback-control-side-left">
+				<div
+					class="playback-control-side playback-control-side-left"
+					class:pointer-events-none={isWbwEditActive}
+					class:opacity-20={isWbwEditActive}
+				>
 					<button
 						class="playback-control-button playback-control-button-validate playback-control-button-predefined"
 						type="button"
@@ -185,36 +239,40 @@
 				</div>
 
 				<div class="playback-control-center">
-					<button
-						class="playback-control-button playback-control-button-verse-previous"
-						type="button"
-						aria-label={$LL.common.back()}
-						data-help={controlHelpCopy.controlHelpPreviousVerse()}
-						onclick={() => void wordsSelector?.selectPreviousVerse()}
-					>
-						−
-					</button>
-					<button
-						class="playback-control-button playback-control-button-up"
-						type="button"
-						aria-label={$LL.settings.shortcutAction.SELECT_NEXT_WORD()}
-						data-help={$LL.settings.shortcutActionDesc.SELECT_NEXT_WORD()}
-						onclick={() => void wordsSelector?.selectNextWord()}
-					>
-						<span class="material-icons">keyboard_arrow_up</span>
-					</button>
-					<button
-						class="playback-control-button playback-control-button-verse-next"
-						type="button"
-						aria-label={$LL.common.next()}
-						data-help={controlHelpCopy.controlHelpNextVerse()}
-						onclick={() => wordsSelector?.selectNextVerse()}
-					>
-						+
-					</button>
+					<div class:pointer-events-none={isWbwEditActive} class:opacity-20={isWbwEditActive}>
+						<button
+							class="playback-control-button playback-control-button-verse-previous"
+							type="button"
+							aria-label={$LL.common.back()}
+							data-help={controlHelpCopy.controlHelpPreviousVerse()}
+							onclick={() => void wordsSelector?.selectPreviousVerse()}
+						>
+							−
+						</button>
+						<button
+							class="playback-control-button playback-control-button-up"
+							type="button"
+							aria-label={$LL.settings.shortcutAction.SELECT_NEXT_WORD()}
+							data-help={$LL.settings.shortcutActionDesc.SELECT_NEXT_WORD()}
+							onclick={() => void wordsSelector?.selectNextWord()}
+						>
+							<span class="material-icons">keyboard_arrow_up</span>
+						</button>
+						<button
+							class="playback-control-button playback-control-button-verse-next"
+							type="button"
+							aria-label={$LL.common.next()}
+							data-help={controlHelpCopy.controlHelpNextVerse()}
+							onclick={() => wordsSelector?.selectNextVerse()}
+						>
+							+
+						</button>
+					</div>
 					<div class="playback-control-horizontal">
 						<button
 							class="playback-control-button"
+							class:pointer-events-none={isWbwEditActive}
+							class:opacity-20={isWbwEditActive}
 							type="button"
 							aria-label={$LL.settings.shortcutAction.MOVE_BACKWARD()}
 							data-help={$LL.settings.shortcutActionDesc.MOVE_BACKWARD()}
@@ -235,6 +293,8 @@
 						</button>
 						<button
 							class="playback-control-button"
+							class:pointer-events-none={isWbwEditActive}
+							class:opacity-20={isWbwEditActive}
 							type="button"
 							aria-label={$LL.settings.shortcutAction.MOVE_FORWARD()}
 							data-help={$LL.settings.shortcutActionDesc.MOVE_FORWARD()}
@@ -243,38 +303,42 @@
 							<span class="material-icons">chevron_right</span>
 						</button>
 					</div>
-					<button
-						class="playback-control-button playback-control-button-down"
-						type="button"
-						aria-label={$LL.settings.shortcutAction.SELECT_PREVIOUS_WORD()}
-						data-help={$LL.settings.shortcutActionDesc.SELECT_PREVIOUS_WORD()}
-						onclick={() => void wordsSelector?.selectPreviousWord()}
-					>
-						<span class="material-icons">keyboard_arrow_down</span>
-					</button>
-					<button
-						class="playback-control-button playback-control-button-quick-basmala text-xs!"
-						type="button"
-						aria-label={$LL.settings.shortcutAction.ADD_BASMALA()}
-						data-help={$LL.settings.shortcutActionDesc.ADD_BASMALA()}
-						onclick={() => addQuickPreset('Basmala')}
-					>
-						﷽
-					</button>
-					<button
-						class="playback-control-button playback-control-button-quick-silence"
-						type="button"
-						aria-label={$LL.settings.shortcutAction.ADD_SILENCE()}
-						data-help={$LL.settings.shortcutActionDesc.ADD_SILENCE()}
-						onclick={() => addQuickPreset('Silence')}
-					>
-						<span class="material-icons text-[14px]!">space_bar</span>
-					</button>
+					<div class:pointer-events-none={isWbwEditActive} class:opacity-20={isWbwEditActive}>
+						<button
+							class="playback-control-button playback-control-button-down"
+							type="button"
+							aria-label={$LL.settings.shortcutAction.SELECT_PREVIOUS_WORD()}
+							data-help={$LL.settings.shortcutActionDesc.SELECT_PREVIOUS_WORD()}
+							onclick={() => void wordsSelector?.selectPreviousWord()}
+						>
+							<span class="material-icons">keyboard_arrow_down</span>
+						</button>
+						<button
+							class="playback-control-button playback-control-button-quick-basmala text-xs!"
+							type="button"
+							aria-label={$LL.settings.shortcutAction.ADD_BASMALA()}
+							data-help={$LL.settings.shortcutActionDesc.ADD_BASMALA()}
+							onclick={() => addQuickPreset('Basmala')}
+						>
+							﷽
+						</button>
+						<button
+							class="playback-control-button playback-control-button-quick-silence"
+							type="button"
+							aria-label={$LL.settings.shortcutAction.ADD_SILENCE()}
+							data-help={$LL.settings.shortcutActionDesc.ADD_SILENCE()}
+							onclick={() => addQuickPreset('Silence')}
+						>
+							<span class="material-icons text-[14px]!">space_bar</span>
+						</button>
+					</div>
 				</div>
 
 				<div class="playback-control-side playback-control-side-right">
 					<button
 						class="playback-control-button playback-control-button-set-end"
+						class:pointer-events-none={isWbwEditActive}
+						class:opacity-20={isWbwEditActive}
 						type="button"
 						aria-label={$LL.settings.shortcutAction.SET_LAST_SUBTITLE_END()}
 						data-help={$LL.settings.shortcutActionDesc.SET_LAST_SUBTITLE_END()}
@@ -284,6 +348,8 @@
 					</button>
 					<button
 						class="playback-control-button playback-control-button-set-start"
+						class:pointer-events-none={isWbwEditActive}
+						class:opacity-20={isWbwEditActive}
 						type="button"
 						aria-label={$LL.settings.shortcutAction.SET_LAST_SUBTITLE_START()}
 						data-help={$LL.settings.shortcutActionDesc.SET_LAST_SUBTITLE_START()}

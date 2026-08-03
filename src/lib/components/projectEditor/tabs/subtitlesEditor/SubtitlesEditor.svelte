@@ -209,6 +209,7 @@
 				showControlHelp={controlHelpOpen}
 				onCloseControlHelp={() => (controlHelpOpen = false)}
 				onTogglePresetPicker={() => (presetPickerOpen = !presetPickerOpen)}
+				onClosePresetPicker={() => (presetPickerOpen = false)}
 				onOpenAutoSegmentation={() => (autoSegmentationModalOpen = true)}
 			/>
 		</section>

@@ -112,6 +112,10 @@ export function getActiveManualWordByWordClip(): SubtitleClip | null {
 export function exitManualWordByWordEdit(closeSubtitleEdit = false): void {
 	restoreTimelineZoomAfterManualWordByWordEdit();
 	if (closeSubtitleEdit) {
+		// Met en pause la lecture quand l'édition WBW est terminée (tous les mots validés).
+		if (globalState.getVideoPreviewState.isPlaying) {
+			globalState.getVideoPreviewState.togglePlayPause();
+		}
 		globalState.getSubtitlesEditorState.editSubtitle = null;
 		globalState.getSubtitlesEditorState.pendingSplitEditNextId = null;
 	}

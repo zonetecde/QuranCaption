@@ -202,6 +202,7 @@
 							showVersePicker={false}
 							showPlaybackControls={true}
 							onTogglePresetPicker={() => (presetPickerOpen = !presetPickerOpen)}
+							onClosePresetPicker={() => (presetPickerOpen = false)}
 							onOpenAutoSegmentation={() => {}}
 						/>
 					</div>
@@ -223,6 +224,7 @@
 							showVersePicker={true}
 							showPlaybackControls={true}
 							onTogglePresetPicker={() => (presetPickerOpen = !presetPickerOpen)}
+							onClosePresetPicker={() => (presetPickerOpen = false)}
 							onOpenAutoSegmentation={() => {}}
 						/>
 					</div>

@@ -184,6 +184,7 @@ const settings = {
 		SELECT_NEXT_WORD: 'Select Next Word',
 		SELECT_PREVIOUS_WORD: 'Select Previous Word',
 		RESET_START_CURSOR: 'Reset Start Cursor',
+		REFETCH_WBW_TIMESTAMPS: 'Refetch WBW Timestamps',
 		SELECT_ALL_WORDS: 'Select All Words',
 		SET_END_TO_LAST: 'Set End to Next Punctuation',
 		SET_END_TO_PREVIOUS: 'Set End to Previous Punctuation',
@@ -219,6 +220,8 @@ const settings = {
 		SELECT_NEXT_WORD: 'Move selection to the next word',
 		SELECT_PREVIOUS_WORD: 'Move selection to the previous word',
 		RESET_START_CURSOR: 'Put the start cursor on the end cursor position',
+		REFETCH_WBW_TIMESTAMPS:
+			'Recalculate the word-by-word timestamps for the subtitle under the cursor',
 		SELECT_ALL_WORDS: 'Select all words in the current verse',
 		SET_END_TO_LAST: 'Move end cursor to the next punctuation mark',
 		SET_END_TO_PREVIOUS: 'Move end cursor to the previous punctuation mark',

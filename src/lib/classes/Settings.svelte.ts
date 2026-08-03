@@ -336,6 +336,11 @@ export default class Settings extends SerializableBase {
 				keys: ['d'],
 				description: 'Split the subtitle at the cursor position',
 				name: 'Split Subtitle'
+			},
+			REFETCH_WBW_TIMESTAMPS: {
+				keys: ['w'],
+				description: 'Recalculate the word-by-word timestamps for the subtitle under the cursor',
+				name: 'Refetch WBW Timestamps'
 			}
 		},
 		PREDEFINED_SUBTITLES: {
@@ -611,6 +616,7 @@ export default class Settings extends SerializableBase {
 		MigrationService.FromQC343ToQC344();
 		MigrationService.FromQC347ToQC348();
 		MigrationService.FromQC348ToQC349();
+		MigrationService.FromQC3654ToQC3655();
 		if (MigrationService.FromQC3614ToQC3615(previousVersion)) shouldSave = true;
 
 		if (

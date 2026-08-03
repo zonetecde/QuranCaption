@@ -7860,6 +7860,10 @@ type RootTranslation = {
 			 */
 			RESET_START_CURSOR: string;
 			/**
+			 * R​e​f​e​t​c​h​ ​W​B​W​ ​T​i​m​e​s​t​a​m​p​s
+			 */
+			REFETCH_WBW_TIMESTAMPS: string;
+			/**
 			 * S​e​l​e​c​t​ ​A​l​l​ ​W​o​r​d​s
 			 */
 			SELECT_ALL_WORDS: string;
@@ -7993,6 +7997,10 @@ type RootTranslation = {
 			 * P​u​t​ ​t​h​e​ ​s​t​a​r​t​ ​c​u​r​s​o​r​ ​o​n​ ​t​h​e​ ​e​n​d​ ​c​u​r​s​o​r​ ​p​o​s​i​t​i​o​n
 			 */
 			RESET_START_CURSOR: string;
+			/**
+			 * R​e​c​a​l​c​u​l​a​t​e​ ​t​h​e​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​ ​f​o​r​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​u​n​d​e​r​ ​t​h​e​ ​c​u​r​s​o​r
+			 */
+			REFETCH_WBW_TIMESTAMPS: string;
 			/**
 			 * S​e​l​e​c​t​ ​a​l​l​ ​w​o​r​d​s​ ​i​n​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​v​e​r​s​e
 			 */
@@ -18457,6 +18465,10 @@ export type TranslationFunctions = {
 			 */
 			RESET_START_CURSOR: () => LocalizedString;
 			/**
+			 * Refetch WBW Timestamps
+			 */
+			REFETCH_WBW_TIMESTAMPS: () => LocalizedString;
+			/**
 			 * Select All Words
 			 */
 			SELECT_ALL_WORDS: () => LocalizedString;
@@ -18590,6 +18602,10 @@ export type TranslationFunctions = {
 			 * Put the start cursor on the end cursor position
 			 */
 			RESET_START_CURSOR: () => LocalizedString;
+			/**
+			 * Recalculate the word-by-word timestamps for the subtitle under the cursor
+			 */
+			REFETCH_WBW_TIMESTAMPS: () => LocalizedString;
 			/**
 			 * Select all words in the current verse
 			 */

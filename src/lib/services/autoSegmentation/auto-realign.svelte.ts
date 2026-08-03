@@ -16,7 +16,7 @@ import { AUTO_REALIGN_DEBOUNCE_MS, AUTO_REALIGN_TIMEOUT_MS } from './types';
  */
 
 export type AutoRealignStatus = 'idle' | 'computing';
-export type AutoRealignReason = 'drag' | 'text';
+export type AutoRealignReason = 'drag' | 'text' | 'shortcut';
 
 /** Statut réactif par clipId (présence = re-MFA en cours), lu par la carte pour le spinner. */
 const statusByClipId = $state<Record<number, true>>({});
@@ -126,7 +126,7 @@ function clearStatusIfUnchanged(clipIds: Set<number>, genAtStart: Map<number, nu
  * dernier passage écrit/efface, par clip (« dernier gagne »).
  *
  * @param {SubtitleClip[]} clips Clips touchés par l'édition (ex. clip redimensionné + voisin).
- * @param {{ reason: AutoRealignReason }} opts Origine du déclenchement (`'drag'` ou `'text'`).
+ * @param {{ reason: AutoRealignReason }} opts Origine du déclenchement.
  */
 export function scheduleWbwRealign(
 	clips: SubtitleClip[],

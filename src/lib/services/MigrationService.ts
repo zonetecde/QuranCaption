@@ -754,6 +754,20 @@ export default class MigrationService {
 	}
 
 	/**
+	 * Assure que le raccourci de recalcul WBW existe dans les anciens settings.
+	 */
+	static FromQC3654ToQC3655(): void {
+		if (!globalState.settings) return;
+
+		const defaults = new Settings().shortcuts.SUBTITLES_EDITOR;
+		if (globalState.settings.shortcuts.SUBTITLES_EDITOR.REFETCH_WBW_TIMESTAMPS) return;
+
+		globalState.settings.shortcuts.SUBTITLES_EDITOR.REFETCH_WBW_TIMESTAMPS =
+			defaults.REFETCH_WBW_TIMESTAMPS;
+		Settings.save();
+	}
+
+	/**
 	 * Applies a first-pass classification to existing projects from their title only.
 	 * Priority order:
 	 * Taraweeh > Prayer > Studio > Rare recitation > Old recordings > Others

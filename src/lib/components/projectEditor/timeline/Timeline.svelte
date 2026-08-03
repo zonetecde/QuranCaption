@@ -24,12 +24,12 @@
 	import Settings from '$lib/classes/Settings.svelte';
 	import QuickTimelineEditorOverlay from './QuickTimelineEditorOverlay.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import { scheduleWbwRealign } from '$lib/services/AutoSegmentation';
 
 	let totalDuration = $derived(() => {
 		// Récupère la fin du clip le plus loin dans la timeline
 		const project = globalState.currentProject;
-		const longestClipEnd =
-			project?.content.timeline.getLongestTrackDuration() ?? new Duration(0);
+		const longestClipEnd = project?.content.timeline.getLongestTrackDuration() ?? new Duration(0);
 
 		// Pas de projet ouvert (fermeture/rechargement HMR) : ne pas déréférencer null.
 		if (project) project.detail.duration = longestClipEnd;
@@ -92,6 +92,7 @@
 	let setStartShortcutRegistered = false;
 	let frameBackwardShortcutRegistered = false;
 	let frameForwardShortcutRegistered = false;
+	let refetchWbwShortcutRegistered = false;
 	let lastVerifiedClipId: number | null = null;
 	let quickEditLongPressTimer: ReturnType<typeof setTimeout> | null = null;
 	let didTriggerQuickLongPressAction = false;
@@ -195,6 +196,19 @@
 	 */
 	function handleMoveFrameForward(): void {
 		moveCursorByFrame(1);
+	}
+
+	/**
+	 * Planifie le même réalignement WBW qu'après le déplacement d'une borne de sous-titre.
+	 * @returns {void}
+	 */
+	function handleRefetchWbwTimestamps(): void {
+		const clip = globalState.getSubtitleTrack.getCurrentClip(
+			globalState.getTimelineState.cursorPosition
+		);
+		if (!(clip instanceof SubtitleClip)) return;
+
+		scheduleWbwRealign([clip], { reason: 'shortcut' });
 	}
 
 	/**
@@ -542,6 +556,34 @@
 		frameForwardShortcutRegistered = false;
 	}
 
+	/**
+	 * Enregistre le raccourci W de recalcul WBW.
+	 * @returns {void}
+	 */
+	function registerRefetchWbwShortcut(): void {
+		if (!globalState.settings || refetchWbwShortcutRegistered) return;
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings.shortcuts.SUBTITLES_EDITOR.REFETCH_WBW_TIMESTAMPS,
+			onKeyDown: handleRefetchWbwTimestamps
+		});
+
+		refetchWbwShortcutRegistered = true;
+	}
+
+	/**
+	 * Supprime le raccourci W de recalcul WBW.
+	 * @returns {void}
+	 */
+	function unregisterRefetchWbwShortcut(): void {
+		if (!globalState.settings || !refetchWbwShortcutRegistered) return;
+
+		ShortcutService.unregisterShortcut(
+			globalState.settings.shortcuts.SUBTITLES_EDITOR.REFETCH_WBW_TIMESTAMPS
+		);
+		refetchWbwShortcutRegistered = false;
+	}
+
 	$effect(() => {
 		const currentTab = globalState.currentProject?.projectEditorState.currentTab;
 
@@ -591,6 +633,8 @@
 		registerFrameBackwardShortcut();
 		registerFrameForwardShortcut();
 
+		registerRefetchWbwShortcut();
+
 		return () => {
 			unregisterSplitShortcut();
 			unregisterRemoveShortcut();
@@ -599,6 +643,7 @@
 			unregisterSetStartShortcut();
 			unregisterFrameBackwardShortcut();
 			unregisterFrameForwardShortcut();
+			unregisterRefetchWbwShortcut();
 		};
 	});
 
@@ -902,6 +947,7 @@
 		unregisterSetStartShortcut();
 		unregisterFrameBackwardShortcut();
 		unregisterFrameForwardShortcut();
+		unregisterRefetchWbwShortcut();
 		tracksResizeObserver?.disconnect();
 		tracksResizeObserver = null;
 	});

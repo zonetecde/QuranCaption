@@ -133,6 +133,11 @@
 			exitManualWordByWordEdit();
 		}
 
+		// Met en pause la lecture audio quand la modale WBW Timestamp se ferme.
+		if (wasWbwTimestamp && globalState.getVideoPreviewState.isPlaying) {
+			globalState.getVideoPreviewState.togglePlayPause();
+		}
+
 		globalState.shared.quickTimelineEditor.active = false;
 		close();
 
@@ -189,13 +194,25 @@
 		<!-- Body -->
 		<div class="min-h-0 flex-1 overflow-y-auto">
 			{#if isWbwTimestampMode()}
-				<div class="p-4">
-					<section class="flex flex-col gap-3 rounded-xl border border-yellow-400/30 bg-accent p-3">
-						<p class="text-sm text-secondary">{$LL.editor.wbwTimestampGuide()}</p>
-						<div class="min-h-0">
-							<WordsSelector />
+				<div class="min-h-0 flex-1 flex flex-col p-3">
+					<div class="min-h-0 flex-1">
+						<SubtitlesWorkspace
+							bind:this={subtitlesWorkspace}
+							useSplitHeight={false}
+							showVersePicker={false}
+							showPlaybackControls={true}
+							onTogglePresetPicker={() => (presetPickerOpen = !presetPickerOpen)}
+							onOpenAutoSegmentation={() => {}}
+						/>
+					</div>
+					{#if presetPickerOpen}
+						<div class="mt-3">
+							<SubtitlePresetPicker
+								onClose={() => (presetPickerOpen = false)}
+								onAddQuranSubtitle={() => subtitlesWorkspace?.addSubtitle()}
+							/>
 						</div>
-					</section>
+					{/if}
 				</div>
 			{:else if isSubtitleMode()}
 				<div class="min-h-0 flex-1 flex flex-col p-3">

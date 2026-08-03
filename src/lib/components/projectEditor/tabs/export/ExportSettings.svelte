@@ -93,7 +93,6 @@
 <style>
 	.export-settings-scale {
 		max-width: 100%;
-		height: var(--editor-panel-height);
 		zoom: var(--editor-panel-scale);
 	}
 

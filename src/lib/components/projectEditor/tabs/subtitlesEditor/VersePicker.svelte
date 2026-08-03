@@ -3,6 +3,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { untrack } from 'svelte';
 
 	let subtitlesEditorState = $derived(() => globalState.getSubtitlesEditorState);
 
@@ -23,6 +24,16 @@
 	});
 
 	let lastSelectedSurahId = $state(globalState.getSubtitlesEditorState.selectedSurah);
+
+	// Réinitialise la sélection de mots quand le verset change.
+	$effect(() => {
+		const _ = globalState.getSubtitlesEditorState.selectedVerse;
+		untrack(() => {
+			const state = globalState.getSubtitlesEditorState;
+			state.startWordIndex = 0;
+			state.endWordIndex = 0;
+		});
+	});
 
 	function handleSurahSelection(selectedValue: string) {
 		// Extract ID from the selected value (format: "1. Al-Fatihah")
@@ -108,10 +119,6 @@
 			placeholder="1"
 			class="verse-input bg-accent border border-color text-primary rounded-lg px-3 py-2 text-sm font-medium text-center w-20"
 			max={Quran.getVerseCount(subtitlesEditorState().selectedSurah)}
-			onchange={() => {
-				subtitlesEditorState().startWordIndex = 0;
-				subtitlesEditorState().endWordIndex = 0;
-			}}
 			bind:value={globalState.getSubtitlesEditorState.selectedVerse}
 		/>
 	</div>

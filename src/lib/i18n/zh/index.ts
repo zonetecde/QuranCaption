@@ -1052,6 +1052,8 @@ const zh = {
 		editSubtitleContext: '编辑字幕',
 		addSilenceLeft: '添加静音（左侧）',
 		splitSubtitleContext: '分割字幕',
+		splitExactCursor: '精确切割',
+		splitNearestWord: '最近单词切割',
 		changeLinkedImage: '更改链接图片',
 		linkImage: '链接图片',
 		removeLinkedImage: '移除链接图片',

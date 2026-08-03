@@ -3134,6 +3134,14 @@ type RootTranslation = {
 		 */
 		splitSubtitleContext: string;
 		/**
+		 * P​e​r​f​e​c​t​ ​s​p​l​i​t
+		 */
+		splitExactCursor: string;
+		/**
+		 * N​e​a​r​e​s​t​ ​w​o​r​d​ ​s​p​l​i​t
+		 */
+		splitNearestWord: string;
+		/**
 		 * C​h​a​n​g​e​ ​l​i​n​k​e​d​ ​i​m​a​g​e
 		 */
 		changeLinkedImage: string;
@@ -13915,6 +13923,14 @@ export type TranslationFunctions = {
 		 * Split subtitle
 		 */
 		splitSubtitleContext: () => LocalizedString;
+		/**
+		 * Perfect split
+		 */
+		splitExactCursor: () => LocalizedString;
+		/**
+		 * Nearest word split
+		 */
+		splitNearestWord: () => LocalizedString;
 		/**
 		 * Change linked image
 		 */

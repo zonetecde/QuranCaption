@@ -1147,6 +1147,8 @@ const fr = {
 		editSubtitleContext: 'Modifier le sous-titre',
 		addSilenceLeft: 'Ajouter un silence (à gauche)',
 		splitSubtitleContext: 'Diviser le sous-titre',
+		splitExactCursor: 'Coupe exacte',
+		splitNearestWord: 'Coupe au mot le plus proche',
 		changeLinkedImage: 'Modifier l\u2019image liée',
 		linkImage: 'Lier une image',
 		removeLinkedImage: 'Supprimer l\u2019image liée',

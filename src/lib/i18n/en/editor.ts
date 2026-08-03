@@ -551,6 +551,8 @@ const editor = {
 	editSubtitleContext: 'Edit subtitle',
 	addSilenceLeft: 'Add silence (on the left)',
 	splitSubtitleContext: 'Split subtitle',
+	splitExactCursor: 'Perfect split',
+	splitNearestWord: 'Nearest word split',
 	changeLinkedImage: 'Change linked image',
 	linkImage: 'Link image',
 	removeLinkedImage: 'Remove linked image',

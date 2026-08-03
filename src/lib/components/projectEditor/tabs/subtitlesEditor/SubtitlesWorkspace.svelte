@@ -9,6 +9,8 @@
 	import DiviseurRedimensionnable from '../DiviseurRedimensionnable.svelte';
 	import VersePicker from './VersePicker.svelte';
 	import WordsSelector from './WordsSelector.svelte';
+	import ContextMenu, { Item } from 'svelte-contextmenu';
+	import { showContextMenuInViewport } from '$lib/services/ContextMenuService';
 
 	let {
 		useSplitHeight = true,
@@ -45,6 +47,7 @@
 	const editSubtitle = $derived(globalState.getSubtitlesEditorState.editSubtitle);
 	const isEditingSubtitle = $derived(editSubtitle instanceof SubtitleClip);
 	const isWbwEditActive = $derived(globalState.shared.wbwEdit.active);
+	let splitContextMenu: ContextMenu | undefined = $state(undefined);
 
 	/**
 	 * Ouvre le mode d'édition WBW manuel pour le sous-titre en cours d'édition.
@@ -100,14 +103,25 @@
 	}
 
 	/**
-	 * Divise le sous-titre sous le curseur en deux à la position du curseur.
+	 * Divise le sous-titre sous le curseur en deux.
+	 * @param {boolean} forceExactCursor Si true, coupe exactement à la position du curseur.
+	 *   Si false, coupe au mot le plus proche.
 	 * @returns {Promise<void>}
 	 */
-	async function splitSubtitleAtCursor(): Promise<void> {
+	async function splitSubtitleAtCursor(forceExactCursor = true): Promise<void> {
 		const cursorPosition = globalState.getTimelineState.cursorPosition;
 		const currentClip = globalState.getSubtitleTrack.getCurrentClip(cursorPosition);
 		if (!currentClip) return;
-		await globalState.getSubtitleTrack.splitSubtitle(currentClip.id);
+		await globalState.getSubtitleTrack.splitSubtitle(currentClip.id, { forceExactCursor });
+	}
+
+	/**
+	 * Ouvre le menu contextuel de choix du type de split (long press).
+	 * @param {MouseEvent} event Événement souris/touch.
+	 * @returns {Promise<void>}
+	 */
+	async function openSplitContextMenu(event: MouseEvent): Promise<void> {
+		await showContextMenuInViewport(splitContextMenu, event);
 	}
 
 	/**
@@ -323,7 +337,8 @@
 							type="button"
 							aria-label={$LL.settings.shortcutAction.SPLIT_SUBTITLE()}
 							data-help={$LL.settings.shortcutActionDesc.SPLIT_SUBTITLE()}
-							onclick={() => void splitSubtitleAtCursor()}
+							onclick={() => void splitSubtitleAtCursor(true)}
+							oncontextmenu={(event) => void openSplitContextMenu(event)}
 						>
 							<span class="material-icons text-[14px]!">call_split</span>
 						</button>
@@ -376,6 +391,21 @@
 		{/if}
 	</div>
 </section>
+
+<ContextMenu bind:this={splitContextMenu}>
+	<Item on:click={() => void splitSubtitleAtCursor(true)}>
+		<div class="btn-icon">
+			<span class="material-icons-outlined text-sm mr-1">content_cut</span>
+			{($LL.editor as unknown as Record<string, () => string>).splitExactCursor()}
+		</div>
+	</Item>
+	<Item on:click={() => void splitSubtitleAtCursor(false)}>
+		<div class="btn-icon">
+			<span class="material-icons-outlined text-sm mr-1">call_split</span>
+			{($LL.editor as unknown as Record<string, () => string>).splitNearestWord()}
+		</div>
+	</Item>
+</ContextMenu>
 
 <style>
 	.words-selector-resizable {

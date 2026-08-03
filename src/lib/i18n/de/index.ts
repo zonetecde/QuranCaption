@@ -1150,6 +1150,8 @@ const de = {
 		editSubtitleContext: 'Untertitel bearbeiten',
 		addSilenceLeft: 'Stille hinzufügen (links)',
 		splitSubtitleContext: 'Untertitel teilen',
+		splitExactCursor: 'Exakter Schnitt',
+		splitNearestWord: 'Nächstes Wort',
 		changeLinkedImage: 'Verknüpftes Bild ändern',
 		linkImage: 'Bild verknüpfen',
 		removeLinkedImage: 'Verknüpftes Bild entfernen',

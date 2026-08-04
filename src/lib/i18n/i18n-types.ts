@@ -8050,6 +8050,7 @@ type RootTranslation = {
 			 * R​e​s​e​t​ ​S​t​a​r​t​ ​C​u​r​s​o​r
 			 */
 			RESET_START_CURSOR: string;
+			REMOVE_SUBTITLE_AT_CURSOR: string;
 			/**
 			 * S​e​l​e​c​t​ ​A​l​l​ ​W​o​r​d​s
 			 */
@@ -8184,6 +8185,7 @@ type RootTranslation = {
 			 * P​u​t​ ​t​h​e​ ​s​t​a​r​t​ ​c​u​r​s​o​r​ ​o​n​ ​t​h​e​ ​e​n​d​ ​c​u​r​s​o​r​ ​p​o​s​i​t​i​o​n
 			 */
 			RESET_START_CURSOR: string;
+			REMOVE_SUBTITLE_AT_CURSOR: string;
 			/**
 			 * S​e​l​e​c​t​ ​a​l​l​ ​w​o​r​d​s​ ​i​n​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​v​e​r​s​e
 			 */
@@ -17509,6 +17511,7 @@ export type TranslationFunctions = {
 			 * Reset Start Cursor
 			 */
 			RESET_START_CURSOR: () => LocalizedString;
+			REMOVE_SUBTITLE_AT_CURSOR: () => LocalizedString;
 			/**
 			 * Select All Words
 			 */
@@ -17643,6 +17646,7 @@ export type TranslationFunctions = {
 			 * Put the start cursor on the end cursor position
 			 */
 			RESET_START_CURSOR: () => LocalizedString;
+			REMOVE_SUBTITLE_AT_CURSOR: () => LocalizedString;
 			/**
 			 * Select all words in the current verse
 			 */

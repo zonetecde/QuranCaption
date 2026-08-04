@@ -395,6 +395,11 @@ export default class Settings extends SerializableBase {
 				keys: ['d'],
 				description: 'Split the subtitle at the cursor position',
 				name: 'Split Subtitle'
+			},
+			REMOVE_SUBTITLE_AT_CURSOR: {
+				keys: ['delete'],
+				description: 'Delete the subtitle or silence clip under the cursor',
+				name: 'Delete Clip at Cursor'
 			}
 		},
 		PREDEFINED_SUBTITLES: {

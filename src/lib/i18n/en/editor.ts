@@ -458,6 +458,9 @@ const editor = {
 	bestLocalAccuracy: 'Best local accuracy',
 	privateLocalQuranicAlignerDetail:
 		'Runs on your machine with the private local Quranic Universal Aligner stack. Requires Python setup and a Hugging Face token.',
+	quranwordtimingLabel: 'Quran Karim words alignment',
+	quranwordtimingDesc: 'Ayahs Aligner - No Internet Required',
+	quranwordtimingDetail: 'Offline Quranic speech recognition and word-by-word timestamp alignment.',
 	offlineLabel: 'Offline',
 	advancedLabel: 'Advanced',
 	importHuggingFaceJson: 'Import Hugging Face JSON',

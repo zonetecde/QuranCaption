@@ -24,8 +24,16 @@ export const WIZARD_STEPS_CLOUD_V2: WizardStep[] = [
 	{ key: 'review', title: 'Review', subtitle: 'Check and launch', icon: 'play_arrow' }
 ];
 
+/** Ordered steps for the offline word-timing path. */
+export const WIZARD_STEPS_quran_word_timing: WizardStep[] = [
+	{ key: 'version', title: 'Method', subtitle: 'Choose your workflow', icon: 'auto_awesome' },
+	{ key: 'settings', title: 'Settings', subtitle: 'Timing and behavior', icon: 'tune' },
+	{ key: 'review', title: 'Review', subtitle: 'Check and launch', icon: 'play_arrow' }
+];
+
 /** Returns the active step sequence for the selected AI version. */
 export function getWizardSteps(aiVersion: AiVersion, _runtime: WizardRuntime): WizardStep[] {
+	if (aiVersion === 'quran_word_timing') return WIZARD_STEPS_quran_word_timing;
 	return aiVersion === 'multi_v2' ? WIZARD_STEPS_CLOUD_V2 : WIZARD_STEPS_V2;
 }
 
@@ -80,16 +88,6 @@ export const MULTI_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
 	}
 ];
 
-/** Speech recognition models exposed by the Muaalem local pipeline. */
-export const MUAALEM_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
-	{
-		value: 'Muaalem-v3.2',
-		label: 'Muaalem v3.2',
-		description: 'Recommended phonetic speech recognition model for the local Muaalem pipeline.',
-		source: 'obadx/muaalem-model-v3_2'
-	}
-];
-
 /** WhisperX models exposed by the Surah Splitter local pipeline. */
 export const SURAH_SPLITTER_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
 	{
@@ -97,63 +95,5 @@ export const SURAH_SPLITTER_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>>
 		label: 'Base Quran',
 		description: 'Default Surah Splitter model with ayah auto-detection support.',
 		source: 'OdyAsh/faster-whisper-base-ar-quran'
-	}
-];
-
-/** Experimental alternative speech recognition models available in advanced Muaalem settings. */
-export const MUAALEM_ADVANCED_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
-	{
-		value: 'Open-Tadabur-Small',
-		label: 'Tadabur Small',
-		description: 'Experimental fallback model based on the previous open local workflow.',
-		source: 'FaisaI/tadabur-Whisper-Small'
-	},
-	{
-		value: 'Open-Naazim-Large-V3-Turbo',
-		label: 'Naazim Large V3 Turbo',
-		description: 'Experimental large Quran model, heavier and slower than the default.',
-		source: 'naazimsnh02/whisper-large-v3-turbo-ar-quran'
-	},
-	{
-		value: 'Open-DeepDML-Medium-Mix',
-		label: 'DeepDML Medium Mix',
-		description: 'Experimental medium Quran model from the previous open local workflow.',
-		source: 'deepdml/whisper-medium-ar-quran-mix-norm'
-	},
-	{
-		value: 'Open-DeepDML-Small-Mix',
-		label: 'DeepDML Small Mix',
-		description: 'Experimental small Quran model, lighter but usually less accurate.',
-		source: 'deepdml/whisper-small-ar-quran-mix'
-	},
-	{
-		value: 'Open-IJyad-Large-V3',
-		label: 'IJyad Large V3',
-		description: 'Experimental large Tarteel-focused model from the previous open workflow.',
-		source: 'IJyad/whisper-large-v3-Tarteel'
-	},
-	{
-		value: 'Open-Legacy-Tiny',
-		label: 'Tiny',
-		description: 'Experimental legacy tiny model.',
-		source: 'tarteel-ai/whisper-tiny-ar-quran'
-	},
-	{
-		value: 'Open-Legacy-Base',
-		label: 'Base',
-		description: 'Experimental legacy base model.',
-		source: 'tarteel-ai/whisper-base-ar-quran'
-	},
-	{
-		value: 'Open-Legacy-Medium',
-		label: 'Medium',
-		description: 'Experimental general-purpose Whisper medium model.',
-		source: 'openai/whisper-medium'
-	},
-	{
-		value: 'Open-Legacy-Large',
-		label: 'Large',
-		description: 'Experimental legacy large model.',
-		source: 'IJyad/whisper-large-v3-Tarteel'
 	}
 ];

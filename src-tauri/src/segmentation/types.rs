@@ -86,10 +86,10 @@ pub enum LocalSegmentationEngine {
     LegacyWhisper,
     /// Nouveau moteur multi-aligner prive.
     MultiAligner,
-    /// Pipeline locale Muaalem avec segmentation, retrieval et alignement ouverts.
-    MuaalemLocal,
     /// Pipeline locale Surah Splitter basee sur WhisperX et detection d'ayahs.
     SurahSplitter,
+    /// Pipeline locale hors-ligne WordTiming basee sur FastConformer et CTC.
+    QuranWordTiming,
 }
 
 impl LocalSegmentationEngine {
@@ -98,12 +98,10 @@ impl LocalSegmentationEngine {
         match raw {
             "legacy" | "legacy_whisper" => Ok(Self::LegacyWhisper),
             "multi" | "multi_aligner" => Ok(Self::MultiAligner),
-            "muaalem" | "muaalem_local" | "open_multi" | "open_multi_aligner" => {
-                Ok(Self::MuaalemLocal)
-            }
             "surah_splitter" | "surah-splitter" => Ok(Self::SurahSplitter),
+            "word_timing" | "word_timing_offline" | "quran_word_timing" => Ok(Self::QuranWordTiming),
             _ => Err(format!(
-                "Unknown local segmentation engine '{}'. Expected 'legacy', 'multi', 'muaalem', or 'surah_splitter'.",
+                "Unknown local segmentation engine '{}'. Expected 'legacy', 'multi', 'surah_splitter', or 'word_timing_offline'.",
                 raw
             )),
         }
@@ -114,8 +112,8 @@ impl LocalSegmentationEngine {
         match self {
             Self::LegacyWhisper => "legacy",
             Self::MultiAligner => "multi",
-            Self::MuaalemLocal => "muaalem",
             Self::SurahSplitter => "surah_splitter",
+            Self::QuranWordTiming => "word_timing_offline",
         }
     }
 
@@ -124,8 +122,8 @@ impl LocalSegmentationEngine {
         match self {
             Self::LegacyWhisper => "Legacy Whisper",
             Self::MultiAligner => "Multi-Aligner",
-            Self::MuaalemLocal => "Muaalem Local",
             Self::SurahSplitter => "Surah Splitter",
+            Self::QuranWordTiming => "Quran Karim words alignment",
         }
     }
 
@@ -134,8 +132,8 @@ impl LocalSegmentationEngine {
         match self {
             Self::LegacyWhisper => "python/requirements.txt",
             Self::MultiAligner => "python/quran-multi-aligner/requirements.txt",
-            Self::MuaalemLocal => "python/muaalem_requirements.txt",
             Self::SurahSplitter => "python/surah_splitter_requirements.txt",
+            Self::QuranWordTiming => "python/word_timing_requirements.txt",
         }
     }
 
@@ -144,8 +142,8 @@ impl LocalSegmentationEngine {
         match self {
             Self::LegacyWhisper => "python/local_segmenter.py",
             Self::MultiAligner => "python/local_multi_aligner_segmenter.py",
-            Self::MuaalemLocal => "python/local_muaalem_segmenter.py",
             Self::SurahSplitter => "python/local_surah_splitter_segmenter.py",
+            Self::QuranWordTiming => "python/local_word_timing_segmenter.py",
         }
     }
 
@@ -165,19 +163,6 @@ impl LocalSegmentationEngine {
                 "pyarrow",
                 "requests",
             ],
-            Self::MuaalemLocal => &[
-                "torch",
-                "torchaudio",
-                "transformers",
-                "librosa",
-                "numpy",
-                "soundfile",
-                "recitations_segmenter",
-                "quran_transcript",
-                "fuzzysearch",
-                "Levenshtein",
-                "nemo",
-            ],
             Self::SurahSplitter => &[
                 "torch",
                 "torchaudio",
@@ -187,6 +172,15 @@ impl LocalSegmentationEngine {
                 "loguru",
                 "rich",
                 "pydub",
+            ],
+            Self::QuranWordTiming => &[
+                "numpy",
+                "librosa",
+                "pyloudnorm",
+                "onnxruntime",
+                "kaldi_native_fbank",
+                "sherpa_onnx",
+                "qua_sdk",
             ],
         }
     }

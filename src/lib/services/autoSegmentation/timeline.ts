@@ -36,8 +36,8 @@ export function setClipEndTime(
 }
 
 /**
- * Élimine les micro-gaps en recollant le début du clip suivant à la fin du clip précédent.
- * Utile pour éviter les "micro-silences" causés par les arrondis de segmentation.
+ * Élimine les collisions et micro-gaps en recollant le début du clip suivant à la fin du clip précédent.
+ * Utile pour garantir des sous-titres disjoints malgré les arrondis ou chevauchements de segmentation.
  *
  * @param {Array<SubtitleClip | PredefinedSubtitleClip>} clips Clips à ajuster.
  * @param {number} maxGapMs Gap maximum à fermer (par défaut SMALL_GAP_MS).
@@ -55,8 +55,12 @@ export function closeSmallSubtitleGaps(
 		const next: SubtitleClip | PredefinedSubtitleClip = ordered[i + 1];
 
 		const gapMs: number = next.startTime - current.endTime - 1;
-		if (gapMs > 0 && gapMs < maxGapMs) {
-			setClipStartTime(next, current.endTime + 1);
+		if (gapMs < maxGapMs) {
+			const nextStartTime = current.endTime + 1;
+			if (nextStartTime > next.endTime) {
+				setClipEndTime(next, nextStartTime + next.duration);
+			}
+			setClipStartTime(next, nextStartTime);
 		}
 	}
 }

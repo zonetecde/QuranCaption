@@ -51,6 +51,22 @@ fn run_local_segmentation_script(
     );
 
     let mut _merged_guard: Option<TempFileGuard> = None;
+    let word_timing_regions = audio_clips
+        .as_ref()
+        .filter(|clips| {
+            matches!(engine, LocalSegmentationEngine::QuranWordTiming)
+                && (clips.len() > 1 || clips.first().map_or(false, |clip| clip.start_ms > 0))
+        })
+        .map(|clips| {
+            clips
+                .iter()
+                .filter_map(|clip| {
+                    let start_ms = clip.start_ms.max(0);
+                    let end_ms = clip.end_ms.max(start_ms);
+                    (end_ms > start_ms).then_some([start_ms, end_ms])
+                })
+                .collect::<Vec<_>>()
+        });
     let audio_path = if let Some(clips) = audio_clips.as_ref().filter(|c| !c.is_empty()) {
         println!(
             "[segmentation][local][debug] received {} audio clip(s)",
@@ -171,6 +187,10 @@ fn run_local_segmentation_script(
     if let Some(ms) = pad_ms {
         args.push("--pad-ms".to_string());
         args.push(ms.to_string());
+    }
+    if let Some(regions) = word_timing_regions.filter(|regions| !regions.is_empty()) {
+        args.push("--audio-regions-ms".to_string());
+        args.push(serde_json::to_string(&regions).map_err(|error| error.to_string())?);
     }
     args.append(&mut extra_args);
     println!("[segmentation][local][debug] python args={:?}", args);
@@ -328,7 +348,6 @@ fn run_local_segmentation_script(
         }
     }
 }
-
 /// ExÃ©cute la segmentation locale via moteur legacy Whisper.
 pub async fn segment_quran_audio_local(
     app_handle: tauri::AppHandle,
@@ -357,7 +376,6 @@ pub async fn segment_quran_audio_local(
         None,
     )
 }
-
 /// ExÃ©cute la segmentation locale via moteur Multi-Aligner avec token HF obligatoire.
 pub async fn segment_quran_audio_local_multi(
     app_handle: tauri::AppHandle,
@@ -416,70 +434,6 @@ pub async fn segment_quran_audio_local_multi(
         hf_token,
     )
 }
-
-/// Exécute la segmentation locale via moteur Muaalem sans token HF.
-pub async fn segment_quran_audio_local_muaalem(
-    app_handle: tauri::AppHandle,
-    audio_path: Option<String>,
-    audio_clips: Option<Vec<SegmentationAudioClip>>,
-    min_silence_ms: Option<u32>,
-    min_speech_ms: Option<u32>,
-    pad_ms: Option<u32>,
-    model_name: Option<String>,
-    device: Option<String>,
-    include_wbw_timestamps: Option<bool>,
-) -> Result<serde_json::Value, String> {
-    let selected_model = model_name.unwrap_or_else(|| "Muaalem-v3.2".to_string());
-    let valid_models = [
-        "Muaalem-v3.2",
-        "Open-Tadabur-Small",
-        "Open-DeepDML-Small-Mix",
-        "Open-DeepDML-Medium-Mix",
-        "Open-IJyad-Large-V3",
-        "Open-Naazim-Large-V3-Turbo",
-        "Open-Legacy-Tiny",
-        "Open-Legacy-Base",
-        "Open-Legacy-Medium",
-        "Open-Legacy-Large",
-    ];
-    if !valid_models.contains(&selected_model.as_str()) {
-        return Err(format!("Invalid model_name '{}'.", selected_model));
-    }
-
-    let selected_device = device.unwrap_or_else(|| "GPU".to_string()).to_uppercase();
-    if selected_device != "GPU" && selected_device != "CPU" {
-        return Err(format!(
-            "Invalid device '{}'. Expected 'GPU' or 'CPU'.",
-            selected_device
-        ));
-    }
-
-    let extra_args = vec![
-        "--model-name".to_string(),
-        selected_model,
-        "--device".to_string(),
-        selected_device,
-        "--include-wbw-timestamps".to_string(),
-        if include_wbw_timestamps.unwrap_or(false) {
-            "true".to_string()
-        } else {
-            "false".to_string()
-        },
-    ];
-
-    run_local_segmentation_script(
-        app_handle,
-        LocalSegmentationEngine::MuaalemLocal,
-        audio_path,
-        audio_clips,
-        min_silence_ms,
-        min_speech_ms,
-        pad_ms,
-        extra_args,
-        None,
-    )
-}
-
 /// Exécute la segmentation locale via Surah Splitter sans token HF.
 pub async fn segment_quran_audio_local_surah_splitter(
     app_handle: tauri::AppHandle,
@@ -533,6 +487,29 @@ pub async fn segment_quran_audio_local_surah_splitter(
     run_local_segmentation_script(
         app_handle,
         LocalSegmentationEngine::SurahSplitter,
+        audio_path,
+        audio_clips,
+        min_silence_ms,
+        min_speech_ms,
+        pad_ms,
+        extra_args,
+        None,
+    )
+}
+/// Exécute la segmentation locale via le moteur hors-ligne WordTiming.
+pub async fn segment_quran_audio_local_word_timing(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    min_silence_ms: Option<u32>,
+    min_speech_ms: Option<u32>,
+    pad_ms: Option<u32>,
+) -> Result<serde_json::Value, String> {
+    let extra_args = Vec::new();
+
+    run_local_segmentation_script(
+        app_handle,
+        LocalSegmentationEngine::QuranWordTiming,
         audio_path,
         audio_clips,
         min_silence_ms,

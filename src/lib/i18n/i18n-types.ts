@@ -2774,6 +2774,18 @@ type RootTranslation = {
 		 */
 		privateLocalQuranicAlignerDetail: string;
 		/**
+		 * Q​u​r​a​n​ ​K​a​r​i​m​ ​w​o​r​d​s​ ​a​l​i​g​n​m​e​n​t
+		 */
+		quranwordtimingLabel: string;
+		/**
+		 * A​y​a​h​s​ ​A​l​i​g​n​e​r​ ​-​ ​N​o​ ​I​n​t​e​r​n​e​t​ ​R​e​q​u​i​r​e​d
+		 */
+		quranwordtimingDesc: string;
+		/**
+		 * O​f​f​l​i​n​e​ ​Q​u​r​a​n​i​c​ ​s​p​e​e​c​h​ ​r​e​c​o​g​n​i​t​i​o​n​ ​a​n​d​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​ ​a​l​i​g​n​m​e​n​t​.
+		 */
+		quranwordtimingDetail: string;
+		/**
 		 * O​f​f​l​i​n​e
 		 */
 		offlineLabel: string;
@@ -13443,6 +13455,18 @@ export type TranslationFunctions = {
 		 * Runs on your machine with the private local Quranic Universal Aligner stack. Requires Python setup and a Hugging Face token.
 		 */
 		privateLocalQuranicAlignerDetail: () => LocalizedString;
+		/**
+		 * Quran Karim words alignment
+		 */
+		quranwordtimingLabel: () => LocalizedString;
+		/**
+		 * Ayahs Aligner - No Internet Required
+		 */
+		quranwordtimingDesc: () => LocalizedString;
+		/**
+		 * Offline Quranic speech recognition and word-by-word timestamp alignment.
+		 */
+		quranwordtimingDetail: () => LocalizedString;
 		/**
 		 * Offline
 		 */

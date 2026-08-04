@@ -48,117 +48,6 @@ function shouldRetryCloudOnCpu(message: string, device: SegmentationDevice): boo
 }
 
 /**
- * Détecte les crashs locaux Muaalem qui justifient un retry silencieux sur CPU.
- *
- * @param {string} message Message d'erreur.
- * @param {LocalAsrMode} localAsrMode Mode ASR local courant.
- * @param {SegmentationDevice} device Appareil courant.
- * @returns {boolean} True si un retry CPU est pertinent.
- */
-function shouldRetryMuaalemOnCpu(
-	message: string,
-	localAsrMode: LocalAsrMode,
-	device: SegmentationDevice
-): boolean {
-	return (
-		localAsrMode === 'muaalem_local' &&
-		device === 'GPU' &&
-		/Python script failed with no output/i.test(message)
-	);
-}
-
-/**
- * Indique si une liste de mots Muaalem semble déjà exprimée relativement au segment.
- *
- * @param {number} segmentStart Début du segment en secondes sur l'audio global.
- * @param {number} segmentEnd Fin du segment en secondes sur l'audio global.
- * @param {Array<{ start: number; end: number }>} words Liste des mots du segment.
- * @returns {boolean} True si les mots semblent déjà relatifs au segment.
- */
-function hasRelativeMuaalemWordTimings(
-	segmentStart: number,
-	segmentEnd: number,
-	words: Array<{ start: number; end: number }>
-): boolean {
-	if (words.length === 0) return true;
-
-	const epsilon = 0.001;
-	const segmentDuration = Math.max(0, segmentEnd - segmentStart);
-	const minStart = Math.min(...words.map((word) => word.start));
-	const maxEnd = Math.max(...words.map((word) => word.end));
-
-	if (minStart <= epsilon && maxEnd <= segmentDuration + epsilon) return true;
-	return maxEnd <= segmentDuration + epsilon && minStart < segmentStart - epsilon;
-}
-
-/**
- * Reconstruit les fins de mots Muaalem à partir du start du mot suivant.
- *
- * @param {number} segmentDuration Durée totale du segment en secondes.
- * @param {Array<{ start: number; end: number; location: string; word: string }>} words Liste des mots.
- * @returns {Array<{ start: number; end: number; location: string; word: string }>} Liste avec fins reconstruites.
- */
-function rebuildMuaalemWordEnds(
-	segmentDuration: number,
-	words: Array<{ start: number; end: number; location: string; word?: string }>
-): Array<{ start: number; end: number; location: string; word?: string }> {
-	const normalizedWords = words.map((word) => ({
-		...word,
-		start: Math.max(0, word.start),
-		end: Math.max(0, word.end)
-	}));
-
-	let previousEnd = 0;
-	for (let index = 0; index < normalizedWords.length; index += 1) {
-		const currentWord = normalizedWords[index];
-		if (currentWord.start < previousEnd) {
-			currentWord.start = previousEnd;
-		}
-
-		const nextRawStart = normalizedWords[index + 1]?.start ?? segmentDuration;
-		currentWord.end = Math.max(currentWord.start, Math.min(segmentDuration, nextRawStart));
-		previousEnd = currentWord.end;
-	}
-
-	return normalizedWords;
-}
-
-/**
- * Normalise les timestamps WBW Muaalem en temps relatifs au segment quand n?cessaire.
- *
- * @param {SegmentationResponse} response R?ponse brute de segmentation.
- * @returns {SegmentationResponse} R?ponse avec mots normalis?s.
- */
-function normalizeMuaalemWordTimings(response: SegmentationResponse): SegmentationResponse {
-	return {
-		...response,
-		segments: (response.segments ?? []).map((segment) => {
-			const segmentStart = segment.time_from ?? 0;
-			const segmentEnd = segment.time_to ?? segmentStart;
-			const segmentDuration = Math.max(0, segmentEnd - segmentStart);
-			const words = segment.words ?? [];
-			if (hasRelativeMuaalemWordTimings(segmentStart, segmentEnd, words)) {
-				return {
-					...segment,
-					words: rebuildMuaalemWordEnds(segmentDuration, words)
-				};
-			}
-			return {
-				...segment,
-				words: rebuildMuaalemWordEnds(
-					segmentDuration,
-					words.map((word) => ({
-						...word,
-						start: Math.max(0, word.start - segmentStart),
-						end: Math.max(0, word.end - segmentStart)
-					}))
-				)
-			};
-		})
-	};
-}
-
-/**
  * Construit la charge utile de base pour une invocation de segmentation.
  *
  * @param {AutoSegmentationAudioInfo} audioInfo Infos audio.
@@ -202,11 +91,7 @@ function resolveContextModelName(
 	legacyWhisperModel: string
 ): string {
 	if (effectiveMode === 'api') return cloudModel;
-	if (
-		localAsrMode === 'multi_aligner' ||
-		localAsrMode === 'muaalem_local' ||
-		localAsrMode === 'surah_splitter'
-	)
+	if (localAsrMode === 'multi_aligner' || localAsrMode === 'surah_splitter')
 		return multiAlignerModel;
 	return legacyWhisperModel;
 }
@@ -307,15 +192,6 @@ export async function runAutoSegmentationForProject(
 				});
 			}
 
-			if (localAsrMode === 'muaalem_local') {
-				return await invoke('segment_quran_audio_local_muaalem', {
-					...basePayload,
-					modelName: multiAlignerModel,
-					device: targetDevice,
-					includeWbwTimestamps
-				});
-			}
-
 			if (localAsrMode === 'surah_splitter') {
 				return await invoke('segment_quran_audio_local_surah_splitter', {
 					...basePayload,
@@ -323,6 +199,12 @@ export async function runAutoSegmentationForProject(
 					device: targetDevice,
 					surah: surahSplitterSurah,
 					includeWbwTimestamps
+				});
+			}
+
+			if (localAsrMode === 'quran_word_timing') {
+				return await invoke('segment_quran_audio_local_word_timing', {
+					...basePayload
 				});
 			}
 
@@ -362,13 +244,7 @@ export async function runAutoSegmentationForProject(
 				payload = await invokeLocal();
 			} catch (localError) {
 				const localMessage = localError instanceof Error ? localError.message : String(localError);
-				if (shouldRetryMuaalemOnCpu(localMessage, localAsrMode, device)) {
-					console.warn(
-						'[AutoSegmentation] Muaalem local GPU run crashed, retrying once on CPU:',
-						localMessage
-					);
-					payload = await invokeLocalWithDevice('CPU');
-				} else if (!allowCloudFallbackEffective) {
+				if (!allowCloudFallbackEffective) {
 					const recoveredResponse = parseSegmentationResponseFromThrownError(localError);
 					if ((recoveredResponse?.segments?.length ?? 0) > 0) {
 						console.warn(
@@ -416,13 +292,9 @@ export async function runAutoSegmentationForProject(
 		const finalRawResponseBase: SegmentationResponse = cloudGpuFallbackToCpu
 			? (payload as SegmentationResponse)
 			: rawResponse;
-		const finalRawResponse: SegmentationResponse =
-			localAsrMode === 'muaalem_local'
-				? normalizeMuaalemWordTimings(finalRawResponseBase)
-				: finalRawResponseBase;
 		const response = includeWbwTimestamps
-			? await enrichSegmentationResponseWithWordTimestamps(finalRawResponse)
-			: finalRawResponse;
+			? await enrichSegmentationResponseWithWordTimestamps(finalRawResponseBase)
+			: finalRawResponseBase;
 
 		const contextModelName = resolveContextModelName(
 			effectiveMode,

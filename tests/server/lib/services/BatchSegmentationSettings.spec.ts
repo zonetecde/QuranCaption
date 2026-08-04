@@ -70,13 +70,6 @@ describe('Batch segmentation settings', () => {
 						usable: false,
 						message: ''
 					},
-					muaalem: {
-						ready: false,
-						venvExists: false,
-						packagesInstalled: false,
-						usable: false,
-						message: ''
-					},
 					surahSplitter: {
 						ready: false,
 						venvExists: false,

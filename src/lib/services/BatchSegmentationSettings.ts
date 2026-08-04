@@ -85,8 +85,8 @@ function getSelectedEngineStatus(
 	if (!status.engines) return null;
 	if (mode === 'legacy_whisper') return status.engines.legacy;
 	if (mode === 'multi_aligner') return status.engines.multi;
-	if (mode === 'muaalem_local') return status.engines.muaalem;
-	return status.engines.surahSplitter;
+	if (mode === 'surah_splitter') return status.engines.surahSplitter;
+	return status.engines.quranwordtiming ?? null;
 }
 
 /**

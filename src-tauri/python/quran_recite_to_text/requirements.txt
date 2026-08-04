@@ -1,0 +1,8 @@
+numpy
+librosa
+pyloudnorm
+onnxruntime
+kaldi-native-fbank
+sherpa-onnx>=1.10.32
+requests
+https://raw.githubusercontent.com/Iam-Muslim/QuranReciteToText/%D8%A7%D9%84%D8%AD%D9%85%D8%AF%D9%84%D9%84%D9%87/vendor/qua_sdk-0.5.9-py3-none-any.whl

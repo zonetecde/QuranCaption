@@ -177,33 +177,6 @@ pub async fn segment_quran_audio_local_multi(
     .await
 }
 
-/// Lance la segmentation locale en mode Muaalem Local.
-#[tauri::command]
-pub async fn segment_quran_audio_local_muaalem(
-    app_handle: tauri::AppHandle,
-    audio_path: Option<String>,
-    audio_clips: Option<Vec<SegmentationAudioClip>>,
-    min_silence_ms: Option<u32>,
-    min_speech_ms: Option<u32>,
-    pad_ms: Option<u32>,
-    model_name: Option<String>,
-    device: Option<String>,
-    include_wbw_timestamps: Option<bool>,
-) -> Result<serde_json::Value, String> {
-    segmentation::segment_quran_audio_local_muaalem(
-        app_handle,
-        audio_path,
-        audio_clips,
-        min_silence_ms,
-        min_speech_ms,
-        pad_ms,
-        model_name,
-        device,
-        include_wbw_timestamps,
-    )
-    .await
-}
-
 /// Lance la segmentation locale en mode Surah Splitter.
 #[tauri::command]
 pub async fn segment_quran_audio_local_surah_splitter(
@@ -229,6 +202,27 @@ pub async fn segment_quran_audio_local_surah_splitter(
         device,
         surah,
         include_wbw_timestamps,
+    )
+    .await
+}
+
+/// Lance la segmentation locale en mode hors-ligne WordTiming.
+#[tauri::command]
+pub async fn segment_quran_audio_local_word_timing(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    min_silence_ms: Option<u32>,
+    min_speech_ms: Option<u32>,
+    pad_ms: Option<u32>,
+) -> Result<serde_json::Value, String> {
+    segmentation::segment_quran_audio_local_word_timing(
+        app_handle,
+        audio_path,
+        audio_clips,
+        min_silence_ms,
+        min_speech_ms,
+        pad_ms,
     )
     .await
 }

@@ -12,7 +12,7 @@
 					? 'Private Local Quranic Universal Aligner'
 					: wizard.selection.aiVersion === 'surah_splitter'
 						? 'Surah Splitter Local'
-						: 'Muaalem Local'
+						: $LL.editor.quranwordtimingLabel()
 	);
 </script>
 
@@ -27,16 +27,20 @@
 			{$LL.editor.methodLabel()}: <span class="text-primary font-semibold">{versionLabel()}</span>
 		</div>
 		<div class="text-secondary">
-			{$LL.editor.modelLabel()}: <span class="text-primary font-semibold">{wizard.selectedModel()}</span>
+			{$LL.editor.modelLabel()}:
+			<span class="text-primary font-semibold">{wizard.selectedModel()}</span>
 		</div>
 		<div class="text-secondary">
 			{$LL.editor.deviceLabel()}:
 			<span class="text-primary font-semibold"
-				>{wizard.selection.aiVersion === 'legacy_v1' ? $LL.editor.automaticLabel() : wizard.selectedDevice()}</span
+				>{wizard.selection.aiVersion === 'legacy_v1'
+					? $LL.editor.automaticLabel()
+					: wizard.selectedDevice()}</span
 			>
 		</div>
 		<div class="text-secondary">
-			{$LL.editor.audioSourceLabel()}: <span class="text-primary font-semibold">{wizard.audioLabel()}</span>
+			{$LL.editor.audioSourceLabel()}:
+			<span class="text-primary font-semibold">{wizard.audioLabel()}</span>
 		</div>
 		{#if wizard.selection.aiVersion === 'surah_splitter'}
 			<div class="text-secondary">
@@ -61,7 +65,9 @@
 		<div class="text-secondary">
 			{$LL.editor.presetTimingSummary()}:
 			<span class="text-primary font-semibold"
-				>{wizard.minSilenceMs}ms silence, {wizard.minSpeechMs}ms speech, {wizard.padMs}ms padding</span
+				>{wizard.minSilenceMs}ms silence, {#if wizard.selection.aiVersion !== 'quran_word_timing'}{wizard.minSpeechMs}ms
+					speech,
+				{/if}{wizard.padMs}ms padding</span
 			>
 		</div>
 		{#if wizard.selection.aiVersion === 'multi_v2_local' && !wizard.selection.hfToken.trim()}
@@ -69,13 +75,6 @@
 				class="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-300"
 			>
 				{$LL.editor.tokenRequiredHint()}
-			</div>
-		{/if}
-		{#if wizard.selection.aiVersion === 'muaalem_local'}
-			<div
-				class="rounded-lg border border-yellow-500/10 bg-yellow-500/2 px-3 py-2 text-xs text-yellow-300/90 mt-4"
-			>
-				{$LL.editor.muaalemReviewHint()}
 			</div>
 		{/if}
 		{#if wizard.selection.aiVersion === 'surah_splitter'}

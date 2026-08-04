@@ -961,6 +961,9 @@ const zh = {
 		bestLocalAccuracy: '最佳本地精度',
 		privateLocalQuranicAlignerDetail:
 			'通过私有本地 Quranic Universal Aligner 栈在您的机器上运行。需要 Python 设置和 Hugging Face Token。',
+		quranwordtimingLabel: 'Quran Karim words alignment',
+		quranwordtimingDesc: 'Ayahs 对齐器 - 无需互联网',
+		quranwordtimingDetail: '离线 Quran 语音识别与逐字时间戳对齐。',
 		offlineLabel: '离线',
 		advancedLabel: '高级',
 		importHuggingFaceJson: '导入 Hugging Face JSON',

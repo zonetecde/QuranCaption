@@ -2484,6 +2484,7 @@ const de = {
 			SELECT_PREVIOUS_WORD: 'Vorheriges Wort auswählen',
 			RESET_START_CURSOR: 'Start-Cursor zurücksetzen',
 			REFETCH_WBW_TIMESTAMPS: 'WBW-Zeitstempel neu abrufen',
+			REMOVE_SUBTITLE_AT_CURSOR: 'Clip am Cursor löschen',
 			SELECT_ALL_WORDS: 'Alle Wörter auswählen',
 			SET_END_TO_LAST: 'Ende zur nächsten Interpunktion',
 			SET_END_TO_PREVIOUS: 'Ende zur vorherigen Interpunktion',
@@ -2521,6 +2522,7 @@ const de = {
 			RESET_START_CURSOR: 'Start-Cursor auf die Position des End-Cursors setzen',
 			REFETCH_WBW_TIMESTAMPS:
 				'Berechnet die Wort-für-Wort-Zeitstempel für den Untertitel unter dem Cursor neu',
+			REMOVE_SUBTITLE_AT_CURSOR: 'Löscht den Untertitel oder Stille-Clip unter dem Cursor',
 			SELECT_ALL_WORDS: 'Alle Wörter des aktuellen Verses auswählen',
 			SET_END_TO_LAST: 'End-Cursor bis zur nächsten Interpunktion verschieben',
 			SET_END_TO_PREVIOUS: 'End-Cursor bis zur vorherigen Interpunktion verschieben',

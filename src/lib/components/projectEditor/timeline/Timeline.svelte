@@ -93,6 +93,7 @@
 	let frameBackwardShortcutRegistered = false;
 	let frameForwardShortcutRegistered = false;
 	let refetchWbwShortcutRegistered = false;
+	let removeSubtitleAtCursorShortcutRegistered = false;
 	let lastVerifiedClipId: number | null = null;
 	let quickEditLongPressTimer: ReturnType<typeof setTimeout> | null = null;
 	let didTriggerQuickLongPressAction = false;
@@ -111,6 +112,32 @@
 		globalState.getStylesState.clearSelection();
 
 		selectedClipIds.forEach((id) => subtitleTrack.removeClip(id, true));
+		currentProject.detail.updateVideoDetailAttributes();
+	}
+
+	/**
+	 * Supprime le clip de sous-titre ou de silence situé sous le curseur.
+	 * @returns {void}
+	 */
+	function handleRemoveSubtitleAtCursor(): void {
+		const currentProject = globalState.currentProject;
+		if (!currentProject) return;
+
+		const subtitleTrack = globalState.getSubtitleTrack;
+		const clip = subtitleTrack.getCurrentClip(globalState.getTimelineState.cursorPosition);
+		if (
+			!(
+				clip instanceof SubtitleClip ||
+				clip instanceof PredefinedSubtitleClip ||
+				clip instanceof SilenceClip
+			)
+		)
+			return;
+
+		if (globalState.getStylesState.isSelected(clip.id)) {
+			globalState.getStylesState.removeSelection(clip.id);
+		}
+		subtitleTrack.removeClip(clip.id, true);
 		currentProject.detail.updateVideoDetailAttributes();
 	}
 
@@ -584,6 +611,34 @@
 		refetchWbwShortcutRegistered = false;
 	}
 
+	/**
+	 * Enregistre le raccourci Delete de suppression du sous-titre au curseur.
+	 * @returns {void}
+	 */
+	function registerRemoveSubtitleAtCursorShortcut(): void {
+		if (!globalState.settings || removeSubtitleAtCursorShortcutRegistered) return;
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings.shortcuts.SUBTITLES_EDITOR.REMOVE_SUBTITLE_AT_CURSOR,
+			onKeyDown: handleRemoveSubtitleAtCursor
+		});
+
+		removeSubtitleAtCursorShortcutRegistered = true;
+	}
+
+	/**
+	 * Supprime le raccourci Delete de suppression du sous-titre au curseur.
+	 * @returns {void}
+	 */
+	function unregisterRemoveSubtitleAtCursorShortcut(): void {
+		if (!globalState.settings || !removeSubtitleAtCursorShortcutRegistered) return;
+
+		ShortcutService.unregisterShortcut(
+			globalState.settings.shortcuts.SUBTITLES_EDITOR.REMOVE_SUBTITLE_AT_CURSOR
+		);
+		removeSubtitleAtCursorShortcutRegistered = false;
+	}
+
 	$effect(() => {
 		const currentTab = globalState.currentProject?.projectEditorState.currentTab;
 
@@ -634,6 +689,7 @@
 		registerFrameForwardShortcut();
 
 		registerRefetchWbwShortcut();
+		registerRemoveSubtitleAtCursorShortcut();
 
 		return () => {
 			unregisterSplitShortcut();
@@ -644,6 +700,7 @@
 			unregisterFrameBackwardShortcut();
 			unregisterFrameForwardShortcut();
 			unregisterRefetchWbwShortcut();
+			unregisterRemoveSubtitleAtCursorShortcut();
 		};
 	});
 
@@ -948,6 +1005,7 @@
 		unregisterFrameBackwardShortcut();
 		unregisterFrameForwardShortcut();
 		unregisterRefetchWbwShortcut();
+		unregisterRemoveSubtitleAtCursorShortcut();
 		tracksResizeObserver?.disconnect();
 		tracksResizeObserver = null;
 	});

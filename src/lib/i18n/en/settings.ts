@@ -185,6 +185,7 @@ const settings = {
 		SELECT_PREVIOUS_WORD: 'Select Previous Word',
 		RESET_START_CURSOR: 'Reset Start Cursor',
 		REFETCH_WBW_TIMESTAMPS: 'Refetch WBW Timestamps',
+		REMOVE_SUBTITLE_AT_CURSOR: 'Delete Clip at Cursor',
 		SELECT_ALL_WORDS: 'Select All Words',
 		SET_END_TO_LAST: 'Set End to Next Punctuation',
 		SET_END_TO_PREVIOUS: 'Set End to Previous Punctuation',
@@ -222,6 +223,7 @@ const settings = {
 		RESET_START_CURSOR: 'Put the start cursor on the end cursor position',
 		REFETCH_WBW_TIMESTAMPS:
 			'Recalculate the word-by-word timestamps for the subtitle under the cursor',
+		REMOVE_SUBTITLE_AT_CURSOR: 'Delete the subtitle or silence clip under the cursor',
 		SELECT_ALL_WORDS: 'Select all words in the current verse',
 		SET_END_TO_LAST: 'Move end cursor to the next punctuation mark',
 		SET_END_TO_PREVIOUS: 'Move end cursor to the previous punctuation mark',

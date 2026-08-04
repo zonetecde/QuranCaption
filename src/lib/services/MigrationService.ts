@@ -754,17 +754,25 @@ export default class MigrationService {
 	}
 
 	/**
-	 * Assure que le raccourci de recalcul WBW existe dans les anciens settings.
+	 * Assure que les nouveaux raccourcis de timeline existent dans les anciens settings.
 	 */
 	static FromQC3654ToQC3655(): void {
 		if (!globalState.settings) return;
 
 		const defaults = new Settings().shortcuts.SUBTITLES_EDITOR;
-		if (globalState.settings.shortcuts.SUBTITLES_EDITOR.REFETCH_WBW_TIMESTAMPS) return;
+		let hasChanges = false;
+		if (!globalState.settings.shortcuts.SUBTITLES_EDITOR.REFETCH_WBW_TIMESTAMPS) {
+			globalState.settings.shortcuts.SUBTITLES_EDITOR.REFETCH_WBW_TIMESTAMPS =
+				defaults.REFETCH_WBW_TIMESTAMPS;
+			hasChanges = true;
+		}
+		if (!globalState.settings.shortcuts.SUBTITLES_EDITOR.REMOVE_SUBTITLE_AT_CURSOR) {
+			globalState.settings.shortcuts.SUBTITLES_EDITOR.REMOVE_SUBTITLE_AT_CURSOR =
+				defaults.REMOVE_SUBTITLE_AT_CURSOR;
+			hasChanges = true;
+		}
 
-		globalState.settings.shortcuts.SUBTITLES_EDITOR.REFETCH_WBW_TIMESTAMPS =
-			defaults.REFETCH_WBW_TIMESTAMPS;
-		Settings.save();
+		if (hasChanges) Settings.save();
 	}
 
 	/**

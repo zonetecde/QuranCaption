@@ -7864,6 +7864,10 @@ type RootTranslation = {
 			 */
 			REFETCH_WBW_TIMESTAMPS: string;
 			/**
+			 * D​e​l​e​t​e​ ​C​l​i​p​ ​a​t​ ​C​u​r​s​o​r
+			 */
+			REMOVE_SUBTITLE_AT_CURSOR: string;
+			/**
 			 * S​e​l​e​c​t​ ​A​l​l​ ​W​o​r​d​s
 			 */
 			SELECT_ALL_WORDS: string;
@@ -8001,6 +8005,10 @@ type RootTranslation = {
 			 * R​e​c​a​l​c​u​l​a​t​e​ ​t​h​e​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​ ​f​o​r​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​u​n​d​e​r​ ​t​h​e​ ​c​u​r​s​o​r
 			 */
 			REFETCH_WBW_TIMESTAMPS: string;
+			/**
+			 * D​e​l​e​t​e​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​o​r​ ​s​i​l​e​n​c​e​ ​c​l​i​p​ ​u​n​d​e​r​ ​t​h​e​ ​c​u​r​s​o​r
+			 */
+			REMOVE_SUBTITLE_AT_CURSOR: string;
 			/**
 			 * S​e​l​e​c​t​ ​a​l​l​ ​w​o​r​d​s​ ​i​n​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​v​e​r​s​e
 			 */
@@ -18469,6 +18477,10 @@ export type TranslationFunctions = {
 			 */
 			REFETCH_WBW_TIMESTAMPS: () => LocalizedString;
 			/**
+			 * Delete Clip at Cursor
+			 */
+			REMOVE_SUBTITLE_AT_CURSOR: () => LocalizedString;
+			/**
 			 * Select All Words
 			 */
 			SELECT_ALL_WORDS: () => LocalizedString;
@@ -18606,6 +18618,10 @@ export type TranslationFunctions = {
 			 * Recalculate the word-by-word timestamps for the subtitle under the cursor
 			 */
 			REFETCH_WBW_TIMESTAMPS: () => LocalizedString;
+			/**
+			 * Delete the subtitle or silence clip under the cursor
+			 */
+			REMOVE_SUBTITLE_AT_CURSOR: () => LocalizedString;
 			/**
 			 * Select all words in the current verse
 			 */

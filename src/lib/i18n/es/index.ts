@@ -2482,6 +2482,7 @@ const es = {
 			SELECT_PREVIOUS_WORD: 'Seleccionar palabra anterior',
 			RESET_START_CURSOR: 'Restablecer cursor de inicio',
 			REFETCH_WBW_TIMESTAMPS: 'Volver a obtener timestamps WBW',
+			REMOVE_SUBTITLE_AT_CURSOR: 'Eliminar clip en el cursor',
 			SELECT_ALL_WORDS: 'Seleccionar todas las palabras',
 			SET_END_TO_LAST: 'Fin en la puntuación siguiente',
 			SET_END_TO_PREVIOUS: 'Fin en la puntuación anterior',
@@ -2519,6 +2520,7 @@ const es = {
 			RESET_START_CURSOR: 'Colocar el cursor de inicio en la posición del cursor de fin',
 			REFETCH_WBW_TIMESTAMPS:
 				'Recalcula los timestamps palabra por palabra del subtítulo bajo el cursor',
+			REMOVE_SUBTITLE_AT_CURSOR: 'Elimina el subtítulo o clip de silencio bajo el cursor',
 			SELECT_ALL_WORDS: 'Seleccionar todas las palabras del versículo actual',
 			SET_END_TO_LAST: 'Mover el cursor de fin hasta la siguiente puntuación',
 			SET_END_TO_PREVIOUS: 'Mover el cursor de fin hasta la puntuación anterior',

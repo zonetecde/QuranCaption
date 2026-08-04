@@ -341,6 +341,11 @@ export default class Settings extends SerializableBase {
 				keys: ['w'],
 				description: 'Recalculate the word-by-word timestamps for the subtitle under the cursor',
 				name: 'Refetch WBW Timestamps'
+			},
+			REMOVE_SUBTITLE_AT_CURSOR: {
+				keys: ['delete'],
+				description: 'Delete the subtitle or silence clip under the cursor',
+				name: 'Delete Clip at Cursor'
 			}
 		},
 		PREDEFINED_SUBTITLES: {

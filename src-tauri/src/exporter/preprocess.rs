@@ -31,7 +31,7 @@ pub fn build_background_fit_filter(
 
     if !media_fill {
         return format!(
-            "scale=w={}:h={}:force_original_aspect_ratio=decrease,pad={}:{}:(ow-iw)*{:.6}:(oh-ih)*{:.6}:color=black,crop={}:{}:(in_w-{})*{:.6}:(in_h-{})*{:.6}",
+            "scale=w={}:h={}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad={}:{}:(ow-iw)*{:.6}:(oh-ih)*{:.6}:color=black,crop={}:{}:(in_w-{})*{:.6}:(in_h-{})*{:.6}",
             scaled_w,
             scaled_h,
             scaled_w,

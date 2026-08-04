@@ -1,7 +1,7 @@
 ﻿<script lang="ts">
-	import { ProjectEditorTabs, TrackType, AssetClip } from '$lib/classes';
+	import { ProjectEditorTabs, TrackType, AssetClip, type Asset } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { convertFileSrc } from '@tauri-apps/api/core';
+	import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 	import { onDestroy, onMount, untrack } from 'svelte';
 	import { Howl } from 'howler';
 	import toast from 'svelte-5-french-toast';
@@ -140,12 +140,14 @@
 		resizeVideoToFitScreen();
 	});
 
-	// Effect qui recharge l'audio quand l'asset audio change
+	// Effect qui recharge l'audio uniquement quand l'asset ou son contenu change
 	$effect(() => {
 		const audio = currentAudio();
-		audio?.mediaReloadToken;
+		const audioKey = audio ? `${audio.id}:${audio.filePath}:${audio.mediaReloadToken}` : null;
 		untrack(() => {
-			setupAudio(); // Configure le nouveau fichier audio avec Howler
+			if (audioKey === loadedAudioKey) return;
+			loadedAudioKey = audioKey;
+			void setupAudio();
 		});
 	});
 
@@ -205,7 +207,7 @@
 
 		// Le temps dans l'audio = position du curseur - début du clip
 		const timeInClip = getTimelineSettings().movePreviewTo - currentClip.startTime;
-		return Math.max(0, timeInClip / 1000); // Convertit en secondes pour Howler
+		return Math.max(0, timeInClip / 1000); // Convertit en secondes pour les lecteurs audio
 	}
 
 	/**
@@ -250,6 +252,15 @@
 		if (!usesReleasedFile) return;
 
 		pause();
+		if (nativeAudioReady) {
+			nativeAudioSetupId++;
+			nativeAudioReady = false;
+			loadedAudioKey = undefined;
+			stopNativeAudioClock();
+			void controlNativeAudio('unload').catch((error) =>
+				console.error('Native audio unload error:', error)
+			);
+		}
 		if (audioHowl) {
 			audioHowl.unload();
 			audioHowl = null;
@@ -262,6 +273,12 @@
 	}
 
 	onDestroy(() => {
+		nativeAudioSetupId++;
+		nativeAudioReady = false;
+		stopNativeAudioClock();
+		void controlNativeAudio('unload').catch((error) =>
+			console.error('Native audio unload error:', error)
+		);
 		if (audioHowl) {
 			audioHowl.unload(); // Libère les ressources audio
 			audioHowl = null;
@@ -336,11 +353,19 @@
 	});
 
 	function setPlaybackSpeed(speed: number) {
+		if (nativeAudioReady && isPlaying) {
+			nativeAudioBasePositionMs = getNativeAudioPosition();
+			nativeAudioBaseTime = performance.now();
+		}
 		audioSpeed = speed; // Met à jour la vitesse audio
 		if (videoElement) {
 			videoElement.playbackRate = speed;
 		}
-		if (audioHowl) {
+		if (nativeAudioReady) {
+			void controlNativeAudio('setSpeed', { speed }).catch((error) =>
+				console.error('Native audio speed error:', error)
+			);
+		} else if (audioHowl) {
 			audioHowl.rate(speed);
 		}
 	}
@@ -411,6 +436,7 @@
 	 * Priorité à l'audio si disponible, sinon utilise la vidéo
 	 */
 	function handleVideoTimeUpdate() {
+		if (nativeAudioReady) return;
 		if (audioUpdateInterval) {
 			// Si on a un intervalle de mise à jour audio, on l'utilise car plus précis
 			handleAudioTimeUpdate();
@@ -575,7 +601,30 @@
 		});
 	}
 
-	// === GESTION AUDIO AVEC HOWLER ===
+	// === GESTION AUDIO NATIVE AVEC FALLBACK HOWLER ===
+	type NativePreviewAudioAction =
+		| 'load'
+		| 'play'
+		| 'pause'
+		| 'seek'
+		| 'setVolume'
+		| 'setSpeed'
+		| 'status'
+		| 'unload';
+	type NativePreviewAudioStatus = {
+		loaded: boolean;
+		playing: boolean;
+		ended: boolean;
+		positionMs: number;
+		durationMs: number;
+		speed: number;
+	};
+	type NativePreviewAudioOptions = {
+		filePath?: string;
+		positionMs?: number;
+		volume?: number;
+		speed?: number;
+	};
 	type BoostedMediaElement = HTMLMediaElement & {
 		__quranCaptionAudioBoost?: {
 			context: AudioContext;
@@ -589,8 +638,253 @@
 	let isPlaying = $state(false); // État de lecture global
 	let audioUpdateInterval: ReturnType<typeof setInterval> | null = null; // Intervalle pour la mise à jour du curseur audio
 	let audioSpeed = $state(1); // Vitesse de lecture audio
+	let loadedAudioKey: string | null | undefined;
+	let nativeAudioReady = false;
+	let nativeAudioSetupId = 0;
+	let nativeAudioSeekId = 0;
+	let nativeAudioAnimationFrame: number | null = null;
+	let nativeAudioSyncInterval: ReturnType<typeof setInterval> | null = null;
+	let nativeAudioStatusPending = false;
+	let nativeAudioBasePositionMs = 0;
+	let nativeAudioBaseTime = 0;
+	let nativeAudioDurationMs = 0;
+	let nativeAudioClipStartTime = 0;
+	let nativeAudioEndHandled = false;
 	let transitionAnimationFrame: number | null = null;
 	let transitionRenderCursorPosition = $state(0);
+
+	/**
+	 * Envoie une commande au lecteur audio natif Tauri.
+	 * @param {NativePreviewAudioAction} action Action à exécuter.
+	 * @param {NativePreviewAudioOptions} options Paramètres facultatifs de la commande.
+	 * @returns {Promise<NativePreviewAudioStatus>} État du lecteur après la commande.
+	 */
+	function controlNativeAudio(
+		action: NativePreviewAudioAction,
+		options: NativePreviewAudioOptions = {}
+	): Promise<NativePreviewAudioStatus> {
+		return invoke<NativePreviewAudioStatus>('control_preview_audio', {
+			action,
+			filePath: options.filePath ?? null,
+			positionMs: options.positionMs ?? null,
+			volume: options.volume ?? null,
+			speed: options.speed ?? null
+		});
+	}
+
+	/**
+	 * Retourne le volume effectif de la preview sous forme linéaire.
+	 * @param {number} volumePercent Volume de piste demandé entre 0 et 200.
+	 * @returns {number} Volume natif entre 0 et 2.
+	 */
+	function getNativeAudioVolume(volumePercent: number): number {
+		if (globalState.getVideoPreviewState.showVideosAndAudios) return 0;
+		return Math.min(2, Math.max(0, volumePercent / 100));
+	}
+
+	/**
+	 * Recale l'horloge locale sur un instantané retourné par Rust.
+	 * @param {NativePreviewAudioStatus} status État courant du lecteur natif.
+	 * @returns {void}
+	 */
+	function applyNativeAudioStatus(status: NativePreviewAudioStatus): void {
+		nativeAudioBasePositionMs = status.positionMs;
+		nativeAudioDurationMs = status.durationMs;
+		nativeAudioBaseTime = performance.now();
+		if (!status.ended) nativeAudioEndHandled = false;
+	}
+
+	/**
+	 * Passe une seule fois au média suivant lorsque l'audio natif se termine.
+	 * @returns {void}
+	 */
+	function handleNativeAudioEnd(): void {
+		if (nativeAudioEndHandled) return;
+		nativeAudioEndHandled = true;
+		stopNativeAudioClock();
+		goNextAudio();
+	}
+
+	/**
+	 * Calcule la position source courante entre deux synchronisations Rust.
+	 * @returns {number} Position courante dans l'audio en millisecondes.
+	 */
+	function getNativeAudioPosition(): number {
+		return nativeAudioBasePositionMs + (performance.now() - nativeAudioBaseTime) * audioSpeed;
+	}
+
+	/**
+	 * Met à jour le curseur à la fréquence d'affichage depuis l'horloge audio native.
+	 * @returns {void}
+	 */
+	function updateNativeAudioClock(): void {
+		if (!nativeAudioReady || !isPlaying) {
+			nativeAudioAnimationFrame = null;
+			return;
+		}
+
+		const positionMs = getNativeAudioPosition();
+		if (nativeAudioDurationMs > 0 && positionMs >= nativeAudioDurationMs) {
+			getTimelineSettings().cursorPosition = nativeAudioClipStartTime + nativeAudioDurationMs;
+			handleNativeAudioEnd();
+			return;
+		}
+
+		getTimelineSettings().cursorPosition = nativeAudioClipStartTime + positionMs;
+		nativeAudioAnimationFrame = requestAnimationFrame(updateNativeAudioClock);
+	}
+
+	/**
+	 * Corrige périodiquement la légère dérive de l'horloge d'affichage.
+	 * @returns {Promise<void>} Promesse résolue après la lecture de l'état natif.
+	 */
+	async function refreshNativeAudioStatus(): Promise<void> {
+		if (!nativeAudioReady || !isPlaying || nativeAudioStatusPending) return;
+		nativeAudioStatusPending = true;
+		const setupId = nativeAudioSetupId;
+		try {
+			const status = await controlNativeAudio('status');
+			if (setupId !== nativeAudioSetupId || !nativeAudioReady || !isPlaying) return;
+			applyNativeAudioStatus(status);
+			if (status.ended) handleNativeAudioEnd();
+		} catch (error) {
+			console.error('Native audio status error:', error);
+		} finally {
+			nativeAudioStatusPending = false;
+		}
+	}
+
+	/**
+	 * Démarre l'horloge d'affichage synchronisée avec le lecteur natif.
+	 * @param {NativePreviewAudioStatus} status État natif servant de point de départ.
+	 * @returns {void}
+	 */
+	function startNativeAudioClock(status: NativePreviewAudioStatus): void {
+		applyNativeAudioStatus(status);
+		if (nativeAudioAnimationFrame === null) {
+			nativeAudioAnimationFrame = requestAnimationFrame(updateNativeAudioClock);
+		}
+		if (nativeAudioSyncInterval === null) {
+			nativeAudioSyncInterval = setInterval(refreshNativeAudioStatus, 250);
+		}
+	}
+
+	/**
+	 * Arrête les mises à jour frontend de la position audio native.
+	 * @returns {void}
+	 */
+	function stopNativeAudioClock(): void {
+		if (nativeAudioAnimationFrame !== null) {
+			cancelAnimationFrame(nativeAudioAnimationFrame);
+			nativeAudioAnimationFrame = null;
+		}
+		if (nativeAudioSyncInterval !== null) {
+			clearInterval(nativeAudioSyncInterval);
+			nativeAudioSyncInterval = null;
+		}
+	}
+
+	/**
+	 * Bascule sur Howler lorsqu'une opération native n'est pas prise en charge.
+	 * @param {unknown} error Erreur ayant provoqué le fallback.
+	 * @returns {Promise<void>} Promesse résolue une fois le fallback prêt.
+	 */
+	async function activateHowlerFallback(error: unknown): Promise<void> {
+		const audioAsset = currentAudio();
+		if (!audioAsset) return;
+		console.warn('Native audio unavailable, using Howler fallback:', error);
+		nativeAudioSetupId++;
+		nativeAudioSeekId++;
+		nativeAudioReady = false;
+		stopNativeAudioClock();
+		try {
+			await controlNativeAudio('unload');
+		} catch (_unloadError) {
+			// Le fallback reste utilisable même si le thread natif est indisponible.
+		}
+		if (audioHowl) audioHowl.unload();
+		const fallbackAudio = setupHowlerFallback(audioAsset);
+		if (isPlaying) fallbackAudio.play();
+	}
+
+	/**
+	 * Lance le lecteur natif directement à la position courante de la timeline.
+	 * @returns {Promise<void>} Promesse résolue une fois la lecture démarrée.
+	 */
+	async function playNativeAudioAtCursor(): Promise<void> {
+		const setupId = nativeAudioSetupId;
+		const currentAudioClip = globalState.getAudioTrack.getCurrentClip();
+		const audioAsset = currentAudio();
+		if (!audioAsset) return;
+		if (currentAudioClip) nativeAudioClipStartTime = currentAudioClip.startTime;
+		try {
+			const status = await controlNativeAudio('play', {
+				filePath: audioAsset.filePath,
+				positionMs: getCurrentAudioTimeToPlay() * 1000,
+				volume: getNativeAudioVolume(globalState.getAudioTrack.volumePercent),
+				speed: audioSpeed
+			});
+			if (setupId === nativeAudioSetupId && nativeAudioReady && isPlaying) {
+				startNativeAudioClock(status);
+			}
+		} catch (error) {
+			console.error('Native audio play error:', error);
+			await activateHowlerFallback(error);
+		}
+	}
+
+	/**
+	 * Positionne le lecteur natif sur le curseur sans recharger le fichier.
+	 * @param {boolean} shouldKeepPlaying Indique si la lecture doit continuer après le seek.
+	 * @returns {Promise<void>} Promesse résolue après le repositionnement.
+	 */
+	async function seekNativeAudioToCursor(shouldKeepPlaying: boolean): Promise<void> {
+		const setupId = nativeAudioSetupId;
+		const seekId = ++nativeAudioSeekId;
+		try {
+			const status = await controlNativeAudio('seek', {
+				positionMs: getCurrentAudioTimeToPlay() * 1000
+			});
+			if (setupId !== nativeAudioSetupId || seekId !== nativeAudioSeekId || !nativeAudioReady) {
+				return;
+			}
+			if (shouldKeepPlaying && !status.playing) {
+				await playNativeAudioAtCursor();
+			} else if (shouldKeepPlaying) {
+				startNativeAudioClock(status);
+			} else {
+				applyNativeAudioStatus(status);
+			}
+		} catch (error) {
+			console.error('Native audio seek error:', error);
+			await activateHowlerFallback(error);
+		}
+	}
+
+	/**
+	 * Met en pause le lecteur natif et reporte sa position exacte dans la timeline.
+	 * @returns {Promise<void>} Promesse résolue après la pause native.
+	 */
+	async function pauseNativeAudio(): Promise<void> {
+		const setupId = nativeAudioSetupId;
+		const cursorAtRequest = getTimelineSettings().cursorPosition;
+		try {
+			const status = await controlNativeAudio('pause');
+			if (
+				setupId !== nativeAudioSetupId ||
+				!nativeAudioReady ||
+				isPlaying ||
+				getTimelineSettings().cursorPosition !== cursorAtRequest
+			) {
+				return;
+			}
+			applyNativeAudioStatus(status);
+			getTimelineSettings().cursorPosition = nativeAudioClipStartTime + status.positionMs;
+			getTimelineSettings().movePreviewTo = getTimelineSettings().cursorPosition;
+		} catch (error) {
+			console.error('Native audio pause error:', error);
+		}
+	}
 
 	let videoClipTransitionMode = $derived(() => {
 		return String(
@@ -678,6 +972,8 @@
 	 * @returns {number} Position courante en millisecondes.
 	 */
 	function getPreviewRenderCursorPosition(): number {
+		if (nativeAudioReady) return getTimelineSettings().cursorPosition;
+
 		const audioClip = globalState.getAudioTrack?.getCurrentClip();
 		if (audioHowl && audioClip) {
 			return audioClip.startTime + audioHowl.seek() * 1000;
@@ -749,11 +1045,17 @@
 	}
 
 	/**
-	 * Applique le volume de la piste à Howler, y compris au-delà de 100 %.
+	 * Applique le volume de la piste au lecteur natif ou au fallback Howler.
 	 * @param {number} volumePercent Volume demandé entre 0 et 200.
 	 * @returns {void}
 	 */
 	function applyAudioVolume(volumePercent: number): void {
+		if (nativeAudioReady) {
+			void controlNativeAudio('setVolume', {
+				volume: getNativeAudioVolume(volumePercent)
+			}).catch((error) => console.error('Native audio volume error:', error));
+			return;
+		}
 		if (!audioHowl) return;
 
 		const volume = Math.min(2, Math.max(0, volumePercent / 100));
@@ -796,12 +1098,80 @@
 	}
 
 	/**
-	 * Configure et initialise l'instance Howler pour l'audio actuel
+	 * Configure le fallback Howler lorsqu'un format n'est pas lu nativement.
+	 * @param {Asset} audioAsset Asset à lire avec Howler.
+	 * @returns {Howl} Instance Howler prête à être utilisée.
 	 */
-	function setupAudio() {
-		const audioAsset = currentAudio();
+	function setupHowlerFallback(audioAsset: Asset): Howl {
+		audioHowl = new Howl({
+			mute: globalState.getVideoPreviewState.showVideosAndAudios,
+			src: [`${convertFileSrc(audioAsset.filePath)}?v=${audioAsset.mediaReloadToken}`],
+			html5: !isLinux,
+			rate: audioSpeed,
+			onplay: () => {
+				void audioBoostContext?.resume();
+				seekAudio(getCurrentAudioTimeToPlay());
+				if (!audioUpdateInterval) {
+					audioUpdateInterval = setInterval(handleAudioTimeUpdate, 10);
+				}
+			},
+			onloaderror: (_id, error) => {
+				console.error('Howler load error:', error);
+				if (error === 'No codec support for selected audio sources.') {
+					toast.error(get(LL).editor.convertToMp4Error());
+					return;
+				}
+				if (isLinux && error === 'Decoding audio data failed.') return;
+				if (Date.now() - lastTimeErrorShown > 5000) {
+					if (error === 4) {
+						toast.error(get(LL).editor.audioFileMissing(), { duration: 1000 });
+					} else {
+						toast.error(get(LL).editor.unknownAudioError({ error: JSON.stringify(error) }), {
+							duration: 1000
+						});
+					}
+					lastTimeErrorShown = Date.now();
+				}
+			},
+			onplayerror: (_id, error) => {
+				console.error('Howler play error:', error);
+				if (isPlaybackUnlockError(error)) {
+					audioHowl?.once('unlock', () => {
+						if (isPlaying && audioHowl && !audioHowl.playing()) audioHowl.play();
+					});
+					return;
+				}
+				toast.error(get(LL).editor.audioFailedToPlay({ error: JSON.stringify(error) }));
+				pause();
+			},
+			onpause: () => {
+				if (audioUpdateInterval) {
+					clearInterval(audioUpdateInterval);
+					audioUpdateInterval = null;
+				}
+			},
+			onend: () => {
+				if (audioUpdateInterval) {
+					clearInterval(audioUpdateInterval);
+					audioUpdateInterval = null;
+				}
+				goNextAudio();
+			}
+		});
+		applyAudioVolume(globalState.getAudioTrack.volumePercent);
+		return audioHowl;
+	}
 
-		// Nettoyage de l'instance précédente
+	/**
+	 * Prépare l'asset courant dans le lecteur natif sans le recharger lors d'un seek.
+	 * @returns {Promise<void>} Promesse résolue après le chargement natif ou du fallback.
+	 */
+	async function setupAudio(): Promise<void> {
+		const setupId = ++nativeAudioSetupId;
+		const audioAsset = currentAudio();
+		nativeAudioSeekId++;
+		nativeAudioReady = false;
+		stopNativeAudioClock();
 		if (audioHowl) {
 			audioHowl.unload();
 			audioHowl = null;
@@ -811,76 +1181,34 @@
 			audioUpdateInterval = null;
 		}
 
-		if (audioAsset) {
-			audioHowl = new Howl({
-				mute: globalState.getVideoPreviewState.showVideosAndAudios,
-				src: [`${convertFileSrc(audioAsset.filePath)}?v=${audioAsset.mediaReloadToken}`],
-				html5: !isLinux, // Use Web Audio API only on Linux for better compatibility
-				rate: audioSpeed, // Vitesse de lecture initiale
-				onplay: () => {
-					void audioBoostContext?.resume();
-					// Synchronise la position dans l'audio avec la position du curseur
-					seekAudio(getCurrentAudioTimeToPlay());
+		if (!audioAsset) {
+			try {
+				await controlNativeAudio('unload');
+			} catch (error) {
+				console.error('Native audio unload error:', error);
+			}
+			return;
+		}
 
-					// Démarre la mise à jour régulière du curseur
-					if (!audioUpdateInterval) {
-						audioUpdateInterval = setInterval(handleAudioTimeUpdate, 10); // Mise à jour toutes les 10ms
-					}
-				},
-				onloaderror: (id, error) => {
-					console.error('Howler load error:', error);
-					if (error === 'No codec support for selected audio sources.') {
-						toast.error(get(LL).editor.convertToMp4Error());
-						return;
-					}
-					// On Linux, Web Audio API might report decoding errors even if it works partially or for VBR.
-					if (isLinux && error === 'Decoding audio data failed.') {
-						return;
-					}
-					if (Date.now() - lastTimeErrorShown > 5000) {
-						if (error === 4) {
-							toast.error(get(LL).editor.audioFileMissing(), { duration: 1000 });
-						} else {
-							toast.error(get(LL).editor.unknownAudioError({ error: JSON.stringify(error) }), {
-								duration: 1000
-							});
-						}
-						lastTimeErrorShown = Date.now();
-					}
-				},
-				onplayerror: (id, error) => {
-					console.error('Howler play error:', error);
-
-					if (isPlaybackUnlockError(error)) {
-						audioHowl?.once('unlock', () => {
-							if (isPlaying && audioHowl && !audioHowl.playing()) {
-								audioHowl.play();
-							}
-						});
-						return;
-					}
-
-					toast.error(get(LL).editor.audioFailedToPlay({ error: JSON.stringify(error) }));
-					// Fallback si la lecture échoue réellement
-					pause();
-				},
-				onpause: () => {
-					// Arrête la mise à jour du curseur lors de la pause
-					if (audioUpdateInterval) {
-						clearInterval(audioUpdateInterval);
-						audioUpdateInterval = null;
-					}
-				},
-				onend: () => {
-					// Nettoyage et passage au média suivant quand l'audio se termine
-					if (audioUpdateInterval) {
-						clearInterval(audioUpdateInterval);
-						audioUpdateInterval = null;
-					}
-					goNextAudio();
-				}
+		try {
+			const currentAudioClip = globalState.getAudioTrack.getCurrentClip();
+			nativeAudioClipStartTime = currentAudioClip?.startTime ?? 0;
+			const status = await controlNativeAudio('load', {
+				filePath: audioAsset.filePath,
+				volume: getNativeAudioVolume(globalState.getAudioTrack.volumePercent),
+				speed: audioSpeed
 			});
-			applyAudioVolume(globalState.getAudioTrack.volumePercent);
+			if (setupId !== nativeAudioSetupId) return;
+			nativeAudioReady = true;
+			applyNativeAudioStatus(status);
+			if (isPlaying) {
+				await playNativeAudioAtCursor();
+			} else {
+				await seekNativeAudioToCursor(false);
+			}
+		} catch (error) {
+			if (setupId !== nativeAudioSetupId) return;
+			await activateHowlerFallback(error);
 		}
 	}
 
@@ -891,6 +1219,15 @@
 	 * Simule la présence d'un asset et clip pour le bon fonctionnement
 	 */
 	function playSilentAudio() {
+		loadedAudioKey = undefined;
+		if (nativeAudioReady) {
+			nativeAudioSetupId++;
+			nativeAudioReady = false;
+			stopNativeAudioClock();
+			void controlNativeAudio('unload').catch((error) =>
+				console.error('Native audio unload error:', error)
+			);
+		}
 		// Nettoie l'instance audio précédente
 		if (audioHowl) {
 			audioHowl.unload();
@@ -955,7 +1292,9 @@
 		globalState.getVideoPreviewState.isPlaying = true;
 
 		// Lance la lecture audio et vidéo simultanément
-		if (audioHowl) {
+		if (nativeAudioReady && currentAudio()) {
+			void playNativeAudioAtCursor();
+		} else if (audioHowl) {
 			audioHowl.play();
 		}
 		if (videoElement) {
@@ -970,9 +1309,12 @@
 		isPlaying = false;
 		globalState.getVideoPreviewState.isPlaying = false;
 		stopTransitionAnimationClock();
+		stopNativeAudioClock();
 
 		// Pause audio et vidéo
-		if (audioHowl) {
+		if (nativeAudioReady) {
+			void pauseNativeAudio();
+		} else if (audioHowl) {
 			audioHowl.pause();
 
 			// Si c'est un audio silencieux (pas de média réel), on le décharge complètement
@@ -993,7 +1335,6 @@
 			audioUpdateInterval = null;
 		}
 
-		// Prépare la synchronisation pour la prochaine lecture
 		getTimelineSettings().movePreviewTo = getTimelineSettings().cursorPosition;
 	}
 
@@ -1040,12 +1381,16 @@
 			}
 		}
 
-		if (audioHowl) {
-			seekAudio(getCurrentAudioTimeToPlay());
-
-			if (shouldKeepPlaying && audio && !audioHowl.playing()) {
-				audioHowl.play();
+		if (nativeAudioReady && audio) {
+			void seekNativeAudioToCursor(shouldKeepPlaying);
+		} else if (audioHowl && audio) {
+			if (audioUpdateInterval) {
+				clearInterval(audioUpdateInterval);
+				audioUpdateInterval = null;
 			}
+			audioHowl.unload();
+			const fallbackAudio = setupHowlerFallback(audio);
+			if (shouldKeepPlaying) fallbackAudio.play();
 		}
 	}
 

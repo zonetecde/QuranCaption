@@ -12,6 +12,8 @@ pub mod downloads;
 pub mod files;
 /// Commandes multimédia et utilitaires ffmpeg/ffprobe.
 pub mod media;
+/// Commande du lecteur audio natif de la prévisualisation.
+pub mod preview_audio;
 /// Commandes de capture d'écran.
 pub mod screenshot;
 /// Commandes de segmentation cloud/local.

@@ -10,6 +10,48 @@ use super::types::{
     VideoInput,
 };
 
+/// Construit le filtre FFmpeg de cadrage partagé par les vidéos et images de fond.
+///
+/// Le mode normal conserve entièrement le média avec des bandes éventuelles. Les deux modes
+/// appliquent le zoom puis recadrent selon une position relative au centre.
+pub fn build_background_fit_filter(
+    w: i32,
+    h: i32,
+    media_fill: bool,
+    media_scale: f64,
+    media_position_x: f64,
+    media_position_y: f64,
+) -> String {
+    let scale = (media_scale / 100.0).clamp(1.0, 3.0);
+    let scaled_w = ((w as f64 * scale).round() as i32).max(w);
+    let scaled_h = ((h as f64 * scale).round() as i32).max(h);
+    let position_x = ((media_position_x.clamp(-100.0, 100.0) + 100.0) / 200.0).clamp(0.0, 1.0);
+    let position_y = ((media_position_y.clamp(-100.0, 100.0) + 100.0) / 200.0).clamp(0.0, 1.0);
+
+    if !media_fill {
+        return format!(
+            "scale=w={}:h={}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad={}:{}:(ow-iw)*{:.6}:(oh-ih)*{:.6}:color=black,crop={}:{}:(in_w-{})*{:.6}:(in_h-{})*{:.6}",
+            scaled_w,
+            scaled_h,
+            scaled_w,
+            scaled_h,
+            position_x,
+            position_y,
+            w,
+            h,
+            w,
+            position_x,
+            h,
+            position_y
+        );
+    }
+
+    format!(
+        "scale={}:{}:force_original_aspect_ratio=increase,crop={}:{}:(in_w-{})*{:.6}:(in_h-{})*{:.6}",
+        scaled_w, scaled_h, w, h, w, position_x, h, position_y
+    )
+}
+
 // ---------------------------------------------------------------------------
 // Pré-traitement vidéo (scale + pad + blur + fps)
 // ---------------------------------------------------------------------------

@@ -1,5 +1,4 @@
 import { invoke } from '@tauri-apps/api/core';
-import ModalManager from '$lib/components/modals/ModalManager';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { globalState } from '$lib/runes/main.svelte';
@@ -12,6 +11,7 @@ import type {
 	SegmentationMode,
 	SegmentationResponse
 } from './types';
+import type { SubtitleApplicationMode } from './types';
 import {
 	getAutoSegmentationAudioInfo,
 	getAutoSegmentationAudioClips,
@@ -45,6 +45,19 @@ function shouldRetryCloudOnCpu(message: string, device: SegmentationDevice): boo
 		/GPU/i.test(message) &&
 		/(quota exhausted|retry with device=CPU|daily limit)/i.test(message)
 	);
+}
+
+/**
+ * Détermine si les timestamps mot à mot sont requis pour cette exécution.
+ * @param {boolean} requested Choix WBW enregistré.
+ * @param {SubtitleApplicationMode} subtitleApplicationMode Mode d'application des sous-titres.
+ * @returns {boolean} `true` si l'exécution doit demander les timestamps WBW.
+ */
+export function resolveIncludeWbwTimestamps(
+	requested: boolean,
+	subtitleApplicationMode: SubtitleApplicationMode
+): boolean {
+	return subtitleApplicationMode === 'align' || requested;
 }
 
 /**
@@ -113,7 +126,12 @@ export async function runAutoSegmentationForProject(
 	const minSilenceMs: number = options.minSilenceMs ?? 200;
 	const minSpeechMs: number = options.minSpeechMs ?? 1000;
 	const padMs: number = options.padMs ?? 100;
-	const includeWbwTimestamps: boolean = options.includeWbwTimestamps ?? false;
+	const subtitleApplicationMode: SubtitleApplicationMode =
+		options.subtitleApplicationMode ?? 'replace';
+	const includeWbwTimestamps = resolveIncludeWbwTimestamps(
+		options.includeWbwTimestamps ?? false,
+		subtitleApplicationMode
+	);
 	const localAsrMode: LocalAsrMode = options.localAsrMode ?? 'legacy_whisper';
 	const legacyWhisperModel = options.legacyWhisperModel ?? 'base';
 	const multiAlignerModel = options.multiAlignerModel ?? 'Base';
@@ -153,13 +171,6 @@ export async function runAutoSegmentationForProject(
 	if (subtitleTrack.clips.length > 0) {
 		if (executionOptions.headless && executionOptions.overwriteExistingSubtitles !== true) {
 			return { status: 'cancelled' };
-		}
-		if (!executionOptions.headless && executionOptions.overwriteExistingSubtitles !== true) {
-			const confirmOverwrite: boolean = await ModalManager.confirmModal(
-				get(LL).editor.subtitlesAlreadyExist(),
-				true
-			);
-			if (!confirmOverwrite) return { status: 'cancelled' };
 		}
 	}
 
@@ -316,6 +327,7 @@ export async function runAutoSegmentationForProject(
 			effectiveMode,
 			segmentationSource: effectiveMode === 'api' ? 'api' : 'local',
 			includeWbwTimestamps,
+			subtitleApplicationMode,
 			modelName: contextModelName,
 			device,
 			warningOverride: fallbackWarning,

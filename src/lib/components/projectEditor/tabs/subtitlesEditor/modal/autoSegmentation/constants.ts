@@ -6,6 +6,8 @@ import type {
 	WizardRuntime,
 	WizardStep
 } from './types';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 
 /** Ordered steps for the landscape wizard navigation rail. */
 export const WIZARD_STEPS_V2: WizardStep[] = [
@@ -32,9 +34,30 @@ export const WIZARD_STEPS_quran_word_timing: WizardStep[] = [
 ];
 
 /** Returns the active step sequence for the selected AI version. */
-export function getWizardSteps(aiVersion: AiVersion, _runtime: WizardRuntime): WizardStep[] {
-	if (aiVersion === 'quran_word_timing') return WIZARD_STEPS_quran_word_timing;
-	return aiVersion === 'multi_v2' ? WIZARD_STEPS_CLOUD_V2 : WIZARD_STEPS_V2;
+export function getWizardSteps(
+	aiVersion: AiVersion,
+	_runtime: WizardRuntime,
+	showExistingSubtitlesStep: boolean = false
+): WizardStep[] {
+	const baseSteps =
+		aiVersion === 'quran_word_timing'
+			? WIZARD_STEPS_quran_word_timing
+			: aiVersion === 'multi_v2'
+				? WIZARD_STEPS_CLOUD_V2
+				: WIZARD_STEPS_V2;
+	if (!showExistingSubtitlesStep) return baseSteps;
+
+	const reviewIndex = baseSteps.findIndex(({ key }) => key === 'review');
+	return [
+		...baseSteps.slice(0, reviewIndex),
+		{
+			key: 'existing-subtitles',
+			title: get(LL).editor.existingSubtitlesStep(),
+			subtitle: get(LL).editor.existingSubtitlesStepDescription(),
+			icon: 'subtitles'
+		},
+		...baseSteps.slice(reviewIndex)
+	];
 }
 
 /** Timing presets shown in the segmentation settings step. */

@@ -30,7 +30,14 @@ import {
 } from './helpers/format';
 import { deriveSelectionState, persistSettingsPatch } from './helpers/persist';
 import { getWizardSteps, SURAH_SPLITTER_MODEL_OPTIONS } from './constants';
-import type { AiVersion, SegmentationPreset, WizardRuntime, WizardSelectionState } from './types';
+import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
+import type {
+	AiVersion,
+	SegmentationPreset,
+	SubtitleApplicationMode,
+	WizardRuntime,
+	WizardSelectionState
+} from './types';
 
 /** Creates modal state and actions for the auto-segmentation wizard. */
 export function useAutoSegmentationWizard() {
@@ -45,6 +52,7 @@ export function useAutoSegmentationWizard() {
 	let minSpeechMs = $state(persisted?.minSpeechMs ?? 1000);
 	let padMs = $state(persisted?.padMs ?? 100);
 	let includeWbwTimestamps = $state(persisted?.includeWbwTimestamps ?? false);
+	let subtitleApplicationMode = $state<SubtitleApplicationMode | null>(null);
 	let fillBySilence = $state(persisted?.fillBySilence ?? true);
 	let extendBeforeSilence = $state(persisted?.extendBeforeSilence ?? false);
 	let extendBeforeSilenceMs = $state(persisted?.extendBeforeSilenceMs ?? 50);
@@ -76,7 +84,15 @@ export function useAutoSegmentationWizard() {
 	let pendingEstimatedDurationS: number | null = null;
 	let waitForLocalMultiAlignerStage = false;
 	let runStartedAtMs: number | null = null;
-	const steps = $derived(() => getWizardSteps(selection.aiVersion, selection.runtime));
+	const showExistingSubtitlesStep = $derived(
+		() =>
+			globalState.getSubtitleTrack.clips.filter(
+				(clip) => clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip
+			).length >= 3
+	);
+	const steps = $derived(() =>
+		getWizardSteps(selection.aiVersion, selection.runtime, showExistingSubtitlesStep())
+	);
 	const maxStep = $derived(() => Math.max(0, steps().length - 1));
 	const currentStepKey = $derived(() => steps()[currentStep]?.key ?? 'review');
 	const selectedLocalEngineStatus = $derived(() => {
@@ -128,6 +144,7 @@ export function useAutoSegmentationWizard() {
 	});
 	const verseRange = $derived(() => formatVerseRange(result));
 	const canStart = $derived(() => {
+		if (showExistingSubtitlesStep() && subtitleApplicationMode === null) return false;
 		if (selection.runtime === 'hf_json')
 			return hasAudio() && importedJsonRaw.trim().length > 0 && !isRunning;
 		return hasAudio() && !isRunning;
@@ -137,6 +154,7 @@ export function useAutoSegmentationWizard() {
 		if (currentStepKey() === 'setup' && selection.mode === 'local') {
 			return Boolean(selectedLocalEngineStatus()?.usable);
 		}
+		if (currentStepKey() === 'existing-subtitles') return subtitleApplicationMode !== null;
 		return true;
 	});
 	const helperText = $derived(() =>
@@ -463,7 +481,10 @@ export function useAutoSegmentationWizard() {
 			response = await runAutoSegmentationFromImportedJson(parsed.response, {
 				fillBySilence,
 				extendBeforeSilence,
-				extendBeforeSilenceMs
+				extendBeforeSilenceMs,
+				subtitleApplicationMode: showExistingSubtitlesStep()
+					? (subtitleApplicationMode ?? 'replace')
+					: 'replace'
 			});
 			applySegmentationResponse(response);
 		} catch (error) {
@@ -551,7 +572,12 @@ export function useAutoSegmentationWizard() {
 					device: selection.device,
 					hfToken: selection.hfToken,
 					allowCloudFallback: selection.mode !== 'local',
-					includeWbwTimestamps: includeWbwTimestamps && supportsWbwTimestamps(),
+					includeWbwTimestamps:
+						subtitleApplicationMode === 'align' ||
+						(includeWbwTimestamps && supportsWbwTimestamps()),
+					subtitleApplicationMode: showExistingSubtitlesStep()
+						? (subtitleApplicationMode ?? 'replace')
+						: 'replace',
 					fillBySilence,
 					extendBeforeSilence,
 					extendBeforeSilenceMs,
@@ -664,6 +690,14 @@ export function useAutoSegmentationWizard() {
 		includeWbwTimestamps = nextValue;
 		persistPatch({ includeWbwTimestamps: nextValue });
 	}
+	/**
+	 * Définit comment appliquer les résultats quand des sous-titres existent déjà.
+	 * @param {SubtitleApplicationMode} value Mode d'application sélectionné.
+	 * @returns {void}
+	 */
+	function setSubtitleApplicationMode(value: SubtitleApplicationMode): void {
+		subtitleApplicationMode = value;
+	}
 	/** Sets fill-by-silence and persists it. */
 	function setFillBySilence(value: boolean): void {
 		fillBySilence = value;
@@ -720,6 +754,12 @@ export function useAutoSegmentationWizard() {
 		},
 		get includeWbwTimestamps() {
 			return includeWbwTimestamps;
+		},
+		get subtitleApplicationMode() {
+			return showExistingSubtitlesStep() ? subtitleApplicationMode : 'replace';
+		},
+		get showExistingSubtitlesStep() {
+			return showExistingSubtitlesStep();
 		},
 		get fillBySilence() {
 			return fillBySilence;
@@ -828,6 +868,7 @@ export function useAutoSegmentationWizard() {
 		setMinSpeech,
 		setPad,
 		setIncludeWbwTimestamps,
+		setSubtitleApplicationMode,
 		setFillBySilence,
 		setExtendBeforeSilence,
 		setExtendBeforeSilenceMs,

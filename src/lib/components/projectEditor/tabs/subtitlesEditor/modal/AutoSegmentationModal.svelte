@@ -12,6 +12,7 @@
 	import StepReview from './autoSegmentation/steps/StepReview.svelte';
 	import StepRuntime from './autoSegmentation/steps/StepRuntime.svelte';
 	import StepSettings from './autoSegmentation/steps/StepSettings.svelte';
+	import StepExistingSubtitles from './autoSegmentation/steps/StepExistingSubtitles.svelte';
 	import StepVersion from './autoSegmentation/steps/StepVersion.svelte';
 
 	let { close } = $props<{ close: () => void }>();
@@ -64,6 +65,8 @@
 							<StepModels />
 						{:else if wizard.currentStepKey === 'settings'}
 							<StepSettings />
+						{:else if wizard.currentStepKey === 'existing-subtitles'}
+							<StepExistingSubtitles />
 						{:else}
 							<StepReview />
 						{/if}
@@ -76,6 +79,9 @@
 			<section class="flex min-w-0 flex-1 flex-col">
 				<div class="flex-1 overflow-y-auto p-6">
 					<div class="mx-auto max-w-4xl space-y-6">
+						{#if wizard.showExistingSubtitlesStep}
+							<StepExistingSubtitles />
+						{/if}
 						<StepImportJson />
 						{#if importResultVisible || wizard.isRunning || wizard.importedJsonParseError}
 							<ResultPanel isImportMode />
@@ -89,17 +95,24 @@
 						</p>
 						<div class="flex items-center gap-2">
 							{#if wizard.result?.status === 'completed'}
-								<button class="btn px-4 py-2 text-sm" onclick={returnToWizard}>{$LL.common.back()}</button>
-								<button class="btn-accent px-4 py-2 text-sm" onclick={close}>{$LL.common.finish()}</button>
+								<button class="btn px-4 py-2 text-sm" onclick={returnToWizard}
+									>{$LL.common.back()}</button
+								>
+								<button class="btn-accent px-4 py-2 text-sm" onclick={close}
+									>{$LL.common.finish()}</button
+								>
 							{:else}
 								<button class="btn px-4 py-2 text-sm" onclick={close}>{$LL.common.close()}</button>
-								<button class="btn px-4 py-2 text-sm" onclick={returnToWizard}>{$LL.common.back()}</button>
+								<button class="btn px-4 py-2 text-sm" onclick={returnToWizard}
+									>{$LL.common.back()}</button
+								>
 								<button
 									type="button"
 									class="btn-accent inline-flex items-center gap-1.5 px-4 py-2 text-sm disabled:opacity-50"
 									onclick={() => void startImportedJsonFlow()}
 									disabled={!wizard.hasAudio() ||
 										!wizard.importedJsonRaw.trim() ||
+										(wizard.showExistingSubtitlesStep && !wizard.subtitleApplicationMode) ||
 										wizard.isRunning}
 								>
 									<span class="material-icons text-base leading-none">note_add</span>

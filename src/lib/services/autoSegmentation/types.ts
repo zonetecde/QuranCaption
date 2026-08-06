@@ -97,6 +97,7 @@ export type ImportedSegmentationParseResult = {
  * Mode de traitement de la segmentation.
  */
 export type SegmentationMode = 'api' | 'local';
+export type SubtitleApplicationMode = 'replace' | 'align';
 export type LocalAsrMode =
 	| 'legacy_whisper'
 	| 'multi_aligner'
@@ -145,6 +146,7 @@ export type AutoSegmentationOptions = {
 	hfToken?: string;
 	allowCloudFallback?: boolean;
 	includeWbwTimestamps?: boolean;
+	subtitleApplicationMode?: SubtitleApplicationMode;
 	/** Si true, insère des SilenceClip dans les gaps. Sinon, étend la fin du sous-titre précédent. */
 	fillBySilence?: boolean;
 	/** Si true, étend les sous-titres avant les clips de silence. */
@@ -250,6 +252,7 @@ export type ApplySegmentationResponseParams = {
 	effectiveMode: SegmentationMode;
 	segmentationSource: 'api' | 'local' | 'import';
 	includeWbwTimestamps: boolean;
+	subtitleApplicationMode?: SubtitleApplicationMode;
 	modelName?: string | null;
 	device?: SegmentationDevice | null;
 	warningOverride?: string;

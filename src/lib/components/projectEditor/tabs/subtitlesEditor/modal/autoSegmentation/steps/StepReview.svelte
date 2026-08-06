@@ -55,11 +55,13 @@
 		<div class="text-secondary">
 			{$LL.editor.wbwTimestampsLabel()}:
 			<span class="text-primary font-semibold"
-				>{!wizard.supportsWbwTimestamps()
-					? $LL.editor.notAvailableLabel()
-					: wizard.includeWbwTimestamps
-						? $LL.editor.enabledLabel()
-						: $LL.editor.disabledLabel()}</span
+				>{wizard.subtitleApplicationMode === 'align'
+					? $LL.editor.enabledLabel()
+					: !wizard.supportsWbwTimestamps()
+						? $LL.editor.notAvailableLabel()
+						: wizard.includeWbwTimestamps
+							? $LL.editor.enabledLabel()
+							: $LL.editor.disabledLabel()}</span
 			>
 		</div>
 		<div class="text-secondary">

@@ -103,6 +103,7 @@ export type {
 	SegmentationResponse,
 	ImportedSegmentationParseResult,
 	SegmentationMode,
+	SubtitleApplicationMode,
 	LocalAsrMode,
 	LegacyWhisperModelSize,
 	MultiAlignerModel,

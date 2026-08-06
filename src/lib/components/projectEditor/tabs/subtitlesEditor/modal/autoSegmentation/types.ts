@@ -3,7 +3,8 @@ import type {
 	LocalAsrMode,
 	MultiAlignerModel,
 	SegmentationDevice,
-	SegmentationMode
+	SegmentationMode,
+	SubtitleApplicationMode
 } from '$lib/services/AutoSegmentation';
 
 /** Defines the high-level AI family shown in the wizard. */
@@ -23,7 +24,15 @@ export type WizardStep = {
 };
 
 /** Stable keys for wizard step routing. */
-export type WizardStepKey = 'version' | 'setup' | 'models' | 'settings' | 'review';
+export type WizardStepKey =
+	| 'version'
+	| 'setup'
+	| 'models'
+	| 'settings'
+	| 'existing-subtitles'
+	| 'review';
+
+export type { SubtitleApplicationMode };
 
 /** UI runtime choices for V2 flow. */
 export type WizardRuntime = 'cloud' | 'local' | 'hf_json';
@@ -57,6 +66,7 @@ export type MaterialIconName =
 	| 'note_add'
 	| 'tune'
 	| 'play_arrow'
+	| 'subtitles'
 	| 'check_circle'
 	| 'warning';
 

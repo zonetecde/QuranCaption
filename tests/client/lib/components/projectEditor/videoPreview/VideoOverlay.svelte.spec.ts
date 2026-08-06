@@ -55,10 +55,11 @@ type MockStyle = {
 
 type MockStyleTarget = {
 	categories: unknown[];
+	overrides: Record<number, Record<string, string | number | boolean | null>>;
 	findStyle: (styleId: string) => MockStyle;
 	generateCSS: (clipId?: number) => string;
 	generateTailwind: () => string;
-	getEffectiveValue: (styleId: string) => string | number | boolean | null;
+	getEffectiveValue: (styleId: string, clipId?: number) => string | number | boolean | null;
 	setStyle: (styleId: string, value: string | number | boolean | null) => void;
 };
 
@@ -130,6 +131,7 @@ function createMockVideoStyle(targets: string[]): MockVideoStyle {
 
 		const styleTarget: MockStyleTarget = {
 			categories: [],
+			overrides: {},
 			findStyle(styleId: string) {
 				if (!styles.has(styleId)) {
 					styles.set(styleId, {
@@ -144,7 +146,10 @@ function createMockVideoStyle(targets: string[]): MockVideoStyle {
 			generateTailwind() {
 				return '';
 			},
-			getEffectiveValue(styleId: string) {
+			getEffectiveValue(styleId: string, clipId?: number) {
+				if (clipId !== undefined && this.overrides[clipId]?.[styleId] !== undefined) {
+					return this.overrides[clipId][styleId];
+				}
 				return this.findStyle(styleId).value;
 			},
 			setStyle(styleId: string, value: string | number | boolean | null) {
@@ -496,6 +501,56 @@ describe('Video overlay subtitle preview', () => {
 		const arabicNode = getForegroundArabicNode(component.container);
 		expect(arabicNode).not.toBeNull();
 		expect(normalizeText(arabicNode?.textContent)).toBe(normalizeText(basmala.getText()));
+	});
+
+	test('renders Uthmani text with an individual non-QPC font override', async () => {
+		seedQpc2PreviewFixture();
+		const clip = createVerseSubtitle(0, 999, 'بِسْمِ اللَّهِ', 'Translation');
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 500 });
+		const arabicStyles = fixture.videoStyle.getStylesOfTarget('arabic');
+		arabicStyles.setStyle('font-family', 'QPC2');
+		arabicStyles.overrides[clip.id] = { 'font-family': 'Hafs' };
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const arabicNode = getForegroundArabicNode(component.container);
+		expect(normalizeText(arabicNode?.textContent)).toBe('بِسْمِ اللَّهِ');
+		expect(
+			getArabicInlineFlowSpans(component.container)[0]?.getAttribute('style') ?? ''
+		).not.toContain('QPC2');
+	});
+
+	test('renders QPC glyphs with an individual QPC font override', async () => {
+		seedQpc2PreviewFixture();
+		const clip = createVerseSubtitle(0, 999, 'بِسْمِ اللَّهِ', 'Translation');
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 500 });
+		fixture.videoStyle.getStylesOfTarget('arabic').overrides[clip.id] = {
+			'font-family': 'QPC2'
+		};
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		expect(normalizeText(getForegroundArabicNode(component.container)?.textContent)).toBe('ﱁ ﱂ');
+		expect(getArabicInlineFlowSpans(component.container)[0]?.getAttribute('style')).toContain(
+			'font-family: QPC2_p001'
+		);
+	});
+
+	test('renders predefined Uthmani text with an individual non-QPC font override', async () => {
+		const basmala = createPredefinedSubtitle(0, 999, 'Basmala', 'Translation');
+		const fixture = setupVideoOverlayFixture([basmala], { cursorPosition: 500 });
+		const arabicStyles = fixture.videoStyle.getStylesOfTarget('arabic');
+		arabicStyles.setStyle('font-family', 'QPC2');
+		arabicStyles.overrides[basmala.id] = { 'font-family': 'Hafs' };
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		expect(normalizeText(getForegroundArabicNode(component.container)?.textContent)).toBe(
+			normalizeText(basmala.text)
+		);
 	});
 
 	test('keeps merged arabic visible while translations continue to switch per clip', async () => {

@@ -159,7 +159,11 @@
 	 */
 	function getSubtitleQpcFontCss(subtitle: SubtitleClip): string {
 		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? '');
-		const fontFamily = globalState.getStyle('arabic', 'font-family');
+		const fontFamily = String(
+			globalState.getVideoStyle
+				.getStylesOfTarget('arabic')
+				.getEffectiveValue('font-family', subtitle.id)
+		);
 
 		if (mushafStyle === 'Tajweed') {
 			const tajweedFont = QPCFontProvider.getTajweedFontNameForVerse(
@@ -170,12 +174,12 @@
 			return `font-family: ${tajweedFont}, ${qpc2Fallback};`;
 		}
 
-		if (fontFamily?.value === 'QPC1') {
+		if (fontFamily === 'QPC1') {
 			const font = QPCFontProvider.getFontNameForVerse(subtitle.surah, subtitle.verse, '1');
 			return `font-family: ${font};`;
 		}
 
-		if (fontFamily?.value === 'QPC2') {
+		if (fontFamily === 'QPC2') {
 			const font = QPCFontProvider.getFontNameForVerse(subtitle.surah, subtitle.verse, '2');
 			return `font-family: ${font};`;
 		}

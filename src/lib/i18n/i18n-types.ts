@@ -1319,6 +1319,38 @@ type RootTranslation = {
 		 */
 		subtitlesAlreadyExist: string;
 		/**
+		 * E​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s
+		 */
+		existingSubtitlesStep: string;
+		/**
+		 * C​h​o​o​s​e​ ​h​o​w​ ​t​o​ ​a​p​p​l​y​ ​t​h​e​ ​n​e​w​ ​t​i​m​i​n​g
+		 */
+		existingSubtitlesStepDescription: string;
+		/**
+		 * H​o​w​ ​s​h​o​u​l​d​ ​t​h​e​ ​n​e​w​ ​a​u​d​i​o​ ​a​l​i​g​n​m​e​n​t​ ​b​e​ ​a​p​p​l​i​e​d​?
+		 */
+		existingSubtitlesQuestion: string;
+		/**
+		 * T​o​ ​a​l​i​g​n​ ​c​u​r​r​e​n​t​ ​s​u​b​t​i​t​l​e​s​,​ ​t​h​e​ ​n​e​w​ ​a​u​d​i​o​ ​m​u​s​t​ ​r​e​c​i​t​e​ ​t​h​e​ ​s​a​m​e​ ​Q​u​r​a​n​ ​v​e​r​s​e​s​.
+		 */
+		existingSubtitlesSameVersesWarning: string;
+		/**
+		 * R​e​p​l​a​c​e​ ​c​u​r​r​e​n​t​ ​s​u​b​t​i​t​l​e​s
+		 */
+		replaceCurrentSubtitles: string;
+		/**
+		 * C​r​e​a​t​e​ ​n​e​w​ ​s​u​b​t​i​t​l​e​s​ ​f​r​o​m​ ​t​h​e​ ​A​I​ ​r​e​s​u​l​t​.
+		 */
+		replaceCurrentSubtitlesDescription: string;
+		/**
+		 * A​l​i​g​n​ ​c​u​r​r​e​n​t​ ​s​u​b​t​i​t​l​e​s
+		 */
+		alignCurrentSubtitles: string;
+		/**
+		 * K​e​e​p​ ​c​u​r​r​e​n​t​ ​c​o​n​t​e​n​t​ ​a​n​d​ ​s​t​y​l​i​n​g​,​ ​a​n​d​ ​u​p​d​a​t​e​ ​t​i​m​i​n​g​ ​f​r​o​m​ ​t​h​e​ ​n​e​w​ ​a​u​d​i​o​.
+		 */
+		alignCurrentSubtitlesDescription: string;
+		/**
 		 * T​h​e​r​e​ ​a​r​e​ ​a​l​r​e​a​d​y​ ​s​u​b​t​i​t​l​e​s​ ​i​n​ ​t​h​i​s​ ​p​r​o​j​e​c​t​.​ ​T​h​i​s​ ​p​r​o​c​e​s​s​ ​w​i​l​l​ ​r​e​p​l​a​c​e​ ​t​h​e​m​ ​w​i​t​h​ ​n​a​t​i​v​e​ ​t​i​m​i​n​g​.​ ​C​o​n​t​i​n​u​e​?
 		 */
 		subtitlesAlreadyExistNative: string;
@@ -12143,6 +12175,38 @@ export type TranslationFunctions = {
 		 * There are already subtitles in this project. This process will override them. Continue?
 		 */
 		subtitlesAlreadyExist: () => LocalizedString;
+		/**
+		 * Existing subtitles
+		 */
+		existingSubtitlesStep: () => LocalizedString;
+		/**
+		 * Choose how to apply the new timing
+		 */
+		existingSubtitlesStepDescription: () => LocalizedString;
+		/**
+		 * How should the new audio alignment be applied?
+		 */
+		existingSubtitlesQuestion: () => LocalizedString;
+		/**
+		 * To align current subtitles, the new audio must recite the same Quran verses.
+		 */
+		existingSubtitlesSameVersesWarning: () => LocalizedString;
+		/**
+		 * Replace current subtitles
+		 */
+		replaceCurrentSubtitles: () => LocalizedString;
+		/**
+		 * Create new subtitles from the AI result.
+		 */
+		replaceCurrentSubtitlesDescription: () => LocalizedString;
+		/**
+		 * Align current subtitles
+		 */
+		alignCurrentSubtitles: () => LocalizedString;
+		/**
+		 * Keep current content and styling, and update timing from the new audio.
+		 */
+		alignCurrentSubtitlesDescription: () => LocalizedString;
 		/**
 		 * There are already subtitles in this project. This process will replace them with native timing. Continue?
 		 */

@@ -805,6 +805,16 @@ const id = {
 		noTimingDataFound: 'Data timing untuk Qari/surah ini tidak ditemukan.',
 		appliedSubtitlesFromMp3Quran: 'Berhasil menerapkan {count} subtitle dari Mp3Quran!',
 		subtitlesAlreadyExist: 'Subtitle sudah ada di proyek ini. Proses ini akan menimpanya. Lanjut?',
+		existingSubtitlesStep: 'Subtitle yang ada',
+		existingSubtitlesStepDescription: 'Pilih cara menerapkan waktu baru',
+		existingSubtitlesQuestion: 'Bagaimana penyelarasan audio baru harus diterapkan?',
+		existingSubtitlesSameVersesWarning:
+			'Untuk menyelaraskan subtitle saat ini, audio baru harus melantunkan ayat Al-Qur’an yang sama.',
+		replaceCurrentSubtitles: 'Ganti subtitle saat ini',
+		replaceCurrentSubtitlesDescription: 'Buat subtitle baru dari hasil AI.',
+		alignCurrentSubtitles: 'Selaraskan subtitle saat ini',
+		alignCurrentSubtitlesDescription:
+			'Pertahankan konten dan gaya saat ini, lalu perbarui waktunya dari audio baru.',
 		subtitlesAlreadyExistNative:
 			'Subtitle sudah ada di proyek ini. Proses ini akan menggantinya dengan native timing. Lanjut?',
 		nativeTimingsDetected:

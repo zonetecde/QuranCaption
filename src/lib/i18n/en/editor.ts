@@ -55,6 +55,16 @@ const editor = {
 	appliedSubtitlesFromMp3Quran: 'Applied {count} subtitles from Mp3Quran!',
 	subtitlesAlreadyExist:
 		'There are already subtitles in this project. This process will override them. Continue?',
+	existingSubtitlesStep: 'Existing subtitles',
+	existingSubtitlesStepDescription: 'Choose how to apply the new timing',
+	existingSubtitlesQuestion: 'How should the new audio alignment be applied?',
+	existingSubtitlesSameVersesWarning:
+		'To align current subtitles, the new audio must recite the same Quran verses.',
+	replaceCurrentSubtitles: 'Replace current subtitles',
+	replaceCurrentSubtitlesDescription: 'Create new subtitles from the AI result.',
+	alignCurrentSubtitles: 'Align current subtitles',
+	alignCurrentSubtitlesDescription:
+		'Keep current content and styling, and update timing from the new audio.',
 	subtitlesAlreadyExistNative:
 		'There are already subtitles in this project. This process will replace them with native timing. Continue?',
 	nativeTimingsDetected:

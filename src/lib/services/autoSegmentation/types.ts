@@ -97,6 +97,7 @@ export type ImportedSegmentationParseResult = {
  * Mode de traitement de la segmentation.
  */
 export type SegmentationMode = 'api';
+export type SubtitleApplicationMode = 'replace' | 'align';
 export type MultiAlignerModel = 'Base' | 'Large';
 export type SegmentationDevice = 'GPU' | 'CPU';
 
@@ -107,6 +108,7 @@ export type AutoSegmentationOptions = {
 	cloudModel?: MultiAlignerModel;
 	device?: SegmentationDevice;
 	includeWbwTimestamps?: boolean;
+	subtitleApplicationMode?: SubtitleApplicationMode;
 	/** Si true, insère des SilenceClip dans les gaps. Sinon, étend la fin du sous-titre précédent. */
 	fillBySilence?: boolean;
 	/** Si true, étend les sous-titres avant les clips de silence. */
@@ -205,6 +207,7 @@ export type ApplySegmentationResponseParams = {
 	effectiveMode: SegmentationMode;
 	segmentationSource: 'api' | 'import';
 	includeWbwTimestamps: boolean;
+	subtitleApplicationMode?: SubtitleApplicationMode;
 	modelName?: string | null;
 	device?: SegmentationDevice | null;
 	warningOverride?: string;

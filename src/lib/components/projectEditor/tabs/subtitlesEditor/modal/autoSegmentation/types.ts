@@ -1,3 +1,7 @@
+import type { SubtitleApplicationMode } from '$lib/services/AutoSegmentation';
+
+export type { SubtitleApplicationMode };
+
 /** Represents one segmentation timing preset. */
 export type SegmentationPreset = {
 	id: string;

@@ -99,6 +99,7 @@ export type {
 	SegmentationResponse,
 	ImportedSegmentationParseResult,
 	SegmentationMode,
+	SubtitleApplicationMode,
 	MultiAlignerModel,
 	SegmentationDevice,
 	AutoSegmentationOptions,

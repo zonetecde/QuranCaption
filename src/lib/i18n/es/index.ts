@@ -631,6 +631,16 @@ const es = {
 		appliedSubtitlesFromMp3Quran: '\u00a1{count}\u00a0subtítulos aplicados desde Mp3Quran!',
 		subtitlesAlreadyExist:
 			'Ya hay subtítulos en este proyecto. Este proceso los sobrescribirá. \u00bfContinuar?',
+		existingSubtitlesStep: 'Subtítulos existentes',
+		existingSubtitlesStepDescription: 'Elige cómo aplicar los nuevos tiempos',
+		existingSubtitlesQuestion: '¿Cómo se debe aplicar la nueva alineación de audio?',
+		existingSubtitlesSameVersesWarning:
+			'Para alinear los subtítulos actuales, el nuevo audio debe recitar los mismos versículos del Corán.',
+		replaceCurrentSubtitles: 'Reemplazar los subtítulos actuales',
+		replaceCurrentSubtitlesDescription: 'Crear nuevos subtítulos a partir del resultado de la IA.',
+		alignCurrentSubtitles: 'Alinear los subtítulos actuales',
+		alignCurrentSubtitlesDescription:
+			'Conservar el contenido y los estilos actuales y actualizar los tiempos con el nuevo audio.',
 		subtitlesAlreadyExistNative:
 			'Ya hay subtítulos en este proyecto. Este proceso los reemplazará con la temporización nativa. \u00bfContinuar?',
 		nativeTimingsDetected:

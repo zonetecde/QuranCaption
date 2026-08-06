@@ -5,7 +5,8 @@ import {
 	getAutoSegmentationAudioInfo,
 	runAutoSegmentation,
 	type AutoSegmentationResult,
-	type SegmentationDevice
+	type SegmentationDevice,
+	type SubtitleApplicationMode
 } from '$lib/services/AutoSegmentation';
 import { notifyLongTaskCompletion } from '$lib/services/UserAttentionService';
 import LL from '$lib/i18n/i18n-svelte';
@@ -13,6 +14,7 @@ import { get } from 'svelte/store';
 import { buildAudioLabel } from './helpers/format';
 import { persistSettingsPatch } from './helpers/persist';
 import type { SegmentationPreset } from './types';
+import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 
 /** Creates the cloud-only mobile auto-segmentation state and actions. */
 export function useAutoSegmentationWizard() {
@@ -30,6 +32,7 @@ export function useAutoSegmentationWizard() {
 	let minSpeechMs = $state(persisted?.minSpeechMs ?? 1000);
 	let padMs = $state(persisted?.padMs ?? 100);
 	let includeWbwTimestamps = $state(persisted?.includeWbwTimestamps ?? false);
+	let subtitleApplicationMode = $state<SubtitleApplicationMode | null>(null);
 	let fillBySilence = $state(persisted?.fillBySilence ?? true);
 	let extendBeforeSilence = $state(persisted?.extendBeforeSilence ?? false);
 	let extendBeforeSilenceMs = $state(persisted?.extendBeforeSilenceMs ?? 50);
@@ -40,6 +43,12 @@ export function useAutoSegmentationWizard() {
 	let errorMessage = $state<string | null>(null);
 	let warningMessage = $state<string | null>(null);
 	let cloudCpuFallbackMessage = $state<string | null>(null);
+	const showExistingSubtitlesStep = $derived(
+		() =>
+			globalState.getSubtitleTrack.clips.filter(
+				(clip) => clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip
+			).length >= 3
+	);
 
 	const audioInfo = $derived(() => getAutoSegmentationAudioInfo());
 	const hasAudio = $derived(() => !!audioInfo());
@@ -116,7 +125,12 @@ export function useAutoSegmentationWizard() {
 
 	/** Starts the cloud-only mobile segmentation flow. */
 	async function startSegmentation(): Promise<void> {
-		if (!hasAudio() || isRunning) return;
+		if (
+			!hasAudio() ||
+			isRunning ||
+			(showExistingSubtitlesStep() && subtitleApplicationMode === null)
+		)
+			return;
 		isRunning = true;
 		result = null;
 		errorMessage = null;
@@ -134,7 +148,10 @@ export function useAutoSegmentationWizard() {
 					padMs,
 					cloudModel: selection.cloudModel,
 					device: selection.device,
-					includeWbwTimestamps,
+					includeWbwTimestamps: subtitleApplicationMode === 'align' || includeWbwTimestamps,
+					subtitleApplicationMode: showExistingSubtitlesStep()
+						? (subtitleApplicationMode ?? 'replace')
+						: 'replace',
 					fillBySilence,
 					extendBeforeSilence,
 					extendBeforeSilenceMs
@@ -198,6 +215,15 @@ export function useAutoSegmentationWizard() {
 		persistPatch({ includeWbwTimestamps: value });
 	}
 
+	/**
+	 * Sets how segmentation updates an existing subtitle track.
+	 * @param {SubtitleApplicationMode} value Selected application mode.
+	 * @returns {void}
+	 */
+	function setSubtitleApplicationMode(value: SubtitleApplicationMode): void {
+		subtitleApplicationMode = value;
+	}
+
 	/** Persists whether timeline gaps become silence clips. */
 	function setFillBySilence(value: boolean): void {
 		fillBySilence = value;
@@ -231,6 +257,12 @@ export function useAutoSegmentationWizard() {
 		},
 		get includeWbwTimestamps() {
 			return includeWbwTimestamps;
+		},
+		get subtitleApplicationMode() {
+			return showExistingSubtitlesStep() ? subtitleApplicationMode : 'replace';
+		},
+		get showExistingSubtitlesStep() {
+			return showExistingSubtitlesStep();
 		},
 		get fillBySilence() {
 			return fillBySilence;
@@ -278,7 +310,10 @@ export function useAutoSegmentationWizard() {
 		effectiveDeviceLabel: () =>
 			result?.status === 'completed' && result.cloudGpuFallbackToCpu ? 'CPU' : selection.device,
 		supportsWbwTimestamps: () => true,
-		canStart: () => hasAudio() && !isRunning,
+		canStart: () =>
+			hasAudio() &&
+			!isRunning &&
+			(!showExistingSubtitlesStep() || subtitleApplicationMode !== null),
 		onVersionChange,
 		setCloudModel,
 		setDevice,
@@ -289,6 +324,7 @@ export function useAutoSegmentationWizard() {
 		setMinSpeech,
 		setPad,
 		setIncludeWbwTimestamps,
+		setSubtitleApplicationMode,
 		setFillBySilence,
 		setExtendBeforeSilence,
 		setExtendBeforeSilenceMs,

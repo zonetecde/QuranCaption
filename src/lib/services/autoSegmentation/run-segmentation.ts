@@ -9,7 +9,8 @@ import type {
 	AutoSegmentationResult,
 	SegmentationDevice,
 	SegmentationMode,
-	SegmentationResponse
+	SegmentationResponse,
+	SubtitleApplicationMode
 } from './types';
 import { getAutoSegmentationAudioInfo, getAutoSegmentationAudioClips } from './audio';
 import { enrichSegmentationResponseWithWordTimestamps } from './enrichment';
@@ -41,6 +42,19 @@ function shouldRetryCloudOnCpu(message: string, device: SegmentationDevice): boo
 }
 
 /**
+ * Determines whether word timestamps are required for the selected application mode.
+ * @param {boolean} requested Saved word-timestamp preference.
+ * @param {SubtitleApplicationMode} subtitleApplicationMode Selected subtitle application mode.
+ * @returns {boolean} Whether the segmentation response must include word timestamps.
+ */
+export function resolveIncludeWbwTimestamps(
+	requested: boolean,
+	subtitleApplicationMode: SubtitleApplicationMode
+): boolean {
+	return subtitleApplicationMode === 'align' || requested;
+}
+
+/**
  * Runs cloud segmentation for an explicit project.
  * @param {Project} project Target project.
  * @param {AutoSegmentationOptions} options Cloud segmentation options.
@@ -57,7 +71,11 @@ export async function runAutoSegmentationForProject(
 	const minSilenceMs = options.minSilenceMs ?? 200;
 	const minSpeechMs = options.minSpeechMs ?? 1000;
 	const padMs = options.padMs ?? 100;
-	const includeWbwTimestamps = options.includeWbwTimestamps ?? false;
+	const subtitleApplicationMode = options.subtitleApplicationMode ?? 'replace';
+	const includeWbwTimestamps = resolveIncludeWbwTimestamps(
+		options.includeWbwTimestamps ?? false,
+		subtitleApplicationMode
+	);
 	const cloudModel = options.cloudModel ?? 'Base';
 	const device = options.device ?? 'GPU';
 	const fillBySilence = options.fillBySilence ?? true;
@@ -80,7 +98,11 @@ export async function runAutoSegmentationForProject(
 		if (executionOptions.headless && executionOptions.overwriteExistingSubtitles !== true) {
 			return { status: 'cancelled' };
 		}
-		if (!executionOptions.headless && executionOptions.overwriteExistingSubtitles !== true) {
+		if (
+			!executionOptions.headless &&
+			executionOptions.overwriteExistingSubtitles !== true &&
+			options.subtitleApplicationMode === undefined
+		) {
 			const confirmed = await ModalManager.confirmModal(
 				get(LL).editor.subtitlesAlreadyExist(),
 				true
@@ -139,6 +161,7 @@ export async function runAutoSegmentationForProject(
 			effectiveMode: 'api',
 			segmentationSource: 'api',
 			includeWbwTimestamps,
+			subtitleApplicationMode,
 			modelName: cloudModel,
 			device,
 			payloadForLog: payload,

@@ -638,6 +638,16 @@ const de = {
 		appliedSubtitlesFromMp3Quran: '{count} Untertitel von Mp3Quran angewendet!',
 		subtitlesAlreadyExist:
 			'Es sind bereits Untertitel in diesem Projekt vorhanden. Dieser Vorgang überschreibt sie. Fortfahren?',
+		existingSubtitlesStep: 'Vorhandene Untertitel',
+		existingSubtitlesStepDescription: 'Wähle, wie die neuen Zeiten angewendet werden',
+		existingSubtitlesQuestion: 'Wie soll die neue Audioausrichtung angewendet werden?',
+		existingSubtitlesSameVersesWarning:
+			'Zum Ausrichten der aktuellen Untertitel muss das neue Audio dieselben Koranverse rezitieren.',
+		replaceCurrentSubtitles: 'Aktuelle Untertitel ersetzen',
+		replaceCurrentSubtitlesDescription: 'Neue Untertitel aus dem KI-Ergebnis erstellen.',
+		alignCurrentSubtitles: 'Aktuelle Untertitel ausrichten',
+		alignCurrentSubtitlesDescription:
+			'Aktuellen Inhalt und Stil beibehalten und die Zeiten anhand des neuen Audios aktualisieren.',
 		subtitlesAlreadyExistNative:
 			'Es sind bereits Untertitel in diesem Projekt vorhanden. Dieser Vorgang ersetzt sie durch native Zeitdaten. Fortfahren?',
 		nativeTimingsDetected:

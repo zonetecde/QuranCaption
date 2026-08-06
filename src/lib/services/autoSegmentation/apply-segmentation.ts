@@ -32,6 +32,8 @@ import { awaitAudioNormalization } from './audio-normalize.svelte';
 import type { Project } from '$lib/classes/Project';
 import { TrackType } from '$lib/classes/enums';
 import type { AssetTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
+import { alignExistingSubtitles } from './align-existing';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 /**
  * Rend la main au moteur de rendu toutes les {@link UI_YIELD_INTERVAL} itérations.
@@ -550,6 +552,62 @@ export async function applySegmentationResponseToProject(
 	else await awaitAudioNormalization();
 
 	const subtitleTrack = project.content.timeline.getFirstTrack(TrackType.Subtitle) as SubtitleTrack;
+	if (params.subtitleApplicationMode === 'align') {
+		return ProjectHistoryManager.track('align existing subtitles', () => {
+			const alignedResult = alignExistingSubtitles({
+				subtitleTrack,
+				segments: [...segments].sort(
+					(left, right) => (left.time_from ?? 0) - (right.time_from ?? 0)
+				),
+				segmentationSource,
+				projectTranslation: project.content.projectTranslation,
+				fillBySilence,
+				extendBeforeSilence,
+				extendBeforeSilenceMs
+			});
+			const clipsById = new Map(subtitleTrack.clips.map((clip) => [clip.id, clip]));
+			for (const storedAlignedSegment of alignedResult.storedAlignedSegments) {
+				const clip = clipsById.get(storedAlignedSegment.clipId);
+				if (!clip) continue;
+				storedAlignedSegment.startMs = clip.startTime;
+				storedAlignedSegment.endMs = clip.endTime;
+			}
+			const verseRange = VerseRange.getVerseRangeFromClips(
+				subtitleTrack.clips.filter((clip) => clip instanceof SubtitleClip),
+				0,
+				subtitleTrack.getDuration().ms
+			);
+			const audioTrack = project.content.timeline.getFirstTrack(TrackType.Audio) as AssetTrack;
+			project.detail.updateVideoDetailAttributesForTracks(audioTrack, subtitleTrack);
+			if (!headless) globalState.updateVideoPreviewUI();
+			project.projectEditorState.subtitlesEditor.initialLowConfidenceCount =
+				alignedResult.lowConfidenceSegments;
+			project.projectEditorState.subtitlesEditor.segmentationContext = {
+				audioId: response.audio_id ?? null,
+				source: segmentationSource,
+				effectiveMode,
+				modelName: modelName ?? null,
+				device: device ?? null,
+				includeWbwTimestamps: true,
+				alignedSegments: alignedResult.storedAlignedSegments
+			};
+
+			return {
+				status: 'completed',
+				segmentsApplied: alignedResult.segmentsApplied,
+				lowConfidenceSegments: alignedResult.lowConfidenceSegments,
+				coverageGapSegments: subtitleTrack.clips.filter(
+					(clip) => clip instanceof SubtitleClip && clip.needsCoverageReview
+				).length,
+				verseRange,
+				fallbackToCloud,
+				cloudGpuFallbackToCpu,
+				warning: response.warning ?? warningOverride,
+				requestedMode,
+				effectiveMode
+			};
+		});
+	}
 	subtitleTrack.clips = [];
 	await Quran.load();
 

@@ -6,6 +6,7 @@
 	import { clearSharedWizard, setSharedWizard } from './autoSegmentation/sharedWizard';
 	import { useAutoSegmentationWizard } from './autoSegmentation/useAutoSegmentationWizard.svelte';
 	import WizardHeader from './autoSegmentation/WizardHeader.svelte';
+	import StepExistingSubtitles from './autoSegmentation/steps/StepExistingSubtitles.svelte';
 	import StepSettings from './autoSegmentation/steps/StepSettings.svelte';
 
 	let { close } = $props<{ close: () => void }>();
@@ -51,6 +52,9 @@
 		<div class="flex-1 overflow-y-auto p-4">
 			<div class="mx-auto flex max-w-4xl flex-col gap-5">
 				{#if !wizard.isRunning && !wizard.result && !wizard.errorMessage}
+					{#if wizard.showExistingSubtitlesStep}
+						<StepExistingSubtitles />
+					{/if}
 					<StepSettings />
 				{/if}
 				<ResultPanel />

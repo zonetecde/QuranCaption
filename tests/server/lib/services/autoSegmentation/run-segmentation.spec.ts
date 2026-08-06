@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { runAutoSegmentation } from '$lib/services/autoSegmentation/run-segmentation';
+import {
+	resolveIncludeWbwTimestamps,
+	runAutoSegmentation
+} from '$lib/services/autoSegmentation/run-segmentation';
 
 /**
  * `shouldRetryCloudOnCpu` et `resolveContextModelName` sont des fonctions privées
@@ -10,5 +13,10 @@ import { runAutoSegmentation } from '$lib/services/autoSegmentation/run-segmenta
 describe('runAutoSegmentation exports', () => {
 	it('is a function', () => {
 		expect(typeof runAutoSegmentation).toBe('function');
+	});
+
+	it('forces WBW timestamps when existing subtitles are aligned', () => {
+		expect(resolveIncludeWbwTimestamps(false, 'align')).toBe(true);
+		expect(resolveIncludeWbwTimestamps(false, 'replace')).toBe(false);
 	});
 });

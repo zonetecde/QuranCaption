@@ -3,7 +3,6 @@ import { enrichSegmentationResponseWithWordTimestamps } from './enrichment';
 import { applySegmentationResponseToProject } from './apply-segmentation';
 import { getAutoSegmentationAudioInfo, getAutoSegmentationAudioClips } from './audio';
 import { beginAudioNormalizationIfNeeded } from './audio-normalize.svelte';
-import ModalManager from '$lib/components/modals/ModalManager';
 import { globalState } from '$lib/runes/main.svelte';
 import type { AutoSegmentationOptions, AutoSegmentationResult } from './types';
 import {
@@ -11,13 +10,12 @@ import {
 	getAutoSegmentationBusyMessage
 } from '$lib/services/AutoSegmentationExecutionCoordinator';
 import type { Project } from '$lib/classes/Project';
-import { TrackType } from '$lib/classes/enums';
 
 /**
  * Applique les sous-titres à partir d'un JSON exporté par Hugging Face Multi-Aligner.
  *
  * @param {string | unknown} importedPayload Charge JSON brute (chaîne ou objet).
- * @param {Pick<AutoSegmentationOptions, 'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs'>} options Options de post-processing de la timeline.
+ * @param {Pick<AutoSegmentationOptions, 'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs' | 'subtitleApplicationMode'>} options Options d'application et de post-processing.
  * @param {Project | null} project Projet explicite ou projet actuellement ouvert.
  * @param {boolean} headless Désactive les interactions UI pour un traitement en arrière-plan.
  * @returns {Promise<AutoSegmentationResult | null>} Résumé du résultat ou null en cas d'erreur.
@@ -26,7 +24,7 @@ async function runAutoSegmentationFromImportedJsonCore(
 	importedPayload: string | unknown,
 	options: Pick<
 		AutoSegmentationOptions,
-		'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs'
+		'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs' | 'subtitleApplicationMode'
 	> = {},
 	project: Project | null = globalState.currentProject,
 	headless: boolean = false
@@ -43,15 +41,6 @@ async function runAutoSegmentationFromImportedJsonCore(
 
 	// Re-timing audio en parallèle (point d'attente : apply).
 	if (!headless) beginAudioNormalizationIfNeeded();
-
-	const subtitleTrack = project?.content.timeline.getFirstTrack(TrackType.Subtitle);
-	if (!headless && subtitleTrack && subtitleTrack.clips.length > 0) {
-		const confirmOverwrite: boolean = await ModalManager.confirmModal(
-			'There are already subtitles in this project. This process will override them. Continue?',
-			true
-		);
-		if (!confirmOverwrite) return { status: 'cancelled' };
-	}
 
 	try {
 		const parsed = parseImportedSegmentationJson(importedPayload);
@@ -72,6 +61,7 @@ async function runAutoSegmentationFromImportedJsonCore(
 			includeWbwTimestamps: (response.segments ?? []).some(
 				(segment) => (segment.words?.length ?? 0) > 0
 			),
+			subtitleApplicationMode: options.subtitleApplicationMode ?? 'replace',
 			modelName: null,
 			device: null,
 			payloadForLog: importedPayload,
@@ -89,7 +79,7 @@ async function runAutoSegmentationFromImportedJsonCore(
  * Applique un JSON Hugging Face à un projet explicite, sans interaction UI ni audio requis.
  * @param {Project} project Projet Batch nouvellement créé.
  * @param {string | unknown} importedPayload Charge JSON brute.
- * @param {Pick<AutoSegmentationOptions, 'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs'>} options Options de post-traitement.
+ * @param {Pick<AutoSegmentationOptions, 'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs' | 'subtitleApplicationMode'>} options Options d'application et de post-traitement.
  * @returns {Promise<AutoSegmentationResult | null>} Résultat de l'application des sous-titres.
  */
 export async function runAutoSegmentationFromImportedJsonForProject(
@@ -97,7 +87,7 @@ export async function runAutoSegmentationFromImportedJsonForProject(
 	importedPayload: string | unknown,
 	options: Pick<
 		AutoSegmentationOptions,
-		'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs'
+		'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs' | 'subtitleApplicationMode'
 	> = {}
 ): Promise<AutoSegmentationResult | null> {
 	return runAutoSegmentationFromImportedJsonCore(importedPayload, options, project, true);
@@ -106,14 +96,14 @@ export async function runAutoSegmentationFromImportedJsonForProject(
 /**
  * Applique un JSON importé au projet ouvert sous le verrou global de segmentation.
  * @param {string | unknown} importedPayload Charge JSON brute.
- * @param {Pick<AutoSegmentationOptions, 'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs'>} options Options de post-traitement.
+ * @param {Pick<AutoSegmentationOptions, 'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs' | 'subtitleApplicationMode'>} options Options d'application et de post-traitement.
  * @returns {Promise<AutoSegmentationResult | null>} Résultat de l'application.
  */
 export async function runAutoSegmentationFromImportedJson(
 	importedPayload: string | unknown,
 	options: Pick<
 		AutoSegmentationOptions,
-		'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs'
+		'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs' | 'subtitleApplicationMode'
 	> = {}
 ): Promise<AutoSegmentationResult | null> {
 	const release = AutoSegmentationExecutionCoordinator.tryAcquire('manual');

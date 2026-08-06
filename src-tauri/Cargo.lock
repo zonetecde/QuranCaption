@@ -536,9 +536,9 @@ dependencies = [
 
 [[package]]
 name = "bytemuck"
-version = "1.23.1"
+version = "1.25.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c76a5792e44e4abe34d3abf15636779261d45a7450612059293d1d2cfc63422"
+checksum = "95832e849adfb21180ccb6826a99da14e5d266ae5c2e668e1602cf234f153797"
 
 [[package]]
 name = "byteorder"
@@ -2918,6 +2918,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "microfft"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2b6673eb0cc536241d6734c2ca45abfdbf90e9e7791c66a36a7ba3c315b76cf"
+dependencies = [
+ "cfg-if",
+ "num-complex",
+ "static_assertions",
+]
+
+[[package]]
+name = "micromath"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3c8dda44ff03a2f238717214da50f65d5a53b45cd213a7370424ffdb6fae815"
+
+[[package]]
 name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3141,6 +3158,7 @@ version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73f88a1307638156682bada9d7604135552957b7818057dcef22705b4d509495"
 dependencies = [
+ "bytemuck",
  "num-traits",
 ]
 
@@ -3734,6 +3752,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "pitch_shift"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0768e7cebce3deed6b8249e3c636f65cdb791e235258694b6d12f71f036ce9d3"
+dependencies = [
+ "bytemuck",
+ "microfft",
+ "micromath",
+ "num-complex",
+]
+
+[[package]]
 name = "pkg-config"
 version = "0.3.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4013,6 +4043,7 @@ dependencies = [
  "lazy_static",
  "log",
  "md5",
+ "pitch_shift",
  "rand 0.9.1",
  "rayon",
  "regex",

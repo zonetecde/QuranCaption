@@ -493,7 +493,13 @@ export class SubtitleClip extends ClipWithTranslation {
 			};
 		}
 
-		const fontFamily = globalState.getStyle('arabic', 'font-family')!;
+		const fontFamily = String(
+			globalState.currentProject?.content.videoStyle
+				.getStylesOfTarget('arabic')
+				.getEffectiveValue('font-family', this.id) ??
+				globalState.getStyle('arabic', 'font-family')?.value ??
+				''
+		);
 		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
 
 		if (mushafStyle === 'Minimal Quran') {
@@ -528,7 +534,7 @@ export class SubtitleClip extends ClipWithTranslation {
 		}
 
 		const shouldUseQpcGlyphs =
-			mushafStyle === 'Tajweed' || fontFamily.value === 'QPC1' || fontFamily.value === 'QPC2';
+			mushafStyle === 'Tajweed' || fontFamily === 'QPC1' || fontFamily === 'QPC2';
 
 		if (!shouldUseQpcGlyphs) {
 			if (mushafStyle === 'Indopak' && !this.indopakText) {
@@ -545,7 +551,7 @@ export class SubtitleClip extends ClipWithTranslation {
 		}
 
 		const qpcVersion: '1' | '2' =
-			mushafStyle === 'Tajweed' ? '2' : fontFamily.value === 'QPC1' ? '1' : '2';
+			mushafStyle === 'Tajweed' ? '2' : fontFamily === 'QPC1' ? '1' : '2';
 
 		const words = QPCFontProvider.getQuranVerseGlyphWords(
 			this.surah,
@@ -595,7 +601,13 @@ export class SubtitleClip extends ClipWithTranslation {
 
 	override getText(): string {
 		// En fonction de la police d'écriture, renvoie le bon texte
-		const fontFamily = globalState.getStyle('arabic', 'font-family')!;
+		const fontFamily = String(
+			globalState.currentProject?.content.videoStyle
+				.getStylesOfTarget('arabic')
+				.getEffectiveValue('font-family', this.id) ??
+				globalState.getStyle('arabic', 'font-family')?.value ??
+				''
+		);
 		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
 
 		if (mushafStyle === 'Minimal Quran') {
@@ -627,7 +639,7 @@ export class SubtitleClip extends ClipWithTranslation {
 
 		// Les polices QPC1, QPC2 et Tajweed utilisent des glyphes. Tajweed utilise les glyphes de QPC2.
 		const shouldUseQpcGlyphs =
-			mushafStyle === 'Tajweed' || fontFamily.value === 'QPC1' || fontFamily.value === 'QPC2';
+			mushafStyle === 'Tajweed' || fontFamily === 'QPC1' || fontFamily === 'QPC2';
 
 		if (!shouldUseQpcGlyphs) {
 			if (mushafStyle === 'Indopak' && !this.indopakText) {
@@ -643,7 +655,7 @@ export class SubtitleClip extends ClipWithTranslation {
 
 		// Tajweed utilise les glyphes de QPC2
 		const qpcVersion: '1' | '2' =
-			mushafStyle === 'Tajweed' ? '2' : fontFamily.value === 'QPC1' ? '1' : '2';
+			mushafStyle === 'Tajweed' ? '2' : fontFamily === 'QPC1' ? '1' : '2';
 
 		return QPCFontProvider.getQuranVerseGlyph(
 			this.surah,
@@ -958,8 +970,14 @@ export class PredefinedSubtitleClip extends ClipWithTranslation {
 		const canonicalType = this.getCanonicalType();
 
 		// En fonction de la police d'ecriture, renvoie le bon texte
-		const fontFamily = globalState.getStyle('arabic', 'font-family')!;
-		const qpcVersion = fontFamily.value === 'QPC1' ? '1' : fontFamily.value === 'QPC2' ? '2' : null;
+		const fontFamily = String(
+			globalState.currentProject?.content.videoStyle
+				.getStylesOfTarget('arabic')
+				.getEffectiveValue('font-family', this.id) ??
+				globalState.getStyle('arabic', 'font-family')?.value ??
+				''
+		);
+		const qpcVersion = fontFamily === 'QPC1' ? '1' : fontFamily === 'QPC2' ? '2' : null;
 
 		if (canonicalType === 'Sadaqa') {
 			return qpcVersion ? QPCFontProvider.getSadaqaGlyph() : super.getText();

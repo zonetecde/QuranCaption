@@ -581,7 +581,7 @@ pub fn concat_internal_batch_videos(
     fs::write(&fg_path, &filter_complex)?;
 
     cmd.extend_from_slice(&[
-        "-filter_complex_script".to_string(),
+        "-/filter_complex".to_string(),
         fg_path.to_string_lossy().to_string(),
         "-map".to_string(),
         format!("[{}]", mapped_video_label),

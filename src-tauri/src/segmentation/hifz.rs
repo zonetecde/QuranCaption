@@ -249,7 +249,7 @@ pub async fn generate_hifz_audio(
         "pipe:2",
         "-i",
         source_audio_path.to_string_lossy().as_ref(),
-        "-filter_complex_script",
+        "-/filter_complex",
         filter_script_path.to_string_lossy().as_ref(),
         "-map",
         "[outa]",

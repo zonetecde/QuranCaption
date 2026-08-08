@@ -1881,10 +1881,10 @@ fn run_fast_export(
     let filter_complex = filter_lines.join(";");
     let fg_path = temp_dir.path.join("fast-export.ffgraph");
     fs::write(&fg_path, filter_complex)?;
-    println!("[fast_export] filter_complex_script -> {:?}", fg_path);
+    println!("[fast_export] /filter_complex -> {:?}", fg_path);
 
     cmd.extend_from_slice(&[
-        "-filter_complex_script".to_string(),
+        "-/filter_complex".to_string(),
         fg_path.to_string_lossy().to_string(),
         "-map".to_string(),
         format!("[{}]", mapped_video_label),

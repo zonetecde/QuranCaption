@@ -1136,11 +1136,11 @@ pub fn render_ffmpeg_filter_complex_single(
     let fg_path = tmp_dir.join(format!("filter-{}.ffgraph", &fg_hash[..8]));
 
     fs::write(&fg_path, &filter_complex)?;
-    println!("[ffmpeg] filter_complex_script -> {:?}", fg_path);
+    println!("[ffmpeg] /filter_complex -> {:?}", fg_path);
 
     let fg_name = fg_path.to_string_lossy().to_string();
 
-    cmd.extend_from_slice(&["-filter_complex_script".to_string(), fg_name]);
+    cmd.extend_from_slice(&["-/filter_complex".to_string(), fg_name]);
 
     // Mapping final
     cmd.extend_from_slice(&["-map".to_string(), format!("[{}]", mapped_video_label)]);

@@ -145,6 +145,7 @@ class GlobalState {
 	uiState = $state({
 		// Indique si on affiche le moniteur d'exportation
 		showExportMonitor: false,
+		showReflectionPrompt: false,
 		// Identifiant du renderer d'export monté dans la WebView Android principale.
 		activeExportId: null as string | null,
 		isSettingsOpen: false,

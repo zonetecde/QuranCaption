@@ -1,4 +1,5 @@
 import type { Translation } from '../i18n-types';
+import { reflectionFallback } from '../reflectionFallback';
 
 const de = {
 	common: {
@@ -1890,6 +1891,9 @@ const de = {
 		}
 	},
 	export: {
+		...reflectionFallback,
+		reflectionMinimum: 'Schreibe mindestens 6 Zeichen.',
+		reflectionRequired: 'Schreibe eine Reflexion, bevor du sie speicherst oder veröffentlichst.',
 		exportVideo: 'Video exportieren',
 		configureExportSettings:
 			'Konfigurieren Sie Ihre Videoexport-Einstellungen und wählen Sie den zu exportierenden Bereich.',

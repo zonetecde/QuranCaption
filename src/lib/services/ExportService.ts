@@ -15,6 +15,8 @@ import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { isWordByWordVisualEnabled } from './StyleVisualResolver';
 import type { StyleName } from '$lib/classes/VideoStyle.svelte';
+import { deriveQuranReflectionContext } from './QuranReflectionService';
+import { Quran } from '$lib/classes/Quran';
 
 /**
  * Parse une date ISO en timestamp millisecondes.
@@ -124,6 +126,20 @@ export default class ExportService {
 
 		console.log('Final export file path:', filePath);
 
+		const subtitleClips = project.content.timeline
+			.getFirstTrack(TrackType.Subtitle)
+			.clips.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip);
+		const verseCounts = Object.fromEntries(
+			Quran.surahs.map((surah) => [surah.id, surah.totalAyah])
+		);
+		const reflectionContext = deriveQuranReflectionContext(
+			subtitleClips,
+			project.projectEditorState.export.videoStartTime,
+			project.projectEditorState.export.videoEndTime,
+			verseCounts,
+			project.projectEditorState.export.skipRanges
+		);
+
 		globalState.exportations.unshift(
 			new Exportation(
 				project.detail.id,
@@ -152,7 +168,8 @@ export default class ExportService {
 				options.exportLabel ?? '',
 				options.sourceProjectId ?? null,
 				options.destinationUri ?? null,
-				projectUsesWordByWordStyles(project)
+				projectUsesWordByWordStyles(project),
+				reflectionContext
 			)
 		);
 

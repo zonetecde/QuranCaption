@@ -182,7 +182,52 @@ const export_ = {
 	inProgressCount: '{count} in progress',
 	clearCompleted: 'Clear completed',
 	totalLabel: 'Total:',
-	textExport: 'Text export'
+	textExport: 'Text export',
+	reflectionTitle: 'Reflect on what you just created',
+	reflectionDescription:
+		'You just spent time with these ayat. Take a moment to reflect on what they mean to you.',
+	reflectionDismiss: 'Not now',
+	reflectionOn: 'Reflect on',
+	reflectionWholeSurah: 'Whole Surah',
+	reflectionWholeChoice: 'Whole surah',
+	reflectionRangeChoice: 'Verse range',
+	reflectionAyat: 'Ayat {from}–{to}',
+	reflectionFromAyah: 'From ayah',
+	reflectionToAyah: 'To ayah',
+	reflectionSpan: 'Exported passage',
+	reflectionExamplesTitle: 'Reflections from other Muslims',
+	reflectionExamplesLoading: 'Finding related reflections…',
+	reflectionExamplesError: 'Related reflections could not be loaded. Please try again shortly.',
+	reflectionViewExamples: 'See related reflections',
+	reflectionHideExamples: 'Hide related reflections',
+	reflectionNoExamples: 'No related reflections are available for this selection yet.',
+	reflectionQuranReflectAttribution: 'From QuranReflect',
+	reflectionContributor: 'QuranReflect contributor',
+	reflectionLikes: '{count} likes',
+	reflectionWrite: 'Write a reflection',
+	reflectionComposerLabel: 'What does this passage mean to you?',
+	reflectionComposerPlaceholder: 'Write your personal reflection…',
+	reflectionWholePlaceholder: 'This surah, {surah}, matters to me because…',
+	reflectionRangePlaceholder: 'These verses, {surah} {from}–{to}, matter to me because…',
+	reflectionMinimum: 'Write at least 6 characters.',
+	reflectionRequired: 'Write a reflection before saving or publishing it.',
+	reflectionPrivate: 'Save privately',
+	reflectionPrivateDescription: 'Save as a private note on Quran.com',
+	reflectionPublic: 'Publish publicly',
+	reflectionPublicDescription: 'Publish to QuranReflect',
+	reflectionAuthTitle: 'Connect with Quran.com',
+	reflectionAuthDescription:
+		'A Quran.com account is required only when you save or publish your reflection.',
+	reflectionPermissionDescription:
+		'Quran Caption needs an additional Quran.com permission for Notes and QuranReflect.',
+	reflectionConnect: 'Connect with Quran.com',
+	reflectionSubmitting: 'Saving…',
+	reflectionPrivateSuccess: 'Saved privately to your Quran.com notes.',
+	reflectionPublicSuccess: 'Your reflection was sent to QuranReflect.',
+	reflectionSubmitError:
+		'Your reflection could not be saved. Your draft is still here so you can retry.',
+	reflectionBack: 'Back to reflection',
+	reflectionCloseLabel: 'Close reflection panel'
 };
 
 export default export_;

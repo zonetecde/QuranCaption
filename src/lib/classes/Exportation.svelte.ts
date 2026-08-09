@@ -1,6 +1,7 @@
 import { SerializableBase } from './misc/SerializableBase';
 import { invoke } from '@tauri-apps/api/core';
 import { emit } from '@tauri-apps/api/event';
+import type { QuranReflectionContext } from '$lib/services/QuranReflectionService';
 
 export enum ExportState {
 	WaitingForRecord = 'Pending',
@@ -62,6 +63,7 @@ export default class Exportation extends SerializableBase {
 	fileSizeBytes: number | null;
 	sourceProjectId: number | null;
 	hasWordByWordStyles: boolean;
+	reflectionContext: QuranReflectionContext | null;
 
 	constructor(
 		exportId: number,
@@ -80,7 +82,8 @@ export default class Exportation extends SerializableBase {
 		exportLabel: string = '',
 		sourceProjectId: number | null = null,
 		destinationUri: string | null = null,
-		hasWordByWordStyles: boolean = false
+		hasWordByWordStyles: boolean = false,
+		reflectionContext: QuranReflectionContext | null = null
 	) {
 		super();
 		const safeStartTime = videoStartTime ?? 0;
@@ -114,6 +117,7 @@ export default class Exportation extends SerializableBase {
 		this.fileSizeBytes = $state(null);
 		this.sourceProjectId = sourceProjectId;
 		this.hasWordByWordStyles = $state(hasWordByWordStyles);
+		this.reflectionContext = reflectionContext;
 	}
 
 	/**

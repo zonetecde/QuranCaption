@@ -1,4 +1,5 @@
 import type { Translation } from '../i18n-types';
+import { reflectionFallback } from '../reflectionFallback';
 
 const zh = {
 	common: {
@@ -1729,6 +1730,9 @@ const zh = {
 		}
 	},
 	export: {
+		...reflectionFallback,
+		reflectionMinimum: '请至少输入 6 个字符。',
+		reflectionRequired: '请先写下反思，再保存或发布。',
 		exportVideo: '导出视频',
 		configureExportSettings: '配置您的视频导出设置并选择要导出的部分。',
 		exportRange: '导出范围',

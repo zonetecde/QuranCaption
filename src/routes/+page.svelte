@@ -23,6 +23,7 @@
 	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
 	import { listen } from '@tauri-apps/api/event';
 	import { invoke, type InvokeArgs, type InvokeOptions } from '@tauri-apps/api/core';
+	import QuranReflectionPrompt from '$lib/components/reflection/QuranReflectionPrompt.svelte';
 
 	let allowWindowClose = false;
 	let isHandlingCloseRequest = false;
@@ -369,6 +370,7 @@
 </script>
 
 <Toaster />
+<QuranReflectionPrompt />
 
 <div class="flex h-[100dvh] flex-col overflow-hidden">
 	<TitleBar />

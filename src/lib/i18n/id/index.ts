@@ -1,4 +1,5 @@
 import type { Translation } from '../i18n-types';
+import { reflectionFallback } from '../reflectionFallback';
 import en from '../en/index.js';
 
 const baseEn = en as unknown as Translation;
@@ -1173,7 +1174,10 @@ const id = {
 		searchVerse: 'Cari ayat...'
 	},
 	export: {
+		...reflectionFallback,
 		...baseEn.export,
+		reflectionMinimum: 'Tulis setidaknya 6 karakter.',
+		reflectionRequired: 'Tulis refleksi sebelum menyimpan atau memublikasikannya.',
 		exportVideo: 'Ekspor Video',
 		configureExportSettings:
 			'Atur settings export video kamu dan pilih bagian yang ingin di-export.',

@@ -59,7 +59,8 @@
 				exportation.exportKind === ExportKind.Video &&
 				currentState === ExportState.Exported &&
 				previousState !== undefined &&
-				previousState !== ExportState.Exported
+				previousState !== ExportState.Exported &&
+				!exportation.reflectionContext
 			) {
 				hasNewSuccess = true;
 			}
@@ -111,10 +112,16 @@
 			})
 			.join('|');
 
-		settings;
-		exportStateSnapshot;
+		void settings;
+		void exportStateSnapshot;
 
 		void maybeShowDonationPrompt();
+	});
+
+	$effect(() => {
+		if (!globalState.uiState.showReflectionPrompt) return;
+		isPromptVisible = false;
+		isSupportModalOpen = false;
 	});
 
 	async function dismissPrompt(action: 'close' | 'remind_later') {
@@ -187,7 +194,7 @@
 	}
 </script>
 
-{#if isPromptVisible}
+{#if isPromptVisible && !globalState.uiState.showReflectionPrompt}
 	<section
 		class="support-prompt fixed bottom-3 right-3 pb-8 xl:bottom-5 xl:right-5 z-100 w-[420px] max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-1.5rem)] overflow-auto rounded-2xl"
 	>
@@ -325,7 +332,7 @@
 	</section>
 {/if}
 
-{#if isSupportModalOpen}
+{#if isSupportModalOpen && !globalState.uiState.showReflectionPrompt}
 	<SupportFeedbackModal
 		initialTab={supportModalTab}
 		source={supportModalSource}

@@ -596,6 +596,8 @@ mod tests {
             path: "/tmp/cached.mp4".to_string(),
             is_normalized: true,
             duration_s: 30.0,
+            timeline_offset_s: None,
+            source_start_s: None,
         };
         assert!(bg.is_normalized);
         assert_eq!(bg.duration_s, 30.0);
@@ -608,6 +610,8 @@ mod tests {
             path: "/videos/source.mp4".to_string(),
             is_normalized: false,
             duration_s: 25.5,
+            timeline_offset_s: None,
+            source_start_s: None,
         };
         assert!(!bg.is_normalized);
         assert_eq!(bg.duration_s, 25.5);

@@ -120,6 +120,25 @@ pub struct VideoInput {
     pub path: String,
     /// Si vrai, la vidéo boucle jusqu'à la fin de l'audio.
     pub loop_until_audio_end: Option<bool>,
+    /// Offset de début dans le média source, uniquement pour un clip trimé.
+    pub source_start_ms: Option<i64>,
+    /// Position du clip sur la timeline, uniquement pour un export avec trim.
+    pub timeline_start_ms: Option<i64>,
+    /// Durée visible du clip, uniquement pour un export avec trim.
+    pub duration_ms: Option<i64>,
+}
+
+/// Entrée audio temporelle utilisée uniquement lorsqu'un clip est trimé.
+#[derive(serde::Deserialize, Debug, Clone)]
+pub struct AudioInput {
+    /// Chemin vers le fichier audio.
+    pub path: String,
+    /// Offset de début dans le média source.
+    pub source_start_ms: i64,
+    /// Position du clip sur la timeline.
+    pub timeline_start_ms: i64,
+    /// Durée visible du clip.
+    pub duration_ms: i64,
 }
 
 /// Vidéo de fond prétraitée, prête pour l'overlay final.
@@ -131,4 +150,8 @@ pub struct PreparedBackgroundVideo {
     pub is_normalized: bool,
     /// Durée connue en secondes (évite un ffprobe redondant).
     pub duration_s: f64,
+    /// Position relative au début de l'export pour le chemin conditionnel avec trim.
+    pub timeline_offset_s: Option<f64>,
+    /// Offset source à appliquer si le média n'a pas pu être prétraité.
+    pub source_start_s: Option<f64>,
 }

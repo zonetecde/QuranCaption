@@ -32,6 +32,7 @@ export function getAutoSegmentationAudioClips(
 		const startTime = (clip as { startTime?: unknown }).startTime;
 		const endTime = (clip as { endTime?: unknown }).endTime;
 		if (typeof startTime !== 'number' || typeof endTime !== 'number') continue;
+		const sourceStartTime = (clip as { sourceStartTime?: unknown }).sourceStartTime;
 
 		const audioAsset = project.content.getAssetById(assetId);
 		const filePath: string | undefined = audioAsset?.filePath;
@@ -42,7 +43,9 @@ export function getAutoSegmentationAudioClips(
 			filePath,
 			fileName,
 			startMs: Math.max(0, Math.round(startTime)),
-			endMs: Math.max(0, Math.round(endTime))
+			endMs: Math.max(0, Math.round(endTime)),
+			sourceStartMs:
+				typeof sourceStartTime === 'number' ? Math.max(0, Math.round(sourceStartTime)) : 0
 		});
 	}
 

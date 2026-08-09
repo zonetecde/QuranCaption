@@ -3,6 +3,7 @@ import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { globalState } from '$lib/runes/main.svelte';
 import type {
+	AutoSegmentationAudioClip,
 	AutoSegmentationExecutionOptions,
 	AutoSegmentationOptions,
 	AutoSegmentationResult,
@@ -70,7 +71,7 @@ export function resolveIncludeWbwTimestamps(
  */
 function buildBasePayload(
 	audioInfo: { filePath: string; fileName: string; clipCount: number },
-	audioClips: { filePath: string; fileName: string; startMs: number; endMs: number }[],
+	audioClips: AutoSegmentationAudioClip[],
 	options: AutoSegmentationOptions
 ) {
 	return {
@@ -78,7 +79,8 @@ function buildBasePayload(
 		audioClips: audioClips.map((clip) => ({
 			path: clip.filePath,
 			startMs: clip.startMs,
-			endMs: clip.endMs
+			endMs: clip.endMs,
+			sourceStartMs: clip.sourceStartMs
 		})),
 		minSilenceMs: options.minSilenceMs ?? 200,
 		minSpeechMs: options.minSpeechMs ?? 1000,

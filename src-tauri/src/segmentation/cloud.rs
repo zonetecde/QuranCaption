@@ -382,14 +382,9 @@ fn prepare_audio_for_mfa_direct(
     let mut merged_guard: Option<TempFileGuard> = None;
     let source_audio_path =
         if let Some(clips) = audio_clips.as_ref().filter(|clips| !clips.is_empty()) {
-            let needs_merge = clips.len() > 1 || clips[0].start_ms > 0;
-            if needs_merge {
-                let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
-                merged_guard = Some(guard);
-                merged_path
-            } else {
-                path_utils::normalize_existing_path(&clips[0].path)
-            }
+            let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
+            merged_guard = Some(guard);
+            merged_path
         } else if let Some(path) = audio_path.as_ref() {
             path_utils::normalize_existing_path(path)
         } else {
@@ -666,22 +661,17 @@ pub async fn segment_quran_audio(
         );
         for (idx, clip) in clips.iter().enumerate() {
             println!(
-                "[segmentation] clip[{}] path={} start_ms={} end_ms={}",
-                idx, clip.path, clip.start_ms, clip.end_ms
+                "[segmentation] clip[{}] path={} start_ms={} end_ms={} source_start_ms={}",
+                idx, clip.path, clip.start_ms, clip.end_ms, clip.source_start_ms
             );
         }
-        let needs_merge = clips.len() > 1 || clips[0].start_ms > 0;
-        if needs_merge {
-            let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
-            _merged_guard = Some(guard);
-            println!(
-                "[segmentation] Using merged audio for cloud: {}",
-                merged_path.to_string_lossy()
-            );
-            merged_path
-        } else {
-            path_utils::normalize_existing_path(&clips[0].path)
-        }
+        let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
+        _merged_guard = Some(guard);
+        println!(
+            "[segmentation] Using merged audio for cloud: {}",
+            merged_path.to_string_lossy()
+        );
+        merged_path
     } else if let Some(path) = audio_path.as_ref() {
         path_utils::normalize_existing_path(path)
     } else {

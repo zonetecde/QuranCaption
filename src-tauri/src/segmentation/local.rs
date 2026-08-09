@@ -74,22 +74,17 @@ fn run_local_segmentation_script(
         );
         for (idx, clip) in clips.iter().enumerate() {
             println!(
-                "[segmentation] clip[{}] path={} start_ms={} end_ms={}",
-                idx, clip.path, clip.start_ms, clip.end_ms
+                "[segmentation] clip[{}] path={} start_ms={} end_ms={} source_start_ms={}",
+                idx, clip.path, clip.start_ms, clip.end_ms, clip.source_start_ms
             );
         }
-        let needs_merge = clips.len() > 1 || clips[0].start_ms > 0;
-        if needs_merge {
-            let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
-            _merged_guard = Some(guard);
-            println!(
-                "[segmentation] Using merged audio for local: {}",
-                merged_path.to_string_lossy()
-            );
-            merged_path
-        } else {
-            path_utils::normalize_existing_path(&clips[0].path)
-        }
+        let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
+        _merged_guard = Some(guard);
+        println!(
+            "[segmentation] Using merged audio for local: {}",
+            merged_path.to_string_lossy()
+        );
+        merged_path
     } else if let Some(path) = audio_path.as_ref() {
         path_utils::normalize_existing_path(path)
     } else {
@@ -289,21 +284,26 @@ fn run_local_segmentation_script(
             "[segmentation][local][debug] python stdout bytes={} (success path)",
             output.stdout.len()
         );
-        let result: serde_json::Value = serde_json::from_str(&stdout).map_err(|e| {
-            let stderr_text = stderr_lines
-                .lock()
-                .ok()
-                .map(|lines| lines.join("\n"))
-                .unwrap_or_default();
-            if stderr_text.trim().is_empty() {
-                format!("Failed to parse Python output: {}", e)
-            } else {
-                format!(
-                    "Failed to parse Python output: {} (stderr: {})",
-                    e, stderr_text
-                )
-            }
-        })?;
+        // Le moteur peut encore écrire des logs après sa réponse JSON structurée.
+        let result: serde_json::Value = serde_json::Deserializer::from_str(&stdout)
+            .into_iter()
+            .next()
+            .ok_or_else(|| "Python script returned no JSON output".to_string())?
+            .map_err(|e| {
+                let stderr_text = stderr_lines
+                    .lock()
+                    .ok()
+                    .map(|lines| lines.join("\n"))
+                    .unwrap_or_default();
+                if stderr_text.trim().is_empty() {
+                    format!("Failed to parse Python output: {}", e)
+                } else {
+                    format!(
+                        "Failed to parse Python output: {} (stderr: {})",
+                        e, stderr_text
+                    )
+                }
+            })?;
         if let Some(error) = result.get("error") {
             return Err(error.as_str().unwrap_or("Unknown error").to_string());
         }
@@ -333,7 +333,10 @@ fn run_local_segmentation_script(
                 stderr_text
             );
         }
-        if let Ok(error_json) = serde_json::from_str::<serde_json::Value>(&stdout) {
+        if let Some(Ok(error_json)) = serde_json::Deserializer::from_str(&stdout)
+            .into_iter::<serde_json::Value>()
+            .next()
+        {
             if let Some(error) = error_json.get("error") {
                 return Err(error.as_str().unwrap_or("Unknown error").to_string());
             }

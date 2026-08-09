@@ -42,7 +42,8 @@ export async function getSegmentationMfaTimestampsDirect(
 		audioClips: audioClips.map((clip) => ({
 			path: clip.filePath,
 			startMs: clip.startMs,
-			endMs: clip.endMs
+			endMs: clip.endMs,
+			sourceStartMs: clip.sourceStartMs
 		})),
 		segments,
 		granularity: 'words',

@@ -32,7 +32,7 @@ export function useAutoSegmentationWizard() {
 	let minSpeechMs = $state(persisted?.minSpeechMs ?? 1000);
 	let padMs = $state(persisted?.padMs ?? 100);
 	let includeWbwTimestamps = $state(persisted?.includeWbwTimestamps ?? false);
-	let subtitleApplicationMode = $state<SubtitleApplicationMode | null>(null);
+	let subtitleApplicationMode = $state<SubtitleApplicationMode | null>('replace');
 	let fillBySilence = $state(persisted?.fillBySilence ?? true);
 	let extendBeforeSilence = $state(persisted?.extendBeforeSilence ?? false);
 	let extendBeforeSilenceMs = $state(persisted?.extendBeforeSilenceMs ?? 50);

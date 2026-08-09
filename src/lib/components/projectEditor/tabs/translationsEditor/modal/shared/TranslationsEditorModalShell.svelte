@@ -11,6 +11,7 @@
 		bodyClass = 'flex-1 min-h-0 overflow-hidden',
 		iconContainerClass = 'w-10 h-10',
 		iconClass = 'text-xl',
+		panelScale,
 		subtitle,
 		afterHeader,
 		children
@@ -22,6 +23,7 @@
 		bodyClass?: string;
 		iconContainerClass?: string;
 		iconClass?: string;
+		panelScale?: number;
 		subtitle?: Snippet;
 		afterHeader?: Snippet;
 		children?: Snippet;
@@ -33,34 +35,59 @@
 	use:mobileModalSheet={close}
 	transition:slide
 >
-	<div class="bg-gradient-to-r from-accent to-bg-accent px-6 py-4 border-b border-color">
-		<div class="flex items-center justify-between gap-4">
-			<div class="flex items-center gap-3 min-w-0">
-				<div
-					class={`${iconContainerClass} bg-accent-primary rounded-full flex items-center justify-center flex-shrink-0`}
-				>
-					<span class={`material-icons text-black ${iconClass}`}>{icon}</span>
+	<div
+		class={`translations-modal-content ${panelScale ? 'translations-modal-ui-scale' : ''}`}
+		style={panelScale
+			? `--editor-panel-scale: ${panelScale}; --editor-panel-height: ${100 / panelScale}%;`
+			: undefined}
+	>
+		<div class="bg-gradient-to-r from-accent to-bg-accent px-6 py-4 border-b border-color">
+			<div class="flex items-center justify-between gap-4">
+				<div class="flex items-center gap-3 min-w-0">
+					<div
+						class={`${iconContainerClass} bg-accent-primary rounded-full flex items-center justify-center flex-shrink-0`}
+					>
+						<span class={`material-icons text-black ${iconClass}`}>{icon}</span>
+					</div>
+					<div class="min-w-0">
+						<h2 class="text-xl font-bold text-primary">{title}</h2>
+						<p class="text-sm text-thirdly">
+							{@render subtitle?.()}
+						</p>
+					</div>
 				</div>
-				<div class="min-w-0">
-					<h2 class="text-xl font-bold text-primary">{title}</h2>
-					<p class="text-sm text-thirdly">
-						{@render subtitle?.()}
-					</p>
-				</div>
-			</div>
 
-			<button
-				class="w-8 h-8 rounded-full hover:bg-[rgba(255,255,255,0.1)] flex items-center justify-center transition-all duration-200 text-secondary hover:text-primary cursor-pointer"
-				onclick={close}
-			>
-				<span class="material-icons text-lg">close</span>
-			</button>
+				<button
+					class="w-8 h-8 rounded-full hover:bg-[rgba(255,255,255,0.1)] flex items-center justify-center transition-all duration-200 text-secondary hover:text-primary cursor-pointer"
+					onclick={close}
+				>
+					<span class="material-icons text-lg">close</span>
+				</button>
+			</div>
+		</div>
+
+		{@render afterHeader?.()}
+
+		<div class={bodyClass}>
+			{@render children?.()}
 		</div>
 	</div>
-
-	{@render afterHeader?.()}
-
-	<div class={bodyClass}>
-		{@render children?.()}
-	</div>
 </div>
+
+<style>
+	.translations-modal-content {
+		display: flex;
+		min-width: 0;
+		width: 100%;
+		height: 100%;
+		flex: 1;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	.translations-modal-ui-scale {
+		height: var(--editor-panel-height);
+		flex: none;
+		zoom: var(--editor-panel-scale);
+	}
+</style>

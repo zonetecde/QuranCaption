@@ -5,11 +5,11 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use bytes::Bytes;
 use futures_util::{stream, StreamExt};
 use reqwest::multipart::{Form, Part};
-use tauri::Emitter;
+use tauri::{AppHandle, Emitter};
 
 use crate::commands::android_media::execute_ffmpeg;
 use crate::path_utils;
-use crate::utils::temp_file::TempFileGuard;
+use crate::utils::temp_file::{app_temp_dir, TempFileGuard};
 
 use super::audio_merge::merge_audio_clips_for_segmentation;
 use super::types::{
@@ -369,15 +369,17 @@ async fn call_gradio_endpoint(
 
 /// Prépare un fichier WAV 16kHz mono réutilisable pour l'endpoint MFA direct.
 fn prepare_audio_for_mfa_direct(
+    app_handle: &AppHandle,
     audio_path: Option<String>,
     audio_clips: Option<Vec<SegmentationAudioClip>>,
     window_start_ms: Option<i64>,
     window_end_ms: Option<i64>,
 ) -> Result<(std::path::PathBuf, TempFileGuard, Option<TempFileGuard>), String> {
+    let temp_dir = app_temp_dir(app_handle)?;
     let mut merged_guard: Option<TempFileGuard> = None;
     let source_audio_path =
         if let Some(clips) = audio_clips.as_ref().filter(|clips| !clips.is_empty()) {
-            let (merged_path, guard) = merge_audio_clips_for_segmentation(clips)?;
+            let (merged_path, guard) = merge_audio_clips_for_segmentation(clips, &temp_dir)?;
             merged_guard = Some(guard);
             merged_path
         } else if let Some(path) = audio_path.as_ref() {
@@ -397,7 +399,7 @@ fn prepare_audio_for_mfa_direct(
         .duration_since(UNIX_EPOCH)
         .map_err(|e| e.to_string())?
         .as_millis();
-    let temp_path = std::env::temp_dir().join(format!("qurancaption-mfa-{}.wav", stamp));
+    let temp_path = temp_dir.join(format!("qurancaption-mfa-{}.wav", stamp));
     let temp_guard = TempFileGuard(temp_path.clone());
 
     // Fenêtre temporelle optionnelle: l'audio préparé est en coordonnées timeline, donc on
@@ -578,6 +580,7 @@ pub async fn preload_audio(recitation: String, chapter: i64) -> Result<serde_jso
 
 /// Récupère les timestamps MFA à partir d'un fichier audio préparé côté app.
 pub async fn mfa_timestamps_direct(
+    app_handle: AppHandle,
     audio_path: Option<String>,
     audio_clips: Option<Vec<SegmentationAudioClip>>,
     segments: serde_json::Value,
@@ -602,8 +605,13 @@ pub async fn mfa_timestamps_direct(
         .build()
         .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
 
-    let (prepared_path, _temp_guard, _merged_guard) =
-        prepare_audio_for_mfa_direct(audio_path, audio_clips, window_start_ms, window_end_ms)?;
+    let (prepared_path, _temp_guard, _merged_guard) = prepare_audio_for_mfa_direct(
+        &app_handle,
+        audio_path,
+        audio_clips,
+        window_start_ms,
+        window_end_ms,
+    )?;
     let uploaded_path =
         upload_audio_file(&client, &prepared_path, "audio.wav", "audio/wav").await?;
     let file_payload = serde_json::json!({
@@ -645,6 +653,8 @@ pub async fn segment_quran_audio(
         Some(0.0),
     );
 
+    let temp_dir = app_temp_dir(&app_handle)?;
+
     // Pré-traitement cloud: merge éventuel puis encodage OGG/Opus (pas de resample forcé).
     let mut _merged_guard: Option<TempFileGuard> = None;
     let audio_path = if let Some(clips) = audio_clips.as_ref().filter(|c| !c.is_empty()) {
@@ -658,7 +668,7 @@ pub async fn segment_quran_audio(
                 idx, clip.path, clip.start_ms, clip.end_ms, clip.source_start_ms
             );
         }
-        let (merged_path, guard) = merge_audio_clips_for_segmentation(clips)?;
+        let (merged_path, guard) = merge_audio_clips_for_segmentation(clips, &temp_dir)?;
         _merged_guard = Some(guard);
         println!(
             "[segmentation] Using merged audio for cloud: {}",
@@ -680,7 +690,7 @@ pub async fn segment_quran_audio(
         .duration_since(UNIX_EPOCH)
         .map_err(|e| e.to_string())?
         .as_millis();
-    let temp_path = std::env::temp_dir().join(format!("qurancaption-seg-{}.ogg", stamp));
+    let temp_path = temp_dir.join(format!("qurancaption-seg-{}.ogg", stamp));
     let _temp_guard = TempFileGuard(temp_path.clone());
 
     let args = vec![

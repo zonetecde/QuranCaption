@@ -45,6 +45,9 @@
 	const AI_TRANSLATION_WORKER_COUNT = 3;
 
 	let { close }: { close: () => void } = $props();
+	let panelScale = $derived(
+		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
+	);
 
 	const translationsEditorState = $derived(
 		() => globalState.currentProject!.projectEditorState.translationsEditor
@@ -624,14 +627,15 @@
 	{close}
 	title={$LL.editor.aiWbwTranslationAssistant()}
 	icon="auto_fix_high"
+	{panelScale}
 	shellClass="h-[92vh] xl:h-[84vh] w-[clamp(1180px,94vw,1500px)] max-w-[94vw] xl:max-w-[82vw]"
-	bodyClass="flex-1 min-h-0 overflow-hidden grid grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]"
+	bodyClass="flex-1 min-h-0 overflow-y-auto flex flex-col"
 >
 	{#snippet subtitle()}
 		{$LL.editor.aiWbwTranslationSubtitle()}
 	{/snippet}
 
-	<div class="min-h-0 overflow-y-auto p-6 space-y-5 border-r border-color">
+	<div class="p-4 space-y-5 border-b border-color">
 		<div class="rounded-xl border border-color bg-accent px-4 py-4">
 			<div class="flex items-start justify-between gap-4">
 				<div>
@@ -753,9 +757,9 @@
 		</div>
 	</div>
 
-	<div class="min-h-0 overflow-y-auto p-6 space-y-5 bg-primary/30">
+	<div class="p-4 space-y-5 bg-primary/30">
 		<div class="rounded-xl border border-color bg-secondary px-4 py-4">
-			<div class="flex items-start justify-between gap-4">
+			<div class="flex flex-col gap-4">
 				<div>
 					<h3 class="text-base font-semibold text-primary">{$LL.editor.run()}</h3>
 					<p class="mt-1 text-sm text-thirdly leading-relaxed">
@@ -763,7 +767,7 @@
 					</p>
 				</div>
 				<button
-					class="rounded-lg bg-[var(--accent-primary)] w-56 px-4 py-2.5 text-sm font-semibold text-black transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-55"
+					class="w-full rounded-lg bg-[var(--accent-primary)] px-4 py-2.5 text-sm font-semibold text-black transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-55"
 					onclick={runAiWbwTranslation}
 					disabled={isRunning ||
 						isLoadingCandidates ||

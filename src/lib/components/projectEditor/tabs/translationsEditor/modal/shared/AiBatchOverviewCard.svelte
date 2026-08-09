@@ -27,16 +27,23 @@
 	} = $props();
 </script>
 
-<div class="rounded-xl border border-color bg-accent p-4">
-	<div class="mb-4 flex items-center gap-2">
-		<span class="material-icons text-accent-primary">{icon}</span>
-		<h3 class="text-lg font-semibold text-primary">{title}</h3>
+<div class="rounded-xl border border-color bg-accent p-3">
+	<div class="mb-3 flex items-center gap-2">
+		<span class="material-icons text-lg text-accent-primary">{icon}</span>
+		<h3 class="text-base font-semibold text-primary">{title}</h3>
 	</div>
 
-	<AiMetricsGrid items={metrics} {columnsClass} />
+	<AiMetricsGrid
+		items={metrics}
+		{columnsClass}
+		containerClass="grid gap-2"
+		cardClass="rounded-lg border border-color bg-secondary p-2"
+		labelClass="text-[10px] uppercase leading-tight tracking-wide text-thirdly"
+		valueClass="mt-1 text-base font-semibold text-primary"
+	/>
 
-	<div class="mt-4 rounded-lg border border-[var(--accent-primary)]/30 bg-secondary p-4">
-		<div class="mb-1 text-sm font-medium text-primary">
+	<div class="mt-3 rounded-lg border border-[var(--accent-primary)]/30 bg-secondary p-3">
+		<div class="mb-1 text-xs font-medium text-primary">
 			{$LL.editor.estimatedCost()}
 			{estimatedCostLabel}
 		</div>

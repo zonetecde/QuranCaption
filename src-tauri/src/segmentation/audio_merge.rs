@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::commands::android_media::execute_ffmpeg;
@@ -10,6 +10,7 @@ use super::types::SegmentationAudioClip;
 /// Fusionne des clips audio temporels en un seul WAV 16-bit aligné sur la timeline.
 pub(crate) fn merge_audio_clips_for_segmentation(
     clips: &[SegmentationAudioClip],
+    temp_dir: &Path,
 ) -> Result<(PathBuf, TempFileGuard), String> {
     if clips.is_empty() {
         return Err("No audio clips provided for merge".to_string());
@@ -43,7 +44,7 @@ pub(crate) fn merge_audio_clips_for_segmentation(
         .duration_since(UNIX_EPOCH)
         .map_err(|e| e.to_string())?
         .as_millis();
-    let merged_path = std::env::temp_dir().join(format!("qurancaption-seg-merged-{}.wav", stamp));
+    let merged_path = temp_dir.join(format!("qurancaption-seg-merged-{}.wav", stamp));
     let guard = TempFileGuard(merged_path.clone());
 
     // Construction dynamique d'un filtre ffmpeg pour trim + delay + mix.

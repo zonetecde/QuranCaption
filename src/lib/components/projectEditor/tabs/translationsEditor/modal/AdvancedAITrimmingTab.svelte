@@ -623,12 +623,16 @@
 						metrics={[
 							{ label: 'Verses', value: advancedEstimate.totalVerses },
 							{ label: 'Words', value: advancedEstimate.totalWords },
-							{ label: 'Batches', value: advancedBatches.length }
+							{ label: 'Batches', value: advancedBatches.length },
+							{
+								label: $LL.editor.estimatedCostShort(),
+								value: formatUsd(advancedEstimate.totalEstimatedCostUsd)
+							}
 						]}
 						estimatedCostLabel={formatUsd(advancedEstimate.totalEstimatedCostUsd)}
 						tokenSummary={`${advancedEstimate.totalEstimatedInputTokens} input tokens estimated, ${advancedEstimate.totalEstimatedOutputTokens} output tokens estimated.`}
 						reasoningNote={advancedEstimate.reasoningNote}
-						columnsClass="md:grid-cols-3"
+						columnsClass="grid-cols-2"
 					/>
 
 					<div class="rounded-xl border border-color bg-secondary px-4 py-4">
@@ -661,13 +665,13 @@
 
 				<div class="space-y-4">
 					<div class="rounded-xl border border-color bg-accent p-4">
-						<div class="mb-4 flex items-center justify-between">
+						<div class="mb-4 flex flex-col gap-3">
 							<div class="flex items-center gap-2">
 								<span class="material-icons text-accent-secondary">auto_awesome</span>
 								<h3 class="text-lg font-semibold text-primary">Run</h3>
 							</div>
 							<button
-								class="btn-accent px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
+								class="btn-accent w-full px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
 								onclick={runAdvancedTrimming}
 								disabled={isRunning || advancedBatches.length === 0}
 							>

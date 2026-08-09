@@ -58,7 +58,7 @@
 </script>
 
 <div class="space-y-3">
-	<div class="flex items-center gap-2">
+	<div class="flex flex-wrap items-center gap-2">
 		<span class="material-icons text-accent text-lg">{icon}</span>
 		<h3 class="text-lg font-semibold text-primary">{title}</h3>
 		<span class="rounded-md bg-accent px-2 py-1 text-xs font-semibold">
@@ -73,7 +73,7 @@
 	</div>
 	<div class="rounded-lg border border-color bg-accent p-4">
 		<div class="mb-4">
-			<div class="mb-2 flex items-center justify-between gap-4">
+			<div class="mb-2 flex flex-col gap-2">
 				<p class="text-sm font-medium text-secondary">
 					{selectionLabel}
 					{#if selectionHint}

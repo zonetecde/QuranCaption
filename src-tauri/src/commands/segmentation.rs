@@ -50,6 +50,7 @@ pub async fn get_segmentation_mfa_timestamps_session(
 /// RÃ©cupÃ¨re les timestamps MFA directement depuis l'audio courant du projet.
 #[tauri::command]
 pub async fn get_segmentation_mfa_timestamps_direct(
+    app_handle: tauri::AppHandle,
     audio_path: Option<String>,
     audio_clips: Option<Vec<SegmentationAudioClip>>,
     segments: serde_json::Value,
@@ -58,6 +59,7 @@ pub async fn get_segmentation_mfa_timestamps_direct(
     window_end_ms: Option<i64>,
 ) -> Result<serde_json::Value, String> {
     segmentation::mfa_timestamps_direct(
+        app_handle,
         audio_path,
         audio_clips,
         segments,

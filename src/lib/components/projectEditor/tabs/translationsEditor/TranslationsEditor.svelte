@@ -128,7 +128,7 @@
 		{/snippet}
 		{#snippet rightContent()}
 			<div
-				class="editor-ui-scale h-full min-h-0 overflow-y-auto"
+				class="editor-ui-scale h-full min-h-0 overflow-hidden pb-36"
 				style={`--editor-panel-scale: ${panelScale}; --editor-panel-height: ${100 / panelScale}%;`}
 			>
 				<TranslationInlineStylePanel />

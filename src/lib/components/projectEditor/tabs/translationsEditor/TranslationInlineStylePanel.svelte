@@ -90,7 +90,7 @@
 	</div>
 </div>
 
-<div class="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+<div class="min-h-0 flex-1 overflow-y-auto px-4 py-4 space-y-4">
 	<button
 		class={`w-full rounded-xl border px-3 py-3 text-left transition-all duration-200 ${
 			translationsEditorState().isInlineStyleMode

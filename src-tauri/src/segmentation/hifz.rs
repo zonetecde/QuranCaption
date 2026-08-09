@@ -10,7 +10,7 @@ use tauri::{AppHandle, Emitter};
 use crate::binaries;
 use crate::path_utils;
 use crate::utils::process::configure_command_no_window;
-use crate::utils::temp_file::TempFileGuard;
+use crate::utils::temp_file::{app_temp_dir, TempFileGuard};
 
 use super::audio_merge::merge_audio_clips_for_segmentation;
 use super::types::{HifzAudioSegment, SegmentationAudioClip};
@@ -117,6 +117,7 @@ fn build_hifz_filter_graph(segments: &[HifzAudioSegment]) -> Result<(String, i64
 }
 
 fn create_temp_file_path(
+    temp_dir: &Path,
     prefix: &str,
     extension: &str,
 ) -> Result<(PathBuf, TempFileGuard), String> {
@@ -124,17 +125,18 @@ fn create_temp_file_path(
         .duration_since(UNIX_EPOCH)
         .map_err(|e| e.to_string())?
         .as_millis();
-    let path = std::env::temp_dir().join(format!("{}-{}.{}", prefix, stamp, extension));
+    let path = temp_dir.join(format!("{}-{}.{}", prefix, stamp, extension));
     Ok((path.clone(), TempFileGuard(path)))
 }
 
 fn resolve_source_audio_path(
+    temp_dir: &Path,
     _ffmpeg_path: &str,
     audio_path: Option<String>,
     audio_clips: Option<Vec<SegmentationAudioClip>>,
 ) -> Result<(PathBuf, Vec<TempFileGuard>), String> {
     if let Some(clips) = audio_clips.filter(|clips| !clips.is_empty()) {
-        let (merged_path, guard) = merge_audio_clips_for_segmentation(&clips)?;
+        let (merged_path, guard) = merge_audio_clips_for_segmentation(&clips, temp_dir)?;
         return Ok((merged_path, vec![guard]));
     }
 
@@ -153,11 +155,12 @@ fn resolve_source_audio_path(
 /// Génère un fichier audio WAV silencieux temporaire pour servir de source ffmpeg.
 /// Utilise une piste stereo 44.1kHz et une duree minimale pour permettre l'`atrim` des segments.
 fn create_silent_source_audio(
+    temp_dir: &Path,
     ffmpeg_path: &str,
     duration_s: f64,
 ) -> Result<(PathBuf, TempFileGuard), String> {
     let duration_s = duration_s.max(0.001);
-    let (path, guard) = create_temp_file_path("qurancaption-hifz-silence", "wav")?;
+    let (path, guard) = create_temp_file_path(temp_dir, "qurancaption-hifz-silence", "wav")?;
 
     let mut cmd = Command::new(ffmpeg_path);
     cmd.args([
@@ -201,6 +204,7 @@ pub async fn generate_hifz_audio(
 
     let ffmpeg_path =
         binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
+    let temp_dir = app_temp_dir(&app_handle)?;
     let mut _guards: Vec<TempFileGuard> = Vec::new();
     let source_audio_path =
         if audio_path.is_none() && audio_clips.as_ref().map_or(true, |clips| clips.is_empty()) {
@@ -211,12 +215,12 @@ pub async fn generate_hifz_audio(
                 .unwrap_or(0);
             // The filter graph trims against the source timeline; ensure the silent input is long enough.
             let duration_s = (max_end_ms.max(1) as f64) / 1000.0 + 0.1;
-            let (path, guard) = create_silent_source_audio(&ffmpeg_path, duration_s)?;
+            let (path, guard) = create_silent_source_audio(&temp_dir, &ffmpeg_path, duration_s)?;
             _guards.push(guard);
             path
         } else {
             let (path, mut resolved_guards) =
-                resolve_source_audio_path(&ffmpeg_path, audio_path, audio_clips)?;
+                resolve_source_audio_path(&temp_dir, &ffmpeg_path, audio_path, audio_clips)?;
             _guards.append(&mut resolved_guards);
             path
         };
@@ -230,7 +234,7 @@ pub async fn generate_hifz_audio(
     let output_duration_s = (output_duration_ms.max(1) as f64) / 1000.0;
 
     let (filter_script_path, _filter_script_guard) =
-        create_temp_file_path("qurancaption-hifz-filter", "txt")?;
+        create_temp_file_path(&temp_dir, "qurancaption-hifz-filter", "txt")?;
     fs::write(&filter_script_path, filter_graph)
         .map_err(|e| format!("Failed to write Hifz filter script: {}", e))?;
 

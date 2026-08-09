@@ -49,6 +49,9 @@
 
 	let aiPrompt: string = $state('');
 	let aiResponse: string = $state('');
+	let panelScale = $derived(
+		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
+	);
 	let activeTab: 'legacy' | 'advanced' = $state(
 		globalState.settings?.aiTranslationSettings?.activeModalTab ?? 'advanced'
 	);
@@ -590,6 +593,7 @@
 	{close}
 	title="AI Translation Assistant"
 	icon="psychology"
+	{panelScale}
 	shellClass="h-[92vh] xl:h-[80vh] w-[clamp(1200px,96vw,1700px)] max-w-[90vw] xl:max-w-[66vw]"
 	bodyClass="flex-1 min-h-0 overflow-hidden flex flex-col"
 >
@@ -598,8 +602,8 @@
 	{/snippet}
 
 	{#snippet afterHeader()}
-		<div class="border-b border-color bg-primary px-6 py-3">
-			<div class="flex gap-2">
+		<div class="border-b border-color bg-primary px-4 py-3">
+			<div class="grid grid-cols-2 gap-2">
 				<button
 					class="tab-button {activeTab === 'legacy' ? 'tab-button-active' : ''}"
 					onclick={() => setActiveTab('legacy')}
@@ -619,7 +623,7 @@
 	{/snippet}
 	<!-- Instructions section - Legacy only -->
 	{#if activeTab === 'legacy'}
-		<div class="px-6 py-3 border-b border-color bg-primary">
+		<div class="px-4 py-3 border-b border-color bg-primary">
 			<button
 				class="w-full bg-accent border border-color rounded-lg p-3 transition-all duration-200 hover:bg-[rgba(88,166,255,0.1)]"
 				onclick={() =>
@@ -700,7 +704,7 @@
 	{/if}
 	<!-- Content area -->
 	<div class="flex-1 overflow-hidden flex flex-col">
-		<div class="flex-1 overflow-y-auto px-6 py-4 space-y-6">
+		<div class="flex-1 overflow-y-auto p-4 space-y-4">
 			{#if activeTab === 'advanced'}
 				<AdvancedAITrimmingTab {edition} />
 			{:else if aiPrompt === 'All verses have already been translated for this edition. No AI assistance needed.'}
@@ -747,12 +751,12 @@
 						>
 					</div>
 					<div class="bg-accent border border-color rounded-lg p-4">
-						<div class="flex items-center justify-between mb-3">
+						<div class="mb-3 flex flex-col items-start gap-3">
 							<label for="ai-prompt" class="text-sm font-medium text-secondary"
 								>Generated prompt for AI:</label
 							>
 							<button
-								class="btn-accent px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2 hover:shadow-lg transition-all duration-200"
+								class="btn-accent flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 hover:shadow-lg"
 								onclick={() => {
 									navigator.clipboard.writeText(aiPrompt);
 									toast.success('Prompt copied to clipboard!');
@@ -795,12 +799,12 @@
 						>
 					</div>
 					<div class="bg-accent border border-color rounded-lg p-4">
-						<div class="flex items-center justify-between mb-3">
+						<div class="mb-3 flex flex-col items-start gap-3">
 							<label for="ai-response" class="text-sm font-medium text-secondary"
 								>Paste the JSON response from AI:</label
 							>
 							<button
-								class="btn-accent px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2 hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+								class="btn-accent flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
 								onclick={() => setTranslationsFromAIResponse(aiResponse)}
 								disabled={!aiResponse.trim()}
 							>
@@ -829,22 +833,6 @@
 					</div>
 				</div>
 			{/if}
-		</div>
-	</div>
-	<div class="border-t border-color bg-primary px-6 py-4">
-		<div class="flex items-center justify-between">
-			<div class="flex items-center gap-2 text-sm text-thirdly">
-				<span class="material-icons text-accent-primary">psychology</span>
-				<span>
-					{activeTab === 'legacy'
-						? 'Using AI to optimize translation segmentation'
-						: 'Running provider-powered advanced trimming with live feedback'}
-				</span>
-			</div>
-
-			<div class="flex gap-3">
-				<button class="btn px-6 py-2.5 font-medium" onclick={close}> Cancel </button>
-			</div>
 		</div>
 	</div>
 </TranslationsEditorModalShell>
@@ -933,13 +921,15 @@
 	}
 
 	.tab-button {
-		display: inline-flex;
+		display: flex;
+		width: 100%;
 		align-items: center;
+		justify-content: center;
 		gap: 0.5rem;
 		border-radius: 9999px;
 		border: 1px solid var(--border-color);
 		background: var(--bg-secondary);
-		padding: 0.5rem 0.9rem;
+		padding: 0.5rem 0.6rem;
 		font-size: 0.875rem;
 		font-weight: 600;
 		color: var(--text-secondary);

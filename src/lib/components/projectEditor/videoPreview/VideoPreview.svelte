@@ -386,6 +386,7 @@
 						getTimelineSettings().cursorPosition =
 							currentAudioClip.startTime + Math.max(0, timeInClip);
 					}
+					syncAudioPlaybackAtCursor();
 					syncVideoPlaybackAtCursor();
 					if (state.ended && !nativeAudioEndHandled) {
 						nativeAudioEndHandled = true;
@@ -1147,11 +1148,17 @@
 				nativeAudioTimelineStartMs = getTimelineSettings().cursorPosition;
 			}
 			nativeAudioPositionMs = positionMs;
-			void (nativeAudioLoadPromise ?? Promise.resolve()).then(() =>
-				invoke(shouldKeepPlaying && isPlaying ? 'native_audio_play' : 'native_audio_seek', {
-					positionMs: Math.round(positionMs)
-				})
-			);
+			void (nativeAudioLoadPromise ?? Promise.resolve())
+				.then(() =>
+					invoke(shouldKeepPlaying && isPlaying ? 'native_audio_play' : 'native_audio_seek', {
+						positionMs: Math.round(positionMs)
+					})
+				)
+				.then(() => {
+					if (shouldKeepPlaying && isPlaying && !audioUpdateInterval) {
+						audioUpdateInterval = setInterval(handleAudioTimeUpdate, 30);
+					}
+				});
 		} else if (audioHowl) {
 			seekAudio(getCurrentAudioTimeToPlay());
 

@@ -69,6 +69,11 @@
 		clip instanceof AssetClip && asset.type !== AssetType.Image && !clip.loopUntilAudioEnd
 	);
 	let canMove = $derived(clip instanceof AssetClip && asset.type !== AssetType.Image);
+	let waveformWidth = $derived((asset.duration.ms / 1000) * track.getPixelPerSecond());
+	let waveformOffset = $derived(
+		(((clip instanceof AssetClip ? clip.sourceStartTime : 0) ?? 0) / 1000) *
+			track.getPixelPerSecond()
+	);
 
 	/**
 	 * Starts horizontal clip movement with a primary pointer.
@@ -282,8 +287,6 @@
 			// On dépend de refreshVersion pour forcer le recalcul si besoin
 			const _v = WaveformService.refreshVersion;
 			const _mediaReloadToken = asset.mediaReloadToken;
-			const sourceStartTime = clip instanceof AssetClip ? (clip.sourceStartTime ?? 0) : 0;
-			const clipDuration = clip.duration;
 
 			untrack(async () => {
 				if (wavesurfer) {
@@ -293,20 +296,13 @@
 
 				try {
 					const peaks = await WaveformService.getPeaks(asset.filePath);
-					const sourceDuration = Math.max(1, asset.duration.ms);
-					const startIndex = Math.floor((sourceStartTime / sourceDuration) * peaks.length);
-					const endIndex = Math.ceil(
-						((sourceStartTime + clipDuration) / sourceDuration) * peaks.length
-					);
-					const visiblePeaks = peaks.slice(startIndex, endIndex);
-
 					wavesurfer = WaveSurfer.create({
 						container: waveformElement ?? '#clip-' + clip.id,
 						waveColor: '#9d99cc',
 						progressColor: '#9d99cc',
 						url: file,
-						peaks: [visiblePeaks], // Pass peaks to avoid decoding
-						duration: clipDuration / 1000,
+						peaks: [peaks], // Pass peaks to avoid decoding
+						duration: asset.duration.ms / 1000,
 						height: getWaveformHeight()
 					});
 					resizeWaveformToContainer();
@@ -437,7 +433,14 @@
 	{/if}
 
 	{#if (asset.duration.ms < 45 * 60 * 1000 || clip.showWaveform) && globalState.settings?.persistentUiState.showWaveforms && track.type === TrackType.Audio}
-		<div class="h-full w-full" id={'clip-' + clip.id} bind:this={waveformElement}></div>
+		<div class="absolute inset-0 overflow-hidden">
+			<div
+				class="h-full will-change-transform"
+				style="width: {waveformWidth}px; transform: translateX(-{waveformOffset}px);"
+				id={'clip-' + clip.id}
+				bind:this={waveformElement}
+			></div>
+		</div>
 	{:else if asset.duration.ms >= 45 * 60 * 1000 && globalState.settings?.persistentUiState.showWaveforms && track.type === TrackType.Audio}
 		<div class="h-full w-full" onclick={() => (clip.showWaveform = true)}>
 			{get(LL).editor.clickToGenerateWaveform()}

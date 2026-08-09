@@ -127,6 +127,7 @@ export default class Settings extends SerializableBase {
 			TrackType.Audio
 		] as TrackType[],
 		desktopNotificationsEnabled: true,
+		hideReflectionPromptAfterExport: false,
 		themeIntensity: 100,
 		hasSeenTour: false,
 		language: 'en' as 'en' | 'fr' | 'de' | 'es' | 'zh' | 'id',
@@ -550,6 +551,10 @@ export default class Settings extends SerializableBase {
 			settings.persistentUiState.desktopNotificationsEnabled = true;
 			shouldSave = true;
 		}
+		if (typeof settings.persistentUiState.hideReflectionPromptAfterExport !== 'boolean') {
+			settings.persistentUiState.hideReflectionPromptAfterExport = false;
+			shouldSave = true;
+		}
 		if (
 			!WBW_TRANSLATION_LANGUAGES.some(
 				(language) => language.code === settings.persistentUiState.wbwTranslationLanguage
@@ -715,7 +720,7 @@ export enum SettingsTab {
 	THEME = 'theme',
 	NOTIFICATIONS = 'notifications',
 	AI_KEY = 'ai-key',
-	STOCK_MEDIA = 'stock-media',
+	QURAN_FOUNDATION = 'quran-foundation',
 	DEFAULT_VALUES = 'default-values',
 	BACKUP = 'backup',
 	SUPPORT = 'support',

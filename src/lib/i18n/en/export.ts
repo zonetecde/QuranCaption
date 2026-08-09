@@ -191,7 +191,10 @@ const export_ = {
 	reflectionWholeSurah: 'Whole Surah',
 	reflectionWholeChoice: 'Whole surah',
 	reflectionRangeChoice: 'Verse range',
+	reflectionSingleChoice: 'Single verse',
 	reflectionAyat: 'Ayat {from}–{to}',
+	reflectionSingleAyah: 'Ayah {verse}',
+	reflectionAyahLabel: 'Ayah',
 	reflectionFromAyah: 'From ayah',
 	reflectionToAyah: 'To ayah',
 	reflectionSpan: 'Exported passage',
@@ -204,11 +207,13 @@ const export_ = {
 	reflectionQuranReflectAttribution: 'From QuranReflect',
 	reflectionContributor: 'QuranReflect contributor',
 	reflectionLikes: '{count} likes',
+	reflectionReadMore: 'Read more',
 	reflectionWrite: 'Write a reflection',
 	reflectionComposerLabel: 'What does this passage mean to you?',
 	reflectionComposerPlaceholder: 'Write your personal reflection…',
 	reflectionWholePlaceholder: 'This surah, {surah}, matters to me because…',
 	reflectionRangePlaceholder: 'These verses, {surah} {from}–{to}, matter to me because…',
+	reflectionSinglePlaceholder: 'This verse, {surah} {verse}, matters to me because…',
 	reflectionMinimum: 'Write at least 6 characters.',
 	reflectionRequired: 'Write a reflection before saving or publishing it.',
 	reflectionPrivate: 'Save privately',
@@ -227,6 +232,7 @@ const export_ = {
 	reflectionSubmitError:
 		'Your reflection could not be saved. Your draft is still here so you can retry.',
 	reflectionBack: 'Back to reflection',
+	reflectionWriteAnother: 'Write another reflection',
 	reflectionCloseLabel: 'Close reflection panel'
 };
 

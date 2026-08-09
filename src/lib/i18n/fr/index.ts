@@ -1443,7 +1443,7 @@ const fr = {
 		stockMediaDownloadError: 'Échec du téléchargement : {error}',
 		stockMediaDisclaimer:
 			'Vous êtes responsable de créditer l’auteur et de fournir un lien vers le contenu original sur {source}, comme l’exigent leurs conditions d’utilisation.',
-		configureApiKeys: 'Configurez vos clés API dans Paramètres > Banque de médias',
+		configureApiKeys: 'Configurez vos clés API dans Paramètres > Clés API > Banque de médias',
 		pexelsSource: 'Pexels',
 		pixabaySource: 'Pixabay',
 		stockMediaError: 'Erreur de recherche',
@@ -1891,7 +1891,10 @@ const fr = {
 		reflectionWholeSurah: 'Sourate entière',
 		reflectionWholeChoice: 'Sourate entière',
 		reflectionRangeChoice: 'Plage de versets',
+		reflectionSingleChoice: 'Un seul verset',
 		reflectionAyat: 'Versets {from}–{to}',
+		reflectionSingleAyah: 'Verset {verse}',
+		reflectionAyahLabel: 'Verset',
 		reflectionFromAyah: 'Du verset',
 		reflectionToAyah: 'Au verset',
 		reflectionSpan: 'Passage exporté',
@@ -1905,11 +1908,13 @@ const fr = {
 		reflectionQuranReflectAttribution: 'Sur QuranReflect',
 		reflectionContributor: 'Contributeur QuranReflect',
 		reflectionLikes: '{count} mentions J’aime',
+		reflectionReadMore: 'Lire la suite',
 		reflectionWrite: 'Écrire une réflexion',
 		reflectionComposerLabel: 'Que signifie ce passage pour vous ?',
 		reflectionComposerPlaceholder: 'Écrivez votre réflexion personnelle…',
 		reflectionWholePlaceholder: 'Cette sourate, {surah}, compte pour moi parce que…',
 		reflectionRangePlaceholder: 'Ces versets, {surah} {from}–{to}, comptent pour moi parce que…',
+		reflectionSinglePlaceholder: 'Ce verset, {surah} {verse}, compte pour moi parce que…',
 		reflectionMinimum: 'Écrivez au moins 6 caractères.',
 		reflectionRequired: 'Écrivez une réflexion avant de l’enregistrer ou de la publier.',
 		reflectionPrivate: 'Enregistrer en privé',
@@ -1928,6 +1933,7 @@ const fr = {
 		reflectionSubmitError:
 			'Votre réflexion n’a pas pu être enregistrée. Votre brouillon est conservé pour réessayer.',
 		reflectionBack: 'Retour à la réflexion',
+		reflectionWriteAnother: 'Écrire une autre réflexion',
 		reflectionCloseLabel: 'Fermer le panneau de réflexion',
 		exportVideo: 'Exporter la vidéo',
 		configureExportSettings:
@@ -2225,7 +2231,7 @@ const fr = {
 		stockMediaDownloadError: 'Échec du téléchargement : {error}',
 		stockMediaDisclaimer:
 			'Vous êtes responsable de créditer l\u2019auteur et de fournir un lien vers le contenu original sur {source}, comme l\u2019exigent leurs conditions d\u2019utilisation.',
-		configureApiKeys: 'Configurez vos clés API dans Paramètres > Banque de médias',
+		configureApiKeys: 'Configurez vos clés API dans Paramètres > Clés API > Banque de médias',
 		pexelsSource: 'Pexels',
 		pixabaySource: 'Pixabay',
 		stockMediaError: 'Erreur de recherche',
@@ -2379,8 +2385,15 @@ const fr = {
 		theme: 'Thème',
 		notifications: 'Notifications',
 		aiKey: 'Clé IA',
+		apiKeys: 'Clés API',
 		stockMedia: 'Banque de médias',
 		quranComIntegration: 'Intégration Quran.com',
+		quranFoundationIntegration: 'Intégration Quran Foundation',
+		quranFoundationIntegrationDescription:
+			'Connectez votre compte Quran Foundation pour ajouter des versets aux favoris Quran.com depuis la timeline, enregistrer des réflexions en notes privées et les publier sur QuranReflect.',
+		hideReflectionPromptAfterExport: 'Ne plus afficher le prompt de réflexion après l’export',
+		hideReflectionPromptAfterExportDescription:
+			'Masquer le prompt de réflexion qui apparaît après un export vidéo réussi.',
 		defaultValues: 'Valeurs par défaut',
 		defaultValuesDescription:
 			'Choisissez les valeurs utilisées automatiquement lorsqu’un champ est vide.',

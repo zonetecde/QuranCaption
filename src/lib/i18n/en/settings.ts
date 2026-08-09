@@ -5,8 +5,15 @@ const settings = {
 	theme: 'Theme',
 	notifications: 'Notifications',
 	aiKey: 'AI Key',
+	apiKeys: 'API Keys',
 	stockMedia: 'Stock Media',
 	quranComIntegration: 'Quran.com Integration',
+	quranFoundationIntegration: 'Quran Foundation Integration',
+	quranFoundationIntegrationDescription:
+		'Connect your Quran Foundation account to bookmark verses on Quran.com from the timeline, save reflections as private notes, and publish them on QuranReflect.',
+	hideReflectionPromptAfterExport: 'Do not show the reflection prompt after export',
+	hideReflectionPromptAfterExportDescription:
+		'Hide the reflection prompt that appears after a successful video export.',
 	defaultValues: 'Default Values',
 	defaultValuesDescription: 'Choose the values used automatically when a field is left empty.',
 	defaultExportFileName: 'Default export file name',

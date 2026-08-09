@@ -1,5 +1,4 @@
 import type { Translation } from '../i18n-types';
-import { reflectionFallback } from '../reflectionFallback';
 
 const es = {
 	common: {
@@ -1443,7 +1442,7 @@ const es = {
 		stockMediaDownloadError: 'Error al descargar: {error}',
 		stockMediaDisclaimer:
 			'Usted es responsable de acreditar al autor y proporcionar un enlace al contenido original en {source}, como exigen sus condiciones de uso.',
-		configureApiKeys: 'Configure sus claves API en Ajustes > Banco de medios',
+		configureApiKeys: 'Configure sus claves API en Ajustes > Claves API > Banco de medios',
 		pexelsSource: 'Pexels',
 		pixabaySource: 'Pixabay',
 		stockMediaError: 'Error de bÃºsqueda',
@@ -1879,9 +1878,60 @@ const es = {
 	},
 
 	export: {
-		...reflectionFallback,
+		reflectionTitle: 'Reflexiona sobre lo que acabas de crear',
+		reflectionDescription:
+			'Acabas de dedicar tiempo a estas aleyas. Tómate un momento para reflexionar sobre lo que significan para ti.',
+		reflectionDismiss: 'Ahora no',
+		reflectionOn: 'Reflexionar sobre',
+		reflectionWholeSurah: 'Sura completa',
+		reflectionWholeChoice: 'Sura completa',
+		reflectionRangeChoice: 'Rango de aleyas',
+		reflectionSingleChoice: 'Una aleya',
+		reflectionAyat: 'Aleyas {from}–{to}',
+		reflectionSingleAyah: 'Aleya {verse}',
+		reflectionAyahLabel: 'Aleya',
+		reflectionFromAyah: 'Desde la aleya',
+		reflectionToAyah: 'Hasta la aleya',
+		reflectionSpan: 'Pasaje exportado',
+		reflectionExamplesTitle: 'Reflexiones de otros musulmanes',
+		reflectionExamplesLoading: 'Buscando reflexiones relacionadas…',
+		reflectionExamplesError:
+			'No se pudieron cargar las reflexiones relacionadas. Inténtalo de nuevo más tarde.',
+		reflectionViewExamples: 'Ver reflexiones relacionadas',
+		reflectionHideExamples: 'Ocultar reflexiones relacionadas',
+		reflectionNoExamples:
+			'Todavía no hay reflexiones relacionadas disponibles para esta selección.',
+		reflectionQuranReflectAttribution: 'De QuranReflect',
+		reflectionContributor: 'Colaborador de QuranReflect',
+		reflectionLikes: '{count} Me gusta',
+		reflectionReadMore: 'Leer más',
+		reflectionWrite: 'Escribir una reflexión',
+		reflectionComposerLabel: '¿Qué significa este pasaje para ti?',
+		reflectionComposerPlaceholder: 'Escribe tu reflexión personal…',
+		reflectionWholePlaceholder: 'Esta sura, {surah}, es importante para mí porque…',
+		reflectionRangePlaceholder:
+			'Estas aleyas, {surah} {from}–{to}, son importantes para mí porque…',
+		reflectionSinglePlaceholder: 'Esta aleya, {surah} {verse}, es importante para mí porque…',
 		reflectionMinimum: 'Escribe al menos 6 caracteres.',
 		reflectionRequired: 'Escribe una reflexión antes de guardarla o publicarla.',
+		reflectionPrivate: 'Guardar en privado',
+		reflectionPrivateDescription: 'Guardar como nota privada en Quran.com',
+		reflectionPublic: 'Publicar públicamente',
+		reflectionPublicDescription: 'Publicar en QuranReflect',
+		reflectionAuthTitle: 'Conectar con Quran.com',
+		reflectionAuthDescription:
+			'Solo necesitas una cuenta de Quran.com cuando guardas o publicas tu reflexión.',
+		reflectionPermissionDescription:
+			'Quran Caption necesita un permiso adicional de Quran.com para Notas y QuranReflect.',
+		reflectionConnect: 'Conectar con Quran.com',
+		reflectionSubmitting: 'Guardando…',
+		reflectionPrivateSuccess: 'Guardada en privado en tus notas de Quran.com.',
+		reflectionPublicSuccess: 'Tu reflexión se envió a QuranReflect.',
+		reflectionSubmitError:
+			'No se pudo guardar tu reflexión. Tu borrador sigue aquí para que puedas volver a intentarlo.',
+		reflectionBack: 'Volver a la reflexión',
+		reflectionWriteAnother: 'Escribir otra reflexión',
+		reflectionCloseLabel: 'Cerrar el panel de reflexión',
 		exportVideo: 'Exportar video',
 		configureExportSettings:
 			'Configure sus ajustes de exportación de video y seleccione la porción a exportar.',
@@ -2313,8 +2363,15 @@ const es = {
 		theme: 'Tema',
 		notifications: 'Notificaciones',
 		aiKey: 'Clave IA',
+		apiKeys: 'Claves API',
 		stockMedia: 'Banco de medios',
 		quranComIntegration: 'Integración Quran.com',
+		quranFoundationIntegration: 'Integración con Quran Foundation',
+		quranFoundationIntegrationDescription:
+			'Conecte su cuenta de Quran Foundation para guardar versículos en los marcadores de Quran.com desde la línea de tiempo, guardar reflexiones como notas privadas y publicarlas en QuranReflect.',
+		hideReflectionPromptAfterExport: 'No mostrar la reflexión después de exportar',
+		hideReflectionPromptAfterExportDescription:
+			'Ocultar la reflexión que aparece después de exportar un vídeo correctamente.',
 		defaultValues: 'Valores predeterminados',
 		defaultValuesDescription:
 			'Elija los valores utilizados automáticamente cuando un campo está vacío.',

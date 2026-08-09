@@ -1,8 +1,19 @@
 <script lang="ts">
 	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
+	import Settings from '$lib/classes/Settings.svelte';
+	import { globalState } from '$lib/runes/main.svelte';
+	import { getReflectionSubmissionScopes } from '$lib/services/QuranReflectionService';
 	import LL from '$lib/i18n/i18n-svelte';
 
 	let { compact = false }: { compact?: boolean } = $props();
+	let copy = $derived(
+		$LL.settings as unknown as {
+			quranFoundationIntegration: () => string;
+			quranFoundationIntegrationDescription: () => string;
+			hideReflectionPromptAfterExport: () => string;
+			hideReflectionPromptAfterExportDescription: () => string;
+		}
+	);
 
 	const publicState = $derived(quranAuthService.publicState);
 	const displayName = $derived(
@@ -17,7 +28,7 @@
 	);
 
 	async function connect(): Promise<void> {
-		await quranAuthService.beginLogin();
+		await quranAuthService.beginLogin(getReflectionSubmissionScopes('public'));
 	}
 
 	async function disconnect(): Promise<void> {
@@ -42,9 +53,11 @@
 {:else}
 	<div class="space-y-5">
 		<div class="space-y-2">
-			<h3 class="text-lg font-medium text-primary">{$LL.settings.quranComIntegration()}</h3>
+			<h3 class="text-lg font-medium text-primary">
+				{copy.quranFoundationIntegration()}
+			</h3>
 			<p class="text-sm text-thirdly">
-				{$LL.common.quranComDescription()}
+				{copy.quranFoundationIntegrationDescription()}
 			</p>
 		</div>
 
@@ -123,6 +136,27 @@
 				</div>
 			{/if}
 		</div>
+
+		{#if globalState.settings}
+			<label
+				class="flex items-center justify-between gap-4 rounded-xl border border-color bg-primary p-4"
+			>
+				<div>
+					<p class="text-sm font-medium text-primary">
+						{copy.hideReflectionPromptAfterExport()}
+					</p>
+					<p class="mt-1 text-xs text-thirdly">
+						{copy.hideReflectionPromptAfterExportDescription()}
+					</p>
+				</div>
+				<input
+					type="checkbox"
+					class="h-5 w-5 shrink-0 accent-accent-primary"
+					bind:checked={globalState.settings!.persistentUiState.hideReflectionPromptAfterExport}
+					onchange={() => Settings.save()}
+				/>
+			</label>
+		{/if}
 	</div>
 {/if}
 

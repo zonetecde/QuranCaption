@@ -3,6 +3,7 @@ import {
 	createPrivateReflectionNote,
 	deriveQuranReflectionContext,
 	getCuratedReflections,
+	getReflectionSubmissionScopes,
 	hasReflectionSubmissionScopes,
 	parsePendingQuranReflection,
 	publishReflectionNote,
@@ -115,6 +116,8 @@ describe('Quran reflection export ranges', () => {
 
 describe('Quran reflection OAuth continuity', () => {
 	it('distinguishes disconnected, missing-scope, private and public permissions', () => {
+		expect(getReflectionSubmissionScopes('private')).toEqual(['note.create']);
+		expect(getReflectionSubmissionScopes('public')).toEqual(['note.create', 'note.publish']);
 		expect(hasReflectionSubmissionScopes([], 'private')).toBe(false);
 		expect(hasReflectionSubmissionScopes(['bookmark', 'note.create'], 'private')).toBe(true);
 		expect(hasReflectionSubmissionScopes(['note.create'], 'public')).toBe(false);
@@ -149,6 +152,11 @@ describe('Quran reflection OAuth continuity', () => {
 			from: 5,
 			to: 5
 		});
+		expect(
+			parsePendingQuranReflection(
+				JSON.stringify({ ...restored, selectionMode: 'single', from: 5, to: 5 })
+			)?.selectionMode
+		).toBe('single');
 	});
 
 	it('rejects corrupt pending reflection state', () => {
@@ -176,7 +184,15 @@ describe('Quran reflection API client', () => {
 			new Response(
 				JSON.stringify({
 					reflections: [
-						{ id: 1, body: 'Reflection', author: '', likesCount: 0, language: 'English' }
+						{
+							id: 1,
+							body: 'Reflection',
+							author: 'Contributor',
+							avatarUrl: 'https://cdn.quranreflect.com/avatar.jpg',
+							url: 'https://quranreflect.com/posts/1',
+							likesCount: 0,
+							language: 'English'
+						}
 					]
 				}),
 				{ status: 200 }
@@ -204,9 +220,13 @@ describe('Quran reflection API client', () => {
 			);
 		vi.stubGlobal('fetch', fetchMock);
 		await createPrivateReflectionNote('token', 'My reflection', 2, 1, 2);
-		await publishReflectionNote('token', 'note-1', 'My reflection', 2, 1, 2);
+		await publishReflectionNote('token', 'note-1', 'My reflection', 2, 1, 286, true);
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 		expect(fetchMock.mock.calls[0][1].headers.authorization).toBe('Bearer token');
 		expect(String(fetchMock.mock.calls[1][0])).toContain('/notes/note-1/publish');
+		expect(JSON.parse(String(fetchMock.mock.calls[1][1].body))).toMatchObject({
+			chapterId: 2,
+			wholeSurah: true
+		});
 	});
 });

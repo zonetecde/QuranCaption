@@ -8,7 +8,6 @@
 	import MigrationService from '$lib/services/MigrationService';
 	import { setupTutorialProject } from '$lib/services/TutorialService';
 	import LL from '$lib/i18n/i18n-svelte';
-	import QuranIntegrationSettings from './QuranIntegrationSettings.svelte';
 
 	let version = $state('');
 	let isOrganizingProjects = $state(false);
@@ -74,6 +73,4 @@
 				: $LL.settings.organizeProjectFolders()}
 		</button>
 	</div>
-
-	<QuranIntegrationSettings compact />
 </div>

@@ -1,5 +1,4 @@
 import type { Translation } from '../i18n-types';
-import { reflectionFallback } from '../reflectionFallback';
 import en from '../en/index.js';
 
 const baseEn = en as unknown as Translation;
@@ -497,7 +496,14 @@ const id = {
 		sepia: 'Sepia',
 		desktopNotifications: 'Notifikasi desktop',
 		aiKey: 'Kunci AI',
+		apiKeys: 'Kunci API',
 		quranComIntegration: 'Integrasi Quran.com',
+		quranFoundationIntegration: 'Integrasi Quran Foundation',
+		quranFoundationIntegrationDescription:
+			'Hubungkan akun Quran Foundation untuk menyimpan ayat ke bookmark Quran.com dari timeline, menyimpan refleksi sebagai catatan pribadi, dan memublikasikannya di QuranReflect.',
+		hideReflectionPromptAfterExport: 'Jangan tampilkan prompt refleksi setelah ekspor',
+		hideReflectionPromptAfterExportDescription:
+			'Sembunyikan prompt refleksi yang muncul setelah ekspor video berhasil.',
 		defaultValues: 'Nilai bawaan',
 		defaultValuesDescription:
 			'Pilih nilai yang digunakan otomatis saat suatu kolom dibiarkan kosong.',
@@ -1103,7 +1109,7 @@ const id = {
 		stockMediaDownloadError: 'Gagal mengunduh media: {error}',
 		stockMediaDisclaimer:
 			'Kamu bertanggung jawab untuk mencantumkan kredit penulis dan memberikan tautan ke konten asli di {source} sesuai syarat layanan mereka.',
-		configureApiKeys: 'Atur API key di Pengaturan > Media stok',
+		configureApiKeys: 'Atur API key di Pengaturan > Kunci API > Stok Media',
 		pexelsSource: 'Pexels',
 		pixabaySource: 'Pixabay',
 		stockMediaError: 'Error pencarian',
@@ -1164,10 +1170,58 @@ const id = {
 		searchVerse: 'Cari ayat...'
 	},
 	export: {
-		...reflectionFallback,
 		...baseEn.export,
+		reflectionTitle: 'Renungkan apa yang baru saja kamu buat',
+		reflectionDescription:
+			'Kamu baru saja meluangkan waktu bersama ayat-ayat ini. Luangkan sejenak untuk merenungkan maknanya bagimu.',
+		reflectionDismiss: 'Nanti saja',
+		reflectionOn: 'Renungkan',
+		reflectionWholeSurah: 'Seluruh Surah',
+		reflectionWholeChoice: 'Seluruh surah',
+		reflectionRangeChoice: 'Rentang ayat',
+		reflectionSingleChoice: 'Satu ayat',
+		reflectionAyat: 'Ayat {from}–{to}',
+		reflectionSingleAyah: 'Ayat {verse}',
+		reflectionAyahLabel: 'Ayat',
+		reflectionFromAyah: 'Dari ayat',
+		reflectionToAyah: 'Sampai ayat',
+		reflectionSpan: 'Bagian yang diekspor',
+		reflectionExamplesTitle: 'Refleksi dari Muslim lainnya',
+		reflectionExamplesLoading: 'Mencari refleksi terkait…',
+		reflectionExamplesError: 'Refleksi terkait tidak dapat dimuat. Silakan coba lagi nanti.',
+		reflectionViewExamples: 'Lihat refleksi terkait',
+		reflectionHideExamples: 'Sembunyikan refleksi terkait',
+		reflectionNoExamples: 'Belum ada refleksi terkait untuk pilihan ini.',
+		reflectionQuranReflectAttribution: 'Dari QuranReflect',
+		reflectionContributor: 'Kontributor QuranReflect',
+		reflectionLikes: '{count} suka',
+		reflectionReadMore: 'Baca selengkapnya',
+		reflectionWrite: 'Tulis refleksi',
+		reflectionComposerLabel: 'Apa arti bagian ini bagimu?',
+		reflectionComposerPlaceholder: 'Tulis refleksi pribadimu…',
+		reflectionWholePlaceholder: 'Surah {surah} ini berarti bagiku karena…',
+		reflectionRangePlaceholder: 'Ayat-ayat ini, {surah} {from}–{to}, berarti bagiku karena…',
+		reflectionSinglePlaceholder: 'Ayat ini, {surah} {verse}, berarti bagiku karena…',
 		reflectionMinimum: 'Tulis setidaknya 6 karakter.',
 		reflectionRequired: 'Tulis refleksi sebelum menyimpan atau memublikasikannya.',
+		reflectionPrivate: 'Simpan secara pribadi',
+		reflectionPrivateDescription: 'Simpan sebagai catatan pribadi di Quran.com',
+		reflectionPublic: 'Publikasikan',
+		reflectionPublicDescription: 'Publikasikan ke QuranReflect',
+		reflectionAuthTitle: 'Hubungkan dengan Quran.com',
+		reflectionAuthDescription:
+			'Akun Quran.com hanya diperlukan saat kamu menyimpan atau memublikasikan refleksi.',
+		reflectionPermissionDescription:
+			'Quran Caption memerlukan izin tambahan Quran.com untuk Catatan dan QuranReflect.',
+		reflectionConnect: 'Hubungkan dengan Quran.com',
+		reflectionSubmitting: 'Menyimpan…',
+		reflectionPrivateSuccess: 'Disimpan secara pribadi di catatan Quran.com milikmu.',
+		reflectionPublicSuccess: 'Refleksimu telah dikirim ke QuranReflect.',
+		reflectionSubmitError:
+			'Refleksimu tidak dapat disimpan. Drafmu tetap tersedia agar kamu dapat mencoba lagi.',
+		reflectionBack: 'Kembali ke refleksi',
+		reflectionWriteAnother: 'Tulis refleksi lain',
+		reflectionCloseLabel: 'Tutup panel refleksi',
 		exportVideo: 'Ekspor Video',
 		configureExportSettings:
 			'Atur settings export video kamu dan pilih bagian yang ingin di-export.',

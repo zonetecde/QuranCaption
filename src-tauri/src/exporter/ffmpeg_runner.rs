@@ -446,7 +446,12 @@ pub fn run_ffmpeg_command(
             index += 2;
             continue;
         }
-        arguments.push(cmd[index].clone());
+        // FFmpegKit ne comprend pas la syntaxe indirecte introduite par FFmpeg 8.
+        arguments.push(if cmd[index] == "-/filter_complex" {
+            "-filter_complex_script".to_string()
+        } else {
+            cmd[index].clone()
+        });
         index += 1;
     }
 

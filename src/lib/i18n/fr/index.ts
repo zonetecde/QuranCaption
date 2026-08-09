@@ -3019,6 +3019,7 @@ const fr = {
 		testimonialSarmad:
 			'Application incroyable. Facile à utiliser\u00a0! C\u2019est très utile pour la Oumma. J\u2019apprécie votre travail acharné.',
 		donationProgress: '{raised} sur {goal} collectés ce mois',
+		donationRaised: '{raised} collectés ce mois',
 		donateToHelp: 'Faites un don pour aider à atteindre l\u2019objectif mensuel',
 		monthlyGoal: 'Objectif mensuel'
 	},

@@ -24,6 +24,7 @@ const donation = {
 	testimonialSarmad:
 		'Amazing application. Easy to use! This is very helpful for the ummah. I appreciate you and all your hard work.',
 	donationProgress: '{raised} of {goal} raised this month',
+	donationRaised: '{raised} raised this month',
 	donateToHelp: 'Donate to help reach the monthly goal',
 	monthlyGoal: 'Monthly goal'
 };

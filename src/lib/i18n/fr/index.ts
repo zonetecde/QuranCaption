@@ -2657,28 +2657,28 @@ const fr = {
 	tour: {
 		stepCreateProjectTitle: 'Créer un nouveau projet',
 		stepCreateProjectDesc:
-			'Ce bouton vous permet de créer un nouveau projet Quran Caption à partir de zéro. Vous pouvez importer de l\u2019audio, de la vidéo ou télécharger des récitations.',
+			'Ce bouton ouvre le formulaire permettant de nommer un nouveau projet et de choisir son récitateur.',
 		stepOpenTutorialTitle: 'Ouvrir le projet tutoriel',
 		stepOpenTutorialDesc:
 			'Un projet tutoriel avec la sourate Al-Fatihah par Yasser Al-Dosari a été créé pour vous. Cliquez sur sa carte pour l\u2019ouvrir et suivre le guide.',
-		stepVideoEditorTitle: 'L\u2019éditeur vidéo',
+		stepVideoEditorTitle: 'Les éléments du projet',
 		stepVideoEditorDesc:
-			'Ici, vous importez votre récitation coranique. Faites glisser des fichiers audio/vidéo ou téléchargez depuis des sources en ligne. L\u2019éditeur gère tous vos médias.',
+			'La zone Éléments du projet contient les médias utilisés par le projet. Cliquez sur Ajouter un élément pour importer un fichier, ou utilisez les sections de téléchargement plus bas.',
 		stepAddToTimelineTitle: 'Ajouter à la timeline',
 		stepAddToTimelineDesc:
 			'Survolez la carte de l\u2019élément dans la liste à gauche, puis cliquez sur \u00ab\u00a0Ajouter à la timeline\u00a0\u00bb. Cela place la récitation dans la zone d\u2019édition principale.',
-		stepSubtitlesEditorTitle: 'Aller à l\u2019éditeur de sous-titres',
+		stepSubtitlesEditorTitle: 'Aller aux sous-titres',
 		stepSubtitlesEditorDesc:
-			'Rendez-vous dans l\u2019éditeur de sous-titres pour commencer à ajouter le texte coranique. C\u2019est ici que vous alignez chaque verset avec l\u2019audio.',
+			'Rendez-vous dans l\u2019onglet Sous-titres pour ajouter le texte coranique et aligner chaque verset avec l\u2019audio.',
 		stepManualSegmentationTitle: 'Segmentation manuelle',
 		stepManualSegmentationDesc:
-			'Les sous-titres sont ajoutés en temps réel pendant la lecture de la récitation. Tapez ou sélectionnez un verset, et il apparaîtra à la position de lecture actuelle.',
+			'Choisissez la sourate et le verset, sélectionnez les mots récités, puis appuyez sur Entrée pour créer un sous-titre à la position de lecture actuelle.',
 		stepShortcutsTitle: 'Raccourcis et visite guidée',
 		stepShortcutsDesc:
 			'Survolez l\u2019icône ? pour voir tous les raccourcis disponibles. Ceux-ci accélèrent considérablement le processus de segmentation.',
 		stepAutoSegmentTitle: 'Segmentation automatique avec l\u2019IA',
 		stepAutoSegmentDesc:
-			'Vous préférez l\u2019automatisation\u00a0? Cliquez sur Segmentation auto pour que l\u2019IA détecte les limites des sourates et les minutages des versets à partir de l\u2019audio.',
+			'Cliquez sur Segmentation auto pour laisser l\u2019IA identifier les versets récités et créer leurs minutages à partir de l\u2019audio.',
 		stepTranslationsTitle: 'Aller aux traductions',
 		stepTranslationsDesc:
 			'Rendez-vous dans l\u2019onglet Traductions pour ajouter des sous-titres traduits sous le texte arabe.',
@@ -2688,20 +2688,20 @@ const fr = {
 		stepStyleTitle: 'Aller au style',
 		stepStyleDesc:
 			'Rendez-vous dans l\u2019onglet Style pour personnaliser l\u2019apparence visuelle de vos sous-titres et de la superposition vidéo.',
-		stepStyleCategoriesTitle: 'Trois catégories de style',
+		stepStyleCategoriesTitle: 'Vidéo, arabe et traduction',
 		stepStyleCategoriesDesc:
-			'Global \u2014 superposition vidéo, nom du récitateur. Sourate \u2014 nom du récitateur et de la sourate. Versets \u2014 police, couleur, taille, animations.',
+			'Vidéo contrôle le fond et la superposition vidéo. Arabe personnalise les sous-titres coraniques. Traduction personnalise les sous-titres traduits.',
 		stepExportTitle: 'Aller à l\u2019export',
 		stepExportDesc:
 			'Enfin, rendez-vous dans l\u2019onglet Export pour générer votre vidéo sous-titrée.',
-		stepExportVideoTitle: 'Exporter votre vidéo',
+		stepExportVideoTitle: 'Choisir la plage d\u2019export',
 		stepExportVideoDesc:
-			'Utilisez les curseurs de plage pour sélectionner la durée, choisissez la qualité et cliquez sur Exporter pour créer votre vidéo finale.',
+			'Définissez ici les temps de début et de fin, puis ajoutez éventuellement des passages à ignorer. Vérifiez ensuite la qualité plus bas et cliquez sur Exporter.',
 		hintClickTutorialCard: 'Cliquez sur la carte du projet tutoriel pour continuer',
 		hintHoverAndAdd:
 			'Survolez l\u2019élément et cliquez sur \u00ab\u00a0Ajouter à la timeline\u00a0\u00bb pour continuer',
 		hintClickSubtitlesTab:
-			'Cliquez sur l\u2019onglet \u00ab\u00a0Éditeur de sous-titres\u00a0\u00bb pour continuer',
+			'Cliquez sur l\u2019onglet \u00ab\u00a0Sous-titres\u00a0\u00bb pour continuer',
 		hintClickTranslationsTab:
 			'Cliquez sur l\u2019onglet \u00ab\u00a0Traductions\u00a0\u00bb pour continuer',
 		hintClickStyleTab: 'Cliquez sur l\u2019onglet \u00ab\u00a0Style\u00a0\u00bb pour continuer',

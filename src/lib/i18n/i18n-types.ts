@@ -8395,7 +8395,7 @@ type RootTranslation = {
 		 */
 		stepCreateProjectTitle: string;
 		/**
-		 * T​h​i​s​ ​b​u​t​t​o​n​ ​l​e​t​s​ ​y​o​u​ ​c​r​e​a​t​e​ ​a​ ​n​e​w​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​p​r​o​j​e​c​t​ ​f​r​o​m​ ​s​c​r​a​t​c​h​.​ ​Y​o​u​ ​c​a​n​ ​i​m​p​o​r​t​ ​a​u​d​i​o​,​ ​v​i​d​e​o​,​ ​o​r​ ​d​o​w​n​l​o​a​d​ ​r​e​c​i​t​a​t​i​o​n​s​.
+		 * T​h​i​s​ ​b​u​t​t​o​n​ ​o​p​e​n​s​ ​t​h​e​ ​f​o​r​m​ ​w​h​e​r​e​ ​y​o​u​ ​c​a​n​ ​n​a​m​e​ ​a​ ​n​e​w​ ​p​r​o​j​e​c​t​ ​a​n​d​ ​c​h​o​o​s​e​ ​i​t​s​ ​r​e​c​i​t​e​r​.
 		 */
 		stepCreateProjectDesc: string;
 		/**
@@ -8407,11 +8407,11 @@ type RootTranslation = {
 		 */
 		stepOpenTutorialDesc: string;
 		/**
-		 * T​h​e​ ​V​i​d​e​o​ ​E​d​i​t​o​r
+		 * Y​o​u​r​ ​p​r​o​j​e​c​t​ ​a​s​s​e​t​s
 		 */
 		stepVideoEditorTitle: string;
 		/**
-		 * H​e​r​e​ ​y​o​u​ ​i​m​p​o​r​t​ ​y​o​u​r​ ​Q​u​r​a​n​ ​r​e​c​i​t​a​t​i​o​n​.​ ​D​r​a​g​ ​a​u​d​i​o​/​v​i​d​e​o​ ​f​i​l​e​s​ ​o​r​ ​d​o​w​n​l​o​a​d​ ​f​r​o​m​ ​o​n​l​i​n​e​ ​s​o​u​r​c​e​s​.​ ​T​h​e​ ​e​d​i​t​o​r​ ​m​a​n​a​g​e​s​ ​a​l​l​ ​y​o​u​r​ ​m​e​d​i​a​.
+		 * T​h​e​ ​P​r​o​j​e​c​t​ ​A​s​s​e​t​s​ ​a​r​e​a​ ​c​o​n​t​a​i​n​s​ ​t​h​e​ ​m​e​d​i​a​ ​u​s​e​d​ ​b​y​ ​y​o​u​r​ ​p​r​o​j​e​c​t​.​ ​C​l​i​c​k​ ​A​d​d​ ​A​s​s​e​t​ ​t​o​ ​i​m​p​o​r​t​ ​a​ ​f​i​l​e​,​ ​o​r​ ​u​s​e​ ​t​h​e​ ​d​o​w​n​l​o​a​d​ ​s​e​c​t​i​o​n​s​ ​b​e​l​o​w​.
 		 */
 		stepVideoEditorDesc: string;
 		/**
@@ -8423,11 +8423,11 @@ type RootTranslation = {
 		 */
 		stepAddToTimelineDesc: string;
 		/**
-		 * G​o​ ​t​o​ ​S​u​b​t​i​t​l​e​s​ ​E​d​i​t​o​r
+		 * G​o​ ​t​o​ ​S​u​b​t​i​t​l​e​s
 		 */
 		stepSubtitlesEditorTitle: string;
 		/**
-		 * H​e​a​d​ ​t​o​ ​t​h​e​ ​S​u​b​t​i​t​l​e​s​ ​E​d​i​t​o​r​ ​t​o​ ​s​t​a​r​t​ ​a​d​d​i​n​g​ ​Q​u​r​a​n​i​c​ ​t​e​x​t​.​ ​T​h​i​s​ ​i​s​ ​w​h​e​r​e​ ​y​o​u​ ​a​l​i​g​n​ ​e​a​c​h​ ​v​e​r​s​e​ ​w​i​t​h​ ​t​h​e​ ​a​u​d​i​o​.
+		 * H​e​a​d​ ​t​o​ ​t​h​e​ ​S​u​b​t​i​t​l​e​s​ ​t​a​b​ ​t​o​ ​s​t​a​r​t​ ​a​d​d​i​n​g​ ​Q​u​r​a​n​i​c​ ​t​e​x​t​.​ ​T​h​i​s​ ​i​s​ ​w​h​e​r​e​ ​y​o​u​ ​a​l​i​g​n​ ​e​a​c​h​ ​v​e​r​s​e​ ​w​i​t​h​ ​t​h​e​ ​a​u​d​i​o​.
 		 */
 		stepSubtitlesEditorDesc: string;
 		/**
@@ -8435,7 +8435,7 @@ type RootTranslation = {
 		 */
 		stepManualSegmentationTitle: string;
 		/**
-		 * S​u​b​t​i​t​l​e​s​ ​a​r​e​ ​a​d​d​e​d​ ​i​n​ ​r​e​a​l​ ​t​i​m​e​ ​a​s​ ​t​h​e​ ​r​e​c​i​t​a​t​i​o​n​ ​p​l​a​y​s​.​ ​T​y​p​e​ ​o​r​ ​s​e​l​e​c​t​ ​a​ ​v​e​r​s​e​,​ ​a​n​d​ ​i​t​ ​w​i​l​l​ ​a​p​p​e​a​r​ ​a​t​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​p​l​a​y​b​a​c​k​ ​p​o​s​i​t​i​o​n​.
+		 * C​h​o​o​s​e​ ​t​h​e​ ​s​u​r​a​h​ ​a​n​d​ ​v​e​r​s​e​,​ ​s​e​l​e​c​t​ ​t​h​e​ ​w​o​r​d​s​ ​b​e​i​n​g​ ​r​e​c​i​t​e​d​,​ ​t​h​e​n​ ​p​r​e​s​s​ ​E​n​t​e​r​ ​t​o​ ​c​r​e​a​t​e​ ​a​ ​s​u​b​t​i​t​l​e​ ​a​t​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​p​l​a​y​b​a​c​k​ ​p​o​s​i​t​i​o​n​.
 		 */
 		stepManualSegmentationDesc: string;
 		/**
@@ -8451,7 +8451,7 @@ type RootTranslation = {
 		 */
 		stepAutoSegmentTitle: string;
 		/**
-		 * P​r​e​f​e​r​ ​a​u​t​o​m​a​t​i​o​n​?​ ​C​l​i​c​k​ ​A​u​t​o​-​S​e​g​m​e​n​t​ ​t​o​ ​h​a​v​e​ ​t​h​e​ ​A​I​ ​d​e​t​e​c​t​ ​s​u​r​a​h​ ​b​o​u​n​d​a​r​i​e​s​ ​a​n​d​ ​v​e​r​s​e​ ​t​i​m​i​n​g​s​ ​f​r​o​m​ ​t​h​e​ ​a​u​d​i​o​.
+		 * C​l​i​c​k​ ​A​u​t​o​-​S​e​g​m​e​n​t​ ​t​o​ ​l​e​t​ ​t​h​e​ ​A​I​ ​i​d​e​n​t​i​f​y​ ​t​h​e​ ​r​e​c​i​t​e​d​ ​v​e​r​s​e​s​ ​a​n​d​ ​c​r​e​a​t​e​ ​t​h​e​i​r​ ​t​i​m​i​n​g​s​ ​f​r​o​m​ ​t​h​e​ ​a​u​d​i​o​.
 		 */
 		stepAutoSegmentDesc: string;
 		/**
@@ -8479,11 +8479,11 @@ type RootTranslation = {
 		 */
 		stepStyleDesc: string;
 		/**
-		 * T​h​r​e​e​ ​s​t​y​l​e​ ​c​a​t​e​g​o​r​i​e​s
+		 * V​i​d​e​o​,​ ​A​r​a​b​i​c​,​ ​a​n​d​ ​T​r​a​n​s​l​a​t​i​o​n
 		 */
 		stepStyleCategoriesTitle: string;
 		/**
-		 * G​l​o​b​a​l​ ​—​ ​v​i​d​e​o​ ​o​v​e​r​l​a​y​,​ ​r​e​c​i​t​e​r​ ​n​a​m​e​.​ ​S​u​r​a​h​ ​—​ ​r​e​c​i​t​e​r​ ​a​n​d​ ​s​u​r​a​h​ ​n​a​m​e​.​ ​V​e​r​s​e​ ​—​ ​f​o​n​t​,​ ​c​o​l​o​r​,​ ​s​i​z​e​,​ ​a​n​i​m​a​t​i​o​n​s​.
+		 * V​i​d​e​o​ ​c​o​n​t​r​o​l​s​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​a​n​d​ ​v​i​d​e​o​ ​o​v​e​r​l​a​y​.​ ​A​r​a​b​i​c​ ​s​t​y​l​e​s​ ​t​h​e​ ​Q​u​r​a​n​i​c​ ​c​a​p​t​i​o​n​s​.​ ​T​r​a​n​s​l​a​t​i​o​n​ ​s​t​y​l​e​s​ ​t​h​e​ ​t​r​a​n​s​l​a​t​e​d​ ​c​a​p​t​i​o​n​s​.
 		 */
 		stepStyleCategoriesDesc: string;
 		/**
@@ -8495,11 +8495,11 @@ type RootTranslation = {
 		 */
 		stepExportDesc: string;
 		/**
-		 * E​x​p​o​r​t​ ​y​o​u​r​ ​v​i​d​e​o
+		 * C​h​o​o​s​e​ ​t​h​e​ ​e​x​p​o​r​t​ ​r​a​n​g​e
 		 */
 		stepExportVideoTitle: string;
 		/**
-		 * U​s​e​ ​t​h​e​ ​r​a​n​g​e​ ​i​n​p​u​t​s​ ​t​o​ ​s​e​l​e​c​t​ ​t​h​e​ ​t​i​m​e​ ​r​a​n​g​e​,​ ​c​h​o​o​s​e​ ​q​u​a​l​i​t​y​,​ ​a​n​d​ ​c​l​i​c​k​ ​E​x​p​o​r​t​ ​t​o​ ​c​r​e​a​t​e​ ​y​o​u​r​ ​f​i​n​a​l​ ​v​i​d​e​o​.
+		 * S​e​t​ ​t​h​e​ ​s​t​a​r​t​ ​a​n​d​ ​e​n​d​ ​t​i​m​e​s​ ​h​e​r​e​,​ ​a​n​d​ ​o​p​t​i​o​n​a​l​l​y​ ​a​d​d​ ​s​e​c​t​i​o​n​s​ ​t​o​ ​s​k​i​p​.​ ​Y​o​u​ ​c​a​n​ ​t​h​e​n​ ​r​e​v​i​e​w​ ​t​h​e​ ​q​u​a​l​i​t​y​ ​s​e​t​t​i​n​g​s​ ​b​e​l​o​w​ ​a​n​d​ ​c​l​i​c​k​ ​E​x​p​o​r​t​.
 		 */
 		stepExportVideoDesc: string;
 		/**
@@ -8511,7 +8511,7 @@ type RootTranslation = {
 		 */
 		hintHoverAndAdd: string;
 		/**
-		 * C​l​i​c​k​ ​t​h​e​ ​"​S​u​b​t​i​t​l​e​s​ ​e​d​i​t​o​r​"​ ​t​a​b​ ​t​o​ ​c​o​n​t​i​n​u​e
+		 * C​l​i​c​k​ ​t​h​e​ ​"​S​u​b​t​i​t​l​e​s​"​ ​t​a​b​ ​t​o​ ​c​o​n​t​i​n​u​e
 		 */
 		hintClickSubtitlesTab: string;
 		/**
@@ -19264,7 +19264,7 @@ export type TranslationFunctions = {
 		 */
 		stepCreateProjectTitle: () => LocalizedString;
 		/**
-		 * This button lets you create a new Quran Caption project from scratch. You can import audio, video, or download recitations.
+		 * This button opens the form where you can name a new project and choose its reciter.
 		 */
 		stepCreateProjectDesc: () => LocalizedString;
 		/**
@@ -19276,11 +19276,11 @@ export type TranslationFunctions = {
 		 */
 		stepOpenTutorialDesc: () => LocalizedString;
 		/**
-		 * The Video Editor
+		 * Your project assets
 		 */
 		stepVideoEditorTitle: () => LocalizedString;
 		/**
-		 * Here you import your Quran recitation. Drag audio/video files or download from online sources. The editor manages all your media.
+		 * The Project Assets area contains the media used by your project. Click Add Asset to import a file, or use the download sections below.
 		 */
 		stepVideoEditorDesc: () => LocalizedString;
 		/**
@@ -19292,11 +19292,11 @@ export type TranslationFunctions = {
 		 */
 		stepAddToTimelineDesc: () => LocalizedString;
 		/**
-		 * Go to Subtitles Editor
+		 * Go to Subtitles
 		 */
 		stepSubtitlesEditorTitle: () => LocalizedString;
 		/**
-		 * Head to the Subtitles Editor to start adding Quranic text. This is where you align each verse with the audio.
+		 * Head to the Subtitles tab to start adding Quranic text. This is where you align each verse with the audio.
 		 */
 		stepSubtitlesEditorDesc: () => LocalizedString;
 		/**
@@ -19304,7 +19304,7 @@ export type TranslationFunctions = {
 		 */
 		stepManualSegmentationTitle: () => LocalizedString;
 		/**
-		 * Subtitles are added in real time as the recitation plays. Type or select a verse, and it will appear at the current playback position.
+		 * Choose the surah and verse, select the words being recited, then press Enter to create a subtitle at the current playback position.
 		 */
 		stepManualSegmentationDesc: () => LocalizedString;
 		/**
@@ -19320,7 +19320,7 @@ export type TranslationFunctions = {
 		 */
 		stepAutoSegmentTitle: () => LocalizedString;
 		/**
-		 * Prefer automation? Click Auto-Segment to have the AI detect surah boundaries and verse timings from the audio.
+		 * Click Auto-Segment to let the AI identify the recited verses and create their timings from the audio.
 		 */
 		stepAutoSegmentDesc: () => LocalizedString;
 		/**
@@ -19348,11 +19348,11 @@ export type TranslationFunctions = {
 		 */
 		stepStyleDesc: () => LocalizedString;
 		/**
-		 * Three style categories
+		 * Video, Arabic, and Translation
 		 */
 		stepStyleCategoriesTitle: () => LocalizedString;
 		/**
-		 * Global — video overlay, reciter name. Surah — reciter and surah name. Verse — font, color, size, animations.
+		 * Video controls the background and video overlay. Arabic styles the Quranic captions. Translation styles the translated captions.
 		 */
 		stepStyleCategoriesDesc: () => LocalizedString;
 		/**
@@ -19364,11 +19364,11 @@ export type TranslationFunctions = {
 		 */
 		stepExportDesc: () => LocalizedString;
 		/**
-		 * Export your video
+		 * Choose the export range
 		 */
 		stepExportVideoTitle: () => LocalizedString;
 		/**
-		 * Use the range inputs to select the time range, choose quality, and click Export to create your final video.
+		 * Set the start and end times here, and optionally add sections to skip. You can then review the quality settings below and click Export.
 		 */
 		stepExportVideoDesc: () => LocalizedString;
 		/**
@@ -19380,7 +19380,7 @@ export type TranslationFunctions = {
 		 */
 		hintHoverAndAdd: () => LocalizedString;
 		/**
-		 * Click the "Subtitles editor" tab to continue
+		 * Click the "Subtitles" tab to continue
 		 */
 		hintClickSubtitlesTab: () => LocalizedString;
 		/**

@@ -2637,28 +2637,28 @@ const es = {
 	tour: {
 		stepCreateProjectTitle: 'Crear un nuevo proyecto',
 		stepCreateProjectDesc:
-			'Este botón le permite crear un nuevo proyecto Quran Caption desde cero. Puede importar audio, video o descargar recitaciones.',
+			'Este botón abre el formulario donde puede asignar un nombre al nuevo proyecto y elegir su recitador.',
 		stepOpenTutorialTitle: 'Abrir el proyecto tutorial',
 		stepOpenTutorialDesc:
 			'Se ha creado un proyecto tutorial con la sura Al-Fatihah por Yasser Al-Dosari para usted. Haga clic en su tarjeta para abrirlo y seguir la guía.',
-		stepVideoEditorTitle: 'El editor de video',
+		stepVideoEditorTitle: 'Los elementos del proyecto',
 		stepVideoEditorDesc:
-			'Aquí importa su recitación coránica. Arrastre archivos de audio/video o descargue desde fuentes en línea. El editor gestiona todos sus medios.',
+			'El área Elementos del proyecto contiene los medios utilizados por el proyecto. Haga clic en Agregar elemento para importar un archivo o use las secciones de descarga inferiores.',
 		stepAddToTimelineTitle: 'Agregar a la línea de tiempo',
 		stepAddToTimelineDesc:
 			'Pase el cursor sobre la tarjeta del elemento en la lista de la izquierda, luego haga clic en « Agregar a la línea de tiempo ». Esto coloca la recitación en el área de edición principal.',
-		stepSubtitlesEditorTitle: 'Ir al editor de subtítulos',
+		stepSubtitlesEditorTitle: 'Ir a Subtítulos',
 		stepSubtitlesEditorDesc:
-			'Vaya al editor de subtítulos para comenzar a agregar el texto coránico. Aquí es donde alinea cada versículo con el audio.',
+			'Vaya a la pestaña Subtítulos para añadir el texto coránico y alinear cada versículo con el audio.',
 		stepManualSegmentationTitle: 'Segmentación manual',
 		stepManualSegmentationDesc:
-			'Los subtítulos se agregan en tiempo real durante la reproducción de la recitación. Escriba o seleccione un versículo, y aparecerá en la posición de reproducción actual.',
+			'Elija la sura y el versículo, seleccione las palabras recitadas y pulse Intro para crear un subtítulo en la posición de reproducción actual.',
 		stepShortcutsTitle: 'Atajos y recorrido guiado',
 		stepShortcutsDesc:
 			'Pase el cursor sobre el icono ? para ver todos los atajos disponibles. Estos aceleran considerablemente el proceso de segmentación.',
 		stepAutoSegmentTitle: 'Segmentación automática con IA',
 		stepAutoSegmentDesc:
-			'¿Prefiere la automatización? Haga clic en Segmentación auto para que la IA detecte los límites de las suras y las temporizaciones de los versículos a partir del audio.',
+			'Haga clic en Segmentación auto para que la IA identifique los versículos recitados y cree sus tiempos a partir del audio.',
 		stepTranslationsTitle: 'Ir a traducciones',
 		stepTranslationsDesc:
 			'Vaya a la pestaña Traducciones para agregar subtítulos traducidos debajo del texto árabe.',
@@ -2668,18 +2668,18 @@ const es = {
 		stepStyleTitle: 'Ir al estilo',
 		stepStyleDesc:
 			'Vaya a la pestaña Estilo para personalizar la apariencia visual de sus subtítulos y de la superposición de video.',
-		stepStyleCategoriesTitle: 'Tres categorías de estilo',
+		stepStyleCategoriesTitle: 'Video, árabe y traducción',
 		stepStyleCategoriesDesc:
-			'Global — superposición de video, nombre del recitador. Sura — nombre del recitador y de la sura. Versículos — fuente, color, tamaño, animaciones.',
+			'Video controla el fondo y la superposición de video. Árabe personaliza los subtítulos coránicos. Traducción personaliza los subtítulos traducidos.',
 		stepExportTitle: 'Ir a exportar',
 		stepExportDesc: 'Finalmente, vaya a la pestaña Exportar para generar su video subtitulado.',
-		stepExportVideoTitle: 'Exportar su video',
+		stepExportVideoTitle: 'Elegir el intervalo de exportación',
 		stepExportVideoDesc:
-			'Use los controles deslizantes de rango para seleccionar la duración, elija la calidad y haga clic en Exportar para crear su video final.',
+			'Defina aquí las horas de inicio y fin y, si quiere, añada secciones que omitir. Después revise la calidad más abajo y haga clic en Exportar.',
 		hintClickTutorialCard: 'Haga clic en la tarjeta del proyecto tutorial para continuar',
 		hintHoverAndAdd:
 			'Pase el cursor sobre el elemento y haga clic en « Agregar a la línea de tiempo » para continuar',
-		hintClickSubtitlesTab: 'Haga clic en la pestaña « Editor de subtítulos » para continuar',
+		hintClickSubtitlesTab: 'Haga clic en la pestaña « Subtítulos » para continuar',
 		hintClickTranslationsTab: 'Haga clic en la pestaña « Traducciones » para continuar',
 		hintClickStyleTab: 'Haga clic en la pestaña « Estilo » para continuar',
 		hintClickExportTab: 'Haga clic en la pestaña « Exportar » para continuar',

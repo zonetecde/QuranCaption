@@ -44,6 +44,7 @@
 	let pendingNoteId = $state<string | null>(null);
 	let examples = $state<QuranReflectionPreview[]>([]);
 	let examplesLoading = $state(false);
+	let examplesReady = $state(false);
 	let examplesFailed = $state(false);
 	let isSubmitting = $state(false);
 	let submitFailed = $state(false);
@@ -101,6 +102,7 @@
 		pendingAction = null;
 		pendingNoteId = null;
 		submitFailed = false;
+		examplesReady = false;
 		examplesFailed = false;
 		visible = true;
 		globalState.uiState.showReflectionPrompt = true;
@@ -252,6 +254,7 @@
 			pendingAction = pending.action;
 			pendingNoteId = pending.noteId;
 			stage = pending.action ? 'auth' : 'composer';
+			examplesReady = false;
 			visible = true;
 			globalState.uiState.showReflectionPrompt = true;
 		} catch {
@@ -399,7 +402,10 @@
 				}
 			})
 			.finally(() => {
-				if (!controller.signal.aborted) examplesLoading = false;
+				if (!controller.signal.aborted) {
+					examplesLoading = false;
+					examplesReady = true;
+				}
 			});
 		return () => controller.abort();
 	});
@@ -411,7 +417,7 @@
 	});
 </script>
 
-{#if visible && context && selectedSurah && selectedSpan}
+{#if visible && examplesReady && context && selectedSurah && selectedSpan}
 	<aside
 		aria-labelledby="quran-reflection-title"
 		aria-live="polite"

@@ -46,6 +46,17 @@
 	}
 
 	/**
+	 * Ouvre la réflexion associée à un export vidéo actif.
+	 * @param {Exportation} exportation Export dont les versets seront proposés.
+	 * @returns {void}
+	 */
+	function openReflectionPrompt(exportation: Exportation): void {
+		if (!exportation.reflectionContext) return;
+		globalState.uiState.reflectionPromptContext = exportation.reflectionContext;
+		closeMonitor();
+	}
+
+	/**
 	 * Formate une durée en horodatage lisible.
 	 * @param {number} ms Durée en millisecondes.
 	 * @returns {string} Durée HH:MM:SS ou MM:SS.
@@ -428,6 +439,17 @@
 											style={`width: ${clampProgress(exportation.percentageProgress)}%`}
 										></div>
 									</div>
+
+									{#if exportation.exportKind === ExportKind.Video && exportation.reflectionContext}
+										<button
+											type="button"
+											class="btn-accent mt-4 flex min-h-16 w-full items-center justify-center gap-3 rounded-xl px-4 py-3 text-center text-sm font-semibold leading-snug"
+											onclick={() => openReflectionPrompt(exportation)}
+										>
+											<span class="material-icons text-[26px]!">auto_stories</span>
+											<span>{monitorMessage('reflectDuringExport')}</span>
+										</button>
+									{/if}
 
 									{#if exportation.exportKind === ExportKind.Video}
 										{#if exportation.currentState === ExportState.CapturingFrames}

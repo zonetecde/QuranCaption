@@ -95,6 +95,13 @@
 		]
 	},
 	"plugins": {
-		"deep-link": {}
+		"deep-link": {
+			"mobile": [
+				{
+					"scheme": ["qurancaption"],
+					"appLink": false
+				}
+			]
+		}
 	}
 }

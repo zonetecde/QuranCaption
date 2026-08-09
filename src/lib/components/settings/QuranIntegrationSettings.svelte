@@ -1,7 +1,5 @@
 <script lang="ts">
 	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
-	import Settings from '$lib/classes/Settings.svelte';
-	import { globalState } from '$lib/runes/main.svelte';
 	import { getReflectionSubmissionScopes } from '$lib/services/QuranReflectionService';
 	import LL from '$lib/i18n/i18n-svelte';
 
@@ -10,8 +8,6 @@
 		$LL.settings as unknown as {
 			quranFoundationIntegration: () => string;
 			quranFoundationIntegrationDescription: () => string;
-			hideReflectionPromptAfterExport: () => string;
-			hideReflectionPromptAfterExportDescription: () => string;
 		}
 	);
 
@@ -136,27 +132,6 @@
 				</div>
 			{/if}
 		</div>
-
-		{#if globalState.settings}
-			<label
-				class="flex items-center justify-between gap-4 rounded-xl border border-color bg-primary p-4"
-			>
-				<div>
-					<p class="text-sm font-medium text-primary">
-						{copy.hideReflectionPromptAfterExport()}
-					</p>
-					<p class="mt-1 text-xs text-thirdly">
-						{copy.hideReflectionPromptAfterExportDescription()}
-					</p>
-				</div>
-				<input
-					type="checkbox"
-					class="h-5 w-5 shrink-0 accent-accent-primary"
-					bind:checked={globalState.settings!.persistentUiState.hideReflectionPromptAfterExport}
-					onchange={() => Settings.save()}
-				/>
-			</label>
-		{/if}
 	</div>
 {/if}
 

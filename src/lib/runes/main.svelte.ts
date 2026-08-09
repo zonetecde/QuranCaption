@@ -19,6 +19,7 @@ import type { AiVideoState } from '$lib/components/aiVideo/types';
 import type { PresetLibraryState } from '$lib/components/projectEditor/tabs/styleEditor/presets/types';
 import type { StockMediaLibraryState } from '$lib/components/projectEditor/tabs/videoEditor/assetsManager/stockMediaTypes';
 import { getChineseMetadataLanguage } from '$lib/services/ChineseTranslationHelper';
+import type { QuranReflectionContext } from '$lib/services/QuranReflectionService';
 
 export type QuickTimelineEditorMode = 'translation' | 'wbw' | 'subtitle' | 'wbwTimestamp';
 
@@ -146,6 +147,7 @@ class GlobalState {
 		// Indique si on affiche le moniteur d'exportation
 		showExportMonitor: false,
 		showReflectionPrompt: false,
+		reflectionPromptContext: null as QuranReflectionContext | null,
 		// Identifiant du renderer d'export monté dans la WebView Android principale.
 		activeExportId: null as string | null,
 		isSettingsOpen: false,

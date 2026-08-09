@@ -9,6 +9,7 @@ const exporterMonitor = {
 	exportCompletedTapToView: 'Export complete. Tap to view it.',
 	exportCancelling: 'Cancelling export',
 	captureWbwSlowHint: 'If capturing feels slow, disable word-by-word (WBW) styles to speed it up.',
+	reflectDuringExport: 'Reflect on the verses in your video while you wait for the export',
 	fileNotFound: 'File not found',
 	exportedFileNotFound:
 		'The exported file could not be found. It might have been moved or deleted.',

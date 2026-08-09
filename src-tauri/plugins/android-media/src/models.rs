@@ -111,6 +111,27 @@ pub(crate) struct KeepScreenOnResponse {
 }
 
 #[derive(Debug, Serialize)]
+pub(crate) struct SecureValueRequest {
+    pub(crate) key: String,
+    pub(crate) value: String,
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct SecureKeyRequest {
+    pub(crate) key: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct SecureValueResponse {
+    pub(crate) value: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct SecureOperationResponse {
+    pub(crate) success: bool,
+}
+
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct StartExportServiceRequest {
     pub(crate) export_id: String,

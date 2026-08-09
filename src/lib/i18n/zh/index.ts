@@ -2746,6 +2746,7 @@ const zh = {
 		exportCompletedTapToView: '导出完成。点击查看。',
 		exportCancelling: '正在取消导出',
 		captureWbwSlowHint: '如果捕获速度较慢，请禁用逐词（WBW）样式以提高速度。',
+		reflectDuringExport: '等待导出时，思考视频中的经文',
 		fileNotFound: '文件未找到',
 		exportedFileNotFound: '导出的文件未找到。可能已被移动或删除。',
 		errorCopiedToClipboard: '错误已复制到剪贴板',

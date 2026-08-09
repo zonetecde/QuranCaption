@@ -4,9 +4,9 @@
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { Quran } from '$lib/classes/Quran';
-	import { ExportState } from '$lib/classes/Exportation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
 	import {
 		createPrivateReflectionNote,
@@ -15,7 +15,6 @@
 		hasReflectionSubmissionScopes,
 		parsePendingQuranReflection,
 		publishReflectionNote,
-		shouldPromptForReflection,
 		type QuranReflectionContext,
 		type PendingQuranReflection,
 		type QuranReflectionPreview,
@@ -28,9 +27,7 @@
 	type ReflectionCopy = Record<string, (args?: Record<string, string | number>) => string>;
 
 	const PENDING_REFLECTION_KEY = 'quran_reflection_pending';
-	const previousExportStates = new Map<number, ExportState>();
 
-	let initializedSnapshot = false;
 	let visible = $state(false);
 	let context = $state<QuranReflectionContext | null>(null);
 	let selectedSurahNumber = $state(0);
@@ -49,6 +46,9 @@
 	let isSubmitting = $state(false);
 	let submitFailed = $state(false);
 	let successMode = $state<ReflectionMode | null>(null);
+	let panelScale = $derived(
+		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
+	);
 	let copy = $derived($LL.export as unknown as ReflectionCopy);
 	let selectedSurah = $derived(context?.surahs.find((item) => item.surah === selectedSurahNumber));
 	let selectedSpan = $derived(selectedSurah?.ranges[selectedSpanIndex]);
@@ -107,38 +107,6 @@
 		visible = true;
 		globalState.uiState.showReflectionPrompt = true;
 		AnalyticsService.track('reflection_prompt_shown', analyticsProperties());
-	}
-
-	/** Détecte l'ajout d'une nouvelle opération d'export vidéo. */
-	function detectSuccessfulExport(): void {
-		if (!initializedSnapshot) {
-			for (const exportation of globalState.exportations) {
-				previousExportStates.set(exportation.exportId, exportation.currentState);
-			}
-			initializedSnapshot = true;
-			return;
-		}
-
-		const activeIds = new Set<number>();
-		for (const exportation of globalState.exportations) {
-			activeIds.add(exportation.exportId);
-			const previous = previousExportStates.get(exportation.exportId);
-			if (
-				globalState.settings?.persistentUiState.hideReflectionPromptAfterExport !== true &&
-				shouldPromptForReflection(
-					previous,
-					exportation.currentState,
-					exportation.exportKind,
-					exportation.reflectionContext
-				)
-			) {
-				openPrompt(exportation.reflectionContext!);
-			}
-			previousExportStates.set(exportation.exportId, exportation.currentState);
-		}
-		for (const id of previousExportStates.keys()) {
-			if (!activeIds.has(id)) previousExportStates.delete(id);
-		}
 	}
 
 	/** Ferme volontairement le panneau et supprime son brouillon persistant. */
@@ -373,10 +341,10 @@
 	});
 
 	$effect(() => {
-		globalState.exportations
-			.map((item) => `${item.exportId}:${item.currentState}:${item.exportKind}`)
-			.join('|');
-		detectSuccessfulExport();
+		const requestedContext = globalState.uiState.reflectionPromptContext;
+		if (!requestedContext) return;
+		globalState.uiState.reflectionPromptContext = null;
+		openPrompt(requestedContext);
 	});
 
 	$effect(() => {
@@ -418,309 +386,325 @@
 </script>
 
 {#if visible && examplesReady && context && selectedSurah && selectedSpan}
-	<aside
-		aria-labelledby="quran-reflection-title"
-		aria-live="polite"
-		class="reflection-banner fixed z-[998] overflow-y-auto! outline-none"
-	>
-		<header
-			class="reflection-header sticky top-0 z-10 flex items-start justify-between gap-4 px-5 py-3.5"
+	<div class="modal-wrapper reflection-backdrop" role="presentation">
+		<dialog
+			open
+			aria-labelledby="quran-reflection-title"
+			aria-live="polite"
+			aria-modal="true"
+			class="reflection-banner reflection-ui-scale overflow-hidden! outline-none"
+			style={`--editor-panel-scale: ${panelScale}; --editor-panel-height: ${100 / panelScale}%;`}
+			use:mobileModalSheet={dismissPrompt}
 		>
-			<div class="reflection-icon flex size-10 shrink-0 items-center justify-center rounded-2xl">
-				<span class="material-icons-outlined text-xl">auto_awesome</span>
-			</div>
-			<div class="min-w-0 flex-1">
-				<h2 id="quran-reflection-title" class="text-base font-bold text-primary sm:text-lg">
-					{copy.reflectionTitle()}
-				</h2>
-				<p class="mt-0.5 text-xs leading-snug text-secondary sm:text-[13px]">
-					{copy.reflectionDescription()}
-				</p>
-			</div>
-			<button
-				type="button"
-				class="flex size-12 shrink-0 items-center justify-center rounded-full text-secondary hover:bg-accent hover:text-primary"
-				onclick={dismissPrompt}
-				aria-label={copy.reflectionCloseLabel()}
+			<header
+				class="reflection-header sticky top-0 z-10 flex items-start justify-between gap-3 px-4 py-3.5"
 			>
-				<span class="material-icons">close</span>
-			</button>
-		</header>
-
-		<div class="reflection-content space-y-3 p-4">
-			{#if stage === 'auth'}
-				<div class="reflection-auth-card rounded-xl p-5">
-					<div class="relative z-1 flex flex-col items-center gap-4 sm:flex-row sm:text-left">
-						<div
-							class="reflection-auth-icon flex size-12 shrink-0 items-center justify-center rounded-2xl"
-						>
-							<span class="material-icons text-2xl">account_circle</span>
-						</div>
-						<div class="min-w-0 flex-1 text-center sm:text-left">
-							<h3 class="font-semibold text-primary">{copy.reflectionAuthTitle()}</h3>
-							<p class="mt-1 text-sm leading-relaxed text-secondary">
-								{quranAuthService.status === 'connected'
-									? copy.reflectionPermissionDescription()
-									: copy.reflectionAuthDescription()}
-							</p>
-						</div>
-						<div class="flex w-full shrink-0 flex-col gap-2 sm:w-auto">
-							<button
-								type="button"
-								class="reflection-primary min-h-11 rounded-xl px-5 text-sm font-semibold disabled:cursor-wait disabled:opacity-60"
-								onclick={connectQuranAccount}
-								disabled={quranAuthService.status === 'connecting'}
-							>
-								{copy.reflectionConnect()}
-							</button>
-							<button
-								type="button"
-								class="reflection-auth-back min-h-10 rounded-xl px-4 text-sm font-medium text-secondary"
-								onclick={() => (stage = 'composer')}
-							>
-								{copy.reflectionBack()}
-							</button>
-						</div>
-					</div>
+				<div class="reflection-icon flex size-10 shrink-0 items-center justify-center rounded-2xl">
+					<span class="material-icons-outlined text-xl">auto_awesome</span>
 				</div>
-			{:else if stage === 'success'}
-				<div class="rounded-xl border border-green-500/30 bg-green-500/10 p-6 text-center">
-					<span class="material-icons text-4xl text-green-400">check_circle</span>
-					<p class="mt-3 font-medium text-primary">
-						{successMode === 'private'
-							? copy.reflectionPrivateSuccess()
-							: copy.reflectionPublicSuccess()}
+				<div class="min-w-0 flex-1">
+					<h2 id="quran-reflection-title" class="text-base font-bold text-primary">
+						{copy.reflectionTitle()}
+					</h2>
+					<p class="mt-0.5 text-xs leading-snug text-secondary">
+						{copy.reflectionDescription()}
 					</p>
-					<button
-						type="button"
-						class="btn-accent mt-5 min-h-11 px-6"
-						onclick={startAnotherReflection}
-					>
-						{copy.reflectionWriteAnother()}
-					</button>
 				</div>
-			{:else}
-				<div>
-					{#if context.multiSurah}
-						<div class="mb-3 flex flex-wrap gap-2">
-							{#each context.surahs as item (item.surah)}
+				<button
+					type="button"
+					class="flex size-12 shrink-0 items-center justify-center rounded-full text-secondary hover:bg-accent hover:text-primary"
+					onclick={dismissPrompt}
+					aria-label={copy.reflectionCloseLabel()}
+				>
+					<span class="material-icons">close</span>
+				</button>
+			</header>
+
+			<div class="reflection-content min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+				{#if stage === 'auth'}
+					<div class="reflection-auth-card rounded-xl p-5">
+						<div class="relative z-1 flex flex-col items-center gap-4">
+							<div
+								class="reflection-auth-icon flex size-12 shrink-0 items-center justify-center rounded-2xl"
+							>
+								<span class="material-icons text-2xl">account_circle</span>
+							</div>
+							<div class="min-w-0 flex-1 text-center">
+								<h3 class="font-semibold text-primary">{copy.reflectionAuthTitle()}</h3>
+								<p class="mt-1 text-sm leading-relaxed text-secondary">
+									{quranAuthService.status === 'connected'
+										? copy.reflectionPermissionDescription()
+										: copy.reflectionAuthDescription()}
+								</p>
+							</div>
+							<div class="flex w-full shrink-0 flex-col gap-2">
 								<button
 									type="button"
-									class="min-h-11 rounded-full border px-3 text-sm"
-									class:border-accent-primary={item.surah === selectedSurahNumber}
-									class:bg-accent={item.surah === selectedSurahNumber}
-									class:border-color={item.surah !== selectedSurahNumber}
-									onclick={() => selectSurah(item.surah)}
+									class="reflection-primary min-h-11 rounded-xl px-5 text-sm font-semibold disabled:cursor-wait disabled:opacity-60"
+									onclick={connectQuranAccount}
+									disabled={quranAuthService.status === 'connecting'}
 								>
-									{Quran.surahs.find((surah) => surah.id === item.surah)?.name ?? item.surah}
+									{copy.reflectionConnect()}
 								</button>
-							{/each}
-						</div>
-					{/if}
-					<div class="passage-selector flex flex-wrap items-center gap-2 rounded-xl px-3 py-2">
-						<p class="mr-auto text-sm font-semibold text-primary">
-							{selectedSurahName}
-							— {selectionMode === 'whole'
-								? copy.reflectionWholeSurah()
-								: selectionMode === 'single'
-									? copy.reflectionSingleAyah({ verse: selectedFrom })
-									: copy.reflectionAyat({ from: selectedFrom, to: selectedTo })}
-						</p>
-						<div class="mode-selector flex rounded-lg p-0.5">
-							<button
-								type="button"
-								class="min-h-11 rounded-md px-3 py-2 text-xs font-semibold"
-								class:active={selectionMode === 'whole'}
-								onclick={() => selectReflectionMode('whole')}>{copy.reflectionWholeChoice()}</button
-							>
-							<button
-								type="button"
-								class="min-h-11 rounded-md px-3 py-2 text-xs font-semibold"
-								class:active={selectionMode === 'range'}
-								onclick={() => selectReflectionMode('range')}>{copy.reflectionRangeChoice()}</button
-							>
-							<button
-								type="button"
-								class="min-h-11 rounded-md px-3 py-2 text-xs font-semibold"
-								class:active={selectionMode === 'single'}
-								onclick={() => selectReflectionMode('single')}
-								>{copy.reflectionSingleChoice()}</button
-							>
-						</div>
-						{#if selectionMode === 'range'}
-							<div class="flex items-center gap-2">
-								<label class="flex items-center gap-1 text-xs text-thirdly"
-									>{copy.reflectionFromAyah()}
-									<select
-										class="compact-select"
-										value={selectedFrom}
-										onchange={(event) => selectFrom(Number(event.currentTarget.value))}
-									>
-										{#each Array.from({ length: selectedSurahVerseCount }, (_, index) => index + 1) as verse (verse)}
-											<option value={verse}>{verse}</option>
-										{/each}
-									</select>
-								</label>
-								<label class="flex items-center gap-1 text-xs text-thirdly"
-									>{copy.reflectionToAyah()}
-									<select
-										class="compact-select"
-										value={selectedTo}
-										onchange={(event) => selectTo(Number(event.currentTarget.value))}
-									>
-										{#each Array.from({ length: selectedSurahVerseCount }, (_, index) => index + 1) as verse (verse)}
-											<option value={verse}>{verse}</option>
-										{/each}
-									</select>
-								</label>
+								<button
+									type="button"
+									class="reflection-auth-back min-h-10 rounded-xl px-4 text-sm font-medium text-secondary"
+									onclick={() => (stage = 'composer')}
+								>
+									{copy.reflectionBack()}
+								</button>
 							</div>
-						{:else if selectionMode === 'single'}
-							<label class="flex items-center gap-1 text-xs text-thirdly"
-								>{copy.reflectionAyahLabel()}
-								<select
-									class="compact-select"
-									value={selectedFrom}
-									onchange={(event) => selectSingleVerse(Number(event.currentTarget.value))}
-								>
-									{#each Array.from({ length: selectedSurahVerseCount }, (_, index) => index + 1) as verse (verse)}
-										<option value={verse}>{verse}</option>
-									{/each}
-								</select>
-							</label>
-						{/if}
-					</div>
-				</div>
-
-				<div class="reflection-main grid gap-3 md:grid-cols-[minmax(0,1.35fr)_minmax(18rem,1fr)]">
-					<div class="reflection-editor flex min-h-0 flex-col">
-						<label for="quran-reflection-body" class="mb-2 block text-sm font-medium text-primary"
-							>{copy.reflectionComposerLabel()}</label
-						>
-						<textarea
-							id="quran-reflection-body"
-							class="reflection-textarea min-h-40 w-full resize-y rounded-xl px-3 py-2.5 text-sm text-primary outline-none"
-							placeholder={reflectionPlaceholder}
-							bind:value={draft}
-							oninput={persistPending}
-						></textarea>
-						{#if submitFailed}<p class="mt-2 text-sm text-red-400">
-								{copy.reflectionSubmitError()}
-							</p>{/if}
-					</div>
-
-					<section class="min-w-0" aria-labelledby="reflection-examples-title">
-						<div class="mb-2 flex items-center justify-between gap-2">
-							<h3 id="reflection-examples-title" class="text-sm font-semibold text-primary">
-								{copy.reflectionExamplesTitle()}
-							</h3>
-							<span class="quranreflect-badge text-[10px] font-bold uppercase tracking-wide">
-								QuranReflect
-							</span>
 						</div>
-						<div class="reflection-strip flex min-h-40 snap-x gap-2 overflow-x-auto pb-1">
-							{#if examplesLoading}
-								<div
-									class="reflection-card flex min-w-full items-center justify-center px-4 text-center text-sm text-thirdly"
-								>
-									{copy.reflectionExamplesLoading()}
-								</div>
-							{:else if examplesFailed}
-								<div
-									class="reflection-card flex min-w-full items-center justify-center px-4 text-center text-sm text-thirdly"
-								>
-									{copy.reflectionExamplesError()}
-								</div>
-							{:else if examples.length === 0}
-								<div
-									class="reflection-card flex min-w-full items-center justify-center px-4 text-center text-sm text-thirdly"
-								>
-									{copy.reflectionNoExamples()}
-								</div>
-							{:else}
-								{#each examples as example (example.id)}
-									{@const authorName = example.author || copy.reflectionContributor()}
-									<article class="reflection-card min-w-[85%] snap-start p-3">
-										<div class="mb-2.5 flex items-center gap-2.5">
-											{#if example.avatarUrl}
-												<img
-													src={example.avatarUrl}
-													alt={authorName}
-													class="size-8 shrink-0 rounded-full object-cover"
-												/>
-											{:else}
-												<span
-													class="reflection-avatar flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold"
-													aria-hidden="true"
-												>
-													{authorName.charAt(0).toUpperCase()}
-												</span>
-											{/if}
-											<span class="truncate text-xs font-semibold text-primary">{authorName}</span>
-										</div>
-										<p
-											title={example.body}
-											class="line-clamp-4 whitespace-pre-line text-sm leading-relaxed text-secondary"
-										>
-											{example.body}
-										</p>
-										<div class="mt-2 flex items-center justify-between gap-2">
-											<span class="text-[11px] text-thirdly">
-												{#if example.likesCount > 0}{copy.reflectionLikes({
-														count: example.likesCount
-													})}{/if}
-											</span>
-											{#if example.url}<button
-													type="button"
-													class="reflection-read-more flex items-center gap-1 text-[11px] font-medium"
-													onclick={() => openReflectionExample(example)}
-												>
-													{copy.reflectionReadMore()}
-													<span class="material-icons text-xs" aria-hidden="true">open_in_new</span>
-												</button>{/if}
-										</div>
-									</article>
+					</div>
+				{:else if stage === 'success'}
+					<div class="rounded-xl border border-green-500/30 bg-green-500/10 p-6 text-center">
+						<span class="material-icons text-4xl text-green-400">check_circle</span>
+						<p class="mt-3 font-medium text-primary">
+							{successMode === 'private'
+								? copy.reflectionPrivateSuccess()
+								: copy.reflectionPublicSuccess()}
+						</p>
+						<button
+							type="button"
+							class="btn-accent mt-5 min-h-11 px-6"
+							onclick={startAnotherReflection}
+						>
+							{copy.reflectionWriteAnother()}
+						</button>
+					</div>
+				{:else}
+					<div>
+						{#if context.multiSurah}
+							<div class="mb-3 flex flex-wrap gap-2">
+								{#each context.surahs as item (item.surah)}
+									<button
+										type="button"
+										class="min-h-11 rounded-full border px-3 text-sm"
+										class:border-accent-primary={item.surah === selectedSurahNumber}
+										class:bg-accent={item.surah === selectedSurahNumber}
+										class:border-color={item.surah !== selectedSurahNumber}
+										onclick={() => selectSurah(item.surah)}
+									>
+										{Quran.surahs.find((surah) => surah.id === item.surah)?.name ?? item.surah}
+									</button>
 								{/each}
-							{/if}
+							</div>
+						{/if}
+						<div class="passage-selector flex flex-wrap items-center gap-2 rounded-xl px-3 py-2">
+							<div class="flex w-full items-center justify-between gap-2">
+								<p class="min-w-0 text-sm font-semibold text-primary">
+									{selectedSurahName}
+									— {selectionMode === 'whole'
+										? copy.reflectionWholeSurah()
+										: selectionMode === 'single'
+											? copy.reflectionSingleAyah({ verse: selectedFrom })
+											: copy.reflectionAyat({ from: selectedFrom, to: selectedTo })}
+								</p>
+								{#if selectionMode === 'range'}
+									<div class="flex shrink-0 gap-2">
+										<label class="flex items-center gap-1 text-xs text-thirdly"
+											>{copy.reflectionFromAyah()}
+											<select
+												class="compact-select"
+												value={selectedFrom}
+												onchange={(event) => selectFrom(Number(event.currentTarget.value))}
+											>
+												{#each Array.from({ length: selectedSurahVerseCount }, (_, index) => index + 1) as verse (verse)}
+													<option value={verse}>{verse}</option>
+												{/each}
+											</select>
+										</label>
+										<label class="flex items-center gap-1 text-xs text-thirdly"
+											>{copy.reflectionToAyah()}
+											<select
+												class="compact-select"
+												value={selectedTo}
+												onchange={(event) => selectTo(Number(event.currentTarget.value))}
+											>
+												{#each Array.from({ length: selectedSurahVerseCount }, (_, index) => index + 1) as verse (verse)}
+													<option value={verse}>{verse}</option>
+												{/each}
+											</select>
+										</label>
+									</div>
+								{:else if selectionMode === 'single'}
+									<label class="flex shrink-0 items-center gap-1 text-xs text-thirdly"
+										>{copy.reflectionAyahLabel()}
+										<select
+											class="compact-select"
+											value={selectedFrom}
+											onchange={(event) => selectSingleVerse(Number(event.currentTarget.value))}
+										>
+											{#each Array.from({ length: selectedSurahVerseCount }, (_, index) => index + 1) as verse (verse)}
+												<option value={verse}>{verse}</option>
+											{/each}
+										</select>
+									</label>
+								{/if}
+							</div>
+							<div class="mode-selector flex w-full rounded-lg p-0.5">
+								<button
+									type="button"
+									class="min-h-11 flex-1 rounded-md px-2 py-2 text-xs font-semibold"
+									class:active={selectionMode === 'whole'}
+									onclick={() => selectReflectionMode('whole')}
+									>{copy.reflectionWholeChoice()}</button
+								>
+								<button
+									type="button"
+									class="min-h-11 flex-1 rounded-md px-2 py-2 text-xs font-semibold"
+									class:active={selectionMode === 'range'}
+									onclick={() => selectReflectionMode('range')}
+									>{copy.reflectionRangeChoice()}</button
+								>
+								<button
+									type="button"
+									class="min-h-11 flex-1 rounded-md px-2 py-2 text-xs font-semibold"
+									class:active={selectionMode === 'single'}
+									onclick={() => selectReflectionMode('single')}
+									>{copy.reflectionSingleChoice()}</button
+								>
+							</div>
 						</div>
-					</section>
-				</div>
+					</div>
 
-				<div class="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-					<button
-						type="button"
-						class="reflection-choice flex-1 rounded-xl px-3 py-2 text-left disabled:opacity-45"
-						disabled={isSubmitting}
-						onclick={() => requestSubmission('private')}
-					>
-						<span class="block text-sm font-bold text-primary">{copy.reflectionPrivate()}</span>
-						<span class="block text-[11px] text-thirdly">{copy.reflectionPrivateDescription()}</span
+					<div class="reflection-main grid gap-3">
+						<div class="reflection-editor flex min-h-0 flex-col">
+							<label for="quran-reflection-body" class="mb-2 block text-sm font-medium text-primary"
+								>{copy.reflectionComposerLabel()}</label
+							>
+							<textarea
+								id="quran-reflection-body"
+								class="reflection-textarea min-h-40 w-full resize-y rounded-xl px-3 py-2.5 text-sm text-primary outline-none"
+								placeholder={reflectionPlaceholder}
+								bind:value={draft}
+								oninput={persistPending}
+							></textarea>
+							{#if submitFailed}<p class="mt-2 text-sm text-red-400">
+									{copy.reflectionSubmitError()}
+								</p>{/if}
+						</div>
+
+						<section class="min-w-0" aria-labelledby="reflection-examples-title">
+							<div class="mb-2 flex items-center justify-between gap-2">
+								<h3 id="reflection-examples-title" class="text-sm font-semibold text-primary">
+									{copy.reflectionExamplesTitle()}
+								</h3>
+								<span class="quranreflect-badge text-[10px] font-bold uppercase tracking-wide">
+									QuranReflect
+								</span>
+							</div>
+							<div class="reflection-strip flex min-h-40 snap-x gap-2 overflow-x-auto pb-1">
+								{#if examplesLoading}
+									<div
+										class="reflection-card flex min-w-full items-center justify-center px-4 text-center text-sm text-thirdly"
+									>
+										{copy.reflectionExamplesLoading()}
+									</div>
+								{:else if examplesFailed}
+									<div
+										class="reflection-card flex min-w-full items-center justify-center px-4 text-center text-sm text-thirdly"
+									>
+										{copy.reflectionExamplesError()}
+									</div>
+								{:else if examples.length === 0}
+									<div
+										class="reflection-card flex min-w-full items-center justify-center px-4 text-center text-sm text-thirdly"
+									>
+										{copy.reflectionNoExamples()}
+									</div>
+								{:else}
+									{#each examples as example (example.id)}
+										{@const authorName = example.author || copy.reflectionContributor()}
+										<article class="reflection-card min-w-[85%] snap-start p-3">
+											<div class="mb-2.5 flex items-center gap-2.5">
+												{#if example.avatarUrl}
+													<img
+														src={example.avatarUrl}
+														alt={authorName}
+														class="size-8 shrink-0 rounded-full object-cover"
+													/>
+												{:else}
+													<span
+														class="reflection-avatar flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+														aria-hidden="true"
+													>
+														{authorName.charAt(0).toUpperCase()}
+													</span>
+												{/if}
+												<span class="truncate text-xs font-semibold text-primary">{authorName}</span
+												>
+											</div>
+											<p
+												title={example.body}
+												class="line-clamp-4 whitespace-pre-line text-sm leading-relaxed text-secondary"
+											>
+												{example.body}
+											</p>
+											<div class="mt-2 flex items-center justify-between gap-2">
+												<span class="text-[11px] text-thirdly">
+													{#if example.likesCount > 0}{copy.reflectionLikes({
+															count: example.likesCount
+														})}{/if}
+												</span>
+												{#if example.url}<button
+														type="button"
+														class="reflection-read-more flex items-center gap-1 text-[11px] font-medium"
+														onclick={() => openReflectionExample(example)}
+													>
+														{copy.reflectionReadMore()}
+														<span class="material-icons text-xs" aria-hidden="true"
+															>open_in_new</span
+														>
+													</button>{/if}
+											</div>
+										</article>
+									{/each}
+								{/if}
+							</div>
+						</section>
+					</div>
+
+					<div class="flex flex-col gap-2">
+						<button
+							type="button"
+							class="reflection-choice flex-1 rounded-xl px-3 py-2 text-left disabled:opacity-45"
+							disabled={isSubmitting}
+							onclick={() => requestSubmission('private')}
 						>
-					</button>
-					<button
-						type="button"
-						class="reflection-primary flex-1 rounded-xl px-3 py-2 text-left disabled:opacity-45"
-						disabled={isSubmitting}
-						onclick={() => requestSubmission('public')}
-					>
-						<span class="block text-sm font-bold">{copy.reflectionPublic()}</span>
-						<span class="block text-[11px] opacity-75">{copy.reflectionPublicDescription()}</span>
-					</button>
-				</div>
-				{#if isSubmitting}<p class="text-center text-xs text-thirdly">
-						{copy.reflectionSubmitting()}
-					</p>{/if}
-			{/if}
-		</div>
-	</aside>
+							<span class="block text-sm font-bold text-primary">{copy.reflectionPrivate()}</span>
+							<span class="block text-[11px] text-thirdly"
+								>{copy.reflectionPrivateDescription()}</span
+							>
+						</button>
+						<button
+							type="button"
+							class="reflection-primary flex-1 rounded-xl px-3 py-2 text-left disabled:opacity-45"
+							disabled={isSubmitting}
+							onclick={() => requestSubmission('public')}
+						>
+							<span class="block text-sm font-bold">{copy.reflectionPublic()}</span>
+							<span class="block text-[11px] opacity-75">{copy.reflectionPublicDescription()}</span>
+						</button>
+					</div>
+					{#if isSubmitting}<p class="text-center text-xs text-thirdly">
+							{copy.reflectionSubmitting()}
+						</p>{/if}
+				{/if}
+			</div>
+		</dialog>
+	</div>
 {/if}
 
 <style>
+	.reflection-backdrop {
+		background: rgb(0 0 0 / 45%);
+	}
+
 	.reflection-banner {
-		bottom: 0;
-		left: 50%;
-		width: min(calc(100vw - 1rem), 60rem);
-		max-height: calc(100dvh - env(safe-area-inset-top) - 0.5rem);
-		transform: translateX(-50%);
+		height: calc(90dvh + 50px) !important;
+		max-height: calc(90dvh + 50px) !important;
+		padding: 0;
 		background:
 			linear-gradient(
 				180deg,
@@ -734,7 +718,17 @@
 		box-shadow:
 			0 -16px 48px rgba(0, 0, 0, 0.42),
 			inset 0 1px 0 rgba(255, 255, 255, 0.12);
-		animation: reflectionSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+		color: inherit;
+	}
+
+	.reflection-ui-scale {
+		display: flex;
+		min-width: 0;
+		max-width: 100%;
+		height: var(--editor-panel-height);
+		flex: 1;
+		flex-direction: column;
+		zoom: var(--editor-panel-scale);
 	}
 
 	.reflection-banner::before {
@@ -759,7 +753,7 @@
 
 	.reflection-content {
 		position: relative;
-		padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+		overscroll-behavior: contain;
 	}
 
 	.reflection-icon,
@@ -869,16 +863,5 @@
 		box-shadow:
 			0 8px 22px color-mix(in srgb, var(--accent-primary) 22%, transparent),
 			inset 0 1px 0 rgba(255, 255, 255, 0.2);
-	}
-
-	@keyframes reflectionSlideUp {
-		from {
-			opacity: 0;
-			transform: translate(-50%, 100%);
-		}
-		to {
-			opacity: 1;
-			transform: translate(-50%, 0);
-		}
 	}
 </style>

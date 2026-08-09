@@ -10,10 +10,12 @@ use crate::{
         ExecuteFfprobeRequest, ExecuteFfprobeResponse, ExportCancellationResponse,
         ExportServiceRequest, FfmpegSessionRequest, FfmpegSessionSnapshot, ImportUriRequest,
         ImportUriResponse, KeepScreenOnRequest, KeepScreenOnResponse, OpenUriRequest,
-        OpenUriResponse, PublishFileRequest, PublishFileResponse, StartExportServiceRequest,
-        StartExportServiceResponse, StartFfmpegRequest, StartFfmpegResponse,
-        StartYoutubeDownloadResponse, StopExportServiceResponse, UpdateExportServiceRequest,
-        UpdateExportServiceResponse, YoutubeDownloadSessionRequest, YoutubeDownloadSessionSnapshot,
+        OpenUriResponse, PublishFileRequest, PublishFileResponse, SecureKeyRequest,
+        SecureOperationResponse, SecureValueRequest, SecureValueResponse,
+        StartExportServiceRequest, StartExportServiceResponse, StartFfmpegRequest,
+        StartFfmpegResponse, StartYoutubeDownloadResponse, StopExportServiceResponse,
+        UpdateExportServiceRequest, UpdateExportServiceResponse, YoutubeDownloadSessionRequest,
+        YoutubeDownloadSessionSnapshot,
     },
     Result,
 };
@@ -162,6 +164,35 @@ impl<R: Runtime> AndroidMedia<R> {
                 KeepScreenOnRequest { enabled },
             )
             .map(|response| response.enabled)
+            .map_err(Into::into)
+    }
+
+    /// Chiffre et stocke une valeur OAuth dans l'Android Keystore.
+    pub fn secure_set(&self, key: String, value: String) -> Result<()> {
+        self.0
+            .run_mobile_plugin::<SecureOperationResponse>(
+                "secureSet",
+                SecureValueRequest { key, value },
+            )
+            .map(|response| response.success)
+            .map(|_| ())
+            .map_err(Into::into)
+    }
+
+    /// Déchiffre une valeur OAuth depuis l'Android Keystore.
+    pub fn secure_get(&self, key: String) -> Result<Option<String>> {
+        self.0
+            .run_mobile_plugin::<SecureValueResponse>("secureGet", SecureKeyRequest { key })
+            .map(|response| response.value)
+            .map_err(Into::into)
+    }
+
+    /// Supprime une valeur OAuth du stockage chiffré Android.
+    pub fn secure_delete(&self, key: String) -> Result<()> {
+        self.0
+            .run_mobile_plugin::<SecureOperationResponse>("secureDelete", SecureKeyRequest { key })
+            .map(|response| response.success)
+            .map(|_| ())
             .map_err(Into::into)
     }
 

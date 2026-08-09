@@ -7,6 +7,9 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.util.Base64
 import android.view.WindowManager
 import androidx.core.content.FileProvider
 import androidx.core.view.WindowInsetsControllerCompat
@@ -34,7 +37,12 @@ import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
+import java.security.KeyStore
 import java.util.concurrent.ConcurrentHashMap
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
 import org.json.JSONObject
 
 @InvokeArg
@@ -121,9 +129,23 @@ class ExportServiceArgs {
     lateinit var exportId: String
 }
 
+@InvokeArg
+class SecureValueArgs {
+    lateinit var key: String
+    lateinit var value: String
+}
+
+@InvokeArg
+class SecureKeyArgs {
+    lateinit var key: String
+}
+
 @TauriPlugin
 class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
     private val hostActivity = activity
+    private val securePreferences by lazy {
+        hostActivity.getSharedPreferences(SECURE_PREFERENCES_NAME, Activity.MODE_PRIVATE)
+    }
     private var youtubeDlUpdateAttempted = false
     private val youtubeDownloadSessions = ConcurrentHashMap<String, YoutubeDownloadSession>()
 
@@ -740,6 +762,137 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
     }
 
     /**
+     * Chiffre puis stocke une valeur OAuth avec une clé AES non exportable de l'Android Keystore.
+     *
+     * @param invoke Appel Tauri contenant la clé autorisée et sa valeur.
+     */
+    @Command
+    fun secureSet(invoke: Invoke) {
+        try {
+            val args = invoke.parseArgs(SecureValueArgs::class.java)
+            val storageKey = secureStorageKey(args.key)
+            val encryptedValue = encryptSecureValue(args.value)
+            check(securePreferences.edit().putString(storageKey, encryptedValue).commit()) {
+                "Encrypted preferences write failed"
+            }
+            invoke.resolve(JSObject().apply { put("success", true) })
+        } catch (error: Exception) {
+            reject(invoke, "Failed to store OAuth data securely", error)
+        }
+    }
+
+    /**
+     * Lit et déchiffre une valeur OAuth depuis le stockage privé de l'application.
+     *
+     * @param invoke Appel Tauri contenant la clé autorisée.
+     */
+    @Command
+    fun secureGet(invoke: Invoke) {
+        try {
+            val args = invoke.parseArgs(SecureKeyArgs::class.java)
+            val storageKey = secureStorageKey(args.key)
+            val encryptedValue = securePreferences.getString(storageKey, null)
+            val value = encryptedValue?.let {
+                try {
+                    decryptSecureValue(it)
+                } catch (_: Exception) {
+                    // Une sauvegarde restaurée ne possède plus la clé Keystore d'origine.
+                    securePreferences.edit().remove(storageKey).commit()
+                    null
+                }
+            }
+            invoke.resolve(JSObject().apply { put("value", value ?: JSONObject.NULL) })
+        } catch (error: Exception) {
+            reject(invoke, "Failed to read OAuth data securely", error)
+        }
+    }
+
+    /**
+     * Supprime une valeur OAuth du stockage chiffré.
+     *
+     * @param invoke Appel Tauri contenant la clé autorisée.
+     */
+    @Command
+    fun secureDelete(invoke: Invoke) {
+        try {
+            val args = invoke.parseArgs(SecureKeyArgs::class.java)
+            check(securePreferences.edit().remove(secureStorageKey(args.key)).commit()) {
+                "Encrypted preferences delete failed"
+            }
+            invoke.resolve(JSObject().apply { put("success", true) })
+        } catch (error: Exception) {
+            reject(invoke, "Failed to delete OAuth data securely", error)
+        }
+    }
+
+    /**
+     * Valide une clé OAuth avant de construire sa clé SharedPreferences.
+     *
+     * @param key Clé logique demandée par le frontend.
+     * @return Clé de stockage privée et préfixée.
+     */
+    private fun secureStorageKey(key: String): String {
+        require(key == SESSION_KEY || key == PENDING_VERIFIER_KEY) {
+            "Unsupported secure storage key"
+        }
+        return "$SECURE_VALUE_PREFIX$key"
+    }
+
+    /**
+     * Retourne la clé AES Android existante ou en génère une non exportable.
+     *
+     * @return Clé AES protégée par l'Android Keystore.
+     */
+    private fun getOrCreateSecureKey(): SecretKey {
+        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+        (keyStore.getKey(KEYSTORE_ALIAS, null) as? SecretKey)?.let { return it }
+
+        return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE).run {
+            init(
+                KeyGenParameterSpec.Builder(
+                    KEYSTORE_ALIAS,
+                    KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+                )
+                    .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                    .build()
+            )
+            generateKey()
+        }
+    }
+
+    /**
+     * Chiffre une valeur UTF-8 en AES-GCM et sérialise l'IV avec le texte chiffré.
+     *
+     * @param value Valeur OAuth en clair.
+     * @return Charge utile Base64 prête à persister.
+     */
+    private fun encryptSecureValue(value: String): String {
+        val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
+        cipher.init(Cipher.ENCRYPT_MODE, getOrCreateSecureKey())
+        val encrypted = cipher.doFinal(value.toByteArray(Charsets.UTF_8))
+        val encodedIv = Base64.encodeToString(cipher.iv, Base64.NO_WRAP)
+        val encodedValue = Base64.encodeToString(encrypted, Base64.NO_WRAP)
+        return "$encodedIv.$encodedValue"
+    }
+
+    /**
+     * Déchiffre une charge utile AES-GCM produite par [encryptSecureValue].
+     *
+     * @param value IV et texte chiffré encodés en Base64.
+     * @return Valeur OAuth UTF-8 déchiffrée.
+     */
+    private fun decryptSecureValue(value: String): String {
+        val parts = value.split('.', limit = 2)
+        require(parts.size == 2) { "Invalid encrypted OAuth value" }
+        val iv = Base64.decode(parts[0], Base64.NO_WRAP)
+        val encrypted = Base64.decode(parts[1], Base64.NO_WRAP)
+        val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
+        cipher.init(Cipher.DECRYPT_MODE, getOrCreateSecureKey(), GCMParameterSpec(128, iv))
+        return String(cipher.doFinal(encrypted), Charsets.UTF_8)
+    }
+
+    /**
      * Exécute une opération de fichiers hors du thread principal Android.
      *
      * @param invoke Appel Tauri à résoudre ou rejeter.
@@ -947,6 +1100,13 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
     }
 
     companion object {
+        private const val ANDROID_KEYSTORE = "AndroidKeyStore"
+        private const val AES_GCM_TRANSFORMATION = "AES/GCM/NoPadding"
+        private const val KEYSTORE_ALIAS = "qurancaption_quran_auth"
+        private const val SECURE_PREFERENCES_NAME = "qurancaption_secure_auth"
+        private const val SECURE_VALUE_PREFIX = "oauth."
+        private const val SESSION_KEY = "quran_auth_session"
+        private const val PENDING_VERIFIER_KEY = "quran_auth_pending_verifier"
         private const val COPY_BUFFER_SIZE = 64 * 1024
         private const val MAX_FILENAME_LENGTH = 180
         private const val DEFAULT_IMPORTED_FILE_NAME = "imported_file"

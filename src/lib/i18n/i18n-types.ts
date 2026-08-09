@@ -9740,6 +9740,10 @@ type RootTranslation = {
 		 */
 		captureWbwSlowHint: string;
 		/**
+		 * R​e​f​l​e​c​t​ ​o​n​ ​t​h​e​ ​v​e​r​s​e​s​ ​i​n​ ​y​o​u​r​ ​v​i​d​e​o​ ​w​h​i​l​e​ ​y​o​u​ ​w​a​i​t​ ​f​o​r​ ​t​h​e​ ​e​x​p​o​r​t
+		 */
+		reflectDuringExport: string;
+		/**
 		 * F​i​l​e​ ​n​o​t​ ​f​o​u​n​d
 		 */
 		fileNotFound: string;
@@ -20715,6 +20719,10 @@ export type TranslationFunctions = {
 		 * If capturing feels slow, disable word-by-word (WBW) styles to speed it up.
 		 */
 		captureWbwSlowHint: () => LocalizedString;
+		/**
+		 * Reflect on the verses in your video while you wait for the export
+		 */
+		reflectDuringExport: () => LocalizedString;
 		/**
 		 * File not found
 		 */

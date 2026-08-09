@@ -3017,6 +3017,8 @@ const es = {
 		exportCancelling: 'Cancelando exportación',
 		captureWbwSlowHint:
 			'Si la captura parece lenta, desactive los estilos palabra por palabra (WBW) para acelerarla.',
+		reflectDuringExport:
+			'Reflexiona sobre los versículos de tu vídeo mientras esperas la exportación',
 		fileNotFound: 'Archivo no encontrado',
 		exportedFileNotFound:
 			'El archivo exportado no se encuentra. Puede haber sido movido o eliminado.',

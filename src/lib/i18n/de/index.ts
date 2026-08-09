@@ -3023,6 +3023,7 @@ const de = {
 		exportCancelling: 'Export wird abgebrochen',
 		captureWbwSlowHint:
 			'Wenn die Erfassung langsam ist, deaktivieren Sie die Wort-für-Wort-Stile (WBW).',
+		reflectDuringExport: 'Reflektiere während des Exports über die Verse in deinem Video',
 		fileNotFound: 'Datei nicht gefunden',
 		exportedFileNotFound:
 			'Die exportierte Datei wurde nicht gefunden. Sie wurde möglicherweise verschoben oder gelöscht.',

@@ -3044,6 +3044,7 @@ const fr = {
 		exportCancelling: 'Annulation de l\u2019export',
 		captureWbwSlowHint:
 			'Si la capture vous semble lente, désactivez les styles mot à mot (WBW) pour l\u2019accélérer.',
+		reflectDuringExport: 'Réfléchissez aux versets de votre vidéo pendant l\u2019export',
 		fileNotFound: 'Fichier introuvable',
 		exportedFileNotFound:
 			'Le fichier exporté est introuvable. Il a peut-être été déplacé ou supprimé.',

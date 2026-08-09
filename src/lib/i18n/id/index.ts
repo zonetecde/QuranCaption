@@ -1690,6 +1690,7 @@ const id = {
 		exportCancelling: 'Membatalkan ekspor',
 		captureWbwSlowHint:
 			'Jika pengambilan frame terasa lambat, nonaktifkan gaya kata per kata (WBW) agar lebih cepat.',
+		reflectDuringExport: 'Renungkan ayat-ayat dalam video Anda sambil menunggu ekspor',
 		fileNotFound: 'File tidak ditemukan',
 		exportedFileNotFound: 'File hasil export tidak ditemukan. Mungkin sudah dipindah atau dihapus.',
 		errorCopiedToClipboard: 'Error disalin ke clipboard',

@@ -206,6 +206,7 @@
 
 	.banner-content {
 		position: relative;
+		padding-bottom: max(60px, env(safe-area-inset-bottom));
 	}
 
 	.banner-icon {

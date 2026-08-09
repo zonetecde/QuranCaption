@@ -94,7 +94,7 @@
 	});
 </script>
 
-{#if isVisible && !isLoading && !globalState.uiState.isTourActive}
+{#if isVisible && !isLoading && !globalState.uiState.isTourActive && !globalState.uiState.showReflectionPrompt}
 	<div class="donation-banner fixed z-[900]">
 		<div class="banner-content p-3.5 sm:p-4">
 			<div class="flex items-start gap-3">

@@ -144,7 +144,7 @@ class QuranAuthService {
 	}
 
 	/** Lance le flux de connexion Quran.com via le bridge OAuth. */
-	async beginLogin(): Promise<void> {
+	async beginLogin(requiredScopes: string[] = []): Promise<void> {
 		await this.init();
 
 		try {
@@ -158,6 +158,9 @@ class QuranAuthService {
 
 			const authorizationUrl = new URL('/oauth/quran/start', BRIDGE_BASE_URL);
 			authorizationUrl.searchParams.set('handoff_challenge', challenge);
+			if (requiredScopes.length > 0) {
+				authorizationUrl.searchParams.set('required_scopes', requiredScopes.join(' '));
+			}
 
 			await openUrl(authorizationUrl.toString());
 		} catch (error) {
@@ -165,6 +168,17 @@ class QuranAuthService {
 			this.setError(error, get(LL).settings.unableToStartSignIn());
 			throw error;
 		}
+	}
+
+	/** Indique si la session possède un scope enfant ou son scope parent. */
+	hasScope(scope: string): boolean {
+		const parent = scope.split('.')[0];
+		return this.grantedScopes.includes(scope) || this.grantedScopes.includes(parent);
+	}
+
+	/** Renvoie un access token Quran Foundation valide pour un appel proxy authentifié. */
+	async getAccessToken(): Promise<string> {
+		return (await this.getUserApiCredentials()).accessToken;
 	}
 
 	/** Termine le flux OAuth quand l'application reçoit le deep link de retour. */
@@ -654,9 +668,7 @@ class QuranAuthService {
 
 		const clientId = this.getSessionClientId(session, accessToken);
 		if (!clientId) {
-			throw new Error(
-				get(LL).settings.clientIdMissing()
-			);
+			throw new Error(get(LL).settings.clientIdMissing());
 		}
 
 		return { accessToken, clientId };

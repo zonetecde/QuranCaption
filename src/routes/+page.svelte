@@ -20,6 +20,7 @@
 	import { Toaster } from 'svelte-5-french-toast';
 	import Settings from '$lib/classes/Settings.svelte';
 	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
+	import QuranReflectionPrompt from '$lib/components/reflection/QuranReflectionPrompt.svelte';
 
 	let allowWindowClose = false;
 	let isHandlingCloseRequest = false;
@@ -90,6 +91,7 @@
 </script>
 
 <Toaster />
+<QuranReflectionPrompt />
 
 <div class="flex flex-col h-screen overflow-hidden">
 	<!-- Barre de titre fixe -->

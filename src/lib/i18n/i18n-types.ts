@@ -6411,6 +6411,177 @@ type RootTranslation = {
 		 * T​e​x​t​ ​e​x​p​o​r​t
 		 */
 		textExport: string;
+		/**
+		 * R​e​f​l​e​c​t​ ​o​n​ ​w​h​a​t​ ​y​o​u​ ​j​u​s​t​ ​c​r​e​a​t​e​d
+		 */
+		reflectionTitle: string;
+		/**
+		 * Y​o​u​ ​j​u​s​t​ ​s​p​e​n​t​ ​t​i​m​e​ ​w​i​t​h​ ​t​h​e​s​e​ ​a​y​a​t​.​ ​T​a​k​e​ ​a​ ​m​o​m​e​n​t​ ​t​o​ ​r​e​f​l​e​c​t​ ​o​n​ ​w​h​a​t​ ​t​h​e​y​ ​m​e​a​n​ ​t​o​ ​y​o​u​.
+		 */
+		reflectionDescription: string;
+		/**
+		 * N​o​t​ ​n​o​w
+		 */
+		reflectionDismiss: string;
+		/**
+		 * R​e​f​l​e​c​t​ ​o​n
+		 */
+		reflectionOn: string;
+		/**
+		 * W​h​o​l​e​ ​S​u​r​a​h
+		 */
+		reflectionWholeSurah: string;
+		/**
+		 * W​h​o​l​e​ ​s​u​r​a​h
+		 */
+		reflectionWholeChoice: string;
+		/**
+		 * V​e​r​s​e​ ​r​a​n​g​e
+		 */
+		reflectionRangeChoice: string;
+		/**
+		 * A​y​a​t​ ​{​f​r​o​m​}​–​{​t​o​}
+		 * @param {unknown} from
+		 * @param {unknown} to
+		 */
+		reflectionAyat: RequiredParams<'from' | 'to'>;
+		/**
+		 * F​r​o​m​ ​a​y​a​h
+		 */
+		reflectionFromAyah: string;
+		/**
+		 * T​o​ ​a​y​a​h
+		 */
+		reflectionToAyah: string;
+		/**
+		 * E​x​p​o​r​t​e​d​ ​p​a​s​s​a​g​e
+		 */
+		reflectionSpan: string;
+		/**
+		 * R​e​f​l​e​c​t​i​o​n​s​ ​f​r​o​m​ ​o​t​h​e​r​ ​M​u​s​l​i​m​s
+		 */
+		reflectionExamplesTitle: string;
+		/**
+		 * F​i​n​d​i​n​g​ ​r​e​l​a​t​e​d​ ​r​e​f​l​e​c​t​i​o​n​s​…
+		 */
+		reflectionExamplesLoading: string;
+		/**
+		 * R​e​l​a​t​e​d​ ​r​e​f​l​e​c​t​i​o​n​s​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​l​o​a​d​e​d​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​ ​s​h​o​r​t​l​y​.
+		 */
+		reflectionExamplesError: string;
+		/**
+		 * S​e​e​ ​r​e​l​a​t​e​d​ ​r​e​f​l​e​c​t​i​o​n​s
+		 */
+		reflectionViewExamples: string;
+		/**
+		 * H​i​d​e​ ​r​e​l​a​t​e​d​ ​r​e​f​l​e​c​t​i​o​n​s
+		 */
+		reflectionHideExamples: string;
+		/**
+		 * N​o​ ​r​e​l​a​t​e​d​ ​r​e​f​l​e​c​t​i​o​n​s​ ​a​r​e​ ​a​v​a​i​l​a​b​l​e​ ​f​o​r​ ​t​h​i​s​ ​s​e​l​e​c​t​i​o​n​ ​y​e​t​.
+		 */
+		reflectionNoExamples: string;
+		/**
+		 * F​r​o​m​ ​Q​u​r​a​n​R​e​f​l​e​c​t
+		 */
+		reflectionQuranReflectAttribution: string;
+		/**
+		 * Q​u​r​a​n​R​e​f​l​e​c​t​ ​c​o​n​t​r​i​b​u​t​o​r
+		 */
+		reflectionContributor: string;
+		/**
+		 * {​c​o​u​n​t​}​ ​l​i​k​e​s
+		 * @param {unknown} count
+		 */
+		reflectionLikes: RequiredParams<'count'>;
+		/**
+		 * W​r​i​t​e​ ​a​ ​r​e​f​l​e​c​t​i​o​n
+		 */
+		reflectionWrite: string;
+		/**
+		 * W​h​a​t​ ​d​o​e​s​ ​t​h​i​s​ ​p​a​s​s​a​g​e​ ​m​e​a​n​ ​t​o​ ​y​o​u​?
+		 */
+		reflectionComposerLabel: string;
+		/**
+		 * W​r​i​t​e​ ​y​o​u​r​ ​p​e​r​s​o​n​a​l​ ​r​e​f​l​e​c​t​i​o​n​…
+		 */
+		reflectionComposerPlaceholder: string;
+		/**
+		 * T​h​i​s​ ​s​u​r​a​h​,​ ​{​s​u​r​a​h​}​,​ ​m​a​t​t​e​r​s​ ​t​o​ ​m​e​ ​b​e​c​a​u​s​e​…
+		 * @param {unknown} surah
+		 */
+		reflectionWholePlaceholder: RequiredParams<'surah'>;
+		/**
+		 * T​h​e​s​e​ ​v​e​r​s​e​s​,​ ​{​s​u​r​a​h​}​ ​{​f​r​o​m​}​–​{​t​o​}​,​ ​m​a​t​t​e​r​ ​t​o​ ​m​e​ ​b​e​c​a​u​s​e​…
+		 * @param {unknown} from
+		 * @param {unknown} surah
+		 * @param {unknown} to
+		 */
+		reflectionRangePlaceholder: RequiredParams<'from' | 'surah' | 'to'>;
+		/**
+		 * W​r​i​t​e​ ​a​t​ ​l​e​a​s​t​ ​6​ ​c​h​a​r​a​c​t​e​r​s​.
+		 */
+		reflectionMinimum: string;
+		/**
+		 * W​r​i​t​e​ ​a​ ​r​e​f​l​e​c​t​i​o​n​ ​b​e​f​o​r​e​ ​s​a​v​i​n​g​ ​o​r​ ​p​u​b​l​i​s​h​i​n​g​ ​i​t​.
+		 */
+		reflectionRequired: string;
+		/**
+		 * S​a​v​e​ ​p​r​i​v​a​t​e​l​y
+		 */
+		reflectionPrivate: string;
+		/**
+		 * S​a​v​e​ ​a​s​ ​a​ ​p​r​i​v​a​t​e​ ​n​o​t​e​ ​o​n​ ​Q​u​r​a​n​.​c​o​m
+		 */
+		reflectionPrivateDescription: string;
+		/**
+		 * P​u​b​l​i​s​h​ ​p​u​b​l​i​c​l​y
+		 */
+		reflectionPublic: string;
+		/**
+		 * P​u​b​l​i​s​h​ ​t​o​ ​Q​u​r​a​n​R​e​f​l​e​c​t
+		 */
+		reflectionPublicDescription: string;
+		/**
+		 * C​o​n​n​e​c​t​ ​w​i​t​h​ ​Q​u​r​a​n​.​c​o​m
+		 */
+		reflectionAuthTitle: string;
+		/**
+		 * A​ ​Q​u​r​a​n​.​c​o​m​ ​a​c​c​o​u​n​t​ ​i​s​ ​r​e​q​u​i​r​e​d​ ​o​n​l​y​ ​w​h​e​n​ ​y​o​u​ ​s​a​v​e​ ​o​r​ ​p​u​b​l​i​s​h​ ​y​o​u​r​ ​r​e​f​l​e​c​t​i​o​n​.
+		 */
+		reflectionAuthDescription: string;
+		/**
+		 * Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​n​e​e​d​s​ ​a​n​ ​a​d​d​i​t​i​o​n​a​l​ ​Q​u​r​a​n​.​c​o​m​ ​p​e​r​m​i​s​s​i​o​n​ ​f​o​r​ ​N​o​t​e​s​ ​a​n​d​ ​Q​u​r​a​n​R​e​f​l​e​c​t​.
+		 */
+		reflectionPermissionDescription: string;
+		/**
+		 * C​o​n​n​e​c​t​ ​w​i​t​h​ ​Q​u​r​a​n​.​c​o​m
+		 */
+		reflectionConnect: string;
+		/**
+		 * S​a​v​i​n​g​…
+		 */
+		reflectionSubmitting: string;
+		/**
+		 * S​a​v​e​d​ ​p​r​i​v​a​t​e​l​y​ ​t​o​ ​y​o​u​r​ ​Q​u​r​a​n​.​c​o​m​ ​n​o​t​e​s​.
+		 */
+		reflectionPrivateSuccess: string;
+		/**
+		 * Y​o​u​r​ ​r​e​f​l​e​c​t​i​o​n​ ​w​a​s​ ​s​e​n​t​ ​t​o​ ​Q​u​r​a​n​R​e​f​l​e​c​t​.
+		 */
+		reflectionPublicSuccess: string;
+		/**
+		 * Y​o​u​r​ ​r​e​f​l​e​c​t​i​o​n​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​s​a​v​e​d​.​ ​Y​o​u​r​ ​d​r​a​f​t​ ​i​s​ ​s​t​i​l​l​ ​h​e​r​e​ ​s​o​ ​y​o​u​ ​c​a​n​ ​r​e​t​r​y​.
+		 */
+		reflectionSubmitError: string;
+		/**
+		 * B​a​c​k​ ​t​o​ ​r​e​f​l​e​c​t​i​o​n
+		 */
+		reflectionBack: string;
+		/**
+		 * C​l​o​s​e​ ​r​e​f​l​e​c​t​i​o​n​ ​p​a​n​e​l
+		 */
+		reflectionCloseLabel: string;
 	};
 	translations: {
 		/**
@@ -17093,6 +17264,174 @@ export type TranslationFunctions = {
 		 * Text export
 		 */
 		textExport: () => LocalizedString;
+		/**
+		 * Reflect on what you just created
+		 */
+		reflectionTitle: () => LocalizedString;
+		/**
+		 * You just spent time with these ayat. Take a moment to reflect on what they mean to you.
+		 */
+		reflectionDescription: () => LocalizedString;
+		/**
+		 * Not now
+		 */
+		reflectionDismiss: () => LocalizedString;
+		/**
+		 * Reflect on
+		 */
+		reflectionOn: () => LocalizedString;
+		/**
+		 * Whole Surah
+		 */
+		reflectionWholeSurah: () => LocalizedString;
+		/**
+		 * Whole surah
+		 */
+		reflectionWholeChoice: () => LocalizedString;
+		/**
+		 * Verse range
+		 */
+		reflectionRangeChoice: () => LocalizedString;
+		/**
+		 * Ayat {from}–{to}
+		 */
+		reflectionAyat: (arg: { from: unknown; to: unknown }) => LocalizedString;
+		/**
+		 * From ayah
+		 */
+		reflectionFromAyah: () => LocalizedString;
+		/**
+		 * To ayah
+		 */
+		reflectionToAyah: () => LocalizedString;
+		/**
+		 * Exported passage
+		 */
+		reflectionSpan: () => LocalizedString;
+		/**
+		 * Reflections from other Muslims
+		 */
+		reflectionExamplesTitle: () => LocalizedString;
+		/**
+		 * Finding related reflections…
+		 */
+		reflectionExamplesLoading: () => LocalizedString;
+		/**
+		 * Related reflections could not be loaded. Please try again shortly.
+		 */
+		reflectionExamplesError: () => LocalizedString;
+		/**
+		 * See related reflections
+		 */
+		reflectionViewExamples: () => LocalizedString;
+		/**
+		 * Hide related reflections
+		 */
+		reflectionHideExamples: () => LocalizedString;
+		/**
+		 * No related reflections are available for this selection yet.
+		 */
+		reflectionNoExamples: () => LocalizedString;
+		/**
+		 * From QuranReflect
+		 */
+		reflectionQuranReflectAttribution: () => LocalizedString;
+		/**
+		 * QuranReflect contributor
+		 */
+		reflectionContributor: () => LocalizedString;
+		/**
+		 * {count} likes
+		 */
+		reflectionLikes: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Write a reflection
+		 */
+		reflectionWrite: () => LocalizedString;
+		/**
+		 * What does this passage mean to you?
+		 */
+		reflectionComposerLabel: () => LocalizedString;
+		/**
+		 * Write your personal reflection…
+		 */
+		reflectionComposerPlaceholder: () => LocalizedString;
+		/**
+		 * This surah, {surah}, matters to me because…
+		 */
+		reflectionWholePlaceholder: (arg: { surah: unknown }) => LocalizedString;
+		/**
+		 * These verses, {surah} {from}–{to}, matter to me because…
+		 */
+		reflectionRangePlaceholder: (arg: {
+			from: unknown;
+			surah: unknown;
+			to: unknown;
+		}) => LocalizedString;
+		/**
+		 * Write at least 6 characters.
+		 */
+		reflectionMinimum: () => LocalizedString;
+		/**
+		 * Write a reflection before saving or publishing it.
+		 */
+		reflectionRequired: () => LocalizedString;
+		/**
+		 * Save privately
+		 */
+		reflectionPrivate: () => LocalizedString;
+		/**
+		 * Save as a private note on Quran.com
+		 */
+		reflectionPrivateDescription: () => LocalizedString;
+		/**
+		 * Publish publicly
+		 */
+		reflectionPublic: () => LocalizedString;
+		/**
+		 * Publish to QuranReflect
+		 */
+		reflectionPublicDescription: () => LocalizedString;
+		/**
+		 * Connect with Quran.com
+		 */
+		reflectionAuthTitle: () => LocalizedString;
+		/**
+		 * A Quran.com account is required only when you save or publish your reflection.
+		 */
+		reflectionAuthDescription: () => LocalizedString;
+		/**
+		 * Quran Caption needs an additional Quran.com permission for Notes and QuranReflect.
+		 */
+		reflectionPermissionDescription: () => LocalizedString;
+		/**
+		 * Connect with Quran.com
+		 */
+		reflectionConnect: () => LocalizedString;
+		/**
+		 * Saving…
+		 */
+		reflectionSubmitting: () => LocalizedString;
+		/**
+		 * Saved privately to your Quran.com notes.
+		 */
+		reflectionPrivateSuccess: () => LocalizedString;
+		/**
+		 * Your reflection was sent to QuranReflect.
+		 */
+		reflectionPublicSuccess: () => LocalizedString;
+		/**
+		 * Your reflection could not be saved. Your draft is still here so you can retry.
+		 */
+		reflectionSubmitError: () => LocalizedString;
+		/**
+		 * Back to reflection
+		 */
+		reflectionBack: () => LocalizedString;
+		/**
+		 * Close reflection panel
+		 */
+		reflectionCloseLabel: () => LocalizedString;
 	};
 	translations: {
 		/**

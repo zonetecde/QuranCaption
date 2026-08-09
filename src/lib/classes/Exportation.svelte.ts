@@ -1,6 +1,7 @@
 import { getAllWindows } from '@tauri-apps/api/window';
 import { SerializableBase } from './misc/SerializableBase';
 import { invoke } from '@tauri-apps/api/core';
+import type { QuranReflectionContext } from '$lib/services/QuranReflectionService';
 
 export enum ExportState {
 	WaitingForRecord = 'Pending',
@@ -59,6 +60,7 @@ export default class Exportation extends SerializableBase {
 	date: string;
 	totalExportTimeMs: number | null;
 	sourceProjectId: number | null;
+	reflectionContext: QuranReflectionContext | null;
 
 	constructor(
 		exportId: number,
@@ -75,7 +77,8 @@ export default class Exportation extends SerializableBase {
 		errorLog: string = '',
 		exportKind: ExportKind = ExportKind.Video,
 		exportLabel: string = '',
-		sourceProjectId: number | null = null
+		sourceProjectId: number | null = null,
+		reflectionContext: QuranReflectionContext | null = null
 	) {
 		super();
 		const safeStartTime = videoStartTime ?? 0;
@@ -106,6 +109,7 @@ export default class Exportation extends SerializableBase {
 		this.date = $state(new Date().toISOString());
 		this.totalExportTimeMs = $state(null);
 		this.sourceProjectId = sourceProjectId;
+		this.reflectionContext = reflectionContext;
 	}
 
 	/**

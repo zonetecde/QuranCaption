@@ -10,6 +10,8 @@ import Exportation, {
 import { ProjectService } from './ProjectService';
 import { listen, type Event as TauriEvent } from '@tauri-apps/api/event';
 import { AnalyticsService } from './AnalyticsService';
+import { deriveQuranReflectionContext } from './QuranReflectionService';
+import { Quran } from '$lib/classes/Quran';
 import { notifyLongTaskCompletion } from './UserAttentionService';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
@@ -99,6 +101,20 @@ export default class ExportService {
 
 		console.log('Final export file path:', filePath);
 
+		const subtitleClips = project.content.timeline
+			.getFirstTrack(TrackType.Subtitle)
+			.clips.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip);
+		const verseCounts = Object.fromEntries(
+			Quran.surahs.map((surah) => [surah.id, surah.totalAyah])
+		);
+		const reflectionContext = deriveQuranReflectionContext(
+			subtitleClips,
+			project.projectEditorState.export.videoStartTime,
+			project.projectEditorState.export.videoEndTime,
+			verseCounts,
+			project.projectEditorState.export.skipRanges
+		);
+
 		globalState.exportations.unshift(
 			new Exportation(
 				project.detail.id,
@@ -125,7 +141,8 @@ export default class ExportService {
 				'',
 				ExportKind.Video,
 				options.exportLabel ?? '',
-				options.sourceProjectId ?? null
+				options.sourceProjectId ?? null,
+				reflectionContext
 			)
 		);
 

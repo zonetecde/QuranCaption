@@ -178,6 +178,7 @@ struct PreviewAudioRequest {
     action: PreviewAudioAction,
     file_path: Option<String>,
     position_ms: Option<f64>,
+    duration_ms: Option<f64>,
     volume: Option<f32>,
     speed: Option<f32>,
     response: Sender<Result<PreviewAudioStatus, String>>,
@@ -201,6 +202,7 @@ impl PreviewAudioService {
         action: PreviewAudioAction,
         file_path: Option<String>,
         position_ms: Option<f64>,
+        duration_ms: Option<f64>,
         volume: Option<f32>,
         speed: Option<f32>,
     ) -> Result<PreviewAudioStatus, String> {
@@ -210,6 +212,7 @@ impl PreviewAudioService {
                 action,
                 file_path,
                 position_ms,
+                duration_ms,
                 volume,
                 speed,
                 response,
@@ -274,6 +277,7 @@ impl PreviewAudioRuntime {
         &mut self,
         file_path: String,
         position_ms: Option<f64>,
+        expected_duration_ms: Option<f64>,
         volume: Option<f32>,
         speed: Option<f32>,
     ) -> Result<(), String> {
@@ -286,10 +290,13 @@ impl PreviewAudioRuntime {
             self.ensure_output()?;
             let file = File::open(&file_path).map_err(|error| error.to_string())?;
             let decoder = Decoder::new(BufReader::new(file)).map_err(|error| error.to_string())?;
-            let duration_ms = decoder
+            let decoded_duration_ms = decoder
                 .total_duration()
                 .map(|duration| duration.as_secs_f64() * 1000.0)
                 .unwrap_or(0.0);
+            let duration_ms = expected_duration_ms
+                .filter(|duration| duration.is_finite() && *duration > 0.0)
+                .unwrap_or(decoded_duration_ms);
             let sink = Sink::try_new(self.output_handle.as_ref().unwrap())
                 .map_err(|error| error.to_string())?;
             sink.pause();
@@ -320,25 +327,14 @@ impl PreviewAudioRuntime {
         let Some(started_at) = self.started_at else {
             return;
         };
+        let now = Instant::now();
+        self.position_ms +=
+            now.duration_since(started_at).as_secs_f64() * 1000.0 * self.speed as f64;
         let advancing = self
             .sink
             .as_ref()
             .is_some_and(|sink| !sink.is_paused() && !sink.empty());
-        if !advancing {
-            self.started_at = None;
-            if self.sink.as_ref().is_some_and(Sink::empty) && self.duration_ms > 0.0 {
-                self.position_ms = self.duration_ms;
-            }
-            return;
-        }
-
-        let now = Instant::now();
-        self.position_ms +=
-            now.duration_since(started_at).as_secs_f64() * 1000.0 * self.speed as f64;
-        if self.duration_ms > 0.0 {
-            self.position_ms = self.position_ms.min(self.duration_ms);
-        }
-        self.started_at = Some(now);
+        self.started_at = advancing.then_some(now);
     }
 
     /// Recrée le flux à la position demandée tout en conservant le périphérique audio ouvert.
@@ -358,9 +354,34 @@ impl PreviewAudioRuntime {
         self.ensure_output()?;
         let file = File::open(file_path).map_err(|error| error.to_string())?;
         let mut decoder = Decoder::new(BufReader::new(file)).map_err(|error| error.to_string())?;
+        let decoded_duration_ms = decoder
+            .total_duration()
+            .map(|duration| duration.as_secs_f64() * 1000.0)
+            .unwrap_or(0.0);
+        let duration_gap_ms = self.duration_ms - decoded_duration_ms;
+        let refine_last_second = duration_gap_ms > 1.0
+            && duration_gap_ms <= 1000.0
+            && position_ms >= decoded_duration_ms;
+        let decoder_seek_ms = if refine_last_second {
+            (decoded_duration_ms - 2.0).max(0.0)
+        } else {
+            position_ms
+        };
         decoder
-            .try_seek(Duration::from_secs_f64(position_ms / 1000.0))
+            .try_seek(Duration::from_secs_f64(decoder_seek_ms / 1000.0))
             .map_err(|error| error.to_string())?;
+        if refine_last_second {
+            // Rodio 0.20 perd la fraction de seconde de Symphonia et borne sinon ce seek trop loin.
+            let frames_to_skip = ((position_ms - decoder_seek_ms) * decoder.sample_rate() as f64
+                / 1000.0)
+                .round() as usize;
+            let samples_to_skip = frames_to_skip.saturating_mul(decoder.channels() as usize);
+            for _ in 0..samples_to_skip {
+                if decoder.next().is_none() {
+                    break;
+                }
+            }
+        }
         let sink = Sink::try_new(self.output_handle.as_ref().unwrap())
             .map_err(|error| error.to_string())?;
         sink.pause();
@@ -373,11 +394,7 @@ impl PreviewAudioRuntime {
             previous_sink.stop();
         }
 
-        self.position_ms = if self.duration_ms > 0.0 {
-            position_ms.min(self.duration_ms)
-        } else {
-            position_ms
-        };
+        self.position_ms = position_ms;
         self.started_at = was_playing.then(Instant::now);
         Ok(())
     }
@@ -456,6 +473,7 @@ impl PreviewAudioRuntime {
                     .clone()
                     .ok_or("Missing native audio path")?,
                 request.position_ms,
+                request.duration_ms,
                 request.volume,
                 request.speed,
             )?,
@@ -467,6 +485,7 @@ impl PreviewAudioRuntime {
                             .clone()
                             .ok_or("Missing native audio path")?,
                         None,
+                        request.duration_ms,
                         request.volume,
                         request.speed,
                     )?;
@@ -522,10 +541,11 @@ pub fn control_preview_audio(
     action: PreviewAudioAction,
     file_path: Option<String>,
     position_ms: Option<f64>,
+    duration_ms: Option<f64>,
     volume: Option<f32>,
     speed: Option<f32>,
 ) -> Result<PreviewAudioStatus, String> {
-    PREVIEW_AUDIO_SERVICE.request(action, file_path, position_ms, volume, speed)
+    PREVIEW_AUDIO_SERVICE.request(action, file_path, position_ms, duration_ms, volume, speed)
 }
 
 #[cfg(test)]

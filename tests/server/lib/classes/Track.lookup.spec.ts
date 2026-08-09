@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { Clip, SilenceClip, SubtitleClip } from '$lib/classes/Clip.svelte';
+import { AssetClip, Clip, SilenceClip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { TrackType } from '$lib/classes/enums';
 import { SubtitleTrack, Track } from '$lib/classes/Track.svelte';
 
@@ -45,6 +45,26 @@ function createSubtitle(startTime: number, endTime: number, verse: number): Subt
 }
 
 describe('Track lookup helpers', () => {
+	it('preserves the source offset of trimmed asset clips', () => {
+		const clip = new AssetClip(500, 1500, 42);
+		clip.sourceStartTime = 750;
+
+		const restored = AssetClip.fromJSON(clip.toJSON()) as AssetClip;
+
+		expect(restored.sourceStartTime).toBe(750);
+		expect(restored.duration).toBe(1000);
+	});
+
+	it('defaults old asset clips to the start of their source', () => {
+		const clip = new AssetClip(0, 1000, 42);
+		const serialized = clip.toJSON();
+		delete serialized.sourceStartTime;
+
+		const restored = AssetClip.fromJSON(serialized) as AssetClip;
+
+		expect(restored.sourceStartTime).toBe(0);
+	});
+
 	it('finds the current clip at inclusive start and end boundaries', () => {
 		const first = createClip(0, 1000);
 		const second = createClip(1500, 2000);

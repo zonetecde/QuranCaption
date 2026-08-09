@@ -1,5 +1,5 @@
 ﻿<script lang="ts">
-	import type { AssetClip } from '$lib/classes';
+	import { AssetClip } from '$lib/classes';
 	import Timeline from '$lib/components/projectEditor/timeline/Timeline.svelte';
 	import VideoPreview from '$lib/components/projectEditor/videoPreview/VideoPreview.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -99,6 +99,86 @@
 	let hasSecondarySegmentProgress = false;
 	let processingBackgroundProgress = 0;
 	let captureWorkerWindows: WebviewWindow[] = [];
+
+	type ExportVideoInput = {
+		path: string;
+		loop_until_audio_end: boolean;
+		source_start_ms?: number;
+		timeline_start_ms?: number;
+		duration_ms?: number;
+	};
+
+	type ExportAudioClipInput = {
+		path: string;
+		source_start_ms: number;
+		timeline_start_ms: number;
+		duration_ms: number;
+	};
+
+	/**
+	 * Indique si la piste nécessite les métadonnées temporelles de l'export conditionnel.
+	 * @param {AssetClip[]} clips Clips à inspecter.
+	 * @returns {boolean} true si un clip est trimé ou séparé de ses voisins.
+	 */
+	function requiresTimedAssetExport(clips: AssetClip[]): boolean {
+		let expectedStartTime = 0;
+		return clips.some((clip) => {
+			const asset = globalState.currentProject!.content.getAssetById(clip.assetId);
+			const requiresTiming =
+				clip.startTime !== expectedStartTime ||
+				(clip.sourceStartTime ?? 0) > 0 ||
+				clip.duration < asset.duration.ms;
+			expectedStartTime = clip.endTime + 1;
+			return requiresTiming;
+		});
+	}
+
+	/**
+	 * Construit les entrées audio et n'ajoute les métadonnées temporelles qu'en présence d'un trim.
+	 * @returns {{ audios: string[]; audioClips?: ExportAudioClipInput[] }} Entrées pour Tauri.
+	 */
+	function getAudioExportInputs(): {
+		audios: string[];
+		audioClips?: ExportAudioClipInput[];
+	} {
+		const clips = globalState.getAudioTrack.clips as AssetClip[];
+		const audios = clips.map(
+			(clip) => globalState.currentProject!.content.getAssetById(clip.assetId).filePath
+		);
+		if (!requiresTimedAssetExport(clips)) return { audios };
+
+		return {
+			audios,
+			audioClips: clips.map((clip) => ({
+				path: globalState.currentProject!.content.getAssetById(clip.assetId).filePath,
+				source_start_ms: clip.sourceStartTime ?? 0,
+				timeline_start_ms: clip.startTime,
+				duration_ms: clip.duration
+			}))
+		};
+	}
+
+	/**
+	 * Construit les vidéos en conservant la forme historique lorsqu'aucun trim n'est présent.
+	 * @returns {ExportVideoInput[]} Entrées vidéo pour Tauri.
+	 */
+	function getVideoExportInputs(): ExportVideoInput[] {
+		const clips = globalState.getVideoTrack.clips as AssetClip[];
+		const requiresTiming = requiresTimedAssetExport(clips);
+
+		return clips.map((clip) => {
+			const input: ExportVideoInput = {
+				path: globalState.currentProject!.content.getAssetById(clip.assetId).filePath,
+				loop_until_audio_end: clip.loopUntilAudioEnd
+			};
+			if (requiresTiming) {
+				input.source_start_ms = clip.sourceStartTime ?? 0;
+				input.timeline_start_ms = clip.startTime;
+				input.duration_ms = clip.duration;
+			}
+			return input;
+		});
+	}
 
 	/**
 	 * Retourne le nom du blank deja planifie pour la sourate courante.
@@ -1428,17 +1508,8 @@
 			globalState.getStyle('global', 'fade-duration')!.value as number
 		);
 
-		// Récupère le chemin de fichier de tous les audios du projet
-		const audios: string[] = globalState.getAudioTrack.clips.map(
-			(clip) =>
-				globalState.currentProject!.content.getAssetById((clip as AssetClip).assetId).filePath
-		);
-
-		// Récupère le chemin de fichier de toutes les vidéos du projet
-		const videos = globalState.getVideoTrack.clips.map((clip) => ({
-			path: globalState.currentProject!.content.getAssetById((clip as AssetClip).assetId).filePath,
-			loop_until_audio_end: (clip as AssetClip).loopUntilAudioEnd
-		}));
+		const { audios, audioClips } = getAudioExportInputs();
+		const videos = getVideoExportInputs();
 
 		const segmentVideoExtension =
 			(globalState.getExportState.exportWithoutBackground ?? false)
@@ -1471,6 +1542,7 @@
 				startTime: Math.round(segmentStart), // Le startTime pour l'audio/vidéo de fond
 				duration: Math.round(segmentDuration),
 				audios: audios,
+				audioClips,
 				audioVolume: globalState.getAudioTrack.volumePercent,
 				videos: videos,
 				mediaFill: Boolean(globalState.getStyle('global', 'media-fill')?.value),
@@ -1885,17 +1957,8 @@
 		);
 		const exportFadeSettings = getExportFadeSettings();
 
-		// Récupère le chemin de fichier de tous les audios du projet
-		const audios: string[] = globalState.getAudioTrack.clips.map(
-			(clip) =>
-				globalState.currentProject!.content.getAssetById((clip as AssetClip).assetId).filePath
-		);
-
-		// Récupère le chemin de fichier de toutes les vidéos du projet
-		const videos = globalState.getVideoTrack.clips.map((clip) => ({
-			path: globalState.currentProject!.content.getAssetById((clip as AssetClip).assetId).filePath,
-			loop_until_audio_end: (clip as AssetClip).loopUntilAudioEnd
-		}));
+		const { audios, audioClips } = getAudioExportInputs();
+		const videos = getVideoExportInputs();
 
 		console.log(exportData!.finalFilePath);
 
@@ -1912,6 +1975,7 @@
 				startTime: exportStart,
 				duration: Math.round(duration),
 				audios: audios,
+				audioClips,
 				audioVolume: globalState.getAudioTrack.volumePercent,
 				videos: videos,
 				mediaFill: Boolean(globalState.getStyle('global', 'media-fill')?.value),

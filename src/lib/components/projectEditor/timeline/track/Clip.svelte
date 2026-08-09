@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { TrackType, AssetClip, type Clip, type Track } from '$lib/classes';
+	import { AssetType, TrackType, AssetClip, type Clip, type Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { onDestroy, onMount, untrack } from 'svelte';
@@ -24,6 +24,8 @@
 
 	onDestroy(() => {
 		currentMenu.set(null);
+		if (trimDragStartX !== null) stopTrim();
+		if (clipDragStartX !== null) stopClipDragging();
 	});
 
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
@@ -54,6 +56,161 @@
 	});
 
 	let wavesurfer: WaveSurfer | undefined;
+	let trimDragStartX: number | null = null;
+	let trimOriginalStartTime = 0;
+	let trimOriginalEndTime = 0;
+	let trimOriginalSourceStartTime = 0;
+	let clipDragStartX: number | null = null;
+	let clipDragOriginalStartTime = 0;
+
+	let canTrim = $derived(
+		clip instanceof AssetClip && asset.type !== AssetType.Image && !clip.loopUntilAudioEnd
+	);
+	let canMove = $derived(clip instanceof AssetClip && asset.type !== AssetType.Image);
+
+	/**
+	 * Démarre le déplacement horizontal du clip dans sa piste.
+	 * @param {MouseEvent} event Événement de souris initial.
+	 * @returns {void}
+	 */
+	function startClipDragging(event: MouseEvent): void {
+		if (
+			event.button !== 0 ||
+			!canMove ||
+			(event.target instanceof Element && event.target.closest('button, .asset-trim-handle'))
+		) {
+			return;
+		}
+		ProjectHistoryManager.begin('move asset clip');
+		clipDragStartX = event.clientX;
+		clipDragOriginalStartTime = clip.startTime;
+		globalState.getTimelineState.showCursor = false;
+		document.addEventListener('mousemove', moveClip);
+		document.addEventListener('mouseup', stopClipDragging);
+	}
+
+	/**
+	 * Déplace le clip sans dépasser les clips voisins.
+	 * @param {MouseEvent} event Événement de déplacement.
+	 * @returns {void}
+	 */
+	function moveClip(event: MouseEvent): void {
+		if (clipDragStartX === null) return;
+		const deltaMs = Math.round(
+			((event.clientX - clipDragStartX) / track.getPixelPerSecond()) * 1000
+		);
+		const previousClip = track.getClipBefore(clip.id);
+		const nextClip = track.getClipAfter(clip.id);
+		const minimumStart = previousClip ? previousClip.endTime + 1 : 0;
+		const maximumStart = nextClip
+			? nextClip.startTime - clip.duration - 1
+			: Number.POSITIVE_INFINITY;
+		const newStart = Math.max(
+			minimumStart,
+			Math.min(maximumStart, clipDragOriginalStartTime + deltaMs)
+		);
+
+		clip.startTime = newStart;
+		clip.endTime = newStart + clip.duration;
+	}
+
+	/**
+	 * Termine le déplacement et crée une seule entrée undo/redo.
+	 * @returns {void}
+	 */
+	function stopClipDragging(): void {
+		clipDragStartX = null;
+		document.removeEventListener('mousemove', moveClip);
+		document.removeEventListener('mouseup', stopClipDragging);
+		globalState.getTimelineState.showCursor = true;
+		globalState.getTimelineState.movePreviewTo = globalState.getTimelineState.cursorPosition;
+		ProjectHistoryManager.commit();
+	}
+
+	/**
+	 * Démarre le trim non destructif d'un bord du clip.
+	 * @param {'left' | 'right'} edge Bord manipulé.
+	 * @param {MouseEvent} event Événement de souris initial.
+	 * @returns {void}
+	 */
+	function startTrim(edge: 'left' | 'right', event: MouseEvent): void {
+		if (event.button !== 0 || !canTrim) return;
+		event.stopPropagation();
+		ProjectHistoryManager.begin('trim asset clip');
+		trimDragStartX = event.clientX;
+		trimOriginalStartTime = clip.startTime;
+		trimOriginalEndTime = clip.endTime;
+		trimOriginalSourceStartTime = (clip as AssetClip).sourceStartTime ?? 0;
+		globalState.getTimelineState.showCursor = false;
+		document.addEventListener('mousemove', edge === 'left' ? trimLeft : trimRight);
+		document.addEventListener('mouseup', stopTrim);
+	}
+
+	/**
+	 * Applique le trim du bord gauche en conservant l'offset dans le média source.
+	 * @param {MouseEvent} event Événement de déplacement.
+	 * @returns {void}
+	 */
+	function trimLeft(event: MouseEvent): void {
+		if (trimDragStartX === null || !(clip instanceof AssetClip)) return;
+		const deltaMs = Math.round(
+			((event.clientX - trimDragStartX) / track.getPixelPerSecond()) * 1000
+		);
+		const previousClip = track.getClipBefore(clip.id);
+		const minimumStart = Math.max(
+			0,
+			trimOriginalStartTime - trimOriginalSourceStartTime,
+			previousClip ? previousClip.endTime + 1 : 0
+		);
+		const newStart = Math.min(
+			trimOriginalEndTime - 100,
+			Math.max(minimumStart, trimOriginalStartTime + deltaMs)
+		);
+
+		clip.startTime = newStart;
+		clip.duration = clip.endTime - newStart;
+		clip.sourceStartTime = trimOriginalSourceStartTime + (newStart - trimOriginalStartTime);
+	}
+
+	/**
+	 * Applique le trim du bord droit dans les limites du média source et du clip suivant.
+	 * @param {MouseEvent} event Événement de déplacement.
+	 * @returns {void}
+	 */
+	function trimRight(event: MouseEvent): void {
+		if (trimDragStartX === null || !(clip instanceof AssetClip)) return;
+		const deltaMs = Math.round(
+			((event.clientX - trimDragStartX) / track.getPixelPerSecond()) * 1000
+		);
+		const nextClip = track.getClipAfter(clip.id);
+		const sourceEndTime =
+			trimOriginalSourceStartTime + (trimOriginalEndTime - trimOriginalStartTime);
+		const maximumEnd = Math.min(
+			trimOriginalEndTime + Math.max(0, asset.duration.ms - sourceEndTime),
+			nextClip ? nextClip.startTime - 1 : Number.POSITIVE_INFINITY
+		);
+		const newEnd = Math.max(
+			trimOriginalStartTime + 100,
+			Math.min(maximumEnd, trimOriginalEndTime + deltaMs)
+		);
+
+		clip.endTime = newEnd;
+		clip.duration = newEnd - clip.startTime;
+	}
+
+	/**
+	 * Termine le trim courant et crée une seule entrée undo/redo.
+	 * @returns {void}
+	 */
+	function stopTrim(): void {
+		trimDragStartX = null;
+		document.removeEventListener('mousemove', trimLeft);
+		document.removeEventListener('mousemove', trimRight);
+		document.removeEventListener('mouseup', stopTrim);
+		globalState.getTimelineState.showCursor = true;
+		globalState.getTimelineState.movePreviewTo = globalState.getTimelineState.cursorPosition;
+		ProjectHistoryManager.commit();
+	}
 
 	/**
 	 * Libère la waveform si son fichier doit être remplacé.
@@ -85,6 +242,8 @@
 			// On dépend de refreshVersion pour forcer le recalcul si besoin
 			const _v = WaveformService.refreshVersion;
 			const _mediaReloadToken = asset.mediaReloadToken;
+			const sourceStartTime = clip instanceof AssetClip ? (clip.sourceStartTime ?? 0) : 0;
+			const clipDuration = clip.duration;
 
 			untrack(async () => {
 				if (wavesurfer) {
@@ -94,14 +253,20 @@
 
 				try {
 					const peaks = await WaveformService.getPeaks(asset.filePath);
+					const sourceDuration = Math.max(1, asset.duration.ms);
+					const startIndex = Math.floor((sourceStartTime / sourceDuration) * peaks.length);
+					const endIndex = Math.ceil(
+						((sourceStartTime + clipDuration) / sourceDuration) * peaks.length
+					);
+					const visiblePeaks = peaks.slice(startIndex, endIndex);
 
 					wavesurfer = WaveSurfer.create({
 						container: '#clip-' + clip.id,
 						waveColor: '#9d99cc',
 						progressColor: '#9d99cc',
 						url: file,
-						peaks: [peaks], // Pass peaks to avoid decoding
-						duration: asset.duration.ms / 1000,
+						peaks: [visiblePeaks], // Pass peaks to avoid decoding
+						duration: clipDuration / 1000,
 						height: 'auto'
 					});
 				} catch (e) {
@@ -207,9 +372,11 @@
 			: 'border-[var(--timeline-video-clip-border)] bg-[var(--timeline-video-clip-color)]') +
 		(isSelectedVideo()
 			? ' bg-[var(--video-clip-selection)]! ring-1 ring-[var(--video-clip-selection)]/60'
-			: '')}
+			: '') +
+		(canMove ? ' cursor-move' : '')}
 	style="width: {clip.getWidth()}px; left: {positionLeft()}px;"
 	onclick={handleClipClick}
+	onmousedown={startClipDragging}
 	oncontextmenu={(e) => {
 		e.preventDefault();
 		contextMenu!.show(e);
@@ -250,6 +417,17 @@
 			<span class="material-icons">delete</span>
 		</button>
 	</section>
+
+	{#if canTrim}
+		<div
+			class="asset-trim-handle absolute inset-y-0 left-0 z-30 w-2 cursor-ew-resize"
+			onmousedown={(event) => startTrim('left', event)}
+		></div>
+		<div
+			class="asset-trim-handle absolute inset-y-0 right-0 z-30 w-2 cursor-ew-resize"
+			onmousedown={(event) => startTrim('right', event)}
+		></div>
+	{/if}
 </div>
 
 <ContextMenu bind:this={contextMenu}>

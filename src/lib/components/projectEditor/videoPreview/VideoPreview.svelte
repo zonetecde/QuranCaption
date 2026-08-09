@@ -206,7 +206,10 @@
 		if (!currentClip) return 0;
 
 		// Le temps dans l'audio = position du curseur - début du clip
-		const timeInClip = getTimelineSettings().movePreviewTo - currentClip.startTime;
+		const sourceStartTime =
+			currentClip instanceof AssetClip ? (currentClip.sourceStartTime ?? 0) : 0;
+		const timeInClip =
+			sourceStartTime + getTimelineSettings().movePreviewTo - currentClip.startTime;
 		return Math.max(0, timeInClip / 1000); // Convertit en secondes pour les lecteurs audio
 	}
 
@@ -226,7 +229,10 @@
 		const clipIndex = track.clips.findIndex((trackClip) => trackClip.id === currentClip.id);
 		const visualStartTime =
 			clipIndex === -1 ? currentClip.startTime : track.getVisualClipStartTime(clipIndex);
-		let timeInClip = refTime - visualStartTime;
+		let timeInClip =
+			(currentClip instanceof AssetClip ? (currentClip.sourceStartTime ?? 0) : 0) +
+			refTime -
+			visualStartTime;
 
 		if (isVideoLooping() && !asset.duration.isNull()) {
 			timeInClip = timeInClip % asset.duration.ms;
@@ -452,9 +458,19 @@
 					return;
 				}
 
-				// La position du curseur = début du clip + temps écoulé dans la vidéo (en ms)
-				const absolutePosition = currentClip.startTime + videoElement.currentTime * 1000;
+				const sourceStartTime =
+					currentClip instanceof AssetClip ? (currentClip.sourceStartTime ?? 0) : 0;
+				const timeInClip = videoElement.currentTime * 1000 - sourceStartTime;
+				if (timeInClip >= currentClip.duration) {
+					getTimelineSettings().cursorPosition = currentClip.endTime;
+					goNextVideo();
+					return;
+				}
+
+				// La position du curseur = début du clip + temps écoulé dans sa plage source.
+				const absolutePosition = currentClip.startTime + Math.max(0, timeInClip);
 				getTimelineSettings().cursorPosition = absolutePosition;
+				syncAudioPlaybackAtCursor();
 			}
 		}
 	}
@@ -470,8 +486,17 @@
 			if (currentAudioClip) {
 				// .seek() retourne la position en secondes, on la convertit en ms
 				const audioPositionMs = audioHowl.seek() * 1000;
-				const absolutePosition = currentAudioClip.startTime + audioPositionMs;
+				const sourceStartTime =
+					currentAudioClip instanceof AssetClip ? (currentAudioClip.sourceStartTime ?? 0) : 0;
+				const timeInClip = audioPositionMs - sourceStartTime;
+				if (timeInClip >= currentAudioClip.duration) {
+					getTimelineSettings().cursorPosition = currentAudioClip.endTime;
+					goNextAudio();
+					return;
+				}
+				const absolutePosition = currentAudioClip.startTime + Math.max(0, timeInClip);
 				getTimelineSettings().cursorPosition = absolutePosition;
+				syncVideoPlaybackAtCursor();
 			}
 		}
 	}
@@ -622,6 +647,7 @@
 	type NativePreviewAudioOptions = {
 		filePath?: string;
 		positionMs?: number;
+		durationMs?: number;
 		volume?: number;
 		speed?: number;
 	};
@@ -649,7 +675,11 @@
 	let nativeAudioBaseTime = 0;
 	let nativeAudioDurationMs = 0;
 	let nativeAudioClipStartTime = 0;
+	let nativeAudioSourceStartTime = 0;
+	let nativeAudioClipDuration = 0;
 	let nativeAudioEndHandled = false;
+	let requestedAudioClipId: number | null = null;
+	let requestedVideoClipId: number | null = null;
 	let transitionAnimationFrame: number | null = null;
 	let transitionRenderCursorPosition = $state(0);
 
@@ -667,6 +697,7 @@
 			action,
 			filePath: options.filePath ?? null,
 			positionMs: options.positionMs ?? null,
+			durationMs: options.durationMs ?? null,
 			volume: options.volume ?? null,
 			speed: options.speed ?? null
 		});
@@ -695,13 +726,14 @@
 	}
 
 	/**
-	 * Passe une seule fois au média suivant lorsque l'audio natif se termine.
+	 * Passe une seule fois à la portion silencieuse suivant l'audio natif.
 	 * @returns {void}
 	 */
 	function handleNativeAudioEnd(): void {
 		if (nativeAudioEndHandled) return;
 		nativeAudioEndHandled = true;
 		stopNativeAudioClock();
+		getTimelineSettings().cursorPosition = nativeAudioClipStartTime + nativeAudioClipDuration;
 		goNextAudio();
 	}
 
@@ -724,13 +756,18 @@
 		}
 
 		const positionMs = getNativeAudioPosition();
-		if (nativeAudioDurationMs > 0 && positionMs >= nativeAudioDurationMs) {
-			getTimelineSettings().cursorPosition = nativeAudioClipStartTime + nativeAudioDurationMs;
+		const timeInClip = positionMs - nativeAudioSourceStartTime;
+		const reachedClipEnd =
+			nativeAudioClipDuration > 0
+				? timeInClip >= nativeAudioClipDuration
+				: nativeAudioDurationMs > 0 && positionMs >= nativeAudioDurationMs;
+		if (reachedClipEnd) {
 			handleNativeAudioEnd();
 			return;
 		}
 
-		getTimelineSettings().cursorPosition = nativeAudioClipStartTime + positionMs;
+		getTimelineSettings().cursorPosition = nativeAudioClipStartTime + Math.max(0, timeInClip);
+		syncVideoPlaybackAtCursor();
 		nativeAudioAnimationFrame = requestAnimationFrame(updateNativeAudioClock);
 	}
 
@@ -816,11 +853,17 @@
 		const currentAudioClip = globalState.getAudioTrack.getCurrentClip();
 		const audioAsset = currentAudio();
 		if (!audioAsset) return;
-		if (currentAudioClip) nativeAudioClipStartTime = currentAudioClip.startTime;
+		if (currentAudioClip) {
+			nativeAudioClipStartTime = currentAudioClip.startTime;
+			nativeAudioSourceStartTime =
+				currentAudioClip instanceof AssetClip ? (currentAudioClip.sourceStartTime ?? 0) : 0;
+			nativeAudioClipDuration = currentAudioClip.duration;
+		}
 		try {
 			const status = await controlNativeAudio('play', {
 				filePath: audioAsset.filePath,
 				positionMs: getCurrentAudioTimeToPlay() * 1000,
+				durationMs: audioAsset.duration.ms,
 				volume: getNativeAudioVolume(globalState.getAudioTrack.volumePercent),
 				speed: audioSpeed
 			});
@@ -879,7 +922,8 @@
 				return;
 			}
 			applyNativeAudioStatus(status);
-			getTimelineSettings().cursorPosition = nativeAudioClipStartTime + status.positionMs;
+			getTimelineSettings().cursorPosition =
+				nativeAudioClipStartTime + Math.max(0, status.positionMs - nativeAudioSourceStartTime);
 			getTimelineSettings().movePreviewTo = getTimelineSettings().cursorPosition;
 		} catch (error) {
 			console.error('Native audio pause error:', error);
@@ -976,7 +1020,8 @@
 
 		const audioClip = globalState.getAudioTrack?.getCurrentClip();
 		if (audioHowl && audioClip) {
-			return audioClip.startTime + audioHowl.seek() * 1000;
+			const sourceStartTime = audioClip instanceof AssetClip ? (audioClip.sourceStartTime ?? 0) : 0;
+			return audioClip.startTime + Math.max(0, audioHowl.seek() * 1000 - sourceStartTime);
 		}
 
 		const videoClip = currentVideoClip();
@@ -988,7 +1033,8 @@
 				clipIndex === -1
 					? videoClip.startTime
 					: globalState.getVideoTrack.getVisualClipStartTime(clipIndex);
-			return visualStartTime + videoElement.currentTime * 1000;
+			const sourceStartTime = videoClip instanceof AssetClip ? (videoClip.sourceStartTime ?? 0) : 0;
+			return visualStartTime + Math.max(0, videoElement.currentTime * 1000 - sourceStartTime);
 		}
 
 		return getTimelineSettings().cursorPosition;
@@ -1169,6 +1215,8 @@
 	async function setupAudio(): Promise<void> {
 		const setupId = ++nativeAudioSetupId;
 		const audioAsset = currentAudio();
+		const currentAudioClip = globalState.getAudioTrack.getCurrentClip();
+		requestedAudioClipId = currentAudioClip?.id ?? null;
 		nativeAudioSeekId++;
 		nativeAudioReady = false;
 		stopNativeAudioClock();
@@ -1187,14 +1235,18 @@
 			} catch (error) {
 				console.error('Native audio unload error:', error);
 			}
+			if (isPlaying && !currentVideo()) playSilentAudio();
 			return;
 		}
 
 		try {
-			const currentAudioClip = globalState.getAudioTrack.getCurrentClip();
 			nativeAudioClipStartTime = currentAudioClip?.startTime ?? 0;
+			nativeAudioSourceStartTime =
+				currentAudioClip instanceof AssetClip ? (currentAudioClip.sourceStartTime ?? 0) : 0;
+			nativeAudioClipDuration = currentAudioClip?.duration ?? 0;
 			const status = await controlNativeAudio('load', {
 				filePath: audioAsset.filePath,
+				durationMs: audioAsset.duration.ms,
 				volume: getNativeAudioVolume(globalState.getAudioTrack.volumePercent),
 				speed: audioSpeed
 			});
@@ -1220,6 +1272,7 @@
 	 */
 	function playSilentAudio() {
 		loadedAudioKey = undefined;
+		requestedAudioClipId = null;
 		if (nativeAudioReady) {
 			nativeAudioSetupId++;
 			nativeAudioReady = false;
@@ -1254,6 +1307,8 @@
 						// Avance le curseur manuellement de 10ms à chaque intervalle
 						if (isPlaying) {
 							getTimelineSettings().cursorPosition += 10;
+							syncAudioPlaybackAtCursor();
+							syncVideoPlaybackAtCursor();
 						}
 					}, 10);
 				}
@@ -1396,74 +1451,70 @@
 
 	// === NAVIGATION ENTRE MÉDIAS ===
 	/**
-	 * Passe au prochain média quand une vidéo se termine
+	 * Continue la lecture dans l'espace situé après un clip vidéo.
+	 * @returns {void}
 	 */
 	function goNextVideo() {
-		const currentTime = getTimelineSettings().cursorPosition;
-		const videoTrack = globalState.getVideoTrack;
+		const timelineSettings = getTimelineSettings();
+		const currentClip = globalState.getVideoTrack.getCurrentClip(timelineSettings.cursorPosition);
+		if (!currentClip) return;
+		timelineSettings.cursorPosition = currentClip.endTime + 1;
+		requestedVideoClipId = null;
+		timelineSettings.movePreviewTo = timelineSettings.cursorPosition;
 
-		// Cherche la prochaine vidéo uniquement
-		if (videoTrack) {
-			const nextVideoClip = videoTrack.clips.find((clip) => clip.startTime > currentTime - 1000);
-			if (nextVideoClip) {
-				// Avance le curseur au début de la prochaine vidéo
-				getTimelineSettings().cursorPosition = nextVideoClip.startTime;
-				triggerVideoAndAudioToFitCursor();
-			}
-			// Si aucune prochaine vidéo, ne fait rien (continue avec fond noir)
-		}
-	}
-
-	/**
-	 * Passe au prochain média quand un audio se termine
-	 */
-	function goNextAudio() {
-		goToNextMedia(false, true);
-	}
-
-	/**
-	 * Trouve et navigue vers le prochain média dans la timeline
-	 * @param video - Inclure les pistes vidéo dans la recherche
-	 * @param audio - Inclure les pistes audio dans la recherche
-	 */
-	function goToNextMedia(video: boolean = true, audio: boolean = true) {
-		const currentTime = getTimelineSettings().cursorPosition;
-
-		// Récupération des pistes vidéo et audio
-		const videoTrack = globalState.getVideoTrack;
-		const audioTrack = globalState.getAudioTrack;
-
-		const nextClips: { clip: { startTime: number }; startTime: number }[] = [];
-
-		// Recherche du prochain clip vidéo
-		if (videoTrack && video) {
-			const nextVideoClip = videoTrack.clips.find((clip) => clip.startTime > currentTime - 1000);
-			if (nextVideoClip) {
-				nextClips.push({ clip: nextVideoClip, startTime: nextVideoClip.startTime });
-			}
-		}
-
-		// Recherche du prochain clip audio
-		if (audioTrack && audio) {
-			const nextAudioClip = audioTrack.clips.find((clip) => clip.startTime > currentTime - 1000);
-			if (nextAudioClip) {
-				nextClips.push({ clip: nextAudioClip, startTime: nextAudioClip.startTime });
-			}
-		}
-		if (nextClips.length > 0) {
-			// Trouve le clip qui commence le plus tôt
-			const earliestClip = nextClips.reduce((earliest, current) =>
-				current.startTime < earliest.startTime ? current : earliest
-			);
-
-			// Avance le curseur au début du prochain clip
-			getTimelineSettings().cursorPosition = earliestClip.startTime;
-			triggerVideoAndAudioToFitCursor();
-		} else if (audio && !video) {
-			// Seulement si on cherche de l'audio ET qu'on n'en trouve pas, joue silent
+		if (!globalState.getAudioTrack.getCurrentClip(timelineSettings.cursorPosition)) {
 			playSilentAudio();
 		}
-		// Sinon ne fait rien (cas vidéo qui se termine sans prochaine vidéo)
+	}
+
+	/**
+	 * Continue la lecture dans le silence situé après un clip audio.
+	 * @returns {void}
+	 */
+	function goNextAudio() {
+		const timelineSettings = getTimelineSettings();
+		const currentClip = globalState.getAudioTrack.getCurrentClip(timelineSettings.cursorPosition);
+		if (currentClip) timelineSettings.cursorPosition = currentClip.endTime + 1;
+		requestedAudioClipId = null;
+		timelineSettings.movePreviewTo = timelineSettings.cursorPosition;
+	}
+
+	/**
+	 * Active automatiquement l'audio lorsque le curseur entre dans un clip depuis un silence.
+	 * @returns {void}
+	 */
+	function syncAudioPlaybackAtCursor(): void {
+		if (!isPlaying) return;
+		const currentClip = globalState.getAudioTrack.getCurrentClip(
+			getTimelineSettings().cursorPosition
+		);
+		if (!currentClip || currentClip.id === requestedAudioClipId) return;
+
+		requestedAudioClipId = currentClip.id;
+		getTimelineSettings().movePreviewTo = getTimelineSettings().cursorPosition;
+	}
+
+	/**
+	 * Active automatiquement la vidéo lorsque le curseur entre dans un clip depuis un espace vide.
+	 * @returns {void}
+	 */
+	function syncVideoPlaybackAtCursor(): void {
+		if (!isPlaying) return;
+		const currentClip = globalState.getVideoTrack.getCurrentVisualClip(
+			getTimelineSettings().cursorPosition
+		);
+		if (!currentClip) {
+			if (requestedVideoClipId !== null || currentVideo()) {
+				videoElement?.pause();
+				getTimelineSettings().movePreviewTo = getTimelineSettings().cursorPosition;
+			}
+			requestedVideoClipId = null;
+			return;
+		}
+		if (currentClip.id === requestedVideoClipId) return;
+
+		requestedVideoClipId = currentClip.id;
+		getTimelineSettings().movePreviewTo = getTimelineSettings().cursorPosition;
 	}
 
 	onMount(() => {

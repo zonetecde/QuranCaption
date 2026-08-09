@@ -115,6 +115,7 @@ export default class Settings extends SerializableBase {
 			TrackType.Audio
 		] as TrackType[],
 		desktopNotificationsEnabled: true,
+		hideReflectionPromptAfterExport: false,
 		themeIntensity: 100,
 		editorPanelScalePercent: -15,
 		hasSeenTour: false,
@@ -287,6 +288,11 @@ export default class Settings extends SerializableBase {
 			}
 		}
 
+		if (typeof settings.persistentUiState.hideReflectionPromptAfterExport !== 'boolean') {
+			settings.persistentUiState.hideReflectionPromptAfterExport = false;
+			shouldSave = true;
+		}
+
 		// Migration : validation du paramètre editorPanelScalePercent
 		const editorPanelScalePercent = settings.persistentUiState.editorPanelScalePercent;
 		if (
@@ -325,7 +331,7 @@ export enum SettingsTab {
 	THEME = 'theme',
 	NOTIFICATIONS = 'notifications',
 	AI_KEY = 'ai-key',
-	STOCK_MEDIA = 'stock-media',
+	QURAN_FOUNDATION = 'quran-foundation',
 	DEFAULT_VALUES = 'default-values',
 	BACKUP = 'backup',
 	SUPPORT = 'support',

@@ -5,7 +5,7 @@
 	import About from './About.svelte';
 	import BackupSettings from './BackupSettings.svelte';
 	import AiKeySettings from './AiKeySettings.svelte';
-	import StockMediaSettings from './StockMediaSettings.svelte';
+	import QuranIntegrationSettings from './QuranIntegrationSettings.svelte';
 	import DefaultValuesSettings from './DefaultValuesSettings.svelte';
 	import ThemeButton, { type ThemeConfig } from './ThemeButton.svelte';
 	import { DONATION_WALLETS } from '$lib/constants/donation';
@@ -55,6 +55,10 @@
 		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
 	);
 	let defaultValuesCopy = $derived($LL.settings as unknown as { defaultValues: () => string });
+	let apiKeysCopy = $derived($LL.settings as unknown as { apiKeys: () => string });
+	let quranFoundationCopy = $derived(
+		$LL.settings as unknown as { quranFoundationIntegration: () => string }
+	);
 	let interfaceCopy = $derived(
 		$LL.settings as unknown as {
 			userInterface: () => string;
@@ -70,8 +74,12 @@
 			icon: 'display_settings'
 		},
 		{ name: $LL.settings.theme(), tab: SettingsTab.THEME, icon: 'light_mode' },
-		{ name: $LL.settings.aiKey(), tab: SettingsTab.AI_KEY, icon: 'key' },
-		{ name: $LL.settings.stockMedia(), tab: SettingsTab.STOCK_MEDIA, icon: 'public' },
+		{ name: apiKeysCopy.apiKeys(), tab: SettingsTab.AI_KEY, icon: 'key' },
+		{
+			name: quranFoundationCopy.quranFoundationIntegration(),
+			tab: SettingsTab.QURAN_FOUNDATION,
+			icon: 'menu_book'
+		},
 		{
 			name: defaultValuesCopy.defaultValues(),
 			tab: SettingsTab.DEFAULT_VALUES,
@@ -341,8 +349,8 @@
 					</div>
 				{:else if globalState.uiState.settingsTab === SettingsTab.AI_KEY}
 					<AiKeySettings />
-				{:else if globalState.uiState.settingsTab === SettingsTab.STOCK_MEDIA}
-					<StockMediaSettings />
+				{:else if globalState.uiState.settingsTab === SettingsTab.QURAN_FOUNDATION}
+					<QuranIntegrationSettings />
 				{:else if globalState.uiState.settingsTab === SettingsTab.DEFAULT_VALUES}
 					<DefaultValuesSettings />
 				{:else if globalState.uiState.settingsTab === SettingsTab.BACKUP}

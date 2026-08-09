@@ -356,7 +356,6 @@
 		// Charge les paramètres utilisateur (une seconde fois pour etre sur)
 		await Settings.load();
 		await quranAuthService.init();
-		await quranAuthService.syncThemeFromPreferences(true);
 
 		unlistenCloseRequest = await getCurrentWindow().onCloseRequested(handleMainWindowClose);
 	});

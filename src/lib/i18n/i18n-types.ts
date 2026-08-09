@@ -4249,7 +4249,7 @@ type RootTranslation = {
 		 */
 		stockMediaDisclaimer: RequiredParams<'source'>;
 		/**
-		 * C​o​n​f​i​g​u​r​e​ ​A​P​I​ ​k​e​y​s​ ​i​n​ ​S​e​t​t​i​n​g​s​ ​>​ ​S​t​o​c​k​ ​M​e​d​i​a
+		 * C​o​n​f​i​g​u​r​e​ ​A​P​I​ ​k​e​y​s​ ​i​n​ ​S​e​t​t​i​n​g​s​ ​>​ ​A​P​I​ ​K​e​y​s​ ​>​ ​S​t​o​c​k​ ​M​e​d​i​a
 		 */
 		configureApiKeys: string;
 		/**
@@ -6476,11 +6476,24 @@ type RootTranslation = {
 		 */
 		reflectionRangeChoice: string;
 		/**
+		 * S​i​n​g​l​e​ ​v​e​r​s​e
+		 */
+		reflectionSingleChoice: string;
+		/**
 		 * A​y​a​t​ ​{​f​r​o​m​}​–​{​t​o​}
 		 * @param {unknown} from
 		 * @param {unknown} to
 		 */
 		reflectionAyat: RequiredParams<'from' | 'to'>;
+		/**
+		 * A​y​a​h​ ​{​v​e​r​s​e​}
+		 * @param {unknown} verse
+		 */
+		reflectionSingleAyah: RequiredParams<'verse'>;
+		/**
+		 * A​y​a​h
+		 */
+		reflectionAyahLabel: string;
 		/**
 		 * F​r​o​m​ ​a​y​a​h
 		 */
@@ -6531,6 +6544,10 @@ type RootTranslation = {
 		 */
 		reflectionLikes: RequiredParams<'count'>;
 		/**
+		 * R​e​a​d​ ​m​o​r​e
+		 */
+		reflectionReadMore: string;
+		/**
 		 * W​r​i​t​e​ ​a​ ​r​e​f​l​e​c​t​i​o​n
 		 */
 		reflectionWrite: string;
@@ -6554,6 +6571,12 @@ type RootTranslation = {
 		 * @param {unknown} to
 		 */
 		reflectionRangePlaceholder: RequiredParams<'from' | 'surah' | 'to'>;
+		/**
+		 * T​h​i​s​ ​v​e​r​s​e​,​ ​{​s​u​r​a​h​}​ ​{​v​e​r​s​e​}​,​ ​m​a​t​t​e​r​s​ ​t​o​ ​m​e​ ​b​e​c​a​u​s​e​…
+		 * @param {unknown} surah
+		 * @param {unknown} verse
+		 */
+		reflectionSinglePlaceholder: RequiredParams<'surah' | 'verse'>;
 		/**
 		 * W​r​i​t​e​ ​a​t​ ​l​e​a​s​t​ ​6​ ​c​h​a​r​a​c​t​e​r​s​.
 		 */
@@ -6614,6 +6637,10 @@ type RootTranslation = {
 		 * B​a​c​k​ ​t​o​ ​r​e​f​l​e​c​t​i​o​n
 		 */
 		reflectionBack: string;
+		/**
+		 * W​r​i​t​e​ ​a​n​o​t​h​e​r​ ​r​e​f​l​e​c​t​i​o​n
+		 */
+		reflectionWriteAnother: string;
 		/**
 		 * C​l​o​s​e​ ​r​e​f​l​e​c​t​i​o​n​ ​p​a​n​e​l
 		 */
@@ -7463,6 +7490,10 @@ type RootTranslation = {
 		 */
 		aiKey: string;
 		/**
+		 * A​P​I​ ​K​e​y​s
+		 */
+		apiKeys: string;
+		/**
 		 * S​t​o​c​k
 		 */
 		stockMedia: string;
@@ -7470,6 +7501,22 @@ type RootTranslation = {
 		 * Q​u​r​a​n​.​c​o​m​ ​I​n​t​e​g​r​a​t​i​o​n
 		 */
 		quranComIntegration: string;
+		/**
+		 * Q​u​r​a​n​ ​F​o​u​n​d​a​t​i​o​n​ ​I​n​t​e​g​r​a​t​i​o​n
+		 */
+		quranFoundationIntegration: string;
+		/**
+		 * C​o​n​n​e​c​t​ ​y​o​u​r​ ​Q​u​r​a​n​ ​F​o​u​n​d​a​t​i​o​n​ ​a​c​c​o​u​n​t​ ​t​o​ ​b​o​o​k​m​a​r​k​ ​v​e​r​s​e​s​ ​o​n​ ​Q​u​r​a​n​.​c​o​m​ ​f​r​o​m​ ​t​h​e​ ​t​i​m​e​l​i​n​e​,​ ​s​a​v​e​ ​r​e​f​l​e​c​t​i​o​n​s​ ​a​s​ ​p​r​i​v​a​t​e​ ​n​o​t​e​s​,​ ​a​n​d​ ​p​u​b​l​i​s​h​ ​t​h​e​m​ ​o​n​ ​Q​u​r​a​n​R​e​f​l​e​c​t​.
+		 */
+		quranFoundationIntegrationDescription: string;
+		/**
+		 * D​o​ ​n​o​t​ ​s​h​o​w​ ​t​h​e​ ​r​e​f​l​e​c​t​i​o​n​ ​p​r​o​m​p​t​ ​a​f​t​e​r​ ​e​x​p​o​r​t
+		 */
+		hideReflectionPromptAfterExport: string;
+		/**
+		 * H​i​d​e​ ​t​h​e​ ​r​e​f​l​e​c​t​i​o​n​ ​p​r​o​m​p​t​ ​t​h​a​t​ ​a​p​p​e​a​r​s​ ​a​f​t​e​r​ ​a​ ​s​u​c​c​e​s​s​f​u​l​ ​v​i​d​e​o​ ​e​x​p​o​r​t​.
+		 */
+		hideReflectionPromptAfterExportDescription: string;
 		/**
 		 * D​e​f​a​u​l​t​ ​V​a​l​u​e​s
 		 */
@@ -15223,7 +15270,7 @@ export type TranslationFunctions = {
 		 */
 		stockMediaDisclaimer: (arg: { source: unknown }) => LocalizedString;
 		/**
-		 * Configure API keys in Settings > Stock Media
+		 * Configure API keys in Settings > API Keys > Stock Media
 		 */
 		configureApiKeys: () => LocalizedString;
 		/**
@@ -17445,9 +17492,21 @@ export type TranslationFunctions = {
 		 */
 		reflectionRangeChoice: () => LocalizedString;
 		/**
+		 * Single verse
+		 */
+		reflectionSingleChoice: () => LocalizedString;
+		/**
 		 * Ayat {from}–{to}
 		 */
 		reflectionAyat: (arg: { from: unknown; to: unknown }) => LocalizedString;
+		/**
+		 * Ayah {verse}
+		 */
+		reflectionSingleAyah: (arg: { verse: unknown }) => LocalizedString;
+		/**
+		 * Ayah
+		 */
+		reflectionAyahLabel: () => LocalizedString;
 		/**
 		 * From ayah
 		 */
@@ -17497,6 +17556,10 @@ export type TranslationFunctions = {
 		 */
 		reflectionLikes: (arg: { count: unknown }) => LocalizedString;
 		/**
+		 * Read more
+		 */
+		reflectionReadMore: () => LocalizedString;
+		/**
 		 * Write a reflection
 		 */
 		reflectionWrite: () => LocalizedString;
@@ -17520,6 +17583,10 @@ export type TranslationFunctions = {
 			surah: unknown;
 			to: unknown;
 		}) => LocalizedString;
+		/**
+		 * This verse, {surah} {verse}, matters to me because…
+		 */
+		reflectionSinglePlaceholder: (arg: { surah: unknown; verse: unknown }) => LocalizedString;
 		/**
 		 * Write at least 6 characters.
 		 */
@@ -17580,6 +17647,10 @@ export type TranslationFunctions = {
 		 * Back to reflection
 		 */
 		reflectionBack: () => LocalizedString;
+		/**
+		 * Write another reflection
+		 */
+		reflectionWriteAnother: () => LocalizedString;
 		/**
 		 * Close reflection panel
 		 */
@@ -18415,6 +18486,10 @@ export type TranslationFunctions = {
 		 */
 		aiKey: () => LocalizedString;
 		/**
+		 * API Keys
+		 */
+		apiKeys: () => LocalizedString;
+		/**
 		 * Stock
 		 */
 		stockMedia: () => LocalizedString;
@@ -18422,6 +18497,22 @@ export type TranslationFunctions = {
 		 * Quran.com Integration
 		 */
 		quranComIntegration: () => LocalizedString;
+		/**
+		 * Quran Foundation Integration
+		 */
+		quranFoundationIntegration: () => LocalizedString;
+		/**
+		 * Connect your Quran Foundation account to bookmark verses on Quran.com from the timeline, save reflections as private notes, and publish them on QuranReflect.
+		 */
+		quranFoundationIntegrationDescription: () => LocalizedString;
+		/**
+		 * Do not show the reflection prompt after export
+		 */
+		hideReflectionPromptAfterExport: () => LocalizedString;
+		/**
+		 * Hide the reflection prompt that appears after a successful video export.
+		 */
+		hideReflectionPromptAfterExportDescription: () => LocalizedString;
 		/**
 		 * Default Values
 		 */

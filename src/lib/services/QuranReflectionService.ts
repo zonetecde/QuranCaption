@@ -18,6 +18,8 @@ export type QuranReflectionPreview = {
 	id: number;
 	body: string;
 	author: string;
+	avatarUrl: string;
+	url?: string;
 	likesCount: number;
 	language: string;
 };
@@ -36,8 +38,13 @@ export type PendingQuranReflection = {
 	draft: string;
 	action: ReflectionSubmissionMode | null;
 	noteId: string | null;
-	selectionMode?: 'whole' | 'range';
+	selectionMode?: 'whole' | 'range' | 'single';
 };
+
+/** Renvoie les scopes Notes enfants approuvés nécessaires à l'action demandée. */
+export function getReflectionSubmissionScopes(mode: ReflectionSubmissionMode): string[] {
+	return mode === 'public' ? ['note.create', 'note.publish'] : ['note.create'];
+}
 
 /** Vérifie les scopes Notes accordés pour une sauvegarde privée ou une publication. */
 export function hasReflectionSubmissionScopes(
@@ -61,7 +68,8 @@ export function parsePendingQuranReflection(value: string): PendingQuranReflecti
 			typeof pending.draft !== 'string' ||
 			(pending.selectionMode !== undefined &&
 				pending.selectionMode !== 'whole' &&
-				pending.selectionMode !== 'range') ||
+				pending.selectionMode !== 'range' &&
+				pending.selectionMode !== 'single') ||
 			(pending.action !== null && pending.action !== 'private' && pending.action !== 'public')
 		) {
 			return null;
@@ -210,12 +218,13 @@ export async function publishReflectionNote(
 	body: string,
 	surah: number,
 	from: number,
-	to: number
+	to: number,
+	wholeSurah = false
 ): Promise<QuranReflectionPublishResult> {
 	return postReflectionApi<QuranReflectionPublishResult>(
 		`/quran-reflect/notes/${encodeURIComponent(noteId)}/publish`,
 		accessToken,
-		{ body, chapterId: surah, from, to }
+		{ body, chapterId: surah, from, to, wholeSurah }
 	);
 }
 

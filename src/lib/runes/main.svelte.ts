@@ -163,7 +163,7 @@ class GlobalState {
 			| 'theme'
 			| 'notifications'
 			| 'ai-key'
-			| 'stock-media'
+			| 'quran-foundation'
 			| 'default-values'
 			| 'backup'
 			| 'support'

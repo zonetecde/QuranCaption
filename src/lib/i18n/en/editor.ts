@@ -848,7 +848,7 @@ const editor = {
 	stockMediaDownloadError: 'Failed to download media: {error}',
 	stockMediaDisclaimer:
 		'You are responsible for crediting the author and providing a link to the original content on {source} as required by their terms of service.',
-	configureApiKeys: 'Configure API keys in Settings > Stock Media',
+	configureApiKeys: 'Configure API keys in Settings > API Keys > Stock Media',
 	pexelsSource: 'Pexels',
 	pixabaySource: 'Pixabay',
 	stockMediaError: 'Search error',

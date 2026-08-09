@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { openUrl } from '@tauri-apps/plugin-opener';
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { Quran } from '$lib/classes/Quran';
@@ -10,6 +11,7 @@
 	import {
 		createPrivateReflectionNote,
 		getCuratedReflections,
+		getReflectionSubmissionScopes,
 		hasReflectionSubmissionScopes,
 		parsePendingQuranReflection,
 		publishReflectionNote,
@@ -22,7 +24,7 @@
 
 	type ReflectionMode = ReflectionSubmissionMode;
 	type ReflectionStage = 'composer' | 'auth' | 'success';
-	type ReflectionSelectionMode = 'whole' | 'range';
+	type ReflectionSelectionMode = 'whole' | 'range' | 'single';
 	type ReflectionCopy = Record<string, (args?: Record<string, string | number>) => string>;
 
 	const PENDING_REFLECTION_KEY = 'quran_reflection_pending';
@@ -56,11 +58,16 @@
 	let reflectionPlaceholder = $derived(
 		selectionMode === 'whole'
 			? copy.reflectionWholePlaceholder({ surah: selectedSurahName })
-			: copy.reflectionRangePlaceholder({
-					surah: selectedSurahName,
-					from: selectedFrom,
-					to: selectedTo
-				})
+			: selectionMode === 'single'
+				? copy.reflectionSinglePlaceholder({
+						surah: selectedSurahName,
+						verse: selectedFrom
+					})
+				: copy.reflectionRangePlaceholder({
+						surah: selectedSurahName,
+						from: selectedFrom,
+						to: selectedTo
+					})
 	);
 
 	/** Construit les seules propriétés analytiques non personnelles de la sélection. */
@@ -79,7 +86,11 @@
 		context = nextContext;
 		selectedSurahNumber = nextContext.surahs[0].surah;
 		selectedSpanIndex = 0;
-		selectionMode = nextContext.surahs[0].wholeSurah ? 'whole' : 'range';
+		selectionMode = nextContext.surahs[0].wholeSurah
+			? 'whole'
+			: nextContext.surahs[0].ranges[0].from === nextContext.surahs[0].ranges[0].to
+				? 'single'
+				: 'range';
 		selectedFrom = selectionMode === 'whole' ? 1 : nextContext.surahs[0].ranges[0].from;
 		selectedTo =
 			selectionMode === 'whole'
@@ -111,6 +122,7 @@
 			activeIds.add(exportation.exportId);
 			const previous = previousExportStates.get(exportation.exportId);
 			if (
+				globalState.settings?.persistentUiState.hideReflectionPromptAfterExport !== true &&
 				shouldPromptForReflection(
 					previous,
 					exportation.currentState,
@@ -132,7 +144,7 @@
 		AnalyticsService.track('reflection_prompt_dismissed', analyticsProperties());
 		visible = false;
 		globalState.uiState.showReflectionPrompt = false;
-		localStorage.removeItem(PENDING_REFLECTION_KEY);
+		sessionStorage.removeItem(PENDING_REFLECTION_KEY);
 	}
 
 	/** Sélectionne une sourate exportée sans modifier le brouillon. */
@@ -142,7 +154,12 @@
 		selectedSurahNumber = surah;
 		selectedSpanIndex = 0;
 		selectedFrom = selectionMode === 'whole' ? 1 : item.ranges[0].from;
-		selectedTo = selectionMode === 'whole' ? Quran.getVerseCount(surah) : item.ranges[0].to;
+		selectedTo =
+			selectionMode === 'whole'
+				? Quran.getVerseCount(surah)
+				: selectionMode === 'single'
+					? selectedFrom
+					: item.ranges[0].to;
 		trackRangeChange();
 	}
 
@@ -150,7 +167,23 @@
 	function selectReflectionMode(mode: ReflectionSelectionMode): void {
 		selectionMode = mode;
 		selectedFrom = mode === 'whole' ? 1 : (selectedSpan?.from ?? 1);
-		selectedTo = mode === 'whole' ? selectedSurahVerseCount : (selectedSpan?.to ?? 1);
+		selectedTo =
+			mode === 'whole'
+				? selectedSurahVerseCount
+				: mode === 'single'
+					? selectedFrom
+					: (selectedSpan?.to ?? 1);
+		trackRangeChange();
+	}
+
+	/**
+	 * Sélectionne une seule ayah et maintient une plage composée de ce verset uniquement.
+	 * @param {number} value Numéro de l'ayah sélectionnée.
+	 * @returns {void}
+	 */
+	function selectSingleVerse(value: number): void {
+		selectedFrom = value;
+		selectedTo = value;
 		trackRangeChange();
 	}
 
@@ -174,6 +207,17 @@
 		persistPending();
 	}
 
+	/**
+	 * Ouvre une réflexion complète sur QuranReflect sans exposer son contenu aux analytics.
+	 * @param {QuranReflectionPreview} example Réflexion sélectionnée.
+	 * @returns {void}
+	 */
+	function openReflectionExample(example: QuranReflectionPreview): void {
+		if (!example.url) return;
+		AnalyticsService.track('reflection_example_opened', analyticsProperties());
+		void openUrl(example.url);
+	}
+
 	/** Persiste la sélection et le brouillon nécessaires à un retour OAuth. */
 	function persistPending(): void {
 		if (!context) return;
@@ -188,12 +232,12 @@
 			noteId: pendingNoteId,
 			selectionMode
 		};
-		localStorage.setItem(PENDING_REFLECTION_KEY, JSON.stringify(pending));
+		sessionStorage.setItem(PENDING_REFLECTION_KEY, JSON.stringify(pending));
 	}
 
 	/** Restaure un brouillon interrompu par OAuth ou un redémarrage. */
 	function restorePending(): void {
-		const stored = localStorage.getItem(PENDING_REFLECTION_KEY);
+		const stored = sessionStorage.getItem(PENDING_REFLECTION_KEY);
 		if (!stored) return;
 		try {
 			const pending = parsePendingQuranReflection(stored);
@@ -211,7 +255,7 @@
 			visible = true;
 			globalState.uiState.showReflectionPrompt = true;
 		} catch {
-			localStorage.removeItem(PENDING_REFLECTION_KEY);
+			sessionStorage.removeItem(PENDING_REFLECTION_KEY);
 		}
 	}
 
@@ -247,10 +291,10 @@
 		);
 	}
 
-	/** Lance ou relance l'autorisation Quran.com avec le scope Notes parent approuvé. */
+	/** Lance ou relance l'autorisation Quran.com avec les scopes enfants approuvés en production. */
 	async function connectQuranAccount(): Promise<void> {
 		persistPending();
-		await quranAuthService.beginLogin(['note']);
+		await quranAuthService.beginLogin(getReflectionSubmissionScopes(pendingAction ?? 'private'));
 	}
 
 	/** Exécute l'action en attente et conserve le brouillon si l'API échoue. */
@@ -279,13 +323,14 @@
 					draft.trim(),
 					selectedSurahNumber,
 					selectedFrom,
-					selectedTo
+					selectedTo,
+					selectionMode === 'whole'
 				);
 			}
 			successMode = mode;
 			stage = 'success';
 			pendingAction = null;
-			localStorage.removeItem(PENDING_REFLECTION_KEY);
+			sessionStorage.removeItem(PENDING_REFLECTION_KEY);
 			AnalyticsService.track(
 				mode === 'private' ? 'reflection_private_saved' : 'reflection_public_published',
 				analyticsProperties(mode)
@@ -298,6 +343,16 @@
 		} finally {
 			isSubmitting = false;
 		}
+	}
+
+	/** Réinitialise le formulaire pour écrire une nouvelle réflexion sur la sélection actuelle. */
+	function startAnotherReflection(): void {
+		stage = 'composer';
+		draft = '';
+		pendingAction = null;
+		pendingNoteId = null;
+		successMode = null;
+		submitFailed = false;
 	}
 
 	/** Ferme le panneau avec Échap lorsqu'il est dismissible. */
@@ -360,7 +415,7 @@
 	<aside
 		aria-labelledby="quran-reflection-title"
 		aria-live="polite"
-		class="reflection-banner fixed z-[1000] max-h-[28rem] overflow-y-auto outline-none transition-[max-height] duration-300"
+		class="reflection-banner fixed z-[998] overflow-y-auto! outline-none"
 	>
 		<header
 			class="reflection-header sticky top-0 z-10 flex items-start justify-between gap-4 px-5 py-3.5"
@@ -378,7 +433,7 @@
 			</div>
 			<button
 				type="button"
-				class="flex size-10 shrink-0 items-center justify-center rounded-full text-secondary hover:bg-accent hover:text-primary"
+				class="flex size-12 shrink-0 items-center justify-center rounded-full text-secondary hover:bg-accent hover:text-primary"
 				onclick={dismissPrompt}
 				aria-label={copy.reflectionCloseLabel()}
 			>
@@ -388,29 +443,39 @@
 
 		<div class="reflection-content space-y-3 p-4">
 			{#if stage === 'auth'}
-				<div class="rounded-xl border border-color bg-accent p-5 text-center">
-					<span class="material-icons text-3xl text-accent-primary">account_circle</span>
-					<h3 class="mt-2 font-semibold text-primary">{copy.reflectionAuthTitle()}</h3>
-					<p class="mt-2 text-sm text-secondary">
-						{quranAuthService.status === 'connected'
-							? copy.reflectionPermissionDescription()
-							: copy.reflectionAuthDescription()}
-					</p>
-					<button
-						type="button"
-						class="btn-accent mt-4 min-h-11 px-5"
-						onclick={connectQuranAccount}
-						disabled={quranAuthService.status === 'connecting'}
-					>
-						{copy.reflectionConnect()}
-					</button>
-					<button
-						type="button"
-						class="mt-3 block w-full text-sm text-secondary underline"
-						onclick={() => (stage = 'composer')}
-					>
-						{copy.reflectionBack()}
-					</button>
+				<div class="reflection-auth-card rounded-xl p-5">
+					<div class="relative z-1 flex flex-col items-center gap-4 sm:flex-row sm:text-left">
+						<div
+							class="reflection-auth-icon flex size-12 shrink-0 items-center justify-center rounded-2xl"
+						>
+							<span class="material-icons text-2xl">account_circle</span>
+						</div>
+						<div class="min-w-0 flex-1 text-center sm:text-left">
+							<h3 class="font-semibold text-primary">{copy.reflectionAuthTitle()}</h3>
+							<p class="mt-1 text-sm leading-relaxed text-secondary">
+								{quranAuthService.status === 'connected'
+									? copy.reflectionPermissionDescription()
+									: copy.reflectionAuthDescription()}
+							</p>
+						</div>
+						<div class="flex w-full shrink-0 flex-col gap-2 sm:w-auto">
+							<button
+								type="button"
+								class="reflection-primary min-h-11 rounded-xl px-5 text-sm font-semibold disabled:cursor-wait disabled:opacity-60"
+								onclick={connectQuranAccount}
+								disabled={quranAuthService.status === 'connecting'}
+							>
+								{copy.reflectionConnect()}
+							</button>
+							<button
+								type="button"
+								class="reflection-auth-back min-h-10 rounded-xl px-4 text-sm font-medium text-secondary"
+								onclick={() => (stage = 'composer')}
+							>
+								{copy.reflectionBack()}
+							</button>
+						</div>
+					</div>
 				</div>
 			{:else if stage === 'success'}
 				<div class="rounded-xl border border-green-500/30 bg-green-500/10 p-6 text-center">
@@ -420,8 +485,12 @@
 							? copy.reflectionPrivateSuccess()
 							: copy.reflectionPublicSuccess()}
 					</p>
-					<button type="button" class="btn-accent mt-5 min-h-11 px-6" onclick={dismissPrompt}>
-						{$LL.common.close()}
+					<button
+						type="button"
+						class="btn-accent mt-5 min-h-11 px-6"
+						onclick={startAnotherReflection}
+					>
+						{copy.reflectionWriteAnother()}
 					</button>
 				</div>
 			{:else}
@@ -431,7 +500,7 @@
 							{#each context.surahs as item (item.surah)}
 								<button
 									type="button"
-									class="min-h-10 rounded-full border px-3 text-sm"
+									class="min-h-11 rounded-full border px-3 text-sm"
 									class:border-accent-primary={item.surah === selectedSurahNumber}
 									class:bg-accent={item.surah === selectedSurahNumber}
 									class:border-color={item.surah !== selectedSurahNumber}
@@ -447,20 +516,29 @@
 							{selectedSurahName}
 							— {selectionMode === 'whole'
 								? copy.reflectionWholeSurah()
-								: copy.reflectionAyat({ from: selectedFrom, to: selectedTo })}
+								: selectionMode === 'single'
+									? copy.reflectionSingleAyah({ verse: selectedFrom })
+									: copy.reflectionAyat({ from: selectedFrom, to: selectedTo })}
 						</p>
 						<div class="mode-selector flex rounded-lg p-0.5">
 							<button
 								type="button"
-								class="rounded-md px-3 py-1.5 text-xs font-semibold"
+								class="min-h-11 rounded-md px-3 py-2 text-xs font-semibold"
 								class:active={selectionMode === 'whole'}
 								onclick={() => selectReflectionMode('whole')}>{copy.reflectionWholeChoice()}</button
 							>
 							<button
 								type="button"
-								class="rounded-md px-3 py-1.5 text-xs font-semibold"
+								class="min-h-11 rounded-md px-3 py-2 text-xs font-semibold"
 								class:active={selectionMode === 'range'}
 								onclick={() => selectReflectionMode('range')}>{copy.reflectionRangeChoice()}</button
+							>
+							<button
+								type="button"
+								class="min-h-11 rounded-md px-3 py-2 text-xs font-semibold"
+								class:active={selectionMode === 'single'}
+								onclick={() => selectReflectionMode('single')}
+								>{copy.reflectionSingleChoice()}</button
 							>
 						</div>
 						{#if selectionMode === 'range'}
@@ -490,6 +568,19 @@
 									</select>
 								</label>
 							</div>
+						{:else if selectionMode === 'single'}
+							<label class="flex items-center gap-1 text-xs text-thirdly"
+								>{copy.reflectionAyahLabel()}
+								<select
+									class="compact-select"
+									value={selectedFrom}
+									onchange={(event) => selectSingleVerse(Number(event.currentTarget.value))}
+								>
+									{#each Array.from({ length: selectedSurahVerseCount }, (_, index) => index + 1) as verse (verse)}
+										<option value={verse}>{verse}</option>
+									{/each}
+								</select>
+							</label>
 						{/if}
 					</div>
 				</div>
@@ -541,19 +632,45 @@
 								</div>
 							{:else}
 								{#each examples as example (example.id)}
+									{@const authorName = example.author || copy.reflectionContributor()}
 									<article class="reflection-card min-w-[85%] snap-start p-3">
+										<div class="mb-2.5 flex items-center gap-2.5">
+											{#if example.avatarUrl}
+												<img
+													src={example.avatarUrl}
+													alt={authorName}
+													class="size-8 shrink-0 rounded-full object-cover"
+												/>
+											{:else}
+												<span
+													class="reflection-avatar flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+													aria-hidden="true"
+												>
+													{authorName.charAt(0).toUpperCase()}
+												</span>
+											{/if}
+											<span class="truncate text-xs font-semibold text-primary">{authorName}</span>
+										</div>
 										<p
+											title={example.body}
 											class="line-clamp-4 whitespace-pre-line text-sm leading-relaxed text-secondary"
 										>
 											{example.body}
 										</p>
-										<div
-											class="mt-2 flex items-center justify-between gap-2 text-[11px] text-thirdly"
-										>
-											<span>{example.author || copy.reflectionContributor()}</span>
-											{#if example.likesCount > 0}<span
-													>{copy.reflectionLikes({ count: example.likesCount })}</span
-												>{/if}
+										<div class="mt-2 flex items-center justify-between gap-2">
+											<span class="text-[11px] text-thirdly">
+												{#if example.likesCount > 0}{copy.reflectionLikes({
+														count: example.likesCount
+													})}{/if}
+											</span>
+											{#if example.url}<button
+													type="button"
+													class="reflection-read-more flex items-center gap-1 text-[11px] font-medium"
+													onclick={() => openReflectionExample(example)}
+												>
+													{copy.reflectionReadMore()}
+													<span class="material-icons text-xs" aria-hidden="true">open_in_new</span>
+												</button>{/if}
 										</div>
 									</article>
 								{/each}
@@ -596,6 +713,7 @@
 		bottom: 0;
 		left: 50%;
 		width: min(calc(100vw - 1rem), 60rem);
+		max-height: calc(100dvh - env(safe-area-inset-top) - 0.5rem);
 		transform: translateX(-50%);
 		background:
 			linear-gradient(
@@ -627,11 +745,6 @@
 		);
 	}
 
-	.reflection-banner:hover,
-	.reflection-banner:focus-within {
-		max-height: min(82vh, 46rem);
-	}
-
 	.reflection-header {
 		background: color-mix(in srgb, var(--bg-secondary) 92%, transparent);
 		border-bottom: 1px solid color-mix(in srgb, var(--accent-primary) 16%, var(--border-color));
@@ -640,6 +753,7 @@
 
 	.reflection-content {
 		position: relative;
+		padding-bottom: calc(1rem + env(safe-area-inset-bottom));
 	}
 
 	.reflection-icon,
@@ -654,6 +768,37 @@
 		border-radius: 1rem;
 		padding: 0;
 		box-shadow: 0 0 18px color-mix(in srgb, var(--accent-primary) 24%, transparent);
+	}
+
+	.reflection-avatar {
+		background: color-mix(in srgb, var(--accent-primary) 18%, var(--bg-secondary));
+		color: var(--accent-primary);
+	}
+
+	.reflection-auth-card {
+		border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, var(--border-color));
+		background: color-mix(in srgb, var(--bg-primary) 82%, var(--bg-secondary));
+		box-shadow:
+			inset 0 1px 0 rgba(255, 255, 255, 0.08),
+			0 10px 28px rgba(0, 0, 0, 0.2);
+	}
+
+	.reflection-auth-icon {
+		border: 1px solid color-mix(in srgb, var(--accent-primary) 32%, transparent);
+		background: color-mix(in srgb, var(--accent-primary) 16%, var(--bg-secondary));
+		color: var(--accent-primary);
+		box-shadow: 0 0 22px color-mix(in srgb, var(--accent-primary) 22%, transparent);
+	}
+
+	.reflection-auth-back {
+		border: 1px solid color-mix(in srgb, var(--accent-primary) 16%, var(--border-color));
+		background: color-mix(in srgb, var(--bg-secondary) 78%, transparent);
+	}
+
+	.reflection-auth-back:hover {
+		border-color: color-mix(in srgb, var(--accent-primary) 38%, var(--border-color));
+		background: color-mix(in srgb, var(--accent-primary) 10%, var(--bg-secondary));
+		color: var(--text-primary);
 	}
 
 	.passage-selector,
@@ -690,6 +835,7 @@
 
 	.compact-select {
 		min-width: 3.25rem;
+		min-height: 2.75rem;
 		border: 1px solid var(--border-color);
 		border-radius: 0.5rem;
 		background: var(--bg-secondary);
@@ -700,6 +846,14 @@
 	.reflection-strip {
 		scrollbar-width: thin;
 		scrollbar-color: color-mix(in srgb, var(--accent-primary) 45%, transparent) transparent;
+	}
+
+	.reflection-read-more {
+		color: var(--accent-primary);
+	}
+
+	.reflection-read-more:hover {
+		text-decoration: underline;
 	}
 
 	.reflection-primary {

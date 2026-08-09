@@ -108,7 +108,7 @@
 						<p
 							class="flex flex-wrap items-center gap-x-2 text-[11px] font-bold uppercase text-accent-primary"
 						>
-							<span>{$LL.donation.monthlyGoal()}</span>
+							{#if !isComplete}<span>{$LL.donation.monthlyGoal()}</span>{/if}
 							<span>{monthName}</span>
 						</p>
 						<span class="progress-badge shrink-0 font-mono text-[12px] font-bold tabular-nums">
@@ -137,10 +137,12 @@
 			<div class="mt-3 flex flex-col sm:flex-row sm:items-end gap-3">
 				<div class="flex-1 min-w-0">
 					<span class="text-[12px] font-mono font-semibold text-primary tracking-tight">
-						{$LL.donation.donationProgress({
-							raised: `$${currentAmount.toFixed(0)}`,
-							goal: `$${goal}`
-						})}
+						{currentAmount > goal
+							? $LL.donation.donationRaised({ raised: `$${currentAmount.toFixed(0)}` })
+							: $LL.donation.donationProgress({
+									raised: `$${currentAmount.toFixed(0)}`,
+									goal: `$${goal}`
+								})}
 					</span>
 					<div class="progress-track mt-1.5 h-2.5 rounded-full overflow-hidden">
 						<div

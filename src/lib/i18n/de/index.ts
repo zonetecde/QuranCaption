@@ -3005,6 +3005,7 @@ const de = {
 		testimonialSarmad:
 			'Unglaubliche App. Einfach zu bedienen! Es ist sehr nützlich für die Ummah. Ich schätze Ihre harte Arbeit.',
 		donationProgress: '{raised} von {goal} in diesem Monat gesammelt',
+		donationRaised: '{raised} in diesem Monat gesammelt',
 		donateToHelp: 'Spenden Sie, um das Monatsziel zu erreichen',
 		monthlyGoal: 'Monatsziel'
 	},

@@ -9685,6 +9685,11 @@ type RootTranslation = {
 		 */
 		donationProgress: RequiredParams<'goal' | 'raised'>;
 		/**
+		 * {​r​a​i​s​e​d​}​ ​r​a​i​s​e​d​ ​t​h​i​s​ ​m​o​n​t​h
+		 * @param {unknown} raised
+		 */
+		donationRaised: RequiredParams<'raised'>;
+		/**
 		 * D​o​n​a​t​e​ ​t​o​ ​h​e​l​p​ ​r​e​a​c​h​ ​t​h​e​ ​m​o​n​t​h​l​y​ ​g​o​a​l
 		 */
 		donateToHelp: string;
@@ -20656,6 +20661,10 @@ export type TranslationFunctions = {
 		 * {raised} of {goal} raised this month
 		 */
 		donationProgress: (arg: { goal: unknown; raised: unknown }) => LocalizedString;
+		/**
+		 * {raised} raised this month
+		 */
+		donationRaised: (arg: { raised: unknown }) => LocalizedString;
 		/**
 		 * Donate to help reach the monthly goal
 		 */

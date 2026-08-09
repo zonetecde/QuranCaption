@@ -18,7 +18,7 @@ use super::ffmpeg_runner;
 use super::ffmpeg_utils;
 use super::preprocess;
 use super::types::{
-    CodecUsage, ExportPerformanceProfile, ExportVideoCodec, FfmpegProgressContext,
+    AudioInput, CodecUsage, ExportPerformanceProfile, ExportVideoCodec, FfmpegProgressContext,
     VideoClipTransitionMode, VideoInput,
 };
 
@@ -40,6 +40,7 @@ use super::types::{
 /// * `start_time` - Début de la plage d'export (ms).
 /// * `duration` - Durée de l'export (ms). `None` = toute la timeline.
 /// * `audios` - Liste des fichiers audio à superposer.
+/// * `audio_clips` - Clips audio temporels envoyés uniquement si la timeline contient un trim ou un espace.
 /// * `audio_volume` - Volume audio en pourcentage, entre 0 et 200.
 /// * `videos` - Liste des vidéos de fond.
 /// * `media_fill` - Recadre les vidéos et images afin de remplir le cadre.
@@ -59,6 +60,7 @@ pub async fn export_video(
     start_time: i32,
     duration: Option<i32>,
     audios: Option<Vec<String>>,
+    audio_clips: Option<Vec<AudioInput>>,
     audio_volume: Option<f64>,
     videos: Option<Vec<VideoInput>>,
     media_fill: Option<bool>,
@@ -269,6 +271,23 @@ pub async fn export_video(
             audios_vec.len()
         );
     }
+    let audio_clips_vec = audio_clips.map(|clips| {
+        clips
+            .into_iter()
+            .filter_map(|mut clip| {
+                let normalized = path_utils::normalize_existing_path(&clip.path);
+                if normalized.as_os_str().is_empty() || !normalized.exists() {
+                    println!(
+                        "[audio][warn] Clip audio introuvable, ignoré: {}",
+                        clip.path
+                    );
+                    return None;
+                }
+                clip.path = normalized.to_string_lossy().to_string();
+                Some(clip)
+            })
+            .collect::<Vec<_>>()
+    });
 
     // ---- Normalisation des vidéos ----
     let mut videos_vec = videos.unwrap_or_default();
@@ -297,6 +316,7 @@ pub async fn export_video(
             fade_ms,
             start_time,
             &audios_vec,
+            audio_clips_vec.as_deref(),
             audio_gain,
             &videos_vec,
             media_fill,
@@ -415,6 +435,7 @@ pub async fn export_segmented_video(
     fps: i32,
     fade_duration: i32,
     audios: Option<Vec<String>>,
+    audio_clips: Option<Vec<AudioInput>>,
     audio_volume: Option<f64>,
     videos: Option<Vec<VideoInput>>,
     media_fill: Option<bool>,
@@ -464,6 +485,7 @@ pub async fn export_segmented_video(
             segment.start_time,
             Some(segment.duration),
             audios.clone(),
+            audio_clips.clone(),
             audio_volume,
             videos.clone(),
             media_fill,
@@ -1332,6 +1354,7 @@ fn run_fast_export(
     fade_duration_ms: i32,
     start_time_ms: i32,
     audio_paths: &[String],
+    audio_clips: Option<&[AudioInput]>,
     audio_gain: f64,
     video_inputs: &[VideoInput],
     media_fill: bool,
@@ -1388,6 +1411,35 @@ fn run_fast_export(
         })
         .cloned()
         .collect();
+    let export_start_ms = start_time_ms as i64;
+    let export_end_ms = export_start_ms.saturating_add(full_duration_ms as i64);
+    let prepared_audio_clips: Vec<(String, f64, f64, f64)> = audio_clips
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|clip| {
+            let clip_start_ms = clip.timeline_start_ms;
+            let clip_end_ms = clip_start_ms.saturating_add(clip.duration_ms.max(0));
+            let intersection_start_ms = export_start_ms.max(clip_start_ms);
+            let intersection_end_ms = export_end_ms.min(clip_end_ms);
+            if intersection_end_ms <= intersection_start_ms {
+                return None;
+            }
+
+            Some((
+                clip.path.clone(),
+                (clip.source_start_ms.max(0) + intersection_start_ms - clip_start_ms) as f64
+                    / 1000.0,
+                (intersection_start_ms - export_start_ms) as f64 / 1000.0,
+                (intersection_end_ms - intersection_start_ms) as f64 / 1000.0,
+            ))
+        })
+        .collect();
+    let has_timed_audio = audio_clips.is_some();
+    let has_timed_background = video_inputs.iter().any(|input| {
+        input.source_start_ms.is_some()
+            && input.timeline_start_ms.is_some()
+            && input.duration_ms.is_some()
+    });
 
     let mut temp_dir = create_temp_export_dir(export_id, &app_handle)?;
 
@@ -1499,7 +1551,7 @@ fn run_fast_export(
     for bg in &preprocessed_background_videos {
         // Pour la voie directe (non normalisé), ajouter un seek input
         if !bg.is_normalized {
-            let seek_s = (start_time_ms as f64 / 1000.0).max(0.0);
+            let seek_s = bg.source_start_s.unwrap_or(start_s).max(0.0);
             cmd.extend_from_slice(&["-ss".to_string(), format!("{:.6}", seek_s)]);
             println!("[background] input fast seek: {}s for {}", seek_s, bg.path);
         }
@@ -1507,15 +1559,26 @@ fn run_fast_export(
         current_idx += 1;
     }
 
-    let total_bg_s: f64 = preprocessed_background_videos
-        .iter()
-        .map(|bg| bg.duration_s)
-        .sum();
+    let total_bg_s: f64 = if has_timed_background {
+        preprocessed_background_videos
+            .iter()
+            .map(|bg| bg.timeline_offset_s.unwrap_or(0.0) + bg.duration_s)
+            .fold(0.0, f64::max)
+    } else {
+        preprocessed_background_videos
+            .iter()
+            .map(|bg| bg.duration_s)
+            .sum()
+    };
     let total_audio_s: f64 = audio_paths
         .iter()
         .map(|p| ffmpeg_utils::ffprobe_duration_sec(p))
         .sum();
-    let have_audio = !audio_paths.is_empty() && start_s < total_audio_s - 1e-6;
+    let have_audio = if has_timed_audio {
+        !prepared_audio_clips.is_empty()
+    } else {
+        !audio_paths.is_empty() && start_s < total_audio_s - 1e-6
+    };
     let direct_visible_export = !export_without_background
         && preprocessed_background_videos.is_empty()
         && (overlay_plan.all_frames_opaque || overlay_plan.composited_to_black)
@@ -1524,6 +1587,8 @@ fn run_fast_export(
         && !video_fade_in_enabled
         && !video_fade_out_enabled
         && !has_video_clip_transition
+        && !has_timed_audio
+        && !has_timed_background
         && (!have_audio
             || (audio_paths.len() == 1 && !audio_fade_in_enabled && !audio_fade_out_enabled));
     if direct_visible_export {
@@ -1558,6 +1623,12 @@ fn run_fast_export(
         if has_video_clip_transition {
             reasons.push("transition_clips_video=true".to_string());
         }
+        if has_timed_background {
+            reasons.push("timeline_video=true".to_string());
+        }
+        if has_timed_audio {
+            reasons.push("timeline_audio=true".to_string());
+        }
         if have_audio && (audio_paths.len() != 1 || audio_fade_in_enabled || audio_fade_out_enabled)
         {
             reasons.push(format!(
@@ -1589,11 +1660,19 @@ fn run_fast_export(
 
     let audio_start_idx = current_idx;
     if have_audio {
-        for path in &audio_paths {
+        let input_paths: Vec<&str> = if has_timed_audio {
+            prepared_audio_clips
+                .iter()
+                .map(|(path, _, _, _)| path.as_str())
+                .collect()
+        } else {
+            audio_paths.iter().map(String::as_str).collect()
+        };
+        for path in input_paths {
             if direct_visible_export {
                 cmd.extend_from_slice(&["-ss".to_string(), format!("{:.6}", start_s)]);
             }
-            cmd.extend_from_slice(&["-i".to_string(), path.clone()]);
+            cmd.extend_from_slice(&["-i".to_string(), path.to_string()]);
         }
     }
 
@@ -1715,7 +1794,46 @@ fn run_fast_export(
         filter_lines
             .push("[overlay_raw]premultiply=inplace=1,format=yuva444p[overlay]".to_string());
 
-        let bg_label = if let Some(idx) = black_background_idx {
+        let bg_label = if has_timed_background && !preprocessed_background_videos.is_empty() {
+            let mut labels = Vec::new();
+            let mut durations = Vec::new();
+            let mut timeline_offsets = Vec::new();
+            for (i, bg) in preprocessed_background_videos.iter().enumerate() {
+                let label = format!("bg{}", i);
+                if bg.is_normalized {
+                    filter_lines.push(format!(
+                        "[{}:v]trim=start=0:end={:.6},setpts=PTS-STARTPTS[{}]",
+                        bg_start_idx + i,
+                        bg.duration_s,
+                        label
+                    ));
+                } else {
+                    filter_lines.push(format!(
+                        "[{}:v]setpts=PTS-STARTPTS,{},fps={},setsar=1,trim=end={:.6}[{}]",
+                        bg_start_idx + i,
+                        background_fit_filter,
+                        fps,
+                        bg.duration_s,
+                        label
+                    ));
+                }
+                labels.push(label);
+                durations.push(bg.duration_s);
+                timeline_offsets.push(bg.timeline_offset_s.unwrap_or(0.0));
+            }
+            build_timed_background_chain(
+                &mut filter_lines,
+                &labels,
+                &durations,
+                &timeline_offsets,
+                w,
+                h,
+                fps,
+                duration_s,
+                video_clip_transition_mode,
+                video_clip_transition_s,
+            )
+        } else if let Some(idx) = black_background_idx {
             format!("{}:v", idx)
         } else if preprocessed_background_videos.len() > 1 {
             // Plusieurs backgrounds : tous sont normalisés par le pré-traitement
@@ -1759,7 +1877,12 @@ fn run_fast_export(
             format!("{}:v", bg_start_idx)
         };
 
-        if black_background_idx.is_some() {
+        if has_timed_background && !preprocessed_background_videos.is_empty() {
+            filter_lines.push(format!(
+                "[{}]trim=start=0:end={:.6},setpts=PTS-STARTPTS,setsar=1[bg_normalized]",
+                bg_label, duration_s
+            ));
+        } else if black_background_idx.is_some() {
             filter_lines.push(format!("[{}]setsar=1[bg_normalized]", bg_label));
         } else {
             let bg_trim_end = duration_s.min(total_bg_s.max(0.001));
@@ -1825,7 +1948,35 @@ fn run_fast_export(
 
     let mut mapped_audio_label: Option<String> = None;
     if have_audio {
-        if audio_paths.len() == 1 {
+        if has_timed_audio {
+            let mut inputs = "[asilence]".to_string();
+            filter_lines.push(format!(
+                "anullsrc=r=48000:cl=stereo,atrim=start=0:end={:.6}[asilence]",
+                duration_s
+            ));
+            for (index, (_, source_start_s, timeline_offset_s, clip_duration_s)) in
+                prepared_audio_clips.iter().enumerate()
+            {
+                let timeline_delay_ms = (timeline_offset_s * 1000.0).round().max(0.0) as i64;
+
+                // amix recale les timestamps d'entrée : appliquer un délai réel préserve la position timeline.
+                filter_lines.push(format!(
+                    "[{}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=start={:.6}:end={:.6},asetpts=PTS-STARTPTS,adelay=delays={}:all=1[atrim{}]",
+                    audio_start_idx + index,
+                    source_start_s,
+                    source_start_s + clip_duration_s,
+                    timeline_delay_ms,
+                    index
+                ));
+                inputs.push_str(&format!("[atrim{}]", index));
+            }
+            filter_lines.push(format!(
+                "{}amix=inputs={}:duration=longest:normalize=0:dropout_transition=0,atrim=start=0:end={:.6},asetpts=PTS-STARTPTS[aoutraw]",
+                inputs,
+                prepared_audio_clips.len() + 1,
+                duration_s
+            ));
+        } else if audio_paths.len() == 1 {
             filter_lines.push(format!("[{}:a]aresample=48000[aa0]", audio_start_idx));
             filter_lines.push(format!(
                 "[aa0]atrim=start={:.6},asetpts=PTS-STARTPTS,atrim=end={:.6}[aoutraw]",
@@ -1969,6 +2120,139 @@ fn run_fast_export(
     Ok(())
 }
 
+/// Construit une timeline de fond en conservant les espaces entre les clips.
+///
+/// # Arguments
+/// * `filter_lines` - Lignes du filtre complexe à compléter.
+/// * `labels` - Labels vidéo normalisés à assembler.
+/// * `durations_s` - Durée de chaque label en secondes.
+/// * `timeline_offsets_s` - Position de chaque label dans la plage exportée.
+/// * `width` - Largeur de sortie.
+/// * `height` - Hauteur de sortie.
+/// * `fps` - Fréquence d'images de sortie.
+/// * `total_duration_s` - Durée totale de la plage exportée.
+/// * `mode` - Mode de transition demandé.
+/// * `transition_s` - Durée de transition en secondes.
+///
+/// # Retourne
+/// Le label vidéo final couvrant toute la timeline.
+#[allow(clippy::too_many_arguments)]
+fn build_timed_background_chain(
+    filter_lines: &mut Vec<String>,
+    labels: &[String],
+    durations_s: &[f64],
+    timeline_offsets_s: &[f64],
+    width: i32,
+    height: i32,
+    fps: i32,
+    total_duration_s: f64,
+    mode: VideoClipTransitionMode,
+    transition_s: f64,
+) -> String {
+    let mut segments: Vec<(String, f64)> = Vec::new();
+    let mut cursor_s = 0.0;
+    let mut clip_index = 0usize;
+    let mut gap_index = 0usize;
+
+    while clip_index < labels.len() {
+        let run_offset_s = timeline_offsets_s
+            .get(clip_index)
+            .copied()
+            .unwrap_or(cursor_s)
+            .max(0.0);
+        if run_offset_s > cursor_s + 1e-6 {
+            let gap_duration_s = run_offset_s - cursor_s;
+            let gap_label = format!("bgap{}", gap_index);
+            filter_lines.push(format!(
+                "color=c=black:s={}x{}:r={}:d={:.6},format=yuv420p,setsar=1[{}]",
+                width, height, fps, gap_duration_s, gap_label
+            ));
+            segments.push((gap_label, gap_duration_s));
+            gap_index += 1;
+        }
+
+        let mut run_end = clip_index + 1;
+        let mut expected_offset_s = run_offset_s
+            + durations_s
+                .get(clip_index)
+                .copied()
+                .unwrap_or(0.001)
+                .max(0.001);
+        while run_end < labels.len()
+            && (timeline_offsets_s
+                .get(run_end)
+                .copied()
+                .unwrap_or(expected_offset_s)
+                - expected_offset_s)
+                .abs()
+                <= 1e-6
+        {
+            expected_offset_s += durations_s
+                .get(run_end)
+                .copied()
+                .unwrap_or(0.001)
+                .max(0.001);
+            run_end += 1;
+        }
+
+        let run_durations = &durations_s[clip_index..run_end];
+        let run_label = if run_end - clip_index == 1 {
+            labels[clip_index].clone()
+        } else {
+            build_background_transition_chain(
+                filter_lines,
+                &labels[clip_index..run_end],
+                run_durations,
+                mode,
+                transition_s,
+            )
+        };
+        let run_duration_s = if mode == VideoClipTransitionMode::Crossfade
+            && transition_s > 1e-6
+            && run_durations.len() > 1
+        {
+            run_durations
+                .iter()
+                .skip(1)
+                .fold(run_durations[0].max(0.001), |current, duration| {
+                    let next = duration.max(0.001);
+                    current + next - transition_s.min(current).min(next)
+                })
+        } else {
+            run_durations.iter().sum()
+        };
+        segments.push((run_label, run_duration_s));
+        cursor_s = run_offset_s + run_duration_s;
+        clip_index = run_end;
+    }
+
+    if cursor_s + 1e-6 < total_duration_s {
+        let gap_duration_s = total_duration_s - cursor_s;
+        let gap_label = format!("bgap{}", gap_index);
+        filter_lines.push(format!(
+            "color=c=black:s={}x{}:r={}:d={:.6},format=yuv420p,setsar=1[{}]",
+            width, height, fps, gap_duration_s, gap_label
+        ));
+        segments.push((gap_label, gap_duration_s));
+    }
+
+    let mut inputs = String::new();
+    for (index, (label, _)) in segments.iter().enumerate() {
+        let normalized_label = format!("bgtimed{}", index);
+        filter_lines.push(format!(
+            "[{}]format=yuv420p,setsar=1[{}]",
+            label, normalized_label
+        ));
+        inputs.push_str(&format!("[{}]", normalized_label));
+    }
+    filter_lines.push(format!(
+        "{}concat=n={}:v=1:a=0[bgtimeline]",
+        inputs,
+        segments.len()
+    ));
+    "bgtimeline".to_string()
+}
+
 /// Construit la chaîne FFmpeg des vidéos de fond avec transition optionnelle.
 ///
 /// # Arguments
@@ -2085,6 +2369,63 @@ fn build_background_transition_chain(
             current
         }
         VideoClipTransitionMode::None => unreachable!(),
+    }
+}
+
+#[cfg(test)]
+mod trim_tests {
+    use super::*;
+
+    /// Vérifie que les espaces avant, entre et après les clips sont conservés.
+    #[test]
+    fn preserves_gaps_around_trimmed_video_clips() {
+        let mut filters = Vec::new();
+        let label = build_timed_background_chain(
+            &mut filters,
+            &["first".to_string(), "second".to_string()],
+            &[2.0, 1.0],
+            &[1.0, 5.0],
+            1920,
+            1080,
+            30,
+            8.0,
+            VideoClipTransitionMode::None,
+            0.0,
+        );
+
+        assert_eq!(label, "bgtimeline");
+        assert!(filters.iter().any(|line| line.contains("d=1.000000")));
+        assert_eq!(
+            filters
+                .iter()
+                .filter(|line| line.starts_with("color=c=black"))
+                .count(),
+            3
+        );
+        assert!(filters.iter().any(|line| line.contains("concat=n=5")));
+    }
+
+    /// Vérifie que le fondu croisé conserve la règle historique de chevauchement.
+    #[test]
+    fn crossfade_duration_matches_the_existing_overlap_rule() {
+        let mut filters = Vec::new();
+        build_timed_background_chain(
+            &mut filters,
+            &["first".to_string(), "second".to_string()],
+            &[4.0, 3.0],
+            &[0.0, 4.0],
+            1920,
+            1080,
+            30,
+            8.0,
+            VideoClipTransitionMode::Crossfade,
+            1.0,
+        );
+
+        assert!(filters
+            .iter()
+            .any(|line| line.contains("xfade=transition=fade:duration=1.000000:offset=3.000000")));
+        assert!(filters.iter().any(|line| line.contains("d=2.000000")));
     }
 }
 

@@ -514,6 +514,8 @@ pub fn preprocess_background_videos(
             path: dst.to_string_lossy().to_string(),
             is_normalized: true,
             duration_s: expected_duration_s,
+            timeline_offset_s: None,
+            source_start_s: None,
         });
         emit_bg_progress(total_inputs);
         return out_paths;
@@ -531,10 +533,16 @@ pub fn preprocess_background_videos(
     } else {
         i64::MAX
     };
+    let has_timeline_metadata = video_inputs.iter().all(|input| {
+        input.source_start_ms.is_some()
+            && input.timeline_start_ms.is_some()
+            && input.duration_ms.is_some()
+    });
 
     // Détection du cas "direct single pass": une seule vidéo sans blur.
     // La boucle est ignorée plus bas si la source couvre déjà toute la durée nécessaire.
-    let can_direct_single_pass = video_inputs.len() == 1
+    let can_direct_single_pass = !has_timeline_metadata
+        && video_inputs.len() == 1
         && !media_fill
         && (media_scale - 100.0).abs() < f64::EPSILON
         && media_position_x.abs() < f64::EPSILON
@@ -552,57 +560,52 @@ pub fn preprocess_background_videos(
             continue;
         }
         let real_vid_len = video_durations_ms.get(idx).cloned().unwrap_or(0);
-        let mut vid_len = real_vid_len;
+        let mut vid_len = input.duration_ms.unwrap_or(real_vid_len).max(0);
         let is_loop = input.loop_until_audio_end.unwrap_or(false);
+        let clip_start = input.timeline_start_ms.unwrap_or(cum_start).max(0);
+        let source_start = input.source_start_ms.unwrap_or(0).max(0);
 
         // Si la vidéo boucle, elle peut couvrir tout le reste de la plage
         if is_loop {
             vid_len = limit_ms;
         }
 
-        let cum_end = cum_start + vid_len;
+        let clip_end = clip_start.saturating_add(vid_len);
 
         // La vidéo se termine avant le début recherché → on l'ignore
-        if !is_loop && cum_end <= start_time_ms as i64 {
-            cum_start = cum_end;
+        if !is_loop && clip_end <= start_time_ms as i64 {
+            cum_start = clip_end;
             emit_bg_progress(idx + 1);
             continue;
         }
 
         // On a déjà dépassé la limite demandée
-        let elapsed_so_far = cum_start - (start_time_ms as i64);
+        let elapsed_so_far = clip_start - (start_time_ms as i64);
         if elapsed_so_far >= limit_ms {
             emit_bg_progress(total_inputs);
             break;
         }
 
         // Déterminer l'offset à l'intérieur de cette vidéo
-        let mut start_within = if start_time_ms as i64 > cum_start {
-            start_time_ms as i64 - cum_start
-        } else {
-            0
-        };
+        let intersection_start = (start_time_ms as i64).max(clip_start);
+        let mut start_within = source_start + (intersection_start - clip_start).max(0);
 
         // Pour un clip loopé, replier l'offset dans la durée réelle du média
         if is_loop && real_vid_len > 0 {
             start_within %= real_vid_len;
         }
 
-        let elapsed_from_start = if is_loop {
-            (cum_start - (start_time_ms as i64)).max(0)
-        } else {
-            (cum_start + start_within) - (start_time_ms as i64)
-        };
+        let elapsed_from_start = (intersection_start - start_time_ms as i64).max(0);
         let remaining_needed = (limit_ms - elapsed_from_start).max(0);
         let available_in_this_clip = if is_loop {
             remaining_needed
         } else {
-            (vid_len - start_within).max(0)
+            (clip_end - intersection_start).max(0)
         };
         let take_ms = remaining_needed.min(available_in_this_clip);
 
         if take_ms <= 0 {
-            cum_start = cum_end;
+            cum_start = clip_end;
             emit_bg_progress(idx + 1);
             continue;
         }
@@ -662,6 +665,8 @@ pub fn preprocess_background_videos(
                     path: vid_path.to_string(),
                     is_normalized: false,
                     duration_s: needed_s.min(available_s),
+                    timeline_offset_s: None,
+                    source_start_s: Some(start_within as f64 / 1000.0),
                 });
                 emit_bg_progress(total_inputs);
                 return out_paths;
@@ -707,7 +712,7 @@ pub fn preprocess_background_videos(
                     println!("[preproc][ERREUR] {:?}", e);
                     if is_loop {
                         println!("[background] fallback noir: preprocessing loop impossible");
-                        cum_start = cum_end;
+                        cum_start = clip_end;
                         emit_bg_progress(idx + 1);
                         continue;
                     }
@@ -718,8 +723,11 @@ pub fn preprocess_background_videos(
                         path: vid_path.clone(),
                         is_normalized: false,
                         duration_s: fallback_duration_s,
+                        timeline_offset_s: has_timeline_metadata
+                            .then_some(elapsed_from_start as f64 / 1000.0),
+                        source_start_s: Some(start_within as f64 / 1000.0),
                     });
-                    cum_start = cum_end;
+                    cum_start = clip_end;
                     emit_bg_progress(idx + 1);
                     continue;
                 }
@@ -728,6 +736,9 @@ pub fn preprocess_background_videos(
                 path: dst.to_string_lossy().to_string(),
                 is_normalized: true,
                 duration_s: expected_duration_s,
+                timeline_offset_s: has_timeline_metadata
+                    .then_some(elapsed_from_start as f64 / 1000.0),
+                source_start_s: None,
             });
         } else {
             println!("[background] path=preprocessed-cache");
@@ -735,17 +746,20 @@ pub fn preprocess_background_videos(
                 path: dst.to_string_lossy().to_string(),
                 is_normalized: true,
                 duration_s: expected_duration_s,
+                timeline_offset_s: has_timeline_metadata
+                    .then_some(elapsed_from_start as f64 / 1000.0),
+                source_start_s: None,
             });
         }
         emit_bg_progress(idx + 1);
 
         // Si on a atteint la limite, on arrête
-        let elapsed_total = (cum_start + start_within + take_ms) - (start_time_ms as i64);
+        let elapsed_total = elapsed_from_start + take_ms;
         if elapsed_total >= limit_ms {
             break;
         }
 
-        cum_start = cum_end;
+        cum_start = clip_end;
     }
 
     emit_bg_progress(total_inputs);

@@ -26,7 +26,7 @@
 	onDestroy(() => {
 		currentMenu.set(null);
 		if (trimDragStartX !== null) stopTrim();
-		if (clipDragStartX !== null) stopClipDragging();
+		if (clipGesturePointerId !== null) stopClipDragging();
 	});
 
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
@@ -62,6 +62,17 @@
 	let trimOriginalStartTime = 0;
 	let trimOriginalEndTime = 0;
 	let trimOriginalSourceStartTime = 0;
+	const clipDragHoldDelayMs = 300;
+	const clipGestureMoveThresholdPx = 8;
+	let clipDragHoldTimer: ReturnType<typeof setTimeout> | null = null;
+	let clipGesturePointerId: number | null = null;
+	let clipGestureStartX = 0;
+	let clipGestureStartY = 0;
+	let clipGestureScrollElement: HTMLElement | null = null;
+	let clipGestureScrollLeft = 0;
+	let clipGestureScrollTop = 0;
+	let clipGestureDidScroll = false;
+	let suppressClipClickUntil = 0;
 	let clipDragStartX: number | null = null;
 	let clipDragOriginalStartTime = 0;
 
@@ -76,7 +87,7 @@
 	);
 
 	/**
-	 * Starts horizontal clip movement with a primary pointer.
+	 * Waits for a long press before starting horizontal clip movement.
 	 * @param {PointerEvent} event Initial pointer event.
 	 * @returns {void}
 	 */
@@ -85,18 +96,63 @@
 			!event.isPrimary ||
 			event.button !== 0 ||
 			!canMove ||
+			clipGesturePointerId !== null ||
 			(event.target instanceof Element && event.target.closest('button, .asset-trim-handle'))
 		)
 			return;
 
 		event.preventDefault();
+		clipGesturePointerId = event.pointerId;
+		clipGestureStartX = event.clientX;
+		clipGestureStartY = event.clientY;
+		clipGestureScrollElement = (event.currentTarget as HTMLElement).closest<HTMLElement>(
+			'.timeline-tracks'
+		);
+		clipGestureScrollLeft = clipGestureScrollElement?.scrollLeft ?? 0;
+		clipGestureScrollTop = clipGestureScrollElement?.scrollTop ?? 0;
+		clipGestureDidScroll = false;
+		clipDragHoldTimer = setTimeout(activateClipDragging, clipDragHoldDelayMs);
+		document.addEventListener('pointermove', handlePendingClipGesture);
+		document.addEventListener('pointerup', stopClipDragging);
+		document.addEventListener('pointercancel', stopClipDragging);
+	}
+
+	/**
+	 * Activates clip movement once the hold delay has elapsed.
+	 * @returns {void}
+	 */
+	function activateClipDragging(): void {
+		if (clipGesturePointerId === null) return;
+
+		clipDragHoldTimer = null;
+		document.removeEventListener('pointermove', handlePendingClipGesture);
 		ProjectHistoryManager.begin('move asset clip');
-		clipDragStartX = event.clientX;
+		clipDragStartX = clipGestureStartX;
 		clipDragOriginalStartTime = clip.startTime;
 		globalState.getTimelineState.showCursor = false;
 		document.addEventListener('pointermove', moveClip);
-		document.addEventListener('pointerup', stopClipDragging);
-		document.addEventListener('pointercancel', stopClipDragging);
+	}
+
+	/**
+	 * Scrolls the timeline when movement starts before the long press delay.
+	 * @param {PointerEvent} event Pointer movement event.
+	 * @returns {void}
+	 */
+	function handlePendingClipGesture(event: PointerEvent): void {
+		if (event.pointerId !== clipGesturePointerId) return;
+
+		const deltaX = event.clientX - clipGestureStartX;
+		const deltaY = event.clientY - clipGestureStartY;
+		if (!clipGestureDidScroll && Math.hypot(deltaX, deltaY) < clipGestureMoveThresholdPx) return;
+
+		if (clipDragHoldTimer !== null) clearTimeout(clipDragHoldTimer);
+		clipDragHoldTimer = null;
+		clipGestureDidScroll = true;
+		if (clipGestureScrollElement) {
+			clipGestureScrollElement.scrollLeft = clipGestureScrollLeft - deltaX;
+			clipGestureScrollElement.scrollTop = clipGestureScrollTop - deltaY;
+		}
+		event.preventDefault();
 	}
 
 	/**
@@ -105,7 +161,8 @@
 	 * @returns {void}
 	 */
 	function moveClip(event: PointerEvent): void {
-		if (clipDragStartX === null) return;
+		if (clipDragStartX === null || event.pointerId !== clipGesturePointerId) return;
+		event.preventDefault();
 		const deltaMs = Math.round(
 			((event.clientX - clipDragStartX) / track.getPixelPerSecond()) * 1000
 		);
@@ -126,13 +183,27 @@
 
 	/**
 	 * Ends clip movement and creates one undo/redo entry.
+	 * @param {PointerEvent} [event] Pointer release event.
 	 * @returns {void}
 	 */
-	function stopClipDragging(): void {
+	function stopClipDragging(event?: PointerEvent): void {
+		if (event && event.pointerId !== clipGesturePointerId) return;
+
+		const didActivateDragging = clipDragStartX !== null;
+		if (clipDragHoldTimer !== null) clearTimeout(clipDragHoldTimer);
+		if (clipGestureDidScroll || didActivateDragging)
+			suppressClipClickUntil = performance.now() + 500;
+		clipDragHoldTimer = null;
+		clipGesturePointerId = null;
+		clipGestureScrollElement = null;
+		clipGestureDidScroll = false;
 		clipDragStartX = null;
+		document.removeEventListener('pointermove', handlePendingClipGesture);
 		document.removeEventListener('pointermove', moveClip);
 		document.removeEventListener('pointerup', stopClipDragging);
 		document.removeEventListener('pointercancel', stopClipDragging);
+		if (!didActivateDragging) return;
+
 		globalState.getTimelineState.showCursor = true;
 		globalState.getTimelineState.movePreviewTo = globalState.getTimelineState.cursorPosition + 1;
 		ProjectHistoryManager.commit();
@@ -339,6 +410,11 @@
 	}
 
 	function handleClipClick(event: MouseEvent) {
+		if (performance.now() < suppressClipClickUntil) {
+			event.stopPropagation();
+			return;
+		}
+
 		if (globalState.getTimelineState.wasCursorDragged) {
 			globalState.getTimelineState.wasCursorDragged = false;
 			return;
@@ -418,6 +494,10 @@
 	onclick={handleClipClick}
 	onpointerdown={startClipDragging}
 	oncontextmenu={(e) => {
+		if (clipDragStartX !== null) {
+			e.preventDefault();
+			return;
+		}
 		void showContextMenuInViewport(contextMenu, e);
 	}}
 >

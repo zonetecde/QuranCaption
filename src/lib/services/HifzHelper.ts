@@ -141,13 +141,15 @@ function normalizeStoredAudioClip(value: unknown): AutoSegmentationAudioClip | n
 
 	const startMs = asFiniteNumber((value as { startMs?: unknown }).startMs);
 	const endMs = asFiniteNumber((value as { endMs?: unknown }).endMs);
+	const sourceStartMs = asFiniteNumber((value as { sourceStartMs?: unknown }).sourceStartMs) ?? 0;
 	if (startMs === undefined || endMs === undefined) return null;
 
 	return {
 		filePath,
 		fileName: filePath.split(/[/\\]/).pop() || filePath,
 		startMs: Math.max(0, Math.round(startMs)),
-		endMs: Math.max(Math.max(0, Math.round(startMs)), Math.round(endMs))
+		endMs: Math.max(Math.max(0, Math.round(startMs)), Math.round(endMs)),
+		sourceStartMs: Math.max(0, Math.round(sourceStartMs))
 	};
 }
 
@@ -586,7 +588,8 @@ async function generateHifzAudioAsset(
 		audioClips: sourceAudioClips.map((clip) => ({
 			path: clip.filePath,
 			startMs: clip.startMs,
-			endMs: clip.endMs
+			endMs: clip.endMs,
+			sourceStartMs: clip.sourceStartMs
 		})),
 		segments: audioSegments,
 		outputPath

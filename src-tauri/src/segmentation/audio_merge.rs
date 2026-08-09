@@ -7,7 +7,7 @@ use crate::utils::temp_file::TempFileGuard;
 
 use super::types::SegmentationAudioClip;
 
-/// Fusionne des clips audio temporels en un seul WAV mono 16-bit aligné sur la timeline.
+/// Fusionne des clips audio temporels en un seul WAV 16-bit aligné sur la timeline.
 pub(crate) fn merge_audio_clips_for_segmentation(
     clips: &[SegmentationAudioClip],
 ) -> Result<(PathBuf, TempFileGuard), String> {
@@ -16,7 +16,7 @@ pub(crate) fn merge_audio_clips_for_segmentation(
     }
 
     // Normalisation des clips: chemins canoniques et bornes de temps valides.
-    let mut normalized: Vec<(PathBuf, i64, i64)> = Vec::new();
+    let mut normalized: Vec<(PathBuf, i64, i64, i64)> = Vec::new();
     for clip in clips {
         let path = path_utils::normalize_existing_path(&clip.path);
         if !path.exists() {
@@ -28,7 +28,7 @@ pub(crate) fn merge_audio_clips_for_segmentation(
         if end_ms == start_ms {
             continue;
         }
-        normalized.push((path, start_ms, end_ms));
+        normalized.push((path, start_ms, end_ms, clip.source_start_ms.max(0)));
     }
     if normalized.is_empty() {
         return Err("No valid audio clips to merge".to_string());
@@ -36,7 +36,7 @@ pub(crate) fn merge_audio_clips_for_segmentation(
 
     let total_end_ms = normalized
         .iter()
-        .map(|(_, _, end_ms)| *end_ms)
+        .map(|(_, _, end_ms, _)| *end_ms)
         .max()
         .unwrap_or(0);
     let stamp = SystemTime::now()
@@ -53,30 +53,34 @@ pub(crate) fn merge_audio_clips_for_segmentation(
         "-loglevel".to_string(),
         "error".to_string(),
     ];
-    for (path, _, _) in &normalized {
+    for (path, _, _, _) in &normalized {
         args.push("-i".to_string());
         args.push(path.to_string_lossy().to_string());
     }
 
-    let mut filters: Vec<String> = Vec::new();
-    for (idx, (_, start_ms, end_ms)) in normalized.iter().enumerate() {
+    let total_s = total_end_ms as f64 / 1000.0;
+    let mut filters = vec![format!(
+        "anullsrc=r=48000:cl=stereo,atrim=start=0:end={:.6}[asilence]",
+        total_s
+    )];
+    for (idx, (_, start_ms, end_ms, source_start_ms)) in normalized.iter().enumerate() {
         let duration_ms = (end_ms - start_ms).max(0);
-        let duration_s = duration_ms as f64 / 1000.0;
+        let source_start_s = *source_start_ms as f64 / 1000.0;
+        let source_end_s = source_start_ms.saturating_add(duration_ms) as f64 / 1000.0;
         filters.push(format!(
-            "[{}:a]atrim=start=0:end={:.6},asetpts=PTS-STARTPTS,adelay={}|{}[a{}]",
-            idx, duration_s, start_ms, start_ms, idx
+            "[{}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=start={:.6}:end={:.6},asetpts=PTS-STARTPTS,adelay=delays={}:all=1[a{}]",
+            idx, source_start_s, source_end_s, start_ms, idx
         ));
     }
 
-    let mut inputs = String::new();
+    let mut inputs = "[asilence]".to_string();
     for idx in 0..normalized.len() {
         inputs.push_str(&format!("[a{}]", idx));
     }
-    let total_s = total_end_ms as f64 / 1000.0;
     filters.push(format!(
-        "{}amix=inputs={}:duration=longest:dropout_transition=0,atrim=end={:.6},asetpts=PTS-STARTPTS[mix]",
+        "{}amix=inputs={}:duration=longest:normalize=0:dropout_transition=0,atrim=start=0:end={:.6},asetpts=PTS-STARTPTS[mix]",
         inputs,
-        normalized.len(),
+        normalized.len() + 1,
         total_s
     ));
 

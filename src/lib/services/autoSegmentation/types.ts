@@ -151,6 +151,7 @@ export type AutoSegmentationAudioClip = {
 	fileName: string;
 	startMs: number;
 	endMs: number;
+	sourceStartMs: number;
 };
 
 export type VerseRef = {

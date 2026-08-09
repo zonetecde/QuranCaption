@@ -118,7 +118,8 @@ export async function runAutoSegmentationForProject(
 			audioClips: audioClips.map((clip) => ({
 				path: clip.filePath,
 				startMs: clip.startMs,
-				endMs: clip.endMs
+				endMs: clip.endMs,
+				sourceStartMs: clip.sourceStartMs
 			})),
 			minSilenceMs,
 			minSpeechMs,

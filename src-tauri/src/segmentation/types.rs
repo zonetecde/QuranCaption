@@ -63,6 +63,9 @@ pub struct SegmentationAudioClip {
     pub start_ms: i64,
     /// Fin du clip en millisecondes.
     pub end_ms: i64,
+    /// Debut du clip dans le fichier source, en millisecondes.
+    #[serde(default)]
+    pub source_start_ms: i64,
 }
 
 /// Segment audio a dupliquer pour generer une piste Hifz.

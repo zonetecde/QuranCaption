@@ -68,9 +68,10 @@
 	);
 	const availableChapters = $derived<number[]>(selectedRecitation?.chapters ?? []);
 
-	// Options du select de récitation (recherche par label dans le catalogue).
-	const recitationOptions = $derived(
-		[
+	// Options dédupliquées par slug, avec priorité aux récitations segmentées.
+	const recitationOptions = $derived.by(() => {
+		const seenSlugs = new Set<string>();
+		return [
 			...segmentRecitations.map((recitation) => ({
 				value: recitation.slug,
 				label: formatReciterName(recitation.label),
@@ -82,8 +83,14 @@
 				label: formatReciterName(recitation.label),
 				searchAliases: [recitation.label, recitation.label.replace(/\bmohammed\b/gi, 'Muhammed')]
 			}))
-		].sort((a, b) => a.label.localeCompare(b.label))
-	);
+		]
+			.filter((option) => {
+				if (seenSlugs.has(option.value)) return false;
+				seenSlugs.add(option.value);
+				return true;
+			})
+			.sort((a, b) => a.label.localeCompare(b.label));
+	});
 
 	/**
 	 * Uniformise la graphie de Muhammad dans les noms affichés.

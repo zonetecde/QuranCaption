@@ -1773,6 +1773,8 @@ const zh = {
 		reflectionSubmitting: '正在保存…',
 		reflectionPrivateSuccess: '已私密保存到你的 Quran.com 笔记。',
 		reflectionPublicSuccess: '你的反思已发送到 QuranReflect。',
+		reflectionViewPrivateNote: '查看你的私人笔记',
+		reflectionViewPublicPost: '在 QuranReflect 上查看',
 		reflectionSubmitError: '无法保存你的反思。草稿仍在，你可以重试。',
 		reflectionBack: '返回反思',
 		reflectionWriteAnother: '再写一篇反思',

@@ -1227,6 +1227,8 @@ const id = {
 		reflectionSubmitting: 'Menyimpan…',
 		reflectionPrivateSuccess: 'Disimpan secara pribadi di catatan Quran.com milikmu.',
 		reflectionPublicSuccess: 'Refleksimu telah dikirim ke QuranReflect.',
+		reflectionViewPrivateNote: 'Lihat catatan pribadimu',
+		reflectionViewPublicPost: 'Lihat di QuranReflect',
 		reflectionSubmitError:
 			'Refleksimu tidak dapat disimpan. Drafmu tetap tersedia agar kamu dapat mencoba lagi.',
 		reflectionBack: 'Kembali ke refleksi',

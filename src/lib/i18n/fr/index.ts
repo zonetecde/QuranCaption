@@ -1939,6 +1939,8 @@ const fr = {
 		reflectionSubmitting: 'Enregistrement…',
 		reflectionPrivateSuccess: 'Enregistrée en privé dans vos notes Quran.com.',
 		reflectionPublicSuccess: 'Votre réflexion a été envoyée à QuranReflect.',
+		reflectionViewPrivateNote: 'Voir votre note privée',
+		reflectionViewPublicPost: 'Voir sur QuranReflect',
 		reflectionSubmitError:
 			'Votre réflexion n’a pas pu être enregistrée. Votre brouillon est conservé pour réessayer.',
 		reflectionBack: 'Retour à la réflexion',

@@ -229,6 +229,8 @@ const export_ = {
 	reflectionSubmitting: 'Saving…',
 	reflectionPrivateSuccess: 'Saved privately to your Quran.com notes.',
 	reflectionPublicSuccess: 'Your reflection was sent to QuranReflect.',
+	reflectionViewPrivateNote: 'View your private note',
+	reflectionViewPublicPost: 'View on QuranReflect',
 	reflectionSubmitError:
 		'Your reflection could not be saved. Your draft is still here so you can retry.',
 	reflectionBack: 'Back to reflection',

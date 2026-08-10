@@ -6630,6 +6630,14 @@ type RootTranslation = {
 		 */
 		reflectionPublicSuccess: string;
 		/**
+		 * V​i​e​w​ ​y​o​u​r​ ​p​r​i​v​a​t​e​ ​n​o​t​e
+		 */
+		reflectionViewPrivateNote: string;
+		/**
+		 * V​i​e​w​ ​o​n​ ​Q​u​r​a​n​R​e​f​l​e​c​t
+		 */
+		reflectionViewPublicPost: string;
+		/**
 		 * Y​o​u​r​ ​r​e​f​l​e​c​t​i​o​n​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​s​a​v​e​d​.​ ​Y​o​u​r​ ​d​r​a​f​t​ ​i​s​ ​s​t​i​l​l​ ​h​e​r​e​ ​s​o​ ​y​o​u​ ​c​a​n​ ​r​e​t​r​y​.
 		 */
 		reflectionSubmitError: string;
@@ -17648,6 +17656,14 @@ export type TranslationFunctions = {
 		 * Your reflection was sent to QuranReflect.
 		 */
 		reflectionPublicSuccess: () => LocalizedString;
+		/**
+		 * View your private note
+		 */
+		reflectionViewPrivateNote: () => LocalizedString;
+		/**
+		 * View on QuranReflect
+		 */
+		reflectionViewPublicPost: () => LocalizedString;
 		/**
 		 * Your reflection could not be saved. Your draft is still here so you can retry.
 		 */

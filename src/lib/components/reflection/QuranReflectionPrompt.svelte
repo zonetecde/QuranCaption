@@ -49,6 +49,7 @@
 	let isSubmitting = $state(false);
 	let submitFailed = $state(false);
 	let successMode = $state<ReflectionMode | null>(null);
+	let successUrl = $state<string | null>(null);
 	let copy = $derived($LL.export as unknown as ReflectionCopy);
 	let selectedSurah = $derived(context?.surahs.find((item) => item.surah === selectedSurahNumber));
 	let selectedSpan = $derived(selectedSurah?.ranges[selectedSpanIndex]);
@@ -101,6 +102,7 @@
 		draft = '';
 		pendingAction = null;
 		pendingNoteId = null;
+		successUrl = null;
 		submitFailed = false;
 		examplesReady = false;
 		examplesFailed = false;
@@ -320,7 +322,7 @@
 				persistPending();
 			}
 			if (mode === 'public') {
-				await publishReflectionNote(
+				const publication = await publishReflectionNote(
 					accessToken,
 					pendingNoteId,
 					draft.trim(),
@@ -329,6 +331,11 @@
 					selectedTo,
 					selectionMode === 'whole'
 				);
+				successUrl = publication.data.postId
+					? `https://quranreflect.com/posts/${publication.data.postId}`
+					: null;
+			} else {
+				successUrl = 'https://quran.com/my-quran';
 			}
 			successMode = mode;
 			stage = 'success';
@@ -355,6 +362,7 @@
 		pendingAction = null;
 		pendingNoteId = null;
 		successMode = null;
+		successUrl = null;
 		submitFailed = false;
 	}
 
@@ -484,20 +492,34 @@
 					</div>
 				</div>
 			{:else if stage === 'success'}
-				<div class="rounded-xl border border-green-500/30 bg-green-500/10 p-6 text-center">
+				<div class="rounded-xl px-5 py-6 text-center sm:px-8">
 					<span class="material-icons text-4xl text-green-400">check_circle</span>
-					<p class="mt-3 font-medium text-primary">
+					<p class="mt-3 text-base font-semibold text-primary">
 						{successMode === 'private'
 							? copy.reflectionPrivateSuccess()
 							: copy.reflectionPublicSuccess()}
 					</p>
-					<button
-						type="button"
-						class="btn-accent mt-5 min-h-11 px-6"
-						onclick={startAnotherReflection}
-					>
-						{copy.reflectionWriteAnother()}
-					</button>
+					<div class="mt-5 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
+						{#if successUrl}
+							<button
+								type="button"
+								class="reflection-primary inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold sm:w-auto"
+								onclick={() => void openUrl(successUrl!)}
+							>
+								{successMode === 'private'
+									? copy.reflectionViewPrivateNote()
+									: copy.reflectionViewPublicPost()}
+								<span class="material-icons text-base">open_in_new</span>
+							</button>
+						{/if}
+						<button
+							type="button"
+							class="reflection-auth-back min-h-11 w-full rounded-xl px-5 text-sm font-semibold text-secondary sm:w-auto"
+							onclick={startAnotherReflection}
+						>
+							{copy.reflectionWriteAnother()}
+						</button>
+					</div>
 				</div>
 			{:else}
 				<div>

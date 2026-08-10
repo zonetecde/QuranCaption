@@ -1931,6 +1931,8 @@ const de = {
 		reflectionSubmitting: 'Wird gespeichert…',
 		reflectionPrivateSuccess: 'Privat in deinen Quran.com-Notizen gespeichert.',
 		reflectionPublicSuccess: 'Deine Reflexion wurde an QuranReflect gesendet.',
+		reflectionViewPrivateNote: 'Private Notiz ansehen',
+		reflectionViewPublicPost: 'Auf QuranReflect ansehen',
 		reflectionSubmitError:
 			'Deine Reflexion konnte nicht gespeichert werden. Dein Entwurf bleibt erhalten, damit du es erneut versuchen kannst.',
 		reflectionBack: 'Zurück zur Reflexion',

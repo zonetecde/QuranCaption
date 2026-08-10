@@ -1929,6 +1929,8 @@ const es = {
 		reflectionSubmitting: 'Guardando…',
 		reflectionPrivateSuccess: 'Guardada en privado en tus notas de Quran.com.',
 		reflectionPublicSuccess: 'Tu reflexión se envió a QuranReflect.',
+		reflectionViewPrivateNote: 'Ver tu nota privada',
+		reflectionViewPublicPost: 'Ver en QuranReflect',
 		reflectionSubmitError:
 			'No se pudo guardar tu reflexión. Tu borrador sigue aquí para que puedas volver a intentarlo.',
 		reflectionBack: 'Volver a la reflexión',

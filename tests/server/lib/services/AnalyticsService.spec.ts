@@ -6,7 +6,7 @@ import {
 	sanitizeAnalyticsProperties,
 	type AnalyticsWorkflow
 } from '$lib/services/AnalyticsService';
-import { locale, setLocale } from '$lib/i18n/i18n-svelte';
+import { setLocale } from '$lib/i18n/i18n-svelte';
 
 type AnalyticsInternals = {
 	state: 'idle' | 'initializing' | 'ready' | 'disabled' | 'failed';

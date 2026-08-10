@@ -11,6 +11,7 @@ import type {
 	QuranAuthUser,
 	QuranCollection
 } from '$lib/types/quranAuth';
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 const BRIDGE_BASE_URL = 'https://qurancaption.com';
 const USER_API_BASE_URL = 'https://apis.quran.foundation';
@@ -101,6 +102,7 @@ class QuranAuthService {
 	/** Lance le flux de connexion Quran.com via le bridge OAuth. */
 	async beginLogin(requiredScopes: string[] = []): Promise<void> {
 		await this.init();
+		AnalyticsService.trackQuranAuthStarted(requiredScopes.length);
 
 		try {
 			this.clearError();
@@ -119,6 +121,7 @@ class QuranAuthService {
 
 			await openUrl(authorizationUrl.toString());
 		} catch (error) {
+			AnalyticsService.trackQuranAuthFinished('failed', requiredScopes.length);
 			await this.clearPendingVerifier();
 			this.setError(error, get(LL).settings.unableToStartSignIn());
 			throw error;
@@ -143,6 +146,7 @@ class QuranAuthService {
 
 		const handoffToken = parsedUrl.searchParams.get('handoff_token');
 		if (!handoffToken) {
+			AnalyticsService.trackQuranAuthFinished('failed', this.grantedScopes.length);
 			this.setError(
 				new Error('Missing handoff token in deep link.'),
 				get(LL).settings.authDataIncomplete()
@@ -173,8 +177,10 @@ class QuranAuthService {
 			await this.persistSession(response);
 			await this.clearPendingVerifier();
 			this.handledHandoffTokens.add(handoffToken);
+			AnalyticsService.trackQuranAuthFinished('completed', response.grantedScopes.length);
 			toast.success(get(LL).settings.connectedToQuranCom());
 		} catch (error) {
+			AnalyticsService.trackQuranAuthFinished('failed', this.grantedScopes.length);
 			this.setError(error, get(LL).settings.unableToCompleteSignIn());
 			throw error;
 		} finally {
@@ -207,14 +213,20 @@ class QuranAuthService {
 			await this.persistSession(refreshed);
 			return refreshed;
 		} catch (error) {
-			await this.disconnect();
+			await this.disconnect('session_expired');
 			this.setError(error, get(LL).settings.sessionExpired());
 			return null;
 		}
 	}
 
-	/** Efface complètement la session locale Quran.com. */
-	async disconnect(): Promise<void> {
+	/**
+	 * Efface complètement la session locale Quran.com.
+	 * @param {'user' | 'session_expired'} reason Origine stable de la déconnexion.
+	 * @returns {Promise<void>} Promesse résolue après le nettoyage sécurisé.
+	 */
+	async disconnect(reason: 'user' | 'session_expired' = 'user'): Promise<void> {
+		const wasConnected = this.session !== null || this.status === 'connected';
+		const scopeCount = this.grantedScopes.length;
 		this.session = null;
 		this.status = 'disconnected';
 		this.user = null;
@@ -228,6 +240,7 @@ class QuranAuthService {
 			this.deleteSecureValue(SESSION_STORAGE_KEY),
 			this.deleteSecureValue(PENDING_VERIFIER_STORAGE_KEY)
 		]);
+		if (wasConnected) AnalyticsService.trackQuranAuthDisconnected(scopeCount, reason);
 	}
 
 	/** Récupère toutes les collections Quran.com de l'utilisateur connecté. */

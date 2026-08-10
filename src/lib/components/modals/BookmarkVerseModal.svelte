@@ -6,6 +6,7 @@
 	import { get } from 'svelte/store';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	let {
 		surah,
@@ -167,6 +168,20 @@
 		}
 
 		isSubmitting = false;
+		if (collectionsToAdd.length > 0) {
+			AnalyticsService.trackQuranBookmarkChanged(
+				'add',
+				addedCount,
+				collectionsToAdd.length - addedCount
+			);
+		}
+		if (collectionsToRemove.length > 0) {
+			AnalyticsService.trackQuranBookmarkChanged(
+				'remove',
+				removedCount,
+				collectionsToRemove.length - removedCount
+			);
+		}
 
 		if (addedCount === 0 && removedCount === 0) {
 			errorMessage = get(LL).common.unableToUpdateVerse({ verseKey });

@@ -13,6 +13,7 @@ import { buildCommunityPresetData, checkMissingFonts } from './presetUtils';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import toast from 'svelte-5-french-toast';
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 /**
  * Charge la liste des presets communauté depuis l'API publique.
@@ -80,6 +81,7 @@ export async function downloadAndApply(preset: CommunityStylePreset): Promise<vo
 		if (!stored) return;
 
 		await globalState.getVideoStyle.importStyles(styleData);
+		AnalyticsService.trackStylePresetApplied('community');
 
 		// Incrémente le compteur de téléchargements localement
 		state.communityPresets = state.communityPresets.map((item) =>

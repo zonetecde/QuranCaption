@@ -6,6 +6,7 @@ import { buildLocalPreset, buildStyleData, getExportFileName } from './presetUti
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import toast from 'svelte-5-french-toast';
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 /**
  * Insère ou remplace un preset local dans les paramètres.
@@ -60,6 +61,7 @@ export async function savePreset(name: string, includedClipIds: Set<number>): Pr
 	if (!stored) return;
 
 	globalState.presetLibrary.modalMode = null;
+	AnalyticsService.trackStylePresetSaved(includedClipIds.size);
 	toast.success(get(LL).style.stylePresetSaved());
 }
 
@@ -92,6 +94,7 @@ export async function applyPreset(preset: SavedVideoStylePreset): Promise<void> 
 	if (!confirmed) return;
 
 	await globalState.getVideoStyle.importStyles(preset.data);
+	AnalyticsService.trackStylePresetApplied('local');
 	toast.success(get(LL).style.stylePresetApplied());
 }
 

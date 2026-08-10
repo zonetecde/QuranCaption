@@ -386,6 +386,15 @@
 
 		resetRunState();
 		isRunning = true;
+		const analyticsStart = {
+			feature: 'wbw_translation' as const,
+			mode: 'advanced_wbw_translation',
+			model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
+			reasoningEffort: globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
+			totalItems: aiWbwTranslationEstimate().totalSegments,
+			totalBatches: batches.length
+		};
+		const analyticsWorkflow = AnalyticsService.trackAiStarted(analyticsStart);
 		activeBatchIds = new Set<string>(batches.map((batch) => batch.batchId));
 		addActivity(
 			'queued',
@@ -398,116 +407,131 @@
 		const reportLines: string[] = [];
 		let blockingFailure = false;
 
-		await runAiWorkerPool(
-			batches,
-			AI_TRANSLATION_WORKER_COUNT,
-			async (batch, batchIndex, workerIndex) => {
-				const worker = workers[workerIndex];
-				const batchLabel = get(LL).editor.batchProgress({
-					current: batchIndex + 1,
-					total: batches.length
-				});
-				worker.batchId = batch.batchId;
-				worker.batchLabel = batchLabel;
-				worker.step = 'queued';
-				worker.reasoning = '';
-				worker.response = '';
-
-				addActivity(
-					'queued',
-					get(LL).editor.aiWbwTranslationBatchQueued({
-						label: batchLabel,
-						segments: batch.segments.length,
-						words: batch.wordCount
-					}),
-					'info',
-					batch.batchId
-				);
-
-				try {
-					const response = await runAiWbwTranslationBatchStreaming({
-						apiKey,
-						endpoint,
-						model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
-						reasoningEffort:
-							globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
-						batchId: batch.batchId,
-						customPromptNote:
-							globalState.settings!.aiTranslationSettings.aiWbwTranslationCustomNote,
-						batch: batch.request
+		try {
+			await runAiWorkerPool(
+				batches,
+				AI_TRANSLATION_WORKER_COUNT,
+				async (batch, batchIndex, workerIndex) => {
+					const worker = workers[workerIndex];
+					const batchLabel = get(LL).editor.batchProgress({
+						current: batchIndex + 1,
+						total: batches.length
 					});
+					worker.batchId = batch.batchId;
+					worker.batchLabel = batchLabel;
+					worker.step = 'queued';
+					worker.reasoning = '';
+					worker.response = '';
 
-					chunkBuffer.flush();
-					worker.response = response.rawText;
-					worker.step = 'validating';
 					addActivity(
-						'validating',
-						get(LL).editor.validatingBatch({ label: batchLabel }),
+						'queued',
+						get(LL).editor.aiWbwTranslationBatchQueued({
+							label: batchLabel,
+							segments: batch.segments.length,
+							words: batch.wordCount
+						}),
 						'info',
 						batch.batchId
 					);
 
-					const validation = validateAiWbwTranslationBatchResult(batch, response.parsed);
-					const applyReport = applyAiWbwTranslationValidationSuccess(
-						edition,
-						validation.validSegments
-					);
-					const validationFailedSegments = batch.segments.length - validation.validSegments.length;
+					try {
+						const response = await runAiWbwTranslationBatchStreaming({
+							apiKey,
+							endpoint,
+							model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
+							reasoningEffort:
+								globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
+							batchId: batch.batchId,
+							customPromptNote:
+								globalState.settings!.aiTranslationSettings.aiWbwTranslationCustomNote,
+							batch: batch.request
+						});
 
-					if (validationFailedSegments === 0 && applyReport.erroredSegments === 0) {
-						successfulBatches++;
-						worker.step = 'completed';
-					} else {
-						failedBatches++;
-						worker.step = 'failed';
-					}
-
-					successfulSegments += applyReport.appliedSegments;
-					failedSegments += validationFailedSegments + applyReport.erroredSegments;
-
-					if (applyReport.appliedSegments > 0) {
+						chunkBuffer.flush();
+						worker.response = response.rawText;
+						worker.step = 'validating';
 						addActivity(
-							'applied',
-							get(LL).editor.aiWbwTranslationAppliedSegments({
-								applied: applyReport.appliedSegments,
-								total: batch.segments.length
-							}),
-							'success',
+							'validating',
+							get(LL).editor.validatingBatch({ label: batchLabel }),
+							'info',
 							batch.batchId
 						);
-					}
 
-					if (validation.errors.length > 0) {
-						reportLines.push(batchLabel, ...validation.errors);
-						for (const error of validation.errors) {
-							addActivity('failed', error, 'error', batch.batchId);
+						const validation = validateAiWbwTranslationBatchResult(batch, response.parsed);
+						const applyReport = applyAiWbwTranslationValidationSuccess(
+							edition,
+							validation.validSegments
+						);
+						const validationFailedSegments =
+							batch.segments.length - validation.validSegments.length;
+
+						if (validationFailedSegments === 0 && applyReport.erroredSegments === 0) {
+							successfulBatches++;
+							worker.step = 'completed';
+						} else {
+							failedBatches++;
+							worker.step = 'failed';
 						}
-					}
 
-					if (applyReport.errors.length > 0) {
-						reportLines.push(...applyReport.errors);
-						for (const error of applyReport.errors) {
-							addActivity('failed', error, 'error', batch.batchId);
+						successfulSegments += applyReport.appliedSegments;
+						failedSegments += validationFailedSegments + applyReport.erroredSegments;
+
+						if (applyReport.appliedSegments > 0) {
+							addActivity(
+								'applied',
+								get(LL).editor.aiWbwTranslationAppliedSegments({
+									applied: applyReport.appliedSegments,
+									total: batch.segments.length
+								}),
+								'success',
+								batch.batchId
+							);
 						}
-					}
-				} catch (error) {
-					failedBatches++;
-					failedSegments += batch.segments.length;
-					worker.step = 'failed';
-					const message = error instanceof Error ? error.message : String(error);
-					reportLines.push(batchLabel, message);
-					addActivity('failed', message, 'error', batch.batchId);
 
-					if (isBlockingError(message)) {
-						blockingFailure = true;
+						if (validation.errors.length > 0) {
+							reportLines.push(batchLabel, ...validation.errors);
+							for (const error of validation.errors) {
+								addActivity('failed', error, 'error', batch.batchId);
+							}
+						}
+
+						if (applyReport.errors.length > 0) {
+							reportLines.push(...applyReport.errors);
+							for (const error of applyReport.errors) {
+								addActivity('failed', error, 'error', batch.batchId);
+							}
+						}
+					} catch (error) {
+						failedBatches++;
+						failedSegments += batch.segments.length;
+						worker.step = 'failed';
+						const message = error instanceof Error ? error.message : String(error);
+						reportLines.push(batchLabel, message);
+						addActivity('failed', message, 'error', batch.batchId);
+
+						if (isBlockingError(message)) {
+							blockingFailure = true;
+						}
+					} finally {
+						chunkBuffer.flush();
+						completedBatches++;
 					}
-				} finally {
-					chunkBuffer.flush();
-					completedBatches++;
-				}
-			},
-			() => blockingFailure
-		);
+				},
+				() => blockingFailure
+			);
+		} catch (error) {
+			isRunning = false;
+			activeBatchIds = new Set<string>();
+			AnalyticsService.trackAiFinished(analyticsWorkflow, analyticsStart, {
+				outcome: 'failed',
+				completedItems: successfulSegments,
+				failedItems: failedSegments,
+				completedBatches,
+				failedBatches,
+				hadErrors: true
+			});
+			throw error;
+		}
 
 		isRunning = false;
 		activeBatchIds = new Set<string>();
@@ -517,25 +541,18 @@
 			failed: failedSegments
 		});
 
-		AnalyticsService.trackAiBoldUsage({
-			range: `time ${translationsEditorState().aiWbwTranslationStartTimeMs}-${translationsEditorState().aiWbwTranslationEndTimeMs}`,
-			mode: 'advanced_wbw_translation',
-			model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
-			reasoning_effort: globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
-			total_batches: aiWbwTranslationBatches().length,
-			completed_batches: completedBatches,
-			successful_batches: successfulBatches,
-			failed_batches: failedBatches,
-			total_segments: aiWbwTranslationEstimate().totalSegments,
-			successful_segments: successfulSegments,
-			failed_segments: failedSegments,
-			estimated_cost_usd: aiWbwTranslationEstimate().totalEstimatedCostUsd,
-			custom_note_length:
-				globalState.settings!.aiTranslationSettings.aiWbwTranslationCustomNote.trim().length,
-			edition_key: edition.key,
-			edition_name: edition.name,
-			edition_author: edition.author,
-			edition_language: edition.language
+		AnalyticsService.trackAiFinished(analyticsWorkflow, analyticsStart, {
+			outcome:
+				successfulSegments === 0
+					? 'failed'
+					: failedBatches > 0 || failedSegments > 0
+						? 'partial'
+						: 'completed',
+			completedItems: successfulSegments,
+			failedItems: failedSegments,
+			completedBatches,
+			failedBatches,
+			hadErrors: failedBatches > 0 || failedSegments > 0
 		});
 
 		if (reportLines.length > 0) {

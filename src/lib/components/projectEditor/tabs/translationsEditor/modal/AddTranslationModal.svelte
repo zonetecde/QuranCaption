@@ -130,16 +130,13 @@
 				// Add all selected translations to the project in a single operation
 				for (const translation of selectedTranslations) {
 					const preview = translationPreviews[translation.name] || {};
-					globalState.currentProject?.content.projectTranslation.addTranslation(
+					const added = await globalState.currentProject?.content.projectTranslation.addTranslation(
 						translation,
 						preview
 					);
-					AnalyticsService.trackTranslationAdded(
-						translation.name,
-						translation.author,
-						translation.key,
-						translation.language
-					);
+					if (added) {
+						AnalyticsService.trackTranslationAdded(translation.key, translation.language);
+					}
 				}
 				close();
 			} catch (error) {

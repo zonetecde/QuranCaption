@@ -293,13 +293,6 @@ export default class Exporter {
 			settings.format
 		);
 
-		AnalyticsService.trackSubtitlesExport(
-			settings.format,
-			settings.includedTargets,
-			settings.exportVerseNumbers,
-			subtitles.length
-		);
-
 		const projectName = ExportFileService.getProjectNameForFile();
 		const extension = settings.format.toLowerCase();
 		const customFileName = es.customFileName.trim().replace(/[/\\:*?"<>|]/g, '_');
@@ -307,6 +300,12 @@ export default class Exporter {
 			? `${customFileName}.${extension}`
 			: `qurancaption_subtitles_${projectName}.${extension}`;
 		await ExportFileService.saveTextFile(fileName, fileContent, 'Subtitles');
+		AnalyticsService.trackSubtitlesExport(
+			settings.format,
+			settings.includedTargets,
+			settings.exportVerseNumbers,
+			subtitles.length
+		);
 	}
 	static async exportProjectData(project?: Project | null) {
 		const projectData = project || globalState.currentProject;
@@ -623,13 +622,6 @@ export default class Exporter {
 			return;
 		}
 
-		AnalyticsService.trackYtbChaptersExport(
-			choice,
-			result.chapterCount,
-			result.exportStart,
-			result.exportEnd
-		);
-
 		const projectName = ExportFileService.getProjectNameForFile();
 		const customFileName = globalState.getExportState.customFileName
 			.trim()
@@ -638,6 +630,12 @@ export default class Exporter {
 			? `${customFileName}.txt`
 			: `qurancaption_chapters_${projectName}.txt`;
 		await ExportFileService.saveTextFile(fileName, result.content, 'YouTube chapters');
+		AnalyticsService.trackYtbChaptersExport(
+			choice,
+			result.chapterCount,
+			result.exportStart,
+			result.exportEnd
+		);
 	}
 
 	/**

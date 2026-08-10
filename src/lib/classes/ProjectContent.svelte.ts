@@ -9,6 +9,7 @@ import { get } from 'svelte/store';
 import { ProjectTranslation, VideoStyle } from './index.js';
 import type { UnknownRecord } from '$lib/types/common';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 export class ProjectContent extends SerializableBase {
 	timeline: Timeline;
@@ -66,6 +67,12 @@ export class ProjectContent extends SerializableBase {
 			const asset = this.addAssetHeadless(filePath, sourceUrl, sourceType, metadata);
 			if (!asset) {
 				toast.error(get(LL).editor.fileFormatNotSupported());
+			} else {
+				AnalyticsService.trackMediaImported(
+					asset.sourceType,
+					asset.type,
+					'nativeTiming' in asset.metadata || 'mp3Quran' in asset.metadata
+				);
 			}
 			return asset;
 		});

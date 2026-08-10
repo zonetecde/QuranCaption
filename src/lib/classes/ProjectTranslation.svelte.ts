@@ -283,19 +283,23 @@ export class ProjectTranslation extends SerializableBase {
 	}
 
 	/**
-	 * Ajoute une traduction au projet
-	 * @param edition L'édition de traduction à ajouter
-	 * @param downloadedTranslations Les traductions téléchargées pour cette édition
+	 * Ajoute une traduction au projet.
+	 * @param {Edition} edition L'édition de traduction à ajouter.
+	 * @param {Record<string, string>} downloadedTranslations Traductions téléchargées.
+	 * @returns {Promise<boolean>} `true` si le projet a été modifié.
 	 */
-	async addTranslation(edition: Edition, downloadedTranslations: Record<string, string>) {
+	async addTranslation(
+		edition: Edition,
+		downloadedTranslations: Record<string, string>
+	): Promise<boolean> {
 		// Vérifie si l'édition est déjà ajoutée
 		if (this.addedTranslationEditions.some((e) => e.name === edition.name)) {
 			const response = await ModalManager.confirmModal(
 				get(LL).translations.translationAdded({ author: edition.author })
 			);
-			if (!response) return;
+			if (!response) return false;
 		}
-		await this.addTranslationToProject(
+		return await this.addTranslationToProject(
 			globalState.currentProject!,
 			edition,
 			downloadedTranslations,

@@ -14,6 +14,7 @@ import {
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import toast from 'svelte-5-french-toast';
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 /**
  * Ouvre le formulaire de publication et génère automatiquement une preview.
@@ -200,6 +201,7 @@ export async function publishPreset(): Promise<void> {
 			preset,
 			...state.communityPresets.filter((item) => item.id !== preset.id)
 		];
+		AnalyticsService.trackStylePresetPublished(state.includedCustomClipIds.size);
 		void loadPopularTags();
 		closePublishForm();
 		toast.success(get(LL).style.communityPresetPublished());

@@ -273,7 +273,7 @@
 
 	async function cancelOngoingExports() {
 		const ongoingExports = ExportService.currentlyExportingProjects();
-		await Promise.all(ongoingExports.map((exportation) => exportation.cancelExport()));
+		await Promise.all(ongoingExports.map((exportation) => exportation.cancelExport('app_close')));
 		await ExportService.saveExports();
 	}
 

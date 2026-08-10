@@ -20,6 +20,7 @@ import type { PresetLibraryState } from '$lib/components/projectEditor/tabs/styl
 import type { StockMediaLibraryState } from '$lib/components/projectEditor/tabs/videoEditor/assetsManager/stockMediaTypes';
 import { getChineseMetadataLanguage } from '$lib/services/ChineseTranslationHelper';
 import type { QuranReflectionContext } from '$lib/services/QuranReflectionService';
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 export type QuickTimelineEditorMode = 'translation' | 'wbw' | 'subtitle' | 'wbwTimestamp';
 
@@ -290,6 +291,7 @@ class GlobalState {
 		const translationsState = this.getTranslationsState;
 		const subtitlesEditorState = this.getSubtitlesEditorState;
 		if (!this.shared.quickTimelineEditor.active) {
+			AnalyticsService.trackQuickTimelineEditorUsed(mode);
 			this.shared.quickTimelineEditor.previousInlineStyleMode = translationsState.isInlineStyleMode;
 			this.shared.quickTimelineEditor.previousEditSubtitleId =
 				subtitlesEditorState.editSubtitle?.id ?? null;

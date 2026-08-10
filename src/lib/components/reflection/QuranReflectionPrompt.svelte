@@ -5,7 +5,10 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import {
+		AnalyticsService,
+		type ReflectionAnalyticsProperties
+	} from '$lib/services/AnalyticsService';
 	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
 	import {
@@ -72,7 +75,7 @@
 	);
 
 	/** Construit les seules propriétés analytiques non personnelles de la sélection. */
-	function analyticsProperties(mode?: ReflectionMode): Record<string, string | number | boolean> {
+	function analyticsProperties(mode?: ReflectionMode): ReflectionAnalyticsProperties {
 		return {
 			surah: selectedSurahNumber,
 			selected_verse_count: selectedTo - selectedFrom + 1,
@@ -106,12 +109,12 @@
 		examplesFailed = false;
 		visible = true;
 		globalState.uiState.showReflectionPrompt = true;
-		AnalyticsService.track('reflection_prompt_shown', analyticsProperties());
+		AnalyticsService.trackReflection('reflection_prompt_shown', analyticsProperties());
 	}
 
 	/** Ferme volontairement le panneau et supprime son brouillon persistant. */
 	function dismissPrompt(): void {
-		AnalyticsService.track('reflection_prompt_dismissed', analyticsProperties());
+		AnalyticsService.trackReflection('reflection_prompt_dismissed', analyticsProperties());
 		visible = false;
 		globalState.uiState.showReflectionPrompt = false;
 		sessionStorage.removeItem(PENDING_REFLECTION_KEY);
@@ -173,7 +176,7 @@
 
 	/** Enregistre un changement de plage sans inclure le texte du brouillon. */
 	function trackRangeChange(): void {
-		AnalyticsService.track('reflection_range_changed', analyticsProperties());
+		AnalyticsService.trackReflection('reflection_range_changed', analyticsProperties());
 		persistPending();
 	}
 
@@ -184,7 +187,7 @@
 	 */
 	function openReflectionExample(example: QuranReflectionPreview): void {
 		if (!example.url) return;
-		AnalyticsService.track('reflection_example_opened', analyticsProperties());
+		AnalyticsService.trackReflection('reflection_example_opened', analyticsProperties());
 		void openUrl(example.url);
 	}
 
@@ -245,7 +248,7 @@
 		persistPending();
 		if (!hasRequiredScopes(mode)) {
 			stage = 'auth';
-			AnalyticsService.track('reflection_auth_requested', {
+			AnalyticsService.trackReflection('reflection_auth_requested', {
 				...analyticsProperties(mode),
 				authenticated_before_action: quranAuthService.status === 'connected'
 			});
@@ -302,7 +305,7 @@
 			stage = 'success';
 			pendingAction = null;
 			sessionStorage.removeItem(PENDING_REFLECTION_KEY);
-			AnalyticsService.track(
+			AnalyticsService.trackReflection(
 				mode === 'private' ? 'reflection_private_saved' : 'reflection_public_published',
 				analyticsProperties(mode)
 			);
@@ -310,7 +313,7 @@
 			submitFailed = true;
 			stage = 'composer';
 			persistPending();
-			AnalyticsService.track('reflection_submit_failed', analyticsProperties(mode));
+			AnalyticsService.trackReflection('reflection_submit_failed', analyticsProperties(mode));
 		} finally {
 			isSubmitting = false;
 		}

@@ -3,6 +3,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
+	import { AnalyticsService, type EditorAnalyticsSection } from '$lib/services/AnalyticsService';
 
 	let tabs = $state([
 		{ name: get(LL).status.videoEditor(), icon: 'edit', value: ProjectEditorTabs.VideoEditor },
@@ -19,6 +20,20 @@
 		{ name: get(LL).status.style(), icon: 'auto_fix_high', value: ProjectEditorTabs.Style },
 		{ name: get(LL).status.export(), icon: 'upload_file', value: ProjectEditorTabs.Export }
 	]);
+	const analyticsSections: Record<ProjectEditorTabs, EditorAnalyticsSection> = {
+		[ProjectEditorTabs.VideoEditor]: 'video',
+		[ProjectEditorTabs.SubtitlesEditor]: 'subtitles',
+		[ProjectEditorTabs.Translations]: 'translations',
+		[ProjectEditorTabs.Style]: 'style',
+		[ProjectEditorTabs.Export]: 'export'
+	};
+
+	$effect(() => {
+		AnalyticsService.enterEditorSection(
+			analyticsSections[globalState.currentProject!.projectEditorState.currentTab]
+		);
+		return () => AnalyticsService.leaveEditorSection();
+	});
 
 	function setActiveTab(tabValue: ProjectEditorTabs) {
 		globalState.getStylesState.clearSelection();

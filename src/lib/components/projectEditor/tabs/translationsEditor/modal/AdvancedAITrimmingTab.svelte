@@ -308,6 +308,15 @@
 
 		resetRunState();
 		isRunning = true;
+		const analyticsStart = {
+			feature: 'translation_trim' as const,
+			mode: 'advanced_trim',
+			model: aiSettings().advancedTrimModel,
+			reasoningEffort: aiSettings().advancedTrimReasoningEffort,
+			totalItems: advancedEstimate.totalVerses,
+			totalBatches: batches.length
+		};
+		const analyticsWorkflow = AnalyticsService.trackAiStarted(analyticsStart);
 		activeBatchIds = new Set<string>(batches.map((batch) => batch.batchId));
 		addActivity(
 			'queued',
@@ -320,120 +329,134 @@
 		let totalAiErrorSegments = 0;
 		let totalRejectedVerses = 0;
 
-		await runAiWorkerPool(
-			batches,
-			AI_TRANSLATION_WORKER_COUNT,
-			async (batch, batchIndex, workerIndex) => {
-				const worker = workers[workerIndex];
-				const batchLabel = $LL.editor.batchProgress({
-					current: batchIndex + 1,
-					total: batches.length
-				});
-				const verseKeys = batch.verses.map((verse) => verse.verseKey).join(', ');
-				worker.batchId = batch.batchId;
-				worker.batchLabel = batchLabel;
-				worker.step = 'queued';
-				worker.reasoning = '';
-				worker.response = '';
-				worker.detail = verseKeys;
-
-				addActivity(
-					'queued',
-					`${batchLabel}: ${batch.verses.length} verse(s), ${batch.wordCount} words.`,
-					'info',
-					batch.batchId
-				);
-
-				try {
-					const response = await runAdvancedTrimBatchStreaming({
-						apiKey,
-						endpoint,
-						model: aiSettings().advancedTrimModel,
-						reasoningEffort: aiSettings().advancedTrimReasoningEffort,
-						batchId: batch.batchId,
-						batch: batch.request
+		try {
+			await runAiWorkerPool(
+				batches,
+				AI_TRANSLATION_WORKER_COUNT,
+				async (batch, batchIndex, workerIndex) => {
+					const worker = workers[workerIndex];
+					const batchLabel = $LL.editor.batchProgress({
+						current: batchIndex + 1,
+						total: batches.length
 					});
+					const verseKeys = batch.verses.map((verse) => verse.verseKey).join(', ');
+					worker.batchId = batch.batchId;
+					worker.batchLabel = batchLabel;
+					worker.step = 'queued';
+					worker.reasoning = '';
+					worker.response = '';
+					worker.detail = verseKeys;
 
-					chunkBuffer.flush();
-					worker.response = response.rawText;
-					worker.step = 'validating';
-					addActivity('validating', `Validating ${batchLabel}...`, 'info', batch.batchId);
+					addActivity(
+						'queued',
+						`${batchLabel}: ${batch.verses.length} verse(s), ${batch.wordCount} words.`,
+						'info',
+						batch.batchId
+					);
 
-					const validation = validateAdvancedTrimBatchResult(batch, response.parsed);
-					const applyReport = applyAdvancedTrimValidationSuccess(edition, validation.validVerses);
-					const validationFailedVerses = batch.verses.length - validation.validVerses.length;
+					try {
+						const response = await runAdvancedTrimBatchStreaming({
+							apiKey,
+							endpoint,
+							model: aiSettings().advancedTrimModel,
+							reasoningEffort: aiSettings().advancedTrimReasoningEffort,
+							batchId: batch.batchId,
+							batch: batch.request
+						});
 
-					if (validationFailedVerses === 0 && applyReport.erroredVerses === 0) {
-						successfulBatches++;
-						worker.step = 'completed';
-					} else {
+						chunkBuffer.flush();
+						worker.response = response.rawText;
+						worker.step = 'validating';
+						addActivity('validating', `Validating ${batchLabel}...`, 'info', batch.batchId);
+
+						const validation = validateAdvancedTrimBatchResult(batch, response.parsed);
+						const applyReport = applyAdvancedTrimValidationSuccess(edition, validation.validVerses);
+						const validationFailedVerses = batch.verses.length - validation.validVerses.length;
+
+						if (validationFailedVerses === 0 && applyReport.erroredVerses === 0) {
+							successfulBatches++;
+							worker.step = 'completed';
+						} else {
+							failedBatches++;
+							worker.step = 'failed';
+						}
+
+						successfulVerses += applyReport.alignedVerses;
+						failedVerses += validationFailedVerses + applyReport.erroredVerses;
+						totalAiSetSegments += applyReport.appliedSegments;
+						totalAiErrorSegments += applyReport.erroredSegments;
+						totalRejectedVerses += validationFailedVerses;
+
+						if (applyReport.alignedVerses > 0) {
+							addActivity(
+								'applied',
+								`Applied ${applyReport.alignedVerses}/${batch.verses.length} fully aligned verse(s), ${applyReport.alignedSegments} aligned segment(s).`,
+								'success',
+								batch.batchId
+							);
+						}
+
+						if (validation.validVerses.length === 0) {
+							addActivity(
+								'failed',
+								'No verse from this batch passed validation.',
+								'error',
+								batch.batchId
+							);
+						}
+
+						if (applyReport.erroredSegments > 0) {
+							addActivity(
+								'failed',
+								`${applyReport.erroredSegments} segment(s) were kept but marked AI Error because word range remapping failed.`,
+								'error',
+								batch.batchId
+							);
+						}
+
+						if (validation.errors.length > 0) {
+							reportLines.push(`${batchLabel} (${verseKeys})`, ...validation.errors);
+							for (const error of validation.errors) {
+								addActivity('failed', error, 'error', batch.batchId);
+							}
+						}
+
+						if (applyReport.errors.length > 0) {
+							reportLines.push(...applyReport.errors);
+							for (const error of applyReport.errors) {
+								addActivity('failed', error, 'error', batch.batchId);
+							}
+						}
+					} catch (error) {
 						failedBatches++;
+						failedVerses += batch.verses.length;
 						worker.step = 'failed';
-					}
-
-					successfulVerses += applyReport.alignedVerses;
-					failedVerses += validationFailedVerses + applyReport.erroredVerses;
-					totalAiSetSegments += applyReport.appliedSegments;
-					totalAiErrorSegments += applyReport.erroredSegments;
-					totalRejectedVerses += validationFailedVerses;
-
-					if (applyReport.alignedVerses > 0) {
-						addActivity(
-							'applied',
-							`Applied ${applyReport.alignedVerses}/${batch.verses.length} fully aligned verse(s), ${applyReport.alignedSegments} aligned segment(s).`,
-							'success',
-							batch.batchId
-						);
-					}
-
-					if (validation.validVerses.length === 0) {
-						addActivity(
-							'failed',
-							'No verse from this batch passed validation.',
-							'error',
-							batch.batchId
-						);
-					}
-
-					if (applyReport.erroredSegments > 0) {
-						addActivity(
-							'failed',
-							`${applyReport.erroredSegments} segment(s) were kept but marked AI Error because word range remapping failed.`,
-							'error',
-							batch.batchId
-						);
-					}
-
-					if (validation.errors.length > 0) {
-						reportLines.push(`${batchLabel} (${verseKeys})`, ...validation.errors);
-						for (const error of validation.errors) {
-							addActivity('failed', error, 'error', batch.batchId);
+						const message = error instanceof Error ? error.message : String(error);
+						reportLines.push(`${batchLabel} (${verseKeys})`, message);
+						addActivity('failed', message, 'error', batch.batchId);
+						if (isBlockingError(message)) {
+							blockingFailure = true;
 						}
+					} finally {
+						chunkBuffer.flush();
+						completedBatches++;
 					}
-
-					if (applyReport.errors.length > 0) {
-						reportLines.push(...applyReport.errors);
-						for (const error of applyReport.errors) {
-							addActivity('failed', error, 'error', batch.batchId);
-						}
-					}
-				} catch (error) {
-					failedBatches++;
-					failedVerses += batch.verses.length;
-					worker.step = 'failed';
-					const message = error instanceof Error ? error.message : String(error);
-					reportLines.push(`${batchLabel} (${verseKeys})`, message);
-					addActivity('failed', message, 'error', batch.batchId);
-					if (isBlockingError(message)) {
-						blockingFailure = true;
-					}
-				} finally {
-					chunkBuffer.flush();
-					completedBatches++;
-				}
-			},
-			() => blockingFailure
-		);
+				},
+				() => blockingFailure
+			);
+		} catch (error) {
+			isRunning = false;
+			activeBatchIds = new Set<string>();
+			AnalyticsService.trackAiFinished(analyticsWorkflow, analyticsStart, {
+				outcome: 'failed',
+				completedItems: successfulVerses,
+				failedItems: failedVerses,
+				completedBatches,
+				failedBatches,
+				hadErrors: true
+			});
+			throw error;
+		}
 
 		isRunning = false;
 		activeBatchIds = new Set<string>();
@@ -449,24 +472,18 @@
 		};
 		latestSummary = `${successfulBatches}/${batches.length} batch(es) were fully successful. ${totalAiSetSegments} segment(s) were set by AI, ${totalAiErrorSegments} segment(s) were marked AI Error and need review, and ${failedVerses} verse(s) had issues overall.`;
 
-		AnalyticsService.trackTranslationUsage({
-			range: `time ${selectedStartTimeMs}-${selectedEndTimeMs}`,
-			translation_mode: 'advanced',
-			mode: 'advanced_trim',
-			model: aiSettings().advancedTrimModel,
-			reasoning_effort: aiSettings().advancedTrimReasoningEffort,
-			total_batches: batches.length,
-			completed_batches: completedBatches,
-			successful_batches: successfulBatches,
-			failed_batches: failedBatches,
-			total_verses: advancedEstimate.totalVerses,
-			successful_verses: successfulVerses,
-			failed_verses: failedVerses,
-			estimated_cost_usd: advancedEstimate.totalEstimatedCostUsd,
-			edition_key: edition.key,
-			edition_name: edition.name,
-			edition_author: edition.author,
-			edition_language: edition.language
+		AnalyticsService.trackAiFinished(analyticsWorkflow, analyticsStart, {
+			outcome:
+				successfulVerses === 0
+					? 'failed'
+					: failedBatches > 0 || failedVerses > 0
+						? 'partial'
+						: 'completed',
+			completedItems: successfulVerses,
+			failedItems: failedVerses,
+			completedBatches,
+			failedBatches,
+			hadErrors: failedBatches > 0 || failedVerses > 0
 		});
 
 		if (reportLines.length === 0) {

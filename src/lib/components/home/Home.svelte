@@ -16,6 +16,8 @@
 	import { ProjectService } from '$lib/services/ProjectService';
 	import AndroidMediaService from '$lib/services/AndroidMediaService';
 	import { VersionService } from '$lib/services/VersionService.svelte';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import { normalizeProjectType } from '$lib/types/projectType';
 
 	import InputWithIcon from '../misc/InputWithIcon.svelte';
 	import ModalManager from '../modals/ModalManager';
@@ -265,6 +267,7 @@
 				const filePath = await AndroidMediaService.materializeSelectedFile(files[index], 0);
 				const json = JSON.parse((await readTextFile(filePath)).toString());
 				await ProjectService.importProject(json);
+				AnalyticsService.trackProjectImported(normalizeProjectType(json.detail?.projectType));
 			} catch (error) {
 				ModalManager.errorModal(
 					get(LL).home.errorImportingProject(),

@@ -5,7 +5,6 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { SourceType } from '$lib/classes';
 	import Section from '$lib/components/projectEditor/Section.svelte';
-	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { onMount } from 'svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
@@ -88,9 +87,6 @@
 
 			// Ajoute le fichier téléchargé à la liste des assets du projet
 			globalState.currentProject!.content.addAsset(result, url, SourceType.YouTube);
-
-			// Telemetry
-			AnalyticsService.downloadFromYouTube(url, type);
 
 			downloadProgress = 100;
 			downloadStatus = 'finished';

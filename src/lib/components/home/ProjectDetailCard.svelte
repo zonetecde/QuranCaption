@@ -16,7 +16,8 @@
 	import { onDestroy } from 'svelte';
 	import Exporter from '$lib/classes/Exporter';
 	import toast from 'svelte-5-french-toast';
-	import { Project, Utilities } from '$lib/classes';
+	import { Project, TrackType, Utilities } from '$lib/classes';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
 
@@ -59,6 +60,7 @@
 				duplicatedProject.detail,
 				...globalState.userProjectsDetails
 			];
+			AnalyticsService.trackProjectDuplicated(duplicatedProject.detail.projectType);
 
 			toast.success(get(LL).home.projectDuplicated(), { id: loadingToast });
 		} catch (error) {
@@ -78,6 +80,12 @@
 		// Ouvre le projet
 		const project = await ProjectService.load(projectDetail.id);
 		globalState.currentProject = project;
+		AnalyticsService.trackProjectOpened(
+			project.detail.projectType,
+			project.content.assets.length,
+			project.content.timeline.getFirstTrack(TrackType.Subtitle).clips.length,
+			Object.keys(project.detail.translations).length
+		);
 	}
 
 	// Gestion du menu de statut

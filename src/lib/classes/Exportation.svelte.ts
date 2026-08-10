@@ -2,6 +2,7 @@ import { SerializableBase } from './misc/SerializableBase';
 import { invoke } from '@tauri-apps/api/core';
 import { emit } from '@tauri-apps/api/event';
 import type { QuranReflectionContext } from '$lib/services/QuranReflectionService';
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 export enum ExportState {
 	WaitingForRecord = 'Pending',
@@ -64,6 +65,7 @@ export default class Exportation extends SerializableBase {
 	sourceProjectId: number | null;
 	hasWordByWordStyles: boolean;
 	reflectionContext: QuranReflectionContext | null;
+	analyticsWorkflowId: string;
 
 	constructor(
 		exportId: number,
@@ -83,7 +85,9 @@ export default class Exportation extends SerializableBase {
 		sourceProjectId: number | null = null,
 		destinationUri: string | null = null,
 		hasWordByWordStyles: boolean = false,
-		reflectionContext: QuranReflectionContext | null = null
+		reflectionContext: QuranReflectionContext | null = null,
+		analyticsWorkflowId: string = globalThis.crypto?.randomUUID?.() ??
+			`${Date.now()}-${Math.random()}`
 	) {
 		super();
 		const safeStartTime = videoStartTime ?? 0;
@@ -118,6 +122,7 @@ export default class Exportation extends SerializableBase {
 		this.sourceProjectId = sourceProjectId;
 		this.hasWordByWordStyles = $state(hasWordByWordStyles);
 		this.reflectionContext = reflectionContext;
+		this.analyticsWorkflowId = analyticsWorkflowId;
 	}
 
 	/**
@@ -153,9 +158,30 @@ export default class Exportation extends SerializableBase {
 		);
 	}
 
-	async cancelExport() {
+	/**
+	 * Annule l'export et enregistre sa source sans exposer de chemin.
+	 * @param {'user' | 'app_close'} cancelSource Origine de l'annulation.
+	 * @returns {Promise<void>} Promesse résolue après les notifications natives.
+	 */
+	async cancelExport(cancelSource: 'user' | 'app_close' = 'user'): Promise<void> {
 		console.log('Canceling export', this.exportId);
 		this.currentState = ExportState.Canceled;
+		if (this.exportKind === ExportKind.Video) {
+			const startedAt = new Date(this.date).getTime();
+			AnalyticsService.trackVideoExportFinished(
+				this.analyticsWorkflowId,
+				'canceled',
+				Number.isFinite(startedAt) ? Date.now() - startedAt : 0,
+				{
+					videoDurationSeconds: this.videoLength / 1000,
+					videoDimensions: `${this.videoDimensions.width}x${this.videoDimensions.height}`,
+					videoWidth: this.videoDimensions.width,
+					videoHeight: this.videoDimensions.height,
+					fps: this.fps,
+					cancelSource
+				}
+			);
+		}
 		try {
 			// Le marqueur natif doit exister avant l'événement pour couvrir le montage tardif du renderer.
 			await invoke('cancel_export', { exportId: this.exportId.toString() });

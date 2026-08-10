@@ -15,6 +15,7 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	const exportStartedAt = new Map<number, number>();
 	let currentTime = $state(Date.now());
@@ -246,7 +247,10 @@
 					uri: exportation.finalFilePath,
 					mimeType: getMimeType(exportation.finalFileName)
 				});
-				if (shared) return;
+				if (shared) {
+					AnalyticsService.trackVideoExportShareOpened();
+					return;
+				}
 			}
 		} catch (error) {
 			console.error('Unable to share exported file:', error);

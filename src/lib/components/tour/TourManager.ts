@@ -1,6 +1,7 @@
 import { mount, unmount } from 'svelte';
 import OnboardingTour from './OnboardingTour.svelte';
 import { globalState } from '$lib/runes/main.svelte';
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 export default class TourManager {
 	private static _component: ReturnType<typeof mount> | null = null;
@@ -23,6 +24,9 @@ export default class TourManager {
 				close: () => TourManager.stop()
 			}
 		});
+		AnalyticsService.trackOnboardingStarted(
+			globalState.settings?.persistentUiState.language ?? 'unknown'
+		);
 	}
 
 	static stop() {

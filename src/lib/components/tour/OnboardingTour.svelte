@@ -3,6 +3,7 @@
 	import { ProjectEditorTabs, TrackType } from '$lib/classes/enums';
 	import Settings from '$lib/classes/Settings.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	const PAD = 10;
 	const TOOLTIP_W = 340;
@@ -349,11 +350,21 @@
 		}
 	}
 
-	async function completeTour() {
+	/**
+	 * Persists the explicit onboarding outcome and closes the tour.
+	 * @param {'completed' | 'skipped'} outcome Explicit onboarding outcome.
+	 * @returns {Promise<void>} Promise resolved after settings are saved.
+	 */
+	async function completeTour(outcome: 'completed' | 'skipped' = 'completed'): Promise<void> {
 		if (globalState.settings) {
 			globalState.settings.persistentUiState.hasSeenTour = true;
 			await Settings.save();
 		}
+		AnalyticsService.trackOnboardingFinished(
+			outcome,
+			globalState.settings?.persistentUiState.language ?? 'unknown',
+			currentStepIndex + 1
+		);
 		close();
 	}
 </script>
@@ -411,7 +422,11 @@
 			style="position: absolute; left: {tooltipLeft}px; top: {tooltipTop}px; width: {TOOLTIP_W}px; pointer-events: auto;"
 		>
 			<!-- Skip / close -->
-			<button class="tour-close-btn" onclick={completeTour} title={$LL.tour.skipTutorial()}>
+			<button
+				class="tour-close-btn"
+				onclick={() => completeTour('skipped')}
+				title={$LL.tour.skipTutorial()}
+			>
 				<span class="material-icons" style="font-size: 14px;">close</span>
 			</button>
 

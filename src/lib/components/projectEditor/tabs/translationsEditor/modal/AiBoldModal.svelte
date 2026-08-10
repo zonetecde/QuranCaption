@@ -278,6 +278,15 @@
 
 		resetRunState();
 		isRunning = true;
+		const analyticsStart = {
+			feature: 'bold' as const,
+			mode: 'advanced_bold',
+			model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
+			reasoningEffort: globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
+			totalItems: aiBoldEstimate().totalSegments,
+			totalBatches: aiBoldBatches().length
+		};
+		const analyticsWorkflow = AnalyticsService.trackAiStarted(analyticsStart);
 		activeBatchIds = new Set<string>(aiBoldBatches().map((batch) => batch.batchId));
 		addActivity(
 			'queued',
@@ -287,83 +296,98 @@
 		const reportLines: string[] = [];
 		let blockingFailure = false;
 
-		for (let batchIndex = 0; batchIndex < aiBoldBatches().length; batchIndex++) {
-			const batch = aiBoldBatches()[batchIndex];
-			currentBatchId = batch.batchId;
-			currentBatchLabel = `Batch ${batchIndex + 1} / ${aiBoldBatches().length}`;
-			streamedResponse = '';
+		try {
+			for (let batchIndex = 0; batchIndex < aiBoldBatches().length; batchIndex++) {
+				const batch = aiBoldBatches()[batchIndex];
+				currentBatchId = batch.batchId;
+				currentBatchLabel = `Batch ${batchIndex + 1} / ${aiBoldBatches().length}`;
+				streamedResponse = '';
 
-			addActivity(
-				'queued',
-				`${currentBatchLabel}: ${batch.segments.length} segment(s), ${batch.wordCount} words.`,
-				'info',
-				batch.batchId
-			);
+				addActivity(
+					'queued',
+					`${currentBatchLabel}: ${batch.segments.length} segment(s), ${batch.wordCount} words.`,
+					'info',
+					batch.batchId
+				);
 
-			try {
-				const response = await runAiBoldBatchStreaming({
-					apiKey,
-					endpoint,
-					model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
-					reasoningEffort: globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
-					batchId: batch.batchId,
-					customPromptNote: globalState.settings!.aiTranslationSettings.aiBoldCustomNote,
-					batch: batch.request
-				});
+				try {
+					const response = await runAiBoldBatchStreaming({
+						apiKey,
+						endpoint,
+						model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
+						reasoningEffort:
+							globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
+						batchId: batch.batchId,
+						customPromptNote: globalState.settings!.aiTranslationSettings.aiBoldCustomNote,
+						batch: batch.request
+					});
 
-				streamedResponse = response.rawText;
-				addActivity('validating', `Validating ${currentBatchLabel}...`, 'info', batch.batchId);
+					streamedResponse = response.rawText;
+					addActivity('validating', `Validating ${currentBatchLabel}...`, 'info', batch.batchId);
 
-				const validation = validateAiBoldBatchResult(batch, response.parsed);
-				const applyReport = applyAiBoldValidationSuccess(edition, validation.validSegments);
-				const validationFailedSegments = batch.segments.length - validation.validSegments.length;
+					const validation = validateAiBoldBatchResult(batch, response.parsed);
+					const applyReport = applyAiBoldValidationSuccess(edition, validation.validSegments);
+					const validationFailedSegments = batch.segments.length - validation.validSegments.length;
 
-				if (validationFailedSegments === 0 && applyReport.erroredSegments === 0) {
-					successfulBatches++;
-				} else {
+					if (validationFailedSegments === 0 && applyReport.erroredSegments === 0) {
+						successfulBatches++;
+					} else {
+						failedBatches++;
+					}
+
+					successfulSegments += applyReport.appliedSegments;
+					failedSegments += validationFailedSegments + applyReport.erroredSegments;
+
+					if (applyReport.appliedSegments > 0) {
+						addActivity(
+							'applied',
+							`Applied AI bold to ${applyReport.appliedSegments}/${batch.segments.length} segment(s).`,
+							'success',
+							batch.batchId
+						);
+					}
+
+					if (validation.errors.length > 0) {
+						reportLines.push(`${currentBatchLabel}`, ...validation.errors);
+						for (const error of validation.errors) {
+							addActivity('failed', error, 'error', batch.batchId);
+						}
+					}
+
+					if (applyReport.errors.length > 0) {
+						reportLines.push(...applyReport.errors);
+						for (const error of applyReport.errors) {
+							addActivity('failed', error, 'error', batch.batchId);
+						}
+					}
+				} catch (error) {
 					failedBatches++;
-				}
+					failedSegments += batch.segments.length;
+					const message = error instanceof Error ? error.message : String(error);
+					reportLines.push(`${currentBatchLabel}`, message);
+					addActivity('failed', message, 'error', batch.batchId);
 
-				successfulSegments += applyReport.appliedSegments;
-				failedSegments += validationFailedSegments + applyReport.erroredSegments;
-
-				if (applyReport.appliedSegments > 0) {
-					addActivity(
-						'applied',
-						`Applied AI bold to ${applyReport.appliedSegments}/${batch.segments.length} segment(s).`,
-						'success',
-						batch.batchId
-					);
-				}
-
-				if (validation.errors.length > 0) {
-					reportLines.push(`${currentBatchLabel}`, ...validation.errors);
-					for (const error of validation.errors) {
-						addActivity('failed', error, 'error', batch.batchId);
+					if (isBlockingError(message)) {
+						blockingFailure = true;
+						completedBatches = batchIndex + 1;
+						break;
 					}
 				}
 
-				if (applyReport.errors.length > 0) {
-					reportLines.push(...applyReport.errors);
-					for (const error of applyReport.errors) {
-						addActivity('failed', error, 'error', batch.batchId);
-					}
-				}
-			} catch (error) {
-				failedBatches++;
-				failedSegments += batch.segments.length;
-				const message = error instanceof Error ? error.message : String(error);
-				reportLines.push(`${currentBatchLabel}`, message);
-				addActivity('failed', message, 'error', batch.batchId);
-
-				if (isBlockingError(message)) {
-					blockingFailure = true;
-					completedBatches = batchIndex + 1;
-					break;
-				}
+				completedBatches = batchIndex + 1;
 			}
-
-			completedBatches = batchIndex + 1;
+		} catch (error) {
+			isRunning = false;
+			activeBatchIds = new Set<string>();
+			AnalyticsService.trackAiFinished(analyticsWorkflow, analyticsStart, {
+				outcome: 'failed',
+				completedItems: successfulSegments,
+				failedItems: failedSegments,
+				completedBatches,
+				failedBatches,
+				hadErrors: true
+			});
+			throw error;
 		}
 
 		isRunning = false;
@@ -371,26 +395,18 @@
 		currentBatchStep = blockingFailure ? 'failed' : 'idle';
 		latestSummary = `${successfulSegments}/${aiBoldEstimate().totalSegments} segment(s) updated. ${failedSegments} segment(s) had issues.`;
 
-		AnalyticsService.trackAiBoldUsage({
-			range: `time ${translationsEditorState().aiBoldStartTimeMs}-${translationsEditorState().aiBoldEndTimeMs}`,
-			mode: 'advanced_bold',
-			model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
-			reasoning_effort: globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
-			total_batches: aiBoldBatches().length,
-			completed_batches: completedBatches,
-			successful_batches: successfulBatches,
-			failed_batches: failedBatches,
-			total_segments: aiBoldEstimate().totalSegments,
-			successful_segments: successfulSegments,
-			failed_segments: failedSegments,
-			estimated_cost_usd: aiBoldEstimate().totalEstimatedCostUsd,
-			include_already_bolded: translationsEditorState().aiBoldIncludeAlreadyBolded,
-			custom_note_length:
-				globalState.settings!.aiTranslationSettings.aiBoldCustomNote.trim().length,
-			edition_key: edition.key,
-			edition_name: edition.name,
-			edition_author: edition.author,
-			edition_language: edition.language
+		AnalyticsService.trackAiFinished(analyticsWorkflow, analyticsStart, {
+			outcome:
+				successfulSegments === 0
+					? 'failed'
+					: failedBatches > 0 || failedSegments > 0
+						? 'partial'
+						: 'completed',
+			completedItems: successfulSegments,
+			failedItems: failedSegments,
+			completedBatches,
+			failedBatches,
+			hadErrors: failedBatches > 0 || failedSegments > 0
 		});
 
 		if (reportLines.length > 0) {

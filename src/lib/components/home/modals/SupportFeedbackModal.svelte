@@ -59,17 +59,6 @@
 			const trimmedEmail = email.trim();
 			const trimmedMessage = message.trim();
 
-			if (activeTab === 'review') {
-				AnalyticsService.trackReview(reviewRating, trimmedMessage, source);
-			} else {
-				AnalyticsService.track('support_feedback', {
-					type: feedbackType,
-					comment: trimmedMessage,
-					source,
-					created_at_iso: new Date().toISOString()
-				});
-			}
-
 			const endpoint = new URL('https://www.rayanestaszewski.fr/send-message');
 			endpoint.searchParams.set(
 				'subject',
@@ -88,6 +77,11 @@
 			);
 
 			await invoke('send_http_get', { url: endpoint.toString() });
+			if (activeTab === 'review') {
+				AnalyticsService.trackReview(reviewRating, source);
+			} else {
+				AnalyticsService.trackSupportFeedback(feedbackType, source);
+			}
 
 			toast.success(
 				activeTab === 'review'

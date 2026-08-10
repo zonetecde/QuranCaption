@@ -15,6 +15,7 @@ import {
 	AutoSegmentationExecutionCoordinator,
 	getAutoSegmentationBusyMessage
 } from '$lib/services/AutoSegmentationExecutionCoordinator';
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 /**
  * Gère le flux de segmentation "Native" en utilisant les données de timing
@@ -114,6 +115,10 @@ async function runNativeSegmentationCore(
 		toast.error(get(LL).editor.noNativeTimingAudio());
 		return { status: 'failed', message: 'No native-timing audio found' };
 	}
+	const analyticsWorkflow = AnalyticsService.trackSegmentationStarted({
+		method: 'native',
+		provider: nativeTimingMeta.provider
+	});
 
 	// 2. Alerte d'écrasement
 	const subtitleTrack = globalState.getSubtitleTrack;
@@ -122,7 +127,10 @@ async function runNativeSegmentationCore(
 			get(LL).editor.subtitlesAlreadyExistNative(),
 			true
 		);
-		if (!confirmOverwrite) return { status: 'cancelled' };
+		if (!confirmOverwrite) {
+			AnalyticsService.trackSegmentationFinished(analyticsWorkflow, { outcome: 'canceled' });
+			return { status: 'cancelled' };
+		}
 	}
 
 	// Re-timing audio en parallèle de la récupération du timing (point d'attente
@@ -156,6 +164,7 @@ async function runNativeSegmentationCore(
 
 		if (!timingData || timingData.length === 0) {
 			toast.error(get(LL).editor.noTimingDataFound(), { id: toastId });
+			AnalyticsService.trackSegmentationFinished(analyticsWorkflow, { outcome: 'failed' });
 			return { status: 'failed', message: 'No timing data returned from API.' };
 		}
 
@@ -256,6 +265,12 @@ async function runNativeSegmentationCore(
 		toast.success(get(LL).editor.appliedSubtitlesFromMp3Quran({ count: segmentsApplied }), {
 			id: toastId
 		});
+		AnalyticsService.trackSegmentationFinished(analyticsWorkflow, {
+			outcome: 'completed',
+			segmentsApplied,
+			lowConfidenceSegments: 0,
+			coverageGapSegments: 0
+		});
 
 		return {
 			status: 'completed',
@@ -267,6 +282,7 @@ async function runNativeSegmentationCore(
 	} catch (error) {
 		console.error('Native segmentation error:', error);
 		toast.error(get(LL).editor.errorTiming({ error: String(error) }), { id: toastId });
+		AnalyticsService.trackSegmentationFinished(analyticsWorkflow, { outcome: 'failed' });
 		return { status: 'failed', message: String(error) };
 	}
 }

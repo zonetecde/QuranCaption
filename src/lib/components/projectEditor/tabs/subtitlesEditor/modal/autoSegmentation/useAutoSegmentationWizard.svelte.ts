@@ -15,6 +15,7 @@ import { buildAudioLabel } from './helpers/format';
 import { persistSettingsPatch } from './helpers/persist';
 import type { SegmentationPreset } from './types';
 import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 /** Creates the cloud-only mobile auto-segmentation state and actions. */
 export function useAutoSegmentationWizard() {
@@ -138,7 +139,17 @@ export function useAutoSegmentationWizard() {
 		cloudCpuFallbackMessage = null;
 		currentStatus = '';
 		currentStatusProgress = null;
+		const applicationMode = showExistingSubtitlesStep()
+			? (subtitleApplicationMode ?? 'replace')
+			: 'replace';
 		const unlisten = await listenSegmentationStatus();
+		const analyticsWorkflow = AnalyticsService.trackSegmentationStarted({
+			method: 'cloud',
+			model: selection.cloudModel,
+			device: selection.device,
+			applicationMode,
+			includeWbwTimestamps: applicationMode === 'align' || includeWbwTimestamps
+		});
 		let response: AutoSegmentationResult | null = null;
 		try {
 			response = await runAutoSegmentation(
@@ -148,10 +159,8 @@ export function useAutoSegmentationWizard() {
 					padMs,
 					cloudModel: selection.cloudModel,
 					device: selection.device,
-					includeWbwTimestamps: subtitleApplicationMode === 'align' || includeWbwTimestamps,
-					subtitleApplicationMode: showExistingSubtitlesStep()
-						? (subtitleApplicationMode ?? 'replace')
-						: 'replace',
+					includeWbwTimestamps: applicationMode === 'align' || includeWbwTimestamps,
+					subtitleApplicationMode: applicationMode,
 					fillBySilence,
 					extendBeforeSilence,
 					extendBeforeSilenceMs
@@ -166,6 +175,21 @@ export function useAutoSegmentationWizard() {
 			};
 			applySegmentationResponse(response);
 		} finally {
+			AnalyticsService.trackSegmentationFinished(analyticsWorkflow, {
+				outcome:
+					response?.status === 'completed'
+						? 'completed'
+						: response?.status === 'cancelled'
+							? 'canceled'
+							: 'failed',
+				segmentsApplied: response?.status === 'completed' ? response.segmentsApplied : undefined,
+				lowConfidenceSegments:
+					response?.status === 'completed' ? response.lowConfidenceSegments : undefined,
+				coverageGapSegments:
+					response?.status === 'completed' ? response.coverageGapSegments : undefined,
+				cloudGpuFallbackToCpu:
+					response?.status === 'completed' ? response.cloudGpuFallbackToCpu : undefined
+			});
 			unlisten();
 			isRunning = false;
 			currentStatus = '';

@@ -159,6 +159,13 @@
 
 	// Fonction pour traiter la réponse de l'IA et mettre à jour les traductions
 	async function setTranslationsFromAIResponse(aiResponseStr: string): Promise<void> {
+		const analyticsStart = {
+			feature: 'translation_trim' as const,
+			mode: 'legacy_manual',
+			totalItems: getSelectedPromptVerses().length
+		};
+		const analyticsWorkflow = AnalyticsService.trackAiStarted(analyticsStart);
+		let analyticsFinished = false;
 		await ProjectHistoryManager.trackAsync('apply legacy translation trim', async () => {
 			try {
 				aiResponseStr = aiResponseStr.replace('```json', '');
@@ -170,9 +177,6 @@
 				const errorMessages: string[] = [];
 				let processedVerses = 0;
 				let successfulVerses = 0;
-				let lockedSegmentsCount = 0;
-				let updatedUnlockedSegmentsCount = 0;
-				let skippedLockedSegmentsCount = 0;
 
 				// Utilise le tableau filtré pour le mapping
 				const filteredArray = getSelectedPromptVerses();
@@ -217,8 +221,6 @@
 						return toValidRange(promptSegment.lockedRange, translationWords.length);
 					});
 
-					lockedSegmentsCount += segmentLocks.filter(Boolean).length;
-
 					indexToSubtitleMapping[verseData.index] = {
 						verseKey,
 						subtitles,
@@ -232,6 +234,13 @@
 					.map((item) => item.index)
 					.filter((index) => indexToSubtitleMapping[index] !== undefined);
 				if (expectedIndexes.length === 0) {
+					AnalyticsService.trackAiFinished(analyticsWorkflow, analyticsStart, {
+						outcome: 'failed',
+						completedItems: 0,
+						failedItems: analyticsStart.totalItems,
+						hadErrors: true
+					});
+					analyticsFinished = true;
 					ModalManager.errorModal(
 						'AI Translation Errors',
 						'No eligible verses were found for this prompt range.',
@@ -323,7 +332,6 @@
 						const isLocked = segmentLocks[segmentIndex] === true;
 
 						if (isLocked) {
-							skippedLockedSegmentsCount++;
 							// Segment verrouillé = contexte seulement: on n'écrit jamais dessus.
 							// On prend la range actuelle, sinon le snapshot envoyé dans le prompt.
 							const lockedRange =
@@ -373,7 +381,6 @@
 						parsedUnlockedRanges[segmentIndex] = range;
 						effectiveRanges[segmentIndex] = range;
 						verseUpdatedUnlocked++;
-						updatedUnlockedSegmentsCount++;
 					}
 
 					const coveredIndices = new Set<number>();
@@ -443,27 +450,28 @@
 					toast.success(summaryMessage);
 				}
 
+				AnalyticsService.trackAiFinished(analyticsWorkflow, analyticsStart, {
+					outcome:
+						successfulVerses === 0
+							? 'failed'
+							: errorMessages.length > 0 || successfulVerses < expectedIndexes.length
+								? 'partial'
+								: 'completed',
+					completedItems: successfulVerses,
+					failedItems: Math.max(0, expectedIndexes.length - successfulVerses),
+					hadErrors: errorMessages.length > 0
+				});
+				analyticsFinished = true;
 				if (successfulVerses > 0) {
-					AnalyticsService.trackTranslationUsage({
-						range: `time ${selectedStartTimeMs}-${selectedEndTimeMs}`,
-						translation_mode: 'legacy',
-						start_time_ms: selectedStartTimeMs,
-						end_time_ms: selectedEndTimeMs,
-						total_verses: totalVerses,
-						processed_verses: processedVerses,
-						successful_verses: successfulVerses,
-						had_errors: errorMessages.length > 0,
-						locked_segments_count: lockedSegmentsCount,
-						updated_unlocked_segments_count: updatedUnlockedSegmentsCount,
-						skipped_locked_segments_count: skippedLockedSegmentsCount,
-						edition_key: edition.key,
-						edition_name: edition.name,
-						edition_author: edition.author,
-						edition_language: edition.language
-					});
 					close(); // Close modal only if at least some translations were successful
 				}
 			} catch (error: unknown) {
+				if (!analyticsFinished) {
+					AnalyticsService.trackAiFinished(analyticsWorkflow, analyticsStart, {
+						outcome: 'failed',
+						hadErrors: true
+					});
+				}
 				const errorMessage = error instanceof Error ? error.message : String(error);
 				ModalManager.errorModal(
 					'Error processing AI response',

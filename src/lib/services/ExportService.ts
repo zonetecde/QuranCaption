@@ -9,7 +9,7 @@ import Exportation, {
 } from '$lib/classes/Exportation.svelte';
 import { ProjectService } from './ProjectService';
 import { listen, type Event as TauriEvent } from '@tauri-apps/api/event';
-import { AnalyticsService } from './AnalyticsService';
+import { AnalyticsService, type VideoExportFailureStage } from './AnalyticsService';
 import { notifyLongTaskCompletion } from './UserAttentionService';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
@@ -25,6 +25,33 @@ import { Quran } from '$lib/classes/Quran';
 function parseIsoDateMs(value: string): number | null {
 	const parsed = new Date(value).getTime();
 	return Number.isFinite(parsed) ? parsed : null;
+}
+
+/**
+ * Convertit l'état natif précédent en étape d'échec analytique stable.
+ * @param {ExportState} state État actif avant l'échec.
+ * @returns {VideoExportFailureStage} Étape normalisée sans détail de fichier ou de log.
+ */
+function getExportFailureStage(state: ExportState): VideoExportFailureStage {
+	switch (state) {
+		case ExportState.Initializing:
+		case ExportState.WaitingForRecord:
+			return 'preparing';
+		case ExportState.AddingAudio:
+			return 'audio';
+		case ExportState.CapturingFrames:
+			return 'frames';
+		case ExportState.Recording:
+		case ExportState.CreatingVideo:
+			return 'rendering';
+		case ExportState.ProcessingBackground:
+		case ExportState.MergingFiles:
+			return 'encoding';
+		case ExportState.AddingSubtitles:
+			return 'writing';
+		default:
+			return 'finalizing';
+	}
 }
 
 /**
@@ -140,38 +167,48 @@ export default class ExportService {
 			project.projectEditorState.export.skipRanges
 		);
 
-		globalState.exportations.unshift(
-			new Exportation(
-				project.detail.id,
-				fileName,
-				filePath,
-				(project.content.videoStyle.getStylesOfTarget('global')?.findStyle('video-dimension')
-					?.value as {
-					width: number;
-					height: number;
-				}) ?? { width: 1920, height: 1080 },
+		const exportation = new Exportation(
+			project.detail.id,
+			fileName,
+			filePath,
+			(project.content.videoStyle.getStylesOfTarget('global')?.findStyle('video-dimension')
+				?.value as {
+				width: number;
+				height: number;
+			}) ?? { width: 1920, height: 1080 },
+			project.projectEditorState.export.videoStartTime,
+			project.projectEditorState.export.videoEndTime,
+			VerseRange.getVerseRangeFromClips(
+				project.content.timeline
+					.getFirstTrack(TrackType.Subtitle)
+					.clips.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip),
 				project.projectEditorState.export.videoStartTime,
-				project.projectEditorState.export.videoEndTime,
-				VerseRange.getVerseRangeFromClips(
-					project.content.timeline
-						.getFirstTrack(TrackType.Subtitle)
-						.clips.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip),
-					project.projectEditorState.export.videoStartTime,
-					project.projectEditorState.export.videoEndTime
-				).toString(),
-				mode === 'recording' ? ExportState.WaitingForRecord : ExportState.CapturingFrames,
-				project.projectEditorState.export.fps,
-				0,
-				0,
-				'',
-				ExportKind.Video,
-				options.exportLabel ?? '',
-				options.sourceProjectId ?? null,
-				options.destinationUri ?? null,
-				projectUsesWordByWordStyles(project),
-				reflectionContext
-			)
+				project.projectEditorState.export.videoEndTime
+			).toString(),
+			mode === 'recording' ? ExportState.WaitingForRecord : ExportState.CapturingFrames,
+			project.projectEditorState.export.fps,
+			0,
+			0,
+			'',
+			ExportKind.Video,
+			options.exportLabel ?? '',
+			options.sourceProjectId ?? null,
+			options.destinationUri ?? null,
+			projectUsesWordByWordStyles(project),
+			reflectionContext
 		);
+		globalState.exportations.unshift(exportation);
+		AnalyticsService.trackVideoExportStarted(exportation.analyticsWorkflowId, {
+			videoDurationSeconds: exportation.videoLength / 1000,
+			videoDimensions: `${exportation.videoDimensions.width}x${exportation.videoDimensions.height}`,
+			videoWidth: exportation.videoDimensions.width,
+			videoHeight: exportation.videoDimensions.height,
+			fps: exportation.fps,
+			format: videoExtension,
+			queued: exportation.currentState === ExportState.WaitingForRecord,
+			skippedRangeCount: project.projectEditorState.export.skipRanges.length,
+			backgroundIncluded: !project.projectEditorState.export.exportWithoutBackground
+		});
 
 		// Sauvegarde les exports en cours
 		await this.saveExports();
@@ -321,6 +358,7 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 export function applyExportProgress(data: ExportProgress): void {
 	const exportation = globalState.exportations.find((exp) => exp.exportId === data.exportId);
 	if (exportation) {
+		const previousState = exportation.currentState;
 		const wasExported = exportation.currentState === ExportState.Exported;
 		const wasErrored = exportation.currentState === ExportState.Error;
 		if (exportation.currentState === ExportState.Canceled) {
@@ -328,17 +366,6 @@ export function applyExportProgress(data: ExportProgress): void {
 			return;
 		}
 
-		if (
-			exportation.currentState !== ExportState.Exported &&
-			data.currentState === ExportState.Exported
-		) {
-			AnalyticsService.trackExport(
-				exportation.videoLength / 1000,
-				exportation.verseRange,
-				exportation.videoDimensions.width + 'x' + exportation.videoDimensions.height,
-				exportation.fps
-			);
-		}
 		exportation.percentageProgress = data.progress;
 		exportation.currentState = data.currentState;
 		exportation.currentTreatedTime = data.currentTime;
@@ -359,12 +386,41 @@ export function applyExportProgress(data: ExportProgress): void {
 		) {
 			exportation.currentBatchSize = null;
 		}
-		if (!wasExported && data.currentState === ExportState.Exported) {
+		const enteredTerminalState =
+			![ExportState.Exported, ExportState.Error, ExportState.Canceled].includes(previousState) &&
+			[ExportState.Exported, ExportState.Error, ExportState.Canceled].includes(data.currentState);
+		if (enteredTerminalState) {
 			const startMs = parseIsoDateMs(exportation.date);
 			if (startMs !== null) {
 				exportation.totalExportTimeMs = Math.max(0, Date.now() - startMs);
 			}
+			if (exportation.exportKind === ExportKind.Video) {
+				AnalyticsService.trackVideoExportFinished(
+					exportation.analyticsWorkflowId,
+					data.currentState === ExportState.Exported
+						? 'completed'
+						: data.currentState === ExportState.Canceled
+							? 'canceled'
+							: 'failed',
+					exportation.totalExportTimeMs ?? 0,
+					{
+						videoDurationSeconds: exportation.videoLength / 1000,
+						videoDimensions: `${exportation.videoDimensions.width}x${exportation.videoDimensions.height}`,
+						videoWidth: exportation.videoDimensions.width,
+						videoHeight: exportation.videoDimensions.height,
+						fps: exportation.fps,
+						fileSizeBytes: exportation.fileSizeBytes ?? undefined,
+						failureStage:
+							data.currentState === ExportState.Error
+								? getExportFailureStage(previousState)
+								: undefined,
+						cancelSource: data.currentState === ExportState.Canceled ? 'native' : undefined
+					}
+				);
+			}
+		}
 
+		if (!wasExported && data.currentState === ExportState.Exported) {
 			if (exportation.exportKind === ExportKind.Video && !data.nativeNotificationCompleted) {
 				void notifyLongTaskCompletion({
 					title: get(LL).settings.videoExportFinished(),
@@ -376,8 +432,6 @@ export function applyExportProgress(data: ExportProgress): void {
 
 		if (data.errorLog) {
 			exportation.errorLog = data.errorLog;
-			// Telemetry
-			AnalyticsService.trackExportError(JSON.stringify(exportation), data.errorLog);
 		}
 
 		if (

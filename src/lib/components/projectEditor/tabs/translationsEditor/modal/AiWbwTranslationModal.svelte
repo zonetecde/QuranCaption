@@ -380,6 +380,15 @@
 			toast.error(get(LL).editor.noEligibleTranslatedSegments());
 			return;
 		}
+		const analyticsWorkflow = AnalyticsService.trackAiWbwTranslationStarted({
+			mode: 'advanced_wbw_translation',
+			model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
+			reasoning_effort: globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
+			total_batches: batches.length,
+			total_segments: aiWbwTranslationEstimate().totalSegments,
+			edition_key: edition.key,
+			edition_language: edition.language
+		});
 
 		resetRunState();
 		isRunning = true;
@@ -514,26 +523,27 @@
 			failed: failedSegments
 		});
 
-		AnalyticsService.trackAiBoldUsage({
-			range: `time ${translationsEditorState().aiWbwTranslationStartTimeMs}-${translationsEditorState().aiWbwTranslationEndTimeMs}`,
-			mode: 'advanced_wbw_translation',
-			model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
-			reasoning_effort: globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
-			total_batches: aiWbwTranslationBatches().length,
-			completed_batches: completedBatches,
-			successful_batches: successfulBatches,
-			failed_batches: failedBatches,
-			total_segments: aiWbwTranslationEstimate().totalSegments,
-			successful_segments: successfulSegments,
-			failed_segments: failedSegments,
-			estimated_cost_usd: aiWbwTranslationEstimate().totalEstimatedCostUsd,
-			custom_note_length:
-				globalState.settings!.aiTranslationSettings.aiWbwTranslationCustomNote.trim().length,
-			edition_key: edition.key,
-			edition_name: edition.name,
-			edition_author: edition.author,
-			edition_language: edition.language
-		});
+		AnalyticsService.trackAiWbwTranslationUsage(
+			analyticsWorkflow,
+			successfulSegments === 0 ? 'failed' : failedSegments > 0 ? 'partial' : 'completed',
+			{
+				mode: 'advanced_wbw_translation',
+				model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
+				reasoning_effort: globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
+				total_batches: aiWbwTranslationBatches().length,
+				completed_batches: completedBatches,
+				successful_batches: successfulBatches,
+				failed_batches: failedBatches,
+				total_segments: aiWbwTranslationEstimate().totalSegments,
+				successful_segments: successfulSegments,
+				failed_segments: failedSegments,
+				estimated_cost_usd: aiWbwTranslationEstimate().totalEstimatedCostUsd,
+				custom_note_length:
+					globalState.settings!.aiTranslationSettings.aiWbwTranslationCustomNote.trim().length,
+				edition_key: edition.key,
+				edition_language: edition.language
+			}
+		);
 
 		if (reportLines.length > 0) {
 			toast.error(get(LL).editor.aiWbwTranslationCompletedWithIssues());

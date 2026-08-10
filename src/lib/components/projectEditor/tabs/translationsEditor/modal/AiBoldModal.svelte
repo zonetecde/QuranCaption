@@ -232,8 +232,8 @@
 	}
 
 	function getProgressPercent(): number {
-		if (aiBoldBatches().length === 0) return 0;
-		return Math.round((completedBatches / aiBoldBatches().length) * 100);
+		if (activeBatchIds.size === 0) return 0;
+		return Math.round((completedBatches / activeBatchIds.size) * 100);
 	}
 
 	function getActualUsageSummary(): string {
@@ -268,26 +268,37 @@
 			return;
 		}
 
-		if (aiBoldBatches().length === 0) {
+		const batches = [...aiBoldBatches()];
+		const estimate = aiBoldEstimate();
+		if (batches.length === 0) {
 			toast.error(get(LL).editor.noEligibleTranslatedSegments());
 			return;
 		}
+		const analyticsWorkflow = AnalyticsService.trackAiBoldStarted({
+			mode: 'advanced_bold',
+			model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
+			reasoning_effort: globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
+			total_batches: batches.length,
+			total_segments: estimate.totalSegments,
+			edition_key: edition.key,
+			edition_language: edition.language
+		});
 
 		resetRunState();
 		isRunning = true;
-		activeBatchIds = new Set<string>(aiBoldBatches().map((batch) => batch.batchId));
+		activeBatchIds = new Set<string>(batches.map((batch) => batch.batchId));
 		addActivity(
 			'queued',
-			`Starting AI Bold for ${aiBoldEstimate().totalSegments} segment(s) across ${aiBoldBatches().length} batch(es).`
+			`Starting AI Bold for ${estimate.totalSegments} segment(s) across ${batches.length} batch(es).`
 		);
 
 		const reportLines: string[] = [];
 		let blockingFailure = false;
 
-		for (let batchIndex = 0; batchIndex < aiBoldBatches().length; batchIndex++) {
-			const batch = aiBoldBatches()[batchIndex];
+		for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+			const batch = batches[batchIndex];
 			currentBatchId = batch.batchId;
-			currentBatchLabel = `Batch ${batchIndex + 1} / ${aiBoldBatches().length}`;
+			currentBatchLabel = `Batch ${batchIndex + 1} / ${batches.length}`;
 			streamedResponse = '';
 
 			addActivity(
@@ -366,29 +377,30 @@
 		isRunning = false;
 		activeBatchIds = new Set<string>();
 		currentBatchStep = blockingFailure ? 'failed' : 'idle';
-		latestSummary = `${successfulSegments}/${aiBoldEstimate().totalSegments} segment(s) updated. ${failedSegments} segment(s) had issues.`;
+		latestSummary = `${successfulSegments}/${estimate.totalSegments} segment(s) updated. ${failedSegments} segment(s) had issues.`;
 
-		AnalyticsService.trackAiBoldUsage({
-			range: `time ${translationsEditorState().aiBoldStartTimeMs}-${translationsEditorState().aiBoldEndTimeMs}`,
-			mode: 'advanced_bold',
-			model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
-			reasoning_effort: globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
-			total_batches: aiBoldBatches().length,
-			completed_batches: completedBatches,
-			successful_batches: successfulBatches,
-			failed_batches: failedBatches,
-			total_segments: aiBoldEstimate().totalSegments,
-			successful_segments: successfulSegments,
-			failed_segments: failedSegments,
-			estimated_cost_usd: aiBoldEstimate().totalEstimatedCostUsd,
-			include_already_bolded: translationsEditorState().aiBoldIncludeAlreadyBolded,
-			custom_note_length:
-				globalState.settings!.aiTranslationSettings.aiBoldCustomNote.trim().length,
-			edition_key: edition.key,
-			edition_name: edition.name,
-			edition_author: edition.author,
-			edition_language: edition.language
-		});
+		AnalyticsService.trackAiBoldUsage(
+			analyticsWorkflow,
+			successfulSegments === 0 ? 'failed' : failedSegments > 0 ? 'partial' : 'completed',
+			{
+				mode: 'advanced_bold',
+				model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
+				reasoning_effort: globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
+				total_batches: batches.length,
+				completed_batches: completedBatches,
+				successful_batches: successfulBatches,
+				failed_batches: failedBatches,
+				total_segments: estimate.totalSegments,
+				successful_segments: successfulSegments,
+				failed_segments: failedSegments,
+				estimated_cost_usd: estimate.totalEstimatedCostUsd,
+				include_already_bolded: translationsEditorState().aiBoldIncludeAlreadyBolded,
+				custom_note_length:
+					globalState.settings!.aiTranslationSettings.aiBoldCustomNote.trim().length,
+				edition_key: edition.key,
+				edition_language: edition.language
+			}
+		);
 
 		if (reportLines.length > 0) {
 			toast.error(get(LL).editor.aiBoldCompletedWithIssues());

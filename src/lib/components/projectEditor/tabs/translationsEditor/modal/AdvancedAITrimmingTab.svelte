@@ -305,6 +305,16 @@
 			toast.error($LL.translations.noEligibleVerseBatch());
 			return;
 		}
+		const analyticsWorkflow = AnalyticsService.trackTranslationStarted({
+			translation_mode: 'advanced',
+			mode: 'advanced_trim',
+			model: aiSettings().advancedTrimModel,
+			reasoning_effort: aiSettings().advancedTrimReasoningEffort,
+			total_batches: batches.length,
+			total_verses: advancedEstimate.totalVerses,
+			edition_key: edition.key,
+			edition_language: edition.language
+		});
 
 		resetRunState();
 		isRunning = true;
@@ -317,6 +327,7 @@
 		const reportLines: string[] = [];
 		let blockingFailure = false;
 		let totalAiSetSegments = 0;
+		let totalAlignedSegments = 0;
 		let totalAiErrorSegments = 0;
 		let totalRejectedVerses = 0;
 
@@ -374,6 +385,7 @@
 					successfulVerses += applyReport.alignedVerses;
 					failedVerses += validationFailedVerses + applyReport.erroredVerses;
 					totalAiSetSegments += applyReport.appliedSegments;
+					totalAlignedSegments += applyReport.alignedSegments;
 					totalAiErrorSegments += applyReport.erroredSegments;
 					totalRejectedVerses += validationFailedVerses;
 
@@ -449,25 +461,26 @@
 		};
 		latestSummary = `${successfulBatches}/${batches.length} batch(es) were fully successful. ${totalAiSetSegments} segment(s) were set by AI, ${totalAiErrorSegments} segment(s) were marked AI Error and need review, and ${failedVerses} verse(s) had issues overall.`;
 
-		AnalyticsService.trackTranslationUsage({
-			range: `time ${selectedStartTimeMs}-${selectedEndTimeMs}`,
-			translation_mode: 'advanced',
-			mode: 'advanced_trim',
-			model: aiSettings().advancedTrimModel,
-			reasoning_effort: aiSettings().advancedTrimReasoningEffort,
-			total_batches: batches.length,
-			completed_batches: completedBatches,
-			successful_batches: successfulBatches,
-			failed_batches: failedBatches,
-			total_verses: advancedEstimate.totalVerses,
-			successful_verses: successfulVerses,
-			failed_verses: failedVerses,
-			estimated_cost_usd: advancedEstimate.totalEstimatedCostUsd,
-			edition_key: edition.key,
-			edition_name: edition.name,
-			edition_author: edition.author,
-			edition_language: edition.language
-		});
+		AnalyticsService.trackTranslationUsage(
+			analyticsWorkflow,
+			totalAlignedSegments === 0 ? 'failed' : failedVerses > 0 ? 'partial' : 'completed',
+			{
+				translation_mode: 'advanced',
+				mode: 'advanced_trim',
+				model: aiSettings().advancedTrimModel,
+				reasoning_effort: aiSettings().advancedTrimReasoningEffort,
+				total_batches: batches.length,
+				completed_batches: completedBatches,
+				successful_batches: successfulBatches,
+				failed_batches: failedBatches,
+				total_verses: advancedEstimate.totalVerses,
+				successful_verses: successfulVerses,
+				failed_verses: failedVerses,
+				estimated_cost_usd: advancedEstimate.totalEstimatedCostUsd,
+				edition_key: edition.key,
+				edition_language: edition.language
+			}
+		);
 
 		if (reportLines.length === 0) {
 			toast.success(`${latestSummary} ${getActualUsageSummary()}.`);

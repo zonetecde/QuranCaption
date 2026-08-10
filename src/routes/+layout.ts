@@ -13,9 +13,10 @@ import { AnalyticsService } from '$lib/services/AnalyticsService';
 export const prerender = true;
 export const ssr = false;
 
-// Initialize PostHog on the client
-export const load = async () => {
-	AnalyticsService.init();
+// Initialize PostHog on the main application surface
+export const load = () => {
+	void AnalyticsService.init();
+	AnalyticsService.trackAppOpened();
 };
 
 // Load all i18n locales at startup

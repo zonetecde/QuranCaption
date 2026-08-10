@@ -134,16 +134,16 @@
 				// Add all selected translations to the project in a single operation
 				for (const translation of selectedTranslations) {
 					const preview = translationPreviews[translation.name] || {};
-					globalState.currentProject?.content.projectTranslation.addTranslation(
+					const added = await globalState.currentProject?.content.projectTranslation.addTranslation(
 						translation,
 						preview
 					);
-					AnalyticsService.trackTranslationAdded(
-						translation.name,
-						translation.author,
-						translation.key,
-						translation.language
-					);
+					if (added) {
+						AnalyticsService.trackTranslationAdded(
+							activeTranslationsTab === 'quran-api' ? 'quran_api' : 'qdc',
+							translation.language
+						);
+					}
 				}
 				close();
 			} catch (error) {
@@ -247,19 +247,18 @@
 				''
 			);
 
-			await globalState.currentProject?.content.projectTranslation.addTranslation(
+			const added = await globalState.currentProject?.content.projectTranslation.addTranslation(
 				edition,
 				downloadedTranslations
 			);
 
-			AnalyticsService.trackTranslationAdded(
-				edition.name,
-				edition.author,
-				edition.key,
-				edition.language
-			);
+			if (added) {
+				AnalyticsService.trackTranslationAdded('manual_txt', edition.language);
+			}
 
-			toast.success(get(LL).translations.txtImportSuccess({ count: neededVerseNumbers.length, surah }));
+			toast.success(
+				get(LL).translations.txtImportSuccess({ count: neededVerseNumbers.length, surah })
+			);
 			close();
 		} catch (error: unknown) {
 			txtImportError =
@@ -419,7 +418,9 @@
 				<!-- Left column: Selection -->
 				<div class="w-1/2 border-r border-color overflow-y-auto px-6 py-4">
 					<div class="mb-4">
-						<h3 class="text-lg font-semibold text-primary mb-2">{$LL.translations.availableTranslations()}</h3>
+						<h3 class="text-lg font-semibold text-primary mb-2">
+							{$LL.translations.availableTranslations()}
+						</h3>
 						<p class="text-sm text-thirdly">
 							{$LL.editor.translationsSelected({ count: selectedTranslations.length })}
 						</p>
@@ -470,7 +471,9 @@
 
 									{#if showTxtImportHelp}
 										<div class="mt-3 p-3 bg-accent border border-color rounded-lg">
-											<p class="text-xs text-secondary font-medium mb-2">{$LL.editor.formatExpected()}</p>
+											<p class="text-xs text-secondary font-medium mb-2">
+												{$LL.editor.formatExpected()}
+											</p>
 											<p class="text-xs text-thirdly">
 												{$LL.editor.txtFormatDescription()}
 											</p>
@@ -520,7 +523,9 @@
 									{/if}
 									<div>
 										<h4 class="font-semibold text-primary">{language}</h4>
-										<p class="text-xs text-thirdly">{$LL.editor.availableCount({ count: translations.length })}</p>
+										<p class="text-xs text-thirdly">
+											{$LL.editor.availableCount({ count: translations.length })}
+										</p>
 									</div>
 								</div>
 
@@ -563,7 +568,9 @@
 				<!-- Right column: Preview -->
 				<div class="w-1/2 overflow-y-auto px-6 py-4">
 					<div class="mb-4">
-						<h3 class="text-lg font-semibold text-primary mb-2">{$LL.editor.translationPreviews()}</h3>
+						<h3 class="text-lg font-semibold text-primary mb-2">
+							{$LL.editor.translationPreviews()}
+						</h3>
 						<p class="text-sm text-thirdly">
 							{$LL.editor.previewDescription()}
 						</p>
@@ -630,7 +637,12 @@
 												{verseKey}
 											</span>
 											{#if surah && verse}
-												<span class="text-xs text-thirdly">{$LL.editor.surahAndVerse({ surah: Number(surah), verse: Number(verse) })}</span>
+												<span class="text-xs text-thirdly"
+													>{$LL.editor.surahAndVerse({
+														surah: Number(surah),
+														verse: Number(verse)
+													})}</span
+												>
 											{/if}
 										</div>
 
@@ -708,7 +720,9 @@
 						<div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center mb-4">
 							<span class="material-icons text-red-400 text-2xl">error_outline</span>
 						</div>
-						<h3 class="text-lg font-semibold text-primary mb-2">{$LL.editor.qdcApiUnavailable()}</h3>
+						<h3 class="text-lg font-semibold text-primary mb-2">
+							{$LL.editor.qdcApiUnavailable()}
+						</h3>
 						<p class="text-thirdly max-w-md">{qdcTranslationsError}</p>
 					</div>
 				{:else if Object.keys(activeFilteredTranslations()).length === 0}
@@ -717,7 +731,9 @@
 						<div class="w-16 h-16 bg-accent rounded-full flex items-center justify-center mb-4">
 							<span class="material-icons text-thirdly text-2xl">search_off</span>
 						</div>
-						<h3 class="text-lg font-semibold text-primary mb-2">{$LL.editor.noTranslationsFoundModal()}</h3>
+						<h3 class="text-lg font-semibold text-primary mb-2">
+							{$LL.editor.noTranslationsFoundModal()}
+						</h3>
 						<p class="text-thirdly max-w-md">
 							{#if searchQuery}
 								{$LL.editor.noTranslationsMatchSearch()}
@@ -762,9 +778,7 @@
 										<span
 											class="font-medium text-primary group-hover:text-accent-primary transition-colors duration-200"
 										>
-											{isImportingTxt
-												? $LL.editor.importingTxt()
-												: $LL.editor.browseAndImportTxt()}
+											{isImportingTxt ? $LL.editor.importingTxt() : $LL.editor.browseAndImportTxt()}
 										</span>
 									</div>
 									<span
@@ -776,7 +790,9 @@
 
 								{#if showTxtImportHelp}
 									<div class="mt-3 p-3 bg-accent border border-color rounded-lg">
-										<p class="text-xs text-secondary font-medium mb-2">{$LL.editor.formatExpected()}</p>
+										<p class="text-xs text-secondary font-medium mb-2">
+											{$LL.editor.formatExpected()}
+										</p>
 										<p class="text-xs text-thirdly">
 											{$LL.editor.txtFormatDescription()}
 										</p>
@@ -877,7 +893,8 @@
 				{#if selectedTranslations.length > 0}
 					<span class="material-icons text-accent-secondary">check_circle</span>
 					<span>
-						{$LL.editor.selectedCount({ count: selectedTranslations.length })} <strong class="text-accent-primary">{selectedTranslations.length}</strong>
+						{$LL.editor.selectedCount({ count: selectedTranslations.length })}
+						<strong class="text-accent-primary">{selectedTranslations.length}</strong>
 						{#if selectedTranslations.length === 1}
 							(<strong class="text-accent-primary">{selectedTranslations[0].author}</strong>)
 						{/if}

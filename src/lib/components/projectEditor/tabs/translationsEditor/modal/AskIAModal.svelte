@@ -156,6 +156,13 @@
 
 	// Fonction pour traiter la réponse de l'IA et mettre à jour les traductions
 	async function setTranslationsFromAIResponse(aiResponseStr: string): Promise<void> {
+		const analyticsWorkflow = AnalyticsService.trackTranslationStarted({
+			translation_mode: 'legacy',
+			mode: 'legacy_trim',
+			total_verses: totalVerses,
+			edition_key: edition.key,
+			edition_language: edition.language
+		});
 		await ProjectHistoryManager.trackAsync('apply legacy translation trim', async () => {
 			try {
 				aiResponseStr = aiResponseStr.replace('```json', '');
@@ -229,6 +236,13 @@
 					.map((item) => item.index)
 					.filter((index) => indexToSubtitleMapping[index] !== undefined);
 				if (expectedIndexes.length === 0) {
+					AnalyticsService.trackTranslationUsage(analyticsWorkflow, 'failed', {
+						translation_mode: 'legacy',
+						mode: 'legacy_trim',
+						error_code: 'no_eligible_verses',
+						edition_key: edition.key,
+						edition_language: edition.language
+					});
 					ModalManager.errorModal(
 						'AI Translation Errors',
 						'No eligible verses were found for this prompt range.',
@@ -440,10 +454,12 @@
 					toast.success(summaryMessage);
 				}
 
-				if (successfulVerses > 0) {
-					AnalyticsService.trackTranslationUsage({
-						range: `time ${selectedStartTimeMs}-${selectedEndTimeMs}`,
+				AnalyticsService.trackTranslationUsage(
+					analyticsWorkflow,
+					successfulVerses === 0 ? 'failed' : errorMessages.length > 0 ? 'partial' : 'completed',
+					{
 						translation_mode: 'legacy',
+						mode: 'legacy_trim',
 						start_time_ms: selectedStartTimeMs,
 						end_time_ms: selectedEndTimeMs,
 						total_verses: totalVerses,
@@ -454,13 +470,20 @@
 						updated_unlocked_segments_count: updatedUnlockedSegmentsCount,
 						skipped_locked_segments_count: skippedLockedSegmentsCount,
 						edition_key: edition.key,
-						edition_name: edition.name,
-						edition_author: edition.author,
 						edition_language: edition.language
-					});
+					}
+				);
+				if (successfulVerses > 0) {
 					close(); // Close modal only if at least some translations were successful
 				}
 			} catch (error: unknown) {
+				AnalyticsService.trackTranslationUsage(analyticsWorkflow, 'failed', {
+					translation_mode: 'legacy',
+					mode: 'legacy_trim',
+					error_code: 'invalid_ai_response',
+					edition_key: edition.key,
+					edition_language: edition.language
+				});
 				const errorMessage = error instanceof Error ? error.message : String(error);
 				ModalManager.errorModal(
 					'Error processing AI response',

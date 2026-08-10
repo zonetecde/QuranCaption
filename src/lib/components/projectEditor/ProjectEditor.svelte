@@ -11,6 +11,7 @@
 	import StyleEditor from './tabs/styleEditor/StyleEditor.svelte';
 	import Export from './tabs/export/Export.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	const AUTOSAVE_CHECK_INTERVAL_MS = 15000;
 	const AUTOSAVE_RETRY_DELAY_MS = 3000;
@@ -208,6 +209,27 @@
 	}
 
 	onMount(() => {
+		const project = globalState.currentProject!;
+		let editingSessionActiveStartedAt: number | null = document.hidden ? null : Date.now();
+		let editingSessionDurationMs = 0;
+		/**
+		 * Synchronise la durée active de la session avec la visibilité de l'application.
+		 * @returns {void}
+		 */
+		const handleEditingSessionVisibilityChange = (): void => {
+			if (document.hidden) {
+				if (editingSessionActiveStartedAt !== null) {
+					editingSessionDurationMs += Date.now() - editingSessionActiveStartedAt;
+					editingSessionActiveStartedAt = null;
+				}
+			} else if (editingSessionActiveStartedAt === null) {
+				editingSessionActiveStartedAt = Date.now();
+			}
+		};
+		AnalyticsService.trackProjectOpened(
+			project.detail.projectType,
+			project.detail.batchId !== null
+		);
 		ProjectHistoryManager.resetForCurrentProject();
 		lastSavedSnapshot = getProjectAutosaveSnapshot();
 
@@ -226,8 +248,17 @@
 		window.addEventListener('keydown', handleProjectSearchShortcut, true);
 		window.addEventListener('keydown', handleSubtitleNavigationShortcut, true);
 		window.addEventListener('keydown', handleProjectHistoryShortcut, true);
+		document.addEventListener('visibilitychange', handleEditingSessionVisibilityChange);
 
 		return () => {
+			if (editingSessionActiveStartedAt !== null) {
+				editingSessionDurationMs += Date.now() - editingSessionActiveStartedAt;
+			}
+			AnalyticsService.trackProjectEditingSessionCompleted(editingSessionDurationMs, {
+				project_type: project.detail.projectType,
+				is_batch_project: project.detail.batchId !== null,
+				asset_count: project.content.assets.length
+			});
 			ProjectHistoryManager.clear();
 			if (saveInterval !== undefined) {
 				clearInterval(saveInterval);
@@ -237,6 +268,7 @@
 			window.removeEventListener('keydown', handleProjectSearchShortcut, true);
 			window.removeEventListener('keydown', handleSubtitleNavigationShortcut, true);
 			window.removeEventListener('keydown', handleProjectHistoryShortcut, true);
+			document.removeEventListener('visibilitychange', handleEditingSessionVisibilityChange);
 		};
 	});
 </script>

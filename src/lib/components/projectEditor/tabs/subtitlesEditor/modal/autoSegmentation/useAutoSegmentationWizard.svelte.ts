@@ -21,7 +21,13 @@ import {
 import { notifyLongTaskCompletion } from '$lib/services/UserAttentionService';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
-import { trackInstallFailure, trackSegmentationRun } from './helpers/analytics';
+import {
+	getSegmentationAnalyticsModel,
+	startSegmentationRun,
+	trackInstallFailure,
+	trackSegmentationRun,
+	type SegmentationAnalyticsParams
+} from './helpers/analytics';
 import {
 	buildAudioLabel,
 	formatVerseRange,
@@ -336,7 +342,7 @@ export function useAutoSegmentationWizard() {
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			errorMessage = `Failed to install ${engine} dependencies: ${message}`;
-			trackInstallFailure(engine, message, localStatus);
+			trackInstallFailure(engine, localStatus);
 		} finally {
 			unlisten();
 			isInstallingDeps = false;
@@ -462,6 +468,21 @@ export function useAutoSegmentationWizard() {
 				'Please provide a Hugging Face JSON payload before adding subtitles.';
 			return;
 		}
+		const analyticsParams: SegmentationAnalyticsParams = {
+			requestedMode: 'api',
+			runtime: 'hf_json',
+			version: selection.aiVersion,
+			model: 'imported_json',
+			device: 'not_applicable',
+			minSilenceMs,
+			minSpeechMs,
+			padMs,
+			includeWordByWord: includeWbwTimestamps,
+			fillBySilence,
+			extendBeforeSilence,
+			extendBeforeSilenceMs
+		};
+		const analyticsWorkflow = startSegmentationRun(analyticsParams);
 
 		isRunning = true;
 		result = null;
@@ -497,23 +518,7 @@ export function useAutoSegmentationWizard() {
 			currentStatus = '';
 			currentStatusProgress = null;
 			resetEstimatedProgress();
-			trackSegmentationRun({
-				response,
-				requestedMode: 'api',
-				runtime: 'hf_json',
-				version: selection.aiVersion,
-				model: 'From imported JSON',
-				device: 'N/A',
-				audioLabel: audioLabel(),
-				minSilenceMs,
-				minSpeechMs,
-				padMs,
-				includeWordByWord: includeWbwTimestamps,
-				fillBySilence,
-				extendBeforeSilence,
-				extendBeforeSilenceMs,
-				hfTokenSet: selection.hfToken.length > 0
-			});
+			trackSegmentationRun(analyticsWorkflow, response, analyticsParams);
 		}
 	}
 
@@ -529,6 +534,25 @@ export function useAutoSegmentationWizard() {
 				'Private Local Quranic Universal Aligner requires a Hugging Face token with access to private models (hetchyy/r15_95m, hetchyy/r7).';
 			return;
 		}
+		const analyticsParams: SegmentationAnalyticsParams = {
+			requestedMode: selection.mode,
+			runtime: selection.runtime,
+			version: selection.aiVersion,
+			model: getSegmentationAnalyticsModel(
+				selection.aiVersion,
+				selectedModel(),
+				selection.multiModel
+			),
+			device: selectedDevice(),
+			minSilenceMs,
+			minSpeechMs,
+			padMs,
+			includeWordByWord: includeWbwTimestamps,
+			fillBySilence,
+			extendBeforeSilence,
+			extendBeforeSilenceMs
+		};
+		const analyticsWorkflow = startSegmentationRun(analyticsParams);
 		isRunning = true;
 		result = null;
 		errorMessage = null;
@@ -607,23 +631,7 @@ export function useAutoSegmentationWizard() {
 			currentStatus = '';
 			currentStatusProgress = null;
 			resetEstimatedProgress();
-			trackSegmentationRun({
-				response,
-				requestedMode: selection.mode,
-				runtime: selection.runtime,
-				version: selection.aiVersion,
-				model: selectedModel(),
-				device: selectedDevice(),
-				audioLabel: audioLabel(),
-				minSilenceMs,
-				minSpeechMs,
-				padMs,
-				includeWordByWord: includeWbwTimestamps,
-				fillBySilence,
-				extendBeforeSilence,
-				extendBeforeSilenceMs,
-				hfTokenSet: selection.hfToken.length > 0
-			});
+			trackSegmentationRun(analyticsWorkflow, response, analyticsParams);
 		}
 	}
 

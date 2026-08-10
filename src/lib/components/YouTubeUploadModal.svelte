@@ -9,6 +9,7 @@
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	type AuthStatus = {
 		configured: boolean;
@@ -176,6 +177,12 @@
 	 */
 	async function upload(): Promise<void> {
 		if (!canUpload) return;
+		const analyticsProperties = {
+			visibility: scheduleEnabled ? 'scheduled_private' : visibility,
+			is_scheduled: scheduleEnabled,
+			has_thumbnail: thumbnailPath.length > 0
+		};
+		const analyticsWorkflow = AnalyticsService.trackYouTubeUploadStarted(analyticsProperties);
 		isUploading = true;
 		progress = 0;
 		stage = 'preparing';
@@ -205,7 +212,20 @@
 				url: uploaded.url,
 				error: uploaded.warning
 			});
+			AnalyticsService.trackYouTubeUploadFinished(
+				analyticsWorkflow,
+				uploaded.warning ? 'partial' : 'completed',
+				{
+					...analyticsProperties,
+					failure_stage: uploaded.warning ? 'thumbnail' : undefined,
+					has_warning: Boolean(uploaded.warning)
+				}
+			);
 		} catch (uploadError) {
+			AnalyticsService.trackYouTubeUploadFinished(analyticsWorkflow, 'failed', {
+				...analyticsProperties,
+				failure_stage: stage
+			});
 			error = formatError(uploadError);
 			onUpdate({ status: 'failed', progress, error });
 		} finally {

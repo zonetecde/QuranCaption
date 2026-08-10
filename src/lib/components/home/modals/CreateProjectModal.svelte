@@ -35,9 +35,8 @@
 			return;
 		}
 
-		AnalyticsService.trackProjectCreated(name.trim(), reciter.trim(), projectType);
-
 		const project = await ProjectService.createEmptyProject({ name, reciter, projectType });
+		AnalyticsService.trackProjectCreated(projectType, reciter.trim().length > 0);
 
 		// Ouvre le projet
 		globalState.currentProject = project;

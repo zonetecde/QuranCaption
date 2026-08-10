@@ -11,7 +11,6 @@
 	import Section from '$lib/components/projectEditor/Section.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { runNativeSegmentation } from '$lib/services/AutoSegmentation';
 	import { bytesToMb, downloadFileWithProgress } from '$lib/services/DownloadWithProgress';
 	import {
@@ -249,7 +248,10 @@
 
 		// Timings natifs optionnels : on ne les propose/applique que si le projet ciblé
 		// est toujours ouvert (la confirmation + segmentation lisent l'état global).
-		if (option.supportsNativeTiming && globalState.currentProject?.detail.id === project.detail.id) {
+		if (
+			option.supportsNativeTiming &&
+			globalState.currentProject?.detail.id === project.detail.id
+		) {
 			const normalizedFullPath = fullPath.replace(/\\/g, '/').replace(/\/+/g, '/');
 			const addedAsset = projectContent.assets.find(
 				(asset) => asset.filePath === normalizedFullPath
@@ -267,16 +269,6 @@
 				}
 			}
 		}
-
-		if (option.source === 'mp3quran') {
-			AnalyticsService.downloadFromMP3Quran(option.reciterName, surahName, fileName);
-		}
-		AnalyticsService.downloadRecitationAudio(
-			option.sourceLabel,
-			option.reciterName,
-			surahName,
-			fileName
-		);
 
 		return {
 			title: get(LL).editor.downloadSuccessful(),

@@ -5,6 +5,7 @@
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	let {
 		surah,
@@ -139,12 +140,15 @@
 		const failedOperations: string[] = [];
 		let addedCount = 0;
 		let removedCount = 0;
+		let failedAddCount = 0;
+		let failedRemoveCount = 0;
 
 		for (const collection of collectionsToAdd) {
 			try {
 				await quranAuthService.addVerseToCollection(collection.id, surah, verse);
 				addedCount += 1;
 			} catch {
+				failedAddCount += 1;
 				failedOperations.push(`add to "${collection.name}"`);
 			}
 		}
@@ -161,10 +165,27 @@
 				await quranAuthService.removeVerseFromCollection(collection.id, bookmarkId);
 				removedCount += 1;
 			} catch {
+				failedRemoveCount += 1;
 				failedOperations.push(`remove from "${collection.name}"`);
 			}
 		}
 
+		if (collectionsToAdd.length > 0) {
+			AnalyticsService.trackQuranBookmarkChanged(
+				'add',
+				addedCount === 0 ? 'failed' : failedAddCount > 0 ? 'partial' : 'completed',
+				addedCount,
+				failedAddCount
+			);
+		}
+		if (collectionsToRemove.length > 0) {
+			AnalyticsService.trackQuranBookmarkChanged(
+				'remove',
+				removedCount === 0 ? 'failed' : failedRemoveCount > 0 ? 'partial' : 'completed',
+				removedCount,
+				failedRemoveCount
+			);
+		}
 		isSubmitting = false;
 
 		if (addedCount === 0 && removedCount === 0) {
@@ -175,7 +196,9 @@
 		const successParts: string[] = [];
 		if (addedCount > 0) {
 			successParts.push(
-				addedCount === 1 ? get(LL).common.addedToCollection() : get(LL).common.addedToCollections({ count: addedCount })
+				addedCount === 1
+					? get(LL).common.addedToCollection()
+					: get(LL).common.addedToCollections({ count: addedCount })
 			);
 		}
 		if (removedCount > 0) {
@@ -185,7 +208,9 @@
 					: get(LL).common.removedFromCollections({ count: removedCount })
 			);
 		}
-		toast.success(get(LL).common.verseWasUpdated({ verseKey, changes: successParts.join(' and ') }));
+		toast.success(
+			get(LL).common.verseWasUpdated({ verseKey, changes: successParts.join(' and ') })
+		);
 
 		if (failedOperations.length > 0) {
 			toast.error(get(LL).common.someOperationsFailed({ list: failedOperations.join(', ') }));
@@ -337,7 +362,9 @@
 										<div class="min-w-0">
 											<p class="truncate text-sm font-medium text-primary">{collection.name}</p>
 											<p class="text-xs text-thirdly">
-												{$LL.common.updatedDate({ date: new Date(collection.updatedAt).toLocaleString() })}
+												{$LL.common.updatedDate({
+													date: new Date(collection.updatedAt).toLocaleString()
+												})}
 											</p>
 										</div>
 										<div
@@ -360,7 +387,10 @@
 
 		<div class="flex items-center justify-between gap-3 border-t border-color px-6 py-4">
 			<p class="text-xs text-thirdly">
-				{$LL.common.collectionsSelected({ count: selectedCollectionIds.length, plural: selectedCollectionIds.length === 1 ? '' : 's' })}
+				{$LL.common.collectionsSelected({
+					count: selectedCollectionIds.length,
+					plural: selectedCollectionIds.length === 1 ? '' : 's'
+				})}
 			</p>
 
 			<div class="flex items-center gap-3">

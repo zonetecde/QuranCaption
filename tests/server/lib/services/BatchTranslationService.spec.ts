@@ -205,6 +205,56 @@ describe('BatchTranslationService', () => {
 		expect(item.translations.edition.status).toBe('ready_to_fetch');
 	});
 
+	it('counts every edition when a project is ineligible or has no subtitles', async () => {
+		const ineligibleItem = createItem(1);
+		ineligibleItem.segmentation.status = 'not_started';
+		const emptyItem = createItem(2);
+		projectMocks.load.mockResolvedValue(createProject(2, async () => undefined));
+		translationMocks.getClips.mockReturnValue([]);
+
+		const result = await new BatchTranslationService().addEditions(
+			new Batch('Batch', [ineligibleItem, emptyItem], 10),
+			[ineligibleItem, emptyItem],
+			[edition, secondEdition]
+		);
+
+		expect(result).toEqual({ completed: 0, failed: 0, skipped: 4 });
+	});
+
+	it('counts only still unresolved editions as failed after a partial project error', async () => {
+		const item = createItem(1);
+		const project = createProject(1, async () => undefined);
+		vi.mocked(project.content.projectTranslation.getAllProjectSubtitlesTranslationsForProject)
+			.mockResolvedValueOnce({ '1:1': 'Text' })
+			.mockRejectedValueOnce(new Error('download failed'));
+		projectMocks.load.mockResolvedValue(project);
+
+		const result = await new BatchTranslationService().addEditions(
+			new Batch('Batch', [item], 10),
+			[item],
+			[edition, secondEdition]
+		);
+
+		expect(result).toEqual({ completed: 1, failed: 1, skipped: 0 });
+		expect(item.translations[edition.name].status).toBe('ready_to_fetch');
+		expect(item.translations[secondEdition.name].status).toBe('failed');
+	});
+
+	it('counts every unresolved edition when loading a project fails', async () => {
+		const item = createItem(1);
+		projectMocks.load.mockRejectedValue(new Error('project load failed'));
+
+		const result = await new BatchTranslationService().addEditions(
+			new Batch('Batch', [item], 10),
+			[item],
+			[edition, secondEdition]
+		);
+
+		expect(result).toEqual({ completed: 0, failed: 2, skipped: 0 });
+		expect(item.translations[edition.name].status).toBe('failed');
+		expect(item.translations[secondEdition.name].status).toBe('failed');
+	});
+
 	it('classifies each project after an edition-scoped fetch', async () => {
 		const items = [createItem(1), createItem(2)];
 		for (const item of items) {

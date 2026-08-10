@@ -27,6 +27,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { join } from '@tauri-apps/api/path';
 import { copyFile } from '@tauri-apps/plugin-fs';
 import type { Resolution } from './types';
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 /**
  * Retourne l'URL YouTube de la video de fond pour le modele et l'orientation choisis.
@@ -83,6 +84,18 @@ export async function createAiVideoProject(): Promise<void> {
 		resolution: aiv.video.resolution,
 		sourceMode: aiv.video.sourceMode
 	};
+	const analyticsProperties = {
+		source: snapshot.sourceMode,
+		model: snapshot.sourceMode === 'ai' ? snapshot.selectedModel : 'not_applicable',
+		resolution: snapshot.resolution,
+		audio_source: snapshot.useLocal ? 'local' : 'mp3quran',
+		verse_count: Math.max(0, snapshot.ayahEnd - snapshot.ayahStart + 1),
+		has_translation: snapshot.translation !== null,
+		ai_selects_content: aiv.ai.letAiChoose
+	};
+	const analyticsWorkflow = AnalyticsService.trackAiVideoProjectStarted(analyticsProperties);
+	let analyticsStage = 'validation';
+	let analyticsCompleted = false;
 
 	const setStatus = (msg: string) => {
 		aiv.generationStatus = msg;
@@ -99,6 +112,7 @@ export async function createAiVideoProject(): Promise<void> {
 			return;
 		}
 
+		analyticsStage = 'project_creation';
 		const projectDetail = new ProjectDetail(
 			projectName,
 			snapshot.reciterName,
@@ -129,6 +143,7 @@ export async function createAiVideoProject(): Promise<void> {
 		}
 
 		// ── 1. Background video ──
+		analyticsStage = 'background_media';
 		let backgroundVideoAssetId: number | undefined;
 		if (snapshot.sourceMode !== 'none') {
 			setStatus(get(LL).aiVideo.downloadingBgVideo());
@@ -169,6 +184,7 @@ export async function createAiVideoProject(): Promise<void> {
 		}
 
 		// ── 2. Audio ──
+		analyticsStage = 'audio_media';
 		const audioFilePath = await prepareAudio(project, content, assetFolder, snapshot, setStatus);
 		if (!audioFilePath) {
 			toast.error(get(LL).aiVideo.noAudioSourceSelected());
@@ -218,6 +234,7 @@ export async function createAiVideoProject(): Promise<void> {
 		await project.save();
 
 		// ── 4. Auto-segmentation ──
+		analyticsStage = 'segmentation';
 		setStatus(get(LL).aiVideo.generatingSubtitles());
 		const segmentationSettings = globalState.settings?.autoSegmentationSettings;
 		const useLocalUniversalAligner =
@@ -265,18 +282,30 @@ export async function createAiVideoProject(): Promise<void> {
 		await project.save();
 
 		// ── 5. Translation + AI Trimming ──
+		analyticsStage = 'translation';
 		if (snapshot.translation) {
 			await addTranslationAndTrim(project, content, snapshot.translation, setStatus);
 		} else {
 			console.log('[AiVideo] No translation selected, skipping translation step.');
 		}
 
+		analyticsStage = 'finalization';
 		setStatus(get(LL).aiVideo.finalizingProject());
 		toast.success(get(LL).aiVideo.projectReady());
+		analyticsCompleted = true;
 	} catch (error) {
 		console.error('[AiVideo] Project creation failed:', error);
 		toast.error(get(LL).aiVideo.failedToCreateProject({ error: String(error) }));
 		throw error;
+	} finally {
+		AnalyticsService.trackAiVideoProjectFinished(
+			analyticsWorkflow,
+			analyticsCompleted ? 'completed' : 'failed',
+			{
+				...analyticsProperties,
+				failure_stage: analyticsCompleted ? undefined : analyticsStage
+			}
+		);
 	}
 }
 

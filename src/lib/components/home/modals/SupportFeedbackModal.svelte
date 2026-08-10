@@ -70,17 +70,6 @@
 			const trimmedEmail = email.trim();
 			const trimmedMessage = message.trim();
 
-			if (activeTab === 'review') {
-				AnalyticsService.trackReview(reviewRating, trimmedMessage, source);
-			} else {
-				AnalyticsService.track('support_feedback', {
-					type: feedbackType,
-					comment: trimmedMessage,
-					source,
-					created_at_iso: new Date().toISOString()
-				});
-			}
-
 			const endpoint = new URL('https://www.rayanestaszewski.fr/send-message');
 			endpoint.searchParams.set(
 				'subject',
@@ -99,9 +88,16 @@
 			);
 
 			await invoke('send_http_get', { url: endpoint.toString() });
+			if (activeTab === 'review') {
+				AnalyticsService.trackReview(reviewRating, source);
+			} else {
+				AnalyticsService.trackSupportFeedback(feedbackType, source);
+			}
 
 			toast.success(
-				activeTab === 'review' ? get(LL).common.thanksForReview() : get(LL).common.thanksForFeedback()
+				activeTab === 'review'
+					? get(LL).common.thanksForReview()
+					: get(LL).common.thanksForFeedback()
 			);
 			closeModal();
 		} catch (error) {
@@ -137,13 +133,13 @@
 					</div>
 					<div>
 						<h2 class="text-2xl font-bold text-primary">
-							{activeTab === 'review' ? $LL.common.leaveReview() : $LL.common.featureRequestBugReport()}
+							{activeTab === 'review'
+								? $LL.common.leaveReview()
+								: $LL.common.featureRequestBugReport()}
 						</h2>
 
 						<p class="text-sm text-thirdly">
-							{activeTab === 'review'
-								? $LL.common.ratingHelps()
-								: $LL.common.shareIdeas()}
+							{activeTab === 'review' ? $LL.common.ratingHelps() : $LL.common.shareIdeas()}
 						</p>
 					</div>
 				</div>
@@ -320,10 +316,16 @@
 						class="px-6 py-2.5 font-medium bg-accent-primary text-black rounded-lg hover:bg-blue-400 transition-all duration-200 flex items-center gap-2 shadow-lg cursor-pointer text-sm disabled:opacity-50 disabled:cursor-not-allowed"
 						onclick={submit}
 						disabled={!canSubmit}
-						aria-label={activeTab === 'review' ? $LL.common.sendReview() : $LL.common.sendFeedback()}
+						aria-label={activeTab === 'review'
+							? $LL.common.sendReview()
+							: $LL.common.sendFeedback()}
 					>
 						<span class="material-icons text-base">send</span>
-						{isSubmitting ? $LL.common.sending() : activeTab === 'review' ? $LL.common.sendReview() : $LL.common.sendFeedback()}
+						{isSubmitting
+							? $LL.common.sending()
+							: activeTab === 'review'
+								? $LL.common.sendReview()
+								: $LL.common.sendFeedback()}
 					</button>
 				</div>
 			</div>

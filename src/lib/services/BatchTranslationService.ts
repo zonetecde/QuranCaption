@@ -119,15 +119,35 @@ export class BatchTranslationService {
 		skipExisting: boolean = true
 	): Promise<BatchTranslationRunResult> {
 		const result: BatchTranslationRunResult = { completed: 0, failed: 0, skipped: 0 };
+		const total = items.length * editions.length;
+		/**
+		 * Publie l'avancement agrégé en opérations projet × édition.
+		 * @returns {void}
+		 */
+		const reportProgress = (): void => {
+			const processed = result.completed + result.failed + result.skipped;
+			this.onProgress?.({
+				active: 0,
+				completed: result.completed,
+				failed: result.failed,
+				skipped: result.skipped,
+				remaining: Math.max(total - processed, 0),
+				progress: Math.round((processed / Math.max(total, 1)) * 100),
+				total
+			});
+		};
+		reportProgress();
 		await runBatchWorkerPool(items, BATCH_TRANSLATION_CONCURRENCY, async (item) => {
 			if (!isBatchProjectSegmentationVerified(item)) {
-				result.skipped++;
+				result.skipped += editions.length;
+				reportProgress();
 				return;
 			}
 			try {
 				const project = await ProjectService.load(item.projectId);
 				if (getProjectSubtitleClips(project).length === 0) {
-					result.skipped++;
+					result.skipped += editions.length;
+					reportProgress();
 					return;
 				}
 				for (const sourceEdition of editions) {
@@ -140,9 +160,10 @@ export class BatchTranslationService {
 						state.review = getProjectTranslationReviewCounts(project, edition.name);
 						state.status = state.review.pending === 0 ? 'auto_verified' : 'ready_to_fetch';
 						state.progress = 100;
+						result.skipped++;
+						reportProgress();
 						await this.saveBatch(batch);
 						this.onUpdate?.(item, edition.name, 'saving');
-						result.skipped++;
 						continue;
 					}
 					const state = this.getState(item, edition);
@@ -173,9 +194,10 @@ export class BatchTranslationService {
 					state.progress = 100;
 					state.addedAt ??= new Date();
 					state.completedAt = state.review.pending === 0 ? new Date() : null;
+					result.completed++;
+					reportProgress();
 					await this.saveBatch(batch);
 					this.onUpdate?.(item, edition.name, 'saving');
-					result.completed++;
 				}
 			} catch (error) {
 				for (const edition of editions) {
@@ -185,9 +207,10 @@ export class BatchTranslationService {
 					state.error = String(error);
 					state.progress = 0;
 					this.onUpdate?.(item, edition.name, 'adding');
+					result.failed++;
 				}
+				reportProgress();
 				await this.saveBatch(batch);
-				result.failed++;
 			}
 		});
 		await this.saveChain;

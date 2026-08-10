@@ -18,6 +18,7 @@
 	import { ProjectService } from '$lib/services/ProjectService';
 	import MigrationService from '$lib/services/MigrationService';
 	import { BatchService } from '$lib/services/BatchService';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	import InputWithIcon from '../misc/InputWithIcon.svelte';
 	import ModalManager from '../modals/ModalManager';
@@ -530,6 +531,7 @@
 				const filePath = files[index];
 				const json = JSON.parse((await readTextFile(filePath)).toString());
 				await ProjectService.importProject(json);
+				AnalyticsService.trackProjectImported();
 			} catch (error) {
 				ModalManager.errorModal(
 					get(LL).home.errorImportingProject(),

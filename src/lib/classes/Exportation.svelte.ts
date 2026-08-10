@@ -2,6 +2,8 @@ import { getAllWindows } from '@tauri-apps/api/window';
 import { SerializableBase } from './misc/SerializableBase';
 import { invoke } from '@tauri-apps/api/core';
 import type { QuranReflectionContext } from '$lib/services/QuranReflectionService';
+import { AnalyticsService, type AnalyticsWorkflow } from '$lib/services/AnalyticsService';
+import type { UnknownRecord } from '$lib/types/common';
 
 export enum ExportState {
 	WaitingForRecord = 'Pending',
@@ -30,6 +32,23 @@ export type ExportLogEntry = {
 	source: string;
 	level: ExportLogLevel;
 	message: string;
+};
+
+export type ExportCancelSource = 'export_monitor' | 'app_close';
+
+const ANALYTICS_EXPORT_STAGES: Record<ExportState, string> = {
+	[ExportState.WaitingForRecord]: 'pending',
+	[ExportState.Recording]: 'recording',
+	[ExportState.AddingAudio]: 'adding_audio',
+	[ExportState.ProcessingBackground]: 'processing_background',
+	[ExportState.AddingSubtitles]: 'adding_subtitles',
+	[ExportState.Exported]: 'exported',
+	[ExportState.Error]: 'error',
+	[ExportState.Canceled]: 'canceled',
+	[ExportState.CreatingVideo]: 'creating_video',
+	[ExportState.MergingFiles]: 'merging_files',
+	[ExportState.CapturingFrames]: 'capturing_frames',
+	[ExportState.Initializing]: 'initializing'
 };
 
 export default class Exportation extends SerializableBase {
@@ -61,6 +80,9 @@ export default class Exportation extends SerializableBase {
 	totalExportTimeMs: number | null;
 	sourceProjectId: number | null;
 	reflectionContext: QuranReflectionContext | null;
+	analyticsWorkflowId: string;
+	analyticsStartedAt: number | null;
+	analyticsTerminalTracked: boolean;
 
 	constructor(
 		exportId: number,
@@ -110,6 +132,9 @@ export default class Exportation extends SerializableBase {
 		this.totalExportTimeMs = $state(null);
 		this.sourceProjectId = sourceProjectId;
 		this.reflectionContext = reflectionContext;
+		this.analyticsWorkflowId = '';
+		this.analyticsStartedAt = null;
+		this.analyticsTerminalTracked = false;
 	}
 
 	/**
@@ -131,6 +156,69 @@ export default class Exportation extends SerializableBase {
 		this.exportLogs = [...(this.exportLogs ?? []), log];
 	}
 
+	/**
+	 * Commence le workflow analytique d'un export video une seule fois.
+	 * @param {UnknownRecord} properties Proprietes structurelles de l'export.
+	 * @returns {void}
+	 */
+	startAnalytics(properties: UnknownRecord): void {
+		if (this.exportKind !== ExportKind.Video || this.analyticsWorkflowId) return;
+		const workflow = AnalyticsService.trackVideoExportStarted(properties);
+		this.analyticsWorkflowId = workflow.workflowId;
+		this.analyticsStartedAt = workflow.startedAt;
+	}
+
+	/**
+	 * Emet au plus une transition terminale pour le workflow video.
+	 * @param {ExportState} state Etat terminal atteint.
+	 * @param {{ failureStage?: ExportState; cancelSource?: ExportCancelSource }} details Contexte terminal allowliste.
+	 * @returns {boolean} Vrai lorsqu'un evenement terminal a ete emis.
+	 */
+	trackAnalyticsTerminal(
+		state: ExportState,
+		details: { failureStage?: ExportState; cancelSource?: ExportCancelSource } = {}
+	): boolean {
+		if (
+			this.exportKind !== ExportKind.Video ||
+			this.analyticsTerminalTracked ||
+			!this.analyticsWorkflowId ||
+			this.analyticsStartedAt === null
+		) {
+			return false;
+		}
+		if (
+			state !== ExportState.Exported &&
+			state !== ExportState.Error &&
+			state !== ExportState.Canceled
+		) {
+			return false;
+		}
+
+		const workflow: AnalyticsWorkflow = {
+			workflowId: this.analyticsWorkflowId,
+			startedAt: this.analyticsStartedAt
+		};
+		const properties = {
+			video_duration_seconds: this.videoLength / 1000,
+			video_width: this.videoDimensions.width,
+			video_height: this.videoDimensions.height,
+			fps: this.fps,
+			failure_stage: details.failureStage
+				? ANALYTICS_EXPORT_STAGES[details.failureStage]
+				: undefined,
+			cancel_source: details.cancelSource
+		};
+		this.analyticsTerminalTracked = true;
+		if (state === ExportState.Exported) {
+			AnalyticsService.trackVideoExported(workflow, properties);
+		} else if (state === ExportState.Error) {
+			AnalyticsService.trackVideoExportFailed(workflow, properties);
+		} else {
+			AnalyticsService.trackVideoExportCanceled(workflow, properties);
+		}
+		return true;
+	}
+
 	isOnGoing() {
 		return (
 			this.currentState === ExportState.WaitingForRecord ||
@@ -145,7 +233,8 @@ export default class Exportation extends SerializableBase {
 		);
 	}
 
-	async cancelExport() {
+	async cancelExport(source: ExportCancelSource = 'export_monitor') {
+		const wasOnGoing = this.isOnGoing();
 		if (
 			this.currentState === ExportState.Initializing ||
 			this.currentState === ExportState.ProcessingBackground ||
@@ -172,5 +261,8 @@ export default class Exportation extends SerializableBase {
 
 		// Set state to canceled
 		this.currentState = ExportState.Canceled;
+		if (wasOnGoing) {
+			this.trackAnalyticsTerminal(ExportState.Canceled, { cancelSource: source });
+		}
 	}
 }

@@ -2,10 +2,16 @@ import { globalState } from '$lib/runes/main.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
 import Settings, { type SavedVideoStylePreset } from '$lib/classes/Settings.svelte';
 import ExportFileService from '$lib/services/ExportFileService';
-import { buildLocalPreset, buildStyleData, getExportFileName } from './presetUtils';
+import {
+	buildLocalPreset,
+	buildStyleData,
+	getCurrentResolution,
+	getExportFileName
+} from './presetUtils';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import toast from 'svelte-5-french-toast';
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 /**
  * Insère ou remplace un preset local dans les paramètres.
@@ -58,6 +64,11 @@ export async function storeLocalPreset(preset: SavedVideoStylePreset): Promise<b
 export async function savePreset(name: string, includedClipIds: Set<number>): Promise<void> {
 	const stored = await storeLocalPreset(buildLocalPreset(name.trim(), includedClipIds));
 	if (!stored) return;
+	AnalyticsService.trackStylePresetSaved({
+		source: 'local',
+		resolution: getCurrentResolution(),
+		custom_clip_count: includedClipIds.size
+	});
 
 	globalState.presetLibrary.modalMode = null;
 	toast.success(get(LL).style.stylePresetSaved());
@@ -86,12 +97,16 @@ export async function exportJson(name: string, includedClipIds: Set<number>): Pr
  */
 export async function applyPreset(preset: SavedVideoStylePreset): Promise<void> {
 	const confirmed = await ModalManager.confirmModal(
-			get(LL).editor.overwriteStylesConfirm({ name: preset.name }),
-			false
-		);
+		get(LL).editor.overwriteStylesConfirm({ name: preset.name }),
+		false
+	);
 	if (!confirmed) return;
 
 	await globalState.getVideoStyle.importStyles(preset.data);
+	AnalyticsService.trackStylePresetApplied({
+		source: preset.communityPresetId ? 'community_cached' : 'local',
+		resolution: getCurrentResolution()
+	});
 	toast.success(get(LL).style.stylePresetApplied());
 }
 
@@ -102,7 +117,10 @@ export async function applyPreset(preset: SavedVideoStylePreset): Promise<void> 
  * @returns {Promise<void>}
  */
 export async function deletePreset(preset: SavedVideoStylePreset): Promise<void> {
-	const confirmed = await ModalManager.confirmModal(get(LL).modals.deleteItem({ name: preset.name }), false);
+	const confirmed = await ModalManager.confirmModal(
+		get(LL).modals.deleteItem({ name: preset.name }),
+		false
+	);
 	if (!confirmed || !globalState.settings) return;
 
 	globalState.settings.savedVideoStylePresets = globalState.settings.savedVideoStylePresets.filter(

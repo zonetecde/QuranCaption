@@ -71,6 +71,11 @@
 	import { BatchWorkspaceWorkflow } from '$lib/services/BatchWorkspaceWorkflow.svelte';
 	import { openBatchWorkspace } from '$lib/services/BatchWorkspaceOpeningService';
 	import { batchMessage, getBatchSegmentationError } from './batchProjectPresentation';
+	import {
+		AnalyticsService,
+		reconcileBatchStageTerminalCounts,
+		type BatchAnalyticsStage
+	} from '$lib/services/AnalyticsService';
 
 	let batch = $state<Batch | null>(null);
 	let error = $state('');
@@ -433,6 +438,12 @@
 			return;
 		showStyleModal = false;
 		if (!workflow.begin('style')) return;
+		const analyticsItemCount = selectedProjects.length;
+		const analyticsWorkflow = AnalyticsService.trackBatchStageStarted(
+			'style_apply',
+			analyticsItemCount
+		);
+		let analyticsThrew = false;
 		styleProgress = {
 			active: 0,
 			completed: 0,
@@ -452,14 +463,34 @@
 				selectedProjects,
 				selectedStylePreset as SavedVideoStylePreset
 			);
+			styleProgress = result;
 			if (result.failed > 0) {
 				toast.error(batchMessage('styleAppliedWithFailures', { failed: result.failed }));
 			} else {
 				toast.success(batchMessage('styleApplied'));
 			}
 		} catch (styleError) {
+			analyticsThrew = true;
 			queueError = String(styleError);
 		} finally {
+			const terminal = reconcileBatchStageTerminalCounts({
+				total: analyticsItemCount,
+				completed: styleProgress.completed,
+				failed: styleProgress.failed,
+				skipped: 0,
+				needsReview: 0,
+				threw: analyticsThrew
+			});
+			AnalyticsService.trackBatchStageCompleted(
+				analyticsWorkflow,
+				'style_apply',
+				terminal.outcome,
+				{
+					item_count: analyticsItemCount,
+					completed_count: styleProgress.completed,
+					failed_count: terminal.failed
+				}
+			);
 			workflow.finish('style');
 		}
 	}
@@ -530,6 +561,21 @@
 							inspection: subtitleExportCandidates,
 							outputFolder: exportOutputFolder
 						};
+		const analyticsStage: BatchAnalyticsStage =
+			exportModalTab === 'video'
+				? 'video_export'
+				: exportModalTab === 'youtube'
+					? 'youtube_chapters_export'
+					: 'subtitle_json_export';
+		const analyticsWorkflow = AnalyticsService.trackBatchStageStarted(
+			analyticsStage,
+			exportInspection.length
+		);
+		const skippedCount =
+			exportModalTab === 'video'
+				? skippedExports.length
+				: exportInspection.length - candidates.length;
+		let analyticsThrew = false;
 		showExportModal = false;
 		exportProgress = {
 			activeProjectName: null,
@@ -546,18 +592,35 @@
 				}
 			});
 			const result = await service.runOperation(operation);
-			const skipped =
-				exportModalTab === 'video'
-					? skippedExports.length
-					: exportInspection.length - candidates.length;
-			if (result.failed > 0 || skipped > 0) {
+			exportProgress = result;
+			if (result.failed > 0 || skippedCount > 0) {
 				toast.error(batchMessage('someProjectsCouldNotBeExported'));
 			} else {
 				toast.success(batchMessage('allEligibleProjectsExported'));
 			}
 		} catch (exportError) {
+			analyticsThrew = true;
 			queueError = String(exportError);
 		} finally {
+			const terminal = reconcileBatchStageTerminalCounts({
+				total: exportInspection.length,
+				completed: exportProgress.completed,
+				failed: exportProgress.failed,
+				skipped: skippedCount,
+				needsReview: 0,
+				threw: analyticsThrew
+			});
+			AnalyticsService.trackBatchStageCompleted(
+				analyticsWorkflow,
+				analyticsStage,
+				terminal.outcome,
+				{
+					item_count: exportInspection.length,
+					completed_count: exportProgress.completed,
+					failed_count: terminal.failed,
+					skipped_count: skippedCount
+				}
+			);
 			workflow.finish('export');
 		}
 	}
@@ -714,22 +777,65 @@
 		if (editions.length === 0) return;
 		showAddTranslationsModal = false;
 		if (!workflow.begin('translation')) return;
-		translationProgress.total = 0;
+		const analyticsItemCount = addEligibleProjects.length * editions.length;
+		const analyticsWorkflow = AnalyticsService.trackBatchStageStarted(
+			'translation_add',
+			analyticsItemCount
+		);
+		let analyticsResult = { completed: 0, failed: 0, skipped: 0 };
+		let analyticsThrew = false;
+		translationProgress = {
+			active: 0,
+			completed: 0,
+			failed: 0,
+			skipped: 0,
+			remaining: analyticsItemCount,
+			progress: 0,
+			total: analyticsItemCount
+		};
 		queueError = '';
 		selectActiveTranslationEdition(editions.at(-1)!.name, false);
 		const service = new BatchTranslationService({
 			onUpdate: (item, editionName) => {
 				selectActiveTranslationEdition(editionName, false);
 				refreshProjectRow(item);
-			}
+			},
+			onProgress: (progress) => (translationProgress = progress)
 		});
 		try {
-			await service.addEditions(batch, addEligibleProjects, editions, skipExistingTranslations);
+			analyticsResult = await service.addEditions(
+				batch,
+				addEligibleProjects,
+				editions,
+				skipExistingTranslations
+			);
 			batch = await BatchService.load(batch.id);
 			selectActiveTranslationEdition(editions.at(-1)!.name);
 		} catch (translationError) {
+			analyticsThrew = true;
 			queueError = String(translationError);
 		} finally {
+			const observed = analyticsThrew ? translationProgress : analyticsResult;
+			const terminal = reconcileBatchStageTerminalCounts({
+				total: analyticsItemCount,
+				completed: observed.completed,
+				failed: observed.failed,
+				skipped: observed.skipped,
+				needsReview: 0,
+				threw: analyticsThrew
+			});
+			AnalyticsService.trackBatchStageCompleted(
+				analyticsWorkflow,
+				'translation_add',
+				terminal.outcome,
+				{
+					item_count: analyticsItemCount,
+					edition_count: editions.length,
+					completed_count: observed.completed,
+					failed_count: terminal.failed,
+					skipped_count: observed.skipped
+				}
+			);
 			workflow.finish('translation');
 			revision++;
 			await BatchService.loadUserBatchesDetails();
@@ -754,6 +860,12 @@
 		if (!batch || !activeTranslationEditionName || fetchEligibleProjects.length === 0) return;
 		showFetchTranslationsModal = false;
 		if (!workflow.begin('translation')) return;
+		const analyticsWorkflow = AnalyticsService.trackBatchStageStarted(
+			'translation_fetch',
+			fetchEligibleProjects.length
+		);
+		let analyticsResult = { completed: 0, failed: 0, skipped: 0 };
+		let analyticsThrew = false;
 		queueError = '';
 		const editionName = activeTranslationEditionName;
 		const items = [...fetchEligibleProjects];
@@ -774,12 +886,33 @@
 			onProgress: (progress) => (translationProgress = progress)
 		});
 		try {
-			await service.fetchEdition(batch, items, editionName);
+			analyticsResult = await service.fetchEdition(batch, items, editionName);
 			batch = await BatchService.load(batch.id);
 			selectActiveTranslationEdition(editionName);
 		} catch (translationError) {
+			analyticsThrew = true;
 			queueError = String(translationError);
 		} finally {
+			const observed = analyticsThrew ? translationProgress : analyticsResult;
+			const terminal = reconcileBatchStageTerminalCounts({
+				total: items.length,
+				completed: observed.completed,
+				failed: observed.failed,
+				skipped: observed.skipped,
+				needsReview: 0,
+				threw: analyticsThrew
+			});
+			AnalyticsService.trackBatchStageCompleted(
+				analyticsWorkflow,
+				'translation_fetch',
+				terminal.outcome,
+				{
+					item_count: items.length,
+					completed_count: observed.completed,
+					failed_count: terminal.failed,
+					skipped_count: observed.skipped
+				}
+			);
 			workflow.finish('translation');
 			revision++;
 			await BatchService.loadUserBatchesDetails();
@@ -906,6 +1039,11 @@
 		const eligibleProjects = batch.projects.filter((project) =>
 			eligibleProjectIds.has(project.projectId)
 		);
+		const analyticsWorkflow = AnalyticsService.trackBatchStageStarted(
+			'segmentation',
+			eligibleProjects.length
+		);
+		let analyticsThrew = false;
 		const service = new BatchSegmentationService({
 			onUpdate: (project, activity, progress, live) => {
 				segmentationActivities = new Map(segmentationActivities).set(project.projectId, activity);
@@ -935,8 +1073,28 @@
 					.map((project) => project.projectId)
 			);
 		} catch (segmentationError) {
+			analyticsThrew = true;
 			queueError = getBatchSegmentationError(String(segmentationError).replace(/^Error:\s*/, ''));
 		} finally {
+			const terminal = reconcileBatchStageTerminalCounts({
+				total: eligibleProjects.length,
+				completed: segmentationProgress.completed,
+				failed: segmentationProgress.failed,
+				skipped: 0,
+				needsReview: segmentationProgress.needsReview,
+				threw: analyticsThrew
+			});
+			AnalyticsService.trackBatchStageCompleted(
+				analyticsWorkflow,
+				'segmentation',
+				terminal.outcome,
+				{
+					item_count: eligibleProjects.length,
+					completed_count: segmentationProgress.completed,
+					needs_review_count: segmentationProgress.needsReview,
+					failed_count: terminal.failed
+				}
+			);
 			workflow.finish('segmentation');
 			revision++;
 			await BatchService.loadUserBatchesDetails();
@@ -951,6 +1109,12 @@
 		if (!batch || incompatibleProjects.length > 0 || eligibleSelected.length === 0) return;
 		showMediaModal = false;
 		if (!workflow.begin('media')) return;
+		const analyticsItemCount = eligibleSelected.length;
+		const analyticsWorkflow = AnalyticsService.trackBatchStageStarted(
+			'media_import',
+			analyticsItemCount
+		);
+		let analyticsThrew = false;
 		queueError = '';
 		queueProgress = {
 			active: 0,
@@ -977,8 +1141,28 @@
 			);
 			replaceProjectSelection(defaults.map((project) => project.projectId));
 		} catch (importError) {
+			analyticsThrew = true;
 			queueError = String(importError);
 		} finally {
+			const terminal = reconcileBatchStageTerminalCounts({
+				total: analyticsItemCount,
+				completed: queueProgress.completed,
+				failed: queueProgress.failed,
+				skipped: 0,
+				needsReview: 0,
+				threw: analyticsThrew
+			});
+			AnalyticsService.trackBatchStageCompleted(
+				analyticsWorkflow,
+				'media_import',
+				terminal.outcome,
+				{
+					item_count: analyticsItemCount,
+					completed_count: queueProgress.completed,
+					failed_count: terminal.failed,
+					media_mode: selectedMode
+				}
+			);
 			workflow.finish('media');
 			revision++;
 			await BatchService.loadUserBatchesDetails();
@@ -992,6 +1176,11 @@
 	async function convertAllAudioToCbr(): Promise<void> {
 		if (!batch || !allMediaCompleted || cbrQueueActive) return;
 		if (!workflow.begin('cbr')) return;
+		const analyticsWorkflow = AnalyticsService.trackBatchStageStarted(
+			'cbr_conversion',
+			projects.length
+		);
+		let analyticsCompleted = false;
 		queueError = '';
 		cbrProgress = {
 			activeProjectId: null,
@@ -1008,12 +1197,31 @@
 		});
 		try {
 			cbrProgress = await service.run(batch, projects);
+			analyticsCompleted = true;
 			if (cbrProgress.failed > 0) {
 				toast.error(batchMessage('cbrCompletedWithFailures', { failed: cbrProgress.failed }));
 			} else {
 				toast.success(batchMessage('cbrCompleted'));
 			}
 		} finally {
+			const terminal = reconcileBatchStageTerminalCounts({
+				total: projects.length,
+				completed: cbrProgress.completed,
+				failed: cbrProgress.failed,
+				skipped: 0,
+				needsReview: 0,
+				threw: !analyticsCompleted
+			});
+			AnalyticsService.trackBatchStageCompleted(
+				analyticsWorkflow,
+				'cbr_conversion',
+				terminal.outcome,
+				{
+					item_count: projects.length,
+					completed_count: cbrProgress.completed,
+					failed_count: terminal.failed
+				}
+			);
 			workflow.finish('cbr');
 		}
 	}

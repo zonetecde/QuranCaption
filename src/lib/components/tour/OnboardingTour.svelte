@@ -150,7 +150,11 @@
 		}
 	]);
 
-	let { close }: { close: () => void } = $props();
+	let {
+		close
+	}: {
+		close: (outcome: 'completed' | 'skipped', lastStep: number) => void;
+	} = $props();
 
 	// Measure title bar height so the overlay never covers it
 	let titleBarHeight = $state(0);
@@ -346,7 +350,7 @@
 		if (currentStepIndex < TOUR_STEPS.length - 1) {
 			currentStepIndex++;
 		} else {
-			completeTour();
+			void completeTour('completed');
 		}
 	}
 
@@ -356,12 +360,12 @@
 		}
 	}
 
-	async function completeTour() {
+	async function completeTour(outcome: 'completed' | 'skipped') {
 		if (globalState.settings) {
 			globalState.settings.persistentUiState.hasSeenTour = true;
 			await Settings.save();
 		}
-		close();
+		close(outcome, currentStepIndex + 1);
 	}
 </script>
 
@@ -418,7 +422,11 @@
 			style="position: absolute; left: {tooltipLeft}px; top: {tooltipTop}px; width: {TOOLTIP_W}px; pointer-events: auto;"
 		>
 			<!-- Skip / close -->
-			<button class="tour-close-btn" onclick={completeTour} title={$LL.tour.skipTutorial()}>
+			<button
+				class="tour-close-btn"
+				onclick={() => completeTour('skipped')}
+				title={$LL.tour.skipTutorial()}
+			>
 				<span class="material-icons" style="font-size: 14px;">close</span>
 			</button>
 

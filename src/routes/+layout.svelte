@@ -4,16 +4,10 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 	import { browser } from '$app/environment';
-	import { afterNavigate } from '$app/navigation';
 	import { setLocale } from '$lib/i18n/i18n-svelte';
 	import { isLocale } from '$lib/i18n/i18n-util';
-	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	let { children } = $props();
-
-	if (browser) {
-		afterNavigate(() => AnalyticsService.track('$pageview'));
-	}
 
 	onMount(() => {
 		initializeClassRegistry();

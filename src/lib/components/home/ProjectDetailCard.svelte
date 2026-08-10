@@ -18,6 +18,7 @@
 	import Exporter from '$lib/classes/Exporter';
 	import toast from 'svelte-5-french-toast';
 	import { Project, Utilities } from '$lib/classes';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
 
@@ -78,6 +79,7 @@
 				duplicatedProject.detail,
 				...globalState.userProjectsDetails
 			];
+			AnalyticsService.trackProjectDuplicated();
 
 			toast.success(get(LL).home.projectDuplicated(), { id: loadingToast });
 		} catch (error) {

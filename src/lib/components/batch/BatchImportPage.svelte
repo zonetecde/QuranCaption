@@ -14,6 +14,7 @@
 		type BatchCsvErrorCode,
 		type ValidatedBatchRow
 	} from './batchCsv';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	let batchName = $state('');
 	let fileName = $state('');
@@ -151,6 +152,12 @@
 		creationError = '';
 		try {
 			const batch = await BatchService.createBatch(batchName, rows);
+			AnalyticsService.trackBatchCreated({
+				project_count: rows.length,
+				url_source_count: rows.filter((row) => row.batchSource.kind === 'url').length,
+				file_source_count: rows.filter((row) => row.batchSource.kind === 'file').length,
+				presegmented_count: rows.filter((row) => Boolean(row.segmentationJsonPath)).length
+			});
 			globalState.currentBatchId = batch.id;
 			globalState.currentPage = 'batch-workspace';
 		} catch (error) {

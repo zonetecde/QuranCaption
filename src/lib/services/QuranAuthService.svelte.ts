@@ -11,6 +11,7 @@ import type {
 	QuranAuthUser,
 	QuranCollection
 } from '$lib/types/quranAuth';
+import { AnalyticsService, type AnalyticsWorkflow } from '$lib/services/AnalyticsService';
 
 const BRIDGE_BASE_URL = 'https://qurancaption.com';
 const USER_API_BASE_URL = 'https://apis.quran.foundation';
@@ -78,6 +79,8 @@ class QuranAuthService {
 	private unlistenOpenUrl: (() => void) | null = null;
 	private activeHandoffToken: string | null = null;
 	private handledHandoffTokens = new Set<string>();
+	private authAnalyticsWorkflow: AnalyticsWorkflow | null = null;
+	private authAnalyticsScopeCount = 0;
 
 	get publicState(): QuranAuthPublicState {
 		return {
@@ -101,6 +104,10 @@ class QuranAuthService {
 	/** Lance le flux de connexion Quran.com via le bridge OAuth. */
 	async beginLogin(requiredScopes: string[] = []): Promise<void> {
 		await this.init();
+		this.authAnalyticsScopeCount = requiredScopes.length;
+		this.authAnalyticsWorkflow = AnalyticsService.trackQuranAuthStarted(
+			this.authAnalyticsScopeCount
+		);
 
 		try {
 			this.clearError();
@@ -119,6 +126,7 @@ class QuranAuthService {
 
 			await openUrl(authorizationUrl.toString());
 		} catch (error) {
+			this.finishAuthAnalytics('failed');
 			await this.clearPendingVerifier();
 			this.setError(error, get(LL).settings.unableToStartSignIn());
 			throw error;
@@ -143,6 +151,7 @@ class QuranAuthService {
 
 		const handoffToken = parsedUrl.searchParams.get('handoff_token');
 		if (!handoffToken) {
+			this.finishAuthAnalytics('failed');
 			this.setError(
 				new Error('Missing handoff token in deep link.'),
 				get(LL).settings.authDataIncomplete()
@@ -173,8 +182,10 @@ class QuranAuthService {
 			await this.persistSession(response);
 			await this.clearPendingVerifier();
 			this.handledHandoffTokens.add(handoffToken);
+			this.finishAuthAnalytics('completed');
 			toast.success(get(LL).settings.connectedToQuranCom());
 		} catch (error) {
+			this.finishAuthAnalytics('failed');
 			this.setError(error, get(LL).settings.unableToCompleteSignIn());
 			throw error;
 		} finally {
@@ -207,14 +218,16 @@ class QuranAuthService {
 			await this.persistSession(refreshed);
 			return refreshed;
 		} catch (error) {
-			await this.disconnect();
+			await this.disconnect('session_expired');
 			this.setError(error, get(LL).settings.sessionExpired());
 			return null;
 		}
 	}
 
 	/** Efface complètement la session locale Quran.com. */
-	async disconnect(): Promise<void> {
+	async disconnect(reason: 'user' | 'session_expired' = 'user'): Promise<void> {
+		const wasConnected = this.status === 'connected' || this.session !== null;
+		const scopeCount = this.grantedScopes.length;
 		this.session = null;
 		this.status = 'disconnected';
 		this.user = null;
@@ -228,6 +241,9 @@ class QuranAuthService {
 			this.deleteSecureValue(SESSION_STORAGE_KEY),
 			this.deleteSecureValue(PENDING_VERIFIER_STORAGE_KEY)
 		]);
+		if (wasConnected) {
+			AnalyticsService.trackQuranAuthDisconnected(scopeCount, reason);
+		}
 	}
 
 	/** Récupère toutes les collections Quran.com de l'utilisateur connecté. */
@@ -447,6 +463,22 @@ class QuranAuthService {
 	/** Supprime le verifier PKCE temporaire après succès ou annulation. */
 	private async clearPendingVerifier(): Promise<void> {
 		await this.deleteSecureValue(PENDING_VERIFIER_STORAGE_KEY);
+	}
+
+	/**
+	 * Termine le workflow analytique d'authentification en mémoire.
+	 * @param {'completed' | 'failed'} outcome Résultat stable du flux.
+	 * @returns {void}
+	 */
+	private finishAuthAnalytics(outcome: 'completed' | 'failed'): void {
+		if (!this.authAnalyticsWorkflow) return;
+		AnalyticsService.trackQuranAuthFinished(
+			this.authAnalyticsWorkflow,
+			outcome,
+			this.authAnalyticsScopeCount
+		);
+		this.authAnalyticsWorkflow = null;
+		this.authAnalyticsScopeCount = 0;
 	}
 
 	/** Nettoie le message d'erreur sans casser une session encore valide. */

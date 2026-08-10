@@ -9,7 +9,6 @@ import Exportation, {
 } from '$lib/classes/Exportation.svelte';
 import { ProjectService } from './ProjectService';
 import { listen, type Event as TauriEvent } from '@tauri-apps/api/event';
-import { AnalyticsService } from './AnalyticsService';
 import { deriveQuranReflectionContext } from './QuranReflectionService';
 import { Quran } from '$lib/classes/Quran';
 import { notifyLongTaskCompletion } from './UserAttentionService';
@@ -114,37 +113,52 @@ export default class ExportService {
 			verseCounts,
 			project.projectEditorState.export.skipRanges
 		);
-
-		globalState.exportations.unshift(
-			new Exportation(
-				project.detail.id,
-				fileName,
-				filePath,
-				(project.content.videoStyle.getStylesOfTarget('global')?.findStyle('video-dimension')
-					?.value as {
-					width: number;
-					height: number;
-				}) ?? { width: 1920, height: 1080 },
+		const videoDimensions = (project.content.videoStyle
+			.getStylesOfTarget('global')
+			?.findStyle('video-dimension')?.value as {
+			width: number;
+			height: number;
+		}) ?? { width: 1920, height: 1080 };
+		const exportation = new Exportation(
+			project.detail.id,
+			fileName,
+			filePath,
+			videoDimensions,
+			project.projectEditorState.export.videoStartTime,
+			project.projectEditorState.export.videoEndTime,
+			VerseRange.getVerseRangeFromClips(
+				project.content.timeline
+					.getFirstTrack(TrackType.Subtitle)
+					.clips.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip),
 				project.projectEditorState.export.videoStartTime,
-				project.projectEditorState.export.videoEndTime,
-				VerseRange.getVerseRangeFromClips(
-					project.content.timeline
-						.getFirstTrack(TrackType.Subtitle)
-						.clips.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip),
-					project.projectEditorState.export.videoStartTime,
-					project.projectEditorState.export.videoEndTime
-				).toString(),
-				mode === 'recording' ? ExportState.WaitingForRecord : ExportState.CapturingFrames,
-				project.projectEditorState.export.fps,
-				0,
-				0,
-				'',
-				ExportKind.Video,
-				options.exportLabel ?? '',
-				options.sourceProjectId ?? null,
-				reflectionContext
-			)
+				project.projectEditorState.export.videoEndTime
+			).toString(),
+			mode === 'recording' ? ExportState.WaitingForRecord : ExportState.CapturingFrames,
+			project.projectEditorState.export.fps,
+			0,
+			0,
+			'',
+			ExportKind.Video,
+			options.exportLabel ?? '',
+			options.sourceProjectId ?? null,
+			reflectionContext
 		);
+		exportation.startAnalytics({
+			video_duration_seconds: exportation.videoLength / 1000,
+			video_width: videoDimensions.width,
+			video_height: videoDimensions.height,
+			fps: project.projectEditorState.export.fps,
+			background_included: !project.projectEditorState.export.exportWithoutBackground,
+			transparent_format: project.projectEditorState.export.exportWithoutBackground
+				? project.projectEditorState.export.transparentExportFormat
+				: undefined,
+			export_only_recitation: project.projectEditorState.export.exportOnlyRecitation,
+			skipped_range_count: project.projectEditorState.export.skipRanges.length,
+			queued: mode === 'recording',
+			is_batch_export: Boolean(options.exportLabel)
+		});
+
+		globalState.exportations.unshift(exportation);
 
 		// Sauvegarde les exports en cours
 		await this.saveExports();
@@ -264,6 +278,7 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 
 	const exportation = globalState.exportations.find((exp) => exp.exportId === data.exportId);
 	if (exportation) {
+		const previousState = exportation.currentState;
 		const wasExported = exportation.currentState === ExportState.Exported;
 		const wasErrored = exportation.currentState === ExportState.Error;
 		if (exportation.currentState === ExportState.Canceled) {
@@ -271,17 +286,6 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 			return;
 		}
 
-		if (
-			exportation.currentState !== ExportState.Exported &&
-			data.currentState === ExportState.Exported
-		) {
-			AnalyticsService.trackExport(
-				exportation.videoLength / 1000,
-				exportation.verseRange,
-				exportation.videoDimensions.width + 'x' + exportation.videoDimensions.height,
-				exportation.fps
-			);
-		}
 		exportation.percentageProgress = data.progress;
 		exportation.currentState = data.currentState;
 		exportation.currentTreatedTime = data.currentTime;
@@ -313,12 +317,11 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 					level: 'success'
 				});
 			}
+			exportation.trackAnalyticsTerminal(ExportState.Exported);
 		}
 
 		if (data.errorLog) {
 			exportation.errorLog = data.errorLog;
-			// Telemetry
-			AnalyticsService.trackExportError(JSON.stringify(exportation), data.errorLog);
 		}
 
 		if (
@@ -326,6 +329,9 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 			data.currentState === ExportState.Error &&
 			exportation.exportKind === ExportKind.Video
 		) {
+			exportation.trackAnalyticsTerminal(ExportState.Error, {
+				failureStage: previousState
+			});
 			void notifyLongTaskCompletion({
 				title: get(LL).settings.videoExportFailed(),
 				body: exportation.finalFileName,

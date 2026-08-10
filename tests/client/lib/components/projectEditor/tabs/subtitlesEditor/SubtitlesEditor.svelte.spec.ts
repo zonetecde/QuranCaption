@@ -83,6 +83,9 @@ describe('Subtitles editor workflow', () => {
 		await workspace.getByText('1. Al-Fatihah').click();
 
 		await expect.element(surahInput).toHaveValue('1. Al-Fatihah');
+		expect(document.activeElement).not.toBe(
+			workspace.container.querySelector('input[type="text"]')
+		);
 		await expect.element(workspace.getByPlaceholder('1')).toHaveValue(1);
 		await expect.element(workspace.getByText('W1V1-1', { exact: true }).first()).toBeVisible();
 

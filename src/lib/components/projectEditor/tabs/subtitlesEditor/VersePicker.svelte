@@ -49,6 +49,7 @@
 				subtitlesEditorState().endWordIndex = 0;
 			}
 		}
+		if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
 	}
 
 	// Update search value ONLY when current surah changes EXTERNALLY

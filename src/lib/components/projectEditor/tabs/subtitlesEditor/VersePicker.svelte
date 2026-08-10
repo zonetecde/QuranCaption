@@ -5,7 +5,16 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 
-	const LL_ = get(LL);
+	let {
+		controlHelpOpen = false,
+		onHelpChange = () => {}
+	}: { controlHelpOpen?: boolean; onHelpChange?: (isOpen: boolean) => void } = $props();
+	let commandHelpTranslations = $derived(
+		$LL.editor as unknown as {
+			showCommandDescriptions: () => string;
+			hideCommandDescriptions: () => string;
+		}
+	);
 
 	let subtitlesEditorState = $derived(() => globalState.getSubtitlesEditorState);
 
@@ -60,8 +69,26 @@
 		<div class="flex gap-2 items-center group relative" data-tour-id="subtitles-help-button">
 			<span class="material-icons text-2xl!">help</span>
 			<div
-				class="group transition-opacity text-sm text-[var(--text-secondary)] absolute top-4.5 left-3.5 bg-primary px-3 w-[400px] py-3 border-2 border-[var(--border-color)]/90 rounded-lg max-h-[400px] overflow-auto z-20 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+				class="group transition-opacity text-sm text-[var(--text-secondary)] absolute top-4.5 left-3.5 bg-primary px-3 w-[400px] py-3 border-2 border-[var(--border-color)]/90 rounded-lg max-h-[400px] overflow-auto z-[950] opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
 			>
+				<button
+					type="button"
+					class="btn-accent flex w-full items-center justify-center gap-2 rounded-lg border border-color bg-accent px-4 py-3 text-sm font-semibold text-primary transition-colors hover:border-accent-primary"
+					class:border-accent-primary={controlHelpOpen}
+					aria-pressed={controlHelpOpen}
+					data-tour-id="subtitles-command-help-toggle"
+					onclick={() => onHelpChange(!controlHelpOpen)}
+				>
+					<span class="material-icons text-lg!">
+						{controlHelpOpen ? 'visibility_off' : 'visibility'}
+					</span>
+					{controlHelpOpen
+						? commandHelpTranslations.hideCommandDescriptions()
+						: commandHelpTranslations.showCommandDescriptions()}
+				</button>
+
+				<div class="border-t border-color my-3"></div>
+
 				<div class="space-y-2 mb-3">
 					<div class="text-secondary text-sm font-semibold">
 						{$LL.editor.needVisualWalkthrough()}
@@ -88,7 +115,6 @@
 				<br />
 				{@html $LL.editor.enterToAddSubtitleWalkthrough()}
 
-				<!-- separator line -->
 				<div class="border-t border-color my-3"></div>
 
 				<!-- list of shortcuts -->

@@ -1167,6 +1167,8 @@ const zh = {
 		splitAutomaticallyAtWord: '在此词汇处自动分割',
 		needVisualWalkthrough: '需要视觉导览？',
 		walkthroughDescription: '以下是一段简短视频，展示字幕编辑器的工作原理：',
+		showCommandDescriptions: '显示命令说明',
+		hideCommandDescriptions: '隐藏命令说明',
 		spaceToPlayPause:
 			'按<span class="font-mono bg-accent px-1 rounded-sm">空格</span>播放/暂停诵读。',
 		arrowsToSelectWords:

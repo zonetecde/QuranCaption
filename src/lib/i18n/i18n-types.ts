@@ -3583,6 +3583,14 @@ type RootTranslation = {
 		 */
 		walkthroughDescription: string;
 		/**
+		 * S​h​o​w​ ​c​o​m​m​a​n​d​ ​d​e​s​c​r​i​p​t​i​o​n​s
+		 */
+		showCommandDescriptions: string;
+		/**
+		 * H​i​d​e​ ​c​o​m​m​a​n​d​ ​d​e​s​c​r​i​p​t​i​o​n​s
+		 */
+		hideCommandDescriptions: string;
+		/**
 		 * P​r​e​s​s​ ​<​s​p​a​n​ ​c​l​a​s​s​=​"​f​o​n​t​-​m​o​n​o​ ​b​g​-​a​c​c​e​n​t​ ​p​x​-​1​ ​r​o​u​n​d​e​d​-​s​m​"​>​s​p​a​c​e​<​/​s​p​a​n​>​ ​t​o​ ​p​l​a​y​/​p​a​u​s​e​ ​t​h​e​ ​r​e​c​i​t​a​t​i​o​n​.
 		 */
 		spaceToPlayPause: string;
@@ -14510,6 +14518,14 @@ export type TranslationFunctions = {
 		 * Here is a short video that demonstrates how the subtitles editor works:
 		 */
 		walkthroughDescription: () => LocalizedString;
+		/**
+		 * Show command descriptions
+		 */
+		showCommandDescriptions: () => LocalizedString;
+		/**
+		 * Hide command descriptions
+		 */
+		hideCommandDescriptions: () => LocalizedString;
 		/**
 		 * Press <span class="font-mono bg-accent px-1 rounded-sm">space</span> to play/pause the recitation.
 		 */

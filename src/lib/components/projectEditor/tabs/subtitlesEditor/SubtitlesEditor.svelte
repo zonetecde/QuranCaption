@@ -129,7 +129,7 @@
 	<section class="flex-1 min-w-0 flex flex-row max-h-full min-h-0">
 		<section class="w-full min-w-0 flex flex-col min-h-0">
 			<!-- Video preview -->
-			<SubtitlesWorkspace />
+			<SubtitlesWorkspace showPlaybackControls />
 
 			<DiviseurRedimensionnable
 				orientation="horizontal"

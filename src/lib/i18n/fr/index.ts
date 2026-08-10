@@ -1280,6 +1280,8 @@ const fr = {
 		needVisualWalkthrough: 'Besoin d\u2019une visite guidée visuelle\u00a0?',
 		walkthroughDescription:
 			'Voici une courte vidéo qui montre comment fonctionne l\u2019éditeur de sous-titres\u00a0:',
+		showCommandDescriptions: 'Afficher la description des commandes',
+		hideCommandDescriptions: 'Masquer la description des commandes',
 		spaceToPlayPause:
 			'Appuyez sur <span class="font-mono bg-accent px-1 rounded-sm">espace</span> pour lancer/mettre en pause la récitation.',
 		arrowsToSelectWords:

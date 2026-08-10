@@ -1281,6 +1281,8 @@ const de = {
 		needVisualWalkthrough: 'Brauchen Sie einen visuellen Rundgang?',
 		walkthroughDescription:
 			'Hier ist ein kurzes Video, das zeigt, wie der Untertitel-Editor funktioniert:',
+		showCommandDescriptions: 'Befehlsbeschreibungen anzeigen',
+		hideCommandDescriptions: 'Befehlsbeschreibungen ausblenden',
 		spaceToPlayPause:
 			'Drücken Sie <span class="font-mono bg-accent px-1 rounded-sm">Leertaste</span>, um die Rezitation zu starten/anzuhalten.',
 		arrowsToSelectWords:

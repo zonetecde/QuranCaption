@@ -6,6 +6,10 @@ import SubtitlesList from '$lib/components/projectEditor/tabs/subtitlesEditor/Su
 import SubtitlesWorkspace from '$lib/components/projectEditor/tabs/subtitlesEditor/SubtitlesWorkspace.svelte';
 
 import { Quran } from '$lib/classes/Quran';
+import Settings from '$lib/classes/Settings.svelte';
+import { setLocale } from '$lib/i18n/i18n-svelte';
+import { loadLocale } from '$lib/i18n/i18n-util.sync';
+import { globalState } from '$lib/runes/main.svelte';
 import {
 	resetSubtitlesEditorProjectFixture,
 	setupSubtitlesEditorProjectFixture,
@@ -28,9 +32,13 @@ vi.mock('svelte-5-french-toast', () => ({
 	}
 }));
 
-function createRenderedFixture(initialSurah: number = 2, initialVerse: number = 1) {
+function createRenderedFixture(
+	initialSurah: number = 2,
+	initialVerse: number = 1,
+	showPlaybackControls: boolean = false
+) {
 	const fixture = setupSubtitlesEditorProjectFixture({ initialSurah, initialVerse });
-	const workspace = render(SubtitlesWorkspace);
+	const workspace = render(SubtitlesWorkspace, { showPlaybackControls });
 	const list = render(SubtitlesList);
 
 	return { ...fixture, workspace, list };
@@ -50,6 +58,8 @@ async function waitForEditorReady(workspace: SubtitleEditorFixture['workspace'],
 
 describe('Subtitles editor workflow', () => {
 	beforeEach(() => {
+		loadLocale('en');
+		setLocale('en');
 		seedSubtitlesEditorQuranFixture();
 	});
 
@@ -107,5 +117,48 @@ describe('Subtitles editor workflow', () => {
 		expect(selectedWords).toHaveLength(2);
 		expect(selectedWords.join(' ')).toContain('W2V2-2');
 		expect(selectedWords.join(' ')).toContain('W2V2-3');
+	});
+
+	test('adds subtitles from the player controls and persists their collapsed state', async () => {
+		const saveSettings = vi.spyOn(Settings, 'save').mockResolvedValue();
+		const { workspace, spies } = createRenderedFixture(1, 1, true);
+
+		await waitForEditorReady(workspace, 1);
+
+		const addSubtitleButton = workspace.container.querySelector(
+			'.playback-control-button-confirm'
+		) as HTMLButtonElement;
+		expect(workspace.container.querySelector('.words-content')!.classList).toContain(
+			'playback-controls-expanded'
+		);
+		expect(addSubtitleButton.getAttribute('data-help')).toContain('Enter');
+		const helpButton = workspace.container.querySelector('[data-tour-id="subtitles-help-button"]')!;
+		helpButton.dispatchEvent(new MouseEvent('mouseenter'));
+		await tick();
+		expect(workspace.container.querySelector('.subtitles-workspace')!.classList).not.toContain(
+			'control-help-active'
+		);
+		const commandHelpToggle = workspace.container.querySelector(
+			'[data-tour-id="subtitles-command-help-toggle"]'
+		) as HTMLButtonElement;
+		commandHelpToggle.click();
+		await tick();
+		expect(workspace.container.querySelector('.subtitles-workspace')!.classList).toContain(
+			'control-help-active'
+		);
+		commandHelpToggle.click();
+		await tick();
+		addSubtitleButton.click();
+		await vi.waitFor(() => expect(spies.addSubtitle).toHaveBeenCalledOnce());
+
+		(workspace.container.querySelector('.controls-notch-handle') as HTMLButtonElement).click();
+		await tick();
+
+		expect(globalState.settings!.persistentUiState.subtitlesPlaybackControlsCollapsed).toBe(true);
+		expect(workspace.container.querySelector('.playback-controls')).toBeNull();
+		expect(workspace.container.querySelector('.words-content')!.classList).not.toContain(
+			'playback-controls-expanded'
+		);
+		expect(saveSettings).toHaveBeenCalledOnce();
 	});
 });

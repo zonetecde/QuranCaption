@@ -1279,6 +1279,8 @@ const es = {
 		needVisualWalkthrough: '\u00bfNecesita un recorrido visual?',
 		walkthroughDescription:
 			'Aquí hay un breve video que muestra cómo funciona el editor de subtítulos\u00a0:',
+		showCommandDescriptions: 'Mostrar las descripciones de los comandos',
+		hideCommandDescriptions: 'Ocultar las descripciones de los comandos',
 		spaceToPlayPause:
 			'Presione <span class="font-mono bg-accent px-1 rounded-sm">espacio</span> para iniciar/pausar la recitación.',
 		arrowsToSelectWords:

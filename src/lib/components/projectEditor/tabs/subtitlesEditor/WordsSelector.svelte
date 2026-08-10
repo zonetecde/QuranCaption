@@ -28,6 +28,7 @@
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 
+	let { playbackControlsExpanded = false }: { playbackControlsExpanded?: boolean } = $props();
 	let subtitlesEditorState = $derived(() => globalState.getSubtitlesEditorState);
 	let isWordDragging = $state(false);
 	let didWordDrag = $state(false);
@@ -55,7 +56,7 @@
 		delayMs: 500
 	};
 
-	function goNextVerse() {
+	export function goNextVerse(): void {
 		if (
 			subtitlesEditorState().selectedVerse <
 			Quran.getVerseCount(subtitlesEditorState().selectedSurah)
@@ -72,7 +73,7 @@
 		}
 	}
 
-	async function goPreviousVerse() {
+	export async function goPreviousVerse(): Promise<void> {
 		if (subtitlesEditorState().selectedVerse > 1) {
 			subtitlesEditorState().selectedVerse -= 1;
 
@@ -357,7 +358,7 @@
 		return true;
 	}
 
-	function editCurrentOrLastSubtitle(): void {
+	export function editCurrentOrLastSubtitle(): void {
 		ProjectHistoryManager.track('edit subtitle shortcut', () => {
 			const subtitleTrack = globalState.getSubtitleTrack;
 			if (subtitleTrack.clips.length <= 0) return;
@@ -388,7 +389,7 @@
 	 * Sélectionne le mot suivant dans le verset.
 	 * Si on est à la fin du verset, passe au verset suivant.
 	 */
-	async function selectNextWord() {
+	export async function selectNextWord(): Promise<void> {
 		if (globalState.shared.wbwEdit.active) {
 			moveManualWordByWordSelection(1);
 			syncVerseSelectionWithManualWordByWordIndex(subtitlesEditorState);
@@ -407,7 +408,7 @@
 	 * Sélectionne le mot précédent dans le verset.
 	 * Si on est au début du verset, passe au verset précédent.
 	 */
-	async function selectPreviousWord() {
+	export async function selectPreviousWord(): Promise<void> {
 		if (globalState.shared.wbwEdit.active) {
 			moveManualWordByWordSelection(-1);
 			syncVerseSelectionWithManualWordByWordIndex(subtitlesEditorState);
@@ -430,7 +431,7 @@
 	/**
 	 * Ajoute une sous-titre avec les mots sélectionnés.
 	 */
-	async function addSubtitle() {
+	export async function addSubtitle(): Promise<void> {
 		if (globalState.shared.wbwEdit.active) {
 			stampManualWordByWordCurrentWordAtCursor();
 			return;
@@ -514,7 +515,7 @@
 	/**
 	 * Supprime le dernier sous-titre de la timeline (shortcut REMOVE_LAST_SUBTITLE).
 	 */
-	function removeLastSubtitle(): void {
+	export function removeLastSubtitle(): void {
 		const subtitleTrack = globalState.getSubtitleTrack;
 
 		// Si un sous-titre est en cours d'édition, on le supprime explicitement plutôt que le dernier ajouté
@@ -747,8 +748,9 @@
 		(subtitlesEditorState().editSubtitle ? 'border-yellow-500' : ' border-color')}
 >
 	<div
-		class="min-h-full flex flex-row-reverse flex-wrap justify-start content-center xl:leading-[4.5rem] lg:leading-[3rem] leading-[2.5rem]
+		class="words-content min-h-full flex flex-row-reverse flex-wrap justify-start content-center xl:leading-[4.5rem] lg:leading-[3rem] leading-[2.5rem]
 	           px-6 text-4xl xl:text-5xl arabic py-4"
+		class:playback-controls-expanded={playbackControlsExpanded}
 		onmouseleave={stopWordDrag}
 	>
 		{#await selectedVerse() then verse}
@@ -822,6 +824,10 @@
 </ContextMenu>
 
 <style>
+	.words-content.playback-controls-expanded {
+		padding-bottom: 9rem;
+	}
+
 	.word-selected {
 		background-color: var(--selected-word-bg);
 		border-top: 2px solid var(--accent-primary);

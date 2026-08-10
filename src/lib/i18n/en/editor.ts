@@ -677,6 +677,8 @@ const editor = {
 	splitAutomaticallyAtWord: 'Split automatically at this word',
 	needVisualWalkthrough: 'Need a visual walkthrough?',
 	walkthroughDescription: 'Here is a short video that demonstrates how the subtitles editor works:',
+	showCommandDescriptions: 'Show command descriptions',
+	hideCommandDescriptions: 'Hide command descriptions',
 	spaceToPlayPause:
 		'Press <span class="font-mono bg-accent px-1 rounded-sm">space</span> to play/pause the recitation.',
 	arrowsToSelectWords:

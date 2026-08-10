@@ -1043,6 +1043,8 @@ const id = {
 			'Efek crossfade tidak ditampilkan di pratinjau video, tetapi akan muncul di video hasil ekspor.',
 		needVisualWalkthrough: 'Butuh panduan visual?',
 		walkthroughDescription: 'Berikut video singkat yang menunjukkan cara kerja editor subtitle:',
+		showCommandDescriptions: 'Tampilkan deskripsi perintah',
+		hideCommandDescriptions: 'Sembunyikan deskripsi perintah',
 		spaceToPlayPause:
 			'Tekan <span class="font-mono bg-accent px-1 rounded-sm">space</span> untuk memutar/menjeda bacaan Quran.',
 		arrowsToSelectWords:

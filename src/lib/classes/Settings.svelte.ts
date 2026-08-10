@@ -119,6 +119,7 @@ export default class Settings extends SerializableBase {
 		styleLibraryDeviceId: '',
 		showTimelineWheelHints: true,
 		showAntiCollisionNotice: true,
+		subtitlesPlaybackControlsCollapsed: false,
 		projectEditorLayout: { ...DEFAULT_PROJECT_EDITOR_LAYOUT } as ProjectEditorLayout,
 		timelineTrackOrder: [
 			TrackType.CustomClip,
@@ -536,6 +537,10 @@ export default class Settings extends SerializableBase {
 		}
 		if (typeof settings.persistentUiState.showAntiCollisionNotice !== 'boolean') {
 			settings.persistentUiState.showAntiCollisionNotice = true;
+			shouldSave = true;
+		}
+		if (typeof settings.persistentUiState.subtitlesPlaybackControlsCollapsed !== 'boolean') {
+			settings.persistentUiState.subtitlesPlaybackControlsCollapsed = false;
 			shouldSave = true;
 		}
 		if (!Array.isArray(settings.persistentUiState.timelineTrackOrder)) {

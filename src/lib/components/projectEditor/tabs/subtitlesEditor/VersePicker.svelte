@@ -63,9 +63,9 @@
 </script>
 
 <section
-	class="w-full flex gap-3 items-center px-3 bg-secondary border border-color rounded-lg py-2"
+	class="w-full min-w-0 flex gap-3 items-center px-3 bg-secondary border border-color rounded-lg py-2"
 >
-	<div class="flex gap-2 items-center">
+	<div class="flex shrink-0 gap-2 items-center">
 		<div class="flex gap-2 items-center group relative" data-tour-id="subtitles-help-button">
 			<span class="material-icons text-2xl!">help</span>
 			<div
@@ -141,9 +141,9 @@
 	</div>
 
 	<!-- Surah Selector with Autocomplete -->
-	<div class="flex items-center gap-2 ml-auto">
-		<span class="text-sm font-medium text-secondary">{$LL.editor.surahLabel()}</span>
-		<div class="min-w-[200px]">
+	<div class="flex min-w-0 items-center gap-2 ml-auto">
+		<span class="shrink-0 text-sm font-medium text-secondary">{$LL.editor.surahLabel()}</span>
+		<div class="min-w-0 w-[200px]">
 			<AutocompleteInput
 				showEverything
 				clearOnFocus
@@ -157,12 +157,12 @@
 	</div>
 
 	<!-- Separator -->
-	<div class="flex items-center">
+	<div class="flex shrink-0 items-center">
 		<span class="text-lg font-bold text-accent mx-2">:</span>
 	</div>
 
 	<!-- Verse Selector -->
-	<div class="flex items-center gap-2">
+	<div class="flex shrink-0 items-center gap-2">
 		<span class="text-sm font-medium text-secondary">{$LL.editor.verseLabel()}</span>
 		<input
 			type="number"

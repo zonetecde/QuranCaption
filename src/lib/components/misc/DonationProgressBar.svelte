@@ -6,6 +6,8 @@
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 
+	let { suppressed = false }: { suppressed?: boolean } = $props();
+
 	const DONATION_API_URL = 'https://api.qurancaption.com/donation/progress';
 	const CACHE_MS = 5 * 60 * 1000;
 	const BANNER_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000;
@@ -94,7 +96,7 @@
 	});
 </script>
 
-{#if isVisible && !isLoading && !globalState.uiState.isTourActive && !globalState.uiState.showReflectionPrompt}
+{#if isVisible && !isLoading && !suppressed && !globalState.uiState.isTourActive && !globalState.uiState.showReflectionPrompt}
 	<div class="donation-banner fixed z-[900]">
 		<div class="banner-content p-3.5 sm:p-4">
 			<div class="flex items-start gap-3">

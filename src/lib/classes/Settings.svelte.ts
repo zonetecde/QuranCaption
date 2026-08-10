@@ -113,6 +113,7 @@ export default class Settings extends SerializableBase {
 		lastClosedUpdateModal: new Date(0).toISOString(),
 		lastClosedDonationPromptModal: new Date(0).toISOString(),
 		lastClosedDonationBanner: new Date(0).toISOString(),
+		dismissedHomepageMessageFingerprint: '',
 		donationPromptImpressions: 0,
 		videoExportFolder: '',
 		wbwTranslationLanguage: 'en' as WbwTranslationLanguageCode,
@@ -570,6 +571,10 @@ export default class Settings extends SerializableBase {
 		}
 		if (typeof settings.persistentUiState.styleLibraryDeviceId !== 'string') {
 			settings.persistentUiState.styleLibraryDeviceId = '';
+			shouldSave = true;
+		}
+		if (typeof settings.persistentUiState.dismissedHomepageMessageFingerprint !== 'string') {
+			settings.persistentUiState.dismissedHomepageMessageFingerprint = '';
 			shouldSave = true;
 		}
 		if (typeof settings.persistentUiState.language !== 'string') {

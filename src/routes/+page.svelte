@@ -7,6 +7,7 @@
 	import ExportService from '$lib/services/ExportService';
 	import DonationFloatingButton from '$lib/components/misc/DonationFloatingButton.svelte';
 	import DonationProgressBar from '$lib/components/misc/DonationProgressBar.svelte';
+	import HomepageMessageBanner from '$lib/components/misc/HomepageMessageBanner.svelte';
 	import ProjectEditor from '$lib/components/projectEditor/ProjectEditor.svelte';
 	import TitleBar from '$lib/components/TitleBar.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -17,14 +18,21 @@
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { getCurrentWindow, type CloseRequestedEvent } from '@tauri-apps/api/window';
 	import { onDestroy, onMount } from 'svelte';
-	import { Toaster } from 'svelte-5-french-toast';
+	import toast, { Toaster } from 'svelte-5-french-toast';
 	import Settings from '$lib/classes/Settings.svelte';
 	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
 	import QuranReflectionPrompt from '$lib/components/reflection/QuranReflectionPrompt.svelte';
+	import {
+		getHomepageMessage,
+		type HomepageMessage
+	} from '$lib/services/StylePresetLibraryService';
 
 	let allowWindowClose = false;
 	let isHandlingCloseRequest = false;
 	let unlistenCloseRequest: (() => void) | undefined;
+	let homepageMessage = $state<HomepageMessage | null>(null);
+	let homepageMessageLoaded = $state(false);
+	let homepageMessageVisible = $state(false);
 
 	async function cancelOngoingExports() {
 		const ongoingExports = ExportService.currentlyExportingProjects();
@@ -63,12 +71,56 @@
 		}
 	}
 
+	/**
+	 * Masque le message courant et mémorise son contenu pour les prochains lancements.
+	 *
+	 * @returns {Promise<void>}
+	 */
+	async function dismissHomepageMessage(): Promise<void> {
+		homepageMessageVisible = false;
+		if (!homepageMessage || !globalState.settings) return;
+
+		globalState.settings.persistentUiState.dismissedHomepageMessageFingerprint =
+			homepageMessage.fingerprint;
+		try {
+			await Settings.save();
+		} catch (error) {
+			console.error('Failed to persist homepage message dismissal:', error);
+			toast.error(get(LL).donation.failedToSavePreference());
+		}
+	}
+
+	/**
+	 * Charge le message d’accueil sans bloquer les autres services de démarrage.
+	 *
+	 * @returns {Promise<void>}
+	 */
+	async function loadHomepageMessage(): Promise<void> {
+		try {
+			const message = await getHomepageMessage();
+			const hasContent = Boolean(
+				message.enabled && message.title.trim() && message.description.trim()
+			);
+			homepageMessage = hasContent ? message : null;
+			homepageMessageVisible = Boolean(
+				hasContent &&
+					message.fingerprint !==
+						globalState.settings?.persistentUiState.dismissedHomepageMessageFingerprint
+			);
+		} catch (error) {
+			console.error('Failed to load homepage message:', error);
+		} finally {
+			homepageMessageLoaded = true;
+		}
+	}
+
 	onMount(async () => {
 		// Init le gestionnaire de shortcuts
 		ShortcutService.init();
 
 		// Charge les paramètres utilisateur (une seconde fois pour etre sur)
 		await Settings.load();
+		void loadHomepageMessage();
 		await quranAuthService.init();
 
 		// Initialiser Discord Rich Presence
@@ -112,7 +164,10 @@
 			<Home />
 		{/if}
 		<DonationFloatingButton />
-		<DonationProgressBar />
+		{#if homepageMessage && homepageMessageVisible}
+			<HomepageMessageBanner message={homepageMessage} ondismiss={dismissHomepageMessage} />
+		{/if}
+		<DonationProgressBar suppressed={!homepageMessageLoaded || homepageMessageVisible} />
 	</main>
 
 	<!-- AI Video generation overlay — shown on top of everything while pipeline runs -->

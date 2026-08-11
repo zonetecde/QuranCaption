@@ -235,7 +235,8 @@ const export_ = {
 		'Your reflection could not be saved. Your draft is still here so you can retry.',
 	reflectionBack: 'Back to reflection',
 	reflectionWriteAnother: 'Write another reflection',
-	reflectionCloseLabel: 'Close reflection panel'
+	reflectionCloseLabel: 'Close reflection panel',
+	reflectionDontShowAgain: 'Do not show again'
 };
 
 export default export_;

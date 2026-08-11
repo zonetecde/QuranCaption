@@ -1938,6 +1938,7 @@ const de = {
 		reflectionBack: 'Zurück zur Reflexion',
 		reflectionWriteAnother: 'Eine weitere Reflexion schreiben',
 		reflectionCloseLabel: 'Reflexionsbereich schließen',
+		reflectionDontShowAgain: 'Nicht mehr anzeigen',
 		exportVideo: 'Video exportieren',
 		configureExportSettings:
 			'Konfigurieren Sie Ihre Videoexport-Einstellungen und wählen Sie den zu exportierenden Bereich.',

@@ -1936,6 +1936,7 @@ const es = {
 		reflectionBack: 'Volver a la reflexión',
 		reflectionWriteAnother: 'Escribir otra reflexión',
 		reflectionCloseLabel: 'Cerrar el panel de reflexión',
+		reflectionDontShowAgain: 'No volver a mostrar',
 		exportVideo: 'Exportar video',
 		configureExportSettings:
 			'Configure sus ajustes de exportación de video y seleccione la porción a exportar.',

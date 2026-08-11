@@ -4,6 +4,7 @@
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { Quran } from '$lib/classes/Quran';
+	import Settings from '$lib/classes/Settings.svelte';
 	import { ExportState } from '$lib/classes/Exportation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
@@ -149,6 +150,14 @@
 		visible = false;
 		globalState.uiState.showReflectionPrompt = false;
 		sessionStorage.removeItem(PENDING_REFLECTION_KEY);
+	}
+
+	/** Désactive définitivement le prompt de réflexion après un export. */
+	function disablePrompt(): void {
+		if (!globalState.settings) return;
+		globalState.settings.persistentUiState.hideReflectionPromptAfterExport = true;
+		Settings.save();
+		dismissPrompt();
 	}
 
 	/** Sélectionne une sourate exportée sans modifier le brouillon. */
@@ -445,14 +454,23 @@
 					{copy.reflectionDescription()}
 				</p>
 			</div>
-			<button
-				type="button"
-				class="flex size-10 shrink-0 items-center justify-center rounded-full text-secondary hover:bg-accent hover:text-primary"
-				onclick={dismissPrompt}
-				aria-label={copy.reflectionCloseLabel()}
-			>
-				<span class="material-icons">close</span>
-			</button>
+			<div class="group relative size-10 shrink-0">
+				<button
+					type="button"
+					class="flex size-10 items-center justify-center rounded-full text-secondary hover:bg-accent hover:text-primary"
+					onclick={dismissPrompt}
+					aria-label={copy.reflectionCloseLabel()}
+				>
+					<span class="material-icons">close</span>
+				</button>
+				<button
+					type="button"
+					class="pointer-events-none absolute top-full right-0 whitespace-nowrap text-xs text-secondary underline opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
+					onclick={disablePrompt}
+				>
+					{copy.reflectionDontShowAgain()}
+				</button>
+			</div>
 		</header>
 
 		<div class="reflection-content space-y-3 p-4">

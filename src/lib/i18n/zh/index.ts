@@ -1772,6 +1772,7 @@ const zh = {
 		reflectionBack: '返回反思',
 		reflectionWriteAnother: '再写一篇反思',
 		reflectionCloseLabel: '关闭反思面板',
+		reflectionDontShowAgain: '不再显示',
 		exportVideo: '导出视频',
 		configureExportSettings: '配置您的视频导出设置并选择要导出的部分。',
 		exportRange: '导出范围',

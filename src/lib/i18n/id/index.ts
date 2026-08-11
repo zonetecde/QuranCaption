@@ -1226,6 +1226,7 @@ const id = {
 		reflectionBack: 'Kembali ke refleksi',
 		reflectionWriteAnother: 'Tulis refleksi lain',
 		reflectionCloseLabel: 'Tutup panel refleksi',
+		reflectionDontShowAgain: 'Jangan tampilkan lagi',
 		exportVideo: 'Ekspor Video',
 		configureExportSettings:
 			'Atur settings export video kamu dan pilih bagian yang ingin di-export.',

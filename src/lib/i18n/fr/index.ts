@@ -1939,6 +1939,7 @@ const fr = {
 		reflectionBack: 'Retour à la réflexion',
 		reflectionWriteAnother: 'Écrire une autre réflexion',
 		reflectionCloseLabel: 'Fermer le panneau de réflexion',
+		reflectionDontShowAgain: 'Ne plus afficher',
 		exportVideo: 'Exporter la vidéo',
 		configureExportSettings:
 			'Configurez vos paramètres d\u2019export vidéo et sélectionnez la portion à exporter.',

@@ -6625,6 +6625,10 @@ type RootTranslation = {
 		 * C​l​o​s​e​ ​r​e​f​l​e​c​t​i​o​n​ ​p​a​n​e​l
 		 */
 		reflectionCloseLabel: string;
+		/**
+		 * D​o​ ​n​o​t​ ​s​h​o​w​ ​a​g​a​i​n
+		 */
+		reflectionDontShowAgain: string;
 	};
 	translations: {
 		/**
@@ -17540,6 +17544,10 @@ export type TranslationFunctions = {
 		 * Close reflection panel
 		 */
 		reflectionCloseLabel: () => LocalizedString;
+		/**
+		 * Do not show again
+		 */
+		reflectionDontShowAgain: () => LocalizedString;
 	};
 	translations: {
 		/**

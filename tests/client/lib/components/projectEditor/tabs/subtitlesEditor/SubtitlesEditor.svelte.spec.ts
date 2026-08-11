@@ -135,6 +135,13 @@ describe('Subtitles editor workflow', () => {
 			'playback-controls-expanded'
 		);
 		expect(addSubtitleButton.getAttribute('data-help')).toContain('Enter');
+		addSubtitleButton.dispatchEvent(new PointerEvent('pointerover', { bubbles: true }));
+		await tick();
+		const controlDescription = workspace.container.querySelector(
+			'[data-tour-id="subtitles-control-description"]'
+		)!;
+		expect(controlDescription.classList).toContain('active');
+		expect(controlDescription.textContent).toContain('Enter');
 		const helpButton = workspace.container.querySelector('[data-tour-id="subtitles-help-button"]')!;
 		helpButton.dispatchEvent(new MouseEvent('mouseenter'));
 		await tick();

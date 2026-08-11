@@ -28,6 +28,7 @@
 	let presetPickerOpen = $state(false);
 	let autoSegmentationModalOpen = $state(false);
 	let controlHelpOpen = $state(false);
+	let hoveredControlHelp = $state<string | null>(null);
 	let controlsCollapsed = $derived(
 		globalState.settings?.persistentUiState.subtitlesPlaybackControlsCollapsed ?? false
 	);
@@ -184,6 +185,18 @@
 		const title = shortcut ? `${label} · ${shortcut}` : label;
 		return description ? `${title}\n${description}` : title;
 	}
+
+	/**
+	 * Met à jour le texte d’aide à partir du contrôle actuellement survolé.
+	 *
+	 * @param {EventTarget | null} target Élément situé sous le pointeur.
+	 * @returns {void}
+	 */
+	function updateHoveredControlHelp(target: EventTarget | null): void {
+		const button =
+			target instanceof Element ? target.closest<HTMLButtonElement>('[data-help]') : null;
+		hoveredControlHelp = button?.dataset.help ?? null;
+	}
 </script>
 
 <section
@@ -224,7 +237,14 @@
 					</button>
 
 					{#if controlsVisible}
-						<div class="playback-controls">
+						<div
+							class="playback-controls"
+							onpointerover={(event) => updateHoveredControlHelp(event.target)}
+							onpointerout={(event) => updateHoveredControlHelp(event.relatedTarget)}
+							onfocusin={(event) => updateHoveredControlHelp(event.target)}
+							onfocusout={(event) => updateHoveredControlHelp(event.relatedTarget)}
+							onpointerleave={() => (hoveredControlHelp = null)}
+						>
 							<div
 								class="playback-control-side playback-control-side-left"
 								class:controls-disabled={isWbwEditActive}
@@ -456,6 +476,13 @@
 								</button>
 							</div>
 						</div>
+						<div
+							class="playback-control-description"
+							class:active={hoveredControlHelp}
+							data-tour-id="subtitles-control-description"
+						>
+							{hoveredControlHelp?.replaceAll('\n', ' -- ') ?? ''}
+						</div>
 
 						{#if presetPickerOpen}
 							<div class="preset-picker-overlay">
@@ -549,6 +576,27 @@
 		grid-template-rows: repeat(2, minmax(0, 1fr));
 		align-items: center;
 		gap: 0.75rem;
+	}
+
+	.playback-control-description {
+		position: absolute;
+		bottom: -0.9rem;
+		left: 50%;
+		width: max-content;
+		color: var(--text-secondary);
+		font-size: 0.65rem;
+		font-weight: 500;
+		line-height: 1.2;
+		opacity: 0;
+		pointer-events: none;
+		text-align: center;
+		transform: translateX(-50%);
+		white-space: pre-line;
+		transition: opacity 100ms ease;
+	}
+
+	.playback-control-description.active {
+		opacity: 0.75;
 	}
 
 	.playback-control-center {

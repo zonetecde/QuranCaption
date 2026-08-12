@@ -27,6 +27,7 @@ function subtitle(
 		startTime,
 		endTime,
 		surah,
+		verse: 1,
 		kind: 'subtitle',
 		visualMergeGroupId,
 		visualMergeMode,
@@ -83,7 +84,8 @@ function calculateTimings(
 	timedOverlayClips: ExportTimedOverlayCaptureClip[] = [],
 	rangeStart: number = 0,
 	rangeEnd: number = 5_000,
-	fadeDuration: number = 200
+	fadeDuration: number = 200,
+	showVerseNumber: boolean = false
 ) {
 	return calculateCaptureTimingsForRange({
 		rangeStart,
@@ -91,7 +93,8 @@ function calculateTimings(
 		fadeDuration,
 		subtitleClips,
 		timedOverlayClips,
-		getCurrentSurah: (time) => resolveCurrentSurahFromClips(subtitleClips, time)
+		getCurrentSurah: (time) => resolveCurrentSurahFromClips(subtitleClips, time),
+		showVerseNumber
 	});
 }
 
@@ -489,6 +492,54 @@ describe('calculateCaptureTimingsForRange', () => {
 
 		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 500 });
 		expect(result.blankImgs[blankKey(1)]).toEqual([1_000]);
+	});
+
+	it('captures the internal boundary when verse number stays visible across same-verse subtitles', () => {
+		const result = calculateTimings(
+			[subtitle(0, 500, 1), subtitle(500, 1_000, 1)],
+			[],
+			0,
+			5_000,
+			200,
+			true
+		);
+
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 1_000 });
+		expect(result.blankImgs).toEqual({});
+		expect(result.exactCaptureTimingValues.get(500)).toBe(500);
+
+		const plan = buildExportCaptureJobPlan({
+			timings: result,
+			rangeStart: 0,
+			rangeEnd: 5_000,
+			fadeDuration: 200,
+			workerCount: 1,
+			isBlankCaptureTiming: (timing) =>
+				hasTiming(result.blankImgs, timing).hasIt ||
+				Object.values(result.imgWithNothingShown).includes(timing),
+			getReusableBlankFileName: () => null
+		});
+
+		expect(plan.captureJobs).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ timing: 500, captureTiming: 500, isBlankImage: false })
+			])
+		);
+	});
+
+	it('keeps the blank boundary when the next subtitle belongs to another verse', () => {
+		const result = calculateTimings(
+			[subtitle(0, 500, 1), { ...subtitle(500, 1_000, 1), verse: 2 }],
+			[],
+			0,
+			5_000,
+			200,
+			true
+		);
+
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 500 });
+		expect(result.blankImgs[blankKey(1)]).toEqual([1_000]);
+		expect(result.exactCaptureTimings.has(500)).toBe(false);
 	});
 
 	it('creates one reusable blank image per surah and reuses it for later subtitles of the same surah', () => {

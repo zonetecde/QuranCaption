@@ -1818,7 +1818,8 @@ const de = {
 			'fade-duration': 'Dauer des Ein-/Ausblendeffekts in Millisekunden',
 			'video-and-audio-fade': 'Ein-/Ausblendung für Video und Audio beim Export konfigurieren.',
 			'video-clip-transition': 'Übergang zwischen den Videoclips in der Timeline.',
-			'video-clip-transition-duration': 'Dauer der Übergänge zwischen Videoclips in Millisekunden.',
+			'video-clip-transition-duration':
+				'Standarddauer der Übergänge zwischen Videoclips in Millisekunden. Im Crossfade-Modus kann jede Überblendung einzeln durch Verschieben der Clips in der Timeline angepasst werden. In der Videovorschau wird sie möglicherweise nicht korrekt dargestellt, im exportierten Video ist sie jedoch korrekt.',
 			'anti-collision': 'Überlappung von Untertiteln verhindern',
 			spacing: 'Mindestabstand zwischen Untertiteln (in Pixel)',
 			overlay: 'Farbüberlagerung zum Video hinzufügen',

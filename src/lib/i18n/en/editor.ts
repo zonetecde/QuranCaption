@@ -1193,7 +1193,8 @@ const editor = {
 		'fade-duration': 'Duration of fade in/out effect in milliseconds',
 		'video-and-audio-fade': 'Configure export fade in/out for video and audio.',
 		'video-clip-transition': 'Transition between timeline video clips.',
-		'video-clip-transition-duration': 'Duration of video clip transitions in milliseconds.',
+		'video-clip-transition-duration':
+			'Default duration of video clip transitions in milliseconds. In Crossfade mode, adjust each crossfade individually by moving the clips in the timeline. It may not display accurately in the video preview, but the exported video will be correct.',
 		'anti-collision': 'Prevent subtitle overlap',
 		spacing: 'Minimum spacing between subtitles (in pixels)',
 		overlay: 'Add a color overlay on top of the video',

@@ -185,15 +185,15 @@ export async function fetchTranslationsFromOtherProjects(
 						edition,
 						sourceClip.getVerseKey()
 					);
-					target.text =
+					target.setTextAndClearInlineStyles(
 						(source.isBruteForce
 							? source.text
 							: sliceTranslationTrimUnits(fullVerse, source.startWordIndex, source.endWordIndex)) ||
-						source.text;
+							source.text
+					);
 					target.startWordIndex = source.startWordIndex;
 					target.endWordIndex = source.endWordIndex;
 					target.isBruteForce = source.isBruteForce;
-					target.inlineStyleRuns = [...(source.inlineStyleRuns ?? [])];
 					target.status = 'fetched';
 					if (source.isBruteForce) {
 						target.tryRecalculateTranslationIndexes(edition, sourceClip.getVerseKey(), fullVerse);

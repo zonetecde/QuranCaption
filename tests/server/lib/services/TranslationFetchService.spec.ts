@@ -67,7 +67,7 @@ function createDetail(id: number, createdAt: string): ProjectDetail {
 describe('TranslationFetchService', () => {
 	beforeEach(() => projectMocks.load.mockReset());
 
-	it('uses status priority before recency and copies all fetch metadata', async () => {
+	it('uses status priority before recency without copying word styles', async () => {
 		const targetClip = createClip('Pending', 'to review');
 		const recentLow = createClip('Recent low', 'fetched');
 		const olderHigh = createClip('High priority', 'reviewed');
@@ -86,6 +86,7 @@ describe('TranslationFetchService', () => {
 		source.inlineStyleRuns = [
 			{ startWordIndex: 0, endWordIndex: 0, bold: true, italic: false, underline: false }
 		];
+		source.wbwRanges = [{ arabicWordIndex: 0, startUnitIndex: 0, endUnitIndex: 0 }];
 
 		const result = await fetchTranslationsFromOtherProjects({
 			targetProject: target,
@@ -97,7 +98,8 @@ describe('TranslationFetchService', () => {
 		expect(fetched.text).toBe('High priority');
 		expect(fetched.status).toBe('fetched');
 		expect(fetched.isBruteForce).toBe(true);
-		expect(fetched.inlineStyleRuns).toEqual(source.inlineStyleRuns);
+		expect(fetched.inlineStyleRuns).toEqual([]);
+		expect(fetched.wbwRanges).toEqual([]);
 		expect(recalculate).toHaveBeenCalledOnce();
 		expect(result).toMatchObject({ fetched: 1, review: { complete: 1, pending: 0 } });
 	});

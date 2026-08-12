@@ -241,6 +241,7 @@ export async function navigateBatchReview(direction: BatchReviewDirection): Prom
 	if (!isBatchReviewActive() || session.isNavigating) return;
 	const batchId = session.batchId;
 	if (batchId === null) return;
+	const currentTab = globalState.currentProject?.projectEditorState.currentTab;
 	session.isNavigating = true;
 	try {
 		const { batch, item } = await saveAndReconcileCurrent();
@@ -284,6 +285,7 @@ export async function navigateBatchReview(direction: BatchReviewDirection): Prom
 			session.editionName,
 			session.scope
 		);
+		if (currentTab) project.projectEditorState.currentTab = currentTab;
 		globalState.currentProject = project;
 		session.currentProjectId = target.projectId;
 	} catch {

@@ -204,6 +204,7 @@ describe('Batch review navigation', () => {
 		});
 		globalState.currentBatchId = 10;
 		globalState.currentProject = current;
+		current.projectEditorState.currentTab = ProjectEditorTabs.Style;
 		startBatchReview(10, 1);
 
 		await navigateBatchReview('next');
@@ -212,7 +213,7 @@ describe('Batch review navigation', () => {
 		expect(reviewMocks.reconcile).toHaveBeenCalledWith(batch, first, current);
 		expect(batchMocks.save).toHaveBeenCalledWith(batch);
 		expect(globalState.currentProject).toBe(next);
-		expect(next.projectEditorState.currentTab).toBe(ProjectEditorTabs.SubtitlesEditor);
+		expect(next.projectEditorState.currentTab).toBe(ProjectEditorTabs.Style);
 		expect(globalState.shared.batchReview.currentProjectId).toBe(4);
 	});
 

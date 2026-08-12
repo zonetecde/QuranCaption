@@ -1212,6 +1212,29 @@ const de = {
 		mark: 'Markieren',
 		onLabel: 'An',
 		splitLongSubtitlesLabel: 'Lange Untertitel teilen',
+		aiSemanticSplit: 'KI-Teilung',
+		aiSemanticSplitAssistant: 'KI-Assistent für sinngemäße Teilung',
+		aiSemanticSplitDescription:
+			'Lassen Sie Ihren Text-KI-Anbieter natürliche arabische Abschnittsgrenzen innerhalb des Wortlimits wählen.',
+		aiSemanticSplitExplanation:
+			'Nur Untertitel über dem gewählten Wortlimit werden gesendet. Die KI gibt indizierte Grenzen zurück, ohne den Qurantext umzuschreiben.',
+		resultingChunks: 'Resultierende Abschnitte',
+		aiSemanticSplitRunDescription:
+			'Die KI erhält jedes indizierte arabische Wort und gibt die sinnvollsten gültigen Abschnittsenden zurück.',
+		runAiSemanticSplit: 'KI-Teilung starten',
+		runningAiSemanticSplit: 'KI-Teilung läuft...',
+		aiSemanticSplitInProgress: 'KI-Teilung läuft',
+		latestAiSemanticSplitRun: 'Letzte KI-Teilung',
+		aiSemanticSplitStarting:
+			'KI-Teilung für {segments} Segment(e) in {batches} Stapel(n) wird gestartet.',
+		aiSemanticSplitBatchQueued: '{label}: {segments} Segment(e), {words} Wörter.',
+		aiSemanticSplitAppliedSegments:
+			'Sinngemäße Teilungen auf {applied}/{total} Segment(e) angewendet.',
+		aiSemanticSplitRunSummary:
+			'{successful}/{total} Segment(e) verarbeitet, {splits} Teilung(en) angewendet, {failed} Segment(e) mit Problemen.',
+		aiSemanticSplitCompletedWithIssues:
+			'KI-Teilung mit Problemen abgeschlossen. Siehe Aktivitätsprotokoll.',
+		aiSemanticSplitApplied: '{count} sinngemäße Teilung(en) angewendet.',
 		splitWbwRequired: 'Dies funktioniert nur mit Untertiteln, die Wort-für-Wort-Zeitstempel haben.',
 		waqfDescription:
 			'Segmente ohne Waqf-Zeichen bleiben unverändert, auch wenn sie die Wort-/Dauer-Grenzen überschreiten.',

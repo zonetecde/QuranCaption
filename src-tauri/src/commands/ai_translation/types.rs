@@ -38,6 +38,18 @@ pub struct AdvancedWbwTranslationCommandRequest {
     pub batch: AdvancedWbwTranslationBatchPayload,
 }
 
+/// Requête pour la commande de découpage sémantique des sous-titres.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdvancedSubtitleSplitCommandRequest {
+    pub api_key: String,
+    pub endpoint: String,
+    pub model: String,
+    pub reasoning_effort: String,
+    pub batch_id: String,
+    pub batch: AdvancedSubtitleSplitBatchPayload,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AdvancedTrimBatchPayload {
@@ -55,6 +67,14 @@ pub struct AdvancedBoldBatchPayload {
 pub struct AdvancedWbwTranslationBatchPayload {
     #[serde(rename = "s", alias = "segments")]
     pub segments: Vec<AdvancedWbwTranslationSegmentPayload>,
+}
+
+/// Lot de sous-titres à découper selon leur sens.
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdvancedSubtitleSplitBatchPayload {
+    #[serde(rename = "s", alias = "segments")]
+    pub segments: Vec<AdvancedSubtitleSplitSegmentPayload>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -80,6 +100,20 @@ pub struct AdvancedBoldSegmentPayload {
     pub verse_key: String,
     pub segment_arabic: String,
     pub translation_indexed: String,
+}
+
+/// Sous-titre arabe et contrainte de taille transmis au modèle.
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AdvancedSubtitleSplitSegmentPayload {
+    #[serde(rename = "i", alias = "segmentIndex")]
+    pub segment_index: i64,
+    #[serde(rename = "v", alias = "verseKey")]
+    pub verse_key: String,
+    #[serde(rename = "m", alias = "maxWords")]
+    pub max_words: i64,
+    #[serde(rename = "w", alias = "words")]
+    pub words: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

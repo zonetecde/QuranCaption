@@ -355,6 +355,7 @@ export class SubtitlesEditorState extends SerializableBase {
 	subdivideMaxWordsPerSegment: number = $state(30);
 	subdivideMaxDurationPerSegment: number = $state(30);
 	subdivideOnlySplitAtStopSigns: boolean = $state(true);
+	aiSemanticSplitMaxWords: number = $state(10);
 }
 
 export class TranslationsEditorState extends SerializableBase {

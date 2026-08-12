@@ -1207,6 +1207,29 @@ const es = {
 		mark: 'Marcar',
 		onLabel: 'Activado',
 		splitLongSubtitlesLabel: 'Dividir subtítulos largos',
+		aiSemanticSplit: 'División IA',
+		aiSemanticSplitAssistant: 'Asistente IA de división por significado',
+		aiSemanticSplitDescription:
+			'Permite que tu proveedor de IA elija límites naturales en árabe dentro del límite de palabras.',
+		aiSemanticSplitExplanation:
+			'Solo se envían subtítulos que superan el límite elegido. La IA devuelve límites indexados sin reescribir el texto coránico.',
+		resultingChunks: 'Fragmentos resultantes',
+		aiSemanticSplitRunDescription:
+			'La IA recibe cada palabra árabe indexada y devuelve los finales de fragmento válidos con más sentido.',
+		runAiSemanticSplit: 'Ejecutar división IA',
+		runningAiSemanticSplit: 'División IA en curso...',
+		aiSemanticSplitInProgress: 'División IA en curso',
+		latestAiSemanticSplitRun: 'Última división IA',
+		aiSemanticSplitStarting:
+			'Iniciando división IA para {segments} segmento(s) en {batches} lote(s).',
+		aiSemanticSplitBatchQueued: '{label}: {segments} segmento(s), {words} palabras.',
+		aiSemanticSplitAppliedSegments:
+			'Divisiones por significado aplicadas a {applied}/{total} segmento(s).',
+		aiSemanticSplitRunSummary:
+			'{successful}/{total} segmento(s) procesado(s), {splits} división(es) aplicada(s), {failed} segmento(s) con problemas.',
+		aiSemanticSplitCompletedWithIssues:
+			'División IA completada con problemas. Consulta el registro de actividad.',
+		aiSemanticSplitApplied: '{count} división(es) por significado aplicada(s).',
 		splitWbwRequired:
 			'Esto solo funcionará con subtítulos que tengan marcas de tiempo palabra por palabra.',
 		waqfDescription:

@@ -8,13 +8,17 @@ const serviceMocks = vi.hoisted(() => ({
 	normalizeInterruptedSegmentation: vi.fn(async () => false),
 	loadUserBatchesDetails: vi.fn(async () => [])
 }));
+const projectServiceMocks = vi.hoisted(() => ({ load: vi.fn() }));
 const segmentationMocks = vi.hoisted(() => ({
 	inspect: vi.fn(),
 	reconcile: vi.fn(async () => false),
 	run: vi.fn(),
 	onUpdate: null as ((...args: unknown[]) => void) | null
 }));
-const reviewNavigationMocks = vi.hoisted(() => ({ open: vi.fn(async () => true) }));
+const reviewNavigationMocks = vi.hoisted(() => ({
+	open: vi.fn(async () => true),
+	start: vi.fn()
+}));
 const translationMocks = vi.hoisted(() => ({
 	reconcile: vi.fn(async () => false),
 	add: vi.fn(),
@@ -32,7 +36,10 @@ const globalActionMocks = vi.hoisted(() => ({
 }));
 
 vi.mock('$lib/services/BatchService', () => ({ BatchService: serviceMocks }));
-vi.mock('$lib/services/ProjectService', () => ({ ProjectService: { load: vi.fn() } }));
+vi.mock('$lib/services/ProjectService', () => ({ ProjectService: projectServiceMocks }));
+vi.mock('$lib/services/MigrationService', () => ({
+	default: { HydrateStyleEditorUiMetadata: vi.fn(async () => undefined) }
+}));
 vi.mock('$lib/services/BatchSegmentationService', () => ({
 	BatchSegmentationService: class {
 		/**
@@ -63,7 +70,8 @@ vi.mock('$lib/services/UserAttentionService', () => ({
 }));
 vi.mock('$lib/services/BatchReviewNavigationService', () => ({
 	openBatchReviewProject: reviewNavigationMocks.open,
-	openBatchTranslationReviewProject: reviewNavigationMocks.open
+	openBatchTranslationReviewProject: reviewNavigationMocks.open,
+	startBatchReview: reviewNavigationMocks.start
 }));
 vi.mock('$lib/services/BatchTranslationService', () => ({
 	BatchTranslationService: class {
@@ -198,6 +206,7 @@ describe('BatchWorkspace media import', () => {
 	afterEach(() => {
 		cleanup();
 		globalState.currentBatchId = null;
+		globalState.currentProject = null;
 		globalState.currentPage = 'home';
 		globalState.shared.batchTranslationEditionName = null;
 		serviceMocks.load.mockReset();
@@ -206,6 +215,8 @@ describe('BatchWorkspace media import', () => {
 		segmentationMocks.run.mockReset();
 		segmentationMocks.onUpdate = null;
 		reviewNavigationMocks.open.mockClear();
+		reviewNavigationMocks.start.mockClear();
+		projectServiceMocks.load.mockReset();
 		cbrMocks.run.mockReset();
 		cbrMocks.onUpdate = null;
 		translationMocks.reconcile.mockClear();
@@ -572,6 +583,34 @@ describe('BatchWorkspace media import', () => {
 		expect(reviewNavigationMocks.open).toHaveBeenLastCalledWith(200, 1);
 		await reviewButtons[2].click();
 		expect(reviewNavigationMocks.open).toHaveBeenLastCalledWith(200, 4);
+	});
+
+	test('starts full batch navigation when segmentation review is complete', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const first = createProject(1, 'completed', { kind: 'url', value: 'https://example.com/1' });
+		const second = createProject(4, 'completed', { kind: 'url', value: 'https://example.com/4' });
+		first.segmentation.status = 'manually_verified';
+		second.segmentation.status = 'auto_verified';
+		serviceMocks.load.mockResolvedValue(new Batch('Batch', [first, second], 210));
+		projectServiceMocks.load.mockResolvedValue({ detail: { id: 1, batchId: 210 } });
+		globalState.currentBatchId = 210;
+
+		const component = render(BatchWorkspace);
+		await vi.waitFor(() =>
+			expect(component.container.querySelectorAll('tbody tr')).toHaveLength(2)
+		);
+		await component.container.querySelector<HTMLButtonElement>('tbody tr button')!.click();
+
+		await vi.waitFor(() =>
+			expect(reviewNavigationMocks.start).toHaveBeenCalledWith(
+				210,
+				1,
+				'segmentation',
+				null,
+				'batch'
+			)
+		);
 	});
 
 	test('shows Batch CBR progress after every media import is completed', async () => {

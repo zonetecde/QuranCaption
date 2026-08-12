@@ -71,6 +71,7 @@ describe('BatchReviewNavigation', () => {
 		cleanup();
 		globalState.currentProject = null;
 		globalState.shared.batchReview.active = false;
+		globalState.shared.batchReview.scope = 'flagged';
 		globalState.shared.batchReview.batchId = null;
 		globalState.shared.batchReview.currentProjectId = null;
 		globalState.shared.batchReview.isNavigating = false;
@@ -106,5 +107,29 @@ describe('BatchReviewNavigation', () => {
 		await vi.waitFor(() =>
 			expect(Array.from(buttons).every((button) => button.disabled)).toBe(true)
 		);
+	});
+
+	test('shows the position among all projects for a completed review stage', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const first = createItem(1, 1);
+		const second = createItem(4, 2);
+		first.segmentation.status = 'manually_verified';
+		second.segmentation.status = 'manually_verified';
+		batchMocks.load.mockResolvedValue(new Batch('Batch', [first, second], 10));
+		globalState.currentProject = {
+			detail: { id: 4, batchId: 10, name: 'Project 4' },
+			projectEditorState: { currentTab: ProjectEditorTabs.SubtitlesEditor }
+		} as unknown as Project;
+		globalState.shared.batchReview.active = true;
+		globalState.shared.batchReview.scope = 'batch';
+		globalState.shared.batchReview.batchId = 10;
+		globalState.shared.batchReview.currentProjectId = 4;
+
+		const component = render(BatchReviewNavigation);
+		await vi.waitFor(() => expect(component.container.textContent).toContain('2 / 2'));
+		const buttons = component.container.querySelectorAll<HTMLButtonElement>('button');
+		expect(buttons[0].disabled).toBe(false);
+		expect(buttons[1].disabled).toBe(true);
 	});
 });

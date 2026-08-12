@@ -34,16 +34,19 @@ function reviewMessage(key: string, params: Record<string, string | number> = {}
  * @param {number} projectId Projet signalé initial.
  * @param {'segmentation' | 'translation'} kind Étape métier en cours de revue.
  * @param {string | null} editionName Édition ciblée pour une revue de traduction.
+ * @param {'flagged' | 'batch'} scope Projets signalés ou batch complet.
  * @returns {void}
  */
 export function startBatchReview(
 	batchId: number,
 	projectId: number,
 	kind: 'segmentation' | 'translation' = 'segmentation',
-	editionName: string | null = null
+	editionName: string | null = null,
+	scope: 'flagged' | 'batch' = 'flagged'
 ): void {
 	globalState.shared.batchReview.active = true;
 	globalState.shared.batchReview.kind = kind;
+	globalState.shared.batchReview.scope = scope;
 	globalState.shared.batchReview.batchId = batchId;
 	globalState.shared.batchReview.currentProjectId = projectId;
 	globalState.shared.batchReview.editionName = editionName;
@@ -57,6 +60,7 @@ export function startBatchReview(
 export function stopBatchReview(): void {
 	globalState.shared.batchReview.active = false;
 	globalState.shared.batchReview.kind = null;
+	globalState.shared.batchReview.scope = 'flagged';
 	globalState.shared.batchReview.batchId = null;
 	globalState.shared.batchReview.currentProjectId = null;
 	globalState.shared.batchReview.editionName = null;
@@ -77,13 +81,15 @@ export function isBatchReviewActive(): boolean {
  * @param {number} batchId Identifiant du Batch attendu.
  * @param {'segmentation' | 'translation'} kind Étape métier en cours de revue.
  * @param {string | null} editionName Édition ciblée pour une revue de traduction.
+ * @param {'flagged' | 'batch'} scope Projets signalés ou batch complet.
  * @returns {Promise<Project>} Projet chargé et préparé.
  */
 async function loadReviewProject(
 	projectId: number,
 	batchId: number,
 	kind: 'segmentation' | 'translation' = 'segmentation',
-	editionName: string | null = null
+	editionName: string | null = null,
+	scope: 'flagged' | 'batch' = 'flagged'
 ): Promise<Project> {
 	const project = await ProjectService.load(projectId);
 	await MigrationService.HydrateStyleEditorUiMetadata(project);
@@ -93,15 +99,17 @@ async function loadReviewProject(
 	if (kind === 'translation' && editionName) {
 		if (!getProjectSubtitleClips(project).some((clip) => !!clip.translations[editionName]))
 			throw new Error('INVALID_BATCH_REVIEW_EDITION');
-		const editor = project.projectEditorState.translationsEditor;
-		editor.checkOnlyFilters(['to review', 'ai error', 'error', 'undefined']);
-		editor.searchQuery = '';
-		editor.onlyShowOverlappingSubtitles = false;
-		const firstPending = getProjectSubtitleClips(project).find((clip) => {
-			const translation = clip.translations[editionName] as VerseTranslation | undefined;
-			return !!translation && !translation.isStatusComplete();
-		});
-		globalState.shared.translationScrollTargetClipId = firstPending?.id ?? null;
+		if (scope === 'flagged') {
+			const editor = project.projectEditorState.translationsEditor;
+			editor.checkOnlyFilters(['to review', 'ai error', 'error', 'undefined']);
+			editor.searchQuery = '';
+			editor.onlyShowOverlappingSubtitles = false;
+			const firstPending = getProjectSubtitleClips(project).find((clip) => {
+				const translation = clip.translations[editionName] as VerseTranslation | undefined;
+				return !!translation && !translation.isStatusComplete();
+			});
+			globalState.shared.translationScrollTargetClipId = firstPending?.id ?? null;
+		}
 	}
 	return project;
 }
@@ -241,7 +249,7 @@ export async function navigateBatchReview(direction: BatchReviewDirection): Prom
 				? project.translations[session.editionName]?.status === 'needs_review'
 				: project.segmentation.status === 'needs_review'
 		);
-		if (remaining.length === 0) {
+		if (session.scope === 'flagged' && remaining.length === 0) {
 			const completedKind = session.kind;
 			stopBatchReview();
 			globalState.currentProject = null;
@@ -260,17 +268,21 @@ export async function navigateBatchReview(direction: BatchReviewDirection): Prom
 			direction === 'next'
 				? batch.projects.slice(currentIndex + 1)
 				: batch.projects.slice(0, currentIndex).reverse();
-		const target = candidates.find((project) =>
-			session.kind === 'translation' && session.editionName
-				? project.translations[session.editionName]?.status === 'needs_review'
-				: project.segmentation.status === 'needs_review'
-		);
+		const target =
+			session.scope === 'batch'
+				? candidates[0]
+				: candidates.find((project) =>
+						session.kind === 'translation' && session.editionName
+							? project.translations[session.editionName]?.status === 'needs_review'
+							: project.segmentation.status === 'needs_review'
+					);
 		if (!target) return;
 		const project = await loadReviewProject(
 			target.projectId,
 			batch.id,
 			session.kind ?? 'segmentation',
-			session.editionName
+			session.editionName,
+			session.scope
 		);
 		globalState.currentProject = project;
 		session.currentProjectId = target.projectId;
@@ -304,13 +316,16 @@ export async function deleteCurrentBatchReviewProject(): Promise<void> {
 			(candidate) => candidate.projectId === project.detail.id
 		);
 		if (currentIndex < 0) throw new Error('INVALID_BATCH_REVIEW_PROJECT');
-		const target = batch.projects
-			.slice(currentIndex + 1)
-			.find((candidate) =>
-				session.kind === 'translation' && session.editionName
-					? candidate.translations[session.editionName]?.status === 'needs_review'
-					: candidate.segmentation.status === 'needs_review'
-			);
+		const target =
+			session.scope === 'batch'
+				? (batch.projects[currentIndex + 1] ?? batch.projects[currentIndex - 1])
+				: batch.projects
+						.slice(currentIndex + 1)
+						.find((candidate) =>
+							session.kind === 'translation' && session.editionName
+								? candidate.translations[session.editionName]?.status === 'needs_review'
+								: candidate.segmentation.status === 'needs_review'
+						);
 		const kind = session.kind ?? 'segmentation';
 		const editionName = session.editionName;
 		await BatchService.deleteProjects(batch, [project.detail.id]);
@@ -325,7 +340,8 @@ export async function deleteCurrentBatchReviewProject(): Promise<void> {
 			target.projectId,
 			batch.id,
 			kind,
-			editionName
+			editionName,
+			session.scope
 		);
 		session.currentProjectId = target.projectId;
 	} catch {

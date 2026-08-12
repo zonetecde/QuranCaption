@@ -235,6 +235,76 @@ describe('Batch review navigation', () => {
 		expect(globalState.currentProject).toBe(next);
 	});
 
+	it('navigates through every project when the current stage is fully reviewed', async () => {
+		const first = createItem(1, 1);
+		const second = createItem(4, 2);
+		first.segmentation.status = 'manually_verified';
+		second.segmentation.status = 'manually_verified';
+		const batch = new Batch('Batch', [first, second], 10);
+		const current = createProject(1, 10);
+		const next = createProject(4, 10);
+		batchMocks.load.mockResolvedValue(batch);
+		projectMocks.load.mockResolvedValue(next);
+		globalState.currentBatchId = 10;
+		globalState.currentProject = current;
+		startBatchReview(10, 1, 'segmentation', null, 'batch');
+
+		await navigateBatchReview('next');
+
+		expect(globalState.shared.batchReview.active).toBe(true);
+		expect(globalState.shared.batchReview.scope).toBe('batch');
+		expect(globalState.shared.batchReview.currentProjectId).toBe(4);
+		expect(globalState.currentProject).toBe(next);
+	});
+
+	it('keeps normal translation filters while navigating a fully reviewed edition', async () => {
+		const first = createItem(1, 1);
+		const second = createItem(4, 2);
+		for (const item of [first, second]) {
+			item.translations.edition = {
+				...createDefaultBatchTranslationState({
+					editionName: 'edition',
+					editionAuthor: 'Author',
+					editionLanguage: 'English'
+				}),
+				status: 'manually_verified'
+			};
+		}
+		/**
+		 * Construit un projet dont l'édition est entièrement relue.
+		 * @param {number} id Identifiant du projet.
+		 * @returns {Project} Projet prêt pour la navigation complète.
+		 */
+		const createReviewedTranslationProject = (id: number): Project => {
+			const project = createProject(id, 10);
+			const clip = new SubtitleClip(0, 1000, 1, 1, 0, 0, 'Text', [], false, true);
+			clip.translations.edition = new VerseTranslation('Reviewed', 'reviewed');
+			(
+				project as unknown as {
+					content: { timeline: { getFirstTrack: () => { clips: SubtitleClip[] } } };
+				}
+			).content = { timeline: { getFirstTrack: () => ({ clips: [clip] }) } };
+			project.projectEditorState.translationsEditor = {
+				checkOnlyFilters: vi.fn(),
+				searchQuery: '',
+				onlyShowOverlappingSubtitles: false
+			} as never;
+			return project;
+		};
+		const current = createReviewedTranslationProject(1);
+		const next = createReviewedTranslationProject(4);
+		batchMocks.load.mockResolvedValue(new Batch('Batch', [first, second], 10));
+		projectMocks.load.mockResolvedValue(next);
+		globalState.currentBatchId = 10;
+		globalState.currentProject = current;
+		startBatchReview(10, 1, 'translation', 'edition', 'batch');
+
+		await navigateBatchReview('next');
+
+		expect(next.projectEditorState.translationsEditor.checkOnlyFilters).not.toHaveBeenCalled();
+		expect(globalState.currentProject).toBe(next);
+	});
+
 	it('returns to the batch workspace after resolving the final flagged project', async () => {
 		const item = createItem(1, 1);
 		const batch = new Batch('Batch', [item], 10);

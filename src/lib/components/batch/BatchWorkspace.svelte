@@ -38,7 +38,8 @@
 	import { notifyLongTaskCompletion } from '$lib/services/UserAttentionService';
 	import {
 		openBatchReviewProject,
-		openBatchTranslationReviewProject
+		openBatchTranslationReviewProject,
+		startBatchReview
 	} from '$lib/services/BatchReviewNavigationService';
 	import { BatchCbrService, type BatchCbrQueueProgress } from '$lib/services/BatchCbrService';
 	import {
@@ -233,6 +234,13 @@
 		activeTranslationEditionName
 			? projects.map((project) => project.translations[activeTranslationEditionName!])
 			: []
+	);
+	let allActiveTranslationsVerified = $derived(
+		activeTranslationStates.length === projects.length &&
+			activeTranslationStates.length > 0 &&
+			activeTranslationStates.every(
+				(state) => state?.status === 'auto_verified' || state?.status === 'manually_verified'
+			)
 	);
 	let translationEditionsNeedingReview = $derived(
 		translationEditionNames.filter((editionName) =>
@@ -1352,6 +1360,16 @@
 		if (item?.media.status === 'processing' || item?.segmentation.status === 'processing') return;
 		const project = await ProjectService.load(projectId);
 		await MigrationService.HydrateStyleEditorUiMetadata(project);
+		if (batch && activeProjectStage === 'segmentation' && allSegmentationsVerified) {
+			startBatchReview(batch.id, projectId, 'segmentation', null, 'batch');
+		} else if (
+			batch &&
+			activeProjectStage === 'translation' &&
+			activeTranslationEditionName &&
+			allActiveTranslationsVerified
+		) {
+			startBatchReview(batch.id, projectId, 'translation', activeTranslationEditionName, 'batch');
+		}
 		globalState.currentProject = project;
 		discordService.setEditingState();
 	}

@@ -18,40 +18,22 @@
 	let batch = $state<Batch | null>(null);
 	let currentId = $derived(globalState.shared.batchReview.currentProjectId);
 	let reviewKind = $derived(globalState.shared.batchReview.kind);
+	let reviewScope = $derived(globalState.shared.batchReview.scope);
 	let editionName = $derived(globalState.shared.batchReview.editionName);
-	let currentIndex = $derived(
-		batch?.projects.findIndex((project) => project.projectId === currentId) ?? -1
-	);
-	let flagged = $derived(
-		batch?.projects.filter((project) =>
-			reviewKind === 'translation' && editionName
-				? project.translations[editionName]?.status === 'needs_review'
-				: project.segmentation.status === 'needs_review'
-		) ?? []
-	);
-	let flaggedIndex = $derived(flagged.findIndex((project) => project.projectId === currentId));
-	let hasPrevious = $derived(
-		currentIndex > 0 &&
-			(batch?.projects
-				.slice(0, currentIndex)
-				.some((project) =>
+	let navigationProjects = $derived(
+		reviewScope === 'batch'
+			? (batch?.projects ?? [])
+			: (batch?.projects.filter((project) =>
 					reviewKind === 'translation' && editionName
 						? project.translations[editionName]?.status === 'needs_review'
 						: project.segmentation.status === 'needs_review'
-				) ??
-				false)
+				) ?? [])
 	);
-	let hasNext = $derived(
-		currentIndex >= 0 &&
-			(batch?.projects
-				.slice(currentIndex + 1)
-				.some((project) =>
-					reviewKind === 'translation' && editionName
-						? project.translations[editionName]?.status === 'needs_review'
-						: project.segmentation.status === 'needs_review'
-				) ??
-				false)
+	let navigationIndex = $derived(
+		navigationProjects.findIndex((project) => project.projectId === currentId)
 	);
+	let hasPrevious = $derived(navigationIndex > 0);
+	let hasNext = $derived(navigationIndex >= 0 && navigationIndex < navigationProjects.length - 1);
 	let currentReviewResolved = $derived(
 		globalState.currentProject
 			? reviewKind === 'translation' && editionName
@@ -62,7 +44,9 @@
 					})()
 			: false
 	);
-	let canNavigateNext = $derived(hasNext || currentReviewResolved);
+	let canNavigateNext = $derived(
+		reviewScope === 'batch' ? hasNext : hasNext || currentReviewResolved
+	);
 
 	/**
 	 * Résout une traduction Batch avant la génération automatique des types.
@@ -159,11 +143,11 @@
 	<span
 		class="shrink-0 text-xs text-secondary"
 		aria-label={reviewMessage('reviewingProject', {
-			current: Math.max(flaggedIndex + 1, 1),
-			total: flagged.length
+			current: Math.max(navigationIndex + 1, 1),
+			total: navigationProjects.length
 		})}
 	>
-		{Math.max(flaggedIndex + 1, 1)} / {flagged.length}
+		{Math.max(navigationIndex + 1, 1)} / {navigationProjects.length}
 	</span>
 	<button
 		class="flex h-7 w-7 items-center justify-center rounded text-primary hover:bg-accent disabled:cursor-not-allowed disabled:opacity-35"

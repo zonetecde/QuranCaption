@@ -29,6 +29,7 @@ export type AppPage = 'home' | 'ai-video' | 'batch-import' | 'batch-workspace';
 export interface BatchReviewSessionState {
 	active: boolean;
 	kind: 'segmentation' | 'translation' | null;
+	scope: 'flagged' | 'batch';
 	batchId: number | null;
 	currentProjectId: number | null;
 	editionName: string | null;
@@ -187,6 +188,7 @@ class GlobalState {
 		batchReview: {
 			active: false,
 			kind: null,
+			scope: 'flagged',
 			batchId: null,
 			currentProjectId: null,
 			editionName: null,

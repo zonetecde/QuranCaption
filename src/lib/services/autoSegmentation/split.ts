@@ -1,6 +1,6 @@
 import { Quran } from '$lib/classes/Quran';
 import { globalState } from '$lib/runes/main.svelte';
-import { SubtitleClip } from '$lib/classes';
+import { SubtitleClip, TrackType, type Project } from '$lib/classes';
 import { SUBDIVIDE_MAX_WORDS_DISABLED, SUBDIVIDE_MAX_DURATION_DISABLED } from './types';
 import { refreshSegmentationContextFromTrack } from './context';
 import { getSubtitleClipWordCount } from './review';
@@ -13,14 +13,21 @@ import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryMana
  * @param {Awaited<ReturnType<typeof Quran.getVerse>>} verse Verset source.
  * @param {number} startWordIndex Index du premier mot.
  * @param {number} endWordIndex Index du dernier mot.
+ * @param {Project} [project] Projet explicite à modifier hors éditeur.
  */
 export async function hydrateSubtitleClipRange(
 	clip: SubtitleClip,
 	verse: Awaited<ReturnType<typeof Quran.getVerse>>,
 	startWordIndex: number,
-	endWordIndex: number
+	endWordIndex: number,
+	project?: Project
 ): Promise<void> {
 	if (!verse) return;
+	const subtitleTrack = (
+		project
+			? project.content.timeline.getFirstTrack(TrackType.Subtitle)
+			: globalState.getSubtitleTrack
+	) as typeof globalState.getSubtitleTrack;
 
 	clip.startWordIndex = startWordIndex;
 	clip.endWordIndex = endWordIndex;
@@ -30,11 +37,12 @@ export async function hydrateSubtitleClipRange(
 		startWordIndex,
 		endWordIndex
 	);
-	const subtitlesProperties = await globalState.getSubtitleTrack.getSubtitlesProperties(
+	const subtitlesProperties = await subtitleTrack.getSubtitlesProperties(
 		verse,
 		startWordIndex,
 		endWordIndex,
-		clip.surah
+		clip.surah,
+		project?.content.projectTranslation
 	);
 	clip.isFullVerse = subtitlesProperties.isFullVerse;
 	clip.isLastWordsOfVerse = subtitlesProperties.isLastWordsOfVerse;
@@ -47,11 +55,13 @@ export async function hydrateSubtitleClipRange(
  *
  * @param {SubtitleClip} clip Clip source.
  * @param {number} splitWordIndex Index du dernier mot de la partie gauche.
+ * @param {Project} [project] Projet explicite à modifier hors éditeur.
  * @returns {Promise<SubtitleClip | null>} Nouveau clip droit créé, ou null si impossible.
  */
 export async function splitSubtitleClipLocally(
 	clip: SubtitleClip,
-	splitWordIndex: number
+	splitWordIndex: number,
+	project?: Project
 ): Promise<SubtitleClip | null> {
 	const metadata = clip.alignmentMetadata;
 	if (!metadata) return null;
@@ -81,7 +91,7 @@ export async function splitSubtitleClipLocally(
 	const originalConfidence = clip.confidence;
 
 	clip.setEndTimeSilently(splitAbsoluteMs);
-	await hydrateSubtitleClipRange(clip, verse, originalStartWordIndex, splitWordIndex);
+	await hydrateSubtitleClipRange(clip, verse, originalStartWordIndex, splitWordIndex, project);
 
 	const rightClip = clip.cloneWithTimes(splitAbsoluteMs, originalEndTime);
 	rightClip.comeFromIA = originalComeFromIA;
@@ -90,7 +100,13 @@ export async function splitSubtitleClipLocally(
 	rightClip.needsCoverageReview = originalNeedsCoverageReview;
 	rightClip.needsLongReview = originalNeedsLongReview;
 	rightClip.hasBeenVerified = originalHasBeenVerified;
-	await hydrateSubtitleClipRange(rightClip, verse, splitWordIndex + 1, originalEndWordIndex);
+	await hydrateSubtitleClipRange(
+		rightClip,
+		verse,
+		splitWordIndex + 1,
+		originalEndWordIndex,
+		project
+	);
 
 	const splitOffsetS = splitWord.end;
 	const leftWords = originalMetadata.words
@@ -130,11 +146,12 @@ export async function splitSubtitleClipLocally(
 		words: rightWords
 	};
 
-	const clipIndex = globalState.getSubtitleTrack.clips.findIndex(
-		(candidate) => candidate.id === clip.id
-	);
+	const clips = project
+		? project.content.timeline.getFirstTrack(TrackType.Subtitle).clips
+		: globalState.getSubtitleTrack.clips;
+	const clipIndex = clips.findIndex((candidate) => candidate.id === clip.id);
 	if (clipIndex === -1) return null;
-	globalState.getSubtitleTrack.clips.splice(clipIndex + 1, 0, rightClip);
+	clips.splice(clipIndex + 1, 0, rightClip);
 	return rightClip;
 }
 

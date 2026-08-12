@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 
 import { Quran } from '$lib/classes/Quran';
-import type { SubtitleClip } from '$lib/classes';
+import { SubtitleClip, TrackType, type Project } from '$lib/classes';
 import { globalState } from '$lib/runes/main.svelte';
 import {
 	getSubtitleClipWordCount,
@@ -76,17 +76,22 @@ const MAX_BATCH_WORDS = 500;
  * Construit les candidats dépassant la limite de mots avec leurs mots arabes indexés.
  *
  * @param {number} maxWords Nombre maximal de mots par chunk.
+ * @param {Project} [project] Projet explicite à inspecter hors éditeur.
  * @returns {Promise<AiSubtitleSplitCandidate[]>} Candidats triés dans l'ordre de la timeline.
  */
 export async function buildAiSubtitleSplitCandidates(
-	maxWords: number
+	maxWords: number,
+	project?: Project
 ): Promise<AiSubtitleSplitCandidate[]> {
 	const candidates: AiSubtitleSplitCandidate[] = [];
 	const verses = new Map<string, Awaited<ReturnType<typeof Quran.getVerse>>>();
+	const subtitles = project
+		? project.content.timeline
+				.getFirstTrack(TrackType.Subtitle)
+				.clips.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
+		: globalState.getSubtitleClips;
 
-	for (const subtitle of [...globalState.getSubtitleClips].sort(
-		(left, right) => left.startTime - right.startTime
-	)) {
+	for (const subtitle of [...subtitles].sort((left, right) => left.startTime - right.startTime)) {
 		const wordCount = getSubtitleClipWordCount(subtitle);
 		if (!subtitle.alignmentMetadata || wordCount <= maxWords) continue;
 
@@ -307,17 +312,19 @@ function validateSplitTimings(success: AiSubtitleSplitValidationSuccess): string
  * Applique les coupes IA valides dans une seule transaction undo/redo.
  *
  * @param {AiSubtitleSplitValidationSuccess[]} validSegments Propositions à appliquer.
+ * @param {Project} [project] Projet explicite à modifier hors éditeur.
  * @returns {Promise<AiSubtitleSplitApplyReport>} Résultat détaillé de l'application.
  */
 export async function applyAiSubtitleSplitValidationSuccess(
-	validSegments: AiSubtitleSplitValidationSuccess[]
+	validSegments: AiSubtitleSplitValidationSuccess[],
+	project?: Project
 ): Promise<AiSubtitleSplitApplyReport> {
 	const errors: string[] = [];
 	let appliedSegments = 0;
 	let appliedSplits = 0;
 	let erroredSegments = 0;
 
-	ProjectHistoryManager.begin('AI split long subtitles');
+	if (!project) ProjectHistoryManager.begin('AI split long subtitles');
 	try {
 		for (const success of validSegments) {
 			const timingError = validateSplitTimings(success);
@@ -331,7 +338,8 @@ export async function applyAiSubtitleSplitValidationSuccess(
 			for (const splitWordIndex of success.chunkEndWordIndexes.slice(0, -1).reverse()) {
 				const rightClip = await splitSubtitleClipLocally(
 					success.candidate.subtitle,
-					splitWordIndex
+					splitWordIndex,
+					project
 				);
 				if (!rightClip) break;
 				segmentSplits++;
@@ -348,12 +356,14 @@ export async function applyAiSubtitleSplitValidationSuccess(
 		}
 
 		if (appliedSplits > 0) {
-			refreshSegmentationContextFromTrack(false);
-			globalState.currentProject?.detail.updateVideoDetailAttributes();
-			globalState.updateVideoPreviewUI();
+			refreshSegmentationContextFromTrack(false, project);
+			if (!project) {
+				globalState.currentProject?.detail.updateVideoDetailAttributes();
+				globalState.updateVideoPreviewUI();
+			}
 		}
 	} finally {
-		ProjectHistoryManager.commit();
+		if (!project) ProjectHistoryManager.commit();
 	}
 
 	return { appliedSegments, appliedSplits, erroredSegments, errors };

@@ -479,6 +479,12 @@ const de = {
 		errorAudioTrack: 'Das Medium konnte nicht zur Audiospur hinzugefügt werden.',
 		addTranslationsToProjects: 'Übersetzungen zu Projekten hinzufügen',
 		fetchTranslationsFromProjects: 'Übersetzungen aus anderen Projekten abrufen',
+		aiSplitLongSubtitles: 'Lange Untertitel mit KI teilen',
+		aiTrimTranslations: 'Übersetzungen mit KI kürzen',
+		aiSplitMaxWordsPrompt: 'Maximale Wörter pro Untertitel für die KI-Teilung (1–30)',
+		aiSplitMaxWordsInvalid: 'Gib eine ganze Zahl zwischen 1 und 30 ein.',
+		aiBatchOperationSummary:
+			'{completed} Projekt(e) abgeschlossen · {skipped} übersprungen · {failed} fehlgeschlagen',
 		translationEdition: 'Übersetzungsausgabe:',
 		translations: 'Übersetzungen',
 		translationNotAdded: 'Nicht hinzugefügt',

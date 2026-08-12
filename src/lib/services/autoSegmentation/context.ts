@@ -7,7 +7,7 @@ import type {
 } from './types';
 import { parseVerseRef } from './verse-ref';
 import { globalState } from '$lib/runes/main.svelte';
-import { SubtitleClip, PredefinedSubtitleClip } from '$lib/classes';
+import { SubtitleClip, PredefinedSubtitleClip, TrackType, type Project } from '$lib/classes';
 
 /**
  * Retourne un contexte de segmentation vide.
@@ -177,15 +177,25 @@ export function buildStoredAlignedSegment(
  * Reconstruit le contexte runtime à partir des clips actuellement présents sur la timeline.
  *
  * @param {boolean} preserveAudioId Si true, conserve l'audio_id courant.
+ * @param {Project} [project] Projet explicite à actualiser hors éditeur.
  */
-export function refreshSegmentationContextFromTrack(preserveAudioId: boolean): void {
-	const currentContext = globalState.getSubtitlesEditorState.segmentationContext;
+export function refreshSegmentationContextFromTrack(
+	preserveAudioId: boolean,
+	project?: Project
+): void {
+	const subtitlesEditorState = project
+		? project.projectEditorState.subtitlesEditor
+		: globalState.getSubtitlesEditorState;
+	const clips = project
+		? project.content.timeline.getFirstTrack(TrackType.Subtitle).clips
+		: globalState.getSubtitleTrack.clips;
+	const currentContext = subtitlesEditorState.segmentationContext;
 	const existingById = new Map(
 		currentContext.alignedSegments.map((segment) => [segment.clipId, segment])
 	);
 	const alignedSegments: StoredAlignedSegment[] = [];
 
-	for (const rawClip of globalState.getSubtitleTrack.clips) {
+	for (const rawClip of clips) {
 		if (rawClip instanceof SubtitleClip && rawClip.alignmentMetadata) {
 			const metadata = rawClip.alignmentMetadata;
 			alignedSegments.push({
@@ -232,7 +242,7 @@ export function refreshSegmentationContextFromTrack(preserveAudioId: boolean): v
 		}
 	}
 
-	globalState.getSubtitlesEditorState.segmentationContext = {
+	subtitlesEditorState.segmentationContext = {
 		...currentContext,
 		audioId: preserveAudioId ? currentContext.audioId : null,
 		includeWbwTimestamps: currentContext.includeWbwTimestamps,

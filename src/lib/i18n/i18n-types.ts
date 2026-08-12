@@ -10762,6 +10762,29 @@ type RootTranslation = {
 		 */
 		fetchTranslationsFromProjects: string;
 		/**
+		 * A​I​ ​S​p​l​i​t​ ​L​o​n​g​ ​S​u​b​t​i​t​l​e​s
+		 */
+		aiSplitLongSubtitles: string;
+		/**
+		 * A​I​ ​T​r​i​m​ ​T​r​a​n​s​l​a​t​i​o​n​s
+		 */
+		aiTrimTranslations: string;
+		/**
+		 * M​a​x​i​m​u​m​ ​w​o​r​d​s​ ​p​e​r​ ​s​u​b​t​i​t​l​e​ ​f​o​r​ ​A​I​ ​s​p​l​i​t​t​i​n​g​ ​(​1​–​3​0​)
+		 */
+		aiSplitMaxWordsPrompt: string;
+		/**
+		 * E​n​t​e​r​ ​a​ ​w​h​o​l​e​ ​n​u​m​b​e​r​ ​b​e​t​w​e​e​n​ ​1​ ​a​n​d​ ​3​0​.
+		 */
+		aiSplitMaxWordsInvalid: string;
+		/**
+		 * {​c​o​m​p​l​e​t​e​d​}​ ​p​r​o​j​e​c​t​(​s​)​ ​c​o​m​p​l​e​t​e​d​ ​·​ ​{​s​k​i​p​p​e​d​}​ ​s​k​i​p​p​e​d​ ​·​ ​{​f​a​i​l​e​d​}​ ​f​a​i​l​e​d
+		 * @param {unknown} completed
+		 * @param {unknown} failed
+		 * @param {unknown} skipped
+		 */
+		aiBatchOperationSummary: RequiredParams<'completed' | 'failed' | 'skipped'>;
+		/**
 		 * T​r​a​n​s​l​a​t​i​o​n​ ​e​d​i​t​i​o​n​:
 		 */
 		translationEdition: string;
@@ -21701,6 +21724,30 @@ export type TranslationFunctions = {
 		 * Fetch translations from other projects
 		 */
 		fetchTranslationsFromProjects: () => LocalizedString;
+		/**
+		 * AI Split Long Subtitles
+		 */
+		aiSplitLongSubtitles: () => LocalizedString;
+		/**
+		 * AI Trim Translations
+		 */
+		aiTrimTranslations: () => LocalizedString;
+		/**
+		 * Maximum words per subtitle for AI splitting (1–30)
+		 */
+		aiSplitMaxWordsPrompt: () => LocalizedString;
+		/**
+		 * Enter a whole number between 1 and 30.
+		 */
+		aiSplitMaxWordsInvalid: () => LocalizedString;
+		/**
+		 * {completed} project(s) completed · {skipped} skipped · {failed} failed
+		 */
+		aiBatchOperationSummary: (arg: {
+			completed: unknown;
+			failed: unknown;
+			skipped: unknown;
+		}) => LocalizedString;
 		/**
 		 * Translation edition:
 		 */

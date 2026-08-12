@@ -920,6 +920,121 @@
 	}
 
 	/**
+	 * Demande la limite de mots puis découpe par IA les sous-titres longs de tout le Batch.
+	 * @returns {Promise<void>} Résolution lorsque tous les projets ont été traités.
+	 */
+	async function startBatchAiSubtitleSplit(): Promise<void> {
+		if (!batch || selectedProjects.length === 0 || incompatibleQueueActive) return;
+		const aiSettings = globalState.settings!.aiTranslationSettings;
+		if (!aiSettings.openAiApiKey.trim()) {
+			toast.error(get(LL).translations.configureAiKeyFirst());
+			return;
+		}
+		if (!aiSettings.textAiApiEndpoint.trim()) {
+			toast.error(get(LL).translations.configureTextAiFirst());
+			return;
+		}
+		const input = await ModalManager.inputModal(batchMessage('aiSplitMaxWordsPrompt'), '', 2, '10');
+		if (!input) return;
+		const maxWords = Number(input);
+		if (!Number.isInteger(maxWords) || maxWords < 1 || maxWords > 30) {
+			toast.error(batchMessage('aiSplitMaxWordsInvalid'));
+			return;
+		}
+		if (incompatibleQueueActive || !workflow.begin('translation')) return;
+		const items = [...selectedProjects];
+		queueError = '';
+		translationProgress = {
+			active: 0,
+			completed: 0,
+			failed: 0,
+			skipped: 0,
+			remaining: items.length,
+			progress: 0,
+			total: items.length
+		};
+		const service = new BatchTranslationService({
+			onUpdate: (item) => refreshProjectRow(item),
+			onProgress: (progress) => (translationProgress = progress)
+		});
+		try {
+			const result = await service.aiSplitLongSubtitles(batch, items, maxWords, aiSettings);
+			batch = await BatchService.load(batch.id);
+			const message = batchMessage('aiBatchOperationSummary', {
+				completed: result.completed,
+				skipped: result.skipped,
+				failed: result.failed
+			});
+			if (result.failed > 0) toast.error(message);
+			else toast.success(message);
+		} catch (splitError) {
+			queueError = String(splitError);
+		} finally {
+			workflow.finish('translation');
+			revision++;
+			await BatchService.loadUserBatchesDetails();
+		}
+	}
+
+	/**
+	 * Lance le trimmer IA pour l'édition active sur tout le Batch.
+	 * @returns {Promise<void>} Résolution lorsque tous les projets ont été traités.
+	 */
+	async function startBatchAiTranslationTrim(): Promise<void> {
+		if (
+			!batch ||
+			!activeTranslationEditionName ||
+			selectedProjects.length === 0 ||
+			incompatibleQueueActive
+		)
+			return;
+		const aiSettings = globalState.settings!.aiTranslationSettings;
+		if (!aiSettings.openAiApiKey.trim()) {
+			toast.error(get(LL).translations.configureAiKeyFirst());
+			return;
+		}
+		if (!aiSettings.textAiApiEndpoint.trim()) {
+			toast.error(get(LL).translations.configureTextAiFirst());
+			return;
+		}
+		if (!workflow.begin('translation')) return;
+		const editionName = activeTranslationEditionName;
+		const items = [...selectedProjects];
+		queueError = '';
+		translationProgress = {
+			active: 0,
+			completed: 0,
+			failed: 0,
+			skipped: 0,
+			remaining: items.length,
+			progress: 0,
+			total: items.length
+		};
+		const service = new BatchTranslationService({
+			onUpdate: (item) => refreshProjectRow(item),
+			onProgress: (progress) => (translationProgress = progress)
+		});
+		try {
+			const result = await service.aiTrimEdition(batch, items, editionName, aiSettings);
+			batch = await BatchService.load(batch.id);
+			selectActiveTranslationEdition(editionName, false);
+			const message = batchMessage('aiBatchOperationSummary', {
+				completed: result.completed,
+				skipped: result.skipped,
+				failed: result.failed
+			});
+			if (result.failed > 0) toast.error(message);
+			else toast.success(message);
+		} catch (trimError) {
+			queueError = String(trimError);
+		} finally {
+			workflow.finish('translation');
+			revision++;
+			await BatchService.loadUserBatchesDetails();
+		}
+	}
+
+	/**
 	 * Ajoute ou retire un projet de la sélection UI.
 	 * @param {number} projectId Identifiant du projet.
 	 * @returns {void}
@@ -1462,6 +1577,26 @@
 								<span class="material-icons-outlined leading-none">cloud_sync</span>
 								<span class="leading-none">{batchMessage('fetchTranslationsFromProjects')}</span>
 							</button>
+							<button
+								class="btn btn-primary inline-flex h-11 items-center justify-center gap-2 px-5"
+								type="button"
+								disabled={selectedProjects.length === 0 || incompatibleQueueActive}
+								onclick={startBatchAiSubtitleSplit}
+							>
+								<span class="material-icons-outlined leading-none">call_split</span>
+								<span class="leading-none">{batchMessage('aiSplitLongSubtitles')}</span>
+							</button>
+							<button
+								class="btn btn-primary inline-flex h-11 items-center justify-center gap-2 px-5"
+								type="button"
+								disabled={!activeTranslationEditionName ||
+									selectedProjects.length === 0 ||
+									incompatibleQueueActive}
+								onclick={startBatchAiTranslationTrim}
+							>
+								<span class="material-icons-outlined leading-none">auto_fix_high</span>
+								<span class="leading-none">{batchMessage('aiTrimTranslations')}</span>
+							</button>
 						{/if}
 					</div>
 					<div
@@ -1591,7 +1726,7 @@
 					progress={segmentationProgress.progress}
 				/>
 			{/if}
-			{#if translationQueueActive && activeTranslationEditionName}
+			{#if translationQueueActive}
 				<BatchProgressCard
 					summary={batchMessage('translationQueueSummary', {
 						completed:

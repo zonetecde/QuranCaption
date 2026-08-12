@@ -15,10 +15,25 @@ import {
 	getProjectTranslationReviewCounts
 } from './TranslationFetchService';
 import { runBatchWorkerPool } from './BatchWorkerPool';
+import type { AITranslationSettings } from '$lib/classes/Settings.svelte';
+import {
+	applyAiSubtitleSplitValidationSuccess,
+	buildAiSubtitleSplitBatches,
+	buildAiSubtitleSplitCandidates,
+	runAiSubtitleSplitBatchStreaming,
+	validateAiSubtitleSplitBatchResult
+} from './AiSubtitleSplittingService';
+import {
+	applyAdvancedTrimValidationSuccess,
+	buildAdvancedTrimBatches,
+	buildAdvancedTrimVerseCandidates,
+	runAdvancedTrimBatchStreaming,
+	validateAdvancedTrimBatchResult
+} from './AdvancedAITrimming';
 
 export const BATCH_TRANSLATION_CONCURRENCY = 3;
 
-export type BatchTranslationActivity = 'adding' | 'fetching' | 'saving';
+export type BatchTranslationActivity = 'adding' | 'fetching' | 'splitting' | 'trimming' | 'saving';
 
 export interface BatchTranslationServiceOptions {
 	onUpdate?: (
@@ -323,6 +338,272 @@ export class BatchTranslationService {
 			} finally {
 				active--;
 				progressByProject.set(item.projectId, 100);
+				reportProgress();
+			}
+		});
+		await this.saveChain;
+		return result;
+	}
+
+	/**
+	 * Découpe par IA les sous-titres longs de tous les projets fournis.
+	 * @param {Batch} batch Manifeste parent.
+	 * @param {BatchProjectItem[]} items Projets du Batch à traiter.
+	 * @param {number} maxWords Nombre maximal de mots par sous-titre.
+	 * @param {AITranslationSettings} aiSettings Configuration du fournisseur IA.
+	 * @returns {Promise<BatchTranslationRunResult>} Résumé de la queue.
+	 */
+	async aiSplitLongSubtitles(
+		batch: Batch,
+		items: BatchProjectItem[],
+		maxWords: number,
+		aiSettings: AITranslationSettings
+	): Promise<BatchTranslationRunResult> {
+		const result: BatchTranslationRunResult = { completed: 0, failed: 0, skipped: 0 };
+		let active = 0;
+		/**
+		 * Publie l'avancement agrégé des projets découpés.
+		 * @returns {void}
+		 */
+		const reportProgress = (): void => {
+			const processed = result.completed + result.failed + result.skipped;
+			this.onProgress?.({
+				active,
+				completed: result.completed,
+				failed: result.failed,
+				skipped: result.skipped,
+				remaining: Math.max(items.length - active - processed, 0),
+				progress: Math.round((processed / Math.max(items.length, 1)) * 100),
+				total: items.length
+			});
+		};
+		reportProgress();
+		await runBatchWorkerPool(items, BATCH_TRANSLATION_CONCURRENCY, async (item) => {
+			active++;
+			reportProgress();
+			try {
+				console.info('[Batch AI Split] Starting project', {
+					projectId: item.projectId,
+					projectName: item.projectName,
+					maxWords
+				});
+				const project = await ProjectService.load(item.projectId);
+				const candidates = await buildAiSubtitleSplitCandidates(maxWords, project);
+				if (candidates.length === 0) {
+					console.info('[Batch AI Split] No eligible subtitle', {
+						projectId: item.projectId,
+						projectName: item.projectName
+					});
+					result.skipped++;
+					return;
+				}
+
+				const errors: string[] = [];
+				let appliedSplits = 0;
+				for (const [batchIndex, splitBatch] of buildAiSubtitleSplitBatches(candidates).entries()) {
+					console.info('[Batch AI Split] Running AI batch', {
+						projectId: item.projectId,
+						batch: batchIndex + 1,
+						segments: splitBatch.segments.length
+					});
+					const response = await runAiSubtitleSplitBatchStreaming({
+						apiKey: aiSettings.openAiApiKey.trim(),
+						endpoint: aiSettings.textAiApiEndpoint.trim(),
+						model: aiSettings.advancedTrimModel,
+						reasoningEffort: aiSettings.advancedTrimReasoningEffort,
+						batchId: `batch-ai-split-${item.projectId}-${batchIndex + 1}`,
+						batch: splitBatch.request
+					});
+					const validation = validateAiSubtitleSplitBatchResult(splitBatch, response.parsed);
+					const applyReport = await applyAiSubtitleSplitValidationSuccess(
+						validation.validSegments,
+						project
+					);
+					appliedSplits += applyReport.appliedSplits;
+					errors.push(...validation.errors, ...applyReport.errors);
+				}
+
+				if (appliedSplits > 0) {
+					for (const edition of project.content.projectTranslation.addedTranslationEditions) {
+						project.content.projectTranslation.updateProjectPercentage(project, edition);
+						const state = item.translations[edition.name];
+						if (!state) continue;
+						state.review = getProjectTranslationReviewCounts(project, edition.name);
+						state.status = state.review.pending === 0 ? 'auto_verified' : 'needs_review';
+						state.progress = 100;
+						state.error = null;
+						state.completedAt = state.review.pending === 0 ? new Date() : null;
+					}
+					this.onUpdate?.(item, '', 'saving');
+					await project.save();
+					await this.saveBatch(batch);
+				}
+				if (errors.length > 0) throw new Error(errors[0]);
+				console.info('[Batch AI Split] Project completed', {
+					projectId: item.projectId,
+					projectName: item.projectName,
+					appliedSplits
+				});
+				result.completed++;
+			} catch (error) {
+				console.error('[Batch AI Split] Project failed', {
+					projectId: item.projectId,
+					projectName: item.projectName,
+					error
+				});
+				result.failed++;
+			} finally {
+				active--;
+				reportProgress();
+			}
+		});
+		await this.saveChain;
+		return result;
+	}
+
+	/**
+	 * Lance le trimmer IA sur l'édition choisie dans tous les projets fournis.
+	 * @param {Batch} batch Manifeste parent.
+	 * @param {BatchProjectItem[]} items Projets du Batch à traiter.
+	 * @param {string} editionName Nom de l'édition cible.
+	 * @param {AITranslationSettings} aiSettings Configuration du fournisseur IA.
+	 * @returns {Promise<BatchTranslationRunResult>} Résumé de la queue.
+	 */
+	async aiTrimEdition(
+		batch: Batch,
+		items: BatchProjectItem[],
+		editionName: string,
+		aiSettings: AITranslationSettings
+	): Promise<BatchTranslationRunResult> {
+		const result: BatchTranslationRunResult = { completed: 0, failed: 0, skipped: 0 };
+		let active = 0;
+		/**
+		 * Publie l'avancement agrégé des projets trimmés.
+		 * @returns {void}
+		 */
+		const reportProgress = (): void => {
+			const processed = result.completed + result.failed + result.skipped;
+			this.onProgress?.({
+				active,
+				completed: result.completed,
+				failed: result.failed,
+				skipped: result.skipped,
+				remaining: Math.max(items.length - active - processed, 0),
+				progress: Math.round((processed / Math.max(items.length, 1)) * 100),
+				total: items.length
+			});
+		};
+		reportProgress();
+		await runBatchWorkerPool(items, BATCH_TRANSLATION_CONCURRENCY, async (item) => {
+			active++;
+			reportProgress();
+			try {
+				console.info('[Batch AI Trim] Starting project', {
+					projectId: item.projectId,
+					projectName: item.projectName,
+					editionName
+				});
+				const project = await ProjectService.load(item.projectId);
+				const edition = project.content.projectTranslation.addedTranslationEditions.find(
+					(candidate) => candidate.name === editionName
+				);
+				const state = item.translations[editionName];
+				if (!edition || !state) {
+					console.info('[Batch AI Trim] Edition missing, skipping project', {
+						projectId: item.projectId,
+						projectName: item.projectName,
+						editionName
+					});
+					result.skipped++;
+					return;
+				}
+				const candidates = buildAdvancedTrimVerseCandidates(
+					edition,
+					aiSettings.advancedAlsoAskReviewed,
+					project
+				);
+				if (candidates.length === 0) {
+					console.info('[Batch AI Trim] No eligible translation', {
+						projectId: item.projectId,
+						projectName: item.projectName,
+						editionName
+					});
+					result.skipped++;
+					return;
+				}
+
+				this.onUpdate?.(item, editionName, 'trimming');
+				const validationErrors: string[] = [];
+				const reviewWarnings: string[] = [];
+				let appliedSegments = 0;
+				const trimBatches = buildAdvancedTrimBatches(
+					candidates,
+					aiSettings.advancedTrimModel,
+					aiSettings.advancedTrimReasoningEffort,
+					0,
+					Number.MAX_SAFE_INTEGER
+				);
+				for (const [batchIndex, trimBatch] of trimBatches.entries()) {
+					console.info('[Batch AI Trim] Running AI batch', {
+						projectId: item.projectId,
+						batch: batchIndex + 1,
+						verses: trimBatch.verses.length
+					});
+					const response = await runAdvancedTrimBatchStreaming({
+						apiKey: aiSettings.openAiApiKey.trim(),
+						endpoint: aiSettings.textAiApiEndpoint.trim(),
+						model: aiSettings.advancedTrimModel,
+						reasoningEffort: aiSettings.advancedTrimReasoningEffort,
+						batchId: `batch-ai-trim-${item.projectId}-${batchIndex + 1}`,
+						batch: trimBatch.request
+					});
+					const validation = validateAdvancedTrimBatchResult(trimBatch, response.parsed);
+					const applyReport = applyAdvancedTrimValidationSuccess(
+						edition,
+						validation.validVerses,
+						project
+					);
+					appliedSegments += applyReport.appliedSegments;
+					validationErrors.push(...validation.errors);
+					reviewWarnings.push(...applyReport.errors);
+				}
+				if (reviewWarnings.length > 0) {
+					console.warn('[Batch AI Trim] Segments require review', {
+						projectId: item.projectId,
+						projectName: item.projectName,
+						editionName,
+						warnings: reviewWarnings
+					});
+				}
+
+				if (appliedSegments > 0) {
+					project.content.projectTranslation.updateProjectPercentage(project, edition);
+					state.review = getProjectTranslationReviewCounts(project, editionName);
+					state.status = state.review.pending === 0 ? 'auto_verified' : 'needs_review';
+					state.progress = 100;
+					state.error = validationErrors[0] ?? null;
+					state.completedAt = state.review.pending === 0 ? new Date() : null;
+					this.onUpdate?.(item, editionName, 'saving');
+					await project.save();
+					await this.saveBatch(batch);
+				}
+				if (validationErrors.length > 0) throw new Error(validationErrors[0]);
+				console.info('[Batch AI Trim] Project completed', {
+					projectId: item.projectId,
+					projectName: item.projectName,
+					appliedSegments
+				});
+				result.completed++;
+			} catch (error) {
+				console.error('[Batch AI Trim] Project failed', {
+					projectId: item.projectId,
+					projectName: item.projectName,
+					editionName,
+					error
+				});
+				result.failed++;
+			} finally {
+				active--;
 				reportProgress();
 			}
 		});

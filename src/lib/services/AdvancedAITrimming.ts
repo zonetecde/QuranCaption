@@ -777,12 +777,15 @@ function getAiSegmentText(segment: Record<string, unknown>): string {
  *
  * @param {Edition} edition Edition de traduction a modifier.
  * @param {AdvancedTrimValidationSuccess[]} validVerses Versets valides renvoyes par la validation.
+ * @param {Project} [project] Projet explicite à modifier hors éditeur.
  * @returns {AdvancedTrimApplyReport} Rapport d'application des trims.
  */
 export function applyAdvancedTrimValidationSuccess(
 	edition: Edition,
-	validVerses: AdvancedTrimValidationSuccess[]
+	validVerses: AdvancedTrimValidationSuccess[],
+	project?: Project
 ): AdvancedTrimApplyReport {
+	if (project) return applyAdvancedTrimValidationSuccessInternal(edition, validVerses, project);
 	return ProjectHistoryManager.track('apply advanced translation trim', () =>
 		applyAdvancedTrimValidationSuccessInternal(edition, validVerses)
 	);
@@ -793,11 +796,13 @@ export function applyAdvancedTrimValidationSuccess(
  *
  * @param {Edition} edition Edition de traduction a modifier.
  * @param {AdvancedTrimValidationSuccess[]} validVerses Versets valides renvoyes par la validation.
+ * @param {Project} [project] Projet explicite à modifier hors éditeur.
  * @returns {AdvancedTrimApplyReport} Rapport d'application des trims.
  */
 function applyAdvancedTrimValidationSuccessInternal(
 	edition: Edition,
-	validVerses: AdvancedTrimValidationSuccess[]
+	validVerses: AdvancedTrimValidationSuccess[],
+	project?: Project
 ): AdvancedTrimApplyReport {
 	let appliedSegments = 0;
 	let alignedSegments = 0;
@@ -830,7 +835,11 @@ function applyAdvancedTrimValidationSuccessInternal(
 		}
 
 		for (const verseTranslation of verseTranslations) {
-			verseTranslation?.tryRecalculateTranslationIndexes(edition, success.candidate.verseKey);
+			verseTranslation?.tryRecalculateTranslationIndexes(
+				edition,
+				success.candidate.verseKey,
+				success.candidate.sourceTranslation
+			);
 		}
 
 		const ruleReport = collectAdvancedTrimRuleErrors(
@@ -847,10 +856,12 @@ function applyAdvancedTrimValidationSuccessInternal(
 
 			if (erroredIndexes.has(index)) {
 				verseTranslation.isBruteForce = remapFailedIndexes.has(index);
-				verseTranslation.updateStatus('ai error', edition);
+				if (project) verseTranslation.status = 'ai error';
+				else verseTranslation.updateStatus('ai error', edition);
 				erroredSegments++;
 			} else {
-				verseTranslation.updateStatus('ai trimmed', edition);
+				if (project) verseTranslation.status = 'ai trimmed';
+				else verseTranslation.updateStatus('ai trimmed', edition);
 				alignedSegments++;
 			}
 		}

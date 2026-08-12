@@ -477,6 +477,12 @@ const fr = {
 		errorAudioTrack: 'Impossible d’ajouter le média à la piste audio.',
 		addTranslationsToProjects: 'Ajouter des traductions aux projets',
 		fetchTranslationsFromProjects: 'Récupérer les traductions des autres projets',
+		aiSplitLongSubtitles: 'Découper les longs sous-titres avec l’IA',
+		aiTrimTranslations: 'Trimmer les traductions avec l’IA',
+		aiSplitMaxWordsPrompt: 'Nombre maximal de mots par sous-titre pour le découpage IA (1–30)',
+		aiSplitMaxWordsInvalid: 'Saisissez un nombre entier compris entre 1 et 30.',
+		aiBatchOperationSummary:
+			'{completed} projet(s) terminé(s) · {skipped} ignoré(s) · {failed} échoué(s)',
 		translationEdition: 'Édition de traduction :',
 		translations: 'Traductions',
 		translationNotAdded: 'Non ajoutée',

@@ -104,6 +104,7 @@ function createProject(id: number, waitForDownload: () => Promise<void>): Projec
 describe('BatchTranslationService', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		globalState.userProjectsDetails = [];
 		translationMocks.getClips.mockReturnValue([{}]);
 		translationMocks.getCounts.mockReturnValue({
 			total: 1,
@@ -141,6 +142,9 @@ describe('BatchTranslationService', () => {
 		expect(BATCH_TRANSLATION_CONCURRENCY).toBe(3);
 		expect(maximumActive).toBe(3);
 		expect(globalState.currentProject).toBe(currentProject);
+		expect(globalState.userProjectsDetails.map((detail) => detail.id).sort()).toEqual([
+			1, 2, 3, 4, 5, 6
+		]);
 		expect(result).toEqual({ completed: 12, failed: 0, skipped: 0 });
 		expect(items.every((item) => item.translations[edition.name].status === 'ready_to_fetch')).toBe(
 			true

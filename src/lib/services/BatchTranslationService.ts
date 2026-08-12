@@ -189,6 +189,10 @@ export class BatchTranslationService {
 					state.progress = 95;
 					this.onUpdate?.(item, edition.name, 'saving');
 					await project.save();
+					globalState.userProjectsDetails = [
+						project.detail,
+						...globalState.userProjectsDetails.filter((detail) => detail.id !== project.detail.id)
+					];
 					state.review = getProjectTranslationReviewCounts(project, edition.name);
 					state.status = state.review.pending === 0 ? 'auto_verified' : 'ready_to_fetch';
 					state.progress = 100;
@@ -298,6 +302,10 @@ export class BatchTranslationService {
 				progressByProject.set(item.projectId, state.progress);
 				this.onUpdate?.(item, editionName, 'saving');
 				await project.save();
+				globalState.userProjectsDetails = [
+					project.detail,
+					...globalState.userProjectsDetails.filter((detail) => detail.id !== project.detail.id)
+				];
 				state.status = state.review.pending === 0 ? 'auto_verified' : 'needs_review';
 				state.progress = 100;
 				state.fetchedAt = new Date();

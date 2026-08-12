@@ -6,13 +6,12 @@ vi.mock('$lib/services/AdvancedAITrimming', () => ({
 	markInvalidAdvancedTrimTranslations: vi.fn()
 }));
 
-import { Edition, SubtitleClip } from '$lib/classes';
+import { Edition, SubtitleClip, type Project, type ProjectDetail } from '$lib/classes';
 import { VerseTranslation } from '$lib/classes/Translation.svelte';
 import {
 	fetchTranslationsFromOtherProjects,
 	getProjectTranslationReviewCounts
 } from '$lib/services/TranslationFetchService';
-import type { Project, ProjectDetail } from '$lib/classes';
 
 const edition = new Edition('key', 'edition', 'Author', 'English', 'ltr', '', '', '', '');
 
@@ -138,9 +137,60 @@ describe('TranslationFetchService', () => {
 		});
 
 		expect(progress[0]).toBe(0);
-		expect(progress).toContain(25);
-		expect(progress).toContain(50);
-		expect(progress).toContain(75);
+		expect(progress).toContain(45);
+		expect(progress).toContain(90);
 		expect(progress.at(-1)).toBe(100);
+		expect(projectMocks.load).toHaveBeenCalledTimes(2);
+	});
+
+	it('ignores unreadable projects and uses readable batch projects', async () => {
+		const targetClip = createClip('Pending', 'to review');
+		const target = createProject(1, [targetClip]);
+		const batchSource = createProject(3, [createClip('Batch translation', 'reviewed')]);
+		const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		projectMocks.load.mockImplementation(async (id: number) => {
+			if (id === 2) throw new Error('Unreadable project');
+			return batchSource;
+		});
+		const batchDetail = createDetail(3, '2026-01-01');
+		batchDetail.batchId = 10;
+
+		const result = await fetchTranslationsFromOtherProjects({
+			targetProject: target,
+			edition,
+			sourceProjectDetails: [createDetail(2, '2026-01-02'), batchDetail]
+		});
+
+		expect(targetClip.translations[edition.name]).toMatchObject({
+			text: 'High priority',
+			status: 'fetched'
+		});
+		expect(result.fetched).toBe(1);
+		expect(warning).toHaveBeenCalledOnce();
+		warning.mockRestore();
+	});
+
+	it('upgrades an existing fetched translation only from a higher-priority source', async () => {
+		const targetClip = createClip('Previously fetched', 'fetched');
+		const target = createProject(1, [targetClip]);
+		projectMocks.load.mockImplementation(async (id: number) =>
+			createProject(id, [
+				createClip(
+					id === 2 ? 'Another fetched translation' : 'Reviewed translation',
+					id === 2 ? 'fetched' : 'reviewed'
+				)
+			])
+		);
+
+		await fetchTranslationsFromOtherProjects({
+			targetProject: target,
+			edition,
+			sourceProjectDetails: [createDetail(2, '2026-01-02'), createDetail(3, '2026-01-01')]
+		});
+
+		expect(targetClip.translations[edition.name]).toMatchObject({
+			text: 'High priority',
+			status: 'fetched'
+		});
 	});
 });

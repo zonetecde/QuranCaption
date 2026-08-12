@@ -15,6 +15,7 @@ import { markInvalidAdvancedTrimTranslations } from './AdvancedAITrimming';
 import { ProjectService } from './ProjectService';
 
 const QC1_RELEASE_DATE = new Date('2025-08-29');
+const SOURCE_LOAD_CONCURRENCY = 8;
 const HIGH_PRIORITY_FETCH_STATUSES = new Set<TranslationStatus>([
 	'completed by default',
 	'reviewed',
@@ -107,13 +108,24 @@ export async function fetchTranslationsFromOtherProjects(
 		onProgress
 	} = options;
 	const pendingByKey = new Map<string, SubtitleClip[]>();
+	const fetchedIds = new Set<number>();
 	const changedIds = new Set<number>();
 
 	for (const subtitle of getProjectSubtitleClips(targetProject)) {
 		const translation = subtitle.translations[edition.name] as VerseTranslation | undefined;
-		if (!translation || translation.isStatusComplete()) continue;
+		if (!translation || (translation.isStatusComplete() && translation.status !== 'fetched'))
+			continue;
+		if (translation.status === 'fetched') fetchedIds.add(subtitle.id);
 		const key = getTranslationFetchKey(subtitle);
 		pendingByKey.set(key, [...(pendingByKey.get(key) ?? []), subtitle]);
+	}
+	if (pendingByKey.size === 0) {
+		onProgress?.(100);
+		targetProject.content.projectTranslation.updateProjectPercentage(targetProject, edition);
+		return {
+			fetched: 0,
+			review: getProjectTranslationReviewCounts(targetProject, edition.name)
+		};
 	}
 
 	const sources = sourceProjectDetails
@@ -125,47 +137,76 @@ export async function fetchTranslationsFromOtherProjects(
 		)
 		.slice()
 		.sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
-	const totalSourcePasses = sources.length * 2;
-	let completedSourcePasses = 0;
-	let reportedProgress = totalSourcePasses === 0 ? 100 : 0;
+	const loadedSources = new Map<number, Project | null>();
+	let completedLoads = 0;
+	let reportedProgress = sources.length === 0 ? 100 : 0;
 	onProgress?.(reportedProgress);
 
-	for (const allowedStatuses of [HIGH_PRIORITY_FETCH_STATUSES, LOW_PRIORITY_FETCH_STATUSES]) {
+	for (const [priorityIndex, allowedStatuses] of [
+		HIGH_PRIORITY_FETCH_STATUSES,
+		LOW_PRIORITY_FETCH_STATUSES
+	].entries()) {
 		if (pendingByKey.size === 0) break;
-		for (const detail of sources) {
+		for (
+			let sourceIndex = 0;
+			sourceIndex < sources.length;
+			sourceIndex += SOURCE_LOAD_CONCURRENCY
+		) {
 			if (pendingByKey.size === 0) break;
-			const sourceProject = await ProjectService.load(detail.id);
-			completedSourcePasses++;
-			reportedProgress = Math.round((completedSourcePasses * 100) / totalSourcePasses);
-			onProgress?.(reportedProgress);
-			if (!sourceProject) continue;
-			for (const sourceClip of getProjectSubtitleClips(sourceProject)) {
-				const source = sourceClip.translations[edition.name] as VerseTranslation | undefined;
-				if (!source || !allowedStatuses.has(source.status)) continue;
-				const matches = pendingByKey.get(getTranslationFetchKey(sourceClip));
-				const targetClip = matches?.shift();
-				if (!targetClip || !matches) continue;
-				if (matches.length === 0) pendingByKey.delete(getTranslationFetchKey(sourceClip));
+			const sourceBatch = sources.slice(sourceIndex, sourceIndex + SOURCE_LOAD_CONCURRENCY);
+			await Promise.all(
+				sourceBatch.map(async (detail) => {
+					if (loadedSources.has(detail.id)) return;
+					try {
+						loadedSources.set(detail.id, await ProjectService.load(detail.id));
+					} catch (error) {
+						loadedSources.set(detail.id, null);
+						console.warn(`Impossible de charger le projet source ${detail.id}:`, error);
+					} finally {
+						completedLoads++;
+						reportedProgress = Math.round((completedLoads * 90) / sources.length);
+						onProgress?.(reportedProgress);
+					}
+				})
+			);
+			for (const detail of sourceBatch) {
+				const sourceProject = loadedSources.get(detail.id);
+				if (!sourceProject) continue;
+				for (const sourceClip of getProjectSubtitleClips(sourceProject)) {
+					const source = sourceClip.translations[edition.name] as VerseTranslation | undefined;
+					if (!source || !allowedStatuses.has(source.status)) continue;
+					const matches = pendingByKey.get(getTranslationFetchKey(sourceClip));
+					const targetClip = matches?.shift();
+					if (!targetClip || !matches) continue;
+					if (matches.length === 0) pendingByKey.delete(getTranslationFetchKey(sourceClip));
 
-				const target = targetClip.translations[edition.name] as VerseTranslation;
-				const fullVerse = targetProject.content.projectTranslation.getVerseTranslation(
-					edition,
-					sourceClip.getVerseKey()
-				);
-				target.text =
-					(source.isBruteForce
-						? source.text
-						: sliceTranslationTrimUnits(fullVerse, source.startWordIndex, source.endWordIndex)) ||
-					source.text;
-				target.startWordIndex = source.startWordIndex;
-				target.endWordIndex = source.endWordIndex;
-				target.isBruteForce = source.isBruteForce;
-				target.inlineStyleRuns = [...(source.inlineStyleRuns ?? [])];
-				target.status = 'fetched';
-				if (source.isBruteForce) {
-					target.tryRecalculateTranslationIndexes(edition, sourceClip.getVerseKey(), fullVerse);
+					const target = targetClip.translations[edition.name] as VerseTranslation;
+					const fullVerse = targetProject.content.projectTranslation.getVerseTranslation(
+						edition,
+						sourceClip.getVerseKey()
+					);
+					target.text =
+						(source.isBruteForce
+							? source.text
+							: sliceTranslationTrimUnits(fullVerse, source.startWordIndex, source.endWordIndex)) ||
+						source.text;
+					target.startWordIndex = source.startWordIndex;
+					target.endWordIndex = source.endWordIndex;
+					target.isBruteForce = source.isBruteForce;
+					target.inlineStyleRuns = [...(source.inlineStyleRuns ?? [])];
+					target.status = 'fetched';
+					if (source.isBruteForce) {
+						target.tryRecalculateTranslationIndexes(edition, sourceClip.getVerseKey(), fullVerse);
+					}
+					changedIds.add(targetClip.id);
 				}
-				changedIds.add(targetClip.id);
+			}
+		}
+		if (priorityIndex === 0) {
+			for (const [key, matches] of pendingByKey) {
+				const remaining = matches.filter((subtitle) => !fetchedIds.has(subtitle.id));
+				if (remaining.length === 0) pendingByKey.delete(key);
+				else pendingByKey.set(key, remaining);
 			}
 		}
 	}

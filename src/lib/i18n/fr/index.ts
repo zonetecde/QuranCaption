@@ -1241,6 +1241,8 @@ const fr = {
 		aiSemanticSplitCompletedWithIssues:
 			'Découpe IA terminée avec des problèmes. Consultez le journal d’activité.',
 		aiSemanticSplitApplied: '{count} découpe(s) selon le sens appliquée(s).',
+		aiSemanticSplitMissingWbw:
+			'{count} sous-titre(s) ne seront pas découpé(s), car leurs horodatages mot par mot sont manquants.',
 		splitWbwRequired:
 			'Cela ne fonctionnera qu\u2019avec les sous-titres ayant des horodatages mot par mot.',
 		waqfDescription:

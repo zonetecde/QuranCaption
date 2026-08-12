@@ -1244,6 +1244,8 @@ const de = {
 		aiSemanticSplitCompletedWithIssues:
 			'KI-Teilung mit Problemen abgeschlossen. Siehe Aktivitätsprotokoll.',
 		aiSemanticSplitApplied: '{count} sinngemäße Teilung(en) angewendet.',
+		aiSemanticSplitMissingWbw:
+			'{count} Untertitel werden nicht geteilt, da ihre Wort-für-Wort-Zeitstempel fehlen.',
 		splitWbwRequired: 'Dies funktioniert nur mit Untertiteln, die Wort-für-Wort-Zeitstempel haben.',
 		waqfDescription:
 			'Segmente ohne Waqf-Zeichen bleiben unverändert, auch wenn sie die Wort-/Dauer-Grenzen überschreiten.',

@@ -15,6 +15,7 @@
 		type AiSubtitleSplitCandidate
 	} from '$lib/services/AiSubtitleSplittingService';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { getSubtitleClipWordCount } from '$lib/services/AutoSegmentation';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 
@@ -76,6 +77,11 @@
 			(total, candidate) => total + Math.ceil(candidate.wordCount / candidate.maxWords),
 			0
 		)
+	);
+	const missingWbwCount = $derived(
+		globalState.getSubtitleClips.filter(
+			(subtitle) => getSubtitleClipWordCount(subtitle) > maxWords && !subtitle.alignmentMetadata
+		).length
 	);
 
 	/**
@@ -418,6 +424,14 @@
 				columnsClass="grid-cols-2"
 			/>
 		</div>
+
+		{#if missingWbwCount > 0}
+			<div
+				class="rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100"
+			>
+				{$LL.editor.aiSemanticSplitMissingWbw({ count: missingWbwCount })}
+			</div>
+		{/if}
 
 		<div class="rounded-xl border border-color bg-secondary px-4 py-4 space-y-3">
 			<div class="flex items-center justify-between gap-3">

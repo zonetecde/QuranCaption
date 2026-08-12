@@ -640,6 +640,8 @@ const editor = {
 		'{successful}/{total} segment(s) processed, {splits} split(s) applied, {failed} segment(s) had issues.',
 	aiSemanticSplitCompletedWithIssues: 'AI split completed with issues. See the activity log.',
 	aiSemanticSplitApplied: '{count} meaning-aware split(s) applied.',
+	aiSemanticSplitMissingWbw:
+		'{count} subtitle(s) will not be split because their word-by-word timestamps are missing.',
 	splitWbwRequired: 'This will only work with subtitles that have word-by-word timestamps.',
 	waqfDescription:
 		'Segments without a waqf mark stay as-is, even if they exceed word/duration limits.',

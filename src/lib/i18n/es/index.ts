@@ -1238,6 +1238,8 @@ const es = {
 		aiSemanticSplitCompletedWithIssues:
 			'División IA completada con problemas. Consulta el registro de actividad.',
 		aiSemanticSplitApplied: '{count} división(es) por significado aplicada(s).',
+		aiSemanticSplitMissingWbw:
+			'{count} subtítulo(s) no se dividirán porque faltan sus marcas de tiempo palabra por palabra.',
 		splitWbwRequired:
 			'Esto solo funcionará con subtítulos que tengan marcas de tiempo palabra por palabra.',
 		waqfDescription:

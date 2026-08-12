@@ -2384,7 +2384,8 @@ const zh = {
 			VERTICAL_SCROLL: '垂直滚动',
 			FRAME_BY_FRAME_SCROLL: '滚轮逐帧',
 			FRAME_BACKWARD: '上一帧',
-			FRAME_FORWARD: '下一帧'
+			FRAME_FORWARD: '下一帧',
+			QUICK_MERGE_AT_CURSOR: '切换快速合并'
 		},
 		shortcutActionDesc: {
 			MOVE_FORWARD: '将预览前进 2 秒',
@@ -2421,7 +2422,8 @@ const zh = {
 			VERTICAL_SCROLL: '用于时间轴垂直滚动的快捷键',
 			FRAME_BY_FRAME_SCROLL: '在滚动时按住此快捷键以逐帧前进',
 			FRAME_BACKWARD: '将光标后退一帧',
-			FRAME_FORWARD: '将光标前进一帧'
+			FRAME_FORWARD: '将光标前进一帧',
+			QUICK_MERGE_AT_CURSOR: '在最靠近光标的边界合并或取消合并字幕'
 		},
 		stockMediaDescription:
 			'Configure your Pexels and Pixabay API keys to search and import free stock media.',

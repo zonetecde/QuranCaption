@@ -682,7 +682,8 @@ const id = {
 			VERTICAL_SCROLL: 'Scroll Vertikal',
 			FRAME_BY_FRAME_SCROLL: 'Frame demi Frame dengan Scroll',
 			FRAME_BACKWARD: 'Frame Sebelumnya',
-			FRAME_FORWARD: 'Frame Berikutnya'
+			FRAME_FORWARD: 'Frame Berikutnya',
+			QUICK_MERGE_AT_CURSOR: 'Alihkan Quick Merge'
 		},
 		shortcutActionDesc: {
 			MOVE_FORWARD: 'Majukan pratinjau 2 detik',
@@ -722,7 +723,9 @@ const id = {
 			VERTICAL_SCROLL: 'Pintasan yang dipakai untuk scroll timeline vertikal',
 			FRAME_BY_FRAME_SCROLL: 'Tahan pintasan ini sambil scroll untuk bergerak frame demi frame',
 			FRAME_BACKWARD: 'Pindahkan kursor mundur satu frame',
-			FRAME_FORWARD: 'Pindahkan kursor maju satu frame'
+			FRAME_FORWARD: 'Pindahkan kursor maju satu frame',
+			QUICK_MERGE_AT_CURSOR:
+				'Gabungkan atau pisahkan subtitle pada batas yang paling dekat dengan kursor'
 		},
 		stockMediaDescription:
 			'Atur API key Pexels dan Pixabay kamu untuk mencari dan mengimpor stok media gratis.',

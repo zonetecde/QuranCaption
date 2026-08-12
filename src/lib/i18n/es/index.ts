@@ -2621,7 +2621,8 @@ const es = {
 			VERTICAL_SCROLL: 'Desplazamiento vertical',
 			FRAME_BY_FRAME_SCROLL: 'Fotograma a fotograma con la rueda',
 			FRAME_BACKWARD: 'Fotograma anterior',
-			FRAME_FORWARD: 'Fotograma siguiente'
+			FRAME_FORWARD: 'Fotograma siguiente',
+			QUICK_MERGE_AT_CURSOR: 'Alternar fusión rápida'
 		},
 		shortcutActionDesc: {
 			MOVE_FORWARD: 'Avanza la vista previa 2 segundos',
@@ -2663,7 +2664,8 @@ const es = {
 			FRAME_BY_FRAME_SCROLL:
 				'Mantener este atajo mientras se desplaza para avanzar fotograma a fotograma',
 			FRAME_BACKWARD: 'Retroceder el cursor un fotograma',
-			FRAME_FORWARD: 'Avanzar el cursor un fotograma'
+			FRAME_FORWARD: 'Avanzar el cursor un fotograma',
+			QUICK_MERGE_AT_CURSOR: 'Fusionar o separar subtítulos en el límite más cercano al cursor'
 		},
 		stockMediaDescription:
 			'Configure sus claves API de Pexels y Pixabay para buscar e importar medios de stock gratuitos.',

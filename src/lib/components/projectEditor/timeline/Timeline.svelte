@@ -94,6 +94,7 @@
 	let frameForwardShortcutRegistered = false;
 	let refetchWbwShortcutRegistered = false;
 	let removeSubtitleAtCursorShortcutRegistered = false;
+	let quickMergeShortcutRegistered = false;
 	let lastVerifiedClipId: number | null = null;
 	let quickEditLongPressTimer: ReturnType<typeof setTimeout> | null = null;
 	let didTriggerQuickLongPressAction = false;
@@ -639,6 +640,73 @@
 		removeSubtitleAtCursorShortcutRegistered = false;
 	}
 
+	/**
+	 * Active le bouton de quick merge le plus proche du curseur de timeline.
+	 * @param {KeyboardEvent} event Événement clavier du raccourci.
+	 * @returns {void}
+	 */
+	function handleQuickMergeAtCursor(event: KeyboardEvent): void {
+		if (event.repeat || !timelineTracksDiv) return;
+
+		const cursorPosition = globalState.getTimelineState.cursorPosition;
+		const currentClip = globalState.getSubtitleTrack.getCurrentClip(cursorPosition);
+		if (!(currentClip instanceof SubtitleClip)) return;
+
+		const buttons = Array.from(
+			timelineTracksDiv.querySelectorAll<HTMLButtonElement>('.timeline-quick-merge-button')
+		).filter(
+			(button) =>
+				Number(button.dataset.leftClipId) === currentClip.id ||
+				Number(button.dataset.rightClipId) === currentClip.id
+		);
+		const closestButton = buttons.reduce<HTMLButtonElement | null>((closest, button) => {
+			const position = Number(button.dataset.timelinePositionMs);
+			if (!Number.isFinite(position)) return closest;
+			if (!closest) return button;
+
+			const closestPosition = Number(closest.dataset.timelinePositionMs);
+			return Math.abs(position - cursorPosition) < Math.abs(closestPosition - cursorPosition)
+				? button
+				: closest;
+		}, null);
+
+		const closestPosition = Number(closestButton?.dataset.timelinePositionMs);
+		if (
+			closestButton &&
+			Math.abs(closestPosition - cursorPosition) <=
+				(currentClip.endTime - currentClip.startTime) / 2
+		) {
+			closestButton.click();
+		}
+	}
+
+	/**
+	 * Enregistre le raccourci de quick merge au curseur.
+	 * @returns {void}
+	 */
+	function registerQuickMergeShortcut(): void {
+		if (!globalState.settings || quickMergeShortcutRegistered) return;
+
+		ShortcutService.registerShortcut({
+			key: globalState.settings.shortcuts.TIMELINE.QUICK_MERGE_AT_CURSOR,
+			onKeyDown: handleQuickMergeAtCursor
+		});
+		quickMergeShortcutRegistered = true;
+	}
+
+	/**
+	 * Supprime le raccourci de quick merge au curseur.
+	 * @returns {void}
+	 */
+	function unregisterQuickMergeShortcut(): void {
+		if (!globalState.settings || !quickMergeShortcutRegistered) return;
+
+		ShortcutService.unregisterShortcut(
+			globalState.settings.shortcuts.TIMELINE.QUICK_MERGE_AT_CURSOR
+		);
+		quickMergeShortcutRegistered = false;
+	}
+
 	$effect(() => {
 		const currentTab = globalState.currentProject?.projectEditorState.currentTab;
 
@@ -690,6 +758,7 @@
 
 		registerRefetchWbwShortcut();
 		registerRemoveSubtitleAtCursorShortcut();
+		registerQuickMergeShortcut();
 
 		return () => {
 			unregisterSplitShortcut();
@@ -701,6 +770,7 @@
 			unregisterFrameForwardShortcut();
 			unregisterRefetchWbwShortcut();
 			unregisterRemoveSubtitleAtCursorShortcut();
+			unregisterQuickMergeShortcut();
 		};
 	});
 
@@ -1006,6 +1076,7 @@
 		unregisterFrameForwardShortcut();
 		unregisterRefetchWbwShortcut();
 		unregisterRemoveSubtitleAtCursorShortcut();
+		unregisterQuickMergeShortcut();
 		tracksResizeObserver?.disconnect();
 		tracksResizeObserver = null;
 	});

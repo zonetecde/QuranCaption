@@ -216,7 +216,8 @@ const settings = {
 		VERTICAL_SCROLL: 'Vertical Scroll',
 		FRAME_BY_FRAME_SCROLL: 'Frame-by-frame with Scroll',
 		FRAME_BACKWARD: 'Previous Frame',
-		FRAME_FORWARD: 'Next Frame'
+		FRAME_FORWARD: 'Next Frame',
+		QUICK_MERGE_AT_CURSOR: 'Toggle Quick Merge'
 	},
 	shortcutActionDesc: {
 		MOVE_FORWARD: 'Move preview forward by 2 seconds',
@@ -257,7 +258,8 @@ const settings = {
 		VERTICAL_SCROLL: 'Shortcut used for vertical timeline scrolling',
 		FRAME_BY_FRAME_SCROLL: 'Hold this shortcut while scrolling to move frame by frame',
 		FRAME_BACKWARD: 'Move the cursor backward by one frame',
-		FRAME_FORWARD: 'Move the cursor forward by one frame'
+		FRAME_FORWARD: 'Move the cursor forward by one frame',
+		QUICK_MERGE_AT_CURSOR: 'Merge or unmerge subtitles at the closest boundary to the cursor'
 	},
 	stockMediaDescription:
 		'Configure your Pexels and Pixabay API keys to search and import free stock media.',

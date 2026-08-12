@@ -343,6 +343,9 @@
 				<button
 					class="timeline-quick-merge-button"
 					class:timeline-quick-split-button={button.action === 'split'}
+					data-timeline-position-ms={button.leftClip.endTime}
+					data-left-clip-id={button.leftClip.id}
+					data-right-clip-id={button.rightClip.id}
 					style="left: {button.leftPx}px;"
 					title={button.action === 'split'
 						? $LL.editor.splitVisualMergeHere()

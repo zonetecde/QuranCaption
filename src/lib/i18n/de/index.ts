@@ -2622,7 +2622,8 @@ const de = {
 			VERTICAL_SCROLL: 'Vertikales Scrollen',
 			FRAME_BY_FRAME_SCROLL: 'Bild-für-Bild mit Mausrad',
 			FRAME_BACKWARD: 'Vorheriges Bild',
-			FRAME_FORWARD: 'Nächstes Bild'
+			FRAME_FORWARD: 'Nächstes Bild',
+			QUICK_MERGE_AT_CURSOR: 'Schnellzusammenführung umschalten'
 		},
 		shortcutActionDesc: {
 			MOVE_FORWARD: 'Vorschau um 2 Sekunden vorwärts bewegen',
@@ -2665,7 +2666,9 @@ const de = {
 			FRAME_BY_FRAME_SCROLL:
 				'Diese Tastenkombination beim Scrollen gedrückt halten, um bildweise vorzurücken',
 			FRAME_BACKWARD: 'Cursor um ein Bild zurücksetzen',
-			FRAME_FORWARD: 'Cursor um ein Bild vorrücken'
+			FRAME_FORWARD: 'Cursor um ein Bild vorrücken',
+			QUICK_MERGE_AT_CURSOR:
+				'Untertitel an der dem Cursor nächstgelegenen Grenze zusammenführen oder trennen'
 		},
 		stockMediaDescription:
 			'Konfigurieren Sie Ihre Pexels- und Pixabay-API-Schlüssel, um kostenlose Stock-Medien zu suchen und zu importieren.',

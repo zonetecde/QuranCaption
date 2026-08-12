@@ -8344,6 +8344,10 @@ type RootTranslation = {
 			 * N​e​x​t​ ​F​r​a​m​e
 			 */
 			FRAME_FORWARD: string;
+			/**
+			 * T​o​g​g​l​e​ ​Q​u​i​c​k​ ​M​e​r​g​e
+			 */
+			QUICK_MERGE_AT_CURSOR: string;
 		};
 		shortcutActionDesc: {
 			/**
@@ -8486,6 +8490,10 @@ type RootTranslation = {
 			 * M​o​v​e​ ​t​h​e​ ​c​u​r​s​o​r​ ​f​o​r​w​a​r​d​ ​b​y​ ​o​n​e​ ​f​r​a​m​e
 			 */
 			FRAME_FORWARD: string;
+			/**
+			 * M​e​r​g​e​ ​o​r​ ​u​n​m​e​r​g​e​ ​s​u​b​t​i​t​l​e​s​ ​a​t​ ​t​h​e​ ​c​l​o​s​e​s​t​ ​b​o​u​n​d​a​r​y​ ​t​o​ ​t​h​e​ ​c​u​r​s​o​r
+			 */
+			QUICK_MERGE_AT_CURSOR: string;
 		};
 		/**
 		 * C​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​P​e​x​e​l​s​ ​a​n​d​ ​P​i​x​a​b​a​y​ ​A​P​I​ ​k​e​y​s​ ​t​o​ ​s​e​a​r​c​h​ ​a​n​d​ ​i​m​p​o​r​t​ ​f​r​e​e​ ​s​t​o​c​k​ ​m​e​d​i​a​.
@@ -19354,6 +19362,10 @@ export type TranslationFunctions = {
 			 * Next Frame
 			 */
 			FRAME_FORWARD: () => LocalizedString;
+			/**
+			 * Toggle Quick Merge
+			 */
+			QUICK_MERGE_AT_CURSOR: () => LocalizedString;
 		};
 		shortcutActionDesc: {
 			/**
@@ -19496,6 +19508,10 @@ export type TranslationFunctions = {
 			 * Move the cursor forward by one frame
 			 */
 			FRAME_FORWARD: () => LocalizedString;
+			/**
+			 * Merge or unmerge subtitles at the closest boundary to the cursor
+			 */
+			QUICK_MERGE_AT_CURSOR: () => LocalizedString;
 		};
 		/**
 		 * Configure your Pexels and Pixabay API keys to search and import free stock media.

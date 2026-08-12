@@ -2644,7 +2644,8 @@ const fr = {
 			VERTICAL_SCROLL: 'Défilement vertical',
 			FRAME_BY_FRAME_SCROLL: 'Image par image avec la molette',
 			FRAME_BACKWARD: 'Image précédente',
-			FRAME_FORWARD: 'Image suivante'
+			FRAME_FORWARD: 'Image suivante',
+			QUICK_MERGE_AT_CURSOR: 'Basculer la fusion rapide'
 		},
 		shortcutActionDesc: {
 			MOVE_FORWARD: "Avance l'aperçu de 2 secondes",
@@ -2684,7 +2685,9 @@ const fr = {
 			VERTICAL_SCROLL: 'Raccourci utilisé pour le défilement vertical de la timeline',
 			FRAME_BY_FRAME_SCROLL: 'Maintenir ce raccourci en défilant pour avancer image par image',
 			FRAME_BACKWARD: "Reculer le curseur d'une image",
-			FRAME_FORWARD: "Avancer le curseur d'une image"
+			FRAME_FORWARD: "Avancer le curseur d'une image",
+			QUICK_MERGE_AT_CURSOR:
+				'Fusionner ou dissocier les sous-titres à la jonction la plus proche du curseur'
 		},
 		stockMediaDescription:
 			'Configurez vos clés API Pexels et Pixabay pour rechercher et importer des médias libres de droits.',

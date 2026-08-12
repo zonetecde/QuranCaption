@@ -39,6 +39,7 @@ import Settings from '$lib/classes/Settings.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { BatchService } from '$lib/services/BatchService';
 import { ProjectService, parseProjectsBackup } from '$lib/services/ProjectService';
+import { Status } from '$lib/classes/Status';
 
 describe('BatchService persistence', () => {
 	beforeEach(() => {
@@ -126,6 +127,7 @@ describe('BatchService persistence', () => {
 			}
 		]);
 		batch.selectedProjectIds = [11];
+		batch.status = Status.TO_TRANSLATE;
 
 		await BatchService.save(batch);
 		const restored = await BatchService.load(batch.id);
@@ -134,6 +136,7 @@ describe('BatchService persistence', () => {
 		expect(restored.projects[0].media).toEqual(batch.projects[0].media);
 		expect(restored.projects[1].media).toEqual(batch.projects[1].media);
 		expect(restored.selectedProjectIds).toEqual([11]);
+		expect(restored.status.status).toBe(Status.TO_TRANSLATE.status);
 		expect((await BatchService.loadAll()).map((savedBatch) => savedBatch.id)).toEqual([batch.id]);
 	});
 

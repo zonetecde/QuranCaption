@@ -42,6 +42,17 @@ export class BatchService {
 	}
 
 	/**
+	 * Sauvegarde le statut d'un batch et actualise ses détails sur la homepage.
+	 * @param {BatchDetail} detail Détails du batch à mettre à jour.
+	 * @returns {Promise<void>} Promesse résolue après la sauvegarde.
+	 */
+	static async saveDetail(detail: BatchDetail): Promise<void> {
+		const batch = await this.load(detail.id);
+		batch.status = detail.status;
+		await this.save(batch);
+	}
+
+	/**
 	 * Charge un manifeste de batch.
 	 * @param {number} batchId Identifiant du batch.
 	 * @param {string | undefined} interruptedError Message utilisé lors de l'ouverture du workspace.

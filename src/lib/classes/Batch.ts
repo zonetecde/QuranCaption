@@ -1,5 +1,6 @@
 import { Utilities } from '.';
 import { SerializableBase } from './misc/SerializableBase';
+import { Status } from './Status';
 
 export type BatchSource = { kind: 'url'; value: string } | { kind: 'file'; value: string };
 
@@ -218,6 +219,7 @@ export interface BatchDetail {
 	projectCount: number;
 	reciter: string | null;
 	importedMediaCount: number;
+	status: Status;
 }
 
 export class Batch extends SerializableBase {
@@ -228,6 +230,7 @@ export class Batch extends SerializableBase {
 	name: string;
 	createdAt: Date;
 	updatedAt: Date;
+	status: Status;
 	projects: BatchProjectItem[];
 	selectedProjectIds: number[] | null;
 
@@ -246,13 +249,15 @@ export class Batch extends SerializableBase {
 		id: number = Utilities.randomId(),
 		createdAt: Date = new Date(),
 		updatedAt: Date = createdAt,
-		selectedProjectIds: number[] | null = null
+		selectedProjectIds: number[] | null = null,
+		status: Status = Status.NOT_SET
 	) {
 		super();
 		this.id = id;
 		this.name = name;
 		this.createdAt = createdAt;
 		this.updatedAt = updatedAt;
+		this.status = status;
 		this.projects = projects;
 		this.selectedProjectIds = selectedProjectIds;
 	}
@@ -271,7 +276,8 @@ export class Batch extends SerializableBase {
 			projectCount: this.projects.length,
 			reciter: reciters.size === 1 ? (reciters.values().next().value ?? null) : null,
 			importedMediaCount: this.projects.filter((project) => project.media.status === 'completed')
-				.length
+				.length,
+			status: this.status
 		};
 	}
 
@@ -373,7 +379,12 @@ export class Batch extends SerializableBase {
 								Number.isFinite(projectId) &&
 								projects.some((project) => project.projectId === projectId)
 						)
-				: null
+				: null,
+			data.status
+				? (Status.fromJSON(data.status as Record<string, unknown>) as Status)
+				: Status.NOT_SET
 		) as unknown as T;
 	}
 }
+
+SerializableBase.registerChildClass(Batch, 'status', Status);

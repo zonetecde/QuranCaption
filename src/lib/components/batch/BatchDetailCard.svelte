@@ -8,9 +8,13 @@
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import { get } from 'svelte/store';
+	import { Status } from '$lib/classes/Status';
+	import { getStatusLabel } from '$lib/i18n/statusMapper';
 
 	let { batchDetail }: { batchDetail: BatchDetail } = $props();
 	let contextMenu: ContextMenu | undefined = $state(undefined);
+	let showStatusMenu = $state(false);
+	const statuses = Status.getAllStatuses();
 	let isListView = $derived(
 		(globalState.settings?.persistentUiState.projectCardView ?? 'grid') === 'list'
 	);
@@ -22,6 +26,32 @@
 	function openBatch(): void {
 		globalState.currentBatchId = batchDetail.id;
 		globalState.currentPage = 'batch-workspace';
+	}
+
+	/**
+	 * Ouvre ou ferme le menu de statut sans ouvrir le batch.
+	 * @param {MouseEvent} event Clic sur le statut.
+	 * @returns {void}
+	 */
+	function toggleStatusMenu(event: MouseEvent): void {
+		event.stopPropagation();
+		showStatusMenu = !showStatusMenu;
+	}
+
+	/** Ferme le menu de statut lors d'un clic extérieur. */
+	function closeStatusMenu(): void {
+		showStatusMenu = false;
+	}
+
+	/**
+	 * Enregistre le statut choisi pour le batch.
+	 * @param {Status} status Statut à appliquer.
+	 * @returns {Promise<void>} Promesse résolue après la sauvegarde.
+	 */
+	async function selectStatus(status: Status): Promise<void> {
+		batchDetail.status = status;
+		showStatusMenu = false;
+		await BatchService.saveDetail(batchDetail);
 	}
 
 	/**
@@ -92,6 +122,8 @@
 	}
 </script>
 
+<svelte:window onclick={closeStatusMenu} />
+
 <div
 	class="group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-xl border border-[var(--border-color)] bg-secondary text-left shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] backdrop-blur-[10px] transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
 	data-batch-card={batchDetail.id}
@@ -122,14 +154,49 @@
 				<h3 class="truncate text-lg font-semibold text-[var(--text-accent)]">
 					{batchDetail.name}
 				</h3>
-				{#if isListView}
-					<span
-						class="rounded-full border border-[var(--accent-primary)] px-2.5 py-1 text-xs font-semibold text-[var(--accent-primary)]"
+				<div class="relative">
+					<button
+						class="flex items-center text-xs"
+						type="button"
+						data-batch-status
+						onclick={toggleStatusMenu}
 					>
-						{$LL.batch.batch()}
-					</span>
-				{/if}
+						<span
+							class="mr-2 inline-block h-3 w-3 rounded-full"
+							style={`background-color: ${batchDetail.status.color}`}
+						></span>
+						{getStatusLabel(batchDetail.status, get(LL))}
+					</button>
+					{#if showStatusMenu}
+						<ul
+							class="absolute right-0 top-full z-20 mt-1 w-40 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] py-1 shadow-xl backdrop-blur-sm"
+							onclick={(event) => event.stopPropagation()}
+						>
+							{#each statuses as status (status.status)}
+								<li>
+									<button
+										class="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-white/5"
+										type="button"
+										data-batch-status-option={status.status}
+										onclick={() => selectStatus(status)}
+									>
+										<span class="h-3 w-3 rounded-full" style={`background-color: ${status.color}`}
+										></span>
+										{getStatusLabel(status, get(LL))}
+									</button>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</div>
 			</div>
+			{#if isListView}
+				<span
+					class="mt-2 inline-block rounded-full border border-[var(--accent-primary)] px-2.5 py-1 text-xs font-semibold text-[var(--accent-primary)]"
+				>
+					{$LL.batch.batch()}
+				</span>
+			{/if}
 			<p class="mt-2 text-xs text-[var(--text-secondary)]">
 				{$LL.home.reciterLabel()}
 				<span class="font-semibold">

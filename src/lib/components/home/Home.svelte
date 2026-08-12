@@ -375,9 +375,13 @@
 	});
 	let searchedBatches = $derived.by(() => {
 		if (explorerSelection.kind !== 'all') return [];
+		if (globalState.uiState.selectedStatuses.length === 0) return [];
 		const query = globalState.uiState.searchQuery.trim().toLowerCase();
-		if (!query) return globalState.userBatchDetails;
-		return globalState.userBatchDetails.filter((batch) =>
+		const batches = globalState.userBatchDetails.filter((batch) =>
+			globalState.uiState.selectedStatuses.some((status) => status.status === batch.status.status)
+		);
+		if (!query) return batches;
+		return batches.filter((batch) =>
 			`${batch.name} ${batch.reciter ?? ''}`.toLowerCase().includes(query)
 		);
 	});

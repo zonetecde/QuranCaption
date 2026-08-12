@@ -30,6 +30,7 @@ export type ExportSubtitleCaptureClip = {
 	endTime: number;
 	kind: 'subtitle' | 'silence' | 'predefined';
 	surah?: number;
+	verse?: number;
 	id?: number;
 	visualMergeGroupId?: string | null;
 	visualMergeMode?: 'arabic' | 'translation' | 'both' | null;
@@ -404,6 +405,7 @@ type CalculateCaptureTimingParams = {
 	subtitleClips: ExportSubtitleCaptureClip[];
 	timedOverlayClips: ExportTimedOverlayCaptureClip[];
 	getCurrentSurah: (time: number) => number;
+	showVerseNumber?: boolean;
 };
 
 export type ExportCaptureTimingResult = {
@@ -470,7 +472,8 @@ export function calculateCaptureTimingsForRange({
 	fadeDuration,
 	subtitleClips,
 	timedOverlayClips,
-	getCurrentSurah
+	getCurrentSurah,
+	showVerseNumber = false
 }: CalculateCaptureTimingParams): ExportCaptureTimingResult {
 	const timingsToTakeScreenshots: number[] = [rangeStart, rangeEnd];
 	const imgWithNothingShown: { [blankVisualStateKey: string]: number } = {}; // Timing ou rien n'est affiche (pour dupliquer)
@@ -519,9 +522,25 @@ export function calculateCaptureTimingsForRange({
 
 		const duration = endTime - startTime;
 		if (duration <= 0) continue;
+		const nextClip = subtitleClips[clipIndex + 1];
 		const endsInsideVisualMerge = isInternalVisualMergeTransition(subtitleClips, clipIndex);
 		const endsInsideFullVisualMerge = endsInsideVisualMerge && clip.visualMergeMode === 'both';
+		const keepsVerseNumberVisibleAtBoundary =
+			showVerseNumber &&
+			clip.kind === 'subtitle' &&
+			nextClip?.kind === 'subtitle' &&
+			typeof clip.verse === 'number' &&
+			typeof nextClip.verse === 'number' &&
+			clip.surah === nextClip.surah &&
+			clip.verse === nextClip.verse &&
+			nextClip.startTime <= endTime + 1;
 		if (endsInsideVisualMerge && !endsInsideFullVisualMerge) {
+			const roundedEndTime = Math.round(endTime);
+			exactCaptureTimings.add(roundedEndTime);
+			exactCaptureTimingValues.set(roundedEndTime, endTime);
+		}
+		if (keepsVerseNumberVisibleAtBoundary && !endsInsideFullVisualMerge) {
+			// Capture le numéro seul à la frontière au lieu de copier une blank générique.
 			const roundedEndTime = Math.round(endTime);
 			exactCaptureTimings.add(roundedEndTime);
 			exactCaptureTimingValues.set(roundedEndTime, endTime);
@@ -586,7 +605,6 @@ export function calculateCaptureTimingsForRange({
 			registerBlankTiming(endTime, surah);
 		}
 
-		const nextClip = subtitleClips[clipIndex + 1];
 		const endsIntoNextVisibleClip =
 			nextClip && nextClip.kind !== 'silence' && nextClip.startTime <= endTime + 1;
 		const startsAtNextVisibleClipBoundary =
@@ -597,6 +615,7 @@ export function calculateCaptureTimingsForRange({
 		const shouldRegisterEndingBlank =
 			clip.kind !== 'silence' &&
 			!endsInsideVisualMerge &&
+			!keepsVerseNumberVisibleAtBoundary &&
 			(!endsIntoNextVisibleClip || (fadeDuration > 0 && startsAtNextVisibleClipBoundary));
 		if (shouldRegisterEndingBlank) {
 			const surah = getCurrentSurah(clip.startTime);

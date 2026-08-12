@@ -1766,6 +1766,7 @@
 								? 'predefined'
 								: 'subtitle',
 					surah: 'surah' in clip && typeof clip.surah === 'number' ? clip.surah : undefined,
+					verse: 'verse' in clip && typeof clip.verse === 'number' ? clip.verse : undefined,
 					visualMergeGroupId:
 						'visualMergeGroupId' in clip &&
 						(typeof clip.visualMergeGroupId === 'string' || clip.visualMergeGroupId === null)
@@ -1791,7 +1792,8 @@
 			fadeDuration: Math.round(globalState.getStyle('global', 'fade-duration')!.value as number),
 			subtitleClips,
 			timedOverlayClips: getTimedOverlayCaptureClips(),
-			getCurrentSurah: (time) => globalState.getSubtitleTrack.getCurrentSurah(time)
+			getCurrentSurah: (time) => globalState.getSubtitleTrack.getCurrentSurah(time),
+			showVerseNumber: Boolean(globalState.getStyle('global', 'show-verse-number')!.value)
 		});
 	}
 

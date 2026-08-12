@@ -3,7 +3,7 @@
 	import { untrack } from 'svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import CompositeText from './CompositeText.svelte';
-	import { VerseRange } from '$lib/classes';
+	import { SubtitleClip, VerseRange } from '$lib/classes';
 
 	let {
 		currentSurah,
@@ -28,6 +28,45 @@
 		});
 	});
 
+	let verseSubtitleRange = $derived(() => {
+		const subtitle = currentSubtitle();
+		if (!(subtitle instanceof SubtitleClip)) return null;
+
+		// Les splits contigus du même verset partagent un seul cycle de fondu.
+		const clips = globalState.getSubtitleTrack.clips;
+		const currentIndex = clips.findIndex((clip) => clip.id === subtitle.id);
+		let startTime = subtitle.startTime;
+		let endTime = subtitle.endTime;
+
+		for (let i = currentIndex - 1; i >= 0; i--) {
+			const clip = clips[i];
+			if (
+				!(clip instanceof SubtitleClip) ||
+				clip.surah !== currentSurah ||
+				clip.verse !== currentVerse ||
+				clip.endTime + 1 < startTime
+			) {
+				break;
+			}
+			startTime = clip.startTime;
+		}
+
+		for (let i = currentIndex + 1; i < clips.length; i++) {
+			const clip = clips[i];
+			if (
+				!(clip instanceof SubtitleClip) ||
+				clip.surah !== currentSurah ||
+				clip.verse !== currentVerse ||
+				clip.startTime > endTime + 1
+			) {
+				break;
+			}
+			endTime = clip.endTime;
+		}
+
+		return { startTime, endTime };
+	});
+
 	let verseNumberSettings = $derived(() => {
 		return {
 			show: Boolean(globalState.getStyle('global', 'show-verse-number')!.value),
@@ -43,13 +82,12 @@
 	});
 
 	let verseNumberSubtitleOpacity = $derived(() => {
-		const subtitle = currentSubtitle();
-		if (!subtitle || !verseNumberSettings().show) return 0;
+		const range = verseSubtitleRange();
+		if (!range || !verseNumberSettings().show) return 0;
 
 		const maxOpacity = verseNumberSettings().opacity;
 		const currentTime = getTimelineSettings().cursorPosition;
-		const startTime = subtitle.startTime;
-		const endTime = subtitle.endTime;
+		const { startTime, endTime } = range;
 		const halfFade = fadeDuration() / 2;
 
 		// Fade out à la fin

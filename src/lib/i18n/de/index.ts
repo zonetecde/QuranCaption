@@ -1949,6 +1949,10 @@ const de = {
 		configureExportSettings:
 			'Konfigurieren Sie Ihre Videoexport-Einstellungen und wählen Sie den zu exportierenden Bereich.',
 		exportRange: 'Exportbereich',
+		timeRangeMode: 'Nach Zeit',
+		verseRangeMode: 'Nach Versen',
+		selectVerseRange: 'Wählen Sie den ersten und letzten zu exportierenden Vers:',
+		selectedVerseRange: '{start} bis {end}',
 		selectTimeRange: 'Wählen Sie den Zeitbereich Ihres zu exportierenden Videos:',
 		startTime: 'Start',
 		endTime: 'Ende',

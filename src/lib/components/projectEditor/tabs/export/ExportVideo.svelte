@@ -10,8 +10,16 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import type { ExportSkipRange } from '$lib/classes/ProjectEditorState.svelte';
+	import VerseRangeSlider from './VerseRangeSlider.svelte';
 
 	type VideoCodec = 'h264' | 'h265';
+	type ExportRangeMode = 'time' | 'verse';
+	type ExportVerseOption = {
+		key: string;
+		surah: number;
+		startTime: number;
+		endTime: number;
+	};
 
 	const performanceProfileIds: PerformanceProfile[] = ['fastest', 'balanced', 'low_cpu'];
 	const videoCodecIds: VideoCodec[] = ['h264', 'h265'];
@@ -19,6 +27,8 @@
 	let showVideoQualitySettings = $state(false);
 	let showVideoAudioFadeSettings = $state(false);
 	let showAdvancedSettings = $state(false);
+	let verseStartIndex = $state(0);
+	let verseEndIndex = $state(0);
 	let skipCopy = $derived(
 		$LL.export as unknown as {
 			addSkip: () => string;
@@ -28,6 +38,128 @@
 			removeSkip: () => string;
 		}
 	);
+	let rangeCopy = $derived(
+		$LL.export as unknown as {
+			timeRangeMode: () => string;
+			verseRangeMode: () => string;
+			selectVerseRange: () => string;
+			selectedVerseRange: (args: { start: string; end: string }) => string;
+		}
+	);
+	const exportVerses = $derived.by(() => {
+		const verses: ExportVerseOption[] = [];
+		const clips = [...globalState.getSubtitleClips].sort((a, b) => a.startTime - b.startTime);
+
+		for (const clip of clips) {
+			const key = `${clip.surah}:${clip.verse}`;
+			const previous = verses.at(-1);
+			if (previous?.key === key) {
+				previous.startTime = Math.min(previous.startTime, clip.startTime);
+				previous.endTime = Math.max(previous.endTime, clip.endTime);
+				continue;
+			}
+
+			verses.push({ key, surah: clip.surah, startTime: clip.startTime, endTime: clip.endTime });
+		}
+
+		return verses;
+	});
+
+	/**
+	 * Retrouve les index de versets correspondant à la plage temporelle actuelle.
+	 * @returns {{ start: number; end: number }} Index de début et de fin bornés.
+	 */
+	function getVerseIndexesFromTime(): { start: number; end: number } {
+		if (exportVerses.length === 0) return { start: 0, end: 0 };
+
+		const exactStart = exportVerses.findIndex(
+			(verse) => verse.startTime === globalState.getExportState.videoStartTime
+		);
+		const overlappingStart = exportVerses.findIndex(
+			(verse) => verse.endTime >= globalState.getExportState.videoStartTime
+		);
+		const start =
+			exactStart >= 0
+				? exactStart
+				: overlappingStart >= 0
+					? overlappingStart
+					: exportVerses.length - 1;
+		const exactEnd = exportVerses.findLastIndex(
+			(verse) => verse.endTime === globalState.getExportState.videoEndTime
+		);
+		const overlappingEnd = exportVerses.findLastIndex(
+			(verse) => verse.startTime <= globalState.getExportState.videoEndTime
+		);
+		const matchingEnd = exactEnd >= 0 ? exactEnd : overlappingEnd;
+
+		return { start, end: Math.max(start, matchingEnd) };
+	}
+
+	/**
+	 * Change le mode de sélection de la plage et aligne les temps sur les versets si nécessaire.
+	 * @param {ExportRangeMode} mode Nouveau mode de sélection.
+	 * @returns {void}
+	 */
+	function setExportRangeMode(mode: ExportRangeMode): void {
+		ProjectHistoryManager.track('set export range mode', () => {
+			globalState.getExportState.exportRangeMode = mode;
+			if (mode !== 'verse' || exportVerses.length === 0) return;
+
+			const indexes = getVerseIndexesFromTime();
+			verseStartIndex = indexes.start;
+			verseEndIndex = indexes.end;
+			globalState.getExportState.videoStartTime = exportVerses[indexes.start].startTime;
+			globalState.getExportState.videoEndTime = exportVerses[indexes.end].endTime;
+		});
+	}
+
+	/**
+	 * Déplace la borne de début de la plage de versets.
+	 * @param {number} index Index du verset choisi.
+	 * @returns {void}
+	 */
+	function handleVerseStartInput(index: number): void {
+		const nextIndex = Math.min(index, verseEndIndex);
+		const verse = exportVerses[nextIndex];
+		if (!verse) return;
+
+		ProjectHistoryManager.track('set export verse range start', () => {
+			verseStartIndex = nextIndex;
+			globalState.getExportState.videoStartTime = verse.startTime;
+		});
+	}
+
+	/**
+	 * Déplace la borne de fin de la plage de versets.
+	 * @param {number} index Index du verset choisi.
+	 * @returns {void}
+	 */
+	function handleVerseEndInput(index: number): void {
+		const nextIndex = Math.max(index, verseStartIndex);
+		const verse = exportVerses[nextIndex];
+		if (!verse) return;
+
+		ProjectHistoryManager.track('set export verse range end', () => {
+			verseEndIndex = nextIndex;
+			globalState.getExportState.videoEndTime = verse.endTime;
+		});
+	}
+
+	/**
+	 * Regroupe le déplacement continu d'une poignée dans l'historique du projet.
+	 * @returns {void}
+	 */
+	function beginVerseRangeChange(): void {
+		ProjectHistoryManager.begin('set export verse range');
+	}
+
+	/**
+	 * Valide le déplacement continu d'une poignée dans l'historique du projet.
+	 * @returns {void}
+	 */
+	function commitVerseRangeChange(): void {
+		ProjectHistoryManager.commit();
+	}
 
 	/**
 	 * Ajoute une zone ignorée d'une seconde à la position du curseur.
@@ -144,6 +276,13 @@
 		}
 	});
 
+	$effect(() => {
+		if (globalState.getExportState.exportRangeMode !== 'verse') return;
+		const indexes = getVerseIndexesFromTime();
+		verseStartIndex = indexes.start;
+		verseEndIndex = indexes.end;
+	});
+
 	// Helper function to format duration for display
 	function formatDuration(ms: number): string {
 		const totalSeconds = Math.floor(ms / 1000);
@@ -172,22 +311,67 @@
 	<!-- Time Range Selection -->
 	<div data-tour-id="export-range" class="mb-4">
 		<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.exportRange()}</h4>
-		<p class="mb-3 text-xs leading-snug text-thirdly">{$LL.export.selectTimeRange()}</p>
 
 		<div class="rounded-lg border border-color bg-accent p-3">
-			<div class="grid grid-cols-1 grid-rows-2 gap-3">
-				<!-- Start Time -->
-				<TimeInput
-					label={$LL.export.startTime()}
-					bind:value={globalState.getExportState.videoStartTime}
-				/>
-
-				<!-- End Time -->
-				<TimeInput
-					label={$LL.export.endTime()}
-					bind:value={globalState.getExportState.videoEndTime}
-				/>
+			<div class="mb-4 grid grid-cols-2 gap-1 rounded-lg border border-color bg-primary p-1">
+				<button
+					type="button"
+					class="min-h-11 rounded-md px-2 py-2 text-sm font-semibold transition-colors {globalState
+						.getExportState.exportRangeMode === 'time'
+						? 'bg-accent-primary text-[var(--text-on-accent)]'
+						: 'text-secondary hover:bg-accent hover:text-primary'}"
+					onclick={() => setExportRangeMode('time')}
+				>
+					{rangeCopy.timeRangeMode()}
+				</button>
+				<button
+					type="button"
+					class="min-h-11 rounded-md px-2 py-2 text-sm font-semibold transition-colors {globalState
+						.getExportState.exportRangeMode === 'verse'
+						? 'bg-accent-primary text-[var(--text-on-accent)]'
+						: 'text-secondary hover:bg-accent hover:text-primary'}"
+					onclick={() => setExportRangeMode('verse')}
+				>
+					{rangeCopy.verseRangeMode()}
+				</button>
 			</div>
+
+			{#if globalState.getExportState.exportRangeMode === 'time'}
+				<p class="mb-3 text-xs leading-snug text-thirdly">{$LL.export.selectTimeRange()}</p>
+				<div class="grid grid-cols-1 grid-rows-2 gap-3">
+					<TimeInput
+						label={$LL.export.startTime()}
+						bind:value={globalState.getExportState.videoStartTime}
+					/>
+					<TimeInput
+						label={$LL.export.endTime()}
+						bind:value={globalState.getExportState.videoEndTime}
+					/>
+				</div>
+			{:else if exportVerses.length > 0}
+				<p class="mb-3 text-xs leading-snug text-thirdly">{rangeCopy.selectVerseRange()}</p>
+				<div class="rounded-lg border border-color bg-secondary px-3 py-4">
+					<div class="mb-3 text-center font-mono text-sm font-medium text-accent-primary">
+						{rangeCopy.selectedVerseRange({
+							start: exportVerses[verseStartIndex].key,
+							end: exportVerses[verseEndIndex].key
+						})}
+					</div>
+					<VerseRangeSlider
+						verses={exportVerses}
+						startIndex={verseStartIndex}
+						endIndex={verseEndIndex}
+						startLabel={$LL.export.startTime()}
+						endLabel={$LL.export.endTime()}
+						onStartInput={handleVerseStartInput}
+						onEndInput={handleVerseEndInput}
+						onDragStart={beginVerseRangeChange}
+						onDragEnd={commitVerseRangeChange}
+					/>
+				</div>
+			{:else}
+				<p class="text-thirdly text-sm">{$LL.editor.noSubtitleFallback()}</p>
+			{/if}
 
 			<div class="mt-3 flex flex-col items-center justify-between">
 				<button

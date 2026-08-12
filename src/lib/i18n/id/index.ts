@@ -1238,6 +1238,10 @@ const id = {
 		configureExportSettings:
 			'Atur settings export video kamu dan pilih bagian yang ingin di-export.',
 		exportRange: 'Rentang export',
+		timeRangeMode: 'Berdasarkan waktu',
+		verseRangeMode: 'Berdasarkan ayat',
+		selectVerseRange: 'Pilih ayat pertama dan terakhir yang ingin diekspor:',
+		selectedVerseRange: '{start} sampai {end}',
 		selectTimeRange: 'Pilih rentang waktu video yang ingin di-export:',
 		startTime: 'Waktu mulai',
 		endTime: 'Waktu selesai',

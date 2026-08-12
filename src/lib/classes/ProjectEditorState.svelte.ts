@@ -436,6 +436,7 @@ export class ExportState extends SerializableBase {
 	ytbChaptersTranslationEditionName: string = $state('');
 
 	// Indique la partie de la vidéo à exporter
+	exportRangeMode: 'time' | 'verse' = $state('time');
 	videoStartTime: number = $state(0);
 	videoEndTime: number = $state(0);
 	skipRanges: ExportSkipRange[] = $state([]);

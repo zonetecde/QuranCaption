@@ -164,6 +164,8 @@ class GlobalState {
 		showReflectionPrompt: false,
 		isSettingsOpen: false,
 		selectedStatuses: Status.getAllStatuses(),
+		showProjects: true,
+		showBatches: true,
 		filteredProjects: [] as ProjectDetail[],
 		searchQuery: '',
 		settingsTab: 'support' as

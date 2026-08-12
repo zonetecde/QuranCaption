@@ -181,6 +181,7 @@
 	 * Base project set used by the explorer tree and the right pane.
 	 */
 	function getStatusFilteredProjects(): ProjectDetail[] {
+		if (!globalState.uiState.showProjects) return [];
 		if (globalState.uiState.selectedStatuses.length === 0) {
 			return [];
 		}
@@ -375,6 +376,7 @@
 	});
 	let searchedBatches = $derived.by(() => {
 		if (explorerSelection.kind !== 'all') return [];
+		if (!globalState.uiState.showBatches) return [];
 		if (globalState.uiState.selectedStatuses.length === 0) return [];
 		const query = globalState.uiState.searchQuery.trim().toLowerCase();
 		const batches = globalState.userBatchDetails.filter((batch) =>
@@ -675,6 +677,8 @@
 							<FilterMenu
 								bind:isVisible={filterMenuVisible}
 								bind:selectedStatuses={globalState.uiState.selectedStatuses}
+								bind:showProjects={globalState.uiState.showProjects}
+								bind:showBatches={globalState.uiState.showBatches}
 								onFilter={handleFilter}
 							/>
 						</div>
@@ -749,7 +753,7 @@
 							<p class="mt-4">
 								{$LL.home.noProjectsMatchSearch({ query: globalState.uiState.searchQuery })}
 							</p>
-						{:else if globalState.uiState.selectedStatuses.length === 0}
+						{:else if globalState.uiState.selectedStatuses.length === 0 || !globalState.uiState.showProjects || !globalState.uiState.showBatches}
 							<p class="mt-4">
 								{$LL.home.noProjectsMatchFilter()}
 							</p>

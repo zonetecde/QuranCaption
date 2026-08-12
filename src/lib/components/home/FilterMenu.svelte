@@ -8,10 +8,18 @@
 	interface Props {
 		isVisible: boolean;
 		selectedStatuses: Status[];
+		showProjects: boolean;
+		showBatches: boolean;
 		onFilter: (statuses: Status[]) => void;
 	}
 
-	let { isVisible = $bindable(), selectedStatuses = $bindable(), onFilter }: Props = $props();
+	let {
+		isVisible = $bindable(),
+		selectedStatuses = $bindable(),
+		showProjects = $bindable(),
+		showBatches = $bindable(),
+		onFilter
+	}: Props = $props();
 
 	// Récupérer tous les statuts disponibles
 	const allStatuses: Status[] = Status.getAllStatuses();
@@ -69,9 +77,39 @@
 		class="filter-menu absolute top-full right-0 mt-2 w-[330px] bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg shadow-xl z-50 py-2"
 		transition:slide={{ duration: 200 }}
 	>
+		<div
+			class="mx-3 mb-2 grid grid-cols-2 gap-1 rounded-lg border border-[var(--border-color)] bg-[var(--bg-primary)]/40 p-1"
+		>
+			<button
+				class={`flex items-center justify-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium transition-all ${showProjects ? 'bg-[var(--bg-accent)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-thirdly)] hover:bg-white/5 hover:text-[var(--text-secondary)]'}`}
+				type="button"
+				data-filter-projects
+				aria-pressed={showProjects}
+				onclick={() => (showProjects = !showProjects)}
+			>
+				<span
+					class={`h-1.5 w-1.5 rounded-full ${showProjects ? 'bg-[var(--accent-primary)]' : 'border border-[var(--text-thirdly)]'}`}
+				></span>
+				{$LL.batch.project()}
+			</button>
+			<button
+				class={`flex items-center justify-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium transition-all ${showBatches ? 'bg-[var(--bg-accent)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-thirdly)] hover:bg-white/5 hover:text-[var(--text-secondary)]'}`}
+				type="button"
+				data-filter-batches
+				aria-pressed={showBatches}
+				onclick={() => (showBatches = !showBatches)}
+			>
+				<span
+					class={`h-1.5 w-1.5 rounded-full ${showBatches ? 'bg-[var(--accent-primary)]' : 'border border-[var(--text-thirdly)]'}`}
+				></span>
+				{$LL.batch.batch()}
+			</button>
+		</div>
+
 		<!-- En-tête avec boutons Check All / Uncheck All -->
 		<div class="px-3 py-2 border-b border-[var(--border-color)] flex justify-between">
-			<span class="text-sm font-medium text-[var(--text-primary)]">{$LL.home.filterByStatus()}</span>
+			<span class="text-sm font-medium text-[var(--text-primary)]">{$LL.home.filterByStatus()}</span
+			>
 			<div class="flex gap-2 pb-1">
 				<button
 					class="btn px-2 text-xs text-[var(--accent-primary)] hover:text-[var(--accent-secondary)] transition-colors"
@@ -103,7 +141,8 @@
 					/>
 					<div class="flex items-center gap-2">
 						<span class="w-3 h-3 rounded-full" style={`background-color: ${status.color}`}></span>
-						<span class="text-sm text-[var(--text-primary)]">{getStatusLabel(status, get(LL))}</span>
+						<span class="text-sm text-[var(--text-primary)]">{getStatusLabel(status, get(LL))}</span
+						>
 					</div>
 				</label>
 			{/each}

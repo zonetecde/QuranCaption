@@ -69,7 +69,9 @@ pub const ADVANCED_SUBTITLE_SPLIT_SYSTEM_PROMPT: &str = r#"You split Arabic Qura
 Rules:
 - Input keys: root `s` = segments; segment `i` = segment index, `v` = verse key, `m` = max words, `w` = space-separated `index:Arabic` words using absolute 0-based Quran word indexes.
 - Output keys: root `s` = segments; segment `i` = segment index, `e` = chunk end word indexes.
-- Return one index in `e` for every resulting chunk, including the final input word index.
+- Every value in `e` is the inclusive index of the last word in the current chunk. It is never the first word of the next chunk.
+- After an end index `x`, the next chunk starts at index `x + 1`.
+- Return one inclusive end index in `e` for every resulting chunk, including the final input word index.
 - Every chunk must contain at most `m` words.
 - Use exactly ceil(the number of indexed words in `w` / `m`) chunks: no more and no fewer.
 - Preserve the original word order and include every word exactly once.
@@ -328,7 +330,9 @@ pub fn build_subtitle_split_user_prompt(
         "Split every Arabic subtitle into meaningful chunks and return JSON only.\n\
          Return exactly {{\"s\":[{{\"i\":0,\"e\":[4,9]}}]}}.\n\
          Input keys: `s` = segments; `i` = segment index; `v` = verse key; `m` = max words; `w` = space-separated `index:Arabic` words.\n\
-         Output keys: `s` = segments; `i` = segment index; `e` = absolute final word index of every chunk, including the subtitle's final word.\n\
+         Output keys: `s` = segments; `i` = segment index; `e` = inclusive absolute index of the last word in every chunk, including the subtitle's final word.\n\
+         An index in `e` is never the first word of the next chunk: if one chunk ends at `x`, the next chunk starts at `x + 1`.\n\
+         Example: with `w` = `0:قَالُوا 1:سُبْحَانَكَ 2:لَا 3:عِلْمَ 4:لَنَا 5:إِلَّا 6:مَا 7:عَلَّمْتَنَا` and `e` = `[4,7]`, the chunks are words `0..4` and `5..7`.\n\
          Each chunk must contain at most `m` words and the number of chunks must be ceil(the number of indexed words in `w` / `m`).\n\n\
          Batch JSON:\n{}",
         batch_json

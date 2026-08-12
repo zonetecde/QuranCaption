@@ -10,6 +10,7 @@
 	import { get } from 'svelte/store';
 	import { getStyleName, getStyleDescription } from '$lib/i18n/styleMapper';
 	import { applyStyleMutation } from '$lib/services/StyleMutationService';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import AyahImageControl from './controls/AyahImageControl.svelte';
 	import BracketsFontControl from './controls/BracketsFontControl.svelte';
 	import ColorControl from './controls/ColorControl.svelte';
@@ -156,16 +157,50 @@
 		inputValue = eff.value as StyleValue;
 	});
 
+	/**
+	 * Supprime les chevauchements vidéo en décalant les clips suivants sans perdre leurs espaces.
+	 * @returns {boolean} `true` si au moins un clip a été déplacé.
+	 */
+	function removeVideoClipOverlaps(): boolean {
+		let cumulativeOffset = 0;
+		let previousEndTime = -1;
+		let changed = false;
+
+		for (const clip of globalState.getVideoTrack.clips) {
+			const shiftedStartTime = clip.startTime + cumulativeOffset;
+			if (shiftedStartTime <= previousEndTime) {
+				cumulativeOffset += previousEndTime + 1 - shiftedStartTime;
+			}
+			if (cumulativeOffset > 0) {
+				clip.startTime += cumulativeOffset;
+				clip.endTime += cumulativeOffset;
+				changed = true;
+			}
+			previousEndTime = clip.endTime;
+		}
+
+		return changed;
+	}
+
 	function applyValue(v: unknown) {
-		const result = applyStyleMutation({
-			videoStyle: globalState.getVideoStyle,
-			style,
-			target,
-			clipIds: selectedClipIds(),
-			value: v,
-			applyBaseValue: applyValueSimple
+		const shouldRemoveVideoOverlaps =
+			style.id === 'video-clip-transition' &&
+			String(style.value) === 'crossfade' &&
+			String(v) === 'fade-through-black';
+		let removedVideoOverlaps = false;
+		const result = ProjectHistoryManager.track('set style value', () => {
+			const mutationResult = applyStyleMutation({
+				videoStyle: globalState.getVideoStyle,
+				style,
+				target,
+				clipIds: selectedClipIds(),
+				value: v,
+				applyBaseValue: applyValueSimple
+			});
+			if (shouldRemoveVideoOverlaps) removedVideoOverlaps = removeVideoClipOverlaps();
+			return mutationResult;
 		});
-		if (result.refreshPreview) globalState.updateVideoPreviewUI();
+		if (result.refreshPreview || removedVideoOverlaps) globalState.updateVideoPreviewUI();
 		if (result.showTajweedWarning) toast(get(LL).editor.tajweedFontWarning());
 	}
 

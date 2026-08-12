@@ -1950,6 +1950,19 @@ fn build_timed_background_chain(
     mode: VideoClipTransitionMode,
     transition_s: f64,
 ) -> String {
+    let uses_timeline_crossfades = mode == VideoClipTransitionMode::Crossfade
+        && (timeline_offsets_s.first().copied().unwrap_or(0.0).abs() > 0.0011
+            || (1..labels.len()).any(|index| {
+                let expected_offset = timeline_offsets_s.get(index - 1).copied().unwrap_or(0.0)
+                    + durations_s.get(index - 1).copied().unwrap_or(0.0);
+                (timeline_offsets_s
+                    .get(index)
+                    .copied()
+                    .unwrap_or(expected_offset)
+                    - expected_offset)
+                    .abs()
+                    > 0.0011
+            }));
     let mut segments: Vec<(String, f64)> = Vec::new();
     let mut cursor_s = 0.0;
     let mut clip_index = 0usize;
@@ -1979,26 +1992,45 @@ fn build_timed_background_chain(
                 .copied()
                 .unwrap_or(0.001)
                 .max(0.001);
-        while run_end < labels.len()
-            && (timeline_offsets_s
+        while run_end < labels.len() {
+            let next_offset_s = timeline_offsets_s
                 .get(run_end)
                 .copied()
-                .unwrap_or(expected_offset_s)
-                - expected_offset_s)
-                .abs()
-                <= 1e-6
-        {
+                .unwrap_or(expected_offset_s);
+            let continues_run = if uses_timeline_crossfades {
+                next_offset_s <= expected_offset_s + 1e-6
+            } else {
+                (next_offset_s - expected_offset_s).abs() <= 1e-6
+            };
+            if !continues_run {
+                break;
+            }
             expected_offset_s += durations_s
                 .get(run_end)
                 .copied()
                 .unwrap_or(0.001)
                 .max(0.001);
+            if uses_timeline_crossfades {
+                expected_offset_s = next_offset_s
+                    + durations_s
+                        .get(run_end)
+                        .copied()
+                        .unwrap_or(0.001)
+                        .max(0.001);
+            }
             run_end += 1;
         }
 
         let run_durations = &durations_s[clip_index..run_end];
         let run_label = if run_end - clip_index == 1 {
             labels[clip_index].clone()
+        } else if uses_timeline_crossfades {
+            build_timeline_crossfade_chain(
+                filter_lines,
+                &labels[clip_index..run_end],
+                run_durations,
+                &timeline_offsets_s[clip_index..run_end],
+            )
         } else {
             build_background_transition_chain(
                 filter_lines,
@@ -2008,7 +2040,18 @@ fn build_timed_background_chain(
                 transition_s,
             )
         };
-        let run_duration_s = if mode == VideoClipTransitionMode::Crossfade
+        let run_duration_s = if uses_timeline_crossfades {
+            (clip_index..run_end)
+                .map(|index| {
+                    timeline_offsets_s
+                        .get(index)
+                        .copied()
+                        .unwrap_or(run_offset_s)
+                        + durations_s.get(index).copied().unwrap_or(0.001).max(0.001)
+                })
+                .fold(run_offset_s, f64::max)
+                - run_offset_s
+        } else if mode == VideoClipTransitionMode::Crossfade
             && transition_s > 1e-6
             && run_durations.len() > 1
         {
@@ -2038,11 +2081,11 @@ fn build_timed_background_chain(
     }
 
     let mut inputs = String::new();
-    for (index, (label, _)) in segments.iter().enumerate() {
+    for (index, (label, duration_s)) in segments.iter().enumerate() {
         let normalized_label = format!("bgtimed{}", index);
         filter_lines.push(format!(
-            "[{}]format=yuv420p,setsar=1[{}]",
-            label, normalized_label
+            "[{}]trim=start=0:end={:.6},setpts=PTS-STARTPTS,format=yuv420p,setsar=1[{}]",
+            label, duration_s, normalized_label
         ));
         inputs.push_str(&format!("[{}]", normalized_label));
     }
@@ -2052,6 +2095,72 @@ fn build_timed_background_chain(
         segments.len()
     ));
     "bgtimeline".to_string()
+}
+
+/// Construit une chaîne de crossfades dont chaque durée vient du chevauchement de la timeline.
+fn build_timeline_crossfade_chain(
+    filter_lines: &mut Vec<String>,
+    labels: &[String],
+    durations_s: &[f64],
+    timeline_offsets_s: &[f64],
+) -> String {
+    let normalized_labels: Vec<String> = labels
+        .iter()
+        .enumerate()
+        .map(|(index, label)| {
+			let out = format!("{}tx{}", label, index);
+			filter_lines.push(format!(
+				"[{}]setparams=range=tv:color_primaries=bt709:color_trc=bt709:colorspace=bt709,format=yuv444p,setsar=1[{}]",
+				label, out
+			));
+			out
+		})
+		.collect();
+    let run_start_s = timeline_offsets_s.first().copied().unwrap_or(0.0);
+    let mut current = normalized_labels[0].clone();
+
+    for index in 0..(normalized_labels.len() - 1) {
+        let current_start_s = timeline_offsets_s
+            .get(index)
+            .copied()
+            .unwrap_or(run_start_s);
+        let current_duration_s = durations_s.get(index).copied().unwrap_or(0.001).max(0.001);
+        let next_start_s = timeline_offsets_s
+            .get(index + 1)
+            .copied()
+            .unwrap_or(current_start_s + current_duration_s);
+        let next_duration_s = durations_s
+            .get(index + 1)
+            .copied()
+            .unwrap_or(0.001)
+            .max(0.001);
+        let fade_s = (current_start_s + current_duration_s - next_start_s)
+            .max(0.0)
+            .min(current_duration_s)
+            .min(next_duration_s);
+        let out = format!("{}tc{}", labels[index + 1], index);
+
+        if fade_s <= 1e-6 {
+            filter_lines.push(format!(
+                "[{}][{}]concat=n=2:v=1:a=0[{}]",
+                current,
+                normalized_labels[index + 1],
+                out
+            ));
+        } else {
+            filter_lines.push(format!(
+				"[{}][{}]xfade=transition=fade:duration={:.6}:offset={:.6},setparams=range=tv:color_primaries=bt709:color_trc=bt709:colorspace=bt709,format=yuv444p,setsar=1[{}]",
+				current,
+				normalized_labels[index + 1],
+				fade_s,
+				(next_start_s - run_start_s).max(0.0),
+				out
+			));
+        }
+        current = out;
+    }
+
+    current
 }
 
 /// Construit la chaîne FFmpeg des vidéos de fond avec transition optionnelle.
@@ -2227,6 +2336,63 @@ mod trim_tests {
             .iter()
             .any(|line| line.contains("xfade=transition=fade:duration=1.000000:offset=3.000000")));
         assert!(filters.iter().any(|line| line.contains("d=2.000000")));
+    }
+
+    /// Vérifie que chaque chevauchement explicite produit sa propre durée de crossfade.
+    #[test]
+    fn crossfade_duration_follows_each_timeline_overlap() {
+        let mut filters = Vec::new();
+        build_timed_background_chain(
+            &mut filters,
+            &[
+                "first".to_string(),
+                "second".to_string(),
+                "third".to_string(),
+            ],
+            &[4.0, 3.0, 2.0],
+            &[0.0, 2.0, 4.0],
+            1920,
+            1080,
+            30,
+            6.0,
+            VideoClipTransitionMode::Crossfade,
+            1.0,
+        );
+
+        assert!(filters
+            .iter()
+            .any(|line| line.contains("xfade=transition=fade:duration=2.000000:offset=2.000000")));
+        assert!(filters
+            .iter()
+            .any(|line| line.contains("xfade=transition=fade:duration=1.000000:offset=4.000000")));
+    }
+
+    /// Vérifie qu'un clip isolé après des crossfades reste dans la timeline finale.
+    #[test]
+    fn preserves_a_detached_clip_after_timeline_crossfades() {
+        let mut filters = Vec::new();
+        build_timed_background_chain(
+            &mut filters,
+            &[
+                "first".to_string(),
+                "second".to_string(),
+                "third".to_string(),
+                "detached".to_string(),
+            ],
+            &[5.042, 5.042, 5.042, 5.567],
+            &[0.0, 2.612, 6.421, 11.836],
+            1080,
+            1920,
+            30,
+            19.077,
+            VideoClipTransitionMode::Crossfade,
+            1.2,
+        );
+
+        assert!(filters.iter().any(|line| line.contains("concat=n=4")));
+        assert!(filters.iter().any(|line| {
+            line.starts_with("[detached]trim=start=0:end=5.567000,setpts=PTS-STARTPTS")
+        }));
     }
 }
 

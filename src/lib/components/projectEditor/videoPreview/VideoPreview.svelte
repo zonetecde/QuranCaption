@@ -617,7 +617,13 @@
 				: globalState.getVideoTrack.getVisualClipStartTime(currentIndex);
 		const visualEndTime = visualStartTime + clip.duration;
 		const clipDurationMs = Math.max(1, clip.endTime - clip.startTime);
-		const effectiveDurationMs = Math.min(durationMs, clipDurationMs);
+		const effectiveDurationMs = Math.min(
+			mode === 'crossfade' && currentIndex > 0
+				? globalState.getVideoTrack.getVideoCrossfadeDurationBeforeClip(currentIndex)
+				: durationMs,
+			clipDurationMs
+		);
+		if (effectiveDurationMs <= 0) return emptyState;
 		const timeFromStartMs = Math.max(0, cursorPosition - visualStartTime);
 		const timeToEndMs = Math.max(0, visualEndTime - cursorPosition);
 		const startProgress = Math.min(1, timeFromStartMs / effectiveDurationMs);

@@ -75,6 +75,7 @@
 	let suppressClipClickUntil = 0;
 	let clipDragStartX: number | null = null;
 	let clipDragOriginalStartTime = 0;
+	let clipDragVisualStarts: number[] | null = null;
 
 	let canTrim = $derived(
 		clip instanceof AssetClip && asset.type !== AssetType.Image && !clip.loopUntilAudioEnd
@@ -127,8 +128,14 @@
 		clipDragHoldTimer = null;
 		document.removeEventListener('pointermove', handlePendingClipGesture);
 		ProjectHistoryManager.begin('move asset clip');
+		clipDragVisualStarts =
+			track.type === TrackType.Video &&
+			track.shouldUseVideoCrossfadeVisualTiming() &&
+			!track.hasExplicitVideoClipTiming()
+				? track.clips.map((_, index) => track.getVisualClipStartTime(index))
+				: null;
 		clipDragStartX = clipGestureStartX;
-		clipDragOriginalStartTime = clip.startTime;
+		clipDragOriginalStartTime = clipDragVisualStarts?.[clipIndex] ?? clip.startTime;
 		globalState.getTimelineState.showCursor = false;
 		document.addEventListener('pointermove', moveClip);
 	}
@@ -166,11 +173,30 @@
 		const deltaMs = Math.round(
 			((event.clientX - clipDragStartX) / track.getPixelPerSecond()) * 1000
 		);
+		const visualStarts = clipDragVisualStarts;
+		if (visualStarts) {
+			if (deltaMs === 0) return;
+			track.clips.forEach((trackClip, index) => {
+				trackClip.startTime = visualStarts[index];
+				trackClip.endTime = visualStarts[index] + trackClip.duration;
+			});
+			clipDragVisualStarts = null;
+		}
 		const previousClip = track.getClipBefore(clip.id);
 		const nextClip = track.getClipAfter(clip.id);
-		const minimumStart = previousClip ? previousClip.endTime + 1 : 0;
+		const allowCrossfadeOverlap =
+			track.type === TrackType.Video &&
+			String(globalState.getStyle('global', 'video-clip-transition')?.value ?? 'none') ===
+				'crossfade';
+		const minimumStart = previousClip
+			? allowCrossfadeOverlap
+				? Math.max(previousClip.startTime + 1, previousClip.endTime - clip.duration + 1)
+				: previousClip.endTime + 1
+			: 0;
 		const maximumStart = nextClip
-			? nextClip.startTime - clip.duration - 1
+			? allowCrossfadeOverlap
+				? Math.min(nextClip.startTime - 1, nextClip.endTime - clip.duration - 1)
+				: nextClip.startTime - clip.duration - 1
 			: Number.POSITIVE_INFINITY;
 		const newStart = Math.max(
 			minimumStart,
@@ -198,6 +224,7 @@
 		clipGestureScrollElement = null;
 		clipGestureDidScroll = false;
 		clipDragStartX = null;
+		clipDragVisualStarts = null;
 		document.removeEventListener('pointermove', handlePendingClipGesture);
 		document.removeEventListener('pointermove', moveClip);
 		document.removeEventListener('pointerup', stopClipDragging);

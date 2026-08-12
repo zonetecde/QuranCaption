@@ -149,6 +149,31 @@
 		inputValue = eff.value as StyleValue;
 	});
 
+	/**
+	 * Supprime les chevauchements vidéo en décalant les clips suivants sans perdre leurs espaces.
+	 * @returns {boolean} `true` si au moins un clip a été déplacé.
+	 */
+	function removeVideoClipOverlaps(): boolean {
+		let cumulativeOffset = 0;
+		let previousEndTime = -1;
+		let changed = false;
+
+		for (const clip of globalState.getVideoTrack.clips) {
+			const shiftedStartTime = clip.startTime + cumulativeOffset;
+			if (shiftedStartTime <= previousEndTime) {
+				cumulativeOffset += previousEndTime + 1 - shiftedStartTime;
+			}
+			if (cumulativeOffset > 0) {
+				clip.startTime += cumulativeOffset;
+				clip.endTime += cumulativeOffset;
+				changed = true;
+			}
+			previousEndTime = clip.endTime;
+		}
+
+		return changed;
+	}
+
 	function coerce(val: unknown): StyleValue {
 		if (style.valueType === 'number') return Number(val);
 		if (style.valueType === 'boolean') return Boolean(val);
@@ -158,6 +183,10 @@
 	}
 
 	function applyValue(v: unknown) {
+		const shouldRemoveVideoOverlaps =
+			style.id === 'video-clip-transition' &&
+			String(style.value) === 'crossfade' &&
+			String(v) === 'fade-through-black';
 		ProjectHistoryManager.begin('set style value');
 		try {
 			const value = coerce(v);
@@ -181,6 +210,9 @@
 				style.id === 'word-spacing' ||
 				style.id === 'font-family'
 			) {
+				globalState.updateVideoPreviewUI();
+			}
+			if (shouldRemoveVideoOverlaps && removeVideoClipOverlaps()) {
 				globalState.updateVideoPreviewUI();
 			}
 		} finally {

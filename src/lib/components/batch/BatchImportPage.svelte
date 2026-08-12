@@ -254,6 +254,18 @@
 			</section>
 		{/if}
 
+		<div class="flex justify-end">
+			<button
+				class="btn-accent btn-icon h-12 px-7"
+				type="button"
+				onclick={createBatch}
+				disabled={!canCreate}
+			>
+				<span class="material-icons mr-2">dynamic_feed</span>
+				{isCreating ? $LL.batch.creatingBatch() : $LL.batch.createBatch()}
+			</button>
+		</div>
+
 		{#if fileName}
 			<section
 				class="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)]"
@@ -307,17 +319,5 @@
 				</div>
 			</section>
 		{/if}
-
-		<div class="flex justify-end">
-			<button
-				class="btn-accent btn-icon h-12 px-7"
-				type="button"
-				onclick={createBatch}
-				disabled={!canCreate}
-			>
-				<span class="material-icons mr-2">dynamic_feed</span>
-				{isCreating ? $LL.batch.creatingBatch() : $LL.batch.createBatch()}
-			</button>
-		</div>
 	</div>
 </div>

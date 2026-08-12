@@ -1124,6 +1124,7 @@ const zh = {
 			'已处理 {successful}/{total} 个片段，应用 {splits} 次分割，{failed} 个片段出现问题。',
 		aiSemanticSplitCompletedWithIssues: 'AI 分割完成，但存在问题。请查看活动日志。',
 		aiSemanticSplitApplied: '已应用 {count} 次语义分割。',
+		aiSemanticSplitMissingWbw: '由于缺少逐词时间戳，{count} 个字幕将不会被分割。',
 		splitWbwRequired: '这仅适用于具有逐词时间戳的字幕。',
 		waqfDescription: '没有 waqf 标记的段落保持不变，即使超过词数/时长限制。',
 		split: '分割',

@@ -896,6 +896,8 @@ const id = {
 			'{successful}/{total} segmen diproses, {splits} pembagian diterapkan, {failed} segmen bermasalah.',
 		aiSemanticSplitCompletedWithIssues: 'Pembagian AI selesai dengan masalah. Lihat log aktivitas.',
 		aiSemanticSplitApplied: '{count} pembagian berdasarkan makna diterapkan.',
+		aiSemanticSplitMissingWbw:
+			'{count} subtitle tidak akan dibagi karena timestamp kata demi katanya tidak tersedia.',
 		splitWbwRequired: 'Ini hanya bekerja untuk subtitle yang memiliki timestamp kata demi kata.',
 		waqfDescription:
 			'Segmen tanpa tanda waqaf akan tetap apa adanya, meskipun melebihi batas kata/durasi.',

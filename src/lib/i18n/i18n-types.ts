@@ -3400,6 +3400,11 @@ type RootTranslation = {
 		 */
 		aiSemanticSplitApplied: RequiredParams<'count'>;
 		/**
+		 * {​c​o​u​n​t​}​ ​s​u​b​t​i​t​l​e​(​s​)​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​s​p​l​i​t​ ​b​e​c​a​u​s​e​ ​t​h​e​i​r​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​ ​a​r​e​ ​m​i​s​s​i​n​g​.
+		 * @param {unknown} count
+		 */
+		aiSemanticSplitMissingWbw: RequiredParams<'count'>;
+		/**
 		 * T​h​i​s​ ​w​i​l​l​ ​o​n​l​y​ ​w​o​r​k​ ​w​i​t​h​ ​s​u​b​t​i​t​l​e​s​ ​t​h​a​t​ ​h​a​v​e​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​.
 		 */
 		splitWbwRequired: string;
@@ -14445,6 +14450,10 @@ export type TranslationFunctions = {
 		 * {count} meaning-aware split(s) applied.
 		 */
 		aiSemanticSplitApplied: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * {count} subtitle(s) will not be split because their word-by-word timestamps are missing.
+		 */
+		aiSemanticSplitMissingWbw: (arg: { count: unknown }) => LocalizedString;
 		/**
 		 * This will only work with subtitles that have word-by-word timestamps.
 		 */

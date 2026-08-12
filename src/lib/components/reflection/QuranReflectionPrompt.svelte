@@ -127,6 +127,7 @@
 			activeIds.add(exportation.exportId);
 			const previous = previousExportStates.get(exportation.exportId);
 			if (
+				!exportation.exportLabel &&
 				globalState.settings?.persistentUiState.hideReflectionPromptAfterExport !== true &&
 				shouldPromptForReflection(
 					previous,

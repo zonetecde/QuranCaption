@@ -5589,7 +5589,7 @@ type RootTranslation = {
 			 */
 			'video-clip-transition': string;
 			/**
-			 * D​u​r​a​t​i​o​n​ ​o​f​ ​v​i​d​e​o​ ​c​l​i​p​ ​t​r​a​n​s​i​t​i​o​n​s​ ​i​n​ ​m​i​l​l​i​s​e​c​o​n​d​s​.
+			 * D​e​f​a​u​l​t​ ​d​u​r​a​t​i​o​n​ ​o​f​ ​v​i​d​e​o​ ​c​l​i​p​ ​t​r​a​n​s​i​t​i​o​n​s​ ​i​n​ ​m​i​l​l​i​s​e​c​o​n​d​s​.​ ​I​n​ ​C​r​o​s​s​f​a​d​e​ ​m​o​d​e​,​ ​a​d​j​u​s​t​ ​e​a​c​h​ ​c​r​o​s​s​f​a​d​e​ ​i​n​d​i​v​i​d​u​a​l​l​y​ ​b​y​ ​m​o​v​i​n​g​ ​t​h​e​ ​c​l​i​p​s​ ​i​n​ ​t​h​e​ ​t​i​m​e​l​i​n​e​.​ ​I​t​ ​m​a​y​ ​n​o​t​ ​d​i​s​p​l​a​y​ ​a​c​c​u​r​a​t​e​l​y​ ​i​n​ ​t​h​e​ ​v​i​d​e​o​ ​p​r​e​v​i​e​w​,​ ​b​u​t​ ​t​h​e​ ​e​x​p​o​r​t​e​d​ ​v​i​d​e​o​ ​w​i​l​l​ ​b​e​ ​c​o​r​r​e​c​t​.
 			 */
 			'video-clip-transition-duration': string;
 			/**
@@ -16722,7 +16722,7 @@ export type TranslationFunctions = {
 			 */
 			'video-clip-transition': () => LocalizedString;
 			/**
-			 * Duration of video clip transitions in milliseconds.
+			 * Default duration of video clip transitions in milliseconds. In Crossfade mode, adjust each crossfade individually by moving the clips in the timeline. It may not display accurately in the video preview, but the exported video will be correct.
 			 */
 			'video-clip-transition-duration': () => LocalizedString;
 			/**

@@ -1673,7 +1673,8 @@ const zh = {
 			'fade-duration': '淡入/淡出效果的时长（毫秒）',
 			'video-and-audio-fade': '配置导出时视频和音频的淡入/淡出。',
 			'video-clip-transition': '时间线视频片段之间的过渡。',
-			'video-clip-transition-duration': '视频片段过渡的时长（毫秒）。',
+			'video-clip-transition-duration':
+				'视频片段过渡的默认时长（毫秒）。在交叉淡化模式下，可以通过在时间轴中移动片段来单独调整每个交叉淡化。视频预览中的显示可能不完全准确，但导出的视频会正确呈现。',
 			'anti-collision': '防止字幕重叠',
 			spacing: '字幕之间的最小间距（像素）',
 			overlay: '在视频上添加颜色叠加层',

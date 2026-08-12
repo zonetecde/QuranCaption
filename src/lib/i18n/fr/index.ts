@@ -1819,7 +1819,8 @@ const fr = {
 			'video-and-audio-fade':
 				'Configurer le fondu d\u2019entrée/sortie pour la vidéo et l\u2019audio à l\u2019export.',
 			'video-clip-transition': 'Transition entre les clips vidéo de la timeline.',
-			'video-clip-transition-duration': 'Durée des transitions entre clips vidéo en millisecondes.',
+			'video-clip-transition-duration':
+				'Durée par défaut des transitions entre clips vidéo en millisecondes. En mode Crossfade, chaque fondu croisé peut être ajusté individuellement en déplaçant les clips dans la timeline. Le résultat peut ne pas s’afficher correctement dans la prévisualisation vidéo, mais il sera correct dans la vidéo exportée.',
 			'anti-collision': 'Empêcher le chevauchement des sous-titres',
 			spacing: 'Espacement minimum entre les sous-titres (en pixels)',
 			overlay: 'Ajouter une superposition de couleur sur la vidéo',

@@ -546,7 +546,7 @@
 
 		{#if (extended || showControl) && style.valueType !== 'boolean'}
 			<div class={showControl ? 'style-control-direct-body' : 'my-2 px-2'} transition:slide>
-				{#if !showControl || ['dimension', 'fade', 'composite', 'ayah-image', 'file', 'reciter'].includes(style.valueType)}
+				{#if !showControl || ['dimension', 'fade', 'composite', 'ayah-image', 'file', 'reciter'].includes(style.valueType) || style.id === 'video-clip-transition-duration'}
 					<p class="text-xs text-secondary mb-2 flex items-center gap-1">
 						<span class="material-icons-outlined text-[12px]">info</span>
 						{getStyleDescription(style.id, get(LL))}

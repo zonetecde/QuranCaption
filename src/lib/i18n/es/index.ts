@@ -1815,7 +1815,7 @@ const es = {
 				'Configurar el fundido de entrada/salida para video y audio en la exportación.',
 			'video-clip-transition': 'Transición entre los clips de video de la línea de tiempo.',
 			'video-clip-transition-duration':
-				'Duración de las transiciones entre clips de video en milisegundos.',
+				'Duración predeterminada de las transiciones entre clips de video en milisegundos. En el modo Crossfade, cada fundido cruzado puede ajustarse individualmente moviendo los clips en la línea de tiempo. Es posible que no se muestre correctamente en la vista previa del video, pero será correcto en el video exportado.',
 			'anti-collision': 'Evitar la superposición de subtítulos',
 			spacing: 'Espaciado mínimo entre subtítulos (en píxeles)',
 			overlay: 'Agregar una superposición de color sobre el video',

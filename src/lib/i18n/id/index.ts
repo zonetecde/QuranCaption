@@ -999,6 +999,8 @@ const id = {
 		} as Translation['editor']['styleName'],
 		styleDescription: {
 			...baseEn.editor.styleDescription,
+			'video-clip-transition-duration':
+				'Durasi default transisi antar klip video dalam milidetik. Dalam mode Crossfade, setiap crossfade dapat disesuaikan secara terpisah dengan menggeser klip di timeline. Tampilannya mungkin tidak akurat di pratinjau video, tetapi hasil video yang diekspor akan tetap benar.',
 			'media-fill': 'Pangkas video dan gambar latar agar memenuhi seluruh bingkai',
 			'media-scale': 'Perbesar media latar',
 			'media-position-x': 'Geser media latar secara horizontal dari posisi tengah',

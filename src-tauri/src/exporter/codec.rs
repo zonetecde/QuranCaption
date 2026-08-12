@@ -16,6 +16,11 @@ pub fn is_high_resolution_export(width: i32, height: i32) -> bool {
     width >= 2560 || height >= 1440
 }
 
+/// Indique si les dimensions respectent le minimum requis par H.264 NVENC.
+fn supports_h264_nvenc_dimensions(width: i32, height: i32) -> bool {
+    width >= 145 && height >= 49
+}
+
 // ---------------------------------------------------------------------------
 // Gestion des threads FFmpeg
 // ---------------------------------------------------------------------------
@@ -312,7 +317,12 @@ pub fn choose_best_codec(
     if !hw.is_empty() {
         // NVENC : test de disponibilité réelle
         if hw[0] == "h264_nvenc" {
-            if test_nvenc_availability(ffmpeg_exe.as_deref()) {
+            if !supports_h264_nvenc_dimensions(width, height) {
+                println!(
+                    "[codec] Résolution {}x{} trop petite pour NVENC, fallback vers libx264",
+                    width, height
+                );
+            } else if test_nvenc_availability(ffmpeg_exe.as_deref()) {
                 let codec = hw[0].clone();
                 println!(
                     "[codec] usage={:?} profile={:?} resolution={}x{} selected={}",
@@ -521,6 +531,13 @@ mod tests {
         assert!(!is_high_resolution_export(1920, 1080));
         assert!(!is_high_resolution_export(1280, 720));
         assert!(!is_high_resolution_export(2559, 1439));
+    }
+
+    #[test]
+    fn test_nvenc_minimum_dimensions() {
+        assert!(supports_h264_nvenc_dimensions(145, 49));
+        assert!(!supports_h264_nvenc_dimensions(140, 90));
+        assert!(!supports_h264_nvenc_dimensions(146, 48));
     }
 
     // -----------------------------------------------------------------------

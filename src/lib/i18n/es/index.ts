@@ -1941,6 +1941,10 @@ const es = {
 		configureExportSettings:
 			'Configure sus ajustes de exportación de video y seleccione la porción a exportar.',
 		exportRange: 'Rango de exportación',
+		timeRangeMode: 'Por tiempo',
+		verseRangeMode: 'Por versículos',
+		selectVerseRange: 'Seleccione el primer y el último versículo que desea exportar:',
+		selectedVerseRange: 'De {start} a {end}',
 		selectTimeRange: 'Seleccione el rango temporal de su video a exportar :',
 		startTime: 'Inicio',
 		endTime: 'Fin',

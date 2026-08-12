@@ -1944,6 +1944,10 @@ const fr = {
 		configureExportSettings:
 			'Configurez vos paramètres d\u2019export vidéo et sélectionnez la portion à exporter.',
 		exportRange: 'Plage d\u2019export',
+		timeRangeMode: 'Par temps',
+		verseRangeMode: 'Par versets',
+		selectVerseRange: 'Sélectionnez le premier et le dernier verset à exporter\u00a0:',
+		selectedVerseRange: 'De {start} à {end}',
 		selectTimeRange: 'Sélectionnez la plage temporelle de votre vidéo à exporter\u00a0:',
 		startTime: 'Début',
 		endTime: 'Fin',

@@ -5779,6 +5779,24 @@ type RootTranslation = {
 		 */
 		exportRange: string;
 		/**
+		 * B​y​ ​t​i​m​e
+		 */
+		timeRangeMode: string;
+		/**
+		 * B​y​ ​v​e​r​s​e
+		 */
+		verseRangeMode: string;
+		/**
+		 * S​e​l​e​c​t​ ​t​h​e​ ​f​i​r​s​t​ ​a​n​d​ ​l​a​s​t​ ​v​e​r​s​e​ ​t​o​ ​e​x​p​o​r​t​:
+		 */
+		selectVerseRange: string;
+		/**
+		 * {​s​t​a​r​t​}​ ​t​o​ ​{​e​n​d​}
+		 * @param {unknown} end
+		 * @param {unknown} start
+		 */
+		selectedVerseRange: RequiredParams<'end' | 'start'>;
+		/**
 		 * S​e​l​e​c​t​ ​t​h​e​ ​t​i​m​e​ ​r​a​n​g​e​ ​o​f​ ​y​o​u​r​ ​v​i​d​e​o​ ​t​o​ ​e​x​p​o​r​t​:
 		 */
 		selectTimeRange: string;
@@ -16708,6 +16726,22 @@ export type TranslationFunctions = {
 		 * Export Range
 		 */
 		exportRange: () => LocalizedString;
+		/**
+		 * By time
+		 */
+		timeRangeMode: () => LocalizedString;
+		/**
+		 * By verse
+		 */
+		verseRangeMode: () => LocalizedString;
+		/**
+		 * Select the first and last verse to export:
+		 */
+		selectVerseRange: () => LocalizedString;
+		/**
+		 * {start} to {end}
+		 */
+		selectedVerseRange: (arg: { end: unknown; start: unknown }) => LocalizedString;
 		/**
 		 * Select the time range of your video to export:
 		 */

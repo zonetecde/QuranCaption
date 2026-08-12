@@ -3360,6 +3360,82 @@ type RootTranslation = {
 		 */
 		splitLongSubtitlesLabel: string;
 		/**
+		 * A​I​ ​s​p​l​i​t
+		 */
+		aiSemanticSplit: string;
+		/**
+		 * A​I​ ​M​e​a​n​i​n​g​-​A​w​a​r​e​ ​S​p​l​i​t​ ​A​s​s​i​s​t​a​n​t
+		 */
+		aiSemanticSplitAssistant: string;
+		/**
+		 * L​e​t​ ​y​o​u​r​ ​t​e​x​t​ ​A​I​ ​p​r​o​v​i​d​e​r​ ​c​h​o​o​s​e​ ​n​a​t​u​r​a​l​ ​A​r​a​b​i​c​ ​c​h​u​n​k​ ​b​o​u​n​d​a​r​i​e​s​ ​w​i​t​h​i​n​ ​t​h​e​ ​w​o​r​d​ ​l​i​m​i​t​.
+		 */
+		aiSemanticSplitDescription: string;
+		/**
+		 * O​n​l​y​ ​s​u​b​t​i​t​l​e​s​ ​a​b​o​v​e​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​w​o​r​d​ ​l​i​m​i​t​ ​a​r​e​ ​s​e​n​t​.​ ​T​h​e​ ​A​I​ ​r​e​t​u​r​n​s​ ​i​n​d​e​x​e​d​ ​b​o​u​n​d​a​r​i​e​s​ ​w​i​t​h​o​u​t​ ​r​e​w​r​i​t​i​n​g​ ​a​n​y​ ​Q​u​r​a​n​ ​t​e​x​t​.
+		 */
+		aiSemanticSplitExplanation: string;
+		/**
+		 * R​e​s​u​l​t​i​n​g​ ​c​h​u​n​k​s
+		 */
+		resultingChunks: string;
+		/**
+		 * T​h​e​ ​A​I​ ​r​e​c​e​i​v​e​s​ ​e​v​e​r​y​ ​i​n​d​e​x​e​d​ ​A​r​a​b​i​c​ ​w​o​r​d​ ​a​n​d​ ​r​e​t​u​r​n​s​ ​t​h​e​ ​m​o​s​t​ ​m​e​a​n​i​n​g​f​u​l​ ​v​a​l​i​d​ ​c​h​u​n​k​ ​e​n​d​i​n​g​s​.
+		 */
+		aiSemanticSplitRunDescription: string;
+		/**
+		 * R​u​n​ ​A​I​ ​s​p​l​i​t
+		 */
+		runAiSemanticSplit: string;
+		/**
+		 * R​u​n​n​i​n​g​ ​A​I​ ​s​p​l​i​t​.​.​.
+		 */
+		runningAiSemanticSplit: string;
+		/**
+		 * A​I​ ​s​p​l​i​t​ ​i​n​ ​p​r​o​g​r​e​s​s
+		 */
+		aiSemanticSplitInProgress: string;
+		/**
+		 * L​a​t​e​s​t​ ​A​I​ ​s​p​l​i​t​ ​r​u​n
+		 */
+		latestAiSemanticSplitRun: string;
+		/**
+		 * S​t​a​r​t​i​n​g​ ​A​I​ ​s​p​l​i​t​ ​f​o​r​ ​{​s​e​g​m​e​n​t​s​}​ ​s​e​g​m​e​n​t​(​s​)​ ​a​c​r​o​s​s​ ​{​b​a​t​c​h​e​s​}​ ​b​a​t​c​h​(​e​s​)​.
+		 * @param {unknown} batches
+		 * @param {unknown} segments
+		 */
+		aiSemanticSplitStarting: RequiredParams<'batches' | 'segments'>;
+		/**
+		 * {​l​a​b​e​l​}​:​ ​{​s​e​g​m​e​n​t​s​}​ ​s​e​g​m​e​n​t​(​s​)​,​ ​{​w​o​r​d​s​}​ ​w​o​r​d​s​.
+		 * @param {unknown} label
+		 * @param {unknown} segments
+		 * @param {unknown} words
+		 */
+		aiSemanticSplitBatchQueued: RequiredParams<'label' | 'segments' | 'words'>;
+		/**
+		 * A​p​p​l​i​e​d​ ​m​e​a​n​i​n​g​f​u​l​ ​s​p​l​i​t​s​ ​t​o​ ​{​a​p​p​l​i​e​d​}​/​{​t​o​t​a​l​}​ ​s​e​g​m​e​n​t​(​s​)​.
+		 * @param {unknown} applied
+		 * @param {unknown} total
+		 */
+		aiSemanticSplitAppliedSegments: RequiredParams<'applied' | 'total'>;
+		/**
+		 * {​s​u​c​c​e​s​s​f​u​l​}​/​{​t​o​t​a​l​}​ ​s​e​g​m​e​n​t​(​s​)​ ​p​r​o​c​e​s​s​e​d​,​ ​{​s​p​l​i​t​s​}​ ​s​p​l​i​t​(​s​)​ ​a​p​p​l​i​e​d​,​ ​{​f​a​i​l​e​d​}​ ​s​e​g​m​e​n​t​(​s​)​ ​h​a​d​ ​i​s​s​u​e​s​.
+		 * @param {unknown} failed
+		 * @param {unknown} splits
+		 * @param {unknown} successful
+		 * @param {unknown} total
+		 */
+		aiSemanticSplitRunSummary: RequiredParams<'failed' | 'splits' | 'successful' | 'total'>;
+		/**
+		 * A​I​ ​s​p​l​i​t​ ​c​o​m​p​l​e​t​e​d​ ​w​i​t​h​ ​i​s​s​u​e​s​.​ ​S​e​e​ ​t​h​e​ ​a​c​t​i​v​i​t​y​ ​l​o​g​.
+		 */
+		aiSemanticSplitCompletedWithIssues: string;
+		/**
+		 * {​c​o​u​n​t​}​ ​m​e​a​n​i​n​g​-​a​w​a​r​e​ ​s​p​l​i​t​(​s​)​ ​a​p​p​l​i​e​d​.
+		 * @param {unknown} count
+		 */
+		aiSemanticSplitApplied: RequiredParams<'count'>;
+		/**
 		 * T​h​i​s​ ​w​i​l​l​ ​o​n​l​y​ ​w​o​r​k​ ​w​i​t​h​ ​s​u​b​t​i​t​l​e​s​ ​t​h​a​t​ ​h​a​v​e​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​.
 		 */
 		splitWbwRequired: string;
@@ -14440,6 +14516,79 @@ export type TranslationFunctions = {
 		 * Split long subtitles
 		 */
 		splitLongSubtitlesLabel: () => LocalizedString;
+		/**
+		 * AI split
+		 */
+		aiSemanticSplit: () => LocalizedString;
+		/**
+		 * AI Meaning-Aware Split Assistant
+		 */
+		aiSemanticSplitAssistant: () => LocalizedString;
+		/**
+		 * Let your text AI provider choose natural Arabic chunk boundaries within the word limit.
+		 */
+		aiSemanticSplitDescription: () => LocalizedString;
+		/**
+		 * Only subtitles above the selected word limit are sent. The AI returns indexed boundaries without rewriting any Quran text.
+		 */
+		aiSemanticSplitExplanation: () => LocalizedString;
+		/**
+		 * Resulting chunks
+		 */
+		resultingChunks: () => LocalizedString;
+		/**
+		 * The AI receives every indexed Arabic word and returns the most meaningful valid chunk endings.
+		 */
+		aiSemanticSplitRunDescription: () => LocalizedString;
+		/**
+		 * Run AI split
+		 */
+		runAiSemanticSplit: () => LocalizedString;
+		/**
+		 * Running AI split...
+		 */
+		runningAiSemanticSplit: () => LocalizedString;
+		/**
+		 * AI split in progress
+		 */
+		aiSemanticSplitInProgress: () => LocalizedString;
+		/**
+		 * Latest AI split run
+		 */
+		latestAiSemanticSplitRun: () => LocalizedString;
+		/**
+		 * Starting AI split for {segments} segment(s) across {batches} batch(es).
+		 */
+		aiSemanticSplitStarting: (arg: { batches: unknown; segments: unknown }) => LocalizedString;
+		/**
+		 * {label}: {segments} segment(s), {words} words.
+		 */
+		aiSemanticSplitBatchQueued: (arg: {
+			label: unknown;
+			segments: unknown;
+			words: unknown;
+		}) => LocalizedString;
+		/**
+		 * Applied meaningful splits to {applied}/{total} segment(s).
+		 */
+		aiSemanticSplitAppliedSegments: (arg: { applied: unknown; total: unknown }) => LocalizedString;
+		/**
+		 * {successful}/{total} segment(s) processed, {splits} split(s) applied, {failed} segment(s) had issues.
+		 */
+		aiSemanticSplitRunSummary: (arg: {
+			failed: unknown;
+			splits: unknown;
+			successful: unknown;
+			total: unknown;
+		}) => LocalizedString;
+		/**
+		 * AI split completed with issues. See the activity log.
+		 */
+		aiSemanticSplitCompletedWithIssues: () => LocalizedString;
+		/**
+		 * {count} meaning-aware split(s) applied.
+		 */
+		aiSemanticSplitApplied: (arg: { count: unknown }) => LocalizedString;
 		/**
 		 * This will only work with subtitles that have word-by-word timestamps.
 		 */

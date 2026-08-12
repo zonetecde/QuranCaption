@@ -619,6 +619,27 @@ const editor = {
 	mark: 'Mark',
 	onLabel: 'On',
 	splitLongSubtitlesLabel: 'Split long subtitles',
+	aiSemanticSplit: 'AI split',
+	aiSemanticSplitAssistant: 'AI Meaning-Aware Split Assistant',
+	aiSemanticSplitDescription:
+		'Let your text AI provider choose natural Arabic chunk boundaries within the word limit.',
+	aiSemanticSplitExplanation:
+		'Only subtitles above the selected word limit are sent. The AI returns indexed boundaries without rewriting any Quran text.',
+	resultingChunks: 'Resulting chunks',
+	aiSemanticSplitRunDescription:
+		'The AI receives every indexed Arabic word and returns the most meaningful valid chunk endings.',
+	runAiSemanticSplit: 'Run AI split',
+	runningAiSemanticSplit: 'Running AI split...',
+	aiSemanticSplitInProgress: 'AI split in progress',
+	latestAiSemanticSplitRun: 'Latest AI split run',
+	aiSemanticSplitStarting:
+		'Starting AI split for {segments} segment(s) across {batches} batch(es).',
+	aiSemanticSplitBatchQueued: '{label}: {segments} segment(s), {words} words.',
+	aiSemanticSplitAppliedSegments: 'Applied meaningful splits to {applied}/{total} segment(s).',
+	aiSemanticSplitRunSummary:
+		'{successful}/{total} segment(s) processed, {splits} split(s) applied, {failed} segment(s) had issues.',
+	aiSemanticSplitCompletedWithIssues: 'AI split completed with issues. See the activity log.',
+	aiSemanticSplitApplied: '{count} meaning-aware split(s) applied.',
 	splitWbwRequired: 'This will only work with subtitles that have word-by-word timestamps.',
 	waqfDescription:
 		'Segments without a waqf mark stay as-is, even if they exceed word/duration limits.',

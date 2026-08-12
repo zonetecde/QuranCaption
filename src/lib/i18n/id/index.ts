@@ -881,6 +881,27 @@ const id = {
 		maxWords: 'Maks kata',
 		noLongSegments: 'Tidak ada segmen panjang yang cocok dengan ambang saat ini.',
 		splitLongSubtitlesLabel: 'Bagi subtitle panjang',
+		aiSemanticSplit: 'Pembagian AI',
+		aiSemanticSplitAssistant: 'Asisten AI Pembagian Berdasarkan Makna',
+		aiSemanticSplitDescription:
+			'Biarkan penyedia AI teks memilih batas potongan Arab yang alami sesuai batas kata.',
+		aiSemanticSplitExplanation:
+			'Hanya subtitle yang melebihi batas kata yang dikirim. AI mengembalikan batas berindeks tanpa menulis ulang teks Al-Quran.',
+		resultingChunks: 'Potongan hasil',
+		aiSemanticSplitRunDescription:
+			'AI menerima setiap kata Arab berindeks dan mengembalikan akhir potongan valid yang paling bermakna.',
+		runAiSemanticSplit: 'Jalankan pembagian AI',
+		runningAiSemanticSplit: 'Menjalankan pembagian AI...',
+		aiSemanticSplitInProgress: 'Pembagian AI sedang berjalan',
+		latestAiSemanticSplitRun: 'Pembagian AI terbaru',
+		aiSemanticSplitStarting: 'Memulai pembagian AI untuk {segments} segmen dalam {batches} batch.',
+		aiSemanticSplitBatchQueued: '{label}: {segments} segmen, {words} kata.',
+		aiSemanticSplitAppliedSegments:
+			'Pembagian berdasarkan makna diterapkan pada {applied}/{total} segmen.',
+		aiSemanticSplitRunSummary:
+			'{successful}/{total} segmen diproses, {splits} pembagian diterapkan, {failed} segmen bermasalah.',
+		aiSemanticSplitCompletedWithIssues: 'Pembagian AI selesai dengan masalah. Lihat log aktivitas.',
+		aiSemanticSplitApplied: '{count} pembagian berdasarkan makna diterapkan.',
 		splitWbwRequired: 'Ini hanya bekerja untuk subtitle yang memiliki timestamp kata demi kata.',
 		waqfDescription:
 			'Segmen tanpa tanda waqaf akan tetap apa adanya, meskipun melebihi batas kata/durasi.',

@@ -1,7 +1,8 @@
 use serde_json::{json, Value};
 
 use super::types::{
-    AdvancedBoldBatchPayload, AdvancedTrimBatchPayload, AdvancedWbwTranslationBatchPayload,
+    AdvancedBoldBatchPayload, AdvancedSubtitleSplitBatchPayload, AdvancedTrimBatchPayload,
+    AdvancedWbwTranslationBatchPayload,
 };
 
 pub const DEFAULT_TEXT_AI_ENDPOINT: &str = "https://api.openai.com/v1/responses";
@@ -60,6 +61,22 @@ Rules:
 - The provided translation uses indexed units in the form `0:word 1:word 2:word`.
 - For Chinese or other text without spaces, the indexed units may be characters. Treat them exactly like selectable units.
 - Compact response keys: root `s` = segments, segment `i` = segment index, segment `r` = ranges, range `i` = Arabic word index, range `s` = start unit index, range `e` = end unit index.
+- Return JSON only, matching the schema exactly.
+"#;
+
+pub const ADVANCED_SUBTITLE_SPLIT_SYSTEM_PROMPT: &str = r#"You split Arabic Quran subtitle segments into the smallest possible number of meaningful chunks.
+
+Rules:
+- Input keys: root `s` = segments; segment `i` = segment index, `v` = verse key, `m` = max words, `w` = space-separated `index:Arabic` words using absolute 0-based Quran word indexes.
+- Output keys: root `s` = segments; segment `i` = segment index, `e` = chunk end word indexes.
+- Return one index in `e` for every resulting chunk, including the final input word index.
+- Every chunk must contain at most `m` words.
+- Use exactly ceil(the number of indexed words in `w` / `m`) chunks: no more and no fewer.
+- Preserve the original word order and include every word exactly once.
+- Choose boundaries at the most semantically natural locations possible.
+- Prefer complete phrases and clauses, Quranic stop signs, and syntactic boundaries.
+- Avoid ending a chunk on a conjunction, preposition, particle, relative pronoun, or other word whose meaning depends on what follows whenever another valid boundary exists.
+- Never rewrite, reorder, remove, or add Arabic words.
 - Return JSON only, matching the schema exactly.
 "#;
 
@@ -180,6 +197,36 @@ pub fn build_wbw_translation_response_schema() -> Value {
     })
 }
 
+/// Schéma JSON de réponse pour le découpage sémantique des sous-titres.
+pub fn build_subtitle_split_response_schema() -> Value {
+    json!({
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+            "s": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "i": {
+                            "type": "integer"
+                        },
+                        "e": {
+                            "type": "array",
+                            "items": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "required": ["i", "e"]
+                }
+            }
+        },
+        "required": ["s"]
+    })
+}
+
 // ---------------------------------------------------------------------------
 // User prompt builders
 // ---------------------------------------------------------------------------
@@ -267,6 +314,24 @@ pub fn build_wbw_translation_user_prompt(
          {}\n\n\
          Batch JSON:\n{}",
         note_block, batch_json
+    ))
+}
+
+/// Construit le prompt utilisateur pour un lot de découpage sémantique.
+pub fn build_subtitle_split_user_prompt(
+    batch: &AdvancedSubtitleSplitBatchPayload,
+) -> Result<String, String> {
+    let batch_json = serde_json::to_string_pretty(batch)
+        .map_err(|error| format!("Failed to serialize batch: {}", error))?;
+
+    Ok(format!(
+        "Split every Arabic subtitle into meaningful chunks and return JSON only.\n\
+         Return exactly {{\"s\":[{{\"i\":0,\"e\":[4,9]}}]}}.\n\
+         Input keys: `s` = segments; `i` = segment index; `v` = verse key; `m` = max words; `w` = space-separated `index:Arabic` words.\n\
+         Output keys: `s` = segments; `i` = segment index; `e` = absolute final word index of every chunk, including the subtitle's final word.\n\
+         Each chunk must contain at most `m` words and the number of chunks must be ceil(the number of indexed words in `w` / `m`).\n\n\
+         Batch JSON:\n{}",
+        batch_json
     ))
 }
 

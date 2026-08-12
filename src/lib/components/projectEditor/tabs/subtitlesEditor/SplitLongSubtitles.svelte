@@ -4,6 +4,7 @@
 	import { subdivideLongSubtitleSegments } from '$lib/services/AutoSegmentation';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
+	import ModalManager from '$lib/components/modals/ModalManager';
 
 	const LL_ = get(LL);
 
@@ -41,6 +42,15 @@
 		toast.success(
 			LL_.editor.splitApplied({ count: splitCount, plural: splitCount > 1 ? 's were' : ' was' })
 		);
+	}
+
+	/**
+	 * Ouvre l'assistant IA de découpage sémantique.
+	 *
+	 * @returns {Promise<void>} Résolution après fermeture de l'assistant.
+	 */
+	async function handleAiSemanticSplit(): Promise<void> {
+		await ModalManager.aiSubtitleSplitModal();
 	}
 
 	$effect(() => {
@@ -198,6 +208,19 @@
 		>
 			<span class="material-icons text-base">call_split</span>
 			{$LL.editor.split()}
+		</button>
+	</div>
+
+	<div class="space-y-3 rounded-lg bg-accent p-4">
+		<p class="text-sm font-medium text-primary">{$LL.editor.aiSemanticSplitAssistant()}</p>
+		<p class="text-xs text-secondary">{$LL.editor.aiSemanticSplitDescription()}</p>
+		<button
+			class="btn-accent flex min-h-11 w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-sm"
+			type="button"
+			onclick={handleAiSemanticSplit}
+		>
+			<span class="material-icons text-base">auto_fix_high</span>
+			{$LL.editor.aiSemanticSplit()}
 		</button>
 	</div>
 {/if}

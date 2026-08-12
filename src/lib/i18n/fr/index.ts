@@ -1218,6 +1218,29 @@ const fr = {
 		mark: 'Marquer',
 		onLabel: 'Activé',
 		splitLongSubtitlesLabel: 'Diviser les sous-titres longs',
+		aiSemanticSplit: 'Découpe IA',
+		aiSemanticSplitAssistant: 'Assistant IA de découpage selon le sens',
+		aiSemanticSplitDescription:
+			'Laissez votre fournisseur IA choisir des limites naturelles en arabe dans la limite de mots.',
+		aiSemanticSplitExplanation:
+			'Seuls les sous-titres dépassant la limite choisie sont envoyés. L’IA renvoie des limites indexées sans réécrire le texte coranique.',
+		resultingChunks: 'Chunks obtenus',
+		aiSemanticSplitRunDescription:
+			'L’IA reçoit chaque mot arabe indexé et renvoie les meilleures fins de chunks valides selon le sens.',
+		runAiSemanticSplit: 'Lancer la découpe IA',
+		runningAiSemanticSplit: 'Découpe IA en cours...',
+		aiSemanticSplitInProgress: 'Découpe IA en cours',
+		latestAiSemanticSplitRun: 'Dernière découpe IA',
+		aiSemanticSplitStarting:
+			'Démarrage de la découpe IA de {segments} segment(s) en {batches} lot(s).',
+		aiSemanticSplitBatchQueued: '{label} : {segments} segment(s), {words} mots.',
+		aiSemanticSplitAppliedSegments:
+			'Découpes selon le sens appliquées à {applied}/{total} segment(s).',
+		aiSemanticSplitRunSummary:
+			'{successful}/{total} segment(s) traité(s), {splits} découpe(s) appliquée(s), {failed} segment(s) en erreur.',
+		aiSemanticSplitCompletedWithIssues:
+			'Découpe IA terminée avec des problèmes. Consultez le journal d’activité.',
+		aiSemanticSplitApplied: '{count} découpe(s) selon le sens appliquée(s).',
 		splitWbwRequired:
 			'Cela ne fonctionnera qu\u2019avec les sous-titres ayant des horodatages mot par mot.',
 		waqfDescription:

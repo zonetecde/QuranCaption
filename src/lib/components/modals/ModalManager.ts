@@ -12,6 +12,7 @@ import BookmarkVerseModal from './BookmarkVerseModal.svelte';
 import QuickTimelineEditorModal from './QuickTimelineEditorModal.svelte';
 import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
 import AiWbwTranslationModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiWbwTranslationModal.svelte';
+import AiSubtitleSplitModal from '$lib/components/projectEditor/tabs/subtitlesEditor/AiSubtitleSplitModal.svelte';
 import AskIAModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AskIAModal.svelte';
 import type { Edition } from '$lib/classes';
 import type { UpdateInfo } from '$lib/services/VersionService.svelte';
@@ -258,6 +259,30 @@ export default class ModalManager {
 			document.body.appendChild(container);
 
 			const modal = mount(AiBoldModal, {
+				target: container,
+				props: {
+					close: () => {
+						unmount(modal);
+						container.remove();
+						resolve();
+					}
+				}
+			});
+		});
+	}
+
+	/**
+	 * Ouvre la modale de découpage sémantique des sous-titres.
+	 *
+	 * @returns {Promise<void>} Résolution après fermeture de la modale.
+	 */
+	static async aiSubtitleSplitModal(): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			const modal = mount(AiSubtitleSplitModal, {
 				target: container,
 				props: {
 					close: () => {

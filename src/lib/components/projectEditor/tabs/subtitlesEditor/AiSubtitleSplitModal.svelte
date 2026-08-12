@@ -3,9 +3,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
 
-	import AiActivityLogCard from '../translationsEditor/modal/shared/AiActivityLogCard.svelte';
 	import AiMetricsGrid from '../translationsEditor/modal/shared/AiMetricsGrid.svelte';
-	import AiRunStatusCard from '../translationsEditor/modal/shared/AiRunStatusCard.svelte';
 	import TranslationsEditorModalShell from '../translationsEditor/modal/shared/TranslationsEditorModalShell.svelte';
 	import type { AdvancedTrimUsage } from '$lib/services/AdvancedAITrimming';
 	import {
@@ -43,6 +41,9 @@
 	};
 
 	let { close }: { close: () => void } = $props();
+	let panelScale = $derived(
+		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
+	);
 
 	const AI_SPLIT_MIN_WORDS = 1;
 	const AI_SPLIT_MAX_WORDS = 30;
@@ -348,28 +349,60 @@
 	{close}
 	title={$LL.editor.aiSemanticSplitAssistant()}
 	icon="call_split"
-	shellClass="h-[92vh] xl:h-[84vh] w-[clamp(1000px,90vw,1400px)] max-w-[94vw] xl:max-w-[82vw]"
-	bodyClass="flex-1 min-h-0 overflow-hidden grid grid-cols-[minmax(0,0.9fr)_minmax(360px,1.1fr)]"
+	{panelScale}
+	shellClass="h-[90dvh] w-full"
+	bodyClass="flex min-h-0 flex-1 flex-col overflow-y-auto"
+	workspace={{
+		configuration: {
+			title: $LL.editor.configuration(),
+			description: $LL.editor.aiSemanticSplitExplanation(),
+			icon: 'auto_fix_high'
+		},
+		provider: {
+			title: $LL.editor.aiProvider(),
+			description: $LL.editor.aiProviderConfigHint(),
+			currentModelLabel: $LL.editor.currentModel(),
+			model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
+			endpointLabel: $LL.editor.endpoint(),
+			endpoint: globalState.settings!.aiTranslationSettings.textAiApiEndpoint,
+			notSetLabel: $LL.editor.notSet()
+		},
+		run: {
+			title: $LL.editor.run(),
+			description: $LL.editor.aiSemanticSplitRunDescription(),
+			buttonLabel: isRunning
+				? $LL.editor.runningAiSemanticSplit()
+				: isLoadingCandidates
+					? $LL.editor.loadingSegments()
+					: $LL.editor.runAiSemanticSplit(),
+			disabled: isRunning || isLoadingCandidates || batches.length === 0,
+			onclick: runAiSubtitleSplit
+		},
+		status: {
+			title: isRunning
+				? $LL.editor.aiSemanticSplitInProgress()
+				: $LL.editor.latestAiSemanticSplitRun(),
+			subtitle: isRunning
+				? $LL.editor.batchProgress({ current: completedBatches, total: batches.length })
+				: latestSummary || $LL.editor.noSummaryYet(),
+			progressPercent: getProgressPercent(),
+			metrics: [
+				{ label: $LL.editor.successfulSegments(), value: successfulSegments },
+				{ label: $LL.editor.failedSegments(), value: failedSegments },
+				{ label: $LL.editor.successfulBatches(), value: successfulBatches },
+				{ label: $LL.editor.usage(), value: getActualUsageSummary() }
+			]
+		},
+		activityLog,
+		activityTitle: $LL.editor.recentActivity(),
+		activityMaxHeightClass: 'max-h-[360px]'
+	}}
 >
 	{#snippet subtitle()}
 		{$LL.editor.aiSemanticSplitDescription()}
 	{/snippet}
 
-	<div class="min-h-0 overflow-y-auto p-6 space-y-5 border-r border-color">
-		<div class="rounded-xl border border-color bg-accent px-4 py-4">
-			<div class="flex items-start justify-between gap-4">
-				<div>
-					<h3 class="text-base font-semibold text-primary">{$LL.editor.configuration()}</h3>
-					<p class="mt-1 text-sm leading-relaxed text-thirdly">
-						{$LL.editor.aiSemanticSplitExplanation()}
-					</p>
-				</div>
-				<div class="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
-					<span class="material-icons text-accent-primary">auto_fix_high</span>
-				</div>
-			</div>
-		</div>
-
+	{#snippet configurationFields()}
 		<div class="rounded-xl border border-color bg-secondary p-4">
 			<div class="mb-4 flex items-center gap-2">
 				<span class="material-icons text-accent-primary">analytics</span>
@@ -417,75 +450,9 @@
 				<span>{AI_SPLIT_MAX_WORDS}</span>
 			</div>
 		</div>
+	{/snippet}
 
-		<div class="rounded-xl border border-color bg-secondary px-4 py-4">
-			<div class="flex items-start gap-3">
-				<div class="flex h-10 w-10 items-center justify-center rounded-full bg-accent">
-					<span class="material-icons text-accent-primary">settings</span>
-				</div>
-				<div class="space-y-1">
-					<div class="text-sm font-semibold text-primary">{$LL.editor.aiProvider()}</div>
-					<p class="text-sm leading-relaxed text-thirdly">{$LL.editor.aiProviderConfigHint()}</p>
-					<div class="text-xs text-thirdly">
-						{$LL.editor.currentModel()}:
-						<span class="font-medium text-primary">
-							{globalState.settings!.aiTranslationSettings.advancedTrimModel || $LL.editor.notSet()}
-						</span>
-					</div>
-					<div class="break-all text-xs text-thirdly">
-						{$LL.editor.endpoint()}:
-						<span class="font-medium text-primary">
-							{globalState.settings!.aiTranslationSettings.textAiApiEndpoint || $LL.editor.notSet()}
-						</span>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<div class="min-h-0 overflow-y-auto p-6 space-y-5 bg-primary/30">
-		<div class="rounded-xl border border-color bg-secondary px-4 py-4">
-			<div class="flex items-start justify-between gap-4">
-				<div>
-					<h3 class="text-base font-semibold text-primary">{$LL.editor.run()}</h3>
-					<p class="mt-1 text-sm leading-relaxed text-thirdly">
-						{$LL.editor.aiSemanticSplitRunDescription()}
-					</p>
-				</div>
-				<button
-					class="w-56 rounded-lg bg-[var(--accent-primary)] px-4 py-2.5 text-sm font-semibold text-black transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-55"
-					type="button"
-					onclick={runAiSubtitleSplit}
-					disabled={isRunning || isLoadingCandidates || batches.length === 0}
-				>
-					{#if isRunning}
-						{$LL.editor.runningAiSemanticSplit()}
-					{:else if isLoadingCandidates}
-						{$LL.editor.loadingSegments()}
-					{:else}
-						{$LL.editor.runAiSemanticSplit()}
-					{/if}
-				</button>
-			</div>
-		</div>
-
-		<AiRunStatusCard
-			title={isRunning
-				? $LL.editor.aiSemanticSplitInProgress()
-				: $LL.editor.latestAiSemanticSplitRun()}
-			subtitle={isRunning
-				? $LL.editor.batchProgress({ current: completedBatches, total: batches.length })
-				: latestSummary || $LL.editor.noSummaryYet()}
-			progressPercent={getProgressPercent()}
-			metrics={[
-				{ label: $LL.editor.successfulSegments(), value: successfulSegments },
-				{ label: $LL.editor.failedSegments(), value: failedSegments },
-				{ label: $LL.editor.successfulBatches(), value: successfulBatches },
-				{ label: $LL.editor.usage(), value: getActualUsageSummary() }
-			]}
-			columnsClass="grid-cols-2"
-		/>
-
+	{#snippet afterStatus()}
 		{#if streamedResponse}
 			<div class="rounded-xl border border-color bg-secondary p-4">
 				<div class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-thirdly">
@@ -498,11 +465,5 @@
 				</div>
 			</div>
 		{/if}
-
-		<AiActivityLogCard
-			title={$LL.editor.recentActivity()}
-			{activityLog}
-			maxHeightClass="max-h-[360px]"
-		/>
-	</div>
+	{/snippet}
 </TranslationsEditorModalShell>

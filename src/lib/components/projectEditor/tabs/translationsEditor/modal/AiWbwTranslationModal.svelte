@@ -10,9 +10,7 @@
 		WbwTranslationStatusEventPayload
 	} from '$lib/services/AiWbwTranslationMappingTypes';
 	import type { AdvancedTrimUsage } from '$lib/services/AdvancedAITrimming';
-	import AiActivityLogCard from './shared/AiActivityLogCard.svelte';
 	import AiBatchOverviewCard from './shared/AiBatchOverviewCard.svelte';
-	import AiRunStatusCard from './shared/AiRunStatusCard.svelte';
 	import AiStreamingWorkerGrid from './shared/AiStreamingWorkerGrid.svelte';
 	import TranslationsEditorModalShell from './shared/TranslationsEditorModalShell.svelte';
 	import VerseRangeSelector from './VerseRangeSelector.svelte';
@@ -645,28 +643,64 @@
 	title={$LL.editor.aiWbwTranslationAssistant()}
 	icon="auto_fix_high"
 	{panelScale}
-	shellClass="h-[92vh] xl:h-[84vh] w-[clamp(1180px,94vw,1500px)] max-w-[94vw] xl:max-w-[82vw]"
-	bodyClass="flex-1 min-h-0 overflow-y-auto flex flex-col"
+	shellClass="h-[90dvh] w-full"
+	bodyClass="flex min-h-0 flex-1 flex-col overflow-y-auto"
+	workspace={{
+		configuration: {
+			title: $LL.editor.configuration(),
+			description: $LL.editor.aiWbwTranslationConfigDescription(),
+			icon: 'link'
+		},
+		provider: {
+			title: $LL.editor.aiProvider(),
+			description: $LL.editor.aiProviderConfigHint(),
+			currentModelLabel: $LL.editor.currentModel(),
+			model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
+			endpointLabel: $LL.editor.endpoint(),
+			endpoint: globalState.settings!.aiTranslationSettings.textAiApiEndpoint,
+			notSetLabel: $LL.editor.notSet()
+		},
+		run: {
+			title: $LL.editor.run(),
+			description: $LL.editor.aiWbwTranslationRunDescription(),
+			buttonLabel: isRunning
+				? $LL.editor.runningAiWbwTranslation()
+				: isLoadingCandidates
+					? $LL.editor.loadingSegments()
+					: $LL.editor.runAiWbwTranslation(),
+			disabled:
+				isRunning ||
+				isLoadingCandidates ||
+				aiWbwTranslationBatches().length === 0 ||
+				visibleEditions().length === 0,
+			onclick: runAiWbwTranslation
+		},
+		status: {
+			title: isRunning
+				? $LL.editor.aiWbwTranslationInProgress()
+				: $LL.editor.latestAiWbwTranslationRun(),
+			subtitle: isRunning
+				? $LL.editor.batchProgress({
+						current: completedBatches,
+						total: aiWbwTranslationBatches().length
+					})
+				: latestSummary || $LL.editor.noSummaryYet(),
+			progressPercent: getProgressPercent(),
+			metrics: [
+				{ label: $LL.editor.successfulSegments(), value: successfulSegments },
+				{ label: $LL.editor.failedSegments(), value: failedSegments },
+				{ label: $LL.editor.successfulBatches(), value: successfulBatches },
+				{ label: $LL.editor.usage(), value: getActualUsageSummary() }
+			]
+		},
+		activityLog
+	}}
 >
 	{#snippet subtitle()}
 		{$LL.editor.aiWbwTranslationSubtitle()}
 	{/snippet}
 
-	<div class="p-4 space-y-5 border-b border-color">
-		<div class="rounded-xl border border-color bg-accent px-4 py-4">
-			<div class="flex items-start justify-between gap-4">
-				<div>
-					<h3 class="text-base font-semibold text-primary">{$LL.editor.configuration()}</h3>
-					<p class="mt-1 text-sm text-thirdly leading-relaxed">
-						{$LL.editor.aiWbwTranslationConfigDescription()}
-					</p>
-				</div>
-				<div class="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
-					<span class="material-icons text-accent-primary">link</span>
-				</div>
-			</div>
-		</div>
-
+	{#snippet configurationFields()}
 		{#if visibleEditions().length === 0}
 			<div class="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-4 text-sm text-red-100">
 				{$LL.editor.noVisibleTranslation()}
@@ -718,7 +752,9 @@
 				{$LL.editor.aiWbwTranslationCustomNoteHint()}
 			</span>
 		</label>
+	{/snippet}
 
+	{#snippet configurationSummary()}
 		<AiBatchOverviewCard
 			title={$LL.editor.batchPreview()}
 			icon="analytics"
@@ -746,84 +782,9 @@
 				language: selectedAiWbwTranslationEdition()?.language ?? ''
 			})}
 		</div>
+	{/snippet}
 
-		<div class="rounded-xl border border-color bg-secondary px-4 py-4">
-			<div class="flex items-start gap-3">
-				<div class="flex h-10 w-10 items-center justify-center rounded-full bg-accent">
-					<span class="material-icons text-accent-primary">settings</span>
-				</div>
-				<div class="space-y-1">
-					<div class="text-sm font-semibold text-primary">{$LL.editor.aiProvider()}</div>
-					<p class="text-sm leading-relaxed text-thirdly">
-						{$LL.editor.aiProviderConfigHint()}
-					</p>
-					<div class="text-xs text-thirdly">
-						{$LL.editor.currentModel()}:
-						<span class="font-medium text-primary">
-							{globalState.settings!.aiTranslationSettings.advancedTrimModel || $LL.editor.notSet()}
-						</span>
-					</div>
-					<div class="text-xs text-thirdly break-all">
-						{$LL.editor.endpoint()}:
-						<span class="font-medium text-primary">
-							{globalState.settings!.aiTranslationSettings.textAiApiEndpoint || $LL.editor.notSet()}
-						</span>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<div class="p-4 space-y-5 bg-primary/30">
-		<div class="rounded-xl border border-color bg-secondary px-4 py-4">
-			<div class="flex flex-col gap-4">
-				<div>
-					<h3 class="text-base font-semibold text-primary">{$LL.editor.run()}</h3>
-					<p class="mt-1 text-sm text-thirdly leading-relaxed">
-						{$LL.editor.aiWbwTranslationRunDescription()}
-					</p>
-				</div>
-				<button
-					class="w-full rounded-lg bg-[var(--accent-primary)] px-4 py-2.5 text-sm font-semibold text-black transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-55"
-					onclick={runAiWbwTranslation}
-					disabled={isRunning ||
-						isLoadingCandidates ||
-						aiWbwTranslationBatches().length === 0 ||
-						visibleEditions().length === 0}
-				>
-					{#if isRunning}
-						{$LL.editor.runningAiWbwTranslation()}
-					{:else if isLoadingCandidates}
-						{$LL.editor.loadingSegments()}
-					{:else}
-						{$LL.editor.runAiWbwTranslation()}
-					{/if}
-				</button>
-			</div>
-		</div>
-
-		<AiRunStatusCard
-			title={isRunning
-				? $LL.editor.aiWbwTranslationInProgress()
-				: $LL.editor.latestAiWbwTranslationRun()}
-			subtitle={isRunning
-				? $LL.editor.batchProgress({
-						current: completedBatches,
-						total: aiWbwTranslationBatches().length
-					})
-				: latestSummary || $LL.editor.noSummaryYet()}
-			progressPercent={getProgressPercent()}
-			metrics={[
-				{ label: $LL.editor.successfulSegments(), value: successfulSegments },
-				{ label: $LL.editor.failedSegments(), value: failedSegments },
-				{ label: $LL.editor.successfulBatches(), value: successfulBatches },
-				{ label: $LL.editor.usage(), value: getActualUsageSummary() }
-			]}
-			columnsClass="grid-cols-2"
-		/>
-
+	{#snippet afterStatus()}
 		<AiStreamingWorkerGrid {workers} />
-
-		<AiActivityLogCard {activityLog} maxHeightClass="max-h-[420px]" />
-	</div>
+	{/snippet}
 </TranslationsEditorModalShell>

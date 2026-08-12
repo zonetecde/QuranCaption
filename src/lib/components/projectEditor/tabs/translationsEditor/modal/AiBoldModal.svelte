@@ -2,9 +2,7 @@
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import Settings from '$lib/classes/Settings.svelte';
 	import type { AdvancedTrimUsage } from '$lib/services/AdvancedAITrimming';
-	import AiActivityLogCard from './shared/AiActivityLogCard.svelte';
 	import AiBatchOverviewCard from './shared/AiBatchOverviewCard.svelte';
-	import AiRunStatusCard from './shared/AiRunStatusCard.svelte';
 	import TranslationsEditorModalShell from './shared/TranslationsEditorModalShell.svelte';
 	import VerseRangeSelector from './VerseRangeSelector.svelte';
 	import {
@@ -464,28 +462,54 @@
 	icon="format_bold"
 	shellClass="h-[92vh] xl:h-[84vh] w-[clamp(1180px,94vw,1500px)] max-w-[94vw] xl:max-w-[82vw]"
 	bodyClass="flex-1 min-h-0 overflow-hidden grid grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]"
+	workspace={{
+		configuration: {
+			title: 'Configuration',
+			description:
+				'AI Bold replaces existing inline bold for the processed segments only. Italic and underline remain untouched.',
+			icon: 'auto_fix_high'
+		},
+		provider: {
+			title: 'AI Provider',
+			description:
+				'Configure your API key, text endpoint, model, and reasoning effort in Settings > AI Key before running AI Bold.',
+			currentModelLabel: 'Current model',
+			model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
+			endpointLabel: 'Endpoint',
+			endpoint: globalState.settings!.aiTranslationSettings.textAiApiEndpoint,
+			notSetLabel: 'Not set'
+		},
+		run: {
+			title: 'Run',
+			description:
+				'The AI receives Arabic text plus indexed translation words and must return JSON word indexes only.',
+			buttonLabel: isRunning ? 'Running AI Bold...' : 'Run AI Bold',
+			buttonWidthClass: 'w-52',
+			disabled: isRunning || aiBoldBatches().length === 0 || visibleEditions().length === 0,
+			onclick: runAiBold
+		},
+		status: {
+			title: isRunning ? 'AI Bold in progress' : 'Latest AI Bold run',
+			subtitle: isRunning
+				? currentBatchLabel || 'Preparing batches...'
+				: latestSummary || 'No summary yet.',
+			progressPercent: getProgressPercent(),
+			metrics: [
+				{ label: 'Successful segments', value: successfulSegments },
+				{ label: 'Failed segments', value: failedSegments },
+				{ label: 'Successful batches', value: successfulBatches },
+				{ label: 'Usage', value: getActualUsageSummary() }
+			]
+		},
+		activityLog
+	}}
 >
 	{#snippet subtitle()}
 		Choose an edition, a time range, and let your text AI provider return only the word indexes to
 		bold.
 	{/snippet}
 
-	<div class="min-h-0 overflow-y-auto p-6 space-y-5 border-r border-color">
-		<div class="rounded-xl border border-color bg-accent px-4 py-4">
-			<div class="flex items-start justify-between gap-4">
-				<div>
-					<h3 class="text-base font-semibold text-primary">Configuration</h3>
-					<p class="mt-1 text-sm text-thirdly leading-relaxed">
-						AI Bold replaces existing inline bold for the processed segments only. Italic and
-						underline remain untouched.
-					</p>
-				</div>
-				<div class="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
-					<span class="material-icons text-accent-primary">auto_fix_high</span>
-				</div>
-			</div>
-		</div>
-
+	{#snippet configurationFields()}
 		{#if visibleEditions().length === 0}
 			<div class="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-4 text-sm text-red-100">
 				No visible translation edition is available in the editor.
@@ -556,7 +580,9 @@
 				</div>
 			</div>
 		</label>
+	{/snippet}
 
+	{#snippet configurationSummary()}
 		<AiBatchOverviewCard
 			title={$LL.editor.batchPreview()}
 			icon="analytics"
@@ -576,70 +602,9 @@
 			Targeting <span class="font-semibold text-primary">{selectedAiBoldEdition()?.author}</span>
 			({selectedAiBoldEdition()?.language}).
 		</div>
+	{/snippet}
 
-		<div class="rounded-xl border border-color bg-secondary px-4 py-4">
-			<div class="flex items-start gap-3">
-				<div class="flex h-10 w-10 items-center justify-center rounded-full bg-accent">
-					<span class="material-icons text-accent-primary">settings</span>
-				</div>
-				<div class="space-y-1">
-					<div class="text-sm font-semibold text-primary">AI Provider</div>
-					<p class="text-sm leading-relaxed text-thirdly">
-						Configure your API key, text endpoint, model, and reasoning effort in Settings &gt; AI
-						Key before running AI Bold.
-					</p>
-					<div class="text-xs text-thirdly">
-						Current model:
-						<span class="font-medium text-primary">
-							{globalState.settings!.aiTranslationSettings.advancedTrimModel || 'Not set'}
-						</span>
-					</div>
-					<div class="text-xs text-thirdly break-all">
-						Endpoint:
-						<span class="font-medium text-primary">
-							{globalState.settings!.aiTranslationSettings.textAiApiEndpoint || 'Not set'}
-						</span>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<div class="min-h-0 overflow-y-auto p-6 space-y-5 bg-primary/30">
-		<div class="rounded-xl border border-color bg-secondary px-4 py-4">
-			<div class="flex items-start justify-between gap-4">
-				<div>
-					<h3 class="text-base font-semibold text-primary">Run</h3>
-					<p class="mt-1 text-sm text-thirdly leading-relaxed">
-						The AI receives Arabic text plus indexed translation words and must return JSON word
-						indexes only.
-					</p>
-				</div>
-				<button
-					class="rounded-lg bg-[var(--accent-primary)] w-52 px-4 py-2.5 text-sm font-semibold text-black transition-all duration-200 hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-55"
-					onclick={runAiBold}
-					disabled={isRunning || aiBoldBatches().length === 0 || visibleEditions().length === 0}
-				>
-					{isRunning ? 'Running AI Bold...' : 'Run AI Bold'}
-				</button>
-			</div>
-		</div>
-
-		<AiRunStatusCard
-			title={isRunning ? 'AI Bold in progress' : 'Latest AI Bold run'}
-			subtitle={isRunning
-				? `${currentBatchLabel || 'Preparing batches...'}`
-				: latestSummary || 'No summary yet.'}
-			progressPercent={getProgressPercent()}
-			metrics={[
-				{ label: 'Successful segments', value: successfulSegments },
-				{ label: 'Failed segments', value: failedSegments },
-				{ label: 'Successful batches', value: successfulBatches },
-				{ label: 'Usage', value: getActualUsageSummary() }
-			]}
-			columnsClass="grid-cols-2"
-		/>
-
+	{#snippet afterStatus()}
 		{#if streamedResponse}
 			<div class="rounded-xl border border-color bg-secondary p-4">
 				<div class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-thirdly">
@@ -652,7 +617,5 @@
 				</div>
 			</div>
 		{/if}
-
-		<AiActivityLogCard {activityLog} maxHeightClass="max-h-[420px]" />
-	</div>
+	{/snippet}
 </TranslationsEditorModalShell>

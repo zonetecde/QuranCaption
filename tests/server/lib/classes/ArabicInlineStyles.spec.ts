@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
-import WarshProvider from '$lib/services/WarshProvider';
+import RiwayahProvider from '$lib/services/RiwayahProvider';
 
 describe('arabic inline styles', () => {
 	const originalCurrentProject = globalState.currentProject;
@@ -14,6 +14,8 @@ describe('arabic inline styles', () => {
 				case 'show-verse-number':
 					return { value: false } as never;
 				case 'font-family':
+					return { value: 'Hafs' } as never;
+				case 'riwayah':
 					return { value: 'Hafs' } as never;
 				case 'mushaf-style':
 					return { value: 'Uthmani' } as never;
@@ -208,13 +210,15 @@ describe('arabic inline styles', () => {
 					return { value: true } as never;
 				case 'font-family':
 					return { value: 'warsh10' } as never;
-				case 'mushaf-style':
+				case 'riwayah':
 					return { value: 'Warsh' } as never;
+				case 'mushaf-style':
+					return { value: 'Uthmani' } as never;
 				default:
 					return { value: 0 } as never;
 			}
 		});
-		vi.spyOn(WarshProvider, 'getVerseSlice').mockReturnValue({
+		vi.spyOn(RiwayahProvider, 'getVerseSlice').mockReturnValue({
 			text: 'وَأَنْ يُّظْهِرَ',
 			words: ['وَأَنْ', 'يُّظْهِرَ'],
 			sourceWordIndexes: [[12, 13], [14]],

@@ -9,7 +9,7 @@
 			"groups": [
 				{
 					"id": "basics",
-					"styleIds": ["show-subtitles", "mushaf-style", "text-direction"]
+					"styleIds": ["show-subtitles", "riwayah", "mushaf-style", "text-direction"]
 				},
 				{
 					"id": "verseNumber",
@@ -100,12 +100,23 @@
 				"icon": "font_download"
 			},
 			{
+				"id": "riwayah",
+				"name": "Riwayah",
+				"description": "Choose the Quran recitation used for Arabic subtitles.",
+				"value": "Hafs",
+				"valueType": "select",
+				"options": ["Hafs", "Warsh", "Qaloon", "Shouba", "Doori", "Soosi", "Bazzi", "Qumbul"],
+				"css": "",
+				"tailwind": false,
+				"icon": "menu_book"
+			},
+			{
 				"id": "mushaf-style",
 				"name": "Mushaf",
 				"description": "Choose the Arabic script source for Quran subtitles.",
 				"value": "Uthmani",
 				"valueType": "select",
-				"options": ["Uthmani", "Indopak", "Tajweed", "Soosi", "Warsh", "Minimal Quran"],
+				"options": ["Uthmani", "Indopak", "Tajweed", "Minimal Quran"],
 				"css": "",
 				"tailwind": false,
 				"icon": "menu_book"

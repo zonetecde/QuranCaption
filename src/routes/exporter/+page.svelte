@@ -45,8 +45,7 @@
 	} from '$lib/services/ExportCaptureTiming';
 	import type { ExportFadeSettings } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import QPCFontProvider from '$lib/services/FontProvider';
-	import SoosiProvider from '$lib/services/SoosiProvider';
-	import WarshProvider from '$lib/services/WarshProvider';
+	import RiwayahProvider, { isNonHafsRiwayah } from '$lib/services/RiwayahProvider';
 	import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 	import { getAllWindows, type BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
 	import Exportation, { ExportState, type ExportLogLevel } from '$lib/classes/Exportation.svelte';
@@ -631,12 +630,8 @@
 	async function loadExportProject(id: string): Promise<void> {
 		globalState.currentProject = await ExportService.loadProject(Number(id));
 		removeHiddenTranslationsFromExportProject();
-		if (globalState.getStyle('arabic', 'mushaf-style')?.value === 'Soosi') {
-			await SoosiProvider.prefetch();
-		}
-		if (globalState.getStyle('arabic', 'mushaf-style')?.value === 'Warsh') {
-			await WarshProvider.prefetch();
-		}
+		const riwayah = globalState.getStyle('arabic', 'riwayah')?.value;
+		if (isNonHafsRiwayah(riwayah)) await RiwayahProvider.prefetch(riwayah);
 		if (globalState.getStyle('arabic', 'mushaf-style')?.value === 'Minimal Quran') {
 			await MinimalQuranProvider.prefetch();
 		}

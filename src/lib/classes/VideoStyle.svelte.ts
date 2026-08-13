@@ -28,6 +28,7 @@ import {
 	applyStylePresetToProject,
 	getPresetTranslationTargets
 } from '$lib/services/StylePresetApplicationService';
+import { getRiwayahFontFamily, isNonHafsRiwayah } from '$lib/services/RiwayahProvider';
 
 export type StyleValueType =
 	| 'color'
@@ -71,6 +72,7 @@ export type GeneralStyleName =
 	| 'verse-number-new-line'
 	| 'show-decorative-brackets'
 	| 'decorative-brackets-font-family'
+	| 'riwayah'
 	| 'mushaf-style'
 	| 'verse-number-format'
 	| 'verse-number-position'
@@ -590,6 +592,12 @@ export class StylesData extends SerializableBase {
 				if (this.target === 'arabic' && style.id === 'font-family' && clipId) {
 					const subtitleClip = globalState.getSubtitleTrack.getClipById(clipId);
 					const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? '');
+					const riwayah = globalState.getStyle('arabic', 'riwayah')?.value;
+
+					if (isNonHafsRiwayah(riwayah) && subtitleClip instanceof SubtitleClip) {
+						css += `font-family: ${getRiwayahFontFamily(riwayah)}, sans-serif;\n`;
+						continue;
+					}
 
 					// Le mushaf Tajweed est rendu avec les glyphes QPC + la police Tajweed v4 (par page).
 					if (mushafStyle === 'Tajweed' && subtitleClip instanceof SubtitleClip) {
@@ -609,18 +617,6 @@ export class StylesData extends SerializableBase {
 					// Le mushaf IndoPak force la police IndoPak.
 					if (mushafStyle === 'Indopak' && subtitleClip instanceof SubtitleClip) {
 						css += `font-family: IndoPak, sans-serif;\n`;
-						continue;
-					}
-
-					// Le mushaf Soosi force la police Soosi.
-					if (mushafStyle === 'Soosi' && subtitleClip instanceof SubtitleClip) {
-						css += `font-family: Soosi, sans-serif;\n`;
-						continue;
-					}
-
-					// Le mushaf Warsh force la police Unicode KFGQPC Warsh v10.
-					if (mushafStyle === 'Warsh' && subtitleClip instanceof SubtitleClip) {
-						css += `font-family: warsh10, sans-serif;\n`;
 						continue;
 					}
 
@@ -1094,6 +1090,9 @@ export class VideoStyle extends SerializableBase {
 	 */
 	async ensureStylesSchemaUpToDate(projectContent?: ProjectContent): Promise<boolean> {
 		let hasChanges = false;
+		const arabicStyles = this.styles.find((stylesData) => stylesData.target === 'arabic');
+		const hadRiwayah = Boolean(arabicStyles?.findStyle('riwayah'));
+		const legacyMushaf = arabicStyles?.findStyle('mushaf-style')?.value;
 
 		const globalDefaults = await loadStyleCategoryDefinitions('global');
 		hasChanges = this.mergeMissingStylesForTarget('global', globalDefaults) || hasChanges;
@@ -1107,6 +1106,13 @@ export class VideoStyle extends SerializableBase {
 					: getNonArabicSubtitleCategories(subtitleDefaults);
 			hasChanges =
 				this.mergeMissingStylesForTarget(stylesData.target, targetDefaults) || hasChanges;
+		}
+
+		if (!hadRiwayah && legacyMushaf === 'Warsh' && arabicStyles) {
+			arabicStyles.setStyle('riwayah', 'Warsh');
+			arabicStyles.setStyle('mushaf-style', 'Uthmani');
+			arabicStyles.setStyle('font-family', 'warsh10');
+			hasChanges = true;
 		}
 
 		// Migration minimale: ajouter tous les styles manquants de customText.json

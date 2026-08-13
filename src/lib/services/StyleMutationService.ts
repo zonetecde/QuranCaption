@@ -4,6 +4,7 @@ import type {
 	FadeValue
 } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 import { ProjectHistoryManager } from './undoRedo/ProjectHistoryManager';
+import { getRiwayahFontFamily, getRiwayahForFontFamily, isNonHafsRiwayah } from './RiwayahProvider';
 
 export type StyleMutationResult = {
 	refreshPreview: boolean;
@@ -147,26 +148,38 @@ function applyArabicStyleInvariants(
 	}
 
 	const arabicStyles = options.videoStyle.getStylesOfTarget('arabic');
+	if (options.style.id === 'riwayah') {
+		arabicStyles.setStyle('riwayah', value);
+		const mushaf = String(arabicStyles.findStyle('mushaf-style')?.value ?? 'Uthmani');
+		const font = isNonHafsRiwayah(value)
+			? getRiwayahFontFamily(value)
+			: mushaf === 'Indopak'
+				? 'IndoPak'
+				: mushaf === 'Tajweed'
+					? 'QPC2'
+					: 'Hafs';
+		arabicStyles.setStyle('font-family', font);
+		return { handled: true, refreshPreview: true, showTajweedWarning: false };
+	}
+
 	if (options.style.id === 'mushaf-style') {
 		arabicStyles.setStyle('mushaf-style', value);
-		const font =
-			value === 'Indopak'
+		const riwayah = arabicStyles.findStyle('riwayah')?.value;
+		const font = isNonHafsRiwayah(riwayah)
+			? getRiwayahFontFamily(riwayah)
+			: value === 'Indopak'
 				? 'IndoPak'
 				: value === 'Tajweed'
 					? 'QPC2'
-					: value === 'Soosi'
-						? 'Soosi'
-						: value === 'Warsh'
-							? 'warsh10'
-							: 'Hafs';
+					: 'Hafs';
 		arabicStyles.setStyle('font-family', font);
 		return { handled: true, refreshPreview: true, showTajweedWarning: value === 'Tajweed' };
 	}
 
 	if (options.style.id === 'font-family' && options.clipIds.length === 0) {
-		if (value === 'IndoPak') arabicStyles.setStyle('mushaf-style', 'Indopak');
-		else if (value === 'Soosi') arabicStyles.setStyle('mushaf-style', 'Soosi');
-		else if (value === 'warsh10') arabicStyles.setStyle('mushaf-style', 'Warsh');
+		const fontRiwayah = getRiwayahForFontFamily(value);
+		if (fontRiwayah) arabicStyles.setStyle('riwayah', fontRiwayah);
+		else if (value === 'IndoPak') arabicStyles.setStyle('mushaf-style', 'Indopak');
 		else if (arabicStyles.findStyle('mushaf-style')?.value === 'Tajweed' && value !== 'QPC2') {
 			arabicStyles.setStyle('mushaf-style', 'Uthmani');
 		}

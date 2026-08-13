@@ -1490,6 +1490,7 @@ const es = {
 			'text-direction': 'De derecha a izquierda',
 			'show-decorative-brackets': 'Paréntesis decorativos',
 			'decorative-brackets-font-family': 'Estilo de paréntesis',
+			riwayah: 'Riwayah',
 			'mushaf-style': 'Mushaf',
 			'verse-number-format': 'Formato del número de versículo',
 			'verse-number-position': 'Posición del número de versículo',
@@ -1693,6 +1694,7 @@ const es = {
 				'Enmarcar el texto árabe de los subtítulos con paréntesis decorativos',
 			'decorative-brackets-font-family':
 				'Elegir el par de glifos usado para los paréntesis decorativos (apertura primero, cierre después). Usa la fuente QPC2BSML.',
+			riwayah: 'Elegir la recitación del Corán utilizada para los subtítulos en árabe.',
 			'mushaf-style': 'Elegir la fuente de escritura árabe para los subtítulos coránicos.',
 			'verse-number-format':
 				'Modificar el formato de los números de versículos. Usar la etiqueta <number> para personalizar.',

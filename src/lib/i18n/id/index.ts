@@ -931,6 +931,7 @@ const id = {
 		saveStylesCommunityPresets: 'Simpan gaya & preset komunitas',
 		styleName: {
 			...baseEn.editor.styleName,
+			riwayah: 'Riwayah',
 			general: 'Umum',
 			'verse-number': 'Nomor Ayat',
 			'verse-number-new-line': 'Nomor ayat di baris baru',
@@ -1001,6 +1002,7 @@ const id = {
 		} as Translation['editor']['styleName'],
 		styleDescription: {
 			...baseEn.editor.styleDescription,
+			riwayah: 'Pilih riwayat bacaan Al-Qur’an untuk subtitle bahasa Arab.',
 			'video-clip-transition-duration':
 				'Durasi default transisi antar klip video dalam milidetik. Dalam mode Crossfade, setiap crossfade dapat disesuaikan secara terpisah dengan menggeser klip di timeline. Tampilannya mungkin tidak akurat di pratinjau video, tetapi hasil video yang diekspor akan tetap benar.',
 			'media-fill': 'Pangkas video dan gambar latar agar memenuhi seluruh bingkai',

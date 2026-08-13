@@ -639,8 +639,13 @@ export class QPCFontProvider {
 			fontFamily.startsWith('QCImported-') ||
 			fontFamily === 'Hafs' ||
 			fontFamily === 'IndoPak' ||
-			fontFamily === 'Soosi' ||
 			fontFamily === 'warsh10' ||
+			fontFamily === 'qaloon10' ||
+			fontFamily === 'shouba8' ||
+			fontFamily === 'doori9' ||
+			fontFamily === 'soosi9' ||
+			fontFamily === 'bazzi7' ||
+			fontFamily === 'qumbul7' ||
 			fontFamily === 'Reciters' ||
 			fontFamily === 'Surahs' ||
 			fontFamily === 'Surahs2' ||

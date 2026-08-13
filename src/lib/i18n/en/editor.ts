@@ -880,6 +880,7 @@ const editor = {
 		'text-direction': 'Right-to-Left',
 		'show-decorative-brackets': 'Decorative Brackets',
 		'decorative-brackets-font-family': 'Decorative Brackets Style',
+		riwayah: 'Riwayah',
 		'mushaf-style': 'Mushaf',
 		'verse-number-format': 'Verse Number Format',
 		'verse-number-position': 'Verse Number Position',
@@ -1082,6 +1083,7 @@ const editor = {
 		'show-decorative-brackets': 'Wrap Arabic subtitle text with decorative brackets',
 		'decorative-brackets-font-family':
 			'Choose the glyph pair used for decorative brackets (opening first, closing second). Uses QPC2BSML font.',
+		riwayah: 'Choose the Quran recitation used for Arabic subtitles.',
 		'mushaf-style': 'Choose the Arabic script source for Quran subtitles.',
 		'verse-number-format': 'Change the format of verse numbers. Use <number> tag to customize.',
 		'verse-number-position': 'Set the position of verse numbers',

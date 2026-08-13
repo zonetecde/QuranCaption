@@ -12,8 +12,7 @@ import { BaseDirectory, join } from '@tauri-apps/api/path';
 import { exists, remove } from '@tauri-apps/plugin-fs';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 import ExportFileService from '$lib/services/ExportFileService';
-import SoosiProvider from '$lib/services/SoosiProvider';
-import WarshProvider from '$lib/services/WarshProvider';
+import RiwayahProvider, { isNonHafsRiwayah } from '$lib/services/RiwayahProvider';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 import type { BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
 import Exportation, { ExportKind, ExportState } from './Exportation.svelte';
@@ -236,9 +235,9 @@ export default class Exporter {
 		};
 
 		const mushafStyle = globalState.getStyle('arabic', 'mushaf-style')?.value;
-		if (mushafStyle === 'Warsh') await WarshProvider.prefetch();
+		const riwayah = globalState.getStyle('arabic', 'riwayah')?.value;
+		if (isNonHafsRiwayah(riwayah)) await RiwayahProvider.prefetch(riwayah);
 		if (settings.includedTargets.includes('arabic')) {
-			if (mushafStyle === 'Soosi') await SoosiProvider.prefetch();
 			if (mushafStyle === 'Minimal Quran') await MinimalQuranProvider.prefetch();
 		}
 

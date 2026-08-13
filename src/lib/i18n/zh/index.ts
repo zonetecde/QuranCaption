@@ -1366,6 +1366,7 @@ const zh = {
 			'text-direction': '从右到左',
 			'show-decorative-brackets': '装饰性括号',
 			'decorative-brackets-font-family': '括号样式',
+			riwayah: '诵读传承',
 			'mushaf-style': 'Mushaf',
 			'verse-number-format': '经文编号格式',
 			'verse-number-position': '经文编号位置',
@@ -1568,6 +1569,7 @@ const zh = {
 			'show-decorative-brackets': '用装饰性括号框住阿拉伯语字幕文本',
 			'decorative-brackets-font-family':
 				'选择用于装饰性括号的符号对（先左后右）。使用 QPC2BSML 字体。',
+			riwayah: '选择阿拉伯语字幕所使用的古兰经诵读传承。',
 			'mushaf-style': '选择古兰经字幕的阿拉伯语书写来源。',
 			'verse-number-format': '更改经文编号格式。使用 <number> 标签自定义。',
 			'verse-number-position': '设置经文编号的位置',

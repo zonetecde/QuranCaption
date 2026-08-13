@@ -18,7 +18,7 @@
 		"test": "npm run test:unit -- --run",
 		"verify": "npm run check && npm run test",
 		"sync:indopak-quran": "node scripts/sync-indopak-quran.js",
-		"sync:warsh-quran": "node scripts/sync-warsh-quran.js",
+		"sync:riwayat-quran": "node scripts/sync-riwayat-quran.js",
 		"tauri": "tauri",
 		"typesafe-i18n": "typesafe-i18n"
 	},

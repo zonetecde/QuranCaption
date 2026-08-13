@@ -28,6 +28,15 @@
 }
 
 @font-face {
+	font-family: 'warsh10';
+	src:
+		url('/warsh/warsh.10.woff2') format('woff2'),
+		url('/warsh/warsh.10.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
 	font-family: 'Reciters';
 	src: url('/reciters/reciters.ttf') format('truetype');
 	font-weight: normal;

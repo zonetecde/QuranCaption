@@ -619,6 +619,12 @@ export class StylesData extends SerializableBase {
 						continue;
 					}
 
+					// Le mushaf Warsh force la police Unicode KFGQPC Warsh v10.
+					if (mushafStyle === 'Warsh' && subtitleClip instanceof SubtitleClip) {
+						css += `font-family: warsh10, sans-serif;\n`;
+						continue;
+					}
+
 					if (subtitleClip instanceof PredefinedSubtitleClip) {
 						const forcedFont = getForcedFontForPredefinedSubtitle(
 							subtitleClip.predefinedSubtitleType,

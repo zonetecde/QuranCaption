@@ -12,6 +12,7 @@ import { isPermissionGranted, requestPermission } from '@tauri-apps/plugin-notif
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 import ExportFileService from '$lib/services/ExportFileService';
 import SoosiProvider from '$lib/services/SoosiProvider';
+import WarshProvider from '$lib/services/WarshProvider';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 import Exportation, { ExportKind, ExportState } from './Exportation.svelte';
 import type { Project } from './Project';
@@ -207,8 +208,9 @@ export default class Exporter {
 			exportVerseNumbers: es.exportVerseNumbers
 		};
 
+		const mushafStyle = globalState.getStyle('arabic', 'mushaf-style')?.value;
+		if (mushafStyle === 'Warsh') await WarshProvider.prefetch();
 		if (settings.includedTargets.includes('arabic')) {
-			const mushafStyle = globalState.getStyle('arabic', 'mushaf-style')?.value;
 			if (mushafStyle === 'Soosi') await SoosiProvider.prefetch();
 			if (mushafStyle === 'Minimal Quran') await MinimalQuranProvider.prefetch();
 		}

@@ -5,6 +5,7 @@ import toast from 'svelte-5-french-toast';
 import { Edition, Translation } from '.';
 import {
 	buildTranslationInlineTextSegments,
+	getInlineStyleFlagsForWordIndex,
 	getTranslationWordCount,
 	type TranslationInlineStyleFlags,
 	type TranslationInlineStyleRun,
@@ -19,6 +20,7 @@ import { Quran } from './Quran';
 import QPCFontProvider from '$lib/services/FontProvider';
 import SoosiProvider from '$lib/services/SoosiProvider';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
+import WarshProvider from '$lib/services/WarshProvider';
 import type { SubtitleAlignmentMetadata } from '$lib/services/AutoSegmentation';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import type { ProjectTranslation } from './ProjectTranslation.svelte';
@@ -34,6 +36,7 @@ type ClipType =
 type ArabicRenderParts = {
 	text: string;
 	words?: string[];
+	sourceWordIndexes?: number[][];
 	suffix: string;
 	suffixFontFamily: string | null;
 };
@@ -281,10 +284,41 @@ export class ClipWithTranslation extends Clip {
 	getArabicInlineStyledSegments(
 		mode: 'editor' | 'preview' = 'editor'
 	): TranslationInlineTextSegment[] {
-		return buildTranslationInlineTextSegments(
-			this.getArabicRenderParts(mode).text,
-			this.arabicInlineStyleRuns ?? []
-		);
+		const parts = this.getArabicRenderParts(mode);
+		if (parts.words && parts.sourceWordIndexes) {
+			return parts.words.map((word, index) => {
+				const flags = parts
+					.sourceWordIndexes![index].map(
+						(sourceWordIndex) =>
+							sourceWordIndex - (this instanceof SubtitleClip ? this.startWordIndex : 0)
+					)
+					.filter((sourceWordIndex) => sourceWordIndex >= 0)
+					.reduce(
+						(merged, sourceWordIndex) => {
+							const sourceFlags = getInlineStyleFlagsForWordIndex(
+								this.arabicInlineStyleRuns ?? [],
+								sourceWordIndex
+							);
+							return {
+								bold: merged.bold || sourceFlags.bold,
+								italic: merged.italic || sourceFlags.italic,
+								underline: merged.underline || sourceFlags.underline,
+								lineBreak: merged.lineBreak || sourceFlags.lineBreak,
+								color: sourceFlags.color ?? merged.color
+							};
+						},
+						{
+							bold: false,
+							italic: false,
+							underline: false,
+							lineBreak: false,
+							color: null
+						} as TranslationInlineStyleFlags
+					);
+				return { text: `${index > 0 ? ' ' : ''}${word}`, ...flags };
+			});
+		}
+		return buildTranslationInlineTextSegments(parts.text, this.arabicInlineStyleRuns ?? []);
 	}
 
 	getAssociatedImagePath(): string | null {
@@ -456,6 +490,18 @@ export class SubtitleClip extends ClipWithTranslation {
 		return `${this.surah}:${this.verse}`;
 	}
 
+	/**
+	 * Retourne le numéro de verset adapté au mushaf actif pour la traduction.
+	 * @param {'before' | 'after'} position Position configurée du numéro.
+	 * @returns {number | string | null | undefined} Numéro ou plage à afficher, ou aucune valeur quand il doit être masqué ou chargé.
+	 */
+	getTranslationVerseNumber(position: 'before' | 'after'): number | string | null | undefined {
+		const mushafStyle = globalState.getStyle('arabic', 'mushaf-style')?.value;
+		return mushafStyle === 'Warsh'
+			? WarshProvider.getTranslationVerseNumber(this.surah, this.verse, position)
+			: this.verse;
+	}
+
 	getTextWithVerseNumber(text: string = this.text): string {
 		if (this.isLastWordsOfVerse) {
 			const mushafStyle = globalState.getStyle('arabic', 'mushaf-style')?.value;
@@ -483,8 +529,8 @@ export class SubtitleClip extends ClipWithTranslation {
 	 * Le numéro de verset est renvoyé à part pour éviter de lui appliquer les styles inline.
 	 */
 	getArabicRenderParts(mode: 'editor' | 'preview' = 'editor'): ArabicRenderParts {
-		const showVerseNumber =
-			this.isLastWordsOfVerse && Boolean(globalState.getStyle('arabic', 'show-verse-number').value);
+		const verseNumbersEnabled = Boolean(globalState.getStyle('arabic', 'show-verse-number').value);
+		const showVerseNumber = this.isLastWordsOfVerse && verseNumbersEnabled;
 
 		if (mode === 'editor') {
 			return {
@@ -502,6 +548,24 @@ export class SubtitleClip extends ClipWithTranslation {
 				''
 		);
 		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
+		if (mushafStyle === 'Warsh') {
+			const warsh = WarshProvider.getVerseSlice(
+				this.surah,
+				this.verse,
+				this.startWordIndex,
+				this.endWordIndex,
+				verseNumbersEnabled
+			);
+			if (warsh) {
+				return {
+					text: warsh.text,
+					words: warsh.words,
+					sourceWordIndexes: warsh.sourceWordIndexes,
+					suffix: warsh.suffix,
+					suffixFontFamily: warsh.suffix ? 'warsh10' : null
+				};
+			}
+		}
 
 		if (mushafStyle === 'Minimal Quran') {
 			const words =
@@ -610,6 +674,18 @@ export class SubtitleClip extends ClipWithTranslation {
 				''
 		);
 		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
+		if (mushafStyle === 'Warsh') {
+			const showVerseNumbers = Boolean(globalState.getStyle('arabic', 'show-verse-number').value);
+			const warsh = WarshProvider.getVerseSlice(
+				this.surah,
+				this.verse,
+				this.startWordIndex,
+				this.endWordIndex,
+				showVerseNumbers
+			);
+			if (warsh) return warsh.text + warsh.suffix;
+			return showVerseNumbers ? this.getTextWithVerseNumber(this.text) : this.text;
+		}
 
 		if (mushafStyle === 'Minimal Quran') {
 			const minimalText =

@@ -77,6 +77,7 @@
 	/** Sous-titre actuellement affiché. */
 	let currentSubtitle = $derived(() => {
 		const _ = getTimelineSettings().cursorPosition;
+		const _refresh = getTimelineSettings().previewRefreshToken;
 		return untrack(() => {
 			return globalState.getSubtitleTrack.getCurrentSubtitleToDisplay();
 		});
@@ -417,17 +418,13 @@
 		for (const sourceClip of sourceClips) {
 			const displayParts = sourceClip.getArabicRenderParts('preview');
 			const visibleWords = displayParts.words ?? displayParts.text.split(/\s+/).filter(Boolean);
+			const sourceWordIndexes = displayParts.sourceWordIndexes;
 			const alignmentWords = sourceClip.alignmentMetadata?.words ?? [];
 			const dedupedAlignmentWords = alignmentWords.filter(
 				(word, index, words) =>
 					!word.location ||
 					words.findIndex((candidate) => candidate.location === word.location) === index
 			);
-			const visibleWordCount = Math.min(visibleWords.length, dedupedAlignmentWords.length);
-			const visibleAlignmentWords =
-				visibleWordCount > 0
-					? dedupedAlignmentWords.slice(dedupedAlignmentWords.length - visibleWordCount)
-					: dedupedAlignmentWords.slice();
 			const clipOffsetS = shouldUseMergedSource
 				? (sourceClip.startTime - mergedGroup!.startTime) / 1000
 				: 0;
@@ -438,15 +435,69 @@
 				continue;
 			}
 
-			// Ajuste les timings avec l'offset du clip dans le groupe
-			const timingCandidates = visibleAlignmentWords.map(
-				(word) =>
-					({
-						...word,
-						start: word.start + clipOffsetS,
-						end: word.end + clipOffsetS,
+			let timingCandidates: Array<SegmentationWordTimestamp & { clipId: number }>;
+			if (sourceWordIndexes) {
+				if (
+					sourceWordIndexes.length !== visibleWords.length ||
+					sourceWordIndexes.some((indexes) => indexes.length === 0)
+				) {
+					return null;
+				}
+				const mappedTimings = sourceWordIndexes.map((indexes) => {
+					const sourceTimings = indexes
+						.map(
+							(sourceWordIndex) =>
+								dedupedAlignmentWords.find(
+									(word) =>
+										word.location ===
+										`${sourceClip.surah}:${sourceClip.verse}:${sourceWordIndex + 1}`
+								) ?? dedupedAlignmentWords[sourceWordIndex - sourceClip.startWordIndex]
+						)
+						.filter((word): word is SegmentationWordTimestamp => Boolean(word));
+					if (sourceTimings.length === 0) return null;
+					return {
+						...sourceTimings[0],
+						start: Math.min(...sourceTimings.map((word) => word.start)) + clipOffsetS,
+						end: Math.max(...sourceTimings.map((word) => word.end)) + clipOffsetS,
 						clipId: sourceClip.id
-					}) as SegmentationWordTimestamp & { clipId: number }
+					};
+				});
+				if (mappedTimings.some((word) => word === null)) return null;
+				timingCandidates = mappedTimings as Array<SegmentationWordTimestamp & { clipId: number }>;
+			} else {
+				const visibleWordCount = Math.min(visibleWords.length, dedupedAlignmentWords.length);
+				const visibleAlignmentWords =
+					visibleWordCount > 0
+						? dedupedAlignmentWords.slice(dedupedAlignmentWords.length - visibleWordCount)
+						: dedupedAlignmentWords.slice();
+				timingCandidates = visibleAlignmentWords.map(
+					(word) =>
+						({
+							...word,
+							start: word.start + clipOffsetS,
+							end: word.end + clipOffsetS,
+							clipId: sourceClip.id
+						}) as SegmentationWordTimestamp & { clipId: number }
+				);
+			}
+
+			const inlineFlags = visibleWords.map((_, index) =>
+				sourceWordIndexes
+					? sourceWordIndexes[index].reduce(
+							(flags, sourceWordIndex) =>
+								mergeInlineStyleFlags(
+									flags,
+									getInlineStyleFlagsForWordIndex(
+										sourceClip.arabicInlineStyleRuns,
+										sourceWordIndex - sourceClip.startWordIndex
+									)
+								),
+							getInlineStyleFlagsForWordIndex([], 0)
+						)
+					: getInlineStyleFlagsForWordIndex(
+							sourceClip.arabicInlineStyleRuns,
+							inlineWordOffset + index
+						)
 			);
 
 			const overlapCount = countWordOverlap(visibleWordTexts, visibleWords);
@@ -457,10 +508,7 @@
 				const wordEntry = words[words.length - clampedOverlapCount + i];
 				if (!wordEntry) continue;
 				wordEntry.timings.push(timingCandidates[i]);
-				wordEntry.flags = mergeInlineStyleFlags(
-					wordEntry.flags,
-					getInlineStyleFlagsForWordIndex(sourceClip.arabicInlineStyleRuns, inlineWordOffset + i)
-				);
+				wordEntry.flags = mergeInlineStyleFlags(wordEntry.flags, inlineFlags[i]);
 			}
 
 			const groupWords: ArabicWordByWordRenderData['groups'][number]['words'] = [];
@@ -468,10 +516,7 @@
 				const wordEntry = {
 					text: visibleWords[i],
 					timings: [timingCandidates[i]],
-					flags: getInlineStyleFlagsForWordIndex(
-						sourceClip.arabicInlineStyleRuns,
-						inlineWordOffset + i
-					)
+					flags: inlineFlags[i]
 				};
 				words.push(wordEntry);
 				groupWords.push(wordEntry);

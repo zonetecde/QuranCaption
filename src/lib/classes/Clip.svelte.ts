@@ -18,9 +18,11 @@ import type { Track } from './Track.svelte';
 import type { Category, StyleName } from './VideoStyle.svelte';
 import { Quran } from './Quran';
 import QPCFontProvider from '$lib/services/FontProvider';
-import SoosiProvider from '$lib/services/SoosiProvider';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
-import WarshProvider from '$lib/services/WarshProvider';
+import RiwayahProvider, {
+	getRiwayahFontFamily,
+	isNonHafsRiwayah
+} from '$lib/services/RiwayahProvider';
 import type { SubtitleAlignmentMetadata } from '$lib/services/AutoSegmentation';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import type { ProjectTranslation } from './ProjectTranslation.svelte';
@@ -496,9 +498,9 @@ export class SubtitleClip extends ClipWithTranslation {
 	 * @returns {number | string | null | undefined} Numéro ou plage à afficher, ou aucune valeur quand il doit être masqué ou chargé.
 	 */
 	getTranslationVerseNumber(position: 'before' | 'after'): number | string | null | undefined {
-		const mushafStyle = globalState.getStyle('arabic', 'mushaf-style')?.value;
-		return mushafStyle === 'Warsh'
-			? WarshProvider.getTranslationVerseNumber(this.surah, this.verse, position)
+		const riwayah = globalState.getStyle('arabic', 'riwayah')?.value;
+		return isNonHafsRiwayah(riwayah)
+			? RiwayahProvider.getTranslationVerseNumber(riwayah, this.surah, this.verse, position)
 			: this.verse;
 	}
 
@@ -548,21 +550,23 @@ export class SubtitleClip extends ClipWithTranslation {
 				''
 		);
 		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
-		if (mushafStyle === 'Warsh') {
-			const warsh = WarshProvider.getVerseSlice(
+		const riwayah = globalState.getStyle('arabic', 'riwayah')?.value;
+		if (isNonHafsRiwayah(riwayah)) {
+			const riwayahSlice = RiwayahProvider.getVerseSlice(
+				riwayah,
 				this.surah,
 				this.verse,
 				this.startWordIndex,
 				this.endWordIndex,
 				verseNumbersEnabled
 			);
-			if (warsh) {
+			if (riwayahSlice) {
 				return {
-					text: warsh.text,
-					words: warsh.words,
-					sourceWordIndexes: warsh.sourceWordIndexes,
-					suffix: warsh.suffix,
-					suffixFontFamily: warsh.suffix ? 'warsh10' : null
+					text: riwayahSlice.text,
+					words: riwayahSlice.words,
+					sourceWordIndexes: riwayahSlice.sourceWordIndexes,
+					suffix: riwayahSlice.suffix,
+					suffixFontFamily: riwayahSlice.suffix ? getRiwayahFontFamily(riwayah) : null
 				};
 			}
 		}
@@ -580,21 +584,6 @@ export class SubtitleClip extends ClipWithTranslation {
 				words,
 				suffix: showVerseNumber ? ` ${this.latinToArabicNumbers(this.verse)}` : '',
 				suffixFontFamily: null
-			};
-		}
-
-		if (mushafStyle === 'Soosi') {
-			const soosiText = SoosiProvider.getVerseSlice(
-				this.surah,
-				this.verse,
-				this.startWordIndex,
-				this.endWordIndex,
-				this.isLastWordsOfVerse
-			);
-			return {
-				text: soosiText ?? this.text,
-				suffix: showVerseNumber ? ` ${this.latinToArabicNumbers(this.verse)}` : '',
-				suffixFontFamily: showVerseNumber ? 'Hafs' : null
 			};
 		}
 
@@ -674,16 +663,18 @@ export class SubtitleClip extends ClipWithTranslation {
 				''
 		);
 		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
-		if (mushafStyle === 'Warsh') {
+		const riwayah = globalState.getStyle('arabic', 'riwayah')?.value;
+		if (isNonHafsRiwayah(riwayah)) {
 			const showVerseNumbers = Boolean(globalState.getStyle('arabic', 'show-verse-number').value);
-			const warsh = WarshProvider.getVerseSlice(
+			const riwayahSlice = RiwayahProvider.getVerseSlice(
+				riwayah,
 				this.surah,
 				this.verse,
 				this.startWordIndex,
 				this.endWordIndex,
 				showVerseNumbers
 			);
-			if (warsh) return warsh.text + warsh.suffix;
+			if (riwayahSlice) return riwayahSlice.text + riwayahSlice.suffix;
 			return showVerseNumbers ? this.getTextWithVerseNumber(this.text) : this.text;
 		}
 
@@ -698,20 +689,6 @@ export class SubtitleClip extends ClipWithTranslation {
 			return globalState.getStyle('arabic', 'show-verse-number').value
 				? this.getTextWithVerseNumber(minimalText)
 				: minimalText;
-		}
-
-		if (mushafStyle === 'Soosi') {
-			const soosiText =
-				SoosiProvider.getVerseSlice(
-					this.surah,
-					this.verse,
-					this.startWordIndex,
-					this.endWordIndex,
-					this.isLastWordsOfVerse
-				) ?? this.text;
-			if (globalState.getStyle('arabic', 'show-verse-number').value)
-				return `${soosiText} ${this.latinToArabicNumbers(this.verse)}`;
-			return soosiText;
 		}
 
 		// Les polices QPC1, QPC2 et Tajweed utilisent des glyphes. Tajweed utilise les glyphes de QPC2.

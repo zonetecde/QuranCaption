@@ -1491,6 +1491,7 @@ const fr = {
 			'text-direction': 'De droite à gauche',
 			'show-decorative-brackets': 'Parenthèses décoratives',
 			'decorative-brackets-font-family': 'Style des parenthèses',
+			riwayah: 'Riwayah',
 			'mushaf-style': 'Mushaf',
 			'verse-number-format': 'Format du numéro de verset',
 			'verse-number-position': 'Position du numéro de verset',
@@ -1694,6 +1695,7 @@ const fr = {
 				'Encadrer le texte arabe des sous-titres avec des parenthèses décoratives',
 			'decorative-brackets-font-family':
 				'Choisir la paire de glyphes utilisée pour les parenthèses décoratives (ouvrante en premier, fermante en second). Utilise la police QPC2BSML.',
+			riwayah: 'Choisir la lecture du Coran utilisée pour les sous-titres arabes.',
 			'mushaf-style': 'Choisir la source d\u2019écriture arabe pour les sous-titres coraniques.',
 			'verse-number-format':
 				'Modifier le format des numéros de versets. Utiliser la balise <number> pour personnaliser.',

@@ -29,8 +29,13 @@
 		{ value: 'QPC1', label: 'Uthamic Mushaf QPC1', preview: 'qpc1' },
 		{ value: 'Hafs', label: 'Hafs', preview: 'arabic' },
 		{ value: 'IndoPak', label: 'IndoPak', preview: 'arabic' },
-		{ value: 'Soosi', label: 'Soosi (Abu Amr)', preview: 'arabic' },
-		{ value: 'warsh10', label: "Warsh (Nafi')", preview: 'arabic' }
+		{ value: 'warsh10', label: "Warsh (Nafi')", preview: 'arabic' },
+		{ value: 'qaloon10', label: "Qaloon (Nafi')", preview: 'arabic' },
+		{ value: 'shouba8', label: "Shouba ('Asim)", preview: 'arabic' },
+		{ value: 'doori9', label: 'Doori (Abu Amr)', preview: 'arabic' },
+		{ value: 'soosi9', label: 'Soosi (Abu Amr)', preview: 'arabic' },
+		{ value: 'bazzi7', label: 'Bazzi (Ibn Kathir)', preview: 'arabic' },
+		{ value: 'qumbul7', label: 'Qumbul (Ibn Kathir)', preview: 'arabic' }
 	];
 	const BUILTIN_FONT_VALUES = new Set(BUILTIN_FONTS.map((font) => font.value));
 

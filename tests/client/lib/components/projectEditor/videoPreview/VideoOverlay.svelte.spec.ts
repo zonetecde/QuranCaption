@@ -12,7 +12,7 @@ import { Translation, VerseTranslation } from '$lib/classes/Translation.svelte';
 import { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import QPCFontProvider from '$lib/services/FontProvider';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
-import WarshProvider from '$lib/services/WarshProvider';
+import RiwayahProvider from '$lib/services/RiwayahProvider';
 
 vi.mock('$lib/components/projectEditor/tabs/styleEditor/ReciterName.svelte', async () => ({
 	default: (await import('../../../../stubs/EmptyComponent.svelte')).default
@@ -92,6 +92,7 @@ function createDefaultStyleValue(
 	if (styleId === 'verse-number-position') return 'after';
 	if (styleId === 'verse-number-format') return '(<number>)';
 	if (styleId === 'font-family') return 'MockArabic';
+	if (styleId === 'riwayah') return 'Hafs';
 	if (styleId === 'mushaf-style') return 'Uthmani';
 	if (styleId === 'show-decorative-brackets') return false;
 	if (styleId === 'decorative-brackets-font-family') return 'LM';
@@ -606,13 +607,13 @@ describe('Video overlay subtitle preview', () => {
 			2,
 			2
 		);
-		vi.spyOn(WarshProvider, 'getVerseSlice').mockReturnValue(null);
-		vi.spyOn(WarshProvider, 'getTranslationVerseNumber').mockImplementation(
-			(_surah, verse, position) => (position === 'before' && verse === 1 ? '1' : null)
+		vi.spyOn(RiwayahProvider, 'getVerseSlice').mockReturnValue(null);
+		vi.spyOn(RiwayahProvider, 'getTranslationVerseNumber').mockImplementation(
+			(_riwayah, _surah, verse, position) => (position === 'before' && verse === 1 ? '1' : null)
 		);
 		applyVisualMerge([firstClip, secondClip], 'both');
 		const fixture = setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1500 });
-		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('mushaf-style', 'Warsh');
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('riwayah', 'Warsh');
 		const translationStyles = fixture.videoStyle.getStylesOfTarget('english');
 		translationStyles.setStyle('show-verse-number', true);
 		translationStyles.setStyle('verse-number-position', 'before');
@@ -628,10 +629,10 @@ describe('Video overlay subtitle preview', () => {
 
 	test('renders the full Warsh verse range for one split Hafs ayah translation', async () => {
 		const clip = createVerseSubtitle(0, 999, 'آية الكرسي', 'Le verset du Trône.', 2, 255);
-		vi.spyOn(WarshProvider, 'getVerseSlice').mockReturnValue(null);
-		vi.spyOn(WarshProvider, 'getTranslationVerseNumber').mockReturnValue('253-254');
+		vi.spyOn(RiwayahProvider, 'getVerseSlice').mockReturnValue(null);
+		vi.spyOn(RiwayahProvider, 'getTranslationVerseNumber').mockReturnValue('253-254');
 		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 500 });
-		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('mushaf-style', 'Warsh');
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('riwayah', 'Warsh');
 		const translationStyles = fixture.videoStyle.getStylesOfTarget('english');
 		translationStyles.setStyle('show-verse-number', true);
 		translationStyles.setStyle('verse-number-position', 'before');
@@ -1365,9 +1366,9 @@ describe('Word-by-word highlight', () => {
 			true,
 			true
 		);
-		const getVerseSlice = vi.spyOn(WarshProvider, 'getVerseSlice').mockReturnValue(null);
+		const getVerseSlice = vi.spyOn(RiwayahProvider, 'getVerseSlice').mockReturnValue(null);
 		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 500 });
-		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('mushaf-style', 'Warsh');
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('riwayah', 'Warsh');
 		const component = render(VideoOverlay);
 		await settleOverlay();
 

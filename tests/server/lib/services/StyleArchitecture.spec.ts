@@ -55,6 +55,10 @@ describe('style architecture modules', () => {
 					target: 'arabic',
 					categories: [
 						{
+							id: 'general',
+							styles: [{ id: 'mushaf-style', value: 'Soosi', valueType: 'select' }]
+						},
+						{
 							id: 'text',
 							styles: [{ id: 'font-size', value: 77, valueType: 'number' }]
 						}
@@ -88,6 +92,18 @@ describe('style architecture modules', () => {
 			.mockResolvedValueOnce({
 				json: async () => [
 					{
+						id: 'general',
+						styles: [
+							{ id: 'riwayah', value: 'Hafs', valueType: 'select' },
+							{
+								id: 'mushaf-style',
+								value: 'Uthmani',
+								valueType: 'select',
+								options: ['Uthmani', 'Indopak', 'Tajweed', 'Minimal Quran']
+							}
+						]
+					},
+					{
 						id: 'text',
 						ui: { panel: { id: 'text', icon: 'text', label: 'text', order: 1, categoryOrder: 1 } },
 						styles: [
@@ -105,6 +121,8 @@ describe('style architecture modules', () => {
 
 		expect(legacy.getStylesOfTarget('arabic').findStyle('font-size')?.value).toBe(77);
 		expect(legacy.getStylesOfTarget('arabic').findStyle('text-color')?.value).toBe('#ffffff');
+		expect(legacy.getStylesOfTarget('arabic').findStyle('riwayah')?.value).toBe('Hafs');
+		expect(legacy.getStylesOfTarget('arabic').findStyle('mushaf-style')?.value).toBe('Soosi');
 		expect(legacy.getStylesOfTarget('global').findStyle('background-overlay-mode')).toMatchObject({
 			value: 'fade-up',
 			options: ['uniform', 'fade-up', 'fade-down', 'fade-center', 'fade-four-sides']
@@ -113,7 +131,10 @@ describe('style architecture modules', () => {
 			legacy.getStylesOfTarget('global').findStyle('background-overlay-fade-softness')?.value
 		).toBe(1);
 		expect(legacy.doesTargetStyleExist('global')).toBe(true);
-		expect(legacy.getStylesOfTarget('arabic').categories[0].ui?.panel.id).toBe('text');
+		expect(
+			legacy.getStylesOfTarget('arabic').categories.find((category) => category.id === 'text')?.ui
+				?.panel.id
+		).toBe('text');
 		expect(JSON.stringify(legacy)).not.toContain('"ui"');
 	});
 
@@ -174,13 +195,14 @@ describe('style architecture modules', () => {
 	});
 
 	it('keeps scope, coercion and Arabic invariants in one mutation', () => {
+		const riwayahStyle = new Style({ id: 'riwayah', value: 'Hafs', valueType: 'select' });
 		const mushafStyle = new Style({ id: 'mushaf-style', value: 'Uthmani', valueType: 'select' });
 		const fontStyle = new Style({ id: 'font-family', value: 'Hafs', valueType: 'select' });
 		const opacityStyle = new Style({ id: 'opacity', value: 1, valueType: 'number' });
 		const videoStyle = new VideoStyle();
 		videoStyle.styles = [
 			new StylesData('arabic', [
-				new Category({ id: 'general', styles: [mushafStyle] }),
+				new Category({ id: 'general', styles: [riwayahStyle, mushafStyle] }),
 				new Category({ id: 'text', styles: [fontStyle] }),
 				new Category({ id: 'effects', styles: [opacityStyle] })
 			])
@@ -210,16 +232,16 @@ describe('style architecture modules', () => {
 
 		applyStyleMutation({
 			videoStyle,
-			style: mushafStyle,
+			style: riwayahStyle,
 			target: 'arabic',
 			clipIds: [],
 			value: 'Warsh',
-			applyBaseValue: (value) => (mushafStyle.value = value)
+			applyBaseValue: (value) => (riwayahStyle.value = value)
 		});
-		expect(mushafStyle.value).toBe('Warsh');
+		expect(riwayahStyle.value).toBe('Warsh');
 		expect(fontStyle.value).toBe('warsh10');
 		const reopened = VideoStyle.fromJSON(JSON.parse(JSON.stringify(videoStyle))) as VideoStyle;
-		expect(reopened.getStylesOfTarget('arabic').findStyle('mushaf-style')?.value).toBe('Warsh');
+		expect(reopened.getStylesOfTarget('arabic').findStyle('riwayah')?.value).toBe('Warsh');
 		expect(reopened.getStylesOfTarget('arabic').findStyle('font-family')?.value).toBe('warsh10');
 
 		applyStyleMutation({
@@ -231,6 +253,16 @@ describe('style architecture modules', () => {
 			applyBaseValue: (value) => (mushafStyle.value = value)
 		});
 		expect(mushafStyle.value).toBe('Uthmani');
+		expect(fontStyle.value).toBe('warsh10');
+
+		applyStyleMutation({
+			videoStyle,
+			style: riwayahStyle,
+			target: 'arabic',
+			clipIds: [],
+			value: 'Hafs',
+			applyBaseValue: (value) => (riwayahStyle.value = value)
+		});
 		expect(fontStyle.value).toBe('Hafs');
 	});
 
@@ -250,12 +282,15 @@ describe('style architecture modules', () => {
 		expect(isWordByWordVisualEnabled((id) => values[id] ?? false)).toBe(true);
 	});
 
-	it('forces the bundled Warsh font for Quran clips', () => {
+	it('forces the bundled riwayah font for Quran clips', () => {
 		const clip = new SubtitleClip(0, 1_000, 1, 2, 0, 3, 'text', [], true, true);
 		const arabicStyles = new StylesData('arabic', [
 			new Category({
 				id: 'general',
-				styles: [new Style({ id: 'mushaf-style', value: 'Warsh', valueType: 'select' })]
+				styles: [
+					new Style({ id: 'riwayah', value: 'Warsh', valueType: 'select' }),
+					new Style({ id: 'mushaf-style', value: 'Uthmani', valueType: 'select' })
+				]
 			}),
 			new Category({
 				id: 'text',
@@ -286,7 +321,7 @@ describe('style architecture modules', () => {
 		}
 	});
 
-	it('preserves Hafs clip data across repeated Warsh style round trips', () => {
+	it('preserves Hafs clip data across repeated riwayah style round trips', () => {
 		const clips = [
 			new SubtitleClip(0, 1_000, 57, 24, 0, 11, '57:24 Hafs', [], true, true),
 			new SubtitleClip(1_000, 2_000, 2, 255, 0, 49, '2:255 Hafs', [], true, true),
@@ -294,6 +329,7 @@ describe('style architecture modules', () => {
 			new SubtitleClip(3_000, 4_000, 2, 2, 0, 6, '2:2 Hafs', [], true, true)
 		];
 		const originalClips = JSON.stringify(clips);
+		const riwayahStyle = new Style({ id: 'riwayah', value: 'Hafs', valueType: 'select' });
 		const mushafStyle = new Style({ id: 'mushaf-style', value: 'Uthmani', valueType: 'select' });
 		const fontStyle = new Style({
 			id: 'font-family',
@@ -303,28 +339,34 @@ describe('style architecture modules', () => {
 		const videoStyle = new VideoStyle();
 		videoStyle.styles = [
 			new StylesData('arabic', [
-				new Category({ id: 'general', styles: [mushafStyle] }),
+				new Category({ id: 'general', styles: [riwayahStyle, mushafStyle] }),
 				new Category({ id: 'text', styles: [fontStyle] })
 			])
 		];
 		for (const [value, expectedFont] of [
 			['Warsh', 'warsh10'],
-			['Uthmani', 'Hafs'],
+			['Qaloon', 'qaloon10'],
+			['Shouba', 'shouba8'],
+			['Doori', 'doori9'],
+			['Soosi', 'soosi9'],
+			['Bazzi', 'bazzi7'],
+			['Qumbul', 'qumbul7'],
+			['Hafs', 'Hafs'],
 			['Warsh', 'warsh10']
 		]) {
 			applyStyleMutation({
 				videoStyle,
-				style: mushafStyle,
+				style: riwayahStyle,
 				target: 'arabic',
 				clipIds: [],
 				value,
-				applyBaseValue: (nextValue) => (mushafStyle.value = nextValue)
+				applyBaseValue: (nextValue) => (riwayahStyle.value = nextValue)
 			});
 			expect(fontStyle.value).toBe(expectedFont);
 		}
 
 		const reopened = VideoStyle.fromJSON(JSON.parse(JSON.stringify(videoStyle))) as VideoStyle;
-		expect(reopened.getStylesOfTarget('arabic').findStyle('mushaf-style')?.value).toBe('Warsh');
+		expect(reopened.getStylesOfTarget('arabic').findStyle('riwayah')?.value).toBe('Warsh');
 		expect(reopened.getStylesOfTarget('arabic').findStyle('font-family')?.value).toBe('warsh10');
 		expect(JSON.stringify(clips)).toBe(originalClips);
 	});

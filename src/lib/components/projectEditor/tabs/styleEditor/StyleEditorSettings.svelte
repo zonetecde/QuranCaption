@@ -450,7 +450,13 @@
 
 		if (style.id === 'show-decorative-brackets' && selection !== 'arabic') return true;
 		if (style.id === 'decorative-brackets-font-family' && selection !== 'arabic') return true;
-		if (style.id === 'mushaf-style' && selection !== 'arabic') return true;
+		if (style.id === 'riwayah' && selection !== 'arabic') return true;
+		if (
+			style.id === 'mushaf-style' &&
+			(selection !== 'arabic' ||
+				String(globalState.getStyle('arabic', 'riwayah')?.value ?? 'Hafs') !== 'Hafs')
+		)
+			return true;
 		if (style.id === 'verse-number-new-line' && selection !== 'arabic') return true;
 
 		if (
@@ -466,6 +472,7 @@
 				'show-verse-number',
 				'verse-number-new-line',
 				'show-decorative-brackets',
+				'riwayah',
 				'mushaf-style',
 				'decorative-brackets-font-family',
 				'verse-number-format',
@@ -495,9 +502,10 @@
 	function isMushafFontLocked(): boolean {
 		return (
 			globalState.getStylesState.currentSelection === 'arabic' &&
-			!['Uthmani', 'Minimal Quran'].includes(
-				String(globalState.getStyle('arabic', 'mushaf-style')?.value)
-			)
+			(String(globalState.getStyle('arabic', 'riwayah')?.value ?? 'Hafs') !== 'Hafs' ||
+				!['Uthmani', 'Minimal Quran'].includes(
+					String(globalState.getStyle('arabic', 'mushaf-style')?.value)
+				))
 		);
 	}
 

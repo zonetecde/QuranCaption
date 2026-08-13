@@ -4383,6 +4383,10 @@ type RootTranslation = {
 			 */
 			'decorative-brackets-font-family': string;
 			/**
+			 * R​i​w​a​y​a​h
+			 */
+			riwayah: string;
+			/**
 			 * M​u​s​h​a​f
 			 */
 			'mushaf-style': string;
@@ -5180,6 +5184,10 @@ type RootTranslation = {
 			 * C​h​o​o​s​e​ ​t​h​e​ ​g​l​y​p​h​ ​p​a​i​r​ ​u​s​e​d​ ​f​o​r​ ​d​e​c​o​r​a​t​i​v​e​ ​b​r​a​c​k​e​t​s​ ​(​o​p​e​n​i​n​g​ ​f​i​r​s​t​,​ ​c​l​o​s​i​n​g​ ​s​e​c​o​n​d​)​.​ ​U​s​e​s​ ​Q​P​C​2​B​S​M​L​ ​f​o​n​t​.
 			 */
 			'decorative-brackets-font-family': string;
+			/**
+			 * C​h​o​o​s​e​ ​t​h​e​ ​Q​u​r​a​n​ ​r​e​c​i​t​a​t​i​o​n​ ​u​s​e​d​ ​f​o​r​ ​A​r​a​b​i​c​ ​s​u​b​t​i​t​l​e​s​.
+			 */
+			riwayah: string;
 			/**
 			 * C​h​o​o​s​e​ ​t​h​e​ ​A​r​a​b​i​c​ ​s​c​r​i​p​t​ ​s​o​u​r​c​e​ ​f​o​r​ ​Q​u​r​a​n​ ​s​u​b​t​i​t​l​e​s​.
 			 */
@@ -15516,6 +15524,10 @@ export type TranslationFunctions = {
 			 */
 			'decorative-brackets-font-family': () => LocalizedString;
 			/**
+			 * Riwayah
+			 */
+			riwayah: () => LocalizedString;
+			/**
 			 * Mushaf
 			 */
 			'mushaf-style': () => LocalizedString;
@@ -16313,6 +16325,10 @@ export type TranslationFunctions = {
 			 * Choose the glyph pair used for decorative brackets (opening first, closing second). Uses QPC2BSML font.
 			 */
 			'decorative-brackets-font-family': () => LocalizedString;
+			/**
+			 * Choose the Quran recitation used for Arabic subtitles.
+			 */
+			riwayah: () => LocalizedString;
 			/**
 			 * Choose the Arabic script source for Quran subtitles.
 			 */

@@ -19,19 +19,64 @@
 }
 
 @font-face {
-	font-family: 'Soosi';
+	font-family: 'warsh10';
 	src:
-		url('/soosi/soosi.woff2') format('woff2'),
-		url('/soosi/soosi.ttf') format('truetype');
+		url('/riwayat/warsh/font.woff2') format('woff2'),
+		url('/riwayat/warsh/font.ttf') format('truetype');
 	font-weight: normal;
 	font-style: normal;
 }
 
 @font-face {
-	font-family: 'warsh10';
+	font-family: 'qaloon10';
 	src:
-		url('/warsh/warsh.10.woff2') format('woff2'),
-		url('/warsh/warsh.10.ttf') format('truetype');
+		url('/riwayat/qaloon/font.woff2') format('woff2'),
+		url('/riwayat/qaloon/font.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'shouba8';
+	src:
+		url('/riwayat/shouba/font.woff2') format('woff2'),
+		url('/riwayat/shouba/font.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'doori9';
+	src:
+		url('/riwayat/doori/font.woff2') format('woff2'),
+		url('/riwayat/doori/font.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'soosi9';
+	src:
+		url('/riwayat/soosi/font.woff2') format('woff2'),
+		url('/riwayat/soosi/font.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'bazzi7';
+	src:
+		url('/riwayat/bazzi/font.woff2') format('woff2'),
+		url('/riwayat/bazzi/font.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'qumbul7';
+	src:
+		url('/riwayat/qumbul/font.woff2') format('woff2'),
+		url('/riwayat/qumbul/font.ttf') format('truetype');
 	font-weight: normal;
 	font-style: normal;
 }

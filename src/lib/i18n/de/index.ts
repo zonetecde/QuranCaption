@@ -1494,6 +1494,7 @@ const de = {
 			'text-direction': 'Von rechts nach links',
 			'show-decorative-brackets': 'Dekorative Klammern',
 			'decorative-brackets-font-family': 'Klammern-Stil',
+			riwayah: 'Riwayah',
 			'mushaf-style': 'Mushaf',
 			'verse-number-format': 'Format der Versnummer',
 			'verse-number-position': 'Position der Versnummer',
@@ -1696,6 +1697,7 @@ const de = {
 			'show-decorative-brackets': 'Arabischen Untertiteltext mit dekorativen Klammern umrahmen',
 			'decorative-brackets-font-family':
 				'Wählen Sie das Glyphenpaar für dekorative Klammern (öffnende zuerst, schließende danach). Verwendet die Schriftart QPC2BSML.',
+			riwayah: 'Wählen Sie die Koranrezitation für arabische Untertitel.',
 			'mushaf-style': 'Wählen Sie die arabische Schriftquelle für koranische Untertitel.',
 			'verse-number-format':
 				'Format der Versnummern ändern. Verwenden Sie das <number>-Tag zur Anpassung.',

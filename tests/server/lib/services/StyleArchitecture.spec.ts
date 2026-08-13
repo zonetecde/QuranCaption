@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Category, Style, StylesData, VideoStyle } from '$lib/classes/VideoStyle.svelte';
+import { SubtitleClip } from '$lib/classes/Clip.svelte';
+import { globalState } from '$lib/runes/main.svelte';
 import {
 	loadCustomStyleCategoryDefinition,
 	loadStyleCategoryDefinitions
@@ -205,6 +207,31 @@ describe('style architecture modules', () => {
 		expect(fontStyle.value).toBe('QPC2');
 		expect(videoStyle.getStylesOfTarget('arabic').getEffectiveValue('opacity', 42)).toBe(0.4);
 		expect(coerceStyleValue(opacityStyle, '0.75')).toBe(0.75);
+
+		applyStyleMutation({
+			videoStyle,
+			style: mushafStyle,
+			target: 'arabic',
+			clipIds: [],
+			value: 'Warsh',
+			applyBaseValue: (value) => (mushafStyle.value = value)
+		});
+		expect(mushafStyle.value).toBe('Warsh');
+		expect(fontStyle.value).toBe('warsh10');
+		const reopened = VideoStyle.fromJSON(JSON.parse(JSON.stringify(videoStyle))) as VideoStyle;
+		expect(reopened.getStylesOfTarget('arabic').findStyle('mushaf-style')?.value).toBe('Warsh');
+		expect(reopened.getStylesOfTarget('arabic').findStyle('font-family')?.value).toBe('warsh10');
+
+		applyStyleMutation({
+			videoStyle,
+			style: mushafStyle,
+			target: 'arabic',
+			clipIds: [],
+			value: 'Uthmani',
+			applyBaseValue: (value) => (mushafStyle.value = value)
+		});
+		expect(mushafStyle.value).toBe('Uthmani');
+		expect(fontStyle.value).toBe('Hafs');
 	});
 
 	it('resolves WBW activation independently from its adapters', () => {
@@ -221,5 +248,41 @@ describe('style architecture modules', () => {
 			'enable-wbw-current-word-opacity': false
 		};
 		expect(isWordByWordVisualEnabled((id) => values[id] ?? false)).toBe(true);
+	});
+
+	it('forces the bundled Warsh font for Quran clips', () => {
+		const clip = new SubtitleClip(0, 1_000, 1, 2, 0, 3, 'text', [], true, true);
+		const arabicStyles = new StylesData('arabic', [
+			new Category({
+				id: 'general',
+				styles: [new Style({ id: 'mushaf-style', value: 'Warsh', valueType: 'select' })]
+			}),
+			new Category({
+				id: 'text',
+				styles: [
+					new Style({
+						id: 'font-family',
+						value: 'SomeCustomFont',
+						valueType: 'select',
+						css: "font-family: '{value}', sans-serif;"
+					})
+				]
+			})
+		]);
+		const videoStyle = new VideoStyle();
+		videoStyle.styles = [arabicStyles];
+		const originalProject = globalState.currentProject;
+		globalState.currentProject = {
+			content: {
+				videoStyle,
+				timeline: { getFirstTrack: () => ({ getClipById: () => clip }) }
+			}
+		} as never;
+
+		try {
+			expect(arabicStyles.generateCSS(clip.id)).toContain('font-family: warsh10, sans-serif;');
+		} finally {
+			globalState.currentProject = originalProject;
+		}
 	});
 });

@@ -122,11 +122,11 @@ const OPENING_PUNCTUATION_ONLY_TEXT_REGEX = /^[「『“‘（(\[【《〈]+$/u;
 
 /**
  * Convertit les chiffres occidentaux d'un nombre vers le système demandé.
- * @param {number} value Nombre à formater.
+ * @param {number | string} value Nombre ou plage à formater.
  * @param {string} system Système de chiffres cible.
  * @returns {string} Nombre avec les chiffres convertis.
  */
-function formatVerseNumberNumerals(value: number, system: string): string {
+function formatVerseNumberNumerals(value: number | string, system: string): string {
 	const digits =
 		VERSE_NUMBER_NUMERAL_SYSTEMS[system] ?? VERSE_NUMBER_NUMERAL_SYSTEMS['Western Arabic'];
 	return value.toString().replace(/\d/g, (digit) => digits[Number(digit)] ?? digit);
@@ -976,7 +976,13 @@ export class VerseTranslation extends Translation {
 			const numeralSystem = String(
 				globalState.getStyle(edition, 'verse-number-numeral-system')?.value ?? 'Western Arabic'
 			);
-			const verseNumber = formatVerseNumberNumerals(subtitle.verse, numeralSystem);
+			const displayVerseNumber = subtitle.getTranslationVerseNumber(
+				position === 'after' ? 'after' : 'before'
+			);
+			if (displayVerseNumber === null || displayVerseNumber === undefined) {
+				return { prefix: '', text, suffix: '' };
+			}
+			const verseNumber = formatVerseNumberNumerals(displayVerseNumber, numeralSystem);
 			const format = String(globalState.getStyle(edition, 'verse-number-format').value).replace(
 				'<number>',
 				verseNumber

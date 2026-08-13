@@ -427,6 +427,7 @@
 				if (!(translation instanceof VerseTranslation)) {
 					return `${clip.id}:plain:${words.length}`;
 				}
+				const textParts = translation.getFormattedTextParts(edition, clip);
 
 				return [
 					clip.id,
@@ -435,6 +436,8 @@
 					clip.startWordIndex,
 					clip.endWordIndex,
 					translation.text,
+					textParts.prefix,
+					textParts.suffix,
 					translation.startWordIndex,
 					translation.endWordIndex,
 					JSON.stringify(translation.inlineStyleRuns ?? []),

@@ -156,7 +156,9 @@ function applyArabicStyleInvariants(
 					? 'QPC2'
 					: value === 'Soosi'
 						? 'Soosi'
-						: 'Hafs';
+						: value === 'Warsh'
+							? 'warsh10'
+							: 'Hafs';
 		arabicStyles.setStyle('font-family', font);
 		return { handled: true, refreshPreview: true, showTajweedWarning: value === 'Tajweed' };
 	}
@@ -164,6 +166,7 @@ function applyArabicStyleInvariants(
 	if (options.style.id === 'font-family' && options.clipIds.length === 0) {
 		if (value === 'IndoPak') arabicStyles.setStyle('mushaf-style', 'Indopak');
 		else if (value === 'Soosi') arabicStyles.setStyle('mushaf-style', 'Soosi');
+		else if (value === 'warsh10') arabicStyles.setStyle('mushaf-style', 'Warsh');
 		else if (arabicStyles.findStyle('mushaf-style')?.value === 'Tajweed' && value !== 'QPC2') {
 			arabicStyles.setStyle('mushaf-style', 'Uthmani');
 		}

@@ -28,7 +28,8 @@
 		{ value: 'QPC1', label: 'Uthamic Mushaf QPC1', preview: 'qpc1' },
 		{ value: 'Hafs', label: 'Hafs', preview: 'arabic' },
 		{ value: 'IndoPak', label: 'IndoPak', preview: 'arabic' },
-		{ value: 'Soosi', label: 'Soosi (Abu Amr)', preview: 'arabic' }
+		{ value: 'Soosi', label: 'Soosi (Abu Amr)', preview: 'arabic' },
+		{ value: 'warsh10', label: "Warsh (Nafi')", preview: 'arabic' }
 	];
 	const BUILTIN_FONT_VALUES = new Set(BUILTIN_FONTS.map((font) => font.value));
 

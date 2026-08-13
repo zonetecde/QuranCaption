@@ -46,6 +46,7 @@
 	import type { ExportFadeSettings } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import QPCFontProvider from '$lib/services/FontProvider';
 	import SoosiProvider from '$lib/services/SoosiProvider';
+	import WarshProvider from '$lib/services/WarshProvider';
 	import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 	import { getAllWindows, type BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
 	import Exportation, { ExportState, type ExportLogLevel } from '$lib/classes/Exportation.svelte';
@@ -632,6 +633,9 @@
 		removeHiddenTranslationsFromExportProject();
 		if (globalState.getStyle('arabic', 'mushaf-style')?.value === 'Soosi') {
 			await SoosiProvider.prefetch();
+		}
+		if (globalState.getStyle('arabic', 'mushaf-style')?.value === 'Warsh') {
+			await WarshProvider.prefetch();
 		}
 		if (globalState.getStyle('arabic', 'mushaf-style')?.value === 'Minimal Quran') {
 			await MinimalQuranProvider.prefetch();

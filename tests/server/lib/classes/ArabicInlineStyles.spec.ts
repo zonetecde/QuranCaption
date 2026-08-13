@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
+import WarshProvider from '$lib/services/WarshProvider';
 
 describe('arabic inline styles', () => {
 	const originalCurrentProject = globalState.currentProject;
@@ -197,6 +198,47 @@ describe('arabic inline styles', () => {
 		expect(clip.getArabicRenderParts('preview')).toMatchObject({
 			text: 'وَيَقولُ الكافِرُ يا لَيتَني كُنتُ تُرابًا',
 			words: ['وَيَقولُ', 'الكافِرُ', 'يا لَيتَني', 'كُنتُ', 'تُرابًا']
+		});
+	});
+
+	it('maps Warsh preview words and inline styles through their Hafs source indexes', () => {
+		vi.mocked(globalState.getStyle).mockImplementation((_target, styleId) => {
+			switch (styleId) {
+				case 'show-verse-number':
+					return { value: true } as never;
+				case 'font-family':
+					return { value: 'warsh10' } as never;
+				case 'mushaf-style':
+					return { value: 'Warsh' } as never;
+				default:
+					return { value: 0 } as never;
+			}
+		});
+		vi.spyOn(WarshProvider, 'getVerseSlice').mockReturnValue({
+			text: 'وَأَنْ يُّظْهِرَ',
+			words: ['وَأَنْ', 'يُّظْهِرَ'],
+			sourceWordIndexes: [[12, 13], [14]],
+			suffix: ' ٢٦',
+			targetAyahs: [26],
+			relation: 'mapped'
+		});
+		const clip = new SubtitleClip(0, 1_000, 40, 26, 12, 14, 'أَوْ أَنْ يُظْهِرَ', [], false, true);
+		clip.toggleArabicInlineStyles(1, 1, {
+			bold: true,
+			italic: false,
+			underline: false,
+			color: null
+		});
+
+		expect(clip.getArabicRenderParts('preview')).toMatchObject({
+			words: ['وَأَنْ', 'يُّظْهِرَ'],
+			sourceWordIndexes: [[12, 13], [14]],
+			suffix: ' ٢٦',
+			suffixFontFamily: 'warsh10'
+		});
+		expect(clip.getArabicInlineStyledSegments('preview')[0]).toMatchObject({
+			text: 'وَأَنْ',
+			bold: true
 		});
 	});
 

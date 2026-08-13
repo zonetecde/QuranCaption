@@ -12,6 +12,7 @@ import { Translation, VerseTranslation } from '$lib/classes/Translation.svelte';
 import { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import QPCFontProvider from '$lib/services/FontProvider';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
+import WarshProvider from '$lib/services/WarshProvider';
 
 vi.mock('$lib/components/projectEditor/tabs/styleEditor/ReciterName.svelte', async () => ({
 	default: (await import('../../../../stubs/EmptyComponent.svelte')).default
@@ -571,6 +572,55 @@ describe('Video overlay subtitle preview', () => {
 		expect(mergedText).toContain('Beta Arabic');
 		expect(mergedText).toContain('Beta translation');
 		expect(mergedText).not.toContain('Alpha translation');
+	});
+
+	test('uses one mapped Warsh number for translations merged from two Hafs ayahs', async () => {
+		const firstClip = createVerseSubtitle(0, 999, 'الم', 'Alif, Lam, Mim. ', 2, 1);
+		const secondClip = createVerseSubtitle(
+			1000,
+			1999,
+			'ذلك الكتاب لا ريب فيه هدى للمتقين',
+			'Voici le Livre qui ne fait aucun doute.',
+			2,
+			2
+		);
+		vi.spyOn(WarshProvider, 'getVerseSlice').mockReturnValue(null);
+		vi.spyOn(WarshProvider, 'getTranslationVerseNumber').mockImplementation(
+			(_surah, verse, position) => (position === 'before' && verse === 1 ? '1' : null)
+		);
+		applyVisualMerge([firstClip, secondClip], 'both');
+		const fixture = setupVideoOverlayFixture([firstClip, secondClip], { cursorPosition: 1500 });
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('mushaf-style', 'Warsh');
+		const translationStyles = fixture.videoStyle.getStylesOfTarget('english');
+		translationStyles.setStyle('show-verse-number', true);
+		translationStyles.setStyle('verse-number-position', 'before');
+		translationStyles.setStyle('verse-number-format', '<number>. ');
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		expect(
+			normalizeText(getForegroundTranslationNode(component.container, 'english')?.textContent)
+		).toBe('1. Alif, Lam, Mim. Voici le Livre qui ne fait aucun doute.');
+	});
+
+	test('renders the full Warsh verse range for one split Hafs ayah translation', async () => {
+		const clip = createVerseSubtitle(0, 999, 'آية الكرسي', 'Le verset du Trône.', 2, 255);
+		vi.spyOn(WarshProvider, 'getVerseSlice').mockReturnValue(null);
+		vi.spyOn(WarshProvider, 'getTranslationVerseNumber').mockReturnValue('253-254');
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 500 });
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('mushaf-style', 'Warsh');
+		const translationStyles = fixture.videoStyle.getStylesOfTarget('english');
+		translationStyles.setStyle('show-verse-number', true);
+		translationStyles.setStyle('verse-number-position', 'before');
+		translationStyles.setStyle('verse-number-format', '<number>. ');
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		expect(
+			normalizeText(getForegroundTranslationNode(component.container, 'english')?.textContent)
+		).toBe('253-254. Le verset du Trône.');
 	});
 
 	test('keeps QPC2 verse-number fonts per clip across a merged page boundary', async () => {
@@ -1277,6 +1327,60 @@ describe('Word-by-word highlight', () => {
 
 		expect(normalizeText(getForegroundArabicNode(component.container)?.textContent)).toBe(
 			'يا لَيتَني'
+		);
+	});
+
+	test('refreshes the Warsh text after its local data finishes loading', async () => {
+		const clip = new SubtitleClip(
+			0,
+			999,
+			57,
+			24,
+			0,
+			11,
+			'ٱلَّذِينَ يَبۡخَلُونَ وَيَأۡمُرُونَ ٱلنَّاسَ بِٱلۡبُخۡلِۗ وَمَن يَتَوَلَّ فَإِنَّ ٱللَّهَ هُوَ ٱلۡغَنِيُّ ٱلۡحَمِيدُ',
+			[],
+			true,
+			true
+		);
+		const getVerseSlice = vi.spyOn(WarshProvider, 'getVerseSlice').mockReturnValue(null);
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 500 });
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('mushaf-style', 'Warsh');
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		expect(normalizeText(getForegroundArabicNode(component.container)?.textContent)).toContain(
+			'هُوَ'
+		);
+
+		getVerseSlice.mockReturnValue({
+			text: 'اِ۬لذِينَ يَبْخَلُونَ وَيَامُرُونَ اَ۬لنَّاسَ بِالْبُخْلِۖ وَمَنْ يَّتَوَلَّ فَإِنَّ اَ۬للَّهَ اَ۬لْغَنِيُّ اُ۬لْحَمِيدُۖ',
+			words: [
+				'اِ۬لذِينَ',
+				'يَبْخَلُونَ',
+				'وَيَامُرُونَ',
+				'اَ۬لنَّاسَ',
+				'بِالْبُخْلِۖ',
+				'وَمَنْ',
+				'يَّتَوَلَّ',
+				'فَإِنَّ',
+				'اَ۬للَّهَ',
+				'اَ۬لْغَنِيُّ',
+				'اُ۬لْحَمِيدُۖ'
+			],
+			sourceWordIndexes: [[0], [1], [2], [3], [4], [5], [6], [7], [8], [9, 10], [11]],
+			suffix: '',
+			targetAyahs: [23],
+			relation: 'mapped'
+		});
+		globalState.updateVideoPreviewUI();
+		await settleOverlay();
+
+		expect(normalizeText(getForegroundArabicNode(component.container)?.textContent)).not.toContain(
+			'هُوَ'
+		);
+		expect(normalizeText(getForegroundArabicNode(component.container)?.textContent)).toContain(
+			'اَ۬لْغَنِيُّ'
 		);
 	});
 

@@ -285,4 +285,47 @@ describe('style architecture modules', () => {
 			globalState.currentProject = originalProject;
 		}
 	});
+
+	it('preserves Hafs clip data across repeated Warsh style round trips', () => {
+		const clips = [
+			new SubtitleClip(0, 1_000, 57, 24, 0, 11, '57:24 Hafs', [], true, true),
+			new SubtitleClip(1_000, 2_000, 2, 255, 0, 49, '2:255 Hafs', [], true, true),
+			new SubtitleClip(2_000, 3_000, 2, 1, 0, 0, '2:1 Hafs', [], true, true),
+			new SubtitleClip(3_000, 4_000, 2, 2, 0, 6, '2:2 Hafs', [], true, true)
+		];
+		const originalClips = JSON.stringify(clips);
+		const mushafStyle = new Style({ id: 'mushaf-style', value: 'Uthmani', valueType: 'select' });
+		const fontStyle = new Style({
+			id: 'font-family',
+			value: 'SomeCustomFont',
+			valueType: 'select'
+		});
+		const videoStyle = new VideoStyle();
+		videoStyle.styles = [
+			new StylesData('arabic', [
+				new Category({ id: 'general', styles: [mushafStyle] }),
+				new Category({ id: 'text', styles: [fontStyle] })
+			])
+		];
+		for (const [value, expectedFont] of [
+			['Warsh', 'warsh10'],
+			['Uthmani', 'Hafs'],
+			['Warsh', 'warsh10']
+		]) {
+			applyStyleMutation({
+				videoStyle,
+				style: mushafStyle,
+				target: 'arabic',
+				clipIds: [],
+				value,
+				applyBaseValue: (nextValue) => (mushafStyle.value = nextValue)
+			});
+			expect(fontStyle.value).toBe(expectedFont);
+		}
+
+		const reopened = VideoStyle.fromJSON(JSON.parse(JSON.stringify(videoStyle))) as VideoStyle;
+		expect(reopened.getStylesOfTarget('arabic').findStyle('mushaf-style')?.value).toBe('Warsh');
+		expect(reopened.getStylesOfTarget('arabic').findStyle('font-family')?.value).toBe('warsh10');
+		expect(JSON.stringify(clips)).toBe(originalClips);
+	});
 });

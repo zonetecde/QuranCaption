@@ -724,6 +724,7 @@
 <style>
 	.reflection-backdrop {
 		background: rgb(0 0 0 / 45%);
+		z-index: 9001 !important;
 	}
 
 	.reflection-banner {

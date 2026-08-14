@@ -54,7 +54,6 @@
 	function openReflectionPrompt(exportation: Exportation): void {
 		if (!exportation.reflectionContext) return;
 		globalState.uiState.reflectionPromptContext = exportation.reflectionContext;
-		closeMonitor();
 	}
 
 	/**

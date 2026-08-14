@@ -135,7 +135,11 @@
 						preview
 					);
 					if (added) {
-						AnalyticsService.trackTranslationAdded(translation.key, translation.language);
+						AnalyticsService.trackTranslationAdded(
+							activeTranslationsTab === 'quran-api' ? 'quran_api' : 'qdc',
+							translation.language,
+							translation.key
+						);
 					}
 				}
 				close();

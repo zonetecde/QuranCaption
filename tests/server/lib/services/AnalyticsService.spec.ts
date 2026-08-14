@@ -83,33 +83,43 @@ describe('AnalyticsService privacy guard', () => {
 		});
 	});
 
-	it('classifies translation sources without retaining raw edition keys', () => {
+	it('retains stable catalog edition keys while excluding private edition identifiers', () => {
 		const service = AnalyticsService as unknown as AnalyticsServiceInternals;
 		const originalCapture = service.capture;
 		const capture = vi.fn();
 		service.capture = capture;
 
 		try {
-			AnalyticsService.trackTranslationAdded('qdc-translation-123', 'English');
-			AnalyticsService.trackTranslationAdded('txt-manual-private-id', 'French');
-			AnalyticsService.trackTranslationAdded('private-edition-for-alice', 'English');
+			AnalyticsService.trackTranslationAdded('quran_api', 'English', 'en_sahih');
+			AnalyticsService.trackTranslationAdded('qdc', 'French', 'qdc-translation-123');
+			AnalyticsService.trackTranslationAdded('manual_txt', 'English');
 
 			expect(capture).toHaveBeenNthCalledWith(1, 'translation_added', {
-				source: 'catalog',
-				edition_language: 'en'
+				edition_source: 'quran_api',
+				edition_language: 'en',
+				edition_key: 'en_sahih'
 			});
 			expect(capture).toHaveBeenNthCalledWith(2, 'translation_added', {
-				source: 'manual_txt',
-				edition_language: 'fr'
+				edition_source: 'qdc',
+				edition_language: 'fr',
+				edition_key: 'qdc-translation-123'
 			});
 			expect(capture).toHaveBeenNthCalledWith(3, 'translation_added', {
-				source: 'custom',
-				edition_language: 'en'
+				edition_source: 'manual_txt',
+				edition_language: 'en',
+				edition_key: undefined
 			});
 			expect(service.sanitizeProperties({ edition_key: 'en_sahih' })).toEqual({
-				edition_source: 'catalog'
+				edition_source: 'quran_api',
+				edition_key: 'en_sahih'
 			});
-			expect(JSON.stringify(capture.mock.calls)).not.toContain('private-edition-for-alice');
+			expect(service.sanitizeProperties({ edition_key: 'qdc-translation-123' })).toEqual({
+				edition_source: 'qdc',
+				edition_key: 'qdc-translation-123'
+			});
+			expect(service.sanitizeProperties({ edition_key: 'private-edition-for-alice' })).toEqual({
+				edition_source: 'custom'
+			});
 		} finally {
 			service.capture = originalCapture;
 		}

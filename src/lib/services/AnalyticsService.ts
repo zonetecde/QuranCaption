@@ -11,6 +11,7 @@ type AnalyticsState = 'idle' | 'initializing' | 'ready' | 'disabled' | 'failed';
 export type AnalyticsOutcome = 'completed' | 'partial' | 'failed' | 'canceled';
 export type AiAnalyticsFeature = 'translation_trim' | 'bold' | 'wbw_translation';
 export type EditorAnalyticsSection = 'video' | 'subtitles' | 'translations' | 'style' | 'export';
+export type AnalyticsEditionSource = 'quran_api' | 'qdc' | 'manual_txt' | 'custom';
 export type ReflectionAnalyticsEvent =
 	| 'reflection_prompt_shown'
 	| 'reflection_prompt_dismissed'
@@ -332,7 +333,12 @@ export class AnalyticsService {
 				return result;
 			}
 			if (normalizedKey === 'edition_key' && typeof value === 'string') {
-				result.edition_source = this.classifyAnalyticsEdition(value);
+				const editionKey = value.trim().toLowerCase();
+				const editionSource = this.classifyAnalyticsEdition(editionKey);
+				result.edition_source = editionSource;
+				if (editionSource === 'quran_api' || editionSource === 'qdc') {
+					result.edition_key = editionKey;
+				}
 				return result;
 			}
 			if (normalizedKey === 'edition_language') {
@@ -456,18 +462,15 @@ export class AnalyticsService {
 	}
 
 	/**
-	 * Classifies a translation key without retaining its catalog or imported identifier.
+	 * Classifies a translation key while allowing stable catalog identifiers.
 	 * @param {string | undefined} editionKey Raw translation edition key.
-	 * @returns {'catalog' | 'manual_txt' | 'custom'} Stable translation source.
+	 * @returns {AnalyticsEditionSource} Stable translation source.
 	 */
-	private static classifyAnalyticsEdition(
-		editionKey?: string
-	): 'catalog' | 'manual_txt' | 'custom' {
+	private static classifyAnalyticsEdition(editionKey?: string): AnalyticsEditionSource {
 		const normalized = editionKey?.trim().toLowerCase() ?? '';
 		if (normalized.startsWith('txt-manual-')) return 'manual_txt';
-		if (/^qdc-translation-\d+$/.test(normalized) || /^[a-z]{2,3}_[a-z0-9_]+$/.test(normalized)) {
-			return 'catalog';
-		}
+		if (/^qdc-translation-\d+$/.test(normalized)) return 'qdc';
+		if (/^[a-z]{2,3}_[a-z0-9_]+$/.test(normalized)) return 'quran_api';
 		return 'custom';
 	}
 
@@ -688,15 +691,21 @@ export class AnalyticsService {
 	}
 
 	/**
-	 * Tracks an added translation using a bounded source derived from its local edition key.
-	 * @param {string | undefined} editionKey Local edition key used only to derive the source.
+	 * Tracks a translation added from a known provider while retaining only a stable catalog key.
+	 * @param {AnalyticsEditionSource} source Stable translation source.
 	 * @param {string | undefined} language Stable language code.
+	 * @param {string | undefined} editionKey Stable catalog edition key.
 	 * @returns {void}
 	 */
-	static trackTranslationAdded(editionKey?: string, language?: string): void {
+	static trackTranslationAdded(
+		source: AnalyticsEditionSource,
+		language?: string,
+		editionKey?: string
+	): void {
 		this.capture('translation_added', {
-			source: this.classifyAnalyticsEdition(editionKey),
-			edition_language: this.normalizeAnalyticsLanguage(language)
+			edition_source: source,
+			edition_language: this.normalizeAnalyticsLanguage(language),
+			edition_key: editionKey
 		});
 	}
 

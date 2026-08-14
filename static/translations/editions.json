@@ -2663,6 +2663,17 @@
 		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
+				"key": "mal_quranlalithasaram",
+				"name": "mal-quranlalithasaram",
+				"author": "Muhammad Karakunnu And Vanidas Elayavoor",
+				"language": "Malayalam",
+				"direction": "ltr",
+				"source": "https://alquranmalayalam.net/",
+				"comments": "Ponctuation",
+				"link": "/translations/mal-quranlalithasaram/{chapter}.json",
+				"linkmin": "/translations/mal-quranlalithasaram/{chapter}.json"
+			},
+			{
 				"key": "mal_abdulhameedmada",
 				"name": "mal-abdulhameedmada",
 				"author": "Abdul Hameed Madani And Kunhi Mohammed",

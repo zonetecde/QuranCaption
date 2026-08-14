@@ -4391,6 +4391,18 @@ type RootTranslation = {
 			 */
 			'mushaf-style': string;
 			/**
+			 * B​a​s​m​a​l​a​ ​S​t​y​l​e
+			 */
+			'basmala-style': string;
+			/**
+			 * B​a​s​m​a​l​a​ ​S​c​a​l​e
+			 */
+			'basmala-scale': string;
+			/**
+			 * C​u​r​r​e​n​t​ ​f​o​n​t
+			 */
+			'current-font': string;
+			/**
 			 * V​e​r​s​e​ ​N​u​m​b​e​r​ ​F​o​r​m​a​t
 			 */
 			'verse-number-format': string;
@@ -5192,6 +5204,14 @@ type RootTranslation = {
 			 * C​h​o​o​s​e​ ​t​h​e​ ​A​r​a​b​i​c​ ​s​c​r​i​p​t​ ​s​o​u​r​c​e​ ​f​o​r​ ​Q​u​r​a​n​ ​s​u​b​t​i​t​l​e​s​.
 			 */
 			'mushaf-style': string;
+			/**
+			 * U​s​e​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​A​r​a​b​i​c​ ​f​o​n​t​ ​o​r​ ​c​h​o​o​s​e​ ​o​n​e​ ​o​f​ ​1​2​2​ ​c​a​l​l​i​g​r​a​p​h​i​c​ ​b​a​s​m​a​l​a​s​.
+			 */
+			'basmala-style': string;
+			/**
+			 * S​c​a​l​e​ ​c​a​l​l​i​g​r​a​p​h​i​c​ ​p​r​e​d​e​f​i​n​e​d​ ​b​a​s​m​a​l​a​s​ ​i​n​d​e​p​e​n​d​e​n​t​l​y​ ​f​r​o​m​ ​o​t​h​e​r​ ​s​u​b​t​i​t​l​e​s​.
+			 */
+			'basmala-scale': string;
 			/**
 			 * C​h​a​n​g​e​ ​t​h​e​ ​f​o​r​m​a​t​ ​o​f​ ​v​e​r​s​e​ ​n​u​m​b​e​r​s​.​ ​U​s​e​ ​<​n​u​m​b​e​r​>​ ​t​a​g​ ​t​o​ ​c​u​s​t​o​m​i​z​e​.
 			 */
@@ -15532,6 +15552,18 @@ export type TranslationFunctions = {
 			 */
 			'mushaf-style': () => LocalizedString;
 			/**
+			 * Basmala Style
+			 */
+			'basmala-style': () => LocalizedString;
+			/**
+			 * Basmala Scale
+			 */
+			'basmala-scale': () => LocalizedString;
+			/**
+			 * Current font
+			 */
+			'current-font': () => LocalizedString;
+			/**
 			 * Verse Number Format
 			 */
 			'verse-number-format': () => LocalizedString;
@@ -16333,6 +16365,14 @@ export type TranslationFunctions = {
 			 * Choose the Arabic script source for Quran subtitles.
 			 */
 			'mushaf-style': () => LocalizedString;
+			/**
+			 * Use the current Arabic font or choose one of 122 calligraphic basmalas.
+			 */
+			'basmala-style': () => LocalizedString;
+			/**
+			 * Scale calligraphic predefined basmalas independently from other subtitles.
+			 */
+			'basmala-scale': () => LocalizedString;
 			/**
 			 * Change the format of verse numbers. Use <number> tag to customize.
 			 */

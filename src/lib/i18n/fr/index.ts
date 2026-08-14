@@ -1493,6 +1493,9 @@ const fr = {
 			'decorative-brackets-font-family': 'Style des parenthèses',
 			riwayah: 'Riwayah',
 			'mushaf-style': 'Mushaf',
+			'basmala-style': 'Style de la basmala',
+			'basmala-scale': 'Échelle de la basmala',
+			'current-font': 'Police actuelle',
 			'verse-number-format': 'Format du numéro de verset',
 			'verse-number-position': 'Position du numéro de verset',
 			'verse-number-numeral-system': 'Chiffres du numéro de verset',
@@ -1697,6 +1700,10 @@ const fr = {
 				'Choisir la paire de glyphes utilisée pour les parenthèses décoratives (ouvrante en premier, fermante en second). Utilise la police QPC2BSML.',
 			riwayah: 'Choisir la lecture du Coran utilisée pour les sous-titres arabes.',
 			'mushaf-style': 'Choisir la source d\u2019écriture arabe pour les sous-titres coraniques.',
+			'basmala-style':
+				'Utiliser la police arabe actuelle ou choisir l’une des 122 basmalas calligraphiées.',
+			'basmala-scale':
+				'Agrandir ou réduire les basmalas prédéfinies calligraphiées indépendamment des autres sous-titres.',
 			'verse-number-format':
 				'Modifier le format des numéros de versets. Utiliser la balise <number> pour personnaliser.',
 			'verse-number-position': 'Définir la position des numéros de versets',

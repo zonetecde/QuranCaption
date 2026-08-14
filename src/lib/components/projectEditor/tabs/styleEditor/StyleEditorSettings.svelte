@@ -3,7 +3,7 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { onDestroy, onMount, tick } from 'svelte';
 	import PresetLibrary from './presets/components/PresetLibrary.svelte';
-	import { CustomTextClip } from '$lib/classes';
+	import { CustomTextClip, PredefinedSubtitleClip } from '$lib/classes';
 	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
 	import type { Category, Style, StyleName } from '$lib/classes/VideoStyle.svelte';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
@@ -451,6 +451,30 @@
 		if (style.id === 'show-decorative-brackets' && selection !== 'arabic') return true;
 		if (style.id === 'decorative-brackets-font-family' && selection !== 'arabic') return true;
 		if (style.id === 'riwayah' && selection !== 'arabic') return true;
+		if (style.id === 'basmala-style' || style.id === 'basmala-scale') {
+			if (selection !== 'arabic') return true;
+			const selected = globalState.getStylesState.selectedSubtitles;
+			const hasUnsupportedSelection =
+				selected.length > 0
+					? selected.some(
+							(clip) =>
+								!(
+									clip instanceof PredefinedSubtitleClip &&
+									clip.predefinedSubtitleType === 'Basmala'
+								)
+						)
+					: !globalState.getSubtitleTrack.clips.some(
+							(clip) =>
+								clip instanceof PredefinedSubtitleClip && clip.predefinedSubtitleType === 'Basmala'
+						);
+			if (hasUnsupportedSelection) return true;
+			return (
+				style.id === 'basmala-scale' &&
+				getEffectiveStyleValues('basmala-style', category).every(
+					(value) => String(value) === 'current-font'
+				)
+			);
+		}
 		if (
 			style.id === 'mushaf-style' &&
 			(selection !== 'arabic' ||

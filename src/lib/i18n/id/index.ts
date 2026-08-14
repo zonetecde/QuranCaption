@@ -930,6 +930,9 @@ const id = {
 		styleName: {
 			...baseEn.editor.styleName,
 			riwayah: 'Riwayah',
+			'basmala-style': 'Gaya Basmala',
+			'basmala-scale': 'Skala Basmala',
+			'current-font': 'Font saat ini',
 			general: 'Umum',
 			'verse-number': 'Nomor Ayat',
 			'verse-number-new-line': 'Nomor ayat di baris baru',
@@ -1001,6 +1004,9 @@ const id = {
 		styleDescription: {
 			...baseEn.editor.styleDescription,
 			riwayah: 'Pilih riwayat bacaan Al-Qur’an untuk subtitle bahasa Arab.',
+			'basmala-style':
+				'Gunakan font Arab saat ini atau pilih salah satu dari 122 basmala kaligrafi.',
+			'basmala-scale': 'Ubah skala basmala kaligrafi bawaan secara terpisah dari subtitle lainnya.',
 			'video-clip-transition-duration':
 				'Durasi default transisi antar klip video dalam milidetik. Dalam mode Crossfade, setiap crossfade dapat disesuaikan secara terpisah dengan menggeser klip di timeline. Tampilannya mungkin tidak akurat di pratinjau video, tetapi hasil video yang diekspor akan tetap benar.',
 			'media-fill': 'Pangkas video dan gambar latar agar memenuhi seluruh bingkai',

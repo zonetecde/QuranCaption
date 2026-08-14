@@ -664,6 +664,7 @@ export class QPCFontProvider {
 			fontFamily === 'Reciters' ||
 			fontFamily === 'Surahs' ||
 			fontFamily === 'Surahs2' ||
+			fontFamily === 'Basmalah' ||
 			fontFamily === 'QPC1BSML' ||
 			fontFamily === 'QPC2BSML' ||
 			fontFamily.startsWith('QPC1') ||

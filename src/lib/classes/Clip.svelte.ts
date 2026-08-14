@@ -1007,6 +1007,15 @@ export class PredefinedSubtitleClip extends ClipWithTranslation {
 	 */
 	override getText(): string {
 		const canonicalType = this.getCanonicalType();
+		const basmalaStyle = String(
+			globalState.currentProject?.content.videoStyle
+				.getStylesOfTarget('arabic')
+				.getEffectiveValue('basmala-style', this.id) ?? 'current-font'
+		);
+
+		if (canonicalType === 'Basmala' && basmalaStyle !== 'current-font') {
+			return basmalaStyle;
+		}
 
 		// En fonction de la police d'ecriture, renvoie le bon texte
 		const fontFamily = String(

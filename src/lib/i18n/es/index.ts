@@ -1492,6 +1492,9 @@ const es = {
 			'decorative-brackets-font-family': 'Estilo de paréntesis',
 			riwayah: 'Riwayah',
 			'mushaf-style': 'Mushaf',
+			'basmala-style': 'Estilo de la basmala',
+			'basmala-scale': 'Escala de la basmala',
+			'current-font': 'Fuente actual',
 			'verse-number-format': 'Formato del número de versículo',
 			'verse-number-position': 'Posición del número de versículo',
 			'verse-number-numeral-system': 'Numerales del número de versículo',
@@ -1696,6 +1699,9 @@ const es = {
 				'Elegir el par de glifos usado para los paréntesis decorativos (apertura primero, cierre después). Usa la fuente QPC2BSML.',
 			riwayah: 'Elegir la recitación del Corán utilizada para los subtítulos en árabe.',
 			'mushaf-style': 'Elegir la fuente de escritura árabe para los subtítulos coránicos.',
+			'basmala-style': 'Usar la fuente árabe actual o elegir una de las 122 basmalas caligráficas.',
+			'basmala-scale':
+				'Escalar las basmalas predefinidas caligráficas independientemente de los demás subtítulos.',
 			'verse-number-format':
 				'Modificar el formato de los números de versículos. Usar la etiqueta <number> para personalizar.',
 			'verse-number-position': 'Establecer la posición de los números de versículos',

@@ -13,6 +13,7 @@
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import AyahImageControl from './controls/AyahImageControl.svelte';
 	import BracketsFontControl from './controls/BracketsFontControl.svelte';
+	import BasmalaStyleControl from './controls/BasmalaStyleControl.svelte';
 	import ColorControl from './controls/ColorControl.svelte';
 	import DimensionControl from './controls/DimensionControl.svelte';
 	import FadeControl from './controls/FadeControl.svelte';
@@ -560,6 +561,8 @@
 					<ColorControl value={inputValue} onChange={applyValue} />
 				{:else if style.id === 'font-family'}
 					<FontFamilyControl value={inputValue} onChange={applySelectValue} />
+				{:else if style.id === 'basmala-style'}
+					<BasmalaStyleControl {style} value={inputValue} onChange={applySelectValue} />
 				{:else if style.valueType === 'select'}
 					<SelectControl {style} value={inputValue} onChange={applySelectValue} />
 				{:else if style.valueType === 'brackets-font'}

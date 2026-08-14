@@ -12,6 +12,13 @@
 }
 
 @font-face {
+	font-family: 'Basmalah';
+	src: url('/Basmalah-1-to-122.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
 	font-family: 'IndoPak';
 	src: url('/IndoPak.ttf') format('truetype');
 	font-weight: normal;

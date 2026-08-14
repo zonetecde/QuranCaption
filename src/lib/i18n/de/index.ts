@@ -1495,6 +1495,9 @@ const de = {
 			'decorative-brackets-font-family': 'Klammern-Stil',
 			riwayah: 'Riwayah',
 			'mushaf-style': 'Mushaf',
+			'basmala-style': 'Basmala-Stil',
+			'basmala-scale': 'Basmala-Skalierung',
+			'current-font': 'Aktuelle Schrift',
 			'verse-number-format': 'Format der Versnummer',
 			'verse-number-position': 'Position der Versnummer',
 			'verse-number-numeral-system': 'Ziffern der Versnummer',
@@ -1698,6 +1701,10 @@ const de = {
 				'Wählen Sie das Glyphenpaar für dekorative Klammern (öffnende zuerst, schließende danach). Verwendet die Schriftart QPC2BSML.',
 			riwayah: 'Wählen Sie die Koranrezitation für arabische Untertitel.',
 			'mushaf-style': 'Wählen Sie die arabische Schriftquelle für koranische Untertitel.',
+			'basmala-style':
+				'Aktuelle arabische Schrift verwenden oder eine von 122 kalligrafischen Basmalas wählen.',
+			'basmala-scale':
+				'Kalligrafische vordefinierte Basmalas unabhängig von anderen Untertiteln skalieren.',
 			'verse-number-format':
 				'Format der Versnummern ändern. Verwenden Sie das <number>-Tag zur Anpassung.',
 			'verse-number-position': 'Position der Versnummern festlegen',

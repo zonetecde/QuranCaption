@@ -74,6 +74,8 @@ export type GeneralStyleName =
 	| 'decorative-brackets-font-family'
 	| 'riwayah'
 	| 'mushaf-style'
+	| 'basmala-style'
+	| 'basmala-scale'
 	| 'verse-number-format'
 	| 'verse-number-position'
 	| 'verse-number-numeral-system'
@@ -621,6 +623,17 @@ export class StylesData extends SerializableBase {
 					}
 
 					if (subtitleClip instanceof PredefinedSubtitleClip) {
+						const basmalaStyle = String(
+							this.getEffectiveValue('basmala-style', subtitleClip.id) ?? 'current-font'
+						);
+						if (
+							subtitleClip.predefinedSubtitleType === 'Basmala' &&
+							basmalaStyle !== 'current-font'
+						) {
+							css += `font-family: Basmalah;\n`;
+							continue;
+						}
+
 						const forcedFont = getForcedFontForPredefinedSubtitle(
 							subtitleClip.predefinedSubtitleType,
 							String(effectiveValue)
@@ -630,6 +643,21 @@ export class StylesData extends SerializableBase {
 							else css += `font-family: ${forcedFont};\n`;
 							continue;
 						}
+					}
+				}
+
+				if (this.target === 'arabic' && style.id === 'scale' && clipId) {
+					const subtitleClip = globalState.getSubtitleTrack.getClipById(clipId);
+					const basmalaStyle = String(
+						this.getEffectiveValue('basmala-style', clipId) ?? 'current-font'
+					);
+					if (
+						subtitleClip instanceof PredefinedSubtitleClip &&
+						subtitleClip.predefinedSubtitleType === 'Basmala' &&
+						basmalaStyle !== 'current-font'
+					) {
+						css += `--scale: ${this.getEffectiveValue('basmala-scale', clipId) ?? 100}%;\n`;
+						continue;
 					}
 				}
 

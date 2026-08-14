@@ -94,6 +94,7 @@ function createDefaultStyleValue(
 	if (styleId === 'font-family') return 'MockArabic';
 	if (styleId === 'riwayah') return 'Hafs';
 	if (styleId === 'mushaf-style') return 'Uthmani';
+	if (styleId === 'basmala-style') return 'current-font';
 	if (styleId === 'show-decorative-brackets') return false;
 	if (styleId === 'decorative-brackets-font-family') return 'LM';
 	if (styleId === 'fade-duration') return 200;

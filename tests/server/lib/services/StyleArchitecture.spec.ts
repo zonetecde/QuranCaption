@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Category, Style, StylesData, VideoStyle } from '$lib/classes/VideoStyle.svelte';
-import { SubtitleClip } from '$lib/classes/Clip.svelte';
+import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import {
 	loadCustomStyleCategoryDefinition,
@@ -316,6 +316,55 @@ describe('style architecture modules', () => {
 
 		try {
 			expect(arabicStyles.generateCSS(clip.id)).toContain('font-family: warsh10, sans-serif;');
+		} finally {
+			globalState.currentProject = originalProject;
+		}
+	});
+
+	it('renders the selected calligraphic basmala with its bundled font', () => {
+		const clip = new PredefinedSubtitleClip(0, 1_000, 'Basmala');
+		const arabicStyles = new StylesData('arabic', [
+			new Category({
+				id: 'general',
+				styles: [
+					new Style({ id: 'riwayah', value: 'Hafs', valueType: 'select' }),
+					new Style({ id: 'mushaf-style', value: 'Uthmani', valueType: 'select' }),
+					new Style({ id: 'basmala-style', value: '122', valueType: 'select' }),
+					new Style({ id: 'basmala-scale', value: 125, valueType: 'number' })
+				]
+			}),
+			new Category({
+				id: 'text',
+				styles: [
+					new Style({
+						id: 'font-family',
+						value: 'QPC2',
+						valueType: 'select',
+						css: "font-family: '{value}', sans-serif;"
+					})
+				]
+			}),
+			new Category({
+				id: 'animation',
+				styles: [
+					new Style({ id: 'scale', value: 80, valueType: 'number', css: '--scale: {value}%;' })
+				]
+			})
+		]);
+		const videoStyle = new VideoStyle();
+		videoStyle.styles = [arabicStyles];
+		const originalProject = globalState.currentProject;
+		globalState.currentProject = {
+			content: {
+				videoStyle,
+				timeline: { getFirstTrack: () => ({ getClipById: () => clip }) }
+			}
+		} as never;
+
+		try {
+			expect(clip.getText()).toBe('122');
+			expect(arabicStyles.generateCSS(clip.id)).toContain('font-family: Basmalah;');
+			expect(arabicStyles.generateCSS(clip.id)).toContain('--scale: 125%;');
 		} finally {
 			globalState.currentProject = originalProject;
 		}

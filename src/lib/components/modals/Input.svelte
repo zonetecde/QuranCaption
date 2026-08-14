@@ -1,6 +1,6 @@
 <script lang="ts">
 	import LL from '$lib/i18n/i18n-svelte';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import AutocompleteInput from '../misc/AutocompleteInput.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -31,7 +31,7 @@
 		resolve: (result: string) => void;
 	} = $props();
 
-	let inputValue: string = $state(defaultText);
+	let inputValue: string = $state(untrack(() => defaultText));
 	let speakerSuggestions = $derived(
 		Array.from(
 			new Set(

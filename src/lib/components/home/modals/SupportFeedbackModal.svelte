@@ -3,6 +3,7 @@
 	import { invoke } from '@tauri-apps/api/core';
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import toast from 'svelte-5-french-toast';
+	import { untrack } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { get } from 'svelte/store';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -17,7 +18,7 @@
 		source?: 'support_prompt' | 'settings_support' | 'donation_post_export';
 	} = $props();
 
-	let activeTab = $state<'review' | 'feedback'>(initialTab);
+	let activeTab = $state<'review' | 'feedback'>(untrack(() => initialTab));
 	let feedbackType = $state<'feature' | 'bug'>('feature');
 	let reviewRating = $state(0);
 	let hoveredRating = $state(0);

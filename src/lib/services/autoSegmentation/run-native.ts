@@ -197,7 +197,6 @@ async function runNativeSegmentationCore(
 			const endIndex = verse.words.length - 1;
 
 			const arabicText = verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex);
-			const indopakText = verse.getArabicTextBetweenTwoIndexes(startIndex, endIndex, 'indopak');
 			const wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(startIndex, endIndex);
 
 			const subtitlesProperties = await subtitleTrack.getSubtitlesProperties(
@@ -219,7 +218,6 @@ async function runNativeSegmentationCore(
 				subtitlesProperties.isFullVerse,
 				subtitlesProperties.isLastWordsOfVerse,
 				subtitlesProperties.translations,
-				indopakText,
 				true,
 				1.0 // Confiance 100%, timing manuel/officiel
 			);

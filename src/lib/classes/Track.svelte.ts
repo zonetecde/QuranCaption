@@ -609,11 +609,6 @@ export class SubtitleTrack extends Track {
 		clip.startWordIndex = startWordIndex;
 		clip.endWordIndex = endWordIndex;
 		clip.text = verse.getArabicTextBetweenTwoIndexes(startWordIndex, endWordIndex);
-		clip.indopakText = verse.getArabicTextBetweenTwoIndexes(
-			startWordIndex,
-			endWordIndex,
-			'indopak'
-		);
 		clip.wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(
 			startWordIndex,
 			endWordIndex
@@ -1204,8 +1199,7 @@ export class SubtitleTrack extends Track {
 					verse.getWordByWordTranslationBetweenTwoIndexes(firstWordIndex, lastWordIndex),
 					subtitlesProperties.isFullVerse, // isFullVerse
 					subtitlesProperties.isLastWordsOfVerse, // isLastWordsOfVerse
-					subtitlesProperties.translations, // translations
-					verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex, 'indopak')
+					subtitlesProperties.translations // translations
 				);
 				if (subtitle instanceof ClipWithTranslation) {
 					newSubtitleClip.associatedImagePath = subtitle.associatedImagePath;
@@ -1225,11 +1219,6 @@ export class SubtitleTrack extends Track {
 				subtitle.startWordIndex = firstWordIndex;
 				subtitle.endWordIndex = lastWordIndex;
 				subtitle.text = verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex);
-				subtitle.indopakText = verse.getArabicTextBetweenTwoIndexes(
-					firstWordIndex,
-					lastWordIndex,
-					'indopak'
-				);
 				subtitle.wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(
 					firstWordIndex,
 					lastWordIndex
@@ -1382,11 +1371,6 @@ export class SubtitleTrack extends Track {
 		ProjectHistoryManager.begin('add subtitle');
 		try {
 			const arabicText = verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex);
-			const indopakText = verse.getArabicTextBetweenTwoIndexes(
-				firstWordIndex,
-				lastWordIndex,
-				'indopak'
-			);
 			const wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(
 				firstWordIndex,
 				lastWordIndex
@@ -1419,8 +1403,7 @@ export class SubtitleTrack extends Track {
 					wbwTranslation,
 					subtitlesProperties.isFullVerse, // isFullVerse
 					subtitlesProperties.isLastWordsOfVerse, // isLastWordsOfVerse
-					subtitlesProperties.translations, // translations
-					indopakText
+					subtitlesProperties.translations // translations
 				)
 			);
 

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { globalState } from '$lib/runes/main.svelte';
+import IndopakQuranProvider from '$lib/services/IndopakQuranProvider';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 import RiwayahProvider from '$lib/services/RiwayahProvider';
 
@@ -141,24 +142,13 @@ describe('arabic inline styles', () => {
 					return { value: 0 } as never;
 			}
 		});
+		vi.spyOn(IndopakQuranProvider, 'getVerseWordsSlice').mockReturnValue(['indopak', 'text']);
 
-		const clip = new SubtitleClip(
-			0,
-			1_000,
-			102,
-			8,
-			0,
-			1,
-			'uthmani text',
-			['a', 'b'],
-			false,
-			true,
-			{},
-			'indopak text'
-		);
+		const clip = new SubtitleClip(0, 1_000, 102, 8, 0, 1, 'uthmani text', ['a', 'b'], false, true);
 
 		expect(clip.getArabicRenderParts('preview')).toEqual({
 			text: 'indopak text',
+			words: ['indopak', 'text'],
 			suffix: ' ٨',
 			suffixFontFamily: 'Hafs'
 		});
@@ -259,6 +249,7 @@ describe('arabic inline styles', () => {
 					return { value: 0 } as never;
 			}
 		});
+		vi.spyOn(IndopakQuranProvider, 'getVerseWordsSlice').mockReturnValue(['indopak', 'one', 'two']);
 
 		const clip = new SubtitleClip(
 			0,
@@ -270,9 +261,7 @@ describe('arabic inline styles', () => {
 			'uthmani one two',
 			['a', 'b'],
 			false,
-			false,
-			{},
-			'indopak one two'
+			false
 		);
 
 		clip.toggleArabicInlineStyles(0, 0, {

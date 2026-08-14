@@ -25,7 +25,6 @@ export async function hydrateSubtitleClipRange(
 	clip.startWordIndex = startWordIndex;
 	clip.endWordIndex = endWordIndex;
 	clip.text = verse.getArabicTextBetweenTwoIndexes(startWordIndex, endWordIndex);
-	clip.indopakText = verse.getArabicTextBetweenTwoIndexes(startWordIndex, endWordIndex, 'indopak');
 	clip.wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(
 		startWordIndex,
 		endWordIndex

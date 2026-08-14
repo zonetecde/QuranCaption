@@ -6,6 +6,7 @@ type SerializableDictionary = Record<string, unknown>;
 type RegisteredSerializableClass<T extends SerializableBase = SerializableBase> = {
 	fromJSON(data: SerializableDictionary): T;
 	__className?: string;
+	__ignoredProperties?: readonly string[];
 	name: string;
 	prototype: T;
 };
@@ -25,6 +26,8 @@ const hasFromJSON = <T extends SerializableBase>(
 export class SerializableBase {
 	// Nom de la classe pour la serialization - doit etre defini dans chaque classe fille.
 	static __className = 'SerializableBase';
+	// Anciennes proprietes qui ne doivent plus etre chargees ni sauvegardees.
+	static __ignoredProperties: readonly string[] = [];
 
 	// Metadonnees pour la deserialisation des objets enfants.
 	private static __childClasses = new Map<string, Map<string, RegisteredSerializableClass>>();
@@ -84,6 +87,10 @@ export class SerializableBase {
 		}
 
 		const result: SerializableDictionary = {};
+		const ignoredProperties =
+			obj instanceof SerializableBase
+				? new Set((obj.constructor as typeof SerializableBase).__ignoredProperties ?? [])
+				: null;
 		if (obj instanceof SerializableBase) {
 			let className: string | null = null;
 
@@ -112,6 +119,7 @@ export class SerializableBase {
 		const instance = obj as SerializableDictionary;
 		for (const key in instance) {
 			if (Object.prototype.hasOwnProperty.call(instance, key)) {
+				if (ignoredProperties?.has(key)) continue;
 				const value = instance[key];
 				if (typeof value !== 'function') {
 					result[key] = SerializableBase.serializeObject(value);
@@ -128,6 +136,7 @@ export class SerializableBase {
 					if (key === 'constructor' || typeof descriptor.value === 'function') {
 						continue;
 					}
+					if (ignoredProperties?.has(key)) continue;
 
 					if (descriptor.get && !Object.prototype.hasOwnProperty.call(result, key)) {
 						try {
@@ -174,9 +183,14 @@ export class SerializableBase {
 		}
 		const writableInstance = instance as unknown as SerializableDictionary;
 		const childClasses = SerializableBase.__childClasses.get(targetClass.name);
+		const ignoredProperties = new Set(targetClass.__ignoredProperties ?? []);
 
 		for (const key in data) {
-			if (!Object.prototype.hasOwnProperty.call(data, key) || key === '__className') {
+			if (
+				!Object.prototype.hasOwnProperty.call(data, key) ||
+				key === '__className' ||
+				ignoredProperties.has(key)
+			) {
 				continue;
 			}
 

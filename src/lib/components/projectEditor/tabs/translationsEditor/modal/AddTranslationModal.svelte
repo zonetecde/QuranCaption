@@ -141,7 +141,8 @@
 					if (added) {
 						AnalyticsService.trackTranslationAdded(
 							activeTranslationsTab === 'quran-api' ? 'quran_api' : 'qdc',
-							translation.language
+							translation.language,
+							translation.key
 						);
 					}
 				}

@@ -270,7 +270,12 @@ export function sanitizeAnalyticsProperties(properties?: UnknownRecord): Unknown
 		}
 		if (key.toLowerCase() === 'edition_key') {
 			if (typeof value === 'string') {
-				result.edition_source = classifyAnalyticsEdition(value);
+				const editionKey = value.trim().toLowerCase();
+				const editionSource = classifyAnalyticsEdition(editionKey);
+				result.edition_source = editionSource;
+				if (editionSource === 'quran_api' || editionSource === 'qdc') {
+					result.edition_key = editionKey;
+				}
 			}
 			return result;
 		}
@@ -702,12 +707,18 @@ export class AnalyticsService {
 	 * Tracks a translation edition successfully added to a project.
 	 * @param {AnalyticsEditionSource} source Stable translation source.
 	 * @param {string | undefined} language Stable edition language.
+	 * @param {string | undefined} editionKey Stable catalog edition key.
 	 * @returns {void}
 	 */
-	static trackTranslationAdded(source: AnalyticsEditionSource, language?: string): void {
+	static trackTranslationAdded(
+		source: AnalyticsEditionSource,
+		language?: string,
+		editionKey?: string
+	): void {
 		this.track('translation_added', {
 			edition_source: source,
-			edition_language: normalizeAnalyticsLanguage(language)
+			edition_language: normalizeAnalyticsLanguage(language),
+			edition_key: editionKey
 		});
 	}
 

@@ -106,12 +106,14 @@ describe('analytics privacy sanitizer', () => {
 		});
 	});
 
-	it('classifies legacy edition keys without retaining the raw identifier', () => {
+	it('retains stable catalog edition keys while classifying their source', () => {
 		expect(sanitizeAnalyticsProperties({ edition_key: 'en_sahih' })).toEqual({
-			edition_source: 'quran_api'
+			edition_source: 'quran_api',
+			edition_key: 'en_sahih'
 		});
 		expect(sanitizeAnalyticsProperties({ edition_key: 'qdc-translation-131' })).toEqual({
-			edition_source: 'qdc'
+			edition_source: 'qdc',
+			edition_key: 'qdc-translation-131'
 		});
 		expect(sanitizeAnalyticsProperties({ edition_key: 'private-import-name' })).toEqual({
 			edition_source: 'custom'

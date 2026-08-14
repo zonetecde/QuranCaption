@@ -262,7 +262,7 @@ const es = {
 		updateInstalledMessage: 'La aplicación se reiniciará automáticamente en un momento...',
 		whatsNew: 'Novedades',
 		updateChangelog: 'Registro de cambios',
-		downloadManually: 'Descargar manualmente',
+		downloadManually: 'Actualizar',
 		pleaseDontClose:
 			'Por favor, no cierre la aplicación durante la actualización para evitar corrupción.',
 		later: 'Más tarde',

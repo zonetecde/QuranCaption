@@ -198,7 +198,7 @@ const id = {
 		updateInstalled: 'Update berhasil diinstal!',
 		updateInstalledMessage: 'Aplikasi akan restart otomatis sebentar lagi...',
 		whatsNew: 'Apa yang baru',
-		downloadManually: 'Download manual',
+		downloadManually: 'Perbarui',
 		later: 'Nanti',
 		updateNow: 'Update sekarang'
 	},

@@ -262,7 +262,7 @@ const fr = {
 		updateInstalledMessage: 'L\u2019application va redémarrer automatiquement dans un instant...',
 		whatsNew: 'Quoi de neuf',
 		updateChangelog: 'Journal des modifications',
-		downloadManually: 'Télécharger manuellement',
+		downloadManually: 'Mettre à jour',
 		pleaseDontClose:
 			'Veuillez ne pas fermer l\u2019application pendant la mise à jour pour éviter toute corruption.',
 		later: 'Plus tard',

@@ -107,7 +107,7 @@ const home = {
 	updateInstalledMessage: 'The app will restart automatically in a moment...',
 	whatsNew: "What's New",
 	updateChangelog: 'Update changelog',
-	downloadManually: 'Download Manually',
+	downloadManually: 'Update',
 	pleaseDontClose: "Please don't close the app during the update to avoid corruption.",
 	later: 'Later',
 	updateNow: 'Update Now',

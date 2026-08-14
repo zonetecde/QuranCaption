@@ -66,7 +66,7 @@
 		</button>
 	{/if}
 
-	{#if VersionService.latestUpdate?.hasUpdate}
+	{#if VersionService.latestUpdate?.hasUpdate && globalState.currentProject === null}
 		<button
 			type="button"
 			class="app-bar-button relative"

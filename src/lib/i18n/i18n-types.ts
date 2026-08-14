@@ -1028,7 +1028,7 @@ type RootTranslation = {
 		 */
 		updateChangelog: string;
 		/**
-		 * D​o​w​n​l​o​a​d​ ​M​a​n​u​a​l​l​y
+		 * U​p​d​a​t​e
 		 */
 		downloadManually: string;
 		/**
@@ -12236,7 +12236,7 @@ export type TranslationFunctions = {
 		 */
 		updateChangelog: () => LocalizedString;
 		/**
-		 * Download Manually
+		 * Update
 		 */
 		downloadManually: () => LocalizedString;
 		/**

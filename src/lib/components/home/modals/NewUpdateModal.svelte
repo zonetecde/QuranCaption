@@ -22,16 +22,16 @@
 	}
 
 	/**
-	 * Ouvre la release GitHub contenant le nouvel APK.
+	 * Ouvre la fiche Google Play de Quran Caption.
 	 *
-	 * @returns {Promise<void>} Résolution après l'ouverture de la release.
+	 * @returns {Promise<void>} Résolution après l'ouverture de Google Play.
 	 */
-	async function openRelease(): Promise<void> {
+	async function openPlayStore(): Promise<void> {
 		try {
-			await openUrl(update.releaseUrl);
+			await openUrl('https://play.google.com/store/apps/details?id=com.qurancaption');
 			dismiss();
 		} catch (error) {
-			console.error('Unable to open Android release:', error);
+			console.error('Unable to open Google Play:', error);
 		}
 	}
 </script>
@@ -73,7 +73,7 @@
 
 	<footer class="flex gap-3 border-t border-color p-4">
 		<button class="btn min-w-0 flex-1" onclick={dismiss}>{$LL.home.later()}</button>
-		<button class="btn-accent min-w-0 flex-1" onclick={() => void openRelease()}>
+		<button class="btn-accent min-w-0 flex-1" onclick={() => void openPlayStore()}>
 			<span class="material-icons mr-2 text-lg align-middle">download</span>
 			{$LL.home.downloadManually()}
 		</button>

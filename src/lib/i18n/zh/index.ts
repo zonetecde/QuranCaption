@@ -249,7 +249,7 @@ const zh = {
 		updateInstalledMessage: '应用将在片刻后自动重启...',
 		whatsNew: '更新内容',
 		updateChangelog: '更新日志',
-		downloadManually: '手动下载',
+		downloadManually: '更新',
 		pleaseDontClose: '更新期间请不要关闭应用以避免损坏。',
 		later: '稍后',
 		updateNow: '立即更新',

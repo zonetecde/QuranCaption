@@ -262,7 +262,7 @@ const de = {
 		updateInstalledMessage: 'Die App wird in Kürze automatisch neu gestartet...',
 		whatsNew: 'Neuigkeiten',
 		updateChangelog: 'Änderungsprotokoll',
-		downloadManually: 'Manuell herunterladen',
+		downloadManually: 'Aktualisieren',
 		pleaseDontClose:
 			'Bitte schließen Sie die App während des Updates nicht, um Beschädigungen zu vermeiden.',
 		later: 'Später',

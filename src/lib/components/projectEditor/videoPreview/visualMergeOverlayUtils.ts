@@ -240,9 +240,6 @@ export function getMergedClipsWithoutWordOverlap(clips: SubtitleClip[]): Subtitl
 		if (removedWords > 0) {
 			clonedClip.startWordIndex = nextStartWord;
 			clonedClip.text = trimTextWords(clonedClip.text, removedWords, keptWordCount);
-			if (clonedClip.indopakText) {
-				clonedClip.indopakText = trimTextWords(clonedClip.indopakText, removedWords, keptWordCount);
-			}
 			clonedClip.arabicInlineStyleRuns = trimInlineRunsAfterWordRemoval(
 				clonedClip.arabicInlineStyleRuns ?? [],
 				removedWords,

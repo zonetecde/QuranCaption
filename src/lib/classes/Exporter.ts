@@ -14,6 +14,7 @@ import { AnalyticsService } from '$lib/services/AnalyticsService';
 import ExportFileService from '$lib/services/ExportFileService';
 import RiwayahProvider, { isNonHafsRiwayah } from '$lib/services/RiwayahProvider';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
+import IndopakQuranProvider from '$lib/services/IndopakQuranProvider';
 import type { BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
 import Exportation, { ExportKind, ExportState } from './Exportation.svelte';
 import type { Project } from './Project';
@@ -239,6 +240,13 @@ export default class Exporter {
 		if (isNonHafsRiwayah(riwayah)) await RiwayahProvider.prefetch(riwayah);
 		if (settings.includedTargets.includes('arabic')) {
 			if (mushafStyle === 'Minimal Quran') await MinimalQuranProvider.prefetch();
+			if (mushafStyle === 'Indopak') {
+				await IndopakQuranProvider.prefetch(
+					globalState.getSubtitleTrack.clips
+						.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
+						.map((clip) => clip.surah)
+				);
+			}
 		}
 
 		const subtitles: {
@@ -388,7 +396,6 @@ export default class Exporter {
 					wordCount: Math.max(0, clip.endWordIndex - clip.startWordIndex + 1),
 					arabicText: clip.text,
 					displayText: clip.getText(),
-					indopakText: clip.indopakText,
 					isFullVerse: clip.isFullVerse,
 					isLastWordsOfVerse: clip.isLastWordsOfVerse,
 					confidence: clip.confidence,

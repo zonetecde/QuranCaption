@@ -232,11 +232,6 @@ async function materializeTemplate(
 		template.startIndex,
 		template.endIndex
 	);
-	const indopakText: string = template.verse.getArabicTextBetweenTwoIndexes(
-		template.startIndex,
-		template.endIndex,
-		'indopak'
-	);
 	const wbwTranslation: string[] = template.verse.getWordByWordTranslationBetweenTwoIndexes(
 		template.startIndex,
 		template.endIndex
@@ -266,7 +261,6 @@ async function materializeTemplate(
 		subtitlesProperties.isFullVerse,
 		subtitlesProperties.isLastWordsOfVerse,
 		subtitlesProperties.translations,
-		indopakText,
 		true,
 		template.confidence
 	);

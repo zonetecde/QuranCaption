@@ -45,6 +45,26 @@ function createSubtitle(startTime: number, endTime: number, verse: number): Subt
 }
 
 describe('Track lookup helpers', () => {
+	it('keeps derived IndoPak text out of serialized subtitle clips', () => {
+		const clip = new SubtitleClip(0, 1000, 1, 1, 0, 1, 'Uthmani text', [], true, true);
+
+		expect(clip.toJSON()).toMatchObject({ text: 'Uthmani text' });
+		expect(clip.toJSON()).not.toHaveProperty('indopakText');
+		expect(clip.toJSON()).not.toHaveProperty('isHydratingIndopakText');
+	});
+
+	it('loads legacy IndoPak text without saving it again', () => {
+		const clip = createSubtitle(0, 999, 1);
+		const restored = SubtitleClip.fromJSON({
+			...clip.toJSON(),
+			indopakText: 'Legacy IndoPak text'
+		}) as SubtitleClip;
+
+		expect(restored).not.toHaveProperty('indopakText');
+		expect(restored).not.toHaveProperty('isHydratingIndopakText');
+		expect(restored.toJSON()).not.toHaveProperty('indopakText');
+	});
+
 	it('preserves the source offset of trimmed asset clips', () => {
 		const clip = new AssetClip(500, 1500, 42);
 		clip.sourceStartTime = 750;

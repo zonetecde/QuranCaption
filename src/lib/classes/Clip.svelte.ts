@@ -16,9 +16,9 @@ import { SerializableBase } from './misc/SerializableBase';
 import { Utilities } from './misc/Utilities';
 import type { Track } from './Track.svelte';
 import type { Category, StyleName } from './VideoStyle.svelte';
-import { Quran } from './Quran';
 import QPCFontProvider from '$lib/services/FontProvider';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
+import IndopakQuranProvider from '$lib/services/IndopakQuranProvider';
 import RiwayahProvider, {
 	getRiwayahFontFamily,
 	isNonHafsRiwayah
@@ -395,12 +395,11 @@ export function markClipAsVerified(clip: ClipWithTranslation | null | undefined)
 }
 
 export class SubtitleClip extends ClipWithTranslation {
+	static override __ignoredProperties = ['indopakText', 'isHydratingIndopakText'] as const;
 	surah: number;
 	verse: number;
 	startWordIndex: number;
 	endWordIndex: number;
-	indopakText: string;
-	private isHydratingIndopakText = false;
 	alignmentMetadata: SubtitleAlignmentMetadata | null = $state(null);
 	// Vrai si l'utilisateur a édité manuellement les timings WBW (protège du re-MFA automatique).
 	wbwTimestampsManuallyEdited: boolean = $state(false);
@@ -422,7 +421,6 @@ export class SubtitleClip extends ClipWithTranslation {
 		isFullVerse: boolean,
 		isLastWordsOfVerse: boolean,
 		translations: { [key: string]: Translation } = {},
-		indopakSegmentText?: string,
 		comeFromIA: boolean = false,
 		confidence: number | null = null
 	) {
@@ -431,7 +429,6 @@ export class SubtitleClip extends ClipWithTranslation {
 		this.verse = $state(verse);
 		this.startWordIndex = $state(startWordIndex);
 		this.endWordIndex = $state(endWordIndex);
-		this.indopakText = $state(indopakSegmentText ?? text);
 		this.translations = translations;
 		this.wbwTranslation = $state(wbwTranslation);
 		this.isFullVerse = $state(isFullVerse);
@@ -591,13 +588,19 @@ export class SubtitleClip extends ClipWithTranslation {
 			mushafStyle === 'Tajweed' || fontFamily === 'QPC1' || fontFamily === 'QPC2';
 
 		if (!shouldUseQpcGlyphs) {
-			if (mushafStyle === 'Indopak' && !this.indopakText) {
-				// L'éditeur peut demander un rendu preview avant que le texte IndoPak soit hydraté.
-				void this.hydrateIndopakTextFromLocalQuran();
-			}
+			const indopakWords =
+				mushafStyle === 'Indopak'
+					? (IndopakQuranProvider.getVerseWordsSlice(
+							this.surah,
+							this.verse,
+							this.startWordIndex,
+							this.endWordIndex
+						) ?? undefined)
+					: undefined;
 
 			return {
-				text: mushafStyle === 'Indopak' && this.indopakText ? this.indopakText : this.text,
+				text: indopakWords?.join(' ') ?? this.text,
+				words: indopakWords,
 				suffix: showVerseNumber ? ` ${this.latinToArabicNumbers(this.verse)}` : '',
 				// En mode IndoPak, le numéro de verset reste rendu avec Hafs comme avant.
 				suffixFontFamily: showVerseNumber && mushafStyle === 'Indopak' ? 'Hafs' : null
@@ -630,27 +633,6 @@ export class SubtitleClip extends ClipWithTranslation {
 				: '',
 			suffixFontFamily: null
 		};
-	}
-
-	private async hydrateIndopakTextFromLocalQuran() {
-		if (this.isHydratingIndopakText || this.indopakText) return;
-		this.isHydratingIndopakText = true;
-
-		try {
-			const verse = await Quran.getVerse(this.surah, this.verse);
-			if (!verse) return;
-
-			this.indopakText = verse.getArabicTextBetweenTwoIndexes(
-				this.startWordIndex,
-				this.endWordIndex,
-				'indopak'
-			);
-			globalState.updateVideoPreviewUI();
-		} catch {
-			// Keep silent: fallback text remains available.
-		} finally {
-			this.isHydratingIndopakText = false;
-		}
 	}
 
 	override getText(): string {
@@ -696,11 +678,15 @@ export class SubtitleClip extends ClipWithTranslation {
 			mushafStyle === 'Tajweed' || fontFamily === 'QPC1' || fontFamily === 'QPC2';
 
 		if (!shouldUseQpcGlyphs) {
-			if (mushafStyle === 'Indopak' && !this.indopakText) {
-				void this.hydrateIndopakTextFromLocalQuran();
-			}
-
-			const baseText = mushafStyle === 'Indopak' && this.indopakText ? this.indopakText : this.text;
+			const baseText =
+				mushafStyle === 'Indopak'
+					? (IndopakQuranProvider.getVerseSlice(
+							this.surah,
+							this.verse,
+							this.startWordIndex,
+							this.endWordIndex
+						) ?? this.text)
+					: this.text;
 
 			if (globalState.getStyle('arabic', 'show-verse-number').value)
 				return this.getTextWithVerseNumber(baseText);
@@ -857,7 +843,6 @@ export class SubtitleClip extends ClipWithTranslation {
 			)
 		);
 
-		clonedClip.indopakText = this.indopakText;
 		clonedClip.arabicInlineStyleRuns = JSON.parse(JSON.stringify(this.arabicInlineStyleRuns ?? []));
 		clonedClip.associatedImagePath = this.associatedImagePath;
 		clonedClip.needsLongReview = this.needsLongReview;

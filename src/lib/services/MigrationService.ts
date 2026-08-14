@@ -963,12 +963,7 @@ export default class MigrationService {
 						),
 						subtitlesProperties.isFullVerse,
 						subtitlesProperties.isLastWordsOfVerse,
-						subtitlesProperties.translations,
-						verse.getArabicTextBetweenTwoIndexes(
-							clip.firstWordIndexInVerse,
-							clip.lastWordIndexInVerse,
-							'indopak'
-						)
+						subtitlesProperties.translations
 					);
 
 					const translations: { [key: string]: Translation } = {};

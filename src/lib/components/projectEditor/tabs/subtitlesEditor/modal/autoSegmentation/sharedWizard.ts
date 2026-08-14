@@ -2,7 +2,7 @@ import { globalState } from '$lib/runes/main.svelte';
 import { getContext, setContext } from 'svelte';
 import type { AutoSegmentationWizard } from './useAutoSegmentationWizard.svelte';
 
-const SHARED_WIZARD_CONTEXT = Symbol('auto-segmentation-wizard');
+const SHARED_WIZARD_CONTEXT = Symbol.for('qurancaption.auto-segmentation-wizard');
 
 /** Returns the shared auto-segmentation wizard instance. */
 export function getSharedWizard(): AutoSegmentationWizard {

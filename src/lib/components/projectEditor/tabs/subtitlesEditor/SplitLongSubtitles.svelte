@@ -211,7 +211,7 @@
 		</button>
 	</div>
 
-	<div class="space-y-3 rounded-lg bg-accent p-4">
+	<div class="space-y-3 rounded-lg bg-accent p-4 mb-28">
 		<p class="text-sm font-medium text-primary">{$LL.editor.aiSemanticSplitAssistant()}</p>
 		<p class="text-xs text-secondary">{$LL.editor.aiSemanticSplitDescription()}</p>
 		<button

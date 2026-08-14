@@ -2,6 +2,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import ResultPanel from './autoSegmentation/ResultPanel.svelte';
+	import { globalState } from '$lib/runes/main.svelte';
 	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 	import { clearSharedWizard, setSharedWizard } from './autoSegmentation/sharedWizard';
 	import { useAutoSegmentationWizard } from './autoSegmentation/useAutoSegmentationWizard.svelte';
@@ -10,6 +11,9 @@
 	import StepSettings from './autoSegmentation/steps/StepSettings.svelte';
 
 	let { close } = $props<{ close: () => void }>();
+	let panelScale = $derived(
+		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
+	);
 	const wizard = useAutoSegmentationWizard();
 	let panel: HTMLElement;
 	let closeTimer: ReturnType<typeof setTimeout> | undefined;
@@ -43,7 +47,8 @@
 
 <div
 	bind:this={panel}
-	class="flex w-full flex-col overflow-hidden border border-color bg-secondary shadow-2xl shadow-black"
+	class="auto-segmentation-ui-scale flex w-full flex-col overflow-hidden border border-color bg-secondary shadow-2xl shadow-black"
+	style={`--editor-panel-scale: ${panelScale}; --editor-panel-height: ${100 / panelScale}%;`}
 	use:mobileModalSheet={closeModal}
 >
 	<WizardHeader onClose={closeModal} />
@@ -85,3 +90,10 @@
 		{/if}
 	</section>
 </div>
+
+<style>
+	.auto-segmentation-ui-scale {
+		height: var(--editor-panel-height);
+		zoom: var(--editor-panel-scale);
+	}
+</style>

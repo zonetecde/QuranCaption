@@ -1,6 +1,7 @@
 import { VerseRange, type Project } from '$lib/classes';
 import { exists, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
+import { invoke } from '@tauri-apps/api/core';
 import { globalState } from '$lib/runes/main.svelte';
 import Exportation, {
 	ExportKind,
@@ -25,6 +26,8 @@ function parseIsoDateMs(value: string): number | null {
 
 export default class ExportService {
 	static exportFolder: string = 'exports/';
+	private static loadedExportIds = new Set<number>();
+	private static ownedExportIds = new Set<number>();
 
 	constructor() {}
 
@@ -76,10 +79,11 @@ export default class ExportService {
 				? 'webm'
 				: 'mov'
 			: 'mp4';
-		const fileName = project.detail.generateExportFileName() + '.' + videoExtension;
+		let fileName = project.detail.generateExportFileName() + '.' + videoExtension;
 		let filePath = await join(await this.getExportFolder(), fileName);
 
-		filePath = await this.checkIfFilePathTooLong(filePath);
+		filePath = await this.constrainFilePathLength(filePath);
+		fileName = filePath.split(/[/\\]/).at(-1)!;
 
 		console.log('Final export file path:', filePath);
 
@@ -102,22 +106,44 @@ export default class ExportService {
 				project.projectEditorState.export.fps
 			)
 		);
+		this.ownedExportIds.add(project.detail.id);
 
 		// Sauvegarde les exports en cours
 		await this.saveExports();
 	}
 
-	private static async checkIfFilePathTooLong(filePath: string): Promise<string> {
+	/**
+	 * Réduit le chemin d'export pour conserver une marge compatible avec les fichiers temporaires.
+	 * @param {string} filePath Chemin de fichier à contraindre.
+	 * @returns {Promise<string>} Chemin original ou raccourci.
+	 */
+	static async constrainFilePathLength(filePath: string): Promise<string> {
 		const maxPathLength = 220;
 		const tempSuffixMargin = 48;
+		const maxFileNameBytes = 255 - tempSuffixMargin;
+		const textEncoder = new TextEncoder();
 		const pathParts = filePath.split(/[/\\]/);
 		const fileName = pathParts.pop()!;
 		const dirPath = pathParts.join('/');
 		const maxFileNameLength = Math.max(32, maxPathLength - dirPath.length - 1 - tempSuffixMargin);
 
 		// Laisse une marge pour les fichiers temporaires Rust qui ajoutent un suffixe `-tmp-...`.
-		if (filePath.length > maxPathLength || fileName.length > maxFileNameLength) {
-			const newFileName = '...' + fileName.slice(-(maxFileNameLength - 3));
+		if (
+			filePath.length > maxPathLength ||
+			fileName.length > maxFileNameLength ||
+			textEncoder.encode(fileName).length > maxFileNameBytes
+		) {
+			let suffix = '';
+			for (const character of Array.from(fileName).reverse()) {
+				const candidate = character + suffix;
+				if (
+					candidate.length > maxFileNameLength - 3 ||
+					textEncoder.encode(candidate).length > maxFileNameBytes - 3
+				)
+					break;
+				suffix = candidate;
+			}
+			const newFileName = '...' + suffix;
 			filePath = await join(dirPath, newFileName);
 		}
 
@@ -127,21 +153,29 @@ export default class ExportService {
 	/**
 	 * Sauvegarde les exports en cours.
 	 */
-	static async saveExports() {
-		// S'assure que le dossier existe
+	/**
+	 * Sauvegarde les entrées d'export modifiées par cette instance sans écraser les autres.
+	 * @returns {Promise<void>} Promesse résolue après la fusion côté Rust.
+	 */
+	static async saveExports(): Promise<void> {
 		await ProjectService.ensureFolder(this.exportFolder);
 
-		// Construis le chemin d'accès vers le fichier contenant tout les exports
-		const filePath = await join(await appDataDir(), `exports.json`);
+		const currentIds = new Set(globalState.exportations.map((exp) => exp.exportId));
+		const changedExportIds = new Set(this.ownedExportIds);
+		for (const exportId of currentIds) {
+			if (!this.loadedExportIds.has(exportId)) changedExportIds.add(exportId);
+		}
+		for (const exportId of this.loadedExportIds) {
+			if (!currentIds.has(exportId)) changedExportIds.add(exportId);
+		}
+		if (changedExportIds.size === 0) return;
 
-		await writeTextFile(
-			filePath,
-			JSON.stringify(
-				globalState.exportations.map((exp) => exp.toJSON()),
-				null,
-				2
-			)
-		);
+		await invoke('merge_export_entries', {
+			ownedExportIds: Array.from(changedExportIds),
+			exports: globalState.exportations
+				.filter((exp) => changedExportIds.has(exp.exportId))
+				.map((exp) => exp.toJSON())
+		});
 	}
 
 	static async loadExports() {
@@ -150,6 +184,7 @@ export default class ExportService {
 		if ((await exists(filePath)) === false) {
 			// Aucun export trouvé
 			globalState.exportations = [];
+			this.loadedExportIds = new Set();
 			return;
 		}
 
@@ -170,6 +205,8 @@ export default class ExportService {
 		globalState.exportations = data.map(
 			(exp) => Exportation.fromJSON(exp as Record<string, unknown>) as Exportation
 		);
+		this.loadedExportIds = new Set(globalState.exportations.map((exp) => exp.exportId));
+		this.ownedExportIds = new Set(this.loadedExportIds);
 
 		// Tout les exports en cours on les mets en canceled
 		globalState.exportations.forEach((exp) => {
@@ -177,6 +214,7 @@ export default class ExportService {
 				exp.currentState = ExportState.Canceled;
 			}
 		});
+		await this.saveExports();
 	}
 
 	static async deleteProjectFile(exportIdId: number) {

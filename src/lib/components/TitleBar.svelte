@@ -12,6 +12,7 @@
 	import { slide, fade } from 'svelte/transition';
 	import Settings from './settings/Settings.svelte';
 	import TitleBarTools from './TitleBarTools.svelte';
+	import { ProjectDetail } from '$lib/classes';
 	import {
 		ProjectHistoryManager,
 		projectHistoryAvailability
@@ -134,6 +135,7 @@
 			<EditableText
 				bind:value={globalState.currentProject.detail.name}
 				text={$LL.home.projectName()}
+				maxLength={ProjectDetail.NAME_MAX_LENGTH}
 				disabled={globalState.uiState.isTourActive}
 				parentClasses="absolute left-1/2 -translate-x-1/2 pr-[18px]"
 			></EditableText>

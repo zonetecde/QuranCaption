@@ -14,7 +14,7 @@ import {
 } from '$lib/types/projectType';
 
 export class ProjectDetail extends SerializableBase {
-	static NAME_MAX_LENGTH: number = 50;
+	static NAME_MAX_LENGTH: number = 150;
 	static SPEAKER_MAX_LENGTH: number = 50;
 
 	id: number;

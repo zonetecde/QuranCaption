@@ -9,6 +9,10 @@ describe('ProjectDetail metadata', () => {
 		expect(detail.projectType).toBe('Lecture / Course');
 	});
 
+	it('allows project names up to 150 characters', () => {
+		expect(ProjectDetail.NAME_MAX_LENGTH).toBe(150);
+	});
+
 	it('uses Unknown speaker when no speaker is provided', () => {
 		const detail = new ProjectDetail('Friday khutbah', '');
 

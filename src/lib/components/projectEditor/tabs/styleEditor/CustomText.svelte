@@ -26,8 +26,8 @@
 		};
 	});
 
-	const verticalStyle = customText.getStyle('vertical-position')!;
-	const horizontalStyle = customText.getStyle('horizontal-position')!;
+	let verticalStyle = $derived(customText.getStyle('vertical-position')!);
+	let horizontalStyle = $derived(customText.getStyle('horizontal-position')!);
 </script>
 
 <div

@@ -1,4 +1,3 @@
-// @ts-expect-error Node types are intentionally excluded from the mobile application tsconfig.
 import { readFile } from 'node:fs/promises';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 

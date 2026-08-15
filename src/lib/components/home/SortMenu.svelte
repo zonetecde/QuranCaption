@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
+	import { untrack } from 'svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 	import type { ProjectDetail } from '$lib/classes/ProjectDetail.svelte';
@@ -22,8 +23,8 @@
 		{ key: 'duration' as keyof ProjectDetail, label: get(LL).home.duration() }
 	]);
 
-	let currentSortProperty: keyof ProjectDetail = $state(currentProperty);
-	let isAscending = $state(ascending);
+	let currentSortProperty: keyof ProjectDetail = $state(untrack(() => currentProperty));
+	let isAscending = $state(untrack(() => ascending));
 
 	$effect(() => {
 		currentSortProperty = currentProperty;

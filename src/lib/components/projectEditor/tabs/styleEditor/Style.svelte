@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
 	import type { CustomClip } from '$lib/classes/Clip.svelte';
@@ -152,7 +152,7 @@
 		selectedClipIds().length > 0 ? getEffectiveForSelection().overridden : false
 	);
 
-	let inputValue: StyleValue = $state(style.value);
+	let inputValue: StyleValue = $state(untrack(() => style.value));
 	$effect(() => {
 		const eff = getEffectiveForSelection();
 		inputValue = eff.value as StyleValue;

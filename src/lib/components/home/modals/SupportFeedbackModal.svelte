@@ -5,6 +5,7 @@
 	import toast from 'svelte-5-french-toast';
 	import { fade } from 'svelte/transition';
 	import { get } from 'svelte/store';
+	import { untrack } from 'svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 
@@ -18,7 +19,7 @@
 		source?: 'support_prompt' | 'settings_support' | 'donation_post_export';
 	} = $props();
 
-	let activeTab = $state<'review' | 'feedback'>(initialTab);
+	let activeTab = $state<'review' | 'feedback'>(untrack(() => initialTab));
 	let feedbackType = $state<'feature' | 'bug'>('feature');
 	let reviewRating = $state(0);
 	let hoveredRating = $state(0);

@@ -26,8 +26,8 @@
 		};
 	});
 
-	const verticalStyle = customImage.getStyle('vertical-position')!;
-	const horizontalStyle = customImage.getStyle('horizontal-position')!;
+	let verticalStyle = $derived(customImage.getStyle('vertical-position')!);
+	let horizontalStyle = $derived(customImage.getStyle('horizontal-position')!);
 </script>
 
 <div

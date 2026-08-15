@@ -40,7 +40,10 @@ export default class ExportFileService {
 		exportLabel: string = '',
 		trackInExportMonitor: boolean = true
 	): Promise<string> {
-		const filePath = await join(exportFolder, fileName);
+		const filePath = await ExportService.constrainFilePathLength(
+			await join(exportFolder, fileName)
+		);
+		fileName = filePath.split(/[/\\]/).at(-1)!;
 		await invoke('save_file', { location: filePath, content });
 		if (!trackInExportMonitor) return filePath;
 		const exportId = Utilities.randomId();

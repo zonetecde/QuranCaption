@@ -144,11 +144,12 @@ export default class ExportService {
 				? 'webm'
 				: 'mov'
 			: 'mp4';
-		const fileName =
+		let fileName =
 			options.finalFileName ?? project.detail.generateExportFileName() + '.' + videoExtension;
 		let filePath = options.finalFilePath ?? (await join(await this.getExportFolder(), fileName));
 
-		filePath = await this.checkIfFilePathTooLong(filePath);
+		filePath = await this.constrainFilePathLength(filePath);
+		fileName = filePath.split(/[/\\]/).at(-1)!;
 		if (options.finalFilePath && (await exists(filePath))) throw new Error('EXPORT_FILE_EXISTS');
 
 		console.log('Final export file path:', filePath);
@@ -214,17 +215,38 @@ export default class ExportService {
 		await this.saveExports();
 	}
 
-	private static async checkIfFilePathTooLong(filePath: string): Promise<string> {
+	/**
+	 * Réduit le nom de fichier pour conserver une marge compatible avec les chemins temporaires Windows.
+	 * @param {string} filePath Chemin de fichier à contraindre.
+	 * @returns {Promise<string>} Chemin original ou raccourci.
+	 */
+	static async constrainFilePathLength(filePath: string): Promise<string> {
 		const maxPathLength = 220;
 		const tempSuffixMargin = 48;
+		const maxFileNameBytes = 255 - tempSuffixMargin;
+		const textEncoder = new TextEncoder();
 		const pathParts = filePath.split(/[/\\]/);
 		const fileName = pathParts.pop()!;
 		const dirPath = pathParts.join('/');
 		const maxFileNameLength = Math.max(32, maxPathLength - dirPath.length - 1 - tempSuffixMargin);
 
 		// Laisse une marge pour les fichiers temporaires Rust qui ajoutent un suffixe `-tmp-...`.
-		if (filePath.length > maxPathLength || fileName.length > maxFileNameLength) {
-			const newFileName = '...' + fileName.slice(-(maxFileNameLength - 3));
+		if (
+			filePath.length > maxPathLength ||
+			fileName.length > maxFileNameLength ||
+			textEncoder.encode(fileName).length > maxFileNameBytes
+		) {
+			let suffix = '';
+			for (const character of Array.from(fileName).reverse()) {
+				const candidate = character + suffix;
+				if (
+					candidate.length > maxFileNameLength - 3 ||
+					textEncoder.encode(candidate).length > maxFileNameBytes - 3
+				)
+					break;
+				suffix = candidate;
+			}
+			const newFileName = '...' + suffix;
 			filePath = await join(dirPath, newFileName);
 		}
 

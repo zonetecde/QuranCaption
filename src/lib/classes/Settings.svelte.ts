@@ -16,6 +16,7 @@ import {
 	DEFAULT_PROJECT_EDITOR_LAYOUT,
 	type ProjectEditorLayout
 } from '$lib/constants/projectEditor';
+import { PROJECT_TYPE_OPTIONS } from '$lib/types/projectType';
 
 export type AutoSegmentationSettings = {
 	minSilenceMs: number;
@@ -60,6 +61,7 @@ export type DefaultValuesSettings = {
 	exportFileNameFormat: string;
 	youtubeVideoTitle: string;
 	youtubeVideoDescription: string;
+	projectCategories: string[];
 };
 
 export type SubtitleExportSettings = {
@@ -167,7 +169,8 @@ export default class Settings extends SerializableBase {
 	defaultValuesSettings = $state<DefaultValuesSettings>({
 		exportFileNameFormat: DEFAULT_EXPORT_FILE_NAME_FORMAT,
 		youtubeVideoTitle: '',
-		youtubeVideoDescription: ''
+		youtubeVideoDescription: '',
+		projectCategories: [...PROJECT_TYPE_OPTIONS]
 	});
 
 	subtitleExportSettings = $state<SubtitleExportSettings>({
@@ -236,6 +239,52 @@ export default class Settings extends SerializableBase {
 		let shouldSave = false;
 
 		// Migrations ================
+		if (!settings.exportSettings || typeof settings.exportSettings !== 'object') {
+			settings.exportSettings = {} as ExportSettings;
+			shouldSave = true;
+		}
+		if (!settings.defaultValuesSettings || typeof settings.defaultValuesSettings !== 'object') {
+			settings.defaultValuesSettings = {
+				exportFileNameFormat: DEFAULT_EXPORT_FILE_NAME_FORMAT,
+				youtubeVideoTitle: '',
+				youtubeVideoDescription: '',
+				projectCategories: [...PROJECT_TYPE_OPTIONS]
+			};
+			shouldSave = true;
+		} else {
+			if (!settings.defaultValuesSettings.exportFileNameFormat?.trim()) {
+				settings.defaultValuesSettings.exportFileNameFormat = DEFAULT_EXPORT_FILE_NAME_FORMAT;
+				shouldSave = true;
+			}
+			if (typeof settings.defaultValuesSettings.youtubeVideoTitle !== 'string') {
+				settings.defaultValuesSettings.youtubeVideoTitle = '';
+				shouldSave = true;
+			}
+			if (typeof settings.defaultValuesSettings.youtubeVideoDescription !== 'string') {
+				settings.defaultValuesSettings.youtubeVideoDescription = '';
+				shouldSave = true;
+			}
+			if (
+				!Array.isArray(settings.defaultValuesSettings.projectCategories) ||
+				settings.defaultValuesSettings.projectCategories.length === 0 ||
+				settings.defaultValuesSettings.projectCategories.some(
+					(category) => typeof category !== 'string' || !category.trim()
+				)
+			) {
+				settings.defaultValuesSettings.projectCategories = [...PROJECT_TYPE_OPTIONS];
+				shouldSave = true;
+			}
+		}
+		if (!settings.subtitleExportSettings || typeof settings.subtitleExportSettings !== 'object') {
+			settings.subtitleExportSettings = {
+				subtitleFormat: 'SRT',
+				includedTarget: { arabic: true },
+				exportVerseNumbers: { arabic: true },
+				arabicTextFormat: 'Plain',
+				customFileName: ''
+			};
+			shouldSave = true;
+		}
 		if (typeof settingsData.persistentUiState?.hasSelectedLanguage !== 'boolean') {
 			settings.persistentUiState.hasSelectedLanguage = true;
 			shouldSave = true;

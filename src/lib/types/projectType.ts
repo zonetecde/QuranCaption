@@ -7,7 +7,7 @@ export const PROJECT_TYPE_OPTIONS = [
 	'Others'
 ] as const;
 
-export type ProjectType = (typeof PROJECT_TYPE_OPTIONS)[number];
+export type ProjectType = string;
 
 export const DEFAULT_PROJECT_TYPE: ProjectType = 'Others';
 
@@ -34,5 +34,5 @@ export function normalizeProjectType(value: unknown): ProjectType {
 		return DEFAULT_PROJECT_TYPE;
 	}
 
-	return LEGACY_PROJECT_TYPE_ALIASES[normalized] ?? DEFAULT_PROJECT_TYPE;
+	return LEGACY_PROJECT_TYPE_ALIASES[normalized] ?? value.trim();
 }

@@ -130,6 +130,7 @@ const id = {
 		createNewProject: 'Buat Proyek Baru',
 		startYourProject: 'Mulai proyek Quran caption kamu',
 		projectName: 'Nama proyek',
+		addCategoryOption: 'Tambah…',
 		searchReciters: 'Mulai ketik untuk cari Qari...',
 		fillInDetails: 'Isi detail project untuk mulai',
 		createProject: 'Buat proyek',
@@ -513,6 +514,14 @@ const id = {
 		defaultValues: 'Nilai bawaan',
 		defaultValuesDescription:
 			'Pilih nilai yang digunakan otomatis saat suatu kolom dibiarkan kosong.',
+		projectCategories: 'Kategori proyek',
+		projectCategoriesDescription: 'Pilih kategori yang tersedia saat membuat atau mengedit proyek.',
+		newProjectCategory: 'Kategori baru',
+		addCategory: 'Tambah',
+		deleteCategory: 'Hapus kategori',
+		categoryCannotBeEmpty: 'Kategori tidak boleh kosong.',
+		categoryAlreadyExists: 'Kategori ini sudah ada.',
+		categoryInvalidCharacters: 'Kategori berisi karakter yang tidak valid.',
 		defaultExportFileName: 'Nama bawaan file ekspor',
 		defaultExportFileNameDescription:
 			'Sesuaikan format yang digunakan saat kolom Nama File Video dibiarkan kosong.',

@@ -20,6 +20,15 @@ const settings = {
 		'Hide the reflection prompt that appears after a successful video export.',
 	defaultValues: 'Default Values',
 	defaultValuesDescription: 'Choose the values used automatically when a field is left empty.',
+	projectCategories: 'Project categories',
+	projectCategoriesDescription:
+		'Choose the categories available when creating or editing a project.',
+	newProjectCategory: 'New category',
+	addCategory: 'Add',
+	deleteCategory: 'Delete category',
+	categoryCannotBeEmpty: 'The category cannot be empty.',
+	categoryAlreadyExists: 'This category already exists.',
+	categoryInvalidCharacters: 'The category contains invalid characters.',
 	defaultExportFileName: 'Default export file name',
 	defaultExportFileNameDescription:
 		'Customize the format used when the Video File Name field is left empty.',

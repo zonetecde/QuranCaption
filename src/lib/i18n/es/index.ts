@@ -180,6 +180,7 @@ const es = {
 		projectName: 'Nombre del proyecto',
 		reciter: 'Recitador',
 		type: 'Tipo',
+		addCategoryOption: 'Añadir…',
 		taraweehExample: 'Tarawih noche 27',
 		searchReciters: 'Comience a escribir para buscar recitadores...',
 		fillInDetails: 'Complete los detalles para crear su proyecto',
@@ -2428,6 +2429,14 @@ const es = {
 		defaultValues: 'Valores predeterminados',
 		defaultValuesDescription:
 			'Elija los valores utilizados automáticamente cuando un campo está vacío.',
+		projectCategories: 'Categorías de proyecto',
+		projectCategoriesDescription: 'Elige las categorías disponibles al crear o editar un proyecto.',
+		newProjectCategory: 'Nueva categoría',
+		addCategory: 'Añadir',
+		deleteCategory: 'Eliminar categoría',
+		categoryCannotBeEmpty: 'La categoría no puede estar vacía.',
+		categoryAlreadyExists: 'Esta categoría ya existe.',
+		categoryInvalidCharacters: 'La categoría contiene caracteres no válidos.',
 		defaultExportFileName: 'Nombre predeterminado del archivo de exportación',
 		defaultExportFileNameDescription:
 			'Personalice el formato utilizado cuando el campo Nombre del archivo de vídeo está vacío.',

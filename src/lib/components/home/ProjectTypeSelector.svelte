@@ -4,6 +4,7 @@
 	import type { ProjectDetail } from '$lib/classes';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { PROJECT_TYPE_OPTIONS, type ProjectType } from '$lib/types/projectType';
+	import { globalState } from '$lib/runes/main.svelte';
 
 	let {
 		projectDetail,
@@ -16,6 +17,9 @@
 	} = $props();
 
 	let isOpen = $state(false);
+	let projectTypeOptions: readonly ProjectType[] = $derived(
+		globalState.settings?.defaultValuesSettings.projectCategories ?? PROJECT_TYPE_OPTIONS
+	);
 
 	function close() {
 		isOpen = false;
@@ -80,7 +84,7 @@
 				class="absolute right-0 top-full z-20 mt-1 w-44 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] py-1 shadow-xl backdrop-blur-sm"
 				onpointerdown={stopPointerPropagation}
 			>
-				{#each PROJECT_TYPE_OPTIONS as option (option)}
+				{#each projectTypeOptions as option (option)}
 					<li class={getOptionClass(option)} onclick={() => selectProjectType(option)}>
 						{option}
 					</li>
@@ -109,7 +113,7 @@
 				class="absolute left-12 top-full z-20 mt-1 w-44 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] py-1 shadow-xl backdrop-blur-sm"
 				onpointerdown={stopPointerPropagation}
 			>
-				{#each PROJECT_TYPE_OPTIONS as option (option)}
+				{#each projectTypeOptions as option (option)}
 					<li class={getOptionClass(option)} onclick={() => selectProjectType(option)}>
 						{option}
 					</li>

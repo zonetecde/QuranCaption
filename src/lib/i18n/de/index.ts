@@ -181,6 +181,7 @@ const de = {
 		projectName: 'Projektname',
 		reciter: 'Rezitator',
 		type: 'Typ',
+		addCategoryOption: 'Hinzufügen…',
 		taraweehExample: 'Tarawih 27. Nacht',
 		searchReciters: 'Beginnen Sie zu tippen, um Rezitatoren zu suchen...',
 		fillInDetails: 'Füllen Sie die Details aus, um Ihr Projekt zu erstellen',
@@ -2432,6 +2433,15 @@ const de = {
 		defaultValues: 'Standardwerte',
 		defaultValuesDescription:
 			'Legen Sie fest, welche Werte bei leeren Feldern automatisch verwendet werden.',
+		projectCategories: 'Projektkategorien',
+		projectCategoriesDescription:
+			'Wählen Sie die Kategorien aus, die beim Erstellen oder Bearbeiten eines Projekts verfügbar sind.',
+		newProjectCategory: 'Neue Kategorie',
+		addCategory: 'Hinzufügen',
+		deleteCategory: 'Kategorie löschen',
+		categoryCannotBeEmpty: 'Die Kategorie darf nicht leer sein.',
+		categoryAlreadyExists: 'Diese Kategorie existiert bereits.',
+		categoryInvalidCharacters: 'Die Kategorie enthält ungültige Zeichen.',
 		defaultExportFileName: 'Standardname der Exportdatei',
 		defaultExportFileNameDescription:
 			'Passen Sie das Format an, das bei einem leeren Feld für den Videodateinamen verwendet wird.',

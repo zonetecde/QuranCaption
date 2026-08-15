@@ -26,6 +26,7 @@ const home = {
 	projectName: 'Project Name',
 	reciter: 'Reciter',
 	type: 'Type',
+	addCategoryOption: 'Add…',
 	taraweehExample: 'Taraweeh 27th night',
 	searchReciters: 'Start typing to search reciters...',
 	fillInDetails: 'Fill in the details to create your project',

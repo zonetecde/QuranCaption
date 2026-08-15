@@ -49,8 +49,16 @@ export const ALL_PROJECTS_SELECTION: ExplorerSelection = { kind: 'all' };
  * @param {ProjectDetail[]} projects - Les projets visibles dans l'explorateur.
  * @returns {ProjectExplorerTree} L'arborescence regroupée par intervenant et type de contenu.
  */
-export function buildProjectExplorerTree(projects: ProjectDetail[]): ProjectExplorerTree {
+export function buildProjectExplorerTree(
+	projects: ProjectDetail[],
+	projectTypes: readonly ProjectType[] = PROJECT_TYPE_OPTIONS
+): ProjectExplorerTree {
 	const groupedBySpeaker = new Map<string, ProjectDetail[]>();
+	const availableProjectTypes = Array.from(
+		new Set([...projectTypes, ...projects.map((project) => getProjectType(project))])
+	).sort(
+		(left, right) => Number(left === DEFAULT_PROJECT_TYPE) - Number(right === DEFAULT_PROJECT_TYPE)
+	);
 
 	for (const project of projects) {
 		const speaker = project.speaker?.trim() || 'Unknown speaker';
@@ -76,7 +84,7 @@ export function buildProjectExplorerTree(projects: ProjectDetail[]): ProjectExpl
 			label: speaker,
 			speaker,
 			count: speakerProjects.length,
-			types: PROJECT_TYPE_OPTIONS.map((projectType) => {
+			types: availableProjectTypes.map((projectType) => {
 				const typeProjects = speakerProjects.filter(
 					(project) => getProjectType(project) === projectType
 				);

@@ -27,6 +27,7 @@ import {
 	type AIReasoningEffort,
 	type AIReasoningMode
 } from '$lib/services/AIReasoning';
+import { PROJECT_TYPE_OPTIONS } from '$lib/types/projectType';
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
@@ -106,6 +107,10 @@ export type ExportSettings = {
 	parallelCaptureWorkers: number;
 	videoCodec: 'h264' | 'h265';
 	performanceProfile: PerformanceProfile;
+};
+
+export type DefaultValuesSettings = {
+	projectCategories: string[];
 };
 
 export type SavedVideoStylePreset = {
@@ -229,6 +234,10 @@ export default class Settings extends SerializableBase {
 	});
 
 	exportSettings = $state<ExportSettings>({ ...Settings.DEFAULT_EXPORT_SETTINGS });
+
+	defaultValuesSettings = $state<DefaultValuesSettings>({
+		projectCategories: [...PROJECT_TYPE_OPTIONS]
+	});
 
 	savedVideoStylePresets = $state<SavedVideoStylePreset[]>([]);
 
@@ -515,6 +524,20 @@ export default class Settings extends SerializableBase {
 			settings.exportSettings = {} as ExportSettings;
 			shouldSave = true;
 		}
+		if (
+			!settings.defaultValuesSettings ||
+			typeof settings.defaultValuesSettings !== 'object' ||
+			!Array.isArray(settings.defaultValuesSettings.projectCategories) ||
+			settings.defaultValuesSettings.projectCategories.length === 0 ||
+			settings.defaultValuesSettings.projectCategories.some(
+				(category) => typeof category !== 'string' || !category.trim()
+			)
+		) {
+			settings.defaultValuesSettings = {
+				projectCategories: [...PROJECT_TYPE_OPTIONS]
+			};
+			shouldSave = true;
+		}
 		const projectEditorLayout = settings.persistentUiState.projectEditorLayout as
 			| Partial<ProjectEditorLayout>
 			| undefined;
@@ -795,5 +818,6 @@ export enum SettingsTab {
 	BACKUP = 'backup',
 	SUPPORT = 'support',
 	CONTACT = 'contact',
-	ABOUT = 'about'
+	ABOUT = 'about',
+	DEFAULT_VALUES = 'default-values'
 }

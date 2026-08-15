@@ -5,6 +5,7 @@
 	import ShortcutsManager from './ShortcutsManager.svelte';
 	import About from './About.svelte';
 	import BackupSettings from './BackupSettings.svelte';
+	import DefaultValuesSettings from './DefaultValuesSettings.svelte';
 	import AiKeySettings from './AiKeySettings.svelte';
 	import StockMediaSettings from './StockMediaSettings.svelte';
 	import QuranIntegrationSettings from './QuranIntegrationSettings.svelte';
@@ -50,6 +51,9 @@
 		'settings_support'
 	);
 	let isSupportModalOpen = $state(false);
+	let defaultValuesCopy = $derived(
+		$LL.settings as unknown as { defaultValues: () => string }
+	);
 
 	/**
 	 * Copie une adresse de portefeuille dans le presse-papiers.
@@ -180,7 +184,7 @@
 		<!-- Sidebar -->
 		<div class="bg-primary border-r border-color p-3 overflow-auto flex flex-col">
 			<div class="flex flex-col gap-2">
-				{#each [{ name: $LL.settings.support(), tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' }, { name: $LL.settings.shortcuts(), tab: SettingsTab.SHORTCUTS, icon: 'keyboard' }, { name: $LL.settings.theme(), tab: SettingsTab.THEME, icon: 'light_mode' }, { name: $LL.settings.notifications(), tab: SettingsTab.NOTIFICATIONS, icon: 'notifications' }, { name: $LL.settings.aiKey(), tab: SettingsTab.AI_KEY, icon: 'key' }, { name: $LL.settings.stockMedia(), tab: SettingsTab.STOCK_MEDIA, icon: 'public' }, { name: $LL.settings.quranComIntegration(), tab: SettingsTab.QURAN_INTEGRATION, icon: 'account_circle' }, { name: $LL.settings.backup(), tab: SettingsTab.BACKUP, icon: 'archive' }, { name: $LL.settings.contact(), tab: SettingsTab.CONTACT, icon: 'mail' }, { name: $LL.settings.about(), tab: SettingsTab.ABOUT, icon: 'info' }] as setting (setting.tab)}
+				{#each [{ name: $LL.settings.support(), tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' }, { name: $LL.settings.shortcuts(), tab: SettingsTab.SHORTCUTS, icon: 'keyboard' }, { name: $LL.settings.theme(), tab: SettingsTab.THEME, icon: 'light_mode' }, { name: $LL.settings.notifications(), tab: SettingsTab.NOTIFICATIONS, icon: 'notifications' }, { name: $LL.settings.aiKey(), tab: SettingsTab.AI_KEY, icon: 'key' }, { name: $LL.settings.stockMedia(), tab: SettingsTab.STOCK_MEDIA, icon: 'public' }, { name: $LL.settings.quranComIntegration(), tab: SettingsTab.QURAN_INTEGRATION, icon: 'account_circle' }, { name: defaultValuesCopy.defaultValues(), tab: SettingsTab.DEFAULT_VALUES, icon: 'tune' }, { name: $LL.settings.backup(), tab: SettingsTab.BACKUP, icon: 'archive' }, { name: $LL.settings.contact(), tab: SettingsTab.CONTACT, icon: 'mail' }, { name: $LL.settings.about(), tab: SettingsTab.ABOUT, icon: 'info' }] as setting (setting.tab)}
 					<button
 						class="flex items-center gap-3 text-sm px-3 py-2 rounded-lg w-full transition-colors duration-150 justify-start"
 						class:selected={globalState.uiState.settingsTab === setting.tab}
@@ -298,6 +302,8 @@
 				</div>
 			{:else if globalState.uiState.settingsTab === SettingsTab.QURAN_INTEGRATION}
 				<QuranIntegrationSettings />
+			{:else if globalState.uiState.settingsTab === SettingsTab.DEFAULT_VALUES}
+				<DefaultValuesSettings />
 			{:else if globalState.uiState.settingsTab === SettingsTab.BACKUP}
 				<BackupSettings />
 			{:else if globalState.uiState.settingsTab === SettingsTab.SUPPORT}

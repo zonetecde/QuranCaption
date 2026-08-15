@@ -19,6 +19,15 @@
 	let name: string = $state('');
 	let speaker: string = $state('');
 	let projectType: ProjectType = $state(DEFAULT_PROJECT_TYPE);
+	let projectTypeOptions: readonly ProjectType[] = $derived(
+		globalState.settings?.defaultValuesSettings.projectCategories ?? PROJECT_TYPE_OPTIONS
+	);
+
+	$effect(() => {
+		if (!projectTypeOptions.includes(projectType)) {
+			projectType = projectTypeOptions[0] ?? DEFAULT_PROJECT_TYPE;
+		}
+	});
 	let speakerSuggestions = $derived(
 		Array.from(
 			new Set(
@@ -149,7 +158,7 @@
 					bind:value={projectType}
 					class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary shadow-inner"
 				>
-					{#each PROJECT_TYPE_OPTIONS as option (option)}
+					{#each projectTypeOptions as option (option)}
 						<option value={option}>{getProjectTypeLabel(option, get(LL))}</option>
 					{/each}
 				</select>

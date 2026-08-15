@@ -19,7 +19,7 @@ describe('ProjectDetail metadata', () => {
 		expect(detail.speaker).toBe('Unknown speaker');
 	});
 
-	it('rejects unsupported project types when deserializing', () => {
+	it('preserves custom project types when deserializing', () => {
 		const detail = new ProjectDetail('Friday khutbah', 'Shaykh Ahmad');
 		const serialized = {
 			...(detail.toJSON() as Record<string, unknown>),
@@ -28,7 +28,7 @@ describe('ProjectDetail metadata', () => {
 
 		const restored = ProjectDetail.fromJSON(serialized) as ProjectDetail;
 
-		expect(restored.projectType).toBe('Lecture / Course');
+		expect(restored.projectType).toBe('Unsupported type');
 	});
 
 	it('matches search queries against speaker and content type', () => {

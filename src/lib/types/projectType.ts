@@ -7,7 +7,7 @@ export const PROJECT_TYPE_OPTIONS = [
 	'Other'
 ] as const;
 
-export type ProjectType = (typeof PROJECT_TYPE_OPTIONS)[number];
+export type ProjectType = string;
 
 export const DEFAULT_PROJECT_TYPE: ProjectType = 'Lecture / Course';
 
@@ -17,7 +17,7 @@ export const DEFAULT_PROJECT_TYPE: ProjectType = 'Lecture / Course';
  * @returns {ProjectType} Le type de projet normalisé.
  */
 export function normalizeProjectType(value: unknown): ProjectType {
-	return PROJECT_TYPE_OPTIONS.includes(value as ProjectType)
-		? (value as ProjectType)
-		: DEFAULT_PROJECT_TYPE;
+	if (typeof value !== 'string') return DEFAULT_PROJECT_TYPE;
+	const normalized = value.trim();
+	return normalized || DEFAULT_PROJECT_TYPE;
 }

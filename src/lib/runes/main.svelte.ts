@@ -155,6 +155,7 @@ class GlobalState {
 			| 'ai-key'
 			| 'stock-media'
 			| 'quran-integration'
+			| 'default-values'
 			| 'backup'
 			| 'support'
 			| 'contact'

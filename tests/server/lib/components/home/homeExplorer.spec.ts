@@ -48,6 +48,19 @@ describe('homeExplorer helpers', () => {
 		expect(speaker.types.find((node) => node.projectType === 'Reminder')?.count).toBe(0);
 	});
 
+	it('includes configured and previously used custom categories', () => {
+		const projects = [createProject('A', 'Yasser Al Dosari', 'Archived')];
+
+		const tree = buildProjectExplorerTree(projects, ['Lecture / Course', 'Prayer', 'Favorites']);
+
+		expect(tree.speakers[0].types.map((node) => node.projectType)).toEqual([
+			'Lecture / Course',
+			'Prayer',
+			'Favorites',
+			'Archived'
+		]);
+	});
+
 	it('filters the visible project list from the active selection', () => {
 		const khutbah = createProject('A', 'Shaykh Ahmad', 'Khutbah');
 		const reminder = createProject('B', 'Shaykh Ahmad', 'Reminder');

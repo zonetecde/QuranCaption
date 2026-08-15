@@ -74,23 +74,11 @@
 	<div class="space-y-2">
 		<span class="flex items-center gap-2 text-sm font-semibold text-primary">
 			<span class="material-icons text-accent-primary text-base">movie_creation</span>
-			{aiv.video.sourceMode === 'youtube'
-				? $LL.aiVideo.youtubeVideoUrlLabel()
-				: aiv.video.sourceMode === 'none'
-					? $LL.aiVideo.backgroundLabel()
-					: $LL.aiVideo.videoGenerationPrompt()}
+			{aiv.video.sourceMode === 'none'
+				? $LL.aiVideo.backgroundLabel()
+				: $LL.aiVideo.videoGenerationPrompt()}
 		</span>
-		{#if aiv.video.sourceMode === 'youtube'}
-			<input
-				type="text"
-				bind:value={aiv.review.videoPrompt}
-				class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary placeholder:text-thirdly focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all text-sm"
-				placeholder={$LL.aiVideo.youtubeUrlPlaceholder()}
-			/>
-			<p class="text-xs text-thirdly">
-				{$LL.aiVideo.downloadedVideoOrientation()}
-			</p>
-		{:else if aiv.video.sourceMode === 'none'}
+		{#if aiv.video.sourceMode === 'none'}
 			<div
 				class="rounded-xl border border-dashed border-color bg-bg-secondary px-4 py-3 text-sm text-thirdly"
 			>
@@ -190,18 +178,12 @@
 		<div class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
 			<div>
 				<span class="text-thirdly text-xs">
-					{aiv.video.sourceMode === 'youtube'
-						? $LL.aiVideo.backgroundVideoLabel()
-						: aiv.video.sourceMode === 'none'
-							? $LL.aiVideo.backgroundLabel()
-							: $LL.aiVideo.themeLabel()}
+					{aiv.video.sourceMode === 'none'
+						? $LL.aiVideo.backgroundLabel()
+						: $LL.aiVideo.themeLabel()}
 				</span>
 				<p class="text-primary font-medium truncate">
-					{aiv.video.sourceMode === 'youtube'
-						? aiv.review.videoPrompt
-						: aiv.video.sourceMode === 'none'
-							? $LL.aiVideo.noneFallback()
-							: aiv.video.prompt}
+					{aiv.video.sourceMode === 'none' ? $LL.aiVideo.noneFallback() : aiv.video.prompt}
 				</p>
 			</div>
 			{#if aiv.video.sourceMode === 'ai'}
@@ -285,10 +267,8 @@
 	</div>
 
 	<p class="text-center text-xs text-thirdly">
-		{aiv.video.sourceMode === 'youtube'
-			? $LL.aiVideo.youtubeReviewHint()
-			: aiv.video.sourceMode === 'none'
-				? $LL.aiVideo.noBackgroundReviewHint()
-				: $LL.aiVideo.mockedVideoHint()}
+		{aiv.video.sourceMode === 'none'
+			? $LL.aiVideo.noBackgroundReviewHint()
+			: $LL.aiVideo.mockedVideoHint()}
 	</p>
 </div>

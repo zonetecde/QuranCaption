@@ -7,8 +7,6 @@ pub mod android_export;
 pub mod android_media;
 /// Commandes d'authentification sécurisée Quran.com.
 pub mod auth;
-/// Commandes de téléchargement externes.
-pub mod downloads;
 /// Commandes de gestion de fichiers.
 pub mod files;
 /// Commandes multimédia et utilitaires ffmpeg/ffprobe.

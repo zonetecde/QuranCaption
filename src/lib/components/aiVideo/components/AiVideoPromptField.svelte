@@ -41,17 +41,6 @@
 			</button>
 			<button
 				type="button"
-				class="flex-1 rounded-xl border px-4 py-3 text-sm font-medium transition-all cursor-pointer {aiv
-					.video.sourceMode === 'youtube'
-					? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
-					: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
-				onclick={() => (aiv.video.sourceMode = 'youtube')}
-			>
-				<span class="material-icons text-base align-middle mr-1">smart_display</span>
-				{$LL.aiVideo.downloadFromYouTube()}
-			</button>
-			<button
-				type="button"
 				class="shrink-0 rounded-xl border px-3 py-3 text-sm font-medium transition-all cursor-pointer {aiv
 					.video.sourceMode === 'none'
 					? 'border-accent-primary bg-accent-primary/15 text-accent-primary'
@@ -64,27 +53,7 @@
 		</div>
 	</div>
 
-	{#if aiv.video.sourceMode === 'youtube'}
-		<div class="space-y-2">
-			<label
-				for="youtube-video-url"
-				class="flex items-center gap-2 text-sm font-semibold text-primary"
-			>
-				<span class="material-icons text-accent-primary text-base">link</span>
-				{$LL.aiVideo.youtubeVideoUrlLabel()}
-			</label>
-			<input
-				id="youtube-video-url"
-				type="text"
-				bind:value={aiv.video.youtubeUrl}
-				class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary placeholder:text-thirdly focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-all"
-				placeholder={$LL.aiVideo.youtubeUrlPlaceholder()}
-			/>
-			<p class="text-xs text-thirdly">
-				{$LL.aiVideo.downloadedVideoOrientation()}
-			</p>
-		</div>
-	{:else if aiv.video.sourceMode === 'none'}
+	{#if aiv.video.sourceMode === 'none'}
 		<p
 			class="rounded-xl border border-dashed border-color bg-bg-secondary px-4 py-3 text-xs text-thirdly"
 		>

@@ -36,7 +36,6 @@ capabilities:
     - **Python**: Executes heavy AI tasks like audio segmentation and subtitle alignment using
       pre-trained models.
     - **FFmpeg/FFprobe**: Used for media processing, extraction, and exporting.
-    - **yt-dlp**: Handles video/audio downloading from external sources.
 
 ---
 
@@ -56,7 +55,7 @@ capabilities:
 │   │   ├── segmentation/   # Logic for audio/video cutting
 │   │   └── exporter/       # Frame extraction and video generation
 │   ├── python/             # Python-based AI logic (Sidecars)
-│   ├── binaries/           # External executables (ffmpeg, yt-dlp)
+│   ├── binaries/           # External executables (ffmpeg, ffprobe)
 │   └── tauri.conf.json     # Main configuration for Tauri
 ├── static/                 # Static assets (fonts, icons, default images)
 └── scripts/                # Helper scripts for development/build
@@ -85,8 +84,8 @@ capabilities:
     npm install
     ```
 3.  **Setup Tauri Binaries**: Follow the instructions in
-    [`src-tauri/binaries/README.md`](src-tauri/binaries/README.md) to add `ffmpeg`, `ffprobe`, and
-    `yt-dlp` for your OS.
+    [`src-tauri/binaries/README.md`](src-tauri/binaries/README.md) to add `ffmpeg` and `ffprobe` for
+    your OS.
 4.  **Setup Python Environment** (If working on AI features):
     ```bash
     cd src-tauri/python

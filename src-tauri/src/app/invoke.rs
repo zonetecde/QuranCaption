@@ -22,7 +22,6 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::android_export::mark_android_export_background_ready,
         commands::android_export::stop_android_export_foreground_service,
         commands::android_export::is_android_export_notification_cancelled,
-        commands::downloads::download_from_youtube,
         commands::media::get_duration,
         commands::files::get_new_file_path,
         commands::files::save_binary_file,

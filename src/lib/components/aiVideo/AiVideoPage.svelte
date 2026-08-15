@@ -47,11 +47,6 @@
 			return;
 		}
 
-		if (aiv.video.sourceMode === 'youtube' && aiv.video.youtubeUrl.trim() === '') {
-			toast.error(get(LL).aiVideo.pleaseEnterYoutubeUrl());
-			return;
-		}
-
 		if (!aiv.ai.letAiChoose && !aiv.audio.useLocal && aiv.audio.reciterName.trim() === '') {
 			toast.error(get(LL).aiVideo.pleaseSelectReciter());
 			return;
@@ -70,12 +65,7 @@
 
 			// Remplit l'etat de review avec le plan genere
 			aiv.review.title = plan.title;
-			aiv.review.videoPrompt =
-				aiv.video.sourceMode === 'youtube'
-					? aiv.video.youtubeUrl
-					: aiv.video.sourceMode === 'none'
-						? ''
-						: plan.videoPrompt;
+			aiv.review.videoPrompt = aiv.video.sourceMode === 'none' ? '' : plan.videoPrompt;
 			aiv.review.reciterName = plan.reciter;
 			aiv.review.verseRange.surah = plan.surah;
 			aiv.review.verseRange.startVerse = plan.ayahStart;
@@ -155,8 +145,7 @@
 					class="w-full rounded-xl bg-accent-primary px-6 py-4 text-base font-semibold text-black shadow-lg hover:bg-blue-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
 					disabled={aiv.ai.isGeneratingPlan ||
 						((aiv.video.sourceMode === 'ai' || aiv.ai.letAiChoose) &&
-							aiv.video.prompt.trim() === '') ||
-						(aiv.video.sourceMode === 'youtube' && aiv.video.youtubeUrl.trim() === '')}
+							aiv.video.prompt.trim() === '')}
 					onclick={handleGeneratePlan}
 				>
 					{#if aiv.ai.isGeneratingPlan}

@@ -27,11 +27,8 @@ export async function generateAiPlan(reciterList: string): Promise<AiPlan> {
 	// Mode manuel : pas d'appel IA, on retourne les selections de l'utilisateur
 	if (!aiv.ai.letAiChoose) {
 		return {
-			title:
-				aiv.video.sourceMode === 'youtube'
-					? 'YouTube Video Project'
-					: aiv.video.prompt.trim().slice(0, 50) || 'AI Video Project',
-			videoPrompt: aiv.video.sourceMode === 'youtube' ? aiv.video.youtubeUrl : aiv.video.prompt,
+			title: aiv.video.prompt.trim().slice(0, 50) || 'AI Video Project',
+			videoPrompt: aiv.video.prompt,
 			reciter: aiv.audio.reciterName,
 			reciterId: aiv.audio.reciter?.reciterId ?? 0,
 			surah: aiv.selectedVerseRange.surah,
@@ -132,10 +129,7 @@ Rules:
 
 	return {
 		title: String(plan.title || aiv.video.prompt.trim().slice(0, 50)),
-		videoPrompt:
-			aiv.video.sourceMode === 'youtube'
-				? aiv.video.youtubeUrl
-				: String(plan.videoPrompt || aiv.video.prompt),
+		videoPrompt: String(plan.videoPrompt || aiv.video.prompt),
 		reciter: String(plan.reciter || 'Unknown'),
 		reciterId: Number(plan.reciterId || 0),
 		surah: Math.max(1, Math.min(114, Number(plan.surah || 1))),

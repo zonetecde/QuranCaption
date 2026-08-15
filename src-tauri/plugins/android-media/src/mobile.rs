@@ -6,16 +6,15 @@ use tauri::{
 
 use crate::{
     models::{
-        BackgroundReadyResponse, CancelFfmpegResponse, DownloadYoutubeRequest,
+        BackgroundReadyResponse, CancelFfmpegResponse,
         ExecuteFfprobeRequest, ExecuteFfprobeResponse, ExportCancellationResponse,
         ExportServiceRequest, FfmpegSessionRequest, FfmpegSessionSnapshot, ImportUriRequest,
         ImportUriResponse, KeepScreenOnRequest, KeepScreenOnResponse, OpenUriRequest,
         OpenUriResponse, PublishFileRequest, PublishFileResponse, SecureKeyRequest,
         SecureOperationResponse, SecureValueRequest, SecureValueResponse,
         StartExportServiceRequest, StartExportServiceResponse, StartFfmpegRequest,
-        StartFfmpegResponse, StartYoutubeDownloadResponse, StopExportServiceResponse,
-        UpdateExportServiceRequest, UpdateExportServiceResponse, YoutubeDownloadSessionRequest,
-        YoutubeDownloadSessionSnapshot,
+        StartFfmpegResponse, StopExportServiceResponse, UpdateExportServiceRequest,
+        UpdateExportServiceResponse,
     },
     Result,
 };
@@ -116,43 +115,6 @@ impl<R: Runtime> AndroidMedia<R> {
                 },
             )
             .map(|response| response.path)
-            .map_err(Into::into)
-    }
-
-    /// Démarre un téléchargement avec la distribution yt-dlp native Android.
-    pub fn start_youtube_download(
-        &self,
-        url: String,
-        download_type: String,
-        download_path: String,
-        download_request_id: String,
-    ) -> Result<bool> {
-        self.0
-            .run_mobile_plugin::<StartYoutubeDownloadResponse>(
-                "downloadYoutube",
-                DownloadYoutubeRequest {
-                    url,
-                    download_type,
-                    download_path,
-                    download_request_id,
-                },
-            )
-            .map(|response| response.started)
-            .map_err(Into::into)
-    }
-
-    /// Lit la progression et le résultat d'un téléchargement yt-dlp Android.
-    pub fn poll_youtube_download(
-        &self,
-        download_request_id: String,
-    ) -> Result<YoutubeDownloadSessionSnapshot> {
-        self.0
-            .run_mobile_plugin(
-                "pollYoutubeDownload",
-                YoutubeDownloadSessionRequest {
-                    download_request_id,
-                },
-            )
             .map_err(Into::into)
     }
 

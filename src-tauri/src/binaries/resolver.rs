@@ -267,22 +267,9 @@ fn classify_spawn_error(error: &std::io::Error) -> (&'static str, String) {
     ("exec_failed", msg)
 }
 
-/// Retourne les arguments de probe appropries pour un binaire donne.
-fn probe_args_for(binary_name: &str) -> &'static [&'static str] {
-    let normalized = binary_name
-        .strip_suffix(".exe")
-        .unwrap_or(binary_name)
-        .to_ascii_lowercase();
-
-    match normalized.as_str() {
-        "yt-dlp" => &["--version"],
-        _ => &["-version"],
-    }
-}
-
 /// Verifie qu'un binaire peut etre execute et renvoie un diagnostic exploitable.
 fn test_binary_version(binary: &str, binary_name: &str) -> Result<(), (String, String)> {
-    let probe_args = probe_args_for(binary_name);
+    let probe_args = &["-version"];
     let mut cmd = Command::new(binary);
     cmd.args(probe_args);
     configure_command_no_window(&mut cmd);

@@ -1,11 +1,4 @@
-import {
-	Project,
-	ProjectContent,
-	ProjectDetail,
-	type AssetClip,
-	Utilities,
-	SourceType
-} from '$lib/classes';
+import { Project, ProjectContent, ProjectDetail, Utilities, SourceType } from '$lib/classes';
 import { Quran } from '$lib/classes/Quran';
 import { globalState } from '$lib/runes/main.svelte';
 import { Mp3QuranService } from '$lib/services/Mp3QuranService';
@@ -18,7 +11,6 @@ import {
 	validateAdvancedTrimBatchResult,
 	applyAdvancedTrimValidationSuccess
 } from '$lib/services/AdvancedAITrimming';
-import { BACKGROUND_VIDEO_URLS } from './constants';
 import toast from 'svelte-5-french-toast';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
@@ -26,20 +18,6 @@ import { invoke } from '@tauri-apps/api/core';
 import { join } from '@tauri-apps/api/path';
 import { copyFile } from '@tauri-apps/plugin-fs';
 import type { Resolution } from './types';
-
-/**
- * Retourne l'URL YouTube de la video de fond pour le modele et l'orientation choisis.
- * @param {string} modelLabel Libelle du modele selectionne.
- * @param {Resolution} selectedResolution Orientation choisie.
- * @returns {string} URL YouTube correspondante.
- */
-function getBackgroundVideoUrl(modelLabel: string, selectedResolution: Resolution): string {
-	const urls = BACKGROUND_VIDEO_URLS[modelLabel as keyof typeof BACKGROUND_VIDEO_URLS];
-	if (!urls) {
-		throw new Error(`Unsupported AI video model: ${modelLabel}`);
-	}
-	return urls[selectedResolution];
-}
 
 /**
  * Retourne les dimensions de projet associees a l'orientation choisie.
@@ -77,8 +55,6 @@ export async function createAiVideoProject(): Promise<void> {
 		reciterName: aiv.review.reciterName,
 		prompt: aiv.video.prompt,
 		title: aiv.review.title,
-		reviewVideoPrompt: aiv.review.videoPrompt,
-		selectedModel: aiv.video.model,
 		resolution: aiv.video.resolution,
 		sourceMode: aiv.video.sourceMode
 	};
@@ -114,66 +90,19 @@ export async function createAiVideoProject(): Promise<void> {
 		globalState.currentPage = 'home';
 
 		const assetFolder = await ProjectService.getAssetFolderForProject(project.detail.id);
-		const backgroundVideoUrl =
-			snapshot.sourceMode === 'youtube'
-				? snapshot.reviewVideoPrompt.trim()
-				: snapshot.sourceMode === 'ai'
-					? getBackgroundVideoUrl(snapshot.selectedModel, snapshot.resolution)
-					: '';
-
 		if (snapshot.sourceMode === 'ai') {
 			content.videoStyle.getStylesOfTarget('global').findStyle('video-dimension')!.value =
 				getProjectDimensionsForResolution(snapshot.resolution);
 		}
 
-		// ── 1. Background video ──
-		let backgroundVideoAssetId: number | undefined;
-		if (snapshot.sourceMode !== 'none') {
-			setStatus(get(LL).aiVideo.downloadingBgVideo());
-			const backgroundVideoPath = await invoke<string>('download_from_youtube', {
-				url: backgroundVideoUrl,
-				downloadType: 'video_no_audio',
-				downloadPath: assetFolder
-			});
-
-			setStatus(get(LL).aiVideo.addingBgVideo());
-			content.addAsset(backgroundVideoPath, backgroundVideoUrl, SourceType.YouTube, {
-				skipConstantBitrateWarning: true
-			});
-
-			const normalizedBackgroundVideoPath = backgroundVideoPath
-				.replace(/\\/g, '/')
-				.replace(/\/+/g, '/');
-			const backgroundVideoAsset = content.assets.find(
-				(asset) => asset.filePath === normalizedBackgroundVideoPath
-			);
-			backgroundVideoAssetId = backgroundVideoAsset?.id;
-
-			if (snapshot.sourceMode === 'youtube') {
-				const backgroundVideoDimensions = (await invoke('get_video_dimensions', {
-					filePath: backgroundVideoPath
-				})) as { width: number; height: number };
-
-				if (backgroundVideoDimensions.width > 0 && backgroundVideoDimensions.height > 0) {
-					content.videoStyle.getStylesOfTarget('global').findStyle('video-dimension')!.value =
-						backgroundVideoDimensions;
-				}
-			}
-
-			if (backgroundVideoAsset) {
-				await backgroundVideoAsset.ensureDurationLoaded();
-				await backgroundVideoAsset.addToTimeline(true, false, true);
-			}
-		}
-
-		// ── 2. Audio ──
+		// ── 1. Audio ──
 		const audioFilePath = await prepareAudio(project, content, assetFolder, snapshot, setStatus);
 		if (!audioFilePath) {
 			toast.error(get(LL).aiVideo.noAudioSourceSelected());
 			return;
 		}
 
-		// ── 3. Add audio to timeline ──
+		// ── 2. Add audio to timeline ──
 		setStatus(get(LL).aiVideo.addingAudioToTimeline());
 		const sourceType = snapshot.useLocal ? SourceType.Local : SourceType.Mp3Quran;
 		const metadata: Record<string, unknown> = {};
@@ -202,20 +131,9 @@ export async function createAiVideoProject(): Promise<void> {
 			await addedAsset.addToTimeline(false, true);
 		}
 
-		const backgroundVideoClip = globalState.getVideoTrack.clips.find(
-			(clip) => (clip as AssetClip).assetId === backgroundVideoAssetId
-		) as AssetClip | undefined;
-
-		if (backgroundVideoClip) {
-			backgroundVideoClip.loopUntilAudioEnd = true;
-			backgroundVideoClip.setEndTime(
-				globalState.currentProject!.content.timeline.getLongestTrackDurationIgnoringLoopedVideo().ms
-			);
-		}
-
 		await project.save();
 
-		// ── 4. Auto-segmentation ──
+		// ── 3. Auto-segmentation ──
 		setStatus(get(LL).aiVideo.generatingSubtitles());
 		const segmentationSettings = globalState.settings?.autoSegmentationSettings;
 		const segResult = await runAutoSegmentation(
@@ -242,7 +160,7 @@ export async function createAiVideoProject(): Promise<void> {
 
 		await project.save();
 
-		// ── 5. Translation + AI Trimming ──
+		// ── 4. Translation + AI Trimming ──
 		if (snapshot.translation) {
 			await addTranslationAndTrim(project, content, snapshot.translation, setStatus);
 		} else {

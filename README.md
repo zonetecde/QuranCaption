@@ -145,8 +145,8 @@ Full documentation — installation, features, style editor, export settings —
 See [DEVELOPMENT.md](DEVELOPMENT.md) for the full setup guide, architecture overview, and tech stack
 details.
 
-After cloning, you'll need to add `ffmpeg`, `ffprobe`, and `yt-dlp` binaries to
-`src-tauri/binaries/`. Instructions and download links are in
+After cloning, you'll need to add `ffmpeg` and `ffprobe` binaries to `src-tauri/binaries/`.
+Instructions and download links are in
 [`src-tauri/binaries/README.md`](src-tauri/binaries/README.md).
 
 **Stack:** Svelte · TypeScript · Rust · Tauri · Python · Tailwind CSS

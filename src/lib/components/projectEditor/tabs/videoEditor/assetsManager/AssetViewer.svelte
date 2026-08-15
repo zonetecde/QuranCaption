@@ -164,23 +164,7 @@
 				globalState.currentProject!.detail.id
 			);
 
-			if (asset.sourceType === SourceType.YouTube) {
-				// Re-download from an online source using yt-dlp
-				const type = asset.type === AssetType.Video ? 'video' : 'audio';
-
-				toastId = toast.loading(get(LL).editor.redownloading());
-
-				const result: string = await invoke('download_from_youtube', {
-					url: asset.sourceUrl,
-					downloadType: type,
-					downloadPath: downloadPath
-				});
-
-				asset.updateFilePath(result);
-				mediaKey++; // Force re-render of audio/video element
-				await convertToCBR();
-				toast.success(get(LL).editor.redownloadSuccessful(), { id: toastId });
-			} else if (
+			if (
 				asset.sourceType === SourceType.Mp3Quran ||
 				asset.sourceType === SourceType.QuranFoundation
 			) {
@@ -368,7 +352,7 @@
 						<span class="material-icons text-lg">folder_open</span>
 						{get(LL).editor.relocateLabel()}
 					</button>
-					{#if asset.sourceUrl && (asset.sourceType === SourceType.YouTube || asset.sourceType === SourceType.Mp3Quran || asset.sourceType === SourceType.QuranFoundation)}
+					{#if asset.sourceUrl && (asset.sourceType === SourceType.Mp3Quran || asset.sourceType === SourceType.QuranFoundation)}
 						<button
 							class="btn flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg
 							       hover:scale-105 transition-all duration-200 text-green-400 hover:text-green-300

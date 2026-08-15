@@ -26,9 +26,6 @@ import com.arthenica.ffmpegkit.FFmpegSession
 import com.arthenica.ffmpegkit.FFmpegSessionCompleteCallback
 import com.arthenica.ffmpegkit.FFprobeKit
 import com.arthenica.ffmpegkit.SessionState
-import com.yausername.ffmpeg.FFmpeg
-import com.yausername.youtubedl_android.YoutubeDL
-import com.yausername.youtubedl_android.YoutubeDLRequest
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.File
@@ -38,7 +35,6 @@ import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.security.KeyStore
-import java.util.concurrent.ConcurrentHashMap
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -76,26 +72,6 @@ class OpenUriArgs {
 class ImportUriArgs {
     lateinit var uri: String
     lateinit var destinationDir: String
-}
-
-@InvokeArg
-class DownloadYoutubeArgs {
-    lateinit var url: String
-    lateinit var downloadType: String
-    lateinit var downloadPath: String
-    lateinit var downloadRequestId: String
-}
-
-@InvokeArg
-class YoutubeDownloadSessionArgs {
-    lateinit var downloadRequestId: String
-}
-
-private class YoutubeDownloadSession {
-    @Volatile var state = "RUNNING"
-    @Volatile var progress = 0.0
-    @Volatile var path = ""
-    @Volatile var error = ""
 }
 
 @InvokeArg
@@ -146,8 +122,6 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
     private val securePreferences by lazy {
         hostActivity.getSharedPreferences(SECURE_PREFERENCES_NAME, Activity.MODE_PRIVATE)
     }
-    private var youtubeDlUpdateAttempted = false
-    private val youtubeDownloadSessions = ConcurrentHashMap<String, YoutubeDownloadSession>()
 
     init {
         hostActivity.window.navigationBarColor = Color.BLACK
@@ -420,187 +394,6 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
                 put("path", destination.absolutePath)
             }
         }
-    }
-
-    /**
-     * Télécharge un média avec yt-dlp et son runtime natif Android.
-     *
-     * @param invoke Appel Tauri contenant l'URL, le type et le dossier de destination.
-     */
-    @Command
-    fun downloadYoutube(invoke: Invoke) {
-        val args = try {
-            invoke.parseArgs(DownloadYoutubeArgs::class.java)
-        } catch (error: Exception) {
-            reject(invoke, "Failed to parse YouTube download arguments", error)
-            return
-        }
-
-        try {
-            val session = YoutubeDownloadSession()
-            require(
-                youtubeDownloadSessions.putIfAbsent(args.downloadRequestId, session) == null
-            ) {
-                "Download request already exists: ${args.downloadRequestId}"
-            }
-            Thread(
-                {
-                    try {
-                        session.path = performYoutubeDownload(args, session)
-                        session.progress = 100.0
-                        session.state = "COMPLETED"
-                    } catch (error: Exception) {
-                        session.error = error.message ?: error.javaClass.simpleName
-                        session.state = "FAILED"
-                        Logger.error("Failed to download media: ${session.error}")
-                    }
-                },
-                "QuranCaption-YoutubeDownload"
-            ).start()
-            invoke.resolve(JSObject().apply { put("started", true) })
-        } catch (error: Exception) {
-            reject(invoke, "Failed to start media download", error)
-        }
-    }
-
-    /**
-     * Retourne l'état courant d'un téléchargement yt-dlp Android.
-     *
-     * @param invoke Appel Tauri contenant l'identifiant du téléchargement.
-     */
-    @Command
-    fun pollYoutubeDownload(invoke: Invoke) {
-        try {
-            val args = invoke.parseArgs(YoutubeDownloadSessionArgs::class.java)
-            val session = requireNotNull(youtubeDownloadSessions[args.downloadRequestId]) {
-                "Unknown download request: ${args.downloadRequestId}"
-            }
-            val response = JSObject().apply {
-                put("state", session.state)
-                put("progress", session.progress)
-                put("path", session.path)
-                put("error", session.error)
-            }
-            if (session.state == "COMPLETED" || session.state == "FAILED") {
-                youtubeDownloadSessions.remove(args.downloadRequestId, session)
-            }
-            invoke.resolve(response)
-        } catch (error: Exception) {
-            reject(invoke, "Failed to poll media download", error)
-        }
-    }
-
-    /**
-     * Exécute yt-dlp, nettoie son nom de sortie et retourne le chemin final.
-     *
-     * @param args Paramètres du téléchargement.
-     * @param session Session recevant la progression native.
-     * @return Chemin absolu du média téléchargé.
-     */
-    private fun performYoutubeDownload(
-        args: DownloadYoutubeArgs,
-        session: YoutubeDownloadSession
-    ): String {
-        val destination = File(args.downloadPath)
-        require(destination.isDirectory || (!destination.exists() && destination.mkdirs())) {
-            "Cannot create destination directory: ${args.downloadPath}"
-        }
-
-        val appContext = hostActivity.applicationContext
-        synchronized(YoutubeDL) {
-            YoutubeDL.getInstance().init(appContext)
-            if (!youtubeDlUpdateAttempted) {
-                youtubeDlUpdateAttempted = true
-                try {
-                    YoutubeDL.getInstance().updateYoutubeDL(
-                        appContext,
-                        YoutubeDL.UpdateChannel.NIGHTLY
-                    )
-                } catch (error: Exception) {
-                    Logger.error("Failed to update yt-dlp: ${error.message}")
-                }
-            }
-        }
-        FFmpeg.getInstance().init(appContext)
-
-        val outputTemplate = File(
-            destination,
-            "%(title)s (%(uploader)s)${args.downloadRequestId}.%(ext)s"
-        ).absolutePath
-        val request = YoutubeDLRequest(args.url)
-            .addOption("--restrict-filenames")
-            .addOption("--trim-filenames", 120)
-            .addOption("--no-colors")
-            .addOption("--remote-components", "ejs:github")
-            .addOption("--cache-dir", File(hostActivity.cacheDir, "yt-dlp").absolutePath)
-
-        val extension = when (args.downloadType) {
-            "audio" -> {
-                request
-                    .addOption("--extract-audio")
-                    .addOption("--audio-format", "mp3")
-                    .addOption("--audio-quality", "0")
-                    .addOption("--postprocessor-args", "ffmpeg:-b:a 320k -ar 44100")
-                "mp3"
-            }
-            "video_no_audio" -> {
-                request
-                    .addOption(
-                        "--format",
-                        "bestvideo[vcodec^=avc1][height<=1080][ext=mp4]"
-                    )
-                    .addOption("--remux-video", "mp4")
-                "mp4"
-            }
-            "video" -> {
-                request
-                    .addOption(
-                        "--format",
-                        "bestvideo[vcodec^=avc1][height<=1080][ext=mp4]+bestaudio[acodec^=mp4a][ext=m4a]/best[vcodec^=avc1][acodec^=mp4a][height<=1080][ext=mp4]"
-                    )
-                    .addOption("--merge-output-format", "mp4")
-                    .addOption(
-                        "--postprocessor-args",
-                        "Merger+ffmpeg_o:-movflags +faststart"
-                    )
-                "mp4"
-            }
-            else -> error("Invalid type: must be 'audio', 'video' or 'video_no_audio'")
-        }
-
-        val lowerUrl = args.url.lowercase()
-        if (
-            lowerUrl.contains("list=") &&
-            (lowerUrl.contains("v=") || lowerUrl.contains("youtu.be/"))
-        ) {
-            request.addOption("--no-playlist")
-        }
-        request.addOption("--newline").addOption("-o", outputTemplate)
-        YoutubeDL.getInstance().execute(request, args.downloadRequestId) { progress, _, _ ->
-            session.progress = progress.toDouble().coerceIn(0.0, 100.0)
-        }
-
-        val downloadedFile = destination.listFiles()?.firstOrNull { file ->
-            file.isFile &&
-                file.extension.equals(extension, ignoreCase = true) &&
-                file.name.contains(args.downloadRequestId)
-        } ?: error("Downloaded file not found")
-        val safeStem = sanitizeFileName(downloadedFile.nameWithoutExtension)
-            .take(MAX_FILENAME_LENGTH - extension.length - 1)
-        val safeFile = File(destination, "$safeStem.$extension")
-        if (safeFile.absolutePath == downloadedFile.absolutePath) {
-            return downloadedFile.absolutePath
-        }
-
-        val target = if (safeFile.exists()) {
-            File(destination, "youtube-${args.downloadRequestId}.$extension")
-        } else {
-            safeFile
-        }
-        require(downloadedFile.renameTo(target)) {
-            "Unable to sanitize downloaded file name"
-        }
-        return target.absolutePath
     }
 
     /**

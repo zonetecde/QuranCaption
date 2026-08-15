@@ -2,7 +2,7 @@ import type { Mp3QuranMoshaf } from '$lib/services/Mp3QuranService';
 import type { Edition } from '$lib/classes';
 
 /** Mode de source video de fond. */
-export type BackgroundSourceMode = 'ai' | 'youtube' | 'none';
+export type BackgroundSourceMode = 'ai' | 'none';
 
 /** Orientation video. */
 export type Resolution = 'portrait' | 'landscape';
@@ -26,11 +26,10 @@ export interface ReciterOption {
 	surahSet: Set<number>;
 }
 
-/** Configuration de la source video (IA ou YouTube). */
+/** Configuration de la source video. */
 export interface VideoSource {
 	sourceMode: BackgroundSourceMode;
 	prompt: string;
-	youtubeUrl: string;
 	model: string;
 	resolution: Resolution;
 }

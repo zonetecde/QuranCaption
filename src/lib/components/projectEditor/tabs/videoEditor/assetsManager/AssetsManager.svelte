@@ -1,6 +1,5 @@
 <script lang="ts">
 	import DownloadFromQuranicUniversalAudioSection from './DownloadFromQuranicUniversalAudioSection.svelte';
-	import DownloadFromYouTubeSection from './DownloadFromYouTubeSection.svelte';
 	import ProjectAssetSection from './ProjectAssetSection.svelte';
 	import StockMediaLibrary from './StockMediaLibrary.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -9,7 +8,7 @@
 	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 	import { fade } from 'svelte/transition';
 
-	type AssetsTab = 'qua' | 'file' | 'social' | 'stock';
+	type AssetsTab = 'qua' | 'file' | 'stock';
 
 	let {
 		stockMediaOpen = false,
@@ -93,9 +92,7 @@
 							? ($LL.editor as unknown as { fileLabel: () => string }).fileLabel()
 							: activeTab === 'qua'
 								? ($LL.editor as unknown as { quaShortLabel: () => string }).quaShortLabel()
-								: activeTab === 'social'
-									? get(LL).editor.downloadFromSocialMedia()
-									: get(LL).editor.stockMedia()}
+								: get(LL).editor.stockMedia()}
 					</p>
 				</div>
 				<button
@@ -143,20 +140,6 @@
 						</span>
 					</button>
 					<button
-						class:active={activeTab === 'social'}
-						class="assets-import-choice"
-						type="button"
-						role="tab"
-						aria-selected={activeTab === 'social'}
-						onclick={() => {
-							activeTab = 'social';
-							closeStockMedia();
-						}}
-					>
-						<span class="material-icons-outlined">link</span>
-						<span>{get(LL).editor.downloadFromSocialMedia()}</span>
-					</button>
-					<button
 						class:active={activeTab === 'stock'}
 						class="assets-import-choice"
 						type="button"
@@ -177,8 +160,6 @@
 						<ProjectAssetSection buttonOnly />
 					{:else if activeTab === 'qua'}
 						<DownloadFromQuranicUniversalAudioSection compact />
-					{:else if activeTab === 'social'}
-						<DownloadFromYouTubeSection compact />
 					{:else if stockMediaOpen}
 						<StockMediaLibrary hideHeader />
 					{/if}
@@ -251,7 +232,7 @@
 
 	.assets-import-choices {
 		display: grid;
-		grid-template-columns: repeat(4, minmax(0, 1fr));
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 0.4rem;
 	}
 

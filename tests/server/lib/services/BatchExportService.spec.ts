@@ -22,6 +22,7 @@ import {
 	type BatchExportEligibility
 } from '$lib/services/BatchExportService';
 import Exporter from '$lib/classes/Exporter';
+import ExportService from '$lib/services/ExportService';
 import { ProjectService } from '$lib/services/ProjectService';
 import { globalState } from '$lib/runes/main.svelte';
 
@@ -349,6 +350,20 @@ describe('BatchExportService', () => {
 		expect(sanitizeBatchExportFileName('  001: Al/Fatiha. ')).toBe('001_ Al_Fatiha');
 		expect(sanitizeBatchExportFileName('...')).toBe('project');
 		expect(sanitizeBatchExportFileName('CON')).toBe('_CON');
+	});
+
+	it('shortens long export paths while preserving the file extension', async () => {
+		const filePath = await ExportService.constrainFilePathLength(`/out/${'P'.repeat(200)}.json`);
+		const unicodeFilePath = await ExportService.constrainFilePathLength(
+			`/out/${'مشروع'.repeat(30)}.json`
+		);
+
+		expect(filePath.length).toBeLessThanOrEqual(220 - 48);
+		expect(filePath).toMatch(/^\/out\/\.\.\..*\.json$/);
+		expect(new TextEncoder().encode(unicodeFilePath.split('/').at(-1)!).length).toBeLessThanOrEqual(
+			255 - 48
+		);
+		expect(unicodeFilePath).toMatch(/\.json$/);
 	});
 
 	it('routes a typed operation through the unified export interface', async () => {

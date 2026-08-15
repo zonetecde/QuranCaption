@@ -469,7 +469,7 @@ export class BatchExportService {
 		let suffix = 0;
 		while (true) {
 			const fileName = `${baseName}${suffix === 0 ? '' : `-${suffix}`}.${extension}`;
-			const outputPath = await join(folder, fileName);
+			const outputPath = await ExportService.constrainFilePathLength(await join(folder, fileName));
 			if (!reservedPaths.has(outputPath) && !(await this.pathExists(outputPath))) {
 				reservedPaths.add(outputPath);
 				return outputPath;

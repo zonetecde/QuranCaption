@@ -13,6 +13,10 @@ describe('ProjectDetail project type', () => {
 		vi.restoreAllMocks();
 	});
 
+	it('allows project names up to 150 characters', () => {
+		expect(ProjectDetail.NAME_MAX_LENGTH).toBe(150);
+	});
+
 	it('defaults new projects to Others', () => {
 		const detail = new ProjectDetail('Night 27', 'Muhammad Al Luhaidan');
 

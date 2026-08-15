@@ -17,7 +17,7 @@ import {
 import { DEFAULT_EXPORT_FILE_NAME_FORMAT } from '$lib/constants/export';
 
 export class ProjectDetail extends SerializableBase {
-	static NAME_MAX_LENGTH: number = 50;
+	static NAME_MAX_LENGTH: number = 150;
 	static RECITER_MAX_LENGTH: number = 35;
 
 	id: number;

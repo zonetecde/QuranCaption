@@ -21,6 +21,7 @@
 		isBatchReviewActive,
 		leaveBatchReview
 	} from '$lib/services/BatchReviewNavigationService';
+	import { ProjectDetail } from '$lib/classes';
 
 	let showHelpPopover = $state(false);
 
@@ -150,6 +151,7 @@
 				<EditableText
 					bind:value={globalState.currentProject.detail.name}
 					text={$LL.home.projectName()}
+					maxLength={ProjectDetail.NAME_MAX_LENGTH}
 					disabled={globalState.uiState.isTourActive}
 					parentClasses="absolute left-1/2 -translate-x-1/2 pr-[18px]"
 				></EditableText>

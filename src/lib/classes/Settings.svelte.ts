@@ -101,6 +101,7 @@ export default class Settings extends SerializableBase {
 		lastClosedUpdateModal: new Date(0).toISOString(),
 		lastClosedDonationPromptModal: new Date(0).toISOString(),
 		lastClosedDonationBanner: new Date(0).toISOString(),
+		dismissedHomepageMessageFingerprint: '',
 		donationPromptImpressions: 0,
 		videoExportFolder: '',
 		wbwTranslationLanguage: 'en' as WbwTranslationLanguageCode,
@@ -302,6 +303,10 @@ export default class Settings extends SerializableBase {
 			editorPanelScalePercent % 5 !== 0
 		) {
 			settings.persistentUiState.editorPanelScalePercent = -15;
+			shouldSave = true;
+		}
+		if (typeof settings.persistentUiState.dismissedHomepageMessageFingerprint !== 'string') {
+			settings.persistentUiState.dismissedHomepageMessageFingerprint = '';
 			shouldSave = true;
 		}
 

@@ -1047,6 +1047,7 @@ const zh = {
 		dragAndDropFilesHere: '将文件拖放到此处',
 		dropFilesHere: '将文件放在此处',
 		supportMediaTypes: '支持音频、视频和图片文件',
+		fileImportHint: '导入古兰经诵读、背景视频，或项目所需的任何其他音频、视频或图片文件',
 		videoEditorLabel: '视频编辑器',
 		mergeArabic: '合并阿拉伯语',
 		mergeTranslation: '合并翻译',

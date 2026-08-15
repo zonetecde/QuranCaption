@@ -112,6 +112,9 @@
 				<strong class="block truncate text-sm text-primary">
 					{(get(LL).editor as unknown as { selectFromFile: () => string }).selectFromFile()}
 				</strong>
+				<small class="mt-1 block text-xs leading-relaxed text-thirdly">
+					{(get(LL).editor as unknown as { fileImportHint: () => string }).fileImportHint()}
+				</small>
 			</span>
 			<span class="material-icons text-[20px] text-thirdly">chevron_right</span>
 		</button>

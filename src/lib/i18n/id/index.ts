@@ -1124,6 +1124,8 @@ const id = {
 		fileLabel: 'File',
 		quaShortLabel: 'QUA',
 		dragAndDropFilesHere: 'Tarik dan letakkan file di sini',
+		fileImportHint:
+			'Impor bacaan Al-Qur’an, video latar, atau file audio, video, maupun gambar lain yang berguna untuk proyek Anda.',
 		videoAssetLabel: 'Aset Video',
 		audioAssetLabel: 'Aset Audio',
 		imageAssetLabel: 'Aset Gambar',

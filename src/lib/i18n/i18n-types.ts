@@ -3114,6 +3114,10 @@ type RootTranslation = {
 		 */
 		supportMediaTypes: string;
 		/**
+		 * I​m​p​o​r​t​ ​a​ ​Q​u​r​a​n​ ​r​e​c​i​t​a​t​i​o​n​,​ ​a​ ​b​a​c​k​g​r​o​u​n​d​ ​v​i​d​e​o​,​ ​o​r​ ​a​n​y​ ​o​t​h​e​r​ ​a​u​d​i​o​,​ ​v​i​d​e​o​,​ ​o​r​ ​i​m​a​g​e​ ​f​i​l​e​ ​u​s​e​f​u​l​ ​t​o​ ​y​o​u​r​ ​p​r​o​j​e​c​t​.
+		 */
+		fileImportHint: string;
+		/**
 		 * V​i​d​e​o​ ​E​d​i​t​o​r
 		 */
 		videoEditorLabel: string;
@@ -14305,6 +14309,10 @@ export type TranslationFunctions = {
 		 * Support for audio, video and image files
 		 */
 		supportMediaTypes: () => LocalizedString;
+		/**
+		 * Import a Quran recitation, a background video, or any other audio, video, or image file useful to your project.
+		 */
+		fileImportHint: () => LocalizedString;
 		/**
 		 * Video Editor
 		 */

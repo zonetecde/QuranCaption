@@ -1147,6 +1147,8 @@ const de = {
 		dragAndDropFilesHere: 'Dateien hierher ziehen',
 		dropFilesHere: 'Legen Sie Ihre Dateien hier ab',
 		supportMediaTypes: 'Unterstützt Audio-, Video- und Bilddateien',
+		fileImportHint:
+			'Importieren Sie eine Koranrezitation, ein Hintergrundvideo oder eine andere Audio-, Video- oder Bilddatei für Ihr Projekt.',
 		videoEditorLabel: 'Video-Editor',
 		mergeArabic: 'Arabisch zusammenführen',
 		mergeTranslation: 'Übersetzung zusammenführen',

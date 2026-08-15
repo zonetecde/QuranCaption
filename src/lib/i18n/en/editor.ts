@@ -546,6 +546,8 @@ const editor = {
 	dragAndDropFilesHere: 'Drag and drop files here',
 	dropFilesHere: 'Drop your files here',
 	supportMediaTypes: 'Support for audio, video and image files',
+	fileImportHint:
+		'Import a Quran recitation, a background video, or any other audio, video, or image file useful to your project.',
 	videoEditorLabel: 'Video Editor',
 	mergeArabic: 'Merge Arabic',
 	mergeTranslation: 'Merge Translation',

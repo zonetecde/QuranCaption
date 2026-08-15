@@ -1141,6 +1141,8 @@ const es = {
 		dragAndDropFilesHere: 'Arrastre y suelte archivos aquí',
 		dropFilesHere: 'Suelte sus archivos aquí',
 		supportMediaTypes: 'Soporte para archivos de audio, video e imagen',
+		fileImportHint:
+			'Importe una recitación del Corán, un vídeo de fondo o cualquier otro archivo de audio, vídeo o imagen útil para su proyecto.',
 		videoEditorLabel: 'Editor de video',
 		mergeArabic: 'Fusionar árabe',
 		mergeTranslation: 'Fusionar traducción',

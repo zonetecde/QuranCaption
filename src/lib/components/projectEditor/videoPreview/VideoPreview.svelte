@@ -20,6 +20,8 @@
 	} = $props();
 
 	const isLinux = $derived(navigator?.userAgent?.toLowerCase()?.includes('linux') ?? false);
+	const isExportCapturePreview =
+		typeof window !== 'undefined' && window.location.pathname.includes('/exporter');
 	let lastTimeErrorShown = 0; // Timestamp of the last error shown (prevent spam)
 	let antiCollisionNoticeCopy = $derived(
 		$LL.editor as unknown as {
@@ -32,8 +34,7 @@
 	);
 
 	let showAntiCollisionNotice = $derived(
-		typeof window !== 'undefined' &&
-			!window.location.pathname.includes('/exporter') &&
+		!isExportCapturePreview &&
 			Boolean(globalState.settings?.persistentUiState.showAntiCollisionNotice) &&
 			Boolean(globalState.getStyle('global', 'anti-collision').value)
 	);
@@ -252,9 +253,11 @@
 		nativeAudioSetupId++;
 		nativeAudioReady = false;
 		stopNativeAudioClock();
-		void controlNativeAudio('unload').catch((error) =>
-			console.error('Native audio unload error:', error)
-		);
+		if (!isExportCapturePreview) {
+			void controlNativeAudio('unload').catch((error) =>
+				console.error('Native audio unload error:', error)
+			);
+		}
 		if (audioHowl) {
 			audioHowl.unload(); // Libère les ressources audio
 			audioHowl = null;
@@ -1142,6 +1145,7 @@
 	 * @returns {Promise<void>} Promesse résolue après le chargement natif ou du fallback.
 	 */
 	async function setupAudio(): Promise<void> {
+		if (isExportCapturePreview) return;
 		const setupId = ++nativeAudioSetupId;
 		const audioAsset = currentAudio();
 		nativeAudioSeekId++;

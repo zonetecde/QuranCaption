@@ -48,6 +48,19 @@ describe('homeExplorer helpers', () => {
 		expect(yasser.types.find((node) => node.projectType === 'Studio')?.count).toBe(0);
 	});
 
+	it('includes configured and previously used custom categories', () => {
+		const projects = [createProject('A', 'Yasser Al Dosari', 'Archived')];
+
+		const tree = buildProjectExplorerTree(projects, ['Prayer', 'Others', 'Favorites']);
+
+		expect(tree.reciters[0].types.map((node) => node.projectType)).toEqual([
+			'Prayer',
+			'Favorites',
+			'Archived',
+			'Others'
+		]);
+	});
+
 	it('filters the visible project list from the active selection', () => {
 		const prayer = createProject('A', 'Yasser Al Dosari', 'Prayer');
 		const studio = createProject('B', 'Yasser Al Dosari', 'Studio');

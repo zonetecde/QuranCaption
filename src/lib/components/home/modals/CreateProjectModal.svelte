@@ -14,12 +14,44 @@
 		PROJECT_TYPE_OPTIONS,
 		type ProjectType
 	} from '$lib/types/projectType';
+	import { SettingsTab } from '$lib/classes/Settings.svelte';
 
 	let { close } = $props();
 
 	let name: string = $state('');
 	let reciter: string = $state('');
-	let projectType: ProjectType = $state(DEFAULT_PROJECT_TYPE);
+	let projectType: ProjectType = $state(
+		globalState.settings?.defaultValuesSettings.projectCategories.includes(DEFAULT_PROJECT_TYPE)
+			? DEFAULT_PROJECT_TYPE
+			: (globalState.settings?.defaultValuesSettings.projectCategories[0] ?? DEFAULT_PROJECT_TYPE)
+	);
+	let projectTypeOptions: readonly ProjectType[] = $derived(
+		globalState.settings?.defaultValuesSettings.projectCategories ?? PROJECT_TYPE_OPTIONS
+	);
+	let homeCopy = $derived($LL.home as unknown as { addCategoryOption: () => string });
+	const ADD_CATEGORY_VALUE = '__add_category__';
+
+	$effect(() => {
+		if (!projectTypeOptions.includes(projectType)) {
+			projectType = projectTypeOptions[0] ?? DEFAULT_PROJECT_TYPE;
+		}
+	});
+
+	/**
+	 * Sélectionne une catégorie ou ouvre directement leur gestion dans les paramètres.
+	 * @param {Event} event Événement de changement de la liste.
+	 * @returns {void}
+	 */
+	function handleProjectTypeChange(event: Event): void {
+		const value = (event.currentTarget as HTMLSelectElement).value;
+		if (value === ADD_CATEGORY_VALUE) {
+			(event.currentTarget as HTMLSelectElement).value = projectType;
+			globalState.uiState.settingsTab = SettingsTab.DEFAULT_VALUES;
+			globalState.uiState.isSettingsOpen = true;
+			return;
+		}
+		projectType = value;
+	}
 
 	async function createProjectButtonClick() {
 		// Vérifie que le nom du projet n'est pas vide
@@ -130,12 +162,14 @@
 			<div class="relative">
 				<select
 					id="project-type"
-					bind:value={projectType}
+					value={projectType}
+					onchange={handleProjectTypeChange}
 					class="w-full rounded-xl border border-color bg-bg-secondary px-4 py-3 text-primary shadow-inner"
 				>
-					{#each PROJECT_TYPE_OPTIONS as option (option)}
+					{#each projectTypeOptions as option (option)}
 						<option value={option}>{option}</option>
 					{/each}
+					<option value={ADD_CATEGORY_VALUE}>{homeCopy.addCategoryOption()}</option>
 				</select>
 				<span
 					class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 material-icons text-thirdly"

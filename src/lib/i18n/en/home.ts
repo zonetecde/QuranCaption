@@ -26,6 +26,7 @@ const home = {
 	projectName: 'Project Name',
 	reciter: 'Reciter',
 	type: 'Type',
+	addCategoryOption: 'Add…',
 	taraweehExample: 'Taraweeh 27th night',
 	searchReciters: 'Start typing to search reciters...',
 	fillInDetails: 'Fill in the details to create your project',
@@ -81,7 +82,8 @@ const home = {
 	autosave: 'Autosave',
 	searchProject: 'Search project',
 	needAssistance: 'Need Assistance?',
-	assistanceDescription: 'Watch the walkthrough below or open the full documentation for more details.',
+	assistanceDescription:
+		'Watch the walkthrough below or open the full documentation for more details.',
 	quranCaptionOverview: 'Quran Caption Overview',
 	openOnlineDocumentation: 'Open Online Documentation',
 	githubRepo: 'GitHub Repo',
@@ -100,7 +102,8 @@ const home = {
 	complete: 'Complete',
 	downloading: 'Downloading...',
 	updateFailedTitle: 'Update Failed',
-	updateFailedMessage: 'Something went wrong while updating. Please try again or download the update manually.',
+	updateFailedMessage:
+		'Something went wrong while updating. Please try again or download the update manually.',
 	updateInstalled: 'Update Installed!',
 	updateInstalledMessage: 'The app will restart automatically in a moment...',
 	whatsNew: "What's New",

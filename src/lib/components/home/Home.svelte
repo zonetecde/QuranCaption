@@ -356,7 +356,12 @@
 
 	// 1. Status filter -> 2. explorer selection -> 3. sort/search -> 4. page slice
 	let statusFilteredProjects = $derived.by(() => getStatusFilteredProjects());
-	let explorerTree = $derived.by(() => buildProjectExplorerTree(statusFilteredProjects));
+	let explorerTree = $derived.by(() =>
+		buildProjectExplorerTree(
+			statusFilteredProjects,
+			globalState.settings?.defaultValuesSettings.projectCategories
+		)
+	);
 	let selectedProjects = $derived.by(() => {
 		if (!isSelectionAvailable(explorerSelection, statusFilteredProjects)) {
 			return statusFilteredProjects;

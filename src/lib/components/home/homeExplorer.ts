@@ -56,8 +56,16 @@ export function filterStandaloneProjects(projects: ProjectDetail[]): ProjectDeta
 /**
  * Builds the left explorer tree from the currently status-filtered project set.
  */
-export function buildProjectExplorerTree(projects: ProjectDetail[]): ProjectExplorerTree {
+export function buildProjectExplorerTree(
+	projects: ProjectDetail[],
+	projectTypes: readonly ProjectType[] = PROJECT_TYPE_OPTIONS
+): ProjectExplorerTree {
 	const groupedByReciter = new Map<string, ProjectDetail[]>();
+	const availableProjectTypes = Array.from(
+		new Set([...projectTypes, ...projects.map((project) => getProjectType(project))])
+	).sort(
+		(left, right) => Number(left === DEFAULT_PROJECT_TYPE) - Number(right === DEFAULT_PROJECT_TYPE)
+	);
 
 	for (const project of projects) {
 		const reciter = project.reciter?.trim() || 'not set';
@@ -83,7 +91,7 @@ export function buildProjectExplorerTree(projects: ProjectDetail[]): ProjectExpl
 			label: reciter,
 			reciter,
 			count: reciterProjects.length,
-			types: PROJECT_TYPE_OPTIONS.map((projectType) => {
+			types: availableProjectTypes.map((projectType) => {
 				const typeProjects = reciterProjects.filter(
 					(project) => getProjectType(project) === projectType
 				);

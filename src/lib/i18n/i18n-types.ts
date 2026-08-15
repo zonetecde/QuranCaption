@@ -707,6 +707,10 @@ type RootTranslation = {
 		 */
 		type: string;
 		/**
+		 * A​d​d​…
+		 */
+		addCategoryOption: string;
+		/**
 		 * T​a​r​a​w​e​e​h​ ​2​7​t​h​ ​n​i​g​h​t
 		 */
 		taraweehExample: string;
@@ -7625,6 +7629,38 @@ type RootTranslation = {
 		 */
 		defaultValuesDescription: string;
 		/**
+		 * P​r​o​j​e​c​t​ ​c​a​t​e​g​o​r​i​e​s
+		 */
+		projectCategories: string;
+		/**
+		 * C​h​o​o​s​e​ ​t​h​e​ ​c​a​t​e​g​o​r​i​e​s​ ​a​v​a​i​l​a​b​l​e​ ​w​h​e​n​ ​c​r​e​a​t​i​n​g​ ​o​r​ ​e​d​i​t​i​n​g​ ​a​ ​p​r​o​j​e​c​t​.
+		 */
+		projectCategoriesDescription: string;
+		/**
+		 * N​e​w​ ​c​a​t​e​g​o​r​y
+		 */
+		newProjectCategory: string;
+		/**
+		 * A​d​d
+		 */
+		addCategory: string;
+		/**
+		 * D​e​l​e​t​e​ ​c​a​t​e​g​o​r​y
+		 */
+		deleteCategory: string;
+		/**
+		 * T​h​e​ ​c​a​t​e​g​o​r​y​ ​c​a​n​n​o​t​ ​b​e​ ​e​m​p​t​y​.
+		 */
+		categoryCannotBeEmpty: string;
+		/**
+		 * T​h​i​s​ ​c​a​t​e​g​o​r​y​ ​a​l​r​e​a​d​y​ ​e​x​i​s​t​s​.
+		 */
+		categoryAlreadyExists: string;
+		/**
+		 * T​h​e​ ​c​a​t​e​g​o​r​y​ ​c​o​n​t​a​i​n​s​ ​i​n​v​a​l​i​d​ ​c​h​a​r​a​c​t​e​r​s​.
+		 */
+		categoryInvalidCharacters: string;
+		/**
 		 * D​e​f​a​u​l​t​ ​e​x​p​o​r​t​ ​f​i​l​e​ ​n​a​m​e
 		 */
 		defaultExportFileName: string;
@@ -11862,6 +11898,10 @@ export type TranslationFunctions = {
 		 * Type
 		 */
 		type: () => LocalizedString;
+		/**
+		 * Add…
+		 */
+		addCategoryOption: () => LocalizedString;
 		/**
 		 * Taraweeh 27th night
 		 */
@@ -18681,6 +18721,38 @@ export type TranslationFunctions = {
 		 * Choose the values used automatically when a field is left empty.
 		 */
 		defaultValuesDescription: () => LocalizedString;
+		/**
+		 * Project categories
+		 */
+		projectCategories: () => LocalizedString;
+		/**
+		 * Choose the categories available when creating or editing a project.
+		 */
+		projectCategoriesDescription: () => LocalizedString;
+		/**
+		 * New category
+		 */
+		newProjectCategory: () => LocalizedString;
+		/**
+		 * Add
+		 */
+		addCategory: () => LocalizedString;
+		/**
+		 * Delete category
+		 */
+		deleteCategory: () => LocalizedString;
+		/**
+		 * The category cannot be empty.
+		 */
+		categoryCannotBeEmpty: () => LocalizedString;
+		/**
+		 * This category already exists.
+		 */
+		categoryAlreadyExists: () => LocalizedString;
+		/**
+		 * The category contains invalid characters.
+		 */
+		categoryInvalidCharacters: () => LocalizedString;
 		/**
 		 * Default export file name
 		 */

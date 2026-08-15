@@ -45,6 +45,18 @@ describe('ProjectDetail project type', () => {
 		expect(restored.projectType).toBe('Prayer');
 	});
 
+	it('preserves custom project categories from serialized data', () => {
+		const detail = new ProjectDetail('Night 27', 'Muhammad Al Luhaidan');
+		const serialized = {
+			...(detail.toJSON() as Record<string, unknown>),
+			projectType: 'Personal favorites'
+		};
+
+		const restored = ProjectDetail.fromJSON(serialized) as ProjectDetail;
+
+		expect(restored.projectType).toBe('Personal favorites');
+	});
+
 	it('matches search queries against the project type', () => {
 		const detail = new ProjectDetail(
 			'Taraweeh 27th night',

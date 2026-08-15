@@ -18,6 +18,7 @@ import {
 	DEFAULT_PROJECT_EDITOR_LAYOUT,
 	type ProjectEditorLayout
 } from '$lib/constants/projectEditor';
+import { PROJECT_TYPE_OPTIONS } from '$lib/types/projectType';
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
@@ -68,6 +69,7 @@ export type DefaultValuesSettings = {
 	exportFileNameFormat: string;
 	youtubeVideoTitle: string;
 	youtubeVideoDescription: string;
+	projectCategories: string[];
 };
 
 export type SubtitleExportSettings = {
@@ -184,7 +186,8 @@ export default class Settings extends SerializableBase {
 	defaultValuesSettings = $state<DefaultValuesSettings>({
 		exportFileNameFormat: DEFAULT_EXPORT_FILE_NAME_FORMAT,
 		youtubeVideoTitle: '',
-		youtubeVideoDescription: ''
+		youtubeVideoDescription: '',
+		projectCategories: [...PROJECT_TYPE_OPTIONS]
 	});
 
 	subtitleExportSettings = $state<SubtitleExportSettings>({
@@ -479,7 +482,8 @@ export default class Settings extends SerializableBase {
 			settings.defaultValuesSettings = {
 				exportFileNameFormat: DEFAULT_EXPORT_FILE_NAME_FORMAT,
 				youtubeVideoTitle: '',
-				youtubeVideoDescription: ''
+				youtubeVideoDescription: '',
+				projectCategories: [...PROJECT_TYPE_OPTIONS]
 			};
 			shouldSave = true;
 		} else {
@@ -493,6 +497,16 @@ export default class Settings extends SerializableBase {
 			}
 			if (typeof settings.defaultValuesSettings.youtubeVideoDescription !== 'string') {
 				settings.defaultValuesSettings.youtubeVideoDescription = '';
+				shouldSave = true;
+			}
+			if (
+				!Array.isArray(settings.defaultValuesSettings.projectCategories) ||
+				settings.defaultValuesSettings.projectCategories.length === 0 ||
+				settings.defaultValuesSettings.projectCategories.some(
+					(category) => typeof category !== 'string' || !category.trim()
+				)
+			) {
+				settings.defaultValuesSettings.projectCategories = [...PROJECT_TYPE_OPTIONS];
 				shouldSave = true;
 			}
 		}

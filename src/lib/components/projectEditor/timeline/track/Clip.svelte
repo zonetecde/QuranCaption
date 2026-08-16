@@ -63,11 +63,63 @@
 	let clipDragStartX: number | null = null;
 	let clipDragOriginalStartTime = 0;
 	let clipDragVisualStarts: number[] | null = null;
+	const VIDEO_CLIP_SNAP_DISTANCE_PX = 8;
 
 	let canTrim = $derived(
 		clip instanceof AssetClip && asset.type !== AssetType.Image && !clip.loopUntilAudioEnd
 	);
 	let canMove = $derived(clip instanceof AssetClip && asset.type !== AssetType.Image);
+
+	/**
+	 * Accroche les bords d'un clip vidéo aux sous-titres et au clip vidéo précédent.
+	 * @param {number} time Position brute du bord gauche en millisecondes.
+	 * @param {number[]} edgeOffsets Décalages des bords à comparer depuis la position brute.
+	 * @param {Clip | null} previousClip Clip vidéo précédent éventuel.
+	 * @param {Clip | null} nextClip Clip vidéo suivant éventuel.
+	 * @returns {number} Position du bord gauche, accrochée si un repère est assez proche.
+	 */
+	function getSnappedVideoClipTime(
+		time: number,
+		edgeOffsets: number[],
+		previousClip: Clip | null = null,
+		nextClip: Clip | null = null
+	): number {
+		if (track.type !== TrackType.Video) return time;
+		const thresholdMs =
+			(VIDEO_CLIP_SNAP_DISTANCE_PX / Math.max(track.getPixelPerSecond(), 0.0001)) * 1000;
+		let snappedTime = time;
+		let closestDistance = thresholdMs + 1;
+		const snapPoints = (globalState.getSubtitleTrack?.clips ?? []).flatMap((subtitleClip) => [
+			subtitleClip.startTime,
+			subtitleClip.endTime
+		]);
+
+		for (const snapPoint of snapPoints) {
+			for (const edgeOffset of edgeOffsets) {
+				const candidateTime = snapPoint - edgeOffset;
+				const distance = Math.abs(candidateTime - time);
+				if (distance <= thresholdMs && distance < closestDistance) {
+					snappedTime = candidateTime;
+					closestDistance = distance;
+				}
+			}
+		}
+		if (previousClip) {
+			const candidateTime = previousClip.endTime + 1;
+			const distance = Math.abs(candidateTime - time);
+			if (distance <= thresholdMs && distance < closestDistance) {
+				snappedTime = candidateTime;
+				closestDistance = distance;
+			}
+		}
+		if (nextClip) {
+			const candidateTime = nextClip.startTime - Math.max(...edgeOffsets) - 1;
+			const distance = Math.abs(candidateTime - time);
+			if (distance <= thresholdMs && distance < closestDistance) snappedTime = candidateTime;
+		}
+
+		return snappedTime;
+	}
 
 	/**
 	 * Démarre le déplacement horizontal du clip dans sa piste.
@@ -131,10 +183,14 @@
 				? Math.min(nextClip.startTime - 1, nextClip.endTime - clip.duration - 1)
 				: nextClip.startTime - clip.duration - 1
 			: Number.POSITIVE_INFINITY;
-		const newStart = Math.max(
-			minimumStart,
-			Math.min(maximumStart, clipDragOriginalStartTime + deltaMs)
+		const rawStart = clipDragOriginalStartTime + deltaMs;
+		const snappedStart = getSnappedVideoClipTime(
+			rawStart,
+			[0, clip.duration],
+			previousClip,
+			nextClip
 		);
+		const newStart = Math.max(minimumStart, Math.min(maximumStart, snappedStart));
 
 		clip.startTime = newStart;
 		clip.endTime = newStart + clip.duration;
@@ -189,10 +245,8 @@
 			trimOriginalStartTime - trimOriginalSourceStartTime,
 			previousClip ? previousClip.endTime + 1 : 0
 		);
-		const newStart = Math.min(
-			trimOriginalEndTime - 100,
-			Math.max(minimumStart, trimOriginalStartTime + deltaMs)
-		);
+		const rawStart = getSnappedVideoClipTime(trimOriginalStartTime + deltaMs, [0], previousClip);
+		const newStart = Math.min(trimOriginalEndTime - 100, Math.max(minimumStart, rawStart));
 
 		clip.startTime = newStart;
 		clip.duration = clip.endTime - newStart;
@@ -216,10 +270,8 @@
 			trimOriginalEndTime + Math.max(0, asset.duration.ms - sourceEndTime),
 			nextClip ? nextClip.startTime - 1 : Number.POSITIVE_INFINITY
 		);
-		const newEnd = Math.max(
-			trimOriginalStartTime + 100,
-			Math.min(maximumEnd, trimOriginalEndTime + deltaMs)
-		);
+		const rawEnd = getSnappedVideoClipTime(trimOriginalEndTime + deltaMs, [0], null, nextClip);
+		const newEnd = Math.max(trimOriginalStartTime + 100, Math.min(maximumEnd, rawEnd));
 
 		clip.endTime = newEnd;
 		clip.duration = newEnd - clip.startTime;

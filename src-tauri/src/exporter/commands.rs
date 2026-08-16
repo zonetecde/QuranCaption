@@ -2173,7 +2173,8 @@ fn build_timed_background_chain(
             .copied()
             .unwrap_or(cursor_s)
             .max(0.0);
-        if run_offset_s > cursor_s + 1e-6 {
+        let starts_after_gap = run_offset_s > cursor_s + 1e-6;
+        if starts_after_gap {
             let gap_duration_s = run_offset_s - cursor_s;
             let gap_label = format!("bgap{}", gap_index);
             filter_lines.push(format!(
@@ -2263,6 +2264,40 @@ fn build_timed_background_chain(
                 })
         } else {
             run_durations.iter().sum()
+        };
+        let next_offset_s = timeline_offsets_s
+            .get(run_end)
+            .copied()
+            .unwrap_or(total_duration_s);
+        let ends_before_gap = next_offset_s > run_offset_s + run_duration_s + 1e-6;
+        let run_label = if mode == VideoClipTransitionMode::FadeThroughBlack
+            && transition_s > 1e-6
+            && (starts_after_gap || ends_before_gap)
+        {
+            let mut filters = Vec::new();
+            if starts_after_gap {
+                let fade_s = transition_s.min(run_durations[0].max(0.001) / 2.0);
+                filters.push(format!("fade=t=in:st=0:d={:.6}", fade_s));
+            }
+            if ends_before_gap {
+                let fade_s = transition_s
+                    .min(run_durations.last().copied().unwrap_or(0.001).max(0.001) / 2.0);
+                filters.push(format!(
+                    "fade=t=out:st={:.6}:d={:.6}",
+                    (run_duration_s - fade_s).max(0.0),
+                    fade_s
+                ));
+            }
+            let faded_label = format!("bgfade{}", clip_index);
+            filter_lines.push(format!(
+                "[{}]{}[{}]",
+                run_label,
+                filters.join(","),
+                faded_label
+            ));
+            faded_label
+        } else {
+            run_label
         };
         segments.push((run_label, run_duration_s));
         cursor_s = run_offset_s + run_duration_s;
@@ -2512,6 +2547,31 @@ mod trim_tests {
             3
         );
         assert!(filters.iter().any(|line| line.contains("concat=n=5")));
+    }
+
+    /// Vérifie que les clips fondent depuis et vers les espaces noirs de la timeline.
+    #[test]
+    fn fade_through_black_applies_around_timeline_gaps() {
+        let mut filters = Vec::new();
+        build_timed_background_chain(
+            &mut filters,
+            &["first".to_string(), "second".to_string()],
+            &[2.0, 1.0],
+            &[1.0, 5.0],
+            1920,
+            1080,
+            30,
+            8.0,
+            VideoClipTransitionMode::FadeThroughBlack,
+            1.0,
+        );
+
+        assert!(filters.iter().any(|line| {
+            line == "[first]fade=t=in:st=0:d=1.000000,fade=t=out:st=1.000000:d=1.000000[bgfade0]"
+        }));
+        assert!(filters.iter().any(|line| {
+            line == "[second]fade=t=in:st=0:d=0.500000,fade=t=out:st=0.500000:d=0.500000[bgfade1]"
+        }));
     }
 
     /// Vérifie que le fondu croisé conserve la règle historique de chevauchement.

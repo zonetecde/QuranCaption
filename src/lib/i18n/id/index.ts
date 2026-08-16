@@ -514,6 +514,9 @@ const id = {
 		defaultValues: 'Nilai bawaan',
 		defaultValuesDescription:
 			'Pilih nilai yang digunakan otomatis saat suatu kolom dibiarkan kosong.',
+		showTimelineVideoThumbnails: 'Tampilkan thumbnail video di timeline',
+		showTimelineVideoThumbnailsDescription:
+			'Ekstrak dan tampilkan frame video di dalam klip timeline. Nonaktifkan opsi ini untuk mengurangi penggunaan CPU dan disk.',
 		projectCategories: 'Kategori proyek',
 		projectCategoriesDescription: 'Pilih kategori yang tersedia saat membuat atau mengedit proyek.',
 		newProjectCategory: 'Kategori baru',

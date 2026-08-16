@@ -2429,6 +2429,9 @@ const es = {
 		defaultValues: 'Valores predeterminados',
 		defaultValuesDescription:
 			'Elija los valores utilizados automáticamente cuando un campo está vacío.',
+		showTimelineVideoThumbnails: 'Mostrar miniaturas de vídeo en la línea de tiempo',
+		showTimelineVideoThumbnailsDescription:
+			'Extraiga y muestre fotogramas dentro de los clips de la línea de tiempo. Desactive esta opción para reducir el uso de CPU y disco.',
 		projectCategories: 'Categorías de proyecto',
 		projectCategoriesDescription: 'Elige las categorías disponibles al crear o editar un proyecto.',
 		newProjectCategory: 'Nueva categoría',

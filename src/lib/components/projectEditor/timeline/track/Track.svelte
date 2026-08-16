@@ -24,6 +24,8 @@
 		visibleRangeStartMs = 0,
 		visibleRangeEndMs = Number.POSITIVE_INFINITY,
 		fitAvailableHeight = false,
+		thumbnailRangeStartMs = 0,
+		thumbnailRangeEndMs = Number.POSITIVE_INFINITY,
 		canMoveUp = false,
 		canMoveDown = false,
 		onMoveUp = () => {},
@@ -33,6 +35,8 @@
 		visibleRangeStartMs: number;
 		visibleRangeEndMs: number;
 		fitAvailableHeight?: boolean;
+		thumbnailRangeStartMs: number;
+		thumbnailRangeEndMs: number;
 		canMoveUp?: boolean;
 		canMoveDown?: boolean;
 		onMoveUp?: () => void;
@@ -346,7 +350,13 @@
 							/>
 						{/if}
 					{:else}
-						<ClipComponent {clip} {track} {clipIndex} />
+						<ClipComponent
+							{clip}
+							{track}
+							{clipIndex}
+							{thumbnailRangeStartMs}
+							{thumbnailRangeEndMs}
+						/>
 					{/if}
 				{/each}
 			</div>

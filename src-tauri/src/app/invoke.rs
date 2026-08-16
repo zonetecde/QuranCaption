@@ -46,6 +46,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::native_audio::native_audio_set_volume,
         commands::native_audio::native_audio_get_state,
         commands::native_audio::native_audio_release,
+        commands::media::get_video_timeline_thumbnails,
         commands::media::is_constant_bitrate,
         exporter::commands::export_video,
         exporter::commands::export_segmented_video,

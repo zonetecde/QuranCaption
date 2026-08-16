@@ -12,15 +12,24 @@
 	import { WaveformService } from '$lib/services/WaveformService.svelte.js';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import {
+		getVisibleTimelineVideoThumbnailSlots,
+		loadTimelineVideoThumbnailPaths,
+		type TimelineVideoThumbnailSlot
+	} from './timelineVideoThumbnails';
 
 	let {
 		clip = $bindable(),
 		track = $bindable(),
-		clipIndex
+		clipIndex,
+		thumbnailRangeStartMs = 0,
+		thumbnailRangeEndMs = Number.POSITIVE_INFINITY
 	}: {
 		clip: Clip;
 		track: Track;
 		clipIndex: number;
+		thumbnailRangeStartMs: number;
+		thumbnailRangeEndMs: number;
 	} = $props();
 
 	onDestroy(() => {
@@ -58,7 +67,7 @@
 
 	let wavesurfer: WaveSurfer | undefined;
 	let waveformElement: HTMLDivElement | undefined = $state(undefined);
-	let trimDragStartX: number | null = null;
+	let trimDragStartX: number | null = $state(null);
 	let trimOriginalStartTime = 0;
 	let trimOriginalEndTime = 0;
 	let trimOriginalSourceStartTime = 0;
@@ -76,6 +85,8 @@
 	let clipDragStartX: number | null = null;
 	let clipDragOriginalStartTime = 0;
 	let clipDragVisualStarts: number[] | null = null;
+	let timelineVideoThumbnails = $state<Array<TimelineVideoThumbnailSlot & { src: string }>>([]);
+	let thumbnailRequestId = 0;
 	const VIDEO_CLIP_SNAP_DISTANCE_PX = 8;
 
 	let canTrim = $derived(
@@ -87,6 +98,66 @@
 		(((clip instanceof AssetClip ? clip.sourceStartTime : 0) ?? 0) / 1000) *
 			track.getPixelPerSecond()
 	);
+
+	$effect(() => {
+		if (globalState.settings?.defaultValuesSettings.showTimelineVideoThumbnails === false) {
+			timelineVideoThumbnails = [];
+			return;
+		}
+		// Le relâchement du trim déclenche une seule extraction avec l'offset source final.
+		if (trimDragStartX !== null) return;
+		if (
+			!(clip instanceof AssetClip) ||
+			track.type !== TrackType.Video ||
+			asset.type !== AssetType.Video
+		) {
+			timelineVideoThumbnails = [];
+			return;
+		}
+		const visualClipStartMs = track.getVisualClipStartTime(clipIndex);
+		const slots = getVisibleTimelineVideoThumbnailSlots({
+			clipStartMs: visualClipStartMs,
+			clipEndMs: visualClipStartMs + clip.duration,
+			sourceStartMs: clip.sourceStartTime ?? 0,
+			sourceDurationMs: asset.duration.ms,
+			viewportStartMs: thumbnailRangeStartMs,
+			viewportEndMs: thumbnailRangeEndMs,
+			zoom: track.getPixelPerSecond(),
+			loop: clip.loopUntilAudioEnd
+		});
+		const filePath = asset.filePath;
+		const mediaReloadToken = asset.mediaReloadToken;
+		const requestId = ++thumbnailRequestId;
+		if (slots.length === 0) {
+			timelineVideoThumbnails = [];
+			return;
+		}
+
+		const timeout = setTimeout(() => {
+			untrack(async () => {
+				try {
+					const paths = await loadTimelineVideoThumbnailPaths(
+						filePath,
+						slots.map((slot) => slot.timestampMs),
+						mediaReloadToken
+					);
+					if (requestId !== thumbnailRequestId) return;
+					timelineVideoThumbnails = slots.flatMap((slot) => {
+						const path = paths.get(slot.timestampMs);
+						return path ? [{ ...slot, src: convertFileSrc(path) }] : [];
+					});
+				} catch (error) {
+					if (requestId === thumbnailRequestId) timelineVideoThumbnails = [];
+					console.error('Failed to load timeline video thumbnails:', error);
+				}
+			});
+		}, 80);
+
+		return () => {
+			clearTimeout(timeout);
+			if (requestId === thumbnailRequestId) thumbnailRequestId++;
+		};
+	});
 
 	/**
 	 * Accroche les bords d'un clip vidéo aux sous-titres et au clip vidéo précédent.
@@ -580,6 +651,22 @@
 		void showContextMenuInViewport(contextMenu, e);
 	}}
 >
+	{#if timelineVideoThumbnails.length > 0}
+		<div class="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
+			{#each timelineVideoThumbnails as thumbnail (thumbnail.key)}
+				<img
+					class="absolute inset-y-0 h-full object-cover opacity-70"
+					src={thumbnail.src}
+					alt=""
+					draggable="false"
+					decoding="async"
+					style="left: {thumbnail.leftPx}px; width: {thumbnail.widthPx}px;"
+				/>
+			{/each}
+			<div class="absolute inset-0 bg-black/20"></div>
+		</div>
+	{/if}
+
 	{#if track.type === TrackType.Video && hasOverlayOverride()}
 		<div class="absolute top-0.5 left-0.5 z-20 flex items-center gap-1">
 			<span

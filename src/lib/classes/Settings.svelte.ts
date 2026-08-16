@@ -62,6 +62,7 @@ export type DefaultValuesSettings = {
 	youtubeVideoTitle: string;
 	youtubeVideoDescription: string;
 	projectCategories: string[];
+	showTimelineVideoThumbnails: boolean;
 };
 
 export type SubtitleExportSettings = {
@@ -170,7 +171,8 @@ export default class Settings extends SerializableBase {
 		exportFileNameFormat: DEFAULT_EXPORT_FILE_NAME_FORMAT,
 		youtubeVideoTitle: '',
 		youtubeVideoDescription: '',
-		projectCategories: [...PROJECT_TYPE_OPTIONS]
+		projectCategories: [...PROJECT_TYPE_OPTIONS],
+		showTimelineVideoThumbnails: true
 	});
 
 	subtitleExportSettings = $state<SubtitleExportSettings>({
@@ -248,7 +250,8 @@ export default class Settings extends SerializableBase {
 				exportFileNameFormat: DEFAULT_EXPORT_FILE_NAME_FORMAT,
 				youtubeVideoTitle: '',
 				youtubeVideoDescription: '',
-				projectCategories: [...PROJECT_TYPE_OPTIONS]
+				projectCategories: [...PROJECT_TYPE_OPTIONS],
+				showTimelineVideoThumbnails: true
 			};
 			shouldSave = true;
 		} else {
@@ -272,6 +275,10 @@ export default class Settings extends SerializableBase {
 				)
 			) {
 				settings.defaultValuesSettings.projectCategories = [...PROJECT_TYPE_OPTIONS];
+				shouldSave = true;
+			}
+			if (typeof settings.defaultValuesSettings.showTimelineVideoThumbnails !== 'boolean') {
+				settings.defaultValuesSettings.showTimelineVideoThumbnails = true;
 				shouldSave = true;
 			}
 		}

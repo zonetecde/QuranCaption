@@ -20,6 +20,9 @@ const settings = {
 		'Hide the reflection prompt that appears after a successful video export.',
 	defaultValues: 'Default Values',
 	defaultValuesDescription: 'Choose the values used automatically when a field is left empty.',
+	showTimelineVideoThumbnails: 'Show video thumbnails in the timeline',
+	showTimelineVideoThumbnailsDescription:
+		'Extract and display video frames inside timeline clips. Disable this to reduce CPU and disk usage.',
 	projectCategories: 'Project categories',
 	projectCategoriesDescription:
 		'Choose the categories available when creating or editing a project.',

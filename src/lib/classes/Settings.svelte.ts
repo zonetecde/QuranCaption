@@ -112,6 +112,7 @@ export type ExportSettings = {
 
 export type DefaultValuesSettings = {
 	projectCategories: string[];
+	showTimelineVideoThumbnails: boolean;
 };
 
 export type SubtitleExportSettings = {
@@ -248,7 +249,8 @@ export default class Settings extends SerializableBase {
 	exportSettings = $state<ExportSettings>({ ...Settings.DEFAULT_EXPORT_SETTINGS });
 
 	defaultValuesSettings = $state<DefaultValuesSettings>({
-		projectCategories: [...PROJECT_TYPE_OPTIONS]
+		projectCategories: [...PROJECT_TYPE_OPTIONS],
+		showTimelineVideoThumbnails: true
 	});
 
 	subtitleExportSettings = $state<SubtitleExportSettings>({
@@ -561,8 +563,12 @@ export default class Settings extends SerializableBase {
 			)
 		) {
 			settings.defaultValuesSettings = {
-				projectCategories: [...PROJECT_TYPE_OPTIONS]
+				projectCategories: [...PROJECT_TYPE_OPTIONS],
+				showTimelineVideoThumbnails: true
 			};
+			shouldSave = true;
+		} else if (typeof settings.defaultValuesSettings.showTimelineVideoThumbnails !== 'boolean') {
+			settings.defaultValuesSettings.showTimelineVideoThumbnails = true;
 			shouldSave = true;
 		}
 		if (!settings.subtitleExportSettings || typeof settings.subtitleExportSettings !== 'object') {

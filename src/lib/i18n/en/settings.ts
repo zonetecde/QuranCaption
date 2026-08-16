@@ -13,6 +13,9 @@ const settings = {
 	about: 'About',
 	defaultValues: 'Project Defaults',
 	defaultValuesDescription: 'Customize the categories offered when creating a project.',
+	showTimelineVideoThumbnails: 'Show video thumbnails in the timeline',
+	showTimelineVideoThumbnailsDescription:
+		'Extract and display video frames inside timeline clips. Disable this to reduce CPU and disk usage.',
 	projectCategories: 'Project categories',
 	projectCategoriesDescription: 'Manage the content types available in the project explorer.',
 	newProjectCategory: 'New category',

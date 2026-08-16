@@ -2427,6 +2427,9 @@ const de = {
 		defaultValues: 'Standardwerte',
 		defaultValuesDescription:
 			'Legen Sie fest, welche Werte bei leeren Feldern automatisch verwendet werden.',
+		showTimelineVideoThumbnails: 'Video-Miniaturbilder in der Timeline anzeigen',
+		showTimelineVideoThumbnailsDescription:
+			'Videoframes in Timeline-Clips extrahieren und anzeigen. Deaktivieren Sie diese Option, um CPU- und Festplattennutzung zu reduzieren.',
 		projectCategories: 'Projektkategorien',
 		projectCategoriesDescription:
 			'Wählen Sie die Kategorien aus, die beim Erstellen oder Bearbeiten eines Projekts verfügbar sind.',

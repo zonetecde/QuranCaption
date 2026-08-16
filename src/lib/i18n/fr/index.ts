@@ -2448,6 +2448,9 @@ const fr = {
 		defaultValues: 'Valeurs par défaut',
 		defaultValuesDescription:
 			'Choisissez les valeurs utilisées automatiquement lorsqu’un champ est vide.',
+		showTimelineVideoThumbnails: 'Afficher les miniatures vidéo dans la timeline',
+		showTimelineVideoThumbnailsDescription:
+			'Extrayez et affichez des frames dans les clips de la timeline. Désactivez cette option pour réduire l’utilisation du processeur et du disque.',
 		projectCategories: 'Catégories de projet',
 		projectCategoriesDescription:
 			'Choisissez les catégories disponibles lors de la création ou de la modification d’un projet.',

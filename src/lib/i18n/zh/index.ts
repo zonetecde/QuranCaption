@@ -2201,6 +2201,9 @@ const zh = {
 		hideReflectionPromptAfterExportDescription: '隐藏视频成功导出后出现的反思提示。',
 		defaultValues: '默认值',
 		defaultValuesDescription: '选择字段留空时自动使用的值。',
+		showTimelineVideoThumbnails: '在时间线中显示视频缩略图',
+		showTimelineVideoThumbnailsDescription:
+			'提取并显示时间线片段中的视频帧。关闭此选项可减少 CPU 和磁盘使用量。',
 		projectCategories: '项目类别',
 		projectCategoriesDescription: '选择创建或编辑项目时可用的类别。',
 		newProjectCategory: '新类别',

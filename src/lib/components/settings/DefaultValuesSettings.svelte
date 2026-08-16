@@ -30,6 +30,8 @@
 			categoryCannotBeEmpty: () => string;
 			categoryAlreadyExists: () => string;
 			categoryInvalidCharacters: () => string;
+			showTimelineVideoThumbnails: () => string;
+			showTimelineVideoThumbnailsDescription: () => string;
 		}
 	);
 	let newProjectCategory = $state('');
@@ -112,6 +114,21 @@
 		<h3 class="text-lg font-medium text-primary">{copy.defaultValues()}</h3>
 		<p class="text-sm text-thirdly">{copy.defaultValuesDescription()}</p>
 	</div>
+
+	<label
+		class="flex items-center justify-between gap-4 rounded-xl border border-color bg-primary p-4"
+	>
+		<div>
+			<p class="text-sm font-medium text-primary">{copy.showTimelineVideoThumbnails()}</p>
+			<p class="mt-1 text-xs text-thirdly">{copy.showTimelineVideoThumbnailsDescription()}</p>
+		</div>
+		<input
+			type="checkbox"
+			class="h-5 w-5 shrink-0 accent-accent-primary"
+			bind:checked={globalState.settings!.defaultValuesSettings.showTimelineVideoThumbnails}
+			onchange={() => Settings.save()}
+		/>
+	</label>
 
 	<div class="space-y-4 rounded-2xl border border-color bg-primary p-5">
 		<div class="space-y-2">

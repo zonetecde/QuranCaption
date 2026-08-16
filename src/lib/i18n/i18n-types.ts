@@ -7629,6 +7629,14 @@ type RootTranslation = {
 		 */
 		defaultValuesDescription: string;
 		/**
+		 * S​h​o​w​ ​v​i​d​e​o​ ​t​h​u​m​b​n​a​i​l​s​ ​i​n​ ​t​h​e​ ​t​i​m​e​l​i​n​e
+		 */
+		showTimelineVideoThumbnails: string;
+		/**
+		 * E​x​t​r​a​c​t​ ​a​n​d​ ​d​i​s​p​l​a​y​ ​v​i​d​e​o​ ​f​r​a​m​e​s​ ​i​n​s​i​d​e​ ​t​i​m​e​l​i​n​e​ ​c​l​i​p​s​.​ ​D​i​s​a​b​l​e​ ​t​h​i​s​ ​t​o​ ​r​e​d​u​c​e​ ​C​P​U​ ​a​n​d​ ​d​i​s​k​ ​u​s​a​g​e​.
+		 */
+		showTimelineVideoThumbnailsDescription: string;
+		/**
 		 * P​r​o​j​e​c​t​ ​c​a​t​e​g​o​r​i​e​s
 		 */
 		projectCategories: string;
@@ -18721,6 +18729,14 @@ export type TranslationFunctions = {
 		 * Choose the values used automatically when a field is left empty.
 		 */
 		defaultValuesDescription: () => LocalizedString;
+		/**
+		 * Show video thumbnails in the timeline
+		 */
+		showTimelineVideoThumbnails: () => LocalizedString;
+		/**
+		 * Extract and display video frames inside timeline clips. Disable this to reduce CPU and disk usage.
+		 */
+		showTimelineVideoThumbnailsDescription: () => LocalizedString;
 		/**
 		 * Project categories
 		 */

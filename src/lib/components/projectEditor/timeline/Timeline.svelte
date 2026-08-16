@@ -64,6 +64,8 @@
 	let tracksViewportWidth = $state(0);
 	let visibleRangeStartMs = $state(0);
 	let visibleRangeEndMs = $state(0);
+	let thumbnailRangeStartMs = $state(0);
+	let thumbnailRangeEndMs = $state(0);
 	let visibleSeconds = $derived(() => {
 		const startSecond = Math.max(0, Math.floor(visibleRangeStartMs / 1000));
 		const endSecond = Math.min(totalDuration().toSeconds(), Math.ceil(visibleRangeEndMs / 1000));
@@ -817,6 +819,8 @@
 			((scrollX + viewportWidthPx - TIMELINE_LEFT_HEADER_WIDTH_PX) / safeZoom) * 1000
 		);
 
+		thumbnailRangeStartMs = viewportStartMs;
+		thumbnailRangeEndMs = Math.min(totalDurationMs, viewportEndMs);
 		visibleRangeStartMs = Math.max(0, viewportStartMs - OVERSCAN_MS);
 		visibleRangeEndMs = Math.min(totalDurationMs, viewportEndMs + OVERSCAN_MS);
 	});
@@ -1184,6 +1188,8 @@
 							bind:track={globalState.currentProject!.content.timeline.tracks[index]}
 							{visibleRangeStartMs}
 							{visibleRangeEndMs}
+							{thumbnailRangeStartMs}
+							{thumbnailRangeEndMs}
 							canMoveUp={displayIndex > 0}
 							canMoveDown={displayIndex < orderedTrackItems().length - 1}
 							onMoveUp={() => void moveTimelineTrack(track, -1)}

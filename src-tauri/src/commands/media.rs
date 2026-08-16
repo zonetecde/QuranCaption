@@ -1,8 +1,9 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -12,13 +13,25 @@ use font_kit::handle::Handle;
 use font_kit::properties::Style;
 use font_kit::source::SystemSource;
 use serde::Serialize;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::binaries;
 use crate::path_utils;
 use crate::utils::process::configure_command_no_window;
 
 use super::diagnostics::{format_ffprobe_exec_failed, map_ffprobe_resolve_error};
+
+const TIMELINE_THUMBNAIL_CACHE_VERSION: &str = "v1";
+const MAX_TIMELINE_THUMBNAILS_PER_REQUEST: usize = 32;
+static TIMELINE_THUMBNAIL_EXTRACTION_LOCKS: OnceLock<Mutex<HashMap<PathBuf, Arc<Mutex<()>>>>> =
+    OnceLock::new();
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TimelineVideoThumbnail {
+    pub timestamp_ms: u64,
+    pub path: String,
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -81,6 +94,241 @@ pub fn get_duration(file_path: &str) -> Result<i64, String> {
             e
         ))),
     }
+}
+
+/// Trie, déduplique et borne les timestamps demandés pour protéger le processus FFmpeg.
+///
+/// # Paramètres
+/// * `timestamps_ms` - Positions sources demandées en millisecondes.
+///
+/// # Retourne
+/// Une liste triée contenant au maximum `MAX_TIMELINE_THUMBNAILS_PER_REQUEST` positions.
+fn normalize_timeline_thumbnail_timestamps(mut timestamps_ms: Vec<u64>) -> Vec<u64> {
+    timestamps_ms.sort_unstable();
+    timestamps_ms.dedup();
+    timestamps_ms.truncate(MAX_TIMELINE_THUMBNAILS_PER_REQUEST);
+    timestamps_ms
+}
+
+/// Construit le dossier de cache propre à une version précise du fichier vidéo.
+///
+/// # Paramètres
+/// * `cache_root` - Racine du cache applicatif.
+/// * `source_path` - Chemin normalisé de la vidéo source.
+/// * `width` - Largeur des miniatures.
+/// * `height` - Hauteur des miniatures.
+///
+/// # Retourne
+/// Le dossier de cache invalidé automatiquement si la source change.
+fn timeline_thumbnail_cache_dir(
+    cache_root: &Path,
+    source_path: &Path,
+    width: u32,
+    height: u32,
+) -> Result<PathBuf, String> {
+    let metadata = fs::metadata(source_path).map_err(|error| error.to_string())?;
+    let modified_ms = metadata
+        .modified()
+        .ok()
+        .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
+        .map_or(0, |duration| duration.as_millis());
+    let fingerprint = format!(
+        "{}|{}|{}|{}|{}x{}",
+        TIMELINE_THUMBNAIL_CACHE_VERSION,
+        source_path.to_string_lossy(),
+        metadata.len(),
+        modified_ms,
+        width,
+        height
+    );
+    let cache_key = format!("{:x}", md5::compute(fingerprint.as_bytes()));
+    Ok(cache_root.join("timeline-thumbnails").join(cache_key))
+}
+
+/// Vérifie qu'une miniature en cache existe et contient des données.
+///
+/// # Paramètres
+/// * `path` - Chemin de la miniature finale.
+///
+/// # Retourne
+/// `true` si le fichier peut être réutilisé sans relancer FFmpeg.
+fn is_cached_timeline_thumbnail(path: &str) -> bool {
+    fs::metadata(path).is_ok_and(|metadata| metadata.is_file() && metadata.len() > 0)
+}
+
+/// Retourne le verrou d'extraction propre à une vidéo source.
+///
+/// # Paramètres
+/// * `source_path` - Chemin normalisé de la vidéo source.
+///
+/// # Retourne
+/// Un verrou partagé qui sérialise uniquement les extractions de cette vidéo.
+fn timeline_thumbnail_extraction_lock(source_path: &Path) -> Result<Arc<Mutex<()>>, String> {
+    let locks = TIMELINE_THUMBNAIL_EXTRACTION_LOCKS.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut locks = locks
+        .lock()
+        .map_err(|_| "Timeline thumbnail lock registry is poisoned".to_string())?;
+    Ok(Arc::clone(
+        locks
+            .entry(source_path.to_path_buf())
+            .or_insert_with(|| Arc::new(Mutex::new(()))),
+    ))
+}
+
+/// Extrait en une seule commande FFmpeg toutes les miniatures absentes du cache.
+///
+/// # Paramètres
+/// * `source_path` - Vidéo source normalisée.
+/// * `timestamps_ms` - Positions sources triées et dédupliquées.
+/// * `cache_dir` - Dossier de cache propre à la vidéo.
+/// * `width` - Largeur de sortie.
+/// * `height` - Hauteur de sortie.
+///
+/// # Retourne
+/// Les chemins de miniatures associés à chaque timestamp demandé.
+fn extract_timeline_video_thumbnails(
+    source_path: &Path,
+    timestamps_ms: &[u64],
+    cache_dir: &Path,
+    width: u32,
+    height: u32,
+) -> Result<Vec<TimelineVideoThumbnail>, String> {
+    fs::create_dir_all(cache_dir).map_err(|error| error.to_string())?;
+    let thumbnails: Vec<TimelineVideoThumbnail> = timestamps_ms
+        .iter()
+        .map(|timestamp_ms| TimelineVideoThumbnail {
+            timestamp_ms: *timestamp_ms,
+            path: cache_dir
+                .join(format!("{}.jpg", timestamp_ms))
+                .to_string_lossy()
+                .to_string(),
+        })
+        .collect();
+    let mut missing: Vec<&TimelineVideoThumbnail> = thumbnails
+        .iter()
+        .filter(|thumbnail| !is_cached_timeline_thumbnail(&thumbnail.path))
+        .collect();
+    if missing.is_empty() {
+        return Ok(thumbnails);
+    }
+
+    let extraction_lock = timeline_thumbnail_extraction_lock(source_path)?;
+    let _guard = extraction_lock
+        .lock()
+        .map_err(|_| "Timeline thumbnail extraction lock is poisoned".to_string())?;
+    missing.retain(|thumbnail| !is_cached_timeline_thumbnail(&thumbnail.path));
+    if missing.is_empty() {
+        return Ok(thumbnails);
+    }
+
+    let ffmpeg_path =
+        binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
+    let source = source_path.to_string_lossy();
+    let mut command = Command::new(ffmpeg_path);
+    command.args(["-hide_banner", "-loglevel", "error", "-y"]);
+    for thumbnail in &missing {
+        command
+            .arg("-ss")
+            .arg(format!("{:.3}", thumbnail.timestamp_ms as f64 / 1000.0))
+            .arg("-i")
+            .arg(source.as_ref());
+    }
+    let video_filter = format!(
+        "scale={}:{}:force_original_aspect_ratio=increase,crop={}:{}",
+        width, height, width, height
+    );
+    let temporary_paths: Vec<String> = missing
+        .iter()
+        .map(|thumbnail| format!("{}.tmp.jpg", thumbnail.path.trim_end_matches(".jpg")))
+        .collect();
+    for (input_index, temporary_path) in temporary_paths.iter().enumerate() {
+        command
+            .arg("-map")
+            .arg(format!("{}:v:0", input_index))
+            .args(["-frames:v", "1", "-vf"])
+            .arg(&video_filter)
+            .args(["-q:v", "5"])
+            .arg(temporary_path);
+    }
+    configure_command_no_window(&mut command);
+    let output = command
+        .output()
+        .map_err(|error| format!("Unable to execute ffmpeg: {error}"))?;
+    for (thumbnail, temporary_path) in missing.iter().zip(&temporary_paths) {
+        if !is_cached_timeline_thumbnail(temporary_path) {
+            continue;
+        }
+        if let Err(error) = fs::rename(temporary_path, &thumbnail.path) {
+            for path in &temporary_paths {
+                fs::remove_file(path).ok();
+            }
+            return Err(format!("Unable to cache timeline thumbnail: {error}"));
+        }
+    }
+    for temporary_path in &temporary_paths {
+        fs::remove_file(temporary_path).ok();
+    }
+
+    let available_thumbnails: Vec<TimelineVideoThumbnail> = thumbnails
+        .into_iter()
+        .filter(|thumbnail| is_cached_timeline_thumbnail(&thumbnail.path))
+        .collect();
+    if !available_thumbnails.is_empty() {
+        return Ok(available_thumbnails);
+    }
+    if !output.status.success() {
+        return Err(format!(
+            "ffmpeg thumbnail error: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+
+    Err("ffmpeg did not create any timeline thumbnail".to_string())
+}
+
+/// Retourne les miniatures nécessaires à la portion visible d'un clip vidéo.
+///
+/// Les images déjà présentes dans le cache applicatif ne sont pas réextraites.
+///
+/// # Paramètres
+/// * `app` - Handle Tauri utilisé pour résoudre le cache applicatif.
+/// * `file_path` - Chemin de la vidéo source.
+/// * `timestamps_ms` - Positions sources visibles à extraire.
+/// * `width` - Largeur demandée, entre 48 et 320 pixels.
+/// * `height` - Hauteur demandée, entre 32 et 180 pixels.
+///
+/// # Retourne
+/// Les timestamps et chemins locaux des miniatures mises en cache.
+#[tauri::command]
+pub async fn get_video_timeline_thumbnails(
+    app: AppHandle,
+    file_path: String,
+    timestamps_ms: Vec<u64>,
+    width: u32,
+    height: u32,
+) -> Result<Vec<TimelineVideoThumbnail>, String> {
+    if !(48..=320).contains(&width) || !(32..=180).contains(&height) {
+        return Err("Invalid timeline thumbnail dimensions".to_string());
+    }
+    let source_path = path_utils::normalize_existing_path(&file_path);
+    if !source_path.is_file() {
+        return Err(format!("Source file not found: {}", source_path.display()));
+    }
+    let timestamps_ms = normalize_timeline_thumbnail_timestamps(timestamps_ms);
+    if timestamps_ms.is_empty() {
+        return Ok(Vec::new());
+    }
+    let cache_root = app
+        .path()
+        .app_cache_dir()
+        .map_err(|error| error.to_string())?;
+    let cache_dir = timeline_thumbnail_cache_dir(&cache_root, &source_path, width, height)?;
+
+    tokio::task::spawn_blocking(move || {
+        extract_timeline_video_thumbnails(&source_path, &timestamps_ms, &cache_dir, width, height)
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 /// Retourne la liste des polices système disponibles (noms de familles uniques).
@@ -1329,5 +1577,68 @@ pub fn normalize_audio_timestamps(file_path: String) -> Result<(), String> {
             let _ = std::fs::remove_file(&temp_path);
             Err(format!("Unable to execute ffmpeg: {}", e))
         }
+    }
+}
+
+#[cfg(test)]
+mod timeline_thumbnail_tests {
+    use super::*;
+
+    /// Vérifie que les timestamps envoyés à FFmpeg sont triés, uniques et bornés.
+    #[test]
+    fn normalizes_timeline_thumbnail_timestamps() {
+        let timestamps = (0..40).rev().chain([5, 5, 7]).collect();
+        let normalized = normalize_timeline_thumbnail_timestamps(timestamps);
+
+        assert_eq!(normalized.len(), MAX_TIMELINE_THUMBNAILS_PER_REQUEST);
+        assert_eq!(normalized[0], 0);
+        assert_eq!(normalized[31], 31);
+    }
+
+    /// Vérifie qu'un remplacement de la vidéo invalide son dossier de miniatures.
+    #[test]
+    fn invalidates_timeline_thumbnail_cache_when_source_changes() {
+        let test_root = std::env::temp_dir().join(format!(
+            "qurancaption-thumbnail-cache-test-{}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&test_root).unwrap();
+        let source_path = test_root.join("source.mp4");
+        fs::write(&source_path, b"first").unwrap();
+        let first_cache = timeline_thumbnail_cache_dir(&test_root, &source_path, 160, 72).unwrap();
+
+        fs::write(&source_path, b"a different source").unwrap();
+        let second_cache = timeline_thumbnail_cache_dir(&test_root, &source_path, 160, 72).unwrap();
+
+        assert_ne!(first_cache, second_cache);
+        fs::remove_dir_all(test_root).unwrap();
+    }
+
+    /// Vérifie qu'un fichier vide ou absent n'est jamais accepté comme cache valide.
+    #[test]
+    fn rejects_empty_timeline_thumbnail_cache_files() {
+        let path = std::env::temp_dir().join(format!(
+            "qurancaption-empty-thumbnail-test-{}.jpg",
+            std::process::id()
+        ));
+        fs::write(&path, []).unwrap();
+
+        assert!(!is_cached_timeline_thumbnail(
+            path.to_string_lossy().as_ref()
+        ));
+        fs::remove_file(path).unwrap();
+    }
+
+    /// Vérifie que seules les extractions d'une même vidéo partagent leur verrou.
+    #[test]
+    fn isolates_timeline_thumbnail_extraction_locks_by_source() {
+        let first_path = Path::new("first-video.mp4");
+        let second_path = Path::new("second-video.mp4");
+        let first_lock = timeline_thumbnail_extraction_lock(first_path).unwrap();
+        let repeated_first_lock = timeline_thumbnail_extraction_lock(first_path).unwrap();
+        let second_lock = timeline_thumbnail_extraction_lock(second_path).unwrap();
+
+        assert!(Arc::ptr_eq(&first_lock, &repeated_first_lock));
+        assert!(!Arc::ptr_eq(&first_lock, &second_lock));
     }
 }

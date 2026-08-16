@@ -28,6 +28,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::media::open_directory,
         commands::media::open_explorer_with_file_selected,
         commands::media::get_video_dimensions,
+        commands::media::get_video_timeline_thumbnails,
         commands::media::is_constant_bitrate,
         exporter::commands::export_video,
         exporter::commands::cancel_export,

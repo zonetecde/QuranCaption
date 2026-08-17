@@ -6383,6 +6383,47 @@ type RootTranslation = {
 		 */
 		chapterPerVerseDescription: string;
 		/**
+		 * C​h​a​p​t​e​r​ ​p​e​r​ ​H​i​z​b
+		 */
+		chapterPerHizb: string;
+		/**
+		 * C​r​e​a​t​e​s​ ​o​n​e​ ​c​h​a​p​t​e​r​ ​f​o​r​ ​e​a​c​h​ ​h​i​z​b​ ​i​n​ ​y​o​u​r​ ​v​i​d​e​o​ ​t​i​m​e​l​i​n​e​.
+		 */
+		chapterPerHizbDescription: string;
+		/**
+		 * C​h​a​p​t​e​r​ ​p​e​r​ ​J​u​z
+		 */
+		chapterPerJuz: string;
+		/**
+		 * C​r​e​a​t​e​s​ ​o​n​e​ ​c​h​a​p​t​e​r​ ​f​o​r​ ​e​a​c​h​ ​j​u​z​ ​i​n​ ​y​o​u​r​ ​v​i​d​e​o​ ​t​i​m​e​l​i​n​e​.
+		 */
+		chapterPerJuzDescription: string;
+		/**
+		 * C​h​a​p​t​e​r​ ​p​e​r​ ​R​u​b​ʿ
+		 */
+		chapterPerRub: string;
+		/**
+		 * C​r​e​a​t​e​s​ ​o​n​e​ ​c​h​a​p​t​e​r​ ​f​o​r​ ​e​a​c​h​ ​r​u​b​ʿ​ ​i​n​ ​y​o​u​r​ ​v​i​d​e​o​ ​t​i​m​e​l​i​n​e​.
+		 */
+		chapterPerRubDescription: string;
+		/**
+		 * Y​o​u​ ​m​i​g​h​t​ ​w​a​n​t​ ​t​o​ ​c​h​a​n​g​e​ ​t​e​x​t​ ​f​o​r​m​a​t​ ​t​o​ ​"​{​f​o​r​m​a​t​}​"
+		 * @param {unknown} format
+		 */
+		chapterFormatSuggestion: RequiredParams<'format'>;
+		/**
+		 * H​i​z​b​ ​<​h​i​z​b​-​n​u​m​b​e​r​>
+		 */
+		chapterFormatHizb: string;
+		/**
+		 * J​u​z​ ​<​j​u​z​-​n​u​m​b​e​r​>
+		 */
+		chapterFormatJuz: string;
+		/**
+		 * R​u​b​ ​<​r​u​b​-​n​u​m​b​e​r​>
+		 */
+		chapterFormatRub: string;
+		/**
 		 * H​o​w​ ​t​o​ ​U​s​e
 		 */
 		howToUse: string;
@@ -17628,6 +17669,46 @@ export type TranslationFunctions = {
 		 * Creates one chapter for each verse in your video timeline.
 		 */
 		chapterPerVerseDescription: () => LocalizedString;
+		/**
+		 * Chapter per Hizb
+		 */
+		chapterPerHizb: () => LocalizedString;
+		/**
+		 * Creates one chapter for each hizb in your video timeline.
+		 */
+		chapterPerHizbDescription: () => LocalizedString;
+		/**
+		 * Chapter per Juz
+		 */
+		chapterPerJuz: () => LocalizedString;
+		/**
+		 * Creates one chapter for each juz in your video timeline.
+		 */
+		chapterPerJuzDescription: () => LocalizedString;
+		/**
+		 * Chapter per Rubʿ
+		 */
+		chapterPerRub: () => LocalizedString;
+		/**
+		 * Creates one chapter for each rubʿ in your video timeline.
+		 */
+		chapterPerRubDescription: () => LocalizedString;
+		/**
+		 * You might want to change text format to "{format}"
+		 */
+		chapterFormatSuggestion: (arg: { format: unknown }) => LocalizedString;
+		/**
+		 * Hizb <hizb-number>
+		 */
+		chapterFormatHizb: () => LocalizedString;
+		/**
+		 * Juz <juz-number>
+		 */
+		chapterFormatJuz: () => LocalizedString;
+		/**
+		 * Rub <rub-number>
+		 */
+		chapterFormatRub: () => LocalizedString;
 		/**
 		 * How to Use
 		 */

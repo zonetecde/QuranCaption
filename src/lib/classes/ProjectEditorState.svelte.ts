@@ -432,7 +432,8 @@ export class ExportState extends SerializableBase {
 	arabicTextFormat: 'Plain' | 'V1' | 'V2' = $state('Plain');
 
 	// Indique la sélection d'exportation des chapitres YouTube
-	ytbChaptersChoice: 'Each Surah' | 'Each Verse' = $state('Each Surah');
+	ytbChaptersChoice: 'Each Surah' | 'Each Verse' | 'Each Hizb' | 'Each Juz' | 'Each Rub' =
+		$state('Each Surah');
 	ytbChaptersFormat: string = $state('<timestamp> Surah <surah-number>, Verse <verse-number>');
 	ytbChaptersTranslationEditionName: string = $state('');
 

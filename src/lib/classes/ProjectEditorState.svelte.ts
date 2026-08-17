@@ -438,6 +438,7 @@ export class ExportState extends SerializableBase {
 	recitationCutMarginMs: number = $state(350);
 	recitationMinimumSilenceMs: number = $state(3000);
 	exportWithoutBackground: boolean = $state(false);
+	addRandomBackground: boolean = $state(false);
 	transparentExportFormat: 'mov_prores_4444' | 'webm_vp9_alpha' = $state('mov_prores_4444');
 	customFileName: string = $state('');
 }

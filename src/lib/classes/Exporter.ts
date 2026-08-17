@@ -1,7 +1,7 @@
 import { globalState } from '$lib/runes/main.svelte';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { LogicalPosition } from '@tauri-apps/api/dpi';
-import { PredefinedSubtitleClip, SubtitleClip } from './Clip.svelte';
+import { AssetClip, PredefinedSubtitleClip, SubtitleClip } from './Clip.svelte';
 import {
 	VerseTranslation,
 	getTranslationTrimUnits,
@@ -14,7 +14,7 @@ import ExportService from '$lib/services/ExportService';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { BaseDirectory, join } from '@tauri-apps/api/path';
-import { exists, remove } from '@tauri-apps/plugin-fs';
+import { exists, readDir, remove, type DirEntry } from '@tauri-apps/plugin-fs';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 import ExportFileService from '$lib/services/ExportFileService';
 import { formatTranscriptReferencesForExport } from '$lib/services/TranscriptReferenceService';
@@ -26,8 +26,144 @@ import { ProjectService } from '$lib/services/ProjectService';
 import ModalManager from '$lib/components/modals/ModalManager';
 
 import type { Edition } from './Edition';
+import { AssetType, SourceType, TrackType } from './enums';
 
 export const DEFAULT_YTB_CHAPTERS_FORMAT = '<timestamp> Surah <surah-number>, Verse <verse-number>';
+
+const RANDOM_BACKGROUND_EXTENSIONS = new Set([
+	'png',
+	'jpg',
+	'jpeg',
+	'gif',
+	'bmp',
+	'webp',
+	'mp4',
+	'avi',
+	'mov',
+	'mkv',
+	'flv',
+	'webm'
+]);
+
+export type RandomBackgroundDirectoryEntry = Pick<DirEntry, 'name' | 'isFile' | 'isDirectory'>;
+
+export type RandomBackgroundPreparationOptions = {
+	readDirectory?: (folder: string) => Promise<readonly RandomBackgroundDirectoryEntry[]>;
+	randomValue?: number;
+	joinPath?: (folder: string, fileName: string) => Promise<string>;
+};
+
+/**
+ * Returns compatible image and video files directly contained in a directory.
+ * @param {readonly RandomBackgroundDirectoryEntry[]} entries Directory entries to filter.
+ * @returns {string[]} Compatible file names.
+ */
+export function getRandomBackgroundCandidates(
+	entries: readonly RandomBackgroundDirectoryEntry[]
+): string[] {
+	return entries
+		.filter((entry) => entry.isFile && !entry.isDirectory)
+		.map((entry) => entry.name)
+		.filter((name) => {
+			const extension = name.split('.').at(-1)?.toLowerCase();
+			return extension !== undefined && RANDOM_BACKGROUND_EXTENSIONS.has(extension);
+		});
+}
+
+/**
+ * Selects one compatible background using a normalized random value.
+ * @param {readonly RandomBackgroundDirectoryEntry[]} entries Directory entries to inspect.
+ * @param {number} randomValue Value normally in the interval [0, 1).
+ * @returns {string | null} Selected file name, or `null` when none is available.
+ */
+export function selectRandomBackgroundCandidate(
+	entries: readonly RandomBackgroundDirectoryEntry[],
+	randomValue: number = Math.random()
+): string | null {
+	const candidates = getRandomBackgroundCandidates(entries);
+	if (candidates.length === 0) return null;
+
+	const normalizedValue = Number.isFinite(randomValue)
+		? Math.min(Math.max(randomValue, 0), 0.999999999)
+		: 0;
+	return candidates[Math.floor(normalizedValue * candidates.length)] ?? null;
+}
+
+/**
+ * Creates the temporary background clip for the selected asset.
+ * @param {number} assetId Asset identifier.
+ * @param {AssetType.Image | AssetType.Video} assetType Selected media type.
+ * @param {number} audioDurationMs Project audio duration in milliseconds.
+ * @returns {AssetClip} Clip ready for the temporary video track.
+ */
+export function createRandomBackgroundClip(
+	assetId: number,
+	assetType: AssetType.Image | AssetType.Video,
+	audioDurationMs: number
+): AssetClip {
+	if (assetType === AssetType.Image) return new AssetClip(0, 0, assetId);
+
+	const clip = new AssetClip(0, Math.max(0, audioDurationMs), assetId);
+	clip.loopUntilAudioEnd = true;
+	return clip;
+}
+
+/**
+ * Adds a random background to an export clone without changing the source project.
+ * @param {Project} project Export clone to prepare.
+ * @param {string} folder Folder containing the background pool.
+ * @param {RandomBackgroundPreparationOptions} options Injectable dependencies for tests.
+ * @returns {Promise<void>} Resolves without blocking export when the pool is unavailable.
+ */
+export async function prepareRandomBackgroundProject(
+	project: Project,
+	folder: string,
+	options: RandomBackgroundPreparationOptions = {}
+): Promise<void> {
+	const exportState = project.projectEditorState.export;
+	if (!exportState.addRandomBackground || exportState.exportWithoutBackground) return;
+
+	const videoTrack = project.content.timeline.getFirstTrack(TrackType.Video);
+	if (videoTrack.clips.length > 0) return;
+
+	const folderPath = folder.trim();
+	if (!folderPath) return;
+
+	let entries: readonly RandomBackgroundDirectoryEntry[];
+	try {
+		const readDirectory = options.readDirectory ?? ((path: string) => readDir(path));
+		entries = await readDirectory(folderPath);
+	} catch {
+		return;
+	}
+
+	const candidate = selectRandomBackgroundCandidate(entries, options.randomValue);
+	if (!candidate) return;
+
+	try {
+		const joinPath = options.joinPath ?? ((path: string, fileName: string) => join(path, fileName));
+		const assetPath = await joinPath(folderPath, candidate);
+		const asset = project.content.addAssetHeadless(assetPath, undefined, SourceType.Local, {
+			suppressUiEffects: true,
+			skipConstantBitrateWarning: true
+		});
+		if (!asset || (asset.type !== AssetType.Image && asset.type !== AssetType.Video)) return;
+
+		await asset.checkExistence();
+		if (!asset.exists) return;
+		if (asset.type === AssetType.Video) {
+			await asset.ensureDurationLoaded();
+			if (!asset.exists || asset.hasDurationLoadError()) return;
+		}
+
+		const audioDurationMs = project.content.timeline
+			.getFirstTrack(TrackType.Audio)
+			.getDuration().ms;
+		videoTrack.clips = [createRandomBackgroundClip(asset.id, asset.type, audioDurationMs)];
+	} catch {
+		return;
+	}
+}
 
 export type YouTubeChapterFormatValues = {
 	timestamp: string;
@@ -677,6 +813,10 @@ export default class Exporter {
 
 		// Fait une copie du projet à l'état actuelle
 		const project = globalState.currentProject!.clone();
+		await prepareRandomBackgroundProject(
+			project,
+			globalState.settings?.exportSettings.randomBackgroundFolder ?? ''
+		);
 		project.detail.id = Number(exportId); // L'ID du projet est l'ID d'export
 
 		// Créer le fichier du projet dans le dossier Export afin que l'Exporter le récupère

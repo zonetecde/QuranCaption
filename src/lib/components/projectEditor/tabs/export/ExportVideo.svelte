@@ -10,6 +10,7 @@
 	import ExportFolderPicker from './ExportFolderPicker.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import { open } from '@tauri-apps/plugin-dialog';
 	import type { ExportSkipRange } from '$lib/classes/ProjectEditorState.svelte';
 
 	type VideoCodec = 'h264' | 'h265';
@@ -94,6 +95,36 @@
 	async function savePerformanceProfile(profile: PerformanceProfile): Promise<void> {
 		if (!globalState.settings) return;
 		globalState.settings.exportSettings.performanceProfile = profile;
+		await Settings.save();
+	}
+
+	/**
+	 * Enables or disables random backgrounds for video exports.
+	 * @param {boolean} enabled New option state.
+	 * @returns {void}
+	 */
+	function setAddRandomBackground(enabled: boolean): void {
+		if (globalState.getExportState.addRandomBackground === enabled) return;
+		ProjectHistoryManager.track('toggle random export background', () => {
+			globalState.getExportState.addRandomBackground = enabled;
+		});
+	}
+
+	/**
+	 * Opens the folder picker and saves the global background pool folder.
+	 * @returns {Promise<void>} Resolves after the setting is saved.
+	 */
+	async function selectRandomBackgroundFolder(): Promise<void> {
+		if (!globalState.settings) return;
+
+		const selected = await open({
+			directory: true,
+			multiple: false,
+			defaultPath: globalState.settings.exportSettings.randomBackgroundFolder || undefined
+		});
+		if (typeof selected !== 'string' || !selected.trim()) return;
+
+		globalState.settings.exportSettings.randomBackgroundFolder = selected;
 		await Settings.save();
 	}
 
@@ -558,6 +589,47 @@
 
 				<div class="mb-4 mt-4">
 					<h4 class="text-base font-medium text-secondary mb-1">{$LL.export.background()}</h4>
+					<label class="mt-2 flex cursor-pointer select-none items-start gap-3">
+						<input
+							type="checkbox"
+							class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)] disabled:cursor-not-allowed"
+							disabled={globalState.getExportState.exportWithoutBackground}
+							checked={globalState.getExportState.addRandomBackground}
+							onchange={(event) =>
+								setAddRandomBackground((event.currentTarget as HTMLInputElement).checked)}
+						/>
+						<span class="text-sm text-primary">
+							{$LL.export.addRandomBackground()}
+							<span class="mt-1 block text-xs text-thirdly">
+								{$LL.export.addRandomBackgroundDescription()}
+							</span>
+						</span>
+					</label>
+
+					{#if globalState.getExportState.addRandomBackground}
+						<div class="mt-3 space-y-2">
+							<button
+								type="button"
+								class="btn-accent w-full px-3 py-2 text-sm"
+								onclick={() => void selectRandomBackgroundFolder()}
+							>
+								<span class="material-icons-outlined mr-2 align-middle text-base">folder_open</span>
+								{$LL.export.selectRandomBackgroundFolder()}
+							</button>
+							{#if globalState.settings?.exportSettings.randomBackgroundFolder}
+								<p
+									class="break-all text-xs text-secondary"
+									title={globalState.settings.exportSettings.randomBackgroundFolder}
+								>
+									{globalState.settings.exportSettings.randomBackgroundFolder}
+								</p>
+							{/if}
+							<p class="text-xs text-thirdly">
+								{$LL.export.randomBackgroundFolderDescription()}
+							</p>
+						</div>
+					{/if}
+
 					<label class="mt-2 flex items-start gap-3 cursor-pointer select-none">
 						<input
 							type="checkbox"

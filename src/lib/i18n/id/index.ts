@@ -1303,6 +1303,7 @@ const id = {
 		meaningRangesSkipped: '{count} rentang AI yang tidak valid dilewati.',
 		meaningRangesMissingVerses: '{count} ayat tidak disertakan oleh AI.',
 		meaningRangeOverLimit: 'Rentang ini melebihi durasi maksimum.',
+		exportAll: 'Ekspor semua',
 		selectVerseRange: 'Pilih ayat pertama dan terakhir yang ingin diekspor:',
 		selectedVerseRange: '{start} sampai {end}',
 		selectTimeRange: 'Pilih rentang waktu video yang ingin di-export:',

@@ -73,10 +73,12 @@
 		meaningRangesSkipped: (args: { count: number }) => string;
 		meaningRangesMissingVerses: (args: { count: number }) => string;
 		meaningRangeOverLimit: () => string;
+		exportAll: () => string;
 	};
 	let meaningCopy = $derived($LL.export as unknown as MeaningExportCopy);
 	let meaningRanges = $state<MeaningExportRange[]>([]);
 	let selectedMeaningRangeId = $state<string | null>(null);
+	let selectedMeaningRangeIds = $state<string[]>([]);
 	let meaningSkippedRangeCount = $state(0);
 	let meaningMissingVerseCount = $state(0);
 	let isGeneratingMeaningRanges = $state(false);
@@ -137,6 +139,10 @@
 	function setExportRangeMode(mode: ExportRangeMode): void {
 		ProjectHistoryManager.track('set export range mode', () => {
 			globalState.getExportState.exportRangeMode = mode;
+			if (mode !== 'meaning') {
+				selectedMeaningRangeId = null;
+				selectedMeaningRangeIds = [];
+			}
 			if (mode !== 'verse' || exportVerses.length === 0) return;
 
 			const indexes = getVerseIndexesFromTime();
@@ -191,6 +197,7 @@
 		isGeneratingMeaningRanges = true;
 		meaningRanges = [];
 		selectedMeaningRangeId = null;
+		selectedMeaningRangeIds = [];
 		meaningSkippedRangeCount = 0;
 		meaningMissingVerseCount = 0;
 		let errorShown = false;
@@ -257,19 +264,73 @@
 	}
 
 	/**
-	 * Sélectionne une plage sémantique et l'applique à la plage d'export vidéo.
+	 * Sélectionne une ou plusieurs plages sémantiques avec Ctrl/Cmd et applique la plage active.
 	 * @param {MeaningExportRange} range Plage générée par l'IA.
+	 * @param {MouseEvent} event Événement de clic de la carte.
 	 * @returns {void}
 	 */
-	function selectMeaningRange(range: MeaningExportRange): void {
+	function selectMeaningRange(range: MeaningExportRange, event: MouseEvent): void {
+		const isMultiSelect = event.ctrlKey || event.metaKey;
+		const isSelected = selectedMeaningRangeIds.includes(range.id);
+		let nextSelectedIds: string[];
+		let activeRange: MeaningExportRange | undefined;
+
+		if (!isMultiSelect) {
+			nextSelectedIds = [range.id];
+			activeRange = range;
+		} else if (isSelected) {
+			nextSelectedIds = selectedMeaningRangeIds.filter((id) => id !== range.id);
+			activeRange =
+				selectedMeaningRangeId === range.id
+					? meaningRanges.find((candidate) => candidate.id === nextSelectedIds.at(-1))
+					: meaningRanges.find((candidate) => candidate.id === selectedMeaningRangeId);
+		} else {
+			nextSelectedIds = [...selectedMeaningRangeIds, range.id];
+			activeRange = range;
+		}
+
+		selectedMeaningRangeIds = nextSelectedIds;
+		selectedMeaningRangeId = activeRange?.id ?? null;
+		if (!activeRange) return;
+
 		ProjectHistoryManager.track('select meaning export range', () => {
-			globalState.getExportState.videoStartTime = range.startTime;
-			globalState.getExportState.videoEndTime = range.endTime;
+			globalState.getExportState.videoStartTime = activeRange.startTime;
+			globalState.getExportState.videoEndTime = activeRange.endTime;
 		});
 		const indexes = getVerseIndexesFromTime();
 		verseStartIndex = indexes.start;
 		verseEndIndex = indexes.end;
-		selectedMeaningRangeId = range.id;
+	}
+
+	/**
+	 * Exporte la plage active ou toutes les plages sémantiques sélectionnées.
+	 * @returns {Promise<void>} Promesse résolue après la mise en file des exports.
+	 */
+	async function startVideoExport(): Promise<void> {
+		if (
+			globalState.getExportState.exportRangeMode !== 'meaning' ||
+			selectedMeaningRangeIds.length < 2
+		) {
+			await Exporter.exportVideo();
+			return;
+		}
+
+		const sourceProject = globalState.currentProject;
+		if (!sourceProject) return;
+
+		const selectedRanges = meaningRanges.filter((range) =>
+			selectedMeaningRangeIds.includes(range.id)
+		);
+		if (selectedRanges.length < 2) {
+			await Exporter.exportVideo();
+			return;
+		}
+
+		await Exporter.queueVideoRanges(
+			sourceProject,
+			selectedRanges,
+			sourceProject.detail.generateExportFileName()
+		);
 	}
 
 	/**
@@ -594,11 +655,12 @@
 									class="rounded-md border px-2 py-2 text-xs font-medium transition-colors {range.exceedsMaxDuration
 										? 'border-red-500 bg-red-500/10 text-red-300 hover:bg-red-500/20'
 										: 'border-color bg-secondary text-secondary hover:border-accent-primary hover:text-primary'} {selectedMeaningRangeId ===
-									range.id
+										range.id || selectedMeaningRangeIds.includes(range.id)
 										? 'ring-2 ring-accent-primary ring-offset-1 ring-offset-secondary'
 										: ''}"
+									aria-pressed={selectedMeaningRangeIds.includes(range.id)}
 									title={range.exceedsMaxDuration ? meaningCopy.meaningRangeOverLimit() : undefined}
-									onclick={() => selectMeaningRange(range)}
+									onclick={(event) => selectMeaningRange(range, event)}
 								>
 									{formatMeaningRangeLabel(range)}
 								</button>
@@ -643,7 +705,7 @@
 					<p class="text-thirdly text-sm">{$LL.editor.noSubtitleFallback()}</p>
 				{/if}
 
-				{#if globalState.getExportState.exportRangeMode === 'meaning' && selectedMeaningRangeId && exportVerses.length > 0}
+				{#if globalState.getExportState.exportRangeMode === 'meaning' && selectedMeaningRangeIds.length === 1 && exportVerses.length > 0}
 					<div class="mt-3 rounded-lg border border-color bg-secondary px-4 py-5">
 						<div class="mb-5 text-center font-mono text-sm font-medium text-accent-primary">
 							{rangeCopy.selectedVerseRange({
@@ -1065,8 +1127,11 @@
 
 	<!-- Export Button -->
 	<div class="flex flex-shrink-0 flex-col items-center border-t border-color pt-2">
-		<button class="btn-accent px-6 py-3 font-medium" onclick={Exporter.exportVideo}>
-			{$LL.export.exportButton()}
+		<button class="btn-accent px-6 py-3 font-medium" onclick={() => void startVideoExport()}>
+			{globalState.getExportState.exportRangeMode === 'meaning' &&
+			selectedMeaningRangeIds.length > 1
+				? meaningCopy.exportAll()
+				: $LL.export.exportButton()}
 		</button>
 		<p class="text-thirdly text-xs mt-2 text-center">
 			{$LL.export.startExportDescription()}

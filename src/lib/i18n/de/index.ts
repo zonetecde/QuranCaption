@@ -2004,6 +2004,7 @@ const de = {
 		meaningRangesSkipped: '{count} ungültige KI-Bereich(e) wurden übersprungen.',
 		meaningRangesMissingVerses: '{count} Vers(e) wurden von der KI nicht eingeschlossen.',
 		meaningRangeOverLimit: 'Dieser Bereich überschreitet die maximale Dauer.',
+		exportAll: 'Alle exportieren',
 		selectVerseRange: 'Wählen Sie den ersten und letzten zu exportierenden Vers:',
 		selectedVerseRange: '{start} bis {end}',
 		selectTimeRange: 'Wählen Sie den Zeitbereich Ihres zu exportierenden Videos:',

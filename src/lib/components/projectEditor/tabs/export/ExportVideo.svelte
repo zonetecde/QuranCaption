@@ -66,6 +66,7 @@
 		maxDurationDescription: () => string;
 		includeAllMeaningVerses: () => string;
 		includeAllMeaningVersesDescription: () => string;
+		includeAllMeaningVersesRecommendation: () => string;
 		generateMeaningRanges: () => string;
 		generatingMeaningRanges: () => string;
 		meaningRangesEmpty: () => string;
@@ -677,6 +678,10 @@
 								<span class="block font-medium">{meaningCopy.includeAllMeaningVerses()}</span>
 								<span class="mt-0.5 block text-xs text-thirdly">
 									{meaningCopy.includeAllMeaningVersesDescription()}
+									{' '}
+									<strong class="font-semibold text-secondary">
+										{meaningCopy.includeAllMeaningVersesRecommendation()}
+									</strong>
 								</span>
 							</span>
 						</label>

@@ -1998,6 +1998,8 @@ const de = {
 		includeAllMeaningVerses: 'Alle Verse einschließen',
 		includeAllMeaningVersesDescription:
 			'Wenn aktiviert, muss die KI jeden Vers genau einmal einschließen; andernfalls darf sie Verse auslassen.',
+		includeAllMeaningVersesRecommendation:
+			'Empfehlung: deaktiviert für bessere semantische Bereiche.',
 		generateMeaningRanges: 'Bedeutungsbereiche erzeugen',
 		generatingMeaningRanges: 'Bedeutungsbereiche werden erzeugt …',
 		meaningRangesEmpty: 'Es wurden noch keine Bedeutungsbereiche erzeugt.',

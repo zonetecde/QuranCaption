@@ -11,7 +11,8 @@ const export_ = {
 	maxDurationDescription: 'Maximum target duration for each generated video range.',
 	includeAllMeaningVerses: 'Include all verses',
 	includeAllMeaningVersesDescription:
-		'When enabled, AI must include every verse exactly once; when disabled, it may skip verses. Recommended to false for better semantic ranges.',
+		'When enabled, AI must include every verse exactly once; when disabled, it may skip verses.',
+	includeAllMeaningVersesRecommendation: 'Recommended to false for better semantic ranges.',
 	generateMeaningRanges: 'Generate meaning ranges',
 	generatingMeaningRanges: 'Generating meaning ranges...',
 	meaningRangesEmpty: 'No meaning ranges were generated yet.',

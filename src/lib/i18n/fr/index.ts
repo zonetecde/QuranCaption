@@ -1999,6 +1999,8 @@ const fr = {
 		includeAllMeaningVerses: 'Inclure tous les versets',
 		includeAllMeaningVersesDescription:
 			'Lorsque cette option est activée, l’IA doit inclure chaque verset exactement une fois ; sinon, elle peut en ignorer.',
+		includeAllMeaningVersesRecommendation:
+			'Recommandé : désactivé pour de meilleures plages sémantiques.',
 		generateMeaningRanges: 'Générer les plages par sens',
 		generatingMeaningRanges: 'Génération des plages par sens…',
 		meaningRangesEmpty: 'Aucune plage par sens n’a encore été générée.',

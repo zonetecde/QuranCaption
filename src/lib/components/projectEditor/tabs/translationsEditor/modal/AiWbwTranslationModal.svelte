@@ -13,7 +13,8 @@
 	import AiBatchOverviewCard from './shared/AiBatchOverviewCard.svelte';
 	import AiStreamingWorkerGrid from './shared/AiStreamingWorkerGrid.svelte';
 	import TranslationsEditorModalShell from './shared/TranslationsEditorModalShell.svelte';
-	import VerseRangeSelector from './VerseRangeSelector.svelte';
+	import VerseRangeSlider from '$lib/components/projectEditor/tabs/export/VerseRangeSlider.svelte';
+	import { buildVerseRangeSliderOptions } from '$lib/components/projectEditor/tabs/export/VerseRangeSlider';
 	import {
 		applyAiWbwTranslationValidationSuccess,
 		buildAiWbwTranslationBatches,
@@ -712,17 +713,16 @@
 			</label>
 		{/if}
 
-		<VerseRangeSelector
-			{totalDurationMs}
+		<VerseRangeSlider
+			verses={buildVerseRangeSliderOptions(aiWbwTranslationCandidates)}
 			totalItems={aiWbwTranslationCandidates.length}
 			selectedItems={selectedAiWbwTranslationSegments()}
 			title={$LL.editor.aiWbwTranslationRange()}
-			icon="schedule"
 			totalLabel={$LL.editor.eligibleSegments()}
-			selectionLabel={$LL.editor.selectTimeRangeToProcess()}
-			selectionHint=""
+			selectionLabel={$LL.tools.selectAyahRangeHint()}
 			bind:startTimeMs={aiWbwTranslationStartTimeMs}
 			bind:endTimeMs={aiWbwTranslationEndTimeMs}
+			showRangeLabel
 			onRangeChange={persistAiWbwTranslationRange}
 		/>
 

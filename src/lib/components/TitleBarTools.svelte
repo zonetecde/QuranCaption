@@ -34,7 +34,10 @@
 
 		const subtitleCount = globalState.getSubtitleTrack.clips.length;
 		if (subtitleCount === 0) {
-			await ModalManager.errorModal(get(LL).editor.noSubtitlesToRemove(), get(LL).editor.noSubtitlesError());
+			await ModalManager.errorModal(
+				get(LL).editor.noSubtitlesToRemove(),
+				get(LL).editor.noSubtitlesError()
+			);
 			return;
 		}
 
@@ -105,6 +108,17 @@
 			>
 				<span class="material-icons text-lg text-accent">content_cut</span>
 				{$LL.editor.assetTrimmer()}
+			</button>
+			<!-- svelte-ignore node_invalid_placement_ssr -->
+			<button
+				class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
+				onclick={(event) => {
+					event.stopPropagation();
+					runAction(() => ModalManager.verseRangeCropModal());
+				}}
+			>
+				<span class="material-icons text-lg text-accent">crop</span>
+				{$LL.tools.selectAyahRange()}
 			</button>
 
 			<!-- svelte-ignore node_invalid_placement_ssr -->

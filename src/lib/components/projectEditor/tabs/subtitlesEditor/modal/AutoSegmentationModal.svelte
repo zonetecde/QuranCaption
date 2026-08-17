@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import ModalManager from '$lib/components/modals/ModalManager';
 	import ResultPanel from './autoSegmentation/ResultPanel.svelte';
 	import { setSharedWizard } from './autoSegmentation/sharedWizard';
 	import { useAutoSegmentationWizard } from './autoSegmentation/useAutoSegmentationWizard.svelte';
@@ -30,6 +31,16 @@
 	/** Returns to the main wizard from the JSON import view. */
 	function returnToWizard(): void {
 		activeView = 'wizard';
+	}
+
+	/**
+	 * Closes the segmentation wizard before opening the Ayah range crop tool.
+	 * @returns {Promise<void>} Resolution after the crop modal is closed.
+	 */
+	async function openVerseRangeCrop(): Promise<void> {
+		close();
+		await tick();
+		await ModalManager.verseRangeCropModal();
 	}
 
 	/** Initializes non-blocking local status checks when opening the wizard. */
@@ -73,7 +84,7 @@
 						<ResultPanel />
 					</div>
 				</div>
-				<WizardFooter onClose={close} />
+				<WizardFooter onClose={close} onOpenVerseRangeCrop={openVerseRangeCrop} />
 			</section>
 		{:else}
 			<section class="flex min-w-0 flex-1 flex-col">
@@ -98,6 +109,14 @@
 								<button class="btn px-4 py-2 text-sm" onclick={returnToWizard}
 									>{$LL.common.back()}</button
 								>
+								<button
+									type="button"
+									class="btn inline-flex items-center gap-1.5 px-4 py-2 text-sm"
+									onclick={() => void openVerseRangeCrop()}
+								>
+									<span class="material-icons text-base leading-none">crop</span>
+									{$LL.tools.selectAyahRange()}
+								</button>
 								<button class="btn-accent px-4 py-2 text-sm" onclick={close}
 									>{$LL.common.finish()}</button
 								>

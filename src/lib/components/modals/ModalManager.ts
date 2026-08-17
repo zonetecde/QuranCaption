@@ -8,6 +8,7 @@ import DeleteConfirmation from './DeleteConfirmation.svelte';
 import ShiftSubtitlesModal from './tools/ShiftSubtitlesModal.svelte';
 import HifzRepetitionModal from './tools/HifzRepetitionModal.svelte';
 import AudioCutterModal from './tools/AudioCutterModal.svelte';
+import VerseRangeCropModal from './tools/VerseRangeCropModal.svelte';
 import BookmarkVerseModal from './BookmarkVerseModal.svelte';
 import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
 import AiWbwTranslationModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiWbwTranslationModal.svelte';
@@ -197,6 +198,30 @@ export default class ModalManager {
 			document.body.appendChild(container);
 
 			const modal = mount(HifzRepetitionModal, {
+				target: container,
+				props: {
+					close: () => {
+						unmount(modal);
+						container.remove();
+						resolve();
+					}
+				}
+			});
+		});
+	}
+
+	/**
+	 * Ouvre la modale de rognage du projet à une plage d'Ayahs.
+	 *
+	 * @returns {Promise<void>} Résolution après fermeture de la modale.
+	 */
+	static async verseRangeCropModal(): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			const modal = mount(VerseRangeCropModal, {
 				target: container,
 				props: {
 					close: () => {

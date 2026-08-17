@@ -2,7 +2,10 @@
 	import { getSharedWizard } from './sharedWizard';
 	import LL from '$lib/i18n/i18n-svelte';
 
-	let { onClose } = $props<{ onClose: () => void }>();
+	let { onClose, onOpenVerseRangeCrop } = $props<{
+		onClose: () => void;
+		onOpenVerseRangeCrop: () => Promise<void>;
+	}>();
 	const wizard = getSharedWizard();
 	const isLastStep = $derived(() => wizard.currentStep >= wizard.maxStep);
 </script>
@@ -12,7 +15,16 @@
 		<p class="text-xs text-thirdly">{wizard.helperText()}</p>
 		<div class="flex items-center gap-2">
 			{#if wizard.result?.status === 'completed'}
-				<button class="btn-accent px-4 py-2 text-sm" onclick={onClose}>{$LL.common.finish()}</button>
+				<button
+					type="button"
+					class="btn inline-flex items-center gap-1.5 px-4 py-2 text-sm"
+					onclick={() => void onOpenVerseRangeCrop()}
+				>
+					<span class="material-icons text-base leading-none">crop</span>
+					{$LL.tools.selectAyahRange()}
+				</button>
+				<button class="btn-accent px-4 py-2 text-sm" onclick={onClose}>{$LL.common.finish()}</button
+				>
 			{:else}
 				<button class="btn px-4 py-2 text-sm" onclick={onClose}>{$LL.common.close()}</button>
 				<button

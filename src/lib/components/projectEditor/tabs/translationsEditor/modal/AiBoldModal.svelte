@@ -4,7 +4,8 @@
 	import type { AdvancedTrimUsage } from '$lib/services/AdvancedAITrimming';
 	import AiBatchOverviewCard from './shared/AiBatchOverviewCard.svelte';
 	import TranslationsEditorModalShell from './shared/TranslationsEditorModalShell.svelte';
-	import VerseRangeSelector from './VerseRangeSelector.svelte';
+	import VerseRangeSlider from '$lib/components/projectEditor/tabs/export/VerseRangeSlider.svelte';
+	import { buildVerseRangeSliderOptions } from '$lib/components/projectEditor/tabs/export/VerseRangeSlider';
 	import {
 		buildAiBoldBatches,
 		buildAiBoldCandidates,
@@ -532,16 +533,16 @@
 			</label>
 		{/if}
 
-		<VerseRangeSelector
-			{totalDurationMs}
+		<VerseRangeSlider
+			verses={buildVerseRangeSliderOptions(aiBoldCandidates())}
 			totalItems={aiBoldCandidates().length}
 			selectedItems={selectedAiBoldSegments()}
 			title={$LL.editor.aiBoldRange()}
-			icon="schedule"
 			totalLabel="eligible segments"
-			selectionLabel="Select time range to process:"
+			selectionLabel={$LL.tools.selectAyahRangeHint()}
 			bind:startTimeMs={aiBoldStartTimeMs}
 			bind:endTimeMs={aiBoldEndTimeMs}
+			showRangeLabel
 			onRangeChange={persistAiBoldRange}
 		/>
 

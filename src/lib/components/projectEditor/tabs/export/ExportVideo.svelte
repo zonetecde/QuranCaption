@@ -540,6 +540,78 @@
 		</div>
 	</div>
 
+	<section class="mb-6">
+		<h4 class="text-base font-medium text-secondary mb-3">
+			{$LL.export.recitationContent()}
+		</h4>
+		<div class="rounded-lg border border-color bg-secondary p-4 bg-accent">
+			<label class="flex items-start gap-3 cursor-pointer select-none">
+				<input
+					type="checkbox"
+					class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
+					checked={globalState.getExportState.exportOnlyRecitation}
+					onchange={(event) =>
+						setExportOnlyRecitation((event.currentTarget as HTMLInputElement).checked)}
+				/>
+				<span class="text-sm text-primary">
+					{$LL.export.exportOnlyRecitation()}
+					<span class="block text-xs text-thirdly mt-1">
+						{$LL.export.exportOnlyRecitationDescription()}
+					</span>
+				</span>
+			</label>
+
+			{#if globalState.getExportState.exportOnlyRecitation}
+				<div class="mt-4 border-t border-color pt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+					<div>
+						<label
+							class="block text-sm font-medium text-primary mb-2 sm:min-h-10"
+							for="recitation-cut-margin"
+						>
+							{$LL.export.recitationCutMargin()}
+						</label>
+						<input
+							id="recitation-cut-margin"
+							type="number"
+							min="0"
+							step="50"
+							class="input w-full h-10"
+							value={globalState.getExportState.recitationCutMarginMs}
+							onchange={(event) =>
+								setRecitationCutMargin((event.currentTarget as HTMLInputElement).valueAsNumber)}
+						/>
+						<p class="text-xs text-thirdly mt-2">
+							{$LL.export.recitationCutMarginDescription()}
+						</p>
+					</div>
+					<div>
+						<label
+							class="block text-sm font-medium text-primary mb-2 sm:min-h-10"
+							for="recitation-minimum-silence"
+						>
+							{$LL.export.recitationMinimumSilence()}
+						</label>
+						<input
+							id="recitation-minimum-silence"
+							type="number"
+							min="0"
+							step="100"
+							class="input w-full h-10"
+							value={globalState.getExportState.recitationMinimumSilenceMs}
+							onchange={(event) =>
+								setRecitationMinimumSilence(
+									(event.currentTarget as HTMLInputElement).valueAsNumber
+								)}
+						/>
+						<p class="text-xs text-thirdly mt-2">
+							{$LL.export.recitationMinimumSilenceDescription()}
+						</p>
+					</div>
+				</div>
+			{/if}
+		</div>
+	</section>
+
 	<!-- Export Button -->
 	<div class="flex flex-col items-center">
 		<button class="btn-accent px-6 py-3 font-medium" onclick={Exporter.exportVideo}>
@@ -575,80 +647,6 @@
 
 		{#if showAdvancedSettings}
 			<div class="mt-3 rounded-lg border border-color bg-accent p-4" transition:slide>
-				<section class="mb-6">
-					<h4 class="text-base font-medium text-secondary mb-3">
-						{$LL.export.recitationContent()}
-					</h4>
-					<div class="rounded-lg border border-color bg-secondary p-4">
-						<label class="flex items-start gap-3 cursor-pointer select-none">
-							<input
-								type="checkbox"
-								class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
-								checked={globalState.getExportState.exportOnlyRecitation}
-								onchange={(event) =>
-									setExportOnlyRecitation((event.currentTarget as HTMLInputElement).checked)}
-							/>
-							<span class="text-sm text-primary">
-								{$LL.export.exportOnlyRecitation()}
-								<span class="block text-xs text-thirdly mt-1">
-									{$LL.export.exportOnlyRecitationDescription()}
-								</span>
-							</span>
-						</label>
-
-						{#if globalState.getExportState.exportOnlyRecitation}
-							<div class="mt-4 border-t border-color pt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-								<div>
-									<label
-										class="block text-sm font-medium text-primary mb-2"
-										for="recitation-cut-margin"
-									>
-										{$LL.export.recitationCutMargin()}
-									</label>
-									<input
-										id="recitation-cut-margin"
-										type="number"
-										min="0"
-										step="50"
-										class="input w-full h-10"
-										value={globalState.getExportState.recitationCutMarginMs}
-										onchange={(event) =>
-											setRecitationCutMargin(
-												(event.currentTarget as HTMLInputElement).valueAsNumber
-											)}
-									/>
-									<p class="text-xs text-thirdly mt-2">
-										{$LL.export.recitationCutMarginDescription()}
-									</p>
-								</div>
-								<div>
-									<label
-										class="block text-sm font-medium text-primary mb-2"
-										for="recitation-minimum-silence"
-									>
-										{$LL.export.recitationMinimumSilence()}
-									</label>
-									<input
-										id="recitation-minimum-silence"
-										type="number"
-										min="0"
-										step="100"
-										class="input w-full h-10"
-										value={globalState.getExportState.recitationMinimumSilenceMs}
-										onchange={(event) =>
-											setRecitationMinimumSilence(
-												(event.currentTarget as HTMLInputElement).valueAsNumber
-											)}
-									/>
-									<p class="text-xs text-thirdly mt-2">
-										{$LL.export.recitationMinimumSilenceDescription()}
-									</p>
-								</div>
-							</div>
-						{/if}
-					</div>
-				</section>
-
 				<div class="mb-4">
 					<h4 class="text-base font-medium text-secondary mb-1">
 						{$LL.export.exportPerformance()}

@@ -5939,6 +5939,64 @@ type RootTranslation = {
 		 */
 		verseRangeMode: string;
 		/**
+		 * B​y​ ​m​e​a​n​i​n​g
+		 */
+		meaningRangeMode: string;
+		/**
+		 * A​s​k​ ​A​I​ ​t​o​ ​g​r​o​u​p​ ​t​h​e​ ​v​e​r​s​e​s​ ​i​n​ ​y​o​u​r​ ​v​i​d​e​o​ ​i​n​t​o​ ​d​i​s​t​i​n​c​t​ ​s​e​m​a​n​t​i​c​ ​e​x​p​o​r​t​ ​r​a​n​g​e​s​.
+		 */
+		meaningRangeDescription: string;
+		/**
+		 * M​a​x​ ​d​u​r​a​t​i​o​n​ ​(​s​e​c​o​n​d​s​)
+		 */
+		maxDuration: string;
+		/**
+		 * M​a​x​i​m​u​m​ ​t​a​r​g​e​t​ ​d​u​r​a​t​i​o​n​ ​f​o​r​ ​e​a​c​h​ ​g​e​n​e​r​a​t​e​d​ ​v​i​d​e​o​ ​r​a​n​g​e​.
+		 */
+		maxDurationDescription: string;
+		/**
+		 * I​n​c​l​u​d​e​ ​a​l​l​ ​v​e​r​s​e​s
+		 */
+		includeAllMeaningVerses: string;
+		/**
+		 * W​h​e​n​ ​e​n​a​b​l​e​d​,​ ​A​I​ ​m​u​s​t​ ​i​n​c​l​u​d​e​ ​e​v​e​r​y​ ​v​e​r​s​e​ ​e​x​a​c​t​l​y​ ​o​n​c​e​;​ ​w​h​e​n​ ​d​i​s​a​b​l​e​d​,​ ​i​t​ ​m​a​y​ ​s​k​i​p​ ​v​e​r​s​e​s​.​ ​R​e​c​o​m​m​e​n​d​e​d​ ​t​o​ ​f​a​l​s​e​ ​f​o​r​ ​b​e​t​t​e​r​ ​s​e​m​a​n​t​i​c​ ​r​a​n​g​e​s​.
+		 */
+		includeAllMeaningVersesDescription: string;
+		/**
+		 * G​e​n​e​r​a​t​e​ ​m​e​a​n​i​n​g​ ​r​a​n​g​e​s
+		 */
+		generateMeaningRanges: string;
+		/**
+		 * G​e​n​e​r​a​t​i​n​g​ ​m​e​a​n​i​n​g​ ​r​a​n​g​e​s​.​.​.
+		 */
+		generatingMeaningRanges: string;
+		/**
+		 * N​o​ ​m​e​a​n​i​n​g​ ​r​a​n​g​e​s​ ​w​e​r​e​ ​g​e​n​e​r​a​t​e​d​ ​y​e​t​.
+		 */
+		meaningRangesEmpty: string;
+		/**
+		 * N​o​ ​Q​u​r​a​n​ ​v​e​r​s​e​s​ ​a​r​e​ ​a​v​a​i​l​a​b​l​e​ ​i​n​ ​t​h​i​s​ ​v​i​d​e​o​.
+		 */
+		noMeaningVerses: string;
+		/**
+		 * M​e​a​n​i​n​g​ ​r​a​n​g​e​s​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​g​e​n​e​r​a​t​e​d​.
+		 */
+		meaningRangesGenerationFailed: string;
+		/**
+		 * S​k​i​p​p​e​d​ ​{​c​o​u​n​t​}​ ​i​n​v​a​l​i​d​ ​A​I​ ​r​a​n​g​e​(​s​)​.
+		 * @param {unknown} count
+		 */
+		meaningRangesSkipped: RequiredParams<'count'>;
+		/**
+		 * {​c​o​u​n​t​}​ ​v​e​r​s​e​(​s​)​ ​w​e​r​e​ ​n​o​t​ ​i​n​c​l​u​d​e​d​ ​b​y​ ​A​I​.
+		 * @param {unknown} count
+		 */
+		meaningRangesMissingVerses: RequiredParams<'count'>;
+		/**
+		 * T​h​i​s​ ​r​a​n​g​e​ ​e​x​c​e​e​d​s​ ​t​h​e​ ​m​a​x​i​m​u​m​ ​d​u​r​a​t​i​o​n​.
+		 */
+		meaningRangeOverLimit: string;
+		/**
 		 * S​e​l​e​c​t​ ​t​h​e​ ​f​i​r​s​t​ ​a​n​d​ ​l​a​s​t​ ​v​e​r​s​e​ ​t​o​ ​e​x​p​o​r​t​:
 		 */
 		selectVerseRange: string;
@@ -17229,6 +17287,62 @@ export type TranslationFunctions = {
 		 * By verse
 		 */
 		verseRangeMode: () => LocalizedString;
+		/**
+		 * By meaning
+		 */
+		meaningRangeMode: () => LocalizedString;
+		/**
+		 * Ask AI to group the verses in your video into distinct semantic export ranges.
+		 */
+		meaningRangeDescription: () => LocalizedString;
+		/**
+		 * Max duration (seconds)
+		 */
+		maxDuration: () => LocalizedString;
+		/**
+		 * Maximum target duration for each generated video range.
+		 */
+		maxDurationDescription: () => LocalizedString;
+		/**
+		 * Include all verses
+		 */
+		includeAllMeaningVerses: () => LocalizedString;
+		/**
+		 * When enabled, AI must include every verse exactly once; when disabled, it may skip verses. Recommended to false for better semantic ranges.
+		 */
+		includeAllMeaningVersesDescription: () => LocalizedString;
+		/**
+		 * Generate meaning ranges
+		 */
+		generateMeaningRanges: () => LocalizedString;
+		/**
+		 * Generating meaning ranges...
+		 */
+		generatingMeaningRanges: () => LocalizedString;
+		/**
+		 * No meaning ranges were generated yet.
+		 */
+		meaningRangesEmpty: () => LocalizedString;
+		/**
+		 * No Quran verses are available in this video.
+		 */
+		noMeaningVerses: () => LocalizedString;
+		/**
+		 * Meaning ranges could not be generated.
+		 */
+		meaningRangesGenerationFailed: () => LocalizedString;
+		/**
+		 * Skipped {count} invalid AI range(s).
+		 */
+		meaningRangesSkipped: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * {count} verse(s) were not included by AI.
+		 */
+		meaningRangesMissingVerses: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * This range exceeds the maximum duration.
+		 */
+		meaningRangeOverLimit: () => LocalizedString;
 		/**
 		 * Select the first and last verse to export:
 		 */

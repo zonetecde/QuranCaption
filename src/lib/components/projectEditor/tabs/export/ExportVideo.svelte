@@ -4,6 +4,8 @@
 	import type { FadeValue } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { slide } from 'svelte/transition';
+	import { get } from 'svelte/store';
+	import toast from 'svelte-5-french-toast';
 	import TimeInput from './TimeInput.svelte';
 	import Style from '../styleEditor/Style.svelte';
 	import { VerseRange } from '$lib/classes';
@@ -11,9 +13,20 @@
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import type { ExportSkipRange } from '$lib/classes/ProjectEditorState.svelte';
 	import VerseRangeSlider from './VerseRangeSlider.svelte';
+	import {
+		buildMeaningExportPrompts,
+		buildMeaningExportVerses,
+		validateMeaningExportRanges,
+		type MeaningExportRange
+	} from '$lib/services/MeaningExportRangeService';
+	import {
+		buildTextAIRequestBody,
+		extractTextFromResponse,
+		parseAiJsonResponse
+	} from '$lib/services/TextAIRequest';
 
 	type VideoCodec = 'h264' | 'h265';
-	type ExportRangeMode = 'time' | 'verse';
+	type ExportRangeMode = 'time' | 'verse' | 'meaning';
 	type ExportVerseOption = {
 		key: string;
 		surah: number;
@@ -46,6 +59,28 @@
 			selectedVerseRange: (args: { start: string; end: string }) => string;
 		}
 	);
+	type MeaningExportCopy = {
+		meaningRangeMode: () => string;
+		meaningRangeDescription: () => string;
+		maxDuration: () => string;
+		maxDurationDescription: () => string;
+		includeAllMeaningVerses: () => string;
+		includeAllMeaningVersesDescription: () => string;
+		generateMeaningRanges: () => string;
+		generatingMeaningRanges: () => string;
+		meaningRangesEmpty: () => string;
+		noMeaningVerses: () => string;
+		meaningRangesGenerationFailed: () => string;
+		meaningRangesSkipped: (args: { count: number }) => string;
+		meaningRangesMissingVerses: (args: { count: number }) => string;
+		meaningRangeOverLimit: () => string;
+	};
+	let meaningCopy = $derived($LL.export as unknown as MeaningExportCopy);
+	let meaningRanges = $state<MeaningExportRange[]>([]);
+	let selectedMeaningRangeId = $state<string | null>(null);
+	let meaningSkippedRangeCount = $state(0);
+	let meaningMissingVerseCount = $state(0);
+	let isGeneratingMeaningRanges = $state(false);
 	const exportVerses = $derived.by(() => {
 		const verses: ExportVerseOption[] = [];
 		const clips = [...globalState.getSubtitleClips].sort((a, b) => a.startTime - b.startTime);
@@ -111,6 +146,131 @@
 			globalState.getExportState.videoStartTime = exportVerses[indexes.start].startTime;
 			globalState.getExportState.videoEndTime = exportVerses[indexes.end].endTime;
 		});
+	}
+
+	/**
+	 * Modifie et enregistre la durée maximale des plages sémantiques.
+	 * @param {number} value Nouvelle durée maximale en secondes.
+	 * @returns {void}
+	 */
+	function setMeaningMaxDuration(value: number): void {
+		const duration = Number.isFinite(value) ? Math.max(1, Math.round(value)) : 1;
+		if (globalState.getExportState.meaningMaxDurationSeconds === duration) return;
+
+		ProjectHistoryManager.track('set meaning export max duration', () => {
+			globalState.getExportState.meaningMaxDurationSeconds = duration;
+		});
+	}
+
+	/**
+	 * Modifie et enregistre l'obligation de couvrir tous les versets.
+	 * @param {boolean} enabled Nouvel état de l'option.
+	 * @returns {void}
+	 */
+	function setIncludeAllMeaningVerses(enabled: boolean): void {
+		if (globalState.getExportState.includeAllMeaningVerses === enabled) return;
+
+		ProjectHistoryManager.track('toggle all meaning verses', () => {
+			globalState.getExportState.includeAllMeaningVerses = enabled;
+		});
+	}
+
+	/**
+	 * Demande à l'IA de générer des plages sémantiques à partir des versets de la vidéo.
+	 * @returns {Promise<void>} Promesse terminée après la génération ou l'affichage de l'erreur.
+	 */
+	async function generateMeaningRanges(): Promise<void> {
+		if (isGeneratingMeaningRanges) return;
+
+		const exportCopy = get(LL).export as unknown as MeaningExportCopy;
+		const aiSettings = globalState.settings?.aiTranslationSettings;
+		if (!aiSettings?.openAiApiKey || !aiSettings.textAiApiEndpoint) {
+			toast.error(get(LL).translations.configureTextAiFirst());
+			return;
+		}
+
+		isGeneratingMeaningRanges = true;
+		meaningRanges = [];
+		selectedMeaningRangeId = null;
+		meaningSkippedRangeCount = 0;
+		meaningMissingVerseCount = 0;
+		let errorShown = false;
+
+		try {
+			const verses = await buildMeaningExportVerses(globalState.getSubtitleClips);
+			if (verses.length === 0) {
+				errorShown = true;
+				toast.error(exportCopy.noMeaningVerses());
+				return;
+			}
+
+			const { systemPrompt, userPrompt } = buildMeaningExportPrompts(
+				verses,
+				globalState.getExportState.meaningMaxDurationSeconds,
+				globalState.getExportState.includeAllMeaningVerses
+			);
+			const response = await fetch(aiSettings.textAiApiEndpoint, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${aiSettings.openAiApiKey}`
+				},
+				body: JSON.stringify(
+					buildTextAIRequestBody(
+						aiSettings.textAiApiEndpoint,
+						aiSettings.advancedTrimModel || 'gpt-4o-mini',
+						systemPrompt,
+						userPrompt
+					)
+				)
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				errorShown = true;
+				toast.error(get(LL).aiVideo.aiApiError({ status: String(response.status) }));
+				throw new Error(`AI API returned ${response.status}: ${errorText}`);
+			}
+
+			const text = extractTextFromResponse(await response.json());
+			if (!text) {
+				errorShown = true;
+				toast.error(get(LL).aiVideo.aiEmptyResponse());
+				throw new Error('No text response from AI');
+			}
+
+			const validation = validateMeaningExportRanges(
+				parseAiJsonResponse<unknown>(text),
+				verses,
+				globalState.getExportState.meaningMaxDurationSeconds,
+				globalState.getExportState.includeAllMeaningVerses
+			);
+			meaningRanges = validation.ranges;
+			meaningSkippedRangeCount = validation.skippedCount;
+			meaningMissingVerseCount = validation.missingVerseKeys.length;
+			if (meaningRanges.length === 0) toast.error(exportCopy.meaningRangesEmpty());
+		} catch (error) {
+			console.error('[ExportVideo] Failed to generate meaning ranges:', error);
+			if (!errorShown) toast.error(exportCopy.meaningRangesGenerationFailed());
+		} finally {
+			isGeneratingMeaningRanges = false;
+		}
+	}
+
+	/**
+	 * Sélectionne une plage sémantique et l'applique à la plage d'export vidéo.
+	 * @param {MeaningExportRange} range Plage générée par l'IA.
+	 * @returns {void}
+	 */
+	function selectMeaningRange(range: MeaningExportRange): void {
+		ProjectHistoryManager.track('select meaning export range', () => {
+			globalState.getExportState.videoStartTime = range.startTime;
+			globalState.getExportState.videoEndTime = range.endTime;
+		});
+		const indexes = getVerseIndexesFromTime();
+		verseStartIndex = indexes.start;
+		verseEndIndex = indexes.end;
+		selectedMeaningRangeId = range.id;
 	}
 
 	/**
@@ -296,6 +456,23 @@
 			return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 		}
 	}
+
+	/**
+	 * Formate une plage sémantique avec une notation courte et sa durée réelle.
+	 * @param {MeaningExportRange} range Plage sémantique à afficher.
+	 * @returns {string} Libellé de plage accompagné de sa durée en secondes.
+	 */
+	function formatMeaningRangeLabel(range: MeaningExportRange): string {
+		const [startSurah] = range.startKey.split(':');
+		const [endSurah, endVerse] = range.endKey.split(':');
+		const rangeLabel =
+			startSurah === endSurah
+				? `${range.startKey}-${endVerse}`
+				: `${range.startKey}-${range.endKey}`;
+		const durationSeconds = Math.max(0, range.durationMs) / 1000;
+		const durationLabel = `${durationSeconds.toFixed(durationSeconds >= 10 ? 1 : 2)}s`;
+		return `${rangeLabel} (${durationLabel})`;
+	}
 </script>
 
 <!-- Export Video Configuration -->
@@ -315,7 +492,7 @@
 			<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.exportRange()}</h4>
 
 			<div class="rounded-lg border border-color bg-accent p-3">
-				<div class="mb-4 grid grid-cols-2 gap-1 rounded-lg border border-color bg-primary p-1">
+				<div class="mb-4 grid grid-cols-3 gap-1 rounded-lg border border-color bg-primary p-1">
 					<button
 						type="button"
 						class="min-h-11 rounded-md px-2 py-2 text-sm font-semibold transition-colors {globalState
@@ -336,6 +513,16 @@
 					>
 						{rangeCopy.verseRangeMode()}
 					</button>
+					<button
+						type="button"
+						class="rounded-md px-3 py-2 text-sm font-semibold transition-colors {globalState
+							.getExportState.exportRangeMode === 'meaning'
+							? 'bg-accent-primary text-[var(--text-on-accent)]'
+							: 'text-secondary hover:bg-accent hover:text-primary'}"
+						onclick={() => setExportRangeMode('meaning')}
+					>
+						{meaningCopy.meaningRangeMode()}
+					</button>
 				</div>
 
 				{#if globalState.getExportState.exportRangeMode === 'time'}
@@ -350,6 +537,86 @@
 							bind:value={globalState.getExportState.videoEndTime}
 						/>
 					</div>
+				{:else if globalState.getExportState.exportRangeMode === 'meaning'}
+					<p class="text-thirdly mb-4 text-sm">{meaningCopy.meaningRangeDescription()}</p>
+					<div class="space-y-3">
+						<div class="flex items-center justify-between gap-3">
+							<label for="meaning-max-duration" class="text-sm text-secondary">
+								{meaningCopy.maxDuration()}
+							</label>
+							<input
+								id="meaning-max-duration"
+								type="number"
+								min="1"
+								step="1"
+								class="input h-10 w-28"
+								value={globalState.getExportState.meaningMaxDurationSeconds}
+								disabled={isGeneratingMeaningRanges}
+								onchange={(event) =>
+									setMeaningMaxDuration((event.currentTarget as HTMLInputElement).valueAsNumber)}
+							/>
+						</div>
+						<p class="text-thirdly text-xs">{meaningCopy.maxDurationDescription()}</p>
+						<label class="flex cursor-pointer items-start gap-2 text-sm text-secondary">
+							<input
+								type="checkbox"
+								class="mt-0.5"
+								checked={globalState.getExportState.includeAllMeaningVerses}
+								disabled={isGeneratingMeaningRanges}
+								onchange={(event) =>
+									setIncludeAllMeaningVerses((event.currentTarget as HTMLInputElement).checked)}
+							/>
+							<span>
+								<span class="block font-medium">{meaningCopy.includeAllMeaningVerses()}</span>
+								<span class="mt-0.5 block text-xs text-thirdly">
+									{meaningCopy.includeAllMeaningVersesDescription()}
+								</span>
+							</span>
+						</label>
+						<button
+							type="button"
+							class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-accent-primary px-3 py-2 text-sm font-semibold text-[var(--text-on-accent)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+							disabled={isGeneratingMeaningRanges || globalState.getSubtitleClips.length === 0}
+							onclick={() => void generateMeaningRanges()}
+						>
+							{isGeneratingMeaningRanges
+								? meaningCopy.generatingMeaningRanges()
+								: meaningCopy.generateMeaningRanges()}
+						</button>
+					</div>
+
+					{#if meaningRanges.length > 0}
+						<div class="mt-4 grid grid-cols-3 gap-2">
+							{#each meaningRanges as range (range.id)}
+								<button
+									type="button"
+									class="rounded-md border px-2 py-2 text-xs font-medium transition-colors {range.exceedsMaxDuration
+										? 'border-red-500 bg-red-500/10 text-red-300 hover:bg-red-500/20'
+										: 'border-color bg-secondary text-secondary hover:border-accent-primary hover:text-primary'} {selectedMeaningRangeId ===
+									range.id
+										? 'ring-2 ring-accent-primary ring-offset-1 ring-offset-secondary'
+										: ''}"
+									title={range.exceedsMaxDuration ? meaningCopy.meaningRangeOverLimit() : undefined}
+									onclick={() => selectMeaningRange(range)}
+								>
+									{formatMeaningRangeLabel(range)}
+								</button>
+							{/each}
+						</div>
+					{:else if !isGeneratingMeaningRanges}
+						<p class="mt-4 text-thirdly text-sm">{meaningCopy.meaningRangesEmpty()}</p>
+					{/if}
+
+					{#if meaningSkippedRangeCount > 0}
+						<p class="mt-2 text-xs text-thirdly">
+							{meaningCopy.meaningRangesSkipped({ count: meaningSkippedRangeCount })}
+						</p>
+					{/if}
+					{#if meaningMissingVerseCount > 0}
+						<p class="mt-2 text-xs text-red-300">
+							{meaningCopy.meaningRangesMissingVerses({ count: meaningMissingVerseCount })}
+						</p>
+					{/if}
 				{:else if exportVerses.length > 0}
 					<p class="mb-3 text-xs leading-snug text-thirdly">{rangeCopy.selectVerseRange()}</p>
 					<div class="rounded-lg border border-color bg-secondary px-3 py-4">
@@ -375,55 +642,77 @@
 					<p class="text-thirdly text-sm">{$LL.editor.noSubtitleFallback()}</p>
 				{/if}
 
-				<div class="mt-3 flex flex-col items-center justify-between">
-					<button
-						type="button"
-						class="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-violet-500/40 bg-violet-500/10 px-2.5 text-xs font-medium text-violet-300 transition-colors hover:bg-violet-500/20"
-						onclick={addSkipRange}
-					>
-						<span class="material-icons text-[17px]!">add</span>
-						{skipCopy.addSkip()}
-					</button>
-
-					{#if (globalState.getExportState.skipRanges ?? []).length > 0}
-						<div class="mt-3 space-y-2 w-full">
-							{#each globalState.getExportState.skipRanges ?? [] as range, index (range)}
-								<div class="rounded-md border border-violet-500/35 bg-violet-500/10 p-2.5">
-									<div class="mb-2 flex items-center justify-between gap-2">
-										<span class="text-xs font-medium text-violet-300">
-											{skipCopy.skip()}
-											{index + 1} · {formatDuration(range.startTime)}–{formatDuration(
-												range.endTime
-											)}
-										</span>
-										<button
-											type="button"
-											class="material-icons flex h-8 w-8 shrink-0 items-center justify-center rounded text-base text-thirdly transition-colors hover:bg-violet-500/20 hover:text-violet-300"
-											title={skipCopy.removeSkip()}
-											onclick={() => removeSkipRange(index)}>close</button
-										>
-									</div>
-									<div class="grid grid-cols-1 gap-2">
-										<button
-											type="button"
-											class="rounded border border-violet-500/30 bg-secondary px-2 py-1.5 text-xs text-secondary transition-colors hover:border-violet-400 hover:text-violet-300"
-											onclick={() => setSkipBoundary(range, 'start')}
-										>
-											{skipCopy.setSkipStartToCursor()}
-										</button>
-										<button
-											type="button"
-											class="rounded border border-violet-500/30 bg-secondary px-2 py-1.5 text-xs text-secondary transition-colors hover:border-violet-400 hover:text-violet-300"
-											onclick={() => setSkipBoundary(range, 'end')}
-										>
-											{skipCopy.setSkipEndToCursor()}
-										</button>
-									</div>
-								</div>
-							{/each}
+				{#if globalState.getExportState.exportRangeMode === 'meaning' && selectedMeaningRangeId && exportVerses.length > 0}
+					<div class="mt-3 rounded-lg border border-color bg-secondary px-4 py-5">
+						<div class="mb-5 text-center font-mono text-sm font-medium text-accent-primary">
+							{rangeCopy.selectedVerseRange({
+								start: exportVerses[verseStartIndex].key,
+								end: exportVerses[verseEndIndex].key
+							})}
 						</div>
-					{/if}
-				</div>
+						<VerseRangeSlider
+							verses={exportVerses}
+							startIndex={verseStartIndex}
+							endIndex={verseEndIndex}
+							startLabel={$LL.export.startTime()}
+							endLabel={$LL.export.endTime()}
+							onStartInput={handleVerseStartInput}
+							onEndInput={handleVerseEndInput}
+							onDragStart={beginVerseRangeChange}
+							onDragEnd={commitVerseRangeChange}
+						/>
+					</div>
+				{:else if globalState.getExportState.exportRangeMode !== 'meaning'}
+					<div class="mt-3 flex flex-col items-center justify-between">
+						<button
+							type="button"
+							class="w-full inline-flex items-center gap-1.5 rounded-md border border-violet-500/40 bg-violet-500/10 px-2.5 py-1 text-xs font-medium text-violet-300 transition-colors hover:bg-violet-500/20"
+							onclick={addSkipRange}
+						>
+							<span class="material-icons text-[17px]!">add</span>
+							{skipCopy.addSkip()}
+						</button>
+
+						{#if (globalState.getExportState.skipRanges ?? []).length > 0}
+							<div class="mt-3 space-y-2 w-full">
+								{#each globalState.getExportState.skipRanges ?? [] as range, index}
+									<div class="rounded-md border border-violet-500/35 bg-violet-500/10 p-2.5">
+										<div class="mb-2 flex items-center justify-between gap-2">
+											<span class="text-xs font-medium text-violet-300">
+												{skipCopy.skip()}
+												{index + 1} · {formatDuration(range.startTime)}–{formatDuration(
+													range.endTime
+												)}
+											</span>
+											<button
+												type="button"
+												class="material-icons rounded p-0.5 text-base text-thirdly transition-colors hover:bg-violet-500/20 hover:text-violet-300"
+												title={skipCopy.removeSkip()}
+												onclick={() => removeSkipRange(index)}>close</button
+											>
+										</div>
+										<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+											<button
+												type="button"
+												class="rounded border border-violet-500/30 bg-secondary px-2 py-1.5 text-xs text-secondary transition-colors hover:border-violet-400 hover:text-violet-300"
+												onclick={() => setSkipBoundary(range, 'start')}
+											>
+												{skipCopy.setSkipStartToCursor()}
+											</button>
+											<button
+												type="button"
+												class="rounded border border-violet-500/30 bg-secondary px-2 py-1.5 text-xs text-secondary transition-colors hover:border-violet-400 hover:text-violet-300"
+												onclick={() => setSkipBoundary(range, 'end')}
+											>
+												{skipCopy.setSkipEndToCursor()}
+											</button>
+										</div>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</div>
+				{/if}
 
 				<!-- Export summary -->
 				<div class="mt-4 space-y-3 rounded-lg border border-color bg-secondary p-3">

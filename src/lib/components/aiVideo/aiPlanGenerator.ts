@@ -5,6 +5,11 @@ import type { AiPlan } from './types';
 import toast from 'svelte-5-french-toast';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
+import {
+	buildTextAIRequestBody,
+	extractTextFromResponse,
+	parseAiJsonResponse
+} from '$lib/services/TextAIRequest';
 
 /**
  * Attend un delai donne pour simuler une latence reseau.
@@ -14,7 +19,6 @@ import { get } from 'svelte/store';
 function wait(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
 /**
  * Genere un plan de projet video via l'IA (ou manuellement si letAiChoose est desactive).
  * Cote la page, construit le prompt system, appelle l'API et parse la reponse JSON.
@@ -98,7 +102,7 @@ Rules:
 			Authorization: `Bearer ${aiSettings.openAiApiKey}`
 		},
 		body: JSON.stringify(
-			buildAiPlanRequestBody(
+			buildTextAIRequestBody(
 				aiSettings.textAiApiEndpoint,
 				aiSettings.advancedTrimModel || 'gpt-4o-mini',
 				systemPrompt,
@@ -124,7 +128,7 @@ Rules:
 		throw new Error('No text response from AI');
 	}
 
-	const plan = parseAiJsonResponse(text);
+	const plan = parseAiJsonResponse<Record<string, string | number>>(text);
 	console.log('[AiVideo] AI plan parsed:', plan);
 
 	return {
@@ -136,93 +140,4 @@ Rules:
 		ayahStart: Math.max(1, Number(plan.ayahStart || 1)),
 		ayahEnd: Math.max(1, Number(plan.ayahEnd || 7))
 	};
-}
-
-/**
- * Indique si l'endpoint utilise le format Chat Completions compatible OpenAI.
- * @param {string} endpoint Endpoint configure.
- * @returns {boolean} `true` si l'endpoint se termine par `/chat/completions`.
- */
-function isChatCompletionsEndpoint(endpoint: string): boolean {
-	try {
-		return new URL(endpoint).pathname.endsWith('/chat/completions');
-	} catch {
-		return false;
-	}
-}
-
-/**
- * Construit le payload de requete adapte au type d'endpoint configure.
- * @param {string} endpoint Endpoint configure.
- * @param {string} model Modele a appeler.
- * @param {string} systemPrompt Prompt systeme.
- * @param {string} userPrompt Prompt utilisateur.
- * @returns {Record<string, unknown>} Corps JSON a envoyer.
- */
-function buildAiPlanRequestBody(
-	endpoint: string,
-	model: string,
-	systemPrompt: string,
-	userPrompt: string
-): Record<string, unknown> {
-	if (isChatCompletionsEndpoint(endpoint)) {
-		return {
-			model,
-			response_format: { type: 'json_object' },
-			messages: [
-				{ role: 'system', content: systemPrompt },
-				{ role: 'user', content: userPrompt }
-			]
-		};
-	}
-
-	return {
-		model,
-		input: [
-			{ role: 'system', content: systemPrompt },
-			{ role: 'user', content: userPrompt }
-		]
-	};
-}
-
-/**
- * Extrait le texte de la reponse IA, en gerant Responses API et Chat Completions.
- * @param {unknown} data Corps JSON de la reponse API.
- * @returns {string} Texte extrait, ou chaine vide.
- */
-function extractTextFromResponse(data: unknown): string {
-	const d = data as Record<string, unknown>;
-
-	if (Array.isArray(d.choices)) {
-		for (const choice of d.choices) {
-			const content = choice?.message?.content;
-			if (typeof content === 'string' && content.trim()) {
-				return content;
-			}
-		}
-	}
-
-	let text = '';
-	if (Array.isArray(d.output)) {
-		for (const item of d.output) {
-			if (item.type === 'message' && Array.isArray(item.content)) {
-				for (const block of item.content) {
-					if (block.type === 'output_text' && typeof block.text === 'string') {
-						text = block.text;
-					}
-				}
-			}
-		}
-	}
-	return text;
-}
-
-/**
- * Parse le JSON de la reponse IA, en gerant les blocs de code markdown.
- * @param {string} text Texte brut de la reponse IA.
- * @returns {Record<string, string | number>} Objet JSON parse avec proprietes string/number.
- */
-function parseAiJsonResponse(text: string): Record<string, string | number> {
-	const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
-	return JSON.parse(jsonMatch[1]!.trim()) as Record<string, string | number>;
 }

@@ -493,6 +493,8 @@
 							{#each group as clipIndex (globalState.getSubtitleTrack.clips[clipIndex].id)}
 								{@const _clipIndex = clipIndex}
 								{@const clip = globalState.getSubtitleTrack.clips[_clipIndex]}
+								{@const previousSubtitle =
+									_clipIndex > 0 ? (getCachedPreviousSubtitle(_clipIndex) ?? undefined) : undefined}
 								<!-- clipIndex est l'index réel dans clips -->
 								<section
 									class="relative rounded-xl transition-all duration-500 {lastRead.highlightedClipId ===
@@ -514,15 +516,7 @@
 									/>
 									{#each editionsToShowInEditor() as edition (edition.name)}
 										{#key edition.name}
-											<Translation
-												{edition}
-												subtitle={globalState.getSubtitleTrack.clips[_clipIndex] as SubtitleClip}
-												previousSubtitle={_clipIndex > 0
-													? (globalState.getSubtitleTrack.getSubtitleBefore(
-															_clipIndex
-														) as SubtitleClip)
-													: undefined}
-											/>
+											<Translation {edition} subtitle={clip as SubtitleClip} {previousSubtitle} />
 										{/key}
 									{/each}
 								</section>

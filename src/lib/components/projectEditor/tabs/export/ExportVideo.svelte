@@ -11,6 +11,7 @@
 	import { VerseRange } from '$lib/classes';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import { open } from '@tauri-apps/plugin-dialog';
 	import type { ExportSkipRange } from '$lib/classes/ProjectEditorState.svelte';
 	import VerseRangeSlider from './VerseRangeSlider.svelte';
 	import {
@@ -78,6 +79,13 @@
 		exportAll: () => string;
 	};
 	let meaningCopy = $derived($LL.export as unknown as MeaningExportCopy);
+	type RandomBackgroundCopy = {
+		addRandomBackground: () => string;
+		addRandomBackgroundDescription: () => string;
+		selectRandomBackgroundFolder: () => string;
+		randomBackgroundFolderDescription: () => string;
+	};
+	let randomBackgroundCopy = $derived($LL.export as unknown as RandomBackgroundCopy);
 	let meaningRanges = $state<MeaningExportRange[]>([]);
 	let selectedMeaningRangeId = $state<string | null>(null);
 	let selectedMeaningRangeIds = $state<string[]>([]);
@@ -495,6 +503,37 @@
 			1,
 			Math.min(4, Math.round(globalState.settings.exportSettings.parallelCaptureWorkers || 1))
 		);
+		await Settings.save();
+	}
+
+	/**
+	 * Active ou désactive l'ajout d'un arrière-plan aléatoire pour les exports vidéo.
+	 * @param {boolean} enabled Nouvel état de l'option.
+	 * @returns {void}
+	 */
+	function setAddRandomBackground(enabled: boolean): void {
+		if (globalState.getExportState.addRandomBackground === enabled) return;
+
+		ProjectHistoryManager.track('toggle random export background', () => {
+			globalState.getExportState.addRandomBackground = enabled;
+		});
+	}
+
+	/**
+	 * Ouvre le sélecteur et sauvegarde le dossier global de la pool d'arrière-plans.
+	 * @returns {Promise<void>} Promesse terminée après la sauvegarde du réglage.
+	 */
+	async function selectRandomBackgroundFolder(): Promise<void> {
+		if (!globalState.settings) return;
+
+		const selected = await open({
+			directory: true,
+			multiple: false,
+			defaultPath: globalState.settings.exportSettings.randomBackgroundFolder || undefined
+		});
+		if (typeof selected !== 'string' || !selected.trim()) return;
+
+		globalState.settings.exportSettings.randomBackgroundFolder = selected;
 		await Settings.save();
 	}
 
@@ -1080,6 +1119,49 @@
 
 					<div class="mb-4 mt-4">
 						<h4 class="text-base font-medium text-secondary mb-1">{$LL.export.background()}</h4>
+						<label class="mt-2 flex cursor-pointer select-none items-start gap-3">
+							<input
+								type="checkbox"
+								class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)] disabled:cursor-not-allowed"
+								disabled={globalState.getExportState.exportWithoutBackground}
+								checked={globalState.getExportState.addRandomBackground}
+								onchange={(event) =>
+									setAddRandomBackground((event.currentTarget as HTMLInputElement).checked)}
+							/>
+							<span class="text-sm text-primary">
+								{randomBackgroundCopy.addRandomBackground()}
+								<span class="mt-1 block text-xs text-thirdly">
+									{randomBackgroundCopy.addRandomBackgroundDescription()}
+								</span>
+							</span>
+						</label>
+
+						{#if globalState.getExportState.addRandomBackground}
+							<div class="mt-3 space-y-2">
+								<button
+									type="button"
+									class="btn-accent w-full px-3 py-2 text-sm"
+									onclick={() => void selectRandomBackgroundFolder()}
+								>
+									<span class="material-icons-outlined mr-2 align-middle text-base"
+										>folder_open</span
+									>
+									{randomBackgroundCopy.selectRandomBackgroundFolder()}
+								</button>
+								{#if globalState.settings?.exportSettings.randomBackgroundFolder}
+									<p
+										class="break-all text-xs text-secondary"
+										title={globalState.settings.exportSettings.randomBackgroundFolder}
+									>
+										{globalState.settings.exportSettings.randomBackgroundFolder}
+									</p>
+								{/if}
+								<p class="text-xs text-thirdly">
+									{randomBackgroundCopy.randomBackgroundFolderDescription()}
+								</p>
+							</div>
+						{/if}
+
 						<label class="mt-2 flex items-start gap-3 cursor-pointer select-none">
 							<input
 								type="checkbox"

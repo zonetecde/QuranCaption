@@ -3,10 +3,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import Exporter, {
 	DEFAULT_YTB_CHAPTERS_FORMAT,
 	formatYouTubeChapterLine,
+	getRandomBackgroundCandidates,
+	prepareRandomBackgroundProject,
 	resolveProjectVideoExportRange,
+	selectRandomBackgroundCandidate,
 	type YouTubeChapterFormatValues
 } from '$lib/classes/Exporter';
-import { SubtitleClip, type Project } from '$lib/classes';
+import { AssetClip, AssetType, SubtitleClip, TrackType, type Project } from '$lib/classes';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -77,6 +80,170 @@ describe('Project video export range', () => {
 	it('uses the full audio duration when the project range is shorter than one second', () => {
 		expect(resolveProjectVideoExportRange(500, 1_400, 10_000)).toEqual([0, 10_000]);
 		expect(resolveProjectVideoExportRange(0, 0, 10_000)).toEqual([0, 10_000]);
+	});
+});
+
+/**
+ * Construit un projet minimal pour tester la préparation d'un export vidéo.
+ * @param {{ addRandomBackground?: boolean; exportWithoutBackground?: boolean; videoClips?: AssetClip[] }} options Options de l'état d'export et de la piste vidéo.
+ * @returns {{ project: Project; videoTrack: { clips: AssetClip[] }; addAssetHeadless: ReturnType<typeof vi.fn> }} Projet et dépendances observables.
+ */
+function createRandomBackgroundProjectFixture(
+	options: {
+		addRandomBackground?: boolean;
+		exportWithoutBackground?: boolean;
+		videoClips?: AssetClip[];
+	} = {}
+) {
+	const videoTrack = { clips: options.videoClips ?? [] };
+	const audioTrack = { getDuration: () => ({ ms: 5000 }) };
+	const addAssetHeadless = vi.fn();
+	const project = {
+		projectEditorState: {
+			export: {
+				addRandomBackground: options.addRandomBackground ?? true,
+				exportWithoutBackground: options.exportWithoutBackground ?? false
+			}
+		},
+		content: {
+			timeline: {
+				getFirstTrack: vi.fn((trackType: TrackType) =>
+					trackType === TrackType.Video ? videoTrack : audioTrack
+				)
+			},
+			addAssetHeadless
+		}
+	} as unknown as Project;
+
+	return { project, videoTrack, addAssetHeadless };
+}
+
+describe('Random export backgrounds', () => {
+	it('filters compatible files without entering subdirectories', () => {
+		const entries = [
+			{ name: 'image.PNG', isFile: true, isDirectory: false },
+			{ name: 'clip.webm', isFile: true, isDirectory: false },
+			{ name: 'audio.mp3', isFile: true, isDirectory: false },
+			{ name: 'notes.txt', isFile: true, isDirectory: false },
+			{ name: 'nested', isFile: false, isDirectory: true }
+		];
+
+		expect(getRandomBackgroundCandidates(entries)).toEqual(['image.PNG', 'clip.webm']);
+	});
+
+	it('selects candidates independently from the random value', () => {
+		const entries = [
+			{ name: 'first.jpg', isFile: true, isDirectory: false },
+			{ name: 'second.mp4', isFile: true, isDirectory: false }
+		];
+
+		expect(selectRandomBackgroundCandidate(entries, 0)).toBe('first.jpg');
+		expect(selectRandomBackgroundCandidate(entries, 0.99)).toBe('second.mp4');
+	});
+
+	it('does nothing when the option is disabled or the video track is not empty', async () => {
+		const disabled = createRandomBackgroundProjectFixture({ addRandomBackground: false });
+		const disabledReader = vi.fn(async () => []);
+		await prepareRandomBackgroundProject(disabled.project, 'pool', {
+			readDirectory: disabledReader
+		});
+		expect(disabled.videoTrack.clips).toHaveLength(0);
+		expect(disabledReader).not.toHaveBeenCalled();
+
+		const existing = createRandomBackgroundProjectFixture({
+			videoClips: [new AssetClip(0, 100, 4)]
+		});
+		const existingReader = vi.fn(async () => []);
+		await prepareRandomBackgroundProject(existing.project, 'pool', {
+			readDirectory: existingReader
+		});
+		expect(existing.videoTrack.clips).toHaveLength(1);
+		expect(existingReader).not.toHaveBeenCalled();
+	});
+
+	it('falls back silently for an empty, inaccessible, or invalid pool', async () => {
+		const empty = createRandomBackgroundProjectFixture();
+		await prepareRandomBackgroundProject(empty.project, 'pool', {
+			readDirectory: async () => [{ name: 'sound.mp3', isFile: true, isDirectory: false }]
+		});
+		expect(empty.videoTrack.clips).toHaveLength(0);
+
+		const inaccessible = createRandomBackgroundProjectFixture();
+		await prepareRandomBackgroundProject(inaccessible.project, 'pool', {
+			readDirectory: async () => {
+				throw new Error('access denied');
+			}
+		});
+		expect(inaccessible.videoTrack.clips).toHaveLength(0);
+
+		const invalid = createRandomBackgroundProjectFixture();
+		await prepareRandomBackgroundProject(invalid.project, 'pool', {
+			readDirectory: async () => [{ name: 'broken.jpg', isFile: true, isDirectory: false }]
+		});
+		expect(invalid.videoTrack.clips).toHaveLength(0);
+	});
+
+	it('creates a non-looping image clip', async () => {
+		const fixture = createRandomBackgroundProjectFixture();
+		const asset = {
+			id: 7,
+			type: AssetType.Image,
+			exists: true,
+			checkExistence: vi.fn(async () => undefined),
+			ensureDurationLoaded: vi.fn(async () => undefined),
+			hasDurationLoadError: vi.fn(() => false)
+		};
+		fixture.addAssetHeadless.mockReturnValue(asset);
+
+		await prepareRandomBackgroundProject(fixture.project, 'pool', {
+			readDirectory: async () => [{ name: 'background.jpg', isFile: true, isDirectory: false }],
+			joinPath: async (folder, fileName) => `${folder}/${fileName}`
+		});
+
+		expect(fixture.videoTrack.clips[0]).toMatchObject({
+			assetId: 7,
+			startTime: 0,
+			endTime: 0,
+			loopUntilAudioEnd: false
+		});
+	});
+
+	it('creates a looping video clip covering the audio duration', async () => {
+		const fixture = createRandomBackgroundProjectFixture();
+		const asset = {
+			id: 8,
+			type: AssetType.Video,
+			exists: true,
+			checkExistence: vi.fn(async () => undefined),
+			ensureDurationLoaded: vi.fn(async () => undefined),
+			hasDurationLoadError: vi.fn(() => false)
+		};
+		fixture.addAssetHeadless.mockReturnValue(asset);
+
+		await prepareRandomBackgroundProject(fixture.project, 'pool', {
+			readDirectory: async () => [{ name: 'background.mp4', isFile: true, isDirectory: false }],
+			joinPath: async (folder, fileName) => `${folder}/${fileName}`
+		});
+
+		expect(asset.ensureDurationLoaded).toHaveBeenCalledOnce();
+		expect(fixture.videoTrack.clips[0]).toMatchObject({
+			assetId: 8,
+			startTime: 0,
+			endTime: 5000,
+			loopUntilAudioEnd: true
+		});
+	});
+
+	it('does not add a background when transparent export is enabled', async () => {
+		const fixture = createRandomBackgroundProjectFixture({ exportWithoutBackground: true });
+		const reader = vi.fn(async () => [
+			{ name: 'background.jpg', isFile: true, isDirectory: false }
+		]);
+
+		await prepareRandomBackgroundProject(fixture.project, 'pool', { readDirectory: reader });
+
+		expect(reader).not.toHaveBeenCalled();
+		expect(fixture.videoTrack.clips).toHaveLength(0);
 	});
 });
 

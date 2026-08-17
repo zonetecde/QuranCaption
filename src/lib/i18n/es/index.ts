@@ -2052,6 +2052,12 @@ const es = {
 		noContentAfterSkips:
 			'Los rangos omitidos cubren toda la exportación. Conserva al menos una sección.',
 		background: 'Fondo',
+		addRandomBackground: 'Añadir un fondo aleatorio al video',
+		addRandomBackgroundDescription:
+			'Solo funciona cuando la pista de vídeo está vacía. Para la exportación se usará una imagen o un vídeo aleatorio.',
+		selectRandomBackgroundFolder: 'Seleccionar la carpeta de fondos',
+		randomBackgroundFolderDescription:
+			'Las imágenes y vídeos directamente dentro de esta carpeta pueden seleccionarse al azar en cada exportación.',
 		exportWithoutBackground: 'Exportar sin fondo',
 		rendersOnlyOverlay: 'Renderiza solo la superposición con transparencia (alfa).',
 		transparentExportFormat: 'Formato de exportación transparente',

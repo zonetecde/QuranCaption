@@ -2056,6 +2056,12 @@ const de = {
 		noContentAfterSkips:
 			'Die übersprungenen Bereiche decken den gesamten Export ab. Behalte mindestens einen Abschnitt.',
 		background: 'Hintergrund',
+		addRandomBackground: 'Zufälligen Hintergrund zum Video hinzufügen',
+		addRandomBackgroundDescription:
+			'Funktioniert nur, wenn die Videospur leer ist. Für den Export wird zufällig ein Bild oder Video verwendet.',
+		selectRandomBackgroundFolder: 'Ordner für den Hintergrund-Pool auswählen',
+		randomBackgroundFolderDescription:
+			'Bilder und Videos direkt in diesem Ordner können für jeden Export zufällig ausgewählt werden.',
 		exportWithoutBackground: 'Ohne Hintergrund exportieren',
 		rendersOnlyOverlay: 'Rendert nur die Überlagerung mit Transparenz (Alpha).',
 		transparentExportFormat: 'Transparentes Exportformat',

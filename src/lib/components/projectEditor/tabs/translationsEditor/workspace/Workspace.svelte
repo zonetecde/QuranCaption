@@ -23,6 +23,57 @@
 		setAddTranslationModalVisibility: (visible: boolean) => void;
 	} = $props();
 	const project = globalState.currentProject!;
+	let playbackClipId = $state<number | null>(null);
+
+	/**
+	 * Lance ou met en pause la lecture du sous-titre sélectionné.
+	 * @param {SubtitleClip | PredefinedSubtitleClip} clip Sous-titre à lire.
+	 * @returns {void}
+	 */
+	function toggleSubtitlePlayback(clip: SubtitleClip | PredefinedSubtitleClip): void {
+		const videoPreview = globalState.getVideoPreviewState;
+		if (playbackClipId === clip.id && videoPreview.isPlaying) {
+			videoPreview.togglePlayPause();
+			playbackClipId = null;
+			return;
+		}
+
+		globalState.getTimelineState.cursorPosition = clip.startTime;
+		globalState.getTimelineState.movePreviewTo = clip.startTime;
+		playbackClipId = clip.id;
+		if (!videoPreview.isPlaying) videoPreview.togglePlayPause();
+	}
+
+	/**
+	 * Indique si le bouton correspond au sous-titre actuellement lu.
+	 * @param {number} clipId Identifiant du sous-titre.
+	 * @returns {boolean} `true` si ce sous-titre est en cours de lecture.
+	 */
+	function isSubtitlePlaying(clipId: number): boolean {
+		return playbackClipId === clipId && globalState.getVideoPreviewState.isPlaying;
+	}
+
+	$effect(() => {
+		if (playbackClipId === null) return;
+
+		const videoPreview = globalState.getVideoPreviewState;
+		if (!videoPreview.isPlaying) {
+			playbackClipId = null;
+			return;
+		}
+
+		const clip = globalState.getSubtitleTrack.getClipById(playbackClipId);
+		if (!clip) {
+			playbackClipId = null;
+			return;
+		}
+
+		const cursorPosition = globalState.getTimelineState.cursorPosition;
+		if (cursorPosition < clip.startTime || cursorPosition >= clip.endTime) {
+			videoPreview.togglePlayPause();
+			playbackClipId = null;
+		}
+	});
 
 	let editionsToShowInEditor = $derived(() =>
 		globalState.currentProject!.content.projectTranslation.addedTranslationEditions.filter(
@@ -489,7 +540,7 @@
 									_clipIndex > 0 ? (getCachedPreviousSubtitle(_clipIndex) ?? undefined) : undefined}
 								<!-- clipIndex est l'index réel dans clips -->
 								<section
-									class="relative rounded-xl transition-all duration-500 {lastRead.highlightedClipId ===
+									class="group/translation-card relative rounded-xl transition-all duration-500 {lastRead.highlightedClipId ===
 									clip.id
 										? 'bg-[var(--accent-primary)]/8 ring-1 p-3 ring-[var(--accent-primary)]/40 shadow-[0_0_0_1px_rgba(0,0,0,0.02)]'
 										: ''}"
@@ -505,6 +556,9 @@
 									<ArabicText
 										subtitle={clip as SubtitleClip | PredefinedSubtitleClip}
 										overlapEndWordIndex={getArabicOverlapEndWithPrevious(_clipIndex)}
+										isPlaying={isSubtitlePlaying(clip.id)}
+										onPlaybackToggle={() =>
+											toggleSubtitlePlayback(clip as SubtitleClip | PredefinedSubtitleClip)}
 									/>
 									{#each editionsToShowInEditor() as edition (edition.name)}
 										{#key edition.name}

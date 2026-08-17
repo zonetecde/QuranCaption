@@ -7,6 +7,7 @@
 	import Workspace from './workspace/Workspace.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import VideoPreview from '../../videoPreview/VideoPreview.svelte';
 
 	let addTranslationModalVisibility = $state(false);
 	let leftDrawerOpen = $state(false);
@@ -135,6 +136,10 @@
 			</div>
 		{/snippet}
 	</MobileSideDrawers>
+</div>
+
+<div class="hidden" aria-hidden="true">
+	<VideoPreview showControls={false} />
 </div>
 
 {#if addTranslationModalVisibility}

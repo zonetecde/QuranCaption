@@ -15,13 +15,18 @@
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import { WbwTranslationService } from '$lib/services/WbwTranslationService';
 	import { onMount } from 'svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	let {
 		subtitle,
-		overlapEndWordIndex = null
+		overlapEndWordIndex = null,
+		isPlaying = false,
+		onPlaybackToggle
 	}: {
 		subtitle: SubtitleClip | PredefinedSubtitleClip;
 		overlapEndWordIndex?: number | null;
+		isPlaying?: boolean;
+		onPlaybackToggle?: () => void;
 	} = $props();
 
 	let translationsEditorState = $derived(
@@ -252,6 +257,18 @@
 			>
 				{arabicVerseNumberSuffix()}
 			</span>
+		{/if}
+
+		{#if onPlaybackToggle}
+			<button
+				type="button"
+				class="flex h-7 w-7 shrink-0 items-center justify-center self-center rounded-full bg-accent text-primary opacity-30 transition-opacity duration-200 group-hover/translation-card:opacity-100 mr-4"
+				aria-label={$LL.settings.shortcutAction.PLAY_PAUSE()}
+				data-translation-playback-clip-id={subtitle.id}
+				onclick={onPlaybackToggle}
+			>
+				<span class="material-icons text-lg">{isPlaying ? 'pause' : 'play_arrow'}</span>
+			</button>
 		{/if}
 	</div>
 

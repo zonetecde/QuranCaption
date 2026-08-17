@@ -622,14 +622,6 @@ export default class Settings extends SerializableBase {
 			};
 			shouldSave = true;
 		}
-		if (!settings.shortcuts.TIMELINE.QUICK_MERGE_AT_CURSOR) {
-			settings.shortcuts.TIMELINE.QUICK_MERGE_AT_CURSOR = {
-				keys: ['y'],
-				name: 'Toggle Quick Merge',
-				description: 'Merge or unmerge subtitles at the closest boundary to the cursor'
-			};
-			shouldSave = true;
-		}
 		// ==========================
 
 		// Regarde la version des settings. Si c'est pas la même, ça veut dire

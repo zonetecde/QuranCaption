@@ -173,7 +173,9 @@
 	let exportNonReadyProjects = $state(false);
 	let exportOnlyRecitation = $state(false);
 	let exportModalTab = $state<'video' | 'youtube' | 'subtitles'>('video');
-	let youtubeChaptersChoice = $state<'Each Surah' | 'Each Verse'>('Each Surah');
+	let youtubeChaptersChoice = $state<
+		'Each Surah' | 'Each Verse' | 'Each Hizb' | 'Each Juz' | 'Each Rub'
+	>('Each Surah');
 	let exportQueueActive = $derived(workflow.isActive('export'));
 	let exportProgress = $state<BatchExportProgress>({
 		activeProjectName: null,
@@ -2081,6 +2083,24 @@
 							</span>
 						</span>
 					</label>
+					{#each [{ value: 'Each Hizb', title: $LL.export.chapterPerHizb(), description: $LL.export.chapterPerHizbDescription() }, { value: 'Each Juz', title: $LL.export.chapterPerJuz(), description: $LL.export.chapterPerJuzDescription() }, { value: 'Each Rub', title: $LL.export.chapterPerRub(), description: $LL.export.chapterPerRubDescription() }] as option (option.value)}
+						<label
+							class="flex cursor-pointer items-center gap-3 rounded-lg border border-[var(--border-color)] bg-[var(--bg-accent)] p-4"
+						>
+							<input
+								type="radio"
+								name="batch-youtube-chapters"
+								value={option.value}
+								bind:group={youtubeChaptersChoice}
+							/>
+							<span>
+								<span class="block font-medium text-[var(--text-primary)]">{option.title}</span>
+								<span class="mt-1 block text-xs text-[var(--text-thirdly)]"
+									>{option.description}</span
+								>
+							</span>
+						</label>
+					{/each}
 				</div>
 			{:else}
 				<p class="mt-5 rounded-lg bg-[var(--bg-accent)] p-4 text-sm text-[var(--text-secondary)]">

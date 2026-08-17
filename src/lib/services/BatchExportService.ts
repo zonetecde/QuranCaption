@@ -219,7 +219,7 @@ export class BatchExportService {
 	 * Exporte un fichier de chapitres YouTube par projet chargé.
 	 * @param {BatchExportEligibility[]} inspection Projets sélectionnés déjà chargés.
 	 * @param {string} outputFolder Dossier de sortie commun.
-	 * @param {YouTubeChaptersChoice} choice Regroupement par sourate ou par verset.
+	 * @param {YouTubeChaptersChoice} choice Regroupement par sourate, verset, hizb, juz ou rubʿ.
 	 * @param {boolean} exportOnlyRecitation Retire les silences et passages hors récitation.
 	 * @returns {Promise<BatchExportProgress>} Résumé final.
 	 */

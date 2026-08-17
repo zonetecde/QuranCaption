@@ -2114,6 +2114,16 @@ const es = {
 		chapterPerVerse: 'Capítulo por versículo',
 		chapterPerVerseDescription:
 			'Crea un capítulo para cada versículo en su línea de tiempo de video.',
+		chapterPerHizb: 'Capítulo por hizb',
+		chapterPerHizbDescription: 'Crea un capítulo para cada hizb en su línea de tiempo de video.',
+		chapterPerJuz: 'Capítulo por juz',
+		chapterPerJuzDescription: 'Crea un capítulo para cada juz en su línea de tiempo de video.',
+		chapterPerRub: 'Capítulo por rubʿ',
+		chapterPerRubDescription: 'Crea un capítulo para cada rubʿ en su línea de tiempo de video.',
+		chapterFormatSuggestion: 'Quizás quieras cambiar el formato de texto a «{format}»',
+		chapterFormatHizb: 'Hizb <hizb-number>',
+		chapterFormatJuz: 'Juz <juz-number>',
+		chapterFormatRub: 'Rub <rub-number>',
 		howToUse: 'Cómo usar',
 		youtubeIntegration: 'Integración YouTube',
 		youtubeIntegrationDescription:

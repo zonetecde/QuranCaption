@@ -31,7 +31,61 @@ import { TrackType } from './enums';
 
 export const DEFAULT_YTB_CHAPTERS_FORMAT = '<timestamp> Surah <surah-number>, Verse <verse-number>';
 
-export type YouTubeChaptersChoice = 'Each Surah' | 'Each Verse';
+export type YouTubeChaptersChoice =
+	| 'Each Surah'
+	| 'Each Verse'
+	| 'Each Hizb'
+	| 'Each Juz'
+	| 'Each Rub';
+
+type QuranDivisionChoice = 'Each Hizb' | 'Each Juz' | 'Each Rub';
+type QuranDivisionMetadata = Record<
+	string,
+	{
+		verse_mapping: Record<string, string>;
+	}
+>;
+
+const quranDivisionMapPromises: Partial<Record<QuranDivisionChoice, Promise<Map<string, number>>>> =
+	{};
+
+/**
+ * Charge les plages de versets d'une division coranique et les indexe par référence de verset.
+ * @param {QuranDivisionChoice} choice Type de division à charger.
+ * @returns {Promise<Map<string, number>>} Correspondance `surah:verse` vers numéro de division.
+ */
+async function getQuranDivisionMap(choice: QuranDivisionChoice): Promise<Map<string, number>> {
+	const cached = quranDivisionMapPromises[choice];
+	if (cached) return cached;
+
+	const path =
+		choice === 'Each Hizb'
+			? '/quran-metadata/quran-metadata-hizb.json'
+			: choice === 'Each Juz'
+				? '/quran-metadata/quran-metadata-juz.json'
+				: '/quran-metadata/quran-metadata-rub.json';
+	const promise = fetch(path)
+		.then(async (response) => {
+			if (!response.ok)
+				throw new Error(`Unable to load Quran division metadata: ${response.status}`);
+			return (await response.json()) as QuranDivisionMetadata;
+		})
+		.then((metadata) => {
+			const map = new Map<string, number>();
+			for (const [divisionKey, division] of Object.entries(metadata)) {
+				const divisionNumber = Number(divisionKey);
+				for (const [surahKey, range] of Object.entries(division.verse_mapping)) {
+					const [start, end = start] = range.split('-').map(Number);
+					for (let verse = start; verse <= end; verse++) {
+						map.set(`${surahKey}:${verse}`, divisionNumber);
+					}
+				}
+			}
+			return map;
+		});
+	quranDivisionMapPromises[choice] = promise;
+	return promise;
+}
 
 export type YouTubeChapterFormatValues = {
 	timestamp: string;
@@ -41,6 +95,9 @@ export type YouTubeChapterFormatValues = {
 	verseArabic: string;
 	verseNumber: number;
 	verseTranslation: string;
+	hizbNumber?: number;
+	juzNumber?: number;
+	rubNumber?: number;
 };
 
 /**
@@ -61,7 +118,10 @@ export function formatYouTubeChapterLine(
 		.replaceAll('<surah-transliteration>', values.surahTransliteration)
 		.replaceAll('<verse-arabic>', values.verseArabic)
 		.replaceAll('<verse-number>', values.verseNumber.toString())
-		.replaceAll('<verse-translation>', values.verseTranslation);
+		.replaceAll('<verse-translation>', values.verseTranslation)
+		.replaceAll('<hizb-number>', values.hizbNumber?.toString() ?? '')
+		.replaceAll('<juz-number>', values.juzNumber?.toString() ?? '')
+		.replaceAll('<rub-number>', values.rubNumber?.toString() ?? '');
 }
 
 /**
@@ -546,7 +606,7 @@ export default class Exporter {
 	/**
 	 * Génère le contenu des chapitres YouTube d'un projet explicite.
 	 * @param {Project} project Projet source.
-	 * @param {YouTubeChaptersChoice} choice Regroupement par sourate ou par verset.
+	 * @param {YouTubeChaptersChoice} choice Regroupement par sourate, verset, hizb, juz ou rubʿ.
 	 * @param {boolean} exportOnlyRecitation Force le retrait des silences et passages hors récitation.
 	 * @param {string | null} formatOverride Format imposé à la place du réglage du projet.
 	 * @returns {Promise<{ content: string; chapterCount: number; exportStart: number; exportEnd: number }>} Contenu et métadonnées de l'export.
@@ -573,6 +633,20 @@ export default class Exporter {
 			project.content.projectTranslation.addedTranslationEditions.find(
 				(edition) => edition.name === exportSettings.ytbChaptersTranslationEditionName
 			) ?? null;
+		let [hizbMap, juzMap, rubMap] = [
+			new Map<string, number>(),
+			new Map<string, number>(),
+			new Map<string, number>()
+		];
+		try {
+			[hizbMap, juzMap, rubMap] = await Promise.all([
+				getQuranDivisionMap('Each Hizb'),
+				getQuranDivisionMap('Each Juz'),
+				getQuranDivisionMap('Each Rub')
+			]);
+		} catch (error) {
+			console.error('Unable to load Quran division metadata:', error);
+		}
 
 		/**
 		 * Indique si un clip chevauche la plage d'export enregistrée.
@@ -611,48 +685,43 @@ export default class Exporter {
 			);
 
 		const chapters: string[] = [];
+		let lastChapterGroupKey: string | null = null;
 
-		if (choice === 'Each Surah') {
-			// Groupe par sourate
-			let lastSurahAdded = -1;
+		for (const clip of subtitlesClips) {
+			if (!(clip instanceof SubtitleClip)) continue;
+			if (!clipWithinExportRange(clip)) continue;
 
-			for (const clip of subtitlesClips) {
-				if (!(clip instanceof SubtitleClip)) continue;
-				if (!clipWithinExportRange(clip)) continue;
+			const verseKey = `${clip.surah}:${clip.verse}`;
+			const divisionNumber =
+				choice === 'Each Hizb'
+					? hizbMap.get(verseKey)
+					: choice === 'Each Juz'
+						? juzMap.get(verseKey)
+						: choice === 'Each Rub'
+							? rubMap.get(verseKey)
+							: undefined;
+			const chapterGroupKey =
+				choice === 'Each Surah'
+					? `surah:${clip.surah}`
+					: choice === 'Each Verse'
+						? `verse:${clip.surah}:${clip.verse}`
+						: divisionNumber !== undefined
+							? `${choice}:${divisionNumber}`
+							: `verse:${clip.surah}:${clip.verse}`;
 
-				if (clip.surah !== lastSurahAdded) {
-					lastSurahAdded = clip.surah;
-					const timeFormatted = chapters.length === 0 ? '0:00' : getTimeFormatted(clip.startTime);
-					const values = await Exporter.getYouTubeChapterFormatValues(
-						clip,
-						timeFormatted,
-						translationEdition,
-						project
-					);
-					chapters.push(formatYouTubeChapterLine(format, values));
-				}
-			}
-		} else if (choice === 'Each Verse') {
-			// Groupe par verset
-			let lastSurahVerse = '';
-
-			for (const clip of subtitlesClips) {
-				if (!(clip instanceof SubtitleClip)) continue;
-				if (!clipWithinExportRange(clip)) continue;
-
-				const currentSurahVerse = `${clip.surah}:${clip.verse}`;
-				if (currentSurahVerse !== lastSurahVerse) {
-					lastSurahVerse = currentSurahVerse;
-					const timeFormatted = chapters.length === 0 ? '0:00' : getTimeFormatted(clip.startTime);
-					const values = await Exporter.getYouTubeChapterFormatValues(
-						clip,
-						timeFormatted,
-						translationEdition,
-						project
-					);
-					chapters.push(formatYouTubeChapterLine(format, values));
-				}
-			}
+			if (chapterGroupKey === lastChapterGroupKey) continue;
+			lastChapterGroupKey = chapterGroupKey;
+			const timeFormatted = chapters.length === 0 ? '0:00' : getTimeFormatted(clip.startTime);
+			const values = await Exporter.getYouTubeChapterFormatValues(
+				clip,
+				timeFormatted,
+				translationEdition,
+				project,
+				hizbMap.get(verseKey) ?? 0,
+				juzMap.get(verseKey) ?? 0,
+				rubMap.get(verseKey) ?? 0
+			);
+			chapters.push(formatYouTubeChapterLine(format, values));
 		}
 
 		// Génère le contenu du fichier
@@ -708,7 +777,10 @@ export default class Exporter {
 		clip: SubtitleClip,
 		timestamp: string,
 		translationEdition: Edition | null,
-		project: Project
+		project: Project,
+		hizbNumber: number,
+		juzNumber: number,
+		rubNumber: number
 	): Promise<YouTubeChapterFormatValues> {
 		const surah = Quran.surahs[clip.surah - 1];
 		let verseArabic = clip.text;
@@ -734,7 +806,10 @@ export default class Exporter {
 			surahTransliteration: surah?.name ?? '',
 			verseArabic,
 			verseNumber: clip.verse,
-			verseTranslation
+			verseTranslation,
+			hizbNumber,
+			juzNumber,
+			rubNumber
 		};
 	}
 

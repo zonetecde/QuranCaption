@@ -20,6 +20,9 @@ const baseValues: YouTubeChapterFormatValues = {
 	surahTransliteration: 'Taha',
 	verseArabic: 'طه',
 	verseNumber: 2,
+	hizbNumber: 32,
+	juzNumber: 16,
+	rubNumber: 127,
 	verseTranslation: 'We have not sent down to you the Quran that you be distressed'
 };
 
@@ -48,6 +51,15 @@ describe('YouTube chapter formatting', () => {
 		);
 
 		expect(line).toBe('0:03 Taha / Ta-Ha');
+	});
+
+	it('replaces Quran division placeholders', () => {
+		const line = formatYouTubeChapterLine(
+			'<timestamp> Hizb <hizb-number> Juz <juz-number> Rub <rub-number>',
+			baseValues
+		);
+
+		expect(line).toBe('0:03 Hizb 32 Juz 16 Rub 127');
 	});
 
 	it('keeps unknown placeholders and supports blank verse translations', () => {

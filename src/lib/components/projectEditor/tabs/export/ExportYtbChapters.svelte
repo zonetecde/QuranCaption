@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Exporter from '$lib/classes/Exporter';
+	import Exporter, { type YouTubeChaptersChoice } from '$lib/classes/Exporter';
 	import { SubtitleClip } from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
@@ -7,6 +7,7 @@
 	import ExportFolderPicker from './ExportFolderPicker.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
+	import toast from 'svelte-5-french-toast';
 
 	const LL_ = get(LL);
 
@@ -17,8 +18,34 @@
 		'<surah-transliteration>',
 		'<verse-arabic>',
 		'<verse-number>',
-		'<verse-translation>'
+		'<verse-translation>',
+		'<hizb-number>',
+		'<juz-number>',
+		'<rub-number>'
 	];
+
+	/**
+	 * Sélectionne le regroupement des chapitres et suggère un format adapté aux divisions coraniques.
+	 * @param {Event} event Événement déclenché par le bouton radio.
+	 * @returns {void}
+	 */
+	function selectChapterChoice(event: Event): void {
+		const choice = (event.target as HTMLInputElement).value as YouTubeChaptersChoice;
+		globalState.getExportState.ytbChaptersChoice = choice;
+		const suggestion =
+			choice === 'Each Hizb'
+				? get(LL).export.chapterFormatHizb()
+				: choice === 'Each Juz'
+					? get(LL).export.chapterFormatJuz()
+					: choice === 'Each Rub'
+						? get(LL).export.chapterFormatRub()
+						: null;
+		if (suggestion) {
+			toast(get(LL).export.chapterFormatSuggestion({ format: suggestion }), {
+				position: 'bottom-left'
+			});
+		}
+	}
 
 	onMount(() => {
 		const uniqueSurahs = new Set<number>();
@@ -66,11 +93,7 @@
 					name="ytb-chapters"
 					value="Each Surah"
 					checked={globalState.getExportState.ytbChaptersChoice === 'Each Surah'}
-					onchange={(event: Event) => {
-						const input = event.target as HTMLInputElement;
-						globalState.getExportState.ytbChaptersChoice =
-							input.value === 'Each Surah' ? 'Each Surah' : 'Each Verse';
-					}}
+					onchange={selectChapterChoice}
 					class="w-4 h-4 text-accent-primary"
 				/>
 				<div class="flex-1">
@@ -91,11 +114,7 @@
 					name="ytb-chapters"
 					value="Each Verse"
 					checked={globalState.getExportState.ytbChaptersChoice === 'Each Verse'}
-					onchange={(event: Event) => {
-						const input = event.target as HTMLInputElement;
-						globalState.getExportState.ytbChaptersChoice =
-							input.value === 'Each Verse' ? 'Each Verse' : 'Each Surah';
-					}}
+					onchange={selectChapterChoice}
 					class="w-4 h-4 text-accent-primary"
 				/>
 				<div class="flex-1">
@@ -107,6 +126,27 @@
 					</p>
 				</div>
 			</label>
+
+			{#each [{ value: 'Each Hizb', title: $LL.export.chapterPerHizb(), description: $LL.export.chapterPerHizbDescription() }, { value: 'Each Juz', title: $LL.export.chapterPerJuz(), description: $LL.export.chapterPerJuzDescription() }, { value: 'Each Rub', title: $LL.export.chapterPerRub(), description: $LL.export.chapterPerRubDescription() }] as option (option.value)}
+				<label
+					class="flex items-center gap-3 cursor-pointer group bg-accent rounded-lg p-4 border border-color hover:border-accent-primary transition-colors"
+				>
+					<input
+						type="radio"
+						name="ytb-chapters"
+						value={option.value}
+						checked={globalState.getExportState.ytbChaptersChoice === option.value}
+						onchange={selectChapterChoice}
+						class="w-4 h-4 text-accent-primary"
+					/>
+					<div class="flex-1">
+						<span class="text-secondary font-medium group-hover:text-primary transition-colors">
+							{option.title}
+						</span>
+						<p class="text-thirdly text-xs mt-1">{option.description}</p>
+					</div>
+				</label>
+			{/each}
 		</div>
 	</div>
 

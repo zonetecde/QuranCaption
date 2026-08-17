@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getSharedWizard } from './sharedWizard';
+	import { Quran } from '$lib/classes/Quran';
 	import { audioNormalizationStatus } from '$lib/services/autoSegmentation/audio-normalize.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 
@@ -105,6 +106,19 @@
 		<div class="text-sm text-secondary">
 			{$LL.editor.detectedSegments({ count: wizard.result.segmentsApplied })}
 		</div>
+		{#if wizard.result.verseRange.parts.length > 0}
+			<div class="flex flex-wrap gap-2 text-sm text-secondary">
+				{#each wizard.result.verseRange.parts as part (`${part.surah}:${part.verseStart}-${part.verseEnd}`)}
+					<div class="rounded-lg border border-color bg-primary/40 px-3 py-2">
+						{$LL.editor.detectedAyahRange({
+							surah: Quran.getSurahsNames()[part.surah - 1]?.transliteration ?? String(part.surah),
+							from: part.verseStart,
+							to: part.verseEnd
+						})}
+					</div>
+				{/each}
+			</div>
+		{/if}
 		<div class="flex flex-wrap gap-2 text-xs text-secondary">
 			<div
 				class="inline-flex items-center gap-1 rounded-full border border-color bg-primary/40 px-2 py-1"

@@ -910,6 +910,7 @@ const es = {
 		segmentationFailed: 'Error de segmentación.',
 		noSegmentsDetected: 'No se detectaron segmentos. Intente ajustar la configuración.',
 		detectedSegments: '{count}\u00a0segmentos detectados',
+		detectedAyahRange: '{surah}, aleyas {from}–{to}',
 		segmentsWillReplace: 'Esto reemplazará todos los subtítulos existentes.',
 		startSegmentation: 'Iniciar segmentación',
 		cancelSegmentation: 'Cancelar',

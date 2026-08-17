@@ -913,6 +913,7 @@ const fr = {
 		segmentationFailed: 'Échec de la segmentation.',
 		noSegmentsDetected: 'Aucun segment détecté. Essayez d\u2019ajuster les paramètres.',
 		detectedSegments: '{count}\u00a0segments détectés',
+		detectedAyahRange: '{surah}, Ayahs {from}–{to}',
 		segmentsWillReplace: 'Cela remplacera tous les sous-titres existants.',
 		startSegmentation: 'Démarrer la segmentation',
 		cancelSegmentation: 'Annuler',

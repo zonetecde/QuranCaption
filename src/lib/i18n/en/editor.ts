@@ -318,6 +318,7 @@ const editor = {
 	segmentationFailed: 'Segmentation failed.',
 	noSegmentsDetected: 'No segments were detected. Try adjusting the settings.',
 	detectedSegments: 'Detected {count} segments',
+	detectedAyahRange: '{surah}, Ayahs {from}–{to}',
 	segmentsWillReplace: 'This will replace all existing subtitles.',
 	startSegmentation: 'Start Segmentation',
 	cancelSegmentation: 'Cancel',

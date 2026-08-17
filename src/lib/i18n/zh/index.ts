@@ -836,6 +836,7 @@ const zh = {
 		segmentationFailed: '分段失败。',
 		noSegmentsDetected: '未检测到任何段落。请尝试调整设置。',
 		detectedSegments: '检测到 {count} 个段落',
+		detectedAyahRange: '{surah}，第 {from}–{to} 节',
 		segmentsWillReplace: '这将替换所有现有字幕。',
 		startSegmentation: '开始分段',
 		cancelSegmentation: '取消',

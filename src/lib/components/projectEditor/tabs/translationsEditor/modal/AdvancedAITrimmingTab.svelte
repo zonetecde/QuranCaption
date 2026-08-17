@@ -4,7 +4,8 @@
 	import AiBatchOverviewCard from './shared/AiBatchOverviewCard.svelte';
 	import AiRunStatusCard from './shared/AiRunStatusCard.svelte';
 	import AiStreamingWorkerGrid from './shared/AiStreamingWorkerGrid.svelte';
-	import VerseRangeSelector from './VerseRangeSelector.svelte';
+	import VerseRangeSlider from '$lib/components/projectEditor/tabs/export/VerseRangeSlider.svelte';
+	import { buildVerseRangeSliderOptions } from '$lib/components/projectEditor/tabs/export/VerseRangeSlider';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
 		applyAdvancedTrimValidationSuccess,
@@ -592,17 +593,16 @@
 			<div class="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
 				<div class="space-y-4">
 					{#if getTotalVerses() > 1}
-						<VerseRangeSelector
-							totalDurationMs={getSelectionMaxDurationMs()}
+						<VerseRangeSlider
+							verses={buildVerseRangeSliderOptions(advancedCandidates)}
 							totalItems={getTotalVerses()}
 							selectedItems={getSelectedVerseCount()}
 							bind:startTimeMs={selectedStartTimeMs}
 							bind:endTimeMs={selectedEndTimeMs}
-							title={$LL.editor.timeSelection()}
-							icon="schedule"
+							title={$LL.tools.selectAyahRange()}
 							totalLabel="eligible verses"
-							selectionLabel="Select time range to process:"
-							selectionHint="(based on the video timeline)"
+							selectionLabel={$LL.tools.selectAyahRangeHint()}
+							showRangeLabel
 							onRangeChange={refreshBatchPreview}
 						/>
 					{/if}

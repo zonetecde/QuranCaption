@@ -109,6 +109,17 @@
 				<span class="material-icons text-lg text-accent">content_cut</span>
 				{$LL.editor.assetTrimmer()}
 			</button>
+			<!-- svelte-ignore node_invalid_placement_ssr -->
+			<button
+				class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
+				onclick={(event) => {
+					event.stopPropagation();
+					runAction(() => ModalManager.verseRangeCropModal());
+				}}
+			>
+				<span class="material-icons text-lg text-accent">crop</span>
+				{$LL.tools.selectAyahRange()}
+			</button>
 
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button

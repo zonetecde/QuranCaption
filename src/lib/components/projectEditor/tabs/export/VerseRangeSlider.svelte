@@ -1,7 +1,12 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
+	import { getVerseRangeSliderIndexes, type VerseRangeSliderOption } from './VerseRangeSlider';
+
 	type VerseOption = {
 		key: string;
 		surah: number;
+		startTime?: number;
+		endTime?: number;
 	};
 
 	type SurahSegment = {
@@ -12,24 +17,46 @@
 
 	let {
 		verses,
-		startIndex,
-		endIndex,
-		startLabel,
-		endLabel,
-		onStartInput,
-		onEndInput,
-		onDragStart,
-		onDragEnd
+		startIndex = $bindable(0),
+		endIndex = $bindable(0),
+		startTimeMs = $bindable(),
+		endTimeMs = $bindable(),
+		startLabel = $LL.aiVideo.fromAyah(),
+		endLabel = $LL.aiVideo.toAyah(),
+		onStartInput = () => {},
+		onEndInput = () => {},
+		onDragStart = () => {},
+		onDragEnd = () => {},
+		onRangeChange = () => {},
+		title,
+		icon = 'format_list_numbered',
+		totalItems,
+		selectedItems,
+		totalLabel = $LL.editor.eligibleVerses(),
+		selectionLabel,
+		selectionHint = '',
+		showRangeLabel = false
 	}: {
 		verses: VerseOption[];
-		startIndex: number;
-		endIndex: number;
-		startLabel: string;
-		endLabel: string;
-		onStartInput: (index: number) => void;
-		onEndInput: (index: number) => void;
-		onDragStart: () => void;
-		onDragEnd: () => void;
+		startIndex?: number;
+		endIndex?: number;
+		startTimeMs?: number;
+		endTimeMs?: number;
+		startLabel?: string;
+		endLabel?: string;
+		onStartInput?: (index: number) => void;
+		onEndInput?: (index: number) => void;
+		onDragStart?: () => void;
+		onDragEnd?: () => void;
+		onRangeChange?: () => void | Promise<void>;
+		title?: string;
+		icon?: string;
+		totalItems?: number;
+		selectedItems?: number;
+		totalLabel?: string;
+		selectionLabel?: string;
+		selectionHint?: string;
+		showRangeLabel?: boolean;
 	} = $props();
 
 	let rail: HTMLDivElement;
@@ -38,9 +65,10 @@
 	const denominator = $derived(Math.max(1, lastIndex));
 	const startPosition = $derived((startIndex / denominator) * 100);
 	const endPosition = $derived((endIndex / denominator) * 100);
-	const selectionStart = $derived(startIndex === 0 ? 0 : ((startIndex - 0.5) / denominator) * 100);
-	const selectionEnd = $derived(
-		endIndex === lastIndex ? 100 : ((endIndex + 0.5) / denominator) * 100
+	const selectionStart = $derived(startPosition);
+	const selectionEnd = $derived(endPosition);
+	const selectedRangeLabel = $derived(
+		verses.length > 0 ? `${verses[startIndex]?.key} – ${verses[endIndex]?.key}` : ''
 	);
 	const segments = $derived.by(() => {
 		const result: SurahSegment[] = [];
@@ -67,6 +95,33 @@
 		return result;
 	});
 
+	$effect(() => {
+		if (
+			activeBoundary ||
+			startTimeMs === undefined ||
+			endTimeMs === undefined ||
+			!hasTimedVerses(verses)
+		) {
+			return;
+		}
+
+		const indexes = getVerseRangeSliderIndexes(verses, startTimeMs, endTimeMs);
+		startIndex = indexes.start;
+		endIndex = indexes.end;
+	});
+
+	/**
+	 * Vérifie que chaque verset possède des bornes temporelles.
+	 *
+	 * @param {VerseOption[]} options Versets à vérifier.
+	 * @returns {boolean} `true` lorsque toutes les bornes sont disponibles.
+	 */
+	function hasTimedVerses(options: VerseOption[]): options is VerseRangeSliderOption[] {
+		return options.every(
+			(option) => typeof option.startTime === 'number' && typeof option.endTime === 'number'
+		);
+	}
+
 	/**
 	 * Convertit une position horizontale en index de verset.
 	 * @param {number} clientX Position horizontale du pointeur.
@@ -85,8 +140,38 @@
 	 */
 	function updateActiveBoundary(clientX: number): void {
 		const index = getIndexAtPosition(clientX);
-		if (activeBoundary === 'start') onStartInput(Math.min(index, endIndex));
-		if (activeBoundary === 'end') onEndInput(Math.max(index, startIndex));
+		if (activeBoundary === 'start') applyStartIndex(Math.min(index, endIndex));
+		if (activeBoundary === 'end') applyEndIndex(Math.max(index, startIndex));
+	}
+
+	/**
+	 * Applique la borne de début et synchronise son timestamp éventuel.
+	 *
+	 * @param {number} index Index de début demandé.
+	 * @returns {void}
+	 */
+	function applyStartIndex(index: number): void {
+		startIndex = Math.max(0, Math.min(index, endIndex));
+		if (typeof verses[startIndex]?.startTime === 'number') {
+			startTimeMs = verses[startIndex].startTime;
+		}
+		onStartInput(startIndex);
+		void onRangeChange();
+	}
+
+	/**
+	 * Applique la borne de fin et synchronise son timestamp éventuel.
+	 *
+	 * @param {number} index Index de fin demandé.
+	 * @returns {void}
+	 */
+	function applyEndIndex(index: number): void {
+		endIndex = Math.min(lastIndex, Math.max(index, startIndex));
+		if (typeof verses[endIndex]?.endTime === 'number') {
+			endTimeMs = verses[endIndex].endTime;
+		}
+		onEndInput(endIndex);
+		void onRangeChange();
 	}
 
 	/**
@@ -146,71 +231,94 @@
 		else return;
 
 		event.preventDefault();
-		if (boundary === 'start') onStartInput(Math.max(0, Math.min(next, endIndex)));
-		else onEndInput(Math.min(lastIndex, Math.max(next, startIndex)));
+		if (boundary === 'start') applyStartIndex(Math.max(0, Math.min(next, endIndex)));
+		else applyEndIndex(Math.min(lastIndex, Math.max(next, startIndex)));
 	}
 </script>
 
-<div
-	bind:this={rail}
-	class="relative h-11 w-full touch-none cursor-pointer select-none"
-	role="presentation"
-	onpointerdown={handlePointerDown}
-	onpointermove={handlePointerMove}
-	onpointerup={handlePointerUp}
-	onpointercancel={handlePointerUp}
->
-	<div class="absolute top-1/2 h-3 w-full -translate-y-1/2 overflow-hidden rounded-full bg-primary">
-		{#each segments as segment}
-			<div
-				class="absolute inset-y-0 opacity-30"
-				style="left: {segment.start}%; width: {segment.end -
-					segment.start}%; background: {segment.color};"
-			></div>
-			{@const selectedStart = Math.max(segment.start, selectionStart)}
-			{@const selectedEnd = Math.min(segment.end, selectionEnd)}
-			{#if selectedEnd > selectedStart}
-				<div
-					class="absolute inset-y-0"
-					style="left: {selectedStart}%; width: {selectedEnd -
-						selectedStart}%; background: {segment.color};"
-				></div>
+<div class={title ? 'space-y-3' : ''}>
+	{#if title}
+		<div class="flex items-center gap-2">
+			<span class="material-icons text-accent text-lg">{icon}</span>
+			<h3 class="text-lg font-semibold text-primary">{title}</h3>
+			{#if totalItems !== undefined}
+				<span class="rounded-md bg-accent px-2 py-1 text-xs font-semibold">
+					{totalItems}
+					{totalLabel}
+				</span>
 			{/if}
-		{/each}
-	</div>
+			{#if selectedItems !== undefined}
+				<span
+					class="rounded-md border border-color bg-secondary px-2 py-1 text-xs font-semibold text-primary"
+				>
+					{$LL.editor.selectedItems({ count: selectedItems })}
+				</span>
+			{/if}
+		</div>
+	{/if}
 
-	<button
-		type="button"
-		data-boundary="end"
-		class="absolute top-1/2 z-10 flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-		style="left: {endPosition}%"
-		role="slider"
-		aria-label={endLabel}
-		aria-valuemin={startIndex}
-		aria-valuemax={lastIndex}
-		aria-valuenow={endIndex}
-		aria-valuetext={verses[endIndex]?.key}
-		onkeydown={(event) => handleKeyDown('end', event)}
-	>
-		<span
-			class="h-6 w-4 rounded-full border-2 border-[var(--bg-primary)] bg-[var(--accent-primary)] shadow-md"
-		></span>
-	</button>
-	<button
-		type="button"
-		data-boundary="start"
-		class="absolute top-1/2 z-20 flex size-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
-		style="left: {startPosition}%"
-		role="slider"
-		aria-label={startLabel}
-		aria-valuemin="0"
-		aria-valuemax={endIndex}
-		aria-valuenow={startIndex}
-		aria-valuetext={verses[startIndex]?.key}
-		onkeydown={(event) => handleKeyDown('start', event)}
-	>
-		<span
-			class="h-6 w-4 rounded-full border-2 border-[var(--bg-primary)] bg-[var(--accent-primary)] shadow-md"
-		></span>
-	</button>
+	<div class={title ? 'rounded-lg border border-color bg-accent p-4' : ''}>
+		{#if selectionLabel || selectionHint}
+			<p class="mb-4 text-sm font-medium text-secondary">
+				{selectionLabel}
+				{#if selectionHint}<span class="italic"> {selectionHint}</span>{/if}
+			</p>
+		{/if}
+		{#if showRangeLabel}
+			<div class="mb-5 text-center font-mono text-sm font-medium text-accent-primary">
+				{selectedRangeLabel}
+			</div>
+		{/if}
+
+		<div
+			bind:this={rail}
+			class="relative h-3 w-full touch-none cursor-pointer select-none rounded-full"
+			role="presentation"
+			onpointerdown={handlePointerDown}
+			onpointermove={handlePointerMove}
+			onpointerup={handlePointerUp}
+			onpointercancel={handlePointerUp}
+		>
+			<div class="absolute inset-0 overflow-hidden rounded-full bg-primary">
+				{#each segments as segment}
+					{@const selectedStart = Math.max(segment.start, selectionStart)}
+					{@const selectedEnd = Math.min(segment.end, selectionEnd)}
+					{#if selectedEnd > selectedStart}
+						<div
+							class="absolute inset-y-0"
+							style="left: {selectedStart}%; width: {selectedEnd -
+								selectedStart}%; background: {segment.color};"
+						></div>
+					{/if}
+				{/each}
+			</div>
+
+			<button
+				type="button"
+				data-boundary="end"
+				class="absolute top-1/2 z-10 h-6 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--bg-primary)] bg-[var(--accent-primary)] shadow-md outline-none transition-transform hover:scale-110 focus:ring-2 focus:ring-[var(--accent-primary)]"
+				style="left: {endPosition}%"
+				role="slider"
+				aria-label={endLabel}
+				aria-valuemin={startIndex}
+				aria-valuemax={lastIndex}
+				aria-valuenow={endIndex}
+				aria-valuetext={verses[endIndex]?.key}
+				onkeydown={(event) => handleKeyDown('end', event)}
+			></button>
+			<button
+				type="button"
+				data-boundary="start"
+				class="absolute top-1/2 z-20 h-6 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--bg-primary)] bg-[var(--accent-primary)] shadow-md outline-none transition-transform hover:scale-110 focus:ring-2 focus:ring-[var(--accent-primary)]"
+				style="left: {startPosition}%"
+				role="slider"
+				aria-label={startLabel}
+				aria-valuemin="0"
+				aria-valuemax={endIndex}
+				aria-valuenow={startIndex}
+				aria-valuetext={verses[startIndex]?.key}
+				onkeydown={(event) => handleKeyDown('start', event)}
+			></button>
+		</div>
+	</div>
 </div>

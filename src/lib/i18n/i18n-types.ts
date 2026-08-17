@@ -8983,6 +8983,43 @@ type RootTranslation = {
 		 */
 		subtitlesShifted: RequiredParams<'amount' | 'direction' | 'scope' | 'unit'>;
 		/**
+		 * S​e​l​e​c​t​ ​A​y​a​h​ ​R​a​n​g​e
+		 */
+		selectAyahRange: string;
+		/**
+		 * K​e​e​p​ ​o​n​l​y​ ​a​ ​s​e​l​e​c​t​e​d​ ​r​a​n​g​e​ ​o​f​ ​Q​u​r​a​n​ ​A​y​a​h​s
+		 */
+		selectAyahRangeDescription: string;
+		/**
+		 *  ​A​y​a​h​s
+		 */
+		ayahsAvailable: string;
+		/**
+		 * C​h​o​o​s​e​ ​t​h​e​ ​f​i​r​s​t​ ​a​n​d​ ​l​a​s​t​ ​A​y​a​h​ ​t​o​ ​k​e​e​p​.
+		 */
+		selectAyahRangeHint: string;
+		/**
+		 * C​r​o​p​ ​t​o​ ​A​y​a​h​ ​R​a​n​g​e
+		 */
+		cropToAyahRange: string;
+		/**
+		 * T​h​e​ ​a​u​d​i​o​ ​a​n​d​ ​v​i​d​e​o​ ​w​i​l​l​ ​b​e​ ​c​r​o​p​p​e​d​ ​t​o​ ​{​r​a​n​g​e​}​.​ ​S​u​b​t​i​t​l​e​s​ ​a​n​d​ ​t​i​m​e​l​i​n​e​ ​e​l​e​m​e​n​t​s​ ​o​u​t​s​i​d​e​ ​t​h​i​s​ ​A​y​a​h​ ​r​a​n​g​e​ ​w​i​l​l​ ​b​e​ ​d​e​l​e​t​e​d​.​ ​C​o​n​t​i​n​u​e​?
+		 * @param {unknown} range
+		 */
+		cropToAyahRangeConfirm: RequiredParams<'range'>;
+		/**
+		 * N​o​ ​Q​u​r​a​n​ ​s​u​b​t​i​t​l​e​s​ ​a​r​e​ ​a​v​a​i​l​a​b​l​e​ ​t​o​ ​c​r​o​p​.
+		 */
+		noQuranSubtitlesToCrop: string;
+		/**
+		 * S​e​l​e​c​t​ ​a​t​ ​l​e​a​s​t​ ​o​n​e​ ​A​y​a​h​ ​t​o​ ​k​e​e​p​.
+		 */
+		noAyahRangeSelected: string;
+		/**
+		 * P​r​o​j​e​c​t​ ​c​r​o​p​p​e​d​ ​t​o​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​A​y​a​h​ ​r​a​n​g​e​.
+		 */
+		ayahRangeCropSuccess: string;
+		/**
 		 * A​s​s​e​t​ ​T​r​i​m​m​e​r
 		 */
 		assetTrimmer: string;
@@ -20156,6 +20193,42 @@ export type TranslationFunctions = {
 			scope: unknown;
 			unit: unknown;
 		}) => LocalizedString;
+		/**
+		 * Select Ayah Range
+		 */
+		selectAyahRange: () => LocalizedString;
+		/**
+		 * Keep only a selected range of Quran Ayahs
+		 */
+		selectAyahRangeDescription: () => LocalizedString;
+		/**
+		 *  Ayahs
+		 */
+		ayahsAvailable: () => LocalizedString;
+		/**
+		 * Choose the first and last Ayah to keep.
+		 */
+		selectAyahRangeHint: () => LocalizedString;
+		/**
+		 * Crop to Ayah Range
+		 */
+		cropToAyahRange: () => LocalizedString;
+		/**
+		 * The audio and video will be cropped to {range}. Subtitles and timeline elements outside this Ayah range will be deleted. Continue?
+		 */
+		cropToAyahRangeConfirm: (arg: { range: unknown }) => LocalizedString;
+		/**
+		 * No Quran subtitles are available to crop.
+		 */
+		noQuranSubtitlesToCrop: () => LocalizedString;
+		/**
+		 * Select at least one Ayah to keep.
+		 */
+		noAyahRangeSelected: () => LocalizedString;
+		/**
+		 * Project cropped to the selected Ayah range.
+		 */
+		ayahRangeCropSuccess: () => LocalizedString;
 		/**
 		 * Asset Trimmer
 		 */

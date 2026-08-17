@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import ModalManager from '$lib/components/modals/ModalManager';
 	import ResultPanel from './autoSegmentation/ResultPanel.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
@@ -20,6 +21,15 @@
 	setSharedWizard(wizard);
 
 	/** Force le seul workflow pris en charge sur la version mobile. */
+	/**
+	 * Closes the segmentation wizard before opening the Ayah range crop tool.
+	 * @returns {Promise<void>} Resolution after the crop modal is closed.
+	 */
+	async function openVerseRangeCrop(): Promise<void> {
+		close();
+		await tick();
+		await ModalManager.verseRangeCropModal();
+	}
 	function initializeModal(): void {
 		if (wizard.selection.aiVersion !== 'multi_v2' || wizard.selection.mode !== 'api') {
 			wizard.onVersionChange('multi_v2');
@@ -70,6 +80,14 @@
 			<footer class="mobile-sheet-footer border-t border-color bg-primary px-4 py-3">
 				<div class="flex items-center justify-end gap-2">
 					{#if wizard.result?.status === 'completed'}
+						<button
+							type="button"
+							class="btn inline-flex items-center gap-1.5 px-4 py-2 text-sm"
+							onclick={() => void openVerseRangeCrop()}
+						>
+							<span class="material-icons text-base leading-none">crop</span>
+							{$LL.tools.selectAyahRange()}
+						</button>
 						<button class="btn-accent px-4 py-2 text-sm" onclick={closeModal}
 							>{$LL.common.finish()}</button
 						>

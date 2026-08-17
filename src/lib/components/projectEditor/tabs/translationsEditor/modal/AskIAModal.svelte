@@ -4,9 +4,11 @@
 	import Settings from '$lib/classes/Settings.svelte';
 	import ClickableLink from '$lib/components/home/ClickableLink.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
+	import LL from '$lib/i18n/i18n-svelte';
 	import AdvancedAITrimmingTab from './AdvancedAITrimmingTab.svelte';
 	import TranslationsEditorModalShell from './shared/TranslationsEditorModalShell.svelte';
-	import VerseRangeSelector from './VerseRangeSelector.svelte';
+	import VerseRangeSlider from '$lib/components/projectEditor/tabs/export/VerseRangeSlider.svelte';
+	import { buildVerseRangeSliderOptions } from '$lib/components/projectEditor/tabs/export/VerseRangeSlider';
 
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -61,6 +63,9 @@
 	let selectedStartTimeMs: number = $state(0);
 	let selectedEndTimeMs: number = $state(0);
 	let fullVerseArray: PromptVersePayload[] = $state([]);
+	const translationsEditorState = $derived(
+		() => globalState.currentProject?.projectEditorState.translationsEditor
+	);
 
 	function persistAiTranslationSettings(): void {
 		if (!globalState.settings) return;
@@ -634,9 +639,10 @@
 		<div class="px-4 py-3 border-b border-color bg-primary">
 			<button
 				class="w-full bg-accent border border-color rounded-lg p-3 transition-all duration-200 hover:bg-[rgba(88,166,255,0.1)]"
-				onclick={() =>
-					(globalState.currentProject!.projectEditorState.translationsEditor.showAIInstructions =
-						!globalState.currentProject!.projectEditorState.translationsEditor.showAIInstructions)}
+				onclick={() => {
+					const state = translationsEditorState();
+					if (state) state.showAIInstructions = !state.showAIInstructions;
+				}}
 			>
 				<div class="flex items-center justify-between">
 					<div class="flex items-center gap-3">
@@ -648,16 +654,13 @@
 						<div class="text-left">
 							<h3 class="text-sm font-semibold text-primary">How to use Legacy AI Mapping</h3>
 							<p class="text-xs text-thirdly">
-								Click to {globalState.currentProject!.projectEditorState.translationsEditor
-									.showAIInstructions
-									? 'hide'
-									: 'show'} detailed instructions
+								Click to {translationsEditorState()?.showAIInstructions ? 'hide' : 'show'} detailed instructions
 							</p>
 						</div>
 					</div>
 					<span
-						class="material-icons text-secondary transition-transform duration-200 {globalState
-							.currentProject!.projectEditorState.translationsEditor.showAIInstructions
+						class="material-icons text-secondary transition-transform duration-200 {translationsEditorState()
+							?.showAIInstructions
 							? 'rotate-180'
 							: ''}"
 					>
@@ -666,7 +669,7 @@
 				</div>
 			</button>
 
-			{#if globalState.currentProject!.projectEditorState.translationsEditor.showAIInstructions}
+			{#if translationsEditorState()?.showAIInstructions}
 				<div
 					class="mt-3 p-4 bg-secondary border border-color rounded-lg"
 					transition:slide={{ duration: 200 }}
@@ -734,17 +737,16 @@
 
 				<!-- Range Selection Section -->
 				{#if totalVerses > 1}
-					<VerseRangeSelector
-						totalDurationMs={getSelectionMaxDurationMs()}
+					<VerseRangeSlider
+						verses={buildVerseRangeSliderOptions(fullVerseArray)}
 						totalItems={totalVerses}
 						selectedItems={getSelectedPromptVerses().length}
 						bind:startTimeMs={selectedStartTimeMs}
 						bind:endTimeMs={selectedEndTimeMs}
-						title="Time Selection"
-						icon="schedule"
+						title={$LL.tools.selectAyahRange()}
 						totalLabel="eligible verses"
-						selectionLabel="Select time range to include in prompt:"
-						selectionHint="(in case prompt is too long)"
+						selectionLabel={$LL.tools.selectAyahRangeHint()}
+						showRangeLabel
 						onRangeChange={updatePromptWithRange}
 					/>
 				{/if}

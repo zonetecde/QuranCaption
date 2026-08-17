@@ -1820,6 +1820,7 @@ const zh = {
 		includeAllMeaningVerses: '包含所有经文',
 		includeAllMeaningVersesDescription:
 			'启用后，AI 必须恰好包含每节经文一次；关闭后，AI 可以跳过经文。',
+		includeAllMeaningVersesRecommendation: '建议：关闭以获得更好的语义片段。',
 		generateMeaningRanges: '生成含义片段',
 		generatingMeaningRanges: '正在生成含义片段……',
 		meaningRangesEmpty: '尚未生成含义片段。',

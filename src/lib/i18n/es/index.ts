@@ -1992,6 +1992,8 @@ const es = {
 		includeAllMeaningVerses: 'Incluir todos los versículos',
 		includeAllMeaningVersesDescription:
 			'Cuando está activado, la IA debe incluir cada versículo exactamente una vez; si no, puede omitir versículos.',
+		includeAllMeaningVersesRecommendation:
+			'Recomendado: desactivado para obtener mejores rangos semánticos.',
 		generateMeaningRanges: 'Generar rangos por significado',
 		generatingMeaningRanges: 'Generando rangos por significado…',
 		meaningRangesEmpty: 'Todavía no se han generado rangos por significado.',

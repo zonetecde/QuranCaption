@@ -1295,6 +1295,8 @@ const id = {
 		includeAllMeaningVerses: 'Sertakan semua ayat',
 		includeAllMeaningVersesDescription:
 			'Saat diaktifkan, AI harus menyertakan setiap ayat tepat satu kali; jika dimatikan, AI boleh melewati ayat.',
+		includeAllMeaningVersesRecommendation:
+			'Disarankan: matikan untuk rentang semantik yang lebih baik.',
 		generateMeaningRanges: 'Buat rentang berdasarkan makna',
 		generatingMeaningRanges: 'Membuat rentang berdasarkan makna…',
 		meaningRangesEmpty: 'Belum ada rentang berdasarkan makna yang dibuat.',

@@ -5927,9 +5927,13 @@ type RootTranslation = {
 		 */
 		includeAllMeaningVerses: string;
 		/**
-		 * W​h​e​n​ ​e​n​a​b​l​e​d​,​ ​A​I​ ​m​u​s​t​ ​i​n​c​l​u​d​e​ ​e​v​e​r​y​ ​v​e​r​s​e​ ​e​x​a​c​t​l​y​ ​o​n​c​e​;​ ​w​h​e​n​ ​d​i​s​a​b​l​e​d​,​ ​i​t​ ​m​a​y​ ​s​k​i​p​ ​v​e​r​s​e​s​.​ ​R​e​c​o​m​m​e​n​d​e​d​ ​t​o​ ​f​a​l​s​e​ ​f​o​r​ ​b​e​t​t​e​r​ ​s​e​m​a​n​t​i​c​ ​r​a​n​g​e​s​.
+		 * W​h​e​n​ ​e​n​a​b​l​e​d​,​ ​A​I​ ​m​u​s​t​ ​i​n​c​l​u​d​e​ ​e​v​e​r​y​ ​v​e​r​s​e​ ​e​x​a​c​t​l​y​ ​o​n​c​e​;​ ​w​h​e​n​ ​d​i​s​a​b​l​e​d​,​ ​i​t​ ​m​a​y​ ​s​k​i​p​ ​v​e​r​s​e​s​.
 		 */
 		includeAllMeaningVersesDescription: string;
+		/**
+		 * R​e​c​o​m​m​e​n​d​e​d​ ​t​o​ ​f​a​l​s​e​ ​f​o​r​ ​b​e​t​t​e​r​ ​s​e​m​a​n​t​i​c​ ​r​a​n​g​e​s​.
+		 */
+		includeAllMeaningVersesRecommendation: string;
 		/**
 		 * G​e​n​e​r​a​t​e​ ​m​e​a​n​i​n​g​ ​r​a​n​g​e​s
 		 */
@@ -17199,9 +17203,13 @@ export type TranslationFunctions = {
 		 */
 		includeAllMeaningVerses: () => LocalizedString;
 		/**
-		 * When enabled, AI must include every verse exactly once; when disabled, it may skip verses. Recommended to false for better semantic ranges.
+		 * When enabled, AI must include every verse exactly once; when disabled, it may skip verses.
 		 */
 		includeAllMeaningVersesDescription: () => LocalizedString;
+		/**
+		 * Recommended to false for better semantic ranges.
+		 */
+		includeAllMeaningVersesRecommendation: () => LocalizedString;
 		/**
 		 * Generate meaning ranges
 		 */

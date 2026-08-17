@@ -5997,6 +5997,10 @@ type RootTranslation = {
 		 */
 		meaningRangeOverLimit: string;
 		/**
+		 * E​x​p​o​r​t​ ​a​l​l
+		 */
+		exportAll: string;
+		/**
 		 * S​e​l​e​c​t​ ​t​h​e​ ​f​i​r​s​t​ ​a​n​d​ ​l​a​s​t​ ​v​e​r​s​e​ ​t​o​ ​e​x​p​o​r​t​:
 		 */
 		selectVerseRange: string;
@@ -17343,6 +17347,10 @@ export type TranslationFunctions = {
 		 * This range exceeds the maximum duration.
 		 */
 		meaningRangeOverLimit: () => LocalizedString;
+		/**
+		 * Export all
+		 */
+		exportAll: () => LocalizedString;
 		/**
 		 * Select the first and last verse to export:
 		 */

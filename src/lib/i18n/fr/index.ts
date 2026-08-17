@@ -2007,6 +2007,7 @@ const fr = {
 		meaningRangesSkipped: '{count} plage(s) IA invalide(s) ignorée(s).',
 		meaningRangesMissingVerses: '{count} verset(s) n’ont pas été inclus par l’IA.',
 		meaningRangeOverLimit: 'Cette plage dépasse la durée maximale.',
+		exportAll: 'Tout exporter',
 		selectVerseRange: 'Sélectionnez le premier et le dernier verset à exporter\u00a0:',
 		selectedVerseRange: 'De {start} à {end}',
 		selectTimeRange: 'Sélectionnez la plage temporelle de votre vidéo à exporter\u00a0:',

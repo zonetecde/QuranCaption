@@ -1830,6 +1830,7 @@ const zh = {
 		meaningRangesSkipped: '已跳过 {count} 个无效的 AI 片段。',
 		meaningRangesMissingVerses: 'AI 未包含 {count} 节经文。',
 		meaningRangeOverLimit: '此片段超过最大时长。',
+		exportAll: '全部导出',
 		selectVerseRange: '选择要导出的第一节和最后一节经文：',
 		selectedVerseRange: '从 {start} 到 {end}',
 		selectTimeRange: '选择要导出的视频时间范围：',

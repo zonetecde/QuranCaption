@@ -20,6 +20,7 @@ const export_ = {
 	meaningRangesSkipped: 'Skipped {count} invalid AI range(s).',
 	meaningRangesMissingVerses: '{count} verse(s) were not included by AI.',
 	meaningRangeOverLimit: 'This range exceeds the maximum duration.',
+	exportAll: 'Export all',
 	selectVerseRange: 'Select the first and last verse to export:',
 	selectedVerseRange: '{start} to {end}',
 	selectTimeRange: 'Select the time range of your video to export:',

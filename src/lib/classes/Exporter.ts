@@ -8,6 +8,7 @@ import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { save } from '@tauri-apps/plugin-dialog';
+import { exists } from '@tauri-apps/plugin-fs';
 import { isPermissionGranted, requestPermission } from '@tauri-apps/plugin-notification';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 import ExportFileService from '$lib/services/ExportFileService';
@@ -841,6 +842,46 @@ export default class Exporter {
 
 		if (!shouldQueue) {
 			Exporter.startExportRenderer(exportId);
+		}
+	}
+
+	/**
+	 * Ajoute plusieurs plages vidéo du même projet à la file d'export séquentielle.
+	 * @param {Project} sourceProject Projet source à cloner pour chaque plage.
+	 * @param {ReadonlyArray<{ startTime: number; endTime: number }>} ranges Plages à exporter dans l'ordre.
+	 * @param {string} baseFileName Nom de base sans extension pour les fichiers générés.
+	 * @returns {Promise<void>} Promesse résolue après l'ajout de toutes les plages.
+	 */
+	static async queueVideoRanges(
+		sourceProject: Project,
+		ranges: ReadonlyArray<{ startTime: number; endTime: number }>,
+		baseFileName: string
+	): Promise<void> {
+		const videoExtension = sourceProject.projectEditorState.export.exportWithoutBackground
+			? sourceProject.projectEditorState.export.transparentExportFormat === 'webm_vp9_alpha'
+				? 'webm'
+				: 'mov'
+			: 'mp4';
+		const exportFolder = await ExportService.getExportFolder();
+		const reservedPaths = new Set<string>();
+
+		for (const [index, range] of ranges.entries()) {
+			const project = sourceProject.clone();
+			project.projectEditorState.export.videoStartTime = range.startTime;
+			project.projectEditorState.export.videoEndTime = range.endTime;
+
+			let collisionSuffix = 0;
+			let fileName = '';
+			let filePath = '';
+			do {
+				const suffix = collisionSuffix === 0 ? '' : `-${collisionSuffix}`;
+				fileName = `${baseFileName}-part-${index + 1}${suffix}.${videoExtension}`;
+				filePath = await ExportService.constrainFilePathLength(await join(exportFolder, fileName));
+				collisionSuffix += 1;
+			} while (reservedPaths.has(filePath) || (await exists(filePath)));
+			reservedPaths.add(filePath);
+
+			await Exporter.queueProjectVideo(project, fileName, filePath);
 		}
 	}
 

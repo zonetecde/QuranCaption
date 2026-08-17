@@ -2001,6 +2001,7 @@ const es = {
 		meaningRangesSkipped: 'Se omitieron {count} rango(s) de IA no válido(s).',
 		meaningRangesMissingVerses: 'La IA no incluyó {count} versículo(s).',
 		meaningRangeOverLimit: 'Este rango supera la duración máxima.',
+		exportAll: 'Exportar todo',
 		selectVerseRange: 'Seleccione el primer y el último versículo que desea exportar:',
 		selectedVerseRange: 'De {start} a {end}',
 		selectTimeRange: 'Seleccione el rango temporal de su video a exportar :',

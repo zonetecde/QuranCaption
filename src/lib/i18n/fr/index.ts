@@ -2056,6 +2056,12 @@ const fr = {
 		noContentAfterSkips:
 			'Les zones ignorées couvrent tout l\u2019export. Conservez au moins une section.',
 		background: 'Arrière-plan',
+		addRandomBackground: 'Ajouter un arrière-plan aléatoire à la vidéo',
+		addRandomBackgroundDescription:
+			'Fonctionne uniquement lorsque la piste vidéo est vide. Une image ou une vidéo aléatoire sera utilisée pour l’export.',
+		selectRandomBackgroundFolder: 'Sélectionner le dossier de la pool d’arrière-plans',
+		randomBackgroundFolderDescription:
+			'Les images et vidéos placées directement dans ce dossier peuvent être choisies aléatoirement pour chaque export.',
 		exportWithoutBackground: 'Exporter sans arrière-plan',
 		rendersOnlyOverlay: 'Rend uniquement la superposition avec transparence (alpha).',
 		transparentExportFormat: 'Format d\u2019export transparent',

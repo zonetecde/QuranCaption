@@ -69,6 +69,12 @@ const export_ = {
 	noRecitationInExportRange: 'No Quran recitation was found in the selected export range.',
 	noContentAfterSkips: 'The skip ranges cover the entire export. Keep at least one section.',
 	background: 'Background',
+	addRandomBackground: 'Add random background to the video',
+	addRandomBackgroundDescription:
+		'Only works when the video track is empty. A random image or video will be used for the export.',
+	selectRandomBackgroundFolder: 'Select background pool folder',
+	randomBackgroundFolderDescription:
+		'Images and videos directly inside this folder can be selected randomly for each export.',
 	exportWithoutBackground: 'Export without background',
 	rendersOnlyOverlay: 'Renders only the overlay with transparency (alpha).',
 	transparentExportFormat: 'Transparent export format',

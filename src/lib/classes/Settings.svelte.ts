@@ -63,6 +63,7 @@ export type ExportSettings = {
 	parallelCaptureWorkers: number;
 	videoCodec: 'h264' | 'h265';
 	performanceProfile: PerformanceProfile;
+	randomBackgroundFolder: string;
 };
 
 export type DefaultValuesSettings = {
@@ -101,7 +102,8 @@ export default class Settings extends SerializableBase {
 		batchSize: 64,
 		parallelCaptureWorkers: 4,
 		videoCodec: 'h264',
-		performanceProfile: 'balanced'
+		performanceProfile: 'balanced',
+		randomBackgroundFolder: ''
 	};
 
 	// État UI persistant
@@ -709,6 +711,12 @@ export default class Settings extends SerializableBase {
 		) {
 			settings.exportSettings.performanceProfile =
 				Settings.DEFAULT_EXPORT_SETTINGS.performanceProfile;
+			shouldSave = true;
+		}
+
+		if (typeof settings.exportSettings.randomBackgroundFolder !== 'string') {
+			settings.exportSettings.randomBackgroundFolder =
+				Settings.DEFAULT_EXPORT_SETTINGS.randomBackgroundFolder;
 			shouldSave = true;
 		}
 

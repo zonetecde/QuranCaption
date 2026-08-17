@@ -1352,6 +1352,12 @@ const id = {
 		noContentAfterSkips:
 			'Rentang yang dilewati mencakup seluruh ekspor. Sisakan setidaknya satu bagian.',
 		background: 'Latar belakang',
+		addRandomBackground: 'Tambahkan latar belakang acak ke video',
+		addRandomBackgroundDescription:
+			'Hanya berfungsi jika trek video kosong. Gambar atau video acak akan digunakan untuk ekspor.',
+		selectRandomBackgroundFolder: 'Pilih folder kumpulan latar belakang',
+		randomBackgroundFolderDescription:
+			'Gambar dan video yang berada langsung di folder ini dapat dipilih secara acak untuk setiap ekspor.',
 		exportWithoutBackground: 'Ekspor tanpa latar belakang',
 		rendersOnlyOverlay: 'Hanya merender overlay dengan transparansi (alpha).',
 		transparentExportFormat: 'Format export transparan',

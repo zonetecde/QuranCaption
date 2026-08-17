@@ -6135,6 +6135,22 @@ type RootTranslation = {
 		 */
 		background: string;
 		/**
+		 * A​d​d​ ​r​a​n​d​o​m​ ​b​a​c​k​g​r​o​u​n​d​ ​t​o​ ​t​h​e​ ​v​i​d​e​o
+		 */
+		addRandomBackground: string;
+		/**
+		 * O​n​l​y​ ​w​o​r​k​s​ ​w​h​e​n​ ​t​h​e​ ​v​i​d​e​o​ ​t​r​a​c​k​ ​i​s​ ​e​m​p​t​y​.​ ​A​ ​r​a​n​d​o​m​ ​i​m​a​g​e​ ​o​r​ ​v​i​d​e​o​ ​w​i​l​l​ ​b​e​ ​u​s​e​d​ ​f​o​r​ ​t​h​e​ ​e​x​p​o​r​t​.
+		 */
+		addRandomBackgroundDescription: string;
+		/**
+		 * S​e​l​e​c​t​ ​b​a​c​k​g​r​o​u​n​d​ ​p​o​o​l​ ​f​o​l​d​e​r
+		 */
+		selectRandomBackgroundFolder: string;
+		/**
+		 * I​m​a​g​e​s​ ​a​n​d​ ​v​i​d​e​o​s​ ​d​i​r​e​c​t​l​y​ ​i​n​s​i​d​e​ ​t​h​i​s​ ​f​o​l​d​e​r​ ​c​a​n​ ​b​e​ ​s​e​l​e​c​t​e​d​ ​r​a​n​d​o​m​l​y​ ​f​o​r​ ​e​a​c​h​ ​e​x​p​o​r​t​.
+		 */
+		randomBackgroundFolderDescription: string;
+		/**
 		 * E​x​p​o​r​t​ ​w​i​t​h​o​u​t​ ​b​a​c​k​g​r​o​u​n​d
 		 */
 		exportWithoutBackground: string;
@@ -17406,6 +17422,22 @@ export type TranslationFunctions = {
 		 * Background
 		 */
 		background: () => LocalizedString;
+		/**
+		 * Add random background to the video
+		 */
+		addRandomBackground: () => LocalizedString;
+		/**
+		 * Only works when the video track is empty. A random image or video will be used for the export.
+		 */
+		addRandomBackgroundDescription: () => LocalizedString;
+		/**
+		 * Select background pool folder
+		 */
+		selectRandomBackgroundFolder: () => LocalizedString;
+		/**
+		 * Images and videos directly inside this folder can be selected randomly for each export.
+		 */
+		randomBackgroundFolderDescription: () => LocalizedString;
 		/**
 		 * Export without background
 		 */

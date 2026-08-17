@@ -310,6 +310,7 @@ const id = {
 		segmentationNeedsReview: 'Perlu ditinjau',
 		segmentationManuallyVerified: 'Terverifikasi manual',
 		segmentationFailed: 'Gagal',
+		detectedAyahRange: '{surah}, ayat {from}–{to}',
 		segmentationApplying: 'Menerapkan segmen',
 		segmentationSaving: 'Menyimpan proyek',
 		segmentationManualBlocked: 'Segmentasi batch sedang berjalan.',

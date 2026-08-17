@@ -911,6 +911,7 @@ const de = {
 		segmentationFailed: 'Segmentierung fehlgeschlagen.',
 		noSegmentsDetected: 'Keine Segmente erkannt. Versuchen Sie, die Parameter anzupassen.',
 		detectedSegments: '{count} Segmente erkannt',
+		detectedAyahRange: '{surah}, Ayahs {from}–{to}',
 		segmentsWillReplace: 'Dies ersetzt alle vorhandenen Untertitel.',
 		startSegmentation: 'Segmentierung starten',
 		cancelSegmentation: 'Abbrechen',

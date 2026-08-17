@@ -2279,6 +2279,13 @@ type RootTranslation = {
 		 */
 		detectedSegments: RequiredParams<'count'>;
 		/**
+		 * {​s​u​r​a​h​}​,​ ​A​y​a​h​s​ ​{​f​r​o​m​}​–​{​t​o​}
+		 * @param {unknown} from
+		 * @param {unknown} surah
+		 * @param {unknown} to
+		 */
+		detectedAyahRange: RequiredParams<'from' | 'surah' | 'to'>;
+		/**
 		 * T​h​i​s​ ​w​i​l​l​ ​r​e​p​l​a​c​e​ ​a​l​l​ ​e​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s​.
 		 */
 		segmentsWillReplace: string;
@@ -13521,6 +13528,10 @@ export type TranslationFunctions = {
 		 * Detected {count} segments
 		 */
 		detectedSegments: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * {surah}, Ayahs {from}–{to}
+		 */
+		detectedAyahRange: (arg: { from: unknown; surah: unknown; to: unknown }) => LocalizedString;
 		/**
 		 * This will replace all existing subtitles.
 		 */

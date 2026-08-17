@@ -51,9 +51,9 @@
 	class="export-settings-scale bg-secondary relative flex h-full min-w-0 flex-1 flex-col overflow-hidden"
 	style={`--editor-panel-scale: ${panelScale}; --editor-panel-height: ${100 / panelScale}%;`}
 >
-	<div class="min-h-0 min-w-0 flex-1 overflow-y-auto px-2 py-3">
+	<div class="min-h-0 min-w-0 flex flex-1 flex-col overflow-hidden px-2 py-3">
 		<div
-			class="export-choice-tabs grid min-w-0 grid-cols-4 gap-1.5"
+			class="export-choice-tabs grid min-w-0 flex-shrink-0 grid-cols-4 gap-1.5"
 			role="radiogroup"
 			aria-label={$LL.export.exportType()}
 			tabindex="0"
@@ -76,7 +76,7 @@
 		</div>
 
 		<!-- Dynamic panel depending on selection -->
-		<div class="mt-3 min-w-0">
+		<div class="mt-3 min-h-0 min-w-0 flex-1 overflow-hidden">
 			{#if globalState.getExportState.selectedChoice === 'video'}
 				<ExportVideo />
 			{:else if globalState.getExportState.selectedChoice === 'subtitles'}

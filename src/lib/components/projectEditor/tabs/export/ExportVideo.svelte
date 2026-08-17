@@ -299,508 +299,516 @@
 </script>
 
 <!-- Export Video Configuration -->
-<div class="min-w-0 rounded-lg bg-secondary p-3" transition:slide>
-	<!-- Section Title -->
-	<div class="mb-4">
-		<h3 class="mb-1 text-base font-semibold text-primary">{$LL.export.exportVideo()}</h3>
-		<p class="text-xs leading-snug text-thirdly">
-			{$LL.export.configureExportSettings()}
-		</p>
-	</div>
 
-	<!-- Time Range Selection -->
-	<div data-tour-id="export-range" class="mb-4">
-		<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.exportRange()}</h4>
-
-		<div class="rounded-lg border border-color bg-accent p-3">
-			<div class="mb-4 grid grid-cols-2 gap-1 rounded-lg border border-color bg-primary p-1">
-				<button
-					type="button"
-					class="min-h-11 rounded-md px-2 py-2 text-sm font-semibold transition-colors {globalState
-						.getExportState.exportRangeMode === 'time'
-						? 'bg-accent-primary text-[var(--text-on-accent)]'
-						: 'text-secondary hover:bg-accent hover:text-primary'}"
-					onclick={() => setExportRangeMode('time')}
-				>
-					{rangeCopy.timeRangeMode()}
-				</button>
-				<button
-					type="button"
-					class="min-h-11 rounded-md px-2 py-2 text-sm font-semibold transition-colors {globalState
-						.getExportState.exportRangeMode === 'verse'
-						? 'bg-accent-primary text-[var(--text-on-accent)]'
-						: 'text-secondary hover:bg-accent hover:text-primary'}"
-					onclick={() => setExportRangeMode('verse')}
-				>
-					{rangeCopy.verseRangeMode()}
-				</button>
-			</div>
-
-			{#if globalState.getExportState.exportRangeMode === 'time'}
-				<p class="mb-3 text-xs leading-snug text-thirdly">{$LL.export.selectTimeRange()}</p>
-				<div class="grid grid-cols-1 grid-rows-2 gap-3">
-					<TimeInput
-						label={$LL.export.startTime()}
-						bind:value={globalState.getExportState.videoStartTime}
-					/>
-					<TimeInput
-						label={$LL.export.endTime()}
-						bind:value={globalState.getExportState.videoEndTime}
-					/>
-				</div>
-			{:else if exportVerses.length > 0}
-				<p class="mb-3 text-xs leading-snug text-thirdly">{rangeCopy.selectVerseRange()}</p>
-				<div class="rounded-lg border border-color bg-secondary px-3 py-4">
-					<div class="mb-3 text-center font-mono text-sm font-medium text-accent-primary">
-						{rangeCopy.selectedVerseRange({
-							start: exportVerses[verseStartIndex].key,
-							end: exportVerses[verseEndIndex].key
-						})}
-					</div>
-					<VerseRangeSlider
-						verses={exportVerses}
-						startIndex={verseStartIndex}
-						endIndex={verseEndIndex}
-						startLabel={$LL.export.startTime()}
-						endLabel={$LL.export.endTime()}
-						onStartInput={handleVerseStartInput}
-						onEndInput={handleVerseEndInput}
-						onDragStart={beginVerseRangeChange}
-						onDragEnd={commitVerseRangeChange}
-					/>
-				</div>
-			{:else}
-				<p class="text-thirdly text-sm">{$LL.editor.noSubtitleFallback()}</p>
-			{/if}
-
-			<div class="mt-3 flex flex-col items-center justify-between">
-				<button
-					type="button"
-					class="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-violet-500/40 bg-violet-500/10 px-2.5 text-xs font-medium text-violet-300 transition-colors hover:bg-violet-500/20"
-					onclick={addSkipRange}
-				>
-					<span class="material-icons text-[17px]!">add</span>
-					{skipCopy.addSkip()}
-				</button>
-
-				{#if (globalState.getExportState.skipRanges ?? []).length > 0}
-					<div class="mt-3 space-y-2 w-full">
-						{#each globalState.getExportState.skipRanges ?? [] as range, index (range)}
-							<div class="rounded-md border border-violet-500/35 bg-violet-500/10 p-2.5">
-								<div class="mb-2 flex items-center justify-between gap-2">
-									<span class="text-xs font-medium text-violet-300">
-										{skipCopy.skip()}
-										{index + 1} · {formatDuration(range.startTime)}–{formatDuration(range.endTime)}
-									</span>
-									<button
-										type="button"
-										class="material-icons flex h-8 w-8 shrink-0 items-center justify-center rounded text-base text-thirdly transition-colors hover:bg-violet-500/20 hover:text-violet-300"
-										title={skipCopy.removeSkip()}
-										onclick={() => removeSkipRange(index)}>close</button
-									>
-								</div>
-								<div class="grid grid-cols-1 gap-2">
-									<button
-										type="button"
-										class="rounded border border-violet-500/30 bg-secondary px-2 py-1.5 text-xs text-secondary transition-colors hover:border-violet-400 hover:text-violet-300"
-										onclick={() => setSkipBoundary(range, 'start')}
-									>
-										{skipCopy.setSkipStartToCursor()}
-									</button>
-									<button
-										type="button"
-										class="rounded border border-violet-500/30 bg-secondary px-2 py-1.5 text-xs text-secondary transition-colors hover:border-violet-400 hover:text-violet-300"
-										onclick={() => setSkipBoundary(range, 'end')}
-									>
-										{skipCopy.setSkipEndToCursor()}
-									</button>
-								</div>
-							</div>
-						{/each}
-					</div>
-				{/if}
-			</div>
-
-			<!-- Export summary -->
-			<div class="mt-4 space-y-3 rounded-lg border border-color bg-secondary p-3">
-				<div class="flex items-center justify-between text-sm">
-					<span class="text-secondary">{$LL.export.exportDuration()}</span>
-					<span class="text-accent-primary font-medium">
-						{formatDuration(
-							Math.max(
-								0,
-								(globalState.getExportState.videoEndTime || 0) -
-									(globalState.getExportState.videoStartTime || 0)
-							)
-						)}
-					</span>
-				</div>
-
-				<div
-					class="flex min-w-0 items-center justify-between gap-3 border-t border-color pt-3 text-sm"
-				>
-					<span class="min-w-0 text-secondary">{$LL.export.exportVerseRange()}</span>
-					<span class="min-w-0 break-words text-right font-medium text-accent-primary">
-						{VerseRange.getExportVerseRange().toString()}
-					</span>
-				</div>
-			</div>
+<div class="flex h-full min-h-0 min-w-0 flex-col rounded-lg bg-secondary p-3 pb-2" transition:slide>
+	<div class="min-h-0 flex-1 overflow-y-auto">
+		<!-- Section Title -->
+		<div class="mb-4">
+			<h3 class="mb-1 text-base font-semibold text-primary">{$LL.export.exportVideo()}</h3>
+			<p class="text-xs leading-snug text-thirdly">
+				{$LL.export.configureExportSettings()}
+			</p>
 		</div>
-	</div>
 
-	<div class="mb-4">
-		<button
-			type="button"
-			class="flex w-full items-center justify-between rounded-lg border border-color bg-accent p-3 text-left transition-colors hover:bg-primary/60"
-			onclick={() => (showVideoQualitySettings = !showVideoQualitySettings)}
-			aria-expanded={showVideoQualitySettings}
-		>
-			<span class="text-sm font-medium text-primary">
-				{$LL.export.videoQualityOrientation()}
-			</span>
-			<span
-				class="material-icons text-secondary transition-transform duration-200"
-				style={`transform: rotate(${showVideoQualitySettings ? 180 : 0}deg);`}
-			>
-				expand_more
-			</span>
-		</button>
+		<!-- Time Range Selection -->
+		<div data-tour-id="export-range" class="mb-4">
+			<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.exportRange()}</h4>
 
-		{#if showVideoQualitySettings}
-			<div class="mt-2 rounded-lg border border-color bg-accent p-3" transition:slide>
-				<p class="mb-3 text-xs leading-snug text-thirdly">
-					{$LL.export.setResolutionOrientation()}
-				</p>
-
-				<Style
-					style={globalState.getStyle('global', 'video-dimension')!}
-					target="global"
-					applyValueSimple={(v) => {
-						globalState.getStyle('global', 'video-dimension')!.value = v as {
-							width: number;
-							height: number;
-						};
-					}}
-					disabled={false}
-				/>
-			</div>
-		{/if}
-	</div>
-
-	<div class="mb-4">
-		<button
-			type="button"
-			class="flex w-full items-center justify-between rounded-lg border border-color bg-accent p-3 text-left transition-colors hover:bg-primary/60"
-			onclick={() => (showVideoAudioFadeSettings = !showVideoAudioFadeSettings)}
-			aria-expanded={showVideoAudioFadeSettings}
-		>
-			<span class="text-sm font-medium text-primary">{$LL.export.videoAudioFade()}</span>
-			<span
-				class="material-icons text-secondary transition-transform duration-200"
-				style={`transform: rotate(${showVideoAudioFadeSettings ? 180 : 0}deg);`}
-			>
-				expand_more
-			</span>
-		</button>
-
-		{#if showVideoAudioFadeSettings}
-			<div class="mt-2 rounded-lg border border-color bg-accent p-3" transition:slide>
-				<p class="mb-3 text-xs leading-snug text-thirdly">
-					{$LL.export.enableDisableFade()}
-				</p>
-
-				<Style
-					style={globalState.getStyle('global', 'video-and-audio-fade')!}
-					target="global"
-					applyValueSimple={(v) => {
-						globalState.getStyle('global', 'video-and-audio-fade')!.value = v as FadeValue;
-					}}
-					disabled={false}
-				/>
-			</div>
-		{/if}
-	</div>
-	<div class="mt-4">
-		<button
-			type="button"
-			class="flex w-full items-center justify-between rounded-lg border border-color bg-accent p-3 text-left transition-colors hover:bg-primary/60"
-			onclick={() => {
-				showAdvancedSettings = !showAdvancedSettings;
-			}}
-			aria-expanded={showAdvancedSettings}
-		>
-			<div>
-				<p class="text-sm font-medium text-primary">{$LL.export.advancedSettings()}</p>
-				<p class="text-xs text-thirdly">
-					{$LL.export.controlExportPerformance()}
-				</p>
-			</div>
-			<span
-				class="material-icons text-secondary transition-transform duration-200"
-				style={`transform: rotate(${showAdvancedSettings ? 180 : 0}deg);`}
-			>
-				expand_more
-			</span>
-		</button>
-
-		{#if showAdvancedSettings}
-			<div class="mt-3 rounded-lg border border-color bg-accent p-3" transition:slide>
-				<section class="mb-4">
-					<h4 class="mb-2 text-sm font-medium text-secondary">
-						{$LL.export.videoFileName()}
-					</h4>
-					<div class="rounded-lg border border-color bg-secondary p-3">
-						<div class="flex flex-col gap-4">
-							<div>
-								<p class="mb-3 text-xs leading-snug text-thirdly">
-									{$LL.export.enterFileName()}
-								</p>
-
-								<div class="flex flex-col gap-2">
-									<input
-										type="text"
-										class="input w-full"
-										placeholder={globalState.currentProject?.detail.generateExportFileName()}
-										bind:value={globalState.getExportState.customFileName}
-										onfocus={() => {
-											if (!globalState.getExportState.customFileName.trim()) {
-												globalState.getExportState.customFileName =
-													globalState.currentProject?.detail.generateExportFileName() ?? '';
-											}
-										}}
-									/>
-									<p class="text-thirdly text-xs italic">
-										{$LL.export.extensionAddedAutomatically()}
-									</p>
-								</div>
-							</div>
-						</div>
-					</div>
-				</section>
-
-				<section class="mb-4">
-					<h4 class="mb-2 text-sm font-medium text-secondary">
-						{$LL.export.performanceSettings()}
-					</h4>
-					<div class="rounded-lg border border-color bg-secondary p-3">
-						<div class="flex flex-col gap-3">
-							<p class="text-xs leading-snug text-thirdly">
-								{$LL.export.setFpsDescription()}
-							</p>
-							<input
-								type="number"
-								min="5"
-								max="60"
-								step="1"
-								class="input w-full h-10"
-								bind:value={globalState.getExportState.fps}
-							/>
-						</div>
-					</div>
-				</section>
-
-				<div class="mb-4">
-					<h4 class="text-base font-medium text-secondary mb-1">
-						{$LL.export.exportPerformance()}
-					</h4>
-					<p class="text-thirdly text-sm">
-						{$LL.export.chooseCpuUsage()}
-					</p>
+			<div class="rounded-lg border border-color bg-accent p-3">
+				<div class="mb-4 grid grid-cols-2 gap-1 rounded-lg border border-color bg-primary p-1">
+					<button
+						type="button"
+						class="min-h-11 rounded-md px-2 py-2 text-sm font-semibold transition-colors {globalState
+							.getExportState.exportRangeMode === 'time'
+							? 'bg-accent-primary text-[var(--text-on-accent)]'
+							: 'text-secondary hover:bg-accent hover:text-primary'}"
+						onclick={() => setExportRangeMode('time')}
+					>
+						{rangeCopy.timeRangeMode()}
+					</button>
+					<button
+						type="button"
+						class="min-h-11 rounded-md px-2 py-2 text-sm font-semibold transition-colors {globalState
+							.getExportState.exportRangeMode === 'verse'
+							? 'bg-accent-primary text-[var(--text-on-accent)]'
+							: 'text-secondary hover:bg-accent hover:text-primary'}"
+						onclick={() => setExportRangeMode('verse')}
+					>
+						{rangeCopy.verseRangeMode()}
+					</button>
 				</div>
 
-				{#if globalState.settings}
-					<div class="mb-3 rounded-lg border border-color bg-secondary p-3">
-						<label class="block text-sm font-medium text-primary mb-2" for="video-codec">
-							{$LL.export.videoCodec()}
-						</label>
-						<select
-							id="video-codec"
-							class="input w-full"
-							bind:value={globalState.settings.exportSettings.videoCodec}
-							disabled={globalState.getExportState.exportWithoutBackground}
-							onchange={() => void Settings.save()}
-						>
-							{#each videoCodecIds as codec (codec)}
-								<option value={codec}>
-									{codec === 'h264'
-										? $LL.export.h264Compatibility()
-										: $LL.export.h265SmallerFiles()}
-								</option>
-							{/each}
-						</select>
-						<p class="text-xs text-thirdly mt-2">
-							{$LL.export.videoCodecDescription()}
-						</p>
+				{#if globalState.getExportState.exportRangeMode === 'time'}
+					<p class="mb-3 text-xs leading-snug text-thirdly">{$LL.export.selectTimeRange()}</p>
+					<div class="grid grid-cols-1 grid-rows-2 gap-3">
+						<TimeInput
+							label={$LL.export.startTime()}
+							bind:value={globalState.getExportState.videoStartTime}
+						/>
+						<TimeInput
+							label={$LL.export.endTime()}
+							bind:value={globalState.getExportState.videoEndTime}
+						/>
 					</div>
-
-					<div class="grid grid-cols-1 gap-3">
-						{#each performanceProfileIds as id (id)}
-							{@const label =
-								id === 'fastest'
-									? $LL.export.fastest()
-									: id === 'balanced'
-										? $LL.export.balanced()
-										: $LL.export.lowCpu()}
-							{@const desc =
-								id === 'fastest'
-									? $LL.export.fastestDescription()
-									: id === 'balanced'
-										? $LL.export.balancedDescription()
-										: $LL.export.lowCpuDescription()}
-							<button
-								type="button"
-								class="rounded-xl border p-3 text-left transition-colors"
-								class:border-accent-primary={globalState.settings.exportSettings
-									.performanceProfile === id}
-								class:bg-secondary={globalState.settings.exportSettings.performanceProfile === id}
-								class:border-color={globalState.settings.exportSettings.performanceProfile !== id}
-								onclick={() => void savePerformanceProfile(id)}
-							>
-								<div class="flex items-center justify-between gap-3">
-									<p class="text-sm font-medium text-primary">{label}</p>
-									{#if globalState.settings.exportSettings.performanceProfile === id}
-										<span class="material-icons text-accent-primary text-lg">check_circle</span>
-									{/if}
-								</div>
-								<p class="mt-1 text-xs text-thirdly">{desc}</p>
-							</button>
-						{/each}
+				{:else if exportVerses.length > 0}
+					<p class="mb-3 text-xs leading-snug text-thirdly">{rangeCopy.selectVerseRange()}</p>
+					<div class="rounded-lg border border-color bg-secondary px-3 py-4">
+						<div class="mb-3 text-center font-mono text-sm font-medium text-accent-primary">
+							{rangeCopy.selectedVerseRange({
+								start: exportVerses[verseStartIndex].key,
+								end: exportVerses[verseEndIndex].key
+							})}
+						</div>
+						<VerseRangeSlider
+							verses={exportVerses}
+							startIndex={verseStartIndex}
+							endIndex={verseEndIndex}
+							startLabel={$LL.export.startTime()}
+							endLabel={$LL.export.endTime()}
+							onStartInput={handleVerseStartInput}
+							onEndInput={handleVerseEndInput}
+							onDragStart={beginVerseRangeChange}
+							onDragEnd={commitVerseRangeChange}
+						/>
 					</div>
+				{:else}
+					<p class="text-thirdly text-sm">{$LL.editor.noSubtitleFallback()}</p>
 				{/if}
 
-				<div class="mb-4 mt-4">
-					<h4 class="text-base font-medium text-secondary mb-1">{$LL.export.background()}</h4>
-					<label class="mt-2 flex items-start gap-3 cursor-pointer select-none">
-						<input
-							type="checkbox"
-							class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
-							bind:checked={globalState.getExportState.exportWithoutBackground}
-						/>
-						<span class="text-sm text-primary">
-							{$LL.export.exportWithoutBackground()}
-							<span class="block text-xs text-thirdly mt-1">
-								{$LL.export.rendersOnlyOverlay()}
-							</span>
-						</span>
-					</label>
+				<div class="mt-3 flex flex-col items-center justify-between">
+					<button
+						type="button"
+						class="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-violet-500/40 bg-violet-500/10 px-2.5 text-xs font-medium text-violet-300 transition-colors hover:bg-violet-500/20"
+						onclick={addSkipRange}
+					>
+						<span class="material-icons text-[17px]!">add</span>
+						{skipCopy.addSkip()}
+					</button>
 
-					{#if globalState.getExportState.exportWithoutBackground}
-						<div class="">
-							<label class="block text-sm text-primary mb-2" for="transparent-export-format">
-								{$LL.export.transparentExportFormat()}
-							</label>
-							<select
-								id="transparent-export-format"
-								class="input w-full"
-								bind:value={globalState.getExportState.transparentExportFormat}
-							>
-								<option value="mov_prores_4444">{$LL.export.movQtrleRecommended()}</option>
-								<option value="webm_vp9_alpha">{$LL.export.webmVp9()}</option>
-							</select>
-							<p class="text-xs text-thirdly mt-2">
-								{$LL.export.movQtrleCompatibility()}
-							</p>
+					{#if (globalState.getExportState.skipRanges ?? []).length > 0}
+						<div class="mt-3 space-y-2 w-full">
+							{#each globalState.getExportState.skipRanges ?? [] as range, index (range)}
+								<div class="rounded-md border border-violet-500/35 bg-violet-500/10 p-2.5">
+									<div class="mb-2 flex items-center justify-between gap-2">
+										<span class="text-xs font-medium text-violet-300">
+											{skipCopy.skip()}
+											{index + 1} · {formatDuration(range.startTime)}–{formatDuration(
+												range.endTime
+											)}
+										</span>
+										<button
+											type="button"
+											class="material-icons flex h-8 w-8 shrink-0 items-center justify-center rounded text-base text-thirdly transition-colors hover:bg-violet-500/20 hover:text-violet-300"
+											title={skipCopy.removeSkip()}
+											onclick={() => removeSkipRange(index)}>close</button
+										>
+									</div>
+									<div class="grid grid-cols-1 gap-2">
+										<button
+											type="button"
+											class="rounded border border-violet-500/30 bg-secondary px-2 py-1.5 text-xs text-secondary transition-colors hover:border-violet-400 hover:text-violet-300"
+											onclick={() => setSkipBoundary(range, 'start')}
+										>
+											{skipCopy.setSkipStartToCursor()}
+										</button>
+										<button
+											type="button"
+											class="rounded border border-violet-500/30 bg-secondary px-2 py-1.5 text-xs text-secondary transition-colors hover:border-violet-400 hover:text-violet-300"
+											onclick={() => setSkipBoundary(range, 'end')}
+										>
+											{skipCopy.setSkipEndToCursor()}
+										</button>
+									</div>
+								</div>
+							{/each}
 						</div>
 					{/if}
 				</div>
 
-				{#if globalState.settings}
-					<div class="mt-4 rounded-lg border border-color bg-secondary p-2.5">
-						<div class="flex items-center justify-between gap-3">
-							<label class="text-xs font-medium text-secondary" for="parallel-capture-workers">
-								{$LL.export.parallelCaptureWorkers()}
-							</label>
-							<input
-								id="parallel-capture-workers"
-								type="number"
-								min="1"
-								max="4"
-								step="1"
-								class="input h-9 w-16 px-2 text-sm"
-								bind:value={globalState.settings.exportSettings.parallelCaptureWorkers}
-								onchange={saveParallelCaptureWorkers}
-							/>
-						</div>
-						<p class="mt-1.5 text-[11px] leading-4 text-thirdly">
-							{$LL.export.parallelCaptureWorkersDescription()}
-						</p>
+				<!-- Export summary -->
+				<div class="mt-4 space-y-3 rounded-lg border border-color bg-secondary p-3">
+					<div class="flex items-center justify-between text-sm">
+						<span class="text-secondary">{$LL.export.exportDuration()}</span>
+						<span class="text-accent-primary font-medium">
+							{formatDuration(
+								Math.max(
+									0,
+									(globalState.getExportState.videoEndTime || 0) -
+										(globalState.getExportState.videoStartTime || 0)
+								)
+							)}
+						</span>
 					</div>
-				{/if}
+
+					<div
+						class="flex min-w-0 items-center justify-between gap-3 border-t border-color pt-3 text-sm"
+					>
+						<span class="min-w-0 text-secondary">{$LL.export.exportVerseRange()}</span>
+						<span class="min-w-0 break-words text-right font-medium text-accent-primary">
+							{VerseRange.getExportVerseRange().toString()}
+						</span>
+					</div>
+				</div>
 			</div>
-		{/if}
-	</div>
+		</div>
 
-	<section class="mb-4">
-		<h4 class="mb-2 text-sm font-medium text-secondary">
-			{$LL.export.recitationContent()}
-		</h4>
-		<div class="rounded-lg border border-color bg-secondary p-3">
-			<label class="flex items-start gap-3 cursor-pointer select-none">
-				<input
-					type="checkbox"
-					class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
-					checked={globalState.getExportState.exportOnlyRecitation}
-					onchange={(event) =>
-						setExportOnlyRecitation((event.currentTarget as HTMLInputElement).checked)}
-				/>
-				<span class="text-sm text-primary">
-					{$LL.export.exportOnlyRecitation()}
-					<span class="block text-xs text-thirdly mt-1">
-						{$LL.export.exportOnlyRecitationDescription()}
-					</span>
+		<div class="mb-4">
+			<button
+				type="button"
+				class="flex w-full items-center justify-between rounded-lg border border-color bg-accent p-3 text-left transition-colors hover:bg-primary/60"
+				onclick={() => (showVideoQualitySettings = !showVideoQualitySettings)}
+				aria-expanded={showVideoQualitySettings}
+			>
+				<span class="text-sm font-medium text-primary">
+					{$LL.export.videoQualityOrientation()}
 				</span>
-			</label>
+				<span
+					class="material-icons text-secondary transition-transform duration-200"
+					style={`transform: rotate(${showVideoQualitySettings ? 180 : 0}deg);`}
+				>
+					expand_more
+				</span>
+			</button>
 
-			{#if globalState.getExportState.exportOnlyRecitation}
-				<div class="mt-4 grid grid-cols-1 gap-4 border-t border-color pt-4">
-					<div>
-						<label class="block text-sm font-medium text-primary mb-2" for="recitation-cut-margin">
-							{$LL.export.recitationCutMargin()}
-						</label>
-						<input
-							id="recitation-cut-margin"
-							type="number"
-							min="0"
-							step="50"
-							class="input w-full h-10"
-							value={globalState.getExportState.recitationCutMarginMs}
-							onchange={(event) =>
-								setRecitationCutMargin((event.currentTarget as HTMLInputElement).valueAsNumber)}
-						/>
-						<p class="text-xs text-thirdly mt-2">
-							{$LL.export.recitationCutMarginDescription()}
-						</p>
-					</div>
-					<div>
-						<label
-							class="block text-sm font-medium text-primary mb-2"
-							for="recitation-minimum-silence"
-						>
-							{$LL.export.recitationMinimumSilence()}
-						</label>
-						<input
-							id="recitation-minimum-silence"
-							type="number"
-							min="0"
-							step="100"
-							class="input w-full h-10"
-							value={globalState.getExportState.recitationMinimumSilenceMs}
-							onchange={(event) =>
-								setRecitationMinimumSilence(
-									(event.currentTarget as HTMLInputElement).valueAsNumber
-								)}
-						/>
-						<p class="text-xs text-thirdly mt-2">
-							{$LL.export.recitationMinimumSilenceDescription()}
-						</p>
-					</div>
+			{#if showVideoQualitySettings}
+				<div class="mt-2 rounded-lg border border-color bg-accent p-3" transition:slide>
+					<p class="mb-3 text-xs leading-snug text-thirdly">
+						{$LL.export.setResolutionOrientation()}
+					</p>
+
+					<Style
+						style={globalState.getStyle('global', 'video-dimension')!}
+						target="global"
+						applyValueSimple={(v) => {
+							globalState.getStyle('global', 'video-dimension')!.value = v as {
+								width: number;
+								height: number;
+							};
+						}}
+						disabled={false}
+					/>
 				</div>
 			{/if}
 		</div>
-	</section>
+
+		<div class="mb-4">
+			<button
+				type="button"
+				class="flex w-full items-center justify-between rounded-lg border border-color bg-accent p-3 text-left transition-colors hover:bg-primary/60"
+				onclick={() => (showVideoAudioFadeSettings = !showVideoAudioFadeSettings)}
+				aria-expanded={showVideoAudioFadeSettings}
+			>
+				<span class="text-sm font-medium text-primary">{$LL.export.videoAudioFade()}</span>
+				<span
+					class="material-icons text-secondary transition-transform duration-200"
+					style={`transform: rotate(${showVideoAudioFadeSettings ? 180 : 0}deg);`}
+				>
+					expand_more
+				</span>
+			</button>
+
+			{#if showVideoAudioFadeSettings}
+				<div class="mt-2 rounded-lg border border-color bg-accent p-3" transition:slide>
+					<p class="mb-3 text-xs leading-snug text-thirdly">
+						{$LL.export.enableDisableFade()}
+					</p>
+
+					<Style
+						style={globalState.getStyle('global', 'video-and-audio-fade')!}
+						target="global"
+						applyValueSimple={(v) => {
+							globalState.getStyle('global', 'video-and-audio-fade')!.value = v as FadeValue;
+						}}
+						disabled={false}
+					/>
+				</div>
+			{/if}
+		</div>
+		<div class="mt-4">
+			<button
+				type="button"
+				class="flex w-full items-center justify-between rounded-lg border border-color bg-accent p-3 text-left transition-colors hover:bg-primary/60"
+				onclick={() => {
+					showAdvancedSettings = !showAdvancedSettings;
+				}}
+				aria-expanded={showAdvancedSettings}
+			>
+				<div>
+					<p class="text-sm font-medium text-primary">{$LL.export.advancedSettings()}</p>
+					<p class="text-xs text-thirdly">
+						{$LL.export.controlExportPerformance()}
+					</p>
+				</div>
+				<span
+					class="material-icons text-secondary transition-transform duration-200"
+					style={`transform: rotate(${showAdvancedSettings ? 180 : 0}deg);`}
+				>
+					expand_more
+				</span>
+			</button>
+
+			{#if showAdvancedSettings}
+				<div class="mt-3 rounded-lg border border-color bg-accent p-3" transition:slide>
+					<section class="mb-4">
+						<h4 class="mb-2 text-sm font-medium text-secondary">
+							{$LL.export.videoFileName()}
+						</h4>
+						<div class="rounded-lg border border-color bg-secondary p-3">
+							<div class="flex flex-col gap-4">
+								<div>
+									<p class="mb-3 text-xs leading-snug text-thirdly">
+										{$LL.export.enterFileName()}
+									</p>
+
+									<div class="flex flex-col gap-2">
+										<input
+											type="text"
+											class="input w-full"
+											placeholder={globalState.currentProject?.detail.generateExportFileName()}
+											bind:value={globalState.getExportState.customFileName}
+											onfocus={() => {
+												if (!globalState.getExportState.customFileName.trim()) {
+													globalState.getExportState.customFileName =
+														globalState.currentProject?.detail.generateExportFileName() ?? '';
+												}
+											}}
+										/>
+										<p class="text-thirdly text-xs italic">
+											{$LL.export.extensionAddedAutomatically()}
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<section class="mb-4">
+						<h4 class="mb-2 text-sm font-medium text-secondary">
+							{$LL.export.performanceSettings()}
+						</h4>
+						<div class="rounded-lg border border-color bg-secondary p-3">
+							<div class="flex flex-col gap-3">
+								<p class="text-xs leading-snug text-thirdly">
+									{$LL.export.setFpsDescription()}
+								</p>
+								<input
+									type="number"
+									min="5"
+									max="60"
+									step="1"
+									class="input w-full h-10"
+									bind:value={globalState.getExportState.fps}
+								/>
+							</div>
+						</div>
+					</section>
+
+					<div class="mb-4">
+						<h4 class="text-base font-medium text-secondary mb-1">
+							{$LL.export.exportPerformance()}
+						</h4>
+						<p class="text-thirdly text-sm">
+							{$LL.export.chooseCpuUsage()}
+						</p>
+					</div>
+
+					{#if globalState.settings}
+						<div class="mb-3 rounded-lg border border-color bg-secondary p-3">
+							<label class="block text-sm font-medium text-primary mb-2" for="video-codec">
+								{$LL.export.videoCodec()}
+							</label>
+							<select
+								id="video-codec"
+								class="input w-full"
+								bind:value={globalState.settings.exportSettings.videoCodec}
+								disabled={globalState.getExportState.exportWithoutBackground}
+								onchange={() => void Settings.save()}
+							>
+								{#each videoCodecIds as codec (codec)}
+									<option value={codec}>
+										{codec === 'h264'
+											? $LL.export.h264Compatibility()
+											: $LL.export.h265SmallerFiles()}
+									</option>
+								{/each}
+							</select>
+							<p class="text-xs text-thirdly mt-2">
+								{$LL.export.videoCodecDescription()}
+							</p>
+						</div>
+
+						<div class="grid grid-cols-1 gap-3">
+							{#each performanceProfileIds as id (id)}
+								{@const label =
+									id === 'fastest'
+										? $LL.export.fastest()
+										: id === 'balanced'
+											? $LL.export.balanced()
+											: $LL.export.lowCpu()}
+								{@const desc =
+									id === 'fastest'
+										? $LL.export.fastestDescription()
+										: id === 'balanced'
+											? $LL.export.balancedDescription()
+											: $LL.export.lowCpuDescription()}
+								<button
+									type="button"
+									class="rounded-xl border p-3 text-left transition-colors"
+									class:border-accent-primary={globalState.settings.exportSettings
+										.performanceProfile === id}
+									class:bg-secondary={globalState.settings.exportSettings.performanceProfile === id}
+									class:border-color={globalState.settings.exportSettings.performanceProfile !== id}
+									onclick={() => void savePerformanceProfile(id)}
+								>
+									<div class="flex items-center justify-between gap-3">
+										<p class="text-sm font-medium text-primary">{label}</p>
+										{#if globalState.settings.exportSettings.performanceProfile === id}
+											<span class="material-icons text-accent-primary text-lg">check_circle</span>
+										{/if}
+									</div>
+									<p class="mt-1 text-xs text-thirdly">{desc}</p>
+								</button>
+							{/each}
+						</div>
+					{/if}
+
+					<div class="mb-4 mt-4">
+						<h4 class="text-base font-medium text-secondary mb-1">{$LL.export.background()}</h4>
+						<label class="mt-2 flex items-start gap-3 cursor-pointer select-none">
+							<input
+								type="checkbox"
+								class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
+								bind:checked={globalState.getExportState.exportWithoutBackground}
+							/>
+							<span class="text-sm text-primary">
+								{$LL.export.exportWithoutBackground()}
+								<span class="block text-xs text-thirdly mt-1">
+									{$LL.export.rendersOnlyOverlay()}
+								</span>
+							</span>
+						</label>
+
+						{#if globalState.getExportState.exportWithoutBackground}
+							<div class="">
+								<label class="block text-sm text-primary mb-2" for="transparent-export-format">
+									{$LL.export.transparentExportFormat()}
+								</label>
+								<select
+									id="transparent-export-format"
+									class="input w-full"
+									bind:value={globalState.getExportState.transparentExportFormat}
+								>
+									<option value="mov_prores_4444">{$LL.export.movQtrleRecommended()}</option>
+									<option value="webm_vp9_alpha">{$LL.export.webmVp9()}</option>
+								</select>
+								<p class="text-xs text-thirdly mt-2">
+									{$LL.export.movQtrleCompatibility()}
+								</p>
+							</div>
+						{/if}
+					</div>
+
+					{#if globalState.settings}
+						<div class="mt-4 rounded-lg border border-color bg-secondary p-2.5">
+							<div class="flex items-center justify-between gap-3">
+								<label class="text-xs font-medium text-secondary" for="parallel-capture-workers">
+									{$LL.export.parallelCaptureWorkers()}
+								</label>
+								<input
+									id="parallel-capture-workers"
+									type="number"
+									min="1"
+									max="4"
+									step="1"
+									class="input h-9 w-16 px-2 text-sm"
+									bind:value={globalState.settings.exportSettings.parallelCaptureWorkers}
+									onchange={saveParallelCaptureWorkers}
+								/>
+							</div>
+							<p class="mt-1.5 text-[11px] leading-4 text-thirdly">
+								{$LL.export.parallelCaptureWorkersDescription()}
+							</p>
+						</div>
+					{/if}
+				</div>
+			{/if}
+		</div>
+
+		<section class="mb-4">
+			<h4 class="mb-2 text-sm font-medium text-secondary">
+				{$LL.export.recitationContent()}
+			</h4>
+			<div class="rounded-lg border border-color bg-secondary p-3">
+				<label class="flex items-start gap-3 cursor-pointer select-none">
+					<input
+						type="checkbox"
+						class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
+						checked={globalState.getExportState.exportOnlyRecitation}
+						onchange={(event) =>
+							setExportOnlyRecitation((event.currentTarget as HTMLInputElement).checked)}
+					/>
+					<span class="text-sm text-primary">
+						{$LL.export.exportOnlyRecitation()}
+						<span class="block text-xs text-thirdly mt-1">
+							{$LL.export.exportOnlyRecitationDescription()}
+						</span>
+					</span>
+				</label>
+
+				{#if globalState.getExportState.exportOnlyRecitation}
+					<div class="mt-4 grid grid-cols-1 gap-4 border-t border-color pt-4">
+						<div>
+							<label
+								class="block text-sm font-medium text-primary mb-2"
+								for="recitation-cut-margin"
+							>
+								{$LL.export.recitationCutMargin()}
+							</label>
+							<input
+								id="recitation-cut-margin"
+								type="number"
+								min="0"
+								step="50"
+								class="input w-full h-10"
+								value={globalState.getExportState.recitationCutMarginMs}
+								onchange={(event) =>
+									setRecitationCutMargin((event.currentTarget as HTMLInputElement).valueAsNumber)}
+							/>
+							<p class="text-xs text-thirdly mt-2">
+								{$LL.export.recitationCutMarginDescription()}
+							</p>
+						</div>
+						<div>
+							<label
+								class="block text-sm font-medium text-primary mb-2"
+								for="recitation-minimum-silence"
+							>
+								{$LL.export.recitationMinimumSilence()}
+							</label>
+							<input
+								id="recitation-minimum-silence"
+								type="number"
+								min="0"
+								step="100"
+								class="input w-full h-10"
+								value={globalState.getExportState.recitationMinimumSilenceMs}
+								onchange={(event) =>
+									setRecitationMinimumSilence(
+										(event.currentTarget as HTMLInputElement).valueAsNumber
+									)}
+							/>
+							<p class="text-xs text-thirdly mt-2">
+								{$LL.export.recitationMinimumSilenceDescription()}
+							</p>
+						</div>
+					</div>
+				{/if}
+			</div>
+		</section>
+	</div>
 
 	<!-- Export Button -->
-	<div class="mt-4 flex flex-col items-center">
+	<div class="mt-2 flex flex-shrink-0 flex-col items-center border-t border-color pt-2">
 		<button class="btn-accent h-11 w-full px-4 font-medium" onclick={Exporter.exportVideo}>
 			{$LL.export.exportButton()}
 		</button>

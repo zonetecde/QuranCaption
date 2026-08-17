@@ -117,6 +117,29 @@ describe('MeaningExportRangeService', () => {
 		]);
 	});
 
+	it('merges overlapping fragments until the verse end marker', async () => {
+		const firstFragment = subtitle(49, 7, 0, 1000, 0, 11);
+		const middleFragment = subtitle(49, 7, 1100, 2000, 5, 19);
+		const lastFragment = subtitle(49, 7, 2100, 3000, 12, 27);
+		firstFragment.isLastWordsOfVerse = false;
+		middleFragment.isLastWordsOfVerse = false;
+		lastFragment.isLastWordsOfVerse = true;
+
+		const result = await buildMeaningExportVerses(
+			[firstFragment, middleFragment, lastFragment],
+			async () => 'text'
+		);
+
+		expect(result).toHaveLength(1);
+		expect(result[0]).toMatchObject({
+			key: '49:7',
+			startTime: 0,
+			endTime: 3000,
+			durationMs: 3000,
+			arabic: 'text'
+		});
+	});
+
 	it('sends one compact Arabic verse list with verse durations to the AI prompt', () => {
 		const result = buildMeaningExportPrompts(verses(), 60, true);
 

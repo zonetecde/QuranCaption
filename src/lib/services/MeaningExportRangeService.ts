@@ -46,22 +46,40 @@ export async function buildMeaningExportVerses(
 		startTime: number;
 		endTime: number;
 		lastEndWordIndex: number | null;
+		isComplete: boolean;
 	}> = [];
 
 	for (const subtitle of [...subtitles].sort((left, right) => left.startTime - right.startTime)) {
 		const key = `${subtitle.surah}:${subtitle.verse}`;
 		const current = occurrences.at(-1);
+		const sameKey = current?.key === key;
 		const wordContinues =
 			current &&
-			current.key === key &&
+			sameKey &&
 			current.lastEndWordIndex !== null &&
 			subtitle.startWordIndex > current.lastEndWordIndex;
-		const timingContinues =
-			current && current.key === key && subtitle.startTime <= current.endTime + 100;
-		if (current && current.key === key && (wordContinues || timingContinues)) {
+		const timingContinues = current && sameKey && subtitle.startTime <= current.endTime + 100;
+		// Les index de mots peuvent se chevaucher entre deux fragments d'un même verset.
+		const overlappingFragmentContinues =
+			current &&
+			sameKey &&
+			!current.isComplete &&
+			current.lastEndWordIndex !== null &&
+			subtitle.startWordIndex <= current.lastEndWordIndex + 1 &&
+			(subtitle.endWordIndex > current.lastEndWordIndex ||
+				subtitle.isLastWordsOfVerse === true ||
+				subtitle.isFullVerse === true);
+		if (
+			current &&
+			sameKey &&
+			!current.isComplete &&
+			(wordContinues || timingContinues || overlappingFragmentContinues)
+		) {
 			current.startTime = Math.min(current.startTime, subtitle.startTime);
 			current.endTime = Math.max(current.endTime, subtitle.endTime);
 			current.lastEndWordIndex = Math.max(current.lastEndWordIndex ?? -1, subtitle.endWordIndex);
+			current.isComplete =
+				current.isComplete || subtitle.isLastWordsOfVerse === true || subtitle.isFullVerse === true;
 			continue;
 		}
 
@@ -71,7 +89,8 @@ export async function buildMeaningExportVerses(
 			verse: subtitle.verse,
 			startTime: subtitle.startTime,
 			endTime: subtitle.endTime,
-			lastEndWordIndex: subtitle.endWordIndex
+			lastEndWordIndex: subtitle.endWordIndex,
+			isComplete: subtitle.isLastWordsOfVerse === true || subtitle.isFullVerse === true
 		});
 	}
 
@@ -89,11 +108,13 @@ export async function buildMeaningExportVerses(
 			MinimalQuranProvider.getVerseSlice(surah, verse, 0, Number.MAX_SAFE_INTEGER) ?? '');
 
 	return Promise.all(
-		occurrences.map(async ({ lastEndWordIndex: _lastEndWordIndex, ...verse }) => ({
-			...verse,
-			durationMs: Math.max(0, verse.endTime - verse.startTime),
-			arabic: await getArabicText(verse.surah, verse.verse)
-		}))
+		occurrences.map(
+			async ({ lastEndWordIndex: _lastEndWordIndex, isComplete: _isComplete, ...verse }) => ({
+				...verse,
+				durationMs: Math.max(0, verse.endTime - verse.startTime),
+				arabic: await getArabicText(verse.surah, verse.verse)
+			})
+		)
 	);
 }
 
@@ -117,10 +138,11 @@ The main goal is to make every range as close as possible to ${maxDurationSecond
 Pack each range with as many consecutive, semantically coherent verses as possible while its summed duration stays at or below the limit.
 Do not create one-verse or very short ranges when the next verses can still fit; only start a new range when adding the next verse would exceed the limit or break the meaning.
 If one verse alone exceeds the limit, keep it as a single range.
-${includeAllVerses ? 'Cover every timeline occurrence exactly once, including repeated verse keys.' : 'You may leave occurrences out when they do not belong to a meaningful range.'}
+${includeAllVerses ? 'Cover every timeline occurrence exactly once, including repeated, partial, isolated, or one-word verse occurrences.' : 'You may leave occurrences out when they do not belong to a meaningful range.'}
 Do not invent verses, cover the same timeline occurrence twice, overlap ranges, or reorder occurrences.
 When a verse key appears more than once, repeat that key in the output as needed to describe the later occurrence; the software resolves repeated keys in timeline order.
 The input field \"o\" is the chronological occurrence number; use the corresponding \"v\" value in the output.
+When all occurrences are required, audit the output against every input \"o\" before answering. If an occurrence is isolated or semantically unrelated, output a single-verse range for it rather than omitting it.
 Each range object must contain only the string properties \"start\" and \"end\".
 Respond ONLY with strict JSON in this exact format and no markdown:
 {"ranges":[{"start":"1:1","end":"1:4"}]}`;

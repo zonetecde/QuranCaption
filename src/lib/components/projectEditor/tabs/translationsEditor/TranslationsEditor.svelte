@@ -9,6 +9,7 @@
 	import DiviseurRedimensionnable from '../DiviseurRedimensionnable.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { PROJECT_EDITOR_PANEL_WIDTHS } from '$lib/constants/projectEditor';
+	import VideoPreview from '../../videoPreview/VideoPreview.svelte';
 
 	let addTranslationModalVisibility = $state(false);
 </script>
@@ -63,6 +64,10 @@
 	<MobileRightDrawer title={$LL.editor.wordStyles()} icon="tune" triggerTopClass="top-0">
 		<TranslationInlineStylePanel />
 	</MobileRightDrawer>
+</div>
+
+<div class="hidden" aria-hidden="true">
+	<VideoPreview showControls={false} />
 </div>
 
 {#if addTranslationModalVisibility}

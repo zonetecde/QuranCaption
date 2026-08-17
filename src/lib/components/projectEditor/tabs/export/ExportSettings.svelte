@@ -13,7 +13,12 @@
 
 	// Export choices
 	const choices: { id: ExportChoiceId; label: () => string; icon: string; hint: () => string }[] = [
-		{ id: 'video', label: () => LL_.export.videoExportOption(), icon: 'movie', hint: () => LL_.export.videoExportDescription() },
+		{
+			id: 'video',
+			label: () => LL_.export.videoExportOption(),
+			icon: 'movie',
+			hint: () => LL_.export.videoExportDescription()
+		},
 		{
 			id: 'subtitles',
 			label: () => LL_.export.subtitlesExportOption(),
@@ -26,7 +31,12 @@
 			icon: 'schedule',
 			hint: () => LL_.export.youtubeChaptersDescription()
 		},
-		{ id: 'project', label: () => LL_.export.projectDataOption(), icon: 'folder', hint: () => LL_.export.projectDataDescription() }
+		{
+			id: 'project',
+			label: () => LL_.export.projectDataOption(),
+			icon: 'folder',
+			hint: () => LL_.export.projectDataDescription()
+		}
 	];
 
 	function select(id: ExportChoiceId) {
@@ -35,17 +45,17 @@
 </script>
 
 <div
-	class="bg-secondary h-full border border-color mx-0.5 rounded-xl relative flex flex-col shadow overflow-auto"
+	class="bg-secondary h-full border border-color mx-0.5 rounded-xl relative flex flex-col shadow overflow-hidden"
 >
 	<!-- En-tête avec icône -->
-	<div class="flex gap-x-2 items-center justify-center px-3 mb-2 mt-4">
+	<div class="flex flex-shrink-0 gap-x-2 items-center justify-center px-3 mb-2 mt-4">
 		<span class="material-icons-outlined text-accent text-2xl">upload_file</span>
 		<h2 class="text-xl font-semibold text-primary tracking-wide">{$LL.export.exportHeading()}</h2>
 	</div>
 
-	<div class="mt-4 px-3 pb-4">
+	<div class="mt-4 px-3 pb-4 min-h-0 flex flex-1 flex-col">
 		<div
-			class="grid grid-cols-2 gap-3 mb-3"
+			class="grid grid-cols-2 gap-3 mb-3 flex-shrink-0"
 			role="radiogroup"
 			aria-label={$LL.export.exportType()}
 			tabindex="0"
@@ -89,14 +99,16 @@
 		</div>
 
 		<!-- Dynamic panel depending on selection -->
-		{#if globalState.getExportState.selectedChoice === 'video'}
-			<ExportVideo />
-		{:else if globalState.getExportState.selectedChoice === 'subtitles'}
-			<ExportSubtitles />
-		{:else if globalState.getExportState.selectedChoice === 'chapters'}
-			<ExportYtbChapters />
-		{:else if globalState.getExportState.selectedChoice === 'project'}
-			<ExportProjectData />
-		{/if}
+		<div class="min-h-0 flex-1 overflow-hidden">
+			{#if globalState.getExportState.selectedChoice === 'video'}
+				<ExportVideo />
+			{:else if globalState.getExportState.selectedChoice === 'subtitles'}
+				<ExportSubtitles />
+			{:else if globalState.getExportState.selectedChoice === 'chapters'}
+				<ExportYtbChapters />
+			{:else if globalState.getExportState.selectedChoice === 'project'}
+				<ExportProjectData />
+			{/if}
+		</div>
 	</div>
 </div>

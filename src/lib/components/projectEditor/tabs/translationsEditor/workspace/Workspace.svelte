@@ -20,6 +20,58 @@
 	} = $props();
 
 	const PAGE_SIZE = 10;
+	let playbackClipId = $state<number | null>(null);
+
+	/**
+	 * Starts or pauses playback for the selected subtitle.
+	 * @param {SubtitleClip} clip Subtitle to play.
+	 * @returns {void}
+	 */
+	function toggleSubtitlePlayback(clip: SubtitleClip): void {
+		const videoPreview = globalState.getVideoPreviewState;
+		if (playbackClipId === clip.id && videoPreview.isPlaying) {
+			videoPreview.togglePlayPause();
+			playbackClipId = null;
+			return;
+		}
+
+		globalState.getTimelineState.cursorPosition = clip.startTime;
+		globalState.getTimelineState.movePreviewTo = clip.startTime;
+		playbackClipId = clip.id;
+		if (!videoPreview.isPlaying) videoPreview.togglePlayPause();
+	}
+
+	/**
+	 * Returns whether a subtitle is currently being played.
+	 * @param {number} clipId Subtitle identifier.
+	 * @returns {boolean} Whether the subtitle is active.
+	 */
+	function isSubtitlePlaying(clipId: number): boolean {
+		return playbackClipId === clipId && globalState.getVideoPreviewState.isPlaying;
+	}
+
+	$effect(() => {
+		if (playbackClipId === null) return;
+
+		const videoPreview = globalState.getVideoPreviewState;
+		if (!videoPreview.isPlaying) {
+			playbackClipId = null;
+			return;
+		}
+
+		const clip = globalState.getSubtitleTrack.getClipById(playbackClipId);
+		if (!clip) {
+			playbackClipId = null;
+			return;
+		}
+
+		const cursorPosition = globalState.getTimelineState.cursorPosition;
+		if (cursorPosition < clip.startTime || cursorPosition >= clip.endTime) {
+			videoPreview.togglePlayPause();
+			playbackClipId = null;
+		}
+	});
+
 	let visibleCount = $state(PAGE_SIZE);
 	const translationsEditorState = () =>
 		globalState.currentProject!.projectEditorState.translationsEditor;
@@ -239,7 +291,11 @@
 							: ''}"
 						data-translation-clip-id={clip.id}
 					>
-						<ArabicText subtitle={clip as SubtitleClip} />
+						<ArabicText
+							subtitle={clip as SubtitleClip}
+							isPlaying={isSubtitlePlaying(clip.id)}
+							onPlaybackToggle={() => toggleSubtitlePlayback(clip as SubtitleClip)}
+						/>
 						<div class="mt-4 space-y-3">
 							{#each editionsToShow() as edition (edition.name)}
 								<Translation {edition} subtitle={clip as SubtitleClip} />

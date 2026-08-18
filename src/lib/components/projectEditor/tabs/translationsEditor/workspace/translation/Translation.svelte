@@ -41,7 +41,9 @@
 	);
 	let isInlineStyleMode = $derived(() => translationsEditorState().isInlineStyleMode);
 	let isTranslationWbwMappingMode = $derived(
-		() => translationsEditorState().isTranslationWbwMappingMode
+		() =>
+			translation() instanceof VerseTranslation &&
+			translationsEditorState().isTranslationWbwMappingMode
 	);
 	const translationMetadata = $derived(() => globalState.getTranslationMetadata(edition.language));
 	const translationDirection = $derived(() => (edition.direction === 'rtl' ? 'rtl' : 'ltr'));

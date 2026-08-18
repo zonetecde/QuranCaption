@@ -7,7 +7,7 @@
 
 <!-- Export Project Data Configuration -->
 
-<div class="flex h-full min-h-0 min-w-0 flex-col rounded-lg bg-secondary p-3 pb-2" transition:slide>
+<div class="flex h-full min-h-0 min-w-0 flex-col rounded-lg bg-secondary p-3 pb-0" transition:slide>
 	<div class="min-h-0 flex-1 overflow-y-auto">
 		<!-- Section Title -->
 		<div class="mb-4">
@@ -81,24 +81,18 @@
 	</div>
 
 	<!-- Export Button -->
-	<div class="flex flex-shrink-0 flex-col items-center border-t border-color pt-2">
+	<div class="flex flex-shrink-0 flex-col items-center border-t border-color pt-1">
 		<button
-			class="btn-accent h-11 w-full px-4 font-medium"
+			class="btn-accent h-10 w-full px-4 font-medium"
 			onclick={() => Exporter.exportProjectData()}
 		>
 			{$LL.export.exportProjectDataButton()}
 		</button>
-		<p class="text-thirdly text-xs mt-2 text-center">
-			{$LL.export.exportProjectDataButtonDescription()}
-		</p>
 		<button
-			class="btn mt-3 min-h-10 w-full px-4 py-2 text-xs font-medium"
+			class="btn mt-2 min-h-10 w-full px-4 py-2 text-xs font-medium"
 			onclick={() => Exporter.exportSubtitlesJson()}
 		>
 			{$LL.export.exportSubtitlesJsonButton()}
 		</button>
-		<p class="text-thirdly text-xs mt-2 text-center">
-			{$LL.export.exportSubtitlesJsonButtonDescription()}
-		</p>
 	</div>
 </div>

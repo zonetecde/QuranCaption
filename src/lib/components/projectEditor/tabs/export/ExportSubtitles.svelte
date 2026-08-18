@@ -38,7 +38,7 @@
 
 <!-- Export Subtitles Configuration -->
 
-<div class="flex h-full min-h-0 min-w-0 flex-col rounded-lg bg-secondary p-3 pb-2" transition:slide>
+<div class="flex h-full min-h-0 min-w-0 flex-col rounded-lg bg-secondary p-3 pb-0" transition:slide>
 	<div class="min-h-0 flex-1 overflow-y-auto">
 		<!-- Section Title -->
 		<div class="mb-4">
@@ -248,12 +248,9 @@
 	</div>
 
 	<!-- Export Button -->
-	<div class="flex flex-shrink-0 flex-col items-center border-t border-color pt-2">
-		<button class="btn-accent h-11 w-full px-4 font-medium" onclick={Exporter.exportSubtitles}>
+	<div class="flex flex-shrink-0 flex-col items-center border-t border-color pt-1">
+		<button class="btn-accent h-10 w-full px-4 font-medium" onclick={Exporter.exportSubtitles}>
 			{$LL.export.exportSubtitlesButton()}
 		</button>
-		<p class="text-thirdly text-xs mt-2 text-center">
-			{$LL.export.exportSubtitlesButtonDescription()}
-		</p>
 	</div>
 </div>

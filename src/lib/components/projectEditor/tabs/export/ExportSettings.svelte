@@ -51,7 +51,7 @@
 	class="export-settings-scale bg-secondary relative flex h-full min-w-0 flex-1 flex-col overflow-hidden"
 	style={`--editor-panel-scale: ${panelScale}; --editor-panel-height: ${100 / panelScale}%;`}
 >
-	<div class="min-h-0 min-w-0 flex flex-1 flex-col overflow-hidden px-2 py-3">
+	<div class="min-h-0 min-w-0 flex flex-1 flex-col overflow-hidden px-2 pb-0 pt-3">
 		<div
 			class="export-choice-tabs grid min-w-0 flex-shrink-0 grid-cols-4 gap-1.5"
 			role="radiogroup"

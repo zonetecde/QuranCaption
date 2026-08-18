@@ -2,6 +2,7 @@
 	import { AssetClip, SubtitleClip } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { enterManualWordByWordEdit, exitManualWordByWordEdit } from '$lib/services/WbwHelper';
+	import ModalManager from '$lib/components/modals/ModalManager';
 	import AutoSegmentationModal from './modal/AutoSegmentationModal.svelte';
 	import SegmentsToReview from './SegmentsToReview.svelte';
 	import MarkLongSubtitles from './MarkLongSubtitles.svelte';
@@ -206,6 +207,15 @@
 				>
 					<span class="material-icons text-base">auto_awesome</span>
 					{$LL.editor.autoSegment()}
+				</button>
+				<button
+					class="w-full px-3 py-2 rounded-md text-xs flex items-center justify-center gap-2 border border-[var(--accent-primary)]/30 text-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10 transition"
+					type="button"
+					title={$LL.tools.selectAyahRange()}
+					onclick={() => void ModalManager.verseRangeCropModal()}
+				>
+					<span class="material-icons text-base">crop</span>
+					{$LL.tools.selectAyahRange()}
 				</button>
 			</div>
 		</div>

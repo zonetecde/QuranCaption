@@ -131,6 +131,33 @@ pub async fn import_android_media(
     }
 }
 
+/// Ouvre le sélecteur Android de dossiers pour la pool d'arrière-plans.
+///
+/// @param app_handle Handle de l'application.
+/// @returns Chemin privé contenant les médias du dossier sélectionné.
+#[tauri::command]
+pub async fn pick_android_background_folder(
+    app_handle: tauri::AppHandle,
+) -> Result<String, String> {
+    #[cfg(target_os = "android")]
+    {
+        return tokio::task::spawn_blocking(move || {
+            app_handle
+                .android_media()
+                .pick_background_folder()
+                .map_err(|error| error.to_string())
+        })
+        .await
+        .map_err(|error| format!("Android background folder task failed: {}", error))?;
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = app_handle;
+        Err("Background folder picker is only available on Android".to_string())
+    }
+}
+
 /// Maintient l'écran Android allumé pendant le rendu visible.
 ///
 /// @param app_handle Handle de l'application.

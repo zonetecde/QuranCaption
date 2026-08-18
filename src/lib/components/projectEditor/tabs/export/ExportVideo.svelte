@@ -11,7 +11,7 @@
 	import { VerseRange } from '$lib/classes';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
-	import { open } from '@tauri-apps/plugin-dialog';
+	import AndroidMediaService from '$lib/services/AndroidMediaService';
 	import type { ExportSkipRange } from '$lib/classes/ProjectEditorState.svelte';
 	import VerseRangeSlider from './VerseRangeSlider.svelte';
 	import {
@@ -526,15 +526,15 @@
 	async function selectRandomBackgroundFolder(): Promise<void> {
 		if (!globalState.settings) return;
 
-		const selected = await open({
-			directory: true,
-			multiple: false,
-			defaultPath: globalState.settings.exportSettings.randomBackgroundFolder || undefined
-		});
-		if (typeof selected !== 'string' || !selected.trim()) return;
+		try {
+			const selected = await AndroidMediaService.pickBackgroundFolder();
+			if (!selected.trim()) return;
 
-		globalState.settings.exportSettings.randomBackgroundFolder = selected;
-		await Settings.save();
+			globalState.settings.exportSettings.randomBackgroundFolder = selected;
+			await Settings.save();
+		} catch (error) {
+			console.warn('Unable to select random background folder:', error);
+		}
 	}
 
 	/**

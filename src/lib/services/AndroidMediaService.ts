@@ -14,4 +14,12 @@ export default class AndroidMediaService {
 			projectId
 		});
 	}
+
+	/**
+	 * Ouvre le sélecteur Android de dossiers et retourne la pool locale importée.
+	 * @returns {Promise<string>} Chemin privé contenant les médias sélectionnés.
+	 */
+	static async pickBackgroundFolder(): Promise<string> {
+		return await invoke<string>('pick_android_background_folder');
+	}
 }

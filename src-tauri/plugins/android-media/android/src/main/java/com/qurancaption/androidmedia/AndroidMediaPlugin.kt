@@ -6,14 +6,17 @@ import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
+import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import android.view.WindowManager
+import androidx.activity.result.ActivityResult
 import androidx.core.content.FileProvider
 import androidx.core.view.WindowInsetsControllerCompat
 import app.tauri.Logger
+import app.tauri.annotation.ActivityCallback
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
 import app.tauri.annotation.TauriPlugin
@@ -393,6 +396,66 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
             JSObject().apply {
                 put("path", destination.absolutePath)
             }
+        }
+    }
+
+    /**
+     * Ouvre le sélecteur Android de dossiers pour la pool d'arrière-plans.
+     *
+     * @param invoke Appel Tauri à résoudre avec le chemin de la pool importée.
+     */
+    @Command
+    fun pickBackgroundFolder(invoke: Invoke) {
+        hostActivity.runOnUiThread {
+            try {
+                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                    addFlags(
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                            Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION or
+                            Intent.FLAG_GRANT_PREFIX_URI_PERMISSION
+                    )
+                }
+                startActivityForResult(invoke, intent, "backgroundFolderPickerResult")
+            } catch (error: Exception) {
+                reject(invoke, "Failed to open background folder picker", error)
+            }
+        }
+    }
+
+    /**
+     * Traite le dossier choisi par le sélecteur SAF et importe ses médias compatibles.
+     *
+     * @param invoke Appel Tauri en attente de la sélection.
+     * @param result Résultat de l'activité Android.
+     */
+    @ActivityCallback
+    fun backgroundFolderPickerResult(invoke: Invoke, result: ActivityResult) {
+        try {
+            when (result.resultCode) {
+                Activity.RESULT_OK -> {
+                    val uri = result.data?.data
+                    if (uri == null) {
+                        invoke.reject("Background folder picker returned no folder")
+                        return
+                    }
+
+                    try {
+                        hostActivity.contentResolver.takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                    } catch (_: SecurityException) {
+                        // Certains fournisseurs n'autorisent pas la persistance, mais l'accès courant suffit.
+                    }
+                    runInBackground(invoke, "Failed to import background folder") {
+                        importBackgroundFolder(uri)
+                    }
+                }
+                Activity.RESULT_CANCELED -> invoke.reject("Background folder picker cancelled")
+                else -> invoke.reject("Failed to pick background folder")
+            }
+        } catch (error: Exception) {
+            reject(invoke, "Failed to read background folder selection", error)
         }
     }
 
@@ -800,6 +863,122 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
     }
 
     /**
+     * Copie les fichiers multimédias directs d'un dossier SAF dans le stockage privé de l'app.
+     *
+     * @param treeUri URI SAF du dossier sélectionné.
+     * @return Réponse contenant le dossier local utilisable par l'export.
+     */
+    private fun importBackgroundFolder(treeUri: Uri): JSObject {
+        val treeDocumentId = DocumentsContract.getTreeDocumentId(treeUri)
+        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
+            treeUri,
+            treeDocumentId
+        )
+        val projection = arrayOf(
+            DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+            DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+            DocumentsContract.Document.COLUMN_MIME_TYPE
+        )
+        val mediaEntries = mutableListOf<Pair<String, String>>()
+        val cursor = hostActivity.contentResolver.query(
+            childrenUri,
+            projection,
+            null,
+            null,
+            null
+        ) ?: error("Cannot read selected background folder")
+
+        cursor.use {
+            val documentIdIndex = it.getColumnIndexOrThrow(
+                DocumentsContract.Document.COLUMN_DOCUMENT_ID
+            )
+            val displayNameIndex = it.getColumnIndexOrThrow(
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME
+            )
+            val mimeTypeIndex = it.getColumnIndexOrThrow(
+                DocumentsContract.Document.COLUMN_MIME_TYPE
+            )
+            while (it.moveToNext()) {
+                val documentId = it.getString(documentIdIndex).orEmpty()
+                val displayName = it.getString(displayNameIndex).orEmpty()
+                val mimeType = it.getString(mimeTypeIndex).orEmpty()
+                if (
+                    documentId.isNotBlank() &&
+                    mimeType != DocumentsContract.Document.MIME_TYPE_DIR &&
+                    isSupportedBackgroundFile(displayName)
+                ) {
+                    mediaEntries += documentId to displayName
+                }
+            }
+        }
+
+        require(mediaEntries.isNotEmpty()) {
+            "Selected folder contains no supported background media"
+        }
+
+        val destinationDirectory = File(
+            hostActivity.applicationInfo.dataDir,
+            RANDOM_BACKGROUND_POOL_DIRECTORY
+        )
+        resetDirectory(destinationDirectory)
+        var copiedCount = 0
+        for ((documentId, displayName) in mediaEntries) {
+            val sourceUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, documentId)
+            val destination = createAvailableFile(
+                destinationDirectory,
+                sanitizeFileName(displayName)
+            )
+            try {
+                openImportSource(sourceUri.toString()).use { input ->
+                    BufferedOutputStream(
+                        FileOutputStream(destination),
+                        COPY_BUFFER_SIZE
+                    ).use { output ->
+                        input.copyTo(output, COPY_BUFFER_SIZE)
+                    }
+                }
+                copiedCount += 1
+            } catch (_: Exception) {
+                destination.delete()
+            }
+        }
+
+        require(copiedCount > 0) {
+            "Unable to import media from selected background folder"
+        }
+        return JSObject().apply {
+            put("path", destinationDirectory.absolutePath)
+        }
+    }
+
+    /**
+     * Vérifie l'extension d'un fichier de fond pris en charge par l'export.
+     *
+     * @param fileName Nom fourni par le fournisseur Android.
+     * @return `true` si le fichier peut être ajouté à la pool.
+     */
+    private fun isSupportedBackgroundFile(fileName: String): Boolean {
+        val extension = fileName.substringAfterLast('.', "").lowercase()
+        return extension in RANDOM_BACKGROUND_EXTENSIONS
+    }
+
+    /**
+     * Vide ou crée le dossier local de la pool sans supprimer le dossier lui-même.
+     *
+     * @param directory Dossier de destination.
+     */
+    private fun resetDirectory(directory: File) {
+        require(directory.isDirectory || (!directory.exists() && directory.mkdirs())) {
+            "Cannot create background pool directory: ${directory.absolutePath}"
+        }
+        directory.listFiles()?.forEach { entry ->
+            require(entry.deleteRecursively()) {
+                "Cannot clear background pool entry: ${entry.absolutePath}"
+            }
+        }
+    }
+
+    /**
      * Lit le nom affiché par le fournisseur de documents Android.
      *
      * @param value URI ou chemin local source.
@@ -903,6 +1082,21 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
         private const val COPY_BUFFER_SIZE = 64 * 1024
         private const val MAX_FILENAME_LENGTH = 180
         private const val DEFAULT_IMPORTED_FILE_NAME = "imported_file"
+        private const val RANDOM_BACKGROUND_POOL_DIRECTORY = "random-background-pool"
+        private val RANDOM_BACKGROUND_EXTENSIONS = setOf(
+            "png",
+            "jpg",
+            "jpeg",
+            "gif",
+            "bmp",
+            "webp",
+            "mp4",
+            "avi",
+            "mov",
+            "mkv",
+            "flv",
+            "webm"
+        )
         private val INVALID_FILENAME_CHARACTERS = setOf('/', '\\', ':', '*', '?', '"', '<', '>', '|')
     }
 }

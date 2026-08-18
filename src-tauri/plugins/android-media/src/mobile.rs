@@ -6,11 +6,11 @@ use tauri::{
 
 use crate::{
     models::{
-        BackgroundReadyResponse, CancelFfmpegResponse,
-        ExecuteFfprobeRequest, ExecuteFfprobeResponse, ExportCancellationResponse,
-        ExportServiceRequest, FfmpegSessionRequest, FfmpegSessionSnapshot, ImportUriRequest,
-        ImportUriResponse, KeepScreenOnRequest, KeepScreenOnResponse, OpenUriRequest,
-        OpenUriResponse, PublishFileRequest, PublishFileResponse, SecureKeyRequest,
+        BackgroundReadyResponse, CancelFfmpegResponse, ExecuteFfprobeRequest,
+        ExecuteFfprobeResponse, ExportCancellationResponse, ExportServiceRequest,
+        FfmpegSessionRequest, FfmpegSessionSnapshot, ImportUriRequest, ImportUriResponse,
+        KeepScreenOnRequest, KeepScreenOnResponse, OpenUriRequest, OpenUriResponse,
+        PickBackgroundFolderResponse, PublishFileRequest, PublishFileResponse, SecureKeyRequest,
         SecureOperationResponse, SecureValueRequest, SecureValueResponse,
         StartExportServiceRequest, StartExportServiceResponse, StartFfmpegRequest,
         StartFfmpegResponse, StopExportServiceResponse, UpdateExportServiceRequest,
@@ -114,6 +114,14 @@ impl<R: Runtime> AndroidMedia<R> {
                     destination_dir,
                 },
             )
+            .map(|response| response.path)
+            .map_err(Into::into)
+    }
+
+    /// Ouvre le sélecteur Android et copie les médias du dossier choisi dans le stockage privé.
+    pub fn pick_background_folder(&self) -> Result<String> {
+        self.0
+            .run_mobile_plugin::<PickBackgroundFolderResponse>("pickBackgroundFolder", ())
             .map(|response| response.path)
             .map_err(Into::into)
     }

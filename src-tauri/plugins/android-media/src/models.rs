@@ -72,6 +72,11 @@ pub(crate) struct ImportUriResponse {
     pub(crate) path: String,
 }
 
+#[derive(Debug, Deserialize)]
+pub(crate) struct PickBackgroundFolderResponse {
+    pub(crate) path: String,
+}
+
 #[derive(Debug, Serialize)]
 pub(crate) struct KeepScreenOnRequest {
     pub(crate) enabled: bool,

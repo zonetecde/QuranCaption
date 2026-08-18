@@ -133,7 +133,7 @@
 
 	// Effect principal de synchronisation - se déclenche quand le curseur bouge
 	$effect(() => {
-		if (globalState.currentProject?.projectEditorState.timeline.movePreviewTo) {
+		if (globalState.currentProject?.projectEditorState.timeline.movePreviewTo !== undefined) {
 			untrack(() => {
 				syncMediaToCursorPosition();
 			});

@@ -5,7 +5,7 @@
 		type ClipWithTranslation
 	} from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { onDestroy, onMount, untrack } from 'svelte';
+	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import NoTranslationsToShow from './NoTranslationsToShow.svelte';
 	import Translation from './translation/Translation.svelte';
 	import ArabicText from './ArabicText.svelte';
@@ -28,9 +28,11 @@
 	/**
 	 * Lance ou met en pause la lecture du sous-titre sélectionné.
 	 * @param {SubtitleClip | PredefinedSubtitleClip} clip Sous-titre à lire.
-	 * @returns {void}
+	 * @returns {Promise<void>}
 	 */
-	function toggleSubtitlePlayback(clip: SubtitleClip | PredefinedSubtitleClip): void {
+	async function toggleSubtitlePlayback(
+		clip: SubtitleClip | PredefinedSubtitleClip
+	): Promise<void> {
 		const videoPreview = globalState.getVideoPreviewState;
 		if (playbackClipId === clip.id && videoPreview.isPlaying) {
 			videoPreview.togglePlayPause();
@@ -40,8 +42,9 @@
 
 		globalState.getTimelineState.cursorPosition = clip.startTime;
 		globalState.getTimelineState.movePreviewTo = clip.startTime;
-		playbackClipId = clip.id;
+		await tick();
 		if (!videoPreview.isPlaying) videoPreview.togglePlayPause();
+		playbackClipId = clip.id;
 	}
 
 	/**

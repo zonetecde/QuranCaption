@@ -172,9 +172,9 @@
 				loop_until_audio_end: clip.loopUntilAudioEnd
 			};
 			if (requiresTiming) {
-				input.source_start_ms = clip.sourceStartTime ?? 0;
-				input.timeline_start_ms = clip.startTime;
-				input.duration_ms = clip.duration;
+				input.source_start_ms = Math.round(clip.sourceStartTime ?? 0);
+				input.timeline_start_ms = Math.round(clip.startTime);
+				input.duration_ms = Math.round(clip.duration);
 			}
 			return input;
 		});

@@ -655,12 +655,11 @@
 		<div class="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
 			{#each timelineVideoThumbnails as thumbnail (thumbnail.key)}
 				<div
-					class="absolute inset-y-0 opacity-70"
+					class="absolute inset-y-0"
 					aria-hidden="true"
 					style={`left: ${thumbnail.leftPx}px; width: ${thumbnail.widthPx}px; background-image: url('${thumbnail.src}'); background-position: left center; background-repeat: repeat-x; background-size: contain;`}
 				></div>
 			{/each}
-			<div class="absolute inset-0 bg-black/20"></div>
 		</div>
 	{/if}
 

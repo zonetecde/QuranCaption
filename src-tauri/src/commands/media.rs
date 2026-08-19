@@ -220,6 +220,34 @@ fn timeline_thumbnail_extraction_lock(source_path: &Path) -> Result<Arc<Mutex<()
     ))
 }
 
+/// Exécute une extraction de miniatures avec FFmpegKit sur Android ou le binaire local ailleurs.
+///
+/// @param arguments Arguments FFmpeg sans nom de binaire.
+/// @returns État de réussite et sortie d'erreur éventuelle du processus.
+fn run_timeline_thumbnail_ffmpeg(arguments: &[String]) -> Result<(bool, String), String> {
+    #[cfg(target_os = "android")]
+    {
+        let output = super::android_media::execute_ffmpeg(arguments)?;
+        return Ok((output.success, output.output));
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let ffmpeg_path = binaries::resolve_binary("ffmpeg")
+            .ok_or_else(|| "ffmpeg binary not found".to_string())?;
+        let mut command = Command::new(ffmpeg_path);
+        command.args(arguments);
+        configure_command_no_window(&mut command);
+        let output = command
+            .output()
+            .map_err(|error| format!("Unable to execute ffmpeg: {error}"))?;
+        return Ok((
+            output.status.success(),
+            String::from_utf8_lossy(&output.stderr).to_string(),
+        ));
+    }
+}
+
 /// Extrait en une seule commande FFmpeg toutes les miniatures absentes du cache.
 ///
 /// # Paramètres
@@ -266,17 +294,20 @@ fn extract_timeline_video_thumbnails(
         return Ok(thumbnails);
     }
 
-    let ffmpeg_path =
-        binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
-    let source = source_path.to_string_lossy();
-    let mut command = Command::new(ffmpeg_path);
-    command.args(["-hide_banner", "-loglevel", "error", "-y"]);
+    let source = source_path.to_string_lossy().to_string();
+    let mut arguments = vec![
+        "-hide_banner".to_string(),
+        "-loglevel".to_string(),
+        "error".to_string(),
+        "-y".to_string(),
+    ];
     for thumbnail in &missing {
-        command
-            .arg("-ss")
-            .arg(format!("{:.3}", thumbnail.timestamp_ms as f64 / 1000.0))
-            .arg("-i")
-            .arg(source.as_ref());
+        arguments.extend([
+            "-ss".to_string(),
+            format!("{:.3}", thumbnail.timestamp_ms as f64 / 1000.0),
+            "-i".to_string(),
+            source.clone(),
+        ]);
     }
     let video_filter = format!(
         "scale={}:{}:force_original_aspect_ratio=increase,crop={}:{}",
@@ -287,18 +318,19 @@ fn extract_timeline_video_thumbnails(
         .map(|thumbnail| format!("{}.tmp.jpg", thumbnail.path.trim_end_matches(".jpg")))
         .collect();
     for (input_index, temporary_path) in temporary_paths.iter().enumerate() {
-        command
-            .arg("-map")
-            .arg(format!("{}:v:0", input_index))
-            .args(["-frames:v", "1", "-vf"])
-            .arg(&video_filter)
-            .args(["-q:v", "5"])
-            .arg(temporary_path);
+        arguments.extend([
+            "-map".to_string(),
+            format!("{}:v:0", input_index),
+            "-frames:v".to_string(),
+            "1".to_string(),
+            "-vf".to_string(),
+            video_filter.clone(),
+            "-q:v".to_string(),
+            "5".to_string(),
+            temporary_path.clone(),
+        ]);
     }
-    configure_command_no_window(&mut command);
-    let output = command
-        .output()
-        .map_err(|error| format!("Unable to execute ffmpeg: {error}"))?;
+    let (ffmpeg_succeeded, ffmpeg_error) = run_timeline_thumbnail_ffmpeg(&arguments)?;
     for (thumbnail, temporary_path) in missing.iter().zip(&temporary_paths) {
         if !is_cached_timeline_thumbnail(temporary_path) {
             continue;
@@ -321,11 +353,8 @@ fn extract_timeline_video_thumbnails(
     if !available_thumbnails.is_empty() {
         return Ok(available_thumbnails);
     }
-    if !output.status.success() {
-        return Err(format!(
-            "ffmpeg thumbnail error: {}",
-            String::from_utf8_lossy(&output.stderr)
-        ));
+    if !ffmpeg_succeeded {
+        return Err(format!("ffmpeg thumbnail error: {ffmpeg_error}"));
     }
 
     Err("ffmpeg did not create any timeline thumbnail".to_string())

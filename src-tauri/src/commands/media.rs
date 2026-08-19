@@ -234,8 +234,8 @@ fn extract_timeline_video_thumbnails(
             .arg(source.as_ref());
     }
     let video_filter = format!(
-        "scale={}:{}:force_original_aspect_ratio=increase,crop={}:{}",
-        width, height, width, height
+        "scale={}:{}:force_original_aspect_ratio=decrease",
+        width, height
     );
     let temporary_paths: Vec<String> = missing
         .iter()

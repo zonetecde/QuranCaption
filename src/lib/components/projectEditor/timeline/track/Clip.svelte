@@ -535,14 +535,11 @@
 	{#if timelineVideoThumbnails.length > 0}
 		<div class="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
 			{#each timelineVideoThumbnails as thumbnail (thumbnail.key)}
-				<img
-					class="absolute inset-y-0 h-full object-cover opacity-70"
-					src={thumbnail.src}
-					alt=""
-					draggable="false"
-					decoding="async"
-					style="left: {thumbnail.leftPx}px; width: {thumbnail.widthPx}px;"
-				/>
+				<div
+					class="absolute inset-y-0 opacity-70"
+					aria-hidden="true"
+					style={`left: ${thumbnail.leftPx}px; width: ${thumbnail.widthPx}px; background-image: url('${thumbnail.src}'); background-position: left center; background-repeat: repeat-x; background-size: contain;`}
+				></div>
 			{/each}
 			<div class="absolute inset-0 bg-black/20"></div>
 		</div>

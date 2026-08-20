@@ -205,6 +205,8 @@ export function setupMobileModalSheet(panel: HTMLElement, onClose: () => void): 
 		panel.style.transform = '';
 		wrapper.classList.remove('mobile-modal-sheet-wrapper');
 		contentWrapper?.classList.remove('mobile-modal-sheet-content');
+		// Le wrapper déplacé hors de son composant doit être retiré explicitement au démontage.
+		if (wrapper.parentElement === document.body) wrapper.remove();
 	};
 }
 

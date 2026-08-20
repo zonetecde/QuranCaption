@@ -419,7 +419,7 @@
 	{#if tooltipVisible}
 		<div
 			class="tour-tooltip"
-			style="position: absolute; left: {tooltipLeft}px; top: {tooltipTop}px; width: {TOOLTIP_W}px; pointer-events: auto;"
+			style="position: absolute; left: {tooltipLeft}px; top: {tooltipTop}px; --tour-tooltip-top: {tooltipTop}px; width: {TOOLTIP_W}px; pointer-events: auto;"
 		>
 			<!-- Skip / close -->
 			<button
@@ -508,6 +508,13 @@
 
 <style>
 	.tour-tooltip {
+		box-sizing: border-box;
+		max-width: calc(100% - 20px);
+		max-height: min(
+			240px,
+			calc(100% - var(--tour-tooltip-top) - 10px - env(safe-area-inset-bottom))
+		);
+		overflow: auto;
 		background: var(--bg-secondary);
 		border: 1px solid var(--border-color);
 		border-radius: 16px;

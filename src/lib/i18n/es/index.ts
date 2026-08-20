@@ -1445,6 +1445,15 @@ const es = {
 		checkWordCoverage: 'Verificar cobertura de palabras',
 		checkingTranslations: 'Verificando traducciones...',
 		markTranslationErrors: 'Marcar errores de traducción',
+		reviewTranslationsWithAi: 'Revisar traducciones con IA',
+		aiTranslationReviewDescription:
+			'Revisa todas las traducciones del proyecto para detectar errores evidentes de significado, límites, solapamiento y rango de origen sin reescribir el texto.',
+		runAiTranslationReview: 'Revisar todas las traducciones',
+		runningAiTranslationReview: 'Revisando traducciones...',
+		aiTranslationReviewComplete:
+			'La IA revisó {checked} traducciones y marcó {marked} para revisión.',
+		aiTranslationReviewFailed: 'Falló la revisión de traducciones con IA: {error}',
+		aiTranslationReviewNoTranslations: 'No hay traducciones del proyecto disponibles para revisar.',
 		filterNoResultsTitle: 'Ningún versículo coincidente',
 		filterNoResultsDescription: 'Intente ajustar sus filtros para ver más versículos.',
 		quickActions: 'Acciones rápidas',

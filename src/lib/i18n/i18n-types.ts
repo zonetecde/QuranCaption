@@ -4186,6 +4186,37 @@ type RootTranslation = {
 		 */
 		markTranslationErrors: string;
 		/**
+		 * R​e​v​i​e​w​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​w​i​t​h​ ​A​I
+		 */
+		reviewTranslationsWithAi: string;
+		/**
+		 * C​h​e​c​k​s​ ​e​v​e​r​y​ ​p​r​o​j​e​c​t​ ​t​r​a​n​s​l​a​t​i​o​n​ ​f​o​r​ ​o​b​v​i​o​u​s​ ​m​e​a​n​i​n​g​,​ ​b​o​u​n​d​a​r​y​,​ ​o​v​e​r​l​a​p​,​ ​a​n​d​ ​s​o​u​r​c​e​-​r​a​n​g​e​ ​e​r​r​o​r​s​ ​w​i​t​h​o​u​t​ ​r​e​w​r​i​t​i​n​g​ ​t​e​x​t​.
+		 */
+		aiTranslationReviewDescription: string;
+		/**
+		 * R​e​v​i​e​w​ ​a​l​l​ ​t​r​a​n​s​l​a​t​i​o​n​s
+		 */
+		runAiTranslationReview: string;
+		/**
+		 * R​e​v​i​e​w​i​n​g​ ​t​r​a​n​s​l​a​t​i​o​n​s​.​.​.
+		 */
+		runningAiTranslationReview: string;
+		/**
+		 * A​I​ ​r​e​v​i​e​w​e​d​ ​{​c​h​e​c​k​e​d​}​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​a​n​d​ ​m​a​r​k​e​d​ ​{​m​a​r​k​e​d​}​ ​f​o​r​ ​r​e​v​i​e​w​.
+		 * @param {unknown} checked
+		 * @param {unknown} marked
+		 */
+		aiTranslationReviewComplete: RequiredParams<'checked' | 'marked'>;
+		/**
+		 * A​I​ ​t​r​a​n​s​l​a​t​i​o​n​ ​r​e​v​i​e​w​ ​f​a​i​l​e​d​:​ ​{​e​r​r​o​r​}
+		 * @param {unknown} error
+		 */
+		aiTranslationReviewFailed: RequiredParams<'error'>;
+		/**
+		 * N​o​ ​p​r​o​j​e​c​t​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​a​r​e​ ​a​v​a​i​l​a​b​l​e​ ​t​o​ ​r​e​v​i​e​w​.
+		 */
+		aiTranslationReviewNoTranslations: string;
+		/**
 		 * N​o​ ​m​a​t​c​h​i​n​g​ ​v​e​r​s​e​s
 		 */
 		filterNoResultsTitle: string;
@@ -15480,6 +15511,34 @@ export type TranslationFunctions = {
 		 * Mark translation errors
 		 */
 		markTranslationErrors: () => LocalizedString;
+		/**
+		 * Review translations with AI
+		 */
+		reviewTranslationsWithAi: () => LocalizedString;
+		/**
+		 * Checks every project translation for obvious meaning, boundary, overlap, and source-range errors without rewriting text.
+		 */
+		aiTranslationReviewDescription: () => LocalizedString;
+		/**
+		 * Review all translations
+		 */
+		runAiTranslationReview: () => LocalizedString;
+		/**
+		 * Reviewing translations...
+		 */
+		runningAiTranslationReview: () => LocalizedString;
+		/**
+		 * AI reviewed {checked} translations and marked {marked} for review.
+		 */
+		aiTranslationReviewComplete: (arg: { checked: unknown; marked: unknown }) => LocalizedString;
+		/**
+		 * AI translation review failed: {error}
+		 */
+		aiTranslationReviewFailed: (arg: { error: unknown }) => LocalizedString;
+		/**
+		 * No project translations are available to review.
+		 */
+		aiTranslationReviewNoTranslations: () => LocalizedString;
 		/**
 		 * No matching verses
 		 */

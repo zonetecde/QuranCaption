@@ -50,6 +50,18 @@ pub struct AdvancedSubtitleSplitCommandRequest {
     pub batch: AdvancedSubtitleSplitBatchPayload,
 }
 
+/// Requête pour la vérification IA des traductions déjà découpées.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiTranslationReviewCommandRequest {
+    pub api_key: String,
+    pub endpoint: String,
+    pub model: String,
+    pub reasoning_effort: String,
+    pub batch_id: String,
+    pub batch: AiTranslationReviewBatchPayload,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AdvancedTrimBatchPayload {
@@ -75,6 +87,38 @@ pub struct AdvancedWbwTranslationBatchPayload {
 pub struct AdvancedSubtitleSplitBatchPayload {
     #[serde(rename = "s", alias = "segments")]
     pub segments: Vec<AdvancedSubtitleSplitSegmentPayload>,
+}
+
+/// Lot de versets et de segments à contrôler sans réécrire leur traduction.
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiTranslationReviewBatchPayload {
+    pub verses: Vec<AiTranslationReviewVersePayload>,
+}
+
+/// Contexte complet d'un verset pour une édition de traduction.
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiTranslationReviewVersePayload {
+    pub edition_language: String,
+    pub verse_key: String,
+    pub source_translation: String,
+    pub segments: Vec<AiTranslationReviewSegmentPayload>,
+}
+
+/// Segment traduit et bornes actuellement enregistrées dans le projet.
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiTranslationReviewSegmentPayload {
+    pub id: i64,
+    pub arabic_start: i64,
+    pub arabic_end: i64,
+    pub arabic: String,
+    pub word_by_word_english: Vec<String>,
+    pub is_full_verse: bool,
+    pub selected_translation: String,
+    pub selected_range: Option<[i64; 2]>,
+    pub is_custom_text: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

@@ -1446,6 +1446,15 @@ const fr = {
 		checkWordCoverage: 'Vérifier la couverture des mots',
 		checkingTranslations: 'Vérification des traductions...',
 		markTranslationErrors: 'Marquer les erreurs de traduction',
+		reviewTranslationsWithAi: 'Réviser les traductions avec l’IA',
+		aiTranslationReviewDescription:
+			'Vérifie toutes les traductions du projet pour repérer les erreurs évidentes de sens, de bornes, d’overlap et de plage source, sans réécrire le texte.',
+		runAiTranslationReview: 'Réviser toutes les traductions',
+		runningAiTranslationReview: 'Révision des traductions...',
+		aiTranslationReviewComplete:
+			'L’IA a vérifié {checked} traductions et en a marqué {marked} à réviser.',
+		aiTranslationReviewFailed: 'Échec de la révision IA des traductions : {error}',
+		aiTranslationReviewNoTranslations: 'Aucune traduction du projet n’est disponible à réviser.',
 		filterNoResultsTitle: 'Aucun verset correspondant',
 		filterNoResultsDescription: 'Essayez d\u2019ajuster vos filtres pour voir plus de versets.',
 		quickActions: 'Actions rapides',

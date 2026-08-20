@@ -863,6 +863,15 @@ const id = {
 		translationChecks: 'Pemeriksaan terjemahan',
 		checkWordCoverage: 'Periksa cakupan kata',
 		markTranslationErrors: 'Tandai error terjemahan',
+		reviewTranslationsWithAi: 'Tinjau terjemahan dengan AI',
+		aiTranslationReviewDescription:
+			'Memeriksa semua terjemahan proyek untuk kesalahan makna, batas, tumpang tindih, dan rentang sumber yang jelas tanpa menulis ulang teks.',
+		runAiTranslationReview: 'Tinjau semua terjemahan',
+		runningAiTranslationReview: 'Meninjau terjemahan...',
+		aiTranslationReviewComplete:
+			'AI meninjau {checked} terjemahan dan menandai {marked} untuk ditinjau.',
+		aiTranslationReviewFailed: 'Tinjauan terjemahan AI gagal: {error}',
+		aiTranslationReviewNoTranslations: 'Tidak ada terjemahan proyek yang dapat ditinjau.',
 		noTranslationsYetHeading: 'Belum ada terjemahan',
 		startByAdding: 'Mulai dengan menambahkan terjemahan ke proyek kamu.',
 		ffmpegRequired: 'FFmpeg diperlukan',

@@ -13,6 +13,7 @@ import BookmarkVerseModal from './BookmarkVerseModal.svelte';
 import QuickTimelineEditorModal from './QuickTimelineEditorModal.svelte';
 import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
 import AiWbwTranslationModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiWbwTranslationModal.svelte';
+import AiTranslationReviewModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiTranslationReviewModal.svelte';
 import AiSubtitleSplitModal from '$lib/components/projectEditor/tabs/subtitlesEditor/AiSubtitleSplitModal.svelte';
 import AskIAModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AskIAModal.svelte';
 import type { Edition } from '$lib/classes';
@@ -332,6 +333,30 @@ export default class ModalManager {
 			document.body.appendChild(container);
 
 			const modal = mount(AiWbwTranslationModal, {
+				target: container,
+				props: {
+					close: () => {
+						unmount(modal);
+						container.remove();
+						resolve();
+					}
+				}
+			});
+		});
+	}
+
+	/**
+	 * Ouvre la modale de vérification IA de toutes les traductions du projet.
+	 *
+	 * @returns {Promise<void>} Résolution après fermeture de la modale.
+	 */
+	static async aiTranslationReviewModal(): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			const modal = mount(AiTranslationReviewModal, {
 				target: container,
 				props: {
 					close: () => {

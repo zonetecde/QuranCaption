@@ -1450,6 +1450,15 @@ const de = {
 		checkWordCoverage: 'Wortabdeckung prüfen',
 		checkingTranslations: 'Übersetzungen werden überprüft...',
 		markTranslationErrors: 'Übersetzungsfehler markieren',
+		reviewTranslationsWithAi: 'Übersetzungen mit KI prüfen',
+		aiTranslationReviewDescription:
+			'Prüft alle Projektübersetzungen auf offensichtliche Bedeutungs-, Grenz-, Überlappungs- und Quellbereichsfehler, ohne den Text umzuschreiben.',
+		runAiTranslationReview: 'Alle Übersetzungen prüfen',
+		runningAiTranslationReview: 'Übersetzungen werden geprüft...',
+		aiTranslationReviewComplete:
+			'Die KI hat {checked} Übersetzungen geprüft und {marked} zur Prüfung markiert.',
+		aiTranslationReviewFailed: 'KI-Übersetzungsprüfung fehlgeschlagen: {error}',
+		aiTranslationReviewNoTranslations: 'Keine Projektübersetzungen zur Prüfung verfügbar.',
 		filterNoResultsTitle: 'Keine passenden Verse',
 		filterNoResultsDescription: 'Versuchen Sie, Ihre Filter anzupassen, um mehr Verse zu sehen.',
 		quickActions: 'Schnellaktionen',

@@ -2,7 +2,7 @@ use serde_json::{json, Value};
 
 use super::types::{
     AdvancedBoldBatchPayload, AdvancedSubtitleSplitBatchPayload, AdvancedTrimBatchPayload,
-    AdvancedWbwTranslationBatchPayload,
+    AdvancedWbwTranslationBatchPayload, AiTranslationReviewBatchPayload,
 };
 
 pub const DEFAULT_TEXT_AI_ENDPOINT: &str = "https://api.openai.com/v1/responses";
@@ -36,6 +36,33 @@ Context and coverage:
 - Otherwise, the union of locked and requested spans should cover the source. Attach only unaligned punctuation or neutral filler to the nearest span; never content from another Arabic clause.
 
 Output exactly one {i,text} for every and only needsAi=true segment. Verify verbatim contiguous copying, semantic boundaries, required predicates and connectors, minimal overlaps, repetition, and applicable coverage. Return JSON only.
+"#;
+
+pub const AI_TRANSLATION_REVIEW_SYSTEM_PROMPT: &str = r#"Role: Audit existing Quran subtitle translation trims. Never rewrite any translation.
+
+For each edition and verse, compare every selectedTranslation with its Arabic segment, the indexed full sourceTranslation, and the other segments of the same verse. Return only high-confidence, obvious errors. A human will review every segment you flag, so false positives are costly.
+
+Flag a segment only for one of these reasons:
+- out_of_bounds: when isCustomText=false, selectedRange is invalid, reversed, or outside sourceTranslation.
+- source_mismatch: selectedTranslation clearly does not match the indicated source span. Skip this check when isCustomText=true.
+- semantic_mismatch: the selection expresses a different Arabic phrase or meaning.
+- missing_meaning: it omits an essential included content word, predicate, object, or translated coordination particle.
+- excess_meaning: it includes meaning from Arabic outside arabicStart..arabicEnd. This includes assigning the whole verse translation to a partial Arabic fragment.
+- overlap_mismatch: Arabic ranges overlap but the selections fail to share the corresponding translated meaning, or non-overlapping Arabic segments unnecessarily duplicate a neighboring clause.
+- repetition_mismatch: identical repeated Arabic is handled inconsistently without a source-order or grammar reason.
+
+Review rules:
+- sourceTranslation entries are `index:unit`; indexes are 0-based and selectedRange is inclusive.
+- isFullVerse=true normally requires the full verse meaning. isFullVerse=false must never receive the entire verse merely for sentence completeness or coverage.
+- Respect target-language reordering. Minimal unavoidable spillover, shared predicates, pronouns, articles, punctuation, and natural overlap are valid.
+- A segment may intentionally stop at a dependency boundary. Do not demand meaning belonging to Arabic words outside its bounds.
+- wordByWordEnglish is semantic help only; do not require its exact wording in another translation language.
+- Custom text may paraphrase and has no reliable source range; judge only obvious semantic boundary errors.
+- Review AI-trimmed, manually trimmed, reviewed, and default translations by the same rules.
+- Do not flag stylistic preferences, alternate valid wording, punctuation-only differences, minor grammar, or any uncertain case.
+- If no segment has an obvious error, return an empty issues array.
+
+Output JSON only. Each flagged id must appear once with exactly one strongest reason. Never return clean ids.
 "#;
 
 pub const ADVANCED_BOLD_SYSTEM_PROMPT: &str = r#"You select which translated words should be rendered in bold inside Quran subtitle translations.
@@ -238,6 +265,40 @@ pub fn build_subtitle_split_response_schema() -> Value {
     })
 }
 
+/// Schéma JSON de réponse pour la vérification des traductions.
+pub fn build_translation_review_response_schema() -> Value {
+    json!({
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+            "issues": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "id": { "type": "integer" },
+                        "reason": {
+                            "type": "string",
+                            "enum": [
+                                "out_of_bounds",
+                                "source_mismatch",
+                                "semantic_mismatch",
+                                "missing_meaning",
+                                "excess_meaning",
+                                "overlap_mismatch",
+                                "repetition_mismatch"
+                            ]
+                        }
+                    },
+                    "required": ["id", "reason"]
+                }
+            }
+        },
+        "required": ["issues"]
+    })
+}
+
 // ---------------------------------------------------------------------------
 // User prompt builders
 // ---------------------------------------------------------------------------
@@ -339,6 +400,22 @@ pub fn build_subtitle_split_user_prompt(
          An index in `e` is never the first word of the next chunk: if one chunk ends at `x`, the next chunk starts at `x + 1`.\n\
          Example: with `w` = `0:قَالُوا 1:سُبْحَانَكَ 2:لَا 3:عِلْمَ 4:لَنَا 5:إِلَّا 6:مَا 7:عَلَّمْتَنَا` and `e` = `[4,7]`, the chunks are words `0..4` and `5..7`.\n\
          Each chunk must contain at most `m` words and the number of chunks must be ceil(the number of indexed words in `w` / `m`).\n\n\
+         Batch JSON:\n{}",
+        batch_json
+    ))
+}
+
+/// Construit le prompt utilisateur pour un lot de vérification des traductions.
+pub fn build_translation_review_user_prompt(
+    batch: &AiTranslationReviewBatchPayload,
+) -> Result<String, String> {
+    let batch_json = serde_json::to_string_pretty(batch)
+        .map_err(|error| format!("Failed to serialize batch: {}", error))?;
+
+    Ok(format!(
+        "Audit this batch conservatively and return JSON only.\n\
+         Return exactly {{\"issues\":[{{\"id\":0,\"reason\":\"excess_meaning\"}}]}} or {{\"issues\":[]}} when no obvious error exists.\n\
+         Do not return explanations, corrected text, or clean segment ids.\n\n\
          Batch JSON:\n{}",
         batch_json
     ))

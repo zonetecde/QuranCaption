@@ -8,6 +8,7 @@
 	import { onDestroy } from 'svelte';
 	import toast from 'svelte-5-french-toast';
 	import EditionViewer from './EditionViewer.svelte';
+	import ModalManager from '$lib/components/modals/ModalManager';
 
 	const SEARCH_DEBOUNCE_MS = 250;
 
@@ -340,6 +341,13 @@
 			{isMarkingTranslationErrors
 				? $LL.editor.checkingTranslations()
 				: $LL.editor.markTranslationErrors()}
+		</button>
+		<button
+			class="btn mt-2 w-full px-3 py-2 text-xs font-medium hover:bg-yellow-500 hover:border-yellow-500 hover:text-black transition-all duration-200 flex items-center justify-center gap-1.5"
+			onclick={() => void ModalManager.aiTranslationReviewModal()}
+		>
+			<span class="material-icons text-base">fact_check</span>
+			{$LL.editor.reviewTranslationsWithAi()}
 		</button>
 	</div>
 </div>

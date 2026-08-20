@@ -16,6 +16,7 @@ use self::sse::{
 
 pub(crate) mod bold;
 pub(crate) mod prompts;
+pub(crate) mod review;
 pub(crate) mod sse;
 pub(crate) mod subtitle_split;
 pub(crate) mod trim;

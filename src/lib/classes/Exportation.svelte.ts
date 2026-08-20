@@ -86,8 +86,7 @@ export default class Exportation extends SerializableBase {
 		destinationUri: string | null = null,
 		hasWordByWordStyles: boolean = false,
 		reflectionContext: QuranReflectionContext | null = null,
-		analyticsWorkflowId: string = globalThis.crypto?.randomUUID?.() ??
-			`${Date.now()}-${Math.random()}`
+		analyticsWorkflowId?: string
 	) {
 		super();
 		const safeStartTime = videoStartTime ?? 0;
@@ -122,7 +121,8 @@ export default class Exportation extends SerializableBase {
 		this.sourceProjectId = sourceProjectId;
 		this.hasWordByWordStyles = $state(hasWordByWordStyles);
 		this.reflectionContext = reflectionContext;
-		this.analyticsWorkflowId = analyticsWorkflowId;
+		this.analyticsWorkflowId =
+			analyticsWorkflowId ?? globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 	}
 
 	/**

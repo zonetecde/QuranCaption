@@ -529,15 +529,6 @@
 					resizeWaveformToContainer();
 				} catch (e) {
 					console.error('Failed to load waveform:', e);
-					// Fallback to normal loading if backend fails
-					wavesurfer = WaveSurfer.create({
-						container: waveformElement ?? '#clip-' + clip.id,
-						waveColor: '#9d99cc',
-						progressColor: '#9d99cc',
-						url: file,
-						height: getWaveformHeight()
-					});
-					resizeWaveformToContainer();
 				}
 			});
 		}

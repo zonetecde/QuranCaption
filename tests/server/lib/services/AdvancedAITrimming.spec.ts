@@ -64,6 +64,7 @@ describe('AdvancedAITrimming batches', () => {
 					arabic: 'text',
 					wordByWordEnglish: [],
 					needsAi: true,
+					lockedRange: null,
 					existingText: '',
 					subtitle
 				}
@@ -77,5 +78,71 @@ describe('AdvancedAITrimming batches', () => {
 		applyAdvancedTrimValidationSuccess(edition, [validVerse], {} as Project);
 
 		expect(recalculate).toHaveBeenCalledWith(edition, '1:1', 'Source words');
+	});
+
+	it('indexes the source translation and keeps locked segments as prompt context', () => {
+		const lockedSubtitle = {
+			startWordIndex: 0,
+			endWordIndex: 0
+		} as SubtitleClip;
+		const pendingSubtitle = {
+			startWordIndex: 1,
+			endWordIndex: 1
+		} as SubtitleClip;
+		const candidate = {
+			...createCandidate(0, 2),
+			verseKey: '1:1',
+			sourceTranslation: 'Source words',
+			hasFullVerseCoverage: true,
+			subtitles: [lockedSubtitle, pendingSubtitle],
+			segments: [
+				{
+					i: 0,
+					arabic: 'الأول',
+					wordByWordEnglish: ['first'],
+					needsAi: false,
+					lockedRange: [0, 0],
+					existingText: 'Source',
+					subtitle: lockedSubtitle
+				},
+				{
+					i: 1,
+					arabic: 'الثاني',
+					wordByWordEnglish: ['second'],
+					needsAi: true,
+					lockedRange: null,
+					existingText: '',
+					subtitle: pendingSubtitle
+				}
+			]
+		} satisfies AdvancedTrimVerseCandidate;
+
+		const [batch] = buildAdvancedTrimBatches([candidate], 'gpt-5.4', 'medium', 0, Infinity);
+
+		expect(batch.request.verses[0]).toEqual({
+			verseKey: '1:1',
+			hasFullVerseCoverage: true,
+			translation: '0:Source 1:words',
+			segments: [
+				{
+					i: 0,
+					arabicStart: 0,
+					arabicEnd: 0,
+					arabic: 'الأول',
+					wordByWordEnglish: ['first'],
+					needsAi: false,
+					lockedRange: [0, 0]
+				},
+				{
+					i: 1,
+					arabicStart: 1,
+					arabicEnd: 1,
+					arabic: 'الثاني',
+					wordByWordEnglish: ['second'],
+					needsAi: true,
+					lockedRange: null
+				}
+			]
+		});
 	});
 });

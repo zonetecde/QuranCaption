@@ -7,26 +7,35 @@ use super::types::{
 
 pub const DEFAULT_TEXT_AI_ENDPOINT: &str = "https://api.openai.com/v1/responses";
 
-pub const ADVANCED_TRIM_SYSTEM_PROMPT: &str = r#"You trim Quran subtitle translations against Arabic subtitle segments.
+pub const ADVANCED_TRIM_SYSTEM_PROMPT: &str = r#"Role: Align Quran Arabic subtitle fragments to an existing indexed translation.
 
-Rules:
-- Use only words that already exist in the provided verse translation.
-- For Chinese or other text without spaces, treat existing characters or text units as the source words.
-- Across all output segments of a verse, every word from the source translation must appear at least once.
-- The global order may change when the recitation repeats, overlaps, or returns to an earlier clause.
-- Overlap between segments is allowed and often required when the Arabic overlaps on a repeated word or phrase.
-- If two Arabic segments share a boundary word or phrase, the translated outputs should normally share the corresponding translated words too.
-- Do not drop the repeated overlap from the later segment just because it already appeared in the previous one.
-- Each segment must sound natural and complete in the target language.
-- Each segment may include a word-by-word English helper for the Arabic. Use it only to understand the Arabic segment better.
-- Keep essential function words with the phrase when needed for local meaning: articles, pronouns, auxiliaries, conjunctions, prepositions, particles.
-- Avoid unnatural cuts like `reply,` if `they reply,` is the smallest natural phrase.
-- Some source translations contain words wrapped in `˹ ˺`. These words are part of the translation and must be preserved in the final output when they appear in the source.
-- Do not treat words inside `˹ ˺` as optional commentary or removable asides.
-- Never introduce a helper word unless that same word already exists in the provided source translation.
-- Do not invent any word that does not exist in the source translation.
-- Return JSON only, matching the schema exactly.
-- Each segment object must use exactly the keys `i` and `text`;
+Goal: For each segment with needsAi=true, copy the smallest contiguous source span that expresses the Arabic words actually present in that segment. Return copied source text, not a new translation.
+
+Priority order:
+1. Exact Arabic semantic boundaries. Never add meaning from Arabic words outside arabicStart..arabicEnd merely to complete a sentence.
+2. Express every included Arabic content word, required predicate, and translated coordination particle.
+3. Copy one exact contiguous source span, preserving spelling, punctuation, brackets, typography, and order.
+4. Required overlap and repetition.
+5. Natural boundaries when they do not violate rules 1-2.
+6. Conditional coverage, which never overrides semantic boundaries.
+
+Boundary and overlap decisions:
+- Use wordByWordEnglish only to understand Arabic; never copy helper wording absent from translation.
+- When Arabic begins with a coordination particle such as وَ, فَ, ثُمَّ, أَوْ, بَلْ, لَٰكِنْ, or أَمْ, include its translated leading connector when present, such as "and", "so", "then", "or", "but", "while", or "whereas".
+- A fragment may intentionally end at a dependency boundary. If its Arabic ends at a connector, include the matching target connector but not the absent content phrase: "capable of", not "capable of resurrecting".
+- Target-language reordering may force a contiguous span across intervening translated words. Include the smallest span through the required predicate, even when an intervening coordinated item is unavoidable. Example: if Arabic means "hearing and eyes testified against them" while the source says "hearing, eyes and skins testified against them", include through "testified against them"; stopping after "eyes" loses the predicate.
+- If a final Arabic cognate object only emphasizes a verb and the source completes its noun phrase with an adjective belonging to the next Arabic word, prefer the already-complete verb. Example: Arabic ending at "curse them a curse" before "great", with source "... and curse them with a great curse", maps through "curse them", not dangling "with a great" and not omitted "great curse".
+- Otherwise allow only the smallest spillover required by target word order. Never absorb an adjacent clause.
+- Use arabicStart/arabicEnd numerically. Intersecting Arabic ranges require translated overlap on the corresponding shared phrase. Keep overlap minimal; one shared boundary word does not justify copying the whole neighboring segment.
+- Containment in Arabic normally implies containment of translated meaning. Identical repeated Arabic normally uses identical spans; source order may move backward for repetition.
+- Avoid dangling conjunctions belonging only to the next Arabic segment.
+
+Context and coverage:
+- needsAi=false segments are immutable anchors. Use lockedRange and do not return them.
+- If hasFullVerseCoverage=true, partial segments need not cover the verse. Never assign the full translation to a fragment for coverage.
+- Otherwise, the union of locked and requested spans should cover the source. Attach only unaligned punctuation or neutral filler to the nearest span; never content from another Arabic clause.
+
+Output exactly one {i,text} for every and only needsAi=true segment. Verify verbatim contiguous copying, semantic boundaries, required predicates and connectors, minimal overlaps, repetition, and applicable coverage. Return JSON only.
 "#;
 
 pub const ADVANCED_BOLD_SYSTEM_PROMPT: &str = r#"You select which translated words should be rendered in bold inside Quran subtitle translations.
@@ -239,15 +248,11 @@ pub fn build_user_prompt(batch: &AdvancedTrimBatchPayload) -> Result<String, Str
         .map_err(|error| format!("Failed to serialize batch: {}", error))?;
 
     Ok(format!(
-        "Trim this batch of verses and return JSON only.\n\
+        "Align this batch of verses and return JSON only.\n\
          Output shape must be exactly {{\"verses\":[{{\"verseKey\":\"...\",\"segments\":[{{\"i\":0,\"text\":\"...\"}}]}}]}}.\n\
-         Segment text must be stored in the `text` field only.\n\
-         Respect overlap/repetition in the recitation when needed.\n\
-         Pay special attention to overlapping Arabic segments: when a word or phrase is repeated across two segments, keep the corresponding translated overlap in both outputs when natural.\n\
-         Keep each segment natural in the target language while using only words from the source translation.\n\
-         For Chinese or other text without spaces, trim by existing characters or text units without adding spaces.\n\
-         If the source translation contains words wrapped in ˹ ˺, keep them in the final trimmed output wherever they belong. They are part of the translation, not removable side comments.\n\
-         Each segment also includes a wordByWordEnglish helper array for Arabic understanding only.\n\n\
+         The translation uses `index:unit` entries. Copy only the unit values after the first colon into `text`, never the numeric prefixes. Preserve each selected value verbatim; for Chinese or other text without spaces, do not insert spaces between characters.\n\
+         Return only segments where needsAi=true. Treat needsAi=false segments and their inclusive lockedRange as immutable context.\n\
+         Use hasFullVerseCoverage to apply the conditional coverage rule.\n\n\
          Batch JSON:\n{}",
         batch_json
     ))

@@ -13,6 +13,7 @@ export type AdvancedTrimSegment = {
 	arabic: string;
 	wordByWordEnglish: string[];
 	needsAi: boolean;
+	lockedRange: [number, number] | null;
 	existingText: string;
 	subtitle: SubtitleClip;
 };
@@ -33,11 +34,16 @@ export type AdvancedTrimVerseCandidate = {
 
 export type AdvancedTrimBatchVersePayload = {
 	verseKey: string;
+	hasFullVerseCoverage: boolean;
 	translation: string;
 	segments: Array<{
 		i: number;
+		arabicStart: number;
+		arabicEnd: number;
 		arabic: string;
 		wordByWordEnglish: string[];
+		needsAi: boolean;
+		lockedRange: [number, number] | null;
 	}>;
 };
 
@@ -120,7 +126,7 @@ export type AdvancedTrimCostEstimate = {
 };
 
 const MAX_BATCH_WORDS = 500;
-const APPROX_SYSTEM_PROMPT_CHARS = 2200;
+const APPROX_SYSTEM_PROMPT_CHARS = 4000;
 
 const MODEL_PRICING: Record<
 	string,
@@ -386,14 +392,19 @@ function buildRequestPayload(verses: AdvancedTrimVerseCandidate[]): {
 	return {
 		verses: verses.map((verse) => ({
 			verseKey: verse.verseKey,
-			translation: verse.sourceTranslation,
-			segments: verse.segments
-				.filter((segment) => segment.needsAi)
-				.map((segment) => ({
-					i: segment.i,
-					arabic: segment.arabic,
-					wordByWordEnglish: segment.wordByWordEnglish
-				}))
+			hasFullVerseCoverage: verse.hasFullVerseCoverage,
+			translation: splitWords(verse.sourceTranslation)
+				.map((word, index) => `${index}:${word}`)
+				.join(' '),
+			segments: verse.segments.map((segment) => ({
+				i: segment.i,
+				arabicStart: segment.subtitle.startWordIndex,
+				arabicEnd: segment.subtitle.endWordIndex,
+				arabic: segment.arabic,
+				wordByWordEnglish: segment.wordByWordEnglish,
+				needsAi: segment.needsAi,
+				lockedRange: segment.lockedRange
+			}))
 		}))
 	};
 }
@@ -490,15 +501,28 @@ export function buildAdvancedTrimVerseCandidates(
 		.map(([verseKey, entry]) => {
 			const allVerseSubtitles = allSubtitlesByVerse.get(verseKey) ?? entry.subtitles;
 			const sourceTranslation = projectTranslation.getVerseTranslation(edition, verseKey);
+			const wordCount = splitWords(sourceTranslation).length;
 			const segments = entry.subtitles.map((subtitle, segmentIndex) => {
 				const translation = subtitle.translations[edition.name] as VerseTranslation | undefined;
 				const isComplete = translation?.isStatusComplete() ?? false;
+				const hasValidLockedRange =
+					!includeReviewed &&
+					isComplete &&
+					!translation?.isBruteForce &&
+					Number.isInteger(translation?.startWordIndex) &&
+					Number.isInteger(translation?.endWordIndex) &&
+					translation!.startWordIndex >= 0 &&
+					translation!.startWordIndex <= translation!.endWordIndex &&
+					translation!.endWordIndex < wordCount;
 
 				return {
 					i: segmentIndex,
 					arabic: subtitle.text,
 					wordByWordEnglish: subtitle.wbwTranslation ?? [],
 					needsAi: includeReviewed ? true : !isComplete,
+					lockedRange: hasValidLockedRange
+						? ([translation!.startWordIndex, translation!.endWordIndex] as [number, number])
+						: null,
 					existingText: translation?.text ?? '',
 					subtitle
 				};
@@ -522,7 +546,7 @@ export function buildAdvancedTrimVerseCandidates(
 				coverageOnlyTexts,
 				hasFullVerseCoverage,
 				sourceTranslation,
-				wordCount: splitWords(sourceTranslation).length,
+				wordCount,
 				segments,
 				isAlreadyReviewed
 			};

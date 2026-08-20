@@ -25,6 +25,7 @@
 		extractTextFromResponse,
 		parseAiJsonResponse
 	} from '$lib/services/TextAIRequest';
+	import ModalManager from '$lib/components/modals/ModalManager';
 
 	type VideoCodec = 'h264' | 'h265';
 	type ExportRangeMode = 'time' | 'verse' | 'meaning';
@@ -363,30 +364,38 @@
 	 * @returns {Promise<void>} Promesse résolue après la mise en file des exports.
 	 */
 	async function startVideoExport(): Promise<void> {
-		if (
-			globalState.getExportState.exportRangeMode !== 'meaning' ||
-			selectedMeaningRangeIds.length < 2
-		) {
-			await Exporter.exportVideo();
-			return;
+		try {
+			if (
+				globalState.getExportState.exportRangeMode !== 'meaning' ||
+				selectedMeaningRangeIds.length < 2
+			) {
+				await Exporter.exportVideo();
+				return;
+			}
+
+			const sourceProject = globalState.currentProject;
+			if (!sourceProject) return;
+
+			const selectedRanges = meaningRanges.filter((range) =>
+				selectedMeaningRangeIds.includes(range.id)
+			);
+			if (selectedRanges.length < 2) {
+				await Exporter.exportVideo();
+				return;
+			}
+
+			await Exporter.queueVideoRanges(
+				sourceProject,
+				selectedRanges,
+				sourceProject.detail.generateExportFileName()
+			);
+		} catch (error) {
+			await ModalManager.errorModal(
+				get(LL).common.unexpectedError(),
+				get(LL).common.sorryErrorMessage(),
+				JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
+			);
 		}
-
-		const sourceProject = globalState.currentProject;
-		if (!sourceProject) return;
-
-		const selectedRanges = meaningRanges.filter((range) =>
-			selectedMeaningRangeIds.includes(range.id)
-		);
-		if (selectedRanges.length < 2) {
-			await Exporter.exportVideo();
-			return;
-		}
-
-		await Exporter.queueVideoRanges(
-			sourceProject,
-			selectedRanges,
-			sourceProject.detail.generateExportFileName()
-		);
 	}
 
 	/**

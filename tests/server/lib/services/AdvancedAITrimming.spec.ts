@@ -1,9 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
+	applyAdvancedTrimValidationSuccess,
 	buildAdvancedTrimBatches,
+	type AdvancedTrimValidationSuccess,
 	type AdvancedTrimVerseCandidate
 } from '$lib/services/AdvancedAITrimming';
+import { Edition, SubtitleClip } from '$lib/classes';
+import { VerseTranslation } from '$lib/classes/Translation.svelte';
 
 /**
  * Crée un candidat minimal avec un nombre de mots contrôlé.
@@ -35,5 +39,110 @@ describe('AdvancedAITrimming batches', () => {
 		const batches = buildAdvancedTrimBatches(candidates, 'gpt-5.4', 'none', 0, Infinity, 150);
 
 		expect(batches.map((batch) => batch.wordCount)).toEqual([100, 100, 100]);
+	});
+	it('recalculates batch translation indexes from the explicit source translation', () => {
+		const edition = new Edition('key', 'edition', 'Author', 'English', 'ltr', '', '', '', '');
+		const translation = new VerseTranslation('Source words', 'to review');
+		const recalculate = vi
+			.spyOn(translation, 'tryRecalculateTranslationIndexes')
+			.mockImplementation(() => undefined);
+		vi.spyOn(translation, 'updateStatus').mockImplementation(() => undefined);
+		const subtitle = {
+			translations: { [edition.name]: translation },
+			startWordIndex: 0,
+			endWordIndex: 1
+		} as unknown as SubtitleClip;
+		const candidate = {
+			...createCandidate(0, 2),
+			verseKey: '1:1',
+			sourceTranslation: 'Source words',
+			hasFullVerseCoverage: true,
+			subtitles: [subtitle],
+			segments: [
+				{
+					i: 0,
+					arabic: 'text',
+					wordByWordEnglish: [],
+					needsAi: true,
+					lockedRange: null,
+					existingText: '',
+					subtitle
+				}
+			]
+		};
+		const validVerse = {
+			candidate,
+			result: { verseKey: '1:1', segments: [{ i: 0, text: 'Source words' }] }
+		} satisfies AdvancedTrimValidationSuccess;
+
+		applyAdvancedTrimValidationSuccess(edition, [validVerse]);
+
+		expect(recalculate).toHaveBeenCalledWith(edition, '1:1', 'Source words');
+	});
+
+	it('indexes the source translation and keeps locked segments as prompt context', () => {
+		const lockedSubtitle = {
+			startWordIndex: 0,
+			endWordIndex: 0
+		} as SubtitleClip;
+		const pendingSubtitle = {
+			startWordIndex: 1,
+			endWordIndex: 1
+		} as SubtitleClip;
+		const candidate = {
+			...createCandidate(0, 2),
+			verseKey: '1:1',
+			sourceTranslation: 'Source words',
+			hasFullVerseCoverage: true,
+			subtitles: [lockedSubtitle, pendingSubtitle],
+			segments: [
+				{
+					i: 0,
+					arabic: 'الأول',
+					wordByWordEnglish: ['first'],
+					needsAi: false,
+					lockedRange: [0, 0],
+					existingText: 'Source',
+					subtitle: lockedSubtitle
+				},
+				{
+					i: 1,
+					arabic: 'الثاني',
+					wordByWordEnglish: ['second'],
+					needsAi: true,
+					lockedRange: null,
+					existingText: '',
+					subtitle: pendingSubtitle
+				}
+			]
+		} satisfies AdvancedTrimVerseCandidate;
+
+		const [batch] = buildAdvancedTrimBatches([candidate], 'gpt-5.4', 'medium', 0, Infinity);
+
+		expect(batch.request.verses[0]).toEqual({
+			verseKey: '1:1',
+			hasFullVerseCoverage: true,
+			translation: '0:Source 1:words',
+			segments: [
+				{
+					i: 0,
+					arabicStart: 0,
+					arabicEnd: 0,
+					arabic: 'الأول',
+					wordByWordEnglish: ['first'],
+					needsAi: false,
+					lockedRange: [0, 0]
+				},
+				{
+					i: 1,
+					arabicStart: 1,
+					arabicEnd: 1,
+					arabic: 'الثاني',
+					wordByWordEnglish: ['second'],
+					needsAi: true,
+					lockedRange: null
+				}
+			]
+		});
 	});
 });

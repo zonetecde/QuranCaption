@@ -81,6 +81,7 @@ pub struct AdvancedSubtitleSplitBatchPayload {
 #[serde(rename_all = "camelCase")]
 pub struct AdvancedTrimVersePayload {
     pub verse_key: String,
+    pub has_full_verse_coverage: bool,
     pub translation: String,
     pub segments: Vec<AdvancedTrimSegmentPayload>,
 }
@@ -89,8 +90,12 @@ pub struct AdvancedTrimVersePayload {
 #[serde(rename_all = "camelCase")]
 pub struct AdvancedTrimSegmentPayload {
     pub i: i32,
+    pub arabic_start: i32,
+    pub arabic_end: i32,
     pub arabic: String,
     pub word_by_word_english: Vec<String>,
+    pub needs_ai: bool,
+    pub locked_range: Option<[i32; 2]>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

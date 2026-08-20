@@ -417,10 +417,14 @@
 							edition.name
 						] as VerseTranslation;
 						const appliedRange = parsedUnlockedRanges[segmentIndex];
+						const usesFullTranslation =
+							appliedRange?.[0] === 0 && appliedRange?.[1] === totalWords - 1;
 
-						// Met le statut approprié : 'ai error' si couverture incomplète, sinon 'ai trimmed'
+						// Un segment partiel ne doit jamais recevoir la traduction complète du verset.
 						const status: 'ai trimmed' | 'ai error' =
-							incompleteCoverage || !appliedRange ? 'ai error' : 'ai trimmed';
+							incompleteCoverage || !appliedRange || usesFullTranslation
+								? 'ai error'
+								: 'ai trimmed';
 						if (status === 'ai error') {
 							verseTranslation.updateStatus('ai error', edition);
 						} else {

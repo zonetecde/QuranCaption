@@ -121,30 +121,23 @@ class QuranAuthService {
 
 		try {
 			this.clearError();
-			const currentWindowLabel = getCurrentWindow().label;
-			const existingFlow = await this.getPendingFlow();
-			if (existingFlow) {
-				throw new Error(
-					existingFlow.windowLabel === currentWindowLabel
-						? 'A Quran.com sign-in is already in progress.'
-						: 'A Quran.com sign-in is already in progress in another Quran Caption window.'
-				);
-			}
-
 			this.status = 'connecting';
 			this.activeHandoffToken = null;
 			this.handledHandoffTokens.clear();
 
+			const currentWindowLabel = getCurrentWindow().label;
 			const { verifier, challenge } = await generatePkcePair();
-			const pendingFlow: PendingQuranAuthFlow = {
+			const existingOwner = await invoke<string | null>('quran_auth_claim_pending_flow', {
 				windowLabel: currentWindowLabel,
-				startedAt: Date.now()
-			};
-			await Promise.all([
-				this.setSecureValue(this.pendingVerifierKey(currentWindowLabel), verifier),
-				this.setSecureValue(PENDING_FLOW_STORAGE_KEY, JSON.stringify(pendingFlow)),
-				this.deleteSecureValue(LEGACY_PENDING_VERIFIER_STORAGE_KEY)
-			]);
+				verifier
+			});
+			if (existingOwner) {
+				throw new Error(
+					existingOwner === currentWindowLabel
+						? 'A Quran.com sign-in is already in progress.'
+						: 'A Quran.com sign-in is already in progress in another Quran Caption window.'
+				);
+			}
 			createdPendingFlow = true;
 
 			const authorizationUrl = new URL('/oauth/quran/start', BRIDGE_BASE_URL);
@@ -499,7 +492,7 @@ class QuranAuthService {
 		return `${PENDING_VERIFIER_STORAGE_KEY_PREFIX}${windowLabel}`;
 	}
 
-	/** Lit le propriétaire du flow OAuth et nettoie automatiquement un verrou périmé. */
+	/** Lit le propriétaire du flow OAuth courant. Un flow expiré est ignoré; le prochain claim le nettoiera. */
 	private async getPendingFlow(): Promise<PendingQuranAuthFlow | null> {
 		const raw = await this.getSecureValue(PENDING_FLOW_STORAGE_KEY);
 		if (!raw) return null;
@@ -509,39 +502,22 @@ class QuranAuthService {
 			if (
 				typeof parsed.windowLabel !== 'string' ||
 				typeof parsed.startedAt !== 'number' ||
-				!Number.isFinite(parsed.startedAt)
+				!Number.isFinite(parsed.startedAt) ||
+				Date.now() - parsed.startedAt > PENDING_FLOW_MAX_AGE_MS
 			) {
-				await this.deleteSecureValue(PENDING_FLOW_STORAGE_KEY);
 				return null;
 			}
-
-			if (Date.now() - parsed.startedAt > PENDING_FLOW_MAX_AGE_MS) {
-				await Promise.all([
-					this.deleteSecureValue(PENDING_FLOW_STORAGE_KEY),
-					this.deleteSecureValue(this.pendingVerifierKey(parsed.windowLabel))
-				]);
-				return null;
-			}
-
 			return { windowLabel: parsed.windowLabel, startedAt: parsed.startedAt };
 		} catch {
-			await this.deleteSecureValue(PENDING_FLOW_STORAGE_KEY);
 			return null;
 		}
 	}
 
-	/** Supprime uniquement le contexte PKCE appartenant à la fenêtre courante. */
+	/** Supprime atomiquement le contexte PKCE si cette fenêtre possède le flow. */
 	private async clearPendingVerifier(): Promise<void> {
-		const currentWindowLabel = getCurrentWindow().label;
-		const pendingFlow = await this.getPendingFlow();
-		const deletions: Promise<void>[] = [
-			this.deleteSecureValue(this.pendingVerifierKey(currentWindowLabel)),
-			this.deleteSecureValue(LEGACY_PENDING_VERIFIER_STORAGE_KEY)
-		];
-		if (pendingFlow?.windowLabel === currentWindowLabel) {
-			deletions.push(this.deleteSecureValue(PENDING_FLOW_STORAGE_KEY));
-		}
-		await Promise.all(deletions);
+		await invoke('quran_auth_clear_pending_flow', {
+			windowLabel: getCurrentWindow().label
+		});
 	}
 
 	/**

@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
 import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import toast from 'svelte-5-french-toast';
@@ -18,6 +19,7 @@ const USER_API_BASE_URL = 'https://apis.quran.foundation';
 // const BRIDGE_BASE_URL = 'http://localhost:5174';
 const SESSION_STORAGE_KEY = 'quran_auth_session';
 const PENDING_VERIFIER_STORAGE_KEY = 'quran_auth_pending_verifier';
+const PENDING_WINDOW_STORAGE_KEY = 'quran_auth_pending_window';
 const REFRESH_SKEW_MS = 60_000;
 const QURAN_MUSHAF_ID = 4;
 
@@ -116,7 +118,10 @@ class QuranAuthService {
 			this.handledHandoffTokens.clear();
 
 			const { verifier, challenge } = await generatePkcePair();
-			await this.setSecureValue(PENDING_VERIFIER_STORAGE_KEY, verifier);
+			await Promise.all([
+				this.setSecureValue(PENDING_VERIFIER_STORAGE_KEY, verifier),
+				this.setSecureValue(PENDING_WINDOW_STORAGE_KEY, getCurrentWindow().label)
+			]);
 
 			const authorizationUrl = new URL('/oauth/quran/start', BRIDGE_BASE_URL);
 			authorizationUrl.searchParams.set('handoff_challenge', challenge);
@@ -148,6 +153,15 @@ class QuranAuthService {
 	async handleDeepLink(url: string): Promise<void> {
 		const parsedUrl = new URL(url);
 		if (!isQuranAuthCallbackUrl(parsedUrl)) return;
+
+		const currentWindowLabel = getCurrentWindow().label;
+		const pendingWindowLabel = await this.getSecureValue(PENDING_WINDOW_STORAGE_KEY);
+		if (
+			(pendingWindowLabel && pendingWindowLabel !== currentWindowLabel) ||
+			(!pendingWindowLabel && currentWindowLabel !== 'main')
+		) {
+			return;
+		}
 
 		const handoffToken = parsedUrl.searchParams.get('handoff_token');
 		if (!handoffToken) {
@@ -237,10 +251,7 @@ class QuranAuthService {
 		this.activeHandoffToken = null;
 		this.handledHandoffTokens.clear();
 
-		await Promise.all([
-			this.deleteSecureValue(SESSION_STORAGE_KEY),
-			this.deleteSecureValue(PENDING_VERIFIER_STORAGE_KEY)
-		]);
+		await Promise.all([this.deleteSecureValue(SESSION_STORAGE_KEY), this.clearPendingVerifier()]);
 		if (wasConnected) {
 			AnalyticsService.trackQuranAuthDisconnected(scopeCount, reason);
 		}
@@ -460,9 +471,12 @@ class QuranAuthService {
 		await this.setSecureValue(SESSION_STORAGE_KEY, JSON.stringify(persistedSession));
 	}
 
-	/** Supprime le verifier PKCE temporaire après succès ou annulation. */
+	/** Supprime le contexte PKCE temporaire après succès ou annulation. */
 	private async clearPendingVerifier(): Promise<void> {
-		await this.deleteSecureValue(PENDING_VERIFIER_STORAGE_KEY);
+		await Promise.all([
+			this.deleteSecureValue(PENDING_VERIFIER_STORAGE_KEY),
+			this.deleteSecureValue(PENDING_WINDOW_STORAGE_KEY)
+		]);
 	}
 
 	/**

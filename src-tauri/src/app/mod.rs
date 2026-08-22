@@ -1,13 +1,53 @@
+use std::sync::atomic::{AtomicU64, Ordering};
+
 use tauri::Manager;
 
 use crate::binaries;
 
 mod invoke;
 
+static NEXT_WINDOW_ID: AtomicU64 = AtomicU64::new(1);
+
+/// Indique si le second lancement correspond à un deep link Quran Caption.
+fn is_deep_link_launch(argv: &[String]) -> bool {
+    argv.iter()
+        .any(|arg| arg.to_ascii_lowercase().starts_with("qurancaption://"))
+}
+
+/// Ouvre une nouvelle fenêtre principale en réutilisant la configuration Tauri existante.
+fn open_additional_window(app: &tauri::AppHandle) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        let Some(base_config) = app.config().app.windows.first() else {
+            return;
+        };
+        let mut config = base_config.clone();
+        config.label = format!(
+            "main{}",
+            NEXT_WINDOW_ID.fetch_add(1, Ordering::Relaxed)
+        );
+
+        if let Ok(builder) = tauri::WebviewWindowBuilder::from_config(&app, &config) {
+            let _ = builder.build();
+        }
+    });
+}
+
 /// Construit et lance l'application Tauri avec plugins, setup et commandes IPC.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    let builder = if cfg!(debug_assertions) {
+        builder
+    } else {
+        builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            // Le plugin deep-link traite déjà le callback avant cette closure.
+            if !is_deep_link_launch(&argv) {
+                open_additional_window(app);
+            }
+        }))
+    };
+    let builder = builder
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::new().build())
@@ -15,17 +55,6 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init());
-    let builder = if cfg!(debug_assertions) {
-        builder
-    } else {
-        builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.unminimize();
-                let _ = window.set_focus();
-            }
-        }))
-    };
     let builder = invoke::register_invoke_handler(builder);
 
     builder

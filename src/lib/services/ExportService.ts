@@ -1,6 +1,8 @@
 import { SubtitleClip, TrackType, VerseRange, type Project } from '$lib/classes';
 import { exists, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
+import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { globalState } from '$lib/runes/main.svelte';
 import Exportation, {
 	ExportKind,
@@ -33,6 +35,8 @@ export interface AddExportOptions {
 
 export default class ExportService {
 	static exportFolder: string = 'exports/';
+	private static loadedExportIds = new Set<number>();
+	private static ownedExportIds = new Set<number>();
 
 	constructor() {}
 
@@ -159,6 +163,7 @@ export default class ExportService {
 			is_batch_export: Boolean(options.exportLabel)
 		});
 
+		this.ownedExportIds.add(exportation.exportId);
 		globalState.exportations.unshift(exportation);
 
 		// Sauvegarde les exports en cours
@@ -204,31 +209,43 @@ export default class ExportService {
 	}
 
 	/**
-	 * Sauvegarde les exports en cours.
+	 * Sauvegarde uniquement les entrées modifiées par cette fenêtre sans écraser celles des autres.
+	 * @returns {Promise<void>} Promesse résolue après la fusion côté Rust.
 	 */
-	static async saveExports() {
-		// S'assure que le dossier existe
+	static async saveExports(): Promise<void> {
 		await ProjectService.ensureFolder(this.exportFolder);
 
-		// Construis le chemin d'accès vers le fichier contenant tout les exports
-		const filePath = await join(await appDataDir(), `exports.json`);
+		const currentIds = new Set(globalState.exportations.map((exp) => exp.exportId));
+		const changedExportIds = new Set(this.ownedExportIds);
 
-		await writeTextFile(
-			filePath,
-			JSON.stringify(
-				globalState.exportations.map((exp) => exp.toJSON()),
-				null,
-				2
-			)
-		);
+		for (const exportId of currentIds) {
+			if (!this.loadedExportIds.has(exportId)) changedExportIds.add(exportId);
+		}
+		for (const exportId of this.loadedExportIds) {
+			if (!currentIds.has(exportId)) changedExportIds.add(exportId);
+		}
+
+		if (changedExportIds.size === 0) return;
+
+		await invoke('merge_export_entries', {
+			ownedExportIds: Array.from(changedExportIds),
+			exports: globalState.exportations
+				.filter((exp) => changedExportIds.has(exp.exportId))
+				.map((exp) => exp.toJSON())
+		});
 	}
 
-	static async loadExports() {
+	/**
+	 * Charge le monitor d'exports sans annuler les exports appartenant à une autre fenêtre active.
+	 * @returns {Promise<void>} Promesse résolue lorsque l'état local est hydraté.
+	 */
+	static async loadExports(): Promise<void> {
 		const filePath = await join(await appDataDir(), `exports.json`);
 
 		if ((await exists(filePath)) === false) {
 			// Aucun export trouvé
 			globalState.exportations = [];
+			this.loadedExportIds = new Set();
 			return;
 		}
 
@@ -238,13 +255,28 @@ export default class ExportService {
 		globalState.exportations = data.map(
 			(exp) => Exportation.fromJSON(exp as Record<string, unknown>) as Exportation
 		);
+		this.loadedExportIds = new Set(globalState.exportations.map((exp) => exp.exportId));
 
-		// Tout les exports en cours on les mets en canceled
+		// Seule la fenêtre initiale correspond à un vrai redémarrage du processus.
+		if (getCurrentWindow().label !== 'main') return;
+
+		const interruptedExportIds: number[] = [];
 		globalState.exportations.forEach((exp) => {
 			if (exp.isOnGoing()) {
 				exp.currentState = ExportState.Canceled;
+				interruptedExportIds.push(exp.exportId);
 			}
 		});
+
+		if (interruptedExportIds.length > 0) {
+			const interruptedIds = new Set(interruptedExportIds);
+			await invoke('merge_export_entries', {
+				ownedExportIds: interruptedExportIds,
+				exports: globalState.exportations
+					.filter((exp) => interruptedIds.has(exp.exportId))
+					.map((exp) => exp.toJSON())
+			});
+		}
 	}
 
 	static async deleteProjectFile(exportIdId: number) {
@@ -270,7 +302,9 @@ export default class ExportService {
 	}
 
 	static currentlyExportingProjects() {
-		return globalState.exportations.filter((exp) => exp.isOnGoing());
+		return globalState.exportations.filter(
+			(exp) => exp.isOnGoing() && this.ownedExportIds.has(exp.exportId)
+		);
 	}
 }
 

@@ -16,6 +16,7 @@ export const ssr = false;
 // Initialize PostHog on the client
 export const load = async () => {
 	AnalyticsService.init();
+	await Settings.load();
 };
 
 // Load all i18n locales at startup
@@ -33,9 +34,6 @@ QPCFontProvider.loadImportedFonts();
 
 // Charge les exports
 ExportService.loadExports();
-
-// Charge les paramètres utilisateur
-Settings.load();
 
 // Charge les traductions si pas déjà fait
 ProjectTranslation.loadAvailableTranslations();

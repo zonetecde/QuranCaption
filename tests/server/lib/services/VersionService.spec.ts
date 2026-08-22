@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { getVersionMock } = vi.hoisted(() => ({ getVersionMock: vi.fn() }));
+const { invokeMock } = vi.hoisted(() => ({ invokeMock: vi.fn() }));
 
-vi.mock('@tauri-apps/api/app', () => ({ getVersion: getVersionMock }));
+vi.mock('$lib/services/TauriCoreBridge', () => ({ invoke: invokeMock }));
 
 import { VersionService } from '$lib/services/VersionService.svelte';
 
@@ -10,7 +10,7 @@ describe('VersionService Android updates', () => {
 	beforeEach(() => {
 		vi.unstubAllGlobals();
 		vi.clearAllMocks();
-		getVersionMock.mockResolvedValue('1.0.0');
+		invokeMock.mockResolvedValue('1.0.0');
 	});
 
 	it('ignores GitHub prereleases', async () => {

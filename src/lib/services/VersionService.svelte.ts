@@ -1,4 +1,4 @@
-import { getVersion } from '@tauri-apps/api/app';
+import { invoke } from './TauriCoreBridge';
 
 export interface UpdateInfo {
 	hasUpdate: boolean;
@@ -45,7 +45,7 @@ class VersionService {
 	 * @returns {Promise<string>} Version courante de l'application.
 	 */
 	async getAppVersion(): Promise<string> {
-		return (await getVersion()) || '0.0.0';
+		return (await invoke<string>('plugin:app|version')) || '0.0.0';
 	}
 
 	/**

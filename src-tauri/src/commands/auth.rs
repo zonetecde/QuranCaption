@@ -1,4 +1,8 @@
+use std::sync::{Mutex, OnceLock};
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use keyring::{Entry, Error as KeyringError};
+use serde_json::Value;
 
 const SERVICE_NAME: &str = "QuranCaption";
 const SESSION_KEY: &str = "quran_auth_session";
@@ -8,6 +12,9 @@ const PENDING_FLOW_KEY: &str = "quran_auth_pending_flow";
 const SESSION_CHUNK_KEY_PREFIX: &str = "quran_auth_session__chunk_";
 const CHUNKED_SENTINEL_PREFIX: &str = "__chunked__:";
 const MAX_SECURE_VALUE_UTF16_LEN: usize = 2_000;
+const PENDING_FLOW_MAX_AGE_MS: u64 = 10 * 60 * 1_000;
+
+static PENDING_FLOW_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 
 fn normalize_key(key: &str) -> Result<String, String> {
     match key {
@@ -26,6 +33,17 @@ fn secure_entry(key: &str) -> Result<Entry, String> {
 
 fn chunk_key(index: usize) -> String {
     format!("{SESSION_CHUNK_KEY_PREFIX}{index}")
+}
+
+fn pending_verifier_key(window_label: &str) -> String {
+    format!("{PENDING_VERIFIER_KEY_PREFIX}{window_label}")
+}
+
+fn now_ms() -> Result<u64, String> {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis() as u64)
+        .map_err(|error| format!("System clock error: {error}"))
 }
 
 fn parse_chunk_count(value: &str) -> Option<usize> {
@@ -88,6 +106,79 @@ fn clear_chunked_session_parts_if_needed(existing_base_value: Option<&str>) -> R
         delete_single_secure_value(&chunk_key(index))?;
     }
 
+    Ok(())
+}
+
+fn read_pending_flow() -> Result<Option<(String, u64)>, String> {
+    let Some(raw) = get_single_secure_value(PENDING_FLOW_KEY)? else {
+        return Ok(None);
+    };
+    let parsed = match serde_json::from_str::<Value>(&raw) {
+        Ok(parsed) => parsed,
+        Err(_) => return Ok(None),
+    };
+    let Some(window_label) = parsed.get("windowLabel").and_then(Value::as_str) else {
+        return Ok(None);
+    };
+    let Some(started_at) = parsed.get("startedAt").and_then(Value::as_u64) else {
+        return Ok(None);
+    };
+    Ok(Some((window_label.to_string(), started_at)))
+}
+
+/// Réserve atomiquement l'unique flow OAuth Quran.com du processus.
+/// Retourne `Some(window_label)` si un autre flow non expiré existe déjà.
+#[tauri::command]
+pub fn quran_auth_claim_pending_flow(
+    window_label: String,
+    verifier: String,
+) -> Result<Option<String>, String> {
+    let lock = PENDING_FLOW_LOCK.get_or_init(|| Mutex::new(()));
+    let _guard = lock
+        .lock()
+        .map_err(|_| "Failed to lock Quran auth pending flow".to_string())?;
+
+    let current_time = now_ms()?;
+    if let Some((owner, started_at)) = read_pending_flow()? {
+        if current_time.saturating_sub(started_at) <= PENDING_FLOW_MAX_AGE_MS {
+            return Ok(Some(owner));
+        }
+        delete_single_secure_value(&pending_verifier_key(&owner))?;
+        delete_single_secure_value(PENDING_FLOW_KEY)?;
+    } else {
+        // Nettoie aussi une valeur mal formée qui ne peut plus être utilisée.
+        delete_single_secure_value(PENDING_FLOW_KEY)?;
+    }
+
+    delete_single_secure_value(LEGACY_PENDING_VERIFIER_KEY)?;
+    set_single_secure_value(&pending_verifier_key(&window_label), &verifier)?;
+    set_single_secure_value(
+        PENDING_FLOW_KEY,
+        &serde_json::json!({
+            "windowLabel": window_label,
+            "startedAt": current_time,
+        })
+        .to_string(),
+    )?;
+    Ok(None)
+}
+
+/// Libère le flow OAuth seulement si la fenêtre appelante en est propriétaire.
+#[tauri::command]
+pub fn quran_auth_clear_pending_flow(window_label: String) -> Result<(), String> {
+    let lock = PENDING_FLOW_LOCK.get_or_init(|| Mutex::new(()));
+    let _guard = lock
+        .lock()
+        .map_err(|_| "Failed to lock Quran auth pending flow".to_string())?;
+
+    delete_single_secure_value(&pending_verifier_key(&window_label))?;
+    delete_single_secure_value(LEGACY_PENDING_VERIFIER_KEY)?;
+    if read_pending_flow()?
+        .map(|(owner, _)| owner == window_label)
+        .unwrap_or(false)
+    {
+        delete_single_secure_value(PENDING_FLOW_KEY)?;
+    }
     Ok(())
 }
 

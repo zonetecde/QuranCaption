@@ -167,17 +167,55 @@ function _getWordIndexFromLocation(location: string): number | null {
 }
 
 /**
+ * Vérifie si un nombre de mots peut être réparti en segments respectant les bornes min/max.
+ *
+ * @param {number} wordCount Nombre de mots restant à répartir.
+ * @param {number} minWords Nombre minimum de mots par segment.
+ * @param {number} maxWords Nombre maximum de mots par segment.
+ * @returns {boolean} True si une répartition valide existe.
+ */
+function canPartitionWordCount(wordCount: number, minWords: number, maxWords: number): boolean {
+	if (wordCount < minWords) return false;
+	return Math.ceil(wordCount / maxWords) <= Math.floor(wordCount / minWords);
+}
+
+/**
+ * Calcule la taille de la partie gauche en privilégiant le maximum tout en évitant un reliquat
+ * impossible à subdiviser ensuite.
+ *
+ * @param {number} wordCount Nombre total de mots du clip.
+ * @param {number} minWords Nombre minimum de mots par segment.
+ * @param {number} maxWords Nombre maximum de mots par segment.
+ * @returns {number | null} Nombre de mots à conserver à gauche, ou null si aucune coupe valide.
+ */
+function getPreferredLeftWordCount(
+	wordCount: number,
+	minWords: number,
+	maxWords: number
+): number | null {
+	const maxLeftWords = Math.min(maxWords, wordCount - minWords);
+	for (let leftWordCount = maxLeftWords; leftWordCount >= minWords; leftWordCount -= 1) {
+		if (canPartitionWordCount(wordCount - leftWordCount, minWords, maxWords)) {
+			return leftWordCount;
+		}
+	}
+	return null;
+}
+
+/**
  * Cherche le meilleur point de coupe sur un waqf proche d'une cible.
  *
  * @param {SubtitleClip} clip Clip Quran à inspecter.
  * @param {Awaited<ReturnType<typeof Quran.getVerse>>} verse Verset source.
  * @param {number} targetIndex Index cible autour duquel couper.
+ * @param {(index: number) => boolean} isValidSplitIndex Filtre garantissant les bornes min/max.
  * @returns {number | null} Index du dernier mot de la partie gauche.
  */
 function findPreferredStopSplitIndex(
 	clip: SubtitleClip,
 	verse: Awaited<ReturnType<typeof Quran.getVerse>>,
-	targetIndex: number
+	targetIndex: number,
+	isValidSplitIndex: (index: number) => boolean
 ): number | null {
 	if (!verse) return null;
 
@@ -185,7 +223,7 @@ function findPreferredStopSplitIndex(
 	for (const waqf of waqfPriority) {
 		const candidates: number[] = [];
 		for (let index = clip.startWordIndex; index < clip.endWordIndex; index += 1) {
-			if (verse.words[index]?.arabic.includes(waqf)) {
+			if (verse.words[index]?.arabic.includes(waqf) && isValidSplitIndex(index)) {
 				candidates.push(index);
 			}
 		}
@@ -205,6 +243,7 @@ function findPreferredStopSplitIndex(
  *
  * @param {SubtitleClip} clip Clip Quran à subdiviser.
  * @param {number | null} maxWords Limite de mots active, ou null.
+ * @param {number} minWords Nombre minimum de mots par segment généré.
  * @param {number | null} maxDurationSeconds Limite de durée active, ou null.
  * @param {boolean} onlyStopSigns Si true, interdit le fallback hors waqf.
  * @returns {Promise<number | null>} Index du dernier mot de gauche, ou null.
@@ -212,6 +251,7 @@ function findPreferredStopSplitIndex(
 async function getAutomaticSplitWordIndex(
 	clip: SubtitleClip,
 	maxWords: number | null,
+	minWords: number,
 	maxDurationSeconds: number | null,
 	onlyStopSigns: boolean
 ): Promise<number | null> {
@@ -219,24 +259,40 @@ async function getAutomaticSplitWordIndex(
 	const exceedsWords = maxWords !== null && wordCount > maxWords;
 	const exceedsDuration = maxDurationSeconds !== null && clip.duration / 1000 > maxDurationSeconds;
 	if (!exceedsWords && !exceedsDuration) return null;
-	if (!clip.alignmentMetadata || wordCount < 2) return null;
+
+	const effectiveMinWords = maxWords === null ? minWords : Math.min(minWords, maxWords);
+	if (!clip.alignmentMetadata || wordCount < effectiveMinWords * 2) return null;
 
 	const verse = await Quran.getVerse(clip.surah, clip.verse);
 	if (!verse) return null;
 
-	let targetIndex = clip.startWordIndex;
+	let targetLeftWordCount: number | null;
 	if (exceedsWords && maxWords !== null) {
-		targetIndex = Math.min(clip.startWordIndex + maxWords - 1, clip.endWordIndex - 1);
+		targetLeftWordCount = getPreferredLeftWordCount(wordCount, effectiveMinWords, maxWords);
 	} else {
-		targetIndex = Math.min(
-			clip.startWordIndex + Math.max(1, Math.floor(wordCount / 2)) - 1,
-			clip.endWordIndex - 1
+		targetLeftWordCount = Math.min(
+			wordCount - effectiveMinWords,
+			Math.max(effectiveMinWords, Math.floor(wordCount / 2))
 		);
 	}
+	if (targetLeftWordCount === null) return null;
 
-	const waqfIndex = findPreferredStopSplitIndex(clip, verse, targetIndex);
+	const targetIndex = clip.startWordIndex + targetLeftWordCount - 1;
+	const isValidSplitIndex = (index: number): boolean => {
+		const leftWordCount = index - clip.startWordIndex + 1;
+		const rightWordCount = clip.endWordIndex - index;
+		if (leftWordCount < effectiveMinWords || rightWordCount < effectiveMinWords) return false;
+		if (maxWords === null) return true;
+		if (leftWordCount > maxWords) return false;
+		return (
+			rightWordCount <= maxWords ||
+			canPartitionWordCount(rightWordCount, effectiveMinWords, maxWords)
+		);
+	};
+
+	const waqfIndex = findPreferredStopSplitIndex(clip, verse, targetIndex, isValidSplitIndex);
 	if (waqfIndex !== null) return waqfIndex;
-	return onlyStopSigns ? null : targetIndex;
+	return onlyStopSigns || !isValidSplitIndex(targetIndex) ? null : targetIndex;
 }
 
 /**
@@ -333,12 +389,14 @@ export async function automaticSplitSubtitleAtWord(
  * @param {object} options Options de subdivision.
  * @param {(clip: SubtitleClip) => boolean} options.shouldSplitClip Filtre optionnel des clips a subdiviser.
  * @param {(leftClip: SubtitleClip, rightClip: SubtitleClip) => void} options.onSplit Callback optionnel apres chaque coupe.
+ * @param {number} options.minWordsPerSegment Nombre minimum de mots à conserver dans chaque segment généré.
  * @returns {Promise<number>} Nombre de coupes appliquées.
  */
 export async function subdivideLongSubtitleSegments(
 	options: {
 		shouldSplitClip?: (clip: SubtitleClip) => boolean;
 		onSplit?: (leftClip: SubtitleClip, rightClip: SubtitleClip) => void;
+		minWordsPerSegment?: number;
 	} = {}
 ): Promise<number> {
 	ProjectHistoryManager.begin('subdivide subtitles');
@@ -348,6 +406,7 @@ export async function subdivideLongSubtitleSegments(
 			state.subdivideMaxWordsPerSegment > SUBDIVIDE_MAX_WORDS_DISABLED
 				? null
 				: state.subdivideMaxWordsPerSegment;
+		const minWords = Math.max(1, Math.floor(options.minWordsPerSegment ?? 1));
 		const maxDurationSeconds =
 			state.subdivideMaxDurationPerSegment > SUBDIVIDE_MAX_DURATION_DISABLED
 				? null
@@ -366,6 +425,7 @@ export async function subdivideLongSubtitleSegments(
 				const splitWordIndex = await getAutomaticSplitWordIndex(
 					clip,
 					maxWords,
+					minWords,
 					maxDurationSeconds,
 					state.subdivideOnlySplitAtStopSigns
 				);

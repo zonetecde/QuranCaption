@@ -128,7 +128,7 @@ pub fn claim_next_video_export(app_handle: tauri::AppHandle) -> Result<Value, St
             .to_string();
         if candidate
             .as_ref()
-            .map(|(_, current_date)| date < *current_date)
+            .map(|(_, current_date)| date.as_str() < current_date.as_str())
             .unwrap_or(true)
         {
             candidate = Some((index, date));

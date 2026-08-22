@@ -379,7 +379,6 @@ function exportLog(event: TauriEvent<ExportLogPayload>): void {
 
 function exportProgress(event: TauriEvent<ExportProgress>): void {
 	const data = event.payload as ExportProgress;
-	if (!ExportService.isOwnedExport(data.exportId)) return;
 
 	const exportation = globalState.exportations.find((exp) => exp.exportId === data.exportId);
 	if (exportation) {

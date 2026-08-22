@@ -1531,6 +1531,7 @@ const es = {
 			'wbw-color': 'Color palabra por palabra',
 			'wbw-persist-color': 'Mantener el efecto WBW',
 			'wbw-reveal-specific-word-style': 'Revelar estilo de palabra al recitar',
+			'wbw-keep-specific-word-style': 'Conservar el estilo de palabra después de revelarlo',
 			'enable-wbw-underline': 'Activar subrayado',
 			'wbw-underline-thickness': 'Grosor del subrayado',
 			'enable-wbw-glow': 'Activar brillo wbw',
@@ -1746,6 +1747,8 @@ const es = {
 			'wbw-persist-color': 'Mantener activo el efecto WBW en las palabras ya recitadas',
 			'wbw-reveal-specific-word-style':
 				'Ocultar estilos personalizados de palabras hasta que se recite la palabra vinculada',
+			'wbw-keep-specific-word-style':
+				'Mantener visibles los estilos personalizados después de recitar las palabras vinculadas',
 			'enable-wbw-underline': 'Subrayar las palabras resaltadas',
 			'wbw-underline-thickness': 'Grosor del subrayado wbw en píxeles',
 			'enable-wbw-glow': 'Agregar un brillo alrededor de las palabras resaltadas',

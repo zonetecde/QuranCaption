@@ -919,6 +919,7 @@ const editor = {
 		'wbw-color': 'Word-by-word color',
 		'wbw-persist-color': 'Persist WBW effect',
 		'wbw-reveal-specific-word-style': 'Reveal specific word style on recitation',
+		'wbw-keep-specific-word-style': 'Keep specific word style after revelation',
 		'enable-wbw-underline': 'Enable underline',
 		'wbw-underline-thickness': 'Underline thickness',
 		'enable-wbw-glow': 'Enable wbw glow',
@@ -1127,6 +1128,8 @@ const editor = {
 		'wbw-color': 'Color applied to highlighted words',
 		'wbw-persist-color': 'Keep the active WBW effect on previously recited words',
 		'wbw-reveal-specific-word-style': 'Hide custom word styles until their linked word is recited',
+		'wbw-keep-specific-word-style':
+			'Keep custom word styles visible after their linked words are recited',
 		'enable-wbw-underline': 'Underline highlighted words',
 		'wbw-underline-thickness': 'Thickness of the wbw underline in pixels',
 		'enable-wbw-glow': 'Add a glow around highlighted words',

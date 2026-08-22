@@ -648,6 +648,11 @@
 		highlightProgress: number
 	): number {
 		if (!state.revealSpecificWordStyle) return 1;
+		if (!state.keepSpecificWordStyleAfterReveal) {
+			return wordIndex === state.activeWordIndex || wordIndex === state.activeWordIndex - 1
+				? highlightProgress
+				: 0;
+		}
 		if (state.activeWordIndex >= state.words.length || wordIndex < state.activeWordIndex) return 1;
 		if (wordIndex > state.activeWordIndex) return 0;
 		return highlightProgress;

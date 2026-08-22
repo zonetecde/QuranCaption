@@ -21,8 +21,20 @@
 	let enableMaxDuration = $state(
 		globalState.getSubtitlesEditorState.subdivideMaxDurationPerSegment < SUBDIVIDE_MAX_LIMIT
 	);
+	let minWordsPerSegment = $state(2);
 	let lastEnabledMaxWords = $state(SUBDIVIDE_MAX_LIMIT);
 	let lastEnabledMaxDuration = $state(SUBDIVIDE_MAX_LIMIT);
+	let minWordsUpperLimit = $derived(
+		enableMaxWords
+			? Math.min(
+					SUBDIVIDE_MAX_LIMIT,
+					Math.max(
+						SUBDIVIDE_MIN_LIMIT,
+						globalState.getSubtitlesEditorState.subdivideMaxWordsPerSegment
+					)
+				)
+			: SUBDIVIDE_MAX_LIMIT
+	);
 
 	/**
 	 * Lance la subdivision automatique des segments longs selon les critères actifs.
@@ -33,7 +45,7 @@
 			return;
 		}
 
-		const splitCount = await subdivideLongSubtitleSegments();
+		const splitCount = await subdivideLongSubtitleSegments({ minWordsPerSegment });
 		if (splitCount <= 0) {
 			toast(LL_.editor.noSubtitlesMatchSplitRules());
 			return;
@@ -79,6 +91,13 @@
 		);
 		state.subdivideMaxWordsPerSegment = clampedValue;
 		lastEnabledMaxWords = clampedValue;
+	});
+
+	$effect(() => {
+		minWordsPerSegment = Math.min(
+			minWordsUpperLimit,
+			Math.max(SUBDIVIDE_MIN_LIMIT, Math.round(minWordsPerSegment))
+		);
 	});
 
 	$effect(() => {
@@ -150,6 +169,31 @@
 					<span>{SUBDIVIDE_MAX_LIMIT}</span>
 				</div>
 			{/if}
+		</div>
+
+		<div class="space-y-2">
+			<div class="flex items-center justify-between gap-2">
+				<span class="text-xs text-primary">{$LL.editor.minWords()}</span>
+				<input
+					type="number"
+					min={SUBDIVIDE_MIN_LIMIT}
+					max={minWordsUpperLimit}
+					bind:value={minWordsPerSegment}
+					class="w-16 rounded-md border border-color bg-secondary px-1.5 py-0.5 text-xs text-primary"
+				/>
+			</div>
+			<input
+				type="range"
+				min={SUBDIVIDE_MIN_LIMIT}
+				max={minWordsUpperLimit}
+				step="1"
+				bind:value={minWordsPerSegment}
+				class="w-full"
+			/>
+			<div class="flex items-center justify-between text-[10px] text-thirdly">
+				<span>{SUBDIVIDE_MIN_LIMIT}</span>
+				<span>{minWordsUpperLimit}</span>
+			</div>
 		</div>
 
 		<div class="space-y-2">

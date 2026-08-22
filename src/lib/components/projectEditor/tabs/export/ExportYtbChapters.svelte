@@ -1,7 +1,9 @@
 <script lang="ts">
 	import Exporter, { type YouTubeChaptersChoice } from '$lib/classes/Exporter';
 	import { SubtitleClip } from '$lib/classes/Clip.svelte';
+	import Settings from '$lib/classes/Settings.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import ExportFolderPicker from './ExportFolderPicker.svelte';
@@ -10,6 +12,10 @@
 	import toast from 'svelte-5-french-toast';
 
 	const LL_ = get(LL);
+
+	type PersistedYouTubeChapterExportSettings = {
+		ytbChaptersFormat?: string;
+	};
 
 	const chapterPlaceholders = [
 		'<timestamp>',
@@ -23,6 +29,24 @@
 		'<juz-number>',
 		'<rub-number>'
 	];
+
+	/**
+	 * Retourne les paramètres persistants propres à l'export des chapitres YouTube.
+	 * @returns {PersistedYouTubeChapterExportSettings} Paramètres stockés dans settings.json.
+	 */
+	function getPersistedYouTubeChapterExportSettings(): PersistedYouTubeChapterExportSettings {
+		return globalState.settings!.exportSettings as unknown as PersistedYouTubeChapterExportSettings;
+	}
+
+	/**
+	 * Enregistre le format des chapitres YouTube pour le réutiliser dans tous les projets.
+	 * @returns {void}
+	 */
+	function saveChapterFormat(): void {
+		getPersistedYouTubeChapterExportSettings().ytbChaptersFormat =
+			globalState.getExportState.ytbChaptersFormat;
+		void Settings.save();
+	}
 
 	/**
 	 * Sélectionne le regroupement des chapitres et suggère un format adapté aux divisions coraniques.
@@ -48,6 +72,19 @@
 	}
 
 	onMount(() => {
+		const persistedSettings = getPersistedYouTubeChapterExportSettings();
+		if (typeof persistedSettings.ytbChaptersFormat === 'string') {
+			const persistedFormat = persistedSettings.ytbChaptersFormat;
+			if (globalState.getExportState.ytbChaptersFormat !== persistedFormat) {
+				ProjectHistoryManager.track('restore YouTube chapter format', () => {
+					globalState.getExportState.ytbChaptersFormat = persistedFormat;
+				});
+			}
+		} else {
+			persistedSettings.ytbChaptersFormat = globalState.getExportState.ytbChaptersFormat;
+			void Settings.save();
+		}
+
 		const uniqueSurahs = new Set<number>();
 
 		for (const clip of globalState.getSubtitleClips) {
@@ -166,6 +203,7 @@
 						id="ytb-chapters-format"
 						class="mt-2 min-h-24 w-full rounded-lg border border-color bg-accent p-3 text-sm text-primary outline-none focus:border-accent-primary"
 						bind:value={globalState.getExportState.ytbChaptersFormat}
+						onchange={saveChapterFormat}
 					></textarea>
 					<p class="mt-2 text-xs text-thirdly">
 						Placeholders: {chapterPlaceholders.join(', ')}

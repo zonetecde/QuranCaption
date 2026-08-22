@@ -25,6 +25,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::files::send_http_get,
         commands::files::send_http_text,
         commands::export_persistence::merge_export_entries,
+        commands::export_persistence::claim_next_video_export,
         commands::media::get_system_fonts,
         commands::media::get_system_font_sources,
         commands::media::open_directory,

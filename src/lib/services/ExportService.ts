@@ -33,10 +33,17 @@ export interface AddExportOptions {
 	sourceProjectId?: number;
 }
 
+type ClaimNextVideoExportResult = {
+	exportId: number | null;
+	exports: unknown[];
+};
+
 export default class ExportService {
 	static exportFolder: string = 'exports/';
-	private static loadedExportIds = new Set<number>();
+	private static knownExportIds = new Set<number>();
 	private static ownedExportIds = new Set<number>();
+	private static syncListenerPromise: Promise<void> | null = null;
+	private static saveChain: Promise<void> = Promise.resolve();
 
 	constructor() {}
 
@@ -77,19 +84,18 @@ export default class ExportService {
 	}
 
 	/**
-	 * Ajoute un projet à la liste des exports en cours.
+	 * Ajoute un projet à la file globale. Tous les exports vidéo démarrent en attente :
+	 * le backend Rust réserve ensuite atomiquement le prochain export FIFO.
 	 * @param {Project} project Projet à ajouter.
-	 * @param {'recording' | 'stable'} mode État initial dans la queue existante.
+	 * @param {'recording' | 'stable'} _mode Paramètre historique conservé pour compatibilité.
 	 * @param {AddExportOptions} options Nom, chemin et métadonnées Batch éventuels.
-	 * @returns {Promise<void>} Promesse résolue après la persistance du monitor.
+	 * @returns {Promise<void>} Promesse résolue après la persistance du monitor partagé.
 	 */
 	static async addExport(
 		project: Project,
-		mode: 'recording' | 'stable' = 'stable',
+		_mode: 'recording' | 'stable' = 'recording',
 		options: AddExportOptions = {}
 	) {
-		// Ajoute le projet à la liste des exports en cours
-
 		const videoExtension = project.projectEditorState.export.exportWithoutBackground
 			? project.projectEditorState.export.transparentExportFormat === 'webm_vp9_alpha'
 				? 'webm'
@@ -124,6 +130,9 @@ export default class ExportService {
 			width: number;
 			height: number;
 		}) ?? { width: 1920, height: 1080 };
+		const queued = globalState.exportations.some(
+			(exp) => exp.exportKind === ExportKind.Video && exp.isOnGoing()
+		);
 		const exportation = new Exportation(
 			project.detail.id,
 			fileName,
@@ -138,7 +147,7 @@ export default class ExportService {
 				project.projectEditorState.export.videoStartTime,
 				project.projectEditorState.export.videoEndTime
 			).toString(),
-			mode === 'recording' ? ExportState.WaitingForRecord : ExportState.CapturingFrames,
+			ExportState.WaitingForRecord,
 			project.projectEditorState.export.fps,
 			0,
 			0,
@@ -159,14 +168,12 @@ export default class ExportService {
 				: undefined,
 			export_only_recitation: project.projectEditorState.export.exportOnlyRecitation,
 			skipped_range_count: project.projectEditorState.export.skipRanges.length,
-			queued: mode === 'recording',
+			queued,
 			is_batch_export: Boolean(options.exportLabel)
 		});
 
 		this.ownedExportIds.add(exportation.exportId);
 		globalState.exportations.unshift(exportation);
-
-		// Sauvegarde les exports en cours
 		await this.saveExports();
 	}
 
@@ -208,56 +215,108 @@ export default class ExportService {
 		return filePath;
 	}
 
-	/**
-	 * Sauvegarde uniquement les entrées modifiées par cette fenêtre sans écraser celles des autres.
-	 * @returns {Promise<void>} Promesse résolue après la fusion côté Rust.
-	 */
-	static async saveExports(): Promise<void> {
-		await ProjectService.ensureFolder(this.exportFolder);
-
-		const currentIds = new Set(globalState.exportations.map((exp) => exp.exportId));
-		const changedExportIds = new Set(this.ownedExportIds);
-
-		for (const exportId of currentIds) {
-			if (!this.loadedExportIds.has(exportId)) changedExportIds.add(exportId);
+	/** Branche une seule fois le snapshot global émis par le backend Rust. */
+	private static async ensureSyncListener(): Promise<void> {
+		if (!this.syncListenerPromise) {
+			this.syncListenerPromise = listen<unknown[]>('export-monitor-sync', (event) => {
+				this.applySnapshot(event.payload);
+			}).then(() => undefined);
 		}
-		for (const exportId of this.loadedExportIds) {
-			if (!currentIds.has(exportId)) changedExportIds.add(exportId);
-		}
+		await this.syncListenerPromise;
+	}
 
-		if (changedExportIds.size === 0) return;
-
-		await invoke('merge_export_entries', {
-			ownedExportIds: Array.from(changedExportIds),
-			exports: globalState.exportations
-				.filter((exp) => changedExportIds.has(exp.exportId))
-				.map((exp) => exp.toJSON())
+	/** Remplace la vue locale par le snapshot partagé tout en conservant les logs runtime. */
+	private static applySnapshot(payload: unknown): void {
+		const data = Array.isArray(payload) ? payload : [];
+		const existingById = new Map(globalState.exportations.map((exp) => [exp.exportId, exp]));
+		globalState.exportations = data.map((raw) => {
+			const hydrated = Exportation.fromJSON(raw as Record<string, unknown>) as Exportation;
+			const existing = existingById.get(hydrated.exportId);
+			if (existing?.exportLogs?.length) {
+				hydrated.exportLogs = existing.exportLogs;
+			}
+			return hydrated;
 		});
+		this.knownExportIds = new Set(globalState.exportations.map((exp) => exp.exportId));
+	}
+
+	/** Persiste les IDs explicitement touchés puis diffuse le snapshot résultant. */
+	private static persistTouchedExportIds(exportIds: Iterable<number>): Promise<void> {
+		const ids = Array.from(new Set(exportIds));
+		if (ids.length === 0) return Promise.resolve();
+
+		const idSet = new Set(ids);
+		const exports = globalState.exportations
+			.filter((exp) => idSet.has(exp.exportId))
+			.map((exp) => exp.toJSON());
+		const task = this.saveChain.then(async () => {
+			const snapshot = await invoke<unknown[]>('merge_export_entries', {
+				ownedExportIds: ids,
+				exports
+			});
+			this.applySnapshot(snapshot);
+		});
+		this.saveChain = task.catch(() => undefined);
+		return task;
 	}
 
 	/**
-	 * Charge le monitor d'exports sans annuler les exports appartenant à une autre fenêtre active.
-	 * @returns {Promise<void>} Promesse résolue lorsque l'état local est hydraté.
+	 * Sauvegarde les exports appartenant à cette fenêtre et les suppressions locales sans
+	 * écraser les entrées des autres fenêtres.
+	 */
+	static async saveExports(): Promise<void> {
+		await ProjectService.ensureFolder(this.exportFolder);
+		await this.ensureSyncListener();
+
+		const currentIds = new Set(globalState.exportations.map((exp) => exp.exportId));
+		for (const exportId of currentIds) {
+			if (!this.knownExportIds.has(exportId)) {
+				this.ownedExportIds.add(exportId);
+			}
+		}
+
+		const touchedIds = new Set(this.ownedExportIds);
+		for (const exportId of this.knownExportIds) {
+			if (!currentIds.has(exportId)) touchedIds.add(exportId);
+		}
+
+		await this.persistTouchedExportIds(touchedIds);
+	}
+
+	/** Persiste explicitement quelques entrées, même depuis une fenêtre qui ne les a pas créées. */
+	static async persistExportIds(exportIds: Iterable<number>): Promise<void> {
+		await this.ensureSyncListener();
+		await this.persistTouchedExportIds(exportIds);
+	}
+
+	/**
+	 * Réserve atomiquement le prochain export vidéo de la file globale FIFO.
+	 * @returns Identifiant réservé, ou `null` lorsqu'un autre export est actif / la file est vide.
+	 */
+	static async claimNextVideoExport(): Promise<number | null> {
+		await this.ensureSyncListener();
+		const result = await invoke<ClaimNextVideoExportResult>('claim_next_video_export');
+		this.applySnapshot(result.exports);
+		return typeof result.exportId === 'number' ? result.exportId : null;
+	}
+
+	/**
+	 * Charge le monitor partagé. Seule la fenêtre `main` du démarrage du processus transforme
+	 * les anciens exports interrompus en `Canceled`; les fenêtres créées ensuite ne les touchent pas.
 	 */
 	static async loadExports(): Promise<void> {
+		await this.ensureSyncListener();
 		const filePath = await join(await appDataDir(), `exports.json`);
 
 		if ((await exists(filePath)) === false) {
-			// Aucun export trouvé
-			globalState.exportations = [];
-			this.loadedExportIds = new Set();
+			this.applySnapshot([]);
 			return;
 		}
 
 		const json = await readTextFile(filePath);
 		const parsedData: unknown = JSON.parse(json);
-		const data = Array.isArray(parsedData) ? parsedData : [];
-		globalState.exportations = data.map(
-			(exp) => Exportation.fromJSON(exp as Record<string, unknown>) as Exportation
-		);
-		this.loadedExportIds = new Set(globalState.exportations.map((exp) => exp.exportId));
+		this.applySnapshot(Array.isArray(parsedData) ? parsedData : []);
 
-		// Seule la fenêtre initiale correspond à un vrai redémarrage du processus.
 		if (getCurrentWindow().label !== 'main') return;
 
 		const interruptedExportIds: number[] = [];
@@ -269,13 +328,7 @@ export default class ExportService {
 		});
 
 		if (interruptedExportIds.length > 0) {
-			const interruptedIds = new Set(interruptedExportIds);
-			await invoke('merge_export_entries', {
-				ownedExportIds: interruptedExportIds,
-				exports: globalState.exportations
-					.filter((exp) => interruptedIds.has(exp.exportId))
-					.map((exp) => exp.toJSON())
-			});
+			await this.persistTouchedExportIds(interruptedExportIds);
 		}
 	}
 
@@ -283,7 +336,6 @@ export default class ExportService {
 		const exportPath = await join(await appDataDir(), this.exportFolder);
 
 		try {
-			// Construis le chemin d'accès vers le projet
 			const filePath = await join(exportPath, `${exportIdId}.json`);
 			await remove(filePath);
 		} catch (_e) {
@@ -296,13 +348,18 @@ export default class ExportService {
 	}
 
 	static setupListener() {
-		// Écoute les événements de progression d'export donné par Rust
 		listen('export-progress-main', exportProgress);
 		listen('export-log-main', exportLog);
 	}
 
-	static currentlyExportingProjects() {
-		return globalState.exportations.filter((exp) => exp.isOnGoing());
+	static isOwnedExport(exportId: number): boolean {
+		return this.ownedExportIds.has(exportId);
+	}
+
+	static currentlyExportingProjects(ownedOnly: boolean = false) {
+		return globalState.exportations.filter(
+			(exp) => exp.isOnGoing() && (!ownedOnly || this.ownedExportIds.has(exp.exportId))
+		);
 	}
 }
 
@@ -329,6 +386,7 @@ function exportLog(event: TauriEvent<ExportLogPayload>): void {
 
 function exportProgress(event: TauriEvent<ExportProgress>): void {
 	const data = event.payload as ExportProgress;
+	if (!ExportService.isOwnedExport(data.exportId)) return;
 
 	const exportation = globalState.exportations.find((exp) => exp.exportId === data.exportId);
 	if (exportation) {
@@ -336,7 +394,6 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 		const wasExported = exportation.currentState === ExportState.Exported;
 		const wasErrored = exportation.currentState === ExportState.Error;
 		if (exportation.currentState === ExportState.Canceled) {
-			// Si l'exportation a été annulée, on ignore les mises à jour
 			return;
 		}
 
@@ -394,7 +451,7 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 		}
 	}
 
-	ExportService.saveExports();
+	void ExportService.saveExports();
 }
 
 export interface ExportProgress {

@@ -15,14 +15,48 @@
 	const SUBDIVIDE_MIN_LIMIT = 1;
 	const SUBDIVIDE_MAX_LIMIT = 30;
 	const SUBDIVIDE_DISABLED_SENTINEL = SUBDIVIDE_MAX_LIMIT + 1;
+
+	type SubtitlesEditorStateWithMinWords = typeof globalState.getSubtitlesEditorState & {
+		subdivideMinWordsPerSegment?: number;
+	};
+
+	function getSubtitlesEditorStateWithMinWords(): SubtitlesEditorStateWithMinWords {
+		return globalState.getSubtitlesEditorState as SubtitlesEditorStateWithMinWords;
+	}
+
+	const persistedMinWordsPerSegment = Number(
+		getSubtitlesEditorStateWithMinWords().subdivideMinWordsPerSegment ?? 0
+	);
+	const initialMinWordsPerSegment =
+		Number.isFinite(persistedMinWordsPerSegment) &&
+		persistedMinWordsPerSegment >= SUBDIVIDE_MIN_LIMIT
+			? Math.min(SUBDIVIDE_MAX_LIMIT, Math.round(persistedMinWordsPerSegment))
+			: 0;
+
 	let enableMaxWords = $state(
 		globalState.getSubtitlesEditorState.subdivideMaxWordsPerSegment < SUBDIVIDE_MAX_LIMIT
 	);
+	let enableMinWords = $state(initialMinWordsPerSegment >= SUBDIVIDE_MIN_LIMIT);
 	let enableMaxDuration = $state(
 		globalState.getSubtitlesEditorState.subdivideMaxDurationPerSegment < SUBDIVIDE_MAX_LIMIT
 	);
+	let minWordsPerSegment = $state(initialMinWordsPerSegment);
+	let lastEnabledMinWords = $state(
+		initialMinWordsPerSegment >= SUBDIVIDE_MIN_LIMIT ? initialMinWordsPerSegment : 2
+	);
 	let lastEnabledMaxWords = $state(SUBDIVIDE_MAX_LIMIT);
 	let lastEnabledMaxDuration = $state(SUBDIVIDE_MAX_LIMIT);
+	let minWordsUpperLimit = $derived(
+		enableMaxWords
+			? Math.min(
+					SUBDIVIDE_MAX_LIMIT,
+					Math.max(
+						SUBDIVIDE_MIN_LIMIT,
+						globalState.getSubtitlesEditorState.subdivideMaxWordsPerSegment
+					)
+				)
+			: SUBDIVIDE_MAX_LIMIT
+	);
 
 	/**
 	 * Lance la subdivision automatique des segments longs selon les critères actifs.
@@ -33,7 +67,17 @@
 			return;
 		}
 
-		const splitCount = await subdivideLongSubtitleSegments();
+		const numericMinWords = Number(minWordsPerSegment);
+		const safeMinWordsPerSegment =
+			enableMinWords && Number.isFinite(numericMinWords)
+				? Math.min(
+						minWordsUpperLimit,
+						Math.max(SUBDIVIDE_MIN_LIMIT, Math.round(numericMinWords))
+					)
+				: 0;
+		const splitCount = await subdivideLongSubtitleSegments({
+			minWordsPerSegment: safeMinWordsPerSegment
+		});
 		if (splitCount <= 0) {
 			toast(LL_.editor.noSubtitlesMatchSplitRules());
 			return;
@@ -79,6 +123,36 @@
 		);
 		state.subdivideMaxWordsPerSegment = clampedValue;
 		lastEnabledMaxWords = clampedValue;
+	});
+
+	$effect(() => {
+		const state = getSubtitlesEditorStateWithMinWords();
+		const numericValue = Number(minWordsPerSegment);
+
+		if (!enableMinWords) {
+			if (Number.isFinite(numericValue) && numericValue >= SUBDIVIDE_MIN_LIMIT) {
+				lastEnabledMinWords = numericValue;
+			}
+			minWordsPerSegment = 0;
+			state.subdivideMinWordsPerSegment = 0;
+			return;
+		}
+
+		const fallbackValue =
+			Number.isFinite(lastEnabledMinWords) && lastEnabledMinWords >= SUBDIVIDE_MIN_LIMIT
+				? lastEnabledMinWords
+				: Math.min(2, minWordsUpperLimit);
+		const restoredValue =
+			Number.isFinite(numericValue) && numericValue >= SUBDIVIDE_MIN_LIMIT
+				? numericValue
+				: fallbackValue;
+		const clampedValue = Math.min(
+			minWordsUpperLimit,
+			Math.max(SUBDIVIDE_MIN_LIMIT, Math.round(restoredValue))
+		);
+		minWordsPerSegment = clampedValue;
+		lastEnabledMinWords = clampedValue;
+		state.subdivideMinWordsPerSegment = clampedValue;
 	});
 
 	$effect(() => {
@@ -148,6 +222,41 @@
 				<div class="flex items-center justify-between text-[10px] text-thirdly">
 					<span>{SUBDIVIDE_MIN_LIMIT}</span>
 					<span>{SUBDIVIDE_MAX_LIMIT}</span>
+				</div>
+			{/if}
+		</div>
+
+		<div class="space-y-2">
+			<div class="flex items-center justify-between gap-2">
+				<span class="text-xs text-primary">{$LL.editor.minWords()}</span>
+				<div class="flex items-center gap-2">
+					<label class="flex items-center gap-1.5 text-[11px] text-secondary">
+						<input type="checkbox" bind:checked={enableMinWords} class="w-4 h-4" />
+						{$LL.common.on()}
+					</label>
+					{#if enableMinWords}
+						<input
+							type="number"
+							min={SUBDIVIDE_MIN_LIMIT}
+							max={minWordsUpperLimit}
+							bind:value={minWordsPerSegment}
+							class="w-16 rounded-md border border-color bg-secondary px-1.5 py-0.5 text-xs text-primary"
+						/>
+					{/if}
+				</div>
+			</div>
+			{#if enableMinWords}
+				<input
+					type="range"
+					min={SUBDIVIDE_MIN_LIMIT}
+					max={minWordsUpperLimit}
+					step="1"
+					bind:value={minWordsPerSegment}
+					class="w-full"
+				/>
+				<div class="flex items-center justify-between text-[10px] text-thirdly">
+					<span>{SUBDIVIDE_MIN_LIMIT}</span>
+					<span>{minWordsUpperLimit}</span>
 				</div>
 			{/if}
 		</div>

@@ -450,6 +450,20 @@
 		});
 	}
 
+	/**
+	 * Coupe le clip audio ou vidéo courant au niveau du curseur de la timeline.
+	 * @returns {void}
+	 */
+	function splitAssetClipFromContextMenu(): void {
+		if (!(clip instanceof AssetClip)) return;
+
+		const didSplit = track.splitAssetClip(clip.id);
+		if (!didSplit) return;
+
+		globalState.currentProject?.detail.updateVideoDetailAttributes();
+		globalState.updateVideoPreviewUI();
+	}
+
 	function handleClipClick(event: MouseEvent) {
 		if (globalState.getTimelineState.wasCursorDragged) {
 			globalState.getTimelineState.wasCursorDragged = false;
@@ -603,6 +617,15 @@
 			</div>
 		</Item>
 		<Divider />
+	{/if}
+	{#if canTrim}
+		<Item on:click={splitAssetClipFromContextMenu}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">call_split</span>{get(
+					LL
+				).editor.splitAtCursor()}
+			</div></Item
+		>
 	{/if}
 	<Item on:click={removeClip}
 		><div class="btn-icon">

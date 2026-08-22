@@ -6110,6 +6110,30 @@ type RootTranslation = {
 		 */
 		enableDisableFade: string;
 		/**
+		 * P​r​o​m​o​t​e​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n
+		 */
+		quranCaptionPromotion: string;
+		/**
+		 * A​d​d​ ​a​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​p​r​o​m​o​t​i​o​n​ ​c​a​r​d
+		 */
+		addQuranCaptionPromotion: string;
+		/**
+		 * A​d​d​s​ ​a​ ​3​-​s​e​c​o​n​d​ ​c​a​r​d​ ​w​i​t​h​ ​t​h​e​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​ ​l​o​g​o​ ​a​n​d​ ​w​e​b​s​i​t​e​ ​b​e​f​o​r​e​ ​o​r​ ​a​f​t​e​r​ ​t​h​e​ ​v​i​d​e​o​.
+		 */
+		quranCaptionPromotionDescription: string;
+		/**
+		 * P​r​o​m​o​t​i​o​n​ ​p​o​s​i​t​i​o​n
+		 */
+		quranCaptionPromotionPosition: string;
+		/**
+		 * A​t​ ​t​h​e​ ​b​e​g​i​n​n​i​n​g
+		 */
+		quranCaptionPromotionAtStart: string;
+		/**
+		 * A​t​ ​t​h​e​ ​e​n​d
+		 */
+		quranCaptionPromotionAtEnd: string;
+		/**
 		 * P​e​r​f​o​r​m​a​n​c​e​ ​S​e​t​t​i​n​g​s
 		 */
 		performanceSettings: string;
@@ -17514,6 +17538,30 @@ export type TranslationFunctions = {
 		 * Enable or disable video and audio fade effects during export. Fade-in and fade-out help make the video start and end smoothly.
 		 */
 		enableDisableFade: () => LocalizedString;
+		/**
+		 * Promote Quran Caption
+		 */
+		quranCaptionPromotion: () => LocalizedString;
+		/**
+		 * Add a Quran Caption promotion card
+		 */
+		addQuranCaptionPromotion: () => LocalizedString;
+		/**
+		 * Adds a 3-second card with the Quran Caption logo and website before or after the video.
+		 */
+		quranCaptionPromotionDescription: () => LocalizedString;
+		/**
+		 * Promotion position
+		 */
+		quranCaptionPromotionPosition: () => LocalizedString;
+		/**
+		 * At the beginning
+		 */
+		quranCaptionPromotionAtStart: () => LocalizedString;
+		/**
+		 * At the end
+		 */
+		quranCaptionPromotionAtEnd: () => LocalizedString;
 		/**
 		 * Performance Settings
 		 */

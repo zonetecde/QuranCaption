@@ -1859,6 +1859,13 @@ const zh = {
 		videoAudioFade: '视频和音频淡入淡出',
 		enableDisableFade:
 			'在导出时启用或禁用视频和音频淡入淡出效果。淡入和淡出可实现平滑的开始和结束。',
+		quranCaptionPromotion: '推广 Quran Caption',
+		addQuranCaptionPromotion: '添加 Quran Caption 宣传片段',
+		quranCaptionPromotionDescription:
+			'在视频开头或结尾添加 3 秒片段，展示 Quran Caption 标志和网站。',
+		quranCaptionPromotionPosition: '宣传片段位置',
+		quranCaptionPromotionAtStart: '开头',
+		quranCaptionPromotionAtEnd: '结尾',
 		performanceSettings: '性能设置',
 		setFpsDescription: '设置导出视频的帧率。较高的值提供更流畅的播放但文件更大。',
 		batchSizeDescription:

@@ -2040,6 +2040,13 @@ const fr = {
 		videoAudioFade: 'Fondu vidéo et audio',
 		enableDisableFade:
 			'Activez ou désactivez les effets de fondu vidéo et audio lors de l\u2019export. Le fondu d\u2019entrée et de sortie permet un démarrage et une fin en douceur.',
+		quranCaptionPromotion: 'Promouvoir Quran Caption',
+		addQuranCaptionPromotion: 'Ajouter une carte promotionnelle Quran Caption',
+		quranCaptionPromotionDescription:
+			'Ajoute une carte de 3 secondes avec le logo et le site de Quran Caption avant ou après la vidéo.',
+		quranCaptionPromotionPosition: 'Position de la promotion',
+		quranCaptionPromotionAtStart: 'Au début',
+		quranCaptionPromotionAtEnd: 'À la fin',
 		performanceSettings: 'Paramètres de performance',
 		setFpsDescription:
 			'Définissez les images par seconde de la vidéo exportée. Des valeurs élevées offrent une lecture plus fluide mais des fichiers plus volumineux.',

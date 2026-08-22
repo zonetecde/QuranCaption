@@ -82,6 +82,10 @@ pub async fn export_video(
     video_codec: Option<ExportVideoCodec>,
     video_clip_transition_mode: Option<VideoClipTransitionMode>,
     video_clip_transition_duration_ms: Option<i32>,
+    promotion_enabled: Option<bool>,
+    promotion_position: Option<String>,
+    video_width: Option<i32>,
+    video_height: Option<i32>,
     blank_timings: Option<Vec<i32>>,
     performance_profile: ExportPerformanceProfile,
     app: tauri::AppHandle,
@@ -298,6 +302,7 @@ pub async fn export_video(
     }
     let app_handle = app.clone();
     let export_id_clone = export_id.clone();
+    let transparent_export_format_for_task = transparent_export_format.clone();
     let audio_gain = (audio_volume.unwrap_or(100.0) / 100.0).clamp(0.0, 2.0);
     let media_fill = media_fill.unwrap_or(false);
     let media_scale = media_scale.unwrap_or(100.0).clamp(100.0, 300.0);
@@ -332,7 +337,7 @@ pub async fn export_video(
             audio_fade_out_enabled.unwrap_or(false),
             export_fade_duration_ms.unwrap_or(0),
             export_without_background.unwrap_or(false),
-            transparent_export_format.as_deref(),
+            transparent_export_format_for_task.as_deref(),
             video_codec.unwrap_or(ExportVideoCodec::H264),
             video_clip_transition_mode.unwrap_or(VideoClipTransitionMode::None),
             video_clip_transition_duration_ms.unwrap_or(0),
@@ -343,6 +348,23 @@ pub async fn export_video(
     .await
     .map_err(|e| format!("Erreur tâche: {}", e))?
     .map_err(|e| format!("Erreur ffmpeg: {}", e))?;
+
+    if promotion_enabled.unwrap_or(false) {
+        concat::apply_promotion_to_video(
+            &export_id,
+            &out_path_str,
+            promotion_position.as_deref().unwrap_or("end"),
+            video_width.unwrap_or(0),
+            video_height.unwrap_or(0),
+            fps,
+            export_without_background.unwrap_or(false),
+            transparent_export_format.as_deref(),
+            video_codec.unwrap_or(ExportVideoCodec::H264),
+            performance_profile,
+            &app,
+        )
+        .map_err(|error| format!("Erreur ajout de la promotion Quran Caption: {}", error))?;
+    }
 
     // ---- Finalisation ----
     let export_time_s = t0.elapsed().as_secs_f64();
@@ -454,6 +476,8 @@ pub async fn export_segmented_video(
     video_codec: Option<ExportVideoCodec>,
     video_clip_transition_mode: Option<VideoClipTransitionMode>,
     video_clip_transition_duration_ms: Option<i32>,
+    promotion_enabled: Option<bool>,
+    promotion_position: Option<String>,
     performance_profile: ExportPerformanceProfile,
     app: tauri::AppHandle,
 ) -> Result<String, String> {
@@ -507,6 +531,10 @@ pub async fn export_segmented_video(
             video_codec,
             video_clip_transition_mode,
             video_clip_transition_duration_ms,
+            Some(false),
+            None,
+            None,
+            None,
             Some(segment.blank_timings),
             performance_profile,
             app.clone(),
@@ -528,7 +556,12 @@ pub async fn export_segmented_video(
         export_without_background,
         transparent_export_format,
         video_codec,
+        Some(fps),
         performance_profile,
+        promotion_enabled,
+        promotion_position,
+        Some(video_width),
+        Some(video_height),
         app,
     )
     .await?;
@@ -2769,7 +2802,12 @@ pub async fn concat_videos(
     export_without_background: Option<bool>,
     transparent_export_format: Option<String>,
     video_codec: Option<ExportVideoCodec>,
+    fps: Option<i32>,
     performance_profile: ExportPerformanceProfile,
+    promotion_enabled: Option<bool>,
+    promotion_position: Option<String>,
+    video_width: Option<i32>,
+    video_height: Option<i32>,
     app: tauri::AppHandle,
 ) -> Result<String, String> {
     let completion_export_id = export_id.clone();
@@ -2787,7 +2825,12 @@ pub async fn concat_videos(
             export_without_background,
             transparent_export_format,
             video_codec,
+            fps,
             performance_profile,
+            promotion_enabled,
+            promotion_position,
+            video_width,
+            video_height,
             concat_app,
         )
     })
@@ -2810,7 +2853,12 @@ fn concat_videos_sync(
     export_without_background: Option<bool>,
     transparent_export_format: Option<String>,
     video_codec: Option<ExportVideoCodec>,
+    fps: Option<i32>,
     performance_profile: ExportPerformanceProfile,
+    promotion_enabled: Option<bool>,
+    promotion_position: Option<String>,
+    video_width: Option<i32>,
+    video_height: Option<i32>,
     app: tauri::AppHandle,
 ) -> Result<String, String> {
     // Normalisation des chemins
@@ -2849,6 +2897,11 @@ fn concat_videos_sync(
             .unwrap_or("mov_prores_4444")
     );
     let video_codec = video_codec.unwrap_or(ExportVideoCodec::H264);
+    let promotion_enabled = promotion_enabled.unwrap_or(false);
+    let promotion_position = promotion_position.as_deref().unwrap_or("end");
+    let promotion_fps = fps.unwrap_or(30);
+    let promotion_width = video_width.unwrap_or(0);
+    let promotion_height = video_height.unwrap_or(0);
 
     let apply_video_fade =
         video_fade_in_enabled.unwrap_or(false) || video_fade_out_enabled.unwrap_or(false);
@@ -2876,6 +2929,22 @@ fn concat_videos_sync(
         println!("[concat_videos] Une seule vidéo, copie vers le fichier final");
         std::fs::copy(&normalized_video_paths[0], &output_path_str)
             .map_err(|e| format!("Erreur lors de la copie: {}", e))?;
+        if promotion_enabled {
+            concat::apply_promotion_to_video(
+                &export_id,
+                &output_path_str,
+                promotion_position,
+                promotion_width,
+                promotion_height,
+                promotion_fps,
+                export_without_background.unwrap_or(false),
+                transparent_export_format.as_deref(),
+                video_codec,
+                performance_profile,
+                &app,
+            )
+            .map_err(|error| format!("Erreur ajout de la promotion Quran Caption: {}", error))?;
+        }
         return Ok(output_path_str);
     }
 
@@ -2918,6 +2987,22 @@ fn concat_videos_sync(
             &app,
         )
         .map_err(|e| format!("Erreur concaténation stream-copy FFmpeg: {}", e))?;
+        if promotion_enabled {
+            concat::apply_promotion_to_video(
+                &export_id,
+                &output_path_str,
+                promotion_position,
+                promotion_width,
+                promotion_height,
+                promotion_fps,
+                export_without_background.unwrap_or(false),
+                transparent_export_format.as_deref(),
+                video_codec,
+                performance_profile,
+                &app,
+            )
+            .map_err(|error| format!("Erreur ajout de la promotion Quran Caption: {}", error))?;
+        }
         return Ok(output_path_str);
     }
 
@@ -3142,6 +3227,23 @@ fn concat_videos_sync(
         &app,
     )
     .map_err(|e| format!("Erreur exécution FFmpeg: {}", e))?;
+
+    if promotion_enabled {
+        concat::apply_promotion_to_video(
+            &export_id,
+            &output_path_str,
+            promotion_position,
+            promotion_width,
+            promotion_height,
+            promotion_fps,
+            export_without_background.unwrap_or(false),
+            transparent_export_format.as_deref(),
+            video_codec,
+            performance_profile,
+            &app,
+        )
+        .map_err(|error| format!("Erreur ajout de la promotion Quran Caption: {}", error))?;
+    }
 
     if !Path::new(&output_path_str).exists() {
         return Err("Le fichier de sortie n'a pas été créé".to_string());

@@ -2039,6 +2039,13 @@ const de = {
 		videoAudioFade: 'Video- und Audio-Ein-/Ausblendung',
 		enableDisableFade:
 			'Aktivieren oder deaktivieren Sie Video- und Audio-Ein-/Ausblendeffekte beim Export. Ein- und Ausblendung sorgen für einen sanften Start und ein sanftes Ende.',
+		quranCaptionPromotion: 'Quran Caption bewerben',
+		addQuranCaptionPromotion: 'Eine Quran-Caption-Werbekarte hinzufügen',
+		quranCaptionPromotionDescription:
+			'Fügt vor oder nach dem Video eine 3-sekündige Karte mit dem Quran-Caption-Logo und der Website ein.',
+		quranCaptionPromotionPosition: 'Position der Werbung',
+		quranCaptionPromotionAtStart: 'Am Anfang',
+		quranCaptionPromotionAtEnd: 'Am Ende',
 		performanceSettings: 'Leistungseinstellungen',
 		setFpsDescription:
 			'Legen Sie die Bilder pro Sekunde des exportierten Videos fest. Höhere Werte bieten flüssigere Wiedergabe, aber größere Dateien.',

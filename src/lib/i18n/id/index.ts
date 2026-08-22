@@ -1337,6 +1337,13 @@ const id = {
 		videoAudioFade: 'Fade Video & Audio',
 		enableDisableFade:
 			'Aktifkan atau nonaktifkan efek fade video dan audio saat export. Fade-in dan fade-out membantu video mulai dan selesai dengan lebih halus.',
+		quranCaptionPromotion: 'Promosikan Quran Caption',
+		addQuranCaptionPromotion: 'Tambahkan kartu promosi Quran Caption',
+		quranCaptionPromotionDescription:
+			'Tambahkan kartu 3 detik dengan logo dan situs web Quran Caption sebelum atau sesudah video.',
+		quranCaptionPromotionPosition: 'Posisi promosi',
+		quranCaptionPromotionAtStart: 'Di awal',
+		quranCaptionPromotionAtEnd: 'Di akhir',
 		performanceSettings: 'Pengaturan performa',
 		setFpsDescription:
 			'Atur frames per second untuk video hasil export. Nilai lebih tinggi bikin playback lebih halus tapi ukuran file lebih besar.',

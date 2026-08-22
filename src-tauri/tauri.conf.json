@@ -84,7 +84,9 @@
 	"bundle": {
 		"active": true,
 		"resources": [
-			"resources/notifications/**/*"
+			"resources/notifications/**/*",
+			"resources/quran_caption_intro.png",
+			"resources/quran_caption_intro_phone.png"
 		],
 		"icon": [
 			"icons/32x32.png",

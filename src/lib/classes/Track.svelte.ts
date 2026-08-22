@@ -481,6 +481,44 @@ export class Track extends SerializableBase {
 	}
 
 	/**
+	 * Coupe un clip audio ou vidéo au niveau du curseur de la timeline.
+	 * @param {number} clipId Identifiant du clip à couper.
+	 * @returns {boolean} `true` si le clip a été coupé.
+	 */
+	splitAssetClip(clipId: number): boolean {
+		ProjectHistoryManager.begin('split asset clip');
+		try {
+			if (this.type !== TrackType.Video && this.type !== TrackType.Audio) return false;
+
+			const clipIndex = this.clips.findIndex((clip) => clip.id === clipId);
+			const clip = this.clips[clipIndex];
+			if (!(clip instanceof AssetClip) || clip.loopUntilAudioEnd) return false;
+
+			const splitTime = globalState.getTimelineState.cursorPosition;
+			if (splitTime <= clip.startTime || splitTime >= clip.endTime) return false;
+			if (splitTime - clip.startTime < 100 || clip.endTime - splitTime < 100) {
+				toast.error(get(LL).editor.clipsTooShort());
+				return false;
+			}
+
+			const originalStartTime = clip.startTime;
+			const originalEndTime = clip.endTime;
+			const originalSourceStartTime = clip.sourceStartTime ?? 0;
+
+			clip.setEndTime(splitTime);
+
+			const newClip = new AssetClip(splitTime, originalEndTime, clip.assetId);
+			newClip.sourceStartTime = originalSourceStartTime + (splitTime - originalStartTime);
+			newClip.showWaveform = clip.showWaveform;
+			this.clips.splice(clipIndex + 1, 0, newClip);
+
+			return true;
+		} finally {
+			ProjectHistoryManager.commit();
+		}
+	}
+
+	/**
 	 * Indique si un clip vidéo à durée nulle représente l'image de fond de toute la timeline.
 	 *
 	 * @param {Clip | undefined} clip Clip à tester.

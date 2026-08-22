@@ -18,10 +18,12 @@
 	let enableMaxWords = $state(
 		globalState.getSubtitlesEditorState.subdivideMaxWordsPerSegment < SUBDIVIDE_MAX_LIMIT
 	);
+	let enableMinWords = $state(false);
 	let enableMaxDuration = $state(
 		globalState.getSubtitlesEditorState.subdivideMaxDurationPerSegment < SUBDIVIDE_MAX_LIMIT
 	);
-	let minWordsPerSegment = $state(2);
+	let minWordsPerSegment = $state(0);
+	let lastEnabledMinWords = $state(2);
 	let lastEnabledMaxWords = $state(SUBDIVIDE_MAX_LIMIT);
 	let lastEnabledMaxDuration = $state(SUBDIVIDE_MAX_LIMIT);
 	let minWordsUpperLimit = $derived(
@@ -94,10 +96,22 @@
 	});
 
 	$effect(() => {
-		minWordsPerSegment = Math.min(
+		if (!enableMinWords) {
+			if (minWordsPerSegment >= SUBDIVIDE_MIN_LIMIT) {
+				lastEnabledMinWords = minWordsPerSegment;
+			}
+			minWordsPerSegment = 0;
+			return;
+		}
+
+		const restoredValue =
+			minWordsPerSegment < SUBDIVIDE_MIN_LIMIT ? lastEnabledMinWords : minWordsPerSegment;
+		const clampedValue = Math.min(
 			minWordsUpperLimit,
-			Math.max(SUBDIVIDE_MIN_LIMIT, Math.round(minWordsPerSegment))
+			Math.max(SUBDIVIDE_MIN_LIMIT, Math.round(restoredValue))
 		);
+		minWordsPerSegment = clampedValue;
+		lastEnabledMinWords = clampedValue;
 	});
 
 	$effect(() => {
@@ -174,26 +188,36 @@
 		<div class="space-y-2">
 			<div class="flex items-center justify-between gap-2">
 				<span class="text-xs text-primary">{$LL.editor.minWords()}</span>
+				<div class="flex items-center gap-2">
+					<label class="flex items-center gap-1.5 text-[11px] text-secondary">
+						<input type="checkbox" bind:checked={enableMinWords} class="w-4 h-4" />
+						{$LL.common.on()}
+					</label>
+					{#if enableMinWords}
+						<input
+							type="number"
+							min={SUBDIVIDE_MIN_LIMIT}
+							max={minWordsUpperLimit}
+							bind:value={minWordsPerSegment}
+							class="w-16 rounded-md border border-color bg-secondary px-1.5 py-0.5 text-xs text-primary"
+						/>
+					{/if}
+				</div>
+			</div>
+			{#if enableMinWords}
 				<input
-					type="number"
+					type="range"
 					min={SUBDIVIDE_MIN_LIMIT}
 					max={minWordsUpperLimit}
+					step="1"
 					bind:value={minWordsPerSegment}
-					class="w-16 rounded-md border border-color bg-secondary px-1.5 py-0.5 text-xs text-primary"
+					class="w-full"
 				/>
-			</div>
-			<input
-				type="range"
-				min={SUBDIVIDE_MIN_LIMIT}
-				max={minWordsUpperLimit}
-				step="1"
-				bind:value={minWordsPerSegment}
-				class="w-full"
-			/>
-			<div class="flex items-center justify-between text-[10px] text-thirdly">
-				<span>{SUBDIVIDE_MIN_LIMIT}</span>
-				<span>{minWordsUpperLimit}</span>
-			</div>
+				<div class="flex items-center justify-between text-[10px] text-thirdly">
+					<span>{SUBDIVIDE_MIN_LIMIT}</span>
+					<span>{minWordsUpperLimit}</span>
+				</div>
+			{/if}
 		</div>
 
 		<div class="space-y-2">

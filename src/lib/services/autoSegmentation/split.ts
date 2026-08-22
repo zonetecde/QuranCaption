@@ -259,9 +259,13 @@ async function getAutomaticSplitWordIndex(
 	const exceedsWords = maxWords !== null && wordCount > maxWords;
 	const exceedsDuration = maxDurationSeconds !== null && clip.duration / 1000 > maxDurationSeconds;
 	if (!exceedsWords && !exceedsDuration) return null;
-	if (!clip.alignmentMetadata || wordCount < minWords * 2) return null;
 
 	const effectiveMinWords = maxWords === null ? minWords : Math.min(minWords, maxWords);
+	if (!clip.alignmentMetadata || wordCount < effectiveMinWords * 2) return null;
+
+	const verse = await Quran.getVerse(clip.surah, clip.verse);
+	if (!verse) return null;
+
 	let targetLeftWordCount: number | null;
 	if (exceedsWords && maxWords !== null) {
 		targetLeftWordCount = getPreferredLeftWordCount(wordCount, effectiveMinWords, maxWords);

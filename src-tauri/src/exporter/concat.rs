@@ -4,11 +4,16 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
+use tauri::Manager;
+
 use super::batching;
 use super::codec;
 use super::ffmpeg_runner;
 use super::ffmpeg_utils;
-use super::types::{ExportPerformanceProfile, FfmpegProgressContext};
+use super::types::{ExportPerformanceProfile, ExportVideoCodec, FfmpegProgressContext};
+
+const QURAN_CAPTION_PROMOTION_DURATION_S: f64 = 3.5;
+const QURAN_CAPTION_PROMOTION_TRANSITION_S: f64 = 0.4;
 
 // ---------------------------------------------------------------------------
 // Fichier de concaténation FFmpeg
@@ -159,6 +164,293 @@ pub fn append_export_audio_codec_args(
             "320k".to_string(),
         ]);
     }
+}
+
+/// Résout l'image promotionnelle adaptée à l'orientation de la vidéo.
+///
+/// Les ressources embarquées sont utilisées en production et le dossier source
+/// est conservé comme repli pour les lancements de développement.
+fn resolve_promotion_image(
+    app_handle: &tauri::AppHandle,
+    video_width: i32,
+    video_height: i32,
+) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync + 'static>> {
+    let filename = if video_width >= video_height {
+        "quran_caption_intro.png"
+    } else {
+        "quran_caption_intro_phone.png"
+    };
+    let relative_path = Path::new("resources").join(filename);
+    let resource_path = app_handle
+        .path()
+        .resolve(&relative_path, tauri::path::BaseDirectory::Resource)
+        .map_err(|error| format!("Impossible de résoudre l'image promotionnelle: {}", error))?;
+    if resource_path.exists() {
+        return Ok(resource_path);
+    }
+
+    let development_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("resources")
+        .join(filename);
+    if development_path.exists() {
+        return Ok(development_path);
+    }
+
+    Err(format!("Image promotionnelle introuvable: {}", filename).into())
+}
+
+/// Ajoute une carte Quran Caption de trois secondes avec un fondu croisé.
+#[allow(clippy::too_many_arguments)]
+fn render_promotion_video(
+    export_id: &str,
+    input_path: &str,
+    output_path: &str,
+    promotion_position: &str,
+    video_width: i32,
+    video_height: i32,
+    fps: i32,
+    export_without_background: bool,
+    transparent_export_format: Option<&str>,
+    video_codec: ExportVideoCodec,
+    performance_profile: ExportPerformanceProfile,
+    app_handle: &tauri::AppHandle,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+    ffmpeg_runner::ensure_export_not_cancelled(export_id)?;
+
+    let input = path_utils::normalize_existing_path(input_path);
+    if !input.exists() {
+        return Err(format!("Vidéo à promouvoir introuvable: {}", input.display()).into());
+    }
+
+    let input_str = input.to_string_lossy().to_string();
+    let image = resolve_promotion_image(app_handle, video_width, video_height)?;
+    let main_duration_s = ffmpeg_utils::ffprobe_duration_sec(&input_str);
+    if !main_duration_s.is_finite() || main_duration_s <= 0.0 {
+        return Err("Impossible de déterminer la durée de la vidéo à promouvoir".into());
+    }
+
+    let width = (video_width.max(2) / 2) * 2;
+    let height = (video_height.max(2) / 2) * 2;
+    let output_fps = fps.max(1);
+    let transition_s = QURAN_CAPTION_PROMOTION_TRANSITION_S
+        .min(QURAN_CAPTION_PROMOTION_DURATION_S / 2.0)
+        .min(main_duration_s / 2.0);
+    let promotion_first = promotion_position == "start";
+    let xfade_offset_s = if promotion_first {
+        QURAN_CAPTION_PROMOTION_DURATION_S - transition_s
+    } else {
+        (main_duration_s - transition_s).max(0.0)
+    };
+    let output_duration_s = main_duration_s + QURAN_CAPTION_PROMOTION_DURATION_S - transition_s;
+    let frame_format = if export_without_background {
+        "yuva420p"
+    } else {
+        "yuv420p"
+    };
+
+    let ffmpeg_exe = ffmpeg_utils::resolve_ffmpeg_binary().unwrap_or_else(|| "ffmpeg".to_string());
+    let mut cmd = vec![
+        ffmpeg_exe,
+        "-y".to_string(),
+        "-hide_banner".to_string(),
+        "-loglevel".to_string(),
+        "warning".to_string(),
+        "-nostats".to_string(),
+        "-progress".to_string(),
+        "pipe:2".to_string(),
+        "-i".to_string(),
+        input.to_string_lossy().to_string(),
+        "-loop".to_string(),
+        "1".to_string(),
+        "-framerate".to_string(),
+        output_fps.to_string(),
+        "-i".to_string(),
+        image.to_string_lossy().to_string(),
+    ];
+
+    if let Some(thread_cap) = codec::compute_ffmpeg_thread_cap(performance_profile) {
+        cmd.extend_from_slice(&["-threads".to_string(), thread_cap.to_string()]);
+    }
+
+    let main_video = format!(
+        "[0:v]settb=AVTB,fps={},scale={}:{}:force_original_aspect_ratio=increase,crop={}:{},setsar=1,setpts=PTS-STARTPTS,format={}[mainv]",
+        output_fps, width, height, width, height, frame_format
+    );
+    let promotion_video = format!(
+        "[1:v]settb=AVTB,fps={},scale={}:{}:force_original_aspect_ratio=increase,crop={}:{},setsar=1,trim=duration={:.6},setpts=PTS-STARTPTS,format={}[promov]",
+        output_fps,
+        width,
+        height,
+        width,
+        height,
+        QURAN_CAPTION_PROMOTION_DURATION_S,
+        frame_format
+    );
+    let video_transition = if promotion_first {
+        format!(
+            "[promov][mainv]xfade=transition=fade:duration={:.6}:offset={:.6}[outv]",
+            transition_s, xfade_offset_s
+        )
+    } else {
+        format!(
+            "[mainv][promov]xfade=transition=fade:duration={:.6}:offset={:.6}[outv]",
+            transition_s, xfade_offset_s
+        )
+    };
+    let mut filter_lines = vec![main_video, promotion_video, video_transition];
+    let has_audio = ffmpeg_utils::video_has_audio(&input_str);
+    if has_audio {
+        filter_lines.push(
+            "[0:a]aresample=48000,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo,asetpts=PTS-STARTPTS[maina]"
+                .to_string(),
+        );
+        filter_lines.push(format!(
+            "anullsrc=r=48000:cl=stereo,atrim=duration={:.6},asetpts=PTS-STARTPTS[promoa]",
+            QURAN_CAPTION_PROMOTION_DURATION_S
+        ));
+        let audio_transition = if promotion_first {
+            format!(
+                "[promoa][maina]acrossfade=d={:.6}:c1=tri:c2=tri[outa]",
+                transition_s
+            )
+        } else {
+            format!(
+                "[maina][promoa]acrossfade=d={:.6}:c1=tri:c2=tri[outa]",
+                transition_s
+            )
+        };
+        filter_lines.push(audio_transition);
+    }
+
+    cmd.extend_from_slice(&[
+        "-filter_complex".to_string(),
+        filter_lines.join(";"),
+        "-map".to_string(),
+        "[outv]".to_string(),
+    ]);
+
+    let use_mov_alpha =
+        batching::transparent_export_uses_mov(export_without_background, transparent_export_format);
+    if export_without_background && use_mov_alpha {
+        cmd.extend_from_slice(&[
+            "-c:v".to_string(),
+            "qtrle".to_string(),
+            "-pix_fmt".to_string(),
+            "argb".to_string(),
+        ]);
+    } else if export_without_background {
+        cmd.extend_from_slice(&[
+            "-c:v".to_string(),
+            "libvpx-vp9".to_string(),
+            "-crf".to_string(),
+            "28".to_string(),
+            "-b:v".to_string(),
+            "0".to_string(),
+            "-row-mt".to_string(),
+            "1".to_string(),
+            "-cpu-used".to_string(),
+            "2".to_string(),
+            "-pix_fmt".to_string(),
+            "yuva420p".to_string(),
+        ]);
+    } else if video_codec == ExportVideoCodec::H265 {
+        let (vcodec, vparams, vextra) =
+            codec::choose_h265_codec(true, width, height, performance_profile);
+        cmd.extend_from_slice(&["-c:v".to_string(), vcodec]);
+        if let Some(Some(preset)) = vextra.get("preset") {
+            cmd.extend_from_slice(&["-preset".to_string(), preset.clone()]);
+        }
+        cmd.extend(vparams);
+    } else {
+        cmd.extend_from_slice(&[
+            "-c:v".to_string(),
+            "libx264".to_string(),
+            "-preset".to_string(),
+            "veryfast".to_string(),
+            "-crf".to_string(),
+            "18".to_string(),
+            "-pix_fmt".to_string(),
+            frame_format.to_string(),
+        ]);
+    }
+
+    if has_audio {
+        cmd.extend_from_slice(&["-map".to_string(), "[outa]".to_string()]);
+        append_export_audio_codec_args(&mut cmd, export_without_background, use_mov_alpha);
+    } else {
+        cmd.push("-an".to_string());
+    }
+    if !export_without_background {
+        cmd.extend_from_slice(&["-movflags".to_string(), "+faststart".to_string()]);
+    }
+    cmd.extend_from_slice(&[
+        "-t".to_string(),
+        format!("{:.6}", output_duration_s),
+        output_path.to_string(),
+    ]);
+
+    ffmpeg_runner::run_ffmpeg_command(
+        export_id,
+        &cmd,
+        Some(FfmpegProgressContext {
+            base_time_s: 0.0,
+            total_time_s: output_duration_s.max(0.001),
+            local_duration_s: output_duration_s.max(0.001),
+            suppress_error_event: false,
+            current_batch_size: None,
+        }),
+        Some("Merging Files"),
+        None,
+        app_handle,
+    )?;
+
+    if !Path::new(output_path).exists() {
+        return Err("La vidéo promotionnelle n'a pas été créée".into());
+    }
+    Ok(())
+}
+
+/// Ajoute la promotion à une vidéo existante en remplaçant la destination atomiquement.
+#[allow(clippy::too_many_arguments)]
+pub fn apply_promotion_to_video(
+    export_id: &str,
+    video_path: &str,
+    promotion_position: &str,
+    video_width: i32,
+    video_height: i32,
+    fps: i32,
+    export_without_background: bool,
+    transparent_export_format: Option<&str>,
+    video_codec: ExportVideoCodec,
+    performance_profile: ExportPerformanceProfile,
+    app_handle: &tauri::AppHandle,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+    let input = path_utils::normalize_existing_path(video_path);
+    let input_str = input.to_string_lossy().to_string();
+    let temporary_output = ffmpeg_utils::build_temp_output_path(&input);
+    let temporary_output_str = temporary_output.to_string_lossy().to_string();
+    let result = render_promotion_video(
+        export_id,
+        &input_str,
+        &temporary_output_str,
+        promotion_position,
+        video_width,
+        video_height,
+        fps,
+        export_without_background,
+        transparent_export_format,
+        video_codec,
+        performance_profile,
+        app_handle,
+    );
+    if let Err(error) = result {
+        fs::remove_file(&temporary_output).ok();
+        return Err(error);
+    }
+
+    ffmpeg_utils::replace_preproc_file(&temporary_output, &input)
+        .map_err(|error| format!("Impossible de remplacer la vidéo exportée: {}", error))?;
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------

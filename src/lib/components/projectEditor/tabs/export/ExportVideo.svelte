@@ -85,6 +85,15 @@
 		randomBackgroundFolderDescription: () => string;
 	};
 	let randomBackgroundCopy = $derived($LL.export as unknown as RandomBackgroundCopy);
+	type QuranCaptionPromotionCopy = {
+		quranCaptionPromotion: () => string;
+		addQuranCaptionPromotion: () => string;
+		quranCaptionPromotionDescription: () => string;
+		quranCaptionPromotionPosition: () => string;
+		quranCaptionPromotionAtStart: () => string;
+		quranCaptionPromotionAtEnd: () => string;
+	};
+	let promotionCopy = $derived($LL.export as unknown as QuranCaptionPromotionCopy);
 	let meaningRanges = $state<MeaningExportRange[]>([]);
 	let selectedMeaningRangeId = $state<string | null>(null);
 	let selectedMeaningRangeIds = $state<string[]>([]);
@@ -502,6 +511,32 @@
 	}
 
 	/**
+	 * Active ou désactive la carte promotionnelle Quran Caption pour l'export.
+	 * @param {boolean} enabled Nouvel état de l'option.
+	 * @returns {void}
+	 */
+	function setQuranCaptionPromotionEnabled(enabled: boolean): void {
+		if (globalState.getExportState.includeQuranCaptionPromotion === enabled) return;
+
+		ProjectHistoryManager.track('toggle Quran Caption promotion', () => {
+			globalState.getExportState.includeQuranCaptionPromotion = enabled;
+		});
+	}
+
+	/**
+	 * Modifie la position de la carte promotionnelle dans la vidéo exportée.
+	 * @param {'start' | 'end'} position Nouvelle position.
+	 * @returns {void}
+	 */
+	function setQuranCaptionPromotionPosition(position: 'start' | 'end'): void {
+		if (globalState.getExportState.quranCaptionPromotionPosition === position) return;
+
+		ProjectHistoryManager.track('set Quran Caption promotion position', () => {
+			globalState.getExportState.quranCaptionPromotionPosition = position;
+		});
+	}
+
+	/**
 	 * Modifie la marge conservée autour des coupures de récitation.
 	 * @param {number} marginMs Marge en millisecondes.
 	 * @returns {void}
@@ -886,6 +921,53 @@
 				/>
 			</div>
 		</div>
+
+		<section class="mb-6">
+			<h4 class="text-base font-medium text-secondary mb-3">
+				{promotionCopy.quranCaptionPromotion()}
+			</h4>
+			<div class="rounded-lg border border-color bg-secondary p-4 bg-accent">
+				<label class="flex items-start gap-3 cursor-pointer select-none">
+					<input
+						type="checkbox"
+						class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
+						checked={globalState.getExportState.includeQuranCaptionPromotion}
+						onchange={(event) =>
+							setQuranCaptionPromotionEnabled((event.currentTarget as HTMLInputElement).checked)}
+					/>
+					<span class="text-sm text-primary">
+						{promotionCopy.addQuranCaptionPromotion()}
+						<span class="block text-xs text-thirdly mt-1">
+							{promotionCopy.quranCaptionPromotionDescription()}
+						</span>
+					</span>
+				</label>
+
+				{#if globalState.getExportState.includeQuranCaptionPromotion}
+					<div class="mt-4 border-t border-color pt-4">
+						<label
+							class="block text-sm font-medium text-primary mb-2"
+							for="quran-caption-promotion-position"
+						>
+							{promotionCopy.quranCaptionPromotionPosition()}
+						</label>
+						<select
+							id="quran-caption-promotion-position"
+							class="input w-full"
+							value={globalState.getExportState.quranCaptionPromotionPosition}
+							onchange={(event) =>
+								setQuranCaptionPromotionPosition(
+									(event.currentTarget as HTMLSelectElement).value as 'start' | 'end'
+								)}
+						>
+							<option value="start">{promotionCopy.quranCaptionPromotionAtStart()}</option>
+							<option value="end">{promotionCopy.quranCaptionPromotionAtEnd()}</option>
+						</select>
+					</div>
+				{/if}
+			</div>
+		</section>
+
 		<div class="mb-6">
 			<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.performanceSettings()}</h4>
 			<div class="bg-accent rounded-lg p-4 border border-color">

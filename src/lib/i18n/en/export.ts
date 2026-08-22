@@ -40,6 +40,13 @@ const export_ = {
 	videoAudioFade: 'Video & Audio Fade',
 	enableDisableFade:
 		'Enable or disable video and audio fade effects during export. Fade-in and fade-out help make the video start and end smoothly.',
+	quranCaptionPromotion: 'Promote Quran Caption',
+	addQuranCaptionPromotion: 'Add a Quran Caption promotion card',
+	quranCaptionPromotionDescription:
+		'Adds a 3-second card with the Quran Caption logo and website before or after the video.',
+	quranCaptionPromotionPosition: 'Promotion position',
+	quranCaptionPromotionAtStart: 'At the beginning',
+	quranCaptionPromotionAtEnd: 'At the end',
 	performanceSettings: 'Performance Settings',
 	setFpsDescription:
 		'Set the frames per second for the exported video. Higher values result in smoother playback but larger file sizes.',

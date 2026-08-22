@@ -1595,6 +1595,11 @@
 				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
 				performanceProfile: globalState.settings?.exportSettings.performanceProfile ?? 'balanced',
 				videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
+				fps: exportData!.fps,
+				promotionEnabled: globalState.getExportState.includeQuranCaptionPromotion,
+				promotionPosition: globalState.getExportState.quranCaptionPromotionPosition,
+				videoWidth: exportData!.videoDimensions.width,
+				videoHeight: exportData!.videoDimensions.height,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat
 			});
@@ -1993,6 +1998,10 @@
 				videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
 				videoClipTransitionMode: getVideoClipTransitionMode(),
 				videoClipTransitionDurationMs: getVideoClipTransitionDurationMs(),
+				promotionEnabled: globalState.getExportState.includeQuranCaptionPromotion,
+				promotionPosition: globalState.getExportState.quranCaptionPromotionPosition,
+				videoWidth: exportData!.videoDimensions.width,
+				videoHeight: exportData!.videoDimensions.height,
 				blankTimings,
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
 				transparentExportFormat: globalState.getExportState.transparentExportFormat

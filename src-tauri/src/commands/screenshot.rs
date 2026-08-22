@@ -1,14 +1,17 @@
 use tauri::Manager;
 
-/// Capture l'intégralité du contenu de la fenêtre principale via l'API native du système.
+/// Capture l'intégralité du contenu du moniteur contenant la fenêtre Quran Caption appelante.
 ///
-/// Passe la fenêtre en plein écran au préalable pour que la preview vidéo occupe
-/// tout l'espace, puis capture l'intégralité du moniteur avec DXGI (Windows) / CGDisplay (macOS).
+/// La fenêtre est passée en plein écran au préalable côté frontend pour que la preview vidéo
+/// occupe tout l'espace, puis le moniteur correspondant est capturé via l'API native du système.
 #[tauri::command]
-pub async fn capture_window_screenshot(app: tauri::AppHandle) -> Result<Vec<u8>, String> {
+pub async fn capture_window_screenshot(
+    app: tauri::AppHandle,
+    window_label: String,
+) -> Result<Vec<u8>, String> {
     let window = app
-        .get_webview_window("main")
-        .ok_or_else(|| "Main window not found".to_string())?;
+        .get_webview_window(&window_label)
+        .ok_or_else(|| format!("Window {window_label} not found"))?;
 
     let pos = window.outer_position().map_err(|e| e.to_string())?;
 

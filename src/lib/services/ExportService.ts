@@ -42,6 +42,7 @@ export default class ExportService {
 	static exportFolder: string = 'exports/';
 	private static knownExportIds = new Set<number>();
 	private static ownedExportIds = new Set<number>();
+	private static dirtyExportIds = new Set<number>();
 	private static syncListenerPromise: Promise<void> | null = null;
 	private static saveChain: Promise<void> = Promise.resolve();
 
@@ -64,17 +65,13 @@ export default class ExportService {
 	static async saveProject(project: Project) {
 		const folder: string = await ProjectService.ensureFolder(this.exportFolder);
 
-		// Enregistre le projet dans le dossier d'export
 		await writeTextFile(
 			await join(folder, project.detail.id.toString() + '.json'),
 			JSON.stringify(project.toJSON(), null, 2)
 		);
 	}
 
-	/**
-	 * Retourne le chemin du dossier d'export.
-	 * @returns Le chemin du dossier d'export
-	 */
+	/** Retourne le chemin du dossier d'export. */
 	static async getExportFolder(): Promise<string> {
 		if (globalState.settings?.persistentUiState.videoExportFolder) {
 			return globalState.settings.persistentUiState.videoExportFolder;
@@ -86,10 +83,6 @@ export default class ExportService {
 	/**
 	 * Ajoute un projet à la file globale. Tous les exports vidéo démarrent en attente :
 	 * le backend Rust réserve ensuite atomiquement le prochain export FIFO.
-	 * @param {Project} project Projet à ajouter.
-	 * @param {'recording' | 'stable'} _mode Paramètre historique conservé pour compatibilité.
-	 * @param {AddExportOptions} options Nom, chemin et métadonnées Batch éventuels.
-	 * @returns {Promise<void>} Promesse résolue après la persistance du monitor partagé.
 	 */
 	static async addExport(
 		project: Project,
@@ -173,15 +166,12 @@ export default class ExportService {
 		});
 
 		this.ownedExportIds.add(exportation.exportId);
+		this.dirtyExportIds.add(exportation.exportId);
 		globalState.exportations.unshift(exportation);
 		await this.saveExports();
 	}
 
-	/**
-	 * Réduit le nom de fichier pour conserver une marge compatible avec les chemins temporaires Windows.
-	 * @param {string} filePath Chemin de fichier à contraindre.
-	 * @returns {Promise<string>} Chemin original ou raccourci.
-	 */
+	/** Réduit le nom de fichier pour conserver une marge compatible avec les chemins temporaires Windows. */
 	static async constrainFilePathLength(filePath: string): Promise<string> {
 		const maxPathLength = 220;
 		const tempSuffixMargin = 48;
@@ -192,7 +182,6 @@ export default class ExportService {
 		const dirPath = pathParts.join('/');
 		const maxFileNameLength = Math.max(32, maxPathLength - dirPath.length - 1 - tempSuffixMargin);
 
-		// Laisse une marge pour les fichiers temporaires Rust qui ajoutent un suffixe `-tmp-...`.
 		if (
 			filePath.length > maxPathLength ||
 			fileName.length > maxFileNameLength ||
@@ -225,19 +214,26 @@ export default class ExportService {
 		await this.syncListenerPromise;
 	}
 
-	/** Remplace la vue locale par le snapshot partagé tout en conservant les logs runtime. */
+	/** Remplace la vue locale par le snapshot partagé tout en conservant les logs et ajouts dirty locaux. */
 	private static applySnapshot(payload: unknown): void {
 		const data = Array.isArray(payload) ? payload : [];
 		const existingById = new Map(globalState.exportations.map((exp) => [exp.exportId, exp]));
-		globalState.exportations = data.map((raw) => {
-			const hydrated = Exportation.fromJSON(raw as Record<string, unknown>) as Exportation;
-			const existing = existingById.get(hydrated.exportId);
-			if (existing?.exportLogs?.length) {
-				hydrated.exportLogs = existing.exportLogs;
-			}
-			return hydrated;
+		const snapshotIds = new Set<number>();
+		const hydrated = data.map((raw) => {
+			const exportation = Exportation.fromJSON(raw as Record<string, unknown>) as Exportation;
+			snapshotIds.add(exportation.exportId);
+			const existing = existingById.get(exportation.exportId);
+			if (existing?.exportLogs?.length) exportation.exportLogs = existing.exportLogs;
+			return exportation;
 		});
-		this.knownExportIds = new Set(globalState.exportations.map((exp) => exp.exportId));
+
+		// Un export nouvellement créé peut être dirty quelques millisecondes avant son premier merge.
+		// Un snapshot concurrent ne doit pas le faire disparaître avant que sa sauvegarde passe.
+		const localDirtyAdditions = globalState.exportations.filter(
+			(exp) => this.dirtyExportIds.has(exp.exportId) && !snapshotIds.has(exp.exportId)
+		);
+		globalState.exportations = [...localDirtyAdditions, ...hydrated];
+		this.knownExportIds = snapshotIds;
 	}
 
 	/** Persiste les IDs explicitement touchés puis diffuse le snapshot résultant. */
@@ -261,8 +257,8 @@ export default class ExportService {
 	}
 
 	/**
-	 * Sauvegarde les exports appartenant à cette fenêtre et les suppressions locales sans
-	 * écraser les entrées des autres fenêtres.
+	 * Sauvegarde uniquement les entrées réellement modifiées dans cette fenêtre.
+	 * L'ownership sert au cycle de vie de la fenêtre, pas à décider ce qui doit être réécrit.
 	 */
 	static async saveExports(): Promise<void> {
 		await ProjectService.ensureFolder(this.exportFolder);
@@ -272,27 +268,28 @@ export default class ExportService {
 		for (const exportId of currentIds) {
 			if (!this.knownExportIds.has(exportId)) {
 				this.ownedExportIds.add(exportId);
+				this.dirtyExportIds.add(exportId);
 			}
 		}
-
-		const touchedIds = new Set(this.ownedExportIds);
 		for (const exportId of this.knownExportIds) {
-			if (!currentIds.has(exportId)) touchedIds.add(exportId);
+			if (!currentIds.has(exportId)) this.dirtyExportIds.add(exportId);
 		}
 
+		const touchedIds = Array.from(this.dirtyExportIds);
+		if (touchedIds.length === 0) return;
 		await this.persistTouchedExportIds(touchedIds);
+		for (const exportId of touchedIds) this.dirtyExportIds.delete(exportId);
 	}
 
-	/** Persiste explicitement quelques entrées, même depuis une fenêtre qui ne les a pas créées. */
+	/** Persiste explicitement quelques entrées modifiées sans réécrire les autres exports possédés. */
 	static async persistExportIds(exportIds: Iterable<number>): Promise<void> {
 		await this.ensureSyncListener();
-		await this.persistTouchedExportIds(exportIds);
+		const ids = Array.from(new Set(exportIds));
+		await this.persistTouchedExportIds(ids);
+		for (const exportId of ids) this.dirtyExportIds.delete(exportId);
 	}
 
-	/**
-	 * Réserve atomiquement le prochain export vidéo de la file globale FIFO.
-	 * @returns Identifiant réservé, ou `null` lorsqu'un autre export est actif / la file est vide.
-	 */
+	/** Réserve atomiquement le prochain export vidéo de la file globale FIFO. */
 	static async claimNextVideoExport(): Promise<number | null> {
 		await this.ensureSyncListener();
 		const result = await invoke<ClaimNextVideoExportResult>('claim_next_video_export');
@@ -363,11 +360,7 @@ export default class ExportService {
 	}
 }
 
-/**
- * Ajoute une ligne de log d'export uniquement en memoire.
- * @param {TauriEvent<ExportLogPayload>} event Evenement de log recu depuis une fenetre d'export.
- * @returns {void}
- */
+/** Ajoute une ligne de log d'export uniquement en mémoire. */
 function exportLog(event: TauriEvent<ExportLogPayload>): void {
 	const data = event.payload;
 	const exportation = globalState.exportations.find(
@@ -393,9 +386,7 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 		const previousState = exportation.currentState;
 		const wasExported = exportation.currentState === ExportState.Exported;
 		const wasErrored = exportation.currentState === ExportState.Error;
-		if (exportation.currentState === ExportState.Canceled) {
-			return;
-		}
+		if (exportation.currentState === ExportState.Canceled) return;
 
 		exportation.percentageProgress = data.progress;
 		exportation.currentState = data.currentState;
@@ -431,9 +422,7 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 			exportation.trackAnalyticsTerminal(ExportState.Exported);
 		}
 
-		if (data.errorLog) {
-			exportation.errorLog = data.errorLog;
-		}
+		if (data.errorLog) exportation.errorLog = data.errorLog;
 
 		if (
 			!wasErrored &&
@@ -451,7 +440,7 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 		}
 	}
 
-	void ExportService.saveExports();
+	void ExportService.persistExportIds([data.exportId]);
 }
 
 export interface ExportProgress {

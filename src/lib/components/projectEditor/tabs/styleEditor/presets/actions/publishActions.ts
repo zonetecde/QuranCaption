@@ -1,5 +1,6 @@
 import { tick } from 'svelte';
 import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { globalState } from '$lib/runes/main.svelte';
 import { publishCommunityPreset } from '$lib/services/StylePresetLibraryService';
 import { loadPopularTags } from './communityActions';
@@ -146,7 +147,11 @@ export async function generatePublishPreview(): Promise<void> {
 		}
 
 		try {
-			const bytes = new Uint8Array(await invoke<number[]>('capture_window_screenshot'));
+			const bytes = new Uint8Array(
+				await invoke<number[]>('capture_window_screenshot', {
+					windowLabel: getCurrentWindow().label
+				})
+			);
 			const blob = new Blob([bytes], { type: 'image/jpeg' });
 			setPublishPreviewBlob(blob);
 

@@ -1016,52 +1016,6 @@
 
 		<section class="mb-4">
 			<h4 class="mb-2 text-sm font-medium text-secondary">
-				{promotionCopy.quranCaptionPromotion()}
-			</h4>
-			<div class="rounded-lg border border-color bg-secondary p-3">
-				<label class="flex cursor-pointer select-none items-start gap-3">
-					<input
-						type="checkbox"
-						class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
-						checked={globalState.getExportState.includeQuranCaptionPromotion}
-						onchange={(event) =>
-							setQuranCaptionPromotionEnabled((event.currentTarget as HTMLInputElement).checked)}
-					/>
-					<span class="text-sm text-primary">
-						{promotionCopy.addQuranCaptionPromotion()}
-						<span class="mt-1 block text-xs text-thirdly">
-							{promotionCopy.quranCaptionPromotionDescription()}
-						</span>
-					</span>
-				</label>
-
-				{#if globalState.getExportState.includeQuranCaptionPromotion}
-					<div class="mt-4 border-t border-color pt-4">
-						<label
-							class="mb-2 block text-sm font-medium text-primary"
-							for="quran-caption-promotion-position"
-						>
-							{promotionCopy.quranCaptionPromotionPosition()}
-						</label>
-						<select
-							id="quran-caption-promotion-position"
-							class="input w-full"
-							value={globalState.getExportState.quranCaptionPromotionPosition}
-							onchange={(event) =>
-								setQuranCaptionPromotionPosition(
-									(event.currentTarget as HTMLSelectElement).value as 'start' | 'end'
-								)}
-						>
-							<option value="start">{promotionCopy.quranCaptionPromotionAtStart()}</option>
-							<option value="end">{promotionCopy.quranCaptionPromotionAtEnd()}</option>
-						</select>
-					</div>
-				{/if}
-			</div>
-		</section>
-
-		<section class="mb-4">
-			<h4 class="mb-2 text-sm font-medium text-secondary">
 				{$LL.export.recitationContent()}
 			</h4>
 			<div class="rounded-lg border border-color bg-secondary p-3">
@@ -1127,6 +1081,52 @@
 								{$LL.export.recitationMinimumSilenceDescription()}
 							</p>
 						</div>
+					</div>
+				{/if}
+			</div>
+		</section>
+
+		<section class="mb-4">
+			<h4 class="mb-2 text-sm font-medium text-secondary">
+				{promotionCopy.quranCaptionPromotion()}
+			</h4>
+			<div class="rounded-lg border border-color bg-secondary p-3">
+				<label class="flex cursor-pointer select-none items-start gap-3">
+					<input
+						type="checkbox"
+						class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
+						checked={globalState.getExportState.includeQuranCaptionPromotion}
+						onchange={(event) =>
+							setQuranCaptionPromotionEnabled((event.currentTarget as HTMLInputElement).checked)}
+					/>
+					<span class="text-sm text-primary">
+						{promotionCopy.addQuranCaptionPromotion()}
+						<span class="mt-1 block text-xs text-thirdly">
+							{promotionCopy.quranCaptionPromotionDescription()}
+						</span>
+					</span>
+				</label>
+
+				{#if globalState.getExportState.includeQuranCaptionPromotion}
+					<div class="mt-4 border-t border-color pt-4">
+						<label
+							class="mb-2 block text-sm font-medium text-primary"
+							for="quran-caption-promotion-position"
+						>
+							{promotionCopy.quranCaptionPromotionPosition()}
+						</label>
+						<select
+							id="quran-caption-promotion-position"
+							class="input w-full"
+							value={globalState.getExportState.quranCaptionPromotionPosition}
+							onchange={(event) =>
+								setQuranCaptionPromotionPosition(
+									(event.currentTarget as HTMLSelectElement).value as 'start' | 'end'
+								)}
+						>
+							<option value="start">{promotionCopy.quranCaptionPromotionAtStart()}</option>
+							<option value="end">{promotionCopy.quranCaptionPromotionAtEnd()}</option>
+						</select>
 					</div>
 				{/if}
 			</div>

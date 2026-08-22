@@ -16,7 +16,7 @@ import RiwayahProvider, { isNonHafsRiwayah } from '$lib/services/RiwayahProvider
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 import IndopakQuranProvider from '$lib/services/IndopakQuranProvider';
 import type { BackgroundThrottlingPolicy } from '@tauri-apps/api/window';
-import Exportation, { ExportKind, ExportState } from './Exportation.svelte';
+import { ExportState } from './Exportation.svelte';
 import type { Project } from './Project';
 import { ProjectService } from '$lib/services/ProjectService';
 import ModalManager from '$lib/components/modals/ModalManager';
@@ -307,67 +307,29 @@ export default class Exporter {
 		}, Exporter.QUEUE_POLL_INTERVAL_MS);
 	}
 
-	/**
-	 * Checks if there is an active video export.
-	 * @returns {boolean}
-	 */
-	private static hasActiveVideoExport(): boolean {
-		return globalState.exportations.some((exp) => {
-			if (exp.exportKind !== ExportKind.Video) return false;
-			return (
-				exp.currentState === ExportState.CapturingFrames ||
-				exp.currentState === ExportState.Initializing ||
-				exp.currentState === ExportState.ProcessingBackground ||
-				exp.currentState === ExportState.AddingSubtitles ||
-				exp.currentState === ExportState.CreatingVideo ||
-				exp.currentState === ExportState.MergingFiles ||
-				exp.currentState === ExportState.Recording ||
-				exp.currentState === ExportState.AddingAudio
-			);
-		});
-	}
-
-	/**
-	 * Get the next pending video export.
-	 * @returns {Exportation | undefined}
-	 */
-	private static getNextPendingVideoExport(): Exportation | undefined {
-		return globalState.exportations
-			.filter(
-				(exp) =>
-					exp.exportKind === ExportKind.Video && exp.currentState === ExportState.WaitingForRecord
-			)
-			.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
-	}
-
-	// Queue rule: only one active video export at a time (FIFO for pending exports).
+	// Queue rule: exactly one active video export process-wide, FIFO for pending exports.
 	private static async processExportQueue() {
 		if (Exporter.isQueueTickRunning) return;
 		Exporter.isQueueTickRunning = true;
-		let nextExport: Exportation | undefined;
+		let claimedExportId: number | null = null;
 
 		try {
-			if (Exporter.hasActiveVideoExport()) return;
-
-			nextExport = Exporter.getNextPendingVideoExport();
-			if (!nextExport) return;
-
-			nextExport.currentState = ExportState.CapturingFrames;
-			nextExport.percentageProgress = 0;
-			nextExport.currentTreatedTime = 0;
-			await ExportService.saveExports();
-
-			await Exporter.openExportWindow(nextExport.exportId.toString());
+			claimedExportId = await ExportService.claimNextVideoExport();
+			if (claimedExportId === null) return;
+			await Exporter.openExportWindow(claimedExportId.toString());
 		} catch (error) {
 			console.error('Unable to start next pending export:', error);
-			if (nextExport && nextExport.currentState === ExportState.CapturingFrames) {
-				nextExport.currentState = ExportState.Error;
-				nextExport.percentageProgress = 100;
-				nextExport.errorLog = String(error);
-				nextExport.trackAnalyticsTerminal(ExportState.Error, {
-					failureStage: ExportState.CapturingFrames
-				});
-				await ExportService.saveExports();
+			if (claimedExportId !== null) {
+				const claimedExport = ExportService.findExportById(claimedExportId);
+				if (claimedExport?.currentState === ExportState.CapturingFrames) {
+					claimedExport.currentState = ExportState.Error;
+					claimedExport.percentageProgress = 100;
+					claimedExport.errorLog = String(error);
+					claimedExport.trackAnalyticsTerminal(ExportState.Error, {
+						failureStage: ExportState.CapturingFrames
+					});
+					await ExportService.persistExportIds([claimedExportId]);
+				}
 			}
 		} finally {
 			Exporter.isQueueTickRunning = false;
@@ -987,38 +949,23 @@ export default class Exporter {
 			}
 		}
 
-		// Génère un ID d'export unique.
 		const exportId = Utilities.randomId().toString();
-		const shouldQueue =
-			Exporter.hasActiveVideoExport() || Exporter.getNextPendingVideoExport() !== undefined;
-
-		// Fait une copie du projet à l'état actuelle
 		const sourceProject = globalState.currentProject!;
 		const project = sourceProject.clone();
 		await prepareRandomBackgroundProject(
 			project,
 			globalState.settings?.exportSettings.randomBackgroundFolder ?? ''
 		);
-		project.detail.id = Number(exportId); // L'ID du projet est l'ID d'export
+		project.detail.id = Number(exportId);
 
-		// Créer le fichier du projet dans le dossier Export afin que l'Exporter le récupère
 		await ExportService.saveProject(project);
-
-		// Ajoute à la liste des exports en cours
-		await ExportService.addExport(project, shouldQueue ? 'recording' : 'stable', {
+		await ExportService.addExport(project, 'recording', {
 			sourceProjectId: sourceProject.detail.id
 		});
 
-		// Ouvre le popup de monitor d'export
 		globalState.uiState.showExportMonitor = true;
-
-		// Set-up l'écouteur d'évènement pour suivre
-		// le progrès des projets en cours d'exportation
 		Exporter.ensureBackgroundWorkersStarted();
-
-		if (!shouldQueue) {
-			await Exporter.openExportWindow(exportId);
-		}
+		await Exporter.processExportQueue();
 	}
 
 	/**
@@ -1074,8 +1021,6 @@ export default class Exporter {
 		finalFilePath: string
 	): Promise<number> {
 		const exportId = Utilities.randomId();
-		const shouldQueue =
-			Exporter.hasActiveVideoExport() || Exporter.getNextPendingVideoExport() !== undefined;
 		const project = sourceProject.clone();
 		await prepareRandomBackgroundProject(
 			project,
@@ -1091,7 +1036,7 @@ export default class Exporter {
 		exportSettings.videoEndTime = videoEndTime;
 		project.detail.id = exportId;
 		await ExportService.saveProject(project);
-		await ExportService.addExport(project, shouldQueue ? 'recording' : 'stable', {
+		await ExportService.addExport(project, 'recording', {
 			finalFileName,
 			finalFilePath,
 			exportLabel: sourceProject.detail.name,
@@ -1099,7 +1044,7 @@ export default class Exporter {
 		});
 		globalState.uiState.showExportMonitor = true;
 		Exporter.ensureBackgroundWorkersStarted();
-		if (!shouldQueue) await Exporter.openExportWindow(exportId.toString());
+		await Exporter.processExportQueue();
 		return exportId;
 	}
 }

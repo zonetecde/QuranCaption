@@ -3,6 +3,7 @@
 	import { SubtitleClip } from '$lib/classes/Clip.svelte';
 	import Settings from '$lib/classes/Settings.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import ExportFolderPicker from './ExportFolderPicker.svelte';
@@ -73,7 +74,12 @@
 	onMount(() => {
 		const persistedSettings = getPersistedYouTubeChapterExportSettings();
 		if (typeof persistedSettings.ytbChaptersFormat === 'string') {
-			globalState.getExportState.ytbChaptersFormat = persistedSettings.ytbChaptersFormat;
+			const persistedFormat = persistedSettings.ytbChaptersFormat;
+			if (globalState.getExportState.ytbChaptersFormat !== persistedFormat) {
+				ProjectHistoryManager.track('restore YouTube chapter format', () => {
+					globalState.getExportState.ytbChaptersFormat = persistedFormat;
+				});
+			}
 		} else {
 			persistedSettings.ytbChaptersFormat = globalState.getExportState.ytbChaptersFormat;
 			void Settings.save();

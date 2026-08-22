@@ -12,6 +12,8 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::auth::quran_auth_secure_set,
         commands::auth::quran_auth_secure_get,
         commands::auth::quran_auth_secure_delete,
+        commands::auth::quran_auth_claim_pending_flow,
+        commands::auth::quran_auth_clear_pending_flow,
         commands::downloads::download_from_youtube,
         commands::media::get_duration,
         commands::files::get_new_file_path,

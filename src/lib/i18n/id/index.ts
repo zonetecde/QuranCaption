@@ -1011,6 +1011,7 @@ const id = {
 			'word-by-word-highlight': 'Efek WBW',
 			'wbw-show-current-word-only': 'Tampilkan hanya kata saat ini',
 			'wbw-persist-color': 'Pertahankan efek WBW',
+			'wbw-keep-specific-word-style': 'Pertahankan gaya kata setelah ditampilkan',
 			'wbw-current-word-custom-css': 'CSS kustom (kata saat ini)',
 			'enable-wbw-current-word-opacity': 'Aktifkan opasitas kata saat ini',
 			'wbw-current-word-opacity': 'Opasitas kata saat ini',
@@ -1059,6 +1060,8 @@ const id = {
 			'verse-number-new-line': 'Selalu tempatkan nomor ayat di baris baru',
 			'word-by-word-highlight': 'Terapkan efek kata demi kata saat timestamp WBW tersedia',
 			'wbw-persist-color': 'Pertahankan efek WBW aktif pada kata yang sudah dibaca',
+			'wbw-keep-specific-word-style':
+				'Pertahankan gaya kata kustom setelah kata yang terkait dibaca',
 			'wbw-current-word-custom-css': 'CSS kustom yang diterapkan ke kata WBW saat ini',
 			'enable-wbw-current-word-opacity': 'Timpa opasitas kata WBW saat ini',
 			'wbw-current-word-opacity': 'Opasitas yang diterapkan ke kata WBW saat ini',

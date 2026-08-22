@@ -429,6 +429,7 @@
 						"wbw-reveal-on-recitation",
 						"wbw-always-show-verse-number",
 						"wbw-reveal-specific-word-style",
+						"wbw-keep-specific-word-style",
 						"wbw-persist-color"
 					]
 				},
@@ -685,6 +686,16 @@
 				"name": "Reveal specific word style on recitation",
 				"description": "Hide custom word styles until their linked word is recited",
 				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "format_paint"
+			},
+			{
+				"id": "wbw-keep-specific-word-style",
+				"name": "Keep specific word style after revelation",
+				"description": "Keep custom word styles visible after their linked words are recited",
+				"value": true,
 				"valueType": "boolean",
 				"css": "",
 				"tailwind": false,

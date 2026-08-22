@@ -142,28 +142,49 @@
 	});
 
 	/**
-	 * Accroche les bords d'un clip vidéo aux sous-titres et au clip vidéo précédent.
+	 * Accroche les bords d'un clip audio ou vidéo aux repères de la timeline.
 	 * @param {number} time Position brute du bord gauche en millisecondes.
 	 * @param {number[]} edgeOffsets Décalages des bords à comparer depuis la position brute.
-	 * @param {Clip | null} previousClip Clip vidéo précédent éventuel.
-	 * @param {Clip | null} nextClip Clip vidéo suivant éventuel.
+	 * @param {Clip | null} previousClip Clip précédent éventuel.
+	 * @param {Clip | null} nextClip Clip suivant éventuel.
+	 * @param {boolean} includeOppositeTrack Indique si les bords de la piste audio/vidéo opposée doivent être utilisés.
 	 * @returns {number} Position du bord gauche, accrochée si un repère est assez proche.
 	 */
-	function getSnappedVideoClipTime(
+	function getSnappedAssetClipTime(
 		time: number,
 		edgeOffsets: number[],
 		previousClip: Clip | null = null,
-		nextClip: Clip | null = null
+		nextClip: Clip | null = null,
+		includeOppositeTrack: boolean = false
 	): number {
-		if (track.type !== TrackType.Video) return time;
+		if (
+			track.type !== TrackType.Video &&
+			(!includeOppositeTrack || track.type !== TrackType.Audio)
+		) {
+			return time;
+		}
 		const thresholdMs =
 			(VIDEO_CLIP_SNAP_DISTANCE_PX / Math.max(track.getPixelPerSecond(), 0.0001)) * 1000;
 		let snappedTime = time;
 		let closestDistance = thresholdMs + 1;
-		const snapPoints = (globalState.getSubtitleTrack?.clips ?? []).flatMap((subtitleClip) => [
-			subtitleClip.startTime,
-			subtitleClip.endTime
-		]);
+		const oppositeTrackType = track.type === TrackType.Video ? TrackType.Audio : TrackType.Video;
+		const oppositeTrack = includeOppositeTrack
+			? globalState.currentProject?.content.timeline.tracks.find(
+					(timelineTrack) => timelineTrack.type === oppositeTrackType
+				)
+			: null;
+		const snapPoints = [
+			...(track.type === TrackType.Video
+				? (globalState.getSubtitleTrack?.clips ?? []).flatMap((subtitleClip) => [
+						subtitleClip.startTime,
+						subtitleClip.endTime
+					])
+				: []),
+			...(oppositeTrack?.clips ?? []).flatMap((oppositeClip) => [
+				oppositeClip.startTime,
+				oppositeClip.endTime
+			])
+		];
 
 		for (const snapPoint of snapPoints) {
 			for (const edgeOffset of edgeOffsets) {
@@ -255,11 +276,12 @@
 				: nextClip.startTime - clip.duration - 1
 			: Number.POSITIVE_INFINITY;
 		const rawStart = clipDragOriginalStartTime + deltaMs;
-		const snappedStart = getSnappedVideoClipTime(
+		const snappedStart = getSnappedAssetClipTime(
 			rawStart,
 			[0, clip.duration],
 			previousClip,
-			nextClip
+			nextClip,
+			true
 		);
 		const newStart = Math.max(minimumStart, Math.min(maximumStart, snappedStart));
 
@@ -316,7 +338,7 @@
 			trimOriginalStartTime - trimOriginalSourceStartTime,
 			previousClip ? previousClip.endTime + 1 : 0
 		);
-		const rawStart = getSnappedVideoClipTime(trimOriginalStartTime + deltaMs, [0], previousClip);
+		const rawStart = getSnappedAssetClipTime(trimOriginalStartTime + deltaMs, [0], previousClip);
 		const newStart = Math.min(trimOriginalEndTime - 100, Math.max(minimumStart, rawStart));
 
 		clip.startTime = newStart;
@@ -341,7 +363,7 @@
 			trimOriginalEndTime + Math.max(0, asset.duration.ms - sourceEndTime),
 			nextClip ? nextClip.startTime - 1 : Number.POSITIVE_INFINITY
 		);
-		const rawEnd = getSnappedVideoClipTime(trimOriginalEndTime + deltaMs, [0], null, nextClip);
+		const rawEnd = getSnappedAssetClipTime(trimOriginalEndTime + deltaMs, [0], null, nextClip);
 		const newEnd = Math.max(trimOriginalStartTime + 100, Math.min(maximumEnd, rawEnd));
 
 		clip.endTime = newEnd;
@@ -448,6 +470,20 @@
 			}
 			track.removeClip(clip.id);
 		});
+	}
+
+	/**
+	 * Coupe le clip audio ou vidéo courant au niveau du curseur de la timeline.
+	 * @returns {void}
+	 */
+	function splitAssetClipFromContextMenu(): void {
+		if (!(clip instanceof AssetClip)) return;
+
+		const didSplit = track.splitAssetClip(clip.id);
+		if (!didSplit) return;
+
+		globalState.currentProject?.detail.updateVideoDetailAttributes();
+		globalState.updateVideoPreviewUI();
 	}
 
 	function handleClipClick(event: MouseEvent) {
@@ -603,6 +639,15 @@
 			</div>
 		</Item>
 		<Divider />
+	{/if}
+	{#if canTrim}
+		<Item on:click={splitAssetClipFromContextMenu}
+			><div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">call_split</span>{get(
+					LL
+				).editor.splitAtCursor()}
+			</div></Item
+		>
 	{/if}
 	<Item on:click={removeClip}
 		><div class="btn-icon">

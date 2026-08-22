@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 import {
+	AssetClip,
 	Category,
 	Project,
 	ProjectContent,
@@ -14,7 +15,7 @@ import {
 	TrackType,
 	VideoStyle
 } from '$lib/classes';
-import { SubtitleTrack } from '$lib/classes/Track.svelte';
+import { AssetTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 
 /**
@@ -40,6 +41,29 @@ function createHistoryTestProject(): Project {
 		videoStyle
 	);
 	return new Project(new ProjectDetail('Undo test', 'reciter'), content);
+}
+
+/**
+ * Creates a minimal project containing an asset track for split history tests.
+ *
+ * @param {AssetTrack} assetTrack Track containing the asset clip.
+ * @returns {Project} Project ready for asset clip mutations.
+ */
+function createAssetSplitTestProject(assetTrack: AssetTrack): Project {
+	const videoStyle = new VideoStyle();
+	videoStyle.styles = [
+		new StylesData('arabic', [
+			new Category({
+				id: 'text',
+				styles: [new Style({ id: 'font-size', value: 90, valueType: 'number' })]
+			})
+		])
+	];
+
+	return new Project(
+		new ProjectDetail('Asset split test', 'reciter'),
+		new ProjectContent(new Timeline([assetTrack, new SubtitleTrack()]), [], undefined, videoStyle)
+	);
 }
 
 describe('ProjectHistoryManager', () => {
@@ -110,6 +134,48 @@ describe('ProjectHistoryManager', () => {
 		expect(
 			globalState.getVideoStyle.getStylesOfTarget('arabic').findStyle('font-size')?.value
 		).toBe(90);
+	});
+
+	it('splits asset clips with source offsets and supports undo/redo', () => {
+		const assetTrack = new AssetTrack(TrackType.Audio);
+		const originalClip = new AssetClip(500, 2500, 42);
+		originalClip.sourceStartTime = 750;
+		originalClip.showWaveform = true;
+		assetTrack.clips = [originalClip];
+		globalState.currentProject = createAssetSplitTestProject(assetTrack);
+		ProjectHistoryManager.resetForCurrentProject();
+		globalState.getTimelineState.cursorPosition = 1500;
+
+		expect(assetTrack.splitAssetClip(originalClip.id)).toBe(true);
+		expect(assetTrack.clips).toHaveLength(2);
+		expect(assetTrack.clips[0]).toMatchObject({
+			startTime: 500,
+			endTime: 1500,
+			duration: 1000
+		});
+		expect(assetTrack.clips[1]).toMatchObject({
+			startTime: 1500,
+			endTime: 2500,
+			duration: 1000,
+			sourceStartTime: 1750,
+			showWaveform: true,
+			assetId: 42
+		});
+
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(globalState.getAudioTrack.clips).toHaveLength(1);
+		expect(globalState.getAudioTrack.clips[0]).toMatchObject({
+			startTime: 500,
+			endTime: 2500,
+			sourceStartTime: 750
+		});
+
+		expect(ProjectHistoryManager.redo()).toBe(true);
+		expect(globalState.getAudioTrack.clips).toHaveLength(2);
+		expect(globalState.getAudioTrack.clips[1]).toMatchObject({
+			startTime: 1500,
+			sourceStartTime: 1750
+		});
 	});
 
 	it('restores serialized classes after undo', () => {

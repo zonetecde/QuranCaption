@@ -1534,6 +1534,7 @@ const de = {
 			'wbw-color': 'Wort-für-Wort-Farbe',
 			'wbw-persist-color': 'WBW-Effekt beibehalten',
 			'wbw-reveal-specific-word-style': 'Wortstil bei Rezitation enthüllen',
+			'wbw-keep-specific-word-style': 'Wortstil nach der Enthüllung beibehalten',
 			'enable-wbw-underline': 'Unterstreichung aktivieren',
 			'wbw-underline-thickness': 'Dicke der Unterstreichung',
 			'enable-wbw-glow': 'WBW-Leuchten aktivieren',
@@ -1750,6 +1751,8 @@ const de = {
 			'wbw-persist-color': 'Den aktiven WBW-Effekt auf bereits rezitierten Wörtern beibehalten',
 			'wbw-reveal-specific-word-style':
 				'Benutzerdefinierte Wortstile verbergen, bis das verknüpfte Wort rezitiert wird',
+			'wbw-keep-specific-word-style':
+				'Benutzerdefinierte Wortstile nach der Rezitation der verknüpften Wörter sichtbar lassen',
 			'enable-wbw-underline': 'Hervorgehobene Wörter unterstreichen',
 			'wbw-underline-thickness': 'Dicke der WBW-Unterstreichung in Pixeln',
 			'enable-wbw-glow': 'Leuchten um hervorgehobene Wörter hinzufügen',

@@ -18,6 +18,10 @@
 	let isListView = $derived(
 		(globalState.settings?.persistentUiState.projectCardView ?? 'grid') === 'list'
 	);
+	const batchThumbnailCount = 11;
+	let thumbnailUrl = $derived(
+		`/thumbnails/${(Math.abs(batchDetail.id - 1) % batchThumbnailCount) + 1}.jpg`
+	);
 
 	/**
 	 * Ouvre le workspace du batch sélectionné.
@@ -138,9 +142,14 @@
 	<div>
 		{#if !isListView}
 			<div
-				class="relative flex h-40 w-full items-center justify-center overflow-hidden rounded-t-lg bg-white/80"
+				class="relative flex h-40 w-full items-center justify-center overflow-hidden rounded-t-lg bg-cover bg-center bg-white/80"
+				style={`background-image: url('${thumbnailUrl}')`}
 			>
-				<span class="material-icons text-6xl! text-black opacity-80">dynamic_feed</span>
+				<div
+					class="absolute inset-0 bg-black/25 transition-all duration-300 group-hover:backdrop-blur-[3px]"
+				></div>
+				<span class="material-icons relative text-6xl! text-white drop-shadow-lg">dynamic_feed</span
+				>
 				<span
 					class="absolute right-3 top-3 rounded-full border border-[var(--accent-primary)] bg-[var(--bg-secondary)]/90 px-2.5 py-1 text-xs font-semibold text-[var(--accent-primary)]"
 				>

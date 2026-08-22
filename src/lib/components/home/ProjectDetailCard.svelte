@@ -42,6 +42,19 @@
 	let isListView = $derived(
 		(globalState.settings?.persistentUiState.projectCardView ?? 'grid') === 'list'
 	);
+	const projectThumbnailCount = 11;
+	let prominentSurahId = $derived.by(() => {
+		const parts = projectDetail.verseRange.parts;
+		if (parts.length === 0) return null;
+
+		// La sourate couvrant le plus de versets représente la sourate principale du projet.
+		return parts.reduce((prominentPart, part) => {
+			const prominentVerseCount = prominentPart.verseEnd - prominentPart.verseStart + 1;
+			const verseCount = part.verseEnd - part.verseStart + 1;
+			return verseCount > prominentVerseCount ? part : prominentPart;
+		}).surah;
+	});
+	const thumbnailUrl = `/thumbnails/${(Math.abs(projectDetail.id - 1) % projectThumbnailCount) + 1}.jpg`;
 
 	$effect(() => {
 		// Keep the local visual state aligned with the homepage drag lifecycle.
@@ -176,7 +189,7 @@
 </script>
 
 <div
-	class={`relative bg-secondary backdrop-blur-[10px] border border-[var(--border-color)] rounded-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex flex-col justify-between transition-all duration-300 ${
+	class={`group relative bg-secondary backdrop-blur-[10px] border border-[var(--border-color)] rounded-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex flex-col justify-between transition-all duration-300 ${
 		draggable ? 'hover:-translate-y-1 hover:shadow-2xl' : 'hover:shadow-2xl'
 	} ${isDragging ? 'scale-[0.98] opacity-70 cursor-grabbing' : ''}`}
 	data-tour-id={isTutorial ? 'tutorial-project-card' : undefined}
@@ -185,11 +198,37 @@
 	<div>
 		{#if globalState.settings!.persistentUiState.projectCardView === 'grid'}
 			<section
-				class={`relative h-40 w-full rounded-t-lg bg-white/80 object-cover ${
+				class={`relative h-40 w-full rounded-t-lg bg-cover bg-center object-cover ${
 					draggable ? 'cursor-grab active:cursor-grabbing' : ''
 				}`}
+				style={`background-image: url('${thumbnailUrl}')`}
 				onpointerdown={handlePointerDragStart}
 			>
+				<div
+					class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-black/10 transition-all duration-300 group-hover:backdrop-blur-[3px]"
+				></div>
+				<div class="relative flex h-full items-center justify-center text-white">
+					{#if prominentSurahId}
+						<span
+							class="surahs-font text-7xl leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+							aria-hidden="true"
+						>
+							{prominentSurahId.toString().padStart(3, '0')}
+						</span>
+					{/if}
+					{#if projectDetail.reciter !== 'not set'}
+						<span
+							class="absolute bottom-3 left-1/2 max-w-[70%] -translate-x-1/2 truncate text-center text-sm font-semibold drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
+						>
+							{projectDetail.reciter}
+						</span>
+					{/if}
+					<span
+						class="absolute bottom-3 left-3 text-xs font-medium drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
+					>
+						{projectDetail.duration.getFormattedTime(false)}
+					</span>
+				</div>
 				<div class="absolute right-3 top-3">
 					<ProjectTypeSelector
 						{projectDetail}

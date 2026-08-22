@@ -155,6 +155,7 @@ export async function reconcileBatchSegmentations(batch: Batch): Promise<boolean
 	for (const item of batch.projects.filter(
 		(project) =>
 			project.segmentation.status === 'needs_review' ||
+			project.segmentation.status === 'failed' ||
 			(project.media.status === 'completed' &&
 				(project.segmentation.status === 'not_started' ||
 					(project.segmentation.status === 'auto_verified' &&
@@ -172,6 +173,7 @@ export async function reconcileBatchSegmentations(batch: Batch): Promise<boolean
 			if (subtitleCount === 0) continue;
 			if (item.segmentation.status !== 'needs_review') {
 				item.segmentation.progress = 100;
+				item.segmentation.error = null;
 				item.segmentation.segmentsApplied = subtitleCount;
 				item.segmentation.startedAt ??= project.detail.updatedAt;
 				item.segmentation.completedAt ??= project.detail.updatedAt;

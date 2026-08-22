@@ -212,6 +212,9 @@ describe('BatchSegmentationService', () => {
 
 	it('recovers a completed segmentation from existing subtitles', async () => {
 		const item = createItem(1);
+		item.segmentation.status = 'failed';
+		item.segmentation.progress = 90;
+		item.segmentation.error = 'Cloud segmentation stream error';
 		const updatedAt = new Date('2026-07-18T20:00:00.000Z');
 		const subtitleTrack = {
 			clips: [
@@ -239,6 +242,7 @@ describe('BatchSegmentationService', () => {
 			expect(await reconcileBatchSegmentations(batch)).toBe(true);
 			expect(item.segmentation.status).toBe('auto_verified');
 			expect(item.segmentation.progress).toBe(100);
+			expect(item.segmentation.error).toBeNull();
 			expect(item.segmentation.segmentsApplied).toBe(2);
 			expect(item.segmentation.completedAt).toEqual(updatedAt);
 			expect(saveBatch).toHaveBeenCalledWith(batch);

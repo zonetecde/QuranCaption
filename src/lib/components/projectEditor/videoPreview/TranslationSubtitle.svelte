@@ -617,6 +617,14 @@
 		state: WordByWordHighlightState
 	): number {
 		if (!state.revealSpecificWordStyle) return 1;
+		if (!state.keepSpecificWordStyleAfterReveal) {
+			return wbwWordIndexes.some(
+				(wordIndex) =>
+					wordIndex === state.activeWordIndex || wordIndex === state.activeWordIndex - 1
+			)
+				? activeProgress
+				: 0;
+		}
 		if (state.activeWordIndex >= state.words.length) return 1;
 		if (wbwWordIndexes.some((wordIndex) => wordIndex < state.activeWordIndex)) return 1;
 		if (wbwWordIndexes.some((wordIndex) => wordIndex === state.activeWordIndex)) {

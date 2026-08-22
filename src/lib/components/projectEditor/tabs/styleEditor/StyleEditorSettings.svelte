@@ -761,6 +761,9 @@
 			if (id === 'wbw-always-show-verse-number') {
 				return !isFeatureEnabled('wbw-reveal-on-recitation', category);
 			}
+			if (id === 'wbw-keep-specific-word-style') {
+				return !isFeatureEnabled('wbw-reveal-specific-word-style', category);
+			}
 		}
 
 		return false;

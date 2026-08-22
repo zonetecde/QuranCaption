@@ -158,6 +158,7 @@ export type WordByWordHighlightStyleName =
 	| 'wbw-color'
 	| 'wbw-persist-color'
 	| 'wbw-reveal-specific-word-style'
+	| 'wbw-keep-specific-word-style'
 	| 'wbw-reveal-on-recitation'
 	| 'enable-wbw-background'
 	| 'enable-wbw-line-background'

@@ -14,6 +14,7 @@ export type WordByWordHighlightState = {
 	activeWordIndex: number;
 	persistColor: boolean;
 	revealSpecificWordStyle: boolean;
+	keepSpecificWordStyleAfterReveal: boolean;
 	revealWordsOnRecitation: boolean;
 	alwaysShowVerseNumber: boolean;
 	baseOpacity: number;
@@ -52,6 +53,7 @@ export function getDisabledWordByWordHighlightState(): WordByWordHighlightState 
 		activeWordIndex: -1,
 		persistColor: false,
 		revealSpecificWordStyle: false,
+		keepSpecificWordStyleAfterReveal: true,
 		revealWordsOnRecitation: false,
 		alwaysShowVerseNumber: false,
 		baseOpacity: 1,
@@ -129,6 +131,7 @@ export function getWordByWordHighlightState(params: {
 	const underlineEnabled = Boolean(getStyleValue('enable-wbw-underline'));
 	const glowEnabled = Boolean(getStyleValue('enable-wbw-glow'));
 	const revealSpecificWordStyle = Boolean(getStyleValue('wbw-reveal-specific-word-style'));
+	const keepSpecificWordStyleAfterReveal = Boolean(getStyleValue('wbw-keep-specific-word-style'));
 	const revealWordsOnRecitation = Boolean(getStyleValue('wbw-reveal-on-recitation'));
 	const backgroundEnabled = Boolean(getStyleValue('enable-wbw-background'));
 	const lineBackgroundEnabled = Boolean(getStyleValue('enable-wbw-line-background'));
@@ -171,6 +174,9 @@ export function getWordByWordHighlightState(params: {
 		activeWordIndex,
 		persistColor: showCurrentWordOnly ? false : Boolean(getStyleValue('wbw-persist-color')),
 		revealSpecificWordStyle: showCurrentWordOnly ? false : revealSpecificWordStyle,
+		keepSpecificWordStyleAfterReveal: showCurrentWordOnly
+			? false
+			: keepSpecificWordStyleAfterReveal,
 		revealWordsOnRecitation: showCurrentWordOnly ? false : revealWordsOnRecitation,
 		alwaysShowVerseNumber: showCurrentWordOnly
 			? false

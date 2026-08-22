@@ -191,7 +191,9 @@ export default class ExportService {
 	}
 
 	static currentlyExportingProjects() {
-		return globalState.exportations.filter((exp) => exp.isOnGoing());
+		return globalState.exportations.filter(
+			(exp) => exp.isOnGoing() && this.ownedExportIds.has(exp.exportId)
+		);
 	}
 }
 

@@ -15,7 +15,7 @@
 	import TourManager from '$lib/components/tour/TourManager';
 	import { setupTutorialProject } from '$lib/services/TutorialService';
 	import { VersionService } from '$lib/services/VersionService.svelte';
-	import { ProjectService } from '$lib/services/ProjectService';
+	import { parseProjectsBackup, ProjectService } from '$lib/services/ProjectService';
 	import MigrationService from '$lib/services/MigrationService';
 	import { BatchService } from '$lib/services/BatchService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
@@ -541,7 +541,19 @@
 			try {
 				const filePath = files[index];
 				const json = JSON.parse((await readTextFile(filePath)).toString());
-				await ProjectService.importProject(json);
+				if (
+					json &&
+					typeof json === 'object' &&
+					!Array.isArray(json) &&
+					'projects' in json &&
+					'batches' in json
+				) {
+					const backup = parseProjectsBackup(json);
+					await ProjectService.importProjectsBackup(backup.projects);
+					await BatchService.importBatchesBackup(backup.batches);
+				} else {
+					await ProjectService.importProject(json);
+				}
 				AnalyticsService.trackProjectImported();
 			} catch (error) {
 				ModalManager.errorModal(

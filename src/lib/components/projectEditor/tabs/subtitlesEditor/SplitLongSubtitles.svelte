@@ -15,15 +15,35 @@
 	const SUBDIVIDE_MIN_LIMIT = 1;
 	const SUBDIVIDE_MAX_LIMIT = 30;
 	const SUBDIVIDE_DISABLED_SENTINEL = SUBDIVIDE_MAX_LIMIT + 1;
+
+	type SubtitlesEditorStateWithMinWords = typeof globalState.getSubtitlesEditorState & {
+		subdivideMinWordsPerSegment?: number;
+	};
+
+	function getSubtitlesEditorStateWithMinWords(): SubtitlesEditorStateWithMinWords {
+		return globalState.getSubtitlesEditorState as SubtitlesEditorStateWithMinWords;
+	}
+
+	const persistedMinWordsPerSegment = Number(
+		getSubtitlesEditorStateWithMinWords().subdivideMinWordsPerSegment ?? 0
+	);
+	const initialMinWordsPerSegment =
+		Number.isFinite(persistedMinWordsPerSegment) &&
+		persistedMinWordsPerSegment >= SUBDIVIDE_MIN_LIMIT
+			? Math.min(SUBDIVIDE_MAX_LIMIT, Math.round(persistedMinWordsPerSegment))
+			: 0;
+
 	let enableMaxWords = $state(
 		globalState.getSubtitlesEditorState.subdivideMaxWordsPerSegment < SUBDIVIDE_MAX_LIMIT
 	);
-	let enableMinWords = $state(false);
+	let enableMinWords = $state(initialMinWordsPerSegment >= SUBDIVIDE_MIN_LIMIT);
 	let enableMaxDuration = $state(
 		globalState.getSubtitlesEditorState.subdivideMaxDurationPerSegment < SUBDIVIDE_MAX_LIMIT
 	);
-	let minWordsPerSegment = $state(0);
-	let lastEnabledMinWords = $state(2);
+	let minWordsPerSegment = $state(initialMinWordsPerSegment);
+	let lastEnabledMinWords = $state(
+		initialMinWordsPerSegment >= SUBDIVIDE_MIN_LIMIT ? initialMinWordsPerSegment : 2
+	);
 	let lastEnabledMaxWords = $state(SUBDIVIDE_MAX_LIMIT);
 	let lastEnabledMaxDuration = $state(SUBDIVIDE_MAX_LIMIT);
 	let minWordsUpperLimit = $derived(
@@ -47,7 +67,17 @@
 			return;
 		}
 
-		const splitCount = await subdivideLongSubtitleSegments({ minWordsPerSegment });
+		const numericMinWords = Number(minWordsPerSegment);
+		const safeMinWordsPerSegment =
+			enableMinWords && Number.isFinite(numericMinWords)
+				? Math.min(
+						minWordsUpperLimit,
+						Math.max(SUBDIVIDE_MIN_LIMIT, Math.round(numericMinWords))
+					)
+				: 0;
+		const splitCount = await subdivideLongSubtitleSegments({
+			minWordsPerSegment: safeMinWordsPerSegment
+		});
 		if (splitCount <= 0) {
 			toast(LL_.editor.noSubtitlesMatchSplitRules());
 			return;
@@ -96,22 +126,33 @@
 	});
 
 	$effect(() => {
+		const state = getSubtitlesEditorStateWithMinWords();
+		const numericValue = Number(minWordsPerSegment);
+
 		if (!enableMinWords) {
-			if (minWordsPerSegment >= SUBDIVIDE_MIN_LIMIT) {
-				lastEnabledMinWords = minWordsPerSegment;
+			if (Number.isFinite(numericValue) && numericValue >= SUBDIVIDE_MIN_LIMIT) {
+				lastEnabledMinWords = numericValue;
 			}
 			minWordsPerSegment = 0;
+			state.subdivideMinWordsPerSegment = 0;
 			return;
 		}
 
+		const fallbackValue =
+			Number.isFinite(lastEnabledMinWords) && lastEnabledMinWords >= SUBDIVIDE_MIN_LIMIT
+				? lastEnabledMinWords
+				: Math.min(2, minWordsUpperLimit);
 		const restoredValue =
-			minWordsPerSegment < SUBDIVIDE_MIN_LIMIT ? lastEnabledMinWords : minWordsPerSegment;
+			Number.isFinite(numericValue) && numericValue >= SUBDIVIDE_MIN_LIMIT
+				? numericValue
+				: fallbackValue;
 		const clampedValue = Math.min(
 			minWordsUpperLimit,
 			Math.max(SUBDIVIDE_MIN_LIMIT, Math.round(restoredValue))
 		);
 		minWordsPerSegment = clampedValue;
 		lastEnabledMinWords = clampedValue;
+		state.subdivideMinWordsPerSegment = clampedValue;
 	});
 
 	$effect(() => {

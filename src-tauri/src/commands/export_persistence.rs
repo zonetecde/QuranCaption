@@ -18,6 +18,7 @@ const ACTIVE_VIDEO_STATES: &[&str] = &[
     "Adding Audio",
 ];
 
+/// Résout le chemin partagé de `exports.json` dans le dossier AppData de Quran Caption.
 fn exports_file_path(app_handle: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
     let app_data_dir = app_handle
         .path()
@@ -27,6 +28,7 @@ fn exports_file_path(app_handle: &tauri::AppHandle) -> Result<std::path::PathBuf
     Ok(app_data_dir.join("exports.json"))
 }
 
+/// Lit les entrées persistées du monitor d'exports, ou retourne une liste vide si le fichier n'existe pas.
 fn read_entries(file_path: &std::path::Path) -> Result<Vec<Value>, String> {
     if !file_path.exists() {
         return Ok(Vec::new());
@@ -36,17 +38,20 @@ fn read_entries(file_path: &std::path::Path) -> Result<Vec<Value>, String> {
     serde_json::from_str::<Vec<Value>>(&content).map_err(|error| error.to_string())
 }
 
+/// Écrit le snapshot complet du monitor d'exports dans `exports.json`.
 fn write_entries(file_path: &std::path::Path, entries: &[Value]) -> Result<(), String> {
     let content = serde_json::to_string_pretty(entries).map_err(|error| error.to_string())?;
     fs::write(file_path, content).map_err(|error| error.to_string())
 }
 
+/// Diffuse le snapshot canonique du monitor à toutes les fenêtres du processus Tauri.
 fn emit_snapshot(app_handle: &tauri::AppHandle, entries: &[Value]) -> Result<(), String> {
     app_handle
         .emit("export-monitor-sync", entries.to_vec())
         .map_err(|error| error.to_string())
 }
 
+/// Indique si une entrée correspond à un export vidéo actuellement actif.
 fn is_active_video_export(entry: &Value) -> bool {
     if entry.get("exportKind").and_then(Value::as_str) != Some("Video") {
         return false;
@@ -59,6 +64,7 @@ fn is_active_video_export(entry: &Value) -> bool {
         .unwrap_or(false)
 }
 
+/// Indique si une entrée correspond à un export vidéo encore en attente dans la file FIFO.
 fn is_pending_video_export(entry: &Value) -> bool {
     entry.get("exportKind").and_then(Value::as_str) == Some("Video")
         && entry.get("currentState").and_then(Value::as_str) == Some("Pending")

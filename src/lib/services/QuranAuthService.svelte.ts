@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
 import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { getCurrent, onOpenUrl } from '@tauri-apps/plugin-deep-link';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import toast from 'svelte-5-french-toast';
@@ -17,7 +18,10 @@ const BRIDGE_BASE_URL = 'https://qurancaption.com';
 const USER_API_BASE_URL = 'https://apis.quran.foundation';
 // const BRIDGE_BASE_URL = 'http://localhost:5174';
 const SESSION_STORAGE_KEY = 'quran_auth_session';
-const PENDING_VERIFIER_STORAGE_KEY = 'quran_auth_pending_verifier';
+const LEGACY_PENDING_VERIFIER_STORAGE_KEY = 'quran_auth_pending_verifier';
+const PENDING_VERIFIER_STORAGE_KEY_PREFIX = 'quran_auth_pending_verifier__';
+const PENDING_FLOW_STORAGE_KEY = 'quran_auth_pending_flow';
+const PENDING_FLOW_MAX_AGE_MS = 10 * 60 * 1000;
 const REFRESH_SKEW_MS = 60_000;
 const QURAN_MUSHAF_ID = 4;
 
@@ -29,6 +33,11 @@ type RefreshRequestBody = {
 
 type PersistedQuranAuthSession = Omit<QuranAuthSession, 'accessToken'> & {
 	accessToken: string;
+};
+
+type PendingQuranAuthFlow = {
+	windowLabel: string;
+	startedAt: number;
 };
 
 type QuranCollectionsResponse = {
@@ -108,6 +117,7 @@ class QuranAuthService {
 		this.authAnalyticsWorkflow = AnalyticsService.trackQuranAuthStarted(
 			this.authAnalyticsScopeCount
 		);
+		let createdPendingFlow = false;
 
 		try {
 			this.clearError();
@@ -115,8 +125,20 @@ class QuranAuthService {
 			this.activeHandoffToken = null;
 			this.handledHandoffTokens.clear();
 
+			const currentWindowLabel = getCurrentWindow().label;
 			const { verifier, challenge } = await generatePkcePair();
-			await this.setSecureValue(PENDING_VERIFIER_STORAGE_KEY, verifier);
+			const existingOwner = await invoke<string | null>('quran_auth_claim_pending_flow', {
+				windowLabel: currentWindowLabel,
+				verifier
+			});
+			if (existingOwner) {
+				throw new Error(
+					existingOwner === currentWindowLabel
+						? 'A Quran.com sign-in is already in progress.'
+						: 'A Quran.com sign-in is already in progress in another Quran Caption window.'
+				);
+			}
+			createdPendingFlow = true;
 
 			const authorizationUrl = new URL('/oauth/quran/start', BRIDGE_BASE_URL);
 			authorizationUrl.searchParams.set('handoff_challenge', challenge);
@@ -127,7 +149,9 @@ class QuranAuthService {
 			await openUrl(authorizationUrl.toString());
 		} catch (error) {
 			this.finishAuthAnalytics('failed');
-			await this.clearPendingVerifier();
+			if (createdPendingFlow) {
+				await this.clearPendingVerifier();
+			}
 			this.setError(error, get(LL).settings.unableToStartSignIn());
 			throw error;
 		}
@@ -149,6 +173,11 @@ class QuranAuthService {
 		const parsedUrl = new URL(url);
 		if (!isQuranAuthCallbackUrl(parsedUrl)) return;
 
+		const currentWindowLabel = getCurrentWindow().label;
+		const pendingFlow = await this.getPendingFlow();
+		if (pendingFlow && pendingFlow.windowLabel !== currentWindowLabel) return;
+		if (!pendingFlow && currentWindowLabel !== 'main') return;
+
 		const handoffToken = parsedUrl.searchParams.get('handoff_token');
 		if (!handoffToken) {
 			this.finishAuthAnalytics('failed');
@@ -168,7 +197,9 @@ class QuranAuthService {
 		this.activeHandoffToken = handoffToken;
 
 		try {
-			const verifier = await this.getSecureValue(PENDING_VERIFIER_STORAGE_KEY);
+			const verifier = pendingFlow
+				? await this.getSecureValue(this.pendingVerifierKey(currentWindowLabel))
+				: await this.getSecureValue(LEGACY_PENDING_VERIFIER_STORAGE_KEY);
 			if (!verifier) {
 				throw new Error(get(LL).settings.missingVerifier());
 			}
@@ -237,10 +268,7 @@ class QuranAuthService {
 		this.activeHandoffToken = null;
 		this.handledHandoffTokens.clear();
 
-		await Promise.all([
-			this.deleteSecureValue(SESSION_STORAGE_KEY),
-			this.deleteSecureValue(PENDING_VERIFIER_STORAGE_KEY)
-		]);
+		await Promise.all([this.deleteSecureValue(SESSION_STORAGE_KEY), this.clearPendingVerifier()]);
 		if (wasConnected) {
 			AnalyticsService.trackQuranAuthDisconnected(scopeCount, reason);
 		}
@@ -460,9 +488,36 @@ class QuranAuthService {
 		await this.setSecureValue(SESSION_STORAGE_KEY, JSON.stringify(persistedSession));
 	}
 
-	/** Supprime le verifier PKCE temporaire après succès ou annulation. */
+	private pendingVerifierKey(windowLabel: string): string {
+		return `${PENDING_VERIFIER_STORAGE_KEY_PREFIX}${windowLabel}`;
+	}
+
+	/** Lit le propriétaire du flow OAuth courant. Un flow expiré est ignoré; le prochain claim le nettoiera. */
+	private async getPendingFlow(): Promise<PendingQuranAuthFlow | null> {
+		const raw = await this.getSecureValue(PENDING_FLOW_STORAGE_KEY);
+		if (!raw) return null;
+
+		try {
+			const parsed = JSON.parse(raw) as Partial<PendingQuranAuthFlow>;
+			if (
+				typeof parsed.windowLabel !== 'string' ||
+				typeof parsed.startedAt !== 'number' ||
+				!Number.isFinite(parsed.startedAt) ||
+				Date.now() - parsed.startedAt > PENDING_FLOW_MAX_AGE_MS
+			) {
+				return null;
+			}
+			return { windowLabel: parsed.windowLabel, startedAt: parsed.startedAt };
+		} catch {
+			return null;
+		}
+	}
+
+	/** Supprime atomiquement le contexte PKCE si cette fenêtre possède le flow. */
 	private async clearPendingVerifier(): Promise<void> {
-		await this.deleteSecureValue(PENDING_VERIFIER_STORAGE_KEY);
+		await invoke('quran_auth_clear_pending_flow', {
+			windowLabel: getCurrentWindow().label
+		});
 	}
 
 	/**

@@ -169,7 +169,7 @@ export default class Exportation extends SerializableBase {
 	}
 
 	/**
-	 * Emet au plus une transition terminale pour le workflow video.
+	 * Emet au plus une transition terminale pour le workflow video une seule fois.
 	 * @param {ExportState} state Etat terminal atteint.
 	 * @param {{ failureStage?: ExportState; cancelSource?: ExportCancelSource }} details Contexte terminal allowliste.
 	 * @returns {boolean} Vrai lorsqu'un evenement terminal a ete emis.
@@ -243,11 +243,9 @@ export default class Exportation extends SerializableBase {
 			this.currentState === ExportState.MergingFiles
 		) {
 			console.log('Canceling export', this.exportId);
-			// Envoie à rust de tuer le processus ffmpeg pour cette exportation
 			await invoke('cancel_export', { exportId: this.exportId.toString() });
 		}
 
-		// Ferme la fenêtre d'exportation si elle est ouverte
 		(await getAllWindows()).forEach((win) => {
 			console.log(win.label, this.exportId.toString());
 			if (
@@ -255,14 +253,19 @@ export default class Exportation extends SerializableBase {
 				win.label.startsWith(`${this.exportId.toString()}-capture-`)
 			) {
 				win.close();
-				// La fenêtre d'exportation va supprimer le dossier temporaire des images à sa fermeture
 			}
 		});
 
-		// Set state to canceled
 		this.currentState = ExportState.Canceled;
 		if (wasOnGoing) {
 			this.trackAnalyticsTerminal(ExportState.Canceled, { cancelSource: source });
 		}
+
+		// Le monitor est partagé : une annulation depuis n'importe quelle fenêtre doit
+		// immédiatement devenir l'état canonique et être diffusée aux autres fenêtres.
+		await invoke('merge_export_entries', {
+			ownedExportIds: [this.exportId],
+			exports: [this.toJSON()]
+		});
 	}
 }

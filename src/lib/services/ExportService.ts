@@ -1,6 +1,8 @@
 import { SubtitleClip, TrackType, VerseRange, type Project } from '$lib/classes';
 import { exists, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
+import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { globalState } from '$lib/runes/main.svelte';
 import Exportation, {
 	ExportKind,
@@ -31,8 +33,18 @@ export interface AddExportOptions {
 	sourceProjectId?: number;
 }
 
+type ClaimNextVideoExportResult = {
+	exportId: number | null;
+	exports: unknown[];
+};
+
 export default class ExportService {
 	static exportFolder: string = 'exports/';
+	private static knownExportIds = new Set<number>();
+	private static ownedExportIds = new Set<number>();
+	private static dirtyExportIds = new Set<number>();
+	private static syncListenerPromise: Promise<void> | null = null;
+	private static saveChain: Promise<void> = Promise.resolve();
 
 	constructor() {}
 
@@ -53,17 +65,13 @@ export default class ExportService {
 	static async saveProject(project: Project) {
 		const folder: string = await ProjectService.ensureFolder(this.exportFolder);
 
-		// Enregistre le projet dans le dossier d'export
 		await writeTextFile(
 			await join(folder, project.detail.id.toString() + '.json'),
 			JSON.stringify(project.toJSON(), null, 2)
 		);
 	}
 
-	/**
-	 * Retourne le chemin du dossier d'export.
-	 * @returns Le chemin du dossier d'export
-	 */
+	/** Retourne le chemin du dossier d'export. */
 	static async getExportFolder(): Promise<string> {
 		if (globalState.settings?.persistentUiState.videoExportFolder) {
 			return globalState.settings.persistentUiState.videoExportFolder;
@@ -73,19 +81,14 @@ export default class ExportService {
 	}
 
 	/**
-	 * Ajoute un projet à la liste des exports en cours.
-	 * @param {Project} project Projet à ajouter.
-	 * @param {'recording' | 'stable'} mode État initial dans la queue existante.
-	 * @param {AddExportOptions} options Nom, chemin et métadonnées Batch éventuels.
-	 * @returns {Promise<void>} Promesse résolue après la persistance du monitor.
+	 * Ajoute un projet à la file globale. Tous les exports vidéo démarrent en attente :
+	 * le backend Rust réserve ensuite atomiquement le prochain export FIFO.
 	 */
 	static async addExport(
 		project: Project,
-		mode: 'recording' | 'stable' = 'stable',
+		_mode: 'recording' | 'stable' = 'recording',
 		options: AddExportOptions = {}
 	) {
-		// Ajoute le projet à la liste des exports en cours
-
 		const videoExtension = project.projectEditorState.export.exportWithoutBackground
 			? project.projectEditorState.export.transparentExportFormat === 'webm_vp9_alpha'
 				? 'webm'
@@ -120,6 +123,9 @@ export default class ExportService {
 			width: number;
 			height: number;
 		}) ?? { width: 1920, height: 1080 };
+		const queued = globalState.exportations.some(
+			(exp) => exp.exportKind === ExportKind.Video && exp.isOnGoing()
+		);
 		const exportation = new Exportation(
 			project.detail.id,
 			fileName,
@@ -134,7 +140,7 @@ export default class ExportService {
 				project.projectEditorState.export.videoStartTime,
 				project.projectEditorState.export.videoEndTime
 			).toString(),
-			mode === 'recording' ? ExportState.WaitingForRecord : ExportState.CapturingFrames,
+			ExportState.WaitingForRecord,
 			project.projectEditorState.export.fps,
 			0,
 			0,
@@ -155,21 +161,17 @@ export default class ExportService {
 				: undefined,
 			export_only_recitation: project.projectEditorState.export.exportOnlyRecitation,
 			skipped_range_count: project.projectEditorState.export.skipRanges.length,
-			queued: mode === 'recording',
+			queued,
 			is_batch_export: Boolean(options.exportLabel)
 		});
 
+		this.ownedExportIds.add(exportation.exportId);
+		this.dirtyExportIds.add(exportation.exportId);
 		globalState.exportations.unshift(exportation);
-
-		// Sauvegarde les exports en cours
 		await this.saveExports();
 	}
 
-	/**
-	 * Réduit le nom de fichier pour conserver une marge compatible avec les chemins temporaires Windows.
-	 * @param {string} filePath Chemin de fichier à contraindre.
-	 * @returns {Promise<string>} Chemin original ou raccourci.
-	 */
+	/** Réduit le nom de fichier pour conserver une marge compatible avec les chemins temporaires Windows. */
 	static async constrainFilePathLength(filePath: string): Promise<string> {
 		const maxPathLength = 220;
 		const tempSuffixMargin = 48;
@@ -180,7 +182,6 @@ export default class ExportService {
 		const dirPath = pathParts.join('/');
 		const maxFileNameLength = Math.max(32, maxPathLength - dirPath.length - 1 - tempSuffixMargin);
 
-		// Laisse une marge pour les fichiers temporaires Rust qui ajoutent un suffixe `-tmp-...`.
 		if (
 			filePath.length > maxPathLength ||
 			fileName.length > maxFileNameLength ||
@@ -203,55 +204,135 @@ export default class ExportService {
 		return filePath;
 	}
 
-	/**
-	 * Sauvegarde les exports en cours.
-	 */
-	static async saveExports() {
-		// S'assure que le dossier existe
-		await ProjectService.ensureFolder(this.exportFolder);
-
-		// Construis le chemin d'accès vers le fichier contenant tout les exports
-		const filePath = await join(await appDataDir(), `exports.json`);
-
-		await writeTextFile(
-			filePath,
-			JSON.stringify(
-				globalState.exportations.map((exp) => exp.toJSON()),
-				null,
-				2
-			)
-		);
+	/** Branche une seule fois le snapshot global émis par le backend Rust. */
+	private static async ensureSyncListener(): Promise<void> {
+		if (!this.syncListenerPromise) {
+			this.syncListenerPromise = listen<unknown[]>('export-monitor-sync', (event) => {
+				this.applySnapshot(event.payload);
+			}).then(() => undefined);
+		}
+		await this.syncListenerPromise;
 	}
 
-	static async loadExports() {
+	/** Remplace la vue locale par le snapshot partagé tout en conservant les logs et ajouts dirty locaux. */
+	private static applySnapshot(payload: unknown): void {
+		const data = Array.isArray(payload) ? payload : [];
+		const existingById = new Map(globalState.exportations.map((exp) => [exp.exportId, exp]));
+		const snapshotIds = new Set<number>();
+		const hydrated = data.map((raw) => {
+			const exportation = Exportation.fromJSON(raw as Record<string, unknown>) as Exportation;
+			snapshotIds.add(exportation.exportId);
+			const existing = existingById.get(exportation.exportId);
+			if (existing?.exportLogs?.length) exportation.exportLogs = existing.exportLogs;
+			return exportation;
+		});
+
+		// Un export nouvellement créé peut être dirty quelques millisecondes avant son premier merge.
+		// Un snapshot concurrent ne doit pas le faire disparaître avant que sa sauvegarde passe.
+		const localDirtyAdditions = globalState.exportations.filter(
+			(exp) => this.dirtyExportIds.has(exp.exportId) && !snapshotIds.has(exp.exportId)
+		);
+		globalState.exportations = [...localDirtyAdditions, ...hydrated];
+		this.knownExportIds = snapshotIds;
+	}
+
+	/** Persiste les IDs explicitement touchés puis diffuse le snapshot résultant. */
+	private static persistTouchedExportIds(exportIds: Iterable<number>): Promise<void> {
+		const ids = Array.from(new Set(exportIds));
+		if (ids.length === 0) return Promise.resolve();
+
+		const idSet = new Set(ids);
+		const exports = globalState.exportations
+			.filter((exp) => idSet.has(exp.exportId))
+			.map((exp) => exp.toJSON());
+		const task = this.saveChain.then(async () => {
+			const snapshot = await invoke<unknown[]>('merge_export_entries', {
+				ownedExportIds: ids,
+				exports
+			});
+			this.applySnapshot(snapshot);
+		});
+		this.saveChain = task.catch(() => undefined);
+		return task;
+	}
+
+	/**
+	 * Sauvegarde uniquement les entrées réellement modifiées dans cette fenêtre.
+	 * L'ownership sert au cycle de vie de la fenêtre, pas à décider ce qui doit être réécrit.
+	 */
+	static async saveExports(): Promise<void> {
+		await ProjectService.ensureFolder(this.exportFolder);
+		await this.ensureSyncListener();
+
+		const currentIds = new Set(globalState.exportations.map((exp) => exp.exportId));
+		for (const exportId of currentIds) {
+			if (!this.knownExportIds.has(exportId)) {
+				this.ownedExportIds.add(exportId);
+				this.dirtyExportIds.add(exportId);
+			}
+		}
+		for (const exportId of this.knownExportIds) {
+			if (!currentIds.has(exportId)) this.dirtyExportIds.add(exportId);
+		}
+
+		const touchedIds = Array.from(this.dirtyExportIds);
+		if (touchedIds.length === 0) return;
+		await this.persistTouchedExportIds(touchedIds);
+		for (const exportId of touchedIds) this.dirtyExportIds.delete(exportId);
+	}
+
+	/** Persiste explicitement quelques entrées modifiées sans réécrire les autres exports possédés. */
+	static async persistExportIds(exportIds: Iterable<number>): Promise<void> {
+		await this.ensureSyncListener();
+		const ids = Array.from(new Set(exportIds));
+		await this.persistTouchedExportIds(ids);
+		for (const exportId of ids) this.dirtyExportIds.delete(exportId);
+	}
+
+	/** Réserve atomiquement le prochain export vidéo de la file globale FIFO. */
+	static async claimNextVideoExport(): Promise<number | null> {
+		await this.ensureSyncListener();
+		const result = await invoke<ClaimNextVideoExportResult>('claim_next_video_export');
+		this.applySnapshot(result.exports);
+		return typeof result.exportId === 'number' ? result.exportId : null;
+	}
+
+	/**
+	 * Charge le monitor partagé. Seule la fenêtre `main` du démarrage du processus transforme
+	 * les anciens exports interrompus en `Canceled`; les fenêtres créées ensuite ne les touchent pas.
+	 */
+	static async loadExports(): Promise<void> {
+		await this.ensureSyncListener();
 		const filePath = await join(await appDataDir(), `exports.json`);
 
 		if ((await exists(filePath)) === false) {
-			// Aucun export trouvé
-			globalState.exportations = [];
+			this.applySnapshot([]);
 			return;
 		}
 
 		const json = await readTextFile(filePath);
 		const parsedData: unknown = JSON.parse(json);
-		const data = Array.isArray(parsedData) ? parsedData : [];
-		globalState.exportations = data.map(
-			(exp) => Exportation.fromJSON(exp as Record<string, unknown>) as Exportation
-		);
+		this.applySnapshot(Array.isArray(parsedData) ? parsedData : []);
 
-		// Tout les exports en cours on les mets en canceled
+		if (getCurrentWindow().label !== 'main') return;
+
+		const interruptedExportIds: number[] = [];
 		globalState.exportations.forEach((exp) => {
 			if (exp.isOnGoing()) {
 				exp.currentState = ExportState.Canceled;
+				interruptedExportIds.push(exp.exportId);
 			}
 		});
+
+		if (interruptedExportIds.length > 0) {
+			await this.persistTouchedExportIds(interruptedExportIds);
+		}
 	}
 
 	static async deleteProjectFile(exportIdId: number) {
 		const exportPath = await join(await appDataDir(), this.exportFolder);
 
 		try {
-			// Construis le chemin d'accès vers le projet
 			const filePath = await join(exportPath, `${exportIdId}.json`);
 			await remove(filePath);
 		} catch (_e) {
@@ -264,21 +345,22 @@ export default class ExportService {
 	}
 
 	static setupListener() {
-		// Écoute les événements de progression d'export donné par Rust
 		listen('export-progress-main', exportProgress);
 		listen('export-log-main', exportLog);
 	}
 
-	static currentlyExportingProjects() {
-		return globalState.exportations.filter((exp) => exp.isOnGoing());
+	static isOwnedExport(exportId: number): boolean {
+		return this.ownedExportIds.has(exportId);
+	}
+
+	static currentlyExportingProjects(ownedOnly: boolean = false) {
+		return globalState.exportations.filter(
+			(exp) => exp.isOnGoing() && (!ownedOnly || this.ownedExportIds.has(exp.exportId))
+		);
 	}
 }
 
-/**
- * Ajoute une ligne de log d'export uniquement en memoire.
- * @param {TauriEvent<ExportLogPayload>} event Evenement de log recu depuis une fenetre d'export.
- * @returns {void}
- */
+/** Ajoute une ligne de log d'export uniquement en mémoire. */
 function exportLog(event: TauriEvent<ExportLogPayload>): void {
 	const data = event.payload;
 	const exportation = globalState.exportations.find(
@@ -303,10 +385,7 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 		const previousState = exportation.currentState;
 		const wasExported = exportation.currentState === ExportState.Exported;
 		const wasErrored = exportation.currentState === ExportState.Error;
-		if (exportation.currentState === ExportState.Canceled) {
-			// Si l'exportation a été annulée, on ignore les mises à jour
-			return;
-		}
+		if (exportation.currentState === ExportState.Canceled) return;
 
 		exportation.percentageProgress = data.progress;
 		exportation.currentState = data.currentState;
@@ -342,9 +421,7 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 			exportation.trackAnalyticsTerminal(ExportState.Exported);
 		}
 
-		if (data.errorLog) {
-			exportation.errorLog = data.errorLog;
-		}
+		if (data.errorLog) exportation.errorLog = data.errorLog;
 
 		if (
 			!wasErrored &&
@@ -362,7 +439,7 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 		}
 	}
 
-	ExportService.saveExports();
+	void ExportService.persistExportIds([data.exportId]);
 }
 
 export interface ExportProgress {

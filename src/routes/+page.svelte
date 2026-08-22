@@ -35,7 +35,7 @@
 	let homepageMessageVisible = $state(false);
 
 	async function cancelOngoingExports() {
-		const ongoingExports = ExportService.currentlyExportingProjects();
+		const ongoingExports = ExportService.currentlyExportingProjects(true);
 		await Promise.all(ongoingExports.map((exportation) => exportation.cancelExport('app_close')));
 		await ExportService.saveExports();
 	}
@@ -47,7 +47,7 @@
 	async function handleMainWindowClose(event: CloseRequestedEvent) {
 		if (allowWindowClose) return;
 
-		const ongoingExports = ExportService.currentlyExportingProjects();
+		const ongoingExports = ExportService.currentlyExportingProjects(true);
 		if (ongoingExports.length === 0) return;
 
 		event.preventDefault();

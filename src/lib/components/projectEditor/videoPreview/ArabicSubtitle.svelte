@@ -750,7 +750,7 @@
 			verticalStyleId: 'vertical-position',
 			horizontalStyleId: 'horizontal-position'
 		}}
-		dir={shouldForceRtlJustify() ? 'rtl' : undefined}
+		dir={showDecorativeBrackets() || shouldForceRtlJustify() ? 'rtl' : undefined}
 		class={'arabic absolute subtitle select-none z-10 ' + tailwind + helperStyles}
 		style="opacity: {wbwState().enabled
 			? 1
@@ -766,7 +766,7 @@
 
 			{#if showBrackets && ((state.enabled && groups.length > 0) || segments.some((segment) => segment.text.trim().length > 0))}
 				{@const bracketCss = getDecorativeBracketCss()}
-				<span style={bracketCss}>{glyphs.opening}</span>
+				<span style={bracketCss}>{glyphs.closing}</span>
 
 				{#if state.enabled && subtitle instanceof SubtitleClip}
 					<!-- Rendu WBW avec crochets décoratifs -->
@@ -851,7 +851,7 @@
 					{@render overlaySegmentsContent(segments)}
 				{/if}
 
-				<span style={bracketCss}>{glyphs.closing}</span>
+				<span style={bracketCss}>{glyphs.opening}</span>
 			{:else if state.enabled && subtitle instanceof SubtitleClip}
 				<!-- Rendu WBW sans crochets décoratifs -->
 				<span class="arabic-wbw-flow line-background" dir="rtl" style="unicode-bidi: isolate;">

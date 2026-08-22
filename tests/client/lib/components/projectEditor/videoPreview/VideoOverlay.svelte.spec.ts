@@ -815,6 +815,7 @@ describe('Decorative brackets', () => {
 
 		const arabicNode = getForegroundArabicNode(component.container);
 		expect(arabicNode).not.toBeNull();
+		expect(arabicNode!.getAttribute('dir')).toBe('rtl');
 		const bracketSpans = arabicNode!.querySelectorAll('span[style*="QPC2BSML"]');
 		expect(bracketSpans.length).toBe(2); // ouvrant + fermant
 	});

@@ -224,7 +224,7 @@
 						</span>
 					{/if}
 					<span
-						class="absolute bottom-3 left-3 text-xs font-medium drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
+						class="absolute bottom-1.5 left-1.5 text-xs font-medium drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] bg-black/60 rounded-md px-1"
 					>
 						{projectDetail.duration.getFormattedTime(false)}
 					</span>

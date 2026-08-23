@@ -73,6 +73,40 @@
 	});
 
 	let extended = $state(false);
+	let styleTooltip = $state<HTMLDivElement>();
+
+	/**
+	 * Affiche la description du style près de son icône d'information.
+	 * @param {HTMLElement} anchor Icône servant de point d'ancrage.
+	 * @returns {void}
+	 */
+	function showStyleTooltip(anchor: HTMLElement): void {
+		if (!styleTooltip) return;
+		styleTooltip.showPopover();
+		const anchorRect = anchor.getBoundingClientRect();
+		const tooltipRect = styleTooltip.getBoundingClientRect();
+		const gap = 8;
+		const left = Math.min(
+			Math.max(anchorRect.left + anchorRect.width / 2 - tooltipRect.width / 2, gap),
+			window.innerWidth - tooltipRect.width - gap
+		);
+		const topAbove = anchorRect.top - tooltipRect.height - gap;
+		const top =
+			topAbove >= gap
+				? topAbove
+				: Math.min(anchorRect.bottom + gap, window.innerHeight - tooltipRect.height - gap);
+
+		styleTooltip.style.left = `${left}px`;
+		styleTooltip.style.top = `${top}px`;
+	}
+
+	/**
+	 * Masque l'infobulle de description du style.
+	 * @returns {void}
+	 */
+	function hideStyleTooltip(): void {
+		if (styleTooltip?.matches(':popover-open')) styleTooltip.hidePopover();
+	}
 
 	$effect(() => {
 		globalState.getSectionsState[style.id] = {
@@ -460,7 +494,6 @@
 					? 'style-control-direct-header '
 					: 'py-1.25 px-2 ' + (extended ? 'border-b border-color ' : '')) +
 				(showControl ? '' : 'cursor-pointer')}
-			title={showControl ? getStyleDescription(style.id, get(LL)) : undefined}
 			onclick={() => {
 				if (showControl) return;
 				// Impossible d'étendre un style booléen, comme on a le switch directement pour le mettre en true/false
@@ -474,6 +507,19 @@
 						(showControl ? 'text-[18px]!' : 'text-[20px]!')}>{style.icon}</span
 				>
 				<span class="text-sm text-primary font-medium">{getStyleName(style.id, get(LL))}</span>
+				<span
+					class="style-info-trigger"
+					tabindex="0"
+					aria-label={getStyleDescription(style.id, get(LL))}
+					onmouseenter={(event) => showStyleTooltip(event.currentTarget)}
+					onmouseleave={hideStyleTooltip}
+					onfocus={(event) => showStyleTooltip(event.currentTarget)}
+					onblur={hideStyleTooltip}
+				>
+					<span class="material-icons-outlined translate-x-14 translate-y-0.25 opacity-60"
+						>info_outline</span
+					>
+				</span>
 			</div>
 			{#key selectedClipIds().length + String(inputValue)}
 				<div class="flex items-center gap-2 text-xs text-secondary">
@@ -618,6 +664,10 @@
 				{/if}
 			</div>
 		{/if}
+
+		<div bind:this={styleTooltip} popover="manual" class="style-description-tooltip" role="tooltip">
+			{getStyleDescription(style.id, get(LL))}
+		</div>
 	</div>
 {/if}
 
@@ -665,5 +715,47 @@
 
 	:global(.style-control-list > .style-control-direct:last-child) {
 		border-bottom: 0;
+	}
+
+	.style-info-trigger {
+		display: inline-flex;
+		width: 14px;
+		height: 14px;
+		flex: 0 0 14px;
+		align-items: center;
+		justify-content: center;
+		color: var(--text-secondary);
+		cursor: help;
+		transition: color 150ms;
+	}
+
+	.style-info-trigger:hover {
+		color: var(--accent-primary);
+	}
+
+	.style-info-trigger .material-icons-outlined {
+		font-size: 14px;
+		line-height: 1;
+		pointer-events: none;
+	}
+
+	.style-description-tooltip {
+		position: fixed;
+		width: fit-content;
+		max-width: min(16rem, calc(100vw - 1rem));
+		margin: 0;
+		padding: 0.65rem 0.75rem;
+		border: 1px solid color-mix(in srgb, var(--border-color) 75%, var(--accent-primary) 25%);
+		border-radius: 0.7rem;
+		background: color-mix(in srgb, var(--bg-secondary) 94%, black);
+		box-shadow:
+			0 14px 32px rgb(0 0 0 / 30%),
+			0 2px 8px rgb(0 0 0 / 18%);
+		color: var(--text-primary);
+		font-size: 0.75rem;
+		line-height: 1.4;
+		text-align: start;
+		pointer-events: none;
+		backdrop-filter: blur(12px);
 	}
 </style>

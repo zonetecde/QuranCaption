@@ -793,7 +793,7 @@ export function validateAdvancedTrimBatchResult(
  */
 function getAiSegmentText(segment: Record<string, unknown>): string {
 	const value = typeof segment.text === 'string' ? segment.text : segment.trimmed;
-	return typeof value === 'string' ? value.trim() : '';
+	return typeof value === 'string' ? value.trim().replace(/(^|\s)\d+:/g, '$1') : '';
 }
 
 /**

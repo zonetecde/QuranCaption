@@ -4,7 +4,8 @@ import {
 	applyAdvancedTrimValidationSuccess,
 	buildAdvancedTrimBatches,
 	type AdvancedTrimValidationSuccess,
-	type AdvancedTrimVerseCandidate
+	type AdvancedTrimVerseCandidate,
+	validateAdvancedTrimBatchResult
 } from '$lib/services/AdvancedAITrimming';
 import { Edition, SubtitleClip } from '$lib/classes';
 import { VerseTranslation } from '$lib/classes/Translation.svelte';
@@ -144,5 +145,37 @@ describe('AdvancedAITrimming batches', () => {
 				}
 			]
 		});
+	});
+
+	it('removes returned translation unit indexes before applying AI text', () => {
+		const subtitle = {
+			startWordIndex: 0,
+			endWordIndex: 1
+		} as SubtitleClip;
+		const candidate = {
+			...createCandidate(0, 2),
+			verseKey: '1:1',
+			sourceTranslation: 'Source words',
+			hasFullVerseCoverage: true,
+			subtitles: [subtitle],
+			segments: [
+				{
+					i: 0,
+					arabic: 'النص',
+					wordByWordEnglish: ['text'],
+					needsAi: true,
+					lockedRange: null,
+					existingText: '',
+					subtitle
+				}
+			]
+		} satisfies AdvancedTrimVerseCandidate;
+		const [batch] = buildAdvancedTrimBatches([candidate], 'gpt-5.4', 'none', 0, Infinity);
+
+		const validation = validateAdvancedTrimBatchResult(batch, {
+			verses: [{ verseKey: '1:1', segments: [{ i: 0, text: '0:Source 1:words' }] }]
+		});
+
+		expect(validation.validVerses[0].result.segments[0].text).toBe('Source words');
 	});
 });

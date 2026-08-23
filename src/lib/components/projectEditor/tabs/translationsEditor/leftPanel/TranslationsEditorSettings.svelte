@@ -322,7 +322,7 @@
 		</select>
 	</div>
 
-	<div class="mb-6 rounded-lg border border-color bg-accent p-3">
+	<div class="mb-6 rounded-lg border border-color bg-accent p-3 pb-28">
 		<div class="mb-2 flex items-center gap-2">
 			<span class="material-icons text-accent-primary text-lg">rule</span>
 			<h3 class="text-sm font-semibold text-primary">{$LL.editor.translationChecks()}</h3>

@@ -12,7 +12,9 @@
 	let { update, resolve }: { update: UpdateInfo; resolve: () => void } = $props();
 	let html = `<p>${get(LL).home.loadingUpdate()}</p>`;
 	let sanitized = $state(`<p>${get(LL).home.loadingUpdate()}</p>`);
-	let changelogSrcdoc = $state(`<!doctype html><html><body>${get(LL).home.loadingUpdate()}</body></html>`);
+	let changelogSrcdoc = $state(
+		`<!doctype html><html><body>${get(LL).home.loadingUpdate()}</body></html>`
+	);
 	type DomPurifyLike = { sanitize: (dirty: string) => string };
 	let DOMPurify: DomPurifyLike | undefined;
 
@@ -211,7 +213,9 @@
 	}
 
 	async function openManualDownloadPage() {
-		await openUrl('https://github.com/zonetecde/QuranCaption/releases/latest');
+		await openUrl(
+			`https://github.com/zonetecde/QuranCaption/releases/tag/QC-${update.latestVersion}`
+		);
 	}
 
 	function dismissModal() {
@@ -344,8 +348,7 @@
 				<div>
 					<h3 class="text-lg font-semibold text-primary mb-2">{$LL.home.updateFailedTitle()}</h3>
 					<p class="text-sm text-secondary max-w-sm">
-						{updateError ||
-							$LL.home.updateFailedMessage()}
+						{updateError || $LL.home.updateFailedMessage()}
 					</p>
 				</div>
 			</div>
@@ -421,7 +424,7 @@
 			{:else if isUpdating}
 				<div class="flex items-center gap-2 text-sm text-secondary">
 					<span class="material-icons text-base animate-spin">hourglass_empty</span>
-				{$LL.home.pleaseDontClose()}
+					{$LL.home.pleaseDontClose()}
 				</div>
 			{:else}
 				<button

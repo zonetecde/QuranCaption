@@ -1,6 +1,7 @@
 import { getVersion } from '@tauri-apps/api/app';
+import { invoke } from '@tauri-apps/api/core';
 import { relaunch } from '@tauri-apps/plugin-process';
-import { check, type Update } from '@tauri-apps/plugin-updater';
+import { Update } from '@tauri-apps/plugin-updater';
 
 export interface UpdateInfo {
 	hasUpdate: boolean;
@@ -14,6 +15,15 @@ type GitHubRelease = {
 	tag_name?: string;
 	prerelease?: boolean;
 	body?: string;
+};
+
+type TauriUpdateMetadata = {
+	rid: number;
+	currentVersion: string;
+	version: string;
+	date?: string;
+	body?: string;
+	rawJson: Record<string, unknown>;
 };
 
 const isGitHubRelease = (value: unknown): value is GitHubRelease =>
@@ -77,7 +87,13 @@ class VersionService {
 	 */
 	async checkTauriUpdate(): Promise<Update | null> {
 		try {
-			const update = await check();
+			const updateInfo = this.latestUpdate ?? (await this.checkForUpdates());
+			if (!updateInfo.hasUpdate) return null;
+
+			const metadata = await invoke<TauriUpdateMetadata | null>('check_qc_update', {
+				tag: `QC-${updateInfo.latestVersion}`
+			});
+			const update = metadata ? new Update(metadata) : null;
 			if (update?.available) {
 				this._tauriUpdate = update;
 				return update;
@@ -184,10 +200,10 @@ class VersionService {
 			}
 			const releases = releasesPayload.filter(isGitHubRelease);
 
-			// filtrer seulement les releases qui commencent par "QC-" ou "v" et ne sont pas des pre-releases
+			// filtrer seulement les releases desktop "QC-" qui ne sont pas des pre-releases
 			const qcReleases = releases.filter((r) => {
 				const tag = r.tag_name || '';
-				return (tag.startsWith('QC-') || tag.startsWith('v')) && !r.prerelease;
+				return tag.startsWith('QC-') && !r.prerelease;
 			});
 
 			if (qcReleases.length === 0) {
@@ -218,8 +234,8 @@ class VersionService {
 				})
 				.join('\n\n');
 
-			// extraire la partie numérique du tag le plus élevé (enlever "QC-" ou "v")
-			const latestVersionNumber = highest.replace(/^QC-/i, '').replace(/^v/i, '');
+			// extraire la partie numérique du tag le plus élevé
+			const latestVersionNumber = highest.replace(/^QC-/i, '');
 
 			return {
 				hasUpdate: newer.length > 0,

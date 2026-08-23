@@ -63,27 +63,6 @@
 	}
 
 	/**
-	 * Résume une valeur IPC sans injecter de gros buffers dans le moniteur.
-	 * @param {unknown} value Valeur à décrire.
-	 * @returns {string} Description compacte et sérialisable.
-	 */
-	function summarizeRendererInvokeValue(value: unknown): string {
-		try {
-			const json = JSON.stringify(value, (_key, nestedValue) => {
-				if (nestedValue instanceof Uint8Array) return `Uint8Array(${nestedValue.byteLength})`;
-				if (nestedValue instanceof ArrayBuffer) return `ArrayBuffer(${nestedValue.byteLength})`;
-				if (typeof nestedValue === 'string' && nestedValue.length > 240) {
-					return `${nestedValue.slice(0, 240)}…(${nestedValue.length})`;
-				}
-				return nestedValue;
-			});
-			return (json ?? String(value)).slice(0, 1200);
-		} catch {
-			return Object.prototype.toString.call(value);
-		}
-	}
-
-	/**
 	 * Synchronise l'orientation Android courante dans l'etat global partage.
 	 */
 	function syncAndroidViewport(): void {
@@ -155,26 +134,8 @@
 				sourceWorkerId === null
 					? 'android-ipc-parent'
 					: `android-ipc-parent-worker-${sourceWorkerId}`;
-			if (Number.isFinite(diagnosticExportId)) {
-				applyExportLog({
-					exportId: diagnosticExportId,
-					timestamp: new Date().toISOString(),
-					source: diagnosticSource,
-					level: 'info',
-					message: `IPC → ${data.command} args=${summarizeRendererInvokeValue(data.args)}`
-				});
-			}
 			void invoke(data.command, data.args, data.options).then(
 				(result) => {
-					if (Number.isFinite(diagnosticExportId)) {
-						applyExportLog({
-							exportId: diagnosticExportId,
-							timestamp: new Date().toISOString(),
-							source: diagnosticSource,
-							level: 'info',
-							message: `IPC ✓ ${data.command} ${Math.round(performance.now() - startedAt)}ms result=${summarizeRendererInvokeValue(result)}`
-						});
-					}
 					source.postMessage(
 						{
 							type: 'export-renderer-invoke-result-main',

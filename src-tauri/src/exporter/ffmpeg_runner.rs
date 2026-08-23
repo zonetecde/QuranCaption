@@ -7,7 +7,7 @@ use std::process::{Command, ExitStatus, Stdio};
 #[cfg(not(target_os = "android"))]
 use std::sync::{Arc, Mutex};
 #[cfg(target_os = "android")]
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use tauri::{Emitter, Manager};
 #[cfg(target_os = "android")]
@@ -92,6 +92,26 @@ pub fn emit_export_progress(
         );
     }
     let _ = app_handle.emit("export-progress", progress_data);
+}
+
+/// Envoie une ligne FFmpegKit au moniteur d'export du frontend.
+#[cfg(target_os = "android")]
+fn emit_android_ffmpeg_log(
+    app_handle: &tauri::AppHandle,
+    export_id: &str,
+    level: &str,
+    message: &str,
+) {
+    let _ = app_handle.emit(
+        "export-log-main",
+        serde_json::json!({
+            "exportId": export_id,
+            "timestamp": "",
+            "source": "ffmpegkit",
+            "level": level,
+            "message": message
+        }),
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -455,6 +475,13 @@ pub fn run_ffmpeg_command(
         index += 1;
     }
 
+    emit_android_ffmpeg_log(
+        app_handle,
+        export_id,
+        "info",
+        &format!("Commande: {}", arguments.join(" ")),
+    );
+
     let session_id = app_handle
         .android_media()
         .start_ffmpeg(arguments)
@@ -477,6 +504,20 @@ pub fn run_ffmpeg_command(
         }
     }
 
+    emit_android_ffmpeg_log(
+        app_handle,
+        export_id,
+        "info",
+        &format!("Session {} démarrée", session_id),
+    );
+
+    let started_at = Instant::now();
+    let mut last_progress_at = started_at;
+    let mut last_stall_log_at = started_at;
+    let mut last_time_ms = 0.0;
+    let mut ffmpeg_output = String::new();
+    let mut last_ffmpeg_line = String::new();
+    let mut repeated_ffmpeg_lines = 0usize;
     let snapshot = loop {
         if app_handle
             .android_media()
@@ -502,6 +543,66 @@ pub fn run_ffmpeg_command(
                 )));
             }
         };
+
+        if !snapshot.output.is_empty() {
+            for line in snapshot
+                .output
+                .lines()
+                .filter(|line| !line.trim().is_empty())
+            {
+                if line == last_ffmpeg_line {
+                    repeated_ffmpeg_lines += 1;
+                    continue;
+                }
+                if repeated_ffmpeg_lines > 0 {
+                    emit_android_ffmpeg_log(
+                        app_handle,
+                        export_id,
+                        "warn",
+                        &format!(
+                            "Ligne FFmpeg précédente répétée {} fois",
+                            repeated_ffmpeg_lines
+                        ),
+                    );
+                    repeated_ffmpeg_lines = 0;
+                }
+                last_ffmpeg_line.clear();
+                last_ffmpeg_line.push_str(line);
+                let normalized = line.to_ascii_lowercase();
+                let level = if normalized.contains("error") {
+                    "error"
+                } else if normalized.contains("warning") {
+                    "warn"
+                } else {
+                    "info"
+                };
+                println!("[ffmpegkit] {}", line);
+                emit_android_ffmpeg_log(app_handle, export_id, level, line);
+            }
+            ffmpeg_output.push_str(&snapshot.output);
+        }
+
+        let now = Instant::now();
+        if snapshot.time_ms > last_time_ms {
+            last_time_ms = snapshot.time_ms;
+            last_progress_at = now;
+        } else if now.duration_since(last_progress_at) >= Duration::from_secs(10)
+            && now.duration_since(last_stall_log_at) >= Duration::from_secs(10)
+        {
+            emit_android_ffmpeg_log(
+                app_handle,
+                export_id,
+                "warn",
+                &format!(
+                    "Session {} toujours en état {} après {:.0}s, temps encodé inchangé à {:.0} ms",
+                    session_id,
+                    snapshot.state,
+                    now.duration_since(started_at).as_secs_f64(),
+                    snapshot.time_ms
+                ),
+            );
+            last_stall_log_at = now;
+        }
 
         if let Some(context) = progress_context {
             let local_time_s = (snapshot.time_ms / 1000.0).min(context.local_duration_s);
@@ -531,9 +632,26 @@ pub fn run_ffmpeg_command(
     if let Ok(mut active_exports) = constants::ACTIVE_ANDROID_EXPORTS.lock() {
         active_exports.remove(export_id);
     }
+    if repeated_ffmpeg_lines > 0 {
+        emit_android_ffmpeg_log(
+            app_handle,
+            export_id,
+            "warn",
+            &format!(
+                "Ligne FFmpeg précédente répétée {} fois",
+                repeated_ffmpeg_lines
+            ),
+        );
+    }
     ensure_export_not_cancelled(export_id)?;
 
     if snapshot.return_code == Some(0) {
+        emit_android_ffmpeg_log(
+            app_handle,
+            export_id,
+            "info",
+            &format!("Session {} terminée avec succès", session_id),
+        );
         if let Some(context) = progress_context {
             emit_export_progress(
                 app_handle,
@@ -551,7 +669,7 @@ pub fn run_ffmpeg_command(
     let suppress_error_event = progress_context
         .map(|context| context.suppress_error_event)
         .unwrap_or(false);
-    let output = [snapshot.output, snapshot.failure_stack_trace]
+    let output = [ffmpeg_output, snapshot.failure_stack_trace]
         .into_iter()
         .filter(|part| !part.is_empty())
         .collect::<Vec<_>>()

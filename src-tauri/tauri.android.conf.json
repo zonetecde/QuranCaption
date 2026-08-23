@@ -1,6 +1,10 @@
 {
 	"$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
 	"bundle": {
-		"resources": ["resources/notifications/**/*"]
+		"resources": [
+			"resources/notifications/**/*",
+			"resources/quran_caption_intro.png",
+			"resources/quran_caption_intro_phone.png"
+		]
 	}
 }

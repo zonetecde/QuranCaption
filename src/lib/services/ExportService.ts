@@ -361,7 +361,7 @@ export function applyExportLog(data: ExportLogPayload): void {
 	if (!exportation) return;
 
 	exportation.addExportLog({
-		timestamp: data.timestamp,
+		timestamp: data.timestamp || new Date().toISOString(),
 		source: data.source,
 		level: data.level,
 		message: data.message

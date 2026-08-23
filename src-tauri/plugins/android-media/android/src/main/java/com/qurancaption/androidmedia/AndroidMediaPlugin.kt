@@ -38,6 +38,7 @@ import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.security.KeyStore
+import java.util.concurrent.ConcurrentHashMap
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -122,6 +123,7 @@ class SecureKeyArgs {
 @TauriPlugin
 class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
     private val hostActivity = activity
+    private val ffmpegLogOffsets = ConcurrentHashMap<Long, Int>()
     private val securePreferences by lazy {
         hostActivity.getSharedPreferences(SECURE_PREFERENCES_NAME, Activity.MODE_PRIVATE)
     }
@@ -147,6 +149,7 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
                 args.arguments,
                 FFmpegSessionCompleteCallback { }
             )
+            ffmpegLogOffsets[session.sessionId] = 0
             invoke.resolve(
                 JSObject().apply {
                     put("sessionId", session.sessionId)
@@ -160,8 +163,7 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
     /**
      * Retourne un instantané non bloquant de l'état et de la progression FFmpegKit.
      *
-     * Les logs complets ne sont lus qu'une fois la session terminée pour éviter de recopier
-     * une sortie toujours plus volumineuse à chaque interrogation.
+     * Seules les nouvelles lignes de log sont renvoyées à chaque interrogation.
      *
      * @param invoke Appel Tauri contenant l'identifiant de session.
      */
@@ -178,15 +180,21 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
             val isTerminal = session.state == SessionState.COMPLETED ||
                 session.state == SessionState.FAILED
             val returnCode = session.returnCode?.value
+            val fullOutput = session.output.orEmpty()
+            val outputOffset = (ffmpegLogOffsets[session.sessionId] ?: 0)
+                .coerceAtMost(fullOutput.length)
+            val output = fullOutput.substring(outputOffset)
+            if (isTerminal) {
+                ffmpegLogOffsets.remove(session.sessionId)
+            } else {
+                ffmpegLogOffsets[session.sessionId] = fullOutput.length
+            }
             invoke.resolve(
                 JSObject().apply {
                     put("sessionId", session.sessionId)
                     put("state", session.state.name)
                     put("returnCode", returnCode ?: JSONObject.NULL)
-                    put(
-                        "output",
-                        if (isTerminal && returnCode != 0) session.output.orEmpty() else ""
-                    )
+                    put("output", output)
                     put(
                         "failureStackTrace",
                         if (isTerminal) session.failStackTrace.orEmpty() else ""

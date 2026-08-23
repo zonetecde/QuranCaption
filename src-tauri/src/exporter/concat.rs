@@ -168,35 +168,38 @@ pub fn append_export_audio_codec_args(
 
 /// Résout l'image promotionnelle adaptée à l'orientation de la vidéo.
 ///
-/// Les ressources embarquées sont utilisées en production et le dossier source
-/// est conservé comme repli pour les lancements de développement.
+/// La ressource embarquée est copiée dans le cache afin que FFmpeg puisse y
+/// accéder comme à un fichier standard.
 fn resolve_promotion_image(
     app_handle: &tauri::AppHandle,
     video_width: i32,
     video_height: i32,
 ) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync + 'static>> {
-    let filename = if video_width >= video_height {
-        "quran_caption_intro.png"
+    let (filename, image): (&str, &[u8]) = if video_width >= video_height {
+        (
+            "quran_caption_intro.png",
+            include_bytes!("../../resources/quran_caption_intro.png"),
+        )
     } else {
-        "quran_caption_intro_phone.png"
+        (
+            "quran_caption_intro_phone.png",
+            include_bytes!("../../resources/quran_caption_intro_phone.png"),
+        )
     };
-    let relative_path = Path::new("resources").join(filename);
-    let resource_path = app_handle
-        .path()
-        .resolve(&relative_path, tauri::path::BaseDirectory::Resource)
-        .map_err(|error| format!("Impossible de résoudre l'image promotionnelle: {}", error))?;
-    if resource_path.exists() {
-        return Ok(resource_path);
+
+    let cache_dir = app_handle.path().app_cache_dir()?.join("resources");
+    let cache_path = cache_dir.join(filename);
+    if fs::read(&cache_path)
+        .map(|cached_image| cached_image.as_slice() == image)
+        .unwrap_or(false)
+    {
+        return Ok(cache_path);
     }
 
-    let development_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("resources")
-        .join(filename);
-    if development_path.exists() {
-        return Ok(development_path);
-    }
+    fs::create_dir_all(cache_dir)?;
+    fs::write(&cache_path, image)?;
 
-    Err(format!("Image promotionnelle introuvable: {}", filename).into())
+    Ok(cache_path)
 }
 
 /// Ajoute une carte Quran Caption de trois secondes avec un fondu croisé.
@@ -254,7 +257,7 @@ fn render_promotion_video(
         "-y".to_string(),
         "-hide_banner".to_string(),
         "-loglevel".to_string(),
-        "warning".to_string(),
+        "info".to_string(),
         "-nostats".to_string(),
         "-progress".to_string(),
         "pipe:2".to_string(),
@@ -362,16 +365,13 @@ fn render_promotion_video(
         }
         cmd.extend(vparams);
     } else {
-        cmd.extend_from_slice(&[
-            "-c:v".to_string(),
-            "libx264".to_string(),
-            "-preset".to_string(),
-            "veryfast".to_string(),
-            "-crf".to_string(),
-            "18".to_string(),
-            "-pix_fmt".to_string(),
-            frame_format.to_string(),
-        ]);
+        let (vcodec, vparams, vextra) =
+            codec::choose_best_codec(false, width, height, CodecUsage::Final, performance_profile);
+        cmd.extend_from_slice(&["-c:v".to_string(), vcodec]);
+        if let Some(Some(preset)) = vextra.get("preset") {
+            cmd.extend_from_slice(&["-preset".to_string(), preset.clone()]);
+        }
+        cmd.extend(vparams);
     }
 
     if has_audio {

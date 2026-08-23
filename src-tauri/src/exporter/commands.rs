@@ -1726,8 +1726,13 @@ fn run_fast_export(
             direct_duration_s, duration_s
         );
         cmd.extend_from_slice(&[
+            "-filter_complex".to_string(),
+            format!(
+                "color=c=black:s={}x{}:r={}:d={:.6}[bg];[bg][0:v]overlay=eof_action=pass:repeatlast=0:shortest=0,trim=duration={:.6}[vout]",
+                w, h, fps, duration_s, duration_s
+            ),
             "-map".to_string(),
-            "0:v".to_string(),
+            "[vout]".to_string(),
             "-r".to_string(),
             fps.to_string(),
         ]);
@@ -1769,7 +1774,7 @@ fn run_fast_export(
             cmd.push("-an".to_string());
         }
 
-        cmd.extend_from_slice(&["-t".to_string(), format!("{:.6}", direct_duration_s)]);
+        cmd.extend_from_slice(&["-t".to_string(), format!("{:.6}", duration_s)]);
         let ext = Path::new(out_path)
             .extension()
             .and_then(|s| s.to_str())
@@ -1780,7 +1785,7 @@ fn run_fast_export(
         }
         cmd.push(out_path.to_string());
         println!("[fast_export] commande directe complete: {}", cmd.join(" "));
-        run_final_export_command(export_id, &cmd, direct_duration_s, &app_handle)?;
+        run_final_export_command(export_id, &cmd, duration_s, &app_handle)?;
 
         if !Path::new(out_path).exists() {
             return Err(export_error("Le fichier de sortie n'a pas ete cree"));

@@ -35,6 +35,8 @@ use super::types::{
 /// * `export_id` - Identifiant unique pour suivre et annuler l'export.
 /// * `imgs_folder` - Dossier contenant les PNG (ex: `0.png`, `1500.png`, ...).
 /// * `final_file_path` - Chemin du fichier vidéo de sortie.
+/// * `video_width` - Largeur demandée pour la vidéo finale.
+/// * `video_height` - Hauteur demandée pour la vidéo finale.
 /// * `fps` - Images par seconde.
 /// * `fade_duration` - Durée du fondu entre chaque sous-titre (ms).
 /// * `start_time` - Début de la plage d'export (ms).
@@ -55,6 +57,8 @@ pub async fn export_video(
     imgs_folder: String,
     final_file_path: String,
     destination_uri: Option<String>,
+    video_width: i32,
+    video_height: i32,
     fps: i32,
     fade_duration: i32,
     start_time: i32,
@@ -213,15 +217,11 @@ pub async fn export_video(
     );
     println!("[timeline] Nombre d'images: {}", ts.len());
 
-    // ---- Taille cible (dimensions de 0.png) ----
-    println!("[image] Ouverture de la première image pour taille cible...");
-    let target_size = {
-        let img_data = fs::read(&files[0]).map_err(|e| format!("Erreur lecture image: {}", e))?;
-        let img = image::load_from_memory(&img_data)
-            .map_err(|e| format!("Erreur décodage image: {}", e))?;
-        // Forcer des dimensions paires pour compatibilité YUV420P
-        ((img.width() as i32 / 2) * 2, (img.height() as i32 / 2) * 2)
-    };
+    // ---- Taille cible demandée par le projet ----
+    if video_width <= 0 || video_height <= 0 {
+        return Err("Dimensions vidéo invalides".to_string());
+    }
+    let target_size = (video_width, video_height);
 
     println!("[image] Taille cible: {}x{}", target_size.0, target_size.1);
 
@@ -432,6 +432,8 @@ pub async fn export_segmented_video(
     segments: Vec<SegmentedExportPart>,
     output_path: String,
     destination_uri: Option<String>,
+    video_width: i32,
+    video_height: i32,
     fps: i32,
     fade_duration: i32,
     audios: Option<Vec<String>>,
@@ -480,6 +482,8 @@ pub async fn export_segmented_video(
             segment.imgs_folder,
             segment.final_file_path,
             None,
+            video_width,
+            video_height,
             fps,
             fade_duration,
             segment.start_time,

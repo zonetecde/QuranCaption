@@ -507,19 +507,21 @@
 						(showControl ? 'text-[18px]!' : 'text-[20px]!')}>{style.icon}</span
 				>
 				<span class="text-sm text-primary font-medium">{getStyleName(style.id, get(LL))}</span>
-				<span
+				<button
+					type="button"
 					class="style-info-trigger"
-					tabindex="0"
 					aria-label={getStyleDescription(style.id, get(LL))}
+					onclick={(event) => {
+						event.stopPropagation();
+						showStyleTooltip(event.currentTarget);
+					}}
 					onmouseenter={(event) => showStyleTooltip(event.currentTarget)}
 					onmouseleave={hideStyleTooltip}
 					onfocus={(event) => showStyleTooltip(event.currentTarget)}
 					onblur={hideStyleTooltip}
 				>
-					<span class="material-icons-outlined translate-x-14 translate-y-0.25 opacity-60"
-						>info_outline</span
-					>
-				</span>
+					<span class="material-icons-outlined opacity-60">info_outline</span>
+				</button>
 			</div>
 			{#key selectedClipIds().length + String(inputValue)}
 				<div class="flex items-center gap-2 text-xs text-secondary">
@@ -719,11 +721,14 @@
 
 	.style-info-trigger {
 		display: inline-flex;
-		width: 14px;
-		height: 14px;
-		flex: 0 0 14px;
+		width: 28px;
+		height: 28px;
+		padding: 0;
+		flex: 0 0 28px;
 		align-items: center;
 		justify-content: center;
+		border: 0;
+		background: transparent;
 		color: var(--text-secondary);
 		cursor: help;
 		transition: color 150ms;
@@ -734,7 +739,7 @@
 	}
 
 	.style-info-trigger .material-icons-outlined {
-		font-size: 14px;
+		font-size: 16px;
 		line-height: 1;
 		pointer-events: none;
 	}

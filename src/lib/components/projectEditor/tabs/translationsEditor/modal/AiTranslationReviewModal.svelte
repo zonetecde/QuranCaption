@@ -332,8 +332,8 @@
 	}}
 	title={$LL.editor.reviewTranslationsWithAi()}
 	icon="fact_check"
-	shellClass="h-[92vh] xl:h-[84vh] w-[clamp(1180px,94vw,1500px)] max-w-[94vw] xl:max-w-[82vw]"
-	bodyClass="flex-1 min-h-0 overflow-hidden grid grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]"
+	shellClass="h-[90dvh] w-full"
+	bodyClass="flex min-h-0 flex-1 flex-col overflow-y-auto"
 	workspace={{
 		configuration: {
 			title: $LL.editor.configuration(),

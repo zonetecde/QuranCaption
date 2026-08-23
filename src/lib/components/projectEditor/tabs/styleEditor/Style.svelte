@@ -56,8 +56,40 @@
 	} = $props();
 
 	type StyleValue = Style['value'];
+	const styleTooltipOwner = Symbol();
+
+	/**
+	 * Affiche cette infobulle et demande la fermeture des autres.
+	 * @returns {void}
+	 */
+	function showStyleTooltip(): void {
+		window.dispatchEvent(
+			new CustomEvent<symbol>('style-tooltip-open', { detail: styleTooltipOwner })
+		);
+		styleTooltipVisible = true;
+	}
+
+	/**
+	 * Masque l'infobulle lors d'un défilement de l'interface.
+	 * @returns {void}
+	 */
+	function hideStyleTooltipOnScroll(): void {
+		styleTooltipVisible = false;
+	}
+
+	/**
+	 * Masque cette infobulle lorsqu'une autre est ouverte.
+	 * @param {Event} event Événement identifiant l'infobulle ouverte.
+	 * @returns {void}
+	 */
+	function hideStyleTooltipWhenAnotherOpens(event: Event): void {
+		if ((event as CustomEvent<symbol>).detail !== styleTooltipOwner) styleTooltipVisible = false;
+	}
 
 	onMount(async () => {
+		window.addEventListener('scroll', hideStyleTooltipOnScroll, true);
+		window.addEventListener('style-tooltip-open', hideStyleTooltipWhenAnotherOpens);
+
 		// Par défaut fermé
 		if (!globalState.getSectionsState[style.id])
 			globalState.getSectionsState[style.id] = {
@@ -73,40 +105,7 @@
 	});
 
 	let extended = $state(false);
-	let styleTooltip = $state<HTMLDivElement>();
-
-	/**
-	 * Affiche la description du style près de son icône d'information.
-	 * @param {HTMLElement} anchor Icône servant de point d'ancrage.
-	 * @returns {void}
-	 */
-	function showStyleTooltip(anchor: HTMLElement): void {
-		if (!styleTooltip) return;
-		styleTooltip.showPopover();
-		const anchorRect = anchor.getBoundingClientRect();
-		const tooltipRect = styleTooltip.getBoundingClientRect();
-		const gap = 8;
-		const left = Math.min(
-			Math.max(anchorRect.left + anchorRect.width / 2 - tooltipRect.width / 2, gap),
-			window.innerWidth - tooltipRect.width - gap
-		);
-		const topAbove = anchorRect.top - tooltipRect.height - gap;
-		const top =
-			topAbove >= gap
-				? topAbove
-				: Math.min(anchorRect.bottom + gap, window.innerHeight - tooltipRect.height - gap);
-
-		styleTooltip.style.left = `${left}px`;
-		styleTooltip.style.top = `${top}px`;
-	}
-
-	/**
-	 * Masque l'infobulle de description du style.
-	 * @returns {void}
-	 */
-	function hideStyleTooltip(): void {
-		if (styleTooltip?.matches(':popover-open')) styleTooltip.hidePopover();
-	}
+	let styleTooltipVisible = $state(false);
 
 	$effect(() => {
 		globalState.getSectionsState[style.id] = {
@@ -266,6 +265,8 @@
 	});
 
 	onDestroy(() => {
+		window.removeEventListener('scroll', hideStyleTooltipOnScroll, true);
+		window.removeEventListener('style-tooltip-open', hideStyleTooltipWhenAnotherOpens);
 		if (globalState.hoveredStylePreviewHelper === style.id) {
 			globalState.hoveredStylePreviewHelper = null;
 		}
@@ -459,7 +460,7 @@
 		class={'style-control flex flex-col duration-150 ' +
 			(showControl
 				? 'style-control-direct '
-				: 'rounded-xl overflow-hidden ' +
+				: 'rounded-xl ' +
 					(extended
 						? 'bg-[var(--bg-accent)]/20 ring-1 ring-[var(--border-color)]'
 						: 'hover:bg-[var(--bg-accent)]/20')) +
@@ -513,14 +514,20 @@
 					aria-label={getStyleDescription(style.id, get(LL))}
 					onclick={(event) => {
 						event.stopPropagation();
-						showStyleTooltip(event.currentTarget);
+						showStyleTooltip();
 					}}
-					onmouseenter={(event) => showStyleTooltip(event.currentTarget)}
-					onmouseleave={hideStyleTooltip}
-					onfocus={(event) => showStyleTooltip(event.currentTarget)}
-					onblur={hideStyleTooltip}
+					onmouseenter={showStyleTooltip}
+					onblur={() => (styleTooltipVisible = false)}
+					onmouseleave={() => (styleTooltipVisible = false)}
 				>
-					<span class="material-icons-outlined opacity-60">info_outline</span>
+					<span class="material-icons-outlined opacity-40 translate-x-14">info_outline</span>
+					<span
+						class:style-description-tooltip-visible={styleTooltipVisible}
+						class="style-description-tooltip"
+						role="tooltip"
+					>
+						{getStyleDescription(style.id, get(LL))}
+					</span>
 				</button>
 			</div>
 			{#key selectedClipIds().length + String(inputValue)}
@@ -666,10 +673,6 @@
 				{/if}
 			</div>
 		{/if}
-
-		<div bind:this={styleTooltip} popover="manual" class="style-description-tooltip" role="tooltip">
-			{getStyleDescription(style.id, get(LL))}
-		</div>
 	</div>
 {/if}
 
@@ -720,6 +723,7 @@
 	}
 
 	.style-info-trigger {
+		position: relative;
 		display: inline-flex;
 		width: 28px;
 		height: 28px;
@@ -745,9 +749,13 @@
 	}
 
 	.style-description-tooltip {
-		position: fixed;
-		width: fit-content;
+		position: absolute;
+		bottom: calc(100% + 8px);
+		left: 50%;
+		z-index: 50;
+		width: max-content;
 		max-width: min(16rem, calc(100vw - 1rem));
+		transform: translateX(-50%);
 		margin: 0;
 		padding: 0.65rem 0.75rem;
 		border: 1px solid color-mix(in srgb, var(--border-color) 75%, var(--accent-primary) 25%);
@@ -762,5 +770,15 @@
 		text-align: start;
 		pointer-events: none;
 		backdrop-filter: blur(12px);
+		opacity: 0;
+		visibility: hidden;
+		transition:
+			opacity 150ms,
+			visibility 150ms;
+	}
+
+	.style-description-tooltip-visible {
+		opacity: 1;
+		visibility: visible;
 	}
 </style>

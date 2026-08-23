@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	calculateCaptureTimingsForRange,
 	buildExportCaptureJobPlan,
+	getBlankImageFileName,
 	getExportWordByWordHighlightTimings,
 	getExportWordByWordHiddenArabicTimings,
 	getTimedOverlayStateAt,
@@ -157,12 +158,13 @@ describe('buildExportCaptureJobPlan', () => {
 			getReusableBlankFileName: () => null
 		});
 
+		const blankFileName = getBlankImageFileName(key);
 		expect(plan.blankSourceJobs).toEqual([
 			{
 				kind: 'blankSource',
 				timing: 800,
 				captureTiming: 800,
-				fileName: 'blank_surah%3A1%7Coverlays%3A',
+				fileName: blankFileName,
 				blankVisualStateKey: key
 			}
 		]);
@@ -170,7 +172,7 @@ describe('buildExportCaptureJobPlan', () => {
 			{
 				kind: 'copy',
 				timing: 1_000,
-				sourceFileName: 'blank_surah%3A1%7Coverlays%3A',
+				sourceFileName: blankFileName,
 				targetFileName: 1_100,
 				reason: 'blank'
 			}
@@ -255,6 +257,21 @@ describe('getTimedOverlayStateAt', () => {
 		const verseNumber = timedOverlay('verse-number', 0, 1_000, false, (timing) => timing >= 200);
 		expect(getTimedOverlayStateAt(100, [verseNumber])).toBe('');
 		expect(getTimedOverlayStateAt(300, [verseNumber])).toBe('verse-number-0-1000');
+	});
+});
+
+describe('getBlankImageFileName', () => {
+	it('keeps file names short and distinguishes visual states', () => {
+		const longKey = blankKey(
+			2,
+			Array.from({ length: 20 }, (_, index) => `${1786123147256542 + index}-0-10000`).join('|')
+		);
+		const fileName = getBlankImageFileName(longKey);
+
+		expect(fileName).toMatch(/^blank_[0-9a-z]{13}$/);
+		expect(fileName.length).toBe(19);
+		expect(getBlankImageFileName(longKey)).toBe(fileName);
+		expect(getBlankImageFileName(`${longKey}|surah-name-0-10000`)).not.toBe(fileName);
 	});
 });
 

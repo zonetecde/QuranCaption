@@ -270,8 +270,22 @@ export function getBlankVisualStateKey(
 	return `surah:${surah}|overlays:${timedOverlayState}`;
 }
 
+/**
+ * Génère une empreinte courte et déterministe pour une signature visuelle de blank.
+ * @param {string} value Signature visuelle complète à condenser.
+ * @returns {string} Empreinte FNV-1a 64 bits encodée en base 36.
+ */
+function hashBlankVisualStateKey(value: string): string {
+	let hash = 14695981039346656037n;
+	for (let index = 0; index < value.length; index++) {
+		hash ^= BigInt(value.charCodeAt(index));
+		hash = BigInt.asUintN(64, hash * 1099511628211n);
+	}
+	return hash.toString(36).padStart(13, '0');
+}
+
 export function getBlankImageFileName(blankVisualStateKey: string): string {
-	return `blank_${encodeURIComponent(blankVisualStateKey)}`;
+	return `blank_${hashBlankVisualStateKey(blankVisualStateKey)}`;
 }
 
 function getSurahFromBlankVisualStateKey(blankVisualStateKey: string): number | null {

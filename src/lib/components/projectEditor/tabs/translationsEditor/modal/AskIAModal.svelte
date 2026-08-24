@@ -11,8 +11,17 @@
 	import { buildVerseRangeSliderOptions } from '$lib/components/projectEditor/tabs/export/VerseRangeSlider';
 
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import {
+		applyAdvancedTrimValidationSuccess,
+		buildAdvancedTrimBatches,
+		buildAdvancedTrimVerseCandidates,
+		type AdvancedTrimBatch,
+		type AdvancedTrimVerseCandidate,
+		validateAdvancedTrimBatchResult
+	} from '$lib/services/AdvancedAITrimming';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import { parseAiJsonResponse } from '$lib/services/TextAIRequest';
 	import { onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
 	import { slide } from 'svelte/transition';
@@ -63,6 +72,8 @@
 	let selectedStartTimeMs: number = $state(0);
 	let selectedEndTimeMs: number = $state(0);
 	let fullVerseArray: PromptVersePayload[] = $state([]);
+	let advancedCandidates: AdvancedTrimVerseCandidate[] = $state([]);
+	let legacyBatch: AdvancedTrimBatch | null = $state(null);
 	const translationsEditorState = $derived(
 		() => globalState.currentProject?.projectEditorState.translationsEditor
 	);
@@ -160,6 +171,88 @@
 		if (start < 0 || end < 0 || start > end) return null;
 		if (start >= totalWords || end >= totalWords) return null;
 		return [start, end];
+	}
+
+	/**
+	 * Construit le batch Advanced correspondant à la plage choisie dans le legacy.
+	 *
+	 * @returns {AdvancedTrimBatch | null} Batch prêt à être copié dans le prompt.
+	 */
+	function refreshLegacyBatch(): AdvancedTrimBatch | null {
+		const aiSettings = globalState.settings?.aiTranslationSettings;
+		const [batch] = buildAdvancedTrimBatches(
+			advancedCandidates,
+			aiSettings?.advancedTrimModel ?? '',
+			aiSettings?.advancedTrimReasoningEffort ?? 'none',
+			selectedStartTimeMs,
+			selectedEndTimeMs,
+			Number.MAX_SAFE_INTEGER
+		);
+		legacyBatch = batch ?? null;
+		return legacyBatch;
+	}
+
+	/**
+	 * Traite une réponse manuelle au format du trimmer Advanced.
+	 *
+	 * @param {string} aiResponseStr Réponse JSON copiée depuis le fournisseur IA.
+	 * @returns {Promise<void>} Promesse résolue après validation et application.
+	 */
+	async function setTranslationsFromAdvancedAIResponse(aiResponseStr: string): Promise<void> {
+		const analyticsStart = {
+			feature: 'translation_trim' as const,
+			mode: 'legacy_advanced_response',
+			totalItems: totalVerses
+		};
+		const analyticsWorkflow = AnalyticsService.trackAiStarted(analyticsStart);
+		let analyticsFinished = false;
+
+		try {
+			const batch = legacyBatch ?? refreshLegacyBatch();
+			if (!batch) {
+				throw new Error('No eligible verses were found for this prompt range.');
+			}
+
+			const validation = validateAdvancedTrimBatchResult(batch, parseAiJsonResponse(aiResponseStr));
+			const applyReport = applyAdvancedTrimValidationSuccess(edition, validation.validVerses);
+			const errorMessages = [...validation.errors, ...applyReport.errors];
+			const successfulVerses = applyReport.alignedVerses;
+			const summaryMessage = `Processing complete: ${successfulVerses}/${batch.verses.length} verses successfully processed`;
+
+			if (errorMessages.length > 0) {
+				ModalManager.errorModal(
+					'AI Translation Errors',
+					`Errors detected in ${errorMessages.length} item${errorMessages.length > 1 ? 's' : ''}. Locked segments are preserved and were not overwritten.`,
+					`${summaryMessage}\n\nErrors encountered:\n${errorMessages.join('\n')}`
+				);
+			} else {
+				toast.success(summaryMessage);
+			}
+
+			AnalyticsService.trackAiFinished(analyticsWorkflow, analyticsStart, {
+				outcome:
+					successfulVerses === 0 ? 'failed' : errorMessages.length > 0 ? 'partial' : 'completed',
+				completedItems: successfulVerses,
+				failedItems: Math.max(0, batch.verses.length - successfulVerses),
+				hadErrors: errorMessages.length > 0
+			});
+			analyticsFinished = true;
+
+			if (successfulVerses > 0) close();
+		} catch (error: unknown) {
+			if (!analyticsFinished) {
+				AnalyticsService.trackAiFinished(analyticsWorkflow, analyticsStart, {
+					outcome: 'failed',
+					hadErrors: true
+				});
+			}
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			ModalManager.errorModal(
+				'Error processing AI response',
+				'An error occurred while processing the AI response.',
+				errorMessage
+			);
+		}
 	}
 
 	// Fonction pour traiter la réponse de l'IA et mettre à jour les traductions
@@ -496,6 +589,8 @@
 	});
 
 	async function generatePrompt() {
+		advancedCandidates = buildAdvancedTrimVerseCandidates(edition, false);
+
 		// Génère le tableau complet des versets
 		const array: PromptVersePayload[] = [];
 		const verses: Record<string, SubtitleClip[]> = {};
@@ -591,10 +686,14 @@
 	}
 
 	async function updatePromptWithRange() {
-		// Filtre le tableau selon la plage temporelle sélectionnée
-		const filteredArray = getSelectedPromptVerses();
+		const batch = refreshLegacyBatch();
+		if (!batch) {
+			aiPrompt =
+				'All verses have already been translated for this edition. No AI assistance needed.';
+			return;
+		}
 
-		const json = JSON.stringify(filteredArray);
+		const json = JSON.stringify(batch.request, null, 2);
 		if (globalState.settings?.aiTranslationSettings?.omitPromptPrefix) {
 			aiPrompt = json;
 			return;
@@ -819,7 +918,7 @@
 							>
 							<button
 								class="btn-accent flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
-								onclick={() => setTranslationsFromAIResponse(aiResponse)}
+								onclick={() => setTranslationsFromAdvancedAIResponse(aiResponse)}
 								disabled={!aiResponse.trim()}
 							>
 								<span class="material-icons text-base">auto_fix_high</span>

@@ -40,8 +40,7 @@
 
 		const file = await open({
 			multiple: false,
-			directory: false,
-			filters: [{ name: 'JSON', extensions: ['json'] }]
+			directory: false
 		});
 
 		if (!file || Array.isArray(file)) return;

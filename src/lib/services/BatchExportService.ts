@@ -408,9 +408,14 @@ export class BatchExportService {
 						? 'webm'
 						: 'mov'
 					: 'mp4';
+				const subtitleClips = project.content.timeline
+					.getFirstTrack(TrackType.Subtitle)
+					.clips.filter((clip): clip is SubtitleClip => clip.type === 'Subtitle');
 				const outputPath = await this.reserveOutputPath(
 					outputFolder,
-					sanitizeBatchExportFileName(item.projectName),
+					sanitizeBatchExportFileName(
+						project.detail.generateExportFileName(project.projectEditorState.export, subtitleClips)
+					),
 					extension,
 					reservedPaths
 				);

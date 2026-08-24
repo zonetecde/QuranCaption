@@ -6,6 +6,7 @@ import { Duration } from './index.js';
 import { VerseRange } from './VerseRange.svelte';
 import { Status } from './Status';
 import type { ClipWithTranslation, SubtitleClip } from './Clip.svelte';
+import type { ExportState } from './ProjectEditorState.svelte';
 import type { AssetTrack, SubtitleTrack } from './Track.svelte';
 import { VerseTranslation } from './Translation.svelte';
 import { Quran } from './Quran';
@@ -186,19 +187,30 @@ export class ProjectDetail extends SerializableBase {
 
 	/**
 	 * Génère, en fonction des paramètres d'export actuels, le nom du fichier d'export.
+	 * @param {Pick<ExportState, 'customFileName' | 'videoStartTime' | 'videoEndTime'>} exportState Paramètres d'export à utiliser.
+	 * @param {SubtitleClip[] | undefined} subtitleClips Sous-titres du projet à utiliser pour calculer la plage.
 	 */
-	generateExportFileName(): string {
+	generateExportFileName(
+		exportState: Pick<
+			ExportState,
+			'customFileName' | 'videoStartTime' | 'videoEndTime'
+		> = globalState.getExportState,
+		subtitleClips?: SubtitleClip[]
+	): string {
 		// Si un nom de fichier personnalisé est défini, l'utiliser
-		const customFileName = globalState.getExportState.customFileName.trim();
+		const customFileName = exportState.customFileName.trim();
 		if (customFileName) {
 			const sanitized = customFileName.replace(/[/\\:*?"<>|]/g, '_');
 			return sanitized;
 		}
 
-		const verseRange = VerseRange.getVerseRange(
-			globalState.getExportState.videoStartTime,
-			globalState.getExportState.videoEndTime
-		);
+		const verseRange = subtitleClips
+			? VerseRange.getVerseRangeFromClips(
+					subtitleClips,
+					exportState.videoStartTime,
+					exportState.videoEndTime
+				)
+			: VerseRange.getVerseRange(exportState.videoStartTime, exportState.videoEndTime);
 		const surahNumbers = verseRange.parts.map((part) => part.surah);
 		const values = {
 			project_name: this.name,

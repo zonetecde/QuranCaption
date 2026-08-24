@@ -9,6 +9,7 @@ import {
 	createDefaultBatchExportState,
 	createDefaultBatchSegmentationState,
 	createDefaultBatchStyleState,
+	ProjectDetail,
 	SubtitleClip,
 	TrackType,
 	type BatchProjectItem,
@@ -22,9 +23,13 @@ import {
 	type BatchExportEligibility
 } from '$lib/services/BatchExportService';
 import Exporter from '$lib/classes/Exporter';
+import { Quran } from '$lib/classes/Quran';
 import ExportService from '$lib/services/ExportService';
 import { ProjectService } from '$lib/services/ProjectService';
 import { globalState } from '$lib/runes/main.svelte';
+import Settings from '$lib/classes/Settings.svelte';
+
+vi.spyOn(Quran, 'getSurahsNames').mockReturnValue([{ id: 1, transliteration: 'Al-Fatiha' }]);
 
 /**
  * Crée une ligne Batch exportable.
@@ -62,7 +67,7 @@ function createItem(order: number, name: string = 'Same'): BatchProjectItem {
 function createProject(item: BatchProjectItem): Project {
 	const subtitleClips = [new SubtitleClip(0, 1000, 1, 1, 0, 0, 'verse', [], true, true)];
 	const project = {
-		detail: { id: item.projectId, name: item.projectName, reciter: item.reciter },
+		detail: new ProjectDetail(item.projectName, item.reciter),
 		content: {
 			timeline: {
 				getFirstTrack: () => ({ clips: subtitleClips })
@@ -73,11 +78,15 @@ function createProject(item: BatchProjectItem): Project {
 				exportOnlyRecitation: false,
 				recitationCutMarginMs: 25,
 				recitationMinimumSilenceMs: 500,
+				customFileName: '',
+				videoStartTime: 0,
+				videoEndTime: 0,
 				exportWithoutBackground: false,
 				transparentExportFormat: 'mov_prores_4444'
 			}
 		}
 	} as unknown as Project;
+	project.detail.id = item.projectId;
 	(project as unknown as { clone: () => Project }).clone = vi.fn(
 		() =>
 			({
@@ -155,13 +164,41 @@ describe('BatchExportService', () => {
 		expect(maximumActive).toBe(1);
 		expect(queued.map((entry) => entry.id)).toEqual([1, 2, 3]);
 		expect(queued.map((entry) => entry.path)).toEqual([
-			'/out/Same-1.mp4',
-			'/out/Same-2.mp4',
-			'/out/Same-3.mp4'
+			'/out/Same (Reciter) - Al-Fatiha 1.mp4',
+			'/out/Same (Reciter) - Al-Fatiha 1-1.mp4',
+			'/out/Same (Reciter) - Al-Fatiha 1-2.mp4'
 		]);
 		expect(result).toMatchObject({ completed: 2, failed: 1 });
 		expect(items.find((item) => item.projectId === 2)?.export.status).toBe('failed');
 		expect(items.find((item) => item.projectId === 3)?.export.status).toBe('completed');
+	});
+
+	it('uses the configured default video file name format', async () => {
+		const previousSettings = globalState.settings;
+		globalState.settings = new Settings();
+		globalState.settings.defaultValuesSettings.exportFileNameFormat =
+			'{project_name} - {surah} {verse_range}';
+		const item = createItem(1, 'Project name');
+		const project = createProject(item);
+		const queued: string[] = [];
+		const service = new BatchExportService({
+			saveProject: async () => undefined,
+			saveBatch: async () => undefined,
+			pathExists: async () => false,
+			queueProject: async (_project, _fileName, outputPath) => {
+				queued.push(outputPath);
+				return 1;
+			},
+			waitForExport: async () => undefined
+		});
+
+		try {
+			await service.run(new Batch('Batch', [item]), [{ item, project, reason: null }], '/out');
+		} finally {
+			globalState.settings = previousSettings;
+		}
+
+		expect(queued).toEqual(['/out/Project name - Al-Fatiha Al-Fatiha 1.mp4']);
 	});
 
 	it('queues loadable non-ready projects only when explicitly enabled', async () => {

@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { Edition, ProjectTranslation, SubtitleClip, type Project } from '$lib/classes';
+import {
+	Edition,
+	PredefinedSubtitleClip,
+	ProjectTranslation,
+	SubtitleClip,
+	type Project
+} from '$lib/classes';
+import { Translation } from '$lib/classes/Translation.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 
 const edition = new Edition('key', 'edition', 'Author', 'English', 'ltr', '', '', '', '');
@@ -68,5 +75,40 @@ describe('ProjectTranslation project-scoped operations', () => {
 			)
 		).toBe(false);
 		expect(project.content.videoStyle.addStylesForEdition).not.toHaveBeenCalled();
+	});
+
+	it('removes an edition from predefined subtitle translations too', async () => {
+		const projectTranslation = new ProjectTranslation();
+		projectTranslation.addedTranslationEditions.push(edition);
+
+		const quranSubtitle = new SubtitleClip(0, 1000, 1, 1, 0, 4, 'Full', [], true, true);
+		quranSubtitle.translations[edition.name] = new Translation('Verse', 'completed by default');
+
+		const predefinedSubtitle = new PredefinedSubtitleClip(
+			1000,
+			2000,
+			'Basmala',
+			'',
+			false,
+			null,
+			projectTranslation
+		);
+		predefinedSubtitle.translations[edition.name] = new Translation(
+			'Basmala',
+			'completed by default'
+		);
+
+		globalState.currentProject = {
+			detail: { updatePercentageTranslated: vi.fn() },
+			content: {
+				timeline: { getFirstTrack: () => ({ clips: [quranSubtitle, predefinedSubtitle] }) },
+				projectTranslation
+			}
+		} as unknown as Project;
+
+		await projectTranslation.removeTranslation(edition, true);
+
+		expect(quranSubtitle.translations[edition.name]).toBeUndefined();
+		expect(predefinedSubtitle.translations[edition.name]).toBeUndefined();
 	});
 });

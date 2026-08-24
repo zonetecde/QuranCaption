@@ -289,9 +289,10 @@ function setupVideoOverlayFixture(
 	options: {
 		cursorPosition?: number;
 		isPlaying?: boolean;
+		addedTranslationEditionNames?: string[];
 	} = {}
 ): VideoOverlayFixture {
-	const { cursorPosition = 0, isPlaying = false } = options;
+	const { cursorPosition = 0, isPlaying = false, addedTranslationEditionNames } = options;
 
 	const projectEditorState = new ProjectEditorState();
 	projectEditorState.currentTab = ProjectEditorTabs.VideoEditor;
@@ -316,13 +317,14 @@ function setupVideoOverlayFixture(
 		)
 	);
 	const videoStyle = createMockVideoStyle(['global', 'arabic', ...translationTargets]);
+	const projectTranslationTargets = addedTranslationEditionNames ?? translationTargets;
 
 	globalState.currentProject = {
 		projectEditorState,
 		content: {
 			timeline: new Timeline([subtitleTrack, videoTrack, audioTrack, customTrack]),
 			projectTranslation: {
-				addedTranslationEditions: translationTargets.map((name) => ({
+				addedTranslationEditions: projectTranslationTargets.map((name) => ({
 					name,
 					language: name,
 					author: name
@@ -504,6 +506,22 @@ describe('Video overlay subtitle preview', () => {
 		const arabicNode = getForegroundArabicNode(component.container);
 		expect(arabicNode).not.toBeNull();
 		expect(normalizeText(arabicNode?.textContent)).toBe(normalizeText(basmala.getText()));
+	});
+
+	test('ignores stale predefined translations that are no longer added to the project', async () => {
+		const basmala = createPredefinedSubtitle(0, 999, 'Basmala', 'Added translation');
+		basmala.translations.stale = new Translation('Stale translation', 'completed by default');
+		setupVideoOverlayFixture([basmala], {
+			cursorPosition: 500,
+			addedTranslationEditionNames: ['english']
+		});
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const subtitleText = getCurrentSubtitleText(component.container);
+		expect(subtitleText).toContain('Added translation');
+		expect(subtitleText).not.toContain('Stale translation');
 	});
 
 	test('renders Uthmani text with an individual non-QPC font override', async () => {

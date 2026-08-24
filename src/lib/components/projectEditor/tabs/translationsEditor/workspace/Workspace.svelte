@@ -56,6 +56,11 @@
 		return playbackClipId === clipId && globalState.getVideoPreviewState.isPlaying;
 	}
 
+	let isWbwEditingMode = $derived(
+		globalState.getTranslationsState.isInlineStyleMode ||
+			globalState.getTranslationsState.isTranslationWbwMappingMode
+	);
+
 	$effect(() => {
 		if (playbackClipId === null) return;
 
@@ -238,7 +243,7 @@
 	let subtitlesInGroups = $derived(() => {
 		const allowedClipIds = new Set(Object.keys(allowedTranslations));
 		const onlyShowOverlappingSubtitles =
-			globalState.getTranslationsState.onlyShowOverlappingSubtitles;
+			!isWbwEditingMode && globalState.getTranslationsState.onlyShowOverlappingSubtitles;
 
 		// Mode overlap: n'affiche que les clips explicitement autorisés (overlap + contexte précédent)
 		if (onlyShowOverlappingSubtitles) {
@@ -266,7 +271,7 @@
 			visibleCount = total;
 		}
 		// Si on change complètement de filtre, on repart de 10 (optionnel)
-		if (total && visibleCount === 0) {
+		if (total && visibleCount < PAGE_SIZE) {
 			visibleCount = Math.min(PAGE_SIZE, total);
 		}
 	});
@@ -337,7 +342,9 @@
 		}
 
 		// Lorsqu'on modifie la recherche
-		const search = globalState.getTranslationsState.searchQuery.toLowerCase().trim();
+		const search = isWbwEditingMode
+			? ''
+			: globalState.getTranslationsState.searchQuery.toLowerCase().trim();
 
 		// Si on recherche au format "sourate:verset", on parse la recherche pour filtrer directement sur ces champs des clips
 		const isSurahVerseSearch = search.split(':').length === 2;
@@ -354,7 +361,7 @@
 		// Met à jour les traductions à afficher en fonction des filtres
 		const filter = globalState.getTranslationsState.filters;
 		const onlyShowOverlappingSubtitles =
-			globalState.getTranslationsState.onlyShowOverlappingSubtitles;
+			!isWbwEditingMode && globalState.getTranslationsState.onlyShowOverlappingSubtitles;
 		const visibleEditions = editionsToShowInEditor().map((edition) => edition.name);
 		const visibleEditionSet = new Set(visibleEditions);
 
@@ -391,7 +398,7 @@
 						const translation = translations[key];
 
 						// Si son statut est dans le filtre
-						if (!filter[translation.status]) continue;
+						if (!isWbwEditingMode && !filter[translation.status]) continue;
 
 						// Si on a une recherche, on regarde si le texte de la traduction contient la recherche
 						if (search) {

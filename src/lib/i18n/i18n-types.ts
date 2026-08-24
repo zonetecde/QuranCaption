@@ -6150,6 +6150,21 @@ type RootTranslation = {
 		 */
 		startExportDescription: string;
 		/**
+		 * W​a​r​n​i​n​g​:​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​c​o​n​t​a​i​n​s​ ​{​l​o​w​C​o​n​f​i​d​e​n​c​e​}​ ​l​o​w​-​c​o​n​f​i​d​e​n​c​e​ ​s​u​b​t​i​t​l​e​(​s​)​ ​a​n​d​ ​{​m​i​s​s​i​n​g​W​o​r​d​s​}​ ​s​u​b​t​i​t​l​e​(​s​)​ ​w​i​t​h​ ​m​i​s​s​i​n​g​ ​w​o​r​d​s​.
+		 * @param {unknown} lowConfidence
+		 * @param {unknown} missingWords
+		 */
+		exportReviewWarning: RequiredParams<'lowConfidence' | 'missingWords'>;
+		/**
+		 * a​n​d​ ​{​c​o​u​n​t​}​ ​t​r​a​n​s​l​a​t​i​o​n​(​s​)​ ​t​h​a​t​ ​n​e​e​d​ ​r​e​v​i​e​w​.
+		 * @param {unknown} count
+		 */
+		exportTranslationReviewWarning: RequiredParams<'count'>;
+		/**
+		 * I​ ​u​n​d​e​r​s​t​a​n​d​ ​t​h​a​t​ ​m​y​ ​v​i​d​e​o​ ​m​a​y​ ​c​o​n​t​a​i​n​ ​e​r​r​o​r​s​ ​i​f​ ​I​ ​d​o​ ​n​o​t​ ​r​e​v​i​e​w​ ​t​h​e​s​e​ ​i​s​s​u​e​s​.
+		 */
+		exportReviewAcknowledgement: string;
+		/**
 		 * A​d​v​a​n​c​e​d​ ​S​e​t​t​i​n​g​s
 		 */
 		advancedSettings: string;
@@ -17497,6 +17512,21 @@ export type TranslationFunctions = {
 		 * Start the video export process with your selected time range
 		 */
 		startExportDescription: () => LocalizedString;
+		/**
+		 * Warning: your project contains {lowConfidence} low-confidence subtitle(s) and {missingWords} subtitle(s) with missing words.
+		 */
+		exportReviewWarning: (arg: {
+			lowConfidence: unknown;
+			missingWords: unknown;
+		}) => LocalizedString;
+		/**
+		 * and {count} translation(s) that need review.
+		 */
+		exportTranslationReviewWarning: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * I understand that my video may contain errors if I do not review these issues.
+		 */
+		exportReviewAcknowledgement: () => LocalizedString;
 		/**
 		 * Advanced Settings
 		 */

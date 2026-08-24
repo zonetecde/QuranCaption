@@ -222,6 +222,37 @@ export class ClipWithTranslation extends Clip {
 		this.needsReview = comeFromIA && confidence !== null && confidence <= 0.75;
 	}
 
+	/**
+	 * Deserialise un clip en reconstruisant les traductions sauvegardées dans
+	 * l'ancien format où le dictionnaire entier était enregistré comme une traduction.
+	 *
+	 * @param {Record<string, unknown>} data Données sérialisées du clip.
+	 * @returns {ClipWithTranslation} Clip désérialisé avec des traductions réhydratées.
+	 */
+	static override fromJSON<T extends SerializableBase>(data: Record<string, unknown>): T {
+		const clip = super.fromJSON(data) as T & ClipWithTranslation;
+		const translations = clip.translations as unknown as Translation;
+
+		if (
+			translations instanceof Translation &&
+			translations.text === undefined &&
+			translations.status === undefined
+		) {
+			clip.translations = Object.fromEntries(
+				Object.entries(translations)
+					.filter(([, value]) => value && typeof value === 'object')
+					.map(([editionName, translation]) => [
+						editionName,
+						translation instanceof Translation
+							? translation
+							: Translation.fromJSON(translation as Record<string, unknown>)
+					])
+			) as { [key: string]: Translation };
+		}
+
+		return clip as T;
+	}
+
 	markAsManualEdit() {
 		this.comeFromIA = false;
 		this.confidence = null;
@@ -1114,7 +1145,3 @@ export class CustomImageClip extends CustomClip {
 		return this.category?.getStyle('filepath')!.value as string;
 	}
 }
-
-SerializableBase.registerChildClass(SubtitleClip, 'translations', Translation);
-SerializableBase.registerChildClass(ClipWithTranslation, 'translations', Translation);
-SerializableBase.registerChildClass(CustomTextClip, 'translations', Translation);

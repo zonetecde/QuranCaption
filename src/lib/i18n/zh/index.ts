@@ -1874,6 +1874,10 @@ const zh = {
 		chooseExportLocation: '选择导出视频的保存位置。',
 		exportButton: '导出视频',
 		startExportDescription: '使用所选时间范围启动视频导出过程',
+		exportReviewWarning:
+			'注意：您的项目中有 {lowConfidence} 个低置信度字幕和 {missingWords} 个包含缺失单词的字幕。',
+		exportTranslationReviewWarning: '以及 {count} 个需要审核的翻译。',
+		exportReviewAcknowledgement: '我明白，如果不审核这些问题，我的项目可能包含错误。',
 		advancedSettings: '高级设置',
 		controlExportPerformance: '配置诵读筛选、背景、编解码器和性能。',
 		exportOnlyRecitation: '仅导出诵读',

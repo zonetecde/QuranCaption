@@ -1,17 +1,11 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import '../app.css';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 	import { browser } from '$app/environment';
 	import { setLocale } from '$lib/i18n/i18n-svelte';
 	import { isLocale } from '$lib/i18n/i18n-util';
 
 	let { children } = $props();
-
-	onMount(() => {
-		initializeClassRegistry();
-	});
 
 	const currentTheme = $derived(globalState.settings?.persistentUiState?.theme || 'default');
 

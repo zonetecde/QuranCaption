@@ -9,9 +9,12 @@ import { loadAllLocales } from '$lib/i18n/i18n-util.sync';
 import { i18nObject } from '$lib/i18n/i18n-util';
 
 import { AnalyticsService } from '$lib/services/AnalyticsService';
+import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 
 export const prerender = true;
 export const ssr = false;
+
+initializeClassRegistry();
 
 // Initialize PostHog on the main application surface
 export const load = () => {

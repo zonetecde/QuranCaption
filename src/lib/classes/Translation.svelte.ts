@@ -14,6 +14,14 @@ export type TranslationStatus =
 	| 'fetched'
 	| 'undefined';
 
+export const COMPLETE_TRANSLATION_STATUSES: TranslationStatus[] = [
+	'completed by default',
+	'reviewed',
+	'automatically trimmed',
+	'ai trimmed',
+	'fetched'
+];
+
 export type TranslationInlineStyleRun = {
 	startWordIndex: number;
 	endWordIndex: number;
@@ -637,13 +645,7 @@ export class Translation extends SerializableBase {
 	}
 
 	isStatusComplete(): boolean {
-		return (
-			this.status === 'completed by default' ||
-			this.status === 'reviewed' ||
-			this.status === 'automatically trimmed' ||
-			this.status === 'ai trimmed' ||
-			this.status === 'fetched'
-		);
+		return COMPLETE_TRANSLATION_STATUSES.includes(this.status);
 	}
 
 	getText(_edition?: string, _subtitle?: SubtitleClip): string {

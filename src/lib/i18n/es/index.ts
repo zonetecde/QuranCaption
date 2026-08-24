@@ -2054,6 +2054,11 @@ const es = {
 		exportButton: 'Exportar video',
 		startExportDescription:
 			'Iniciar el proceso de exportación de video con el rango temporal seleccionado',
+		exportReviewWarning:
+			'Atención: su proyecto contiene {lowConfidence} subtítulo(s) de baja confianza y {missingWords} subtítulo(s) con palabras faltantes.',
+		exportTranslationReviewWarning: 'y {count} traducción(es) que necesitan revisión.',
+		exportReviewAcknowledgement:
+			'Entiendo que mi proyecto puede contener errores si no reviso estos problemas.',
 		advancedSettings: 'Configuración avanzada',
 		controlExportPerformance:
 			'Configure el filtro de recitación, el fondo, el códec y el rendimiento.',

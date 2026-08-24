@@ -14,7 +14,6 @@
 		initializeClassRegistry();
 		return setupAndroidBackGuard();
 	});
-
 	const currentTheme = $derived(globalState.settings?.persistentUiState?.theme || 'default');
 
 	// Restaure la locale sauvegardée dès que les settings sont chargés

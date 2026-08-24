@@ -13,6 +13,7 @@
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import AndroidMediaService from '$lib/services/AndroidMediaService';
 	import type { ExportSkipRange } from '$lib/classes/ProjectEditorState.svelte';
+	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
 	import VerseRangeSlider from './VerseRangeSlider.svelte';
 	import {
 		buildMeaningExportPrompts,
@@ -87,6 +88,12 @@
 		randomBackgroundFolderDescription: () => string;
 	};
 	let randomBackgroundCopy = $derived($LL.export as unknown as RandomBackgroundCopy);
+	type ExportReviewCopy = {
+		exportReviewWarning: (args: { lowConfidence: number; missingWords: number }) => string;
+		exportTranslationReviewWarning: (args: { count: number }) => string;
+		exportReviewAcknowledgement: () => string;
+	};
+	let reviewCopy = $derived($LL.export as unknown as ExportReviewCopy);
 	type QuranCaptionPromotionCopy = {
 		quranCaptionPromotion: () => string;
 		addQuranCaptionPromotion: () => string;
@@ -104,6 +111,37 @@
 	let isGeneratingMeaningRanges = $state(false);
 	let meaningLongPressTimer: ReturnType<typeof setTimeout> | undefined;
 	let meaningLongPressTriggered = false;
+	let exportReviewAcknowledged = $state(false);
+	let exportReviewCounts = $derived.by(() => {
+		const rangeStart = globalState.getExportState.videoStartTime;
+		const rangeEnd = globalState.getExportState.videoEndTime;
+		const counts = { lowConfidence: 0, missingWords: 0, translations: 0 };
+
+		for (const clip of globalState.getSubtitleTrack.clips) {
+			if (
+				!(clip instanceof ClipWithTranslation) ||
+				clip.endTime <= rangeStart ||
+				clip.startTime >= rangeEnd
+			)
+				continue;
+
+			if (clip.hasBeenVerified !== true) {
+				if (clip.needsReview) counts.lowConfidence += 1;
+				if (clip.needsCoverageReview) counts.missingWords += 1;
+			}
+
+			for (const translation of Object.values(clip.translations)) {
+				if (!translation.isStatusComplete()) counts.translations += 1;
+			}
+		}
+
+		return counts;
+	});
+	let hasExportReviewIssues = $derived(
+		exportReviewCounts.lowConfidence > 0 ||
+			exportReviewCounts.missingWords > 0 ||
+			exportReviewCounts.translations > 0
+	);
 	const exportVerses = $derived.by(() => {
 		const verses: ExportVerseOption[] = [];
 		const clips = [...globalState.getSubtitleClips].sort((a, b) => a.startTime - b.startTime);
@@ -632,6 +670,15 @@
 		const indexes = getVerseIndexesFromTime();
 		verseStartIndex = indexes.start;
 		verseEndIndex = indexes.end;
+	});
+
+	$effect(() => {
+		exportReviewCounts.lowConfidence;
+		exportReviewCounts.missingWords;
+		exportReviewCounts.translations;
+		globalState.getExportState.videoStartTime;
+		globalState.getExportState.videoEndTime;
+		exportReviewAcknowledged = false;
 	});
 
 	// Helper function to format duration for display
@@ -1388,8 +1435,35 @@
 
 	<!-- Export Button -->
 	<div class="mt-1 flex flex-shrink-0 flex-col items-center border-t border-color pt-1">
+		{#if hasExportReviewIssues}
+			<div
+				class="mb-1 w-full rounded-md border border-red-500/50 bg-red-500/10 px-2 py-1 text-xs font-semibold text-red-600 dark:text-red-400"
+				role="alert"
+			>
+				<p>
+					{reviewCopy.exportReviewWarning({
+						lowConfidence: exportReviewCounts.lowConfidence,
+						missingWords: exportReviewCounts.missingWords
+					})}
+				</p>
+				{#if exportReviewCounts.translations > 0}
+					<p>
+						{reviewCopy.exportTranslationReviewWarning({ count: exportReviewCounts.translations })}
+					</p>
+				{/if}
+				<label class="mt-1 flex cursor-pointer items-start gap-2 text-left font-normal">
+					<input
+						type="checkbox"
+						class="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent-primary)]"
+						bind:checked={exportReviewAcknowledged}
+					/>
+					<span>{reviewCopy.exportReviewAcknowledgement()}</span>
+				</label>
+			</div>
+		{/if}
 		<button
 			class="btn-accent h-10 w-full px-4 py-2 font-medium"
+			disabled={hasExportReviewIssues && !exportReviewAcknowledged}
 			onclick={() => void startVideoExport()}
 		>
 			{globalState.getExportState.exportRangeMode === 'meaning' &&

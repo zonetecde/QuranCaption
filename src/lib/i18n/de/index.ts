@@ -2058,6 +2058,11 @@ const de = {
 		chooseExportLocation: 'Wählen Sie, wo Ihre exportierten Videos gespeichert werden sollen.',
 		exportButton: 'Video exportieren',
 		startExportDescription: 'Starten Sie den Videoexport-Vorgang mit dem ausgewählten Zeitbereich',
+		exportReviewWarning:
+			'Warnung: Ihr Projekt enthält {lowConfidence} Untertitel mit geringer Konfidenz und {missingWords} Untertitel mit fehlenden Wörtern.',
+		exportTranslationReviewWarning: 'und {count} Übersetzungen, die überprüft werden müssen.',
+		exportReviewAcknowledgement:
+			'Ich verstehe, dass mein Projekt Fehler enthalten kann, wenn ich diese Probleme nicht überprüfe.',
 		advancedSettings: 'Erweiterte Einstellungen',
 		controlExportPerformance:
 			'Konfigurieren Sie Rezitationsfilter, Hintergrund, Codec und Leistung.',

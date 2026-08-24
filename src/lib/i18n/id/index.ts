@@ -1356,6 +1356,11 @@ const id = {
 		chooseExportLocation: 'Pilih lokasi penyimpanan video hasil export kamu.',
 		exportButton: 'Ekspor Video',
 		startExportDescription: 'Mulai proses export video dengan rentang waktu yang kamu pilih',
+		exportReviewWarning:
+			'Perhatian: proyek kamu memiliki {lowConfidence} subtitle dengan kepercayaan rendah dan {missingWords} subtitle dengan kata-kata yang hilang.',
+		exportTranslationReviewWarning: 'dan {count} terjemahan yang perlu ditinjau.',
+		exportReviewAcknowledgement:
+			'Saya memahami bahwa proyek saya mungkin berisi kesalahan jika saya tidak meninjau masalah ini.',
 		advancedSettings: 'Pengaturan lanjutan',
 		controlExportPerformance: 'Atur filter tilawah, latar belakang, codec, dan performa.',
 		exportOnlyRecitation: 'Ekspor hanya tilawah',

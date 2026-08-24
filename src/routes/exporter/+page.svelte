@@ -378,9 +378,11 @@
 	 * @returns {number} Durée en millisecondes.
 	 */
 	function getVideoClipTransitionDurationMs(): number {
-		return Math.max(
-			0,
-			Number(globalState.getStyle('global', 'video-clip-transition-duration')?.value ?? 0)
+		return Math.round(
+			Math.max(
+				0,
+				Number(globalState.getStyle('global', 'video-clip-transition-duration')?.value ?? 0)
+			)
 		);
 	}
 
@@ -1942,7 +1944,7 @@
 			destinationUri: exportData!.destinationUri,
 			videoWidth: Math.round(exportData!.videoDimensions.width / 8) * 8,
 			videoHeight: Math.round(exportData!.videoDimensions.height / 8) * 8,
-			fps: exportData!.fps,
+			fps: Math.round(exportData!.fps),
 			fadeDuration,
 			audios,
 			audioClips,
@@ -1956,7 +1958,7 @@
 			videoFadeOutEnabled: exportFadeSettings.videoFadeOutEnabled,
 			audioFadeInEnabled: exportFadeSettings.audioFadeInEnabled,
 			audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
-			exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
+			exportFadeDurationMs: Math.round(Math.max(0, exportFadeSettings.fadeDurationMs || 0)),
 			performanceProfile: globalState.settings?.exportSettings.performanceProfile ?? 'balanced',
 			videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
 			videoClipTransitionMode: getVideoClipTransitionMode(),
@@ -2336,7 +2338,7 @@
 				destinationUri: exportData!.destinationUri,
 				videoWidth: Math.round(exportData!.videoDimensions.width / 8) * 8,
 				videoHeight: Math.round(exportData!.videoDimensions.height / 8) * 8,
-				fps: exportData!.fps,
+				fps: Math.round(exportData!.fps),
 				fadeDuration: fadeDuration,
 				startTime: exportStart,
 				duration: Math.round(duration),
@@ -2353,7 +2355,7 @@
 				videoFadeOutEnabled: exportFadeSettings.videoFadeOutEnabled,
 				audioFadeInEnabled: exportFadeSettings.audioFadeInEnabled,
 				audioFadeOutEnabled: exportFadeSettings.audioFadeOutEnabled,
-				exportFadeDurationMs: Math.max(0, exportFadeSettings.fadeDurationMs || 0),
+				exportFadeDurationMs: Math.round(Math.max(0, exportFadeSettings.fadeDurationMs || 0)),
 				performanceProfile: globalState.settings?.exportSettings.performanceProfile ?? 'balanced',
 				videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
 				videoClipTransitionMode: getVideoClipTransitionMode(),

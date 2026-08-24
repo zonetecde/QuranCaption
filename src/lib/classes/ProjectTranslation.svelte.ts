@@ -446,8 +446,11 @@ export class ProjectTranslation extends SerializableBase {
 			(e) => e.name !== edition.name
 		);
 
-		// Supprime les traductions de l'édition dans les clips de sous-titres
-		for (const subtitle of globalState.getSubtitleClips) {
+		// Supprime les traductions de l'édition dans tous les clips traduisibles.
+		for (const subtitle of [
+			...globalState.getSubtitleClips,
+			...globalState.getPredefinedSubtitleClips
+		]) {
 			if (subtitle.translations[edition.name]) {
 				delete subtitle.translations[edition.name];
 			}

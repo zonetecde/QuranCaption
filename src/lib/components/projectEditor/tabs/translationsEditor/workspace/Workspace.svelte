@@ -462,7 +462,7 @@
 
 <section
 	data-tour-id="translations-workspace"
-	class="min-h-0 w-full bg-secondary border border-color rounded-lg shadow-lg h-full overflow-y-auto overflow-x-hidden"
+	class="min-h-0 w-full bg-secondary border border-color rounded-lg shadow-lg h-full overflow-y-auto mb-36 mt-4 overflow-x-hidden"
 	id="translations-workspace"
 	bind:this={lastRead.container}
 	onscroll={(e) => {

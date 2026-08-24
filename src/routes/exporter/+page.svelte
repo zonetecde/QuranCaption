@@ -151,9 +151,9 @@
 			audios,
 			audioClips: clips.map((clip) => ({
 				path: globalState.currentProject!.content.getAssetById(clip.assetId).filePath,
-				source_start_ms: clip.sourceStartTime ?? 0,
-				timeline_start_ms: clip.startTime,
-				duration_ms: clip.duration
+				source_start_ms: Math.round(clip.sourceStartTime ?? 0),
+				timeline_start_ms: Math.round(clip.startTime),
+				duration_ms: Math.round(clip.duration)
 			}))
 		};
 	}

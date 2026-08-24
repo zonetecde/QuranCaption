@@ -50,6 +50,18 @@ pub(crate) struct PublishFileResponse {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub(crate) struct SaveDownloadFileRequest {
+    pub(crate) file_name: String,
+    pub(crate) content: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct SaveDownloadFileResponse {
+    pub(crate) uri: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct OpenUriRequest {
     pub(crate) uri: String,
     pub(crate) mime_type: String,

@@ -3,6 +3,44 @@ use tauri::Manager;
 #[cfg(target_os = "android")]
 use tauri_plugin_android_media::AndroidMediaExt;
 
+/// Enregistre un fichier JSON dans le dossier public Download du téléphone.
+///
+/// @param app_handle Handle de l'application.
+/// @param file_name Nom du fichier à créer.
+/// @param content Contenu JSON à enregistrer.
+/// @returns URI Android ou chemin du fichier enregistré.
+#[tauri::command]
+pub async fn save_android_download_file(
+    app_handle: tauri::AppHandle,
+    file_name: String,
+    content: String,
+) -> Result<String, String> {
+    #[cfg(target_os = "android")]
+    {
+        return tokio::task::spawn_blocking(move || {
+            app_handle
+                .android_media()
+                .save_text_file_to_downloads(file_name, content)
+                .map_err(|error| error.to_string())
+        })
+        .await
+        .map_err(|error| format!("Android download task failed: {}", error))?;
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let safe_file_name = std::path::Path::new(&file_name)
+            .file_name()
+            .ok_or_else(|| "Invalid download file name".to_string())?;
+        let destination = dirs::download_dir()
+            .ok_or_else(|| "Unable to determine download directory".to_string())?
+            .join(safe_file_name);
+        std::fs::write(&destination, content)
+            .map_err(|error| format!("Unable to write download file: {}", error))?;
+        Ok(destination.to_string_lossy().to_string())
+    }
+}
+
 /// Publie un rendu privé vers la destination choisie par le sélecteur Android.
 ///
 /// @param app_handle Handle de l'application.

@@ -16,6 +16,16 @@ export default class AndroidMediaService {
 	}
 
 	/**
+	 * Enregistre un fichier texte dans le dossier public Download du téléphone.
+	 * @param {string} fileName Nom du fichier à créer.
+	 * @param {string} content Contenu UTF-8 du fichier.
+	 * @returns {Promise<string>} URI ou chemin du fichier enregistré.
+	 */
+	static async saveTextFileToDownloads(fileName: string, content: string): Promise<string> {
+		return await invoke<string>('save_android_download_file', { fileName, content });
+	}
+
+	/**
 	 * Ouvre le sélecteur Android de dossiers et retourne la pool locale importée.
 	 * @returns {Promise<string>} Chemin privé contenant les médias sélectionnés.
 	 */

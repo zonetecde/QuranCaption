@@ -2,11 +2,14 @@ package com.qurancaption.androidmedia
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.provider.DocumentsContract
+import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
@@ -64,6 +67,12 @@ class ExecuteFfprobeArgs {
 class PublishFileArgs {
     lateinit var sourcePath: String
     lateinit var destinationUri: String
+}
+
+@InvokeArg
+class SaveDownloadFileArgs {
+    lateinit var fileName: String
+    lateinit var content: String
 }
 
 @InvokeArg
@@ -427,6 +436,25 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
             } catch (error: Exception) {
                 reject(invoke, "Failed to open background folder picker", error)
             }
+        }
+    }
+
+    /**
+     * Écrit un fichier JSON dans le dossier public Download via MediaStore.
+     *
+     * @param invoke Appel Tauri contenant le nom et le contenu du fichier.
+     */
+    @Command
+    fun saveTextFileToDownloads(invoke: Invoke) {
+        val args = try {
+            invoke.parseArgs(SaveDownloadFileArgs::class.java)
+        } catch (error: Exception) {
+            reject(invoke, "Failed to parse download arguments", error)
+            return
+        }
+
+        runInBackground(invoke, "Failed to save file to Downloads") {
+            writeTextFileToDownloads(args.fileName, args.content)
         }
     }
 
@@ -851,6 +879,47 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
         } else {
             uri.toString()
         }
+    }
+
+    /**
+     * Crée et remplit un document JSON dans la collection publique Downloads.
+     *
+     * @param fileName Nom proposé pour le document.
+     * @param content Contenu UTF-8 du document.
+     * @return Réponse contenant l'URI publique créée.
+     */
+    private fun writeTextFileToDownloads(fileName: String, content: String): JSObject {
+        require(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            "Public Downloads export requires Android 10 or newer"
+        }
+
+        val values = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, sanitizeFileName(fileName))
+            put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
+            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+            put(MediaStore.MediaColumns.IS_PENDING, 1)
+        }
+        val resolver = hostActivity.contentResolver
+        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+            ?: error("Unable to create file in public Downloads")
+
+        try {
+            resolver.openOutputStream(uri, "w")?.use { output ->
+                output.write(content.toByteArray(Charsets.UTF_8))
+            } ?: error("Unable to open file in public Downloads")
+
+            resolver.update(
+                uri,
+                ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) },
+                null,
+                null
+            )
+        } catch (error: Exception) {
+            resolver.delete(uri, null, null)
+            throw error
+        }
+
+        return JSObject().apply { put("uri", uri.toString()) }
     }
 
     /**

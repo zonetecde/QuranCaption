@@ -524,7 +524,7 @@ export default class Exporter {
 		const json = JSON.stringify(projectData, null, 2);
 		const projectName = ExportFileService.getProjectNameForFile();
 		const fileName = `qurancaption_project_${projectName}.json`;
-		await ExportFileService.saveTextFile(fileName, json, 'Project data');
+		await ExportFileService.saveTextFile(fileName, json, 'Project data', true);
 	}
 
 	/**
@@ -688,7 +688,8 @@ export default class Exporter {
 		await ExportFileService.saveTextFile(
 			`qurancaption_backup_${Date.now()}.json`,
 			JSON.stringify(projects),
-			get(LL).settings.projectBackup()
+			get(LL).settings.projectBackup(),
+			true
 		);
 	}
 	/**

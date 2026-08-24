@@ -10,7 +10,8 @@ use crate::{
         ExecuteFfprobeResponse, ExportCancellationResponse, ExportServiceRequest,
         FfmpegSessionRequest, FfmpegSessionSnapshot, ImportUriRequest, ImportUriResponse,
         KeepScreenOnRequest, KeepScreenOnResponse, OpenUriRequest, OpenUriResponse,
-        PickBackgroundFolderResponse, PublishFileRequest, PublishFileResponse, SecureKeyRequest,
+        PickBackgroundFolderResponse, PublishFileRequest, PublishFileResponse,
+        SaveDownloadFileRequest, SaveDownloadFileResponse, SecureKeyRequest,
         SecureOperationResponse, SecureValueRequest, SecureValueResponse,
         StartExportServiceRequest, StartExportServiceResponse, StartFfmpegRequest,
         StartFfmpegResponse, StopExportServiceResponse, UpdateExportServiceRequest,
@@ -83,6 +84,25 @@ impl<R: Runtime> AndroidMedia<R> {
                     source_path,
                     destination_uri,
                 },
+            )
+            .map(|response| response.uri)
+            .map_err(Into::into)
+    }
+
+    /// Écrit un fichier texte directement dans le dossier public Download Android.
+    ///
+    /// @param file_name Nom du fichier à créer.
+    /// @param content Contenu UTF-8 du fichier.
+    /// @returns URI du fichier créé.
+    pub fn save_text_file_to_downloads(
+        &self,
+        file_name: String,
+        content: String,
+    ) -> Result<String> {
+        self.0
+            .run_mobile_plugin::<SaveDownloadFileResponse>(
+                "saveTextFileToDownloads",
+                SaveDownloadFileRequest { file_name, content },
             )
             .map(|response| response.uri)
             .map_err(Into::into)

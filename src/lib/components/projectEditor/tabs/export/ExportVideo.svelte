@@ -1462,7 +1462,7 @@
 			</div>
 		{/if}
 		<button
-			class="btn-accent h-10 w-full px-4 py-2 font-medium"
+			class="btn-accent h-10 w-full px-4 py-2 font-medium disabled:cursor-not-allowed disabled:opacity-50"
 			disabled={hasExportReviewIssues && !exportReviewAcknowledged}
 			onclick={() => void startVideoExport()}
 		>

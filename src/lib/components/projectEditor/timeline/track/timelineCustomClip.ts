@@ -189,6 +189,97 @@ export class GlobalTimedOverlayTimelineClip {
 
 export type TimelineCustomClipLike = CustomClip | GlobalTimedOverlayTimelineClip;
 
+export type TimelineCustomClipLayout = {
+	clips: Array<{ clip: TimelineCustomClipLike; laneIndex: number }>;
+	laneCount: number;
+};
+
+/**
+ * Répartit les clips de la piste custom dans le minimum de lanes nécessaires.
+ * Les clips qui ne se chevauchent pas réutilisent la même lane, y compris les apparitions
+ * successives d'un même contenu personnalisé.
+ * @param {TimelineCustomClipLike[]} clips Clips à placer dans la piste custom.
+ * @returns {TimelineCustomClipLayout} Clips positionnés et nombre de lanes utilisées.
+ */
+export function getTimelineCustomClipLayout(
+	clips: TimelineCustomClipLike[]
+): TimelineCustomClipLayout {
+	const laneEndTimes: number[] = [];
+	const orderedClips = clips
+		.map((clip, originalIndex) => ({ clip, originalIndex }))
+		.sort((left, right) => {
+			const leftStart = left.clip.getAlwaysShow() ? 0 : left.clip.startTime;
+			const rightStart = right.clip.getAlwaysShow() ? 0 : right.clip.startTime;
+			return leftStart - rightStart || left.originalIndex - right.originalIndex;
+		});
+
+	const positionedClips = orderedClips.map(({ clip }) => {
+		const startTime = clip.getAlwaysShow() ? 0 : clip.startTime;
+		const endTime = clip.getAlwaysShow() ? Number.POSITIVE_INFINITY : clip.endTime;
+		let laneIndex = laneEndTimes.findIndex((laneEndTime) => startTime > laneEndTime);
+
+		if (laneIndex === -1) {
+			laneIndex = laneEndTimes.length;
+			laneEndTimes.push(endTime);
+		} else {
+			laneEndTimes[laneIndex] = endTime;
+		}
+
+		return { clip, laneIndex };
+	});
+
+	return { clips: positionedClips, laneCount: laneEndTimes.length };
+}
+
+const GLOBAL_SURAH_NAME_TIMELINE_CONFIG: GlobalTimedOverlayConfig = {
+	id: 'global-surah-name',
+	label: 'Surah Name',
+	alwaysShowStyleId: 'surah-name-always-show',
+	startStyleId: 'surah-name-time-appearance',
+	endStyleId: 'surah-name-time-disappearance',
+	rangesStyleId: 'surah-name-time-ranges'
+};
+
+const GLOBAL_RECITER_NAME_TIMELINE_CONFIG: GlobalTimedOverlayConfig = {
+	id: 'global-reciter-name',
+	label: 'Reciter Name',
+	alwaysShowStyleId: 'reciter-name-always-show',
+	startStyleId: 'reciter-name-time-appearance',
+	endStyleId: 'reciter-name-time-disappearance',
+	rangesStyleId: 'reciter-name-time-ranges'
+};
+
+const GLOBAL_AYAH_CONTAINER_TIMELINE_CONFIG: GlobalTimedOverlayConfig = {
+	id: 'global-ayah-container',
+	label: 'Ayah Container',
+	alwaysShowStyleId: 'always-show',
+	startStyleId: 'time-appearance',
+	endStyleId: 'time-disappearance',
+	rangesStyleId: 'ayah-container-time-ranges'
+};
+
+/**
+ * Crée les adaptateurs timeline correspondant à toutes les plages d'un overlay.
+ * @param {GlobalTimedOverlayConfig} config Configuration de l'overlay.
+ * @returns {GlobalTimedOverlayTimelineClip[]} Adaptateurs ordonnés.
+ */
+function createTimedOverlayTimelineClips(
+	config: GlobalTimedOverlayConfig
+): GlobalTimedOverlayTimelineClip[] {
+	const styles = globalState.getVideoStyle.getStylesOfTarget(config.target ?? 'global');
+	const ranges = config.source
+		? config.source.getTimedOverlayRanges()
+		: getTimedOverlayRanges(
+				config.rangesStyleId ? styles.findStyle(config.rangesStyleId)?.value : undefined,
+				styles.findStyle(config.startStyleId)?.value,
+				styles.findStyle(config.endStyleId)?.value
+			);
+
+	return ranges.map(
+		(_range, rangeIndex) => new GlobalTimedOverlayTimelineClip({ ...config, rangeIndex })
+	);
+}
+
 /**
  * Crée les adaptateurs timeline des apparitions multiples d'un clip personnalisé.
  * @param {CustomClip} clip Clip personnalisé source.

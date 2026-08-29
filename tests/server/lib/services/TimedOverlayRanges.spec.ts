@@ -27,6 +27,39 @@ describe('TimedOverlayRanges', () => {
 		]);
 	});
 
+	it('can preserve range order for timeline editing', () => {
+		expect(
+			getTimedOverlayRanges(
+				[
+					{ startTime: 2_000, endTime: 3_000 },
+					{ startTime: 0, endTime: 500 }
+				],
+				undefined,
+				undefined,
+				false
+			)
+		).toEqual([
+			{ startTime: 2_000, endTime: 3_000 },
+			{ startTime: 0, endTime: 500 }
+		]);
+	});
+
+	it('allows edited ranges to overlap their neighbors', () => {
+		const ranges = [
+			{ startTime: 0, endTime: 1_000 },
+			{ startTime: 2_000, endTime: 3_000 }
+		];
+
+		expect(updateTimedOverlayRange(ranges, 0, 'endTime', 2_500)).toEqual([
+			{ startTime: 0, endTime: 2_500 },
+			{ startTime: 2_000, endTime: 3_000 }
+		]);
+		expect(updateTimedOverlayRange(ranges, 1, 'startTime', 500)).toEqual([
+			{ startTime: 0, endTime: 1_000 },
+			{ startTime: 500, endTime: 3_000 }
+		]);
+	});
+
 	it('keeps the minimum duration when changing a range bound', () => {
 		const ranges = [{ startTime: 1000, endTime: 3000 }];
 		expect(updateTimedOverlayRange(ranges, 0, 'startTime', 5000)).toEqual([

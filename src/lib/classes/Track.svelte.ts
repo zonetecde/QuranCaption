@@ -1746,6 +1746,8 @@ export class CustomTextTrack extends Track {
 			// Si des durées sont spécifiées, alors on désactive l'option "always show"
 			if (startTime !== undefined && endTime !== undefined) {
 				customClipCategory.getStyle('always-show')!.value = false;
+				const rangesStyle = customClipCategory.getStyle('time-ranges');
+				if (rangesStyle) rangesStyle.value = [{ startTime, endTime }];
 				customClipCategory.getStyle('time-appearance')!.value = startTime;
 				customClipCategory.getStyle('time-disappearance')!.value = endTime;
 			}
@@ -1804,7 +1806,9 @@ export class CustomTextTrack extends Track {
 			const element = this.clips[index] as CustomClip;
 			if (
 				element.getAlwaysShow() ||
-				(currentTime >= element.startTime && currentTime <= element.endTime)
+				element
+					.getTimedOverlayRanges()
+					.some((range) => currentTime >= range.startTime && currentTime <= range.endTime)
 			) {
 				clips.push(element);
 			}

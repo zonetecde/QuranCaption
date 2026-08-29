@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { Track } from '$lib/classes';
-	import { CustomImageClip } from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
@@ -41,7 +40,14 @@
 	let originalDuration = 0;
 
 	function removeClip(_e: MouseEvent): void {
-		if (clip instanceof GlobalTimedOverlayTimelineClip) return;
+		if (clip instanceof GlobalTimedOverlayTimelineClip) {
+			const sourceClipId = clip.getSourceClipId();
+			if (sourceClipId === null) return;
+			setTimeout(() => {
+				track.removeClip(sourceClipId);
+			});
+			return;
+		}
 		setTimeout(() => {
 			track.removeClip(Number(clip.id));
 		});
@@ -65,11 +71,6 @@
 		// Durée minimale 100ms
 		if (clip.endTime - newStart < 100) return;
 		clip.setStartTime(newStart);
-		// Miroir dans les styles
-		if (clip.category) {
-			const style = clip.category.styles.find((s) => s.id === 'time-appearance');
-			if (style) style.value = newStart;
-		}
 	}
 
 	function stopLeftDragging() {
@@ -97,10 +98,6 @@
 		const newEnd = getSnappedTimelineCustomClipTime(cursorPosition, String(clip.id));
 		if (newEnd - clip.startTime < 100) return;
 		clip.setEndTime(newEnd);
-		if (clip.category) {
-			const style = clip.category.styles.find((s) => s.id === 'time-disappearance');
-			if (style) style.value = newEnd;
-		}
 	}
 
 	function stopRightDragging() {
@@ -135,13 +132,6 @@
 		const newEnd = newStart + originalDuration;
 		clip.setStartTime(newStart);
 		clip.setEndTime(newEnd);
-		// Sync styles
-		if (clip.category) {
-			const startStyle = clip.category.styles.find((s) => s.id === 'time-appearance');
-			if (startStyle) startStyle.value = newStart;
-			const endStyle = clip.category.styles.find((s) => s.id === 'time-disappearance');
-			if (endStyle) endStyle.value = newEnd;
-		}
 	}
 
 	function stopClipDragging() {
@@ -197,11 +187,11 @@
 </div>
 
 <ContextMenu bind:this={contextMenu}>
-	{#if !(clip instanceof GlobalTimedOverlayTimelineClip)}
+	{#if !(clip instanceof GlobalTimedOverlayTimelineClip) || clip.canRemove}
 		<Item on:click={removeClip}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">remove</span>{clip instanceof
-				CustomImageClip
+				<span class="material-icons-outlined text-sm mr-1">remove</span>{clip.type ===
+				'Custom Image'
 					? ((
 							$LL.editor as typeof $LL.editor & { removeCustomImage?: () => string }
 						).removeCustomImage?.() ?? `${$LL.common.remove()} ${$LL.editor.customImage()}`)

@@ -1,10 +1,16 @@
-import type { Style, StyleName, VideoStyle } from '$lib/classes/VideoStyle.svelte';
+import type {
+	Style,
+	StyleName,
+	StyleOverrideValue,
+	VideoStyle
+} from '$lib/classes/VideoStyle.svelte';
 import type {
 	DimensionValue,
 	FadeValue
 } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 import { ProjectHistoryManager } from './undoRedo/ProjectHistoryManager';
 import { getRiwayahFontFamily, getRiwayahForFontFamily, isNonHafsRiwayah } from './RiwayahProvider';
+import { getTimedOverlayRanges, syncTimedOverlayLegacyRange } from './TimedOverlayRanges';
 
 export type StyleMutationResult = {
 	refreshPreview: boolean;
@@ -91,6 +97,7 @@ export function coerceStyleValue(style: Style, value: unknown): Style['value'] {
 	if (style.valueType === 'boolean') return Boolean(value);
 	if (style.valueType === 'dimension') return asDimensionValue(value);
 	if (style.valueType === 'fade') return asFadeValue(value);
+	if (style.valueType === 'time-ranges') return getTimedOverlayRanges(value);
 	return value as Style['value'];
 }
 
@@ -120,17 +127,27 @@ export function applyStyleMutation(options: StyleMutationOptions): StyleMutation
  * @returns {void}
  */
 function applyScopedValue(options: StyleMutationOptions, value: Style['value']): void {
-	if (
-		options.target &&
-		options.clipIds.length > 0 &&
-		(typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')
-	) {
+	const isPrimitive =
+		typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
+	const isTimedOverlayRanges = options.style.valueType === 'time-ranges' && Array.isArray(value);
+	if (options.target && options.clipIds.length > 0 && (isPrimitive || isTimedOverlayRanges)) {
 		options.videoStyle
 			.getStylesOfTarget(options.target)
-			.setStyleForClips(options.clipIds, options.style.id as StyleName, value);
+			.setStyleForClips(
+				options.clipIds,
+				options.style.id as StyleName,
+				value as StyleOverrideValue
+			);
 		return;
 	}
 	options.applyBaseValue(value);
+	if (options.style.valueType === 'time-ranges' && options.target) {
+		const styles = options.videoStyle.getStylesOfTarget(options.target);
+		const category = styles.categories.find((candidate) =>
+			candidate.styles.includes(options.style)
+		);
+		syncTimedOverlayLegacyRange(category?.styles ?? [], getTimedOverlayRanges(value)[0]);
+	}
 }
 
 /**

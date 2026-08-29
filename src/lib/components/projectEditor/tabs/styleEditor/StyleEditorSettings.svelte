@@ -23,6 +23,15 @@
 
 	type FeatureState = 'active' | 'inactive' | 'mixed';
 
+	const LEGACY_TIMED_OVERLAY_STYLE_IDS = new Set([
+		'time-appearance',
+		'time-disappearance',
+		'surah-name-time-appearance',
+		'surah-name-time-disappearance',
+		'reciter-name-time-appearance',
+		'reciter-name-time-disappearance'
+	]);
+
 	let {
 		presetLibraryOpen,
 		openPresetLibrary,
@@ -353,6 +362,11 @@
 
 		if (style.id === 'reactive-font-size' || style.id === 'reactive-y-position') return true;
 		if (
+			LEGACY_TIMED_OVERLAY_STYLE_IDS.has(style.id) &&
+			category.styles.some((candidate) => candidate.id.endsWith('time-ranges'))
+		)
+			return true;
+		if (
 			category.id === 'general' &&
 			['media-fill', 'media-scale', 'media-position-x', 'media-position-y'].includes(style.id) &&
 			globalState.getVideoTrack.clips.length === 0
@@ -548,7 +562,11 @@
 		if (category.id === 'surah-name') {
 			if (id !== 'show-surah-name' && !isFeatureEnabled('show-surah-name', category)) return true;
 			if (
-				['surah-name-time-appearance', 'surah-name-time-disappearance'].includes(id) &&
+				[
+					'surah-name-time-ranges',
+					'surah-name-time-appearance',
+					'surah-name-time-disappearance'
+				].includes(id) &&
 				isFeatureEnabled('surah-name-always-show', category)
 			)
 				return true;
@@ -578,7 +596,11 @@
 			)
 				return true;
 			if (
-				['reciter-name-time-appearance', 'reciter-name-time-disappearance'].includes(id) &&
+				[
+					'reciter-name-time-ranges',
+					'reciter-name-time-appearance',
+					'reciter-name-time-disappearance'
+				].includes(id) &&
 				isFeatureEnabled('reciter-name-always-show', category)
 			)
 				return true;
@@ -594,7 +616,7 @@
 			if (id !== 'ayah-container-image' && !isFeatureEnabled('ayah-container-image', category))
 				return true;
 			if (
-				['time-appearance', 'time-disappearance'].includes(id) &&
+				['ayah-container-time-ranges', 'time-appearance', 'time-disappearance'].includes(id) &&
 				isFeatureEnabled('always-show', category)
 			)
 				return true;
@@ -611,7 +633,7 @@
 			)
 				return true;
 			if (
-				['time-appearance', 'time-disappearance'].includes(id) &&
+				['time-ranges', 'time-appearance', 'time-disappearance'].includes(id) &&
 				isFeatureEnabled('always-show', category)
 			)
 				return true;

@@ -13,6 +13,12 @@ import { get } from 'svelte/store';
 export function isCustomStyleInactive(category: Category, style: Style): boolean {
 	if (
 		['time-appearance', 'time-disappearance'].includes(style.id) &&
+		category.getStyle('time-ranges')
+	)
+		return true;
+
+	if (
+		['time-ranges', 'time-appearance', 'time-disappearance'].includes(style.id) &&
 		Boolean(category.getStyle('always-show')?.value)
 	)
 		return true;

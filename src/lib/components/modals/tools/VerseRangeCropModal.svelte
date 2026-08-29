@@ -5,6 +5,7 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import { syncTimedOverlayLegacyRange } from '$lib/services/TimedOverlayRanges';
 	import { get } from 'svelte/store';
 	import { slide } from 'svelte/transition';
 	import toast from 'svelte-5-french-toast';
@@ -111,6 +112,29 @@
 	 * @returns {boolean} `true` lorsque le clip chevauche encore la fenêtre.
 	 */
 	function cropClipToRange(clip: Clip, cropStartMs: number, cropEndMs: number): boolean {
+		if (clip instanceof CustomClip && clip.category?.getStyle('time-ranges')) {
+			const ranges = clip.getTimedOverlayRanges();
+			if (!ranges.some((range) => range.endTime > cropStartMs && range.startTime < cropEndMs)) {
+				return false;
+			}
+
+			const croppedRanges = ranges
+				.map((range) => ({
+					startTime: Math.max(range.startTime, cropStartMs) - cropStartMs,
+					endTime: Math.min(range.endTime, cropEndMs) - cropStartMs
+				}))
+				.filter((range) => range.endTime > range.startTime);
+			const firstRange = croppedRanges[0];
+			if (!firstRange) return false;
+
+			clip.category.getStyle('time-ranges')!.value = croppedRanges;
+			syncTimedOverlayLegacyRange(clip.category.styles, firstRange);
+			clip.startTime = firstRange.startTime;
+			clip.endTime = firstRange.endTime;
+			clip.duration = firstRange.endTime - firstRange.startTime;
+			return clip.duration > 0;
+		}
+
 		if (clip.endTime <= cropStartMs || clip.startTime >= cropEndMs) return false;
 
 		const originalStartTime = clip.startTime;

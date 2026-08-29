@@ -4,6 +4,7 @@
 	import CompositeText from './CompositeText.svelte';
 	import RecitersManager from '$lib/classes/Reciter';
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
+	import { getTimedOverlayRanges } from '$lib/services/TimedOverlayRanges';
 	import { resolveQuranTextTags } from '$lib/services/QuranTextTagResolver.svelte';
 
 	const reciter = $derived(() => {
@@ -20,6 +21,11 @@
 			alwaysShow: Boolean(globalState.getStyle('global', 'reciter-name-always-show')!.value),
 			startTime: globalState.getStyle('global', 'reciter-name-time-appearance')!.value as number,
 			endTime: globalState.getStyle('global', 'reciter-name-time-disappearance')!.value as number,
+			ranges: getTimedOverlayRanges(
+				globalState.getStyle('global', 'reciter-name-time-ranges')?.value,
+				globalState.getStyle('global', 'reciter-name-time-appearance')?.value,
+				globalState.getStyle('global', 'reciter-name-time-disappearance')?.value
+			),
 			size: globalState.getStyle('global', 'reciter-size')!.value as number,
 			showArabic: globalState.getStyle('global', 'reciter-show-arabic')!.value,
 			showLatin: globalState.getStyle('global', 'reciter-show-latin')!.value,
@@ -51,6 +57,7 @@
 			maxOpacity: Number(reciterNameSettings().opacity ?? 1),
 			currentTime: globalState.getTimelineState.cursorPosition,
 			fadeDuration: fadeDuration(),
+			ranges: reciterNameSettings().ranges,
 			startTime: reciterNameSettings().startTime,
 			endTime: reciterNameSettings().endTime
 		});

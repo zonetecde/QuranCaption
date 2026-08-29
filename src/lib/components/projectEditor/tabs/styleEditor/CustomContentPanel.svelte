@@ -28,6 +28,11 @@
 			return;
 		}
 
+		if (style.id === 'time-ranges') {
+			clip.setStyle(style.id, value);
+			return;
+		}
+
 		if (style.id === 'time-appearance' && typeof value === 'number') {
 			const endStyle = category.getStyle('time-disappearance');
 			if (value > Number(endStyle?.value ?? 0)) {

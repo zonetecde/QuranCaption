@@ -1,5 +1,6 @@
 import type { SubtitleClip } from '$lib/classes/Clip.svelte';
 import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
+import { getTimedOverlayRanges, type TimedOverlayRange } from './TimedOverlayRanges';
 
 /**
  * Calcule les instants d'overlay à matérialiser pendant l'export vidéo.
@@ -65,6 +66,7 @@ export type ExportSubtitleWbwTimingOptions = {
 
 export type ExportTimedOverlayCaptureClip = {
 	id: number | string;
+	ranges?: TimedOverlayRange[] | null;
 	startTime?: number | null;
 	endTime?: number | null;
 	alwaysShow: boolean;
@@ -95,8 +97,8 @@ function isTimedOverlayVisibleAt(
 	ignoreAlwaysShow: boolean = true
 ): boolean {
 	if (ignoreAlwaysShow && clip.alwaysShow) return false;
-	if (clip.startTime == null || clip.endTime == null) return false;
-	if (timing < clip.startTime || timing > clip.endTime) return false;
+	const ranges = getTimedOverlayRanges(clip.ranges, clip.startTime, clip.endTime);
+	if (!ranges.some((range) => timing >= range.startTime && timing <= range.endTime)) return false;
 	if (clip.isVisibleAt && !clip.isVisibleAt(timing)) return false;
 	return true;
 }
@@ -247,7 +249,12 @@ export function getTimedOverlayStateAt(
 	for (const clip of timedOverlayClips) {
 		if (!isTimedOverlayVisibleAt(clip, timing, ignoreAlwaysShow)) continue;
 		// Cle unique basée sur l'ID du clip et sa fenêtre temporelle.
-		visibleTimedOverlays.push(`${clip.id}-${clip.startTime}-${clip.endTime}`);
+		const ranges = getTimedOverlayRanges(clip.ranges, clip.startTime, clip.endTime);
+		for (const range of ranges) {
+			if (timing >= range.startTime && timing <= range.endTime) {
+				visibleTimedOverlays.push(`${clip.id}-${range.startTime}-${range.endTime}`);
+			}
+		}
 	}
 
 	// Signature triée pour rester déterministe quel que soit l'ordre d'entrée.
@@ -639,28 +646,31 @@ export function calculateCaptureTimingsForRange({
 
 	// --- Overlays temporisés (custom text + overlays globaux) ---
 	for (const clip of timedOverlayClips) {
-		const { startTime, endTime, alwaysShow } = clip;
-		if (startTime == null || endTime == null) continue;
-		if (endTime < rangeStart || startTime > rangeEnd) continue;
-
-		const duration = endTime - startTime;
-		if (duration <= 0) continue;
+		const { alwaysShow } = clip;
+		const ranges = getTimedOverlayRanges(clip.ranges, clip.startTime, clip.endTime);
+		if (ranges.length === 0) continue;
 
 		if (alwaysShow) {
 			if (clip.captureBoundariesWhenAlwaysShow) {
-				add(startTime);
-				add(endTime);
+				for (const range of ranges) {
+					add(range.startTime);
+					add(range.endTime);
+				}
 			}
 			continue;
 		}
 
-		const fadeInEnd = Math.min(startTime + fadeDuration, endTime);
-		add(fadeInEnd);
+		for (const range of ranges) {
+			if (range.endTime < rangeStart || range.startTime > rangeEnd) continue;
 
-		const fadeOutStart = endTime - fadeDuration;
-		if (fadeOutStart > startTime) add(fadeOutStart);
+			const fadeInEnd = Math.min(range.startTime + fadeDuration, range.endTime);
+			add(fadeInEnd);
 
-		add(endTime);
+			const fadeOutStart = range.endTime - fadeDuration;
+			if (fadeOutStart > range.startTime) add(fadeOutStart);
+
+			add(range.endTime);
+		}
 	}
 
 	const uniqueSorted = Array.from(new Set(timingsToTakeScreenshots))

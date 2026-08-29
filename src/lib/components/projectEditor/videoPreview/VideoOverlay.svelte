@@ -420,7 +420,8 @@
 			{
 				alwaysShow: 'always-show',
 				startTime: 'time-appearance',
-				endTime: 'time-disappearance'
+				endTime: 'time-disappearance',
+				ranges: 'time-ranges'
 			},
 			clipId
 		);
@@ -429,6 +430,7 @@
 			maxOpacity: 1,
 			currentTime: getTimelineSettings().cursorPosition,
 			fadeDuration: fadeDuration(),
+			ranges: timing.ranges,
 			startTime: timing.startTime,
 			endTime: timing.endTime
 		});

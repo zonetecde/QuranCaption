@@ -1,7 +1,14 @@
 import type { CustomClip, CustomImageClip } from '$lib/classes/Clip.svelte';
 import { CustomTextClip, PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
-import type { StyleName } from '$lib/classes/VideoStyle.svelte';
+import type { Category, StyleName } from '$lib/classes/VideoStyle.svelte';
 import { globalState } from '$lib/runes/main.svelte';
+import {
+	getTimedOverlayRanges,
+	syncTimedOverlayLegacyRange,
+	updateTimedOverlayRange,
+	type TimedOverlayRange
+} from '$lib/services/TimedOverlayRanges';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 const CUSTOM_CLIP_SNAP_DISTANCE_PX = 8;
 
@@ -16,6 +23,9 @@ type GlobalTimedOverlayConfig = {
 	alwaysShowStyleId: StyleName;
 	startStyleId: StyleName;
 	endStyleId: StyleName;
+	rangesStyleId?: StyleName;
+	rangeIndex?: number;
+	source?: CustomClip;
 };
 
 /**
@@ -26,36 +36,108 @@ type GlobalTimedOverlayConfig = {
 export class GlobalTimedOverlayTimelineClip {
 	readonly id: string;
 	readonly label: string;
-	readonly type = 'Global Timed Overlay';
-	readonly canRemove = false;
-	readonly category = undefined;
+	readonly type: string;
+	readonly canRemove: boolean;
 
 	private readonly target: string;
 	private readonly alwaysShowStyleId: StyleName;
 	private readonly startStyleId: StyleName;
 	private readonly endStyleId: StyleName;
+	private readonly rangesStyleId?: StyleName;
+	private readonly rangeIndex: number;
+	private readonly source?: CustomClip;
 
 	constructor(config: GlobalTimedOverlayConfig) {
-		this.id = config.id;
+		const rangeSuffix = (config.rangeIndex ?? 0) > 0 ? `-${config.rangeIndex}` : '';
+		this.id = config.source
+			? `custom-${config.source.id}-${config.rangeIndex ?? 0}`
+			: `${config.id}${rangeSuffix}`;
 		this.label = config.label;
+		this.type = config.source?.type ?? 'Global Timed Overlay';
+		this.canRemove = Boolean(config.source);
 		this.target = config.target ?? 'global';
 		this.alwaysShowStyleId = config.alwaysShowStyleId;
 		this.startStyleId = config.startStyleId;
 		this.endStyleId = config.endStyleId;
+		this.rangesStyleId = config.rangesStyleId;
+		this.rangeIndex = config.rangeIndex ?? 0;
+		this.source = config.source;
+	}
+
+	/**
+	 * Retourne la catégorie personnalisée portée par cet adaptateur.
+	 * @returns {Category | undefined} Catégorie de l'élément, si elle existe.
+	 */
+	get category(): Category | undefined {
+		return this.source?.category;
+	}
+
+	/**
+	 * Retourne l'identifiant du clip source pour les actions de suppression.
+	 * @returns {number | null} Identifiant du clip source ou `null` pour un overlay global.
+	 */
+	getSourceClipId(): number | null {
+		return this.source?.id ?? null;
+	}
+
+	/**
+	 * Résout les plages de l'overlay représenté.
+	 * @returns {TimedOverlayRange[]} Plages temporelles normalisées.
+	 */
+	private getRanges(): TimedOverlayRange[] {
+		if (this.source) return this.source.getTimedOverlayRanges();
+
+		const styles = globalState.getVideoStyle.getStylesOfTarget(this.target);
+		return getTimedOverlayRanges(
+			this.rangesStyleId ? styles.findStyle(this.rangesStyleId)?.value : undefined,
+			styles.findStyle(this.startStyleId)?.value,
+			styles.findStyle(this.endStyleId)?.value
+		);
+	}
+
+	/**
+	 * Enregistre les plages et maintient le premier intervalle legacy pour les anciens usages.
+	 * @param {TimedOverlayRange[]} ranges Plages à enregistrer.
+	 * @returns {void}
+	 */
+	private setRanges(ranges: TimedOverlayRange[]): void {
+		ProjectHistoryManager.begin('set timed overlay range');
+		try {
+			const firstRange = ranges[0];
+			if (this.source) {
+				const rangeStyle = this.source.category?.getStyle('time-ranges');
+				if (rangeStyle) rangeStyle.value = ranges;
+				syncTimedOverlayLegacyRange(this.source.category?.styles ?? [], firstRange);
+				if (this.rangeIndex === 0 && firstRange) {
+					this.source.startTime = firstRange.startTime;
+					this.source.endTime = firstRange.endTime;
+					this.source.duration = firstRange.endTime - firstRange.startTime;
+				}
+				globalState.updateVideoPreviewUI();
+				return;
+			}
+
+			const styles = globalState.getVideoStyle.getStylesOfTarget(this.target);
+			const rangeStyle = this.rangesStyleId ? styles.findStyle(this.rangesStyleId) : undefined;
+			if (rangeStyle) rangeStyle.value = ranges;
+			const timingStyles = styles.categories.find((category) =>
+				category.styles.some(
+					(style) => style.id === this.startStyleId || style.id === this.rangesStyleId
+				)
+			)?.styles;
+			syncTimedOverlayLegacyRange(timingStyles ?? [], firstRange);
+			globalState.updateVideoPreviewUI();
+		} finally {
+			ProjectHistoryManager.commit();
+		}
 	}
 
 	get startTime(): number {
-		return Number(
-			globalState.getVideoStyle.getStylesOfTarget(this.target).findStyle(this.startStyleId)
-				?.value ?? 0
-		);
+		return this.getRanges()[this.rangeIndex]?.startTime ?? 0;
 	}
 
 	get endTime(): number {
-		return Number(
-			globalState.getVideoStyle.getStylesOfTarget(this.target).findStyle(this.endStyleId)?.value ??
-				0
-		);
+		return this.getRanges()[this.rangeIndex]?.endTime ?? 0;
 	}
 
 	get duration(): number {
@@ -63,6 +145,7 @@ export class GlobalTimedOverlayTimelineClip {
 	}
 
 	getAlwaysShow(): boolean {
+		if (this.source) return this.source.getAlwaysShow();
 		return Boolean(
 			globalState.getVideoStyle.getStylesOfTarget(this.target).findStyle(this.alwaysShowStyleId)
 				?.value
@@ -70,31 +153,30 @@ export class GlobalTimedOverlayTimelineClip {
 	}
 
 	setStartTime(newStartTime: number) {
-		if (this.endTime < newStartTime) return;
-		const style = globalState.getVideoStyle
-			.getStylesOfTarget(this.target)
-			.findStyle(this.startStyleId);
-		if (style) style.value = newStartTime;
-		globalState.updateVideoPreviewUI();
+		this.setRanges(
+			updateTimedOverlayRange(this.getRanges(), this.rangeIndex, 'startTime', newStartTime)
+		);
 	}
 
 	setEndTime(newEndTime: number) {
-		if (newEndTime < this.startTime) return;
-		const style = globalState.getVideoStyle
-			.getStylesOfTarget(this.target)
-			.findStyle(this.endStyleId);
-		if (style) style.value = newEndTime;
-		globalState.updateVideoPreviewUI();
+		this.setRanges(
+			updateTimedOverlayRange(this.getRanges(), this.rangeIndex, 'endTime', newEndTime)
+		);
 	}
 
 	setStyle(styleId: StyleName, value: string | number | boolean) {
-		// Pour cet adaptateur, seul le toggle always-show est gerable ici.
 		if (styleId === 'always-show') {
-			const style = globalState.getVideoStyle
-				.getStylesOfTarget(this.target)
-				.findStyle(this.alwaysShowStyleId);
-			if (style) style.value = value as boolean;
-			globalState.updateVideoPreviewUI();
+			ProjectHistoryManager.track('set timed overlay visibility', () => {
+				if (this.source) {
+					this.source.setStyle(styleId, value);
+					return;
+				}
+				const style = globalState.getVideoStyle
+					.getStylesOfTarget(this.target)
+					.findStyle(this.alwaysShowStyleId);
+				if (style) style.value = value as boolean;
+				globalState.updateVideoPreviewUI();
+			});
 		}
 	}
 
@@ -110,35 +192,86 @@ export class GlobalTimedOverlayTimelineClip {
 	}
 
 	getDisplayLabel(): string {
+		if (this.source) return getTimelineCustomClipLabel(this.source);
 		return this.label;
 	}
 }
 
 export type TimelineCustomClipLike = CustomClip | GlobalTimedOverlayTimelineClip;
 
-const GLOBAL_SURAH_NAME_TIMELINE_CLIP = new GlobalTimedOverlayTimelineClip({
+const GLOBAL_SURAH_NAME_TIMELINE_CONFIG: GlobalTimedOverlayConfig = {
 	id: 'global-surah-name',
 	label: 'Surah Name',
 	alwaysShowStyleId: 'surah-name-always-show',
 	startStyleId: 'surah-name-time-appearance',
-	endStyleId: 'surah-name-time-disappearance'
-});
+	endStyleId: 'surah-name-time-disappearance',
+	rangesStyleId: 'surah-name-time-ranges'
+};
 
-const GLOBAL_RECITER_NAME_TIMELINE_CLIP = new GlobalTimedOverlayTimelineClip({
+const GLOBAL_RECITER_NAME_TIMELINE_CONFIG: GlobalTimedOverlayConfig = {
 	id: 'global-reciter-name',
 	label: 'Reciter Name',
 	alwaysShowStyleId: 'reciter-name-always-show',
 	startStyleId: 'reciter-name-time-appearance',
-	endStyleId: 'reciter-name-time-disappearance'
-});
+	endStyleId: 'reciter-name-time-disappearance',
+	rangesStyleId: 'reciter-name-time-ranges'
+};
 
-const GLOBAL_AYAH_CONTAINER_TIMELINE_CLIP = new GlobalTimedOverlayTimelineClip({
+const GLOBAL_AYAH_CONTAINER_TIMELINE_CONFIG: GlobalTimedOverlayConfig = {
 	id: 'global-ayah-container',
 	label: 'Ayah Container',
 	alwaysShowStyleId: 'always-show',
 	startStyleId: 'time-appearance',
-	endStyleId: 'time-disappearance'
-});
+	endStyleId: 'time-disappearance',
+	rangesStyleId: 'ayah-container-time-ranges'
+};
+
+/**
+ * Crée les adaptateurs timeline correspondant à toutes les plages d'un overlay.
+ * @param {GlobalTimedOverlayConfig} config Configuration de l'overlay.
+ * @returns {GlobalTimedOverlayTimelineClip[]} Adaptateurs ordonnés.
+ */
+function createTimedOverlayTimelineClips(
+	config: GlobalTimedOverlayConfig
+): GlobalTimedOverlayTimelineClip[] {
+	const styles = globalState.getVideoStyle.getStylesOfTarget(config.target ?? 'global');
+	const ranges = config.source
+		? config.source.getTimedOverlayRanges()
+		: getTimedOverlayRanges(
+				config.rangesStyleId ? styles.findStyle(config.rangesStyleId)?.value : undefined,
+				styles.findStyle(config.startStyleId)?.value,
+				styles.findStyle(config.endStyleId)?.value
+			);
+
+	return ranges.map(
+		(_range, rangeIndex) => new GlobalTimedOverlayTimelineClip({ ...config, rangeIndex })
+	);
+}
+
+/**
+ * Crée les adaptateurs timeline des apparitions multiples d'un clip personnalisé.
+ * @param {CustomClip} clip Clip personnalisé source.
+ * @returns {TimelineCustomClipLike[]} Clips à afficher dans la timeline.
+ */
+function createCustomTimelineClips(clip: CustomClip): TimelineCustomClipLike[] {
+	const ranges = clip.getTimedOverlayRanges();
+	if (clip.getAlwaysShow() || ranges.length <= 1) return [clip];
+
+	return ranges.map(
+		(_range, rangeIndex) =>
+			new GlobalTimedOverlayTimelineClip({
+				id: `custom-${clip.id}`,
+				label: '',
+				target: 'global',
+				alwaysShowStyleId: 'always-show',
+				startStyleId: 'time-appearance',
+				endStyleId: 'time-disappearance',
+				rangesStyleId: 'time-ranges',
+				rangeIndex,
+				source: clip
+			})
+	);
+}
 
 /**
  * Retourne la liste de clips à afficher dans la lane "custom clips":
@@ -147,9 +280,9 @@ const GLOBAL_AYAH_CONTAINER_TIMELINE_CLIP = new GlobalTimedOverlayTimelineClip({
  */
 export function getTimelineCustomClips(): TimelineCustomClipLike[] {
 	// Base: les clips custom reels existants (text/image).
-	const clips: TimelineCustomClipLike[] = [
-		...((globalState.getCustomClipTrack?.clips || []) as CustomClip[])
-	];
+	const clips: TimelineCustomClipLike[] = (
+		(globalState.getCustomClipTrack?.clips || []) as CustomClip[]
+	).flatMap(createCustomTimelineClips);
 
 	// Surah Name: présent dans la timeline seulement s'il est visible
 	// et qu'il n'est pas en always-show.
@@ -157,7 +290,7 @@ export function getTimelineCustomClips(): TimelineCustomClipLike[] {
 		globalState.getStyle('global', 'show-surah-name')?.value === true &&
 		globalState.getStyle('global', 'surah-name-always-show')?.value !== true
 	) {
-		clips.push(GLOBAL_SURAH_NAME_TIMELINE_CLIP);
+		clips.push(...createTimedOverlayTimelineClips(GLOBAL_SURAH_NAME_TIMELINE_CONFIG));
 	}
 
 	// Reciter Name: même règle, avec garde-fou si reciter non défini.
@@ -166,14 +299,14 @@ export function getTimelineCustomClips(): TimelineCustomClipLike[] {
 		globalState.currentProject?.detail.reciter !== 'not set' &&
 		globalState.getStyle('global', 'reciter-name-always-show')?.value !== true
 	) {
-		clips.push(GLOBAL_RECITER_NAME_TIMELINE_CLIP);
+		clips.push(...createTimedOverlayTimelineClips(GLOBAL_RECITER_NAME_TIMELINE_CONFIG));
 	}
 
 	if (
 		Boolean(globalState.getStyle('global', 'ayah-container-image')?.value) &&
 		globalState.getStyle('global', 'always-show')?.value !== true
 	) {
-		clips.push(GLOBAL_AYAH_CONTAINER_TIMELINE_CLIP);
+		clips.push(...createTimedOverlayTimelineClips(GLOBAL_AYAH_CONTAINER_TIMELINE_CONFIG));
 	}
 
 	for (const stylesData of globalState.getVideoStyle.styles) {
@@ -182,14 +315,15 @@ export function getTimelineCustomClips(): TimelineCustomClipLike[] {
 		if (stylesData.findStyle('always-show')?.value === true) continue;
 
 		clips.push(
-			new GlobalTimedOverlayTimelineClip({
+			...createTimedOverlayTimelineClips({
 				id: `${stylesData.target}-background-container`,
 				label:
 					stylesData.target === 'arabic' ? 'Arabic Background' : `${stylesData.target} Background`,
 				target: stylesData.target,
 				alwaysShowStyleId: 'always-show',
 				startStyleId: 'time-appearance',
-				endStyleId: 'time-disappearance'
+				endStyleId: 'time-disappearance',
+				rangesStyleId: 'time-ranges'
 			})
 		);
 	}

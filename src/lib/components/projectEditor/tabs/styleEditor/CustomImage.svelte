@@ -4,6 +4,7 @@
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
+	import { getTimedOverlayRangesFromStyles } from '$lib/services/TimedOverlayRanges';
 
 	let { customImage, clipId }: { customImage: Category; clipId: number } = $props();
 
@@ -20,6 +21,7 @@
 					maxOpacity: Number(customImage.getStyle('opacity')?.value ?? 1),
 					currentTime: globalState.getTimelineState.cursorPosition,
 					fadeDuration: globalState.getStyle('global', 'fade-duration')!.value as number,
+					ranges: getTimedOverlayRangesFromStyles(customImage.styles),
 					startTime: customImage.getStyle('time-appearance')?.value as number,
 					endTime: customImage.getStyle('time-disappearance')?.value as number
 				})

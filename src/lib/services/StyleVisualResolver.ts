@@ -1,4 +1,5 @@
 import type { StyleName, StylesData } from '$lib/classes/VideoStyle.svelte';
+import { getTimedOverlayRanges, type TimedOverlayRange } from './TimedOverlayRanges';
 
 export type OverlayVisualState = {
 	enable: boolean;
@@ -23,6 +24,7 @@ export type TimedVisualState = {
 	alwaysShow: boolean;
 	startTime: number;
 	endTime: number;
+	ranges?: TimedOverlayRange[];
 };
 
 export type TimedStyleIds = {
@@ -30,6 +32,7 @@ export type TimedStyleIds = {
 	alwaysShow: StyleName;
 	startTime: StyleName;
 	endTime: StyleName;
+	ranges?: StyleName;
 };
 
 export type ResolveStyleValue = (styleId: string) => string | number | boolean;
@@ -79,12 +82,22 @@ export function resolveTimedVisualState(
 	ids: TimedStyleIds,
 	clipId?: number
 ): TimedVisualState {
-	return {
+	const state: TimedVisualState = {
 		enabled: ids.enabled ? Boolean(styles.getEffectiveValue(ids.enabled, clipId)) : true,
 		alwaysShow: Boolean(styles.getEffectiveValue(ids.alwaysShow, clipId)),
 		startTime: Number(styles.getEffectiveValue(ids.startTime, clipId)),
 		endTime: Number(styles.getEffectiveValue(ids.endTime, clipId))
 	};
+
+	if (ids.ranges) {
+		state.ranges = getTimedOverlayRanges(
+			styles.getEffectiveValue(ids.ranges, clipId) as unknown,
+			state.startTime,
+			state.endTime
+		);
+	}
+
+	return state;
 }
 
 /**

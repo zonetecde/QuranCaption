@@ -258,6 +258,21 @@ describe('getTimedOverlayStateAt', () => {
 		expect(getTimedOverlayStateAt(100, [verseNumber])).toBe('');
 		expect(getTimedOverlayStateAt(300, [verseNumber])).toBe('verse-number-0-1000');
 	});
+
+	it('tracks each non-overlapping appearance range independently', () => {
+		const overlay: ExportTimedOverlayCaptureClip = {
+			id: 'custom-text',
+			alwaysShow: false,
+			ranges: [
+				{ startTime: 0, endTime: 500 },
+				{ startTime: 2_000, endTime: 2_500 }
+			]
+		};
+
+		expect(getTimedOverlayStateAt(250, [overlay])).toBe('custom-text-0-500');
+		expect(getTimedOverlayStateAt(1_000, [overlay])).toBe('');
+		expect(getTimedOverlayStateAt(2_250, [overlay])).toBe('custom-text-2000-2500');
+	});
 });
 
 describe('getBlankImageFileName', () => {
@@ -472,6 +487,27 @@ describe('getExportWordByWordHighlightTimings', () => {
 });
 
 describe('calculateCaptureTimingsForRange', () => {
+	it('captures the boundaries of every repeated appearance', () => {
+		const result = calculateTimings(
+			[subtitle(0, 5_000, 1)],
+			[
+				{
+					id: 'custom-text',
+					alwaysShow: false,
+					ranges: [
+						{ startTime: 0, endTime: 500 },
+						{ startTime: 2_000, endTime: 2_500 }
+					]
+				}
+			],
+			0,
+			5_000,
+			0
+		);
+
+		expect(result.uniqueSorted).toEqual([0, 500, 2_000, 2_500, 5_000]);
+	});
+
 	it('reuses the fade-out screenshot when timed overlay visibility is unchanged across the subtitle', () => {
 		const result = calculateTimings([subtitle(0, 1_000, 1)], [customText(9, 0, 2_000)]);
 

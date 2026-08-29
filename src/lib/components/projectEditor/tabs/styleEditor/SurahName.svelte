@@ -6,6 +6,7 @@
 	import CompositeText from './CompositeText.svelte';
 	import { VerseRange } from '$lib/classes';
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
+	import { getTimedOverlayRanges } from '$lib/services/TimedOverlayRanges';
 	import {
 		getPreferredSurahTranslationLanguage,
 		getSurahTranslatedName,
@@ -28,6 +29,11 @@
 			alwaysShow: Boolean(globalState.getStyle('global', 'surah-name-always-show')!.value),
 			startTime: globalState.getStyle('global', 'surah-name-time-appearance')!.value as number,
 			endTime: globalState.getStyle('global', 'surah-name-time-disappearance')!.value as number,
+			ranges: getTimedOverlayRanges(
+				globalState.getStyle('global', 'surah-name-time-ranges')?.value,
+				globalState.getStyle('global', 'surah-name-time-appearance')?.value,
+				globalState.getStyle('global', 'surah-name-time-disappearance')?.value
+			),
 			size: globalState.getStyle('global', 'surah-size')!.value,
 			showArabic: globalState.getStyle('global', 'surah-show-arabic')!.value,
 			showLatin: globalState.getStyle('global', 'surah-show-latin')!.value,
@@ -72,6 +78,7 @@
 			maxOpacity: Number(surahNameSettings().opacity ?? 1),
 			currentTime: globalState.getTimelineState.cursorPosition,
 			fadeDuration: fadeDuration(),
+			ranges: surahNameSettings().ranges,
 			startTime: surahNameSettings().startTime,
 			endTime: surahNameSettings().endTime
 		});

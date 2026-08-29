@@ -61,6 +61,16 @@
 			"icon": "visibility"
 		},
 		{
+			"id": "time-ranges",
+			"name": "Time Ranges",
+			"description": "Configure multiple appearance ranges",
+			"value": [{ "startTime": 0, "endTime": 10000 }],
+			"valueType": "time-ranges",
+			"css": "",
+			"tailwind": false,
+			"icon": "access_time"
+		},
+		{
 			"id": "time-appearance",
 			"name": "Time Appearance",
 			"description": "Change the time where the text appears",

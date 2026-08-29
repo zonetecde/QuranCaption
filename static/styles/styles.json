@@ -170,7 +170,7 @@
 			{
 				"id": "verse-number-format",
 				"name": "Verse Number Format",
-				"description": "Change the format of verse numbers. Use <number> tag to customize.",
+				"description": "Change the format of verse numbers. Supported tags: <number>, <br>.",
 				"value": "<number>. ",
 				"valueType": "text",
 				"css": "",

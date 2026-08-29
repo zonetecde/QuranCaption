@@ -41,7 +41,6 @@
 		openBatchTranslationReviewProject,
 		startBatchReview
 	} from '$lib/services/BatchReviewNavigationService';
-	import { BatchCbrService, type BatchCbrQueueProgress } from '$lib/services/BatchCbrService';
 	import {
 		BatchTranslationService,
 		type BatchTranslationQueueProgress
@@ -88,7 +87,6 @@
 	let selectedMode = $state<BatchMediaMode>('audio_only');
 	let queueActive = $derived(workflow.isActive('media'));
 	let segmentationQueueActive = $derived(workflow.isActive('segmentation'));
-	let cbrQueueActive = $derived(workflow.isActive('cbr'));
 	let translationQueueActive = $derived(workflow.isActive('translation'));
 	let translationProgress = $state<BatchTranslationQueueProgress>({
 		active: 0,
@@ -140,14 +138,6 @@
 		active: 0,
 		completed: 0,
 		needsReview: 0,
-		failed: 0,
-		remaining: 0,
-		progress: 0,
-		total: 0
-	});
-	let cbrProgress = $state<BatchCbrQueueProgress>({
-		activeProjectId: null,
-		completed: 0,
 		failed: 0,
 		remaining: 0,
 		progress: 0,
@@ -337,9 +327,6 @@
 		eligibleSelected.filter((project) => !isBatchMediaModeCompatible(project, selectedMode))
 	);
 	let allSelected = $derived(workflow.areAllProjectsSelected(projects));
-	let cbrCurrentProject = $derived(
-		projects.find((project) => project.projectId === cbrProgress.activeProjectId) ?? null
-	);
 
 	/**
 	 * Ouvre la sélection du preset pour les projets cochés.
@@ -396,8 +383,7 @@
 							: await ProjectService.load(item.projectId);
 					const replaceBackground = async (): Promise<void> => {
 						const asset = project.content.addAssetHeadless(filePath, undefined, SourceType.Local, {
-							suppressUiEffects: true,
-							skipConstantBitrateWarning: true
+							suppressUiEffects: true
 						});
 						if (!asset || asset.type !== type)
 							throw new Error(batchMessage('backgroundInvalidFile'));
@@ -1295,69 +1281,12 @@
 	}
 
 	/**
-	 * Convertit séquentiellement tous les médias principaux du Batch en CBR.
-	 * @returns {Promise<void>} Promesse résolue lorsque toute la queue est terminale.
-	 */
-	async function convertAllAudioToCbr(): Promise<void> {
-		if (!batch || !allMediaCompleted || cbrQueueActive) return;
-		if (!workflow.begin('cbr')) return;
-		const analyticsWorkflow = AnalyticsService.trackBatchStageStarted(
-			'cbr_conversion',
-			projects.length
-		);
-		let analyticsCompleted = false;
-		queueError = '';
-		cbrProgress = {
-			activeProjectId: null,
-			completed: 0,
-			failed: 0,
-			remaining: projects.length,
-			progress: 0,
-			total: projects.length
-		};
-		const service = new BatchCbrService({
-			onUpdate: (_project, _activity, progress) => {
-				cbrProgress = progress;
-			}
-		});
-		try {
-			cbrProgress = await service.run(batch, projects);
-			analyticsCompleted = true;
-			if (cbrProgress.failed > 0) {
-				toast.error(batchMessage('cbrCompletedWithFailures', { failed: cbrProgress.failed }));
-			} else {
-				toast.success(batchMessage('cbrCompleted'));
-			}
-		} finally {
-			const terminal = reconcileBatchStageTerminalCounts({
-				total: projects.length,
-				completed: cbrProgress.completed,
-				failed: cbrProgress.failed,
-				skipped: 0,
-				needsReview: 0,
-				threw: !analyticsCompleted
-			});
-			AnalyticsService.trackBatchStageCompleted(
-				analyticsWorkflow,
-				'cbr_conversion',
-				terminal.outcome,
-				{
-					item_count: projects.length,
-					completed_count: cbrProgress.completed,
-					failed_count: terminal.failed
-				}
-			);
-			workflow.finish('cbr');
-		}
-	}
-
-	/**
 	 * Charge un projet enfant sans perdre l'identifiant du batch actif.
 	 * @param {number} projectId Identifiant du projet à ouvrir.
 	 * @returns {Promise<void>} Promesse résolue après l'ouverture.
 	 */
 	async function openProject(projectId: number): Promise<void> {
-		if (cbrQueueActive || translationQueueActive) return;
+		if (translationQueueActive) return;
 		const item = projects.find((project) => project.projectId === projectId);
 		if (item?.media.status === 'processing' || item?.segmentation.status === 'processing') return;
 		const project = await ProjectService.load(projectId);
@@ -1381,7 +1310,7 @@
 	 * @returns {Promise<void>} Promesse résolue après l'ouverture éventuelle.
 	 */
 	async function reviewFirstFlaggedProject(): Promise<void> {
-		if (cbrQueueActive || translationQueueActive) return;
+		if (translationQueueActive) return;
 		const first = reviewProjects[0];
 		if (batch && first && (await openBatchReviewProject(batch.id, first.projectId))) {
 			discordService.setEditingState();
@@ -1394,7 +1323,7 @@
 	 * @returns {Promise<void>} Promesse résolue après l'ouverture.
 	 */
 	async function reviewProject(projectId: number): Promise<void> {
-		if (!batch || cbrQueueActive || translationQueueActive) return;
+		if (!batch || translationQueueActive) return;
 		if (await openBatchReviewProject(batch.id, projectId)) discordService.setEditingState();
 	}
 
@@ -1541,7 +1470,6 @@
 								disabled={eligibleSelected.length === 0 ||
 									queueActive ||
 									segmentationQueueActive ||
-									cbrQueueActive ||
 									globalOperationActive}
 								onclick={openMediaModal}
 							>
@@ -1551,24 +1479,11 @@
 						{/if}
 						{#if allMediaCompleted && !allSegmentationsVerified}
 							<button
-								class="btn btn-icon inline-flex h-11 items-center justify-center gap-2 px-5"
-								type="button"
-								disabled={queueActive ||
-									segmentationQueueActive ||
-									cbrQueueActive ||
-									globalOperationActive}
-								onclick={convertAllAudioToCbr}
-							>
-								<span class="material-icons-outlined leading-none">graphic_eq</span>
-								<span class="leading-none">{batchMessage('convertAllAudioToCbr')}</span>
-							</button>
-							<button
 								class="btn btn-primary inline-flex h-11 items-center justify-center gap-2 px-5"
 								type="button"
 								disabled={segmentationSelected.length === 0 ||
 									queueActive ||
 									segmentationQueueActive ||
-									cbrQueueActive ||
 									globalOperationActive}
 								onclick={openSegmentationModal}
 							>
@@ -1721,19 +1636,6 @@
 					progress={queueProgress.progress}
 				/>
 			{/if}
-			{#if cbrQueueActive}
-				<BatchProgressCard
-					summary={cbrCurrentProject
-						? batchMessage('cbrConvertingProject', { project: cbrCurrentProject.projectName })
-						: batchMessage('cbrPreparing')}
-					progress={cbrProgress.progress}
-					detail={batchMessage('cbrQueueSummary', {
-						completed: cbrProgress.completed,
-						total: cbrProgress.total,
-						failed: cbrProgress.failed
-					})}
-				/>
-			{/if}
 			{#if segmentationQueueActive}
 				<BatchProgressCard
 					summary={batchMessage('segmentationQueueSummary', {
@@ -1800,7 +1702,7 @@
 						<button
 							class="btn-accent inline-flex h-10 items-center justify-center gap-2 px-4"
 							type="button"
-							disabled={segmentationQueueActive || cbrQueueActive || globalOperationActive}
+							disabled={segmentationQueueActive || globalOperationActive}
 							onclick={reviewFirstFlaggedProject}
 						>
 							<span class="material-icons-outlined text-base leading-none">fact_check</span>
@@ -1836,7 +1738,7 @@
 				{activeTranslationEditionName}
 				{selectedIds}
 				{allSelected}
-				operationActive={cbrQueueActive || translationQueueActive || globalOperationActive}
+				operationActive={translationQueueActive || globalOperationActive}
 				mediaActivities={activities}
 				{segmentationActivities}
 				{segmentationLive}

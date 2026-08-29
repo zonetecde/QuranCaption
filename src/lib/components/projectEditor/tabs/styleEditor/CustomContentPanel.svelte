@@ -188,6 +188,9 @@
 				{#each getVisibleCustomStyles(category, searchQuery) as style (style.id)}
 					<StyleComponent
 						{style}
+						descriptionId={customClip instanceof CustomTextClip && style.id === 'text'
+							? 'custom-text'
+							: undefined}
 						showControl
 						disabled={false}
 						applyValueSimple={(value) => applyStyleValue(category, style, value)}

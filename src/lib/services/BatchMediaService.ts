@@ -281,7 +281,6 @@ export class BatchMediaService {
 				item.source.kind === 'url' ? item.source.value : undefined,
 				item.source.kind === 'url' ? SourceType.YouTube : SourceType.Local,
 				{
-					skipConstantBitrateWarning: true,
 					suppressUiEffects: true,
 					batchId: batch.id,
 					batchProjectId: item.projectId,

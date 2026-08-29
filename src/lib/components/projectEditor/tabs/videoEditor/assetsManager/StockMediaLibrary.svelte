@@ -130,8 +130,7 @@
 
 			globalState.currentProject?.content.addAsset(fullPath, result.pageUrl, sourceType, {
 				authorName: result.authorName,
-				authorUrl: result.authorUrl,
-				skipConstantBitrateWarning: true
+				authorUrl: result.authorUrl
 			});
 
 			toast.success(get(LL).editor.downloadSuccessful());

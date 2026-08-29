@@ -8,7 +8,6 @@ import { globalState } from '$lib/runes/main.svelte.js';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { Duration } from './index.js';
-import toast from 'svelte-5-french-toast';
 import ModalManager from '$lib/components/modals/ModalManager.js';
 import { WaveformService } from '$lib/services/WaveformService.svelte.js';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager.js';
@@ -221,7 +220,6 @@ export class Asset extends SerializableBase {
 
 			this.duration = new Duration(durationMs);
 			this.durationLoadState = 'success';
-			await this.warnIfNotConstantBitrate();
 			await this.checkAudioTimestampStretch();
 
 			if (durationMs === -1) {
@@ -243,26 +241,6 @@ export class Asset extends SerializableBase {
 				this.durationLoadError = 'Unable to retrieve media duration. Please check the logs.';
 				console.error('Unable to retrieve media duration', error);
 			}
-		}
-	}
-
-	/**
-	 * Checks bitrate mode and shows a guidance toast when media is not constant bitrate.
-	 * @returns A promise that resolves when the check completes.
-	 */
-	private async warnIfNotConstantBitrate(): Promise<void> {
-		if (this.type !== AssetType.Audio && this.type !== AssetType.Video) return;
-		if (this.metadata.skipConstantBitrateWarning === true) return;
-
-		try {
-			const isConstant = (await invoke('is_constant_bitrate', {
-				filePath: this.filePath
-			})) as boolean;
-			if (isConstant) return;
-
-			toast(get(LL).editor.variableBitrateWarning(), { duration: 18000, position: 'bottom-left' });
-		} catch (error) {
-			console.warn('Unable to detect bitrate mode for asset:', error);
 		}
 	}
 

@@ -293,13 +293,6 @@ const id = {
 		mediaMode: 'Mode: {mode}',
 		queueSummary: '{active} aktif · {completed} selesai · {failed} gagal · {remaining} tersisa',
 		globalProgress: 'Progres keseluruhan: {progress}%',
-		convertAllAudioToCbr: 'Ubah semua audio ke CBR',
-		cbrPreparing: 'Menyiapkan konversi CBR…',
-		cbrConvertingProject: 'Mengonversi {project}',
-		cbrQueueSummary: '{completed} / {total} dikonversi · {failed} gagal',
-		cbrCompleted: 'Semua audio batch sekarang menggunakan CBR.',
-		cbrCompletedWithFailures: 'Konversi CBR selesai dengan {failed} kegagalan.',
-		cbrAssetMissing: 'Aset media yang diimpor tidak ditemukan.',
 		aiSegmentation: 'Segmentasi AI',
 		segmentationNotStarted: 'Belum dimulai',
 		segmentationQueued: 'Dalam antrean',
@@ -818,11 +811,6 @@ const id = {
 		failedToLoadReciters: 'Gagal memuat daftar Qari.',
 		trimAssetError: 'Pemotongan hanya tersedia untuk aset audio dan video.',
 		unableToLoadDuration: 'Tidak bisa memuat durasi aset ini. Silakan impor ulang file.',
-		assetConvertedSuccess: 'Aset berhasil dikonversi ke CBR. Media dimuat ulang.',
-		errorConvertingAsset: 'Error saat mengonversi aset ke CBR: {error}',
-		variableBitrateWarning:
-			'Media kamu memakai bitrate variabel (VBR). Ini bisa menyebabkan ketidakkonsistenan timing saat editing video. Untuk mengonversinya, buka tab Editor Video, klik tiga titik pada aset, lalu klik Ubah ke CBR.',
-		vbrWarningTap: 'Ketuk untuk mengonversi ke CBR',
 		noNativeTimingAudio: 'Audio dengan native timing tidak ditemukan di timeline.',
 		noTimingDataFound: 'Data timing untuk Qari/surah ini tidak ditemukan.',
 		appliedSubtitlesFromMp3Quran: 'Berhasil menerapkan {count} subtitle dari Mp3Quran!',
@@ -1028,6 +1016,13 @@ const id = {
 		} as Translation['editor']['styleName'],
 		styleDescription: {
 			...baseEn.editor.styleDescription,
+			'verse-number-format': 'Ubah format nomor ayat. Tag yang didukung: <number>, <br>.',
+			'surah-name-format':
+				'Format tampilan nama surah. Tag yang didukung: <number>, <surah>, <transliteration>, <translation>, <min-range>, <max-range>, <translation-[language-code]>, <br>.',
+			'reciter-name-format':
+				'Format tampilan nama qari. Tag yang didukung: <number>, <transliteration>, <arabic>, <br>.',
+			'custom-text':
+				'Tambahkan teks ke video. Tag yang didukung: <number>, <surah>, <verse>, <min-range>, <max-range>, <transliteration>, <translation>, <arabic>, <translation-[language-code]>, <br>.',
 			riwayah: 'Pilih riwayat bacaan Al-Qur’an untuk subtitle bahasa Arab.',
 			'basmala-style':
 				'Gunakan font Arab saat ini atau pilih salah satu dari 122 basmala kaligrafi.',
@@ -1133,17 +1128,10 @@ const id = {
 		audioOnly: 'Audio Saja',
 		downloadFromSocialMedia: 'Unduh dari media sosial',
 		videoEditorLabel: 'Editor Video',
-		convertingToCbrProgress: 'Sedang mengonversi ke CBR...',
-		cbrPreparing: 'Menyiapkan...',
-		cbrFinished: 'Selesai',
-		cbrConvertingLabel: 'Mengonversi',
 		videoAsset: 'Aset Video',
 		audioAsset: 'Aset Audio',
 		imageAsset: 'Aset Gambar',
 		openDirectory: 'Buka direktori',
-		convertToCbr: 'Ubah ke CBR',
-		cbrInfoHint:
-			'Kamu bisa pindah tab selama proses ini. Aset akan dimuat ulang otomatis setelah selesai.',
 		nativeTimingHint: '★ berarti timing ayat resmi bisa dimuat otomatis setelah unduhan selesai.',
 		selectSurah: 'Pilih Surah',
 		projectAssetsLabel: 'Aset Proyek',
@@ -1154,11 +1142,7 @@ const id = {
 		imageAssetLabel: 'Aset Gambar',
 		fileNotFoundOnDiskLabel: 'File tidak ditemukan di disk',
 		openDirectoryLabel: 'Buka direktori',
-		convertToCbrLabel: 'Ubah ke CBR',
-		convertingLabel: 'Sedang mengonversi...',
 		downloadingLabel: 'Sedang mengunduh...',
-		convertCbrProgressHint:
-			'Kamu bisa pindah tab selama proses ini. Aset akan dimuat ulang otomatis setelah selesai.',
 		chooseMediaType: 'Pilih tipe media untuk diunduh',
 		downloadFromLink: 'Unduh dari link',
 		supportedLinksHint:

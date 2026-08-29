@@ -48,8 +48,6 @@ const editor = {
 	failedToLoadReciters: 'Failed to load reciters list.',
 	trimAssetError: 'Trim is only available for audio and video assets.',
 	unableToLoadDuration: 'Unable to load this asset duration. Please re-import the file.',
-	assetConvertedSuccess: 'Asset converted to CBR successfully. Media reloaded.',
-	errorConvertingAsset: 'Error converting asset to CBR: {error}',
 	noNativeTimingAudio: 'No native-timing audio found on timeline.',
 	noTimingDataFound: 'No timing data found for this reciter/surah.',
 	appliedSubtitlesFromMp3Quran: 'Applied {count} subtitles from Mp3Quran!',
@@ -246,8 +244,6 @@ const editor = {
 		'Please convert your file to mp4 to use it in audio track (this file is currently in an unsupported format)',
 	unknownAudioError: 'An unknown error occurred while loading audio: {error}',
 	unableToAnalyzeMedia: 'Unable to analyze this media file. Please check FFmpeg/FFprobe setup.',
-	variableBitrateWarning:
-		'Your media uses variable bitrate (VBR). This may cause timing inconsistencies during video editing. To convert it, go to the Video Editor tab, click the three dots on the asset, then click Convert to CBR.',
 	tajweedRequiresInternet:
 		'Tajweed requires an internet connection. Please check your connection and try again.',
 	minimalQuran: 'Minimal Quran',
@@ -262,7 +258,6 @@ const editor = {
 		'At least one subtitle in the timeline must have word-by-word timestamps before splitting long subtitles.',
 	noWbwTimestampsError:
 		'This subtitle was generated without word-by-word timestamps. Enable "Include word-by-word timestamps" in Segmentation settings, then run the segmentation again.',
-	vbrWarningTap: 'Tap to convert to CBR',
 	tajweedFontWarning:
 		'Tajweed requires an internet connection to load its font. Fallback to QPC2 is automatic if unavailable. Tajweed text color is currently forced to black, and you cannot change it.',
 	overridesApplied: 'Overrides applied',
@@ -496,14 +491,10 @@ const editor = {
 	imageAssetLabel: 'Image Asset',
 	fileNotFoundOnDiskLabel: 'File not found on disk',
 	openDirectoryLabel: 'Open Directory',
-	convertToCbrLabel: 'Convert to CBR',
-	convertingLabel: 'Converting...',
 	trimLabel: 'Trim',
 	relocateLabel: 'Relocate',
 	redownloadLabel: 'Re-download',
 	downloadingLabel: 'Downloading...',
-	convertCbrProgressHint:
-		'You can switch tabs during this process. The asset will automatically reload once it finishes.',
 	addToTimelineLabel: 'Add to Timeline',
 	videoAndAudio: 'Video & Audio',
 	videoOnly: 'Video Only',
@@ -511,12 +502,9 @@ const editor = {
 	setAsBackground: 'Set as Background',
 	browserNoAudioSupport: 'Your browser does not support the audio element.',
 	browserNoVideoSupport: 'Your browser does not support the video tag.',
-	preparingLabel: 'Preparing...',
-	finishedLabel: 'Finished',
 	downloadFromSocialMedia: 'Download from Social Media',
 	chooseMediaType: 'Choose media type to download',
 	downloadFromLink: 'Download from Link',
-	convertingToCbrProgress: 'Converting to CBR...',
 	finalizingDownload: 'Finalizing download...',
 	downloadingMedia: 'Downloading media...',
 	downloadFailed: 'Download failed',
@@ -648,20 +636,13 @@ const editor = {
 	noWbwTimestampsComputed: 'No WBW timestamps could be computed. Please try again.',
 	failedToComputeWbwTimestamps: 'Failed to compute WBW timestamps.',
 	noWbwTimestampsMarked: '{count} subtitle{plural} marked for missing WBW timestamps.',
-	cbrPreparing: 'Preparing...',
-	cbrFinished: 'Finished',
-	cbrConvertingLabel: 'Converting',
 	videoAsset: 'Video Asset',
 	audioAsset: 'Audio Asset',
 	imageAsset: 'Image Asset',
 	openDirectory: 'Open Directory',
-	convertingButton: 'Converting...',
-	convertToCbr: 'Convert to CBR',
 	trimButton: 'Trim',
 	relocateButton: 'Relocate',
 	redownloadButton: 'Re-download',
-	cbrInfoHint:
-		'You can switch tabs during this process. The asset will automatically reload once it finishes.',
 	editingSubtitle: 'Editing Subtitle',
 	editingActive: 'Active',
 	editingHelpText:
@@ -1100,7 +1081,7 @@ const editor = {
 		'mushaf-style': 'Choose the Arabic script source for Quran subtitles.',
 		'basmala-style': 'Use the current Arabic font or choose one of 122 calligraphic basmalas.',
 		'basmala-scale': 'Scale calligraphic predefined basmalas independently from other subtitles.',
-		'verse-number-format': 'Change the format of verse numbers. Use <number> tag to customize.',
+		'verse-number-format': 'Change the format of verse numbers. Supported tags: <number>, <br>.',
 		'verse-number-position': 'Set the position of verse numbers',
 		'verse-number-numeral-system': 'Choose how verse number digits are written in translations.',
 		'verse-number-vertical-position':
@@ -1252,7 +1233,7 @@ const editor = {
 		'surah-name-horizontal-position':
 			'Change the horizontal position of the surah name (pixels from center)',
 		'surah-name-format':
-			'Format of the Surah name display. Use <number>, <transliteration>, <translation>, <min-range> and <max-range> tags to customize.',
+			'Format of the Surah name display. Supported tags: <number>, <surah>, <transliteration>, <translation>, <min-range>, <max-range>, <translation-[language-code]>, <br>.',
 		'surah-show-arabic': 'Show the Surah name in Arabic',
 		'surah-show-latin': 'Show additional Latin text (see Latin Text Format)',
 		'surah-calligraphy-style': 'Choose the Surah name calligraphy font',
@@ -1270,7 +1251,7 @@ const editor = {
 		'reciter-name-horizontal-position':
 			'Change the horizontal position of the reciter name (pixels from center)',
 		'reciter-name-format':
-			'Format of the Reciter name display. Use <arabic> and <transliteration> tags to customize.',
+			'Format of the Reciter name display. Supported tags: <number>, <transliteration>, <arabic>, <br>.',
 		'reciter-show-arabic': 'Show the Reciter name in Arabic',
 		'reciter-show-latin': 'Show additional Latin text (see Latin Text Format)',
 		'reciter-size': 'Size of Reciter Arabic Calligraphy Name',
@@ -1291,7 +1272,8 @@ const editor = {
 		'ayah-container-stretch':
 			'Stretch the image to fill the container (otherwise it fits inside preserving ratio)',
 		'verse-number-text-style': 'Change the style of the Verse number display',
-		'custom-text': 'Add a text on the video',
+		'custom-text':
+			'Add a text on the video. Supported tags: <number>, <surah>, <verse>, <min-range>, <max-range>, <transliteration>, <translation>, <arabic>, <translation-[language-code]>, <br>.',
 		'custom-text-composite': 'Customize the text styles',
 		'custom-image': 'Add an image on the video',
 		filepath: 'Path to the image file',

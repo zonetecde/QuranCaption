@@ -25,10 +25,6 @@ const translationMocks = vi.hoisted(() => ({
 	fetch: vi.fn(),
 	onUpdate: null as ((...args: unknown[]) => void) | null
 }));
-const cbrMocks = vi.hoisted(() => ({
-	run: vi.fn(),
-	onUpdate: null as ((...args: unknown[]) => void) | null
-}));
 const globalActionMocks = vi.hoisted(() => ({
 	inspectExports: vi.fn<(items: unknown[]) => Promise<unknown[]>>(async () => []),
 	styleRun: vi.fn(),
@@ -100,26 +96,6 @@ vi.mock('$lib/services/QdcTranslationService', () => ({
 }));
 vi.mock('$lib/services/TranslationFetchService', () => ({
 	getProjectSubtitleClips: vi.fn(() => [])
-}));
-vi.mock('$lib/services/BatchCbrService', () => ({
-	BatchCbrService: class {
-		/**
-		 * Conserve le callback de progression fourni par le workspace.
-		 * @param {{ onUpdate?: (...args: unknown[]) => void }} options Options simulées.
-		 */
-		constructor(options: { onUpdate?: (...args: unknown[]) => void }) {
-			cbrMocks.onUpdate = options.onUpdate ?? null;
-		}
-
-		/**
-		 * Délègue l'exécution à la promesse contrôlée du test.
-		 * @param {unknown[]} args Arguments du workspace.
-		 * @returns {unknown} Résultat contrôlé.
-		 */
-		run(...args: unknown[]): unknown {
-			return cbrMocks.run(...args);
-		}
-	}
 }));
 vi.mock('$lib/services/BatchStyleService', () => ({
 	BatchStyleService: class {
@@ -217,8 +193,6 @@ describe('BatchWorkspace media import', () => {
 		reviewNavigationMocks.open.mockClear();
 		reviewNavigationMocks.start.mockClear();
 		projectServiceMocks.load.mockReset();
-		cbrMocks.run.mockReset();
-		cbrMocks.onUpdate = null;
 		translationMocks.reconcile.mockClear();
 		translationMocks.add.mockReset();
 		translationMocks.fetch.mockReset();
@@ -532,63 +506,6 @@ describe('BatchWorkspace media import', () => {
 		);
 	});
 
-	test('shows Batch CBR progress after every media import is completed', async () => {
-		loadLocale('en');
-		setLocale('en');
-		const project = createProject(1, 'completed', {
-			kind: 'url',
-			value: 'https://example.com/1'
-		});
-		serviceMocks.load.mockResolvedValue(new Batch('Batch', [project], 300));
-		let finishCbr!: () => void;
-		cbrMocks.run.mockImplementation(async () => {
-			cbrMocks.onUpdate?.(project, 'converting', {
-				activeProjectId: 1,
-				completed: 0,
-				failed: 0,
-				remaining: 0,
-				progress: 45,
-				total: 1
-			});
-			await new Promise<void>((resolve) => {
-				finishCbr = resolve;
-			});
-			return {
-				activeProjectId: null,
-				completed: 1,
-				failed: 0,
-				remaining: 0,
-				progress: 100,
-				total: 1
-			};
-		});
-		globalState.currentBatchId = 300;
-
-		const component = render(BatchWorkspace);
-		await vi.waitFor(() =>
-			expect(component.container.querySelectorAll('tbody tr')).toHaveLength(1)
-		);
-		const cbrButton = Array.from(
-			component.container.querySelectorAll<HTMLButtonElement>('header button')
-		).find((button) => button.textContent?.includes('Convert all audio to CBR'))!;
-		expect(cbrButton).toBeDefined();
-		await cbrButton.click();
-
-		await vi.waitFor(() => {
-			expect(component.container.textContent).toContain('Converting Project 1');
-			expect(component.container.textContent).toContain('45%');
-			expect(
-				component.container.querySelector<HTMLButtonElement>(
-					'[data-batch-context-actions] .btn-primary'
-				)?.disabled
-			).toBe(true);
-		});
-		finishCbr();
-		await vi.waitFor(() =>
-			expect(component.container.textContent).not.toContain('Converting Project 1')
-		);
-	});
-
 	test('switches from segmentation actions to the edition-scoped translation stage', async () => {
 		loadLocale('en');
 		setLocale('en');
@@ -606,7 +523,6 @@ describe('BatchWorkspace media import', () => {
 		);
 		expect(component.container.textContent).toContain('Add translations to projects');
 		expect(component.container.textContent).toContain('Fetch translations from other projects');
-		expect(component.container.textContent).not.toContain('Convert all audio to CBR');
 		expect(
 			Array.from(component.container.querySelectorAll('header button')).some((button) =>
 				button.textContent?.includes('AI Segmentation')

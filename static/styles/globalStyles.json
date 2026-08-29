@@ -602,7 +602,7 @@
 			{
 				"id": "surah-name-format",
 				"name": "Latin Text Format",
-				"description": "Format of the Surah name display. Use <number>, <transliteration>, <translation>, <min-range> and <max-range> tags to customize.",
+				"description": "Format of the Surah name display. Supported tags: <number>, <surah>, <transliteration>, <translation>, <min-range>, <max-range>, <translation-[language-code]>, <br>.",
 				"value": "Surah <transliteration>",
 				"valueType": "text",
 				"css": "",
@@ -650,7 +650,7 @@
 				"value": 8.2,
 				"valueType": "number",
 				"valueMin": 1,
-				"valueMax": 10,
+				"valueMax": 40,
 				"step": 0.1,
 				"css": "",
 				"tailwind": false,
@@ -819,7 +819,7 @@
 			{
 				"id": "reciter-name-format",
 				"name": "Latin Text Format",
-				"description": "Format of the Reciter name display. Use <arabic> and <transliteration> tags to customize.",
+				"description": "Format of the Reciter name display. Supported tags: <number>, <transliteration>, <arabic>, <br>.",
 				"value": "<transliteration>",
 				"valueType": "text",
 				"css": "",
@@ -1089,7 +1089,7 @@
 			{
 				"id": "verse-number-format",
 				"name": "Format",
-				"description": "Change the format of the Verse number display. Use <surah>, <verse>, <min-range> and <max-range> tags to customize.",
+				"description": "Change the format of the Verse number display. Supported tags: <number>, <surah>, <verse>, <min-range>, <max-range>, <br>.",
 				"value": "<surah>:<verse>",
 				"valueType": "text",
 				"css": "",

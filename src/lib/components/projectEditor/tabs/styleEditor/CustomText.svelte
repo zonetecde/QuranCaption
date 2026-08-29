@@ -1,9 +1,21 @@
 <script lang="ts">
 	import type { Category } from '$lib/classes/VideoStyle.svelte';
+	import { SubtitleClip } from '$lib/classes/Clip.svelte';
+	import { Quran } from '$lib/classes/Quran';
+	import { VerseRange } from '$lib/classes/VerseRange.svelte';
+	import RecitersManager from '$lib/classes/Reciter';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { onMount } from 'svelte';
 	import CompositeText from './CompositeText.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
+	import {
+		getPreferredSurahTranslationLanguage,
+		getSurahTranslatedName,
+		getSurahTranslationTagValues,
+		loadSurahNameTranslations,
+		resolveQuranTextTags
+	} from '$lib/services/QuranTextTagResolver.svelte';
 
 	let { customText, clipId }: { customText: Category; clipId: number } = $props();
 
@@ -24,6 +36,50 @@
 					endTime: customText.getStyle('time-disappearance')?.value as number
 				})
 		};
+	});
+
+	onMount(() => {
+		void loadSurahNameTranslations();
+	});
+
+	/**
+	 * Remplace les balises Quran du texte personnalisé par les valeurs du curseur courant.
+	 * @param {string} text Texte configuré par l'utilisateur.
+	 * @returns {string} Texte prêt à être affiché dans l'overlay.
+	 */
+	function formatCustomText(text: string): string {
+		const currentSurah = globalState.getSubtitleTrack.getCurrentSurah();
+		const currentSubtitle = globalState.getSubtitleTrack.getCurrentSubtitleToDisplay();
+		const currentVerse =
+			currentSubtitle instanceof SubtitleClip ? currentSubtitle.verse : undefined;
+		const range =
+			currentSurah > 0
+				? VerseRange.getExportVerseRange().getRangeForSurah(currentSurah)
+				: undefined;
+		const surah = Quran.surahs[currentSurah - 1];
+		const reciter = RecitersManager.getReciterObject(
+			globalState.currentProject?.detail.reciter ?? ''
+		);
+		const editions =
+			globalState.currentProject?.content.projectTranslation.addedTranslationEditions ?? [];
+		const preferredTranslationLanguage = getPreferredSurahTranslationLanguage(editions);
+
+		return resolveQuranTextTags(text, {
+			number: currentVerse,
+			surah: currentSurah > 0 ? currentSurah : undefined,
+			verse: currentVerse,
+			minRange: range?.verseStart,
+			maxRange: range?.verseEnd,
+			transliteration: surah?.name,
+			translation: getSurahTranslatedName(currentSurah, preferredTranslationLanguage),
+			arabic: reciter.arabic,
+			translations: getSurahTranslationTagValues(currentSurah)
+		});
+	}
+
+	let displayedText = $derived(() => {
+		const _ = globalState.getTimelineState.cursorPosition;
+		return formatCustomText(customTextSettings().text);
 	});
 
 	const verticalStyle = $derived(customText.getStyle('vertical-position')!);
@@ -47,6 +103,6 @@
 	style={`width: ${customTextSettings().width}% ; transform: translateY(${customTextSettings().verticalPosition}px) translateX(${customTextSettings().horizontalPosition}px); opacity: ${customTextSettings().opacity()}; `}
 >
 	<CompositeText compositeStyle={customText.getCompositeStyle()!}>
-		{customTextSettings().text}
+		{displayedText()}
 	</CompositeText>
 </div>

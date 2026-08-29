@@ -16,7 +16,6 @@ export type AnalyticsWorkflowStatus = 'completed' | 'partial' | 'failed' | 'canc
 
 export type BatchAnalyticsStage =
 	| 'media_import'
-	| 'cbr_conversion'
 	| 'segmentation'
 	| 'translation_add'
 	| 'translation_fetch'

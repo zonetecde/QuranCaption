@@ -4,6 +4,7 @@
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import CompositeText from './CompositeText.svelte';
 	import { SubtitleClip, VerseRange } from '$lib/classes';
+	import { resolveQuranTextTags } from '$lib/services/QuranTextTagResolver.svelte';
 
 	let {
 		currentSurah,
@@ -105,6 +106,21 @@
 		// Opacité maximale entre les fades
 		return maxOpacity;
 	});
+
+	/**
+	 * Remplace les balises du format de numéro de verset par leurs valeurs courantes.
+	 * @returns {string} Format résolu pour le verset affiché.
+	 */
+	function formatVerseNumber(): string {
+		const range = VerseRange.getExportVerseRange().getRangeForSurah(currentSurah);
+		return resolveQuranTextTags(verseNumberSettings().verseNumberFormat, {
+			number: currentVerse,
+			surah: currentSurah,
+			verse: currentVerse,
+			minRange: range.verseStart,
+			maxRange: range.verseEnd
+		});
+	}
 </script>
 
 {#if verseNumberSettings().show && currentSurah > 0 && currentVerse > 0 && verseNumberSubtitleOpacity() > 0}
@@ -122,17 +138,7 @@
 	>
 		<div class="w-[700px] text-center">
 			<CompositeText compositeStyle={globalState.getStyle('global', 'verse-number-text-style')!}>
-				{verseNumberSettings()
-					.verseNumberFormat.replace('<surah>', currentSurah.toString())
-					.replace('<verse>', currentVerse.toString())
-					.replace(
-						'<min-range>',
-						VerseRange.getExportVerseRange().getRangeForSurah(currentSurah).verseStart.toString()
-					)
-					.replace(
-						'<max-range>',
-						VerseRange.getExportVerseRange().getRangeForSurah(currentSurah).verseEnd.toString()
-					)}
+				{formatVerseNumber()}
 			</CompositeText>
 		</div>
 	</div>

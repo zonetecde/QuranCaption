@@ -15,6 +15,6 @@
 	});
 </script>
 
-<p style={getCss()}>
+<p class="whitespace-pre-line" style={getCss()}>
 	{@render children()}
 </p>

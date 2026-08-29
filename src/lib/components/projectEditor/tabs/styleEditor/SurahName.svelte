@@ -6,7 +6,13 @@
 	import CompositeText from './CompositeText.svelte';
 	import { VerseRange } from '$lib/classes';
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
-	import { getChineseSurahTranslationLanguage } from '$lib/services/ChineseTranslationHelper';
+	import {
+		getPreferredSurahTranslationLanguage,
+		getSurahTranslatedName,
+		getSurahTranslationTagValues,
+		loadSurahNameTranslations,
+		resolveQuranTextTags
+	} from '$lib/services/QuranTextTagResolver.svelte';
 
 	const currentSurah = $derived(() => {
 		return globalState.getSubtitleTrack.getCurrentSurah();
@@ -71,131 +77,17 @@
 		});
 	});
 
-	const supportedTranslationLanguages = [
-		'English',
-		'Spanish',
-		'French',
-		'Bengali',
-		'ChineseSimplified',
-		'ChineseTraditional'
-	] as const;
-	type SupportedTranslationLanguage = (typeof supportedTranslationLanguages)[number];
-
-	const supportedSurahTranslationUrls: Record<SupportedTranslationLanguage, string> = {
-		English: '/translations/surahNames/en.json',
-		Spanish: '/translations/surahNames/es.json',
-		French: '/translations/surahNames/fr.json',
-		Bengali: '/translations/surahNames/bn.json',
-		ChineseSimplified: '/translations/surahNames/zh.json',
-		ChineseTraditional: '/translations/surahNames/zh_hant.json'
-	};
-
-	const surahTranslationTagLanguages: Record<string, SupportedTranslationLanguage> = {
-		en: 'English',
-		es: 'Spanish',
-		fr: 'French',
-		bn: 'Bengali',
-		zh: 'ChineseSimplified',
-		zh_hant: 'ChineseTraditional',
-		'zh-hant': 'ChineseTraditional'
-	};
-
-	let supportedSurahTranslations: Record<SupportedTranslationLanguage, string[]> = $state({
-		English: [],
-		Spanish: [],
-		French: [],
-		Bengali: [],
-		ChineseSimplified: [],
-		ChineseTraditional: []
-	});
-
 	onMount(() => {
-		loadSurahNameTranslations();
+		void loadSurahNameTranslations();
 	});
-
-	async function loadSurahNameTranslations() {
-		await Promise.all(
-			supportedTranslationLanguages.map(async (language) => {
-				const url = supportedSurahTranslationUrls[language];
-
-				try {
-					const response = await fetch(url);
-
-					if (!response.ok) {
-						throw new Error(`Failed to fetch surah names for ${language}: ${response.status}`);
-					}
-
-					const names: unknown = await response.json();
-
-					if (Array.isArray(names)) {
-						supportedSurahTranslations[language] = names as string[];
-					} else {
-						console.warn(`Unexpected surah name format for ${language}`, names);
-						supportedSurahTranslations[language] = [];
-					}
-				} catch (error) {
-					console.error(`Error loading surah names for ${language}:`, error);
-					supportedSurahTranslations[language] = [];
-				}
-			})
-		);
-	}
-
-	const defaultTranslationLanguage: SupportedTranslationLanguage = 'English';
-
-	const isSupportedTranslationLanguage = (
-		language: string
-	): language is SupportedTranslationLanguage =>
-		supportedTranslationLanguages.includes(language as SupportedTranslationLanguage);
 
 	const preferredTranslationLanguage = $derived(() => {
 		const editions = globalState.getProjectTranslation.addedTranslationEditions;
-
-		if (!editions || editions.length === 0) {
-			return defaultTranslationLanguage;
-		}
-
-		const chineseLanguage = getChineseSurahTranslationLanguage(editions);
-		if (chineseLanguage) return chineseLanguage;
-
-		for (let i = editions.length - 1; i >= 0; i--) {
-			const language = editions[i].language;
-			if (isSupportedTranslationLanguage(language)) {
-				return language;
-			}
-		}
-
-		return defaultTranslationLanguage;
+		return getPreferredSurahTranslationLanguage(editions);
 	});
 
-	/**
-	 * Retourne le nom traduit de la sourate courante pour la langue demandée.
-	 * @param {SupportedTranslationLanguage} language Langue de traduction des noms de sourates.
-	 * @returns {string} Nom traduit, avec fallback anglais puis donnée Quran locale.
-	 */
-	function getSurahTranslatedName(language: SupportedTranslationLanguage): string {
-		const surahIndex = currentSurah() - 1;
-		if (surahIndex < 0 || surahIndex >= Quran.surahs.length) {
-			return '';
-		}
-
-		const translations = supportedSurahTranslations[language];
-		const translationFromPreferred = translations?.[surahIndex];
-
-		if (translationFromPreferred && translationFromPreferred.trim().length > 0) {
-			return translationFromPreferred;
-		}
-
-		const englishFallback = supportedSurahTranslations.English?.[surahIndex];
-		if (englishFallback && englishFallback.trim().length > 0) {
-			return englishFallback;
-		}
-
-		return Quran.surahs[surahIndex]?.translation ?? '';
-	}
-
 	const surahTranslatedName = $derived(() => {
-		return getSurahTranslatedName(preferredTranslationLanguage());
+		return getSurahTranslatedName(currentSurah(), preferredTranslationLanguage());
 	});
 
 	/**
@@ -203,22 +95,17 @@
 	 * @returns {string} Format résolu pour la sourate affichée.
 	 */
 	function formatSurahName(): string {
-		return surahNameSettings()
-			.surahNameFormat.replace(/<translation-([a-z_-]+)>/gi, (_match: string, code: string) => {
-				const language = surahTranslationTagLanguages[code.toLowerCase()];
-				return language ? getSurahTranslatedName(language) : '';
-			})
-			.replace('<number>', currentSurah().toString())
-			.replace('<transliteration>', Quran.surahs[currentSurah() - 1].name)
-			.replace('<translation>', surahTranslatedName())
-			.replace(
-				'<min-range>',
-				VerseRange.getExportVerseRange().getRangeForSurah(currentSurah()).verseStart.toString()
-			)
-			.replace(
-				'<max-range>',
-				VerseRange.getExportVerseRange().getRangeForSurah(currentSurah()).verseEnd.toString()
-			);
+		const surah = currentSurah();
+		const range = VerseRange.getExportVerseRange().getRangeForSurah(surah);
+		return resolveQuranTextTags(surahNameSettings().surahNameFormat, {
+			number: surah,
+			surah,
+			minRange: range.verseStart,
+			maxRange: range.verseEnd,
+			transliteration: Quran.surahs[surah - 1]?.name,
+			translation: surahTranslatedName(),
+			translations: getSurahTranslationTagValues(surah)
+		});
 	}
 </script>
 

@@ -1289,15 +1289,6 @@ type RootTranslation = {
 		 */
 		unableToLoadDuration: string;
 		/**
-		 * A​s​s​e​t​ ​c​o​n​v​e​r​t​e​d​ ​t​o​ ​C​B​R​ ​s​u​c​c​e​s​s​f​u​l​l​y​.​ ​M​e​d​i​a​ ​r​e​l​o​a​d​e​d​.
-		 */
-		assetConvertedSuccess: string;
-		/**
-		 * E​r​r​o​r​ ​c​o​n​v​e​r​t​i​n​g​ ​a​s​s​e​t​ ​t​o​ ​C​B​R​:​ ​{​e​r​r​o​r​}
-		 * @param {unknown} error
-		 */
-		errorConvertingAsset: RequiredParams<'error'>;
-		/**
 		 * N​o​ ​n​a​t​i​v​e​-​t​i​m​i​n​g​ ​a​u​d​i​o​ ​f​o​u​n​d​ ​o​n​ ​t​i​m​e​l​i​n​e​.
 		 */
 		noNativeTimingAudio: string;
@@ -2016,10 +2007,6 @@ type RootTranslation = {
 		 */
 		unableToAnalyzeMedia: string;
 		/**
-		 * Y​o​u​r​ ​m​e​d​i​a​ ​u​s​e​s​ ​v​a​r​i​a​b​l​e​ ​b​i​t​r​a​t​e​ ​(​V​B​R​)​.​ ​T​h​i​s​ ​m​a​y​ ​c​a​u​s​e​ ​t​i​m​i​n​g​ ​i​n​c​o​n​s​i​s​t​e​n​c​i​e​s​ ​d​u​r​i​n​g​ ​v​i​d​e​o​ ​e​d​i​t​i​n​g​.​ ​T​o​ ​c​o​n​v​e​r​t​ ​i​t​,​ ​g​o​ ​t​o​ ​t​h​e​ ​V​i​d​e​o​ ​E​d​i​t​o​r​ ​t​a​b​,​ ​c​l​i​c​k​ ​t​h​e​ ​t​h​r​e​e​ ​d​o​t​s​ ​o​n​ ​t​h​e​ ​a​s​s​e​t​,​ ​t​h​e​n​ ​c​l​i​c​k​ ​C​o​n​v​e​r​t​ ​t​o​ ​C​B​R​.
-		 */
-		variableBitrateWarning: string;
-		/**
 		 * T​a​j​w​e​e​d​ ​r​e​q​u​i​r​e​s​ ​a​n​ ​i​n​t​e​r​n​e​t​ ​c​o​n​n​e​c​t​i​o​n​.​ ​P​l​e​a​s​e​ ​c​h​e​c​k​ ​y​o​u​r​ ​c​o​n​n​e​c​t​i​o​n​ ​a​n​d​ ​t​r​y​ ​a​g​a​i​n​.
 		 */
 		tajweedRequiresInternet: string;
@@ -2051,10 +2038,6 @@ type RootTranslation = {
 		 * T​h​i​s​ ​s​u​b​t​i​t​l​e​ ​w​a​s​ ​g​e​n​e​r​a​t​e​d​ ​w​i​t​h​o​u​t​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​.​ ​E​n​a​b​l​e​ ​"​I​n​c​l​u​d​e​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​"​ ​i​n​ ​S​e​g​m​e​n​t​a​t​i​o​n​ ​s​e​t​t​i​n​g​s​,​ ​t​h​e​n​ ​r​u​n​ ​t​h​e​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​a​g​a​i​n​.
 		 */
 		noWbwTimestampsError: string;
-		/**
-		 * T​a​p​ ​t​o​ ​c​o​n​v​e​r​t​ ​t​o​ ​C​B​R
-		 */
-		vbrWarningTap: string;
 		/**
 		 * T​a​j​w​e​e​d​ ​r​e​q​u​i​r​e​s​ ​a​n​ ​i​n​t​e​r​n​e​t​ ​c​o​n​n​e​c​t​i​o​n​ ​t​o​ ​l​o​a​d​ ​i​t​s​ ​f​o​n​t​.​ ​F​a​l​l​b​a​c​k​ ​t​o​ ​Q​P​C​2​ ​i​s​ ​a​u​t​o​m​a​t​i​c​ ​i​f​ ​u​n​a​v​a​i​l​a​b​l​e​.​ ​T​a​j​w​e​e​d​ ​t​e​x​t​ ​c​o​l​o​r​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​f​o​r​c​e​d​ ​t​o​ ​b​l​a​c​k​,​ ​a​n​d​ ​y​o​u​ ​c​a​n​n​o​t​ ​c​h​a​n​g​e​ ​i​t​.
 		 */
@@ -2921,14 +2904,6 @@ type RootTranslation = {
 		 */
 		openDirectoryLabel: string;
 		/**
-		 * C​o​n​v​e​r​t​ ​t​o​ ​C​B​R
-		 */
-		convertToCbrLabel: string;
-		/**
-		 * C​o​n​v​e​r​t​i​n​g​.​.​.
-		 */
-		convertingLabel: string;
-		/**
 		 * T​r​i​m
 		 */
 		trimLabel: string;
@@ -2944,10 +2919,6 @@ type RootTranslation = {
 		 * D​o​w​n​l​o​a​d​i​n​g​.​.​.
 		 */
 		downloadingLabel: string;
-		/**
-		 * Y​o​u​ ​c​a​n​ ​s​w​i​t​c​h​ ​t​a​b​s​ ​d​u​r​i​n​g​ ​t​h​i​s​ ​p​r​o​c​e​s​s​.​ ​T​h​e​ ​a​s​s​e​t​ ​w​i​l​l​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​r​e​l​o​a​d​ ​o​n​c​e​ ​i​t​ ​f​i​n​i​s​h​e​s​.
-		 */
-		convertCbrProgressHint: string;
 		/**
 		 * A​d​d​ ​t​o​ ​T​i​m​e​l​i​n​e
 		 */
@@ -2977,14 +2948,6 @@ type RootTranslation = {
 		 */
 		browserNoVideoSupport: string;
 		/**
-		 * P​r​e​p​a​r​i​n​g​.​.​.
-		 */
-		preparingLabel: string;
-		/**
-		 * F​i​n​i​s​h​e​d
-		 */
-		finishedLabel: string;
-		/**
 		 * D​o​w​n​l​o​a​d​ ​f​r​o​m​ ​S​o​c​i​a​l​ ​M​e​d​i​a
 		 */
 		downloadFromSocialMedia: string;
@@ -2996,10 +2959,6 @@ type RootTranslation = {
 		 * D​o​w​n​l​o​a​d​ ​f​r​o​m​ ​L​i​n​k
 		 */
 		downloadFromLink: string;
-		/**
-		 * C​o​n​v​e​r​t​i​n​g​ ​t​o​ ​C​B​R​.​.​.
-		 */
-		convertingToCbrProgress: string;
 		/**
 		 * F​i​n​a​l​i​z​i​n​g​ ​d​o​w​n​l​o​a​d​.​.​.
 		 */
@@ -3466,18 +3425,6 @@ type RootTranslation = {
 		 */
 		noWbwTimestampsMarked: RequiredParams<'count' | 'plural'>;
 		/**
-		 * P​r​e​p​a​r​i​n​g​.​.​.
-		 */
-		cbrPreparing: string;
-		/**
-		 * F​i​n​i​s​h​e​d
-		 */
-		cbrFinished: string;
-		/**
-		 * C​o​n​v​e​r​t​i​n​g
-		 */
-		cbrConvertingLabel: string;
-		/**
 		 * V​i​d​e​o​ ​A​s​s​e​t
 		 */
 		videoAsset: string;
@@ -3494,14 +3441,6 @@ type RootTranslation = {
 		 */
 		openDirectory: string;
 		/**
-		 * C​o​n​v​e​r​t​i​n​g​.​.​.
-		 */
-		convertingButton: string;
-		/**
-		 * C​o​n​v​e​r​t​ ​t​o​ ​C​B​R
-		 */
-		convertToCbr: string;
-		/**
 		 * T​r​i​m
 		 */
 		trimButton: string;
@@ -3513,10 +3452,6 @@ type RootTranslation = {
 		 * R​e​-​d​o​w​n​l​o​a​d
 		 */
 		redownloadButton: string;
-		/**
-		 * Y​o​u​ ​c​a​n​ ​s​w​i​t​c​h​ ​t​a​b​s​ ​d​u​r​i​n​g​ ​t​h​i​s​ ​p​r​o​c​e​s​s​.​ ​T​h​e​ ​a​s​s​e​t​ ​w​i​l​l​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​r​e​l​o​a​d​ ​o​n​c​e​ ​i​t​ ​f​i​n​i​s​h​e​s​.
-		 */
-		cbrInfoHint: string;
 		/**
 		 * E​d​i​t​i​n​g​ ​S​u​b​t​i​t​l​e
 		 */
@@ -5231,7 +5166,7 @@ type RootTranslation = {
 			 */
 			'basmala-scale': string;
 			/**
-			 * C​h​a​n​g​e​ ​t​h​e​ ​f​o​r​m​a​t​ ​o​f​ ​v​e​r​s​e​ ​n​u​m​b​e​r​s​.​ ​U​s​e​ ​<​n​u​m​b​e​r​>​ ​t​a​g​ ​t​o​ ​c​u​s​t​o​m​i​z​e​.
+			 * C​h​a​n​g​e​ ​t​h​e​ ​f​o​r​m​a​t​ ​o​f​ ​v​e​r​s​e​ ​n​u​m​b​e​r​s​.​ ​S​u​p​p​o​r​t​e​d​ ​t​a​g​s​:​ ​<​n​u​m​b​e​r​>​,​ ​<​b​r​>​.
 			 */
 			'verse-number-format': string;
 			/**
@@ -5771,7 +5706,7 @@ type RootTranslation = {
 			 */
 			'surah-name-horizontal-position': string;
 			/**
-			 * F​o​r​m​a​t​ ​o​f​ ​t​h​e​ ​S​u​r​a​h​ ​n​a​m​e​ ​d​i​s​p​l​a​y​.​ ​U​s​e​ ​<​n​u​m​b​e​r​>​,​ ​<​t​r​a​n​s​l​i​t​e​r​a​t​i​o​n​>​,​ ​<​t​r​a​n​s​l​a​t​i​o​n​>​,​ ​<​m​i​n​-​r​a​n​g​e​>​ ​a​n​d​ ​<​m​a​x​-​r​a​n​g​e​>​ ​t​a​g​s​ ​t​o​ ​c​u​s​t​o​m​i​z​e​.
+			 * F​o​r​m​a​t​ ​o​f​ ​t​h​e​ ​S​u​r​a​h​ ​n​a​m​e​ ​d​i​s​p​l​a​y​.​ ​S​u​p​p​o​r​t​e​d​ ​t​a​g​s​:​ ​<​n​u​m​b​e​r​>​,​ ​<​s​u​r​a​h​>​,​ ​<​t​r​a​n​s​l​i​t​e​r​a​t​i​o​n​>​,​ ​<​t​r​a​n​s​l​a​t​i​o​n​>​,​ ​<​m​i​n​-​r​a​n​g​e​>​,​ ​<​m​a​x​-​r​a​n​g​e​>​,​ ​<​t​r​a​n​s​l​a​t​i​o​n​-​[​l​a​n​g​u​a​g​e​-​c​o​d​e​]​>​,​ ​<​b​r​>​.
 			 */
 			'surah-name-format': string;
 			/**
@@ -5831,7 +5766,7 @@ type RootTranslation = {
 			 */
 			'reciter-name-horizontal-position': string;
 			/**
-			 * F​o​r​m​a​t​ ​o​f​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e​ ​d​i​s​p​l​a​y​.​ ​U​s​e​ ​<​a​r​a​b​i​c​>​ ​a​n​d​ ​<​t​r​a​n​s​l​i​t​e​r​a​t​i​o​n​>​ ​t​a​g​s​ ​t​o​ ​c​u​s​t​o​m​i​z​e​.
+			 * F​o​r​m​a​t​ ​o​f​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e​ ​d​i​s​p​l​a​y​.​ ​S​u​p​p​o​r​t​e​d​ ​t​a​g​s​:​ ​<​n​u​m​b​e​r​>​,​ ​<​t​r​a​n​s​l​i​t​e​r​a​t​i​o​n​>​,​ ​<​a​r​a​b​i​c​>​,​ ​<​b​r​>​.
 			 */
 			'reciter-name-format': string;
 			/**
@@ -5891,7 +5826,7 @@ type RootTranslation = {
 			 */
 			'verse-number-text-style': string;
 			/**
-			 * A​d​d​ ​a​ ​t​e​x​t​ ​o​n​ ​t​h​e​ ​v​i​d​e​o
+			 * A​d​d​ ​a​ ​t​e​x​t​ ​o​n​ ​t​h​e​ ​v​i​d​e​o​.​ ​S​u​p​p​o​r​t​e​d​ ​t​a​g​s​:​ ​<​n​u​m​b​e​r​>​,​ ​<​s​u​r​a​h​>​,​ ​<​v​e​r​s​e​>​,​ ​<​m​i​n​-​r​a​n​g​e​>​,​ ​<​m​a​x​-​r​a​n​g​e​>​,​ ​<​t​r​a​n​s​l​i​t​e​r​a​t​i​o​n​>​,​ ​<​t​r​a​n​s​l​a​t​i​o​n​>​,​ ​<​a​r​a​b​i​c​>​,​ ​<​t​r​a​n​s​l​a​t​i​o​n​-​[​l​a​n​g​u​a​g​e​-​c​o​d​e​]​>​,​ ​<​b​r​>​.
 			 */
 			'custom-text': string;
 			/**
@@ -10694,39 +10629,6 @@ type RootTranslation = {
 		 */
 		globalProgress: RequiredParams<'progress'>;
 		/**
-		 * C​o​n​v​e​r​t​ ​a​l​l​ ​a​u​d​i​o​ ​t​o​ ​C​B​R
-		 */
-		convertAllAudioToCbr: string;
-		/**
-		 * P​r​e​p​a​r​i​n​g​ ​C​B​R​ ​c​o​n​v​e​r​s​i​o​n​.​.​.
-		 */
-		cbrPreparing: string;
-		/**
-		 * C​o​n​v​e​r​t​i​n​g​ ​{​p​r​o​j​e​c​t​}
-		 * @param {unknown} project
-		 */
-		cbrConvertingProject: RequiredParams<'project'>;
-		/**
-		 * {​c​o​m​p​l​e​t​e​d​}​ ​/​ ​{​t​o​t​a​l​}​ ​c​o​n​v​e​r​t​e​d​ ​·​ ​{​f​a​i​l​e​d​}​ ​f​a​i​l​e​d
-		 * @param {unknown} completed
-		 * @param {unknown} failed
-		 * @param {unknown} total
-		 */
-		cbrQueueSummary: RequiredParams<'completed' | 'failed' | 'total'>;
-		/**
-		 * A​l​l​ ​B​a​t​c​h​ ​a​u​d​i​o​ ​i​s​ ​n​o​w​ ​C​B​R​.
-		 */
-		cbrCompleted: string;
-		/**
-		 * C​B​R​ ​c​o​n​v​e​r​s​i​o​n​ ​f​i​n​i​s​h​e​d​ ​w​i​t​h​ ​{​f​a​i​l​e​d​}​ ​f​a​i​l​u​r​e​(​s​)​.
-		 * @param {unknown} failed
-		 */
-		cbrCompletedWithFailures: RequiredParams<'failed'>;
-		/**
-		 * T​h​e​ ​i​m​p​o​r​t​e​d​ ​m​e​d​i​a​ ​a​s​s​e​t​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​f​o​u​n​d​.
-		 */
-		cbrAssetMissing: string;
-		/**
 		 * A​I​ ​S​e​g​m​e​n​t​a​t​i​o​n
 		 */
 		aiSegmentation: string;
@@ -12722,14 +12624,6 @@ export type TranslationFunctions = {
 		 */
 		unableToLoadDuration: () => LocalizedString;
 		/**
-		 * Asset converted to CBR successfully. Media reloaded.
-		 */
-		assetConvertedSuccess: () => LocalizedString;
-		/**
-		 * Error converting asset to CBR: {error}
-		 */
-		errorConvertingAsset: (arg: { error: unknown }) => LocalizedString;
-		/**
 		 * No native-timing audio found on timeline.
 		 */
 		noNativeTimingAudio: () => LocalizedString;
@@ -13430,10 +13324,6 @@ export type TranslationFunctions = {
 		 */
 		unableToAnalyzeMedia: () => LocalizedString;
 		/**
-		 * Your media uses variable bitrate (VBR). This may cause timing inconsistencies during video editing. To convert it, go to the Video Editor tab, click the three dots on the asset, then click Convert to CBR.
-		 */
-		variableBitrateWarning: () => LocalizedString;
-		/**
 		 * Tajweed requires an internet connection. Please check your connection and try again.
 		 */
 		tajweedRequiresInternet: () => LocalizedString;
@@ -13465,10 +13355,6 @@ export type TranslationFunctions = {
 		 * This subtitle was generated without word-by-word timestamps. Enable "Include word-by-word timestamps" in Segmentation settings, then run the segmentation again.
 		 */
 		noWbwTimestampsError: () => LocalizedString;
-		/**
-		 * Tap to convert to CBR
-		 */
-		vbrWarningTap: () => LocalizedString;
 		/**
 		 * Tajweed requires an internet connection to load its font. Fallback to QPC2 is automatic if unavailable. Tajweed text color is currently forced to black, and you cannot change it.
 		 */
@@ -14322,14 +14208,6 @@ export type TranslationFunctions = {
 		 */
 		openDirectoryLabel: () => LocalizedString;
 		/**
-		 * Convert to CBR
-		 */
-		convertToCbrLabel: () => LocalizedString;
-		/**
-		 * Converting...
-		 */
-		convertingLabel: () => LocalizedString;
-		/**
 		 * Trim
 		 */
 		trimLabel: () => LocalizedString;
@@ -14345,10 +14223,6 @@ export type TranslationFunctions = {
 		 * Downloading...
 		 */
 		downloadingLabel: () => LocalizedString;
-		/**
-		 * You can switch tabs during this process. The asset will automatically reload once it finishes.
-		 */
-		convertCbrProgressHint: () => LocalizedString;
 		/**
 		 * Add to Timeline
 		 */
@@ -14378,14 +14252,6 @@ export type TranslationFunctions = {
 		 */
 		browserNoVideoSupport: () => LocalizedString;
 		/**
-		 * Preparing...
-		 */
-		preparingLabel: () => LocalizedString;
-		/**
-		 * Finished
-		 */
-		finishedLabel: () => LocalizedString;
-		/**
 		 * Download from Social Media
 		 */
 		downloadFromSocialMedia: () => LocalizedString;
@@ -14397,10 +14263,6 @@ export type TranslationFunctions = {
 		 * Download from Link
 		 */
 		downloadFromLink: () => LocalizedString;
-		/**
-		 * Converting to CBR...
-		 */
-		convertingToCbrProgress: () => LocalizedString;
 		/**
 		 * Finalizing download...
 		 */
@@ -14859,18 +14721,6 @@ export type TranslationFunctions = {
 		 */
 		noWbwTimestampsMarked: (arg: { count: unknown; plural: unknown }) => LocalizedString;
 		/**
-		 * Preparing...
-		 */
-		cbrPreparing: () => LocalizedString;
-		/**
-		 * Finished
-		 */
-		cbrFinished: () => LocalizedString;
-		/**
-		 * Converting
-		 */
-		cbrConvertingLabel: () => LocalizedString;
-		/**
 		 * Video Asset
 		 */
 		videoAsset: () => LocalizedString;
@@ -14887,14 +14737,6 @@ export type TranslationFunctions = {
 		 */
 		openDirectory: () => LocalizedString;
 		/**
-		 * Converting...
-		 */
-		convertingButton: () => LocalizedString;
-		/**
-		 * Convert to CBR
-		 */
-		convertToCbr: () => LocalizedString;
-		/**
 		 * Trim
 		 */
 		trimButton: () => LocalizedString;
@@ -14906,10 +14748,6 @@ export type TranslationFunctions = {
 		 * Re-download
 		 */
 		redownloadButton: () => LocalizedString;
-		/**
-		 * You can switch tabs during this process. The asset will automatically reload once it finishes.
-		 */
-		cbrInfoHint: () => LocalizedString;
 		/**
 		 * Editing Subtitle
 		 */
@@ -16598,7 +16436,7 @@ export type TranslationFunctions = {
 			 */
 			'basmala-scale': () => LocalizedString;
 			/**
-			 * Change the format of verse numbers. Use <number> tag to customize.
+			 * Change the format of verse numbers. Supported tags: <number>, <br>.
 			 */
 			'verse-number-format': () => LocalizedString;
 			/**
@@ -17138,7 +16976,7 @@ export type TranslationFunctions = {
 			 */
 			'surah-name-horizontal-position': () => LocalizedString;
 			/**
-			 * Format of the Surah name display. Use <number>, <transliteration>, <translation>, <min-range> and <max-range> tags to customize.
+			 * Format of the Surah name display. Supported tags: <number>, <surah>, <transliteration>, <translation>, <min-range>, <max-range>, <translation-[language-code]>, <br>.
 			 */
 			'surah-name-format': () => LocalizedString;
 			/**
@@ -17198,7 +17036,7 @@ export type TranslationFunctions = {
 			 */
 			'reciter-name-horizontal-position': () => LocalizedString;
 			/**
-			 * Format of the Reciter name display. Use <arabic> and <transliteration> tags to customize.
+			 * Format of the Reciter name display. Supported tags: <number>, <transliteration>, <arabic>, <br>.
 			 */
 			'reciter-name-format': () => LocalizedString;
 			/**
@@ -17258,7 +17096,7 @@ export type TranslationFunctions = {
 			 */
 			'verse-number-text-style': () => LocalizedString;
 			/**
-			 * Add a text on the video
+			 * Add a text on the video. Supported tags: <number>, <surah>, <verse>, <min-range>, <max-range>, <transliteration>, <translation>, <arabic>, <translation-[language-code]>, <br>.
 			 */
 			'custom-text': () => LocalizedString;
 			/**
@@ -21989,38 +21827,6 @@ export type TranslationFunctions = {
 		 * Overall progress: {progress}%
 		 */
 		globalProgress: (arg: { progress: unknown }) => LocalizedString;
-		/**
-		 * Convert all audio to CBR
-		 */
-		convertAllAudioToCbr: () => LocalizedString;
-		/**
-		 * Preparing CBR conversion...
-		 */
-		cbrPreparing: () => LocalizedString;
-		/**
-		 * Converting {project}
-		 */
-		cbrConvertingProject: (arg: { project: unknown }) => LocalizedString;
-		/**
-		 * {completed} / {total} converted · {failed} failed
-		 */
-		cbrQueueSummary: (arg: {
-			completed: unknown;
-			failed: unknown;
-			total: unknown;
-		}) => LocalizedString;
-		/**
-		 * All Batch audio is now CBR.
-		 */
-		cbrCompleted: () => LocalizedString;
-		/**
-		 * CBR conversion finished with {failed} failure(s).
-		 */
-		cbrCompletedWithFailures: (arg: { failed: unknown }) => LocalizedString;
-		/**
-		 * The imported media asset could not be found.
-		 */
-		cbrAssetMissing: () => LocalizedString;
 		/**
 		 * AI Segmentation
 		 */

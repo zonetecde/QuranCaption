@@ -616,6 +616,23 @@ export default class MigrationService {
 	}
 
 	/**
+	 * Migre la limite du style de taille de la calligraphie de la sourate de 10 à 40.
+	 * @returns {Promise<void>}
+	 */
+	static async FromQC3710ToQC3711(): Promise<void> {
+		const project = globalState.currentProject;
+		if (!project) return;
+
+		const surahSize = project.content.videoStyle
+			.getStylesOfTarget('global')
+			.findStyle('surah-size');
+		if (!surahSize || surahSize.valueMax === 40) return;
+
+		surahSize.valueMax = 40;
+		await project.save(false);
+	}
+
+	/**
 	 * Ajoute les nouveaux paramètres pour la nouvelle pipeline
 	 * de trimmage de traduction assistée par IA
 	 */

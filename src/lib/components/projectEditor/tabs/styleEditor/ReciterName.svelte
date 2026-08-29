@@ -4,6 +4,7 @@
 	import CompositeText from './CompositeText.svelte';
 	import RecitersManager from '$lib/classes/Reciter';
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
+	import { resolveQuranTextTags } from '$lib/services/QuranTextTagResolver.svelte';
 
 	const reciter = $derived(() => {
 		return RecitersManager.getReciterObject(globalState.currentProject!.detail.reciter);
@@ -91,10 +92,11 @@
 			style={`margin-top: ${-reciterNameSettings().reciterLatinSpacing}rem; opacity: ${reciterNameSettings().showLatin ? 1 : 0};`}
 		>
 			<CompositeText compositeStyle={globalState.getStyle('global', 'reciter-latin-text-style')!}>
-				{reciterNameSettings()
-					.reciterNameFormat.replace('<number>', reciter().toString())
-					.replace('<transliteration>', reciter().latin)
-					.replace('<arabic>', reciter().arabic)}
+				{resolveQuranTextTags(reciterNameSettings().reciterNameFormat, {
+					number: reciter().number,
+					transliteration: reciter().latin,
+					arabic: reciter().arabic
+				})}
 			</CompositeText>
 		</div>
 	</div>

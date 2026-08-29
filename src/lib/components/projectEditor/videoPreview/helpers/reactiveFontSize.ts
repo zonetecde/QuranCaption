@@ -102,13 +102,21 @@ function hasReactiveFontSizeViolation(
 	marge: number
 ): boolean {
 	const hasMaxLineLimit = maxLineValue >= 1 && maxLineValue <= 4;
+	const measurementClass = 'reactive-font-size-measurement';
 
-	return subtitles.some((subtitle) => {
-		return (
-			(maxHeightValue > 0 && subtitle.scrollHeight > maxHeightValue + marge) ||
-			(hasMaxLineLimit && getReactiveFontSizeLineCount(subtitle, target) > maxLineValue)
-		);
-	});
+	// Le padding du fond par ligne est une décoration et ne doit pas réduire la police.
+	for (const subtitle of subtitles) subtitle.classList.add(measurementClass);
+
+	try {
+		return subtitles.some((subtitle) => {
+			return (
+				(maxHeightValue > 0 && subtitle.scrollHeight > maxHeightValue + marge) ||
+				(hasMaxLineLimit && getReactiveFontSizeLineCount(subtitle, target) > maxLineValue)
+			);
+		});
+	} finally {
+		for (const subtitle of subtitles) subtitle.classList.remove(measurementClass);
+	}
 }
 
 /**

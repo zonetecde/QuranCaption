@@ -7,7 +7,7 @@
 		{
 			"id": "text",
 			"name": "Text",
-			"description": "Text displayed on the video",
+			"description": "Text displayed on the video. Supported tags: <number>, <surah>, <verse>, <min-range>, <max-range>, <transliteration>, <translation>, <arabic>, <translation-[language-code]>, <br>.",
 			"value": "Insert Text",
 			"valueType": "text",
 			"css": "",

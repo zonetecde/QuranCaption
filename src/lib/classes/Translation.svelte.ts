@@ -2,6 +2,7 @@
 import type { SubtitleClip } from './Clip.svelte';
 import type { Edition } from './Edition';
 import { SerializableBase } from './misc/SerializableBase';
+import { resolveQuranTextTags } from '$lib/services/QuranTextTagResolver.svelte';
 
 export type TranslationStatus =
 	| 'completed by default'
@@ -985,9 +986,9 @@ export class VerseTranslation extends Translation {
 				return { prefix: '', text, suffix: '' };
 			}
 			const verseNumber = formatVerseNumberNumerals(displayVerseNumber, numeralSystem);
-			const format = String(globalState.getStyle(edition, 'verse-number-format').value).replace(
-				'<number>',
-				verseNumber
+			const format = resolveQuranTextTags(
+				String(globalState.getStyle(edition, 'verse-number-format').value),
+				{ number: verseNumber }
 			);
 
 			if (position === 'before' && subtitle.startWordIndex === 0) {

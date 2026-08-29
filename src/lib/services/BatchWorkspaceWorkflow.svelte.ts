@@ -3,7 +3,6 @@ import type { BatchProjectItem } from '$lib/classes';
 export type BatchWorkspaceOperation =
 	| 'media'
 	| 'segmentation'
-	| 'cbr'
 	| 'translation'
 	| 'background'
 	| 'style'

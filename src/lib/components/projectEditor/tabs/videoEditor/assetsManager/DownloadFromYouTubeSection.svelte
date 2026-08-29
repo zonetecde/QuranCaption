@@ -194,11 +194,9 @@
 						</span>
 						<p class="text-sm font-medium text-primary truncate">
 							{#if isDownloading}
-								{downloadStatus === 'converting'
-									? get(LL).editor.convertingToCbrProgress()
-									: downloadStatus === 'finished'
-										? get(LL).editor.finalizingDownload()
-										: get(LL).editor.downloadingMedia()}
+								{downloadStatus === 'finished'
+									? get(LL).editor.finalizingDownload()
+									: get(LL).editor.downloadingMedia()}
 							{:else}
 								{get(LL).editor.downloadFailed()}
 							{/if}

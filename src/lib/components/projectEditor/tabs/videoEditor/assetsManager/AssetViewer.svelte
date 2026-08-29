@@ -2,7 +2,7 @@
 	import { AssetType, SourceType, type Asset } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc, invoke } from '@tauri-apps/api/core';
-	import { onDestroy, onMount, tick } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { join } from '@tauri-apps/api/path';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -10,18 +10,8 @@
 	import toast from 'svelte-5-french-toast';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { ProjectService } from '$lib/services/ProjectService';
-	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
-	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import ContextMenu, { Divider, Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
-
-	type CbrConversionProgressEvent = {
-		conversionRequestId: string;
-		progress: number;
-		currentTime: number;
-		totalTime: number;
-		status: string;
-	};
 
 	let {
 		asset = $bindable(),
@@ -41,9 +31,6 @@
 	let wasTimelineContextMenuOpenOnPointerDown = false;
 	let isPreviewOpen = $state(false);
 	let isRedownloading = $state(false);
-	let isConvertingToCBR = $state(false);
-	let cbrProgress = $state(0);
-	let cbrProgressStatus = $state('');
 	let mediaKey = $state(0);
 
 	function assetTypeLabel(type: string): string {
@@ -159,63 +146,6 @@
 		asset.addToTimeline(video, audio);
 	}
 
-	/**
-	 * Contraint une progression CBR dans l'intervalle affichable.
-	 *
-	 * @param {number} value Progression brute envoyee par ffmpeg.
-	 * @returns {number} Progression entre 0 et 100.
-	 */
-	function clampCbrProgress(value: number): number {
-		return Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
-	}
-
-	async function convertToCBR() {
-		if (isConvertingToCBR) return;
-
-		const conversionRequestId = `cbr-${asset.id}-${Date.now()}`;
-		let unlisten: UnlistenFn | undefined;
-		isConvertingToCBR = true;
-		cbrProgress = 0;
-		cbrProgressStatus = get(LL).editor.preparingLabel();
-
-		try {
-			unlisten = await listen<CbrConversionProgressEvent>('cbr-conversion-progress', (event) => {
-				if (event.payload.conversionRequestId !== conversionRequestId) return;
-				cbrProgress = clampCbrProgress(event.payload.progress);
-				cbrProgressStatus = event.payload.status;
-			});
-
-			window.dispatchEvent(
-				new CustomEvent('qurancaption-release-asset-media', {
-					detail: { filePath: asset.filePath }
-				})
-			);
-			mediaKey++;
-			await tick();
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			await invoke('convert_audio_to_cbr', {
-				filePath: asset.filePath,
-				conversionRequestId
-			});
-
-			ProjectHistoryManager.track('mark asset as constant bitrate', () => {
-				asset.metadata.skipConstantBitrateWarning = true;
-				asset.reloadMedia();
-			});
-			mediaKey++;
-			cbrProgress = 100;
-			cbrProgressStatus = get(LL).editor.finishedLabel();
-			toast.success(get(LL).editor.assetConvertedSuccess());
-		} catch (error) {
-			console.error('Error converting asset to CBR:', error);
-			toast.error(get(LL).editor.errorConvertingAsset({ error: String(error) }));
-		} finally {
-			unlisten?.();
-			isConvertingToCBR = false;
-		}
-	}
-
 	async function redownloadAsset() {
 		if (!asset.sourceUrl) return;
 
@@ -241,7 +171,6 @@
 
 				asset.updateFilePath(result);
 				mediaKey++; // Force re-render of audio/video element
-				await convertToCBR();
 				toast.success(get(LL).editor.redownloadSuccessful(), { id: toastId });
 			} else if (
 				asset.sourceType === SourceType.Mp3Quran ||
@@ -412,22 +341,6 @@
 			{/if}
 		</div>
 	{/if}
-
-	{#if isConvertingToCBR}
-		<div class="space-y-1 border-t border-color px-2 py-2">
-			<div class="flex items-center justify-between gap-2 text-[11px] text-thirdly">
-				<span class="truncate">{cbrProgressStatus || get(LL).editor.convertingToCbrProgress()}</span
-				>
-				<span>{Math.round(cbrProgress)}%</span>
-			</div>
-			<div class="h-1.5 overflow-hidden rounded-full bg-black/30">
-				<div
-					class="h-full rounded-full bg-[var(--accent-primary)] transition-all duration-200"
-					style={`width: ${cbrProgress}%`}
-				></div>
-			</div>
-		</div>
-	{/if}
 </div>
 
 <ContextMenu bind:this={timelineContextMenu}>
@@ -483,14 +396,6 @@
 				<div class="btn-icon">
 					<span class="material-icons-outlined mr-1 text-sm">content_cut</span>
 					{get(LL).editor.trimLabel()}
-				</div>
-			</Item>
-			<Item on:click={convertToCBR}>
-				<div class="btn-icon">
-					<span class="material-icons-outlined mr-1 text-sm">speed</span>
-					{isConvertingToCBR
-						? get(LL).editor.convertingLabel()
-						: get(LL).editor.convertToCbrLabel()}
 				</div>
 			</Item>
 		{/if}

@@ -379,13 +379,6 @@ const fr = {
 		queueSummary:
 			'{active} actifs · {completed} terminés · {failed} en échec · {remaining} restants',
 		globalProgress: 'Progression globale : {progress} %',
-		convertAllAudioToCbr: 'Convertir tous les audios en CBR',
-		cbrPreparing: 'Préparation de la conversion CBR…',
-		cbrConvertingProject: 'Conversion de {project}',
-		cbrQueueSummary: '{completed} / {total} convertis · {failed} en échec',
-		cbrCompleted: 'Tous les audios du batch sont maintenant en CBR.',
-		cbrCompletedWithFailures: 'Conversion CBR terminée avec {failed} échec(s).',
-		cbrAssetMissing: "L'asset média importé est introuvable.",
 		aiSegmentation: 'Segmentation IA',
 		segmentationNotStarted: 'Non démarrée',
 		segmentationQueued: 'En attente',
@@ -633,8 +626,6 @@ const fr = {
 		trimAssetError: 'Le rognage n\u2019est disponible que pour les éléments audio et vidéo.',
 		unableToLoadDuration:
 			'Impossible de charger la durée de cet élément. Veuillez réimporter le fichier.',
-		assetConvertedSuccess: 'Élément converti en CBR avec succès. Média rechargé.',
-		errorConvertingAsset: 'Erreur de conversion de l\u2019élément en CBR\u00a0: {error}',
 		noNativeTimingAudio: 'Aucun audio avec minutage natif trouvé sur la timeline.',
 		noTimingDataFound: 'Aucune donnée de minutage trouvée pour ce récitateur/cette sourate.',
 		appliedSubtitlesFromMp3Quran: '{count}\u00a0sous-titres appliqués depuis Mp3Quran\u00a0!',
@@ -701,7 +692,6 @@ const fr = {
 		wordStyleColor: 'Couleur de style de mot',
 		uploadProgress: 'Progression du téléversement',
 		estimatedProgress: 'Progression estimée',
-		vbrWarningTap: 'Appuyez pour convertir en CBR',
 		arrowBack: 'Retour',
 		arrowForward: 'Terminer',
 		autoSegmentButton: 'Segmentation automatique de l\u2019audio en versets coraniques',
@@ -858,8 +848,6 @@ const fr = {
 			'Une erreur inconnue est survenue lors du chargement de l\u2019audio\u00a0: {error}',
 		unableToAnalyzeMedia:
 			'Impossible d\u2019analyser ce fichier média. Veuillez vérifier l\u2019installation de FFmpeg/FFprobe.',
-		variableBitrateWarning:
-			'Votre média utilise un débit binaire variable (VBR). Cela peut causer des incohérences de minutage lors du montage vidéo. Pour le convertir, allez dans l’onglet Éditeur vidéo, cliquez sur les trois points de l’élément, puis sur Convertir en CBR.',
 		tajweedRequiresInternet:
 			'Le tajweed nécessite une connexion Internet. Veuillez vérifier votre connexion et réessayer.',
 		minimalQuran: 'Coran minimal',
@@ -1097,14 +1085,10 @@ const fr = {
 		imageAssetLabel: 'Élément image',
 		fileNotFoundOnDiskLabel: 'Fichier introuvable sur le disque',
 		openDirectoryLabel: 'Ouvrir le dossier',
-		convertToCbrLabel: 'Convertir en CBR',
-		convertingLabel: 'Conversion...',
 		trimLabel: 'Rogner',
 		relocateLabel: 'Relocaliser',
 		redownloadLabel: 'Re-télécharger',
 		downloadingLabel: 'Téléchargement...',
-		convertCbrProgressHint:
-			'Vous pouvez changer d\u2019onglet pendant ce processus. L\u2019élément se rechargera automatiquement une fois terminé.',
 		addToTimelineLabel: 'Ajouter à la timeline',
 		videoAndAudio: 'Vidéo et audio',
 		videoOnly: 'Vidéo uniquement',
@@ -1112,12 +1096,9 @@ const fr = {
 		setAsBackground: 'Définir comme arrière-plan',
 		browserNoAudioSupport: 'Votre navigateur ne prend pas en charge l\u2019élément audio.',
 		browserNoVideoSupport: 'Votre navigateur ne prend pas en charge la balise vidéo.',
-		preparingLabel: 'Préparation...',
-		finishedLabel: 'Terminé',
 		downloadFromSocialMedia: 'Télécharger depuis les réseaux sociaux',
 		chooseMediaType: 'Choisir le type de média à télécharger',
 		downloadFromLink: 'Télécharger depuis un lien',
-		convertingToCbrProgress: 'Conversion en CBR en cours...',
 		finalizingDownload: 'Finalisation du téléchargement...',
 		downloadingMedia: 'Téléchargement du média...',
 		downloadFailed: 'Échec du téléchargement',
@@ -1257,20 +1238,13 @@ const fr = {
 		failedToComputeWbwTimestamps: 'Échec du calcul des horodatages WBW.',
 		noWbwTimestampsMarked:
 			'{count}\u00a0sous-titre{plural} marqué{plural} pour absence d\u2019horodatages WBW.',
-		cbrPreparing: 'Préparation...',
-		cbrFinished: 'Terminé',
-		cbrConvertingLabel: 'Conversion',
 		videoAsset: 'Élément vidéo',
 		audioAsset: 'Élément audio',
 		imageAsset: 'Élément image',
 		openDirectory: 'Ouvrir le dossier',
-		convertingButton: 'Conversion...',
-		convertToCbr: 'Convertir en CBR',
 		trimButton: 'Rogner',
 		relocateButton: 'Relocaliser',
 		redownloadButton: 'Re-télécharger',
-		cbrInfoHint:
-			'Vous pouvez changer d\u2019onglet pendant ce processus. L\u2019élément se rechargera automatiquement une fois terminé.',
 		editingSubtitle: 'Édition du sous-titre',
 		editingActive: 'Actif',
 		editingHelpText:
@@ -1716,7 +1690,7 @@ const fr = {
 			'basmala-scale':
 				'Agrandir ou réduire les basmalas prédéfinies calligraphiées indépendamment des autres sous-titres.',
 			'verse-number-format':
-				'Modifier le format des numéros de versets. Utiliser la balise <number> pour personnaliser.',
+				'Modifier le format des numéros de versets. Balises prises en charge : <number>, <br>.',
 			'verse-number-position': 'Définir la position des numéros de versets',
 			'verse-number-numeral-system':
 				'Choisir la façon d’écrire les chiffres des numéros de versets dans les traductions.',
@@ -1886,7 +1860,7 @@ const fr = {
 			'surah-name-horizontal-position':
 				'Modifier la position horizontale du nom de la sourate (pixels depuis le centre)',
 			'surah-name-format':
-				'Format d\u2019affichage du nom de la sourate. Utiliser les balises <number>, <transliteration>, <translation>, <min-range> et <max-range> pour personnaliser.',
+				'Format d\u2019affichage du nom de la sourate. Balises prises en charge : <number>, <surah>, <transliteration>, <translation>, <min-range>, <max-range>, <translation-[language-code]>, <br>.',
 			'surah-show-arabic': 'Afficher le nom de la sourate en arabe',
 			'surah-show-latin': 'Afficher du texte latin supplémentaire (voir Format du texte latin)',
 			'surah-calligraphy-style': 'Choisir la police de calligraphie du nom de la sourate',
@@ -1907,7 +1881,7 @@ const fr = {
 			'reciter-name-horizontal-position':
 				'Modifier la position horizontale du nom du récitateur (pixels depuis le centre)',
 			'reciter-name-format':
-				'Format d\u2019affichage du nom du récitateur. Utiliser les balises <arabic> et <transliteration> pour personnaliser.',
+				'Format d\u2019affichage du nom du récitateur. Balises prises en charge : <number>, <transliteration>, <arabic>, <br>.',
 			'reciter-show-arabic': 'Afficher le nom du récitateur en arabe',
 			'reciter-show-latin': 'Afficher du texte latin supplémentaire (voir Format du texte latin)',
 			'reciter-size': 'Taille de la calligraphie arabe du nom du récitateur',
@@ -1928,7 +1902,8 @@ const fr = {
 			'ayah-container-stretch':
 				'Étirer l\u2019image pour remplir le conteneur (sinon elle s\u2019ajuste en préservant le ratio)',
 			'verse-number-text-style': 'Modifier le style d\u2019affichage du numéro de verset',
-			'custom-text': 'Ajouter un texte sur la vidéo',
+			'custom-text':
+				'Ajouter un texte sur la vidéo. Balises prises en charge : <number>, <surah>, <verse>, <min-range>, <max-range>, <transliteration>, <translation>, <arabic>, <translation-[language-code]>, <br>.',
 			'custom-text-composite': 'Personnaliser les styles de texte',
 			'custom-image': 'Ajouter une image sur la vidéo',
 			filepath: 'Chemin vers le fichier image',

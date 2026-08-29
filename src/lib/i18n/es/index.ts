@@ -376,13 +376,6 @@ const es = {
 		queueSummary:
 			'{active} activos · {completed} completados · {failed} fallidos · {remaining} restantes',
 		globalProgress: 'Progreso general: {progress} %',
-		convertAllAudioToCbr: 'Convertir todos los audios a CBR',
-		cbrPreparing: 'Preparando la conversión CBR…',
-		cbrConvertingProject: 'Convirtiendo {project}',
-		cbrQueueSummary: '{completed} / {total} convertidos · {failed} fallidos',
-		cbrCompleted: 'Todos los audios del lote están ahora en CBR.',
-		cbrCompletedWithFailures: 'Conversión CBR terminada con {failed} fallo(s).',
-		cbrAssetMissing: 'No se encontró el recurso multimedia importado.',
 		aiSegmentation: 'Segmentación IA',
 		segmentationNotStarted: 'No iniciada',
 		segmentationQueued: 'En cola',
@@ -629,8 +622,6 @@ const es = {
 		trimAssetError: 'El recorte solo está disponible para elementos de audio y video.',
 		unableToLoadDuration:
 			'No se pudo cargar la duración de este elemento. Por favor, reimporte el archivo.',
-		assetConvertedSuccess: 'Elemento convertido a CBR con éxito. Medio recargado.',
-		errorConvertingAsset: 'Error al convertir el elemento a CBR\u00a0: {error}',
 		noNativeTimingAudio: 'No se encontró audio con temporización nativa en la línea de tiempo.',
 		noTimingDataFound: 'No se encontraron datos de temporización para este recitador/esta sura.',
 		appliedSubtitlesFromMp3Quran: '\u00a1{count}\u00a0subtítulos aplicados desde Mp3Quran!',
@@ -698,7 +689,6 @@ const es = {
 		wordStyleColor: 'Color de estilo de palabra',
 		uploadProgress: 'Progreso de subida',
 		estimatedProgress: 'Progreso estimado',
-		vbrWarningTap: 'Toque para convertir a CBR',
 		arrowBack: 'Atrás',
 		arrowForward: 'Finalizar',
 		autoSegmentButton: 'Segmentación automática de audio en versículos coránicos',
@@ -852,8 +842,6 @@ const es = {
 		unknownAudioError: 'Ocurrió un error desconocido al cargar el audio\u00a0: {error}',
 		unableToAnalyzeMedia:
 			'No se pudo analizar este archivo multimedia. Verifique la instalación de FFmpeg/FFprobe.',
-		variableBitrateWarning:
-			'Su medio usa tasa de bits variable (VBR). Esto puede causar inconsistencias de temporización durante la edición de video. Para convertirlo, vaya a la pestaña Editor de vídeo, haga clic en los tres puntos del elemento y luego en Convertir a CBR.',
 		tajweedRequiresInternet:
 			'El tajweed requiere conexión a Internet. Verifique su conexión e intente de nuevo.',
 		minimalQuran: 'Corán minimal',
@@ -1094,14 +1082,10 @@ const es = {
 		imageAssetLabel: 'Elemento de imagen',
 		fileNotFoundOnDiskLabel: 'Archivo no encontrado en el disco',
 		openDirectoryLabel: 'Abrir carpeta',
-		convertToCbrLabel: 'Convertir a CBR',
-		convertingLabel: 'Convirtiendo...',
 		trimLabel: 'Recortar',
 		relocateLabel: 'Reubicar',
 		redownloadLabel: 'Redescargar',
 		downloadingLabel: 'Descargando...',
-		convertCbrProgressHint:
-			'Puede cambiar de pestaña durante este proceso. El elemento se recargará automáticamente una vez finalizado.',
 		addToTimelineLabel: 'Agregar a la línea de tiempo',
 		videoAndAudio: 'Video y audio',
 		videoOnly: 'Solo video',
@@ -1109,12 +1093,9 @@ const es = {
 		setAsBackground: 'Establecer como fondo',
 		browserNoAudioSupport: 'Su navegador no admite el elemento de audio.',
 		browserNoVideoSupport: 'Su navegador no admite la etiqueta de video.',
-		preparingLabel: 'Preparando...',
-		finishedLabel: 'Finalizado',
 		downloadFromSocialMedia: 'Descargar desde redes sociales',
 		chooseMediaType: 'Elegir tipo de medio a descargar',
 		downloadFromLink: 'Descargar desde enlace',
-		convertingToCbrProgress: 'Conversión a CBR en curso...',
 		finalizingDownload: 'Finalizando descarga...',
 		downloadingMedia: 'Descargando medio...',
 		downloadFailed: 'Error de descarga',
@@ -1256,20 +1237,13 @@ const es = {
 		failedToComputeWbwTimestamps: 'No se pudieron calcular las marcas de tiempo WBW.',
 		noWbwTimestampsMarked:
 			'{count}\u00a0subtítulo{plural} marcado{plural} por falta de marcas de tiempo WBW.',
-		cbrPreparing: 'Preparando...',
-		cbrFinished: 'Finalizado',
-		cbrConvertingLabel: 'Conversión',
 		videoAsset: 'Elemento de video',
 		audioAsset: 'Elemento de audio',
 		imageAsset: 'Elemento de imagen',
 		openDirectory: 'Abrir carpeta',
-		convertingButton: 'Convirtiendo...',
-		convertToCbr: 'Convertir a CBR',
 		trimButton: 'Recortar',
 		relocateButton: 'Reubicar',
 		redownloadButton: 'Redescargar',
-		cbrInfoHint:
-			'Puede cambiar de pestaña durante este proceso. El elemento se recargará automáticamente una vez finalizado.',
 		editingSubtitle: 'Edición de subtítulo',
 		editingActive: 'Activo',
 		editingHelpText:
@@ -1715,7 +1689,7 @@ const es = {
 			'basmala-scale':
 				'Escalar las basmalas predefinidas caligráficas independientemente de los demás subtítulos.',
 			'verse-number-format':
-				'Modificar el formato de los números de versículos. Usar la etiqueta <number> para personalizar.',
+				'Modificar el formato de los números de versículos. Etiquetas compatibles: <number>, <br>.',
 			'verse-number-position': 'Establecer la posición de los números de versículos',
 			'verse-number-numeral-system':
 				'Elegir cómo se escriben los dígitos de los números de versículos en las traducciones.',
@@ -1881,7 +1855,7 @@ const es = {
 			'surah-name-horizontal-position':
 				'Cambiar la posición horizontal del nombre de la sura (píxeles desde el centro)',
 			'surah-name-format':
-				'Formato de visualización del nombre de la sura. Usar las etiquetas <number>, <transliteration>, <translation>, <min-range> y <max-range> para personalizar.',
+				'Formato de visualización del nombre de la sura. Etiquetas compatibles: <number>, <surah>, <transliteration>, <translation>, <min-range>, <max-range>, <translation-[language-code]>, <br>.',
 			'surah-show-arabic': 'Mostrar el nombre de la sura en árabe',
 			'surah-show-latin': 'Mostrar texto latino adicional (ver Formato del texto latino)',
 			'surah-calligraphy-style': 'Elegir la fuente de caligrafía del nombre de la sura',
@@ -1900,7 +1874,7 @@ const es = {
 			'reciter-name-horizontal-position':
 				'Cambiar la posición horizontal del nombre del recitador (píxeles desde el centro)',
 			'reciter-name-format':
-				'Formato de visualización del nombre del recitador. Usar las etiquetas <arabic> y <transliteration> para personalizar.',
+				'Formato de visualización del nombre del recitador. Etiquetas compatibles: <number>, <transliteration>, <arabic>, <br>.',
 			'reciter-show-arabic': 'Mostrar el nombre del recitador en árabe',
 			'reciter-show-latin': 'Mostrar texto latino adicional (ver Formato del texto latino)',
 			'reciter-size': 'Tamaño de la caligrafía árabe del nombre del recitador',
@@ -1921,7 +1895,8 @@ const es = {
 			'ayah-container-stretch':
 				'Estirar la imagen para llenar el contenedor (si no, se ajusta preservando la proporción)',
 			'verse-number-text-style': 'Cambiar el estilo de visualización del número de versículo',
-			'custom-text': 'Agregar texto en el video',
+			'custom-text':
+				'Agregar texto en el video. Etiquetas compatibles: <number>, <surah>, <verse>, <min-range>, <max-range>, <transliteration>, <translation>, <arabic>, <translation-[language-code]>, <br>.',
 			'custom-text-composite': 'Personalizar los estilos de texto',
 			'custom-image': 'Agregar una imagen en el video',
 			filepath: 'Ruta al archivo de imagen',

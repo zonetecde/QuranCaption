@@ -163,8 +163,7 @@ export async function prepareRandomBackgroundProject(
 		const joinPath = options.joinPath ?? ((path: string, fileName: string) => join(path, fileName));
 		const assetPath = await joinPath(folderPath, candidate);
 		const asset = project.content.addAssetHeadless(assetPath, undefined, SourceType.Local, {
-			suppressUiEffects: true,
-			skipConstantBitrateWarning: true
+			suppressUiEffects: true
 		});
 		if (!asset || (asset.type !== AssetType.Image && asset.type !== AssetType.Video)) return;
 

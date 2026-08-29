@@ -1303,6 +1303,12 @@
 				var(--line-background-height) no-repeat;
 	}
 
+	/** Ignore la décoration du fond par ligne pendant la mesure de la police. */
+	:global(#subtitles-container .reactive-font-size-measurement .line-background) {
+		--line-background-height: 0px;
+		--line-background-position: 0px;
+	}
+
 	/** Dessine la barre WBW hors du flux pour qu'une position basse ne la coupe pas. */
 	:global(#subtitles-container .wbw-line-background) {
 		position: relative;

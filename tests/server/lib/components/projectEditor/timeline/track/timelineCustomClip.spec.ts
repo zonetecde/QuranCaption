@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
+import { TrackType } from '$lib/classes';
+import { globalState } from '$lib/runes/main.svelte';
 import {
 	getTimelineCustomClipLayout,
+	getSnappedTimelineCustomClipTime,
 	type TimelineCustomClipLike
 } from '$lib/components/projectEditor/timeline/track/timelineCustomClip';
 
@@ -52,5 +55,43 @@ describe('getTimelineCustomClipLayout', () => {
 		const layout = getTimelineCustomClipLayout([alwaysShow, timed]);
 
 		expect(layout.laneCount).toBe(2);
+	});
+
+	it('snaps a moved clip end to another custom clip start', () => {
+		const otherClip = {
+			id: 'other',
+			startTime: 2_000,
+			endTime: 3_000,
+			getAlwaysShow: () => false,
+			getTimedOverlayRanges: () => []
+		} as unknown as TimelineCustomClipLike;
+		const customTrack = { clips: [otherClip] };
+		const subtitleTrack = { clips: [] };
+		const videoStyle = {
+			styles: [],
+			getStylesOfTarget: () => ({
+				categories: [],
+				findStyle: () => undefined
+			})
+		};
+		const originalProject = globalState.currentProject;
+
+		globalState.currentProject = {
+			detail: { reciter: 'not set' },
+			content: {
+				videoStyle,
+				timeline: {
+					getFirstTrack: (trackType: TrackType) =>
+						trackType === TrackType.CustomClip ? customTrack : subtitleTrack
+				}
+			},
+			projectEditorState: { timeline: { zoom: 1_000 } }
+		} as never;
+
+		try {
+			expect(getSnappedTimelineCustomClipTime(995, 'current', 1_000)).toBe(1_000);
+		} finally {
+			globalState.currentProject = originalProject;
+		}
 	});
 });

@@ -128,7 +128,7 @@
 		const deltaSeconds = deltaPixels / track.getPixelPerSecond();
 		const deltaMs = deltaSeconds * 1000;
 		const rawStart = Math.max(0, Math.round(originalStartTime + deltaMs));
-		const newStart = getSnappedTimelineCustomClipTime(rawStart, String(clip.id));
+		const newStart = getSnappedTimelineCustomClipTime(rawStart, String(clip.id), originalDuration);
 		const newEnd = newStart + originalDuration;
 		clip.setStartTime(newStart);
 		clip.setEndTime(newEnd);

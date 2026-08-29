@@ -199,6 +199,48 @@ export class GlobalTimedOverlayTimelineClip {
 
 export type TimelineCustomClipLike = CustomClip | GlobalTimedOverlayTimelineClip;
 
+export type TimelineCustomClipLayout = {
+	clips: Array<{ clip: TimelineCustomClipLike; laneIndex: number }>;
+	laneCount: number;
+};
+
+/**
+ * Répartit les clips de la piste custom dans le minimum de lanes nécessaires.
+ * Les clips qui ne se chevauchent pas réutilisent la même lane, y compris les apparitions
+ * successives d'un même contenu personnalisé.
+ * @param {TimelineCustomClipLike[]} clips Clips à placer dans la piste custom.
+ * @returns {TimelineCustomClipLayout} Clips positionnés et nombre de lanes utilisées.
+ */
+export function getTimelineCustomClipLayout(
+	clips: TimelineCustomClipLike[]
+): TimelineCustomClipLayout {
+	const laneEndTimes: number[] = [];
+	const orderedClips = clips
+		.map((clip, originalIndex) => ({ clip, originalIndex }))
+		.sort((left, right) => {
+			const leftStart = left.clip.getAlwaysShow() ? 0 : left.clip.startTime;
+			const rightStart = right.clip.getAlwaysShow() ? 0 : right.clip.startTime;
+			return leftStart - rightStart || left.originalIndex - right.originalIndex;
+		});
+
+	const positionedClips = orderedClips.map(({ clip }) => {
+		const startTime = clip.getAlwaysShow() ? 0 : clip.startTime;
+		const endTime = clip.getAlwaysShow() ? Number.POSITIVE_INFINITY : clip.endTime;
+		let laneIndex = laneEndTimes.findIndex((laneEndTime) => startTime > laneEndTime);
+
+		if (laneIndex === -1) {
+			laneIndex = laneEndTimes.length;
+			laneEndTimes.push(endTime);
+		} else {
+			laneEndTimes[laneIndex] = endTime;
+		}
+
+		return { clip, laneIndex };
+	});
+
+	return { clips: positionedClips, laneCount: laneEndTimes.length };
+}
+
 const GLOBAL_SURAH_NAME_TIMELINE_CONFIG: GlobalTimedOverlayConfig = {
 	id: 'global-surah-name',
 	label: 'Surah Name',

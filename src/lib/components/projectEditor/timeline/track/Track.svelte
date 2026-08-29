@@ -12,7 +12,11 @@
 	import WbwSubtitleClipEditor from './WbwSubtitleClipEditor.svelte';
 	import CustomClipComponent from './CustomClip.svelte';
 	import { SubtitleTrack } from '$lib/classes/Track.svelte';
-	import { getTimelineCustomClips, type TimelineCustomClipLike } from './timelineCustomClip';
+	import {
+		getTimelineCustomClipLayout,
+		getTimelineCustomClips,
+		type TimelineCustomClipLike
+	} from './timelineCustomClip';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { AssetTrack } from '$lib/classes/Track.svelte';
@@ -42,14 +46,13 @@
 
 	let visibleClips = $derived(() => track.getClipsInRange(visibleRangeStartMs, visibleRangeEndMs));
 
+	let customClipLayout = $derived(() => getTimelineCustomClipLayout(getTimelineCustomClips()));
 	let visibleCustomClips = $derived(() =>
-		getTimelineCustomClips()
-			.map((clip, clipIndex) => ({ clip, clipIndex }))
-			.filter(
-				({ clip }) =>
-					clip.getAlwaysShow?.() === true ||
-					(clip.endTime >= visibleRangeStartMs && clip.startTime <= visibleRangeEndMs)
-			)
+		customClipLayout().clips.filter(
+			({ clip }) =>
+				clip.getAlwaysShow?.() === true ||
+				(clip.endTime >= visibleRangeStartMs && clip.startTime <= visibleRangeEndMs)
+		)
 	);
 
 	type QuickMergeButtonCandidate = {
@@ -294,13 +297,13 @@
 	</div>
 	<div class="absolute left-[180px] top-0 bottom-0 right-0 z-[5]">
 		{#if track.type === TrackType.CustomClip}
-			{@const total = Math.max(getTimelineCustomClips().length, 1)}
+			{@const total = Math.max(customClipLayout().laneCount, 1)}
 			<!-- Container relatif pour positionner chaque lane -->
 			<div class="absolute inset-0">
-				{#each visibleCustomClips() as { clip, clipIndex } (clip.id)}
+				{#each visibleCustomClips() as { clip, laneIndex } (clip.id)}
 					<div
 						class="absolute left-0 right-0"
-						style="top: {((total - 1 - clipIndex) * 100) / total}%; height: {100 / total}%;"
+						style="top: {((total - 1 - laneIndex) * 100) / total}%; height: {100 / total}%;"
 					>
 						<div class="relative h-full">
 							<CustomClipComponent {clip} {track} />

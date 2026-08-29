@@ -2,6 +2,7 @@ import { CustomTextClip } from '../Clip.svelte.js';
 import { TrackType } from '../enums.js';
 import { CustomTextTrack } from '../Track.svelte.js';
 import { globalState } from '$lib/runes/main.svelte.js';
+import type { Style } from './Style.svelte.js';
 import type { StyleCategoryName, StyleName } from './types.js';
 import { VideoStyleFactory } from './VideoStyleFactory.js';
 
@@ -11,13 +12,13 @@ export class VideoStyleCustomClipService {
 	 * Modifie un style d'un contenu texte existant.
 	 * @param {StyleCategoryName} customTextId Identifiant du contenu.
 	 * @param {StyleName} styleId Style à modifier.
-	 * @param {string | number | boolean} value Nouvelle valeur.
+	 * @param {Style['value']} value Nouvelle valeur.
 	 * @returns {void}
 	 */
 	static setStyle(
 		customTextId: StyleCategoryName,
 		styleId: StyleName,
-		value: string | number | boolean
+		value: Style['value']
 	): void {
 		const clip = globalState.getCustomClipTrack.clips.find(
 			(candidate) => (candidate as CustomTextClip).category?.id === customTextId

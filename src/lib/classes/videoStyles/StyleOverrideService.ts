@@ -139,7 +139,10 @@ export class StyleOverrideService {
 	): void {
 		if (context.target === 'global' && !isGlobalOverlayStyleId(styleId)) return;
 		const baseValue = context.findStyle(styleId)?.value;
-		const matchesBase = baseValue === value;
+		const matchesBase =
+			Array.isArray(baseValue) && Array.isArray(value)
+				? JSON.stringify(baseValue) === JSON.stringify(value)
+				: baseValue === value;
 		for (const clipId of clipIds) {
 			context.overrides[clipId] ??= {};
 			if (matchesBase) delete context.overrides[clipId][styleId];

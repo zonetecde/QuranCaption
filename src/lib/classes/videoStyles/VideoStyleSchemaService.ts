@@ -10,6 +10,7 @@ import { Category } from './Category.svelte.js';
 import { Style } from './Style.svelte.js';
 import { StylesData } from './StylesData.svelte.js';
 import { getNonArabicSubtitleCategories } from './styleRuntime.js';
+import { getTimedOverlayRangesFromStyles } from '$lib/services/TimedOverlayRanges';
 
 /** Maintient les styles persistés compatibles avec le schéma JSON courant. */
 export class VideoStyleSchemaService {
@@ -114,7 +115,15 @@ export class VideoStyleSchemaService {
 		for (const defaultStyle of defaultCategory.styles || []) {
 			const existingStyle = targetCategory.styles.find((style) => style.id === defaultStyle.id);
 			if (!existingStyle) {
-				targetCategory.styles.push(new Style(defaultStyle));
+				const migratedRanges = defaultStyle.id.endsWith('time-ranges')
+					? getTimedOverlayRangesFromStyles(targetCategory.styles)
+					: [];
+				targetCategory.styles.push(
+					new Style({
+						...defaultStyle,
+						value: migratedRanges.length > 0 ? migratedRanges : defaultStyle.value
+					})
+				);
 				hasChanges = true;
 				continue;
 			}

@@ -1,5 +1,6 @@
 import type { Style } from './Style.svelte.js';
 import type { StyleCategoryName, StyleName } from './styleNames.js';
+import type { TimedOverlayRange } from '$lib/services/TimedOverlayRanges';
 
 export type * from './styleNames.js';
 
@@ -16,9 +17,10 @@ export type StyleValueType =
 	| 'composite'
 	| 'reciter'
 	| 'file'
-	| 'ayah-image';
+	| 'ayah-image'
+	| 'time-ranges';
 
-export type StyleOverrideValue = string | number | boolean;
+export type StyleOverrideValue = string | number | boolean | TimedOverlayRange[];
 
 export type StyleKeyframe = {
 	time: number;

@@ -25,7 +25,9 @@
 	import TextControl from './controls/TextControl.svelte';
 	import TimeControl from './controls/TimeControl.svelte';
 	import KeyframeControls from './KeyframeControls.svelte';
+	import TimedRangesControl from './controls/TimedRangesControl.svelte';
 	import { asDimensionValue, asFadeValue, hasFadeEnabled, msToTimeValue } from './controls/utils';
+	import { getTimedOverlayRanges } from '$lib/services/TimedOverlayRanges';
 
 	const LL_ = get(LL);
 	const NON_ANIMATABLE_STYLE_IDS = new Set([
@@ -319,7 +321,7 @@
 				.getEffectiveValue(style.id as StyleName, id, undefined, 0)
 		);
 		const first = values[0];
-		const mixed = values.some((v) => String(v) !== String(first));
+		const mixed = values.some((v) => JSON.stringify(v) !== JSON.stringify(first));
 		const overridden = globalState.getVideoStyle
 			.getStylesOfTarget(target)
 			.hasOverrideForAny(selectedClipIds(), style.id as StyleName);
@@ -435,6 +437,8 @@
 			return `${hasFadeEnabled(fadeValue) ? LL_.common.enabled() + ' - ' + fadeValue.fadeDurationMs + LL_.common.ms() : LL_.common.disabled()}`;
 		} else if (style.valueType === 'ayah-image') {
 			return inputValue ? String(inputValue) : LL_.common.none();
+		} else if (style.valueType === 'time-ranges') {
+			return String(getTimedOverlayRanges(inputValue, 0, 10000).length);
 		} else return String(inputValue);
 	}
 
@@ -691,7 +695,7 @@
 					</span>
 				</button>
 			</div>
-			{#key selectedClipIds().length + String(inputValue)}
+			{#key selectedClipIds().length + JSON.stringify(inputValue)}
 				<div class="flex items-center gap-2 text-xs text-secondary">
 					{#if style.valueType === 'boolean'}
 						<label
@@ -731,7 +735,11 @@
 							>
 								<span class="material-icons-outlined text-[12px]">auto_fix_high</span>
 								{getStyleUiCopy('localOverride')}:
-								<span style={getHeaderPreviewStyle()}>{getEffectiveForSelection().value}</span>
+								<span style={getHeaderPreviewStyle()}>
+									{style.valueType === 'time-ranges'
+										? getTimedOverlayRanges(getEffectiveForSelection().value, 0, 10000).length
+										: getEffectiveForSelection().value}
+								</span>
 							</span>
 						{:else}
 							<span style={getHeaderPreviewStyle()}>{String(inputValue)}</span>
@@ -774,7 +782,7 @@
 
 		{#if (extended || showControl) && style.valueType !== 'boolean'}
 			<div class={showControl ? 'style-control-direct-body' : 'my-2 px-2'} transition:slide>
-				{#if !showControl || ['dimension', 'fade', 'composite', 'ayah-image', 'file', 'reciter'].includes(style.valueType) || style.id === 'video-clip-transition-duration'}
+				{#if !showControl || ['dimension', 'fade', 'composite', 'ayah-image', 'file', 'reciter', 'time-ranges'].includes(style.valueType) || style.id === 'video-clip-transition-duration'}
 					<p class="text-xs text-secondary mb-2 flex items-center gap-1">
 						<span class="material-icons-outlined text-[12px]">info</span>
 						{getStyleDescription(style.id, get(LL))}
@@ -816,6 +824,8 @@
 						onChange={applyValue}
 						onUsePreviewCursor={syncTimeRangeAfterPreviewCursor}
 					/>
+				{:else if style.valueType === 'time-ranges'}
+					<TimedRangesControl value={inputValue} onChange={applyValue} />
 				{:else if style.valueType === 'reciter'}
 					<ReciterControl />
 				{:else if style.valueType === 'file'}

@@ -2,6 +2,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
+	import { getTimedOverlayRanges } from '$lib/services/TimedOverlayRanges';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 
 	const imagePath = $derived(() => {
@@ -44,6 +45,11 @@
 			maxOpacity: 1,
 			currentTime: globalState.getTimelineState.cursorPosition,
 			fadeDuration: globalState.getStyleValue('global', 'fade-duration') as number,
+			ranges: getTimedOverlayRanges(
+				globalState.getStyle('global', 'ayah-container-time-ranges')?.value,
+				globalState.getStyleValue('global', 'time-appearance'),
+				globalState.getStyleValue('global', 'time-disappearance')
+			),
 			startTime: globalState.getStyleValue('global', 'time-appearance') as number,
 			endTime: globalState.getStyleValue('global', 'time-disappearance') as number
 		});

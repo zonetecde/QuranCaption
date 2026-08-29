@@ -1,5 +1,12 @@
 import type { TranslationFunctions } from './i18n-types';
 
+const STYLE_TRANSLATION_ALIASES: Record<string, string> = {
+	'time-ranges': 'time-appearance',
+	'surah-name-time-ranges': 'surah-name-time-appearance',
+	'reciter-name-time-ranges': 'reciter-name-time-appearance',
+	'ayah-container-time-ranges': 'time-appearance'
+};
+
 /**
  * Résout l'identifiant de style en retirant un éventuel suffixe aléatoire
  * ajouté aux catégories custom-text / custom-image pour éviter les collisions.
@@ -9,11 +16,26 @@ import type { TranslationFunctions } from './i18n-types';
  */
 function resolveStyleId(id: string, LL: TranslationFunctions): string {
 	const dict = LL.editor.styleName as unknown as Record<string, unknown>;
-	if (dict[id] !== undefined) return id;
+	/**
+	 * Vérifie qu'une clé existe réellement dans le dictionnaire proxifié.
+	 * @param {string} candidate Clé de traduction à tester.
+	 * @returns {boolean} `true` si la clé est définie dans le dictionnaire.
+	 */
+	const hasTranslation = (candidate: string): boolean =>
+		Object.prototype.hasOwnProperty.call(dict, candidate);
+
+	if (hasTranslation(id)) return id;
+
+	const aliasedId = STYLE_TRANSLATION_ALIASES[id];
+	if (aliasedId && hasTranslation(aliasedId)) return aliasedId;
 
 	// Retire un suffixe de type "-xxxxxx" (ID aléatoire ajouté aux catégories custom)
 	const baseId = id.replace(/-[a-zA-Z0-9]+$/, '');
-	if (baseId !== id && dict[baseId] !== undefined) return baseId;
+	if (baseId !== id) {
+		if (hasTranslation(baseId)) return baseId;
+		const baseAliasId = STYLE_TRANSLATION_ALIASES[baseId];
+		if (baseAliasId && hasTranslation(baseAliasId)) return baseAliasId;
+	}
 
 	return id;
 }

@@ -66,10 +66,10 @@ export class StylesData extends SerializableBase {
 	/**
 	 * Définit la valeur d'un style
 	 * @param {StyleName} styleId L'ID du style à modifier.
-	 * @param {string | number | boolean} value La nouvelle valeur à appliquer.
+	 * @param {Style['value']} value La nouvelle valeur à appliquer.
 	 * @returns {void}
 	 */
-	setStyle(styleId: StyleName, value: string | number | boolean): void {
+	setStyle(styleId: StyleName, value: Style['value']): void {
 		ProjectHistoryManager.begin('set style');
 		try {
 			// Trouve le style

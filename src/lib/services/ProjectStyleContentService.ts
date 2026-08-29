@@ -5,6 +5,7 @@ import { Utilities } from '$lib/classes/misc/Utilities';
 import { CustomTextTrack } from '$lib/classes/Track.svelte';
 import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
 import type { RawCategoryDefinition, RawStyleDefinition } from './StyleDefinitionCatalog';
+import { getTimedOverlayRangesFromStyles } from './TimedOverlayRanges';
 
 /**
  * Retourne les contenus personnalisés stylés d'un projet.
@@ -17,7 +18,7 @@ export function getCustomStyleClips(projectContent: ProjectContent): CustomClip[
 }
 
 /**
- * Complète le schéma des textes personnalisés sans écraser les valeurs existantes.
+ * Complète le schéma des contenus personnalisés sans écraser les valeurs existantes.
  * @param {ProjectContent} projectContent Projet à mettre à niveau.
  * @param {RawCategoryDefinition} defaults Catégorie textuelle par défaut.
  * @param {RawStyleDefinition[]} compositeDefaults Valeurs composites par défaut.
@@ -32,9 +33,15 @@ export function ensureCustomStyleSchema(
 ): boolean {
 	let hasChanges = false;
 	for (const clip of getCustomStyleClips(projectContent)) {
-		if (!(clip instanceof CustomTextClip) || !clip.category) continue;
+		if (!(clip instanceof CustomTextClip || clip instanceof CustomImageClip) || !clip.category)
+			continue;
 
-		for (const defaultStyle of defaults.styles ?? []) {
+		const stylesToEnsure =
+			clip instanceof CustomImageClip
+				? (defaults.styles ?? []).filter((style) => style.id === 'time-ranges')
+				: (defaults.styles ?? []);
+
+		for (const defaultStyle of stylesToEnsure) {
 			if (defaultStyle.id === 'custom-text-composite') {
 				const suffix = clip.category.id.startsWith('custom-text-')
 					? clip.category.id.slice('custom-text-'.length)
@@ -60,7 +67,16 @@ export function ensureCustomStyleSchema(
 			}
 
 			if (!clip.category.styles.some((style) => style.id === defaultStyle.id)) {
-				clip.category.styles.push(createStyle(defaultStyle));
+				const migratedRanges =
+					defaultStyle.id === 'time-ranges'
+						? getTimedOverlayRangesFromStyles(clip.category.styles)
+						: [];
+				clip.category.styles.push(
+					createStyle({
+						...defaultStyle,
+						value: migratedRanges.length > 0 ? migratedRanges : defaultStyle.value
+					})
+				);
 				hasChanges = true;
 			}
 		}

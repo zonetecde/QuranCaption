@@ -5,6 +5,7 @@
 	import RecitersManager from '$lib/classes/Reciter';
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
 	import { resolveStyleVisibilityOpacity } from '$lib/services/StyleVisualResolver';
+	import { getTimedOverlayRanges } from '$lib/services/TimedOverlayRanges';
 
 	const reciter = $derived(() => {
 		return RecitersManager.getReciterObject(globalState.currentProject!.detail.reciter);
@@ -23,6 +24,11 @@
 			alwaysShow: Boolean(globalState.getStyleValue('global', 'reciter-name-always-show')),
 			startTime: globalState.getStyleValue('global', 'reciter-name-time-appearance') as number,
 			endTime: globalState.getStyleValue('global', 'reciter-name-time-disappearance') as number,
+			ranges: getTimedOverlayRanges(
+				globalState.getStyle('global', 'reciter-name-time-ranges')?.value,
+				globalState.getStyleValue('global', 'reciter-name-time-appearance'),
+				globalState.getStyleValue('global', 'reciter-name-time-disappearance')
+			),
 			size: globalState.getStyleValue('global', 'reciter-size') as number,
 			showArabic: resolveStyleVisibilityOpacity(styles, 'reciter-show-arabic'),
 			showLatin: resolveStyleVisibilityOpacity(styles, 'reciter-show-latin'),
@@ -62,6 +68,7 @@
 			maxOpacity: Number(reciterNameSettings().opacity ?? 1) * reciterNameSettings().showOpacity,
 			currentTime: globalState.getTimelineState.cursorPosition,
 			fadeDuration: fadeDuration(),
+			ranges: reciterNameSettings().ranges,
 			startTime: reciterNameSettings().startTime,
 			endTime: reciterNameSettings().endTime
 		});

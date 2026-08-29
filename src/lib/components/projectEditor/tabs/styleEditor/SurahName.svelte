@@ -8,6 +8,7 @@
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
 	import { getChineseSurahTranslationLanguage } from '$lib/services/ChineseTranslationHelper';
 	import { resolveStyleVisibilityOpacity } from '$lib/services/StyleVisualResolver';
+	import { getTimedOverlayRanges } from '$lib/services/TimedOverlayRanges';
 
 	const currentSurah = $derived(() => {
 		return globalState.getSubtitleTrack.getCurrentSurah();
@@ -26,6 +27,11 @@
 			alwaysShow: Boolean(globalState.getStyleValue('global', 'surah-name-always-show')),
 			startTime: globalState.getStyleValue('global', 'surah-name-time-appearance') as number,
 			endTime: globalState.getStyleValue('global', 'surah-name-time-disappearance') as number,
+			ranges: getTimedOverlayRanges(
+				globalState.getStyle('global', 'surah-name-time-ranges')?.value,
+				globalState.getStyleValue('global', 'surah-name-time-appearance'),
+				globalState.getStyleValue('global', 'surah-name-time-disappearance')
+			),
 			size: globalState.getStyleValue('global', 'surah-size'),
 			showArabic: resolveStyleVisibilityOpacity(styles, 'surah-show-arabic'),
 			showLatin: resolveStyleVisibilityOpacity(styles, 'surah-show-latin'),
@@ -81,6 +87,7 @@
 			maxOpacity: Number(surahNameSettings().opacity ?? 1) * surahNameSettings().showOpacity,
 			currentTime: globalState.getTimelineState.cursorPosition,
 			fadeDuration: fadeDuration(),
+			ranges: surahNameSettings().ranges,
 			startTime: surahNameSettings().startTime,
 			endTime: surahNameSettings().endTime
 		});

@@ -15,7 +15,7 @@ import {
 import { SerializableBase } from './misc/SerializableBase';
 import { Utilities } from './misc/Utilities';
 import type { Track } from './Track.svelte';
-import type { Category, StyleName } from './VideoStyle.svelte';
+import type { Category, Style, StyleName } from './VideoStyle.svelte';
 import QPCFontProvider from '$lib/services/FontProvider';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 import IndopakQuranProvider from '$lib/services/IndopakQuranProvider';
@@ -26,6 +26,13 @@ import RiwayahProvider, {
 import type { SubtitleAlignmentMetadata } from '$lib/services/AutoSegmentation';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import type { ProjectTranslation } from './ProjectTranslation.svelte';
+import {
+	getTimedOverlayRanges,
+	getTimedOverlayRangesFromStyles,
+	syncTimedOverlayLegacyRange,
+	updateTimedOverlayRange,
+	type TimedOverlayRange
+} from '$lib/services/TimedOverlayRanges';
 
 type ClipType =
 	| 'Silence'
@@ -1084,16 +1091,82 @@ export class CustomClip extends Clip {
 		this.category = category;
 	}
 
-	setStyle(styleId: StyleName, value: string | number | boolean) {
+	/**
+	 * Retourne les apparitions temporelles du contenu personnalisé.
+	 * @returns {TimedOverlayRange[]} Plages temporelles normalisées.
+	 */
+	getTimedOverlayRanges(): TimedOverlayRange[] {
+		return getTimedOverlayRangesFromStyles(this.category?.styles ?? []);
+	}
+
+	/**
+	 * Met à jour le début du clip et sa première plage d'apparition.
+	 * @param {number} newStartTime Nouveau début en millisecondes.
+	 * @returns {void}
+	 */
+	override setStartTime(newStartTime: number): void {
+		ProjectHistoryManager.begin('set custom clip start');
+		try {
+			const rangesStyle = this.category?.getStyle('time-ranges');
+			const ranges = rangesStyle ? this.getTimedOverlayRanges() : [];
+			const nextRanges = rangesStyle
+				? updateTimedOverlayRange(ranges, 0, 'startTime', newStartTime)
+				: [];
+			super.setStartTime(nextRanges[0]?.startTime ?? newStartTime);
+			if (rangesStyle) {
+				rangesStyle.value = nextRanges;
+				syncTimedOverlayLegacyRange(this.category?.styles ?? [], nextRanges[0]);
+			}
+		} finally {
+			ProjectHistoryManager.commit();
+		}
+	}
+
+	/**
+	 * Met à jour la fin du clip et sa première plage d'apparition.
+	 * @param {number} newEndTime Nouvelle fin en millisecondes.
+	 * @returns {void}
+	 */
+	override setEndTime(newEndTime: number): void {
+		ProjectHistoryManager.begin('set custom clip end');
+		try {
+			const rangesStyle = this.category?.getStyle('time-ranges');
+			const ranges = rangesStyle ? this.getTimedOverlayRanges() : [];
+			const nextRanges = rangesStyle
+				? updateTimedOverlayRange(ranges, 0, 'endTime', newEndTime)
+				: [];
+			super.setEndTime(nextRanges[0]?.endTime ?? newEndTime);
+			if (rangesStyle) {
+				rangesStyle.value = nextRanges;
+				syncTimedOverlayLegacyRange(this.category?.styles ?? [], nextRanges[0]);
+			}
+		} finally {
+			ProjectHistoryManager.commit();
+		}
+	}
+
+	setStyle(styleId: StyleName, value: Style['value']) {
 		ProjectHistoryManager.begin('set custom clip style');
 		try {
-			if (styleId === 'time-appearance') {
+			if (styleId === 'time-ranges') {
+				const ranges = getTimedOverlayRanges(value);
+				const firstRange = ranges[0];
+				if (firstRange) {
+					this.startTime = firstRange.startTime;
+					this.endTime = firstRange.endTime;
+					this.duration = firstRange.endTime - firstRange.startTime;
+					syncTimedOverlayLegacyRange(this.category!.styles, firstRange);
+				}
+				this.category!.styles.find((style) => style.id === styleId)!.value = ranges;
+			} else if (styleId === 'time-appearance') {
 				if (typeof value === 'number') this.setStartTime(value);
 			} else if (styleId === 'time-disappearance') {
 				if (typeof value === 'number') this.setEndTime(value);
 			}
 
-			this.category!.styles.find((style) => style.id === styleId)!.value = value;
+			if (styleId !== 'time-ranges') {
+				this.category!.styles.find((style) => style.id === styleId)!.value = value;
+			}
 		} finally {
 			ProjectHistoryManager.commit();
 		}
@@ -1120,8 +1193,9 @@ export class CustomClip extends Clip {
 
 export class CustomTextClip extends CustomClip {
 	constructor(category?: Category) {
-		const startTime = (category?.getStyle('time-appearance')!.value as number) ?? 0;
-		const endTime = (category?.getStyle('time-disappearance')!.value as number) ?? 0;
+		const firstRange = getTimedOverlayRangesFromStyles(category?.styles ?? [])[0];
+		const startTime = firstRange?.startTime ?? 0;
+		const endTime = firstRange?.endTime ?? 0;
 
 		super(startTime, endTime, 'text', category);
 		this.category = category;
@@ -1134,8 +1208,9 @@ export class CustomTextClip extends CustomClip {
 
 export class CustomImageClip extends CustomClip {
 	constructor(category?: Category) {
-		const startTime = (category?.getStyle('time-appearance')!.value as number) ?? 0;
-		const endTime = (category?.getStyle('time-disappearance')!.value as number) ?? 0;
+		const firstRange = getTimedOverlayRangesFromStyles(category?.styles ?? [])[0];
+		const startTime = firstRange?.startTime ?? 0;
+		const endTime = firstRange?.endTime ?? 0;
 
 		super(startTime, endTime, 'image', category);
 		this.category = category;

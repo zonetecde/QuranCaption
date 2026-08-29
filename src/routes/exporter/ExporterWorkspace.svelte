@@ -72,6 +72,10 @@
 		resolveTimedVisualState
 	} from '$lib/services/StyleVisualResolver';
 	import type { StyleName } from '$lib/classes/VideoStyle.svelte';
+	import {
+		getTimedOverlayRanges,
+		getTimedOverlayRangesFromStyles
+	} from '$lib/services/TimedOverlayRanges';
 
 	// Contient l'ID de l'export
 	let exportId = '';
@@ -2048,6 +2052,7 @@
 		).map((clip) => {
 			return {
 				id: clip.id,
+				ranges: getTimedOverlayRangesFromStyles(clip.category?.styles ?? []),
 				startTime: clip.startTime,
 				endTime: clip.endTime,
 				alwaysShow: Boolean(clip.category?.getStyle('always-show')?.value),
@@ -2060,11 +2065,13 @@
 			enabled: 'show-surah-name',
 			alwaysShow: 'surah-name-always-show',
 			startTime: 'surah-name-time-appearance',
-			endTime: 'surah-name-time-disappearance'
+			endTime: 'surah-name-time-disappearance',
+			ranges: 'surah-name-time-ranges'
 		});
 		if (surahName.enabled) {
 			timedOverlayClips.push({
 				id: 'surah-name',
+				ranges: surahName.ranges,
 				startTime: surahName.startTime,
 				endTime: surahName.endTime,
 				alwaysShow: surahName.alwaysShow
@@ -2075,11 +2082,13 @@
 			enabled: 'show-reciter-name',
 			alwaysShow: 'reciter-name-always-show',
 			startTime: 'reciter-name-time-appearance',
-			endTime: 'reciter-name-time-disappearance'
+			endTime: 'reciter-name-time-disappearance',
+			ranges: 'reciter-name-time-ranges'
 		});
 		if (reciterName.enabled && globalState.currentProject?.detail.reciter !== 'not set') {
 			timedOverlayClips.push({
 				id: 'reciter-name',
+				ranges: reciterName.ranges,
 				startTime: reciterName.startTime,
 				endTime: reciterName.endTime,
 				alwaysShow: reciterName.alwaysShow
@@ -2089,6 +2098,11 @@
 		if (globalState.getStyle('global', 'ayah-container-image')?.value) {
 			timedOverlayClips.push({
 				id: 'ayah-container',
+				ranges: getTimedOverlayRanges(
+					globalState.getStyle('global', 'ayah-container-time-ranges')?.value,
+					globalState.getStyle('global', 'time-appearance')?.value,
+					globalState.getStyle('global', 'time-disappearance')?.value
+				),
 				startTime: globalState.getStyle('global', 'time-appearance')!.value as number,
 				endTime: globalState.getStyle('global', 'time-disappearance')!.value as number,
 				alwaysShow: Boolean(globalState.getStyle('global', 'always-show')!.value)
@@ -2102,6 +2116,9 @@
 
 			timedOverlayClips.push({
 				id: `${stylesData.target}-background-container`,
+				ranges: getTimedOverlayRangesFromStyles(
+					stylesData.categories.find((category) => category.id === 'background')?.styles ?? []
+				),
 				startTime: stylesData.findStyle('time-appearance')?.value as number,
 				endTime: stylesData.findStyle('time-disappearance')?.value as number,
 				alwaysShow: false,

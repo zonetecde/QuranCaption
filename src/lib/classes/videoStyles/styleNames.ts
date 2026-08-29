@@ -102,6 +102,12 @@ export type LineBackgroundStyleName =
 
 export type AnimationStyleName = 'scale' | 'rotation';
 
+export type TimedOverlayStyleName =
+	| 'time-ranges'
+	| 'surah-name-time-ranges'
+	| 'reciter-name-time-ranges'
+	| 'ayah-container-time-ranges';
+
 export type WordByWordHighlightStyleName =
 	| 'enable-wbw-highlight'
 	| 'wbw-show-current-word-only'
@@ -226,6 +232,7 @@ export type StyleName =
 	| EffectsStyleName
 	| LineBackgroundStyleName
 	| AnimationStyleName
+	| TimedOverlayStyleName
 	| WordByWordHighlightStyleName
 	| OverlayStyleName
 	| SurahNameStyleName

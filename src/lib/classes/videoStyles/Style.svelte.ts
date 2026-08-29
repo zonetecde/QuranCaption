@@ -6,6 +6,7 @@ import {
 	resolvePreviewKeyframeValue
 } from './styleRuntime';
 import type { StyleKeyframe, StyleName, StyleValueType } from './types';
+import type { TimedOverlayRange } from '$lib/services/TimedOverlayRanges';
 
 export class Style extends SerializableBase {
 	id: string = $state('');
@@ -23,6 +24,7 @@ export class Style extends SerializableBase {
 				audioFadeInEnabled: boolean;
 				audioFadeOutEnabled: boolean;
 		  }
+		| TimedOverlayRange[]
 		| Style[] = $state('');
 	valueType: StyleValueType = 'text';
 	valueMin?: number = $state(-540);

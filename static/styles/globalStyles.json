@@ -527,6 +527,7 @@
 					"id": "timing",
 					"styleIds": [
 						"surah-name-always-show",
+						"surah-name-time-ranges",
 						"surah-name-time-appearance",
 						"surah-name-time-disappearance"
 					]
@@ -561,6 +562,16 @@
 				"description": "Change the time where the Surah name appears",
 				"value": 0,
 				"valueType": "time",
+				"css": "",
+				"tailwind": false,
+				"icon": "access_time"
+			},
+			{
+				"id": "surah-name-time-ranges",
+				"name": "Time Ranges",
+				"description": "Configure multiple appearance ranges",
+				"value": [{ "startTime": 0, "endTime": 10000 }],
+				"valueType": "time-ranges",
 				"css": "",
 				"tailwind": false,
 				"icon": "access_time"
@@ -734,6 +745,7 @@
 					"id": "timing",
 					"styleIds": [
 						"reciter-name-always-show",
+						"reciter-name-time-ranges",
 						"reciter-name-time-appearance",
 						"reciter-name-time-disappearance"
 					]
@@ -768,6 +780,16 @@
 				"description": "Change the time where the Reciter name appears",
 				"value": 0,
 				"valueType": "time",
+				"css": "",
+				"tailwind": false,
+				"icon": "access_time"
+			},
+			{
+				"id": "reciter-name-time-ranges",
+				"name": "Time Ranges",
+				"description": "Configure multiple appearance ranges",
+				"value": [{ "startTime": 0, "endTime": 10000 }],
+				"valueType": "time-ranges",
 				"css": "",
 				"tailwind": false,
 				"icon": "access_time"
@@ -923,7 +945,12 @@
 				},
 				{
 					"id": "timing",
-					"styleIds": ["always-show", "time-appearance", "time-disappearance"]
+					"styleIds": [
+						"always-show",
+						"ayah-container-time-ranges",
+						"time-appearance",
+						"time-disappearance"
+					]
 				}
 			]
 		},
@@ -972,6 +999,16 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "visibility"
+			},
+			{
+				"id": "ayah-container-time-ranges",
+				"name": "Time Ranges",
+				"description": "Configure multiple appearance ranges",
+				"value": [{ "startTime": 0, "endTime": 10000 }],
+				"valueType": "time-ranges",
+				"css": "",
+				"tailwind": false,
+				"icon": "access_time"
 			},
 			{
 				"id": "time-appearance",

@@ -86,13 +86,13 @@ export class VideoStyle extends SerializableBase {
 	 * Update la valeur d'un style d'un custom text (depuis la track Custom Text)
 	 * @param {StyleCategoryName} customTextId L'ID du texte custom.
 	 * @param {StyleName} styleId L'ID du style à obtenir.
-	 * @param {string | number | boolean} value La nouvelle valeur à appliquer.
+	 * @param {Style['value']} value La nouvelle valeur à appliquer.
 	 * @returns {void}
 	 */
 	setCustomTextStyle(
 		customTextId: StyleCategoryName,
 		styleId: StyleName,
-		value: string | number | boolean
+		value: Style['value']
 	): void {
 		ProjectHistoryManager.begin('set custom text style');
 		try {

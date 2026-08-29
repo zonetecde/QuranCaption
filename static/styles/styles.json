@@ -837,7 +837,7 @@
 				},
 				{
 					"id": "timing",
-					"styleIds": ["always-show", "time-appearance", "time-disappearance"]
+					"styleIds": ["always-show", "time-ranges", "time-appearance", "time-disappearance"]
 				},
 				{ "id": "advanced", "styleIds": ["background-css"] }
 			]
@@ -862,6 +862,16 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "visibility"
+			},
+			{
+				"id": "time-ranges",
+				"name": "Time Ranges",
+				"description": "Configure multiple appearance ranges",
+				"value": [{ "startTime": 0, "endTime": 10000 }],
+				"valueType": "time-ranges",
+				"css": "",
+				"tailwind": false,
+				"icon": "access_time"
 			},
 			{
 				"id": "time-appearance",

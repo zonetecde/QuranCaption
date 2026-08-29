@@ -385,9 +385,13 @@ function getCustomClipSnapThresholdMs(): number {
  * Construit la liste des temps d'accroche disponibles pour un custom clip.
  * On snap sur:
  * - le début et la fin des autres custom clips
+ * - les positions qui alignent la fin du clip déplacé avec le début d'un autre custom clip
  * - le début des sous-titres
+ * @param {string} currentClipId Identifiant du clip en cours de déplacement.
+ * @param {number} [clipDuration=0] Durée du clip pour accrocher sa fin aux débuts voisins.
+ * @returns {number[]} Points d'accroche en millisecondes.
  */
-function getTimelineCustomClipSnapPoints(currentClipId: string): number[] {
+function getTimelineCustomClipSnapPoints(currentClipId: string, clipDuration = 0): number[] {
 	const points: number[] = [];
 
 	for (const clip of getTimelineCustomClips()) {
@@ -395,6 +399,10 @@ function getTimelineCustomClipSnapPoints(currentClipId: string): number[] {
 
 		// On prend les deux bords des autres clips pour pouvoir aligner début ou fin.
 		points.push(clip.startTime, clip.endTime);
+		if (clipDuration > 0 && clip.startTime >= clipDuration) {
+			// Position de départ qui aligne la fin du clip déplacé sur ce début.
+			points.push(clip.startTime - clipDuration);
+		}
 	}
 
 	for (const clip of globalState.getSubtitleTrack?.clips ?? []) {
@@ -410,13 +418,21 @@ function getTimelineCustomClipSnapPoints(currentClipId: string): number[] {
 /**
  * Retourne le temps le plus proche si un point d'accroche est suffisamment proche,
  * sinon retourne le temps d'origine sans modification.
+ * @param {number} time Temps à accrocher.
+ * @param {string} currentClipId Identifiant du clip en cours de déplacement.
+ * @param {number} [clipDuration=0] Durée du clip déplacé.
+ * @returns {number} Temps accroché ou temps d'origine.
  */
-export function getSnappedTimelineCustomClipTime(time: number, currentClipId: string): number {
+export function getSnappedTimelineCustomClipTime(
+	time: number,
+	currentClipId: string,
+	clipDuration = 0
+): number {
 	const thresholdMs = getCustomClipSnapThresholdMs();
 	let snappedTime = time;
 	let closestDistance = thresholdMs + 1;
 
-	for (const snapPoint of getTimelineCustomClipSnapPoints(currentClipId)) {
+	for (const snapPoint of getTimelineCustomClipSnapPoints(currentClipId, clipDuration)) {
 		const distance = Math.abs(snapPoint - time);
 		// On garde uniquement le point le plus proche à l'intérieur de la zone de snap.
 		if (distance <= thresholdMs && distance < closestDistance) {

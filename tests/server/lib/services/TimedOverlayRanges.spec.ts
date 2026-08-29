@@ -32,6 +32,23 @@ describe('TimedOverlayRanges', () => {
 		]);
 	});
 
+	it('can preserve range order for timeline editing', () => {
+		expect(
+			getTimedOverlayRanges(
+				[
+					{ startTime: 2_000, endTime: 3_000 },
+					{ startTime: 0, endTime: 500 }
+				],
+				undefined,
+				undefined,
+				false
+			)
+		).toEqual([
+			{ startTime: 2_000, endTime: 3_000 },
+			{ startTime: 0, endTime: 500 }
+		]);
+	});
+
 	it('allows edited ranges to overlap their neighbors', () => {
 		const ranges = [
 			{ startTime: 0, endTime: 1_000 },

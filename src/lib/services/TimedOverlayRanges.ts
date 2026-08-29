@@ -16,24 +16,25 @@ function toTimedOverlayTime(value: unknown): number | null {
 }
 
 /**
- * Nettoie et trie une liste de plages temporelles.
+ * Nettoie une liste de plages temporelles et la trie si nécessaire.
  * @param {unknown} value Valeur potentiellement issue d'un projet sérialisé.
- * @returns {TimedOverlayRange[]} Plages valides triées par apparition.
+ * @param {boolean} [sort=true] Trie les plages par apparition.
+ * @returns {TimedOverlayRange[]} Plages valides.
  */
-export function normalizeTimedOverlayRanges(value: unknown): TimedOverlayRange[] {
+export function normalizeTimedOverlayRanges(value: unknown, sort = true): TimedOverlayRange[] {
 	if (!Array.isArray(value)) return [];
 
-	return value
-		.flatMap((item): TimedOverlayRange[] => {
-			if (!item || typeof item !== 'object') return [];
-			const raw = item as { startTime?: unknown; endTime?: unknown };
-			const startTime = toTimedOverlayTime(raw.startTime);
-			const endTime = toTimedOverlayTime(raw.endTime);
-			return startTime !== null && endTime !== null && endTime > startTime
-				? [{ startTime, endTime }]
-				: [];
-		})
-		.sort((left, right) => left.startTime - right.startTime);
+	const ranges = value.flatMap((item): TimedOverlayRange[] => {
+		if (!item || typeof item !== 'object') return [];
+		const raw = item as { startTime?: unknown; endTime?: unknown };
+		const startTime = toTimedOverlayTime(raw.startTime);
+		const endTime = toTimedOverlayTime(raw.endTime);
+		return startTime !== null && endTime !== null && endTime > startTime
+			? [{ startTime, endTime }]
+			: [];
+	});
+
+	return sort ? ranges.sort((left, right) => left.startTime - right.startTime) : ranges;
 }
 
 /**
@@ -41,14 +42,16 @@ export function normalizeTimedOverlayRanges(value: unknown): TimedOverlayRange[]
  * @param {unknown} value Valeur du style `time-ranges`.
  * @param {unknown} legacyStartTime Ancienne valeur de début.
  * @param {unknown} legacyEndTime Ancienne valeur de fin.
+ * @param {boolean} [sort=true] Trie les plages par apparition.
  * @returns {TimedOverlayRange[]} Plages temporelles normalisées.
  */
 export function getTimedOverlayRanges(
 	value: unknown,
 	legacyStartTime?: unknown,
-	legacyEndTime?: unknown
+	legacyEndTime?: unknown,
+	sort = true
 ): TimedOverlayRange[] {
-	const ranges = normalizeTimedOverlayRanges(value);
+	const ranges = normalizeTimedOverlayRanges(value, sort);
 	if (ranges.length > 0) return ranges;
 
 	const startTime = toTimedOverlayTime(legacyStartTime);
@@ -61,15 +64,17 @@ export function getTimedOverlayRanges(
 /**
  * Résout les plages d'une collection de styles, avec compatibilité legacy.
  * @param {{id: string; value?: unknown}[]} styles Styles d'une catégorie.
+ * @param {boolean} [sort=true] Trie les plages par apparition.
  * @returns {TimedOverlayRange[]} Plages temporelles normalisées.
  */
 export function getTimedOverlayRangesFromStyles(
-	styles: Array<{ id: string; value?: unknown }>
+	styles: Array<{ id: string; value?: unknown }>,
+	sort = true
 ): TimedOverlayRange[] {
 	const rangeStyle = styles.find((style) => style.id.endsWith('time-ranges'));
 	const startStyle = styles.find((style) => style.id.endsWith('time-appearance'));
 	const endStyle = styles.find((style) => style.id.endsWith('time-disappearance'));
-	return getTimedOverlayRanges(rangeStyle?.value, startStyle?.value, endStyle?.value);
+	return getTimedOverlayRanges(rangeStyle?.value, startStyle?.value, endStyle?.value, sort);
 }
 
 /**
@@ -91,7 +96,7 @@ export function syncTimedOverlayLegacyRange(
 
 /**
  * Modifie une borne sans invalider la durée minimale de la plage.
- * @param {TimedOverlayRange[]} ranges Plages actuelles, déjà triées.
+ * @param {TimedOverlayRange[]} ranges Plages actuelles.
  * @param {number} index Index de la plage à modifier.
  * @param {'startTime' | 'endTime'} field Borne à modifier.
  * @param {number} value Nouvelle valeur en millisecondes.

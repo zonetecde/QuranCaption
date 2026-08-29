@@ -1093,10 +1093,11 @@ export class CustomClip extends Clip {
 
 	/**
 	 * Retourne les apparitions temporelles du contenu personnalisé.
+	 * @param {boolean} [sort=true] Trie les plages par apparition.
 	 * @returns {TimedOverlayRange[]} Plages temporelles normalisées.
 	 */
-	getTimedOverlayRanges(): TimedOverlayRange[] {
-		return getTimedOverlayRangesFromStyles(this.category?.styles ?? []);
+	getTimedOverlayRanges(sort = true): TimedOverlayRange[] {
+		return getTimedOverlayRangesFromStyles(this.category?.styles ?? [], sort);
 	}
 
 	/**

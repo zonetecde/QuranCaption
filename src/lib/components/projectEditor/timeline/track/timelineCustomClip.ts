@@ -85,13 +85,14 @@ export class GlobalTimedOverlayTimelineClip {
 	 * @returns {TimedOverlayRange[]} Plages temporelles normalisées.
 	 */
 	private getRanges(): TimedOverlayRange[] {
-		if (this.source) return this.source.getTimedOverlayRanges();
+		if (this.source) return this.source.getTimedOverlayRanges(false);
 
 		const styles = globalState.getVideoStyle.getStylesOfTarget(this.target);
 		return getTimedOverlayRanges(
 			this.rangesStyleId ? styles.findStyle(this.rangesStyleId)?.value : undefined,
 			styles.findStyle(this.startStyleId)?.value,
-			styles.findStyle(this.endStyleId)?.value
+			styles.findStyle(this.endStyleId)?.value,
+			false
 		);
 	}
 
@@ -278,11 +279,12 @@ function createTimedOverlayTimelineClips(
 ): GlobalTimedOverlayTimelineClip[] {
 	const styles = globalState.getVideoStyle.getStylesOfTarget(config.target ?? 'global');
 	const ranges = config.source
-		? config.source.getTimedOverlayRanges()
+		? config.source.getTimedOverlayRanges(false)
 		: getTimedOverlayRanges(
 				config.rangesStyleId ? styles.findStyle(config.rangesStyleId)?.value : undefined,
 				styles.findStyle(config.startStyleId)?.value,
-				styles.findStyle(config.endStyleId)?.value
+				styles.findStyle(config.endStyleId)?.value,
+				false
 			);
 
 	return ranges.map(
@@ -296,7 +298,7 @@ function createTimedOverlayTimelineClips(
  * @returns {TimelineCustomClipLike[]} Clips à afficher dans la timeline.
  */
 function createCustomTimelineClips(clip: CustomClip): TimelineCustomClipLike[] {
-	const ranges = clip.getTimedOverlayRanges();
+	const ranges = clip.getTimedOverlayRanges(false);
 	if (clip.getAlwaysShow() || ranges.length <= 1) return [clip];
 
 	return ranges.map(

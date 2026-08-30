@@ -958,6 +958,37 @@ const es = {
 		fullscreenMode: 'Pantalla completa',
 		exitFullscreen: 'Salir de pantalla completa',
 		playbackControls: 'Controles de reproducción',
+		firstVideoGuide: 'Tu primer vídeo',
+		guideStep: 'Paso {current} de {total}',
+		guideMedia: 'Añade la recitación y coloca tus medios en la línea de tiempo.',
+		guideSubtitles: 'Crea y sincroniza los subtítulos del Corán con la recitación.',
+		guideTranslations: 'Añade opcionalmente una traducción adaptada a cada pasaje recitado.',
+		guideStyle: 'Elige un ajuste preestablecido y personaliza el resultado si es necesario.',
+		guideExport: 'Comprueba que el proyecto esté listo y exporta el vídeo final.',
+		optional: 'Opcional',
+		hideGuide: 'Ocultar la guía del primer vídeo',
+		showGuideAgainQuestion: '¿Mostrar de nuevo la guía «Tu primer vídeo» en futuros proyectos?',
+		nextStep: 'Siguiente: {step}',
+		mediaEmptyTitle: 'Empieza con la recitación',
+		mediaEmptyDescription:
+			'Añade el audio que servirá de base para la sincronización. Después podrás añadir imágenes y vídeos.',
+		addRecitation: 'Añadir una recitación',
+		chooseSubtitleMethod: '¿Cómo quieres crear los subtítulos?',
+		chooseSubtitleMethodDescription: 'Elige el método más adecuado para tus primeros subtítulos.',
+		useAiRecommended: 'Usar IA · Recomendado',
+		createManually: 'Crear manualmente',
+		manualSubtitleSteps:
+			'1. Reproduce el audio → 2. Selecciona las palabras recitadas → 3. Haz clic en la marca',
+		viewExample: 'Ver un ejemplo',
+		controlsGuide: 'Guía de controles',
+		translationGuideTitle: 'Adapta la traducción al pasaje recitado',
+		translationGuideDescription:
+			'Haz clic o arrastra sobre las palabras traducidas para conservar solo la parte correspondiente al subtítulo árabe.',
+		reviewProgress: '{progress} % revisado',
+		styleGuideTitle: 'Empieza con un estilo listo para usar',
+		styleGuideDescription:
+			'Aplica primero un ajuste preestablecido, comprueba la vista previa y personaliza los ajustes si es necesario.',
+		customizeStyles: 'Personalizar manualmente',
 		volumeLabel: 'Volumen',
 		videoSettings: 'Configuración de video',
 		fitToScreen: 'Ajustar a pantalla',
@@ -1969,6 +2000,11 @@ const es = {
 		reflectionCloseLabel: 'Cerrar el panel de reflexión',
 		reflectionDontShowAgain: 'No volver a mostrar',
 		exportVideo: 'Exportar video',
+		chapterFormat: 'Formato de capítulos',
+		textFormat: 'Formato de texto',
+		placeholders: 'Marcadores disponibles',
+		noTranslation: 'Sin traducción',
+		translationForVerse: 'Traducción usada para <verse-translation>',
 		configureExportSettings:
 			'Configure sus ajustes de exportación de video y seleccione la porción a exportar.',
 		exportRange: 'Rango de exportación',
@@ -2738,9 +2774,9 @@ const es = {
 		stepCreateProjectTitle: 'Crear un nuevo proyecto',
 		stepCreateProjectDesc:
 			'Este botón abre el formulario donde puede asignar un nombre al nuevo proyecto y elegir su recitador.',
-		stepOpenTutorialTitle: 'Abrir el proyecto tutorial',
+		stepOpenTutorialTitle: 'Crea tu proyecto',
 		stepOpenTutorialDesc:
-			'Se ha creado un proyecto tutorial con la sura Al-Fatihah por Yasser Al-Dosari para usted. Haga clic en su tarjeta para abrirlo y seguir la guía.',
+			'Asigna un nombre al proyecto y elige opcionalmente un recitador; después, haz clic en Crear proyecto. Aprenderás cada paso con este proyecto vacío.',
 		stepVideoEditorTitle: 'Los elementos del proyecto',
 		stepVideoEditorDesc:
 			'El área Elementos del proyecto contiene los medios utilizados por el proyecto. Haga clic en Agregar elemento para importar un archivo o use las secciones de descarga inferiores.',
@@ -2776,9 +2812,8 @@ const es = {
 		stepExportVideoTitle: 'Elegir el intervalo de exportación',
 		stepExportVideoDesc:
 			'Defina aquí las horas de inicio y fin y, si quiere, añada secciones que omitir. Después revise la calidad más abajo y haga clic en Exportar.',
-		hintClickTutorialCard: 'Haga clic en la tarjeta del proyecto tutorial para continuar',
-		hintHoverAndAdd:
-			'Pase el cursor sobre el elemento y haga clic en « Agregar a la línea de tiempo » para continuar',
+		hintClickTutorialCard: 'Haz clic en Nuevo proyecto para continuar',
+		hintHoverAndAdd: 'Escribe un nombre de proyecto y haz clic en Crear proyecto para continuar',
 		hintClickSubtitlesTab: 'Haga clic en la pestaña « Subtítulos » para continuar',
 		hintClickTranslationsTab: 'Haga clic en la pestaña « Traducciones » para continuar',
 		hintClickStyleTab: 'Haga clic en la pestaña « Estilo » para continuar',

@@ -13,7 +13,6 @@
 	import { Status } from '$lib/classes/Status';
 	import Settings from '$lib/classes/Settings.svelte';
 	import TourManager from '$lib/components/tour/TourManager';
-	import { setupTutorialProject } from '$lib/services/TutorialService';
 	import { VersionService } from '$lib/services/VersionService.svelte';
 	import { parseProjectsBackup, ProjectService } from '$lib/services/ProjectService';
 	import MigrationService from '$lib/services/MigrationService';
@@ -48,6 +47,7 @@
 
 	let migrationFromV2ModalVisibility = $state(false);
 	let createNewProjectModalVisible = $state(false);
+	const LEGACY_TUTORIAL_PROJECT_ID = 1774428451900961;
 
 	// Etats pour les menus de filtrage et tri
 	let filterMenuVisible = $state(false);
@@ -517,13 +517,15 @@
 			});
 		}
 
+		if (promise) await promise;
+		const legacyTutorialProject = globalState.userProjectsDetails.find(
+			(project) => project.id === LEGACY_TUTORIAL_PROJECT_ID && project.name === 'Tutorial Project'
+		);
+		if (legacyTutorialProject) {
+			await ProjectService.delete(legacyTutorialProject.id, { sweepQuaCache: false });
+		}
+
 		if (globalState.settings && !globalState.settings.persistentUiState.hasSeenTour) {
-			if (promise) await promise;
-			try {
-				await setupTutorialProject();
-			} catch (error) {
-				console.warn('Tutorial project setup failed:', error);
-			}
 			setTimeout(() => TourManager.start(), 600);
 		}
 	});
@@ -799,7 +801,6 @@
 								{:else}
 									<ProjectDetailCard
 										projectDetail={card.detail}
-										isTutorial={card.detail.name === 'Tutorial Project'}
 										draggable={true}
 										isActiveDrag={draggingProjectId === card.detail.id}
 										onProjectDragStart={startProjectDrag}

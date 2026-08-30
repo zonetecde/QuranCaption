@@ -43,6 +43,13 @@
 	} = $props();
 
 	let stylesContainer: HTMLDivElement | undefined = $state();
+	let styleGuideCopy = $derived(
+		$LL.editor as unknown as {
+			styleGuideTitle: () => string;
+			styleGuideDescription: () => string;
+			customizeStyles: () => string;
+		}
+	);
 
 	const currentStyleTarget = $derived(() => globalState.getStylesState.getCurrentSelection());
 	const styleSearchQuery = $derived(() =>
@@ -236,6 +243,16 @@
 	 */
 	function clearSearch(): void {
 		globalState.getStylesState.searchQuery = '';
+	}
+
+	/**
+	 * Masque l'aide de démarrage des styles pour le projet courant.
+	 * @returns {void}
+	 */
+	function dismissStyleGuide(): void {
+		ProjectHistoryManager.track('dismiss style guide', () => {
+			globalState.currentProject!.projectEditorState.styleGuideDismissed = true;
+		});
 	}
 
 	/**
@@ -916,6 +933,34 @@
 					stylesContainer?.scrollTop || 0;
 			}}
 		>
+			{#if globalState.settings?.persistentUiState.showFirstVideoGuide !== false && !globalState.currentProject!.projectEditorState.styleGuideDismissed}
+				<section class="style-start-guide">
+					<div class="style-guide-icon" aria-hidden="true">
+						<span class="material-icons-outlined">style</span>
+					</div>
+					<div class="min-w-0 flex-1">
+						<h2>{styleGuideCopy.styleGuideTitle()}</h2>
+						<p>{styleGuideCopy.styleGuideDescription()}</p>
+						<div class="style-guide-actions">
+							<button type="button" class="btn-accent" onclick={openPresetLibrary}>
+								<span class="material-icons-outlined">dashboard_customize</span
+								>{$LL.editor.presetsLabel()}
+							</button>
+							<button type="button" class="btn" onclick={dismissStyleGuide}
+								>{styleGuideCopy.customizeStyles()}</button
+							>
+						</div>
+					</div>
+					<button
+						type="button"
+						class="style-guide-close"
+						aria-label={$LL.common.close()}
+						onclick={dismissStyleGuide}
+					>
+						<span class="material-icons">close</span>
+					</button>
+				</section>
+			{/if}
 			{#if globalState.getStylesState.getCurrentSelection() === 'global' && globalState.getStylesState.selectedSubtitles.length > 0}
 				<div class="style-empty-state border-amber-400/40 bg-amber-500/10 text-amber-100">
 					<span class="material-icons-outlined text-xl">info</span>
@@ -1078,5 +1123,78 @@
 		color: var(--text-secondary);
 		font-size: 0.8rem;
 		text-align: center;
+	}
+
+	.style-start-guide {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.7rem;
+		margin-bottom: 0.75rem;
+		border: 1px solid color-mix(in srgb, var(--accent-primary) 38%, var(--border-color));
+		border-radius: 0.75rem;
+		padding: 0.75rem;
+		background: linear-gradient(
+			135deg,
+			color-mix(in srgb, var(--accent-primary) 11%, var(--bg-secondary)),
+			var(--bg-secondary)
+		);
+	}
+	.style-guide-icon {
+		display: flex;
+		height: 2.25rem;
+		width: 2.25rem;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: center;
+		border-radius: 0.65rem;
+		background: color-mix(in srgb, var(--accent-primary) 15%, transparent);
+		color: var(--accent-primary);
+	}
+	.style-start-guide h2 {
+		color: var(--text-primary);
+		font-size: 0.78rem;
+		font-weight: 700;
+	}
+	.style-start-guide p {
+		margin-top: 0.18rem;
+		color: var(--text-secondary);
+		font-size: 0.65rem;
+		line-height: 1.4;
+	}
+	.style-guide-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		margin-top: 0.6rem;
+	}
+	.style-guide-actions button {
+		display: flex;
+		min-height: 2rem;
+		align-items: center;
+		gap: 0.3rem;
+		border-radius: 0.45rem;
+		padding: 0.35rem 0.6rem;
+		font-size: 0.62rem;
+		font-weight: 700;
+	}
+	.style-guide-actions .material-icons-outlined {
+		font-size: 0.95rem;
+	}
+	.style-guide-close {
+		display: flex;
+		height: 1.75rem;
+		width: 1.75rem;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: center;
+		border-radius: 9999px;
+		color: var(--text-secondary);
+	}
+	.style-guide-close:hover {
+		background: var(--bg-accent);
+		color: var(--text-primary);
+	}
+	.style-guide-close .material-icons {
+		font-size: 1rem;
 	}
 </style>

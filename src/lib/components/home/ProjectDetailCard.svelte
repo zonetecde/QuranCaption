@@ -24,14 +24,12 @@
 
 	let {
 		projectDetail = $bindable(),
-		isTutorial = false,
 		draggable = false,
 		isActiveDrag = false,
 		onProjectDragStart,
 		onProjectDragEnd
 	}: {
 		projectDetail: ProjectDetail;
-		isTutorial?: boolean;
 		draggable?: boolean;
 		isActiveDrag?: boolean;
 		onProjectDragStart?: (projectDetail: ProjectDetail, event: PointerEvent) => void;
@@ -193,7 +191,6 @@
 	class={`group relative bg-secondary backdrop-blur-[10px] border border-[var(--border-color)] rounded-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex flex-col justify-between transition-all duration-300 ${
 		draggable ? 'hover:-translate-y-1 hover:shadow-2xl' : 'hover:shadow-2xl'
 	} ${isDragging ? 'scale-[0.98] opacity-70 cursor-grabbing' : ''}`}
-	data-tour-id={isTutorial ? 'tutorial-project-card' : undefined}
 	data-project-card={projectDetail.id}
 >
 	<div>

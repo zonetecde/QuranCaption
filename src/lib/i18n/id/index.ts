@@ -1222,7 +1222,37 @@ const id = {
 		arabicTextTab: 'Teks Arab',
 		translationTab: 'Terjemahan',
 		verseKeyLabel: 'Verse key',
-		searchVerse: 'Cari ayat...'
+		searchVerse: 'Cari ayat...',
+		firstVideoGuide: 'Video pertama kamu',
+		guideStep: 'Langkah {current} dari {total}',
+		guideMedia: 'Tambahkan tilawah dan tempatkan media di timeline.',
+		guideSubtitles: 'Buat dan selaraskan subtitle Al-Qur’an dengan tilawah.',
+		guideTranslations: 'Tambahkan dan sesuaikan terjemahan untuk setiap bagian bila diperlukan.',
+		guideStyle: 'Pilih preset, lalu sesuaikan tampilan bila perlu.',
+		guideExport: 'Pastikan proyek siap, lalu ekspor video akhir.',
+		optional: 'Opsional',
+		hideGuide: 'Sembunyikan panduan video pertama',
+		showGuideAgainQuestion: 'Tampilkan lagi panduan “Video pertama kamu” untuk proyek berikutnya?',
+		nextStep: 'Berikutnya: {step}',
+		mediaEmptyTitle: 'Mulai dengan tilawah',
+		mediaEmptyDescription:
+			'Tambahkan audio sebagai dasar pengaturan waktu. Gambar dan video dapat ditambahkan setelahnya.',
+		addRecitation: 'Tambahkan tilawah',
+		chooseSubtitleMethod: 'Bagaimana kamu ingin membuat subtitle?',
+		chooseSubtitleMethodDescription: 'Pilih metode paling sesuai untuk subtitle pertama kamu.',
+		useAiRecommended: 'Gunakan AI · Disarankan',
+		createManually: 'Buat manual',
+		manualSubtitleSteps: '1. Putar audio → 2. Pilih kata yang dibaca → 3. Klik tanda centang',
+		viewExample: 'Lihat contoh',
+		controlsGuide: 'Panduan kontrol',
+		translationGuideTitle: 'Sesuaikan terjemahan dengan bagian yang dibaca',
+		translationGuideDescription:
+			'Klik atau seret pada kata terjemahan untuk menyisakan bagian yang sesuai dengan subtitle Arab.',
+		reviewProgress: '{progress}% ditinjau',
+		styleGuideTitle: 'Mulai dengan gaya siap pakai',
+		styleGuideDescription:
+			'Terapkan preset terlebih dahulu, periksa pratinjau, lalu sesuaikan pengaturan bila perlu.',
+		customizeStyles: 'Sesuaikan manual'
 	},
 	export: {
 		...baseEn.export,
@@ -1281,6 +1311,11 @@ const id = {
 		reflectionCloseLabel: 'Tutup panel refleksi',
 		reflectionDontShowAgain: 'Jangan tampilkan lagi',
 		exportVideo: 'Ekspor Video',
+		chapterFormat: 'Format bab',
+		textFormat: 'Format teks',
+		placeholders: 'Placeholder',
+		noTranslation: 'Tanpa terjemahan',
+		translationForVerse: 'Terjemahan untuk <verse-translation>',
 		configureExportSettings:
 			'Atur settings export video kamu dan pilih bagian yang ingin di-export.',
 		exportRange: 'Rentang export',
@@ -1711,9 +1746,9 @@ const id = {
 		stepCreateProjectTitle: 'Buat project baru',
 		stepCreateProjectDesc:
 			'Tombol ini membuka formulir untuk memberi nama project baru dan memilih qari.',
-		stepOpenTutorialTitle: 'Buka project tutorial',
+		stepOpenTutorialTitle: 'Buat proyek kamu',
 		stepOpenTutorialDesc:
-			'Project tutorial dengan Surah Al-Fatihah oleh Yasser Al-Dosari sudah dibuat untuk kamu. Klik card-nya untuk membuka dan mengikuti tutorial.',
+			'Beri nama proyek, pilih qari bila perlu, lalu klik Buat proyek. Kamu akan mempelajari setiap langkah dengan proyek kosong ini.',
 		stepVideoEditorTitle: 'Aset project kamu',
 		stepVideoEditorDesc:
 			'Area Aset Project berisi media yang digunakan project. Klik Tambah Aset untuk mengimpor file atau gunakan bagian download di bawahnya.',
@@ -1748,8 +1783,8 @@ const id = {
 		stepExportVideoTitle: 'Pilih rentang ekspor',
 		stepExportVideoDesc:
 			'Atur waktu mulai dan selesai di sini, lalu tambahkan bagian yang ingin dilewati jika perlu. Setelah itu periksa kualitas di bawah dan klik Ekspor.',
-		hintClickTutorialCard: 'Klik card project tutorial untuk lanjut',
-		hintHoverAndAdd: 'Arahkan mouse ke asset lalu klik "Add to Timeline" untuk lanjut',
+		hintClickTutorialCard: 'Klik Proyek baru untuk melanjutkan',
+		hintHoverAndAdd: 'Masukkan nama proyek, lalu klik Buat proyek untuk melanjutkan',
 		hintClickSubtitlesTab: 'Klik tab "Subtitle" untuk lanjut',
 		hintClickTranslationsTab: 'Klik tab "Terjemahan" untuk lanjut',
 		hintClickStyleTab: 'Klik tab "Gaya" untuk lanjut',

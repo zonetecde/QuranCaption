@@ -1,6 +1,11 @@
 const export_ = {
 	exportVideo: 'Export Video',
 	configureExportSettings: 'Configure your video export settings and select the portion to export.',
+	chapterFormat: 'Chapter format',
+	textFormat: 'Text format',
+	placeholders: 'Placeholders',
+	noTranslation: 'No translation',
+	translationForVerse: 'Translation used for <verse-translation>',
 	exportRange: 'Export Range',
 	timeRangeMode: 'By time',
 	verseRangeMode: 'By verse',

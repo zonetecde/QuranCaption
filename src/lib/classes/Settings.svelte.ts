@@ -137,6 +137,7 @@ export default class Settings extends SerializableBase {
 		hideReflectionPromptAfterExport: false,
 		themeIntensity: 100,
 		hasSeenTour: false,
+		showFirstVideoGuide: true,
 		language: 'en' as 'en' | 'fr' | 'de' | 'es' | 'zh' | 'id',
 		theme: 'default' as
 			| 'default'
@@ -529,6 +530,11 @@ export default class Settings extends SerializableBase {
 			};
 			shouldSave = true;
 		}
+		if (typeof settings.persistentUiState.showFirstVideoGuide !== 'boolean') {
+			settings.persistentUiState.showFirstVideoGuide = true;
+			shouldSave = true;
+		}
+
 		const projectEditorLayout = settings.persistentUiState.projectEditorLayout as
 			| Partial<ProjectEditorLayout>
 			| undefined;

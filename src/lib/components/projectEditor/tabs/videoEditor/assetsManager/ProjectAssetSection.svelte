@@ -35,6 +35,13 @@
 	let hasAudioCompatibleSelection = $derived(
 		selectedAssets.some((asset) => asset.type !== AssetType.Image)
 	);
+	let emptyCopy = $derived(
+		$LL.editor as unknown as {
+			mediaEmptyTitle: () => string;
+			mediaEmptyDescription: () => string;
+			addRecitation: () => string;
+		}
+	);
 
 	onMount(async () => {
 		unlisten = await getCurrentWebview().onDragDropEvent((event) => {
@@ -185,15 +192,31 @@
 
 <Section icon="folder_open" name={get(LL).editor.projectAssetsLabel()}>
 	<div bind:this={dropZone}>
-		<div class="mt-1 flex gap-1.5">
-			<button
-				class="btn-accent flex min-w-0 flex-1 items-center justify-center rounded-md px-2.5 py-1.5 text-sm"
-				type="button"
-				onclick={addAssetButtonClick}
-			>
-				<span class="material-icons mr-1.5 text-base">add</span>{get(LL).editor.addAssetLabel()}
-			</button>
-			{#if globalState.currentProject!.content.assets.length > 0}
+		{#if globalState.currentProject!.content.assets.length === 0}
+			<div class="media-empty-state">
+				<div class="media-empty-icon" aria-hidden="true">
+					<span class="material-icons-outlined">graphic_eq</span>
+				</div>
+				<p class="text-sm font-semibold text-primary">{emptyCopy.mediaEmptyTitle()}</p>
+				<p class="text-xs leading-relaxed text-thirdly">{emptyCopy.mediaEmptyDescription()}</p>
+				<button
+					class="btn-accent mt-2 flex min-h-10 w-full items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold"
+					type="button"
+					onclick={addAssetButtonClick}
+				>
+					<span class="material-icons-outlined text-lg">add_circle</span>
+					{emptyCopy.addRecitation()}
+				</button>
+			</div>
+		{:else}
+			<div class="mt-1 flex gap-1.5">
+				<button
+					class="btn-accent flex min-w-0 flex-1 items-center justify-center rounded-md px-2.5 py-1.5 text-sm"
+					type="button"
+					onclick={addAssetButtonClick}
+				>
+					<span class="material-icons mr-1.5 text-base">add</span>{get(LL).editor.addAssetLabel()}
+				</button>
 				<button
 					class={`btn flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${areAllAssetsSelected ? 'text-accent' : ''}`}
 					type="button"
@@ -204,50 +227,50 @@
 						>{areAllAssetsSelected ? 'deselect' : 'select_all'}</span
 					>
 				</button>
-			{/if}
-		</div>
+			</div>
 
-		{#if selectedAssets.length > 0}
-			<div
-				class="mt-2 rounded-md border border-[var(--accent-primary)]/40 bg-[var(--accent-primary)]/5 p-2"
-			>
-				<div class="flex items-center justify-between gap-2">
-					<span class="truncate text-xs font-medium text-primary">
-						{get(LL).editor.selectedCount({ count: selectedAssets.length })}
-					</span>
+			{#if selectedAssets.length > 0}
+				<div
+					class="mt-2 rounded-md border border-[var(--accent-primary)]/40 bg-[var(--accent-primary)]/5 p-2"
+				>
+					<div class="flex items-center justify-between gap-2">
+						<span class="truncate text-xs font-medium text-primary">
+							{get(LL).editor.selectedCount({ count: selectedAssets.length })}
+						</span>
+						<button
+							class="flex h-6 w-6 shrink-0 items-center justify-center rounded text-thirdly hover:bg-white/10 hover:text-primary focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
+							type="button"
+							title={get(LL).editor.clearSelection()}
+							onclick={() => (selectedAssetIds = [])}
+						>
+							<span class="material-icons text-sm">close</span>
+						</button>
+					</div>
 					<button
-						class="flex h-6 w-6 shrink-0 items-center justify-center rounded text-thirdly hover:bg-white/10 hover:text-primary focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
+						class="btn mt-2 flex h-8 w-full items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium"
 						type="button"
-						title={get(LL).editor.clearSelection()}
-						onclick={() => (selectedAssetIds = [])}
+						onpointerdown={() =>
+							(wasSelectedTimelineContextMenuOpenOnPointerDown =
+								selectedTimelineContextMenuElement !== null &&
+								get(currentMenu) === selectedTimelineContextMenuElement)}
+						onclick={openSelectedTimelineContextMenu}
 					>
-						<span class="material-icons text-sm">close</span>
+						<span class="material-icons text-lg!">add_to_queue</span>
+						{get(LL).editor.addToTimelineLabel()}
 					</button>
 				</div>
-				<button
-					class="btn mt-2 flex h-8 w-full items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium"
-					type="button"
-					onpointerdown={() =>
-						(wasSelectedTimelineContextMenuOpenOnPointerDown =
-							selectedTimelineContextMenuElement !== null &&
-							get(currentMenu) === selectedTimelineContextMenuElement)}
-					onclick={openSelectedTimelineContextMenu}
-				>
-					<span class="material-icons text-lg!">add_to_queue</span>
-					{get(LL).editor.addToTimelineLabel()}
-				</button>
+			{/if}
+
+			<div class="mt-2 flex flex-col gap-1">
+				{#each globalState.currentProject!.content.assets as asset (asset.id)}
+					<AssetViewer
+						{asset}
+						selected={selectedAssetIds.includes(asset.id)}
+						onToggleSelection={() => toggleAssetSelection(asset.id)}
+					/>
+				{/each}
 			</div>
 		{/if}
-
-		<div class="mt-2 flex flex-col gap-1">
-			{#each globalState.currentProject!.content.assets as asset (asset.id)}
-				<AssetViewer
-					{asset}
-					selected={selectedAssetIds.includes(asset.id)}
-					onToggleSelection={() => toggleAssetSelection(asset.id)}
-				/>
-			{/each}
-		</div>
 	</div>
 </Section>
 
@@ -278,3 +301,34 @@
 		</Item>
 	{/if}
 </ContextMenu>
+
+<style>
+	.media-empty-state {
+		display: flex;
+		min-height: 12rem;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.45rem;
+		border: 1px dashed color-mix(in srgb, var(--accent-primary) 45%, var(--border-color));
+		border-radius: 0.75rem;
+		padding: 1rem;
+		background: linear-gradient(
+			145deg,
+			color-mix(in srgb, var(--accent-primary) 9%, transparent),
+			transparent
+		);
+		text-align: center;
+	}
+
+	.media-empty-icon {
+		display: flex;
+		height: 3rem;
+		width: 3rem;
+		align-items: center;
+		justify-content: center;
+		border-radius: 0.9rem;
+		background: color-mix(in srgb, var(--accent-primary) 14%, var(--bg-primary));
+		color: var(--accent-primary);
+	}
+</style>

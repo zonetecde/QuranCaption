@@ -43,6 +43,26 @@
 	}
 
 	/**
+	 * Retourne le libellé localisé d'un statut de traduction.
+	 * @param {string} status Identifiant interne du statut.
+	 * @returns {string} Libellé affichable dans les filtres.
+	 */
+	function getTranslationStatusLabel(status: string): string {
+		const LL_ = get(LL).editor;
+		const labels: Record<string, string> = {
+			'to review': LL_.toReview(),
+			'ai error': LL_.aiError(),
+			error: LL_.errorStatus(),
+			'ai trimmed': LL_.aiTrimmed(),
+			'automatically trimmed': LL_.automaticallyTrimmed(),
+			fetched: LL_.fetched(),
+			reviewed: LL_.reviewed(),
+			'completed by default': LL_.completedByDefault()
+		};
+		return labels[status] ?? status;
+	}
+
+	/**
 	 * Diffère l'application de la recherche pour éviter de recalculer les filtres à chaque frappe.
 	 * @returns {void}
 	 */
@@ -217,7 +237,7 @@
 							<span
 								class="min-w-0 flex-1 text-xs text-secondary font-medium leading-tight capitalize"
 							>
-								{filter.replace(/([a-z])([A-Z])/g, '$1 $2')}
+								{getTranslationStatusLabel(filter)}
 							</span>
 							<!-- Badge de statut -->
 							<span

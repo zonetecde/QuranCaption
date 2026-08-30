@@ -2495,6 +2495,118 @@ type RootTranslation = {
 		 */
 		playbackControls: string;
 		/**
+		 * Y​o​u​r​ ​f​i​r​s​t​ ​v​i​d​e​o
+		 */
+		firstVideoGuide: string;
+		/**
+		 * S​t​e​p​ ​{​c​u​r​r​e​n​t​}​ ​o​f​ ​{​t​o​t​a​l​}
+		 * @param {unknown} current
+		 * @param {unknown} total
+		 */
+		guideStep: RequiredParams<'current' | 'total'>;
+		/**
+		 * A​d​d​ ​t​h​e​ ​r​e​c​i​t​a​t​i​o​n​ ​a​n​d​ ​p​l​a​c​e​ ​y​o​u​r​ ​m​e​d​i​a​ ​o​n​ ​t​h​e​ ​t​i​m​e​l​i​n​e​.
+		 */
+		guideMedia: string;
+		/**
+		 * C​r​e​a​t​e​ ​a​n​d​ ​a​l​i​g​n​ ​t​h​e​ ​Q​u​r​a​n​ ​s​u​b​t​i​t​l​e​s​ ​w​i​t​h​ ​t​h​e​ ​r​e​c​i​t​a​t​i​o​n​.
+		 */
+		guideSubtitles: string;
+		/**
+		 * O​p​t​i​o​n​a​l​l​y​ ​a​d​d​ ​a​n​d​ ​a​d​a​p​t​ ​a​ ​t​r​a​n​s​l​a​t​i​o​n​ ​t​o​ ​e​a​c​h​ ​r​e​c​i​t​e​d​ ​p​a​s​s​a​g​e​.
+		 */
+		guideTranslations: string;
+		/**
+		 * C​h​o​o​s​e​ ​a​ ​p​r​e​s​e​t​,​ ​t​h​e​n​ ​c​u​s​t​o​m​i​z​e​ ​t​h​e​ ​v​i​s​u​a​l​ ​r​e​s​u​l​t​ ​i​f​ ​n​e​e​d​e​d​.
+		 */
+		guideStyle: string;
+		/**
+		 * C​h​e​c​k​ ​t​h​a​t​ ​t​h​e​ ​p​r​o​j​e​c​t​ ​i​s​ ​r​e​a​d​y​,​ ​t​h​e​n​ ​e​x​p​o​r​t​ ​t​h​e​ ​f​i​n​a​l​ ​v​i​d​e​o​.
+		 */
+		guideExport: string;
+		/**
+		 * O​p​t​i​o​n​a​l
+		 */
+		optional: string;
+		/**
+		 * H​i​d​e​ ​t​h​e​ ​f​i​r​s​t​ ​v​i​d​e​o​ ​g​u​i​d​e
+		 */
+		hideGuide: string;
+		/**
+		 * S​h​o​w​ ​t​h​e​ ​“​Y​o​u​r​ ​f​i​r​s​t​ ​v​i​d​e​o​”​ ​g​u​i​d​e​ ​a​g​a​i​n​ ​f​o​r​ ​f​u​t​u​r​e​ ​p​r​o​j​e​c​t​s​?
+		 */
+		showGuideAgainQuestion: string;
+		/**
+		 * N​e​x​t​:​ ​{​s​t​e​p​}
+		 * @param {unknown} step
+		 */
+		nextStep: RequiredParams<'step'>;
+		/**
+		 * S​t​a​r​t​ ​w​i​t​h​ ​t​h​e​ ​r​e​c​i​t​a​t​i​o​n
+		 */
+		mediaEmptyTitle: string;
+		/**
+		 * A​d​d​ ​t​h​e​ ​a​u​d​i​o​ ​t​h​a​t​ ​w​i​l​l​ ​g​u​i​d​e​ ​t​h​e​ ​t​i​m​i​n​g​ ​o​f​ ​y​o​u​r​ ​v​i​d​e​o​.​ ​Y​o​u​ ​c​a​n​ ​a​d​d​ ​i​m​a​g​e​s​ ​a​n​d​ ​v​i​d​e​o​s​ ​a​f​t​e​r​w​a​r​d​s​.
+		 */
+		mediaEmptyDescription: string;
+		/**
+		 * A​d​d​ ​a​ ​r​e​c​i​t​a​t​i​o​n
+		 */
+		addRecitation: string;
+		/**
+		 * H​o​w​ ​w​o​u​l​d​ ​y​o​u​ ​l​i​k​e​ ​t​o​ ​c​r​e​a​t​e​ ​s​u​b​t​i​t​l​e​s​?
+		 */
+		chooseSubtitleMethod: string;
+		/**
+		 * C​h​o​o​s​e​ ​t​h​e​ ​f​a​s​t​e​s​t​ ​m​e​t​h​o​d​ ​f​o​r​ ​y​o​u​r​ ​f​i​r​s​t​ ​s​u​b​t​i​t​l​e​s​.
+		 */
+		chooseSubtitleMethodDescription: string;
+		/**
+		 * U​s​e​ ​A​I​ ​·​ ​R​e​c​o​m​m​e​n​d​e​d
+		 */
+		useAiRecommended: string;
+		/**
+		 * C​r​e​a​t​e​ ​m​a​n​u​a​l​l​y
+		 */
+		createManually: string;
+		/**
+		 * 1​.​ ​P​l​a​y​ ​t​h​e​ ​a​u​d​i​o​ ​→​ ​2​.​ ​S​e​l​e​c​t​ ​t​h​e​ ​r​e​c​i​t​e​d​ ​w​o​r​d​s​ ​→​ ​3​.​ ​C​l​i​c​k​ ​t​h​e​ ​c​h​e​c​k​m​a​r​k
+		 */
+		manualSubtitleSteps: string;
+		/**
+		 * W​a​t​c​h​ ​a​n​ ​e​x​a​m​p​l​e
+		 */
+		viewExample: string;
+		/**
+		 * C​o​n​t​r​o​l​s​ ​g​u​i​d​e
+		 */
+		controlsGuide: string;
+		/**
+		 * A​d​a​p​t​ ​t​h​e​ ​t​r​a​n​s​l​a​t​i​o​n​ ​t​o​ ​t​h​e​ ​r​e​c​i​t​e​d​ ​p​a​s​s​a​g​e
+		 */
+		translationGuideTitle: string;
+		/**
+		 * C​l​i​c​k​ ​o​r​ ​d​r​a​g​ ​o​v​e​r​ ​t​h​e​ ​t​r​a​n​s​l​a​t​e​d​ ​w​o​r​d​s​ ​t​o​ ​k​e​e​p​ ​o​n​l​y​ ​t​h​e​ ​p​a​r​t​ ​t​h​a​t​ ​m​a​t​c​h​e​s​ ​t​h​e​ ​A​r​a​b​i​c​ ​s​u​b​t​i​t​l​e​.
+		 */
+		translationGuideDescription: string;
+		/**
+		 * {​p​r​o​g​r​e​s​s​}​%​ ​r​e​v​i​e​w​e​d
+		 * @param {unknown} progress
+		 */
+		reviewProgress: RequiredParams<'progress'>;
+		/**
+		 * S​t​a​r​t​ ​w​i​t​h​ ​a​ ​r​e​a​d​y​-​m​a​d​e​ ​s​t​y​l​e
+		 */
+		styleGuideTitle: string;
+		/**
+		 * A​p​p​l​y​ ​a​ ​p​r​e​s​e​t​ ​f​i​r​s​t​,​ ​c​h​e​c​k​ ​t​h​e​ ​p​r​e​v​i​e​w​,​ ​t​h​e​n​ ​c​u​s​t​o​m​i​z​e​ ​i​n​d​i​v​i​d​u​a​l​ ​s​e​t​t​i​n​g​s​ ​i​f​ ​n​e​e​d​e​d​.
+		 */
+		styleGuideDescription: string;
+		/**
+		 * C​u​s​t​o​m​i​z​e​ ​m​a​n​u​a​l​l​y
+		 */
+		customizeStyles: string;
+		/**
 		 * V​o​l​u​m​e
 		 */
 		volumeLabel: string;
@@ -5877,6 +5989,26 @@ type RootTranslation = {
 		 */
 		configureExportSettings: string;
 		/**
+		 * C​h​a​p​t​e​r​ ​f​o​r​m​a​t
+		 */
+		chapterFormat: string;
+		/**
+		 * T​e​x​t​ ​f​o​r​m​a​t
+		 */
+		textFormat: string;
+		/**
+		 * P​l​a​c​e​h​o​l​d​e​r​s
+		 */
+		placeholders: string;
+		/**
+		 * N​o​ ​t​r​a​n​s​l​a​t​i​o​n
+		 */
+		noTranslation: string;
+		/**
+		 * T​r​a​n​s​l​a​t​i​o​n​ ​u​s​e​d​ ​f​o​r​ ​<​v​e​r​s​e​-​t​r​a​n​s​l​a​t​i​o​n​>
+		 */
+		translationForVerse: string;
+		/**
 		 * E​x​p​o​r​t​ ​R​a​n​g​e
 		 */
 		exportRange: string;
@@ -8749,11 +8881,11 @@ type RootTranslation = {
 		 */
 		stepCreateProjectDesc: string;
 		/**
-		 * O​p​e​n​ ​t​h​e​ ​t​u​t​o​r​i​a​l​ ​p​r​o​j​e​c​t
+		 * C​r​e​a​t​e​ ​y​o​u​r​ ​p​r​o​j​e​c​t
 		 */
 		stepOpenTutorialTitle: string;
 		/**
-		 * A​ ​t​u​t​o​r​i​a​l​ ​p​r​o​j​e​c​t​ ​w​i​t​h​ ​S​u​r​a​h​ ​A​l​-​F​a​t​i​h​a​h​ ​b​y​ ​Y​a​s​s​e​r​ ​A​l​-​D​o​s​a​r​i​ ​h​a​s​ ​b​e​e​n​ ​c​r​e​a​t​e​d​ ​f​o​r​ ​y​o​u​.​ ​C​l​i​c​k​ ​i​t​s​ ​c​a​r​d​ ​t​o​ ​o​p​e​n​ ​i​t​ ​a​n​d​ ​f​o​l​l​o​w​ ​a​l​o​n​g​.
+		 * G​i​v​e​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​a​ ​n​a​m​e​ ​a​n​d​ ​o​p​t​i​o​n​a​l​l​y​ ​c​h​o​o​s​e​ ​i​t​s​ ​r​e​c​i​t​e​r​,​ ​t​h​e​n​ ​c​l​i​c​k​ ​C​r​e​a​t​e​ ​p​r​o​j​e​c​t​.​ ​Y​o​u​ ​w​i​l​l​ ​l​e​a​r​n​ ​e​a​c​h​ ​s​t​e​p​ ​u​s​i​n​g​ ​t​h​i​s​ ​e​m​p​t​y​ ​p​r​o​j​e​c​t​.
 		 */
 		stepOpenTutorialDesc: string;
 		/**
@@ -8853,11 +8985,11 @@ type RootTranslation = {
 		 */
 		stepExportVideoDesc: string;
 		/**
-		 * C​l​i​c​k​ ​t​h​e​ ​t​u​t​o​r​i​a​l​ ​p​r​o​j​e​c​t​ ​c​a​r​d​ ​t​o​ ​c​o​n​t​i​n​u​e
+		 * C​l​i​c​k​ ​N​e​w​ ​p​r​o​j​e​c​t​ ​t​o​ ​c​o​n​t​i​n​u​e
 		 */
 		hintClickTutorialCard: string;
 		/**
-		 * H​o​v​e​r​ ​t​h​e​ ​a​s​s​e​t​ ​a​n​d​ ​c​l​i​c​k​ ​"​A​d​d​ ​t​o​ ​T​i​m​e​l​i​n​e​"​ ​t​o​ ​c​o​n​t​i​n​u​e
+		 * E​n​t​e​r​ ​a​ ​p​r​o​j​e​c​t​ ​n​a​m​e​,​ ​t​h​e​n​ ​c​l​i​c​k​ ​C​r​e​a​t​e​ ​p​r​o​j​e​c​t​ ​t​o​ ​c​o​n​t​i​n​u​e
 		 */
 		hintHoverAndAdd: string;
 		/**
@@ -13808,6 +13940,114 @@ export type TranslationFunctions = {
 		 */
 		playbackControls: () => LocalizedString;
 		/**
+		 * Your first video
+		 */
+		firstVideoGuide: () => LocalizedString;
+		/**
+		 * Step {current} of {total}
+		 */
+		guideStep: (arg: { current: unknown; total: unknown }) => LocalizedString;
+		/**
+		 * Add the recitation and place your media on the timeline.
+		 */
+		guideMedia: () => LocalizedString;
+		/**
+		 * Create and align the Quran subtitles with the recitation.
+		 */
+		guideSubtitles: () => LocalizedString;
+		/**
+		 * Optionally add and adapt a translation to each recited passage.
+		 */
+		guideTranslations: () => LocalizedString;
+		/**
+		 * Choose a preset, then customize the visual result if needed.
+		 */
+		guideStyle: () => LocalizedString;
+		/**
+		 * Check that the project is ready, then export the final video.
+		 */
+		guideExport: () => LocalizedString;
+		/**
+		 * Optional
+		 */
+		optional: () => LocalizedString;
+		/**
+		 * Hide the first video guide
+		 */
+		hideGuide: () => LocalizedString;
+		/**
+		 * Show the “Your first video” guide again for future projects?
+		 */
+		showGuideAgainQuestion: () => LocalizedString;
+		/**
+		 * Next: {step}
+		 */
+		nextStep: (arg: { step: unknown }) => LocalizedString;
+		/**
+		 * Start with the recitation
+		 */
+		mediaEmptyTitle: () => LocalizedString;
+		/**
+		 * Add the audio that will guide the timing of your video. You can add images and videos afterwards.
+		 */
+		mediaEmptyDescription: () => LocalizedString;
+		/**
+		 * Add a recitation
+		 */
+		addRecitation: () => LocalizedString;
+		/**
+		 * How would you like to create subtitles?
+		 */
+		chooseSubtitleMethod: () => LocalizedString;
+		/**
+		 * Choose the fastest method for your first subtitles.
+		 */
+		chooseSubtitleMethodDescription: () => LocalizedString;
+		/**
+		 * Use AI · Recommended
+		 */
+		useAiRecommended: () => LocalizedString;
+		/**
+		 * Create manually
+		 */
+		createManually: () => LocalizedString;
+		/**
+		 * 1. Play the audio → 2. Select the recited words → 3. Click the checkmark
+		 */
+		manualSubtitleSteps: () => LocalizedString;
+		/**
+		 * Watch an example
+		 */
+		viewExample: () => LocalizedString;
+		/**
+		 * Controls guide
+		 */
+		controlsGuide: () => LocalizedString;
+		/**
+		 * Adapt the translation to the recited passage
+		 */
+		translationGuideTitle: () => LocalizedString;
+		/**
+		 * Click or drag over the translated words to keep only the part that matches the Arabic subtitle.
+		 */
+		translationGuideDescription: () => LocalizedString;
+		/**
+		 * {progress}% reviewed
+		 */
+		reviewProgress: (arg: { progress: unknown }) => LocalizedString;
+		/**
+		 * Start with a ready-made style
+		 */
+		styleGuideTitle: () => LocalizedString;
+		/**
+		 * Apply a preset first, check the preview, then customize individual settings if needed.
+		 */
+		styleGuideDescription: () => LocalizedString;
+		/**
+		 * Customize manually
+		 */
+		customizeStyles: () => LocalizedString;
+		/**
 		 * Volume
 		 */
 		volumeLabel: () => LocalizedString;
@@ -17155,6 +17395,26 @@ export type TranslationFunctions = {
 		 */
 		configureExportSettings: () => LocalizedString;
 		/**
+		 * Chapter format
+		 */
+		chapterFormat: () => LocalizedString;
+		/**
+		 * Text format
+		 */
+		textFormat: () => LocalizedString;
+		/**
+		 * Placeholders
+		 */
+		placeholders: () => LocalizedString;
+		/**
+		 * No translation
+		 */
+		noTranslation: () => LocalizedString;
+		/**
+		 * Translation used for <verse-translation>
+		 */
+		translationForVerse: () => LocalizedString;
+		/**
 		 * Export Range
 		 */
 		exportRange: () => LocalizedString;
@@ -19986,11 +20246,11 @@ export type TranslationFunctions = {
 		 */
 		stepCreateProjectDesc: () => LocalizedString;
 		/**
-		 * Open the tutorial project
+		 * Create your project
 		 */
 		stepOpenTutorialTitle: () => LocalizedString;
 		/**
-		 * A tutorial project with Surah Al-Fatihah by Yasser Al-Dosari has been created for you. Click its card to open it and follow along.
+		 * Give your project a name and optionally choose its reciter, then click Create project. You will learn each step using this empty project.
 		 */
 		stepOpenTutorialDesc: () => LocalizedString;
 		/**
@@ -20090,11 +20350,11 @@ export type TranslationFunctions = {
 		 */
 		stepExportVideoDesc: () => LocalizedString;
 		/**
-		 * Click the tutorial project card to continue
+		 * Click New project to continue
 		 */
 		hintClickTutorialCard: () => LocalizedString;
 		/**
-		 * Hover the asset and click "Add to Timeline" to continue
+		 * Enter a project name, then click Create project to continue
 		 */
 		hintHoverAndAdd: () => LocalizedString;
 		/**

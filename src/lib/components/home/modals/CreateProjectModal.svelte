@@ -81,6 +81,7 @@
 </script>
 
 <div
+	data-tour-id="create-project-modal"
 	class="bg-secondary border-color border rounded-2xl w-[700px] shadow-2xl shadow-black flex flex-col relative"
 >
 	<div
@@ -141,7 +142,7 @@
 			</div>
 		</div>
 		<!-- Reciter Field with Autocomplete -->
-		<div style="position: relative; z-index: 1000;">
+		<div data-tour-hide-tooltip-on-focus style="position: relative; z-index: 1000;">
 			<AutocompleteInput
 				bind:value={reciter}
 				suggestions={RecitersManager.getRecitersWithCustomOnes()}
@@ -153,6 +154,7 @@
 				onEnterPress={createProjectButtonClick}
 			/>
 		</div>
+		<div data-tour-id="create-project-tour-anchor" aria-hidden="true"></div>
 
 		<div class="space-y-2">
 			<label for="project-type" class="flex items-center gap-2 text-sm font-semibold text-primary">

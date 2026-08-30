@@ -28,6 +28,13 @@ export class ProjectEditorState extends SerializableBase {
 	// Indique si l'utilisateur a déjà répondu à la proposition d'adapter les dimensions au média.
 	hasAnsweredVideoDimensionPrompt: boolean = $state(false);
 
+	// Indique si le guide progressif de l'éditeur a été masqué pour ce projet.
+	onboardingGuideDismissed: boolean = $state(false);
+	// Indique si l'aide contextuelle des traductions a été masquée pour ce projet.
+	translationGuideDismissed: boolean = $state(false);
+	// Indique si l'aide contextuelle des styles a été masquée pour ce projet.
+	styleGuideDismissed: boolean = $state(false);
+
 	// Indique quelle(s) section(s) de l'éditeur sont étendues
 	sections: {
 		[name: string]: {

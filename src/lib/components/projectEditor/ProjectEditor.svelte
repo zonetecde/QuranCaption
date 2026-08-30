@@ -12,6 +12,7 @@
 	import Export from './tabs/export/Export.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import EditorJourneyGuide from './EditorJourneyGuide.svelte';
 
 	const AUTOSAVE_CHECK_INTERVAL_MS = 15000;
 	const AUTOSAVE_RETRY_DELAY_MS = 3000;
@@ -275,6 +276,9 @@
 
 <div class="flex flex-col h-full bg-secondary min-h-0 overflow-hidden">
 	<Navigator />
+	{#if !globalState.currentProject!.projectEditorState.onboardingGuideDismissed && globalState.settings?.persistentUiState.showFirstVideoGuide !== false}
+		<EditorJourneyGuide />
+	{/if}
 
 	{#if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.VideoEditor}
 		<VideoEditor />

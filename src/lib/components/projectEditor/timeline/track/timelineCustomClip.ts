@@ -9,6 +9,7 @@ import {
 	type TimedOverlayRange
 } from '$lib/services/TimedOverlayRanges';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import { getTimelineClipLayout } from './timelineClipLayout';
 
 const CUSTOM_CLIP_SNAP_DISTANCE_PX = 8;
 
@@ -215,31 +216,11 @@ export type TimelineCustomClipLayout = {
 export function getTimelineCustomClipLayout(
 	clips: TimelineCustomClipLike[]
 ): TimelineCustomClipLayout {
-	const laneEndTimes: number[] = [];
-	const orderedClips = clips
-		.map((clip, originalIndex) => ({ clip, originalIndex }))
-		.sort((left, right) => {
-			const leftStart = left.clip.getAlwaysShow() ? 0 : left.clip.startTime;
-			const rightStart = right.clip.getAlwaysShow() ? 0 : right.clip.startTime;
-			return leftStart - rightStart || left.originalIndex - right.originalIndex;
-		});
-
-	const positionedClips = orderedClips.map(({ clip }) => {
-		const startTime = clip.getAlwaysShow() ? 0 : clip.startTime;
-		const endTime = clip.getAlwaysShow() ? Number.POSITIVE_INFINITY : clip.endTime;
-		let laneIndex = laneEndTimes.findIndex((laneEndTime) => startTime > laneEndTime);
-
-		if (laneIndex === -1) {
-			laneIndex = laneEndTimes.length;
-			laneEndTimes.push(endTime);
-		} else {
-			laneEndTimes[laneIndex] = endTime;
-		}
-
-		return { clip, laneIndex };
-	});
-
-	return { clips: positionedClips, laneCount: laneEndTimes.length };
+	return getTimelineClipLayout(
+		clips,
+		(clip) => (clip.getAlwaysShow() ? 0 : clip.startTime),
+		(clip) => (clip.getAlwaysShow() ? Number.POSITIVE_INFINITY : clip.endTime)
+	);
 }
 
 const GLOBAL_SURAH_NAME_TIMELINE_CONFIG: GlobalTimedOverlayConfig = {

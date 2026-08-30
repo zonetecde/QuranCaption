@@ -609,6 +609,8 @@ const de = {
 		clipAdditionError: 'Clip-Hinzufügungsfehler',
 		cannotAddMoreClips:
 			'Sie können keine weiteren Clips hinzufügen, da bereits ein Clip mit « Bis zum Ende wiederholen » vorhanden ist.',
+		audioOverlapHint:
+			'Tipp: Ziehe einen Audioclip in der Timeline über einen anderen, um sie zu überlagern und gleichzeitig abzuspielen.',
 		backgroundImageError: 'Hintergrundbildfehler',
 		cannotAddBackgroundImage:
 			'Sie können kein Hintergrundbild zur Timeline hinzufügen, da Hintergrundbilder in diesem Kontext nicht unterstützt werden.',
@@ -1005,6 +1007,7 @@ const de = {
 		reviewAndLaunchDesc: 'Überprüfen Sie Ihre Konfiguration, bevor Sie die Untertitel generieren.',
 		methodLabel: 'Methode',
 		audioSourceLabel: 'Audioquelle',
+		audioLaneLabel: 'Audio-Unterspur',
 		wbwTimestampsLabel: 'Wort-für-Wort-Zeitstempel',
 		presetTimingSummary: 'Voreinstellung / Zeitdaten-Zusammenfassung',
 		autoDetectLabel: 'Auto-Erkennung',

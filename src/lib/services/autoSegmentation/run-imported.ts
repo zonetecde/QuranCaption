@@ -24,7 +24,11 @@ async function runAutoSegmentationFromImportedJsonCore(
 	importedPayload: string | unknown,
 	options: Pick<
 		AutoSegmentationOptions,
-		'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs' | 'subtitleApplicationMode'
+		| 'audioLaneIndex'
+		| 'fillBySilence'
+		| 'extendBeforeSilence'
+		| 'extendBeforeSilenceMs'
+		| 'subtitleApplicationMode'
 	> = {},
 	project: Project | null = globalState.currentProject,
 	headless: boolean = false
@@ -32,9 +36,10 @@ async function runAutoSegmentationFromImportedJsonCore(
 	const fillBySilence: boolean = options.fillBySilence ?? true;
 	const extendBeforeSilence: boolean = options.extendBeforeSilence ?? false;
 	const extendBeforeSilenceMs: number = options.extendBeforeSilenceMs ?? 0;
+	const audioLaneIndex = options.audioLaneIndex ?? 0;
 
-	const audioInfo = getAutoSegmentationAudioInfo(project);
-	const audioClips = getAutoSegmentationAudioClips(project);
+	const audioInfo = getAutoSegmentationAudioInfo(project, audioLaneIndex);
+	const audioClips = getAutoSegmentationAudioClips(project, audioLaneIndex);
 	if ((!audioInfo || audioClips.length === 0) && !headless) {
 		return { status: 'failed', message: 'No audio clip found in the project.' };
 	}
@@ -46,7 +51,11 @@ async function runAutoSegmentationFromImportedJsonCore(
 		const parsed = parseImportedSegmentationJson(importedPayload);
 		const response =
 			!headless && audioClips.length > 0
-				? await enrichSegmentationResponseWithWordTimestamps(parsed.response)
+				? await enrichSegmentationResponseWithWordTimestamps(
+						parsed.response,
+						undefined,
+						audioLaneIndex
+					)
 				: parsed.response;
 		return await applySegmentationResponseToProject({
 			response,
@@ -87,7 +96,11 @@ export async function runAutoSegmentationFromImportedJsonForProject(
 	importedPayload: string | unknown,
 	options: Pick<
 		AutoSegmentationOptions,
-		'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs' | 'subtitleApplicationMode'
+		| 'audioLaneIndex'
+		| 'fillBySilence'
+		| 'extendBeforeSilence'
+		| 'extendBeforeSilenceMs'
+		| 'subtitleApplicationMode'
 	> = {}
 ): Promise<AutoSegmentationResult | null> {
 	return runAutoSegmentationFromImportedJsonCore(importedPayload, options, project, true);
@@ -103,7 +116,11 @@ export async function runAutoSegmentationFromImportedJson(
 	importedPayload: string | unknown,
 	options: Pick<
 		AutoSegmentationOptions,
-		'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs' | 'subtitleApplicationMode'
+		| 'audioLaneIndex'
+		| 'fillBySilence'
+		| 'extendBeforeSilence'
+		| 'extendBeforeSilenceMs'
+		| 'subtitleApplicationMode'
 	> = {}
 ): Promise<AutoSegmentationResult | null> {
 	const release = AutoSegmentationExecutionCoordinator.tryAcquire('manual');

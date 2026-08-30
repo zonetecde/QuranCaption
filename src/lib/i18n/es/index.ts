@@ -602,6 +602,8 @@ const es = {
 		clipAdditionError: 'Error al agregar clip',
 		cannotAddMoreClips:
 			'No se pueden agregar más clips porque ya hay un clip con \u00ab\u00a0Repetir hasta el final\u00a0\u00bb presente.',
+		audioOverlapHint:
+			'Consejo: arrastra un clip de audio sobre otro en la línea de tiempo para superponerlos y reproducirlos al mismo tiempo.',
 		backgroundImageError: 'Error de imagen de fondo',
 		cannotAddBackgroundImage:
 			'No se puede agregar una imagen de fondo a la línea de tiempo cuando las imágenes de fondo no son compatibles en este contexto.',
@@ -1000,6 +1002,7 @@ const es = {
 		reviewAndLaunchDesc: 'Verifique su configuración antes de generar los subtítulos.',
 		methodLabel: 'Método',
 		audioSourceLabel: 'Fuente de audio',
+		audioLaneLabel: 'Subpista de audio',
 		wbwTimestampsLabel: 'Marcas de tiempo palabra por palabra',
 		presetTimingSummary: 'Resumen de preset / temporización',
 		autoDetectLabel: 'Detección auto',

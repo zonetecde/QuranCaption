@@ -144,7 +144,10 @@
 	// Effect qui recharge l'audio uniquement quand l'asset ou son contenu change
 	$effect(() => {
 		const audio = currentAudio();
-		const audioKey = audio ? `${audio.id}:${audio.filePath}:${audio.mediaReloadToken}` : null;
+		const audioClipId = globalState.getAudioTrack.getCurrentClip()?.id;
+		const audioKey = audio
+			? `${audioClipId}:${audio.id}:${audio.filePath}:${audio.mediaReloadToken}`
+			: null;
 		untrack(() => {
 			if (audioKey === loadedAudioKey) return;
 			loadedAudioKey = audioKey;
@@ -153,8 +156,15 @@
 	});
 
 	$effect(() => {
-		const volumePercent = globalState.getAudioTrack.volumePercent;
-		untrack(() => applyAudioVolume(volumePercent));
+		const audioClips = globalState.getAudioTrack.clips;
+		const volumeSignature = audioClips
+			.map((clip) => `${clip.id}:${clip instanceof AssetClip ? clip.volumePercent : 100}`)
+			.join('|');
+		untrack(() => {
+			void volumeSignature;
+			const currentClip = globalState.getAudioTrack.getCurrentClip();
+			applyAudioVolume(currentClip instanceof AssetClip ? currentClip.volumePercent : 100);
+		});
 	});
 
 	// Effect principal de synchronisation - se déclenche quand le curseur bouge
@@ -272,6 +282,7 @@
 			audioHowl.unload();
 			audioHowl = null;
 		}
+		clearOverlappingAudioHowls();
 		if (videoElement) {
 			videoElement.pause();
 			videoElement.removeAttribute('src');
@@ -292,6 +303,7 @@
 			audioHowl.unload(); // Libère les ressources audio
 			audioHowl = null;
 		}
+		clearOverlappingAudioHowls();
 
 		window.removeEventListener('resize', resizeVideoToFitScreen);
 		window.removeEventListener('qurancaption-release-asset-media', releaseAssetMedia);
@@ -377,6 +389,7 @@
 		} else if (audioHowl) {
 			audioHowl.rate(speed);
 		}
+		for (const howl of overlappingAudioHowls.values()) howl.rate(speed);
 	}
 
 	$effect(() => {
@@ -499,6 +512,7 @@
 				}
 				const absolutePosition = currentAudioClip.startTime + Math.max(0, timeInClip);
 				getTimelineSettings().cursorPosition = absolutePosition;
+				syncOverlappingAudioPlaybackAtCursor();
 				syncVideoPlaybackAtCursor();
 			}
 		}
@@ -663,6 +677,7 @@
 	};
 
 	let audioHowl: Howl | null = null; // Instance Howler pour la lecture audio
+	const overlappingAudioHowls = new Map<number, Howl>();
 	let audioBoostContext: AudioContext | null = null;
 	let isPlaying = $state(false); // État de lecture global
 	let audioUpdateInterval: ReturnType<typeof setInterval> | null = null; // Intervalle pour la mise à jour du curseur audio
@@ -708,12 +723,71 @@
 
 	/**
 	 * Retourne le volume effectif de la preview sous forme linéaire.
-	 * @param {number} volumePercent Volume de piste demandé entre 0 et 200.
-	 * @returns {number} Volume natif entre 0 et 2.
+	 * @param {number} volumePercent Volume du clip demandé entre 0 et 100.
+	 * @returns {number} Volume natif entre 0 et 1.
 	 */
 	function getNativeAudioVolume(volumePercent: number): number {
 		if (globalState.getVideoPreviewState.showVideosAndAudios) return 0;
-		return Math.min(2, Math.max(0, volumePercent / 100));
+		return Math.min(1, Math.max(0, volumePercent / 100));
+	}
+
+	/**
+	 * Libère les lecteurs secondaires utilisés pour les overlaps audio.
+	 * @returns {void}
+	 */
+	function clearOverlappingAudioHowls(): void {
+		for (const howl of overlappingAudioHowls.values()) howl.unload();
+		overlappingAudioHowls.clear();
+	}
+
+	/**
+	 * Synchronise les clips audio superposés au lecteur principal de la preview.
+	 * @param {boolean} [forceSeek=false] Repositionne aussi les lecteurs déjà actifs.
+	 * @returns {void}
+	 */
+	function syncOverlappingAudioPlaybackAtCursor(forceSeek: boolean = false): void {
+		const track = globalState.getAudioTrack;
+		const cursorPosition = getTimelineSettings().cursorPosition;
+		const primaryClip = track.getCurrentClip(cursorPosition);
+		const activeClips = track
+			.getCurrentClips(cursorPosition)
+			.filter(
+				(clip): clip is AssetClip => clip instanceof AssetClip && clip.id !== primaryClip?.id
+			);
+		const activeIds = new Set(activeClips.map((clip) => clip.id));
+
+		for (const [clipId, howl] of overlappingAudioHowls) {
+			if (activeIds.has(clipId)) continue;
+			howl.unload();
+			overlappingAudioHowls.delete(clipId);
+		}
+
+		for (const clip of activeClips) {
+			const asset = globalState.currentProject?.content.getAssetById(clip.assetId);
+			if (!asset) continue;
+			const positionS = ((clip.sourceStartTime ?? 0) + cursorPosition - clip.startTime) / 1000;
+			let howl = overlappingAudioHowls.get(clip.id);
+			if (!howl) {
+				howl = new Howl({
+					src: [`${convertFileSrc(asset.filePath)}?v=${asset.mediaReloadToken}`],
+					html5: !isLinux,
+					rate: audioSpeed,
+					mute: globalState.getVideoPreviewState.showVideosAndAudios,
+					volume: Math.min(1, Math.max(0, clip.volumePercent / 100))
+				});
+				overlappingAudioHowls.set(clip.id, howl);
+				if (isPlaying) {
+					howl.play();
+					howl.seek(positionS);
+				}
+				continue;
+			}
+
+			howl.mute(globalState.getVideoPreviewState.showVideosAndAudios);
+			if (forceSeek) howl.seek(positionS);
+			if (isPlaying && !howl.playing()) howl.play();
+			else if (!isPlaying && howl.playing()) howl.pause();
+		}
 	}
 
 	/**
@@ -770,6 +844,7 @@
 		}
 
 		getTimelineSettings().cursorPosition = nativeAudioClipStartTime + Math.max(0, timeInClip);
+		syncOverlappingAudioPlaybackAtCursor();
 		syncVideoPlaybackAtCursor();
 		nativeAudioAnimationFrame = requestAnimationFrame(updateNativeAudioClock);
 	}
@@ -867,7 +942,9 @@
 				filePath: audioAsset.filePath,
 				positionMs: getCurrentAudioTimeToPlay() * 1000,
 				durationMs: audioAsset.duration.ms,
-				volume: getNativeAudioVolume(globalState.getAudioTrack.volumePercent),
+				volume: getNativeAudioVolume(
+					currentAudioClip instanceof AssetClip ? currentAudioClip.volumePercent : 100
+				),
 				speed: audioSpeed
 			});
 			if (setupId === nativeAudioSetupId && nativeAudioReady && isPlaying) {
@@ -1101,10 +1178,17 @@
 
 	/**
 	 * Applique le volume de la piste au lecteur natif ou au fallback Howler.
-	 * @param {number} volumePercent Volume demandé entre 0 et 200.
+	 * @param {number} volumePercent Volume du clip demandé entre 0 et 100.
 	 * @returns {void}
 	 */
 	function applyAudioVolume(volumePercent: number): void {
+		const volume = Math.min(1, Math.max(0, volumePercent / 100));
+		for (const [clipId, howl] of overlappingAudioHowls) {
+			const clip = globalState.getAudioTrack.getClipById(clipId);
+			howl.volume(
+				clip instanceof AssetClip ? Math.min(1, Math.max(0, clip.volumePercent / 100)) : 1
+			);
+		}
 		if (nativeAudioReady) {
 			void controlNativeAudio('setVolume', {
 				volume: getNativeAudioVolume(volumePercent)
@@ -1113,7 +1197,6 @@
 		}
 		if (!audioHowl) return;
 
-		const volume = Math.min(2, Math.max(0, volumePercent / 100));
 		audioHowl.volume(Math.min(1, volume));
 		const node = (
 			audioHowl as unknown as {
@@ -1213,7 +1296,8 @@
 				goNextAudio();
 			}
 		});
-		applyAudioVolume(globalState.getAudioTrack.volumePercent);
+		const currentAudioClip = globalState.getAudioTrack.getCurrentClip();
+		applyAudioVolume(currentAudioClip instanceof AssetClip ? currentAudioClip.volumePercent : 100);
 		return audioHowl;
 	}
 
@@ -1257,7 +1341,9 @@
 			const status = await controlNativeAudio('load', {
 				filePath: audioAsset.filePath,
 				durationMs: audioAsset.duration.ms,
-				volume: getNativeAudioVolume(globalState.getAudioTrack.volumePercent),
+				volume: getNativeAudioVolume(
+					currentAudioClip instanceof AssetClip ? currentAudioClip.volumePercent : 100
+				),
 				speed: audioSpeed
 			});
 			if (setupId !== nativeAudioSetupId) return;
@@ -1362,6 +1448,7 @@
 		} else if (audioHowl) {
 			audioHowl.play();
 		}
+		syncOverlappingAudioPlaybackAtCursor(true);
 		if (videoElement) {
 			videoElement.play();
 		}
@@ -1391,6 +1478,7 @@
 		if (videoElement) {
 			videoElement.pause();
 		}
+		for (const howl of overlappingAudioHowls.values()) howl.pause();
 
 		// Prépare la synchronisation pour la prochaine lecture
 
@@ -1457,6 +1545,7 @@
 			const fallbackAudio = setupHowlerFallback(audio);
 			if (shouldKeepPlaying) fallbackAudio.play();
 		}
+		syncOverlappingAudioPlaybackAtCursor(true);
 	}
 
 	// === NAVIGATION ENTRE MÉDIAS ===
@@ -1495,6 +1584,7 @@
 	 */
 	function syncAudioPlaybackAtCursor(): void {
 		if (!isPlaying) return;
+		syncOverlappingAudioPlaybackAtCursor();
 		const currentClip = globalState.getAudioTrack.getCurrentClip(
 			getTimelineSettings().cursorPosition
 		);

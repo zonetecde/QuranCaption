@@ -85,6 +85,19 @@ describe('Track lookup helpers', () => {
 		expect(restored.sourceStartTime).toBe(0);
 	});
 
+	it('preserves individual asset clip volume and defaults legacy clips to 100%', () => {
+		const clip = new AssetClip(0, 1000, 42);
+		clip.volumePercent = 35;
+
+		const restored = AssetClip.fromJSON(clip.toJSON()) as AssetClip;
+		const legacyData = clip.toJSON();
+		delete legacyData.volumePercent;
+		const legacy = AssetClip.fromJSON(legacyData) as AssetClip;
+
+		expect(restored.volumePercent).toBe(35);
+		expect(legacy.volumePercent).toBe(100);
+	});
+
 	it('finds the current clip at inclusive start and end boundaries', () => {
 		const first = createClip(0, 1000);
 		const second = createClip(1500, 2000);
@@ -96,6 +109,17 @@ describe('Track lookup helpers', () => {
 		expect(track.getCurrentClip(1001)).toBeNull();
 		expect(track.getCurrentClip(1499)).toBeNull();
 		expect(track.getCurrentClip(1500)).toBe(second);
+	});
+
+	it('returns every active audio clip when sub-tracks overlap', () => {
+		const main = createClip(0, 2_000);
+		const effect = createClip(500, 1_000);
+		const track = new Track(TrackType.Audio);
+		track.clips = [main, effect];
+
+		expect(track.getCurrentClip(750)).toBe(main);
+		expect(track.getCurrentClips(750)).toEqual([main, effect]);
+		expect(track.getCurrentClip(1_500)).toBe(main);
 	});
 
 	it('keeps zero-duration image clips addressable at their exact time', () => {

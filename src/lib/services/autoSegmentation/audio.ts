@@ -8,22 +8,47 @@ import type {
 	LocalSegmentationStatus,
 	SegmentationMode
 } from './types';
+import { getTimelineClipLayout } from '$lib/components/projectEditor/timeline/track/timelineClipLayout';
+
+/**
+ * Retourne le nombre de sous-pistes audio déduites des chevauchements du projet.
+ * @param {Project | null} project Projet explicite, ou projet global par défaut.
+ * @returns {number} Nombre de sous-pistes audio.
+ */
+export function getAutoSegmentationAudioLaneCount(
+	project: Project | null = globalState.currentProject
+): number {
+	if (!project) return 0;
+	const audioTrack = project.content.timeline.getFirstTrack(TrackType.Audio);
+	return getTimelineClipLayout(
+		audioTrack.clips,
+		(clip) => clip.startTime,
+		(clip) => clip.endTime
+	).laneCount;
+}
 
 /**
  * Extrait les clips audio présents sur la timeline du projet.
  *
  * @param {Project | null} project Projet explicite, ou projet global par défaut.
- * @returns {AutoSegmentationAudioClip[]} Liste des clips audio triés par temps de début.
+ * @param {number} [laneIndex=0] Index de la sous-piste audio sélectionnée.
+ * @returns {AutoSegmentationAudioClip[]} Liste des clips audio de la sous-piste, triés par temps de début.
  */
 export function getAutoSegmentationAudioClips(
-	project: Project | null = globalState.currentProject
+	project: Project | null = globalState.currentProject,
+	laneIndex: number = 0
 ): AutoSegmentationAudioClip[] {
 	if (!project) return [];
 	const audioTrack = project.content.timeline.getFirstTrack(TrackType.Audio);
+	const laneClips = getTimelineClipLayout(
+		audioTrack.clips,
+		(clip) => clip.startTime,
+		(clip) => clip.endTime
+	).clips.filter((positionedClip) => positionedClip.laneIndex === laneIndex);
 
 	const clips: AutoSegmentationAudioClip[] = [];
 
-	for (const clip of audioTrack.clips) {
+	for (const { clip } of laneClips) {
 		if (!clip || typeof clip !== 'object') continue;
 
 		const assetId = (clip as { assetId?: unknown }).assetId;
@@ -56,12 +81,14 @@ export function getAutoSegmentationAudioClips(
  * Récupère les informations du premier clip audio du projet.
  *
  * @param {Project | null} project Projet explicite, ou projet global par défaut.
+ * @param {number} [laneIndex=0] Index de la sous-piste audio sélectionnée.
  * @returns {AutoSegmentationAudioInfo | null} Infos du premier clip, ou null si aucun clip audio.
  */
 export function getAutoSegmentationAudioInfo(
-	project: Project | null = globalState.currentProject
+	project: Project | null = globalState.currentProject,
+	laneIndex: number = 0
 ): AutoSegmentationAudioInfo | null {
-	const clips = getAutoSegmentationAudioClips(project);
+	const clips = getAutoSegmentationAudioClips(project, laneIndex);
 	if (clips.length === 0) return null;
 
 	const first = clips[0];
@@ -76,12 +103,14 @@ export function getAutoSegmentationAudioInfo(
  * Calcule la durée totale des clips audio en secondes.
  *
  * @param {Project | null} project Projet explicite, ou projet global par défaut.
+ * @param {number} [laneIndex=0] Index de la sous-piste audio sélectionnée.
  * @returns {number} Durée audio totale en secondes.
  */
 export function getAutoSegmentationAudioDurationS(
-	project: Project | null = globalState.currentProject
+	project: Project | null = globalState.currentProject,
+	laneIndex: number = 0
 ): number {
-	const clips = getAutoSegmentationAudioClips(project);
+	const clips = getAutoSegmentationAudioClips(project, laneIndex);
 	if (clips.length === 0) return 0;
 	const totalMs = clips.reduce((sum, clip) => sum + Math.max(0, clip.endMs - clip.startMs), 0);
 	return totalMs / 1000;

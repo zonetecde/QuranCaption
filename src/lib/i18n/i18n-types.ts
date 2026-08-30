@@ -1221,6 +1221,10 @@ type RootTranslation = {
 		 */
 		cannotAddMoreClips: string;
 		/**
+		 * T​i​p​:​ ​D​r​a​g​ ​o​n​e​ ​a​u​d​i​o​ ​c​l​i​p​ ​o​v​e​r​ ​a​n​o​t​h​e​r​ ​i​n​ ​t​h​e​ ​t​i​m​e​l​i​n​e​ ​t​o​ ​l​a​y​e​r​ ​t​h​e​m​ ​a​n​d​ ​p​l​a​y​ ​b​o​t​h​ ​a​t​ ​t​h​e​ ​s​a​m​e​ ​t​i​m​e​.
+		 */
+		audioOverlapHint: string;
+		/**
 		 * B​a​c​k​g​r​o​u​n​d​ ​I​m​a​g​e​ ​E​r​r​o​r
 		 */
 		backgroundImageError: string;
@@ -2639,6 +2643,10 @@ type RootTranslation = {
 		 * A​u​d​i​o​ ​s​o​u​r​c​e
 		 */
 		audioSourceLabel: string;
+		/**
+		 * A​u​d​i​o​ ​s​u​b​-​t​r​a​c​k
+		 */
+		audioLaneLabel: string;
 		/**
 		 * W​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s
 		 */
@@ -12560,6 +12568,10 @@ export type TranslationFunctions = {
 		 */
 		cannotAddMoreClips: () => LocalizedString;
 		/**
+		 * Tip: Drag one audio clip over another in the timeline to layer them and play both at the same time.
+		 */
+		audioOverlapHint: () => LocalizedString;
+		/**
 		 * Background Image Error
 		 */
 		backgroundImageError: () => LocalizedString;
@@ -13943,6 +13955,10 @@ export type TranslationFunctions = {
 		 * Audio source
 		 */
 		audioSourceLabel: () => LocalizedString;
+		/**
+		 * Audio sub-track
+		 */
+		audioLaneLabel: () => LocalizedString;
 		/**
 		 * Word-by-word timestamps
 		 */

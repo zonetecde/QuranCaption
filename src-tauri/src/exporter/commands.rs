@@ -38,7 +38,7 @@ use super::types::{
 /// * `start_time` - Début de la plage d'export (ms).
 /// * `duration` - Durée de l'export (ms). `None` = toute la timeline.
 /// * `audios` - Liste des fichiers audio à superposer.
-/// * `audio_clips` - Clips audio temporels envoyés uniquement si la timeline contient un trim ou un espace.
+/// * `audio_clips` - Clips audio détaillés envoyés si la timeline contient un trim, un espace ou un volume individuel.
 /// * `audio_volume` - Volume audio en pourcentage, entre 0 et 200.
 /// * `videos` - Liste des vidéos de fond.
 /// * `media_fill` - Recadre les vidéos et images afin de remplir le cadre.
@@ -1236,7 +1236,7 @@ fn run_fast_export(
         .collect();
     let export_start_ms = start_time_ms as i64;
     let export_end_ms = export_start_ms.saturating_add(full_duration_ms as i64);
-    let prepared_audio_clips: Vec<(String, f64, f64, f64)> = audio_clips
+    let prepared_audio_clips: Vec<(String, f64, f64, f64, f64)> = audio_clips
         .unwrap_or_default()
         .iter()
         .filter_map(|clip| {
@@ -1254,6 +1254,7 @@ fn run_fast_export(
                     / 1000.0,
                 (intersection_start_ms - export_start_ms) as f64 / 1000.0,
                 (intersection_end_ms - intersection_start_ms) as f64 / 1000.0,
+                (clip.volume_percent.unwrap_or(100.0) / 100.0).clamp(0.0, 1.0),
             ))
         })
         .collect();
@@ -1486,7 +1487,7 @@ fn run_fast_export(
         let input_paths: Vec<&str> = if has_timed_audio {
             prepared_audio_clips
                 .iter()
-                .map(|(path, _, _, _)| path.as_str())
+                .map(|(path, _, _, _, _)| path.as_str())
                 .collect()
         } else {
             audio_paths.iter().map(String::as_str).collect()
@@ -1782,17 +1783,18 @@ fn run_fast_export(
                 "anullsrc=r=48000:cl=stereo,atrim=start=0:end={:.6}[asilence]",
                 duration_s
             ));
-            for (index, (_, source_start_s, timeline_offset_s, clip_duration_s)) in
+            for (index, (_, source_start_s, timeline_offset_s, clip_duration_s, clip_gain)) in
                 prepared_audio_clips.iter().enumerate()
             {
                 let timeline_delay_ms = (timeline_offset_s * 1000.0).round().max(0.0) as i64;
 
                 // amix recale les timestamps d'entrée : appliquer un délai réel préserve la position timeline.
                 filter_lines.push(format!(
-                    "[{}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=start={:.6}:end={:.6},asetpts=PTS-STARTPTS,adelay=delays={}:all=1[atrim{}]",
+                    "[{}:a]aformat=sample_rates=48000:channel_layouts=stereo,atrim=start={:.6}:end={:.6},asetpts=PTS-STARTPTS,volume={:.6},adelay=delays={}:all=1[atrim{}]",
                     audio_start_idx + index,
                     source_start_s,
                     source_start_s + clip_duration_s,
+                    clip_gain,
                     timeline_delay_ms,
                     index
                 ));

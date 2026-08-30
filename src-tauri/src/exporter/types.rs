@@ -128,7 +128,7 @@ pub struct VideoInput {
     pub duration_ms: Option<i64>,
 }
 
-/// Entrée audio temporelle utilisée uniquement lorsqu'un clip est trimé.
+/// Entrée audio temporelle utilisée lorsqu'un clip a un timing ou volume individuel.
 #[derive(serde::Deserialize, Debug, Clone)]
 pub struct AudioInput {
     /// Chemin vers le fichier audio.
@@ -139,6 +139,8 @@ pub struct AudioInput {
     pub timeline_start_ms: i64,
     /// Durée visible du clip.
     pub duration_ms: i64,
+    /// Volume individuel du clip, en pourcentage.
+    pub volume_percent: Option<f64>,
 }
 
 /// Vidéo de fond prétraitée, prête pour l'overlay final.

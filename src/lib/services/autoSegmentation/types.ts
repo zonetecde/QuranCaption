@@ -134,6 +134,8 @@ export type LocalSegmentationStatus = {
 };
 
 export type AutoSegmentationOptions = {
+	/** Index de la sous-piste audio à fusionner pour la segmentation. */
+	audioLaneIndex?: number;
 	minSilenceMs?: number;
 	minSpeechMs?: number;
 	padMs?: number;

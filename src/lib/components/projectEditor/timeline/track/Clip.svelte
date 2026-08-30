@@ -65,6 +65,7 @@
 	});
 
 	let wavesurfer: WaveSurfer | undefined;
+	let waveformContainer: HTMLDivElement | null = $state(null);
 	let trimDragStartX: number | null = $state(null);
 	let trimOriginalStartTime = 0;
 	let trimOriginalEndTime = 0;
@@ -174,6 +175,11 @@
 				)
 			: null;
 		const snapPoints = [
+			...(track.type === TrackType.Audio
+				? track.clips
+						.filter((trackClip) => trackClip.id !== clip.id)
+						.flatMap((trackClip) => [trackClip.startTime, trackClip.endTime])
+				: []),
 			...(track.type === TrackType.Video
 				? (globalState.getSubtitleTrack?.clips ?? []).flatMap((subtitleClip) => [
 						subtitleClip.startTime,
@@ -259,8 +265,8 @@
 			});
 			clipDragVisualStarts = null;
 		}
-		const previousClip = track.getClipBefore(clip.id);
-		const nextClip = track.getClipAfter(clip.id);
+		const previousClip = track.type === TrackType.Audio ? null : track.getClipBefore(clip.id);
+		const nextClip = track.type === TrackType.Audio ? null : track.getClipAfter(clip.id);
 		const allowCrossfadeOverlap =
 			track.type === TrackType.Video &&
 			String(globalState.getStyle('global', 'video-clip-transition')?.value ?? 'none') ===
@@ -294,6 +300,9 @@
 	 * @returns {void}
 	 */
 	function stopClipDragging(): void {
+		if (track.type === TrackType.Audio) {
+			track.clips.sort((left, right) => left.startTime - right.startTime);
+		}
 		clipDragStartX = null;
 		clipDragVisualStarts = null;
 		document.removeEventListener('mousemove', moveClip);
@@ -332,7 +341,7 @@
 		const deltaMs = Math.round(
 			((event.clientX - trimDragStartX) / track.getPixelPerSecond()) * 1000
 		);
-		const previousClip = track.getClipBefore(clip.id);
+		const previousClip = track.type === TrackType.Audio ? null : track.getClipBefore(clip.id);
 		const minimumStart = Math.max(
 			0,
 			trimOriginalStartTime - trimOriginalSourceStartTime,
@@ -356,7 +365,7 @@
 		const deltaMs = Math.round(
 			((event.clientX - trimDragStartX) / track.getPixelPerSecond()) * 1000
 		);
-		const nextClip = track.getClipAfter(clip.id);
+		const nextClip = track.type === TrackType.Audio ? null : track.getClipAfter(clip.id);
 		const sourceEndTime =
 			trimOriginalSourceStartTime + (trimOriginalEndTime - trimOriginalStartTime);
 		const maximumEnd = Math.min(
@@ -375,6 +384,9 @@
 	 * @returns {void}
 	 */
 	function stopTrim(): void {
+		if (track.type === TrackType.Audio) {
+			track.clips.sort((left, right) => left.startTime - right.startTime);
+		}
 		trimDragStartX = null;
 		document.removeEventListener('mousemove', trimLeft);
 		document.removeEventListener('mousemove', trimRight);
@@ -406,6 +418,17 @@
 	});
 
 	$effect(() => {
+		const container = waveformContainer;
+		if (!container) return;
+
+		const observer = new ResizeObserver(([entry]) => {
+			wavesurfer?.setOptions({ height: Math.max(1, Math.floor(entry.contentRect.height)) });
+		});
+		observer.observe(container);
+		return () => observer.disconnect();
+	});
+
+	$effect(() => {
 		if (
 			(asset.duration.ms < 45 * 60 * 1000 || clip.showWaveform) &&
 			globalState.settings?.persistentUiState.showWaveforms &&
@@ -416,6 +439,9 @@
 			const _mediaReloadToken = asset.mediaReloadToken;
 			const sourceStartTime = clip instanceof AssetClip ? (clip.sourceStartTime ?? 0) : 0;
 			const clipDuration = clip.duration;
+
+			const container = waveformContainer;
+			if (!container) return;
 
 			untrack(async () => {
 				if (wavesurfer) {
@@ -433,23 +459,23 @@
 					const visiblePeaks = peaks.slice(startIndex, endIndex);
 
 					wavesurfer = WaveSurfer.create({
-						container: '#clip-' + clip.id,
+						container,
 						waveColor: '#9d99cc',
 						progressColor: '#9d99cc',
 						url: file,
 						peaks: [visiblePeaks], // Pass peaks to avoid decoding
 						duration: clipDuration / 1000,
-						height: 'auto'
+						height: Math.max(1, container.clientHeight)
 					});
 				} catch (e) {
 					console.error('Failed to load waveform:', e);
 					// Fallback to normal loading if backend fails
 					wavesurfer = WaveSurfer.create({
-						container: '#clip-' + clip.id,
+						container,
 						waveColor: '#9d99cc',
 						progressColor: '#9d99cc',
 						url: file,
-						height: 'auto'
+						height: Math.max(1, container.clientHeight)
 					});
 				}
 			});
@@ -484,6 +510,16 @@
 
 		globalState.currentProject?.detail.updateVideoDetailAttributes();
 		globalState.updateVideoPreviewUI();
+	}
+
+	/**
+	 * Met à jour le volume individuel du clip audio.
+	 * @param {Event} event Événement de saisie du slider.
+	 * @returns {void}
+	 */
+	function setClipAudioVolume(event: Event): void {
+		if (!(clip instanceof AssetClip)) return;
+		clip.volumePercent = Number((event.currentTarget as HTMLInputElement).value);
 	}
 
 	function handleClipClick(event: MouseEvent) {
@@ -592,7 +628,7 @@
 	{/if}
 
 	{#if (asset.duration.ms < 45 * 60 * 1000 || clip.showWaveform) && globalState.settings?.persistentUiState.showWaveforms && track.type === TrackType.Audio}
-		<div class="h-full w-full" id={'clip-' + clip.id}></div>
+		<div class="h-full w-full" id={'clip-' + clip.id} bind:this={waveformContainer}></div>
 	{:else if asset.duration.ms >= 45 * 60 * 1000 && globalState.settings?.persistentUiState.showWaveforms && track.type === TrackType.Audio}
 		<div class="h-full w-full" onclick={() => (clip.showWaveform = true)}>
 			{get(LL).editor.clickToGenerateWaveform()}
@@ -629,6 +665,27 @@
 </div>
 
 <ContextMenu bind:this={contextMenu}>
+	{#if track.type === TrackType.Audio && clip instanceof AssetClip}
+		<li data-autoclose="false" class="px-2 py-1.5 text-sm text-[var(--text-primary)]">
+			<div class="mb-1 flex items-center justify-between gap-4">
+				<span>{get(LL).editor.volumeLabel()}</span>
+				<span>{clip.volumePercent}%</span>
+			</div>
+			<input
+				type="range"
+				min="0"
+				max="100"
+				step="1"
+				value={clip.volumePercent}
+				class="w-44 cursor-pointer"
+				aria-label={get(LL).editor.volumeLabel()}
+				onfocus={() => ProjectHistoryManager.begin('set audio clip volume')}
+				oninput={setClipAudioVolume}
+				onblur={() => ProjectHistoryManager.commit()}
+			/>
+		</li>
+		<Divider />
+	{/if}
 	{#if track.type === TrackType.Video && clip instanceof AssetClip}
 		<Item on:click={loopUntilTheEndClicked}>
 			<div class="btn-icon">

@@ -5,6 +5,7 @@ import { globalState } from '$lib/runes/main.svelte';
 import {
 	checkLocalSegmentationStatus,
 	getAutoSegmentationAudioInfo,
+	getAutoSegmentationAudioLaneCount,
 	installLocalSegmentationDeps,
 	estimateSegmentationDuration,
 	getAutoSegmentationAudioDurationS,
@@ -85,6 +86,7 @@ export function useAutoSegmentationWizard() {
 	let importedJsonFileName = $state('');
 	let importedJsonSegmentCount = $state(0);
 	let importedJsonParseError = $state<string | null>(null);
+	let selectedAudioLaneIndex = $state(0);
 	let estimationTimer: ReturnType<typeof setInterval> | null = null;
 	let estimatedProgressTimerStarted = false;
 	let pendingEstimatedDurationS: number | null = null;
@@ -117,7 +119,8 @@ export function useAutoSegmentationWizard() {
 			selection.aiVersion === 'quran_word_timing'
 	);
 
-	const audioInfo = $derived(() => getAutoSegmentationAudioInfo());
+	const audioLaneCount = $derived(() => getAutoSegmentationAudioLaneCount());
+	const audioInfo = $derived(() => getAutoSegmentationAudioInfo(undefined, selectedAudioLaneIndex));
 	const hasAudio = $derived(() => !!audioInfo());
 	const audioLabel = $derived(() => buildAudioLabel(audioInfo()?.fileName, audioInfo()?.clipCount));
 	const runtimeLabel = $derived(() =>
@@ -500,6 +503,7 @@ export function useAutoSegmentationWizard() {
 			importedJsonSegmentCount = parsed.segmentCount;
 			importedJsonParseError = null;
 			response = await runAutoSegmentationFromImportedJson(parsed.response, {
+				audioLaneIndex: selectedAudioLaneIndex,
 				fillBySilence,
 				extendBeforeSilence,
 				extendBeforeSilenceMs,
@@ -569,7 +573,7 @@ export function useAutoSegmentationWizard() {
 			selection.localAsrMode === 'multi_aligner' &&
 			selection.mode === 'local'
 		) {
-			const audioDurationS = getAutoSegmentationAudioDurationS();
+			const audioDurationS = getAutoSegmentationAudioDurationS(undefined, selectedAudioLaneIndex);
 			const estimated = await estimateSegmentationDuration({
 				endpoint: 'process_audio_session',
 				audioDurationS,
@@ -585,6 +589,7 @@ export function useAutoSegmentationWizard() {
 		try {
 			response = await runAutoSegmentation(
 				{
+					audioLaneIndex: selectedAudioLaneIndex,
 					minSilenceMs,
 					minSpeechMs,
 					padMs,
@@ -721,6 +726,14 @@ export function useAutoSegmentationWizard() {
 		extendBeforeSilenceMs = value;
 		persistPatch({ extendBeforeSilenceMs: value });
 	}
+	/**
+	 * Définit la sous-piste audio utilisée par la segmentation.
+	 * @param {number} value Index de la sous-piste sélectionnée.
+	 * @returns {void}
+	 */
+	function setSelectedAudioLaneIndex(value: number): void {
+		selectedAudioLaneIndex = Math.max(0, Math.min(audioLaneCount() - 1, value));
+	}
 	/** Goes to any wizard step within bounds. */
 	function goToStep(step: number): void {
 		currentStep = Math.max(0, Math.min(maxStep(), step));
@@ -841,6 +854,12 @@ export function useAutoSegmentationWizard() {
 		get importedJsonParseError() {
 			return importedJsonParseError;
 		},
+		get audioLaneCount() {
+			return audioLaneCount();
+		},
+		get selectedAudioLaneIndex() {
+			return selectedAudioLaneIndex;
+		},
 		hasAudio,
 		audioLabel,
 		runtimeLabel,
@@ -880,6 +899,7 @@ export function useAutoSegmentationWizard() {
 		setFillBySilence,
 		setExtendBeforeSilence,
 		setExtendBeforeSilenceMs,
+		setSelectedAudioLaneIndex,
 		goToStep,
 		goNext,
 		goBack

@@ -25,14 +25,17 @@ export async function getSegmentationMfaTimestampsSession(
  * Récupère les timestamps MFA à partir de l'audio courant du projet.
  *
  * @param {SegmentationSegment[]} segments Segments à enrichir.
+ * @param {RealignWindow} [window] Fenêtre temporelle à traiter.
+ * @param {number} [audioLaneIndex=0] Index de la sous-piste audio sélectionnée.
  * @returns {Promise<SegmentationResponse>} Réponse MFA normalisée.
  */
 export async function getSegmentationMfaTimestampsDirect(
 	segments: SegmentationSegment[],
-	window?: RealignWindow
+	window?: RealignWindow,
+	audioLaneIndex: number = 0
 ): Promise<SegmentationResponse> {
-	const audioInfo = getAutoSegmentationAudioInfo();
-	const audioClips = getAutoSegmentationAudioClips();
+	const audioInfo = getAutoSegmentationAudioInfo(undefined, audioLaneIndex);
+	const audioClips = getAutoSegmentationAudioClips(undefined, audioLaneIndex);
 	if (!audioInfo || audioClips.length === 0) {
 		throw new Error('No audio clip found in the project.');
 	}
@@ -56,11 +59,14 @@ export async function getSegmentationMfaTimestampsDirect(
  * Enrichit une réponse de segmentation avec des timestamps MFA quand ils sont absents.
  *
  * @param {SegmentationResponse} response Réponse brute ou partiellement enrichie.
+ * @param {RealignWindow} [window] Fenêtre temporelle à traiter.
+ * @param {number} [audioLaneIndex=0] Index de la sous-piste audio sélectionnée.
  * @returns {Promise<SegmentationResponse>} Réponse avec mots MFA si disponibles.
  */
 export async function enrichSegmentationResponseWithWordTimestamps(
 	response: SegmentationResponse,
-	window?: RealignWindow
+	window?: RealignWindow,
+	audioLaneIndex: number = 0
 ): Promise<SegmentationResponse> {
 	const segments = response.segments ?? [];
 	if (segments.length === 0) return response;
@@ -79,11 +85,11 @@ export async function enrichSegmentationResponseWithWordTimestamps(
 					error
 				);
 				mfaSource = 'direct';
-				mfaResponse = await getSegmentationMfaTimestampsDirect(segments, window);
+				mfaResponse = await getSegmentationMfaTimestampsDirect(segments, window, audioLaneIndex);
 			}
 		} else {
 			mfaSource = 'direct';
-			mfaResponse = await getSegmentationMfaTimestampsDirect(segments, window);
+			mfaResponse = await getSegmentationMfaTimestampsDirect(segments, window, audioLaneIndex);
 		}
 
 		const mfaSegments = normalizeMfaSegments(mfaResponse.segments ?? [], segments);

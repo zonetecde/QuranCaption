@@ -3,6 +3,9 @@
 	import LL from '$lib/i18n/i18n-svelte';
 
 	const wizard = getSharedWizard();
+	const audioLaneLabel = $derived(
+		($LL.editor as unknown as { audioLaneLabel: () => string }).audioLaneLabel()
+	);
 	const versionLabel = $derived(() =>
 		wizard.selection.aiVersion === 'legacy_v1'
 			? 'Legacy V1'
@@ -42,6 +45,20 @@
 			{$LL.editor.audioSourceLabel()}:
 			<span class="text-primary font-semibold">{wizard.audioLabel()}</span>
 		</div>
+		{#if wizard.audioLaneCount > 1}
+			<label class="flex items-center gap-2 text-secondary">
+				<span>{audioLaneLabel}:</span>
+				<select
+					class="rounded-md border border-color bg-secondary px-2 py-1 text-primary"
+					value={wizard.selectedAudioLaneIndex}
+					onchange={(event) => wizard.setSelectedAudioLaneIndex(Number(event.currentTarget.value))}
+				>
+					{#each Array(wizard.audioLaneCount) as _, index (index)}
+						<option value={index}>{audioLaneLabel} {index + 1}</option>
+					{/each}
+				</select>
+			</label>
+		{/if}
 		{#if wizard.selection.aiVersion === 'surah_splitter'}
 			<div class="text-secondary">
 				{$LL.editor.surahLabel()}:

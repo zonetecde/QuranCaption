@@ -606,6 +606,8 @@ const fr = {
 		clipAdditionError: 'Erreur d\u2019ajout de clip',
 		cannotAddMoreClips:
 			'Impossible d\u2019ajouter plus de clips car un clip avec \u00ab\u00a0Boucler jusqu\u2019à la fin\u00a0\u00bb est déjà présent.',
+		audioOverlapHint:
+			'Astuce\u00a0: faites glisser un clip audio sur un autre dans la timeline pour les superposer et les lire simultanément.',
 		backgroundImageError: 'Erreur d\u2019image d\u2019arrière-plan',
 		cannotAddBackgroundImage:
 			'Impossible d\u2019ajouter une image d\u2019arrière-plan à la timeline lorsque les images d\u2019arrière-plan ne sont pas prises en charge dans ce contexte.',
@@ -1002,6 +1004,7 @@ const fr = {
 		reviewAndLaunchDesc: 'Vérifiez votre configuration avant de générer les sous-titres.',
 		methodLabel: 'Méthode',
 		audioSourceLabel: 'Source audio',
+		audioLaneLabel: 'Sous-piste audio',
 		wbwTimestampsLabel: 'Horodatages mot par mot',
 		presetTimingSummary: 'Résumé du preset / minutage',
 		autoDetectLabel: 'Détection auto',

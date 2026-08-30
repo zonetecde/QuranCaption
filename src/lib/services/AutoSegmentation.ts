@@ -5,6 +5,7 @@ export {
 	getAutoSegmentationAudioClips,
 	getAutoSegmentationAudioInfo,
 	getAutoSegmentationAudioDurationS,
+	getAutoSegmentationAudioLaneCount,
 	checkLocalSegmentationStatus,
 	installLocalSegmentationDeps,
 	getPreferredSegmentationMode

@@ -793,6 +793,8 @@ const id = {
 		clipAdditionError: 'Error penambahan clip',
 		cannotAddMoreClips:
 			'Tidak bisa menambahkan clip lagi karena clip dengan "Loop until the end" sudah ada.',
+		audioOverlapHint:
+			'Tips: seret satu klip audio ke atas klip lain di timeline untuk menumpuk dan memutar keduanya secara bersamaan.',
 		backgroundImageError: 'Error gambar latar belakang',
 		cannotAddBackgroundImage:
 			'Tidak bisa menambahkan gambar latar belakang ke timeline saat gambar latar belakang tidak didukung dalam konteks ini.',
@@ -1114,6 +1116,7 @@ const id = {
 			'Saat Qari selesai membaca satu ayat, atau bagian dari ayat, tekan <span class="font-mono bg-accent px-1 rounded-sm">enter</span> untuk menambahkan subtitle pada waktu saat ini dengan kata yang dipilih.',
 		methodLabel: 'Metode',
 		audioSourceLabel: 'Sumber audio',
+		audioLaneLabel: 'Subtrek audio',
 		wbwTimestampsLabel: 'Timestamp kata demi kata',
 		downloadQuranRecitation: 'Unduh Bacaan Quran',
 		sourceLabel: 'Sumber',

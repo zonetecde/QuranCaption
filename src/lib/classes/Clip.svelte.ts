@@ -191,6 +191,7 @@ export class AssetClip extends Clip {
 	assetId: number;
 	loopUntilAudioEnd: boolean = $state(false);
 	sourceStartTime: number = $state(0);
+	volumePercent: number = $state(100);
 
 	constructor(startTime: number, endTime: number, assetId: number) {
 		super(startTime, endTime, 'Asset');

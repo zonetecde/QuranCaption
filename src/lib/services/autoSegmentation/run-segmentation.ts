@@ -10,9 +10,9 @@ import type {
 	LocalAsrMode,
 	SegmentationDevice,
 	SegmentationMode,
-	SegmentationResponse
+	SegmentationResponse,
+	SubtitleApplicationMode
 } from './types';
-import type { SubtitleApplicationMode } from './types';
 import {
 	getAutoSegmentationAudioInfo,
 	getAutoSegmentationAudioClips,
@@ -146,6 +146,7 @@ export async function runAutoSegmentationForProject(
 	const extendBeforeSilence: boolean = options.extendBeforeSilence ?? false;
 	const extendBeforeSilenceMs: number = options.extendBeforeSilenceMs ?? 0;
 	const onRunConfirmed = options.onRunConfirmed ?? null;
+	const audioLaneIndex = options.audioLaneIndex ?? 0;
 
 	const requestedMode: SegmentationMode = mode ?? (await getPreferredSegmentationMode());
 	const allowCloudFallbackEffective: boolean = allowCloudFallback && requestedMode !== 'local';
@@ -157,8 +158,8 @@ export async function runAutoSegmentationForProject(
 		`[AutoSegmentation] requestedMode=${requestedMode} localAsrMode=${localAsrMode} device=${device} allowCloudFallback=${allowCloudFallbackEffective}`
 	);
 
-	const audioInfo = getAutoSegmentationAudioInfo(project);
-	const audioClips = getAutoSegmentationAudioClips(project);
+	const audioInfo = getAutoSegmentationAudioInfo(project, audioLaneIndex);
+	const audioClips = getAutoSegmentationAudioClips(project, audioLaneIndex);
 	if (!audioInfo || audioClips.length === 0) {
 		return { status: 'failed', message: 'No audio clip found in the project.' };
 	}
@@ -306,7 +307,11 @@ export async function runAutoSegmentationForProject(
 			? (payload as SegmentationResponse)
 			: rawResponse;
 		const response = includeWbwTimestamps
-			? await enrichSegmentationResponseWithWordTimestamps(finalRawResponseBase)
+			? await enrichSegmentationResponseWithWordTimestamps(
+					finalRawResponseBase,
+					undefined,
+					audioLaneIndex
+				)
 			: finalRawResponseBase;
 
 		const contextModelName = resolveContextModelName(

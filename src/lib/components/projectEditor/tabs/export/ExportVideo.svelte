@@ -42,6 +42,7 @@
 
 	let showVideoQualitySettings = $state(false);
 	let showVideoAudioFadeSettings = $state(false);
+	let showAdditionalSettings = $state(false);
 	let showAdvancedSettings = $state(false);
 	let verseStartIndex = $state(0);
 	let verseEndIndex = $state(0);
@@ -94,6 +95,16 @@
 		exportReviewAcknowledgement: () => string;
 	};
 	let reviewCopy = $derived($LL.export as unknown as ExportReviewCopy);
+	type ExportReadinessCopy = {
+		exportReadiness: () => string;
+		mediaReadyForExport: () => string;
+		mediaMissingForExport: () => string;
+		subtitlesReadyForExport: (args: { count: number }) => string;
+		subtitlesMissingForExport: () => string;
+		readyToExport: () => string;
+		additionalOptions: () => string;
+	};
+	let readinessCopy = $derived($LL.export as unknown as ExportReadinessCopy);
 	type QuranCaptionPromotionCopy = {
 		quranCaptionPromotion: () => string;
 		addQuranCaptionPromotion: () => string;
@@ -141,6 +152,9 @@
 		exportReviewCounts.lowConfidence > 0 ||
 			exportReviewCounts.missingWords > 0 ||
 			exportReviewCounts.translations > 0
+	);
+	let hasMediaForExport = $derived(
+		globalState.getAudioTrack.clips.length > 0 || globalState.getVideoTrack.clips.length > 0
 	);
 	const exportVerses = $derived.by(() => {
 		const verses: ExportVerseOption[] = [];
@@ -725,6 +739,43 @@
 			</p>
 		</div>
 
+		<section class="mb-4 rounded-lg border border-color bg-accent p-3">
+			<div class="mb-2 flex items-center justify-between gap-3">
+				<h4 class="text-sm font-semibold text-primary">{readinessCopy.exportReadiness()}</h4>
+				{#if hasMediaForExport && globalState.getSubtitleClips.length > 0}
+					<span
+						class="rounded-full bg-emerald-500/15 px-2 py-1 text-[10px] font-bold text-emerald-300"
+					>
+						{readinessCopy.readyToExport()}
+					</span>
+				{/if}
+			</div>
+			<div class="space-y-1.5 text-xs">
+				<p
+					class="flex items-center gap-2 {hasMediaForExport ? 'text-secondary' : 'text-amber-300'}"
+				>
+					<span class="material-icons-outlined text-base">
+						{hasMediaForExport ? 'check_circle' : 'warning'}
+					</span>
+					{hasMediaForExport
+						? readinessCopy.mediaReadyForExport()
+						: readinessCopy.mediaMissingForExport()}
+				</p>
+				<p
+					class="flex items-center gap-2 {globalState.getSubtitleClips.length > 0
+						? 'text-secondary'
+						: 'text-amber-300'}"
+				>
+					<span class="material-icons-outlined text-base">
+						{globalState.getSubtitleClips.length > 0 ? 'check_circle' : 'warning'}
+					</span>
+					{globalState.getSubtitleClips.length > 0
+						? readinessCopy.subtitlesReadyForExport({ count: globalState.getSubtitleClips.length })
+						: readinessCopy.subtitlesMissingForExport()}
+				</p>
+			</div>
+		</section>
+
 		<!-- Time Range Selection -->
 		<div data-tour-id="export-range" class="mb-4">
 			<h4 class="mb-2 text-sm font-medium text-secondary">{$LL.export.exportRange()}</h4>
@@ -1061,123 +1112,142 @@
 			{/if}
 		</div>
 
-		<section class="mb-4">
-			<h4 class="mb-2 text-sm font-medium text-secondary">
-				{$LL.export.recitationContent()}
-			</h4>
-			<div class="rounded-lg border border-color bg-secondary p-3">
-				<label class="flex cursor-pointer select-none items-start gap-3">
-					<input
-						type="checkbox"
-						class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
-						checked={globalState.getExportState.exportOnlyRecitation}
-						onchange={(event) =>
-							setExportOnlyRecitation((event.currentTarget as HTMLInputElement).checked)}
-					/>
-					<span class="text-sm text-primary">
-						{$LL.export.exportOnlyRecitation()}
-						<span class="mt-1 block text-xs text-thirdly">
-							{$LL.export.exportOnlyRecitationDescription()}
-						</span>
-					</span>
-				</label>
+		<div class="mb-4">
+			<button
+				type="button"
+				class="flex w-full items-center justify-between rounded-lg border border-color bg-accent p-3 text-left transition-colors hover:bg-primary/60"
+				onclick={() => (showAdditionalSettings = !showAdditionalSettings)}
+				aria-expanded={showAdditionalSettings}
+			>
+				<span class="text-sm font-medium text-primary">{readinessCopy.additionalOptions()}</span>
+				<span
+					class="material-icons text-secondary transition-transform duration-200"
+					style={`transform: rotate(${showAdditionalSettings ? 180 : 0}deg);`}
+				>
+					expand_more
+				</span>
+			</button>
+		</div>
 
-				{#if globalState.getExportState.exportOnlyRecitation}
-					<div class="mt-4 grid grid-cols-1 gap-4 border-t border-color pt-4">
-						<div>
-							<label
-								class="mb-2 block text-sm font-medium text-primary"
-								for="recitation-cut-margin"
-							>
-								{$LL.export.recitationCutMargin()}
-							</label>
-							<input
-								id="recitation-cut-margin"
-								type="number"
-								min="0"
-								step="50"
-								class="input h-10 w-full"
-								value={globalState.getExportState.recitationCutMarginMs}
-								onchange={(event) =>
-									setRecitationCutMargin((event.currentTarget as HTMLInputElement).valueAsNumber)}
-							/>
-							<p class="mt-2 text-xs text-thirdly">
-								{$LL.export.recitationCutMarginDescription()}
-							</p>
-						</div>
-						<div>
-							<label
-								class="mb-2 block text-sm font-medium text-primary"
-								for="recitation-minimum-silence"
-							>
-								{$LL.export.recitationMinimumSilence()}
-							</label>
-							<input
-								id="recitation-minimum-silence"
-								type="number"
-								min="0"
-								step="100"
-								class="input h-10 w-full"
-								value={globalState.getExportState.recitationMinimumSilenceMs}
-								onchange={(event) =>
-									setRecitationMinimumSilence(
-										(event.currentTarget as HTMLInputElement).valueAsNumber
-									)}
-							/>
-							<p class="mt-2 text-xs text-thirdly">
-								{$LL.export.recitationMinimumSilenceDescription()}
-							</p>
-						</div>
-					</div>
-				{/if}
-			</div>
-		</section>
-
-		<section class="mb-4">
-			<h4 class="mb-2 text-sm font-medium text-secondary">
-				{promotionCopy.quranCaptionPromotion()}
-			</h4>
-			<div class="rounded-lg border border-color bg-secondary p-3">
-				<label class="flex cursor-pointer select-none items-start gap-3">
-					<input
-						type="checkbox"
-						class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
-						checked={globalState.getExportState.includeQuranCaptionPromotion}
-						onchange={(event) =>
-							setQuranCaptionPromotionEnabled((event.currentTarget as HTMLInputElement).checked)}
-					/>
-					<span class="text-sm text-primary">
-						{promotionCopy.addQuranCaptionPromotion()}
-						<span class="mt-1 block text-xs text-thirdly">
-							{promotionCopy.quranCaptionPromotionDescription()}
-						</span>
-					</span>
-				</label>
-
-				{#if globalState.getExportState.includeQuranCaptionPromotion}
-					<div class="mt-4 border-t border-color pt-4">
-						<label
-							class="mb-2 block text-sm font-medium text-primary"
-							for="quran-caption-promotion-position"
-						>
-							{promotionCopy.quranCaptionPromotionPosition()}
-						</label>
-						<select
-							id="quran-caption-promotion-position"
-							class="input w-full"
-							value={globalState.getExportState.quranCaptionPromotionPosition}
+		{#if showAdditionalSettings}
+			<section class="mb-4" transition:slide>
+				<h4 class="mb-2 text-sm font-medium text-secondary">
+					{$LL.export.recitationContent()}
+				</h4>
+				<div class="rounded-lg border border-color bg-secondary p-3">
+					<label class="flex cursor-pointer select-none items-start gap-3">
+						<input
+							type="checkbox"
+							class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
+							checked={globalState.getExportState.exportOnlyRecitation}
 							onchange={(event) =>
-								setQuranCaptionPromotionPosition(
-									(event.currentTarget as HTMLSelectElement).value as 'start' | 'end'
-								)}
-						>
-							<option value="start">{promotionCopy.quranCaptionPromotionAtStart()}</option>
-							<option value="end">{promotionCopy.quranCaptionPromotionAtEnd()}</option>
-						</select>
-					</div>
-				{/if}
-			</div>
-		</section>
+								setExportOnlyRecitation((event.currentTarget as HTMLInputElement).checked)}
+						/>
+						<span class="text-sm text-primary">
+							{$LL.export.exportOnlyRecitation()}
+							<span class="mt-1 block text-xs text-thirdly">
+								{$LL.export.exportOnlyRecitationDescription()}
+							</span>
+						</span>
+					</label>
+
+					{#if globalState.getExportState.exportOnlyRecitation}
+						<div class="mt-4 grid grid-cols-1 gap-4 border-t border-color pt-4">
+							<div>
+								<label
+									class="mb-2 block text-sm font-medium text-primary"
+									for="recitation-cut-margin"
+								>
+									{$LL.export.recitationCutMargin()}
+								</label>
+								<input
+									id="recitation-cut-margin"
+									type="number"
+									min="0"
+									step="50"
+									class="input h-10 w-full"
+									value={globalState.getExportState.recitationCutMarginMs}
+									onchange={(event) =>
+										setRecitationCutMargin((event.currentTarget as HTMLInputElement).valueAsNumber)}
+								/>
+								<p class="mt-2 text-xs text-thirdly">
+									{$LL.export.recitationCutMarginDescription()}
+								</p>
+							</div>
+							<div>
+								<label
+									class="mb-2 block text-sm font-medium text-primary"
+									for="recitation-minimum-silence"
+								>
+									{$LL.export.recitationMinimumSilence()}
+								</label>
+								<input
+									id="recitation-minimum-silence"
+									type="number"
+									min="0"
+									step="100"
+									class="input h-10 w-full"
+									value={globalState.getExportState.recitationMinimumSilenceMs}
+									onchange={(event) =>
+										setRecitationMinimumSilence(
+											(event.currentTarget as HTMLInputElement).valueAsNumber
+										)}
+								/>
+								<p class="mt-2 text-xs text-thirdly">
+									{$LL.export.recitationMinimumSilenceDescription()}
+								</p>
+							</div>
+						</div>
+					{/if}
+				</div>
+			</section>
+
+			<section class="mb-4">
+				<h4 class="mb-2 text-sm font-medium text-secondary">
+					{promotionCopy.quranCaptionPromotion()}
+				</h4>
+				<div class="rounded-lg border border-color bg-secondary p-3">
+					<label class="flex cursor-pointer select-none items-start gap-3">
+						<input
+							type="checkbox"
+							class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
+							checked={globalState.getExportState.includeQuranCaptionPromotion}
+							onchange={(event) =>
+								setQuranCaptionPromotionEnabled((event.currentTarget as HTMLInputElement).checked)}
+						/>
+						<span class="text-sm text-primary">
+							{promotionCopy.addQuranCaptionPromotion()}
+							<span class="mt-1 block text-xs text-thirdly">
+								{promotionCopy.quranCaptionPromotionDescription()}
+							</span>
+						</span>
+					</label>
+
+					{#if globalState.getExportState.includeQuranCaptionPromotion}
+						<div class="mt-4 border-t border-color pt-4">
+							<label
+								class="mb-2 block text-sm font-medium text-primary"
+								for="quran-caption-promotion-position"
+							>
+								{promotionCopy.quranCaptionPromotionPosition()}
+							</label>
+							<select
+								id="quran-caption-promotion-position"
+								class="input w-full"
+								value={globalState.getExportState.quranCaptionPromotionPosition}
+								onchange={(event) =>
+									setQuranCaptionPromotionPosition(
+										(event.currentTarget as HTMLSelectElement).value as 'start' | 'end'
+									)}
+							>
+								<option value="start">{promotionCopy.quranCaptionPromotionAtStart()}</option>
+								<option value="end">{promotionCopy.quranCaptionPromotionAtEnd()}</option>
+							</select>
+						</div>
+					{/if}
+				</div>
+			</section>
+		{/if}
 
 		<div class="mt-4">
 			<button

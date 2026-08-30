@@ -17,6 +17,7 @@
 		showVersePicker = true,
 		showPlaybackControls = false,
 		showControlHelp = false,
+		showManualGuide = false,
 		onCloseControlHelp = () => {},
 		onTogglePresetPicker = () => {},
 		onClosePresetPicker = () => {},
@@ -26,6 +27,7 @@
 		showVersePicker?: boolean;
 		showPlaybackControls?: boolean;
 		showControlHelp?: boolean;
+		showManualGuide?: boolean;
 		onCloseControlHelp?: () => void;
 		onTogglePresetPicker?: () => void;
 		onClosePresetPicker?: () => void;
@@ -72,14 +74,6 @@
 			)
 		)
 	);
-	let controlBarExpansion = $derived(
-		Math.max(
-			0,
-			(PROJECT_EDITOR_SUBTITLES_WORDS_HEIGHT.default - wordsHeight) /
-				(PROJECT_EDITOR_SUBTITLES_WORDS_HEIGHT.default - PROJECT_EDITOR_SUBTITLES_WORDS_HEIGHT.min)
-		)
-	);
-
 	/**
 	 * Valide la sélection de mots courante depuis les contrôles tactiles.
 	 * @returns {Promise<void>} Promesse résolue après l'ajout du sous-titre.
@@ -230,10 +224,7 @@
 				dataTestId="subtitles-words-resizer"
 			/>
 
-			<div
-				class="playback-controls"
-				style={`--playback-button-height: ${2.25 + controlBarExpansion * 6.25}rem; --playback-small-button-height: ${1.45 + controlBarExpansion * 5.55}rem;`}
-			>
+			<div class="playback-controls" class:manual-guide-active={showManualGuide}>
 				<div
 					class="playback-control-side playback-control-side-left"
 					class:pointer-events-none={isWbwEditActive}
@@ -281,7 +272,11 @@
 				</div>
 
 				<div class="playback-control-center">
-					<div class:pointer-events-none={isWbwEditActive} class:opacity-20={isWbwEditActive}>
+					<div
+						class="playback-control-center-top"
+						class:pointer-events-none={isWbwEditActive}
+						class:opacity-20={isWbwEditActive}
+					>
 						<button
 							class="playback-control-button playback-control-button-verse-previous"
 							type="button"
@@ -345,7 +340,11 @@
 							<span class="material-icons">chevron_right</span>
 						</button>
 					</div>
-					<div class:pointer-events-none={isWbwEditActive} class:opacity-20={isWbwEditActive}>
+					<div
+						class="playback-control-center-bottom"
+						class:pointer-events-none={isWbwEditActive}
+						class:opacity-20={isWbwEditActive}
+					>
 						<button
 							class="playback-control-button playback-control-button-down"
 							type="button"
@@ -460,7 +459,7 @@
 	.playback-controls {
 		box-sizing: border-box;
 		display: grid;
-		min-height: 6.5rem;
+		min-height: 7.5rem;
 		flex: 1 1 0;
 		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
 		grid-template-rows: repeat(2, minmax(0, 1fr));
@@ -635,11 +634,21 @@
 
 	.playback-control-center {
 		position: relative;
-		display: flex;
+		display: grid;
 		grid-row: 1 / span 2;
+		grid-template-rows: minmax(1.75rem, 1fr) 2.75rem minmax(1.75rem, 1fr);
 		align-self: stretch;
 		align-items: center;
 		justify-content: center;
+		gap: 0.35rem;
+	}
+
+	.playback-control-center-top,
+	.playback-control-center-bottom {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		min-height: 0;
 	}
 
 	.playback-control-side {
@@ -656,6 +665,13 @@
 		grid-row: 1 / span 2;
 		width: 100%;
 		height: 100%;
+	}
+
+	.playback-control-side .playback-control-button,
+	.playback-control-center-top .playback-control-button,
+	.playback-control-center-bottom .playback-control-button {
+		height: 100%;
+		min-height: 0;
 	}
 
 	.playback-control-button-predefined {
@@ -719,6 +735,12 @@
 		color: var(--text-on-accent);
 	}
 
+	.manual-guide-active .playback-control-button-primary,
+	.manual-guide-active .playback-control-button-confirm {
+		border-color: var(--accent-primary);
+		box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--accent-primary) 25%, transparent);
+	}
+
 	.playback-control-ai-icon {
 		font-size: 0.75rem;
 		font-weight: 700;
@@ -727,6 +749,7 @@
 
 	.playback-control-horizontal {
 		display: flex;
+		grid-row: 2;
 		align-items: center;
 		gap: 0.75rem;
 	}

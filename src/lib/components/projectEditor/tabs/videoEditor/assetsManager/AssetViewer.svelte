@@ -232,7 +232,7 @@
 		</button>
 		<button
 			data-tour-id="asset-timeline-actions"
-			class="btn-accent flex h-10 w-10 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+			class="btn-accent flex h-10 max-w-24 shrink-0 items-center justify-center gap-1 rounded-md px-2 outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-40"
 			type="button"
 			aria-label={get(LL).editor.addToTimelineLabel()}
 			disabled={!asset.exists}
@@ -244,6 +244,9 @@
 						: void showContextMenuInViewport(timelineContextMenu, event)}
 		>
 			<span class="material-icons text-lg!">add_to_queue</span>
+			<span class="text-[10px] font-semibold leading-tight">
+				{get(LL).editor.addToTimelineLabel()}
+			</span>
 		</button>
 		<button
 			class="btn flex h-10 w-10 shrink-0 items-center justify-center rounded-md outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"

@@ -29,6 +29,20 @@
 	let presetPickerOpen = $state(false);
 	let autoSegmentationModalOpen = $state(false);
 	let controlHelpOpen = $state(false);
+	let subtitleStartMode = $state<'choice' | 'manual'>('choice');
+	let walkthroughOpen = $state(false);
+	let hasSubtitles = $derived(globalState.getSubtitleClips.length > 0);
+	let startCopy = $derived(
+		$LL.editor as unknown as {
+			chooseSubtitleMethod: () => string;
+			chooseSubtitleMethodDescription: () => string;
+			useAiRecommended: () => string;
+			createManually: () => string;
+			manualSubtitleSteps: () => string;
+			viewExample: () => string;
+			controlsGuide: () => string;
+		}
+	);
 	let panelScale = $derived(
 		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
 	);
@@ -164,12 +178,14 @@
 			</button>
 			<button
 				class="drawer-toggle"
+				class:drawer-toggle-labeled={!hasSubtitles}
 				type="button"
 				aria-label={$LL.editor.playbackControls()}
 				aria-expanded={controlHelpOpen}
 				onclick={() => (controlHelpOpen = true)}
 			>
 				<span class="material-icons">help_outline</span>
+				{#if !hasSubtitles}<span class="drawer-toggle-label">{startCopy.controlsGuide()}</span>{/if}
 			</button>
 		</div>
 
@@ -192,6 +208,41 @@
 		</button>
 	</section>
 
+	{#if !hasSubtitles && subtitleStartMode === 'choice'}
+		<section class="subtitle-start-card">
+			<div class="min-w-0 flex-1">
+				<h2>{startCopy.chooseSubtitleMethod()}</h2>
+				<p>{startCopy.chooseSubtitleMethodDescription()}</p>
+			</div>
+			<div class="subtitle-start-actions">
+				<button type="button" class="btn-accent" onclick={() => (autoSegmentationModalOpen = true)}>
+					<span class="material-icons-outlined">auto_awesome</span>
+					{startCopy.useAiRecommended()}
+				</button>
+				<button type="button" class="btn" onclick={() => (subtitleStartMode = 'manual')}>
+					<span class="material-icons-outlined">touch_app</span>
+					{startCopy.createManually()}
+				</button>
+			</div>
+			<button type="button" class="subtitle-example-link" onclick={() => (walkthroughOpen = true)}>
+				<span class="material-icons-outlined">play_circle</span>
+				{startCopy.viewExample()}
+			</button>
+		</section>
+	{:else if !hasSubtitles && subtitleStartMode === 'manual'}
+		<section class="subtitle-manual-guide">
+			<span class="material-icons-outlined">school</span>
+			<p>{startCopy.manualSubtitleSteps()}</p>
+			<button
+				type="button"
+				aria-label={$LL.common.close()}
+				onclick={() => (subtitleStartMode = 'choice')}
+			>
+				<span class="material-icons">close</span>
+			</button>
+		</section>
+	{/if}
+
 	<div class="subtitles-editor-content" class:control-help-open={controlHelpOpen}>
 		<section
 			class="subtitles-editor-workspace"
@@ -204,6 +255,7 @@
 				showVersePicker={false}
 				showPlaybackControls
 				showControlHelp={controlHelpOpen}
+				showManualGuide={!hasSubtitles && subtitleStartMode === 'manual'}
 				onCloseControlHelp={() => (controlHelpOpen = false)}
 				onTogglePresetPicker={() => (presetPickerOpen = !presetPickerOpen)}
 				onClosePresetPicker={() => {
@@ -264,6 +316,32 @@
 	{#if autoSegmentationModalOpen}
 		<div class="modal-wrapper" transition:fade>
 			<AutoSegmentationModal close={() => (autoSegmentationModalOpen = false)} />
+		</div>
+	{/if}
+
+	{#if walkthroughOpen}
+		<div class="modal-wrapper walkthrough-backdrop" transition:fade>
+			<section class="walkthrough-sheet" aria-label={$LL.editor.subtitlesEditorWalkthrough()}>
+				<header>
+					<div>
+						<h2>{$LL.editor.needVisualWalkthrough()}</h2>
+						<p>{$LL.editor.walkthroughDescription()}</p>
+					</div>
+					<button
+						type="button"
+						aria-label={$LL.common.close()}
+						onclick={() => (walkthroughOpen = false)}
+					>
+						<span class="material-icons">close</span>
+					</button>
+				</header>
+				<iframe
+					src="https://www.youtube.com/embed/vCRUjzATRDk?start=35"
+					title={$LL.editor.subtitlesEditorWalkthrough()}
+					allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+					allowfullscreen
+				></iframe>
+			</section>
 		</div>
 	{/if}
 </div>
@@ -382,6 +460,168 @@
 
 	.drawer-toggle.drawer-open {
 		color: var(--accent-primary);
+	}
+
+	.drawer-toggle-labeled {
+		width: auto;
+		gap: 0.25rem;
+		padding: 0 0.65rem;
+	}
+
+	.drawer-toggle-label {
+		font-size: 0.65rem;
+		font-weight: 700;
+	}
+
+	.subtitle-start-card,
+	.subtitle-manual-guide {
+		display: flex;
+		flex-shrink: 0;
+		align-items: center;
+		gap: 0.6rem;
+		border: 1px solid color-mix(in srgb, var(--accent-primary) 45%, var(--border-color));
+		border-radius: 0.75rem;
+		padding: 0.55rem 0.65rem;
+		background: color-mix(in srgb, var(--accent-primary) 9%, var(--bg-secondary));
+	}
+
+	.subtitle-start-card h2 {
+		font-size: 0.75rem;
+		font-weight: 700;
+		color: var(--text-primary);
+	}
+
+	.subtitle-start-card p,
+	.subtitle-manual-guide p {
+		font-size: 0.62rem;
+		line-height: 1.25;
+		color: var(--text-secondary);
+	}
+
+	.subtitle-start-actions {
+		display: grid;
+		flex: 0 0 auto;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.35rem;
+	}
+
+	.subtitle-start-actions button {
+		display: flex;
+		min-height: 2.35rem;
+		align-items: center;
+		justify-content: center;
+		gap: 0.25rem;
+		border-radius: 0.55rem;
+		padding: 0.3rem 0.5rem;
+		font-size: 0.62rem;
+		font-weight: 700;
+	}
+
+	.subtitle-start-actions .material-icons-outlined,
+	.subtitle-example-link .material-icons-outlined {
+		font-size: 1rem;
+	}
+
+	.subtitle-example-link {
+		display: flex;
+		flex: 0 0 auto;
+		align-items: center;
+		gap: 0.2rem;
+		color: var(--accent-primary);
+		font-size: 0.6rem;
+		font-weight: 700;
+	}
+
+	.subtitle-manual-guide > .material-icons-outlined {
+		font-size: 1.1rem;
+		color: var(--accent-primary);
+	}
+
+	.subtitle-manual-guide p {
+		flex: 1;
+		font-weight: 600;
+	}
+
+	.subtitle-manual-guide button {
+		display: flex;
+		height: 1.75rem;
+		width: 1.75rem;
+		align-items: center;
+		justify-content: center;
+		border-radius: 9999px;
+		color: var(--text-secondary);
+	}
+
+	.subtitle-manual-guide button .material-icons {
+		font-size: 1rem;
+	}
+
+	.walkthrough-backdrop {
+		background: rgb(0 0 0 / 65%);
+	}
+
+	.walkthrough-sheet {
+		display: flex;
+		width: calc(100% - 1.5rem);
+		max-width: 32rem;
+		flex-direction: column;
+		gap: 0.75rem;
+		border: 1px solid var(--border-color);
+		border-radius: 1rem;
+		padding: 1rem;
+		background: var(--bg-secondary);
+	}
+
+	.walkthrough-sheet header {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.walkthrough-sheet h2 {
+		font-size: 1rem;
+		font-weight: 700;
+		color: var(--text-primary);
+	}
+
+	.walkthrough-sheet p {
+		margin-top: 0.2rem;
+		font-size: 0.75rem;
+		color: var(--text-secondary);
+	}
+
+	.walkthrough-sheet header button {
+		display: flex;
+		height: 2.25rem;
+		width: 2.25rem;
+		align-items: center;
+		justify-content: center;
+		border-radius: 9999px;
+		background: var(--bg-primary);
+		color: var(--text-primary);
+	}
+
+	.walkthrough-sheet iframe {
+		width: 100%;
+		aspect-ratio: 16 / 9;
+		border: 0;
+		border-radius: 0.75rem;
+	}
+
+	@media (max-width: 420px) {
+		.subtitle-start-card {
+			align-items: stretch;
+			flex-direction: column;
+		}
+
+		.subtitle-start-actions {
+			width: 100%;
+		}
+
+		.subtitle-example-link {
+			justify-content: center;
+		}
 	}
 
 	@media (orientation: landscape) {

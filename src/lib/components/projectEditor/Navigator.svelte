@@ -4,6 +4,7 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 	import { AnalyticsService, type EditorAnalyticsSection } from '$lib/services/AnalyticsService';
+	import EditorJourneyGuide from './EditorJourneyGuide.svelte';
 
 	let tabs = $state([
 		{ name: get(LL).status.videoEditor(), icon: 'edit', value: ProjectEditorTabs.VideoEditor },
@@ -45,6 +46,10 @@
 	class="editor-bottom-nav w-full shrink-0 border-t border-color bg-primary/95 backdrop-blur-md"
 	aria-label="Project editor navigation"
 >
+	{#if !globalState.currentProject!.projectEditorState.onboardingGuideDismissed && globalState.settings?.persistentUiState.showFirstVideoGuide !== false}
+		<EditorJourneyGuide />
+	{/if}
+
 	<div class="grid grid-cols-5 gap-1 px-2 py-1">
 		{#each tabs as tab (tab.value)}
 			<button

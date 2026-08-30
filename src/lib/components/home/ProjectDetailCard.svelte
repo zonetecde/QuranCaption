@@ -23,12 +23,10 @@
 
 	let {
 		projectDetail = $bindable(),
-		isListView = true,
-		isTutorial = false
+		isListView = true
 	}: {
 		projectDetail: ProjectDetail;
 		isListView?: boolean;
-		isTutorial?: boolean;
 	} = $props();
 
 	async function deleteProjectButtonClick(e: MouseEvent) {
@@ -123,7 +121,6 @@
 
 <div
 	class="relative bg-secondary backdrop-blur-[10px] border border-[var(--border-color)] rounded-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] flex flex-col justify-between transition-all duration-300 hover:shadow-2xl"
-	data-tour-id={isTutorial ? 'tutorial-project-card' : undefined}
 	data-project-card={projectDetail.id}
 >
 	<div>

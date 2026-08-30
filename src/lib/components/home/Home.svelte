@@ -12,7 +12,6 @@
 	import { Status } from '$lib/classes/Status';
 	import Settings from '$lib/classes/Settings.svelte';
 	import TourManager from '$lib/components/tour/TourManager';
-	import { setupTutorialProject } from '$lib/services/TutorialService';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import AndroidMediaService from '$lib/services/AndroidMediaService';
 	import { VersionService } from '$lib/services/VersionService.svelte';
@@ -30,6 +29,7 @@
 	import FirstLaunchLanguageModal from './modals/FirstLaunchLanguageModal.svelte';
 
 	const SIMULATE_FIRST_LAUNCH = false;
+	const LEGACY_TUTORIAL_PROJECT_ID = 1774428451900961;
 
 	let createNewProjectModalVisible = $state(false);
 	let firstLaunchLanguageModalVisible = $state(false);
@@ -237,14 +237,16 @@
 		} else {
 			promise = ProjectService.loadUserProjectsDetails();
 		}
+		if (promise) await promise;
+
+		const legacyTutorialProject = globalState.userProjectsDetails.find(
+			(project) => project.id === LEGACY_TUTORIAL_PROJECT_ID && project.name === 'Tutorial Project'
+		);
+		if (legacyTutorialProject) {
+			await ProjectService.delete(legacyTutorialProject.id, { sweepQuaCache: false });
+		}
 
 		if (globalState.settings && !globalState.settings.persistentUiState.hasSeenTour) {
-			if (promise) await promise;
-			try {
-				await setupTutorialProject();
-			} catch (error) {
-				console.warn('Tutorial project setup failed:', error);
-			}
 			if (!globalState.settings.persistentUiState.hasSelectedLanguage) {
 				firstLaunchLanguageModalVisible = true;
 				return;
@@ -436,11 +438,7 @@
 					{:else}
 						<div placeholder="Project cards" class="mt-4 grid grid-cols-1 gap-3">
 							{#each paginatedProjects as project (project.id)}
-								<ProjectDetailCard
-									projectDetail={project}
-									isListView={true}
-									isTutorial={project.name === 'Tutorial Project'}
-								/>
+								<ProjectDetailCard projectDetail={project} isListView={true} />
 							{/each}
 						</div>
 					{/if}

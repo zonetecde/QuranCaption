@@ -90,6 +90,7 @@
 				showHeader={false}
 				embedded
 				importOpen={assetImporterOpen}
+				onOpenImport={() => (assetImporterOpen = true)}
 				onCloseImport={() => (assetImporterOpen = false)}
 			/>
 		</section>

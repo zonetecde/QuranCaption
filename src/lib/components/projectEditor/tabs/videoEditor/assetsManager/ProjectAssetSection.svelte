@@ -13,12 +13,21 @@
 	let {
 		compact = false,
 		buttonOnly = false,
-		plainList = false
+		plainList = false,
+		onOpenImport
 	}: {
 		compact?: boolean;
 		buttonOnly?: boolean;
 		plainList?: boolean;
+		onOpenImport?: () => void;
 	} = $props();
+	let emptyCopy = $derived(
+		$LL.editor as unknown as {
+			mediaEmptyTitle: () => string;
+			mediaEmptyDescription: () => string;
+			addRecitation: () => string;
+		}
+	);
 
 	let unlisten: () => void;
 	let dropZone = $state<HTMLDivElement | undefined>(undefined);
@@ -124,7 +133,18 @@
 		{#if globalState.currentProject!.content.assets.length === 0}
 			<div class="project-assets-empty">
 				<span class="material-icons-outlined text-2xl text-thirdly">perm_media</span>
-				<p class="text-sm font-semibold text-primary">{get(LL).editor.projectAssetsLabel()}</p>
+				<p class="text-sm font-semibold text-primary">{emptyCopy.mediaEmptyTitle()}</p>
+				<p class="max-w-xs text-xs leading-relaxed text-thirdly">
+					{emptyCopy.mediaEmptyDescription()}
+				</p>
+				<button
+					class="btn-accent mt-2 inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold"
+					type="button"
+					onclick={() => onOpenImport?.()}
+				>
+					<span class="material-icons-outlined text-lg">graphic_eq</span>
+					{emptyCopy.addRecitation()}
+				</button>
 			</div>
 		{:else}
 			<div class="flex flex-col gap-2">

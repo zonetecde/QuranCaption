@@ -2,9 +2,9 @@ const tour = {
 	stepCreateProjectTitle: 'Create a new project',
 	stepCreateProjectDesc:
 		'This button opens the form where you can name a new project and choose its reciter.',
-	stepOpenTutorialTitle: 'Open the tutorial project',
+	stepOpenTutorialTitle: 'Create your project',
 	stepOpenTutorialDesc:
-		'A tutorial project with Surah Al-Fatihah by Yasser Al-Dosari has been created for you. Tap its card to open it and follow along.',
+		'Give your project a name and optionally choose its reciter, then tap Create project. You will learn each step using this empty project.',
 	stepVideoEditorTitle: 'Your project assets',
 	stepVideoEditorDesc:
 		'The Assets area contains the media used by your project. Tap Add asset to import a file or download a recitation.',
@@ -40,8 +40,8 @@ const tour = {
 	stepExportVideoTitle: 'Choose the export range',
 	stepExportVideoDesc:
 		'Set the start and end times here, and optionally add sections to skip. You can then review the quality settings below and tap Export.',
-	hintClickTutorialCard: 'Tap the tutorial project card to continue',
-	hintHoverAndAdd: 'Tap the + button on the recitation asset to continue',
+	hintClickTutorialCard: 'Tap New project to continue',
+	hintHoverAndAdd: 'Enter a project name, then tap Create project to continue',
 	hintClickSubtitlesTab: 'Tap the "Subtitles" tab to continue',
 	hintClickTranslationsTab: 'Tap the "Translations" tab to continue',
 	hintClickStyleTab: 'Tap the "Style" tab to continue',

@@ -20,7 +20,7 @@ const status = {
 	youtube: 'youtube',
 	mp3quran: 'mp3quran',
 	quranfoundation: 'quranfoundation',
-	videoEditor: 'Video',
+	videoEditor: 'Media',
 	subtitlesEditor: 'Subtitles',
 	translations: 'Translations',
 	style: 'Style',

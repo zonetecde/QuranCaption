@@ -30,6 +30,13 @@
 				)
 			: 0
 	);
+	let guideCopy = $derived(
+		$LL.editor as unknown as {
+			translationGuideTitle: () => string;
+			translationGuideDescription: () => string;
+			reviewProgress: (args: { progress: number }) => string;
+		}
+	);
 </script>
 
 <div class="translations-editor-mobile-shell">
@@ -85,6 +92,24 @@
 		</button>
 	</section>
 
+	{#if visibleEditions.length > 0 && !globalState.currentProject!.projectEditorState.translationGuideDismissed}
+		<section class="translation-context-guide">
+			<span class="material-icons-outlined">swipe</span>
+			<div class="min-w-0 flex-1">
+				<h3>{guideCopy.translationGuideTitle()}</h3>
+				<p>{guideCopy.translationGuideDescription()}</p>
+			</div>
+			<button
+				type="button"
+				aria-label={$LL.common.close()}
+				onclick={() =>
+					(globalState.currentProject!.projectEditorState.translationGuideDismissed = true)}
+			>
+				<span class="material-icons">close</span>
+			</button>
+		</section>
+	{/if}
+
 	<section
 		class="translations-editor-workspace"
 		style={`--translation-text-scale: ${1 + textSizeLevel * 0.1}; --translation-text-spacing-scale: ${textSizeLevel >= -1 ? 1 : 1 + (textSizeLevel + 1) * 0.2};`}
@@ -102,6 +127,7 @@
 
 	{#if progressEdition}
 		<section class="translation-review-progress">
+			<p>{guideCopy.reviewProgress({ progress: reviewPercentage })}</p>
 			<div
 				class="translation-review-track"
 				role="progressbar"
@@ -206,9 +232,22 @@
 	}
 
 	.translation-review-progress {
+		position: relative;
 		width: calc(100% + 1rem);
 		flex-shrink: 0;
 		margin: 0 -0.5rem -0.5rem;
+	}
+
+	.translation-review-progress p {
+		position: absolute;
+		right: 0.5rem;
+		bottom: 0.45rem;
+		border-radius: 9999px;
+		padding: 0.15rem 0.45rem;
+		background: var(--bg-primary);
+		color: var(--text-secondary);
+		font-size: 0.58rem;
+		font-weight: 700;
 	}
 
 	.translation-review-track {
@@ -240,6 +279,50 @@
 
 	.drawer-toggle.drawer-open {
 		color: var(--accent-primary);
+	}
+
+	.translation-context-guide {
+		display: flex;
+		flex-shrink: 0;
+		align-items: flex-start;
+		gap: 0.55rem;
+		border: 1px solid color-mix(in srgb, var(--accent-primary) 40%, var(--border-color));
+		border-radius: 0.75rem;
+		padding: 0.55rem 0.65rem;
+		background: color-mix(in srgb, var(--accent-primary) 9%, var(--bg-secondary));
+	}
+
+	.translation-context-guide > .material-icons-outlined {
+		font-size: 1.1rem;
+		color: var(--accent-primary);
+	}
+
+	.translation-context-guide h3 {
+		font-size: 0.72rem;
+		font-weight: 700;
+		color: var(--text-primary);
+	}
+
+	.translation-context-guide p {
+		margin-top: 0.1rem;
+		font-size: 0.62rem;
+		line-height: 1.3;
+		color: var(--text-secondary);
+	}
+
+	.translation-context-guide button {
+		display: flex;
+		height: 1.75rem;
+		width: 1.75rem;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: center;
+		border-radius: 9999px;
+		color: var(--text-secondary);
+	}
+
+	.translation-context-guide button .material-icons {
+		font-size: 1rem;
 	}
 
 	.text-size-controls {

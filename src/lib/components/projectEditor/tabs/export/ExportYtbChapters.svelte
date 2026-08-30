@@ -27,6 +27,15 @@
 		'<juz-number>',
 		'<rub-number>'
 	];
+	let chapterCopy = $derived(
+		$LL.export as unknown as {
+			chapterFormat: () => string;
+			textFormat: () => string;
+			placeholders: () => string;
+			noTranslation: () => string;
+			translationForVerse: () => string;
+		}
+	);
 
 	/**
 	 * Retourne les paramètres persistants propres à l'export des chapitres YouTube.
@@ -189,11 +198,11 @@
 
 		<!-- Custom Format -->
 		<div class="mb-4">
-			<h4 class="mb-2 text-sm font-medium text-secondary">Chapter Format</h4>
+			<h4 class="mb-2 text-sm font-medium text-secondary">{chapterCopy.chapterFormat()}</h4>
 			<div class="space-y-3">
 				<div>
 					<label for="ytb-chapters-format" class="text-secondary text-sm font-medium">
-						Text format
+						{chapterCopy.textFormat()}
 					</label>
 					<textarea
 						id="ytb-chapters-format"
@@ -202,20 +211,20 @@
 						onchange={saveChapterFormat}
 					></textarea>
 					<p class="mt-2 text-xs text-thirdly">
-						Placeholders: {chapterPlaceholders.join(', ')}
+						{chapterCopy.placeholders()}: {chapterPlaceholders.join(', ')}
 					</p>
 				</div>
 
 				<div>
 					<label for="ytb-chapters-translation" class="text-secondary text-sm font-medium">
-						Translation for &lt;verse-translation&gt;
+						{chapterCopy.translationForVerse()}
 					</label>
 					<select
 						id="ytb-chapters-translation"
 						class="mt-2 h-10 min-w-0 w-full rounded-lg border border-color bg-accent px-2 text-sm text-primary outline-none focus:border-accent-primary"
 						bind:value={globalState.getExportState.ytbChaptersTranslationEditionName}
 					>
-						<option value="">No translation</option>
+						<option value="">{chapterCopy.noTranslation()}</option>
 						{#each globalState.getProjectTranslation.addedTranslationEditions as edition (edition.name)}
 							<option value={edition.name}>{edition.author}</option>
 						{/each}

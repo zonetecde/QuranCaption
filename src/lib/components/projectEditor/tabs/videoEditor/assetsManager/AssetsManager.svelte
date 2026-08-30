@@ -15,12 +15,14 @@
 		showHeader = true,
 		embedded = false,
 		importOpen = false,
+		onOpenImport,
 		onCloseImport
 	}: {
 		stockMediaOpen?: boolean;
 		showHeader?: boolean;
 		embedded?: boolean;
 		importOpen?: boolean;
+		onOpenImport?: () => void;
 		onCloseImport?: () => void;
 	} = $props();
 
@@ -70,7 +72,7 @@
 
 	<div class="assets-manager-shell">
 		<div class="assets-manager-panel">
-			<ProjectAssetSection plainList />
+			<ProjectAssetSection plainList {onOpenImport} />
 		</div>
 	</div>
 </div>

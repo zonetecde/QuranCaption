@@ -48,6 +48,13 @@
 	let panelScale = $derived(
 		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
 	);
+	let styleGuideCopy = $derived(
+		$LL.editor as unknown as {
+			styleGuideTitle: () => string;
+			styleGuideDescription: () => string;
+			customizeStyles: () => string;
+		}
+	);
 
 	const currentStyleTarget = $derived(() => globalState.getStylesState.getCurrentSelection());
 	const styleSearchQuery = $derived(() =>
@@ -970,6 +977,38 @@
 			bind:this={stylesContainer}
 			onscroll={handleStylesScroll}
 		>
+			{#if !globalState.currentProject!.projectEditorState.styleGuideDismissed}
+				<section class="style-start-guide">
+					<span class="material-icons-outlined">style</span>
+					<div class="min-w-0 flex-1">
+						<h2>{styleGuideCopy.styleGuideTitle()}</h2>
+						<p>{styleGuideCopy.styleGuideDescription()}</p>
+						<div>
+							<button type="button" class="btn-accent" onclick={openPresetLibrary}>
+								<span class="material-icons-outlined">dashboard_customize</span>
+								{$LL.editor.presetsLabel()}
+							</button>
+							<button
+								type="button"
+								class="btn"
+								onclick={() =>
+									(globalState.currentProject!.projectEditorState.styleGuideDismissed = true)}
+							>
+								{styleGuideCopy.customizeStyles()}
+							</button>
+						</div>
+					</div>
+					<button
+						type="button"
+						class="style-start-guide-close"
+						aria-label={$LL.common.close()}
+						onclick={() =>
+							(globalState.currentProject!.projectEditorState.styleGuideDismissed = true)}
+					>
+						<span class="material-icons">close</span>
+					</button>
+				</section>
+			{/if}
 			<StyleEditorHeader
 				panels={stylePanels()}
 				{openPresetLibrary}
@@ -1069,6 +1108,72 @@
 		max-width: 100%;
 		height: var(--editor-panel-height);
 		zoom: var(--editor-panel-scale);
+	}
+
+	.style-start-guide {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.55rem;
+		margin: 0.5rem;
+		border: 1px solid color-mix(in srgb, var(--accent-primary) 45%, var(--border-color));
+		border-radius: 0.75rem;
+		padding: 0.65rem;
+		background: color-mix(in srgb, var(--accent-primary) 9%, var(--bg-secondary));
+	}
+
+	.style-start-guide > .material-icons-outlined {
+		font-size: 1.15rem;
+		color: var(--accent-primary);
+	}
+
+	.style-start-guide h2 {
+		font-size: 0.75rem;
+		font-weight: 700;
+		color: var(--text-primary);
+	}
+
+	.style-start-guide p {
+		margin-top: 0.1rem;
+		font-size: 0.62rem;
+		line-height: 1.3;
+		color: var(--text-secondary);
+	}
+
+	.style-start-guide div > div {
+		display: flex;
+		gap: 0.4rem;
+		margin-top: 0.45rem;
+	}
+
+	.style-start-guide div > div button {
+		display: flex;
+		min-height: 2rem;
+		align-items: center;
+		justify-content: center;
+		gap: 0.25rem;
+		border-radius: 0.5rem;
+		padding: 0.3rem 0.6rem;
+		font-size: 0.65rem;
+		font-weight: 700;
+	}
+
+	.style-start-guide div > div .material-icons-outlined {
+		font-size: 1rem;
+	}
+
+	.style-start-guide-close {
+		display: flex;
+		height: 1.75rem;
+		width: 1.75rem;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: center;
+		border-radius: 9999px;
+		color: var(--text-secondary);
+	}
+
+	.style-start-guide-close .material-icons {
+		font-size: 1rem;
 	}
 
 	.style-settings-scroll {

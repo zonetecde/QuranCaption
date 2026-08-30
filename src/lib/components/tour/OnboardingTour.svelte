@@ -1,9 +1,15 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
-	import { ProjectEditorTabs, TrackType } from '$lib/classes/enums';
 	import Settings from '$lib/classes/Settings.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
+
+	type JourneyCopy = {
+		firstVideoGuide: () => string;
+		guideMedia: () => string;
+	};
+
+	const journeyCopy = $derived($LL.editor as unknown as JourneyCopy);
 
 	const PAD = 10;
 	const TOOLTIP_W = 340;
@@ -12,6 +18,8 @@
 
 	type TourStep = {
 		targetId: string;
+		tooltipAnchorId?: string;
+		tooltipPlacement?: 'top' | 'bottom' | 'left' | 'right';
 		title: string;
 		description: string;
 		/** 'button' = user clicks Next/Finish; 'auto' = advances when condition becomes true */
@@ -30,115 +38,28 @@
 			targetId: 'new-project-button',
 			title: $LL.tour.stepCreateProjectTitle(),
 			description: $LL.tour.stepCreateProjectDesc(),
-			advanceMode: 'button',
-			buttonLabel: $LL.common.next()
+			advanceMode: 'auto',
+			advanceCondition: () =>
+				document.querySelector('[data-tour-id="create-project-modal"]') !== null,
+			allowSpotlightClick: true,
+			hint: $LL.tour.hintClickTutorialCard()
 		},
 		{
-			targetId: 'tutorial-project-card',
+			targetId: 'create-project-modal',
+			tooltipAnchorId: 'create-project-tour-anchor',
+			tooltipPlacement: 'bottom',
 			title: $LL.tour.stepOpenTutorialTitle(),
 			description: $LL.tour.stepOpenTutorialDesc(),
 			advanceMode: 'auto',
 			advanceCondition: () => globalState.currentProject !== null,
 			allowSpotlightClick: true,
-			hint: $LL.tour.hintClickTutorialCard()
-		},
-		// ── VIDEO EDITOR ────────────────────────────────────────────────────────
-		{
-			targetId: 'assets-manager',
-			title: $LL.tour.stepVideoEditorTitle(),
-			description: $LL.tour.stepVideoEditorDesc(),
-			advanceMode: 'button',
-			buttonLabel: $LL.common.next()
-		},
-		{
-			targetId: 'assets-manager',
-			title: $LL.tour.stepAddToTimelineTitle(),
-			description: $LL.tour.stepAddToTimelineDesc(),
-			advanceMode: 'auto',
-			advanceCondition: () =>
-				(globalState.currentProject?.content.timeline.getFirstTrack(TrackType.Audio)?.clips
-					?.length ?? 0) > 0,
-			allowSpotlightClick: true,
 			hint: $LL.tour.hintHoverAndAdd()
 		},
-		// ── SUBTITLES EDITOR ────────────────────────────────────────────────────
+		// ── PROJECT EDITOR ──────────────────────────────────────────────────────
 		{
-			targetId: 'nav-tab-subtitles',
-			title: $LL.tour.stepSubtitlesEditorTitle(),
-			description: $LL.tour.stepSubtitlesEditorDesc(),
-			advanceMode: 'auto',
-			advanceCondition: () =>
-				globalState.currentProject?.projectEditorState.currentTab ===
-				ProjectEditorTabs.SubtitlesEditor,
-			allowSpotlightClick: true,
-			hint: $LL.tour.hintClickSubtitlesTab()
-		},
-		{
-			targetId: 'verse-picker-area',
-			title: $LL.tour.stepManualSegmentationTitle(),
-			description: $LL.tour.stepManualSegmentationDesc(),
-			advanceMode: 'button',
-			buttonLabel: $LL.common.next()
-		},
-		{
-			targetId: 'auto-segment-button',
-			title: $LL.tour.stepAutoSegmentTitle(),
-			description: $LL.tour.stepAutoSegmentDesc(),
-			advanceMode: 'button',
-			buttonLabel: $LL.common.next()
-		},
-		// ── TRANSLATIONS ────────────────────────────────────────────────────────
-		{
-			targetId: 'nav-tab-translations',
-			title: $LL.tour.stepTranslationsTitle(),
-			description: $LL.tour.stepTranslationsDesc(),
-			advanceMode: 'auto',
-			advanceCondition: () =>
-				globalState.currentProject?.projectEditorState.currentTab ===
-				ProjectEditorTabs.Translations,
-			allowSpotlightClick: true,
-			hint: $LL.tour.hintClickTranslationsTab()
-		},
-		{
-			targetId: 'translations-workspace',
-			title: $LL.tour.stepAdaptingTranslationsTitle(),
-			description: $LL.tour.stepAdaptingTranslationsDesc(),
-			advanceMode: 'button',
-			buttonLabel: $LL.common.next()
-		},
-		// ── STYLE ───────────────────────────────────────────────────────────────
-		{
-			targetId: 'nav-tab-style',
-			title: $LL.tour.stepStyleTitle(),
-			description: $LL.tour.stepStyleDesc(),
-			advanceMode: 'auto',
-			advanceCondition: () =>
-				globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Style,
-			allowSpotlightClick: true,
-			hint: $LL.tour.hintClickStyleTab()
-		},
-		{
-			targetId: 'style-subtabs',
-			title: $LL.tour.stepStyleCategoriesTitle(),
-			description: $LL.tour.stepStyleCategoriesDesc(),
-			advanceMode: 'button',
-			buttonLabel: $LL.common.next()
-		},
-		// ── EXPORT ──────────────────────────────────────────────────────────────
-		{
-			targetId: 'nav-tab-export',
-			title: $LL.tour.stepExportTitle(),
-			description: $LL.tour.stepExportDesc(),
-			advanceMode: 'auto',
-			advanceCondition: () =>
-				globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Export,
-			allowSpotlightClick: true,
-			hint: $LL.tour.hintClickExportTab()
-		},
-		{
-			targetId: 'export-range',
-			title: $LL.tour.stepExportVideoTitle(),
-			description: $LL.tour.stepExportVideoDesc(),
+			targetId: 'editor-journey-guide',
+			title: journeyCopy.firstVideoGuide(),
+			description: journeyCopy.guideMedia(),
 			advanceMode: 'button',
 			buttonLabel: $LL.common.finish()
 		}
@@ -231,9 +152,19 @@
 			w: r.width + PAD * 2,
 			h: r.height + PAD * 2
 		};
-		const placement = computePlacement(spotlightRect);
+		const tooltipAnchor = currentStep.tooltipAnchorId
+			? findTarget(currentStep.tooltipAnchorId)
+			: el;
+		const anchorRect = tooltipAnchor?.getBoundingClientRect() ?? r;
+		const tooltipAnchorRect = {
+			x: anchorRect.left,
+			y: anchorRect.top - titleBarHeight,
+			w: anchorRect.width,
+			h: anchorRect.height
+		};
+		const placement = currentStep.tooltipPlacement ?? computePlacement(tooltipAnchorRect);
 		tooltipPlacement = placement;
-		const pos = computeTooltipPosition(spotlightRect, placement);
+		const pos = computeTooltipPosition(tooltipAnchorRect, placement);
 		tooltipLeft = pos.left;
 		tooltipTop = pos.top;
 	}
@@ -279,15 +210,16 @@
 		});
 	});
 
-	// Auto-advance watcher
+	// Vérifie aussi les conditions DOM, qui ne déclenchent pas directement la réactivité Svelte.
 	$effect(() => {
 		const step = currentStep; // reactive dependency
 		if (step.advanceMode !== 'auto' || !step.advanceCondition) return;
-		const met = step.advanceCondition();
-		if (met) {
-			const tid = setTimeout(() => advance(), 400);
-			return () => clearTimeout(tid);
-		}
+		const intervalId = setInterval(() => {
+			if (!step.advanceCondition?.()) return;
+			clearInterval(intervalId);
+			setTimeout(() => advance(), 400);
+		}, 150);
+		return () => clearInterval(intervalId);
 	});
 
 	/** Forward a mouse event to the real element below the blocking overlay */
@@ -297,6 +229,7 @@
 		const elBelow = document.elementFromPoint(e.clientX, e.clientY);
 		blocker.style.pointerEvents = 'auto';
 		if (elBelow) {
+			if (e.type === 'click' && elBelow instanceof HTMLElement) elBelow.focus();
 			elBelow.dispatchEvent(
 				new MouseEvent(e.type, {
 					bubbles: true,
@@ -377,6 +310,7 @@
 	<div
 		style="position: absolute; inset: 0; pointer-events: auto; cursor: default;"
 		onclick={handleBlockingClick}
+		onmousedown={handleBlockingClick}
 		onmousemove={handleBlockingMouseMove}
 		onmouseenter={handleBlockingMouseMove}
 	></div>
@@ -507,6 +441,10 @@
 <!-- end root fixed container -->
 
 <style>
+	:global(body:has([data-tour-hide-tooltip-on-focus]:focus-within) .tour-tooltip) {
+		display: none;
+	}
+
 	.tour-tooltip {
 		box-sizing: border-box;
 		max-width: calc(100% - 20px);

@@ -125,6 +125,7 @@ export default class Settings extends SerializableBase {
 		themeIntensity: 100,
 		editorPanelScalePercent: -15,
 		hasSeenTour: false,
+		showFirstVideoGuide: true,
 		hasSelectedLanguage: false,
 		language: 'en' as 'en' | 'fr' | 'de' | 'es' | 'zh' | 'id',
 		theme: 'default' as
@@ -296,6 +297,10 @@ export default class Settings extends SerializableBase {
 		}
 		if (typeof settingsData.persistentUiState?.hasSelectedLanguage !== 'boolean') {
 			settings.persistentUiState.hasSelectedLanguage = true;
+			shouldSave = true;
+		}
+		if (typeof settings.persistentUiState.showFirstVideoGuide !== 'boolean') {
+			settings.persistentUiState.showFirstVideoGuide = true;
 			shouldSave = true;
 		}
 

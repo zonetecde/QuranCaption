@@ -143,7 +143,10 @@
 	}
 
 	function toggleAlwaysShow(_e: MouseEvent): void {
-		clip.setStyle('always-show', !clip.getAlwaysShow());
+		// Laisse le clic fermer le menu avant que le changement de style détruise le composant.
+		setTimeout(() => {
+			clip.setStyle('always-show', !clip.getAlwaysShow());
+		});
 	}
 </script>
 

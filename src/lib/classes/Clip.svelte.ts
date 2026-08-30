@@ -528,12 +528,25 @@ export class SubtitleClip extends ClipWithTranslation {
 	}
 
 	/**
+	 * Retourne la valeur effective d'un style arabe pour ce sous-titre.
+	 * @param {StyleName} styleId Identifiant du style à résoudre.
+	 * @returns {string | number | boolean} Valeur locale ou globale du style.
+	 */
+	private getEffectiveArabicStyleValue(styleId: StyleName): string | number | boolean {
+		return (globalState.currentProject?.content.videoStyle
+			.getStylesOfTarget('arabic')
+			.getEffectiveValue(styleId, this.id) ??
+			globalState.getStyle('arabic', styleId)?.value ??
+			'') as string | number | boolean;
+	}
+
+	/**
 	 * Retourne le numéro de verset adapté au mushaf actif pour la traduction.
 	 * @param {'before' | 'after'} position Position configurée du numéro.
 	 * @returns {number | string | null | undefined} Numéro ou plage à afficher, ou aucune valeur quand il doit être masqué ou chargé.
 	 */
 	getTranslationVerseNumber(position: 'before' | 'after'): number | string | null | undefined {
-		const riwayah = globalState.getStyle('arabic', 'riwayah')?.value;
+		const riwayah = this.getEffectiveArabicStyleValue('riwayah');
 		return isNonHafsRiwayah(riwayah)
 			? RiwayahProvider.getTranslationVerseNumber(riwayah, this.surah, this.verse, position)
 			: this.verse;
@@ -585,7 +598,7 @@ export class SubtitleClip extends ClipWithTranslation {
 				''
 		);
 		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
-		const riwayah = globalState.getStyle('arabic', 'riwayah')?.value;
+		const riwayah = this.getEffectiveArabicStyleValue('riwayah');
 		if (isNonHafsRiwayah(riwayah)) {
 			const riwayahSlice = RiwayahProvider.getVerseSlice(
 				riwayah,
@@ -683,7 +696,7 @@ export class SubtitleClip extends ClipWithTranslation {
 				''
 		);
 		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
-		const riwayah = globalState.getStyle('arabic', 'riwayah')?.value;
+		const riwayah = this.getEffectiveArabicStyleValue('riwayah');
 		if (isNonHafsRiwayah(riwayah)) {
 			const showVerseNumbers = Boolean(globalState.getStyle('arabic', 'show-verse-number').value);
 			const riwayahSlice = RiwayahProvider.getVerseSlice(

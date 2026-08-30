@@ -252,11 +252,15 @@
 	 */
 	function clearOverride() {
 		if (selectedClipIds().length === 0) return;
-		globalState.getVideoStyle.getStylesOfTarget(target!).clearStyleForClips(
-			selectedClipIds(),
-
-			style.id as StyleName
-		);
+		const styles = globalState.getVideoStyle.getStylesOfTarget(target!);
+		if (target === 'arabic' && style.id === 'riwayah') {
+			ProjectHistoryManager.track('clear riwayah override', () => {
+				styles.clearStyleForClips(selectedClipIds(), 'riwayah');
+				styles.clearStyleForClips(selectedClipIds(), 'font-family');
+			});
+			return;
+		}
+		styles.clearStyleForClips(selectedClipIds(), style.id as StyleName);
 	}
 
 	/**

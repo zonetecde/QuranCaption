@@ -636,8 +636,14 @@
 	async function loadExportProject(id: string): Promise<void> {
 		globalState.currentProject = await ExportService.loadProject(Number(id));
 		removeHiddenTranslationsFromExportProject();
-		const riwayah = globalState.getStyle('arabic', 'riwayah')?.value;
-		if (isNonHafsRiwayah(riwayah)) await RiwayahProvider.prefetch(riwayah);
+		const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+		const riwayat = new Set([
+			arabicStyles.findStyle('riwayah')?.value,
+			...Object.values(arabicStyles.overrides).map((override) => override.riwayah)
+		]);
+		await Promise.all(
+			[...riwayat].filter(isNonHafsRiwayah).map((riwayah) => RiwayahProvider.prefetch(riwayah))
+		);
 		if (globalState.getStyle('arabic', 'mushaf-style')?.value === 'Minimal Quran') {
 			await MinimalQuranProvider.prefetch();
 		}

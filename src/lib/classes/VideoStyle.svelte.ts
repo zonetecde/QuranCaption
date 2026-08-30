@@ -607,8 +607,8 @@ export class StylesData extends SerializableBase {
 				// On force une certaine police pour afficher par exemple "Sadaqallahul Azim" ou les autres textes arabes
 				if (this.target === 'arabic' && style.id === 'font-family' && clipId) {
 					const subtitleClip = globalState.getSubtitleTrack.getClipById(clipId);
-					const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? '');
-					const riwayah = globalState.getStyle('arabic', 'riwayah')?.value;
+					const mushafStyle = String(this.getEffectiveValue('mushaf-style', clipId) ?? '');
+					const riwayah = this.getEffectiveValue('riwayah', clipId);
 
 					if (isNonHafsRiwayah(riwayah) && subtitleClip instanceof SubtitleClip) {
 						css += `font-family: ${getRiwayahFontFamily(riwayah)}, sans-serif;\n`;

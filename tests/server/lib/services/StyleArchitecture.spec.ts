@@ -264,6 +264,19 @@ describe('style architecture modules', () => {
 			applyBaseValue: (value) => (riwayahStyle.value = value)
 		});
 		expect(fontStyle.value).toBe('Hafs');
+
+		applyStyleMutation({
+			videoStyle,
+			style: riwayahStyle,
+			target: 'arabic',
+			clipIds: [42],
+			value: 'Warsh',
+			applyBaseValue: (value) => (riwayahStyle.value = value)
+		});
+		const arabicStyles = videoStyle.getStylesOfTarget('arabic');
+		expect(riwayahStyle.value).toBe('Hafs');
+		expect(arabicStyles.getEffectiveValue('riwayah', 42)).toBe('Warsh');
+		expect(arabicStyles.getEffectiveValue('font-family', 42)).toBe('warsh10');
 	});
 
 	it('resolves WBW activation independently from its adapters', () => {
@@ -304,6 +317,46 @@ describe('style architecture modules', () => {
 				]
 			})
 		]);
+		const videoStyle = new VideoStyle();
+		videoStyle.styles = [arabicStyles];
+		const originalProject = globalState.currentProject;
+		globalState.currentProject = {
+			content: {
+				videoStyle,
+				timeline: { getFirstTrack: () => ({ getClipById: () => clip }) }
+			}
+		} as never;
+
+		try {
+			expect(arabicStyles.generateCSS(clip.id)).toContain('font-family: warsh10, sans-serif;');
+		} finally {
+			globalState.currentProject = originalProject;
+		}
+	});
+
+	it('forces the individually selected riwayah font for Quran clips', () => {
+		const clip = new SubtitleClip(0, 1_000, 1, 2, 0, 3, 'text', [], true, true);
+		const arabicStyles = new StylesData('arabic', [
+			new Category({
+				id: 'general',
+				styles: [
+					new Style({ id: 'riwayah', value: 'Hafs', valueType: 'select' }),
+					new Style({ id: 'mushaf-style', value: 'Uthmani', valueType: 'select' })
+				]
+			}),
+			new Category({
+				id: 'text',
+				styles: [
+					new Style({
+						id: 'font-family',
+						value: 'Hafs',
+						valueType: 'select',
+						css: "font-family: '{value}', sans-serif;"
+					})
+				]
+			})
+		]);
+		arabicStyles.setStyleForClips([clip.id], 'riwayah', 'Warsh');
 		const videoStyle = new VideoStyle();
 		videoStyle.styles = [arabicStyles];
 		const originalProject = globalState.currentProject;

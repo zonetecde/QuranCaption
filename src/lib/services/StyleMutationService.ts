@@ -166,6 +166,21 @@ function applyArabicStyleInvariants(
 
 	const arabicStyles = options.videoStyle.getStylesOfTarget('arabic');
 	if (options.style.id === 'riwayah') {
+		if (options.clipIds.length > 0) {
+			arabicStyles.setStyleForClips(options.clipIds, 'riwayah', value);
+			for (const clipId of options.clipIds) {
+				const mushaf = String(arabicStyles.getEffectiveValue('mushaf-style', clipId) ?? 'Uthmani');
+				const font = isNonHafsRiwayah(value)
+					? getRiwayahFontFamily(value)
+					: mushaf === 'Indopak'
+						? 'IndoPak'
+						: mushaf === 'Tajweed'
+							? 'QPC2'
+							: 'Hafs';
+				arabicStyles.setStyleForClips([clipId], 'font-family', font);
+			}
+			return { handled: true, refreshPreview: true, showTajweedWarning: false };
+		}
 		arabicStyles.setStyle('riwayah', value);
 		const mushaf = String(arabicStyles.findStyle('mushaf-style')?.value ?? 'Uthmani');
 		const font = isNonHafsRiwayah(value)

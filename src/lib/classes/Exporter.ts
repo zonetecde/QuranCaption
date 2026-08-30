@@ -431,8 +431,14 @@ export default class Exporter {
 		};
 
 		const mushafStyle = globalState.getStyle('arabic', 'mushaf-style')?.value;
-		const riwayah = globalState.getStyle('arabic', 'riwayah')?.value;
-		if (isNonHafsRiwayah(riwayah)) await RiwayahProvider.prefetch(riwayah);
+		const arabicStyles = globalState.getVideoStyle.getStylesOfTarget('arabic');
+		const riwayat = new Set([
+			arabicStyles.findStyle('riwayah')?.value,
+			...Object.values(arabicStyles.overrides).map((override) => override.riwayah)
+		]);
+		await Promise.all(
+			[...riwayat].filter(isNonHafsRiwayah).map((value) => RiwayahProvider.prefetch(value))
+		);
 		if (settings.includedTargets.includes('arabic')) {
 			if (mushafStyle === 'Minimal Quran') await MinimalQuranProvider.prefetch();
 			if (mushafStyle === 'Indopak') {

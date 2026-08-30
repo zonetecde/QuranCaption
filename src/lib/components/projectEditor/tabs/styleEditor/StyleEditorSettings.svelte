@@ -432,7 +432,6 @@
 				'show-verse-number',
 				'verse-number-new-line',
 				'show-decorative-brackets',
-				'riwayah',
 				'mushaf-style',
 				'decorative-brackets-font-family',
 				'verse-number-format',
@@ -462,9 +461,9 @@
 	function isMushafFontLocked(): boolean {
 		return (
 			globalState.getStylesState.currentSelection === 'arabic' &&
-			(String(globalState.getStyle('arabic', 'riwayah')?.value ?? 'Hafs') !== 'Hafs' ||
-				!['Uthmani', 'Minimal Quran'].includes(
-					String(globalState.getStyle('arabic', 'mushaf-style')?.value)
+			(getEffectiveStyleValues('riwayah').some((value) => String(value ?? 'Hafs') !== 'Hafs') ||
+				getEffectiveStyleValues('mushaf-style').some(
+					(value) => !['Uthmani', 'Minimal Quran'].includes(String(value))
 				))
 		);
 	}

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes/Clip.svelte';
+import { Category, Style, StylesData, VideoStyle } from '$lib/classes/VideoStyle.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import IndopakQuranProvider from '$lib/services/IndopakQuranProvider';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
@@ -234,6 +235,36 @@ describe('arabic inline styles', () => {
 			text: 'وَأَنْ',
 			bold: true
 		});
+	});
+
+	it('maps preview text with the riwayah override of the current subtitle', () => {
+		const clip = new SubtitleClip(0, 1_000, 40, 26, 12, 14, 'Hafs text', [], false, true);
+		const arabicStyles = new StylesData('arabic', [
+			new Category({
+				id: 'general',
+				styles: [new Style({ id: 'riwayah', value: 'Hafs', valueType: 'select' })]
+			})
+		]);
+		arabicStyles.setStyleForClips([clip.id], 'riwayah', 'Warsh');
+		const videoStyle = new VideoStyle();
+		videoStyle.styles = [arabicStyles];
+		globalState.currentProject = { content: { videoStyle } } as never;
+		const getVerseSlice = vi.spyOn(RiwayahProvider, 'getVerseSlice').mockReturnValue({
+			text: 'Warsh text',
+			words: ['Warsh', 'text'],
+			sourceWordIndexes: [[12], [13, 14]],
+			suffix: '',
+			targetAyahs: [26],
+			relation: 'mapped'
+		});
+		const getTranslationVerseNumber = vi
+			.spyOn(RiwayahProvider, 'getTranslationVerseNumber')
+			.mockReturnValue('25-26');
+
+		expect(clip.getArabicRenderParts('preview').text).toBe('Warsh text');
+		expect(getVerseSlice).toHaveBeenCalledWith('Warsh', 40, 26, 12, 14, false);
+		expect(clip.getTranslationVerseNumber('before')).toBe('25-26');
+		expect(getTranslationVerseNumber).toHaveBeenCalledWith('Warsh', 40, 26, 'before');
 	});
 
 	it('builds preview styled segments from the rendered arabic text', () => {

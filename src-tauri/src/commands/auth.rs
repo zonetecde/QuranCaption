@@ -3,13 +3,14 @@ use keyring::{Entry, Error as KeyringError};
 const SERVICE_NAME: &str = "QuranCaption";
 const SESSION_KEY: &str = "quran_auth_session";
 const PENDING_VERIFIER_KEY: &str = "quran_auth_pending_verifier";
+const PENDING_WINDOW_KEY: &str = "quran_auth_pending_window";
 const SESSION_CHUNK_KEY_PREFIX: &str = "quran_auth_session__chunk_";
 const CHUNKED_SENTINEL_PREFIX: &str = "__chunked__:";
 const MAX_SECURE_VALUE_UTF16_LEN: usize = 2_000;
 
 fn normalize_key(key: &str) -> Result<String, String> {
     match key {
-        SESSION_KEY | PENDING_VERIFIER_KEY => Ok(key.to_string()),
+        SESSION_KEY | PENDING_VERIFIER_KEY | PENDING_WINDOW_KEY => Ok(key.to_string()),
         _ if key.starts_with(SESSION_CHUNK_KEY_PREFIX) => Ok(key.to_string()),
         _ => Err("Unsupported secure storage key".to_string()),
     }

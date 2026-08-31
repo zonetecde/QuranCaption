@@ -896,7 +896,7 @@ const zh = {
 		nextStep: '下一步：{step}',
 		mediaEmptyTitle: '从诵读开始',
 		mediaEmptyDescription: '添加作为视频计时基础的音频，之后还可以添加图片和视频。',
-		addRecitation: '添加诵读',
+		addRecitation: '从文件添加诵读',
 		chooseSubtitleMethod: '您想如何创建字幕？',
 		chooseSubtitleMethodDescription: '选择最适合您的入门方式。',
 		useAiRecommended: '使用 AI · 推荐',

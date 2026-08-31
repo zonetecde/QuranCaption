@@ -387,7 +387,7 @@ const editor = {
 	mediaEmptyTitle: 'Start with the recitation',
 	mediaEmptyDescription:
 		'Add the audio that will guide the timing of your video. You can add images and videos afterwards.',
-	addRecitation: 'Add a recitation',
+	addRecitation: 'Add a recitation from a file',
 	chooseSubtitleMethod: 'How would you like to create subtitles?',
 	chooseSubtitleMethodDescription: 'Choose the fastest method for your first subtitles.',
 	useAiRecommended: 'Use AI · Recommended',

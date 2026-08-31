@@ -976,7 +976,7 @@ const fr = {
 		mediaEmptyTitle: 'Commencez par la récitation',
 		mediaEmptyDescription:
 			'Ajoutez l’audio qui servira de base au minutage. Vous pourrez ensuite ajouter des images et des vidéos.',
-		addRecitation: 'Ajouter une récitation',
+		addRecitation: 'Ajouter une récitation depuis des fichiers',
 		chooseSubtitleMethod: 'Comment voulez-vous créer les sous-titres ?',
 		chooseSubtitleMethodDescription: 'Choisissez la méthode la plus adaptée pour commencer.',
 		useAiRecommended: 'Avec l’IA · Recommandé',

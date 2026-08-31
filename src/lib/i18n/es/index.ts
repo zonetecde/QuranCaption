@@ -972,7 +972,7 @@ const es = {
 		mediaEmptyTitle: 'Empieza con la recitación',
 		mediaEmptyDescription:
 			'Añade el audio que servirá de base para la sincronización. Después podrás añadir imágenes y vídeos.',
-		addRecitation: 'Añadir una recitación',
+		addRecitation: 'Añadir una recitación desde archivos',
 		chooseSubtitleMethod: '¿Cómo quieres crear los subtítulos?',
 		chooseSubtitleMethodDescription: 'Elige el método más adecuado para tus primeros subtítulos.',
 		useAiRecommended: 'Usar IA · Recomendado',

@@ -313,11 +313,7 @@
 		border: 1px dashed color-mix(in srgb, var(--accent-primary) 45%, var(--border-color));
 		border-radius: 0.75rem;
 		padding: 1rem;
-		background: linear-gradient(
-			145deg,
-			color-mix(in srgb, var(--accent-primary) 9%, transparent),
-			transparent
-		);
+		background: transparent;
 		text-align: center;
 	}
 

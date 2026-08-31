@@ -978,7 +978,7 @@ const de = {
 		mediaEmptyTitle: 'Beginne mit der Rezitation',
 		mediaEmptyDescription:
 			'Füge das Audio hinzu, das als Grundlage für das Timing dient. Bilder und Videos kannst du danach ergänzen.',
-		addRecitation: 'Rezitation hinzufügen',
+		addRecitation: 'Rezitation aus Dateien hinzufügen',
 		chooseSubtitleMethod: 'Wie möchtest du die Untertitel erstellen?',
 		chooseSubtitleMethodDescription: 'Wähle die passende Methode für deine ersten Untertitel.',
 		useAiRecommended: 'Mit KI · Empfohlen',

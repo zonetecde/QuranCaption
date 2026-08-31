@@ -80,6 +80,10 @@
 	 * @returns {void}
 	 */
 	function openStep(tab: ProjectEditorTabs): void {
+		globalState.getStylesState.clearSelection();
+		if (globalState.shared.quickTimelineEditor.active) {
+			globalState.closeQuickTimelineEditor();
+		}
 		globalState.currentProject!.projectEditorState.currentTab = tab;
 	}
 
@@ -164,15 +168,10 @@
 		flex-shrink: 0;
 		align-items: center;
 		gap: 1rem;
-		border-block: 1px solid color-mix(in srgb, var(--accent-primary) 25%, var(--border-color));
+		border-block: 1px solid var(--border-color);
 		padding: 0.65rem 3rem 0.65rem 1rem;
-		background:
-			linear-gradient(
-				90deg,
-				color-mix(in srgb, var(--accent-primary) 12%, transparent),
-				transparent 36%
-			),
-			var(--bg-secondary);
+		margin-top: 0.15rem;
+		background: var(--bg-secondary);
 		box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
 	}
 	.journey-intro,

@@ -275,9 +275,10 @@
 </script>
 
 <div class="flex flex-col h-full bg-secondary min-h-0 overflow-hidden">
-	<Navigator />
 	{#if !globalState.currentProject!.projectEditorState.onboardingGuideDismissed && globalState.settings?.persistentUiState.showFirstVideoGuide !== false}
 		<EditorJourneyGuide />
+	{:else}
+		<Navigator />
 	{/if}
 
 	{#if globalState.currentProject!.projectEditorState.currentTab === ProjectEditorTabs.VideoEditor}

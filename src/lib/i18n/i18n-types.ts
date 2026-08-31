@@ -2599,7 +2599,7 @@ type RootTranslation = {
 		 */
 		mediaEmptyDescription: string;
 		/**
-		 * A​d​d​ ​a​ ​r​e​c​i​t​a​t​i​o​n
+		 * A​d​d​ ​a​ ​r​e​c​i​t​a​t​i​o​n​ ​f​r​o​m​ ​a​ ​f​i​l​e
 		 */
 		addRecitation: string;
 		/**
@@ -14240,7 +14240,7 @@ export type TranslationFunctions = {
 		 */
 		mediaEmptyDescription: () => LocalizedString;
 		/**
-		 * Add a recitation
+		 * Add a recitation from a file
 		 */
 		addRecitation: () => LocalizedString;
 		/**

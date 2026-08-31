@@ -234,7 +234,7 @@
 		border: 1px dashed var(--border-color);
 		border-radius: 0.75rem;
 		padding: 1rem;
-		background: color-mix(in srgb, var(--bg-primary) 55%, transparent);
+		background: transparent;
 		text-align: center;
 	}
 </style>

@@ -68,6 +68,19 @@
 	);
 
 	/**
+	 * Ouvre une étape du parcours depuis le guide mobile.
+	 * @param {ProjectEditorTabs} tab Onglet correspondant à l'étape.
+	 * @returns {void}
+	 */
+	function openStep(tab: ProjectEditorTabs): void {
+		globalState.getStylesState.clearSelection();
+		if (globalState.shared.quickTimelineEditor.active) {
+			globalState.closeQuickTimelineEditor();
+		}
+		globalState.currentProject!.projectEditorState.currentTab = tab;
+	}
+
+	/**
 	 * Ferme le guide actuel et mémorise le choix pour les prochains projets.
 	 *
 	 * @returns {Promise<void>} Résolution après l'enregistrement éventuel du choix.
@@ -105,11 +118,7 @@
 	<div class="journey-description-row">
 		<p class="journey-description">{currentStep.description}</p>
 		{#if nextStep && canContinue}
-			<button
-				type="button"
-				class="journey-next"
-				onclick={() => (globalState.currentProject!.projectEditorState.currentTab = nextStep.tab)}
-			>
+			<button type="button" class="journey-next" onclick={() => openStep(nextStep.tab)}>
 				{copy.nextStep({ step: nextStep.label })}
 				<span class="material-icons">arrow_forward</span>
 			</button>
@@ -127,7 +136,7 @@
 		gap: 0.2rem;
 		border-bottom: 1px solid var(--border-color);
 		padding: 0.35rem 0.65rem 0.3rem;
-		background: color-mix(in srgb, var(--accent-primary) 8%, var(--bg-secondary));
+		background: var(--bg-secondary);
 		color: var(--text-primary);
 	}
 

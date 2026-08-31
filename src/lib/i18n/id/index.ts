@@ -783,7 +783,7 @@ const id = {
 		mediaEmptyTitle: 'Mulai dengan tilawah',
 		mediaEmptyDescription:
 			'Tambahkan audio yang menjadi dasar waktu video. Gambar dan video dapat ditambahkan setelahnya.',
-		addRecitation: 'Tambahkan tilawah',
+		addRecitation: 'Tambahkan tilawah dari file',
 		chooseSubtitleMethod: 'Bagaimana Anda ingin membuat subtitle?',
 		chooseSubtitleMethodDescription: 'Pilih metode yang paling sesuai untuk memulai.',
 		useAiRecommended: 'Dengan AI · Disarankan',

@@ -27,7 +27,7 @@
 <div class="flex-grow w-full max-w-full flex overflow-hidden h-full min-h-0">
 	<!-- Assets -->
 	<section
-		class="flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col transition-[width] duration-200"
+		class="flex-shrink-0 divide-y-2 divide-color h-full min-h-0 max-h-full overflow-hidden flex flex-col transition-[width] duration-200"
 		style={`width: ${displayedVideoPanelWidth}px;`}
 	>
 		<AssetsManager {stockMediaOpen} />

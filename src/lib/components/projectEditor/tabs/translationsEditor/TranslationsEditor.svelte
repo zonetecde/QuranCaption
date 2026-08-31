@@ -34,7 +34,7 @@
 <div class="relative flex-grow w-full max-w-full flex overflow-hidden h-full min-h-0">
 	<!-- Assets -->
 	<section
-		class="flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col"
+		class="flex-shrink-0 divide-y-2 divide-color h-full min-h-0 max-h-full overflow-hidden flex flex-col"
 		style={`width: ${globalState.settings!.persistentUiState.projectEditorLayout.translationsEditorLeftPanelWidth}px;`}
 	>
 		<TranslationsEditorSettings
@@ -86,7 +86,7 @@
 		dataTestId="translations-right-panel-resizer"
 	/>
 	<section
-		class="hidden 2xl:flex flex-shrink-0 max-h-full overflow-hidden flex-col border-l border-color border-t ml-1 rounded-lg bg-secondary"
+		class="hidden 2xl:flex flex-shrink-0 h-full min-h-0 max-h-full overflow-hidden flex-col border-l border-color border-t ml-1 rounded-lg bg-secondary"
 		style={`width: ${globalState.settings!.persistentUiState.projectEditorLayout.translationsEditorRightPanelWidth}px;`}
 	>
 		<TranslationInlineStylePanel />

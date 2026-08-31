@@ -146,6 +146,23 @@ export class ProjectDetail extends SerializableBase {
 	}
 
 	/**
+	 * Retourne la sourate couvrant le plus de versets dans le projet.
+	 * @returns {number | null} Numéro de la sourate principale, ou `null` sans verset.
+	 */
+	getProminentSurah(): number | null {
+		if (this.verseRange.parts.length === 0) return null;
+
+		return this.verseRange.parts.reduce((prominentPart, part) => {
+			const prominentVerseCount = prominentPart.verseEnd - prominentPart.verseStart + 1;
+			const verseCount = part.verseEnd - part.verseStart + 1;
+			if (verseCount !== prominentVerseCount) {
+				return verseCount > prominentVerseCount ? part : prominentPart;
+			}
+			return part.surah < prominentPart.surah ? part : prominentPart;
+		}).surah;
+	}
+
+	/**
 	 * Met à jour le pourcentage de complétion des traductions du projet pour
 	 * une édition donnée
 	 * @param edition L'édition à mettre à jour

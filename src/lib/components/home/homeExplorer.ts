@@ -8,6 +8,14 @@ export type ExplorerSelection =
 	| { kind: 'type'; reciter: string; projectType: ProjectType }
 	| { kind: 'year'; reciter: string; projectType: ProjectType; year: string };
 
+export type HomeSortProperty =
+	| 'updatedAt'
+	| 'createdAt'
+	| 'name'
+	| 'reciter'
+	| 'duration'
+	| 'surah';
+
 export type ProjectExplorerYearNode = {
 	id: string;
 	kind: 'year';

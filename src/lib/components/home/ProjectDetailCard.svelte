@@ -41,17 +41,7 @@
 		(globalState.settings?.persistentUiState.projectCardView ?? 'grid') === 'list'
 	);
 	const projectThumbnailCount = 11;
-	let prominentSurahId = $derived.by(() => {
-		const parts = projectDetail.verseRange.parts;
-		if (parts.length === 0) return null;
-
-		// La sourate couvrant le plus de versets représente la sourate principale du projet.
-		return parts.reduce((prominentPart, part) => {
-			const prominentVerseCount = prominentPart.verseEnd - prominentPart.verseStart + 1;
-			const verseCount = part.verseEnd - part.verseStart + 1;
-			return verseCount > prominentVerseCount ? part : prominentPart;
-		}).surah;
-	});
+	let prominentSurahId = $derived(projectDetail.getProminentSurah());
 	const thumbnailUrl = `/thumbnails/${(Math.abs(projectDetail.id - 1) % projectThumbnailCount) + 1}.jpg`;
 
 	$effect(() => {

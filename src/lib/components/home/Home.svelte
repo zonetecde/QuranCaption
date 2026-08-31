@@ -36,7 +36,8 @@
 		filterProjectsForSelection,
 		filterStandaloneProjects,
 		resolveDropTargetUpdate,
-		type ExplorerSelection
+		type ExplorerSelection,
+		type HomeSortProperty
 	} from './homeExplorer';
 	import {
 		getDragPointerPosition,
@@ -63,7 +64,7 @@
 	let currentPage = $state(1);
 	let windowWidth = $state(typeof window === 'undefined' ? 1536 : window.innerWidth);
 	let explorerSelection = $state<ExplorerSelection>(ALL_PROJECTS_SELECTION);
-	let currentSortProperty = $state<keyof ProjectDetail>('updatedAt');
+	let currentSortProperty = $state<HomeSortProperty>('updatedAt');
 	let isSortAscending = $state(false);
 	let isExplorerVisible = $state(true);
 	let homePreferencesInitialized = $state(false);
@@ -136,8 +137,17 @@
 
 	function sortProjects(projects: ProjectDetail[]): ProjectDetail[] {
 		return [...projects].sort((a, b) => {
-			let valueA = a[currentSortProperty];
-			let valueB = b[currentSortProperty];
+			if (currentSortProperty === 'surah') {
+				const surahA = a.getProminentSurah();
+				const surahB = b.getProminentSurah();
+				if (surahA === null && surahB === null) return 0;
+				if (surahA === null) return 1;
+				if (surahB === null) return -1;
+				return isSortAscending ? surahA - surahB : surahB - surahA;
+			}
+
+			let valueA: string | number | Date | DurationWithMs | null = a[currentSortProperty];
+			let valueB: string | number | Date | DurationWithMs | null = b[currentSortProperty];
 			if (valueA === null && valueB === null) return 0;
 			if (valueA === null) return isSortAscending ? -1 : 1;
 			if (valueB === null) return isSortAscending ? 1 : -1;
@@ -159,7 +169,7 @@
 		});
 	}
 
-	function handleSort(property: keyof ProjectDetail, ascending: boolean) {
+	function handleSort(property: HomeSortProperty, ascending: boolean) {
 		currentSortProperty = property;
 		isSortAscending = ascending;
 	}

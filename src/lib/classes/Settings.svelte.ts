@@ -6,9 +6,8 @@ import { AnalyticsService } from '$lib/services/AnalyticsService';
 import { VersionService } from '$lib/services/VersionService.svelte';
 import MigrationService from '$lib/services/MigrationService';
 import type { VideoStyleFileData } from './VideoStyle.svelte';
-import type { ProjectDetail } from './ProjectDetail.svelte';
 import { DEFAULT_EXPORT_FILE_NAME_FORMAT } from '$lib/constants/export';
-import type { ExplorerSelection } from '$lib/components/home/homeExplorer';
+import type { ExplorerSelection, HomeSortProperty } from '$lib/components/home/homeExplorer';
 import {
 	WBW_TRANSLATION_LANGUAGES,
 	type WbwTranslationLanguageCode
@@ -110,7 +109,7 @@ export default class Settings extends SerializableBase {
 	persistentUiState = $state({
 		// Indique si on affiche le moniteur d'exportation
 		projectCardView: 'grid' as 'grid' | 'list',
-		homeSortProperty: 'updatedAt' as keyof ProjectDetail,
+		homeSortProperty: 'updatedAt' as HomeSortProperty,
 		homeSortAscending: false,
 		homeExplorerSelection: DEFAULT_HOME_EXPLORER_SELECTION as ExplorerSelection,
 		homeExplorerVisible: true,

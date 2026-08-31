@@ -82,6 +82,26 @@ describe('ProjectDetail project type', () => {
 		expect(restored.batchOrder).toBeNull();
 	});
 
+	it('uses the surah covering the most verses as the prominent surah', () => {
+		const detail = new ProjectDetail('Mixed surahs', 'Reciter');
+		detail.verseRange = new VerseRange([
+			{ surah: 1, verseStart: 1, verseEnd: 7 },
+			{ surah: 41, verseStart: 19, verseEnd: 24 }
+		]);
+
+		expect(detail.getProminentSurah()).toBe(1);
+	});
+
+	it('uses the lowest surah number when prominence is tied', () => {
+		const detail = new ProjectDetail('Mixed surahs', 'Reciter');
+		detail.verseRange = new VerseRange([
+			{ surah: 41, verseStart: 19, verseEnd: 24 },
+			{ surah: 1, verseStart: 2, verseEnd: 7 }
+		]);
+
+		expect(detail.getProminentSurah()).toBe(1);
+	});
+
 	it('formats the default export file name with the configured placeholders', () => {
 		globalState.settings = new Settings();
 		globalState.settings.defaultValuesSettings.exportFileNameFormat =

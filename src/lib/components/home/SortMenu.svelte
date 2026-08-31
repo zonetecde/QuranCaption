@@ -3,27 +3,28 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 	import { untrack } from 'svelte';
-	import type { ProjectDetail } from '$lib/classes/ProjectDetail.svelte';
+	import type { HomeSortProperty } from './homeExplorer';
 
 	interface Props {
 		isVisible: boolean;
-		currentProperty: keyof ProjectDetail;
+		currentProperty: HomeSortProperty;
 		ascending: boolean;
-		onSort: (property: keyof ProjectDetail, ascending: boolean) => void;
+		onSort: (property: HomeSortProperty, ascending: boolean) => void;
 	}
 
 	let { isVisible = $bindable(), currentProperty, ascending, onSort }: Props = $props();
 
 	// Options de tri disponibles
 	const sortOptions = $derived([
-		{ key: 'updatedAt' as keyof ProjectDetail, label: get(LL).home.lastUpdated() },
-		{ key: 'createdAt' as keyof ProjectDetail, label: get(LL).home.createdAt() },
-		{ key: 'name' as keyof ProjectDetail, label: get(LL).common.name() },
-		{ key: 'reciter' as keyof ProjectDetail, label: get(LL).home.reciter() },
-		{ key: 'duration' as keyof ProjectDetail, label: get(LL).home.duration() }
+		{ key: 'updatedAt' as HomeSortProperty, label: get(LL).home.lastUpdated() },
+		{ key: 'createdAt' as HomeSortProperty, label: get(LL).home.createdAt() },
+		{ key: 'name' as HomeSortProperty, label: get(LL).common.name() },
+		{ key: 'reciter' as HomeSortProperty, label: get(LL).home.reciter() },
+		{ key: 'duration' as HomeSortProperty, label: get(LL).home.duration() },
+		{ key: 'surah' as HomeSortProperty, label: get(LL).editor.surah() }
 	]);
 
-	let currentSortProperty: keyof ProjectDetail = $state(untrack(() => currentProperty));
+	let currentSortProperty: HomeSortProperty = $state(untrack(() => currentProperty));
 	let isAscending = $state(untrack(() => ascending));
 
 	$effect(() => {

@@ -10,7 +10,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { Status } from '$lib/classes/Status';
-	import Settings from '$lib/classes/Settings.svelte';
+	import Settings, { type HomeSortProperty } from '$lib/classes/Settings.svelte';
 	import TourManager from '$lib/components/tour/TourManager';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import AndroidMediaService from '$lib/services/AndroidMediaService';
@@ -44,7 +44,7 @@
 
 	// Pagination locale de la liste visible
 	let currentPage = $state(1);
-	let currentSortProperty = $state<keyof ProjectDetail>('updatedAt');
+	let currentSortProperty = $state<HomeSortProperty>('updatedAt');
 	let isSortAscending = $state(false);
 	let homePreferencesInitialized = $state(false);
 
@@ -93,8 +93,17 @@
 
 	function sortProjects(projects: ProjectDetail[]): ProjectDetail[] {
 		return [...projects].sort((a, b) => {
-			let valueA = a[currentSortProperty];
-			let valueB = b[currentSortProperty];
+			if (currentSortProperty === 'surah') {
+				const surahA = a.getProminentSurah();
+				const surahB = b.getProminentSurah();
+				if (surahA === null && surahB === null) return 0;
+				if (surahA === null) return 1;
+				if (surahB === null) return -1;
+				return isSortAscending ? surahA - surahB : surahB - surahA;
+			}
+
+			let valueA: string | number | Date | DurationWithMs | null = a[currentSortProperty];
+			let valueB: string | number | Date | DurationWithMs | null = b[currentSortProperty];
 			if (valueA === null && valueB === null) return 0;
 			if (valueA === null) return isSortAscending ? -1 : 1;
 			if (valueB === null) return isSortAscending ? 1 : -1;
@@ -116,7 +125,7 @@
 		});
 	}
 
-	function handleSort(property: keyof ProjectDetail, ascending: boolean) {
+	function handleSort(property: HomeSortProperty, ascending: boolean) {
 		currentSortProperty = property;
 		isSortAscending = ascending;
 	}

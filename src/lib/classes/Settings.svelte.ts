@@ -5,7 +5,6 @@ import { globalState } from '$lib/runes/main.svelte';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 import { VersionService } from '$lib/services/VersionService.svelte';
 import type { VideoStyleFileData } from './VideoStyle.svelte';
-import type { ProjectDetail } from './ProjectDetail.svelte';
 import { DEFAULT_EXPORT_FILE_NAME_FORMAT } from '$lib/constants/export';
 import {
 	WBW_TRANSLATION_LANGUAGES,
@@ -17,6 +16,14 @@ import {
 	type ProjectEditorLayout
 } from '$lib/constants/projectEditor';
 import { PROJECT_TYPE_OPTIONS } from '$lib/types/projectType';
+
+export type HomeSortProperty =
+	| 'updatedAt'
+	| 'createdAt'
+	| 'name'
+	| 'reciter'
+	| 'duration'
+	| 'surah';
 
 export type AutoSegmentationSettings = {
 	minSilenceMs: number;
@@ -100,7 +107,7 @@ export default class Settings extends SerializableBase {
 	persistentUiState = $state({
 		// Indique si on affiche le moniteur d'exportation
 		projectCardView: 'grid' as 'grid' | 'list',
-		homeSortProperty: 'updatedAt' as keyof ProjectDetail,
+		homeSortProperty: 'updatedAt' as HomeSortProperty,
 		homeSortAscending: false,
 		showWaveforms: true,
 		lastClosedUpdateModal: new Date(0).toISOString(),

@@ -1,4 +1,5 @@
 import { Project, ProjectContent, ProjectDetail, Utilities, VideoStyle } from '$lib/classes';
+import { CustomImageClip } from '$lib/classes/Clip.svelte';
 import { readDir, remove, writeTextFile, readTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { invoke } from '@tauri-apps/api/core';
@@ -36,10 +37,23 @@ interface ProjectPackageAsset {
 	size: number;
 }
 
+interface ProjectPackageCustomImageDescriptor {
+	clipId: number;
+	sourcePath: string;
+	fileName: string;
+}
+
+interface ProjectPackageCustomImage {
+	clipId: number;
+	fileName: string;
+	size: number;
+}
+
 interface ProjectPackageManifest {
 	version: number;
 	project: ImportedProjectPayload;
 	assets: ProjectPackageAsset[];
+	customImages?: ProjectPackageCustomImage[];
 }
 
 /**
@@ -393,12 +407,14 @@ export class ProjectService {
 	 * @param {string} fileName Nom original de l'asset.
 	 * @param {number} assetId Identifiant de l'asset.
 	 * @param {number} index Position de l'asset dans le projet.
+	 * @param {string} [prefix='asset'] Préfixe du nom généré.
 	 * @returns {string} Nom de fichier utilisable dans le paquet.
 	 */
 	private static getProjectPackageAssetFileName(
 		fileName: string,
 		assetId: number,
-		index: number
+		index: number,
+		prefix: string = 'asset'
 	): string {
 		const safeFileName =
 			fileName
@@ -407,7 +423,7 @@ export class ProjectService {
 				.map((character) => (character.charCodeAt(0) <= 31 ? '_' : character))
 				.join('')
 				.trim() || 'asset';
-		return `asset-${assetId}-${index}-${safeFileName}`;
+		return `${prefix}-${assetId}-${index}-${safeFileName}`;
 	}
 
 	/**
@@ -422,11 +438,33 @@ export class ProjectService {
 			sourcePath: asset.filePath,
 			fileName: this.getProjectPackageAssetFileName(asset.fileName, asset.id, index)
 		}));
+		const customImages: ProjectPackageCustomImageDescriptor[] = project.content.timeline.tracks
+			.flatMap((track) => track.clips)
+			.filter((clip): clip is CustomImageClip => clip instanceof CustomImageClip)
+			.map((clip, index) => {
+				const sourcePath = clip.getFilePath();
+				if (typeof sourcePath !== 'string' || sourcePath.trim().length === 0) {
+					throw new Error('Custom image does not have a valid file path.');
+				}
+
+				const sourceFileName = sourcePath.split(/[\\/]/).pop() || 'custom-image';
+				return {
+					clipId: clip.id,
+					sourcePath,
+					fileName: this.getProjectPackageAssetFileName(
+						sourceFileName,
+						clip.id,
+						index,
+						'custom-image'
+					)
+				};
+			});
 
 		await invoke('pack_project_archive', {
 			destination,
 			projectJson: JSON.stringify(project.toJSON()),
-			assets
+			assets,
+			customImages
 		});
 	}
 
@@ -511,6 +549,67 @@ export class ProjectService {
 			}
 			if (projectAssetIds.size !== packagedAssets.size) {
 				throw new Error('Project package asset manifest does not match the project.');
+			}
+
+			const packagedCustomImages = packageData?.customImages;
+			if (packagedCustomImages !== undefined && !Array.isArray(packagedCustomImages)) {
+				throw new Error('Invalid project package custom image manifest.');
+			}
+
+			const rawTracks = (rawContent as { timeline?: { tracks?: unknown } } | undefined)?.timeline
+				?.tracks;
+			const rawCustomImageClips = (Array.isArray(rawTracks) ? rawTracks : []).flatMap(
+				(rawTrack) => {
+					const rawClips = (rawTrack as { clips?: unknown } | null)?.clips;
+					if (!Array.isArray(rawClips)) return [];
+					return rawClips.filter((rawClip): rawClip is Record<string, unknown> => {
+						if (!rawClip || typeof rawClip !== 'object') return false;
+						const candidate = rawClip as Record<string, unknown>;
+						return (
+							candidate.type === 'Custom Image' &&
+							typeof candidate.id === 'number' &&
+							Number.isFinite(candidate.id)
+						);
+					});
+				}
+			);
+
+			const customImageClipIds = new Set<number>();
+			for (const packagedCustomImage of packagedCustomImages ?? []) {
+				if (
+					!packagedCustomImage ||
+					typeof packagedCustomImage.clipId !== 'number' ||
+					!Number.isFinite(packagedCustomImage.clipId) ||
+					typeof packagedCustomImage.fileName !== 'string' ||
+					customImageClipIds.has(packagedCustomImage.clipId)
+				) {
+					throw new Error('Invalid project package custom image manifest.');
+				}
+				customImageClipIds.add(packagedCustomImage.clipId);
+
+				const rawCustomImageClip = rawCustomImageClips.find(
+					(rawClip) => rawClip.id === packagedCustomImage.clipId
+				);
+				if (!rawCustomImageClip) {
+					throw new Error('Project package custom image manifest does not match the project.');
+				}
+
+				const rawCategory = rawCustomImageClip.category;
+				const rawStyles =
+					rawCategory && typeof rawCategory === 'object' && 'styles' in rawCategory
+						? (rawCategory as { styles?: unknown }).styles
+						: undefined;
+				const rawFilePathStyle = (Array.isArray(rawStyles) ? rawStyles : []).find((style) => {
+					if (!style || typeof style !== 'object') return false;
+					return (style as Record<string, unknown>).id === 'filepath';
+				});
+				if (!rawFilePathStyle || typeof rawFilePathStyle !== 'object') {
+					throw new Error('Project package custom image is missing its file path style.');
+				}
+				(rawFilePathStyle as Record<string, unknown>).value = await join(
+					assetsPath,
+					packagedCustomImage.fileName
+				);
 			}
 
 			rawProject.detail.id = projectId;

@@ -276,9 +276,14 @@
 		for (let index = 0; index < files.length; index++) {
 			try {
 				const filePath = await AndroidMediaService.materializeSelectedFile(files[index], 0);
-				const json = JSON.parse((await readTextFile(filePath)).toString());
-				await ProjectService.importProject(json);
-				AnalyticsService.trackProjectImported(normalizeProjectType(json.detail?.projectType));
+				if (filePath.toLowerCase().endsWith('.qc')) {
+					await ProjectService.importProjectPackage(filePath);
+					AnalyticsService.trackProjectImported();
+				} else {
+					const json = JSON.parse((await readTextFile(filePath)).toString());
+					await ProjectService.importProject(json);
+					AnalyticsService.trackProjectImported(normalizeProjectType(json.detail?.projectType));
+				}
 			} catch (error) {
 				ModalManager.errorModal(
 					get(LL).home.errorImportingProject(),

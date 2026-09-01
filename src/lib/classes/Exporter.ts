@@ -1,4 +1,5 @@
 import { globalState } from '$lib/runes/main.svelte';
+import { invoke } from '@tauri-apps/api/core';
 import { AssetClip, PredefinedSubtitleClip, SubtitleClip } from './Clip.svelte';
 import SubtitleFileContentGenerator from './misc/SubtitleFileContentGenerator';
 import { Quran } from './Quran';
@@ -8,7 +9,7 @@ import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { save } from '@tauri-apps/plugin-dialog';
-import { exists, readDir, type DirEntry } from '@tauri-apps/plugin-fs';
+import { exists, readDir, remove, type DirEntry } from '@tauri-apps/plugin-fs';
 import { isPermissionGranted, requestPermission } from '@tauri-apps/plugin-notification';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 import ExportFileService from '$lib/services/ExportFileService';
@@ -525,6 +526,54 @@ export default class Exporter {
 		const projectName = ExportFileService.getProjectNameForFile();
 		const fileName = `qurancaption_project_${projectName}.json`;
 		await ExportFileService.saveTextFile(fileName, json, 'Project data', true);
+	}
+
+	/**
+	 * Exporte un projet avec ses assets dans un paquet `.qc`.
+	 * @param {Project | null | undefined} project Projet à exporter.
+	 * @returns {Promise<void>} Promesse résolue lorsque le paquet est enregistré.
+	 */
+	static async exportProjectPackage(project?: Project | null): Promise<void> {
+		const projectData = project || globalState.currentProject;
+
+		if (!projectData) {
+			console.error('No project data available for package export.');
+			return;
+		}
+
+		const projectName = ExportFileService.getProjectNameForFile(projectData);
+		const fileName = `qurancaption_project_${projectName}.qc`;
+		let destinationUri: string | null;
+		try {
+			destinationUri = await save({
+				defaultPath: fileName,
+				filters: [{ name: get(LL).home.exportProject(), extensions: ['qc'] }]
+			});
+		} catch (error) {
+			if (String(error).includes('File picker cancelled')) return;
+			throw error;
+		}
+		if (!destinationUri) return;
+
+		const filePath = await join(
+			await appDataDir(),
+			ExportService.exportFolder,
+			`project-package-${Utilities.randomId()}.qc`
+		);
+		try {
+			await ProjectService.exportProjectPackage(projectData, filePath);
+			const publishedUri = await invoke<string>('publish_android_export', {
+				sourcePath: filePath,
+				destinationUri
+			});
+			await ExportFileService.trackExportedFile(
+				publishedUri,
+				get(LL).home.exportProject(),
+				fileName
+			);
+		} finally {
+			if (await exists(filePath)) await remove(filePath);
+		}
 	}
 
 	/**

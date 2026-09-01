@@ -34,12 +34,30 @@ pub struct ProjectPackageAsset {
     pub size: u64,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectPackageCustomImageInput {
+    pub clip_id: i64,
+    pub source_path: String,
+    pub file_name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectPackageCustomImage {
+    pub clip_id: i64,
+    pub file_name: String,
+    pub size: u64,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectPackageManifest {
     pub version: u32,
     pub project: serde_json::Value,
     pub assets: Vec<ProjectPackageAsset>,
+    #[serde(default)]
+    pub custom_images: Vec<ProjectPackageCustomImage>,
 }
 
 /// Vérifie qu'un nom d'asset ne peut pas sortir du dossier d'extraction.
@@ -67,11 +85,21 @@ fn validate_project_package_manifest(manifest: &ProjectPackageManifest) -> Resul
     if !manifest.project.is_object() {
         return Err("Project package does not contain a project object".to_string());
     }
-    if manifest.assets.len() > PROJECT_PACKAGE_MAX_ASSETS {
+    if manifest
+        .assets
+        .len()
+        .saturating_add(manifest.custom_images.len())
+        > PROJECT_PACKAGE_MAX_ASSETS
+    {
         return Err("Project package contains too many assets".to_string());
     }
 
-    let mut file_names = HashSet::with_capacity(manifest.assets.len());
+    let mut file_names = HashSet::with_capacity(
+        manifest
+            .assets
+            .len()
+            .saturating_add(manifest.custom_images.len()),
+    );
     let mut asset_ids = HashSet::with_capacity(manifest.assets.len());
     for asset in &manifest.assets {
         validate_project_package_file_name(&asset.file_name)?;
@@ -80,6 +108,16 @@ fn validate_project_package_manifest(manifest: &ProjectPackageManifest) -> Resul
         }
         if !asset_ids.insert(asset.id) {
             return Err("Project package contains duplicate asset IDs".to_string());
+        }
+    }
+    let mut custom_image_clip_ids = HashSet::with_capacity(manifest.custom_images.len());
+    for custom_image in &manifest.custom_images {
+        validate_project_package_file_name(&custom_image.file_name)?;
+        if !file_names.insert(custom_image.file_name.as_str()) {
+            return Err("Project package contains duplicate asset names".to_string());
+        }
+        if !custom_image_clip_ids.insert(custom_image.clip_id) {
+            return Err("Project package contains duplicate custom image clip IDs".to_string());
         }
     }
     Ok(())
@@ -98,15 +136,16 @@ pub fn pack_project_archive(
     destination: String,
     project_json: String,
     assets: Vec<ProjectPackageAssetInput>,
+    custom_images: Vec<ProjectPackageCustomImageInput>,
 ) -> Result<(), String> {
-    if assets.len() > PROJECT_PACKAGE_MAX_ASSETS {
+    if assets.len().saturating_add(custom_images.len()) > PROJECT_PACKAGE_MAX_ASSETS {
         return Err("Project package contains too many assets".to_string());
     }
 
     let project = serde_json::from_str(&project_json)
         .map_err(|error| format!("Invalid project JSON: {}", error))?;
     let mut prepared_assets = Vec::with_capacity(assets.len());
-    let mut file_names = HashSet::with_capacity(assets.len());
+    let mut file_names = HashSet::with_capacity(assets.len().saturating_add(custom_images.len()));
 
     for asset in assets {
         validate_project_package_file_name(&asset.file_name)?;
@@ -134,12 +173,43 @@ pub fn pack_project_archive(
         ));
     }
 
+    let mut prepared_custom_images = Vec::with_capacity(custom_images.len());
+    for custom_image in custom_images {
+        validate_project_package_file_name(&custom_image.file_name)?;
+        if !file_names.insert(custom_image.file_name.clone()) {
+            return Err("Project package contains duplicate asset names".to_string());
+        }
+
+        let source_path = path_utils::normalize_existing_path(&custom_image.source_path);
+        let metadata = fs::metadata(&source_path)
+            .map_err(|error| format!("Unable to read project custom image: {}", error))?;
+        if !metadata.is_file() {
+            return Err(format!(
+                "Project custom image is not a file: {}",
+                custom_image.source_path
+            ));
+        }
+
+        prepared_custom_images.push((
+            source_path,
+            ProjectPackageCustomImage {
+                clip_id: custom_image.clip_id,
+                file_name: custom_image.file_name,
+                size: metadata.len(),
+            },
+        ));
+    }
+
     let manifest = ProjectPackageManifest {
         version: PROJECT_PACKAGE_VERSION,
         project,
         assets: prepared_assets
             .iter()
             .map(|(_, asset)| asset.clone())
+            .collect(),
+        custom_images: prepared_custom_images
+            .iter()
+            .map(|(_, custom_image)| custom_image.clone())
             .collect(),
     };
     validate_project_package_manifest(&manifest)?;
@@ -180,6 +250,22 @@ pub fn pack_project_archive(
                 return Err(format!(
                     "Project asset changed while it was being packaged: {}",
                     asset.file_name
+                ));
+            }
+        }
+
+        for (source_path, custom_image) in &prepared_custom_images {
+            archive
+                .start_file(format!("assets/{}", custom_image.file_name), options)
+                .map_err(|error| format!("Unable to add project custom image: {}", error))?;
+            let mut source =
+                BufReader::new(fs::File::open(source_path).map_err(|error| error.to_string())?);
+            let copied =
+                std::io::copy(&mut source, &mut archive).map_err(|error| error.to_string())?;
+            if copied != custom_image.size {
+                return Err(format!(
+                    "Project custom image changed while it was being packaged: {}",
+                    custom_image.file_name
                 ));
             }
         }
@@ -274,6 +360,38 @@ pub fn unpack_project_archive(
                 return Err(format!(
                     "Project package asset copy is incomplete: {}",
                     asset.file_name
+                ));
+            }
+            output.flush().map_err(|error| error.to_string())?;
+        }
+
+        for custom_image in &manifest.custom_images {
+            let entry_name = format!("assets/{}", custom_image.file_name);
+            let mut archive_asset = archive.by_name(&entry_name).map_err(|_error| {
+                format!(
+                    "Project package custom image is missing: {}",
+                    custom_image.file_name
+                )
+            })?;
+            if archive_asset.size() != custom_image.size {
+                return Err(format!(
+                    "Project package custom image size is invalid: {}",
+                    custom_image.file_name
+                ));
+            }
+
+            let output_path = destination_path.join(&custom_image.file_name);
+            let mut output = fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(output_path)
+                .map_err(|error| error.to_string())?;
+            let copied = std::io::copy(&mut archive_asset, &mut output)
+                .map_err(|error| error.to_string())?;
+            if copied != custom_image.size {
+                return Err(format!(
+                    "Project package custom image copy is incomplete: {}",
+                    custom_image.file_name
                 ));
             }
             output.flush().map_err(|error| error.to_string())?;

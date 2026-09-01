@@ -211,6 +211,7 @@ const fr = {
 		dragCard: 'Glisser la carte',
 		openProject: 'Ouvrir',
 		exportProject: 'Exporter le projet',
+		exportProjectWithAsset: 'Exporter le projet (avec les assets)',
 		duplicateProject: 'Dupliquer le projet',
 		deleteProject: 'Supprimer le projet',
 		duplicatingProject: 'Duplication du projet...',

@@ -829,6 +829,10 @@ type RootTranslation = {
 		 */
 		exportProject: string;
 		/**
+		 * E​x​p​o​r​t​ ​p​r​o​j​e​c​t​ ​(​w​i​t​h​ ​a​s​s​e​t​)
+		 */
+		exportProjectWithAsset: string;
+		/**
 		 * D​u​p​l​i​c​a​t​e​ ​p​r​o​j​e​c​t
 		 */
 		duplicateProject: string;
@@ -12349,6 +12353,10 @@ export type TranslationFunctions = {
 		 * Export project
 		 */
 		exportProject: () => LocalizedString;
+		/**
+		 * Export project (with asset)
+		 */
+		exportProjectWithAsset: () => LocalizedString;
 		/**
 		 * Duplicate project
 		 */

@@ -409,7 +409,8 @@
 	>
 	<Item on:click={exportProjectPackageButtonClick}
 		><div class="btn-icon">
-			<span class="material-icons-outlined text-sm mr-1">archive</span>{$LL.home.exportProject()} ({$LL.editor.assets()})
+			<span class="material-icons-outlined text-sm mr-1">archive</span
+			>{$LL.home.exportProjectWithAsset()}
 		</div></Item
 	>
 	<Item on:click={duplicateProjectButtonClick}

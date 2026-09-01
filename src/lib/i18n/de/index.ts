@@ -211,6 +211,7 @@ const de = {
 		dragCard: 'Karte ziehen',
 		openProject: 'Öffnen',
 		exportProject: 'Projekt exportieren',
+		exportProjectWithAsset: 'Projekt exportieren (mit Assets)',
 		duplicateProject: 'Projekt duplizieren',
 		deleteProject: 'Projekt löschen',
 		duplicatingProject: 'Projekt wird dupliziert...',

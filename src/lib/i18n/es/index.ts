@@ -211,6 +211,7 @@ const es = {
 		dragCard: 'Arrastrar tarjeta',
 		openProject: 'Abrir',
 		exportProject: 'Exportar proyecto',
+		exportProjectWithAsset: 'Exportar proyecto (con recursos)',
 		duplicateProject: 'Duplicar proyecto',
 		deleteProject: 'Eliminar proyecto',
 		duplicatingProject: 'Duplicando proyecto...',

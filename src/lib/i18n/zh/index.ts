@@ -200,6 +200,7 @@ const zh = {
 		dragCard: '拖动卡片',
 		openProject: '打开',
 		exportProject: '导出项目',
+		exportProjectWithAsset: '导出项目（包含素材）',
 		duplicateProject: '复制项目',
 		deleteProject: '删除项目',
 		duplicatingProject: '复制项目中...',

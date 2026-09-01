@@ -2199,7 +2199,13 @@ const de = {
 			'Kapitel-Zeitstempel für Ihre YouTube-Videobeschreibung generieren',
 		exportProjectData: 'Projektdaten exportieren',
 		exportProjectDataDescription:
-			'Exportieren Sie Ihre Projektkonfiguration als eigenständige JSON-Datei.',
+			'Exportieren Sie Ihre Projektkonfiguration als eigenständige JSON-Datei ohne Mediendateien.',
+		includeProjectAssets: 'Projekt-Assets einbeziehen',
+		includeProjectAssetsDescription:
+			'Ihre lokalen Audio-, Video-, Bild- und anderen Projekt-Assets in eine .qc-Datei packen.',
+		exportProjectPackage: 'Projektpaket exportieren',
+		exportProjectPackageDescription:
+			'Ihre Projektkonfiguration und Assets als .qc-Paket exportieren.',
 		whatsIncluded: 'Enthaltene Inhalte',
 		projectSettings: 'Projekteinstellungen',
 		projectSettingsDescription:
@@ -2209,13 +2215,21 @@ const de = {
 		customElements: 'Benutzerdefinierte Elemente',
 		customElementsDescription:
 			'Benutzerdefinierte Text-Clips, Stilüberschreibungen und Hintergrundkonfigurationen.',
+		projectAssets: 'Projekt-Assets',
+		projectAssetsDescription:
+			'Lokale Audio-, Video-, Bild- und andere Assets, die von diesem Projekt verwendet werden.',
 		limitations: 'Einschränkungen',
 		mediaFilesNotIncluded: 'Mediendateien nicht enthalten',
 		mediaFilesNotIncludedDescription:
-			'Von Ihrem Gerät importierte Audio- und Videodateien sind nicht enthalten. Nur Dateinamen und Quell-URLs bleiben erhalten.',
+			'Von Ihrem Gerät importierte Audio-, Video-, Bild- und andere Dateien sind nicht enthalten. Nur Dateinamen und Quell-URLs bleiben erhalten.',
+		projectAssetsIncluded: 'Projekt-Assets enthalten',
+		projectAssetsIncludedDescription:
+			'Das .qc-Paket enthält Ihre Projektkonfiguration und die zugehörigen lokalen Assets.',
 		exportProjectDataButton: 'Projektdaten exportieren',
 		exportProjectDataButtonDescription:
 			'Eine JSON-Datei mit Ihrer gesamten Projektkonfiguration generieren',
+		exportProjectPackageButtonDescription:
+			'Eine .qc-Datei mit Ihrem gesamten Projekt und seinen Assets erstellen',
 		exportSubtitlesJsonButton: 'Untertitel-JSON exportieren',
 		exportSubtitlesJsonButtonDescription:
 			'Ein kompaktes JSON auf Wortebene für bearbeitete koranische Untertitelsegmente generieren',

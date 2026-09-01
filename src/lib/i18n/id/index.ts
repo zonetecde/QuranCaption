@@ -1486,7 +1486,13 @@ const id = {
 		exportYoutubeChaptersButtonDescription:
 			'Generate timestamp chapter untuk deskripsi video YouTube kamu',
 		exportProjectData: 'Ekspor Data Proyek',
-		exportProjectDataDescription: 'Ekspor konfigurasi proyek kamu sebagai file JSON terpisah.',
+		exportProjectDataDescription:
+			'Ekspor konfigurasi proyek kamu sebagai file JSON terpisah tanpa file media.',
+		includeProjectAssets: 'Sertakan aset proyek',
+		includeProjectAssetsDescription:
+			'Kemas audio, video, gambar, dan aset proyek lokal lainnya ke dalam file .qc.',
+		exportProjectPackage: 'Ekspor Paket Proyek',
+		exportProjectPackageDescription: 'Ekspor konfigurasi dan aset proyek kamu sebagai paket .qc.',
 		whatsIncluded: 'Yang termasuk',
 		projectSettings: 'Pengaturan proyek',
 		projectSettingsDescription: 'Semua konfigurasi proyek, dimensi, dan preferensi ekspor kamu.',
@@ -1494,13 +1500,19 @@ const id = {
 		subtitleDataDescription: 'Semua clip subtitle, terjemahan, dan referensi ayat.',
 		customElements: 'Elemen kustom',
 		customElementsDescription: 'Clip teks kustom, override style, dan konfigurasi background.',
+		projectAssets: 'Aset Proyek',
+		projectAssetsDescription:
+			'Audio, video, gambar, dan aset lokal lain yang digunakan proyek ini.',
 		limitations: 'Batasan',
 		mediaFilesNotIncluded: 'File media tidak ikut disertakan',
 		mediaFilesNotIncludedDescription:
-			'File audio dan video yang kamu import dari perangkat tidak ikut disertakan. Hanya nama file dan source URL yang disimpan.',
+			'File audio, video, gambar, dan file lain yang kamu import dari perangkat tidak ikut disertakan. Hanya nama file dan source URL yang disimpan.',
+		projectAssetsIncluded: 'Aset Proyek Disertakan',
+		projectAssetsIncludedDescription: 'Paket .qc berisi konfigurasi proyek kamu dan aset lokalnya.',
 		exportProjectDataButton: 'Ekspor Data Proyek',
 		exportProjectDataButtonDescription:
 			'Buat file JSON yang berisi seluruh konfigurasi proyek kamu',
+		exportProjectPackageButtonDescription: 'Buat file .qc yang berisi seluruh proyek dan asetnya',
 		exportSubtitlesJsonButton: 'Ekspor Subtitle JSON',
 		exportSubtitlesJsonButtonDescription:
 			'Buat JSON tingkat-kata yang ringkas untuk segmen subtitle Quran yang sudah diedit',

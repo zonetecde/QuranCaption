@@ -6651,9 +6651,25 @@ type RootTranslation = {
 		 */
 		exportProjectData: string;
 		/**
-		 * E​x​p​o​r​t​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​a​s​ ​a​ ​s​t​a​n​d​a​l​o​n​e​ ​J​S​O​N​ ​f​i​l​e​.
+		 * E​x​p​o​r​t​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​a​s​ ​a​ ​s​t​a​n​d​a​l​o​n​e​ ​J​S​O​N​ ​f​i​l​e​ ​w​i​t​h​o​u​t​ ​i​t​s​ ​m​e​d​i​a​ ​a​s​s​e​t​s​.
 		 */
 		exportProjectDataDescription: string;
+		/**
+		 * I​n​c​l​u​d​e​ ​p​r​o​j​e​c​t​ ​a​s​s​e​t​s
+		 */
+		includeProjectAssets: string;
+		/**
+		 * P​a​c​k​a​g​e​ ​y​o​u​r​ ​l​o​c​a​l​ ​a​u​d​i​o​,​ ​v​i​d​e​o​,​ ​i​m​a​g​e​,​ ​a​n​d​ ​o​t​h​e​r​ ​p​r​o​j​e​c​t​ ​a​s​s​e​t​s​ ​i​n​ ​a​ ​.​q​c​ ​f​i​l​e​.
+		 */
+		includeProjectAssetsDescription: string;
+		/**
+		 * E​x​p​o​r​t​ ​P​r​o​j​e​c​t​ ​P​a​c​k​a​g​e
+		 */
+		exportProjectPackage: string;
+		/**
+		 * E​x​p​o​r​t​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​a​n​d​ ​a​s​s​e​t​s​ ​a​s​ ​a​ ​.​q​c​ ​p​a​c​k​a​g​e​.
+		 */
+		exportProjectPackageDescription: string;
 		/**
 		 * W​h​a​t​'​s​ ​I​n​c​l​u​d​e​d
 		 */
@@ -6683,6 +6699,14 @@ type RootTranslation = {
 		 */
 		customElementsDescription: string;
 		/**
+		 * P​r​o​j​e​c​t​ ​A​s​s​e​t​s
+		 */
+		projectAssets: string;
+		/**
+		 * L​o​c​a​l​ ​a​u​d​i​o​,​ ​v​i​d​e​o​,​ ​i​m​a​g​e​,​ ​a​n​d​ ​o​t​h​e​r​ ​a​s​s​e​t​s​ ​u​s​e​d​ ​b​y​ ​t​h​i​s​ ​p​r​o​j​e​c​t​.
+		 */
+		projectAssetsDescription: string;
+		/**
 		 * L​i​m​i​t​a​t​i​o​n​s
 		 */
 		limitations: string;
@@ -6691,9 +6715,17 @@ type RootTranslation = {
 		 */
 		mediaFilesNotIncluded: string;
 		/**
-		 * A​u​d​i​o​ ​a​n​d​ ​v​i​d​e​o​ ​f​i​l​e​s​ ​y​o​u​ ​i​m​p​o​r​t​e​d​ ​f​r​o​m​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​a​r​e​ ​n​o​t​ ​i​n​c​l​u​d​e​d​.​ ​O​n​l​y​ ​f​i​l​e​ ​n​a​m​e​s​ ​a​n​d​ ​s​o​u​r​c​e​ ​U​R​L​s​ ​a​r​e​ ​s​t​o​r​e​d​.
+		 * A​u​d​i​o​,​ ​v​i​d​e​o​,​ ​i​m​a​g​e​,​ ​a​n​d​ ​o​t​h​e​r​ ​f​i​l​e​s​ ​y​o​u​ ​i​m​p​o​r​t​e​d​ ​f​r​o​m​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​a​r​e​ ​n​o​t​ ​i​n​c​l​u​d​e​d​.​ ​O​n​l​y​ ​f​i​l​e​ ​n​a​m​e​s​ ​a​n​d​ ​s​o​u​r​c​e​ ​U​R​L​s​ ​a​r​e​ ​s​t​o​r​e​d​.
 		 */
 		mediaFilesNotIncludedDescription: string;
+		/**
+		 * P​r​o​j​e​c​t​ ​A​s​s​e​t​s​ ​I​n​c​l​u​d​e​d
+		 */
+		projectAssetsIncluded: string;
+		/**
+		 * T​h​e​ ​.​q​c​ ​p​a​c​k​a​g​e​ ​c​o​n​t​a​i​n​s​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​a​n​d​ ​i​t​s​ ​l​o​c​a​l​ ​a​s​s​e​t​s​.
+		 */
+		projectAssetsIncludedDescription: string;
 		/**
 		 * E​x​p​o​r​t​ ​P​r​o​j​e​c​t​ ​D​a​t​a
 		 */
@@ -6702,6 +6734,10 @@ type RootTranslation = {
 		 * G​e​n​e​r​a​t​e​ ​a​ ​J​S​O​N​ ​f​i​l​e​ ​c​o​n​t​a​i​n​i​n​g​ ​y​o​u​r​ ​e​n​t​i​r​e​ ​p​r​o​j​e​c​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 		 */
 		exportProjectDataButtonDescription: string;
+		/**
+		 * G​e​n​e​r​a​t​e​ ​a​ ​.​q​c​ ​f​i​l​e​ ​c​o​n​t​a​i​n​i​n​g​ ​y​o​u​r​ ​e​n​t​i​r​e​ ​p​r​o​j​e​c​t​ ​a​n​d​ ​i​t​s​ ​a​s​s​e​t​s
+		 */
+		exportProjectPackageButtonDescription: string;
 		/**
 		 * E​x​p​o​r​t​ ​S​u​b​t​i​t​l​e​s​ ​J​S​O​N
 		 */
@@ -18050,9 +18086,25 @@ export type TranslationFunctions = {
 		 */
 		exportProjectData: () => LocalizedString;
 		/**
-		 * Export your project configuration as a standalone JSON file.
+		 * Export your project configuration as a standalone JSON file without its media assets.
 		 */
 		exportProjectDataDescription: () => LocalizedString;
+		/**
+		 * Include project assets
+		 */
+		includeProjectAssets: () => LocalizedString;
+		/**
+		 * Package your local audio, video, image, and other project assets in a .qc file.
+		 */
+		includeProjectAssetsDescription: () => LocalizedString;
+		/**
+		 * Export Project Package
+		 */
+		exportProjectPackage: () => LocalizedString;
+		/**
+		 * Export your project configuration and assets as a .qc package.
+		 */
+		exportProjectPackageDescription: () => LocalizedString;
 		/**
 		 * What's Included
 		 */
@@ -18082,6 +18134,14 @@ export type TranslationFunctions = {
 		 */
 		customElementsDescription: () => LocalizedString;
 		/**
+		 * Project Assets
+		 */
+		projectAssets: () => LocalizedString;
+		/**
+		 * Local audio, video, image, and other assets used by this project.
+		 */
+		projectAssetsDescription: () => LocalizedString;
+		/**
 		 * Limitations
 		 */
 		limitations: () => LocalizedString;
@@ -18090,9 +18150,17 @@ export type TranslationFunctions = {
 		 */
 		mediaFilesNotIncluded: () => LocalizedString;
 		/**
-		 * Audio and video files you imported from your device are not included. Only file names and source URLs are stored.
+		 * Audio, video, image, and other files you imported from your device are not included. Only file names and source URLs are stored.
 		 */
 		mediaFilesNotIncludedDescription: () => LocalizedString;
+		/**
+		 * Project Assets Included
+		 */
+		projectAssetsIncluded: () => LocalizedString;
+		/**
+		 * The .qc package contains your project configuration and its local assets.
+		 */
+		projectAssetsIncludedDescription: () => LocalizedString;
 		/**
 		 * Export Project Data
 		 */
@@ -18101,6 +18169,10 @@ export type TranslationFunctions = {
 		 * Generate a JSON file containing your entire project configuration
 		 */
 		exportProjectDataButtonDescription: () => LocalizedString;
+		/**
+		 * Generate a .qc file containing your entire project and its assets
+		 */
+		exportProjectPackageButtonDescription: () => LocalizedString;
 		/**
 		 * Export Subtitles JSON
 		 */

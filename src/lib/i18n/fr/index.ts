@@ -2203,7 +2203,13 @@ const fr = {
 			'Générer des horodatages de chapitres pour votre description vidéo YouTube',
 		exportProjectData: 'Exporter les données du projet',
 		exportProjectDataDescription:
-			'Exportez la configuration de votre projet sous forme de fichier JSON autonome.',
+			'Exportez la configuration de votre projet dans un fichier JSON autonome, sans ses fichiers média.',
+		includeProjectAssets: 'Inclure les assets du projet',
+		includeProjectAssetsDescription:
+			'Regrouper vos fichiers audio, vidéo, image et autres assets locaux du projet dans un fichier .qc.',
+		exportProjectPackage: 'Exporter le paquet du projet',
+		exportProjectPackageDescription:
+			'Exportez la configuration et les assets de votre projet dans un paquet .qc.',
 		whatsIncluded: 'Contenu inclus',
 		projectSettings: 'Paramètres du projet',
 		projectSettingsDescription:
@@ -2213,13 +2219,21 @@ const fr = {
 		customElements: 'Éléments personnalisés',
 		customElementsDescription:
 			'Clips de texte personnalisés, remplacements de style et configurations d\u2019arrière-plan.',
+		projectAssets: 'Assets du projet',
+		projectAssetsDescription:
+			'Fichiers audio, vidéo, image et autres assets locaux utilisés par ce projet.',
 		limitations: 'Limitations',
 		mediaFilesNotIncluded: 'Fichiers média non inclus',
 		mediaFilesNotIncludedDescription:
-			'Les fichiers audio et vidéo importés depuis votre appareil ne sont pas inclus. Seuls les noms de fichiers et les URL sources sont conservés.',
+			'Les fichiers audio, vidéo, image et autres fichiers importés depuis votre appareil ne sont pas inclus. Seuls les noms de fichiers et les URL sources sont conservés.',
+		projectAssetsIncluded: 'Assets du projet inclus',
+		projectAssetsIncludedDescription:
+			'Le paquet .qc contient la configuration de votre projet et ses assets locaux.',
 		exportProjectDataButton: 'Exporter les données du projet',
 		exportProjectDataButtonDescription:
 			'Générer un fichier JSON contenant toute la configuration de votre projet',
+		exportProjectPackageButtonDescription:
+			'Générer un fichier .qc contenant tout votre projet et ses assets',
 		exportSubtitlesJsonButton: 'Exporter le JSON des sous-titres',
 		exportSubtitlesJsonButtonDescription:
 			'Générer un JSON compact au niveau des mots pour les segments de sous-titres coraniques modifiés',

@@ -155,6 +155,7 @@ const id = {
 		updatedLabel: 'Diperbarui:',
 		openProject: 'Buka',
 		exportProject: 'Ekspor proyek',
+		exportProjectWithAsset: 'Ekspor proyek (dengan aset)',
 		duplicateProject: 'Duplikat proyek',
 		deleteProject: 'Hapus proyek',
 		duplicatingProject: 'Sedang menduplikat proyek...',

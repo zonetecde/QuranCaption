@@ -1,10 +1,11 @@
 import { Project, ProjectContent, ProjectDetail, Utilities, VideoStyle } from '$lib/classes';
-import { CustomImageClip } from '$lib/classes/Clip.svelte';
+import { ClipWithTranslation, CustomImageClip } from '$lib/classes/Clip.svelte';
 import { readDir, remove, writeTextFile, readTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { invoke } from '@tauri-apps/api/core';
 import { globalState } from '$lib/runes/main.svelte';
 import { projectJsonReferencesQuaCache, pruneOrphanedQuaCache } from '$lib/services/QuaAudioCache';
+import QPCFontProvider from '$lib/services/FontProvider';
 import type { ImportedProjectPayload } from '$lib/types/project';
 import { DEFAULT_PROJECT_TYPE, type ProjectType } from '$lib/types/projectType';
 import LL from '$lib/i18n/i18n-svelte';
@@ -49,11 +50,41 @@ interface ProjectPackageCustomImage {
 	size: number;
 }
 
+interface ProjectPackageLinkedImageDescriptor {
+	kind: 'subtitle' | 'style';
+	clipId?: number;
+	styleId?: string;
+	sourcePath: string;
+	fileName: string;
+}
+
+interface ProjectPackageLinkedImage {
+	kind: 'subtitle' | 'style';
+	clipId?: number;
+	styleId?: string;
+	fileName: string;
+	size: number;
+}
+
+interface ProjectPackageFontDescriptor {
+	family: string;
+	sourcePath: string;
+	fileName: string;
+}
+
+interface ProjectPackageFont {
+	family: string;
+	fileName: string;
+	size: number;
+}
+
 interface ProjectPackageManifest {
 	version: number;
 	project: ImportedProjectPayload;
 	assets: ProjectPackageAsset[];
 	customImages?: ProjectPackageCustomImage[];
+	linkedImages?: ProjectPackageLinkedImage[];
+	fonts?: ProjectPackageFont[];
 }
 
 /**
@@ -427,12 +458,42 @@ export class ProjectService {
 	}
 
 	/**
+	 * Extrait les familles de polices importées utilisées dans un projet sérialisé.
+	 * @param {unknown} value Données sérialisées du projet.
+	 * @returns {Set<string>} Familles `QCImported-...` utilisées par le projet.
+	 */
+	private static collectProjectPackageFontFamilies(value: unknown): Set<string> {
+		const families = new Set<string>();
+		const pending: unknown[] = [value];
+
+		while (pending.length > 0) {
+			const current = pending.pop();
+			if (typeof current === 'string') {
+				for (const family of current.match(/\bQCImported-[A-Za-z0-9-]+\b/g) ?? []) {
+					families.add(family);
+				}
+				continue;
+			}
+			if (Array.isArray(current)) {
+				pending.push(...current);
+				continue;
+			}
+			if (current && typeof current === 'object') {
+				pending.push(...Object.values(current as Record<string, unknown>));
+			}
+		}
+
+		return families;
+	}
+
+	/**
 	 * Exporte un projet et tous ses assets locaux dans un fichier `.qc`.
 	 * @param {Project} project Projet à empaqueter.
 	 * @param {string} destination Chemin du fichier `.qc` à créer.
 	 * @returns {Promise<void>} Promesse résolue lorsque le paquet est écrit.
 	 */
 	static async exportProjectPackage(project: Project, destination: string): Promise<void> {
+		const projectPayload = project.toJSON();
 		const assets: ProjectPackageAssetDescriptor[] = project.content.assets.map((asset, index) => ({
 			id: asset.id,
 			sourcePath: asset.filePath,
@@ -459,12 +520,71 @@ export class ProjectService {
 					)
 				};
 			});
+		const linkedImages: ProjectPackageLinkedImageDescriptor[] = project.content.timeline.tracks
+			.flatMap((track) => track.clips)
+			.flatMap((clip, index) => {
+				if (!(clip instanceof ClipWithTranslation)) return [];
+				const sourcePath = clip.getAssociatedImagePath();
+				if (typeof sourcePath !== 'string' || sourcePath.trim().length === 0) return [];
+
+				const sourceFileName = sourcePath.split(/[\\/]/).pop() || 'subtitle-image';
+				return [
+					{
+						kind: 'subtitle' as const,
+						clipId: clip.id,
+						sourcePath,
+						fileName: this.getProjectPackageAssetFileName(
+							sourceFileName,
+							clip.id,
+							index,
+							'subtitle-image'
+						)
+					}
+				];
+			});
+
+		const bannerPath = project.content.videoStyle
+			.getStylesOfTarget('global')
+			.findStyle('ayah-container-image')?.value;
+		if (
+			typeof bannerPath === 'string' &&
+			bannerPath.trim().length > 0 &&
+			(bannerPath.includes('/') || bannerPath.includes('\\'))
+		) {
+			const sourceFileName = bannerPath.split(/[\\/]/).pop() || 'ayah-container-image';
+			linkedImages.push({
+				kind: 'style',
+				styleId: 'ayah-container-image',
+				sourcePath: bannerPath,
+				fileName: this.getProjectPackageAssetFileName(
+					sourceFileName,
+					0,
+					linkedImages.length,
+					'style-image'
+				)
+			});
+		}
+
+		const importedFonts = await QPCFontProvider.loadImportedFonts();
+		const importedFontsByFamily = new Map(importedFonts.map((font) => [font.family, font]));
+		const fonts: ProjectPackageFontDescriptor[] = [];
+		for (const family of this.collectProjectPackageFontFamilies(projectPayload)) {
+			const font = importedFontsByFamily.get(family);
+			if (!font) {
+				throw new Error(`The project uses an unavailable imported font: ${family}`);
+			}
+			const fileName = font.path.split(/[\\/]/).pop();
+			if (!fileName) throw new Error(`The imported font has no valid file name: ${family}`);
+			fonts.push({ family, sourcePath: font.path, fileName });
+		}
 
 		await invoke('pack_project_archive', {
 			destination,
-			projectJson: JSON.stringify(project.toJSON()),
+			projectJson: JSON.stringify(projectPayload),
 			assets,
-			customImages
+			customImages,
+			linkedImages,
+			fonts
 		});
 	}
 
@@ -558,21 +678,20 @@ export class ProjectService {
 
 			const rawTracks = (rawContent as { timeline?: { tracks?: unknown } } | undefined)?.timeline
 				?.tracks;
-			const rawCustomImageClips = (Array.isArray(rawTracks) ? rawTracks : []).flatMap(
-				(rawTrack) => {
-					const rawClips = (rawTrack as { clips?: unknown } | null)?.clips;
-					if (!Array.isArray(rawClips)) return [];
-					return rawClips.filter((rawClip): rawClip is Record<string, unknown> => {
-						if (!rawClip || typeof rawClip !== 'object') return false;
-						const candidate = rawClip as Record<string, unknown>;
-						return (
-							candidate.type === 'Custom Image' &&
-							typeof candidate.id === 'number' &&
-							Number.isFinite(candidate.id)
-						);
-					});
-				}
-			);
+			const rawClips = (Array.isArray(rawTracks) ? rawTracks : []).flatMap((rawTrack) => {
+				const rawClips = (rawTrack as { clips?: unknown } | null)?.clips;
+				if (!Array.isArray(rawClips)) return [];
+				return rawClips.filter((rawClip): rawClip is Record<string, unknown> => {
+					return !!rawClip && typeof rawClip === 'object';
+				});
+			});
+			const rawCustomImageClips = rawClips.filter((rawClip) => {
+				return (
+					rawClip.type === 'Custom Image' &&
+					typeof rawClip.id === 'number' &&
+					Number.isFinite(rawClip.id)
+				);
+			});
 
 			const customImageClipIds = new Set<number>();
 			for (const packagedCustomImage of packagedCustomImages ?? []) {
@@ -609,6 +728,132 @@ export class ProjectService {
 				(rawFilePathStyle as Record<string, unknown>).value = await join(
 					assetsPath,
 					packagedCustomImage.fileName
+				);
+			}
+
+			const packagedLinkedImages = packageData?.linkedImages;
+			if (packagedLinkedImages !== undefined && !Array.isArray(packagedLinkedImages)) {
+				throw new Error('Invalid project package linked image manifest.');
+			}
+
+			const rawClipsById = new Map<number, Record<string, unknown>>();
+			for (const rawClip of rawClips) {
+				if (typeof rawClip.id === 'number' && Number.isFinite(rawClip.id)) {
+					rawClipsById.set(rawClip.id, rawClip);
+				}
+			}
+
+			const linkedClipIds = new Set<number>();
+			const linkedStyleIds = new Set<string>();
+			for (const packagedLinkedImage of packagedLinkedImages ?? []) {
+				if (
+					!packagedLinkedImage ||
+					typeof packagedLinkedImage.kind !== 'string' ||
+					typeof packagedLinkedImage.fileName !== 'string'
+				) {
+					throw new Error('Invalid project package linked image manifest.');
+				}
+
+				if (packagedLinkedImage.kind === 'subtitle') {
+					if (
+						typeof packagedLinkedImage.clipId !== 'number' ||
+						!Number.isFinite(packagedLinkedImage.clipId) ||
+						packagedLinkedImage.styleId !== undefined ||
+						linkedClipIds.has(packagedLinkedImage.clipId)
+					) {
+						throw new Error('Invalid project package linked image manifest.');
+					}
+					linkedClipIds.add(packagedLinkedImage.clipId);
+					const rawClip = rawClipsById.get(packagedLinkedImage.clipId);
+					if (!rawClip) {
+						throw new Error('Project package linked image manifest does not match the project.');
+					}
+					rawClip.associatedImagePath = await join(assetsPath, packagedLinkedImage.fileName);
+					continue;
+				}
+
+				if (
+					packagedLinkedImage.kind !== 'style' ||
+					packagedLinkedImage.styleId !== 'ayah-container-image' ||
+					packagedLinkedImage.clipId !== undefined ||
+					linkedStyleIds.has(packagedLinkedImage.styleId)
+				) {
+					throw new Error('Invalid project package linked image manifest.');
+				}
+				linkedStyleIds.add(packagedLinkedImage.styleId);
+
+				const rawVideoStyle =
+					rawContent && typeof rawContent === 'object' && 'videoStyle' in rawContent
+						? (rawContent as { videoStyle?: unknown }).videoStyle
+						: undefined;
+				const rawStyleGroups =
+					rawVideoStyle && typeof rawVideoStyle === 'object' && 'styles' in rawVideoStyle
+						? (rawVideoStyle as { styles?: unknown }).styles
+						: undefined;
+				const rawGlobalStyleGroup = (Array.isArray(rawStyleGroups) ? rawStyleGroups : []).find(
+					(group) =>
+						group &&
+						typeof group === 'object' &&
+						(group as Record<string, unknown>).target === 'global'
+				);
+				const rawGlobalCategories =
+					rawGlobalStyleGroup &&
+					typeof rawGlobalStyleGroup === 'object' &&
+					'categories' in rawGlobalStyleGroup
+						? (rawGlobalStyleGroup as { categories?: unknown }).categories
+						: undefined;
+				const rawBannerStyle = (Array.isArray(rawGlobalCategories) ? rawGlobalCategories : [])
+					.flatMap((category) => {
+						if (!category || typeof category !== 'object' || !('styles' in category)) return [];
+						const styles = (category as { styles?: unknown }).styles;
+						return Array.isArray(styles) ? styles : [];
+					})
+					.find(
+						(style) =>
+							style &&
+							typeof style === 'object' &&
+							(style as Record<string, unknown>).id === packagedLinkedImage.styleId
+					);
+				if (!rawBannerStyle || typeof rawBannerStyle !== 'object') {
+					throw new Error('Project package linked image is missing its style.');
+				}
+				(rawBannerStyle as Record<string, unknown>).value = await join(
+					assetsPath,
+					packagedLinkedImage.fileName
+				);
+			}
+
+			const packagedFonts = packageData?.fonts;
+			if (packagedFonts !== undefined && !Array.isArray(packagedFonts)) {
+				throw new Error('Invalid project package font manifest.');
+			}
+			const projectFontFamilies = this.collectProjectPackageFontFamilies(rawProject);
+			const packagedFontFamilies = new Set<string>();
+			for (const packagedFont of packagedFonts ?? []) {
+				if (
+					!packagedFont ||
+					typeof packagedFont.family !== 'string' ||
+					!packagedFont.family.startsWith('QCImported-') ||
+					typeof packagedFont.fileName !== 'string' ||
+					packagedFont.fileName.length === 0 ||
+					packagedFontFamilies.has(packagedFont.family)
+				) {
+					throw new Error('Invalid project package font manifest.');
+				}
+				packagedFontFamilies.add(packagedFont.family);
+			}
+			if (
+				packagedFonts !== undefined &&
+				(projectFontFamilies.size !== packagedFontFamilies.size ||
+					[...projectFontFamilies].some((family) => !packagedFontFamilies.has(family)))
+			) {
+				throw new Error('Project package font manifest does not match the project.');
+			}
+			for (const packagedFont of packagedFonts ?? []) {
+				await QPCFontProvider.restoreImportedFontFile(
+					await join(assetsPath, 'fonts', packagedFont.fileName),
+					packagedFont.fileName,
+					packagedFont.family
 				);
 			}
 

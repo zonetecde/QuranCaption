@@ -50,6 +50,44 @@ pub struct ProjectPackageCustomImage {
     pub size: u64,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectPackageLinkedImageInput {
+    pub kind: String,
+    pub clip_id: Option<i64>,
+    pub style_id: Option<String>,
+    pub source_path: String,
+    pub file_name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectPackageLinkedImage {
+    pub kind: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub clip_id: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub style_id: Option<String>,
+    pub file_name: String,
+    pub size: u64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectPackageFontInput {
+    pub family: String,
+    pub source_path: String,
+    pub file_name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectPackageFont {
+    pub family: String,
+    pub file_name: String,
+    pub size: u64,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectPackageManifest {
@@ -58,6 +96,10 @@ pub struct ProjectPackageManifest {
     pub assets: Vec<ProjectPackageAsset>,
     #[serde(default)]
     pub custom_images: Vec<ProjectPackageCustomImage>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub linked_images: Vec<ProjectPackageLinkedImage>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub fonts: Vec<ProjectPackageFont>,
 }
 
 /// Vérifie qu'un nom d'asset ne peut pas sortir du dossier d'extraction.
@@ -85,21 +127,17 @@ fn validate_project_package_manifest(manifest: &ProjectPackageManifest) -> Resul
     if !manifest.project.is_object() {
         return Err("Project package does not contain a project object".to_string());
     }
-    if manifest
+    let package_file_count = manifest
         .assets
         .len()
         .saturating_add(manifest.custom_images.len())
-        > PROJECT_PACKAGE_MAX_ASSETS
-    {
+        .saturating_add(manifest.linked_images.len())
+        .saturating_add(manifest.fonts.len());
+    if package_file_count > PROJECT_PACKAGE_MAX_ASSETS {
         return Err("Project package contains too many assets".to_string());
     }
 
-    let mut file_names = HashSet::with_capacity(
-        manifest
-            .assets
-            .len()
-            .saturating_add(manifest.custom_images.len()),
-    );
+    let mut file_names = HashSet::with_capacity(package_file_count);
     let mut asset_ids = HashSet::with_capacity(manifest.assets.len());
     for asset in &manifest.assets {
         validate_project_package_file_name(&asset.file_name)?;
@@ -120,6 +158,44 @@ fn validate_project_package_manifest(manifest: &ProjectPackageManifest) -> Resul
             return Err("Project package contains duplicate custom image clip IDs".to_string());
         }
     }
+    let mut linked_clip_ids = HashSet::with_capacity(manifest.linked_images.len());
+    let mut linked_style_ids = HashSet::with_capacity(manifest.linked_images.len());
+    for linked_image in &manifest.linked_images {
+        validate_project_package_file_name(&linked_image.file_name)?;
+        if !file_names.insert(linked_image.file_name.as_str()) {
+            return Err("Project package contains duplicate asset names".to_string());
+        }
+        match linked_image.kind.as_str() {
+            "subtitle" if linked_image.clip_id.is_some() && linked_image.style_id.is_none() => {
+                if !linked_clip_ids.insert(linked_image.clip_id.unwrap()) {
+                    return Err(
+                        "Project package contains duplicate linked image clip IDs".to_string()
+                    );
+                }
+            }
+            "style"
+                if linked_image.clip_id.is_none()
+                    && linked_image.style_id.as_deref() == Some("ayah-container-image") =>
+            {
+                if !linked_style_ids.insert(linked_image.style_id.as_deref().unwrap()) {
+                    return Err(
+                        "Project package contains duplicate linked image styles".to_string()
+                    );
+                }
+            }
+            _ => return Err("Invalid project package linked image metadata".to_string()),
+        }
+    }
+    let mut font_families = HashSet::with_capacity(manifest.fonts.len());
+    for font in &manifest.fonts {
+        validate_project_package_file_name(&font.file_name)?;
+        if !file_names.insert(font.file_name.as_str()) {
+            return Err("Project package contains duplicate asset names".to_string());
+        }
+        if !font.family.starts_with("QCImported-") || !font_families.insert(font.family.as_str()) {
+            return Err("Invalid project package font metadata".to_string());
+        }
+    }
     Ok(())
 }
 
@@ -137,15 +213,22 @@ pub fn pack_project_archive(
     project_json: String,
     assets: Vec<ProjectPackageAssetInput>,
     custom_images: Vec<ProjectPackageCustomImageInput>,
+    linked_images: Vec<ProjectPackageLinkedImageInput>,
+    fonts: Vec<ProjectPackageFontInput>,
 ) -> Result<(), String> {
-    if assets.len().saturating_add(custom_images.len()) > PROJECT_PACKAGE_MAX_ASSETS {
+    let package_file_count = assets
+        .len()
+        .saturating_add(custom_images.len())
+        .saturating_add(linked_images.len())
+        .saturating_add(fonts.len());
+    if package_file_count > PROJECT_PACKAGE_MAX_ASSETS {
         return Err("Project package contains too many assets".to_string());
     }
 
     let project = serde_json::from_str(&project_json)
         .map_err(|error| format!("Invalid project JSON: {}", error))?;
     let mut prepared_assets = Vec::with_capacity(assets.len());
-    let mut file_names = HashSet::with_capacity(assets.len().saturating_add(custom_images.len()));
+    let mut file_names = HashSet::with_capacity(package_file_count);
 
     for asset in assets {
         validate_project_package_file_name(&asset.file_name)?;
@@ -200,6 +283,59 @@ pub fn pack_project_archive(
         ));
     }
 
+    let mut prepared_linked_images = Vec::with_capacity(linked_images.len());
+    for linked_image in linked_images {
+        validate_project_package_file_name(&linked_image.file_name)?;
+        if !file_names.insert(linked_image.file_name.clone()) {
+            return Err("Project package contains duplicate asset names".to_string());
+        }
+
+        let source_path = path_utils::normalize_existing_path(&linked_image.source_path);
+        let metadata = fs::metadata(&source_path)
+            .map_err(|error| format!("Unable to read project linked image: {}", error))?;
+        if !metadata.is_file() {
+            return Err(format!(
+                "Project linked image is not a file: {}",
+                linked_image.source_path
+            ));
+        }
+
+        prepared_linked_images.push((
+            source_path,
+            ProjectPackageLinkedImage {
+                kind: linked_image.kind,
+                clip_id: linked_image.clip_id,
+                style_id: linked_image.style_id,
+                file_name: linked_image.file_name,
+                size: metadata.len(),
+            },
+        ));
+    }
+
+    let mut prepared_fonts = Vec::with_capacity(fonts.len());
+    for font in fonts {
+        validate_project_package_file_name(&font.file_name)?;
+        if !file_names.insert(font.file_name.clone()) {
+            return Err("Project package contains duplicate asset names".to_string());
+        }
+
+        let source_path = path_utils::normalize_existing_path(&font.source_path);
+        let metadata = fs::metadata(&source_path)
+            .map_err(|error| format!("Unable to read project font: {}", error))?;
+        if !metadata.is_file() {
+            return Err(format!("Project font is not a file: {}", font.source_path));
+        }
+
+        prepared_fonts.push((
+            source_path,
+            ProjectPackageFont {
+                family: font.family,
+                file_name: font.file_name,
+                size: metadata.len(),
+            },
+        ));
+    }
+
     let manifest = ProjectPackageManifest {
         version: PROJECT_PACKAGE_VERSION,
         project,
@@ -210,6 +346,14 @@ pub fn pack_project_archive(
         custom_images: prepared_custom_images
             .iter()
             .map(|(_, custom_image)| custom_image.clone())
+            .collect(),
+        linked_images: prepared_linked_images
+            .iter()
+            .map(|(_, linked_image)| linked_image.clone())
+            .collect(),
+        fonts: prepared_fonts
+            .iter()
+            .map(|(_, font)| font.clone())
             .collect(),
     };
     validate_project_package_manifest(&manifest)?;
@@ -266,6 +410,38 @@ pub fn pack_project_archive(
                 return Err(format!(
                     "Project custom image changed while it was being packaged: {}",
                     custom_image.file_name
+                ));
+            }
+        }
+
+        for (source_path, linked_image) in &prepared_linked_images {
+            archive
+                .start_file(format!("assets/{}", linked_image.file_name), options)
+                .map_err(|error| format!("Unable to add project linked image: {}", error))?;
+            let mut source =
+                BufReader::new(fs::File::open(source_path).map_err(|error| error.to_string())?);
+            let copied =
+                std::io::copy(&mut source, &mut archive).map_err(|error| error.to_string())?;
+            if copied != linked_image.size {
+                return Err(format!(
+                    "Project linked image changed while it was being packaged: {}",
+                    linked_image.file_name
+                ));
+            }
+        }
+
+        for (source_path, font) in &prepared_fonts {
+            archive
+                .start_file(format!("fonts/{}", font.file_name), options)
+                .map_err(|error| format!("Unable to add project font: {}", error))?;
+            let mut source =
+                BufReader::new(fs::File::open(source_path).map_err(|error| error.to_string())?);
+            let copied =
+                std::io::copy(&mut source, &mut archive).map_err(|error| error.to_string())?;
+            if copied != font.size {
+                return Err(format!(
+                    "Project font changed while it was being packaged: {}",
+                    font.file_name
                 ));
             }
         }
@@ -392,6 +568,71 @@ pub fn unpack_project_archive(
                 return Err(format!(
                     "Project package custom image copy is incomplete: {}",
                     custom_image.file_name
+                ));
+            }
+            output.flush().map_err(|error| error.to_string())?;
+        }
+
+        for linked_image in &manifest.linked_images {
+            let entry_name = format!("assets/{}", linked_image.file_name);
+            let mut archive_asset = archive.by_name(&entry_name).map_err(|_error| {
+                format!(
+                    "Project package linked image is missing: {}",
+                    linked_image.file_name
+                )
+            })?;
+            if archive_asset.size() != linked_image.size {
+                return Err(format!(
+                    "Project package linked image size is invalid: {}",
+                    linked_image.file_name
+                ));
+            }
+
+            let output_path = destination_path.join(&linked_image.file_name);
+            let mut output = fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(output_path)
+                .map_err(|error| error.to_string())?;
+            let copied = std::io::copy(&mut archive_asset, &mut output)
+                .map_err(|error| error.to_string())?;
+            if copied != linked_image.size {
+                return Err(format!(
+                    "Project package linked image copy is incomplete: {}",
+                    linked_image.file_name
+                ));
+            }
+            output.flush().map_err(|error| error.to_string())?;
+        }
+
+        let fonts_path = destination_path.join("fonts");
+        if !manifest.fonts.is_empty() {
+            fs::create_dir_all(&fonts_path).map_err(|error| error.to_string())?;
+        }
+        for font in &manifest.fonts {
+            let entry_name = format!("fonts/{}", font.file_name);
+            let mut archive_font = archive
+                .by_name(&entry_name)
+                .map_err(|_error| format!("Project package font is missing: {}", font.file_name))?;
+            if archive_font.size() != font.size {
+                return Err(format!(
+                    "Project package font size is invalid: {}",
+                    font.file_name
+                ));
+            }
+
+            let output_path = fonts_path.join(&font.file_name);
+            let mut output = fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(output_path)
+                .map_err(|error| error.to_string())?;
+            let copied =
+                std::io::copy(&mut archive_font, &mut output).map_err(|error| error.to_string())?;
+            if copied != font.size {
+                return Err(format!(
+                    "Project package font copy is incomplete: {}",
+                    font.file_name
                 ));
             }
             output.flush().map_err(|error| error.to_string())?;

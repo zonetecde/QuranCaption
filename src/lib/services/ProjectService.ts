@@ -9,6 +9,7 @@ import { DEFAULT_PROJECT_TYPE, type ProjectType } from '$lib/types/projectType';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import toast from 'svelte-5-french-toast';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 export interface CreateEmptyProjectOptions {
 	name: string;
@@ -514,6 +515,9 @@ export class ProjectService {
 
 			rawProject.detail.id = projectId;
 			const projectObject = Project.fromJSON(rawProject) as Project;
+			await ProjectHistoryManager.ignoreAsync(() =>
+				projectObject.content.videoStyle.ensureStylesSchemaUpToDate(projectObject.content)
+			);
 			await projectObject.save();
 		} catch (error) {
 			if (!assetsPathExisted && (await exists(assetsPath))) {

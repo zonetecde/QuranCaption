@@ -17,6 +17,8 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::files::get_new_file_path,
         commands::files::save_binary_file,
         commands::files::save_file,
+        commands::files::pack_project_archive,
+        commands::files::unpack_project_archive,
         commands::files::copy_file,
         commands::files::copy_file_with_progress,
         commands::files::download_file,

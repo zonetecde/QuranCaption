@@ -559,6 +559,30 @@ export default class Exporter {
 	}
 
 	/**
+	 * Exporte un projet avec ses assets dans un paquet `.qc`.
+	 * @param {Project | null | undefined} project Projet à exporter.
+	 * @returns {Promise<void>} Promesse résolue lorsque le paquet est enregistré.
+	 */
+	static async exportProjectPackage(project?: Project | null): Promise<void> {
+		const projectData = project || globalState.currentProject;
+
+		if (!projectData) {
+			console.error('No project data available for package export.');
+			return;
+		}
+
+		const projectName = ExportFileService.getProjectNameForFile(projectData);
+		const fileName = `qurancaption_project_${projectName}.qc`;
+		const exportFolder = await ExportService.getExportFolder();
+		const filePath = await ExportService.constrainFilePathLength(
+			await join(exportFolder, fileName)
+		);
+
+		await ProjectService.exportProjectPackage(projectData, filePath);
+		await ExportFileService.trackExportedFile(filePath, get(LL).home.exportProject());
+	}
+
+	/**
 	 * Génère le JSON des sous-titres Quran édités d'un projet.
 	 * @param {Project} projectData Projet dont les sous-titres doivent être sérialisés.
 	 * @returns {{ content: string; segmentCount: number }} JSON généré et nombre de segments.

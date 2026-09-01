@@ -1,6 +1,7 @@
 import { Project, ProjectContent, ProjectDetail, Utilities, VideoStyle } from '$lib/classes';
 import { readDir, remove, writeTextFile, readTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
+import { invoke } from '@tauri-apps/api/core';
 import { globalState } from '$lib/runes/main.svelte';
 import { projectJsonReferencesQuaCache, pruneOrphanedQuaCache } from '$lib/services/QuaAudioCache';
 import type { ImportedProjectPayload } from '$lib/types/project';
@@ -20,6 +21,24 @@ export interface CreateEmptyProjectOptions {
 export interface ParsedProjectsBackup {
 	projects: ImportedProjectPayload[];
 	batches: Record<string, unknown>[];
+}
+
+interface ProjectPackageAssetDescriptor {
+	id: number;
+	sourcePath: string;
+	fileName: string;
+}
+
+interface ProjectPackageAsset {
+	id: number;
+	fileName: string;
+	size: number;
+}
+
+interface ProjectPackageManifest {
+	version: number;
+	project: ImportedProjectPayload;
+	assets: ProjectPackageAsset[];
 }
 
 /**
@@ -228,10 +247,7 @@ export class ProjectService {
 	 *   de suppression en lot (BatchService) passent false et purgent une seule fois
 	 *   à la fin pour éviter une course + un rechargement O(n²) des JSON de projet.
 	 */
-	static async delete(
-		projectId: number,
-		options: { sweepQuaCache?: boolean } = {}
-	): Promise<void> {
+	static async delete(projectId: number, options: { sweepQuaCache?: boolean } = {}): Promise<void> {
 		const projectsPath = await join(await appDataDir(), this.projectsFolder);
 
 		// Détecte AVANT suppression si ce projet référençait le cache QUA : la purge
@@ -369,6 +385,142 @@ export class ProjectService {
 		}
 
 		return duplicatedProject;
+	}
+
+	/**
+	 * Construit un nom de fichier sûr et unique dans un paquet de projet.
+	 * @param {string} fileName Nom original de l'asset.
+	 * @param {number} assetId Identifiant de l'asset.
+	 * @param {number} index Position de l'asset dans le projet.
+	 * @returns {string} Nom de fichier utilisable dans le paquet.
+	 */
+	private static getProjectPackageAssetFileName(
+		fileName: string,
+		assetId: number,
+		index: number
+	): string {
+		const safeFileName =
+			fileName
+				.replace(/[\\/:*?"<>|]/g, '_')
+				.split('')
+				.map((character) => (character.charCodeAt(0) <= 31 ? '_' : character))
+				.join('')
+				.trim() || 'asset';
+		return `asset-${assetId}-${index}-${safeFileName}`;
+	}
+
+	/**
+	 * Exporte un projet et tous ses assets locaux dans un fichier `.qc`.
+	 * @param {Project} project Projet à empaqueter.
+	 * @param {string} destination Chemin du fichier `.qc` à créer.
+	 * @returns {Promise<void>} Promesse résolue lorsque le paquet est écrit.
+	 */
+	static async exportProjectPackage(project: Project, destination: string): Promise<void> {
+		const assets: ProjectPackageAssetDescriptor[] = project.content.assets.map((asset, index) => ({
+			id: asset.id,
+			sourcePath: asset.filePath,
+			fileName: this.getProjectPackageAssetFileName(asset.fileName, asset.id, index)
+		}));
+
+		await invoke('pack_project_archive', {
+			destination,
+			projectJson: JSON.stringify(project.toJSON()),
+			assets
+		});
+	}
+
+	/**
+	 * Importe un paquet `.qc`, extrait ses assets et réécrit leurs chemins dans le projet.
+	 * @param {string} filePath Chemin du paquet `.qc`.
+	 * @returns {Promise<void>} Promesse résolue lorsque le projet est enregistré.
+	 */
+	static async importProjectPackage(filePath: string): Promise<void> {
+		const projectsPath = await this.getProjectsFolderPath();
+		let projectId = Utilities.randomId();
+		let assetsPath = await this.getAssetFolderForProject(projectId);
+
+		while (
+			(await exists(await join(projectsPath, `${projectId}.json`))) ||
+			(await exists(assetsPath))
+		) {
+			projectId = Utilities.randomId();
+			assetsPath = await this.getAssetFolderForProject(projectId);
+		}
+
+		const assetsPathExisted = await exists(assetsPath);
+		try {
+			const packageData = await invoke<ProjectPackageManifest>('unpack_project_archive', {
+				source: filePath,
+				destination: assetsPath
+			});
+			const rawProject = packageData?.project;
+			if (
+				!rawProject ||
+				typeof rawProject !== 'object' ||
+				!rawProject.detail ||
+				typeof rawProject.detail !== 'object'
+			) {
+				throw new Error('Invalid project package content.');
+			}
+
+			const rawContent = rawProject.content;
+			const rawAssets =
+				rawContent && typeof rawContent === 'object' && 'assets' in rawContent
+					? (rawContent as { assets?: unknown }).assets
+					: undefined;
+			if (
+				!Array.isArray(packageData?.assets) ||
+				!Array.isArray(rawAssets) ||
+				rawAssets.length !== packageData.assets.length
+			) {
+				throw new Error('Project package assets do not match the project.');
+			}
+
+			const packagedAssets = new Map<number, ProjectPackageAsset>();
+			for (const packagedAsset of packageData.assets) {
+				if (
+					!Number.isFinite(packagedAsset.id) ||
+					typeof packagedAsset.fileName !== 'string' ||
+					packagedAssets.has(packagedAsset.id)
+				) {
+					throw new Error('Invalid project package asset manifest.');
+				}
+				packagedAssets.set(packagedAsset.id, packagedAsset);
+			}
+
+			const projectAssetIds = new Set<number>();
+			for (const rawAsset of rawAssets) {
+				if (
+					!rawAsset ||
+					typeof rawAsset !== 'object' ||
+					typeof rawAsset.id !== 'number' ||
+					!Number.isFinite(rawAsset.id) ||
+					projectAssetIds.has(rawAsset.id)
+				) {
+					throw new Error('Invalid project package asset.');
+				}
+				projectAssetIds.add(rawAsset.id);
+				const packagedAsset = packagedAssets.get(rawAsset.id);
+				if (!packagedAsset) {
+					throw new Error('Project package asset manifest does not match the project.');
+				}
+				const writableAsset = rawAsset as Record<string, unknown>;
+				writableAsset.filePath = await join(assetsPath, packagedAsset.fileName);
+				writableAsset.exists = true;
+			}
+			if (projectAssetIds.size !== packagedAssets.size) {
+				throw new Error('Project package asset manifest does not match the project.');
+			}
+
+			rawProject.detail.id = projectId;
+			const projectObject = Project.fromJSON(rawProject) as Project;
+			await projectObject.save();
+		} catch (error) {
+			if (!assetsPathExisted && (await exists(assetsPath))) {
+				await remove(assetsPath, { recursive: true });
+			}
+			throw error;
+		}
 	}
 
 	/**

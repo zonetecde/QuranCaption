@@ -69,6 +69,16 @@
 		await Exporter.exportProjectData(await ProjectService.load(projectDetail.id));
 	}
 
+	/**
+	 * Exporte le projet sélectionné avec tous ses assets.
+	 * @param {MouseEvent} e Événement du menu contextuel.
+	 * @returns {Promise<void>} Promesse résolue après l'export.
+	 */
+	async function exportProjectPackageButtonClick(e: MouseEvent): Promise<void> {
+		if (e.button !== 0) return; // Only handle left click
+		await Exporter.exportProjectPackage(await ProjectService.load(projectDetail.id));
+	}
+
 	async function duplicateProjectButtonClick(e: MouseEvent) {
 		if (e.button !== 0) return; // Only handle left click
 		const loadingToast = toast.loading(get(LL).home.duplicatingProject());
@@ -395,6 +405,11 @@
 		><div class="btn-icon">
 			<span class="material-icons-outlined text-sm mr-1">file_download</span
 			>{$LL.home.exportProject()}
+		</div></Item
+	>
+	<Item on:click={exportProjectPackageButtonClick}
+		><div class="btn-icon">
+			<span class="material-icons-outlined text-sm mr-1">archive</span>{$LL.home.exportProject()} ({$LL.editor.assets()})
 		</div></Item
 	>
 	<Item on:click={duplicateProjectButtonClick}

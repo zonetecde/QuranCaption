@@ -1,12 +1,292 @@
+use std::collections::HashSet;
 use std::fs;
 use std::io::{BufReader, BufWriter, Read, Write};
+use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use reqwest::header::{ACCEPT, ACCEPT_ENCODING, CONTENT_RANGE, RANGE, USER_AGENT};
+use serde::{Deserialize, Serialize};
 use tokio::io::AsyncWriteExt;
+use zip::write::SimpleFileOptions;
+use zip::{ZipArchive, ZipWriter};
 
 use crate::path_utils;
 use tauri::Emitter;
+
+const PROJECT_PACKAGE_VERSION: u32 = 1;
+const PROJECT_PACKAGE_MANIFEST: &str = "manifest.json";
+const PROJECT_PACKAGE_MAX_ASSETS: usize = 10_000;
+const PROJECT_PACKAGE_MAX_MANIFEST_BYTES: u64 = 256 * 1024 * 1024;
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectPackageAssetInput {
+    pub id: i64,
+    pub source_path: String,
+    pub file_name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectPackageAsset {
+    pub id: i64,
+    pub file_name: String,
+    pub size: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectPackageManifest {
+    pub version: u32,
+    pub project: serde_json::Value,
+    pub assets: Vec<ProjectPackageAsset>,
+}
+
+/// Vérifie qu'un nom d'asset ne peut pas sortir du dossier d'extraction.
+fn validate_project_package_file_name(file_name: &str) -> Result<(), String> {
+    if file_name.is_empty()
+        || file_name == "."
+        || file_name == ".."
+        || file_name.contains('/')
+        || file_name.contains('\\')
+        || file_name.contains(':')
+        || file_name
+            .chars()
+            .any(|character| character == '\0' || character.is_control())
+    {
+        return Err(format!("Invalid project package asset name: {}", file_name));
+    }
+    Ok(())
+}
+
+/// Valide le manifeste avant toute écriture sur le disque.
+fn validate_project_package_manifest(manifest: &ProjectPackageManifest) -> Result<(), String> {
+    if manifest.version != PROJECT_PACKAGE_VERSION {
+        return Err("Unsupported project package version".to_string());
+    }
+    if !manifest.project.is_object() {
+        return Err("Project package does not contain a project object".to_string());
+    }
+    if manifest.assets.len() > PROJECT_PACKAGE_MAX_ASSETS {
+        return Err("Project package contains too many assets".to_string());
+    }
+
+    let mut file_names = HashSet::with_capacity(manifest.assets.len());
+    let mut asset_ids = HashSet::with_capacity(manifest.assets.len());
+    for asset in &manifest.assets {
+        validate_project_package_file_name(&asset.file_name)?;
+        if !file_names.insert(asset.file_name.as_str()) {
+            return Err("Project package contains duplicate asset names".to_string());
+        }
+        if !asset_ids.insert(asset.id) {
+            return Err("Project package contains duplicate asset IDs".to_string());
+        }
+    }
+    Ok(())
+}
+
+/// Construit le chemin temporaire utilisé avant de finaliser un paquet.
+fn project_package_temp_path(path: &std::path::Path) -> PathBuf {
+    let mut temp_path = path.as_os_str().to_os_string();
+    temp_path.push(".part");
+    PathBuf::from(temp_path)
+}
+
+/// Empaquette un projet JSON et ses fichiers media dans une archive ZIP.
+#[tauri::command]
+pub fn pack_project_archive(
+    destination: String,
+    project_json: String,
+    assets: Vec<ProjectPackageAssetInput>,
+) -> Result<(), String> {
+    if assets.len() > PROJECT_PACKAGE_MAX_ASSETS {
+        return Err("Project package contains too many assets".to_string());
+    }
+
+    let project = serde_json::from_str(&project_json)
+        .map_err(|error| format!("Invalid project JSON: {}", error))?;
+    let mut prepared_assets = Vec::with_capacity(assets.len());
+    let mut file_names = HashSet::with_capacity(assets.len());
+
+    for asset in assets {
+        validate_project_package_file_name(&asset.file_name)?;
+        if !file_names.insert(asset.file_name.clone()) {
+            return Err("Project package contains duplicate asset names".to_string());
+        }
+
+        let source_path = path_utils::normalize_existing_path(&asset.source_path);
+        let metadata = fs::metadata(&source_path)
+            .map_err(|error| format!("Unable to read project asset: {}", error))?;
+        if !metadata.is_file() {
+            return Err(format!(
+                "Project asset is not a file: {}",
+                asset.source_path
+            ));
+        }
+
+        prepared_assets.push((
+            source_path,
+            ProjectPackageAsset {
+                id: asset.id,
+                file_name: asset.file_name,
+                size: metadata.len(),
+            },
+        ));
+    }
+
+    let manifest = ProjectPackageManifest {
+        version: PROJECT_PACKAGE_VERSION,
+        project,
+        assets: prepared_assets
+            .iter()
+            .map(|(_, asset)| asset.clone())
+            .collect(),
+    };
+    validate_project_package_manifest(&manifest)?;
+    let manifest_bytes = serde_json::to_vec(&manifest)
+        .map_err(|error| format!("Unable to serialize project package: {}", error))?;
+    if manifest_bytes.len() as u64 > PROJECT_PACKAGE_MAX_MANIFEST_BYTES {
+        return Err("Project package manifest is too large".to_string());
+    }
+
+    let output_path = path_utils::normalize_output_path(&destination);
+    if let Some(parent) = output_path.parent() {
+        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    }
+    let temp_path = project_package_temp_path(&output_path);
+
+    let result = (|| -> Result<(), String> {
+        let output = fs::File::create(&temp_path).map_err(|error| error.to_string())?;
+        let mut archive = ZipWriter::new(BufWriter::new(output));
+        let options =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+
+        archive
+            .start_file(PROJECT_PACKAGE_MANIFEST, options)
+            .map_err(|error| format!("Unable to create project package manifest: {}", error))?;
+        archive
+            .write_all(&manifest_bytes)
+            .map_err(|error| error.to_string())?;
+
+        for (source_path, asset) in &prepared_assets {
+            archive
+                .start_file(format!("assets/{}", asset.file_name), options)
+                .map_err(|error| format!("Unable to add project asset: {}", error))?;
+            let mut source =
+                BufReader::new(fs::File::open(source_path).map_err(|error| error.to_string())?);
+            let copied =
+                std::io::copy(&mut source, &mut archive).map_err(|error| error.to_string())?;
+            if copied != asset.size {
+                return Err(format!(
+                    "Project asset changed while it was being packaged: {}",
+                    asset.file_name
+                ));
+            }
+        }
+
+        archive
+            .finish()
+            .map_err(|error| format!("Unable to finalize project package: {}", error))?;
+        Ok(())
+    })();
+
+    if let Err(error) = result {
+        let _ = fs::remove_file(&temp_path);
+        return Err(error);
+    }
+
+    if output_path.exists() {
+        if let Err(error) = fs::remove_file(&output_path) {
+            let _ = fs::remove_file(&temp_path);
+            return Err(error.to_string());
+        }
+    }
+    if let Err(error) = fs::rename(&temp_path, &output_path) {
+        let _ = fs::remove_file(&temp_path);
+        return Err(error.to_string());
+    }
+    Ok(())
+}
+
+/// Décompresse un paquet `.qc` dans le dossier d'assets d'un nouveau projet.
+#[tauri::command]
+pub fn unpack_project_archive(
+    source: String,
+    destination: String,
+) -> Result<ProjectPackageManifest, String> {
+    let source_path = path_utils::normalize_existing_path(&source);
+    if !source_path.is_file() {
+        return Err("Project package file was not found".to_string());
+    }
+
+    let destination_path = path_utils::normalize_output_path(&destination);
+    if destination_path.exists() {
+        return Err("Project package destination already exists".to_string());
+    }
+
+    let result = (|| -> Result<ProjectPackageManifest, String> {
+        let input = fs::File::open(&source_path).map_err(|error| error.to_string())?;
+        let mut archive = ZipArchive::new(BufReader::new(input))
+            .map_err(|error| format!("Invalid project package archive: {}", error))?;
+        let manifest_length = archive
+            .by_name(PROJECT_PACKAGE_MANIFEST)
+            .map_err(|error| format!("Project package manifest is missing: {}", error))?
+            .size();
+        if manifest_length > PROJECT_PACKAGE_MAX_MANIFEST_BYTES {
+            return Err("Project package manifest is too large".to_string());
+        }
+
+        let mut manifest_bytes = Vec::with_capacity(manifest_length as usize);
+        {
+            let mut manifest_file = archive
+                .by_name(PROJECT_PACKAGE_MANIFEST)
+                .map_err(|error| format!("Project package manifest is missing: {}", error))?;
+            manifest_file
+                .read_to_end(&mut manifest_bytes)
+                .map_err(|error| error.to_string())?;
+        }
+        let manifest: ProjectPackageManifest = serde_json::from_slice(&manifest_bytes)
+            .map_err(|error| format!("Invalid project package manifest: {}", error))?;
+        validate_project_package_manifest(&manifest)?;
+
+        fs::create_dir_all(&destination_path).map_err(|error| error.to_string())?;
+        for asset in &manifest.assets {
+            let entry_name = format!("assets/{}", asset.file_name);
+            let mut archive_asset = archive.by_name(&entry_name).map_err(|_error| {
+                format!("Project package asset is missing: {}", asset.file_name)
+            })?;
+            if archive_asset.size() != asset.size {
+                return Err(format!(
+                    "Project package asset size is invalid: {}",
+                    asset.file_name
+                ));
+            }
+
+            let output_path = destination_path.join(&asset.file_name);
+            let mut output = fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(output_path)
+                .map_err(|error| error.to_string())?;
+            let copied = std::io::copy(&mut archive_asset, &mut output)
+                .map_err(|error| error.to_string())?;
+            if copied != asset.size {
+                return Err(format!(
+                    "Project package asset copy is incomplete: {}",
+                    asset.file_name
+                ));
+            }
+            output.flush().map_err(|error| error.to_string())?;
+        }
+
+        Ok(manifest)
+    })();
+
+    if result.is_err() {
+        let _ = fs::remove_dir_all(&destination_path);
+    }
+    result
+}
 
 /// Calcule un pourcentage de copie borné entre 0 et 100.
 ///

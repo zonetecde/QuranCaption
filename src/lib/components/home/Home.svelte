@@ -552,19 +552,23 @@
 		for (let index = 0; index < files.length; index++) {
 			try {
 				const filePath = files[index];
-				const json = JSON.parse((await readTextFile(filePath)).toString());
-				if (
-					json &&
-					typeof json === 'object' &&
-					!Array.isArray(json) &&
-					'projects' in json &&
-					'batches' in json
-				) {
-					const backup = parseProjectsBackup(json);
-					await ProjectService.importProjectsBackup(backup.projects);
-					await BatchService.importBatchesBackup(backup.batches);
+				if (filePath.toLowerCase().endsWith('.qc')) {
+					await ProjectService.importProjectPackage(filePath);
 				} else {
-					await ProjectService.importProject(json);
+					const json = JSON.parse((await readTextFile(filePath)).toString());
+					if (
+						json &&
+						typeof json === 'object' &&
+						!Array.isArray(json) &&
+						'projects' in json &&
+						'batches' in json
+					) {
+						const backup = parseProjectsBackup(json);
+						await ProjectService.importProjectsBackup(backup.projects);
+						await BatchService.importBatchesBackup(backup.batches);
+					} else {
+						await ProjectService.importProject(json);
+					}
 				}
 				AnalyticsService.trackProjectImported();
 			} catch (error) {

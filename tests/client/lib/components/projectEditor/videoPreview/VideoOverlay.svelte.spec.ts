@@ -10,6 +10,7 @@ import { ProjectEditorTabs, TrackType } from '$lib/classes/enums';
 import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { Translation, VerseTranslation } from '$lib/classes/Translation.svelte';
 import { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
+import { getRenderedLineCount } from '$lib/components/projectEditor/videoPreview/helpers/reactiveFontSize';
 import QPCFontProvider from '$lib/services/FontProvider';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 import RiwayahProvider from '$lib/services/RiwayahProvider';
@@ -685,6 +686,37 @@ describe('Video overlay subtitle preview', () => {
 		const verseNumber = getArabicVerseNumberSpans(component.container)[0];
 		expect(verseNumber.textContent).toBe('١');
 		expect(verseNumber.previousElementSibling?.tagName).toBe('BR');
+	});
+
+	test('fits qpc arabic text and its verse number on one line when max line is one', async () => {
+		seedQpc2PreviewFixture();
+		const clip = createLastWordsQpcSubtitle(0, 999, 1, 2, 0, 3);
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 500 });
+		const arabicStyles = fixture.videoStyle.getStylesOfTarget('arabic');
+		arabicStyles.setStyle('show-verse-number', true);
+		arabicStyles.setStyle('verse-number-new-line', false);
+		arabicStyles.setStyle('font-family', 'QPC2');
+		arabicStyles.setStyle('max-height', 245);
+		arabicStyles.setStyle('max-line', '1');
+		arabicStyles.setStyle('font-size', 96);
+		arabicStyles.setStyle('line-height', 1.6);
+		arabicStyles.setStyle('width', 53);
+		arabicStyles.generateCSS = () =>
+			'width: 53%; height: 245px; font-size: 96px; line-height: 1.6; color: #4a372b; display: flex; align-items: center; --line-background-height: 73px; --line-background-position: 24px; --line-background-color: #f3e2c1;';
+
+		const component = render(VideoOverlay);
+		const overlay = component.container.querySelector('#overlay') as HTMLElement;
+		overlay.style.width = '1320px';
+		overlay.style.height = '743px';
+		await settleOverlay();
+
+		const arabicNode = getForegroundArabicNode(component.container)!;
+		await vi.waitFor(() => {
+			expect(Number.parseFloat(getComputedStyle(arabicNode).fontSize)).toBeLessThan(96);
+			expect(arabicNode.scrollHeight).toBeLessThanOrEqual(245);
+			expect(getRenderedLineCount(arabicNode)).toBe(1);
+		});
+		expect(getArabicVerseNumberSpans(component.container)[0]).toBeTruthy();
 	});
 
 	test('keeps QPC2 verse-number fonts when merged verses stay on the same page', async () => {

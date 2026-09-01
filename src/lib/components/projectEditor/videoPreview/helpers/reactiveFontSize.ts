@@ -103,9 +103,14 @@ function hasReactiveFontSizeViolation(
 ): boolean {
 	const hasMaxLineLimit = maxLineValue >= 1 && maxLineValue <= 4;
 	const measurementClass = 'reactive-font-size-measurement';
+	// Avec max-line, le fond par ligne participe au retour à la ligne visible.
+	// Sans cette contrainte, il reste décoratif et ne doit pas réduire la police.
+	const shouldIgnoreLineBackground = !hasMaxLineLimit;
 
-	// Le padding du fond par ligne est une décoration et ne doit pas réduire la police.
-	for (const subtitle of subtitles) subtitle.classList.add(measurementClass);
+	// Le padding du fond par ligne est ignoré uniquement pour la contrainte de hauteur.
+	if (shouldIgnoreLineBackground) {
+		for (const subtitle of subtitles) subtitle.classList.add(measurementClass);
+	}
 
 	try {
 		return subtitles.some((subtitle) => {
@@ -115,7 +120,9 @@ function hasReactiveFontSizeViolation(
 			);
 		});
 	} finally {
-		for (const subtitle of subtitles) subtitle.classList.remove(measurementClass);
+		if (shouldIgnoreLineBackground) {
+			for (const subtitle of subtitles) subtitle.classList.remove(measurementClass);
+		}
 	}
 }
 

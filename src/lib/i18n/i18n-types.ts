@@ -837,7 +837,7 @@ type RootTranslation = {
 		 */
 		exportProject: string;
 		/**
-		 * E​x​p​o​r​t​ ​p​r​o​j​e​c​t​ ​(​w​i​t​h​ ​a​s​s​e​t​)
+		 * E​x​p​o​r​t​ ​p​r​o​j​e​c​t​ ​(​w​i​t​h​ ​a​s​s​e​t​s​)
 		 */
 		exportProjectWithAsset: string;
 		/**
@@ -12562,7 +12562,7 @@ export type TranslationFunctions = {
 		 */
 		exportProject: () => LocalizedString;
 		/**
-		 * Export project (with asset)
+		 * Export project (with assets)
 		 */
 		exportProjectWithAsset: () => LocalizedString;
 		/**

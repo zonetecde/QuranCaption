@@ -110,6 +110,38 @@ export class QPCFontProvider {
 	}
 
 	/**
+	 * Restaure une police importée depuis un paquet de projet.
+	 * @param {string} sourcePath Chemin du fichier extrait du paquet.
+	 * @param {string} fileName Nom interne original de la police.
+	 * @param {string} expectedFamily Famille attendue par le projet.
+	 * @returns {Promise<ImportedFont>} Police restaurée et enregistrée.
+	 */
+	static async restoreImportedFontFile(
+		sourcePath: string,
+		fileName: string,
+		expectedFamily: string
+	): Promise<ImportedFont> {
+		if (!fileName || fileName !== fileName.split(/[\\/]/).pop()) {
+			throw new Error('Invalid imported font file name');
+		}
+
+		const sourceFont = QPCFontProvider.parseImportedFont(sourcePath, fileName);
+		if (!sourceFont || sourceFont.family !== expectedFamily) {
+			throw new Error('Imported font metadata does not match the project');
+		}
+
+		const folder = await QPCFontProvider.getImportedFontsFolder();
+		const destinationPath = await join(folder, fileName);
+		if (!(await exists(destinationPath))) await copyFile(sourcePath, destinationPath);
+
+		const restoredFont = QPCFontProvider.parseImportedFont(destinationPath, fileName);
+		if (!restoredFont) throw new Error('Invalid restored imported font file');
+		QPCFontProvider.importedFontsPromise = null;
+		await QPCFontProvider.registerImportedFont(restoredFont);
+		return restoredFont;
+	}
+
+	/**
 	 * Charge toutes les polices de la bibliothèque globale dans le document courant.
 	 * @returns {Promise<ImportedFont[]>} Polices valides disponibles dans Quran Caption.
 	 */

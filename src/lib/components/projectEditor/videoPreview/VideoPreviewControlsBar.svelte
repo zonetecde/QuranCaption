@@ -26,6 +26,15 @@
 
 	let isAlignmentGridVisible = $derived(() => globalState.getVideoPreviewState.showAlignmentGrid);
 
+	let isPortraitVideo = $derived(() => {
+		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
+			| { width?: number; height?: number }
+			| undefined;
+		return Number(dimensions?.width) < Number(dimensions?.height);
+	});
+
+	let isTikTokOverlayVisible = $derived(() => globalState.getVideoPreviewState.showTikTokOverlay);
+
 	function goToPreviousSubtitleStart(): void {
 		goToAdjacentSubtitleFromCursor('previous');
 	}
@@ -75,12 +84,32 @@
 							!globalState.getVideoPreviewState.showAlignmentGrid)}
 					class="preview-control-btn preview-control-btn-grid flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
 					class:active={isAlignmentGridVisible()}
-					title={isAlignmentGridVisible() ? $LL.editor.hideAlignmentGrid() : $LL.editor.showAlignmentGrid()}
+					title={isAlignmentGridVisible()
+						? $LL.editor.hideAlignmentGrid()
+						: $LL.editor.showAlignmentGrid()}
 				>
 					<span class="material-icons text-xl pt-0.25">
 						{isAlignmentGridVisible() ? 'grid_off' : 'grid_on'}
 					</span>
 				</button>
+				{#if isPortraitVideo()}
+					<button
+						onclick={() =>
+							(globalState.getVideoPreviewState.showTikTokOverlay =
+								!globalState.getVideoPreviewState.showTikTokOverlay)}
+						class="preview-control-btn preview-control-btn-grid flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
+						class:active={isTikTokOverlayVisible()}
+						aria-pressed={isTikTokOverlayVisible()}
+						aria-label={isTikTokOverlayVisible()
+							? $LL.editor.hideTikTokOverlay()
+							: $LL.editor.showTikTokOverlay()}
+						title={isTikTokOverlayVisible()
+							? $LL.editor.hideTikTokOverlay()
+							: $LL.editor.showTikTokOverlay()}
+					>
+						<span class="material-icons text-xl pt-0.25">smartphone</span>
+					</button>
+				{/if}
 			{/if}
 			<button
 				onclick={globalState.getVideoPreviewState.toggleFullScreen}

@@ -54,6 +54,7 @@
 	// Sous-composants
 	import ArabicSubtitle from './ArabicSubtitle.svelte';
 	import TranslationSubtitle from './TranslationSubtitle.svelte';
+	import TikTokOverlay from './TikTokOverlay.svelte';
 
 	// Helpers extraits
 	import { getOverlayLayerCss } from './helpers/overlayCss';
@@ -350,6 +351,23 @@
 			globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Style;
 		if (globalState.getVideoPreviewState.showAlignmentGridWhileDragging) return true;
 		return isStyleTab && globalState.getVideoPreviewState.showAlignmentGrid;
+	});
+
+	/** Indique si la maquette TikTok doit être visible dans la preview portrait. */
+	let canShowTikTokOverlay = $derived(() => {
+		const isStyleTab =
+			globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Style;
+		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
+			| { width?: number; height?: number }
+			| undefined;
+		const isPortrait = Number(dimensions?.width) < Number(dimensions?.height);
+
+		return (
+			isStyleTab &&
+			isPortrait &&
+			!isExportCapturePreview() &&
+			globalState.getVideoPreviewState.showTikTokOverlay
+		);
 	});
 
 	// =========================================================================
@@ -1274,6 +1292,11 @@
 			{/if}
 		{/each}
 	</div>
+
+	<!-- Couche 9 : Maquette de l'interface TikTok, uniquement pour la preview portrait -->
+	{#if canShowTikTokOverlay()}
+		<TikTokOverlay />
+	{/if}
 
 	{#if videoFrameSettings.enable}
 		<!-- À z-0, l'overlay déclaré avant reste dessous et les contenus à partir de z-1 passent dessus. -->

@@ -2914,6 +2914,13 @@ const fr = {
 		hifzConfirmationMessage:
 			'Cela créera une nouvelle piste avec des sous-titres répétés. Les sous-titres existants ne seront pas modifiés.',
 		shiftAllSubtitles: 'Décaler tous les sous-titres',
+		importSrtTranslation: 'Importer une traduction SRT',
+		srtFileFilter: 'Fichiers de sous-titres SRT',
+		srtImportSuccess:
+			'«\u00a0{fileName}\u00a0» importé et associé à {count} sous-titres du projet.',
+		srtImportError: 'Impossible d’importer la traduction SRT.',
+		srtNoSubtitles: 'Ce projet ne contient aucun sous-titre coranique à traduire.',
+		srtNoMatches: 'Aucun sous-titre SRT ne correspond à ce projet.',
 		shiftDescription: 'Déplacer tous les sous-titres en avant ou en arrière dans le temps',
 		shiftBody:
 			'Déplacez tous les sous-titres en avant ou en arrière d\u2019un montant spécifié. Utilisez des valeurs positives pour avancer, négatives pour reculer.',

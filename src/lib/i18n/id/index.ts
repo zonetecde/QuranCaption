@@ -1701,6 +1701,13 @@ const id = {
 		hifzConfirmationMessage:
 			'Ini akan membuat track baru dengan subtitle berulang. Subtitle yang sudah ada tidak akan diubah.',
 		shiftAllSubtitles: 'Geser semua subtitle',
+		importSrtTranslation: 'Impor terjemahan SRT',
+		srtFileFilter: 'File subtitle SRT',
+		srtImportSuccess:
+			'"{fileName}" berhasil diimpor dan dicocokkan dengan {count} subtitle project.',
+		srtImportError: 'Terjemahan SRT tidak dapat diimpor.',
+		srtNoSubtitles: 'Project ini tidak memiliki subtitle Al-Qur’an untuk diterjemahkan.',
+		srtNoMatches: 'Tidak ada subtitle SRT yang cocok dengan project ini.',
 		shiftDescription: 'Geser semua subtitle maju atau mundur dalam waktu',
 		shiftBody:
 			'Geser semua subtitle maju atau mundur dengan jumlah tertentu. Gunakan nilai positif untuk geser ke kanan, nilai negatif untuk geser ke kiri.',

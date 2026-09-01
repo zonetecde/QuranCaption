@@ -23,6 +23,12 @@ const tools = {
 	hifzConfirmationMessage:
 		'This will create a new track with repeated subtitles. Existing subtitles will not be modified.',
 	shiftAllSubtitles: 'Shift All Subtitles',
+	importSrtTranslation: 'Import SRT translation',
+	srtFileFilter: 'SRT subtitle files',
+	srtImportSuccess: 'Imported "{fileName}" and matched {count} project subtitles.',
+	srtImportError: 'Could not import the SRT translation.',
+	srtNoSubtitles: 'This project has no Quran subtitles to translate.',
+	srtNoMatches: 'No SRT subtitles could be matched to this project.',
 	shiftDescription: 'Move all subtitles forward or backward in time',
 	shiftBody:
 		'Move all subtitles forward or backward by a specified amount. Use positive values to move right, negative to move left.',

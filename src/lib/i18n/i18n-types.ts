@@ -9231,6 +9231,32 @@ type RootTranslation = {
 		 */
 		shiftAllSubtitles: string;
 		/**
+		 * I​m​p​o​r​t​ ​S​R​T​ ​t​r​a​n​s​l​a​t​i​o​n
+		 */
+		importSrtTranslation: string;
+		/**
+		 * S​R​T​ ​s​u​b​t​i​t​l​e​ ​f​i​l​e​s
+		 */
+		srtFileFilter: string;
+		/**
+		 * I​m​p​o​r​t​e​d​ ​"​{​f​i​l​e​N​a​m​e​}​"​ ​a​n​d​ ​m​a​t​c​h​e​d​ ​{​c​o​u​n​t​}​ ​p​r​o​j​e​c​t​ ​s​u​b​t​i​t​l​e​s​.
+		 * @param {unknown} count
+		 * @param {unknown} fileName
+		 */
+		srtImportSuccess: RequiredParams<'count' | 'fileName'>;
+		/**
+		 * C​o​u​l​d​ ​n​o​t​ ​i​m​p​o​r​t​ ​t​h​e​ ​S​R​T​ ​t​r​a​n​s​l​a​t​i​o​n​.
+		 */
+		srtImportError: string;
+		/**
+		 * T​h​i​s​ ​p​r​o​j​e​c​t​ ​h​a​s​ ​n​o​ ​Q​u​r​a​n​ ​s​u​b​t​i​t​l​e​s​ ​t​o​ ​t​r​a​n​s​l​a​t​e​.
+		 */
+		srtNoSubtitles: string;
+		/**
+		 * N​o​ ​S​R​T​ ​s​u​b​t​i​t​l​e​s​ ​c​o​u​l​d​ ​b​e​ ​m​a​t​c​h​e​d​ ​t​o​ ​t​h​i​s​ ​p​r​o​j​e​c​t​.
+		 */
+		srtNoMatches: string;
+		/**
 		 * M​o​v​e​ ​a​l​l​ ​s​u​b​t​i​t​l​e​s​ ​f​o​r​w​a​r​d​ ​o​r​ ​b​a​c​k​w​a​r​d​ ​i​n​ ​t​i​m​e
 		 */
 		shiftDescription: string;
@@ -20633,6 +20659,30 @@ export type TranslationFunctions = {
 		 * Shift All Subtitles
 		 */
 		shiftAllSubtitles: () => LocalizedString;
+		/**
+		 * Import SRT translation
+		 */
+		importSrtTranslation: () => LocalizedString;
+		/**
+		 * SRT subtitle files
+		 */
+		srtFileFilter: () => LocalizedString;
+		/**
+		 * Imported "{fileName}" and matched {count} project subtitles.
+		 */
+		srtImportSuccess: (arg: { count: unknown; fileName: unknown }) => LocalizedString;
+		/**
+		 * Could not import the SRT translation.
+		 */
+		srtImportError: () => LocalizedString;
+		/**
+		 * This project has no Quran subtitles to translate.
+		 */
+		srtNoSubtitles: () => LocalizedString;
+		/**
+		 * No SRT subtitles could be matched to this project.
+		 */
+		srtNoMatches: () => LocalizedString;
 		/**
 		 * Move all subtitles forward or backward in time
 		 */

@@ -2892,6 +2892,12 @@ const de = {
 		hifzConfirmationMessage:
 			'Dies erstellt eine neue Spur mit wiederholten Untertiteln. Vorhandene Untertitel werden nicht verändert.',
 		shiftAllSubtitles: 'Alle Untertitel verschieben',
+		importSrtTranslation: 'SRT-Übersetzung importieren',
+		srtFileFilter: 'SRT-Untertiteldateien',
+		srtImportSuccess: '„{fileName}“ importiert und {count} Projektuntertiteln zugeordnet.',
+		srtImportError: 'Die SRT-Übersetzung konnte nicht importiert werden.',
+		srtNoSubtitles: 'Dieses Projekt enthält keine Quran-Untertitel zum Übersetzen.',
+		srtNoMatches: 'Keine SRT-Untertitel konnten diesem Projekt zugeordnet werden.',
 		shiftDescription: 'Alle Untertitel in der Zeit vorwärts oder rückwärts verschieben',
 		shiftBody:
 			'Verschieben Sie alle Untertitel um einen angegebenen Betrag vorwärts oder rückwärts. Verwenden Sie positive Werte für vorwärts, negative für rückwärts.',

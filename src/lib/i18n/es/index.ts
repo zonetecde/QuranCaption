@@ -2885,6 +2885,12 @@ const es = {
 		hifzConfirmationMessage:
 			'Esto creará una nueva pista con subtítulos repetidos. Los subtítulos existentes no se modificarán.',
 		shiftAllSubtitles: 'Desplazar todos los subtítulos',
+		importSrtTranslation: 'Importar traducción SRT',
+		srtFileFilter: 'Archivos de subtítulos SRT',
+		srtImportSuccess: 'Se importó «{fileName}» y se asoció con {count} subtítulos del proyecto.',
+		srtImportError: 'No se pudo importar la traducción SRT.',
+		srtNoSubtitles: 'Este proyecto no contiene subtítulos coránicos para traducir.',
+		srtNoMatches: 'No se pudieron asociar subtítulos SRT con este proyecto.',
 		shiftDescription: 'Mover todos los subtítulos hacia adelante o hacia atrás en el tiempo',
 		shiftBody:
 			'Desplace todos los subtítulos hacia adelante o hacia atrás en una cantidad especificada. Use valores positivos para avanzar, negativos para retroceder.',

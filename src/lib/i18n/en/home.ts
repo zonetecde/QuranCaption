@@ -57,6 +57,7 @@ const home = {
 	dragCard: 'Drag card',
 	openProject: 'Open',
 	exportProject: 'Export project',
+	exportProjectWithAsset: 'Export project (with assets)',
 	duplicateProject: 'Duplicate project',
 	deleteProject: 'Delete project',
 	duplicatingProject: 'Duplicating project...',

@@ -3308,6 +3308,34 @@ type RootTranslation = {
 		 */
 		hideAlignmentGrid: string;
 		/**
+		 * S​h​o​w​ ​T​i​k​T​o​k​ ​o​v​e​r​l​a​y
+		 */
+		showTikTokOverlay: string;
+		/**
+		 * H​i​d​e​ ​T​i​k​T​o​k​ ​o​v​e​r​l​a​y
+		 */
+		hideTikTokOverlay: string;
+		/**
+		 * F​o​l​l​o​w​i​n​g
+		 */
+		tiktokFollowing: string;
+		/**
+		 * F​o​r​ ​Y​o​u
+		 */
+		tiktokForYou: string;
+		/**
+		 * S​h​a​r​e
+		 */
+		tiktokShare: string;
+		/**
+		 * @​y​o​u​r​_​u​s​e​r​n​a​m​e
+		 */
+		tiktokSampleUsername: string;
+		/**
+		 * Y​o​u​r​ ​d​e​s​c​r​i​p​t​i​o​n​ ​a​p​p​e​a​r​s​ ​h​e​r​e​ ​#​Q​u​r​a​n​C​a​p​t​i​o​n
+		 */
+		tiktokSampleDescription: string;
+		/**
 		 * P​a​s​t​e​ ​a​ ​p​u​b​l​i​c​ ​m​e​d​i​a​ ​U​R​L
 		 */
 		pasteMediaUrlPlaceholder: string;
@@ -14813,6 +14841,34 @@ export type TranslationFunctions = {
 		 * Hide alignment grid
 		 */
 		hideAlignmentGrid: () => LocalizedString;
+		/**
+		 * Show TikTok overlay
+		 */
+		showTikTokOverlay: () => LocalizedString;
+		/**
+		 * Hide TikTok overlay
+		 */
+		hideTikTokOverlay: () => LocalizedString;
+		/**
+		 * Following
+		 */
+		tiktokFollowing: () => LocalizedString;
+		/**
+		 * For You
+		 */
+		tiktokForYou: () => LocalizedString;
+		/**
+		 * Share
+		 */
+		tiktokShare: () => LocalizedString;
+		/**
+		 * @your_username
+		 */
+		tiktokSampleUsername: () => LocalizedString;
+		/**
+		 * Your description appears here #QuranCaption
+		 */
+		tiktokSampleDescription: () => LocalizedString;
 		/**
 		 * Paste a public media URL
 		 */

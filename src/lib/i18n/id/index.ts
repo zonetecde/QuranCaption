@@ -757,7 +757,14 @@ const id = {
 			noFontsFound: 'Font tidak ditemukan',
 			importFontFromFile: 'Impor dari file',
 			fontFiles: 'File font',
-			fontImportError: 'File font ini tidak dapat diimpor.'
+			fontImportError: 'File font ini tidak dapat diimpor.',
+			showTikTokOverlay: 'Tampilkan overlay TikTok',
+			hideTikTokOverlay: 'Sembunyikan overlay TikTok',
+			tiktokFollowing: 'Mengikuti',
+			tiktokForYou: 'Untuk Anda',
+			tiktokShare: 'Bagikan',
+			tiktokSampleUsername: '@nama_pengguna',
+			tiktokSampleDescription: 'Deskripsi Anda muncul di sini #QuranCaption'
 		} as Record<string, string>),
 		minimalQuran: "Al-Qur'an Minimal",
 		videoEditor: 'Editor video',

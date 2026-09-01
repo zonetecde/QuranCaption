@@ -272,6 +272,9 @@ export class VideoPreviewState extends SerializableBase {
 	// Indique si la grille d'alignement doit être affichée dans l'onglet Style
 	showAlignmentGrid: boolean = $state(false);
 
+	// Indique si la maquette TikTok doit être affichée dans la preview portrait
+	showTikTokOverlay: boolean = $state(false);
+
 	// Affiche temporairement la grille pendant un drag d'élément dans la preview
 	showAlignmentGridWhileDragging: boolean = $state(false);
 

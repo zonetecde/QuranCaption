@@ -1194,6 +1194,13 @@ const fr = {
 		linkedImageOnOtherClip: 'Une image liée existe sur un autre clip',
 		showAlignmentGrid: 'Afficher la grille d\u2019alignement',
 		hideAlignmentGrid: 'Masquer la grille d\u2019alignement',
+		showTikTokOverlay: 'Afficher la surcouche TikTok',
+		hideTikTokOverlay: 'Masquer la surcouche TikTok',
+		tiktokFollowing: 'Abonnements',
+		tiktokForYou: 'Pour toi',
+		tiktokShare: 'Partager',
+		tiktokSampleUsername: '@votre_nom',
+		tiktokSampleDescription: 'Votre description apparaît ici #QuranCaption',
 		pasteMediaUrlPlaceholder: 'Collez une URL de média publique',
 		clickToGenerateWaveform:
 			'Cliquez pour générer la forme d\u2019onde (désactivé par défaut pour les longs audios afin d\u2019économiser la mémoire)',

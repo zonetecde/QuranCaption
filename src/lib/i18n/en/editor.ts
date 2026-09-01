@@ -595,6 +595,13 @@ const editor = {
 	linkedImageOnOtherClip: 'A linked image exists on another clip',
 	showAlignmentGrid: 'Show alignment grid',
 	hideAlignmentGrid: 'Hide alignment grid',
+	showTikTokOverlay: 'Show TikTok overlay',
+	hideTikTokOverlay: 'Hide TikTok overlay',
+	tiktokFollowing: 'Following',
+	tiktokForYou: 'For You',
+	tiktokShare: 'Share',
+	tiktokSampleUsername: '@your_username',
+	tiktokSampleDescription: 'Your description appears here #QuranCaption',
 	pasteMediaUrlPlaceholder: 'Paste a public media URL',
 	clickToGenerateWaveform:
 		'Click to generate waveform (disabled by default for long audio to save memory)',

@@ -1197,6 +1197,13 @@ const de = {
 		linkedImageOnOtherClip: 'Ein verknüpftes Bild existiert auf einem anderen Clip',
 		showAlignmentGrid: 'Ausrichtungsraster anzeigen',
 		hideAlignmentGrid: 'Ausrichtungsraster ausblenden',
+		showTikTokOverlay: 'TikTok-Overlay anzeigen',
+		hideTikTokOverlay: 'TikTok-Overlay ausblenden',
+		tiktokFollowing: 'Folge ich',
+		tiktokForYou: 'Für dich',
+		tiktokShare: 'Teilen',
+		tiktokSampleUsername: '@dein_name',
+		tiktokSampleDescription: 'Deine Beschreibung erscheint hier #QuranCaption',
 		pasteMediaUrlPlaceholder: 'Öffentliche Medien-URL einfügen',
 		clickToGenerateWaveform:
 			'Klicken, um Wellenform zu generieren (standardmäßig deaktiviert für lange Audios, um Speicher zu sparen)',

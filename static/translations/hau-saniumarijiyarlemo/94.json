@@ -1,0 +1,52 @@
+[
+  {
+    "id": 94,
+    "city": "makkah",
+    "name": {
+      "translated": "The Relief",
+      "transliterated": "Ash-Sharh",
+      "codepoints": [
+        1575,
+        1604,
+        1588,
+        1585,
+        1581
+      ]
+    },
+    "ayahs": 8,
+    "slug": "ash-sharh",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Shin ba Mu yalwata maka ƙirjinka ba?"
+  ],
+  [
+    2,
+    "Muka kuma sauke maka nauye-nauyenka?"
+  ],
+  [
+    3,
+    "Wanda ya nauyayi bayanka?"
+  ],
+  [
+    4,
+    "Muka kuma ɗaukaka maka ambatonka?"
+  ],
+  [
+    5,
+    "To lalle tsanani yana tare da sauƙi."
+  ],
+  [
+    6,
+    "Lalle tsananin yana tare da sauƙi."
+  ],
+  [
+    7,
+    "Saboda haka idan ka gama (harkokinka) sai ka kafu (wajen bautar Allah)."
+  ],
+  [
+    8,
+    "Sannan kuma ka yi kwaɗayi wajen Ubangijinka kawai."
+  ]
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "id": 112,
+    "city": "makkah",
+    "name": {
+      "translated": "The Sincerity",
+      "transliterated": "Al-Ikhlas",
+      "codepoints": [
+        1575,
+        1604,
+        1573,
+        1582,
+        1604,
+        1575,
+        1589
+      ]
+    },
+    "ayahs": 4,
+    "slug": "al-ikhlas",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Ka ce: “Shi ne Allah Ɗaya."
+  ],
+  [
+    2,
+    "“Allah Abin nufa da buƙatu."
+  ],
+  [
+    3,
+    "“Bai haifa ba, kuma ba a haife Shi ba."
+  ],
+  [
+    4,
+    "“Kuma babu wani da ya kasance kini a gare Shi.”"
+  ]
+]

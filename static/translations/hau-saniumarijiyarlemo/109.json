@@ -1,0 +1,47 @@
+[
+  {
+    "id": 109,
+    "city": "makkah",
+    "name": {
+      "translated": "The Disbelievers",
+      "transliterated": "Al-Kafirun",
+      "codepoints": [
+        1575,
+        1604,
+        1603,
+        1575,
+        1601,
+        1585,
+        1608,
+        1606
+      ]
+    },
+    "ayahs": 6,
+    "slug": "al-kafirun",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Ka ce: “Ya ku waɗannan kafirai."
+  ],
+  [
+    2,
+    "“Ba zan bauta wa abin da kuke bauta wa ba."
+  ],
+  [
+    3,
+    "“Ku kuma ba masu bautar abin da nake bauta wa ba ne."
+  ],
+  [
+    4,
+    "“Ni kuma ba mai bauta wa abin da kuka bauta wa ba ne."
+  ],
+  [
+    5,
+    "“Ku ma ba za ku bauta wa abin da nake bauta wa ba."
+  ],
+  [
+    6,
+    "“Addininku na gare ku, ni ma kuma addinina na gare ni.”"
+  ]
+]

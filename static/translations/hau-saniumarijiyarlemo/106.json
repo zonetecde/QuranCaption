@@ -1,0 +1,35 @@
+[
+  {
+    "id": 106,
+    "city": "makkah",
+    "name": {
+      "translated": "Quraysh",
+      "transliterated": "Quraysh",
+      "codepoints": [
+        1602,
+        1585,
+        1610,
+        1588
+      ]
+    },
+    "ayahs": 4,
+    "slug": "quraysh",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Domin sabon da Ƙuraishawa suka yi."
+  ],
+  [
+    2,
+    "Sabonsu na yin safara a lokacin ɗari (zuwa ƙasar Yaman) da lokacin bazara (zuwan ƙasar Sham)."
+  ],
+  [
+    3,
+    "To sai su bauta wa Ubangijin wannan Ɗakin."
+  ],
+  [
+    4,
+    "Wanda Ya ciyar da su daga yunwa, Ya kuma amintar da su daga tsoro."
+  ]
+]

@@ -1,0 +1,67 @@
+[
+  {
+    "id": 100,
+    "city": "makkah",
+    "name": {
+      "translated": "The Courser",
+      "transliterated": "Al-'Adiyat",
+      "codepoints": [
+        1575,
+        1604,
+        1593,
+        1575,
+        1583,
+        1610,
+        1575,
+        1578
+      ]
+    },
+    "ayahs": 11,
+    "slug": "al-adiyat",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Na rantse da (dawaki) masu sukuwa suna kukan ciki."
+  ],
+  [
+    2,
+    "Sannan masu bugun ƙyastu da kofatai."
+  ],
+  [
+    3,
+    "Sannan masu kai hari da asuba."
+  ],
+  [
+    4,
+    "Sai suka tayar da ƙura da ita (sukawar tasu)."
+  ],
+  [
+    5,
+    "Sai kuma suka shiga tsakiyar taro (da mahayansu)"
+  ],
+  [
+    6,
+    "Lalle mutum tabbas mai yawan butulci ne ga Ubangijinsa."
+  ],
+  [
+    7,
+    "Lalle kuma shi shaida ne a kan haka."
+  ],
+  [
+    8,
+    "Lalle shi kuma mai tsananin son alheri ne."
+  ],
+  [
+    9,
+    "Shin bai sani ba ne idan aka bankaɗo abubuwan da suke cikin ƙaburbura?"
+  ],
+  [
+    10,
+    "Aka kuma tattaro abubuwan da suke cikin ƙiraza?"
+  ],
+  [
+    11,
+    "Lalle a wannan ranar tabbas Ubangijinsu Masani ne game da su."
+  ]
+]

@@ -1,0 +1,537 @@
+[
+  {
+    "id": 9,
+    "city": "madinah",
+    "name": {
+      "translated": "The Repentance",
+      "transliterated": "At-Tawbah",
+      "codepoints": [
+        1575,
+        1604,
+        1578,
+        1608,
+        1576,
+        1577
+      ]
+    },
+    "ayahs": 129,
+    "slug": "at-tawbah",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Allah da Manzonsa ba ruwansu da waɗanda kuka yi alƙawari da su daga cikin mushirikai."
+  ],
+  [
+    2,
+    "To sai ku tafi ku wala a bayan ƙasa tsawon wata huɗu, kuma ku sani cewa ku ba za ku gagari Allah ba, kuma lalle Allah Mai wulaƙanta kafirai ne."
+  ],
+  [
+    3,
+    "Kuma sanarwa daga Allah da Manzonsa zuwa ga mutane ranar Babbar Salla cewa, lalle Allah da Manzonsa babu ruwansu da mushrikai. Amma idan kuka tuba, to shi ya fi alheri a gare ku, idan kuma kuka ba da baya, to ku sani lalle ku fa ba za ku gagari Allah ba. Kuma ka yi albishir ga waɗanda suka kafirta da azaba mai raɗadi."
+  ],
+  [
+    4,
+    "Sai fa waɗannan mushrikan da kuka yi alƙawari da su sannan kuma ba su rage muku wani abu ba (daga alƙawarin), ba su kuma taimaka wa wani a kanku ba, to sai ku cika musu alƙawarinsu har zuwa lokacinsu (da kuka ayyana). Lalle Allah Yana son masu taƙawa."
+  ],
+  [
+    5,
+    "To idan watanni masu alfarma suka wuce sai ku yaƙi mushrikai a duk inda kuka same su, ku kuma kama su ku tsare su ku kuma toshe musu kowace hanya. To amma idan sun tuba sun kuma tsai da salla kuma sun ba da zakka, to sai ku ƙyale su. Lalle Allah Mai gafara ne Mai jin ƙai."
+  ],
+  [
+    6,
+    "Kuma idan wani daga mushrikai ya nemi mafaka a wurinka to sai ka ba shi mafaka har ya samu damar jin zancen Allah, sannan ka isar da shi wurin amincewarsa. Wannan kuwa saboda lalle su mutane ne da ba sa sanin (gaskiya)."
+  ],
+  [
+    7,
+    "Ta yaya zai yiwu a samu wani alƙawari tsakanin Allah da Manzonsa da kuma mushirikai in ban da waɗanda kuka yi alƙawari da su a Masallaci mai alfarma? To matuƙar sun tsaya muku (bisa gaskiya) sai ku ma ku tsaya musu. Lalle Allah Yana son masu taƙawa."
+  ],
+  [
+    8,
+    "Ta yaya?! (haka zai faru) alhali idan suka yi nasara a kanku ba za su duba wani kusanci ba balle wani alƙawari game da ku? Suna yardar da ku ne da bakunansu, alhali kuwa zukatansu suna ƙi. Yawancinsu kuma fasiƙai ne."
+  ],
+  [
+    9,
+    "Sun musanya ayoyin Allah da ɗan kuɗi ƙanƙani, sannan suka toshe hanyarsa. Lalle su dai abin da suke aikatawa ya munana."
+  ],
+  [
+    10,
+    "Ba sa duban wani kusanci na zumunci da wani mumini ballantana kuma wani alƙawari. Waɗannan kuma su ne masu ƙetare iyaka."
+  ],
+  [
+    11,
+    "To idan sun tuba, suka kuma tsayar da salla kuma suka ba da zakka, to sun zama ‘yan’uwanku a cikin addini. Muna kuwa bayanin ayoyi ne filla-filla ga mutane da suke da sani."
+  ],
+  [
+    12,
+    "Idan kuma suka warware rantsuwarsu bayan ɗaukar alƙawarinsu, suka kuma soki addininku, to sai ku yaƙi shugabannin kafirci, don kuwa ba su da alƙawari, ko yin haka zai sa su daina."
+  ],
+  [
+    13,
+    "Yanzu ba za ku yaƙi mutanen da suka warware alƙawarinsu ba, kuma (tun farko) sun yi nufin fitar da Manzo (daga Makka), su ne kuma suka fara far muku da yaƙi? Yanzu kwa riƙa tsoron su? To Allah ne Ya fi cancantar ku ji tsoron Sa idan kun kasance muminai."
+  ],
+  [
+    14,
+    "Ku yaƙe su, Allah zai azabtar da su ta hannayenku, Ya kuma kunyatar da su, kuma Ya taimake ku a kansu, Ya kuma warkar da zukatan muminai."
+  ],
+  [
+    15,
+    "Ya kuma tafiyar da ɓacin ransu. Allah kuma Ya karɓi tuban duk wanda Ya ga dama. Allah kuwa Masani ne, Mai hikima."
+  ],
+  [
+    16,
+    "Ko kuwa kuna tsammanin za a ƙyale ku ne (sakaka) alhali kuwa har yanzu Allah bai tantance waɗanda suka yi jihadi ba a cikinku, ba su kuma riƙi wasu masoya ba banda Allah da Manzonsa da muminai? Allah Mai cikakken sanin abin da kuke aikatawa ne."
+  ],
+  [
+    17,
+    "Ba zai taɓa yiwuwa mushrikai su raya masallatan Allah ba, alhalin kuwa suna masu iƙirarin kafirci ga kawunasu. Waɗannan ayyukansu sun ɓaci kuma a cikin wuta za su dawwama."
+  ],
+  [
+    18,
+    "Lalle mai raya masallatan Allah shi ne kawai wanda ya yi imani da Allah da ranar lahira ya kuma tsayar da salla, kuma ya ba da zakka, bai kuma ji tsoron wani ba sai Allah. To waɗannan tabbas suna cikin shiryayyu."
+  ],
+  [
+    19,
+    "Yanzu kwa mayar da shayar da alhazai da raya Masallaci mai alfarma kamar wanda ya yi imani da Allah da ranar lahira ya kuma yi jihadi saboda Allah? Ai ba za su zama ɗaya ba a wurin Allah. Allah kuma ba Ya shiryar da mutane azzalumai."
+  ],
+  [
+    20,
+    "Waɗanda suka yi imani kuma suka yi hijira suka yi jihadi saboda Allah da dukiyoyinsu da kawunansu su suka fi girman daraja a wurin Allah kuma waɗannan su ne marabauta."
+  ],
+  [
+    21,
+    "Ubangijinsu Yana yi musu albishir da rahama da yarda daga gare Shi, kana da gidajen Aljanna (waɗanda) a cikinsu suke da ni’imomi masu ɗorewa."
+  ],
+  [
+    22,
+    "Su madawwama ne a cikinsu har abada. Lalle lada mai girma yana wurin Allah."
+  ],
+  [
+    23,
+    "Ya ku waɗanda suka yi imani, kada ku ɗauki iyayenku da ‘yan’uwanku masoya muddin dai sun fifita kafirci a kan imani. Duk kuwa waɗanda suka ɗauke su (masoya) daga cikinku to waɗannan su ne azzalumai."
+  ],
+  [
+    24,
+    "Ka ce: “Idan iyayenku da ‘ya’yanku da ‘yan’uwanku da matanku da danginku da dukiyoyin da kuka tara da kasuwanci da kuke tsoron gurguncewarsa da kuma gidajen da kuke sha'awa; idan har su kuka fi so fiye da Allah da Manzonsa da kuma jihadi saboda Shi, to sai ku saurara har Allah Ya zo da al’amarinsa. Allah kuwa ba Ya shiryar da mutane fasiƙai.”"
+  ],
+  [
+    25,
+    "Lalle haƙiƙa Allah Ya taimake ku a wurare da yawa, da kuma ranar (yaƙin) Hunaini lokacin da yawanku ya ruɗe ku sai (yawan naku) bai amfana muku komai ba, ƙasa kuma ta yi muku ƙunci duk da yalwarta, sannan kuka juya kuna masu ba da baya."
+  ],
+  [
+    26,
+    "Sannan Allah Ya sauƙar wa da Manzonsa da kuma muminai nutsuwarsa, Ya kuma saukar da wasu rundunoni da ba kwa gani, Ya kuma azabtar da waɗanda suka kafirta. Wannan kuwa shi ne sakamakon kafirai."
+  ],
+  [
+    27,
+    "Sannan bayan wannan Allah zai karɓi tuban wanda Ya ga dama. Allah kuwa Mai gafara ne, Mai rahama."
+  ],
+  [
+    28,
+    "Ya ku waɗanda suka yi imani, lalle mushrikai najasa ne kawai, saboda haka kada su kusanci Masallaci mai alfarma bayan wannan shekarar tasu. Idan kuma kuna tsoron talauci ne to Allah zai wadata ku daga falalarsa idan Ya ga dama. Lalle Allah Masani ne, Mai hikima."
+  ],
+  [
+    29,
+    "Ku yaƙi waɗanda ba sa yin imani da Allah da ranar lahira, ba kuma sa haramta abin da Allah da Manzonsa suka haramta, kuma ba sa yin addini na gaskiya, daga waɗanda aka bai wa littafi har sai (sun yarda) za su ba da jizya da hannunsu a ƙasƙance."
+  ],
+  [
+    30,
+    "Yahudawa sun ce: “Uzairu ɗan Allah ne.” Nasara kuma suka ce: “Almasihu ɗan Allah ne.” Wannan faɗarsu ce kawai da bakunansu; suna kwaikwayon faɗar kafiran da suka gabace su ne. Allah Ya tsine musu. Ta ƙaƙa ake kautar da su daga gaskiya?"
+  ],
+  [
+    31,
+    "Sun ɗauki malamansu da masu ibadarsu da kuma Almasihu ɗan Maryamu iyayengiji maimakon Allah, alhali kuwa ba abin da aka umarce su sai su bauta wa Abin bauta Ɗaya, babu wani abin bauta wa da gaskiya sai Shi. Ya tsarkaka daga abin da suke tara Shi da shi."
+  ],
+  [
+    32,
+    "Suna nufi ne su dushashe hasken Allah da bakunansu, Allah kuwa ba zai ƙyale ba har sai Ya cika haskensa ko da kuwa kafirai sun ƙi."
+  ],
+  [
+    33,
+    "Shi ne wanda Ya aiko Manzonsa da shiriya da kuma addini na gaskiya don Ya ɗora shi a kan dukkanin addinai, ko da kuwa mushrikai sun ƙi."
+  ],
+  [
+    34,
+    "Ya ku waɗanda suka yi imani, lalle da yawa daga malaman (Yahudawa) da masu ibada (Nasara) tabbas suna cin dukiyoyin mutane ta hanyar cuta, suna kuma toshe hanyar Allah. Waɗanda kuma suke ɓoye zinariya da azurfa ba sa ciyar da ita saboda Allah, to ka yi musu albishir da wata azaba mai raɗaɗi."
+  ],
+  [
+    35,
+    "Ranar da za a narkar da su (zinariya da azurfa) cikin wutar Jahannama sannan a yi wa fuskokinsu da kuyaɓunsu da bayansu lalas da su, (a ce da su): “Wannan shi ne abin da kuka taskace wa kanku, sai ku ɗanɗani abin da kuka kasance kuna taskacewa.”"
+  ],
+  [
+    36,
+    "Lalle adadin watanni a wurin Allah wata goma sha biyu ne a cikin littafin Allah, tun ranar da Ya halicci sammai da ƙasa, daga cikinsu akwai (wata) huɗu masu alfarma. Wannan shi ne addini madaidaici. To kada ku zalunci kanku a cikinsu, kuma ku yaƙi mushrikai gaba ɗaya kamar yadda suke yaƙar ku gaba ɗaya. Ku kuma sani cewa Allah Yana tare da masu taƙawa."
+  ],
+  [
+    37,
+    "Lalle jinkiri ba wani abu ba ne ban da ƙari cikin kafirci, wanda da shi (jinkirin) ake ɓatar da waɗanda suka kafirta, suna halatta shi a wata shekarar, su kuma haramta shi a wata, wai don su daidaita adadin abin da Allah Ya haramta, sai su halatta abin da Allah Ya haramta. An ƙawata musu munanan ayyukansu. Allah kuwa ba Ya shiryar da mutane kafirai."
+  ],
+  [
+    38,
+    "Ya ku waɗanda suka yi imani, me ya same ku ne idan aka ce da ku ku fita yaƙi saboda Allah sai ku yi nauyin jiki? Yanzu kun zaɓi rayuwar duniya a kan ta lahira? Ai jin daɗin rayuwar duniya abu ne ƙanƙani dangane da na lahira."
+  ],
+  [
+    39,
+    "Idan ba za ku fita (yaƙi ba to (Allah) zai azabtar da ku da azaba mai raɗaɗi, Ya kuma canja wasu mutanen daban, ba kuwa za ku cutar da Shi da komai ba. Allah kuwa Mai iko ne a kan komai."
+  ],
+  [
+    40,
+    "Idan ba ku taimake shi ba (watau Manzon Allah) to haƙiƙa Allah Ya taimake shi lokacin da kafirai suka fitar da shi (daga Makka), alhalin suna su biyu, lokacin da suke a cikin kogo, yayin da yake ce wa abokinsa (Abubakar): “Kada ka damu, lalle Allah yana tare da mu,” sai Allah Ya saukar masa da nutsuwarsa Ya kuma ƙarfafe shi da runduna wadda ba ku gan ta ba, Ya kuma sanya kalmar waɗanda suka kafirta ta zama ƙaskantacciya. Kalmar Allah kuwa ita ce maɗaukakiya. Allah kuma Mabuwayi ne, Mai hikima."
+  ],
+  [
+    41,
+    "Ku fita yaƙi kuna da kuzari ko ba ku da shi, ku kuma yi yaƙi da dukiyoyinku da kawunanku saboda Allah. Wannan ya fi alheri a gare ku, in kun kasance kun san (haka)."
+  ],
+  [
+    42,
+    "Da (abin da za su samu) amfani ne na kusa, ko tafiya gajeriya, to lalle da sun bi ka, sai dai kuma tafiyar ta yi musu tsawo; kuma za su zo suna rantsuwa da Allah cewa: “Da mun sami hali da lalle mun fita tare da ku”, suna hallaka kansu ne kawai, Allah kuwa Yana sane da cewa lalle su tabbas maƙaryata ne."
+  ],
+  [
+    43,
+    "Allah Ya yafe maka; don me ka yi musu izini? Ai har sai ka gane musu gaskiya ka kuma san maƙaryata."
+  ],
+  [
+    44,
+    "Waɗanda suka yi imani da Allah da ranar lahira ba sa neman izininka don kada su yi yaƙi da dukiyoyinsu da kawunansu. Allah kuwa yana sane da masu taƙawa."
+  ],
+  [
+    45,
+    "Waɗanda kawai suke neman izininka su ne waɗanda ba sa imani da Allah da ranar lahira, zukatansu kuma suka yi kokwanto, saboda haka suke ta dawurwuri a cikin kokwantonsu."
+  ],
+  [
+    46,
+    "Da kuwa sun yi niyyar fita to da sun yi masa tanadi, sai dai kuma Allah Ya ƙi zaburar da su, sai Ya dankwafar da su, aka kuma ce (da su): “Ku zauna tare da mazauna (gida).”"
+  ],
+  [
+    47,
+    "Da sun fito cikinku ɗin, to ba abin da za su ƙare ku da shi sai taɓarɓarewa, kuma lalle da sun yi ta shige da fice a tsakaninku suna ƙoƙarin haifar muku da fitina, a cikinku kuma akwai masu jiyo musu (wato abokan gaba) magana. Allah kuwa Masanin azzalumai ne."
+  ],
+  [
+    48,
+    "Haƙiƙa tun da can sun nemi yaɗa fitina, suka hargitsa maka al’amari, har sai da gaskiya ta zo, al’amarin Allah kuma ya bayyana, su kuwa suna masu ƙin (haka)."
+  ],
+  [
+    49,
+    "Daga cikinsu kuma akwai wanda yake cewa: “Ka yi mani izinin (zama), kada ka jefa ni cikin fitina.” Tabbas, ai cikin fitinar suka faɗa. Lalle Jahannama kuwa mai kewaye kafirai ce."
+  ],
+  [
+    50,
+    "Idan wani alheri ya same ka sai ya baƙanta musu rai; idan kuwa musiba ce ta same ka sai su riƙa cewa: “Haƙiƙa mu da ma tuni mun ɗauki matakin kauce mata,” sai kuma su juya baya suna masu farin ciki."
+  ],
+  [
+    51,
+    "Ka ce: “Ba abin da zai same mu sai abin da Allah Ya rubuta mana, shi ne Majiɓincin al’amuranmu; kuma ga Allah kaɗai muminai sai su dogara.”"
+  ],
+  [
+    52,
+    "Ka ce: “Shin akwai abin da kuke jira ya same mu in ban da ɗayan kyawawan abubuwa biyu (wato nasara ko shahada). Mu kuwa muna jiran (mu ga) Allah Ya aukar muku da wata azaba daga wurinsa ko kuwa ta hannunmu? To sai ku jira, lalle mu ma masu jira ne tare da ku.”"
+  ],
+  [
+    53,
+    "Ka ce: “Ku ciyar (da dukiyarku) cikin daɗin rai ko a bisa dole (duka ɗai suke), ba za a karɓa muku ba; don kuwa lalle kun kasance ku mutane ne fasiƙai."
+  ],
+  [
+    54,
+    "Ba kuwa abin da ya hana a karɓi ciyarwar tasu sai don sun kafirce wa Allah da Manzonsa, ba sa kuma zuwa salla sai suna cikin kasala, ba kuma sa ciyarwa sai ala tilas."
+  ],
+  [
+    55,
+    "To kada dukiyoyinsu da ‘ya’yansu su ƙayatar da kai. Allah Yana nufin kawai Ya azabta su ne da su a rayuwar duniya, rayukansu kuma su zazzago a halin suna kafirai."
+  ],
+  [
+    56,
+    "Sukan kuma rantse da Allah cewa lalle suna tare da ku, alhali kuwa ba sa tare da ku, kawai dai su wasu mutane ne matsorata."
+  ],
+  [
+    57,
+    "Da za su sami wata mafaka ko wani kogo ko wata mashiga, to da sun juya zuwa gare shi suna gaggawar (shiga)."
+  ],
+  [
+    58,
+    "Daga cikinsu kuma akwai waɗanda suke aibata ka game da rabon sadaka; idan an ba su wani abu daga cikinta to sai su gamsu, idan kuwa ba a ba su daga cikinta ba sai ka gan su suna fushi."
+  ],
+  [
+    59,
+    "Da kuwa za su yarda da abin da Allah da Manzonsa suka ba su, su kuma ce: “Allah ya ishe mu, kuma Allah zai ba mu daga falalarsa Manzonsa ma (zai ba mu), lalle mu masu kwaɗayi ne a wurin Allah kaɗai.”"
+  ],
+  [
+    60,
+    "Dukiyoyin zakka na matalauta ne kaɗai da miskinai da ma’aikatanta da waɗanda ake lallashin zukatansu da kuma game da ‘yanta bayi da waɗanda ake bi bashi da kuma wajen jihadi saboda Allah da matafiyi. Farilla ce daga Allah. Allah kuwa Masani ne, Mai hikima."
+  ],
+  [
+    61,
+    "Daga cikinsu kuma akwai waɗanda suke cutar Annabi suna kuma cewa: “Shi mai saurare ne kawai.” Ka ce (da su: Shi) “Mai sauraren alheri ne dominku; yana imani da Allah, yana kuma gaskata muminai, kuma rahama ne ga waɗanda suka yi imani daga cikinku.” Waɗanda kuwa suke cutar Manzon Allah suna da azaba mai raɗaɗi."
+  ],
+  [
+    62,
+    "Suna rantse muku da Allah don su samu yardarku, Allah da Manzonsa kuwa su suka fi cancanta su yardar da su in sun kasance muminai."
+  ],
+  [
+    63,
+    "Yanzu ba su sani ba cewa, wanda yake jayayya da Allah da Manzonsa, to lalle yana da wutar Jahannama da zai dawwama a cikinta? Wannan kuwa kunyata ce mai girma."
+  ],
+  [
+    64,
+    "Munafukai suna tsoron a saukar musu da wata sura mai ba su labarin abin da yake cikin zukatansu. Ka ce : “Ku yi ta izgili, lalle Allah Mai bayyana abin da kuke tsoron (bayyanarsa) ne.”"
+  ],
+  [
+    65,
+    "Kuma lalle idan har ka tambaye su, tabbas za su ce: “Kawai muna kutse ne da wasa.” To ka ce (da su): “Yanzu Allah ne da ayoyinsa da Manzonsa kuka kasance kuna yi wa izgili?”"
+  ],
+  [
+    66,
+    "Kada ku kawo wani uziri, haƙiƙa kun dai kafirta bayan imaninku. Idan Muka yafe wa wata ƙungiya daga cikinku to za Mu azabtar da wata ƙungiyar saboda kuwa sun kasance masu laifi ne."
+  ],
+  [
+    67,
+    "Munafukai maza da munafukai mata sun yi kama da juna (wajen munafunci). Suna umurni da mummunan aiki suna kuma hana kyakkyawan aiki, kuma suna damƙe hannayensu (wajen yin alheri); sun manta da Allah, sai Shi ma Ya yi watsi da su. Lalle munafikai su ne fasiƙai."
+  ],
+  [
+    68,
+    "Allah kuwa Ya yi wa munafukai maza da mata da kuma kafirai alƙawarin wutar Jahannama wadda za su dawwama a cikinta. Ita ta ishe su. Allah kuma Ya tsine musu, suna kuma da azaba mai ɗorewa."
+  ],
+  [
+    69,
+    "(Kun yi) kama da waɗanda suke gabaninku; sun fi ku ƙarfi da yawan dukiyoyi da kuma ’ya’ya; sai suka more rabonsu (na duniya), to ku ma sai kuka more da naku rabon, kamar yadda waɗanda suke gabaninku suka more da irin nasu rabon, kuka kuma kutsa (cikin ɓarna) kamar yadda suka kutsa. Waɗannan, ayyukansu sun ruguje a duniya da lahira. Waɗannan kuwa su ne hasararru."
+  ],
+  [
+    70,
+    "Yanzu labarin waɗanda suke gabaninsu bai zo musu ba: Mutanen (Annabi) Nuhu da Adawa da Samudawa, da mutanen (Annabi) Ibrahimu da kuma mutanen Madyana da waɗanda aka kifar (watau mutanen Annabi Luɗu)? Manzanninsu sun zo musu da (ayoyi) mabayyana; ba kuma zai zamana Allah Ya zalunce su ba sai dai kawunansu ne kawai suke zalunta."
+  ],
+  [
+    71,
+    "Muminai maza da muninai mata kuwa masoyan juna ne: Suna yin umurni da kyakkyawa abu suna kuma hana mummunan, suna kuma tsai da salla suna ba da zakka suna kuma bin Allah da Manzonsa. Waɗannan Allah zai yi musu rahama. Lalle Allah kuwa Mabuwayi ne Mai hikima."
+  ],
+  [
+    72,
+    "Allah Ya yi wa muninai maza da muminai mata alƙawarin gidajen Aljanna da ƙoramu suke gudana ta ƙarƙashinsu suna masu dawwama a cikinsu, da kuma wuraren zama masu kyau a cikin gidajen Aljanna na dawwama. Yardar Allah kuwa ita ce fiye da komai. Wannan shi ne rabo mai girma."
+  ],
+  [
+    73,
+    "Ya kai wannan Annabi, ka yaƙi kafirai da munafukai ka kuma tsananta musu. Jahannama ce kuma makomarsu. Makoma kuwa ta munana."
+  ],
+  [
+    74,
+    "Suna rantsewa da Allah kan ba su faɗi (komai) ba, alhali kuwa tabbas sun faɗi kalmar kafirci, suka kuma kafirta bayan musuluntarsu, suka kuma yi ƙudirin aikata abin da ba su samu (dama) ba; ba kuwa abin da suke jin haushi sai kawai don Allah da Manzonsa sun wadata su daga falalarsa. To idan suka tuba zai fi musu alheri; idan kuwa suka juya baya to Allah zai azabtar da su azaba mai raɗaɗi a duniya da lahira; ba su da kuwa wani majiɓincin lamari ko wani mataimaki a bayan ƙasa."
+  ],
+  [
+    75,
+    "Daga cikinsu kuma akwai waɗanda suka yi wa Allah alƙawarin cewa: “Idan Ya arzuta mu daga falalarsa, to lalle tabbas za mu riƙa ba da sadaka, kuma lalle tabbas za mu zama cikin mutane salihai.”"
+  ],
+  [
+    76,
+    "To lokacin da Ya arzuta su ɗin sai suka yi rowa da ita ( sadakar) suka kuma ba da baya suna masu bijirewa."
+  ],
+  [
+    77,
+    "Sai Ya gadar musu da munafunci a cikin zukatansu har zuwa ranar da za su gamu da Shi, saboda saɓa wa alƙawarin da suka yi wa Allah da kuma ƙaryatawar da suka zamanto suna yi."
+  ],
+  [
+    78,
+    "Yanzu ba su sani ba cewa, lalle Allah Ya san asirinsu da kuma ganawar da suke yi, lalle kuma Allah Shi ne cikakken Masanin gaibu?"
+  ],
+  [
+    79,
+    "Waɗanda kuma suke aibata muminai masu yin sadaka (mai yawa) don neman lada da kuma waɗanda ba su da abin da za su bayar sai (kaɗan) gwargwadon wahalarsu, sannan su riƙa yi musu izgili, to Allah zai mayar musu da sakamakon izgilinsu, suna kuma da azaba mai raɗaɗi."
+  ],
+  [
+    80,
+    "Ko ka nema musu gafara ko ba ka nema musu gafara ba (duk ɗaya ne). In da za ka nema musu gafara sau saba’in to Allah ba zai gafarta musu ba. Wannan kuwa saboda sun kafirce wa Allah da Manzonsa. Allah kuwa ba Ya shiryar da mutane fasiƙai."
+  ],
+  [
+    81,
+    "(Munafukai) waɗanda suka ƙi fita (yaƙi) sun yi farin ciki da zamansu (a gida) suna masu saɓa wa Manzon Allah, suka kuma ƙi su yi yaƙi da dukiyoyinsu da kawunansu saboda Allah, suka kuma ce (da junansu): “Kada ku fita yaƙi cikin zafin nan.” Ka ce da su: “Wutar Jahannama ta fi tsananin zafi.” Da sun zamanto suna ganewa."
+  ],
+  [
+    82,
+    "Sai su yi dariya kaɗan su kuma yi kuka mai yawa a sakamakon abin da suka kasance suna aikatawa."
+  ],
+  [
+    83,
+    "To idan Allah Ya dawo da kai zuwa ga wata jama’a daga cikinsu sai suka nemi izinin fita a wajenka, to sai ka ce (da su): “Ba za ku fita tare da ni ba har abada, kuma ba za ku yaƙi wani abokin gaba ba tare da ni ba har abada. Lalle kun yarda da zama tun farko, to sai ku zauna tare da masu zama.” (wato mata da yara)."
+  ],
+  [
+    84,
+    "Kada ka ƙara yi wa ɗaya daga cikinsu da ya mutu salla har abada, kada kuma ka tsaya a kan ƙabarinsa (don addu’a). Lalle su sun kafirce wa Allah da Manzonsa, suka kuma mutu suna fasiƙai."
+  ],
+  [
+    85,
+    "Kada kuma dukiyoyinsu da ‘ya’yansu su ƙayatar da kai. Lalle kawai Allah Yana nufin azabtar da su ne da su (dukiyoyin da ‘ya’yan), rayukansu kuma su zazzago suna kafirai."
+  ],
+  [
+    86,
+    "Idan kuma aka saukar da wata sura mai cewa: “Ku yi imani da Allah kuma ku yi yaƙi tare da Manzonsa,” sai masu wadata daga cikinsu su nemi izininka su ce: “Ƙyale mu mu kasance tare da masu zama (a gida, wato mata da yara).”"
+  ],
+  [
+    87,
+    "Sun yarda da su kasance tare da mata masu zaman gida, an kuma doɗe zukatansu, saboda haka ba sa ganewa."
+  ],
+  [
+    88,
+    "Sai dai shi Manzo da waɗanda suka yi imani tare da shi sun yi yaƙi da dukiyoyinsu da kuma kawunansu. Waɗannan kuwa suna da alherai; kuma waɗannan su ne marabauta."
+  ],
+  [
+    89,
+    "Allah Ya tanadar musu da gidajen Aljanna waɗanda ƙoramu suke gudana ta ƙarƙashinsu, suna masu dawwama a cikinsu. Wannan shi ne rabo mai girma."
+  ],
+  [
+    90,
+    "Masu kawo uzurin ƙarya daga mutanen ƙauye kuma suka zo don a yi musu izini, sai kuma waɗanda suka yi wa Allah da Manzonsa ƙarya suka yi zamansu (ba tare da kawo hanzari ba). To azaba mai raɗaɗi za ta samu waɗanda suka kafirta daga cikinsu."
+  ],
+  [
+    91,
+    "Babu wani laifi a kan raunana ko marasa lafiya ko kuma waɗanda ba su samu abin da za su ciyar ba (don talauci), matuƙar dai sun tsarkake zuciyarsu ga Allah da Manzonsa. Babu wata hanya (ta ɗora laifi) ga masu kyautatawa. Allah kuwa Mai gafara ne, Mai jin ƙai."
+  ],
+  [
+    92,
+    "Haka kuma babu (laifi) a kan waɗanda idan sun zo maka don ka ba su abin hawa sai ka ce: “Ba ni da abin hawan da zan ba ku,” sai suka juya idanuwansu suna kwararar da hawaye don baƙin cikin ba su sami abin da za su ciyar ba."
+  ],
+  [
+    93,
+    "Zargi kawai yana kan waɗanda suke neman izininka alhali kuwa suna mawadata. Sun yarda da su kasance tare da masu zaman gida (mata da yara). Allah kuma Ya doɗe zukatansu, saboda haka ba sa sanin (gaskiya)."
+  ],
+  [
+    94,
+    "Za su kawo muku uzurinsu idan kuka dawo musu. Ka ce: “Kada ku kawo wani uziri, mu ba za mu gaskata ku ba har abada, haƙiƙa Allah ya faɗa mana labarinku. Allah kuwa zai ga ayyukanku Shi da Manzonsa, sannan a komar da ku zuwa ga Masanin abin da yake ɓoye da na sarari, sai Ya ba ku labarin abin da kuka kasance kuna aikatawa.”"
+  ],
+  [
+    95,
+    "Za su rantse muku da Allah idan kuka dawo wurinsu don ku ƙyale su. To ku ƙyale su ɗin. Lalle su najasa ne; makomarsu kuma wutar Jahannama ce sakamakon abin da suka kasance suna aikatawa."
+  ],
+  [
+    96,
+    "Suna rantse muku don ku yarda da su; to idan ma kun yarda da su ɗin, lalle (Shi) Allah ba zai yarda da mutane fasiƙai ba."
+  ],
+  [
+    97,
+    "Mutanen ƙauye sun fi tsananin kafirci da munafunci, kuma su suka fi dacewa da rashin sanin dokokin da Allah Ya saukar wa Manzonsa. Allah kuwa Masani ne, Mai hikima."
+  ],
+  [
+    98,
+    "Daga mutanen ƙauye kuma akwai waɗanda suke ɗaukar abin da suke ciyarwa tara ne, suke kuma jiran faruwar masifu gare ku. To mummunar masiba ta tabbata a kansu. Allah kuma Mai ji ne, Masani."
+  ],
+  [
+    99,
+    "Daga mutanen ƙauye ɗin kuma akwai waɗanda suke yin imani da Allah da ranar lahira, suke kuma ɗaukar abin da suke ciyarwa (hanyoyi ne) na samun kusanci ga Allah da kuma addu’o’in Manzo. Lalle wannan ibada ce gare su. Allah zai shigar da su cikin rahamarsa. Lalle Allah Mai gafara ne, Mai jin ƙai."
+  ],
+  [
+    100,
+    "Magabata kuwa na farko daga cikin masu hijira da Ansaru da kuma waɗanda suka biyo bayansu da kyautatawa, (duka) Allah Ya yarda da su, su ma sun yarda da Shi, Ya kuma tanadar musu gidajen Aljanna da ƙoramu suke gudana ta ƙarƙashinsu, suna madawwama a cikinsu har abada. Wannan shi ne rabo mai girma."
+  ],
+  [
+    101,
+    "Kuma daga mutanen ƙauye waɗanda suke kewaye da ku akwai munafukai, haka kuma daga mutan Madina; sun ƙware a kan munafunci, kai ba ka san su ba; Mu ne Muka san su. Za Mu azabtar da su sau biyu, sannan a komar da su zuwa ga azaba mai girma."
+  ],
+  [
+    102,
+    "Wasu kuwa sun yi iƙirari da laifinsu, sun gauraya kyakkyawan aiki da wani mummuna, to tabbas Allah zai karɓi tubansu. Lalle Allah Mai gafara ne, Mai jin ƙai."
+  ],
+  [
+    103,
+    "Ka karɓi sadaka daga dukiyoyinsu da za ka tsarkake su kuma ka gyara musu halaye da ita, ka kuma yi musu addu’a. Lalle addu’arka nutsuwa ce a gare su. Allah kuwa Mai ji ne, Masani."
+  ],
+  [
+    104,
+    "Shin yanzu ba su sani ba ne cewa Allah shi Yake karɓar tuba daga bayinsa Yake kuma karɓar sadakoki, kuma lalle Shi ne Mai yawan karɓar tuba, Mai jin ƙai?"
+  ],
+  [
+    105,
+    "Ka kuma ce: “Ku yi aiki, Allah ne zai ga aikinku shi da Manzonsa da kuma muminai, kuma za a mayar da ku zuwa ga Masanin abin da yake ɓoye da na sarari, sannan Ya ba ku labarin abin da kuka kasance kuna aikatawa."
+  ],
+  [
+    106,
+    "Wasu kuwa an jinkirta lamarinsu ne ga hukuncin Allah, ko dai ya azabtar da su ko kuma Ya karɓi tubarsu. Allah kuwa Masani ne, Mai hikima."
+  ],
+  [
+    107,
+    "Waɗanda kuwa suka gina masallaci don cutarwa da kafirci da rarraba kawunan muminai da kuma ba da mafaka ga wanda ya yaƙi Allah da Manzonsa tun da can. Kuma lalle za su rantse da Allah cewa ba su yi nufin komai ba sai abu mafi kyau, Allah kuwa Yana ba da shaidar cewa lalle su tabbas maƙaryata ne."
+  ],
+  [
+    108,
+    "Kada ka yi salla a cikinsa har abada. Haƙiƙa masallacin da aka ɗora harsashinsa tun daga ranar farko a kan taƙawa shi ya cancanci ka yi salla a cikinsa. A cikinsa akwai wasu mazaje da suke so su tsarkaka. Allah kuwa Yana son masu tsarkaka."
+  ],
+  [
+    109,
+    "Yanzu wanda ya sanya harhashin gininsa a kan taƙawa ga Allah da (neman) yardarsa shi ya fi ko kuwa wanda ya sanya harshashin gininsa a gefen rami mai zabtarewa, sai ya rubta da shi cikin wutar Jahannama? Allah kuwa ba Ya shiryar da mutane azzalumai."
+  ],
+  [
+    110,
+    "Ginin nasu da suka yi ba zai daina zama abin kokwanto a zukatansu ba har sai zukatan nasu sun tsittsinke. Allah kuwa Masani ne, Mai hikima."
+  ],
+  [
+    111,
+    "Lalle Allah Ya sayi rayuka da dukiyoyin muminai daga wurinsu cewa suna da Aljanna: Za su yi yaƙi saboda Allah, sai su kashe su ma kuma a kashe su. Alƙawari ne na gaskiya da Ya ɗaukar wa kansa a cikin Attaura da Linjila da Alƙur’ani. Wane ne ya fi Allah cika alƙawarinsa? Saboda haka sai ku yi farin ciki da cinikin nan naku da kuka yi da Shi. Wannan kuwa shi ne rabo mai girma."
+  ],
+  [
+    112,
+    "Masu tuba, masu bauta, masu godiya, masu azumi, masu ruku’i, masu sujjada, masu yin umarni da aikin alheri masu kuma hani ga mummunan aiki, da masu kiyaye iyakokin Allah. To sai ka yi wa muminai (masu irin waɗannan siffofin) albishir."
+  ],
+  [
+    113,
+    "Bai kamata ba ga Annabi da waɗanda suka yi imani su nema wa mushrikai gafara, ko da kuwa sun kasance dangi ne na kusa, bayan kuwa ya riga ya bayyana gare su cewa lalle su ‘yan wuta ne."
+  ],
+  [
+    114,
+    "Neman gafarar Ibrahimu kuwa ga babansa bai kasance ba sai don kawai alƙawarin da ya yi masa ne. To lokacin da ya bayyana gare shi cewa shi maƙiyin Allah ne sai ya nesanta kansa da shi. Lalle Ibrahimu ya tabbata mai yawan bautar Allah ne, mai haƙuri."
+  ],
+  [
+    115,
+    "Allah kuwa ba zai taɓa ɓatar da wasu mutane ba bayan Ya riga Ya shiryar da su, har sai Ya bayyana musu abin da za su kiyaye. Lalle Allah Masanin komai ne."
+  ],
+  [
+    116,
+    "Lalle Allah Shi ne Mai mulkin sammai da ƙasa, Yana rayawa kuma Yana kashewa. Ba ku da wani majiɓincin lamarinku in ban da Allah, ba ku kuma da wani mai taimako."
+  ],
+  [
+    117,
+    "Tabbas haƙiƙa Allah Ya yafe wa Annabi da masu hijira da kuma Ansaru waɗanda suka bi shi a lokacin tsanani bayan har zukatan wasu ƙungiyoyi daga cikinsu sun kusa su karkace, sannan (Allah) Ya karɓi tubansu. Lalle Shi Mai tausasawa ne, Mai jin ƙai a gare su."
+  ],
+  [
+    118,
+    "Kuma (Ya yafe wa) mutanen nan guda uku waɗanda aka dakatar da karɓar tubansu, har sai yayin da duniya ta yi musu ƙunci duk da yalwarta, kuma zukatansu suka ƙuntata, suka tabbatar da cewa dai babu wata mafaka daga Allah sai dai a wajensa. Sannan sai Ya yi musu muwafaƙar tuba don su tuba. Lalle Allah Shi ne Mai yawan karɓar tuba, Mai jin ƙai."
+  ],
+  [
+    119,
+    "Ya ku waɗanda suka yi imani, ku kiyaye dokokin Allah kuma ku zama tare da masu gaskiya."
+  ],
+  [
+    120,
+    "Bai kamata ba ga mutanen Madina da waɗanda suke kewaye da su daga mazauna ƙauye su noƙe su ƙi bin Manzon Allah, ko kuma su zaɓi kansu fiye da shi. Wannan kuwa saboda ba wata ƙishirwa ko wahala ko yunwa da za ta same su a kan hanyar Allah, kuma ba za su taka wani wuri ba da zai ɓata wa kafirai rai, kuma ba za su tafka wa abokan gaba wata hasara ba sai an rubuta musu lada saboda shi (wato kowane ɗaya daga abubuwan da aka zana). Lalle Allah ba Ya tozarta ladan masu kyautatawa."
+  ],
+  [
+    121,
+    "Ba kuma za su bayar da wata sadaka ba, ƙarama ko kuma babba, kuma ba wani kwazazzabo da za su keta sai an rubuta musu ladansu don Allah Ya saka musu da mafi kyawun abin da suka zamanto suna aikatawa."
+  ],
+  [
+    122,
+    "Bai kamata muminai su fita yaƙi gaba ɗaya ba. Me zai hana wasu jama’a daga kowace ƙabila (su zauna) don su koyi ilimin addini, su kuma yi wa mutanensu gargaɗi idan sun dawo musu don su kiyaye (dokokin Allah)?."
+  ],
+  [
+    123,
+    "Ya ku waɗanda suka yi imani, ku yaƙi kafirai waɗanda suke maƙota da ku, kuma su sami kausasawa daga wajenku. Ku kuma sani cewa Allah Yana tare da masu taƙawa."
+  ],
+  [
+    124,
+    "Idan kuwa aka saukar da wata sura, daga cikinsu akwai waɗanda suke cewa: “Wane ne daga cikinku wannan ta ƙara masa imani?” To amma waɗanda suka yi imani su kam ta ƙara musu imani alhali suna cike da farin ciki."
+  ],
+  [
+    125,
+    "Amma kuma waɗanda suke da munafunci a zukatansu sai (surar) ta ƙara musu wata dauɗa a kan dauɗarsu (ta munafunci) suka kuma mutu suna kafirai."
+  ],
+  [
+    126,
+    "Shin yanzu ba sa ganin cewa ana jarrabar su a kowace shekara sau ɗaya ko sau biyu, sannan ba sa tuba kuma ba sa wa’azantuwa?"
+  ],
+  [
+    127,
+    "Idan kuma an saukar da wata surar sai su kalli junansu (su ce): “Shin akwai wani mai ganin ku?” Sannan sai su juya. To Allah Ya juyar da zukatansu saboda su mutane ne da ba sa fahimta."
+  ],
+  [
+    128,
+    "Haƙiƙa Manzo ya zo muku daga jinsinku; abin da zai wahalar da ku yana damun sa; mai kwaɗayin alheri ne gare ku, mai tausayawa kuma mai jin ƙai ga muminai."
+  ],
+  [
+    129,
+    "To idan sun ba da baya sai ka ce: “Allah Ya ishe ni, babu wani abin bautawa da gaskiya sai Shi, a gare Shi kaɗai na dogara; kuma Shi ne Ubangijin Al’arshi mai girma.”"
+  ]
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "id": 110,
+    "city": "madinah",
+    "name": {
+      "translated": "The Divine Support",
+      "transliterated": "An-Nasr",
+      "codepoints": [
+        1575,
+        1604,
+        1606,
+        1589,
+        1585
+      ]
+    },
+    "ayahs": 3,
+    "slug": "an-nasr",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Idan nasarar Allah ta zo da kuma buɗe (Makka)."
+  ],
+  [
+    2,
+    "Ka kuma ga mutane suna shiga addinin Allah ƙungiya-ƙungiya."
+  ],
+  [
+    3,
+    "To ka yi tasbihi da yabon Ubangijinka, ka kuma nemi gafararsa. Lalle Shi Ya kasance Mai karɓar tuba ne."
+  ]
+]

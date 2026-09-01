@@ -1,0 +1,466 @@
+[
+  {
+    "id": 17,
+    "city": "makkah",
+    "name": {
+      "translated": "The Night Journey",
+      "transliterated": "Al-Isra",
+      "codepoints": [
+        1575,
+        1604,
+        1573,
+        1587,
+        1585,
+        1575,
+        1569
+      ]
+    },
+    "ayahs": 111,
+    "slug": "al-isra",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Tsarki ya tabbata ga wanda Ya yi Isra’i da bawansa cikin dare daga Masallaci mai alfarma zuwa Masallaci mafi nisa (na Ƙudus) wanda Muka albarkaci kewayensa, don Mu nuna masa wasu daga ayoyinmu. Lalle Shi Mai ji ne, Mai gani."
+  ],
+  [
+    2,
+    "Kuma Mun bai wa Musa Littafi Muka kuma sanya shi ya zama shiriya ga Banu Isra’ila cewa: “Kada ku riƙi wani wakili ba ni ba.”"
+  ],
+  [
+    3,
+    "(Ya ku) zurriyar waɗanda Muka ɗauko tare da Nuhu (a cikin jirgi). Lalle shi ya zamanto bawa ne mai yawan godiya."
+  ],
+  [
+    4,
+    "Muka kuma ƙaddara ga Banu Isra’ila cikin Littafin (Attaura) cewa: “Lalle tabbas za ku yi ɓarna a bayan ƙasa sau biyu, kuma lalle tabbas za ku yi girman kai mai tsanani."
+  ],
+  [
+    5,
+    "“To idan alƙawarin ta farkonsu (ɓarna) ya zo sai Mu aiko muku da bayinmu masu tsananin ƙarfi sai su kutsa tsakiyar gidajen (naku). Kuma (wannan) ya zamanto alƙawari ne mai faruwa."
+  ],
+  [
+    6,
+    "“Sannan kuma Muka ba ku damar galaba a kansu, Muka kuma ƙare ku da dukiyoyi da ‘ya’ya, Muka kuma sanya ku kuka zama mafi yawan jama’a."
+  ],
+  [
+    7,
+    "“Idan kun kyautata to kanku kuka kyautata wa, idan kuma kuka munana to kanku kuka yi wa. To idan alƙawarin (ɓarnar) ta ƙarshe ya zo (sai maƙiyanku su zo) don su wulaƙanta ku su kuma shiga masallaci (na Baitul Maƙadis) kamar yadda suka shige shi tun farko, kuma za su yi raga-raga da (duk) abin da suka biyo ta kansa."
+  ],
+  [
+    8,
+    "“Mai yiwuwa ne Ubangijinku ya ji ƙan ku. (Amma) kuma idan kuka dawo (kan ɓarnar sai) Mu dawo (da azabtar da ku). Mun kuma sanya Jahannama ta zama shimfiɗa ga kafirai.”"
+  ],
+  [
+    9,
+    "Lalle wannan Alƙur’anin yana shiryarwa ne ga (hanya) mafi miƙewa, yana kuma yi wa muminai waɗanda suke yin kyawawan ayyuka albishir cewa, lalle suna da lada mai girma."
+  ],
+  [
+    10,
+    "Waɗanda kuwa ba su yi imani da ranar lahira ba lalle Mun tanadar musu azaba mai raɗaɗi."
+  ],
+  [
+    11,
+    "Kuma mutum yakan roƙi sharri kamar yadda yake roƙon alheri; mutum kuwa ya zamanto mai gaggawa ne."
+  ],
+  [
+    12,
+    "Muka kuma sanya dare da rana su zama ayoyi guda biyu; sai Muka shafe ayar dare (ta zama duhu) Muka kuma sanya ayar rana ta zama mai haskakawa, don ku nemi falala daga Ubangijinku, don kuma ku san yawan shekaru da lissafi. Kowane abu kuwa Mun rarrabe shi filla-filla."
+  ],
+  [
+    13,
+    "Kuma kowane mutum Mun ɗaura masa littafin aikinsa a wuyansa, za kuma Mu fito masa da wani littafi a ranar alƙiyama da zai same shi a buɗe."
+  ],
+  [
+    14,
+    "(A ce da shi): “Karanta littafinka; a yau ka isa ka yi wa kanka hukunci da kanka.”"
+  ],
+  [
+    15,
+    "Wanda ya shiriya to lalle yana shiriya ne don kansa; wanda kuwa ya ɓata to lalle yana ɓata ne don kansa. Ba kuwa wanda zai ɗauki nauyin laifin wani. Kuma ba Mu zamanto Masu azabtarwa ba har sai Mun aiko da manzo."
+  ],
+  [
+    16,
+    "Idan Muka nufi hallakar da wata alƙarya sai Mu sanya ‘yan ta-moren cikinta su aikata fasiƙanci a cikinta, sai kalmar azaba ta tabbata a kanta (watau alƙaryar) sai Mu rugurguza ta ragaraga."
+  ],
+  [
+    17,
+    "Al’umma nawa ne Muka hallaka bayan Nuhu? Kuma ai ya isa Ubangijinka Ya zamana Mai cikakken sani ne da gani ga zunuban bayinsa."
+  ],
+  [
+    18,
+    "Wanda ya kasance yana nufin duniya ne (kawai) to za Mu gaggauto masa a cikinta abin da Muka ga dama ga wanda Muka yi nufi; sannan Mu sanya masa Jahannama, ya shige ta (a lahira) yana abin zargi, korarre (daga rahamar Allah)."
+  ],
+  [
+    19,
+    "Wanda kuma ya nufi lahira ya kuma yi aiki irin nata dominta alhalin yana mumini, to waɗannan aikinsu ya zamanto abin godewa ne (a wurin Allah)."
+  ],
+  [
+    20,
+    "Dukkansu Muna wadata su ne da baiwar Ubangijinka; waɗannan da kuma waɗancan. Baiwar Ubangijinka kuwa ba ta zamo abar hanawa ba."
+  ],
+  [
+    21,
+    "Dubi yadda Muka fifita wasunsu a kan wasu. Lalle kuwa lahira ita ta fi girman darajoji, kuma ta fi girman fifiko."
+  ],
+  [
+    22,
+    "Kada ka haɗa wani abin bauta daban tare da Allah, sai ka zama abin zargi taɓaɓɓe."
+  ],
+  [
+    23,
+    "Ubangijinka kuwa Ya hukunta cewa, kada ku bauta wa (wani) sai Shi kaɗai, kuma ku kyautatawa iyaye. Ko dai ya zamanto ɗayansu ne ya manyanta tare da kai, ko kuma dukkansu, to kada ka nuna ƙosawarka da su, kada kuma ka daka musu tsawa; ka yi musu magana ta girmamawa."
+  ],
+  [
+    24,
+    "Ka kuma ƙasƙantar da kai gare su don tausayawa, ka kuma ce: “Ubangijina Ka ji ƙan su kamar yadda suka raine ni ina ɗan ƙarami.”"
+  ],
+  [
+    25,
+    "Ubangijinku ne Mafi sanin abin da yake zukatanku. Idan kuka zamanto nagari, to lalle Shi Ya tabbata Mai gafara ne ga masu komawa gare Shi da tuba."
+  ],
+  [
+    26,
+    "Kuma ka bai wa makusanci haƙƙinsa, da miskini da matafiyi, kada kuma ka yi kowane irin almubazzaranci."
+  ],
+  [
+    27,
+    "Lalle masu almubazzaranci sun tabbata dangin shaiɗanu; Shaiɗan kuwa ya zamanto mai yawan kafirce wa Ubangijinsa ne."
+  ],
+  [
+    28,
+    "Idan kuwa ka kau da kanka daga gare su don neman wata rahama daga Ubangijinka da kake sa ran samun ta, to sai ka yi musu magana mai daɗi."
+  ],
+  [
+    29,
+    "Kada kuma ka ƙuƙunce hannunka a wuyanka (ka ƙi yin kyauta), kada kuma ka shimfiɗa shi gaba ɗaya (watau ka saki komai), sai ka wayi gari abin zargi (saboda rowa), mai nadama (saboda almubazaranci)."
+  ],
+  [
+    30,
+    "Lalle Ubangijinka Yana shimfiɗa arziki ga wanda Ya ga dama, kuma Yana ƙuntatawa (ga wanda Ya ga dama). Lalle Shi Ya tabbata Masani ne, Mai ganin bayinsa."
+  ],
+  [
+    31,
+    "Kada kuma ku kashe ‘ya’yayenku don tsoron talauci: Mu ne Muke arzuta su har ma da ku. Lalle kashe su kuskure ne babba."
+  ],
+  [
+    32,
+    "Kuma kada ku kusanci zina; lalle ita (zina) ta kasance mugun aiki ne, kuma hanya ce wadda ta munana."
+  ],
+  [
+    33,
+    "Kuma kada ku kashe ran da Allah Ya haramta (kashewa) sai da haƙƙi. Wanda aka kashe ta hanyar zalunci, to lalle Mun bai wa magajinsa dama (ta ramuwa), to (amma) kada ya wuce gona da iri wajen kisa; lalle shi ya zamanto abin dafa wa baya ne."
+  ],
+  [
+    34,
+    "Kuma kada ku kusanci dukiyar maraya sai dai ta (hanya) wadda take mafi kyau, har sai ya kawo ƙarfi. Kuma ku cika alƙawari; lalle alƙawari ya kasance abin tambaya ne (a lahira)."
+  ],
+  [
+    35,
+    "Kuma ku cika mudu idan kuka yi awo, kuma ku auna nauyi da ma’auni na adalci. Wannan (shi ya fi) alheri ya kuma fi kyakkyawan ƙarshe."
+  ],
+  [
+    36,
+    "Kada kuma ka dinga bibiyar abin da ba ka da ilimi a kansa. Lalle ji da gani da kuma tunani duk waɗannan sun zama abin tambaya ne game da su."
+  ],
+  [
+    37,
+    "Kada kuma ka yi tafiya a bayan ƙasa kana mai girman kai; lalle kai ba za ka tsaga ƙasa ba (don ƙasaita) kuma ba za ka kai tsawon duwatsu ba."
+  ],
+  [
+    38,
+    "Duk waɗancan abubuwa mummunansu a wurin Ubangijinka abin ƙi ne."
+  ],
+  [
+    39,
+    "Wannan yana daga cikin abin da Ubangijinka Ya yiwo maka wahayi da shi na hikima. Kada kuma ka sanya wani abin bauta tare da Allah, sai a jefa ka a cikin Jahannama kana abin zargi, korarre (daga rahama)."
+  ],
+  [
+    40,
+    "Shin yanzu kuwa Ubangijinku Ya zaɓar muku ‘ya’ya maza ne (Shi) kuwa Ya ɗauki (‘ya’ya) mata daga mala’iku? Lalle ku tabbas kuna faɗar babbar magana."
+  ],
+  [
+    41,
+    "Haƙiƙa kuma Mun bayyana (hujjoji) a cikin wannan Alƙur’ani don su wa’azantu, (amma) kuma ba abin da yake ƙara musu sai nesanta (daga gaskiya)."
+  ],
+  [
+    42,
+    "Ka ce (da su): “Da dai akwai wasu alloli tare da shi (Allah), kamar yadda suke da’awa, to kuwa da sun nemi hanyar (yin hamayya) da Mai Al’arshi (watau Allah).”"
+  ],
+  [
+    43,
+    "Tsarki ya tabbata gare Shi, kuma Ya ɗaukaka ɗaukaka mai girma game da abin da suke faɗa."
+  ],
+  [
+    44,
+    "Sammai bakwai da ƙasa da abin da yake cikinsu (duka) suna tsarkake Shi. Ba wani abu wanda ba ya tasbihi tare da gode masa, sai dai ba kwa fahimtar tasbihinsu. Lalle Shi Ya kasance Mai yawan haƙuri ne, Mai yawan gafara."
+  ],
+  [
+    45,
+    "Idan ka karanta Alƙur’ani Mukan sanya shamaki mai karewa tsakaninka da waɗanda ba sa imani da lahira."
+  ],
+  [
+    46,
+    "Kuma Mukan sanya marufi a kan zukatansu don kada su fahimce shi (Alƙur’anin); a cikin kunnuwansu kuma (Mukan sanya) wani nauyi. Idan kuma ka ambaci Ubangijinka Shi kaɗai a cikin Alƙur’ani sai su ba da baya suna masu bazama."
+  ],
+  [
+    47,
+    "Mu Muka fi kowa sanin irin yadda suke sauraren sa (Alƙur’ani), yayin da suke sauraren ka (kana karanta shi), da kuma sanda suke tattaunawa, yayin da azzalumai suke cewa: “Ai ba wanda kuke bi face wani sihirtaccen mutum.”"
+  ],
+  [
+    48,
+    "Duba ka ga yadda suka yi ta ba ka sifofi (iri-iri), sai suka ɓace, ba ko za su sami damar (gane) hanya ba."
+  ],
+  [
+    49,
+    "Kuma suka ce: “Yanzu kuwa idan muka zama ƙasusuwa kuma rududdugaggu, anya kuwa za a tashe mu a sabuwar halitta?”"
+  ],
+  [
+    50,
+    "Ka ce (da su): “Ku zama dutse ko ƙarfe!"
+  ],
+  [
+    51,
+    "“Ko kuma duk wata halitta da ta fi girma a ranku (lalle za a tashe ku).” Sannan za su ce: “To wane ne zai dawo da mu?” Ka ce (da su): “Wanda ya halicce ku tun farko.” Sannan za su girgiza maka kawunansu su kuma ce: “To yaushe ne shi (wannan al’amari zai kasance)?” Ka ce (da su): “Mai yiwuwa ne ya faru ba da daɗewa ba."
+  ],
+  [
+    52,
+    "“Ranar da zai kira ku sai ku amsa tare da gode masa kuma ku riƙa tsammanin ba ku zauna (a bayan ƙasa ba) sai ɗan lokaci ƙanƙani.”"
+  ],
+  [
+    53,
+    "Ka kuma ce da bayina su faɗi (magana) wadda ita ce ta fi kyau. Lalle Shaiɗan yana ɓata tsakaninsu. Lalle Shaiɗan ya tabbata maƙiyi ne mai bayyana (ƙiyayya) ga mutum."
+  ],
+  [
+    54,
+    "Ubangijinku (Shi) Ya fi sanin ku; in Ya ga dama sai Ya ji ƙan ku ko kuma in Ya ga dama sai Ya azabtar da ku. Ba Mu kuwa aiko ka ba don ka zama wakili a kansu."
+  ],
+  [
+    55,
+    "Ubangijinka kuma (Shi ne) Mafi sanin abin da yake cikin sammai da ƙasa. Haƙiƙa kuma Mun fifita wasu annabawa a kan wasu; Muka kuma bai wa Dawuda (littafin) Zabura."
+  ],
+  [
+    56,
+    "Ka ce (da su): “Ku kirawo waɗanda kuka riya (cewa su ne iyayen gijinku) ba Shi ba, to ba su da ikon yaye muku cuta ko juyar da ita.”"
+  ],
+  [
+    57,
+    "Waɗancan da suke bauta wa, su ma suna neman hanya ne zuwa ga Ubangijinsu, a cikinsu wa zai fi kusanci? Suna kuma ƙaunar rahamarsa, kuma suna tsoron azabarsa. Lalle azabar Ubangijinka ta kasance abar tsoro ce."
+  ],
+  [
+    58,
+    "Kuma ba wata alƙarya sai Mu ne masu halaka ta tun kafin ranar alƙiyama, ko kuma Masu azabtar da ita azaba mai tsanani. Wannan ya tabbata a rubuce cikin Littafi."
+  ],
+  [
+    59,
+    "Kuma ba abin da ya hana Mu aiko da ayoyi sai don (al’ummu) na farko sun ƙaryata su; Muka kuma bai wa Samudawa taguwa (don ta zama aya) bayyananniya, sai suka butulce mata. Ba Ma kuwa aiko da ayoyi sai don tsoratarwa."
+  ],
+  [
+    60,
+    "(Ka tuna) kuma lokacin da Muka ce da kai: “Lalle Ubangijinka Ya kewaye mutane (da ikonsa).” Ba Mu kuwa sanya abin da Muka nuna maka ido-da-ido ba (lokacin Isra’i) sai don jarraba ga mutane, da kuma la’ananniyar bishiyar nan (da aka ambata) a cikin Alƙur’ani. Muna kuwa tsoratar da su ne, amma ba abin da yake ƙara musu sai ɗagawa mai girma."
+  ],
+  [
+    61,
+    "Kuma (ka tuna) lokacin da Muka ce da mala’iku: “Ku yi sujjada ga Adamu.” Sai suka yi sujjadar in ban da Iblis da ya ce: “Yanzu na yi sujjada ga wanda Ka halitta da taɓo?”"
+  ],
+  [
+    62,
+    "Ya ce: “Ka gan Ka, wannan da Ka fifita shi a kaina, tabbas idan Ka jinkirta min har zuwa ranar alƙiyama to lalle zan karkatar da zuriyarsa, sai dai kaɗan (daga cikinsu).”"
+  ],
+  [
+    63,
+    "(Allah) Ya ce: “Je ka (an jinkirta maka ɗin), sai dai (duk) wanda ya bi ka daga cikinsu to lalle Jahannama ce sakamakonku, wanda yake sakamako ne cikakke."
+  ],
+  [
+    64,
+    "“Ka kuma yi wasa da hankalin wanda ka sami dama daga cikinsu da muryarka ka kuma jawo su da rundunarka mahaya da na ƙasa; ka kuma yi tarayya da su cikin dukiyoyi da ‘ya’yaye; ka kuma yi musu alƙawari.” Shaiɗan kuwa ba wani alƙawari da yake yi musu sai na ruɗi."
+  ],
+  [
+    65,
+    "“Lalle bayina ba ka da iko a kansu.” Kuma Ubangijinka Ya isa zama Wakili."
+  ],
+  [
+    66,
+    "Ubangijinku Shi ne wanda Yake tafiyar da jirgi a kan kogi don ku nemi falalarsa. Lalle Shi Ya kasance Mai rahama ne a gare ku."
+  ],
+  [
+    67,
+    "Idan kuma bala’i ya same ku a cikin kogi sai duk waɗanda kuke kira su ɓace (muku) sai Shi kawai; sannan lokacin da Ya tserar da ku zuwa sarari sai kuka bijire. Kai mutum ya tabbata butulu!"
+  ],
+  [
+    68,
+    "Yanzu kun amince da cewa (Allah) ba zai rufto muku da wani ɓangare na tudu ba, ko kuma Ya aiko muku da jifa ta manya-manyan tsakuwoyi, sannan ba za ku sami wani mai tsaro ba?"
+  ],
+  [
+    69,
+    "Ko kuma kun amince cewa ba zai mai da ku cikinsa ba (kogin) a karo na biyu, sai Ya aiko muku da ƙaƙƙarfar iska, sai Ya nutsar da ku saboda kafircewar da kuka yi, sannan kuma ba za ku sami wani mai nema muku haƙƙinku ba a wajenmu saboda (halakarwar da Muka yi muku)?"
+  ],
+  [
+    70,
+    "Haƙiƙa Mun girmama ‘yan’dam, Muka kuma ɗauke su (kan ababen hawa) na sarari da na ruwa, Muka kuma arzuta su daga tsarkakan (abubuwa) kuma Muka fifita su a kan wasu da yawa daga abin da Muka halitta nesa ba kusa ba."
+  ],
+  [
+    71,
+    "Ranar da za Mu kirawo kowanne (jinsin) mutane da shugabansu, sannan wanda aka bai wa littafinsa a hannunsa na dama to waɗannan za su karanta littafinsu, sannan ba za a zalunce su ko da gwargwadon zaren ƙwallon dabino ne ba."
+  ],
+  [
+    72,
+    "To wanda kuwa ya zamanto makaho a wannan (duniya), to shi a lahira ma makaho ne kuma mafi ɓacewa daga hanyar (gaskiya)."
+  ],
+  [
+    73,
+    "Ba shakka kuwa sun kusa su fitine ka game da abin da Muka yi maka wahayinsa don ka ƙaga mana waninsa; da kuwa haka ta faru, to da lalle sun ɗauke ka masoyi."
+  ],
+  [
+    74,
+    "Ba don kuwa Mun tabbatar da kai (a kan umarninmu) ba, haƙiƙa da saura ƙiris ka ɗan karkata gare su."
+  ],
+  [
+    75,
+    "To da lalle kuwa Mun ɗanɗana maka ninkin (azabar) rayuwa da kuma ninkin (azabar) mutuwa, sannan ba za ka samu wani mai taimakon ka a kanmu ba."
+  ],
+  [
+    76,
+    "Ba shakka sun kusa su tunzura ka daga ƙasar (ta Makka) don su fitar da kai daga cikinta; da kuwa sun aikata haka to da ba za su zauna (a cikinta) ba bayanka sai ɗan lokaci ƙanƙani."
+  ],
+  [
+    77,
+    "(Wannan ita ce) irin al’adar waɗanda Muka aiko gabaninka daga manzanninmu; ba kuwa za ka sami canji a al’adarmu ba."
+  ],
+  [
+    78,
+    "Ka tsayar da salla lokacin zawalin rana zuwa duhun dare, da kuma karatun sallar Asuba. Lalle (lokacin) karatun sallar asuba ya kasance lokacin halartar (mala'iku)."
+  ],
+  [
+    79,
+    "Da daddare kuwa sai ka yi tsayuwar dare da shi (Alƙur’anin) ƙarin (daraja) ne gare ka, tare da ƙaunar Ubangijinka ya tashe ka a matsayin sha-yabo (watau matsayin mai ceto)."
+  ],
+  [
+    80,
+    "Kuma ka ce: “Ubangijina Ka shigar da ni mashiga ta gaskiya, kuma Ka fitar da ni mafita ta gaskiya, kuma Ka ba ni wata hujja mai taimakawa daga gare ka.”"
+  ],
+  [
+    81,
+    "Kuma ka ce: “Gaskiya ta zo, ɓarna kuma ta watse. Lalle da ma can ita ɓarna ai watsattsiya ce.”"
+  ],
+  [
+    82,
+    "Kuma daga Alƙur’ani Muna saukar da abin da yake shi waraka ne da kuma rahama ga muminai; ba kuma zai ƙari azzalumai (da komai) ba sai taɓewa."
+  ],
+  [
+    83,
+    "Kuma idan Muka yi wa mutum ni’ima sai ya bijire ya kuma juya kwiɓinsa; idan kuwa sharri ne ya same shi sai ya zama mai yawan yanke ƙauna."
+  ],
+  [
+    84,
+    "Ka ce: “Kowa ya yi aiki bisa hanyarsa sai dai Ubangijinku (Shi ne) Mafi sanin wanda ya fi shiriya a kan madaidaiciyar hanya.”"
+  ],
+  [
+    85,
+    "Suna kuma tambayar ka game da ruhi. Ka ce da su: “Shi ruhi yana daga al’amarin Ubangijina, ba abin da aka ba ku na ilimi sai ɗan kaɗan.”"
+  ],
+  [
+    86,
+    "Kuma tabbas da Mun ga dama lalle da Mun tafiyar da abin da Muka yo maka wahayi, sannan ba za ka sami wani mataimaki ba a kanmu (game) da shi."
+  ],
+  [
+    87,
+    "Sai dai rahama daga Ubangijinka. Lalle falalarsa gare ka ta zamo mai girma ce."
+  ],
+  [
+    88,
+    "Ka ce da su: “Wallahi da mutane da aljannu sun haɗu kan su kawo irin wannan Alƙur’anin, to ba za su zo da irinsa ba, ko da kuwa wasu sun zamanto suna taimaka wa wasu.”"
+  ],
+  [
+    89,
+    "Kuma haƙiƙa Mun sarrafa wa mutane kowanne irin misali a cikin wannan Alƙur’ani, sai dai yawancin mutane sun ƙi (komai) sai kafircewa."
+  ],
+  [
+    90,
+    "Suka kuma ce: “Ba za mu yi imani da kai ba har sai ka ɓuɓɓugo mana da idon ruwa daga ƙasa."
+  ],
+  [
+    91,
+    "“Ko kuma ya zamana kana da wata gona ta dabinai da inabi, sai kuma ka ɓuɓɓugo da ƙoramu ta tsakiyarta su kwarara sosai."
+  ],
+  [
+    92,
+    "“Ko kuma ka rufto da sama a kanmu, kamar yadda ka riya, ta faɗo yanki-yanki, ko kuma ka zo da Allah da kuma mala’iku (mu gan su) ido-da-ido!"
+  ],
+  [
+    93,
+    "“Ko kuma ya zamana kana da wani gida na zinari, ko kuma ka hau sama, ba kuwa za mu amince da hawan naka ba har sai ka saukar mana da wani littafi da za mu karanta shi.” Ka ce (da su): “Tsarki ya tabbata ga Ubangijina, ni ba kowa ba ne face mutum Manzo.”"
+  ],
+  [
+    94,
+    "Kuma babu abin da ya hana kafirai su yi imani lokacin da shiriya ta zo musu, sai cewar da suka yi: “Yanzu Allah ne zai aiko mutum a matsayin manzo?”"
+  ],
+  [
+    95,
+    "Ka ce: “Da mala’iku ne suke tafiya a natse a bayan ƙasa, to da lalle Mun aiko musu mala’ika daga sama a matsayin manzo.”"
+  ],
+  [
+    96,
+    "Ka ce: “Allah Ya isa shaida tsakanina da ku: Lalle Shi ya zamanto Masani ne ga bayinsa, kuma Mai ganin (abin da suke aikatawa) ne.”"
+  ],
+  [
+    97,
+    "Wanda kuwa Allah Ya shiryar to shi ne shiryayye; wanda kuwa Ya ɓatar to ba za ka sami wani mai taimakon su ba in ban da Shi; za kuma Mu tashe su ranar alƙiyama a kan fuskokinsu suna makafi, kurame, bebaye; makomarsu Jahannama; duk sanda ta lafa sai Mu ƙara musu ƙunarta."
+  ],
+  [
+    98,
+    "Wannan ne sakamakonsu saboda lalle sun kafirce wa ayoyinmu, suka kuma ce: “Yanzu idan muka zama ƙasusuwa kuma rududdugaggu, anya kuwa za a tashe mu a sabuwar halitta?”"
+  ],
+  [
+    99,
+    "Yanzu ba sa gani cewa Allah wanda Ya halicci sammai da ƙasa Mai iko ne a kan Ya halicci irinsu? Ya kuma sanya musu wani lokaci wanda ba kokwanto a cikinsa, sai azzalumai suka ƙi (yin imani) sai kafircewa."
+  ],
+  [
+    100,
+    "Ka ce da su: “Idan da ku ne kuka mallaki taskokin rahamar Ubangijina to lalle da kun riƙe su ƙam-ƙam don tsoron ciyarwa. Mutum kuwa ya tabbata mai tsananin rowa ne."
+  ],
+  [
+    101,
+    "Kuma haƙiƙa Mun bai wa Musa ayoyi tara bayyanannu; to ka tambayi Banu Isra’ila lokacin da ya zo musu, sai Fir’auna ya ce da shi: “Lalle ni fa ina tsammanin kai Musa sihirtacce ne!”"
+  ],
+  [
+    102,
+    "(Musa) ya ce: “Haƙiƙa ka sani ba wanda ya saukar da waɗannan (ayoyin) sai Ubangijin sammai da ƙasa don su zama hujjoji, kuma lalle ina tsammanin kai Fir’auna halakakke ne.”"
+  ],
+  [
+    103,
+    "Sai ya yi nufin ya girgiza su a ƙasar (ta Masar don ya fitar da su daga ciki), to sai Muka nutsar da shi da duk wanda yake tare da shi gaba ɗaya."
+  ],
+  [
+    104,
+    "Muka kuma ce da Banu Isra’ila: “Ku zauna a ƙasar (ta Falasɗinu), to idan lokacin alƙiyama ya zo za Mu tattaro ku gaba ɗaya."
+  ],
+  [
+    105,
+    "Kuma da gaskiya Muka saukar da shi (Alƙur’ani), kuma da gaskiya ya sauko. Ba Mu kuma aiko ka ba sai mai yin albishir,0 mai kuma gargaɗi."
+  ],
+  [
+    106,
+    "Kuma Mun saukar da Ƙur’ani, Mun bayyana shi don ka karanta wa mutane shi a sannu a hankali, Mun kuma saukar da shi daki-daki."
+  ],
+  [
+    107,
+    "Ka ce da su: “Ko ku yi imani da shi ko kada ku yi imani da shi (duk ɗaya ne).” Lalle waɗanda aka bai wa ilimi gabaninsa (Yahudu da Nasara) idan ana karanta musu shi suna faɗuwa da fuskokinsu suna masu sujjada."
+  ],
+  [
+    108,
+    "Suna kuma cewa: “Tsarki ya tabbata ga Ubangijinmu, lalle alƙawarin Ubangijinmu tabbas ya zamanto abin aikatawa ne.”"
+  ],
+  [
+    109,
+    "Suna kuma faɗuwa da fuskokinsu suna kuka, Yana kuma ƙara musu ƙasƙantar da kai."
+  ],
+  [
+    110,
+    "Ka ce: “Ku kira (sunan) Allah ko ku kira (sunan) Arrahaman; kowanne kuka kira to shi Yana da sunaye ne mafiya kyau.” Kada kuma ka ɗaga muryarka da (karatun) sallarka, kada kuma ka yi shi a ɓoye, ka nemi tsaka-tsakin wannan."
+  ],
+  [
+    111,
+    "Kuma ka ce, “Yabo da godiya sun tabbata ga Allah wanda bai riƙi ɗa ba, kuma ba Shi da wani abokin tarayya a cikin mulki, kuma ba Shi da wani mataimaki don kare masa ƙasƙanci.” Kuma ka girmama shi girmamawa ta sosai."
+  ]
+]

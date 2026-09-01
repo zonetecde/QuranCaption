@@ -1,0 +1,54 @@
+[
+  {
+    "id": 99,
+    "city": "madinah",
+    "name": {
+      "translated": "The Earthquake",
+      "transliterated": "Az-Zalzalah",
+      "codepoints": [
+        1575,
+        1604,
+        1586,
+        1604,
+        1586,
+        1604,
+        1577
+      ]
+    },
+    "ayahs": 8,
+    "slug": "az-zalzalah",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Idan aka girgiza ƙasa matuƙar girgiza ta."
+  ],
+  [
+    2,
+    "Ƙasar kuma ta fitar da nauyaye-nauyayenta."
+  ],
+  [
+    3,
+    "Mutum kuma ya ce: “Me ya same ta?”"
+  ],
+  [
+    4,
+    "A wannan ranar ne za ta ba da labaranta."
+  ],
+  [
+    5,
+    "Don Ubangijinka Ya umarce ta (da yin haka)."
+  ],
+  [
+    6,
+    "A wannan ranar mutane za su fito a warwatse, don a nuna musu ayyukansu."
+  ],
+  [
+    7,
+    "To duk wanda ya yi aikin alheri daidai da zarra zai gan shi."
+  ],
+  [
+    8,
+    "Wanda kuma duk ya yi aikin sharri daidai da zarra zai gan shi."
+  ]
+]

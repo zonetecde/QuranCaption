@@ -1,0 +1,260 @@
+[
+  {
+    "id": 30,
+    "city": "makkah",
+    "name": {
+      "translated": "The Romans",
+      "transliterated": "Ar-Rum",
+      "codepoints": [
+        1575,
+        1604,
+        1585,
+        1608,
+        1605
+      ]
+    },
+    "ayahs": 60,
+    "slug": "ar-rum",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "ALIF LAM MIM."
+  ],
+  [
+    2,
+    "An yi galaba a kan Rumawa."
+  ],
+  [
+    3,
+    "A ƙasa mafi kusa (da su), su kuma da sannu za su yi galaba (a kan Farisa) bayan galabar da aka yi a kansu."
+  ],
+  [
+    4,
+    "A cikin ‘yan tsirarun shekarun (da ba su kai goma ba). Al’amari a da can da nan gaba na Allah ne. A wannan ranar ne muminai za su yi farin ciki."
+  ],
+  [
+    5,
+    "Da samun nasar Allah (a kan Farisa). Shi Yake taimakon wanda Ya ga dama; domin kuwa Shi ne Mabuwayi, Mai rahama."
+  ],
+  [
+    6,
+    "(Wannan ya kasance) alƙawarin Allah ne; Allah ba Ya saɓa alƙawarinsa, sai dai kuma yawancin mutane ba su san (haka) ba."
+  ],
+  [
+    7,
+    "Suna sanin abin da yake a sarari na rayuwar duniya ne, alhali kuwa su gafalallu ne game da lahira."
+  ],
+  [
+    8,
+    "Yanzu ba su yi tunani a kan kansu ba? Allah bai halicci sammai da ƙasa da abin da yake tsakaninsu ba sai da gaskiya kuma (ya yi su zuwa) lokaci ƙayyadajje. Lalle mafi yawan mutane masu kafircewa ne da haɗuwa da Ubangijinsu."
+  ],
+  [
+    9,
+    "Shin ba za su yi tafiya a bayan ƙasa ba su ga yadda ƙarshen waɗanda suka gabace su ya zama? Sun kasance sun fi su tsananin ƙarfi, sun kuma tona ƙasa suka kuma raya ta fiye da yadda su (mutanen Makka) suka raya ta, kuma manzanninsu sun zo musu da (ayoyi) bayyanannu; to Allah bai kasance Mai zaluntar su ba, sai dai su ne suka kansance suna zaluntar kawunansu."
+  ],
+  [
+    10,
+    "Sannan kuma ƙarshen waɗanda suka munana (ayyukansu) ya kasance mummunan (sakamako), don sun ƙaryata ayoyin Allah, kuma sun kasance suna yin izgili gare su."
+  ],
+  [
+    11,
+    "Allah ne Yake farar halitta sannan Ya dawo da ita (bayan mutuwa), sannan kuma gare Shi za a komar da ku."
+  ],
+  [
+    12,
+    "Kuma ranar da alƙiyama za ta tashi, a wannan ranar ne masu manyan laifuka (kafirai) za su yanke ƙauna daga rahama."
+  ],
+  [
+    13,
+    "Daga abokan tarayyar tasu kuwa ba su da wasu masu ceton su, za su ma kasance masu kafirce wa abokan tarayyar tasu."
+  ],
+  [
+    14,
+    "Kuma ranar da alƙiyama za ta tashi, a wannan ranar ne (mutane) za su rarrabu."
+  ],
+  [
+    15,
+    "To amma waɗanda suka yi imani suka kuma yi aiki nagari, to su kam suna cikin dausayin (Aljanna) ana faranta musu rai."
+  ],
+  [
+    16,
+    "Amma kuma waɗanda suka kafirta suka kuma ƙaryata ayoyinmu da haɗuwa da ranar lahira, to waɗannan za a halartar da su cikin azaba."
+  ],
+  [
+    17,
+    "To tsarki ya tabbata ga Allah yayin kuka shiga lokacin maraice, da kuma yayin da kuka wayi gari."
+  ],
+  [
+    18,
+    "Yabo kuma nasa ne a cikin sammai da ƙasa, da kuma yayin da kuka yi yammaci da kuma shigowarku lokacin azahar."
+  ],
+  [
+    19,
+    "Yana fitar da rayayye daga matacce, Yana kuma fitar da matacce daga rayayye, kuma Yana raya ƙasa bayan mutuwarta. Kamar haka ne ku ma za a fito da ku (daga ƙaburburanku)."
+  ],
+  [
+    20,
+    "Yana daga ayoyinsa cewa Ya halicce ku daga turɓaya, sannan kuma sai ga ku mutane kun warwatsu (a ko’ina)."
+  ],
+  [
+    21,
+    "Yana kuma daga ayoyinsa cewa Ya halitta muku mata daga jinsinku don ku samu nutsuwa gare su, Ya kuma sanya soyayya da jin ƙai tsakaninku. Lalle a game da wannan tabbas akwai ayoyi ga mutane masu tunani."
+  ],
+  [
+    22,
+    "Yana kuma daga cikin ayoyinsa halittar sammai da ƙasa da kuma sassaɓawar harsunanku da launukanku. Lalle a game da wannan tabbas akwai ayoyi ga ma’abota ilimi."
+  ],
+  [
+    23,
+    "Yana kuma daga cikin ayoyinsa baccinku da daddare da kuma rana da neman falalarsa da kuke yi. Lalle a game da wannan tabbas akwai ayoyi ga masu ji (na lura)."
+  ],
+  [
+    24,
+    "Yana kuma daga cikin ayoyinsa nuna muku walƙiya da Yake yi don tsoratarwa da kwaɗaitarwa, Ya kuma saukar da ruwa daga sama, sai Ya raya ƙasa da shi bayan mutuwarta. Lalle a game da wannan tabbas akwai ayoyi ga mutane da suke hankalta."
+  ],
+  [
+    25,
+    "Yana kuma daga cikin ayoyinsa sama da ƙasa su tsaya da umarninsa. Sannan kuma yayin da Ya kira ku (don ku tashi) daga ƙasa sai ga ku kuna fitowa."
+  ],
+  [
+    26,
+    "Kuma duk waɗanda suke cikin sammai da ƙasa nasa ne; dukkaninsu masu biyayya ne gare Shi."
+  ],
+  [
+    27,
+    "Shi ne wanda Yake farar halittu, sannan Ya dawo da su (bayan mutuwa. Yin haka) kuwa shi ya fi sauƙi a gare Shi. Kuma siffofi mafiya ɗaukaka sun tabbata gare Shi a cikin sammai da ƙasa, kuma Shi ne Mabuwayi, Mai hikima."
+  ],
+  [
+    28,
+    "Ya ba ku misali daga kawunanku; shin kuna da wasu abokan tarayya daga bayinku da kuka mallaka a kan da abin da Muka arzuta ku (da shi), ku da su ku zama daidai kuke game da wannan; kuna ma jin tsoron su kamar yanda kuke tsoron junanku? Kamar haka Muke rarrabe ayoyin (filla-filla) ga mutanen da suke hankalta."
+  ],
+  [
+    29,
+    "Ba haka ba ne, waɗanda suka yi zalunci dai sun bi son ransu ne ba tare da wani ilimi ba; to wane ne zai shiryar da wanda Allah Ya ɓatar? Kuma ba su da wasu mataimaka."
+  ],
+  [
+    30,
+    "To sai ka tsayar da fuskarka ga addini mai kauce wa ɓarna. (Shi ne) asalin halittar da Allah Ya halicci mutane a kanta. Ba wani canji ga halittar Allah. Wannan shi ne miƙaƙƙen addinin, sai dai kuma yawancin mutane ba su san (haka ba)."
+  ],
+  [
+    31,
+    "(Kuma) kuna masu komawa zuwa gare Shi (wato Allah) kuma ku kiyaye dokokinsa ku kuma tsai da salla kuma kada ku zamanto cikin mushirikai."
+  ],
+  [
+    32,
+    "Irin waɗanda suka rarraba addininsu suka kuma zamanto ƙungiya-ƙungiya; kowacce ƙungiya tana mai farin ciki da abin da yake nata."
+  ],
+  [
+    33,
+    "Idan kuma wani matsi ya sami mutane sai su roƙi Ubangijinsu suna masu komawa gare Shi, sannan kuma idan Ya ɗanɗana musu rahama daga gare Shi sai ka ga wata ƙungiyar daga cikinsu suna tarayya da Ubangijinsu."
+  ],
+  [
+    34,
+    "Don su kafirce wa abin da Muka ba su. To ku ji daɗi, da sannu za ku sani."
+  ],
+  [
+    35,
+    "Ko kuma Mun saukar musu da wani littafi ne wanda shi ne yake magana da abin da suka kasance suna shirka da shi?"
+  ],
+  [
+    36,
+    "Idan kuma Muka ɗanɗana wa mutane rahama sai su yi farin ciki da ita; idan kuwa wata masifa ta same su saboda abin da hannayensu suka gabatar sai ka gan su suna ɗebe ƙauna."
+  ],
+  [
+    37,
+    "Yanzu ba su gani ba cewa Allah Yana shimfiɗa arziki ga wanda Ya ga dama, Yana kuma ƙuntatawa (ga wanda ya ga dama)? Lalle a game da wannan tabbas akwai ayoyi ga mutanen da suke yin imani."
+  ],
+  [
+    38,
+    "Sannan ka bai wa (ɗan’uwa) makusanci haƙƙinsa da miskini da matafiyi. Wannan shi ya fi alheri ga waɗanda suke nufin Fuskar Allah; kuma waɗannan su ne masu rabauta."
+  ],
+  [
+    39,
+    "Kuma abin da kuka bayar na riba don ya ƙaru a cikin dukiyoyin mutane, to ba ya ƙaruwa a wurin Allah; abin kuma da kuka bayar na zakka kuna masu nufin Fuskar Allah, to waɗannan su ne masu ninninka (ladansu)."
+  ],
+  [
+    40,
+    "Allah (Shi ne) Wanda Ya halicce ku sannan Ya arzuta ku sannan Shi zai kashe ku sannan Ya raya ku; shin a cikin abokan tarayyarku akwai wanda zai aikata wani abu daga wannan? Tsarki ya tabbata a gare Shi, Ya kuma ɗaukaka daga abin da suke tarawa (da Shi)."
+  ],
+  [
+    41,
+    "Ɓarna ta bayyana a kan tudu da kuma (cikin) ruwa saboda abubuwan da hannayen mutane suka aikata don a ɗanɗana musu sashin abin da suka aikata, ko wataƙila sa juyo."
+  ],
+  [
+    42,
+    "Ka ce (da su): “Ku yi tafiya mana a bayan ƙasa sannan ku duba ku ga yadda ƙarshen waɗanda suke gabaninku ya zama. Yawancinsu sun kasance mushirikai."
+  ],
+  [
+    43,
+    "To sai ka tsai da fuskarka ga addini madaidaici tun kafin ranar nan da ba ta da makawa ta zo daga Allah; a wannan ranar ne (mutane) za su rarraba."
+  ],
+  [
+    44,
+    "Wanda ya kafirta to zunubin kafircinsa yana kansa; waɗanda kuwa suka yi aiki kyakkyawa, to kansu suke yi wa shimfiɗa (ta alheri)."
+  ],
+  [
+    45,
+    "Don (Allah) Ya saka wa waɗanda suka yi imani suka yi ayyuka nagari daga falalarsa. Lalle Shi (Allah) ba Ya son kafirai."
+  ],
+  [
+    46,
+    "Yana kuma daga ayoyinsa cewa Yana aiko iska tana mai yin albishir (da ruwa) kuma don Ya ɗanɗana muku rahamarsa, don kuma jiragen ruwa su riƙa gudana da umarninsa, kuma don ku nema daga falalarsa ko kwa gode."
+  ],
+  [
+    47,
+    "Haƙiƙa kuma Mun aiko wasu manzanni gabaninka zuwa ga mutanensu, sai suka zo musu da hujjoji bayyanannu, sai Muka azabtar da waɗanda suka kafirce, kuma taimakon muminai ya zama haƙƙi ne a kanmu."
+  ],
+  [
+    48,
+    "Allah (Shi ne) wanda Yake aiko da iska sai ta motsa girgije, sai Ya shimfiɗa shi a (sararin) sama yadda Ya ga dama, Ya kuma sanya shi yanki-yanki, sai ka ga ruwa yana fitowa ta tsakaninsa, to idan Ya saukar da shi ga waɗanda Ya ga dama daga bayinsa sai ka gan su suna ta murna."
+  ],
+  [
+    49,
+    "Ko da yake da can kafin a saukar musu shi tabbas sun kasance masu ɗebe ƙauna."
+  ],
+  [
+    50,
+    "To sai ka yi duba ga guraben rahamar Allah (ka ga) yadda Yake raya ƙasa bayan mutuwarta. Lalle wannan tabbas Mai raya matattu ne, kuma Mai iko ne a kan komai."
+  ],
+  [
+    51,
+    "Tabbas kuma in da za Mu aiko da iska su gan shi (wato amfanin gonarsu) ya yi fatsi-fatsi da sai su ci gaba da kafirce wa (Allah) bayan haka."
+  ],
+  [
+    52,
+    "To lalle kai ba ka iya jiyar da matattu, kuma ba ka iya jiyar da kurame kira lokacin da suka juya suna masu ba da baya."
+  ],
+  [
+    53,
+    "Kuma kai ba mai iya shiryar da makafi (wato ɓatattu) ba ne daga ɓatansu; ba waɗanda kake iya jiyarwa sai waɗanda suka yi imani da ayoyinmu don haka suna masu miƙa wuya."
+  ],
+  [
+    54,
+    "Allah (Shi ne) Wanda Ya halicce ku daga rauni, sannan kuma Ya sanya ƙarfi bayan raunin, sannan kuma Ya sanya rauni da furfura bayan ƙarfi. Yana halittar abin da Ya ga dama; Shi ne kuwa Masani, Mai iko."
+  ],
+  [
+    55,
+    "Kuma a ranar da alƙiyama za ta tashi masu manyan laifuka za su rantse (kan) ba su zauna ba (a ƙaburburansu) fiye da sa’a ɗaya. Kamar haka suka kasance ana karkatar da su (daga gaskiya)."
+  ],
+  [
+    56,
+    "Waɗanda kuwa aka bai wa ilimi da imani sai suka ce: “Haƙiƙa kun zauna ne gwargwadon yadda Allah Ya rubuta muku a littafinsa har zuwa ranar tashi; to wannan kuma ita ce ranar tashin, sai dai kuma ku kun kasance ba ku san (haka) ba.”"
+  ],
+  [
+    57,
+    "To a wannan ranar waɗanda suka yi zalunci hanzarinsu ba zai amfane su ba, kuma ba za a nemi su kawo wani uzuri ba."
+  ],
+  [
+    58,
+    "Kuma haƙiƙa Mun ba wa mutane kowane irin misali a cikin wannan Alƙur’anin. Kuma tabbas idan da za ka zo musu da wata aya lallai da waɗanda suka kafirce sun ce: “Ai ku maɓarnata ne kawai.”"
+  ],
+  [
+    59,
+    "Kamar haka ne Allah Yake toshe zukatan waɗanda ba sa sanin (gaskiya)."
+  ],
+  [
+    60,
+    "Sai ka yi haƙuri, lalle alƙawarin Allah gaskiya ne; kada kuma waɗanda ba sa sakankancewa (da alƙiyama) su ingiza ka (har ka kasa haƙuri)."
+  ]
+]

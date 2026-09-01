@@ -1,0 +1,52 @@
+[
+  {
+    "id": 95,
+    "city": "makkah",
+    "name": {
+      "translated": "The Fig",
+      "transliterated": "At-Tin",
+      "codepoints": [
+        1575,
+        1604,
+        1578,
+        1610,
+        1606
+      ]
+    },
+    "ayahs": 8,
+    "slug": "at-tin",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Na rantse da ɓaure da zaitun."
+  ],
+  [
+    2,
+    "Da (dutsen) Ɗuri Sinina."
+  ],
+  [
+    3,
+    "Da wannan garin amintacce (watau Makka)."
+  ],
+  [
+    4,
+    "Haƙiƙa Mun halicci mutum a kan mafi kyan diri."
+  ],
+  [
+    5,
+    "Sannan Muka mayar da shi mafi ƙasƙancin ƙasƙantattu."
+  ],
+  [
+    6,
+    "Sai fa waɗanda suka yi imani suka kuma yi ayyuka nagari, to su kam suna da lada ba mai yankewa ba."
+  ],
+  [
+    7,
+    "To (kai kafiri) me ya sa kake ƙaryata ranar sakamako bayan haka?"
+  ],
+  [
+    8,
+    "Ashe Allah ba Shi ne Mafi iya hukuncin masu hukunci ba?"
+  ]
+]

@@ -1,0 +1,40 @@
+[
+  {
+    "id": 113,
+    "city": "makkah",
+    "name": {
+      "translated": "The Daybreak",
+      "transliterated": "Al-Falaq",
+      "codepoints": [
+        1575,
+        1604,
+        1601,
+        1604,
+        1602
+      ]
+    },
+    "ayahs": 5,
+    "slug": "al-falaq",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Ka ce: “Ina neman tsari da Ubangijin asuba."
+  ],
+  [
+    2,
+    "“Daga sharrin abin da Ya halitta."
+  ],
+  [
+    3,
+    "“Da kuma sharrin dare idan ya lulluɓe da duhu."
+  ],
+  [
+    4,
+    "“Da kuma sharrin mata masu tofi a cikin ƙulle-ƙulle."
+  ],
+  [
+    5,
+    "“Da kuma sharrin mai hassada yayin da ya yi hassadar.”"
+  ]
+]

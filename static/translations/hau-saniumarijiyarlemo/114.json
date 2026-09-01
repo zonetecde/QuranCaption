@@ -1,0 +1,44 @@
+[
+  {
+    "id": 114,
+    "city": "makkah",
+    "name": {
+      "translated": "Mankind",
+      "transliterated": "An-Nas",
+      "codepoints": [
+        1575,
+        1604,
+        1606,
+        1575,
+        1587
+      ]
+    },
+    "ayahs": 6,
+    "slug": "an-nas",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Ka ce: “Ina neman tsari da Ubangijin mutane."
+  ],
+  [
+    2,
+    "“Sarkin mutane."
+  ],
+  [
+    3,
+    "“Abin bautar mutane."
+  ],
+  [
+    4,
+    "“Daga sharrin mai sa wasuwasi, mai noƙewa."
+  ],
+  [
+    5,
+    "“Wanda yake yin wasuwasi a cikin ƙirazan mutane."
+  ],
+  [
+    6,
+    "“Daga aljannu da na mutane.”"
+  ]
+]

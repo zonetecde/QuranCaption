@@ -1,0 +1,40 @@
+[
+  {
+    "id": 105,
+    "city": "makkah",
+    "name": {
+      "translated": "The Elephant",
+      "transliterated": "Al-Fil",
+      "codepoints": [
+        1575,
+        1604,
+        1601,
+        1610,
+        1604
+      ]
+    },
+    "ayahs": 5,
+    "slug": "al-fil",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Shin ba ka ga yadda Ubangijinka Ya yi wa ma’abota giwa ba?"
+  ],
+  [
+    2,
+    "Ashe bai mayar da makircinsu cikin watsewa ba?"
+  ],
+  [
+    3,
+    "Ya kuma aiko musu da tsuntsaye dodo-dodo?"
+  ],
+  [
+    4,
+    "Suna jifan su da duwatsu na ƙonanniyar laka?"
+  ],
+  [
+    5,
+    "Sai da Ya mayar da su kamar karmami da aka cinye?"
+  ]
+]

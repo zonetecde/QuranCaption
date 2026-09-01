@@ -1,0 +1,40 @@
+[
+  {
+    "id": 111,
+    "city": "makkah",
+    "name": {
+      "translated": "The Palm Fiber",
+      "transliterated": "Al-Masad",
+      "codepoints": [
+        1575,
+        1604,
+        1605,
+        1587,
+        1583
+      ]
+    },
+    "ayahs": 5,
+    "slug": "al-masad",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Hannayen Abu Lahabi sun halaka, shi ma kuma ya halaka."
+  ],
+  [
+    2,
+    "Dukiyarsa da abin da ya tsuwurwurta ba su amfana masa komai ba."
+  ],
+  [
+    3,
+    "Ba da daɗewa ba zai shiga wuta mai balbali."
+  ],
+  [
+    4,
+    "Da kuma matarsa mai yawan ɗaukar kayan ƙaya."
+  ],
+  [
+    5,
+    "A wuyanta akwai igiyar kaba mai ingantacciyar tukka. (a ranar alƙiyama)."
+  ]
+]

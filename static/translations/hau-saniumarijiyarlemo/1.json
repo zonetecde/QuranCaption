@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "city": "makkah",
+    "name": {
+      "translated": "The Opener",
+      "transliterated": "Al-Fatihah",
+      "codepoints": [
+        1575,
+        1604,
+        1601,
+        1575,
+        1578,
+        1581,
+        1577
+      ]
+    },
+    "ayahs": 7,
+    "slug": "al-fatihah",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Da sunan Allah Mai Rahama, Mai Jin ƙai"
+  ],
+  [
+    2,
+    "Dukkan yabo da godiya sun tabbata ga Allah Ubangijin talikai."
+  ],
+  [
+    3,
+    "Mai rahama Mai jin ƙai."
+  ],
+  [
+    4,
+    "Mamallakin ranar sakamako."
+  ],
+  [
+    5,
+    "Kai kaɗai muke bautata wa, kuma Kai kaɗai muke neman taimakonka."
+  ],
+  [
+    6,
+    "Ka shiryar da mu tafarkin nan madaidaici."
+  ],
+  [
+    7,
+    "Tafarkin waɗanda Ka yi wa ni'ima, ba waɗanda aka yi fushi da su ba, ba kuma ɓatattu ba."
+  ]
+]

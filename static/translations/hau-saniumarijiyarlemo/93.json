@@ -1,0 +1,64 @@
+[
+  {
+    "id": 93,
+    "city": "makkah",
+    "name": {
+      "translated": "The Morning Hours",
+      "transliterated": "Ad-Duhaa",
+      "codepoints": [
+        1575,
+        1604,
+        1590,
+        1581,
+        1609
+      ]
+    },
+    "ayahs": 11,
+    "slug": "ad-duhaa",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Na rantse da lokacin hantsi."
+  ],
+  [
+    2,
+    "Da kuma dare idan ya yi tsit"
+  ],
+  [
+    3,
+    "Ubangijinka bai bar ka ba, kuma bai ƙi ka ba."
+  ],
+  [
+    4,
+    "Kuma lalle lahira ta fi maka alheri a kan duniya."
+  ],
+  [
+    5,
+    "Kuma lalle Ubangijinka zai ba ka har sai ka yarda (da abin da Ya ba ka)."
+  ],
+  [
+    6,
+    "Shin bai same ka maraya ba sai Ya haɗa ka (da mai kula da kai)?"
+  ],
+  [
+    7,
+    "Ya kuma same ka marashin shiriya Ya shiryar (da kai)?"
+  ],
+  [
+    8,
+    "Ya kuma same ka matalauci Ya wadata (ka)?"
+  ],
+  [
+    9,
+    "Don haka maraya fa kada ka yi masa fin ƙarfi."
+  ],
+  [
+    10,
+    "Mai tamabya kuma kada ka daka masa tsawa."
+  ],
+  [
+    11,
+    "Amma kuma game da ni’imar Ubangijinka sai ka ba da labari."
+  ]
+]

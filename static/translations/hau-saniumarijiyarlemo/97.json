@@ -1,0 +1,40 @@
+[
+  {
+    "id": 97,
+    "city": "makkah",
+    "name": {
+      "translated": "The Power",
+      "transliterated": "Al-Qadr",
+      "codepoints": [
+        1575,
+        1604,
+        1602,
+        1583,
+        1585
+      ]
+    },
+    "ayahs": 5,
+    "slug": "al-qadr",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Lalle Mu Muka saukar da shi (Alƙur’ani) a daren Lailatul-Ƙadari (dare mai daraja)."
+  ],
+  [
+    2,
+    "Mene ne ya sanar da kai mece ce Lailatul-Ƙadari?"
+  ],
+  [
+    3,
+    "(Daren) Lailatul-Ƙadari ya fi wata dubu alheri."
+  ],
+  [
+    4,
+    "Mala’iku da Jibrilu suna ta saukowa da dukkanin al’amura a cikinsa da izinin Ubangijinsu."
+  ],
+  [
+    5,
+    "Aminci ne shi (daren dukkansa) har zuwa hudowar alfijir."
+  ]
+]

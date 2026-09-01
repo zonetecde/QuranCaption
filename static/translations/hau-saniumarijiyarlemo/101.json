@@ -1,0 +1,66 @@
+[
+  {
+    "id": 101,
+    "city": "makkah",
+    "name": {
+      "translated": "The Calamity",
+      "transliterated": "Al-Qari'ah",
+      "codepoints": [
+        1575,
+        1604,
+        1602,
+        1575,
+        1585,
+        1593,
+        1577
+      ]
+    },
+    "ayahs": 11,
+    "slug": "al-qariah",
+    "translator": "Prof. Sani Umar Rijiyar Lemo"
+  },
+  [
+    1,
+    "Mai ƙwanƙwasa (zukata da tsoro)."
+  ],
+  [
+    2,
+    "Mece ce mai ƙwanƙwsa (zukata da tsoro)?"
+  ],
+  [
+    3,
+    "Kuma me ya sanar da kai mece ce mai ƙwanƙwasa (zukata da tsoro)?"
+  ],
+  [
+    4,
+    "(Ita ce) ranar da mutane za su zama kamar ɗangon fari masu bazuwa."
+  ],
+  [
+    5,
+    "Duwatsu kuma su zama kamar kaɗaɗɗiyar auduga."
+  ],
+  [
+    6,
+    "To amma wanda ma’aunan ayyukansa suka yi nauyi."
+  ],
+  [
+    7,
+    "To shi kam yana cikin rayuwa mai gamsarwa."
+  ],
+  [
+    8,
+    "Amma kuma duk wanda ma’aunan ayyukansa suka yi shafal."
+  ],
+  [
+    9,
+    "To shi makomarsa (wutar) Hawiya ce."
+  ],
+  [
+    10,
+    "Kuma me ya sanar da kai mece ce ita?."
+  ],
+  [
+    11,
+    "Wuta ce mai tsananin zafi."
+  ]
+]

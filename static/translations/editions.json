@@ -1980,6 +1980,17 @@
 		"sadaqa": "Allah Almighty has spoken the truth",
 		"translations": [
 			{
+				"key": "hau_saniumarijiyarlemo",
+				"name": "hau-saniumarijiyarlemo",
+				"author": "Prof. Sani Umar Rijiyar Lemo",
+				"language": "Hausa",
+				"direction": "ltr",
+				"source": "https://play.google.com/store/apps/details?id=online.smartech.basayir.hausa",
+				"comments": "Ponctuation",
+				"link": "/translations/hau-saniumarijiyarlemo/{chapter}.json",
+				"linkmin": "/translations/hau-saniumarijiyarlemo/{chapter}.json"
+			},
+			{
 				"key": "hau_abubakarmahmood",
 				"name": "hau-abubakarmahmood",
 				"author": "Abubakar Mahmood Jummi",

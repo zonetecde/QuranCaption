@@ -488,6 +488,30 @@ export default class Exporter {
 	}
 
 	/**
+	 * Exporte un projet avec ses assets dans un paquet `.minbar`.
+	 * @param {Project | null | undefined} project Projet à exporter.
+	 * @returns {Promise<void>} Promesse résolue lorsque le paquet est enregistré.
+	 */
+	static async exportProjectPackage(project?: Project | null): Promise<void> {
+		const projectData = project || globalState.currentProject;
+
+		if (!projectData) {
+			console.error('No project data available for package export.');
+			return;
+		}
+
+		const projectName = ExportFileService.getProjectNameForFile(projectData);
+		const fileName = `minbarstudio_project_${projectName}.minbar`;
+		const exportFolder = await ExportService.getExportFolder();
+		const filePath = await ExportService.constrainFilePathLength(
+			await join(exportFolder, fileName)
+		);
+
+		await ProjectService.exportProjectPackage(projectData, filePath);
+		await ExportFileService.trackExportedFile(filePath, get(LL).home.exportProject());
+	}
+
+	/**
 	 * Exporte uniquement les sous-titres Quran édités, avec les informations word-level utiles.
 	 * @returns {Promise<void>}
 	 */

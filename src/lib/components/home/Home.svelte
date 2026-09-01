@@ -478,8 +478,12 @@
 		for (let index = 0; index < files.length; index++) {
 			try {
 				const filePath = files[index];
-				const json = JSON.parse((await readTextFile(filePath)).toString());
-				await ProjectService.importProject(json);
+				if (filePath.toLowerCase().endsWith('.minbar')) {
+					await ProjectService.importProjectPackage(filePath);
+				} else {
+					const json = JSON.parse((await readTextFile(filePath)).toString());
+					await ProjectService.importProject(json);
+				}
 			} catch (error) {
 				ModalManager.errorModal(
 					get(LL).home.errorImportingProject(),

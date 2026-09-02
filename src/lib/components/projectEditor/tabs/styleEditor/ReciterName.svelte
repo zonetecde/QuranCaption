@@ -12,42 +12,50 @@
 	});
 
 	const fadeDuration = $derived(() => {
-		return globalState.getStyle('global', 'fade-duration').value as number;
+		return globalState.getStyleValue('global', 'fade-duration') as number;
 	});
 
 	let reciterNameSettings = $derived(() => {
 		return {
-			show: Boolean(globalState.getStyle('global', 'show-reciter-name')!.value),
-			alwaysShow: Boolean(globalState.getStyle('global', 'reciter-name-always-show')!.value),
-			startTime: globalState.getStyle('global', 'reciter-name-time-appearance')!.value as number,
-			endTime: globalState.getStyle('global', 'reciter-name-time-disappearance')!.value as number,
+			show: Boolean(globalState.getStyleValue('global', 'show-reciter-name')),
+			alwaysShow: Boolean(globalState.getStyleValue('global', 'reciter-name-always-show')),
+			startTime: globalState.getStyleValue('global', 'reciter-name-time-appearance') as number,
+			endTime: globalState.getStyleValue('global', 'reciter-name-time-disappearance') as number,
 			ranges: getTimedOverlayRanges(
-				globalState.getStyle('global', 'reciter-name-time-ranges')?.value,
-				globalState.getStyle('global', 'reciter-name-time-appearance')?.value,
-				globalState.getStyle('global', 'reciter-name-time-disappearance')?.value
+				globalState.getStyleValue('global', 'reciter-name-time-ranges'),
+				globalState.getStyleValue('global', 'reciter-name-time-appearance'),
+				globalState.getStyleValue('global', 'reciter-name-time-disappearance')
 			),
-			size: globalState.getStyle('global', 'reciter-size')!.value as number,
-			showArabic: globalState.getStyle('global', 'reciter-show-arabic')!.value,
-			showLatin: globalState.getStyle('global', 'reciter-show-latin')!.value,
-			reciterLatinSpacing: globalState.getStyle('global', 'reciter-latin-spacing')!.value as number,
-			reciterNameFormat: globalState.getStyle('global', 'reciter-name-format')!.value as string,
-			verticalPosition: globalState.getStyle('global', 'reciter-name-vertical-position')!
-				.value as number,
-			horizontalPosition: globalState.getStyle('global', 'reciter-name-horizontal-position')!
-				.value as number,
-			opacity: globalState.getStyle('global', 'reciter-opacity')!.value,
+			size: globalState.getStyleValue('global', 'reciter-size') as number,
+			showArabic: globalState.getStyleValue('global', 'reciter-show-arabic'),
+			showLatin: globalState.getStyleValue('global', 'reciter-show-latin'),
+			reciterLatinSpacing: globalState.getStyleValue('global', 'reciter-latin-spacing') as number,
+			reciterNameFormat: globalState.getStyleValue('global', 'reciter-name-format') as string,
+			verticalPosition: globalState.getStyleValue(
+				'global',
+				'reciter-name-vertical-position'
+			) as number,
+			horizontalPosition: globalState.getStyleValue(
+				'global',
+				'reciter-name-horizontal-position'
+			) as number,
+			opacity: globalState.getStyleValue('global', 'reciter-opacity'),
 			color: globalState
 				.getStyle('global', 'reciter-latin-text-style')
-				.getCompositeStyle('text-color')!.value,
+				.getCompositeStyle('text-color')!
+				.getValueAt(globalState.getTimelineState.cursorPosition),
 			outlineWidth: globalState
 				.getStyle('global', 'reciter-latin-text-style')
-				.getCompositeStyle('text-outline')!.value,
+				.getCompositeStyle('text-outline')!
+				.getValueAt(globalState.getTimelineState.cursorPosition),
 			outlineColor: globalState
 				.getStyle('global', 'reciter-latin-text-style')
-				.getCompositeStyle('text-outline-color')!.value,
+				.getCompositeStyle('text-outline-color')!
+				.getValueAt(globalState.getTimelineState.cursorPosition),
 			enableOutline: globalState
 				.getStyle('global', 'reciter-latin-text-style')
-				.getCompositeStyle('outline-enable')!.value
+				.getCompositeStyle('outline-enable')!
+				.getValueAt(globalState.getTimelineState.cursorPosition)
 		};
 	});
 

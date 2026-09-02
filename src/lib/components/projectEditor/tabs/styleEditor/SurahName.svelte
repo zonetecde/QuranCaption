@@ -20,55 +20,66 @@
 	});
 
 	const fadeDuration = $derived(() => {
-		return globalState.getStyle('global', 'fade-duration').value as number;
+		return globalState.getStyleValue('global', 'fade-duration') as number;
 	});
 
 	let surahNameSettings = $derived(() => {
 		return {
-			show: Boolean(globalState.getStyle('global', 'show-surah-name')!.value),
-			alwaysShow: Boolean(globalState.getStyle('global', 'surah-name-always-show')!.value),
-			startTime: globalState.getStyle('global', 'surah-name-time-appearance')!.value as number,
-			endTime: globalState.getStyle('global', 'surah-name-time-disappearance')!.value as number,
+			show: Boolean(globalState.getStyleValue('global', 'show-surah-name')),
+			alwaysShow: Boolean(globalState.getStyleValue('global', 'surah-name-always-show')),
+			startTime: globalState.getStyleValue('global', 'surah-name-time-appearance') as number,
+			endTime: globalState.getStyleValue('global', 'surah-name-time-disappearance') as number,
 			ranges: getTimedOverlayRanges(
-				globalState.getStyle('global', 'surah-name-time-ranges')?.value,
-				globalState.getStyle('global', 'surah-name-time-appearance')?.value,
-				globalState.getStyle('global', 'surah-name-time-disappearance')?.value
+				globalState.getStyleValue('global', 'surah-name-time-ranges'),
+				globalState.getStyleValue('global', 'surah-name-time-appearance'),
+				globalState.getStyleValue('global', 'surah-name-time-disappearance')
 			),
-			size: globalState.getStyle('global', 'surah-size')!.value,
-			showArabic: globalState.getStyle('global', 'surah-show-arabic')!.value,
-			showLatin: globalState.getStyle('global', 'surah-show-latin')!.value,
+			size: globalState.getStyleValue('global', 'surah-size'),
+			showArabic: globalState.getStyleValue('global', 'surah-show-arabic'),
+			showLatin: globalState.getStyleValue('global', 'surah-show-latin'),
 			calligraphyFontFamily:
-				globalState.getStyle('global', 'surah-calligraphy-style')!.value === 'Calligraphy 2'
+				globalState.getStyleValue('global', 'surah-calligraphy-style') === 'Calligraphy 2'
 					? 'Surahs2'
 					: 'Surahs',
-			surahLatinSpacing: globalState.getStyle('global', 'surah-latin-spacing')!.value as number,
-			surahNameFormat: globalState.getStyle('global', 'surah-name-format')!.value as string,
-			verticalPosition: globalState.getStyle('global', 'surah-name-vertical-position')!
-				.value as number,
-			horizontalPosition: globalState.getStyle('global', 'surah-name-horizontal-position')!
-				.value as number,
-			opacity: globalState.getStyle('global', 'surah-opacity')!.value,
+			surahLatinSpacing: globalState.getStyleValue('global', 'surah-latin-spacing') as number,
+			surahNameFormat: globalState.getStyleValue('global', 'surah-name-format') as string,
+			verticalPosition: globalState.getStyleValue(
+				'global',
+				'surah-name-vertical-position'
+			) as number,
+			horizontalPosition: globalState.getStyleValue(
+				'global',
+				'surah-name-horizontal-position'
+			) as number,
+			opacity: globalState.getStyleValue('global', 'surah-opacity'),
 			color: globalState
 				.getStyle('global', 'surah-latin-text-style')!
-				.getCompositeStyle('text-color')!.value,
+				.getCompositeStyle('text-color')!
+				.getValueAt(globalState.getTimelineState.cursorPosition),
 			outlineWidth: globalState
 				.getStyle('global', 'surah-latin-text-style')!
-				.getCompositeStyle('text-outline')!.value,
+				.getCompositeStyle('text-outline')!
+				.getValueAt(globalState.getTimelineState.cursorPosition),
 			outlineColor: globalState
 				.getStyle('global', 'surah-latin-text-style')!
-				.getCompositeStyle('text-outline-color')!.value,
+				.getCompositeStyle('text-outline-color')!
+				.getValueAt(globalState.getTimelineState.cursorPosition),
 			enableOutline: globalState
 				.getStyle('global', 'surah-latin-text-style')!
-				.getCompositeStyle('outline-enable')!.value,
+				.getCompositeStyle('outline-enable')!
+				.getValueAt(globalState.getTimelineState.cursorPosition),
 			glowEnable: globalState
 				.getStyle('global', 'surah-latin-text-style')!
-				.getCompositeStyle('text-glow-enable')!.value,
+				.getCompositeStyle('text-glow-enable')!
+				.getValueAt(globalState.getTimelineState.cursorPosition),
 			glowColor: globalState
 				.getStyle('global', 'surah-latin-text-style')!
-				.getCompositeStyle('text-glow-color')!.value,
+				.getCompositeStyle('text-glow-color')!
+				.getValueAt(globalState.getTimelineState.cursorPosition),
 			glowBlur: globalState
 				.getStyle('global', 'surah-latin-text-style')!
-				.getCompositeStyle('text-glow-blur')!.value
+				.getCompositeStyle('text-glow-blur')!
+				.getValueAt(globalState.getTimelineState.cursorPosition)
 		};
 	});
 

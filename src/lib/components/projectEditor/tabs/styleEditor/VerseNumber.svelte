@@ -15,7 +15,7 @@
 	} = $props();
 
 	const fadeDuration = $derived(() => {
-		return globalState.getStyle('global', 'fade-duration').value as number;
+		return globalState.getStyleValue('global', 'fade-duration') as number;
 	});
 
 	let getTimelineSettings = $derived(() => {
@@ -70,15 +70,20 @@
 
 	let verseNumberSettings = $derived(() => {
 		return {
-			show: Boolean(globalState.getStyle('global', 'show-verse-number')!.value),
-			verticalPosition: globalState.getStyle('global', 'verse-number-vertical-position')!
-				.value as number,
-			horizontalPosition: globalState.getStyle('global', 'verse-number-horizontal-position')!
-				.value as number,
-			verseNumberFormat: globalState.getStyle('global', 'verse-number-format')!.value as string,
+			show: Boolean(globalState.getStyleValue('global', 'show-verse-number')),
+			verticalPosition: globalState.getStyleValue(
+				'global',
+				'verse-number-vertical-position'
+			) as number,
+			horizontalPosition: globalState.getStyleValue(
+				'global',
+				'verse-number-horizontal-position'
+			) as number,
+			verseNumberFormat: globalState.getStyleValue('global', 'verse-number-format') as string,
 			opacity: globalState
 				.getStyle('global', 'verse-number-text-style')!
-				.getCompositeStyle('opacity')!.value as number
+				.getCompositeStyle('opacity')!
+				.getValueAt(globalState.getTimelineState.cursorPosition) as number
 		};
 	});
 

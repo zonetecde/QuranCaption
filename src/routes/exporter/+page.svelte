@@ -1034,9 +1034,12 @@
 			fadeDuration,
 			workerCount: getParallelCaptureWorkerCount(),
 			isBlankCaptureTiming: (timing) =>
+				!timings.styleKeyframeTimings.has(timing) &&
 				isBlankCaptureTiming(timing, timings.blankImgs, timings.imgWithNothingShown),
 			getReusableBlankFileName: (timing) =>
-				getReusableBlankFileName(timings.imgWithNothingShown, timing, timedOverlayClips),
+				timings.styleKeyframeTimings.has(timing)
+					? null
+					: getReusableBlankFileName(timings.imgWithNothingShown, timing, timedOverlayClips),
 			getBlankSourceCaptureTiming: (timing) => (isSegment ? timing - 1 : timing)
 		});
 	}
@@ -1824,6 +1827,12 @@
 			fadeDuration: Math.round(globalState.getStyle('global', 'fade-duration')!.value as number),
 			subtitleClips,
 			timedOverlayClips: getTimedOverlayCaptureClips(),
+			styleKeyframeTimings: [
+				...globalState.getVideoStyle.getAllKeyframeTimes(),
+				...(globalState.getCustomClipTrack.clips as CustomClip[]).flatMap(
+					(clip) => clip.category?.getAllKeyframeTimes() ?? []
+				)
+			],
 			getCurrentSurah: (time) => globalState.getSubtitleTrack.getCurrentSurah(time),
 			showVerseNumber: Boolean(globalState.getStyle('global', 'show-verse-number')!.value)
 		});

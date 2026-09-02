@@ -2486,6 +2486,12 @@ const es = {
 		noMatchingStyles: 'Ningún estilo coincide con tu búsqueda.',
 		mixedValue: 'Valores diferentes',
 		localOverride: 'Cambio local',
+		previousKeyframe: 'Fotograma clave anterior',
+		addKeyframe: 'Añadir fotograma clave en el cursor',
+		removeKeyframe: 'Eliminar fotograma clave en el cursor',
+		nextKeyframe: 'Fotograma clave siguiente',
+		keyframeInterpolationNotice:
+			'Nota: las transiciones de estilo no se interpolan en la vista previa. Los fundidos se renderizarán en el vídeo exportado.',
 		fontControlledByMushaf: 'Esta fuente está controlada por el Mushaf seleccionado.',
 		groupBasics: 'Básico',
 		groupTypography: 'Tipografía',

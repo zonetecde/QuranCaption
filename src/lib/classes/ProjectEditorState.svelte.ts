@@ -34,6 +34,8 @@ export class ProjectEditorState extends SerializableBase {
 	translationGuideDismissed: boolean = $state(false);
 	// Indique si l'aide contextuelle des styles a été masquée pour ce projet.
 	styleGuideDismissed: boolean = $state(false);
+	// Indique si la note sur l'interpolation des images clés a déjà été affichée.
+	keyframeInterpolationNoticeShown: boolean = $state(false);
 
 	// Indique quelle(s) section(s) de l'éditeur sont étendues
 	sections: {

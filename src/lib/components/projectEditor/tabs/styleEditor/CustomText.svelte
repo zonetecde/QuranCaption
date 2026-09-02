@@ -21,21 +21,22 @@
 	let { customText, clipId }: { customText: Category; clipId: number } = $props();
 
 	let customTextSettings = $derived(() => {
+		const time = globalState.getTimelineState.cursorPosition;
 		return {
-			verticalPosition: customText.getStyle('vertical-position')?.value as number,
-			horizontalPosition: customText.getStyle('horizontal-position')?.value as number,
-			width: Number(customText.getStyle('width')?.value ?? 80),
-			text: customText.getStyle('text')?.value as string,
+			verticalPosition: customText.getStyle('vertical-position')?.getValueAt(time) as number,
+			horizontalPosition: customText.getStyle('horizontal-position')?.getValueAt(time) as number,
+			width: Number(customText.getStyle('width')?.getValueAt(time) ?? 80),
+			text: customText.getStyle('text')?.getValueAt(time) as string,
 
 			opacity: () =>
 				getTimedOverlayOpacity({
-					alwaysShow: Boolean(customText.getStyle('always-show')?.value),
-					maxOpacity: Number(customText.getStyle('opacity')?.value ?? 1),
+					alwaysShow: Boolean(customText.getStyle('always-show')?.getValueAt(time)),
+					maxOpacity: Number(customText.getStyle('opacity')?.getValueAt(time) ?? 1),
 					currentTime: globalState.getTimelineState.cursorPosition,
-					fadeDuration: globalState.getStyle('global', 'fade-duration')!.value as number,
+					fadeDuration: globalState.getStyleValue('global', 'fade-duration') as number,
 					ranges: getTimedOverlayRangesFromStyles(customText.styles),
-					startTime: customText.getStyle('time-appearance')?.value as number,
-					endTime: customText.getStyle('time-disappearance')?.value as number
+					startTime: customText.getStyle('time-appearance')?.getValueAt(time) as number,
+					endTime: customText.getStyle('time-disappearance')?.getValueAt(time) as number
 				})
 		};
 	});
@@ -90,10 +91,18 @@
 
 <div
 	use:mouseDrag={{
-		getInitialVertical: () => Number(verticalStyle.value),
-		applyVertical: (v: number) => (verticalStyle.value = v),
-		applyHorizontal: (v: number) => (horizontalStyle.value = v),
-		getInitialHorizontal: () => Number(horizontalStyle.value),
+		getInitialVertical: () =>
+			Number(verticalStyle.getValueAt(globalState.getTimelineState.cursorPosition)),
+		applyVertical: (v: number) =>
+			verticalStyle.keyframes.length > 0
+				? verticalStyle.setKeyframe(globalState.getTimelineState.cursorPosition, v)
+				: (verticalStyle.value = v),
+		applyHorizontal: (v: number) =>
+			horizontalStyle.keyframes.length > 0
+				? horizontalStyle.setKeyframe(globalState.getTimelineState.cursorPosition, v)
+				: (horizontalStyle.value = v),
+		getInitialHorizontal: () =>
+			Number(horizontalStyle.getValueAt(globalState.getTimelineState.cursorPosition)),
 		verticalMin: verticalStyle.valueMin,
 		verticalMax: verticalStyle.valueMax,
 		horizontalMax: horizontalStyle.valueMax,
@@ -101,7 +110,9 @@
 	}}
 	class="absolute customtext cursor-move select-none z-10 text-center"
 	data-clip-id={clipId}
-	data-overlay-max-opacity={Number(customText.getStyle('opacity')?.value ?? 1)}
+	data-overlay-max-opacity={Number(
+		customText.getStyle('opacity')?.getValueAt(globalState.getTimelineState.cursorPosition) ?? 1
+	)}
 	style={`width: ${customTextSettings().width}% ; transform: translateY(${customTextSettings().verticalPosition}px) translateX(${customTextSettings().horizontalPosition}px); opacity: ${customTextSettings().opacity()}; `}
 >
 	<CompositeText compositeStyle={customText.getCompositeStyle()!}>

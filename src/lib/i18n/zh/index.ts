@@ -2250,6 +2250,12 @@ const zh = {
 		noMatchingStyles: '没有与搜索匹配的样式。',
 		mixedValue: '值不同',
 		localOverride: '本地修改',
+		previousKeyframe: '上一个关键帧',
+		addKeyframe: '在播放头处添加关键帧',
+		removeKeyframe: '删除播放头处的关键帧',
+		nextKeyframe: '下一个关键帧',
+		keyframeInterpolationNotice:
+			'注意：预览中不会插值显示样式过渡，但淡化过渡会在导出的视频中正常渲染。',
 		fontControlledByMushaf: '此字体由所选 Mushaf 控制。',
 		groupBasics: '基础',
 		groupTypography: '排版',

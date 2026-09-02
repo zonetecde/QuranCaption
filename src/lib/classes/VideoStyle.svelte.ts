@@ -164,6 +164,11 @@ export type TimedOverlayStyleName =
 
 export type StyleOverrideValue = string | number | boolean | TimedOverlayRange[];
 
+export type StyleKeyframe = {
+	time: number;
+	value: Style['value'];
+};
+
 export type WordByWordHighlightStyleName =
 	| 'enable-wbw-highlight'
 	| 'wbw-show-current-word-only'
@@ -354,6 +359,38 @@ const RUNTIME_LAYOUT_STYLE_IDS = new Set<StyleName>(['reactive-font-size', 'reac
 
 const styleLookupCache = new WeakMap<StylesData, Map<StyleName, Style>>();
 
+/**
+ * Résout la dernière image clé atteinte ou conserve la valeur de repli.
+ * @param {StyleKeyframe[]} keyframes Images clés ordonnées dans le temps.
+ * @param {number} time Position absolue dans la timeline, en millisecondes.
+ * @param {Style['value']} fallback Valeur utilisée avant la première image clé.
+ * @returns {Style['value']} Valeur active à la position demandée.
+ */
+function resolveKeyframeValue(
+	keyframes: StyleKeyframe[],
+	time: number,
+	fallback: Style['value']
+): Style['value'] {
+	let value = fallback;
+	for (const keyframe of keyframes) {
+		if (keyframe.time > time) break;
+		value = keyframe.value;
+	}
+	return value;
+}
+
+/**
+ * Collecte récursivement les temps d'un style et de ses sous-styles composites.
+ * @param {Style} style Style racine à parcourir.
+ * @returns {number[]} Temps trouvés en millisecondes.
+ */
+function collectStyleKeyframeTimes(style: Style): number[] {
+	const ownTimes = style.keyframes.map((keyframe) => keyframe.time);
+	if (style.valueType !== 'composite' || !Array.isArray(style.value)) return ownTimes;
+	const nestedTimes = (style.value as Style[]).flatMap(collectStyleKeyframeTimes);
+	return [...ownTimes, ...nestedTimes];
+}
+
 function isGlobalOverlayStyleId(styleId: StyleName): styleId is OverlayStyleName {
 	return GLOBAL_OVERLAY_STYLE_IDS.has(styleId as OverlayStyleName);
 }
@@ -385,11 +422,73 @@ export class Style extends SerializableBase {
 	tailwind?: boolean;
 	tailwindClass?: string;
 	icon: string = '';
+	keyframes: StyleKeyframe[] = $state([]);
 
 	constructor(init?: Partial<Style>) {
 		super();
 		if (!init) return;
 		Object.assign(this, init);
+	}
+
+	/**
+	 * Ajoute ou remplace l'image clé située au temps demandé.
+	 * @param {number} time Position absolue dans la timeline, en millisecondes.
+	 * @param {Style['value']} value Valeur active à partir de cette position.
+	 * @returns {void}
+	 */
+	setKeyframe(time: number, value: Style['value']): void {
+		const normalizedTime = Math.max(0, Math.floor(time));
+		const existing = this.keyframes.find((keyframe) => keyframe.time === normalizedTime);
+		if (existing) existing.value = value;
+		else this.keyframes.push({ time: normalizedTime, value });
+		this.keyframes.sort((a, b) => a.time - b.time);
+	}
+
+	/**
+	 * Résout la valeur active à une position de la timeline.
+	 * @param {number} time Position absolue dans la timeline, en millisecondes.
+	 * @returns {Style['value']} Valeur de base ou dernière image clé atteinte.
+	 */
+	getValueAt(time: number): Style['value'] {
+		return resolveKeyframeValue(this.keyframes, time, this.value);
+	}
+
+	/**
+	 * Indique si une image clé existe au temps demandé.
+	 * @param {number} time Position absolue dans la timeline, en millisecondes.
+	 * @returns {boolean} `true` si le temps contient une image clé.
+	 */
+	hasKeyframeAt(time: number): boolean {
+		const normalizedTime = Math.max(0, Math.floor(time));
+		return this.keyframes.some((keyframe) => keyframe.time === normalizedTime);
+	}
+
+	/**
+	 * Supprime l'image clé située au temps demandé.
+	 * @param {number} time Position absolue dans la timeline, en millisecondes.
+	 * @returns {void}
+	 */
+	removeKeyframe(time: number): void {
+		const normalizedTime = Math.max(0, Math.floor(time));
+		this.keyframes = this.keyframes.filter((keyframe) => keyframe.time !== normalizedTime);
+	}
+
+	/**
+	 * Retourne l'image clé précédant strictement la position courante.
+	 * @param {number} time Position absolue dans la timeline, en millisecondes.
+	 * @returns {number | undefined} Temps précédent, ou `undefined`.
+	 */
+	getPreviousKeyframeTime(time: number): number | undefined {
+		return this.keyframes.findLast((keyframe) => keyframe.time < time)?.time;
+	}
+
+	/**
+	 * Retourne l'image clé suivant strictement la position courante.
+	 * @param {number} time Position absolue dans la timeline, en millisecondes.
+	 * @returns {number | undefined} Temps suivant, ou `undefined`.
+	 */
+	getNextKeyframeTime(time: number): number | undefined {
+		return this.keyframes.find((keyframe) => keyframe.time > time)?.time;
 	}
 
 	getCategory(): string {
@@ -411,34 +510,37 @@ export class Style extends SerializableBase {
 	 * Génère le CSS d'un style composite
 	 * @returns Le CSS de ce style composite
 	 */
-	generateCSSForComposite(): string {
+	generateCSSForComposite(time?: number): string {
 		// Récupère tous les styles composites pour un style donné
 		const compositeStyles = this.value as Style[];
+		const currentTime =
+			time ?? globalState.currentProject?.projectEditorState?.timeline.cursorPosition ?? 0;
 
 		let css = '';
 		for (let i = 0; i < compositeStyles.length; i++) {
 			const element = compositeStyles[i];
+			const effectiveValue = element.getValueAt(currentTime);
 
-			if (element.id === 'outline-enable' && !element.value) {
+			if (element.id === 'outline-enable' && !effectiveValue) {
 				// Si on désactive l'outline, alors on skip les 3 styles concernant l'outline
 				// (en comptant celui là)
 				i += 2;
 				continue;
 			}
 
-			if (element.id === 'text-glow-enable' && !element.value) {
+			if (element.id === 'text-glow-enable' && !effectiveValue) {
 				// Si on désactive le glow, alors on skip les 3 styles concernant le glow
 				// (en comptant celui là)
 				i += 2;
 				continue;
 			}
 
-			if (element.id === 'enable-italic' && !element.value) {
+			if (element.id === 'enable-italic' && !effectiveValue) {
 				continue;
 			}
 
 			if (element.id && element.css)
-				css += element.css.replaceAll('{value}', String(element.value)) + '\n';
+				css += element.css.replaceAll('{value}', String(effectiveValue)) + '\n';
 		}
 
 		return css;
@@ -525,6 +627,14 @@ export class Category extends SerializableBase {
 	}
 
 	/**
+	 * Collecte les images clés de tous les styles de la catégorie.
+	 * @returns {number[]} Temps trouvés en millisecondes.
+	 */
+	getAllKeyframeTimes(): number[] {
+		return this.styles.flatMap(collectStyleKeyframeTimes);
+	}
+
+	/**
 	 * Si la catégorie contient un style composite, le load avec
 	 * ses valeurs par défaut.
 	 */
@@ -550,6 +660,9 @@ export class StylesData extends SerializableBase {
 
 	// Overrides spécifiques aux clips sélectionnés
 	overrides: { [clipId: number]: { [styleId in StyleName]?: StyleOverrideValue } } = $state({});
+	overrideKeyframes: {
+		[clipId: number]: { [styleId in StyleName]?: StyleKeyframe[] };
+	} = $state({});
 
 	constructor(
 		target: 'global' | 'arabic' | string,
@@ -762,10 +875,13 @@ export class StylesData extends SerializableBase {
 	 */
 	generateTailwind(): string {
 		let tailwindClasses = '';
+		const currentTime =
+			globalState.currentProject?.projectEditorState?.timeline.cursorPosition ?? 0;
 
 		for (const category of this.categories) {
 			for (const style of category.styles) {
-				if (style.id === 'font-family' && style.value === 'Hafs') {
+				const effectiveValue = style.getValueAt(currentTime);
+				if (style.id === 'font-family' && effectiveValue === 'Hafs') {
 					// Utilise la police Hafs pour les styles de texte
 					tailwindClasses += 'arabic ';
 					continue;
@@ -775,7 +891,7 @@ export class StylesData extends SerializableBase {
 				if (!style.tailwind || !style.tailwindClass) continue;
 
 				// Remplace {value} par la valeur actuelle
-				const tailwindClass = style.tailwindClass.replaceAll(/{value}/g, String(style.value));
+				const tailwindClass = style.tailwindClass.replaceAll(/{value}/g, String(effectiveValue));
 
 				if (tailwindClass.trim()) {
 					tailwindClasses += tailwindClass + ' ';
@@ -828,6 +944,100 @@ export class StylesData extends SerializableBase {
 			}
 		}
 		return undefined;
+	}
+
+	/**
+	 * Ajoute ou remplace une image clé globale ou propre aux clips indiqués.
+	 * @param {StyleName} styleId Identifiant du style à animer.
+	 * @param {number} time Position absolue dans la timeline, en millisecondes.
+	 * @param {Style['value']} value Valeur active à partir de cette position.
+	 * @param {number[]} clipIds Clips recevant une animation locale, si nécessaire.
+	 * @returns {void}
+	 */
+	setKeyframe(
+		styleId: StyleName,
+		time: number,
+		value: Style['value'],
+		clipIds: number[] = []
+	): void {
+		if (clipIds.length === 0) {
+			this.findStyle(styleId)?.setKeyframe(time, value);
+			return;
+		}
+		if (this.target === 'global' && !isGlobalOverlayStyleId(styleId)) return;
+		const normalizedTime = Math.max(0, Math.floor(time));
+		for (const clipId of clipIds) {
+			this.overrideKeyframes[clipId] ??= {};
+			const keyframes = (this.overrideKeyframes[clipId][styleId] ??= []);
+			const existing = keyframes.find((keyframe) => keyframe.time === normalizedTime);
+			if (existing) existing.value = value;
+			else keyframes.push({ time: normalizedTime, value });
+			keyframes.sort((a, b) => a.time - b.time);
+		}
+	}
+
+	/**
+	 * Retourne les temps uniques des images clés pour la portée demandée.
+	 * @param {StyleName} styleId Identifiant du style inspecté.
+	 * @param {number[]} clipIds Clips inspectés, ou liste vide pour le style de base.
+	 * @returns {number[]} Temps triés en millisecondes.
+	 */
+	getKeyframeTimes(styleId: StyleName, clipIds: number[] = []): number[] {
+		const times =
+			clipIds.length === 0
+				? (this.findStyle(styleId)?.keyframes.map((keyframe) => keyframe.time) ?? [])
+				: clipIds.flatMap((clipId) =>
+						(this.overrideKeyframes[clipId]?.[styleId] ?? []).map((keyframe) => keyframe.time)
+					);
+		return Array.from(new Set(times)).sort((a, b) => a - b);
+	}
+
+	/**
+	 * Collecte toutes les images clés de cette cible, overrides inclus.
+	 * @returns {number[]} Temps uniques triés en millisecondes.
+	 */
+	getAllKeyframeTimes(): number[] {
+		const baseTimes = this.categories.flatMap((category) => category.getAllKeyframeTimes());
+		const overrideTimes = Object.values(this.overrideKeyframes).flatMap((byStyle) =>
+			Object.values(byStyle).flatMap((keyframes) =>
+				(keyframes ?? []).map((keyframe) => keyframe.time)
+			)
+		);
+		return Array.from(new Set([...baseTimes, ...overrideTimes])).sort((a, b) => a - b);
+	}
+
+	/**
+	 * Indique si la portée demandée contient une image clé au temps courant.
+	 * @param {StyleName} styleId Identifiant du style inspecté.
+	 * @param {number} time Position absolue dans la timeline, en millisecondes.
+	 * @param {number[]} clipIds Clips inspectés, ou liste vide pour le style de base.
+	 * @returns {boolean} `true` si une image clé existe à cette position.
+	 */
+	hasKeyframeAt(styleId: StyleName, time: number, clipIds: number[] = []): boolean {
+		const normalizedTime = Math.max(0, Math.floor(time));
+		return this.getKeyframeTimes(styleId, clipIds).includes(normalizedTime);
+	}
+
+	/**
+	 * Supprime une image clé globale ou locale au temps demandé.
+	 * @param {StyleName} styleId Identifiant du style modifié.
+	 * @param {number} time Position absolue dans la timeline, en millisecondes.
+	 * @param {number[]} clipIds Clips modifiés, ou liste vide pour le style de base.
+	 * @returns {void}
+	 */
+	removeKeyframe(styleId: StyleName, time: number, clipIds: number[] = []): void {
+		if (clipIds.length === 0) {
+			this.findStyle(styleId)?.removeKeyframe(time);
+			return;
+		}
+		const normalizedTime = Math.max(0, Math.floor(time));
+		for (const clipId of clipIds) {
+			const byStyle = this.overrideKeyframes[clipId];
+			if (!byStyle?.[styleId]) continue;
+			byStyle[styleId] = byStyle[styleId].filter((keyframe) => keyframe.time !== normalizedTime);
+			if (byStyle[styleId].length === 0) delete byStyle[styleId];
+			if (Object.keys(byStyle).length === 0) delete this.overrideKeyframes[clipId];
+		}
 	}
 
 	/**
@@ -905,23 +1115,29 @@ export class StylesData extends SerializableBase {
 	 * @param clipId L'ID du clip à vérifier
 	 * @returns La valeur effective du style
 	 */
-	getEffectiveValue(styleId: StyleName, clipId?: number): string | number | boolean {
+	getEffectiveValue(styleId: StyleName, clipId?: number, time?: number): string | number | boolean {
 		const style = this.findStyle(styleId);
+		const currentTime =
+			time ?? globalState.currentProject?.projectEditorState?.timeline.cursorPosition ?? 0;
 
 		const canUseClipOverride =
 			this.target !== 'global' || (this.target === 'global' && isGlobalOverlayStyleId(styleId));
 
 		// Structure des overrides pour StylesData : overrides[clipId][styleId] = value
+		let value = style ? style.getValueAt(currentTime) : '';
 		if (
 			canUseClipOverride &&
 			clipId !== undefined &&
 			this.overrides[clipId] &&
 			this.overrides[clipId][styleId] !== undefined
 		) {
-			return this.overrides[clipId][styleId]! as string | number | boolean;
+			value = this.overrides[clipId][styleId]!;
 		}
-
-		return style ? (style.value as string | number | boolean) : '';
+		const keyframes = clipId === undefined ? undefined : this.overrideKeyframes[clipId]?.[styleId];
+		return (keyframes ? resolveKeyframeValue(keyframes, currentTime, value) : value) as
+			| string
+			| number
+			| boolean;
 	}
 
 	/**
@@ -946,11 +1162,11 @@ export class StylesData extends SerializableBase {
 	 */
 	hasAnyOverrideForClip(clipId: number): boolean {
 		const byClip = this.overrides?.[clipId];
-		if (!byClip) return false;
+		const keyframesByClip = this.overrideKeyframes?.[clipId];
+		if (!byClip && !keyframesByClip) return false;
 
-		// Chaque override pour un clip est un objet plat { styleId: value },
-		// donc il suffit de vérifier s'il y a au moins une clé.
-		return Object.keys(byClip).length > 0;
+		// Une valeur fixe ou une animation locale suffit à marquer le clip comme personnalisé.
+		return Object.keys(byClip ?? {}).length > 0 || Object.keys(keyframesByClip ?? {}).length > 0;
 	}
 
 	/**
@@ -998,6 +1214,15 @@ export class VideoStyle extends SerializableBase {
 
 	constructor() {
 		super();
+	}
+
+	/**
+	 * Collecte les changements temporels nécessaires à l'aperçu et à l'export.
+	 * @returns {number[]} Temps uniques triés en millisecondes.
+	 */
+	getAllKeyframeTimes(): number[] {
+		const times = this.styles.flatMap((styles) => styles.getAllKeyframeTimes());
+		return Array.from(new Set(times)).sort((a, b) => a - b);
 	}
 
 	/**

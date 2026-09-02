@@ -92,7 +92,7 @@
 
 	/** Durée de fondu configurée. */
 	let fadeDuration = $derived(() => {
-		return globalState.getStyle('global', 'fade-duration').value as number;
+		return globalState.getStyleValue('global', 'fade-duration') as number;
 	});
 
 	/** Durée de fondu pour la preview WBW (0 en mode export pour éviter les artefacts). */
@@ -102,16 +102,16 @@
 
 	/** Affiche-t-on les crochets décoratifs ? */
 	let showDecorativeBrackets = $derived(() => {
-		return Boolean(globalState.getStyle('arabic', 'show-decorative-brackets').value);
+		return Boolean(globalState.getStyleValue('arabic', 'show-decorative-brackets'));
 	});
 
 	let verseNumberOnNewLine = $derived(() => {
-		return Boolean(globalState.getStyle('arabic', 'verse-number-new-line').value);
+		return Boolean(globalState.getStyleValue('arabic', 'verse-number-new-line'));
 	});
 
 	/** Paire de glyphes brute pour les crochets décoratifs. */
 	let decorativeBracketsGlyphPair = $derived(() => {
-		return String(globalState.getStyle('arabic', 'decorative-brackets-font-family').value || 'LM');
+		return String(globalState.getStyleValue('arabic', 'decorative-brackets-font-family') || 'LM');
 	});
 
 	// =========================================================================
@@ -159,7 +159,7 @@
 	 * @returns Chaîne CSS `font-family: ...;` ou chaîne vide.
 	 */
 	function getSubtitleQpcFontCss(subtitle: SubtitleClip): string {
-		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? '');
+		const mushafStyle = String(globalState.getStyleValue('arabic', 'mushaf-style') ?? '');
 		const fontFamily = String(
 			globalState.getVideoStyle
 				.getStylesOfTarget('arabic')
@@ -558,7 +558,7 @@
 		return computeWordByWordHighlightState({
 			subtitle: clip,
 			isArabicMerged: isArabicMerged(),
-			mushafStyle: String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani'),
+			mushafStyle: String(globalState.getStyleValue('arabic', 'mushaf-style') ?? 'Uthmani'),
 			cursorTimeS: getTimelineSettings().cursorPosition / 1000,
 			// Si un groupe fusionné est actif, et que un subtitle dans ce groupe ne possède
 			// pas de timing wbw, alors on enlève le rendu WBW pour tous les mots

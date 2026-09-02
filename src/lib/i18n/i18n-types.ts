@@ -7862,6 +7862,26 @@ type RootTranslation = {
 		 */
 		localOverride: string;
 		/**
+		 * P​r​e​v​i​o​u​s​ ​k​e​y​f​r​a​m​e
+		 */
+		previousKeyframe: string;
+		/**
+		 * A​d​d​ ​k​e​y​f​r​a​m​e​ ​a​t​ ​t​h​e​ ​p​l​a​y​h​e​a​d
+		 */
+		addKeyframe: string;
+		/**
+		 * R​e​m​o​v​e​ ​k​e​y​f​r​a​m​e​ ​a​t​ ​t​h​e​ ​p​l​a​y​h​e​a​d
+		 */
+		removeKeyframe: string;
+		/**
+		 * N​e​x​t​ ​k​e​y​f​r​a​m​e
+		 */
+		nextKeyframe: string;
+		/**
+		 * N​o​t​e​:​ ​S​t​y​l​e​ ​t​r​a​n​s​i​t​i​o​n​s​ ​a​r​e​ ​n​o​t​ ​i​n​t​e​r​p​o​l​a​t​e​d​ ​i​n​ ​t​h​e​ ​p​r​e​v​i​e​w​.​ ​F​a​d​e​ ​t​r​a​n​s​i​t​i​o​n​s​ ​w​i​l​l​ ​b​e​ ​r​e​n​d​e​r​e​d​ ​i​n​ ​t​h​e​ ​e​x​p​o​r​t​e​d​ ​v​i​d​e​o​.
+		 */
+		keyframeInterpolationNotice: string;
+		/**
 		 * T​h​i​s​ ​f​o​n​t​ ​i​s​ ​c​o​n​t​r​o​l​l​e​d​ ​b​y​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​M​u​s​h​a​f​.
 		 */
 		fontControlledByMushaf: string;
@@ -19331,6 +19351,26 @@ export type TranslationFunctions = {
 		 * Local change
 		 */
 		localOverride: () => LocalizedString;
+		/**
+		 * Previous keyframe
+		 */
+		previousKeyframe: () => LocalizedString;
+		/**
+		 * Add keyframe at the playhead
+		 */
+		addKeyframe: () => LocalizedString;
+		/**
+		 * Remove keyframe at the playhead
+		 */
+		removeKeyframe: () => LocalizedString;
+		/**
+		 * Next keyframe
+		 */
+		nextKeyframe: () => LocalizedString;
+		/**
+		 * Note: Style transitions are not interpolated in the preview. Fade transitions will be rendered in the exported video.
+		 */
+		keyframeInterpolationNotice: () => LocalizedString;
 		/**
 		 * This font is controlled by the selected Mushaf.
 		 */

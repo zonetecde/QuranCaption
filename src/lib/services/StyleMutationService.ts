@@ -39,6 +39,7 @@ type StyleMutationOptions = {
 	style: Style;
 	target?: string;
 	clipIds: number[];
+	time?: number;
 	value: unknown;
 	applyBaseValue: (value: Style['value']) => void;
 };
@@ -109,6 +110,22 @@ export function coerceStyleValue(style: Style, value: unknown): Style['value'] {
 export function applyStyleMutation(options: StyleMutationOptions): StyleMutationResult {
 	return ProjectHistoryManager.track('set style value', () => {
 		const value = coerceStyleValue(options.style, options.value);
+		const styles = options.target
+			? options.videoStyle.getStylesOfTarget(options.target)
+			: undefined;
+		const isManagedStyle = styles?.findStyle(options.style.id as StyleName) === options.style;
+		const keyframeTimes = isManagedStyle
+			? styles.getKeyframeTimes(options.style.id as StyleName, options.clipIds)
+			: options.style.keyframes.map((keyframe) => keyframe.time);
+		if (options.time !== undefined && keyframeTimes.length > 0) {
+			if (isManagedStyle) {
+				styles.setKeyframe(options.style.id as StyleName, options.time, value, options.clipIds);
+			} else options.style.setKeyframe(options.time, value);
+			return {
+				refreshPreview: true,
+				showTajweedWarning: false
+			};
+		}
 		const result = applyArabicStyleInvariants(options, value);
 		if (!result.handled) applyScopedValue(options, value);
 

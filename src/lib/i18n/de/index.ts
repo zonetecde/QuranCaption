@@ -2489,6 +2489,12 @@ const de = {
 		noMatchingStyles: 'Keine Stile entsprechen Ihrer Suche.',
 		mixedValue: 'Unterschiedliche Werte',
 		localOverride: 'Lokale Änderung',
+		previousKeyframe: 'Vorheriges Schlüsselbild',
+		addKeyframe: 'Schlüsselbild am Abspielkopf hinzufügen',
+		removeKeyframe: 'Schlüsselbild am Abspielkopf entfernen',
+		nextKeyframe: 'Nächstes Schlüsselbild',
+		keyframeInterpolationNotice:
+			'Hinweis: Stilübergänge werden in der Vorschau nicht interpoliert. Die Überblendungen werden im exportierten Video gerendert.',
 		fontControlledByMushaf: 'Diese Schrift wird vom ausgewählten Mushaf gesteuert.',
 		groupBasics: 'Grundlagen',
 		groupTypography: 'Typografie',

@@ -15,6 +15,7 @@ import { Status } from '$lib/classes/Status';
 import type { TranslationLanguageData } from '$lib/services/QdcTranslationService';
 import type { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import type { Style, StyleName } from '$lib/classes/VideoStyle.svelte';
+import type { CustomClip } from '$lib/classes/Clip.svelte';
 import type { ManualWordByWordDraftWord } from '$lib/services/WbwHelper';
 import type { AiVideoState } from '$lib/components/aiVideo/types';
 import type { PresetLibraryState } from '$lib/components/projectEditor/tabs/styleEditor/presets/types';
@@ -291,6 +292,39 @@ class GlobalState {
 			return { value: '' } as unknown as Style;
 		}
 		return { value: '' } as unknown as Style;
+	}
+
+	/**
+	 * Collecte les temps uniques de toutes les images clés du projet.
+	 * @returns {number[]} Positions triées en millisecondes.
+	 */
+	getAllStyleKeyframeTimes(): number[] {
+		const content = this.currentProject?.content;
+		if (!content) return [];
+		const videoStyleTimes = content.videoStyle.getAllKeyframeTimes();
+		const customTrack = content.timeline.getFirstTrack(TrackType.CustomClip) as
+			| CustomTextTrack
+			| undefined;
+		const customTimes = (customTrack?.clips as CustomClip[] | undefined)?.flatMap(
+			(clip) => clip.category?.getAllKeyframeTimes() ?? []
+		);
+		return Array.from(new Set([...videoStyleTimes, ...(customTimes ?? [])])).sort((a, b) => a - b);
+	}
+
+	/**
+	 * Résout la valeur d'un style à la position courante de la timeline.
+	 * @param {'arabic' | 'translation' | string} target Cible du style.
+	 * @param {StyleName} styleId Identifiant du style.
+	 * @param {number | undefined} clipId Clip portant un éventuel override local.
+	 * @returns {Style['value']} Valeur effective au curseur.
+	 */
+	getStyleValue(
+		target: 'arabic' | 'translation' | string,
+		styleId: StyleName,
+		clipId?: number
+	): Style['value'] {
+		if (!this.currentProject) return '';
+		return this.getVideoStyle.getStylesOfTarget(target).getEffectiveValue(styleId, clipId);
 	}
 
 	updateVideoPreviewUI() {

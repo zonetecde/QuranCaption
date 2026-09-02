@@ -1667,6 +1667,12 @@ const id = {
 		noMatchingStyles: 'Tidak ada style yang cocok dengan pencarianmu.',
 		mixedValue: 'Nilai berbeda',
 		localOverride: 'Perubahan lokal',
+		previousKeyframe: 'Keyframe sebelumnya',
+		addKeyframe: 'Tambahkan keyframe di playhead',
+		removeKeyframe: 'Hapus keyframe di playhead',
+		nextKeyframe: 'Keyframe berikutnya',
+		keyframeInterpolationNotice:
+			'Catatan: transisi gaya tidak diinterpolasi dalam pratinjau. Transisi fade akan dirender dalam video yang diekspor.',
 		fontControlledByMushaf: 'Font ini dikontrol oleh Mushaf yang dipilih.',
 		groupBasics: 'Dasar',
 		groupTypography: 'Tipografi',

@@ -2511,6 +2511,12 @@ const fr = {
 		noMatchingStyles: 'Aucun style ne correspond à votre recherche.',
 		mixedValue: 'Valeurs différentes',
 		localOverride: 'Modification locale',
+		previousKeyframe: 'Image clé précédente',
+		addKeyframe: 'Ajouter une image clé au curseur',
+		removeKeyframe: 'Supprimer l’image clé au curseur',
+		nextKeyframe: 'Image clé suivante',
+		keyframeInterpolationNotice:
+			'Note : les transitions de style ne sont pas interpolées dans l’aperçu. Les fondus seront bien rendus dans la vidéo exportée.',
 		fontControlledByMushaf: 'Cette police est contrôlée par le Mushaf sélectionné.',
 		groupBasics: 'Essentiel',
 		groupTypography: 'Typographie',

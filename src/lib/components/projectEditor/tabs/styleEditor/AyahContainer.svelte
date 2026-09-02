@@ -6,7 +6,7 @@
 	import { convertFileSrc } from '@tauri-apps/api/core';
 
 	const imagePath = $derived(() => {
-		const val = globalState.getStyle('global', 'ayah-container-image')?.value;
+		const val = globalState.getStyleValue('global', 'ayah-container-image');
 		return val ? String(val) : null;
 	});
 
@@ -20,38 +20,38 @@
 	});
 
 	const verticalPosition = $derived(() => {
-		return globalState.getStyle('global', 'ayah-container-vertical-position')?.value as number;
+		return globalState.getStyleValue('global', 'ayah-container-vertical-position') as number;
 	});
 
 	const horizontalPosition = $derived(() => {
-		return globalState.getStyle('global', 'ayah-container-horizontal-position')?.value as number;
+		return globalState.getStyleValue('global', 'ayah-container-horizontal-position') as number;
 	});
 
 	const containerWidth = $derived(() => {
-		return globalState.getStyle('global', 'ayah-container-width')?.value as number;
+		return globalState.getStyleValue('global', 'ayah-container-width') as number;
 	});
 
 	const containerHeight = $derived(() => {
-		return globalState.getStyle('global', 'ayah-container-height')?.value as number;
+		return globalState.getStyleValue('global', 'ayah-container-height') as number;
 	});
 
 	const stretch = $derived(() => {
-		return Boolean(globalState.getStyle('global', 'ayah-container-stretch')?.value);
+		return Boolean(globalState.getStyleValue('global', 'ayah-container-stretch'));
 	});
 
 	const opacity = $derived(() => {
 		return getTimedOverlayOpacity({
-			alwaysShow: Boolean(globalState.getStyle('global', 'always-show')?.value),
+			alwaysShow: Boolean(globalState.getStyleValue('global', 'always-show')),
 			maxOpacity: 1,
 			currentTime: globalState.getTimelineState.cursorPosition,
-			fadeDuration: globalState.getStyle('global', 'fade-duration')!.value as number,
+			fadeDuration: globalState.getStyleValue('global', 'fade-duration') as number,
 			ranges: getTimedOverlayRanges(
-				globalState.getStyle('global', 'ayah-container-time-ranges')?.value,
-				globalState.getStyle('global', 'time-appearance')?.value,
-				globalState.getStyle('global', 'time-disappearance')?.value
+				globalState.getStyleValue('global', 'ayah-container-time-ranges'),
+				globalState.getStyleValue('global', 'time-appearance'),
+				globalState.getStyleValue('global', 'time-disappearance')
 			),
-			startTime: globalState.getStyle('global', 'time-appearance')?.value as number,
-			endTime: globalState.getStyle('global', 'time-disappearance')?.value as number
+			startTime: globalState.getStyleValue('global', 'time-appearance') as number,
+			endTime: globalState.getStyleValue('global', 'time-disappearance') as number
 		});
 	});
 
@@ -62,10 +62,18 @@
 {#if imageSrc()}
 	<div
 		use:mouseDrag={{
-			getInitialVertical: () => Number(verticalStyle.value),
-			applyVertical: (v: number) => (verticalStyle.value = v),
-			applyHorizontal: (v: number) => (horizontalStyle.value = v),
-			getInitialHorizontal: () => Number(horizontalStyle.value),
+			getInitialVertical: () =>
+				Number(verticalStyle.getValueAt(globalState.getTimelineState.cursorPosition)),
+			applyVertical: (v: number) =>
+				verticalStyle.keyframes.length > 0
+					? verticalStyle.setKeyframe(globalState.getTimelineState.cursorPosition, v)
+					: (verticalStyle.value = v),
+			applyHorizontal: (v: number) =>
+				horizontalStyle.keyframes.length > 0
+					? horizontalStyle.setKeyframe(globalState.getTimelineState.cursorPosition, v)
+					: (horizontalStyle.value = v),
+			getInitialHorizontal: () =>
+				Number(horizontalStyle.getValueAt(globalState.getTimelineState.cursorPosition)),
 			verticalMin: verticalStyle.valueMin,
 			verticalMax: verticalStyle.valueMax,
 			horizontalMax: horizontalStyle.valueMax,

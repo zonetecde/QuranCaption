@@ -25,20 +25,53 @@
 	import TextControl from './controls/TextControl.svelte';
 	import TimeControl from './controls/TimeControl.svelte';
 	import TimedRangesControl from './controls/TimedRangesControl.svelte';
+	import KeyframeControls from './KeyframeControls.svelte';
 	import { asDimensionValue, asFadeValue, hasFadeEnabled, msToTimeValue } from './controls/utils';
 	import { getTimedOverlayRanges } from '$lib/services/TimedOverlayRanges';
 
 	const LL_ = get(LL);
+	const NON_ANIMATABLE_STYLE_IDS = new Set([
+		'video-dimension',
+		'media-fill',
+		'media-scale',
+		'media-position-x',
+		'media-position-y',
+		'fade-duration',
+		'video-and-audio-fade',
+		'video-clip-transition',
+		'video-clip-transition-duration',
+		'overlay-blur',
+		'riwayah',
+		'mushaf-style',
+		'reactive-font-size',
+		'reactive-y-position',
+		'always-show',
+		'surah-name-always-show',
+		'reciter-name-always-show'
+	]);
+	const NON_ANIMATABLE_STYLE_TYPES = new Set([
+		'composite',
+		'reciter',
+		'file',
+		'ayah-image',
+		'time',
+		'time-ranges'
+	]);
 
 	/**
 	 * Lit une microcopie ajoutée au dictionnaire de style en attendant la génération i18n du hook.
 	 * @param {'mixedValue' | 'localOverride'} key Clé de microcopie à résoudre.
 	 * @returns {string} Texte localisé.
 	 */
-	function getStyleUiCopy(key: 'mixedValue' | 'localOverride'): string {
-		return (get(LL).style as unknown as Record<'mixedValue' | 'localOverride', () => string>)[
-			key
-		]();
+	function getStyleUiCopy(
+		key: 'mixedValue' | 'localOverride' | 'keyframeInterpolationNotice'
+	): string {
+		return (
+			get(LL).style as unknown as Record<
+				'mixedValue' | 'localOverride' | 'keyframeInterpolationNotice',
+				() => string
+			>
+		)[key]();
 	}
 
 	let {
@@ -158,15 +191,132 @@
 		return [];
 	});
 
+	/**
+	 * Retourne le temps entier du curseur utilisé comme position d'image clé.
+	 * @returns {number} Position absolue en millisecondes.
+	 */
+	function getKeyframeCursorTime(): number {
+		return Math.max(0, Math.floor(globalState.getTimelineState.cursorPosition));
+	}
+
+	/**
+	 * Retrouve la portée standard du style lorsque celui-ci appartient à une cible vidéo.
+	 * @returns {ReturnType<typeof globalState.getVideoStyle.getStylesOfTarget> | undefined} Portée gérée, si disponible.
+	 */
+	function getManagedStylesData():
+		| ReturnType<typeof globalState.getVideoStyle.getStylesOfTarget>
+		| undefined {
+		const videoStyle = globalState.currentProject?.content?.videoStyle;
+		if (!target || !videoStyle) return undefined;
+		const styles = videoStyle.getStylesOfTarget(target);
+		return styles.findStyle(style.id as StyleName) === style ? styles : undefined;
+	}
+
+	/**
+	 * Retourne les images clés visibles pour la portée éditée.
+	 * @returns {number[]} Positions triées en millisecondes.
+	 */
+	function getVisibleKeyframeTimes(): number[] {
+		const styles = getManagedStylesData();
+		if (styles) return styles.getKeyframeTimes(style.id as StyleName, selectedClipIds());
+		return style.keyframes.map((keyframe) => keyframe.time);
+	}
+
+	/**
+	 * Ajoute ou supprime l'image clé située sous le curseur.
+	 * @returns {void}
+	 */
+	function toggleKeyframe(): void {
+		const time = getKeyframeCursorTime();
+		const hadProjectKeyframes = globalState.getAllStyleKeyframeTimes().length > 0;
+		let createdKeyframe = false;
+		ProjectHistoryManager.track('toggle style keyframe', () => {
+			const styles = getManagedStylesData();
+			if (styles?.hasKeyframeAt(style.id as StyleName, time, selectedClipIds())) {
+				styles.removeKeyframe(style.id as StyleName, time, selectedClipIds());
+			} else if (styles) {
+				styles.setKeyframe(
+					style.id as StyleName,
+					time,
+					$state.snapshot(inputValue) as StyleValue,
+					selectedClipIds()
+				);
+				createdKeyframe = true;
+			} else if (style.hasKeyframeAt(time)) style.removeKeyframe(time);
+			else {
+				style.setKeyframe(time, $state.snapshot(inputValue) as StyleValue);
+				createdKeyframe = true;
+			}
+		});
+		const editorState = globalState.currentProject?.projectEditorState;
+		if (
+			createdKeyframe &&
+			!hadProjectKeyframes &&
+			editorState &&
+			!editorState.keyframeInterpolationNoticeShown
+		) {
+			editorState.keyframeInterpolationNoticeShown = true;
+			toast(getStyleUiCopy('keyframeInterpolationNotice'), {
+				icon: 'ℹ️',
+				duration: 9000,
+				position: 'bottom-left'
+			});
+		}
+		globalState.updateVideoPreviewUI();
+	}
+
+	/**
+	 * Déplace le curseur vers l'image clé précédente ou suivante.
+	 * @param {'previous' | 'next'} direction Sens de navigation demandé.
+	 * @returns {void}
+	 */
+	function seekKeyframe(direction: 'previous' | 'next'): void {
+		const time = getKeyframeCursorTime();
+		const times = getVisibleKeyframeTimes();
+		const destination =
+			direction === 'previous'
+				? times.findLast((candidate) => candidate < time)
+				: times.find((candidate) => candidate > time);
+		if (destination === undefined) return;
+		globalState.getTimelineState.cursorPosition = destination;
+		globalState.getTimelineState.movePreviewTo = destination;
+	}
+
+	const keyframeTimes = $derived(() => {
+		const _ = globalState.getTimelineState.cursorPosition;
+		return getVisibleKeyframeTimes();
+	});
+	const hasKeyframeAtCursor = $derived(() => keyframeTimes().includes(getKeyframeCursorTime()));
+	const hasPreviousKeyframe = $derived(() =>
+		keyframeTimes().some((time) => time < getKeyframeCursorTime())
+	);
+	const hasNextKeyframe = $derived(() =>
+		keyframeTimes().some((time) => time > getKeyframeCursorTime())
+	);
+	const canAnimate = $derived(
+		() =>
+			!NON_ANIMATABLE_STYLE_IDS.has(style.id) && !NON_ANIMATABLE_STYLE_TYPES.has(style.valueType)
+	);
+
 	function getEffectiveForSelection(): {
 		value: unknown;
 		mixed: boolean;
 		overridden: boolean;
 	} {
-		if (!target) return { value: style.value, mixed: false, overridden: false };
+		if (!target) {
+			return {
+				value: style.getValueAt(getKeyframeCursorTime()),
+				mixed: false,
+				overridden: false
+			};
+		}
 
 		if (selectedClipIds().length === 0) {
-			return { value: style.value, mixed: false, overridden: false };
+			return {
+				value: style.getValueAt(getKeyframeCursorTime()),
+				mixed: false,
+				overridden: false
+			};
 		}
 
 		const values = selectedClipIds().map((id) =>
@@ -190,7 +340,7 @@
 		selectedClipIds().length > 0 ? getEffectiveForSelection().overridden : false
 	);
 
-	let inputValue: StyleValue = $state(untrack(() => style.value));
+	let inputValue: StyleValue = $state(untrack(() => style.getValueAt(getKeyframeCursorTime())));
 	$effect(() => {
 		const eff = getEffectiveForSelection();
 		inputValue = eff.value as StyleValue;
@@ -233,6 +383,7 @@
 				style,
 				target,
 				clipIds: selectedClipIds(),
+				time: getKeyframeCursorTime(),
 				value: v,
 				applyBaseValue: applyValueSimple
 			});
@@ -285,16 +436,16 @@
 		} else if (style.valueType === 'reciter') {
 			return globalState.currentProject!.detail.reciter || LL_.common.none();
 		} else if (style.valueType === 'dimension') {
-			const dimension = asDimensionValue(style.value);
+			const dimension = asDimensionValue(inputValue);
 			return dimension.width + 'x' + dimension.height;
 		} else if (style.valueType === 'fade') {
-			const fadeValue = asFadeValue(style.value);
+			const fadeValue = asFadeValue(inputValue);
 			return `${hasFadeEnabled(fadeValue) ? LL_.common.enabled() + ' - ' + fadeValue.fadeDurationMs + LL_.common.ms() : LL_.common.disabled()}`;
 		} else if (style.valueType === 'ayah-image') {
-			return style.value ? String(style.value) : LL_.common.none();
+			return inputValue ? String(inputValue) : LL_.common.none();
 		} else if (style.valueType === 'time-ranges') {
-			return String(getTimedOverlayRanges(style.value, 0, 10000).length);
-		} else return String(style.value);
+			return String(getTimedOverlayRanges(inputValue, 0, 10000).length);
+		} else return String(inputValue);
 	}
 
 	function getHeaderPreviewStyle() {
@@ -439,6 +590,17 @@
 				<span class="material-icons-outlined text-[16px]!">restart_alt</span>
 			</button>
 		{/if}
+		{#if canAnimate()}
+			<KeyframeControls
+				active={hasKeyframeAtCursor()}
+				hasPrevious={hasPreviousKeyframe()}
+				hasNext={hasNextKeyframe()}
+				{disabled}
+				onPrevious={() => seekKeyframe('previous')}
+				onToggle={toggleKeyframe}
+				onNext={() => seekKeyframe('next')}
+			/>
+		{/if}
 		<label
 			class="inline-flex origin-right scale-75 cursor-pointer select-none items-center"
 			title={getStyleName(style.id, get(LL))}
@@ -530,9 +692,28 @@
 						>info_outline</span
 					>
 				</span>
+				<div
+					bind:this={styleTooltip}
+					popover="manual"
+					class="style-description-tooltip"
+					role="tooltip"
+				>
+					{getStyleDescription(descriptionId ?? style.id, get(LL))}
+				</div>
 			</div>
 			{#key selectedClipIds().length + JSON.stringify(inputValue)}
 				<div class="flex items-center gap-2 text-xs text-secondary">
+					{#if canAnimate()}
+						<KeyframeControls
+							active={hasKeyframeAtCursor()}
+							hasPrevious={hasPreviousKeyframe()}
+							hasNext={hasNextKeyframe()}
+							{disabled}
+							onPrevious={() => seekKeyframe('previous')}
+							onToggle={toggleKeyframe}
+							onNext={() => seekKeyframe('next')}
+						/>
+					{/if}
 					{#if style.valueType === 'boolean'}
 						<label
 							class="inline-flex items-center cursor-pointer select-none scale-75 origin-right"
@@ -666,10 +847,6 @@
 				{/if}
 			</div>
 		{/if}
-
-		<div bind:this={styleTooltip} popover="manual" class="style-description-tooltip" role="tooltip">
-			{getStyleDescription(descriptionId ?? style.id, get(LL))}
-		</div>
 	</div>
 {/if}
 

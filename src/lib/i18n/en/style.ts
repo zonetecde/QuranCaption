@@ -118,6 +118,12 @@ const style = {
 	noMatchingStyles: 'No styles match your search.',
 	mixedValue: 'Mixed values',
 	localOverride: 'Local change',
+	previousKeyframe: 'Previous keyframe',
+	addKeyframe: 'Add keyframe at the playhead',
+	removeKeyframe: 'Remove keyframe at the playhead',
+	nextKeyframe: 'Next keyframe',
+	keyframeInterpolationNotice:
+		'Note: Style transitions are not interpolated in the preview. Fade transitions will be rendered in the exported video.',
 	fontControlledByMushaf: 'This font is controlled by the selected Mushaf.',
 	groupBasics: 'Basics',
 	groupTypography: 'Typography',

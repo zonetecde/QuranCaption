@@ -123,7 +123,7 @@ const style = {
 	removeKeyframe: 'Remove keyframe at the playhead',
 	nextKeyframe: 'Next keyframe',
 	keyframeInterpolationNotice:
-		'Note: Style transitions are not interpolated in the preview. Fade transitions will be rendered in the exported video.',
+		'Note: The preview animates color, opacity, and visibility transitions. Other style fades will be rendered in the exported video.',
 	fontControlledByMushaf: 'This font is controlled by the selected Mushaf.',
 	groupBasics: 'Basics',
 	groupTypography: 'Typography',

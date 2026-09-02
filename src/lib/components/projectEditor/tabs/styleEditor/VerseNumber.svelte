@@ -4,6 +4,7 @@
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import CompositeText from './CompositeText.svelte';
 	import { SubtitleClip, VerseRange } from '$lib/classes';
+	import { resolveStyleVisibilityOpacity } from '$lib/services/StyleVisualResolver';
 
 	let {
 		currentSurah,
@@ -68,8 +69,13 @@
 	});
 
 	let verseNumberSettings = $derived(() => {
+		const showOpacity = resolveStyleVisibilityOpacity(
+			globalState.getVideoStyle.getStylesOfTarget('global'),
+			'show-verse-number'
+		);
 		return {
-			show: Boolean(globalState.getStyleValue('global', 'show-verse-number')),
+			show: showOpacity > 0,
+			showOpacity,
 			verticalPosition: globalState.getStyleValue(
 				'global',
 				'verse-number-vertical-position'
@@ -90,7 +96,7 @@
 		const range = verseSubtitleRange();
 		if (!range || !verseNumberSettings().show) return 0;
 
-		const maxOpacity = verseNumberSettings().opacity;
+		const maxOpacity = verseNumberSettings().opacity * verseNumberSettings().showOpacity;
 		const currentTime = getTimelineSettings().cursorPosition;
 		const { startTime, endTime } = range;
 		const halfFade = fadeDuration() / 2;

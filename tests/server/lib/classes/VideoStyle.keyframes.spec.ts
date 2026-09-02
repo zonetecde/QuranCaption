@@ -21,6 +21,33 @@ describe('Style keyframes', () => {
 		expect(style.getValueAt(2000.75)).toBe(80);
 	});
 
+	it('previews color and opacity fades ending exactly on the keyframe', () => {
+		const color = new Style({ id: 'text-color', value: '#000000', valueType: 'color' });
+		const opacity = new Style({ id: 'opacity', value: 0, valueType: 'number' });
+		const fontSize = new Style({ id: 'font-size', value: 40, valueType: 'number' });
+		color.setKeyframe(2000, '#ffffff');
+		opacity.setKeyframe(2000, 1);
+		fontSize.setKeyframe(2000, 80);
+
+		expect(color.getValueAt(1500, 1000)).toBe('rgba(128, 128, 128, 1)');
+		expect(color.getValueAt(2000, 1000)).toBe('#ffffff');
+		expect(opacity.getValueAt(1500, 1000)).toBe(0.5);
+		expect(opacity.getValueAt(2000, 1000)).toBe(1);
+		expect(fontSize.getValueAt(1500, 1000)).toBe(40);
+	});
+
+	it('previews visibility fades for global and clip keyframes', () => {
+		const show = new Style({ id: 'show-subtitles', value: false, valueType: 'boolean' });
+		const styles = new StylesData('arabic', [new Category({ id: 'general', styles: [show] })]);
+		show.setKeyframe(2000, true);
+		styles.setKeyframe('show-subtitles', 4000, false, [101]);
+
+		expect(styles.getEffectiveVisibilityOpacity('show-subtitles', undefined, 1500, 1000)).toBe(0.5);
+		expect(styles.getEffectiveVisibilityOpacity('show-subtitles', undefined, 2000, 1000)).toBe(1);
+		expect(styles.getEffectiveVisibilityOpacity('show-subtitles', 101, 3500, 1000)).toBe(0.5);
+		expect(styles.getEffectiveVisibilityOpacity('show-subtitles', 101, 4000, 1000)).toBe(0);
+	});
+
 	it('replaces, removes and navigates keyframes in timeline order', () => {
 		const style = new Style({ id: 'vertical-position', value: 10 });
 		style.setKeyframe(4000, 40);

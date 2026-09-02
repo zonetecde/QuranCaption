@@ -83,6 +83,7 @@ function createDefaultStyleValue(
 	styleId: string
 ): string | number | boolean | null {
 	if (styleId === 'opacity') return 1;
+	if (styleId === 'show-subtitles') return true;
 	if (styleId === 'max-height') return 0;
 	if (styleId === 'max-line') return 'Infinite';
 	if (styleId === 'font-size') return target === 'arabic' ? 42 : 28;

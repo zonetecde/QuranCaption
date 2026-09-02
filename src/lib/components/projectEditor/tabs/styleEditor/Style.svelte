@@ -299,7 +299,7 @@
 	} {
 		if (!target) {
 			return {
-				value: style.getValueAt(getKeyframeCursorTime()),
+				value: style.getValueAt(getKeyframeCursorTime(), 0),
 				mixed: false,
 				overridden: false
 			};
@@ -307,7 +307,7 @@
 
 		if (selectedClipIds().length === 0) {
 			return {
-				value: style.getValueAt(getKeyframeCursorTime()),
+				value: style.getValueAt(getKeyframeCursorTime(), 0),
 				mixed: false,
 				overridden: false
 			};
@@ -316,7 +316,7 @@
 		const values = selectedClipIds().map((id) =>
 			globalState.getVideoStyle
 				.getStylesOfTarget(target)
-				.getEffectiveValue(style.id as StyleName, id)
+				.getEffectiveValue(style.id as StyleName, id, undefined, 0)
 		);
 		const first = values[0];
 		const mixed = values.some((v) => String(v) !== String(first));
@@ -334,7 +334,7 @@
 		selectedClipIds().length > 0 ? getEffectiveForSelection().overridden : false
 	);
 
-	let inputValue: StyleValue = $state(untrack(() => style.getValueAt(getKeyframeCursorTime())));
+	let inputValue: StyleValue = $state(untrack(() => style.getValueAt(getKeyframeCursorTime(), 0)));
 	$effect(() => {
 		const eff = getEffectiveForSelection();
 		inputValue = eff.value as StyleValue;

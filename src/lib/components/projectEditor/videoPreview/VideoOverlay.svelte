@@ -59,6 +59,7 @@
 	import { getOverlayLayerCss } from './helpers/overlayCss';
 	import {
 		resolveOverlayVisualState,
+		resolveStyleVisibilityOpacity,
 		resolveTimedVisualState
 	} from '$lib/services/StyleVisualResolver';
 	import { applyReactiveFontSize } from './helpers/reactiveFontSize';
@@ -267,6 +268,10 @@
 	});
 
 	let videoFrameSettings = $derived.by(() => {
+		const visibilityOpacity = resolveStyleVisibilityOpacity(
+			globalState.getVideoStyle.getStylesOfTarget('global'),
+			'video-frame-enable'
+		);
 		const verticalSize = Math.min(
 			45,
 			Math.max(0, Number(globalState.getStyleValue('global', 'video-frame-vertical-size') ?? 8))
@@ -302,7 +307,8 @@
 		const bottom = 100 - verticalSize;
 
 		return {
-			enable: Boolean(globalState.getStyleValue('global', 'video-frame-enable')),
+			enable: visibilityOpacity > 0,
+			opacity: visibilityOpacity,
 			contentAbove: Boolean(globalState.getStyleValue('global', 'video-frame-content-above')),
 			color: String(globalState.getStyleValue('global', 'video-frame-color') ?? '#000000'),
 			softness: `${softnessX} ${softnessY}`,
@@ -399,6 +405,11 @@
 		const clipId = referenceClip.id;
 		let maxOpacity = Number(
 			globalState.getVideoStyle.getStylesOfTarget(target).getEffectiveValue('opacity', clipId)
+		);
+		maxOpacity *= resolveStyleVisibilityOpacity(
+			globalState.getVideoStyle.getStylesOfTarget(target),
+			'show-subtitles',
+			clipId
 		);
 
 		const currentTime = getTimelineSettings().cursorPosition;
@@ -1272,6 +1283,7 @@
 		<!-- À z-0, l'overlay déclaré avant reste dessous et les contenus à partir de z-1 passent dessus. -->
 		<svg
 			class={`pointer-events-none absolute inset-0 h-full w-full ${videoFrameSettings.contentAbove ? 'z-0' : 'z-20'}`}
+			style:opacity={videoFrameSettings.opacity}
 			viewBox="0 0 100 100"
 			preserveAspectRatio="none"
 			aria-hidden="true"

@@ -35,6 +35,7 @@
 		getBackgroundHorizontalPaddingCss,
 		getExportCaptureLayoutCss
 	} from './helpers/overlayCss';
+	import { resolveStyleVisibilityOpacity } from '$lib/services/StyleVisualResolver';
 
 	/**
 	 * Propriétés reçues du composant parent VideoOverlay.
@@ -701,7 +702,7 @@
 	let isArabicSubtitleVisible = $derived(() => {
 		const referenceClip = arabicReferenceClip();
 		const styles = globalState.getVideoStyle.getStylesOfTarget('arabic');
-		return Boolean(styles.getEffectiveValue('show-subtitles', referenceClip?.id));
+		return resolveStyleVisibilityOpacity(styles, 'show-subtitles', referenceClip?.id) > 0;
 	});
 
 	let shouldForceRtlJustify = $derived(() => {

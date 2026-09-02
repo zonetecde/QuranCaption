@@ -2494,7 +2494,7 @@ const de = {
 		removeKeyframe: 'Schlüsselbild am Abspielkopf entfernen',
 		nextKeyframe: 'Nächstes Schlüsselbild',
 		keyframeInterpolationNotice:
-			'Hinweis: Stilübergänge werden in der Vorschau nicht interpoliert. Die Überblendungen werden im exportierten Video gerendert.',
+			'Hinweis: Die Vorschau animiert Farb-, Deckkraft- und Sichtbarkeitsübergänge. Andere Stilüberblendungen werden im exportierten Video gerendert.',
 		fontControlledByMushaf: 'Diese Schrift wird vom ausgewählten Mushaf gesteuert.',
 		groupBasics: 'Grundlagen',
 		groupTypography: 'Typografie',

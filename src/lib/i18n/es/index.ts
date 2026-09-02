@@ -2491,7 +2491,7 @@ const es = {
 		removeKeyframe: 'Eliminar fotograma clave en el cursor',
 		nextKeyframe: 'Fotograma clave siguiente',
 		keyframeInterpolationNotice:
-			'Nota: las transiciones de estilo no se interpolan en la vista previa. Los fundidos se renderizarán en el vídeo exportado.',
+			'Nota: la vista previa anima las transiciones de color, opacidad y visibilidad. Los demás fundidos de estilo se renderizarán en el vídeo exportado.',
 		fontControlledByMushaf: 'Esta fuente está controlada por el Mushaf seleccionado.',
 		groupBasics: 'Básico',
 		groupTypography: 'Tipografía',

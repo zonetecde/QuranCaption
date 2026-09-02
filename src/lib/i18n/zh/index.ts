@@ -2255,7 +2255,7 @@ const zh = {
 		removeKeyframe: '删除播放头处的关键帧',
 		nextKeyframe: '下一个关键帧',
 		keyframeInterpolationNotice:
-			'注意：预览中不会插值显示样式过渡，但淡化过渡会在导出的视频中正常渲染。',
+			'注意：预览会显示颜色、不透明度和可见性的动画过渡，其他样式淡化效果会在导出的视频中正常渲染。',
 		fontControlledByMushaf: '此字体由所选 Mushaf 控制。',
 		groupBasics: '基础',
 		groupTypography: '排版',

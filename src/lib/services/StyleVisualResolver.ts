@@ -38,12 +38,33 @@ export type TimedStyleIds = {
 export type ResolveStyleValue = (styleId: string) => string | number | boolean;
 
 /**
+ * Résout un style booléen sous forme d'opacité avec compatibilité pour les anciens lecteurs.
+ * @param {StylesData} styles Styles portant la valeur effective.
+ * @param {StyleName} styleId Identifiant du style de visibilité.
+ * @param {number | undefined} clipId Clip portant un éventuel override local.
+ * @returns {number} Opacité de visibilité au curseur.
+ */
+export function resolveStyleVisibilityOpacity(
+	styles: StylesData,
+	styleId: StyleName,
+	clipId?: number
+): number {
+	if (typeof styles.getEffectiveVisibilityOpacity === 'function') {
+		return styles.getEffectiveVisibilityOpacity(styleId, clipId);
+	}
+	const value = styles.getEffectiveValue(styleId, clipId);
+	if (value === '' || value === undefined) return 1;
+	return value ? 1 : 0;
+}
+
+/**
  * Résout tous les paramètres visuels de l'overlay pour un clip vidéo.
  * @param {StylesData} styles Styles globaux effectifs.
  * @param {number | undefined} clipId Clip portant les overrides éventuels.
  * @returns {OverlayVisualState} État unique consommable par l'aperçu et l'export.
  */
 export function resolveOverlayVisualState(styles: StylesData, clipId?: number): OverlayVisualState {
+	const visibilityOpacity = resolveStyleVisibilityOpacity(styles, 'overlay-enable', clipId);
 	const fadeSoftness = styles.getEffectiveValue('background-overlay-fade-softness', clipId);
 	const fadeCurve = styles.getEffectiveValue('background-overlay-fade-curve', clipId);
 	const fadePositionX = styles.getEffectiveValue('background-overlay-fade-position-x', clipId);
@@ -52,9 +73,9 @@ export function resolveOverlayVisualState(styles: StylesData, clipId?: number): 
 	const fadeHeight = styles.getEffectiveValue('background-overlay-fade-height', clipId);
 
 	return {
-		enable: Boolean(styles.getEffectiveValue('overlay-enable', clipId)),
+		enable: visibilityOpacity > 0,
 		blur: Number(styles.getEffectiveValue('overlay-blur', clipId)),
-		opacity: Number(styles.getEffectiveValue('overlay-opacity', clipId)),
+		opacity: Number(styles.getEffectiveValue('overlay-opacity', clipId)) * visibilityOpacity,
 		color: String(styles.getEffectiveValue('overlay-color', clipId)),
 		mode: String(styles.getEffectiveValue('background-overlay-mode', clipId)),
 		fadeIntensity: Number(styles.getEffectiveValue('background-overlay-fade-intensity', clipId)),

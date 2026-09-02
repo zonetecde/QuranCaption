@@ -1672,7 +1672,7 @@ const id = {
 		removeKeyframe: 'Hapus keyframe di playhead',
 		nextKeyframe: 'Keyframe berikutnya',
 		keyframeInterpolationNotice:
-			'Catatan: transisi gaya tidak diinterpolasi dalam pratinjau. Transisi fade akan dirender dalam video yang diekspor.',
+			'Catatan: pratinjau menganimasikan transisi warna, opasitas, dan visibilitas. Fade gaya lainnya akan dirender dalam video yang diekspor.',
 		fontControlledByMushaf: 'Font ini dikontrol oleh Mushaf yang dipilih.',
 		groupBasics: 'Dasar',
 		groupTypography: 'Tipografi',

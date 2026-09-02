@@ -6,6 +6,7 @@
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
 	import { getTimedOverlayRanges } from '$lib/services/TimedOverlayRanges';
 	import { resolveQuranTextTags } from '$lib/services/QuranTextTagResolver.svelte';
+	import { resolveStyleVisibilityOpacity } from '$lib/services/StyleVisualResolver';
 
 	const reciter = $derived(() => {
 		return RecitersManager.getReciterObject(globalState.currentProject!.detail.reciter);
@@ -16,8 +17,11 @@
 	});
 
 	let reciterNameSettings = $derived(() => {
+		const styles = globalState.getVideoStyle.getStylesOfTarget('global');
+		const showOpacity = resolveStyleVisibilityOpacity(styles, 'show-reciter-name');
 		return {
-			show: Boolean(globalState.getStyleValue('global', 'show-reciter-name')),
+			show: showOpacity > 0,
+			showOpacity,
 			alwaysShow: Boolean(globalState.getStyleValue('global', 'reciter-name-always-show')),
 			startTime: globalState.getStyleValue('global', 'reciter-name-time-appearance') as number,
 			endTime: globalState.getStyleValue('global', 'reciter-name-time-disappearance') as number,
@@ -27,8 +31,8 @@
 				globalState.getStyleValue('global', 'reciter-name-time-disappearance')
 			),
 			size: globalState.getStyleValue('global', 'reciter-size') as number,
-			showArabic: globalState.getStyleValue('global', 'reciter-show-arabic'),
-			showLatin: globalState.getStyleValue('global', 'reciter-show-latin'),
+			showArabic: resolveStyleVisibilityOpacity(styles, 'reciter-show-arabic'),
+			showLatin: resolveStyleVisibilityOpacity(styles, 'reciter-show-latin'),
 			reciterLatinSpacing: globalState.getStyleValue('global', 'reciter-latin-spacing') as number,
 			reciterNameFormat: globalState.getStyleValue('global', 'reciter-name-format') as string,
 			verticalPosition: globalState.getStyleValue(
@@ -62,7 +66,7 @@
 	const timedReciterOpacity = $derived(() => {
 		return getTimedOverlayOpacity({
 			alwaysShow: reciterNameSettings().alwaysShow,
-			maxOpacity: Number(reciterNameSettings().opacity ?? 1),
+			maxOpacity: Number(reciterNameSettings().opacity ?? 1) * reciterNameSettings().showOpacity,
 			currentTime: globalState.getTimelineState.cursorPosition,
 			fadeDuration: fadeDuration(),
 			ranges: reciterNameSettings().ranges,
@@ -89,14 +93,14 @@
 		{#if reciter().number !== -1}
 			<p
 				class="reciters-font"
-				style={`opacity: ${reciterNameSettings().showArabic && reciter().number !== -1 ? 1 : 0} !important; font-size: ${reciterNameSettings().size}rem !important; ${globalState.getStyle('global', 'reciter-latin-text-style')!.generateCSSForComposite()}; font-family: 'Reciters' !important;`}
+				style={`opacity: ${reciter().number !== -1 ? reciterNameSettings().showArabic : 0} !important; font-size: ${reciterNameSettings().size}rem !important; ${globalState.getStyle('global', 'reciter-latin-text-style')!.generateCSSForComposite()}; font-family: 'Reciters' !important;`}
 			>
 				{reciter().number}
 			</p>
 		{:else}
 			<p
 				class="arabic w-[300px] text-center h-[155px] pt-7"
-				style={`opacity: ${reciterNameSettings().showArabic ? 1 : 0}; font-size: ${reciterNameSettings().size / 2}rem;`}
+				style={`opacity: ${reciterNameSettings().showArabic}; font-size: ${reciterNameSettings().size / 2}rem;`}
 			>
 				{reciter().arabic}
 			</p>
@@ -104,7 +108,7 @@
 
 		<div
 			class="w-[700px] text-center"
-			style={`margin-top: ${-reciterNameSettings().reciterLatinSpacing}rem; opacity: ${reciterNameSettings().showLatin ? 1 : 0};`}
+			style={`margin-top: ${-reciterNameSettings().reciterLatinSpacing}rem; opacity: ${reciterNameSettings().showLatin};`}
 		>
 			<CompositeText compositeStyle={globalState.getStyle('global', 'reciter-latin-text-style')!}>
 				{resolveQuranTextTags(reciterNameSettings().reciterNameFormat, {

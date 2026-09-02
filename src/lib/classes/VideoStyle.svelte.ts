@@ -380,6 +380,135 @@ function resolveKeyframeValue(
 }
 
 /**
+ * Retourne la durée de fondu des images clés uniquement dans la preview interactive.
+ * @returns {number} Durée du fondu en millisecondes, ou zéro pendant l'export.
+ */
+function getPreviewKeyframeFadeDuration(): number {
+	if (typeof window === 'undefined' || window.location.pathname.includes('/exporter')) return 0;
+	const fadeStyle = globalState.currentProject?.content?.videoStyle
+		?.getStylesOfTarget('global')
+		.findStyle('fade-duration');
+	return Math.max(0, Number(fadeStyle?.value ?? 0));
+}
+
+/**
+ * Calcule la transition qui se termine sur la prochaine image clé.
+ * @param {StyleKeyframe[]} keyframes Images clés ordonnées.
+ * @param {number} time Temps courant en millisecondes.
+ * @param {Style['value']} fallback Valeur précédant la première image clé.
+ * @param {number} fadeDuration Durée du fondu en millisecondes.
+ * @returns {{ from: Style['value']; to: Style['value']; progress: number } | null} Transition active.
+ */
+function getActiveKeyframeTransition(
+	keyframes: StyleKeyframe[],
+	time: number,
+	fallback: Style['value'],
+	fadeDuration: number
+): { from: Style['value']; to: Style['value']; progress: number } | null {
+	if (fadeDuration <= 0) return null;
+	let from = fallback;
+	for (const keyframe of keyframes) {
+		if (time > keyframe.time) {
+			from = keyframe.value;
+			continue;
+		}
+		const fadeStart = keyframe.time - fadeDuration;
+		if (time < fadeStart) return null;
+		return {
+			from,
+			to: keyframe.value,
+			progress: Utilities.clamp01((time - fadeStart) / fadeDuration)
+		};
+	}
+	return null;
+}
+
+/**
+ * Lit le canal alpha d'une couleur CSS prise en charge par l'éditeur.
+ * @param {string} color Couleur hexadécimale, RGB ou RGBA.
+ * @returns {number} Alpha normalisé entre zéro et un.
+ */
+function getCssColorAlpha(color: string): number {
+	const normalized = color.trim();
+	const rgba = normalized.match(/^rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\s*\)$/i);
+	if (rgba) return Utilities.clamp01(Number(rgba[1]));
+	if (/^#[0-9a-f]{8}$/i.test(normalized)) return parseInt(normalized.slice(7, 9), 16) / 255;
+	return 1;
+}
+
+/**
+ * Interpole deux couleurs CSS vers une valeur RGBA.
+ * @param {string} fromColor Couleur de départ.
+ * @param {string} toColor Couleur d'arrivée.
+ * @param {number} progress Progression normalisée.
+ * @returns {string} Couleur interpolée, ou couleur cible à la fin du fondu.
+ */
+function interpolateKeyframeColor(fromColor: string, toColor: string, progress: number): string {
+	if (progress <= 0) return fromColor;
+	if (progress >= 1) return toColor;
+	const from = Utilities.parseColorToRgb(fromColor);
+	const to = Utilities.parseColorToRgb(toColor);
+	const mix = (start: number, end: number) => start + (end - start) * progress;
+	return `rgba(${Math.round(mix(from[0], to[0]))}, ${Math.round(mix(from[1], to[1]))}, ${Math.round(mix(from[2], to[2]))}, ${Number(mix(getCssColorAlpha(fromColor), getCssColorAlpha(toColor)).toFixed(3))})`;
+}
+
+/**
+ * Résout une valeur avec interpolation limitée aux couleurs et aux opacités.
+ * @param {Style} style Style décrivant la valeur.
+ * @param {StyleKeyframe[]} keyframes Images clés à résoudre.
+ * @param {number} time Temps courant en millisecondes.
+ * @param {Style['value']} fallback Valeur précédant la première image clé.
+ * @param {number} fadeDuration Durée du fondu en millisecondes.
+ * @returns {Style['value']} Valeur interpolée ou valeur par paliers.
+ */
+function resolvePreviewKeyframeValue(
+	style: Style,
+	keyframes: StyleKeyframe[],
+	time: number,
+	fallback: Style['value'],
+	fadeDuration: number
+): Style['value'] {
+	const transition = getActiveKeyframeTransition(keyframes, time, fallback, fadeDuration);
+	if (!transition) return resolveKeyframeValue(keyframes, time, fallback);
+	if (
+		style.valueType === 'color' &&
+		typeof transition.from === 'string' &&
+		typeof transition.to === 'string'
+	) {
+		return interpolateKeyframeColor(transition.from, transition.to, transition.progress);
+	}
+	if (
+		style.id.includes('opacity') &&
+		typeof transition.from === 'number' &&
+		typeof transition.to === 'number'
+	) {
+		return transition.from + (transition.to - transition.from) * transition.progress;
+	}
+	return resolveKeyframeValue(keyframes, time, fallback);
+}
+
+/**
+ * Résout un changement de visibilité sous forme d'opacité.
+ * @param {StyleKeyframe[]} keyframes Images clés booléennes.
+ * @param {number} time Temps courant en millisecondes.
+ * @param {Style['value']} fallback Visibilité précédant la première image clé.
+ * @param {number} fadeDuration Durée du fondu en millisecondes.
+ * @returns {number} Opacité de visibilité entre zéro et un.
+ */
+function resolveKeyframeVisibilityOpacity(
+	keyframes: StyleKeyframe[],
+	time: number,
+	fallback: Style['value'],
+	fadeDuration: number
+): number {
+	const transition = getActiveKeyframeTransition(keyframes, time, fallback, fadeDuration);
+	if (!transition) return resolveKeyframeValue(keyframes, time, fallback) ? 1 : 0;
+	const from = transition.from ? 1 : 0;
+	const to = transition.to ? 1 : 0;
+	return from + (to - from) * transition.progress;
+}
+
+/**
  * Collecte récursivement les temps d'un style et de ses sous-styles composites.
  * @param {Style} style Style racine à parcourir.
  * @returns {number[]} Temps trouvés en millisecondes.
@@ -449,8 +578,18 @@ export class Style extends SerializableBase {
 	 * @param {number} time Position absolue dans la timeline, en millisecondes.
 	 * @returns {Style['value']} Valeur de base ou dernière image clé atteinte.
 	 */
-	getValueAt(time: number): Style['value'] {
-		return resolveKeyframeValue(this.keyframes, time, this.value);
+	getValueAt(time: number, fadeDuration = getPreviewKeyframeFadeDuration()): Style['value'] {
+		return resolvePreviewKeyframeValue(this, this.keyframes, time, this.value, fadeDuration);
+	}
+
+	/**
+	 * Résout les images clés booléennes sous forme d'opacité de visibilité.
+	 * @param {number} time Position absolue dans la timeline.
+	 * @param {number} fadeDuration Durée du fondu en millisecondes.
+	 * @returns {number} Opacité entre zéro et un.
+	 */
+	getVisibilityOpacityAt(time: number, fadeDuration = getPreviewKeyframeFadeDuration()): number {
+		return resolveKeyframeVisibilityOpacity(this.keyframes, time, this.value, fadeDuration);
 	}
 
 	/**
@@ -1115,7 +1254,12 @@ export class StylesData extends SerializableBase {
 	 * @param clipId L'ID du clip à vérifier
 	 * @returns La valeur effective du style
 	 */
-	getEffectiveValue(styleId: StyleName, clipId?: number, time?: number): string | number | boolean {
+	getEffectiveValue(
+		styleId: StyleName,
+		clipId?: number,
+		time?: number,
+		fadeDuration = getPreviewKeyframeFadeDuration()
+	): string | number | boolean {
 		const style = this.findStyle(styleId);
 		const currentTime =
 			time ?? globalState.currentProject?.projectEditorState?.timeline.cursorPosition ?? 0;
@@ -1124,7 +1268,7 @@ export class StylesData extends SerializableBase {
 			this.target !== 'global' || (this.target === 'global' && isGlobalOverlayStyleId(styleId));
 
 		// Structure des overrides pour StylesData : overrides[clipId][styleId] = value
-		let value = style ? style.getValueAt(currentTime) : '';
+		let value = style ? style.getValueAt(currentTime, fadeDuration) : '';
 		if (
 			canUseClipOverride &&
 			clipId !== undefined &&
@@ -1134,10 +1278,43 @@ export class StylesData extends SerializableBase {
 			value = this.overrides[clipId][styleId]!;
 		}
 		const keyframes = clipId === undefined ? undefined : this.overrideKeyframes[clipId]?.[styleId];
-		return (keyframes ? resolveKeyframeValue(keyframes, currentTime, value) : value) as
-			| string
-			| number
-			| boolean;
+		return (
+			keyframes && style
+				? resolvePreviewKeyframeValue(style, keyframes, currentTime, value, fadeDuration)
+				: value
+		) as string | number | boolean;
+	}
+
+	/**
+	 * Résout un style booléen sous forme d'opacité pour la preview.
+	 * @param {StyleName} styleId Identifiant du style de visibilité.
+	 * @param {number | undefined} clipId Clip portant un éventuel override.
+	 * @param {number | undefined} time Position absolue dans la timeline.
+	 * @param {number} fadeDuration Durée du fondu en millisecondes.
+	 * @returns {number} Opacité de visibilité entre zéro et un.
+	 */
+	getEffectiveVisibilityOpacity(
+		styleId: StyleName,
+		clipId?: number,
+		time?: number,
+		fadeDuration = getPreviewKeyframeFadeDuration()
+	): number {
+		const style = this.findStyle(styleId);
+		if (!style) return 0;
+		const currentTime =
+			time ?? globalState.currentProject?.projectEditorState?.timeline.cursorPosition ?? 0;
+		const staticOverride = clipId === undefined ? undefined : this.overrides[clipId]?.[styleId];
+		const localKeyframes =
+			clipId === undefined ? undefined : this.overrideKeyframes[clipId]?.[styleId];
+		if (!localKeyframes) {
+			return staticOverride === undefined
+				? style.getVisibilityOpacityAt(currentTime, fadeDuration)
+				: staticOverride
+					? 1
+					: 0;
+		}
+		const fallback = staticOverride ?? style.getValueAt(currentTime, 0);
+		return resolveKeyframeVisibilityOpacity(localKeyframes, currentTime, fallback, fadeDuration);
 	}
 
 	/**

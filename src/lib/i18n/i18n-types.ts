@@ -7878,7 +7878,7 @@ type RootTranslation = {
 		 */
 		nextKeyframe: string;
 		/**
-		 * N​o​t​e​:​ ​S​t​y​l​e​ ​t​r​a​n​s​i​t​i​o​n​s​ ​a​r​e​ ​n​o​t​ ​i​n​t​e​r​p​o​l​a​t​e​d​ ​i​n​ ​t​h​e​ ​p​r​e​v​i​e​w​.​ ​F​a​d​e​ ​t​r​a​n​s​i​t​i​o​n​s​ ​w​i​l​l​ ​b​e​ ​r​e​n​d​e​r​e​d​ ​i​n​ ​t​h​e​ ​e​x​p​o​r​t​e​d​ ​v​i​d​e​o​.
+		 * N​o​t​e​:​ ​T​h​e​ ​p​r​e​v​i​e​w​ ​a​n​i​m​a​t​e​s​ ​c​o​l​o​r​,​ ​o​p​a​c​i​t​y​,​ ​a​n​d​ ​v​i​s​i​b​i​l​i​t​y​ ​t​r​a​n​s​i​t​i​o​n​s​.​ ​O​t​h​e​r​ ​s​t​y​l​e​ ​f​a​d​e​s​ ​w​i​l​l​ ​b​e​ ​r​e​n​d​e​r​e​d​ ​i​n​ ​t​h​e​ ​e​x​p​o​r​t​e​d​ ​v​i​d​e​o​.
 		 */
 		keyframeInterpolationNotice: string;
 		/**
@@ -19368,7 +19368,7 @@ export type TranslationFunctions = {
 		 */
 		nextKeyframe: () => LocalizedString;
 		/**
-		 * Note: Style transitions are not interpolated in the preview. Fade transitions will be rendered in the exported video.
+		 * Note: The preview animates color, opacity, and visibility transitions. Other style fades will be rendered in the exported video.
 		 */
 		keyframeInterpolationNotice: () => LocalizedString;
 		/**

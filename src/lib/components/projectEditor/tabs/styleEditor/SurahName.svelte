@@ -7,6 +7,7 @@
 	import { VerseRange } from '$lib/classes';
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
 	import { getTimedOverlayRanges } from '$lib/services/TimedOverlayRanges';
+	import { resolveStyleVisibilityOpacity } from '$lib/services/StyleVisualResolver';
 	import {
 		getPreferredSurahTranslationLanguage,
 		getSurahTranslatedName,
@@ -24,8 +25,11 @@
 	});
 
 	let surahNameSettings = $derived(() => {
+		const styles = globalState.getVideoStyle.getStylesOfTarget('global');
+		const showOpacity = resolveStyleVisibilityOpacity(styles, 'show-surah-name');
 		return {
-			show: Boolean(globalState.getStyleValue('global', 'show-surah-name')),
+			show: showOpacity > 0,
+			showOpacity,
 			alwaysShow: Boolean(globalState.getStyleValue('global', 'surah-name-always-show')),
 			startTime: globalState.getStyleValue('global', 'surah-name-time-appearance') as number,
 			endTime: globalState.getStyleValue('global', 'surah-name-time-disappearance') as number,
@@ -35,8 +39,8 @@
 				globalState.getStyleValue('global', 'surah-name-time-disappearance')
 			),
 			size: globalState.getStyleValue('global', 'surah-size'),
-			showArabic: globalState.getStyleValue('global', 'surah-show-arabic'),
-			showLatin: globalState.getStyleValue('global', 'surah-show-latin'),
+			showArabic: resolveStyleVisibilityOpacity(styles, 'surah-show-arabic'),
+			showLatin: resolveStyleVisibilityOpacity(styles, 'surah-show-latin'),
 			calligraphyFontFamily:
 				globalState.getStyleValue('global', 'surah-calligraphy-style') === 'Calligraphy 2'
 					? 'Surahs2'
@@ -86,7 +90,7 @@
 	const timedSurahOpacity = $derived(() => {
 		return getTimedOverlayOpacity({
 			alwaysShow: surahNameSettings().alwaysShow,
-			maxOpacity: Number(surahNameSettings().opacity ?? 1),
+			maxOpacity: Number(surahNameSettings().opacity ?? 1) * surahNameSettings().showOpacity,
 			currentTime: globalState.getTimelineState.cursorPosition,
 			fadeDuration: fadeDuration(),
 			ranges: surahNameSettings().ranges,
@@ -143,13 +147,13 @@
 	>
 		<p
 			class="surahs-font"
-			style={`opacity: ${surahNameSettings().showArabic ? 1 : 0} !important; font-size: ${surahNameSettings().size}rem !important; ${globalState.getStyle('global', 'surah-latin-text-style')!.generateCSSForComposite()}; font-family: '${surahNameSettings().calligraphyFontFamily}' !important;`}
+			style={`opacity: ${surahNameSettings().showArabic} !important; font-size: ${surahNameSettings().size}rem !important; ${globalState.getStyle('global', 'surah-latin-text-style')!.generateCSSForComposite()}; font-family: '${surahNameSettings().calligraphyFontFamily}' !important;`}
 		>
 			{currentSurah().toString().padStart(3, '0')}
 		</p>
 		<div
 			class="w-[700px] text-center"
-			style={`margin-top: ${-surahNameSettings().surahLatinSpacing}rem; opacity: ${surahNameSettings().showLatin ? 1 : 0};`}
+			style={`margin-top: ${-surahNameSettings().surahLatinSpacing}rem; opacity: ${surahNameSettings().showLatin};`}
 		>
 			<CompositeText compositeStyle={globalState.getStyle('global', 'surah-latin-text-style')!}>
 				{formatSurahName()}

@@ -2516,7 +2516,7 @@ const fr = {
 		removeKeyframe: 'Supprimer l’image clé au curseur',
 		nextKeyframe: 'Image clé suivante',
 		keyframeInterpolationNotice:
-			'Note : les transitions de style ne sont pas interpolées dans l’aperçu. Les fondus seront bien rendus dans la vidéo exportée.',
+			'Note : l’aperçu anime les transitions de couleur, d’opacité et de visibilité. Les autres fondus de style seront bien rendus dans la vidéo exportée.',
 		fontControlledByMushaf: 'Cette police est contrôlée par le Mushaf sélectionné.',
 		groupBasics: 'Essentiel',
 		groupTypography: 'Typographie',

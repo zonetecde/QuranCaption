@@ -418,6 +418,7 @@ type CalculateCaptureTimingParams = {
 	fadeDuration: number;
 	subtitleClips: ExportSubtitleCaptureClip[];
 	timedOverlayClips: ExportTimedOverlayCaptureClip[];
+	styleKeyframeTimings?: number[];
 	getCurrentSurah: (time: number) => number;
 	showVerseNumber?: boolean;
 };
@@ -431,6 +432,7 @@ export type ExportCaptureTimingResult = {
 	exactCaptureTimingValues: Map<number, number>;
 	hiddenArabicTextTimings?: Set<number>;
 	hiddenArabicTextTimingValues?: Map<number, number>;
+	styleKeyframeTimings: Set<number>;
 };
 
 export type ExportFrameCaptureJob = {
@@ -486,6 +488,7 @@ export function calculateCaptureTimingsForRange({
 	fadeDuration,
 	subtitleClips,
 	timedOverlayClips,
+	styleKeyframeTimings = [],
 	getCurrentSurah,
 	showVerseNumber = false
 }: CalculateCaptureTimingParams): ExportCaptureTimingResult {
@@ -500,6 +503,7 @@ export function calculateCaptureTimingsForRange({
 	const exactCaptureTimingValues: Map<number, number> = new Map();
 	const hiddenArabicTextTimings: Set<number> = new Set();
 	const hiddenArabicTextTimingValues: Map<number, number> = new Map();
+	const capturedStyleKeyframeTimings: Set<number> = new Set();
 
 	function add(t: number | undefined | null) {
 		if (t == null) return;
@@ -570,6 +574,9 @@ export function calculateCaptureTimingsForRange({
 				(timing) => timing >= startTime && timing <= endTime
 			);
 			const hasWbwHighlightTimings = wbwHighlightTimings.length > 0;
+			const hasStyleKeyframeBetweenFadeCaptures = styleKeyframeTimings.some(
+				(timing) => timing > fadeInEnd && timing <= fadeOutStart
+			);
 
 			for (const timing of wbwHighlightTimings) {
 				add(timing);
@@ -586,6 +593,7 @@ export function calculateCaptureTimingsForRange({
 			// on peut prendre une seule capture et la dupliquer, économisant du temps
 			if (
 				!hasWbwHighlightTimings &&
+				!hasStyleKeyframeBetweenFadeCaptures &&
 				Math.round(fadeOutStart) !== Math.round(endTime) &&
 				fadeOutStart > startTime &&
 				fadeInEnd !== fadeOutStart
@@ -663,6 +671,13 @@ export function calculateCaptureTimingsForRange({
 		add(endTime);
 	}
 
+	for (const timing of styleKeyframeTimings) {
+		if (timing < rangeStart || timing > rangeEnd) continue;
+		const roundedTiming = Math.round(timing);
+		capturedStyleKeyframeTimings.add(roundedTiming);
+		add(roundedTiming);
+	}
+
 	const uniqueSorted = Array.from(new Set(timingsToTakeScreenshots))
 		.filter((t) => t >= rangeStart && t <= rangeEnd)
 		.sort((a, b) => a - b);
@@ -675,7 +690,8 @@ export function calculateCaptureTimingsForRange({
 		exactCaptureTimings,
 		exactCaptureTimingValues,
 		hiddenArabicTextTimings,
-		hiddenArabicTextTimingValues
+		hiddenArabicTextTimingValues,
+		styleKeyframeTimings: capturedStyleKeyframeTimings
 	};
 }
 

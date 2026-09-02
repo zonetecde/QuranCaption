@@ -108,7 +108,7 @@
 	});
 
 	let fadeDuration = $derived(() => {
-		return globalState.getStyle('global', 'fade-duration').value as number;
+		return globalState.getStyleValue('global', 'fade-duration') as number;
 	});
 
 	let wbwPreviewFadeDuration = $derived(() => {

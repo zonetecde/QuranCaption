@@ -69,8 +69,9 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 			} else {
 				// Sinon, utilise la valeur du style global
 				originVertical = Number(
-					globalState.getVideoStyle.getStylesOfTarget(opts.target).findStyle(opts.verticalStyleId)!
-						.value
+					globalState.getVideoStyle
+						.getStylesOfTarget(opts.target)
+						.getEffectiveValue(opts.verticalStyleId)
 				);
 			}
 
@@ -86,7 +87,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 					originHorizontal = Number(
 						globalState.getVideoStyle
 							.getStylesOfTarget(opts.target)
-							.findStyle(opts.horizontalStyleId)!.value
+							.getEffectiveValue(opts.horizontalStyleId)
 					);
 				}
 			}
@@ -141,19 +142,21 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 
 		// Application du vertical
 		if (opts.target && opts.verticalStyleId) {
+			const styles = globalState.getVideoStyle.getStylesOfTarget(opts.target);
 			const selectedIds =
 				globalState.currentProject!.projectEditorState.stylesEditor.selectedSubtitles.map(
 					(s) => s.id
 				);
-			if (selectedIds.length > 0) {
-				globalState.getVideoStyle
-					.getStylesOfTarget(opts.target)
-					.setStyleForClips(selectedIds, opts.verticalStyleId, verticalVal);
-			} else {
-				globalState.getVideoStyle
-					.getStylesOfTarget(opts.target)
-					.setStyle(opts.verticalStyleId, verticalVal);
-			}
+			if (styles.getKeyframeTimes(opts.verticalStyleId, selectedIds).length > 0) {
+				styles.setKeyframe(
+					opts.verticalStyleId,
+					globalState.getTimelineState.cursorPosition,
+					verticalVal,
+					selectedIds
+				);
+			} else if (selectedIds.length > 0) {
+				styles.setStyleForClips(selectedIds, opts.verticalStyleId, verticalVal);
+			} else styles.setStyle(opts.verticalStyleId, verticalVal);
 		} else {
 			opts.applyVertical!(verticalVal);
 		}
@@ -197,19 +200,21 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 
 			// Application de l'horizontal
 			if (opts.target && opts.horizontalStyleId) {
+				const styles = globalState.getVideoStyle.getStylesOfTarget(opts.target);
 				const selectedIds =
 					globalState.currentProject!.projectEditorState.stylesEditor.selectedSubtitles.map(
 						(s) => s.id
 					);
-				if (selectedIds.length > 0) {
-					globalState.getVideoStyle
-						.getStylesOfTarget(opts.target)
-						.setStyleForClips(selectedIds, opts.horizontalStyleId, horizontalVal);
-				} else {
-					globalState.getVideoStyle
-						.getStylesOfTarget(opts.target)
-						.setStyle(opts.horizontalStyleId, horizontalVal);
-				}
+				if (styles.getKeyframeTimes(opts.horizontalStyleId, selectedIds).length > 0) {
+					styles.setKeyframe(
+						opts.horizontalStyleId,
+						globalState.getTimelineState.cursorPosition,
+						horizontalVal,
+						selectedIds
+					);
+				} else if (selectedIds.length > 0) {
+					styles.setStyleForClips(selectedIds, opts.horizontalStyleId, horizontalVal);
+				} else styles.setStyle(opts.horizontalStyleId, horizontalVal);
 			} else if (opts.applyHorizontal) {
 				opts.applyHorizontal(horizontalVal);
 			}

@@ -14,6 +14,7 @@
 	import { markClipAsVerified } from '$lib/classes/Clip.svelte';
 	import { getTimelineCustomClips } from './track/timelineCustomClip';
 	import Settings from '$lib/classes/Settings.svelte';
+	import TimelineKeyframeMarkers from './TimelineKeyframeMarkers.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let {
@@ -410,6 +411,12 @@
 						</div>
 					{/if}
 				{/each}
+
+				<TimelineKeyframeMarkers
+					times={globalState.getAllStyleKeyframeTimes()}
+					zoom={timelineState().zoom}
+					offset={timelineLeftHeaderWidthPx}
+				/>
 
 				<!-- Playhead cursor in ruler -->
 				<div

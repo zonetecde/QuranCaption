@@ -74,22 +74,22 @@
 	});
 
 	let backgroundMediaStyle = $derived.by(() => {
-		const mediaFill = Boolean(globalState.getStyle('global', 'media-fill')?.value);
+		const mediaFill = Boolean(globalState.getStyleValue('global', 'media-fill'));
 		const scale = Math.min(
 			3,
-			Math.max(1, Number(globalState.getStyle('global', 'media-scale')?.value ?? 100) / 100)
+			Math.max(1, Number(globalState.getStyleValue('global', 'media-scale') ?? 100) / 100)
 		);
 		const positionX =
 			(Math.min(
 				100,
-				Math.max(-100, Number(globalState.getStyle('global', 'media-position-x')?.value ?? 0))
+				Math.max(-100, Number(globalState.getStyleValue('global', 'media-position-x') ?? 0))
 			) +
 				100) /
 			200;
 		const positionY =
 			(Math.min(
 				100,
-				Math.max(-100, Number(globalState.getStyle('global', 'media-position-y')?.value ?? 0))
+				Math.max(-100, Number(globalState.getStyleValue('global', 'media-position-y') ?? 0))
 			) +
 				100) /
 			200;
@@ -581,14 +581,14 @@
 
 	let videoClipTransitionMode = $derived(() => {
 		return String(
-			globalState.getStyle('global', 'video-clip-transition')?.value ?? 'none'
+			globalState.getStyleValue('global', 'video-clip-transition') ?? 'none'
 		) as VideoClipTransitionMode;
 	});
 
 	let videoClipTransitionDurationMs = $derived(() => {
 		return Math.max(
 			0,
-			Number(globalState.getStyle('global', 'video-clip-transition-duration')?.value ?? 0)
+			Number(globalState.getStyleValue('global', 'video-clip-transition-duration') ?? 0)
 		);
 	});
 

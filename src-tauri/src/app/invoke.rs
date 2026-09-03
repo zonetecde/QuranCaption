@@ -35,7 +35,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::media::get_video_timeline_thumbnails,
         exporter::commands::export_video,
         exporter::commands::cancel_export,
-        exporter::commands::concat_videos,
+        exporter::concat_command::concat_videos,
         commands::media::audio_timestamp_stretch_ms,
         commands::media::normalize_audio_timestamps,
         commands::media::cut_audio,

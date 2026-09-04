@@ -590,17 +590,6 @@
 				<span class="material-icons-outlined text-[16px]!">restart_alt</span>
 			</button>
 		{/if}
-		{#if canAnimate()}
-			<KeyframeControls
-				active={hasKeyframeAtCursor()}
-				hasPrevious={hasPreviousKeyframe()}
-				hasNext={hasNextKeyframe()}
-				{disabled}
-				onPrevious={() => seekKeyframe('previous')}
-				onToggle={toggleKeyframe}
-				onNext={() => seekKeyframe('next')}
-			/>
-		{/if}
 		<label
 			class="inline-flex origin-right scale-75 cursor-pointer select-none items-center"
 			title={getStyleName(style.id, get(LL))}
@@ -625,6 +614,17 @@
 				></span>
 			</div>
 		</label>
+		{#if canAnimate()}
+			<KeyframeControls
+				active={hasKeyframeAtCursor()}
+				hasPrevious={hasPreviousKeyframe()}
+				hasNext={hasNextKeyframe()}
+				{disabled}
+				onPrevious={() => seekKeyframe('previous')}
+				onToggle={toggleKeyframe}
+				onNext={() => seekKeyframe('next')}
+			/>
+		{/if}
 	</div>
 {:else}
 	<div
@@ -703,17 +703,6 @@
 			</div>
 			{#key selectedClipIds().length + JSON.stringify(inputValue)}
 				<div class="flex items-center gap-2 text-xs text-secondary">
-					{#if canAnimate()}
-						<KeyframeControls
-							active={hasKeyframeAtCursor()}
-							hasPrevious={hasPreviousKeyframe()}
-							hasNext={hasNextKeyframe()}
-							{disabled}
-							onPrevious={() => seekKeyframe('previous')}
-							onToggle={toggleKeyframe}
-							onNext={() => seekKeyframe('next')}
-						/>
-					{/if}
 					{#if style.valueType === 'boolean'}
 						<label
 							class="inline-flex items-center cursor-pointer select-none scale-75 origin-right"
@@ -781,6 +770,17 @@
 							<span class="material-icons-outlined text-[12px]">restart_alt</span>
 							{$LL.common.reset()}
 						</button>
+					{/if}
+					{#if canAnimate()}
+						<KeyframeControls
+							active={hasKeyframeAtCursor()}
+							hasPrevious={hasPreviousKeyframe()}
+							hasNext={hasNextKeyframe()}
+							{disabled}
+							onPrevious={() => seekKeyframe('previous')}
+							onToggle={toggleKeyframe}
+							onNext={() => seekKeyframe('next')}
+						/>
 					{/if}
 				</div>
 			{/key}

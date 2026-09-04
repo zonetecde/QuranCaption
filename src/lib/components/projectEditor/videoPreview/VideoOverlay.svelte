@@ -1155,6 +1155,8 @@
 	{#if canShowAlignmentOverlay()}
 		<div class="alignment-overlay absolute inset-0 pointer-events-none" aria-hidden="true">
 			<div class="alignment-grid"></div>
+			<div class="element-snap-guide element-snap-guide-x" id="preview-element-snap-x"></div>
+			<div class="element-snap-guide element-snap-guide-y" id="preview-element-snap-y"></div>
 		</div>
 	{/if}
 
@@ -1429,5 +1431,24 @@
 				transparent 2px
 			);
 		background-size: 10% 10%;
+	}
+
+	.element-snap-guide {
+		position: absolute;
+		display: none;
+		background: var(--accent-primary);
+		box-shadow: 0 0 4px color-mix(in srgb, var(--accent-primary) 75%, transparent);
+	}
+
+	.element-snap-guide-x {
+		top: 0;
+		bottom: 0;
+		width: 2px;
+	}
+
+	.element-snap-guide-y {
+		left: 0;
+		right: 0;
+		height: 2px;
 	}
 </style>

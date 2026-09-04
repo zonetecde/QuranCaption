@@ -12,11 +12,13 @@
 	import ProjectTypeSelector from './ProjectTypeSelector.svelte';
 	import { Status } from '$lib/classes/Status';
 	import { slide } from 'svelte/transition';
+	import MigrationService from '$lib/services/MigrationService';
 	import { discordService } from '$lib/services/DiscordService';
 	import { onDestroy } from 'svelte';
 	import Exporter from '$lib/classes/Exporter';
 	import toast from 'svelte-5-french-toast';
 	import { Project, Utilities } from '$lib/classes';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
 
@@ -95,6 +97,10 @@
 	async function openProjectButtonClick() {
 		// Ouvre le projet
 		const project = await ProjectService.load(projectDetail.id);
+		await ProjectHistoryManager.ignoreAsync(() =>
+			project.content.videoStyle.ensureStylesSchemaUpToDate()
+		);
+		await MigrationService.hydrateStyleEditorUiMetadata(project);
 		globalState.currentProject = project;
 
 		// Discord Rich Presence

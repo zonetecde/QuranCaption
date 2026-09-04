@@ -1127,6 +1127,9 @@ pub fn normalize_audio_timestamps(file_path: String) -> Result<(), String> {
     // Décision de stratégie d'après les caractéristiques du flux audio.
     let (codec_name, profile, sample_rate, tb_num, tb_den, source_bitrate) =
         probe_audio_for_retime(&file_path_str);
+    if codec_name.is_empty() {
+        return Ok(());
+    }
 
     // Sans perte uniquement si la taille de trame est fixe ET connue, et si la
     // base de temps audio est exactement 1/sample_rate (alors PTS_paquet = N*trame).

@@ -93,6 +93,7 @@
 				endMs: endTimeTotal,
 				outputPath: output_path
 			});
+			await invoke('normalize_audio_timestamps', { filePath: output_path });
 
 			// Add new asset to project
 			const newAsset = new Asset(output_path);
@@ -178,7 +179,9 @@
 								placeholder="Min"
 								aria-label="Start minutes"
 							/>
-							<span class="text-[10px] text-thirdly block text-center uppercase">{$LL.common.min()}</span>
+							<span class="text-[10px] text-thirdly block text-center uppercase"
+								>{$LL.common.min()}</span
+							>
 						</div>
 						<span class="text-secondary font-bold mb-4">:</span>
 						<div class="flex-1 space-y-1">
@@ -191,7 +194,9 @@
 								placeholder="Sec"
 								aria-label="Start seconds"
 							/>
-							<span class="text-[10px] text-thirdly block text-center uppercase">{$LL.common.sec()}</span>
+							<span class="text-[10px] text-thirdly block text-center uppercase"
+								>{$LL.common.sec()}</span
+							>
 						</div>
 						<span class="text-secondary font-bold mb-4">.</span>
 						<div class="flex-1 space-y-1">
@@ -204,7 +209,9 @@
 								placeholder="Ms"
 								aria-label="Start milliseconds"
 							/>
-							<span class="text-[10px] text-thirdly block text-center uppercase">{$LL.common.ms()}</span>
+							<span class="text-[10px] text-thirdly block text-center uppercase"
+								>{$LL.common.ms()}</span
+							>
 						</div>
 					</div>
 				</div>
@@ -225,7 +232,9 @@
 								placeholder="Min"
 								aria-label="End minutes"
 							/>
-							<span class="text-[10px] text-thirdly block text-center uppercase">{$LL.common.min()}</span>
+							<span class="text-[10px] text-thirdly block text-center uppercase"
+								>{$LL.common.min()}</span
+							>
 						</div>
 						<span class="text-secondary font-bold mb-4">:</span>
 						<div class="flex-1 space-y-1">
@@ -238,7 +247,9 @@
 								placeholder="Sec"
 								aria-label="End seconds"
 							/>
-							<span class="text-[10px] text-thirdly block text-center uppercase">{$LL.common.sec()}</span>
+							<span class="text-[10px] text-thirdly block text-center uppercase"
+								>{$LL.common.sec()}</span
+							>
 						</div>
 						<span class="text-secondary font-bold mb-4">.</span>
 						<div class="flex-1 space-y-1">
@@ -251,7 +262,9 @@
 								placeholder="Ms"
 								aria-label="End milliseconds"
 							/>
-							<span class="text-[10px] text-thirdly block text-center uppercase">{$LL.common.ms()}</span>
+							<span class="text-[10px] text-thirdly block text-center uppercase"
+								>{$LL.common.ms()}</span
+							>
 						</div>
 					</div>
 				</div>

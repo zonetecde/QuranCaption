@@ -18,6 +18,7 @@
 	import toast from 'svelte-5-french-toast';
 	import { Project, TrackType, Utilities } from '$lib/classes';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
 
@@ -87,6 +88,9 @@
 	async function openProjectButtonClick() {
 		// Ouvre le projet
 		const project = await ProjectService.load(projectDetail.id);
+		await ProjectHistoryManager.ignoreAsync(() =>
+			project.content.videoStyle.ensureStylesSchemaUpToDate(project.content)
+		);
 		globalState.currentProject = project;
 		AnalyticsService.trackProjectOpened(
 			project.detail.projectType,

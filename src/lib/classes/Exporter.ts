@@ -1039,13 +1039,11 @@ export default class Exporter {
 	 * Ajoute plusieurs plages vidéo du même projet à la file d'export séquentielle.
 	 * @param {Project} sourceProject Projet source à cloner pour chaque plage.
 	 * @param {ReadonlyArray<{ startTime: number; endTime: number }>} ranges Plages à exporter dans l'ordre.
-	 * @param {string} baseFileName Nom de base sans extension pour les fichiers générés.
 	 * @returns {Promise<void>} Promesse résolue après l'ajout de toutes les plages.
 	 */
 	static async queueVideoRanges(
 		sourceProject: Project,
-		ranges: ReadonlyArray<{ startTime: number; endTime: number }>,
-		baseFileName: string
+		ranges: ReadonlyArray<{ startTime: number; endTime: number }>
 	): Promise<void> {
 		const videoExtension = sourceProject.projectEditorState.export.exportWithoutBackground
 			? sourceProject.projectEditorState.export.transparentExportFormat === 'webm_vp9_alpha'
@@ -1055,17 +1053,24 @@ export default class Exporter {
 		const exportFolder = await ExportService.getExportFolder();
 		const reservedPaths = new Set<string>();
 
-		for (const [index, range] of ranges.entries()) {
+		for (const range of ranges) {
 			const project = sourceProject.clone();
 			project.projectEditorState.export.videoStartTime = range.startTime;
 			project.projectEditorState.export.videoEndTime = range.endTime;
+			const subtitleClips = project.content.timeline
+				.getFirstTrack(TrackType.Subtitle)
+				.clips.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip);
+			const baseFileName = project.detail.generateExportFileName(
+				project.projectEditorState.export,
+				subtitleClips
+			);
 
 			let collisionSuffix = 0;
 			let fileName = '';
 			let filePath = '';
 			do {
 				const suffix = collisionSuffix === 0 ? '' : `-${collisionSuffix}`;
-				fileName = `${baseFileName}-part-${index + 1}${suffix}.${videoExtension}`;
+				fileName = `${baseFileName}${suffix}.${videoExtension}`;
 				filePath = await ExportService.constrainFilePathLength(await join(exportFolder, fileName));
 				collisionSuffix += 1;
 			} while (reservedPaths.has(filePath) || (await exists(filePath)));

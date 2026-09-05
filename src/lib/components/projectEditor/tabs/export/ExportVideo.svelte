@@ -448,11 +448,7 @@
 				return;
 			}
 
-			await Exporter.queueVideoRanges(
-				sourceProject,
-				selectedRanges,
-				sourceProject.detail.generateExportFileName()
-			);
+			await Exporter.queueVideoRanges(sourceProject, selectedRanges);
 		} catch (error) {
 			await ModalManager.errorModal(
 				get(LL).common.unexpectedError(),

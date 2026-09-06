@@ -137,6 +137,39 @@ describe('reactiveFontSize', () => {
 			}
 		});
 
+		test('réduit la taille si le contenu dépasse la largeur du conteneur', async () => {
+			const abortController = new AbortController();
+			let currentFontSize = 50;
+			const setReactiveFontSize = vi.fn((_target: string, value: number) => {
+				currentFontSize = value;
+			});
+			const el = createSubtitleElement('arabic', 50);
+			Object.defineProperty(el, 'clientWidth', { value: 100, configurable: true });
+			Object.defineProperty(el, 'scrollWidth', {
+				get: () => currentFontSize * 4,
+				configurable: true
+			});
+			document.body.appendChild(el);
+
+			try {
+				await applyReactiveFontSize(
+					'arabic',
+					0,
+					5,
+					50,
+					true,
+					abortController.signal,
+					setReactiveFontSize,
+					fakeWait
+				);
+
+				expect(currentFontSize).toBeLessThan(50);
+				expect(el.scrollWidth).toBeLessThanOrEqual(el.clientWidth + 1);
+			} finally {
+				document.body.removeChild(el);
+			}
+		});
+
 		test('ne réduit pas la taille si le scrollHeight est déjà dans la limite', async () => {
 			const abortController = new AbortController();
 			const calls: Array<[string, number]> = [];

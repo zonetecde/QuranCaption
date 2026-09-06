@@ -1,9 +1,9 @@
 /**
  * Ajustement réactif de la taille de police des sous-titres.
  *
- * Quand un sous-titre dépasse une hauteur maximale configurée (`max-height`)
- * ou un nombre maximal de lignes (`max-line`), la taille de police est réduite
- * progressivement jusqu'à ce que le texte tienne dans la contrainte souhaitée.
+ * Quand un sous-titre dépasse la largeur de son conteneur, une hauteur maximale
+ * configurée (`max-height`) ou un nombre maximal de lignes (`max-line`), la taille
+ * de police est réduite progressivement jusqu'à ce que le texte tienne.
  * Une marge supplémentaire est ajoutée si le texte n'est pas centré verticalement
  * (pour compenser les dépassements liés au positionnement).
  *
@@ -14,9 +14,10 @@
 /**
  * Applique l'ajustement réactif de taille de police pour un target donné.
  *
- * Pour chaque élément `.subtitle` du target visé, vérifie si sa hauteur
- * dépasse `maxHeightValue`. Si oui, réduit `fontSize` par paliers jusqu'à
- * ce que la contrainte soit respectée ou que la taille atteigne 1px.
+ * Pour chaque élément `.subtitle` du target visé, vérifie si son contenu
+ * dépasse sa largeur, `maxHeightValue` ou `maxLineValue`. Si oui, réduit
+ * `fontSize` jusqu'à ce que les contraintes soient respectées ou que la taille
+ * atteigne 1px.
  *
  * @param target - Le target de style (ex: `"arabic"`, nom d'édition).
  * @param maxHeightValue - Hauteur maximale autorisée en pixels (0 = pas de limite).
@@ -38,13 +39,6 @@ export async function applyReactiveFontSize(
 	wait: (signal: AbortSignal) => Promise<void>
 ): Promise<void> {
 	const hasMaxLineLimit = maxLineValue >= 1 && maxLineValue <= 4;
-
-	// Si max-height vaut 0 et max-line est infini, aucune contrainte de fit
-	if (maxHeightValue === 0 && !hasMaxLineLimit) {
-		// On définit quand même la taille réactive pour rester cohérent
-		setReactiveFontSize(target, initialFontSize);
-		return;
-	}
 
 	// Applique la taille initiale comme point de départ
 	setReactiveFontSize(target, initialFontSize);
@@ -104,7 +98,9 @@ function hasReactiveFontSizeViolation(
 	const hasMaxLineLimit = maxLineValue >= 1 && maxLineValue <= 4;
 
 	return subtitles.some((subtitle) => {
+		const element = subtitle as HTMLElement;
 		return (
+			element.scrollWidth > element.clientWidth + 1 ||
 			(maxHeightValue > 0 && subtitle.scrollHeight > maxHeightValue + marge) ||
 			(hasMaxLineLimit && getReactiveFontSizeLineCount(subtitle, target) > maxLineValue)
 		);

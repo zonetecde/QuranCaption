@@ -2,17 +2,27 @@ package com.qurancaption
 
 import android.content.Context
 import android.content.pm.ActivityInfo
+import android.content.res.AssetFileDescriptor
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.ParcelFileDescriptor
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.annotation.Keep
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.SilenceMediaSource
+import androidx.webkit.WebViewCompat
 import com.arthenica.ffmpegkit.FFmpegKit
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -27,6 +37,12 @@ class MainActivity : TauriActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         NativeAudioPlayer.initialize(this)
+    }
+
+    /** Installe le flux natif des médias locaux sur la WebView créée par Tauri. */
+    override fun onWebViewCreate(webView: WebView) {
+        super.onWebViewCreate(webView)
+        webView.webViewClient = LocalMediaWebViewClient(WebViewCompat.getWebViewClient(webView))
     }
 
     /** Transmet le chargement audio JNI au lecteur Media3. */
@@ -90,6 +106,146 @@ class MainActivity : TauriActivity() {
             .put("output", session.output.orEmpty())
             .put("failureStackTrace", session.failStackTrace.orEmpty())
             .toString()
+    }
+}
+
+private class LocalMediaWebViewClient(private val delegate: WebViewClient) : WebViewClient() {
+    /** Intercepte les médias locaux sans copier leur contenu complet dans le tas Java. */
+    override fun shouldInterceptRequest(
+        view: WebView,
+        request: WebResourceRequest
+    ): WebResourceResponse? {
+        return streamLocalMedia(request) ?: try {
+            delegate.shouldInterceptRequest(view, request)
+        } catch (_: OutOfMemoryError) {
+            Logger.error("Unable to intercept WebView request: insufficient memory")
+            null
+        }
+    }
+
+    /** Délègue la validation des navigations au client Tauri. */
+    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+        return delegate.shouldOverrideUrlLoading(view, request)
+    }
+
+    /** Délègue le début du chargement au client Tauri. */
+    override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+        delegate.onPageStarted(view, url, favicon)
+    }
+
+    /** Délègue la fin du chargement au client Tauri. */
+    override fun onPageFinished(view: WebView, url: String) {
+        delegate.onPageFinished(view, url)
+    }
+
+    /** Délègue les erreurs de chargement au client Tauri. */
+    override fun onReceivedError(
+        view: WebView,
+        request: WebResourceRequest,
+        error: WebResourceError
+    ) {
+        delegate.onReceivedError(view, request, error)
+    }
+
+    /**
+     * Sert un fichier audio ou vidéo local avec une réponse bornée compatible avec les seeks.
+     *
+     * @param request Requête WebView ciblant une URL asset locale.
+     * @return Réponse de streaming, ou null si la requête ne cible pas un média local.
+     */
+    private fun streamLocalMedia(request: WebResourceRequest): WebResourceResponse? {
+        if (
+            request.url.host != "asset.localhost" ||
+            (request.method != "GET" && request.method != "HEAD")
+        ) {
+            return null
+        }
+
+        val path = Uri.decode(request.url.encodedPath?.removePrefix("/") ?: return null)
+        val file = File(path)
+        val mimeType = MEDIA_MIME_TYPES[file.extension.lowercase()] ?: return null
+        if (!file.isFile) return null
+
+        return try {
+            val fileLength = file.length()
+            if (fileLength <= 0) return null
+
+            var start = 0L
+            var end = fileLength - 1
+            var statusCode = 200
+            var reasonPhrase = "OK"
+            val rangeHeader = request.requestHeaders.entries
+                .firstOrNull { it.key.equals("Range", ignoreCase = true) }
+                ?.value
+            if (rangeHeader != null) {
+                val range = rangeHeader.takeIf { it.startsWith("bytes=") && ',' !in it }
+                    ?.removePrefix("bytes=")
+                    ?: return rangeNotSatisfiable(fileLength)
+                val bounds = range.split('-', limit = 2)
+                val requestedStart = bounds.getOrNull(0)?.toLongOrNull()
+                val requestedEnd = bounds.getOrNull(1)?.toLongOrNull()
+                if (requestedStart == null && requestedEnd != null) {
+                    start = (fileLength - requestedEnd).coerceAtLeast(0)
+                } else if (requestedStart != null) {
+                    start = requestedStart
+                    end = requestedEnd?.coerceAtMost(end) ?: end
+                } else {
+                    return rangeNotSatisfiable(fileLength)
+                }
+
+                if (start >= fileLength || end < start) return rangeNotSatisfiable(fileLength)
+                statusCode = 206
+                reasonPhrase = "Partial Content"
+            }
+
+            val contentLength = end - start + 1
+            val headers = mutableMapOf(
+                "Accept-Ranges" to "bytes",
+                "Content-Length" to contentLength.toString(),
+                "Access-Control-Allow-Origin" to "*"
+            )
+            if (statusCode == 206) headers["Content-Range"] = "bytes $start-$end/$fileLength"
+
+            val stream = if (request.method == "HEAD") {
+                ByteArrayInputStream(ByteArray(0))
+            } else {
+                val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+                AssetFileDescriptor(descriptor, start, contentLength).createInputStream()
+            }
+            WebResourceResponse(mimeType, null, statusCode, reasonPhrase, headers, stream)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /** Retourne une réponse HTTP indiquant qu'une plage de fichier est invalide. */
+    private fun rangeNotSatisfiable(fileLength: Long): WebResourceResponse {
+        return WebResourceResponse(
+            "text/plain",
+            "UTF-8",
+            416,
+            "Range Not Satisfiable",
+            mapOf("Content-Range" to "bytes */$fileLength"),
+            ByteArrayInputStream(ByteArray(0))
+        )
+    }
+
+    private companion object {
+        private val MEDIA_MIME_TYPES = mapOf(
+            "aac" to "audio/aac",
+            "avi" to "video/x-msvideo",
+            "flac" to "audio/flac",
+            "flv" to "video/x-flv",
+            "m4a" to "audio/mp4",
+            "mkv" to "video/x-matroska",
+            "mov" to "video/quicktime",
+            "mp3" to "audio/mpeg",
+            "mp4" to "video/mp4",
+            "ogg" to "audio/ogg",
+            "opus" to "audio/ogg",
+            "wav" to "audio/wav",
+            "webm" to "video/webm"
+        )
     }
 }
 

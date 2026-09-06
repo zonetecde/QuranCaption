@@ -357,17 +357,32 @@ fn with_retriever<T>(
         .map_err(|e| format!("Unable to build Android media path: {}", e))?;
     let path_object = JObject::from(path);
 
-    env.call_method(
+    let result = match env.call_method(
         &retriever,
         "setDataSource",
         "(Ljava/lang/String;)V",
         &[JValue::Object(&path_object)],
-    )
-    .map_err(|e| format!("Unable to set Android media data source: {}", e))?;
+    ) {
+        Ok(_) => read(&mut env, &retriever),
+        Err(error) => Err(format!(
+            "Unable to set Android media data source: {}",
+            error
+        )),
+    };
 
-    let result = read(&mut env, &retriever);
+    clear_pending_exception(&mut env);
     let _ = env.call_method(&retriever, "release", "()V", &[]);
+    clear_pending_exception(&mut env);
     result
+}
+
+/// Efface une exception Java traitée afin qu'elle ne traverse pas la frontière JNI.
+///
+/// @param env Environnement JNI courant.
+fn clear_pending_exception(env: &mut jni::JNIEnv) {
+    if env.exception_check().unwrap_or(false) {
+        let _ = env.exception_clear();
+    }
 }
 
 /// Extrait une métadonnée String depuis MediaMetadataRetriever.

@@ -39,6 +39,7 @@
 	let captureRendererExportId = $state<string | null>(null);
 	let captureRendererIds = $state<number[]>([]);
 	let captureRendererElements = $state<Array<HTMLIFrameElement | undefined>>([]);
+	let visibleViewportHeight = $state(0);
 
 	/**
 	 * Retourne l'identifiant du renderer de capture correspondant à une source de message.
@@ -76,6 +77,7 @@
 			height,
 			orientation: width > height ? 'landscape' : 'portrait'
 		};
+		visibleViewportHeight = Math.round(window.visualViewport?.height ?? height);
 	}
 
 	/**
@@ -280,10 +282,12 @@
 	onMount(() => {
 		syncAndroidViewport();
 		window.addEventListener('resize', syncAndroidViewport);
+		window.visualViewport?.addEventListener('resize', syncAndroidViewport);
 		window.addEventListener('message', handleExportRendererMessage);
 
 		return () => {
 			window.removeEventListener('resize', syncAndroidViewport);
+			window.visualViewport?.removeEventListener('resize', syncAndroidViewport);
 			window.removeEventListener('message', handleExportRendererMessage);
 		};
 	});
@@ -321,8 +325,8 @@
 			homepageMessage = hasContent ? message : null;
 			homepageMessageVisible = Boolean(
 				hasContent &&
-					message.fingerprint !==
-						globalState.settings?.persistentUiState.dismissedHomepageMessageFingerprint
+				message.fingerprint !==
+					globalState.settings?.persistentUiState.dismissedHomepageMessageFingerprint
 			);
 		} catch (error) {
 			console.error('Failed to load homepage message:', error);
@@ -384,7 +388,10 @@
 <Toaster />
 <QuranReflectionPrompt />
 
-<div class="flex h-[100dvh] flex-col overflow-hidden">
+<div
+	class="flex h-[100dvh] flex-col overflow-hidden"
+	style={visibleViewportHeight > 0 ? `height: ${visibleViewportHeight}px;` : undefined}
+>
 	<TitleBar />
 	<main
 		class={`flex-1 overflow-auto ${

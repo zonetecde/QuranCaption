@@ -2,6 +2,7 @@
 	import type { VisualMergeMode } from '$lib/classes/Clip.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import { onDestroy } from 'svelte';
 	import {
 		canMergeArabicVisualModes,
 		getActiveVisualMergeGroupId,
@@ -14,14 +15,57 @@
 		openPresetLibrary,
 		getPanelLabel,
 		selectPanel,
-		secondaryControlsVisible
+		secondaryControlsVisible,
+		onSearchFocusChange
 	}: {
 		panels: StylePanel[];
 		openPresetLibrary: () => void;
 		getPanelLabel: (panel: StylePanel) => string;
 		selectPanel: (panelId: string) => void;
 		secondaryControlsVisible: boolean;
+		onSearchFocusChange: (focused: boolean) => void;
 	} = $props();
+
+	const STYLE_SEARCH_DEBOUNCE_MS = 120;
+	let searchInputValue = $state(globalState.getStylesState.searchQuery);
+	let committedSearchQuery = globalState.getStylesState.searchQuery;
+	let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+	$effect(() => {
+		const query = globalState.getStylesState.searchQuery;
+		if (query === committedSearchQuery) return;
+
+		clearTimeout(searchDebounceTimer);
+		searchDebounceTimer = undefined;
+		committedSearchQuery = query;
+		searchInputValue = query;
+	});
+
+	onDestroy(() => clearTimeout(searchDebounceTimer));
+
+	/**
+	 * Diffère le filtrage lourd tout en laissant la saisie locale instantanée.
+	 * @param {string} query Nouvelle recherche saisie.
+	 * @returns {void}
+	 */
+	function scheduleStyleSearch(query: string): void {
+		searchInputValue = query;
+		clearTimeout(searchDebounceTimer);
+		searchDebounceTimer = setTimeout(() => {
+			committedSearchQuery = searchInputValue;
+			globalState.getStylesState.searchQuery = searchInputValue;
+			searchDebounceTimer = undefined;
+		}, STYLE_SEARCH_DEBOUNCE_MS);
+	}
+
+	/** Efface immédiatement la recherche locale et appliquée. */
+	function clearStyleSearch(): void {
+		clearTimeout(searchDebounceTimer);
+		searchDebounceTimer = undefined;
+		searchInputValue = '';
+		committedSearchQuery = '';
+		globalState.getStylesState.searchQuery = '';
+	}
 
 	const visualMergeSelection = $derived(
 		globalState.getSubtitleTrack.getVisualMergeSelection(
@@ -84,9 +128,7 @@
 				aria-pressed={globalState.getStylesState.currentSelection === selection}
 				onclick={() => {
 					globalState.getStylesState.currentSelection = selection as
-						| 'global'
-						| 'arabic'
-						| 'translation';
+						'global' | 'arabic' | 'translation';
 				}}
 				class={'style-target-tab ' +
 					(globalState.getStylesState.currentSelection === selection
@@ -145,14 +187,17 @@
 						placeholder={$LL.style.searchStyles()}
 						aria-label={$LL.style.searchStyles()}
 						class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] py-1 pr-8 pl-9! text-xs focus:ring-1 focus:ring-white/20"
-						bind:value={globalState.getStylesState.searchQuery}
+						value={searchInputValue}
+						oninput={(event) => scheduleStyleSearch(event.currentTarget.value)}
+						onfocus={() => onSearchFocusChange(true)}
+						onblur={() => onSearchFocusChange(false)}
 					/>
-					{#if globalState.getStylesState.searchQuery}
+					{#if searchInputValue}
 						<button
 							type="button"
 							title={$LL.editor.clearSearch()}
 							aria-label={$LL.editor.clearSearch()}
-							onclick={() => (globalState.getStylesState.searchQuery = '')}
+							onclick={clearStyleSearch}
 							class="absolute top-1/2 right-2 -translate-y-1/2 text-secondary hover:text-primary"
 						>
 							<span class="material-icons-outlined text-sm">close</span>

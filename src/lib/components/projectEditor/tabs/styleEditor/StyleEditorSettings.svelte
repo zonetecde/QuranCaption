@@ -29,11 +29,13 @@
 	let {
 		presetLibraryOpen,
 		openPresetLibrary,
-		closePresetLibrary
+		closePresetLibrary,
+		onSearchFocusChange
 	}: {
 		presetLibraryOpen: boolean;
 		openPresetLibrary: () => void;
 		closePresetLibrary: () => void;
+		onSearchFocusChange: (focused: boolean) => void;
 	} = $props();
 
 	let stylesContainer: HTMLDivElement | undefined = $state();
@@ -65,6 +67,12 @@
 	);
 
 	const stylePanels = $derived(() => (stylesSchemaReady ? getStylePanels() : []));
+	const visibleStylesByCategory = $derived.by(() => {
+		if (!stylesSchemaReady) return new Map<string, Style[]>();
+		return new Map(
+			getCategoriesToDisplay().map((category) => [category.id, computeVisibleStyles(category)])
+		);
+	});
 	const visiblePanels = $derived(() => {
 		if (styleSearchQuery() === '') {
 			const currentPanel = stylePanels().find(
@@ -820,7 +828,7 @@
 	 * @param {Category} category Catégorie à filtrer.
 	 * @returns {Style[]} Styles visibles.
 	 */
-	function getVisibleStyles(category: Category): Style[] {
+	function computeVisibleStyles(category: Category): Style[] {
 		const styles = getDisplayCategoryStyles(category);
 		const headerStyleId = category.ui?.headerStyle;
 
@@ -833,6 +841,15 @@
 				!isStyleInactiveByDependency(category, style)
 			);
 		});
+	}
+
+	/**
+	 * Retourne le filtrage déjà calculé pour une catégorie.
+	 * @param {Category} category Catégorie recherchée.
+	 * @returns {Style[]} Styles visibles mémorisés.
+	 */
+	function getVisibleStyles(category: Category): Style[] {
+		return visibleStylesByCategory.get(category.id) ?? [];
 	}
 
 	/**
@@ -1015,6 +1032,7 @@
 				{getPanelLabel}
 				{selectPanel}
 				secondaryControlsVisible={secondaryHeaderVisible}
+				{onSearchFocusChange}
 			/>
 			<div class="style-settings-content p-2">
 				{#if globalState.getStylesState.getCurrentSelection() === 'global' && globalState.getStylesState.selectedSubtitles.length > 0}

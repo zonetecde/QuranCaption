@@ -153,9 +153,20 @@ export default class ExportService {
 			return;
 		}
 
-		const json = await readTextFile(filePath);
-		const parsedData: unknown = JSON.parse(json);
-		const data = Array.isArray(parsedData) ? parsedData : [];
+		let data: unknown[];
+		try {
+			const parsedData: unknown = JSON.parse(await readTextFile(filePath));
+			if (!Array.isArray(parsedData)) throw new Error('Invalid exports data');
+			data = parsedData;
+		} catch {
+			globalState.exportations = [];
+			this.loadedExportIds = new Set();
+			await invoke('merge_export_entries', {
+				ownedExportIds: [],
+				exports: []
+			});
+			return;
+		}
 		globalState.exportations = data.map(
 			(exp) => Exportation.fromJSON(exp as Record<string, unknown>) as Exportation
 		);

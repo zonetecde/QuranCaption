@@ -8,6 +8,8 @@ pub mod diagnostics;
 pub mod discord;
 /// Commandes de téléchargement externes.
 pub mod downloads;
+/// Commandes de persistance du moniteur d'exports.
+pub mod export_persistence;
 /// Commandes de gestion de fichiers.
 pub mod files;
 /// Commandes multimédia et utilitaires ffmpeg/ffprobe.

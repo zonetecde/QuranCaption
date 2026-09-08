@@ -168,6 +168,38 @@ describe('reactiveFontSize', () => {
 			}
 		});
 
+		test('ignore le padding du fond par ligne lors de la mesure', async () => {
+			const abortController = new AbortController();
+			const setReactiveFontSize = vi.fn();
+			const el = createSubtitleElement('arabic', 0);
+			const lineBackground = document.createElement('span');
+			lineBackground.className = 'line-background';
+			el.appendChild(lineBackground);
+			Object.defineProperty(el, 'scrollHeight', {
+				get: () => (el.classList.contains('reactive-font-size-measurement') ? 50 : 200),
+				configurable: true
+			});
+			document.body.appendChild(el);
+
+			try {
+				await applyReactiveFontSize(
+					'arabic',
+					100,
+					5,
+					42,
+					true,
+					abortController.signal,
+					setReactiveFontSize,
+					fakeWait
+				);
+
+				expect(setReactiveFontSize).toHaveBeenCalledTimes(1);
+				expect(el.classList.contains('reactive-font-size-measurement')).toBe(false);
+			} finally {
+				document.body.removeChild(el);
+			}
+		});
+
 		test('compte les lignes rendues depuis les rectangles DOM', () => {
 			const restoreRange = mockRenderedLineRects(() => 3);
 			const el = createSubtitleElement('arabic', 50);

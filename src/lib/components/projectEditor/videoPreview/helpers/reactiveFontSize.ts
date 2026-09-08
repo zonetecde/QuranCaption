@@ -100,13 +100,21 @@ function hasReactiveFontSizeViolation(
 	marge: number
 ): boolean {
 	const hasMaxLineLimit = maxLineValue >= 1 && maxLineValue <= 4;
+	const measurementClass = 'reactive-font-size-measurement';
 
-	return subtitles.some((subtitle) => {
-		return (
-			(maxHeightValue > 0 && subtitle.scrollHeight > maxHeightValue + marge) ||
-			(hasMaxLineLimit && getRenderedLineCount(subtitle) > maxLineValue)
-		);
-	});
+	// Line backgrounds are decorative and must not reduce the fitted font size.
+	for (const subtitle of subtitles) subtitle.classList.add(measurementClass);
+
+	try {
+		return subtitles.some((subtitle) => {
+			return (
+				(maxHeightValue > 0 && subtitle.scrollHeight > maxHeightValue + marge) ||
+				(hasMaxLineLimit && getRenderedLineCount(subtitle) > maxLineValue)
+			);
+		});
+	} finally {
+		for (const subtitle of subtitles) subtitle.classList.remove(measurementClass);
+	}
 }
 
 /**

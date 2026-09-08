@@ -260,7 +260,8 @@
 		return {
 			enable: visibilityOpacity > 0,
 			blur: Number(globalStyles.getEffectiveValue('overlay-blur', clipId)),
-			opacity: Number(globalStyles.getEffectiveValue('overlay-opacity', clipId)) * visibilityOpacity,
+			opacity:
+				Number(globalStyles.getEffectiveValue('overlay-opacity', clipId)) * visibilityOpacity,
 			color: String(globalStyles.getEffectiveValue('overlay-color', clipId)),
 			mode: String(globalStyles.getEffectiveValue('background-overlay-mode', clipId)),
 			fadeIntensity: Number(
@@ -275,9 +276,7 @@
 			fadeCurve: String(
 				globalStyles.getEffectiveValue('background-overlay-fade-curve', clipId) || 'linear'
 			),
-			fadeInvert: Boolean(
-				globalStyles.getEffectiveValue('background-overlay-fade-invert', clipId)
-			),
+			fadeInvert: Boolean(globalStyles.getEffectiveValue('background-overlay-fade-invert', clipId)),
 			fadePositionX: Number(
 				globalStyles.getEffectiveValue('background-overlay-fade-position-x', clipId) || 0.5
 			),
@@ -295,8 +294,7 @@
 	});
 
 	let videoFrameSettings = $derived.by(() => {
-		const visibilityOpacity = globalState
-			.getVideoStyle
+		const visibilityOpacity = globalState.getVideoStyle
 			.getStylesOfTarget('global')
 			.getEffectiveVisibilityOpacity('video-frame-enable');
 		const verticalSize = Math.min(
@@ -433,8 +431,7 @@
 		let maxOpacity = Number(
 			globalState.getVideoStyle.getStylesOfTarget(target).getEffectiveValue('opacity', clipId)
 		);
-		maxOpacity *= globalState
-			.getVideoStyle
+		maxOpacity *= globalState.getVideoStyle
 			.getStylesOfTarget(target)
 			.getEffectiveVisibilityOpacity('show-subtitles', clipId);
 
@@ -1367,6 +1364,12 @@
 			linear-gradient(var(--line-background-color), var(--line-background-color)) center
 				calc(50% + var(--line-background-position)) / calc(100% - var(--line-background-height))
 				var(--line-background-height) no-repeat;
+	}
+
+	/** Ignore line background decoration while measuring the font size. */
+	:global(#subtitles-container .reactive-font-size-measurement .line-background) {
+		--line-background-height: 0px;
+		--line-background-position: 0px;
 	}
 
 	/** Dessine la barre WBW hors du flux pour qu'une position basse ne la coupe pas. */

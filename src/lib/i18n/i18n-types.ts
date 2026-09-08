@@ -8819,6 +8819,12 @@ type RootTranslation = {
 		 * S​h​i​f​t​ ​A​l​l​ ​S​u​b​t​i​t​l​e​s
 		 */
 		shiftAllSubtitles: string;
+		importSrtTranslation: string;
+		srtFileFilter: string;
+		srtImportSuccess: RequiredParams<'fileName' | 'count'>;
+		srtImportError: string;
+		srtNoSubtitles: string;
+		srtNoMatches: string;
 		/**
 		 * M​o​v​e​ ​a​l​l​ ​s​u​b​t​i​t​l​e​s​ ​f​o​r​w​a​r​d​ ​o​r​ ​b​a​c​k​w​a​r​d​ ​i​n​ ​t​i​m​e
 		 */
@@ -18474,6 +18480,12 @@ export type TranslationFunctions = {
 		 * Shift All Subtitles
 		 */
 		shiftAllSubtitles: () => LocalizedString;
+		importSrtTranslation: () => LocalizedString;
+		srtFileFilter: () => LocalizedString;
+		srtImportSuccess: (arg: { fileName: unknown; count: unknown }) => LocalizedString;
+		srtImportError: () => LocalizedString;
+		srtNoSubtitles: () => LocalizedString;
+		srtNoMatches: () => LocalizedString;
 		/**
 		 * Move all subtitles forward or backward in time
 		 */

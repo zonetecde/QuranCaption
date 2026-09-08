@@ -2,6 +2,7 @@ import { VerseRange, type Project } from '$lib/classes';
 import { exists, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { globalState } from '$lib/runes/main.svelte';
 import Exportation, {
 	ExportKind,
@@ -185,6 +186,7 @@ export default class ExportService {
 			// Aucun export trouvé
 			globalState.exportations = [];
 			this.loadedExportIds = new Set();
+			this.ownedExportIds = new Set();
 			return;
 		}
 
@@ -206,15 +208,27 @@ export default class ExportService {
 			(exp) => Exportation.fromJSON(exp as Record<string, unknown>) as Exportation
 		);
 		this.loadedExportIds = new Set(globalState.exportations.map((exp) => exp.exportId));
-		this.ownedExportIds = new Set(this.loadedExportIds);
 
-		// Tout les exports en cours on les mets en canceled
+		// Only the initial window represents a process restart.
+		if (getCurrentWindow().label !== 'main') return;
+
+		const interruptedExportIds: number[] = [];
 		globalState.exportations.forEach((exp) => {
 			if (exp.isOnGoing()) {
 				exp.currentState = ExportState.Canceled;
+				interruptedExportIds.push(exp.exportId);
 			}
 		});
-		await this.saveExports();
+
+		if (interruptedExportIds.length > 0) {
+			const interruptedIds = new Set(interruptedExportIds);
+			await invoke('merge_export_entries', {
+				ownedExportIds: interruptedExportIds,
+				exports: globalState.exportations
+					.filter((exp) => interruptedIds.has(exp.exportId))
+					.map((exp) => exp.toJSON())
+			});
+		}
 	}
 
 	static async deleteProjectFile(exportIdId: number) {

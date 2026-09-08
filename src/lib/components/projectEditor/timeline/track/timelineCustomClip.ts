@@ -7,6 +7,7 @@ import {
 	updateTimedOverlayRange,
 	type TimedOverlayRange
 } from '$lib/services/TimedOverlayRanges';
+import { getTimelineClipLayout } from './timelineClipLayout';
 
 const CUSTOM_CLIP_SNAP_DISTANCE_PX = 8;
 
@@ -204,80 +205,10 @@ export type TimelineCustomClipLayout = {
 export function getTimelineCustomClipLayout(
 	clips: TimelineCustomClipLike[]
 ): TimelineCustomClipLayout {
-	const laneEndTimes: number[] = [];
-	const orderedClips = clips
-		.map((clip, originalIndex) => ({ clip, originalIndex }))
-		.sort((left, right) => {
-			const leftStart = left.clip.getAlwaysShow() ? 0 : left.clip.startTime;
-			const rightStart = right.clip.getAlwaysShow() ? 0 : right.clip.startTime;
-			return leftStart - rightStart || left.originalIndex - right.originalIndex;
-		});
-
-	const positionedClips = orderedClips.map(({ clip }) => {
-		const startTime = clip.getAlwaysShow() ? 0 : clip.startTime;
-		const endTime = clip.getAlwaysShow() ? Number.POSITIVE_INFINITY : clip.endTime;
-		let laneIndex = laneEndTimes.findIndex((laneEndTime) => startTime > laneEndTime);
-
-		if (laneIndex === -1) {
-			laneIndex = laneEndTimes.length;
-			laneEndTimes.push(endTime);
-		} else {
-			laneEndTimes[laneIndex] = endTime;
-		}
-
-		return { clip, laneIndex };
-	});
-
-	return { clips: positionedClips, laneCount: laneEndTimes.length };
-}
-
-const GLOBAL_SURAH_NAME_TIMELINE_CONFIG: GlobalTimedOverlayConfig = {
-	id: 'global-surah-name',
-	label: 'Surah Name',
-	alwaysShowStyleId: 'surah-name-always-show',
-	startStyleId: 'surah-name-time-appearance',
-	endStyleId: 'surah-name-time-disappearance',
-	rangesStyleId: 'surah-name-time-ranges'
-};
-
-const GLOBAL_RECITER_NAME_TIMELINE_CONFIG: GlobalTimedOverlayConfig = {
-	id: 'global-reciter-name',
-	label: 'Reciter Name',
-	alwaysShowStyleId: 'reciter-name-always-show',
-	startStyleId: 'reciter-name-time-appearance',
-	endStyleId: 'reciter-name-time-disappearance',
-	rangesStyleId: 'reciter-name-time-ranges'
-};
-
-const GLOBAL_AYAH_CONTAINER_TIMELINE_CONFIG: GlobalTimedOverlayConfig = {
-	id: 'global-ayah-container',
-	label: 'Ayah Container',
-	alwaysShowStyleId: 'always-show',
-	startStyleId: 'time-appearance',
-	endStyleId: 'time-disappearance',
-	rangesStyleId: 'ayah-container-time-ranges'
-};
-
-/**
- * Crée les adaptateurs timeline correspondant à toutes les plages d'un overlay.
- * @param {GlobalTimedOverlayConfig} config Configuration de l'overlay.
- * @returns {GlobalTimedOverlayTimelineClip[]} Adaptateurs ordonnés.
- */
-function createTimedOverlayTimelineClips(
-	config: GlobalTimedOverlayConfig
-): GlobalTimedOverlayTimelineClip[] {
-	const styles = globalState.getVideoStyle.getStylesOfTarget(config.target ?? 'global');
-	const ranges = config.source
-		? config.source.getTimedOverlayRanges(false)
-		: getTimedOverlayRanges(
-				config.rangesStyleId ? styles.findStyle(config.rangesStyleId)?.value : undefined,
-				styles.findStyle(config.startStyleId)?.value,
-				styles.findStyle(config.endStyleId)?.value,
-				false
-			);
-
-	return ranges.map(
-		(_range, rangeIndex) => new GlobalTimedOverlayTimelineClip({ ...config, rangeIndex })
+	return getTimelineClipLayout(
+		clips,
+		(clip) => (clip.getAlwaysShow() ? 0 : clip.startTime),
+		(clip) => (clip.getAlwaysShow() ? Number.POSITIVE_INFINITY : clip.endTime)
 	);
 }
 

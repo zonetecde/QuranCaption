@@ -105,6 +105,8 @@ const editor = {
 	clipAdditionError: 'Clip Addition Error',
 	cannotAddMoreClips:
 		'You cannot add more clips because a clip with "Loop until the end" is already present.',
+	audioOverlapHint:
+		'Tip: Drag one audio clip over another in the timeline to layer them and play both at the same time.',
 	backgroundImageError: 'Background Image Error',
 	cannotAddBackgroundImage:
 		'You cannot add a background image to the timeline when background images are not supported in this context.',

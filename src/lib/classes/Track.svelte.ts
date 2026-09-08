@@ -172,6 +172,10 @@ export class Track extends SerializableBase {
 			if (index !== -1) {
 				const clipToRemoveStartTime = this.clips[index].startTime;
 				this.clips.splice(index, 1);
+				if (this.type === TrackType.Audio) {
+					globalState.updateVideoPreviewUI();
+					return;
+				}
 
 				if (!makeNextClipStartAtThisClipStartTime) {
 					// Met à jour les timestamps des clips suivants
@@ -268,8 +272,22 @@ export class Track extends SerializableBase {
 	getCurrentClip(cursorPos?: number): Clip | null {
 		const currentTime =
 			cursorPos ?? globalState.currentProject?.projectEditorState.timeline.cursorPosition ?? 0;
+		if (this.type === TrackType.Audio) return this.getCurrentClips(currentTime)[0] ?? null;
 		const index = findClipIndexAtTime(this.clips, currentTime);
 		return index === -1 ? null : this.clips[index];
+	}
+
+	/**
+	 * Retourne tous les clips actifs à un instant, notamment pour les sous-pistes audio.
+	 * @param {number} [cursorPos] Position à inspecter en millisecondes.
+	 * @returns {Clip[]} Clips actifs dans l'ordre de la piste.
+	 */
+	getCurrentClips(cursorPos?: number): Clip[] {
+		const currentTime =
+			cursorPos ?? globalState.currentProject?.projectEditorState.timeline.cursorPosition ?? 0;
+		return this.clips
+			.filter((clip) => currentTime >= clip.startTime && currentTime <= clip.endTime)
+			.sort((left, right) => left.startTime - right.startTime);
 	}
 
 	/**
@@ -507,6 +525,7 @@ export class Track extends SerializableBase {
 			const newClip = new AssetClip(splitTime, originalEndTime, clip.assetId);
 			newClip.sourceStartTime = originalSourceStartTime + (splitTime - originalStartTime);
 			newClip.showWaveform = clip.showWaveform;
+			newClip.volumePercent = clip.volumePercent;
 			this.clips.splice(clipIndex + 1, 0, newClip);
 
 			return true;
@@ -565,9 +584,14 @@ export class AssetTrack extends Track {
 					return false;
 				}
 
-				this.clips.push(
-					new AssetClip(lastClip.endTime + 1, lastClip.endTime + asset.duration.ms + 1, asset.id)
-				);
+				if (this.type === TrackType.Audio && this.clips.length === 2) {
+					const overlapHint = Reflect.get(get(LL).editor, 'audioOverlapHint') as () => string;
+					toast(overlapHint(), { icon: '💡', duration: 6000, position: 'bottom-left' });
+				}
+
+				const startTime =
+					this.type === TrackType.Audio ? this.getDuration().ms + 1 : lastClip.endTime + 1;
+				this.clips.push(new AssetClip(startTime, startTime + asset.duration.ms, asset.id));
 			} else this.clips.push(new AssetClip(0, asset.duration.ms, asset.id));
 
 			// Trigger la réactivité dans la videopreview pour afficher le clip ajouté (si le curseur est dessus)

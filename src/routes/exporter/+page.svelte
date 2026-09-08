@@ -111,6 +111,7 @@
 		source_start_ms: number;
 		timeline_start_ms: number;
 		duration_ms: number;
+		volume_percent: number;
 	};
 
 	/**
@@ -125,14 +126,15 @@
 			const requiresTiming =
 				clip.startTime !== expectedStartTime ||
 				(clip.sourceStartTime ?? 0) > 0 ||
-				clip.duration < asset.duration.ms;
+				clip.duration < asset.duration.ms ||
+				clip.volumePercent !== 100;
 			expectedStartTime = clip.endTime + 1;
 			return requiresTiming;
 		});
 	}
 
 	/**
-	 * Construit les entrées audio et n'ajoute les métadonnées temporelles qu'en présence d'un trim.
+	 * Construit les entrées audio et ajoute les métadonnées détaillées pour un timing ou volume individuel.
 	 * @returns {{ audios: string[]; audioClips?: ExportAudioClipInput[] }} Entrées pour Tauri.
 	 */
 	function getAudioExportInputs(): {
@@ -151,7 +153,8 @@
 				path: globalState.currentProject!.content.getAssetById(clip.assetId).filePath,
 				source_start_ms: Math.round(clip.sourceStartTime ?? 0),
 				timeline_start_ms: Math.round(clip.startTime),
-				duration_ms: Math.round(clip.duration)
+				duration_ms: Math.round(clip.duration),
+				volume_percent: clip.volumePercent
 			}))
 		};
 	}

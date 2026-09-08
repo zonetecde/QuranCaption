@@ -21,6 +21,7 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { AssetTrack } from '$lib/classes/Track.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import { getTimelineClipLayout } from './timelineClipLayout';
 
 	let {
 		track = $bindable(),
@@ -45,6 +46,24 @@
 	} = $props();
 
 	let visibleClips = $derived(() => track.getClipsInRange(visibleRangeStartMs, visibleRangeEndMs));
+	let audioClipLayout = $derived(() =>
+		getTimelineClipLayout(
+			track.type === TrackType.Audio ? track.clips : [],
+			(clip) => clip.startTime,
+			(clip) => clip.endTime
+		)
+	);
+	let visibleAudioClips = $derived(() =>
+		audioClipLayout()
+			.clips.map(({ clip, laneIndex }) => ({
+				clip,
+				laneIndex,
+				clipIndex: track.clips.indexOf(clip)
+			}))
+			.filter(
+				({ clip }) => clip.endTime >= visibleRangeStartMs && clip.startTime <= visibleRangeEndMs
+			)
+	);
 
 	let customClipLayout = $derived(() => getTimelineCustomClipLayout(getTimelineCustomClips()));
 	let visibleCustomClips = $derived(() =>
@@ -307,6 +326,26 @@
 					>
 						<div class="relative h-full">
 							<CustomClipComponent {clip} {track} />
+						</div>
+					</div>
+				{/each}
+			</div>
+		{:else if track.type === TrackType.Audio}
+			{@const total = Math.max(audioClipLayout().laneCount, 1)}
+			<div class="absolute inset-0">
+				{#each visibleAudioClips() as { clip, laneIndex, clipIndex } (clip.id)}
+					<div
+						class="absolute left-0 right-0"
+						style="top: {(laneIndex * 100) / total}%; height: {100 / total}%;"
+					>
+						<div class="relative h-full">
+							<ClipComponent
+								{clip}
+								{track}
+								{clipIndex}
+								{thumbnailRangeStartMs}
+								{thumbnailRangeEndMs}
+							/>
 						</div>
 					</div>
 				{/each}

@@ -30,7 +30,7 @@
 		SubtitleClip
 	} from '$lib/classes';
 	import { CustomImageClip } from '$lib/classes/Clip.svelte';
-	import { VerseTranslation } from '$lib/classes/Translation.svelte';
+	import { type Translation, VerseTranslation } from '$lib/classes/Translation.svelte';
 	import type { StyleName } from '$lib/classes/VideoStyle.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { tick, untrack } from 'svelte';
@@ -168,9 +168,9 @@
 	/** Traductions disponibles pour le sous-titre courant. */
 	let currentSubtitleTranslations = $derived(() => {
 		const subtitle = currentSubtitle();
-		if (!subtitle) return [];
+		if (!subtitle) return {} as Record<string, Translation>;
 		if (!(subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip))
-			return [];
+			return {} as Record<string, Translation>;
 		return subtitle.translations;
 	});
 

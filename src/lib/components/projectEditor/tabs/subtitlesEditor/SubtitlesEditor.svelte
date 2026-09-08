@@ -112,7 +112,7 @@
 <div class="flex-grow w-full max-w-full flex overflow-hidden h-full min-h-0">
 	<!-- Assets -->
 	<section
-		class="flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col"
+		class="flex-shrink-0 divide-y-2 divide-color h-full min-h-0 max-h-full overflow-hidden flex flex-col"
 		style={`width: ${globalState.settings!.persistentUiState.projectEditorLayout.subtitlesEditorLeftPanelWidth}px;`}
 	>
 		<SubtitlesEditorSettings />
@@ -155,7 +155,7 @@
 		dataTestId="subtitles-right-panel-resizer"
 	/>
 	<section
-		class="flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col border border-color rounded-lg border-l-0 relative"
+		class="flex-shrink-0 divide-y-2 divide-color h-full min-h-0 max-h-full overflow-hidden flex flex-col border border-color rounded-lg border-l-0 relative"
 		style={`width: ${globalState.settings!.persistentUiState.projectEditorLayout.subtitlesEditorRightPanelWidth}px;`}
 	>
 		<VideoPreview showControls={false} />

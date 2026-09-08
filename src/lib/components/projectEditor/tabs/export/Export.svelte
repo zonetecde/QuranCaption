@@ -12,7 +12,7 @@
 
 <div class="flex-grow w-full max-w-full flex overflow-hidden h-full min-h-0">
 	<section
-		class="flex-shrink-0 divide-y-2 divide-color max-h-full overflow-hidden flex flex-col"
+		class="flex-shrink-0 divide-y-2 divide-color h-full min-h-0 max-h-full overflow-hidden flex flex-col"
 		style={`width: ${globalState.settings!.persistentUiState.projectEditorLayout.exportPanelWidth}px;`}
 	>
 		<ExportSettings />

@@ -23,6 +23,7 @@
 	import { getTimelineCustomClips } from './track/timelineCustomClip';
 	import Settings from '$lib/classes/Settings.svelte';
 	import QuickTimelineEditorOverlay from './QuickTimelineEditorOverlay.svelte';
+	import TimelineKeyframeMarkers from './TimelineKeyframeMarkers.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import { scheduleWbwRealign } from '$lib/services/autoSegmentation/auto-realign.svelte';
 
@@ -1070,6 +1071,12 @@
 						</div>
 					{/if}
 				{/each}
+
+				<TimelineKeyframeMarkers
+					times={globalState.getAllStyleKeyframeTimes()}
+					zoom={timelineState().zoom}
+					offset={TIMELINE_LEFT_HEADER_WIDTH_PX}
+				/>
 
 				<!-- Playhead cursor in ruler -->
 				<div

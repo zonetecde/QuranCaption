@@ -34,6 +34,9 @@ export class ProjectEditorState extends SerializableBase {
 	// Indique si l'utilisateur a déjà répondu à la proposition d'adapter les dimensions au média.
 	hasAnsweredVideoDimensionPrompt: boolean = $state(false);
 
+	// Indique si la note sur l'interpolation des images clés a déjà été affichée.
+	keyframeInterpolationNoticeShown: boolean = $state(false);
+
 	// Indique quelle(s) section(s) de l'éditeur sont étendues
 	sections: {
 		[name: string]: {

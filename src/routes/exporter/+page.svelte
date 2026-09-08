@@ -1014,7 +1014,7 @@
 		isSegment: boolean
 	): ReturnType<typeof buildExportCaptureJobPlan> {
 		const fadeDuration = Math.round(
-			globalState.getStyle('global', 'fade-duration')!.value as number
+			globalState.getStyleValue('global', 'fade-duration') as number
 		);
 		const timedOverlayClips = getTimedOverlayCaptureClips();
 
@@ -1025,9 +1025,12 @@
 			fadeDuration,
 			workerCount: getParallelCaptureWorkerCount(),
 			isBlankCaptureTiming: (timing) =>
+				!timings.styleKeyframeTimings.has(timing) &&
 				isBlankCaptureTiming(timing, timings.blankImgs, timings.imgWithNothingShown),
 			getReusableBlankFileName: (timing) =>
-				getReusableBlankFileName(timings.imgWithNothingShown, timing, timedOverlayClips),
+				timings.styleKeyframeTimings.has(timing)
+					? null
+					: getReusableBlankFileName(timings.imgWithNothingShown, timing, timedOverlayClips),
 			getBlankSourceCaptureTiming: (timing) => (isSegment ? timing - 1 : timing)
 		});
 	}
@@ -1788,9 +1791,10 @@
 		return calculateCaptureTimingsForRange({
 			rangeStart,
 			rangeEnd,
-			fadeDuration: Math.round(globalState.getStyle('global', 'fade-duration')!.value as number),
+			fadeDuration: Math.round(globalState.getStyleValue('global', 'fade-duration') as number),
 			subtitleClips,
 			timedOverlayClips: getTimedOverlayCaptureClips(),
+			styleKeyframeTimings: globalState.getAllStyleKeyframeTimes(),
 			getCurrentSurah: (time) => globalState.getSubtitleTrack.getCurrentSurah(time)
 		});
 	}

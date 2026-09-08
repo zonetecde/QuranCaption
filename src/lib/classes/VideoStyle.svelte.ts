@@ -276,6 +276,11 @@ export type StyleName =
 
 export type StyleOverrideValue = string | number | boolean | TimedOverlayRange[];
 
+export type StyleKeyframe = {
+	time: number;
+	value: Style['value'];
+};
+
 export type StyleEditorPanelMetadata = {
 	id: string;
 	icon: string;
@@ -331,6 +336,166 @@ const RUNTIME_LAYOUT_STYLE_IDS = new Set<StyleName>(['reactive-font-size', 'reac
 
 const styleLookupCache = new WeakMap<StylesData, Map<StyleName, Style>>();
 
+/**
+ * Resolves the latest keyframe reached at a timeline position.
+ * @param {StyleKeyframe[]} keyframes Ordered style keyframes.
+ * @param {number} time Absolute timeline position in milliseconds.
+ * @param {Style['value']} fallback Value used before the first keyframe.
+ * @returns {Style['value']} Value active at the requested position.
+ */
+function resolveKeyframeValue(
+	keyframes: StyleKeyframe[],
+	time: number,
+	fallback: Style['value']
+): Style['value'] {
+	let value = fallback;
+	for (const keyframe of keyframes) {
+		if (keyframe.time > time) break;
+		value = keyframe.value;
+	}
+	return value;
+}
+
+/**
+ * Returns the preview-only keyframe transition duration.
+ * @returns {number} Transition duration in milliseconds, or zero during export.
+ */
+function getPreviewKeyframeFadeDuration(): number {
+	if (typeof window === 'undefined' || window.location.pathname.includes('/exporter')) return 0;
+	const fadeStyle = globalState.currentProject?.content?.videoStyle
+		?.getStylesOfTarget('global')
+		.findStyle('fade-duration');
+	return Math.max(0, Number(fadeStyle?.value ?? 0));
+}
+
+/**
+ * Finds the transition ending at the next keyframe.
+ * @param {StyleKeyframe[]} keyframes Ordered keyframes.
+ * @param {number} time Current timeline position in milliseconds.
+ * @param {Style['value']} fallback Value before the first keyframe.
+ * @param {number} fadeDuration Transition duration in milliseconds.
+ * @returns {{ from: Style['value']; to: Style['value']; progress: number } | null} Active transition.
+ */
+function getActiveKeyframeTransition(
+	keyframes: StyleKeyframe[],
+	time: number,
+	fallback: Style['value'],
+	fadeDuration: number
+): { from: Style['value']; to: Style['value']; progress: number } | null {
+	if (fadeDuration <= 0) return null;
+	let from = fallback;
+	for (const keyframe of keyframes) {
+		if (time > keyframe.time) {
+			from = keyframe.value;
+			continue;
+		}
+		const fadeStart = keyframe.time - fadeDuration;
+		if (time < fadeStart) return null;
+		return {
+			from,
+			to: keyframe.value,
+			progress: Utilities.clamp01((time - fadeStart) / fadeDuration)
+		};
+	}
+	return null;
+}
+
+/**
+ * Reads the alpha channel from an editor-supported CSS color.
+ * @param {string} color Hex, RGB or RGBA color.
+ * @returns {number} Normalized alpha channel.
+ */
+function getCssColorAlpha(color: string): number {
+	const normalized = color.trim();
+	const rgba = normalized.match(/^rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\s*\)$/i);
+	if (rgba) return Utilities.clamp01(Number(rgba[1]));
+	if (/^#[0-9a-f]{8}$/i.test(normalized)) return parseInt(normalized.slice(7, 9), 16) / 255;
+	return 1;
+}
+
+/**
+ * Interpolates two CSS colors as RGBA.
+ * @param {string} fromColor Start color.
+ * @param {string} toColor End color.
+ * @param {number} progress Normalized transition progress.
+ * @returns {string} Interpolated color.
+ */
+function interpolateKeyframeColor(fromColor: string, toColor: string, progress: number): string {
+	if (progress <= 0) return fromColor;
+	if (progress >= 1) return toColor;
+	const from = Utilities.parseColorToRgb(fromColor);
+	const to = Utilities.parseColorToRgb(toColor);
+	const mix = (start: number, end: number) => start + (end - start) * progress;
+	return `rgba(${Math.round(mix(from[0], to[0]))}, ${Math.round(mix(from[1], to[1]))}, ${Math.round(mix(from[2], to[2]))}, ${Number(mix(getCssColorAlpha(fromColor), getCssColorAlpha(toColor)).toFixed(3))})`;
+}
+
+/**
+ * Resolves a keyframe value with color and opacity interpolation.
+ * @param {Style} style Style describing the value.
+ * @param {StyleKeyframe[]} keyframes Keyframes to resolve.
+ * @param {number} time Current timeline position in milliseconds.
+ * @param {Style['value']} fallback Value before the first keyframe.
+ * @param {number} fadeDuration Transition duration in milliseconds.
+ * @returns {Style['value']} Interpolated or stepped value.
+ */
+function resolvePreviewKeyframeValue(
+	style: Style,
+	keyframes: StyleKeyframe[],
+	time: number,
+	fallback: Style['value'],
+	fadeDuration: number
+): Style['value'] {
+	const transition = getActiveKeyframeTransition(keyframes, time, fallback, fadeDuration);
+	if (!transition) return resolveKeyframeValue(keyframes, time, fallback);
+	if (
+		style.valueType === 'color' &&
+		typeof transition.from === 'string' &&
+		typeof transition.to === 'string'
+	) {
+		return interpolateKeyframeColor(transition.from, transition.to, transition.progress);
+	}
+	if (
+		style.id.includes('opacity') &&
+		typeof transition.from === 'number' &&
+		typeof transition.to === 'number'
+	) {
+		return transition.from + (transition.to - transition.from) * transition.progress;
+	}
+	return resolveKeyframeValue(keyframes, time, fallback);
+}
+
+/**
+ * Resolves a boolean visibility keyframe as a smooth opacity.
+ * @param {StyleKeyframe[]} keyframes Boolean keyframes.
+ * @param {number} time Current timeline position in milliseconds.
+ * @param {Style['value']} fallback Visibility before the first keyframe.
+ * @param {number} fadeDuration Transition duration in milliseconds.
+ * @returns {number} Visibility opacity from zero to one.
+ */
+function resolveKeyframeVisibilityOpacity(
+	keyframes: StyleKeyframe[],
+	time: number,
+	fallback: Style['value'],
+	fadeDuration: number
+): number {
+	const transition = getActiveKeyframeTransition(keyframes, time, fallback, fadeDuration);
+	if (!transition) return resolveKeyframeValue(keyframes, time, fallback) ? 1 : 0;
+	const from = transition.from ? 1 : 0;
+	const to = transition.to ? 1 : 0;
+	return from + (to - from) * transition.progress;
+}
+
+/**
+ * Collects keyframe times recursively, including composite child styles.
+ * @param {Style} style Style to inspect.
+ * @returns {number[]} Keyframe times in milliseconds.
+ */
+function collectStyleKeyframeTimes(style: Style): number[] {
+	const ownTimes = style.keyframes.map((keyframe) => keyframe.time);
+	if (style.valueType !== 'composite' || !Array.isArray(style.value)) return ownTimes;
+	return [...ownTimes, ...(style.value as Style[]).flatMap(collectStyleKeyframeTimes)];
+}
+
 function isGlobalOverlayStyleId(styleId: StyleName): styleId is OverlayStyleName {
 	return GLOBAL_OVERLAY_STYLE_IDS.has(styleId as OverlayStyleName);
 }
@@ -362,11 +527,86 @@ export class Style extends SerializableBase {
 	tailwind?: boolean;
 	tailwindClass?: string;
 	icon: string = '';
+	keyframes: StyleKeyframe[] = $state([]);
 
 	constructor(init?: Partial<Style>) {
 		super();
 		if (!init) return;
 		Object.assign(this, init);
+	}
+
+	/**
+	 * Adds or replaces a keyframe at the requested timeline position.
+	 * @param {number} time Absolute timeline position in milliseconds.
+	 * @param {Style['value']} value Value active from this position.
+	 * @returns {void}
+	 */
+	setKeyframe(time: number, value: Style['value']): void {
+		const normalizedTime = Math.max(0, Math.floor(time));
+		const existing = this.keyframes.find((keyframe) => keyframe.time === normalizedTime);
+		if (existing) existing.value = value;
+		else this.keyframes.push({ time: normalizedTime, value });
+		this.keyframes.sort((a, b) => a.time - b.time);
+	}
+
+	/**
+	 * Returns the value active at a timeline position.
+	 * @param {number} time Absolute timeline position in milliseconds.
+	 * @returns {Style['value']} Base value or the latest reached keyframe value.
+	 */
+	getValueAt(time: number, fadeDuration = getPreviewKeyframeFadeDuration()): Style['value'] {
+		return resolvePreviewKeyframeValue(this, this.keyframes, time, this.value, fadeDuration);
+	}
+
+	/**
+	 * Resolves boolean keyframes as a preview visibility opacity.
+	 * @param {number} time Absolute timeline position in milliseconds.
+	 * @param {number} fadeDuration Transition duration in milliseconds.
+	 * @returns {number} Visibility opacity from zero to one.
+	 */
+	getVisibilityOpacityAt(
+		time: number,
+		fadeDuration = getPreviewKeyframeFadeDuration()
+	): number {
+		return resolveKeyframeVisibilityOpacity(this.keyframes, time, this.value, fadeDuration);
+	}
+
+	/**
+	 * Checks whether a keyframe exists at a timeline position.
+	 * @param {number} time Absolute timeline position in milliseconds.
+	 * @returns {boolean} Whether the position contains a keyframe.
+	 */
+	hasKeyframeAt(time: number): boolean {
+		const normalizedTime = Math.max(0, Math.floor(time));
+		return this.keyframes.some((keyframe) => keyframe.time === normalizedTime);
+	}
+
+	/**
+	 * Removes the keyframe at a timeline position.
+	 * @param {number} time Absolute timeline position in milliseconds.
+	 * @returns {void}
+	 */
+	removeKeyframe(time: number): void {
+		const normalizedTime = Math.max(0, Math.floor(time));
+		this.keyframes = this.keyframes.filter((keyframe) => keyframe.time !== normalizedTime);
+	}
+
+	/**
+	 * Returns the keyframe immediately before a timeline position.
+	 * @param {number} time Absolute timeline position in milliseconds.
+	 * @returns {number | undefined} Previous keyframe time, if any.
+	 */
+	getPreviousKeyframeTime(time: number): number | undefined {
+		return this.keyframes.findLast((keyframe) => keyframe.time < time)?.time;
+	}
+
+	/**
+	 * Returns the keyframe immediately after a timeline position.
+	 * @param {number} time Absolute timeline position in milliseconds.
+	 * @returns {number | undefined} Next keyframe time, if any.
+	 */
+	getNextKeyframeTime(time: number): number | undefined {
+		return this.keyframes.find((keyframe) => keyframe.time > time)?.time;
 	}
 
 	getCategory(): string {
@@ -388,34 +628,37 @@ export class Style extends SerializableBase {
 	 * Génère le CSS d'un style composite
 	 * @returns Le CSS de ce style composite
 	 */
-	generateCSSForComposite(): string {
+	generateCSSForComposite(time?: number): string {
 		// Récupère tous les styles composites pour un style donné
 		const compositeStyles = this.value as Style[];
+		const currentTime =
+			time ?? globalState.currentProject?.projectEditorState?.timeline.cursorPosition ?? 0;
 
 		let css = '';
 		for (let i = 0; i < compositeStyles.length; i++) {
 			const element = compositeStyles[i];
+			const effectiveValue = element.getValueAt(currentTime);
 
-			if (element.id === 'outline-enable' && !element.value) {
+			if (element.id === 'outline-enable' && !effectiveValue) {
 				// Si on désactive l'outline, alors on skip les 3 styles concernant l'outline
 				// (en comptant celui là)
 				i += 2;
 				continue;
 			}
 
-			if (element.id === 'text-glow-enable' && !element.value) {
+			if (element.id === 'text-glow-enable' && !effectiveValue) {
 				// Si on désactive le glow, alors on skip les 3 styles concernant le glow
 				// (en comptant celui là)
 				i += 2;
 				continue;
 			}
 
-			if (element.id === 'enable-italic' && !element.value) {
+			if (element.id === 'enable-italic' && !effectiveValue) {
 				continue;
 			}
 
 			if (element.id && element.css)
-				css += element.css.replaceAll('{value}', String(element.value)) + '\n';
+				css += element.css.replaceAll('{value}', String(effectiveValue)) + '\n';
 		}
 
 		return css;
@@ -475,6 +718,14 @@ export class Category extends SerializableBase {
 	}
 
 	/**
+	 * Collects keyframe times from every style in the category.
+	 * @returns {number[]} Keyframe times in milliseconds.
+	 */
+	getAllKeyframeTimes(): number[] {
+		return this.styles.flatMap(collectStyleKeyframeTimes);
+	}
+
+	/**
 	 * Attache les métadonnées d'éditeur sans les sérialiser dans le projet.
 	 * @param {StyleCategoryUiMetadata | undefined} ui Métadonnées issues du JSON statique.
 	 * @returns {void}
@@ -531,6 +782,9 @@ export class StylesData extends SerializableBase {
 	overrides: { [clipId: number]: { [styleId in StyleName]?: StyleOverrideValue } } = $state(
 		{}
 	);
+	overrideKeyframes: {
+		[clipId: number]: { [styleId in StyleName]?: StyleKeyframe[] };
+	} = $state({});
 
 	constructor(target: 'global' | 'arabic' | string, categories: Category[] = []) {
 		super();
@@ -727,10 +981,13 @@ export class StylesData extends SerializableBase {
 	 */
 	generateTailwind(): string {
 		let tailwindClasses = '';
+		const currentTime =
+			globalState.currentProject?.projectEditorState?.timeline.cursorPosition ?? 0;
 
 		for (const category of this.categories) {
 			for (const style of category.styles) {
-				if (style.id === 'font-family' && style.value === 'Hafs') {
+				const effectiveValue = style.getValueAt(currentTime);
+				if (style.id === 'font-family' && effectiveValue === 'Hafs') {
 					// Utilise la police Hafs pour les styles de texte
 					tailwindClasses += 'arabic ';
 					continue;
@@ -740,7 +997,7 @@ export class StylesData extends SerializableBase {
 				if (!style.tailwind || !style.tailwindClass) continue;
 
 				// Remplace {value} par la valeur actuelle
-				const tailwindClass = style.tailwindClass.replaceAll(/{value}/g, String(style.value));
+				const tailwindClass = style.tailwindClass.replaceAll(/{value}/g, String(effectiveValue));
 
 				if (tailwindClass.trim()) {
 					tailwindClasses += tailwindClass + ' ';
@@ -796,6 +1053,100 @@ export class StylesData extends SerializableBase {
 	}
 
 	/**
+	 * Adds or replaces a global or per-clip style keyframe.
+	 * @param {StyleName} styleId Style identifier to animate.
+	 * @param {number} time Absolute timeline position in milliseconds.
+	 * @param {Style['value']} value Value active from this position.
+	 * @param {number[]} clipIds Clips receiving a local animation, when applicable.
+	 * @returns {void}
+	 */
+	setKeyframe(
+		styleId: StyleName,
+		time: number,
+		value: Style['value'],
+		clipIds: number[] = []
+	): void {
+		if (clipIds.length === 0) {
+			this.findStyle(styleId)?.setKeyframe(time, value);
+			return;
+		}
+		if (this.target === 'global' && !isGlobalOverlayStyleId(styleId)) return;
+		const normalizedTime = Math.max(0, Math.floor(time));
+		for (const clipId of clipIds) {
+			this.overrideKeyframes[clipId] ??= {};
+			const keyframes = (this.overrideKeyframes[clipId][styleId] ??= []);
+			const existing = keyframes.find((keyframe) => keyframe.time === normalizedTime);
+			if (existing) existing.value = value;
+			else keyframes.push({ time: normalizedTime, value });
+			keyframes.sort((a, b) => a.time - b.time);
+		}
+	}
+
+	/**
+	 * Returns unique keyframe times for a style and optional clip overrides.
+	 * @param {StyleName} styleId Style identifier to inspect.
+	 * @param {number[]} clipIds Clips to inspect, or empty for the base style.
+	 * @returns {number[]} Sorted keyframe times in milliseconds.
+	 */
+	getKeyframeTimes(styleId: StyleName, clipIds: number[] = []): number[] {
+		const times =
+			clipIds.length === 0
+				? (this.findStyle(styleId)?.keyframes.map((keyframe) => keyframe.time) ?? [])
+				: clipIds.flatMap((clipId) =>
+						(this.overrideKeyframes[clipId]?.[styleId] ?? []).map((keyframe) => keyframe.time)
+					);
+		return Array.from(new Set(times)).sort((a, b) => a - b);
+	}
+
+	/**
+	 * Collects all keyframe times for this style target, including clip overrides.
+	 * @returns {number[]} Sorted unique keyframe times in milliseconds.
+	 */
+	getAllKeyframeTimes(): number[] {
+		const baseTimes = this.categories.flatMap((category) => category.getAllKeyframeTimes());
+		const overrideTimes = Object.values(this.overrideKeyframes).flatMap((byStyle) =>
+			Object.values(byStyle).flatMap((keyframes) =>
+				(keyframes ?? []).map((keyframe) => keyframe.time)
+			)
+		);
+		return Array.from(new Set([...baseTimes, ...overrideTimes])).sort((a, b) => a - b);
+	}
+
+	/**
+	 * Checks whether a style has a keyframe at a timeline position.
+	 * @param {StyleName} styleId Style identifier to inspect.
+	 * @param {number} time Absolute timeline position in milliseconds.
+	 * @param {number[]} clipIds Clips to inspect, or empty for the base style.
+	 * @returns {boolean} Whether a keyframe exists at the position.
+	 */
+	hasKeyframeAt(styleId: StyleName, time: number, clipIds: number[] = []): boolean {
+		const normalizedTime = Math.max(0, Math.floor(time));
+		return this.getKeyframeTimes(styleId, clipIds).includes(normalizedTime);
+	}
+
+	/**
+	 * Removes a global or per-clip style keyframe.
+	 * @param {StyleName} styleId Style identifier to modify.
+	 * @param {number} time Absolute timeline position in milliseconds.
+	 * @param {number[]} clipIds Clips to modify, or empty for the base style.
+	 * @returns {void}
+	 */
+	removeKeyframe(styleId: StyleName, time: number, clipIds: number[] = []): void {
+		if (clipIds.length === 0) {
+			this.findStyle(styleId)?.removeKeyframe(time);
+			return;
+		}
+		const normalizedTime = Math.max(0, Math.floor(time));
+		for (const clipId of clipIds) {
+			const byStyle = this.overrideKeyframes[clipId];
+			if (!byStyle?.[styleId]) continue;
+			byStyle[styleId] = byStyle[styleId].filter((keyframe) => keyframe.time !== normalizedTime);
+			if (byStyle[styleId].length === 0) delete byStyle[styleId];
+			if (Object.keys(byStyle).length === 0) delete this.overrideKeyframes[clipId];
+		}
+	}
+
+	/**
 	 * Définit un style pour un ou plusieurs clips sélectionnés (override partiel)
 	 */
 	setStyleForClips(clipIds: number[], styleId: StyleName, value: StyleOverrideValue) {
@@ -847,16 +1198,22 @@ export class StylesData extends SerializableBase {
 
 			for (const clipId of clipIds) {
 				const byClip = this.overrides[clipId];
-				if (!byClip) continue;
+				const keyframesByClip = this.overrideKeyframes[clipId];
+				if (!byClip && !keyframesByClip) continue;
 
 				// Supprime l'override pour ce style sur ce clip
-				if (byClip[styleId] !== undefined) {
+				if (byClip?.[styleId] !== undefined) {
 					delete byClip[styleId];
 				}
 
 				// Nettoyage de l'objet clip s'il est vide
-				if (Object.keys(byClip).length === 0) {
+				if (Object.keys(byClip ?? {}).length === 0) {
 					delete this.overrides[clipId];
+				}
+
+				if (keyframesByClip?.[styleId]) delete keyframesByClip[styleId];
+				if (keyframesByClip && Object.keys(keyframesByClip).length === 0) {
+					delete this.overrideKeyframes[clipId];
 				}
 			}
 		} finally {
@@ -870,23 +1227,72 @@ export class StylesData extends SerializableBase {
 	 * @param clipId L'ID du clip à vérifier
 	 * @returns La valeur effective du style
 	 */
-	getEffectiveValue(styleId: StyleName, clipId?: number): string | number | boolean {
+	getEffectiveValue(
+		styleId: StyleName,
+		clipId?: number,
+		time?: number,
+		fadeDuration = getPreviewKeyframeFadeDuration()
+	): string | number | boolean {
 		const style = this.findStyle(styleId);
+		const currentTime =
+			time ?? globalState.currentProject?.projectEditorState?.timeline.cursorPosition ?? 0;
 
 		const canUseClipOverride =
 			this.target !== 'global' || (this.target === 'global' && isGlobalOverlayStyleId(styleId));
 
 		// Structure des overrides pour StylesData : overrides[clipId][styleId] = value
+		let value = style ? style.getValueAt(currentTime) : '';
 		if (
 			canUseClipOverride &&
 			clipId !== undefined &&
 			this.overrides[clipId] &&
 			this.overrides[clipId][styleId] !== undefined
 		) {
-			return this.overrides[clipId][styleId]! as string | number | boolean;
+			value = this.overrides[clipId][styleId]!;
 		}
+		const keyframes = clipId === undefined ? undefined : this.overrideKeyframes[clipId]?.[styleId];
+		return (
+			keyframes && style
+				? resolvePreviewKeyframeValue(style, keyframes, currentTime, value, fadeDuration)
+				: style
+					? style.getValueAt(currentTime, fadeDuration)
+					: value
+		) as
+			| string
+			| number
+			| boolean;
+	}
 
-		return style ? (style.value as string | number | boolean) : '';
+	/**
+	 * Resolves a boolean style as a visibility opacity for preview rendering.
+	 * @param {StyleName} styleId Visibility style identifier.
+	 * @param {number | undefined} clipId Clip carrying a local override.
+	 * @param {number | undefined} time Absolute timeline position in milliseconds.
+	 * @param {number} fadeDuration Transition duration in milliseconds.
+	 * @returns {number} Visibility opacity from zero to one.
+	 */
+	getEffectiveVisibilityOpacity(
+		styleId: StyleName,
+		clipId?: number,
+		time?: number,
+		fadeDuration = getPreviewKeyframeFadeDuration()
+	): number {
+		const style = this.findStyle(styleId);
+		if (!style) return 0;
+		const currentTime =
+			time ?? globalState.currentProject?.projectEditorState?.timeline.cursorPosition ?? 0;
+		const staticOverride = clipId === undefined ? undefined : this.overrides[clipId]?.[styleId];
+		const localKeyframes =
+			clipId === undefined ? undefined : this.overrideKeyframes[clipId]?.[styleId];
+		if (!localKeyframes) {
+			return staticOverride === undefined
+				? style.getVisibilityOpacityAt(currentTime, fadeDuration)
+				: staticOverride
+					? 1
+					: 0;
+		}
+		const fallback = staticOverride ?? style.getValueAt(currentTime, 0);
+		return resolveKeyframeVisibilityOpacity(localKeyframes, currentTime, fallback, fadeDuration);
 	}
 
 	/**
@@ -900,7 +1306,11 @@ export class StylesData extends SerializableBase {
 
 		return clipIds.some((clipId) => {
 			const byClip = this.overrides[clipId];
-			return !!(byClip && byClip[styleId] !== undefined);
+			const keyframes = this.overrideKeyframes[clipId]?.[styleId];
+			return !!(
+				(byClip && byClip[styleId] !== undefined) ||
+				(keyframes && keyframes.length > 0)
+			);
 		});
 	}
 
@@ -911,11 +1321,12 @@ export class StylesData extends SerializableBase {
 	 */
 	hasAnyOverrideForClip(clipId: number): boolean {
 		const byClip = this.overrides?.[clipId];
-		if (!byClip) return false;
+		const keyframesByClip = this.overrideKeyframes?.[clipId];
+		if (!byClip && !keyframesByClip) return false;
 
 		// Chaque override pour un clip est un objet plat { styleId: value },
 		// donc il suffit de vérifier s'il y a au moins une clé.
-		return Object.keys(byClip).length > 0;
+		return Object.keys(byClip ?? {}).length > 0 || Object.keys(keyframesByClip ?? {}).length > 0;
 	}
 
 	/**
@@ -963,6 +1374,15 @@ export class VideoStyle extends SerializableBase {
 
 	constructor() {
 		super();
+	}
+
+	/**
+	 * Collects all style keyframe times needed by preview and export.
+	 * @returns {number[]} Sorted unique keyframe times in milliseconds.
+	 */
+	getAllKeyframeTimes(): number[] {
+		const times = this.styles.flatMap((styles) => styles.getAllKeyframeTimes());
+		return Array.from(new Set(times)).sort((a, b) => a - b);
 	}
 
 	/**

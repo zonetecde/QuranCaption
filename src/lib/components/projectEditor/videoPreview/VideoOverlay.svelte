@@ -75,7 +75,7 @@
 
 	/** Durée de fondu configurée au niveau global (en ms). */
 	let fadeDuration = $derived(() => {
-		return globalState.getStyle('global', 'fade-duration').value as number;
+		return globalState.getStyleValue('global', 'fade-duration') as number;
 	});
 
 	/**
@@ -256,10 +256,11 @@
 	let overlaySettings = $derived(() => {
 		const clipId = currentVideoClip()?.id;
 		const globalStyles = globalState.getVideoStyle.getStylesOfTarget('global');
+		const visibilityOpacity = globalStyles.getEffectiveVisibilityOpacity('overlay-enable', clipId);
 		return {
-			enable: Boolean(globalStyles.getEffectiveValue('overlay-enable', clipId)),
+			enable: visibilityOpacity > 0,
 			blur: Number(globalStyles.getEffectiveValue('overlay-blur', clipId)),
-			opacity: Number(globalStyles.getEffectiveValue('overlay-opacity', clipId)),
+			opacity: Number(globalStyles.getEffectiveValue('overlay-opacity', clipId)) * visibilityOpacity,
 			color: String(globalStyles.getEffectiveValue('overlay-color', clipId)),
 			mode: String(globalStyles.getEffectiveValue('background-overlay-mode', clipId)),
 			fadeIntensity: Number(
@@ -294,21 +295,25 @@
 	});
 
 	let videoFrameSettings = $derived.by(() => {
+		const visibilityOpacity = globalState
+			.getVideoStyle
+			.getStylesOfTarget('global')
+			.getEffectiveVisibilityOpacity('video-frame-enable');
 		const verticalSize = Math.min(
 			45,
-			Math.max(0, Number(globalState.getStyle('global', 'video-frame-vertical-size')?.value ?? 8))
+			Math.max(0, Number(globalState.getStyleValue('global', 'video-frame-vertical-size') ?? 8))
 		);
 		const horizontalSize = Math.min(
 			45,
-			Math.max(0, Number(globalState.getStyle('global', 'video-frame-horizontal-size')?.value ?? 8))
+			Math.max(0, Number(globalState.getStyleValue('global', 'video-frame-horizontal-size') ?? 8))
 		);
 		const radius = Math.min(
 			50,
-			Math.max(0, Number(globalState.getStyle('global', 'video-frame-radius')?.value ?? 4))
+			Math.max(0, Number(globalState.getStyleValue('global', 'video-frame-radius') ?? 4))
 		);
 		const softness = Math.min(
 			5,
-			Math.max(0, Number(globalState.getStyle('global', 'video-frame-softness')?.value ?? 0))
+			Math.max(0, Number(globalState.getStyleValue('global', 'video-frame-softness') ?? 0))
 		);
 		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
 			| { width: number; height: number }
@@ -329,9 +334,10 @@
 		const bottom = 100 - verticalSize;
 
 		return {
-			enable: Boolean(globalState.getStyle('global', 'video-frame-enable')?.value),
-			contentAbove: Boolean(globalState.getStyle('global', 'video-frame-content-above')?.value),
-			color: String(globalState.getStyle('global', 'video-frame-color')?.value ?? '#000000'),
+			enable: visibilityOpacity > 0,
+			opacity: visibilityOpacity,
+			contentAbove: Boolean(globalState.getStyleValue('global', 'video-frame-content-above')),
+			color: String(globalState.getStyleValue('global', 'video-frame-color') ?? '#000000'),
 			softness: `${softnessX} ${softnessY}`,
 			path: `M -100 -100 H 200 V 200 H -100 Z M ${left + radiusX} ${top} H ${right - radiusX} A ${radiusX} ${radiusY} 0 0 1 ${right} ${top + radiusY} V ${bottom - radiusY} A ${radiusX} ${radiusY} 0 0 1 ${right - radiusX} ${bottom} H ${left + radiusX} A ${radiusX} ${radiusY} 0 0 1 ${left} ${bottom - radiusY} V ${top + radiusY} A ${radiusX} ${radiusY} 0 0 1 ${left + radiusX} ${top} Z`
 		};
@@ -427,6 +433,10 @@
 		let maxOpacity = Number(
 			globalState.getVideoStyle.getStylesOfTarget(target).getEffectiveValue('opacity', clipId)
 		);
+		maxOpacity *= globalState
+			.getVideoStyle
+			.getStylesOfTarget(target)
+			.getEffectiveVisibilityOpacity('show-subtitles', clipId);
 
 		const currentTime = getTimelineSettings().cursorPosition;
 		const activeRange = isTargetMerged(target)
@@ -1025,11 +1035,11 @@
 			consumeReactiveDependencies(
 				globalState.getTimelineState.movePreviewTo,
 				globalState.getTimelineState.previewRefreshToken,
-				...targets.map((target) => globalState.getStyle(target, 'max-height').value),
-				...targets.map((target) => globalState.getStyle(target, 'max-line').value),
+				...targets.map((target) => globalState.getStyleValue(target, 'max-height')),
+				...targets.map((target) => globalState.getStyleValue(target, 'max-line')),
 				...targets.map((target) => hasForcedLineBreak(target)),
-				...targets.map((target) => globalState.getStyle(target, 'font-size').value),
-				globalState.getStyle('global', 'spacing').value
+				...targets.map((target) => globalState.getStyleValue(target, 'font-size')),
+				globalState.getStyleValue('global', 'spacing')
 			);
 
 			const cachedLayout = getCachedRuntimeLayout(layoutKey);
@@ -1087,10 +1097,10 @@
 						try {
 							const styles = globalState.getVideoStyle.getStylesOfTarget(target);
 							const referenceClip = getReferenceClipForTarget(target);
-							const maxHeightValue = globalState.getStyle(target, 'max-height').value as number;
+							const maxHeightValue = globalState.getStyleValue(target, 'max-height') as number;
 							const maxLineValue = hasForcedLineBreak(target)
 								? Infinity
-								: Number(globalState.getStyle(target, 'max-line').value);
+								: Number(globalState.getStyleValue(target, 'max-line'));
 							const initialFontSize = Number(
 								styles.getEffectiveValue('font-size', referenceClip?.id)
 							);
@@ -1126,9 +1136,9 @@
 					await tick();
 					await wait(abortSignal);
 
-					if (globalState.getStyle('global', 'anti-collision').value) {
+					if (globalState.getStyleValue('global', 'anti-collision')) {
 						const translationKeys = Object.keys(currentSubtitleTranslations() || {});
-						const spacing = globalState.getStyle('global', 'spacing').value as number;
+						const spacing = globalState.getStyleValue('global', 'spacing') as number;
 
 						await resolveSubtitleCollisions(
 							abortSignal,
@@ -1302,6 +1312,7 @@
 		<!-- À z-0, l'overlay déclaré avant reste dessous et les contenus à partir de z-1 passent dessus. -->
 		<svg
 			class={`pointer-events-none absolute inset-0 h-full w-full ${videoFrameSettings.contentAbove ? 'z-0' : 'z-20'}`}
+			style:opacity={videoFrameSettings.opacity}
 			viewBox="0 0 100 100"
 			preserveAspectRatio="none"
 			aria-hidden="true"

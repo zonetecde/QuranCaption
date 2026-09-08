@@ -109,7 +109,7 @@
 
 	/** Durée de fondu configurée. */
 	let fadeDuration = $derived(() => {
-		return globalState.getStyle('global', 'fade-duration').value as number;
+		return globalState.getStyleValue('global', 'fade-duration') as number;
 	});
 
 	/** Durée de fondu pour la preview WBW (0 en mode export pour éviter les artefacts). */
@@ -119,13 +119,13 @@
 
 	/** Affiche-t-on les crochets décoratifs ? */
 	let showDecorativeBrackets = $derived(() => {
-		return Boolean(globalState.getStyle('arabic-quran', 'show-decorative-brackets').value);
+		return Boolean(globalState.getStyleValue('arabic-quran', 'show-decorative-brackets'));
 	});
 
 	/** Paire de glyphes brute pour les crochets décoratifs. */
 	let decorativeBracketsGlyphPair = $derived(() => {
 		return String(
-			globalState.getStyle('arabic-quran', 'decorative-brackets-font-family').value || 'LM'
+			globalState.getStyleValue('arabic-quran', 'decorative-brackets-font-family') || 'LM'
 		);
 	});
 
@@ -253,8 +253,8 @@
 		if (subtitle instanceof SubtitleClip) {
 			const referenceParts = getTranscriptReferenceRenderParts(
 				subtitle.text,
-				String(globalState.getStyle('arabic-quran', 'mushaf-style')?.value ?? 'Uthmani'),
-				String(globalState.getStyle('arabic-quran', 'font-family')?.value ?? 'Hafs')
+				String(globalState.getStyleValue('arabic-quran', 'mushaf-style') ?? 'Uthmani'),
+				String(globalState.getStyleValue('arabic-quran', 'font-family') ?? 'Hafs')
 			);
 			if (referenceParts) {
 				return referenceParts.map((part, index) => {
@@ -499,8 +499,8 @@
 		const renderedParts =
 			getTranscriptReferenceRenderParts(
 				sourceClip.text,
-				String(globalState.getStyle('arabic-quran', 'mushaf-style')?.value ?? 'Uthmani'),
-				String(globalState.getStyle('arabic-quran', 'font-family')?.value ?? 'Hafs')
+				String(globalState.getStyleValue('arabic-quran', 'mushaf-style') ?? 'Uthmani'),
+				String(globalState.getStyleValue('arabic-quran', 'font-family') ?? 'Hafs')
 			) ?? [];
 		const counts = logicalParts.map((part) => part.wordCount);
 		const unknownIndexes = counts.flatMap((count, index) => (count === null ? [index] : []));
@@ -728,7 +728,7 @@
 		return computeWordByWordHighlightState({
 			subtitle: clip,
 			isArabicMerged: isArabicMerged(),
-			mushafStyle: String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani'),
+			mushafStyle: String(globalState.getStyleValue('arabic', 'mushaf-style') ?? 'Uthmani'),
 			cursorTimeS: getTimelineSettings().cursorPosition / 1000,
 			// Si un groupe fusionné est actif, et que un subtitle dans ce groupe ne possède
 			// pas de timing wbw, alors on enlève le rendu WBW pour tous les mots

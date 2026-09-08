@@ -145,7 +145,8 @@ describe('buildExportCaptureJobPlan', () => {
 				blankImgs: { [key]: [1_000] },
 				duplicableTimings: new Map(),
 				exactCaptureTimings: new Set(),
-				exactCaptureTimingValues: new Map()
+				exactCaptureTimingValues: new Map(),
+				styleKeyframeTimings: new Set()
 			},
 			rangeStart: 0,
 			rangeEnd: 1_000,
@@ -185,7 +186,8 @@ describe('buildExportCaptureJobPlan', () => {
 				blankImgs: {},
 				duplicableTimings: new Map([[800, 200]]),
 				exactCaptureTimings: new Set(),
-				exactCaptureTimingValues: new Map()
+				exactCaptureTimingValues: new Map(),
+				styleKeyframeTimings: new Set()
 			},
 			rangeStart: 0,
 			rangeEnd: 1_000,
@@ -216,7 +218,8 @@ describe('buildExportCaptureJobPlan', () => {
 				blankImgs: {},
 				duplicableTimings: new Map(),
 				exactCaptureTimings: new Set(),
-				exactCaptureTimingValues: new Map()
+				exactCaptureTimingValues: new Map(),
+				styleKeyframeTimings: new Set()
 			},
 			rangeStart: 0,
 			rangeEnd: 800,
@@ -484,6 +487,22 @@ describe('getExportWordByWordHighlightTimings', () => {
 });
 
 describe('calculateCaptureTimingsForRange', () => {
+	it('captures every style keyframe inside the export range', () => {
+		const subtitleClips = [subtitle(0, 5_000, 1)];
+		const result = calculateCaptureTimingsForRange({
+			rangeStart: 0,
+			rangeEnd: 5_000,
+			fadeDuration: 0,
+			subtitleClips,
+			timedOverlayClips: [],
+			styleKeyframeTimings: [1_500, 3_250],
+			getCurrentSurah: (time) => resolveCurrentSurahFromClips(subtitleClips, time)
+		});
+
+		expect(result.uniqueSorted).toContain(1_500);
+		expect(result.uniqueSorted).toContain(3_250);
+	});
+
 	it('captures the boundaries of every repeated appearance', () => {
 		const result = calculateTimings(
 			[subtitle(0, 5_000, 1)],

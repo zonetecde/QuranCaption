@@ -42,6 +42,7 @@
 	import CustomImage from '../tabs/styleEditor/CustomImage.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
+	import { getTimedOverlayRangesFromStyles } from '$lib/services/TimedOverlayRanges';
 	import QPCFontProvider from '$lib/services/FontProvider';
 	import {
 		getBackgroundClipIdForTarget as getBackgroundClipIdForTargetUtil,
@@ -441,11 +442,13 @@
 		if (!alwaysShowStyle) return 1;
 
 		const clipId = getBackgroundClipIdForTarget(target);
+		const backgroundCategory = styles.categories.find((category) => category.id === 'background');
 		return getTimedOverlayOpacity({
 			alwaysShow: Boolean(styles.getEffectiveValue('always-show', clipId)),
 			maxOpacity: 1,
 			currentTime: getTimelineSettings().cursorPosition,
 			fadeDuration: fadeDuration(),
+			ranges: getTimedOverlayRangesFromStyles(backgroundCategory?.styles ?? []),
 			startTime: Number(styles.getEffectiveValue('time-appearance', clipId)),
 			endTime: Number(styles.getEffectiveValue('time-disappearance', clipId))
 		});

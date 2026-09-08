@@ -4,6 +4,7 @@
 	import CompositeText from './CompositeText.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
+	import { getTimedOverlayRangesFromStyles } from '$lib/services/TimedOverlayRanges';
 
 	let { customText, clipId }: { customText: Category; clipId: number } = $props();
 
@@ -20,6 +21,7 @@
 					maxOpacity: Number(customText.getStyle('opacity')?.value ?? 1),
 					currentTime: globalState.getTimelineState.cursorPosition,
 					fadeDuration: globalState.getStyle('global', 'fade-duration')!.value as number,
+					ranges: getTimedOverlayRangesFromStyles(customText.styles),
 					startTime: customText.getStyle('time-appearance')?.value as number,
 					endTime: customText.getStyle('time-disappearance')?.value as number
 				})

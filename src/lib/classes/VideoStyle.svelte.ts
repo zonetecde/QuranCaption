@@ -16,6 +16,10 @@ import {
 	PredefinedSubtitleClip,
 	getForcedFontForPredefinedSubtitle
 } from './Clip.svelte';
+import {
+	getTimedOverlayRangesFromStyles,
+	type TimedOverlayRange
+} from '$lib/services/TimedOverlayRanges';
 
 export type StyleValueType =
 	| 'color'
@@ -30,7 +34,8 @@ export type StyleValueType =
 	| 'composite'
 	| 'reciter'
 	| 'file'
-	| 'ayah-image';
+	| 'ayah-image'
+	| 'time-ranges';
 
 // Types spécifiques pour les catégories de styles
 export type StyleCategoryName =
@@ -219,6 +224,7 @@ export type CreatorTextStyleName = 'creator-text' | 'creator-text-composite';
 export type CustomTextStyleName =
 	| 'time-appearance'
 	| 'time-disappearance'
+	| 'time-ranges'
 	| 'text'
 	| 'filepath'
 	| 'opacity'
@@ -267,6 +273,8 @@ export type StyleName =
 	| GlobalAnimationStyleName
 	| VerseNumberStyleName
 	| AyahContainerStyleName;
+
+export type StyleOverrideValue = string | number | boolean | TimedOverlayRange[];
 
 export type StyleEditorPanelMetadata = {
 	id: string;
@@ -343,6 +351,7 @@ export class Style extends SerializableBase {
 				audioFadeInEnabled: boolean;
 				audioFadeOutEnabled: boolean;
 		  }
+		| TimedOverlayRange[]
 		| Style[] = $state('');
 	valueType: StyleValueType = 'text';
 	valueMin?: number = $state(-540);
@@ -519,7 +528,7 @@ export class StylesData extends SerializableBase {
 	target: 'global' | 'arabic' | string = $state('');
 
 	// Overrides spécifiques aux clips sélectionnés
-	overrides: { [clipId: number]: { [styleId in StyleName]?: string | number | boolean } } = $state(
+	overrides: { [clipId: number]: { [styleId in StyleName]?: StyleOverrideValue } } = $state(
 		{}
 	);
 
@@ -747,7 +756,7 @@ export class StylesData extends SerializableBase {
 	 * @param styleId L'ID du style à modifier
 	 * @param value La nouvelle valeur à appliquer
 	 */
-	setStyle(styleId: StyleName, value: string | number | boolean): void {
+	setStyle(styleId: StyleName, value: Style['value']): void {
 		ProjectHistoryManager.begin('set style');
 		try {
 			// Trouve le style
@@ -789,7 +798,7 @@ export class StylesData extends SerializableBase {
 	/**
 	 * Définit un style pour un ou plusieurs clips sélectionnés (override partiel)
 	 */
-	setStyleForClips(clipIds: number[], styleId: StyleName, value: string | number | boolean) {
+	setStyleForClips(clipIds: number[], styleId: StyleName, value: StyleOverrideValue) {
 		ProjectHistoryManager.begin('set clip style override');
 		try {
 			// Cas spécial: sur le target global, on n'autorise les overrides que pour la catégorie overlay.
@@ -800,12 +809,17 @@ export class StylesData extends SerializableBase {
 			for (const clipId of clipIds) {
 				// Créez un nouvel objet d'override pour le clip s'il n'existe pas
 				if (!this.overrides[clipId]) {
-					this.overrides[clipId] = {} as Partial<Record<StyleName, string | number | boolean>>;
+					this.overrides[clipId] = {} as Partial<Record<StyleName, StyleOverrideValue>>;
 				}
 
 				// Regarde si pour la valeur qu'on veut appliquer à ce style pour ces clip
 				// si c'est la valeur par déjà du style
-				if (this.findStyle(styleId)?.value === value) {
+				const baseValue = this.findStyle(styleId)?.value;
+				const isSameValue =
+					Array.isArray(baseValue) && Array.isArray(value)
+						? JSON.stringify(baseValue) === JSON.stringify(value)
+						: baseValue === value;
+				if (isSameValue) {
 					// Enlève l'override pour ce style, car c'est la valeur déjà de son parent
 					delete this.overrides[clipId][styleId];
 				} else {
@@ -869,7 +883,7 @@ export class StylesData extends SerializableBase {
 			this.overrides[clipId] &&
 			this.overrides[clipId][styleId] !== undefined
 		) {
-			return this.overrides[clipId][styleId]!;
+			return this.overrides[clipId][styleId]! as string | number | boolean;
 		}
 
 		return style ? (style.value as string | number | boolean) : '';
@@ -1053,7 +1067,7 @@ export class VideoStyle extends SerializableBase {
 	setCustomTextStyle(
 		customTextId: StyleCategoryName,
 		styleId: StyleName,
-		value: string | number | boolean
+		value: Style['value']
 	): void {
 		ProjectHistoryManager.begin('set custom text style');
 		try {
@@ -1157,15 +1171,22 @@ export class VideoStyle extends SerializableBase {
 		const customTextDefaults = (await (
 			await fetch('./styles/customText.json')
 		).json()) as RawCategory;
+		const customImageDefaults = (await (
+			await fetch('./styles/customImage.json')
+		).json()) as RawCategory;
 		const compositeDefaults = (await (
 			await fetch('./styles/compositeStyles.json')
 		).json()) as RawStyle[];
 		const customTextDefaultStyles = customTextDefaults.styles || [];
+		const customImageDefaultStyles = customImageDefaults.styles || [];
 
 		for (const clip of globalState.getCustomClipTrack?.clips || []) {
-			if (!(clip instanceof CustomTextClip) || !clip.category) continue;
+			if (!(clip instanceof CustomTextClip || clip instanceof CustomImageClip) || !clip.category)
+				continue;
+			const defaultStyles =
+				clip instanceof CustomImageClip ? customImageDefaultStyles : customTextDefaultStyles;
 
-			for (const defaultStyle of customTextDefaultStyles) {
+			for (const defaultStyle of defaultStyles) {
 				if (defaultStyle.id === 'custom-text-composite') {
 					const suffix = clip.category.id.startsWith('custom-text-')
 						? clip.category.id.slice('custom-text-'.length)
@@ -1194,7 +1215,16 @@ export class VideoStyle extends SerializableBase {
 
 				const hasStyle = clip.category.styles.some((s) => s.id === defaultStyle.id);
 				if (!hasStyle) {
-					clip.category.styles.push(new Style(defaultStyle));
+					const migratedRanges =
+						defaultStyle.id === 'time-ranges'
+							? getTimedOverlayRangesFromStyles(clip.category.styles)
+							: [];
+					clip.category.styles.push(
+						new Style({
+							...defaultStyle,
+							value: migratedRanges.length > 0 ? migratedRanges : defaultStyle.value
+						})
+					);
 					hasChanges = true;
 				}
 			}

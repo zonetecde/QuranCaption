@@ -1123,6 +1123,7 @@ const editor = {
 		filepath: 'File Path',
 		'above-overlay': 'Above Overlay',
 		'always-show': 'Always Show',
+		'time-ranges': 'Time Ranges',
 		'time-appearance': 'Time Appearance',
 		'time-disappearance': 'Time Disappearance'
 	},
@@ -1330,6 +1331,7 @@ const editor = {
 		filepath: 'Path to the image file',
 		'above-overlay': 'Make the image appear above/below the background overlay',
 		'always-show': 'Always show (ignore timing)',
+		'time-ranges': 'Configure multiple appearance ranges',
 		'time-appearance': 'Change the time where it appears',
 		'time-disappearance': 'Change the time where it disappears'
 	}

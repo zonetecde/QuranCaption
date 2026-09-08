@@ -65,6 +65,7 @@
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import { isWordByWordHighlightEnabled } from '$lib/components/projectEditor/videoPreview/wordByWordHighlightUtils';
 	import type { StyleName } from '$lib/classes/VideoStyle.svelte';
+	import { getTimedOverlayRangesFromStyles } from '$lib/services/TimedOverlayRanges';
 
 	// Affichage ou non des fenêtres
 	const DEBUG_EXPORT_MODE = false;
@@ -1684,6 +1685,7 @@
 		).map((clip) => {
 			return {
 				id: clip.id,
+				ranges: getTimedOverlayRangesFromStyles(clip.category?.styles ?? []),
 				startTime: clip.startTime,
 				endTime: clip.endTime,
 				alwaysShow: Boolean(clip.category?.getStyle('always-show')?.value),
@@ -1725,9 +1727,13 @@
 			if (stylesData.target === 'global') continue;
 			if (stylesData.findStyle('background-enable')?.value !== true) continue;
 			if (stylesData.findStyle('always-show')?.value === true) continue;
+			const backgroundCategory = stylesData.categories.find(
+				(category) => category.id === 'background'
+			);
 
 			timedOverlayClips.push({
 				id: `${stylesData.target}-background-container`,
+				ranges: getTimedOverlayRangesFromStyles(backgroundCategory?.styles ?? []),
 				startTime: stylesData.findStyle('time-appearance')?.value as number,
 				endTime: stylesData.findStyle('time-disappearance')?.value as number,
 				alwaysShow: false,

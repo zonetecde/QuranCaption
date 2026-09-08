@@ -140,7 +140,14 @@ const export_ = {
 	exportYoutubeChaptersButtonDescription:
 		'Generate chapter timestamps for your YouTube video description',
 	exportProjectData: 'Export Project Data',
-	exportProjectDataDescription: 'Export your project configuration as a standalone JSON file.',
+	exportProjectDataDescription:
+		'Export your project configuration as a standalone JSON file without its media assets.',
+	includeProjectAssets: 'Include project assets',
+	includeProjectAssetsDescription:
+		'Package your local audio, video, image, and other project assets in a .minbar file.',
+	exportProjectPackage: 'Export Minbar Package',
+	exportProjectPackageDescription:
+		'Export your project configuration and assets as a .minbar package.',
 	whatsIncluded: "What's Included",
 	projectSettings: 'Project Settings',
 	projectSettingsDescription: 'All your project configuration, dimensions, and export preferences.',
@@ -148,13 +155,20 @@ const export_ = {
 	subtitleDataDescription: 'All subtitle clips, translations, and verse references.',
 	customElements: 'Custom Elements',
 	customElementsDescription: 'Custom text clips, styling overrides, and background configurations.',
+	projectAssets: 'Project Assets',
+	projectAssetsDescription: 'Local audio, video, image, and other assets used by this project.',
 	limitations: 'Limitations',
 	mediaFilesNotIncluded: 'Media Files Not Included',
 	mediaFilesNotIncludedDescription:
-		'Audio and video files you imported from your device are not included. Only file names and source URLs are stored.',
+		'Audio, video, image, and other files you imported from your device are not included. Only file names and source URLs are stored.',
+	projectAssetsIncluded: 'Project Assets Included',
+	projectAssetsIncludedDescription:
+		'The .minbar package contains your project configuration and its local assets.',
 	exportProjectDataButton: 'Export Project Data',
 	exportProjectDataButtonDescription:
 		'Generate a JSON file containing your entire project configuration',
+	exportProjectPackageButtonDescription:
+		'Generate a .minbar file containing your entire project and its assets',
 	exportSubtitlesJsonButton: 'Export Subtitles JSON',
 	exportSubtitlesJsonButtonDescription:
 		'Generate a compact word-level JSON for edited Quran subtitle segments',

@@ -6455,6 +6455,10 @@ type RootTranslation = {
 		 * E​x​p​o​r​t​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​a​s​ ​a​ ​s​t​a​n​d​a​l​o​n​e​ ​J​S​O​N​ ​f​i​l​e​.
 		 */
 		exportProjectDataDescription: string;
+		includeProjectAssets: string;
+		includeProjectAssetsDescription: string;
+		exportProjectPackage: string;
+		exportProjectPackageDescription: string;
 		/**
 		 * W​h​a​t​'​s​ ​I​n​c​l​u​d​e​d
 		 */
@@ -6483,6 +6487,8 @@ type RootTranslation = {
 		 * C​u​s​t​o​m​ ​t​e​x​t​ ​c​l​i​p​s​,​ ​s​t​y​l​i​n​g​ ​o​v​e​r​r​i​d​e​s​,​ ​a​n​d​ ​b​a​c​k​g​r​o​u​n​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s​.
 		 */
 		customElementsDescription: string;
+		projectAssets: string;
+		projectAssetsDescription: string;
 		/**
 		 * L​i​m​i​t​a​t​i​o​n​s
 		 */
@@ -6495,6 +6501,8 @@ type RootTranslation = {
 		 * A​u​d​i​o​ ​a​n​d​ ​v​i​d​e​o​ ​f​i​l​e​s​ ​y​o​u​ ​i​m​p​o​r​t​e​d​ ​f​r​o​m​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​a​r​e​ ​n​o​t​ ​i​n​c​l​u​d​e​d​.​ ​O​n​l​y​ ​f​i​l​e​ ​n​a​m​e​s​ ​a​n​d​ ​s​o​u​r​c​e​ ​U​R​L​s​ ​a​r​e​ ​s​t​o​r​e​d​.
 		 */
 		mediaFilesNotIncludedDescription: string;
+		projectAssetsIncluded: string;
+		projectAssetsIncludedDescription: string;
 		/**
 		 * E​x​p​o​r​t​ ​P​r​o​j​e​c​t​ ​D​a​t​a
 		 */
@@ -6503,6 +6511,7 @@ type RootTranslation = {
 		 * G​e​n​e​r​a​t​e​ ​a​ ​J​S​O​N​ ​f​i​l​e​ ​c​o​n​t​a​i​n​i​n​g​ ​y​o​u​r​ ​e​n​t​i​r​e​ ​p​r​o​j​e​c​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 		 */
 		exportProjectDataButtonDescription: string;
+		exportProjectPackageButtonDescription: string;
 		/**
 		 * E​x​p​o​r​t​ ​S​u​b​t​i​t​l​e​s​ ​J​S​O​N
 		 */
@@ -16174,6 +16183,10 @@ export type TranslationFunctions = {
 		 * Export your project configuration as a standalone JSON file.
 		 */
 		exportProjectDataDescription: () => LocalizedString;
+		includeProjectAssets: () => LocalizedString;
+		includeProjectAssetsDescription: () => LocalizedString;
+		exportProjectPackage: () => LocalizedString;
+		exportProjectPackageDescription: () => LocalizedString;
 		/**
 		 * What's Included
 		 */
@@ -16202,6 +16215,8 @@ export type TranslationFunctions = {
 		 * Custom text clips, styling overrides, and background configurations.
 		 */
 		customElementsDescription: () => LocalizedString;
+		projectAssets: () => LocalizedString;
+		projectAssetsDescription: () => LocalizedString;
 		/**
 		 * Limitations
 		 */
@@ -16214,6 +16229,8 @@ export type TranslationFunctions = {
 		 * Audio and video files you imported from your device are not included. Only file names and source URLs are stored.
 		 */
 		mediaFilesNotIncludedDescription: () => LocalizedString;
+		projectAssetsIncluded: () => LocalizedString;
+		projectAssetsIncludedDescription: () => LocalizedString;
 		/**
 		 * Export Project Data
 		 */
@@ -16222,6 +16239,7 @@ export type TranslationFunctions = {
 		 * Generate a JSON file containing your entire project configuration
 		 */
 		exportProjectDataButtonDescription: () => LocalizedString;
+		exportProjectPackageButtonDescription: () => LocalizedString;
 		/**
 		 * Export Subtitles JSON
 		 */

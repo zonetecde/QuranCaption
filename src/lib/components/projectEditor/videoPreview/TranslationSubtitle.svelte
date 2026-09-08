@@ -377,7 +377,8 @@
 		}
 
 		const textParts = translation.getFormattedTextParts(editionName, subtitle);
-		const tokens = tokenizeTranslationText(textParts.text);
+		// Keep the original spacing used by the WBW mapping when tokenizing translations.
+		const tokens = tokenizeTranslationText(translation.text);
 		const rangesByUnit = new Map<number, number[]>();
 		for (const range of normalizedRanges) {
 			for (let index = range.startUnitIndex; index <= range.endUnitIndex; index++) {
@@ -955,7 +956,8 @@
 						>
 					{/if}
 					<span class={segmentClass} style={segmentStyle}>
-						{#if state.enabled && data}<span class="wbw-line-background-text">{segment.text}</span>{:else}{segment.text}{/if}
+						{#if state.enabled && data}<span class="wbw-line-background-text">{segment.text}</span
+							>{:else}{segment.text}{/if}
 					</span>
 					{#if segment.verseNumber && segment.verseNumberPosition === 'after'}
 						<span class={segmentClass} style={`${segmentStyle} color: var(--verse-number-color);`}
@@ -970,7 +972,8 @@
 						>
 					{/if}
 					<span class={segmentClass} style={segmentStyle}>
-						{#if state.enabled && data}<span class="wbw-line-background-text">{segment.text}</span>{:else}{segment.text}{/if}
+						{#if state.enabled && data}<span class="wbw-line-background-text">{segment.text}</span
+							>{:else}{segment.text}{/if}
 					</span>
 					{#if segment.verseNumber && segment.verseNumberPosition === 'after'}
 						<span class={segmentClass} style={`${segmentStyle} color: var(--verse-number-color);`}

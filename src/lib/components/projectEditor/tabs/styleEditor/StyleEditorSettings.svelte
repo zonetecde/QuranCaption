@@ -43,7 +43,6 @@
 	} = $props();
 
 	let stylesContainer: HTMLDivElement | undefined = $state();
-	let activePanelCategoryIds = $state<Record<string, string>>({});
 	let stylesSchemaVersion = $state(0);
 
 	const currentStyleTarget = $derived(() => globalState.getStylesState.getCurrentSelection());
@@ -205,7 +204,7 @@
 	 */
 	function getActivePanelCategoryId(panel: StylePanel): string {
 		const categories = getPanelCategories(panel);
-		const activeCategoryId = activePanelCategoryIds[panel.id];
+		const activeCategoryId = globalState.getStylesState.activePanelCategoryIds[panel.id];
 		return categories.some((category) => category.id === activeCategoryId)
 			? activeCategoryId
 			: (categories[0]?.id ?? '');
@@ -231,7 +230,7 @@
 	 * @returns {void}
 	 */
 	function selectPanelCategory(panelId: string, categoryId: string): void {
-		activePanelCategoryIds[panelId] = categoryId;
+		globalState.getStylesState.activePanelCategoryIds[panelId] = categoryId;
 	}
 
 	/**
@@ -871,7 +870,9 @@
 
 		const panel = stylePanels().find((candidate) => candidate.categoryIds.includes(categoryId));
 		globalState.getStylesState.currentPanel = panel?.id ?? stylePanels()[0]?.id ?? '';
-		if (panel?.categoryNavigation) activePanelCategoryIds[panel.id] = categoryId;
+		if (panel?.categoryNavigation) {
+			globalState.getStylesState.activePanelCategoryIds[panel.id] = categoryId;
+		}
 		globalState.getStylesState.searchQuery = '';
 
 		void tick().then(() => {

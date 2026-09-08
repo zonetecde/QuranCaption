@@ -36,7 +36,6 @@ export class GlobalTimedOverlayTimelineClip {
 	readonly label: string;
 	readonly type: string;
 	readonly canRemove: boolean;
-	readonly category = undefined;
 
 	private readonly target: string;
 	private readonly alwaysShowStyleId: StyleName;

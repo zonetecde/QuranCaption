@@ -15,9 +15,11 @@ vi.mock('@tauri-apps/api/core', () => ({ invoke: mocks.invoke }));
 vi.mock('svelte-5-french-toast', () => ({
 	default: { loading: mocks.toastLoading, dismiss: mocks.toastDismiss }
 }));
-vi.mock('$lib/services/StyleMutationService', () => ({
-	beginStyleMutation: mocks.beginStyleMutation,
-	commitStyleMutation: mocks.commitStyleMutation
+vi.mock('$lib/services/undoRedo/ProjectHistoryManager', () => ({
+	ProjectHistoryManager: {
+		begin: mocks.beginStyleMutation,
+		commit: mocks.commitStyleMutation
+	}
 }));
 
 describe('screen color picker', () => {
@@ -86,6 +88,15 @@ describe('screen color picker', () => {
 			y: 20,
 			toJSON: () => ({})
 		});
+		picker.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 110, clientY: 70 }));
+
+		const magnifier = await vi.waitFor(() => {
+			const preview = document.body.querySelector<HTMLElement>('.screen-color-magnifier');
+			expect(preview).not.toBeNull();
+			return preview!;
+		});
+		expect(magnifier.textContent).toContain('#123456');
+		expect(magnifier.style.backgroundSize).toBe('1600px 800px');
 
 		picker.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 110, clientY: 70 }));
 

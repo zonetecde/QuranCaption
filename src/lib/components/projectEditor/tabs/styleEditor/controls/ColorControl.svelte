@@ -13,6 +13,14 @@
 	let isCapturingScreen = $state(false);
 	let screenCaptureUrl = $state<string>();
 	let screenCaptureImage = $state<HTMLImageElement>();
+	let colorSampleCanvas: HTMLCanvasElement;
+	let magnifier = $state<{
+		x: number;
+		y: number;
+		backgroundSize: string;
+		backgroundPosition: string;
+		color: string;
+	}>();
 
 	/**
 	 * Démarre une transaction unique pendant le glissement dans le sélecteur.
@@ -62,6 +70,61 @@
 		if (!screenCaptureUrl) return;
 		URL.revokeObjectURL(screenCaptureUrl);
 		screenCaptureUrl = undefined;
+		magnifier = undefined;
+	}
+
+	/**
+	 * Lit la couleur située sous le curseur dans la capture.
+	 * @param {MouseEvent} event Événement de souris sur la capture affichée.
+	 * @returns {string | undefined} Couleur du pixel au format hexadécimal.
+	 */
+	function readCapturedColor(event: MouseEvent): string | undefined {
+		if (!screenCaptureImage) return;
+		const rect = screenCaptureImage.getBoundingClientRect();
+		if (
+			event.clientX < rect.left ||
+			event.clientX >= rect.right ||
+			event.clientY < rect.top ||
+			event.clientY >= rect.bottom
+		)
+			return;
+
+		const x = ((event.clientX - rect.left) / rect.width) * screenCaptureImage.naturalWidth;
+		const y = ((event.clientY - rect.top) / rect.height) * screenCaptureImage.naturalHeight;
+		const canvas = colorSampleCanvas ?? document.createElement('canvas');
+		if (!colorSampleCanvas) {
+			canvas.width = 1;
+			canvas.height = 1;
+			colorSampleCanvas = canvas;
+		}
+		const context = canvas.getContext('2d');
+		if (!context) return;
+		context.drawImage(screenCaptureImage, x, y, 1, 1, 0, 0, 1, 1);
+		const [red, green, blue] = context.getImageData(0, 0, 1, 1).data;
+		return `#${[red, green, blue].map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
+	}
+
+	/**
+	 * Positionne la loupe et actualise son aperçu agrandi.
+	 * @param {MouseEvent} event Mouvement sur la capture affichée.
+	 * @returns {void}
+	 */
+	function updateMagnifier(event: MouseEvent): void {
+		const color = readCapturedColor(event);
+		if (!color || !screenCaptureImage) {
+			magnifier = undefined;
+			return;
+		}
+
+		const rect = screenCaptureImage.getBoundingClientRect();
+		const zoom = 8;
+		magnifier = {
+			x: event.clientX,
+			y: event.clientY < 144 ? event.clientY + 80 : event.clientY - 80,
+			backgroundSize: `${rect.width * zoom}px ${rect.height * zoom}px`,
+			backgroundPosition: `${56 - (event.clientX - rect.left) * zoom}px ${56 - (event.clientY - rect.top) * zoom}px`,
+			color
+		};
 	}
 
 	/**
@@ -89,26 +152,8 @@
 	 * @returns {void}
 	 */
 	function applyCapturedColor(event: MouseEvent): void {
-		if (!screenCaptureImage) return;
-		const rect = screenCaptureImage.getBoundingClientRect();
-		if (
-			event.clientX < rect.left ||
-			event.clientX >= rect.right ||
-			event.clientY < rect.top ||
-			event.clientY >= rect.bottom
-		)
-			return;
-
-		const x = ((event.clientX - rect.left) / rect.width) * screenCaptureImage.naturalWidth;
-		const y = ((event.clientY - rect.top) / rect.height) * screenCaptureImage.naturalHeight;
-		const canvas = document.createElement('canvas');
-		const context = canvas.getContext('2d');
-		if (!context) return;
-		canvas.width = 1;
-		canvas.height = 1;
-		context.drawImage(screenCaptureImage, x, y, 1, 1, 0, 0, 1, 1);
-		const [red, green, blue] = context.getImageData(0, 0, 1, 1).data;
-		const color = `#${[red, green, blue].map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
+		const color = readCapturedColor(event);
+		if (!color) return;
 		applyPickerValue(color);
 		commitHistoryTransaction();
 		closeScreenColorPicker();
@@ -157,6 +202,8 @@
 		title={$LL.style.groupColors()}
 		aria-label={$LL.style.groupColors()}
 		onclick={applyCapturedColor}
+		onmousemove={updateMagnifier}
+		onmouseleave={() => (magnifier = undefined)}
 	>
 		<img
 			bind:this={screenCaptureImage}
@@ -164,6 +211,24 @@
 			alt=""
 			class="max-h-full max-w-full object-contain"
 		/>
+		{#if magnifier}
+			<div
+				class="screen-color-magnifier pointer-events-none fixed size-28 overflow-hidden rounded-full border-2 border-white shadow-lg"
+				style:left="clamp(3.5rem, {magnifier.x}px, calc(100vw - 3.5rem))"
+				style:top="{magnifier.y}px"
+				style:background-image="url({screenCaptureUrl})"
+				style:background-size={magnifier.backgroundSize}
+				style:background-position={magnifier.backgroundPosition}
+				aria-hidden="true"
+			>
+				<span class="magnifier-target absolute left-1/2 top-1/2 size-2 -translate-1/2"></span>
+				<span
+					class="absolute bottom-0 left-0 w-full border-t border-white bg-black/80 py-1 text-xs text-white"
+				>
+					{magnifier.color}
+				</span>
+			</div>
+		{/if}
 	</button>
 {/if}
 
@@ -178,5 +243,16 @@
 		border-radius: 0.5rem;
 		background: var(--bg-accent);
 		padding: 0.15rem;
+	}
+
+	.screen-color-magnifier {
+		transform: translate(-50%, -50%);
+		background-repeat: no-repeat;
+		image-rendering: pixelated;
+	}
+
+	.magnifier-target {
+		border: 1px solid white;
+		box-shadow: 0 0 0 1px black;
 	}
 </style>

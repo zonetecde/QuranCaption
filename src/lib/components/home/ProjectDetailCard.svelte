@@ -17,7 +17,7 @@
 	import { onDestroy } from 'svelte';
 	import Exporter from '$lib/classes/Exporter';
 	import toast from 'svelte-5-french-toast';
-	import { Project, Utilities } from '$lib/classes';
+	import { Project, TrackType, Utilities } from '$lib/classes';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
@@ -107,8 +107,11 @@
 	async function openProjectButtonClick() {
 		// Ouvre le projet
 		const project = await ProjectService.load(projectDetail.id);
+		const customClips = project.content.timeline.tracks.find(
+			(track) => track.type === TrackType.CustomClip
+		)?.clips;
 		await ProjectHistoryManager.ignoreAsync(() =>
-			project.content.videoStyle.ensureStylesSchemaUpToDate()
+			project.content.videoStyle.ensureStylesSchemaUpToDate(customClips)
 		);
 		await MigrationService.hydrateStyleEditorUiMetadata(project);
 		globalState.currentProject = project;

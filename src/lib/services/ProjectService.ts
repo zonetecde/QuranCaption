@@ -1,4 +1,4 @@
-import { Project, ProjectDetail, Utilities, VideoStyle } from '$lib/classes';
+import { Project, ProjectDetail, TrackType, Utilities, VideoStyle } from '$lib/classes';
 import { ClipWithTranslation, CustomImageClip } from '$lib/classes/Clip.svelte';
 import { readDir, remove, writeTextFile, readTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
@@ -782,8 +782,11 @@ export class ProjectService {
 
 			rawProject.detail.id = projectId;
 			const projectObject = Project.fromJSON(rawProject) as Project;
+			const customClips = projectObject.content.timeline.tracks.find(
+				(track) => track.type === TrackType.CustomClip
+			)?.clips;
 			await ProjectHistoryManager.ignoreAsync(() =>
-				projectObject.content.videoStyle.ensureStylesSchemaUpToDate()
+				projectObject.content.videoStyle.ensureStylesSchemaUpToDate(customClips)
 			);
 			await projectObject.save();
 		} catch (error) {

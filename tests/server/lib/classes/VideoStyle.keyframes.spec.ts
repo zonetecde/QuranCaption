@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { CustomTextClip } from '$lib/classes/Clip.svelte';
 import { Category, Style, StylesData, VideoStyle } from '$lib/classes/VideoStyle.svelte';
+import { globalState } from '$lib/runes/main.svelte';
 
 describe('Style keyframes', () => {
 	it('keeps the base value until the first keyframe is reached', () => {
@@ -136,5 +138,25 @@ describe('Style keyframes', () => {
 
 		expect(reopenedStyles.getEffectiveValue('font-size', undefined, 1500)).toBe(60);
 		expect(reopenedStyles.getEffectiveValue('font-size', 101, 2500)).toBe(70);
+	});
+
+	it('upgrades a detached project without requiring an active global project', async () => {
+		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+			if (String(input).includes('customText.json')) {
+				return { json: async () => ({ styles: [{ id: 'text', value: 'Migrated' }] }) } as Response;
+			}
+			return { json: async () => [] } as Response;
+		});
+		const previousProject = globalState.currentProject;
+		globalState.currentProject = null;
+
+		try {
+			const customClip = new CustomTextClip(new Category({ id: 'custom-text-test', styles: [] }));
+			await expect(new VideoStyle().ensureStylesSchemaUpToDate([customClip])).resolves.toBe(true);
+			expect(customClip.category?.getStyle('text')?.value).toBe('Migrated');
+		} finally {
+			globalState.currentProject = previousProject;
+			fetchSpy.mockRestore();
+		}
 	});
 });

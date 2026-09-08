@@ -16,6 +16,7 @@ import {
 	PredefinedSubtitleClip,
 	getForcedFontForPredefinedSubtitle
 } from './Clip.svelte';
+import type { Clip } from './Clip.svelte';
 import {
 	getTimedOverlayRangesFromStyles,
 	type TimedOverlayRange
@@ -1547,8 +1548,9 @@ export class VideoStyle extends SerializableBase {
 	/**
 	 * Merge les styles manquants avec les JSON par défaut, sans écraser les valeurs existantes.
 	 * Utile quand de nouveaux styles sont ajoutés dans une update.
+	 * @param customClips Clips personnalisés du projet en cours de migration.
 	 */
-	async ensureStylesSchemaUpToDate(): Promise<boolean> {
+	async ensureStylesSchemaUpToDate(customClips?: Clip[]): Promise<boolean> {
 		let hasChanges = false;
 
 		const globalDefaults = await (await fetch('./styles/globalStyles.json')).json();
@@ -1600,7 +1602,14 @@ export class VideoStyle extends SerializableBase {
 		const customTextDefaultStyles = customTextDefaults.styles || [];
 		const customImageDefaultStyles = customImageDefaults.styles || [];
 
-		for (const clip of globalState.getCustomClipTrack?.clips || []) {
+		const projectCustomClips =
+			customClips ??
+			globalState.currentProject?.content?.timeline.tracks.find(
+				(track) => track.type === TrackType.CustomClip
+			)?.clips ??
+			[];
+
+		for (const clip of projectCustomClips) {
 			if (!(clip instanceof CustomTextClip || clip instanceof CustomImageClip) || !clip.category)
 				continue;
 			const defaultStyles =

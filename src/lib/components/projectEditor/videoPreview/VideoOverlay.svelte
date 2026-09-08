@@ -180,12 +180,16 @@
 	 * du premier clip du groupe. Sinon, on utilise celles du sous-titre courant.
 	 */
 	let visibleTranslationTargets = $derived(() => {
+		const editionNames = globalState.getProjectTranslation.addedTranslationEditions.map(
+			(edition) => edition.name
+		);
 		const mergedGroup = currentVisualMergeGroup();
 		if (mergedGroup && (mergedGroup.mode === 'translation' || mergedGroup.mode === 'both')) {
-			return Object.keys(mergedGroup.firstClip.translations);
+			return editionNames.filter((edition) => mergedGroup.firstClip.translations[edition]);
 		}
 
-		return Object.keys(currentSubtitleTranslations() || {});
+		const translations = currentSubtitleTranslations() || {};
+		return editionNames.filter((edition) => translations[edition]);
 	});
 
 	/**

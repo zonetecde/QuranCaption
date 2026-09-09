@@ -51,6 +51,19 @@ pub struct TranscriptCleanupCommandRequest {
     pub batch: TranscriptCleanupBatchPayload,
 }
 
+/// Requête pour l'analyse sémantique des coupures d'une transcription nettoyée.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TranscriptSegmentationCommandRequest {
+    pub api_key: String,
+    pub endpoint: String,
+    pub model: String,
+    pub reasoning_effort: String,
+    pub thinking_enabled: Option<bool>,
+    pub batch_id: String,
+    pub batch: serde_json::Value,
+}
+
 /// Requête pour la traduction structurée d'un batch de sous-titres.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

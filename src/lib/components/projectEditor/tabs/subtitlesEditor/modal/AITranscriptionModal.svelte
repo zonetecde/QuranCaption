@@ -97,6 +97,20 @@
 	const subtitleLengthPresetEntries = Object.entries(SUBTITLE_LENGTH_PRESETS) as Array<
 		[BuiltInSubtitleLengthPreset, (typeof SUBTITLE_LENGTH_PRESETS)[BuiltInSubtitleLengthPreset]]
 	>;
+	const subtitleLengthPresetCopy = $derived.by(() => ({
+		compact: {
+			label: get(LL).editor.subtitleLengthShort(),
+			description: get(LL).editor.subtitleLengthShortDescription()
+		},
+		balanced: {
+			label: get(LL).editor.subtitleLengthMedium(),
+			description: get(LL).editor.subtitleLengthMediumDescription()
+		},
+		relaxed: {
+			label: get(LL).editor.subtitleLengthLong(),
+			description: get(LL).editor.subtitleLengthLongDescription()
+		}
+	}));
 	const activeSubtitleLengthPreset = $derived.by(() =>
 		getMatchingSubtitleLengthPreset({
 			maxWords: settings.maxWordsPerSegment,
@@ -400,6 +414,9 @@
 					};
 					cleanupMessage = get(LL).editor.transcriptCleanupBatchProgress({ current, total });
 				},
+				onSemanticSegmentationStart: () => {
+					cleanupMessage = get(LL).editor.transcriptSemanticSegmentation();
+				},
 				onBatchComplete: async (batchReport, batchId) => {
 					if (cleanupBatchStreams[batchId]) {
 						cleanupBatchStreams[batchId].status = 'completed';
@@ -427,15 +444,6 @@
 			});
 			result = report.result;
 			cleanupErrors = report.errors;
-			if (report.totalBatches === 0) {
-				const applied = applyAITranscription(
-					report.result,
-					activeTask.speakerMap,
-					false,
-					activeTask.appliedClipIds
-				);
-				appliedClipIds = applied.clipIds;
-			}
 			if (report.paused) {
 				activeTask = {
 					...activeTask,
@@ -452,6 +460,13 @@
 				await globalState.currentProject?.save(false);
 				return;
 			}
+			const applied = applyAITranscription(
+				report.result,
+				activeTask.speakerMap,
+				false,
+				activeTask.appliedClipIds
+			);
+			appliedClipIds = applied.clipIds;
 			cleanupCompleted = true;
 			editorState.aiTranscriptCleanup = null;
 			cleanupMessage =
@@ -835,7 +850,9 @@
 										onclick={() => applySubtitleLengthPreset(preset)}
 									>
 										<div class="flex items-center justify-between gap-2">
-											<span class="text-sm font-semibold text-primary">{definition.label}</span>
+											<span class="text-sm font-semibold text-primary"
+												>{subtitleLengthPresetCopy[preset].label}</span
+											>
 											{#if preset === 'balanced'}
 												<span
 													class="rounded-full bg-accent-primary/15 px-2 py-0.5 text-[10px] font-semibold text-accent-primary"
@@ -844,7 +861,7 @@
 											{/if}
 										</div>
 										<p class="mt-2 text-xs leading-relaxed text-secondary">
-											{definition.description}
+											{subtitleLengthPresetCopy[preset].description}
 										</p>
 										<p class="mt-3 text-[11px] font-medium text-thirdly">
 											{definition.maxWords} words · {definition.maxChars} characters · {definition.silenceSeconds}s

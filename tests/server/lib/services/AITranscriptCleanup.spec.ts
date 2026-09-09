@@ -329,7 +329,7 @@ describe('AITranscriptCleanup complete service', () => {
 
 		expect(resumed.paused).toBe(false);
 		expect(resumed.nextBatchIndex).toBe(3);
-		expect(invokeMock).toHaveBeenCalledTimes(3);
+		expect(invokeMock).toHaveBeenCalledTimes(6);
 	});
 
 	it('stops scheduling new batches when a parallel AI request fails', async () => {
@@ -379,11 +379,12 @@ describe('AITranscriptCleanup complete service', () => {
 		const releaseRequests: Array<() => void> = [];
 		let blockProgressiveSave = true;
 		let releaseProgressiveSave = (): void => undefined;
-		invokeMock.mockImplementation(
-			() =>
-				new Promise((resolve) => {
-					releaseRequests.push(() => resolve({ parsed: {} }));
-				})
+		invokeMock.mockImplementation((command: string) =>
+			command === 'run_ai_transcript_segmentation_batch_streaming'
+				? Promise.resolve({ parsed: { boundaries: [] } })
+				: new Promise((resolve) => {
+						releaseRequests.push(() => resolve({ parsed: {} }));
+					})
 		);
 
 		const cleanup = cleanupAITranscript(
@@ -454,13 +455,54 @@ describe('AITranscriptCleanup complete service', () => {
 		const request = invokeMock.mock.calls[0][1].request;
 		const finalText = report.result.segments.map((segment) => segment.text).join(' ');
 
-		expect(invokeMock).toHaveBeenCalledOnce();
+		expect(invokeMock).toHaveBeenCalledTimes(2);
 		expect(request.batch.w).toHaveLength(6);
 		expect(request.batch.s).toBeUndefined();
 		expect(report.quotePassages).toBe(1);
 		expect(finalText).toContain('{{إنما الأعمال بالنيات.}}');
 		expect(finalText).toContain('قال النبي');
 		expect(finalText).toContain('اليوم');
+	});
+
+	it('segments the cleaned transcript from the dedicated semantic boundary pass', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					new Response(JSON.stringify({ verses: {} }), {
+						status: 200,
+						headers: { 'Content-Type': 'application/json' }
+					})
+			)
+		);
+		invokeMock.mockImplementation((command: string) =>
+			Promise.resolve(
+				command === 'run_ai_transcript_segmentation_batch_streaming'
+					? { parsed: { boundaries: [{ after: 7, kind: 'sentence' }] } }
+					: { parsed: { c: [], quotes: [], x: [], p: [{ i: 4, v: '.' }] } }
+			)
+		);
+
+		const source = transcription(Array.from({ length: 12 }, (_, index) => `word${index + 1}`));
+		for (const [index, word] of source.segments[0].words!.entries()) {
+			word.start = index * 0.45;
+			word.end = index * 0.45 + 0.4;
+		}
+		source.segments[0].end = 5.35;
+		const report = await cleanupAITranscript(source, {
+			apiKey: 'test-key',
+			endpoint: 'https://example.invalid/chat/completions',
+			model: 'deepseek-chat',
+			maxWords: 8,
+			maxChars: 90,
+			maxGap: 1.2
+		});
+
+		expect(report.result.segments[0].words).toHaveLength(8);
+		expect(invokeMock.mock.calls.map(([command]) => command)).toEqual([
+			'run_ai_transcript_cleanup_batch_streaming',
+			'run_ai_transcript_segmentation_batch_streaming'
+		]);
 	});
 
 	it('uses the exact AI boundaries for a narrated hadith and does not extend into commentary', async () => {

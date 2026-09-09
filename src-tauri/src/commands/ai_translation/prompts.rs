@@ -106,9 +106,9 @@ Rules:
 - Example of a removable restart: `إذا لم ترتب إذا لم ترتب صلواتك` may become `إذا لم ترتب صلواتك` when the first occurrence is clearly an abandoned restart.
 - Preserve intentional repetition used for emphasis, warning, exhortation, teaching, rhythm, quotation, supplication, or recitation. For example, keep `اتق الله، اتق الله`; repetition of a complete meaningful phrase is not automatically a disfluency.
 - When uncertain whether repetition is accidental or intentional, preserve it. Never remove repetitions across protected Quran words.
-- Never edit, quote, or punctuate a `q=true` word in `c`, `quotes`, or `p`. Never place a break inside a protected Quran candidate. A break after its final word (`z=true`) is allowed. The only content operation permitted on protected words is a Quran rejection in `x`.
+- Never edit, quote, or punctuate a `q=true` word in `c`, `quotes`, or `p`. The only content operation permitted on protected words is a Quran rejection in `x`.
 - A correction is allowed only when the ASR error is unquestionably evident from the surrounding context. Use the smallest contiguous ID range possible.
-- Correction ranges must never overlap each other. A word removed or replaced by a correction must not also receive punctuation or a break operation.
+- Correction ranges must never overlap each other. A word removed or replaced by a correction must not also receive punctuation.
 - A quotation may contain a corrected non-Quran word only when the correction is unquestionably necessary and the quotation remains verbatim after it is applied.
 - Use confidence `high` only when the correction or quotation boundary is certain. The application applies only high-confidence operations.
 - You are the sole authority for detecting non-Quran quotations. The application will never infer a hadith or scholar quote from keywords, punctuation, or reporting verbs.
@@ -130,12 +130,50 @@ Rules:
 - Do not reject a genuine partial recitation merely because it is incomplete, paraphrased around, or imperfectly recognized.
 - If confidence is not high, preserve the Quran candidate by omitting it from `x`.
 - If protected Quran words occur inside a larger reported passage, never include them in `quotes`; return separate non-Quran quote ranges on either side only when those ranges are independently certain.
-- Treat the ordered words as continuous discourse and suggest subtitle boundaries in `b` only where both sides remain natural and understandable.
-- Prefer boundaries after complete clauses, completed questions, list items, or meaningful pauses. Keep articles, prepositions, conjunctions, auxiliaries, negations, noun phrases, and verb complements with the words they depend on.
-- Never create an orphan fragment merely to meet a preferred length. Avoid splitting a short expression, enumeration, legal condition, question, or cause-and-effect relation across awkward boundaries; a slightly longer coherent subtitle is preferable.
 - Add punctuation only when it is strongly supported by syntax and context. Return punctuation separately in `p`; never insert it into a correction unless it is part of the corrected token itself. Each `p.v` must be exactly one of `.`, `,`, `;`, `:`, `?`, `!`, `…`, `،`, `؛`, or `؟`, without surrounding whitespace.
 - Replace a routine blessing for Prophet Muhammad with the exact symbol `ﷺ` only when its intended meaning is clear and only through a correction operation. Recognize Arabic formulas such as `صلى الله عليه وسلم` or `عليه الصلاة والسلام`, translations such as `peace and blessings be upon him` or `sur lui la prière et le salut`, transliterations, and spelling or ASR variants instead of requiring an exact phrase match. Do not do this when the wording of the salutation is itself being taught or quoted.
-- Return JSON only. Compact keys: `c` corrections, `quotes` quotation ranges, `x` rejected automatic Quran ranges, `b` preferred break-after IDs, `p` punctuation-after operations. Correction keys: `s`,`e`,`t`,`f`. Quote keys: `s`,`e`,`k`,`f`. Quran rejection keys: `s`,`e`,`f`. Punctuation keys: `i`,`v`.
+- Return JSON only. Compact keys: `c` corrections, `quotes` quotation ranges, `x` rejected automatic Quran ranges, `p` punctuation-after operations. Correction keys: `s`,`e`,`t`,`f`. Quote keys: `s`,`e`,`k`,`f`. Quran rejection keys: `s`,`e`,`f`. Punctuation keys: `i`,`v`.
+"#;
+
+pub const TRANSCRIPT_SEGMENTATION_SYSTEM_PROMPT: &str = r#"You are a senior subtitle editor specializing in continuous Arabic Islamic lectures.
+
+Your only task is to identify linguistically valid subtitle boundaries in an already cleaned, ordered stream of timed words. Do not rewrite, translate, correct, remove, reorder, or punctuate any word.
+
+Input:
+- `before` is read-only preceding context, `core` contains the only word IDs you may return, and `after` is read-only following context.
+- Array order is authoritative. Word IDs are opaque and may not be consecutive.
+- `gapAfter` is an acoustic clue in seconds, not proof of a semantic boundary.
+- `canBreakAfter=false` forbids a boundary.
+- Quran and quotation metadata identify protected or continuous passages.
+- `timingQuality=estimated` means fine-grained pauses may be inaccurate.
+
+Return every genuinely natural boundary visible in `core`, not a final short, medium, or long segmentation. The application will select among these boundaries according to the user's length preset.
+
+Boundary kinds:
+- `sentence`: a complete statement, question, command, supplication, or independent thought.
+- `clause`: a complete grammatical clause that can naturally continue in the next subtitle.
+- `phrase`: a coherent phrase boundary that remains understandable on both sides, but is weaker than a clause boundary.
+
+Rules:
+- Meaning and Arabic syntax take priority over punctuation, pauses, ASR chunks, and target length.
+- Prefer the end of a complete sentence. In a long sentence, identify complete clauses and then safe phrase boundaries.
+- Never create a dangling or orphan fragment on either side.
+- Never end immediately after an article, preposition, conjunction, negation, vocative particle, relative pronoun, auxiliary, or another word whose complement follows.
+- Do not separate a verb from its subject or essential complement; a noun from its adjective; an idafa construction; a preposition from its object; an exception particle from the exception; a vocative particle from the addressee; a number from what it counts; or the parts of a proper name.
+- Keep short fixed expressions, invocations, Prophet names with `ﷺ`, and attribution formulas together.
+- Keep short conditional, cause-and-effect, comparison, and question-answer units together. In a long one, split only after a grammatically complete, self-sufficient component.
+- A pause or punctuation mark supports a boundary only when syntax and meaning also permit it.
+- Keep a short question, answer, interjection, invocation, or complete utterance intact even when it contains few words.
+- For lists, prefer boundaries between complete list items, never inside an item.
+- Preserve intentional repetition. Accidental restarts have already been handled by cleanup.
+- A quotation may span several subtitles when long; identify boundaries only at complete clauses or safe phrases.
+- Break Quran passages only where `canBreakAfter=true`, normally at a verse ending or approved waqf.
+- A speaker change is unavoidable, but still classify the best preceding semantic end when one exists.
+- Handle Arabic dialects, Modern Standard Arabic, transliterations, and code-switching using the meaning of the whole window.
+- When the ASR wording is garbled or ambiguous, return fewer boundaries and only those directly supported by the surrounding syntax. Never guess missing words.
+- Do not return IDs from `before` or `after`. Return each boundary once, in input order.
+- An empty array is valid when no natural boundary exists in `core`.
+- Return JSON only, matching the schema exactly.
 "#;
 
 // ---------------------------------------------------------------------------
@@ -350,10 +388,6 @@ pub fn build_transcript_cleanup_response_schema() -> Value {
                     "required": ["s", "e", "f"]
                 }
             },
-            "b": {
-                "type": "array",
-                "items": { "type": "integer" }
-            },
             "p": {
                 "type": "array",
                 "items": {
@@ -370,7 +404,30 @@ pub fn build_transcript_cleanup_response_schema() -> Value {
                 }
             }
         },
-        "required": ["c", "quotes", "x", "b", "p"]
+        "required": ["c", "quotes", "x", "p"]
+    })
+}
+
+/// Schéma JSON des coupures sémantiques d'une transcription.
+pub fn build_transcript_segmentation_response_schema() -> Value {
+    json!({
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+            "boundaries": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "after": { "type": "integer" },
+                        "kind": { "type": "string", "enum": ["sentence", "clause", "phrase"] }
+                    },
+                    "required": ["after", "kind"]
+                }
+            }
+        },
+        "required": ["boundaries"]
     })
 }
 
@@ -508,15 +565,28 @@ pub fn build_transcript_cleanup_user_prompt(
 
     Ok(format!(
         "Analyze these ordered indexed words and return JSON only.\n\
-         Return exactly this shape: {{\"c\":[],\"quotes\":[],\"x\":[],\"b\":[],\"p\":[]}}.\n\
+         Return exactly this shape: {{\"c\":[],\"quotes\":[],\"x\":[],\"p\":[]}}.\n\
          Input keys: `w` is the ordered word array; word `i` is its stable ID; `p` is the speaker; `t` is the current token with punctuation; `q=true` marks an automatic Quran candidate; `r` is its Quran reference; `u` identifies the complete Quran candidate; `a=true` and `z=true` mark its global first and final words; `o` is the original ASR passage on the candidate's first token; `g` is the silence in seconds before the next word, or null at the batch end.\n\
          Corrections: {{\"s\":firstId,\"e\":lastId,\"t\":\"replacement words\",\"f\":\"high|medium|low\"}}.\n\
          Verbatim non-Quran quotations in `quotes`: {{\"s\":firstId,\"e\":lastId,\"k\":\"hadith|scholar|generic\",\"f\":\"high|medium|low\"}}. The range must exclude attribution and stop before commentary resumes.\n\
          False automatic Quran candidates: {{\"s\":firstQuranId,\"e\":lastQuranId,\"f\":\"high|medium|low\"}} in `x`; only high-confidence complete ranges from `a=true` through `z=true` for one `u` are applied.\n\
-         `b` contains IDs after which a natural complete-meaning subtitle break is preferred. Never break inside a Quran candidate; its `z=true` ID may be used.\n\
          `p` contains punctuation operations shaped {{\"i\":wordId,\"v\":\"،\"}} where `v` is exactly one of `. , ; : ? ! … ، ؛ ؟` with no whitespace.\n\
-         Never output Quran references or braces. Never include a q=true word in `c`, `quotes`, or `p`; use only `x` to reject a false automatic Quran match. Correction ranges must not overlap, and corrected words must not also occur in `b` or `p`.\n\
+         Never output Quran references or braces. Never include a q=true word in `c`, `quotes`, or `p`; use only `x` to reject a false automatic Quran match. Correction ranges must not overlap, and corrected words must not also occur in `p`.\n\
          Empty arrays are correct when there is nothing certain to change or annotate.\n\n\
+         Batch JSON:\n{}",
+        batch_json
+    ))
+}
+
+/// Construit le prompt utilisateur pour les coupures sémantiques d'un transcript nettoyé.
+pub fn build_transcript_segmentation_user_prompt(batch: &Value) -> Result<String, String> {
+    let batch_json = serde_json::to_string_pretty(batch)
+        .map_err(|error| format!("Failed to serialize batch: {}", error))?;
+
+    Ok(format!(
+        "Analyze the cleaned timed words and return JSON only.\n\
+         Return exactly this shape: {{\"boundaries\":[{{\"after\":123,\"kind\":\"sentence|clause|phrase\"}}]}}.\n\
+         Return only boundary IDs owned by `core`; use `before` and `after` only to understand continuity.\n\n\
          Batch JSON:\n{}",
         batch_json
     ))

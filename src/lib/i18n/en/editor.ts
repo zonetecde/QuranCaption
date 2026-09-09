@@ -57,6 +57,7 @@ const editor = {
 	cleanTranscript: 'Clean transcript',
 	cleaningTranscript: 'Cleaning transcript...',
 	transcriptCleanupBatchProgress: 'Processing batch {current} of {total}...',
+	transcriptSemanticSegmentation: 'Finding natural subtitle boundaries...',
 	streamedBatchLabel: 'Batch {current} of {total}',
 	transcriptCleanupCompleted: 'Prepared {cleaned} of {total} subtitle segments.',
 	transcriptCleanupCompletedWithIssues:
@@ -72,7 +73,13 @@ const editor = {
 		'Run the optional AI cleanup now, or resume a cleanup saved with this project.',
 	transcriptCleanupRemaining: '{remaining} batch(es) remaining',
 	transcriptionDataPrivacy:
-		'Audio transcription, Quran matching, and subtitle segmentation stay local. Only indexed transcript words are sent to your configured text AI provider when one is available.',
+		'Audio transcription, Quran matching, and final subtitle assembly stay local. Cleaned indexed words, timings, and context metadata are sent only to your configured text AI provider when one is available.',
+	subtitleLengthShort: 'Short',
+	subtitleLengthShortDescription: 'Short subtitles with more frequent natural changes.',
+	subtitleLengthMedium: 'Medium',
+	subtitleLengthMediumDescription: 'Balanced, readable subtitles for most lectures.',
+	subtitleLengthLong: 'Long',
+	subtitleLengthLongDescription: 'Longer complete ideas with fewer visual changes.',
 	aiTranscriptionComingSoon: 'AI transcription will be added later',
 	aiTranscriptionComingSoonDescription:
 		'For now, use the manual composer to create and edit transcript segments.',
@@ -458,7 +465,7 @@ const editor = {
 	quickTimelineEditor: 'Quick Timeline Editor',
 	emptyTimeline: 'Timeline is empty',
 	addClipToStart: 'Add a clip to get started.',
-	minSilenceLabel: 'Force split after silence',
+	minSilenceLabel: 'Prefer a split after this pause',
 	minSpeechLabel: 'Min Speech',
 	paddingLabel: 'Padding',
 	includeWbwTimestamps: 'Include word-by-word timestamps',

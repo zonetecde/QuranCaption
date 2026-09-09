@@ -636,9 +636,6 @@ pub async fn transcribe_audio_local_whisperx(
     min_speakers: Option<u32>,
     max_speakers: Option<u32>,
     batch_size: Option<u32>,
-    min_silence_duration: Option<f64>,
-    max_words: Option<u32>,
-    max_chars: Option<u32>,
 ) -> Result<serde_json::Value, String> {
     let token = hf_token
         .as_ref()
@@ -672,15 +669,6 @@ pub async fn transcribe_audio_local_whisperx(
         selected_device,
         "--batch-size".to_string(),
         batch_size.unwrap_or(8).clamp(1, 64).to_string(),
-        "--max-gap".to_string(),
-        min_silence_duration
-            .unwrap_or(1.2)
-            .clamp(0.1, 10.0)
-            .to_string(),
-        "--max-words".to_string(),
-        max_words.unwrap_or(14).clamp(2, 80).to_string(),
-        "--max-chars".to_string(),
-        max_chars.unwrap_or(90).clamp(20, 500).to_string(),
     ];
     if let Some(value) = min_speakers.filter(|value| *value > 0) {
         extra_args.push("--min-speakers".to_string());

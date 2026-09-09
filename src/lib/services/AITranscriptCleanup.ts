@@ -7,16 +7,16 @@ import {
 	finalizeTranscriptProcessing,
 	loadQuranCorpus,
 	prepareTranscriptForAnalysis,
+	prepareFinalTranscriptTokens,
 	isAllowedTranscriptPunctuation,
 	type ProcessedTranscriptToken,
 	type TranscriptAiAnalysis,
 	type TranscriptAiCorrection,
-	type TranscriptAiPunctuation,
-	type TranscriptAiQuranRejection,
 	type TranscriptAiQuote,
 	type TranscriptProcessingSettings
 } from '$lib/services/TranscriptPostProcessor';
 import { validateTranscriptQuranReferences } from '$lib/services/TranscriptReferenceService';
+import { analyzeTranscriptSemanticBoundaries } from '$lib/services/AITranscriptSegmentation';
 
 export const DEFAULT_TRANSCRIPT_CLEANUP_BATCH_WORDS = 160;
 const BATCH_OVERLAP_WORDS = 40;
@@ -574,7 +574,7 @@ async function validateFinalQuranMarkers(result: AITranscriptionResult): Promise
 /**
  * Corrige, annote et re-segmente une transcription avec une IA textuelle facultative.
  * @param {AITranscriptionResult} result Résultat ASR courant.
- * @param {{ apiKey?: string; endpoint?: string; model?: AdvancedTrimModel; reasoningEffort?: AIReasoningEffort; thinkingEnabled?: boolean | null; batchWords?: number; maxWords: number; maxChars: number; maxGap: number; resume?: { analyses: TranscriptAiAnalysis[]; errors: string[]; nextBatchIndex: number }; shouldPause?: () => boolean; onProgress?: (current: number, total: number, batchId: string) => void; onBatchComplete?: (report: TranscriptCleanupReport, batchId: string) => void | Promise<void> }} options Provider, reprise et contraintes.
+ * @param {{ apiKey?: string; endpoint?: string; model?: AdvancedTrimModel; reasoningEffort?: AIReasoningEffort; thinkingEnabled?: boolean | null; batchWords?: number; maxWords: number; maxChars: number; maxGap: number; resume?: { analyses: TranscriptAiAnalysis[]; errors: string[]; nextBatchIndex: number }; shouldPause?: () => boolean; onProgress?: (current: number, total: number, batchId: string) => void; onSemanticSegmentationStart?: () => void; onBatchComplete?: (report: TranscriptCleanupReport, batchId: string) => void | Promise<void> }} options Provider, reprise et contraintes.
  * @returns {Promise<TranscriptCleanupReport>} Transcription préparée et rapport.
  */
 export async function cleanupAITranscript(
@@ -596,6 +596,7 @@ export async function cleanupAITranscript(
 		};
 		shouldPause?: () => boolean;
 		onProgress?: (current: number, total: number, batchId: string) => void;
+		onSemanticSegmentationStart?: () => void;
 		onBatchComplete?: (report: TranscriptCleanupReport, batchId: string) => void | Promise<void>;
 	}
 ): Promise<TranscriptCleanupReport> {
@@ -606,7 +607,7 @@ export async function cleanupAITranscript(
 	const analyses: TranscriptAiAnalysis[] = [...(options.resume?.analyses ?? [])];
 	const apiKey = options.apiKey?.trim() ?? '';
 	const endpoint = options.endpoint?.trim() ?? '';
-	const model = options.model?.trim() ?? '';
+	const model = (options.model?.trim() ?? '') as AdvancedTrimModel;
 	const reasoningEffort = options.reasoningEffort ?? 'none';
 	const batches =
 		apiKey && endpoint && model
@@ -711,12 +712,31 @@ export async function cleanupAITranscript(
 		maxChars: Math.max(20, options.maxChars),
 		maxGap: Math.max(0.1, options.maxGap)
 	};
+	const finalTokens = prepareFinalTranscriptTokens(result, prepared.tokens, corpus, analysis);
+	let semantic = { boundaries: [], errors: [] } as Awaited<
+		ReturnType<typeof analyzeTranscriptSemanticBoundaries>
+	>;
+	if (!paused && apiKey && endpoint && model) {
+		options.onSemanticSegmentationStart?.();
+		semantic = await analyzeTranscriptSemanticBoundaries(finalTokens.tokens, {
+			apiKey,
+			endpoint,
+			model,
+			reasoningEffort,
+			thinkingEnabled: options.thinkingEnabled,
+			timingQuality: result.segments.every((segment) => (segment.words?.length ?? 0) > 0)
+				? 'word'
+				: 'estimated'
+		});
+	}
+	errors.push(...semantic.errors);
 	const processed = finalizeTranscriptProcessing(
 		result,
 		prepared.tokens,
 		corpus,
 		analysis,
-		settings
+		settings,
+		semantic.boundaries
 	);
 	if (!paused) errors.push(...(await validateFinalQuranMarkers(processed.result)));
 	return {

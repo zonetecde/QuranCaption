@@ -360,6 +360,45 @@ describe('TranscriptPostProcessor controlled AI operations', () => {
 });
 
 describe('TranscriptPostProcessor smart segmentation', () => {
+	it('prioritizes an AI sentence boundary over an earlier punctuation-only break', () => {
+		const tokens = Array.from({ length: 12 }, (_, id) => token(id, `word${id + 1}`));
+		tokens[4].punctuationAfter = '.';
+		tokens[7].semanticBreakAfter = 'sentence';
+		const segments = segmentProcessedTranscript(tokens, {
+			maxWords: 8,
+			maxChars: 90,
+			maxGap: 1.2
+		});
+
+		expect(segments[0].words).toHaveLength(8);
+	});
+
+	it('uses the same semantic boundaries at different preset densities', () => {
+		const tokens = Array.from({ length: 16 }, (_, id) => token(id, `word${id + 1}`));
+		tokens[5].semanticBreakAfter = 'phrase';
+		tokens[9].semanticBreakAfter = 'clause';
+		tokens[15].semanticBreakAfter = 'sentence';
+		const short = segmentProcessedTranscript(tokens, {
+			maxWords: 8,
+			maxChars: 55,
+			maxGap: 0.8
+		});
+		const medium = segmentProcessedTranscript(tokens, {
+			maxWords: 12,
+			maxChars: 80,
+			maxGap: 1.2
+		});
+		const long = segmentProcessedTranscript(tokens, {
+			maxWords: 16,
+			maxChars: 84,
+			maxGap: 1.6
+		});
+
+		expect(short.length).toBeGreaterThanOrEqual(medium.length);
+		expect(medium.length).toBeGreaterThanOrEqual(long.length);
+		expect(short.length).toBeGreaterThan(long.length);
+	});
+
 	it('avoids leaving a two-word orphan after the hard preferred length', () => {
 		const tokens = Array.from({ length: 16 }, (_, id) => token(id, `word${id + 1}`));
 		tokens[9].punctuationAfter = '.';

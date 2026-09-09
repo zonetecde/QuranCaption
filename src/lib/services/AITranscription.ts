@@ -99,10 +99,7 @@ export async function runAITranscription(
 		hfToken: settings.hfToken,
 		minSpeakers: settings.minSpeakers ?? undefined,
 		maxSpeakers: settings.maxSpeakers ?? undefined,
-		batchSize: settings.batchSize,
-		minSilenceDuration: settings.minSilenceDuration,
-		maxWords: settings.maxWordsPerSegment,
-		maxChars: settings.maxCharsPerSegment
+		batchSize: settings.batchSize
 	})) as AITranscriptionResult;
 
 	if (!Array.isArray(response.segments)) {

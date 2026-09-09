@@ -2,7 +2,7 @@ use serde_json::{json, Value};
 use tauri::Emitter;
 
 use super::prompts;
-use super::types::TranscriptCleanupCommandRequest;
+use super::types::{TranscriptCleanupCommandRequest, TranscriptSegmentationCommandRequest};
 use super::{
     normalize_usage, stream_ai_response, validate_model, validate_reasoning_effort,
     AiStreamCallbacks, AiStreamRequest,
@@ -89,7 +89,7 @@ pub async fn run_ai_transcript_cleanup_batch_streaming(
             prompts::TRANSCRIPT_CLEANUP_SYSTEM_PROMPT,
             &user_prompt,
             "transcript_analysis_batch",
-            "Conservative transcript corrections, quotation ranges, punctuation and break hints.",
+            "Conservative transcript corrections, quotation ranges and punctuation.",
             &schema,
         )
     } else {
@@ -99,7 +99,7 @@ pub async fn run_ai_transcript_cleanup_batch_streaming(
             prompts::TRANSCRIPT_CLEANUP_SYSTEM_PROMPT,
             &user_prompt,
             "transcript_analysis_batch",
-            "Conservative transcript corrections, quotation ranges, punctuation and break hints.",
+            "Conservative transcript corrections, quotation ranges and punctuation.",
             &schema,
         )
     };
@@ -112,6 +112,88 @@ pub async fn run_ai_transcript_cleanup_batch_streaming(
     let (raw_text, usage) = stream_ai_response(AiStreamRequest {
         app_handle: &app_handle,
         operation: "transcript_cleanup",
+        batch_id: &request.batch_id,
+        api_key,
+        endpoint: &endpoint,
+        is_chat_completions,
+        body: &body,
+        callbacks: &callbacks,
+        generating_message: "Text AI provider is analyzing transcript words.",
+    })
+    .await?;
+
+    if raw_text.trim().is_empty() {
+        return Err("Text AI provider returned an empty response.".to_string());
+    }
+    let parsed: Value = serde_json::from_str(raw_text.trim())
+        .map_err(|error| format!("Failed to parse text AI JSON output: {}", error))?;
+
+    Ok(json!({
+        "batchId": request.batch_id,
+        "rawText": raw_text,
+        "parsed": parsed,
+        "usage": usage.as_ref().map(normalize_usage)
+    }))
+}
+
+#[tauri::command]
+/// Analyse les coupures sémantiques d'un batch de transcription nettoyée.
+pub async fn run_ai_transcript_segmentation_batch_streaming(
+    app_handle: tauri::AppHandle,
+    request: TranscriptSegmentationCommandRequest,
+) -> Result<Value, String> {
+    validate_model(&request.model)?;
+    validate_reasoning_effort(&request.reasoning_effort)?;
+
+    let api_key = request.api_key.trim();
+    if api_key.is_empty() {
+        return Err("AI API key is required.".to_string());
+    }
+    let endpoint = prompts::normalize_text_ai_endpoint(&request.endpoint)?;
+    let core = request
+        .batch
+        .get("core")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "Transcript segmentation batch is missing its core words.".to_string())?;
+    if core.is_empty() {
+        return Err("Batch is empty.".to_string());
+    }
+
+    let user_prompt = prompts::build_transcript_segmentation_user_prompt(&request.batch)?;
+    let schema = prompts::build_transcript_segmentation_response_schema();
+    let is_chat_completions = prompts::is_chat_completions_endpoint(&endpoint);
+    let body = if is_chat_completions {
+        prompts::build_chat_completions_body(
+            &request.model,
+            &request.reasoning_effort,
+            request.thinking_enabled,
+            &endpoint,
+            prompts::TRANSCRIPT_SEGMENTATION_SYSTEM_PROMPT,
+            &user_prompt,
+            "transcript_semantic_boundaries",
+            "Natural semantic boundary candidates in cleaned Arabic speech.",
+            &schema,
+        )
+    } else {
+        prompts::build_responses_api_body(
+            &request.model,
+            &request.reasoning_effort,
+            prompts::TRANSCRIPT_SEGMENTATION_SYSTEM_PROMPT,
+            &user_prompt,
+            "transcript_semantic_boundaries",
+            "Natural semantic boundary candidates in cleaned Arabic speech.",
+            &schema,
+        )
+    };
+
+    let callbacks = AiStreamCallbacks {
+        emit_status: emit_transcript_cleanup_status,
+        emit_chunk: emit_transcript_cleanup_chunk,
+        emit_reasoning: Some(emit_transcript_cleanup_reasoning),
+    };
+    let (raw_text, usage) = stream_ai_response(AiStreamRequest {
+        app_handle: &app_handle,
+        operation: "transcript_segmentation",
         batch_id: &request.batch_id,
         api_key,
         endpoint: &endpoint,

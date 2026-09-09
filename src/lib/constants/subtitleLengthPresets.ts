@@ -7,31 +7,22 @@ export type SubtitleLengthValues = {
 	silenceSeconds: number;
 };
 
-export type SubtitleLengthPresetDefinition = SubtitleLengthValues & {
-	label: string;
-	description: string;
-};
+export type SubtitleLengthPresetDefinition = SubtitleLengthValues;
 
 export const SUBTITLE_LENGTH_PRESETS = {
 	compact: {
-		label: 'Compact',
-		description: 'Short subtitles with more frequent changes.',
 		maxWords: 8,
 		maxChars: 55,
 		silenceSeconds: 0.8
 	},
 	balanced: {
-		label: 'Balanced',
-		description: 'Natural, readable subtitles for most lectures.',
 		maxWords: 12,
 		maxChars: 80,
 		silenceSeconds: 1.2
 	},
 	relaxed: {
-		label: 'Relaxed',
-		description: 'Longer subtitles with fewer visual changes.',
 		maxWords: 16,
-		maxChars: 110,
+		maxChars: 84,
 		silenceSeconds: 1.6
 	}
 } as const satisfies Record<BuiltInSubtitleLengthPreset, SubtitleLengthPresetDefinition>;

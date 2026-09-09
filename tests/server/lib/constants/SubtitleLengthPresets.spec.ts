@@ -23,6 +23,7 @@ describe('subtitle length presets', () => {
 		expect(SUBTITLE_LENGTH_PRESETS.balanced.maxWords).toBeLessThan(
 			SUBTITLE_LENGTH_PRESETS.relaxed.maxWords
 		);
+		expect(SUBTITLE_LENGTH_PRESETS.relaxed.maxChars).toBe(84);
 		expect(SUBTITLE_LENGTH_PRESETS.compact.silenceSeconds).toBeLessThan(
 			SUBTITLE_LENGTH_PRESETS.relaxed.silenceSeconds
 		);

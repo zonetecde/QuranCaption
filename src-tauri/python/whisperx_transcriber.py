@@ -34,6 +34,7 @@ RESULT_PREFIX = "MINBAR_RESULT:"
 ERROR_PREFIX = "MINBAR_ERROR:"
 QWEN_MODEL_OPTION = "qwen3-asr-1.7b"
 QWEN_MODEL_ID = "Qwen/Qwen3-ASR-1.7B"
+ASR_CHUNK_MAX_GAP_SECONDS = 3.0
 AUDIO_SAMPLE_RATE = 16_000
 
 # WhisperX gives pyannote an in-memory waveform, so its optional TorchCodec
@@ -67,9 +68,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--min-speakers", type=int)
     parser.add_argument("--max-speakers", type=int)
-    parser.add_argument("--max-words", type=int, default=14)
-    parser.add_argument("--max-chars", type=int, default=90)
-    parser.add_argument("--max-gap", type=float, default=1.2)
     parser.add_argument("--align-segments-json")
     parser.add_argument("--clip-only", action="store_true")
     return parser.parse_args()
@@ -163,58 +161,29 @@ def serialize_group(words: list[Word]) -> dict[str, Any] | None:
     }
 
 
-def split_words_into_subtitles(
-    segments: list[dict[str, Any]],
-    max_words: int,
-    max_chars: int,
-    max_gap: float,
-) -> list[dict[str, Any]]:
+def serialize_transcript_segments(segments: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Serialize ASR timing blocks without deciding final subtitle boundaries."""
     output: list[dict[str, Any]] = []
-    current: list[Word] = []
-
-    def flush() -> None:
-        nonlocal current
-        item = serialize_group(current)
-        if item is not None:
-            output.append(item)
-        current = []
-
     for segment in segments:
         words = normalize_words(segment)
-        if not words:
-            start = finite_number(segment.get("start"))
-            end = finite_number(segment.get("end"))
-            text = str(segment.get("text") or "").strip()
-            if start is not None and end is not None and end > start and text:
-                flush()
-                output.append(
-                    {
-                        "start": round(max(0.0, start), 6),
-                        "end": round(max(start, end), 6),
-                        "text": text,
-                        "speaker": normalize_speaker(segment.get("speaker")),
-                        "confidence": None,
-                        "words": [],
-                    }
-                )
+        item = serialize_group(words)
+        if item is not None:
+            output.append(item)
             continue
-
-        for word in words:
-            if current:
-                candidate_text = join_words([*current, word])
-                speaker_changed = word.speaker != current[-1].speaker
-                long_gap = word.start - current[-1].end > max_gap
-                too_many_words = len(current) >= max_words
-                too_many_chars = len(candidate_text) > max_chars
-                if speaker_changed or long_gap or too_many_words or too_many_chars:
-                    flush()
-            current.append(word)
-
-            # Prefer sentence-like breaks once the subtitle is already substantial.
-            if len(current) >= 6 and word.text.rstrip().endswith((".", "!", "?", "؟", "؛")):
-                flush()
-
-    flush()
+        start = finite_number(segment.get("start"))
+        end = finite_number(segment.get("end"))
+        text = str(segment.get("text") or "").strip()
+        if start is not None and end is not None and end > start and text:
+            output.append(
+                {
+                    "start": round(max(0.0, start), 6),
+                    "end": round(max(start, end), 6),
+                    "text": text,
+                    "speaker": normalize_speaker(segment.get("speaker")),
+                    "confidence": None,
+                    "words": [],
+                }
+            )
     return sorted(output, key=lambda item: (item["start"], item["end"]))
 
 
@@ -368,7 +337,7 @@ def run_pipeline(args: argparse.Namespace, selected_device: str, token: str) -> 
         chunks = build_diarization_chunks(
             diarized_segments,
             len(audio) / AUDIO_SAMPLE_RATE,
-            max_gap=max(0.1, args.max_gap),
+            max_gap=ASR_CHUNK_MAX_GAP_SECONDS,
         )
         result = {
             "segments": transcribe_qwen_chunks(args, audio, chunks, selected_device),
@@ -446,23 +415,27 @@ def run_pipeline(args: argparse.Namespace, selected_device: str, token: str) -> 
 
     with_speakers = whisperx.assign_word_speakers(diarized_segments, aligned, fill_nearest=True)
 
-    emit_status("Creating subtitle-sized transcript segments...", 91)
-    subtitles = split_words_into_subtitles(
-        [item for item in with_speakers.get("segments") or [] if isinstance(item, dict)],
-        max_words=max(2, args.max_words),
-        max_chars=max(20, args.max_chars),
-        max_gap=max(0.1, args.max_gap),
+    emit_status("Transcription completed.", 91)
+    transcript_segments = serialize_transcript_segments(
+        [item for item in with_speakers.get("segments") or [] if isinstance(item, dict)]
     )
-    speakers = sorted({str(item["speaker"]) for item in subtitles if item.get("speaker")})
+    speakers = sorted(
+        {
+            str(speaker)
+            for item in transcript_segments
+            for speaker in [item.get("speaker"), *(word.get("speaker") for word in item.get("words") or [])]
+            if speaker
+        }
+    )
 
     emit_status("Transcription completed.", 100)
     return {
         "language": detected_language,
         "device": selected_device,
         "model": args.model,
-        "segments": subtitles,
+        "segments": transcript_segments,
         "speakers": speakers,
-        "wordTimestampsAvailable": any(item.get("words") for item in subtitles),
+        "wordTimestampsAvailable": any(item.get("words") for item in transcript_segments),
         "alignmentWarning": alignment_warning,
     }
 

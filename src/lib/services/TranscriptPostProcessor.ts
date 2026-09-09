@@ -13,6 +13,7 @@ const SOFT_PUNCTUATION_REGEX = /[،,؛;:]$/u;
 const QURAN_WAQF_REGEX = /[ۖۗۘۙۚۛۜ۩ؕ]/u;
 const DEFAULT_MAX_DURATION_SECONDS = 8;
 const DEFAULT_MAX_READING_SPEED = 21;
+const HARD_TRANSCRIPT_GAP_SECONDS = 2.5;
 const MIN_QURAN_MATCH_WORDS = 3;
 const MAX_QURAN_MATCH_WORDS = 32;
 
@@ -33,6 +34,7 @@ export type ProcessedTranscriptToken = {
 	confidence: number | null;
 	punctuationAfter: string;
 	preferredBreakAfter: boolean;
+	semanticBreakAfter?: TranscriptSemanticBoundaryKind | null;
 	sourceIds: number[];
 	quran: QuranTokenReference | null;
 	quoteId: number | null;
@@ -40,6 +42,12 @@ export type ProcessedTranscriptToken = {
 };
 
 export type TranscriptQuoteType = 'hadith' | 'scholar' | 'generic';
+export type TranscriptSemanticBoundaryKind = 'sentence' | 'clause' | 'phrase';
+
+export type TranscriptSemanticBoundary = {
+	afterId: number;
+	kind: TranscriptSemanticBoundaryKind;
+};
 
 export type TranscriptAiCorrection = {
 	startId: number;
@@ -124,6 +132,11 @@ export type TranscriptProcessingReport = {
 	correctionsApplied: number;
 	originalSegments: number;
 	generatedSegments: number;
+};
+
+export type PreparedFinalTranscript = {
+	tokens: ProcessedTranscriptToken[];
+	correctionsApplied: number;
 };
 
 type MinimalQuranPayload = {
@@ -910,6 +923,8 @@ export function applyTranscriptCorrections(
 					(index === replacementWords.length - 1 ? replaced.at(-1)!.punctuationAfter : ''),
 				preferredBreakAfter:
 					index === replacementWords.length - 1 && replaced.at(-1)!.preferredBreakAfter,
+				semanticBreakAfter:
+					index === replacementWords.length - 1 ? replaced.at(-1)!.semanticBreakAfter : null,
 				sourceIds,
 				quran: null,
 				quoteId: null,
@@ -978,6 +993,23 @@ export function applyQuranRejections(
 		output.splice(expandedStart, expandedEnd - expandedStart + 1, ...restored);
 	}
 	return output;
+}
+
+/**
+ * Attache les niveaux de coupure sémantique validés aux tokens correspondants.
+ * @param {ProcessedTranscriptToken[]} tokens Flux nettoyé.
+ * @param {TranscriptSemanticBoundary[]} boundaries Coupures retournées par l'IA.
+ * @returns {ProcessedTranscriptToken[]} Copie annotée prête pour la segmentation locale.
+ */
+export function applyTranscriptSemanticBoundaries(
+	tokens: ProcessedTranscriptToken[],
+	boundaries: TranscriptSemanticBoundary[]
+): ProcessedTranscriptToken[] {
+	const byId = new Map(boundaries.map((boundary) => [boundary.afterId, boundary.kind]));
+	return tokens.map((token) => ({
+		...token,
+		semanticBreakAfter: byId.get(token.id) ?? null
+	}));
 }
 
 /**
@@ -1062,12 +1094,17 @@ function getSubtitleCandidateCost(
 	const last = words.at(-1)!;
 	const next = block[end + 1];
 	const gap = next ? Math.max(0, next.start - last.end) : settings.maxGap;
-	if (!next || gap >= settings.maxGap) cost -= 10;
-	if (TERMINAL_PUNCTUATION_REGEX.test(last.punctuationAfter)) cost -= 8;
-	else if (SOFT_PUNCTUATION_REGEX.test(last.punctuationAfter)) cost -= 4;
+	// Un preset plus long exige une frontière sémantique plus forte avant de changer de sous-titre.
+	if (next) cost += settings.maxWords * 0.75;
+	if (!next || gap >= settings.maxGap) cost -= 5;
+	if (TERMINAL_PUNCTUATION_REGEX.test(last.punctuationAfter)) cost -= 4;
+	else if (SOFT_PUNCTUATION_REGEX.test(last.punctuationAfter)) cost -= 2;
 	if (last.preferredBreakAfter) cost -= 4;
-	if (gap >= 0.7) cost -= 6;
-	else if (gap >= 0.35) cost -= 2.5;
+	if (last.semanticBreakAfter === 'sentence') cost -= 18;
+	else if (last.semanticBreakAfter === 'clause') cost -= 13;
+	else if (last.semanticBreakAfter === 'phrase') cost -= 8;
+	if (gap >= 0.7) cost -= 4;
+	else if (gap >= 0.35) cost -= 1.5;
 	if (last.quran && last.quran.word === last.quran.verseWordCount) cost -= 9;
 	else if (last.quran?.waqf) cost -= 6;
 	else if (last.quran && next?.quran) cost += 7;
@@ -1198,7 +1235,8 @@ export function segmentProcessedTranscript(
 		const previous = current.at(-1);
 		if (
 			previous &&
-			(previous.speaker !== token.speaker || token.start - previous.end >= settings.maxGap)
+			(previous.speaker !== token.speaker ||
+				token.start - previous.end >= HARD_TRANSCRIPT_GAP_SECONDS)
 		) {
 			blocks.push(current);
 			current = [];
@@ -1232,6 +1270,34 @@ export function segmentProcessedTranscript(
 				words
 			};
 		});
+}
+
+/**
+ * Applique les opérations de contenu validées avant toute décision de segmentation.
+ * @param {AITranscriptionResult} source Résultat ASR original.
+ * @param {ProcessedTranscriptToken[]} preparedTokens Tokens protégés par la première passe Quran.
+ * @param {QuranCorpus} corpus Corpus Quran.
+ * @param {TranscriptAiAnalysis} analysis Opérations IA validées.
+ * @returns {PreparedFinalTranscript} Flux nettoyé et nombre de corrections appliquées.
+ */
+export function prepareFinalTranscriptTokens(
+	source: AITranscriptionResult,
+	preparedTokens: ProcessedTranscriptToken[],
+	corpus: QuranCorpus,
+	analysis: TranscriptAiAnalysis
+): PreparedFinalTranscript {
+	const corrected = applyTranscriptCorrections(preparedTokens, analysis.corrections);
+	const postMatches = findQuranMatches(corrected.tokens, corpus);
+	const quranAware = canonicalizeQuranMatches(corrected.tokens, postMatches, corpus);
+	const reviewedQuran = applyQuranRejections(
+		quranAware,
+		buildTimedTranscriptTokens(source),
+		analysis.quranRejections ?? []
+	);
+	return {
+		tokens: applyTranscriptAnnotations(reviewedQuran, analysis),
+		correctionsApplied: corrected.applied
+	};
 }
 
 /**
@@ -1270,17 +1336,11 @@ export function finalizeTranscriptProcessing(
 	preparedTokens: ProcessedTranscriptToken[],
 	corpus: QuranCorpus,
 	analysis: TranscriptAiAnalysis,
-	settings: TranscriptProcessingSettings
+	settings: TranscriptProcessingSettings,
+	semanticBoundaries: TranscriptSemanticBoundary[] = []
 ): TranscriptProcessingReport {
-	const corrected = applyTranscriptCorrections(preparedTokens, analysis.corrections);
-	const postMatches = findQuranMatches(corrected.tokens, corpus);
-	const quranAware = canonicalizeQuranMatches(corrected.tokens, postMatches, corpus);
-	const reviewedQuran = applyQuranRejections(
-		quranAware,
-		buildTimedTranscriptTokens(source),
-		analysis.quranRejections ?? []
-	);
-	const annotated = applyTranscriptAnnotations(reviewedQuran, analysis);
+	const prepared = prepareFinalTranscriptTokens(source, preparedTokens, corpus, analysis);
+	const annotated = applyTranscriptSemanticBoundaries(prepared.tokens, semanticBoundaries);
 	const segments = segmentProcessedTranscript(annotated, settings);
 	const quoteIds = new Set(annotated.map((token) => token.quoteId).filter((id) => id !== null));
 	return {
@@ -1292,7 +1352,7 @@ export function finalizeTranscriptProcessing(
 		},
 		quranPassages: countQuranPassages(annotated),
 		quotePassages: quoteIds.size,
-		correctionsApplied: corrected.applied,
+		correctionsApplied: prepared.correctionsApplied,
 		originalSegments: source.segments.length,
 		generatedSegments: segments.length
 	};

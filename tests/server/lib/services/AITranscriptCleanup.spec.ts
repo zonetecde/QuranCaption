@@ -88,11 +88,12 @@ describe('AITranscriptCleanup batches', () => {
 		const tokens = Array.from({ length: 205 }, (_, id) => token(id, `word${id}`, id === 110));
 		const batches = buildTranscriptCleanupBatches(tokens);
 
-		expect(batches.map((batch) => batch.tokens.length)).toEqual([160, 85]);
-		expect(batches[1].tokens[0].id).toBe(120);
+		expect(batches.map((batch) => batch.tokens.length)).toEqual([160, 75]);
+		expect(batches[1].tokens[0].id).toBe(130);
+		expect(batches[0].request.w[0]).toEqual({ i: 0, p: 0, t: 'word0', g: 0.2 });
 		expect(batches[0].request.w.find((word) => word.i === 110)?.q).toBe(true);
 		expect(batches[0].request.w[0].g).toBeCloseTo(0.2);
-		expect(batches[1].request.w.at(-1)?.g).toBeNull();
+		expect(batches[1].request.w.at(-1)?.g).toBeUndefined();
 	});
 
 	it('includes the original ASR passage for automatic Quran candidates', () => {
@@ -110,20 +111,23 @@ describe('AITranscriptCleanup batches', () => {
 			r: '21:107',
 			o: 'هو في الجنة',
 			u: 'quran-10',
-			a: true,
-			z: false
+			a: true
 		});
-		expect(batch.request.w[1].o).toBeNull();
-		expect(batch.request.w[1]).toMatchObject({ u: 'quran-10', a: false, z: false });
-		expect(batch.request.w[2]).toMatchObject({ u: 'quran-10', a: false, z: true });
+		expect(batch.request.w[0]).not.toHaveProperty('z');
+		expect(batch.request.w[1].o).toBeUndefined();
+		expect(batch.request.w[1]).toMatchObject({ u: 'quran-10' });
+		expect(batch.request.w[1]).not.toHaveProperty('a');
+		expect(batch.request.w[1]).not.toHaveProperty('z');
+		expect(batch.request.w[2]).toMatchObject({ u: 'quran-10', z: true });
+		expect(batch.request.w[2]).not.toHaveProperty('a');
 	});
 
 	it('uses a larger requested batch size while preserving the context overlap', () => {
 		const tokens = Array.from({ length: 500 }, (_, id) => token(id, `word${id}`));
 		const batches = buildTranscriptCleanupBatches(tokens, 320);
 
-		expect(batches.map((batch) => batch.tokens.length)).toEqual([320, 220]);
-		expect(batches[1].tokens[0].id).toBe(280);
+		expect(batches.map((batch) => batch.tokens.length)).toEqual([320, 210]);
+		expect(batches[1].tokens[0].id).toBe(290);
 	});
 });
 

@@ -36,11 +36,33 @@ describe('AITranscriptSegmentation batches', () => {
 		expect(batches).toHaveLength(3);
 		expect(batches[0].request.before).toHaveLength(0);
 		expect(batches[0].request.core).toHaveLength(120);
-		expect(batches[0].request.after).toHaveLength(40);
-		expect(batches[1].request.before[0].id).toBe(80);
-		expect(batches[1].request.core[0].id).toBe(120);
-		expect(batches[1].request.after.at(-1)?.id).toBe(259);
-		expect(batches[2].request.core.at(-1)?.id).toBe(259);
+		expect(batches[0].request.after).toHaveLength(30);
+		expect(batches[1].request.before[0].i).toBe(90);
+		expect(batches[1].request.core[0].i).toBe(120);
+		expect(batches[1].request.after.at(-1)?.i).toBe(259);
+		expect(batches[2].request.core.at(-1)?.i).toBe(259);
+	});
+
+	it('uses compact word keys and omits empty optional metadata', () => {
+		const tokens = [token(0), token(1)];
+		tokens[1].speaker = 'SPEAKER_01';
+		tokens[1].quran = { surah: 2, verse: 255, word: 3, verseWordCount: 50, waqf: false };
+		tokens[1].quoteId = 7;
+		tokens[1].quoteType = 'hadith';
+
+		const words = buildTranscriptSegmentationBatches(tokens)[0].request.core;
+
+		expect(words[0]).toEqual({ i: 0, t: 'word0', p: 0, s: 0, e: 0.35, g: 0.05 });
+		expect(words[1]).toEqual({
+			i: 1,
+			t: 'word1',
+			p: 1,
+			s: 0.4,
+			e: 0.75,
+			l: true,
+			q: '2:255',
+			v: 'hadith-7'
+		});
 	});
 
 	it('accepts typed core boundaries and rejects context or forbidden Quran boundaries', () => {

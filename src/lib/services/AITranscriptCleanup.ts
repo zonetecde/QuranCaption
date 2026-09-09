@@ -19,20 +19,20 @@ import { validateTranscriptQuranReferences } from '$lib/services/TranscriptRefer
 import { analyzeTranscriptSemanticBoundaries } from '$lib/services/AITranscriptSegmentation';
 
 export const DEFAULT_TRANSCRIPT_CLEANUP_BATCH_WORDS = 160;
-const BATCH_OVERLAP_WORDS = 40;
+const BATCH_OVERLAP_WORDS = 30;
 const TRANSCRIPT_CLEANUP_CONCURRENCY = 3;
 
 type TranscriptAnalysisWordPayload = {
 	i: number;
-	p: string;
+	p: number;
 	t: string;
-	q: boolean;
-	r: string | null;
-	o: string | null;
-	u: string | null;
-	a: boolean;
-	z: boolean;
-	g: number | null;
+	q?: true;
+	r?: string;
+	o?: string;
+	u?: string;
+	a?: true;
+	z?: true;
+	g?: number;
 };
 
 export type TranscriptCleanupBatch = {
@@ -141,6 +141,7 @@ export function buildTranscriptCleanupBatches(
 	const batches: TranscriptCleanupBatch[] = [];
 	const sourceById = new Map(sourceTokens.map((token) => [token.id, token]));
 	const quranCandidateByTokenId = buildQuranCandidateMetadata(tokens);
+	const speakers = new Map<string, number>();
 	const normalizedBatchWords = Math.max(BATCH_OVERLAP_WORDS + 1, Math.round(batchWords));
 	const stride = Math.max(1, normalizedBatchWords - BATCH_OVERLAP_WORDS);
 	for (let start = 0; start < tokens.length; start += stride) {
@@ -154,6 +155,7 @@ export function buildTranscriptCleanupBatches(
 				w: batchTokens.map((token, tokenIndex) => {
 					const next = batchTokens[tokenIndex + 1];
 					const candidate = quranCandidateByTokenId.get(token.id);
+					if (!speakers.has(token.speaker)) speakers.set(token.speaker, speakers.size);
 					const originalPassage =
 						token.quran && candidate?.isStart
 							? token.sourceIds
@@ -163,18 +165,21 @@ export function buildTranscriptCleanupBatches(
 									.join(' ')
 									.trim()
 							: null;
-					return {
+					const word: TranscriptAnalysisWordPayload = {
 						i: token.id,
-						p: token.speaker,
-						t: `${token.text}${token.punctuationAfter}`,
-						q: token.quran !== null,
-						r: token.quran ? `${token.quran.surah}:${token.quran.verse}` : null,
-						o: originalPassage || null,
-						u: candidate?.id ?? null,
-						a: candidate?.isStart ?? false,
-						z: candidate?.isEnd ?? false,
-						g: next ? Math.round(Math.max(0, next.start - token.end) * 1000) / 1000 : null
+						p: speakers.get(token.speaker)!,
+						t: `${token.text}${token.punctuationAfter}`
 					};
+					if (next) word.g = Math.round(Math.max(0, next.start - token.end) * 1000) / 1000;
+					if (token.quran) {
+						word.q = true;
+						word.r = `${token.quran.surah}:${token.quran.verse}`;
+					}
+					if (originalPassage) word.o = originalPassage;
+					if (candidate) word.u = candidate.id;
+					if (candidate?.isStart) word.a = true;
+					if (candidate?.isEnd) word.z = true;
+					return word;
 				})
 			}
 		});

@@ -8,19 +8,19 @@ import type {
 } from '$lib/services/TranscriptPostProcessor';
 
 const SEGMENTATION_CORE_WORDS = 120;
-const SEGMENTATION_CONTEXT_WORDS = 40;
+const SEGMENTATION_CONTEXT_WORDS = 30;
 const SEGMENTATION_CONCURRENCY = 3;
 
 type TranscriptSegmentationWordPayload = {
-	id: number;
-	text: string;
-	speaker: string;
-	start: number;
-	end: number;
-	gapAfter: number | null;
-	canBreakAfter: boolean;
-	quran: string | null;
-	quote: string | null;
+	i: number;
+	t: string;
+	p: number;
+	s: number;
+	e: number;
+	g?: number;
+	l?: true;
+	q?: string;
+	v?: string;
 };
 
 export type TranscriptSegmentationBatch = {
@@ -41,24 +41,28 @@ type TranscriptSegmentationBatchResponse = {
  * Convertit un token final en entrée compacte pour l'analyse sémantique.
  * @param {ProcessedTranscriptToken} token Token à convertir.
  * @param {ProcessedTranscriptToken | undefined} next Token suivant éventuel.
+ * @param {number} speakerId Identifiant compact du speaker.
  * @returns {TranscriptSegmentationWordPayload} Mot horodaté et ses protections.
  */
 function toSegmentationWordPayload(
 	token: ProcessedTranscriptToken,
-	next: ProcessedTranscriptToken | undefined
+	next: ProcessedTranscriptToken | undefined,
+	speakerId: number
 ): TranscriptSegmentationWordPayload {
-	return {
-		id: token.id,
-		text: `${token.text}${token.punctuationAfter}`,
-		speaker: token.speaker,
-		start: Math.round(token.start * 1000) / 1000,
-		end: Math.round(token.end * 1000) / 1000,
-		gapAfter: next ? Math.round(Math.max(0, next.start - token.end) * 1000) / 1000 : null,
-		canBreakAfter:
-			!token.quran || token.quran.waqf || token.quran.word === token.quran.verseWordCount,
-		quran: token.quran ? `${token.quran.surah}:${token.quran.verse}` : null,
-		quote: token.quoteId === null ? null : `${token.quoteType ?? 'generic'}-${token.quoteId}`
+	const payload: TranscriptSegmentationWordPayload = {
+		i: token.id,
+		t: `${token.text}${token.punctuationAfter}`,
+		p: speakerId,
+		s: Math.round(token.start * 1000) / 1000,
+		e: Math.round(token.end * 1000) / 1000
 	};
+	if (next) payload.g = Math.round(Math.max(0, next.start - token.end) * 1000) / 1000;
+	if (token.quran) {
+		payload.q = `${token.quran.surah}:${token.quran.verse}`;
+		if (!token.quran.waqf && token.quran.word !== token.quran.verseWordCount) payload.l = true;
+	}
+	if (token.quoteId !== null) payload.v = `${token.quoteType ?? 'generic'}-${token.quoteId}`;
+	return payload;
 }
 
 /**
@@ -71,9 +75,11 @@ export function buildTranscriptSegmentationBatches(
 	tokens: ProcessedTranscriptToken[],
 	timingQuality: 'word' | 'estimated' = 'word'
 ): TranscriptSegmentationBatch[] {
-	const payloads = tokens.map((token, index) =>
-		toSegmentationWordPayload(token, tokens[index + 1])
-	);
+	const speakers = new Map<string, number>();
+	const payloads = tokens.map((token, index) => {
+		if (!speakers.has(token.speaker)) speakers.set(token.speaker, speakers.size);
+		return toSegmentationWordPayload(token, tokens[index + 1], speakers.get(token.speaker)!);
+	});
 	const batches: TranscriptSegmentationBatch[] = [];
 	for (let start = 0; start < tokens.length; start += SEGMENTATION_CORE_WORDS) {
 		const end = Math.min(tokens.length, start + SEGMENTATION_CORE_WORDS);
@@ -102,8 +108,8 @@ export function validateTranscriptSegmentationBatch(
 ): { boundaries: TranscriptSemanticBoundary[]; errors: string[] } {
 	const boundaries: TranscriptSemanticBoundary[] = [];
 	const errors: string[] = [];
-	const coreById = new Map(batch.request.core.map((word) => [word.id, word]));
-	const coreOrder = new Map(batch.request.core.map((word, index) => [word.id, index]));
+	const coreById = new Map(batch.request.core.map((word) => [word.i, word]));
+	const coreOrder = new Map(batch.request.core.map((word, index) => [word.i, index]));
 	const seen = new Set<number>();
 	if (
 		!parsed ||
@@ -127,7 +133,8 @@ export function validateTranscriptSegmentationBatch(
 		const word = coreById.get(afterId);
 		if (
 			!Number.isInteger(afterId) ||
-			!word?.canBreakAfter ||
+			!word ||
+			word.l === true ||
 			seen.has(afterId) ||
 			(kind !== 'sentence' && kind !== 'clause' && kind !== 'phrase')
 		) {

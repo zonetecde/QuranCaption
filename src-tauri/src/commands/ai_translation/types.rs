@@ -108,16 +108,21 @@ pub struct TranscriptCleanupBatchPayload {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TranscriptCleanupWordPayload {
     pub i: i64,
-    pub p: String,
+    pub p: i64,
     pub t: String,
-    pub q: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub q: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub r: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub o: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub u: Option<String>,
-    #[serde(default)]
-    pub a: bool,
-    #[serde(default)]
-    pub z: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub a: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub z: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub g: Option<f64>,
 }
 

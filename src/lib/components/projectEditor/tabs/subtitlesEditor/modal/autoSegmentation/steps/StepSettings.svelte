@@ -71,6 +71,49 @@
 	</div>
 
 	<div class="rounded-xl border border-color p-4 space-y-2">
+		<div class="mb-3 space-y-3 border-b border-color pb-3">
+			<label class="block space-y-1 text-xs text-thirdly">
+				<span>{$LL.editor.styleName.riwayah()}</span>
+				<select
+					value={wizard.selection.riwayah}
+					onchange={(event) =>
+						wizard.setRiwayah(event.currentTarget.value as 'hafs' | 'warsh' | 'qalun' | 'shuba')}
+					class="w-full rounded-lg border border-color bg-bg-primary px-3 py-2 text-sm text-primary"
+				>
+					<option value="hafs">Hafs</option>
+					<option value="warsh">Warsh</option>
+					<option value="qalun">Qalun</option>
+					<option value="shuba">Shu‘bah</option>
+				</select>
+			</label>
+			<div class="text-xs uppercase text-thirdly">{$LL.editor.segmentBoundaries()}</div>
+			<div class="grid grid-cols-2 gap-3">
+				<label class="space-y-1 text-xs text-thirdly">
+					<span>{$LL.editor.startEarlier()}</span>
+					<input
+						type="number"
+						min="0"
+						max="1000"
+						step="10"
+						value={wizard.padLeftMs}
+						oninput={(event) => wizard.setPadLeft(Number(event.currentTarget.value))}
+						class="w-full rounded-lg border border-color bg-bg-primary px-3 py-2 text-sm text-primary"
+					/>
+				</label>
+				<label class="space-y-1 text-xs text-thirdly">
+					<span>{$LL.editor.endLater()}</span>
+					<input
+						type="number"
+						min="0"
+						max="1000"
+						step="10"
+						value={wizard.padRightMs}
+						oninput={(event) => wizard.setPadRight(Number(event.currentTarget.value))}
+						class="w-full rounded-lg border border-color bg-bg-primary px-3 py-2 text-sm text-primary"
+					/>
+				</label>
+			</div>
+		</div>
 		<div class="mb-3 space-y-2 border-b border-color pb-3">
 			<label class="flex items-center gap-2 text-sm text-secondary"
 				><input

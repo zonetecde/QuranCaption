@@ -35,6 +35,7 @@ async function runAutoSegmentationFromImportedJsonCore(
 
 	const audioInfo = getAutoSegmentationAudioInfo(project);
 	const audioClips = getAutoSegmentationAudioClips(project);
+	const riwayah = audioInfo?.riwayah;
 	if ((!audioInfo || audioClips.length === 0) && !headless) {
 		return { status: 'failed', message: 'No audio clip found in the project.' };
 	}
@@ -46,7 +47,7 @@ async function runAutoSegmentationFromImportedJsonCore(
 		const parsed = parseImportedSegmentationJson(importedPayload);
 		const response =
 			!headless && audioClips.length > 0
-				? await enrichSegmentationResponseWithWordTimestamps(parsed.response)
+				? await enrichSegmentationResponseWithWordTimestamps(parsed.response, undefined, riwayah)
 				: parsed.response;
 		return await applySegmentationResponseToProject({
 			response,
@@ -64,6 +65,7 @@ async function runAutoSegmentationFromImportedJsonCore(
 			subtitleApplicationMode: options.subtitleApplicationMode ?? 'replace',
 			modelName: null,
 			device: null,
+			riwayah: riwayah ?? null,
 			payloadForLog: importedPayload,
 			project: project ?? undefined,
 			headless,

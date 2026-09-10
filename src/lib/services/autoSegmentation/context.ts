@@ -21,6 +21,7 @@ export function createEmptySegmentationContext(): StoredSegmentationContext {
 		effectiveMode: null,
 		modelName: null,
 		device: null,
+		riwayah: null,
 		includeWbwTimestamps: false,
 		alignedSegments: []
 	};

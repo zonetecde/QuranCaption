@@ -27,11 +27,14 @@ export function useAutoSegmentationWizard() {
 		mode: 'api' as const,
 		runtime: 'cloud' as const,
 		cloudModel: persisted?.cloudModel === 'Large' ? ('Large' as const) : ('Base' as const),
-		device: persisted?.device ?? ('GPU' as SegmentationDevice)
+		device: persisted?.device ?? ('GPU' as SegmentationDevice),
+		riwayah: persisted?.riwayah ?? ('hafs' as const)
 	});
 	let minSilenceMs = $state(persisted?.minSilenceMs ?? 200);
 	let minSpeechMs = $state(persisted?.minSpeechMs ?? 1000);
 	let padMs = $state(persisted?.padMs ?? 100);
+	let padLeftMs = $state(persisted?.padLeftMs ?? 100);
+	let padRightMs = $state(persisted?.padRightMs ?? 200);
 	let includeWbwTimestamps = $state(persisted?.includeWbwTimestamps ?? false);
 	let subtitleApplicationMode = $state<SubtitleApplicationMode | null>('replace');
 	let fillBySilence = $state(persisted?.fillBySilence ?? true);
@@ -74,6 +77,12 @@ export function useAutoSegmentationWizard() {
 	function setDevice(value: SegmentationDevice): void {
 		selection.device = value;
 		persistPatch({ device: value });
+	}
+
+	/** Persists the recitation reading used by the cloud aligner. */
+	function setRiwayah(value: 'hafs' | 'warsh' | 'qalun' | 'shuba'): void {
+		selection.riwayah = value;
+		persistPatch({ riwayah: value });
 	}
 
 	/** Listens to upload and processing progress emitted by the cloud command. */
@@ -157,8 +166,11 @@ export function useAutoSegmentationWizard() {
 					minSilenceMs,
 					minSpeechMs,
 					padMs,
+					padLeftMs,
+					padRightMs,
 					cloudModel: selection.cloudModel,
 					device: selection.device,
+					riwayah: selection.riwayah,
 					includeWbwTimestamps: applicationMode === 'align' || includeWbwTimestamps,
 					subtitleApplicationMode: applicationMode,
 					fillBySilence,
@@ -233,6 +245,18 @@ export function useAutoSegmentationWizard() {
 		persistPatch({ padMs: value });
 	}
 
+	/** Persists the amount added before cloud segment boundaries. */
+	function setPadLeft(value: number): void {
+		padLeftMs = Math.max(0, Math.min(1000, value));
+		persistPatch({ padLeftMs });
+	}
+
+	/** Persists the amount added after cloud segment boundaries. */
+	function setPadRight(value: number): void {
+		padRightMs = Math.max(0, Math.min(1000, value));
+		persistPatch({ padRightMs });
+	}
+
 	/** Persists word-by-word timestamp generation. */
 	function setIncludeWbwTimestamps(value: boolean): void {
 		includeWbwTimestamps = value;
@@ -278,6 +302,12 @@ export function useAutoSegmentationWizard() {
 		},
 		get padMs() {
 			return padMs;
+		},
+		get padLeftMs() {
+			return padLeftMs;
+		},
+		get padRightMs() {
+			return padRightMs;
 		},
 		get includeWbwTimestamps() {
 			return includeWbwTimestamps;
@@ -341,12 +371,15 @@ export function useAutoSegmentationWizard() {
 		onVersionChange,
 		setCloudModel,
 		setDevice,
+		setRiwayah,
 		startSegmentation,
 		applyPreset,
 		isPresetActive,
 		setMinSilence,
 		setMinSpeech,
 		setPad,
+		setPadLeft,
+		setPadRight,
 		setIncludeWbwTimestamps,
 		setSubtitleApplicationMode,
 		setFillBySilence,

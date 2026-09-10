@@ -29,8 +29,11 @@ export type AutoSegmentationSettings = {
 	minSilenceMs: number;
 	minSpeechMs: number;
 	padMs: number;
+	padLeftMs?: number;
+	padRightMs?: number;
 	cloudModel: 'Base' | 'Large';
 	device: 'GPU' | 'CPU';
+	riwayah?: 'hafs' | 'warsh' | 'qalun' | 'shuba';
 	includeWbwTimestamps: boolean;
 	fillBySilence: boolean; // Si true, insère des SilenceClip. Sinon, étend les sous-titres.
 	extendBeforeSilence: boolean; // If true, extend subtitles before silence clips.
@@ -151,8 +154,11 @@ export default class Settings extends SerializableBase {
 		minSilenceMs: 200,
 		minSpeechMs: 1000,
 		padMs: 100,
+		padLeftMs: 100,
+		padRightMs: 200,
 		cloudModel: 'Base',
 		device: 'GPU',
+		riwayah: 'hafs',
 		includeWbwTimestamps: false,
 		fillBySilence: true,
 		extendBeforeSilence: false,

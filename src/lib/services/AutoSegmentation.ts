@@ -73,6 +73,10 @@ export {
 } from './autoSegmentation/run-segmentation';
 export { runAutoSegmentationFromImportedJson } from './autoSegmentation/run-imported';
 export { applyPreloadSegmentsToProject } from './autoSegmentation/run-preload';
+export {
+	applySegmentationRiwayahToProject,
+	normalizeSegmentationRiwayah
+} from './autoSegmentation/riwayah';
 export { runNativeSegmentation } from './autoSegmentation/run-native';
 export {
 	beginAudioNormalizationIfNeeded,
@@ -102,6 +106,7 @@ export type {
 	SubtitleApplicationMode,
 	MultiAlignerModel,
 	SegmentationDevice,
+	SegmentationRiwayah,
 	AutoSegmentationOptions,
 	AutoSegmentationResult,
 	AutoSegmentationAudioInfo,

@@ -1,36 +1,6 @@
-/// URL racine de l'API Gradio Quran Multi-Aligner.
-pub const QURAN_MULTI_ALIGNER_BASE_URL: &str =
-    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api";
-/// Endpoint d'upload Gradio.
-pub const QURAN_MULTI_ALIGNER_UPLOAD_URL: &str =
-    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/upload";
-/// Endpoint d'appel du pipeline complet.
-pub const QURAN_MULTI_ALIGNER_PROCESS_CALL_URL: &str =
-    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/process_audio_session";
-/// Endpoint d'appel de l'estimation de duree.
-pub const QURAN_MULTI_ALIGNER_ESTIMATE_CALL_URL: &str =
-    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/estimate_duration";
-/// Endpoint MFA base sur une session cloud existante.
-pub const QURAN_MULTI_ALIGNER_MFA_SESSION_CALL_URL: &str =
-    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/timestamps";
-/// Endpoint MFA direct sur un fichier audio uploade.
-pub const QURAN_MULTI_ALIGNER_MFA_DIRECT_CALL_URL: &str =
-    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/timestamps_direct";
-/// Endpoint de split des segments par contraintes (versets/mots/duree).
-pub const QURAN_MULTI_ALIGNER_SPLIT_SEGMENTS_CALL_URL: &str =
-    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/split_segments";
-/// Endpoint preload : catalogue des recitations + chapitres disponibles.
-pub const QURAN_MULTI_ALIGNER_PRELOAD_RECITATIONS_CALL_URL: &str =
-    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/preload_recitations";
-/// Endpoint preload : segments pre-alignes (+ timestamps mot a mot) d'une recitation/chapitre.
-pub const QURAN_MULTI_ALIGNER_PRELOAD_SEGMENTS_CALL_URL: &str =
-    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/preload_segments";
-/// Endpoint preload audio-only : catalogue des recitations non publiees (audio seul).
-pub const QURAN_MULTI_ALIGNER_PRELOAD_AUDIO_RECITATIONS_CALL_URL: &str =
-    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/preload_audio_recitations";
-/// Endpoint preload audio-only : URL audio directe d'un chapitre (sans segments).
-pub const QURAN_MULTI_ALIGNER_PRELOAD_AUDIO_CALL_URL: &str =
-    "https://hetchyy-quranic-universal-aligner.hf.space/gradio_api/call/preload_audio";
+/// URL racine de l'API FastAPI v1 Quranic Universal Aligner en production.
+pub const QURAN_MULTI_ALIGNER_API_V1_URL: &str =
+    "https://hetchyy-quranic-universal-aligner.hf.space/api/v1";
 
 /// Flag de developpement pour forcer un payload mock au lieu d'appeler le cloud.
 pub const QURAN_SEGMENTATION_USE_MOCK: bool = false;

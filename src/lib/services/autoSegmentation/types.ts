@@ -56,6 +56,7 @@ export type StoredSegmentationContext = {
 	effectiveMode: SegmentationMode | null;
 	modelName: string | null;
 	device: SegmentationDevice | null;
+	riwayah: SegmentationRiwayah | null;
 	includeWbwTimestamps: boolean;
 	alignedSegments: StoredAlignedSegment[];
 };
@@ -83,6 +84,7 @@ export type SegmentationSegment = {
 
 export type SegmentationResponse = {
 	audio_id?: string;
+	device?: SegmentationDevice;
 	error?: string;
 	warning?: string;
 	segments?: SegmentationSegment[];
@@ -100,13 +102,17 @@ export type SegmentationMode = 'api';
 export type SubtitleApplicationMode = 'replace' | 'align';
 export type MultiAlignerModel = 'Base' | 'Large';
 export type SegmentationDevice = 'GPU' | 'CPU';
+export type SegmentationRiwayah = 'hafs' | 'warsh' | 'qalun' | 'shuba';
 
 export type AutoSegmentationOptions = {
 	minSilenceMs?: number;
 	minSpeechMs?: number;
 	padMs?: number;
+	padLeftMs?: number;
+	padRightMs?: number;
 	cloudModel?: MultiAlignerModel;
 	device?: SegmentationDevice;
+	riwayah?: SegmentationRiwayah;
 	includeWbwTimestamps?: boolean;
 	subtitleApplicationMode?: SubtitleApplicationMode;
 	/** Si true, insère des SilenceClip dans les gaps. Sinon, étend la fin du sous-titre précédent. */
@@ -144,6 +150,7 @@ export type AutoSegmentationAudioInfo = {
 	filePath: string;
 	fileName: string;
 	clipCount: number;
+	riwayah?: SegmentationRiwayah;
 };
 
 export type AutoSegmentationAudioClip = {
@@ -152,6 +159,7 @@ export type AutoSegmentationAudioClip = {
 	startMs: number;
 	endMs: number;
 	sourceStartMs: number;
+	riwayah?: SegmentationRiwayah;
 };
 
 export type VerseRef = {
@@ -211,6 +219,7 @@ export type ApplySegmentationResponseParams = {
 	subtitleApplicationMode?: SubtitleApplicationMode;
 	modelName?: string | null;
 	device?: SegmentationDevice | null;
+	riwayah?: SegmentationRiwayah | null;
 	warningOverride?: string;
 	payloadForLog?: unknown;
 	project?: import('$lib/classes/Project').Project;

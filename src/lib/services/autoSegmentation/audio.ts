@@ -2,6 +2,7 @@ import { globalState } from '$lib/runes/main.svelte';
 import type { Project } from '$lib/classes/Project';
 import { TrackType } from '$lib/classes/enums';
 import type { AutoSegmentationAudioClip, AutoSegmentationAudioInfo } from './types';
+import { normalizeSegmentationRiwayah } from './riwayah';
 
 /**
  * Extrait les clips audio présents sur la timeline du projet.
@@ -33,13 +34,20 @@ export function getAutoSegmentationAudioClips(
 		if (!filePath) continue;
 
 		const fileName: string = filePath.split(/[/\\]/).pop() || filePath;
+		const quaMetadata = audioAsset?.metadata?.quranicUniversalAudio;
+		const riwayah = normalizeSegmentationRiwayah(
+			typeof quaMetadata === 'object' && quaMetadata !== null && 'riwayah' in quaMetadata
+				? quaMetadata.riwayah
+				: undefined
+		);
 		clips.push({
 			filePath,
 			fileName,
 			startMs: Math.max(0, Math.round(startTime)),
 			endMs: Math.max(0, Math.round(endTime)),
 			sourceStartMs:
-				typeof sourceStartTime === 'number' ? Math.max(0, Math.round(sourceStartTime)) : 0
+				typeof sourceStartTime === 'number' ? Math.max(0, Math.round(sourceStartTime)) : 0,
+			riwayah: riwayah ?? undefined
 		});
 	}
 
@@ -62,7 +70,8 @@ export function getAutoSegmentationAudioInfo(
 	return {
 		filePath: first.filePath,
 		fileName: first.fileName,
-		clipCount: clips.length
+		clipCount: clips.length,
+		riwayah: first.riwayah
 	};
 }
 

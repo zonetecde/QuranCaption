@@ -522,6 +522,7 @@ export async function applySegmentationResponseToProject(
 		includeWbwTimestamps,
 		modelName,
 		device,
+		riwayah,
 		warningOverride,
 		payloadForLog
 	} = params;
@@ -582,6 +583,7 @@ export async function applySegmentationResponseToProject(
 				effectiveMode,
 				modelName: modelName ?? null,
 				device: device ?? null,
+				riwayah: riwayah ?? null,
 				includeWbwTimestamps: true,
 				alignedSegments: alignedResult.storedAlignedSegments
 			};
@@ -848,6 +850,7 @@ export async function applySegmentationResponseToProject(
 		effectiveMode,
 		modelName: modelName ?? null,
 		device: device ?? null,
+		riwayah: riwayah ?? null,
 		includeWbwTimestamps,
 		alignedSegments: storedAlignedSegments
 	};

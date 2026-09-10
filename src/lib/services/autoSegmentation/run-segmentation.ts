@@ -15,6 +15,7 @@ import type {
 import { getAutoSegmentationAudioInfo, getAutoSegmentationAudioClips } from './audio';
 import { enrichSegmentationResponseWithWordTimestamps } from './enrichment';
 import { applySegmentationResponseToProject } from './apply-segmentation';
+import { applySegmentationRiwayahToProject } from './riwayah';
 import {
 	beginAudioNormalizationIfNeeded,
 	normalizeAudioForProject
@@ -71,6 +72,8 @@ export async function runAutoSegmentationForProject(
 	const minSilenceMs = options.minSilenceMs ?? 200;
 	const minSpeechMs = options.minSpeechMs ?? 1000;
 	const padMs = options.padMs ?? 100;
+	const padLeftMs = options.padLeftMs ?? 100;
+	const padRightMs = options.padRightMs ?? 200;
 	const subtitleApplicationMode = options.subtitleApplicationMode ?? 'replace';
 	const includeWbwTimestamps = resolveIncludeWbwTimestamps(
 		options.includeWbwTimestamps ?? false,
@@ -87,6 +90,7 @@ export async function runAutoSegmentationForProject(
 	if (!audioInfo || audioClips.length === 0) {
 		return { status: 'failed', message: 'No audio clip found in the project.' };
 	}
+	const riwayah = options.riwayah ?? audioInfo.riwayah ?? 'hafs';
 
 	const audioNormalizationPromise = executionOptions.headless
 		? normalizeAudioForProject(project)
@@ -129,7 +133,10 @@ export async function runAutoSegmentationForProject(
 		const invokeCloud = async (targetDevice: SegmentationDevice): Promise<SegmentationResponse> =>
 			(await invoke('segment_quran_audio', {
 				...basePayload,
-				device: targetDevice
+				device: targetDevice,
+				riwayah,
+				padLeftMs,
+				padRightMs
 			})) as SegmentationResponse;
 
 		let cloudGpuFallbackToCpu = false;
@@ -148,10 +155,10 @@ export async function runAutoSegmentationForProject(
 		}
 
 		const response = includeWbwTimestamps
-			? await enrichSegmentationResponseWithWordTimestamps(payload)
+			? await enrichSegmentationResponseWithWordTimestamps(payload, undefined, riwayah)
 			: payload;
 		executionOptions.onApplying?.();
-		return await applySegmentationResponseToProject({
+		const result = await applySegmentationResponseToProject({
 			response,
 			fillBySilence,
 			extendBeforeSilence,
@@ -165,11 +172,14 @@ export async function runAutoSegmentationForProject(
 			subtitleApplicationMode,
 			modelName: cloudModel,
 			device,
+			riwayah,
 			payloadForLog: payload,
 			project,
 			headless: executionOptions.headless,
 			audioNormalizationPromise
 		});
+		if (result.status === 'completed') await applySegmentationRiwayahToProject(project, riwayah);
+		return result;
 	} catch (error) {
 		console.error('Segmentation request failed:', error);
 		return {

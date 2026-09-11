@@ -26,6 +26,15 @@ pub async fn segment_quran_audio(
     .await
 }
 
+/// Découpe un alignement cloud terminé en segments d'un verset maximum.
+#[tauri::command]
+pub async fn split_quran_alignment_session(
+    app_handle: tauri::AppHandle,
+    audio_id: String,
+) -> Result<serde_json::Value, String> {
+    segmentation::split_quran_alignment_session(app_handle, audio_id).await
+}
+
 /// RÃ©cupÃ¨re les timestamps MFA en rÃ©utilisant une session cloud existante.
 #[tauri::command]
 pub async fn get_segmentation_mfa_timestamps_session(

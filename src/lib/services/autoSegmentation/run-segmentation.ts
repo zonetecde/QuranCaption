@@ -154,9 +154,25 @@ export async function runAutoSegmentationForProject(
 			cloudGpuFallbackToCpu = true;
 		}
 
-		const response = includeWbwTimestamps
-			? await enrichSegmentationResponseWithWordTimestamps(payload, undefined, riwayah)
-			: payload;
+		let response = payload;
+		if (includeWbwTimestamps) {
+			response = await enrichSegmentationResponseWithWordTimestamps(payload, undefined, riwayah);
+		} else {
+			if (!payload.audio_id) throw new Error('Alignment result did not include audio_id.');
+			const splitResponse = (await invoke('split_quran_alignment_session', {
+				audioId: payload.audio_id
+			})) as SegmentationResponse;
+			response = {
+				...splitResponse,
+				device: splitResponse.device ?? payload.device,
+				warning: splitResponse.warning ?? payload.warning,
+				segments: (splitResponse.segments ?? []).map((segment) => {
+					const withoutWords = { ...segment };
+					delete withoutWords.words;
+					return withoutWords;
+				})
+			};
+		}
 		executionOptions.onApplying?.();
 		const result = await applySegmentationResponseToProject({
 			response,

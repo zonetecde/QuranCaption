@@ -69,6 +69,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::media::cut_video,
         commands::media::concat_audio,
         commands::segmentation::segment_quran_audio,
+        commands::segmentation::split_quran_alignment_session,
         commands::segmentation::get_segmentation_mfa_timestamps_session,
         commands::segmentation::get_segmentation_mfa_timestamps_direct,
         commands::segmentation::generate_hifz_audio,

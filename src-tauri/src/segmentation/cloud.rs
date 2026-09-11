@@ -474,29 +474,32 @@ pub async fn segment_quran_audio(
     if result.is_none() && !buffer.is_empty() {
         result = parser.line(&String::from_utf8_lossy(&buffer), &app)?;
     }
-    let result = match result {
+    match result {
         Some(value) => value,
         None => parser.finish(&app)?,
-    };
-    let audio_id = result
-        .get("audio_id")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| "Alignment result did not include audio_id".to_string())?;
+    }
+}
+
+/// Découpe une session cloud déjà alignée sans relancer le calcul des timestamps.
+pub async fn split_quran_alignment_session(
+    app: tauri::AppHandle,
+    audio_id: String,
+) -> Result<serde_json::Value, String> {
+    if audio_id.len() != 32
+        || !audio_id
+            .chars()
+            .all(|character| character.is_ascii_hexdigit())
+    {
+        return Err("Invalid audio_id".into());
+    }
     emit_status(&app, "splitting", None);
+    let http = client(Duration::from_secs(60 * 60))?;
     let request = http.post(url(&format!("/sessions/{}/split", audio_id))).json(&serde_json::json!({"max_verses":1,"max_words":null,"max_duration":null,"require_stop_sign":false}));
     let response = authenticated(&app, request)?
         .send()
         .await
         .map_err(|e| e.to_string())?;
-    let mut split = json(response, "one-verse split").await?;
-    if let (Some(split), Some(alignment)) = (split.as_object_mut(), result.as_object()) {
-        for key in ["device"] {
-            if let Some(value) = alignment.get(key) {
-                split.insert(key.to_string(), value.clone());
-            }
-        }
-    }
-    Ok(split)
+    json(response, "one-verse split").await
 }
 
 #[cfg(test)]

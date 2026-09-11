@@ -2860,7 +2860,7 @@ type RootTranslation = {
 		 */
 		cloudMethodDescription: string;
 		/**
-		 * H​u​g​g​i​n​g​ ​F​a​c​e​ ​t​o​k​e​n
+		 * L​o​c​a​l​ ​m​o​d​e​l​ ​d​o​w​n​l​o​a​d​ ​t​o​k​e​n
 		 */
 		huggingFaceTokenLabel: string;
 		/**
@@ -8053,6 +8053,58 @@ type RootTranslation = {
 		 * A​P​I​ ​K​e​y​s
 		 */
 		apiKeys: string;
+		/**
+		 * H​u​g​g​i​n​g​ ​F​a​c​e​ ​a​c​c​o​u​n​t
+		 */
+		huggingFaceAccount: string;
+		/**
+		 * P​r​o​v​i​d​e​ ​a​ ​t​o​k​e​n​ ​f​r​o​m​ ​y​o​u​r​ ​f​r​e​e​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​a​c​c​o​u​n​t​ ​f​o​r​ ​i​n​c​r​e​a​s​e​d​ ​d​a​i​l​y​ ​G​P​U​ ​q​u​o​t​a​.
+		 */
+		huggingFaceQuotaDescription: string;
+		/**
+		 * h​f​_​.​.​.
+		 */
+		huggingFaceTokenPlaceholder: string;
+		/**
+		 * T​o​k​e​n​ ​c​o​n​f​i​g​u​r​e​d
+		 */
+		huggingFaceConfigured: string;
+		/**
+		 * T​o​k​e​n​ ​n​o​t​ ​c​o​n​f​i​g​u​r​e​d
+		 */
+		huggingFaceNotConfigured: string;
+		/**
+		 * H​F​ ​c​o​n​n​e​c​t​e​d
+		 */
+		huggingFaceConnectedBadge: string;
+		/**
+		 * A​d​d​ ​H​F​ ​t​o​k​e​n
+		 */
+		huggingFaceConfigureBadge: string;
+		/**
+		 * T​h​i​s​ ​t​o​k​e​n​ ​i​s​ ​i​n​v​a​l​i​d​ ​o​r​ ​h​a​s​ ​b​e​e​n​ ​r​e​v​o​k​e​d​.
+		 */
+		huggingFaceInvalidToken: string;
+		/**
+		 * C​o​n​n​e​c​t​ ​a​c​c​o​u​n​t
+		 */
+		huggingFaceConnect: string;
+		/**
+		 * D​i​s​c​o​n​n​e​c​t
+		 */
+		huggingFaceDisconnect: string;
+		/**
+		 * C​r​e​a​t​e​ ​a​ ​f​r​e​e​ ​t​o​k​e​n
+		 */
+		huggingFaceCreateToken: string;
+		/**
+		 * H​o​w​ ​t​o​ ​c​r​e​a​t​e​ ​a​ ​t​o​k​e​n
+		 */
+		huggingFaceTokenGuide: string;
+		/**
+		 * C​o​u​l​d​ ​n​o​t​ ​c​h​e​c​k​ ​t​h​e​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​a​c​c​o​u​n​t​.
+		 */
+		huggingFaceValidationFailed: string;
 		/**
 		 * S​t​o​c​k​ ​M​e​d​i​a
 		 */
@@ -14578,7 +14630,7 @@ export type TranslationFunctions = {
 		 */
 		cloudMethodDescription: () => LocalizedString;
 		/**
-		 * Hugging Face token
+		 * Local model download token
 		 */
 		huggingFaceTokenLabel: () => LocalizedString;
 		/**
@@ -19707,6 +19759,58 @@ export type TranslationFunctions = {
 		 * API Keys
 		 */
 		apiKeys: () => LocalizedString;
+		/**
+		 * Hugging Face account
+		 */
+		huggingFaceAccount: () => LocalizedString;
+		/**
+		 * Provide a token from your free Hugging Face account for increased daily GPU quota.
+		 */
+		huggingFaceQuotaDescription: () => LocalizedString;
+		/**
+		 * hf_...
+		 */
+		huggingFaceTokenPlaceholder: () => LocalizedString;
+		/**
+		 * Token configured
+		 */
+		huggingFaceConfigured: () => LocalizedString;
+		/**
+		 * Token not configured
+		 */
+		huggingFaceNotConfigured: () => LocalizedString;
+		/**
+		 * HF connected
+		 */
+		huggingFaceConnectedBadge: () => LocalizedString;
+		/**
+		 * Add HF token
+		 */
+		huggingFaceConfigureBadge: () => LocalizedString;
+		/**
+		 * This token is invalid or has been revoked.
+		 */
+		huggingFaceInvalidToken: () => LocalizedString;
+		/**
+		 * Connect account
+		 */
+		huggingFaceConnect: () => LocalizedString;
+		/**
+		 * Disconnect
+		 */
+		huggingFaceDisconnect: () => LocalizedString;
+		/**
+		 * Create a free token
+		 */
+		huggingFaceCreateToken: () => LocalizedString;
+		/**
+		 * How to create a token
+		 */
+		huggingFaceTokenGuide: () => LocalizedString;
+		/**
+		 * Could not check the Hugging Face account.
+		 */
+		huggingFaceValidationFailed: () => LocalizedString;
 		/**
 		 * Stock Media
 		 */

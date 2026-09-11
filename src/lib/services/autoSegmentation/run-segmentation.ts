@@ -183,8 +183,7 @@ export async function runAutoSegmentationForProject(
 				? await invoke('segment_quran_audio_batch', {
 						...basePayload,
 						batchId: executionOptions.cloudBatch.batchId,
-						itemId: executionOptions.cloudBatch.itemId,
-						hfToken: executionOptions.cloudBatch.hfToken
+						itemId: executionOptions.cloudBatch.itemId
 					})
 				: await invoke('segment_quran_audio', {
 						...basePayload,

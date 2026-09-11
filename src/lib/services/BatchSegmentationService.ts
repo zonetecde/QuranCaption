@@ -82,7 +82,7 @@ export interface BatchSegmentationServiceOptions {
 		configuration: BatchSegmentationRunConfiguration,
 		overwriteExistingSubtitles: boolean,
 		report: (progress: number, activity: BatchSegmentationActivity) => void,
-		cloudBatch?: { batchId: string; itemId: string; hfToken?: string }
+		cloudBatch?: { batchId: string; itemId: string }
 	) => Promise<BatchSegmentationProcessResult>;
 	saveBatch?: (batch: Batch) => Promise<void>;
 	onUpdate?: BatchSegmentationUpdate;
@@ -99,7 +99,7 @@ export interface BatchSegmentationServiceOptions {
 		configuration: BatchSegmentationRunConfiguration,
 		overwriteExistingSubtitles: boolean,
 		onApplying: () => void,
-		cloudBatch?: { batchId: string; itemId: string; hfToken?: string }
+		cloudBatch?: { batchId: string; itemId: string }
 	) => Promise<AutoSegmentationResult | null>;
 	getReview?: (project: Project) => BatchSegmentationReviewCounts;
 }
@@ -283,8 +283,7 @@ export class BatchSegmentationService {
 						riwayah: settings.riwayah ?? 'hafs',
 						padLeftMs: settings.padLeftMs ?? 100,
 						padRightMs: settings.padRightMs ?? 200,
-						includeWordTimestamps: settings.includeWbwTimestamps ?? false,
-						hfToken: settings.hfToken
+						includeWordTimestamps: settings.includeWbwTimestamps ?? false
 					}
 				);
 				return {
@@ -443,8 +442,7 @@ export class BatchSegmentationService {
 				cloudBatch
 					? {
 							batchId: cloudBatch.batchId,
-							itemId: String(item.projectId),
-							hfToken: configuration.options.hfToken
+							itemId: String(item.projectId)
 						}
 					: undefined
 			);
@@ -479,6 +477,7 @@ export class BatchSegmentationService {
 	 * @param {BatchSegmentationRunConfiguration} configuration Configuration commune.
 	 * @param {boolean} overwriteExistingSubtitles Autorisation d'écrasement.
 	 * @param {(progress: number, activity: BatchSegmentationActivity) => void} report Progression applicative.
+	 * @param {{ batchId: string; itemId: string } | undefined} cloudBatch Lot cloud partagé, le cas échéant.
 	 * @returns {Promise<BatchSegmentationProcessResult>} Résultat relu depuis les clips appliqués.
 	 */
 	private async processProjectItem(
@@ -486,7 +485,7 @@ export class BatchSegmentationService {
 		configuration: BatchSegmentationRunConfiguration,
 		overwriteExistingSubtitles: boolean,
 		report: (progress: number, activity: BatchSegmentationActivity) => void,
-		cloudBatch: { batchId: string; itemId: string; hfToken?: string } | undefined
+		cloudBatch: { batchId: string; itemId: string } | undefined
 	): Promise<BatchSegmentationProcessResult> {
 		const project = await this.loadProject(item.projectId);
 		const response = await this.runForProject(

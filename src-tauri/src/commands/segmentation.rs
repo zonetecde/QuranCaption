@@ -35,7 +35,6 @@ pub async fn create_quran_alignment_batch(
     pad_left_ms: Option<u32>,
     pad_right_ms: Option<u32>,
     include_word_timestamps: Option<bool>,
-    hf_token: Option<String>,
 ) -> Result<serde_json::Value, String> {
     segmentation::create_quran_alignment_batch(
         model_name,
@@ -44,7 +43,6 @@ pub async fn create_quran_alignment_batch(
         pad_left_ms,
         pad_right_ms,
         include_word_timestamps,
-        hf_token,
     )
     .await
 }
@@ -57,17 +55,9 @@ pub async fn segment_quran_audio_batch(
     audio_clips: Option<Vec<SegmentationAudioClip>>,
     batch_id: String,
     item_id: String,
-    hf_token: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    segmentation::segment_quran_audio_batch(
-        app_handle,
-        audio_path,
-        audio_clips,
-        batch_id,
-        item_id,
-        hf_token,
-    )
-    .await
+    segmentation::segment_quran_audio_batch(app_handle, audio_path, audio_clips, batch_id, item_id)
+        .await
 }
 
 /// RÃ©cupÃ¨re les timestamps MFA en rÃ©utilisant une session cloud existante.

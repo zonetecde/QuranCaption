@@ -6,7 +6,9 @@ use super::{
     },
 };
 use crate::{
-    binaries, path_utils,
+    binaries,
+    commands::auth::hugging_face_cloud_token,
+    path_utils,
     utils::{process::configure_command_no_window, temp_file::TempFileGuard},
 };
 use bytes::Bytes;
@@ -298,11 +300,19 @@ fn prepared_alignment_part(
         .map_err(|e| e.to_string())
 }
 
-fn bearer(request: reqwest::RequestBuilder, hf_token: Option<&str>) -> reqwest::RequestBuilder {
-    match hf_token.map(str::trim).filter(|token| !token.is_empty()) {
-        Some(token) => request.bearer_auth(token),
-        None => request,
-    }
+/// Ajoute le token du compte Hugging Face configuré sans l'exposer au frontend.
+fn authenticated(request: reqwest::RequestBuilder) -> Result<reqwest::RequestBuilder, String> {
+    let token = hugging_face_cloud_token()?;
+    Ok(
+        match token
+            .as_deref()
+            .map(str::trim)
+            .filter(|token| !token.is_empty())
+        {
+            Some(token) => request.bearer_auth(token),
+            None => request,
+        },
+    )
 }
 
 fn prepared_audio(
@@ -372,9 +382,12 @@ pub async fn mfa_timestamps_session(
     if audio_id.trim().is_empty() || !segments.is_array() {
         return Err("audio_id and a segments array are required.".into());
     }
-    let response = client(Duration::from_secs(300))?.post(url(&format!("/sessions/{}/timestamps", audio_id)))
-        .json(&serde_json::json!({"segments": segments, "granularity": granularity.unwrap_or_else(|| "words".into())}))
-        .send().await.map_err(|e| format!("Session timestamps request failed: {}", e))?;
+    let request = client(Duration::from_secs(300))?.post(url(&format!("/sessions/{}/timestamps", audio_id)))
+        .json(&serde_json::json!({"segments": segments, "granularity": granularity.unwrap_or_else(|| "words".into())}));
+    let response = authenticated(request)?
+        .send()
+        .await
+        .map_err(|e| format!("Session timestamps request failed: {}", e))?;
     json(response, "session timestamps").await
 }
 pub async fn preload_recitations() -> Result<serde_json::Value, String> {
@@ -450,9 +463,10 @@ pub async fn mfa_timestamps_direct(
         .text("segments", segments.to_string())
         .text("granularity", granularity.unwrap_or_else(|| "words".into()))
         .text("riwayah", selected_riwayah);
-    let response = client(Duration::from_secs(300))?
+    let request = client(Duration::from_secs(300))?
         .post(url("/timestamps"))
-        .multipart(form)
+        .multipart(form);
+    let response = authenticated(request)?
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -486,9 +500,8 @@ pub async fn segment_quran_audio(
         .text("device", requested_device)
         .text("riwayah", selected_riwayah);
     let http = client(Duration::from_secs(60 * 60))?;
-    let response = http
-        .post(url("/align/audio/stream"))
-        .multipart(form)
+    let request = http.post(url("/align/audio/stream")).multipart(form);
+    let response = authenticated(request)?
         .send()
         .await
         .map_err(|e| format!("Alignment request failed: {}", e))?;
@@ -501,7 +514,11 @@ pub async fn segment_quran_audio(
         .and_then(|v| v.as_str())
         .ok_or_else(|| "Alignment result did not include audio_id".to_string())?;
     emit_status(&app, "splitting", None);
-    let response = http.post(url(&format!("/sessions/{}/split", audio_id))).json(&serde_json::json!({"max_verses":1,"max_words":null,"max_duration":null,"require_stop_sign":false})).send().await.map_err(|e| e.to_string())?;
+    let request = http.post(url(&format!("/sessions/{}/split", audio_id))).json(&serde_json::json!({"max_verses":1,"max_words":null,"max_duration":null,"require_stop_sign":false}));
+    let response = authenticated(request)?
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
     let mut split = json(response, "one-verse split").await?;
     if let (Some(split), Some(alignment)) = (split.as_object_mut(), result.as_object()) {
         for key in ["device"] {
@@ -520,7 +537,6 @@ pub async fn create_quran_alignment_batch(
     pad_left_ms: Option<u32>,
     pad_right_ms: Option<u32>,
     include_word_timestamps: Option<bool>,
-    hf_token: Option<String>,
 ) -> Result<serde_json::Value, String> {
     let body = serde_json::json!({
         "model_name": validate_model(model_name)?,
@@ -536,7 +552,7 @@ pub async fn create_quran_alignment_batch(
     });
     let http = client(Duration::from_secs(60))?;
     let request = http.post(url("/batches")).json(&body);
-    let response = bearer(request, hf_token.as_deref())
+    let response = authenticated(request)?
         .send()
         .await
         .map_err(|e| format!("Batch creation failed: {}", e))?;
@@ -549,7 +565,6 @@ pub async fn segment_quran_audio_batch(
     audio_clips: Option<Vec<SegmentationAudioClip>>,
     batch_id: String,
     item_id: String,
-    hf_token: Option<String>,
 ) -> Result<serde_json::Value, String> {
     if batch_id.len() != 32 || !batch_id.chars().all(|c| c.is_ascii_hexdigit()) {
         return Err("Invalid batch_id".into());
@@ -577,7 +592,7 @@ pub async fn segment_quran_audio_batch(
             batch_id, item_id
         )))
         .multipart(form);
-    let response = bearer(request, hf_token.as_deref())
+    let response = authenticated(request)?
         .send()
         .await
         .map_err(|e| format!("Batch item request failed: {}", e))?;

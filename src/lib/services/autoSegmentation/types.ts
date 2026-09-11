@@ -274,7 +274,6 @@ export type AutoSegmentationExecutionOptions = {
 	cloudBatch?: {
 		batchId: string;
 		itemId: string;
-		hfToken?: string;
 	};
 };
 

@@ -3,6 +3,7 @@
 	import { getSharedWizard } from '../sharedWizard';
 	import LL from '$lib/i18n/i18n-svelte';
 	import type { SegmentationRiwayah } from '$lib/services/AutoSegmentation';
+	import HuggingFaceAccountSettings from '$lib/components/settings/HuggingFaceAccountSettings.svelte';
 
 	const wizard = getSharedWizard();
 	const isSurahSplitter = $derived(() => wizard.selection.aiVersion === 'surah_splitter');
@@ -17,13 +18,20 @@
 </script>
 
 <section class="space-y-4">
-	<div>
-		<h3 class="text-lg font-semibold text-primary">
-			{isCloud() ? $LL.editor.alignmentSettings() : $LL.editor.chooseModelAndPerformance()}
-		</h3>
-		<p class="text-sm text-thirdly">
-			{isCloud() ? $LL.editor.alignmentSettingsDesc() : $LL.editor.chooseModelAndPerformanceDesc()}
-		</p>
+	<div class="flex items-start justify-between gap-4">
+		<div>
+			<h3 class="text-lg font-semibold text-primary">
+				{isCloud() ? $LL.editor.alignmentSettings() : $LL.editor.chooseModelAndPerformance()}
+			</h3>
+			<p class="text-sm text-thirdly">
+				{isCloud()
+					? $LL.editor.alignmentSettingsDesc()
+					: $LL.editor.chooseModelAndPerformanceDesc()}
+			</p>
+		</div>
+		{#if isCloud()}
+			<HuggingFaceAccountSettings badge />
+		{/if}
 	</div>
 
 	<div class="space-y-2">

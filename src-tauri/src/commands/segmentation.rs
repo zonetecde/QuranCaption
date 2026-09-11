@@ -26,6 +26,50 @@ pub async fn segment_quran_audio(
     .await
 }
 
+/// Register settings shared by every chapter in one cloud alignment batch.
+#[tauri::command]
+pub async fn create_quran_alignment_batch(
+    model_name: Option<String>,
+    device: Option<String>,
+    riwayah: Option<String>,
+    pad_left_ms: Option<u32>,
+    pad_right_ms: Option<u32>,
+    include_word_timestamps: Option<bool>,
+    hf_token: Option<String>,
+) -> Result<serde_json::Value, String> {
+    segmentation::create_quran_alignment_batch(
+        model_name,
+        device,
+        riwayah,
+        pad_left_ms,
+        pad_right_ms,
+        include_word_timestamps,
+        hf_token,
+    )
+    .await
+}
+
+/// Process one chapter using a previously registered native cloud batch.
+#[tauri::command]
+pub async fn segment_quran_audio_batch(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    batch_id: String,
+    item_id: String,
+    hf_token: Option<String>,
+) -> Result<serde_json::Value, String> {
+    segmentation::segment_quran_audio_batch(
+        app_handle,
+        audio_path,
+        audio_clips,
+        batch_id,
+        item_id,
+        hf_token,
+    )
+    .await
+}
+
 /// RÃ©cupÃ¨re les timestamps MFA en rÃ©utilisant une session cloud existante.
 #[tauri::command]
 pub async fn get_segmentation_mfa_timestamps_session(

@@ -4,6 +4,7 @@ import type { SubtitleTrack } from '$lib/classes/Track.svelte';
 import { TrackType } from '$lib/classes/enums';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { exists } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 import { AutoSegmentationExecutionCoordinator } from './AutoSegmentationExecutionCoordinator';
 import { getAutoSegmentationAudioClips, type AutoSegmentationResult } from './AutoSegmentation';
 import { runAutoSegmentationForProject } from './autoSegmentation/run-segmentation';
@@ -17,7 +18,11 @@ import {
 import { runBatchWorkerPool } from './BatchWorkerPool';
 
 export const BATCH_SEGMENTATION_CONCURRENCY = 1;
-export const BATCH_CLOUD_SEGMENTATION_REQUEST_INTERVAL_MS = 120_000;
+
+export interface CloudAlignmentBatch {
+	batchId: string;
+	maxInFlight: number;
+}
 
 export type BatchSegmentationActivity =
 	| 'queued'
@@ -76,20 +81,25 @@ export interface BatchSegmentationServiceOptions {
 		item: BatchProjectItem,
 		configuration: BatchSegmentationRunConfiguration,
 		overwriteExistingSubtitles: boolean,
-		report: (progress: number, activity: BatchSegmentationActivity) => void
+		report: (progress: number, activity: BatchSegmentationActivity) => void,
+		cloudBatch?: { batchId: string; itemId: string; hfToken?: string }
 	) => Promise<BatchSegmentationProcessResult>;
 	saveBatch?: (batch: Batch) => Promise<void>;
 	onUpdate?: BatchSegmentationUpdate;
 	listenStatus?: (
-		handler: (payload: { message?: string; progress?: number }) => void
+		handler: (payload: { message?: string; progress?: number; itemId?: string | null }) => void
 	) => Promise<UnlistenFn>;
+	createCloudBatch?: (
+		configuration: BatchSegmentationRunConfiguration
+	) => Promise<CloudAlignmentBatch>;
 	loadProject?: (projectId: number) => Promise<Project>;
 	saveProject?: (project: Project) => Promise<void>;
 	runForProject?: (
 		project: Project,
 		configuration: BatchSegmentationRunConfiguration,
 		overwriteExistingSubtitles: boolean,
-		onApplying: () => void
+		onApplying: () => void,
+		cloudBatch?: { batchId: string; itemId: string; hfToken?: string }
 	) => Promise<AutoSegmentationResult | null>;
 	getReview?: (project: Project) => BatchSegmentationReviewCounts;
 }
@@ -231,15 +241,18 @@ export class BatchSegmentationService {
 	private readonly saveProject: NonNullable<BatchSegmentationServiceOptions['saveProject']>;
 	private readonly runForProject: NonNullable<BatchSegmentationServiceOptions['runForProject']>;
 	private readonly getReview: NonNullable<BatchSegmentationServiceOptions['getReview']>;
+	private readonly createCloudBatch: NonNullable<
+		BatchSegmentationServiceOptions['createCloudBatch']
+	>;
 	private batch: Batch | null = null;
 	private executionItems: BatchProjectItem[] = [];
 	private activeItem: BatchProjectItem | null = null;
-	private activeLive: BatchSegmentationLiveStatus = { message: null, indeterminate: false };
+	private liveByProject = new Map<number, BatchSegmentationLiveStatus>();
 	private saveChain: Promise<void> = Promise.resolve();
 	private saveTimer: ReturnType<typeof setTimeout> | null = null;
 
 	/**
-	 * Crée la queue séquentielle avec frontières injectables pour les tests.
+	 * Crée le pipeline borné avec frontières injectables pour les tests.
 	 * @param {BatchSegmentationServiceOptions} options Dépendances et callback éventuels.
 	 */
 	constructor(options: BatchSegmentationServiceOptions = {}) {
@@ -250,24 +263,46 @@ export class BatchSegmentationService {
 		this.saveProject = options.saveProject ?? ProjectService.save.bind(ProjectService);
 		this.runForProject =
 			options.runForProject ??
-			(async (project, configuration, overwriteExistingSubtitles, onApplying) =>
+			(async (project, configuration, overwriteExistingSubtitles, onApplying, cloudBatch) =>
 				await runAutoSegmentationForProject(project, configuration.options, configuration.mode, {
 					overwriteExistingSubtitles,
 					headless: true,
-					onApplying
+					onApplying,
+					cloudBatch
 				}));
 		this.getReview = options.getReview ?? getBatchSegmentationReviewCounts;
+		this.createCloudBatch =
+			options.createCloudBatch ??
+			(async (configuration) => {
+				const settings = configuration.options;
+				const response = await invoke<{ batch_id: string; max_in_flight: number }>(
+					'create_quran_alignment_batch',
+					{
+						modelName: settings.cloudModel ?? 'Base',
+						device: settings.device ?? 'GPU',
+						riwayah: settings.riwayah ?? 'hafs',
+						padLeftMs: settings.padLeftMs ?? 100,
+						padRightMs: settings.padRightMs ?? 200,
+						includeWordTimestamps: settings.includeWbwTimestamps ?? false,
+						hfToken: settings.hfToken
+					}
+				);
+				return {
+					batchId: response.batch_id,
+					maxInFlight: Math.max(1, Math.floor(response.max_in_flight))
+				};
+			});
 		this.listenStatus =
 			options.listenStatus ??
 			(async (handler) =>
-				await listen<{ message?: string; progress?: number }>(
+				await listen<{ message?: string; progress?: number; itemId?: string | null }>(
 					'segmentation-status',
 					({ payload }) => handler(payload)
 				));
 	}
 
 	/**
-	 * Traite exactement un projet à la fois et conserve le verrou pendant toute l'exécution.
+	 * Traite le batch avec la largeur annoncée par le serveur et conserve le verrou global.
 	 * @param {Batch} batch Manifeste Batch à modifier.
 	 * @param {BatchProjectItem[]} selectedItems Projets confirmés dans l'ordre du batch.
 	 * @param {BatchSegmentationRunConfiguration} configuration Snapshot et options immuables.
@@ -291,6 +326,8 @@ export class BatchSegmentationService {
 		let unlisten: UnlistenFn | null = null;
 		try {
 			if (this.executionItems.length === 0) return;
+			const cloudBatch =
+				configuration.mode === 'api' ? await this.createCloudBatch(configuration) : null;
 			unlisten = await this.listenStatus((payload) => this.handleStatus(payload));
 			for (const item of this.executionItems) {
 				item.segmentation.status = 'queued';
@@ -311,25 +348,11 @@ export class BatchSegmentationService {
 				this.notify(item, 'queued');
 			}
 			await this.saveNow();
-			if (configuration.mode === 'api') {
-				const executions: Promise<void>[] = [];
-				for (const [index, item] of this.executionItems.entries()) {
-					if (index > 0) {
-						this.notify(item, 'waiting');
-						await new Promise((resolve) =>
-							setTimeout(resolve, BATCH_CLOUD_SEGMENTATION_REQUEST_INTERVAL_MS)
-						);
-					}
-					executions.push(this.runItem(item, configuration, overwriteExistingSubtitles));
-				}
-				await Promise.all(executions);
-			} else {
-				await runBatchWorkerPool(
-					this.executionItems,
-					BATCH_SEGMENTATION_CONCURRENCY,
-					async (item) => this.runItem(item, configuration, overwriteExistingSubtitles)
-				);
-			}
+			await runBatchWorkerPool(
+				this.executionItems,
+				cloudBatch?.maxInFlight ?? BATCH_SEGMENTATION_CONCURRENCY,
+				async (item) => this.runItem(item, configuration, overwriteExistingSubtitles, cloudBatch)
+			);
 		} finally {
 			this.activeItem = null;
 			unlisten?.();
@@ -342,19 +365,46 @@ export class BatchSegmentationService {
 	}
 
 	/**
-	 * Applique un événement backend uniquement à la tâche active.
-	 * @param {{ message?: string; progress?: number }} payload Statut non corrélé du backend.
+	 * Applique un événement backend à sa ligne corrélée, ou à la tâche locale active.
+	 * @param {{ message?: string; progress?: number; itemId?: string | null }} payload Statut backend.
 	 * @returns {void}
 	 */
-	handleStatus(payload: { message?: string; progress?: number }): void {
-		const item = this.activeItem;
+	handleStatus(payload: { message?: string; progress?: number; itemId?: string | null }): void {
+		const item = payload.itemId
+			? this.executionItems.find((candidate) => String(candidate.projectId) === payload.itemId)
+			: this.activeItem;
 		if (!item) return;
-		this.activeLive = {
-			message: typeof payload.message === 'string' ? payload.message : this.activeLive.message,
-			indeterminate: typeof payload.progress !== 'number'
+		const current = this.liveByProject.get(item.projectId) ?? {
+			message: null,
+			indeterminate: false
 		};
+		const message = typeof payload.message === 'string' ? payload.message : current.message;
+		this.liveByProject.set(item.projectId, {
+			message,
+			indeterminate: typeof payload.progress !== 'number'
+		});
 		if (typeof payload.progress === 'number') {
-			item.segmentation.progress = Math.round(Math.max(0, Math.min(100, payload.progress)) * 0.9);
+			const normalized = Math.max(0, Math.min(100, payload.progress));
+			const fixed: Record<string, number> = {
+				preparing: 2,
+				queued_alignment: 10,
+				queued_gpu: 12,
+				queued_cpu: 12,
+				segmenting: 24,
+				transcribing: 42,
+				matching: 60,
+				building: 70,
+				alignment_complete: 75,
+				queued_timing: 78,
+				timing: 84,
+				splitting: 92
+			};
+			item.segmentation.progress =
+				payload.itemId == null
+					? Math.round(normalized * 0.9)
+					: message === 'uploading'
+						? Math.round(normalized * 0.08 + 2)
+						: ((message ? fixed[message] : undefined) ?? item.segmentation.progress);
 		}
 		this.notify(item, 'processing');
 		this.scheduleSave();
@@ -370,10 +420,11 @@ export class BatchSegmentationService {
 	private async runItem(
 		item: BatchProjectItem,
 		configuration: BatchSegmentationRunConfiguration,
-		overwriteExistingSubtitles: boolean
+		overwriteExistingSubtitles: boolean,
+		cloudBatch: CloudAlignmentBatch | null
 	): Promise<void> {
-		this.activeItem = item;
-		this.activeLive = { message: null, indeterminate: true };
+		if (!cloudBatch) this.activeItem = item;
+		this.liveByProject.set(item.projectId, { message: null, indeterminate: true });
 		item.segmentation.status = 'processing';
 		item.segmentation.startedAt = new Date();
 		this.notify(item, 'processing');
@@ -385,10 +436,17 @@ export class BatchSegmentationService {
 				overwriteExistingSubtitles,
 				(progress, activity) => {
 					item.segmentation.progress = Math.max(0, Math.min(99, Math.round(progress)));
-					this.activeLive = { message: null, indeterminate: false };
+					this.liveByProject.set(item.projectId, { message: null, indeterminate: false });
 					this.notify(item, activity);
 					this.scheduleSave();
-				}
+				},
+				cloudBatch
+					? {
+							batchId: cloudBatch.batchId,
+							itemId: String(item.projectId),
+							hfToken: configuration.options.hfToken
+						}
+					: undefined
 			);
 			item.segmentation.segmentsApplied = result.segmentsApplied;
 			item.segmentation.review = result.review;
@@ -410,8 +468,8 @@ export class BatchSegmentationService {
 		} finally {
 			if (this.activeItem === item) {
 				this.activeItem = null;
-				this.activeLive = { message: null, indeterminate: false };
 			}
+			this.liveByProject.delete(item.projectId);
 		}
 	}
 
@@ -427,14 +485,16 @@ export class BatchSegmentationService {
 		item: BatchProjectItem,
 		configuration: BatchSegmentationRunConfiguration,
 		overwriteExistingSubtitles: boolean,
-		report: (progress: number, activity: BatchSegmentationActivity) => void
+		report: (progress: number, activity: BatchSegmentationActivity) => void,
+		cloudBatch: { batchId: string; itemId: string; hfToken?: string } | undefined
 	): Promise<BatchSegmentationProcessResult> {
 		const project = await this.loadProject(item.projectId);
 		const response = await this.runForProject(
 			project,
 			configuration,
 			overwriteExistingSubtitles,
-			() => report(94, 'applying')
+			() => report(94, 'applying'),
+			cloudBatch
 		);
 		if (!response || response.status !== 'completed') {
 			throw new Error(response?.status === 'failed' ? response.message : 'SEGMENTATION_CANCELLED');
@@ -453,7 +513,12 @@ export class BatchSegmentationService {
 	 * @returns {void}
 	 */
 	private notify(item: BatchProjectItem, activity: BatchSegmentationActivity): void {
-		this.onUpdate?.(item, activity, this.getQueueProgress(), this.activeLive);
+		this.onUpdate?.(
+			item,
+			activity,
+			this.getQueueProgress(),
+			this.liveByProject.get(item.projectId) ?? { message: null, indeterminate: false }
+		);
 	}
 
 	/**

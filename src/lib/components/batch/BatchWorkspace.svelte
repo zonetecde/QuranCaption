@@ -144,6 +144,23 @@
 		progress: 0,
 		total: 0
 	});
+	let segmentationPipelineDetail = $derived.by(() => {
+		let aligning = 0;
+		let timing = 0;
+		let waitingTiming = 0;
+		for (const live of segmentationLive.values()) {
+			if (live.message === 'queued_timing' || live.message === 'alignment_complete')
+				waitingTiming++;
+			else if (live.message === 'timing' || live.message === 'splitting') timing++;
+			else if (live.message) aligning++;
+		}
+		const parts = [];
+		if (aligning) parts.push(batchMessage('segmentationPipelineAligning', { count: aligning }));
+		if (timing) parts.push(batchMessage('segmentationPipelineTiming', { count: timing }));
+		if (waitingTiming)
+			parts.push(batchMessage('segmentationPipelineWaitingTiming', { count: waitingTiming }));
+		return parts.join(' · ');
+	});
 	let qdcTranslations = $state<Record<string, TranslationLanguageData>>({});
 	let showStyleModal = $state(false);
 	let showBackgroundModal = $state(false);
@@ -1660,6 +1677,7 @@
 						remaining: segmentationProgress.remaining
 					})}
 					progress={segmentationProgress.progress}
+					detail={segmentationPipelineDetail || null}
 				/>
 			{/if}
 			{#if translationQueueActive}
@@ -2446,21 +2464,35 @@
 								)
 							})}
 						</p>
-						<p>
-							{batchMessage('segmentationMinSilence', {
-								value: segmentationConfiguration.snapshot.minSilenceMs
-							})}
-						</p>
-						<p>
-							{batchMessage('segmentationMinSpeech', {
-								value: segmentationConfiguration.snapshot.minSpeechMs
-							})}
-						</p>
-						<p>
-							{batchMessage('segmentationPadding', {
-								value: segmentationConfiguration.snapshot.padMs
-							})}
-						</p>
+						{#if segmentationConfiguration.mode === 'api'}
+							<p>
+								{batchMessage('segmentationRiwayah', {
+									value: segmentationConfiguration.snapshot.riwayah ?? 'hafs'
+								})}
+							</p>
+							<p>
+								{batchMessage('segmentationPaddingSides', {
+									left: segmentationConfiguration.snapshot.padLeftMs ?? 100,
+									right: segmentationConfiguration.snapshot.padRightMs ?? 200
+								})}
+							</p>
+						{:else}
+							<p>
+								{batchMessage('segmentationMinSilence', {
+									value: segmentationConfiguration.snapshot.minSilenceMs
+								})}
+							</p>
+							<p>
+								{batchMessage('segmentationMinSpeech', {
+									value: segmentationConfiguration.snapshot.minSpeechMs
+								})}
+							</p>
+							<p>
+								{batchMessage('segmentationPadding', {
+									value: segmentationConfiguration.snapshot.padMs
+								})}
+							</p>
+						{/if}
 						<p class="sm:col-span-2">
 							{batchMessage(
 								segmentationConfiguration.snapshot.fillBySilence

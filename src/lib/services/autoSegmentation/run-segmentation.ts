@@ -179,14 +179,21 @@ export async function runAutoSegmentationForProject(
 
 		// Fonctions d'invocation
 		const invokeCloud = async (): Promise<unknown> =>
-			await invoke('segment_quran_audio', {
-				...basePayload,
-				modelName: cloudModel,
-				device,
-				riwayah,
-				padLeftMs,
-				padRightMs
-			});
+			executionOptions.cloudBatch
+				? await invoke('segment_quran_audio_batch', {
+						...basePayload,
+						batchId: executionOptions.cloudBatch.batchId,
+						itemId: executionOptions.cloudBatch.itemId,
+						hfToken: executionOptions.cloudBatch.hfToken
+					})
+				: await invoke('segment_quran_audio', {
+						...basePayload,
+						modelName: cloudModel,
+						device,
+						riwayah,
+						padLeftMs,
+						padRightMs
+					});
 
 		const invokeLocalWithDevice = async (targetDevice: SegmentationDevice): Promise<unknown> => {
 			if (localAsrMode === 'legacy_whisper') {
@@ -267,14 +274,15 @@ export async function runAutoSegmentationForProject(
 		cloudGpuFallbackToCpu =
 			effectiveMode === 'api' && device === 'GPU' && rawResponse.device === 'CPU';
 		const finalRawResponseBase: SegmentationResponse = rawResponse;
-		const response = includeWbwTimestamps
-			? await enrichSegmentationResponseWithWordTimestamps(
-					finalRawResponseBase,
-					undefined,
-					audioLaneIndex,
-					riwayah
-				)
-			: finalRawResponseBase;
+		const response =
+			includeWbwTimestamps && !executionOptions.cloudBatch
+				? await enrichSegmentationResponseWithWordTimestamps(
+						finalRawResponseBase,
+						undefined,
+						audioLaneIndex,
+						riwayah
+					)
+				: finalRawResponseBase;
 
 		const contextModelName = resolveContextModelName(
 			effectiveMode,

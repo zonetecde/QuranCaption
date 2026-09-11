@@ -16,6 +16,9 @@ function createSettings(): AutoSegmentationSettings {
 		minSilenceMs: 200,
 		minSpeechMs: 1000,
 		padMs: 100,
+		padLeftMs: 30,
+		padRightMs: 200,
+		riwayah: 'warsh',
 		legacyWhisperModel: 'base',
 		multiAlignerModel: 'SurahSplitter-Base-Quran',
 		cloudModel: 'Base',
@@ -38,6 +41,9 @@ describe('Batch segmentation settings', () => {
 
 		expect(configuration.snapshot.minSilenceMs).toBe(200);
 		expect(configuration.snapshot.surahSplitterSurah).toBe(2);
+		expect(configuration.snapshot.padLeftMs).toBe(30);
+		expect(configuration.snapshot.padRightMs).toBe(200);
+		expect(configuration.snapshot.riwayah).toBe('warsh');
 		expect(JSON.stringify(configuration.snapshot)).not.toContain('hf_secret');
 		expect(JSON.stringify(configuration.snapshot)).not.toContain('Token');
 		expect(configuration.options.hfToken).toBe('hf_secret');

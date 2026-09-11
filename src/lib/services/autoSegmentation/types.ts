@@ -101,7 +101,10 @@ export type ImportedSegmentationParseResult = {
 export type SegmentationMode = 'api' | 'local';
 export type SubtitleApplicationMode = 'replace' | 'align';
 export type LocalAsrMode =
-	'legacy_whisper' | 'multi_aligner' | 'surah_splitter' | 'quran_word_timing';
+	| 'legacy_whisper'
+	| 'multi_aligner'
+	| 'surah_splitter'
+	| 'quran_word_timing';
 export type LegacyWhisperModelSize = 'tiny' | 'base' | 'medium' | 'large';
 export type MultiAlignerModel = 'Base' | 'Large' | 'SurahSplitter-Base-Quran';
 export type SegmentationDevice = 'GPU' | 'CPU';
@@ -206,7 +209,13 @@ export type VerseRef = {
 };
 
 export type PredefinedType =
-	'Basmala' | "Isti'adha" | 'Amin' | 'Takbir' | 'Tahmeed' | 'Tasleem' | 'Sadaqa';
+	| 'Basmala'
+	| "Isti'adha"
+	| 'Amin'
+	| 'Takbir'
+	| 'Tahmeed'
+	| 'Tasleem'
+	| 'Sadaqa';
 
 export type SegmentationClipTemplate =
 	| {
@@ -262,6 +271,11 @@ export type AutoSegmentationExecutionOptions = {
 	overwriteExistingSubtitles?: boolean;
 	headless?: boolean;
 	onApplying?: () => void;
+	cloudBatch?: {
+		batchId: string;
+		itemId: string;
+		hfToken?: string;
+	};
 };
 
 export type CoverageGapDependencies = {

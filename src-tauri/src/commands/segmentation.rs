@@ -29,11 +29,12 @@ pub async fn segment_quran_audio(
 /// RÃ©cupÃ¨re les timestamps MFA en rÃ©utilisant une session cloud existante.
 #[tauri::command]
 pub async fn get_segmentation_mfa_timestamps_session(
+    app_handle: tauri::AppHandle,
     audio_id: String,
     segments: serde_json::Value,
     granularity: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    segmentation::mfa_timestamps_session(audio_id, segments, granularity).await
+    segmentation::mfa_timestamps_session(app_handle, audio_id, segments, granularity).await
 }
 
 /// RÃ©cupÃ¨re les timestamps MFA directement depuis l'audio courant du projet.

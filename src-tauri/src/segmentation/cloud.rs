@@ -7,6 +7,7 @@ use super::{
 };
 use crate::{
     commands::android_media::execute_ffmpeg,
+    commands::auth::hugging_face_cloud_token,
     path_utils,
     utils::temp_file::{app_temp_dir, TempFileGuard},
 };
@@ -85,6 +86,19 @@ fn client(timeout: Duration) -> Result<Client, String> {
         .timeout(timeout)
         .build()
         .map_err(|e| e.to_string())
+}
+
+/// Ajoute le token Hugging Face stocké sur Android sans l'exposer au frontend.
+fn authenticated(
+    app: &tauri::AppHandle,
+    request: reqwest::RequestBuilder,
+) -> Result<reqwest::RequestBuilder, String> {
+    Ok(
+        match hugging_face_cloud_token(app)?.as_deref().map(str::trim) {
+            Some(token) if !token.is_empty() => request.bearer_auth(token),
+            _ => request,
+        },
+    )
 }
 
 #[derive(Default)]
@@ -234,6 +248,7 @@ fn prepared_audio(
 }
 
 pub async fn mfa_timestamps_session(
+    app: tauri::AppHandle,
     audio_id: String,
     segments: serde_json::Value,
     granularity: Option<String>,
@@ -241,9 +256,13 @@ pub async fn mfa_timestamps_session(
     if audio_id.trim().is_empty() || !segments.is_array() {
         return Err("audio_id and a segments array are required.".into());
     }
-    let response = client(Duration::from_secs(300))?.post(url(&format!("/sessions/{}/timestamps", audio_id)))
-        .json(&serde_json::json!({"segments": segments, "granularity": granularity.unwrap_or_else(|| "words".into())}))
-        .send().await.map_err(|e| format!("Session timestamps request failed: {}", e))?;
+    let request = client(Duration::from_secs(300))?
+		.post(url(&format!("/sessions/{}/timestamps", audio_id)))
+		.json(&serde_json::json!({"segments": segments, "granularity": granularity.unwrap_or_else(|| "words".into())}));
+    let response = authenticated(&app, request)?
+        .send()
+        .await
+        .map_err(|e| format!("Session timestamps request failed: {}", e))?;
     json(response, "session timestamps").await
 }
 pub async fn preload_recitations() -> Result<serde_json::Value, String> {
@@ -308,8 +327,13 @@ pub async fn mfa_timestamps_direct(
     if !segments.is_array() {
         return Err("segments must be a JSON array.".into());
     }
-    let (path, _guard, _merged) =
-        prepared_audio(&app_handle, audio_path, audio_clips, window_start_ms, window_end_ms)?;
+    let (path, _guard, _merged) = prepared_audio(
+        &app_handle,
+        audio_path,
+        audio_clips,
+        window_start_ms,
+        window_end_ms,
+    )?;
     let part = Part::bytes(fs::read(path).map_err(|e| e.to_string())?)
         .file_name("audio.wav")
         .mime_str("audio/wav")
@@ -320,9 +344,10 @@ pub async fn mfa_timestamps_direct(
         .text("segments", segments.to_string())
         .text("granularity", granularity.unwrap_or_else(|| "words".into()))
         .text("riwayah", selected_riwayah);
-    let response = client(Duration::from_secs(300))?
+    let request = client(Duration::from_secs(300))?
         .post(url("/timestamps"))
-        .multipart(form)
+        .multipart(form);
+    let response = authenticated(&app_handle, request)?
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -423,9 +448,8 @@ pub async fn segment_quran_audio(
         .text("device", requested_device)
         .text("riwayah", selected_riwayah);
     let http = client(Duration::from_secs(60 * 60))?;
-    let response = http
-        .post(url("/align/audio/stream"))
-        .multipart(form)
+    let request = http.post(url("/align/audio/stream")).multipart(form);
+    let response = authenticated(&app, request)?
         .send()
         .await
         .map_err(|e| format!("Alignment request failed: {}", e))?;
@@ -459,7 +483,11 @@ pub async fn segment_quran_audio(
         .and_then(|v| v.as_str())
         .ok_or_else(|| "Alignment result did not include audio_id".to_string())?;
     emit_status(&app, "splitting", None);
-    let response = http.post(url(&format!("/sessions/{}/split", audio_id))).json(&serde_json::json!({"max_verses":1,"max_words":null,"max_duration":null,"require_stop_sign":false})).send().await.map_err(|e| e.to_string())?;
+    let request = http.post(url(&format!("/sessions/{}/split", audio_id))).json(&serde_json::json!({"max_verses":1,"max_words":null,"max_duration":null,"require_stop_sign":false}));
+    let response = authenticated(&app, request)?
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
     let mut split = json(response, "one-verse split").await?;
     if let (Some(split), Some(alignment)) = (split.as_object_mut(), result.as_object()) {
         for key in ["device"] {

@@ -10223,6 +10223,10 @@ type RootTranslation = {
 		 * F​a​i​l​e​d​ ​t​o​ ​c​o​p​y​ ​e​r​r​o​r
 		 */
 		failedToCopyError: string;
+		/**
+		 * Y​o​u​r​ ​F​F​m​p​e​g​ ​v​e​r​s​i​o​n​ ​i​s​ ​t​o​o​ ​o​l​d​.​ ​R​u​n​ ​t​h​e​s​e​ ​c​o​m​m​a​n​d​s​,​ ​t​h​e​n​ ​f​u​l​l​y​ ​r​e​s​t​a​r​t​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​:
+		 */
+		ffmpegUpdateHelp: string;
 	};
 };
 
@@ -20273,6 +20277,10 @@ export type TranslationFunctions = {
 		 * Failed to copy error
 		 */
 		failedToCopyError: () => LocalizedString;
+		/**
+		 * Your FFmpeg version is too old. Run these commands, then fully restart Quran Caption:
+		 */
+		ffmpegUpdateHelp: () => LocalizedString;
 	};
 };
 

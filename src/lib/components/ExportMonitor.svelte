@@ -15,6 +15,7 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 	import ExportService from '$lib/services/ExportService';
+	import { getFfmpegUpdateCommands } from '$lib/services/FfmpegUpdateHelp';
 
 	type ExportTimingSnapshot = {
 		exportStartMs: number;
@@ -32,6 +33,16 @@
 	let exportFolderPath = '';
 	let exportFolderSize = $state<number | null>(null);
 	let lastExportFolderSizeRefresh = 0;
+
+	/**
+	 * Retourne un message du moniteur d'export par clé, avec une valeur de secours.
+	 * @param {string} key Clé du message.
+	 * @returns {string} Texte localisé ou clé fournie.
+	 */
+	function monitorMessage(key: string): string {
+		const translator = Reflect.get(get(LL).exporterMonitor, key) as (() => string) | undefined;
+		return translator?.() ?? key;
+	}
 
 	/**
 	 * Formate une taille de stockage avec une unité lisible.
@@ -343,6 +354,10 @@
 				.replaceAll('\\r\\n', '\n')
 				.replaceAll('\\n', '\n')
 				.replaceAll('\\t', '\t');
+			const updateCommands = getFfmpegUpdateCommands(normalizedError, navigator.userAgent);
+			if (updateCommands) {
+				normalizedError += `\n\n${monitorMessage('ffmpegUpdateHelp')}\n${updateCommands}`;
+			}
 
 			await navigator.clipboard.writeText(normalizedError);
 			toast.success(get(LL).exporterMonitor.errorCopiedToClipboard());
@@ -778,6 +793,19 @@
 											<li>Remove any background video.</li>
 											<li>Close other applications to free up memory for the export.</li>
 										</ol>
+									{/if}
+
+									{#if exportation.errorLog}
+										{@const updateCommands = getFfmpegUpdateCommands(
+											exportation.errorLog,
+											globalThis.navigator?.userAgent ?? ''
+										)}
+										{#if updateCommands}
+											<p class="mb-1 font-sans text-sm">
+												{monitorMessage('ffmpegUpdateHelp')}
+											</p>
+											<pre class="mb-2 whitespace-pre-wrap break-words">{updateCommands}</pre>
+										{/if}
 									{/if}
 
 									<pre class="whitespace-pre-wrap break-words">{exportation.errorLog}</pre>

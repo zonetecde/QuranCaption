@@ -10,7 +10,9 @@ const exporterMonitor = {
 	exportedFileNotFound:
 		'The exported file could not be found. It might have been moved or deleted.',
 	errorCopiedToClipboard: 'Error copied to clipboard',
-	failedToCopyError: 'Failed to copy error'
+	failedToCopyError: 'Failed to copy error',
+	ffmpegUpdateHelp:
+		'Your FFmpeg version is too old. Run these commands, then fully restart Quran Caption:'
 };
 
 export default exporterMonitor;

@@ -273,15 +273,34 @@ export async function runAutoSegmentationForProject(
 		cloudGpuFallbackToCpu =
 			effectiveMode === 'api' && device === 'GPU' && rawResponse.device === 'CPU';
 		const finalRawResponseBase: SegmentationResponse = rawResponse;
-		const response =
-			includeWbwTimestamps && !executionOptions.cloudBatch
-				? await enrichSegmentationResponseWithWordTimestamps(
-						finalRawResponseBase,
-						undefined,
-						audioLaneIndex,
-						riwayah
-					)
-				: finalRawResponseBase;
+		let response = finalRawResponseBase;
+		if (!executionOptions.cloudBatch && includeWbwTimestamps) {
+			// The returned words let QC construct one clip per verse locally, so a
+			// separate server split would only repeat MFA work.
+			response = await enrichSegmentationResponseWithWordTimestamps(
+				finalRawResponseBase,
+				undefined,
+				audioLaneIndex,
+				riwayah
+			);
+		} else if (!executionOptions.cloudBatch && effectiveMode === 'api') {
+			if (!finalRawResponseBase.audio_id) {
+				throw new Error('Alignment result did not include audio_id.');
+			}
+			const splitResponse = (await invoke('split_quran_alignment_session', {
+				audioId: finalRawResponseBase.audio_id
+			})) as SegmentationResponse;
+			response = {
+				...splitResponse,
+				device: splitResponse.device ?? finalRawResponseBase.device,
+				warning: splitResponse.warning ?? finalRawResponseBase.warning,
+				segments: (splitResponse.segments ?? []).map((segment) => {
+					const withoutWords = { ...segment };
+					delete withoutWords.words;
+					return withoutWords;
+				})
+			};
+		}
 
 		const contextModelName = resolveContextModelName(
 			effectiveMode,

@@ -26,6 +26,15 @@ pub async fn segment_quran_audio(
     .await
 }
 
+/// Split a completed cloud alignment into at most one verse per segment.
+#[tauri::command]
+pub async fn split_quran_alignment_session(
+    app_handle: tauri::AppHandle,
+    audio_id: String,
+) -> Result<serde_json::Value, String> {
+    segmentation::split_quran_alignment_session(app_handle, audio_id).await
+}
+
 /// Register settings shared by every chapter in one cloud alignment batch.
 #[tauri::command]
 pub async fn create_quran_alignment_batch(

@@ -508,26 +508,24 @@ pub async fn segment_quran_audio(
     if !response.status().is_success() {
         return Err(error_text(response, "alignment request").await);
     }
-    let result = read_sse(response, &app).await?;
-    let audio_id = result
-        .get("audio_id")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| "Alignment result did not include audio_id".to_string())?;
+    read_sse(response, &app).await
+}
+
+pub async fn split_quran_alignment_session(
+    app: tauri::AppHandle,
+    audio_id: String,
+) -> Result<serde_json::Value, String> {
+    if audio_id.len() != 32 || !audio_id.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err("Invalid audio_id".into());
+    }
     emit_status(&app, "splitting", None);
+    let http = client(Duration::from_secs(60 * 60))?;
     let request = http.post(url(&format!("/sessions/{}/split", audio_id))).json(&serde_json::json!({"max_verses":1,"max_words":null,"max_duration":null,"require_stop_sign":false}));
     let response = authenticated(request)?
         .send()
         .await
         .map_err(|e| e.to_string())?;
-    let mut split = json(response, "one-verse split").await?;
-    if let (Some(split), Some(alignment)) = (split.as_object_mut(), result.as_object()) {
-        for key in ["device"] {
-            if let Some(value) = alignment.get(key) {
-                split.insert(key.to_string(), value.clone());
-            }
-        }
-    }
-    Ok(split)
+    json(response, "one-verse split").await
 }
 
 pub async fn create_quran_alignment_batch(
@@ -544,10 +542,12 @@ pub async fn create_quran_alignment_batch(
         "riwayah": validate_riwayah(riwayah)?,
         "pad_left_ms": pad_left_ms.unwrap_or(100).min(1000),
         "pad_right_ms": pad_right_ms.unwrap_or(200).min(1000),
-        "max_verses": 1,
-        "max_words": null,
-        "max_duration": null,
-        "require_stop_sign": false,
+        "split": {
+            "max_verses": 1,
+            "max_words": null,
+            "max_duration": null,
+            "require_stop_sign": false,
+        },
         "include_word_timestamps": include_word_timestamps.unwrap_or(false),
     });
     let http = client(Duration::from_secs(60))?;

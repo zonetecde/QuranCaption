@@ -3189,6 +3189,8 @@ const es = {
 			'El archivo exportado no se encuentra. Puede haber sido movido o eliminado.',
 		errorCopiedToClipboard: 'Error copiado al portapapeles',
 		failedToCopyError: 'Error al copiar el error',
+		ffmpegUpdateHelp:
+			'Tu versión de FFmpeg es demasiado antigua. Ejecuta estos comandos y reinicia completamente Quran Caption:',
 		youtubePublish: 'Publicar en YouTube',
 		youtubePublishing: 'Subiendo a YouTube',
 		youtubePublished: 'Publicado en YouTube',

@@ -3196,6 +3196,8 @@ const de = {
 			'Die exportierte Datei wurde nicht gefunden. Sie wurde möglicherweise verschoben oder gelöscht.',
 		errorCopiedToClipboard: 'Fehler in die Zwischenablage kopiert',
 		failedToCopyError: 'Fehler konnte nicht kopiert werden',
+		ffmpegUpdateHelp:
+			'Deine FFmpeg-Version ist zu alt. Führe diese Befehle aus und starte Quran Caption danach vollständig neu:',
 		youtubePublish: 'Auf YouTube veröffentlichen',
 		youtubePublishing: 'Upload zu YouTube',
 		youtubePublished: 'Auf YouTube veröffentlicht',

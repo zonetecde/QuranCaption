@@ -1862,6 +1862,8 @@ const id = {
 		exportedFileNotFound: 'File hasil export tidak ditemukan. Mungkin sudah dipindah atau dihapus.',
 		errorCopiedToClipboard: 'Error disalin ke clipboard',
 		failedToCopyError: 'Gagal menyalin error',
+		ffmpegUpdateHelp:
+			'Versi FFmpeg kamu terlalu lama. Jalankan perintah berikut, lalu mulai ulang Quran Caption sepenuhnya:',
 		youtubePublish: 'Publikasikan ke YouTube',
 		youtubePublishing: 'Mengunggah ke YouTube',
 		youtubePublished: 'Dipublikasikan di YouTube',

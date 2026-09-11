@@ -3219,6 +3219,8 @@ const fr = {
 			'Le fichier exporté est introuvable. Il a peut-être été déplacé ou supprimé.',
 		errorCopiedToClipboard: 'Erreur copiée dans le presse-papier',
 		failedToCopyError: 'Échec de copie de l\u2019erreur',
+		ffmpegUpdateHelp:
+			'Votre version de FFmpeg est trop ancienne. Exécutez ces commandes, puis redémarrez complètement Quran Caption\u00a0:',
 		youtubePublish: 'Publier sur YouTube',
 		youtubePublishing: 'Envoi vers YouTube',
 		youtubePublished: 'Publié sur YouTube',

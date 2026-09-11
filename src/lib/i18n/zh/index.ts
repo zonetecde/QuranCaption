@@ -2898,6 +2898,7 @@ const zh = {
 		exportedFileNotFound: '导出的文件未找到。可能已被移动或删除。',
 		errorCopiedToClipboard: '错误已复制到剪贴板',
 		failedToCopyError: '复制错误失败',
+		ffmpegUpdateHelp: '您的 FFmpeg 版本过旧。请运行以下命令，然后完全重启 Quran Caption：',
 		youtubePublish: '发布到 YouTube',
 		youtubePublishing: '正在上传到 YouTube',
 		youtubePublished: '已发布到 YouTube',

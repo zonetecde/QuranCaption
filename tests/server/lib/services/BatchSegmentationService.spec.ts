@@ -176,10 +176,12 @@ describe('BatchSegmentationService', () => {
 		const receivedBatchIds: string[] = [];
 		let active = 0;
 		let maximumActive = 0;
+		const liveMessages = new Map<number, string | null>();
 		const createCloudBatch = vi.fn(async () => ({ batchId: 'b'.repeat(32), maxInFlight: 2 }));
 		const service = new BatchSegmentationService({
 			listenStatus: async () => () => undefined,
 			saveBatch: async () => undefined,
+			onUpdate: (item, _activity, _queue, live) => liveMessages.set(item.projectId, live.message),
 			createCloudBatch,
 			processItem: async (item, _configuration, _overwrite, _report, cloudBatch) => {
 				started.push(item.projectId);
@@ -210,6 +212,10 @@ describe('BatchSegmentationService', () => {
 		expect(maximumActive).toBe(2);
 		expect(createCloudBatch).toHaveBeenCalledOnce();
 		expect(receivedBatchIds).toEqual(['b'.repeat(32), 'b'.repeat(32)]);
+		service.handleStatus({ itemId: '2', message: 'queued_timing', progress: 9 });
+		expect(items[1].segmentation.progress).toBe(78);
+		expect(items[0].segmentation.progress).toBe(0);
+		expect(liveMessages.get(2)).toBe('queued_timing');
 
 		controls[0].resolve();
 		await vi.waitFor(() => expect(started).toEqual([1, 2, 3]));

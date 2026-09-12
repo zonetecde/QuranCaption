@@ -18,10 +18,10 @@ import {
 import { runBatchWorkerPool } from './BatchWorkerPool';
 
 export const BATCH_SEGMENTATION_CONCURRENCY = 1;
+export const CLOUD_BATCH_SEGMENTATION_CONCURRENCY = 6;
 
 export interface CloudAlignmentBatch {
 	batchId: string;
-	maxInFlight: number;
 }
 
 export type BatchSegmentationActivity =
@@ -275,21 +275,15 @@ export class BatchSegmentationService {
 			options.createCloudBatch ??
 			(async (configuration) => {
 				const settings = configuration.options;
-				const response = await invoke<{ batch_id: string; max_in_flight: number }>(
-					'create_quran_alignment_batch',
-					{
-						modelName: settings.cloudModel ?? 'Base',
-						device: settings.device ?? 'GPU',
-						riwayah: settings.riwayah ?? 'hafs',
-						padLeftMs: settings.padLeftMs ?? 100,
-						padRightMs: settings.padRightMs ?? 200,
-						includeWordTimestamps: settings.includeWbwTimestamps ?? false
-					}
-				);
-				return {
-					batchId: response.batch_id,
-					maxInFlight: Math.max(1, Math.floor(response.max_in_flight))
-				};
+				const response = await invoke<{ batch_id: string }>('create_quran_alignment_batch', {
+					modelName: settings.cloudModel ?? 'Base',
+					device: settings.device ?? 'GPU',
+					riwayah: settings.riwayah ?? 'hafs',
+					padLeftMs: settings.padLeftMs ?? 100,
+					padRightMs: settings.padRightMs ?? 200,
+					includeWordTimestamps: settings.includeWbwTimestamps ?? false
+				});
+				return { batchId: response.batch_id };
 			});
 		this.listenStatus =
 			options.listenStatus ??
@@ -301,7 +295,7 @@ export class BatchSegmentationService {
 	}
 
 	/**
-	 * Traite le batch avec la largeur annoncée par le serveur et conserve le verrou global.
+	 * Traite le batch avec un pool HTTP roulant et conserve le verrou global.
 	 * @param {Batch} batch Manifeste Batch à modifier.
 	 * @param {BatchProjectItem[]} selectedItems Projets confirmés dans l'ordre du batch.
 	 * @param {BatchSegmentationRunConfiguration} configuration Snapshot et options immuables.
@@ -349,7 +343,7 @@ export class BatchSegmentationService {
 			await this.saveNow();
 			await runBatchWorkerPool(
 				this.executionItems,
-				cloudBatch?.maxInFlight ?? BATCH_SEGMENTATION_CONCURRENCY,
+				cloudBatch ? CLOUD_BATCH_SEGMENTATION_CONCURRENCY : BATCH_SEGMENTATION_CONCURRENCY,
 				async (item) => this.runItem(item, configuration, overwriteExistingSubtitles, cloudBatch)
 			);
 		} finally {

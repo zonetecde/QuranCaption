@@ -170,14 +170,14 @@ describe('BatchSegmentationService', () => {
 	});
 
 	it('creates one global cloud batch and uses its bounded parallel pipeline', async () => {
-		const items = [createItem(1), createItem(2), createItem(3)];
+		const items = Array.from({ length: 7 }, (_, index) => createItem(index + 1));
 		const controls = items.map(() => deferred<void>());
 		const started: number[] = [];
 		const receivedBatchIds: string[] = [];
 		let active = 0;
 		let maximumActive = 0;
 		const liveMessages = new Map<number, string | null>();
-		const createCloudBatch = vi.fn(async () => ({ batchId: 'b'.repeat(32), maxInFlight: 2 }));
+		const createCloudBatch = vi.fn(async () => ({ batchId: 'b'.repeat(32) }));
 		const service = new BatchSegmentationService({
 			listenStatus: async () => () => undefined,
 			saveBatch: async () => undefined,
@@ -208,20 +208,20 @@ describe('BatchSegmentationService', () => {
 		});
 
 		const run = service.run(new Batch('Batch', items), items, configuration, false);
-		await vi.waitFor(() => expect(started).toEqual([1, 2]));
-		expect(maximumActive).toBe(2);
+		await vi.waitFor(() => expect(started).toEqual([1, 2, 3, 4, 5, 6]));
+		expect(maximumActive).toBe(6);
 		expect(createCloudBatch).toHaveBeenCalledOnce();
-		expect(receivedBatchIds).toEqual(['b'.repeat(32), 'b'.repeat(32)]);
+		expect(receivedBatchIds).toEqual(Array(6).fill('b'.repeat(32)));
 		service.handleStatus({ itemId: '2', message: 'queued_timing', progress: 9 });
 		expect(items[1].segmentation.progress).toBe(78);
 		expect(items[0].segmentation.progress).toBe(0);
 		expect(liveMessages.get(2)).toBe('queued_timing');
 
 		controls[0].resolve();
-		await vi.waitFor(() => expect(started).toEqual([1, 2, 3]));
+		await vi.waitFor(() => expect(started).toEqual([1, 2, 3, 4, 5, 6, 7]));
 		controls.slice(1).forEach((control) => control.resolve());
 		await run;
-		expect(receivedBatchIds).toEqual(Array(3).fill('b'.repeat(32)));
+		expect(receivedBatchIds).toEqual(Array(7).fill('b'.repeat(32)));
 	});
 
 	it('recovers a completed segmentation from existing subtitles', async () => {
@@ -338,7 +338,7 @@ describe('BatchSegmentationService', () => {
 		const service = new BatchSegmentationService({
 			listenStatus: async () => () => undefined,
 			saveBatch: async () => undefined,
-			createCloudBatch: async () => ({ batchId: 'b'.repeat(32), maxInFlight: 2 }),
+			createCloudBatch: async () => ({ batchId: 'b'.repeat(32) }),
 			loadProject: async (projectId) => {
 				expect(projectId).toBe(item.projectId);
 				return childProject;

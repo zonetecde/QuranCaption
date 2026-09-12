@@ -888,13 +888,15 @@ describe('Video overlay subtitle preview', () => {
 		const arabicNode = getForegroundArabicNode(component.container)!;
 		await vi.waitFor(() => {
 			expect(Number.parseFloat(getComputedStyle(arabicNode).fontSize)).toBeLessThan(96);
+			arabicNode.classList.add('subtitle-layout-measurement');
 			expect(arabicNode.scrollHeight).toBeLessThanOrEqual(245);
+			arabicNode.classList.remove('subtitle-layout-measurement');
 			expect(getRenderedLineCount(arabicNode)).toBe(1);
 		});
 		expect(getArabicVerseNumberSpans(component.container)[0]).toBeTruthy();
 	});
 
-	test('resizes the arabic subtitle width and max height from its preview borders', async () => {
+	test('resizes the arabic subtitle from its preview borders and corner handles', async () => {
 		const fixture = setupVideoOverlayFixture(
 			[createVerseSubtitle(0, 999, 'Arabic', 'Translation')],
 			{ cursorPosition: 500 }
@@ -945,9 +947,46 @@ describe('Video overlay subtitle preview', () => {
 		expect(fixture.videoStyle.getStylesOfTarget('arabic').findStyle('max-height').value).toBe(
 			Math.min(800, Math.max(1, initialRenderedHeight + 50))
 		);
-		expect(beginHistory).toHaveBeenCalledTimes(2);
+
+		const widthBeforeCorner = Number(
+			fixture.videoStyle.getStylesOfTarget('arabic').findStyle('width').value
+		);
+		const heightBeforeCorner = Number(
+			fixture.videoStyle.getStylesOfTarget('arabic').findStyle('max-height').value
+		);
+		const topLeftHandle = component.container.querySelector(
+			'.arabic.subtitle .subtitle-resize-top-left'
+		) as HTMLElement;
+		topLeftHandle.setPointerCapture = vi.fn();
+		topLeftHandle.hasPointerCapture = vi.fn(() => false);
+		topLeftHandle.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				bubbles: true,
+				button: 0,
+				clientX: 100,
+				clientY: 100,
+				pointerId: 3
+			})
+		);
+		topLeftHandle.dispatchEvent(
+			new PointerEvent('pointermove', {
+				bubbles: true,
+				clientX: 75,
+				clientY: 90,
+				pointerId: 3
+			})
+		);
+		topLeftHandle.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 3 }));
+
+		expect(fixture.videoStyle.getStylesOfTarget('arabic').findStyle('width').value).toBe(
+			widthBeforeCorner + 5
+		);
+		expect(fixture.videoStyle.getStylesOfTarget('arabic').findStyle('max-height').value).toBe(
+			heightBeforeCorner + 20
+		);
+		expect(beginHistory).toHaveBeenCalledTimes(3);
 		expect(beginHistory).toHaveBeenCalledWith('resize subtitle');
-		expect(commitHistory).toHaveBeenCalledTimes(2);
+		expect(commitHistory).toHaveBeenCalledTimes(3);
 	});
 
 	test('keeps the font layout visible and stable during a subtitle position drag', async () => {

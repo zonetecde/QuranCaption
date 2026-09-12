@@ -101,8 +101,11 @@ function hasReactiveFontSizeViolation(
 ): boolean {
 	const hasMaxLineLimit = maxLineValue >= 1 && maxLineValue <= 4;
 	const measurementClass = 'reactive-font-size-measurement';
+	const layoutMeasurementClass = 'subtitle-layout-measurement';
 
-	// Line backgrounds are decorative and must not reduce the fitted font size.
+	// Masque les poignées pendant les mesures pour ne pas fausser les dimensions.
+	for (const subtitle of subtitles) subtitle.classList.add(layoutMeasurementClass);
+	// Les fonds de ligne restent décoratifs pendant l'ajustement de taille.
 	for (const subtitle of subtitles) subtitle.classList.add(measurementClass);
 
 	try {
@@ -113,6 +116,7 @@ function hasReactiveFontSizeViolation(
 			);
 		});
 	} finally {
+		for (const subtitle of subtitles) subtitle.classList.remove(layoutMeasurementClass);
 		for (const subtitle of subtitles) subtitle.classList.remove(measurementClass);
 	}
 }

@@ -525,7 +525,7 @@ const id = {
 		huggingFaceConnectedBadge: 'HF terhubung',
 		huggingFaceConfigureBadge: 'Tambahkan token HF',
 		huggingFaceInvalidToken: 'Token ini tidak valid atau telah dicabut.',
-		huggingFaceConnect: 'Hubungkan akun',
+		huggingFaceConnect: 'Tambahkan token',
 		huggingFaceDisconnect: 'Putuskan koneksi',
 		huggingFaceCreateToken: 'Buat token gratis',
 		huggingFaceTokenGuide: 'Cara membuat token',

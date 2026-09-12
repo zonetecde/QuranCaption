@@ -2331,7 +2331,7 @@ const zh = {
 		huggingFaceConnectedBadge: 'HF 已连接',
 		huggingFaceConfigureBadge: '添加 HF 令牌',
 		huggingFaceInvalidToken: '此令牌无效或已被撤销。',
-		huggingFaceConnect: '连接账户',
+		huggingFaceConnect: '添加令牌',
 		huggingFaceDisconnect: '断开连接',
 		huggingFaceCreateToken: '创建免费令牌',
 		huggingFaceTokenGuide: '如何创建令牌',

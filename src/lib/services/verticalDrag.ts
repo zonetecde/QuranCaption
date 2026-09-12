@@ -80,6 +80,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 	let opts = options;
 	let dragStartRect: DOMRect | null = null;
 	let snapTargetRects: DOMRect[] = [];
+	let subtitlePositionDragContainer: HTMLElement | null = null;
 	let isStuckToZero = false; // Pour le sticky behavior horizontal
 	const HORIZONTAL_STICK_RANGE = 50; // Zone de stick autour de 0 (-50 à +50)
 	const hadTouchNone = node.classList.contains('touch-none');
@@ -179,6 +180,15 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 
 		dragging = true;
 		node.setPointerCapture(e.pointerId);
+		const isPositionDrag = [opts.verticalStyleId, opts.horizontalStyleId].some(
+			(styleId) => styleId === 'vertical-position' || styleId === 'horizontal-position'
+		);
+		if (opts.target && isPositionDrag) {
+			subtitlePositionDragContainer = node.closest<HTMLElement>('#subtitles-container');
+			if (subtitlePositionDragContainer) {
+				subtitlePositionDragContainer.dataset.positionDragTarget = opts.target;
+			}
+		}
 		globalState.getVideoPreviewState.showAlignmentGridWhileDragging = true;
 		document.addEventListener('pointermove', pointermove);
 		document.addEventListener('pointerup', pointerup);
@@ -342,15 +352,22 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		const cls = opts.classWhileDragging || 'dragging-vertical';
 		node.classList.remove(cls);
 		if (
-			opts.verticalStyleId === 'vertical-position' ||
-			opts.verticalStyleId === 'horizontal-position' ||
-			opts.horizontalStyleId === 'vertical-position' ||
-			opts.horizontalStyleId === 'horizontal-position'
+			!subtitlePositionDragContainer &&
+			(opts.verticalStyleId === 'vertical-position' ||
+				opts.verticalStyleId === 'horizontal-position' ||
+				opts.horizontalStyleId === 'vertical-position' ||
+				opts.horizontalStyleId === 'horizontal-position')
 		) {
 			globalState.updateVideoPreviewUI();
 		}
 		updateSnapGuides(null, null);
 		ProjectHistoryManager.commit();
+		if (subtitlePositionDragContainer) {
+			delete subtitlePositionDragContainer.dataset.positionDragTarget;
+			subtitlePositionDragContainer.dataset.positionDragCommit = 'true';
+			subtitlePositionDragContainer = null;
+			globalState.updateVideoPreviewUI();
+		}
 	}
 
 	node.dataset.previewDraggable = 'true';
@@ -371,6 +388,10 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 			document.removeEventListener('pointerup', pointerup);
 			document.removeEventListener('pointercancel', pointerup);
 			if (!hadTouchNone) node.classList.remove('touch-none');
+			if (subtitlePositionDragContainer) {
+				delete subtitlePositionDragContainer.dataset.positionDragTarget;
+				delete subtitlePositionDragContainer.dataset.positionDragCommit;
+			}
 			ProjectHistoryManager.cancel();
 		}
 	};

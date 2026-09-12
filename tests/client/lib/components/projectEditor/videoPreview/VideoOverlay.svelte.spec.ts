@@ -798,6 +798,61 @@ describe('Video overlay subtitle preview', () => {
 		expect(beginHistory).toHaveBeenCalledWith('resize subtitle');
 		expect(commitHistory).toHaveBeenCalledTimes(2);
 	});
+
+	test('keeps the font layout visible and stable during a subtitle position drag', async () => {
+		setupVideoOverlayFixture([createVerseSubtitle(0, 999, 'Arabic', 'Translation')], {
+			cursorPosition: 500
+		});
+		const component = render(VideoOverlay);
+		await settleOverlay();
+		const arabicNode = getForegroundArabicNode(component.container)!;
+		const subtitlesContainer = getSubtitlesContainer(component.container)!;
+		const { mouseDrag } = await vi.importActual<typeof import('$lib/services/verticalDrag')>(
+			'$lib/services/verticalDrag'
+		);
+		const refreshPreview = vi.spyOn(globalState, 'updateVideoPreviewUI');
+		arabicNode.setPointerCapture = vi.fn();
+		const action = mouseDrag(arabicNode, {
+			target: 'arabic',
+			verticalStyleId: 'vertical-position',
+			horizontalStyleId: 'horizontal-position'
+		});
+
+		arabicNode.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				bubbles: true,
+				button: 0,
+				clientX: 100,
+				clientY: 100,
+				pointerId: 3,
+				isPrimary: true
+			})
+		);
+		document.dispatchEvent(
+			new PointerEvent('pointermove', {
+				bubbles: true,
+				clientX: 120,
+				clientY: 120,
+				pointerId: 3,
+				isPrimary: true
+			})
+		);
+		expect(subtitlesContainer.dataset.positionDragTarget).toBe('arabic');
+		expect(refreshPreview).not.toHaveBeenCalled();
+		globalState.getTimelineState.previewRefreshToken += 1;
+		await tick();
+		expect(subtitlesContainer.style.opacity).toBe('1');
+
+		document.dispatchEvent(
+			new PointerEvent('pointerup', { bubbles: true, pointerId: 3, isPrimary: true })
+		);
+		expect(refreshPreview).toHaveBeenCalledOnce();
+		expect(subtitlesContainer.dataset.positionDragTarget).toBeUndefined();
+		await settleOverlay();
+		expect(subtitlesContainer.dataset.positionDragCommit).toBeUndefined();
+		expect(subtitlesContainer.style.opacity).toBe('1');
+		action.destroy();
+	});
 	test('keeps QPC2 verse-number fonts when merged verses stay on the same page', async () => {
 		seedQpc2PreviewFixture();
 		const firstClip = createLastWordsQpcSubtitle(0, 999, 1, 1, 0, 3);

@@ -946,18 +946,21 @@
 	 * ou des styles `max-height`, `font-size`, `spacing`.
 	 *
 	 * Flux :
-	 * 1. Cache les sous-titres (opacity: 0) pour éviter les sauts visuels.
-	 * 2. Annule toute exécution précédente.
-	 * 3. Pour chaque target (arabic + traductions) :
+	 * 1. Ignore le recalcul de police pendant un déplacement de sous-titre.
+	 * 2. Cache les sous-titres (opacity: 0) pour éviter les sauts visuels hors interaction.
+	 * 3. Annule toute exécution précédente.
+	 * 4. Pour chaque target (arabic + traductions) :
 	 *    a. Réinitialise la position Y réactive.
 	 *    b. Applique l'ajustement réactif de taille de police (max-height).
-	 * 4. Si l'anti-collision est activée, résout les collisions.
-	 * 5. Ré-affiche les sous-titres (opacity: 1).
+	 * 5. Si l'anti-collision est activée, résout les collisions.
+	 * 6. Ré-affiche les sous-titres (opacity: 1).
 	 */
 	$effect(() => {
 		(async () => {
 			const subtitlesContainer = document.getElementById('subtitles-container');
 			const resizingTarget = subtitlesContainer?.dataset.resizingTarget;
+			const positionDragTarget = subtitlesContainer?.dataset.positionDragTarget;
+			const isPositionDragCommit = subtitlesContainer?.dataset.positionDragCommit === 'true';
 
 			if (globalState.getVideoPreviewState.showAlignmentGridWhileDragging) {
 				// La position reste réactive, mais le layout coûteux attend la fin du drag.
@@ -982,13 +985,21 @@
 				return;
 			}
 
+			if (positionDragTarget) {
+				currentAbortController?.abort();
+				lastLayoutKey = '';
+				subtitlesContainer.style.opacity = '1';
+				markExportLayoutState(subtitlesContainer, 'ready');
+				return;
+			}
+
 			const currentVisualMergeGroupId =
 				subtitle instanceof SubtitleClip ? subtitle.visualMergeGroupId : null;
 			const isPlaying = globalState.getVideoPreviewState.isPlaying;
 
 			// Pendant la lecture : évite les recalculs coûteux pour le même clip
 			// ou pour les transitions internes d'un groupe de fusion visuelle.
-			if (isPlaying) {
+			if (isPlaying && !isPositionDragCommit) {
 				if (subtitle.id === lastSubtitleId) return;
 				if (
 					currentVisualMergeGroupId &&
@@ -1007,7 +1018,7 @@
 			const isResizing = Boolean(resizingTarget && layoutTargets.includes(resizingTarget));
 			const targets = isResizing ? [resizingTarget!] : layoutTargets;
 			const layoutKey = getLayoutCacheKey(targets);
-			if (layoutKey === lastLayoutKey) {
+			if (!isPositionDragCommit && layoutKey === lastLayoutKey) {
 				// Le layout est réutilisé, mais l'export attend un timing à jour pour chaque frame.
 				if (subtitlesContainer) {
 					subtitlesContainer.style.opacity = '1';
@@ -1028,7 +1039,8 @@
 				globalState.getStyleValue('global', 'spacing')
 			);
 
-			const cachedLayout = isResizing ? null : getCachedRuntimeLayout(layoutKey);
+			const cachedLayout =
+				isResizing || isPositionDragCommit ? null : getCachedRuntimeLayout(layoutKey);
 			if (cachedLayout) {
 				if (currentAbortController) {
 					currentAbortController.abort();
@@ -1044,7 +1056,7 @@
 			}
 
 			// Cache les sous-titres pendant le recalcul
-			if (subtitlesContainer && !isResizing) {
+			if (subtitlesContainer && !isResizing && !isPositionDragCommit) {
 				markExportLayoutState(subtitlesContainer, 'pending');
 				subtitlesContainer.style.opacity = '0';
 			}
@@ -1077,7 +1089,7 @@
 					await wait(abortSignal);
 
 					// Étape 2 : Ajustement réactif de la taille de police
-					for (const target of targets) {
+					for (const target of isPositionDragCommit ? [] : targets) {
 						if (abortSignal.aborted) return;
 
 						try {
@@ -1147,11 +1159,12 @@
 			});
 
 			if (!layoutCompleted) return;
-			if (!isResizing) cacheRuntimeLayout(layoutKey, targets);
+			if (!isResizing && !isPositionDragCommit) cacheRuntimeLayout(layoutKey, targets);
 
 			// Réaffiche les sous-titres
 			const currentSubtitlesContainer = document.getElementById('subtitles-container');
 			if (currentSubtitlesContainer instanceof HTMLElement) {
+				if (isPositionDragCommit) delete currentSubtitlesContainer.dataset.positionDragCommit;
 				currentSubtitlesContainer.style.opacity = '1';
 				markExportLayoutState(currentSubtitlesContainer, 'ready');
 			}

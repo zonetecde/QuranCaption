@@ -471,7 +471,7 @@ const editor = {
 		'Install the required local packages for the Surah Splitter workflow.',
 	prepareMethodLegacyDesc: 'Install the legacy local dependencies.',
 	cloudMethodDescription: 'This method runs remotely and does not need local Python packages.',
-	huggingFaceTokenLabel: 'Hugging Face token',
+	huggingFaceTokenLabel: 'Local model download token',
 	hfTokenRequiredHint: 'Required for the private local Quranic Universal Aligner models.',
 	updateToken: 'Update token',
 	setToken: 'Set token',

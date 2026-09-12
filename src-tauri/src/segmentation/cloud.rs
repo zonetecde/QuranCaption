@@ -6,8 +6,13 @@ use super::{
     },
 };
 use crate::{
-    binaries, path_utils,
-    utils::{process::configure_command_no_window, temp_file::TempFileGuard},
+    binaries,
+    commands::auth::hugging_face_cloud_token,
+    path_utils,
+    utils::{
+        process::configure_command_no_window,
+        temp_file::{unique_temp_path, TempFileGuard},
+    },
 };
 use bytes::Bytes;
 use futures_util::{stream, StreamExt};
@@ -15,22 +20,34 @@ use reqwest::{
     multipart::{Form, Part},
     Client, Response,
 };
-use std::{
-    cmp::min,
-    fs,
-    process::Command,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
+use std::{cmp::min, fs, process::Command, time::Duration};
 use tauri::Emitter;
 
 fn emit_status(app: &tauri::AppHandle, step: &str, progress: Option<f64>) {
+    emit_status_for_item(app, step, progress, None, None);
+}
+fn emit_status_for_item(
+    app: &tauri::AppHandle,
+    step: &str,
+    progress: Option<f64>,
+    batch_id: Option<&str>,
+    item_id: Option<&str>,
+) {
     let _ = app.emit(
         "segmentation-status",
-        serde_json::json!({"step": step, "message": step, "progress": progress}),
+        serde_json::json!({
+            "step": step,
+            "message": step,
+            "progress": progress,
+            "batchId": batch_id,
+            "itemId": item_id,
+        }),
     );
 }
 fn url(path: &str) -> String {
-    format!("{}{}", QURAN_MULTI_ALIGNER_API_V1_URL, path)
+    let base = std::env::var("QURAN_MULTI_ALIGNER_API_V1_URL")
+        .unwrap_or_else(|_| QURAN_MULTI_ALIGNER_API_V1_URL.to_string());
+    format!("{}{}", base.trim_end_matches('/'), path)
 }
 fn validate_model(value: Option<String>) -> Result<String, String> {
     let value = value.unwrap_or_else(|| "Base".into());
@@ -136,7 +153,13 @@ impl ApiSse {
                     }
                     _ => None,
                 };
-                emit_status(app, stage, progress);
+                emit_status_for_item(
+                    app,
+                    stage,
+                    progress,
+                    value.get("batch_id").and_then(|v| v.as_str()),
+                    value.get("item_id").and_then(|v| v.as_str()),
+                );
                 Ok(None)
             }
             "result" => {
@@ -166,6 +189,126 @@ impl ApiSse {
     }
 }
 
+async fn read_sse(response: Response, app: &tauri::AppHandle) -> Result<serde_json::Value, String> {
+    let mut parser = ApiSse::default();
+    let mut buffer = Vec::new();
+    let mut result = None;
+    let mut chunks = response.bytes_stream();
+    'outer: while let Some(chunk) = chunks.next().await {
+        buffer.extend_from_slice(&chunk.map_err(|e| e.to_string())?);
+        while let Some(pos) = buffer.iter().position(|b| *b == b'\n') {
+            let raw = buffer.drain(..=pos).collect::<Vec<_>>();
+            let line = String::from_utf8_lossy(&raw[..raw.len() - 1]);
+            if let Some(value) = parser.line(&line, app)? {
+                result = Some(value);
+                break 'outer;
+            }
+        }
+    }
+    if result.is_none() && !buffer.is_empty() {
+        result = parser.line(&String::from_utf8_lossy(&buffer), app)?;
+    }
+    match result {
+        Some(value) => Ok(value),
+        None => parser.finish(app),
+    }
+}
+
+fn prepared_alignment_part(
+    app: &tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    batch_id: Option<&str>,
+    item_id: Option<&str>,
+) -> Result<Part, String> {
+    emit_status_for_item(app, "preparing", None, batch_id, item_id);
+    let ffmpeg =
+        binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
+    let mut _merged_guard = None;
+    let source = if let Some(clips) = audio_clips.as_ref().filter(|v| !v.is_empty()) {
+        let (path, guard) = merge_audio_clips_for_segmentation(&ffmpeg, clips)?;
+        _merged_guard = Some(guard);
+        path
+    } else if let Some(path) = audio_path.as_ref() {
+        path_utils::normalize_existing_path(path)
+    } else {
+        return Err("Audio file not found: missing audioPath/audioClips".into());
+    };
+    if !source.exists() {
+        return Err(format!(
+            "Audio file not found: {}",
+            source.to_string_lossy()
+        ));
+    }
+    let path = unique_temp_path("qurancaption-seg", "ogg")?;
+    let _guard = TempFileGuard(path.clone());
+    let mut cmd = Command::new(ffmpeg);
+    cmd.args(["-y", "-hide_banner", "-loglevel", "error", "-i"])
+        .arg(source)
+        .args(["-c:a", "libopus", "-b:a", "64k", "-vbr", "on", "-vn"])
+        .arg(&path);
+    configure_command_no_window(&mut cmd);
+    let output = cmd.output().map_err(|e| e.to_string())?;
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).into_owned());
+    }
+    let bytes = Bytes::from(fs::read(path).map_err(|e| e.to_string())?);
+    if bytes.is_empty() {
+        return Err("Prepared audio is empty".into());
+    }
+    let length = bytes.len() as u64;
+    emit_status_for_item(app, "uploading", Some(0.0), batch_id, item_id);
+    let app_for_upload = app.clone();
+    let batch_id = batch_id.map(str::to_owned);
+    let item_id = item_id.map(str::to_owned);
+    let body = stream::unfold((bytes, 0usize, 0u64), move |(bytes, offset, last)| {
+        let app = app_for_upload.clone();
+        let batch_id = batch_id.clone();
+        let item_id = item_id.clone();
+        async move {
+            if offset >= bytes.len() {
+                return None;
+            }
+            let end = min(offset + 256 * 1024, bytes.len());
+            let chunk = bytes.slice(offset..end);
+            let p = (end as f64 / bytes.len() as f64 * 100.0).min(100.0);
+            let rounded = p.floor() as u64;
+            if rounded > last {
+                emit_status_for_item(
+                    &app,
+                    "uploading",
+                    Some(p),
+                    batch_id.as_deref(),
+                    item_id.as_deref(),
+                );
+            }
+            Some((
+                Ok::<Bytes, std::io::Error>(chunk),
+                (bytes, end, rounded.max(last)),
+            ))
+        }
+    });
+    Part::stream_with_length(reqwest::Body::wrap_stream(body), length)
+        .file_name("audio.ogg")
+        .mime_str("audio/ogg")
+        .map_err(|e| e.to_string())
+}
+
+/// Ajoute le token du compte Hugging Face configuré sans l'exposer au frontend.
+fn authenticated(request: reqwest::RequestBuilder) -> Result<reqwest::RequestBuilder, String> {
+    let token = hugging_face_cloud_token()?;
+    Ok(
+        match token
+            .as_deref()
+            .map(str::trim)
+            .filter(|token| !token.is_empty())
+        {
+            Some(token) => request.bearer_auth(token),
+            None => request,
+        },
+    )
+}
+
 fn prepared_audio(
     audio_path: Option<String>,
     audio_clips: Option<Vec<SegmentationAudioClip>>,
@@ -190,11 +333,7 @@ fn prepared_audio(
             source.to_string_lossy()
         ));
     }
-    let stamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|e| e.to_string())?
-        .as_millis();
-    let output_path = std::env::temp_dir().join(format!("qurancaption-mfa-{}.wav", stamp));
+    let output_path = unique_temp_path("qurancaption-mfa", "wav")?;
     let guard = TempFileGuard(output_path.clone());
     let window = match (window_start_ms, window_end_ms) {
         (Some(a), Some(b)) if b > a && a >= 0 => Some((a, b)),
@@ -233,9 +372,12 @@ pub async fn mfa_timestamps_session(
     if audio_id.trim().is_empty() || !segments.is_array() {
         return Err("audio_id and a segments array are required.".into());
     }
-    let response = client(Duration::from_secs(300))?.post(url(&format!("/sessions/{}/timestamps", audio_id)))
-        .json(&serde_json::json!({"segments": segments, "granularity": granularity.unwrap_or_else(|| "words".into())}))
-        .send().await.map_err(|e| format!("Session timestamps request failed: {}", e))?;
+    let request = client(Duration::from_secs(300))?.post(url(&format!("/sessions/{}/timestamps", audio_id)))
+        .json(&serde_json::json!({"segments": segments, "granularity": granularity.unwrap_or_else(|| "words".into())}));
+    let response = authenticated(request)?
+        .send()
+        .await
+        .map_err(|e| format!("Session timestamps request failed: {}", e))?;
     json(response, "session timestamps").await
 }
 pub async fn preload_recitations() -> Result<serde_json::Value, String> {
@@ -311,9 +453,10 @@ pub async fn mfa_timestamps_direct(
         .text("segments", segments.to_string())
         .text("granularity", granularity.unwrap_or_else(|| "words".into()))
         .text("riwayah", selected_riwayah);
-    let response = client(Duration::from_secs(300))?
+    let request = client(Duration::from_secs(300))?
         .post(url("/timestamps"))
-        .multipart(form)
+        .multipart(form);
+    let response = authenticated(request)?
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -338,65 +481,7 @@ pub async fn segment_quran_audio(
     let selected_riwayah = validate_riwayah(riwayah)?;
     let pad_left_ms = pad_left_ms.unwrap_or(100).min(1000);
     let pad_right_ms = pad_right_ms.unwrap_or(200).min(1000);
-    emit_status(&app, "preparing", None);
-    let ffmpeg =
-        binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
-    let mut _merged_guard = None;
-    let source = if let Some(clips) = audio_clips.as_ref().filter(|v| !v.is_empty()) {
-        let (path, guard) = merge_audio_clips_for_segmentation(&ffmpeg, clips)?;
-        _merged_guard = Some(guard);
-        path
-    } else if let Some(path) = audio_path.as_ref() {
-        path_utils::normalize_existing_path(path)
-    } else {
-        return Err("Audio file not found: missing audioPath/audioClips".into());
-    };
-    let stamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|e| e.to_string())?
-        .as_millis();
-    let path = std::env::temp_dir().join(format!("qurancaption-seg-{}.ogg", stamp));
-    let _guard = TempFileGuard(path.clone());
-    let mut cmd = Command::new(ffmpeg);
-    cmd.args(["-y", "-hide_banner", "-loglevel", "error", "-i"])
-        .arg(source)
-        .args(["-c:a", "libopus", "-b:a", "64k", "-vbr", "on", "-vn"])
-        .arg(&path);
-    configure_command_no_window(&mut cmd);
-    let output = cmd.output().map_err(|e| e.to_string())?;
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).into_owned());
-    }
-    let bytes = Bytes::from(fs::read(path).map_err(|e| e.to_string())?);
-    if bytes.is_empty() {
-        return Err("Prepared audio is empty".into());
-    }
-    let length = bytes.len() as u64;
-    emit_status(&app, "uploading", Some(0.0));
-    let app_for_upload = app.clone();
-    let body = stream::unfold((bytes, 0usize, 0u64), move |(bytes, offset, last)| {
-        let app = app_for_upload.clone();
-        async move {
-            if offset >= bytes.len() {
-                return None;
-            }
-            let end = min(offset + 256 * 1024, bytes.len());
-            let chunk = bytes.slice(offset..end);
-            let p = (end as f64 / bytes.len() as f64 * 100.0).min(100.0);
-            let rounded = p.floor() as u64;
-            if rounded > last {
-                emit_status(&app, "uploading", Some(p));
-            }
-            Some((
-                Ok::<Bytes, std::io::Error>(chunk),
-                (bytes, end, rounded.max(last)),
-            ))
-        }
-    });
-    let part = Part::stream_with_length(reqwest::Body::wrap_stream(body), length)
-        .file_name("audio.ogg")
-        .mime_str("audio/ogg")
-        .map_err(|e| e.to_string())?;
+    let part = prepared_alignment_part(&app, audio_path, audio_clips, None, None)?;
     let form = Form::new()
         .part("audio", part)
         .text("pad_left_ms", pad_left_ms.to_string())
@@ -405,52 +490,106 @@ pub async fn segment_quran_audio(
         .text("device", requested_device)
         .text("riwayah", selected_riwayah);
     let http = client(Duration::from_secs(60 * 60))?;
-    let response = http
-        .post(url("/align/audio/stream"))
-        .multipart(form)
+    let request = http.post(url("/align/audio/stream")).multipart(form);
+    let response = authenticated(request)?
         .send()
         .await
         .map_err(|e| format!("Alignment request failed: {}", e))?;
     if !response.status().is_success() {
         return Err(error_text(response, "alignment request").await);
     }
-    let mut parser = ApiSse::default();
-    let mut buffer = Vec::new();
-    let mut result = None;
-    let mut chunks = response.bytes_stream();
-    'outer: while let Some(chunk) = chunks.next().await {
-        buffer.extend_from_slice(&chunk.map_err(|e| e.to_string())?);
-        while let Some(pos) = buffer.iter().position(|b| *b == b'\n') {
-            let raw = buffer.drain(..=pos).collect::<Vec<_>>();
-            let line = String::from_utf8_lossy(&raw[..raw.len() - 1]);
-            if let Some(value) = parser.line(&line, &app)? {
-                result = Some(value);
-                break 'outer;
-            }
-        }
+    read_sse(response, &app).await
+}
+
+pub async fn split_quran_alignment_session(
+    app: tauri::AppHandle,
+    audio_id: String,
+) -> Result<serde_json::Value, String> {
+    if audio_id.len() != 32 || !audio_id.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err("Invalid audio_id".into());
     }
-    if result.is_none() && !buffer.is_empty() {
-        result = parser.line(&String::from_utf8_lossy(&buffer), &app)?;
-    }
-    let result = match result {
-        Some(value) => value,
-        None => parser.finish(&app)?,
-    };
-    let audio_id = result
-        .get("audio_id")
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| "Alignment result did not include audio_id".to_string())?;
     emit_status(&app, "splitting", None);
-    let response = http.post(url(&format!("/sessions/{}/split", audio_id))).json(&serde_json::json!({"max_verses":1,"max_words":null,"max_duration":null,"require_stop_sign":false})).send().await.map_err(|e| e.to_string())?;
-    let mut split = json(response, "one-verse split").await?;
-    if let (Some(split), Some(alignment)) = (split.as_object_mut(), result.as_object()) {
-        for key in ["device"] {
-            if let Some(value) = alignment.get(key) {
-                split.insert(key.to_string(), value.clone());
-            }
-        }
+    let http = client(Duration::from_secs(60 * 60))?;
+    let request = http.post(url(&format!("/sessions/{}/split", audio_id))).json(&serde_json::json!({"max_verses":1,"max_words":null,"max_duration":null,"require_stop_sign":false}));
+    let response = authenticated(request)?
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    json(response, "one-verse split").await
+}
+
+pub async fn create_quran_alignment_batch(
+    model_name: Option<String>,
+    device: Option<String>,
+    riwayah: Option<String>,
+    pad_left_ms: Option<u32>,
+    pad_right_ms: Option<u32>,
+    include_word_timestamps: Option<bool>,
+) -> Result<serde_json::Value, String> {
+    let body = serde_json::json!({
+        "model_name": validate_model(model_name)?,
+        "device": validate_device(device)?,
+        "riwayah": validate_riwayah(riwayah)?,
+        "pad_left_ms": pad_left_ms.unwrap_or(100).min(1000),
+        "pad_right_ms": pad_right_ms.unwrap_or(200).min(1000),
+        "split": {
+            "max_verses": 1,
+            "max_words": null,
+            "max_duration": null,
+            "require_stop_sign": false,
+        },
+        "include_word_timestamps": include_word_timestamps.unwrap_or(false),
+    });
+    let http = client(Duration::from_secs(60))?;
+    let request = http.post(url("/batches")).json(&body);
+    let response = authenticated(request)?
+        .send()
+        .await
+        .map_err(|e| format!("Batch creation failed: {}", e))?;
+    json(response, "batch creation").await
+}
+
+pub async fn segment_quran_audio_batch(
+    app: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    batch_id: String,
+    item_id: String,
+) -> Result<serde_json::Value, String> {
+    if batch_id.len() != 32 || !batch_id.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err("Invalid batch_id".into());
     }
-    Ok(split)
+    if item_id.is_empty()
+        || item_id.len() > 80
+        || !item_id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+    {
+        return Err("Invalid batch item_id".into());
+    }
+    let part = prepared_alignment_part(
+        &app,
+        audio_path,
+        audio_clips,
+        Some(&batch_id),
+        Some(&item_id),
+    )?;
+    let form = Form::new().part("audio", part);
+    let http = client(Duration::from_secs(60 * 60))?;
+    let request = http
+        .post(url(&format!(
+            "/batches/{}/items/{}/audio/stream",
+            batch_id, item_id
+        )))
+        .multipart(form);
+    let response = authenticated(request)?
+        .send()
+        .await
+        .map_err(|e| format!("Batch item request failed: {}", e))?;
+    if !response.status().is_success() {
+        return Err(error_text(response, "batch item request").await);
+    }
+    read_sse(response, &app).await
 }
 
 #[cfg(test)]

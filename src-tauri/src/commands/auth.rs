@@ -4,6 +4,7 @@ const SERVICE_NAME: &str = "QuranCaption";
 const SESSION_KEY: &str = "quran_auth_session";
 const PENDING_VERIFIER_KEY: &str = "quran_auth_pending_verifier";
 const PENDING_WINDOW_KEY: &str = "quran_auth_pending_window";
+const HF_CLOUD_TOKEN_KEY: &str = "hugging_face_cloud_token";
 const SESSION_CHUNK_KEY_PREFIX: &str = "quran_auth_session__chunk_";
 const CHUNKED_SENTINEL_PREFIX: &str = "__chunked__:";
 const MAX_SECURE_VALUE_UTF16_LEN: usize = 2_000;
@@ -20,6 +21,21 @@ fn secure_entry(key: &str) -> Result<Entry, String> {
     let normalized = normalize_key(key)?;
     Entry::new(SERVICE_NAME, &normalized)
         .map_err(|error| format!("Failed to access the OS secure store: {error}"))
+}
+
+/// Ouvre l'entrée dédiée au token cloud Hugging Face.
+fn hugging_face_token_entry() -> Result<Entry, String> {
+    Entry::new(SERVICE_NAME, HF_CLOUD_TOKEN_KEY)
+        .map_err(|error| format!("Failed to access the OS secure store: {error}"))
+}
+
+/// Lit le token cloud Hugging Face depuis le coffre-fort du système.
+fn get_hugging_face_token() -> Result<Option<String>, String> {
+    match hugging_face_token_entry()?.get_password() {
+        Ok(value) => Ok(Some(value)),
+        Err(KeyringError::NoEntry) => Ok(None),
+        Err(error) => Err(format!("Failed to read from the OS secure store: {error}")),
+    }
 }
 
 fn chunk_key(index: usize) -> String {
@@ -141,4 +157,97 @@ pub fn quran_auth_secure_delete(key: String) -> Result<(), String> {
     let existing_base_value = get_single_secure_value(&key)?;
     clear_chunked_session_parts_if_needed(existing_base_value.as_deref())?;
     delete_single_secure_value(&key)
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HuggingFaceAccountStatus {
+    configured: bool,
+    valid: bool,
+    username: Option<String>,
+}
+
+/// Vérifie le token auprès de Hugging Face sans le persister.
+async fn validate_hugging_face_token(token: &str) -> Result<HuggingFaceAccountStatus, String> {
+    let response = reqwest::Client::new()
+        .get("https://huggingface.co/api/whoami-v2")
+        .bearer_auth(token)
+        .send()
+        .await
+        .map_err(|error| format!("Unable to contact Hugging Face: {error}"))?;
+
+    if response.status() == reqwest::StatusCode::UNAUTHORIZED {
+        return Ok(HuggingFaceAccountStatus {
+            configured: true,
+            valid: false,
+            username: None,
+        });
+    }
+    if !response.status().is_success() {
+        return Err(format!(
+            "Hugging Face token validation failed ({})",
+            response.status()
+        ));
+    }
+
+    let body: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|error| format!("Invalid Hugging Face account response: {error}"))?;
+    Ok(HuggingFaceAccountStatus {
+        configured: true,
+        valid: true,
+        username: body
+            .get("name")
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_string),
+    })
+}
+
+/// Valide et stocke le token Hugging Face cloud dans le coffre-fort du système.
+#[tauri::command]
+pub async fn hugging_face_account_connect(
+    token: String,
+) -> Result<HuggingFaceAccountStatus, String> {
+    let token = token.trim();
+    if token.is_empty() {
+        return Err("Enter a Hugging Face token.".to_string());
+    }
+    let status = validate_hugging_face_token(token).await?;
+    if !status.valid {
+        return Err("This Hugging Face token is invalid or has been revoked.".to_string());
+    }
+    hugging_face_token_entry()?
+        .set_password(token)
+        .map_err(|error| format!("Failed to write to the OS secure store: {error}"))?;
+    Ok(status)
+}
+
+/// Renvoie l'état du compte Hugging Face cloud configuré.
+#[tauri::command]
+pub async fn hugging_face_account_status() -> Result<HuggingFaceAccountStatus, String> {
+    let Some(token) = get_hugging_face_token()? else {
+        return Ok(HuggingFaceAccountStatus {
+            configured: false,
+            valid: false,
+            username: None,
+        });
+    };
+    validate_hugging_face_token(&token).await
+}
+
+/// Supprime le token Hugging Face cloud du coffre-fort du système.
+#[tauri::command]
+pub fn hugging_face_account_disconnect() -> Result<(), String> {
+    match hugging_face_token_entry()?.delete_credential() {
+        Ok(()) | Err(KeyringError::NoEntry) => Ok(()),
+        Err(error) => Err(format!(
+            "Failed to delete from the OS secure store: {error}"
+        )),
+    }
+}
+
+/// Lit le token cloud pour authentifier les appels directs au Space.
+pub(crate) fn hugging_face_cloud_token() -> Result<Option<String>, String> {
+    get_hugging_face_token()
 }

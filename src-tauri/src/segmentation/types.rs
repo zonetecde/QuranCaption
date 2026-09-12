@@ -1,4 +1,4 @@
-/// URL racine de l'API FastAPI v1 Quranic Universal Aligner en production.
+/// URL racine de production, remplaçable au lancement pour tester l'API dev.
 pub const QURAN_MULTI_ALIGNER_API_V1_URL: &str =
     "https://hetchyy-quranic-universal-aligner.hf.space/api/v1";
 

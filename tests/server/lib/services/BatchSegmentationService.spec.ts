@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@tauri-apps/api/event', () => ({ listen: vi.fn() }));
 vi.mock('@tauri-apps/plugin-fs', () => ({ exists: vi.fn() }));
+vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 
 import {
 	Batch,
@@ -81,6 +82,9 @@ const configuration = {
 		minSilenceMs: 200,
 		minSpeechMs: 1000,
 		padMs: 100,
+		padLeftMs: 30,
+		padRightMs: 200,
+		riwayah: 'hafs',
 		fillBySilence: true,
 		extendBeforeSilence: false,
 		extendBeforeSilenceMs: 0,
@@ -165,19 +169,30 @@ describe('BatchSegmentationService', () => {
 		expect(items[2].segmentation.progress).toBe(finishedProgress);
 	});
 
-	it('spaces cloud requests by two minutes without waiting for the previous result', async () => {
-		vi.useFakeTimers();
-		const items = [createItem(1), createItem(2)];
+	it('creates one global cloud batch and uses its bounded parallel pipeline', async () => {
+		const items = Array.from({ length: 7 }, (_, index) => createItem(index + 1));
 		const controls = items.map(() => deferred<void>());
 		const started: number[] = [];
-		const activities: Array<[number, string]> = [];
+		const receivedBatchIds: string[] = [];
+		let active = 0;
+		let maximumActive = 0;
+		const liveMessages = new Map<number, string | null>();
+		const createCloudBatch = vi.fn(async () => ({ batchId: 'b'.repeat(32) }));
 		const service = new BatchSegmentationService({
 			listenStatus: async () => () => undefined,
 			saveBatch: async () => undefined,
-			onUpdate: (item, activity) => activities.push([item.projectId, activity]),
-			processItem: async (item) => {
+			onUpdate: (item, _activity, _queue, live) => liveMessages.set(item.projectId, live.message),
+			createCloudBatch,
+			processItem: async (item, _configuration, _overwrite, _report, cloudBatch) => {
 				started.push(item.projectId);
-				await controls[item.projectId - 1].promise;
+				receivedBatchIds.push(cloudBatch?.batchId ?? 'missing');
+				active += 1;
+				maximumActive = Math.max(maximumActive, active);
+				try {
+					await controls[item.projectId - 1].promise;
+				} finally {
+					active -= 1;
+				}
 				return {
 					segmentsApplied: 1,
 					review: {
@@ -192,22 +207,21 @@ describe('BatchSegmentationService', () => {
 			}
 		});
 
-		try {
-			const run = service.run(new Batch('Batch', items), items, configuration, false);
-			await vi.advanceTimersByTimeAsync(0);
-			expect(started).toEqual([1]);
-			expect(activities).toContainEqual([2, 'waiting']);
+		const run = service.run(new Batch('Batch', items), items, configuration, false);
+		await vi.waitFor(() => expect(started).toEqual([1, 2, 3, 4, 5, 6]));
+		expect(maximumActive).toBe(6);
+		expect(createCloudBatch).toHaveBeenCalledOnce();
+		expect(receivedBatchIds).toEqual(Array(6).fill('b'.repeat(32)));
+		service.handleStatus({ itemId: '2', message: 'queued_timing', progress: 9 });
+		expect(items[1].segmentation.progress).toBe(78);
+		expect(items[0].segmentation.progress).toBe(0);
+		expect(liveMessages.get(2)).toBe('queued_timing');
 
-			await vi.advanceTimersByTimeAsync(119_999);
-			expect(started).toEqual([1]);
-			await vi.advanceTimersByTimeAsync(1);
-			expect(started).toEqual([1, 2]);
-
-			controls.forEach((control) => control.resolve());
-			await run;
-		} finally {
-			vi.useRealTimers();
-		}
+		controls[0].resolve();
+		await vi.waitFor(() => expect(started).toEqual([1, 2, 3, 4, 5, 6, 7]));
+		controls.slice(1).forEach((control) => control.resolve());
+		await run;
+		expect(receivedBatchIds).toEqual(Array(7).fill('b'.repeat(32)));
 	});
 
 	it('recovers a completed segmentation from existing subtitles', async () => {
@@ -324,6 +338,7 @@ describe('BatchSegmentationService', () => {
 		const service = new BatchSegmentationService({
 			listenStatus: async () => () => undefined,
 			saveBatch: async () => undefined,
+			createCloudBatch: async () => ({ batchId: 'b'.repeat(32) }),
 			loadProject: async (projectId) => {
 				expect(projectId).toBe(item.projectId);
 				return childProject;

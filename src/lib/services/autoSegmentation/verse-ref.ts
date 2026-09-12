@@ -221,6 +221,17 @@ export async function detectCoverageGapIndices(
 		const { startRef } = normalized;
 
 		if (progressRef) {
+			const completedFatiha =
+				progressRef.surah === 1 &&
+				progressRef.verse === 7 &&
+				startRef.surah !== 1 &&
+				progressRef.word === (await getVerseWordCount(1, 7));
+			// Après la Fatiha, le passage à une autre sourate est une nouvelle récitation volontaire.
+			if (completedFatiha) {
+				progressRef = normalized.endRef;
+				continue;
+			}
+
 			const expectedNextRef = await getExpectedNextRef(progressRef);
 			if (expectedNextRef && compareVerseRefs(startRef, expectedNextRef) > 0) {
 				const gapEndRef = await getPreviousRef(startRef);

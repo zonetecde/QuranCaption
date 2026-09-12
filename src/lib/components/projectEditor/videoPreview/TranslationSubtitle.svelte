@@ -31,6 +31,7 @@
 		interpolateCssColor
 	} from './wordByWordHighlightUtils';
 	import SubtitleResizeHandles from './SubtitleResizeHandles.svelte';
+	import SubtitleStyleContextMenu from './SubtitleStyleContextMenu.svelte';
 
 	/**
 	 * Propriétés reçues du composant parent VideoOverlay.
@@ -62,6 +63,7 @@
 		helperStyles,
 		isExportCapturePreview
 	}: TranslationSubtitleProps = $props();
+	let styleContextMenu: SubtitleStyleContextMenu | undefined = $state();
 
 	type TranslationWbwOverlaySegment = OverlayTextSegment & {
 		wbwWordIndex?: number;
@@ -752,6 +754,7 @@
 		const subtitle = currentSubtitle();
 		if (subtitle) globalState.openQuickTimelineEditor(subtitle.id, 'translation');
 	}}
+	oncontextmenu={(event) => void styleContextMenu?.show(event)}
 	use:mouseDrag={{
 		target: edition,
 		verticalStyleId: 'vertical-position',
@@ -762,6 +765,7 @@
 >
 	{#if !isExportCapturePreview}
 		<SubtitleResizeHandles target={edition} />
+		<SubtitleStyleContextMenu bind:this={styleContextMenu} target={edition} />
 	{/if}
 	<!-- Le wrapper externe porte le layout flex, le fond interne reste fragmentable par ligne. -->
 	<span class="translation-inline-flow">

@@ -17,6 +17,7 @@
 
 	const sharedStyleIds: StyleName[] = [
 		'font-size',
+		'font-family',
 		'text-color',
 		'horizontal-text-alignment',
 		'vertical-text-alignment',
@@ -49,7 +50,28 @@
 		const styleIds = target === 'arabic' ? [...sharedStyleIds, ...arabicStyleIds] : sharedStyleIds;
 		const styleEntries = styleIds.flatMap((styleId) => {
 			const style = targetStyles.findStyle(styleId);
-			return style ? [{ id: style.id, labelId: style.id, icon: style.icon, styles: [style] }] : [];
+			if (!style) return [];
+			const selectedClipIds = globalState.getStylesState.selectedSubtitles.map(
+				(subtitle) => subtitle.id
+			);
+			const decorativeBracketsEnabled =
+				styleId === 'show-decorative-brackets' &&
+				(selectedClipIds.length > 0
+					? selectedClipIds.some((clipId) =>
+							Boolean(targetStyles.getEffectiveValue(styleId, clipId, undefined, 0))
+						)
+					: Boolean(style.value));
+			const decorativeBracketsStyle = decorativeBracketsEnabled
+				? targetStyles.findStyle('decorative-brackets-font-family')
+				: undefined;
+			return [
+				{
+					id: style.id,
+					labelId: style.id,
+					icon: style.icon,
+					styles: decorativeBracketsStyle ? [style, decorativeBracketsStyle] : [style]
+				}
+			];
 		});
 		return [
 			...(wbwStyles.length > 0

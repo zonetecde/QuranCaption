@@ -584,6 +584,8 @@ const de = {
 		removeAsset: 'Element entfernen',
 		removeAssetConfirm:
 			'Sind Sie sicher, dass Sie dieses Element aus dem Projekt entfernen möchten?',
+		removeSelectedAssetsConfirm:
+			'Möchten Sie die {count} ausgewählten Elemente wirklich aus dem Projekt entfernen?',
 		alsoDeleteFile: 'Datei auch von der Festplatte löschen',
 		actionCannotBeUndone: 'Warnung: Diese Aktion kann nicht rückgängig gemacht werden.',
 		removeAllSubtitles: 'Alle Untertitel entfernen',

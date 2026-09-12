@@ -580,6 +580,8 @@ const fr = {
 		addToTimeline: 'Ajouter à la timeline',
 		removeAsset: 'Supprimer l\u2019élément',
 		removeAssetConfirm: 'Êtes-vous sûr de vouloir retirer cet élément du projet\u00a0?',
+		removeSelectedAssetsConfirm:
+			'Êtes-vous sûr de vouloir retirer les {count} éléments sélectionnés du projet\u00a0?',
 		alsoDeleteFile: 'Supprimer également le fichier du disque',
 		actionCannotBeUndone: 'Attention\u00a0: cette action est irréversible.',
 		removeAllSubtitles: 'Supprimer tous les sous-titres',

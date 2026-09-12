@@ -576,6 +576,8 @@ const es = {
 		addToTimeline: 'Agregar a la línea de tiempo',
 		removeAsset: 'Eliminar elemento',
 		removeAssetConfirm: '\u00bfEstá seguro de que desea eliminar este elemento del proyecto?',
+		removeSelectedAssetsConfirm:
+			'\u00bfEstá seguro de que desea eliminar los {count} elementos seleccionados del proyecto?',
 		alsoDeleteFile: 'Eliminar también el archivo del disco',
 		actionCannotBeUndone: 'Advertencia\u00a0: esta acción es irreversible.',
 		removeAllSubtitles: 'Eliminar todos los subtítulos',

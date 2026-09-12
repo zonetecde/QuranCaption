@@ -7,6 +7,8 @@ const editor = {
 	addToTimeline: 'Add to Timeline',
 	removeAsset: 'Remove Asset',
 	removeAssetConfirm: 'Are you sure you want to remove this asset from the project?',
+	removeSelectedAssetsConfirm:
+		'Are you sure you want to remove the {count} selected assets from the project?',
 	alsoDeleteFile: 'Also delete file from computer',
 	actionCannotBeUndone: 'Warning: This action cannot be undone.',
 	removeAllSubtitles: 'Remove All Subtitles',

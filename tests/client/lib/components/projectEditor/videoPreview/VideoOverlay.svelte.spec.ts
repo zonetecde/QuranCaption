@@ -14,6 +14,7 @@ import { getRenderedLineCount } from '$lib/components/projectEditor/videoPreview
 import QPCFontProvider from '$lib/services/FontProvider';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 import RiwayahProvider from '$lib/services/RiwayahProvider';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 vi.mock('$lib/components/projectEditor/tabs/styleEditor/ReciterName.svelte', async () => ({
 	default: (await import('../../../../stubs/EmptyComponent.svelte')).default
@@ -52,6 +53,8 @@ vi.mock('@tauri-apps/api/core', async () => {
 });
 
 type MockStyle = {
+	id: string;
+	valueType: 'number';
 	value: string | number | boolean | null;
 };
 
@@ -62,6 +65,7 @@ type MockStyleTarget = {
 	generateCSS: (clipId?: number) => string;
 	generateTailwind: () => string;
 	getEffectiveValue: (styleId: string, clipId?: number) => string | number | boolean | null;
+	getKeyframeTimes: () => number[];
 	setStyle: (styleId: string, value: string | number | boolean | null) => void;
 };
 
@@ -85,6 +89,7 @@ function createDefaultStyleValue(
 	if (styleId === 'opacity') return 1;
 	if (styleId === 'show-subtitles') return true;
 	if (styleId === 'max-height') return 0;
+	if (styleId === 'width') return 80;
 	if (styleId === 'max-line') return 'Infinite';
 	if (styleId === 'font-size') return target === 'arabic' ? 42 : 28;
 	if (styleId === 'vertical-text-alignment') return 'center';
@@ -140,6 +145,8 @@ function createMockVideoStyle(targets: string[]): MockVideoStyle {
 			findStyle(styleId: string) {
 				if (!styles.has(styleId)) {
 					styles.set(styleId, {
+						id: styleId,
+						valueType: 'number',
 						value: createDefaultStyleValue(target, styleId)
 					});
 				}
@@ -156,6 +163,9 @@ function createMockVideoStyle(targets: string[]): MockVideoStyle {
 					return this.overrides[clipId][styleId];
 				}
 				return this.findStyle(styleId).value;
+			},
+			getKeyframeTimes() {
+				return [];
 			},
 			setStyle(styleId: string, value: string | number | boolean | null) {
 				this.findStyle(styleId).value = value;
@@ -322,6 +332,7 @@ function setupVideoOverlayFixture(
 	const projectTranslationTargets = addedTranslationEditionNames ?? translationTargets;
 
 	globalState.currentProject = {
+		toJSON: () => ({}),
 		projectEditorState,
 		content: {
 			timeline: new Timeline([subtitleTrack, videoTrack, audioTrack, customTrack]),
@@ -718,6 +729,57 @@ describe('Video overlay subtitle preview', () => {
 			expect(getRenderedLineCount(arabicNode)).toBe(1);
 		});
 		expect(getArabicVerseNumberSpans(component.container)[0]).toBeTruthy();
+	});
+
+	test('resizes the arabic subtitle width and max height from its preview handles', async () => {
+		const fixture = setupVideoOverlayFixture(
+			[createVerseSubtitle(0, 999, 'Arabic', 'Translation')],
+			{ cursorPosition: 500 }
+		);
+		const beginHistory = vi.spyOn(ProjectHistoryManager, 'begin');
+		const commitHistory = vi.spyOn(ProjectHistoryManager, 'commit');
+		const component = render(VideoOverlay);
+		const overlay = component.container.querySelector('#overlay') as HTMLElement;
+		overlay.style.width = '1000px';
+		overlay.style.height = '600px';
+		await settleOverlay();
+
+		const handle = component.container.querySelector(
+			'.arabic.subtitle .subtitle-resize-width'
+		) as HTMLElement;
+		handle.setPointerCapture = vi.fn();
+		handle.hasPointerCapture = vi.fn(() => false);
+		handle.dispatchEvent(
+			new PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: 100, pointerId: 1 })
+		);
+		handle.dispatchEvent(
+			new PointerEvent('pointermove', { bubbles: true, clientX: 150, pointerId: 1 })
+		);
+		handle.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+
+		expect(fixture.videoStyle.getStylesOfTarget('arabic').findStyle('width').value).toBe(90);
+
+		const arabicNode = getForegroundArabicNode(component.container)!;
+		const initialRenderedHeight = arabicNode.offsetHeight;
+		const heightHandle = component.container.querySelector(
+			'.arabic.subtitle .subtitle-resize-height'
+		) as HTMLElement;
+		heightHandle.setPointerCapture = vi.fn();
+		heightHandle.hasPointerCapture = vi.fn(() => false);
+		heightHandle.dispatchEvent(
+			new PointerEvent('pointerdown', { bubbles: true, button: 0, clientY: 100, pointerId: 2 })
+		);
+		heightHandle.dispatchEvent(
+			new PointerEvent('pointermove', { bubbles: true, clientY: 125, pointerId: 2 })
+		);
+		heightHandle.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 2 }));
+
+		expect(fixture.videoStyle.getStylesOfTarget('arabic').findStyle('max-height').value).toBe(
+			Math.min(800, Math.max(1, initialRenderedHeight + 50))
+		);
+		expect(beginHistory).toHaveBeenCalledTimes(2);
+		expect(beginHistory).toHaveBeenCalledWith('resize subtitle');
+		expect(commitHistory).toHaveBeenCalledTimes(2);
 	});
 
 	test('keeps QPC2 verse-number fonts when merged verses stay on the same page', async () => {

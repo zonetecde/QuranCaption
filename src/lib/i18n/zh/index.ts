@@ -547,6 +547,7 @@ const zh = {
 		addToTimeline: '添加到时间轴',
 		removeAsset: '移除素材',
 		removeAssetConfirm: '您确定要从项目中移除此素材吗？',
+		removeSelectedAssetsConfirm: '确定要从项目中移除选中的 {count} 个素材吗？',
 		alsoDeleteFile: '同时从磁盘删除文件',
 		actionCannotBeUndone: '警告：此操作不可撤销。',
 		removeAllSubtitles: '删除所有字幕',

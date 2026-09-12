@@ -776,6 +776,7 @@ const id = {
 		addToTimelineLabel: 'Tambahkan ke timeline',
 		removeAsset: 'Hapus aset',
 		removeAssetConfirm: 'Yakin ingin menghapus aset ini dari proyek?',
+		removeSelectedAssetsConfirm: 'Yakin ingin menghapus {count} aset yang dipilih dari proyek?',
 		alsoDeleteFile: 'Sekalian hapus file dari komputer',
 		actionCannotBeUndone: 'Peringatan: aksi ini tidak bisa dibatalkan.',
 		removeAllSubtitles: 'Hapus semua subtitle',

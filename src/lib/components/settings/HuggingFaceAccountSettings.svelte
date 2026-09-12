@@ -117,7 +117,7 @@
 							onkeydown={(event) => event.key === 'Enter' && void connect()}
 						/>
 						<button
-							class="btn-accent px-3 py-2 text-xs"
+							class="btn-accent px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
 							disabled={isLoading || !token.trim()}
 							onclick={connect}
 						>
@@ -190,7 +190,7 @@
 					onkeydown={(event) => event.key === 'Enter' && void connect()}
 				/>
 				<button
-					class="btn-accent px-3 py-2 text-xs"
+					class="btn-accent px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
 					disabled={isLoading || !token.trim()}
 					onclick={connect}
 				>

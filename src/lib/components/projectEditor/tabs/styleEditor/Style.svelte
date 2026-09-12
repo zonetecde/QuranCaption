@@ -79,6 +79,7 @@
 		disabled,
 		showControl = false,
 		headerControl = false,
+		showKeyframeControls = true,
 		applyValueSimple
 	}: {
 		style: Style;
@@ -86,6 +87,7 @@
 		disabled: boolean;
 		showControl?: boolean;
 		headerControl?: boolean;
+		showKeyframeControls?: boolean;
 		applyValueSimple: (value: Style['value']) => void;
 	} = $props();
 
@@ -608,7 +610,7 @@
 				></span>
 			</div>
 		</label>
-		{#if canAnimate()}
+		{#if showKeyframeControls && canAnimate()}
 			<KeyframeControls
 				active={hasKeyframeAtCursor()}
 				hasPrevious={hasPreviousKeyframe()}
@@ -765,7 +767,7 @@
 							{$LL.common.reset()}
 						</button>
 					{/if}
-					{#if canAnimate()}
+					{#if showKeyframeControls && canAnimate()}
 						<KeyframeControls
 							active={hasKeyframeAtCursor()}
 							hasPrevious={hasPreviousKeyframe()}
@@ -838,9 +840,7 @@
 					<FadeControl value={inputValue} onChange={applyValue} />
 				{:else if style.valueType === 'composite'}
 					<div class="style-control-list">
-						{#each globalState.getVideoStyle
-							.getStylesOfTarget(target!)
-							.getCompositeStyles(style.id as StyleName) as subStyle (subStyle.id)}
+						{#each style.value as Style[] as subStyle (subStyle.id)}
 							<StyleComponent
 								style={subStyle}
 								target={style.id}

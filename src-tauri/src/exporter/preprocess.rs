@@ -525,7 +525,8 @@ pub fn preprocess_background_videos(
 
     // Détection du cas "direct single pass": une seule vidéo sans blur.
     // La boucle est ignorée plus bas si la source couvre déjà toute la durée nécessaire.
-    let can_direct_single_pass = !has_timeline_metadata && video_inputs.len() == 1
+    let can_direct_single_pass = !has_timeline_metadata
+        && video_inputs.len() == 1
         && !media_fill
         && (media_scale - 100.0).abs() < f64::EPSILON
         && media_position_x.abs() < f64::EPSILON

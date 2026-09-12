@@ -14,6 +14,7 @@ import { getRenderedLineCount } from '$lib/components/projectEditor/videoPreview
 import QPCFontProvider from '$lib/services/FontProvider';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 import RiwayahProvider from '$lib/services/RiwayahProvider';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 vi.mock('$lib/components/projectEditor/tabs/styleEditor/ReciterName.svelte', async () => ({
 	default: (await import('../../../../stubs/EmptyComponent.svelte')).default
@@ -742,6 +743,61 @@ describe('Video overlay subtitle preview', () => {
 		expect(getArabicVerseNumberSpans(component.container)[0]).toBeTruthy();
 	});
 
+	test('resizes the arabic subtitle width and max height from its preview borders', async () => {
+		const fixture = setupVideoOverlayFixture(
+			[createVerseSubtitle(0, 999, 'Arabic', 'Translation')],
+			{ cursorPosition: 500 }
+		);
+		const beginHistory = vi.spyOn(ProjectHistoryManager, 'begin');
+		const commitHistory = vi.spyOn(ProjectHistoryManager, 'commit');
+		const component = render(VideoOverlay);
+		const overlay = component.container.querySelector('#overlay') as HTMLElement;
+		overlay.style.width = '1000px';
+		overlay.style.height = '600px';
+		await settleOverlay();
+
+		const handle = component.container.querySelector(
+			'.arabic.subtitle .subtitle-resize-edge-left'
+		) as HTMLElement;
+		const subtitlesContainer = getSubtitlesContainer(component.container)!;
+		handle.setPointerCapture = vi.fn();
+		handle.hasPointerCapture = vi.fn(() => false);
+		handle.dispatchEvent(
+			new PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: 100, pointerId: 1 })
+		);
+		handle.dispatchEvent(
+			new PointerEvent('pointermove', { bubbles: true, clientX: 50, pointerId: 1 })
+		);
+		expect(subtitlesContainer.dataset.resizingTarget).toBe('arabic');
+		await tick();
+		expect(subtitlesContainer.style.opacity).toBe('1');
+		handle.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+		expect(subtitlesContainer.dataset.resizingTarget).toBeUndefined();
+
+		expect(fixture.videoStyle.getStylesOfTarget('arabic').findStyle('width').value).toBe(90);
+
+		const arabicNode = getForegroundArabicNode(component.container)!;
+		const initialRenderedHeight = arabicNode.offsetHeight;
+		const heightHandle = component.container.querySelector(
+			'.arabic.subtitle .subtitle-resize-edge-top'
+		) as HTMLElement;
+		heightHandle.setPointerCapture = vi.fn();
+		heightHandle.hasPointerCapture = vi.fn(() => false);
+		heightHandle.dispatchEvent(
+			new PointerEvent('pointerdown', { bubbles: true, button: 0, clientY: 100, pointerId: 2 })
+		);
+		heightHandle.dispatchEvent(
+			new PointerEvent('pointermove', { bubbles: true, clientY: 75, pointerId: 2 })
+		);
+		heightHandle.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 2 }));
+
+		expect(fixture.videoStyle.getStylesOfTarget('arabic').findStyle('max-height').value).toBe(
+			Math.min(800, Math.max(1, initialRenderedHeight + 50))
+		);
+		expect(beginHistory).toHaveBeenCalledTimes(2);
+		expect(beginHistory).toHaveBeenCalledWith('resize subtitle');
+		expect(commitHistory).toHaveBeenCalledTimes(2);
+	});
 	test('keeps QPC2 verse-number fonts when merged verses stay on the same page', async () => {
 		seedQpc2PreviewFixture();
 		const firstClip = createLastWordsQpcSubtitle(0, 999, 1, 1, 0, 3);

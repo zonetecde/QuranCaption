@@ -96,15 +96,21 @@ function hasReactiveFontSizeViolation(
 	marge: number
 ): boolean {
 	const hasMaxLineLimit = maxLineValue >= 1 && maxLineValue <= 4;
+	const layoutMeasurementClass = 'subtitle-layout-measurement';
+	for (const subtitle of subtitles) subtitle.classList.add(layoutMeasurementClass);
 
-	return subtitles.some((subtitle) => {
-		const element = subtitle as HTMLElement;
-		return (
-			element.scrollWidth > element.clientWidth + 1 ||
-			(maxHeightValue > 0 && subtitle.scrollHeight > maxHeightValue + marge) ||
-			(hasMaxLineLimit && getReactiveFontSizeLineCount(subtitle, target) > maxLineValue)
-		);
-	});
+	try {
+		return subtitles.some((subtitle) => {
+			const element = subtitle as HTMLElement;
+			return (
+				element.scrollWidth > element.clientWidth + 1 ||
+				(maxHeightValue > 0 && subtitle.scrollHeight > maxHeightValue + marge) ||
+				(hasMaxLineLimit && getReactiveFontSizeLineCount(subtitle, target) > maxLineValue)
+			);
+		});
+	} finally {
+		for (const subtitle of subtitles) subtitle.classList.remove(layoutMeasurementClass);
+	}
 }
 
 /**

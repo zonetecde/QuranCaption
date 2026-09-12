@@ -9,7 +9,10 @@ use crate::{
     binaries,
     commands::auth::hugging_face_cloud_token,
     path_utils,
-    utils::{process::configure_command_no_window, temp_file::TempFileGuard},
+    utils::{
+        process::configure_command_no_window,
+        temp_file::{unique_temp_path, TempFileGuard},
+    },
 };
 use bytes::Bytes;
 use futures_util::{stream, StreamExt};
@@ -17,12 +20,7 @@ use reqwest::{
     multipart::{Form, Part},
     Client, Response,
 };
-use std::{
-    cmp::min,
-    fs,
-    process::Command,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
+use std::{cmp::min, fs, process::Command, time::Duration};
 use tauri::Emitter;
 
 fn emit_status(app: &tauri::AppHandle, step: &str, progress: Option<f64>) {
@@ -242,11 +240,7 @@ fn prepared_alignment_part(
             source.to_string_lossy()
         ));
     }
-    let stamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|e| e.to_string())?
-        .as_nanos();
-    let path = std::env::temp_dir().join(format!("qurancaption-seg-{}.ogg", stamp));
+    let path = unique_temp_path("qurancaption-seg", "ogg")?;
     let _guard = TempFileGuard(path.clone());
     let mut cmd = Command::new(ffmpeg);
     cmd.args(["-y", "-hide_banner", "-loglevel", "error", "-i"])
@@ -339,11 +333,7 @@ fn prepared_audio(
             source.to_string_lossy()
         ));
     }
-    let stamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|e| e.to_string())?
-        .as_millis();
-    let output_path = std::env::temp_dir().join(format!("qurancaption-mfa-{}.wav", stamp));
+    let output_path = unique_temp_path("qurancaption-mfa", "wav")?;
     let guard = TempFileGuard(output_path.clone());
     let window = match (window_start_ms, window_end_ms) {
         (Some(a), Some(b)) if b > a && a >= 0 => Some((a, b)),

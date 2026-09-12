@@ -13,6 +13,16 @@
 		{ className: 'subtitle-resize-edge-bottom', direction: { x: 0, y: 1 } },
 		{ className: 'subtitle-resize-edge-left', direction: { x: -1, y: 0 } }
 	];
+	const resizeHandles: Array<{ className: string; direction: ResizeDirection }> = [
+		{ className: 'subtitle-resize-top-left', direction: { x: -1, y: -1 } },
+		{ className: 'subtitle-resize-top', direction: { x: 0, y: -1 } },
+		{ className: 'subtitle-resize-top-right', direction: { x: 1, y: -1 } },
+		{ className: 'subtitle-resize-right', direction: { x: 1, y: 0 } },
+		{ className: 'subtitle-resize-bottom-right', direction: { x: 1, y: 1 } },
+		{ className: 'subtitle-resize-bottom', direction: { x: 0, y: 1 } },
+		{ className: 'subtitle-resize-bottom-left', direction: { x: -1, y: 1 } },
+		{ className: 'subtitle-resize-left', direction: { x: -1, y: 0 } }
+	];
 
 	let { target }: { target: string } = $props();
 
@@ -141,30 +151,16 @@
 			onpointercancel={finishResize}
 		></span>
 	{/each}
-	<span
-		class="subtitle-resize-handle subtitle-resize-width"
-		onmousedown={(event) => event.stopPropagation()}
-		onpointerdown={(event) => startResize(event, { x: 1, y: 0 })}
-		onpointermove={resize}
-		onpointerup={finishResize}
-		onpointercancel={finishResize}
-	></span>
-	<span
-		class="subtitle-resize-handle subtitle-resize-height"
-		onmousedown={(event) => event.stopPropagation()}
-		onpointerdown={(event) => startResize(event, { x: 0, y: 1 })}
-		onpointermove={resize}
-		onpointerup={finishResize}
-		onpointercancel={finishResize}
-	></span>
-	<span
-		class="subtitle-resize-handle subtitle-resize-both"
-		onmousedown={(event) => event.stopPropagation()}
-		onpointerdown={(event) => startResize(event, { x: 1, y: 1 })}
-		onpointermove={resize}
-		onpointerup={finishResize}
-		onpointercancel={finishResize}
-	></span>
+	{#each resizeHandles as handle (handle.className)}
+		<span
+			class="subtitle-resize-handle {handle.className}"
+			onmousedown={(event) => event.stopPropagation()}
+			onpointerdown={(event) => startResize(event, handle.direction)}
+			onpointermove={resize}
+			onpointerup={finishResize}
+			onpointercancel={finishResize}
+		></span>
+	{/each}
 </span>
 
 <style>
@@ -183,12 +179,19 @@
 		visibility: visible;
 	}
 
+	:global(.subtitle.subtitle-layout-measurement) .subtitle-resize-frame {
+		display: none;
+	}
+
 	.subtitle-resize-handle {
 		position: absolute;
 		width: 28px;
 		height: 28px;
+		z-index: 1;
+		border: 4px solid var(--accent-primary);
 		border-radius: 999px;
-		background: transparent;
+		background: white;
+		box-shadow: 0 0 8px rgb(0 0 0 / 35%);
 		pointer-events: auto;
 		touch-action: none;
 	}
@@ -231,35 +234,81 @@
 		left: 0;
 	}
 
-	.subtitle-resize-width {
-		top: 50%;
-		right: 0;
-		cursor: ew-resize;
-		transform: translateY(-50%);
-		box-shadow:
-			14px 0 0 white,
-			14px 0 0 4px var(--accent-primary),
-			14px 0 8px 6px rgb(0 0 0 / 35%);
-	}
-
-	.subtitle-resize-height {
-		bottom: 0;
+	.subtitle-resize-top,
+	.subtitle-resize-bottom {
 		left: 50%;
 		cursor: ns-resize;
-		transform: translateX(-50%);
-		box-shadow:
-			0 14px 0 white,
-			0 14px 0 4px var(--accent-primary),
-			0 14px 8px 6px rgb(0 0 0 / 35%);
 	}
 
-	.subtitle-resize-both {
+	.subtitle-resize-right,
+	.subtitle-resize-left {
+		top: 50%;
+		cursor: ew-resize;
+	}
+
+	.subtitle-resize-top,
+	.subtitle-resize-top-left,
+	.subtitle-resize-top-right {
+		top: 0;
+	}
+
+	.subtitle-resize-right,
+	.subtitle-resize-top-right,
+	.subtitle-resize-bottom-right {
 		right: 0;
+	}
+
+	.subtitle-resize-bottom,
+	.subtitle-resize-bottom-left,
+	.subtitle-resize-bottom-right {
 		bottom: 0;
+	}
+
+	.subtitle-resize-left,
+	.subtitle-resize-top-left,
+	.subtitle-resize-bottom-left {
+		left: 0;
+	}
+
+	.subtitle-resize-top {
+		transform: translate(-50%, -50%);
+	}
+
+	.subtitle-resize-right {
+		transform: translate(50%, -50%);
+	}
+
+	.subtitle-resize-bottom {
+		transform: translate(-50%, 50%);
+	}
+
+	.subtitle-resize-left {
+		transform: translate(-50%, -50%);
+	}
+
+	.subtitle-resize-top-left,
+	.subtitle-resize-bottom-right {
 		cursor: nwse-resize;
-		box-shadow:
-			14px 14px 0 white,
-			14px 14px 0 4px var(--accent-primary),
-			14px 14px 8px 6px rgb(0 0 0 / 35%);
+	}
+
+	.subtitle-resize-top-left {
+		transform: translate(-50%, -50%);
+	}
+
+	.subtitle-resize-bottom-right {
+		transform: translate(50%, 50%);
+	}
+
+	.subtitle-resize-top-right,
+	.subtitle-resize-bottom-left {
+		cursor: nesw-resize;
+	}
+
+	.subtitle-resize-top-right {
+		transform: translate(50%, -50%);
+	}
+
+	.subtitle-resize-bottom-left {
+		transform: translate(-50%, 50%);
 	}
 </style>

@@ -382,12 +382,14 @@
 				<div
 					class="changelog-prose prose prose-sm max-w-none h-full bg-accent px-4 rounded-lg overflow-auto border border-color"
 				>
-					<iframe
-						title={$LL.home.updateChangelog()}
-						class="h-full w-full rounded-lg"
-						srcdoc={changelogSrcdoc}
-						sandbox="allow-popups allow-popups-to-escape-sandbox"
-					></iframe>
+					{#key changelogSrcdoc}
+						<iframe
+							title={$LL.home.updateChangelog()}
+							class="h-full w-full rounded-lg"
+							srcdoc={changelogSrcdoc}
+							sandbox="allow-popups allow-popups-to-escape-sandbox"
+						></iframe>
+					{/key}
 				</div>
 			</div>
 		{/if}

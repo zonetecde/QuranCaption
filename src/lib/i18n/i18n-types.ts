@@ -8222,7 +8222,7 @@ type RootTranslation = {
 		 */
 		huggingFaceInvalidToken: string;
 		/**
-		 * C​o​n​n​e​c​t​ ​a​c​c​o​u​n​t
+		 * A​d​d​ ​t​o​k​e​n
 		 */
 		huggingFaceConnect: string;
 		/**
@@ -20030,7 +20030,7 @@ export type TranslationFunctions = {
 		 */
 		huggingFaceInvalidToken: () => LocalizedString;
 		/**
-		 * Connect account
+		 * Add token
 		 */
 		huggingFaceConnect: () => LocalizedString;
 		/**

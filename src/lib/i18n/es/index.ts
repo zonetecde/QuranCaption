@@ -2587,7 +2587,7 @@ const es = {
 		huggingFaceConnectedBadge: 'HF conectado',
 		huggingFaceConfigureBadge: 'Añadir token HF',
 		huggingFaceInvalidToken: 'Este token no es válido o ha sido revocado.',
-		huggingFaceConnect: 'Conectar cuenta',
+		huggingFaceConnect: 'Añadir token',
 		huggingFaceDisconnect: 'Desconectar',
 		huggingFaceCreateToken: 'Crear un token gratuito',
 		huggingFaceTokenGuide: 'Cómo crear un token',

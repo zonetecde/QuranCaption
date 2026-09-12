@@ -19,7 +19,7 @@ const settings = {
 	huggingFaceConnectedBadge: 'HF connected',
 	huggingFaceConfigureBadge: 'Add HF token',
 	huggingFaceInvalidToken: 'This token is invalid or has been revoked.',
-	huggingFaceConnect: 'Connect account',
+	huggingFaceConnect: 'Add token',
 	huggingFaceDisconnect: 'Disconnect',
 	huggingFaceCreateToken: 'Create a free token',
 	huggingFaceTokenGuide: 'How to create a token',

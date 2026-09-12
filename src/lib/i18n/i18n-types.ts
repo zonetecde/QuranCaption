@@ -2713,6 +2713,46 @@ type RootTranslation = {
 		 */
 		chooseModelAndPerformanceDesc: string;
 		/**
+		 * A​l​i​g​n​m​e​n​t
+		 */
+		alignmentSettings: string;
+		/**
+		 * C​h​o​o​s​e​ ​r​e​c​o​g​n​i​t​i​o​n​,​ ​Q​u​r​a​n​ ​r​e​a​d​i​n​g​,​ ​a​n​d​ ​s​e​g​m​e​n​t​ ​b​o​u​n​d​a​r​i​e​s​.
+		 */
+		alignmentSettingsDesc: string;
+		/**
+		 * S​e​g​m​e​n​t​ ​b​o​u​n​d​a​r​i​e​s
+		 */
+		segmentBoundaries: string;
+		/**
+		 * S​t​a​r​t​ ​e​a​r​l​i​e​r
+		 */
+		startEarlier: string;
+		/**
+		 * E​n​d​ ​l​a​t​e​r
+		 */
+		endLater: string;
+		/**
+		 * T​i​m​e​l​i​n​e
+		 */
+		timelineBehavior: string;
+		/**
+		 * C​h​o​o​s​e​ ​h​o​w​ ​a​l​i​g​n​e​d​ ​r​e​s​u​l​t​s​ ​a​r​e​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​t​i​m​e​l​i​n​e​.
+		 */
+		timelineBehaviorDesc: string;
+		/**
+		 * K​e​e​p​ ​s​i​l​e​n​t​ ​g​a​p​s
+		 */
+		keepSilentGaps: string;
+		/**
+		 * K​e​e​p​ ​s​u​b​t​i​t​l​e​s​ ​v​i​s​i​b​l​e​ ​b​e​t​w​e​e​n​ ​s​e​g​m​e​n​t​s
+		 */
+		keepSubtitlesVisible: string;
+		/**
+		 * E​x​t​e​n​d​ ​t​h​e​ ​p​r​e​v​i​o​u​s​ ​s​u​b​t​i​t​l​e​ ​i​n​t​o​ ​s​i​l​e​n​c​e​ ​b​y
+		 */
+		extendIntoSilence: string;
+		/**
 		 * M​o​d​e​l
 		 */
 		modelLabel: string;
@@ -2825,7 +2865,7 @@ type RootTranslation = {
 		 */
 		cloudMethodDescription: string;
 		/**
-		 * H​u​g​g​i​n​g​ ​F​a​c​e​ ​t​o​k​e​n
+		 * L​o​c​a​l​ ​m​o​d​e​l​ ​d​o​w​n​l​o​a​d​ ​t​o​k​e​n
 		 */
 		huggingFaceTokenLabel: string;
 		/**
@@ -3008,6 +3048,52 @@ type RootTranslation = {
 		 * A​u​t​o​-​S​e​g​m​e​n​t​a​t​i​o​n​ ​W​i​z​a​r​d
 		 */
 		autoSegmentationWizard: string;
+		alignmentStage: {
+			/**
+			 * P​r​e​p​a​r​i​n​g​ ​a​u​d​i​o
+			 */
+			preparing: string;
+			/**
+			 * U​p​l​o​a​d​i​n​g​ ​a​u​d​i​o
+			 */
+			uploading: string;
+			/**
+			 * U​p​l​o​a​d​ ​c​o​m​p​l​e​t​e
+			 */
+			uploaded: string;
+			/**
+			 * W​a​i​t​i​n​g​ ​f​o​r​ ​G​P​U
+			 */
+			queued_gpu: string;
+			/**
+			 * W​a​i​t​i​n​g​ ​f​o​r​ ​C​P​U
+			 */
+			queued_cpu: string;
+			/**
+			 * F​i​n​d​i​n​g​ ​r​e​c​i​t​a​t​i​o​n​ ​b​o​u​n​d​a​r​i​e​s
+			 */
+			segmenting: string;
+			/**
+			 * T​r​a​n​s​c​r​i​b​i​n​g​ ​r​e​c​i​t​a​t​i​o​n
+			 */
+			transcribing: string;
+			/**
+			 * M​a​t​c​h​i​n​g​ ​Q​u​r​a​n​ ​v​e​r​s​e​s
+			 */
+			matching: string;
+			/**
+			 * B​u​i​l​d​i​n​g​ ​r​e​s​u​l​t​s
+			 */
+			building: string;
+			/**
+			 * C​r​e​a​t​i​n​g​ ​o​n​e​ ​s​u​b​t​i​t​l​e​ ​p​e​r​ ​v​e​r​s​e
+			 */
+			splitting: string;
+			/**
+			 * P​r​o​c​e​s​s​i​n​g​ ​a​u​d​i​o
+			 */
+			processing: string;
+		};
 		/**
 		 * G​u​i​d​e​d​ ​s​e​t​u​p​ ​t​o​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​a​d​d​ ​s​u​b​t​i​t​l​e​s​ ​t​o​ ​y​o​u​r​ ​v​i​d​e​o
 		 */
@@ -7983,6 +8069,58 @@ type RootTranslation = {
 		 */
 		apiKeys: string;
 		/**
+		 * H​u​g​g​i​n​g​ ​F​a​c​e​ ​a​c​c​o​u​n​t
+		 */
+		huggingFaceAccount: string;
+		/**
+		 * P​r​o​v​i​d​e​ ​a​ ​t​o​k​e​n​ ​f​r​o​m​ ​y​o​u​r​ ​f​r​e​e​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​a​c​c​o​u​n​t​ ​f​o​r​ ​i​n​c​r​e​a​s​e​d​ ​d​a​i​l​y​ ​G​P​U​ ​q​u​o​t​a​.
+		 */
+		huggingFaceQuotaDescription: string;
+		/**
+		 * h​f​_​.​.​.
+		 */
+		huggingFaceTokenPlaceholder: string;
+		/**
+		 * T​o​k​e​n​ ​c​o​n​f​i​g​u​r​e​d
+		 */
+		huggingFaceConfigured: string;
+		/**
+		 * T​o​k​e​n​ ​n​o​t​ ​c​o​n​f​i​g​u​r​e​d
+		 */
+		huggingFaceNotConfigured: string;
+		/**
+		 * H​F​ ​c​o​n​n​e​c​t​e​d
+		 */
+		huggingFaceConnectedBadge: string;
+		/**
+		 * A​d​d​ ​H​F​ ​t​o​k​e​n
+		 */
+		huggingFaceConfigureBadge: string;
+		/**
+		 * T​h​i​s​ ​t​o​k​e​n​ ​i​s​ ​i​n​v​a​l​i​d​ ​o​r​ ​h​a​s​ ​b​e​e​n​ ​r​e​v​o​k​e​d​.
+		 */
+		huggingFaceInvalidToken: string;
+		/**
+		 * C​o​n​n​e​c​t​ ​a​c​c​o​u​n​t
+		 */
+		huggingFaceConnect: string;
+		/**
+		 * D​i​s​c​o​n​n​e​c​t
+		 */
+		huggingFaceDisconnect: string;
+		/**
+		 * C​r​e​a​t​e​ ​a​ ​f​r​e​e​ ​t​o​k​e​n
+		 */
+		huggingFaceCreateToken: string;
+		/**
+		 * H​o​w​ ​t​o​ ​c​r​e​a​t​e​ ​a​ ​t​o​k​e​n
+		 */
+		huggingFaceTokenGuide: string;
+		/**
+		 * C​o​u​l​d​ ​n​o​t​ ​c​h​e​c​k​ ​t​h​e​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​a​c​c​o​u​n​t​.
+		 */
+		huggingFaceValidationFailed: string;
+		/**
 		 * S​t​o​c​k​ ​M​e​d​i​a
 		 */
 		stockMedia: string;
@@ -11101,10 +11239,21 @@ type RootTranslation = {
 		 */
 		notApplicable: string;
 		/**
-		 * W​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​:​ ​{​v​a​l​u​e​}
+		 * K​e​e​p​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​:​ ​{​v​a​l​u​e​}
 		 * @param {unknown} value
 		 */
 		segmentationWbw: RequiredParams<'value'>;
+		/**
+		 * R​i​w​a​y​a​h​:​ ​{​v​a​l​u​e​}
+		 * @param {unknown} value
+		 */
+		segmentationRiwayah: RequiredParams<'value'>;
+		/**
+		 * P​a​d​d​i​n​g​:​ ​{​l​e​f​t​}​ ​m​s​ ​b​e​f​o​r​e​ ​·​ ​{​r​i​g​h​t​}​ ​m​s​ ​a​f​t​e​r
+		 * @param {unknown} left
+		 * @param {unknown} right
+		 */
+		segmentationPaddingSides: RequiredParams<'left' | 'right'>;
 		/**
 		 * E​n​a​b​l​e​d
 		 */
@@ -11145,13 +11294,80 @@ type RootTranslation = {
 		 */
 		segmentationSequential: string;
 		/**
-		 * C​l​o​u​d​ ​r​e​q​u​e​s​t​s​ ​s​t​a​r​t​ ​a​t​ ​l​e​a​s​t​ ​t​w​o​ ​m​i​n​u​t​e​s​ ​a​p​a​r​t​.
+		 * C​h​a​p​t​e​r​s​ ​m​o​v​e​ ​i​n​d​e​p​e​n​d​e​n​t​l​y​ ​t​h​r​o​u​g​h​ ​a​l​i​g​n​m​e​n​t​ ​a​n​d​ ​t​i​m​i​n​g​ ​q​u​e​u​e​s​.
 		 */
 		segmentationCloudSpacing: string;
 		/**
-		 * W​a​i​t​i​n​g​ ​2​ ​m​i​n​u​t​e​s​ ​b​e​f​o​r​e​ ​t​h​e​ ​n​e​x​t​ ​c​l​o​u​d​ ​r​e​q​u​e​s​t
+		 * W​a​i​t​i​n​g​ ​f​o​r​ ​a​n​ ​a​v​a​i​l​a​b​l​e​ ​b​a​t​c​h​ ​s​l​o​t
 		 */
 		segmentationWaitingNextCloudRequest: string;
+		/**
+		 * P​r​e​p​a​r​i​n​g​ ​a​u​d​i​o
+		 */
+		segmentationStagePreparing: string;
+		/**
+		 * U​p​l​o​a​d​i​n​g​ ​a​u​d​i​o
+		 */
+		segmentationStageUploading: string;
+		/**
+		 * W​a​i​t​i​n​g​ ​t​o​ ​a​l​i​g​n
+		 */
+		segmentationStageQueuedAlignment: string;
+		/**
+		 * W​a​i​t​i​n​g​ ​f​o​r​ ​G​P​U
+		 */
+		segmentationStageQueuedGpu: string;
+		/**
+		 * W​a​i​t​i​n​g​ ​f​o​r​ ​a​ ​C​P​U​ ​w​o​r​k​e​r
+		 */
+		segmentationStageQueuedCpu: string;
+		/**
+		 * D​e​t​e​c​t​i​n​g​ ​r​e​c​i​t​a​t​i​o​n​ ​b​o​u​n​d​a​r​i​e​s
+		 */
+		segmentationStageSegmenting: string;
+		/**
+		 * R​e​c​o​g​n​i​z​i​n​g​ ​r​e​c​i​t​a​t​i​o​n
+		 */
+		segmentationStageTranscribing: string;
+		/**
+		 * M​a​t​c​h​i​n​g​ ​Q​u​r​a​n​ ​t​e​x​t
+		 */
+		segmentationStageMatching: string;
+		/**
+		 * B​u​i​l​d​i​n​g​ ​a​l​i​g​n​m​e​n​t​ ​r​e​s​u​l​t​s
+		 */
+		segmentationStageBuilding: string;
+		/**
+		 * A​l​i​g​n​m​e​n​t​ ​c​o​m​p​l​e​t​e
+		 */
+		segmentationStageAlignmentComplete: string;
+		/**
+		 * A​l​i​g​n​e​d​,​ ​w​a​i​t​i​n​g​ ​f​o​r​ ​t​i​m​i​n​g
+		 */
+		segmentationStageQueuedTiming: string;
+		/**
+		 * T​i​m​i​n​g​ ​w​o​r​d​s
+		 */
+		segmentationStageTiming: string;
+		/**
+		 * S​p​l​i​t​t​i​n​g​ ​s​u​b​t​i​t​l​e​s
+		 */
+		segmentationStageSplitting: string;
+		/**
+		 * {​c​o​u​n​t​}​ ​a​l​i​g​n​i​n​g
+		 * @param {unknown} count
+		 */
+		segmentationPipelineAligning: RequiredParams<'count'>;
+		/**
+		 * {​c​o​u​n​t​}​ ​t​i​m​i​n​g
+		 * @param {unknown} count
+		 */
+		segmentationPipelineTiming: RequiredParams<'count'>;
+		/**
+		 * {​c​o​u​n​t​}​ ​w​a​i​t​i​n​g​ ​f​o​r​ ​t​i​m​i​n​g
+		 * @param {unknown} count
+		 */
+		segmentationPipelineWaitingTiming: RequiredParams<'count'>;
 		/**
 		 * B​a​t​c​h​ ​r​e​q​u​i​r​e​s​ ​a​ ​c​l​o​u​d​ ​o​r​ ​l​o​c​a​l​ ​e​n​g​i​n​e​;​ ​H​F​ ​J​S​O​N​ ​i​s​ ​u​n​a​v​a​i​l​a​b​l​e​.
 		 */
@@ -14285,6 +14501,46 @@ export type TranslationFunctions = {
 		 */
 		chooseModelAndPerformanceDesc: () => LocalizedString;
 		/**
+		 * Alignment
+		 */
+		alignmentSettings: () => LocalizedString;
+		/**
+		 * Choose recognition, Quran reading, and segment boundaries.
+		 */
+		alignmentSettingsDesc: () => LocalizedString;
+		/**
+		 * Segment boundaries
+		 */
+		segmentBoundaries: () => LocalizedString;
+		/**
+		 * Start earlier
+		 */
+		startEarlier: () => LocalizedString;
+		/**
+		 * End later
+		 */
+		endLater: () => LocalizedString;
+		/**
+		 * Timeline
+		 */
+		timelineBehavior: () => LocalizedString;
+		/**
+		 * Choose how aligned results are added to the timeline.
+		 */
+		timelineBehaviorDesc: () => LocalizedString;
+		/**
+		 * Keep silent gaps
+		 */
+		keepSilentGaps: () => LocalizedString;
+		/**
+		 * Keep subtitles visible between segments
+		 */
+		keepSubtitlesVisible: () => LocalizedString;
+		/**
+		 * Extend the previous subtitle into silence by
+		 */
+		extendIntoSilence: () => LocalizedString;
+		/**
 		 * Model
 		 */
 		modelLabel: () => LocalizedString;
@@ -14397,7 +14653,7 @@ export type TranslationFunctions = {
 		 */
 		cloudMethodDescription: () => LocalizedString;
 		/**
-		 * Hugging Face token
+		 * Local model download token
 		 */
 		huggingFaceTokenLabel: () => LocalizedString;
 		/**
@@ -14580,6 +14836,52 @@ export type TranslationFunctions = {
 		 * Auto-Segmentation Wizard
 		 */
 		autoSegmentationWizard: () => LocalizedString;
+		alignmentStage: {
+			/**
+			 * Preparing audio
+			 */
+			preparing: () => LocalizedString;
+			/**
+			 * Uploading audio
+			 */
+			uploading: () => LocalizedString;
+			/**
+			 * Upload complete
+			 */
+			uploaded: () => LocalizedString;
+			/**
+			 * Waiting for GPU
+			 */
+			queued_gpu: () => LocalizedString;
+			/**
+			 * Waiting for CPU
+			 */
+			queued_cpu: () => LocalizedString;
+			/**
+			 * Finding recitation boundaries
+			 */
+			segmenting: () => LocalizedString;
+			/**
+			 * Transcribing recitation
+			 */
+			transcribing: () => LocalizedString;
+			/**
+			 * Matching Quran verses
+			 */
+			matching: () => LocalizedString;
+			/**
+			 * Building results
+			 */
+			building: () => LocalizedString;
+			/**
+			 * Creating one subtitle per verse
+			 */
+			splitting: () => LocalizedString;
+			/**
+			 * Processing audio
+			 */
+			processing: () => LocalizedString;
+		};
 		/**
 		 * Guided setup to automatically add subtitles to your video
 		 */
@@ -19489,6 +19791,58 @@ export type TranslationFunctions = {
 		 */
 		apiKeys: () => LocalizedString;
 		/**
+		 * Hugging Face account
+		 */
+		huggingFaceAccount: () => LocalizedString;
+		/**
+		 * Provide a token from your free Hugging Face account for increased daily GPU quota.
+		 */
+		huggingFaceQuotaDescription: () => LocalizedString;
+		/**
+		 * hf_...
+		 */
+		huggingFaceTokenPlaceholder: () => LocalizedString;
+		/**
+		 * Token configured
+		 */
+		huggingFaceConfigured: () => LocalizedString;
+		/**
+		 * Token not configured
+		 */
+		huggingFaceNotConfigured: () => LocalizedString;
+		/**
+		 * HF connected
+		 */
+		huggingFaceConnectedBadge: () => LocalizedString;
+		/**
+		 * Add HF token
+		 */
+		huggingFaceConfigureBadge: () => LocalizedString;
+		/**
+		 * This token is invalid or has been revoked.
+		 */
+		huggingFaceInvalidToken: () => LocalizedString;
+		/**
+		 * Connect account
+		 */
+		huggingFaceConnect: () => LocalizedString;
+		/**
+		 * Disconnect
+		 */
+		huggingFaceDisconnect: () => LocalizedString;
+		/**
+		 * Create a free token
+		 */
+		huggingFaceCreateToken: () => LocalizedString;
+		/**
+		 * How to create a token
+		 */
+		huggingFaceTokenGuide: () => LocalizedString;
+		/**
+		 * Could not check the Hugging Face account.
+		 */
+		huggingFaceValidationFailed: () => LocalizedString;
+		/**
 		 * Stock Media
 		 */
 		stockMedia: () => LocalizedString;
@@ -22552,9 +22906,17 @@ export type TranslationFunctions = {
 		 */
 		notApplicable: () => LocalizedString;
 		/**
-		 * Word-by-word timestamps: {value}
+		 * Keep word-by-word timestamps: {value}
 		 */
 		segmentationWbw: (arg: { value: unknown }) => LocalizedString;
+		/**
+		 * Riwayah: {value}
+		 */
+		segmentationRiwayah: (arg: { value: unknown }) => LocalizedString;
+		/**
+		 * Padding: {left} ms before · {right} ms after
+		 */
+		segmentationPaddingSides: (arg: { left: unknown; right: unknown }) => LocalizedString;
 		/**
 		 * Enabled
 		 */
@@ -22592,13 +22954,77 @@ export type TranslationFunctions = {
 		 */
 		segmentationSequential: () => LocalizedString;
 		/**
-		 * Cloud requests start at least two minutes apart.
+		 * Chapters move independently through alignment and timing queues.
 		 */
 		segmentationCloudSpacing: () => LocalizedString;
 		/**
-		 * Waiting 2 minutes before the next cloud request
+		 * Waiting for an available batch slot
 		 */
 		segmentationWaitingNextCloudRequest: () => LocalizedString;
+		/**
+		 * Preparing audio
+		 */
+		segmentationStagePreparing: () => LocalizedString;
+		/**
+		 * Uploading audio
+		 */
+		segmentationStageUploading: () => LocalizedString;
+		/**
+		 * Waiting to align
+		 */
+		segmentationStageQueuedAlignment: () => LocalizedString;
+		/**
+		 * Waiting for GPU
+		 */
+		segmentationStageQueuedGpu: () => LocalizedString;
+		/**
+		 * Waiting for a CPU worker
+		 */
+		segmentationStageQueuedCpu: () => LocalizedString;
+		/**
+		 * Detecting recitation boundaries
+		 */
+		segmentationStageSegmenting: () => LocalizedString;
+		/**
+		 * Recognizing recitation
+		 */
+		segmentationStageTranscribing: () => LocalizedString;
+		/**
+		 * Matching Quran text
+		 */
+		segmentationStageMatching: () => LocalizedString;
+		/**
+		 * Building alignment results
+		 */
+		segmentationStageBuilding: () => LocalizedString;
+		/**
+		 * Alignment complete
+		 */
+		segmentationStageAlignmentComplete: () => LocalizedString;
+		/**
+		 * Aligned, waiting for timing
+		 */
+		segmentationStageQueuedTiming: () => LocalizedString;
+		/**
+		 * Timing words
+		 */
+		segmentationStageTiming: () => LocalizedString;
+		/**
+		 * Splitting subtitles
+		 */
+		segmentationStageSplitting: () => LocalizedString;
+		/**
+		 * {count} aligning
+		 */
+		segmentationPipelineAligning: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * {count} timing
+		 */
+		segmentationPipelineTiming: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * {count} waiting for timing
+		 */
+		segmentationPipelineWaitingTiming: (arg: { count: unknown }) => LocalizedString;
 		/**
 		 * Batch requires a cloud or local engine; HF JSON is unavailable.
 		 */

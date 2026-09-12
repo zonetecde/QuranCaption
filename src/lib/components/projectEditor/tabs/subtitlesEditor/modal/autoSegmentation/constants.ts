@@ -21,9 +21,8 @@ export const WIZARD_STEPS_V2: WizardStep[] = [
 /** Ordered steps for the cloud multi-aligner path. */
 export const WIZARD_STEPS_CLOUD_V2: WizardStep[] = [
 	{ key: 'version', title: 'Method', subtitle: 'Choose your workflow', icon: 'auto_awesome' },
-	{ key: 'models', title: 'Model', subtitle: 'Quality and performance', icon: 'memory' },
-	{ key: 'settings', title: 'Settings', subtitle: 'Timing and behavior', icon: 'tune' },
-	{ key: 'review', title: 'Review', subtitle: 'Check and launch', icon: 'play_arrow' }
+	{ key: 'models', title: 'Alignment', subtitle: 'Recognition and boundaries', icon: 'memory' },
+	{ key: 'settings', title: 'Timeline', subtitle: 'Apply the results', icon: 'tune' }
 ];
 
 /** Ordered steps for the offline word-timing path. */
@@ -45,6 +44,7 @@ export function getWizardSteps(
 			: aiVersion === 'multi_v2'
 				? WIZARD_STEPS_CLOUD_V2
 				: WIZARD_STEPS_V2;
+	if (aiVersion === 'multi_v2') return baseSteps;
 	if (!showExistingSubtitlesStep) return baseSteps;
 
 	const reviewIndex = baseSteps.findIndex(({ key }) => key === 'review');

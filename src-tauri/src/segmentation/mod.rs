@@ -12,8 +12,9 @@ mod requirements;
 mod status;
 
 pub use cloud::{
-    estimate_duration, mfa_timestamps_direct, mfa_timestamps_session, preload_audio,
+    create_quran_alignment_batch, mfa_timestamps_direct, mfa_timestamps_session, preload_audio,
     preload_audio_recitations, preload_recitations, preload_segments, segment_quran_audio,
+    segment_quran_audio_batch, split_quran_alignment_session,
 };
 pub use hifz::{generate_hifz_audio, GeneratedHifzAudio};
 pub use install::install_local_segmentation_deps;

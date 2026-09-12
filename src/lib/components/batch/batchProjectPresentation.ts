@@ -99,7 +99,24 @@ export function getBatchSegmentationActivityLabel(
 	if (project.segmentation.status === 'queued' && activity === 'waiting') {
 		return batchMessage('segmentationWaitingNextCloudRequest');
 	}
-	if (project.segmentation.status === 'processing' && live?.message) return live.message;
+	if (project.segmentation.status === 'processing' && live?.message) {
+		const stageKeys: Record<string, string> = {
+			preparing: 'segmentationStagePreparing',
+			uploading: 'segmentationStageUploading',
+			queued_alignment: 'segmentationStageQueuedAlignment',
+			queued_gpu: 'segmentationStageQueuedGpu',
+			queued_cpu: 'segmentationStageQueuedCpu',
+			segmenting: 'segmentationStageSegmenting',
+			transcribing: 'segmentationStageTranscribing',
+			matching: 'segmentationStageMatching',
+			building: 'segmentationStageBuilding',
+			alignment_complete: 'segmentationStageAlignmentComplete',
+			queued_timing: 'segmentationStageQueuedTiming',
+			timing: 'segmentationStageTiming',
+			splitting: 'segmentationStageSplitting'
+		};
+		return batchMessage(stageKeys[live.message] ?? live.message);
+	}
 	if (project.segmentation.status === 'processing' && activity === 'applying') {
 		return batchMessage('segmentationApplying');
 	}

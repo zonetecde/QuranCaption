@@ -13,7 +13,12 @@
 	import DownloadButton from './DownloadButton.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import type { Project } from '$lib/classes';
-	import { applyPreloadSegmentsToProject } from '$lib/services/AutoSegmentation';
+	import {
+		applyPreloadSegmentsToProject,
+		applySegmentationRiwayahToProject,
+		normalizeSegmentationRiwayah,
+		type SegmentationRiwayah
+	} from '$lib/services/AutoSegmentation';
 	import { bytesToMb, downloadFileWithProgress } from '$lib/services/DownloadWithProgress';
 	import {
 		getAudioDownload,
@@ -223,6 +228,7 @@
 		fillBySilence: boolean;
 		extendBeforeSilence: boolean;
 		extendBeforeSilenceMs: number;
+		riwayah: SegmentationRiwayah | null;
 	};
 
 	/** Construit le résumé de fin (titre + taille téléchargée) pour la notification. */
@@ -267,6 +273,7 @@
 			{
 				quranicUniversalAudio: {
 					recitation: sel.slug,
+					riwayah: sel.riwayah,
 					surah: sel.surahId,
 					verseFrom: sel.from,
 					verseTo: sel.to
@@ -283,12 +290,15 @@
 		// bouton passe en état « Applying… » indéterminé.
 		if (globalState.currentProject?.detail.id === project.detail.id) {
 			ctx.setLabel('Applying segments to the timeline…');
-			await applyPreloadSegmentsToProject(payload, {
+			const result = await applyPreloadSegmentsToProject(payload, {
 				fillBySilence: sel.fillBySilence,
 				extendBeforeSilence: sel.extendBeforeSilence,
 				extendBeforeSilenceMs: sel.extendBeforeSilenceMs,
 				timeOffsetMs: window.timeOffsetMs
 			});
+			if (result?.status === 'completed' && sel.riwayah) {
+				await applySegmentationRiwayahToProject(project, sel.riwayah);
+			}
 		}
 
 		return downloadDone(sel.surahName, bytes, fromCache);
@@ -361,6 +371,7 @@
 			{
 				quranicUniversalAudio: {
 					recitation: sel.slug,
+					riwayah: sel.riwayah,
 					surah: sel.surahId
 				}
 			},
@@ -390,6 +401,7 @@
 			from: ayahFrom,
 			to: ayahTo,
 			max: maxAyah,
+			riwayah: normalizeSegmentationRiwayah(selectedRecitation?.riwayah),
 			fillBySilence,
 			extendBeforeSilence,
 			extendBeforeSilenceMs

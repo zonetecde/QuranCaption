@@ -25,11 +25,14 @@ export type AutoSegmentationSettings = {
 	minSilenceMs: number;
 	minSpeechMs: number;
 	padMs: number;
+	padLeftMs?: number;
+	padRightMs?: number;
 	legacyWhisperModel: 'tiny' | 'base' | 'medium' | 'large';
 	multiAlignerModel: 'Base' | 'Large' | 'SurahSplitter-Base-Quran';
 	cloudModel: 'Base' | 'Large';
 	surahSplitterSurah: number | null;
 	device: 'GPU' | 'CPU';
+	riwayah?: 'hafs' | 'warsh' | 'qalun' | 'shuba';
 	hfToken: string;
 	includeWbwTimestamps: boolean;
 	fillBySilence: boolean; // Si true, insère des SilenceClip. Sinon, étend les sous-titres.
@@ -156,11 +159,14 @@ export default class Settings extends SerializableBase {
 		minSilenceMs: 200,
 		minSpeechMs: 1000,
 		padMs: 100,
+		padLeftMs: 100,
+		padRightMs: 200,
 		legacyWhisperModel: 'base',
 		multiAlignerModel: 'Base',
 		cloudModel: 'Base',
 		surahSplitterSurah: null,
 		device: 'GPU',
+		riwayah: 'hafs',
 		hfToken: '',
 		includeWbwTimestamps: false,
 		fillBySilence: true,
@@ -535,8 +541,7 @@ export default class Settings extends SerializableBase {
 		}
 
 		const projectEditorLayout = settings.persistentUiState.projectEditorLayout as
-			| Partial<ProjectEditorLayout>
-			| undefined;
+			Partial<ProjectEditorLayout> | undefined;
 		if (!projectEditorLayout || typeof projectEditorLayout !== 'object') {
 			settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
 			shouldSave = true;

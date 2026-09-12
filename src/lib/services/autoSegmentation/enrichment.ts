@@ -1,5 +1,10 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { RealignWindow, SegmentationResponse, SegmentationSegment } from './types';
+import type {
+	RealignWindow,
+	SegmentationResponse,
+	SegmentationRiwayah,
+	SegmentationSegment
+} from './types';
 import { getAutoSegmentationAudioInfo, getAutoSegmentationAudioClips } from './audio';
 import { normalizeMfaSegments } from './parsing';
 
@@ -32,7 +37,8 @@ export async function getSegmentationMfaTimestampsSession(
 export async function getSegmentationMfaTimestampsDirect(
 	segments: SegmentationSegment[],
 	window?: RealignWindow,
-	audioLaneIndex: number = 0
+	audioLaneIndex: number = 0,
+	riwayah?: SegmentationRiwayah
 ): Promise<SegmentationResponse> {
 	const audioInfo = getAutoSegmentationAudioInfo(undefined, audioLaneIndex);
 	const audioClips = getAutoSegmentationAudioClips(undefined, audioLaneIndex);
@@ -50,6 +56,7 @@ export async function getSegmentationMfaTimestampsDirect(
 		})),
 		segments,
 		granularity: 'words',
+		riwayah,
 		windowStartMs: window?.startMs,
 		windowEndMs: window?.endMs
 	})) as SegmentationResponse;
@@ -66,7 +73,8 @@ export async function getSegmentationMfaTimestampsDirect(
 export async function enrichSegmentationResponseWithWordTimestamps(
 	response: SegmentationResponse,
 	window?: RealignWindow,
-	audioLaneIndex: number = 0
+	audioLaneIndex: number = 0,
+	riwayah?: SegmentationRiwayah
 ): Promise<SegmentationResponse> {
 	const segments = response.segments ?? [];
 	if (segments.length === 0) return response;
@@ -85,11 +93,21 @@ export async function enrichSegmentationResponseWithWordTimestamps(
 					error
 				);
 				mfaSource = 'direct';
-				mfaResponse = await getSegmentationMfaTimestampsDirect(segments, window, audioLaneIndex);
+				mfaResponse = await getSegmentationMfaTimestampsDirect(
+					segments,
+					window,
+					audioLaneIndex,
+					riwayah
+				);
 			}
 		} else {
 			mfaSource = 'direct';
-			mfaResponse = await getSegmentationMfaTimestampsDirect(segments, window, audioLaneIndex);
+			mfaResponse = await getSegmentationMfaTimestampsDirect(
+				segments,
+				window,
+				audioLaneIndex,
+				riwayah
+			);
 		}
 
 		const mfaSegments = normalizeMfaSegments(mfaResponse.segments ?? [], segments);

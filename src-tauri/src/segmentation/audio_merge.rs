@@ -1,10 +1,9 @@
 use std::path::PathBuf;
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::path_utils;
 use crate::utils::process::configure_command_no_window;
-use crate::utils::temp_file::TempFileGuard;
+use crate::utils::temp_file::{unique_temp_path, TempFileGuard};
 
 use super::types::SegmentationAudioClip;
 
@@ -41,11 +40,7 @@ pub(crate) fn merge_audio_clips_for_segmentation(
         .map(|(_, _, end_ms, _)| *end_ms)
         .max()
         .unwrap_or(0);
-    let stamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|e| e.to_string())?
-        .as_millis();
-    let merged_path = std::env::temp_dir().join(format!("qurancaption-seg-merged-{}.wav", stamp));
+    let merged_path = unique_temp_path("qurancaption-seg-merged", "wav")?;
     let guard = TempFileGuard(merged_path.clone());
 
     // Construction dynamique d'un filtre ffmpeg pour trim + delay + mix.

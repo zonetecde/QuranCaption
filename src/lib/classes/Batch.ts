@@ -44,6 +44,9 @@ export interface BatchSegmentationSettingsSnapshot {
 	minSilenceMs: number;
 	minSpeechMs: number;
 	padMs: number;
+	padLeftMs?: number;
+	padRightMs?: number;
+	riwayah?: 'hafs' | 'warsh' | 'qalun' | 'shuba';
 	fillBySilence: boolean;
 	extendBeforeSilence: boolean;
 	extendBeforeSilenceMs: number;

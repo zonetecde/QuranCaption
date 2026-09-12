@@ -731,7 +731,7 @@ describe('Video overlay subtitle preview', () => {
 		expect(getArabicVerseNumberSpans(component.container)[0]).toBeTruthy();
 	});
 
-	test('resizes the arabic subtitle width and max height from its preview handles', async () => {
+	test('resizes the arabic subtitle width and max height from its preview borders', async () => {
 		const fixture = setupVideoOverlayFixture(
 			[createVerseSubtitle(0, 999, 'Arabic', 'Translation')],
 			{ cursorPosition: 500 }
@@ -745,24 +745,29 @@ describe('Video overlay subtitle preview', () => {
 		await settleOverlay();
 
 		const handle = component.container.querySelector(
-			'.arabic.subtitle .subtitle-resize-width'
+			'.arabic.subtitle .subtitle-resize-edge-left'
 		) as HTMLElement;
+		const subtitlesContainer = getSubtitlesContainer(component.container)!;
 		handle.setPointerCapture = vi.fn();
 		handle.hasPointerCapture = vi.fn(() => false);
 		handle.dispatchEvent(
 			new PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: 100, pointerId: 1 })
 		);
 		handle.dispatchEvent(
-			new PointerEvent('pointermove', { bubbles: true, clientX: 150, pointerId: 1 })
+			new PointerEvent('pointermove', { bubbles: true, clientX: 50, pointerId: 1 })
 		);
+		expect(subtitlesContainer.dataset.resizingTarget).toBe('arabic');
+		await tick();
+		expect(subtitlesContainer.style.opacity).toBe('1');
 		handle.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+		expect(subtitlesContainer.dataset.resizingTarget).toBeUndefined();
 
 		expect(fixture.videoStyle.getStylesOfTarget('arabic').findStyle('width').value).toBe(90);
 
 		const arabicNode = getForegroundArabicNode(component.container)!;
 		const initialRenderedHeight = arabicNode.offsetHeight;
 		const heightHandle = component.container.querySelector(
-			'.arabic.subtitle .subtitle-resize-height'
+			'.arabic.subtitle .subtitle-resize-edge-top'
 		) as HTMLElement;
 		heightHandle.setPointerCapture = vi.fn();
 		heightHandle.hasPointerCapture = vi.fn(() => false);
@@ -770,7 +775,7 @@ describe('Video overlay subtitle preview', () => {
 			new PointerEvent('pointerdown', { bubbles: true, button: 0, clientY: 100, pointerId: 2 })
 		);
 		heightHandle.dispatchEvent(
-			new PointerEvent('pointermove', { bubbles: true, clientY: 125, pointerId: 2 })
+			new PointerEvent('pointermove', { bubbles: true, clientY: 75, pointerId: 2 })
 		);
 		heightHandle.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 2 }));
 

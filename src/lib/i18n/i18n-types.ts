@@ -1140,6 +1140,11 @@ type RootTranslation = {
 		 */
 		removeAssetConfirm: string;
 		/**
+		 * A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​r​e​m​o​v​e​ ​t​h​e​ ​{​c​o​u​n​t​}​ ​s​e​l​e​c​t​e​d​ ​a​s​s​e​t​s​ ​f​r​o​m​ ​t​h​e​ ​p​r​o​j​e​c​t​?
+		 * @param {unknown} count
+		 */
+		removeSelectedAssetsConfirm: RequiredParams<'count'>;
+		/**
 		 * A​l​s​o​ ​d​e​l​e​t​e​ ​f​i​l​e​ ​f​r​o​m​ ​c​o​m​p​u​t​e​r
 		 */
 		alsoDeleteFile: string;
@@ -12747,6 +12752,10 @@ export type TranslationFunctions = {
 		 * Are you sure you want to remove this asset from the project?
 		 */
 		removeAssetConfirm: () => LocalizedString;
+		/**
+		 * Are you sure you want to remove the {count} selected assets from the project?
+		 */
+		removeSelectedAssetsConfirm: (arg: { count: unknown }) => LocalizedString;
 		/**
 		 * Also delete file from computer
 		 */

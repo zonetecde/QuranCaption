@@ -90,7 +90,8 @@
 	};
 	let randomBackgroundCopy = $derived($LL.export as unknown as RandomBackgroundCopy);
 	type ExportReviewCopy = {
-		exportReviewWarning: (args: { lowConfidence: number; missingWords: number }) => string;
+		exportLowConfidenceReviewWarning: (args: { count: number }) => string;
+		exportMissingWordsReviewWarning: (args: { count: number }) => string;
 		exportTranslationReviewWarning: (args: { count: number }) => string;
 		exportReviewAcknowledgement: () => string;
 	};
@@ -127,6 +128,15 @@
 		const rangeStart = globalState.getExportState.videoStartTime;
 		const rangeEnd = globalState.getExportState.videoEndTime;
 		const counts = { lowConfidence: 0, missingWords: 0, translations: 0 };
+		const visibleTranslationEditions = new Set(
+			globalState.getProjectTranslation.addedTranslationEditions
+				.filter(
+					(edition) =>
+						globalState.getVideoStyle.getStylesOfTarget(edition.name).findStyle('show-subtitles')
+							?.value === true
+				)
+				.map((edition) => edition.name)
+		);
 
 		for (const clip of globalState.getSubtitleTrack.clips) {
 			if (
@@ -141,8 +151,10 @@
 				if (clip.needsCoverageReview) counts.missingWords += 1;
 			}
 
-			for (const translation of Object.values(clip.translations)) {
-				if (!translation.isStatusComplete()) counts.translations += 1;
+			for (const [editionName, translation] of Object.entries(clip.translations)) {
+				if (visibleTranslationEditions.has(editionName) && !translation.isStatusComplete()) {
+					counts.translations += 1;
+				}
 			}
 		}
 
@@ -1509,12 +1521,20 @@
 				class="mb-1 w-full rounded-md border border-red-500/50 bg-red-500/10 px-2 py-1 text-xs font-semibold text-red-600 dark:text-red-400"
 				role="alert"
 			>
-				<p>
-					{reviewCopy.exportReviewWarning({
-						lowConfidence: exportReviewCounts.lowConfidence,
-						missingWords: exportReviewCounts.missingWords
-					})}
-				</p>
+				{#if exportReviewCounts.lowConfidence > 0}
+					<p>
+						{reviewCopy.exportLowConfidenceReviewWarning({
+							count: exportReviewCounts.lowConfidence
+						})}
+					</p>
+				{/if}
+				{#if exportReviewCounts.missingWords > 0}
+					<p>
+						{reviewCopy.exportMissingWordsReviewWarning({
+							count: exportReviewCounts.missingWords
+						})}
+					</p>
+				{/if}
 				{#if exportReviewCounts.translations > 0}
 					<p>
 						{reviewCopy.exportTranslationReviewWarning({ count: exportReviewCounts.translations })}

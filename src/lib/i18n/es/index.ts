@@ -2108,7 +2108,12 @@ const es = {
 			'Iniciar el proceso de exportación de video con el rango temporal seleccionado',
 		exportReviewWarning:
 			'Atención: su proyecto contiene {lowConfidence} subtítulo(s) de baja confianza y {missingWords} subtítulo(s) con palabras faltantes.',
-		exportTranslationReviewWarning: 'y {count} traducción(es) que necesitan revisión.',
+		exportLowConfidenceReviewWarning:
+			'Atención: su proyecto contiene {count} subtítulo(s) de baja confianza.',
+		exportMissingWordsReviewWarning:
+			'Atención: su proyecto contiene {count} subtítulo(s) con palabras faltantes.',
+		exportTranslationReviewWarning:
+			'Atención: su proyecto contiene {count} traducción(es) que necesitan revisión.',
 		exportReviewAcknowledgement:
 			'Entiendo que mi proyecto puede contener errores si no reviso estos problemas.',
 		advancedSettings: 'Configuración avanzada',

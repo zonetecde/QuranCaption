@@ -76,7 +76,12 @@ const export_ = {
 	startExportDescription: 'Start the video export process with your selected time range',
 	exportReviewWarning:
 		'Warning: your project contains {lowConfidence} low-confidence subtitle(s) and {missingWords} subtitle(s) with missing words.',
-	exportTranslationReviewWarning: 'and {count} translation(s) that need review.',
+	exportLowConfidenceReviewWarning:
+		'Warning: your project contains {count} low-confidence subtitle(s).',
+	exportMissingWordsReviewWarning:
+		'Warning: your project contains {count} subtitle(s) with missing words.',
+	exportTranslationReviewWarning:
+		'Warning: your project contains {count} translation(s) that need review.',
 	exportReviewAcknowledgement:
 		'I understand that my video may contain errors if I do not review these issues.',
 	advancedSettings: 'Advanced Settings',

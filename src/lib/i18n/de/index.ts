@@ -2112,7 +2112,12 @@ const de = {
 		startExportDescription: 'Starten Sie den Videoexport-Vorgang mit dem ausgewählten Zeitbereich',
 		exportReviewWarning:
 			'Warnung: Ihr Projekt enthält {lowConfidence} Untertitel mit geringer Konfidenz und {missingWords} Untertitel mit fehlenden Wörtern.',
-		exportTranslationReviewWarning: 'und {count} Übersetzungen, die überprüft werden müssen.',
+		exportLowConfidenceReviewWarning:
+			'Warnung: Ihr Projekt enthält {count} Untertitel mit geringer Konfidenz.',
+		exportMissingWordsReviewWarning:
+			'Warnung: Ihr Projekt enthält {count} Untertitel mit fehlenden Wörtern.',
+		exportTranslationReviewWarning:
+			'Warnung: Ihr Projekt enthält {count} Übersetzungen, die überprüft werden müssen.',
 		exportReviewAcknowledgement:
 			'Ich verstehe, dass mein Projekt Fehler enthalten kann, wenn ich diese Probleme nicht überprüfe.',
 		advancedSettings: 'Erweiterte Einstellungen',

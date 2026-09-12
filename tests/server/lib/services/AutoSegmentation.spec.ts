@@ -67,6 +67,30 @@ describe('detectCoverageGapIndices', () => {
 
 		expect(toSortedArray(result)).toEqual([]);
 	});
+
+	it('does not flag a jump from the end of Al-Fatiha to another surah', async () => {
+		const segments: Segment[] = [
+			{ ref_from: '1:7:5', ref_to: '1:7:9' },
+			{ ref_from: '59:18:1', ref_to: '59:18:10' }
+		];
+		const deps = createDeps({ '1:7': 9, '59:18': 17 }, { 1: 7, 59: 24 });
+
+		const result = await detectCoverageGapIndices(segments, deps);
+
+		expect(toSortedArray(result)).toEqual([]);
+	});
+
+	it('still flags jumps between other surahs', async () => {
+		const segments: Segment[] = [
+			{ ref_from: '2:1:1', ref_to: '2:1:2' },
+			{ ref_from: '59:18:1', ref_to: '59:18:10' }
+		];
+		const deps = createDeps({ '2:1': 2, '59:18': 17 }, { 2: 286, 59: 24 });
+
+		const result = await detectCoverageGapIndices(segments, deps);
+
+		expect(toSortedArray(result)).toEqual([0, 1]);
+	});
 });
 
 describe('parseImportedSegmentationJson', () => {

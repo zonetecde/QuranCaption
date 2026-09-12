@@ -33,6 +33,14 @@ const export_ = {
 	chooseExportLocation: 'Choose where your exported videos will be saved.',
 	exportButton: 'Export Video',
 	startExportDescription: 'Start the video export process with your selected time range',
+	exportLowConfidenceReviewWarning:
+		'Warning: your project contains {count} low-confidence subtitle(s).',
+	exportMissingWordsReviewWarning:
+		'Warning: your project contains {count} subtitle(s) with missing words.',
+	exportTranslationReviewWarning:
+		'Warning: your project contains {count} translation(s) that need review.',
+	exportReviewAcknowledgement:
+		'I understand that my video may contain errors if I do not review these issues.',
 	advancedSettings: 'Advanced Settings',
 	controlExportPerformance: 'Configure recitation filtering, background, codec, and performance.',
 	exportOnlyRecitation: 'Export only recitation',

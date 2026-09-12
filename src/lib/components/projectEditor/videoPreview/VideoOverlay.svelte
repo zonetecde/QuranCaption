@@ -985,6 +985,7 @@
 	$effect(() => {
 		(async () => {
 			const subtitlesContainer = document.getElementById('subtitles-container');
+			const resizingTarget = subtitlesContainer?.dataset.resizingTarget;
 
 			const subtitle = currentSubtitle();
 			if (!subtitle) {
@@ -1020,7 +1021,9 @@
 			lastSubtitleId = subtitle.id;
 			lastVisualMergeGroupId = currentVisualMergeGroupId;
 
-			const targets = getLayoutTargets();
+			const layoutTargets = getLayoutTargets();
+			const isResizing = Boolean(resizingTarget && layoutTargets.includes(resizingTarget));
+			const targets = isResizing ? [resizingTarget!] : layoutTargets;
 			const layoutKey = getLayoutCacheKey(targets);
 			if (layoutKey === lastLayoutKey) {
 				// Le layout est réutilisé, mais l'export attend un timing à jour pour chaque frame.
@@ -1043,7 +1046,7 @@
 				globalState.getStyleValue('global', 'spacing')
 			);
 
-			const cachedLayout = getCachedRuntimeLayout(layoutKey);
+			const cachedLayout = isResizing ? null : getCachedRuntimeLayout(layoutKey);
 			if (cachedLayout) {
 				if (currentAbortController) {
 					currentAbortController.abort();
@@ -1059,7 +1062,7 @@
 			}
 
 			// Cache les sous-titres pendant le recalcul
-			if (subtitlesContainer) {
+			if (subtitlesContainer && !isResizing) {
 				markExportLayoutState(subtitlesContainer, 'pending');
 				subtitlesContainer.style.opacity = '0';
 			}
@@ -1086,7 +1089,7 @@
 					}
 
 					// Étape 1 : Réinitialise les positions Y réactives
-					resetRuntimeYOffsets(targets);
+					if (!isResizing) resetRuntimeYOffsets(targets);
 
 					// Laisse le DOM se mettre à jour après la réinitialisation
 					await wait(abortSignal);
@@ -1137,7 +1140,7 @@
 					await tick();
 					await wait(abortSignal);
 
-					if (globalState.getStyleValue('global', 'anti-collision')) {
+					if (!isResizing && globalState.getStyleValue('global', 'anti-collision')) {
 						const translationKeys = Object.keys(currentSubtitleTranslations() || {});
 						const spacing = globalState.getStyleValue('global', 'spacing') as number;
 
@@ -1162,7 +1165,7 @@
 			});
 
 			if (!layoutCompleted) return;
-			cacheRuntimeLayout(layoutKey, targets);
+			if (!isResizing) cacheRuntimeLayout(layoutKey, targets);
 
 			// Réaffiche les sous-titres
 			const currentSubtitlesContainer = document.getElementById('subtitles-container');

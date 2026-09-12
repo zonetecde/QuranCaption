@@ -42,6 +42,7 @@
 		getBackgroundHorizontalPaddingCss,
 		getExportCaptureLayoutCss
 	} from './helpers/overlayCss';
+	import SubtitleResizeHandles from './SubtitleResizeHandles.svelte';
 
 	/**
 	 * Propriétés reçues du composant parent VideoOverlay.
@@ -932,6 +933,9 @@
 			? 1
 			: subtitleOpacity}; {css}; {runtimeLayoutCss}; {backgroundHorizontalPaddingCss} white-space: pre-line; {exportCaptureLayoutCss()}"
 	>
+		{#if !isExportCapturePreview}
+			<SubtitleResizeHandles target="arabic" />
+		{/if}
 		{#if currentSubtitle() instanceof SubtitleClip || currentSubtitle() instanceof PredefinedSubtitleClip}
 			{@const subtitle = currentSubtitle()}
 			{@const segments = arabicSegments()}

@@ -39,6 +39,7 @@
 		getWordByWordWordCss,
 		interpolateCssColor
 	} from './wordByWordHighlightUtils';
+	import SubtitleResizeHandles from './SubtitleResizeHandles.svelte';
 
 	/**
 	 * Propriétés reçues du composant parent VideoOverlay.
@@ -933,6 +934,9 @@
 	class={`translation absolute subtitle select-none z-10 ${edition} ${tailwind} ${helperStyles}`}
 	style={`opacity: ${wbwState().enabled ? 1 : subtitleOpacity}; ${css}; ${runtimeLayoutCss}; ${backgroundHorizontalPaddingCss} white-space: pre-line;`}
 >
+	{#if !isExportCapturePreview}
+		<SubtitleResizeHandles target={edition} />
+	{/if}
 	<span class="translation-inline-flow line-background">
 		{#if true}
 			{@const state = wbwState()}

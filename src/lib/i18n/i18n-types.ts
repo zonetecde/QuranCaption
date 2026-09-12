@@ -6263,7 +6263,17 @@ type RootTranslation = {
 		 */
 		exportReviewWarning: RequiredParams<'lowConfidence' | 'missingWords'>;
 		/**
-		 * a​n​d​ ​{​c​o​u​n​t​}​ ​t​r​a​n​s​l​a​t​i​o​n​(​s​)​ ​t​h​a​t​ ​n​e​e​d​ ​r​e​v​i​e​w​.
+		 * W​a​r​n​i​n​g​:​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​c​o​n​t​a​i​n​s​ ​{​c​o​u​n​t​}​ ​l​o​w​-​c​o​n​f​i​d​e​n​c​e​ ​s​u​b​t​i​t​l​e​(​s​)​.
+		 * @param {unknown} count
+		 */
+		exportLowConfidenceReviewWarning: RequiredParams<'count'>;
+		/**
+		 * W​a​r​n​i​n​g​:​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​c​o​n​t​a​i​n​s​ ​{​c​o​u​n​t​}​ ​s​u​b​t​i​t​l​e​(​s​)​ ​w​i​t​h​ ​m​i​s​s​i​n​g​ ​w​o​r​d​s​.
+		 * @param {unknown} count
+		 */
+		exportMissingWordsReviewWarning: RequiredParams<'count'>;
+		/**
+		 * W​a​r​n​i​n​g​:​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​c​o​n​t​a​i​n​s​ ​{​c​o​u​n​t​}​ ​t​r​a​n​s​l​a​t​i​o​n​(​s​)​ ​t​h​a​t​ ​n​e​e​d​ ​r​e​v​i​e​w​.
 		 * @param {unknown} count
 		 */
 		exportTranslationReviewWarning: RequiredParams<'count'>;
@@ -10332,6 +10342,10 @@ type RootTranslation = {
 		 * F​a​i​l​e​d​ ​t​o​ ​c​o​p​y​ ​e​r​r​o​r
 		 */
 		failedToCopyError: string;
+		/**
+		 * Y​o​u​r​ ​F​F​m​p​e​g​ ​v​e​r​s​i​o​n​ ​i​s​ ​t​o​o​ ​o​l​d​.​ ​R​u​n​ ​t​h​e​s​e​ ​c​o​m​m​a​n​d​s​,​ ​t​h​e​n​ ​f​u​l​l​y​ ​r​e​s​t​a​r​t​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​:
+		 */
+		ffmpegUpdateHelp: string;
 		/**
 		 * P​u​b​l​i​s​h​ ​t​o​ ​Y​o​u​T​u​b​e
 		 */
@@ -17780,7 +17794,15 @@ export type TranslationFunctions = {
 			missingWords: unknown;
 		}) => LocalizedString;
 		/**
-		 * and {count} translation(s) that need review.
+		 * Warning: your project contains {count} low-confidence subtitle(s).
+		 */
+		exportLowConfidenceReviewWarning: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Warning: your project contains {count} subtitle(s) with missing words.
+		 */
+		exportMissingWordsReviewWarning: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Warning: your project contains {count} translation(s) that need review.
 		 */
 		exportTranslationReviewWarning: (arg: { count: unknown }) => LocalizedString;
 		/**
@@ -21794,6 +21816,10 @@ export type TranslationFunctions = {
 		 * Failed to copy error
 		 */
 		failedToCopyError: () => LocalizedString;
+		/**
+		 * Your FFmpeg version is too old. Run these commands, then fully restart Quran Caption:
+		 */
+		ffmpegUpdateHelp: () => LocalizedString;
 		/**
 		 * Publish to YouTube
 		 */

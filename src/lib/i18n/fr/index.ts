@@ -2083,7 +2083,12 @@ const fr = {
 			'Lancer le processus d\u2019export vidéo avec la plage temporelle sélectionnée',
 		exportReviewWarning:
 			'Attention : votre projet contient {lowConfidence} sous-titre(s) à faible confiance et {missingWords} sous-titre(s) avec des mots manquants.',
-		exportTranslationReviewWarning: 'et {count} traduction(s) qui demandent une vérification.',
+		exportLowConfidenceReviewWarning:
+			'Attention : votre projet contient {count} sous-titre(s) à faible confiance.',
+		exportMissingWordsReviewWarning:
+			'Attention : votre projet contient {count} sous-titre(s) avec des mots manquants.',
+		exportTranslationReviewWarning:
+			'Attention : votre projet contient {count} traduction(s) qui demandent une vérification.',
 		exportReviewAcknowledgement:
 			'Je comprends que ma vidéo peut contenir des erreurs si je ne vérifie pas ces problèmes.',
 		advancedSettings: 'Paramètres avancés',

@@ -94,6 +94,7 @@ deux PNG et regroupe les pixels changes en tuiles de `16x16`.
 But:
 
 - eviter de recalculer les grands aplats transparents ou statiques;
+- reutiliser les lignes TGA deja compressees quand aucun pixel de la ligne ne change;
 - accelerer les captions qui occupent seulement une petite partie du 1920x1080;
 - conserver la meme timeline, meme quand deux images sont visuellement identiques.
 
@@ -232,11 +233,12 @@ La selection des codecs (`codec.rs`) prend en compte:
 | Profil   | Resolution >= 2560x1440                                       |
 | -------- | ------------------------------------------------------------- |
 | Fastest  | Encodeurs materiels autorises (NVENC, QSV, AMF, VideoToolbox) |
-| Balanced | libx264 force (sauf VideoToolbox sur macOS)                   |
+| Balanced | Encodeurs materiels autorises, fallback libx264 haute qualite |
 | LowCpu   | libx264 force (sauf VideoToolbox sur macOS)                   |
 
-En profil `Fastest`, NVENC, QSV et AMF peuvent etre utilises meme en 1440p ou 4K. Le test reel de
-disponibilite NVENC reste utilise avant toute selection.
+En profils `Fastest` et `Balanced`, NVENC, QSV et AMF peuvent etre utilises meme en 1440p ou 4K. Le
+test reel de disponibilite NVENC reste utilise avant toute selection. Si l'encodeur materiel n'est
+pas utilisable en `Balanced`, l'export revient a libx264 haute qualite.
 
 ### Parametres par encodeur
 
@@ -340,7 +342,7 @@ Logs Rust:
 [timeline] Premiers timestamps: [...]
 [fast_export] Initialisation: generation du plan overlay TGA...
 [fast_export] fade timeline effectif=<n>ms
-[fast_export] Frames source=<n> fades=<n> taille_source=<w>x<h> opaque=<bool> compose_noir=<bool>
+[fast_export] Plan overlay genere en <n>s: frames source=<n> fades=<n> taille_source=<w>x<h> opaque=<bool> compose_noir=<bool>
 [fast_export] chemin direct eligible: ...
 [fast_export] chemin direct ignore: ...
 [fast_export] audio direct: copie sans reencodage

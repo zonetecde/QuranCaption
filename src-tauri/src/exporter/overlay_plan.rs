@@ -134,6 +134,33 @@ fn write_png_rgba(path: &Path, image: &FastImage) -> ExportResult<()> {
 
 /// Ecrit une image RGBA dans un TGA RLE 32 bits.
 fn write_tga_rgba(path: &Path, image: &FastImage) -> ExportResult<()> {
+    let rows = encode_tga_rle_rows(image)?;
+    write_tga_encoded_rows(path, image, &rows)
+}
+
+/// Ecrit une image TGA a partir de ses lignes RLE deja encodees.
+fn write_tga_encoded_rows(
+    path: &Path,
+    image: &FastImage,
+    encoded_rows: &[Vec<u8>],
+) -> ExportResult<()> {
+    if encoded_rows.len() != image.height as usize {
+        return Err(export_error("Nombre de lignes TGA invalide"));
+    }
+
+    let file = File::create(path)?;
+    let mut writer = BufWriter::new(file);
+    write_tga_header(&mut writer, image)?;
+    for row in encoded_rows {
+        writer.write_all(row)?;
+    }
+
+    writer.flush()?;
+    Ok(())
+}
+
+/// Ecrit l'en-tete d'une image TGA RLE 32 bits apres validation du buffer.
+fn write_tga_header<W: Write>(writer: &mut W, image: &FastImage) -> ExportResult<()> {
     if image.width > u16::MAX as u32 || image.height > u16::MAX as u32 {
         return Err(export_error(format!(
             "Image trop grande pour TGA: {}x{}",
@@ -146,8 +173,6 @@ fn write_tga_rgba(path: &Path, image: &FastImage) -> ExportResult<()> {
         return Err(export_error("Buffer RGBA invalide"));
     }
 
-    let file = File::create(path)?;
-    let mut writer = BufWriter::new(file);
     let mut header = [0u8; 18];
     header[2] = 10; // Image TGA true-color compressee RLE.
     header[12..14].copy_from_slice(&(image.width as u16).to_le_bytes());
@@ -155,15 +180,21 @@ fn write_tga_rgba(path: &Path, image: &FastImage) -> ExportResult<()> {
     header[16] = 32;
     header[17] = 0x28; // Origine en haut a gauche + alpha 8 bits.
     writer.write_all(&header)?;
-
-    let stride = image.width as usize * 4;
-    for row in 0..image.height as usize {
-        let start = row * stride;
-        write_tga_rle_row(&mut writer, &image.rgba[start..start + stride])?;
-    }
-
-    writer.flush()?;
     Ok(())
+}
+
+/// Encode en parallele chaque ligne d'une image au format TGA RLE.
+fn encode_tga_rle_rows(image: &FastImage) -> ExportResult<Vec<Vec<u8>>> {
+    let stride = image.width as usize * 4;
+    image
+        .rgba
+        .par_chunks_exact(stride)
+        .map(|row| {
+            let mut encoded = Vec::new();
+            write_tga_rle_row(&mut encoded, row)?;
+            Ok(encoded)
+        })
+        .collect()
 }
 
 /// Ecrit une ligne RGBA en paquets RLE TGA.
@@ -329,6 +360,27 @@ fn changed_pixel_regions(a: &FastImage, b: &FastImage) -> Vec<PixelRect> {
     }
 }
 
+/// Repartit les regions modifiees par ligne pour eviter de retraiter les lignes intactes.
+fn changed_regions_by_row(regions: &[PixelRect], height: usize) -> Vec<Vec<PixelRect>> {
+    let mut rows = vec![Vec::new(); height];
+    for rect in regions {
+        for (y, row) in rows
+            .iter_mut()
+            .enumerate()
+            .take(rect.y1.min(height))
+            .skip(rect.y0)
+        {
+            row.push(PixelRect {
+                x0: rect.x0,
+                y0: y,
+                x1: rect.x1,
+                y1: y + 1,
+            });
+        }
+    }
+    rows
+}
+
 /// Calcule l'aire d'une region de pixels.
 fn rect_area(rect: &PixelRect) -> usize {
     (rect.x1 - rect.x0) * (rect.y1 - rect.y0)
@@ -362,16 +414,36 @@ fn blend_premultiplied_regions(
     denominator: u64,
 ) -> FastImage {
     let mut rgba = a.rgba.clone();
+    blend_premultiplied_regions_into(&mut rgba, a, b, regions, 0, numerator, denominator);
+
+    FastImage {
+        width: a.width,
+        height: a.height,
+        rgba,
+    }
+}
+
+/// Melange des regions RGBA dans un buffer dont la premiere ligne correspond a `output_y_origin`.
+fn blend_premultiplied_regions_into(
+    rgba: &mut [u8],
+    a: &FastImage,
+    b: &FastImage,
+    regions: &[PixelRect],
+    output_y_origin: usize,
+    numerator: u64,
+    denominator: u64,
+) {
     let inv = denominator.saturating_sub(numerator);
     let width = a.width as usize;
 
     for rect in regions {
         for y in rect.y0..rect.y1 {
             for x in rect.x0..rect.x1 {
-                let offset = (y * width + x) * 4;
-                let apx = &a.rgba[offset..offset + 4];
-                let bpx = &b.rgba[offset..offset + 4];
-                let out = &mut rgba[offset..offset + 4];
+                let source_offset = (y * width + x) * 4;
+                let output_offset = ((y - output_y_origin) * width + x) * 4;
+                let apx = &a.rgba[source_offset..source_offset + 4];
+                let bpx = &b.rgba[source_offset..source_offset + 4];
+                let out = &mut rgba[output_offset..output_offset + 4];
                 let aa = apx[3] as u64;
                 let ba = bpx[3] as u64;
                 let out_alpha = div_round(aa * inv + ba * numerator, denominator).min(255);
@@ -391,12 +463,6 @@ fn blend_premultiplied_regions(
             }
         }
     }
-
-    FastImage {
-        width: a.width,
-        height: a.height,
-        rgba,
-    }
 }
 
 /// Melange uniquement les zones modifiees de deux images deja opaques.
@@ -408,31 +474,93 @@ fn blend_opaque_regions(
     denominator: u64,
 ) -> FastImage {
     let mut rgba = a.rgba.clone();
-    let inv = denominator.saturating_sub(numerator);
-    let width = a.width as usize;
-
-    for rect in regions {
-        for y in rect.y0..rect.y1 {
-            for x in rect.x0..rect.x1 {
-                let offset = (y * width + x) * 4;
-                for channel in 0..3 {
-                    rgba[offset + channel] = div_round(
-                        a.rgba[offset + channel] as u64 * inv
-                            + b.rgba[offset + channel] as u64 * numerator,
-                        denominator,
-                    )
-                    .min(255) as u8;
-                }
-                rgba[offset + 3] = 255;
-            }
-        }
-    }
+    blend_opaque_regions_into(&mut rgba, a, b, regions, 0, numerator, denominator);
 
     FastImage {
         width: a.width,
         height: a.height,
         rgba,
     }
+}
+
+/// Melange des regions opaques dans un buffer dont la premiere ligne correspond a `output_y_origin`.
+fn blend_opaque_regions_into(
+    rgba: &mut [u8],
+    a: &FastImage,
+    b: &FastImage,
+    regions: &[PixelRect],
+    output_y_origin: usize,
+    numerator: u64,
+    denominator: u64,
+) {
+    let inv = denominator.saturating_sub(numerator);
+    let width = a.width as usize;
+
+    for rect in regions {
+        for y in rect.y0..rect.y1 {
+            for x in rect.x0..rect.x1 {
+                let source_offset = (y * width + x) * 4;
+                let output_offset = ((y - output_y_origin) * width + x) * 4;
+                for channel in 0..3 {
+                    rgba[output_offset + channel] = div_round(
+                        a.rgba[source_offset + channel] as u64 * inv
+                            + b.rgba[source_offset + channel] as u64 * numerator,
+                        denominator,
+                    )
+                    .min(255) as u8;
+                }
+                rgba[output_offset + 3] = 255;
+            }
+        }
+    }
+}
+
+/// Ecrit un fondu TGA en reutilisant les lignes RLE qui ne changent pas.
+fn write_blended_tga_regions(
+    path: &Path,
+    a: &FastImage,
+    b: &FastImage,
+    regions_by_row: &[Vec<PixelRect>],
+    base_rows: &[Vec<u8>],
+    numerator: u64,
+    denominator: u64,
+    opaque: bool,
+) -> ExportResult<()> {
+    let file = File::create(path)?;
+    let mut writer = BufWriter::new(file);
+    write_tga_header(&mut writer, a)?;
+    let width = a.width as usize;
+    let stride = width * 4;
+    let mut blended_row = Vec::with_capacity(stride);
+
+    for y in 0..a.height as usize {
+        let regions = &regions_by_row[y];
+        if regions.is_empty() {
+            writer.write_all(&base_rows[y])?;
+            continue;
+        }
+
+        let start = y * stride;
+        blended_row.clear();
+        blended_row.extend_from_slice(&a.rgba[start..start + stride]);
+        if opaque {
+            blend_opaque_regions_into(&mut blended_row, a, b, regions, y, numerator, denominator);
+        } else {
+            blend_premultiplied_regions_into(
+                &mut blended_row,
+                a,
+                b,
+                regions,
+                y,
+                numerator,
+                denominator,
+            );
+        }
+        write_tga_rle_row(&mut writer, &blended_row)?;
+    }
+
+    writer.flush()?;
+    Ok(())
 }
 
 /// Calcule une division entiere arrondie vers le haut.
@@ -535,12 +663,27 @@ pub(super) fn build_overlay_concat_plan(
             )));
         }
 
-        let source_path = match (frame_format, current_visible.as_ref()) {
-            (OverlayFrameFormat::Png, None) => PathBuf::from(&image_paths[i]),
-            (_, source_image) => {
+        let source_image = current_visible.as_ref().unwrap_or(&current);
+        let source_tga_rows = match frame_format {
+            OverlayFrameFormat::Tga => Some(encode_tga_rle_rows(source_image)?),
+            OverlayFrameFormat::Png => None,
+        };
+        let source_path = match frame_format {
+            OverlayFrameFormat::Png if current_visible.is_none() => PathBuf::from(&image_paths[i]),
+            OverlayFrameFormat::Png => {
                 let ext = overlay_frame_extension(frame_format);
                 let path = temp_dir.join(format!("source_{:06}.{}", i, ext));
-                write_overlay_frame(&path, source_image.unwrap_or(&current), frame_format)?;
+                write_overlay_frame(&path, source_image, frame_format)?;
+                path
+            }
+            OverlayFrameFormat::Tga => {
+                let ext = overlay_frame_extension(frame_format);
+                let path = temp_dir.join(format!("source_{:06}.{}", i, ext));
+                write_tga_encoded_rows(
+                    &path,
+                    source_image,
+                    source_tga_rows.as_ref().expect("lignes TGA source"),
+                )?;
                 path
             }
         };
@@ -580,21 +723,44 @@ pub(super) fn build_overlay_concat_plan(
                         }
                     })
                     .collect();
+                let blend_current = current_visible.as_ref().unwrap_or(&current);
+                let blend_next = next_visible.as_ref().unwrap_or(&next);
+                let optimized_tga = match frame_format {
+                    OverlayFrameFormat::Tga => {
+                        let regions_by_row =
+                            changed_regions_by_row(&changed_regions, source_height as usize);
+                        Some((regions_by_row, source_tga_rows.expect("lignes TGA source")))
+                    }
+                    OverlayFrameFormat::Png => None,
+                };
 
                 tasks.par_iter().try_for_each(|task| -> ExportResult<()> {
                     ffmpeg_runner::ensure_export_not_cancelled(export_id)?;
+                    if let Some((regions_by_row, base_rows)) = optimized_tga.as_ref() {
+                        return write_blended_tga_regions(
+                            &task.output_path,
+                            blend_current,
+                            blend_next,
+                            regions_by_row,
+                            base_rows,
+                            task.numerator,
+                            task.denominator,
+                            compose_black,
+                        );
+                    }
+
                     let blended = if compose_black {
                         blend_opaque_regions(
-                            current_visible.as_ref().expect("image visible courante"),
-                            next_visible.as_ref().expect("image visible suivante"),
+                            blend_current,
+                            blend_next,
                             &changed_regions,
                             task.numerator,
                             task.denominator,
                         )
                     } else {
                         blend_premultiplied_regions(
-                            &current,
-                            &next,
+                            blend_current,
+                            blend_next,
                             &changed_regions,
                             task.numerator,
                             task.denominator,

@@ -278,43 +278,14 @@ pub fn choose_best_codec(
         Vec::new()
     };
 
-    // En haute résolution, le profil Fastest autorise les encodeurs matériels.
-    // Les profils Balanced et LowCpu forcent libx264 pour la qualité (sauf VideoToolbox).
-    let force_cpu_high_quality =
-        high_resolution && !matches!(performance_profile, ExportPerformanceProfile::Fastest);
-
-    if force_cpu_high_quality && !hw.iter().any(|encoder| encoder == "h264_videotoolbox") {
-        println!(
-            "[codec] Export haute résolution détecté ({}x{}), forçage libx264 haute qualité",
-            width, height
-        );
-        println!(
-            "[codec] usage={:?} profile={:?} resolution={}x{} selected=libx264",
-            usage, performance_profile, width, height
-        );
-
-        let codec = "libx264".to_string();
-        let mut extra = HashMap::new();
-        let (preset, crf) = match usage {
-            CodecUsage::Intermediate => ("veryfast", "14"),
-            CodecUsage::Final => ("veryfast", "16"),
-        };
-        extra.insert("preset".to_string(), Some(preset.to_string()));
-
-        return (
-            codec,
-            vec![
-                "-pix_fmt".to_string(),
-                "yuv420p".to_string(),
-                "-crf".to_string(),
-                crf.to_string(),
-            ],
-            extra,
-        );
-    }
+    // En haute résolution, LowCpu conserve libx264 pour la qualité.
+    // Balanced tente d'abord l'encodage matériel et garde ce chemin comme fallback.
+    let force_cpu_high_quality = high_resolution
+        && matches!(performance_profile, ExportPerformanceProfile::LowCpu)
+        && !hw.iter().any(|encoder| encoder == "h264_videotoolbox");
 
     // Encodeur hardware disponible
-    if !hw.is_empty() {
+    if !force_cpu_high_quality && !hw.is_empty() {
         // NVENC : test de disponibilité réelle
         if hw[0] == "h264_nvenc" {
             if !supports_h264_nvenc_dimensions(width, height) {
@@ -391,6 +362,37 @@ pub fn choose_best_codec(
             extra.insert("preset".to_string(), None);
             return (codec, params, extra);
         }
+    }
+
+    // Conserver la qualité logicielle actuelle si aucun encodeur matériel ne fonctionne.
+    if high_resolution && !matches!(performance_profile, ExportPerformanceProfile::Fastest) {
+        println!(
+            "[codec] Export haute résolution détecté ({}x{}), fallback libx264 haute qualité",
+            width, height
+        );
+        println!(
+            "[codec] usage={:?} profile={:?} resolution={}x{} selected=libx264",
+            usage, performance_profile, width, height
+        );
+
+        let codec = "libx264".to_string();
+        let mut extra = HashMap::new();
+        let (preset, crf) = match usage {
+            CodecUsage::Intermediate => ("veryfast", "14"),
+            CodecUsage::Final => ("veryfast", "16"),
+        };
+        extra.insert("preset".to_string(), Some(preset.to_string()));
+
+        return (
+            codec,
+            vec![
+                "-pix_fmt".to_string(),
+                "yuv420p".to_string(),
+                "-crf".to_string(),
+                crf.to_string(),
+            ],
+            extra,
+        );
     }
 
     // Fallback : libx264 logiciel

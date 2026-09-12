@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
 
 use super::background_timeline::{build_background_transition_chain, build_timed_background_chain};
 use super::batching;
@@ -53,7 +54,8 @@ fn append_visible_h264_args(
     );
     cmd.extend_from_slice(&["-c:v".to_string(), vcodec.clone()]);
 
-    if vcodec == "h264_nvenc" {
+    if vcodec == "h264_nvenc" && !matches!(performance_profile, ExportPerformanceProfile::Balanced)
+    {
         cmd.extend_from_slice(&[
             "-preset".to_string(),
             "p1".to_string(),
@@ -259,6 +261,7 @@ pub(super) fn run_fast_export(
         "[fast_export] fade timeline effectif={}ms",
         fade_duration_ms.max(0)
     );
+    let overlay_plan_started_at = Instant::now();
     let compose_black = !export_without_background
         && video_inputs.is_empty()
         && !video_fade_in_enabled
@@ -297,7 +300,8 @@ pub(super) fn run_fast_export(
         Err(error) => return Err(error),
     };
     println!(
-        "[fast_export] Frames source={} fades={} taille_source={}x{} opaque={} compose_noir={}",
+        "[fast_export] Plan overlay genere en {:.2}s: frames source={} fades={} taille_source={}x{} opaque={} compose_noir={}",
+        overlay_plan_started_at.elapsed().as_secs_f64(),
         overlay_plan.source_frame_count,
         overlay_plan.generated_fade_frames,
         overlay_plan.width,

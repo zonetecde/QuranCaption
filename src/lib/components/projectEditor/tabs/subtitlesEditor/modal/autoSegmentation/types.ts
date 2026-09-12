@@ -3,17 +3,14 @@ import type {
 	LocalAsrMode,
 	MultiAlignerModel,
 	SegmentationDevice,
+	SegmentationRiwayah,
 	SegmentationMode,
 	SubtitleApplicationMode
 } from '$lib/services/AutoSegmentation';
 
 /** Defines the high-level AI family shown in the wizard. */
 export type AiVersion =
-	| 'legacy_v1'
-	| 'multi_v2'
-	| 'multi_v2_local'
-	| 'surah_splitter'
-	| 'quran_word_timing';
+	'legacy_v1' | 'multi_v2' | 'multi_v2_local' | 'surah_splitter' | 'quran_word_timing';
 
 /** Represents a wizard navigation item. */
 export type WizardStep = {
@@ -25,12 +22,7 @@ export type WizardStep = {
 
 /** Stable keys for wizard step routing. */
 export type WizardStepKey =
-	| 'version'
-	| 'setup'
-	| 'models'
-	| 'settings'
-	| 'existing-subtitles'
-	| 'review';
+	'version' | 'setup' | 'models' | 'settings' | 'existing-subtitles' | 'review';
 
 export type { SubtitleApplicationMode };
 
@@ -90,6 +82,7 @@ export type WizardSelectionState = {
 	cloudModel: MultiAlignerModel;
 	surahSplitterSurah: number | null;
 	device: SegmentationDevice;
+	riwayah: SegmentationRiwayah;
 	hfToken: string;
 };
 

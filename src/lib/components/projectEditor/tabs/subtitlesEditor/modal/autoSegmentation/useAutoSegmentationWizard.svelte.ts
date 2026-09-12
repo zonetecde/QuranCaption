@@ -7,8 +7,6 @@ import {
 	getAutoSegmentationAudioInfo,
 	getAutoSegmentationAudioLaneCount,
 	installLocalSegmentationDeps,
-	estimateSegmentationDuration,
-	getAutoSegmentationAudioDurationS,
 	parseImportedSegmentationJson,
 	runAutoSegmentation,
 	runAutoSegmentationFromImportedJson,
@@ -17,6 +15,7 @@ import {
 	type LocalSegmentationStatus,
 	type MultiAlignerModel,
 	type SegmentationDevice,
+	type SegmentationRiwayah,
 	type SegmentationMode
 } from '$lib/services/AutoSegmentation';
 import { notifyLongTaskCompletion } from '$lib/services/UserAttentionService';
@@ -52,12 +51,16 @@ export function useAutoSegmentationWizard() {
 		SURAH_SPLITTER_MODEL_OPTIONS.map((option) => option.value)
 	);
 	const persisted = globalState.settings?.autoSegmentationSettings as
-		| AutoSegmentationSettings
-		| undefined;
-	const selection = $state<WizardSelectionState>(deriveSelectionState(persisted));
+		AutoSegmentationSettings | undefined;
+	const initialSelection = deriveSelectionState(persisted);
+	const initialAudioRiwayah = getAutoSegmentationAudioInfo()?.riwayah;
+	if (initialAudioRiwayah) initialSelection.riwayah = initialAudioRiwayah;
+	const selection = $state<WizardSelectionState>(initialSelection);
 	let minSilenceMs = $state(persisted?.minSilenceMs ?? 200);
 	let minSpeechMs = $state(persisted?.minSpeechMs ?? 1000);
 	let padMs = $state(persisted?.padMs ?? 100);
+	let padLeftMs = $state(persisted?.padLeftMs ?? 100);
+	let padRightMs = $state(persisted?.padRightMs ?? 200);
 	let includeWbwTimestamps = $state(persisted?.includeWbwTimestamps ?? false);
 	let subtitleApplicationMode = $state<SubtitleApplicationMode | null>('replace');
 	let fillBySilence = $state(persisted?.fillBySilence ?? true);
@@ -75,9 +78,6 @@ export function useAutoSegmentationWizard() {
 	let installStatus = $state('');
 	let currentStatus = $state('');
 	let currentStatusProgress = $state<number | null>(null);
-	let estimatedDurationS = $state<number | null>(null);
-	let estimatedProgress = $state<number | null>(null);
-	let estimatedRemainingS = $state<number | null>(null);
 	let errorMessage = $state<string | null>(null);
 	let warningMessage = $state<string | null>(null);
 	let fallbackMessage = $state<string | null>(null);
@@ -87,11 +87,6 @@ export function useAutoSegmentationWizard() {
 	let importedJsonSegmentCount = $state(0);
 	let importedJsonParseError = $state<string | null>(null);
 	let selectedAudioLaneIndex = $state(0);
-	let estimationTimer: ReturnType<typeof setInterval> | null = null;
-	let estimatedProgressTimerStarted = false;
-	let pendingEstimatedDurationS: number | null = null;
-	let waitForLocalMultiAlignerStage = false;
-	let runStartedAtMs: number | null = null;
 	const showExistingSubtitlesStep = $derived(
 		() =>
 			globalState.getSubtitleTrack.clips.filter(
@@ -356,68 +351,23 @@ export function useAutoSegmentationWizard() {
 
 	/** Returns a segmentation status listener for both local and cloud runs. */
 	async function listenSegmentationStatus(): Promise<UnlistenFn | null> {
-		return listen<{ message?: string; progress?: number }>('segmentation-status', (event) => {
-			if (typeof event.payload.message === 'string') {
-				currentStatus = event.payload.message;
-				if (
-					waitForLocalMultiAlignerStage &&
-					selection.mode === 'local' &&
-					selection.localAsrMode === 'multi_aligner' &&
-					/running local multi[- ]aligner pipeline/i.test(event.payload.message)
-				) {
-					waitForLocalMultiAlignerStage = false;
-					if (pendingEstimatedDurationS && !estimatedProgressTimerStarted) {
-						startEstimatedProgressTimer(pendingEstimatedDurationS);
+		return listen<{ step?: string; message?: string; progress?: number }>(
+			'segmentation-status',
+			(event) => {
+				const stages = (
+					get(LL).editor as unknown as {
+						alignmentStage: Record<string, () => string>;
 					}
+				).alignmentStage;
+				const stageLabel = event.payload.step ? stages?.[event.payload.step]?.() : undefined;
+				currentStatus = stageLabel ?? event.payload.message ?? get(LL).editor.processingAudio();
+				if (typeof event.payload.progress === 'number') {
+					currentStatusProgress = Math.max(0, Math.min(100, event.payload.progress));
+				} else {
+					currentStatusProgress = null;
 				}
 			}
-			// Quand on finit l'upload (100%), on cache la progress bar
-			if (typeof event.payload.progress === 'number' && event.payload.progress < 100) {
-				currentStatusProgress = Math.max(0, Math.min(100, event.payload.progress));
-			} else {
-				currentStatusProgress = null;
-			}
-		});
-	}
-
-	function stopEstimationTimer(): void {
-		if (estimationTimer) {
-			clearInterval(estimationTimer);
-			estimationTimer = null;
-		}
-	}
-
-	function resetEstimatedProgress(): void {
-		stopEstimationTimer();
-		runStartedAtMs = null;
-		estimatedDurationS = null;
-		estimatedProgress = null;
-		estimatedRemainingS = null;
-		estimatedProgressTimerStarted = false;
-		pendingEstimatedDurationS = null;
-		waitForLocalMultiAlignerStage = false;
-	}
-
-	function startEstimatedProgressTimer(durationS: number): void {
-		if (estimatedProgressTimerStarted) return;
-		stopEstimationTimer();
-		if (!Number.isFinite(durationS) || durationS <= 0) return;
-		estimatedProgressTimerStarted = true;
-		runStartedAtMs = Date.now();
-		estimatedDurationS = durationS;
-		const tick = () => {
-			if (!runStartedAtMs || !estimatedDurationS) {
-				estimatedProgress = null;
-				estimatedRemainingS = null;
-				return;
-			}
-			const elapsedS = (Date.now() - runStartedAtMs) / 1000;
-			const ratio = Math.max(0, Math.min(1, elapsedS / estimatedDurationS));
-			estimatedProgress = ratio * 100;
-			estimatedRemainingS = Math.max(0, Math.ceil(estimatedDurationS - elapsedS));
-		};
-		tick();
-		estimationTimer = setInterval(tick, 400);
+		);
 	}
 
 	/** Stores response metadata for result/error panels. */
@@ -495,7 +445,6 @@ export function useAutoSegmentationWizard() {
 		cloudCpuFallbackMessage = null;
 		currentStatus = '';
 		currentStatusProgress = null;
-		resetEstimatedProgress();
 
 		let response: AutoSegmentationResult | null = null;
 		try {
@@ -521,7 +470,6 @@ export function useAutoSegmentationWizard() {
 			isRunning = false;
 			currentStatus = '';
 			currentStatusProgress = null;
-			resetEstimatedProgress();
 			trackSegmentationRun(analyticsWorkflow, response, analyticsParams);
 		}
 	}
@@ -538,6 +486,8 @@ export function useAutoSegmentationWizard() {
 				'Private Local Quranic Universal Aligner requires a Hugging Face token with access to private models (hetchyy/r15_95m, hetchyy/r7).';
 			return;
 		}
+		const extendBeforeSilenceEffective =
+			selection.aiVersion === 'multi_v2' ? false : extendBeforeSilence;
 		const analyticsParams: SegmentationAnalyticsParams = {
 			requestedMode: selection.mode,
 			runtime: selection.runtime,
@@ -553,7 +503,7 @@ export function useAutoSegmentationWizard() {
 			padMs,
 			includeWordByWord: includeWbwTimestamps,
 			fillBySilence,
-			extendBeforeSilence,
+			extendBeforeSilence: extendBeforeSilenceEffective,
 			extendBeforeSilenceMs
 		};
 		const analyticsWorkflow = startSegmentationRun(analyticsParams);
@@ -565,25 +515,6 @@ export function useAutoSegmentationWizard() {
 		cloudCpuFallbackMessage = null;
 		currentStatus = '';
 		currentStatusProgress = null;
-		resetEstimatedProgress();
-
-		let estimatedDurationForRun: number | null = null;
-		if (
-			selection.runtime !== 'hf_json' &&
-			selection.localAsrMode === 'multi_aligner' &&
-			selection.mode === 'local'
-		) {
-			const audioDurationS = getAutoSegmentationAudioDurationS(undefined, selectedAudioLaneIndex);
-			const estimated = await estimateSegmentationDuration({
-				endpoint: 'process_audio_session',
-				audioDurationS,
-				modelName: selection.multiModel,
-				device: selection.device
-			});
-			if (estimated?.estimated_duration_s && estimated.estimated_duration_s > 0) {
-				estimatedDurationForRun = estimated.estimated_duration_s;
-			}
-		}
 		const unlisten = await listenSegmentationStatus();
 		let response: AutoSegmentationResult | null = null;
 		try {
@@ -593,12 +524,15 @@ export function useAutoSegmentationWizard() {
 					minSilenceMs,
 					minSpeechMs,
 					padMs,
+					padLeftMs,
+					padRightMs,
 					localAsrMode: selection.localAsrMode,
 					legacyWhisperModel: selection.legacyModel,
 					multiAlignerModel: selection.multiModel,
 					cloudModel: selection.cloudModel,
 					surahSplitterSurah: selection.surahSplitterSurah,
 					device: selection.device,
+					riwayah: selection.riwayah,
 					hfToken: selection.hfToken,
 					allowCloudFallback: selection.mode !== 'local',
 					includeWbwTimestamps:
@@ -608,18 +542,8 @@ export function useAutoSegmentationWizard() {
 						? (subtitleApplicationMode ?? 'replace')
 						: 'replace',
 					fillBySilence,
-					extendBeforeSilence,
-					extendBeforeSilenceMs,
-					onRunConfirmed: () => {
-						if (estimatedDurationForRun && estimatedDurationForRun > 0) {
-							pendingEstimatedDurationS = estimatedDurationForRun;
-							if (selection.mode === 'local' && selection.localAsrMode === 'multi_aligner') {
-								waitForLocalMultiAlignerStage = true;
-							} else {
-								startEstimatedProgressTimer(estimatedDurationForRun);
-							}
-						}
-					}
+					extendBeforeSilence: extendBeforeSilenceEffective,
+					extendBeforeSilenceMs
 				},
 				selection.mode
 			);
@@ -635,7 +559,6 @@ export function useAutoSegmentationWizard() {
 			isRunning = false;
 			currentStatus = '';
 			currentStatusProgress = null;
-			resetEstimatedProgress();
 			trackSegmentationRun(analyticsWorkflow, response, analyticsParams);
 		}
 	}
@@ -682,6 +605,11 @@ export function useAutoSegmentationWizard() {
 		selection.device = value;
 		persistPatch({ device: value });
 	}
+	/** Sets the reference riwayah used by the cloud aligner. */
+	function setRiwayah(value: SegmentationRiwayah): void {
+		selection.riwayah = value;
+		persistPatch({ riwayah: value });
+	}
 	/** Sets min silence and persists it. */
 	function setMinSilence(value: number): void {
 		minSilenceMs = value;
@@ -696,6 +624,14 @@ export function useAutoSegmentationWizard() {
 	function setPad(value: number): void {
 		padMs = value;
 		persistPatch({ padMs: value });
+	}
+	function setPadLeft(value: number): void {
+		padLeftMs = Math.max(0, Math.min(1000, value));
+		persistPatch({ padLeftMs });
+	}
+	function setPadRight(value: number): void {
+		padRightMs = Math.max(0, Math.min(1000, value));
+		persistPatch({ padRightMs });
 	}
 	/** Active ou non la récupération des timestamps mot à mot. */
 	function setIncludeWbwTimestamps(value: boolean): void {
@@ -733,6 +669,8 @@ export function useAutoSegmentationWizard() {
 	 */
 	function setSelectedAudioLaneIndex(value: number): void {
 		selectedAudioLaneIndex = Math.max(0, Math.min(audioLaneCount() - 1, value));
+		const laneRiwayah = getAutoSegmentationAudioInfo(undefined, selectedAudioLaneIndex)?.riwayah;
+		if (laneRiwayah) selection.riwayah = laneRiwayah;
 	}
 	/** Goes to any wizard step within bounds. */
 	function goToStep(step: number): void {
@@ -772,6 +710,12 @@ export function useAutoSegmentationWizard() {
 		},
 		get padMs() {
 			return padMs;
+		},
+		get padLeftMs() {
+			return padLeftMs;
+		},
+		get padRightMs() {
+			return padRightMs;
 		},
 		get includeWbwTimestamps() {
 			return includeWbwTimestamps;
@@ -820,15 +764,6 @@ export function useAutoSegmentationWizard() {
 		},
 		get currentStatusProgress() {
 			return currentStatusProgress;
-		},
-		get estimatedDurationS() {
-			return estimatedDurationS;
-		},
-		get estimatedProgress() {
-			return estimatedProgress;
-		},
-		get estimatedRemainingS() {
-			return estimatedRemainingS;
 		},
 		get errorMessage() {
 			return errorMessage;
@@ -891,9 +826,12 @@ export function useAutoSegmentationWizard() {
 		setCloudModel,
 		setSurahSplitterSurah,
 		setDevice,
+		setRiwayah,
 		setMinSilence,
 		setMinSpeech,
 		setPad,
+		setPadLeft,
+		setPadRight,
 		setIncludeWbwTimestamps,
 		setSubtitleApplicationMode,
 		setFillBySilence,

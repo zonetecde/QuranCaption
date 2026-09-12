@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { getSharedWizard } from '../sharedWizard';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { openUrl } from '@tauri-apps/plugin-opener';
 	import {
 		fetchQuranMultiAlignerChangelog,
 		type HuggingFaceChangelogSection
@@ -38,18 +39,32 @@
 	</div>
 
 	<div class="grid grid-cols-1 gap-3 xl:flex-1 xl:grid-cols-2">
-		<button
-			type="button"
+		<div
+			role="button"
+			tabindex="0"
 			class="rounded-xl border bg-gradient-to-br from-accent/80 to-bg-accent p-4 text-left shadow-sm transition-colors xl:col-span-2"
 			class:border-accent-primary={wizard.selection.aiVersion === 'multi_v2'}
 			class:border-color={wizard.selection.aiVersion !== 'multi_v2'}
 			class:bg-accent={wizard.selection.aiVersion === 'multi_v2'}
 			onclick={() => wizard.onVersionChange('multi_v2')}
+			onkeydown={(event) => {
+				if (event.key === 'Enter' || event.key === ' ') wizard.onVersionChange('multi_v2');
+			}}
 		>
 			<div class="mb-3 flex items-start justify-between gap-3">
 				<div class="flex items-center gap-2 text-primary">
-					<span class="material-icons">auto_awesome</span
-					>{$LL.editor.quranicUniversalAlignerLabel()}
+					<span class="material-icons">auto_awesome</span>
+					<button
+						type="button"
+						class="inline-flex items-center gap-1 underline decoration-transparent underline-offset-2 transition hover:decoration-current"
+						onclick={(event) => {
+							event.stopPropagation();
+							void openUrl('https://hetchyy-quranic-universal-aligner.hf.space/');
+						}}
+					>
+						{$LL.editor.quranicUniversalAlignerLabel()}
+						<span class="material-icons text-sm">open_in_new</span>
+					</button>
 				</div>
 				<span
 					class="inline-flex items-center rounded-full border border-accent-primary bg-accent-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--bg-primary)]"
@@ -61,7 +76,19 @@
 			<p class="mt-2 text-sm text-thirdly">
 				{$LL.editor.usesOfficialRemote()}
 			</p>
-		</button>
+			<div class="mt-3 flex justify-end">
+				<button
+					type="button"
+					class="text-xs text-secondary underline underline-offset-2 hover:text-primary"
+					onclick={(event) => {
+						event.stopPropagation();
+						void openUrl(
+							'https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/discussions'
+						);
+					}}>{$LL.donation.leaveFeedback()}</button
+				>
+			</div>
+		</div>
 
 		<button
 			type="button"

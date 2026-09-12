@@ -745,6 +745,19 @@ const id = {
 	},
 	editor: {
 		...baseEn.editor,
+		alignmentStage: {
+			preparing: 'Menyiapkan audio',
+			uploading: 'Mengunggah audio',
+			uploaded: 'Unggahan selesai',
+			queued_gpu: 'Menunggu GPU',
+			queued_cpu: 'Menunggu CPU',
+			segmenting: 'Mendeteksi batas bacaan',
+			transcribing: 'Mentranskripsikan bacaan',
+			matching: 'Mencocokkan ayat Al-Qur’an',
+			building: 'Menyusun hasil',
+			splitting: 'Membuat satu subtitle per ayat',
+			processing: 'Memproses audio'
+		},
 		...({
 			searchFonts: 'Cari font...',
 			antiCollisionNotice: 'Anti-tabrakan subtitle aktif',

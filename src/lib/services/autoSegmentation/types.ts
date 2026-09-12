@@ -56,6 +56,7 @@ export type StoredSegmentationContext = {
 	effectiveMode: SegmentationMode | null;
 	modelName: string | null;
 	device: SegmentationDevice | null;
+	riwayah: SegmentationRiwayah | null;
 	includeWbwTimestamps: boolean;
 	alignedSegments: StoredAlignedSegment[];
 };
@@ -85,6 +86,7 @@ export type SegmentationResponse = {
 	audio_id?: string;
 	error?: string;
 	warning?: string;
+	device?: SegmentationDevice;
 	segments?: SegmentationSegment[];
 };
 
@@ -99,13 +101,11 @@ export type ImportedSegmentationParseResult = {
 export type SegmentationMode = 'api' | 'local';
 export type SubtitleApplicationMode = 'replace' | 'align';
 export type LocalAsrMode =
-	| 'legacy_whisper'
-	| 'multi_aligner'
-	| 'surah_splitter'
-	| 'quran_word_timing';
+	'legacy_whisper' | 'multi_aligner' | 'surah_splitter' | 'quran_word_timing';
 export type LegacyWhisperModelSize = 'tiny' | 'base' | 'medium' | 'large';
 export type MultiAlignerModel = 'Base' | 'Large' | 'SurahSplitter-Base-Quran';
 export type SegmentationDevice = 'GPU' | 'CPU';
+export type SegmentationRiwayah = 'hafs' | 'warsh' | 'qalun' | 'shuba';
 
 export type LocalEngineStatus = {
 	ready: boolean;
@@ -139,12 +139,15 @@ export type AutoSegmentationOptions = {
 	minSilenceMs?: number;
 	minSpeechMs?: number;
 	padMs?: number;
+	padLeftMs?: number;
+	padRightMs?: number;
 	localAsrMode?: LocalAsrMode;
 	legacyWhisperModel?: LegacyWhisperModelSize;
 	multiAlignerModel?: MultiAlignerModel;
 	cloudModel?: MultiAlignerModel;
 	surahSplitterSurah?: number | null;
 	device?: SegmentationDevice;
+	riwayah?: SegmentationRiwayah;
 	hfToken?: string;
 	allowCloudFallback?: boolean;
 	includeWbwTimestamps?: boolean;
@@ -184,6 +187,7 @@ export type AutoSegmentationAudioInfo = {
 	filePath: string;
 	fileName: string;
 	clipCount: number;
+	riwayah?: SegmentationRiwayah;
 };
 
 export type AutoSegmentationAudioClip = {
@@ -192,13 +196,7 @@ export type AutoSegmentationAudioClip = {
 	startMs: number;
 	endMs: number;
 	sourceStartMs: number;
-};
-
-export type DurationEstimateResult = {
-	endpoint: string;
-	estimated_duration_s: number;
-	device: SegmentationDevice;
-	model_name: MultiAlignerModel;
+	riwayah?: SegmentationRiwayah;
 };
 
 export type VerseRef = {
@@ -208,13 +206,7 @@ export type VerseRef = {
 };
 
 export type PredefinedType =
-	| 'Basmala'
-	| "Isti'adha"
-	| 'Amin'
-	| 'Takbir'
-	| 'Tahmeed'
-	| 'Tasleem'
-	| 'Sadaqa';
+	'Basmala' | "Isti'adha" | 'Amin' | 'Takbir' | 'Tahmeed' | 'Tasleem' | 'Sadaqa';
 
 export type SegmentationClipTemplate =
 	| {
@@ -258,6 +250,7 @@ export type ApplySegmentationResponseParams = {
 	subtitleApplicationMode?: SubtitleApplicationMode;
 	modelName?: string | null;
 	device?: SegmentationDevice | null;
+	riwayah?: SegmentationRiwayah | null;
 	warningOverride?: string;
 	payloadForLog?: unknown;
 	project?: import('$lib/classes/Project').Project;

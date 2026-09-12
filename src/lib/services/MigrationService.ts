@@ -352,6 +352,7 @@ export default class MigrationService {
 				| 'Open-Legacy-Large';
 			cloudModel?: 'Base' | 'Large';
 			device?: 'GPU' | 'CPU';
+			riwayah?: 'hafs' | 'warsh' | 'qalun' | 'shuba';
 			hfToken?: string;
 			includeWbwTimestamps?: boolean;
 			fillBySilence?: boolean;
@@ -383,6 +384,10 @@ export default class MigrationService {
 		}
 		if (!autoSegmentationSettings.device) {
 			autoSegmentationSettings.device = 'GPU';
+			hasChanges = true;
+		}
+		if (!autoSegmentationSettings.riwayah) {
+			autoSegmentationSettings.riwayah = 'hafs';
 			hasChanges = true;
 		}
 		if (typeof autoSegmentationSettings.hfToken !== 'string') {

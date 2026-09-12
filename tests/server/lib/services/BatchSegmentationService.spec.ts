@@ -339,6 +339,7 @@ describe('BatchSegmentationService', () => {
 					effectiveMode: 'api',
 					modelName: 'Base',
 					device: null,
+					riwayah: null,
 					includeWbwTimestamps: false,
 					alignedSegments: []
 				};

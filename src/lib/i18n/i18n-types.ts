@@ -2708,6 +2708,46 @@ type RootTranslation = {
 		 */
 		chooseModelAndPerformanceDesc: string;
 		/**
+		 * A​l​i​g​n​m​e​n​t
+		 */
+		alignmentSettings: string;
+		/**
+		 * C​h​o​o​s​e​ ​r​e​c​o​g​n​i​t​i​o​n​,​ ​Q​u​r​a​n​ ​r​e​a​d​i​n​g​,​ ​a​n​d​ ​s​e​g​m​e​n​t​ ​b​o​u​n​d​a​r​i​e​s​.
+		 */
+		alignmentSettingsDesc: string;
+		/**
+		 * S​e​g​m​e​n​t​ ​b​o​u​n​d​a​r​i​e​s
+		 */
+		segmentBoundaries: string;
+		/**
+		 * S​t​a​r​t​ ​e​a​r​l​i​e​r
+		 */
+		startEarlier: string;
+		/**
+		 * E​n​d​ ​l​a​t​e​r
+		 */
+		endLater: string;
+		/**
+		 * T​i​m​e​l​i​n​e
+		 */
+		timelineBehavior: string;
+		/**
+		 * C​h​o​o​s​e​ ​h​o​w​ ​a​l​i​g​n​e​d​ ​r​e​s​u​l​t​s​ ​a​r​e​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​t​i​m​e​l​i​n​e​.
+		 */
+		timelineBehaviorDesc: string;
+		/**
+		 * K​e​e​p​ ​s​i​l​e​n​t​ ​g​a​p​s
+		 */
+		keepSilentGaps: string;
+		/**
+		 * K​e​e​p​ ​s​u​b​t​i​t​l​e​s​ ​v​i​s​i​b​l​e​ ​b​e​t​w​e​e​n​ ​s​e​g​m​e​n​t​s
+		 */
+		keepSubtitlesVisible: string;
+		/**
+		 * E​x​t​e​n​d​ ​t​h​e​ ​p​r​e​v​i​o​u​s​ ​s​u​b​t​i​t​l​e​ ​i​n​t​o​ ​s​i​l​e​n​c​e​ ​b​y
+		 */
+		extendIntoSilence: string;
+		/**
 		 * M​o​d​e​l
 		 */
 		modelLabel: string;
@@ -3003,6 +3043,52 @@ type RootTranslation = {
 		 * A​u​t​o​-​S​e​g​m​e​n​t​a​t​i​o​n​ ​W​i​z​a​r​d
 		 */
 		autoSegmentationWizard: string;
+		alignmentStage: {
+			/**
+			 * P​r​e​p​a​r​i​n​g​ ​a​u​d​i​o
+			 */
+			preparing: string;
+			/**
+			 * U​p​l​o​a​d​i​n​g​ ​a​u​d​i​o
+			 */
+			uploading: string;
+			/**
+			 * U​p​l​o​a​d​ ​c​o​m​p​l​e​t​e
+			 */
+			uploaded: string;
+			/**
+			 * W​a​i​t​i​n​g​ ​f​o​r​ ​G​P​U
+			 */
+			queued_gpu: string;
+			/**
+			 * W​a​i​t​i​n​g​ ​f​o​r​ ​C​P​U
+			 */
+			queued_cpu: string;
+			/**
+			 * F​i​n​d​i​n​g​ ​r​e​c​i​t​a​t​i​o​n​ ​b​o​u​n​d​a​r​i​e​s
+			 */
+			segmenting: string;
+			/**
+			 * T​r​a​n​s​c​r​i​b​i​n​g​ ​r​e​c​i​t​a​t​i​o​n
+			 */
+			transcribing: string;
+			/**
+			 * M​a​t​c​h​i​n​g​ ​Q​u​r​a​n​ ​v​e​r​s​e​s
+			 */
+			matching: string;
+			/**
+			 * B​u​i​l​d​i​n​g​ ​r​e​s​u​l​t​s
+			 */
+			building: string;
+			/**
+			 * C​r​e​a​t​i​n​g​ ​o​n​e​ ​s​u​b​t​i​t​l​e​ ​p​e​r​ ​v​e​r​s​e
+			 */
+			splitting: string;
+			/**
+			 * P​r​o​c​e​s​s​i​n​g​ ​a​u​d​i​o
+			 */
+			processing: string;
+		};
 		/**
 		 * G​u​i​d​e​d​ ​s​e​t​u​p​ ​t​o​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​a​d​d​ ​s​u​b​t​i​t​l​e​s​ ​t​o​ ​y​o​u​r​ ​v​i​d​e​o
 		 */
@@ -14262,6 +14348,46 @@ export type TranslationFunctions = {
 		 */
 		chooseModelAndPerformanceDesc: () => LocalizedString;
 		/**
+		 * Alignment
+		 */
+		alignmentSettings: () => LocalizedString;
+		/**
+		 * Choose recognition, Quran reading, and segment boundaries.
+		 */
+		alignmentSettingsDesc: () => LocalizedString;
+		/**
+		 * Segment boundaries
+		 */
+		segmentBoundaries: () => LocalizedString;
+		/**
+		 * Start earlier
+		 */
+		startEarlier: () => LocalizedString;
+		/**
+		 * End later
+		 */
+		endLater: () => LocalizedString;
+		/**
+		 * Timeline
+		 */
+		timelineBehavior: () => LocalizedString;
+		/**
+		 * Choose how aligned results are added to the timeline.
+		 */
+		timelineBehaviorDesc: () => LocalizedString;
+		/**
+		 * Keep silent gaps
+		 */
+		keepSilentGaps: () => LocalizedString;
+		/**
+		 * Keep subtitles visible between segments
+		 */
+		keepSubtitlesVisible: () => LocalizedString;
+		/**
+		 * Extend the previous subtitle into silence by
+		 */
+		extendIntoSilence: () => LocalizedString;
+		/**
 		 * Model
 		 */
 		modelLabel: () => LocalizedString;
@@ -14557,6 +14683,52 @@ export type TranslationFunctions = {
 		 * Auto-Segmentation Wizard
 		 */
 		autoSegmentationWizard: () => LocalizedString;
+		alignmentStage: {
+			/**
+			 * Preparing audio
+			 */
+			preparing: () => LocalizedString;
+			/**
+			 * Uploading audio
+			 */
+			uploading: () => LocalizedString;
+			/**
+			 * Upload complete
+			 */
+			uploaded: () => LocalizedString;
+			/**
+			 * Waiting for GPU
+			 */
+			queued_gpu: () => LocalizedString;
+			/**
+			 * Waiting for CPU
+			 */
+			queued_cpu: () => LocalizedString;
+			/**
+			 * Finding recitation boundaries
+			 */
+			segmenting: () => LocalizedString;
+			/**
+			 * Transcribing recitation
+			 */
+			transcribing: () => LocalizedString;
+			/**
+			 * Matching Quran verses
+			 */
+			matching: () => LocalizedString;
+			/**
+			 * Building results
+			 */
+			building: () => LocalizedString;
+			/**
+			 * Creating one subtitle per verse
+			 */
+			splitting: () => LocalizedString;
+			/**
+			 * Processing audio
+			 */
+			processing: () => LocalizedString;
+		};
 		/**
 		 * Guided setup to automatically add subtitles to your video
 		 */

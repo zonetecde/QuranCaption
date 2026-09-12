@@ -14,12 +14,17 @@
 			<div
 				class="h-5 w-5 animate-spin rounded-full border-2 border-accent-primary border-t-transparent"
 			></div>
-			{wizard.currentStatus ||
-				(isImportMode
-					? $LL.editor.processingAudio()
-					: wizard.selection.mode === 'api'
+			<span class="min-w-0 flex-1 truncate"
+				>{wizard.currentStatus ||
+					(isImportMode
 						? $LL.editor.processingAudio()
-						: $LL.editor.segmentationInProgress())}
+						: wizard.selection.mode === 'api'
+							? $LL.editor.processingAudio()
+							: $LL.editor.segmentationInProgress())}</span
+			>
+			{#if wizard.currentStatusProgress !== null}<span class="font-mono text-xs text-thirdly"
+					>{Math.round(wizard.currentStatusProgress)}%</span
+				>{/if}
 		</div>
 		{#if audioNormalizationStatus.active}
 			<div class="mt-2 flex items-center gap-2 text-[11px] text-thirdly">
@@ -29,34 +34,12 @@
 		{/if}
 		{#if wizard.currentStatusProgress !== null}
 			<div class="mt-3">
-				<div class="mb-1 flex items-center justify-between text-[11px] text-thirdly">
-					<span class="truncate pr-2">{wizard.currentStatus || $LL.editor.uploadProgress()}</span>
-					<span>{Math.round(wizard.currentStatusProgress)}%</span>
-				</div>
 				<div class="h-2 overflow-hidden rounded-full bg-thirdly/25">
 					<div
 						class="h-full rounded-full bg-accent-primary transition-all duration-200"
 						style={`width: ${wizard.currentStatusProgress}%`}
 					></div>
 				</div>
-			</div>
-		{:else if wizard.estimatedProgress !== null}
-			<div class="mt-3">
-				<div class="mb-1 flex items-center justify-between text-[11px] text-thirdly">
-					<span>{$LL.editor.estimatedProgress()}</span>
-					<span>{Math.round(wizard.estimatedProgress)}%</span>
-				</div>
-				<div class="h-2 overflow-hidden rounded-full bg-thirdly/25">
-					<div
-						class="h-full rounded-full bg-accent-primary transition-all duration-300"
-						style={`width: ${wizard.estimatedProgress}%`}
-					></div>
-				</div>
-				{#if wizard.estimatedRemainingS !== null}
-					<div class="mt-1 text-[11px] text-thirdly">
-						{$LL.editor.estimatedTime({ time: `~${wizard.estimatedRemainingS}s` })}
-					</div>
-				{/if}
 			</div>
 		{/if}
 	</div>

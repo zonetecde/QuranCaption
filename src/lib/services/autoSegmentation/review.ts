@@ -260,7 +260,9 @@ export async function computeWbwTimestampsForClipsSliced(
 
 	const response = await enrichSegmentationResponseWithWordTimestamps(
 		{ segments: requestSegments },
-		window
+		window,
+		0,
+		globalState.getSubtitlesEditorState.segmentationContext.riwayah ?? undefined
 	);
 	const enrichedSegments = response.segments ?? [];
 

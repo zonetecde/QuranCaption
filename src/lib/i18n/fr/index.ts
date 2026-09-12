@@ -1022,6 +1022,16 @@ const fr = {
 		chooseModelAndPerformance: 'Choisir le modèle et la performance',
 		chooseModelAndPerformanceDesc:
 			'Choisissez l\u2019équilibre entre vitesse et qualité pour cette méthode.',
+		alignmentSettings: 'Alignement',
+		alignmentSettingsDesc: 'Choisissez la reconnaissance, la lecture et les limites des segments.',
+		segmentBoundaries: 'Limites des segments',
+		startEarlier: 'Commencer plus tôt',
+		endLater: 'Finir plus tard',
+		timelineBehavior: 'Timeline',
+		timelineBehaviorDesc: 'Choisissez comment ajouter les résultats alignés à la timeline.',
+		keepSilentGaps: 'Conserver les silences',
+		keepSubtitlesVisible: 'Garder les sous-titres visibles entre les segments',
+		extendIntoSilence: 'Prolonger le sous-titre précédent dans le silence de',
 		modelLabel: 'Modèle',
 		deviceLabel: 'Appareil',
 		recommendedLabel: 'Recommandé',
@@ -1114,6 +1124,19 @@ const fr = {
 		cannotLoadChangelog:
 			'Impossible de charger le dernier journal des modifications pour le moment.',
 		autoSegmentationWizard: 'Assistant de segmentation automatique',
+		alignmentStage: {
+			preparing: 'Préparation de l’audio',
+			uploading: 'Téléversement de l’audio',
+			uploaded: 'Téléversement terminé',
+			queued_gpu: 'En attente du GPU',
+			queued_cpu: 'En attente du CPU',
+			segmenting: 'Détection des limites de récitation',
+			transcribing: 'Transcription de la récitation',
+			matching: 'Correspondance avec les versets',
+			building: 'Construction des résultats',
+			splitting: 'Création d’un sous-titre par verset',
+			processing: 'Traitement de l’audio'
+		},
 		guidedSetupDesc:
 			'Configuration guidée pour ajouter automatiquement des sous-titres à votre vidéo',
 		videoAssetLabel: 'Élément vidéo',

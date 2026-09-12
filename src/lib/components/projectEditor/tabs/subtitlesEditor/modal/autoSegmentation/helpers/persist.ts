@@ -53,6 +53,7 @@ export function deriveSelectionState(settings?: AutoSegmentationSettings): Wizar
 		cloudModel: settings?.cloudModel ?? 'Base',
 		surahSplitterSurah: settings?.surahSplitterSurah ?? null,
 		device: settings?.device ?? 'GPU',
+		riwayah: settings?.riwayah ?? 'hafs',
 		hfToken: settings?.hfToken ?? ''
 	};
 }

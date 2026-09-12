@@ -21,6 +21,7 @@ import {
 import { parseSegmentationResponseFromThrownError } from './parsing';
 import { enrichSegmentationResponseWithWordTimestamps } from './enrichment';
 import { applySegmentationResponseToProject } from './apply-segmentation';
+import { applySegmentationRiwayahToProject } from './riwayah';
 import {
 	beginAudioNormalizationIfNeeded,
 	normalizeAudioForProject
@@ -32,21 +33,6 @@ import {
 	AutoSegmentationExecutionCoordinator,
 	getAutoSegmentationBusyMessage
 } from '$lib/services/AutoSegmentationExecutionCoordinator';
-
-/**
- * Détecte les erreurs de quota GPU cloud qui justifient un retry sur CPU.
- *
- * @param {string} message Message d'erreur.
- * @param {SegmentationDevice} device Appareil courant.
- * @returns {boolean} True si un retry CPU est pertinent.
- */
-function shouldRetryCloudOnCpu(message: string, device: SegmentationDevice): boolean {
-	return (
-		device === 'GPU' &&
-		/GPU/i.test(message) &&
-		/(quota exhausted|retry with device=CPU|daily limit)/i.test(message)
-	);
-}
 
 /**
  * Détermine si les timestamps mot à mot sont requis pour cette exécution.
@@ -128,6 +114,8 @@ export async function runAutoSegmentationForProject(
 	const minSilenceMs: number = options.minSilenceMs ?? 200;
 	const minSpeechMs: number = options.minSpeechMs ?? 1000;
 	const padMs: number = options.padMs ?? 100;
+	const padLeftMs: number = options.padLeftMs ?? 100;
+	const padRightMs: number = options.padRightMs ?? 200;
 	const subtitleApplicationMode: SubtitleApplicationMode =
 		options.subtitleApplicationMode ?? 'replace';
 	const includeWbwTimestamps = resolveIncludeWbwTimestamps(
@@ -140,6 +128,7 @@ export async function runAutoSegmentationForProject(
 	const cloudModel = options.cloudModel ?? 'Base';
 	const surahSplitterSurah = options.surahSplitterSurah ?? null;
 	const device: SegmentationDevice = options.device ?? 'GPU';
+	const riwayah = options.riwayah ?? 'hafs';
 	const hfToken: string = (options.hfToken ?? '').trim();
 	const allowCloudFallback: boolean = options.allowCloudFallback ?? true;
 	const fillBySilence: boolean = options.fillBySilence ?? true;
@@ -189,14 +178,15 @@ export async function runAutoSegmentationForProject(
 		});
 
 		// Fonctions d'invocation
-		const invokeCloudWithDevice = async (targetDevice: SegmentationDevice): Promise<unknown> =>
+		const invokeCloud = async (): Promise<unknown> =>
 			await invoke('segment_quran_audio', {
 				...basePayload,
 				modelName: cloudModel,
-				device: targetDevice
+				device,
+				riwayah,
+				padLeftMs,
+				padRightMs
 			});
-
-		const invokeCloud = async (): Promise<unknown> => await invokeCloudWithDevice(device);
 
 		const invokeLocalWithDevice = async (targetDevice: SegmentationDevice): Promise<unknown> => {
 			if (localAsrMode === 'legacy_whisper') {
@@ -237,21 +227,7 @@ export async function runAutoSegmentationForProject(
 
 		// Exécution du mode choisi
 		if (effectiveMode === 'api') {
-			try {
-				payload = await invokeCloud();
-			} catch (error) {
-				const errorMessage = error instanceof Error ? error.message : String(error);
-				if (shouldRetryCloudOnCpu(errorMessage, device)) {
-					console.warn(
-						'[AutoSegmentation] Cloud GPU run failed, retrying once on CPU:',
-						errorMessage
-					);
-					payload = await invokeCloudWithDevice('CPU');
-					cloudGpuFallbackToCpu = true;
-				} else {
-					throw error;
-				}
-			}
+			payload = await invokeCloud();
 		} else {
 			// Mode local
 			try {
@@ -288,29 +264,15 @@ export async function runAutoSegmentationForProject(
 
 		const rawResponse: SegmentationResponse = payload as SegmentationResponse;
 
-		// Retry GPU→CPU sur réponse d'erreur
-		if (
-			effectiveMode === 'api' &&
-			!cloudGpuFallbackToCpu &&
-			rawResponse.error &&
-			shouldRetryCloudOnCpu(rawResponse.error, device)
-		) {
-			console.warn(
-				'[AutoSegmentation] Cloud GPU payload reported a quota error, retrying once on CPU:',
-				rawResponse.error
-			);
-			payload = await invokeCloudWithDevice('CPU');
-			cloudGpuFallbackToCpu = true;
-		}
-
-		const finalRawResponseBase: SegmentationResponse = cloudGpuFallbackToCpu
-			? (payload as SegmentationResponse)
-			: rawResponse;
+		cloudGpuFallbackToCpu =
+			effectiveMode === 'api' && device === 'GPU' && rawResponse.device === 'CPU';
+		const finalRawResponseBase: SegmentationResponse = rawResponse;
 		const response = includeWbwTimestamps
 			? await enrichSegmentationResponseWithWordTimestamps(
 					finalRawResponseBase,
 					undefined,
-					audioLaneIndex
+					audioLaneIndex,
+					riwayah
 				)
 			: finalRawResponseBase;
 
@@ -323,7 +285,7 @@ export async function runAutoSegmentationForProject(
 		);
 
 		executionOptions.onApplying?.();
-		return await applySegmentationResponseToProject({
+		const result = await applySegmentationResponseToProject({
 			response,
 			fillBySilence,
 			extendBeforeSilence,
@@ -336,13 +298,18 @@ export async function runAutoSegmentationForProject(
 			includeWbwTimestamps,
 			subtitleApplicationMode,
 			modelName: contextModelName,
-			device,
+			device: rawResponse.device ?? device,
+			riwayah,
 			warningOverride: fallbackWarning,
 			payloadForLog: payload,
 			project,
 			headless: executionOptions.headless,
 			audioNormalizationPromise
 		});
+		if (result.status === 'completed' && effectiveMode === 'api') {
+			await applySegmentationRiwayahToProject(project, riwayah);
+		}
+		return result;
 	} catch (error) {
 		console.error('Segmentation request failed:', error);
 		const errorMessage = error instanceof Error ? error.message : String(error);

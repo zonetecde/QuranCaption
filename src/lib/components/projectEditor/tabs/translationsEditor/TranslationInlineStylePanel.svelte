@@ -17,7 +17,8 @@
 			translationsEditorState().inlineStyleItalicEnabled ||
 			translationsEditorState().inlineStyleUnderlineEnabled ||
 			translationsEditorState().inlineStyleLineBreakEnabled ||
-			translationsEditorState().inlineStyleColorEnabled
+			translationsEditorState().inlineStyleColorEnabled ||
+			translationsEditorState().inlineStyleGlowEnabled
 	);
 
 	function toggleStyle(
@@ -27,6 +28,7 @@
 			| 'inlineStyleUnderlineEnabled'
 			| 'inlineStyleLineBreakEnabled'
 			| 'inlineStyleColorEnabled'
+			| 'inlineStyleGlowEnabled'
 	): void {
 		translationsEditorState()[property] = !translationsEditorState()[property];
 	}
@@ -268,6 +270,7 @@
 							<input
 								type="color"
 								value={translationsEditorState().inlineStyleColorValue}
+								onclick={(event) => event.stopPropagation()}
 								oninput={(event) => {
 									translationsEditorState().inlineStyleColorValue = (
 										event.currentTarget as HTMLInputElement
@@ -279,6 +282,50 @@
 
 							<span class="text-xs text-secondary">
 								{translationsEditorState().inlineStyleColorEnabled
+									? $LL.common.on()
+									: $LL.common.off()}
+							</span>
+						</div>
+					</button>
+				</div>
+			</div>
+
+			<div
+				class={`rounded-lg border px-3 py-1 transition-all duration-200 ${
+					translationsEditorState().inlineStyleGlowEnabled
+						? 'border-[var(--accent-primary)] bg-[color-mix(in_srgb,var(--accent-primary)_12%,var(--bg-secondary))]'
+						: 'border-color bg-accent'
+				}`}
+			>
+				<div class="flex items-center justify-between gap-3">
+					<button
+						class="flex min-w-0 flex-1 items-center justify-between gap-3 text-left text-sm font-medium text-primary"
+						onclick={() => toggleStyle('inlineStyleGlowEnabled')}
+					>
+						<span class="flex items-center gap-2">
+							<span
+								class="inline-block h-4 w-4 rounded-full border border-white/20"
+								style={`background-color: ${translationsEditorState().inlineStyleGlowColorValue}; box-shadow: 0 0 8px ${translationsEditorState().inlineStyleGlowColorValue};`}
+							></span>
+							{$LL.editor.styleName['text-glow']()}
+						</span>
+
+						<div class="flex items-center gap-x-2">
+							<input
+								type="color"
+								value={translationsEditorState().inlineStyleGlowColorValue}
+								onclick={(event) => event.stopPropagation()}
+								oninput={(event) => {
+									translationsEditorState().inlineStyleGlowColorValue = (
+										event.currentTarget as HTMLInputElement
+									).value;
+								}}
+								class="h-9 w-11 cursor-pointer rounded border border-color bg-secondary p-1"
+								aria-label={$LL.editor.styleName['text-glow-color']()}
+							/>
+
+							<span class="text-xs text-secondary">
+								{translationsEditorState().inlineStyleGlowEnabled
 									? $LL.common.on()
 									: $LL.common.off()}
 							</span>

@@ -210,12 +210,15 @@
 			lineBreak: translationsEditorState().inlineStyleLineBreakEnabled,
 			color: translationsEditorState().inlineStyleColorEnabled
 				? translationsEditorState().inlineStyleColorValue
+				: null,
+			glow: translationsEditorState().inlineStyleGlowEnabled
+				? translationsEditorState().inlineStyleGlowColorValue
 				: null
 		};
 	}
 
 	/**
-	 * Indique si au moins un style (bold/italic/underline/new line) est actif.
+	 * Indique si au moins un style (bold/italic/underline/new line/color/glow) est actif.
 	 */
 	function hasActiveInlineStyleFlags(): boolean {
 		const flags = getCurrentInlineStyleFlags();
@@ -224,7 +227,8 @@
 			flags.italic ||
 			flags.underline ||
 			Boolean(flags.lineBreak) ||
-			Boolean(flags.color)
+			Boolean(flags.color) ||
+			Boolean(flags.glow)
 		);
 	}
 

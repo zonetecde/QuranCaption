@@ -795,7 +795,7 @@ const editor = {
 	howItWorksDescription1:
 		'Enable style mode, keep one or more toggles active, then drag across words in the trimmed translation or the Arabic segment.',
 	howItWorksDescription2:
-		'Bold, italic, underline and new line are toggled on the selected range. Color is applied with the current swatch. Editing the translation text later clears translation word styles.',
+		'Bold, italic, underline and new line are toggled on the selected range. Color and glow are applied with their current swatches. Editing the translation text later clears translation word styles.',
 	selectAtLeastOneStyle: 'Select at least one style before applying it.',
 	globalActions: 'Global Actions',
 	resetAllSegmentStyles: 'Reset all segment styles',

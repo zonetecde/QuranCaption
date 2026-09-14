@@ -30,11 +30,12 @@ export type TranslationInlineStyleRun = {
 	underline: boolean;
 	lineBreak?: boolean;
 	color?: string | null;
+	glow?: string | null;
 };
 
 export type TranslationInlineStyleFlags = Pick<
 	TranslationInlineStyleRun,
-	'bold' | 'italic' | 'underline' | 'lineBreak' | 'color'
+	'bold' | 'italic' | 'underline' | 'lineBreak' | 'color' | 'glow'
 >;
 
 export type TranslationInlineTextSegment = {
@@ -44,6 +45,7 @@ export type TranslationInlineTextSegment = {
 	underline: boolean;
 	lineBreak?: boolean;
 	color?: string | null;
+	glow?: string | null;
 };
 
 export type TranslationWbwRange = {
@@ -69,13 +71,14 @@ export const EMPTY_INLINE_STYLE_FLAGS: TranslationInlineStyleFlags = {
 	italic: false,
 	underline: false,
 	lineBreak: false,
-	color: null
+	color: null,
+	glow: null
 };
 
 /**
  * Convertit les flags de style inline en CSS appliqué au segment.
  *
- * @param {TranslationInlineStyleFlags} flags Flags de style inline (bold, italic, underline, color).
+ * @param {TranslationInlineStyleFlags} flags Flags de style inline (bold, italic, underline, color, glow).
  * @returns {string} Chaîne CSS correspondante.
  */
 export function getInlineStyleCss(flags: TranslationInlineStyleFlags): string {
@@ -84,6 +87,13 @@ export function getInlineStyleCss(flags: TranslationInlineStyleFlags): string {
 	if (flags.italic) parts.push('font-style: italic;');
 	if (flags.underline) parts.push('text-decoration: underline;');
 	if (flags.color) parts.push(`color: ${flags.color};`);
+	if (flags.glow) {
+		parts.push(
+			`--inline-word-glow-color: ${flags.glow};`,
+			'text-shadow: 0 0 calc(var(--text-glow-blur, 10px) * 0.5) var(--inline-word-glow-color), 0 0 var(--text-glow-blur, 10px) var(--inline-word-glow-color), 0 0 calc(var(--text-glow-blur, 10px) * 1.5) var(--inline-word-glow-color), 0 0 calc(var(--text-glow-blur, 10px) * 2) var(--inline-word-glow-color);',
+			'filter: drop-shadow(0 0 var(--text-glow-blur, 10px) var(--inline-word-glow-color)) brightness(calc(100% + 5 * 50%));'
+		);
+	}
 	return parts.join(' ');
 }
 
@@ -106,7 +116,8 @@ export function getInlineStyleFlagsForWordIndex(
 				italic: run.italic,
 				underline: run.underline,
 				lineBreak: Boolean(run.lineBreak),
-				color: run.color ?? null
+				color: run.color ?? null,
+				glow: run.glow ?? null
 			};
 		}
 	}
@@ -227,7 +238,14 @@ export function sliceTranslationTrimUnits(
  * Returns true when at least one inline style flag is active.
  */
 function hasInlineStyle(flags: TranslationInlineStyleFlags): boolean {
-	return flags.bold || flags.italic || flags.underline || flags.lineBreak || Boolean(flags.color);
+	return (
+		flags.bold ||
+		flags.italic ||
+		flags.underline ||
+		flags.lineBreak ||
+		Boolean(flags.color) ||
+		Boolean(flags.glow)
+	);
 }
 
 /**
@@ -242,7 +260,8 @@ function sameInlineStyleFlags(
 		left.italic === right.italic &&
 		left.underline === right.underline &&
 		Boolean(left.lineBreak) === Boolean(right.lineBreak) &&
-		left.color === right.color
+		(left.color ?? null) === (right.color ?? null) &&
+		(left.glow ?? null) === (right.glow ?? null)
 	);
 }
 
@@ -255,7 +274,8 @@ function cloneInlineStyleFlags(flags: TranslationInlineStyleFlags): TranslationI
 		italic: Boolean(flags.italic),
 		underline: Boolean(flags.underline),
 		...(flags.lineBreak ? { lineBreak: true } : {}),
-		color: typeof flags.color === 'string' && flags.color.trim().length > 0 ? flags.color : null
+		color: typeof flags.color === 'string' && flags.color.trim().length > 0 ? flags.color : null,
+		...(typeof flags.glow === 'string' && flags.glow.trim().length > 0 ? { glow: flags.glow } : {})
 	};
 }
 
@@ -279,7 +299,8 @@ function createInlineStyleRun(
 		italic: flags.italic,
 		underline: flags.underline,
 		...(flags.lineBreak ? { lineBreak: true } : {}),
-		color: flags.color ?? null
+		color: flags.color ?? null,
+		...(flags.glow ? { glow: flags.glow } : {})
 	};
 }
 
@@ -442,7 +463,8 @@ export function toggleTranslationInlineStyleRuns(
 				italic: run.italic,
 				underline: run.underline,
 				lineBreak: Boolean(run.lineBreak),
-				color: run.color ?? null
+				color: run.color ?? null,
+				glow: run.glow ?? null
 			};
 		}
 	}
@@ -463,6 +485,9 @@ export function toggleTranslationInlineStyleRuns(
 		if (toggledFlags.lineBreak) states[index].lineBreak = !states[index].lineBreak;
 		if (toggledFlags.color) {
 			states[index].color = states[index].color === toggledFlags.color ? null : toggledFlags.color;
+		}
+		if (toggledFlags.glow) {
+			states[index].glow = states[index].glow === toggledFlags.glow ? null : toggledFlags.glow;
 		}
 	}
 
@@ -496,7 +521,8 @@ export function buildTranslationInlineTextSegments(
 				italic: run.italic,
 				underline: run.underline,
 				lineBreak: Boolean(run.lineBreak),
-				color: run.color ?? null
+				color: run.color ?? null,
+				glow: run.glow ?? null
 			};
 		}
 	}
@@ -573,7 +599,8 @@ export function replaceBoldWordIndexesInInlineStyleRuns(
 				italic: run.italic,
 				underline: run.underline,
 				lineBreak: Boolean(run.lineBreak),
-				color: run.color ?? null
+				color: run.color ?? null,
+				glow: run.glow ?? null
 			};
 		}
 	}

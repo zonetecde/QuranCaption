@@ -372,6 +372,8 @@ export class TranslationsEditorState extends SerializableBase {
 	inlineStyleLineBreakEnabled: boolean = $state(false);
 	inlineStyleColorEnabled: boolean = $state(false);
 	inlineStyleColorValue: string = $state('#f59e0b');
+	inlineStyleGlowEnabled: boolean = $state(false);
+	inlineStyleGlowColorValue: string = $state('#ffffff');
 
 	// Paramètres persistants du workflow AI Bold
 	aiBoldCustomNote: string = $state('');

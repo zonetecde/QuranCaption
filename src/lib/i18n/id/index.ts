@@ -760,6 +760,8 @@ const id = {
 	},
 	editor: {
 		...baseEn.editor,
+		howItWorksDescription2:
+			'Tebal, miring, garis bawah, dan baris baru dialihkan pada rentang yang dipilih. Warna dan cahaya diterapkan dengan pilihan warna saat ini. Mengedit teks terjemahan akan menghapus gaya kata terjemahan.',
 		alignmentStage: {
 			preparing: 'Menyiapkan audio',
 			uploading: 'Mengunggah audio',
@@ -1087,7 +1089,9 @@ const id = {
 			'line-background-enable': 'Aktifkan latar per baris',
 			'line-background-color': 'Warna bilah',
 			'line-background-position': 'Posisi bilah',
-			'line-background-height': 'Tinggi bilah'
+			'line-background-height': 'Tinggi bilah',
+			'text-glow': 'Cahaya Teks',
+			'text-glow-color': 'Warna Cahaya'
 		} as Translation['editor']['styleName'],
 		styleDescription: {
 			...baseEn.editor.styleDescription,

@@ -59,6 +59,9 @@
 		lineBreak: translationsEditorState().inlineStyleLineBreakEnabled,
 		color: translationsEditorState().inlineStyleColorEnabled
 			? translationsEditorState().inlineStyleColorValue
+			: null,
+		glow: translationsEditorState().inlineStyleGlowEnabled
+			? translationsEditorState().inlineStyleGlowColorValue
 			: null
 	}));
 	let wbwTranslationDirection = $derived(() =>
@@ -110,7 +113,8 @@
 				activeInlineFlags().italic ||
 				activeInlineFlags().underline ||
 				Boolean(activeInlineFlags().lineBreak) ||
-				Boolean(activeInlineFlags().color))
+				Boolean(activeInlineFlags().color) ||
+				Boolean(activeInlineFlags().glow))
 		) {
 			// Comme pour les traductions, un drag applique/toggle les styles actifs sur toute la plage.
 			ProjectHistoryManager.track('style arabic words', () => {

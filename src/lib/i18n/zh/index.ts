@@ -2949,6 +2949,9 @@ const zh = {
 	exporterMonitor: {
 		exportsMonitor: '导出监视器',
 		closeExportMonitor: '关闭导出监视器',
+		exportFolderSizeLabel: '导出文件夹：',
+		openExportFolder: '打开导出文件夹',
+		failedToOpenExportFolder: '无法打开导出文件夹',
 		cancelExport: '取消导出',
 		cancelExportConfirm: '您确定要取消此导出吗？您的进度将丢失。',
 		fileNotFound: '文件未找到',

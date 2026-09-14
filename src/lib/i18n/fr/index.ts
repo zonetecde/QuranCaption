@@ -3273,6 +3273,9 @@ const fr = {
 	exporterMonitor: {
 		exportsMonitor: 'Moniteur d\u2019exports',
 		closeExportMonitor: 'Fermer le moniteur d\u2019exports',
+		exportFolderSizeLabel: 'Dossier exports\u00a0:',
+		openExportFolder: 'Ouvrir le dossier exports',
+		failedToOpenExportFolder: 'Impossible d\u2019ouvrir le dossier exports',
 		cancelExport: 'Annuler l\u2019export',
 		cancelExportConfirm:
 			'Êtes-vous sûr de vouloir annuler cet export\u00a0? Votre progression sera perdue.',

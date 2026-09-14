@@ -5,8 +5,9 @@
 		ExportState,
 		type ExportLogEntry
 	} from '$lib/classes/Exportation.svelte';
-	import { exists } from '@tauri-apps/plugin-fs';
+	import { exists, mkdir } from '@tauri-apps/plugin-fs';
 	import { invoke } from '@tauri-apps/api/core';
+	import { appDataDir, join } from '@tauri-apps/api/path';
 	import ModalManager from './modals/ModalManager';
 	import { slide } from 'svelte/transition';
 	import { onMount, onDestroy } from 'svelte';
@@ -15,6 +16,7 @@
 	import { get } from 'svelte/store';
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { getFfmpegUpdateCommands } from '$lib/services/FfmpegUpdateHelp';
+	import ExportService from '$lib/services/ExportService';
 
 	type ExportTimingSnapshot = {
 		exportStartMs: number;
@@ -37,6 +39,9 @@
 	let intervalId: ReturnType<typeof setInterval> | undefined;
 	let expandedLogsByExportId = $state<Record<number, boolean>>({});
 	let youtubePublications = $state<Record<number, YouTubePublicationState>>({});
+	let exportFolderPath = '';
+	let exportFolderSize = $state<number | null>(null);
+	let lastExportFolderSizeRefresh = 0;
 
 	/**
 	 * Résout un message localisé ajouté au moniteur d'exports.
@@ -46,6 +51,48 @@
 	function monitorMessage(key: string): string {
 		const translator = Reflect.get(get(LL).exporterMonitor, key) as (() => string) | undefined;
 		return translator?.() ?? key;
+	}
+
+	/**
+	 * Formate une taille de stockage avec une unité lisible.
+	 * @param {number} bytes Taille en octets.
+	 * @returns {string} Taille formatée.
+	 */
+	function formatStorageSize(bytes: number): string {
+		if (bytes === 0) return '0 B';
+		const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+		const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+		return `${parseFloat((bytes / 1024 ** unitIndex).toFixed(1))} ${units[unitIndex]}`;
+	}
+
+	/**
+	 * Actualise la taille du dossier de travail des exports.
+	 * @returns {Promise<void>} Promesse résolue après le calcul.
+	 */
+	async function refreshExportFolderSize(): Promise<void> {
+		lastExportFolderSizeRefresh = Date.now();
+		try {
+			exportFolderPath ||= await join(await appDataDir(), ExportService.exportFolder);
+			await mkdir(exportFolderPath, { recursive: true });
+			exportFolderSize = await invoke<number>('get_directory_size', {
+				directoryPath: exportFolderPath
+			});
+		} catch {
+			exportFolderSize = null;
+		}
+	}
+
+	/**
+	 * Ouvre le dossier de travail des exports dans le gestionnaire de fichiers.
+	 * @returns {Promise<void>} Promesse résolue après l'ouverture.
+	 */
+	async function openExportFolder(): Promise<void> {
+		try {
+			if (!exportFolderPath) await refreshExportFolderSize();
+			await invoke('open_directory', { directoryPath: exportFolderPath });
+		} catch {
+			toast.error(get(LL).exporterMonitor.failedToOpenExportFolder());
+		}
 	}
 
 	/**
@@ -407,9 +454,16 @@
 	}
 
 	onMount(() => {
+		void refreshExportFolderSize();
 		// Mettre à jour le temps actuel toutes les secondes
 		intervalId = setInterval(() => {
 			currentTime = Date.now();
+			if (
+				globalState.uiState.showExportMonitor &&
+				currentTime - lastExportFolderSizeRefresh >= 10_000
+			) {
+				void refreshExportFolderSize();
+			}
 		}, 1000);
 	});
 
@@ -439,13 +493,30 @@
 					{globalState.exportations.length}
 				</div>
 			</div>
-			<button
-				class="text-gray-400 hover:text-white transition-colors cursor-pointer"
-				onclick={() => (globalState.uiState.showExportMonitor = false)}
-				aria-label={$LL.exporterMonitor.closeExportMonitor()}
-			>
-				<span class="material-icons">close</span>
-			</button>
+			<div class="flex items-center gap-2">
+				<div class="flex items-center gap-1 text-xs text-gray-300 whitespace-nowrap">
+					<span class="material-icons text-sm text-blue-300">storage</span>
+					<span>{$LL.exporterMonitor.exportFolderSizeLabel()}</span>
+					<span class="font-medium text-white">
+						{exportFolderSize === null ? '—' : formatStorageSize(exportFolderSize)}
+					</span>
+				</div>
+				<button
+					class="flex text-gray-400 hover:text-white transition-colors cursor-pointer"
+					onclick={openExportFolder}
+					title={$LL.exporterMonitor.openExportFolder()}
+					aria-label={$LL.exporterMonitor.openExportFolder()}
+				>
+					<span class="material-icons text-xl">folder_open</span>
+				</button>
+				<button
+					class="flex text-gray-400 hover:text-white transition-colors cursor-pointer"
+					onclick={() => (globalState.uiState.showExportMonitor = false)}
+					aria-label={$LL.exporterMonitor.closeExportMonitor()}
+				>
+					<span class="material-icons">close</span>
+				</button>
+			</div>
 		</div>
 
 		{#if globalState.exportations.length > 0}

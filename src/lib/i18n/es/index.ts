@@ -3242,6 +3242,9 @@ const es = {
 	exporterMonitor: {
 		exportsMonitor: 'Monitor de exportaciones',
 		closeExportMonitor: 'Cerrar monitor de exportaciones',
+		exportFolderSizeLabel: 'Carpeta de exportaciones:',
+		openExportFolder: 'Abrir carpeta de exportaciones',
+		failedToOpenExportFolder: 'No se pudo abrir la carpeta de exportaciones',
 		cancelExport: 'Cancelar exportación',
 		cancelExportConfirm:
 			'¿Está seguro de que desea cancelar esta exportación? Se perderá su progreso.',

@@ -3250,6 +3250,9 @@ const de = {
 	exporterMonitor: {
 		exportsMonitor: 'Export-Monitor',
 		closeExportMonitor: 'Export-Monitor schließen',
+		exportFolderSizeLabel: 'Exportordner:',
+		openExportFolder: 'Exportordner öffnen',
+		failedToOpenExportFolder: 'Der Exportordner konnte nicht geöffnet werden',
 		cancelExport: 'Export abbrechen',
 		cancelExportConfirm:
 			'Sind Sie sicher, dass Sie diesen Export abbrechen möchten? Ihr Fortschritt geht verloren.',

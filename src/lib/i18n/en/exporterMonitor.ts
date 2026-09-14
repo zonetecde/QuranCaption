@@ -1,6 +1,9 @@
 const exporterMonitor = {
 	exportsMonitor: 'Exports Monitor',
 	closeExportMonitor: 'Close export monitor',
+	exportFolderSizeLabel: 'Exports folder:',
+	openExportFolder: 'Open exports folder',
+	failedToOpenExportFolder: 'Unable to open the exports folder',
 	cancelExport: 'Cancel Export',
 	cancelExportConfirm: 'Are you sure you want to cancel this export? Your progress will be lost.',
 	fileNotFound: 'File not found',

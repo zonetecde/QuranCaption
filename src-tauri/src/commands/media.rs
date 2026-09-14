@@ -735,6 +735,37 @@ pub fn open_directory(directory_path: String) -> Result<(), String> {
     }
 }
 
+/// Calcule récursivement la taille des fichiers d'un dossier sans suivre les liens symboliques.
+fn directory_size(path: &Path) -> Result<u64, String> {
+    fs::read_dir(path)
+        .map_err(|error| error.to_string())?
+        .try_fold(0_u64, |total, entry| {
+            let entry = entry.map_err(|error| error.to_string())?;
+            let file_type = entry.file_type().map_err(|error| error.to_string())?;
+            let size = if file_type.is_dir() {
+                directory_size(&entry.path())?
+            } else if file_type.is_file() {
+                entry.metadata().map_err(|error| error.to_string())?.len()
+            } else {
+                0
+            };
+            Ok(total.saturating_add(size))
+        })
+}
+
+/// Retourne la taille totale d'un dossier sans bloquer le thread de commande Tauri.
+#[tauri::command]
+pub async fn get_directory_size(directory_path: String) -> Result<u64, String> {
+    let path = path_utils::normalize_existing_path(&directory_path);
+    if !path.is_dir() {
+        return Err(format!("Directory not found: {}", path.to_string_lossy()));
+    }
+
+    tauri::async_runtime::spawn_blocking(move || directory_size(&path))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
 /// Retourne les dimensions vidéo (width/height) du premier stream vidéo.
 #[tauri::command]
 pub fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String> {
@@ -1643,5 +1674,26 @@ mod timeline_thumbnail_tests {
 
         assert!(Arc::ptr_eq(&first_lock, &repeated_first_lock));
         assert!(!Arc::ptr_eq(&first_lock, &second_lock));
+    }
+}
+
+#[cfg(test)]
+mod directory_size_tests {
+    use super::*;
+
+    /// Vérifie que la taille d'un dossier inclut les fichiers de ses sous-dossiers.
+    #[test]
+    fn totals_nested_directory_files() {
+        let test_root = std::env::temp_dir().join(format!(
+            "qurancaption-directory-size-test-{}",
+            std::process::id()
+        ));
+        let nested = test_root.join("nested");
+        fs::create_dir_all(&nested).unwrap();
+        fs::write(test_root.join("first.bin"), [0_u8; 3]).unwrap();
+        fs::write(nested.join("second.bin"), [0_u8; 5]).unwrap();
+
+        assert_eq!(directory_size(&test_root).unwrap(), 8);
+        fs::remove_dir_all(test_root).unwrap();
     }
 }

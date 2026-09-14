@@ -23,7 +23,7 @@
 		'vertical-text-alignment',
 		'show-verse-number'
 	];
-	const arabicStyleIds: StyleName[] = ['riwayah', 'mushaf-style', 'show-decorative-brackets'];
+	const arabicStyleIds: StyleName[] = ['mushaf-style', 'show-decorative-brackets'];
 	const wbwStyleIds: StyleName[] = [
 		'wbw-show-current-word-only',
 		'wbw-reveal-on-recitation',

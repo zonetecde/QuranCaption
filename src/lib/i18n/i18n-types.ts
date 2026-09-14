@@ -10164,6 +10164,18 @@ type RootTranslation = {
 		 */
 		closeExportMonitor: string;
 		/**
+		 * E​x​p​o​r​t​s​ ​f​o​l​d​e​r​:
+		 */
+		exportFolderSizeLabel: string;
+		/**
+		 * O​p​e​n​ ​e​x​p​o​r​t​s​ ​f​o​l​d​e​r
+		 */
+		openExportFolder: string;
+		/**
+		 * U​n​a​b​l​e​ ​t​o​ ​o​p​e​n​ ​t​h​e​ ​e​x​p​o​r​t​s​ ​f​o​l​d​e​r
+		 */
+		failedToOpenExportFolder: string;
+		/**
 		 * C​a​n​c​e​l​ ​E​x​p​o​r​t
 		 */
 		cancelExport: string;
@@ -20181,6 +20193,18 @@ export type TranslationFunctions = {
 		 * Close export monitor
 		 */
 		closeExportMonitor: () => LocalizedString;
+		/**
+		 * Exports folder:
+		 */
+		exportFolderSizeLabel: () => LocalizedString;
+		/**
+		 * Open exports folder
+		 */
+		openExportFolder: () => LocalizedString;
+		/**
+		 * Unable to open the exports folder
+		 */
+		failedToOpenExportFolder: () => LocalizedString;
 		/**
 		 * Cancel Export
 		 */

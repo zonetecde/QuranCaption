@@ -30,6 +30,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::media::get_system_fonts,
         commands::media::get_system_font_sources,
         commands::media::open_directory,
+        commands::media::get_directory_size,
         commands::media::open_explorer_with_file_selected,
         commands::media::get_video_dimensions,
         commands::media::get_video_timeline_thumbnails,

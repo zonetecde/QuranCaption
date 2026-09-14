@@ -34,7 +34,6 @@
 			]
 		);
 	});
-
 	$effect(() => {
 		const text = subtitle.text;
 		void prefetchTranscriptReferences([text]).then(() => {

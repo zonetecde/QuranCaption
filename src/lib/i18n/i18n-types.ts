@@ -4020,7 +4020,7 @@ type RootTranslation = {
 		 */
 		howItWorksDescription1: string;
 		/**
-		 * B​o​l​d​,​ ​i​t​a​l​i​c​,​ ​u​n​d​e​r​l​i​n​e​ ​a​n​d​ ​n​e​w​ ​l​i​n​e​ ​a​r​e​ ​t​o​g​g​l​e​d​ ​o​n​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​r​a​n​g​e​.​ ​C​o​l​o​r​ ​i​s​ ​a​p​p​l​i​e​d​ ​w​i​t​h​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​s​w​a​t​c​h​.​ ​E​d​i​t​i​n​g​ ​t​h​e​ ​t​r​a​n​s​l​a​t​i​o​n​ ​t​e​x​t​ ​l​a​t​e​r​ ​c​l​e​a​r​s​ ​t​r​a​n​s​l​a​t​i​o​n​ ​w​o​r​d​ ​s​t​y​l​e​s​.
+		 * B​o​l​d​,​ ​i​t​a​l​i​c​,​ ​u​n​d​e​r​l​i​n​e​ ​a​n​d​ ​n​e​w​ ​l​i​n​e​ ​a​r​e​ ​t​o​g​g​l​e​d​ ​o​n​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​r​a​n​g​e​.​ ​C​o​l​o​r​ ​a​n​d​ ​g​l​o​w​ ​a​r​e​ ​a​p​p​l​i​e​d​ ​w​i​t​h​ ​t​h​e​i​r​ ​c​u​r​r​e​n​t​ ​s​w​a​t​c​h​e​s​.​ ​E​d​i​t​i​n​g​ ​t​h​e​ ​t​r​a​n​s​l​a​t​i​o​n​ ​t​e​x​t​ ​l​a​t​e​r​ ​c​l​e​a​r​s​ ​t​r​a​n​s​l​a​t​i​o​n​ ​w​o​r​d​ ​s​t​y​l​e​s​.
 		 */
 		howItWorksDescription2: string;
 		/**
@@ -14121,7 +14121,7 @@ export type TranslationFunctions = {
 		 */
 		howItWorksDescription1: () => LocalizedString;
 		/**
-		 * Bold, italic, underline and new line are toggled on the selected range. Color is applied with the current swatch. Editing the translation text later clears translation word styles.
+		 * Bold, italic, underline and new line are toggled on the selected range. Color and glow are applied with their current swatches. Editing the translation text later clears translation word styles.
 		 */
 		howItWorksDescription2: () => LocalizedString;
 		/**

@@ -358,14 +358,16 @@ export class ClipWithTranslation extends Clip {
 							italic: merged.italic || sourceFlags.italic,
 							underline: merged.underline || sourceFlags.underline,
 							lineBreak: merged.lineBreak || sourceFlags.lineBreak,
-							color: sourceFlags.color ?? merged.color
+							color: sourceFlags.color ?? merged.color,
+							glow: sourceFlags.glow ?? merged.glow
 						}),
 						{
 							bold: false,
 							italic: false,
 							underline: false,
 							lineBreak: false,
-							color: null
+							color: null,
+							glow: null
 						} as TranslationInlineStyleFlags
 					);
 				return { text: `${index > 0 ? ' ' : ''}${word}`, ...flags };

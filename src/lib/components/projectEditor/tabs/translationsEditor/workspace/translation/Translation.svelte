@@ -520,6 +520,9 @@
 			lineBreak: translationsEditorState().inlineStyleLineBreakEnabled,
 			color: translationsEditorState().inlineStyleColorEnabled
 				? translationsEditorState().inlineStyleColorValue
+				: null,
+			glow: translationsEditorState().inlineStyleGlowEnabled
+				? translationsEditorState().inlineStyleGlowColorValue
 				: null
 		};
 		const wordCount = getStyledWords().length;

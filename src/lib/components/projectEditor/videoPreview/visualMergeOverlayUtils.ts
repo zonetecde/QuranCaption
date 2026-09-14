@@ -100,7 +100,8 @@ export function createPlainOverlaySegment(
 			bold: false,
 			italic: false,
 			underline: false,
-			color: null
+			color: null,
+			glow: null
 		},
 		extraCss,
 		referenceType,
@@ -143,6 +144,7 @@ function canMergeAdjacentSegments(first: OverlayTextSegment, second: OverlayText
 		first.flags.italic === second.flags.italic &&
 		first.flags.underline === second.flags.underline &&
 		first.flags.color === second.flags.color &&
+		(first.flags.glow ?? null) === (second.flags.glow ?? null) &&
 		first.flags.lineBreak === second.flags.lineBreak
 	);
 }

@@ -4,6 +4,7 @@ import { globalState } from '$lib/runes/main.svelte';
 import { Edition } from '$lib/classes/Edition';
 import {
 	buildTranslationInlineTextSegments,
+	getInlineStyleCss,
 	getTranslationTrimUnits,
 	normalizeTranslationInlineStyleRuns,
 	replaceBoldWordIndexesInInlineStyleRuns,
@@ -170,6 +171,30 @@ describe('translation trim units', () => {
 });
 
 describe('translation inline style runs', () => {
+	it('toggles a colored glow and renders the global glow effect around the word', () => {
+		const runs = toggleTranslationInlineStyleRuns([], 2, 0, 0, {
+			bold: false,
+			italic: false,
+			underline: false,
+			glow: '#00ff88'
+		});
+
+		expect(runs).toEqual([
+			{
+				startWordIndex: 0,
+				endWordIndex: 0,
+				bold: false,
+				italic: false,
+				underline: false,
+				color: null,
+				glow: '#00ff88'
+			}
+		]);
+		expect(getInlineStyleCss(runs[0])).toContain('--inline-word-glow-color: #00ff88;');
+		expect(getInlineStyleCss(runs[0])).toContain('text-shadow:');
+		expect(getInlineStyleCss(runs[0])).toContain('filter: drop-shadow(');
+	});
+
 	it('adds a style range to an empty translation', () => {
 		const runs = toggleTranslationInlineStyleRuns([], 5, 1, 3, {
 			bold: true,

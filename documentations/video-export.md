@@ -132,13 +132,13 @@ Quand une video de fond existe, le chemin direct est ignore. Rust preprocess la 
 necessaire, puis FFmpeg compose:
 
 ```text
-fond normalise + overlay premultiplie -> video finale
+fond normalise + overlay alpha straight -> video finale
 ```
 
 L'overlay garde son alpha. Le graphe applique:
 
 ```text
-premultiply -> overlay alpha=premultiplied
+format yuva444p -> overlay alpha=straight
 ```
 
 ### Pretraitement

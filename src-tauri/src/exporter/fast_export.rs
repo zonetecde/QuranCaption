@@ -597,8 +597,7 @@ pub(super) fn run_fast_export(
         ));
         mapped_video_label = "vout".to_string();
     } else {
-        filter_lines
-            .push("[overlay_raw]premultiply=inplace=1,format=yuva444p[overlay]".to_string());
+        filter_lines.push("[overlay_raw]format=yuva444p[overlay]".to_string());
 
         let bg_label = if has_timed_background && !preprocessed_background_videos.is_empty() {
             let mut labels = Vec::new();
@@ -731,7 +730,7 @@ pub(super) fn run_fast_export(
         }
 
         filter_lines.push(
-            "[bg_normalized][overlay]overlay=shortest=1:x=0:y=0:alpha=premultiplied,format=yuv420p[vcomposed]"
+            "[bg_normalized][overlay]overlay=shortest=1:x=0:y=0:alpha=straight,format=yuv420p[vcomposed]"
                 .to_string(),
         );
         mapped_video_label = "vcomposed".to_string();

@@ -2,6 +2,7 @@
 	import { SubtitleClip } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { enterManualWordByWordEdit, exitManualWordByWordEdit } from '$lib/services/WbwHelper';
+	import { goToSubtitleClip } from '$lib/services/SubtitleNavigation';
 	import VersePicker from '../tabs/subtitlesEditor/VersePicker.svelte';
 	import WordsSelector from '../tabs/subtitlesEditor/WordsSelector.svelte';
 	import TranslationInlineStylePanel from '../tabs/translationsEditor/TranslationInlineStylePanel.svelte';
@@ -139,6 +140,39 @@
 	}
 
 	/**
+	 * Navigue vers le sous-titre adjacent avec les flèches horizontales.
+	 * @param {KeyboardEvent} event Evenement clavier courant.
+	 * @returns {void}
+	 */
+	function handleQuickTimelineEditorNavigation(event: KeyboardEvent): void {
+		const mode = quickTimelineEditor().mode;
+		if (mode !== 'translation' && mode !== 'subtitle' && mode !== 'wbw') return;
+		if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+		if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+		if (
+			event.target instanceof HTMLInputElement ||
+			event.target instanceof HTMLTextAreaElement ||
+			event.target instanceof HTMLSelectElement ||
+			(event.target instanceof HTMLElement && event.target.isContentEditable)
+		)
+			return;
+
+		event.preventDefault();
+		event.stopPropagation();
+		const index = clipIndex();
+		if (index < 0) return;
+
+		const targetClip =
+			event.key === 'ArrowLeft'
+				? globalState.getSubtitleTrack.getSubtitleBefore(index)
+				: globalState.getSubtitleTrack.getSubtitleAfter(index);
+		if (!targetClip) return;
+
+		goToSubtitleClip(targetClip);
+		globalState.openQuickTimelineEditor(targetClip.id, mode);
+	}
+
+	/**
 	 * Retourne le label lisible d'un raccourci configuré.
 	 * @param {string[] | undefined} keys Liste des touches configurées.
 	 * @param {string} fallback Texte de repli si aucune touche n'est définie.
@@ -151,9 +185,11 @@
 
 	onMount(() => {
 		window.addEventListener('keydown', handleQuickTimelineEditorEscape, true);
+		window.addEventListener('keydown', handleQuickTimelineEditorNavigation, true);
 
 		return () => {
 			window.removeEventListener('keydown', handleQuickTimelineEditorEscape, true);
+			window.removeEventListener('keydown', handleQuickTimelineEditorNavigation, true);
 		};
 	});
 

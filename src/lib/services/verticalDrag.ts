@@ -112,6 +112,16 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 	 */
 	function pointerdown(e: PointerEvent) {
 		if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
+		if (node.classList.contains('subtitle')) {
+			const bounds = node.getBoundingClientRect();
+			const isInCenter =
+				e.clientX >= bounds.left + bounds.width * 0.25 &&
+				e.clientX <= bounds.right - bounds.width * 0.25 &&
+				e.clientY >= bounds.top + bounds.height * 0.25 &&
+				e.clientY <= bounds.bottom - bounds.height * 0.25;
+			// Les zones périphériques restent réservées aux poignées de redimensionnement tactiles.
+			if (!isInCenter) return;
+		}
 		e.preventDefault();
 		ProjectHistoryManager.begin('drag style position');
 		startY = e.clientY;

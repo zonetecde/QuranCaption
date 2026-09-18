@@ -73,6 +73,24 @@
 
 	const MAX_RUNTIME_LAYOUT_CACHE_ENTRIES = 300;
 
+	/**
+	 * Affiche les poignées du texte touché et les masque après un appui ailleurs.
+	 * @param {PointerEvent} event Événement de pointeur global.
+	 * @returns {void}
+	 */
+	function updateSubtitleResizeSelection(event: PointerEvent): void {
+		const overlay = document.getElementById('overlay');
+		if (!overlay) return;
+		const selectedSubtitle =
+			event.target instanceof Element ? event.target.closest<HTMLElement>('.subtitle') : null;
+		overlay
+			.querySelectorAll('.subtitle-resize-selected')
+			.forEach((subtitle) => subtitle.classList.remove('subtitle-resize-selected'));
+		if (selectedSubtitle && overlay.contains(selectedSubtitle)) {
+			selectedSubtitle.classList.add('subtitle-resize-selected');
+		}
+	}
+
 	// =========================================================================
 	// Dérivations réactives globales
 	// =========================================================================
@@ -1175,6 +1193,8 @@
 <!-- ===================================================================== -->
 <!-- TEMPLATE                                                              -->
 <!-- ===================================================================== -->
+
+<svelte:window onpointerdown={updateSubtitleResizeSelection} />
 
 <div class="inset-0 absolute" id="overlay">
 	<!-- Couche 1 : Grille d'alignement (onglet Style uniquement) -->

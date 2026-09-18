@@ -165,21 +165,26 @@
 
 <style>
 	.subtitle-resize-frame {
+		--subtitle-resize-grip-size: 44px;
 		position: absolute;
 		z-index: 20;
 		inset: 0;
-		visibility: visible;
+		visibility: hidden;
 		border: 4px solid var(--accent-primary);
 		box-sizing: border-box;
 		pointer-events: none;
+	}
+	:global(.subtitle.subtitle-resize-selected) .subtitle-resize-frame,
+	.subtitle-resize-frame.resizing {
+		visibility: visible;
 	}
 	:global(.subtitle.subtitle-layout-measurement) .subtitle-resize-frame {
 		display: none;
 	}
 	.subtitle-resize-handle {
 		position: absolute;
-		width: 28px;
-		height: 28px;
+		width: var(--subtitle-resize-grip-size);
+		height: var(--subtitle-resize-grip-size);
 		z-index: 1;
 		border: 4px solid var(--accent-primary);
 		border-radius: 999px;
@@ -197,17 +202,17 @@
 
 	.subtitle-resize-edge-top,
 	.subtitle-resize-edge-bottom {
-		right: 28px;
-		left: 28px;
-		height: 28px;
+		right: var(--subtitle-resize-grip-size);
+		left: var(--subtitle-resize-grip-size);
+		height: var(--subtitle-resize-grip-size);
 		cursor: ns-resize;
 	}
 
 	.subtitle-resize-edge-right,
 	.subtitle-resize-edge-left {
-		top: 28px;
-		bottom: 28px;
-		width: 28px;
+		top: var(--subtitle-resize-grip-size);
+		bottom: var(--subtitle-resize-grip-size);
+		width: var(--subtitle-resize-grip-size);
 		cursor: ew-resize;
 	}
 

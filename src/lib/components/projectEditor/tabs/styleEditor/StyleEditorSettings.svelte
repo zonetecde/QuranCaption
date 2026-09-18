@@ -1056,7 +1056,7 @@
 				secondaryControlsVisible={secondaryHeaderVisible}
 				{onSearchFocusChange}
 			/>
-			<div class="style-settings-content p-2">
+			<div class="style-settings-content p-2 pb-24">
 				{#if globalState.getStylesState.getCurrentSelection() === 'global' && globalState.getStylesState.selectedSubtitles.length > 0}
 					<div class="style-empty-state border-amber-400/40 bg-amber-500/10 text-amber-100">
 						<span class="material-icons-outlined text-xl">info</span>

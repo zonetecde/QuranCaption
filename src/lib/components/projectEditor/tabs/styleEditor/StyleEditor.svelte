@@ -7,11 +7,18 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { TrackType } from '$lib/classes';
 	import { PROJECT_EDITOR_STYLE_SECTION_HEIGHTS } from '$lib/constants/projectEditor';
+	import { getTimelineCustomClips } from '../../timeline/track/timelineCustomClip';
 
 	/** Ouverture de la librairie de presets (état géré dans globalState). */
 	let presetLibraryOpen = $derived(globalState.presetLibrary.libraryOpen);
 	let searchFocused = $state(false);
 	let expandedViewportHeight = 0;
+	let visibleStyleTrackTypes = $derived([
+		TrackType.Subtitle,
+		...(getTimelineCustomClips().some((clip) => !clip.getAlwaysShow())
+			? [TrackType.CustomClip]
+			: [])
+	]);
 	let previewHeight = $derived(
 		Math.max(
 			PROJECT_EDITOR_STYLE_SECTION_HEIGHTS.preview.min,
@@ -104,7 +111,7 @@
 		class="style-editor-timeline"
 		style={`flex-basis: ${searchFocused ? 5 : timelineHeight}%;`}
 	>
-		<Timeline useSplitHeight={false} visibleTrackTypes={[TrackType.Subtitle]} fitTracksToHeight />
+		<Timeline useSplitHeight={false} visibleTrackTypes={visibleStyleTrackTypes} fitTracksToHeight />
 	</section>
 
 	<DiviseurRedimensionnable

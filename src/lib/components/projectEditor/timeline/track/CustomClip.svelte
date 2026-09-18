@@ -24,6 +24,8 @@
 
 	onDestroy(() => {
 		currentMenu.set(null);
+		if (resizePointerId !== null) stopResize();
+		if (clipGesturePointerId !== null) stopClipDragging();
 	});
 
 	let positionLeft = $derived(() => {
@@ -33,9 +35,21 @@
 
 	let contextMenu: ContextMenu | null = null;
 
-	/** Drag resizing state */
-	let dragStartX: number | null = null;
-	/** Drag whole clip state */
+	let resizePointerId: number | null = null;
+	let resizeEdge: 'left' | 'right' | null = null;
+	let resizeStartX = 0;
+	let resizeOriginalStartTime = 0;
+	let resizeOriginalEndTime = 0;
+	const clipDragHoldDelayMs = 300;
+	const clipGestureMoveThresholdPx = 8;
+	let clipDragHoldTimer: ReturnType<typeof setTimeout> | null = null;
+	let clipGesturePointerId: number | null = null;
+	let clipGestureStartX = 0;
+	let clipGestureStartY = 0;
+	let clipGestureScrollElement: HTMLElement | null = null;
+	let clipGestureScrollLeft = 0;
+	let clipGestureScrollTop = 0;
+	let clipGestureDidScroll = false;
 	let clipDragStartX: number | null = null;
 	let originalStartTime = 0;
 	let originalDuration = 0;
@@ -54,78 +68,139 @@
 		});
 	}
 
-	// --- Redimensionnement gauche ---
-	function startLeftDragging(e: MouseEvent) {
-		if (e.button !== 0 || clip.getAlwaysShow()) return; // pas de drag si always-show
+	/**
+	 * Démarre le redimensionnement tactile depuis un bord du clip.
+	 * @param {'left' | 'right'} edge Bord manipulé.
+	 * @param {PointerEvent} event Événement initial du pointeur.
+	 * @returns {void}
+	 */
+	function startResize(edge: 'left' | 'right', event: PointerEvent): void {
+		if (!event.isPrimary || event.button !== 0 || clip.getAlwaysShow()) return;
+		event.preventDefault();
+		event.stopPropagation();
 		ProjectHistoryManager.begin('resize custom clip');
-		dragStartX = e.clientX;
+		resizePointerId = event.pointerId;
+		resizeEdge = edge;
+		resizeStartX = event.clientX;
+		resizeOriginalStartTime = clip.startTime;
+		resizeOriginalEndTime = clip.endTime;
 		globalState.getTimelineState.showCursor = false;
-		document.addEventListener('mousemove', onLeftDragging);
-		document.addEventListener('mouseup', stopLeftDragging);
+		document.addEventListener('pointermove', resizeClip);
+		document.addEventListener('pointerup', stopResize);
+		document.addEventListener('pointercancel', stopResize);
 	}
 
-	function onLeftDragging(_e: MouseEvent) {
-		if (dragStartX === null) return;
-		const cursorPosition = globalState.currentProject?.projectEditorState.timeline.cursorPosition;
-		if (cursorPosition === undefined) return;
-		const newStart = getSnappedTimelineCustomClipTime(cursorPosition, String(clip.id));
-		// Durée minimale 100ms
-		if (clip.endTime - newStart < 100) return;
-		clip.setStartTime(newStart);
+	/**
+	 * Redimensionne le clip selon le déplacement horizontal du pointeur.
+	 * @param {PointerEvent} event Événement courant du pointeur.
+	 * @returns {void}
+	 */
+	function resizeClip(event: PointerEvent): void {
+		if (event.pointerId !== resizePointerId || !resizeEdge) return;
+		event.preventDefault();
+		const deltaMs = Math.round(((event.clientX - resizeStartX) / track.getPixelPerSecond()) * 1000);
+		if (resizeEdge === 'left') {
+			const newStart = getSnappedTimelineCustomClipTime(
+				Math.max(0, resizeOriginalStartTime + deltaMs),
+				String(clip.id)
+			);
+			if (resizeOriginalEndTime - newStart >= 100) clip.setStartTime(newStart);
+			return;
+		}
+
+		const newEnd = getSnappedTimelineCustomClipTime(
+			resizeOriginalEndTime + deltaMs,
+			String(clip.id)
+		);
+		if (newEnd - resizeOriginalStartTime >= 100) clip.setEndTime(newEnd);
 	}
 
-	function stopLeftDragging() {
-		dragStartX = null;
-		document.removeEventListener('mousemove', onLeftDragging);
-		document.removeEventListener('mouseup', stopLeftDragging);
+	/**
+	 * Termine le redimensionnement et crée une seule entrée undo/redo.
+	 * @returns {void}
+	 */
+	function stopResize(): void {
+		if (resizePointerId === null) return;
+		resizePointerId = null;
+		resizeEdge = null;
+		document.removeEventListener('pointermove', resizeClip);
+		document.removeEventListener('pointerup', stopResize);
+		document.removeEventListener('pointercancel', stopResize);
 		globalState.getTimelineState.showCursor = true;
 		ProjectHistoryManager.commit();
 	}
 
-	// --- Redimensionnement droite ---
-	function startRightDragging(e: MouseEvent) {
-		if (e.button !== 0 || clip.getAlwaysShow()) return;
-		ProjectHistoryManager.begin('resize custom clip');
-		dragStartX = e.clientX;
-		globalState.getTimelineState.showCursor = false;
-		document.addEventListener('mousemove', onRightDragging);
-		document.addEventListener('mouseup', stopRightDragging);
+	/**
+	 * Attend un appui long avant de déplacer le clip, comme les clips vidéo mobiles.
+	 * @param {PointerEvent} event Événement initial du pointeur.
+	 * @returns {void}
+	 */
+	function startClipDragging(event: PointerEvent): void {
+		if (
+			!event.isPrimary ||
+			event.button !== 0 ||
+			clip.getAlwaysShow() ||
+			clipGesturePointerId !== null ||
+			(event.target instanceof Element && event.target.closest('.custom-clip-resize-handle'))
+		)
+			return;
+
+		event.preventDefault();
+		clipGesturePointerId = event.pointerId;
+		clipGestureStartX = event.clientX;
+		clipGestureStartY = event.clientY;
+		clipGestureScrollElement = (event.currentTarget as HTMLElement).closest<HTMLElement>(
+			'.timeline-tracks'
+		);
+		clipGestureScrollLeft = clipGestureScrollElement?.scrollLeft ?? 0;
+		clipGestureScrollTop = clipGestureScrollElement?.scrollTop ?? 0;
+		clipGestureDidScroll = false;
+		clipDragHoldTimer = setTimeout(activateClipDragging, clipDragHoldDelayMs);
+		document.addEventListener('pointermove', handlePendingClipGesture);
+		document.addEventListener('pointerup', stopClipDragging);
+		document.addEventListener('pointercancel', stopClipDragging);
 	}
 
-	function onRightDragging(_e: MouseEvent) {
-		if (dragStartX === null) return;
-		const cursorPosition = globalState.currentProject?.projectEditorState.timeline.cursorPosition;
-		if (cursorPosition === undefined) return;
-		const newEnd = getSnappedTimelineCustomClipTime(cursorPosition, String(clip.id));
-		if (newEnd - clip.startTime < 100) return;
-		clip.setEndTime(newEnd);
-	}
-
-	function stopRightDragging() {
-		dragStartX = null;
-		document.removeEventListener('mousemove', onRightDragging);
-		document.removeEventListener('mouseup', stopRightDragging);
-		globalState.getTimelineState.showCursor = true;
-		ProjectHistoryManager.commit();
-	}
-
-	// --- Déplacement complet du clip ---
-	function startClipDragging(e: MouseEvent) {
-		// Empêche le drag si on clique sur les poignées (géré séparément) ou si always-show
-		if (e.button !== 0 || clip.getAlwaysShow()) return;
-		// Ignore si on a commencé sur une poignée (largeur 1px) - déjà capturé par leurs handlers.
+	/**
+	 * Active le déplacement après le délai d'appui long.
+	 * @returns {void}
+	 */
+	function activateClipDragging(): void {
+		if (clipGesturePointerId === null) return;
+		clipDragHoldTimer = null;
+		document.removeEventListener('pointermove', handlePendingClipGesture);
 		ProjectHistoryManager.begin('move custom clip');
-		clipDragStartX = e.clientX;
+		clipDragStartX = clipGestureStartX;
 		originalStartTime = clip.startTime;
-		originalDuration = clip.duration; // conserver la durée
+		originalDuration = clip.duration;
 		globalState.getTimelineState.showCursor = false;
-		document.addEventListener('mousemove', onClipDragging);
-		document.addEventListener('mouseup', stopClipDragging);
+		document.addEventListener('pointermove', onClipDragging);
 	}
 
-	function onClipDragging(e: MouseEvent) {
-		if (clipDragStartX === null) return;
-		const deltaPixels = e.clientX - clipDragStartX;
+	/**
+	 * Fait défiler la timeline si le doigt bouge avant la fin de l'appui long.
+	 * @param {PointerEvent} event Événement courant du pointeur.
+	 * @returns {void}
+	 */
+	function handlePendingClipGesture(event: PointerEvent): void {
+		if (event.pointerId !== clipGesturePointerId) return;
+		const deltaX = event.clientX - clipGestureStartX;
+		const deltaY = event.clientY - clipGestureStartY;
+		if (!clipGestureDidScroll && Math.hypot(deltaX, deltaY) < clipGestureMoveThresholdPx) return;
+		if (clipDragHoldTimer !== null) clearTimeout(clipDragHoldTimer);
+		clipDragHoldTimer = null;
+		clipGestureDidScroll = true;
+		if (clipGestureScrollElement) {
+			clipGestureScrollElement.scrollLeft = clipGestureScrollLeft - deltaX;
+			clipGestureScrollElement.scrollTop = clipGestureScrollTop - deltaY;
+		}
+		event.preventDefault();
+	}
+
+	function onClipDragging(event: PointerEvent): void {
+		if (clipDragStartX === null || event.pointerId !== clipGesturePointerId) return;
+		event.preventDefault();
+		const deltaPixels = event.clientX - clipDragStartX;
 		const deltaSeconds = deltaPixels / track.getPixelPerSecond();
 		const deltaMs = deltaSeconds * 1000;
 		const rawStart = Math.max(0, Math.round(originalStartTime + deltaMs));
@@ -135,10 +210,20 @@
 		clip.setEndTime(newEnd);
 	}
 
-	function stopClipDragging() {
+	function stopClipDragging(event?: PointerEvent): void {
+		if (event && event.pointerId !== clipGesturePointerId) return;
+		const didActivateDragging = clipDragStartX !== null;
+		if (clipDragHoldTimer !== null) clearTimeout(clipDragHoldTimer);
+		clipDragHoldTimer = null;
+		clipGesturePointerId = null;
+		clipGestureScrollElement = null;
+		clipGestureDidScroll = false;
 		clipDragStartX = null;
-		document.removeEventListener('mousemove', onClipDragging);
-		document.removeEventListener('mouseup', stopClipDragging);
+		document.removeEventListener('pointermove', handlePendingClipGesture);
+		document.removeEventListener('pointermove', onClipDragging);
+		document.removeEventListener('pointerup', stopClipDragging);
+		document.removeEventListener('pointercancel', stopClipDragging);
+		if (!didActivateDragging) return;
 		globalState.getTimelineState.showCursor = true;
 		ProjectHistoryManager.commit();
 	}
@@ -149,14 +234,18 @@
 </script>
 
 <div
-	class="absolute inset-0 z-10 border border-[var(--timeline-customtext-clip-border)] bg-[var(--timeline-customtext-clip-color)] rounded-md group overflow-hidden {clip.getAlwaysShow()
+	class="absolute inset-0 z-10 touch-none border border-[var(--timeline-customtext-clip-border)] bg-[var(--timeline-customtext-clip-color)] rounded-md group overflow-hidden {clip.getAlwaysShow()
 		? ''
 		: 'cursor-move'}"
 	style="width: {clip.getWidth()}px; left: {positionLeft()}px;"
 	oncontextmenu={(e) => {
+		if (clipDragStartX !== null || resizePointerId !== null) {
+			e.preventDefault();
+			return;
+		}
 		void showContextMenuInViewport(contextMenu, e);
 	}}
-	onmousedown={startClipDragging}
+	onpointerdown={startClipDragging}
 >
 	<div class="absolute inset-0 z-5 flex overflow-hidden px-2 py-2">
 		<div class="flex items-center w-full">
@@ -169,20 +258,18 @@
 	{#if !clip.getAlwaysShow()}
 		<!-- Poignée gauche -->
 		<div
-			class="h-full w-1 left-0 cursor-w-resize absolute top-0 bottom-0 z-10"
-			onmousedown={(e) => {
-				e.stopPropagation();
-				startLeftDragging(e);
-			}}
-		></div>
+			class="custom-clip-resize-handle absolute inset-y-0 left-0 z-30 w-11 max-w-[40%] cursor-ew-resize touch-none"
+			onpointerdown={(event) => startResize('left', event)}
+		>
+			<div class="absolute inset-y-1 left-1 w-1 rounded-full bg-white/70"></div>
+		</div>
 		<!-- Poignée droite -->
 		<div
-			class="h-full w-1 right-0 cursor-w-resize absolute top-0 bottom-0 z-10"
-			onmousedown={(e) => {
-				e.stopPropagation();
-				startRightDragging(e);
-			}}
-		></div>
+			class="custom-clip-resize-handle absolute inset-y-0 right-0 z-30 w-11 max-w-[40%] cursor-ew-resize touch-none"
+			onpointerdown={(event) => startResize('right', event)}
+		>
+			<div class="absolute inset-y-1 right-1 w-1 rounded-full bg-white/70"></div>
+		</div>
 	{/if}
 </div>
 

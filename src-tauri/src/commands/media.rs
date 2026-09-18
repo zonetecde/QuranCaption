@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
-use std::fs;
-use std::io::{BufRead, BufReader};
-#[cfg(any(desktop, target_os = "android"))]
+use std::fs::{self, File};
+use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
+use std::net::{TcpListener, TcpStream};
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -48,6 +48,259 @@ const TIMELINE_THUMBNAIL_CACHE_VERSION: &str = "v1";
 const MAX_TIMELINE_THUMBNAILS_PER_REQUEST: usize = 32;
 static TIMELINE_THUMBNAIL_EXTRACTION_LOCKS: OnceLock<Mutex<HashMap<PathBuf, Arc<Mutex<()>>>>> =
     OnceLock::new();
+static LOCAL_MEDIA_SERVER: OnceLock<Result<LocalMediaServer, String>> = OnceLock::new();
+
+struct LocalMediaServer {
+    port: u16,
+    files: Arc<Mutex<HashMap<String, PathBuf>>>,
+}
+
+impl LocalMediaServer {
+    /// Démarre le serveur HTTP local utilisé par les éléments vidéo.
+    ///
+    /// @returns Serveur prêt à enregistrer des médias locaux.
+    fn start() -> Result<Self, String> {
+        let listener = TcpListener::bind(("127.0.0.1", 0))
+            .map_err(|error| format!("Unable to start local media server: {}", error))?;
+        let port = listener
+            .local_addr()
+            .map_err(|error| format!("Unable to read local media server address: {}", error))?
+            .port();
+        let files = Arc::new(Mutex::new(HashMap::new()));
+        let served_files = Arc::clone(&files);
+
+        thread::spawn(move || {
+            for connection in listener.incoming() {
+                let Ok(stream) = connection else { continue };
+                let files = Arc::clone(&served_files);
+                thread::spawn(move || {
+                    let _ = serve_local_media(stream, &files);
+                });
+            }
+        });
+
+        Ok(Self { port, files })
+    }
+
+    /// Enregistre un fichier et retourne son URL HTTP locale privée.
+    ///
+    /// @param file_path Chemin absolu du média à exposer.
+    /// @param reload_token Jeton invalidant le cache du lecteur.
+    /// @returns URL utilisable comme source d'un élément vidéo.
+    fn register(&self, file_path: PathBuf, reload_token: u64) -> Result<String, String> {
+        let token = format!("{:032x}", rand::random::<u128>());
+        self.files
+            .lock()
+            .map_err(|_| "Unable to lock local media registry".to_string())?
+            .insert(token.clone(), file_path);
+        Ok(format!(
+            "http://127.0.0.1:{}/media/{}?v={}",
+            self.port, token, reload_token
+        ))
+    }
+}
+
+/// Retourne une URL HTTP locale permettant à WebView de lire et chercher dans une vidéo.
+///
+/// @param file_path Chemin du média local.
+/// @param reload_token Jeton invalidant la source après remplacement du fichier.
+/// @returns URL locale diffusant le média sans le charger entièrement en mémoire.
+#[tauri::command]
+pub fn get_local_media_url(file_path: &str, reload_token: u64) -> Result<String, String> {
+    let file_path = path_utils::normalize_existing_path(file_path);
+    if !file_path.is_file() {
+        return Err(format!(
+            "Local media file does not exist: {}",
+            file_path.display()
+        ));
+    }
+
+    match LOCAL_MEDIA_SERVER.get_or_init(LocalMediaServer::start) {
+        Ok(server) => server.register(file_path, reload_token),
+        Err(error) => Err(error.clone()),
+    }
+}
+
+/// Traite une requête HTTP locale et diffuse la plage demandée du média.
+///
+/// @param stream Connexion reçue depuis WebView.
+/// @param files Registre des jetons de médias autorisés.
+/// @returns Erreur d'entrée-sortie éventuelle.
+fn serve_local_media(
+    mut stream: TcpStream,
+    files: &Mutex<HashMap<String, PathBuf>>,
+) -> std::io::Result<()> {
+    let mut reader = BufReader::new(stream.try_clone()?);
+    let mut request_line = String::new();
+    reader.read_line(&mut request_line)?;
+    let mut request_parts = request_line.split_whitespace();
+    let method = request_parts.next().unwrap_or_default();
+    let target = request_parts.next().unwrap_or_default();
+    if method != "GET" && method != "HEAD" {
+        return write_local_media_error(&mut stream, 405, "Method Not Allowed", None);
+    }
+
+    let mut range_header = None;
+    loop {
+        let mut line = String::new();
+        if reader.read_line(&mut line)? == 0 || line == "\r\n" || line == "\n" {
+            break;
+        }
+        if let Some((name, value)) = line.split_once(':') {
+            if name.eq_ignore_ascii_case("range") {
+                range_header = Some(value.trim().to_string());
+            }
+        }
+    }
+
+    let token = target
+        .split('?')
+        .next()
+        .and_then(|path| path.strip_prefix("/media/"))
+        .filter(|value| !value.is_empty() && !value.contains('/'));
+    let file_path = token.and_then(|value| files.lock().ok()?.get(value).cloned());
+    let Some(file_path) = file_path else {
+        return write_local_media_error(&mut stream, 404, "Not Found", None);
+    };
+
+    let mut file = File::open(&file_path)?;
+    let file_length = file.metadata()?.len();
+    if file_length == 0 {
+        return write_local_media_error(&mut stream, 404, "Not Found", None);
+    }
+    let range = match parse_local_media_range(range_header.as_deref(), file_length) {
+        Ok(range) => range,
+        Err(()) => {
+            return write_local_media_error(
+                &mut stream,
+                416,
+                "Range Not Satisfiable",
+                Some(&format!("bytes */{}", file_length)),
+            )
+        }
+    };
+    let (start, end) = range.unwrap_or((0, file_length - 1));
+    let content_length = end - start + 1;
+    let partial = range.is_some();
+    let status = if partial {
+        "206 Partial Content"
+    } else {
+        "200 OK"
+    };
+    let content_range = if partial {
+        format!("Content-Range: bytes {}-{}/{}\r\n", start, end, file_length)
+    } else {
+        String::new()
+    };
+    let headers = format!(
+        "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nAccept-Ranges: bytes\r\n{}Access-Control-Allow-Origin: *\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",
+        status,
+        local_media_mime_type(&file_path),
+        content_length,
+        content_range
+    );
+    stream.write_all(headers.as_bytes())?;
+    if method == "HEAD" {
+        return Ok(());
+    }
+
+    file.seek(SeekFrom::Start(start))?;
+    let mut remaining = content_length;
+    let mut buffer = [0_u8; 64 * 1024];
+    while remaining > 0 {
+        let read_length =
+            usize::try_from(remaining.min(buffer.len() as u64)).unwrap_or(buffer.len());
+        let read = file.read(&mut buffer[..read_length])?;
+        if read == 0 {
+            break;
+        }
+        if stream.write_all(&buffer[..read]).is_err() {
+            break;
+        }
+        remaining -= read as u64;
+    }
+    Ok(())
+}
+
+/// Analyse une plage HTTP simple demandée par le lecteur vidéo.
+///
+/// @param header Valeur éventuelle du header Range.
+/// @param file_length Taille totale du fichier.
+/// @returns Plage inclusive ou erreur si elle est invalide.
+fn parse_local_media_range(
+    header: Option<&str>,
+    file_length: u64,
+) -> Result<Option<(u64, u64)>, ()> {
+    let Some(range) = header else { return Ok(None) };
+    let range = range
+        .strip_prefix("bytes=")
+        .filter(|value| !value.contains(','))
+        .ok_or(())?;
+    let (start, end) = range.split_once('-').ok_or(())?;
+    let (start, end) = if start.is_empty() {
+        let suffix_length = end.parse::<u64>().map_err(|_| ())?;
+        if suffix_length == 0 {
+            return Err(());
+        }
+        (file_length.saturating_sub(suffix_length), file_length - 1)
+    } else {
+        let start = start.parse::<u64>().map_err(|_| ())?;
+        let end = if end.is_empty() {
+            file_length - 1
+        } else {
+            end.parse::<u64>().map_err(|_| ())?.min(file_length - 1)
+        };
+        (start, end)
+    };
+
+    if start >= file_length || end < start {
+        return Err(());
+    }
+    Ok(Some((start, end)))
+}
+
+/// Écrit une réponse HTTP d'erreur sans corps.
+///
+/// @param stream Connexion HTTP à terminer.
+/// @param status_code Code de statut HTTP.
+/// @param reason Libellé du statut.
+/// @param content_range Plage totale utilisée pour une erreur 416.
+/// @returns Erreur d'écriture éventuelle.
+fn write_local_media_error(
+    stream: &mut TcpStream,
+    status_code: u16,
+    reason: &str,
+    content_range: Option<&str>,
+) -> std::io::Result<()> {
+    let content_range = content_range
+        .map(|value| format!("Content-Range: {}\r\n", value))
+        .unwrap_or_default();
+    write!(
+        stream,
+        "HTTP/1.1 {} {}\r\nContent-Length: 0\r\n{}Connection: close\r\n\r\n",
+        status_code, reason, content_range
+    )
+}
+
+/// Déduit le type MIME vidéo à partir de l'extension du fichier.
+///
+/// @param file_path Chemin du média servi.
+/// @returns Type MIME compatible avec l'élément vidéo.
+fn local_media_mime_type(file_path: &Path) -> &'static str {
+    match file_path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "m4v" | "mp4" => "video/mp4",
+        "mov" => "video/quicktime",
+        "webm" => "video/webm",
+        "mkv" => "video/x-matroska",
+        _ => "application/octet-stream",
+    }
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]

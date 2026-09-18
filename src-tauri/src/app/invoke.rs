@@ -43,6 +43,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::media::open_directory,
         commands::media::open_explorer_with_file_selected,
         commands::media::get_video_dimensions,
+        commands::media::get_local_media_url,
         commands::native_audio::native_audio_load,
         commands::native_audio::native_audio_play,
         commands::native_audio::native_audio_pause,

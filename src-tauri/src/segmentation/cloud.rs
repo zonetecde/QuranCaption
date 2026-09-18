@@ -475,8 +475,8 @@ pub async fn segment_quran_audio(
         result = parser.line(&String::from_utf8_lossy(&buffer), &app)?;
     }
     match result {
-        Some(value) => value,
-        None => parser.finish(&app)?,
+        Some(value) => Ok(value),
+        None => parser.finish(&app),
     }
 }
 

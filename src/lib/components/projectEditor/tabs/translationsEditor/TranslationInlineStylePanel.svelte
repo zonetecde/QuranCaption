@@ -6,6 +6,7 @@
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import Settings from '$lib/classes/Settings.svelte';
 	import { WBW_TRANSLATION_LANGUAGES } from '$lib/services/WbwTranslationService';
+	import MobileColorPicker from '$lib/components/misc/MobileColorPicker.svelte';
 
 	const translationsEditorState = $derived(
 		() => globalState.currentProject!.projectEditorState.translationsEditor
@@ -255,38 +256,33 @@
 			>
 				<div class="flex items-center justify-between gap-3">
 					<button
-						class="flex min-w-0 flex-1 items-center justify-between gap-3 text-left text-sm font-medium text-primary"
+						type="button"
+						class="flex min-w-0 flex-1 items-center gap-2 text-left text-sm font-medium text-primary"
 						onclick={() => toggleStyle('inlineStyleColorEnabled')}
 					>
-						<span class="flex items-center gap-2">
-							<span
-								class="inline-block h-4 w-4 rounded-full border border-white/20 shadow-sm"
-								style={`background-color: ${translationsEditorState().inlineStyleColorValue};`}
-							></span>
-							{$LL.editor.color()}
-						</span>
-
-						<div class="flex items-center gap-x-2">
-							<input
-								type="color"
-								value={translationsEditorState().inlineStyleColorValue}
-								onclick={(event) => event.stopPropagation()}
-								oninput={(event) => {
-									translationsEditorState().inlineStyleColorValue = (
-										event.currentTarget as HTMLInputElement
-									).value;
-								}}
-								class="h-9 w-11 cursor-pointer rounded border border-color bg-secondary p-1"
-								aria-label={$LL.editor.wordStyleColor()}
-							/>
-
-							<span class="text-xs text-secondary">
-								{translationsEditorState().inlineStyleColorEnabled
-									? $LL.common.on()
-									: $LL.common.off()}
-							</span>
-						</div>
+						<span
+							class="inline-block h-4 w-4 rounded-full border border-white/20 shadow-sm"
+							style={`background-color: ${translationsEditorState().inlineStyleColorValue};`}
+						></span>
+						{$LL.editor.color()}
 					</button>
+					<div class="flex items-center gap-x-2">
+						<MobileColorPicker
+							compact
+							value={translationsEditorState().inlineStyleColorValue}
+							label={$LL.editor.wordStyleColor()}
+							onChange={(value) => (translationsEditorState().inlineStyleColorValue = value)}
+						/>
+						<button
+							type="button"
+							class="text-xs text-secondary"
+							onclick={() => toggleStyle('inlineStyleColorEnabled')}
+						>
+							{translationsEditorState().inlineStyleColorEnabled
+								? $LL.common.on()
+								: $LL.common.off()}
+						</button>
+					</div>
 				</div>
 			</div>
 
@@ -299,38 +295,33 @@
 			>
 				<div class="flex items-center justify-between gap-3">
 					<button
-						class="flex min-w-0 flex-1 items-center justify-between gap-3 text-left text-sm font-medium text-primary"
+						type="button"
+						class="flex min-w-0 flex-1 items-center gap-2 text-left text-sm font-medium text-primary"
 						onclick={() => toggleStyle('inlineStyleGlowEnabled')}
 					>
-						<span class="flex items-center gap-2">
-							<span
-								class="inline-block h-4 w-4 rounded-full border border-white/20"
-								style={`background-color: ${translationsEditorState().inlineStyleGlowColorValue}; box-shadow: 0 0 8px ${translationsEditorState().inlineStyleGlowColorValue};`}
-							></span>
-							{$LL.editor.styleName['text-glow']()}
-						</span>
-
-						<div class="flex items-center gap-x-2">
-							<input
-								type="color"
-								value={translationsEditorState().inlineStyleGlowColorValue}
-								onclick={(event) => event.stopPropagation()}
-								oninput={(event) => {
-									translationsEditorState().inlineStyleGlowColorValue = (
-										event.currentTarget as HTMLInputElement
-									).value;
-								}}
-								class="h-9 w-11 cursor-pointer rounded border border-color bg-secondary p-1"
-								aria-label={$LL.editor.styleName['text-glow-color']()}
-							/>
-
-							<span class="text-xs text-secondary">
-								{translationsEditorState().inlineStyleGlowEnabled
-									? $LL.common.on()
-									: $LL.common.off()}
-							</span>
-						</div>
+						<span
+							class="inline-block h-4 w-4 rounded-full border border-white/20"
+							style={`background-color: ${translationsEditorState().inlineStyleGlowColorValue}; box-shadow: 0 0 8px ${translationsEditorState().inlineStyleGlowColorValue};`}
+						></span>
+						{$LL.editor.styleName['text-glow']()}
 					</button>
+					<div class="flex items-center gap-x-2">
+						<MobileColorPicker
+							compact
+							value={translationsEditorState().inlineStyleGlowColorValue}
+							label={$LL.editor.styleName['text-glow-color']()}
+							onChange={(value) => (translationsEditorState().inlineStyleGlowColorValue = value)}
+						/>
+						<button
+							type="button"
+							class="text-xs text-secondary"
+							onclick={() => toggleStyle('inlineStyleGlowEnabled')}
+						>
+							{translationsEditorState().inlineStyleGlowEnabled
+								? $LL.common.on()
+								: $LL.common.off()}
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>

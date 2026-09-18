@@ -86,6 +86,7 @@
 		"reflect-metadata": "^0.2.2",
 		"sharp": "^0.34.3",
 		"svelte-5-french-toast": "^2.0.4",
+		"svelte-awesome-color-picker": "4.1.0",
 		"wavesurfer.js": "^7.10.0"
 	}
 }

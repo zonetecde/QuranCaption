@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import { beginStyleMutation, commitStyleMutation } from '$lib/services/StyleMutationService';
+	import MobileColorPicker from '$lib/components/misc/MobileColorPicker.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 	import type { ApplyStyleControlValue, StyleControlValue } from './types';
 
 	let { value, onChange }: { value: StyleControlValue; onChange: ApplyStyleControlValue } =
@@ -41,13 +43,12 @@
 </script>
 
 <div class="flex items-center gap-x-2">
-	<input
-		type="color"
+	<MobileColorPicker
 		value={String(value)}
-		class="style-color-picker"
-		oninput={(event) => applyPickerValue((event.target as HTMLInputElement).value)}
-		onblur={commitHistoryTransaction}
-		onchange={commitHistoryTransaction}
+		label={$LL.editor.color()}
+		onChange={applyPickerValue}
+		onInteractionStart={beginHistoryTransaction}
+		onInteractionEnd={commitHistoryTransaction}
 	/>
 	<div class="relative w-24 shrink-0">
 		<input
@@ -58,17 +59,3 @@
 		/>
 	</div>
 </div>
-
-<style>
-	.style-color-picker {
-		width: auto;
-		min-width: 0;
-		height: 2.1rem;
-		flex: 1;
-		cursor: pointer;
-		border: 1px solid var(--border-color);
-		border-radius: 0.5rem;
-		background: var(--bg-accent);
-		padding: 0.15rem;
-	}
-</style>

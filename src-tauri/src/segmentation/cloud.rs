@@ -19,6 +19,7 @@ use reqwest::{
 };
 use std::{
     cmp::min,
+    error::Error as _,
     fs,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -86,6 +87,30 @@ fn client(timeout: Duration) -> Result<Client, String> {
         .timeout(timeout)
         .build()
         .map_err(|e| e.to_string())
+}
+
+/// Conserve la catégorie et toute la chaîne de causes d'une erreur réseau reqwest.
+fn request_error(context: &str, error: reqwest::Error) -> String {
+    let category = if error.is_timeout() {
+        "timeout"
+    } else if error.is_connect() {
+        "connection"
+    } else if error.is_body() {
+        "request body"
+    } else {
+        "request"
+    };
+    let mut details = error.to_string();
+    let mut source = error.source();
+    while let Some(cause) = source {
+        let cause_text = cause.to_string();
+        if !details.contains(&cause_text) {
+            details.push_str(": ");
+            details.push_str(&cause_text);
+        }
+        source = cause.source();
+    }
+    format!("{context} ({category}): {details}")
 }
 
 /// Ajoute le token Hugging Face stocké sur Android sans l'exposer au frontend.
@@ -452,7 +477,7 @@ pub async fn segment_quran_audio(
     let response = authenticated(&app, request)?
         .send()
         .await
-        .map_err(|e| format!("Alignment request failed: {}", e))?;
+        .map_err(|error| request_error("Alignment request failed", error))?;
     if !response.status().is_success() {
         return Err(error_text(response, "alignment request").await);
     }

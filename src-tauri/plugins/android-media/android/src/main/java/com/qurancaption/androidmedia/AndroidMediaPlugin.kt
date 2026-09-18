@@ -724,7 +724,7 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
      * @return Clé de stockage privée et préfixée.
      */
     private fun secureStorageKey(key: String): String {
-        require(key == SESSION_KEY || key == PENDING_VERIFIER_KEY) {
+        require(key == SESSION_KEY || key == PENDING_VERIFIER_KEY || key == HF_CLOUD_TOKEN_KEY) {
             "Unsupported secure storage key"
         }
         return "$SECURE_VALUE_PREFIX$key"
@@ -1156,6 +1156,7 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
         private const val SECURE_VALUE_PREFIX = "oauth."
         private const val SESSION_KEY = "quran_auth_session"
         private const val PENDING_VERIFIER_KEY = "quran_auth_pending_verifier"
+        private const val HF_CLOUD_TOKEN_KEY = "hugging_face_cloud_token"
         private const val COPY_BUFFER_SIZE = 64 * 1024
         private const val MAX_FILENAME_LENGTH = 180
         private const val DEFAULT_IMPORTED_FILE_NAME = "imported_file"

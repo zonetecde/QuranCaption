@@ -397,11 +397,15 @@ export default class Exporter {
 	 */
 	static async exportSubtitles() {
 		const es = globalState.settings!.subtitleExportSettings;
+		const projectTargets = new Set([
+			'arabic',
+			...globalState.getProjectTranslation.addedTranslationEditions.map((edition) => edition.name)
+		]);
 
 		const settings = {
 			format: es.subtitleFormat,
 			includedTargets: Object.entries(es.includedTarget)
-				.filter(([, included]) => included)
+				.filter(([target, included]) => included && projectTargets.has(target))
 				.map(([target]) => target),
 			exportVerseNumbers: es.exportVerseNumbers
 		};

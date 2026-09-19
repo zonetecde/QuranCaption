@@ -1,5 +1,12 @@
 ﻿<script lang="ts">
-	import { ProjectEditorTabs, TrackType, AssetClip, type Asset, type Clip } from '$lib/classes';
+	import {
+		AssetType,
+		ProjectEditorTabs,
+		TrackType,
+		AssetClip,
+		type Asset,
+		type Clip
+	} from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 	import { onDestroy, onMount, untrack } from 'svelte';
@@ -66,17 +73,24 @@
 	// Récupère l'asset vidéo actuellement sous le curseur de la timeline
 	// Seulement si movePreviewTo est défini (pour éviter les recalculs inutiles)
 	let currentVideo = $derived(() => {
-		if (getTimelineSettings().movePreviewTo !== undefined)
+		if (getTimelineSettings().movePreviewTo !== undefined) {
 			return untrack(() => {
-				return globalState.currentProject!.content.timeline.getCurrentAssetOnTrack(TrackType.Video);
+				const asset = globalState.currentProject!.content.timeline.getCurrentAssetOnTrack(
+					TrackType.Video
+				);
+				return asset?.type === AssetType.Video ? asset : null;
 			});
+		}
 	});
 
 	let currentImage = $derived(() => {
-		if (getTimelineSettings().movePreviewTo !== undefined)
+		if (getTimelineSettings().movePreviewTo !== undefined) {
 			return untrack(() => {
-				return globalState.currentProject!.content.timeline.getBackgroundImage();
+				const timeline = globalState.currentProject!.content.timeline;
+				const asset = timeline.getCurrentAssetOnTrack(TrackType.Video);
+				return asset?.type === AssetType.Image ? asset : timeline.getBackgroundImage();
 			});
+		}
 	});
 
 	// Récupère l'asset audio actuellement sous le curseur de la timeline
@@ -1717,25 +1731,27 @@
 				</div>
 			{/if}
 			{#if !globalState.getVideoPreviewState.showVideosAndAudios}
-				{#if currentVideo()}
+				{#if currentVideo() || currentImage()}
 					{@const transitionState = videoClipTransitionState()}
-					<video
-						bind:this={videoElement}
-						src={`${convertFileSrc(currentVideo()!.filePath)}?v=${currentVideo()!.mediaReloadToken}`}
-						muted
-						loop={isVideoLooping()}
-						onended={goNextVideo}
-						style={`${backgroundMediaStyle} opacity: ${transitionState.currentOpacity};`}
-					></video>
+					{#if currentVideo()}
+						<video
+							bind:this={videoElement}
+							src={`${convertFileSrc(currentVideo()!.filePath)}?v=${currentVideo()!.mediaReloadToken}`}
+							muted
+							loop={isVideoLooping()}
+							onended={goNextVideo}
+							style={`${backgroundMediaStyle} opacity: ${transitionState.currentOpacity};`}
+						></video>
+					{:else}
+						<img
+							src={`${convertFileSrc(currentImage()!.filePath)}?v=${currentImage()!.mediaReloadToken}`}
+							style={`${backgroundMediaStyle} opacity: ${transitionState.currentOpacity};`}
+							alt=""
+						/>
+					{/if}
 					{#if transitionState.showCrossfadeNotice}
 						<div class="crossfade-preview-notice">{getCrossfadePreviewNotice()}</div>
 					{/if}
-				{:else if currentImage()}
-					<img
-						src={`${convertFileSrc(currentImage()!.filePath)}?v=${currentImage()!.mediaReloadToken}`}
-						style={backgroundMediaStyle}
-						alt=""
-					/>
 				{/if}
 			{/if}
 

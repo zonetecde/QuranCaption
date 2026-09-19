@@ -1546,6 +1546,10 @@ type RootTranslation = {
 		 */
 		cannotAddBackgroundImage: string;
 		/**
+		 * T​h​e​ ​v​i​d​e​o​ ​t​r​a​c​k​ ​i​s​ ​e​m​p​t​y​.​ ​U​s​e​ ​t​h​i​s​ ​i​m​a​g​e​ ​a​s​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​f​o​r​ ​t​h​e​ ​e​n​t​i​r​e​ ​v​i​d​e​o​?​ ​C​h​o​o​s​e​ ​N​o​ ​t​o​ ​a​d​d​ ​i​t​ ​a​s​ ​a​ ​r​e​g​u​l​a​r​ ​t​i​m​e​l​i​n​e​ ​c​l​i​p​.
+		 */
+		setImageAsFullBackgroundConfirm: string;
+		/**
 		 * L​o​o​p​i​n​g​ ​E​r​r​o​r
 		 */
 		loopingError: string;
@@ -6395,15 +6399,15 @@ type RootTranslation = {
 		 */
 		balanced: string;
 		/**
-		 * R​e​c​o​m​m​e​n​d​e​d​ ​f​o​r​ ​f​i​n​a​l​ ​e​x​p​o​r​t​s​.​ ​P​r​e​s​e​r​v​e​s​ ​b​e​t​t​e​r​ ​q​u​a​l​i​t​y​ ​i​n​ ​h​i​g​h​ ​r​e​s​o​l​u​t​i​o​n​,​ ​b​u​t​ ​t​a​k​e​s​ ​l​o​n​g​e​r​.
+		 * U​s​e​s​ ​G​P​U​ ​e​n​c​o​d​i​n​g​ ​f​o​r​ ​f​a​s​t​e​r​ ​e​x​p​o​r​t​s​,​ ​b​u​t​ ​m​a​y​ ​c​a​u​s​e​ ​s​l​i​g​h​t​ ​v​i​s​u​a​l​ ​d​i​s​t​o​r​t​i​o​n​s​.
 		 */
 		balancedDescription: string;
 		/**
-		 * L​o​w​ ​C​P​U
+		 * M​a​x​ ​Q​u​a​l​i​t​y
 		 */
 		lowCpu: string;
 		/**
-		 * L​i​m​i​t​s​ ​C​P​U​ ​u​s​a​g​e​ ​t​o​ ​k​e​e​p​ ​y​o​u​r​ ​c​o​m​p​u​t​e​r​ ​m​o​r​e​ ​r​e​s​p​o​n​s​i​v​e​.​ ​U​s​u​a​l​l​y​ ​t​h​e​ ​s​l​o​w​e​s​t​ ​o​p​t​i​o​n​.
+		 * G​u​a​r​a​n​t​e​e​s​ ​t​h​e​ ​b​e​s​t​ ​q​u​a​l​i​t​y​ ​u​s​i​n​g​ ​C​P​U​-​o​n​l​y​ ​s​o​f​t​w​a​r​e​ ​e​n​c​o​d​i​n​g​,​ ​b​u​t​ ​e​x​p​o​r​t​s​ ​m​o​r​e​ ​s​l​o​w​l​y​.
 		 */
 		lowCpuDescription: string;
 		/**
@@ -11758,6 +11762,10 @@ export type TranslationFunctions = {
 		 */
 		cannotAddBackgroundImage: () => LocalizedString;
 		/**
+		 * The video track is empty. Use this image as the background for the entire video? Choose No to add it as a regular timeline clip.
+		 */
+		setImageAsFullBackgroundConfirm: () => LocalizedString;
+		/**
 		 * Looping Error
 		 */
 		loopingError: () => LocalizedString;
@@ -16544,15 +16552,15 @@ export type TranslationFunctions = {
 		 */
 		balanced: () => LocalizedString;
 		/**
-		 * Recommended for final exports. Preserves better quality in high resolution, but takes longer.
+		 * Uses GPU encoding for faster exports, but may cause slight visual distortions.
 		 */
 		balancedDescription: () => LocalizedString;
 		/**
-		 * Low CPU
+		 * Max Quality
 		 */
 		lowCpu: () => LocalizedString;
 		/**
-		 * Limits CPU usage to keep your computer more responsive. Usually the slowest option.
+		 * Guarantees the best quality using CPU-only software encoding, but exports more slowly.
 		 */
 		lowCpuDescription: () => LocalizedString;
 		/**

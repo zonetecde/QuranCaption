@@ -81,7 +81,7 @@ export type StockMediaSettings = {
 	pixabayApiKey: string;
 };
 
-export type PerformanceProfile = 'fastest' | 'balanced' | 'low_cpu';
+export type PerformanceProfile = 'balanced' | 'max_quality';
 
 export type IslamicTermTranslationMode = 'translated' | 'both' | 'transliterated';
 
@@ -892,11 +892,14 @@ export default class Settings extends SerializableBase {
 			shouldSave = true;
 		}
 
-		if (
-			settings.exportSettings.performanceProfile !== 'fastest' &&
-			settings.exportSettings.performanceProfile !== 'balanced' &&
-			settings.exportSettings.performanceProfile !== 'low_cpu'
-		) {
+		const performanceProfile = settings.exportSettings.performanceProfile as string;
+		if (performanceProfile === 'fastest') {
+			settings.exportSettings.performanceProfile = 'balanced';
+			shouldSave = true;
+		} else if (performanceProfile === 'low_cpu') {
+			settings.exportSettings.performanceProfile = 'max_quality';
+			shouldSave = true;
+		} else if (performanceProfile !== 'balanced' && performanceProfile !== 'max_quality') {
 			settings.exportSettings.performanceProfile =
 				Settings.DEFAULT_EXPORT_SETTINGS.performanceProfile;
 			shouldSave = true;

@@ -464,7 +464,9 @@
 		<Item on:click={() => addInTheTimelineButtonClick(true, false)}>
 			<div class="btn-icon">
 				<span class="material-icons-outlined mr-1 text-sm">image</span>
-				{get(LL).editor.setAsBackground()}
+				{globalState.getVideoTrack.clips.length === 0
+					? get(LL).editor.setAsBackground()
+					: get(LL).editor.addToTimelineLabel()}
 			</div>
 		</Item>
 	{/if}

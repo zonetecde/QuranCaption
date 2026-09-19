@@ -119,6 +119,8 @@ const editor = {
 	backgroundImageError: 'Background Image Error',
 	cannotAddBackgroundImage:
 		'You cannot add a background image to the timeline when background images are not supported in this context.',
+	setImageAsFullBackgroundConfirm:
+		'The video track is empty. Use this image as the background for the entire video? Choose No to add it as a regular timeline clip.',
 	loopingError: 'Looping Error',
 	canOnlyEnableLoopIfOnlyClip:
 		'You can only enable "Loop until the end" if this is the only clip in the track.',

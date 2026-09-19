@@ -552,6 +552,8 @@ export class Track extends SerializableBase {
 	}
 }
 
+export const DEFAULT_IMAGE_CLIP_DURATION_MS = 10_000;
+
 export class AssetTrack extends Track {
 	volumePercent: number = $state(100);
 
@@ -559,7 +561,8 @@ export class AssetTrack extends Track {
 		super(type);
 	}
 
-	addAsset(asset: Asset): boolean {
+	/** Ajoute un asset à la piste, avec une durée de dix secondes pour les images de timeline. */
+	addAsset(asset: Asset, imageAsFullBackground: boolean = true): boolean {
 		ProjectHistoryManager.begin('add asset clip');
 		try {
 			// Récupère le dernier clip de la piste, s'il existe
@@ -575,14 +578,14 @@ export class AssetTrack extends Track {
 					return false;
 				}
 
-				// S'il y a un dernier clip alors qu'on essaie de mettre une image dans la timeline (= mettre une image en
-				// tant que background pour la vidéo), alors on informe l'utilisateur que ce n'est pas possible.
-				if (asset.type === AssetType.Image) {
-					ModalManager.errorModal(
-						get(LL).editor.backgroundImageError(),
-						get(LL).editor.cannotAddBackgroundImage()
-					);
-					return false;
+				if (
+					this.type === TrackType.Video &&
+					this.clips.length === 1 &&
+					lastClip instanceof AssetClip &&
+					lastClip.endTime === 0
+				) {
+					lastClip.endTime = DEFAULT_IMAGE_CLIP_DURATION_MS;
+					lastClip.duration = DEFAULT_IMAGE_CLIP_DURATION_MS;
 				}
 
 				if (this.type === TrackType.Audio && this.clips.length === 2) {
@@ -592,8 +595,16 @@ export class AssetTrack extends Track {
 
 				const startTime =
 					this.type === TrackType.Audio ? this.getDuration().ms + 1 : lastClip.endTime + 1;
-				this.clips.push(new AssetClip(startTime, startTime + asset.duration.ms, asset.id));
-			} else this.clips.push(new AssetClip(0, asset.duration.ms, asset.id));
+				const duration =
+					asset.type === AssetType.Image ? DEFAULT_IMAGE_CLIP_DURATION_MS : asset.duration.ms;
+				this.clips.push(new AssetClip(startTime, startTime + duration, asset.id));
+			} else {
+				const duration =
+					asset.type === AssetType.Image && !imageAsFullBackground
+						? DEFAULT_IMAGE_CLIP_DURATION_MS
+						: asset.duration.ms;
+				this.clips.push(new AssetClip(0, duration, asset.id));
+			}
 
 			// Trigger la réactivité dans la videopreview pour afficher le clip ajouté (si le curseur est dessus)
 			setTimeout(() => {

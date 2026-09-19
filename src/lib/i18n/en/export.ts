@@ -83,10 +83,10 @@ const export_ = {
 		'Fastest export. May use hardware encoding, which can show artifacts on detailed 4K backgrounds.',
 	balanced: 'Balanced',
 	balancedDescription:
-		'Recommended for final exports. Preserves better quality in high resolution, but takes longer.',
-	lowCpu: 'Low CPU',
+		'Uses GPU encoding for faster exports, but may cause slight visual distortions.',
+	lowCpu: 'Max Quality',
 	lowCpuDescription:
-		'Limits CPU usage to keep your computer more responsive. Usually the slowest option.',
+		'Guarantees the best quality using CPU-only software encoding, but exports more slowly.',
 	exportInProgressButton: 'Exporting...',
 	fileNotFound: 'File not found',
 	exportedFileNotFound:

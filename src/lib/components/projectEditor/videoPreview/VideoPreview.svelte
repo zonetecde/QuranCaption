@@ -400,15 +400,14 @@
 	});
 
 	function getSpeed() {
-		let speed = globalState.getSubtitlesEditorState.playbackSpeed;
+		let speed = globalState.getVideoPreviewState.playbackSpeed;
+		if (
+			globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Transcription
+		) {
+			speed = globalState.getSubtitlesEditorState.playbackSpeed;
+		}
 		if (globalState.shared.wbwEdit.active) {
 			speed = globalState.getSubtitlesEditorState.wbwPlaybackSpeed;
-		}
-		if (
-			!globalState.shared.wbwEdit.active &&
-			globalState.currentProject?.projectEditorState.currentTab !== ProjectEditorTabs.Transcription
-		) {
-			speed = 1; // Réinitialise la vitesse si on n'est pas dans l'éditeur de sous-titres
 		}
 		return speed;
 	}
@@ -1192,9 +1191,7 @@
 		const volume = Math.min(2, Math.max(0, volumePercent / 100));
 		for (const [clipId, howl] of overlappingAudioHowls) {
 			const clip = globalState.getAudioTrack.getClipById(clipId);
-			howl.volume(
-				Math.min(1, Math.max(0, getEffectiveAudioVolumePercent(clip) / 100))
-			);
+			howl.volume(Math.min(1, Math.max(0, getEffectiveAudioVolumePercent(clip) / 100)));
 		}
 		if (nativeAudioReady) {
 			void controlNativeAudio('setVolume', {
@@ -1303,9 +1300,7 @@
 				goNextAudio();
 			}
 		});
-		applyAudioVolume(
-			getEffectiveAudioVolumePercent(globalState.getAudioTrack.getCurrentClip())
-		);
+		applyAudioVolume(getEffectiveAudioVolumePercent(globalState.getAudioTrack.getCurrentClip()));
 		return audioHowl;
 	}
 

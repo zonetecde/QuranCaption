@@ -3,6 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PredefinedSubtitleClip, SilenceClip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { SubtitleTrack } from '$lib/classes/Track.svelte';
 import { globalState } from '$lib/runes/main.svelte';
+import {
+	createPlainOverlaySegment,
+	getVisibleArabicSegments
+} from '$lib/components/projectEditor/videoPreview/visualMergeOverlayUtils';
 
 describe('subtitle visual merge helpers', () => {
 	beforeEach(() => {
@@ -44,6 +48,29 @@ describe('subtitle visual merge helpers', () => {
 		track.clips = [first, predefined];
 
 		expect(track.getVisualMergeSelection([first, predefined])).toBeNull();
+	});
+
+	it('keeps generic and Quran marker clips in the merged Arabic preview', () => {
+		const first = new SubtitleClip(0, 999, 'Texte ordinaire', 'Unknown speaker', {}, true, null);
+		const second = new SubtitleClip(1000, 1999, '{{2:153:2-4}}', 'Unknown speaker', {}, true, null);
+		first.setVisualMerge('group-a', 'arabic');
+		second.setVisualMerge('group-a', 'arabic');
+
+		const segments = getVisibleArabicSegments(
+			first,
+			{
+				groupId: 'group-a',
+				mode: 'arabic',
+				clips: [first, second],
+				firstClip: first,
+				lastClip: second,
+				startTime: first.startTime,
+				endTime: second.endTime
+			},
+			(clip, keyPrefix) => [createPlainOverlaySegment(`${keyPrefix}-${clip.id}`, clip.text)]
+		);
+
+		expect(segments.map((segment) => segment.text).join('')).toBe('Texte ordinaire {{2:153:2-4}}');
 	});
 
 	it('rejects a selection separated by a silence clip', () => {

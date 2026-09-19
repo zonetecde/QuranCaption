@@ -235,6 +235,13 @@ export function getMergedClipsWithoutWordOverlap(clips: SubtitleClip[]): Subtitl
 	const normalizedClips: SubtitleClip[] = [];
 
 	for (const clip of clips) {
+		// Les transcriptions structurées stockent leurs références Quran dans le texte
+		// (`{{...}}`) et n'ont pas de plage legacy à dédupliquer.
+		if (clip.surah <= 0 || clip.verse <= 0 || clip.endWordIndex < clip.startWordIndex) {
+			normalizedClips.push(clip);
+			continue;
+		}
+
 		const verseKey = `${clip.surah}:${clip.verse}`;
 		const previousEndWord = lastEndWordByVerse.get(verseKey) ?? -1;
 		const nextStartWord = Math.max(clip.startWordIndex, previousEndWord + 1);

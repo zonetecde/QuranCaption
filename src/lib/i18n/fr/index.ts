@@ -632,6 +632,8 @@ const fr = {
 		backgroundImageError: 'Erreur d\u2019image d\u2019arrière-plan',
 		cannotAddBackgroundImage:
 			'Impossible d\u2019ajouter une image d\u2019arrière-plan à la timeline lorsque les images d\u2019arrière-plan ne sont pas prises en charge dans ce contexte.',
+		setImageAsFullBackgroundConfirm:
+			'La piste vidéo est vide. Utiliser cette image comme arrière-plan pendant toute la vidéo\u00a0? Choisissez Non pour l\u2019ajouter comme un clip normal dans la timeline.',
 		loopingError: 'Erreur de boucle',
 		canOnlyEnableLoopIfOnlyClip:
 			'Vous ne pouvez activer \u00ab\u00a0Boucler jusqu\u2019à la fin\u00a0\u00bb que si c\u2019est le seul clip de la piste.',
@@ -2180,10 +2182,10 @@ const fr = {
 			'Export le plus rapide. Peut utiliser l\u2019encodage matériel, avec un risque d\u2019artefacts sur les fonds 4K détaillés.',
 		balanced: 'Équilibré',
 		balancedDescription:
-			'Recommandé pour les exports finaux. Préserve mieux la qualité en haute résolution, mais prend plus de temps.',
-		lowCpu: 'CPU faible',
+			'Utilise l\u2019encodage GPU pour exporter plus rapidement, mais peut provoquer de légères déformations visuelles.',
+		lowCpu: 'Qualité maximale',
 		lowCpuDescription:
-			'Limite l\u2019utilisation du CPU pour garder l\u2019ordinateur plus réactif. Généralement l\u2019option la plus lente.',
+			'Garantit la meilleure qualité grâce à un encodage logiciel uniquement par le CPU, mais exporte plus lentement.',
 		exportInProgressButton: 'Export en cours...',
 		fileNotFound: 'Fichier introuvable',
 		exportedFileNotFound:

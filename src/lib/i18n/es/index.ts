@@ -627,6 +627,8 @@ const es = {
 		backgroundImageError: 'Error de imagen de fondo',
 		cannotAddBackgroundImage:
 			'No se puede agregar una imagen de fondo a la línea de tiempo cuando las imágenes de fondo no son compatibles en este contexto.',
+		setImageAsFullBackgroundConfirm:
+			'La pista de vídeo está vacía. ¿Usar esta imagen como fondo durante todo el vídeo? Elige No para añadirla como un clip normal en la línea de tiempo.',
 		loopingError: 'Error de repetición',
 		canOnlyEnableLoopIfOnlyClip:
 			'Solo puede activar \u00ab\u00a0Repetir hasta el final\u00a0\u00bb si es el único clip de la pista.',
@@ -2172,10 +2174,10 @@ const es = {
 			'Exportación más rápida. Puede usar codificación por hardware, con riesgo de artefactos en fondos 4K detallados.',
 		balanced: 'Equilibrado',
 		balancedDescription:
-			'Recomendado para exportaciones finales. Conserva mejor la calidad en alta resolución, pero tarda más.',
-		lowCpu: 'CPU bajo',
+			'Usa codificación por GPU para exportar más rápido, pero puede causar ligeras distorsiones visuales.',
+		lowCpu: 'Calidad máxima',
 		lowCpuDescription:
-			'Limita el uso de CPU para mantener el equipo más responsive. Normalmente es la opción más lenta.',
+			'Garantiza la mejor calidad usando únicamente codificación por software con la CPU, pero exporta más lentamente.',
 		exportInProgressButton: 'Exportación en curso...',
 		fileNotFound: 'Archivo no encontrado',
 		exportedFileNotFound:

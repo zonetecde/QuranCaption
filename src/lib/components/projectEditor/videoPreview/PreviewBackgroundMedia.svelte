@@ -34,11 +34,15 @@
 		onended={onVideoEnded}
 		style={`${style} opacity: ${opacity};`}
 	></video>
-	{#if showCrossfadeNotice}
-		<div class="crossfade-preview-notice">{crossfadeNotice}</div>
-	{/if}
 {:else if image}
-	<img src={`${convertFileSrc(image.filePath)}?v=${image.mediaReloadToken}`} {style} alt="" />
+	<img
+		src={`${convertFileSrc(image.filePath)}?v=${image.mediaReloadToken}`}
+		style={`${style} opacity: ${opacity};`}
+		alt=""
+	/>
+{/if}
+{#if (video || image) && showCrossfadeNotice}
+	<div class="crossfade-preview-notice">{crossfadeNotice}</div>
 {/if}
 
 <style>

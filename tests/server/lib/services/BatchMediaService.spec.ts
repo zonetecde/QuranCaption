@@ -6,6 +6,7 @@ vi.mock('@tauri-apps/api/path', () => ({ basename: vi.fn(), join: vi.fn() }));
 vi.mock('@tauri-apps/plugin-fs', () => ({ exists: vi.fn(), remove: vi.fn() }));
 
 import {
+	Asset,
 	AssetType,
 	Batch,
 	createDefaultBatchSegmentationState,
@@ -13,10 +14,13 @@ import {
 	createDefaultBatchStyleState,
 	Duration,
 	TrackType,
-	type Asset,
-	type BatchProjectItem
+	type BatchProjectItem,
+	type Project
 } from '$lib/classes';
 import { AssetTrack } from '$lib/classes/Track.svelte';
+import { DEFAULT_IMAGE_CLIP_DURATION_MS } from '$lib/classes/tracks/AssetTrack.svelte';
+import ModalManager from '$lib/components/modals/ModalManager';
+import { globalState } from '$lib/runes/main.svelte';
 import {
 	BatchMediaService,
 	getBatchDownloadType,
@@ -133,6 +137,30 @@ describe('BatchMediaService worker pool', () => {
 });
 
 describe('Batch media modes', () => {
+	it('asks whether the first image should cover the full video', async () => {
+		const previousProject = globalState.currentProject;
+		const addAsset = vi.fn(() => true);
+		const confirm = vi.spyOn(ModalManager, 'confirmModal').mockResolvedValue(false);
+		globalState.currentProject = {
+			content: {
+				timeline: {
+					getFirstTrack: () => ({ clips: [], addAsset })
+				}
+			}
+		} as unknown as Project;
+
+		try {
+			const image = new Asset('background.png');
+			await image.addToTimeline(true, false);
+
+			expect(confirm).toHaveBeenCalledOnce();
+			expect(addAsset).toHaveBeenCalledWith(image, false);
+		} finally {
+			globalState.currentProject = previousProject;
+			confirm.mockRestore();
+		}
+	});
+
 	it('maps each URL mode to exactly one download type', () => {
 		expect(getBatchDownloadType('audio_only')).toBe('audio');
 		expect(getBatchDownloadType('audio_video')).toBe('video');
@@ -165,5 +193,76 @@ describe('Batch media modes', () => {
 		expect(videoTrack.addAssetHeadless(asset)).toBe('added');
 		expect(Reflect.get(audioTrack.clips[0], 'assetId')).toBe(42);
 		expect(Reflect.get(videoTrack.clips[0], 'assetId')).toBe(42);
+	});
+
+	it('keeps a first image global or gives it the default clip duration', () => {
+		const image = {
+			id: 43,
+			type: AssetType.Image,
+			duration: new Duration(0)
+		} as Asset;
+		const backgroundTrack = new AssetTrack(TrackType.Video);
+		const timedTrack = new AssetTrack(TrackType.Video);
+
+		expect(backgroundTrack.addAssetHeadless(image)).toBe('added');
+		expect(backgroundTrack.clips[0]).toMatchObject({ startTime: 0, endTime: 0, duration: 0 });
+
+		expect(timedTrack.addAssetHeadless(image, false)).toBe('added');
+		expect(timedTrack.clips[0]).toMatchObject({
+			startTime: 0,
+			endTime: DEFAULT_IMAGE_CLIP_DURATION_MS,
+			duration: DEFAULT_IMAGE_CLIP_DURATION_MS
+		});
+	});
+
+	it('turns a global image into a timed clip before appending another image', () => {
+		const firstImage = {
+			id: 44,
+			type: AssetType.Image,
+			duration: new Duration(0)
+		} as Asset;
+		const secondImage = {
+			id: 45,
+			type: AssetType.Image,
+			duration: new Duration(0)
+		} as Asset;
+		const videoTrack = new AssetTrack(TrackType.Video);
+
+		videoTrack.addAssetHeadless(firstImage);
+		videoTrack.addAssetHeadless(secondImage);
+
+		expect(videoTrack.clips[0]).toMatchObject({
+			startTime: 0,
+			endTime: DEFAULT_IMAGE_CLIP_DURATION_MS,
+			duration: DEFAULT_IMAGE_CLIP_DURATION_MS
+		});
+		expect(videoTrack.clips[1]).toMatchObject({
+			startTime: DEFAULT_IMAGE_CLIP_DURATION_MS + 1,
+			endTime: DEFAULT_IMAGE_CLIP_DURATION_MS * 2 + 1,
+			duration: DEFAULT_IMAGE_CLIP_DURATION_MS
+		});
+	});
+
+	it('appends an image for ten seconds after an existing video', () => {
+		const video = {
+			id: 46,
+			type: AssetType.Video,
+			duration: new Duration(5_000)
+		} as Asset;
+		const image = {
+			id: 47,
+			type: AssetType.Image,
+			duration: new Duration(0)
+		} as Asset;
+		const videoTrack = new AssetTrack(TrackType.Video);
+
+		videoTrack.addAssetHeadless(video);
+		videoTrack.addAssetHeadless(image);
+
+		expect(videoTrack.clips[1]).toMatchObject({
+			startTime: 5_001,
+			endTime: 15_001,
+			duration: DEFAULT_IMAGE_CLIP_DURATION_MS
+		});
 	});
 });

@@ -224,36 +224,35 @@ Les videos bouclees (`loop_until_audio_end=true`) passent **toujours** par le pr
 
 La selection des codecs (`codec.rs`) prend en compte:
 
-- le profil de performance (`Fastest`, `Balanced`, `LowCpu`);
+- le profil de performance (`Balanced`, `MaxQuality`);
 - la resolution (standard ou haute resolution);
 - le contexte d'utilisation (`Intermediate` pour le pretraitement, `Final` pour l'export).
 
 ### Comportement en haute resolution
 
-| Profil   | Resolution >= 2560x1440                                       |
-| -------- | ------------------------------------------------------------- |
-| Fastest  | Encodeurs materiels autorises (NVENC, QSV, AMF, VideoToolbox) |
-| Balanced | Encodeurs materiels autorises, fallback libx264 haute qualite |
-| LowCpu   | libx264 force (sauf VideoToolbox sur macOS)                   |
+| Profil     | Resolution >= 2560x1440                                       |
+| ---------- | ------------------------------------------------------------- |
+| Balanced   | Encodeurs materiels autorises, fallback libx264 haute qualite |
+| MaxQuality | libx264 force sans encodage materiel                          |
 
-En profils `Fastest` et `Balanced`, NVENC, QSV et AMF peuvent etre utilises meme en 1440p ou 4K. Le
-test reel de disponibilite NVENC reste utilise avant toute selection. Si l'encodeur materiel n'est
-pas utilisable en `Balanced`, l'export revient a libx264 haute qualite.
+En profil `Balanced`, NVENC, QSV et AMF peuvent etre utilises meme en 1440p ou 4K. Le test reel de
+disponibilite NVENC reste utilise avant toute selection. Si l'encodeur materiel n'est pas
+utilisable, l'export revient a libx264 haute qualite. `MaxQuality` utilise toujours libx264 pour
+H.264 ou libx265 pour H.265, y compris pendant le pretraitement des fonds.
 
 ### Parametres par encodeur
 
-- **NVENC**: `Balanced` utilise `-preset fast -rc constqp -qp 14`; les autres profils conservent les
-  reglages rapides existants
+- **NVENC**: `Balanced` utilise `-preset fast -rc constqp -qp 14`
 - **VideoToolbox**: bitrate variable selon la resolution, `-allow_sw 1`
 - **QSV/AMF**: parametres par defaut
-- **libx264**: `-crf 16 -preset veryfast` (finale), `-crf 14 -preset veryfast` (intermediaire, haute
-  resolution)
+- **libx264**: `-crf 16 -preset veryfast` (finale), `-crf 14 -preset veryfast` (intermediaire) pour
+  `MaxQuality` et les fallbacks haute resolution
 
 ### Log de selection
 
 ```text
-[codec] usage=Final profile=Fastest resolution=2560x1440 selected=h264_nvenc
-[codec] usage=Intermediate profile=Fastest resolution=2560x1440 selected=h264_nvenc
+[codec] usage=Final profile=Balanced resolution=2560x1440 selected=h264_nvenc
+[codec] usage=Intermediate profile=MaxQuality resolution=2560x1440 selected=libx264
 ```
 
 ### Fallback
@@ -351,8 +350,8 @@ Logs Rust:
 [background] path=preprocessed-generated
 [background] normalized=true
 [background] redundant_scale_skipped=true
-[codec] usage=Final profile=Fastest resolution=2560x1440 selected=h264_nvenc
-[codec] usage=Intermediate profile=Fastest resolution=2560x1440 selected=h264_nvenc
+[codec] usage=Final profile=Balanced resolution=2560x1440 selected=h264_nvenc
+[codec] usage=Intermediate profile=MaxQuality resolution=2560x1440 selected=libx264
 ```
 
 ## Pieges connus

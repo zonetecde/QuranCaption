@@ -1,4 +1,4 @@
-import { AssetClip } from '$lib/classes';
+import { AssetClip, AssetType } from '$lib/classes';
 import { globalState } from '$lib/runes/main.svelte';
 
 export type ExportVideoInput = {
@@ -67,13 +67,14 @@ export class ExportMediaInputBuilder {
 	/**
 	 * Indique si une piste exige des métadonnées temporelles détaillées.
 	 * @param {AssetClip[]} clips Clips à inspecter.
-	 * @returns {boolean} true en présence d'un trim, espace ou volume individuel.
+	 * @returns {boolean} true en présence d'une image, d'un trim, d'un espace ou d'un volume individuel.
 	 */
 	private static requiresTimedExport(clips: AssetClip[]): boolean {
 		let expectedStartTime = 0;
 		return clips.some((clip) => {
 			const asset = globalState.currentProject!.content.getAssetById(clip.assetId);
 			const requiresTiming =
+				asset.type === AssetType.Image ||
 				clip.startTime !== expectedStartTime ||
 				(clip.sourceStartTime ?? 0) > 0 ||
 				clip.duration < asset.duration.ms ||

@@ -136,7 +136,11 @@
 
 	// Effect qui redimensionne la vidéo quand la hauteur de la prévisualisation change
 	$effect(() => {
-		const _ = globalState.settings?.persistentUiState.projectEditorLayout.upperSectionHeight;
+		const _ = [
+			globalState.settings?.persistentUiState.projectEditorLayout.upperSectionHeight,
+			globalState.settings?.persistentUiState.projectEditorLayout.subtitlesEditorPreviewHeight,
+			globalState.settings?.persistentUiState.projectEditorLayout.subtitlesEditorRightPanelWidth
+		];
 
 		resizeVideoToFitScreen();
 	});

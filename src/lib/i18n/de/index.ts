@@ -3012,7 +3012,20 @@ const de = {
 		endTimeExceedsDuration: 'Die Endzeit überschreitet die Elementdauer',
 		assetTrimmedSuccess:
 			'Element erfolgreich zugeschnitten! Die zugeschnittene Version wurde zum Projekt hinzugefügt.',
-		failedToTrim: 'Zuschnitt des Elements fehlgeschlagen: {error}'
+		failedToTrim: 'Zuschnitt des Elements fehlgeschlagen: {error}',
+		noiseReduction: 'Rauschunterdrückung',
+		noiseReductionDescription:
+			'Konstantes Hintergrundrauschen eines Audioclips aus der Timeline reduzieren',
+		selectTimelineAudio: 'TIMELINE-AUDIO AUSWÄHLEN',
+		chooseTimelineAudio: 'Audioclip auswählen...',
+		noTimelineAudio: 'Fügen Sie zuerst einen Audioclip zur Timeline hinzu.',
+		noiseReductionResultHint:
+			'Eine bereinigte WAV-Datei wird dem Projekt hinzugefügt und als Quelle des ausgewählten Clips verwendet.',
+		applyNoiseReduction: 'Rauschen reduzieren',
+		pleaseSelectTimelineAudio: 'Bitte wählen Sie einen Audioclip aus der Timeline aus',
+		noiseReductionSuccess:
+			'Rauschen reduziert. Der ausgewählte Clip verwendet jetzt das bereinigte Audio.',
+		noiseReductionFailed: 'Audiorauschen konnte nicht reduziert werden: {error}'
 	},
 	status: {
 		notSet: 'Nicht festgelegt',

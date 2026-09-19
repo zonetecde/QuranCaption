@@ -66,7 +66,18 @@ const tools = {
 	endTimeExceedsDuration: 'End time exceeds asset duration',
 	assetTrimmedSuccess:
 		'Asset trimmed successfully! The trimmed version has been added to the project.',
-	failedToTrim: 'Failed to trim asset: {error}'
+	failedToTrim: 'Failed to trim asset: {error}',
+	noiseReduction: 'Noise reduction',
+	noiseReductionDescription: 'Reduce constant background noise in an audio clip from the timeline',
+	selectTimelineAudio: 'SELECT TIMELINE AUDIO',
+	chooseTimelineAudio: 'Choose an audio clip...',
+	noTimelineAudio: 'Add an audio clip to the timeline first.',
+	noiseReductionResultHint:
+		'A cleaned WAV file will be added to the project and used as the selected clip source.',
+	applyNoiseReduction: 'Reduce noise',
+	pleaseSelectTimelineAudio: 'Please select an audio clip from the timeline',
+	noiseReductionSuccess: 'Noise reduced. The selected clip now uses the cleaned audio.',
+	noiseReductionFailed: 'Failed to reduce audio noise: {error}'
 };
 
 export default tools;

@@ -2729,7 +2729,17 @@ const zh = {
 		startTimeMustBeLess: '开始时间必须小于结束时间',
 		endTimeExceedsDuration: '结束时间超过素材时长',
 		assetTrimmedSuccess: '素材裁剪成功！裁剪版本已添加到项目。',
-		failedToTrim: '裁剪素材失败：{error}'
+		failedToTrim: '裁剪素材失败：{error}',
+		noiseReduction: '音频降噪',
+		noiseReductionDescription: '减少时间轴音频剪辑中的持续背景噪音',
+		selectTimelineAudio: '选择时间轴音频',
+		chooseTimelineAudio: '选择音频剪辑...',
+		noTimelineAudio: '请先将音频剪辑添加到时间轴。',
+		noiseReductionResultHint: '清理后的 WAV 文件将添加到项目，并用作所选剪辑的新音频源。',
+		applyNoiseReduction: '降低噪音',
+		pleaseSelectTimelineAudio: '请选择时间轴中的音频剪辑',
+		noiseReductionSuccess: '降噪完成。所选剪辑现在使用清理后的音频。',
+		noiseReductionFailed: '音频降噪失败：{error}'
 	},
 	status: {
 		notSet: '未设置',

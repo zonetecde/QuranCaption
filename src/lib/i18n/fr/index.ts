@@ -3035,7 +3035,18 @@ const fr = {
 		endTimeExceedsDuration: 'L\u2019heure de fin dépasse la durée de l\u2019élément',
 		assetTrimmedSuccess:
 			'Élément rogné avec succès\u00a0! La version rognée a été ajoutée au projet.',
-		failedToTrim: 'Échec du rognage de l\u2019élément\u00a0: {error}'
+		failedToTrim: 'Échec du rognage de l\u2019élément\u00a0: {error}',
+		noiseReduction: 'Réduction du bruit',
+		noiseReductionDescription: 'Réduire le bruit de fond constant d’un clip audio de la timeline',
+		selectTimelineAudio: 'SÉLECTIONNER UN AUDIO DE LA TIMELINE',
+		chooseTimelineAudio: 'Choisissez un clip audio...',
+		noTimelineAudio: 'Ajoutez d’abord un clip audio à la timeline.',
+		noiseReductionResultHint:
+			'Un fichier WAV nettoyé sera ajouté au projet et utilisé comme source du clip sélectionné.',
+		applyNoiseReduction: 'Réduire le bruit',
+		pleaseSelectTimelineAudio: 'Veuillez sélectionner un clip audio de la timeline',
+		noiseReductionSuccess: 'Bruit réduit. Le clip sélectionné utilise maintenant l’audio nettoyé.',
+		noiseReductionFailed: 'Échec de la réduction du bruit audio\u00a0: {error}'
 	},
 	status: {
 		notSet: 'Non défini',

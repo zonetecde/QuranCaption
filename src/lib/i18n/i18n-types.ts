@@ -9603,6 +9603,47 @@ type RootTranslation = {
 		 * @param {unknown} error
 		 */
 		failedToTrim: RequiredParams<'error'>;
+		/**
+		 * N​o​i​s​e​ ​r​e​d​u​c​t​i​o​n
+		 */
+		noiseReduction: string;
+		/**
+		 * R​e​d​u​c​e​ ​c​o​n​s​t​a​n​t​ ​b​a​c​k​g​r​o​u​n​d​ ​n​o​i​s​e​ ​i​n​ ​a​n​ ​a​u​d​i​o​ ​c​l​i​p​ ​f​r​o​m​ ​t​h​e​ ​t​i​m​e​l​i​n​e
+		 */
+		noiseReductionDescription: string;
+		/**
+		 * S​E​L​E​C​T​ ​T​I​M​E​L​I​N​E​ ​A​U​D​I​O
+		 */
+		selectTimelineAudio: string;
+		/**
+		 * C​h​o​o​s​e​ ​a​n​ ​a​u​d​i​o​ ​c​l​i​p​.​.​.
+		 */
+		chooseTimelineAudio: string;
+		/**
+		 * A​d​d​ ​a​n​ ​a​u​d​i​o​ ​c​l​i​p​ ​t​o​ ​t​h​e​ ​t​i​m​e​l​i​n​e​ ​f​i​r​s​t​.
+		 */
+		noTimelineAudio: string;
+		/**
+		 * A​ ​c​l​e​a​n​e​d​ ​W​A​V​ ​f​i​l​e​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​p​r​o​j​e​c​t​ ​a​n​d​ ​u​s​e​d​ ​a​s​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​c​l​i​p​ ​s​o​u​r​c​e​.
+		 */
+		noiseReductionResultHint: string;
+		/**
+		 * R​e​d​u​c​e​ ​n​o​i​s​e
+		 */
+		applyNoiseReduction: string;
+		/**
+		 * P​l​e​a​s​e​ ​s​e​l​e​c​t​ ​a​n​ ​a​u​d​i​o​ ​c​l​i​p​ ​f​r​o​m​ ​t​h​e​ ​t​i​m​e​l​i​n​e
+		 */
+		pleaseSelectTimelineAudio: string;
+		/**
+		 * N​o​i​s​e​ ​r​e​d​u​c​e​d​.​ ​T​h​e​ ​s​e​l​e​c​t​e​d​ ​c​l​i​p​ ​n​o​w​ ​u​s​e​s​ ​t​h​e​ ​c​l​e​a​n​e​d​ ​a​u​d​i​o​.
+		 */
+		noiseReductionSuccess: string;
+		/**
+		 * F​a​i​l​e​d​ ​t​o​ ​r​e​d​u​c​e​ ​a​u​d​i​o​ ​n​o​i​s​e​:​ ​{​e​r​r​o​r​}
+		 * @param {unknown} error
+		 */
+		noiseReductionFailed: RequiredParams<'error'>;
 	};
 	status: {
 		/**
@@ -21325,6 +21366,46 @@ export type TranslationFunctions = {
 		 * Failed to trim asset: {error}
 		 */
 		failedToTrim: (arg: { error: unknown }) => LocalizedString;
+		/**
+		 * Noise reduction
+		 */
+		noiseReduction: () => LocalizedString;
+		/**
+		 * Reduce constant background noise in an audio clip from the timeline
+		 */
+		noiseReductionDescription: () => LocalizedString;
+		/**
+		 * SELECT TIMELINE AUDIO
+		 */
+		selectTimelineAudio: () => LocalizedString;
+		/**
+		 * Choose an audio clip...
+		 */
+		chooseTimelineAudio: () => LocalizedString;
+		/**
+		 * Add an audio clip to the timeline first.
+		 */
+		noTimelineAudio: () => LocalizedString;
+		/**
+		 * A cleaned WAV file will be added to the project and used as the selected clip source.
+		 */
+		noiseReductionResultHint: () => LocalizedString;
+		/**
+		 * Reduce noise
+		 */
+		applyNoiseReduction: () => LocalizedString;
+		/**
+		 * Please select an audio clip from the timeline
+		 */
+		pleaseSelectTimelineAudio: () => LocalizedString;
+		/**
+		 * Noise reduced. The selected clip now uses the cleaned audio.
+		 */
+		noiseReductionSuccess: () => LocalizedString;
+		/**
+		 * Failed to reduce audio noise: {error}
+		 */
+		noiseReductionFailed: (arg: { error: unknown }) => LocalizedString;
 	};
 	status: {
 		/**

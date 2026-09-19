@@ -464,7 +464,7 @@ pub(super) fn run_fast_export(
         let audio_inputs: Vec<(&str, f64)> = if has_timed_audio {
             prepared_audio_clips
                 .iter()
-                .map(|(path, source_start_s, _, clip_duration_s, _)| {
+                .map(|(path, source_start_s, _, clip_duration_s)| {
                     (path.as_str(), source_start_s + clip_duration_s)
                 })
                 .collect()

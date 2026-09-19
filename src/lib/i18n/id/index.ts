@@ -1804,7 +1804,19 @@ const id = {
 		startTimeMustBeLess: 'Waktu mulai harus lebih kecil dari waktu selesai',
 		endTimeExceedsDuration: 'Waktu selesai melebihi durasi asset',
 		assetTrimmedSuccess: 'Asset berhasil dipotong! Versi hasil trim sudah ditambahkan ke project.',
-		failedToTrim: 'Gagal memotong asset: {error}'
+		failedToTrim: 'Gagal memotong asset: {error}',
+		noiseReduction: 'Pengurangan noise',
+		noiseReductionDescription: 'Kurangi noise latar konstan dari clip audio di timeline',
+		selectTimelineAudio: 'PILIH AUDIO TIMELINE',
+		chooseTimelineAudio: 'Pilih clip audio...',
+		noTimelineAudio: 'Tambahkan clip audio ke timeline terlebih dahulu.',
+		noiseReductionResultHint:
+			'File WAV yang sudah dibersihkan akan ditambahkan ke project dan digunakan sebagai sumber clip terpilih.',
+		applyNoiseReduction: 'Kurangi noise',
+		pleaseSelectTimelineAudio: 'Pilih clip audio dari timeline',
+		noiseReductionSuccess:
+			'Noise berhasil dikurangi. Clip terpilih sekarang menggunakan audio yang sudah dibersihkan.',
+		noiseReductionFailed: 'Gagal mengurangi noise audio: {error}'
 	},
 	status: {
 		...baseEn.status,

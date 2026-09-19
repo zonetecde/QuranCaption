@@ -66,6 +66,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::media::audio_timestamp_stretch_ms,
         commands::media::normalize_audio_timestamps,
         commands::media::cut_audio,
+        commands::media::reduce_audio_noise,
         commands::media::cut_video,
         commands::media::concat_audio,
         commands::segmentation::segment_quran_audio,

@@ -3006,7 +3006,19 @@ const es = {
 		endTimeExceedsDuration: 'La hora de fin supera la duración del elemento',
 		assetTrimmedSuccess:
 			'¡Elemento recortado con éxito! La versión recortada se ha agregado al proyecto.',
-		failedToTrim: 'Error al recortar el elemento : {error}'
+		failedToTrim: 'Error al recortar el elemento : {error}',
+		noiseReduction: 'Reducción de ruido',
+		noiseReductionDescription:
+			'Reducir el ruido de fondo constante de un clip de audio de la línea de tiempo',
+		selectTimelineAudio: 'SELECCIONAR AUDIO DE LA LÍNEA DE TIEMPO',
+		chooseTimelineAudio: 'Elige un clip de audio...',
+		noTimelineAudio: 'Primero añade un clip de audio a la línea de tiempo.',
+		noiseReductionResultHint:
+			'Se añadirá al proyecto un archivo WAV limpio y se usará como fuente del clip seleccionado.',
+		applyNoiseReduction: 'Reducir ruido',
+		pleaseSelectTimelineAudio: 'Selecciona un clip de audio de la línea de tiempo',
+		noiseReductionSuccess: 'Ruido reducido. El clip seleccionado ahora usa el audio limpio.',
+		noiseReductionFailed: 'No se pudo reducir el ruido del audio: {error}'
 	},
 	status: {
 		notSet: 'No definido',

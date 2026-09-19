@@ -169,6 +169,30 @@
 			class="absolute right-0 mt-2 w-56 bg-primary border border-color rounded-lg shadow-xl py-2 z-50 overflow-hidden"
 			transition:slide
 		>
+			<div class="px-4 py-2">
+				<div class="mb-2 flex items-center gap-3 text-left text-sm text-secondary">
+					<span class="material-icons text-lg text-accent">speed</span>
+					{$LL.editor.playbackSpeed()}
+				</div>
+				<div class="grid grid-cols-5 gap-1">
+					{#each [0.75, 1, 1.5, 1.75, 2] as speed (speed)}
+						<!-- svelte-ignore node_invalid_placement_ssr -->
+						<button
+							class="rounded py-1 text-xs transition-colors {globalState.getVideoPreviewState
+								.playbackSpeed === speed
+								? 'bg-accent-primary text-black'
+								: 'bg-secondary text-secondary hover:bg-accent'}"
+							onclick={(event) => {
+								event.stopPropagation();
+								globalState.getVideoPreviewState.playbackSpeed = speed;
+								globalState.getSubtitlesEditorState.playbackSpeed = speed;
+							}}
+						>
+							{speed}x
+						</button>
+					{/each}
+				</div>
+			</div>
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button
 				class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"

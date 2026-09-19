@@ -137,7 +137,10 @@
 
 	// Effect qui redimensionne la vidéo quand la hauteur de la prévisualisation change
 	$effect(() => {
-		const _ = globalState.settings?.persistentUiState.projectEditorLayout.upperSectionHeight;
+		const _ = [
+			globalState.settings?.persistentUiState.projectEditorLayout.upperSectionHeight,
+			globalState.settings?.persistentUiState.projectEditorLayout.subtitlesEditorPreviewHeight
+		];
 
 		resizeVideoToFitScreen();
 	});
@@ -410,16 +413,15 @@
 	 * @returns {number} Multiplicateur de vitesse à utiliser.
 	 */
 	function getSpeed() {
-		let speed = globalState.getSubtitlesEditorState.playbackSpeed;
+		let speed = globalState.getVideoPreviewState.playbackSpeed;
+		if (
+			globalState.currentProject?.projectEditorState.currentTab ===
+			ProjectEditorTabs.SubtitlesEditor
+		) {
+			speed = globalState.getSubtitlesEditorState.playbackSpeed;
+		}
 		if (globalState.shared.wbwEdit.active) {
 			speed = globalState.getSubtitlesEditorState.wbwPlaybackSpeed;
-		}
-		if (
-			!globalState.shared.wbwEdit.active &&
-			globalState.currentProject?.projectEditorState.currentTab !==
-				ProjectEditorTabs.SubtitlesEditor
-		) {
-			speed = 1; // Réinitialise la vitesse si on n'est pas dans l'éditeur de sous-titres
 		}
 		return speed;
 	}

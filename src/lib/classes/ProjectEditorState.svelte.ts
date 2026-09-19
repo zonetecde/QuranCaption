@@ -269,6 +269,9 @@ export class VideoPreviewState extends SerializableBase {
 	// Indique si la prévisualisation vidéo est en pause
 	isPlaying: boolean = $state(false);
 
+	// Vitesse de lecture globale de la prévisualisation
+	playbackSpeed: number = $state(1.0);
+
 	// Indique si la prévisualisation vidéo est en plein écran
 	isFullscreen: boolean = $state(false);
 

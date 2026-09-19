@@ -954,6 +954,63 @@ pub fn cut_audio(
     }
 }
 
+/// Construit les arguments FFmpeg utilisés pour réduire le bruit d'une source audio.
+fn reduce_audio_noise_args(source_path: &str, output_path: &str) -> Vec<String> {
+    [
+        "-i",
+        source_path,
+        "-map",
+        "0:a:0",
+        "-vn",
+        "-af",
+        "afftdn=nr=12:nf=-50",
+        "-c:a",
+        "pcm_s16le",
+        "-y",
+        output_path,
+    ]
+    .iter()
+    .map(|value| value.to_string())
+    .collect()
+}
+
+/// Réduit le bruit d'une source audio avec le filtre FFT intégré à FFmpeg.
+#[tauri::command]
+pub fn reduce_audio_noise(source_path: String, output_path: String) -> Result<(), String> {
+    if !Path::new(&source_path).exists() {
+        return Err(format!("Source file not found: {}", source_path));
+    }
+
+    let ffmpeg_path =
+        binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
+    let mut cmd = Command::new(&ffmpeg_path);
+    cmd.args(reduce_audio_noise_args(&source_path, &output_path));
+    configure_command_no_window(&mut cmd);
+
+    match cmd.output() {
+        Ok(result) if result.status.success() => Ok(()),
+        Ok(result) => Err(format!(
+            "ffmpeg error: {}",
+            String::from_utf8_lossy(&result.stderr)
+        )),
+        Err(error) => Err(format!("Unable to execute ffmpeg: {}", error)),
+    }
+}
+
+#[cfg(test)]
+mod noise_reduction_tests {
+    use super::reduce_audio_noise_args;
+
+    /// Vérifie que la réduction de bruit utilise le filtre disponible dans les binaires de release.
+    #[test]
+    fn uses_afftdn_and_wav_pcm_output() {
+        let args = reduce_audio_noise_args("input.mp3", "output.wav");
+
+        assert!(args.iter().any(|arg| arg == "afftdn=nr=12:nf=-50"));
+        assert!(args.windows(2).any(|pair| pair == ["-c:a", "pcm_s16le"]));
+    }
+}
+
 /// Coupe une portion vidéo sans ré-encodage (copie de flux).
 #[tauri::command]
 pub fn cut_video(

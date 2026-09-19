@@ -1120,9 +1120,29 @@ type RootTranslation = {
 		 */
 		transcriptText: string;
 		/**
+		 * D​e​c​r​e​a​s​e​ ​t​r​a​n​s​c​r​i​p​t​ ​t​e​x​t​ ​s​i​z​e
+		 */
+		decreaseTranscriptTextSize: string;
+		/**
+		 * I​n​c​r​e​a​s​e​ ​t​r​a​n​s​c​r​i​p​t​ ​t​e​x​t​ ​s​i​z​e
+		 */
+		increaseTranscriptTextSize: string;
+		/**
 		 * T​y​p​e​ ​w​h​a​t​ ​t​h​e​ ​s​p​e​a​k​e​r​ ​s​a​y​s​.​.​.
 		 */
 		transcriptPlaceholder: string;
+		/**
+		 * I​n​s​e​r​t​ ​v​e​r​s​e
+		 */
+		insertVerse: string;
+		/**
+		 * I​n​s​e​r​t​ ​q​u​o​t​a​t​i​o​n
+		 */
+		insertQuotation: string;
+		/**
+		 * S​e​l​e​c​t​ ​a​ ​Q​u​r​a​n​ ​p​a​s​s​a​g​e
+		 */
+		selectQuranPassage: string;
 		/**
 		 * S​p​e​a​k​e​r
 		 */
@@ -1215,6 +1235,14 @@ type RootTranslation = {
 		 */
 		editingTranscript: string;
 		/**
+		 * C​o​n​f​i​r​m​ ​e​d​i​t
+		 */
+		confirmEditing: string;
+		/**
+		 * E​x​i​t​ ​e​d​i​t
+		 */
+		exitEditing: string;
+		/**
 		 * C​a​n​c​e​l​ ​e​d​i​t​i​n​g
 		 */
 		cancelEditing: string;
@@ -1251,6 +1279,14 @@ type RootTranslation = {
 		 */
 		aiTranscription: string;
 		/**
+		 * T​h​e​ ​a​u​d​i​o​ ​m​u​s​t​ ​b​e​ ​e​n​t​i​r​e​l​y​ ​i​n​ ​A​r​a​b​i​c​.
+		 */
+		arabicAudioRequired: string;
+		/**
+		 * M​a​t​c​h​i​n​g​ ​Q​u​r​a​n​ ​p​a​s​s​a​g​e​s​.​.​.
+		 */
+		matchingQuranPassages: string;
+		/**
 		 * P​r​e​p​a​r​e​ ​t​r​a​n​s​c​r​i​p​t
 		 */
 		transcriptCleanupStep: string;
@@ -1286,6 +1322,16 @@ type RootTranslation = {
 		 */
 		transcriptCleanupBatchProgress: RequiredParams<'current' | 'total'>;
 		/**
+		 * F​i​n​d​i​n​g​ ​n​a​t​u​r​a​l​ ​s​u​b​t​i​t​l​e​ ​b​o​u​n​d​a​r​i​e​s​.​.​.
+		 */
+		transcriptSemanticSegmentation: string;
+		/**
+		 * B​a​t​c​h​ ​{​c​u​r​r​e​n​t​}​ ​o​f​ ​{​t​o​t​a​l​}
+		 * @param {unknown} current
+		 * @param {unknown} total
+		 */
+		streamedBatchLabel: RequiredParams<'current' | 'total'>;
+		/**
 		 * P​r​e​p​a​r​e​d​ ​{​c​l​e​a​n​e​d​}​ ​o​f​ ​{​t​o​t​a​l​}​ ​s​u​b​t​i​t​l​e​ ​s​e​g​m​e​n​t​s​.
 		 * @param {unknown} cleaned
 		 * @param {unknown} total
@@ -1299,9 +1345,72 @@ type RootTranslation = {
 		 */
 		transcriptCleanupCompletedWithIssues: RequiredParams<'cleaned' | 'errors' | 'total'>;
 		/**
-		 * A​u​d​i​o​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​,​ ​Q​u​r​a​n​ ​m​a​t​c​h​i​n​g​,​ ​a​n​d​ ​s​u​b​t​i​t​l​e​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​s​t​a​y​ ​l​o​c​a​l​.​ ​O​n​l​y​ ​i​n​d​e​x​e​d​ ​t​r​a​n​s​c​r​i​p​t​ ​w​o​r​d​s​ ​a​r​e​ ​s​e​n​t​ ​t​o​ ​y​o​u​r​ ​c​o​n​f​i​g​u​r​e​d​ ​t​e​x​t​ ​A​I​ ​p​r​o​v​i​d​e​r​ ​w​h​e​n​ ​o​n​e​ ​i​s​ ​a​v​a​i​l​a​b​l​e​.
+		 * B​a​t​c​h​ ​s​i​z​e​ ​(​w​o​r​d​s​)
+		 */
+		transcriptCleanupBatchSize: string;
+		/**
+		 * E​s​t​i​m​a​t​e​d​ ​t​o​t​a​l​:​ ​{​c​o​u​n​t​}​ ​b​a​t​c​h​(​e​s​)​.
+		 * @param {unknown} count
+		 */
+		transcriptCleanupBatchPreview: RequiredParams<'count'>;
+		/**
+		 * P​a​u​s​e​ ​a​f​t​e​r​ ​t​h​i​s​ ​b​a​t​c​h
+		 */
+		pauseTranscriptCleanup: string;
+		/**
+		 * P​a​u​s​i​n​g​.​.​.
+		 */
+		pausingTranscriptCleanup: string;
+		/**
+		 * R​e​s​u​m​e​ ​c​l​e​a​n​u​p
+		 */
+		resumeTranscriptCleanup: string;
+		/**
+		 * C​l​e​a​n​u​p​ ​p​a​u​s​e​d​ ​·​ ​{​r​e​m​a​i​n​i​n​g​}​ ​b​a​t​c​h​(​e​s​)​ ​r​e​m​a​i​n​i​n​g​.
+		 * @param {unknown} remaining
+		 */
+		transcriptCleanupPaused: RequiredParams<'remaining'>;
+		/**
+		 * C​l​e​a​n​ ​e​x​i​s​t​i​n​g​ ​t​r​a​n​s​c​r​i​p​t​ ​w​i​t​h​ ​A​I
+		 */
+		cleanExistingTranscript: string;
+		/**
+		 * R​u​n​ ​t​h​e​ ​o​p​t​i​o​n​a​l​ ​A​I​ ​c​l​e​a​n​u​p​ ​n​o​w​,​ ​o​r​ ​r​e​s​u​m​e​ ​a​ ​c​l​e​a​n​u​p​ ​s​a​v​e​d​ ​w​i​t​h​ ​t​h​i​s​ ​p​r​o​j​e​c​t​.
+		 */
+		cleanExistingTranscriptDescription: string;
+		/**
+		 * {​r​e​m​a​i​n​i​n​g​}​ ​b​a​t​c​h​(​e​s​)​ ​r​e​m​a​i​n​i​n​g
+		 * @param {unknown} remaining
+		 */
+		transcriptCleanupRemaining: RequiredParams<'remaining'>;
+		/**
+		 * A​u​d​i​o​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​,​ ​Q​u​r​a​n​ ​m​a​t​c​h​i​n​g​,​ ​a​n​d​ ​f​i​n​a​l​ ​s​u​b​t​i​t​l​e​ ​a​s​s​e​m​b​l​y​ ​s​t​a​y​ ​l​o​c​a​l​.​ ​C​l​e​a​n​e​d​ ​i​n​d​e​x​e​d​ ​w​o​r​d​s​,​ ​t​i​m​i​n​g​s​,​ ​a​n​d​ ​c​o​n​t​e​x​t​ ​m​e​t​a​d​a​t​a​ ​a​r​e​ ​s​e​n​t​ ​o​n​l​y​ ​t​o​ ​y​o​u​r​ ​c​o​n​f​i​g​u​r​e​d​ ​t​e​x​t​ ​A​I​ ​p​r​o​v​i​d​e​r​ ​w​h​e​n​ ​o​n​e​ ​i​s​ ​a​v​a​i​l​a​b​l​e​.
 		 */
 		transcriptionDataPrivacy: string;
+		/**
+		 * S​h​o​r​t
+		 */
+		subtitleLengthShort: string;
+		/**
+		 * S​h​o​r​t​ ​s​u​b​t​i​t​l​e​s​ ​w​i​t​h​ ​m​o​r​e​ ​f​r​e​q​u​e​n​t​ ​n​a​t​u​r​a​l​ ​c​h​a​n​g​e​s​.
+		 */
+		subtitleLengthShortDescription: string;
+		/**
+		 * M​e​d​i​u​m
+		 */
+		subtitleLengthMedium: string;
+		/**
+		 * B​a​l​a​n​c​e​d​,​ ​r​e​a​d​a​b​l​e​ ​s​u​b​t​i​t​l​e​s​ ​f​o​r​ ​m​o​s​t​ ​l​e​c​t​u​r​e​s​.
+		 */
+		subtitleLengthMediumDescription: string;
+		/**
+		 * L​o​n​g
+		 */
+		subtitleLengthLong: string;
+		/**
+		 * L​o​n​g​e​r​ ​c​o​m​p​l​e​t​e​ ​i​d​e​a​s​ ​w​i​t​h​ ​f​e​w​e​r​ ​v​i​s​u​a​l​ ​c​h​a​n​g​e​s​.
+		 */
+		subtitleLengthLongDescription: string;
 		/**
 		 * A​I​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​l​a​t​e​r
 		 */
@@ -1419,6 +1528,10 @@ type RootTranslation = {
 		 * Y​o​u​ ​c​a​n​n​o​t​ ​a​d​d​ ​m​o​r​e​ ​c​l​i​p​s​ ​b​e​c​a​u​s​e​ ​a​ ​c​l​i​p​ ​w​i​t​h​ ​"​L​o​o​p​ ​u​n​t​i​l​ ​t​h​e​ ​e​n​d​"​ ​i​s​ ​a​l​r​e​a​d​y​ ​p​r​e​s​e​n​t​.
 		 */
 		cannotAddMoreClips: string;
+		/**
+		 * T​i​p​:​ ​D​r​a​g​ ​o​n​e​ ​a​u​d​i​o​ ​c​l​i​p​ ​o​v​e​r​ ​a​n​o​t​h​e​r​ ​i​n​ ​t​h​e​ ​t​i​m​e​l​i​n​e​ ​t​o​ ​l​a​y​e​r​ ​t​h​e​m​ ​a​n​d​ ​p​l​a​y​ ​b​o​t​h​ ​a​t​ ​t​h​e​ ​s​a​m​e​ ​t​i​m​e​.
+		 */
+		audioOverlapHint: string;
 		/**
 		 * B​a​c​k​g​r​o​u​n​d​ ​I​m​a​g​e​ ​E​r​r​o​r
 		 */
@@ -2732,7 +2845,7 @@ type RootTranslation = {
 		 */
 		addClipToStart: string;
 		/**
-		 * F​o​r​c​e​ ​s​p​l​i​t​ ​a​f​t​e​r​ ​s​i​l​e​n​c​e
+		 * P​r​e​f​e​r​ ​a​ ​s​p​l​i​t​ ​a​f​t​e​r​ ​t​h​i​s​ ​p​a​u​s​e
 		 */
 		minSilenceLabel: string;
 		/**
@@ -3317,6 +3430,50 @@ type RootTranslation = {
 		 */
 		editSubtitleContext: string;
 		/**
+		 * T​r​y​ ​a​n​o​t​h​e​r​ ​s​p​e​e​c​h​ ​r​e​c​o​g​n​i​t​i​o​n
+		 */
+		retranscribeSubtitleContext: string;
+		/**
+		 * R​e​t​r​a​n​s​c​r​i​b​e​ ​s​u​b​t​i​t​l​e​ ​a​u​d​i​o
+		 */
+		retranscribeSubtitleTitle: string;
+		/**
+		 * C​o​m​p​a​r​e​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​s​u​b​t​i​t​l​e​ ​w​i​t​h​ ​l​o​c​a​l​ ​s​p​e​e​c​h​ ​r​e​c​o​g​n​i​t​i​o​n​ ​r​e​s​u​l​t​s​ ​f​o​r​ ​t​h​i​s​ ​e​x​a​c​t​ ​a​u​d​i​o​ ​r​a​n​g​e​.
+		 */
+		retranscribeSubtitleDescription: string;
+		/**
+		 * C​u​r​r​e​n​t​ ​s​u​b​t​i​t​l​e
+		 */
+		retranscribeCurrentText: string;
+		/**
+		 * L​i​s​t​e​n​ ​t​o​ ​c​l​i​p
+		 */
+		retranscribeListen: string;
+		/**
+		 * S​t​o​p​ ​p​l​a​y​b​a​c​k
+		 */
+		retranscribeStopListening: string;
+		/**
+		 * W​a​i​t​i​n​g
+		 */
+		retranscribeWaiting: string;
+		/**
+		 * T​r​a​n​s​c​r​i​b​i​n​g​.​.​.
+		 */
+		retranscribeRunning: string;
+		/**
+		 * T​h​i​s​ ​m​o​d​e​l​ ​c​o​u​l​d​ ​n​o​t​ ​t​r​a​n​s​c​r​i​b​e​ ​t​h​e​ ​c​l​i​p​.
+		 */
+		retranscribeFailed: string;
+		/**
+		 * A​p​p​l​y​ ​s​e​l​e​c​t​e​d​ ​t​e​x​t
+		 */
+		retranscribeApply: string;
+		/**
+		 * S​u​b​t​i​t​l​e​ ​r​e​t​r​a​n​s​c​r​i​b​e​d​.
+		 */
+		retranscribeApplied: string;
+		/**
 		 * A​d​d​ ​s​i​l​e​n​c​e​ ​(​o​n​ ​t​h​e​ ​l​e​f​t​)
 		 */
 		addSilenceLeft: string;
@@ -3417,7 +3574,7 @@ type RootTranslation = {
 		 */
 		tiktokSampleUsername: string;
 		/**
-		 * Y​o​u​r​ ​d​e​s​c​r​i​p​t​i​o​n​ ​a​p​p​e​a​r​s​ ​h​e​r​e​ ​#​Q​u​r​a​n​C​a​p​t​i​o​n
+		 * Y​o​u​r​ ​d​e​s​c​r​i​p​t​i​o​n​ ​a​p​p​e​a​r​s​ ​h​e​r​e​ ​#​M​i​n​b​a​r​S​t​u​d​i​o
 		 */
 		tiktokSampleDescription: string;
 		/**
@@ -4565,17 +4722,13 @@ type RootTranslation = {
 			 */
 			'wbw-color': string;
 			/**
-			 * P​e​r​s​i​s​t​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s
+			 * P​e​r​s​i​s​t​ ​W​B​W​ ​e​f​f​e​c​t
 			 */
 			'wbw-persist-color': string;
 			/**
 			 * R​e​v​e​a​l​ ​s​p​e​c​i​f​i​c​ ​w​o​r​d​ ​s​t​y​l​e​ ​o​n​ ​r​e​c​i​t​a​t​i​o​n
 			 */
 			'wbw-reveal-specific-word-style': string;
-			/**
-			 * K​e​e​p​ ​s​p​e​c​i​f​i​c​ ​w​o​r​d​ ​s​t​y​l​e​ ​a​f​t​e​r​ ​r​e​v​e​l​a​t​i​o​n
-			 */
-			'wbw-keep-specific-word-style': string;
 			/**
 			 * E​n​a​b​l​e​ ​u​n​d​e​r​l​i​n​e
 			 */
@@ -5177,7 +5330,7 @@ type RootTranslation = {
 			 */
 			'reciter-latin-text-style': string;
 			/**
-			 * A​y​a​h​ ​C​o​n​t​a​i​n​e​r
+			 * T​e​x​t​ ​C​o​n​t​a​i​n​e​r
 			 */
 			'ayah-container': string;
 			/**
@@ -5232,6 +5385,10 @@ type RootTranslation = {
 			 * A​l​w​a​y​s​ ​S​h​o​w
 			 */
 			'always-show': string;
+			/**
+			 * T​i​m​e​ ​R​a​n​g​e​s
+			 */
+			'time-ranges': string;
 			/**
 			 * T​i​m​e​ ​A​p​p​e​a​r​a​n​c​e
 			 */
@@ -5363,17 +5520,13 @@ type RootTranslation = {
 			 */
 			'wbw-color': string;
 			/**
-			 * K​e​e​p​ ​p​r​e​v​i​o​u​s​l​y​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s​ ​c​o​l​o​r​e​d​ ​a​f​t​e​r​ ​t​h​e​y​ ​h​a​v​e​ ​b​e​e​n​ ​r​e​a​d
+			 * K​e​e​p​ ​t​h​e​ ​a​c​t​i​v​e​ ​W​B​W​ ​e​f​f​e​c​t​ ​o​n​ ​p​r​e​v​i​o​u​s​l​y​ ​r​e​c​i​t​e​d​ ​w​o​r​d​s
 			 */
 			'wbw-persist-color': string;
 			/**
 			 * H​i​d​e​ ​c​u​s​t​o​m​ ​w​o​r​d​ ​s​t​y​l​e​s​ ​u​n​t​i​l​ ​t​h​e​i​r​ ​l​i​n​k​e​d​ ​w​o​r​d​ ​i​s​ ​r​e​c​i​t​e​d
 			 */
 			'wbw-reveal-specific-word-style': string;
-			/**
-			 * K​e​e​p​ ​c​u​s​t​o​m​ ​w​o​r​d​ ​s​t​y​l​e​s​ ​v​i​s​i​b​l​e​ ​a​f​t​e​r​ ​t​h​e​i​r​ ​l​i​n​k​e​d​ ​w​o​r​d​s​ ​a​r​e​ ​r​e​c​i​t​e​d
-			 */
-			'wbw-keep-specific-word-style': string;
 			/**
 			 * U​n​d​e​r​l​i​n​e​ ​h​i​g​h​l​i​g​h​t​e​d​ ​w​o​r​d​s
 			 */
@@ -5955,6 +6108,10 @@ type RootTranslation = {
 			 */
 			'always-show': string;
 			/**
+			 * C​o​n​f​i​g​u​r​e​ ​m​u​l​t​i​p​l​e​ ​a​p​p​e​a​r​a​n​c​e​ ​r​a​n​g​e​s
+			 */
+			'time-ranges': string;
+			/**
 			 * C​h​a​n​g​e​ ​t​h​e​ ​t​i​m​e​ ​w​h​e​r​e​ ​i​t​ ​a​p​p​e​a​r​s
 			 */
 			'time-appearance': string;
@@ -6326,11 +6483,11 @@ type RootTranslation = {
 		 */
 		arabicText: string;
 		/**
-		 * O​r​i​g​i​n​a​l​ ​Q​u​r​a​n​i​c​ ​t​e​x​t​ ​i​n​ ​A​r​a​b​i​c​ ​s​c​r​i​p​t
+		 * A​r​a​b​i​c​ ​s​u​b​t​i​t​l​e​ ​t​e​x​t
 		 */
 		arabicTextDescription: string;
 		/**
-		 * T​r​a​n​s​l​a​t​i​o​n​ ​b​y​ ​{​a​u​t​h​o​r​}
+		 * Q​u​r​a​n​ ​t​r​a​n​s​l​a​t​i​o​n​ ​e​d​i​t​i​o​n​:​ ​{​a​u​t​h​o​r​}
 		 * @param {unknown} author
 		 */
 		translationByAuthor: RequiredParams<'author'>;
@@ -6340,15 +6497,15 @@ type RootTranslation = {
 		 */
 		translationAuthor: RequiredParams<'author'>;
 		/**
-		 * I​n​c​l​u​d​e​ ​v​e​r​s​e​ ​n​u​m​b​e​r​s
+		 * I​n​c​l​u​d​e​ ​a​y​a​h​ ​p​a​r​e​n​t​h​e​s​e​s
 		 */
 		includeVerseNumbers: string;
 		/**
-		 * A​d​d​ ​v​e​r​s​e​ ​n​u​m​b​e​r​s​ ​(​e​.​g​.​,​ ​“​2​5​5​.​”​)​ ​a​t​ ​t​h​e​ ​e​n​d​ ​o​f​ ​e​a​c​h​ ​v​e​r​s​e
+		 * I​n​c​l​u​d​e​ ​v​e​r​s​e​ ​n​u​m​b​e​r​ ​i​n​ ​A​r​a​b​i​c​ ​a​y​a​h
 		 */
 		includeVerseNumbersAtEnd: string;
 		/**
-		 * A​d​d​ ​v​e​r​s​e​ ​n​u​m​b​e​r​s​ ​(​e​.​g​.​,​ ​“​2​5​5​.​”​)​ ​a​t​ ​t​h​e​ ​b​e​g​i​n​n​i​n​g​ ​o​f​ ​e​a​c​h​ ​v​e​r​s​e
+		 * I​n​c​l​u​d​e​ ​v​e​r​s​e​ ​n​u​m​b​e​r​ ​i​n​ ​t​r​a​n​s​l​a​t​i​o​n
 		 */
 		includeVerseNumbersAtStart: string;
 		/**
@@ -6452,12 +6609,24 @@ type RootTranslation = {
 		 */
 		exportProjectData: string;
 		/**
-		 * E​x​p​o​r​t​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​a​s​ ​a​ ​s​t​a​n​d​a​l​o​n​e​ ​J​S​O​N​ ​f​i​l​e​.
+		 * E​x​p​o​r​t​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​a​s​ ​a​ ​s​t​a​n​d​a​l​o​n​e​ ​J​S​O​N​ ​f​i​l​e​ ​w​i​t​h​o​u​t​ ​i​t​s​ ​m​e​d​i​a​ ​a​s​s​e​t​s​.
 		 */
 		exportProjectDataDescription: string;
+		/**
+		 * I​n​c​l​u​d​e​ ​p​r​o​j​e​c​t​ ​a​s​s​e​t​s
+		 */
 		includeProjectAssets: string;
+		/**
+		 * P​a​c​k​a​g​e​ ​y​o​u​r​ ​l​o​c​a​l​ ​a​u​d​i​o​,​ ​v​i​d​e​o​,​ ​i​m​a​g​e​,​ ​a​n​d​ ​o​t​h​e​r​ ​p​r​o​j​e​c​t​ ​a​s​s​e​t​s​ ​i​n​ ​a​ ​.​m​i​n​b​a​r​ ​f​i​l​e​.
+		 */
 		includeProjectAssetsDescription: string;
+		/**
+		 * E​x​p​o​r​t​ ​M​i​n​b​a​r​ ​P​a​c​k​a​g​e
+		 */
 		exportProjectPackage: string;
+		/**
+		 * E​x​p​o​r​t​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​a​n​d​ ​a​s​s​e​t​s​ ​a​s​ ​a​ ​.​m​i​n​b​a​r​ ​p​a​c​k​a​g​e​.
+		 */
 		exportProjectPackageDescription: string;
 		/**
 		 * W​h​a​t​'​s​ ​I​n​c​l​u​d​e​d
@@ -6487,7 +6656,13 @@ type RootTranslation = {
 		 * C​u​s​t​o​m​ ​t​e​x​t​ ​c​l​i​p​s​,​ ​s​t​y​l​i​n​g​ ​o​v​e​r​r​i​d​e​s​,​ ​a​n​d​ ​b​a​c​k​g​r​o​u​n​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​s​.
 		 */
 		customElementsDescription: string;
+		/**
+		 * P​r​o​j​e​c​t​ ​A​s​s​e​t​s
+		 */
 		projectAssets: string;
+		/**
+		 * L​o​c​a​l​ ​a​u​d​i​o​,​ ​v​i​d​e​o​,​ ​i​m​a​g​e​,​ ​a​n​d​ ​o​t​h​e​r​ ​a​s​s​e​t​s​ ​u​s​e​d​ ​b​y​ ​t​h​i​s​ ​p​r​o​j​e​c​t​.
+		 */
 		projectAssetsDescription: string;
 		/**
 		 * L​i​m​i​t​a​t​i​o​n​s
@@ -6498,10 +6673,16 @@ type RootTranslation = {
 		 */
 		mediaFilesNotIncluded: string;
 		/**
-		 * A​u​d​i​o​ ​a​n​d​ ​v​i​d​e​o​ ​f​i​l​e​s​ ​y​o​u​ ​i​m​p​o​r​t​e​d​ ​f​r​o​m​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​a​r​e​ ​n​o​t​ ​i​n​c​l​u​d​e​d​.​ ​O​n​l​y​ ​f​i​l​e​ ​n​a​m​e​s​ ​a​n​d​ ​s​o​u​r​c​e​ ​U​R​L​s​ ​a​r​e​ ​s​t​o​r​e​d​.
+		 * A​u​d​i​o​,​ ​v​i​d​e​o​,​ ​i​m​a​g​e​,​ ​a​n​d​ ​o​t​h​e​r​ ​f​i​l​e​s​ ​y​o​u​ ​i​m​p​o​r​t​e​d​ ​f​r​o​m​ ​y​o​u​r​ ​d​e​v​i​c​e​ ​a​r​e​ ​n​o​t​ ​i​n​c​l​u​d​e​d​.​ ​O​n​l​y​ ​f​i​l​e​ ​n​a​m​e​s​ ​a​n​d​ ​s​o​u​r​c​e​ ​U​R​L​s​ ​a​r​e​ ​s​t​o​r​e​d​.
 		 */
 		mediaFilesNotIncludedDescription: string;
+		/**
+		 * P​r​o​j​e​c​t​ ​A​s​s​e​t​s​ ​I​n​c​l​u​d​e​d
+		 */
 		projectAssetsIncluded: string;
+		/**
+		 * T​h​e​ ​.​m​i​n​b​a​r​ ​p​a​c​k​a​g​e​ ​c​o​n​t​a​i​n​s​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​a​n​d​ ​i​t​s​ ​l​o​c​a​l​ ​a​s​s​e​t​s​.
+		 */
 		projectAssetsIncludedDescription: string;
 		/**
 		 * E​x​p​o​r​t​ ​P​r​o​j​e​c​t​ ​D​a​t​a
@@ -6511,6 +6692,9 @@ type RootTranslation = {
 		 * G​e​n​e​r​a​t​e​ ​a​ ​J​S​O​N​ ​f​i​l​e​ ​c​o​n​t​a​i​n​i​n​g​ ​y​o​u​r​ ​e​n​t​i​r​e​ ​p​r​o​j​e​c​t​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 		 */
 		exportProjectDataButtonDescription: string;
+		/**
+		 * G​e​n​e​r​a​t​e​ ​a​ ​.​m​i​n​b​a​r​ ​f​i​l​e​ ​c​o​n​t​a​i​n​i​n​g​ ​y​o​u​r​ ​e​n​t​i​r​e​ ​p​r​o​j​e​c​t​ ​a​n​d​ ​i​t​s​ ​a​s​s​e​t​s
+		 */
 		exportProjectPackageButtonDescription: string;
 		/**
 		 * E​x​p​o​r​t​ ​S​u​b​t​i​t​l​e​s​ ​J​S​O​N
@@ -7044,6 +7228,35 @@ type RootTranslation = {
 		 * @param {unknown} count
 		 */
 		aiTranslationEligibleCount: RequiredParams<'count'>;
+		/**
+		 * B​a​t​c​h​ ​s​i​z​e​ ​(​w​o​r​d​s​)
+		 */
+		aiTranslationBatchSize: string;
+		/**
+		 * E​s​t​i​m​a​t​e​d​ ​t​o​t​a​l​:​ ​{​c​o​u​n​t​}​ ​b​a​t​c​h​(​e​s​)​.
+		 * @param {unknown} count
+		 */
+		aiTranslationBatchPreview: RequiredParams<'count'>;
+		/**
+		 * A​r​a​b​i​c​ ​I​s​l​a​m​i​c​ ​t​e​r​m​i​n​o​l​o​g​y
+		 */
+		aiTranslationIslamicTerms: string;
+		/**
+		 * C​h​o​o​s​e​ ​h​o​w​ ​t​e​c​h​n​i​c​a​l​ ​A​r​a​b​i​c​ ​t​e​r​m​s​ ​s​h​o​u​l​d​ ​a​p​p​e​a​r​ ​t​h​r​o​u​g​h​o​u​t​ ​t​h​e​ ​t​r​a​n​s​l​a​t​i​o​n​.
+		 */
+		aiTranslationIslamicTermsDescription: string;
+		/**
+		 * T​r​a​n​s​l​a​t​e​d​ ​t​e​r​m​ ​o​n​l​y​ ​—​ ​j​u​r​i​s​p​r​u​d​e​n​c​e
+		 */
+		aiTranslationTermsTranslated: string;
+		/**
+		 * T​r​a​n​s​l​a​t​e​d​ ​t​e​r​m​ ​+​ ​A​r​a​b​i​c​ ​t​e​r​m​ ​—​ ​j​u​r​i​s​p​r​u​d​e​n​c​e​ ​(​f​i​q​h​)
+		 */
+		aiTranslationTermsBoth: string;
+		/**
+		 * A​r​a​b​i​c​ ​t​e​r​m​ ​o​n​l​y​ ​—​ ​f​i​q​h
+		 */
+		aiTranslationTermsTransliterated: string;
 		/**
 		 * N​o​ ​s​u​b​t​i​t​l​e​ ​c​u​r​r​e​n​t​l​y​ ​m​a​t​c​h​e​s​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​o​p​t​i​o​n​s​.
 		 */
@@ -7586,7 +7799,7 @@ type RootTranslation = {
 		 */
 		nextKeyframe: string;
 		/**
-		 * N​o​t​e​:​ ​S​t​y​l​e​ ​t​r​a​n​s​i​t​i​o​n​s​ ​a​r​e​ ​n​o​t​ ​i​n​t​e​r​p​o​l​a​t​e​d​ ​i​n​ ​t​h​e​ ​p​r​e​v​i​e​w​.​ ​F​a​d​e​ ​t​r​a​n​s​i​t​i​o​n​s​ ​w​i​l​l​ ​b​e​ ​r​e​n​d​e​r​e​d​ ​i​n​ ​t​h​e​ ​e​x​p​o​r​t​e​d​ ​v​i​d​e​o​.
+		 * N​o​t​e​:​ ​T​h​e​ ​p​r​e​v​i​e​w​ ​a​n​i​m​a​t​e​s​ ​c​o​l​o​r​,​ ​o​p​a​c​i​t​y​,​ ​a​n​d​ ​v​i​s​i​b​i​l​i​t​y​ ​t​r​a​n​s​i​t​i​o​n​s​.​ ​O​t​h​e​r​ ​s​t​y​l​e​ ​f​a​d​e​s​ ​w​i​l​l​ ​b​e​ ​r​e​n​d​e​r​e​d​ ​i​n​ ​t​h​e​ ​e​x​p​o​r​t​e​d​ ​v​i​d​e​o​.
 		 */
 		keyframeInterpolationNotice: string;
 		/**
@@ -7695,6 +7908,54 @@ type RootTranslation = {
 		 * A​b​o​u​t
 		 */
 		about: string;
+		/**
+		 * P​r​o​j​e​c​t​ ​D​e​f​a​u​l​t​s
+		 */
+		defaultValues: string;
+		/**
+		 * C​u​s​t​o​m​i​z​e​ ​t​h​e​ ​c​a​t​e​g​o​r​i​e​s​ ​o​f​f​e​r​e​d​ ​w​h​e​n​ ​c​r​e​a​t​i​n​g​ ​a​ ​p​r​o​j​e​c​t​.
+		 */
+		defaultValuesDescription: string;
+		/**
+		 * S​h​o​w​ ​v​i​d​e​o​ ​t​h​u​m​b​n​a​i​l​s​ ​i​n​ ​t​h​e​ ​t​i​m​e​l​i​n​e
+		 */
+		showTimelineVideoThumbnails: string;
+		/**
+		 * E​x​t​r​a​c​t​ ​a​n​d​ ​d​i​s​p​l​a​y​ ​v​i​d​e​o​ ​f​r​a​m​e​s​ ​i​n​s​i​d​e​ ​t​i​m​e​l​i​n​e​ ​c​l​i​p​s​.​ ​D​i​s​a​b​l​e​ ​t​h​i​s​ ​t​o​ ​r​e​d​u​c​e​ ​C​P​U​ ​a​n​d​ ​d​i​s​k​ ​u​s​a​g​e​.
+		 */
+		showTimelineVideoThumbnailsDescription: string;
+		/**
+		 * P​r​o​j​e​c​t​ ​c​a​t​e​g​o​r​i​e​s
+		 */
+		projectCategories: string;
+		/**
+		 * M​a​n​a​g​e​ ​t​h​e​ ​c​o​n​t​e​n​t​ ​t​y​p​e​s​ ​a​v​a​i​l​a​b​l​e​ ​i​n​ ​t​h​e​ ​p​r​o​j​e​c​t​ ​e​x​p​l​o​r​e​r​.
+		 */
+		projectCategoriesDescription: string;
+		/**
+		 * N​e​w​ ​c​a​t​e​g​o​r​y
+		 */
+		newProjectCategory: string;
+		/**
+		 * A​d​d
+		 */
+		addCategory: string;
+		/**
+		 * D​e​l​e​t​e​ ​c​a​t​e​g​o​r​y
+		 */
+		deleteCategory: string;
+		/**
+		 * C​a​t​e​g​o​r​y​ ​c​a​n​n​o​t​ ​b​e​ ​e​m​p​t​y​.
+		 */
+		categoryCannotBeEmpty: string;
+		/**
+		 * T​h​i​s​ ​c​a​t​e​g​o​r​y​ ​a​l​r​e​a​d​y​ ​e​x​i​s​t​s​.
+		 */
+		categoryAlreadyExists: string;
+		/**
+		 * C​a​t​e​g​o​r​y​ ​c​o​n​t​a​i​n​s​ ​i​n​v​a​l​i​d​ ​f​i​l​e​ ​n​a​m​e​ ​c​h​a​r​a​c​t​e​r​s​.
+		 */
+		categoryInvalidCharacters: string;
 		/**
 		 * S​e​l​e​c​t​ ​a​p​p​l​i​c​a​t​i​o​n​ ​t​h​e​m​e​ ​a​n​d​ ​a​c​c​e​n​t​ ​c​o​l​o​r​s​.
 		 */
@@ -8275,6 +8536,13 @@ type RootTranslation = {
 			 * R​e​s​e​t​ ​S​t​a​r​t​ ​C​u​r​s​o​r
 			 */
 			RESET_START_CURSOR: string;
+			/**
+			 * R​e​g​e​n​e​r​a​t​e​ ​W​B​W​ ​T​i​m​e​s​t​a​m​p​s
+			 */
+			REGENERATE_WBW_TIMESTAMPS: string;
+			/**
+			 * D​e​l​e​t​e​ ​C​l​i​p​ ​a​t​ ​C​u​r​s​o​r
+			 */
 			REMOVE_SUBTITLE_AT_CURSOR: string;
 			/**
 			 * S​e​l​e​c​t​ ​A​l​l​ ​W​o​r​d​s
@@ -8372,6 +8640,10 @@ type RootTranslation = {
 			 * N​e​x​t​ ​F​r​a​m​e
 			 */
 			FRAME_FORWARD: string;
+			/**
+			 * T​o​g​g​l​e​ ​Q​u​i​c​k​ ​M​e​r​g​e
+			 */
+			QUICK_MERGE_AT_CURSOR: string;
 		};
 		shortcutActionDesc: {
 			/**
@@ -8410,6 +8682,13 @@ type RootTranslation = {
 			 * P​u​t​ ​t​h​e​ ​s​t​a​r​t​ ​c​u​r​s​o​r​ ​o​n​ ​t​h​e​ ​e​n​d​ ​c​u​r​s​o​r​ ​p​o​s​i​t​i​o​n
 			 */
 			RESET_START_CURSOR: string;
+			/**
+			 * R​e​g​e​n​e​r​a​t​e​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​s​ ​f​o​r​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​u​n​d​e​r​ ​t​h​e​ ​t​i​m​e​l​i​n​e​ ​c​u​r​s​o​r
+			 */
+			REGENERATE_WBW_TIMESTAMPS: string;
+			/**
+			 * D​e​l​e​t​e​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​o​r​ ​s​i​l​e​n​c​e​ ​c​l​i​p​ ​u​n​d​e​r​ ​t​h​e​ ​c​u​r​s​o​r
+			 */
 			REMOVE_SUBTITLE_AT_CURSOR: string;
 			/**
 			 * S​e​l​e​c​t​ ​a​l​l​ ​w​o​r​d​s​ ​i​n​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​v​e​r​s​e
@@ -8507,6 +8786,10 @@ type RootTranslation = {
 			 * M​o​v​e​ ​t​h​e​ ​c​u​r​s​o​r​ ​f​o​r​w​a​r​d​ ​b​y​ ​o​n​e​ ​f​r​a​m​e
 			 */
 			FRAME_FORWARD: string;
+			/**
+			 * M​e​r​g​e​ ​o​r​ ​u​n​m​e​r​g​e​ ​s​u​b​t​i​t​l​e​s​ ​a​t​ ​t​h​e​ ​c​l​o​s​e​s​t​ ​b​o​u​n​d​a​r​y​ ​t​o​ ​t​h​e​ ​c​u​r​s​o​r
+			 */
+			QUICK_MERGE_AT_CURSOR: string;
 		};
 		/**
 		 * C​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​P​e​x​e​l​s​ ​a​n​d​ ​P​i​x​a​b​a​y​ ​A​P​I​ ​k​e​y​s​ ​t​o​ ​s​e​a​r​c​h​ ​a​n​d​ ​i​m​p​o​r​t​ ​f​r​e​e​ ​s​t​o​c​k​ ​m​e​d​i​a​.
@@ -8848,11 +9131,31 @@ type RootTranslation = {
 		 * S​h​i​f​t​ ​A​l​l​ ​S​u​b​t​i​t​l​e​s
 		 */
 		shiftAllSubtitles: string;
+		/**
+		 * I​m​p​o​r​t​ ​S​R​T​ ​t​r​a​n​s​l​a​t​i​o​n
+		 */
 		importSrtTranslation: string;
+		/**
+		 * S​R​T​ ​s​u​b​t​i​t​l​e​ ​f​i​l​e​s
+		 */
 		srtFileFilter: string;
-		srtImportSuccess: RequiredParams<'fileName' | 'count'>;
+		/**
+		 * I​m​p​o​r​t​e​d​ ​"​{​f​i​l​e​N​a​m​e​}​"​ ​a​n​d​ ​m​a​t​c​h​e​d​ ​{​c​o​u​n​t​}​ ​p​r​o​j​e​c​t​ ​s​u​b​t​i​t​l​e​s​.
+		 * @param {unknown} count
+		 * @param {unknown} fileName
+		 */
+		srtImportSuccess: RequiredParams<'count' | 'fileName'>;
+		/**
+		 * C​o​u​l​d​ ​n​o​t​ ​i​m​p​o​r​t​ ​t​h​e​ ​S​R​T​ ​t​r​a​n​s​l​a​t​i​o​n​.
+		 */
 		srtImportError: string;
+		/**
+		 * T​h​i​s​ ​p​r​o​j​e​c​t​ ​h​a​s​ ​n​o​ ​s​u​b​t​i​t​l​e​s​ ​t​o​ ​t​r​a​n​s​l​a​t​e​.
+		 */
 		srtNoSubtitles: string;
+		/**
+		 * N​o​ ​S​R​T​ ​s​u​b​t​i​t​l​e​s​ ​c​o​u​l​d​ ​b​e​ ​m​a​t​c​h​e​d​ ​t​o​ ​t​h​i​s​ ​p​r​o​j​e​c​t​.
+		 */
 		srtNoMatches: string;
 		/**
 		 * M​o​v​e​ ​a​l​l​ ​s​u​b​t​i​t​l​e​s​ ​f​o​r​w​a​r​d​ ​o​r​ ​b​a​c​k​w​a​r​d​ ​i​n​ ​t​i​m​e
@@ -9464,7 +9767,7 @@ type RootTranslation = {
 		 */
 		quickPresets: string;
 		/**
-		 * L​o​a​d​s​ ​e​n​d​p​o​i​n​t​ ​+​ ​m​o​d​e​l​ ​o​n​l​y
+		 * L​o​a​d​s​ ​e​n​d​p​o​i​n​t​,​ ​m​o​d​e​l​,​ ​a​n​d​ ​a​u​t​o​m​a​t​i​c​ ​r​e​a​s​o​n​i​n​g​ ​d​e​f​a​u​l​t​s
 		 */
 		loadsEndpointModel: string;
 		/**
@@ -9483,6 +9786,50 @@ type RootTranslation = {
 		 * R​e​a​s​o​n​i​n​g​ ​e​f​f​o​r​t
 		 */
 		reasoningEffort: string;
+		/**
+		 * R​e​a​s​o​n​i​n​g​ ​m​o​d​e
+		 */
+		reasoningMode: string;
+		/**
+		 * A​u​t​o​ ​—​ ​R​e​c​o​m​m​e​n​d​e​d
+		 */
+		reasoningAuto: string;
+		/**
+		 * O​f​f
+		 */
+		reasoningOff: string;
+		/**
+		 * M​i​n​i​m​a​l
+		 */
+		reasoningMinimal: string;
+		/**
+		 * L​o​w
+		 */
+		reasoningLow: string;
+		/**
+		 * M​e​d​i​u​m
+		 */
+		reasoningMedium: string;
+		/**
+		 * H​i​g​h
+		 */
+		reasoningHigh: string;
+		/**
+		 * M​a​x​i​m​u​m
+		 */
+		reasoningMaximum: string;
+		/**
+		 * E​n​a​b​l​e​ ​t​h​i​n​k​i​n​g
+		 */
+		enableThinking: string;
+		/**
+		 * T​r​a​n​s​l​a​t​i​o​n​ ​r​e​a​s​o​n​i​n​g
+		 */
+		translationReasoning: string;
+		/**
+		 * T​r​a​n​s​c​r​i​p​t​ ​c​l​e​a​n​u​p​ ​r​e​a​s​o​n​i​n​g
+		 */
+		cleanupReasoning: string;
 		/**
 		 * A​I​ ​s​e​l​e​c​t​e​d​ ​a​ ​r​e​c​i​t​e​r​ ​t​h​a​t​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​r​e​s​o​l​v​e​d​.​ ​P​l​e​a​s​e​ ​p​i​c​k​ ​o​n​e​ ​m​a​n​u​a​l​l​y​ ​i​n​ ​t​h​e​ ​r​e​v​i​e​w​.
 		 */
@@ -9590,7 +9937,7 @@ type RootTranslation = {
 		 */
 		apiKeyStoredHint: RequiredParams<'value'>;
 		/**
-		 * h​t​t​p​s​:​/​/​a​p​i​.​o​p​e​n​a​i​.​c​o​m​/​v​1​/​r​e​s​p​o​n​s​e​s
+		 * h​t​t​p​s​:​/​/​a​p​i​.​o​p​e​n​a​i​.​c​o​m​/​v​1​/​c​h​a​t​/​c​o​m​p​l​e​t​i​o​n​s
 		 */
 		textAiEndpointPlaceholder: string;
 		/**
@@ -9598,7 +9945,7 @@ type RootTranslation = {
 		 */
 		textAiEndpointDescription: string;
 		/**
-		 * g​p​t​-​5​.​4
+		 * g​p​t​-​5​.​4​-​m​i​n​i
 		 */
 		modelPlaceholder: string;
 		/**
@@ -10918,9 +11265,29 @@ export type TranslationFunctions = {
 		 */
 		transcriptText: () => LocalizedString;
 		/**
+		 * Decrease transcript text size
+		 */
+		decreaseTranscriptTextSize: () => LocalizedString;
+		/**
+		 * Increase transcript text size
+		 */
+		increaseTranscriptTextSize: () => LocalizedString;
+		/**
 		 * Type what the speaker says...
 		 */
 		transcriptPlaceholder: () => LocalizedString;
+		/**
+		 * Insert verse
+		 */
+		insertVerse: () => LocalizedString;
+		/**
+		 * Insert quotation
+		 */
+		insertQuotation: () => LocalizedString;
+		/**
+		 * Select a Quran passage
+		 */
+		selectQuranPassage: () => LocalizedString;
 		/**
 		 * Speaker
 		 */
@@ -11010,6 +11377,14 @@ export type TranslationFunctions = {
 		 */
 		editingTranscript: () => LocalizedString;
 		/**
+		 * Confirm edit
+		 */
+		confirmEditing: () => LocalizedString;
+		/**
+		 * Exit edit
+		 */
+		exitEditing: () => LocalizedString;
+		/**
 		 * Cancel editing
 		 */
 		cancelEditing: () => LocalizedString;
@@ -11046,6 +11421,14 @@ export type TranslationFunctions = {
 		 */
 		aiTranscription: () => LocalizedString;
 		/**
+		 * The audio must be entirely in Arabic.
+		 */
+		arabicAudioRequired: () => LocalizedString;
+		/**
+		 * Matching Quran passages...
+		 */
+		matchingQuranPassages: () => LocalizedString;
+		/**
 		 * Prepare transcript
 		 */
 		transcriptCleanupStep: () => LocalizedString;
@@ -11078,6 +11461,14 @@ export type TranslationFunctions = {
 		 */
 		transcriptCleanupBatchProgress: (arg: { current: unknown; total: unknown }) => LocalizedString;
 		/**
+		 * Finding natural subtitle boundaries...
+		 */
+		transcriptSemanticSegmentation: () => LocalizedString;
+		/**
+		 * Batch {current} of {total}
+		 */
+		streamedBatchLabel: (arg: { current: unknown; total: unknown }) => LocalizedString;
+		/**
 		 * Prepared {cleaned} of {total} subtitle segments.
 		 */
 		transcriptCleanupCompleted: (arg: { cleaned: unknown; total: unknown }) => LocalizedString;
@@ -11090,9 +11481,69 @@ export type TranslationFunctions = {
 			total: unknown;
 		}) => LocalizedString;
 		/**
-		 * Audio transcription, Quran matching, and subtitle segmentation stay local. Only indexed transcript words are sent to your configured text AI provider when one is available.
+		 * Batch size (words)
+		 */
+		transcriptCleanupBatchSize: () => LocalizedString;
+		/**
+		 * Estimated total: {count} batch(es).
+		 */
+		transcriptCleanupBatchPreview: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Pause after this batch
+		 */
+		pauseTranscriptCleanup: () => LocalizedString;
+		/**
+		 * Pausing...
+		 */
+		pausingTranscriptCleanup: () => LocalizedString;
+		/**
+		 * Resume cleanup
+		 */
+		resumeTranscriptCleanup: () => LocalizedString;
+		/**
+		 * Cleanup paused · {remaining} batch(es) remaining.
+		 */
+		transcriptCleanupPaused: (arg: { remaining: unknown }) => LocalizedString;
+		/**
+		 * Clean existing transcript with AI
+		 */
+		cleanExistingTranscript: () => LocalizedString;
+		/**
+		 * Run the optional AI cleanup now, or resume a cleanup saved with this project.
+		 */
+		cleanExistingTranscriptDescription: () => LocalizedString;
+		/**
+		 * {remaining} batch(es) remaining
+		 */
+		transcriptCleanupRemaining: (arg: { remaining: unknown }) => LocalizedString;
+		/**
+		 * Audio transcription, Quran matching, and final subtitle assembly stay local. Cleaned indexed words, timings, and context metadata are sent only to your configured text AI provider when one is available.
 		 */
 		transcriptionDataPrivacy: () => LocalizedString;
+		/**
+		 * Short
+		 */
+		subtitleLengthShort: () => LocalizedString;
+		/**
+		 * Short subtitles with more frequent natural changes.
+		 */
+		subtitleLengthShortDescription: () => LocalizedString;
+		/**
+		 * Medium
+		 */
+		subtitleLengthMedium: () => LocalizedString;
+		/**
+		 * Balanced, readable subtitles for most lectures.
+		 */
+		subtitleLengthMediumDescription: () => LocalizedString;
+		/**
+		 * Long
+		 */
+		subtitleLengthLong: () => LocalizedString;
+		/**
+		 * Longer complete ideas with fewer visual changes.
+		 */
+		subtitleLengthLongDescription: () => LocalizedString;
 		/**
 		 * AI transcription will be added later
 		 */
@@ -11209,6 +11660,10 @@ export type TranslationFunctions = {
 		 * You cannot add more clips because a clip with "Loop until the end" is already present.
 		 */
 		cannotAddMoreClips: () => LocalizedString;
+		/**
+		 * Tip: Drag one audio clip over another in the timeline to layer them and play both at the same time.
+		 */
+		audioOverlapHint: () => LocalizedString;
 		/**
 		 * Background Image Error
 		 */
@@ -12490,7 +12945,7 @@ export type TranslationFunctions = {
 		 */
 		addClipToStart: () => LocalizedString;
 		/**
-		 * Force split after silence
+		 * Prefer a split after this pause
 		 */
 		minSilenceLabel: () => LocalizedString;
 		/**
@@ -13074,6 +13529,50 @@ export type TranslationFunctions = {
 		 */
 		editSubtitleContext: () => LocalizedString;
 		/**
+		 * Try another speech recognition
+		 */
+		retranscribeSubtitleContext: () => LocalizedString;
+		/**
+		 * Retranscribe subtitle audio
+		 */
+		retranscribeSubtitleTitle: () => LocalizedString;
+		/**
+		 * Compare the current subtitle with local speech recognition results for this exact audio range.
+		 */
+		retranscribeSubtitleDescription: () => LocalizedString;
+		/**
+		 * Current subtitle
+		 */
+		retranscribeCurrentText: () => LocalizedString;
+		/**
+		 * Listen to clip
+		 */
+		retranscribeListen: () => LocalizedString;
+		/**
+		 * Stop playback
+		 */
+		retranscribeStopListening: () => LocalizedString;
+		/**
+		 * Waiting
+		 */
+		retranscribeWaiting: () => LocalizedString;
+		/**
+		 * Transcribing...
+		 */
+		retranscribeRunning: () => LocalizedString;
+		/**
+		 * This model could not transcribe the clip.
+		 */
+		retranscribeFailed: () => LocalizedString;
+		/**
+		 * Apply selected text
+		 */
+		retranscribeApply: () => LocalizedString;
+		/**
+		 * Subtitle retranscribed.
+		 */
+		retranscribeApplied: () => LocalizedString;
+		/**
 		 * Add silence (on the left)
 		 */
 		addSilenceLeft: () => LocalizedString;
@@ -13174,7 +13673,7 @@ export type TranslationFunctions = {
 		 */
 		tiktokSampleUsername: () => LocalizedString;
 		/**
-		 * Your description appears here #QuranCaption
+		 * Your description appears here #MinbarStudio
 		 */
 		tiktokSampleDescription: () => LocalizedString;
 		/**
@@ -14295,17 +14794,13 @@ export type TranslationFunctions = {
 			 */
 			'wbw-color': () => LocalizedString;
 			/**
-			 * Persist highlighted words
+			 * Persist WBW effect
 			 */
 			'wbw-persist-color': () => LocalizedString;
 			/**
 			 * Reveal specific word style on recitation
 			 */
 			'wbw-reveal-specific-word-style': () => LocalizedString;
-			/**
-			 * Keep specific word style after revelation
-			 */
-			'wbw-keep-specific-word-style': () => LocalizedString;
 			/**
 			 * Enable underline
 			 */
@@ -14907,7 +15402,7 @@ export type TranslationFunctions = {
 			 */
 			'reciter-latin-text-style': () => LocalizedString;
 			/**
-			 * Ayah Container
+			 * Text Container
 			 */
 			'ayah-container': () => LocalizedString;
 			/**
@@ -14962,6 +15457,10 @@ export type TranslationFunctions = {
 			 * Always Show
 			 */
 			'always-show': () => LocalizedString;
+			/**
+			 * Time Ranges
+			 */
+			'time-ranges': () => LocalizedString;
 			/**
 			 * Time Appearance
 			 */
@@ -15093,17 +15592,13 @@ export type TranslationFunctions = {
 			 */
 			'wbw-color': () => LocalizedString;
 			/**
-			 * Keep previously highlighted words colored after they have been read
+			 * Keep the active WBW effect on previously recited words
 			 */
 			'wbw-persist-color': () => LocalizedString;
 			/**
 			 * Hide custom word styles until their linked word is recited
 			 */
 			'wbw-reveal-specific-word-style': () => LocalizedString;
-			/**
-			 * Keep custom word styles visible after their linked words are recited
-			 */
-			'wbw-keep-specific-word-style': () => LocalizedString;
 			/**
 			 * Underline highlighted words
 			 */
@@ -15685,6 +16180,10 @@ export type TranslationFunctions = {
 			 */
 			'always-show': () => LocalizedString;
 			/**
+			 * Configure multiple appearance ranges
+			 */
+			'time-ranges': () => LocalizedString;
+			/**
 			 * Change the time where it appears
 			 */
 			'time-appearance': () => LocalizedString;
@@ -16056,11 +16555,11 @@ export type TranslationFunctions = {
 		 */
 		arabicText: () => LocalizedString;
 		/**
-		 * Original Quranic text in Arabic script
+		 * Arabic subtitle text
 		 */
 		arabicTextDescription: () => LocalizedString;
 		/**
-		 * Translation by {author}
+		 * Quran translation edition: {author}
 		 */
 		translationByAuthor: (arg: { author: unknown }) => LocalizedString;
 		/**
@@ -16068,15 +16567,15 @@ export type TranslationFunctions = {
 		 */
 		translationAuthor: (arg: { author: unknown }) => LocalizedString;
 		/**
-		 * Include verse numbers
+		 * Include ayah parentheses
 		 */
 		includeVerseNumbers: () => LocalizedString;
 		/**
-		 * Add verse numbers (e.g., “255.”) at the end of each verse
+		 * Include verse number in Arabic ayah
 		 */
 		includeVerseNumbersAtEnd: () => LocalizedString;
 		/**
-		 * Add verse numbers (e.g., “255.”) at the beginning of each verse
+		 * Include verse number in translation
 		 */
 		includeVerseNumbersAtStart: () => LocalizedString;
 		/**
@@ -16180,12 +16679,24 @@ export type TranslationFunctions = {
 		 */
 		exportProjectData: () => LocalizedString;
 		/**
-		 * Export your project configuration as a standalone JSON file.
+		 * Export your project configuration as a standalone JSON file without its media assets.
 		 */
 		exportProjectDataDescription: () => LocalizedString;
+		/**
+		 * Include project assets
+		 */
 		includeProjectAssets: () => LocalizedString;
+		/**
+		 * Package your local audio, video, image, and other project assets in a .minbar file.
+		 */
 		includeProjectAssetsDescription: () => LocalizedString;
+		/**
+		 * Export Minbar Package
+		 */
 		exportProjectPackage: () => LocalizedString;
+		/**
+		 * Export your project configuration and assets as a .minbar package.
+		 */
 		exportProjectPackageDescription: () => LocalizedString;
 		/**
 		 * What's Included
@@ -16215,7 +16726,13 @@ export type TranslationFunctions = {
 		 * Custom text clips, styling overrides, and background configurations.
 		 */
 		customElementsDescription: () => LocalizedString;
+		/**
+		 * Project Assets
+		 */
 		projectAssets: () => LocalizedString;
+		/**
+		 * Local audio, video, image, and other assets used by this project.
+		 */
 		projectAssetsDescription: () => LocalizedString;
 		/**
 		 * Limitations
@@ -16226,10 +16743,16 @@ export type TranslationFunctions = {
 		 */
 		mediaFilesNotIncluded: () => LocalizedString;
 		/**
-		 * Audio and video files you imported from your device are not included. Only file names and source URLs are stored.
+		 * Audio, video, image, and other files you imported from your device are not included. Only file names and source URLs are stored.
 		 */
 		mediaFilesNotIncludedDescription: () => LocalizedString;
+		/**
+		 * Project Assets Included
+		 */
 		projectAssetsIncluded: () => LocalizedString;
+		/**
+		 * The .minbar package contains your project configuration and its local assets.
+		 */
 		projectAssetsIncludedDescription: () => LocalizedString;
 		/**
 		 * Export Project Data
@@ -16239,6 +16762,9 @@ export type TranslationFunctions = {
 		 * Generate a JSON file containing your entire project configuration
 		 */
 		exportProjectDataButtonDescription: () => LocalizedString;
+		/**
+		 * Generate a .minbar file containing your entire project and its assets
+		 */
 		exportProjectPackageButtonDescription: () => LocalizedString;
 		/**
 		 * Export Subtitles JSON
@@ -16754,6 +17280,34 @@ export type TranslationFunctions = {
 		 * {count} subtitle(s) ready to translate
 		 */
 		aiTranslationEligibleCount: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Batch size (words)
+		 */
+		aiTranslationBatchSize: () => LocalizedString;
+		/**
+		 * Estimated total: {count} batch(es).
+		 */
+		aiTranslationBatchPreview: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Arabic Islamic terminology
+		 */
+		aiTranslationIslamicTerms: () => LocalizedString;
+		/**
+		 * Choose how technical Arabic terms should appear throughout the translation.
+		 */
+		aiTranslationIslamicTermsDescription: () => LocalizedString;
+		/**
+		 * Translated term only — jurisprudence
+		 */
+		aiTranslationTermsTranslated: () => LocalizedString;
+		/**
+		 * Translated term + Arabic term — jurisprudence (fiqh)
+		 */
+		aiTranslationTermsBoth: () => LocalizedString;
+		/**
+		 * Arabic term only — fiqh
+		 */
+		aiTranslationTermsTransliterated: () => LocalizedString;
 		/**
 		 * No subtitle currently matches the selected options.
 		 */
@@ -17289,7 +17843,7 @@ export type TranslationFunctions = {
 		 */
 		nextKeyframe: () => LocalizedString;
 		/**
-		 * Note: Style transitions are not interpolated in the preview. Fade transitions will be rendered in the exported video.
+		 * Note: The preview animates color, opacity, and visibility transitions. Other style fades will be rendered in the exported video.
 		 */
 		keyframeInterpolationNotice: () => LocalizedString;
 		/**
@@ -17398,6 +17952,54 @@ export type TranslationFunctions = {
 		 * About
 		 */
 		about: () => LocalizedString;
+		/**
+		 * Project Defaults
+		 */
+		defaultValues: () => LocalizedString;
+		/**
+		 * Customize the categories offered when creating a project.
+		 */
+		defaultValuesDescription: () => LocalizedString;
+		/**
+		 * Show video thumbnails in the timeline
+		 */
+		showTimelineVideoThumbnails: () => LocalizedString;
+		/**
+		 * Extract and display video frames inside timeline clips. Disable this to reduce CPU and disk usage.
+		 */
+		showTimelineVideoThumbnailsDescription: () => LocalizedString;
+		/**
+		 * Project categories
+		 */
+		projectCategories: () => LocalizedString;
+		/**
+		 * Manage the content types available in the project explorer.
+		 */
+		projectCategoriesDescription: () => LocalizedString;
+		/**
+		 * New category
+		 */
+		newProjectCategory: () => LocalizedString;
+		/**
+		 * Add
+		 */
+		addCategory: () => LocalizedString;
+		/**
+		 * Delete category
+		 */
+		deleteCategory: () => LocalizedString;
+		/**
+		 * Category cannot be empty.
+		 */
+		categoryCannotBeEmpty: () => LocalizedString;
+		/**
+		 * This category already exists.
+		 */
+		categoryAlreadyExists: () => LocalizedString;
+		/**
+		 * Category contains invalid file name characters.
+		 */
+		categoryInvalidCharacters: () => LocalizedString;
 		/**
 		 * Select application theme and accent colors.
 		 */
@@ -17967,6 +18569,13 @@ export type TranslationFunctions = {
 			 * Reset Start Cursor
 			 */
 			RESET_START_CURSOR: () => LocalizedString;
+			/**
+			 * Regenerate WBW Timestamps
+			 */
+			REGENERATE_WBW_TIMESTAMPS: () => LocalizedString;
+			/**
+			 * Delete Clip at Cursor
+			 */
 			REMOVE_SUBTITLE_AT_CURSOR: () => LocalizedString;
 			/**
 			 * Select All Words
@@ -18064,6 +18673,10 @@ export type TranslationFunctions = {
 			 * Next Frame
 			 */
 			FRAME_FORWARD: () => LocalizedString;
+			/**
+			 * Toggle Quick Merge
+			 */
+			QUICK_MERGE_AT_CURSOR: () => LocalizedString;
 		};
 		shortcutActionDesc: {
 			/**
@@ -18102,6 +18715,13 @@ export type TranslationFunctions = {
 			 * Put the start cursor on the end cursor position
 			 */
 			RESET_START_CURSOR: () => LocalizedString;
+			/**
+			 * Regenerate WBW timestamps for the subtitle under the timeline cursor
+			 */
+			REGENERATE_WBW_TIMESTAMPS: () => LocalizedString;
+			/**
+			 * Delete the subtitle or silence clip under the cursor
+			 */
 			REMOVE_SUBTITLE_AT_CURSOR: () => LocalizedString;
 			/**
 			 * Select all words in the current verse
@@ -18199,6 +18819,10 @@ export type TranslationFunctions = {
 			 * Move the cursor forward by one frame
 			 */
 			FRAME_FORWARD: () => LocalizedString;
+			/**
+			 * Merge or unmerge subtitles at the closest boundary to the cursor
+			 */
+			QUICK_MERGE_AT_CURSOR: () => LocalizedString;
 		};
 		/**
 		 * Configure your Pexels and Pixabay API keys to search and import free stock media.
@@ -18538,11 +19162,29 @@ export type TranslationFunctions = {
 		 * Shift All Subtitles
 		 */
 		shiftAllSubtitles: () => LocalizedString;
+		/**
+		 * Import SRT translation
+		 */
 		importSrtTranslation: () => LocalizedString;
+		/**
+		 * SRT subtitle files
+		 */
 		srtFileFilter: () => LocalizedString;
-		srtImportSuccess: (arg: { fileName: unknown; count: unknown }) => LocalizedString;
+		/**
+		 * Imported "{fileName}" and matched {count} project subtitles.
+		 */
+		srtImportSuccess: (arg: { count: unknown; fileName: unknown }) => LocalizedString;
+		/**
+		 * Could not import the SRT translation.
+		 */
 		srtImportError: () => LocalizedString;
+		/**
+		 * This project has no subtitles to translate.
+		 */
 		srtNoSubtitles: () => LocalizedString;
+		/**
+		 * No SRT subtitles could be matched to this project.
+		 */
 		srtNoMatches: () => LocalizedString;
 		/**
 		 * Move all subtitles forward or backward in time
@@ -19152,7 +19794,7 @@ export type TranslationFunctions = {
 		 */
 		quickPresets: () => LocalizedString;
 		/**
-		 * Loads endpoint + model only
+		 * Loads endpoint, model, and automatic reasoning defaults
 		 */
 		loadsEndpointModel: () => LocalizedString;
 		/**
@@ -19171,6 +19813,50 @@ export type TranslationFunctions = {
 		 * Reasoning effort
 		 */
 		reasoningEffort: () => LocalizedString;
+		/**
+		 * Reasoning mode
+		 */
+		reasoningMode: () => LocalizedString;
+		/**
+		 * Auto — Recommended
+		 */
+		reasoningAuto: () => LocalizedString;
+		/**
+		 * Off
+		 */
+		reasoningOff: () => LocalizedString;
+		/**
+		 * Minimal
+		 */
+		reasoningMinimal: () => LocalizedString;
+		/**
+		 * Low
+		 */
+		reasoningLow: () => LocalizedString;
+		/**
+		 * Medium
+		 */
+		reasoningMedium: () => LocalizedString;
+		/**
+		 * High
+		 */
+		reasoningHigh: () => LocalizedString;
+		/**
+		 * Maximum
+		 */
+		reasoningMaximum: () => LocalizedString;
+		/**
+		 * Enable thinking
+		 */
+		enableThinking: () => LocalizedString;
+		/**
+		 * Translation reasoning
+		 */
+		translationReasoning: () => LocalizedString;
+		/**
+		 * Transcript cleanup reasoning
+		 */
+		cleanupReasoning: () => LocalizedString;
 		/**
 		 * AI selected a reciter that could not be resolved. Please pick one manually in the review.
 		 */
@@ -19272,7 +19958,7 @@ export type TranslationFunctions = {
 		 */
 		apiKeyStoredHint: (arg: { value: unknown }) => LocalizedString;
 		/**
-		 * https://api.openai.com/v1/responses
+		 * https://api.openai.com/v1/chat/completions
 		 */
 		textAiEndpointPlaceholder: () => LocalizedString;
 		/**
@@ -19280,7 +19966,7 @@ export type TranslationFunctions = {
 		 */
 		textAiEndpointDescription: () => LocalizedString;
 		/**
-		 * gpt-5.4
+		 * gpt-5.4-mini
 		 */
 		modelPlaceholder: () => LocalizedString;
 		/**

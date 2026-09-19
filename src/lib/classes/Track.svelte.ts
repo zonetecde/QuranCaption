@@ -26,6 +26,7 @@ import type { Category } from './VideoStyle.svelte.js';
 import { open } from '@tauri-apps/plugin-dialog';
 import { resolveCurrentSurahFromClips } from '$lib/services/ExportCaptureTiming';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import type { Verse } from './Quran.js';
 
 export type VisualMergeSelection = {
 	clips: SubtitleClip[];
@@ -612,6 +613,159 @@ export class AssetTrack extends Track {
 export class SubtitleTrack extends Track {
 	constructor() {
 		super(TrackType.Subtitle);
+	}
+
+	/**
+	 * Calcule les métadonnées nécessaires à un segment Qur'an.
+	 * @param {Verse} verse Verset source.
+	 * @param {number} firstWordIndex Premier mot inclus.
+	 * @param {number} lastWordIndex Dernier mot inclus.
+	 * @param {number} _surah Numéro de sourate conservé pour compatibilité.
+	 * @returns {Promise<{isFullVerse: boolean; isLastWordsOfVerse: boolean; translations: Record<string, Translation>}>} Métadonnées du segment.
+	 */
+	async getSubtitlesProperties(
+		verse: Verse,
+		firstWordIndex: number,
+		lastWordIndex: number,
+		_surah: number
+	): Promise<{
+		isFullVerse: boolean;
+		isLastWordsOfVerse: boolean;
+		translations: { [key: string]: Translation };
+	}> {
+		const isFullVerse = verse.words.length === lastWordIndex - firstWordIndex + 1;
+		const isLastWordsOfVerse = verse.words.length - lastWordIndex - 1 === 0;
+		const text = verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex);
+		const translations = globalState.currentProject
+			? globalState.getProjectTranslation.createTranslationsForSubtitleText(text)
+			: {};
+		return { isFullVerse, isLastWordsOfVerse, translations };
+	}
+
+	/**
+	 * Ajoute un segment Qur'an à la fin de la piste.
+	 * @param {Verse} verse Verset source.
+	 * @param {number} firstWordIndex Premier mot inclus.
+	 * @param {number} lastWordIndex Dernier mot inclus.
+	 * @param {number} surah Numéro de sourate.
+	 * @returns {Promise<boolean>} `true` si le segment a été ajouté.
+	 */
+	async addSubtitle(
+		verse: Verse,
+		firstWordIndex: number,
+		lastWordIndex: number,
+		surah: number
+	): Promise<boolean> {
+		ProjectHistoryManager.begin('add subtitle');
+		try {
+			const startTime = this.getDuration().ms + 1;
+			const endTime = globalState.currentProject?.projectEditorState.timeline.cursorPosition ?? -1;
+			if (endTime < startTime) {
+				toast.error(get(LL).editor.endTimeMustBeGreater());
+				return false;
+			}
+
+			const properties = await this.getSubtitlesProperties(
+				verse,
+				firstWordIndex,
+				lastWordIndex,
+				surah
+			);
+			this.clips.push(
+				new SubtitleClip(
+					startTime,
+					endTime,
+					surah,
+					verse.id,
+					firstWordIndex,
+					lastWordIndex,
+					verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex),
+					verse.getWordByWordTranslationBetweenTwoIndexes(firstWordIndex, lastWordIndex),
+					properties.isFullVerse,
+					properties.isLastWordsOfVerse,
+					properties.translations,
+					verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex, 'indopak')
+				)
+			);
+			return true;
+		} finally {
+			ProjectHistoryManager.commit();
+		}
+	}
+
+	/**
+	 * Modifie un segment Qur'an existant ou remplace un clip non-Qur'an.
+	 * @param {SubtitleClip | PredefinedSubtitleClip | SilenceClip | ClipWithTranslation | null} subtitle Clip à modifier.
+	 * @param {Verse} verse Nouveau verset source.
+	 * @param {number} firstWordIndex Premier mot inclus.
+	 * @param {number} lastWordIndex Dernier mot inclus.
+	 * @param {number} surah Numéro de sourate.
+	 * @returns {Promise<void>} Promesse terminée après la modification.
+	 */
+	async editSubtitle(
+		subtitle: SubtitleClip | PredefinedSubtitleClip | SilenceClip | ClipWithTranslation | null,
+		verse: Verse,
+		firstWordIndex: number,
+		lastWordIndex: number,
+		surah: number
+	): Promise<void> {
+		if (!subtitle) return;
+		ProjectHistoryManager.begin('edit subtitle');
+		try {
+			if (subtitle instanceof SubtitleClip && subtitle.visualMergeGroupId) {
+				this.unmergeVisualGroup(subtitle.visualMergeGroupId, false);
+			}
+			const properties = await this.getSubtitlesProperties(
+				verse,
+				firstWordIndex,
+				lastWordIndex,
+				surah
+			);
+			if (!(subtitle instanceof SubtitleClip)) {
+				const replacement = new SubtitleClip(
+					subtitle.startTime,
+					subtitle.endTime,
+					surah,
+					verse.id,
+					firstWordIndex,
+					lastWordIndex,
+					verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex),
+					verse.getWordByWordTranslationBetweenTwoIndexes(firstWordIndex, lastWordIndex),
+					properties.isFullVerse,
+					properties.isLastWordsOfVerse,
+					properties.translations,
+					verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex, 'indopak')
+				);
+				if (subtitle instanceof ClipWithTranslation) {
+					replacement.associatedImagePath = subtitle.associatedImagePath;
+				}
+				const index = this.clips.findIndex((clip) => clip.id === subtitle.id);
+				if (index !== -1) this.clips[index] = replacement;
+				return;
+			}
+
+			subtitle.surah = surah;
+			subtitle.verse = verse.id;
+			subtitle.startWordIndex = firstWordIndex;
+			subtitle.endWordIndex = lastWordIndex;
+			subtitle.text = verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex);
+			subtitle.indopakText = verse.getArabicTextBetweenTwoIndexes(
+				firstWordIndex,
+				lastWordIndex,
+				'indopak'
+			);
+			subtitle.wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(
+				firstWordIndex,
+				lastWordIndex
+			);
+			subtitle.isFullVerse = properties.isFullVerse;
+			subtitle.isLastWordsOfVerse = properties.isLastWordsOfVerse;
+			subtitle.translations = properties.translations;
+			subtitle.clearArabicInlineStyles();
+			subtitle.markAsManualEdit();
+		} finally {
+			ProjectHistoryManager.commit();
+		}
 	}
 
 	/**
@@ -1588,9 +1742,9 @@ export class CustomTextTrack extends Track {
 			const element = this.clips[index] as CustomClip;
 			if (
 				element.getAlwaysShow() ||
-				element.getTimedOverlayRanges().some(
-					(range) => currentTime >= range.startTime && currentTime <= range.endTime
-				)
+				element
+					.getTimedOverlayRanges()
+					.some((range) => currentTime >= range.startTime && currentTime <= range.endTime)
 			) {
 				clips.push(element);
 			}

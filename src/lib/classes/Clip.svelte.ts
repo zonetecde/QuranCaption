@@ -5,6 +5,7 @@ import toast from 'svelte-5-french-toast';
 import { Edition, Translation } from '.';
 import {
 	buildTranslationInlineTextSegments,
+	getInlineStyleFlagsForWordIndex,
 	getTranslationWordCount,
 	type TranslationInlineStyleFlags,
 	type TranslationInlineStyleRun,
@@ -16,6 +17,7 @@ import { Utilities } from './misc/Utilities';
 import type { Track } from './Track.svelte';
 import type { Category, Style, StyleName } from './VideoStyle.svelte';
 import QPCFontProvider from '$lib/services/FontProvider';
+import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import {
 	getTimedOverlayRangesFromStyles,
@@ -36,12 +38,14 @@ type ClipType =
 type ArabicRenderParts = {
 	text: string;
 	words?: string[];
+	sourceWordIndexes?: number[][];
 	suffix: string;
 	suffixFontFamily: string | null;
 };
 
 export type TranscriptWordTiming = {
-	word: string;
+	word?: string;
+	location?: string;
 	start: number;
 	end: number;
 	confidence?: number;
@@ -49,6 +53,11 @@ export type TranscriptWordTiming = {
 
 export type TranscriptAlignmentMetadata = {
 	source: 'api' | 'local' | 'import' | 'manual';
+	segment?: number;
+	refFrom?: string;
+	refTo?: string;
+	matchedText?: string;
+	specialType?: string;
 	timeFrom: number;
 	timeTo: number;
 	words: TranscriptWordTiming[];
@@ -248,6 +257,7 @@ export class ClipWithTranslation extends Clip {
 	confidence: number | null = $state(null); // Entre 0 et 1
 	needsReview: boolean = $state(false); // Vrai si c'est un segment à low-confidence et qu'il n'a pas encore été reviewé
 	needsCoverageReview: boolean = $state(false); // Vrai si des lacunes de couverture sont détectées
+	needsWbwTimestampReview: boolean = $state(false); // Vrai si les timestamps WBW sont absents.
 
 	constructor(
 		text: string,
@@ -273,6 +283,7 @@ export class ClipWithTranslation extends Clip {
 		this.needsReview = false; // Le segment n'a plus besoin de review de confiance
 		this.needsCoverageReview = false; // Le segment n'a plus besoin de review de couverture
 		this.needsLongReview = false;
+		this.needsWbwTimestampReview = false;
 		this.hasBeenVerified = false;
 	}
 
@@ -331,10 +342,36 @@ export class ClipWithTranslation extends Clip {
 	getArabicInlineStyledSegments(
 		mode: 'editor' | 'preview' = 'editor'
 	): TranslationInlineTextSegment[] {
-		return buildTranslationInlineTextSegments(
-			this.getArabicRenderParts(mode).text,
-			this.arabicInlineStyleRuns ?? []
-		);
+		const parts = this.getArabicRenderParts(mode);
+		if (parts.words && parts.sourceWordIndexes) {
+			return parts.words.map((word, index) => {
+				const flags = parts
+					.sourceWordIndexes![index].map((sourceWordIndex) =>
+						getInlineStyleFlagsForWordIndex(
+							this.arabicInlineStyleRuns ?? [],
+							sourceWordIndex - (this instanceof SubtitleClip ? this.startWordIndex : 0)
+						)
+					)
+					.reduce(
+						(merged, sourceFlags) => ({
+							bold: merged.bold || sourceFlags.bold,
+							italic: merged.italic || sourceFlags.italic,
+							underline: merged.underline || sourceFlags.underline,
+							lineBreak: merged.lineBreak || sourceFlags.lineBreak,
+							color: sourceFlags.color ?? merged.color
+						}),
+						{
+							bold: false,
+							italic: false,
+							underline: false,
+							lineBreak: false,
+							color: null
+						} as TranslationInlineStyleFlags
+					);
+				return { text: `${index > 0 ? ' ' : ''}${word}`, ...flags };
+			});
+		}
+		return buildTranslationInlineTextSegments(parts.text, this.arabicInlineStyleRuns ?? []);
 	}
 
 	getAssociatedImagePath(): string | null {
@@ -352,7 +389,7 @@ export class ClipWithTranslation extends Clip {
 	}
 }
 
-export type ReviewIssueCategory = 'coverage' | 'long' | 'low-confidence';
+export type ReviewIssueCategory = 'coverage' | 'wbw-timestamps' | 'long' | 'low-confidence';
 
 /**
  * Retourne `true` si le clip porte au moins un indicateur de revue actif.
@@ -361,7 +398,13 @@ export type ReviewIssueCategory = 'coverage' | 'long' | 'low-confidence';
  * @returns {boolean} `true` si le clip doit etre considere comme reviewable.
  */
 export function hasClipReviewIssue(clip: ClipWithTranslation | null | undefined): boolean {
-	return !!clip && (clip.needsCoverageReview || clip.needsLongReview || clip.needsReview);
+	return (
+		!!clip &&
+		(clip.needsCoverageReview ||
+			clip.needsWbwTimestampReview ||
+			clip.needsLongReview ||
+			clip.needsReview)
+	);
 }
 
 /**
@@ -377,6 +420,7 @@ export function getClipPrimaryReviewIssueCategory(
 	if (clip.needsCoverageReview) return 'coverage';
 	if (clip.needsReview) return 'low-confidence';
 	if (clip.needsLongReview) return 'long';
+	if (clip.needsWbwTimestampReview) return 'wbw-timestamps';
 	return null;
 }
 
@@ -403,36 +447,97 @@ export function markClipAsVerified(clip: ClipWithTranslation | null | undefined)
 
 export class SubtitleClip extends ClipWithTranslation {
 	speaker: string = $state('Unknown speaker');
+	// Métadonnées Qur'an conservées pour les projets existants et les outils WBW.
+	surah: number = $state(0);
+	verse: number = $state(0);
+	startWordIndex: number = $state(0);
+	endWordIndex: number = $state(0);
+	indopakText: string = $state('');
+	wbwTranslation: string[] = $state([]);
+	isFullVerse: boolean = $state(false);
+	isLastWordsOfVerse: boolean = $state(false);
+	wbwTimestampsManuallyEdited: boolean = $state(false);
 	alignmentMetadata: TranscriptAlignmentMetadata | null = $state(null);
 	visualMergeGroupId: string | null = $state(null);
 	visualMergeMode: VisualMergeMode | null = $state(null);
 
 	constructor(
-		startTime: number = 0,
-		endTime: number = 0,
-		text: string = '',
-		speaker: string = 'Unknown speaker',
-		translations: { [key: string]: Translation } = {},
-		comeFromIA: boolean = false,
-		confidence: number | null = null,
-		alignmentMetadata: TranscriptAlignmentMetadata | null = null
-	) {
-		const isDeserializationCall = arguments.length === 0;
+		startTime: number,
+		endTime: number,
+		text: string,
+		speaker?: string,
+		translations?: { [key: string]: Translation },
+		comeFromIA?: boolean,
+		confidence?: number | null,
+		alignmentMetadata?: TranscriptAlignmentMetadata | null
+	);
+	constructor(
+		startTime: number,
+		endTime: number,
+		surah: number,
+		verse: number,
+		startWordIndex: number,
+		endWordIndex: number,
+		text: string,
+		wbwTranslation: string[],
+		isFullVerse: boolean,
+		isLastWordsOfVerse: boolean,
+		translations?: { [key: string]: Translation },
+		indopakText?: string,
+		comeFromIA?: boolean,
+		confidence?: number | null
+	);
+	constructor(startTime: number = 0, endTime: number = 0, ...args: unknown[]) {
+		const isLegacyConstructor = typeof args[0] === 'number';
+		const text = isLegacyConstructor ? String(args[4] ?? '') : String(args[0] ?? '');
+		const translations = (isLegacyConstructor ? args[8] : args[2]) as
+			| { [key: string]: Translation }
+			| undefined;
 		const initialTranslations =
-			!isDeserializationCall && Object.keys(translations).length === 0 && globalState.currentProject
+			!isLegacyConstructor &&
+			(!translations || Object.keys(translations).length === 0) &&
+			globalState.currentProject
 				? globalState.getProjectTranslation.createTranslationsForSubtitleText(text)
-				: translations;
-		super(text, startTime, endTime, 'Subtitle', initialTranslations, comeFromIA, confidence);
-		this.speaker = speaker.trim() || 'Unknown speaker';
-		this.alignmentMetadata = alignmentMetadata
-			? {
-					...alignmentMetadata,
-					words: normalizeTranscriptWordTimings(
-						alignmentMetadata.words,
-						Math.max(0, (endTime - startTime) / 1000)
-					)
-				}
-			: null;
+				: (translations ?? {});
+		const comeFromIA = isLegacyConstructor
+			? Boolean(typeof args[9] === 'boolean' ? args[9] : args[10])
+			: Boolean(args[3]);
+		const confidence = (
+			isLegacyConstructor ? (typeof args[9] === 'boolean' ? args[10] : args[11]) : args[4]
+		) as number | null | undefined;
+		super(
+			text,
+			startTime,
+			endTime,
+			'Subtitle',
+			initialTranslations,
+			comeFromIA,
+			confidence ?? null
+		);
+
+		if (isLegacyConstructor) {
+			this.surah = Number(args[0]);
+			this.verse = Number(args[1]);
+			this.startWordIndex = Number(args[2]);
+			this.endWordIndex = Number(args[3]);
+			this.wbwTranslation = Array.isArray(args[5]) ? (args[5] as string[]) : [];
+			this.isFullVerse = Boolean(args[6]);
+			this.isLastWordsOfVerse = Boolean(args[7]);
+			this.indopakText = typeof args[9] === 'string' ? args[9] : text;
+		} else {
+			this.speaker =
+				typeof args[1] === 'string' && args[1].trim() ? args[1].trim() : 'Unknown speaker';
+			this.alignmentMetadata = (args[5] as TranscriptAlignmentMetadata | null | undefined) ?? null;
+		}
+		if (this.alignmentMetadata) {
+			this.alignmentMetadata = {
+				...this.alignmentMetadata,
+				words: normalizeTranscriptWordTimings(
+					this.alignmentMetadata.words,
+					Math.max(0, (endTime - startTime) / 1000)
+				)
+			};
+		}
 	}
 
 	static override fromJSON<T extends SerializableBase>(
@@ -466,6 +571,59 @@ export class SubtitleClip extends ClipWithTranslation {
 
 	isVisuallyMerged(): boolean {
 		return !!this.visualMergeGroupId && !!this.visualMergeMode;
+	}
+
+	/**
+	 * Retourne le numéro de verset dans le format numérique utilisé par l'éditeur.
+	 * @returns {string} Numéro de verset en chiffres arabo-indiens.
+	 */
+	private latinToArabicNumbers(n: number): string {
+		return n.toString().replace(/\d/g, (digit) => '٠١٢٣٤٥٦٧٨٩'[Number(digit)] ?? digit);
+	}
+
+	/**
+	 * Retourne les parties du texte arabe adaptées au contexte d'affichage.
+	 * @param {'editor' | 'preview'} mode Contexte de rendu.
+	 * @returns {ArabicRenderParts} Texte, mots rendus et suffixe éventuel.
+	 */
+	override getArabicRenderParts(mode: 'editor' | 'preview' = 'editor'): ArabicRenderParts {
+		if (this.surah <= 0 || this.verse <= 0) return super.getArabicRenderParts(mode);
+
+		const showVerseNumber =
+			this.isLastWordsOfVerse &&
+			Boolean(globalState.getStyle('arabic', 'show-verse-number')?.value);
+		const suffix = showVerseNumber ? ` ${this.latinToArabicNumbers(this.verse)}` : '';
+		if (mode === 'editor') {
+			return { text: this.text, suffix, suffixFontFamily: null };
+		}
+
+		const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? 'Uthmani');
+		if (mushafStyle === 'Minimal Quran') {
+			const words =
+				MinimalQuranProvider.getVerseWordsSlice(
+					this.surah,
+					this.verse,
+					this.startWordIndex,
+					this.endWordIndex
+				) ?? undefined;
+			return {
+				text: words?.join(' ') ?? this.text,
+				words,
+				sourceWordIndexes: words?.map((_, index) => [this.startWordIndex + index]),
+				suffix,
+				suffixFontFamily: null
+			};
+		}
+
+		if (mushafStyle === 'Indopak') {
+			return {
+				text: this.indopakText.trim() || this.text,
+				suffix,
+				suffixFontFamily: suffix ? 'Hafs' : null
+			};
+		}
+
+		return { text: this.text, suffix, suffixFontFamily: null };
 	}
 
 	private retimeAlignmentAfterStartChange(previousStartTime: number): void {
@@ -555,10 +713,28 @@ export class SubtitleClip extends ClipWithTranslation {
 		clonedClip.needsLongReview = this.needsLongReview;
 		clonedClip.needsReview = this.needsReview;
 		clonedClip.needsCoverageReview = this.needsCoverageReview;
+		clonedClip.needsWbwTimestampReview = this.needsWbwTimestampReview;
 		clonedClip.hasBeenVerified = this.hasBeenVerified;
+		clonedClip.surah = this.surah;
+		clonedClip.verse = this.verse;
+		clonedClip.startWordIndex = this.startWordIndex;
+		clonedClip.endWordIndex = this.endWordIndex;
+		clonedClip.indopakText = this.indopakText;
+		clonedClip.wbwTranslation = [...this.wbwTranslation];
+		clonedClip.isFullVerse = this.isFullVerse;
+		clonedClip.isLastWordsOfVerse = this.isLastWordsOfVerse;
+		clonedClip.wbwTimestampsManuallyEdited = this.wbwTimestampsManuallyEdited;
 		clonedClip.visualMergeGroupId = this.visualMergeGroupId;
 		clonedClip.visualMergeMode = this.visualMergeMode;
 		return clonedClip;
+	}
+
+	/**
+	 * Retourne la référence Qur'an associée au clip quand elle existe.
+	 * @returns {string} Référence au format `sourate:verset`.
+	 */
+	getVerseKey(): string {
+		return `${this.surah}:${this.verse}`;
 	}
 }
 

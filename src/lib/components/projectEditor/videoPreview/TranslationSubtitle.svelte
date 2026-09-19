@@ -420,7 +420,7 @@
 			wbwIndexByArabicWord.set(arabicWordIndex, wbwWordIndex);
 			words.push({
 				...timing,
-				location: timing.word,
+				location: timing.location ?? timing.word ?? '',
 				start: timing.start + timingOffsetS,
 				end: timing.end + timingOffsetS
 			});

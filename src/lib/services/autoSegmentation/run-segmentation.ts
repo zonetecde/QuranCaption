@@ -9,7 +9,8 @@ import type {
 	LocalAsrMode,
 	SegmentationDevice,
 	SegmentationMode,
-	SegmentationResponse
+	SegmentationResponse,
+	SegmentationWordTimestamp
 } from './types';
 import {
 	getAutoSegmentationAudioInfo,
@@ -89,8 +90,8 @@ function hasRelativeMuaalemWordTimings(
  */
 function rebuildMuaalemWordEnds(
 	segmentDuration: number,
-	words: Array<{ start: number; end: number; location: string; word?: string }>
-): Array<{ start: number; end: number; location: string; word?: string }> {
+	words: SegmentationWordTimestamp[]
+): SegmentationWordTimestamp[] {
 	const normalizedWords = words.map((word) => ({
 		...word,
 		start: Math.max(0, word.start),

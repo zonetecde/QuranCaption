@@ -13,6 +13,7 @@ import { get } from 'svelte/store';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 export type ManualWordByWordDraftWord = SegmentationWordTimestamp & {
+	location: string;
 	word: string;
 };
 

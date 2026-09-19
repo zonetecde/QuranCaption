@@ -194,6 +194,7 @@ export type SurahNameStyleName =
 	| 'surah-name-format'
 	| 'surah-name-time-appearance'
 	| 'surah-name-time-disappearance'
+	| 'surah-name-time-ranges'
 	| 'surah-show-arabic'
 	| 'surah-name-vertical-position'
 	| 'surah-name-horizontal-position'
@@ -210,6 +211,7 @@ export type ReciterNameStyleName =
 	| 'reciter-name-format'
 	| 'reciter-name-time-appearance'
 	| 'reciter-name-time-disappearance'
+	| 'reciter-name-time-ranges'
 	| 'reciter-show-arabic'
 	| 'reciter-name-vertical-position'
 	| 'reciter-name-horizontal-position'
@@ -225,6 +227,7 @@ export type CreatorTextStyleName = 'creator-text' | 'creator-text-composite';
 export type CustomTextStyleName =
 	| 'time-appearance'
 	| 'time-disappearance'
+	| 'ayah-container-time-ranges'
 	| 'time-ranges'
 	| 'text'
 	| 'filepath'
@@ -565,10 +568,7 @@ export class Style extends SerializableBase {
 	 * @param {number} fadeDuration Transition duration in milliseconds.
 	 * @returns {number} Visibility opacity from zero to one.
 	 */
-	getVisibilityOpacityAt(
-		time: number,
-		fadeDuration = getPreviewKeyframeFadeDuration()
-	): number {
+	getVisibilityOpacityAt(time: number, fadeDuration = getPreviewKeyframeFadeDuration()): number {
 		return resolveKeyframeVisibilityOpacity(this.keyframes, time, this.value, fadeDuration);
 	}
 
@@ -780,9 +780,7 @@ export class StylesData extends SerializableBase {
 	target: 'global' | 'arabic' | string = $state('');
 
 	// Overrides spécifiques aux clips sélectionnés
-	overrides: { [clipId: number]: { [styleId in StyleName]?: StyleOverrideValue } } = $state(
-		{}
-	);
+	overrides: { [clipId: number]: { [styleId in StyleName]?: StyleOverrideValue } } = $state({});
 	overrideKeyframes: {
 		[clipId: number]: { [styleId in StyleName]?: StyleKeyframe[] };
 	} = $state({});
@@ -1255,13 +1253,8 @@ export class StylesData extends SerializableBase {
 		return (
 			keyframes && style
 				? resolvePreviewKeyframeValue(style, keyframes, currentTime, value, fadeDuration)
-				: style
-					? style.getValueAt(currentTime, fadeDuration)
-					: value
-		) as
-			| string
-			| number
-			| boolean;
+				: value
+		) as string | number | boolean;
 	}
 
 	/**
@@ -1308,10 +1301,7 @@ export class StylesData extends SerializableBase {
 		return clipIds.some((clipId) => {
 			const byClip = this.overrides[clipId];
 			const keyframes = this.overrideKeyframes[clipId]?.[styleId];
-			return !!(
-				(byClip && byClip[styleId] !== undefined) ||
-				(keyframes && keyframes.length > 0)
-			);
+			return !!((byClip && byClip[styleId] !== undefined) || (keyframes && keyframes.length > 0));
 		});
 	}
 

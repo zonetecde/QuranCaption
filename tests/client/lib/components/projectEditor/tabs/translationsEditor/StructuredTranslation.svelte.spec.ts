@@ -88,7 +88,7 @@ describe('Structured translation editor', () => {
 
 	test('opens AI video translation from the selected language card', async () => {
 		const onTranslateWithAi = vi.fn();
-		const component = render(EditionViewer, { props: { edition, onTranslateWithAi } });
+		const component = render(EditionViewer, { edition, onTranslateWithAi });
 
 		await component.getByRole('button', { name: 'Translate video with AI' }).click();
 
@@ -97,7 +97,7 @@ describe('Structured translation editor', () => {
 
 	test('shows only source-backed free text and inserts ﷺ with Ctrl+S', async () => {
 		const subtitle = createSubtitle('قال أنس: {{حديث}}', '{{}}');
-		const component = render(Translation, { props: { edition, subtitle } });
+		const component = render(Translation, { edition, subtitle });
 		await tick();
 
 		expect(component.container.querySelectorAll('textarea')).toHaveLength(2);
@@ -149,7 +149,7 @@ describe('Structured translation editor', () => {
 
 	test('uses Noto Sans Arabic for the source subtitle', async () => {
 		const subtitle = createSubtitle('قال أنس: {{حديث}}', '{{}}');
-		const component = render(ArabicText, { props: { subtitle } });
+		const component = render(ArabicText, { subtitle });
 		await tick();
 
 		const arabicText = component.container.querySelector<HTMLElement>('.noto-sans-arabic');
@@ -166,7 +166,7 @@ describe('Structured translation editor', () => {
 			'3:55': 'Ô Jésus ! Certes, Je vais mettre fin à ta vie terrestre et t’élever vers Moi.'
 		};
 
-		const component = render(Translation, { props: { edition, subtitle } });
+		const component = render(Translation, { edition, subtitle });
 		await vi.waitFor(() => {
 			expect(component.getByText("Je vais te reprendre · et t'élever · vers Moi")).toBeVisible();
 		});
@@ -183,7 +183,7 @@ describe('Structured translation editor', () => {
 		projectTranslation.versesTranslations[edition.name] = {
 			'2:255': 'one two three four'
 		};
-		const component = render(Translation, { props: { edition, subtitle } });
+		const component = render(Translation, { edition, subtitle });
 		await tick();
 
 		expect(component.getByText('Full verse')).toBeVisible();

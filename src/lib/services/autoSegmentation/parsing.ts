@@ -94,7 +94,7 @@ export function normalizeSegmentWords(value: unknown): SegmentationWordTimestamp
 			if (!location || start === undefined || end === undefined) return null;
 			return word ? { location, start, end, word } : { location, start, end };
 		})
-		.filter((entry): entry is SegmentationWordTimestamp => !!entry);
+		.filter((entry) => entry !== null) as SegmentationWordTimestamp[];
 }
 
 /**

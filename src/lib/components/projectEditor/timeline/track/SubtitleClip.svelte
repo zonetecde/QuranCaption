@@ -50,8 +50,8 @@
 	);
 
 	// Timeline clips keep their stored marker syntax, but render its readable content for editing context.
-	const displayedTextParts = $derived(() =>
-		getTranscriptReferenceRenderParts(clip.text, 'Uthmani', 'Hafs')
+	const displayedTextParts = $derived(
+		() => getTranscriptReferenceRenderParts(clip.text, 'Uthmani', 'Hafs') ?? []
 	);
 
 	const displayedTranslationParts = $derived(() =>
@@ -207,10 +207,11 @@
 	 * @param {{ location: string; word?: string }} word Mot WBW source.
 	 * @returns {string} Texte lisible du mot.
 	 */
-	function getWordBoundaryLabel(word: { location: string; word?: string }): string {
+	function getWordBoundaryLabel(word: { location?: string; word?: string }): string {
 		const directLabel = String(word.word ?? '').trim();
 		if (directLabel) return directLabel;
-		if (!(clip instanceof SubtitleClip)) return String(word.location ?? '').trim();
+		if (!(clip instanceof SubtitleClip) || !word.location)
+			return String(word.location ?? '').trim();
 
 		const relativeWordIndex = Number(word.location.split(':')[2]) - clip.startWordIndex - 1;
 		const clipWords = clip.text.split(/\s+/).filter(Boolean);
@@ -698,7 +699,7 @@
 					class:text-[var(--text-on-selection)]={isSelected()}
 					dir="rtl"
 				>
-					{#if displayedTextParts()}
+					{#if displayedTextParts().length > 0}
 						{#each displayedTextParts() as part, index (`${part.text}-${index}`)}
 							<span
 								class:timeline-quran-reference={part.isQuran && !isSelected()}

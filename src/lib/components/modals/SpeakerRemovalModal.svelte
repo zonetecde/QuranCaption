@@ -18,8 +18,12 @@
 		resolve: (choice: SpeakerRemovalChoice) => void;
 	} = $props();
 
-	let replacement = $state(replacementOptions[0] ?? '');
+	let replacement = $state('');
 	let resolved = false;
+
+	$effect(() => {
+		replacement = replacementOptions[0] ?? '';
+	});
 
 	function finish(choice: SpeakerRemovalChoice): void {
 		if (resolved) return;

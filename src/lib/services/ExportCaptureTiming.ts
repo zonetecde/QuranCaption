@@ -52,7 +52,7 @@ export type ExportSubtitleWbwSourceClip = Pick<
 > & {
 	alignmentMetadata?: {
 		timeFrom?: number;
-		words: SegmentationWordTimestamp[];
+		words: Array<{ start: number; end: number; location?: string; word?: string }>;
 	} | null;
 };
 

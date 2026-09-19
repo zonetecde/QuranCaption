@@ -14,7 +14,7 @@ export const SUBDIVIDE_MAX_WORDS_DISABLED = 30;
 export const SUBDIVIDE_MAX_DURATION_DISABLED = 30;
 
 export type SegmentationWordTimestamp = {
-	location: string;
+	location?: string;
 	start: number;
 	end: number;
 	word?: string;
@@ -24,7 +24,7 @@ export type SegmentationWordTimestamp = {
 export type RealignWindow = { startMs: number; endMs: number };
 
 export type SubtitleAlignmentMetadata = {
-	source: 'api' | 'local' | 'import';
+	source: 'api' | 'local' | 'import' | 'manual';
 	segment: number;
 	refFrom: string;
 	refTo: string;

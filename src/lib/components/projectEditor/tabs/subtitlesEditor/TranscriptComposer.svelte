@@ -178,10 +178,10 @@
 
 <div class="flex h-full min-h-0 flex-col gap-6 overflow-y-auto p-5 lg:p-8">
 	<div class="space-y-3">
-		<label class="flex items-center gap-2 text-sm font-semibold text-primary">
+		<div class="flex items-center gap-2 text-sm font-semibold text-primary">
 			<span class="material-icons text-base text-accent-primary">person</span>
 			{$LL.editor.speaker()}
-		</label>
+		</div>
 
 		<div class="flex flex-wrap items-center gap-2">
 			{#each availableSpeakers() as candidate (candidate)}

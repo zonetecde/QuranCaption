@@ -1,6 +1,12 @@
 import type { SubtitleClip } from '$lib/classes/Clip.svelte';
 import { Utilities } from '$lib/classes/misc/Utilities';
-import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
+
+type HighlightWord = {
+	start: number;
+	end: number;
+	location?: string;
+	word?: string;
+};
 
 export type WordByWordHighlightState = {
 	enabled: boolean;
@@ -32,7 +38,7 @@ export type WordByWordHighlightState = {
 	currentWordOpacity: number;
 	clipStartTimeS: number;
 	cursorTimeS: number;
-	words: SegmentationWordTimestamp[];
+	words: HighlightWord[];
 };
 
 type ResolveStyleValue = (styleId: string) => string | number | boolean;
@@ -141,7 +147,7 @@ export function getWordByWordHighlightState(params: {
 	mushafStyle: string;
 	cursorTimeS: number;
 	getStyleValue: ResolveStyleValue;
-	words?: SegmentationWordTimestamp[];
+	words?: HighlightWord[];
 	clipStartTimeS?: number;
 	baseOpacity?: number;
 }): WordByWordHighlightState {

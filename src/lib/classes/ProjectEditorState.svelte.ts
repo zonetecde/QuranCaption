@@ -1,5 +1,11 @@
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { AssetClip, PredefinedSubtitleClip, SubtitleClip } from './Clip.svelte';
+import {
+	AssetClip,
+	ClipWithTranslation,
+	PredefinedSubtitleClip,
+	SilenceClip,
+	SubtitleClip
+} from './Clip.svelte';
 import { ProjectEditorTabs } from './enums';
 import { SerializableBase } from './misc/SerializableBase';
 import { globalState } from '$lib/runes/main.svelte';
@@ -8,6 +14,7 @@ import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import type { AITranscriptionResult, SpeakerNameMap } from '$lib/services/AITranscription';
 import type { TranscriptAiAnalysis } from '$lib/services/TranscriptPostProcessor';
+import type { StoredSegmentationContext } from '$lib/services/autoSegmentation/types';
 
 export type AITranscriptCleanupState = {
 	sourceResult: AITranscriptionResult;
@@ -317,6 +324,30 @@ export class VideoPreviewState extends SerializableBase {
 }
 
 export class SubtitlesEditorState extends SerializableBase {
+	// Sélection Qur'an conservée pour le workflow WBW et les projets existants.
+	selectedSurah: number = $state(1);
+	selectedVerse: number = $state(1);
+	startWordIndex: number = $state(0);
+	endWordIndex: number = $state(0);
+	wbwPlaybackSpeed: number = $state(0.75);
+	showWordTranslation: boolean = $state(true);
+	showWordTransliteration: boolean = $state(false);
+	initialLowConfidenceCount: number = $state(0);
+	segmentationContext: StoredSegmentationContext = $state({
+		audioId: null,
+		source: null,
+		effectiveMode: null,
+		modelName: null,
+		device: null,
+		includeWbwTimestamps: true,
+		alignedSegments: []
+	});
+	subdivideMaxVersesPerSegment: number = $state(1);
+	subdivideMaxWordsPerSegment: number = $state(30);
+	subdivideMaxDurationPerSegment: number = $state(30);
+	subdivideOnlySplitAtStopSigns: boolean = $state(true);
+	aiSemanticSplitMaxWords: number = $state(10);
+
 	// Vitesse de lecture utilisée pendant la transcription manuelle.
 	playbackSpeed: number = $state(1.0);
 
@@ -330,7 +361,8 @@ export class SubtitlesEditorState extends SerializableBase {
 	aiTranscriptCleanup: AITranscriptCleanupState | null = $state(null);
 
 	// Segment de transcription actuellement sélectionné pour édition.
-	editSubtitle: SubtitleClip | null = $state(null);
+	editSubtitle: SubtitleClip | PredefinedSubtitleClip | ClipWithTranslation | SilenceClip | null =
+		$state(null);
 
 	// Si défini, passe au segment suivant après une opération de division.
 	pendingSplitEditNextId: number | null = $state(null);

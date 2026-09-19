@@ -139,7 +139,8 @@
 	$effect(() => {
 		const _ = [
 			globalState.settings?.persistentUiState.projectEditorLayout.upperSectionHeight,
-			globalState.settings?.persistentUiState.projectEditorLayout.subtitlesEditorPreviewHeight
+			globalState.settings?.persistentUiState.projectEditorLayout.subtitlesEditorPreviewHeight,
+			globalState.settings?.persistentUiState.projectEditorLayout.subtitlesEditorRightPanelWidth
 		];
 
 		resizeVideoToFitScreen();

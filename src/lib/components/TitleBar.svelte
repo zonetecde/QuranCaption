@@ -6,6 +6,7 @@
 	import ModalManager from './modals/ModalManager';
 	import { VersionService } from '$lib/services/VersionService.svelte';
 	import Settings from './settings/Settings.svelte';
+	import TitleBarTools from './TitleBarTools.svelte';
 	import { fade } from 'svelte/transition';
 	import {
 		ProjectHistoryManager,
@@ -97,6 +98,10 @@
 		<span class="material-icons">settings</span>
 	</button>
 
+	{#if globalState.currentProject}
+		<TitleBarTools />
+	{/if}
+
 	<button
 		type="button"
 		class="app-bar-button relative"
@@ -183,7 +188,7 @@
 		position: absolute;
 		top: calc(env(safe-area-inset-top) + 1.375rem);
 		left: 50%;
-		width: calc(100% - 11.5rem);
+		width: calc(100% - 14.25rem);
 		transform: translate(-50%, -50%);
 		pointer-events: none;
 	}

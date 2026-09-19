@@ -14,6 +14,7 @@ import gc
 import json
 import os
 import sys
+import time
 import warnings
 from dataclasses import dataclass
 from typing import Any, Iterable
@@ -198,6 +199,79 @@ def release_device_memory() -> None:
         pass
 
 
+def format_download_size(value: int | float | None) -> str:
+    """Format a model download byte count for compact progress messages."""
+    size = max(0.0, float(value or 0))
+    units = ("B", "KiB", "MiB", "GiB", "TiB")
+    unit_index = 0
+    while size >= 1024 and unit_index < len(units) - 1:
+        size /= 1024
+        unit_index += 1
+    if unit_index == 0:
+        return f"{int(size)} {units[unit_index]}"
+    return f"{size:.1f} {units[unit_index]}"
+
+
+def load_qwen_model(
+    dtype: Any,
+    device_map: str,
+    inference_batch_size: int,
+) -> Any:
+    """Load Qwen3-ASR while forwarding Hugging Face download progress to the UI."""
+    import importlib
+
+    from qwen_asr import Qwen3ASRModel
+
+    progress_module = importlib.import_module("huggingface_hub.utils.tqdm")
+    original_progress = progress_module.tqdm
+
+    class MinbarDownloadProgress(original_progress):
+        """Bridge Hugging Face byte progress to the transcription status stream."""
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            """Initialize a quiet progress bar that still tracks downloaded bytes."""
+            kwargs["disable"] = False
+            super().__init__(*args, **kwargs)
+            self._last_minbar_emit = 0.0
+            self._emit_minbar_progress(force=True)
+
+        def display(self, msg: str | None = None, pos: int | None = None) -> None:
+            """Suppress terminal output while retaining the progress counter."""
+            return None
+
+        def _emit_minbar_progress(self, force: bool = False) -> None:
+            """Emit a throttled status update for the current model file."""
+            total = self.total
+            if not total:
+                return
+            now = time.monotonic()
+            if not force and self.n < total and now - self._last_minbar_emit < 0.5:
+                return
+            self._last_minbar_emit = now
+            ratio = min(1.0, max(0.0, self.n / total))
+            emit_status(
+                f"Downloading Qwen3-ASR 1.7B ({format_download_size(self.n)}/{format_download_size(total)})",
+                34 + (ratio * 4),
+            )
+
+        def update(self, n: int | float = 1) -> None:
+            """Forward downloaded bytes to tqdm and the Minbar status stream."""
+            super().update(n)
+            self._emit_minbar_progress()
+
+    progress_module.tqdm = MinbarDownloadProgress
+    try:
+        return Qwen3ASRModel.from_pretrained(
+            QWEN_MODEL_ID,
+            dtype=dtype,
+            device_map=device_map,
+            max_inference_batch_size=inference_batch_size,
+            max_new_tokens=512,
+        )
+    finally:
+        progress_module.tqdm = original_progress
+
+
 def build_diarization_chunks(
     diarized_segments: Any,
     audio_duration: float,
@@ -239,7 +313,6 @@ def transcribe_qwen_chunks(
 ) -> list[dict[str, Any]]:
     """Transcribe Arabic speech chunks with Qwen3-ASR and preserve their absolute bounds."""
     import torch
-    from qwen_asr import Qwen3ASRModel
 
     if args.language.lower() not in ("auto", "ar"):
         raise RuntimeError("Qwen3-ASR is currently integrated for Arabic transcription only.")
@@ -254,13 +327,8 @@ def transcribe_qwen_chunks(
         inference_batch_size = 1
 
     emit_status("Loading Qwen3-ASR 1.7B...", 34)
-    model = Qwen3ASRModel.from_pretrained(
-        QWEN_MODEL_ID,
-        dtype=dtype,
-        device_map=device_map,
-        max_inference_batch_size=inference_batch_size,
-        max_new_tokens=512,
-    )
+    model = load_qwen_model(dtype, device_map, inference_batch_size)
+    emit_status("Preparing Qwen3-ASR 1.7B...", 38)
 
     output: list[dict[str, Any]] = []
     prepared: list[tuple[float, float, Any]] = []

@@ -577,6 +577,14 @@ async function validateFinalQuranMarkers(result: AITranscriptionResult): Promise
 }
 
 /**
+ * Laisse le navigateur afficher la phase courante avant un traitement synchrone.
+ * @returns {Promise<void>} Promesse résolue après un passage de boucle événementielle.
+ */
+async function yieldToUi(): Promise<void> {
+	await new Promise<void>((resolve) => setTimeout(resolve, 0));
+}
+
+/**
  * Corrige, annote et re-segmente une transcription avec une IA textuelle facultative.
  * @param {AITranscriptionResult} result Résultat ASR courant.
  * @param {{ apiKey?: string; endpoint?: string; model?: AdvancedTrimModel; reasoningEffort?: AIReasoningEffort; thinkingEnabled?: boolean | null; batchWords?: number; maxWords: number; maxChars: number; maxGap: number; resume?: { analyses: TranscriptAiAnalysis[]; errors: string[]; nextBatchIndex: number }; shouldPause?: () => boolean; onProgress?: (current: number, total: number, batchId: string) => void; onSemanticSegmentationStart?: () => void; onBatchComplete?: (report: TranscriptCleanupReport, batchId: string) => void | Promise<void> }} options Provider, reprise et contraintes.
@@ -601,10 +609,18 @@ export async function cleanupAITranscript(
 		};
 		shouldPause?: () => boolean;
 		onProgress?: (current: number, total: number, batchId: string) => void;
+		onPreparationStart?: () => void;
 		onSemanticSegmentationStart?: () => void;
+		onSemanticSegmentationProgress?: (current: number, total: number, batchId: string) => void;
+		onSemanticSegmentationBatchComplete?: (batchId: string) => void;
+		onSemanticSegmentationBatchFailed?: (batchId: string) => void;
+		onFinalizationStart?: () => void;
+		onValidationStart?: () => void;
 		onBatchComplete?: (report: TranscriptCleanupReport, batchId: string) => void | Promise<void>;
 	}
 ): Promise<TranscriptCleanupReport> {
+	options.onPreparationStart?.();
+	await yieldToUi();
 	const corpus = await loadQuranCorpus();
 	const sourceTokens = buildTimedTranscriptTokens(result);
 	const prepared = prepareTranscriptForAnalysis(result, corpus);
@@ -670,6 +686,8 @@ export async function cleanupAITranscript(
 				completedBatchIndexes.add(batchIndex);
 				while (completedBatchIndexes.has(nextBatchIndex)) nextBatchIndex += 1;
 				const progressiveAnalysis = mergeTranscriptAiAnalyses(analyses, prepared.tokens);
+				options.onFinalizationStart?.();
+				await yieldToUi();
 				const progressive = finalizeTranscriptProcessing(
 					result,
 					prepared.tokens,
@@ -717,12 +735,15 @@ export async function cleanupAITranscript(
 		maxChars: Math.max(20, options.maxChars),
 		maxGap: Math.max(0.1, options.maxGap)
 	};
+	options.onFinalizationStart?.();
+	await yieldToUi();
 	const finalTokens = prepareFinalTranscriptTokens(result, prepared.tokens, corpus, analysis);
 	let semantic = { boundaries: [], errors: [] } as Awaited<
 		ReturnType<typeof analyzeTranscriptSemanticBoundaries>
 	>;
 	if (!paused && apiKey && endpoint && model) {
 		options.onSemanticSegmentationStart?.();
+		await yieldToUi();
 		semantic = await analyzeTranscriptSemanticBoundaries(finalTokens.tokens, {
 			apiKey,
 			endpoint,
@@ -731,10 +752,15 @@ export async function cleanupAITranscript(
 			thinkingEnabled: options.thinkingEnabled,
 			timingQuality: result.segments.every((segment) => (segment.words?.length ?? 0) > 0)
 				? 'word'
-				: 'estimated'
+				: 'estimated',
+			onProgress: options.onSemanticSegmentationProgress,
+			onBatchComplete: options.onSemanticSegmentationBatchComplete,
+			onBatchFailed: options.onSemanticSegmentationBatchFailed
 		});
 	}
 	errors.push(...semantic.errors);
+	options.onFinalizationStart?.();
+	await yieldToUi();
 	const processed = finalizeTranscriptProcessing(
 		result,
 		prepared.tokens,
@@ -743,7 +769,11 @@ export async function cleanupAITranscript(
 		settings,
 		semantic.boundaries
 	);
-	if (!paused) errors.push(...(await validateFinalQuranMarkers(processed.result)));
+	if (!paused) {
+		options.onValidationStart?.();
+		await yieldToUi();
+		errors.push(...(await validateFinalQuranMarkers(processed.result)));
+	}
 	return {
 		result: processed.result,
 		errors,

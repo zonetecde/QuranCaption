@@ -75,6 +75,7 @@
 	let cleanupMessage = $state('');
 	let cleanupErrors = $state<string[]>([]);
 	let cleanupBatchStreams = $state<Record<string, AIStreamBatchState>>({});
+	let semanticBatchStreams = $state<Record<string, AIStreamBatchState>>({});
 	let advancedSubtitleSettingsOpen = $state(false);
 
 	/**
@@ -128,6 +129,9 @@
 	);
 	const streamedCleanupBatches = $derived(() =>
 		Object.values(cleanupBatchStreams).sort((left, right) => left.index - right.index)
+	);
+	const streamedSemanticBatches = $derived(() =>
+		Object.values(semanticBatchStreams).sort((left, right) => left.index - right.index)
 	);
 
 	/**
@@ -207,15 +211,36 @@
 		try {
 			const transcription = await runAITranscription(settings);
 			runMessage = get(LL).editor.matchingQuranPassages();
+			progress = 100;
+			await tick();
 			const quranReport = await cleanupAITranscript(transcription, {
 				maxWords: settings.maxWordsPerSegment,
 				maxChars: settings.maxCharsPerSegment,
-				maxGap: settings.minSilenceDuration
+				maxGap: settings.minSilenceDuration,
+				onPreparationStart: () => {
+					runMessage = get(LL).editor.matchingQuranPassages();
+					progress = 100;
+				},
+				onSemanticSegmentationStart: () => {
+					runMessage = get(LL).editor.transcriptSemanticSegmentation();
+					progress = 100;
+				},
+				onFinalizationStart: () => {
+					runMessage = get(LL).editor.cleaningTranscript();
+					progress = 100;
+				},
+				onValidationStart: () => {
+					runMessage = get(LL).editor.cleaningTranscript();
+					progress = 100;
+				}
 			});
 			result = quranReport.result;
 			cleanupErrors = quranReport.errors;
 			globalState.getSubtitlesEditorState.aiTranscriptCleanup = null;
 			speakerMap = buildDefaultSpeakerMap(result);
+			runMessage = get(LL).common.processing();
+			progress = 100;
+			await tick();
 			const applied = applyAITranscription(result, speakerMap, settings.replaceExisting);
 			appliedClipIds = applied.clipIds;
 			await globalState.currentProject?.save(false);
@@ -343,6 +368,7 @@
 		cleanupPauseRequested = false;
 		cleanupCompleted = false;
 		cleanupErrors = [];
+		semanticBatchStreams = {};
 		cleanupBatchStreams = Object.fromEntries(
 			Array.from(
 				{ length: Math.max(0, activeTask.totalBatches - activeTask.nextBatchIndex) },
@@ -376,14 +402,16 @@
 				batchId: string;
 				accumulatedText: string;
 			}>('ai-transcript-cleanup-chunk', (event) => {
-				const batch = cleanupBatchStreams[event.payload.batchId];
+				const batch =
+					cleanupBatchStreams[event.payload.batchId] ?? semanticBatchStreams[event.payload.batchId];
 				if (batch) batch.response = event.payload.accumulatedText;
 			});
 			cleanupReasoningUnlisten = await listen<{
 				batchId: string;
 				accumulatedText: string;
 			}>('ai-transcript-cleanup-reasoning', (event) => {
-				const batch = cleanupBatchStreams[event.payload.batchId];
+				const batch =
+					cleanupBatchStreams[event.payload.batchId] ?? semanticBatchStreams[event.payload.batchId];
 				if (batch) batch.reasoning = event.payload.accumulatedText;
 			});
 			const report = await cleanupAITranscript(activeTask.sourceResult, {
@@ -402,6 +430,9 @@
 					nextBatchIndex: activeTask.nextBatchIndex
 				},
 				shouldPause: () => cleanupPauseRequested,
+				onPreparationStart: () => {
+					cleanupMessage = get(LL).editor.matchingQuranPassages();
+				},
 				onProgress: (current, total, batchId) => {
 					delete cleanupBatchStreams[`pending-${current}`];
 					cleanupBatchStreams[batchId] = {
@@ -416,6 +447,34 @@
 				},
 				onSemanticSegmentationStart: () => {
 					cleanupMessage = get(LL).editor.transcriptSemanticSegmentation();
+					semanticBatchStreams = {};
+				},
+				onSemanticSegmentationProgress: (current, total, batchId) => {
+					semanticBatchStreams[batchId] = {
+						batchId,
+						index: current,
+						total,
+						status: 'running',
+						reasoning: '',
+						response: ''
+					};
+					cleanupMessage = get(LL).editor.transcriptSemanticSegmentation();
+				},
+				onSemanticSegmentationBatchComplete: (batchId) => {
+					if (semanticBatchStreams[batchId]) {
+						semanticBatchStreams[batchId].status = 'completed';
+					}
+				},
+				onSemanticSegmentationBatchFailed: (batchId) => {
+					if (semanticBatchStreams[batchId]) {
+						semanticBatchStreams[batchId].status = 'failed';
+					}
+				},
+				onFinalizationStart: () => {
+					cleanupMessage = get(LL).editor.cleaningTranscript();
+				},
+				onValidationStart: () => {
+					cleanupMessage = get(LL).editor.cleaningTranscript();
 				},
 				onBatchComplete: async (batchReport, batchId) => {
 					if (cleanupBatchStreams[batchId]) {
@@ -483,6 +542,9 @@
 			await globalState.currentProject?.save(false);
 		} catch (error) {
 			for (const batch of Object.values(cleanupBatchStreams)) {
+				if (batch.status === 'running') batch.status = 'failed';
+			}
+			for (const batch of Object.values(semanticBatchStreams)) {
 				if (batch.status === 'running') batch.status = 'failed';
 			}
 			errorMessage = error instanceof Error ? error.message : String(error);
@@ -1257,6 +1319,17 @@
 									<div class="mt-4">
 										<AIStreamBatchList
 											batches={streamedCleanupBatches()}
+											placeholder={get(LL).translations.streamingResponsePlaceholder()}
+										/>
+									</div>
+								{/if}
+								{#if streamedSemanticBatches().length > 0}
+									<div class="mt-5 border-t border-color pt-4">
+										<p class="mb-3 text-xs font-semibold uppercase tracking-wide text-secondary">
+											{get(LL).editor.transcriptSemanticSegmentation()}
+										</p>
+										<AIStreamBatchList
+											batches={streamedSemanticBatches()}
 											placeholder={get(LL).translations.streamingResponsePlaceholder()}
 										/>
 									</div>

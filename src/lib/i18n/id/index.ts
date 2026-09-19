@@ -868,6 +868,8 @@ const id = {
 		backgroundImageError: 'Error gambar latar belakang',
 		cannotAddBackgroundImage:
 			'Tidak bisa menambahkan gambar latar belakang ke timeline saat gambar latar belakang tidak didukung dalam konteks ini.',
+		setImageAsFullBackgroundConfirm:
+			'Track video kosong. Gunakan gambar ini sebagai latar belakang untuk seluruh video? Pilih Tidak untuk menambahkannya sebagai clip timeline biasa.',
 		loopingError: 'Error looping',
 		canOnlyEnableLoopIfOnlyClip:
 			'Kamu hanya bisa mengaktifkan "Loop until the end" jika ini satu-satunya clip di track.',
@@ -1491,10 +1493,10 @@ const id = {
 			'Export paling cepat. Bisa memakai hardware encoding, yang kadang menimbulkan artifact pada background 4K yang detail.',
 		balanced: 'Seimbang',
 		balancedDescription:
-			'Direkomendasikan untuk final export. Kualitas lebih terjaga di resolusi tinggi, tapi prosesnya lebih lama.',
-		lowCpu: 'CPU rendah',
+			'Memakai encoding GPU agar ekspor lebih cepat, tetapi dapat menyebabkan sedikit distorsi visual.',
+		lowCpu: 'Kualitas maksimal',
 		lowCpuDescription:
-			'Membatasi penggunaan CPU supaya komputer kamu tetap lebih responsif. Biasanya ini opsi paling lambat.',
+			'Menjamin kualitas terbaik dengan software encoding hanya melalui CPU, tetapi proses ekspornya lebih lambat.',
 		exportInProgressButton: 'Sedang export...',
 		fileNotFound: 'File tidak ditemukan',
 		exportedFileNotFound: 'File hasil export tidak ditemukan. Mungkin sudah dipindah atau dihapus.',

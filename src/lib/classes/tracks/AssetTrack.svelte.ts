@@ -8,6 +8,8 @@ import ModalManager from '$lib/components/modals/ModalManager.js';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import { Track } from './Track.svelte.js';
 
+export const DEFAULT_IMAGE_CLIP_DURATION_MS = 10_000;
+
 export class AssetTrack extends Track {
 	volumePercent: number = $state(100);
 
@@ -22,23 +24,17 @@ export class AssetTrack extends Track {
 	/**
 	 * Ajoute une ressource à la piste et affiche une erreur lorsque l'ajout est impossible.
 	 * @param {Asset} asset Ressource à convertir en clip.
+	 * @param {boolean} imageAsFullBackground Étendre une première image à toute la vidéo.
 	 * @returns {boolean} `true` lorsque la ressource a été ajoutée.
 	 */
-	addAsset(asset: Asset): boolean {
+	addAsset(asset: Asset, imageAsFullBackground: boolean = true): boolean {
 		ProjectHistoryManager.begin('add asset clip');
 		try {
-			const result = this.addAssetHeadless(asset);
+			const result = this.addAssetHeadless(asset, imageAsFullBackground);
 			if (result === 'looped') {
 				ModalManager.errorModal(
 					get(LL).editor.clipAdditionError(),
 					get(LL).editor.cannotAddMoreClips()
-				);
-				return false;
-			}
-			if (result === 'image') {
-				ModalManager.errorModal(
-					get(LL).editor.backgroundImageError(),
-					get(LL).editor.cannotAddBackgroundImage()
 				);
 				return false;
 			}
@@ -59,20 +55,35 @@ export class AssetTrack extends Track {
 	/**
 	 * Insère un clip d'asset sans historique, modal ni effet de preview.
 	 * @param {Asset} asset Asset à placer après le dernier clip.
-	 * @returns {'added' | 'looped' | 'image'} Résultat de l'insertion.
+	 * @param {boolean} imageAsFullBackground Étendre une première image à toute la vidéo.
+	 * @returns {'added' | 'looped'} Résultat de l'insertion.
 	 */
-	addAssetHeadless(asset: Asset): 'added' | 'looped' | 'image' {
+	addAssetHeadless(asset: Asset, imageAsFullBackground: boolean = true): 'added' | 'looped' {
 		const lastClip = this.clips.length > 0 ? this.clips[this.clips.length - 1] : null;
 		if (lastClip) {
 			if (this.clips.some((clip) => clip instanceof AssetClip && clip.loopUntilAudioEnd)) {
 				return 'looped';
 			}
-			if (asset.type === AssetType.Image) return 'image';
-			this.clips.push(
-				new AssetClip(lastClip.endTime + 1, lastClip.endTime + asset.duration.ms + 1, asset.id)
-			);
+			if (
+				this.type === TrackType.Video &&
+				this.clips.length === 1 &&
+				lastClip instanceof AssetClip &&
+				lastClip.endTime === 0
+			) {
+				lastClip.endTime = DEFAULT_IMAGE_CLIP_DURATION_MS;
+				lastClip.duration = DEFAULT_IMAGE_CLIP_DURATION_MS;
+			}
+			const startTime =
+				this.type === TrackType.Audio ? this.getDuration().ms + 1 : lastClip.endTime + 1;
+			const duration =
+				asset.type === AssetType.Image ? DEFAULT_IMAGE_CLIP_DURATION_MS : asset.duration.ms;
+			this.clips.push(new AssetClip(startTime, startTime + duration, asset.id));
 		} else {
-			this.clips.push(new AssetClip(0, asset.duration.ms, asset.id));
+			const duration =
+				asset.type === AssetType.Image && !imageAsFullBackground
+					? DEFAULT_IMAGE_CLIP_DURATION_MS
+					: asset.duration.ms;
+			this.clips.push(new AssetClip(0, duration, asset.id));
 		}
 		return 'added';
 	}

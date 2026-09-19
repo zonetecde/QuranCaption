@@ -616,6 +616,8 @@ const de = {
 		backgroundImageError: 'Hintergrundbildfehler',
 		cannotAddBackgroundImage:
 			'Sie können kein Hintergrundbild zur Timeline hinzufügen, da Hintergrundbilder in diesem Kontext nicht unterstützt werden.',
+		setImageAsFullBackgroundConfirm:
+			'Die Videospur ist leer. Dieses Bild als Hintergrund für das gesamte Video verwenden? Wählen Sie Nein, um es als normalen Timeline-Clip hinzuzufügen.',
 		loopingError: 'Wiederholungsfehler',
 		canOnlyEnableLoopIfOnlyClip:
 			'Sie können « Bis zum Ende wiederholen » nur aktivieren, wenn dies der einzige Clip in der Spur ist.',
@@ -2189,10 +2191,10 @@ const de = {
 			'Schnellster Export. Kann Hardware-Encoding nutzen, wodurch bei detailreichen 4K-Hintergründen Artefakte entstehen können.',
 		balanced: 'Ausgewogen',
 		balancedDescription:
-			'Für finale Exporte empfohlen. Erhält die Qualität bei hoher Auflösung besser, dauert aber länger.',
-		lowCpu: 'Niedrige CPU',
+			'Nutzt GPU-Encoding für schnellere Exporte, kann aber leichte visuelle Verzerrungen verursachen.',
+		lowCpu: 'Maximale Qualität',
 		lowCpuDescription:
-			'Begrenzt die CPU-Auslastung, damit der Computer reaktionsfähiger bleibt. Meist die langsamste Option.',
+			'Garantiert beste Qualität durch reines CPU-Software-Encoding, exportiert jedoch langsamer.',
 		exportInProgressButton: 'Export läuft...',
 		fileNotFound: 'Datei nicht gefunden',
 		exportedFileNotFound:

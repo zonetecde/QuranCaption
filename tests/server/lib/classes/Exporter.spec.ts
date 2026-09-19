@@ -10,6 +10,8 @@ import Exporter, {
 	type YouTubeChapterFormatValues
 } from '$lib/classes/Exporter';
 import { AssetClip, AssetType, SubtitleClip, TrackType, type Project } from '$lib/classes';
+import { ExportMediaInputBuilder } from '../../../../src/routes/exporter/ExportMediaInputBuilder';
+import { globalState } from '$lib/runes/main.svelte';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -244,6 +246,59 @@ describe('Random export backgrounds', () => {
 
 		expect(reader).not.toHaveBeenCalled();
 		expect(fixture.videoTrack.clips).toHaveLength(0);
+	});
+});
+
+describe('Background media export inputs', () => {
+	it('exports timed image clips with their timeline duration', () => {
+		const previousProject = globalState.currentProject;
+		const videoClip = new AssetClip(0, 5_000, 10);
+		const imageClip = new AssetClip(5_001, 15_001, 11);
+		const assets = new Map([
+			[
+				10,
+				{
+					filePath: 'background.mp4',
+					type: AssetType.Video,
+					duration: { ms: 5_000 }
+				}
+			],
+			[
+				11,
+				{
+					filePath: 'still.png',
+					type: AssetType.Image,
+					duration: { ms: 0 }
+				}
+			]
+		]);
+		globalState.currentProject = {
+			content: {
+				timeline: { getFirstTrack: () => ({ clips: [videoClip, imageClip] }) },
+				getAssetById: (id: number) => assets.get(id)
+			}
+		} as unknown as Project;
+
+		try {
+			expect(ExportMediaInputBuilder.getVideoInputs()).toEqual([
+				{
+					path: 'background.mp4',
+					loop_until_audio_end: false,
+					source_start_ms: 0,
+					timeline_start_ms: 0,
+					duration_ms: 5_000
+				},
+				{
+					path: 'still.png',
+					loop_until_audio_end: false,
+					source_start_ms: 0,
+					timeline_start_ms: 5_001,
+					duration_ms: 10_000
+				}
+			]);
+		} finally {
+			globalState.currentProject = previousProject;
+		}
 	});
 });
 

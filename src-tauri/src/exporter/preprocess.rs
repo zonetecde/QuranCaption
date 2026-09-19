@@ -366,8 +366,8 @@ pub fn create_video_from_image(
 /// Prétraite toutes les vidéos de fond pour un export.
 ///
 /// Parcourt les `video_inputs`, calcule les segments pertinents selon `start_time_ms`
-/// et `duration_ms`, puis appelle `ffmpeg_preprocess_video` (ou `create_video_from_image`
-/// pour une image seule). Les résultats sont mis en cache dans `%TEMP%/qurancaption-preproc`.
+/// et `duration_ms`, puis appelle `ffmpeg_preprocess_video` ou `create_video_from_image`.
+/// Les résultats sont mis en cache dans `%TEMP%/qurancaption-preproc`.
 ///
 /// # Retourne
 /// La liste des chemins vers les vidéos prétraitées, dans l'ordre.
@@ -427,8 +427,11 @@ pub fn preprocess_background_videos(
 
     emit_bg_progress(0);
 
-    // Cas spécial : une seule image → créer une vidéo à partir de l'image
-    if video_inputs.len() == 1 && ffmpeg_utils::is_image_file(&video_inputs[0].path) {
+    // Cas spécial historique : une image sans durée couvre tout l'export.
+    if video_inputs.len() == 1
+        && ffmpeg_utils::is_image_file(&video_inputs[0].path)
+        && video_inputs[0].duration_ms.unwrap_or(0) <= 0
+    {
         let image_path = &video_inputs[0].path;
         let duration_s = if let Some(dur_ms) = duration_ms {
             dur_ms as f64 / 1000.0
@@ -521,10 +524,14 @@ pub fn preprocess_background_videos(
         return out_paths;
     }
 
-    // Sonder les durées de chaque vidéo source
+    // Sonder les durées de chaque vidéo source. La durée des images vient de la timeline.
     let mut video_durations_ms: Vec<i64> = Vec::new();
     for input in video_inputs {
-        let d = (ffmpeg_utils::ffprobe_duration_sec(&input.path) * 1000.0).round() as i64;
+        let d = if ffmpeg_utils::is_image_file(&input.path) {
+            input.duration_ms.unwrap_or(0)
+        } else {
+            (ffmpeg_utils::ffprobe_duration_sec(&input.path) * 1000.0).round() as i64
+        };
         video_durations_ms.push(d);
     }
 
@@ -686,32 +693,55 @@ pub fn preprocess_background_videos(
                 println!("[preproc] boucle macOS: encodage logiciel du fond");
             }
 
-            match ffmpeg_preprocess_video(
-                vid_path,
-                &dst.to_string_lossy(),
-                w,
-                h,
-                fps,
-                should_prefer_hw,
-                Some(start_within as i32),
-                Some(take_ms as i32),
-                media_fill,
-                media_scale,
-                media_position_x,
-                media_position_y,
-                blur,
-                is_loop,
-                performance_profile,
-                export_id,
-                app_handle,
-            ) {
+            let is_image = ffmpeg_utils::is_image_file(vid_path);
+            let preprocess_result = if is_image {
+                create_video_from_image(
+                    vid_path,
+                    &dst.to_string_lossy(),
+                    w,
+                    h,
+                    fps,
+                    expected_duration_s,
+                    should_prefer_hw,
+                    media_fill,
+                    media_scale,
+                    media_position_x,
+                    media_position_y,
+                    blur,
+                    performance_profile,
+                    export_id,
+                    app_handle,
+                )
+            } else {
+                ffmpeg_preprocess_video(
+                    vid_path,
+                    &dst.to_string_lossy(),
+                    w,
+                    h,
+                    fps,
+                    should_prefer_hw,
+                    Some(start_within as i32),
+                    Some(take_ms as i32),
+                    media_fill,
+                    media_scale,
+                    media_position_x,
+                    media_position_y,
+                    blur,
+                    is_loop,
+                    performance_profile,
+                    export_id,
+                    app_handle,
+                )
+            };
+
+            match preprocess_result {
                 Ok(_) => {
                     println!("[background] path=preprocessed-generated");
                 }
                 Err(e) => {
                     println!("[preproc][ERREUR] {:?}", e);
-                    if is_loop {
-                        println!("[background] fallback noir: preprocessing loop impossible");
+                    if is_loop || is_image {
+                        println!("[background] fallback noir: preprocessing média impossible");
                         cum_start = clip_end;
                         emit_bg_progress(idx + 1);
                         continue;

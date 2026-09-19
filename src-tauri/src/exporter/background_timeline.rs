@@ -1,5 +1,7 @@
 use super::types::VideoClipTransitionMode;
 
+const TIMELINE_ADJACENCY_TOLERANCE_S: f64 = 0.0011;
+
 /// Construit une timeline de fond en conservant les espaces entre les clips.
 ///
 /// # Arguments
@@ -40,7 +42,7 @@ pub(super) fn build_timed_background_chain(
                     .unwrap_or(expected_offset)
                     - expected_offset)
                     .abs()
-                    > 0.0011
+                    > TIMELINE_ADJACENCY_TOLERANCE_S
             }));
     let mut segments: Vec<(String, f64)> = Vec::new();
     let mut cursor_s = 0.0;
@@ -53,7 +55,7 @@ pub(super) fn build_timed_background_chain(
             .copied()
             .unwrap_or(cursor_s)
             .max(0.0);
-        let starts_after_gap = run_offset_s > cursor_s + 1e-6;
+        let starts_after_gap = run_offset_s > cursor_s + TIMELINE_ADJACENCY_TOLERANCE_S;
         if starts_after_gap {
             let gap_duration_s = run_offset_s - cursor_s;
             let gap_label = format!("bgap{}", gap_index);
@@ -78,9 +80,9 @@ pub(super) fn build_timed_background_chain(
                 .copied()
                 .unwrap_or(expected_offset_s);
             let continues_run = if uses_timeline_crossfades {
-                next_offset_s <= expected_offset_s + 1e-6
+                next_offset_s <= expected_offset_s + TIMELINE_ADJACENCY_TOLERANCE_S
             } else {
-                (next_offset_s - expected_offset_s).abs() <= 1e-6
+                (next_offset_s - expected_offset_s).abs() <= TIMELINE_ADJACENCY_TOLERANCE_S
             };
             if !continues_run {
                 break;
@@ -149,7 +151,8 @@ pub(super) fn build_timed_background_chain(
             .get(run_end)
             .copied()
             .unwrap_or(total_duration_s);
-        let ends_before_gap = next_offset_s > run_offset_s + run_duration_s + 1e-6;
+        let ends_before_gap =
+            next_offset_s > run_offset_s + run_duration_s + TIMELINE_ADJACENCY_TOLERANCE_S;
         let run_label = if mode == VideoClipTransitionMode::FadeThroughBlack
             && transition_s > 1e-6
             && (starts_after_gap || ends_before_gap)
@@ -475,6 +478,28 @@ mod trim_tests {
             .iter()
             .any(|line| line.contains("xfade=transition=fade:duration=1.000000:offset=3.000000")));
         assert!(filters.iter().any(|line| line.contains("d=2.000000")));
+    }
+
+    /// Vérifie que la frontière inclusive de 1 ms entre deux clips n'empêche pas le crossfade.
+    #[test]
+    fn crossfades_clips_separated_by_the_inclusive_timeline_boundary() {
+        let mut filters = Vec::new();
+        build_timed_background_chain(
+            &mut filters,
+            &["first".to_string(), "second".to_string()],
+            &[10.0, 10.0],
+            &[0.0, 10.001],
+            1920,
+            1080,
+            30,
+            20.001,
+            VideoClipTransitionMode::Crossfade,
+            1.0,
+        );
+
+        assert!(filters
+            .iter()
+            .any(|line| line.contains("xfade=transition=fade:duration=1.000000:offset=9.000000")));
     }
 
     /// Vérifie que chaque chevauchement explicite produit sa propre durée de crossfade.

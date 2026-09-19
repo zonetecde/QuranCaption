@@ -461,19 +461,44 @@ pub(super) fn run_fast_export(
 
     let audio_start_idx = current_idx;
     if have_audio {
-        let input_paths: Vec<&str> = if has_timed_audio {
+        let audio_inputs: Vec<(&str, f64)> = if has_timed_audio {
             prepared_audio_clips
                 .iter()
-				.map(|(path, _, _, _)| path.as_str())
+                .map(|(path, source_start_s, _, clip_duration_s, _)| {
+                    (path.as_str(), source_start_s + clip_duration_s)
+                })
                 .collect()
         } else {
-            audio_paths.iter().map(String::as_str).collect()
+            audio_paths
+                .iter()
+                .map(|path| {
+                    (
+                        path.as_str(),
+                        ffmpeg_utils::ffprobe_duration_sec(path).max(0.001),
+                    )
+                })
+                .collect()
         };
-        for path in input_paths {
+        for (path, input_duration_s) in audio_inputs {
             if direct_visible_export {
                 cmd.extend_from_slice(&["-ss".to_string(), format!("{:.6}", start_s)]);
             }
-            cmd.extend_from_slice(&["-i".to_string(), path.to_string()]);
+            if ffmpeg_utils::video_has_audio(path) {
+                cmd.extend_from_slice(&["-i".to_string(), path.to_string()]);
+            } else {
+                println!(
+                    "[fast_export] aucun flux audio, remplacement par {:.3}s de silence: {}",
+                    input_duration_s, path
+                );
+                cmd.extend_from_slice(&[
+                    "-f".to_string(),
+                    "lavfi".to_string(),
+                    "-t".to_string(),
+                    format!("{:.6}", input_duration_s),
+                    "-i".to_string(),
+                    "anullsrc=r=48000:cl=stereo".to_string(),
+                ]);
+            }
         }
     }
 

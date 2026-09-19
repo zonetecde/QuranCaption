@@ -92,11 +92,20 @@ export class Asset extends SerializableBase {
 	 * @returns {Promise<void>}
 	 */
 	async addToTimeline(asVideo: boolean, asAudio: boolean, skipDimensionPrompt = false) {
+		let imageAsFullBackground = true;
+		if (asVideo && this.type === AssetType.Image && globalState.getVideoTrack.clips.length === 0) {
+			const message = Reflect.get(
+				get(LL).editor,
+				'setImageAsFullBackgroundConfirm'
+			) as () => string;
+			imageAsFullBackground = await ModalManager.confirmModal(message(), true);
+		}
+
 		const videoTrackWasEmpty = asVideo && globalState.getVideoTrack.clips.length === 0;
 		const audioTrackWasEmpty = asAudio && globalState.getAudioTrack.clips.length === 0;
 		let wasAddedToVideo = false;
 		let wasAddedToAudio = false;
-		if (asVideo) wasAddedToVideo = globalState.getVideoTrack.addAsset(this);
+		if (asVideo) wasAddedToVideo = globalState.getVideoTrack.addAsset(this, imageAsFullBackground);
 		if (asAudio) wasAddedToAudio = globalState.getAudioTrack.addAsset(this);
 
 		if ((wasAddedToVideo && !videoTrackWasEmpty) || (wasAddedToAudio && !audioTrackWasEmpty)) {

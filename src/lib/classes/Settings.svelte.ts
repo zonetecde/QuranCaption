@@ -18,12 +18,7 @@ import {
 import { PROJECT_TYPE_OPTIONS } from '$lib/types/projectType';
 
 export type HomeSortProperty =
-	| 'updatedAt'
-	| 'createdAt'
-	| 'name'
-	| 'reciter'
-	| 'duration'
-	| 'surah';
+	'updatedAt' | 'createdAt' | 'name' | 'reciter' | 'duration' | 'surah';
 
 export type AutoSegmentationSettings = {
 	minSilenceMs: number;
@@ -45,7 +40,7 @@ export type StockMediaSettings = {
 	pixabayApiKey: string;
 };
 
-export type PerformanceProfile = 'fastest' | 'balanced' | 'low_cpu';
+export type PerformanceProfile = 'balanced' | 'max_quality';
 
 export type AITranslationSettings = {
 	omitPromptPrefix: boolean; // If true, only include JSON input in the prompt.
@@ -318,8 +313,7 @@ export default class Settings extends SerializableBase {
 		}
 
 		const projectEditorLayout = settings.persistentUiState.projectEditorLayout as
-			| Partial<ProjectEditorLayout>
-			| undefined;
+			Partial<ProjectEditorLayout> | undefined;
 		if (!projectEditorLayout || typeof projectEditorLayout !== 'object') {
 			settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
 			shouldSave = true;
@@ -399,7 +393,18 @@ export default class Settings extends SerializableBase {
 			shouldSave = true;
 		}
 
-		// Migration si nécessaire ici
+		const performanceProfile = settings.exportSettings.performanceProfile as string;
+		if (performanceProfile === 'fastest') {
+			settings.exportSettings.performanceProfile = 'balanced';
+			shouldSave = true;
+		} else if (performanceProfile === 'low_cpu') {
+			settings.exportSettings.performanceProfile = 'max_quality';
+			shouldSave = true;
+		} else if (performanceProfile !== 'balanced' && performanceProfile !== 'max_quality') {
+			settings.exportSettings.performanceProfile =
+				Settings.DEFAULT_EXPORT_SETTINGS.performanceProfile;
+			shouldSave = true;
+		}
 		if (typeof settings.exportSettings.randomBackgroundFolder !== 'string') {
 			settings.exportSettings.randomBackgroundFolder =
 				Settings.DEFAULT_EXPORT_SETTINGS.randomBackgroundFolder;

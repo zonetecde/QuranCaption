@@ -37,7 +37,7 @@
 		endTime: number;
 	};
 
-	const performanceProfileIds: PerformanceProfile[] = ['fastest', 'balanced', 'low_cpu'];
+	const performanceProfileIds: PerformanceProfile[] = ['balanced', 'max_quality'];
 	const videoCodecIds: VideoCodec[] = ['h264', 'h265'];
 
 	let showVideoQualitySettings = $state(false);
@@ -1375,18 +1375,11 @@
 
 						<div class="grid grid-cols-1 gap-3">
 							{#each performanceProfileIds as id (id)}
-								{@const label =
-									id === 'fastest'
-										? $LL.export.fastest()
-										: id === 'balanced'
-											? $LL.export.balanced()
-											: $LL.export.lowCpu()}
+								{@const label = id === 'balanced' ? $LL.export.balanced() : $LL.export.lowCpu()}
 								{@const desc =
-									id === 'fastest'
-										? $LL.export.fastestDescription()
-										: id === 'balanced'
-											? $LL.export.balancedDescription()
-											: $LL.export.lowCpuDescription()}
+									id === 'balanced'
+										? $LL.export.balancedDescription()
+										: $LL.export.lowCpuDescription()}
 								<button
 									type="button"
 									class="rounded-xl border p-3 text-left transition-colors"

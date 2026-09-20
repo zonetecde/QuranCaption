@@ -8,6 +8,8 @@ const editor = {
 	transcriptPlaceholder: 'Type what the speaker says...',
 	insertVerse: 'Insert verse',
 	insertQuotation: 'Insert quotation',
+	convertToQuotation: 'Convert to quotation',
+	convertQuotationToText: 'Convert to normal text',
 	selectQuranPassage: 'Select a Quran passage',
 	speaker: 'Speaker',
 	selectSpeaker: 'Select or enter a speaker',

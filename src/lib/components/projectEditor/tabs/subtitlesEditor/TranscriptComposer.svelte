@@ -1,5 +1,9 @@
 <script lang="ts">
 	import { SubtitleClip } from '$lib/classes';
+	import {
+		normalizeTranscriptWordTimings,
+		type TranscriptAlignmentMetadata
+	} from '$lib/classes/Clip.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { scheduleWbwRealign } from '$lib/services/AutoSegmentation';
@@ -12,12 +16,16 @@
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 	import StructuredTranscriptEditor from './transcriptComposer/StructuredTranscriptEditor.svelte';
+	import TranscriptBand from './TranscriptBand.svelte';
+	import type { TranscriptBandSelection } from '$lib/services/TranscriptBandService';
 	import ShortcutService from '$lib/services/ShortcutService';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	// État d'orchestration du segment actif; le brouillon structuré appartient au composant enfant.
 	let transcriptText = $state('');
 	let loadedEditId: number | null = $state(null);
+	let selectedTranscriptSelection = $state<TranscriptBandSelection | null>(null);
+	let transcriptBandSelectionResetKey = $state(0);
 
 	const editorState = $derived(() => globalState.getSubtitlesEditorState);
 	const editedTranscript = $derived(() => {
@@ -37,6 +45,7 @@
 		const clip = editedTranscript();
 		if (clip && clip.id !== loadedEditId) {
 			loadedEditId = clip.id;
+			selectedTranscriptSelection = null;
 			transcriptText = clip.text;
 			editorState().selectedSpeaker = clip.speaker;
 			return;
@@ -44,8 +53,16 @@
 
 		if (!clip && loadedEditId !== null) {
 			loadedEditId = null;
+			selectedTranscriptSelection = null;
 			transcriptText = '';
 		}
+	});
+
+	$effect(() => {
+		const selection = selectedTranscriptSelection;
+		if (!selection || transcriptText === selection.text) return;
+		selectedTranscriptSelection = null;
+		transcriptBandSelectionResetKey += 1;
 	});
 
 	function selectSpeaker(value: string): void {
@@ -61,8 +78,64 @@
 	function cancelEditing(): void {
 		editorState().editSubtitle = null;
 		editorState().pendingSplitEditNextId = null;
+		selectedTranscriptSelection = null;
+		transcriptBandSelectionResetKey += 1;
 		loadedEditId = null;
 		transcriptText = '';
+	}
+
+	/**
+	 * Remplace le brouillon structuré par la plage choisie dans la bande transcript.
+	 *
+	 * @param {TranscriptBandSelection} selection Plage de mots sélectionnée.
+	 * @returns {void}
+	 */
+	function handleTranscriptBandSelection(selection: TranscriptBandSelection): void {
+		if (!editedTranscript() || !selection.text) return;
+		selectedTranscriptSelection = selection;
+		transcriptText = selection.text;
+	}
+
+	/**
+	 * Construit les timestamps WBW correspondant à une sélection de la bande.
+	 *
+	 * @param {SubtitleClip} clip Sous-titre en cours d'édition.
+	 * @param {TranscriptBandSelection | null} selection Sélection issue de la bande.
+	 * @param {string} text Texte structuré sélectionné.
+	 * @returns {TranscriptAlignmentMetadata | null} Métadonnées conservées ou `null`.
+	 */
+	function buildSelectionAlignmentMetadata(
+		clip: SubtitleClip,
+		selection: TranscriptBandSelection | null,
+		text: string
+	): TranscriptAlignmentMetadata | null {
+		if (!selection) return null;
+		const selectedWords = selection.words;
+		if (selectedWords.length === 0) return null;
+
+		const durationS = Math.max(0, (clip.endTime - clip.startTime) / 1000);
+		const words = normalizeTranscriptWordTimings(
+			selectedWords.map((word) => ({
+				...(word.location ? { location: word.location } : {}),
+				...(typeof word.confidence === 'number' ? { confidence: word.confidence } : {}),
+				word: word.text,
+				start: Math.max(0, Math.min(durationS, (word.startMs - clip.startTime) / 1000)),
+				end: Math.max(0, Math.min(durationS, (word.endMs - clip.startTime) / 1000))
+			})),
+			durationS
+		);
+
+		return {
+			source: 'manual',
+			segment: clip.alignmentMetadata?.segment,
+			refFrom: clip.alignmentMetadata?.refFrom,
+			refTo: clip.alignmentMetadata?.refTo,
+			matchedText: text,
+			specialType: clip.alignmentMetadata?.specialType,
+			timeFrom: clip.startTime / 1000,
+			timeTo: clip.endTime / 1000,
+			words
+		};
 	}
 
 	/**
@@ -103,19 +176,44 @@
 
 		const clip = editedTranscript();
 		const textChanged = clip?.text !== normalizedText;
-		const success = clip
-			? globalState.getSubtitleTrack.editTranscript(clip, normalizedText, normalizedSpeaker)
-			: globalState.getSubtitleTrack.addTranscript(normalizedText, normalizedSpeaker);
+		const selectionAlignment = clip
+			? buildSelectionAlignmentMetadata(clip, selectedTranscriptSelection, normalizedText)
+			: null;
+		/**
+		 * Applique la modification et rattache les timestamps issus de la bande si nécessaire.
+		 *
+		 * @returns {boolean} `true` si la modification a réussi.
+		 */
+		const editTranscript = (): boolean => {
+			if (!clip)
+				return globalState.getSubtitleTrack.addTranscript(normalizedText, normalizedSpeaker);
+
+			const success = globalState.getSubtitleTrack.editTranscript(
+				clip,
+				normalizedText,
+				normalizedSpeaker
+			);
+			if (success && selectionAlignment) {
+				clip.alignmentMetadata = selectionAlignment;
+				clip.wbwTimestampsManuallyEdited = true;
+			}
+			return success;
+		};
+		const success = selectionAlignment
+			? ProjectHistoryManager.track('edit transcript from transcript band', editTranscript)
+			: editTranscript();
 
 		if (!success) return;
 
 		globalState.currentProject!.detail.updateVideoDetailAttributes();
 		globalState.updateVideoPreviewUI();
 		toast.success(clip ? get(LL).editor.transcriptUpdated() : get(LL).editor.transcriptAdded());
-		if (clip && textChanged) scheduleWbwRealign([clip], { reason: 'text' });
+		if (clip && textChanged && !selectionAlignment) scheduleWbwRealign([clip], { reason: 'text' });
 
 		editorState().editSubtitle = null;
 		editorState().pendingSplitEditNextId = null;
+		selectedTranscriptSelection = null;
+		transcriptBandSelectionResetKey += 1;
 		loadedEditId = null;
 		transcriptText = '';
 		editorState().selectedSpeaker = normalizedSpeaker;
@@ -128,6 +226,26 @@
 		if (event.key === 'Escape' && editedTranscript()) {
 			event.preventDefault();
 			cancelEditing();
+			return;
+		}
+
+		const isTypingTarget =
+			event.target instanceof HTMLInputElement ||
+			event.target instanceof HTMLTextAreaElement ||
+			event.target instanceof HTMLSelectElement ||
+			(event.target instanceof HTMLElement && event.target.isContentEditable);
+		if (
+			event.key.toLowerCase() === 's' &&
+			editedTranscript() &&
+			!event.ctrlKey &&
+			!event.metaKey &&
+			!event.altKey &&
+			!event.shiftKey &&
+			!isTypingTarget
+		) {
+			event.preventDefault();
+			event.stopPropagation();
+			replaceEditedSubtitleWithSilence();
 			return;
 		}
 
@@ -190,16 +308,54 @@
 		globalState.getVideoPreviewState.setTemporaryPlaybackSpeed(false);
 	}
 
+	/**
+	 * Remplace le sous-titre en cours par un silence et valide l'édition.
+	 *
+	 * @returns {void}
+	 */
+	function replaceEditedSubtitleWithSilence(): void {
+		const clip = editedTranscript();
+		if (!clip) return;
+
+		ProjectHistoryManager.track('replace subtitle with silence', () => {
+			globalState.getSubtitleTrack.editSubtitleToSpecial(clip, 'Silence');
+		});
+		globalState.currentProject!.detail.updateVideoDetailAttributes();
+		globalState.updateVideoPreviewUI();
+		toast.success(get(LL).editor.subtitleUpdated());
+		cancelEditing();
+	}
+
+	/**
+	 * Quitte l'édition avant que les champs internes ne puissent intercepter Échap.
+	 *
+	 * @param {KeyboardEvent} event Événement clavier reçu en phase de capture.
+	 * @returns {void}
+	 */
+	function handleComposerEscape(event: KeyboardEvent): void {
+		if (event.key !== 'Escape' || event.defaultPrevented || !editedTranscript()) return;
+
+		event.preventDefault();
+		event.stopPropagation();
+		cancelEditing();
+	}
+
 	onMount(() => {
 		const shortcut = globalState.settings?.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE;
-		if (!shortcut) return;
+		window.addEventListener('keydown', handleComposerEscape, true);
+		if (!shortcut) {
+			return () => window.removeEventListener('keydown', handleComposerEscape, true);
+		}
 
 		ShortcutService.registerShortcut({
 			key: shortcut,
 			onKeyDown: handleEditSubtitleShortcut
 		});
 
-		return () => ShortcutService.unregisterShortcut(shortcut);
+		return () => {
+			window.removeEventListener('keydown', handleComposerEscape, true);
+			ShortcutService.unregisterShortcut(shortcut);
+		};
 	});
 
 	onDestroy(() => {
@@ -259,4 +415,10 @@
 			onSubmit={submitTranscript}
 		/>
 	{/key}
+
+	<TranscriptBand
+		editedClipId={editedTranscript()?.id ?? null}
+		selectionResetKey={transcriptBandSelectionResetKey}
+		onSelectRange={handleTranscriptBandSelection}
+	/>
 </div>

@@ -362,6 +362,8 @@ export class SubtitlesEditorState extends SerializableBase {
 
 	// Nettoyage IA interrompu, conservé avec le projet pour pouvoir le reprendre.
 	aiTranscriptCleanup: AITranscriptCleanupState | null = $state(null);
+	// Dernier résultat nettoyé conservé pour la bande transcript complète.
+	rawTranscription: AITranscriptionResult | null = $state(null);
 
 	// Segment de transcription actuellement sélectionné pour édition.
 	editSubtitle: SubtitleClip | PredefinedSubtitleClip | ClipWithTranslation | SilenceClip | null =

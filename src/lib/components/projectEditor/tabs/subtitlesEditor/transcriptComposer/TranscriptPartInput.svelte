@@ -9,6 +9,9 @@
 		compactWhenEmpty?: boolean;
 		placeholder?: string;
 		inputStyle: string;
+		blockStyle?: string;
+		convertLabel?: string;
+		onConvert?: () => void;
 		onInput: (value: string) => void;
 		onKeydown: (event: KeyboardEvent) => void;
 	};
@@ -28,25 +31,49 @@
 		compactWhenEmpty = false,
 		placeholder,
 		inputStyle,
+		blockStyle,
+		convertLabel,
+		onConvert,
 		onInput,
 		onKeydown
 	}: Props = $props();
 </script>
 
-<textarea
-	{id}
-	bind:this={element}
-	{value}
-	dir="auto"
-	rows="1"
-	style={inputStyle}
-	class={`${INPUT_BASE_CLASS} ${INPUT_VARIANT_CLASSES[variant]}`}
-	class:transcript-empty-slot={variant === 'free' && compactWhenEmpty}
-	class:transcript-empty={variant === 'quotation' && !value}
-	{placeholder}
-	oninput={(event) => onInput(event.currentTarget.value)}
-	onkeydown={onKeydown}
-></textarea>
+{#snippet textArea()}
+	<textarea
+		{id}
+		bind:this={element}
+		{value}
+		dir="auto"
+		rows="1"
+		style={inputStyle}
+		class={`${INPUT_BASE_CLASS} ${INPUT_VARIANT_CLASSES[variant]}`}
+		class:transcript-empty-slot={variant === 'free' && compactWhenEmpty}
+		class:transcript-empty={variant === 'quotation' && !value}
+		{placeholder}
+		oninput={(event) => onInput(event.currentTarget.value)}
+		onkeydown={onKeydown}
+	></textarea>
+{/snippet}
+
+{#if onConvert}
+	<div class="group/transcript-block relative w-fit max-w-full shrink-0" style={blockStyle}>
+		{@render textArea()}
+		{#if value.trim()}
+			<button
+				type="button"
+				class="pointer-events-none absolute left-0 top-full z-20 flex h-5 w-full cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-b-md border border-amber-500/35 bg-amber-500/90 px-2 text-[10px] font-semibold text-black opacity-0 transition hover:bg-amber-400 group-hover/transcript-block:pointer-events-auto group-hover/transcript-block:opacity-100"
+				onclick={onConvert}
+				aria-label={convertLabel}
+			>
+				<span class="material-icons-outlined text-xs">format_quote</span>
+				{convertLabel}
+			</button>
+		{/if}
+	</div>
+{:else}
+	{@render textArea()}
+{/if}
 
 <style>
 	.transcript-part-input {

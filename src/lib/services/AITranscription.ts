@@ -366,6 +366,7 @@ export function applyAITranscription(
 
 	ProjectHistoryManager.begin('apply AI transcription');
 	try {
+		globalState.getSubtitlesEditorState.rawTranscription = result;
 		const replacedIds = new Set(replaceClipIds);
 		const preservedClips =
 			replacedIds.size > 0

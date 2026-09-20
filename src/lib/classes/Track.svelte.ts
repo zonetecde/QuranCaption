@@ -47,6 +47,7 @@ export type VisualMergeGroup = {
 
 type SubtitleSplitOptions = {
 	forceExactCursor?: boolean;
+	duplicateText?: boolean;
 };
 
 type WordBoundarySplitCandidate = {
@@ -1465,7 +1466,7 @@ export class SubtitleTrack extends Track {
 				this.unmergeVisualGroup(clip.visualMergeGroupId, false);
 			}
 
-			if (clip instanceof SubtitleClip) {
+			if (clip instanceof SubtitleClip && !options.duplicateText) {
 				const wordBoundaryCandidate = options.forceExactCursor
 					? null
 					: this.getNearestWordBoundarySplitCandidate(clip, splitTime);

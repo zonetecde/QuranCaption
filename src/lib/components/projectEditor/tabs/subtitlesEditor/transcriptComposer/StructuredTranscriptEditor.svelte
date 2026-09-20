@@ -26,6 +26,8 @@
 	type TranscriptionCopy = {
 		insertVerse: () => string;
 		insertQuotation: () => string;
+		convertToQuotation: () => string;
+		convertQuotationToText: () => string;
 		selectQuranPassage: () => string;
 		decreaseTranscriptTextSize: () => string;
 		increaseTranscriptTextSize: () => string;
@@ -154,6 +156,44 @@
 	 */
 	function updateQuotation(index: number, nextValue: string): void {
 		transcriptDraft.anchors[index].value = nextValue;
+		syncTranscriptText();
+	}
+
+	/**
+	 * Convertit une zone de texte libre entière en citation au même emplacement.
+	 * @param {number} index Index de la zone libre.
+	 * @returns {void}
+	 */
+	function convertTextToQuotation(index: number): void {
+		const text = transcriptDraft.freeTexts[index] ?? '';
+		if (!text.trim()) return;
+		transcriptDraft.freeTexts[index] = '';
+		transcriptDraft.freeTexts.splice(index + 1, 0, '');
+		transcriptDraft.anchors.splice(index, 0, {
+			id: `transcript-${nextAnchorId++}`,
+			index,
+			type: 'citation',
+			sourceValue: text,
+			value: text,
+			quranReference: null
+		});
+		syncTranscriptText();
+	}
+
+	/**
+	 * Convertit une citation en texte libre sans perdre les textes voisins.
+	 * @param {number} index Index de l'ancre de citation.
+	 * @returns {void}
+	 */
+	function convertQuotationToText(index: number): void {
+		const anchor = transcriptDraft.anchors[index];
+		if (anchor?.type !== 'citation') return;
+		transcriptDraft.freeTexts[index] =
+			(transcriptDraft.freeTexts[index] ?? '') +
+			anchor.value +
+			(transcriptDraft.freeTexts[index + 1] ?? '');
+		transcriptDraft.freeTexts.splice(index + 1, 1);
+		transcriptDraft.anchors.splice(index, 1);
 		syncTranscriptText();
 	}
 
@@ -399,6 +439,9 @@
 						value={transcriptDraft.freeTexts[anchorIndex]}
 						compactWhenEmpty={!transcriptDraft.freeTexts[anchorIndex]}
 						inputStyle={transcriptInputStyle}
+						blockStyle={transcriptBlockStyle}
+						convertLabel={copy.convertToQuotation()}
+						onConvert={() => convertTextToQuotation(anchorIndex)}
 						onInput={(nextValue) => updateFreeText(anchorIndex, nextValue)}
 						onKeydown={handleTranscriptKeydown}
 					/>
@@ -411,6 +454,8 @@
 						fontStyle={transcriptFontStyle}
 						onOpenQuran={openVerseSelector}
 						onUpdateQuotation={updateQuotation}
+						convertQuotationToTextLabel={copy.convertQuotationToText()}
+						onConvertQuotationToText={convertQuotationToText}
 						onRemove={removeAnchor}
 						onKeydown={handleTranscriptKeydown}
 					/>
@@ -426,6 +471,9 @@
 						? $LL.editor.transcriptPlaceholder()
 						: ''}
 					inputStyle={transcriptInputStyle}
+					blockStyle={transcriptBlockStyle}
+					convertLabel={copy.convertToQuotation()}
+					onConvert={() => convertTextToQuotation(transcriptDraft.anchors.length)}
 					onInput={(nextValue) => updateFreeText(transcriptDraft.anchors.length, nextValue)}
 					onKeydown={handleTranscriptKeydown}
 				/>

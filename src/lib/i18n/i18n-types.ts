@@ -1140,6 +1140,14 @@ type RootTranslation = {
 		 */
 		insertQuotation: string;
 		/**
+		 * C​o​n​v​e​r​t​ ​t​o​ ​q​u​o​t​a​t​i​o​n
+		 */
+		convertToQuotation: string;
+		/**
+		 * C​o​n​v​e​r​t​ ​t​o​ ​n​o​r​m​a​l​ ​t​e​x​t
+		 */
+		convertQuotationToText: string;
+		/**
 		 * S​e​l​e​c​t​ ​a​ ​Q​u​r​a​n​ ​p​a​s​s​a​g​e
 		 */
 		selectQuranPassage: string;
@@ -11506,6 +11514,14 @@ export type TranslationFunctions = {
 		 * Insert quotation
 		 */
 		insertQuotation: () => LocalizedString;
+		/**
+		 * Convert to quotation
+		 */
+		convertToQuotation: () => LocalizedString;
+		/**
+		 * Convert to normal text
+		 */
+		convertQuotationToText: () => LocalizedString;
 		/**
 		 * Select a Quran passage
 		 */

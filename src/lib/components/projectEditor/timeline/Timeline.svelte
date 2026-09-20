@@ -145,7 +145,7 @@
 		currentProject.detail.updateVideoDetailAttributes();
 	}
 
-	async function handleSplitSubtitle(forceExactCursor: boolean): Promise<void> {
+	async function handleSplitSubtitle(duplicateText = false): Promise<void> {
 		const currentProject = globalState.currentProject;
 		if (!currentProject) return;
 
@@ -177,7 +177,8 @@
 		) {
 			const subtitleTrack = globalState.getSubtitleTrack;
 			const success = await subtitleTrack.splitSubtitle(clipToSplit.id, {
-				forceExactCursor
+				forceExactCursor: true,
+				duplicateText
 			});
 			if (success) {
 				currentProject.detail.updateVideoDetailAttributes();

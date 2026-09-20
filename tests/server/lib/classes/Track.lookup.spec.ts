@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { AssetClip, Clip, SilenceClip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { TrackType } from '$lib/classes/enums';
-import { SubtitleTrack, Track } from '$lib/classes/Track.svelte';
+import { splitTranscriptTextAtWordBoundary, SubtitleTrack, Track } from '$lib/classes/Track.svelte';
 
 let nextClipId = 1;
 
@@ -42,6 +42,20 @@ function createSubtitle(startTime: number, endTime: number, verse: number): Subt
 }
 
 describe('Track lookup helpers', () => {
+	it('preserves Quran markers when splitting aligned transcript text', async () => {
+		expect(await splitTranscriptTextAtWordBoundary('{{2:153:2-4}}', 1, 3)).toEqual([
+			'{{2:153:2-2}}',
+			'{{2:153:3-4}}'
+		]);
+	});
+
+	it('splits a full Quran marker into explicit ranges', async () => {
+		expect(await splitTranscriptTextAtWordBoundary('{{2:153}}', 2, 5)).toEqual([
+			'{{2:153:1-2}}',
+			'{{2:153:3-5}}'
+		]);
+	});
+
 	it('preserves the source offset of trimmed asset clips', () => {
 		const clip = new AssetClip(500, 1500, 42);
 		clip.sourceStartTime = 750;

@@ -39,6 +39,8 @@
 		getWordByWordWordCss,
 		interpolateCssColor
 	} from './wordByWordHighlightUtils';
+	import SubtitleResizeHandles from './SubtitleResizeHandles.svelte';
+	import SubtitleStyleContextMenu from './SubtitleStyleContextMenu.svelte';
 
 	/**
 	 * Propriétés reçues du composant parent VideoOverlay.
@@ -70,6 +72,7 @@
 		helperStyles,
 		isExportCapturePreview
 	}: TranslationSubtitleProps = $props();
+	let styleContextMenu: SubtitleStyleContextMenu | undefined = $state();
 
 	type TranslationWbwOverlaySegment = OverlayTextSegment & {
 		wbwWordIndex?: number;
@@ -420,7 +423,7 @@
 			wbwIndexByArabicWord.set(arabicWordIndex, wbwWordIndex);
 			words.push({
 				...timing,
-				location: timing.word,
+				location: timing.location ?? timing.word ?? '',
 				start: timing.start + timingOffsetS,
 				end: timing.end + timingOffsetS
 			});
@@ -925,6 +928,7 @@
 		const subtitle = currentSubtitle();
 		if (subtitle) globalState.openQuickTimelineEditor(subtitle.id, 'translation');
 	}}
+	oncontextmenu={(event) => void styleContextMenu?.show(event)}
 	use:mouseDrag={{
 		target: edition,
 		verticalStyleId: 'vertical-position',
@@ -933,6 +937,10 @@
 	class={`translation absolute subtitle select-none z-10 ${edition} ${tailwind} ${helperStyles}`}
 	style={`opacity: ${wbwState().enabled ? 1 : subtitleOpacity}; ${css}; ${runtimeLayoutCss}; ${backgroundHorizontalPaddingCss} white-space: pre-line;`}
 >
+	{#if !isExportCapturePreview}
+		<SubtitleResizeHandles target={edition} />
+		<SubtitleStyleContextMenu bind:this={styleContextMenu} target={edition} />
+	{/if}
 	<span class="translation-inline-flow line-background">
 		{#if true}
 			{@const state = wbwState()}

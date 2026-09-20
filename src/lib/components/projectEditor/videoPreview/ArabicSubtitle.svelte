@@ -42,6 +42,8 @@
 		getBackgroundHorizontalPaddingCss,
 		getExportCaptureLayoutCss
 	} from './helpers/overlayCss';
+	import SubtitleResizeHandles from './SubtitleResizeHandles.svelte';
+	import SubtitleStyleContextMenu from './SubtitleStyleContextMenu.svelte';
 
 	/**
 	 * Propriétés reçues du composant parent VideoOverlay.
@@ -71,6 +73,7 @@
 		helperStyles,
 		isExportCapturePreview
 	}: ArabicSubtitleProps = $props();
+	let styleContextMenu: SubtitleStyleContextMenu | undefined = $state();
 
 	// =========================================================================
 	// Dérivations réactives depuis globalState
@@ -921,6 +924,7 @@
 			const subtitle = currentSubtitle();
 			if (subtitle) globalState.openQuickTimelineEditor(subtitle.id, 'subtitle');
 		}}
+		oncontextmenu={(event) => void styleContextMenu?.show(event)}
 		use:mouseDrag={{
 			target: 'arabic',
 			verticalStyleId: 'vertical-position',
@@ -932,6 +936,10 @@
 			? 1
 			: subtitleOpacity}; {css}; {runtimeLayoutCss}; {backgroundHorizontalPaddingCss} white-space: pre-line; {exportCaptureLayoutCss()}"
 	>
+		{#if !isExportCapturePreview}
+			<SubtitleResizeHandles target="arabic" />
+			<SubtitleStyleContextMenu bind:this={styleContextMenu} target="arabic" />
+		{/if}
 		{#if currentSubtitle() instanceof SubtitleClip || currentSubtitle() instanceof PredefinedSubtitleClip}
 			{@const subtitle = currentSubtitle()}
 			{@const segments = arabicSegments()}

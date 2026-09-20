@@ -73,6 +73,28 @@ export class ProjectContent extends SerializableBase {
 		});
 	}
 
+	/**
+	 * Ajoute un asset sans afficher de notification ni déclencher d'effet d'interface.
+	 * @param {string} filePath Chemin local du fichier.
+	 * @param {string | undefined} sourceUrl URL source optionnelle.
+	 * @param {SourceType} sourceType Origine de l'asset.
+	 * @param {UnknownRecord} metadata Métadonnées associées.
+	 * @returns {Asset | undefined} Asset créé, ou `undefined` si le format est inconnu.
+	 */
+	addAssetHeadless(
+		filePath: string,
+		sourceUrl?: string,
+		sourceType: SourceType = SourceType.Local,
+		metadata: UnknownRecord = {}
+	): Asset | undefined {
+		return ProjectHistoryManager.track('add asset', () => {
+			const asset = new Asset(filePath, sourceUrl, sourceType, metadata);
+			if (asset.type === AssetType.Unknown) return undefined;
+			this.assets.unshift(asset);
+			return asset;
+		});
+	}
+
 	removeAsset(asset: Asset): void {
 		ProjectHistoryManager.track('remove asset', () => {
 			const index = this.assets.indexOf(asset);

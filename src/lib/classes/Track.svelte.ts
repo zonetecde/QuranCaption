@@ -26,6 +26,8 @@ import type { Category } from './VideoStyle.svelte.js';
 import { open } from '@tauri-apps/plugin-dialog';
 import { resolveCurrentSurahFromClips } from '$lib/services/ExportCaptureTiming';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import { Quran, type Verse } from './Quran.js';
+import { getTranscriptReferenceLogicalParts } from '$lib/services/TranscriptReferenceService';
 
 export type VisualMergeSelection = {
 	clips: SubtitleClip[];
@@ -51,6 +53,106 @@ type WordBoundarySplitCandidate = {
 	leftEndWordIndex: number;
 	splitTimeMs: number;
 };
+
+/**
+ * Recompose un texte de transcription marque apres une coupe entre deux mots.
+ *
+ * @param {string} text Texte source contenant des marqueurs Quran ou citation.
+ * @param {number} leftWordCount Nombre de mots conserves dans la partie gauche.
+ * @param {number} totalWordCount Nombre total de mots alignes du clip.
+ * @returns {Promise<[string, string] | null>} Textes gauche et droit, ou `null` si le decoupage ne peut pas etre resolu.
+ */
+export async function splitTranscriptTextAtWordBoundary(
+	text: string,
+	leftWordCount: number,
+	totalWordCount: number
+): Promise<[string, string] | null> {
+	const logicalParts = getTranscriptReferenceLogicalParts(text);
+	if (
+		!logicalParts ||
+		leftWordCount <= 0 ||
+		leftWordCount >= totalWordCount ||
+		totalWordCount <= 1
+	) {
+		return null;
+	}
+
+	const counts = logicalParts.map((part) => part.wordCount);
+	const unknownIndexes = counts.flatMap((count, index) => (count === null ? [index] : []));
+	const knownCount = counts.reduce<number>((sum, count) => sum + (count ?? 0), 0);
+
+	if (unknownIndexes.length === 1) {
+		const inferredCount = totalWordCount - knownCount;
+		if (inferredCount < 0) return null;
+		counts[unknownIndexes[0]] = inferredCount;
+	} else if (unknownIndexes.length > 1) {
+		try {
+			await Quran.load();
+			for (const index of unknownIndexes) {
+				const reference = logicalParts[index].quranReference;
+				if (!reference) return null;
+				const verse = await Quran.getVerse(reference.surah, reference.verse);
+				if (!verse) return null;
+				counts[index] = verse.words.length;
+			}
+		} catch {
+			return null;
+		}
+	}
+
+	const resolvedCounts = counts.map((count) => count ?? -1);
+	if (resolvedCounts.some((count) => count < 0)) return null;
+	if (resolvedCounts.reduce((sum, count) => sum + count, 0) !== totalWordCount) return null;
+
+	const leftParts: string[] = [];
+	const rightParts: string[] = [];
+	let wordCursor = 0;
+	for (const [index, part] of logicalParts.entries()) {
+		const wordCount = resolvedCounts[index];
+		if (wordCount === 0) continue;
+
+		const leftCount = Math.max(0, Math.min(wordCount, leftWordCount - wordCursor));
+		const rightCount = wordCount - leftCount;
+		const words = part.text.trim().split(/\s+/).filter(Boolean);
+
+		/**
+		 * Ajoute la portion d'un marqueur qui appartient a un cote du split.
+		 * @param {string[]} target Tableau de sortie a completer.
+		 * @param {number} start Index local de debut.
+		 * @param {number} count Nombre de mots a ajouter.
+		 * @returns {boolean} `true` si la portion a ete reconstruite.
+		 */
+		const appendSlice = (target: string[], start: number, count: number): boolean => {
+			if (count === 0) return true;
+			if (part.referenceType === 'quran') {
+				const reference = part.quranReference;
+				if (!reference) return false;
+				if (count === wordCount) {
+					target.push(`{{${part.text}}}`);
+					return true;
+				}
+				const referenceStart = reference.startWord ?? 1;
+				const rangeStart = referenceStart + start;
+				const rangeEnd = rangeStart + count - 1;
+				target.push(`{{${reference.surah}:${reference.verse}:${rangeStart}-${rangeEnd}}}`);
+				return true;
+			}
+
+			if (words.length !== wordCount) return false;
+			const slice = words.slice(start, start + count).join(' ');
+			target.push(part.referenceType === 'citation' ? `{{${slice}}}` : slice);
+			return true;
+		};
+
+		if (!appendSlice(leftParts, 0, leftCount)) return null;
+		if (!appendSlice(rightParts, leftCount, rightCount)) return null;
+		wordCursor += wordCount;
+	}
+
+	const leftText = leftParts.join(' ').trim();
+	const rightText = rightParts.join(' ').trim();
+	return leftText && rightText ? [leftText, rightText] : null;
+}
 
 const trackClipIndexCache = new WeakMap<Track, Map<number, number>>();
 
@@ -551,6 +653,8 @@ export class Track extends SerializableBase {
 	}
 }
 
+export const DEFAULT_IMAGE_CLIP_DURATION_MS = 10_000;
+
 export class AssetTrack extends Track {
 	volumePercent: number = $state(100);
 
@@ -558,7 +662,8 @@ export class AssetTrack extends Track {
 		super(type);
 	}
 
-	addAsset(asset: Asset): boolean {
+	/** Ajoute un asset à la piste, avec une durée de dix secondes pour les images de timeline. */
+	addAsset(asset: Asset, imageAsFullBackground: boolean = true): boolean {
 		ProjectHistoryManager.begin('add asset clip');
 		try {
 			// Récupère le dernier clip de la piste, s'il existe
@@ -574,14 +679,14 @@ export class AssetTrack extends Track {
 					return false;
 				}
 
-				// S'il y a un dernier clip alors qu'on essaie de mettre une image dans la timeline (= mettre une image en
-				// tant que background pour la vidéo), alors on informe l'utilisateur que ce n'est pas possible.
-				if (asset.type === AssetType.Image) {
-					ModalManager.errorModal(
-						get(LL).editor.backgroundImageError(),
-						get(LL).editor.cannotAddBackgroundImage()
-					);
-					return false;
+				if (
+					this.type === TrackType.Video &&
+					this.clips.length === 1 &&
+					lastClip instanceof AssetClip &&
+					lastClip.endTime === 0
+				) {
+					lastClip.endTime = DEFAULT_IMAGE_CLIP_DURATION_MS;
+					lastClip.duration = DEFAULT_IMAGE_CLIP_DURATION_MS;
 				}
 
 				if (this.type === TrackType.Audio && this.clips.length === 2) {
@@ -591,8 +696,16 @@ export class AssetTrack extends Track {
 
 				const startTime =
 					this.type === TrackType.Audio ? this.getDuration().ms + 1 : lastClip.endTime + 1;
-				this.clips.push(new AssetClip(startTime, startTime + asset.duration.ms, asset.id));
-			} else this.clips.push(new AssetClip(0, asset.duration.ms, asset.id));
+				const duration =
+					asset.type === AssetType.Image ? DEFAULT_IMAGE_CLIP_DURATION_MS : asset.duration.ms;
+				this.clips.push(new AssetClip(startTime, startTime + duration, asset.id));
+			} else {
+				const duration =
+					asset.type === AssetType.Image && !imageAsFullBackground
+						? DEFAULT_IMAGE_CLIP_DURATION_MS
+						: asset.duration.ms;
+				this.clips.push(new AssetClip(0, duration, asset.id));
+			}
 
 			// Trigger la réactivité dans la videopreview pour afficher le clip ajouté (si le curseur est dessus)
 			setTimeout(() => {
@@ -612,6 +725,159 @@ export class AssetTrack extends Track {
 export class SubtitleTrack extends Track {
 	constructor() {
 		super(TrackType.Subtitle);
+	}
+
+	/**
+	 * Calcule les métadonnées nécessaires à un segment Qur'an.
+	 * @param {Verse} verse Verset source.
+	 * @param {number} firstWordIndex Premier mot inclus.
+	 * @param {number} lastWordIndex Dernier mot inclus.
+	 * @param {number} _surah Numéro de sourate conservé pour compatibilité.
+	 * @returns {Promise<{isFullVerse: boolean; isLastWordsOfVerse: boolean; translations: Record<string, Translation>}>} Métadonnées du segment.
+	 */
+	async getSubtitlesProperties(
+		verse: Verse,
+		firstWordIndex: number,
+		lastWordIndex: number,
+		_surah: number
+	): Promise<{
+		isFullVerse: boolean;
+		isLastWordsOfVerse: boolean;
+		translations: { [key: string]: Translation };
+	}> {
+		const isFullVerse = verse.words.length === lastWordIndex - firstWordIndex + 1;
+		const isLastWordsOfVerse = verse.words.length - lastWordIndex - 1 === 0;
+		const text = verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex);
+		const translations = globalState.currentProject
+			? globalState.getProjectTranslation.createTranslationsForSubtitleText(text)
+			: {};
+		return { isFullVerse, isLastWordsOfVerse, translations };
+	}
+
+	/**
+	 * Ajoute un segment Qur'an à la fin de la piste.
+	 * @param {Verse} verse Verset source.
+	 * @param {number} firstWordIndex Premier mot inclus.
+	 * @param {number} lastWordIndex Dernier mot inclus.
+	 * @param {number} surah Numéro de sourate.
+	 * @returns {Promise<boolean>} `true` si le segment a été ajouté.
+	 */
+	async addSubtitle(
+		verse: Verse,
+		firstWordIndex: number,
+		lastWordIndex: number,
+		surah: number
+	): Promise<boolean> {
+		ProjectHistoryManager.begin('add subtitle');
+		try {
+			const startTime = this.getDuration().ms + 1;
+			const endTime = globalState.currentProject?.projectEditorState.timeline.cursorPosition ?? -1;
+			if (endTime < startTime) {
+				toast.error(get(LL).editor.endTimeMustBeGreater());
+				return false;
+			}
+
+			const properties = await this.getSubtitlesProperties(
+				verse,
+				firstWordIndex,
+				lastWordIndex,
+				surah
+			);
+			this.clips.push(
+				new SubtitleClip(
+					startTime,
+					endTime,
+					surah,
+					verse.id,
+					firstWordIndex,
+					lastWordIndex,
+					verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex),
+					verse.getWordByWordTranslationBetweenTwoIndexes(firstWordIndex, lastWordIndex),
+					properties.isFullVerse,
+					properties.isLastWordsOfVerse,
+					properties.translations,
+					verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex, 'indopak')
+				)
+			);
+			return true;
+		} finally {
+			ProjectHistoryManager.commit();
+		}
+	}
+
+	/**
+	 * Modifie un segment Qur'an existant ou remplace un clip non-Qur'an.
+	 * @param {SubtitleClip | PredefinedSubtitleClip | SilenceClip | ClipWithTranslation | null} subtitle Clip à modifier.
+	 * @param {Verse} verse Nouveau verset source.
+	 * @param {number} firstWordIndex Premier mot inclus.
+	 * @param {number} lastWordIndex Dernier mot inclus.
+	 * @param {number} surah Numéro de sourate.
+	 * @returns {Promise<void>} Promesse terminée après la modification.
+	 */
+	async editSubtitle(
+		subtitle: SubtitleClip | PredefinedSubtitleClip | SilenceClip | ClipWithTranslation | null,
+		verse: Verse,
+		firstWordIndex: number,
+		lastWordIndex: number,
+		surah: number
+	): Promise<void> {
+		if (!subtitle) return;
+		ProjectHistoryManager.begin('edit subtitle');
+		try {
+			if (subtitle instanceof SubtitleClip && subtitle.visualMergeGroupId) {
+				this.unmergeVisualGroup(subtitle.visualMergeGroupId, false);
+			}
+			const properties = await this.getSubtitlesProperties(
+				verse,
+				firstWordIndex,
+				lastWordIndex,
+				surah
+			);
+			if (!(subtitle instanceof SubtitleClip)) {
+				const replacement = new SubtitleClip(
+					subtitle.startTime,
+					subtitle.endTime,
+					surah,
+					verse.id,
+					firstWordIndex,
+					lastWordIndex,
+					verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex),
+					verse.getWordByWordTranslationBetweenTwoIndexes(firstWordIndex, lastWordIndex),
+					properties.isFullVerse,
+					properties.isLastWordsOfVerse,
+					properties.translations,
+					verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex, 'indopak')
+				);
+				if (subtitle instanceof ClipWithTranslation) {
+					replacement.associatedImagePath = subtitle.associatedImagePath;
+				}
+				const index = this.clips.findIndex((clip) => clip.id === subtitle.id);
+				if (index !== -1) this.clips[index] = replacement;
+				return;
+			}
+
+			subtitle.surah = surah;
+			subtitle.verse = verse.id;
+			subtitle.startWordIndex = firstWordIndex;
+			subtitle.endWordIndex = lastWordIndex;
+			subtitle.text = verse.getArabicTextBetweenTwoIndexes(firstWordIndex, lastWordIndex);
+			subtitle.indopakText = verse.getArabicTextBetweenTwoIndexes(
+				firstWordIndex,
+				lastWordIndex,
+				'indopak'
+			);
+			subtitle.wbwTranslation = verse.getWordByWordTranslationBetweenTwoIndexes(
+				firstWordIndex,
+				lastWordIndex
+			);
+			subtitle.isFullVerse = properties.isFullVerse;
+			subtitle.isLastWordsOfVerse = properties.isLastWordsOfVerse;
+			subtitle.translations = properties.translations;
+			subtitle.clearArabicInlineStyles();
+			subtitle.markAsManualEdit();
+		} finally {
+			ProjectHistoryManager.commit();
+		}
 	}
 
 	/**
@@ -741,15 +1007,24 @@ export class SubtitleTrack extends Track {
 		if (leftWords.length === 0 || rightWords.length === 0) return false;
 
 		const rightClip = clip.cloneWithTimes(splitTimeMs, originalEndTime);
+		const splitText = await splitTranscriptTextAtWordBoundary(
+			clip.text,
+			leftWords.length,
+			metadata.words.length
+		);
 		clip.setEndTimeSilently(splitTimeMs);
-		clip.text = leftWords
-			.map((word) => word.word)
-			.join(' ')
-			.trim();
-		rightClip.text = rightWords
-			.map((word) => word.word)
-			.join(' ')
-			.trim();
+		clip.text =
+			splitText?.[0] ??
+			leftWords
+				.map((word) => word.word)
+				.join(' ')
+				.trim();
+		rightClip.text =
+			splitText?.[1] ??
+			rightWords
+				.map((word) => word.word)
+				.join(' ')
+				.trim();
 		clip.clearArabicInlineStyles();
 		rightClip.clearArabicInlineStyles();
 		clip.alignmentMetadata = {
@@ -1588,9 +1863,9 @@ export class CustomTextTrack extends Track {
 			const element = this.clips[index] as CustomClip;
 			if (
 				element.getAlwaysShow() ||
-				element.getTimedOverlayRanges().some(
-					(range) => currentTime >= range.startTime && currentTime <= range.endTime
-				)
+				element
+					.getTimedOverlayRanges()
+					.some((range) => currentTime >= range.startTime && currentTime <= range.endTime)
 			) {
 				clips.push(element);
 			}

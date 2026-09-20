@@ -82,7 +82,7 @@ export type StockMediaSettings = {
 	pixabayApiKey: string;
 };
 
-export type PerformanceProfile = 'fastest' | 'balanced' | 'low_cpu';
+export type PerformanceProfile = 'balanced' | 'max_quality';
 
 export type IslamicTermTranslationMode = 'translated' | 'both' | 'transliterated';
 
@@ -337,7 +337,7 @@ export default class Settings extends SerializableBase {
 				description: 'Move selection to the previous word'
 			},
 			RESET_START_CURSOR: {
-				keys: [],
+				keys: [] as string[],
 				name: 'Reset Start Cursor',
 				description: 'Put the start cursor on the end cursor position'
 			},
@@ -420,27 +420,27 @@ export default class Settings extends SerializableBase {
 				name: "Add Isti'adhah"
 			},
 			ADD_AMIN: {
-				keys: [],
+				keys: [] as string[],
 				description: 'Add a subtitle with amin ("آمِين")',
 				name: 'Add Amin'
 			},
 			ADD_TAKBIR: {
-				keys: [],
+				keys: [] as string[],
 				description: 'Add a subtitle with takbir ("اللَّهُ أَكْبَر")',
 				name: 'Add Takbir'
 			},
 			ADD_TAHMEED: {
-				keys: [],
+				keys: [] as string[],
 				description: 'Add a subtitle with tahmeed ("سَمِعَ اللَّهُ لِمَنْ حَمِدَه")',
 				name: 'Add Tahmeed'
 			},
 			ADD_TASLEEM: {
-				keys: [],
+				keys: [] as string[],
 				description: 'Add a subtitle with tasleem ("ٱلسَّلَامُ عَلَيْكُمْ وَرَحْمَةُ ٱللَّه")',
 				name: 'Add Tasleem'
 			},
 			ADD_SADAQA: {
-				keys: [],
+				keys: [] as string[],
 				description: 'Add a subtitle with sadaqa ("صَدَقَ ٱللَّهُ ٱلْعَظِيم")',
 				name: 'Add Sadaqa'
 			}
@@ -467,12 +467,12 @@ export default class Settings extends SerializableBase {
 				description: 'Hold this shortcut while scrolling to move frame by frame'
 			},
 			FRAME_BACKWARD: {
-				keys: [],
+				keys: [] as string[],
 				name: 'Previous Frame',
 				description: 'Move the cursor backward by one frame'
 			},
 			FRAME_FORWARD: {
-				keys: [],
+				keys: [] as string[],
 				name: 'Next Frame',
 				description: 'Move the cursor forward by one frame'
 			},
@@ -550,9 +550,19 @@ export default class Settings extends SerializableBase {
 			};
 			shouldSave = true;
 		}
-		if (subtitleShortcuts.RESET_START_CURSOR.keys.some((key) => key.toLowerCase() === 'r')) {
+		if (!subtitleShortcuts.REMOVE_SUBTITLE_AT_CURSOR) {
+			subtitleShortcuts.REMOVE_SUBTITLE_AT_CURSOR = {
+				keys: ['delete'],
+				name: 'Delete Clip at Cursor',
+				description: 'Delete the subtitle or silence clip under the cursor'
+			};
+			shouldSave = true;
+		}
+		if (
+			subtitleShortcuts.RESET_START_CURSOR.keys.some((key: string) => key.toLowerCase() === 'r')
+		) {
 			subtitleShortcuts.RESET_START_CURSOR.keys = subtitleShortcuts.RESET_START_CURSOR.keys.filter(
-				(key) => key.toLowerCase() !== 'r'
+				(key: string) => key.toLowerCase() !== 'r'
 			);
 			shouldSave = true;
 		}
@@ -888,11 +898,14 @@ export default class Settings extends SerializableBase {
 			shouldSave = true;
 		}
 
-		if (
-			settings.exportSettings.performanceProfile !== 'fastest' &&
-			settings.exportSettings.performanceProfile !== 'balanced' &&
-			settings.exportSettings.performanceProfile !== 'low_cpu'
-		) {
+		const performanceProfile = settings.exportSettings.performanceProfile as string;
+		if (performanceProfile === 'fastest') {
+			settings.exportSettings.performanceProfile = 'balanced';
+			shouldSave = true;
+		} else if (performanceProfile === 'low_cpu') {
+			settings.exportSettings.performanceProfile = 'max_quality';
+			shouldSave = true;
+		} else if (performanceProfile !== 'balanced' && performanceProfile !== 'max_quality') {
 			settings.exportSettings.performanceProfile =
 				Settings.DEFAULT_EXPORT_SETTINGS.performanceProfile;
 			shouldSave = true;

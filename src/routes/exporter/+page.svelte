@@ -1,5 +1,5 @@
 ﻿<script lang="ts">
-	import { AssetClip } from '$lib/classes';
+	import { AssetClip, AssetType } from '$lib/classes';
 	import Timeline from '$lib/components/projectEditor/timeline/Timeline.svelte';
 	import VideoPreview from '$lib/components/projectEditor/videoPreview/VideoPreview.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -124,6 +124,7 @@
 		return clips.some((clip) => {
 			const asset = globalState.currentProject!.content.getAssetById(clip.assetId);
 			const requiresTiming =
+				asset.type === AssetType.Image ||
 				clip.startTime !== expectedStartTime ||
 				(clip.sourceStartTime ?? 0) > 0 ||
 				clip.duration < asset.duration.ms ||
@@ -1013,9 +1014,7 @@
 		rangeEnd: number,
 		isSegment: boolean
 	): ReturnType<typeof buildExportCaptureJobPlan> {
-		const fadeDuration = Math.round(
-			globalState.getStyleValue('global', 'fade-duration') as number
-		);
+		const fadeDuration = Math.round(globalState.getStyleValue('global', 'fade-duration') as number);
 		const timedOverlayClips = getTimedOverlayCaptureClips();
 
 		return buildExportCaptureJobPlan({

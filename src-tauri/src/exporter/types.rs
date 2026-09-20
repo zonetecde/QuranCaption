@@ -73,12 +73,12 @@ pub enum FiltergraphBatchMode {
 #[derive(serde::Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum ExportPerformanceProfile {
-    /// Priorité à la vitesse, pas de limite de threads.
-    Fastest,
     /// Équilibre entre vitesse et consommation CPU.
+    #[serde(alias = "fastest")]
     Balanced,
-    /// Priorité basse consommation CPU.
-    LowCpu,
+    /// Qualité maximale avec encodage logiciel uniquement.
+    #[serde(alias = "low_cpu")]
+    MaxQuality,
 }
 
 /// Codec vidéo final demandé par l'utilisateur.

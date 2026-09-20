@@ -8,11 +8,13 @@
 	import { open } from '@tauri-apps/plugin-dialog';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
-	import { AssetType, type Asset } from '$lib/classes';
+	import { AssetType, SourceType, type Asset } from '$lib/classes';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import toast from 'svelte-5-french-toast';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
+	import ModalManager from '$lib/components/modals/ModalManager';
+	import { invoke } from '@tauri-apps/api/core';
 
 	let unlisten: () => void;
 	let dropZone: HTMLDivElement;
@@ -34,6 +36,14 @@
 	);
 	let hasAudioCompatibleSelection = $derived(
 		selectedAssets.some((asset) => asset.type !== AssetType.Image)
+	);
+	let emptyCopy = $derived(
+		$LL.editor as unknown as {
+			mediaEmptyTitle: () => string;
+			mediaEmptyDescription: () => string;
+			addRecitation: () => string;
+			removeSelectedAssetsConfirm: (args: { count: number }) => string;
+		}
 	);
 
 	onMount(async () => {
@@ -121,6 +131,38 @@
 	}
 
 	/**
+	 * Confirme puis retire du projet tous les assets sélectionnés.
+	 * @returns {Promise<void>}
+	 */
+	async function removeSelectedAssets(): Promise<void> {
+		const assets = [...selectedAssets];
+		const result = await ModalManager.deleteConfirmationModal(
+			emptyCopy.removeSelectedAssetsConfirm({ count: assets.length }),
+			assets.some((asset) => asset.sourceType !== SourceType.Local)
+		);
+		if (!result.confirmed) return;
+
+		if (result.deleteFile) {
+			for (const asset of assets.filter((asset) => asset.sourceType !== SourceType.Local)) {
+				try {
+					await invoke('delete_file', { path: asset.filePath });
+				} catch (error) {
+					const errorMessage = error instanceof Error ? error.message : String(error);
+					toast.error(get(LL).editor.failedToDeleteFile({ error: errorMessage }));
+				}
+			}
+		}
+
+		ProjectHistoryManager.begin('remove selected assets');
+		try {
+			for (const asset of assets) globalState.currentProject?.content.removeAsset(asset);
+			selectedAssetIds = [];
+		} finally {
+			ProjectHistoryManager.commit();
+		}
+	}
+
+	/**
 	 * Ouvre ou ferme les modes d'ajout à la timeline pour la sélection courante.
 	 * @param {MouseEvent} event Événement utilisé pour positionner le menu.
 	 * @returns {void}
@@ -205,6 +247,15 @@
 					>
 				</button>
 			{/if}
+			<button
+				class="btn flex h-10 w-10 shrink-0 items-center justify-center rounded-md"
+				type="button"
+				title={get(LL).editor.deleteSelected()}
+				disabled={selectedAssets.length === 0}
+				onclick={removeSelectedAssets}
+			>
+				<span class="material-icons text-xl!">delete</span>
+			</button>
 		</div>
 
 		{#if selectedAssets.length > 0}

@@ -735,6 +735,37 @@ pub fn open_directory(directory_path: String) -> Result<(), String> {
     }
 }
 
+/// Calcule récursivement la taille des fichiers d'un dossier sans suivre les liens symboliques.
+fn directory_size(path: &Path) -> Result<u64, String> {
+    fs::read_dir(path)
+        .map_err(|error| error.to_string())?
+        .try_fold(0_u64, |total, entry| {
+            let entry = entry.map_err(|error| error.to_string())?;
+            let file_type = entry.file_type().map_err(|error| error.to_string())?;
+            let size = if file_type.is_dir() {
+                directory_size(&entry.path())?
+            } else if file_type.is_file() {
+                entry.metadata().map_err(|error| error.to_string())?.len()
+            } else {
+                0
+            };
+            Ok(total.saturating_add(size))
+        })
+}
+
+/// Retourne la taille totale d'un dossier sans bloquer le thread de commande Tauri.
+#[tauri::command]
+pub async fn get_directory_size(directory_path: String) -> Result<u64, String> {
+    let path = path_utils::normalize_existing_path(&directory_path);
+    if !path.is_dir() {
+        return Err(format!("Directory not found: {}", path.to_string_lossy()));
+    }
+
+    tauri::async_runtime::spawn_blocking(move || directory_size(&path))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
 /// Retourne les dimensions vidéo (width/height) du premier stream vidéo.
 #[tauri::command]
 pub fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String> {
@@ -920,6 +951,63 @@ pub fn cut_audio(
             String::from_utf8_lossy(&result.stderr)
         )),
         Err(e) => Err(format!("Unable to execute ffmpeg: {}", e)),
+    }
+}
+
+/// Construit les arguments FFmpeg utilisés pour réduire le bruit d'une source audio.
+fn reduce_audio_noise_args(source_path: &str, output_path: &str) -> Vec<String> {
+    [
+        "-i",
+        source_path,
+        "-map",
+        "0:a:0",
+        "-vn",
+        "-af",
+        "afftdn=nr=12:nf=-50",
+        "-c:a",
+        "pcm_s16le",
+        "-y",
+        output_path,
+    ]
+    .iter()
+    .map(|value| value.to_string())
+    .collect()
+}
+
+/// Réduit le bruit d'une source audio avec le filtre FFT intégré à FFmpeg.
+#[tauri::command]
+pub fn reduce_audio_noise(source_path: String, output_path: String) -> Result<(), String> {
+    if !Path::new(&source_path).exists() {
+        return Err(format!("Source file not found: {}", source_path));
+    }
+
+    let ffmpeg_path =
+        binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
+    let mut cmd = Command::new(&ffmpeg_path);
+    cmd.args(reduce_audio_noise_args(&source_path, &output_path));
+    configure_command_no_window(&mut cmd);
+
+    match cmd.output() {
+        Ok(result) if result.status.success() => Ok(()),
+        Ok(result) => Err(format!(
+            "ffmpeg error: {}",
+            String::from_utf8_lossy(&result.stderr)
+        )),
+        Err(error) => Err(format!("Unable to execute ffmpeg: {}", error)),
+    }
+}
+
+#[cfg(test)]
+mod noise_reduction_tests {
+    use super::reduce_audio_noise_args;
+
+    /// Vérifie que la réduction de bruit utilise le filtre disponible dans les binaires de release.
+    #[test]
+    fn uses_afftdn_and_wav_pcm_output() {
+        let args = reduce_audio_noise_args("input.mp3", "output.wav");
+
+        assert!(args.iter().any(|arg| arg == "afftdn=nr=12:nf=-50"));
+        assert!(args.windows(2).any(|pair| pair == ["-c:a", "pcm_s16le"]));
     }
 }
 
@@ -1643,5 +1731,26 @@ mod timeline_thumbnail_tests {
 
         assert!(Arc::ptr_eq(&first_lock, &repeated_first_lock));
         assert!(!Arc::ptr_eq(&first_lock, &second_lock));
+    }
+}
+
+#[cfg(test)]
+mod directory_size_tests {
+    use super::*;
+
+    /// Vérifie que la taille d'un dossier inclut les fichiers de ses sous-dossiers.
+    #[test]
+    fn totals_nested_directory_files() {
+        let test_root = std::env::temp_dir().join(format!(
+            "qurancaption-directory-size-test-{}",
+            std::process::id()
+        ));
+        let nested = test_root.join("nested");
+        fs::create_dir_all(&nested).unwrap();
+        fs::write(test_root.join("first.bin"), [0_u8; 3]).unwrap();
+        fs::write(nested.join("second.bin"), [0_u8; 5]).unwrap();
+
+        assert_eq!(directory_size(&test_root).unwrap(), 8);
+        fs::remove_dir_all(test_root).unwrap();
     }
 }

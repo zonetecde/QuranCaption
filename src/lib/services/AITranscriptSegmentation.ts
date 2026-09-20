@@ -163,6 +163,9 @@ export async function analyzeTranscriptSemanticBoundaries(
 		reasoningEffort: AIReasoningEffort;
 		thinkingEnabled?: boolean | null;
 		timingQuality: 'word' | 'estimated';
+		onProgress?: (current: number, total: number, batchId: string) => void;
+		onBatchComplete?: (batchId: string) => void;
+		onBatchFailed?: (batchId: string) => void;
 	}
 ): Promise<{ boundaries: TranscriptSemanticBoundary[]; errors: string[] }> {
 	const batches = buildTranscriptSegmentationBatches(tokens, options.timingQuality);
@@ -175,7 +178,9 @@ export async function analyzeTranscriptSemanticBoundaries(
 	 */
 	const runWorker = async (): Promise<void> => {
 		while (nextBatch < batches.length) {
-			const batch = batches[nextBatch++];
+			const batchIndex = nextBatch++;
+			const batch = batches[batchIndex];
+			options.onProgress?.(batchIndex + 1, batches.length, batch.batchId);
 			try {
 				const response = await invoke<TranscriptSegmentationBatchResponse>(
 					'run_ai_transcript_segmentation_batch_streaming',
@@ -194,7 +199,9 @@ export async function analyzeTranscriptSemanticBoundaries(
 				const validation = validateTranscriptSegmentationBatch(batch, response.parsed);
 				boundaries.push(...validation.boundaries);
 				errors.push(...validation.errors);
+				options.onBatchComplete?.(batch.batchId);
 			} catch (error) {
+				options.onBatchFailed?.(batch.batchId);
 				errors.push(
 					`AI semantic segmentation batch failed: ${error instanceof Error ? error.message : String(error)}`
 				);

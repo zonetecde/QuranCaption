@@ -119,7 +119,7 @@ const editor = {
 		'Run the optional AI cleanup now, or resume a cleanup saved with this project.',
 	transcriptCleanupRemaining: '{remaining} batch(es) remaining',
 	transcriptionDataPrivacy:
-		'With Groq selected, project audio is sent to Groq for transcription; WhisperX keeps it local. Quran matching and final subtitle assembly stay local. Cleaned words and timings are sent only to your configured text AI when available.',
+		'Audio transcription, Quran matching, and final subtitle assembly stay local. Cleaned indexed words, timings, and context metadata are sent only to your configured text AI provider when one is available.',
 	subtitleLengthShort: 'Short',
 	subtitleLengthShortDescription: 'Short subtitles with more frequent natural changes.',
 	subtitleLengthMedium: 'Medium',
@@ -135,6 +135,8 @@ const editor = {
 	addToTimeline: 'Add to Timeline',
 	removeAsset: 'Remove Asset',
 	removeAssetConfirm: 'Are you sure you want to remove this asset from the project?',
+	removeSelectedAssetsConfirm:
+		'Are you sure you want to remove the {count} selected assets from the project?',
 	alsoDeleteFile: 'Also delete file from computer',
 	actionCannotBeUndone: 'Warning: This action cannot be undone.',
 	removeAllSubtitles: 'Remove All Subtitles',
@@ -163,6 +165,8 @@ const editor = {
 	backgroundImageError: 'Background Image Error',
 	cannotAddBackgroundImage:
 		'You cannot add a background image to the timeline when background images are not supported in this context.',
+	setImageAsFullBackgroundConfirm:
+		'The video track is empty. Use this image as the background for the entire video? Choose No to add it as a regular timeline clip.',
 	loopingError: 'Looping Error',
 	canOnlyEnableLoopIfOnlyClip:
 		'You can only enable "Loop until the end" if this is the only clip in the track.',
@@ -843,7 +847,7 @@ const editor = {
 	howItWorksDescription1:
 		'Enable style mode, keep one or more toggles active, then drag across words in the trimmed translation or the Arabic segment.',
 	howItWorksDescription2:
-		'Bold, italic, underline and new line are toggled on the selected range. Color is applied with the current swatch. Editing the translation text later clears translation word styles.',
+		'Bold, italic, underline and new line are toggled on the selected range. Color and glow are applied with their current swatches. Editing the translation text later clears translation word styles.',
 	selectAtLeastOneStyle: 'Select at least one style before applying it.',
 	globalActions: 'Global Actions',
 	resetAllSegmentStyles: 'Reset all segment styles',

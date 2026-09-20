@@ -360,7 +360,7 @@ export function buildAITranscriptionFromSubtitleTrack(): {
 				speaker: clip.speaker,
 				confidence: clip.confidence,
 				words: (clip.alignmentMetadata?.words ?? []).map((word) => ({
-					word: word.word,
+					word: word.word ?? '',
 					start: clip.startTime / 1000 + word.start,
 					end: clip.startTime / 1000 + word.end,
 					confidence: word.confidence,

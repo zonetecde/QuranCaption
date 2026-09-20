@@ -67,7 +67,7 @@ export function filterWordsForVerse(
  * @returns {SubtitleAlignmentMetadata | null} Métadonnée prête à persister.
  */
 export function buildSubtitleAlignmentMetadata(
-	source: 'api' | 'local' | 'import',
+	source: 'api' | 'local' | 'import' | 'manual',
 	segment: SegmentationSegment,
 	words: SegmentationWordTimestamp[]
 ): SubtitleAlignmentMetadata | null {
@@ -150,8 +150,9 @@ export function refreshSegmentationContextFromTrack(preserveAudioId: boolean): v
 	const alignedSegments: StoredAlignedSegment[] = [];
 
 	for (const rawClip of globalState.getSubtitleTrack.clips) {
-		if (rawClip instanceof SubtitleClip && rawClip.alignmentMetadata) {
-			const metadata = rawClip.alignmentMetadata;
+		const subtitleClip = rawClip instanceof SubtitleClip ? rawClip : null;
+		const metadata = subtitleClip?.alignmentMetadata;
+		if (metadata?.segment !== undefined && metadata.refFrom && metadata.refTo) {
 			alignedSegments.push({
 				clipId: rawClip.id,
 				type: 'Subtitle',
@@ -160,9 +161,11 @@ export function refreshSegmentationContextFromTrack(preserveAudioId: boolean): v
 				segment: metadata.segment,
 				refFrom: metadata.refFrom,
 				refTo: metadata.refTo,
-				matchedText: metadata.matchedText,
+				matchedText: metadata.matchedText ?? subtitleClip?.text ?? '',
 				specialType: metadata.specialType,
-				words: metadata.words.map((word) => ({ ...word }))
+				words: metadata.words.flatMap((word) =>
+					word.location ? [{ ...word, location: word.location }] : []
+				)
 			});
 			continue;
 		}

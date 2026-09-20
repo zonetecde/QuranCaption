@@ -7,6 +7,7 @@
 	import TimeInput from './TimeInput.svelte';
 	import Style from '../styleEditor/Style.svelte';
 	import { VerseRange } from '$lib/classes';
+	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
 	import ExportFolderPicker from './ExportFolderPicker.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
@@ -15,7 +16,7 @@
 
 	type VideoCodec = 'h264' | 'h265';
 
-	const performanceProfileIds: PerformanceProfile[] = ['fastest', 'balanced', 'low_cpu'];
+	const performanceProfileIds: PerformanceProfile[] = ['balanced', 'max_quality'];
 	const videoCodecIds: VideoCodec[] = ['h264', 'h265'];
 
 	let showAdvancedSettings = $state(false);
@@ -27,6 +28,55 @@
 			setSkipEndToCursor: () => string;
 			removeSkip: () => string;
 		}
+	);
+	type ExportReviewCopy = {
+		exportLowConfidenceReviewWarning: (args: { count: number }) => string;
+		exportMissingWordsReviewWarning: (args: { count: number }) => string;
+		exportTranslationReviewWarning: (args: { count: number }) => string;
+		exportReviewAcknowledgement: () => string;
+	};
+	let reviewCopy = $derived($LL.export as unknown as ExportReviewCopy);
+	let exportReviewAcknowledged = $state(false);
+	let exportReviewCounts = $derived.by(() => {
+		const rangeStart = globalState.getExportState.videoStartTime;
+		const rangeEnd = globalState.getExportState.videoEndTime;
+		const counts = { lowConfidence: 0, missingWords: 0, translations: 0 };
+		const visibleTranslationEditions = new Set(
+			globalState.getProjectTranslation.addedTranslationEditions
+				.filter(
+					(edition) =>
+						globalState.getVideoStyle.getStylesOfTarget(edition.name).findStyle('show-subtitles')
+							?.value === true
+				)
+				.map((edition) => edition.name)
+		);
+
+		for (const clip of globalState.getSubtitleTrack.clips) {
+			if (
+				!(clip instanceof ClipWithTranslation) ||
+				clip.endTime <= rangeStart ||
+				clip.startTime >= rangeEnd
+			)
+				continue;
+
+			if (clip.hasBeenVerified !== true) {
+				if (clip.needsReview) counts.lowConfidence += 1;
+				if (clip.needsCoverageReview) counts.missingWords += 1;
+			}
+
+			for (const [editionName, translation] of Object.entries(clip.translations)) {
+				if (visibleTranslationEditions.has(editionName) && !translation.isStatusComplete()) {
+					counts.translations += 1;
+				}
+			}
+		}
+
+		return counts;
+	});
+	let hasExportReviewIssues = $derived(
+		exportReviewCounts.lowConfidence > 0 ||
+			exportReviewCounts.missingWords > 0 ||
+			exportReviewCounts.translations > 0
 	);
 
 	/**
@@ -388,8 +438,44 @@
 	</div>
 
 	<!-- Export Button -->
-	<div class="flex flex-col items-center">
-		<button class="btn-accent px-6 py-3 font-medium" onclick={Exporter.exportVideo}>
+	<div class="flex flex-shrink-0 flex-col items-center border-t border-color pt-2">
+		{#if hasExportReviewIssues}
+			<div
+				class="mb-2 w-full rounded-md border border-red-500/50 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-600 dark:text-red-400"
+				role="alert"
+			>
+				{#if exportReviewCounts.lowConfidence > 0}
+					<p>
+						{reviewCopy.exportLowConfidenceReviewWarning({
+							count: exportReviewCounts.lowConfidence
+						})}
+					</p>
+				{/if}
+				{#if exportReviewCounts.missingWords > 0}
+					<p>
+						{reviewCopy.exportMissingWordsReviewWarning({ count: exportReviewCounts.missingWords })}
+					</p>
+				{/if}
+				{#if exportReviewCounts.translations > 0}
+					<p>
+						{reviewCopy.exportTranslationReviewWarning({ count: exportReviewCounts.translations })}
+					</p>
+				{/if}
+				<label class="mt-2 flex cursor-pointer items-start gap-2 text-left font-normal">
+					<input
+						type="checkbox"
+						class="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent-primary)]"
+						bind:checked={exportReviewAcknowledged}
+					/>
+					<span>{reviewCopy.exportReviewAcknowledgement()}</span>
+				</label>
+			</div>
+		{/if}
+		<button
+			class="btn-accent px-6 py-3 font-medium disabled:cursor-not-allowed disabled:opacity-50"
+			disabled={hasExportReviewIssues && !exportReviewAcknowledged}
+			onclick={Exporter.exportVideo}
+		>
 			{$LL.export.exportButton()}
 		</button>
 		<p class="text-thirdly text-xs mt-2 text-center">
@@ -554,18 +640,11 @@
 
 					<div class="grid grid-cols-1 gap-3">
 						{#each performanceProfileIds as id (id)}
-							{@const label =
-								id === 'fastest'
-									? $LL.export.fastest()
-									: id === 'balanced'
-										? $LL.export.balanced()
-										: $LL.export.lowCpu()}
+							{@const label = id === 'balanced' ? $LL.export.balanced() : $LL.export.lowCpu()}
 							{@const desc =
-								id === 'fastest'
-									? $LL.export.fastestDescription()
-									: id === 'balanced'
-										? $LL.export.balancedDescription()
-										: $LL.export.lowCpuDescription()}
+								id === 'balanced'
+									? $LL.export.balancedDescription()
+									: $LL.export.lowCpuDescription()}
 							<button
 								type="button"
 								class="rounded-xl border p-4 text-left transition-colors"

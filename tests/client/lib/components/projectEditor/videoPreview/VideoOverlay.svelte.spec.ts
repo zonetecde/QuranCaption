@@ -13,6 +13,8 @@ import { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.s
 import QPCFontProvider from '$lib/services/FontProvider';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 import { prefetchTranscriptReferences } from '$lib/services/TranscriptReferenceService';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import { getRenderedLineCount } from '$lib/components/projectEditor/videoPreview/helpers/reactiveFontSize';
 
 vi.mock('$lib/components/projectEditor/tabs/styleEditor/ReciterName.svelte', async () => ({
 	default: (await import('../../../../stubs/EmptyComponent.svelte')).default
@@ -84,6 +86,7 @@ function createDefaultStyleValue(
 	if (styleId === 'max-height') return 0;
 	if (styleId === 'max-line') return 'Infinite';
 	if (styleId === 'font-size') return target === 'arabic' ? 42 : 28;
+	if (styleId === 'width') return 80;
 	if (styleId === 'vertical-text-alignment') return 'center';
 	if (styleId === 'reactive-font-size') return target === 'arabic' ? 42 : 28;
 	if (styleId === 'reactive-y-position') return 0;
@@ -844,6 +847,185 @@ describe('Video overlay subtitle preview', () => {
 			expect.stringContaining('font-family: QPC2_p570'),
 			expect.stringContaining('font-family: QPC2_p571')
 		]);
+	});
+
+	test('renders a line break before the arabic verse number when enabled', async () => {
+		const clip = createLastWordsQpcSubtitle(0, 999, 1, 1, 0, 1);
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 500 });
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('show-verse-number', true);
+		fixture.videoStyle.getStylesOfTarget('arabic').setStyle('verse-number-new-line', true);
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const verseNumber = getArabicVerseNumberSpans(component.container)[0];
+		expect(verseNumber.textContent).toBe('١');
+		expect(verseNumber.previousElementSibling?.tagName).toBe('BR');
+	});
+
+	test('fits qpc arabic text and its verse number on one line when max line is one', async () => {
+		seedQpc2PreviewFixture();
+		const clip = createLastWordsQpcSubtitle(0, 999, 1, 2, 0, 3);
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 500 });
+		const arabicStyles = fixture.videoStyle.getStylesOfTarget('arabic');
+		arabicStyles.setStyle('show-verse-number', true);
+		arabicStyles.setStyle('verse-number-new-line', false);
+		arabicStyles.setStyle('font-family', 'QPC2');
+		arabicStyles.setStyle('max-height', 245);
+		arabicStyles.setStyle('max-line', '1');
+		arabicStyles.setStyle('font-size', 96);
+		arabicStyles.setStyle('line-height', 1.6);
+		arabicStyles.setStyle('width', 53);
+		arabicStyles.generateCSS = () =>
+			'width: 53%; height: 245px; font-size: 96px; line-height: 1.6; color: #4a372b; display: flex; align-items: center; --line-background-height: 73px; --line-background-position: 24px; --line-background-color: #f3e2c1;';
+
+		const component = render(VideoOverlay);
+		const overlay = component.container.querySelector('#overlay') as HTMLElement;
+		overlay.style.width = '1320px';
+		overlay.style.height = '743px';
+		await settleOverlay();
+
+		const arabicNode = getForegroundArabicNode(component.container)!;
+		await vi.waitFor(() => {
+			expect(Number.parseFloat(getComputedStyle(arabicNode).fontSize)).toBeLessThan(96);
+			arabicNode.classList.add('subtitle-layout-measurement');
+			expect(arabicNode.scrollHeight).toBeLessThanOrEqual(245);
+			arabicNode.classList.remove('subtitle-layout-measurement');
+			expect(getRenderedLineCount(arabicNode)).toBe(1);
+		});
+		expect(getArabicVerseNumberSpans(component.container)[0]).toBeTruthy();
+	});
+
+	test('resizes the arabic subtitle from its preview borders and corner handles', async () => {
+		const fixture = setupVideoOverlayFixture(
+			[createVerseSubtitle(0, 999, 'Arabic', 'Translation')],
+			{ cursorPosition: 500 }
+		);
+		const beginHistory = vi.spyOn(ProjectHistoryManager, 'begin');
+		const commitHistory = vi.spyOn(ProjectHistoryManager, 'commit');
+		const component = render(VideoOverlay);
+		const overlay = component.container.querySelector('#overlay') as HTMLElement;
+		overlay.style.width = '1000px';
+		overlay.style.height = '600px';
+		await settleOverlay();
+
+		const handle = component.container.querySelector(
+			'.arabic.subtitle .subtitle-resize-edge-left'
+		) as HTMLElement;
+		const subtitlesContainer = getSubtitlesContainer(component.container)!;
+		handle.setPointerCapture = vi.fn();
+		handle.hasPointerCapture = vi.fn(() => false);
+		handle.dispatchEvent(
+			new PointerEvent('pointerdown', { bubbles: true, button: 0, clientX: 100, pointerId: 1 })
+		);
+		handle.dispatchEvent(
+			new PointerEvent('pointermove', { bubbles: true, clientX: 50, pointerId: 1 })
+		);
+		expect(subtitlesContainer.dataset.resizingTarget).toBe('arabic');
+		await tick();
+		expect(subtitlesContainer.style.opacity).toBe('1');
+		handle.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }));
+		expect(subtitlesContainer.dataset.resizingTarget).toBeUndefined();
+
+		expect(fixture.videoStyle.getStylesOfTarget('arabic').findStyle('width').value).toBe(90);
+
+		const arabicNode = getForegroundArabicNode(component.container)!;
+		const initialRenderedHeight = arabicNode.offsetHeight;
+		const heightHandle = component.container.querySelector(
+			'.arabic.subtitle .subtitle-resize-edge-top'
+		) as HTMLElement;
+		heightHandle.setPointerCapture = vi.fn();
+		heightHandle.hasPointerCapture = vi.fn(() => false);
+		heightHandle.dispatchEvent(
+			new PointerEvent('pointerdown', { bubbles: true, button: 0, clientY: 100, pointerId: 2 })
+		);
+		heightHandle.dispatchEvent(
+			new PointerEvent('pointermove', { bubbles: true, clientY: 75, pointerId: 2 })
+		);
+		heightHandle.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 2 }));
+
+		expect(fixture.videoStyle.getStylesOfTarget('arabic').findStyle('max-height').value).toBe(
+			Math.min(800, Math.max(1, initialRenderedHeight + 50))
+		);
+
+		const widthBeforeCorner = Number(
+			fixture.videoStyle.getStylesOfTarget('arabic').findStyle('width').value
+		);
+		const heightBeforeCorner = Number(
+			fixture.videoStyle.getStylesOfTarget('arabic').findStyle('max-height').value
+		);
+		const topLeftHandle = component.container.querySelector(
+			'.arabic.subtitle .subtitle-resize-top-left'
+		) as HTMLElement;
+		topLeftHandle.setPointerCapture = vi.fn();
+		topLeftHandle.hasPointerCapture = vi.fn(() => false);
+		topLeftHandle.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				bubbles: true,
+				button: 0,
+				clientX: 100,
+				clientY: 100,
+				pointerId: 3
+			})
+		);
+		topLeftHandle.dispatchEvent(
+			new PointerEvent('pointermove', {
+				bubbles: true,
+				clientX: 75,
+				clientY: 90,
+				pointerId: 3
+			})
+		);
+		topLeftHandle.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 3 }));
+
+		expect(fixture.videoStyle.getStylesOfTarget('arabic').findStyle('width').value).toBe(
+			widthBeforeCorner + 5
+		);
+		expect(fixture.videoStyle.getStylesOfTarget('arabic').findStyle('max-height').value).toBe(
+			heightBeforeCorner + 20
+		);
+		expect(beginHistory).toHaveBeenCalledTimes(3);
+		expect(beginHistory).toHaveBeenCalledWith('resize subtitle');
+		expect(commitHistory).toHaveBeenCalledTimes(3);
+	});
+
+	test('keeps the font layout visible and stable during a subtitle position drag', async () => {
+		setupVideoOverlayFixture([createVerseSubtitle(0, 999, 'Arabic', 'Translation')], {
+			cursorPosition: 500
+		});
+		const component = render(VideoOverlay);
+		await settleOverlay();
+		const arabicNode = getForegroundArabicNode(component.container)!;
+		const subtitlesContainer = getSubtitlesContainer(component.container)!;
+		const { mouseDrag } = await vi.importActual<typeof import('$lib/services/verticalDrag')>(
+			'$lib/services/verticalDrag'
+		);
+		const refreshPreview = vi.spyOn(globalState, 'updateVideoPreviewUI');
+		const action = mouseDrag(arabicNode, {
+			target: 'arabic',
+			verticalStyleId: 'vertical-position',
+			horizontalStyleId: 'horizontal-position'
+		});
+
+		arabicNode.dispatchEvent(
+			new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: 100, clientY: 100 })
+		);
+		document.dispatchEvent(
+			new MouseEvent('mousemove', { bubbles: true, clientX: 120, clientY: 120 })
+		);
+		expect(subtitlesContainer.dataset.positionDragTarget).toBe('arabic');
+		expect(refreshPreview).not.toHaveBeenCalled();
+		globalState.getTimelineState.previewRefreshToken += 1;
+		await tick();
+		expect(subtitlesContainer.style.opacity).toBe('1');
+
+		document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+		expect(refreshPreview).toHaveBeenCalledOnce();
+		expect(subtitlesContainer.dataset.positionDragTarget).toBeUndefined();
+		await settleOverlay();
+		expect(subtitlesContainer.dataset.positionDragCommit).toBeUndefined();
+		expect(subtitlesContainer.style.opacity).toBe('1');
+		action.destroy();
 	});
 
 	test('keeps QPC2 verse-number fonts when merged verses stay on the same page', async () => {

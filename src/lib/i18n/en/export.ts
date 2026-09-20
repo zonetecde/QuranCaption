@@ -33,6 +33,14 @@ const export_ = {
 	chooseExportLocation: 'Choose where your exported videos will be saved.',
 	exportButton: 'Export Video',
 	startExportDescription: 'Start the video export process with your selected time range',
+	exportLowConfidenceReviewWarning:
+		'Warning: your project contains {count} low-confidence subtitle(s).',
+	exportMissingWordsReviewWarning:
+		'Warning: your project contains {count} subtitle(s) with missing words.',
+	exportTranslationReviewWarning:
+		'Warning: your project contains {count} translation(s) that need review.',
+	exportReviewAcknowledgement:
+		'I understand that my video may contain errors if I do not review these issues.',
 	advancedSettings: 'Advanced Settings',
 	controlExportPerformance: 'Configure recitation filtering, background, codec, and performance.',
 	exportOnlyRecitation: 'Export only recitation',
@@ -75,10 +83,10 @@ const export_ = {
 		'Fastest export. May use hardware encoding, which can show artifacts on detailed 4K backgrounds.',
 	balanced: 'Balanced',
 	balancedDescription:
-		'Recommended for final exports. Preserves better quality in high resolution, but takes longer.',
-	lowCpu: 'Low CPU',
+		'Uses GPU encoding for faster exports, but may cause slight visual distortions.',
+	lowCpu: 'Max Quality',
 	lowCpuDescription:
-		'Limits CPU usage to keep your computer more responsive. Usually the slowest option.',
+		'Guarantees the best quality using CPU-only software encoding, but exports more slowly.',
 	exportInProgressButton: 'Exporting...',
 	fileNotFound: 'File not found',
 	exportedFileNotFound:

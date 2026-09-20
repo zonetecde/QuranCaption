@@ -79,6 +79,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 	let snapTargetRects: DOMRect[] = [];
 	let previewScaleX = 1;
 	let previewScaleY = 1;
+	let subtitlePositionDragContainer: HTMLElement | null = null;
 	let isStuckToZero = false; // Pour le sticky behavior horizontal
 	const HORIZONTAL_STICK_RANGE = 50; // Zone de stick autour de 0 (-50 à +50)
 	const ELEMENT_SNAP_RANGE = 8;
@@ -172,6 +173,15 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		}
 
 		dragging = true;
+		const isPositionDrag = [opts.verticalStyleId, opts.horizontalStyleId].some(
+			(styleId) => styleId === 'vertical-position' || styleId === 'horizontal-position'
+		);
+		if (opts.target && isPositionDrag) {
+			subtitlePositionDragContainer = node.closest<HTMLElement>('#subtitles-container');
+			if (subtitlePositionDragContainer) {
+				subtitlePositionDragContainer.dataset.positionDragTarget = opts.target;
+			}
+		}
 		globalState.getVideoPreviewState.showAlignmentGridWhileDragging = true;
 		document.addEventListener('mousemove', mousemove);
 		document.addEventListener('mouseup', mouseup);
@@ -313,10 +323,11 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 
 		// Déclenche un refresh si nécessaire pour certains styles
 		if (
-			opts.verticalStyleId === 'vertical-position' ||
-			opts.verticalStyleId === 'horizontal-position' ||
-			opts.horizontalStyleId === 'vertical-position' ||
-			opts.horizontalStyleId === 'horizontal-position'
+			!subtitlePositionDragContainer &&
+			(opts.verticalStyleId === 'vertical-position' ||
+				opts.verticalStyleId === 'horizontal-position' ||
+				opts.horizontalStyleId === 'vertical-position' ||
+				opts.horizontalStyleId === 'horizontal-position')
 		) {
 			globalState.updateVideoPreviewUI();
 		}
@@ -332,6 +343,12 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		const cls = opts.classWhileDragging || 'dragging-vertical';
 		node.classList.remove(cls);
 		ProjectHistoryManager.commit();
+		if (subtitlePositionDragContainer) {
+			delete subtitlePositionDragContainer.dataset.positionDragTarget;
+			subtitlePositionDragContainer.dataset.positionDragCommit = 'true';
+			subtitlePositionDragContainer = null;
+			globalState.updateVideoPreviewUI();
+		}
 	}
 
 	node.dataset.previewDraggable = 'true';
@@ -346,6 +363,10 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 			globalState.getVideoPreviewState.showAlignmentGridWhileDragging = false;
 			updateSnapGuides(null, null);
 			delete node.dataset.previewDraggable;
+			if (subtitlePositionDragContainer) {
+				delete subtitlePositionDragContainer.dataset.positionDragTarget;
+				delete subtitlePositionDragContainer.dataset.positionDragCommit;
+			}
 			node.removeEventListener('mousedown', mousedown);
 			document.removeEventListener('mousemove', mousemove);
 			document.removeEventListener('mouseup', mouseup);

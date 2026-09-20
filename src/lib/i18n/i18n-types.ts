@@ -1521,7 +1521,7 @@ type RootTranslation = {
 		 */
 		transcriptCleanupRemaining: RequiredParams<'remaining'>;
 		/**
-		 * W​i​t​h​ ​G​r​o​q​ ​s​e​l​e​c​t​e​d​,​ ​p​r​o​j​e​c​t​ ​a​u​d​i​o​ ​i​s​ ​s​e​n​t​ ​t​o​ ​G​r​o​q​ ​f​o​r​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​;​ ​W​h​i​s​p​e​r​X​ ​k​e​e​p​s​ ​i​t​ ​l​o​c​a​l​.​ ​Q​u​r​a​n​ ​m​a​t​c​h​i​n​g​ ​a​n​d​ ​f​i​n​a​l​ ​s​u​b​t​i​t​l​e​ ​a​s​s​e​m​b​l​y​ ​s​t​a​y​ ​l​o​c​a​l​.​ ​C​l​e​a​n​e​d​ ​w​o​r​d​s​ ​a​n​d​ ​t​i​m​i​n​g​s​ ​a​r​e​ ​s​e​n​t​ ​o​n​l​y​ ​t​o​ ​y​o​u​r​ ​c​o​n​f​i​g​u​r​e​d​ ​t​e​x​t​ ​A​I​ ​w​h​e​n​ ​a​v​a​i​l​a​b​l​e​.
+		 * A​u​d​i​o​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​,​ ​Q​u​r​a​n​ ​m​a​t​c​h​i​n​g​,​ ​a​n​d​ ​f​i​n​a​l​ ​s​u​b​t​i​t​l​e​ ​a​s​s​e​m​b​l​y​ ​s​t​a​y​ ​l​o​c​a​l​.​ ​C​l​e​a​n​e​d​ ​i​n​d​e​x​e​d​ ​w​o​r​d​s​,​ ​t​i​m​i​n​g​s​,​ ​a​n​d​ ​c​o​n​t​e​x​t​ ​m​e​t​a​d​a​t​a​ ​a​r​e​ ​s​e​n​t​ ​o​n​l​y​ ​t​o​ ​y​o​u​r​ ​c​o​n​f​i​g​u​r​e​d​ ​t​e​x​t​ ​A​I​ ​p​r​o​v​i​d​e​r​ ​w​h​e​n​ ​o​n​e​ ​i​s​ ​a​v​a​i​l​a​b​l​e​.
 		 */
 		transcriptionDataPrivacy: string;
 		/**
@@ -1580,6 +1580,11 @@ type RootTranslation = {
 		 * A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​r​e​m​o​v​e​ ​t​h​i​s​ ​a​s​s​e​t​ ​f​r​o​m​ ​t​h​e​ ​p​r​o​j​e​c​t​?
 		 */
 		removeAssetConfirm: string;
+		/**
+		 * A​r​e​ ​y​o​u​ ​s​u​r​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​r​e​m​o​v​e​ ​t​h​e​ ​{​c​o​u​n​t​}​ ​s​e​l​e​c​t​e​d​ ​a​s​s​e​t​s​ ​f​r​o​m​ ​t​h​e​ ​p​r​o​j​e​c​t​?
+		 * @param {unknown} count
+		 */
+		removeSelectedAssetsConfirm: RequiredParams<'count'>;
 		/**
 		 * A​l​s​o​ ​d​e​l​e​t​e​ ​f​i​l​e​ ​f​r​o​m​ ​c​o​m​p​u​t​e​r
 		 */
@@ -1677,6 +1682,10 @@ type RootTranslation = {
 		 * Y​o​u​ ​c​a​n​n​o​t​ ​a​d​d​ ​a​ ​b​a​c​k​g​r​o​u​n​d​ ​i​m​a​g​e​ ​t​o​ ​t​h​e​ ​t​i​m​e​l​i​n​e​ ​w​h​e​n​ ​b​a​c​k​g​r​o​u​n​d​ ​i​m​a​g​e​s​ ​a​r​e​ ​n​o​t​ ​s​u​p​p​o​r​t​e​d​ ​i​n​ ​t​h​i​s​ ​c​o​n​t​e​x​t​.
 		 */
 		cannotAddBackgroundImage: string;
+		/**
+		 * T​h​e​ ​v​i​d​e​o​ ​t​r​a​c​k​ ​i​s​ ​e​m​p​t​y​.​ ​U​s​e​ ​t​h​i​s​ ​i​m​a​g​e​ ​a​s​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​f​o​r​ ​t​h​e​ ​e​n​t​i​r​e​ ​v​i​d​e​o​?​ ​C​h​o​o​s​e​ ​N​o​ ​t​o​ ​a​d​d​ ​i​t​ ​a​s​ ​a​ ​r​e​g​u​l​a​r​ ​t​i​m​e​l​i​n​e​ ​c​l​i​p​.
+		 */
+		setImageAsFullBackgroundConfirm: string;
 		/**
 		 * L​o​o​p​i​n​g​ ​E​r​r​o​r
 		 */
@@ -4157,7 +4166,7 @@ type RootTranslation = {
 		 */
 		howItWorksDescription1: string;
 		/**
-		 * B​o​l​d​,​ ​i​t​a​l​i​c​,​ ​u​n​d​e​r​l​i​n​e​ ​a​n​d​ ​n​e​w​ ​l​i​n​e​ ​a​r​e​ ​t​o​g​g​l​e​d​ ​o​n​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​r​a​n​g​e​.​ ​C​o​l​o​r​ ​i​s​ ​a​p​p​l​i​e​d​ ​w​i​t​h​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​s​w​a​t​c​h​.​ ​E​d​i​t​i​n​g​ ​t​h​e​ ​t​r​a​n​s​l​a​t​i​o​n​ ​t​e​x​t​ ​l​a​t​e​r​ ​c​l​e​a​r​s​ ​t​r​a​n​s​l​a​t​i​o​n​ ​w​o​r​d​ ​s​t​y​l​e​s​.
+		 * B​o​l​d​,​ ​i​t​a​l​i​c​,​ ​u​n​d​e​r​l​i​n​e​ ​a​n​d​ ​n​e​w​ ​l​i​n​e​ ​a​r​e​ ​t​o​g​g​l​e​d​ ​o​n​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​r​a​n​g​e​.​ ​C​o​l​o​r​ ​a​n​d​ ​g​l​o​w​ ​a​r​e​ ​a​p​p​l​i​e​d​ ​w​i​t​h​ ​t​h​e​i​r​ ​c​u​r​r​e​n​t​ ​s​w​a​t​c​h​e​s​.​ ​E​d​i​t​i​n​g​ ​t​h​e​ ​t​r​a​n​s​l​a​t​i​o​n​ ​t​e​x​t​ ​l​a​t​e​r​ ​c​l​e​a​r​s​ ​t​r​a​n​s​l​a​t​i​o​n​ ​w​o​r​d​ ​s​t​y​l​e​s​.
 		 */
 		howItWorksDescription2: string;
 		/**
@@ -6376,6 +6385,25 @@ type RootTranslation = {
 		 */
 		startExportDescription: string;
 		/**
+		 * W​a​r​n​i​n​g​:​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​c​o​n​t​a​i​n​s​ ​{​c​o​u​n​t​}​ ​l​o​w​-​c​o​n​f​i​d​e​n​c​e​ ​s​u​b​t​i​t​l​e​(​s​)​.
+		 * @param {unknown} count
+		 */
+		exportLowConfidenceReviewWarning: RequiredParams<'count'>;
+		/**
+		 * W​a​r​n​i​n​g​:​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​c​o​n​t​a​i​n​s​ ​{​c​o​u​n​t​}​ ​s​u​b​t​i​t​l​e​(​s​)​ ​w​i​t​h​ ​m​i​s​s​i​n​g​ ​w​o​r​d​s​.
+		 * @param {unknown} count
+		 */
+		exportMissingWordsReviewWarning: RequiredParams<'count'>;
+		/**
+		 * W​a​r​n​i​n​g​:​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​c​o​n​t​a​i​n​s​ ​{​c​o​u​n​t​}​ ​t​r​a​n​s​l​a​t​i​o​n​(​s​)​ ​t​h​a​t​ ​n​e​e​d​ ​r​e​v​i​e​w​.
+		 * @param {unknown} count
+		 */
+		exportTranslationReviewWarning: RequiredParams<'count'>;
+		/**
+		 * I​ ​u​n​d​e​r​s​t​a​n​d​ ​t​h​a​t​ ​m​y​ ​v​i​d​e​o​ ​m​a​y​ ​c​o​n​t​a​i​n​ ​e​r​r​o​r​s​ ​i​f​ ​I​ ​d​o​ ​n​o​t​ ​r​e​v​i​e​w​ ​t​h​e​s​e​ ​i​s​s​u​e​s​.
+		 */
+		exportReviewAcknowledgement: string;
+		/**
 		 * A​d​v​a​n​c​e​d​ ​S​e​t​t​i​n​g​s
 		 */
 		advancedSettings: string;
@@ -6508,15 +6536,15 @@ type RootTranslation = {
 		 */
 		balanced: string;
 		/**
-		 * R​e​c​o​m​m​e​n​d​e​d​ ​f​o​r​ ​f​i​n​a​l​ ​e​x​p​o​r​t​s​.​ ​P​r​e​s​e​r​v​e​s​ ​b​e​t​t​e​r​ ​q​u​a​l​i​t​y​ ​i​n​ ​h​i​g​h​ ​r​e​s​o​l​u​t​i​o​n​,​ ​b​u​t​ ​t​a​k​e​s​ ​l​o​n​g​e​r​.
+		 * U​s​e​s​ ​G​P​U​ ​e​n​c​o​d​i​n​g​ ​f​o​r​ ​f​a​s​t​e​r​ ​e​x​p​o​r​t​s​,​ ​b​u​t​ ​m​a​y​ ​c​a​u​s​e​ ​s​l​i​g​h​t​ ​v​i​s​u​a​l​ ​d​i​s​t​o​r​t​i​o​n​s​.
 		 */
 		balancedDescription: string;
 		/**
-		 * L​o​w​ ​C​P​U
+		 * M​a​x​ ​Q​u​a​l​i​t​y
 		 */
 		lowCpu: string;
 		/**
-		 * L​i​m​i​t​s​ ​C​P​U​ ​u​s​a​g​e​ ​t​o​ ​k​e​e​p​ ​y​o​u​r​ ​c​o​m​p​u​t​e​r​ ​m​o​r​e​ ​r​e​s​p​o​n​s​i​v​e​.​ ​U​s​u​a​l​l​y​ ​t​h​e​ ​s​l​o​w​e​s​t​ ​o​p​t​i​o​n​.
+		 * G​u​a​r​a​n​t​e​e​s​ ​t​h​e​ ​b​e​s​t​ ​q​u​a​l​i​t​y​ ​u​s​i​n​g​ ​C​P​U​-​o​n​l​y​ ​s​o​f​t​w​a​r​e​ ​e​n​c​o​d​i​n​g​,​ ​b​u​t​ ​e​x​p​o​r​t​s​ ​m​o​r​e​ ​s​l​o​w​l​y​.
 		 */
 		lowCpuDescription: string;
 		/**
@@ -9399,6 +9427,47 @@ type RootTranslation = {
 		 * @param {unknown} error
 		 */
 		failedToTrim: RequiredParams<'error'>;
+		/**
+		 * N​o​i​s​e​ ​r​e​d​u​c​t​i​o​n
+		 */
+		noiseReduction: string;
+		/**
+		 * R​e​d​u​c​e​ ​c​o​n​s​t​a​n​t​ ​b​a​c​k​g​r​o​u​n​d​ ​n​o​i​s​e​ ​i​n​ ​a​n​ ​a​u​d​i​o​ ​c​l​i​p​ ​f​r​o​m​ ​t​h​e​ ​t​i​m​e​l​i​n​e
+		 */
+		noiseReductionDescription: string;
+		/**
+		 * S​E​L​E​C​T​ ​T​I​M​E​L​I​N​E​ ​A​U​D​I​O
+		 */
+		selectTimelineAudio: string;
+		/**
+		 * C​h​o​o​s​e​ ​a​n​ ​a​u​d​i​o​ ​c​l​i​p​.​.​.
+		 */
+		chooseTimelineAudio: string;
+		/**
+		 * A​d​d​ ​a​n​ ​a​u​d​i​o​ ​c​l​i​p​ ​t​o​ ​t​h​e​ ​t​i​m​e​l​i​n​e​ ​f​i​r​s​t​.
+		 */
+		noTimelineAudio: string;
+		/**
+		 * A​ ​c​l​e​a​n​e​d​ ​W​A​V​ ​f​i​l​e​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​p​r​o​j​e​c​t​ ​a​n​d​ ​u​s​e​d​ ​a​s​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​c​l​i​p​ ​s​o​u​r​c​e​.
+		 */
+		noiseReductionResultHint: string;
+		/**
+		 * R​e​d​u​c​e​ ​n​o​i​s​e
+		 */
+		applyNoiseReduction: string;
+		/**
+		 * P​l​e​a​s​e​ ​s​e​l​e​c​t​ ​a​n​ ​a​u​d​i​o​ ​c​l​i​p​ ​f​r​o​m​ ​t​h​e​ ​t​i​m​e​l​i​n​e
+		 */
+		pleaseSelectTimelineAudio: string;
+		/**
+		 * N​o​i​s​e​ ​r​e​d​u​c​e​d​.​ ​T​h​e​ ​s​e​l​e​c​t​e​d​ ​c​l​i​p​ ​n​o​w​ ​u​s​e​s​ ​t​h​e​ ​c​l​e​a​n​e​d​ ​a​u​d​i​o​.
+		 */
+		noiseReductionSuccess: string;
+		/**
+		 * F​a​i​l​e​d​ ​t​o​ ​r​e​d​u​c​e​ ​a​u​d​i​o​ ​n​o​i​s​e​:​ ​{​e​r​r​o​r​}
+		 * @param {unknown} error
+		 */
+		noiseReductionFailed: RequiredParams<'error'>;
 	};
 	status: {
 		/**
@@ -10301,6 +10370,18 @@ type RootTranslation = {
 		 */
 		closeExportMonitor: string;
 		/**
+		 * E​x​p​o​r​t​s​ ​f​o​l​d​e​r​:
+		 */
+		exportFolderSizeLabel: string;
+		/**
+		 * O​p​e​n​ ​e​x​p​o​r​t​s​ ​f​o​l​d​e​r
+		 */
+		openExportFolder: string;
+		/**
+		 * U​n​a​b​l​e​ ​t​o​ ​o​p​e​n​ ​t​h​e​ ​e​x​p​o​r​t​s​ ​f​o​l​d​e​r
+		 */
+		failedToOpenExportFolder: string;
+		/**
 		 * C​a​n​c​e​l​ ​E​x​p​o​r​t
 		 */
 		cancelExport: string;
@@ -10324,6 +10405,10 @@ type RootTranslation = {
 		 * F​a​i​l​e​d​ ​t​o​ ​c​o​p​y​ ​e​r​r​o​r
 		 */
 		failedToCopyError: string;
+		/**
+		 * Y​o​u​r​ ​F​F​m​p​e​g​ ​v​e​r​s​i​o​n​ ​i​s​ ​t​o​o​ ​o​l​d​.​ ​R​u​n​ ​t​h​e​s​e​ ​c​o​m​m​a​n​d​s​,​ ​t​h​e​n​ ​f​u​l​l​y​ ​r​e​s​t​a​r​t​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​:
+		 */
+		ffmpegUpdateHelp: string;
 	};
 };
 
@@ -11790,7 +11875,7 @@ export type TranslationFunctions = {
 		 */
 		transcriptCleanupRemaining: (arg: { remaining: unknown }) => LocalizedString;
 		/**
-		 * With Groq selected, project audio is sent to Groq for transcription; WhisperX keeps it local. Quran matching and final subtitle assembly stay local. Cleaned words and timings are sent only to your configured text AI when available.
+		 * Audio transcription, Quran matching, and final subtitle assembly stay local. Cleaned indexed words, timings, and context metadata are sent only to your configured text AI provider when one is available.
 		 */
 		transcriptionDataPrivacy: () => LocalizedString;
 		/**
@@ -11849,6 +11934,10 @@ export type TranslationFunctions = {
 		 * Are you sure you want to remove this asset from the project?
 		 */
 		removeAssetConfirm: () => LocalizedString;
+		/**
+		 * Are you sure you want to remove the {count} selected assets from the project?
+		 */
+		removeSelectedAssetsConfirm: (arg: { count: unknown }) => LocalizedString;
 		/**
 		 * Also delete file from computer
 		 */
@@ -11945,6 +12034,10 @@ export type TranslationFunctions = {
 		 * You cannot add a background image to the timeline when background images are not supported in this context.
 		 */
 		cannotAddBackgroundImage: () => LocalizedString;
+		/**
+		 * The video track is empty. Use this image as the background for the entire video? Choose No to add it as a regular timeline clip.
+		 */
+		setImageAsFullBackgroundConfirm: () => LocalizedString;
 		/**
 		 * Looping Error
 		 */
@@ -14382,7 +14475,7 @@ export type TranslationFunctions = {
 		 */
 		howItWorksDescription1: () => LocalizedString;
 		/**
-		 * Bold, italic, underline and new line are toggled on the selected range. Color is applied with the current swatch. Editing the translation text later clears translation word styles.
+		 * Bold, italic, underline and new line are toggled on the selected range. Color and glow are applied with their current swatches. Editing the translation text later clears translation word styles.
 		 */
 		howItWorksDescription2: () => LocalizedString;
 		/**
@@ -16584,6 +16677,22 @@ export type TranslationFunctions = {
 		 */
 		startExportDescription: () => LocalizedString;
 		/**
+		 * Warning: your project contains {count} low-confidence subtitle(s).
+		 */
+		exportLowConfidenceReviewWarning: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Warning: your project contains {count} subtitle(s) with missing words.
+		 */
+		exportMissingWordsReviewWarning: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * Warning: your project contains {count} translation(s) that need review.
+		 */
+		exportTranslationReviewWarning: (arg: { count: unknown }) => LocalizedString;
+		/**
+		 * I understand that my video may contain errors if I do not review these issues.
+		 */
+		exportReviewAcknowledgement: () => LocalizedString;
+		/**
 		 * Advanced Settings
 		 */
 		advancedSettings: () => LocalizedString;
@@ -16716,15 +16825,15 @@ export type TranslationFunctions = {
 		 */
 		balanced: () => LocalizedString;
 		/**
-		 * Recommended for final exports. Preserves better quality in high resolution, but takes longer.
+		 * Uses GPU encoding for faster exports, but may cause slight visual distortions.
 		 */
 		balancedDescription: () => LocalizedString;
 		/**
-		 * Low CPU
+		 * Max Quality
 		 */
 		lowCpu: () => LocalizedString;
 		/**
-		 * Limits CPU usage to keep your computer more responsive. Usually the slowest option.
+		 * Guarantees the best quality using CPU-only software encoding, but exports more slowly.
 		 */
 		lowCpuDescription: () => LocalizedString;
 		/**
@@ -19564,6 +19673,46 @@ export type TranslationFunctions = {
 		 * Failed to trim asset: {error}
 		 */
 		failedToTrim: (arg: { error: unknown }) => LocalizedString;
+		/**
+		 * Noise reduction
+		 */
+		noiseReduction: () => LocalizedString;
+		/**
+		 * Reduce constant background noise in an audio clip from the timeline
+		 */
+		noiseReductionDescription: () => LocalizedString;
+		/**
+		 * SELECT TIMELINE AUDIO
+		 */
+		selectTimelineAudio: () => LocalizedString;
+		/**
+		 * Choose an audio clip...
+		 */
+		chooseTimelineAudio: () => LocalizedString;
+		/**
+		 * Add an audio clip to the timeline first.
+		 */
+		noTimelineAudio: () => LocalizedString;
+		/**
+		 * A cleaned WAV file will be added to the project and used as the selected clip source.
+		 */
+		noiseReductionResultHint: () => LocalizedString;
+		/**
+		 * Reduce noise
+		 */
+		applyNoiseReduction: () => LocalizedString;
+		/**
+		 * Please select an audio clip from the timeline
+		 */
+		pleaseSelectTimelineAudio: () => LocalizedString;
+		/**
+		 * Noise reduced. The selected clip now uses the cleaned audio.
+		 */
+		noiseReductionSuccess: () => LocalizedString;
+		/**
+		 * Failed to reduce audio noise: {error}
+		 */
+		noiseReductionFailed: (arg: { error: unknown }) => LocalizedString;
 	};
 	status: {
 		/**
@@ -20455,6 +20604,18 @@ export type TranslationFunctions = {
 		 */
 		closeExportMonitor: () => LocalizedString;
 		/**
+		 * Exports folder:
+		 */
+		exportFolderSizeLabel: () => LocalizedString;
+		/**
+		 * Open exports folder
+		 */
+		openExportFolder: () => LocalizedString;
+		/**
+		 * Unable to open the exports folder
+		 */
+		failedToOpenExportFolder: () => LocalizedString;
+		/**
 		 * Cancel Export
 		 */
 		cancelExport: () => LocalizedString;
@@ -20478,6 +20639,10 @@ export type TranslationFunctions = {
 		 * Failed to copy error
 		 */
 		failedToCopyError: () => LocalizedString;
+		/**
+		 * Your FFmpeg version is too old. Run these commands, then fully restart Quran Caption:
+		 */
+		ffmpegUpdateHelp: () => LocalizedString;
 	};
 };
 

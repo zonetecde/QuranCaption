@@ -57,7 +57,7 @@ export function buildProjectExplorerTree(
 	const availableProjectTypes = Array.from(
 		new Set([...projectTypes, ...projects.map((project) => getProjectType(project))])
 	).sort(
-		(left, right) => Number(left === DEFAULT_PROJECT_TYPE) - Number(right === DEFAULT_PROJECT_TYPE)
+		(left, right) => Number(right === DEFAULT_PROJECT_TYPE) - Number(left === DEFAULT_PROJECT_TYPE)
 	);
 
 	for (const project of projects) {

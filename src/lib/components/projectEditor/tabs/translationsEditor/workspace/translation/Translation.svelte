@@ -520,6 +520,9 @@
 			lineBreak: translationsEditorState().inlineStyleLineBreakEnabled,
 			color: translationsEditorState().inlineStyleColorEnabled
 				? translationsEditorState().inlineStyleColorValue
+				: null,
+			glow: translationsEditorState().inlineStyleGlowEnabled
+				? translationsEditorState().inlineStyleGlowColorValue
 				: null
 		};
 		const wordCount = getStyledWords().length;
@@ -627,7 +630,7 @@
 					<button
 						type="button"
 						class="mx-auto flex items-center gap-1 rounded-full px-2 py-1 text-[10px] text-thirdly opacity-30 transition hover:bg-secondary hover:opacity-100"
-						aria-label={`${$LL.common.add()} ${getFreeTextLabel(anchorIndex, draft().anchors.length)}`}
+						aria-label={`${$LL.translations.add()} ${getFreeTextLabel(anchorIndex, draft().anchors.length)}`}
 						onclick={() => showOptionalFreeText(anchorIndex)}
 					>
 						<span class="material-icons text-sm">add</span>
@@ -838,7 +841,7 @@
 				<button
 					type="button"
 					class="mx-auto flex items-center gap-1 rounded-full px-2 py-1 text-[10px] text-thirdly opacity-30 transition hover:bg-secondary hover:opacity-100"
-					aria-label={`${$LL.common.add()} ${getFreeTextLabel(draft().anchors.length, draft().anchors.length)}`}
+					aria-label={`${$LL.translations.add()} ${getFreeTextLabel(draft().anchors.length, draft().anchors.length)}`}
 					onclick={() => showOptionalFreeText(draft().anchors.length)}
 				>
 					<span class="material-icons text-sm">add</span>

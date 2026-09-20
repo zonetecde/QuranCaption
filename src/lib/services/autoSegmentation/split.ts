@@ -95,13 +95,13 @@ export async function splitSubtitleClipLocally(
 	const splitOffsetS = splitWord.end;
 	const leftWords = originalMetadata.words
 		.filter((word) => {
-			const wordIndex = Number(word.location.split(':')[2]);
+			const wordIndex = word.location ? Number(word.location.split(':')[2]) : NaN;
 			return Number.isFinite(wordIndex) && wordIndex <= splitWordIndex + 1;
 		})
 		.map((word) => ({ ...word }));
 	const rightWords = originalMetadata.words
 		.filter((word) => {
-			const wordIndex = Number(word.location.split(':')[2]);
+			const wordIndex = word.location ? Number(word.location.split(':')[2]) : NaN;
 			return Number.isFinite(wordIndex) && wordIndex > splitWordIndex + 1;
 		})
 		.map((word) => ({

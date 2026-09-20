@@ -1,6 +1,7 @@
 import { getVersion } from '@tauri-apps/api/app';
+import { invoke } from '@tauri-apps/api/core';
 import { relaunch } from '@tauri-apps/plugin-process';
-import { check, type Update } from '@tauri-apps/plugin-updater';
+import { Update } from '@tauri-apps/plugin-updater';
 
 export interface UpdateInfo {
 	hasUpdate: boolean;
@@ -12,8 +13,18 @@ export type UpdateState = 'idle' | 'checking' | 'downloading' | 'installing' | '
 
 type GitHubRelease = {
 	tag_name?: string;
+	draft?: boolean;
 	prerelease?: boolean;
 	body?: string;
+};
+
+type TauriUpdateMetadata = {
+	rid: number;
+	currentVersion: string;
+	version: string;
+	date?: string;
+	body?: string;
+	rawJson: Record<string, unknown>;
 };
 
 const isGitHubRelease = (value: unknown): value is GitHubRelease =>
@@ -45,10 +56,7 @@ class VersionService {
 	// normalise "v1.2.3" -> "1.2.3", garde 3 segments
 	private normalizeVersion(v: string): string {
 		if (!v) return '0.0.0';
-		const s = v
-			.trim()
-			.replace(/^v/i, '')
-			.replace(/^qc[-_]?/i, '');
+		const s = v.trim().replace(/^ms[-_]?/i, '');
 		// garder seulement chiffres séparés par non-chiffres
 		const parts = s
 			.split(/[^0-9]+/)
@@ -77,7 +85,13 @@ class VersionService {
 	 */
 	async checkTauriUpdate(): Promise<Update | null> {
 		try {
-			const update = await check();
+			const updateInfo = this.latestUpdate ?? (await this.checkForUpdates());
+			if (!updateInfo.hasUpdate) return null;
+
+			const metadata = await invoke<TauriUpdateMetadata | null>('check_ms_update', {
+				tag: `MS-${updateInfo.latestVersion}`
+			});
+			const update = metadata ? new Update(metadata) : null;
 			if (update?.available) {
 				this._tauriUpdate = update;
 				return update;
@@ -184,24 +198,24 @@ class VersionService {
 			}
 			const releases = releasesPayload.filter(isGitHubRelease);
 
-			// filtrer seulement les releases qui commencent par "QC-" ou "v" et ne sont pas des pre-releases
-			const qcReleases = releases.filter((r) => {
+			// filtrer seulement les releases Minbar Studio publiées et stables
+			const msReleases = releases.filter((r) => {
 				const tag = r.tag_name || '';
-				return (tag.startsWith('QC-') || tag.startsWith('v')) && !r.prerelease;
+				return !r.draft && !r.prerelease && /^MS-\d+\.\d+\.\d+$/i.test(tag);
 			});
 
-			if (qcReleases.length === 0) {
+			if (msReleases.length === 0) {
 				return { hasUpdate: false, changelog: '', latestVersion: '0.0.0' };
 			}
 
 			// déterminer la version la plus élevée trouvée (au cas où l'ordre GitHub ne suit pas SemVer)
-			const highest = qcReleases.reduce((max: string, r) => {
+			const highest = msReleases.reduce((max: string, r) => {
 				const tag = r.tag_name || '0.0.0';
 				return this.compareSemver(tag, max) === 1 ? tag : max;
-			}, qcReleases[0].tag_name || '0.0.0');
+			}, msReleases[0].tag_name || '0.0.0');
 
 			// filtrer les releases strictement supérieures à la version courante
-			const newer = qcReleases
+			const newer = msReleases
 				.filter((r) => {
 					const tag = r.tag_name || '';
 					return this.compareSemver(tag, currentVersion) === 1;
@@ -218,8 +232,8 @@ class VersionService {
 				})
 				.join('\n\n');
 
-			// extraire la partie numérique du tag le plus élevé (enlever "QC-" ou "v")
-			const latestVersionNumber = highest.replace(/^QC-/i, '').replace(/^v/i, '');
+			// extraire la partie numérique du tag le plus élevé
+			const latestVersionNumber = highest.replace(/^MS-/i, '');
 
 			return {
 				hasUpdate: newer.length > 0,

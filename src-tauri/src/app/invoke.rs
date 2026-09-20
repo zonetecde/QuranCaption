@@ -72,6 +72,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::screenshot::capture_screen_for_color_picker,
         commands::waveform::get_audio_waveform,
         commands::diagnostics::diagnose_media_binaries,
-        commands::stock_media::search_stock_media
+        commands::stock_media::search_stock_media,
+        commands::updater::check_ms_update
     ])
 }

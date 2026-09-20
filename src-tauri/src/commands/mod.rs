@@ -22,5 +22,7 @@ pub mod screenshot;
 pub mod segmentation;
 /// Commandes de recherche de medias stock (Pexels / Pixabay).
 pub mod stock_media;
+/// Commandes de mise à jour de Minbar Studio.
+pub mod updater;
 /// Commandes d'analyse de forme d'onde.
 pub mod waveform;

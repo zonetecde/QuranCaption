@@ -1,12 +1,11 @@
-name: Build & Release
+name: Build & Release Minbar Studio
 
 on:
   workflow_dispatch:
     inputs:
       tag:
         description:
-          'Release tag (e.g. QC-3.4.0). Must match the version in tauri.conf.json (without "v"
-          prefix).'
+          'Minbar Studio release tag (e.g. MS-1.0.0). Must match the version in tauri.conf.json.'
         required: true
         type: string
       prerelease:
@@ -21,7 +20,7 @@ on:
         type: boolean
 
 jobs:
-  build-and-release:
+  build-and-release-minbar:
     strategy:
       fail-fast: false
       matrix:
@@ -29,32 +28,44 @@ jobs:
           - os: macos-latest
             target: aarch64-apple-darwin
             args: '--target aarch64-apple-darwin --bundles app,dmg'
-            assetNamePattern: 'QuranCaption.MacOS.ARM[ext]'
+            assetNamePattern: 'MinbarStudio.MacOS.ARM[ext]'
           - os: macos-15-intel
             target: x86_64-apple-darwin
             args: '--target x86_64-apple-darwin --bundles app,dmg'
-            assetNamePattern: 'QuranCaption.MacOS.Intel[ext]'
+            assetNamePattern: 'MinbarStudio.MacOS.Intel[ext]'
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             args: '--bundles nsis'
-            assetNamePattern: 'QuranCaption.Windows[ext]'
+            assetNamePattern: 'MinbarStudio.Windows[ext]'
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             args: '--bundles appimage,deb'
-            assetNamePattern: 'QuranCaption.Linux[ext]'
+            assetNamePattern: 'MinbarStudio.Linux[ext]'
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Minbar Studio branch
+        uses: actions/checkout@v4
         with:
+          ref: minbar-studio
           lfs: true
 
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+
+      - name: Validate Minbar Studio tag
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          APP_VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          test "$RELEASE_TAG" = "MS-$APP_VERSION" || {
+            echo "Expected tag MS-$APP_VERSION, received $RELEASE_TAG"
+            exit 1
+          }
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -199,11 +210,9 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
           PUBLIC_POSTHOG_KEY: ${{ secrets.PUBLIC_POSTHOG_KEY }}
           PUBLIC_POSTHOG_HOST: ${{ secrets.PUBLIC_POSTHOG_HOST }}
-          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
         with:
           tagName: ${{ inputs.tag }}
-          releaseName: 'Quran Caption ${{ inputs.tag }}'
+          releaseName: 'Minbar Studio ${{ inputs.tag }}'
           releaseBody: 'See the changelog below for details.'
           releaseDraft: ${{ inputs.draft }}
           prerelease: ${{ inputs.prerelease }}

@@ -1279,6 +1279,143 @@ type RootTranslation = {
 		 */
 		aiTranscription: string;
 		/**
+		 * F​a​s​t​ ​A​r​a​b​i​c​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​w​i​t​h​ ​G​r​o​q​ ​a​n​d​ ​w​o​r​d​-​l​e​v​e​l​ ​t​i​m​e​s​t​a​m​p​s​.
+		 */
+		aiTranscriptionGroqDescription: string;
+		/**
+		 * L​o​c​a​l​ ​W​h​i​s​p​e​r​X​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​,​ ​w​o​r​d​ ​a​l​i​g​n​m​e​n​t​,​ ​a​n​d​ ​o​p​t​i​o​n​a​l​ ​s​p​e​a​k​e​r​ ​d​e​t​e​c​t​i​o​n​.
+		 */
+		aiTranscriptionLocalDescription: string;
+		/**
+		 * T​r​a​n​s​c​r​i​p​t​i​o​n​ ​e​n​g​i​n​e
+		 */
+		transcriptionEngine: string;
+		/**
+		 * G​r​o​q​ ​C​l​o​u​d
+		 */
+		groqCloud: string;
+		/**
+		 * R​e​c​o​m​m​e​n​d​e​d
+		 */
+		groqRecommended: string;
+		/**
+		 * F​a​s​t​ ​W​h​i​s​p​e​r​ ​L​a​r​g​e​ ​V​3​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​.​ ​A​u​d​i​o​ ​i​s​ ​s​e​n​t​ ​s​e​c​u​r​e​l​y​ ​t​o​ ​G​r​o​q​ ​a​n​d​ ​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​ ​a​r​e​ ​r​e​t​u​r​n​e​d​ ​d​i​r​e​c​t​l​y​.
+		 */
+		groqProviderDescription: string;
+		/**
+		 * W​h​i​s​p​e​r​X​ ​l​o​c​a​l
+		 */
+		localWhisperX: string;
+		/**
+		 * K​e​e​p​s​ ​a​u​d​i​o​ ​o​n​ ​t​h​i​s​ ​c​o​m​p​u​t​e​r​.​ ​A​ ​G​P​U​ ​i​s​ ​r​e​c​o​m​m​e​n​d​e​d​;​ ​C​P​U​ ​p​r​o​c​e​s​s​i​n​g​ ​c​a​n​ ​b​e​ ​m​u​c​h​ ​s​l​o​w​e​r​.
+		 */
+		localWhisperXProviderDescription: string;
+		/**
+		 * G​r​o​q​ ​A​P​I​ ​k​e​y
+		 */
+		groqApiKeyTitle: string;
+		/**
+		 * E​a​c​h​ ​u​s​e​r​ ​c​a​n​ ​c​r​e​a​t​e​ ​a​ ​f​r​e​e​ ​k​e​y​ ​w​i​t​h​o​u​t​ ​e​n​t​e​r​i​n​g​ ​a​ ​p​a​y​m​e​n​t​ ​c​a​r​d​.​ ​T​h​e​ ​k​e​y​ ​i​s​ ​s​t​o​r​e​d​ ​i​n​ ​t​h​e​ ​o​p​e​r​a​t​i​n​g​ ​s​y​s​t​e​m​ ​s​e​c​u​r​e​ ​v​a​u​l​t​.
+		 */
+		groqApiKeyDescription: string;
+		/**
+		 * H​o​w​ ​t​o​ ​g​e​t​ ​y​o​u​r​ ​f​r​e​e​ ​k​e​y
+		 */
+		groqApiKeyTutorialTitle: string;
+		/**
+		 * C​r​e​a​t​e​ ​o​r​ ​s​i​g​n​ ​i​n​ ​t​o​ ​a​ ​G​r​o​q​C​l​o​u​d​ ​a​c​c​o​u​n​t​.
+		 */
+		groqApiKeyTutorialAccount: string;
+		/**
+		 * O​p​e​n​ ​A​P​I​ ​K​e​y​s​ ​a​n​d​ ​s​e​l​e​c​t​ ​C​r​e​a​t​e​ ​A​P​I​ ​K​e​y​.
+		 */
+		groqApiKeyTutorialCreate: string;
+		/**
+		 * C​o​p​y​ ​t​h​e​ ​k​e​y​ ​o​n​c​e​,​ ​t​h​e​n​ ​p​a​s​t​e​ ​i​t​ ​b​e​l​o​w​.
+		 */
+		groqApiKeyTutorialPaste: string;
+		/**
+		 * O​p​e​n​ ​G​r​o​q​ ​A​P​I​ ​K​e​y​s
+		 */
+		groqOpenApiKeys: string;
+		/**
+		 * G​r​o​q​ ​A​P​I​ ​k​e​y
+		 */
+		groqApiKeyLabel: string;
+		/**
+		 * E​n​t​e​r​ ​a​ ​G​r​o​q​ ​A​P​I​ ​k​e​y​ ​t​o​ ​c​o​n​t​i​n​u​e​.
+		 */
+		groqApiKeyRequired: string;
+		/**
+		 * T​h​e​ ​k​e​y​ ​i​s​ ​s​t​o​r​e​d​ ​s​e​c​u​r​e​l​y​ ​o​n​ ​t​h​i​s​ ​c​o​m​p​u​t​e​r​.
+		 */
+		groqApiKeyStored: string;
+		/**
+		 * G​r​o​q​ ​r​e​j​e​c​t​e​d​ ​t​h​i​s​ ​A​P​I​ ​k​e​y​.​ ​C​h​e​c​k​ ​i​t​ ​o​r​ ​c​r​e​a​t​e​ ​a​ ​n​e​w​ ​o​n​e​.
+		 */
+		groqInvalidApiKey: string;
+		/**
+		 * T​h​e​ ​f​r​e​e​ ​G​r​o​q​ ​u​s​a​g​e​ ​l​i​m​i​t​ ​h​a​s​ ​b​e​e​n​ ​r​e​a​c​h​e​d​.​ ​T​r​y​ ​a​g​a​i​n​ ​a​f​t​e​r​ ​t​h​e​ ​q​u​o​t​a​ ​r​e​s​e​t​s​ ​o​r​ ​u​s​e​ ​W​h​i​s​p​e​r​X​ ​l​o​c​a​l​.
+		 */
+		groqRateLimitReached: string;
+		/**
+		 * T​h​e​ ​p​r​e​p​a​r​e​d​ ​a​u​d​i​o​ ​e​x​c​e​e​d​s​ ​G​r​o​q​’​s​ ​2​5​ ​M​B​ ​f​r​e​e​-​t​i​e​r​ ​l​i​m​i​t​.​ ​U​s​e​ ​W​h​i​s​p​e​r​X​ ​l​o​c​a​l​ ​f​o​r​ ​t​h​i​s​ ​p​r​o​j​e​c​t​.
+		 */
+		groqFileTooLarge: string;
+		/**
+		 * G​r​o​q​ ​d​i​d​ ​n​o​t​ ​r​e​t​u​r​n​ ​t​h​e​ ​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​ ​r​e​q​u​i​r​e​d​ ​f​o​r​ ​i​n​t​e​l​l​i​g​e​n​t​ ​s​u​b​t​i​t​l​e​s​.
+		 */
+		groqWordTimestampsMissing: string;
+		/**
+		 * G​r​o​q​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​f​a​i​l​e​d​:​ ​{​e​r​r​o​r​}
+		 * @param {unknown} error
+		 */
+		groqRequestFailed: RequiredParams<'error'>;
+		/**
+		 * P​r​e​p​a​r​i​n​g​ ​a​u​d​i​o​ ​f​o​r​ ​G​r​o​q​.​.​.
+		 */
+		groqPreparingAudio: string;
+		/**
+		 * T​r​a​n​s​c​r​i​b​i​n​g​ ​w​i​t​h​ ​G​r​o​q​ ​W​h​i​s​p​e​r​ ​L​a​r​g​e​ ​V​3​.​.​.
+		 */
+		groqTranscribing: string;
+		/**
+		 * P​r​e​p​a​r​i​n​g​ ​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​.​.​.
+		 */
+		groqPreparingTimestamps: string;
+		/**
+		 * G​r​o​q​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​c​o​m​p​l​e​t​e​d​.
+		 */
+		groqTranscriptionCompleted: string;
+		/**
+		 * T​h​e​ ​s​p​e​e​c​h​-​t​o​-​t​e​x​t​ ​p​r​o​v​i​d​e​r​ ​r​e​t​u​r​n​e​d​ ​a​n​ ​i​n​v​a​l​i​d​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​r​e​s​u​l​t​.
+		 */
+		transcriptionInvalidResponse: string;
+		/**
+		 * N​o​ ​t​r​a​n​s​c​r​i​b​a​b​l​e​ ​s​p​e​e​c​h​ ​w​a​s​ ​d​e​t​e​c​t​e​d​ ​i​n​ ​t​h​e​ ​p​r​o​j​e​c​t​ ​a​u​d​i​o​.
+		 */
+		transcriptionNoSpeech: string;
+		/**
+		 * G​r​o​q​ ​p​r​o​v​i​d​e​s​ ​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​ ​b​u​t​ ​n​o​t​ ​s​p​e​a​k​e​r​ ​d​e​t​e​c​t​i​o​n​.​ ​S​e​l​e​c​t​ ​W​h​i​s​p​e​r​X​ ​l​o​c​a​l​ ​w​h​e​n​ ​t​h​e​ ​a​u​d​i​o​ ​c​o​n​t​a​i​n​s​ ​m​u​l​t​i​p​l​e​ ​s​p​e​a​k​e​r​s​.
+		 */
+		groqSingleSpeakerNotice: string;
+		/**
+		 * C​l​o​u​d​ ​p​r​o​c​e​s​s​i​n​g
+		 */
+		groqProcessingLabel: string;
+		/**
+		 * G​r​o​q​ ​W​h​i​s​p​e​r​ ​L​a​r​g​e​ ​V​3​ ​w​i​l​l​ ​t​r​a​n​s​c​r​i​b​e​ ​t​h​e​ ​A​r​a​b​i​c​ ​a​u​d​i​o​ ​a​n​d​ ​r​e​t​u​r​n​ ​t​i​m​e​s​t​a​m​p​s​ ​f​o​r​ ​e​v​e​r​y​ ​a​v​a​i​l​a​b​l​e​ ​w​o​r​d​.
+		 */
+		groqTranscriptionDescription: string;
+		/**
+		 * G​r​o​q​ ​t​r​e​a​t​s​ ​t​h​i​s​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​a​s​ ​o​n​e​ ​v​o​i​c​e​.​ ​C​h​o​o​s​e​ ​t​h​e​ ​s​p​e​a​k​e​r​ ​n​a​m​e​ ​b​e​f​o​r​e​ ​a​d​d​i​n​g​ ​t​h​e​ ​s​u​b​t​i​t​l​e​s​.
+		 */
+		groqSpeakerResultDescription: string;
+		/**
+		 * p​y​a​n​n​o​t​e​ ​r​e​c​o​g​n​i​z​e​s​ ​r​e​c​u​r​r​i​n​g​ ​v​o​i​c​e​s​ ​b​u​t​ ​n​o​t​ ​t​h​e​i​r​ ​r​e​a​l​ ​n​a​m​e​s​.​ ​A​s​s​i​g​n​ ​e​a​c​h​ ​d​e​t​e​c​t​e​d​ ​v​o​i​c​e​ ​b​e​f​o​r​e​ ​a​d​d​i​n​g​ ​t​h​e​ ​s​u​b​t​i​t​l​e​s​.
+		 */
+		localSpeakerResultDescription: string;
+		/**
 		 * T​h​e​ ​a​u​d​i​o​ ​m​u​s​t​ ​b​e​ ​e​n​t​i​r​e​l​y​ ​i​n​ ​A​r​a​b​i​c​.
 		 */
 		arabicAudioRequired: string;
@@ -11505,6 +11642,142 @@ export type TranslationFunctions = {
 		 * AI transcription
 		 */
 		aiTranscription: () => LocalizedString;
+		/**
+		 * Fast Arabic transcription with Groq and word-level timestamps.
+		 */
+		aiTranscriptionGroqDescription: () => LocalizedString;
+		/**
+		 * Local WhisperX transcription, word alignment, and optional speaker detection.
+		 */
+		aiTranscriptionLocalDescription: () => LocalizedString;
+		/**
+		 * Transcription engine
+		 */
+		transcriptionEngine: () => LocalizedString;
+		/**
+		 * Groq Cloud
+		 */
+		groqCloud: () => LocalizedString;
+		/**
+		 * Recommended
+		 */
+		groqRecommended: () => LocalizedString;
+		/**
+		 * Fast Whisper Large V3 transcription. Audio is sent securely to Groq and word timestamps are returned directly.
+		 */
+		groqProviderDescription: () => LocalizedString;
+		/**
+		 * WhisperX local
+		 */
+		localWhisperX: () => LocalizedString;
+		/**
+		 * Keeps audio on this computer. A GPU is recommended; CPU processing can be much slower.
+		 */
+		localWhisperXProviderDescription: () => LocalizedString;
+		/**
+		 * Groq API key
+		 */
+		groqApiKeyTitle: () => LocalizedString;
+		/**
+		 * Each user can create a free key without entering a payment card. The key is stored in the operating system secure vault.
+		 */
+		groqApiKeyDescription: () => LocalizedString;
+		/**
+		 * How to get your free key
+		 */
+		groqApiKeyTutorialTitle: () => LocalizedString;
+		/**
+		 * Create or sign in to a GroqCloud account.
+		 */
+		groqApiKeyTutorialAccount: () => LocalizedString;
+		/**
+		 * Open API Keys and select Create API Key.
+		 */
+		groqApiKeyTutorialCreate: () => LocalizedString;
+		/**
+		 * Copy the key once, then paste it below.
+		 */
+		groqApiKeyTutorialPaste: () => LocalizedString;
+		/**
+		 * Open Groq API Keys
+		 */
+		groqOpenApiKeys: () => LocalizedString;
+		/**
+		 * Groq API key
+		 */
+		groqApiKeyLabel: () => LocalizedString;
+		/**
+		 * Enter a Groq API key to continue.
+		 */
+		groqApiKeyRequired: () => LocalizedString;
+		/**
+		 * The key is stored securely on this computer.
+		 */
+		groqApiKeyStored: () => LocalizedString;
+		/**
+		 * Groq rejected this API key. Check it or create a new one.
+		 */
+		groqInvalidApiKey: () => LocalizedString;
+		/**
+		 * The free Groq usage limit has been reached. Try again after the quota resets or use WhisperX local.
+		 */
+		groqRateLimitReached: () => LocalizedString;
+		/**
+		 * The prepared audio exceeds Groq’s 25 MB free-tier limit. Use WhisperX local for this project.
+		 */
+		groqFileTooLarge: () => LocalizedString;
+		/**
+		 * Groq did not return the word timestamps required for intelligent subtitles.
+		 */
+		groqWordTimestampsMissing: () => LocalizedString;
+		/**
+		 * Groq transcription failed: {error}
+		 */
+		groqRequestFailed: (arg: { error: unknown }) => LocalizedString;
+		/**
+		 * Preparing audio for Groq...
+		 */
+		groqPreparingAudio: () => LocalizedString;
+		/**
+		 * Transcribing with Groq Whisper Large V3...
+		 */
+		groqTranscribing: () => LocalizedString;
+		/**
+		 * Preparing word timestamps...
+		 */
+		groqPreparingTimestamps: () => LocalizedString;
+		/**
+		 * Groq transcription completed.
+		 */
+		groqTranscriptionCompleted: () => LocalizedString;
+		/**
+		 * The speech-to-text provider returned an invalid transcription result.
+		 */
+		transcriptionInvalidResponse: () => LocalizedString;
+		/**
+		 * No transcribable speech was detected in the project audio.
+		 */
+		transcriptionNoSpeech: () => LocalizedString;
+		/**
+		 * Groq provides word timestamps but not speaker detection. Select WhisperX local when the audio contains multiple speakers.
+		 */
+		groqSingleSpeakerNotice: () => LocalizedString;
+		/**
+		 * Cloud processing
+		 */
+		groqProcessingLabel: () => LocalizedString;
+		/**
+		 * Groq Whisper Large V3 will transcribe the Arabic audio and return timestamps for every available word.
+		 */
+		groqTranscriptionDescription: () => LocalizedString;
+		/**
+		 * Groq treats this transcription as one voice. Choose the speaker name before adding the subtitles.
+		 */
+		groqSpeakerResultDescription: () => LocalizedString;
+		/**
+		 * pyannote recognizes recurring voices but not their real names. Assign each detected voice before adding the subtitles.
+		 */
+		localSpeakerResultDescription: () => LocalizedString;
 		/**
 		 * The audio must be entirely in Arabic.
 		 */

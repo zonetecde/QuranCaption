@@ -199,6 +199,43 @@ def release_device_memory() -> None:
         pass
 
 
+def resolve_cpu_thread_count() -> int:
+    """Return PyTorch's hardware-aware CPU thread count for Whisper inference."""
+    import torch
+
+    return max(1, torch.get_num_threads())
+
+
+def should_run_diarization(min_speakers: int | None, max_speakers: int | None) -> bool:
+    """Return whether the requested speaker range requires voice diarization."""
+    return any(value is not None and value > 1 for value in (min_speakers, max_speakers))
+
+
+def build_fixed_audio_chunks(
+    audio_duration: float, max_duration: float = 30.0
+) -> list[tuple[float, float]]:
+    """Split audio into bounded chunks when speaker diarization is disabled."""
+    chunks: list[tuple[float, float]] = []
+    start = 0.0
+    while start < audio_duration:
+        end = min(audio_duration, start + max_duration)
+        chunks.append((start, end))
+        start = end
+    return chunks
+
+
+def assign_single_speaker(aligned: dict[str, Any]) -> dict[str, Any]:
+    """Assign the default speaker to aligned segments and words in place."""
+    for segment in aligned.get("segments") or []:
+        if not isinstance(segment, dict):
+            continue
+        segment["speaker"] = "SPEAKER_00"
+        for word in segment.get("words") or []:
+            if isinstance(word, dict):
+                word["speaker"] = "SPEAKER_00"
+    return aligned
+
+
 def format_download_size(value: int | float | None) -> str:
     """Format a model download byte count for compact progress messages."""
     size = max(0.0, float(value or 0))
@@ -380,6 +417,7 @@ def run_pipeline(args: argparse.Namespace, selected_device: str, token: str) -> 
     language = "ar"
     batch_size = max(1, args.batch_size)
     use_qwen = args.model == QWEN_MODEL_OPTION
+    run_diarization = should_run_diarization(args.min_speakers, args.max_speakers)
     audio = whisperx.load_audio(args.audio_path)
 
     diarization_kwargs: dict[str, int] = {}
@@ -389,7 +427,7 @@ def run_pipeline(args: argparse.Namespace, selected_device: str, token: str) -> 
         diarization_kwargs["max_speakers"] = args.max_speakers
 
     diarized_segments = None
-    if use_qwen:
+    if use_qwen and run_diarization:
         emit_status("Detecting speech regions and speaker voices...", 8)
         diarization = DiarizationPipeline(token=token, device=selected_device)
         diarized_segments = diarization(
@@ -402,10 +440,16 @@ def run_pipeline(args: argparse.Namespace, selected_device: str, token: str) -> 
         del diarization
         release_device_memory()
 
-        chunks = build_diarization_chunks(
-            diarized_segments,
-            len(audio) / AUDIO_SAMPLE_RATE,
-            max_gap=ASR_CHUNK_MAX_GAP_SECONDS,
+    if use_qwen:
+        audio_duration = len(audio) / AUDIO_SAMPLE_RATE
+        chunks = (
+            build_diarization_chunks(
+                diarized_segments,
+                audio_duration,
+                max_gap=ASR_CHUNK_MAX_GAP_SECONDS,
+            )
+            if diarized_segments is not None
+            else build_fixed_audio_chunks(audio_duration)
         )
         result = {
             "segments": transcribe_qwen_chunks(args, audio, chunks, selected_device),
@@ -418,6 +462,7 @@ def run_pipeline(args: argparse.Namespace, selected_device: str, token: str) -> 
             selected_device,
             compute_type=compute_type,
             language=language,
+            threads=resolve_cpu_thread_count() if selected_device == "cpu" else 4,
         )
 
         emit_status("Transcribing speech...", 22)
@@ -466,7 +511,7 @@ def run_pipeline(args: argparse.Namespace, selected_device: str, token: str) -> 
         }
         release_device_memory()
 
-    if diarized_segments is None:
+    if run_diarization and diarized_segments is None:
         emit_status("Detecting and matching speaker voices...", 72)
         diarization = DiarizationPipeline(token=token, device=selected_device)
         diarized_segments = diarization(
@@ -478,10 +523,14 @@ def run_pipeline(args: argparse.Namespace, selected_device: str, token: str) -> 
         )
         del diarization
         release_device_memory()
-    else:
+    elif diarized_segments is not None:
         emit_status("Matching aligned words to detected voices...", 89)
 
-    with_speakers = whisperx.assign_word_speakers(diarized_segments, aligned, fill_nearest=True)
+    with_speakers = (
+        whisperx.assign_word_speakers(diarized_segments, aligned, fill_nearest=True)
+        if diarized_segments is not None
+        else assign_single_speaker(aligned)
+    )
 
     emit_status("Transcription completed.", 91)
     transcript_segments = serialize_transcript_segments(
@@ -533,6 +582,7 @@ def run_clip_transcription(args: argparse.Namespace, selected_device: str) -> di
             selected_device,
             compute_type=compute_type,
             language=None if language == "auto" else language,
+            threads=resolve_cpu_thread_count() if selected_device == "cpu" else 4,
         )
         emit_status("Retranscribing subtitle audio...", 45)
         result = model.transcribe(audio, batch_size=max(1, args.batch_size))
@@ -657,7 +707,12 @@ def main() -> None:
         or os.environ.get("HUGGING_FACE_HUB_TOKEN")
         or ""
     ).strip()
-    if not token and not args.align_segments_json and not args.clip_only:
+    if (
+        not token
+        and not args.align_segments_json
+        and not args.clip_only
+        and should_run_diarization(args.min_speakers, args.max_speakers)
+    ):
         fail(
             "A Hugging Face read token is required for pyannote speaker diarization. "
             "Accept the pyannote/speaker-diarization-community-1 conditions first."

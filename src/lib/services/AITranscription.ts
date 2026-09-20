@@ -13,6 +13,8 @@ import {
 	UNASSIGNED_SPEAKER
 } from '$lib/services/SpeakerLibrary';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 
 export type AITranscriptionRuntimeStatus = {
 	ready: boolean;
@@ -65,6 +67,48 @@ export type SubtitleRetranscriptionCandidate = {
 };
 
 const SUBTITLE_RETRANSCRIPTION_PADDING_MS = 150;
+const GROQ_API_KEY_STORAGE_KEY = 'groq_api_key';
+
+/**
+ * Charge la clé Groq depuis le coffre-fort du système.
+ * @returns {Promise<string>} Clé enregistrée ou chaîne vide.
+ */
+export async function loadGroqApiKey(): Promise<string> {
+	return (
+		((await invoke('quran_auth_secure_get', { key: GROQ_API_KEY_STORAGE_KEY })) as string | null) ??
+		''
+	);
+}
+
+/**
+ * Sauvegarde ou supprime la clé Groq dans le coffre-fort du système.
+ * @param {string} apiKey Clé saisie par l'utilisateur.
+ * @returns {Promise<void>} Promesse résolue après la mise à jour.
+ */
+export async function saveGroqApiKey(apiKey: string): Promise<void> {
+	const value = apiKey.trim();
+	if (!value) {
+		await invoke('quran_auth_secure_delete', { key: GROQ_API_KEY_STORAGE_KEY });
+		return;
+	}
+	await invoke('quran_auth_secure_set', { key: GROQ_API_KEY_STORAGE_KEY, value });
+}
+
+/**
+ * Traduit les erreurs stables du backend Groq en message affichable.
+ * @param {unknown} error Erreur reçue via IPC.
+ * @returns {Error} Erreur localisée pour l'interface.
+ */
+function localizeGroqError(error: unknown): Error {
+	const message = error instanceof Error ? error.message : String(error);
+	const copy = get(LL).editor;
+	if (message.includes('GROQ_AUTHENTICATION_FAILED')) return new Error(copy.groqInvalidApiKey());
+	if (message.includes('GROQ_RATE_LIMIT_REACHED')) return new Error(copy.groqRateLimitReached());
+	if (message.includes('GROQ_FILE_TOO_LARGE')) return new Error(copy.groqFileTooLarge());
+	if (message.includes('GROQ_WORD_TIMESTAMPS_MISSING'))
+		return new Error(copy.groqWordTimestampsMissing());
+	return new Error(copy.groqRequestFailed({ error: message }));
+}
 
 export async function checkAITranscriptionStatus(): Promise<AITranscriptionRuntimeStatus> {
 	return (await invoke('check_ai_transcription_ready')) as AITranscriptionRuntimeStatus;
@@ -78,35 +122,53 @@ export async function installAITranscriptionRuntime(hfToken: string): Promise<vo
 }
 
 export async function runAITranscription(
-	settings: AITranscriptionSettings
+	settings: AITranscriptionSettings,
+	groqApiKey = ''
 ): Promise<AITranscriptionResult> {
 	const clips = getAutoSegmentationAudioClips();
 	if (clips.length === 0) throw new Error('No audio clip is available on the project timeline.');
-	if (!settings.hfToken.trim()) {
-		throw new Error('A Hugging Face read token is required for speaker detection.');
-	}
+	const audioClips = clips.map((clip) => ({
+		path: clip.filePath,
+		startMs: clip.startMs,
+		endMs: clip.endMs
+	}));
 
-	const response = (await invoke('transcribe_audio_local_whisperx', {
-		audioPath: clips.length === 1 ? clips[0].filePath : undefined,
-		audioClips: clips.map((clip) => ({
-			path: clip.filePath,
-			startMs: clip.startMs,
-			endMs: clip.endMs
-		})),
-		model: settings.model,
-		language: 'ar',
-		device: settings.device,
-		hfToken: settings.hfToken,
-		minSpeakers: settings.minSpeakers ?? undefined,
-		maxSpeakers: settings.maxSpeakers ?? undefined,
-		batchSize: settings.batchSize
-	})) as AITranscriptionResult;
+	let response: AITranscriptionResult;
+	if (settings.provider === 'groq') {
+		if (!groqApiKey.trim()) throw new Error(get(LL).editor.groqApiKeyRequired());
+		try {
+			response = (await invoke('transcribe_audio_groq', {
+				audioPath: clips.length === 1 ? clips[0].filePath : undefined,
+				audioClips,
+				apiKey: groqApiKey.trim()
+			})) as AITranscriptionResult;
+		} catch (error) {
+			throw localizeGroqError(error);
+		}
+	} else {
+		const diarizationEnabled = (settings.minSpeakers ?? 1) > 1 || (settings.maxSpeakers ?? 1) > 1;
+		if (diarizationEnabled && !settings.hfToken.trim()) {
+			throw new Error('A Hugging Face read token is required for speaker detection.');
+		}
+
+		response = (await invoke('transcribe_audio_local_whisperx', {
+			audioPath: clips.length === 1 ? clips[0].filePath : undefined,
+			audioClips,
+			model: settings.model,
+			language: 'ar',
+			device: settings.device,
+			hfToken: settings.hfToken,
+			minSpeakers: settings.minSpeakers ?? undefined,
+			maxSpeakers: settings.maxSpeakers ?? undefined,
+			batchSize: settings.batchSize
+		})) as AITranscriptionResult;
+	}
 
 	if (!Array.isArray(response.segments)) {
-		throw new Error('WhisperX returned an invalid transcription result.');
+		throw new Error(get(LL).editor.transcriptionInvalidResponse());
 	}
 	if (response.segments.length === 0) {
-		throw new Error('WhisperX did not detect any transcribable speech in the project audio.');
+		throw new Error(get(LL).editor.transcriptionNoSpeech());
 	}
 	return response;
 }

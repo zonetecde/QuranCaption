@@ -24,8 +24,10 @@
 		buildDefaultSpeakerMap,
 		checkAITranscriptionStatus,
 		installAITranscriptionRuntime,
+		loadGroqApiKey,
 		runAITranscription,
 		saveAITranscriptionSettings,
+		saveGroqApiKey,
 		type AITranscriptionResult,
 		type AITranscriptionRuntimeStatus,
 		type SpeakerNameMap
@@ -42,6 +44,10 @@
 
 	let { close, cleanupOnly = false } = $props<{ close: () => void; cleanupOnly?: boolean }>();
 	const settings = globalState.settings!.aiTranscriptionSettings;
+	const diarizationEnabled = $derived(
+		settings.provider === 'local' &&
+			((settings.minSpeakers ?? 1) > 1 || (settings.maxSpeakers ?? 1) > 1)
+	);
 	const steps = [
 		{ label: 'Setup', icon: 'download' },
 		{ label: 'Model & speakers', icon: 'tune' },
@@ -77,6 +83,13 @@
 	let cleanupBatchStreams = $state<Record<string, AIStreamBatchState>>({});
 	let semanticBatchStreams = $state<Record<string, AIStreamBatchState>>({});
 	let advancedSubtitleSettingsOpen = $state(false);
+	let groqApiKey = $state('');
+	let groqApiKeyLoading = $state(true);
+	const setupReady = $derived(
+		settings.provider === 'groq'
+			? Boolean(groqApiKey.trim()) && !groqApiKeyLoading
+			: Boolean(runtimeStatus?.ready && (!diarizationEnabled || settings.hfToken.trim()))
+	);
 
 	/**
 	 * Sauvegarde le mode de raisonnement propre au nettoyage du transcript.
@@ -155,6 +168,31 @@
 		settings.subtitleLengthPreset = 'custom';
 	}
 
+	/**
+	 * Sélectionne le fournisseur STT et prépare son écran de configuration.
+	 * @param {'groq' | 'local'} provider Fournisseur choisi.
+	 * @returns {Promise<void>} Promesse résolue après la sauvegarde.
+	 */
+	async function selectTranscriptionProvider(provider: 'groq' | 'local'): Promise<void> {
+		settings.provider = provider;
+		errorMessage = '';
+		await saveAITranscriptionSettings();
+		if (provider === 'local' && !runtimeStatus) await refreshRuntime();
+	}
+
+	/**
+	 * Enregistre la clé Groq saisie dans le coffre-fort du système.
+	 * @returns {Promise<void>} Promesse résolue après la sauvegarde.
+	 */
+	async function persistGroqApiKey(): Promise<void> {
+		try {
+			await saveGroqApiKey(groqApiKey);
+			errorMessage = '';
+		} catch (error) {
+			errorMessage = error instanceof Error ? error.message : String(error);
+		}
+	}
+
 	async function refreshRuntime(): Promise<void> {
 		checkingRuntime = true;
 		errorMessage = '';
@@ -191,25 +229,32 @@
 	}
 
 	async function startTranscription(): Promise<void> {
-		if (running || !runtimeStatus?.ready || !settings.hfToken.trim()) return;
+		if (running || !setupReady || !audioAvailable) return;
 		running = true;
 		result = null;
 		cleanupCompleted = false;
 		cleanupErrors = [];
 		speakerMap = {};
 		errorMessage = '';
-		runMessage = 'Preparing audio...';
+		runMessage =
+			settings.provider === 'groq' ? get(LL).editor.groqPreparingAudio() : 'Preparing audio...';
 		progress = 0;
 		await saveAITranscriptionSettings();
-		statusUnlisten = await listen<{ message?: string; progress?: number }>(
+		statusUnlisten = await listen<{ message?: string; phase?: string; progress?: number }>(
 			'segmentation-status',
 			(event) => {
-				if (event.payload.message) runMessage = event.payload.message;
+				const groqMessages: Record<string, string> = {
+					groq_prepare: get(LL).editor.groqPreparingAudio(),
+					groq_transcribe: get(LL).editor.groqTranscribing(),
+					groq_timestamps: get(LL).editor.groqPreparingTimestamps(),
+					groq_complete: get(LL).editor.groqTranscriptionCompleted()
+				};
+				runMessage = groqMessages[event.payload.phase ?? ''] ?? event.payload.message ?? runMessage;
 				if (typeof event.payload.progress === 'number') progress = event.payload.progress;
 			}
 		);
 		try {
-			const transcription = await runAITranscription(settings);
+			const transcription = await runAITranscription(settings, groqApiKey);
 			runMessage = get(LL).editor.matchingQuranPassages();
 			progress = 100;
 			await tick();
@@ -659,8 +704,9 @@
 	}
 
 	function canGoNext(): boolean {
-		if (currentStep === 0) return Boolean(runtimeStatus?.ready && settings.hfToken.trim());
-		if (currentStep === 1) return Boolean(settings.hfToken.trim() && audioAvailable);
+		if (currentStep === 0) return setupReady;
+		if (currentStep === 1)
+			return Boolean((!diarizationEnabled || settings.hfToken.trim()) && audioAvailable);
 		if (currentStep === 2) return Boolean(result);
 		return false;
 	}
@@ -672,7 +718,13 @@
 	onMount(() => {
 		if (!settings.subtitleLengthPreset) applySubtitleLengthPreset('balanced');
 		if (cleanupOnly) initializeCleanupOnly();
-		else void refreshRuntime();
+		else {
+			void loadGroqApiKey()
+				.then((value) => (groqApiKey = value))
+				.catch((error) => (errorMessage = error instanceof Error ? error.message : String(error)))
+				.finally(() => (groqApiKeyLoading = false));
+			if (settings.provider === 'local') void refreshRuntime();
+		}
 	});
 	onDestroy(() => {
 		statusUnlisten?.();
@@ -690,9 +742,11 @@
 			<span class="material-icons text-2xl text-accent-primary">auto_awesome</span>
 		</div>
 		<div>
-			<h2 class="text-xl font-bold text-primary">AI transcription</h2>
+			<h2 class="text-xl font-bold text-primary">{$LL.editor.aiTranscription()}</h2>
 			<p class="text-xs text-secondary">
-				WhisperX transcription, word alignment and pyannote speaker detection
+				{settings.provider === 'groq'
+					? $LL.editor.aiTranscriptionGroqDescription()
+					: $LL.editor.aiTranscriptionLocalDescription()}
 			</p>
 		</div>
 		<button
@@ -729,91 +783,170 @@
 				{#if currentStep === 0}
 					<section class="space-y-5">
 						<div>
-							<h3 class="text-lg font-bold text-primary">Local runtime setup</h3>
-							<p class="mt-1 text-sm text-secondary">
-								Minbar Studio installs its own Python 3.12 environment, WhisperX, pyannote and the
-								appropriate PyTorch build. The user's system Python is not required.
-							</p>
+							<h3 class="text-lg font-bold text-primary">{$LL.editor.transcriptionEngine()}</h3>
 						</div>
-						<div
-							class={`rounded-xl border p-5 ${runtimeStatus?.ready ? 'border-green-500/40 bg-green-500/10' : 'border-color bg-primary'}`}
-						>
-							<div class="flex items-center gap-4">
-								<span
-									class="material-icons text-3xl {runtimeStatus?.ready
-										? 'text-green-400'
-										: 'text-secondary'}"
-									>{runtimeStatus?.ready ? 'check_circle' : 'download_for_offline'}</span
-								>
-								<div class="min-w-0 flex-1">
-									<p class="font-semibold text-primary">
-										{$LL.editor.aiTranscription()} · {runtimeStatus?.ready
-											? $LL.common.done()
-											: $LL.common.required()}
-									</p>
-									<p class="mt-1 text-xs text-secondary">
-										{checkingRuntime
-											? 'Checking local runtime...'
-											: (runtimeStatus?.message ?? 'Runtime status has not been checked yet.')}
-									</p>
+						<div class="grid gap-3 md:grid-cols-2">
+							<button
+								type="button"
+								aria-pressed={settings.provider === 'groq'}
+								class={`cursor-pointer rounded-xl border p-4 text-left transition ${settings.provider === 'groq' ? 'border-accent-primary bg-accent-primary/15' : 'border-color bg-primary hover:border-accent-primary/50'}`}
+								onclick={() => void selectTranscriptionProvider('groq')}
+							>
+								<div class="flex items-center justify-between gap-3">
+									<span class="font-semibold text-primary">{$LL.editor.groqCloud()}</span>
+									<span
+										class="rounded-full bg-accent-primary/15 px-2 py-0.5 text-[10px] font-semibold text-accent-primary"
+									>
+										{$LL.editor.groqRecommended()}
+									</span>
 								</div>
-								{#if !runtimeStatus?.ready}
+								<p class="mt-2 text-xs leading-relaxed text-secondary">
+									{$LL.editor.groqProviderDescription()}
+								</p>
+							</button>
+							<button
+								type="button"
+								aria-pressed={settings.provider === 'local'}
+								class={`cursor-pointer rounded-xl border p-4 text-left transition ${settings.provider === 'local' ? 'border-accent-primary bg-accent-primary/15' : 'border-color bg-primary hover:border-accent-primary/50'}`}
+								onclick={() => void selectTranscriptionProvider('local')}
+							>
+								<span class="font-semibold text-primary">{$LL.editor.localWhisperX()}</span>
+								<p class="mt-2 text-xs leading-relaxed text-secondary">
+									{$LL.editor.localWhisperXProviderDescription()}
+								</p>
+							</button>
+						</div>
+						{#if settings.provider === 'groq'}
+							<div class="rounded-xl border border-color bg-primary p-5">
+								<h4 class="font-semibold text-primary">{$LL.editor.groqApiKeyTitle()}</h4>
+								<p class="mt-1 text-xs leading-relaxed text-secondary">
+									{$LL.editor.groqApiKeyDescription()}
+								</p>
+								<div class="mt-4 rounded-lg bg-secondary p-4">
+									<p class="text-sm font-semibold text-primary">
+										{$LL.editor.groqApiKeyTutorialTitle()}
+									</p>
+									<ol class="mt-2 list-inside list-decimal space-y-1 text-xs text-secondary">
+										<li>{$LL.editor.groqApiKeyTutorialAccount()}</li>
+										<li>{$LL.editor.groqApiKeyTutorialCreate()}</li>
+										<li>{$LL.editor.groqApiKeyTutorialPaste()}</li>
+									</ol>
 									<button
 										type="button"
-										class="btn-accent inline-flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
-										onclick={() => void installRuntime()}
-										disabled={installing || checkingRuntime}
+										class="btn mt-3 cursor-pointer px-3 py-2 text-xs"
+										onclick={() => void openUrl('https://console.groq.com/keys')}
 									>
-										<span class="material-icons text-lg">download</span>
-										{installing ? 'Installing...' : 'Install automatically'}
+										{$LL.editor.groqOpenApiKeys()}
 									</button>
+								</div>
+								<label class="mt-4 block space-y-2">
+									<span class="text-sm font-semibold text-primary"
+										>{$LL.editor.groqApiKeyLabel()}</span
+									>
+									<input
+										type="password"
+										class="w-full rounded-lg border border-color bg-secondary px-3 py-2.5 text-primary outline-none focus:border-[var(--accent-primary)]"
+										bind:value={groqApiKey}
+										placeholder="gsk_..."
+										disabled={groqApiKeyLoading}
+										onchange={() => void persistGroqApiKey()}
+									/>
+								</label>
+								<p class="mt-2 text-xs {groqApiKey.trim() ? 'text-green-400' : 'text-yellow-300'}">
+									{groqApiKey.trim()
+										? $LL.editor.groqApiKeyStored()
+										: $LL.editor.groqApiKeyRequired()}
+								</p>
+							</div>
+						{:else}
+							<div>
+								<h3 class="text-lg font-bold text-primary">Local runtime setup</h3>
+								<p class="mt-1 text-sm text-secondary">
+									Minbar Studio installs its own Python 3.12 environment, WhisperX, pyannote and the
+									appropriate PyTorch build. The user's system Python is not required.
+								</p>
+							</div>
+							<div
+								class={`rounded-xl border p-5 ${runtimeStatus?.ready ? 'border-green-500/40 bg-green-500/10' : 'border-color bg-primary'}`}
+							>
+								<div class="flex items-center gap-4">
+									<span
+										class="material-icons text-3xl {runtimeStatus?.ready
+											? 'text-green-400'
+											: 'text-secondary'}"
+										>{runtimeStatus?.ready ? 'check_circle' : 'download_for_offline'}</span
+									>
+									<div class="min-w-0 flex-1">
+										<p class="font-semibold text-primary">
+											{$LL.editor.aiTranscription()} · {runtimeStatus?.ready
+												? $LL.common.done()
+												: $LL.common.required()}
+										</p>
+										<p class="mt-1 text-xs text-secondary">
+											{checkingRuntime
+												? 'Checking local runtime...'
+												: (runtimeStatus?.message ?? 'Runtime status has not been checked yet.')}
+										</p>
+									</div>
+									{#if !runtimeStatus?.ready}
+										<button
+											type="button"
+											class="btn-accent inline-flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
+											onclick={() => void installRuntime()}
+											disabled={installing || checkingRuntime}
+										>
+											<span class="material-icons text-lg">download</span>
+											{installing ? 'Installing...' : 'Install automatically'}
+										</button>
+									{/if}
+								</div>
+								{#if installMessage}<p
+										class="mt-4 rounded-lg bg-secondary px-3 py-2 font-mono text-xs text-secondary"
+									>
+										{installMessage}
+									</p>{/if}
+							</div>
+							<div class="rounded-xl border border-color bg-primary p-5">
+								<h4 class="font-semibold text-primary">Hugging Face access</h4>
+								<p class="mt-1 text-xs leading-relaxed text-secondary">
+									Speaker detection uses the gated pyannote Community-1 model. Accept its
+									conditions, create a read token, then paste it below. The token is stored in
+									Minbar Studio settings and passed only to Hugging Face libraries.
+								</p>
+								<div class="mt-4 flex flex-wrap gap-2">
+									<button
+										type="button"
+										class="btn cursor-pointer px-3 py-2 text-xs"
+										onclick={() =>
+											void openUrl(
+												'https://huggingface.co/pyannote/speaker-diarization-community-1'
+											)}>Accept model conditions</button
+									>
+									<button
+										type="button"
+										class="btn cursor-pointer px-3 py-2 text-xs"
+										onclick={() =>
+											void openUrl('https://huggingface.co/settings/tokens/new?tokenType=read')}
+										>Create read token</button
+									>
+								</div>
+								<label class="mt-4 block space-y-2">
+									<span class="text-sm font-semibold text-primary">Hugging Face read token</span>
+									<input
+										type="password"
+										class="w-full rounded-lg border border-color bg-secondary px-3 py-2.5 text-primary outline-none focus:border-[var(--accent-primary)]"
+										bind:value={settings.hfToken}
+										placeholder="hf_..."
+										onchange={() => void saveAITranscriptionSettings()}
+									/>
+								</label>
+								{#if diarizationEnabled && !settings.hfToken.trim()}
+									<p class="mt-2 text-xs text-yellow-300">
+										Enter a read token to continue to transcription settings.
+									</p>
 								{/if}
 							</div>
-							{#if installMessage}<p
-									class="mt-4 rounded-lg bg-secondary px-3 py-2 font-mono text-xs text-secondary"
-								>
-									{installMessage}
-								</p>{/if}
-						</div>
-						<div class="rounded-xl border border-color bg-primary p-5">
-							<h4 class="font-semibold text-primary">Hugging Face access</h4>
-							<p class="mt-1 text-xs leading-relaxed text-secondary">
-								Speaker detection uses the gated pyannote Community-1 model. Accept its conditions,
-								create a read token, then paste it below. The token is stored in Minbar Studio
-								settings and passed only to Hugging Face libraries.
-							</p>
-							<div class="mt-4 flex flex-wrap gap-2">
-								<button
-									type="button"
-									class="btn cursor-pointer px-3 py-2 text-xs"
-									onclick={() =>
-										void openUrl('https://huggingface.co/pyannote/speaker-diarization-community-1')}
-									>Accept model conditions</button
-								>
-								<button
-									type="button"
-									class="btn cursor-pointer px-3 py-2 text-xs"
-									onclick={() =>
-										void openUrl('https://huggingface.co/settings/tokens/new?tokenType=read')}
-									>Create read token</button
-								>
-							</div>
-							<label class="mt-4 block space-y-2">
-								<span class="text-sm font-semibold text-primary">Hugging Face read token</span>
-								<input
-									type="password"
-									class="w-full rounded-lg border border-color bg-secondary px-3 py-2.5 text-primary outline-none focus:border-[var(--accent-primary)]"
-									bind:value={settings.hfToken}
-									placeholder="hf_..."
-									onchange={() => void saveAITranscriptionSettings()}
-								/>
-							</label>
-							{#if !settings.hfToken.trim()}
-								<p class="mt-2 text-xs text-yellow-300">
-									Enter a read token to continue to transcription settings.
-								</p>
-							{/if}
-						</div>
+						{/if}
 					</section>
 				{:else if currentStep === 1}
 					<section class="space-y-6">
@@ -828,61 +961,79 @@
 								{$LL.editor.arabicAudioRequired()}
 							</p>
 						</div>
-						<div class="grid gap-5 md:grid-cols-2">
-							<label class="space-y-2"
-								><span class="text-sm font-semibold text-primary">{$LL.aiVideo.model()}</span
-								><select
-									class="w-full rounded-lg border border-color bg-primary px-3 py-2.5 text-primary"
-									bind:value={settings.model}
-									><option value="qwen3-asr-1.7b"
-										>Qwen3-ASR 1.7B — {$LL.editor.bestLocalAccuracy()}</option
-									><option value="small">Small — fastest</option><option value="medium"
-										>Medium — recommended</option
-									><option value="large-v3">Large v3 — highest quality</option><option
-										value="large-v3-turbo">Large v3 Turbo</option
-									></select
-								></label
+						{#if settings.provider === 'groq'}
+							<div class="grid gap-3 md:grid-cols-2">
+								<div class="rounded-xl border border-color bg-primary p-4">
+									<p class="text-xs text-secondary">{$LL.aiVideo.model()}</p>
+									<p class="mt-1 font-semibold text-primary">Whisper Large V3</p>
+								</div>
+								<div class="rounded-xl border border-color bg-primary p-4">
+									<p class="text-xs text-secondary">{$LL.editor.groqProcessingLabel()}</p>
+									<p class="mt-1 font-semibold text-primary">{$LL.editor.groqCloud()}</p>
+								</div>
+							</div>
+							<p
+								class="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 text-sm text-blue-200"
 							>
-							<label class="space-y-2"
-								><span class="text-sm font-semibold text-primary">Device</span><select
-									class="w-full rounded-lg border border-color bg-primary px-3 py-2.5 text-primary"
-									bind:value={settings.device}
-									><option value="AUTO">Automatic — GPU with CPU fallback</option><option
-										value="GPU">GPU preferred</option
-									><option value="CPU">CPU</option></select
-								></label
-							>
-							<label class="space-y-2"
-								><span class="text-sm font-semibold text-primary"
-									>Minimum speakers <span class="font-normal text-thirdly">(optional)</span></span
-								><input
-									type="number"
-									min="1"
-									max="20"
-									class="w-full rounded-lg border border-color bg-primary px-3 py-2.5 text-primary"
-									value={settings.minSpeakers ?? ''}
-									oninput={(event) =>
-										(settings.minSpeakers = event.currentTarget.value
-											? Number(event.currentTarget.value)
-											: null)}
-								/></label
-							>
-							<label class="space-y-2"
-								><span class="text-sm font-semibold text-primary"
-									>Maximum speakers <span class="font-normal text-thirdly">(optional)</span></span
-								><input
-									type="number"
-									min="1"
-									max="20"
-									class="w-full rounded-lg border border-color bg-primary px-3 py-2.5 text-primary"
-									value={settings.maxSpeakers ?? ''}
-									oninput={(event) =>
-										(settings.maxSpeakers = event.currentTarget.value
-											? Number(event.currentTarget.value)
-											: null)}
-								/></label
-							>
-						</div>
+								{$LL.editor.groqSingleSpeakerNotice()}
+							</p>
+						{:else}
+							<div class="grid gap-5 md:grid-cols-2">
+								<label class="space-y-2"
+									><span class="text-sm font-semibold text-primary">{$LL.aiVideo.model()}</span
+									><select
+										class="w-full rounded-lg border border-color bg-primary px-3 py-2.5 text-primary"
+										bind:value={settings.model}
+										><option value="qwen3-asr-1.7b"
+											>Qwen3-ASR 1.7B — {$LL.editor.bestLocalAccuracy()}</option
+										><option value="small">Small — fastest</option><option value="medium"
+											>Medium — recommended</option
+										><option value="large-v3">Large v3 — highest quality</option><option
+											value="large-v3-turbo">Large v3 Turbo</option
+										></select
+									></label
+								>
+								<label class="space-y-2"
+									><span class="text-sm font-semibold text-primary">Device</span><select
+										class="w-full rounded-lg border border-color bg-primary px-3 py-2.5 text-primary"
+										bind:value={settings.device}
+										><option value="AUTO">Automatic — GPU with CPU fallback</option><option
+											value="GPU">GPU preferred</option
+										><option value="CPU">CPU</option></select
+									></label
+								>
+								<label class="space-y-2"
+									><span class="text-sm font-semibold text-primary"
+										>Minimum speakers <span class="font-normal text-thirdly">(optional)</span></span
+									><input
+										type="number"
+										min="1"
+										max="20"
+										class="w-full rounded-lg border border-color bg-primary px-3 py-2.5 text-primary"
+										value={settings.minSpeakers ?? ''}
+										oninput={(event) =>
+											(settings.minSpeakers = event.currentTarget.value
+												? Number(event.currentTarget.value)
+												: null)}
+									/></label
+								>
+								<label class="space-y-2"
+									><span class="text-sm font-semibold text-primary"
+										>Maximum speakers <span class="font-normal text-thirdly">(optional)</span></span
+									><input
+										type="number"
+										min="1"
+										max="20"
+										class="w-full rounded-lg border border-color bg-primary px-3 py-2.5 text-primary"
+										value={settings.maxSpeakers ?? ''}
+										oninput={(event) =>
+											(settings.maxSpeakers = event.currentTarget.value
+												? Number(event.currentTarget.value)
+												: null)}
+									/></label
+								>
+							</div>
+						{/if}
 						<div class="rounded-xl border border-color bg-primary p-5">
 							<div class="flex items-start justify-between gap-4">
 								<div>
@@ -1010,15 +1161,20 @@
 						<div>
 							<h3 class="text-lg font-bold text-primary">Transcribe the project audio</h3>
 							<p class="mt-1 text-sm text-secondary">
-								WhisperX will transcribe speech, align every available word and pyannote will
-								cluster the different voices.
+								{settings.provider === 'groq'
+									? $LL.editor.groqTranscriptionDescription()
+									: $LL.editor.aiTranscriptionLocalDescription()}
 							</p>
 						</div>
 						<div class="grid gap-3 sm:grid-cols-3">
 							<div class="rounded-xl bg-primary p-4">
 								<p class="text-xs text-secondary">Model</p>
 								<p class="mt-1 font-semibold text-primary">
-									{settings.model === 'qwen3-asr-1.7b' ? 'Qwen3-ASR 1.7B' : settings.model}
+									{settings.provider === 'groq'
+										? 'Whisper Large V3'
+										: settings.model === 'qwen3-asr-1.7b'
+											? 'Qwen3-ASR 1.7B'
+											: settings.model}
 								</p>
 							</div>
 							<div class="rounded-xl bg-primary p-4">
@@ -1028,7 +1184,9 @@
 							<div class="rounded-xl bg-primary p-4">
 								<p class="text-xs text-secondary">Speaker range</p>
 								<p class="mt-1 font-semibold text-primary">
-									{settings.minSpeakers ?? '?'}–{settings.maxSpeakers ?? '?'}
+									{settings.provider === 'groq'
+										? '1'
+										: `${settings.minSpeakers ?? '?'}–${settings.maxSpeakers ?? '?'}`}
 								</p>
 							</div>
 						</div>
@@ -1053,7 +1211,7 @@
 								type="button"
 								class="btn-accent inline-flex cursor-pointer items-center gap-2 rounded-lg px-5 py-3 font-semibold disabled:opacity-50"
 								onclick={() => void startTranscription()}
-								disabled={!runtimeStatus?.ready || !settings.hfToken.trim() || !audioAvailable}
+								disabled={!setupReady || !audioAvailable}
 								><span class="material-icons">auto_awesome</span>Start transcription</button
 							>
 						{/if}
@@ -1063,8 +1221,9 @@
 						<div>
 							<h3 class="text-lg font-bold text-primary">Match detected voices</h3>
 							<p class="mt-1 text-sm text-secondary">
-								pyannote recognizes recurring voices but not their real names. Assign each detected
-								voice before adding the subtitles.
+								{settings.provider === 'groq'
+									? $LL.editor.groqSpeakerResultDescription()
+									: $LL.editor.localSpeakerResultDescription()}
 							</p>
 						</div>
 						<div class="grid gap-3 sm:grid-cols-3">

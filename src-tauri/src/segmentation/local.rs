@@ -637,13 +637,17 @@ pub async fn transcribe_audio_local_whisperx(
     max_speakers: Option<u32>,
     batch_size: Option<u32>,
 ) -> Result<serde_json::Value, String> {
+    let run_diarization =
+        min_speakers.is_some_and(|value| value > 1) || max_speakers.is_some_and(|value| value > 1);
     let token = hf_token
         .as_ref()
         .map(|value| value.trim())
-        .filter(|value| !value.is_empty())
-        .ok_or_else(|| {
-            "A Hugging Face read token is required for pyannote speaker diarization.".to_string()
-        })?;
+        .filter(|value| !value.is_empty());
+    if run_diarization && token.is_none() {
+        return Err(
+            "A Hugging Face read token is required for pyannote speaker diarization.".to_string(),
+        );
+    }
 
     let selected_model = model.unwrap_or_else(|| "qwen3-asr-1.7b".to_string());
     let selected_language = "ar".to_string();
@@ -688,7 +692,7 @@ pub async fn transcribe_audio_local_whisperx(
         None,
         None,
         extra_args,
-        Some(token.to_string()),
+        token.map(str::to_string),
         None,
         None,
     )

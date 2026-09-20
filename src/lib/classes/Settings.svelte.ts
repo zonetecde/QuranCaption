@@ -61,6 +61,7 @@ export type AutoSegmentationSettings = {
 };
 
 export type AITranscriptionSettings = {
+	provider: 'groq' | 'local';
 	model: 'small' | 'medium' | 'large-v3' | 'large-v3-turbo' | 'qwen3-asr-1.7b';
 	language: string;
 	device: 'AUTO' | 'GPU' | 'CPU';
@@ -210,6 +211,7 @@ export default class Settings extends SerializableBase {
 	});
 
 	aiTranscriptionSettings = $state<AITranscriptionSettings>({
+		provider: 'groq',
 		model: 'qwen3-asr-1.7b',
 		language: 'ar',
 		device: 'AUTO',
@@ -756,6 +758,10 @@ export default class Settings extends SerializableBase {
 		}
 		if (settings.aiTranscriptionSettings.language !== 'ar') {
 			settings.aiTranscriptionSettings.language = 'ar';
+			shouldSave = true;
+		}
+		if (!['groq', 'local'].includes(settings.aiTranscriptionSettings.provider)) {
+			settings.aiTranscriptionSettings.provider = 'groq';
 			shouldSave = true;
 		}
 		const legacyTranscriptionSettings =

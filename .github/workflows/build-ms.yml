@@ -58,6 +58,7 @@ jobs:
           node-version: '18'
 
       - name: Validate Minbar Studio tag
+        shell: bash
         env:
           RELEASE_TAG: ${{ inputs.tag }}
         run: |

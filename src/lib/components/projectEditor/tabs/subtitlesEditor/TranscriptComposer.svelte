@@ -8,10 +8,12 @@
 		getVisibleProjectSpeakers,
 		requestProjectSpeakerRemoval
 	} from '$lib/services/SpeakerLibrary';
-	import { onDestroy, tick } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 	import StructuredTranscriptEditor from './transcriptComposer/StructuredTranscriptEditor.svelte';
+	import ShortcutService from '$lib/services/ShortcutService';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	// État d'orchestration du segment actif; le brouillon structuré appartient au composant enfant.
 	let transcriptText = $state('');
@@ -67,6 +69,29 @@
 		loadedEditId = null;
 		transcriptText = '';
 		void tick().then(() => transcriptInput?.focus());
+	}
+
+	/**
+	 * Ouvre ou ferme l'édition du sous-titre situé sous le curseur timeline.
+	 *
+	 * @returns {void}
+	 */
+	function handleEditSubtitleShortcut(): void {
+		ProjectHistoryManager.track('edit subtitle shortcut', () => {
+			const subtitleTrack = globalState.getSubtitleTrack;
+			const clipUnderCursor = subtitleTrack.getCurrentClip(
+				globalState.getTimelineState.cursorPosition
+			);
+			if (!(clipUnderCursor instanceof SubtitleClip)) return;
+			const clip = clipUnderCursor;
+
+			if (editorState().editSubtitle?.id === clip.id) {
+				editorState().editSubtitle = null;
+				return;
+			}
+
+			editorState().editSubtitle = clip;
+		});
 	}
 
 	async function submitTranscript(): Promise<void> {
@@ -166,6 +191,18 @@
 		temporarySpeedShortcutActive = false;
 		globalState.getVideoPreviewState.setTemporaryPlaybackSpeed(false);
 	}
+
+	onMount(() => {
+		const shortcut = globalState.settings?.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE;
+		if (!shortcut) return;
+
+		ShortcutService.registerShortcut({
+			key: shortcut,
+			onKeyDown: handleEditSubtitleShortcut
+		});
+
+		return () => ShortcutService.unregisterShortcut(shortcut);
+	});
 
 	onDestroy(() => {
 		if (temporarySpeedShortcutActive) {

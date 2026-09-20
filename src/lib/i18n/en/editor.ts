@@ -45,6 +45,52 @@ const editor = {
 	transcriptCannotBeEmpty: 'Transcript text cannot be empty.',
 	speakerCannotBeEmpty: 'Please select or enter a speaker.',
 	aiTranscription: 'AI transcription',
+	aiTranscriptionGroqDescription: 'Fast Arabic transcription with Groq and word-level timestamps.',
+	aiTranscriptionLocalDescription:
+		'Local WhisperX transcription, word alignment, and optional speaker detection.',
+	transcriptionEngine: 'Transcription engine',
+	groqCloud: 'Groq Cloud',
+	groqRecommended: 'Recommended',
+	groqProviderDescription:
+		'Fast Whisper Large V3 transcription. Audio is sent securely to Groq and word timestamps are returned directly.',
+	localWhisperX: 'WhisperX local',
+	localWhisperXProviderDescription:
+		'Keeps audio on this computer. A GPU is recommended; CPU processing can be much slower.',
+	groqApiKeyTitle: 'Groq API key',
+	groqApiKeyDescription:
+		'Each user can create a free key without entering a payment card. The key is stored in the operating system secure vault.',
+	groqApiKeyTutorialTitle: 'How to get your free key',
+	groqApiKeyTutorialAccount: 'Create or sign in to a GroqCloud account.',
+	groqApiKeyTutorialCreate: 'Open API Keys and select Create API Key.',
+	groqApiKeyTutorialPaste: 'Copy the key once, then paste it below.',
+	groqOpenApiKeys: 'Open Groq API Keys',
+	groqApiKeyLabel: 'Groq API key',
+	groqApiKeyRequired: 'Enter a Groq API key to continue.',
+	groqApiKeyStored: 'The key is stored securely on this computer.',
+	groqInvalidApiKey: 'Groq rejected this API key. Check it or create a new one.',
+	groqRateLimitReached:
+		'The free Groq usage limit has been reached. Try again after the quota resets or use WhisperX local.',
+	groqFileTooLarge:
+		'The prepared audio exceeds Groq’s 25 MB free-tier limit. Use WhisperX local for this project.',
+	groqWordTimestampsMissing:
+		'Groq did not return the word timestamps required for intelligent subtitles.',
+	groqRequestFailed: 'Groq transcription failed: {error}',
+	groqPreparingAudio: 'Preparing audio for Groq...',
+	groqTranscribing: 'Transcribing with Groq Whisper Large V3...',
+	groqPreparingTimestamps: 'Preparing word timestamps...',
+	groqTranscriptionCompleted: 'Groq transcription completed.',
+	transcriptionInvalidResponse:
+		'The speech-to-text provider returned an invalid transcription result.',
+	transcriptionNoSpeech: 'No transcribable speech was detected in the project audio.',
+	groqSingleSpeakerNotice:
+		'Groq provides word timestamps but not speaker detection. Select WhisperX local when the audio contains multiple speakers.',
+	groqProcessingLabel: 'Cloud processing',
+	groqTranscriptionDescription:
+		'Groq Whisper Large V3 will transcribe the Arabic audio and return timestamps for every available word.',
+	groqSpeakerResultDescription:
+		'Groq treats this transcription as one voice. Choose the speaker name before adding the subtitles.',
+	localSpeakerResultDescription:
+		'pyannote recognizes recurring voices but not their real names. Assign each detected voice before adding the subtitles.',
 	arabicAudioRequired: 'The audio must be entirely in Arabic.',
 	matchingQuranPassages: 'Matching Quran passages...',
 	transcriptCleanupStep: 'Prepare transcript',
@@ -73,7 +119,7 @@ const editor = {
 		'Run the optional AI cleanup now, or resume a cleanup saved with this project.',
 	transcriptCleanupRemaining: '{remaining} batch(es) remaining',
 	transcriptionDataPrivacy:
-		'Audio transcription, Quran matching, and final subtitle assembly stay local. Cleaned indexed words, timings, and context metadata are sent only to your configured text AI provider when one is available.',
+		'With Groq selected, project audio is sent to Groq for transcription; WhisperX keeps it local. Quran matching and final subtitle assembly stay local. Cleaned words and timings are sent only to your configured text AI when available.',
 	subtitleLengthShort: 'Short',
 	subtitleLengthShortDescription: 'Short subtitles with more frequent natural changes.',
 	subtitleLengthMedium: 'Medium',

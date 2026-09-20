@@ -4,6 +4,7 @@ pub mod types;
 mod audio_merge;
 mod cloud;
 mod data_files;
+mod groq;
 mod hifz;
 mod install;
 mod local;
@@ -15,6 +16,7 @@ pub use cloud::{
     estimate_duration, mfa_timestamps_session, preload_audio, preload_audio_recitations,
     preload_recitations, preload_segments, segment_quran_audio,
 };
+pub use groq::transcribe_audio_groq;
 pub use hifz::{generate_hifz_audio, GeneratedHifzAudio};
 pub use install::install_local_segmentation_deps;
 pub use local::{

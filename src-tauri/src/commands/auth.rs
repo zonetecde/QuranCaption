@@ -3,13 +3,14 @@ use keyring::{Entry, Error as KeyringError};
 const SERVICE_NAME: &str = "MinbarStudio";
 const SESSION_KEY: &str = "quran_auth_session";
 const PENDING_VERIFIER_KEY: &str = "quran_auth_pending_verifier";
+const GROQ_API_KEY: &str = "groq_api_key";
 const SESSION_CHUNK_KEY_PREFIX: &str = "quran_auth_session__chunk_";
 const CHUNKED_SENTINEL_PREFIX: &str = "__chunked__:";
 const MAX_SECURE_VALUE_UTF16_LEN: usize = 2_000;
 
 fn normalize_key(key: &str) -> Result<String, String> {
     match key {
-        SESSION_KEY | PENDING_VERIFIER_KEY => Ok(key.to_string()),
+        SESSION_KEY | PENDING_VERIFIER_KEY | GROQ_API_KEY => Ok(key.to_string()),
         _ if key.starts_with(SESSION_CHUNK_KEY_PREFIX) => Ok(key.to_string()),
         _ => Err("Unsupported secure storage key".to_string()),
     }
@@ -140,4 +141,18 @@ pub fn quran_auth_secure_delete(key: String) -> Result<(), String> {
     let existing_base_value = get_single_secure_value(&key)?;
     clear_chunked_session_parts_if_needed(existing_base_value.as_deref())?;
     delete_single_secure_value(&key)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_key;
+
+    /// Vérifie que la clé Groq possède un emplacement autorisé dans le coffre-fort système.
+    #[test]
+    fn accepts_groq_api_key_storage() {
+        assert_eq!(
+            normalize_key("groq_api_key").expect("Groq storage key should be allowed"),
+            "groq_api_key"
+        );
+    }
 }

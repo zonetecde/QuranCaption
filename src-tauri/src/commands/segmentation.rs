@@ -247,6 +247,17 @@ pub async fn transcribe_audio_local_whisperx(
     .await
 }
 
+/// Transcrit l'audio arabe via Groq Whisper Large V3 avec timestamps mot à mot.
+#[tauri::command]
+pub async fn transcribe_audio_groq(
+    app_handle: tauri::AppHandle,
+    audio_path: Option<String>,
+    audio_clips: Option<Vec<SegmentationAudioClip>>,
+    api_key: String,
+) -> Result<serde_json::Value, String> {
+    segmentation::transcribe_audio_groq(app_handle, audio_path, audio_clips, api_key).await
+}
+
 /// Retranscrit localement une seule plage de sous-titre avec le modèle demandé.
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]

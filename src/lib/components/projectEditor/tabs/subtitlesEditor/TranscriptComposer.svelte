@@ -8,7 +8,7 @@
 		getVisibleProjectSpeakers,
 		requestProjectSpeakerRemoval
 	} from '$lib/services/SpeakerLibrary';
-	import { onDestroy, onMount, tick } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 	import StructuredTranscriptEditor from './transcriptComposer/StructuredTranscriptEditor.svelte';
@@ -18,7 +18,6 @@
 	// État d'orchestration du segment actif; le brouillon structuré appartient au composant enfant.
 	let transcriptText = $state('');
 	let loadedEditId: number | null = $state(null);
-	let transcriptInput: HTMLTextAreaElement | null = $state(null);
 
 	const editorState = $derived(() => globalState.getSubtitlesEditorState);
 	const editedTranscript = $derived(() => {
@@ -40,7 +39,6 @@
 			loadedEditId = clip.id;
 			transcriptText = clip.text;
 			editorState().selectedSpeaker = clip.speaker;
-			void tick().then(() => transcriptInput?.focus());
 			return;
 		}
 
@@ -52,15 +50,12 @@
 
 	function selectSpeaker(value: string): void {
 		editorState().selectedSpeaker = value.trim();
-		void tick().then(() => transcriptInput?.focus());
 	}
 
 	async function deleteSpeaker(event: MouseEvent, value: string): Promise<void> {
 		event.preventDefault();
 		event.stopPropagation();
 		await requestProjectSpeakerRemoval(value);
-		await tick();
-		transcriptInput?.focus();
 	}
 
 	function cancelEditing(): void {
@@ -68,7 +63,6 @@
 		editorState().pendingSplitEditNextId = null;
 		loadedEditId = null;
 		transcriptText = '';
-		void tick().then(() => transcriptInput?.focus());
 	}
 
 	/**
@@ -125,14 +119,18 @@
 		loadedEditId = null;
 		transcriptText = '';
 		editorState().selectedSpeaker = normalizedSpeaker;
-		await tick();
-		transcriptInput?.focus();
 	}
 
 	// Les raccourcis de lecture restent au niveau du composeur afin de couvrir tous ses champs.
 	let temporarySpeedShortcutActive = false;
 
 	function handleComposerKeydown(event: KeyboardEvent): void {
+		if (event.key === 'Escape' && editedTranscript()) {
+			event.preventDefault();
+			cancelEditing();
+			return;
+		}
+
 		if (
 			event.key === 'Enter' &&
 			editedTranscript() &&
@@ -256,7 +254,6 @@
 	{#key loadedEditId}
 		<StructuredTranscriptEditor
 			bind:value={transcriptText}
-			bind:input={transcriptInput}
 			isEditing={Boolean(editedTranscript())}
 			onCancelEditing={cancelEditing}
 			onSubmit={submitTranscript}

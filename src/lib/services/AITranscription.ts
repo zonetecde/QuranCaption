@@ -249,6 +249,76 @@ export function buildDefaultSpeakerMap(result: AITranscriptionResult): SpeakerNa
 	);
 }
 
+/**
+ * Trie les segments valides et décale leur début après la fin du segment précédent.
+ *
+ * @param {AITranscriptionSegment[]} segments Segments retournés par le moteur de transcription.
+ * @returns {AITranscriptionSegment[]} Copies ordonnées sans chevauchement à la milliseconde.
+ */
+export function normalizeAITranscriptionSegments(
+	segments: AITranscriptionSegment[]
+): AITranscriptionSegment[] {
+	let previousEndMs = -1;
+	return [...segments]
+		.sort((left, right) => Number(left.start) - Number(right.start))
+		.flatMap((segment) => {
+			const rawStartMs = Math.round(Number(segment.start) * 1000);
+			const endMs = Math.round(Number(segment.end) * 1000);
+			const startMs = Math.max(0, rawStartMs, previousEndMs + 1);
+			if (
+				!segment.text?.trim() ||
+				!Number.isFinite(rawStartMs) ||
+				!Number.isFinite(endMs) ||
+				endMs <= startMs
+			) {
+				return [];
+			}
+			previousEndMs = endMs;
+			return [{ ...segment, start: startMs / 1000, end: endMs / 1000 }];
+		});
+}
+
+/**
+ * Ajoute les marges d'affichage autour des silences tout en conservant un intervalle vide.
+ *
+ * @param {AITranscriptionSegment[]} segments Segments ordonnés avec leurs bornes vocales réelles.
+ * @param {number} endPaddingMs Durée maximale ajoutée après le dernier mot.
+ * @param {number} startLeadMs Durée maximale ajoutée avant le premier mot suivant.
+ * @returns {AITranscriptionSegment[]} Copies avec marges d'affichage et au moins 1 ms de silence.
+ */
+export function padAITranscriptionSilences(
+	segments: AITranscriptionSegment[],
+	endPaddingMs: number,
+	startLeadMs: number
+): AITranscriptionSegment[] {
+	const padded = segments.map((segment) => ({ ...segment }));
+	if (padded.length === 0) return padded;
+	const normalizedEndPaddingMs = Math.max(0, Math.round(endPaddingMs));
+	const normalizedStartLeadMs = Math.max(0, Math.round(startLeadMs));
+	const firstStartMs = Math.round(Number(segments[0].start) * 1000);
+	const firstLeadMs = Math.min(normalizedStartLeadMs, Math.max(0, firstStartMs - 1));
+	padded[0].start = (firstStartMs - firstLeadMs) / 1000;
+
+	for (let index = 0; index < segments.length - 1; index += 1) {
+		const currentEndMs = Math.round(Number(segments[index].end) * 1000);
+		const nextStartMs = Math.round(Number(segments[index + 1].start) * 1000);
+		const availableSilenceMs = nextStartMs - currentEndMs - 1;
+		if (availableSilenceMs <= 0) continue;
+		const appliedEndPaddingMs = Math.min(
+			normalizedEndPaddingMs,
+			Math.max(0, availableSilenceMs - 1)
+		);
+		const appliedStartLeadMs = Math.min(
+			normalizedStartLeadMs,
+			Math.max(0, availableSilenceMs - appliedEndPaddingMs - 1)
+		);
+		padded[index].end = (currentEndMs + appliedEndPaddingMs) / 1000;
+		padded[index + 1].start = (nextStartMs - appliedStartLeadMs) / 1000;
+	}
+
+	return padded;
+}
+
 export function applyAITranscription(
 	result: AITranscriptionResult,
 	speakerMap: SpeakerNameMap,
@@ -256,7 +326,12 @@ export function applyAITranscription(
 	replaceClipIds: number[] = []
 ): AppliedAITranscription {
 	const track = globalState.getSubtitleTrack;
-	const generated = result.segments
+	const transcriptionSettings = globalState.settings?.aiTranscriptionSettings;
+	const generated = padAITranscriptionSilences(
+		normalizeAITranscriptionSegments(result.segments),
+		transcriptionSettings?.subtitleEndPaddingMs ?? 250,
+		transcriptionSettings?.subtitleStartLeadMs ?? 150
+	)
 		.map((segment) => {
 			const startMs = Math.max(0, Math.round(Number(segment.start) * 1000));
 			const endMs = Math.max(startMs + 1, Math.round(Number(segment.end) * 1000));
@@ -275,24 +350,15 @@ export function applyAITranscription(
 				buildAlignmentMetadata(segment)
 			);
 		})
-		.filter((clip): clip is SubtitleClip => clip !== null)
-		.sort((a, b) => a.startTime - b.startTime);
+		.filter((clip): clip is SubtitleClip => clip !== null);
 
 	if (generated.length === 0) {
 		throw new Error('The AI transcription result does not contain any valid subtitle segment.');
 	}
-	for (const [index, clip] of generated.slice(0, -1).entries()) {
-		const next = generated[index + 1];
-		const silenceDurationMs = next.startTime - clip.endTime - 1;
-		if (silenceDurationMs > 0 && silenceDurationMs < 1000) {
-			clip.endTime = next.startTime - 1;
-			clip.duration = clip.endTime - clip.startTime;
-		}
-	}
 	const generatedWithSilences = generated.flatMap((clip, index) => {
 		const previous = generated[index - 1];
 		if (!previous) {
-			return clip.startTime > 0 ? [new SilenceClip(0, clip.startTime - 1), clip] : [clip];
+			return clip.startTime > 1 ? [new SilenceClip(0, clip.startTime - 1), clip] : [clip];
 		}
 		if (clip.startTime <= previous.endTime + 1) return [clip];
 		return [new SilenceClip(previous.endTime + 1, clip.startTime - 1), clip];

@@ -44,6 +44,7 @@
 
 	let { close, cleanupOnly = false } = $props<{ close: () => void; cleanupOnly?: boolean }>();
 	const settings = globalState.settings!.aiTranscriptionSettings;
+	const TRANSCRIPT_PREFERRED_GAP_SECONDS = 1.2;
 	const diarizationEnabled = $derived(
 		settings.provider === 'local' &&
 			((settings.minSpeakers ?? 1) > 1 || (settings.maxSpeakers ?? 1) > 1)
@@ -128,8 +129,7 @@
 	const activeSubtitleLengthPreset = $derived.by(() =>
 		getMatchingSubtitleLengthPreset({
 			maxWords: settings.maxWordsPerSegment,
-			maxChars: settings.maxCharsPerSegment,
-			silenceSeconds: settings.minSilenceDuration
+			maxChars: settings.maxCharsPerSegment
 		})
 	);
 	const audioAvailable = $derived(globalState.getAudioTrack.clips.length > 0);
@@ -148,7 +148,7 @@
 	);
 
 	/**
-	 * Applique un profil de longueur et ses trois paramètres associés.
+	 * Applique un profil de longueur et ses deux paramètres associés.
 	 * @param {BuiltInSubtitleLengthPreset} preset Profil choisi.
 	 * @returns {void}
 	 */
@@ -157,7 +157,6 @@
 		settings.subtitleLengthPreset = preset;
 		settings.maxWordsPerSegment = definition.maxWords;
 		settings.maxCharsPerSegment = definition.maxChars;
-		settings.minSilenceDuration = definition.silenceSeconds;
 	}
 
 	/**
@@ -261,7 +260,7 @@
 			const quranReport = await cleanupAITranscript(transcription, {
 				maxWords: settings.maxWordsPerSegment,
 				maxChars: settings.maxCharsPerSegment,
-				maxGap: settings.minSilenceDuration,
+				maxGap: TRANSCRIPT_PREFERRED_GAP_SECONDS,
 				onPreparationStart: () => {
 					runMessage = get(LL).editor.matchingQuranPassages();
 					progress = 100;
@@ -468,7 +467,7 @@
 				batchWords: activeTask.batchWords,
 				maxWords: settings.maxWordsPerSegment,
 				maxChars: settings.maxCharsPerSegment,
-				maxGap: settings.minSilenceDuration,
+				maxGap: TRANSCRIPT_PREFERRED_GAP_SECONDS,
 				resume: {
 					analyses: activeTask.analyses,
 					errors: activeTask.errors,
@@ -1077,8 +1076,7 @@
 											{subtitleLengthPresetCopy[preset].description}
 										</p>
 										<p class="mt-3 text-[11px] font-medium text-thirdly">
-											{definition.maxWords} words · {definition.maxChars} characters · {definition.silenceSeconds}s
-											pause
+											{definition.maxWords} words · {definition.maxChars} characters
 										</p>
 									</button>
 								{/each}
@@ -1121,31 +1119,36 @@
 											oninput={markSubtitleLengthAsCustom}
 										/></label
 									>
-									<label class="space-y-2 md:col-span-2"
-										><div class="flex items-center justify-between gap-3">
-											<span class="text-xs text-secondary">{get(LL).editor.minSilenceLabel()}</span>
-											<div class="flex items-center gap-2">
-												<input
-													type="number"
-													min="0.3"
-													max="4"
-													step="0.1"
-													class="w-20 rounded-lg border border-color bg-secondary px-3 py-2 text-primary"
-													bind:value={settings.minSilenceDuration}
-													oninput={markSubtitleLengthAsCustom}
-												/>
-												<span class="text-xs text-secondary">{get(LL).common.seconds()}</span>
-											</div>
-										</div>
-										<input
-											type="range"
-											min="0.3"
-											max="4"
-											step="0.1"
-											class="w-full"
-											bind:value={settings.minSilenceDuration}
-											oninput={markSubtitleLengthAsCustom}
-										/></label
+									<label class="space-y-2"
+										><span class="text-xs text-secondary"
+											>{get(LL).editor.extendSubtitleBeforeSilence()}</span
+										>
+										<div class="flex items-center gap-2">
+											<input
+												type="number"
+												min="0"
+												max="2000"
+												step="50"
+												class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-primary"
+												bind:value={settings.subtitleEndPaddingMs}
+											/>
+											<span class="text-xs text-secondary">{get(LL).common.milliseconds()}</span>
+										</div></label
+									><label class="space-y-2"
+										><span class="text-xs text-secondary"
+											>{get(LL).editor.startTimeLabel()} {get(LL).editor.paddingLabel()}</span
+										>
+										<div class="flex items-center gap-2">
+											<input
+												type="number"
+												min="0"
+												max="2000"
+												step="50"
+												class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-primary"
+												bind:value={settings.subtitleStartLeadMs}
+											/>
+											<span class="text-xs text-secondary">{get(LL).common.milliseconds()}</span>
+										</div></label
 									>
 								</div>
 							{/if}

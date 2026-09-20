@@ -70,9 +70,10 @@ export type AITranscriptionSettings = {
 	maxSpeakers: number | null;
 	batchSize: number;
 	subtitleLengthPreset: SubtitleLengthPreset;
-	minSilenceDuration: number;
 	maxWordsPerSegment: number;
 	maxCharsPerSegment: number;
+	subtitleEndPaddingMs: number;
+	subtitleStartLeadMs: number;
 	replaceExisting: boolean;
 	cleanupBatchWords: number;
 };
@@ -220,9 +221,10 @@ export default class Settings extends SerializableBase {
 		maxSpeakers: null,
 		batchSize: 8,
 		subtitleLengthPreset: DEFAULT_SUBTITLE_LENGTH_PRESET,
-		minSilenceDuration: SUBTITLE_LENGTH_PRESETS.balanced.silenceSeconds,
 		maxWordsPerSegment: SUBTITLE_LENGTH_PRESETS.balanced.maxWords,
 		maxCharsPerSegment: SUBTITLE_LENGTH_PRESETS.balanced.maxChars,
+		subtitleEndPaddingMs: 250,
+		subtitleStartLeadMs: 150,
 		replaceExisting: true,
 		cleanupBatchWords: 160
 	});
@@ -727,33 +729,43 @@ export default class Settings extends SerializableBase {
 			settings.aiTranscriptionSettings.subtitleLengthPreset = DEFAULT_SUBTITLE_LENGTH_PRESET;
 			settings.aiTranscriptionSettings.maxWordsPerSegment = defaultLength.maxWords;
 			settings.aiTranscriptionSettings.maxCharsPerSegment = defaultLength.maxChars;
-			settings.aiTranscriptionSettings.minSilenceDuration = defaultLength.silenceSeconds;
 			shouldSave = true;
 		} else if (settings.aiTranscriptionSettings.subtitleLengthPreset !== 'custom') {
 			const preset = SUBTITLE_LENGTH_PRESETS[settings.aiTranscriptionSettings.subtitleLengthPreset];
 			if (
 				settings.aiTranscriptionSettings.maxWordsPerSegment !== preset.maxWords ||
-				settings.aiTranscriptionSettings.maxCharsPerSegment !== preset.maxChars ||
-				settings.aiTranscriptionSettings.minSilenceDuration !== preset.silenceSeconds
+				settings.aiTranscriptionSettings.maxCharsPerSegment !== preset.maxChars
 			) {
 				settings.aiTranscriptionSettings.maxWordsPerSegment = preset.maxWords;
 				settings.aiTranscriptionSettings.maxCharsPerSegment = preset.maxChars;
-				settings.aiTranscriptionSettings.minSilenceDuration = preset.silenceSeconds;
 				shouldSave = true;
 			}
 		} else if (
 			typeof settings.aiTranscriptionSettings.maxWordsPerSegment !== 'number' ||
 			!Number.isFinite(settings.aiTranscriptionSettings.maxWordsPerSegment) ||
 			typeof settings.aiTranscriptionSettings.maxCharsPerSegment !== 'number' ||
-			!Number.isFinite(settings.aiTranscriptionSettings.maxCharsPerSegment) ||
-			typeof settings.aiTranscriptionSettings.minSilenceDuration !== 'number' ||
-			!Number.isFinite(settings.aiTranscriptionSettings.minSilenceDuration)
+			!Number.isFinite(settings.aiTranscriptionSettings.maxCharsPerSegment)
 		) {
 			const defaultLength = SUBTITLE_LENGTH_PRESETS[DEFAULT_SUBTITLE_LENGTH_PRESET];
 			settings.aiTranscriptionSettings.subtitleLengthPreset = DEFAULT_SUBTITLE_LENGTH_PRESET;
 			settings.aiTranscriptionSettings.maxWordsPerSegment = defaultLength.maxWords;
 			settings.aiTranscriptionSettings.maxCharsPerSegment = defaultLength.maxChars;
-			settings.aiTranscriptionSettings.minSilenceDuration = defaultLength.silenceSeconds;
+			shouldSave = true;
+		}
+		const subtitleEndPaddingMs = Number(settings.aiTranscriptionSettings.subtitleEndPaddingMs);
+		const normalizedSubtitleEndPaddingMs = Number.isFinite(subtitleEndPaddingMs)
+			? Math.min(2000, Math.max(0, Math.round(subtitleEndPaddingMs)))
+			: 250;
+		if (settings.aiTranscriptionSettings.subtitleEndPaddingMs !== normalizedSubtitleEndPaddingMs) {
+			settings.aiTranscriptionSettings.subtitleEndPaddingMs = normalizedSubtitleEndPaddingMs;
+			shouldSave = true;
+		}
+		const subtitleStartLeadMs = Number(settings.aiTranscriptionSettings.subtitleStartLeadMs);
+		const normalizedSubtitleStartLeadMs = Number.isFinite(subtitleStartLeadMs)
+			? Math.min(2000, Math.max(0, Math.round(subtitleStartLeadMs)))
+			: 150;
+		if (settings.aiTranscriptionSettings.subtitleStartLeadMs !== normalizedSubtitleStartLeadMs) {
+			settings.aiTranscriptionSettings.subtitleStartLeadMs = normalizedSubtitleStartLeadMs;
 			shouldSave = true;
 		}
 		if (settings.aiTranscriptionSettings.language !== 'ar') {
@@ -768,6 +780,7 @@ export default class Settings extends SerializableBase {
 			settings.aiTranscriptionSettings as AITranscriptionSettings & {
 				addDiacritics?: unknown;
 				cleanupReasoningEffort?: unknown;
+				minSilenceDuration?: unknown;
 			};
 		if ('addDiacritics' in legacyTranscriptionSettings) {
 			delete legacyTranscriptionSettings.addDiacritics;
@@ -775,6 +788,10 @@ export default class Settings extends SerializableBase {
 		}
 		if ('cleanupReasoningEffort' in legacyTranscriptionSettings) {
 			delete legacyTranscriptionSettings.cleanupReasoningEffort;
+			shouldSave = true;
+		}
+		if ('minSilenceDuration' in legacyTranscriptionSettings) {
+			delete legacyTranscriptionSettings.minSilenceDuration;
 			shouldSave = true;
 		}
 		const cleanupBatchWords = Math.min(

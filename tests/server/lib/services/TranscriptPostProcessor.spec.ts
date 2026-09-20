@@ -360,6 +360,25 @@ describe('TranscriptPostProcessor controlled AI operations', () => {
 });
 
 describe('TranscriptPostProcessor smart segmentation', () => {
+	it('preserves every Groq word silence regardless of the subtitle length preset', () => {
+		const tokens = [token(0, 'premier'), token(1, 'second')];
+		tokens[1].start = 1.12;
+		tokens[1].end = 1.52;
+
+		for (const maxWords of [8, 12, 16]) {
+			const segments = segmentProcessedTranscript(tokens, {
+				maxWords,
+				maxChars: 84,
+				maxGap: 1.6,
+				preserveWordSilences: true
+			});
+
+			expect(segments).toHaveLength(2);
+			expect(segments[0].end).toBe(0.4);
+			expect(segments[1].start).toBe(1.12);
+		}
+	});
+
 	it('prioritizes an AI sentence boundary over an earlier punctuation-only break', () => {
 		const tokens = Array.from({ length: 12 }, (_, id) => token(id, `word${id + 1}`));
 		tokens[4].punctuationAfter = '.';

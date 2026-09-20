@@ -65,7 +65,7 @@ export type TranscriptAlignmentMetadata = {
 
 /**
  * Normalise des timestamps mot par mot pour couvrir toute la durée du segment sans trou.
- * Le premier mot commence à 0, chaque frontière est partagée par deux mots consécutifs,
+ * Le premier mot commence à 0, chaque mot reste affiché jusqu'au début réel du suivant,
  * et le dernier mot se termine exactement à la fin du segment.
  */
 export function normalizeTranscriptWordTimings(
@@ -87,7 +87,7 @@ export function normalizeTranscriptWordTimings(
 	return sanitized.map((word, index) => {
 		const isLastWord = index === sanitized.length - 1;
 		const nextWord = sanitized[index + 1];
-		const boundaryCandidate = nextWord ? (word.end + nextWord.start) / 2 : duration;
+		const boundaryCandidate = nextWord ? nextWord.start : duration;
 		const end = isLastWord
 			? duration
 			: Math.max(sharedBoundary, Math.min(duration, boundaryCandidate));
@@ -120,7 +120,7 @@ export class Clip extends SerializableBase {
 
 	getWidth(): number {
 		const timelineZoom = globalState.currentProject?.projectEditorState.timeline.zoom ?? 0;
-		if (this.duration === 0) {
+		if (this.duration === 0 && this.type === 'Asset') {
 			// C'est dans le cas où l'asset est une image. C'est alors l'image de fond de la vidéo.
 			// Elle prend la taille de la timeline.
 			const longestTrackDuration =

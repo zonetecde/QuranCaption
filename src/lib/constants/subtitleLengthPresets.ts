@@ -4,7 +4,6 @@ export type BuiltInSubtitleLengthPreset = Exclude<SubtitleLengthPreset, 'custom'
 export type SubtitleLengthValues = {
 	maxWords: number;
 	maxChars: number;
-	silenceSeconds: number;
 };
 
 export type SubtitleLengthPresetDefinition = SubtitleLengthValues;
@@ -12,18 +11,15 @@ export type SubtitleLengthPresetDefinition = SubtitleLengthValues;
 export const SUBTITLE_LENGTH_PRESETS = {
 	compact: {
 		maxWords: 8,
-		maxChars: 55,
-		silenceSeconds: 0.8
+		maxChars: 55
 	},
 	balanced: {
 		maxWords: 12,
-		maxChars: 80,
-		silenceSeconds: 1.2
+		maxChars: 80
 	},
 	relaxed: {
 		maxWords: 16,
-		maxChars: 84,
-		silenceSeconds: 1.6
+		maxChars: 84
 	}
 } as const satisfies Record<BuiltInSubtitleLengthPreset, SubtitleLengthPresetDefinition>;
 
@@ -49,11 +45,7 @@ export function getMatchingSubtitleLengthPreset(
 	for (const [preset, definition] of Object.entries(SUBTITLE_LENGTH_PRESETS) as Array<
 		[BuiltInSubtitleLengthPreset, SubtitleLengthPresetDefinition]
 	>) {
-		if (
-			values.maxWords === definition.maxWords &&
-			values.maxChars === definition.maxChars &&
-			Math.abs(values.silenceSeconds - definition.silenceSeconds) < 0.001
-		) {
+		if (values.maxWords === definition.maxWords && values.maxChars === definition.maxChars) {
 			return preset;
 		}
 	}

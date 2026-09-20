@@ -5,7 +5,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use reqwest::multipart::{Form, Part};
 use serde::Deserialize;
-use tauri::Emitter;
+use tauri::{Emitter, Manager};
 
 use crate::binaries;
 use crate::path_utils;
@@ -57,6 +57,24 @@ fn emit_groq_status(app_handle: &tauri::AppHandle, phase: &str, progress: f64) {
         "segmentation-status",
         serde_json::json!({ "phase": phase, "progress": progress }),
     );
+}
+
+/// Enregistre la dernière réponse brute de Groq avant sa normalisation.
+fn save_raw_groq_response(
+    app_handle: &tauri::AppHandle,
+    response: &serde_json::Value,
+) -> Result<(), String> {
+    let log_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|error| format!("Unable to resolve app data directory: {error}"))?
+        .join("logs");
+    fs::create_dir_all(&log_dir)
+        .map_err(|error| format!("Unable to create Groq log directory: {error}"))?;
+    let content = serde_json::to_string_pretty(response)
+        .map_err(|error| format!("Unable to serialize raw Groq response: {error}"))?;
+    fs::write(log_dir.join("groq-last-response.json"), content)
+        .map_err(|error| format!("Unable to save raw Groq response: {error}"))
 }
 
 /// Prépare un OGG mono léger tout en conservant les positions de la timeline.
@@ -267,12 +285,12 @@ pub async fn transcribe_audio_groq(
     }
 
     emit_groq_status(&app_handle, "groq_timestamps", 90.0);
-    let result = normalize_groq_response(
-        response
-            .json()
-            .await
-            .map_err(|error| format!("Invalid Groq JSON response: {error}"))?,
-    )?;
+    let raw_response = response
+        .json()
+        .await
+        .map_err(|error| format!("Invalid Groq JSON response: {error}"))?;
+    save_raw_groq_response(&app_handle, &raw_response)?;
+    let result = normalize_groq_response(raw_response)?;
     emit_groq_status(&app_handle, "groq_complete", 100.0);
     Ok(result)
 }

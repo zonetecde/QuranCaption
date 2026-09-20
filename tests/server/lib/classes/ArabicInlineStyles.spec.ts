@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes/Clip.svelte';
+import {
+	normalizeTranscriptWordTimings,
+	PredefinedSubtitleClip,
+	SubtitleClip
+} from '$lib/classes/Clip.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 
@@ -312,5 +316,20 @@ describe('arabic inline styles', () => {
 				{ location: '102:8:3', start: 2, end: 5 }
 			]
 		});
+	});
+
+	it('keeps an inter-word silence on the preceding word', () => {
+		expect(
+			normalizeTranscriptWordTimings(
+				[
+					{ word: 'كثيرا', start: 1.32, end: 2.04 },
+					{ word: 'أخطاء', start: 2.8, end: 3.4 }
+				],
+				4
+			)
+		).toEqual([
+			{ word: 'كثيرا', start: 0, end: 2.8 },
+			{ word: 'أخطاء', start: 2.8, end: 4 }
+		]);
 	});
 });

@@ -287,6 +287,35 @@ describe('AITranscriptCleanup response validation', () => {
 });
 
 describe('AITranscriptCleanup complete service', () => {
+	it('keeps Groq word silences after the complete cleanup flow', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				async () =>
+					new Response(JSON.stringify({ verses: {} }), {
+						status: 200,
+						headers: { 'Content-Type': 'application/json' }
+					})
+			)
+		);
+		const source = transcription(['premier', 'second']);
+		source.device = 'groq';
+		source.segments[0].words[0].end = 0.4;
+		source.segments[0].words[1].start = 1.12;
+		source.segments[0].words[1].end = 1.52;
+		source.segments[0].end = 1.52;
+
+		const report = await cleanupAITranscript(source, {
+			maxWords: 16,
+			maxChars: 84,
+			maxGap: 1.6
+		});
+
+		expect(report.result.segments).toHaveLength(2);
+		expect(report.result.segments[0].end).toBe(0.4);
+		expect(report.result.segments[1].start).toBe(1.12);
+	});
+
 	it('pauses between batches and resumes from the saved batch index', async () => {
 		vi.stubGlobal(
 			'fetch',

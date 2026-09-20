@@ -123,6 +123,7 @@ export type TranscriptProcessingSettings = {
 	maxWords: number;
 	maxChars: number;
 	maxGap: number;
+	preserveWordSilences?: boolean;
 };
 
 export type TranscriptProcessingReport = {
@@ -1236,7 +1237,9 @@ export function segmentProcessedTranscript(
 		if (
 			previous &&
 			(previous.speaker !== token.speaker ||
-				token.start - previous.end >= HARD_TRANSCRIPT_GAP_SECONDS)
+				(settings.preserveWordSilences
+					? token.start > previous.end
+					: token.start - previous.end >= HARD_TRANSCRIPT_GAP_SECONDS))
 		) {
 			blocks.push(current);
 			current = [];

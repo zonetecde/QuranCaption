@@ -9,7 +9,13 @@ vi.mock('$lib/services/autoSegmentation/audio', () => ({
 }));
 
 import type { AITranscriptionSettings } from '$lib/classes/Settings.svelte';
-import { loadGroqApiKey, runAITranscription, saveGroqApiKey } from '$lib/services/AITranscription';
+import {
+	loadGroqApiKey,
+	normalizeAITranscriptionSegments,
+	padAITranscriptionSilences,
+	runAITranscription,
+	saveGroqApiKey
+} from '$lib/services/AITranscription';
 
 const settings: AITranscriptionSettings = {
 	provider: 'groq',
@@ -21,9 +27,10 @@ const settings: AITranscriptionSettings = {
 	maxSpeakers: null,
 	batchSize: 8,
 	subtitleLengthPreset: 'balanced',
-	minSilenceDuration: 1,
 	maxWordsPerSegment: 12,
 	maxCharsPerSegment: 84,
+	subtitleEndPaddingMs: 250,
+	subtitleStartLeadMs: 150,
 	replaceExisting: true,
 	cleanupBatchWords: 160
 };
@@ -71,5 +78,53 @@ describe('AITranscription Groq provider', () => {
 		expect(invokeMock).toHaveBeenCalledWith('quran_auth_secure_delete', {
 			key: 'groq_api_key'
 		});
+	});
+
+	it('moves an overlapping segment one millisecond after the previous segment', () => {
+		const segments = normalizeAITranscriptionSegments([
+			{
+				start: 21.04,
+				end: 25.56,
+				text: 'فتبقى مكانك تشعر بالبعد والضيعة',
+				speaker: 'SPEAKER_00',
+				words: []
+			},
+			{
+				start: 25.1,
+				end: 29.12,
+				text: 'لكن نسيت شيئا',
+				speaker: 'SPEAKER_00',
+				words: []
+			}
+		]);
+
+		expect(segments[0]).toMatchObject({ start: 21.04, end: 25.56 });
+		expect(segments[1]).toMatchObject({ start: 25.561, end: 29.12 });
+	});
+
+	it('adds display margins without consuming the complete silence', () => {
+		const segments = padAITranscriptionSilences(
+			[
+				{
+					start: 45.3,
+					end: 46.26,
+					text: 'فعلت',
+					speaker: 'SPEAKER_00',
+					words: []
+				},
+				{
+					start: 46.98,
+					end: 48.08,
+					text: 'ومهما',
+					speaker: 'SPEAKER_00',
+					words: []
+				}
+			],
+			250,
+			150
+		);
+
+		expect(segments[0].end).toBe(46.51);
+		expect(segments[1].start).toBe(46.83);
 	});
 });

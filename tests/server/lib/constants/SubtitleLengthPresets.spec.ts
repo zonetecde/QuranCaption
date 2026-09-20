@@ -11,8 +11,7 @@ describe('subtitle length presets', () => {
 		expect(DEFAULT_SUBTITLE_LENGTH_PRESET).toBe('balanced');
 		expect(SUBTITLE_LENGTH_PRESETS.balanced).toMatchObject({
 			maxWords: 12,
-			maxChars: 80,
-			silenceSeconds: 1.2
+			maxChars: 80
 		});
 	});
 
@@ -24,24 +23,19 @@ describe('subtitle length presets', () => {
 			SUBTITLE_LENGTH_PRESETS.relaxed.maxWords
 		);
 		expect(SUBTITLE_LENGTH_PRESETS.relaxed.maxChars).toBe(84);
-		expect(SUBTITLE_LENGTH_PRESETS.compact.silenceSeconds).toBeLessThan(
-			SUBTITLE_LENGTH_PRESETS.relaxed.silenceSeconds
-		);
 	});
 
 	it('recognizes matching values and custom overrides', () => {
 		expect(
 			getMatchingSubtitleLengthPreset({
 				maxWords: 12,
-				maxChars: 80,
-				silenceSeconds: 1.2
+				maxChars: 80
 			})
 		).toBe('balanced');
 		expect(
 			getMatchingSubtitleLengthPreset({
 				maxWords: 13,
-				maxChars: 80,
-				silenceSeconds: 1.2
+				maxChars: 80
 			})
 		).toBe('custom');
 	});

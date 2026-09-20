@@ -696,7 +696,8 @@ export async function cleanupAITranscript(
 					{
 						maxWords: Math.max(2, options.maxWords),
 						maxChars: Math.max(20, options.maxChars),
-						maxGap: Math.max(0.1, options.maxGap)
+						maxGap: Math.max(0.1, options.maxGap),
+						preserveWordSilences: result.device === 'groq'
 					}
 				);
 				await options.onBatchComplete?.(
@@ -733,7 +734,8 @@ export async function cleanupAITranscript(
 	const settings: TranscriptProcessingSettings = {
 		maxWords: Math.max(2, options.maxWords),
 		maxChars: Math.max(20, options.maxChars),
-		maxGap: Math.max(0.1, options.maxGap)
+		maxGap: Math.max(0.1, options.maxGap),
+		preserveWordSilences: result.device === 'groq'
 	};
 	options.onFinalizationStart?.();
 	await yieldToUi();

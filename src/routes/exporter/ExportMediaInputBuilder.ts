@@ -7,6 +7,10 @@ export type ExportVideoInput = {
 	source_start_ms?: number;
 	timeline_start_ms?: number;
 	duration_ms?: number;
+	media_fill?: boolean;
+	media_scale?: number;
+	media_position_x?: number;
+	media_position_y?: number;
 };
 
 export type ExportAudioClipInput = {
@@ -50,12 +54,25 @@ export class ExportMediaInputBuilder {
 	static getVideoInputs(): ExportVideoInput[] {
 		const clips = globalState.getVideoTrack.clips as AssetClip[];
 		const requiresTiming = this.requiresTimedExport(clips);
+		const styles = globalState.currentProject?.content.videoStyle?.getStylesOfTarget('global');
 
 		return clips.map((clip) => {
 			const input: ExportVideoInput = {
 				path: this.getAssetPath(clip),
 				loop_until_audio_end: clip.loopUntilAudioEnd
 			};
+			if (styles?.hasOverrideForAny([clip.id], 'media-fill')) {
+				input.media_fill = Boolean(styles.getEffectiveValue('media-fill', clip.id));
+			}
+			if (styles?.hasOverrideForAny([clip.id], 'media-scale')) {
+				input.media_scale = Number(styles.getEffectiveValue('media-scale', clip.id));
+			}
+			if (styles?.hasOverrideForAny([clip.id], 'media-position-x')) {
+				input.media_position_x = Number(styles.getEffectiveValue('media-position-x', clip.id));
+			}
+			if (styles?.hasOverrideForAny([clip.id], 'media-position-y')) {
+				input.media_position_y = Number(styles.getEffectiveValue('media-position-y', clip.id));
+			}
 			if (!requiresTiming) return input;
 			input.source_start_ms = Math.round(clip.sourceStartTime ?? 0);
 			input.timeline_start_ms = Math.round(clip.startTime);

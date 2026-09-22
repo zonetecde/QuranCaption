@@ -268,25 +268,31 @@
 	});
 
 	let videoFrameSettings = $derived.by(() => {
+		const clipId = currentVideoClip()?.id;
+		const globalStyles = globalState.getVideoStyle.getStylesOfTarget('global');
 		const visibilityOpacity = resolveStyleVisibilityOpacity(
-			globalState.getVideoStyle.getStylesOfTarget('global'),
-			'video-frame-enable'
+			globalStyles,
+			'video-frame-enable',
+			clipId
 		);
 		const verticalSize = Math.min(
 			45,
-			Math.max(0, Number(globalState.getStyleValue('global', 'video-frame-vertical-size') ?? 8))
+			Math.max(0, Number(globalStyles.getEffectiveValue('video-frame-vertical-size', clipId) ?? 8))
 		);
 		const horizontalSize = Math.min(
 			45,
-			Math.max(0, Number(globalState.getStyleValue('global', 'video-frame-horizontal-size') ?? 8))
+			Math.max(
+				0,
+				Number(globalStyles.getEffectiveValue('video-frame-horizontal-size', clipId) ?? 8)
+			)
 		);
 		const radius = Math.min(
 			50,
-			Math.max(0, Number(globalState.getStyleValue('global', 'video-frame-radius') ?? 4))
+			Math.max(0, Number(globalStyles.getEffectiveValue('video-frame-radius', clipId) ?? 4))
 		);
 		const softness = Math.min(
 			5,
-			Math.max(0, Number(globalState.getStyleValue('global', 'video-frame-softness') ?? 0))
+			Math.max(0, Number(globalStyles.getEffectiveValue('video-frame-softness', clipId) ?? 0))
 		);
 		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
 			| { width: number; height: number }
@@ -309,8 +315,8 @@
 		return {
 			enable: visibilityOpacity > 0,
 			opacity: visibilityOpacity,
-			contentAbove: Boolean(globalState.getStyleValue('global', 'video-frame-content-above')),
-			color: String(globalState.getStyleValue('global', 'video-frame-color') ?? '#000000'),
+			contentAbove: Boolean(globalStyles.getEffectiveValue('video-frame-content-above', clipId)),
+			color: String(globalStyles.getEffectiveValue('video-frame-color', clipId) ?? '#000000'),
 			softness: `${softnessX} ${softnessY}`,
 			path: `M -100 -100 H 200 V 200 H -100 Z M ${left + radiusX} ${top} H ${right - radiusX} A ${radiusX} ${radiusY} 0 0 1 ${right} ${top + radiusY} V ${bottom - radiusY} A ${radiusX} ${radiusY} 0 0 1 ${right - radiusX} ${bottom} H ${left + radiusX} A ${radiusX} ${radiusY} 0 0 1 ${left} ${bottom - radiusY} V ${top + radiusY} A ${radiusX} ${radiusY} 0 0 1 ${left + radiusX} ${top} Z`
 		};

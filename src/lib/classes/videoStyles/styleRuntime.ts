@@ -3,7 +3,7 @@ import { Utilities } from '../misc/Utilities';
 import type { RawCategoryDefinition } from '$lib/services/StyleDefinitionCatalog';
 import type { Style } from './Style.svelte.js';
 import type { StylesData } from './StylesData.svelte.js';
-import type { OverlayStyleName, StyleKeyframe, StyleName } from './types.js';
+import type { StyleKeyframe, StyleName } from './types.js';
 
 /**
  * Retourne les catégories compatibles avec les traductions.
@@ -16,7 +16,11 @@ export function getNonArabicSubtitleCategories(
 	return categories;
 }
 
-export const GLOBAL_OVERLAY_STYLE_IDS = new Set<OverlayStyleName>([
+export const GLOBAL_CLIP_STYLE_IDS = new Set<StyleName>([
+	'media-fill',
+	'media-scale',
+	'media-position-x',
+	'media-position-y',
 	'overlay-enable',
 	'overlay-color',
 	'overlay-opacity',
@@ -31,7 +35,14 @@ export const GLOBAL_OVERLAY_STYLE_IDS = new Set<OverlayStyleName>([
 	'background-overlay-fade-width',
 	'background-overlay-fade-height',
 	'overlay-custom-css',
-	'overlay-blur'
+	'overlay-blur',
+	'video-frame-enable',
+	'video-frame-content-above',
+	'video-frame-color',
+	'video-frame-vertical-size',
+	'video-frame-horizontal-size',
+	'video-frame-radius',
+	'video-frame-softness'
 ]);
 
 export const RUNTIME_LAYOUT_STYLE_IDS = new Set<StyleName>([
@@ -207,10 +218,10 @@ export function collectStyleKeyframeTimes(style: Style): number[] {
 }
 
 /**
- * Vérifie si un style appartient aux réglages globaux de l'overlay.
+ * Vérifie si un style global peut être personnalisé pour un clip média.
  * @param {StyleName} styleId Identifiant du style à vérifier.
- * @returns {boolean} `true` lorsque l'identifiant désigne un style d'overlay global.
+ * @returns {boolean} `true` lorsque l'identifiant désigne un style local au clip.
  */
-export function isGlobalOverlayStyleId(styleId: StyleName): styleId is OverlayStyleName {
-	return GLOBAL_OVERLAY_STYLE_IDS.has(styleId as OverlayStyleName);
+export function isGlobalClipStyleId(styleId: StyleName): boolean {
+	return GLOBAL_CLIP_STYLE_IDS.has(styleId);
 }

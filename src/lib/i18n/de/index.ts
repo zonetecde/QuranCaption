@@ -764,9 +764,9 @@ const de = {
 		both: 'Beide',
 		unmergeGroup: 'Gruppe trennen',
 		videoClipsSelected:
-			'{count} Videoclip{plural} ausgewählt. Überlagerungsstile werden nur auf diese Clips angewendet.',
+			'{count} Medienclip{plural} ausgewählt. Layout-, Überlagerungs- und Videorahmenstile werden nur auf diese Clips angewendet.',
 		clickToSelect:
-			'Klicken Sie auf einen Untertitel oder Videoclip, um ihn auszuwählen. Strg/Cmd+Klick wählt weitere Elemente aus.',
+			'Klicken Sie auf einen Untertitel oder Medienclip, um ihn auszuwählen. Strg/Cmd+Klick wählt weitere Elemente aus.',
 		cannotEditGlobalWithSelection:
 			'Sie können globale Stile nicht bearbeiten, wenn Untertitel-Clips ausgewählt sind. Heben Sie die Auswahl auf, um globale Stile zu bearbeiten.',
 		backgroundVisibilityHint:

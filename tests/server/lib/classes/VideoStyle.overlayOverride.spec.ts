@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Category, Style, StylesData } from '$lib/classes/VideoStyle.svelte';
 
-describe('StylesData overlay overrides on global target', () => {
+describe('StylesData clip overrides on global target', () => {
 	function createGlobalStylesData() {
 		return new StylesData('global', [
 			new Category({
@@ -15,7 +15,20 @@ describe('StylesData overlay overrides on global target', () => {
 			}),
 			new Category({
 				id: 'general',
-				styles: [new Style({ id: 'fade-duration', value: 500 })]
+				styles: [
+					new Style({ id: 'media-fill', value: false }),
+					new Style({ id: 'media-scale', value: 100 }),
+					new Style({ id: 'media-position-x', value: 0 }),
+					new Style({ id: 'media-position-y', value: 0 }),
+					new Style({ id: 'fade-duration', value: 500 })
+				]
+			}),
+			new Category({
+				id: 'video-frame',
+				styles: [
+					new Style({ id: 'video-frame-enable', value: false }),
+					new Style({ id: 'video-frame-color', value: '#000000' })
+				]
 			})
 		]);
 	}
@@ -30,6 +43,25 @@ describe('StylesData overlay overrides on global target', () => {
 		expect(styles.getEffectiveValue('background-overlay-fade-softness', 1001)).toBe(0.25);
 		expect(styles.getEffectiveValue('background-overlay-fade-softness', 1002)).toBe(1);
 		expect(styles.hasOverrideForAny([1001], 'overlay-opacity')).toBe(true);
+	});
+
+	it('allows per-clip overrides for media layout and video frame styles', () => {
+		const styles = createGlobalStylesData();
+		styles.setStyleForClips([1001], 'media-fill', true);
+		styles.setStyleForClips([1001], 'media-scale', 140);
+		styles.setStyleForClips([1001], 'media-position-x', -25);
+		styles.setStyleForClips([1001], 'media-position-y', 30);
+		styles.setStyleForClips([1001], 'video-frame-enable', true);
+		styles.setStyleForClips([1001], 'video-frame-color', '#ffffff');
+
+		expect(styles.getEffectiveValue('media-fill', 1001)).toBe(true);
+		expect(styles.getEffectiveValue('media-scale', 1001)).toBe(140);
+		expect(styles.getEffectiveValue('media-position-x', 1001)).toBe(-25);
+		expect(styles.getEffectiveValue('media-position-y', 1001)).toBe(30);
+		expect(styles.getEffectiveValue('video-frame-enable', 1001)).toBe(true);
+		expect(styles.getEffectiveValue('video-frame-color', 1001)).toBe('#ffffff');
+		expect(styles.getEffectiveValue('media-scale', 1002)).toBe(100);
+		expect(styles.getEffectiveValue('video-frame-enable', 1002)).toBe(false);
 	});
 
 	it('rejects per-clip override for non-overlay global styles', () => {

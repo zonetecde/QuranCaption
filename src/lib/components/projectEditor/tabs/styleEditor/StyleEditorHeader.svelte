@@ -243,7 +243,7 @@
 		{/if}
 	{:else if globalState.getStylesState.selectedVideos.length > 0}
 		<div class="style-selection-context">
-			<span class="material-icons-outlined text-base">movie</span>
+			<span class="material-icons-outlined text-base">perm_media</span>
 			<p class="min-w-0 flex-1 text-xs leading-snug">
 				{$LL.editor.videoClipsSelected({
 					count: globalState.getStylesState.selectedVideos.length,

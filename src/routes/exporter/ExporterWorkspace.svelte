@@ -1808,6 +1808,10 @@
 					(clip) => clip.category?.getAllKeyframeTimes() ?? []
 				)
 			],
+			videoClipChangeTimings: globalState.getVideoTrack.clips.flatMap((clip) => [
+				clip.startTime,
+				clip.endTime + 1
+			]),
 			getCurrentSurah: (time) => globalState.getSubtitleTrack.getCurrentSurah(time),
 			showVerseNumber: Boolean(globalState.getStyle('global', 'show-verse-number')!.value)
 		});

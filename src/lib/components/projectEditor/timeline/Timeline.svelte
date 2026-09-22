@@ -1088,6 +1088,7 @@
 </script>
 
 <section
+	dir="ltr"
 	class="overflow-hidden min-w-0 timeline-section flex-1 min-h-0"
 	style="height: {100 -
 		globalState.settings!.persistentUiState.projectEditorLayout.upperSectionHeight}%;"

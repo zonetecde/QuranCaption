@@ -104,7 +104,7 @@
 <div class="w-full h-11 flex items-center justify-center space-x-1 border-color flex-shrink-0">
 	{#each tabs as tab (tab.value)}
 		<button
-			class="tab-button ring-0 outline-none flex items-center {globalState.currentProject!
+			class="tab-button ring-0 outline-none flex items-center gap-2 {globalState.currentProject!
 				.projectEditorState.currentTab === tab.value
 				? 'active'
 				: ''}"
@@ -120,7 +120,7 @@
 							? 'nav-tab-export'
 							: undefined}
 		>
-			<span class="material-icons mr-2">{tab.icon}</span>{tab.name}
+			<span class="material-icons">{tab.icon}</span>{tab.name}
 		</button>
 	{/each}
 </div>

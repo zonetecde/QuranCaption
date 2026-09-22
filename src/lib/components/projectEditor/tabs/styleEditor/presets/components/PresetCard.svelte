@@ -26,7 +26,7 @@
 
 <article class="group overflow-hidden rounded-lg border border-color bg-primary/50">
 	<button
-		class="block w-full text-left"
+		class="block w-full text-start"
 		type="button"
 		onclick={() => downloadAndApply(preset)}
 		disabled={downloadingPresetId !== null}
@@ -51,7 +51,9 @@
 		<div class="space-y-2 p-2">
 			<div class="min-w-0">
 				<h4 class="truncate text-sm font-semibold text-primary">{preset.name}</h4>
-				<p class="truncate text-xs text-secondary">{$LL.style.presetAuthor({ author: preset.authorName })}</p>
+				<p class="truncate text-xs text-secondary">
+					{$LL.style.presetAuthor({ author: preset.authorName })}
+				</p>
 			</div>
 			<div class="flex flex-wrap gap-1">
 				<span

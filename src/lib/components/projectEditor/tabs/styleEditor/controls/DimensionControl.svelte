@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { DimensionValue } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
+	import LL from '$lib/i18n/i18n-svelte';
 	import type { ApplyStyleControlValue, StyleControlValue } from './types';
 	import { asDimensionValue } from './utils';
 
@@ -7,6 +8,13 @@
 		$props();
 	let selectedOrientation = $state('landscape');
 	let selectedQuality = $state('1080p');
+	let dimensionCopy = $derived(
+		$LL.export as unknown as {
+			orientation: () => string;
+			quality: () => string;
+			customDimensions: () => string;
+		}
+	);
 
 	$effect(() => {
 		const dimensions = asDimensionValue(value);
@@ -54,9 +62,9 @@
 
 <div class="flex flex-col gap-4">
 	<div class="flex flex-col gap-2">
-		<p class="text-sm font-medium">Orientation:</p>
+		<p class="text-sm font-medium">{dimensionCopy.orientation()}:</p>
 		<div class="flex gap-4">
-			{#each [{ value: 'landscape', label: 'Landscape' }, { value: 'portrait', label: 'Portrait' }] as orientation (orientation.value)}
+			{#each [{ value: 'landscape', label: $LL.style.orientationLandscape() }, { value: 'portrait', label: $LL.style.orientationPortrait() }] as orientation (orientation.value)}
 				<label class="flex cursor-pointer items-center gap-2">
 					<input
 						type="radio"
@@ -72,7 +80,7 @@
 	</div>
 
 	<div class="flex flex-col gap-2">
-		<p class="text-sm font-medium">Quality:</p>
+		<p class="text-sm font-medium">{dimensionCopy.quality()}:</p>
 		<div class="flex flex-wrap gap-4">
 			{#each [{ value: '720p', label: '720p' }, { value: '1080p', label: '1080p' }, { value: '1440p', label: '1440p (2K)' }, { value: '2160p', label: '2160p (4K)' }] as quality (quality.value)}
 				<label class="flex cursor-pointer items-center gap-2">
@@ -94,11 +102,11 @@
 		onclick={() => onChange(getDimensions(selectedOrientation, selectedQuality))}
 		disabled={!selectedOrientation || !selectedQuality}
 	>
-		Apply {getPreviewResolution()}
+		{$LL.common.apply()} {getPreviewResolution()}
 	</button>
 
 	<div class="flex flex-col gap-2">
-		<p class="text-sm font-medium">Custom dimensions:</p>
+		<p class="text-sm font-medium">{dimensionCopy.customDimensions()}:</p>
 		<div class="flex flex-row items-center gap-x-2">
 			<input
 				type="number"

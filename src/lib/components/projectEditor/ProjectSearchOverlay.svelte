@@ -188,7 +188,7 @@
 </script>
 
 <div
-	class="fixed right-4 top-14 z-[1300] w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-color bg-secondary p-3 shadow-xl shadow-black/35"
+	class="fixed end-4 top-14 z-[1300] w-[min(28rem,calc(100vw-2rem))] rounded-lg border border-color bg-secondary p-3 shadow-xl shadow-black/35"
 	data-project-search-overlay="true"
 	bind:this={overlayRoot}
 >
@@ -253,9 +253,9 @@
 					bind:value={query}
 					type="text"
 					autocomplete="off"
-					class="w-full rounded-lg border border-color bg-primary py-2 pl-3 text-sm text-primary outline-none focus:border-[var(--accent-primary)] {query
-						? 'pr-9'
-						: 'pr-3'}"
+					class="w-full rounded-lg border border-color bg-primary py-2 ps-3 text-sm text-primary outline-none focus:border-[var(--accent-primary)] {query
+						? 'pe-9'
+						: 'pe-3'}"
 					placeholder={isTranslationsTab() && searchMode === 'translation'
 						? $LL.editor.searchTranslations()
 						: versePlaceholder()}
@@ -263,7 +263,7 @@
 				{#if query}
 					<button
 						type="button"
-						class="absolute right-2 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full text-[var(--text-thirdly)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+						class="absolute end-2 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full text-[var(--text-thirdly)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
 						onclick={() => {
 							query = '';
 							resultMessage = '';

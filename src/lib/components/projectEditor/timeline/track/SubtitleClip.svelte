@@ -632,6 +632,7 @@
 					<div class="w-full flex flex-col items-center gap-0.5 -mt-1">
 						{#each Object.entries(clip.translations) as [lang, translation] (lang)}
 							<p
+								dir="auto"
 								class="text-[11px] sm:text-[12px] truncate w-full font-medium mx-auto my-auto text-center italic"
 								class:text-[var(--text-secondary)]={!isSelected()}
 								class:text-[var(--text-on-selection)]={isSelected()}

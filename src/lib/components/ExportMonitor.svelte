@@ -528,7 +528,7 @@
 					<div class="p-2 border-b border-gray-800 last:border-b-0 relative">
 						<!-- delete cross -->
 						<button
-							class="absolute top-2 right-2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+							class="absolute top-2 end-2 text-gray-400 hover:text-white transition-colors cursor-pointer"
 							onclick={async (e) => {
 								e.stopPropagation();
 
@@ -579,7 +579,7 @@
 										</span>
 									</div>
 									{#if exportation.currentState === ExportState.Exported && getStoredTotalExportMs(exportation) !== null}
-										<span class="text-xs text-gray-300 ml-auto whitespace-nowrap">
+										<span class="text-xs text-gray-300 ms-auto whitespace-nowrap">
 											{get(LL).export.totalLabel()}
 											<span class="monospaced"
 												>{formatCurrentTime(getExportElapsedMs(exportation, currentTime))}</span
@@ -677,7 +677,7 @@
 											>
 										</div>
 									{/if}
-									<div class="ml-auto">
+									<div class="ms-auto">
 										{get(LL).export.exportTime()}<span class="monospaced"
 											>{' '}
 											{formatCurrentTime(getExportElapsedMs(exportation, currentTime))}
@@ -746,7 +746,7 @@
 
 						{#if !isTextExport(exportation) && exportation.isOnGoing()}
 							<div
-								class="mt-1 flex justify-end absolute right-2 bottom-2 gap-1 opacity-20 hover:opacity-100 transition-opacity"
+								class="mt-1 flex justify-end absolute end-2 bottom-2 gap-1 opacity-20 hover:opacity-100 transition-opacity"
 							>
 								<button
 									type="button"
@@ -817,7 +817,7 @@
 											It appears your computer cannot allocate enough memory for the export process.
 											Try the following:
 										</p>
-										<ol class="ml-4 list-decimal text-sm">
+										<ol class="ms-4 list-decimal text-sm">
 											<li>Reduce the batch size.</li>
 											<li>Lower the video resolution.</li>
 											<li>Remove any background video.</li>
@@ -852,13 +852,13 @@
 									<span class="font-medium">{get(LL).export.exportCompleted()}</span>
 									{#if !isTextExport(exportation)}
 										{#if publication?.status === 'uploading'}
-											<span class="ml-auto text-[11px] text-green-100/60">
+											<span class="ms-auto text-[11px] text-green-100/60">
 												{monitorMessage('youtubePublishing')} · {publication.progress}%
 											</span>
 										{:else if publication?.status === 'published'}
 											<button
 												type="button"
-												class="ml-auto rounded px-2 py-0.5 text-[11px] font-normal text-green-100/60 hover:bg-green-800/30 hover:text-green-100"
+												class="ms-auto rounded px-2 py-0.5 text-[11px] font-normal text-green-100/60 hover:bg-green-800/30 hover:text-green-100"
 												onclick={() => publication.url && openUrl(publication.url)}
 											>
 												{monitorMessage('youtubePublished')}
@@ -866,7 +866,7 @@
 										{:else}
 											<button
 												type="button"
-												class="ml-auto flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-normal text-green-100/60 hover:bg-green-800/30 hover:text-green-100"
+												class="ms-auto flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-normal text-green-100/60 hover:bg-green-800/30 hover:text-green-100"
 												onclick={() => openYouTubeUpload(exportation)}
 											>
 												<span class="material-icons text-xs">upload</span>

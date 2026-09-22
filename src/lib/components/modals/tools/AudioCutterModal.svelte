@@ -131,7 +131,7 @@
 			</div>
 		</div>
 		<button
-			class="absolute top-4 right-4 text-thirdly hover:text-primary transition-colors cursor-pointer"
+			class="absolute top-4 end-4 text-thirdly hover:text-primary transition-colors cursor-pointer"
 			onclick={close}
 		>
 			<span class="material-icons">close</span>

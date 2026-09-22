@@ -179,7 +179,7 @@
 		blockquote {
 			margin: 1rem 0;
 			padding: 0.75rem 1rem;
-			border-left: 4px solid var(--accent-primary);
+			border-inline-start: 4px solid var(--accent-primary);
 			background: color-mix(in srgb, var(--bg-secondary) 82%, transparent);
 		}
 
@@ -194,7 +194,7 @@
 		}
 
 		ul, ol {
-			padding-left: 1.5rem;
+			padding-inline-start: 1.5rem;
 		}
 
 		img {

@@ -49,7 +49,7 @@
 	>
 		<!-- Mock Title Bar -->
 		<div
-			class="absolute top-0 left-0 w-full h-6 border-b border-white/5 flex items-center px-2 gap-1"
+			class="absolute top-0 start-0 w-full h-6 border-b border-white/5 flex items-center px-2 gap-1"
 			style="background: {theme.mockTitlebar || theme.mockBg};"
 		>
 			<div
@@ -66,13 +66,13 @@
 
 		<!-- Mock Accent Button -->
 		<div
-			class="absolute top-10 left-3 w-16 h-4 rounded opacity-80"
+			class="absolute top-10 start-3 w-16 h-4 rounded opacity-80"
 			style="background: {theme.mockAccent}"
 		></div>
 
 		<!-- Mock Text Line -->
 		<div
-			class="absolute top-16 left-3 w-24 h-2 rounded"
+			class="absolute top-16 start-3 w-24 h-2 rounded"
 			style="background: {theme.mockText ||
 				(theme.mockBg.includes('#f') ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)')}"
 		></div>

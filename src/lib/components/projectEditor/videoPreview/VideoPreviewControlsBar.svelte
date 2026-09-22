@@ -44,7 +44,7 @@
 	}
 </script>
 
-<div class="bg-primary h-10 w-full flex items-center justify-center relative pt-0.25 rounded-t-xl">
+<div dir="ltr" class="bg-primary h-10 w-full flex items-center justify-center relative pt-0.25 rounded-t-xl">
 	<!-- Timestamp dans la vidéo -->
 	<section class="absolute left-3 monospaced">
 		{currentDuration()} / {videoDuration()}

@@ -354,7 +354,7 @@
 				bind:value={title}
 				disabled={isUploading}
 			/>
-			<span class="text-thirdly block text-right text-xs">{title.length}/100</span>
+			<span class="text-thirdly block text-end text-xs">{title.length}/100</span>
 		</label>
 
 		<div class="block space-y-2">
@@ -383,7 +383,7 @@
 				disabled={isUploading}
 			></textarea>
 			<span
-				class="block text-right text-xs {description.length > 1500
+				class="block text-end text-xs {description.length > 1500
 					? 'text-danger-color'
 					: 'text-thirdly'}"
 			>

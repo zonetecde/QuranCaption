@@ -41,9 +41,11 @@
 			<div class="text-sm font-semibold text-primary">{title}</div>
 			<div class="text-xs text-thirdly">{subtitle}</div>
 		</div>
-		<div class="text-right">
+		<div class="text-end">
 			<div class="text-lg font-semibold text-primary">{progressPercent}%</div>
-			<div class="text-[11px] uppercase tracking-[0.18em] text-thirdly">{$LL.editor.progress()}</div>
+			<div class="text-[11px] uppercase tracking-[0.18em] text-thirdly">
+				{$LL.editor.progress()}
+			</div>
 		</div>
 	</div>
 

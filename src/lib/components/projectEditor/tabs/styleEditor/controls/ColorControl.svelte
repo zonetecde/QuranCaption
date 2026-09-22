@@ -221,9 +221,9 @@
 				style:background-position={magnifier.backgroundPosition}
 				aria-hidden="true"
 			>
-				<span class="magnifier-target absolute left-1/2 top-1/2 size-2 -translate-1/2"></span>
+				<span class="magnifier-target absolute start-1/2 top-1/2 size-2 -translate-1/2"></span>
 				<span
-					class="absolute bottom-0 left-0 w-full border-t border-white bg-black/80 py-1 text-xs text-white"
+					class="absolute bottom-0 start-0 w-full border-t border-white bg-black/80 py-1 text-xs text-white"
 				>
 					{magnifier.color}
 				</span>

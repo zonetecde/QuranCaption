@@ -200,6 +200,7 @@
 	<div>
 		{#if globalState.settings!.persistentUiState.projectCardView === 'grid'}
 			<section
+				dir="ltr"
 				class={`relative h-40 w-full rounded-t-lg bg-cover bg-center object-cover ${
 					draggable ? 'cursor-grab active:cursor-grabbing' : ''
 				}`}
@@ -220,18 +221,20 @@
 					{/if}
 					{#if projectDetail.reciter !== 'not set'}
 						<span
-							class="absolute bottom-3 left-1/2 max-w-[70%] -translate-x-1/2 truncate text-center text-sm font-semibold drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
+							data-project-reciter
+							dir="auto"
+							class="absolute bottom-3 start-1/2 max-w-[70%] -translate-x-1/2 truncate text-center text-sm font-semibold drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"
 						>
 							{projectDetail.reciter}
 						</span>
 					{/if}
 					<span
-						class="absolute bottom-1.5 left-1.5 text-xs font-medium drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] bg-black/60 rounded-md px-1"
+						class="absolute bottom-1.5 start-1.5 text-xs font-medium drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] bg-black/60 rounded-md px-1"
 					>
 						{projectDetail.duration.getFormattedTime(false)}
 					</span>
 				</div>
-				<div class="absolute right-3 top-3">
+				<div class="absolute end-3 top-3">
 					<ProjectTypeSelector
 						{projectDetail}
 						variant="badge"
@@ -256,23 +259,23 @@
 
 				<div class="relative">
 					<button
-						class="bg-transparent cursor-pointer text-xs group hover:-translate-x-3 flex items-center mr-0 duration-300 relative"
+						class="bg-transparent cursor-pointer text-xs group hover:-translate-x-3 rtl:hover:translate-x-3 flex items-center gap-2 me-0 duration-300 relative"
 						onclick={toggleStatusMenu}
 						type="button"
 					>
 						<span
-							class="w-3 h-3 rounded-full inline-block mr-2 duration-300"
+							class="w-3 h-3 rounded-full inline-block duration-300 rtl:order-1"
 							style={`background-color: ${projectDetail.status.color}`}
 						></span>
 						{getStatusLabel(projectDetail.status, get(LL))}
 						<span
-							class="material-icons-outlined text-[10px] w-10 duration-300 absolute left-full top-1/2 -translate-y-1/2 scale-75 pointer-events-none opacity-0 group-hover:opacity-60 group-hover:scale-100 group-hover:-translate-x-2"
+							class="material-icons-outlined text-[10px] w-10 duration-300 absolute start-full top-1/2 -translate-y-1/2 scale-75 pointer-events-none opacity-0 group-hover:opacity-60 group-hover:scale-100 group-hover:-translate-x-2 rtl:group-hover:translate-x-2"
 							aria-hidden="true">arrow_drop_down</span
 						>
 					</button>
 					{#if showStatusMenu}
 						<ul
-							class="absolute top-full right-0 mt-1 w-40 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-xl py-1 z-20 backdrop-blur-sm"
+							class="absolute top-full end-0 mt-1 w-40 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-xl py-1 z-20 backdrop-blur-sm"
 							data-no-drag
 							onpointerdown={(event) => event.stopPropagation()}
 						>
@@ -320,7 +323,7 @@
 
 			<!-- Bouton discret pour basculer les détails -->
 			<button
-				class={'absolute bottom-0 right-0 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-60 hover:opacity-100 transition-all duration-200  cursor-pointer ' +
+				class={'absolute bottom-0 end-0 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-60 hover:opacity-100 transition-all duration-200  cursor-pointer ' +
 					(showProjectDetails ? ' translate-y-2' : '')}
 				onclick={toggleProjectDetails}
 				type="button"
@@ -407,25 +410,25 @@
 <ContextMenu bind:this={contextMenu}>
 	<Item on:click={exportProjectButtonClick}
 		><div class="btn-icon">
-			<span class="material-icons-outlined text-sm mr-1">file_download</span
+			<span class="material-icons-outlined text-sm me-1">file_download</span
 			>{$LL.home.exportProject()}
 		</div></Item
 	>
 	<Item on:click={exportProjectPackageButtonClick}
 		><div class="btn-icon">
-			<span class="material-icons-outlined text-sm mr-1">archive</span
+			<span class="material-icons-outlined text-sm me-1">archive</span
 			>{$LL.home.exportProjectWithAsset()}
 		</div></Item
 	>
 	<Item on:click={duplicateProjectButtonClick}
 		><div class="btn-icon">
-			<span class="material-icons-outlined text-sm mr-1">content_copy</span
+			<span class="material-icons-outlined text-sm me-1">content_copy</span
 			>{$LL.home.duplicateProject()}
 		</div></Item
 	>
 	<Item on:click={deleteProjectButtonClick}
 		><div class="btn-icon danger-color">
-			<span class="material-icons-outlined text-sm mr-1">delete</span>{$LL.home.deleteProject()}
+			<span class="material-icons-outlined text-sm me-1">delete</span>{$LL.home.deleteProject()}
 		</div></Item
 	>
 </ContextMenu>

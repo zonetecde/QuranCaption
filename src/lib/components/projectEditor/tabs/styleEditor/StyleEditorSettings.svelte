@@ -1082,7 +1082,7 @@
 		font-size: 0.7rem;
 		font-weight: 600;
 		line-height: 1.2;
-		text-align: left;
+		text-align: start;
 		cursor: pointer;
 		transition: 150ms ease;
 	}

@@ -84,7 +84,7 @@
 	</div>
 	<button
 		type="button"
-		class="btn-accent ml-auto flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-xs"
+		class="btn-accent ms-auto flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-xs"
 		onclick={openPresetLibrary}
 		title={$LL.editor.saveStylesTooltip()}
 	>
@@ -149,7 +149,7 @@
 
 	<div class="relative">
 		<span
-			class="material-icons-outlined absolute top-1/2 left-2.5 -translate-y-1/2 text-sm text-secondary"
+			class="material-icons-outlined absolute top-1/2 start-2.5 -translate-y-1/2 text-sm text-secondary"
 			>search</span
 		>
 		<input
@@ -157,7 +157,7 @@
 			role="searchbox"
 			placeholder={$LL.style.searchStyles()}
 			aria-label={$LL.style.searchStyles()}
-			class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] py-1.5 pr-8 pl-9! text-sm focus:ring-1 focus:ring-white/20"
+			class="w-full rounded-lg border border-[var(--border-color)] bg-[var(--bg-secondary)] py-1.5 pe-8 ps-9! text-sm focus:ring-1 focus:ring-white/20"
 			bind:value={globalState.getStylesState.searchQuery}
 		/>
 		{#if globalState.getStylesState.searchQuery}
@@ -166,7 +166,7 @@
 				title={$LL.editor.clearSearch()}
 				aria-label={$LL.editor.clearSearch()}
 				onclick={() => (globalState.getStylesState.searchQuery = '')}
-				class="absolute top-1/2 right-2 -translate-y-1/2 text-secondary hover:text-primary"
+				class="absolute top-1/2 end-2 -translate-y-1/2 text-secondary hover:text-primary"
 			>
 				<span class="material-icons-outlined text-sm">close</span>
 			</button>
@@ -343,7 +343,7 @@
 		font-size: 0.7rem;
 		font-weight: 600;
 		line-height: 1.2;
-		text-align: left;
+		text-align: start;
 		cursor: pointer;
 		transition: 150ms ease;
 	}

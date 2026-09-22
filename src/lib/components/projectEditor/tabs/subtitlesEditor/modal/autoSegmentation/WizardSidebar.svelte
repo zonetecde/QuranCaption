@@ -19,7 +19,7 @@
 	);
 </script>
 
-<aside class="w-[320px] min-w-[280px] border-r border-color bg-primary/80 p-5 space-y-4">
+<aside class="w-[320px] min-w-[280px] border-e border-color bg-primary/80 p-5 space-y-4">
 	<div class="space-y-1">
 		<div class="text-xs uppercase tracking-wide text-thirdly">
 			{$LL.editor.aiSegmentationHeading()}
@@ -43,7 +43,7 @@
 		{#each wizard.steps as step, index (index)}
 			<button
 				type="button"
-				class="w-full rounded-xl border px-3 py-2 text-left transition-colors"
+				class="w-full rounded-xl border px-3 py-2 text-start transition-colors"
 				class:border-accent-primary={wizard.currentStep === index}
 				class:bg-accent={wizard.currentStep === index}
 				class:border-color={wizard.currentStep !== index}
@@ -54,7 +54,7 @@
 					<span class="material-icons text-accent-primary text-[20px]">{step.icon}</span>
 					<div class="text-sm text-primary font-medium">{step.title}</div>
 				</div>
-				<div class="pl-7 text-[11px] text-thirdly">{step.subtitle}</div>
+				<div class="ps-7 text-[11px] text-thirdly">{step.subtitle}</div>
 			</button>
 		{/each}
 	</nav>

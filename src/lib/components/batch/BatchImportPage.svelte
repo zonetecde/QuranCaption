@@ -172,7 +172,7 @@
 	<div class="mx-auto max-w-7xl space-y-7">
 		<header class="flex flex-wrap items-center gap-4">
 			<button class="btn btn-icon h-10 px-4" type="button" onclick={backToHome}>
-				<span class="material-icons-outlined mr-2">arrow_back</span>
+				<span class="material-icons-outlined rtl-mirror me-2">arrow_back</span>
 				{$LL.batch.backToHome()}
 			</button>
 			<div>
@@ -216,7 +216,7 @@
 						onclick={selectCsv}
 						disabled={isReading}
 					>
-						<span class="material-icons-outlined mr-2">upload_file</span>
+						<span class="material-icons-outlined me-2">upload_file</span>
 						{isReading ? $LL.batch.readingCsv() : $LL.batch.selectCsv()}
 					</button>
 					<p class="truncate text-sm text-[var(--text-secondary)]">
@@ -229,7 +229,7 @@
 			>
 				<p class="text-sm text-[var(--text-secondary)]">{$LL.batch.csvFormatHelp()}</p>
 				<button class="btn btn-icon h-8 px-3 text-xs" type="button" onclick={downloadCsvTemplate}>
-					<span class="material-icons-outlined mr-1.5 text-base">download</span>
+					<span class="material-icons-outlined me-1.5 text-base">download</span>
 					{templateCopy.downloadCsvTemplate()}
 				</button>
 			</div>
@@ -261,7 +261,7 @@
 				onclick={createBatch}
 				disabled={!canCreate}
 			>
-				<span class="material-icons mr-2">dynamic_feed</span>
+				<span class="material-icons me-2">dynamic_feed</span>
 				{isCreating ? $LL.batch.creatingBatch() : $LL.batch.createBatch()}
 			</button>
 		</div>
@@ -279,7 +279,7 @@
 					</span>
 				</div>
 				<div class="overflow-x-auto">
-					<table class="w-full text-left text-sm">
+					<table class="w-full text-start text-sm">
 						<thead class="bg-[var(--bg-accent)] text-[var(--text-secondary)]">
 							<tr>
 								<th class="px-4 py-3">#</th>

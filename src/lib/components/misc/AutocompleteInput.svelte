@@ -182,7 +182,7 @@
 		/>
 
 		{#if maxlength}
-			<div class="absolute right-3 top-1/2 transform -translate-y-1/2">
+			<div class="absolute end-3 top-1/2 transform -translate-y-1/2">
 				<span class="text-xs text-thirdly bg-bg-secondary px-2 py-1 rounded-md">
 					{value.length}/{maxlength}
 				</span>
@@ -191,11 +191,11 @@
 		<!-- Autocomplete Suggestions -->
 		{#if showSuggestions && filteredSuggestions.length > 0}
 			<div
-				class="autocomplete-dropdown absolute top-full left-0 right-0 mt-1 bg-secondary border border-color rounded-lg shadow-2xl max-h-64 overflow-y-auto"
+				class="autocomplete-dropdown absolute top-full start-0 end-0 mt-1 bg-secondary border border-color rounded-lg shadow-2xl max-h-64 overflow-y-auto"
 			>
 				{#each filteredSuggestions as suggestion, index (`${suggestion.label}-${index}`)}
 					<button
-						class="w-full px-4 py-3 text-left hover:bg-accent transition-colors duration-200 flex items-center gap-3 border-b border-color last:border-b-0
+						class="w-full px-4 py-3 text-start hover:bg-accent transition-colors duration-200 flex items-center gap-3 border-b border-color last:border-b-0
 						       {index === selectedSuggestionIndex ? 'bg-accent border-accent-primary' : ''}"
 						onmousedown={(e) => {
 							e.preventDefault();

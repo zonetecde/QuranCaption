@@ -779,7 +779,7 @@
 						>
 							<span class="material-icons text-white text-sm">info</span>
 						</div>
-						<div class="text-left">
+						<div class="text-start">
 							<h3 class="text-sm font-semibold text-primary">How to use Legacy AI Mapping</h3>
 							<p class="text-xs text-thirdly">
 								Click to {translationsEditorState()?.showAIInstructions ? 'hide' : 'show'} detailed instructions
@@ -1062,16 +1062,16 @@
 		content: '';
 		position: absolute;
 		top: 0;
-		left: -100%;
+		inset-inline-start: -100%;
 		width: 100%;
 		height: 100%;
 		background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-		transition: left 0.5s;
+		transition: inset-inline-start 0.5s;
 	}
 
 	.bg-accent-primary:hover::before,
 	.bg-accent-secondary:hover::before {
-		left: 100%;
+		inset-inline-start: 100%;
 	}
 
 	.tab-button {

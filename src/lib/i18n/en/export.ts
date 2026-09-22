@@ -39,6 +39,9 @@ const export_ = {
 	removeSkip: 'Remove skip',
 	exportDuration: 'Export Duration:',
 	exportVerseRange: 'Export Verse Range:',
+	orientation: 'Orientation',
+	quality: 'Quality',
+	customDimensions: 'Custom dimensions',
 	videoQualityOrientation: 'Video Quality & Orientation',
 	setResolutionOrientation:
 		'Set the resolution and orientation for the exported video. The resolution is locked to the current project dimensions.',

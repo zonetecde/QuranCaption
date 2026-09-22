@@ -167,11 +167,11 @@
 	{#if showToolsPopover}
 		<div
 			id="tools-popover"
-			class="absolute right-0 mt-2 w-56 bg-primary border border-color rounded-lg shadow-xl py-2 z-50 overflow-hidden"
+			class="absolute end-0 mt-2 w-56 bg-primary border border-color rounded-lg shadow-xl py-2 z-50 overflow-hidden"
 			transition:slide
 		>
 			<div class="px-4 py-2">
-				<div class="mb-2 flex items-center gap-3 text-left text-sm text-secondary">
+				<div class="mb-2 flex items-center gap-3 text-start text-sm text-secondary">
 					<span class="material-icons text-lg text-accent">speed</span>
 					{$LL.editor.playbackSpeed()}
 				</div>
@@ -196,7 +196,7 @@
 			</div>
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button
-				class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
+				class="w-full text-start px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
 				onclick={(event) => {
 					event.stopPropagation();
 					runAction(() => ModalManager.shiftSubtitlesModal());
@@ -207,7 +207,7 @@
 			</button>
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button
-				class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
+				class="w-full text-start px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
 				onclick={(event) => {
 					event.stopPropagation();
 					runAction(() => {
@@ -220,7 +220,7 @@
 			</button>
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button
-				class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
+				class="w-full text-start px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
 				onclick={(event) => {
 					event.stopPropagation();
 					runAction(() => ModalManager.hifzRepetitionModal());
@@ -231,7 +231,7 @@
 			</button>
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button
-				class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
+				class="w-full text-start px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
 				onclick={(event) => {
 					event.stopPropagation();
 					runAction(() => ModalManager.audioCutterModal());
@@ -242,7 +242,7 @@
 			</button>
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button
-				class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
+				class="w-full text-start px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
 				onclick={(event) => {
 					event.stopPropagation();
 					runAction(() => ModalManager.noiseReductionModal());
@@ -253,7 +253,7 @@
 			</button>
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button
-				class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
+				class="w-full text-start px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
 				onclick={(event) => {
 					event.stopPropagation();
 					runAction(() => ModalManager.verseRangeCropModal());
@@ -265,7 +265,7 @@
 
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button
-				class="w-full text-left px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
+				class="w-full text-start px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
 				onclick={(event) => {
 					event.stopPropagation();
 					runAction(() => WaveformService.clearAllCache());
@@ -276,7 +276,7 @@
 			</button>
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button
-				class="w-full text-left px-4 py-2 text-sm text-red-300 transition-colors flex items-center gap-3"
+				class="w-full text-start px-4 py-2 text-sm text-red-300 transition-colors flex items-center gap-3"
 				onclick={(event) => {
 					event.stopPropagation();
 					runAction(() => {

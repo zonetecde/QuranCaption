@@ -40,7 +40,7 @@
 			type="button"
 			onclick={openStockMedia}
 		>
-			<span class="material-icons mr-2 text-base">public</span>
+			<span class="material-icons me-2 text-base">public</span>
 			{get(LL).editor.stockMedia()}
 		</button>
 

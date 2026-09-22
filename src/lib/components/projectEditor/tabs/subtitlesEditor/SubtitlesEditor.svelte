@@ -156,7 +156,7 @@
 					</button>
 				{:else}
 					<button type="button" class="btn" onclick={() => (subtitleStartMode = 'choice')}>
-						<span class="material-icons-outlined">arrow_back</span>{$LL.common.back()}
+						<span class="material-icons-outlined rtl-mirror">arrow_back</span>{$LL.common.back()}
 					</button>
 				{/if}
 				<button
@@ -228,7 +228,7 @@
 				<VideoPreview showControls={false} />
 
 				<button
-					class="flex items-center justify-center w-8 h-8 text-[var(--text-on-hover)] bg-accent/20 hover:bg-accent rounded-full transition-colors cursor-pointer duration-200 absolute top-2 right-2 z-20 border-2 border-color"
+					class="flex items-center justify-center w-8 h-8 text-[var(--text-on-hover)] bg-accent/20 hover:bg-accent rounded-full transition-colors cursor-pointer duration-200 absolute top-2 end-2 z-20 border-2 border-color"
 					onclick={() => {
 						globalState.getVideoPreviewState.togglePlayPause();
 					}}

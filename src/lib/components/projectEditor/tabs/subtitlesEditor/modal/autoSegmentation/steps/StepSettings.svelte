@@ -140,14 +140,14 @@
 			<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
 				<button
 					type="button"
-					class="rounded-lg border p-3 text-left text-sm"
+					class="rounded-lg border p-3 text-start text-sm"
 					class:border-accent-primary={wizard.fillBySilence}
 					class:border-color={!wizard.fillBySilence}
 					onclick={() => wizard.setFillBySilence(true)}>{$LL.editor.keepSilentGaps()}</button
 				>
 				<button
 					type="button"
-					class="rounded-lg border p-3 text-left text-sm"
+					class="rounded-lg border p-3 text-start text-sm"
 					class:border-accent-primary={!wizard.fillBySilence}
 					class:border-color={wizard.fillBySilence}
 					onclick={() => wizard.setFillBySilence(false)}>{$LL.editor.keepSubtitlesVisible()}</button

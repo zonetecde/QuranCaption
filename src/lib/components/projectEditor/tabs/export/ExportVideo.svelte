@@ -1156,7 +1156,7 @@
 		<div class="mt-5">
 			<button
 				type="button"
-				class="w-full flex items-center justify-between rounded-lg border border-color bg-accent px-4 py-3 text-left transition-colors hover:bg-primary/60"
+				class="w-full flex items-center justify-between rounded-lg border border-color bg-accent px-4 py-3 text-start transition-colors hover:bg-primary/60"
 				onclick={() => {
 					showAdvancedSettings = !showAdvancedSettings;
 				}}
@@ -1243,7 +1243,7 @@
 										: $LL.export.lowCpuDescription()}
 								<button
 									type="button"
-									class="rounded-xl border p-4 text-left transition-colors"
+									class="rounded-xl border p-4 text-start transition-colors"
 									class:border-accent-primary={globalState.settings.exportSettings
 										.performanceProfile === id}
 									class:bg-secondary={globalState.settings.exportSettings.performanceProfile === id}
@@ -1288,7 +1288,7 @@
 									class="btn-accent w-full px-3 py-2 text-sm"
 									onclick={() => void selectRandomBackgroundFolder()}
 								>
-									<span class="material-icons-outlined mr-2 align-middle text-base"
+									<span class="material-icons-outlined me-2 align-middle text-base"
 										>folder_open</span
 									>
 									{randomBackgroundCopy.selectRandomBackgroundFolder()}
@@ -1371,7 +1371,7 @@
 						{reviewCopy.exportTranslationReviewWarning({ count: exportReviewCounts.translations })}
 					</p>
 				{/if}
-				<label class="mt-2 flex cursor-pointer items-start gap-2 text-left font-normal">
+				<label class="mt-2 flex cursor-pointer items-start gap-2 text-start font-normal">
 					<input
 						type="checkbox"
 						class="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent-primary)]"

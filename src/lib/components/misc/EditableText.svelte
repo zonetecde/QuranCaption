@@ -37,11 +37,11 @@
 <button
 	onclick={textClicked}
 	{disabled}
-	class={'text-left text-nowrap group/name flex items-center cursor-pointer ' + parentClasses}
+	class={'text-start text-nowrap group/name flex items-center cursor-pointer ' + parentClasses}
 >
-	<h4 class={'group-hover/name:underline ' + textClasses}>{value}</h4>
+	<h4 dir="auto" class={'group-hover/name:underline ' + textClasses}>{value}</h4>
 	<span
-		class="material-icons-outlined text-lg! pt-0.5 ml-2 opacity-0 group-hover/name:opacity-100 transition-opacity duration-100"
+		class="material-icons-outlined text-lg! pt-0.5 ms-2 opacity-0 group-hover/name:opacity-100 transition-opacity duration-100"
 		>edit</span
 	>
 </button>

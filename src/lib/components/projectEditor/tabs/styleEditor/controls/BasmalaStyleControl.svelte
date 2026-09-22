@@ -50,7 +50,7 @@
 	<button
 		bind:this={triggerButton}
 		type="button"
-		class="flex w-full items-center justify-between gap-3 rounded-lg border border-color bg-[var(--bg-secondary)] px-3 py-2 text-left text-sm text-primary transition-colors hover:border-[var(--accent-primary)]"
+		class="flex w-full items-center justify-between gap-3 rounded-lg border border-color bg-[var(--bg-secondary)] px-3 py-2 text-start text-sm text-primary transition-colors hover:border-[var(--accent-primary)]"
 		aria-haspopup="listbox"
 		aria-expanded={isOpen}
 		onclick={() => (isOpen = !isOpen)}
@@ -60,7 +60,7 @@
 		{#if String(value) !== 'current-font'}
 			<span class="truncate text-2xl leading-none" style="font-family: Basmalah;">{value}</span>
 		{/if}
-		<span class="material-icons-outlined ml-auto shrink-0 text-[18px]! text-secondary">
+		<span class="material-icons-outlined ms-auto shrink-0 text-[18px]! text-secondary">
 			{isOpen ? 'expand_less' : 'expand_more'}
 		</span>
 	</button>
@@ -75,7 +75,7 @@
 					type="button"
 					role="option"
 					aria-selected={option === String(value)}
-					class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm text-primary transition-colors hover:bg-[var(--bg-accent)] aria-selected:bg-[color-mix(in_srgb,var(--accent-primary)_18%,var(--bg-secondary))]"
+					class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-start text-sm text-primary transition-colors hover:bg-[var(--bg-accent)] aria-selected:bg-[color-mix(in_srgb,var(--accent-primary)_18%,var(--bg-secondary))]"
 					onclick={() => selectBasmala(option)}
 				>
 					<span>{option === 'current-font' ? getStyleName('current-font', $LL) : `#${option}`}</span

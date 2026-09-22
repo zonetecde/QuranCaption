@@ -78,7 +78,7 @@
 					autocomplete="off"
 				/>
 				<!-- Character counter in input -->
-				<div class="absolute right-3 top-1/2 transform -translate-y-1/2">
+				<div class="absolute end-3 top-1/2 transform -translate-y-1/2">
 					<span class="text-xs text-thirdly font-mono bg-secondary px-2 py-1 rounded-md">
 						{inputValue.length}/{maxlength}
 					</span>

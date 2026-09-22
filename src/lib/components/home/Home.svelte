@@ -591,24 +591,24 @@
 				<h2 class="text-4xl font-bold">{$LL.home.welcomeBack()}</h2>
 				<h4 class="text-secondary">{$LL.home.letsCreate()}</h4>
 			</section>
-			<section class="ml-auto flex flex-wrap gap-3 xl:gap-x-4">
+			<section class="ms-auto flex flex-wrap gap-3 xl:gap-x-4">
 				<button
 					data-tour-id="new-project-button"
 					class="btn-accent btn-icon h-12 px-4 xl:px-7"
 					onclick={newProjectButtonClick}
 				>
-					<span class="material-icons-outlined mr-2">add_circle_outline</span>
+					<span class="material-icons-outlined me-2">add_circle_outline</span>
 					{$LL.home.newProject()}
 				</button>
 				<!-- <button class="btn btn-icon h-12 px-4 xl:px-7">
-					<span class="material-icons-outlined mr-2">auto_awesome</span> {$LL.home.aiVideo()}
+					<span class="material-icons-outlined me-2">auto_awesome</span> {$LL.home.aiVideo()}
 				</button> -->
 				<button class="btn btn-icon h-12 px-4 xl:px-7" onclick={importProject}>
-					<span class="material-icons-outlined mr-2">file_upload</span>
+					<span class="material-icons-outlined me-2">file_upload</span>
 					{$LL.home.importProject()}
 				</button>
 				<button class="btn btn-icon h-12 px-4 xl:px-7" onclick={newBatchButtonClick}>
-					<span class="material-icons mr-2">dynamic_feed</span>
+					<span class="material-icons me-2">dynamic_feed</span>
 					{$LL.batch.newBatch()}
 				</button>
 			</section>
@@ -643,7 +643,7 @@
 								{#if item.target}
 									<button
 										type="button"
-										class="cursor-pointer text-left hover:underline"
+										class="cursor-pointer text-start hover:underline"
 										onclick={() => selectExplorerNode(item.target!)}
 									>
 										{item.label}
@@ -679,7 +679,7 @@
 									onclick={() => (currentPage = Math.max(1, currentPage - 1))}
 									title={$LL.home.previousPage()}
 								>
-									<span class="material-icons-outlined text-base">chevron_left</span>
+									<span class="material-icons-outlined rtl-mirror text-base">chevron_left</span>
 								</button>
 								<span class="min-w-16 text-center text-[var(--text-primary)]">
 									{currentPage} / {totalPages}
@@ -691,7 +691,7 @@
 									onclick={() => (currentPage = Math.min(totalPages, currentPage + 1))}
 									title={$LL.home.nextPage()}
 								>
-									<span class="material-icons-outlined text-base">chevron_right</span>
+									<span class="material-icons-outlined rtl-mirror text-base">chevron_right</span>
 								</button>
 							</div>
 						{/if}
@@ -834,7 +834,7 @@
 
 {#if draggingProject}
 	<div
-		class="pointer-events-none fixed left-0 top-0 z-50 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)]/92 px-3 py-2 shadow-2xl backdrop-blur-md"
+		class="pointer-events-none fixed start-0 top-0 z-50 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)]/92 px-3 py-2 shadow-2xl backdrop-blur-md"
 		style={`transform: translate(${dragPointer.x}px, ${dragPointer.y}px) translate(-50%, -50%);`}
 	>
 		<p class="max-w-56 truncate text-sm font-semibold text-[var(--text-primary)]">

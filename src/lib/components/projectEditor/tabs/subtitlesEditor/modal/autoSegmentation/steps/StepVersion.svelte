@@ -42,7 +42,7 @@
 		<div
 			role="button"
 			tabindex="0"
-			class="rounded-xl border bg-gradient-to-br from-accent/80 to-bg-accent p-4 text-left shadow-sm transition-colors xl:col-span-2"
+			class="rounded-xl border bg-gradient-to-br from-accent/80 to-bg-accent p-4 text-start shadow-sm transition-colors xl:col-span-2"
 			class:border-accent-primary={wizard.selection.aiVersion === 'multi_v2'}
 			class:border-color={wizard.selection.aiVersion !== 'multi_v2'}
 			class:bg-accent={wizard.selection.aiVersion === 'multi_v2'}
@@ -92,7 +92,7 @@
 
 		<button
 			type="button"
-			class="rounded-xl border p-4 text-left transition-colors"
+			class="rounded-xl border p-4 text-start transition-colors"
 			class:border-accent-primary={wizard.selection.aiVersion === 'quran_word_timing'}
 			class:bg-accent={wizard.selection.aiVersion === 'quran_word_timing'}
 			class:border-color={wizard.selection.aiVersion !== 'quran_word_timing'}
@@ -123,7 +123,7 @@
 
 		<button
 			type="button"
-			class="rounded-xl border p-4 text-left transition-colors"
+			class="rounded-xl border p-4 text-start transition-colors"
 			class:border-accent-primary={wizard.selection.aiVersion === 'surah_splitter'}
 			class:bg-accent={wizard.selection.aiVersion === 'surah_splitter'}
 			class:border-color={wizard.selection.aiVersion !== 'surah_splitter'}
@@ -147,7 +147,7 @@
 
 		<button
 			type="button"
-			class="rounded-xl border p-4 text-left transition-colors xl:col-span-2"
+			class="rounded-xl border p-4 text-start transition-colors xl:col-span-2"
 			class:border-accent-primary={wizard.selection.aiVersion === 'multi_v2_local'}
 			class:bg-accent={wizard.selection.aiVersion === 'multi_v2_local'}
 			class:border-color={wizard.selection.aiVersion !== 'multi_v2_local'}

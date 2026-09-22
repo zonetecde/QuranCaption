@@ -466,7 +466,7 @@
 				</button>
 				<button
 					type="button"
-					class="pointer-events-none absolute top-full right-0 whitespace-nowrap text-xs text-secondary underline opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
+					class="pointer-events-none absolute top-full end-0 whitespace-nowrap text-xs text-secondary underline opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
 					onclick={disablePrompt}
 				>
 					{copy.reflectionDontShowAgain()}
@@ -477,13 +477,13 @@
 		<div class="reflection-content space-y-3 p-4">
 			{#if stage === 'auth'}
 				<div class="reflection-auth-card rounded-xl p-5">
-					<div class="relative z-1 flex flex-col items-center gap-4 sm:flex-row sm:text-left">
+					<div class="relative z-1 flex flex-col items-center gap-4 sm:flex-row sm:text-start">
 						<div
 							class="reflection-auth-icon flex size-12 shrink-0 items-center justify-center rounded-2xl"
 						>
 							<span class="material-icons text-2xl">account_circle</span>
 						</div>
-						<div class="min-w-0 flex-1 text-center sm:text-left">
+						<div class="min-w-0 flex-1 text-center sm:text-start">
 							<h3 class="font-semibold text-primary">{copy.reflectionAuthTitle()}</h3>
 							<p class="mt-1 text-sm leading-relaxed text-secondary">
 								{quranAuthService.status === 'connected'
@@ -559,7 +559,7 @@
 						</div>
 					{/if}
 					<div class="passage-selector flex flex-wrap items-center gap-2 rounded-xl px-3 py-2">
-						<p class="mr-auto text-sm font-semibold text-primary">
+						<p class="me-auto text-sm font-semibold text-primary">
 							{selectedSurahName}
 							— {selectionMode === 'whole'
 								? copy.reflectionWholeSurah()
@@ -729,7 +729,7 @@
 				<div class="flex flex-col gap-2 sm:flex-row sm:items-stretch">
 					<button
 						type="button"
-						class="reflection-choice flex-1 rounded-xl px-3 py-2 text-left disabled:opacity-45"
+						class="reflection-choice flex-1 rounded-xl px-3 py-2 text-start disabled:opacity-45"
 						disabled={isSubmitting}
 						onclick={() => requestSubmission('private')}
 					>
@@ -739,7 +739,7 @@
 					</button>
 					<button
 						type="button"
-						class="reflection-primary flex-1 rounded-xl px-3 py-2 text-left disabled:opacity-45"
+						class="reflection-primary flex-1 rounded-xl px-3 py-2 text-start disabled:opacity-45"
 						disabled={isSubmitting}
 						onclick={() => requestSubmission('public')}
 					>

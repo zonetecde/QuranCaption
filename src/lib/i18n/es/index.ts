@@ -2093,6 +2093,9 @@ const es = {
 		removeSkip: 'Eliminar corte',
 		exportDuration: 'Duración de exportación :',
 		exportVerseRange: 'Rango de versículos a exportar :',
+		orientation: 'Orientación',
+		quality: 'Calidad',
+		customDimensions: 'Dimensiones personalizadas',
 		videoQualityOrientation: 'Calidad y orientación del video',
 		setResolutionOrientation:
 			'Establezca la resolución y la orientación del video exportado. La resolución está bloqueada en las dimensiones actuales del proyecto.',

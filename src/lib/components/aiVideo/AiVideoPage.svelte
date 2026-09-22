@@ -111,7 +111,7 @@
 				class="flex items-center gap-1 text-sm text-secondary hover:text-primary transition-colors mb-4 cursor-pointer"
 				onclick={goBack}
 			>
-				<span class="material-icons text-base">arrow_back</span>
+				<span class="material-icons rtl-mirror text-base">arrow_back</span>
 				{aiv.step === 'review' ? $LL.aiVideo.backToOptions() : $LL.aiVideo.backToHome()}
 			</button>
 
@@ -163,7 +163,7 @@
 						<span class="material-icons animate-spin text-lg">autorenew</span>
 						{aiv.ai.letAiChoose ? $LL.aiVideo.aiIsPlanning() : $LL.aiVideo.preparingReview()}
 					{:else}
-						<span class="material-icons text-lg">arrow_forward</span>
+						<span class="material-icons rtl-mirror text-lg">arrow_forward</span>
 						{aiv.ai.letAiChoose ? $LL.aiVideo.generateAiPlan() : $LL.aiVideo.reviewContinue()}
 					{/if}
 				</button>

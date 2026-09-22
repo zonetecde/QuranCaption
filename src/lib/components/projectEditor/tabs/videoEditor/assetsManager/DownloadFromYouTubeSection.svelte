@@ -112,7 +112,7 @@
 				placeholder={get(LL).editor.pasteMediaUrlPlaceholder()}
 				bind:value={url}
 			/>
-			<div class="absolute inset-y-0 right-0 flex items-center pr-3">
+			<div class="absolute inset-y-0 end-0 flex items-center pe-3">
 				<span class="material-icons text-thirdly text-lg">link</span>
 			</div>
 		</div>

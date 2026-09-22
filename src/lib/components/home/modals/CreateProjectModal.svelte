@@ -134,7 +134,7 @@
 						}
 					}}
 				/>
-				<div class="absolute right-3 top-1/2 transform -translate-y-1/2">
+				<div class="absolute end-3 top-1/2 transform -translate-y-1/2">
 					<span class="text-xs text-thirdly bg-bg-secondary px-2 py-1 rounded-md">
 						{name.length}/{ProjectDetail.NAME_MAX_LENGTH}
 					</span>
@@ -174,7 +174,7 @@
 					<option value={ADD_CATEGORY_VALUE}>{homeCopy.addCategoryOption()}</option>
 				</select>
 				<span
-					class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 material-icons text-thirdly"
+					class="pointer-events-none absolute end-4 top-1/2 -translate-y-1/2 material-icons text-thirdly"
 				>
 					expand_more
 				</span>

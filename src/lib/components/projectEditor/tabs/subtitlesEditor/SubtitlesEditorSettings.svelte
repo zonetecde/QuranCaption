@@ -81,9 +81,7 @@
 		// Si on veut changer le sous-titre en Qur'an
 		if (presetChoice === "Qur'an") {
 			// Alors on explique à l'utilisateur qu'il doit sélectionner les mots
-			await ModalManager.confirmModal(
-				$LL.editor.makeQuranSubtitleConfirm()
-			);
+			await ModalManager.confirmModal($LL.editor.makeQuranSubtitleConfirm());
 		} else {
 			// Sinon on applique le changement de sous-titre
 			const subtitleTrack = globalState.getSubtitleTrack;
@@ -274,7 +272,9 @@
 								>
 								{$LL.editor.wbwTutorialBoundaries()}
 							</p>
-							<p class="text-[11px] text-yellow-100/90"><strong>{$LL.editor.wbwTutorialEscape()}</strong></p>
+							<p class="text-[11px] text-yellow-100/90">
+								<strong>{$LL.editor.wbwTutorialEscape()}</strong>
+							</p>
 						</div>
 					{/if}
 				</div>
@@ -304,7 +304,7 @@
 
 			{#if !globalState.shared.wbwEdit.active}
 				<!-- Presets -->
-				<div class="max-h-[39vh] xl:max-h-none overflow-y-auto pr-1 pt-1">
+				<div class="max-h-[39vh] xl:max-h-none overflow-y-auto pe-1 pt-1">
 					<div class="grid grid-cols-2 gap-3">
 						{#each [{ label: "Qur'an", shortcut: $LL.editor.selectWordsEnter(), icon: 'menu_book', gradient: 'from-amber-600 to-amber-700' }, { label: 'Silence', shortcut: 's', icon: 'volume_off', gradient: 'from-zinc-600 to-zinc-700' }, { label: "Isti'adha", shortcut: 'i', icon: 'self_improvement', gradient: 'from-emerald-600 to-emerald-700' }, { label: 'Basmala', shortcut: 'b', icon: 'spa', gradient: 'from-indigo-600 to-indigo-700' }, { label: 'Amin', shortcut: $LL.common.none(), icon: 'front_hand', gradient: 'from-blue-600 to-blue-700' }, { label: 'Takbir', shortcut: $LL.common.none(), icon: 'campaign', gradient: 'from-violet-600 to-violet-700' }, { label: 'Tahmeed', shortcut: $LL.common.none(), icon: 'record_voice_over', gradient: 'from-rose-600 to-rose-700' }, { label: 'Tasleem', shortcut: $LL.common.none(), icon: 'waving_hand', gradient: 'from-teal-600 to-teal-700' }, { label: 'Sadaqa', shortcut: $LL.common.none(), icon: 'verified', gradient: 'from-orange-600 to-orange-700' }] as preset (preset.label)}
 							<button

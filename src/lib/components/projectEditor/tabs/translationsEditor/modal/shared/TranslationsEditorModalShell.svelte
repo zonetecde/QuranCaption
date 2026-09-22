@@ -117,7 +117,7 @@
 
 	{#if workspace}
 		<div class={bodyClass}>
-			<div class="min-h-0 overflow-y-auto space-y-5 border-r border-color p-6">
+			<div class="min-h-0 overflow-y-auto space-y-5 border-e border-color p-6">
 				<div class="rounded-xl border border-color bg-accent px-4 py-4">
 					<div class="flex items-start justify-between gap-4">
 						<div>

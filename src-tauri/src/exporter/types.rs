@@ -126,6 +126,14 @@ pub struct VideoInput {
     pub timeline_start_ms: Option<i64>,
     /// Durée visible du clip, uniquement pour un export avec trim.
     pub duration_ms: Option<i64>,
+    /// Remplissage du cadre spécifique au clip.
+    pub media_fill: Option<bool>,
+    /// Zoom spécifique au clip, en pourcentage.
+    pub media_scale: Option<f64>,
+    /// Position horizontale spécifique au clip.
+    pub media_position_x: Option<f64>,
+    /// Position verticale spécifique au clip.
+    pub media_position_y: Option<f64>,
 }
 
 /// Entrée audio temporelle utilisée uniquement lorsqu'un clip est trimé.

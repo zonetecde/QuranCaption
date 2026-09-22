@@ -28,6 +28,7 @@
 	import TimedRangesControl from './controls/TimedRangesControl.svelte';
 	import { asDimensionValue, asFadeValue, hasFadeEnabled, msToTimeValue } from './controls/utils';
 	import { getTimedOverlayRanges } from '$lib/services/TimedOverlayRanges';
+	import { isGlobalClipStyleId } from '$lib/classes/videoStyles/styleRuntime';
 
 	const LL_ = get(LL);
 	const NON_ANIMATABLE_STYLE_IDS = new Set([
@@ -154,35 +155,13 @@
 	});
 
 	// Gestion sélection de clips
-	const overlayGlobalStyleIds = new Set<string>([
-		'overlay-enable',
-		'overlay-color',
-		'overlay-opacity',
-		'background-overlay-mode',
-		'background-overlay-fade-intensity',
-		'background-overlay-fade-coverage',
-		'background-overlay-fade-softness',
-		'background-overlay-fade-curve',
-		'background-overlay-fade-invert',
-		'background-overlay-fade-position-x',
-		'background-overlay-fade-position-y',
-		'background-overlay-fade-width',
-		'background-overlay-fade-height',
-		'overlay-custom-css',
-		'overlay-blur'
-	]);
-
-	function isGlobalOverlayStyle(): boolean {
-		return target === 'global' && overlayGlobalStyleIds.has(style.id);
-	}
-
 	const selectedClipIds = $derived(() => {
 		// Pour les targets de sous-titres/traductions: sélection de sous-titres.
 		if (target && target !== 'global') {
 			return globalState.getStylesState.selectedSubtitles.map((s) => s.id);
 		}
-		// Pour global.overlay.*: sélection de clips vidéo.
-		if (isGlobalOverlayStyle()) {
+		// Les styles média globaux compatibles ciblent la sélection de clips.
+		if (target === 'global' && isGlobalClipStyleId(style.id as StyleName)) {
 			return globalState.getStylesState.selectedVideos.map((clip) => clip.id);
 		}
 		// Les autres styles globaux restent strictement globaux.

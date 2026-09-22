@@ -1148,8 +1148,10 @@ const id = {
 		} as Translation['editor']['styleDescription'],
 		chooseTarget: 'Pilih target',
 		selectTranslation: 'Pilih terjemahan',
+		videoClipsSelected:
+			'{count} klip media{plural} dipilih. Gaya tata letak media, overlay, dan bingkai video hanya akan diterapkan pada klip ini.',
 		clickToSelect:
-			'Klik subtitle atau clip video untuk memilihnya. Ctrl/Cmd+klik memilih item tambahan.',
+			'Klik subtitle atau klip media untuk memilihnya. Ctrl/Cmd+klik memilih item tambahan.',
 		global: 'Global',
 		arabic: 'Arab',
 		translation: 'Terjemahan',

@@ -144,9 +144,9 @@ const editor = {
 	both: 'Both',
 	unmergeGroup: 'Unmerge Group',
 	videoClipsSelected:
-		'{count} video clip{plural} selected. Overlay styles will apply only to these clips.',
+		'{count} media clip{plural} selected. Media layout, overlay, and video frame styles will apply only to these clips.',
 	clickToSelect:
-		'Click a subtitle or video clip to select it. Ctrl/Cmd+click selects additional items.',
+		'Click a subtitle or media clip to select it. Ctrl/Cmd+click selects additional items.',
 	cannotEditGlobalWithSelection:
 		'You cannot edit global styles when subtitle clips are selected. Clear the selection to edit global styles.',
 	backgroundVisibilityHint: 'Background is visible only when Max Height style is set.',

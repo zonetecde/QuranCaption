@@ -690,8 +690,9 @@ const zh = {
 		translation: '翻译',
 		both: '两者',
 		unmergeGroup: '取消合并组',
-		videoClipsSelected: '已选择 {count} 个视频片段{plural}。叠加样式将仅应用于这些片段。',
-		clickToSelect: '点击字幕或视频片段以选择它。Ctrl/Cmd+点击可选择额外项目。',
+		videoClipsSelected:
+			'已选择 {count} 个媒体片段{plural}。媒体布局、叠加层和视频边框样式将仅应用于这些片段。',
+		clickToSelect: '点击字幕或媒体片段以选择它。Ctrl/Cmd+点击可选择额外项目。',
 		cannotEditGlobalWithSelection: '选择字幕片段时无法编辑全局样式。请清除选择以编辑全局样式。',
 		backgroundVisibilityHint: '仅当设置了最大高度样式时背景才可见。',
 		addCustomText: '添加自定义文本',

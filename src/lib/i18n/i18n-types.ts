@@ -1648,13 +1648,13 @@ type RootTranslation = {
 		 */
 		unmergeGroup: string;
 		/**
-		 * {​c​o​u​n​t​}​ ​v​i​d​e​o​ ​c​l​i​p​{​p​l​u​r​a​l​}​ ​s​e​l​e​c​t​e​d​.​ ​O​v​e​r​l​a​y​ ​s​t​y​l​e​s​ ​w​i​l​l​ ​a​p​p​l​y​ ​o​n​l​y​ ​t​o​ ​t​h​e​s​e​ ​c​l​i​p​s​.
+		 * {​c​o​u​n​t​}​ ​m​e​d​i​a​ ​c​l​i​p​{​p​l​u​r​a​l​}​ ​s​e​l​e​c​t​e​d​.​ ​M​e​d​i​a​ ​l​a​y​o​u​t​,​ ​o​v​e​r​l​a​y​,​ ​a​n​d​ ​v​i​d​e​o​ ​f​r​a​m​e​ ​s​t​y​l​e​s​ ​w​i​l​l​ ​a​p​p​l​y​ ​o​n​l​y​ ​t​o​ ​t​h​e​s​e​ ​c​l​i​p​s​.
 		 * @param {unknown} count
 		 * @param {unknown} plural
 		 */
 		videoClipsSelected: RequiredParams<'count' | 'plural'>;
 		/**
-		 * C​l​i​c​k​ ​a​ ​s​u​b​t​i​t​l​e​ ​o​r​ ​v​i​d​e​o​ ​c​l​i​p​ ​t​o​ ​s​e​l​e​c​t​ ​i​t​.​ ​C​t​r​l​/​C​m​d​+​c​l​i​c​k​ ​s​e​l​e​c​t​s​ ​a​d​d​i​t​i​o​n​a​l​ ​i​t​e​m​s​.
+		 * C​l​i​c​k​ ​a​ ​s​u​b​t​i​t​l​e​ ​o​r​ ​m​e​d​i​a​ ​c​l​i​p​ ​t​o​ ​s​e​l​e​c​t​ ​i​t​.​ ​C​t​r​l​/​C​m​d​+​c​l​i​c​k​ ​s​e​l​e​c​t​s​ ​a​d​d​i​t​i​o​n​a​l​ ​i​t​e​m​s​.
 		 */
 		clickToSelect: string;
 		/**
@@ -13605,11 +13605,11 @@ export type TranslationFunctions = {
 		 */
 		unmergeGroup: () => LocalizedString;
 		/**
-		 * {count} video clip{plural} selected. Overlay styles will apply only to these clips.
+		 * {count} media clip{plural} selected. Media layout, overlay, and video frame styles will apply only to these clips.
 		 */
 		videoClipsSelected: (arg: { count: unknown; plural: unknown }) => LocalizedString;
 		/**
-		 * Click a subtitle or video clip to select it. Ctrl/Cmd+click selects additional items.
+		 * Click a subtitle or media clip to select it. Ctrl/Cmd+click selects additional items.
 		 */
 		clickToSelect: () => LocalizedString;
 		/**

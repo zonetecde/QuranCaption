@@ -14,6 +14,7 @@
 	import StyleCategoryBlock from './StyleCategoryBlock.svelte';
 	import StyleEditorHeader from './StyleEditorHeader.svelte';
 	import { getVisibleCustomStyles } from './customContentStyleUtils';
+	import { isGlobalClipStyleId } from '$lib/classes/videoStyles/styleRuntime';
 	import type {
 		StyleControlGroup,
 		StyleGroupCopyKey,
@@ -196,9 +197,11 @@
 		const target = currentStyleTarget();
 		const categories = globalState.getVideoStyle.getStylesOfTarget(target).categories;
 
-		// Les sélections de clips vidéo ne peuvent modifier que l'overlay.
+		// Une sélection média expose uniquement les réglages personnalisables par clip.
 		if (target === 'global' && globalState.getStylesState.selectedVideos.length > 0) {
-			return categories.filter((category) => category.id === 'overlay');
+			return categories.filter((category) =>
+				category.styles.some((style) => isGlobalClipStyleId(style.id as StyleName))
+			);
 		}
 
 		return categories;
@@ -452,6 +455,9 @@
 	function isStyleUnsupported(category: Category, style: Style): boolean {
 		const selection = globalState.getStylesState.currentSelection;
 		const selectedSubtitles = globalState.getStylesState.selectedSubtitles.length > 0;
+		const selectedVideos = globalState.getStylesState.selectedVideos.length > 0;
+
+		if (selectedVideos && !isGlobalClipStyleId(style.id as StyleName)) return true;
 
 		if (style.id === 'reactive-font-size' || style.id === 'reactive-y-position') return true;
 		if (

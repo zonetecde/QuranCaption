@@ -746,9 +746,9 @@ const fr = {
 		both: 'Les deux',
 		unmergeGroup: 'Dissocier le groupe',
 		videoClipsSelected:
-			'{count}\u00a0clip vidéo{plural} sélectionné{plural}. Les styles de superposition s\u2019appliqueront uniquement à ces clips.',
+			'{count}\u00a0clip média sélectionné{plural}. Les styles de cadrage, de superposition et de cadre vidéo s\u2019appliqueront uniquement à ces clips.',
 		clickToSelect:
-			'Cliquez sur un sous-titre ou un clip vidéo pour le sélectionner. Ctrl/Cmd+clic sélectionne des éléments supplémentaires.',
+			'Cliquez sur un sous-titre ou un clip média pour le sélectionner. Ctrl/Cmd+clic sélectionne des éléments supplémentaires.',
 		cannotEditGlobalWithSelection:
 			'Vous ne pouvez pas modifier les styles globaux lorsque des clips de sous-titres sont sélectionnés. Effacez la sélection pour modifier les styles globaux.',
 		backgroundVisibilityHint:

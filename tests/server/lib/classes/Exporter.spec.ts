@@ -9,7 +9,16 @@ import Exporter, {
 	selectRandomBackgroundCandidate,
 	type YouTubeChapterFormatValues
 } from '$lib/classes/Exporter';
-import { AssetClip, AssetType, SubtitleClip, TrackType, type Project } from '$lib/classes';
+import {
+	AssetClip,
+	AssetType,
+	Category,
+	Style,
+	StylesData,
+	SubtitleClip,
+	TrackType,
+	type Project
+} from '$lib/classes';
 import { ExportMediaInputBuilder } from '../../../../src/routes/exporter/ExportMediaInputBuilder';
 import { globalState } from '$lib/runes/main.svelte';
 
@@ -295,6 +304,55 @@ describe('Background media export inputs', () => {
 					timeline_start_ms: 5_001,
 					duration_ms: 10_000
 				}
+			]);
+		} finally {
+			globalState.currentProject = previousProject;
+		}
+	});
+
+	it('exports media layout overrides for each video and image clip', () => {
+		const previousProject = globalState.currentProject;
+		const videoClip = new AssetClip(0, 5_000, 10);
+		const imageClip = new AssetClip(5_001, 10_001, 11);
+		const styles = new StylesData('global', [
+			new Category({
+				id: 'general',
+				styles: [
+					new Style({ id: 'media-fill', value: false }),
+					new Style({ id: 'media-scale', value: 100 }),
+					new Style({ id: 'media-position-x', value: 0 }),
+					new Style({ id: 'media-position-y', value: 0 })
+				]
+			})
+		]);
+		styles.setStyleForClips([videoClip.id], 'media-fill', true);
+		styles.setStyleForClips([videoClip.id], 'media-scale', 125);
+		styles.setStyleForClips([imageClip.id], 'media-position-x', -20);
+		styles.setStyleForClips([imageClip.id], 'media-position-y', 35);
+		const assets = new Map([
+			[10, { filePath: 'background.mp4', type: AssetType.Video, duration: { ms: 5_000 } }],
+			[11, { filePath: 'still.png', type: AssetType.Image, duration: { ms: 0 } }]
+		]);
+		globalState.currentProject = {
+			content: {
+				timeline: { getFirstTrack: () => ({ clips: [videoClip, imageClip] }) },
+				videoStyle: { getStylesOfTarget: () => styles },
+				getAssetById: (id: number) => assets.get(id)
+			}
+		} as unknown as Project;
+
+		try {
+			expect(ExportMediaInputBuilder.getVideoInputs()).toEqual([
+				expect.objectContaining({
+					path: 'background.mp4',
+					media_fill: true,
+					media_scale: 125
+				}),
+				expect.objectContaining({
+					path: 'still.png',
+					media_position_x: -20,
+					media_position_y: 35
+				})
 			]);
 		} finally {
 			globalState.currentProject = previousProject;

@@ -81,22 +81,24 @@
 	});
 
 	let backgroundMediaStyle = $derived.by(() => {
-		const mediaFill = Boolean(globalState.getStyleValue('global', 'media-fill'));
+		const clipId = currentVideoClip()?.id;
+		const globalStyles = globalState.getVideoStyle.getStylesOfTarget('global');
+		const mediaFill = Boolean(globalStyles.getEffectiveValue('media-fill', clipId));
 		const scale = Math.min(
 			3,
-			Math.max(1, Number(globalState.getStyleValue('global', 'media-scale') ?? 100) / 100)
+			Math.max(1, Number(globalStyles.getEffectiveValue('media-scale', clipId) ?? 100) / 100)
 		);
 		const positionX =
 			(Math.min(
 				100,
-				Math.max(-100, Number(globalState.getStyleValue('global', 'media-position-x') ?? 0))
+				Math.max(-100, Number(globalStyles.getEffectiveValue('media-position-x', clipId) ?? 0))
 			) +
 				100) /
 			200;
 		const positionY =
 			(Math.min(
 				100,
-				Math.max(-100, Number(globalState.getStyleValue('global', 'media-position-y') ?? 0))
+				Math.max(-100, Number(globalStyles.getEffectiveValue('media-position-y', clipId) ?? 0))
 			) +
 				100) /
 			200;

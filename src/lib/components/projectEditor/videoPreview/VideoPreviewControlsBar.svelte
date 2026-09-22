@@ -28,8 +28,7 @@
 
 	let isPortraitVideo = $derived(() => {
 		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
-			| { width?: number; height?: number }
-			| undefined;
+			{ width?: number; height?: number } | undefined;
 		return Number(dimensions?.width) < Number(dimensions?.height);
 	});
 
@@ -44,7 +43,10 @@
 	}
 </script>
 
-<div class="bg-primary h-10 w-full flex items-center justify-center relative pt-0.25 rounded-t-xl">
+<div
+	dir="ltr"
+	class="bg-primary h-10 w-full flex items-center justify-center relative pt-0.25 rounded-t-xl"
+>
 	<!-- Timestamp dans la vidéo -->
 	<section class="absolute left-3 monospaced text-xs">
 		{currentDuration()} / {videoDuration()}

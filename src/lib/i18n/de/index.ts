@@ -2110,6 +2110,9 @@ const de = {
 		removeSkip: 'Schnitt entfernen',
 		exportDuration: 'Exportdauer:',
 		exportVerseRange: 'Zu exportierender Versbereich:',
+		orientation: 'Ausrichtung',
+		quality: 'Qualität',
+		customDimensions: 'Benutzerdefinierte Abmessungen',
 		videoQualityOrientation: 'Videoqualität und -ausrichtung',
 		setResolutionOrientation:
 			'Legen Sie die Auflösung und Ausrichtung des exportierten Videos fest. Die Auflösung ist auf die aktuellen Projektdimensionen festgelegt.',

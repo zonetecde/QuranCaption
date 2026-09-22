@@ -104,7 +104,7 @@
 				: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
 			onclick={() => (aiv.audio.useLocal = false)}
 		>
-			<span class="material-icons text-base align-middle mr-1">cloud</span>
+			<span class="material-icons text-base align-middle me-1">cloud</span>
 			{$LL.aiVideo.mp3QuranReciter()}
 		</button>
 		<button
@@ -115,7 +115,7 @@
 				: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
 			onclick={() => (aiv.audio.useLocal = true)}
 		>
-			<span class="material-icons text-base align-middle mr-1">folder_open</span>
+			<span class="material-icons text-base align-middle me-1">folder_open</span>
 			{$LL.aiVideo.localAudioFile()}
 		</button>
 	</div>

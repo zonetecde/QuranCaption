@@ -78,7 +78,7 @@
 				onclick={() =>
 					globalState.currentProject!.content.projectTranslation.removeTranslation(edition)}
 			>
-				<span class="material-icons text-base mr-1">delete</span>
+				<span class="material-icons text-base me-1">delete</span>
 				{$LL.common.remove()}
 			</button>
 
@@ -87,7 +87,7 @@
 				onclick={() =>
 					globalState.currentProject!.content.projectTranslation.resetTranslation(edition)}
 			>
-				<span class="material-icons text-base mr-1">refresh</span>
+				<span class="material-icons text-base me-1">refresh</span>
 				{$LL.common.reset()}
 			</button>
 
@@ -99,14 +99,14 @@
 				}}
 				title={$LL.editor.fetchTranslations()}
 			>
-				<span class="material-icons text-base mr-2"> cloud_sync </span>
+				<span class="material-icons text-base me-2"> cloud_sync </span>
 				{$LL.editor.fetchButton()}
 			</button>
 			<button
 				class="btn btn-icon w-full px-4 py-2 text-sm flex-1 flex flex-row justify-center mt-1.5"
 				onclick={() => void ModalManager.askTranslationModal(edition)}
 			>
-				<span class="material-icons text-base mr-2">auto_awesome</span>
+				<span class="material-icons text-base me-2">auto_awesome</span>
 				{$LL.editor.askAi()}
 			</button>
 		</div>

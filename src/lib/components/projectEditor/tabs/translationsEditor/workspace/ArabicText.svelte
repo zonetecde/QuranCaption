@@ -266,7 +266,7 @@
 		{#if onPlaybackToggle}
 			<button
 				type="button"
-				class="flex h-7 w-7 shrink-0 items-center justify-center self-center rounded-full bg-accent text-primary opacity-30 transition-opacity duration-200 group-hover/translation-card:opacity-100 mr-4"
+				class="flex h-7 w-7 shrink-0 items-center justify-center self-center rounded-full bg-accent text-primary opacity-30 transition-opacity duration-200 group-hover/translation-card:opacity-100 me-4"
 				aria-label={$LL.settings.shortcutAction.PLAY_PAUSE()}
 				data-translation-playback-clip-id={subtitle.id}
 				onclick={onPlaybackToggle}

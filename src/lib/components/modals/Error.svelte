@@ -56,7 +56,7 @@
 				</details>
 
 				<button
-					class="absolute top-3 right-2 px-2 text-sm bg-primary/10 hover:bg-primary/20 rounded-2xl transition-colors duration-200 flex items-center gap-1 z-20 cursor-pointer"
+					class="absolute top-3 end-2 px-2 text-sm bg-primary/10 hover:bg-primary/20 rounded-2xl transition-colors duration-200 flex items-center gap-1 z-20 cursor-pointer"
 					onclick={(e) => {
 						e.stopPropagation();
 						navigator.clipboard.writeText(logs ?? '');

@@ -179,6 +179,7 @@
 
 		<!-- Affichage des mots du verset - prend toute la hauteur restante -->
 		<div
+			dir="ltr"
 			class="min-h-0"
 			class:flex-1={!showPlaybackControls}
 			class:words-selector-resizable={showPlaybackControls}

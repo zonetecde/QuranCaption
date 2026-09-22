@@ -15,7 +15,7 @@
 		onclick={() => (publishMode ? closePublishForm() : onBack())}
 		aria-label={publishMode ? $LL.style.backToStylePresets() : $LL.style.backToStyleEditor()}
 	>
-		<span class="material-icons-outlined text-lg">arrow_back</span>
+		<span class="material-icons-outlined rtl-mirror text-lg">arrow_back</span>
 	</button>
 	<h2 class="min-w-0 flex-1 truncate text-base font-semibold text-primary">
 		{publishMode ? $LL.style.publishPresetHeading() : $LL.style.stylePresets()}

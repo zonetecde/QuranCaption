@@ -2111,6 +2111,9 @@ const fr = {
 		removeSkip: 'Supprimer la coupure',
 		exportDuration: 'Durée d\u2019export\u00a0:',
 		exportVerseRange: 'Plage de versets à exporter\u00a0:',
+		orientation: 'Orientation',
+		quality: 'Qualité',
+		customDimensions: 'Dimensions personnalisées',
 		videoQualityOrientation: 'Qualité et orientation vidéo',
 		setResolutionOrientation:
 			'Définissez la résolution et l\u2019orientation de la vidéo exportée. La résolution est verrouillée sur les dimensions actuelles du projet.',

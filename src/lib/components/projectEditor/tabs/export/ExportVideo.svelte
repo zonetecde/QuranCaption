@@ -1427,7 +1427,7 @@
 									class="btn-accent w-full px-3 py-2 text-sm"
 									onclick={() => void selectRandomBackgroundFolder()}
 								>
-									<span class="material-icons-outlined mr-2 align-middle text-base"
+									<span class="material-icons-outlined me-2 align-middle text-base"
 										>folder_open</span
 									>
 									{randomBackgroundCopy.selectRandomBackgroundFolder()}

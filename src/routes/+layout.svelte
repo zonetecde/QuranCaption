@@ -4,8 +4,9 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 	import { browser } from '$app/environment';
-	import { setLocale } from '$lib/i18n/i18n-svelte';
+	import { locale, setLocale } from '$lib/i18n/i18n-svelte';
 	import { isLocale } from '$lib/i18n/i18n-util';
+	import { getLocaleDirection } from '$lib/i18n/direction';
 	import { setupAndroidBackGuard } from '$lib/services/mobileModalSheet';
 
 	let { children } = $props();
@@ -23,6 +24,12 @@
 		if (savedLocale && isLocale(savedLocale)) {
 			setLocale(savedLocale);
 		}
+	});
+
+	$effect(() => {
+		if (!browser) return;
+		document.documentElement.lang = $locale;
+		document.documentElement.dir = getLocaleDirection($locale);
 	});
 
 	$effect(() => {

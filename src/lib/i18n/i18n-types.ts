@@ -9,7 +9,7 @@ import type {
 export type BaseTranslation = BaseTranslationType;
 export type BaseLocale = 'en';
 
-export type Locales = 'de' | 'en' | 'es' | 'fr' | 'id' | 'zh';
+export type Locales = 'ar' | 'de' | 'en' | 'es' | 'fr' | 'id' | 'zh';
 
 export type Translation = RootTranslation;
 
@@ -6376,6 +6376,18 @@ type RootTranslation = {
 		 * E​x​p​o​r​t​ ​V​e​r​s​e​ ​R​a​n​g​e​:
 		 */
 		exportVerseRange: string;
+		/**
+		 * O​r​i​e​n​t​a​t​i​o​n
+		 */
+		orientation: string;
+		/**
+		 * Q​u​a​l​i​t​y
+		 */
+		quality: string;
+		/**
+		 * C​u​s​t​o​m​ ​d​i​m​e​n​s​i​o​n​s
+		 */
+		customDimensions: string;
 		/**
 		 * V​i​d​e​o​ ​Q​u​a​l​i​t​y​ ​&​ ​O​r​i​e​n​t​a​t​i​o​n
 		 */
@@ -18257,6 +18269,18 @@ export type TranslationFunctions = {
 		 * Export Verse Range:
 		 */
 		exportVerseRange: () => LocalizedString;
+		/**
+		 * Orientation
+		 */
+		orientation: () => LocalizedString;
+		/**
+		 * Quality
+		 */
+		quality: () => LocalizedString;
+		/**
+		 * Custom dimensions
+		 */
+		customDimensions: () => LocalizedString;
 		/**
 		 * Video Quality & Orientation
 		 */

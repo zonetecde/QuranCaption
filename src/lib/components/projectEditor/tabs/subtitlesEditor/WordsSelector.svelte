@@ -121,9 +121,7 @@
 			if (nextClip) {
 				// Modifie le sous-titre
 				globalState.getSubtitlesEditorState.editSubtitle = nextClip as
-					| SubtitleClip
-					| PredefinedSubtitleClip
-					| ClipWithTranslation;
+					SubtitleClip | PredefinedSubtitleClip | ClipWithTranslation;
 				return true;
 			}
 		}
@@ -642,7 +640,7 @@
 	{#if contextMenuWordIndex !== null}
 		<Item on:click={handleAutomaticSplitFromContextMenu}
 			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">call_split</span
+				<span class="material-icons-outlined text-sm me-1">call_split</span
 				>{$LL.editor.splitAutomaticallyAtWord()}
 			</div></Item
 		>

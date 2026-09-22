@@ -116,7 +116,7 @@
 						<div class="min-w-0 flex-1 space-y-1.5">
 							<!-- Arabic text -->
 							<p
-								class="text-primary text-base leading-loose text-right font-['Amiri',serif]"
+								class="text-primary text-base leading-loose text-end font-['Amiri',serif]"
 								dir="rtl"
 							>
 								{v.arabic}

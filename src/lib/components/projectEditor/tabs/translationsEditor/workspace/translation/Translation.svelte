@@ -103,13 +103,11 @@
 				translation().isStatusComplete() && translation().status !== 'automatically trimmed';
 
 			// Met à jour les indices de début et de fin de la traduction du sous-titre précédent
-			if (
-				!(
-					previousSubtitleTranslation.startWordIndex === 0 &&
-					previousSubtitleTranslation.endWordIndex === originalTranslationUnitCount() - 1 &&
-					!previousSubtitleTranslation.isBruteForce
-				)
-			) {
+			if (!(
+				previousSubtitleTranslation.startWordIndex === 0 &&
+				previousSubtitleTranslation.endWordIndex === originalTranslationUnitCount() - 1 &&
+				!previousSubtitleTranslation.isBruteForce
+			)) {
 				previousSubtitleTranslationStartIndex = previousSubtitleTranslation.startWordIndex;
 				previousSubtitleTranslationEndIndex = previousSubtitleTranslation.endWordIndex;
 			}
@@ -573,7 +571,7 @@
 				<p class="text-primary text-sm font-medium">{edition.language}</p>
 			</div>
 
-			<div class="ml-auto">
+			<div class="ms-auto">
 				<div class="flex items-center gap-2">
 					<div
 						class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors duration-200 {status ===

@@ -186,7 +186,7 @@
 
 	{#if isOpen}
 		<div
-			class="absolute left-0 right-0 top-full mt-1 {maxHeightClass} overflow-auto rounded-xl border border-color bg-primary shadow-xl z-100"
+			class="absolute start-0 end-0 top-full mt-1 {maxHeightClass} overflow-auto rounded-xl border border-color bg-primary shadow-xl z-100"
 		>
 			{#if filteredOptions.length === 0}
 				<p class="px-4 py-3 text-sm text-thirdly">{emptyMessage}</p>
@@ -196,7 +196,7 @@
 					<button
 						type="button"
 						disabled={option.disabled}
-						class="w-full text-left px-4 py-2.5 text-sm transition-colors border-b border-color last:border-b-0 disabled:opacity-50 disabled:cursor-not-allowed {option.value ===
+						class="w-full text-start px-4 py-2.5 text-sm transition-colors border-b border-color last:border-b-0 disabled:opacity-50 disabled:cursor-not-allowed {option.value ===
 						value
 							? 'bg-accent text-accent-primary'
 							: 'text-primary hover:bg-accent cursor-pointer'}"

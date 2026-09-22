@@ -531,13 +531,12 @@
 				{#key visibleCount}
 					{#each subtitlesInGroups().slice(0, visibleCount) as group, groupIndex (`group-${group[0]}-${groupIndex}`)}
 						{@const firstClipInGroup = globalState.getSubtitleTrack.clips[group[0]] as
-							| SubtitleClip
-							| PredefinedSubtitleClip}
+							SubtitleClip | PredefinedSubtitleClip}
 						<div class="text-primary relative space-y-7 py-3 px-2">
 							{#if firstClipInGroup instanceof SubtitleClip}
 								<!-- Affiche le numéro de verset en haut à gauche -->
 								<div
-									class="absolute top-0 left-0 bg-white/10 px-1 py-1 rounded-br-lg border-color border-l-0 border-t-0 border-1 text-sm"
+									class="absolute top-0 start-0 bg-white/10 px-1 py-1 rounded-br-lg border-color border-l-0 border-t-0 border-1 text-sm"
 								>
 									{firstClipInGroup.surah}:{firstClipInGroup.verse}
 								</div>

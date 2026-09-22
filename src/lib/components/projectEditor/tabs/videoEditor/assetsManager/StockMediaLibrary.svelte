@@ -204,14 +204,14 @@
 		<!-- Barre de recherche -->
 		<div class="relative">
 			<span
-				class="material-icons-outlined pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-sm text-thirdly"
+				class="material-icons-outlined pointer-events-none absolute start-2 top-1/2 -translate-y-1/2 text-sm text-thirdly"
 			>
 				search
 			</span>
 			<input
 				bind:value={searchQuery}
 				onkeydown={handleKeyDown}
-				class="h-9 w-full rounded-md border border-color bg-primary py-1 pl-8 pr-2 text-xs text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
+				class="h-9 w-full rounded-md border border-color bg-primary py-1 ps-8 pe-2 text-xs text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
 				type="search"
 				placeholder={get(LL).editor.searchStockMedia()}
 			/>

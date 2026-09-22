@@ -1274,6 +1274,7 @@
 </script>
 
 <section
+	dir="ltr"
 	class="overflow-hidden min-h-0"
 	class:flex-1={!useSplitHeight}
 	id="video-preview-section"
@@ -1282,6 +1283,7 @@
 		: ''}
 >
 	<div
+		dir="ltr"
 		class="w-full h-full flex flex-col relative overflow-hidden background-primary"
 		id="preview-container"
 		onclick={exitMobileFullscreen}

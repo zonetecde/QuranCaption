@@ -610,7 +610,7 @@
 												>
 													{#if translationDetail.comments === 'Ponctuation' || translationDetail.comments === 'Saheeh International'}
 														<!-- star icon -->
-														<span class="material-icons text-yellow-200 text-xs mr-1">star</span>
+														<span class="material-icons text-yellow-200 text-xs me-1">star</span>
 													{/if}
 													{translationDetail.author}
 												</h4>
@@ -749,7 +749,7 @@
 	}
 
 	/* Selection indicator animation */
-	.group:hover .absolute.top-2.right-2 {
+	.group:hover .absolute.top-2.end-2 {
 		animation: pulse 2s infinite;
 	}
 

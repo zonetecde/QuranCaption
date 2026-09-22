@@ -316,11 +316,11 @@
 					class="btn-accent btn-icon h-12 min-w-0 flex-1 justify-center px-4 sm:flex-none sm:px-5 xl:px-7"
 					onclick={newProjectButtonClick}
 				>
-					<span class="material-icons-outlined mr-2">add_circle_outline</span>
+					<span class="material-icons-outlined me-2">add_circle_outline</span>
 					{$LL.home.newProject()}
 				</button>
 				<!-- <button class="btn btn-icon h-12 px-4 xl:px-7">
-					<span class="material-icons-outlined mr-2">auto_awesome</span> {$LL.home.aiVideo()}
+					<span class="material-icons-outlined me-2">auto_awesome</span> {$LL.home.aiVideo()}
 				</button> -->
 				<button
 					class="btn btn-icon h-12 w-12 shrink-0 justify-center px-0"
@@ -358,7 +358,7 @@
 									onclick={() => (currentPage = Math.max(1, currentPage - 1))}
 									title={$LL.home.previousPage()}
 								>
-									<span class="material-icons-outlined text-base">chevron_left</span>
+									<span class="material-icons-outlined rtl-mirror text-base">chevron_left</span>
 								</button>
 								<span class="min-w-16 text-center text-[var(--text-primary)]">
 									{currentPage} / {totalPages}
@@ -370,7 +370,7 @@
 									onclick={() => (currentPage = Math.min(totalPages, currentPage + 1))}
 									title={$LL.home.nextPage()}
 								>
-									<span class="material-icons-outlined text-base">chevron_right</span>
+									<span class="material-icons-outlined rtl-mirror text-base">chevron_right</span>
 								</button>
 							</div>
 						{/if}

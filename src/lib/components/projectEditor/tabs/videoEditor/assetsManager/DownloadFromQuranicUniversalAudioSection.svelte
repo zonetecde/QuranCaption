@@ -606,7 +606,7 @@
 				</label>
 
 				{#if fillBySilence}
-					<div class="flex items-center gap-2 pl-6 text-secondary">
+					<div class="flex items-center gap-2 ps-6 text-secondary">
 						<label class="flex items-center gap-2">
 							<input
 								type="checkbox"

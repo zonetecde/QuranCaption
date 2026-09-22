@@ -39,7 +39,7 @@
 </script>
 
 <button
-	class="block w-full text-left rounded-lg border border-color bg-primary/30 overflow-hidden hover:border-[var(--accent-primary)]/50 transition-colors group"
+	class="block w-full text-start rounded-lg border border-color bg-primary/30 overflow-hidden hover:border-[var(--accent-primary)]/50 transition-colors group"
 	type="button"
 	onclick={() => onDownload(result)}
 	disabled={isDownloading}
@@ -66,7 +66,7 @@
 		{/if}
 
 		<span
-			class="absolute top-1 right-1 bg-black/50 hover:bg-black/80 text-white rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+			class="absolute top-1 end-1 bg-black/50 hover:bg-black/80 text-white rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
 			onclick={(e: MouseEvent) => {
 				e.stopPropagation();
 				openUrl(result.pageUrl);
@@ -78,7 +78,7 @@
 
 		{#if result.type === 'video'}
 			<div
-				class="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1 py-0.5 rounded flex items-center gap-1"
+				class="absolute bottom-1 end-1 bg-black/70 text-white text-[10px] px-1 py-0.5 rounded flex items-center gap-1"
 			>
 				<span class="material-icons text-[10px]">videocam</span>
 				{#if result.duration}

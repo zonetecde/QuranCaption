@@ -198,7 +198,7 @@
 					type="text"
 					placeholder={$LL.editor.verseSearchPlaceholder()}
 					autocomplete="off"
-					class="w-full px-3 py-1.5 text-sm border border-color rounded-r-none! border-r-0!"
+					class="w-full px-3 py-1.5 text-sm border border-color rounded-e-none! border-r-0!"
 					bind:value={localSearchQuery}
 					oninput={scheduleSearchQueryValidation}
 					onkeypress={handleSearchKeypress}
@@ -214,7 +214,7 @@
 						localSearchQuery = '';
 						validateSearchQuery();
 					}}
-					class="flex items-center border border-color rounded-r-lg px-1 hover:bg-accent"
+					class="flex items-center border border-color rounded-e-lg px-1 hover:bg-accent"
 				>
 					<span class="material-icons text-base">clear</span>
 				</button>
@@ -241,7 +241,7 @@
 							</span>
 							<!-- Badge de statut -->
 							<span
-								class="ml-auto shrink-0 px-1 py-0.25 text-[10px] rounded-full {filter ===
+								class="ms-auto shrink-0 px-1 py-0.25 text-[10px] rounded-full {filter ===
 								'to review'
 									? 'bg-yellow-500/20 text-yellow-400'
 									: filter === 'ai error' || filter === 'error'

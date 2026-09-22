@@ -36,7 +36,7 @@
 				disabled
 				onclick={() => (aiv.video.sourceMode = 'ai')}
 			>
-				<span class="material-icons text-base align-middle mr-1">auto_awesome</span>
+				<span class="material-icons text-base align-middle me-1">auto_awesome</span>
 				{$LL.aiVideo.generateVideoWithAI()}
 			</button>
 			<button

@@ -14,7 +14,7 @@
 	<div class="grid gap-3 md:grid-cols-2">
 		<button
 			type="button"
-			class="rounded-xl border p-4 text-left transition-colors"
+			class="rounded-xl border p-4 text-start transition-colors"
 			class:border-accent-primary={wizard.subtitleApplicationMode === 'replace'}
 			class:bg-accent={wizard.subtitleApplicationMode === 'replace'}
 			class:border-color={wizard.subtitleApplicationMode !== 'replace'}
@@ -28,7 +28,7 @@
 
 		<button
 			type="button"
-			class="rounded-xl border p-4 text-left transition-colors"
+			class="rounded-xl border p-4 text-start transition-colors"
 			class:border-accent-primary={wizard.subtitleApplicationMode === 'align'}
 			class:bg-accent={wizard.subtitleApplicationMode === 'align'}
 			class:border-color={wizard.subtitleApplicationMode !== 'align'}

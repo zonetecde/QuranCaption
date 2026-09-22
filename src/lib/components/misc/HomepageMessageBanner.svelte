@@ -115,7 +115,7 @@
 			onclick={() => (expandedImageUrl = null)}
 		>
 			<button
-				class="absolute top-5 right-5 flex h-10 w-10 items-center justify-center rounded-full bg-black/65 text-white transition-colors hover:bg-black/85"
+				class="absolute top-5 end-5 flex h-10 w-10 items-center justify-center rounded-full bg-black/65 text-white transition-colors hover:bg-black/85"
 				type="button"
 				onclick={() => (expandedImageUrl = null)}
 				aria-label={$LL.common.close()}

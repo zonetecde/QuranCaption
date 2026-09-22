@@ -176,11 +176,9 @@
 		const cursorPosition = timelineState().cursorPosition;
 		const clipUnderCursor = globalState.getSubtitleTrack?.getCurrentClip(cursorPosition);
 
-		if (
-			!(
-				clipUnderCursor instanceof SubtitleClip || clipUnderCursor instanceof PredefinedSubtitleClip
-			)
-		) {
+		if (!(
+			clipUnderCursor instanceof SubtitleClip || clipUnderCursor instanceof PredefinedSubtitleClip
+		)) {
 			lastVerifiedClipId = null;
 			return;
 		}
@@ -346,6 +344,7 @@
 </script>
 
 <section
+	dir="ltr"
 	class="overflow-hidden min-w-0 timeline-section flex-1 min-h-0"
 	style={useSplitHeight
 		? `height: ${

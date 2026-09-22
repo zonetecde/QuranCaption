@@ -165,17 +165,17 @@
 
 				<div class="relative">
 					<button
-						class="bg-transparent cursor-pointer text-xs group hover:-translate-x-3 flex items-center mr-0 duration-300 relative"
+						class="bg-transparent cursor-pointer text-xs group hover:-translate-x-3 rtl:hover:translate-x-3 flex items-center gap-2 me-0 duration-300 relative"
 						onclick={toggleStatusMenu}
 						type="button"
 					>
 						<span
-							class="w-3 h-3 rounded-full inline-block mr-2 duration-300"
+							class="w-3 h-3 rounded-full inline-block duration-300 rtl:order-1"
 							style={`background-color: ${projectDetail.status.color}`}
 						></span>
 						{getStatusLabel(projectDetail.status, get(LL))}
 						<span
-							class="material-icons-outlined text-[10px] w-10 duration-300 absolute left-full top-1/2 -translate-y-1/2 scale-75 pointer-events-none opacity-0 group-hover:opacity-60 group-hover:scale-100 group-hover:-translate-x-2"
+							class="material-icons-outlined text-[10px] w-10 duration-300 absolute start-full top-1/2 -translate-y-1/2 scale-75 pointer-events-none opacity-0 group-hover:opacity-60 group-hover:scale-100 group-hover:-translate-x-2 rtl:group-hover:translate-x-2"
 							aria-hidden="true">arrow_drop_down</span
 						>
 					</button>
@@ -224,7 +224,7 @@
 
 			<!-- Bouton discret pour basculer les détails -->
 			<button
-				class={'absolute bottom-0 right-0 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-60 hover:opacity-100 transition-all duration-200  cursor-pointer ' +
+				class={'absolute bottom-0 end-0 p-1 text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-60 hover:opacity-100 transition-all duration-200  cursor-pointer ' +
 					(showProjectDetails ? ' translate-y-2' : '')}
 				onclick={toggleProjectDetails}
 				type="button"
@@ -301,25 +301,25 @@
 <ContextMenu bind:this={contextMenu}>
 	<Item on:click={exportProjectButtonClick}
 		><div class="btn-icon">
-			<span class="material-icons-outlined text-sm mr-1">file_download</span
+			<span class="material-icons-outlined text-sm me-1">file_download</span
 			>{$LL.home.exportProject()}
 		</div></Item
 	>
 	<Item on:click={exportProjectPackageButtonClick}
 		><div class="btn-icon">
-			<span class="material-icons-outlined text-sm mr-1">archive</span
+			<span class="material-icons-outlined text-sm me-1">archive</span
 			>{$LL.home.exportProjectWithAsset()}
 		</div></Item
 	>
 	<Item on:click={duplicateProjectButtonClick}
 		><div class="btn-icon">
-			<span class="material-icons-outlined text-sm mr-1">content_copy</span
+			<span class="material-icons-outlined text-sm me-1">content_copy</span
 			>{$LL.home.duplicateProject()}
 		</div></Item
 	>
 	<Item on:click={deleteProjectButtonClick}
 		><div class="btn-icon danger-color">
-			<span class="material-icons-outlined text-sm mr-1">delete</span>{$LL.home.deleteProject()}
+			<span class="material-icons-outlined text-sm me-1">delete</span>{$LL.home.deleteProject()}
 		</div></Item
 	>
 </ContextMenu>

@@ -237,7 +237,7 @@
 			disabled={aiv.isCreatingProject}
 			onclick={() => (aiv.step = 'input')}
 		>
-			<span class="material-icons text-base">arrow_back</span>
+			<span class="material-icons rtl-mirror text-base">arrow_back</span>
 			{$LL.common.back()}
 		</button>
 		<button

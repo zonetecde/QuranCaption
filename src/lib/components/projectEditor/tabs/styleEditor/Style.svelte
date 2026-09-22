@@ -202,8 +202,7 @@
 	 * @returns {ReturnType<typeof globalState.getVideoStyle.getStylesOfTarget> | undefined} Portée gérée, si disponible.
 	 */
 	function getManagedStylesData():
-		| ReturnType<typeof globalState.getVideoStyle.getStylesOfTarget>
-		| undefined {
+		ReturnType<typeof globalState.getVideoStyle.getStylesOfTarget> | undefined {
 		const videoStyle = globalState.currentProject?.content?.videoStyle;
 		if (!target || !videoStyle) return undefined;
 		const styles = videoStyle.getStylesOfTarget(target);
@@ -603,10 +602,11 @@
 				class="relative h-6 w-11 rounded-full border border-color bg-[var(--bg-accent)]
 					transition-colors duration-150 peer-checked:bg-[var(--accent-primary)]
 					peer-indeterminate:bg-fuchsia-500 peer-checked:[&>span]:translate-x-5
-					peer-indeterminate:[&>span]:translate-x-2.5"
+					peer-indeterminate:[&>span]:translate-x-2.5 rtl:peer-checked:[&>span]:-translate-x-5
+					rtl:peer-indeterminate:[&>span]:-translate-x-2.5"
 			>
 				<span
-					class="absolute left-1 top-0.75 h-4 w-4 rounded-full bg-white shadow transition-transform duration-150"
+					class="absolute start-1 top-0.75 h-4 w-4 rounded-full bg-white shadow transition-transform duration-150"
 				></span>
 			</div>
 		</label>
@@ -714,10 +714,11 @@
 								class="relative w-11 h-6 rounded-full border border-color bg-[var(--bg-accent)]
 			transition-colors duration-150 peer-checked:bg-[var(--accent-primary)]
 			peer-indeterminate:bg-fuchsia-500 peer-checked:[&>span]:translate-x-5
-			peer-indeterminate:[&>span]:translate-x-2.5"
+			peer-indeterminate:[&>span]:translate-x-2.5 rtl:peer-checked:[&>span]:-translate-x-5
+			rtl:peer-indeterminate:[&>span]:-translate-x-2.5"
 							>
 								<span
-									class="absolute left-1 top-0.75 w-4 h-4 bg-white rounded-full shadow
+									class="absolute start-1 top-0.75 w-4 h-4 bg-white rounded-full shadow
 				transition-transform duration-150"
 								>
 								</span>
@@ -756,7 +757,7 @@
 
 					{#if selectedClipIds().length > 0 && (getEffectiveForSelection().overridden || getEffectiveForSelection().mixed)}
 						<button
-							class="ml-1 text-[11px] px-2 py-1 rounded border hover:opacity-90 duration-100 flex items-center gap-1 cursor-pointer"
+							class="ms-1 text-[11px] px-2 py-1 rounded border hover:opacity-90 duration-100 flex items-center gap-1 cursor-pointer"
 							title={$LL.editor.resetOverrideSelection()}
 							onclick={(e) => {
 								e.stopPropagation();
@@ -884,15 +885,15 @@
 
 	.style-control-direct-mixed,
 	.style-control-direct-overridden {
-		padding-left: 0.4rem;
+		padding-inline-start: 0.4rem;
 	}
 
 	.style-control-direct-mixed {
-		border-left: 2px solid rgb(232 121 249 / 70%);
+		border-inline-start: 2px solid rgb(232 121 249 / 70%);
 	}
 
 	.style-control-direct-overridden {
-		border-left: 2px solid rgb(251 191 36 / 70%);
+		border-inline-start: 2px solid rgb(251 191 36 / 70%);
 	}
 
 	.style-control-list {

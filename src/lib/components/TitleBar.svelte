@@ -30,7 +30,7 @@
 	}
 </script>
 
-<header class="mobile-app-bar">
+<header class="mobile-app-bar" dir="ltr">
 	{#if isHomePage}
 		<div class="app-bar-logo" aria-hidden="true">
 			<img src="/favicon.png" alt="" />

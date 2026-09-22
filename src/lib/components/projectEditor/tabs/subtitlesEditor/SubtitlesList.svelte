@@ -136,7 +136,7 @@
 	});
 </script>
 
-<div class="z-20 flex h-full flex-col border-l border-[var(--border-color)] bg-[var(--bg-primary)]">
+<div class="z-20 flex h-full flex-col border-s border-[var(--border-color)] bg-[var(--bg-primary)]">
 	<div
 		class="flex h-9 shrink-0 items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-secondary)] p-4"
 	>
@@ -250,7 +250,7 @@
 				{:else}
 					<div
 						dir="rtl"
-						class={`arabic mb-3 text-lg leading-[1.8] text-right text-[var(--text-primary)] ${
+						class={`arabic mb-3 text-lg leading-[1.8] text-end text-[var(--text-primary)] ${
 							isPredefined ? 'italic text-[var(--text-secondary)]' : ''
 						}`}
 					>

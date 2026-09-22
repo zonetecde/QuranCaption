@@ -1414,6 +1414,9 @@ const id = {
 		removeSkip: 'Hapus potongan',
 		exportDuration: 'Durasi export:',
 		exportVerseRange: 'Rentang ayat export:',
+		orientation: 'Orientasi',
+		quality: 'Kualitas',
+		customDimensions: 'Dimensi khusus',
 		videoQualityOrientation: 'Kualitas & Orientasi Video',
 		setResolutionOrientation:
 			'Atur resolusi dan orientasi video hasil export. Resolusi dikunci mengikuti dimensi project saat ini.',

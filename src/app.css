@@ -657,6 +657,10 @@ body {
 	transition: background-color var(--transition-speed) var(--transition-timing);
 }
 
+html[dir='rtl'] .rtl-mirror {
+	scale: -1 1;
+}
+
 .modal-wrapper {
 	position: fixed;
 	top: 0;

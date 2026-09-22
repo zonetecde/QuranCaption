@@ -968,10 +968,17 @@ fn collect_android_font_file_sources(
         let Ok(face) = ttf_parser::Face::parse(&data, face_index) else {
             continue;
         };
-        let Some(family) = font_face_family_names(&face)
-            .into_iter()
-            .find(|family| requested.contains(family))
-        else {
+        let full_name = font_face_name(&face, ttf_parser::name_id::FULL_NAME).unwrap_or_default();
+        let postscript_name = font_face_name(&face, ttf_parser::name_id::POST_SCRIPT_NAME);
+        let Some(family) = font_face_family_names(&face).into_iter().find(|family| {
+            requested.contains(family)
+                && font_source_matches_requested_family(
+                    family,
+                    family,
+                    &full_name,
+                    postscript_name.as_deref(),
+                )
+        }) else {
             continue;
         };
         let key = format!("{}:{}:{}", family, path.display(), face_index);
@@ -979,9 +986,11 @@ fn collect_android_font_file_sources(
             continue;
         }
 
-        let full_name =
-            font_face_name(&face, ttf_parser::name_id::FULL_NAME).unwrap_or_else(|| family.clone());
-        let postscript_name = font_face_name(&face, ttf_parser::name_id::POST_SCRIPT_NAME);
+        let full_name = if full_name.is_empty() {
+            family.clone()
+        } else {
+            full_name
+        };
         let font_style = if face.is_italic() {
             "italic"
         } else if face.is_oblique() {
@@ -1072,16 +1081,20 @@ fn add_font_source_if_requested(
     };
 
     let source_family = font.family_name();
-    let Some(requested_family) = requested_families
-        .iter()
-        .find(|family| family.as_str() == source_family.as_str())
-    else {
+    let full_name = font.full_name();
+    let postscript_name = font.postscript_name();
+    let Some(requested_family) = requested_families.iter().find(|family| {
+        font_source_matches_requested_family(
+            family,
+            &source_family,
+            &full_name,
+            postscript_name.as_deref(),
+        )
+    }) else {
         return;
     };
 
     let properties = font.properties();
-    let full_name = font.full_name();
-    let postscript_name = font.postscript_name();
     let font_style = match properties.style {
         Style::Normal => "normal",
         Style::Italic => "italic",
@@ -1113,6 +1126,34 @@ fn add_font_source_if_requested(
         font_weight_range,
         font_style,
     });
+}
+
+/// Vérifie qu'une face appartient bien à la famille demandée sans accepter une variante de largeur.
+fn font_source_matches_requested_family(
+    requested_family: &str,
+    source_family: &str,
+    full_name: &str,
+    postscript_name: Option<&str>,
+) -> bool {
+    let requested = requested_family.to_ascii_lowercase();
+    let source = source_family.to_ascii_lowercase();
+    let full = full_name.to_ascii_lowercase();
+    let postscript = postscript_name.unwrap_or_default().to_ascii_lowercase();
+    let family_matches = source == requested
+        || full == requested
+        || full
+            .strip_prefix(&requested)
+            .is_some_and(|suffix| suffix.starts_with([' ', '-']));
+    if !family_matches {
+        return false;
+    }
+
+    ["narrow", "condensed", "compressed", "expanded", "extended"]
+        .into_iter()
+        .all(|variant| {
+            requested.contains(variant)
+                || (!full.contains(variant) && !postscript.contains(variant))
+        })
 }
 
 #[cfg(desktop)]

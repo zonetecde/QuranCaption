@@ -161,6 +161,7 @@
 			onpointercancel={finishResize}
 		></span>
 	{/each}
+	<span class="subtitle-move-handle"></span>
 </span>
 
 <style>
@@ -197,6 +198,25 @@
 	.subtitle-resize-edge {
 		position: absolute;
 		pointer-events: auto;
+		touch-action: none;
+	}
+
+	.subtitle-move-handle {
+		position: absolute;
+		z-index: 2;
+		top: 50%;
+		left: 50%;
+		width: 32px;
+		height: 32px;
+		transform: translate(-50%, -50%);
+		border: 4px solid white;
+		border-radius: 999px;
+		background: var(--accent-primary);
+		box-shadow:
+			0 0 0 2px var(--accent-primary),
+			0 0 8px rgb(0 0 0 / 35%);
+		pointer-events: auto;
+		cursor: move;
 		touch-action: none;
 	}
 

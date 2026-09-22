@@ -760,6 +760,35 @@ describe('Video overlay subtitle preview', () => {
 		expect(getArabicVerseNumberSpans(component.container)[0]).toBeTruthy();
 	});
 
+	test('uses the selected subtitle max-height override when fitting its text', async () => {
+		const clip = createVerseSubtitle(0, 999, 'Arabic', 'Translation');
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 500 });
+		const translationStyles = fixture.videoStyle.getStylesOfTarget('english');
+		translationStyles.setStyle('max-height', 1);
+		translationStyles.overrides[clip.id] = { 'max-height': 1000 };
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		expect(getForegroundTranslationNode(component.container, 'english')?.style.fontSize).toBe(
+			'28px'
+		);
+	});
+
+	test('shows a center grip for moving each subtitle', async () => {
+		setupVideoOverlayFixture([createVerseSubtitle(0, 999, 'Arabic', 'Translation')]);
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const moveHandles = component.container.querySelectorAll('.subtitle-move-handle');
+		const startDrag = vi.fn();
+		moveHandles[0]?.closest('.subtitle')?.addEventListener('mousedown', startDrag);
+		moveHandles[0]?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
+
+		expect(moveHandles).toHaveLength(2);
+		expect(startDrag).toHaveBeenCalledOnce();
+	});
+
 	test('resizes the arabic subtitle from its preview borders and corner handles', async () => {
 		const fixture = setupVideoOverlayFixture(
 			[createVerseSubtitle(0, 999, 'Arabic', 'Translation')],

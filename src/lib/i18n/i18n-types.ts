@@ -2150,7 +2150,7 @@ type RootTranslation = {
 		 */
 		dismissHints: string;
 		/**
-		 * S​u​b​t​i​t​l​e​ ​a​n​t​i​-​c​o​l​l​i​s​i​o​n​ ​i​s​ ​o​n
+		 * A​n​t​i​-​c​o​l​l​i​s​i​o​n​ ​s​t​y​l​e​ ​i​s​ ​e​n​a​b​l​e​d
 		 */
 		antiCollisionNotice: string;
 		/**
@@ -14018,7 +14018,7 @@ export type TranslationFunctions = {
 		 */
 		dismissHints: () => LocalizedString;
 		/**
-		 * Subtitle anti-collision is on
+		 * Anti-collision style is enabled
 		 */
 		antiCollisionNotice: () => LocalizedString;
 		/**

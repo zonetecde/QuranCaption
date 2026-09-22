@@ -282,7 +282,7 @@ const editor = {
 	zoomOut: 'تصغير',
 	zoomIn: 'تكبير',
 	dismissHints: 'تجاهل تلميحات عجلة المخطط الزمني',
-	antiCollisionNotice: 'الترجمة المضادة للتصادم قيد التشغيل',
+	antiCollisionNotice: 'تم تفعيل نمط منع التصادم',
 	antiCollisionNoticeHelpEnabled:
 		'تم تمكينه. يمكنه نقل الترجمات تلقائيًا والتداخل مع التخطيط الدقيق الذي تريده. يمكنك تعطيله في اللوحة اليسرى.',
 	antiCollisionNoticeHelpAlternative: 'الحل الآخر لمنع تداخل الترجمة هو استخدام الأنماط',

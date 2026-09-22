@@ -1,6 +1,7 @@
 import { globalState } from '$lib/runes/main.svelte';
 import type { StyleName } from '$lib/classes/VideoStyle.svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import { getSubtitleCollisionElements } from '$lib/components/projectEditor/videoPreview/helpers/antiCollision';
 
 export interface VerticalDragOptions {
 	// Mode simple : fonction manuelle
@@ -80,6 +81,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 	let previewScaleX = 1;
 	let previewScaleY = 1;
 	let subtitlePositionDragContainer: HTMLElement | null = null;
+	let collisionFrameId: number | null = null;
 	let isStuckToZero = false; // Pour le sticky behavior horizontal
 	const HORIZONTAL_STICK_RANGE = 50; // Zone de stick autour de 0 (-50 à +50)
 	const ELEMENT_SNAP_RANGE = 8;
@@ -101,6 +103,42 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		horizontalGuide.style.display = y === null ? 'none' : 'block';
 		if (x !== null) verticalGuide.style.left = `${(x - overlayRect.left) / previewScaleX}px`;
 		if (y !== null) horizontalGuide.style.top = `${(y - overlayRect.top) / previewScaleY}px`;
+	}
+
+	/**
+	 * Retire l'indication visuelle de collision du drag courant.
+	 * @returns {void}
+	 */
+	function clearSubtitleCollisionPreview(): void {
+		if (collisionFrameId !== null) cancelAnimationFrame(collisionFrameId);
+		collisionFrameId = null;
+		subtitlePositionDragContainer
+			?.querySelectorAll('.position-drag-collision')
+			.forEach((element) => element.classList.remove('position-drag-collision'));
+		if (subtitlePositionDragContainer) {
+			delete subtitlePositionDragContainer.dataset.positionDragCollision;
+		}
+	}
+
+	/**
+	 * Planifie la détection visuelle après la mise à jour du layout par Svelte.
+	 * @returns {void}
+	 */
+	function scheduleSubtitleCollisionPreview(): void {
+		if (!subtitlePositionDragContainer) return;
+		if (collisionFrameId !== null) cancelAnimationFrame(collisionFrameId);
+		collisionFrameId = requestAnimationFrame(() => {
+			collisionFrameId = null;
+			clearSubtitleCollisionPreview();
+			if (!Boolean(globalState.getStyleValue('global', 'anti-collision'))) return;
+
+			const spacing = Number(globalState.getStyleValue('global', 'spacing')) || 0;
+			const elements = getSubtitleCollisionElements(subtitlePositionDragContainer!, node, spacing);
+			for (const element of elements) element.classList.add('position-drag-collision');
+			if (elements.length > 0) {
+				subtitlePositionDragContainer!.dataset.positionDragCollision = 'true';
+			}
+		});
 	}
 
 	function mousedown(e: MouseEvent) {
@@ -331,6 +369,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		) {
 			globalState.updateVideoPreviewUI();
 		}
+		scheduleSubtitleCollisionPreview();
 	}
 
 	function mouseup() {
@@ -342,6 +381,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		document.removeEventListener('mouseup', mouseup);
 		const cls = opts.classWhileDragging || 'dragging-vertical';
 		node.classList.remove(cls);
+		clearSubtitleCollisionPreview();
 		ProjectHistoryManager.commit();
 		if (subtitlePositionDragContainer) {
 			delete subtitlePositionDragContainer.dataset.positionDragTarget;
@@ -363,6 +403,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 			globalState.getVideoPreviewState.showAlignmentGridWhileDragging = false;
 			updateSnapGuides(null, null);
 			delete node.dataset.previewDraggable;
+			clearSubtitleCollisionPreview();
 			if (subtitlePositionDragContainer) {
 				delete subtitlePositionDragContainer.dataset.positionDragTarget;
 				delete subtitlePositionDragContainer.dataset.positionDragCommit;

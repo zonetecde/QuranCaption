@@ -708,7 +708,7 @@ const de = {
 		zoomOut: 'Herauszoomen',
 		zoomIn: 'Hereinzoomen',
 		dismissHints: 'Timeline-Mausrad-Hinweise ausblenden',
-		antiCollisionNotice: 'Untertitel-Kollisionsvermeidung ist aktiviert',
+		antiCollisionNotice: 'Der Kollisionsvermeidungsstil ist aktiviert',
 		antiCollisionNoticeHelpEnabled:
 			'ist aktiviert. Dieser Stil kann Untertitel automatisch verschieben und das gewünschte genaue Layout beeinträchtigen. Sie können ihn im linken Bereich deaktivieren.',
 		antiCollisionNoticeHelpAlternative:

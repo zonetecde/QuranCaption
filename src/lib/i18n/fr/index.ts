@@ -706,7 +706,7 @@ const fr = {
 		zoomOut: 'Zoom arrière',
 		zoomIn: 'Zoom avant',
 		dismissHints: 'Ignorer les conseils de la molette de timeline',
-		antiCollisionNotice: 'L’anti-collision des sous-titres est activée',
+		antiCollisionNotice: 'Le style anti-collision est activé',
 		antiCollisionNoticeHelpEnabled:
 			'est activé. Il peut déplacer automatiquement les sous-titres et perturber la mise en page précise souhaitée. Vous pouvez le désactiver dans le panneau de gauche.',
 		antiCollisionNoticeHelpAlternative:

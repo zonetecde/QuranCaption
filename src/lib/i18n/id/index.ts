@@ -794,7 +794,7 @@ const id = {
 		},
 		...({
 			searchFonts: 'Cari font...',
-			antiCollisionNotice: 'Anti-tabrakan subtitle aktif',
+			antiCollisionNotice: 'Gaya anti-tabrakan diaktifkan',
 			antiCollisionNoticeHelpEnabled:
 				'sedang aktif. Gaya ini dapat memindahkan subtitle secara otomatis dan mengganggu tata letak persis yang Anda inginkan. Anda dapat menonaktifkannya di panel kiri.',
 			antiCollisionNoticeHelpAlternative:

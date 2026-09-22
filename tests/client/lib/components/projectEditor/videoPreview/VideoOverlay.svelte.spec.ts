@@ -67,6 +67,11 @@ type MockStyleTarget = {
 	getEffectiveValue: (styleId: string, clipId?: number) => string | number | boolean | null;
 	getKeyframeTimes: () => number[];
 	setStyle: (styleId: string, value: string | number | boolean | null) => void;
+	setStyleForClips: (
+		clipIds: number[],
+		styleId: string,
+		value: string | number | boolean | null
+	) => void;
 };
 
 type MockVideoStyle = {
@@ -169,6 +174,16 @@ function createMockVideoStyle(targets: string[]): MockVideoStyle {
 			},
 			setStyle(styleId: string, value: string | number | boolean | null) {
 				this.findStyle(styleId).value = value;
+			},
+			setStyleForClips(
+				clipIds: number[],
+				styleId: string,
+				value: string | number | boolean | null
+			) {
+				for (const clipId of clipIds) {
+					this.overrides[clipId] ??= {};
+					this.overrides[clipId][styleId] = value;
+				}
 			}
 		};
 
@@ -826,6 +841,59 @@ describe('Video overlay subtitle preview', () => {
 		expect(commitHistory).toHaveBeenCalledTimes(3);
 	});
 
+	test('resizes only the subtitles selected in the style timeline', async () => {
+		const firstClip = createVerseSubtitle(0, 999, 'First Arabic', 'First translation');
+		const secondClip = createVerseSubtitle(1000, 1999, 'Second Arabic', 'Second translation');
+		const unselectedClip = createVerseSubtitle(2000, 2999, 'Third Arabic', 'Third translation');
+		const fixture = setupVideoOverlayFixture([firstClip, secondClip, unselectedClip], {
+			cursorPosition: 500
+		});
+		globalState.currentProject!.projectEditorState.currentTab = ProjectEditorTabs.Style;
+		globalState.getStylesState.selectedSubtitles = [firstClip, secondClip];
+
+		const component = render(VideoOverlay);
+		const overlay = component.container.querySelector('#overlay') as HTMLElement;
+		overlay.style.width = '1000px';
+		overlay.style.height = '600px';
+		await settleOverlay();
+
+		const handle = component.container.querySelector(
+			'.translation.subtitle .subtitle-resize-top-left'
+		) as HTMLElement;
+		handle.setPointerCapture = vi.fn();
+		handle.hasPointerCapture = vi.fn(() => false);
+		handle.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				bubbles: true,
+				button: 0,
+				clientX: 100,
+				clientY: 100,
+				pointerId: 4
+			})
+		);
+		handle.dispatchEvent(
+			new PointerEvent('pointermove', {
+				bubbles: true,
+				clientX: 50,
+				clientY: 75,
+				pointerId: 4
+			})
+		);
+		handle.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 4 }));
+
+		const translationStyles = fixture.videoStyle.getStylesOfTarget('english');
+		expect(translationStyles.findStyle('width').value).toBe(80);
+		expect(translationStyles.findStyle('max-height').value).toBe(0);
+		expect(translationStyles.getEffectiveValue('width', firstClip.id)).toBe(90);
+		expect(translationStyles.getEffectiveValue('width', secondClip.id)).toBe(90);
+		expect(translationStyles.getEffectiveValue('width', unselectedClip.id)).toBe(80);
+		expect(translationStyles.getEffectiveValue('max-height', firstClip.id)).toBeGreaterThan(0);
+		expect(translationStyles.getEffectiveValue('max-height', secondClip.id)).toBe(
+			translationStyles.getEffectiveValue('max-height', firstClip.id)
+		);
+		expect(translationStyles.getEffectiveValue('max-height', unselectedClip.id)).toBe(0);
+	});
+
 	test('keeps the font layout visible and stable during a subtitle position drag', async () => {
 		setupVideoOverlayFixture([createVerseSubtitle(0, 999, 'Arabic', 'Translation')], {
 			cursorPosition: 500
@@ -862,6 +930,50 @@ describe('Video overlay subtitle preview', () => {
 		await settleOverlay();
 		expect(subtitlesContainer.dataset.positionDragCommit).toBeUndefined();
 		expect(subtitlesContainer.style.opacity).toBe('1');
+		action.destroy();
+	});
+
+	test('highlights both subtitle boxes and shows the anti-collision message during a collision', async () => {
+		const fixture = setupVideoOverlayFixture(
+			[createVerseSubtitle(0, 999, 'Arabic', 'Translation')],
+			{ cursorPosition: 500 }
+		);
+		fixture.videoStyle.getStylesOfTarget('global').setStyle('anti-collision', true);
+		const component = render(VideoOverlay);
+		await settleOverlay();
+		const arabicNode = getForegroundArabicNode(component.container)!;
+		const translationNode = getForegroundTranslationNode(component.container, 'english')!;
+		const subtitlesContainer = getSubtitlesContainer(component.container)!;
+		vi.spyOn(arabicNode, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 100, 50));
+		vi.spyOn(translationNode, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 40, 100, 50));
+		const { mouseDrag } = await vi.importActual<typeof import('$lib/services/verticalDrag')>(
+			'$lib/services/verticalDrag'
+		);
+		const action = mouseDrag(arabicNode, {
+			target: 'arabic',
+			verticalStyleId: 'vertical-position',
+			horizontalStyleId: 'horizontal-position'
+		});
+
+		arabicNode.dispatchEvent(
+			new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: 100, clientY: 100 })
+		);
+		document.dispatchEvent(
+			new MouseEvent('mousemove', { bubbles: true, clientX: 120, clientY: 120 })
+		);
+		await new Promise(requestAnimationFrame);
+
+		expect(arabicNode.classList.contains('position-drag-collision')).toBe(true);
+		expect(translationNode.classList.contains('position-drag-collision')).toBe(true);
+		expect(subtitlesContainer.dataset.positionDragCollision).toBe('true');
+		const notice = component.container.querySelector('.anti-collision-drag-notice') as HTMLElement;
+		expect(notice.getAttribute('role')).toBe('status');
+		expect(getComputedStyle(notice).display).toBe('block');
+
+		document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+		expect(arabicNode.classList.contains('position-drag-collision')).toBe(false);
+		expect(translationNode.classList.contains('position-drag-collision')).toBe(false);
+		expect(subtitlesContainer.dataset.positionDragCollision).toBeUndefined();
 		action.destroy();
 	});
 

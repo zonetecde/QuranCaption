@@ -45,6 +45,30 @@ export function getTargetFromElement(
 }
 
 /**
+ * Retourne les boîtes à signaler lorsque le sous-titre déplacé entre en collision.
+ * @param {HTMLElement} container Conteneur des sous-titres visibles.
+ * @param {HTMLElement} draggedElement Sous-titre actuellement déplacé.
+ * @param {number} spacing Espacement minimal configuré.
+ * @returns {HTMLElement[]} Sous-titre déplacé suivi des sous-titres en collision.
+ */
+export function getSubtitleCollisionElements(
+	container: HTMLElement,
+	draggedElement: HTMLElement,
+	spacing: number
+): HTMLElement[] {
+	const draggedRect = draggedElement.getBoundingClientRect();
+	const collidingElements = Array.from(container.querySelectorAll<HTMLElement>('.subtitle')).filter(
+		(element) => {
+			if (element === draggedElement) return false;
+			const rect = element.getBoundingClientRect();
+			return rect.width > 0 && rect.height > 0 && areRectsColliding(draggedRect, rect, spacing);
+		}
+	);
+
+	return collidingElements.length > 0 ? [draggedElement, ...collidingElements] : [];
+}
+
+/**
  * Résout les collisions entre sous-titres visibles.
  *
  * Parcourt toutes les paires d'éléments `.subtitle`, détecte les

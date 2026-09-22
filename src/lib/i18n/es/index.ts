@@ -686,7 +686,7 @@ const es = {
 		zoomOut: 'Alejar',
 		zoomIn: 'Acercar',
 		dismissHints: 'Descartar consejos de la rueda de línea de tiempo',
-		antiCollisionNotice: 'La anti-colisión de subtítulos está activada',
+		antiCollisionNotice: 'El estilo anticolisión está activado',
 		antiCollisionNoticeHelpEnabled:
 			'está activado. Puede mover automáticamente los subtítulos e interferir con el diseño exacto que desea. Puede desactivarlo en el panel izquierdo.',
 		antiCollisionNoticeHelpAlternative:

@@ -638,7 +638,7 @@ const zh = {
 		zoomOut: '缩小',
 		zoomIn: '放大',
 		dismissHints: '忽略时间轴滚轮提示',
-		antiCollisionNotice: '字幕防碰撞已开启',
+		antiCollisionNotice: '防碰撞样式已启用',
 		antiCollisionNoticeHelpEnabled:
 			'已开启。此样式会自动移动字幕，可能影响您想要的精确布局。您可以在左侧面板中将其关闭。',
 		antiCollisionNoticeHelpAlternative: '另一种避免字幕重叠的方法是使用以下样式：',

@@ -314,6 +314,26 @@ export default class Settings extends SerializableBase {
 				name: 'Edit Subtitle at Cursor',
 				description: 'Edit the subtitle under the cursor, or the last one if none'
 			},
+			EDIT_SUBTITLE_AT_CURSOR: {
+				keys: [],
+				name: 'Open Subtitle Editor at Cursor',
+				description: 'Open the subtitle editor for the subtitle under the cursor'
+			},
+			EDIT_TRANSLATION_AT_CURSOR: {
+				keys: [],
+				name: 'Open Translation Editor at Cursor',
+				description: 'Open the translation editor for the subtitle under the cursor'
+			},
+			EDIT_WBW_TIMESTAMP_AT_CURSOR: {
+				keys: [],
+				name: 'Open WBW Timestamp Editor at Cursor',
+				description: 'Open the WBW timestamp editor for the subtitle under the cursor'
+			},
+			EDIT_WBW_STYLE_AT_CURSOR: {
+				keys: [],
+				name: 'Open WBW Style/Translation at Cursor',
+				description: 'Open WBW style and translation editing for the subtitle under the cursor'
+			},
 			ADD_SILENCE: {
 				keys: ['s'],
 				name: 'Add Silence',

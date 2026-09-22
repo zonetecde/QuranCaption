@@ -774,6 +774,17 @@ export default class MigrationService {
 				defaults.REMOVE_SUBTITLE_AT_CURSOR;
 			hasChanges = true;
 		}
+		for (const action of [
+			'EDIT_SUBTITLE_AT_CURSOR',
+			'EDIT_TRANSLATION_AT_CURSOR',
+			'EDIT_WBW_TIMESTAMP_AT_CURSOR',
+			'EDIT_WBW_STYLE_AT_CURSOR'
+		] as const) {
+			if (!globalState.settings.shortcuts.SUBTITLES_EDITOR[action]) {
+				globalState.settings.shortcuts.SUBTITLES_EDITOR[action] = defaults[action];
+				hasChanges = true;
+			}
+		}
 
 		if (hasChanges) Settings.save();
 	}

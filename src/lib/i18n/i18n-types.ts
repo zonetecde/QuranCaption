@@ -8885,6 +8885,22 @@ type RootTranslation = {
 			 */
 			EDIT_LAST_SUBTITLE: string;
 			/**
+			 * O​p​e​n​ ​S​u​b​t​i​t​l​e​ ​E​d​i​t​o​r​ ​a​t​ ​C​u​r​s​o​r
+			 */
+			EDIT_SUBTITLE_AT_CURSOR: string;
+			/**
+			 * O​p​e​n​ ​T​r​a​n​s​l​a​t​i​o​n​ ​E​d​i​t​o​r​ ​a​t​ ​C​u​r​s​o​r
+			 */
+			EDIT_TRANSLATION_AT_CURSOR: string;
+			/**
+			 * O​p​e​n​ ​W​B​W​ ​T​i​m​e​s​t​a​m​p​ ​E​d​i​t​o​r​ ​a​t​ ​C​u​r​s​o​r
+			 */
+			EDIT_WBW_TIMESTAMP_AT_CURSOR: string;
+			/**
+			 * O​p​e​n​ ​W​B​W​ ​S​t​y​l​e​/​T​r​a​n​s​l​a​t​i​o​n​ ​a​t​ ​C​u​r​s​o​r
+			 */
+			EDIT_WBW_STYLE_AT_CURSOR: string;
+			/**
 			 * A​d​d​ ​S​i​l​e​n​c​e
 			 */
 			ADD_SILENCE: string;
@@ -9038,6 +9054,22 @@ type RootTranslation = {
 			 * E​d​i​t​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​u​n​d​e​r​ ​t​h​e​ ​c​u​r​s​o​r​,​ ​o​r​ ​t​h​e​ ​l​a​s​t​ ​o​n​e​ ​i​f​ ​n​o​n​e
 			 */
 			EDIT_LAST_SUBTITLE: string;
+			/**
+			 * O​p​e​n​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​e​d​i​t​o​r​ ​f​o​r​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​u​n​d​e​r​ ​t​h​e​ ​c​u​r​s​o​r
+			 */
+			EDIT_SUBTITLE_AT_CURSOR: string;
+			/**
+			 * O​p​e​n​ ​t​h​e​ ​t​r​a​n​s​l​a​t​i​o​n​ ​e​d​i​t​o​r​ ​f​o​r​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​u​n​d​e​r​ ​t​h​e​ ​c​u​r​s​o​r
+			 */
+			EDIT_TRANSLATION_AT_CURSOR: string;
+			/**
+			 * O​p​e​n​ ​t​h​e​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​ ​e​d​i​t​o​r​ ​f​o​r​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​u​n​d​e​r​ ​t​h​e​ ​c​u​r​s​o​r
+			 */
+			EDIT_WBW_TIMESTAMP_AT_CURSOR: string;
+			/**
+			 * O​p​e​n​ ​W​B​W​ ​s​t​y​l​e​ ​a​n​d​ ​t​r​a​n​s​l​a​t​i​o​n​ ​e​d​i​t​i​n​g​ ​f​o​r​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​u​n​d​e​r​ ​t​h​e​ ​c​u​r​s​o​r
+			 */
+			EDIT_WBW_STYLE_AT_CURSOR: string;
 			/**
 			 * I​n​s​e​r​t​ ​a​ ​s​i​l​e​n​t​ ​p​e​r​i​o​d​ ​i​n​ ​t​h​e​ ​t​i​m​e​l​i​n​e
 			 */
@@ -9672,6 +9704,68 @@ type RootTranslation = {
 		 * @param {unknown} error
 		 */
 		noiseReductionFailed: RequiredParams<'error'>;
+		/**
+		 * A​u​d​i​o​ ​e​f​f​e​c​t​s
+		 */
+		audioEffects: string;
+		/**
+		 * A​p​p​l​y​ ​c​a​r​e​f​u​l​l​y​ ​t​u​n​e​d​ ​F​F​m​p​e​g​ ​e​f​f​e​c​t​s​ ​t​o​ ​Q​u​r​a​n​ ​r​e​c​i​t​a​t​i​o​n
+		 */
+		audioEffectsDescription: string;
+		/**
+		 * C​H​O​O​S​E​ ​A​N​ ​E​F​F​E​C​T
+		 */
+		chooseAudioEffect: string;
+		/**
+		 * D​e​n​o​i​s​e
+		 */
+		denoise: string;
+		/**
+		 * R​e​d​u​c​e​ ​s​t​e​a​d​y​ ​b​a​c​k​g​r​o​u​n​d​ ​n​o​i​s​e​ ​w​h​i​l​e​ ​p​r​e​s​e​r​v​i​n​g​ ​t​h​e​ ​v​o​i​c​e
+		 */
+		denoiseDescription: string;
+		/**
+		 * V​o​i​c​e​ ​c​l​a​r​i​t​y
+		 */
+		clarity: string;
+		/**
+		 * R​e​m​o​v​e​ ​l​o​w​ ​r​u​m​b​l​e​ ​a​n​d​ ​g​e​n​t​l​y​ ​e​n​h​a​n​c​e​ ​a​r​t​i​c​u​l​a​t​i​o​n
+		 */
+		clarityDescription: string;
+		/**
+		 * L​i​g​h​t​ ​e​c​h​o
+		 */
+		echo: string;
+		/**
+		 * A​d​d​ ​a​ ​s​h​o​r​t​,​ ​s​u​b​t​l​e​ ​r​e​p​e​a​t​ ​t​o​ ​t​h​e​ ​r​e​c​i​t​a​t​i​o​n
+		 */
+		echoDescription: string;
+		/**
+		 * L​i​g​h​t​ ​r​e​v​e​r​b
+		 */
+		reverb: string;
+		/**
+		 * A​d​d​ ​a​ ​s​o​f​t​ ​s​e​n​s​e​ ​o​f​ ​s​p​a​c​e​ ​w​i​t​h​ ​r​e​s​t​r​a​i​n​e​d​ ​r​e​f​l​e​c​t​i​o​n​s
+		 */
+		reverbDescription: string;
+		/**
+		 * A​ ​p​r​o​c​e​s​s​e​d​ ​W​A​V​ ​f​i​l​e​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​p​r​o​j​e​c​t​ ​a​n​d​ ​u​s​e​d​ ​a​s​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​c​l​i​p​ ​s​o​u​r​c​e​.
+		 */
+		audioEffectResultHint: string;
+		/**
+		 * A​p​p​l​y​ ​e​f​f​e​c​t
+		 */
+		applyAudioEffect: string;
+		/**
+		 * {​e​f​f​e​c​t​}​ ​a​p​p​l​i​e​d​.​ ​T​h​e​ ​s​e​l​e​c​t​e​d​ ​c​l​i​p​ ​n​o​w​ ​u​s​e​s​ ​t​h​e​ ​p​r​o​c​e​s​s​e​d​ ​a​u​d​i​o​.
+		 * @param {unknown} effect
+		 */
+		audioEffectSuccess: RequiredParams<'effect'>;
+		/**
+		 * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​t​h​e​ ​a​u​d​i​o​ ​e​f​f​e​c​t​:​ ​{​e​r​r​o​r​}
+		 * @param {unknown} error
+		 */
+		audioEffectFailed: RequiredParams<'error'>;
 	};
 	status: {
 		/**
@@ -20681,6 +20775,22 @@ export type TranslationFunctions = {
 			 */
 			EDIT_LAST_SUBTITLE: () => LocalizedString;
 			/**
+			 * Open Subtitle Editor at Cursor
+			 */
+			EDIT_SUBTITLE_AT_CURSOR: () => LocalizedString;
+			/**
+			 * Open Translation Editor at Cursor
+			 */
+			EDIT_TRANSLATION_AT_CURSOR: () => LocalizedString;
+			/**
+			 * Open WBW Timestamp Editor at Cursor
+			 */
+			EDIT_WBW_TIMESTAMP_AT_CURSOR: () => LocalizedString;
+			/**
+			 * Open WBW Style/Translation at Cursor
+			 */
+			EDIT_WBW_STYLE_AT_CURSOR: () => LocalizedString;
+			/**
 			 * Add Silence
 			 */
 			ADD_SILENCE: () => LocalizedString;
@@ -20834,6 +20944,22 @@ export type TranslationFunctions = {
 			 * Edit the subtitle under the cursor, or the last one if none
 			 */
 			EDIT_LAST_SUBTITLE: () => LocalizedString;
+			/**
+			 * Open the subtitle editor for the subtitle under the cursor
+			 */
+			EDIT_SUBTITLE_AT_CURSOR: () => LocalizedString;
+			/**
+			 * Open the translation editor for the subtitle under the cursor
+			 */
+			EDIT_TRANSLATION_AT_CURSOR: () => LocalizedString;
+			/**
+			 * Open the WBW timestamp editor for the subtitle under the cursor
+			 */
+			EDIT_WBW_TIMESTAMP_AT_CURSOR: () => LocalizedString;
+			/**
+			 * Open WBW style and translation editing for the subtitle under the cursor
+			 */
+			EDIT_WBW_STYLE_AT_CURSOR: () => LocalizedString;
 			/**
 			 * Insert a silent period in the timeline
 			 */
@@ -21462,6 +21588,66 @@ export type TranslationFunctions = {
 		 * Failed to reduce audio noise: {error}
 		 */
 		noiseReductionFailed: (arg: { error: unknown }) => LocalizedString;
+		/**
+		 * Audio effects
+		 */
+		audioEffects: () => LocalizedString;
+		/**
+		 * Apply carefully tuned FFmpeg effects to Quran recitation
+		 */
+		audioEffectsDescription: () => LocalizedString;
+		/**
+		 * CHOOSE AN EFFECT
+		 */
+		chooseAudioEffect: () => LocalizedString;
+		/**
+		 * Denoise
+		 */
+		denoise: () => LocalizedString;
+		/**
+		 * Reduce steady background noise while preserving the voice
+		 */
+		denoiseDescription: () => LocalizedString;
+		/**
+		 * Voice clarity
+		 */
+		clarity: () => LocalizedString;
+		/**
+		 * Remove low rumble and gently enhance articulation
+		 */
+		clarityDescription: () => LocalizedString;
+		/**
+		 * Light echo
+		 */
+		echo: () => LocalizedString;
+		/**
+		 * Add a short, subtle repeat to the recitation
+		 */
+		echoDescription: () => LocalizedString;
+		/**
+		 * Light reverb
+		 */
+		reverb: () => LocalizedString;
+		/**
+		 * Add a soft sense of space with restrained reflections
+		 */
+		reverbDescription: () => LocalizedString;
+		/**
+		 * A processed WAV file will be added to the project and used as the selected clip source.
+		 */
+		audioEffectResultHint: () => LocalizedString;
+		/**
+		 * Apply effect
+		 */
+		applyAudioEffect: () => LocalizedString;
+		/**
+		 * {effect} applied. The selected clip now uses the processed audio.
+		 */
+		audioEffectSuccess: (arg: { effect: unknown }) => LocalizedString;
+		/**
+		 * Failed to apply the audio effect: {error}
+		 */
+		audioEffectFailed: (arg: { error: unknown }) => LocalizedString;
 	};
 	status: {
 		/**

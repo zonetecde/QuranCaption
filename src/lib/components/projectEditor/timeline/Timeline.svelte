@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { globalState } from '$lib/runes/main.svelte';
+	import { globalState, type QuickTimelineEditorMode } from '$lib/runes/main.svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import TrackComponent from './track/Track.svelte';
 	import {
@@ -58,6 +58,12 @@
 
 	const TIMELINE_LEFT_HEADER_WIDTH_PX = 180;
 	const OVERSCAN_MS = 120000;
+	const quickEditorShortcutModes = {
+		EDIT_SUBTITLE_AT_CURSOR: 'subtitle',
+		EDIT_TRANSLATION_AT_CURSOR: 'translation',
+		EDIT_WBW_TIMESTAMP_AT_CURSOR: 'wbwTimestamp',
+		EDIT_WBW_STYLE_AT_CURSOR: 'wbw'
+	} as const satisfies Record<string, QuickTimelineEditorMode>;
 
 	let timelineDiv: HTMLDivElement | null = null;
 	let timelineTracksDiv: HTMLDivElement | null = null;
@@ -91,6 +97,7 @@
 	let removeShortcutRegistered = false;
 	let splitShortcutRegistered = false;
 	let quickSubtitleEditShortcutRegistered = false;
+	let quickEditorShortcutsRegistered = false;
 	let setEndShortcutRegistered = false;
 	let setStartShortcutRegistered = false;
 	let frameBackwardShortcutRegistered = false;
@@ -429,6 +436,58 @@
 		);
 
 		quickSubtitleEditShortcutRegistered = false;
+	}
+
+	/**
+	 * Ouvre le mode d'édition rapide demandé pour le sous-titre sous le curseur.
+	 * @param {QuickTimelineEditorMode} mode Mode d'édition rapide à ouvrir.
+	 * @returns {void}
+	 */
+	function openQuickEditorForSubtitleAtCursor(mode: QuickTimelineEditorMode): void {
+		const cursorPosition = globalState.getTimelineState.cursorPosition;
+		const clip = globalState.getSubtitleTrack.getCurrentClip(cursorPosition);
+		if (!(clip instanceof SubtitleClip)) return;
+
+		if (mode === 'translation') {
+			globalState.getTranslationsState.isTranslationWbwMappingMode = false;
+			globalState.getTranslationsState.isInlineStyleMode = false;
+		}
+		globalState.openQuickTimelineEditor(clip.id, mode);
+	}
+
+	/**
+	 * Enregistre les quatre raccourcis de l'éditeur rapide au curseur.
+	 * @returns {void}
+	 */
+	function registerQuickEditorShortcuts(): void {
+		if (!globalState.settings || quickEditorShortcutsRegistered) return;
+
+		for (const [action, mode] of Object.entries(quickEditorShortcutModes)) {
+			ShortcutService.registerShortcut({
+				key: globalState.settings.shortcuts.SUBTITLES_EDITOR[
+					action as keyof typeof quickEditorShortcutModes
+				],
+				onKeyDown: () => openQuickEditorForSubtitleAtCursor(mode)
+			});
+		}
+		quickEditorShortcutsRegistered = true;
+	}
+
+	/**
+	 * Supprime les quatre raccourcis de l'éditeur rapide au curseur.
+	 * @returns {void}
+	 */
+	function unregisterQuickEditorShortcuts(): void {
+		if (!globalState.settings || !quickEditorShortcutsRegistered) return;
+
+		for (const action of Object.keys(quickEditorShortcutModes)) {
+			ShortcutService.unregisterShortcut(
+				globalState.settings.shortcuts.SUBTITLES_EDITOR[
+					action as keyof typeof quickEditorShortcutModes
+				]
+			);
+		}
+		quickEditorShortcutsRegistered = false;
 	}
 
 	/**
@@ -804,6 +863,17 @@
 
 		if (
 			currentTab === ProjectEditorTabs.VideoEditor ||
+			currentTab === ProjectEditorTabs.SubtitlesEditor ||
+			currentTab === ProjectEditorTabs.Style ||
+			currentTab === ProjectEditorTabs.Export
+		) {
+			registerQuickEditorShortcuts();
+		} else {
+			unregisterQuickEditorShortcuts();
+		}
+
+		if (
+			currentTab === ProjectEditorTabs.VideoEditor ||
 			currentTab === ProjectEditorTabs.Style ||
 			currentTab === ProjectEditorTabs.Export
 		) {
@@ -847,6 +917,7 @@
 			unregisterSplitShortcut();
 			unregisterRemoveShortcut();
 			unregisterQuickSubtitleEditShortcut();
+			unregisterQuickEditorShortcuts();
 			unregisterSetEndShortcut();
 			unregisterSetStartShortcut();
 			unregisterFrameBackwardShortcut();

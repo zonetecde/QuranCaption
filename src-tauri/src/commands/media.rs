@@ -472,16 +472,20 @@ fn add_font_source_if_requested(
     };
 
     let source_family = font.family_name();
-    let Some(requested_family) = requested_families
-        .iter()
-        .find(|family| family.as_str() == source_family.as_str())
-    else {
+    let full_name = font.full_name();
+    let postscript_name = font.postscript_name();
+    let Some(requested_family) = requested_families.iter().find(|family| {
+        font_source_matches_requested_family(
+            family,
+            &source_family,
+            &full_name,
+            postscript_name.as_deref(),
+        )
+    }) else {
         return;
     };
 
     let properties = font.properties();
-    let full_name = font.full_name();
-    let postscript_name = font.postscript_name();
     let font_style = match properties.style {
         Style::Normal => "normal",
         Style::Italic => "italic",
@@ -513,6 +517,34 @@ fn add_font_source_if_requested(
         font_weight_range,
         font_style,
     });
+}
+
+/// Vérifie qu'une face appartient bien à la famille demandée sans accepter une variante de largeur.
+fn font_source_matches_requested_family(
+    requested_family: &str,
+    source_family: &str,
+    full_name: &str,
+    postscript_name: Option<&str>,
+) -> bool {
+    let requested = requested_family.to_ascii_lowercase();
+    let source = source_family.to_ascii_lowercase();
+    let full = full_name.to_ascii_lowercase();
+    let postscript = postscript_name.unwrap_or_default().to_ascii_lowercase();
+    let family_matches = source == requested
+        || full == requested
+        || full
+            .strip_prefix(&requested)
+            .is_some_and(|suffix| suffix.starts_with([' ', '-']));
+    if !family_matches {
+        return false;
+    }
+
+    ["narrow", "condensed", "compressed", "expanded", "extended"]
+        .into_iter()
+        .all(|variant| {
+            requested.contains(variant)
+                || (!full.contains(variant) && !postscript.contains(variant))
+        })
 }
 
 fn font_weight_range_for_source(
@@ -1402,5 +1434,30 @@ mod directory_size_tests {
 
         assert_eq!(directory_size(&test_root).unwrap(), 8);
         fs::remove_dir_all(test_root).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod system_font_source_tests {
+    use super::*;
+
+    /// Vérifie qu'Arial et Arial Narrow restent deux familles distinctes pendant l'export.
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn distinguishes_arial_from_arial_narrow() {
+        let sources = get_system_font_sources(vec!["Arial".to_string()]).unwrap();
+        let narrow_sources = get_system_font_sources(vec!["Arial Narrow".to_string()]).unwrap();
+
+        assert!(!sources.is_empty());
+        assert!(
+            sources
+                .iter()
+                .all(|source| !source.full_name.to_ascii_lowercase().contains("narrow")),
+            "Resolved Arial sources: {sources:#?}"
+        );
+        assert!(!narrow_sources.is_empty());
+        assert!(narrow_sources
+            .iter()
+            .all(|source| source.full_name.to_ascii_lowercase().contains("narrow")));
     }
 }

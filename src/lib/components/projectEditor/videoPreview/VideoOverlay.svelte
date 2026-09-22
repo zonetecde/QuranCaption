@@ -1093,10 +1093,12 @@
 						try {
 							const styles = globalState.getVideoStyle.getStylesOfTarget(target);
 							const referenceClip = getReferenceClipForTarget(target);
-							const maxHeightValue = globalState.getStyleValue(target, 'max-height') as number;
+							const maxHeightValue = Number(
+								styles.getEffectiveValue('max-height', referenceClip?.id)
+							);
 							const maxLineValue = hasForcedLineBreak(target)
 								? Infinity
-								: Number(globalState.getStyleValue(target, 'max-line'));
+								: Number(styles.getEffectiveValue('max-line', referenceClip?.id));
 							const initialFontSize = Number(
 								styles.getEffectiveValue('font-size', referenceClip?.id)
 							);

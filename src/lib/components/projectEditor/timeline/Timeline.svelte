@@ -98,6 +98,8 @@
 	let refetchWbwShortcutRegistered = false;
 	let removeSubtitleAtCursorShortcutRegistered = false;
 	let quickMergeShortcutRegistered = false;
+	let nextMarkedSegmentShortcutRegistered = false;
+	let previousMarkedSegmentShortcutRegistered = false;
 	let lastVerifiedClipId: number | null = null;
 	let quickEditLongPressTimer: ReturnType<typeof setTimeout> | null = null;
 	let didTriggerQuickLongPressAction = false;
@@ -227,6 +229,34 @@
 	 */
 	function handleMoveFrameForward(): void {
 		moveCursorByFrame(1);
+	}
+
+	/**
+	 * Déplace le curseur vers le premier segment marqué situé à sa droite.
+	 * @returns {void}
+	 */
+	function handleNextMarkedSegment(): void {
+		const nextClip = globalState.getSubtitleTrack.getNextMarkedClip(timelineState().cursorPosition);
+		if (!nextClip) return;
+
+		timelineState().cursorPosition = nextClip.startTime;
+		timelineState().movePreviewTo = nextClip.startTime;
+		globalState.getVideoPreviewState.scrollTimelineToCursor();
+	}
+
+	/**
+	 * Déplace le curseur vers le premier segment marqué situé à sa gauche.
+	 * @returns {void}
+	 */
+	function handlePreviousMarkedSegment(): void {
+		const previousClip = globalState.getSubtitleTrack.getPreviousMarkedClip(
+			timelineState().cursorPosition
+		);
+		if (!previousClip) return;
+
+		timelineState().cursorPosition = previousClip.startTime;
+		timelineState().movePreviewTo = previousClip.startTime;
+		globalState.getVideoPreviewState.scrollTimelineToCursor();
 	}
 
 	/**
@@ -710,6 +740,54 @@
 		quickMergeShortcutRegistered = false;
 	}
 
+	/**
+	 * Enregistre le raccourci vers le prochain segment marqué.
+	 * @returns {void}
+	 */
+	function registerNextMarkedSegmentShortcut(): void {
+		if (!globalState.settings || nextMarkedSegmentShortcutRegistered) return;
+		ShortcutService.registerShortcut({
+			key: globalState.settings.shortcuts.TIMELINE.NEXT_MARKED_SEGMENT,
+			onKeyDown: handleNextMarkedSegment
+		});
+		nextMarkedSegmentShortcutRegistered = true;
+	}
+
+	/**
+	 * Supprime le raccourci vers le prochain segment marqué.
+	 * @returns {void}
+	 */
+	function unregisterNextMarkedSegmentShortcut(): void {
+		if (!globalState.settings || !nextMarkedSegmentShortcutRegistered) return;
+		ShortcutService.unregisterShortcut(globalState.settings.shortcuts.TIMELINE.NEXT_MARKED_SEGMENT);
+		nextMarkedSegmentShortcutRegistered = false;
+	}
+
+	/**
+	 * Enregistre le raccourci vers le segment marqué précédent.
+	 * @returns {void}
+	 */
+	function registerPreviousMarkedSegmentShortcut(): void {
+		if (!globalState.settings || previousMarkedSegmentShortcutRegistered) return;
+		ShortcutService.registerShortcut({
+			key: globalState.settings.shortcuts.TIMELINE.PREVIOUS_MARKED_SEGMENT,
+			onKeyDown: handlePreviousMarkedSegment
+		});
+		previousMarkedSegmentShortcutRegistered = true;
+	}
+
+	/**
+	 * Supprime le raccourci vers le segment marqué précédent.
+	 * @returns {void}
+	 */
+	function unregisterPreviousMarkedSegmentShortcut(): void {
+		if (!globalState.settings || !previousMarkedSegmentShortcutRegistered) return;
+		ShortcutService.unregisterShortcut(
+			globalState.settings.shortcuts.TIMELINE.PREVIOUS_MARKED_SEGMENT
+		);
+		previousMarkedSegmentShortcutRegistered = false;
+	}
+
 	$effect(() => {
 		const currentTab = globalState.currentProject?.projectEditorState.currentTab;
 
@@ -762,6 +840,8 @@
 		registerRefetchWbwShortcut();
 		registerRemoveSubtitleAtCursorShortcut();
 		registerQuickMergeShortcut();
+		registerNextMarkedSegmentShortcut();
+		registerPreviousMarkedSegmentShortcut();
 
 		return () => {
 			unregisterSplitShortcut();
@@ -774,6 +854,8 @@
 			unregisterRefetchWbwShortcut();
 			unregisterRemoveSubtitleAtCursorShortcut();
 			unregisterQuickMergeShortcut();
+			unregisterNextMarkedSegmentShortcut();
+			unregisterPreviousMarkedSegmentShortcut();
 		};
 	});
 

@@ -2554,7 +2554,9 @@ const zh = {
 			FRAME_BY_FRAME_SCROLL: '滚轮逐帧',
 			FRAME_BACKWARD: '上一帧',
 			FRAME_FORWARD: '下一帧',
-			QUICK_MERGE_AT_CURSOR: '切换快速合并'
+			QUICK_MERGE_AT_CURSOR: '切换快速合并',
+			NEXT_MARKED_SEGMENT: '跳转到下一个标记片段',
+			PREVIOUS_MARKED_SEGMENT: '跳转到上一个标记片段'
 		},
 		shortcutActionDesc: {
 			MOVE_FORWARD: '将预览前进 2 秒',
@@ -2592,7 +2594,9 @@ const zh = {
 			FRAME_BY_FRAME_SCROLL: '在滚动时按住此快捷键以逐帧前进',
 			FRAME_BACKWARD: '将光标后退一帧',
 			FRAME_FORWARD: '将光标前进一帧',
-			QUICK_MERGE_AT_CURSOR: '在最靠近光标的边界合并或取消合并字幕'
+			QUICK_MERGE_AT_CURSOR: '在最靠近光标的边界合并或取消合并字幕',
+			NEXT_MARKED_SEGMENT: '将光标移动到右侧第一个标记片段',
+			PREVIOUS_MARKED_SEGMENT: '将光标移动到左侧第一个标记片段'
 		},
 		stockMediaDescription:
 			'Configure your Pexels and Pixabay API keys to search and import free stock media.',

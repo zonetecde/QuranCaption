@@ -722,7 +722,9 @@ const id = {
 			FRAME_BY_FRAME_SCROLL: 'Frame demi Frame dengan Scroll',
 			FRAME_BACKWARD: 'Frame Sebelumnya',
 			FRAME_FORWARD: 'Frame Berikutnya',
-			QUICK_MERGE_AT_CURSOR: 'Alihkan Quick Merge'
+			QUICK_MERGE_AT_CURSOR: 'Alihkan Quick Merge',
+			NEXT_MARKED_SEGMENT: 'Ke segmen bertanda berikutnya',
+			PREVIOUS_MARKED_SEGMENT: 'Ke segmen bertanda sebelumnya'
 		},
 		shortcutActionDesc: {
 			MOVE_FORWARD: 'Majukan pratinjau 2 detik',
@@ -764,7 +766,9 @@ const id = {
 			FRAME_BACKWARD: 'Pindahkan kursor mundur satu frame',
 			FRAME_FORWARD: 'Pindahkan kursor maju satu frame',
 			QUICK_MERGE_AT_CURSOR:
-				'Gabungkan atau pisahkan subtitle pada batas yang paling dekat dengan kursor'
+				'Gabungkan atau pisahkan subtitle pada batas yang paling dekat dengan kursor',
+			NEXT_MARKED_SEGMENT: 'Pindahkan kursor ke segmen bertanda pertama di sebelah kanannya',
+			PREVIOUS_MARKED_SEGMENT: 'Pindahkan kursor ke segmen bertanda pertama di sebelah kirinya'
 		},
 		stockMediaDescription:
 			'Atur API key Pexels dan Pixabay kamu untuk mencari dan mengimpor stok media gratis.',

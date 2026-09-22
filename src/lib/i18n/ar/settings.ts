@@ -240,7 +240,9 @@ const settings = {
 		FRAME_BY_FRAME_SCROLL: 'إطارًا تلو الآخر مع التمرير',
 		FRAME_BACKWARD: 'الإطار السابق',
 		FRAME_FORWARD: 'الإطار التالي',
-		QUICK_MERGE_AT_CURSOR: 'تبديل الدمج السريع'
+		QUICK_MERGE_AT_CURSOR: 'تبديل الدمج السريع',
+		NEXT_MARKED_SEGMENT: 'الانتقال إلى المقطع المحدد التالي',
+		PREVIOUS_MARKED_SEGMENT: 'الانتقال إلى المقطع المحدد السابق'
 	},
 	shortcutActionDesc: {
 		MOVE_FORWARD: 'نقل المعاينة للأمام بمقدار ثانيتين',
@@ -279,7 +281,9 @@ const settings = {
 		FRAME_BY_FRAME_SCROLL: 'استمر في الضغط على هذا الاختصار أثناء التمرير لتحريك الإطار تلو الآخر',
 		FRAME_BACKWARD: 'حرك المؤشر للخلف بمقدار إطار واحد',
 		FRAME_FORWARD: 'حرك المؤشر للأمام بمقدار إطار واحد',
-		QUICK_MERGE_AT_CURSOR: 'دمج الترجمات أو إلغاء دمجها عند أقرب حدود للمؤشر'
+		QUICK_MERGE_AT_CURSOR: 'دمج الترجمات أو إلغاء دمجها عند أقرب حدود للمؤشر',
+		NEXT_MARKED_SEGMENT: 'حرك المؤشر إلى أول مقطع محدد على يمينه',
+		PREVIOUS_MARKED_SEGMENT: 'حرك المؤشر إلى أول مقطع محدد على يساره'
 	},
 	stockMediaDescription:
 		'قم بتكوين مفاتيح Pexels وPixabay API الخاصة بك للبحث عن الوسائط المجانية واستيرادها.',

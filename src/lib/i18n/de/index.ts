@@ -2814,7 +2814,9 @@ const de = {
 			FRAME_BY_FRAME_SCROLL: 'Bild-für-Bild mit Mausrad',
 			FRAME_BACKWARD: 'Vorheriges Bild',
 			FRAME_FORWARD: 'Nächstes Bild',
-			QUICK_MERGE_AT_CURSOR: 'Schnellzusammenführung umschalten'
+			QUICK_MERGE_AT_CURSOR: 'Schnellzusammenführung umschalten',
+			NEXT_MARKED_SEGMENT: 'Zum nächsten markierten Segment',
+			PREVIOUS_MARKED_SEGMENT: 'Zum vorherigen markierten Segment'
 		},
 		shortcutActionDesc: {
 			MOVE_FORWARD: 'Vorschau um 2 Sekunden vorwärts bewegen',
@@ -2859,7 +2861,9 @@ const de = {
 			FRAME_BACKWARD: 'Cursor um ein Bild zurücksetzen',
 			FRAME_FORWARD: 'Cursor um ein Bild vorrücken',
 			QUICK_MERGE_AT_CURSOR:
-				'Untertitel an der dem Cursor nächstgelegenen Grenze zusammenführen oder trennen'
+				'Untertitel an der dem Cursor nächstgelegenen Grenze zusammenführen oder trennen',
+			NEXT_MARKED_SEGMENT: 'Den Cursor zum ersten markierten Segment rechts vom Cursor bewegen',
+			PREVIOUS_MARKED_SEGMENT: 'Den Cursor zum ersten markierten Segment links vom Cursor bewegen'
 		},
 		stockMediaDescription:
 			'Konfigurieren Sie Ihre Pexels- und Pixabay-API-Schlüssel, um kostenlose Stock-Medien zu suchen und zu importieren.',

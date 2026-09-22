@@ -423,6 +423,16 @@ export default class Settings extends SerializableBase {
 				keys: ['y'],
 				name: 'Toggle Quick Merge',
 				description: 'Merge or unmerge subtitles at the closest boundary to the cursor'
+			},
+			PREVIOUS_MARKED_SEGMENT: {
+				keys: [],
+				name: 'Go to Previous Marked Segment',
+				description: 'Move the cursor to the first marked segment to its left'
+			},
+			NEXT_MARKED_SEGMENT: {
+				keys: [],
+				name: 'Go to Next Marked Segment',
+				description: 'Move the cursor to the first marked segment to its right'
 			}
 		}
 	};
@@ -482,6 +492,22 @@ export default class Settings extends SerializableBase {
 		const settings = globalState.settings;
 		const previousVersion = settings.appVersion;
 		let shouldSave = false;
+		if (!settings.shortcuts.TIMELINE.NEXT_MARKED_SEGMENT) {
+			settings.shortcuts.TIMELINE.NEXT_MARKED_SEGMENT = {
+				keys: [],
+				name: 'Go to Next Marked Segment',
+				description: 'Move the cursor to the first marked segment to its right'
+			};
+			shouldSave = true;
+		}
+		if (!settings.shortcuts.TIMELINE.PREVIOUS_MARKED_SEGMENT) {
+			settings.shortcuts.TIMELINE.PREVIOUS_MARKED_SEGMENT = {
+				keys: [],
+				name: 'Go to Previous Marked Segment',
+				description: 'Move the cursor to the first marked segment to its left'
+			};
+			shouldSave = true;
+		}
 
 		// Migrations ================
 		if (!settings.exportSettings || typeof settings.exportSettings !== 'object') {

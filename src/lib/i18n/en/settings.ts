@@ -243,7 +243,9 @@ const settings = {
 		FRAME_BY_FRAME_SCROLL: 'Frame-by-frame with Scroll',
 		FRAME_BACKWARD: 'Previous Frame',
 		FRAME_FORWARD: 'Next Frame',
-		QUICK_MERGE_AT_CURSOR: 'Toggle Quick Merge'
+		QUICK_MERGE_AT_CURSOR: 'Toggle Quick Merge',
+		NEXT_MARKED_SEGMENT: 'Go to Next Marked Segment',
+		PREVIOUS_MARKED_SEGMENT: 'Go to Previous Marked Segment'
 	},
 	shortcutActionDesc: {
 		MOVE_FORWARD: 'Move preview forward by 2 seconds',
@@ -285,7 +287,9 @@ const settings = {
 		FRAME_BY_FRAME_SCROLL: 'Hold this shortcut while scrolling to move frame by frame',
 		FRAME_BACKWARD: 'Move the cursor backward by one frame',
 		FRAME_FORWARD: 'Move the cursor forward by one frame',
-		QUICK_MERGE_AT_CURSOR: 'Merge or unmerge subtitles at the closest boundary to the cursor'
+		QUICK_MERGE_AT_CURSOR: 'Merge or unmerge subtitles at the closest boundary to the cursor',
+		NEXT_MARKED_SEGMENT: 'Move the cursor to the first marked segment to its right',
+		PREVIOUS_MARKED_SEGMENT: 'Move the cursor to the first marked segment to its left'
 	},
 	stockMediaDescription:
 		'Configure your Pexels and Pixabay API keys to search and import free stock media.',

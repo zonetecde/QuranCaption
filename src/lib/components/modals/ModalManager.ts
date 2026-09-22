@@ -8,7 +8,7 @@ import DeleteConfirmation from './DeleteConfirmation.svelte';
 import ShiftSubtitlesModal from './tools/ShiftSubtitlesModal.svelte';
 import HifzRepetitionModal from './tools/HifzRepetitionModal.svelte';
 import AudioCutterModal from './tools/AudioCutterModal.svelte';
-import NoiseReductionModal from './tools/NoiseReductionModal.svelte';
+import AudioEffectsModal from './tools/AudioEffectsModal.svelte';
 import VerseRangeCropModal from './tools/VerseRangeCropModal.svelte';
 import BookmarkVerseModal from './BookmarkVerseModal.svelte';
 import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
@@ -258,14 +258,14 @@ export default class ModalManager {
 		});
 	}
 
-	/** Ouvre la modale de réduction du bruit audio. @returns {Promise<void>} Résolution après fermeture. */
-	static async noiseReductionModal(): Promise<void> {
+	/** Ouvre la modale des effets audio. @returns {Promise<void>} Résolution après fermeture. */
+	static async audioEffectsModal(): Promise<void> {
 		return new Promise<void>((resolve) => {
 			const container = document.createElement('div');
 			container.classList.add('modal-wrapper');
 			document.body.appendChild(container);
 
-			const modal = mount(NoiseReductionModal, {
+			const modal = mount(AudioEffectsModal, {
 				target: container,
 				props: {
 					close: () => {

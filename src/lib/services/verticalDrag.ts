@@ -82,6 +82,9 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 	let previewScaleY = 1;
 	let subtitlePositionDragContainer: HTMLElement | null = null;
 	let collisionFrameId: number | null = null;
+	let runtimeVerticalOffset = 0;
+	let lastVerticalValue = 0;
+	let hasMoved = false;
 	let isStuckToZero = false; // Pour le sticky behavior horizontal
 	const HORIZONTAL_STICK_RANGE = 50; // Zone de stick autour de 0 (-50 à +50)
 	const ELEMENT_SNAP_RANGE = 8;
@@ -141,6 +144,30 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		});
 	}
 
+	/**
+	 * Applique une position verticale au style automatique courant.
+	 * @param {number} value Position verticale à enregistrer.
+	 * @returns {void}
+	 */
+	function applyAutomaticVertical(value: number): void {
+		if (!opts.target || !opts.verticalStyleId) return;
+		const styles = globalState.getVideoStyle.getStylesOfTarget(opts.target);
+		const selectedIds =
+			globalState.currentProject!.projectEditorState.stylesEditor.selectedSubtitles.map(
+				(s) => s.id
+			);
+		if (styles.getKeyframeTimes(opts.verticalStyleId, selectedIds).length > 0) {
+			styles.setKeyframe(
+				opts.verticalStyleId,
+				globalState.getTimelineState.cursorPosition,
+				value,
+				selectedIds
+			);
+		} else if (selectedIds.length > 0) {
+			styles.setStyleForClips(selectedIds, opts.verticalStyleId, value);
+		} else styles.setStyle(opts.verticalStyleId, value);
+	}
+
 	function mousedown(e: MouseEvent) {
 		if (e.button !== 0) return;
 		e.preventDefault();
@@ -148,6 +175,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		startY = e.clientY;
 		startX = e.clientX;
 		isStuckToZero = false;
+		hasMoved = false;
 		dragStartRect = getVisibleContentRect(node);
 		snapTargetRects = Array.from(
 			node.closest('#overlay')?.querySelectorAll<HTMLElement>('[data-preview-draggable]') ?? []
@@ -209,6 +237,11 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 				originHorizontal = opts.getInitialHorizontal();
 			}
 		}
+		runtimeVerticalOffset =
+			opts.target && opts.verticalStyleId === 'vertical-position'
+				? Number.parseFloat(getComputedStyle(node).getPropertyValue('--reactive-y-position')) || 0
+				: 0;
+		lastVerticalValue = originVertical;
 
 		dragging = true;
 		const isPositionDrag = [opts.verticalStyleId, opts.horizontalStyleId].some(
@@ -279,24 +312,12 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		}
 
 		if (opts.round !== false) verticalVal = Math.round(verticalVal);
+		lastVerticalValue = verticalVal;
+		hasMoved = true;
 
 		// Application du vertical
 		if (opts.target && opts.verticalStyleId) {
-			const styles = globalState.getVideoStyle.getStylesOfTarget(opts.target);
-			const selectedIds =
-				globalState.currentProject!.projectEditorState.stylesEditor.selectedSubtitles.map(
-					(s) => s.id
-				);
-			if (styles.getKeyframeTimes(opts.verticalStyleId, selectedIds).length > 0) {
-				styles.setKeyframe(
-					opts.verticalStyleId,
-					globalState.getTimelineState.cursorPosition,
-					verticalVal,
-					selectedIds
-				);
-			} else if (selectedIds.length > 0) {
-				styles.setStyleForClips(selectedIds, opts.verticalStyleId, verticalVal);
-			} else styles.setStyle(opts.verticalStyleId, verticalVal);
+			applyAutomaticVertical(verticalVal);
 		} else {
 			opts.applyVertical!(verticalVal);
 		}
@@ -375,6 +396,26 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 	function mouseup() {
 		if (!dragging) return;
 		dragging = false;
+		if (
+			hasMoved &&
+			runtimeVerticalOffset !== 0 &&
+			opts.target &&
+			opts.verticalStyleId === 'vertical-position'
+		) {
+			const style = globalState.getVideoStyle
+				.getStylesOfTarget(opts.target)
+				.findStyle(opts.verticalStyleId)!;
+			let committedVertical = lastVerticalValue + runtimeVerticalOffset;
+			if (typeof style.valueMin === 'number') {
+				committedVertical = Math.max(style.valueMin, committedVertical);
+			}
+			if (typeof style.valueMax === 'number') {
+				committedVertical = Math.min(style.valueMax, committedVertical);
+			}
+			if (opts.round !== false) committedVertical = Math.round(committedVertical);
+			applyAutomaticVertical(committedVertical);
+			node.style.setProperty('--reactive-y-position', '0px');
+		}
 		globalState.getVideoPreviewState.showAlignmentGridWhileDragging = false;
 		updateSnapGuides(null, null);
 		document.removeEventListener('mousemove', mousemove);

@@ -9749,6 +9749,54 @@ type RootTranslation = {
 		 */
 		reverbDescription: string;
 		/**
+		 * A​D​J​U​S​T​ ​E​F​F​E​C​T
+		 */
+		effectParameters: string;
+		/**
+		 * N​o​i​s​e​ ​r​e​d​u​c​t​i​o​n
+		 */
+		denoiseStrength: string;
+		/**
+		 * N​o​i​s​e​ ​f​l​o​o​r
+		 */
+		noiseFloor: string;
+		/**
+		 * L​o​w​-​c​u​t​ ​f​r​e​q​u​e​n​c​y
+		 */
+		lowCut: string;
+		/**
+		 * P​r​e​s​e​n​c​e​ ​b​o​o​s​t
+		 */
+		presenceGain: string;
+		/**
+		 * E​c​h​o​ ​d​e​l​a​y
+		 */
+		echoDelay: string;
+		/**
+		 * E​c​h​o​ ​i​n​t​e​n​s​i​t​y
+		 */
+		echoAmount: string;
+		/**
+		 * R​o​o​m​ ​s​i​z​e
+		 */
+		roomSize: string;
+		/**
+		 * R​e​v​e​r​b​ ​i​n​t​e​n​s​i​t​y
+		 */
+		reverbAmount: string;
+		/**
+		 * P​r​e​v​i​e​w​ ​1​0​ ​s​e​c​o​n​d​s
+		 */
+		previewTenSeconds: string;
+		/**
+		 * P​r​e​p​a​r​i​n​g​ ​p​r​e​v​i​e​w​.​.​.
+		 */
+		preparingPreview: string;
+		/**
+		 * S​t​o​p​ ​p​r​e​v​i​e​w
+		 */
+		stopPreview: string;
+		/**
 		 * A​ ​p​r​o​c​e​s​s​e​d​ ​W​A​V​ ​f​i​l​e​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​p​r​o​j​e​c​t​ ​a​n​d​ ​u​s​e​d​ ​a​s​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​c​l​i​p​ ​s​o​u​r​c​e​.
 		 */
 		audioEffectResultHint: string;
@@ -9766,6 +9814,11 @@ type RootTranslation = {
 		 * @param {unknown} error
 		 */
 		audioEffectFailed: RequiredParams<'error'>;
+		/**
+		 * F​a​i​l​e​d​ ​t​o​ ​p​r​e​v​i​e​w​ ​t​h​e​ ​a​u​d​i​o​ ​e​f​f​e​c​t​:​ ​{​e​r​r​o​r​}
+		 * @param {unknown} error
+		 */
+		audioEffectPreviewFailed: RequiredParams<'error'>;
 	};
 	status: {
 		/**
@@ -21633,6 +21686,54 @@ export type TranslationFunctions = {
 		 */
 		reverbDescription: () => LocalizedString;
 		/**
+		 * ADJUST EFFECT
+		 */
+		effectParameters: () => LocalizedString;
+		/**
+		 * Noise reduction
+		 */
+		denoiseStrength: () => LocalizedString;
+		/**
+		 * Noise floor
+		 */
+		noiseFloor: () => LocalizedString;
+		/**
+		 * Low-cut frequency
+		 */
+		lowCut: () => LocalizedString;
+		/**
+		 * Presence boost
+		 */
+		presenceGain: () => LocalizedString;
+		/**
+		 * Echo delay
+		 */
+		echoDelay: () => LocalizedString;
+		/**
+		 * Echo intensity
+		 */
+		echoAmount: () => LocalizedString;
+		/**
+		 * Room size
+		 */
+		roomSize: () => LocalizedString;
+		/**
+		 * Reverb intensity
+		 */
+		reverbAmount: () => LocalizedString;
+		/**
+		 * Preview 10 seconds
+		 */
+		previewTenSeconds: () => LocalizedString;
+		/**
+		 * Preparing preview...
+		 */
+		preparingPreview: () => LocalizedString;
+		/**
+		 * Stop preview
+		 */
+		stopPreview: () => LocalizedString;
+		/**
 		 * A processed WAV file will be added to the project and used as the selected clip source.
 		 */
 		audioEffectResultHint: () => LocalizedString;
@@ -21648,6 +21749,10 @@ export type TranslationFunctions = {
 		 * Failed to apply the audio effect: {error}
 		 */
 		audioEffectFailed: (arg: { error: unknown }) => LocalizedString;
+		/**
+		 * Failed to preview the audio effect: {error}
+		 */
+		audioEffectPreviewFailed: (arg: { error: unknown }) => LocalizedString;
 	};
 	status: {
 		/**

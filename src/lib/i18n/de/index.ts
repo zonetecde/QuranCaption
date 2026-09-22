@@ -2810,6 +2810,10 @@ const de = {
 			ADD_SUBTITLE: 'Untertitel hinzufügen',
 			REMOVE_LAST_SUBTITLE: 'Letzten Untertitel entfernen',
 			EDIT_LAST_SUBTITLE: 'Untertitel am Cursor bearbeiten',
+			EDIT_SUBTITLE_AT_CURSOR: 'Untertitel-Editor am Cursor öffnen',
+			EDIT_TRANSLATION_AT_CURSOR: 'Übersetzungseditor am Cursor öffnen',
+			EDIT_WBW_TIMESTAMP_AT_CURSOR: 'WBW-Zeitstempel-Editor am Cursor öffnen',
+			EDIT_WBW_STYLE_AT_CURSOR: 'WBW-Stil/Übersetzung am Cursor öffnen',
 			ADD_SILENCE: 'Stille hinzufügen',
 			SET_LAST_SUBTITLE_END: 'Ende des Untertitels festlegen',
 			SET_LAST_SUBTITLE_START: 'Start des Untertitels festlegen',
@@ -2845,6 +2849,13 @@ const de = {
 			ADD_SUBTITLE: 'Untertitel mit den ausgewählten Wörtern erstellen',
 			REMOVE_LAST_SUBTITLE: 'Den neuesten Untertitel entfernen',
 			EDIT_LAST_SUBTITLE: 'Untertitel unter dem Cursor bearbeiten, oder den letzten, falls keiner',
+			EDIT_SUBTITLE_AT_CURSOR: 'Den Editor für den Untertitel unter dem Cursor öffnen',
+			EDIT_TRANSLATION_AT_CURSOR:
+				'Den Übersetzungseditor für den Untertitel unter dem Cursor öffnen',
+			EDIT_WBW_TIMESTAMP_AT_CURSOR:
+				'Den WBW-Zeitstempel-Editor für den Untertitel unter dem Cursor öffnen',
+			EDIT_WBW_STYLE_AT_CURSOR:
+				'Die WBW-Stil- und Übersetzungsbearbeitung für den Untertitel unter dem Cursor öffnen',
 			ADD_SILENCE: 'Eine Stille-Periode in die Timeline einfügen',
 			SET_LAST_SUBTITLE_END:
 				'Endzeit des Untertitels auf Cursorposition setzen und Start des nächsten Untertitels anpassen',
@@ -3030,7 +3041,37 @@ const de = {
 		pleaseSelectTimelineAudio: 'Bitte wählen Sie einen Audioclip aus der Timeline aus',
 		noiseReductionSuccess:
 			'Rauschen reduziert. Der ausgewählte Clip verwendet jetzt das bereinigte Audio.',
-		noiseReductionFailed: 'Audiorauschen konnte nicht reduziert werden: {error}'
+		noiseReductionFailed: 'Audiorauschen konnte nicht reduziert werden: {error}',
+		audioEffects: 'Audioeffekte',
+		audioEffectsDescription: 'Sorgfältig abgestimmte FFmpeg-Effekte auf Koranrezitation anwenden',
+		chooseAudioEffect: 'EFFEKT AUSWÄHLEN',
+		denoise: 'Entrauschen',
+		denoiseDescription: 'Gleichmäßiges Hintergrundrauschen reduzieren und die Stimme erhalten',
+		clarity: 'Stimmklarheit',
+		clarityDescription: 'Tiefes Rumpeln entfernen und die Artikulation sanft hervorheben',
+		echo: 'Leichtes Echo',
+		echoDescription: 'Der Rezitation eine kurze, dezente Wiederholung hinzufügen',
+		reverb: 'Leichter Hall',
+		reverbDescription: 'Mit zurückhaltenden Reflexionen einen sanften Raumeindruck erzeugen',
+		effectParameters: 'EFFEKT ANPASSEN',
+		denoiseStrength: 'Rauschreduzierung',
+		noiseFloor: 'Rauschpegel',
+		lowCut: 'Trittschallfilter-Frequenz',
+		presenceGain: 'Präsenzanhebung',
+		echoDelay: 'Echoverzögerung',
+		echoAmount: 'Echostärke',
+		roomSize: 'Raumgröße',
+		reverbAmount: 'Hallstärke',
+		previewTenSeconds: '10 Sekunden vorhören',
+		preparingPreview: 'Vorschau wird vorbereitet...',
+		stopPreview: 'Vorschau stoppen',
+		audioEffectResultHint:
+			'Eine bearbeitete WAV-Datei wird dem Projekt hinzugefügt und als Quelle des ausgewählten Clips verwendet.',
+		applyAudioEffect: 'Effekt anwenden',
+		audioEffectSuccess:
+			'{effect} angewendet. Der ausgewählte Clip verwendet jetzt das bearbeitete Audio.',
+		audioEffectFailed: 'Audioeffekt konnte nicht angewendet werden: {error}',
+		audioEffectPreviewFailed: 'Audioeffekt konnte nicht vorgehört werden: {error}'
 	},
 	status: {
 		notSet: 'Nicht festgelegt',

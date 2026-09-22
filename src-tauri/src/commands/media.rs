@@ -25,6 +25,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use crate::binaries;
 use crate::path_utils;
 use crate::utils::process::configure_command_no_window;
+use crate::utils::temp_file::app_temp_dir;
 
 const FFPROBE_NOT_FOUND_ERROR: &str = "FFPROBE_NOT_FOUND";
 const FFPROBE_NOT_EXECUTABLE_ERROR: &str = "FFPROBE_NOT_EXECUTABLE";
@@ -1589,34 +1590,88 @@ pub fn cut_audio(
     }
 }
 
-/// Construit les arguments FFmpeg utilisés pour réduire le bruit d'une source audio.
-fn reduce_audio_noise_args(source_path: &str, output_path: &str) -> Vec<String> {
-    [
-        "-i",
-        source_path,
-        "-map",
-        "0:a:0",
-        "-vn",
-        "-af",
-        "afftdn=nr=12:nf=-50",
-        "-c:a",
-        "pcm_s16le",
-        "-y",
-        output_path,
-    ]
-    .iter()
-    .map(|value| value.to_string())
-    .collect()
+/// Construit les arguments FFmpeg d'un préréglage d'effet audio autorisé.
+fn apply_audio_effect_args(
+    source_path: &str,
+    output_path: &str,
+    effect: &str,
+    primary: f64,
+    secondary: f64,
+    start_ms: Option<u64>,
+    duration_ms: Option<u64>,
+) -> Result<Vec<String>, String> {
+    let filter = match effect {
+        "denoise" if (1.0..=30.0).contains(&primary) && (-80.0..=-20.0).contains(&secondary) => {
+            format!("afftdn=nr={primary}:nf={secondary}")
+        }
+        "clarity" if (40.0..=200.0).contains(&primary) && (0.0..=6.0).contains(&secondary) => {
+            format!("highpass=f={primary},lowpass=f=14000,equalizer=f=3000:t=q:w=1:g={secondary}")
+        }
+        "echo" if (20.0..=300.0).contains(&primary) && (5.0..=40.0).contains(&secondary) => {
+            format!("aecho=0.8:0.7:{primary}:{}", secondary / 100.0)
+        }
+        "reverb" if (15.0..=120.0).contains(&primary) && (5.0..=30.0).contains(&secondary) => {
+            format!(
+                "aecho=0.8:0.75:{primary}|{}:{}|{}",
+                primary * 2.0,
+                secondary / 100.0,
+                secondary / 200.0
+            )
+        }
+        "denoise" | "clarity" | "echo" | "reverb" => {
+            return Err(format!("Invalid parameters for audio effect: {effect}"));
+        }
+        _ => return Err(format!("Unsupported audio effect: {effect}")),
+    };
+
+    let mut args = Vec::new();
+    if let Some(start_ms) = start_ms {
+        args.extend(["-ss".to_string(), (start_ms as f64 / 1000.0).to_string()]);
+    }
+    args.extend(["-i".to_string(), source_path.to_string()]);
+    if let Some(duration_ms) = duration_ms {
+        if duration_ms == 0 {
+            return Err("Audio effect duration must be positive".to_string());
+        }
+        args.extend(["-t".to_string(), (duration_ms as f64 / 1000.0).to_string()]);
+    }
+    args.extend([
+        "-map".to_string(),
+        "0:a:0".to_string(),
+        "-vn".to_string(),
+        "-af".to_string(),
+        filter,
+        "-c:a".to_string(),
+        "pcm_s16le".to_string(),
+        "-y".to_string(),
+        output_path.to_string(),
+    ]);
+    Ok(args)
 }
 
-/// Réduit le bruit d'une source audio avec le filtre FFT intégré à FFmpeg.
-#[tauri::command]
-pub fn reduce_audio_noise(source_path: String, output_path: String) -> Result<(), String> {
-    if !Path::new(&source_path).exists() {
+/// Exécute FFmpeg avec un effet audio validé et une plage facultative.
+fn run_audio_effect(
+    source_path: &str,
+    output_path: &str,
+    effect: &str,
+    primary: f64,
+    secondary: f64,
+    start_ms: Option<u64>,
+    duration_ms: Option<u64>,
+) -> Result<(), String> {
+    if !Path::new(source_path).exists() {
         return Err(format!("Source file not found: {}", source_path));
     }
 
-    let arguments = reduce_audio_noise_args(&source_path, &output_path);
+    let arguments = apply_audio_effect_args(
+        source_path,
+        output_path,
+        effect,
+        primary,
+        secondary,
+        start_ms,
+        duration_ms,
+    )?;
     #[cfg(target_os = "android")]
     {
         let result = super::android_media::execute_ffmpeg(&arguments)?;
@@ -1646,18 +1701,59 @@ pub fn reduce_audio_noise(source_path: String, output_path: String) -> Result<()
     }
 }
 
-#[cfg(test)]
-mod noise_reduction_tests {
-    use super::reduce_audio_noise_args;
+/// Applique un effet audio paramétré à la source complète.
+#[tauri::command]
+pub fn apply_audio_effect(
+    source_path: String,
+    output_path: String,
+    effect: String,
+    primary: f64,
+    secondary: f64,
+) -> Result<(), String> {
+    run_audio_effect(
+        &source_path,
+        &output_path,
+        &effect,
+        primary,
+        secondary,
+        None,
+        None,
+    )
+}
 
-    /// Vérifie que le filtre de réduction de bruit et le format WAV sont appliqués.
-    #[test]
-    fn uses_afftdn_and_wav_pcm_output() {
-        let args = reduce_audio_noise_args("input.mp3", "output.wav");
-
-        assert!(args.iter().any(|arg| arg == "afftdn=nr=12:nf=-50"));
-        assert!(args.windows(2).any(|pair| pair == ["-c:a", "pcm_s16le"]));
+/// Crée un extrait temporaire paramétré pour la préécoute d'un effet audio.
+#[tauri::command]
+pub fn preview_audio_effect(
+    source_path: String,
+    effect: String,
+    primary: f64,
+    secondary: f64,
+    start_ms: u64,
+    duration_ms: u64,
+    app_handle: tauri::AppHandle,
+) -> Result<String, String> {
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| error.to_string())?
+        .as_nanos();
+    let output_path = app_temp_dir(&app_handle)?.join(format!(
+        "qurancaption-audio-effect-preview-{}-{timestamp}.wav",
+        std::process::id()
+    ));
+    let output = output_path.to_string_lossy().to_string();
+    if let Err(error) = run_audio_effect(
+        &source_path,
+        &output,
+        &effect,
+        primary,
+        secondary,
+        Some(start_ms),
+        Some(duration_ms),
+    ) {
+        let _ = fs::remove_file(&output_path);
+        return Err(error);
     }
+    Ok(output)
 }
 
 /// Coupe une portion vidéo sans ré-encodage (copie de flux).

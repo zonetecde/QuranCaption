@@ -990,6 +990,38 @@ describe('Video overlay subtitle preview', () => {
 		action.destroy();
 	});
 
+	test('keeps the anti-collision offset when a subtitle is repositioned', async () => {
+		const fixture = setupVideoOverlayFixture(
+			[createVerseSubtitle(0, 999, 'Arabic', 'Translation')],
+			{ cursorPosition: 500 }
+		);
+		const component = render(VideoOverlay);
+		await settleOverlay();
+		const arabicNode = getForegroundArabicNode(component.container)!;
+		arabicNode.style.setProperty('--reactive-y-position', '30px');
+		const { mouseDrag } = await vi.importActual<typeof import('$lib/services/verticalDrag')>(
+			'$lib/services/verticalDrag'
+		);
+		const action = mouseDrag(arabicNode, {
+			target: 'arabic',
+			verticalStyleId: 'vertical-position',
+			horizontalStyleId: 'horizontal-position'
+		});
+
+		arabicNode.dispatchEvent(
+			new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: 100, clientY: 100 })
+		);
+		document.dispatchEvent(
+			new MouseEvent('mousemove', { bubbles: true, clientX: 100, clientY: 120 })
+		);
+		document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+
+		expect(
+			fixture.videoStyle.getStylesOfTarget('arabic').findStyle('vertical-position').value
+		).toBe(50);
+		action.destroy();
+	});
+
 	test('highlights both subtitle boxes and shows the anti-collision message during a collision', async () => {
 		const fixture = setupVideoOverlayFixture(
 			[createVerseSubtitle(0, 999, 'Arabic', 'Translation')],

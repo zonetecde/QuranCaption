@@ -7,7 +7,7 @@
 	import { get } from 'svelte/store';
 
 	let showToolsPopover = $state(false);
-	let noiseReductionLabel = $derived((Reflect.get($LL.tools, 'noiseReduction') as () => string)());
+	let audioEffectsLabel = $derived((Reflect.get(get(LL).tools, 'audioEffects') as () => string)());
 
 	function handleClickOutside(event: Event) {
 		if (!showToolsPopover) return;
@@ -140,11 +140,11 @@
 				class="w-full text-start px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
 				onclick={(event) => {
 					event.stopPropagation();
-					runAction(() => ModalManager.noiseReductionModal());
+					runAction(() => ModalManager.audioEffectsModal());
 				}}
 			>
-				<span class="material-icons text-lg text-accent">hearing</span>
-				{noiseReductionLabel}
+				<span class="material-icons text-lg text-accent">spatial_audio</span>
+				{audioEffectsLabel}
 			</button>
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button

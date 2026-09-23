@@ -2,14 +2,40 @@ const tools = {
 	hifzRepetition: 'Hifz Repetition',
 	hifzDescription: 'Repeat existing subtitles and generate matching audio',
 	hifzBody:
-		'Turn your existing subtitles into a Hifz-ready repetition track. Each verse will be repeated with configurable silence gaps.',
+		'Turn your existing subtitles into a customizable Hifz track with standard or linked repetitions.',
+	standardSequence: 'Standard repetition',
+	standardSequenceHelp:
+		'Repeats each selected verse or subtitle independently using the repeat count.',
+	linkedSequence: 'Linked / cumulative',
+	linkedSequenceDescription:
+		'Builds transitions such as V1, V1+V2, V2, V2+V3. Counts, linked group size, and full passes are configurable.',
+	individualRepeatCount: 'Individual block repeats',
+	individualRepeatCountHelp: 'Number of times each individual verse or subtitle block is played.',
+	firstLastRepeatCount: 'First / last',
+	firstLastRepeatCountHelp: 'Number of repetitions for the first and last individual blocks.',
+	linkedBlockSize: 'Linked size',
+	linkedBlockSizeHelp: 'Number of consecutive blocks combined in each linked transition.',
+	linkedRepeatCount: 'Linked repeats',
+	linkedRepeatCountHelp: 'Number of times each linked group is played.',
+	playFullAtStart: 'Full sequence at start',
+	playFullAtStartHelp: 'Plays all included subtitles once before the practice sequence.',
+	playFullAtEnd: 'Full sequence at end',
+	playFullAtEndHelp: 'Plays all included subtitles once after the practice sequence.',
+	pauseBetweenRepeats: 'Pause between same-block repeats',
+	pauseBetweenRepeatsHelp:
+		'Adds silence between repetitions of the same block, as a multiple of its duration.',
+	pauseBetweenGroups: 'Pause between blocks',
+	pauseBetweenGroupsHelp:
+		'Adds silence after each block or linked group, as a multiple of its duration.',
+	repetitionSelection: 'Subtitles included in practice repetitions',
+	repetitionSelectionDescription:
+		'Unchecked items are not practiced. Standard mode keeps them once; linked mode includes them only in enabled full passes.',
 	repeatEachVerse: 'Repeat each verse',
 	repeatEachSubtitle: 'Repeat each subtitle',
 	generatingHifzAudio: 'Generating Hifz audio...',
 	repeatCount: 'Repeat count',
 	silenceDuration: 'Silence duration between repetitions',
-	silenceDescription:
-		'The silence is the duration of the repeated segment. Increase for more pause time between repetitions.',
+	silenceDescription: 'Each pause is a multiplier of the block duration (0 disables it).',
 	keepVisualMerges: 'Keep visual merges',
 	keepSubtitlesVisible: 'Keep subtitles visible during pause intervals',
 	stretchCompleteSubtitles: 'Stretch complete subtitles across repeated cycles',

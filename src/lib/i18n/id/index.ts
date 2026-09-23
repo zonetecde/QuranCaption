@@ -1768,14 +1768,40 @@ const id = {
 		hifzRepetition: 'Hifz Repetition',
 		hifzDescription: 'Ulang subtitle yang sudah ada dan generate audio yang sesuai',
 		hifzBody:
-			'Ubah subtitle yang sudah ada menjadi track pengulangan siap Hifz. Setiap ayat akan diulang dengan jeda hening yang bisa diatur.',
+			'Ubah subtitle menjadi track Hifz yang dapat disesuaikan dengan pengulangan standar atau terkait.',
+		standardSequence: 'Pengulangan standar',
+		standardSequenceHelp:
+			'Mengulang setiap ayat atau subtitle terpilih secara terpisah sesuai jumlah pengulangan.',
+		linkedSequence: 'Terkait / kumulatif',
+		linkedSequenceDescription:
+			'Membuat transisi seperti V1, V1+V2, V2, V2+V3. Jumlah, ukuran grup, dan pemutaran penuh dapat diatur.',
+		individualRepeatCount: 'Pengulangan tiap blok individual',
+		individualRepeatCountHelp: 'Jumlah pemutaran setiap blok ayat atau subtitle individual.',
+		firstLastRepeatCount: 'Pertama / terakhir',
+		firstLastRepeatCountHelp: 'Jumlah pengulangan untuk blok individual pertama dan terakhir.',
+		linkedBlockSize: 'Ukuran terkait',
+		linkedBlockSizeHelp: 'Jumlah blok berurutan yang digabungkan dalam setiap transisi terkait.',
+		linkedRepeatCount: 'Pengulangan terkait',
+		linkedRepeatCountHelp: 'Jumlah pemutaran setiap grup terkait.',
+		playFullAtStart: 'Urutan penuh di awal',
+		playFullAtStartHelp: 'Memutar semua subtitle yang disertakan sekali sebelum urutan latihan.',
+		playFullAtEnd: 'Urutan penuh di akhir',
+		playFullAtEndHelp: 'Memutar semua subtitle yang disertakan sekali setelah urutan latihan.',
+		pauseBetweenRepeats: 'Jeda antar pengulangan blok yang sama',
+		pauseBetweenRepeatsHelp:
+			'Menambahkan keheningan antar pengulangan blok yang sama, sebanding dengan durasinya.',
+		pauseBetweenGroups: 'Jeda antar blok',
+		pauseBetweenGroupsHelp:
+			'Menambahkan keheningan setelah setiap blok atau grup terkait, sebanding dengan durasinya.',
+		repetitionSelection: 'Subtitle dalam pengulangan latihan',
+		repetitionSelectionDescription:
+			'Item yang tidak dicentang tidak dilatih. Mode standar memutarnya sekali; mode terkait hanya menyertakannya dalam pemutaran penuh yang diaktifkan.',
 		repeatEachVerse: 'Ulangi setiap ayat',
 		repeatEachSubtitle: 'Ulangi setiap subtitle',
 		generatingHifzAudio: 'Sedang generate audio Hifz...',
 		repeatCount: 'Jumlah pengulangan',
 		silenceDuration: 'Durasi hening antar pengulangan',
-		silenceDescription:
-			'Durasi hening mengikuti durasi segmen yang diulang. Naikkan nilainya untuk jeda yang lebih panjang antar pengulangan.',
+		silenceDescription: 'Setiap jeda adalah pengali durasi blok (0 menonaktifkannya).',
 		keepVisualMerges: 'Pertahankan visual merge',
 		keepSubtitlesVisible: 'Tetap tampilkan subtitle saat jeda',
 		stretchCompleteSubtitles: 'Bentangkan subtitle penuh ke seluruh siklus pengulangan',

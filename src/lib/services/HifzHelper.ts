@@ -15,11 +15,13 @@ import {
 import type { VisualMergeMode } from '$lib/classes/Clip.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { ProjectService } from '$lib/services/ProjectService';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import {
 	createEmptySegmentationContext,
 	getAutoSegmentationAudioClips,
 	type AutoSegmentationAudioClip
 } from '$lib/services/AutoSegmentation';
+import { insertSilenceClips } from '$lib/services/autoSegmentation/timeline';
 
 export type HifzRepeatTarget = 'verse' | 'subtitle';
 
@@ -28,6 +30,19 @@ export type HifzAudioSegment = {
 	endMs: number;
 	repeatCount: number;
 	silenceBetweenRepetitionsMs?: number;
+	silenceAfterMs?: number;
+};
+
+export type HifzSequenceMode = 'standard' | 'linked';
+
+export type HifzSequenceOptions = {
+	mode?: HifzSequenceMode;
+	linkedBlockSize?: number;
+	linkedRepeatCount?: number;
+	firstLastRepeatCount?: number;
+	includeFullSequenceAtStart?: boolean;
+	includeFullSequenceAtEnd?: boolean;
+	silenceBetweenGroupsMultiplier?: number;
 };
 
 type HifzSegmentationMetadata = {
@@ -45,6 +60,13 @@ export type HifzToolSummary = {
 	audioClipCount: number;
 	sourceAudioFileName: string | null;
 	currentAudioUsesGeneratedSource: boolean;
+	sources: Array<{
+		id: number;
+		kind: 'subtitle' | 'predefined';
+		surah?: number;
+		verse?: number;
+		text: string;
+	}>;
 };
 
 export type HifzToolResult =
@@ -83,6 +105,8 @@ export type HifzPlanTemplateInput = {
 	startWordIndex?: number;
 	isFullVerse?: boolean;
 	isLastWordsOfVerse?: boolean;
+	hasWbwTimestamps?: boolean;
+	repeat?: boolean;
 	visualMergeGroupId?: string | null;
 	visualMergeMode?: VisualMergeMode | null;
 };
@@ -92,7 +116,7 @@ type HifzPlanGroup = {
 	startMs: number;
 	endMs: number;
 	repeatCount: number;
-	silenceBetweenRepetitionsMs?: number;
+	isRepeatable: boolean;
 	visualMergeGroupId?: string;
 	visualMergeMode?: VisualMergeMode;
 };
@@ -283,21 +307,16 @@ function isCompleteVerseVisualMerge(templates: HifzPlanTemplateInput[]): boolean
  * @param {number} repeatCount Nombre de repetitions demande.
  * @param {HifzRepeatTarget} repeatTarget Granularite des repetitions.
  * @param {boolean} preserveVisualMerges Indique si les merges visuels valides doivent etre conserves.
- * @param {number} silenceBetweenRepetitionsMultiplier Multiplicateur de silence entre repetitions.
  * @returns {HifzPlanGroup[]} Groupes temporels a repeter.
  */
 function buildHifzPlanGroups(
 	templates: HifzPlanTemplateInput[],
 	repeatCount: number,
 	repeatTarget: HifzRepeatTarget,
-	preserveVisualMerges: boolean,
-	silenceBetweenRepetitionsMultiplier: number
+	preserveVisualMerges: boolean
 ): HifzPlanGroup[] {
 	// La normalisation empeche un plan invalide si la valeur vient d'un input libre.
-	const safeRepeatCount = Math.max(2, Math.round(repeatCount || 2));
-	const safeSilenceMultiplier = normalizeSilenceBetweenRepetitionsMultiplier(
-		silenceBetweenRepetitionsMultiplier
-	);
+	const safeRepeatCount = Math.max(1, Math.round(repeatCount || 1));
 	const groups: HifzPlanGroup[] = [];
 
 	for (let index = 0; index < templates.length; index += 1) {
@@ -314,6 +333,9 @@ function buildHifzPlanGroups(
 
 		if (shouldPreserveMerge) {
 			const mergeTemplates = mergeIndices.map((mergeIndex) => templates[mergeIndex]);
+			const isRepeatable = mergeTemplates.every(
+				(entry) => entry.repeat ?? entry.kind === 'subtitle'
+			);
 			groups.push({
 				templateIndices: mergeIndices,
 				startMs: Math.min(
@@ -327,7 +349,8 @@ function buildHifzPlanGroups(
 						)
 					)
 				),
-				repeatCount: safeRepeatCount,
+				repeatCount: isRepeatable ? safeRepeatCount : 1,
+				isRepeatable,
 				visualMergeGroupId: template.visualMergeGroupId ?? undefined,
 				visualMergeMode: template.visualMergeMode ?? undefined
 			});
@@ -349,22 +372,19 @@ function buildHifzPlanGroups(
 		) {
 			lastGroup.templateIndices.push(index);
 			lastGroup.endMs = Math.max(lastGroup.endMs, normalizedEndMs);
+			lastGroup.isRepeatable &&= template.repeat ?? template.kind === 'subtitle';
+			lastGroup.repeatCount = lastGroup.isRepeatable ? safeRepeatCount : 1;
 			continue;
 		}
 
+		const isRepeatable = template.repeat ?? template.kind === 'subtitle';
 		groups.push({
 			templateIndices: [index],
 			startMs: normalizedStartMs,
 			endMs: normalizedEndMs,
-			repeatCount: template.kind === 'subtitle' ? safeRepeatCount : 1
+			repeatCount: isRepeatable ? safeRepeatCount : 1,
+			isRepeatable
 		});
-	}
-
-	for (const group of groups) {
-		group.silenceBetweenRepetitionsMs = getSilenceBetweenRepetitionsMs(
-			group.endMs - group.startMs,
-			safeSilenceMultiplier
-		);
 	}
 
 	return groups;
@@ -398,6 +418,95 @@ function getSilenceBetweenRepetitionsMs(
 }
 
 /**
+ * Combine des blocs Hifz consecutifs en un seul passage audio.
+ *
+ * @param {HifzPlanGroup[]} groups Blocs consecutifs a reunir.
+ * @param {number} repeatCount Nombre de repetitions du passage combine.
+ * @returns {HifzPlanGroup} Passage combine.
+ */
+function combineHifzPlanGroups(groups: HifzPlanGroup[], repeatCount: number): HifzPlanGroup {
+	return {
+		templateIndices: groups.flatMap((group) => group.templateIndices),
+		startMs: Math.min(...groups.map((group) => group.startMs)),
+		endMs: Math.max(...groups.map((group) => group.endMs)),
+		repeatCount: Math.max(1, Math.round(repeatCount || 1)),
+		isRepeatable: groups.every((group) => group.isRepeatable)
+	};
+}
+
+/**
+ * Construit l'ordre des blocs standard ou lies a placer sur la nouvelle timeline.
+ *
+ * @param {HifzPlanGroup[]} groups Blocs sources dans leur ordre temporel.
+ * @param {HifzPlanTemplateInput[]} templates Templates sources complets.
+ * @param {number} repeatCount Nombre de repetitions des blocs individuels.
+ * @param {HifzSequenceOptions} options Options de la sequence liee.
+ * @returns {HifzPlanGroup[]} Blocs dans leur ordre de generation.
+ */
+function buildHifzSequenceGroups(
+	groups: HifzPlanGroup[],
+	templates: HifzPlanTemplateInput[],
+	repeatCount: number,
+	options: HifzSequenceOptions
+): HifzPlanGroup[] {
+	if (options.mode !== 'linked') return groups;
+
+	const repeatableGroups = groups
+		.map((group, sourceIndex) => ({ group, sourceIndex }))
+		.filter(({ group }) => group.isRepeatable);
+	if (repeatableGroups.length === 0) return [];
+
+	const safeRepeatCount = Math.max(1, Math.round(repeatCount || 1));
+	const linkedBlockSize = Math.max(2, Math.round(options.linkedBlockSize ?? 2));
+	const linkedRepeatCount = Math.max(1, Math.round(options.linkedRepeatCount ?? 1));
+	const firstLastRepeatCount = Math.max(
+		1,
+		Math.round(options.firstLastRepeatCount ?? safeRepeatCount)
+	);
+	const sequence: HifzPlanGroup[] = [];
+	const fullSequence = combineHifzPlanGroups(
+		[
+			{
+				templateIndices: templates.map((_, index) => index),
+				startMs: Math.min(...templates.map((template) => template.originalStartMs)),
+				endMs: Math.max(...templates.map((template) => template.originalEndMs)),
+				repeatCount: 1,
+				isRepeatable: false
+			}
+		],
+		1
+	);
+
+	if (options.includeFullSequenceAtStart) sequence.push(fullSequence);
+	for (let index = 0; index < repeatableGroups.length; index += 1) {
+		const current = repeatableGroups[index];
+		const isEdge = index === 0 || index === repeatableGroups.length - 1;
+		sequence.push({
+			...current.group,
+			repeatCount: isEdge ? firstLastRepeatCount : safeRepeatCount
+		});
+
+		const linkedWindow = repeatableGroups.slice(index, index + linkedBlockSize);
+		const isConsecutiveWindow =
+			linkedWindow.length === linkedBlockSize &&
+			linkedWindow.every(
+				(entry, windowIndex) => entry.sourceIndex === current.sourceIndex + windowIndex
+			);
+		if (isConsecutiveWindow) {
+			sequence.push(
+				combineHifzPlanGroups(
+					linkedWindow.map((entry) => entry.group),
+					linkedRepeatCount
+				)
+			);
+		}
+	}
+	if (options.includeFullSequenceAtEnd) sequence.push(fullSequence);
+
+	return sequence;
+}
+
+/**
  * Construit le plan de repetitions Hifz pour les sous-titres et l'audio.
  *
  * @param {HifzPlanTemplateInput[]} templates Templates sources du projet.
@@ -405,6 +514,9 @@ function getSilenceBetweenRepetitionsMs(
  * @param {HifzRepeatTarget} repeatTarget Granularite des repetitions.
  * @param {boolean} preserveVisualMerges Indique si les merges visuels valides doivent etre conserves.
  * @param {number} silenceBetweenRepetitionsMultiplier Multiplicateur de silence entre repetitions.
+ * @param {boolean} showSubtitlesDuringPause Indique si les sous-titres restent visibles pendant les pauses.
+ * @param {boolean} extendCompleteSubtitlesAcrossRepetitions Indique si les sous-titres complets peuvent etre etires.
+ * @param {HifzSequenceOptions} sequenceOptions Options d'ordre, de liaison et de pause entre blocs.
  * @returns {{ placements: HifzPlacement[]; silencePlacements: HifzSilencePlacement[]; audioSegments: HifzAudioSegment[]; totalDurationMs: number }} Plan complet de generation.
  */
 export function buildHifzRepetitionPlan(
@@ -414,7 +526,8 @@ export function buildHifzRepetitionPlan(
 	preserveVisualMerges: boolean = false,
 	silenceBetweenRepetitionsMultiplier: number = 0,
 	showSubtitlesDuringPause: boolean = true,
-	extendCompleteSubtitlesAcrossRepetitions: boolean = true
+	extendCompleteSubtitlesAcrossRepetitions: boolean = true,
+	sequenceOptions: HifzSequenceOptions = {}
 ): {
 	placements: HifzPlacement[];
 	silencePlacements: HifzSilencePlacement[];
@@ -424,32 +537,66 @@ export function buildHifzRepetitionPlan(
 	const placements: HifzPlacement[] = [];
 	const silencePlacements: HifzSilencePlacement[] = [];
 	const audioSegments: HifzAudioSegment[] = [];
-	const groups = buildHifzPlanGroups(
+	const minimumRepeatCount = sequenceOptions.mode === 'linked' ? 1 : 2;
+	const normalizedRepeatCount = Math.max(
+		minimumRepeatCount,
+		Math.round(repeatCount || minimumRepeatCount)
+	);
+	const baseGroups = buildHifzPlanGroups(
 		templates,
-		repeatCount,
+		normalizedRepeatCount,
 		repeatTarget,
-		preserveVisualMerges,
+		preserveVisualMerges
+	);
+	const groups = buildHifzSequenceGroups(
+		baseGroups,
+		templates,
+		normalizedRepeatCount,
+		sequenceOptions
+	);
+	const usesSeparateGroupPause = sequenceOptions.silenceBetweenGroupsMultiplier !== undefined;
+	const silenceBetweenGroupsMultiplier = normalizeSilenceBetweenRepetitionsMultiplier(
+		sequenceOptions.silenceBetweenGroupsMultiplier ?? silenceBetweenRepetitionsMultiplier
+	);
+	const normalizedRepetitionPauseMultiplier = normalizeSilenceBetweenRepetitionsMultiplier(
 		silenceBetweenRepetitionsMultiplier
 	);
 	let cursorMs = 0;
 
-	for (const group of groups) {
+	for (const [groupIndex, group] of groups.entries()) {
 		const groupDurationMs = Math.max(1, group.endMs - group.startMs);
-		const silenceBetweenRepetitionsMs = Math.max(0, group.silenceBetweenRepetitionsMs ?? 0);
+		const silenceBetweenRepetitionsMs = getSilenceBetweenRepetitionsMs(
+			groupDurationMs,
+			normalizedRepetitionPauseMultiplier
+		);
+		const silenceAfterMs =
+			usesSeparateGroupPause && groupIndex < groups.length - 1
+				? getSilenceBetweenRepetitionsMs(groupDurationMs, silenceBetweenGroupsMultiplier)
+				: 0;
 		const repeatsWithSilenceDurationMs =
 			group.repeatCount * groupDurationMs +
-			(group.repeatCount > 1 ? group.repeatCount * silenceBetweenRepetitionsMs : 0);
+			(usesSeparateGroupPause
+				? Math.max(0, group.repeatCount - 1) * silenceBetweenRepetitionsMs + silenceAfterMs
+				: group.repeatCount > 1
+					? group.repeatCount * silenceBetweenRepetitionsMs
+					: 0);
 		audioSegments.push({
 			startMs: group.startMs,
 			endMs: group.endMs,
 			repeatCount: group.repeatCount,
-			...(silenceBetweenRepetitionsMs > 0 ? { silenceBetweenRepetitionsMs } : {})
+			...(silenceBetweenRepetitionsMs > 0 && group.repeatCount > 1
+				? { silenceBetweenRepetitionsMs }
+				: {}),
+			...(usesSeparateGroupPause && (silenceBetweenRepetitionsMs > 0 || silenceAfterMs > 0)
+				? { silenceAfterMs }
+				: {})
 		});
 		const canExtendAcrossRepetitions =
 			extendCompleteSubtitlesAcrossRepetitions &&
 			group.repeatCount > 1 &&
 			group.templateIndices.length === 1 &&
-			templates[group.templateIndices[0]]?.isMergeableCompleteUnit === true;
+			templates[group.templateIndices[0]]?.isMergeableCompleteUnit === true &&
+			templates[group.templateIndices[0]]?.hasWbwTimestamps !== true;
 		if (canExtendAcrossRepetitions) {
 			const sourceIndex = group.templateIndices[0];
 			const template = templates[sourceIndex];
@@ -492,11 +639,18 @@ export function buildHifzRepetitionPlan(
 						: {})
 				});
 			}
-			// Le curseur suit exactement l'audio: bloc repete, puis silence optionnel apres chaque repetition.
+			// Le curseur suit exactement l'audio et les deux types de pauses configures.
 			cursorMs = repeatedBlockStartMs + groupDurationMs;
-			if (group.repeatCount > 1 && silenceBetweenRepetitionsMs > 0) {
+			const pauseAfterRepetitionMs = usesSeparateGroupPause
+				? repetition < group.repeatCount
+					? silenceBetweenRepetitionsMs
+					: silenceAfterMs
+				: group.repeatCount > 1
+					? silenceBetweenRepetitionsMs
+					: 0;
+			if (pauseAfterRepetitionMs > 0) {
 				if (showSubtitlesDuringPause) {
-					const repeatedBlockEndMs = cursorMs + silenceBetweenRepetitionsMs;
+					const repeatedBlockEndMs = cursorMs + pauseAfterRepetitionMs;
 					for (
 						let placementIndex = repetitionPlacementStartIndex;
 						placementIndex < placements.length;
@@ -508,10 +662,10 @@ export function buildHifzRepetitionPlan(
 				} else {
 					silencePlacements.push({
 						startMs: cursorMs,
-						endMs: cursorMs + silenceBetweenRepetitionsMs
+						endMs: cursorMs + pauseAfterRepetitionMs
 					});
 				}
-				cursorMs += silenceBetweenRepetitionsMs;
+				cursorMs += pauseAfterRepetitionMs;
 			}
 		}
 	}
@@ -650,9 +804,13 @@ function getHifzSourceSubtitleClips(): HifzSourceSubtitleClip[] {
  * Transforme les clips de sous-titres existants en entrees du plan Hifz.
  *
  * @param {HifzSourceSubtitleClip[]} clips Clips source du projet.
+ * @param {ReadonlySet<number> | null} repeatedSourceIds Identifiants autorises dans les repetitions d'entrainement.
  * @returns {HifzPlanTemplateInput[]} Entrees temporelles minimales pour le plan.
  */
-function buildHifzPlanTemplatesFromClips(clips: HifzSourceSubtitleClip[]): HifzPlanTemplateInput[] {
+function buildHifzPlanTemplatesFromClips(
+	clips: HifzSourceSubtitleClip[],
+	repeatedSourceIds: ReadonlySet<number> | null = null
+): HifzPlanTemplateInput[] {
 	// Le plan ne garde que les champs necessaires au regroupement et au timing.
 	return clips.map((clip) =>
 		clip instanceof SubtitleClip
@@ -666,6 +824,8 @@ function buildHifzPlanTemplatesFromClips(clips: HifzSourceSubtitleClip[]): HifzP
 					startWordIndex: clip.startWordIndex,
 					isFullVerse: clip.isFullVerse,
 					isLastWordsOfVerse: clip.isLastWordsOfVerse,
+					hasWbwTimestamps: (clip.alignmentMetadata?.words.length ?? 0) > 0,
+					repeat: repeatedSourceIds ? repeatedSourceIds.has(clip.id) : true,
 					visualMergeGroupId: clip.visualMergeGroupId,
 					visualMergeMode: clip.visualMergeMode
 				}
@@ -673,7 +833,8 @@ function buildHifzPlanTemplatesFromClips(clips: HifzSourceSubtitleClip[]): HifzP
 					kind: 'predefined',
 					originalStartMs: clip.startTime,
 					originalEndMs: clip.endTime,
-					isMergeableCompleteUnit: false
+					isMergeableCompleteUnit: false,
+					repeat: repeatedSourceIds?.has(clip.id) ?? false
 				}
 	);
 }
@@ -756,11 +917,18 @@ export function getHifzToolSummary(): HifzToolSummary {
 	// Le resume utilise le meme choix d'audio que la generation effective.
 	const sourceAudioClips = getHifzGenerationAudioClips();
 	const generatedSourceClips = getHifzSourceAudioClipsFromTrack();
+	const subtitleClips = getHifzSourceSubtitleClips();
 	return {
-		subtitleCount: getHifzSourceSubtitleClips().length,
+		subtitleCount: subtitleClips.length,
 		audioClipCount: sourceAudioClips.length,
 		sourceAudioFileName: sourceAudioClips[0]?.fileName ?? null,
-		currentAudioUsesGeneratedSource: generatedSourceClips !== null
+		currentAudioUsesGeneratedSource: generatedSourceClips !== null,
+		sources: subtitleClips.map((clip) => ({
+			id: clip.id,
+			kind: clip instanceof SubtitleClip ? 'subtitle' : 'predefined',
+			...(clip instanceof SubtitleClip ? { surah: clip.surah, verse: clip.verse } : {}),
+			text: clip.text
+		}))
 	};
 }
 
@@ -771,6 +939,10 @@ export function getHifzToolSummary(): HifzToolSummary {
  * @param {HifzRepeatTarget} repeatTarget Granularite de repetition.
  * @param {boolean} preserveVisualMerges Indique si les merges visuels valides doivent etre conserves.
  * @param {number} silenceBetweenRepetitionsMultiplier Multiplicateur de silence entre repetitions.
+ * @param {boolean} showSubtitlesDuringPause Indique si les sous-titres restent visibles pendant les pauses.
+ * @param {boolean} extendCompleteSubtitlesAcrossRepetitions Indique si les sous-titres complets peuvent etre etires.
+ * @param {HifzSequenceOptions} sequenceOptions Options de la sequence liee.
+ * @param {number[] | undefined} repeatedSourceIds Identifiants de sous-titres a repeter.
  * @returns {Promise<HifzToolResult>} Resultat de generation.
  */
 export async function applyHifzRepetitionToProject(
@@ -779,77 +951,90 @@ export async function applyHifzRepetitionToProject(
 	preserveVisualMerges: boolean = false,
 	silenceBetweenRepetitionsMultiplier: number = 0,
 	showSubtitlesDuringPause: boolean = true,
-	extendCompleteSubtitlesAcrossRepetitions: boolean = true
+	extendCompleteSubtitlesAcrossRepetitions: boolean = true,
+	sequenceOptions: HifzSequenceOptions = {},
+	repeatedSourceIds?: number[]
 ): Promise<HifzToolResult> {
-	try {
-		// Les mutations projet ne commencent qu'apres validation du contexte courant.
-		const project = globalState.currentProject;
-		if (!project) return { status: 'failed', message: 'No active project found.' };
+	return ProjectHistoryManager.trackAsync('generate Hifz repetition', async () => {
+		try {
+			// Les mutations projet ne commencent qu'apres validation du contexte courant.
+			const project = globalState.currentProject;
+			if (!project) return { status: 'failed', message: 'No active project found.' };
 
-		const sourceClips = getHifzSourceSubtitleClips();
-		if (sourceClips.length === 0) {
-			return { status: 'failed', message: 'No subtitle clips found in the project.' };
+			const sourceClips = getHifzSourceSubtitleClips();
+			if (sourceClips.length === 0) {
+				return { status: 'failed', message: 'No subtitle clips found in the project.' };
+			}
+
+			const minimumRepeatCount = sequenceOptions.mode === 'linked' ? 1 : 2;
+			const safeRepeatCount = Math.max(
+				minimumRepeatCount,
+				Math.round(repeatCount || minimumRepeatCount)
+			);
+			const templates = buildHifzPlanTemplatesFromClips(
+				sourceClips,
+				repeatedSourceIds ? new Set(repeatedSourceIds) : null
+			);
+			const repetitionPlan = buildHifzRepetitionPlan(
+				templates,
+				safeRepeatCount,
+				repeatTarget,
+				preserveVisualMerges,
+				silenceBetweenRepetitionsMultiplier,
+				showSubtitlesDuringPause,
+				extendCompleteSubtitlesAcrossRepetitions,
+				sequenceOptions
+			);
+			if (repetitionPlan.placements.length === 0) {
+				return { status: 'failed', message: 'No Hifz repetition plan could be generated.' };
+			}
+
+			// On genere l'audio avant de modifier la timeline pour garder le projet intact en cas d'erreur.
+			const generatedAudio = await generateHifzAudioAsset(
+				repetitionPlan.audioSegments,
+				safeRepeatCount,
+				repeatTarget,
+				silenceBetweenRepetitionsMultiplier
+			);
+			const repeatedClips = repetitionPlan.placements
+				.map((placement) => {
+					const sourceClip = sourceClips[placement.sourceIndex];
+					if (!sourceClip) return null;
+					return cloneHifzSubtitleClip(
+						sourceClip,
+						placement.startMs,
+						placement.endMs,
+						placement.visualMergeGroupId,
+						placement.visualMergeMode
+					);
+				})
+				.filter((clip): clip is HifzSourceSubtitleClip => !!clip)
+				.sort((left, right) => left.startTime - right.startTime);
+			const silenceClips = repetitionPlan.silencePlacements.map(
+				(placement) => new SilenceClip(placement.startMs, placement.endMs)
+			);
+
+			globalState.getSubtitleTrack.clips = insertSilenceClips(
+				[...repeatedClips, ...silenceClips],
+				1
+			);
+			globalState.getAudioTrack.clips = [
+				new AssetClip(0, Math.max(0, generatedAudio.durationMs), generatedAudio.asset.id)
+			];
+			globalState.getStylesState.clearSelection();
+			globalState.getSubtitlesEditorState.editSubtitle = null;
+			globalState.getSubtitlesEditorState.segmentationContext = createEmptySegmentationContext();
+			globalState.currentProject?.detail.updateVideoDetailAttributes();
+			globalState.updateVideoPreviewUI();
+
+			return {
+				status: 'completed',
+				subtitleCount: repeatedClips.length,
+				durationMs: generatedAudio.durationMs,
+				audioFileName: generatedAudio.asset.fileName
+			};
+		} catch (error) {
+			return { status: 'failed', message: error instanceof Error ? error.message : String(error) };
 		}
-
-		const safeRepeatCount = Math.max(2, Math.round(repeatCount || 2));
-		const templates = buildHifzPlanTemplatesFromClips(sourceClips);
-		const repetitionPlan = buildHifzRepetitionPlan(
-			templates,
-			safeRepeatCount,
-			repeatTarget,
-			preserveVisualMerges,
-			silenceBetweenRepetitionsMultiplier,
-			showSubtitlesDuringPause,
-			extendCompleteSubtitlesAcrossRepetitions
-		);
-		if (repetitionPlan.placements.length === 0) {
-			return { status: 'failed', message: 'No Hifz repetition plan could be generated.' };
-		}
-
-		// On genere l'audio avant de modifier la timeline pour garder le projet intact en cas d'erreur.
-		const generatedAudio = await generateHifzAudioAsset(
-			repetitionPlan.audioSegments,
-			safeRepeatCount,
-			repeatTarget,
-			silenceBetweenRepetitionsMultiplier
-		);
-		const repeatedClips = repetitionPlan.placements
-			.map((placement) => {
-				const sourceClip = sourceClips[placement.sourceIndex];
-				if (!sourceClip) return null;
-				return cloneHifzSubtitleClip(
-					sourceClip,
-					placement.startMs,
-					placement.endMs,
-					placement.visualMergeGroupId,
-					placement.visualMergeMode
-				);
-			})
-			.filter((clip): clip is HifzSourceSubtitleClip => !!clip)
-			.sort((left, right) => left.startTime - right.startTime);
-		const silenceClips = repetitionPlan.silencePlacements.map(
-			(placement) => new SilenceClip(placement.startMs, placement.endMs)
-		);
-
-		globalState.getSubtitleTrack.clips = [...repeatedClips, ...silenceClips].sort(
-			(left, right) => left.startTime - right.startTime
-		);
-		globalState.getAudioTrack.clips = [
-			new AssetClip(0, Math.max(0, generatedAudio.durationMs), generatedAudio.asset.id)
-		];
-		globalState.getStylesState.clearSelection();
-		globalState.getSubtitlesEditorState.editSubtitle = null;
-		globalState.getSubtitlesEditorState.segmentationContext = createEmptySegmentationContext();
-		globalState.currentProject?.detail.updateVideoDetailAttributes();
-		globalState.updateVideoPreviewUI();
-
-		return {
-			status: 'completed',
-			subtitleCount: repeatedClips.length,
-			durationMs: generatedAudio.durationMs,
-			audioFileName: generatedAudio.asset.fileName
-		};
-	} catch (error) {
-		return { status: 'failed', message: error instanceof Error ? error.message : String(error) };
-	}
+	});
 }

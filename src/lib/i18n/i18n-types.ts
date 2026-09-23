@@ -9419,9 +9419,97 @@ type RootTranslation = {
 		 */
 		hifzDescription: string;
 		/**
-		 * T​u​r​n​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​i​n​t​o​ ​a​ ​H​i​f​z​-​r​e​a​d​y​ ​r​e​p​e​t​i​t​i​o​n​ ​t​r​a​c​k​.​ ​E​a​c​h​ ​v​e​r​s​e​ ​w​i​l​l​ ​b​e​ ​r​e​p​e​a​t​e​d​ ​w​i​t​h​ ​c​o​n​f​i​g​u​r​a​b​l​e​ ​s​i​l​e​n​c​e​ ​g​a​p​s​.
+		 * T​u​r​n​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​i​n​t​o​ ​a​ ​c​u​s​t​o​m​i​z​a​b​l​e​ ​H​i​f​z​ ​t​r​a​c​k​ ​w​i​t​h​ ​s​t​a​n​d​a​r​d​ ​o​r​ ​l​i​n​k​e​d​ ​r​e​p​e​t​i​t​i​o​n​s​.
 		 */
 		hifzBody: string;
+		/**
+		 * S​t​a​n​d​a​r​d​ ​r​e​p​e​t​i​t​i​o​n
+		 */
+		standardSequence: string;
+		/**
+		 * R​e​p​e​a​t​s​ ​e​a​c​h​ ​s​e​l​e​c​t​e​d​ ​v​e​r​s​e​ ​o​r​ ​s​u​b​t​i​t​l​e​ ​i​n​d​e​p​e​n​d​e​n​t​l​y​ ​u​s​i​n​g​ ​t​h​e​ ​r​e​p​e​a​t​ ​c​o​u​n​t​.
+		 */
+		standardSequenceHelp: string;
+		/**
+		 * L​i​n​k​e​d​ ​/​ ​c​u​m​u​l​a​t​i​v​e
+		 */
+		linkedSequence: string;
+		/**
+		 * B​u​i​l​d​s​ ​t​r​a​n​s​i​t​i​o​n​s​ ​s​u​c​h​ ​a​s​ ​V​1​,​ ​V​1​+​V​2​,​ ​V​2​,​ ​V​2​+​V​3​.​ ​C​o​u​n​t​s​,​ ​l​i​n​k​e​d​ ​g​r​o​u​p​ ​s​i​z​e​,​ ​a​n​d​ ​f​u​l​l​ ​p​a​s​s​e​s​ ​a​r​e​ ​c​o​n​f​i​g​u​r​a​b​l​e​.
+		 */
+		linkedSequenceDescription: string;
+		/**
+		 * I​n​d​i​v​i​d​u​a​l​ ​b​l​o​c​k​ ​r​e​p​e​a​t​s
+		 */
+		individualRepeatCount: string;
+		/**
+		 * N​u​m​b​e​r​ ​o​f​ ​t​i​m​e​s​ ​e​a​c​h​ ​i​n​d​i​v​i​d​u​a​l​ ​v​e​r​s​e​ ​o​r​ ​s​u​b​t​i​t​l​e​ ​b​l​o​c​k​ ​i​s​ ​p​l​a​y​e​d​.
+		 */
+		individualRepeatCountHelp: string;
+		/**
+		 * F​i​r​s​t​ ​/​ ​l​a​s​t
+		 */
+		firstLastRepeatCount: string;
+		/**
+		 * N​u​m​b​e​r​ ​o​f​ ​r​e​p​e​t​i​t​i​o​n​s​ ​f​o​r​ ​t​h​e​ ​f​i​r​s​t​ ​a​n​d​ ​l​a​s​t​ ​i​n​d​i​v​i​d​u​a​l​ ​b​l​o​c​k​s​.
+		 */
+		firstLastRepeatCountHelp: string;
+		/**
+		 * L​i​n​k​e​d​ ​s​i​z​e
+		 */
+		linkedBlockSize: string;
+		/**
+		 * N​u​m​b​e​r​ ​o​f​ ​c​o​n​s​e​c​u​t​i​v​e​ ​b​l​o​c​k​s​ ​c​o​m​b​i​n​e​d​ ​i​n​ ​e​a​c​h​ ​l​i​n​k​e​d​ ​t​r​a​n​s​i​t​i​o​n​.
+		 */
+		linkedBlockSizeHelp: string;
+		/**
+		 * L​i​n​k​e​d​ ​r​e​p​e​a​t​s
+		 */
+		linkedRepeatCount: string;
+		/**
+		 * N​u​m​b​e​r​ ​o​f​ ​t​i​m​e​s​ ​e​a​c​h​ ​l​i​n​k​e​d​ ​g​r​o​u​p​ ​i​s​ ​p​l​a​y​e​d​.
+		 */
+		linkedRepeatCountHelp: string;
+		/**
+		 * F​u​l​l​ ​s​e​q​u​e​n​c​e​ ​a​t​ ​s​t​a​r​t
+		 */
+		playFullAtStart: string;
+		/**
+		 * P​l​a​y​s​ ​a​l​l​ ​i​n​c​l​u​d​e​d​ ​s​u​b​t​i​t​l​e​s​ ​o​n​c​e​ ​b​e​f​o​r​e​ ​t​h​e​ ​p​r​a​c​t​i​c​e​ ​s​e​q​u​e​n​c​e​.
+		 */
+		playFullAtStartHelp: string;
+		/**
+		 * F​u​l​l​ ​s​e​q​u​e​n​c​e​ ​a​t​ ​e​n​d
+		 */
+		playFullAtEnd: string;
+		/**
+		 * P​l​a​y​s​ ​a​l​l​ ​i​n​c​l​u​d​e​d​ ​s​u​b​t​i​t​l​e​s​ ​o​n​c​e​ ​a​f​t​e​r​ ​t​h​e​ ​p​r​a​c​t​i​c​e​ ​s​e​q​u​e​n​c​e​.
+		 */
+		playFullAtEndHelp: string;
+		/**
+		 * P​a​u​s​e​ ​b​e​t​w​e​e​n​ ​s​a​m​e​-​b​l​o​c​k​ ​r​e​p​e​a​t​s
+		 */
+		pauseBetweenRepeats: string;
+		/**
+		 * A​d​d​s​ ​s​i​l​e​n​c​e​ ​b​e​t​w​e​e​n​ ​r​e​p​e​t​i​t​i​o​n​s​ ​o​f​ ​t​h​e​ ​s​a​m​e​ ​b​l​o​c​k​,​ ​a​s​ ​a​ ​m​u​l​t​i​p​l​e​ ​o​f​ ​i​t​s​ ​d​u​r​a​t​i​o​n​.
+		 */
+		pauseBetweenRepeatsHelp: string;
+		/**
+		 * P​a​u​s​e​ ​b​e​t​w​e​e​n​ ​b​l​o​c​k​s
+		 */
+		pauseBetweenGroups: string;
+		/**
+		 * A​d​d​s​ ​s​i​l​e​n​c​e​ ​a​f​t​e​r​ ​e​a​c​h​ ​b​l​o​c​k​ ​o​r​ ​l​i​n​k​e​d​ ​g​r​o​u​p​,​ ​a​s​ ​a​ ​m​u​l​t​i​p​l​e​ ​o​f​ ​i​t​s​ ​d​u​r​a​t​i​o​n​.
+		 */
+		pauseBetweenGroupsHelp: string;
+		/**
+		 * S​u​b​t​i​t​l​e​s​ ​i​n​c​l​u​d​e​d​ ​i​n​ ​p​r​a​c​t​i​c​e​ ​r​e​p​e​t​i​t​i​o​n​s
+		 */
+		repetitionSelection: string;
+		/**
+		 * U​n​c​h​e​c​k​e​d​ ​i​t​e​m​s​ ​a​r​e​ ​n​o​t​ ​p​r​a​c​t​i​c​e​d​.​ ​S​t​a​n​d​a​r​d​ ​m​o​d​e​ ​k​e​e​p​s​ ​t​h​e​m​ ​o​n​c​e​;​ ​l​i​n​k​e​d​ ​m​o​d​e​ ​i​n​c​l​u​d​e​s​ ​t​h​e​m​ ​o​n​l​y​ ​i​n​ ​e​n​a​b​l​e​d​ ​f​u​l​l​ ​p​a​s​s​e​s​.
+		 */
+		repetitionSelectionDescription: string;
 		/**
 		 * R​e​p​e​a​t​ ​e​a​c​h​ ​v​e​r​s​e
 		 */
@@ -9443,7 +9531,7 @@ type RootTranslation = {
 		 */
 		silenceDuration: string;
 		/**
-		 * T​h​e​ ​s​i​l​e​n​c​e​ ​i​s​ ​t​h​e​ ​d​u​r​a​t​i​o​n​ ​o​f​ ​t​h​e​ ​r​e​p​e​a​t​e​d​ ​s​e​g​m​e​n​t​.​ ​I​n​c​r​e​a​s​e​ ​f​o​r​ ​m​o​r​e​ ​p​a​u​s​e​ ​t​i​m​e​ ​b​e​t​w​e​e​n​ ​r​e​p​e​t​i​t​i​o​n​s​.
+		 * E​a​c​h​ ​p​a​u​s​e​ ​i​s​ ​a​ ​m​u​l​t​i​p​l​i​e​r​ ​o​f​ ​t​h​e​ ​b​l​o​c​k​ ​d​u​r​a​t​i​o​n​ ​(​0​ ​d​i​s​a​b​l​e​s​ ​i​t​)​.
 		 */
 		silenceDescription: string;
 		/**
@@ -21361,9 +21449,97 @@ export type TranslationFunctions = {
 		 */
 		hifzDescription: () => LocalizedString;
 		/**
-		 * Turn your existing subtitles into a Hifz-ready repetition track. Each verse will be repeated with configurable silence gaps.
+		 * Turn your existing subtitles into a customizable Hifz track with standard or linked repetitions.
 		 */
 		hifzBody: () => LocalizedString;
+		/**
+		 * Standard repetition
+		 */
+		standardSequence: () => LocalizedString;
+		/**
+		 * Repeats each selected verse or subtitle independently using the repeat count.
+		 */
+		standardSequenceHelp: () => LocalizedString;
+		/**
+		 * Linked / cumulative
+		 */
+		linkedSequence: () => LocalizedString;
+		/**
+		 * Builds transitions such as V1, V1+V2, V2, V2+V3. Counts, linked group size, and full passes are configurable.
+		 */
+		linkedSequenceDescription: () => LocalizedString;
+		/**
+		 * Individual block repeats
+		 */
+		individualRepeatCount: () => LocalizedString;
+		/**
+		 * Number of times each individual verse or subtitle block is played.
+		 */
+		individualRepeatCountHelp: () => LocalizedString;
+		/**
+		 * First / last
+		 */
+		firstLastRepeatCount: () => LocalizedString;
+		/**
+		 * Number of repetitions for the first and last individual blocks.
+		 */
+		firstLastRepeatCountHelp: () => LocalizedString;
+		/**
+		 * Linked size
+		 */
+		linkedBlockSize: () => LocalizedString;
+		/**
+		 * Number of consecutive blocks combined in each linked transition.
+		 */
+		linkedBlockSizeHelp: () => LocalizedString;
+		/**
+		 * Linked repeats
+		 */
+		linkedRepeatCount: () => LocalizedString;
+		/**
+		 * Number of times each linked group is played.
+		 */
+		linkedRepeatCountHelp: () => LocalizedString;
+		/**
+		 * Full sequence at start
+		 */
+		playFullAtStart: () => LocalizedString;
+		/**
+		 * Plays all included subtitles once before the practice sequence.
+		 */
+		playFullAtStartHelp: () => LocalizedString;
+		/**
+		 * Full sequence at end
+		 */
+		playFullAtEnd: () => LocalizedString;
+		/**
+		 * Plays all included subtitles once after the practice sequence.
+		 */
+		playFullAtEndHelp: () => LocalizedString;
+		/**
+		 * Pause between same-block repeats
+		 */
+		pauseBetweenRepeats: () => LocalizedString;
+		/**
+		 * Adds silence between repetitions of the same block, as a multiple of its duration.
+		 */
+		pauseBetweenRepeatsHelp: () => LocalizedString;
+		/**
+		 * Pause between blocks
+		 */
+		pauseBetweenGroups: () => LocalizedString;
+		/**
+		 * Adds silence after each block or linked group, as a multiple of its duration.
+		 */
+		pauseBetweenGroupsHelp: () => LocalizedString;
+		/**
+		 * Subtitles included in practice repetitions
+		 */
+		repetitionSelection: () => LocalizedString;
+		/**
+		 * Unchecked items are not practiced. Standard mode keeps them once; linked mode includes them only in enabled full passes.
+		 */
+		repetitionSelectionDescription: () => LocalizedString;
 		/**
 		 * Repeat each verse
 		 */
@@ -21385,7 +21561,7 @@ export type TranslationFunctions = {
 		 */
 		silenceDuration: () => LocalizedString;
 		/**
-		 * The silence is the duration of the repeated segment. Increase for more pause time between repetitions.
+		 * Each pause is a multiplier of the block duration (0 disables it).
 		 */
 		silenceDescription: () => LocalizedString;
 		/**

@@ -2966,14 +2966,41 @@ const de = {
 		hifzRepetition: 'Hifz-Wiederholung',
 		hifzDescription: 'Vorhandene Untertitel wiederholen und entsprechendes Audio generieren',
 		hifzBody:
-			'Verwandeln Sie Ihre vorhandenen Untertitel in eine für Hifz geeignete Wiederholungsspur. Jeder Vers wird mit konfigurierbaren Stille-Intervallen wiederholt.',
+			'Erstellen Sie aus Ihren Untertiteln eine anpassbare Hifz-Spur mit normalen oder verknüpften Wiederholungen.',
+		standardSequence: 'Normale Wiederholung',
+		standardSequenceHelp:
+			'Wiederholt jeden ausgewählten Vers oder Untertitel einzeln mit der festgelegten Anzahl.',
+		linkedSequence: 'Verknüpft / kumulativ',
+		linkedSequenceDescription:
+			'Erstellt Übergänge wie V1, V1+V2, V2, V2+V3. Anzahl, Gruppengröße und vollständige Durchläufe sind einstellbar.',
+		individualRepeatCount: 'Wiederholungen je Einzelblock',
+		individualRepeatCountHelp:
+			'Anzahl der Wiedergaben jedes einzelnen Vers- oder Untertitelblocks.',
+		firstLastRepeatCount: 'Erster / letzter',
+		firstLastRepeatCountHelp: 'Anzahl der Wiederholungen für den ersten und letzten Einzelblock.',
+		linkedBlockSize: 'Verknüpfte Größe',
+		linkedBlockSizeHelp: 'Anzahl aufeinanderfolgender Blöcke in jedem verknüpften Übergang.',
+		linkedRepeatCount: 'Verknüpfte Wiederholungen',
+		linkedRepeatCountHelp: 'Anzahl der Wiedergaben jeder verknüpften Gruppe.',
+		playFullAtStart: 'Vollständige Sequenz am Anfang',
+		playFullAtStartHelp: 'Spielt alle enthaltenen Untertitel einmal vor der Übungssequenz ab.',
+		playFullAtEnd: 'Vollständige Sequenz am Ende',
+		playFullAtEndHelp: 'Spielt alle enthaltenen Untertitel einmal nach der Übungssequenz ab.',
+		pauseBetweenRepeats: 'Pause bei Wiederholungen desselben Blocks',
+		pauseBetweenRepeatsHelp:
+			'Fügt zwischen Wiederholungen desselben Blocks eine Stille proportional zu seiner Dauer ein.',
+		pauseBetweenGroups: 'Pause zwischen Blöcken',
+		pauseBetweenGroupsHelp:
+			'Fügt nach jedem Block oder jeder verknüpften Gruppe eine Stille proportional zur Dauer ein.',
+		repetitionSelection: 'Untertitel für Übungswiederholungen',
+		repetitionSelectionDescription:
+			'Nicht ausgewählte Elemente werden nicht geübt. Im Standardmodus erscheinen sie einmal, im verknüpften Modus nur in aktivierten vollständigen Durchläufen.',
 		repeatEachVerse: 'Jeden Vers wiederholen',
 		repeatEachSubtitle: 'Jeden Untertitel wiederholen',
 		generatingHifzAudio: 'Hifz-Audio wird generiert...',
 		repeatCount: 'Anzahl der Wiederholungen',
 		silenceDuration: 'Stilledauer zwischen den Wiederholungen',
-		silenceDescription:
-			'Die Stille entspricht der Dauer des wiederholten Segments. Erhöhen Sie für mehr Pause zwischen den Wiederholungen.',
+		silenceDescription: 'Jede Pause ist ein Faktor der Blockdauer (0 deaktiviert sie).',
 		keepVisualMerges: 'Visuelle Zusammenführungen beibehalten',
 		keepSubtitlesVisible: 'Untertitel während der Pausen sichtbar halten',
 		stretchCompleteSubtitles: 'Vollständige Untertitel über wiederholte Zyklen strecken',

@@ -2956,14 +2956,42 @@ const es = {
 		hifzRepetition: 'Repetición Hifz',
 		hifzDescription: 'Repetir los subtítulos existentes y generar el audio correspondiente',
 		hifzBody:
-			'Transforme sus subtítulos existentes en una pista de repetición adaptada al Hifz. Cada versículo se repetirá con intervalos de silencio configurables.',
+			'Convierta sus subtítulos en una pista Hifz personalizable con repeticiones estándar o enlazadas.',
+		standardSequence: 'Repetición estándar',
+		standardSequenceHelp:
+			'Repite cada aleya o subtítulo seleccionado por separado según la cantidad indicada.',
+		linkedSequence: 'Enlazada / acumulativa',
+		linkedSequenceDescription:
+			'Crea transiciones como V1, V1+V2, V2, V2+V3. Se pueden configurar las cantidades, el tamaño del grupo y las pasadas completas.',
+		individualRepeatCount: 'Repeticiones de cada bloque individual',
+		individualRepeatCountHelp:
+			'Cantidad de veces que se reproduce cada bloque individual de aleya o subtítulo.',
+		firstLastRepeatCount: 'Primero / último',
+		firstLastRepeatCountHelp:
+			'Cantidad de repeticiones de los bloques individuales primero y último.',
+		linkedBlockSize: 'Tamaño enlazado',
+		linkedBlockSizeHelp: 'Cantidad de bloques consecutivos combinados en cada transición enlazada.',
+		linkedRepeatCount: 'Repeticiones enlazadas',
+		linkedRepeatCountHelp: 'Cantidad de veces que se reproduce cada grupo enlazado.',
+		playFullAtStart: 'Secuencia completa al inicio',
+		playFullAtStartHelp: 'Reproduce una vez todos los subtítulos incluidos antes de la práctica.',
+		playFullAtEnd: 'Secuencia completa al final',
+		playFullAtEndHelp: 'Reproduce una vez todos los subtítulos incluidos después de la práctica.',
+		pauseBetweenRepeats: 'Pausa entre repeticiones del mismo bloque',
+		pauseBetweenRepeatsHelp:
+			'Añade silencio entre repeticiones del mismo bloque, proporcional a su duración.',
+		pauseBetweenGroups: 'Pausa entre bloques',
+		pauseBetweenGroupsHelp:
+			'Añade silencio después de cada bloque o grupo enlazado, proporcional a su duración.',
+		repetitionSelection: 'Subtítulos incluidos en las repeticiones de práctica',
+		repetitionSelectionDescription:
+			'Los elementos desmarcados no se practican. El modo estándar los conserva una vez; el enlazado solo los incluye en las pasadas completas activadas.',
 		repeatEachVerse: 'Repetir cada versículo',
 		repeatEachSubtitle: 'Repetir cada subtítulo',
 		generatingHifzAudio: 'Generando audio Hifz...',
 		repeatCount: 'Número de repeticiones',
 		silenceDuration: 'Duración del silencio entre repeticiones',
-		silenceDescription:
-			'El silencio corresponde a la duración del segmento repetido. Aumente para más pausa entre repeticiones.',
+		silenceDescription: 'Cada pausa multiplica la duración del bloque (0 la desactiva).',
 		keepVisualMerges: 'Conservar fusiones visuales',
 		keepSubtitlesVisible: 'Mantener subtítulos visibles durante las pausas',
 		stretchCompleteSubtitles: 'Estirar subtítulos completos sobre los ciclos repetidos',

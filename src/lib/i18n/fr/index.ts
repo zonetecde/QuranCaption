@@ -2990,14 +2990,42 @@ const fr = {
 		hifzRepetition: 'Répétition Hifz',
 		hifzDescription: 'Répéter les sous-titres existants et générer l\u2019audio correspondant',
 		hifzBody:
-			'Transformez vos sous-titres existants en une piste de répétition adaptée au Hifz. Chaque verset sera répété avec des intervalles de silence configurables.',
+			'Transformez vos sous-titres en une piste Hifz personnalisable avec des répétitions standard ou liées.',
+		standardSequence: 'Répétition standard',
+		standardSequenceHelp:
+			'Répète chaque verset ou sous-titre sélectionné séparément selon le nombre défini.',
+		linkedSequence: 'Liée / cumulative',
+		linkedSequenceDescription:
+			'Crée des transitions comme V1, V1+V2, V2, V2+V3. Les nombres, la taille des groupes liés et les passages complets sont configurables.',
+		individualRepeatCount: 'Répétitions de chaque bloc individuel',
+		individualRepeatCountHelp:
+			'Nombre de lectures de chaque bloc individuel de verset ou de sous-titre.',
+		firstLastRepeatCount: 'Premier / dernier',
+		firstLastRepeatCountHelp: 'Nombre de répétitions des premier et dernier blocs individuels.',
+		linkedBlockSize: 'Taille liée',
+		linkedBlockSizeHelp: 'Nombre de blocs consécutifs réunis dans chaque transition liée.',
+		linkedRepeatCount: 'Répétitions liées',
+		linkedRepeatCountHelp: 'Nombre de lectures de chaque groupe lié.',
+		playFullAtStart: 'Séquence complète au début',
+		playFullAtStartHelp:
+			'Lit une fois tous les sous-titres inclus avant la séquence d’entraînement.',
+		playFullAtEnd: 'Séquence complète à la fin',
+		playFullAtEndHelp: 'Lit une fois tous les sous-titres inclus après la séquence d’entraînement.',
+		pauseBetweenRepeats: 'Pause entre répétitions du même bloc',
+		pauseBetweenRepeatsHelp:
+			'Ajoute un silence entre les répétitions du même bloc, proportionnel à sa durée.',
+		pauseBetweenGroups: 'Pause entre les blocs',
+		pauseBetweenGroupsHelp:
+			'Ajoute un silence après chaque bloc ou groupe lié, proportionnel à sa durée.',
+		repetitionSelection: 'Sous-titres inclus dans les répétitions d’entraînement',
+		repetitionSelectionDescription:
+			'Les éléments décochés ne sont pas travaillés. Le mode standard les conserve une fois ; le mode lié ne les inclut que dans les passages complets activés.',
 		repeatEachVerse: 'Répéter chaque verset',
 		repeatEachSubtitle: 'Répéter chaque sous-titre',
 		generatingHifzAudio: 'Génération de l\u2019audio Hifz...',
 		repeatCount: 'Nombre de répétitions',
 		silenceDuration: 'Durée du silence entre les répétitions',
-		silenceDescription:
-			'Le silence correspond à la durée du segment répété. Augmentez pour plus de pause entre les répétitions.',
+		silenceDescription: 'Chaque pause multiplie la durée du bloc (0 la désactive).',
 		keepVisualMerges: 'Conserver les fusions visuelles',
 		keepSubtitlesVisible: 'Garder les sous-titres visibles pendant les pauses',
 		stretchCompleteSubtitles: 'Étirer les sous-titres complets sur les cycles répétés',

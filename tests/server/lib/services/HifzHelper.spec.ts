@@ -3,6 +3,15 @@ import { describe, expect, it } from 'vitest';
 import { buildHifzRepetitionPlan } from '$lib/services/HifzHelper';
 
 describe('buildHifzRepetitionPlan', () => {
+	it('keeps the standard sequence minimum at two repetitions', () => {
+		const plan = buildHifzRepetitionPlan(
+			[{ kind: 'subtitle', originalStartMs: 0, originalEndMs: 1000 }],
+			1
+		);
+
+		expect(plan.audioSegments).toEqual([{ startMs: 0, endMs: 1000, repeatCount: 2 }]);
+	});
+
 	it('repeats each verse block rather than each subtitle clip', () => {
 		const plan = buildHifzRepetitionPlan(
 			[
@@ -510,6 +519,183 @@ describe('buildHifzRepetitionPlan', () => {
 			{ sourceIndex: 2, startMs: 6100, endMs: 6900, repetition: 2 },
 			{ sourceIndex: 1, startMs: 6900, endMs: 8100, repetition: 3 },
 			{ sourceIndex: 2, startMs: 7300, endMs: 8100, repetition: 3 }
+		]);
+	});
+
+	it('builds the linked memorization sequence with configurable edge and full passes', () => {
+		const plan = buildHifzRepetitionPlan(
+			[
+				{ kind: 'predefined', originalStartMs: 0, originalEndMs: 1000 },
+				{
+					kind: 'subtitle',
+					originalStartMs: 1000,
+					originalEndMs: 2000,
+					surah: 1,
+					verseNumber: 1
+				},
+				{
+					kind: 'subtitle',
+					originalStartMs: 2000,
+					originalEndMs: 3000,
+					surah: 1,
+					verseNumber: 2
+				},
+				{
+					kind: 'subtitle',
+					originalStartMs: 3000,
+					originalEndMs: 4000,
+					surah: 1,
+					verseNumber: 3
+				},
+				{
+					kind: 'subtitle',
+					originalStartMs: 4000,
+					originalEndMs: 5000,
+					surah: 1,
+					verseNumber: 4
+				}
+			],
+			1,
+			'verse',
+			false,
+			0,
+			false,
+			false,
+			{
+				mode: 'linked',
+				linkedBlockSize: 2,
+				linkedRepeatCount: 1,
+				firstLastRepeatCount: 2,
+				includeFullSequenceAtStart: true,
+				includeFullSequenceAtEnd: true,
+				silenceBetweenGroupsMultiplier: 0
+			}
+		);
+
+		expect(plan.audioSegments).toEqual([
+			{ startMs: 0, endMs: 5000, repeatCount: 1 },
+			{ startMs: 1000, endMs: 2000, repeatCount: 2 },
+			{ startMs: 1000, endMs: 3000, repeatCount: 1 },
+			{ startMs: 2000, endMs: 3000, repeatCount: 1 },
+			{ startMs: 2000, endMs: 4000, repeatCount: 1 },
+			{ startMs: 3000, endMs: 4000, repeatCount: 1 },
+			{ startMs: 3000, endMs: 5000, repeatCount: 1 },
+			{ startMs: 4000, endMs: 5000, repeatCount: 2 },
+			{ startMs: 0, endMs: 5000, repeatCount: 1 }
+		]);
+		expect(plan.totalDurationMs).toBe(22_000);
+	});
+
+	it('does not link across subtitles excluded from practice repetitions', () => {
+		const plan = buildHifzRepetitionPlan(
+			[
+				{
+					kind: 'subtitle',
+					originalStartMs: 0,
+					originalEndMs: 1000,
+					surah: 1,
+					verseNumber: 1
+				},
+				{
+					kind: 'subtitle',
+					originalStartMs: 1000,
+					originalEndMs: 2000,
+					surah: 1,
+					verseNumber: 2,
+					repeat: false
+				},
+				{
+					kind: 'subtitle',
+					originalStartMs: 2000,
+					originalEndMs: 3000,
+					surah: 1,
+					verseNumber: 3
+				}
+			],
+			1,
+			'verse',
+			false,
+			0,
+			false,
+			false,
+			{ mode: 'linked', linkedBlockSize: 2, silenceBetweenGroupsMultiplier: 0 }
+		);
+
+		expect(plan.audioSegments).toEqual([
+			{ startMs: 0, endMs: 1000, repeatCount: 1 },
+			{ startMs: 2000, endMs: 3000, repeatCount: 1 }
+		]);
+	});
+
+	it('uses separate pauses for repetitions of one block and transitions between blocks', () => {
+		const plan = buildHifzRepetitionPlan(
+			[
+				{ kind: 'subtitle', originalStartMs: 0, originalEndMs: 1000, surah: 1, verseNumber: 1 },
+				{
+					kind: 'subtitle',
+					originalStartMs: 1000,
+					originalEndMs: 2000,
+					surah: 1,
+					verseNumber: 2
+				}
+			],
+			2,
+			'verse',
+			false,
+			0.5,
+			false,
+			false,
+			{ silenceBetweenGroupsMultiplier: 0.25 }
+		);
+
+		expect(plan.audioSegments).toEqual([
+			{
+				startMs: 0,
+				endMs: 1000,
+				repeatCount: 2,
+				silenceBetweenRepetitionsMs: 500,
+				silenceAfterMs: 250
+			},
+			{
+				startMs: 1000,
+				endMs: 2000,
+				repeatCount: 2,
+				silenceBetweenRepetitionsMs: 500,
+				silenceAfterMs: 0
+			}
+		]);
+		expect(plan.silencePlacements).toEqual([
+			{ startMs: 1000, endMs: 1500 },
+			{ startMs: 2500, endMs: 2750 },
+			{ startMs: 3750, endMs: 4250 }
+		]);
+		expect(plan.totalDurationMs).toBe(5250);
+	});
+
+	it('keeps WBW-timed repetitions as separate subtitle placements', () => {
+		const plan = buildHifzRepetitionPlan(
+			[
+				{
+					kind: 'subtitle',
+					originalStartMs: 0,
+					originalEndMs: 1000,
+					isMergeableCompleteUnit: true,
+					hasWbwTimestamps: true,
+					surah: 1,
+					verseNumber: 1
+				}
+			],
+			2,
+			'verse',
+			false,
+			0,
+			true,
+			true
+		);
+
+		expect(plan.placements).toEqual([
+			{ sourceIndex: 0, startMs: 0, endMs: 1000, repetition: 1 },
+			{ sourceIndex: 0, startMs: 1000, endMs: 2000, repetition: 2 }
 		]);
 	});
 });

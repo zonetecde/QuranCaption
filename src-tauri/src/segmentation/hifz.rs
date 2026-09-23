@@ -77,8 +77,10 @@ fn build_hifz_filter_graph(segments: &[HifzAudioSegment]) -> Result<(String, i64
         let repeat_count = segment.repeat_count.max(1);
         let silence_between_repetitions_ms =
             segment.silence_between_repetitions_ms.unwrap_or(0).max(0);
+        let uses_separate_group_silence = segment.silence_after_ms.is_some();
+        let silence_after_ms = segment.silence_after_ms.unwrap_or(0).max(0);
 
-        for _ in 0..repeat_count {
+        for repetition_index in 0..repeat_count {
             let label = format!("h{}", segment_index);
             filter_lines.push(format!(
                 "[0:a]atrim=start={:.6}:end={:.6},asetpts=PTS-STARTPTS[{}]",
@@ -90,7 +92,10 @@ fn build_hifz_filter_graph(segments: &[HifzAudioSegment]) -> Result<(String, i64
             output_duration_ms += end_ms - start_ms;
             segment_index += 1;
 
-            if repeat_count > 1 && silence_between_repetitions_ms > 0 {
+            if repeat_count > 1
+                && silence_between_repetitions_ms > 0
+                && (!uses_separate_group_silence || repetition_index + 1 < repeat_count)
+            {
                 let silence_label = format!("h{}", segment_index);
                 filter_lines.push(format!(
                     "anullsrc=channel_layout=stereo:sample_rate=44100,atrim=duration={:.6},asetpts=PTS-STARTPTS[{}]",
@@ -101,6 +106,18 @@ fn build_hifz_filter_graph(segments: &[HifzAudioSegment]) -> Result<(String, i64
                 output_duration_ms += silence_between_repetitions_ms;
                 segment_index += 1;
             }
+        }
+
+        if uses_separate_group_silence && silence_after_ms > 0 {
+            let silence_label = format!("h{}", segment_index);
+            filter_lines.push(format!(
+                "anullsrc=channel_layout=stereo:sample_rate=44100,atrim=duration={:.6},asetpts=PTS-STARTPTS[{}]",
+                silence_after_ms as f64 / 1000.0,
+                silence_label
+            ));
+            concat_inputs.push_str(&format!("[{}]", silence_label));
+            output_duration_ms += silence_after_ms;
+            segment_index += 1;
         }
     }
 
@@ -340,12 +357,14 @@ mod tests {
                 end_ms: 600,
                 repeat_count: 2,
                 silence_between_repetitions_ms: None,
+                silence_after_ms: None,
             },
             HifzAudioSegment {
                 start_ms: 700,
                 end_ms: 1000,
                 repeat_count: 1,
                 silence_between_repetitions_ms: None,
+                silence_after_ms: None,
             },
         ])
         .expect("graph should build");
@@ -362,12 +381,43 @@ mod tests {
             end_ms: 600,
             repeat_count: 3,
             silence_between_repetitions_ms: Some(250),
+            silence_after_ms: None,
         }])
         .expect("graph should build");
 
         assert!(graph.contains("anullsrc=channel_layout=stereo:sample_rate=44100"));
         assert!(graph.contains("concat=n=6:v=0:a=1[outa]"));
         assert_eq!(duration_ms, 2250);
+    }
+
+    #[test]
+    fn hifz_filter_graph_separates_repeat_and_group_silences() {
+        let (graph, duration_ms) = build_hifz_filter_graph(&[HifzAudioSegment {
+            start_ms: 0,
+            end_ms: 1000,
+            repeat_count: 2,
+            silence_between_repetitions_ms: Some(500),
+            silence_after_ms: Some(250),
+        }])
+        .expect("graph should build");
+
+        assert!(graph.contains("concat=n=4:v=0:a=1[outa]"));
+        assert_eq!(duration_ms, 2750);
+    }
+
+    #[test]
+    fn hifz_filter_graph_omits_the_legacy_trailing_repeat_pause() {
+        let (graph, duration_ms) = build_hifz_filter_graph(&[HifzAudioSegment {
+            start_ms: 0,
+            end_ms: 1000,
+            repeat_count: 2,
+            silence_between_repetitions_ms: Some(500),
+            silence_after_ms: Some(0),
+        }])
+        .expect("graph should build");
+
+        assert!(graph.contains("concat=n=3:v=0:a=1[outa]"));
+        assert_eq!(duration_ms, 2500);
     }
 
     #[test]

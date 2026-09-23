@@ -50,4 +50,7 @@ pub struct HifzAudioSegment {
     pub repeat_count: u32,
     /// Silence a inserer entre deux repetitions de ce segment, en millisecondes.
     pub silence_between_repetitions_ms: Option<i64>,
+    /// Silence a inserer une fois apres le groupe complet, en millisecondes.
+    #[serde(default)]
+    pub silence_after_ms: Option<i64>,
 }

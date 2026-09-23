@@ -106,6 +106,8 @@ const tools = {
 	noiseReductionFailed: 'Failed to reduce audio noise: {error}',
 	audioEffects: 'Audio effects',
 	audioEffectsDescription: 'Apply carefully tuned FFmpeg effects to Quran recitation',
+	audioEffectsSegmentationRecommendation:
+		'For the most accurate subtitles, run AI Segmentation alignment on the original audio first. Apply audio effects only afterwards, since echo, reverb, and other processing can reduce detection and synchronization accuracy.',
 	chooseAudioEffect: 'CHOOSE AN EFFECT',
 	denoise: 'Denoise',
 	denoiseDescription: 'Reduce steady background noise while preserving the voice',

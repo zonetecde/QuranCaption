@@ -100,6 +100,8 @@ const tools = {
 	noiseReductionFailed: 'فشل في تقليل ضوضاء الصوت: {error}',
 	audioEffects: 'المؤثرات الصوتية',
 	audioEffectsDescription: 'طبّق مؤثرات FFmpeg مضبوطة بعناية لتلاوة القرآن',
+	audioEffectsSegmentationRecommendation:
+		'للحصول على أدق ترجمة زمنية، شغّل محاذاة AI Segmentation على الصوت الأصلي أولًا. طبّق المؤثرات الصوتية بعد ذلك فقط، لأن الصدى والتردّد والمعالجة الأخرى قد تقلل دقة الاكتشاف والمزامنة.',
 	chooseAudioEffect: 'اختر مؤثرًا',
 	denoise: 'إزالة الضوضاء',
 	denoiseDescription: 'تقليل ضوضاء الخلفية الثابتة مع الحفاظ على الصوت',

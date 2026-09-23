@@ -15,6 +15,7 @@
 	type AudioEffectsCopy = {
 		audioEffects: () => string;
 		audioEffectsDescription: () => string;
+		audioEffectsSegmentationRecommendation: () => string;
 		selectTimelineAudio: () => string;
 		chooseTimelineAudio: () => string;
 		noTimelineAudio: () => string;
@@ -276,6 +277,15 @@
 	</div>
 
 	<div class="p-8 space-y-6 overflow-y-auto max-h-[65vh]">
+		{#if globalState.getSubtitleTrack.clips.length === 0}
+			<div class="flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+				<span class="material-icons text-amber-400">tips_and_updates</span>
+				<p class="text-sm leading-relaxed text-secondary">
+					{toolsCopy.audioEffectsSegmentationRecommendation()}
+				</p>
+			</div>
+		{/if}
+
 		<div class="space-y-2">
 			<label class="text-sm font-semibold text-secondary" for="audio-effect-source">
 				{toolsCopy.selectTimelineAudio()}

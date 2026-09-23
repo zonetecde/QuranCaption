@@ -3094,6 +3094,8 @@ const fr = {
 		noiseReductionFailed: 'Échec de la réduction du bruit audio\u00a0: {error}',
 		audioEffects: 'Effets audio',
 		audioEffectsDescription: 'Appliquer des effets FFmpeg soigneusement réglés pour la récitation',
+		audioEffectsSegmentationRecommendation:
+			'Pour obtenir des sous-titres aussi précis que possible, lancez d’abord l’alignement AI Segmentation sur l’audio original. Appliquez les effets audio seulement ensuite, car l’écho, la réverbération et les autres traitements peuvent réduire la précision de la détection et de la synchronisation.',
 		chooseAudioEffect: 'CHOISIR UN EFFET',
 		denoise: 'Réduction du bruit',
 		denoiseDescription: 'Réduire le bruit de fond constant tout en préservant la voix',

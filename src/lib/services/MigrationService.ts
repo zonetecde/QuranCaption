@@ -638,6 +638,28 @@ export default class MigrationService {
 	}
 
 	/**
+	 * Étend à -30 les minimums d'espacement des lettres et des mots des sous-titres existants.
+	 * @returns {Promise<void>}
+	 */
+	static async FromQC3750ToQC3751(): Promise<void> {
+		const project = globalState.currentProject;
+		if (!project) return;
+
+		let hasChanges = false;
+		for (const targetStyles of project.content.videoStyle.styles) {
+			if (targetStyles.target === 'global') continue;
+			for (const styleId of ['letter-spacing', 'word-spacing'] as const) {
+				const style = targetStyles.findStyle(styleId);
+				if (!style || (style.valueMin !== undefined && style.valueMin <= -30)) continue;
+				style.valueMin = -30;
+				hasChanges = true;
+			}
+		}
+
+		if (hasChanges) await project.save(false);
+	}
+
+	/**
 	 * Ajoute les nouveaux paramètres pour la nouvelle pipeline
 	 * de trimmage de traduction assistée par IA
 	 */

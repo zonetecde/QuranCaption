@@ -8,6 +8,7 @@ import {
 	loadStyleCategoryDefinitions
 } from '$lib/services/StyleDefinitionCatalog';
 import { applyStyleMutation, coerceStyleValue } from '$lib/services/StyleMutationService';
+import MigrationService from '$lib/services/MigrationService';
 import {
 	isWordByWordVisualEnabled,
 	resolveOverlayVisualState,
@@ -16,6 +17,49 @@ import {
 
 describe('style architecture modules', () => {
 	afterEach(() => vi.unstubAllGlobals());
+
+	it('migrates subtitle spacing minimums without changing existing values', async () => {
+		const videoStyle = new VideoStyle();
+		/**
+		 * Builds one legacy subtitle style collection.
+		 * @param {string} target Style target identifier.
+		 * @returns {StylesData} Legacy collection with the former spacing limits.
+		 */
+		const createSpacingStyles = (target: string) =>
+			new StylesData(target, [
+				new Category({
+					id: 'text',
+					styles: [
+						new Style({
+							id: 'letter-spacing',
+							value: -8,
+							valueType: 'number',
+							valueMin: -10
+						}),
+						new Style({ id: 'word-spacing', value: 4, valueType: 'number', valueMin: 0 })
+					]
+				})
+			]);
+		videoStyle.styles = [createSpacingStyles('arabic'), createSpacingStyles('translation')];
+		const save = vi.fn(async () => undefined);
+		const originalProject = globalState.currentProject;
+		globalState.currentProject = { content: { videoStyle }, save } as never;
+
+		try {
+			await MigrationService.FromQC3750ToQC3751();
+			await MigrationService.FromQC3750ToQC3751();
+
+			for (const target of ['arabic', 'translation']) {
+				const styles = videoStyle.getStylesOfTarget(target);
+				expect(styles.findStyle('letter-spacing')).toMatchObject({ value: -8, valueMin: -30 });
+				expect(styles.findStyle('word-spacing')).toMatchObject({ value: 4, valueMin: -30 });
+			}
+			expect(save).toHaveBeenCalledOnce();
+			expect(save).toHaveBeenCalledWith(false);
+		} finally {
+			globalState.currentProject = originalProject;
+		}
+	});
 
 	it('loads valid catalogs and rejects malformed definitions', async () => {
 		const fetchMock = vi

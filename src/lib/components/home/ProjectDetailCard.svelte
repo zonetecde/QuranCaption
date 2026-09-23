@@ -121,6 +121,7 @@
 		MigrationService.FromQC326ToQC327();
 		MigrationService.FromQC334ToQC335_2();
 		await MigrationService.FromQC3710ToQC3711();
+		await MigrationService.FromQC3750ToQC3751();
 
 		// Discord Rich Presence
 		discordService.setEditingState();

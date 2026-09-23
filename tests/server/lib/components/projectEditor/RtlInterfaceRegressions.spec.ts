@@ -8,6 +8,7 @@ import { describe, expect, test } from 'vitest';
  * @returns {string} UTF-8 source contents.
  */
 const readSource = (path: string) => readFileSync(resolve(path), 'utf8');
+const appCss = readSource('src/app.css');
 const projectCard = readSource('src/lib/components/home/ProjectDetailCard.svelte');
 const editableText = readSource('src/lib/components/misc/EditableText.svelte');
 const subtitlesWorkspace = readSource(
@@ -18,6 +19,14 @@ const dimensionControl = readSource(
 );
 
 describe('RTL interface regressions', () => {
+	test('uses Zain for the Arabic interface only', () => {
+		expect(appCss).toContain("font-family: 'Zain';");
+		expect(appCss).toContain("html[lang='ar']");
+		expect(appCss).toContain("--font-ui: 'Zain', sans-serif;");
+		expect(appCss).toContain("--font-sans: 'Zain', sans-serif;");
+		expect(appCss).toContain(".arabic {\n\tfont-family: 'Hafs', sans-serif;");
+	});
+
 	test('mirrors project card editing and status interactions', () => {
 		expect(editableText).not.toMatch(/<button[^>]*dir="auto"/);
 		expect(editableText).toMatch(/<h4 dir="auto"/);

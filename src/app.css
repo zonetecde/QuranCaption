@@ -5,6 +5,48 @@
 @plugin '@tailwindcss/typography';
 
 @font-face {
+	font-family: 'Zain';
+	src: url('/fonts/zain/Zain-ExtraLight.ttf') format('truetype');
+	font-weight: 200;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Zain';
+	src: url('/fonts/zain/Zain-Light.ttf') format('truetype');
+	font-weight: 300;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Zain';
+	src: url('/fonts/zain/Zain-Regular.ttf') format('truetype');
+	font-weight: 400;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Zain';
+	src: url('/fonts/zain/Zain-Bold.ttf') format('truetype');
+	font-weight: 700;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Zain';
+	src: url('/fonts/zain/Zain-ExtraBold.ttf') format('truetype');
+	font-weight: 800;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Zain';
+	src: url('/fonts/zain/Zain-Black.ttf') format('truetype');
+	font-weight: 900;
+	font-style: normal;
+}
+
+@font-face {
 	font-family: 'Hafs';
 	src: url('/Hafs.ttf') format('truetype');
 	font-weight: normal;
@@ -220,6 +262,11 @@
 	--transition-timing: ease;
 	--bg-texture: none;
 	--theme-intensity: 100%;
+}
+
+html[lang='ar'] {
+	--font-ui: 'Zain', sans-serif;
+	--font-sans: 'Zain', sans-serif;
 }
 
 body {

@@ -9736,6 +9736,10 @@ type RootTranslation = {
 		 */
 		audioEffectsDescription: string;
 		/**
+		 * F​o​r​ ​t​h​e​ ​m​o​s​t​ ​a​c​c​u​r​a​t​e​ ​s​u​b​t​i​t​l​e​s​,​ ​r​u​n​ ​A​I​ ​S​e​g​m​e​n​t​a​t​i​o​n​ ​a​l​i​g​n​m​e​n​t​ ​o​n​ ​t​h​e​ ​o​r​i​g​i​n​a​l​ ​a​u​d​i​o​ ​f​i​r​s​t​.​ ​A​p​p​l​y​ ​a​u​d​i​o​ ​e​f​f​e​c​t​s​ ​o​n​l​y​ ​a​f​t​e​r​w​a​r​d​s​,​ ​s​i​n​c​e​ ​e​c​h​o​,​ ​r​e​v​e​r​b​,​ ​a​n​d​ ​o​t​h​e​r​ ​p​r​o​c​e​s​s​i​n​g​ ​c​a​n​ ​r​e​d​u​c​e​ ​d​e​t​e​c​t​i​o​n​ ​a​n​d​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​a​c​c​u​r​a​c​y​.
+		 */
+		audioEffectsSegmentationRecommendation: string;
+		/**
 		 * C​H​O​O​S​E​ ​A​N​ ​E​F​F​E​C​T
 		 */
 		chooseAudioEffect: string;
@@ -21700,6 +21704,10 @@ export type TranslationFunctions = {
 		 * Apply carefully tuned FFmpeg effects to Quran recitation
 		 */
 		audioEffectsDescription: () => LocalizedString;
+		/**
+		 * For the most accurate subtitles, run AI Segmentation alignment on the original audio first. Apply audio effects only afterwards, since echo, reverb, and other processing can reduce detection and synchronization accuracy.
+		 */
+		audioEffectsSegmentationRecommendation: () => LocalizedString;
 		/**
 		 * CHOOSE AN EFFECT
 		 */

@@ -1833,6 +1833,8 @@ const id = {
 		noiseReductionFailed: 'Gagal mengurangi noise audio: {error}',
 		audioEffects: 'Efek audio',
 		audioEffectsDescription: 'Terapkan efek FFmpeg yang disesuaikan untuk lantunan Al-Qur’an',
+		audioEffectsSegmentationRecommendation:
+			'Untuk subtitle yang paling akurat, jalankan penyelarasan AI Segmentation pada audio asli terlebih dahulu. Terapkan efek audio hanya setelahnya karena gema, reverb, dan pemrosesan lain dapat mengurangi akurasi deteksi dan sinkronisasi.',
 		chooseAudioEffect: 'PILIH EFEK',
 		denoise: 'Pengurangan noise',
 		denoiseDescription: 'Kurangi noise latar yang stabil sambil mempertahankan suara',

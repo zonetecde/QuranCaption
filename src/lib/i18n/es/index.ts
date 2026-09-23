@@ -3034,6 +3034,8 @@ const es = {
 		audioEffects: 'Efectos de audio',
 		audioEffectsDescription:
 			'Aplica efectos FFmpeg ajustados cuidadosamente para la recitación del Corán',
+		audioEffectsSegmentationRecommendation:
+			'Para obtener subtítulos más precisos, ejecuta primero la alineación de AI Segmentation sobre el audio original. Aplica los efectos solo después, ya que el eco, la reverberación y otros procesos pueden reducir la precisión de la detección y la sincronización.',
 		chooseAudioEffect: 'ELEGIR UN EFECTO',
 		denoise: 'Reducción de ruido',
 		denoiseDescription: 'Reduce el ruido de fondo constante y conserva la voz',

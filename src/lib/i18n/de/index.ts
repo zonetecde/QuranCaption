@@ -3044,6 +3044,8 @@ const de = {
 		noiseReductionFailed: 'Audiorauschen konnte nicht reduziert werden: {error}',
 		audioEffects: 'Audioeffekte',
 		audioEffectsDescription: 'Sorgfältig abgestimmte FFmpeg-Effekte auf Koranrezitation anwenden',
+		audioEffectsSegmentationRecommendation:
+			'Für möglichst genaue Untertitel sollte zuerst die AI-Segmentation-Ausrichtung mit dem Originalton ausgeführt werden. Wenden Sie Audioeffekte erst danach an, da Echo, Hall und andere Bearbeitungen die Erkennungs- und Synchronisierungsgenauigkeit verringern können.',
 		chooseAudioEffect: 'EFFEKT AUSWÄHLEN',
 		denoise: 'Entrauschen',
 		denoiseDescription: 'Gleichmäßiges Hintergrundrauschen reduzieren und die Stimme erhalten',

@@ -2753,6 +2753,8 @@ const zh = {
 		noiseReductionFailed: '音频降噪失败：{error}',
 		audioEffects: '音频效果',
 		audioEffectsDescription: '为古兰经诵读应用精心调校的 FFmpeg 效果',
+		audioEffectsSegmentationRecommendation:
+			'为了获得最准确的字幕，请先对原始音频运行 AI Segmentation 对齐，然后再应用音频效果。回声、混响和其他处理可能会降低检测与同步的准确度。',
 		chooseAudioEffect: '选择效果',
 		denoise: '降噪',
 		denoiseDescription: '降低持续背景噪音，同时保留人声',

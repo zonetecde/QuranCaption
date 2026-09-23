@@ -128,6 +128,13 @@ export class VideoStyleSchemaService {
 				continue;
 			}
 			if (
+				(defaultStyle.id === 'letter-spacing' || defaultStyle.id === 'word-spacing') &&
+				existingStyle.valueMin !== defaultStyle.valueMin
+			) {
+				existingStyle.valueMin = defaultStyle.valueMin;
+				hasChanges = true;
+			}
+			if (
 				defaultStyle.valueType === 'select' &&
 				Array.isArray(defaultStyle.options) &&
 				Array.isArray(existingStyle.options) &&

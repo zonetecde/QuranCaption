@@ -8,6 +8,7 @@ import {
 	loadStyleCategoryDefinitions
 } from '$lib/services/StyleDefinitionCatalog';
 import { applyStyleMutation, coerceStyleValue } from '$lib/services/StyleMutationService';
+import { VideoStyleSchemaService } from '$lib/classes/videoStyles/VideoStyleSchemaService';
 import {
 	isWordByWordVisualEnabled,
 	resolveOverlayVisualState,
@@ -16,6 +17,51 @@ import {
 
 describe('style architecture modules', () => {
 	afterEach(() => vi.unstubAllGlobals());
+
+	it('migrates subtitle spacing minimums without changing existing values', async () => {
+		const videoStyle = new VideoStyle();
+		/**
+		 * Builds one legacy subtitle style collection.
+		 * @param {string} target Style target identifier.
+		 * @returns {StylesData} Legacy collection with the former spacing limits.
+		 */
+		const createSpacingStyles = (target: string) =>
+			new StylesData(target, [
+				new Category({
+					id: 'text',
+					styles: [
+						new Style({
+							id: 'letter-spacing',
+							value: -8,
+							valueType: 'number',
+							valueMin: -10
+						}),
+						new Style({ id: 'word-spacing', value: 4, valueType: 'number', valueMin: 0 })
+					]
+				})
+			]);
+		videoStyle.styles = [createSpacingStyles('arabic'), createSpacingStyles('translation')];
+		const defaults = [
+			{
+				id: 'text',
+				styles: [
+					{ id: 'letter-spacing', value: 0, valueType: 'number', valueMin: -30 },
+					{ id: 'word-spacing', value: 0, valueType: 'number', valueMin: -30 }
+				]
+			}
+		] as never;
+		for (const target of ['arabic', 'translation']) {
+			expect(
+				VideoStyleSchemaService.mergeMissingStylesForTarget(videoStyle.styles, target, defaults)
+			).toBe(true);
+			expect(
+				VideoStyleSchemaService.mergeMissingStylesForTarget(videoStyle.styles, target, defaults)
+			).toBe(false);
+			const styles = videoStyle.getStylesOfTarget(target);
+			expect(styles.findStyle('letter-spacing')).toMatchObject({ value: -8, valueMin: -30 });
+			expect(styles.findStyle('word-spacing')).toMatchObject({ value: 4, valueMin: -30 });
+		}
+	});
 
 	it('loads valid catalogs and rejects malformed definitions', async () => {
 		const fetchMock = vi

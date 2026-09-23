@@ -12,6 +12,11 @@
 
 	type AudioEffectId = 'denoise' | 'clarity' | 'echo' | 'reverb';
 	const parameterKeys = ['primary', 'secondary'] as const;
+	type Props = {
+		close: () => void;
+		initialClipId?: number;
+		initialEffectId?: AudioEffectId;
+	};
 	type AudioEffectsCopy = {
 		audioEffects: () => string;
 		audioEffectsDescription: () => string;
@@ -47,7 +52,7 @@
 		audioEffectPreviewFailed: (args: { error: string }) => string;
 	};
 
-	let { close }: { close: () => void } = $props();
+	let { close, initialClipId = 0, initialEffectId = 'denoise' }: Props = $props();
 	let selectedClipId = $state(0);
 	let selectedEffectId = $state<AudioEffectId>('denoise');
 	let isProcessing = $state(false);
@@ -112,6 +117,11 @@
 	let selectedEffect = $derived(effects.find(({ id }) => id === selectedEffectId)!);
 	let selectedParameters = $derived(effectParameters[selectedEffectId]);
 	let isBusy = $derived(isProcessing || isPreparingPreview);
+
+	$effect(() => {
+		selectedClipId = initialClipId;
+		selectedEffectId = initialEffectId;
+	});
 
 	onDestroy(() => {
 		void stopPreview();

@@ -21,6 +21,8 @@ import type { Edition } from '$lib/classes';
 import type { UpdateInfo } from '$lib/services/VersionService.svelte';
 import LL from '$lib/i18n/i18n-svelte';
 
+type AudioEffectId = 'denoise' | 'clarity' | 'echo' | 'reverb';
+
 export default class ModalManager {
 	static async confirmModal(text: string, yesNo: boolean = false): Promise<boolean> {
 		return new Promise<boolean>((resolve) => {
@@ -253,8 +255,16 @@ export default class ModalManager {
 		});
 	}
 
-	/** Ouvre la modale des effets audio. @returns {Promise<void>} Résolution après fermeture. */
-	static async audioEffectsModal(): Promise<void> {
+	/**
+	 * Ouvre la modale des effets audio avec une sélection initiale facultative.
+	 * @param {number | undefined} initialClipId Clip audio sélectionné.
+	 * @param {AudioEffectId | undefined} initialEffectId Effet sélectionné.
+	 * @returns {Promise<void>} Résolution après fermeture.
+	 */
+	static async audioEffectsModal(
+		initialClipId?: number,
+		initialEffectId?: AudioEffectId
+	): Promise<void> {
 		return new Promise<void>((resolve) => {
 			const container = document.createElement('div');
 			container.classList.add('modal-wrapper');
@@ -267,7 +277,9 @@ export default class ModalManager {
 						unmount(modal);
 						container.remove();
 						resolve();
-					}
+					},
+					initialClipId,
+					initialEffectId
 				}
 			});
 		});

@@ -3,12 +3,18 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import ModalManager from './modals/ModalManager';
 	import { WaveformService } from '$lib/services/WaveformService.svelte.js';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 
 	let showToolsPopover = $state(false);
 	let audioEffectsLabel = $derived((Reflect.get(get(LL).tools, 'audioEffects') as () => string)());
 
+	/**
+	 * Ferme les outils après un toucher hors du menu.
+	 * @param {Event} event Événement global.
+	 * @returns {void}
+	 */
 	function handleClickOutside(event: Event) {
 		if (!showToolsPopover) return;
 
@@ -25,12 +31,18 @@
 		}
 	}
 
+	/**
+	 * Ferme le menu avant d'exécuter une action.
+	 * @param {() => void} action Action choisie.
+	 * @returns {void}
+	 */
 	function runAction(action: () => void) {
 		showToolsPopover = false;
 		action();
 	}
 
-	async function removeAllSubtitles() {
+	/** @returns {Promise<void>} Removes subtitles after confirmation. */
+	async function removeAllSubtitles(): Promise<void> {
 		if (!globalState.currentProject) return;
 
 		const subtitleCount = globalState.getSubtitleTrack.clips.length;
@@ -49,9 +61,11 @@
 
 		if (!confirmed) return;
 
-		globalState.getSubtitleTrack.clips = [];
-		globalState.getStylesState.clearSelection();
-		globalState.getSubtitlesEditorState.editSubtitle = null;
+		ProjectHistoryManager.track('remove all subtitles', () => {
+			globalState.getSubtitleTrack.clips = [];
+			globalState.getStylesState.clearSelection();
+			globalState.getSubtitlesEditorState.editSubtitle = null;
+		});
 		globalState.updateVideoPreviewUI();
 	}
 </script>

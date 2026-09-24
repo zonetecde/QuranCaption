@@ -53,7 +53,9 @@ vi.mock('@tauri-apps/api/core', async () => {
 });
 
 type MockStyle = {
+	id: string;
 	value: string | number | boolean | null;
+	keyframes: [];
 };
 
 type MockStyleTarget = {
@@ -63,6 +65,7 @@ type MockStyleTarget = {
 	generateCSS: (clipId?: number) => string;
 	generateTailwind: () => string;
 	getEffectiveValue: (styleId: string, clipId?: number) => string | number | boolean | null;
+	getKeyframeTimes: (styleId: string, clipIds: number[]) => number[];
 	setStyle: (styleId: string, value: string | number | boolean | null) => void;
 	setStyleForClips: (
 		clipIds: number[],
@@ -91,6 +94,7 @@ function createDefaultStyleValue(
 	if (styleId === 'opacity') return 1;
 	if (styleId === 'show-subtitles') return true;
 	if (styleId === 'max-height') return 0;
+	if (styleId === 'width') return 80;
 	if (styleId === 'max-line') return 'Infinite';
 	if (styleId === 'font-size') return target === 'arabic' ? 42 : 28;
 	if (styleId === 'vertical-text-alignment') return 'center';
@@ -146,6 +150,8 @@ function createMockVideoStyle(targets: string[]): MockVideoStyle {
 			findStyle(styleId: string) {
 				if (!styles.has(styleId)) {
 					styles.set(styleId, {
+						id: styleId,
+						keyframes: [],
 						value: createDefaultStyleValue(target, styleId)
 					});
 				}
@@ -162,6 +168,10 @@ function createMockVideoStyle(targets: string[]): MockVideoStyle {
 					return this.overrides[clipId][styleId];
 				}
 				return this.findStyle(styleId).value;
+			},
+			/** @returns {number[]} No keyframes are configured in this preview fixture. */
+			getKeyframeTimes() {
+				return [];
 			},
 			setStyle(styleId: string, value: string | number | boolean | null) {
 				this.findStyle(styleId).value = value;
@@ -338,6 +348,8 @@ function setupVideoOverlayFixture(
 	const projectTranslationTargets = addedTranslationEditionNames ?? translationTargets;
 
 	globalState.currentProject = {
+		/** @returns {object} Serializable snapshot for preview history transactions. */
+		toJSON: () => ({}),
 		projectEditorState,
 		content: {
 			timeline: new Timeline([subtitleTrack, videoTrack, audioTrack, customTrack]),
@@ -943,6 +955,7 @@ describe('Video overlay subtitle preview', () => {
 		await settleOverlay();
 		const arabicNode = getForegroundArabicNode(component.container)!;
 		const subtitlesContainer = getSubtitlesContainer(component.container)!;
+		vi.spyOn(arabicNode, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 200, 200));
 		const { mouseDrag } = await vi.importActual<typeof import('$lib/services/verticalDrag')>(
 			'$lib/services/verticalDrag'
 		);
@@ -999,6 +1012,8 @@ describe('Video overlay subtitle preview', () => {
 		await settleOverlay();
 		const arabicNode = getForegroundArabicNode(component.container)!;
 		arabicNode.style.setProperty('--reactive-y-position', '30px');
+		vi.spyOn(arabicNode, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 200, 200));
+		arabicNode.setPointerCapture = vi.fn();
 		const { mouseDrag } = await vi.importActual<typeof import('$lib/services/verticalDrag')>(
 			'$lib/services/verticalDrag'
 		);
@@ -1009,12 +1024,27 @@ describe('Video overlay subtitle preview', () => {
 		});
 
 		arabicNode.dispatchEvent(
-			new MouseEvent('mousedown', { bubbles: true, button: 0, clientX: 100, clientY: 100 })
+			new PointerEvent('pointerdown', {
+				bubbles: true,
+				button: 0,
+				clientX: 100,
+				clientY: 100,
+				pointerId: 4,
+				isPrimary: true
+			})
 		);
 		document.dispatchEvent(
-			new MouseEvent('mousemove', { bubbles: true, clientX: 100, clientY: 120 })
+			new PointerEvent('pointermove', {
+				bubbles: true,
+				clientX: 100,
+				clientY: 120,
+				pointerId: 4,
+				isPrimary: true
+			})
 		);
-		document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+		document.dispatchEvent(
+			new PointerEvent('pointerup', { bubbles: true, pointerId: 4, isPrimary: true })
+		);
 
 		expect(
 			fixture.videoStyle.getStylesOfTarget('arabic').findStyle('vertical-position').value
@@ -1270,7 +1300,7 @@ describe('Decorative brackets', () => {
 		const arabicNode = getForegroundArabicNode(component.container);
 		expect(arabicNode).not.toBeNull();
 		const text = normalizeText(arabicNode!.textContent);
-		expect(text).toMatch(/^N\s.*\sO$/);
+		expect(text).toMatch(/^O\s.*\sN$/);
 	});
 
 	test('falls back to LM pair when bracket style is not explicitly set', async () => {
@@ -1285,7 +1315,7 @@ describe('Decorative brackets', () => {
 
 		const arabicNode = getForegroundArabicNode(component.container);
 		const text = normalizeText(arabicNode!.textContent);
-		expect(text).toMatch(/^L\s.*\sM$/);
+		expect(text).toMatch(/^M\s.*\sL$/);
 	});
 });
 

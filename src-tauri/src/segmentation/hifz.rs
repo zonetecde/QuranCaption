@@ -1,14 +1,20 @@
 use std::fs;
+#[cfg(not(target_os = "android"))]
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
+#[cfg(not(target_os = "android"))]
 use std::process::{Command, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
+#[cfg(not(target_os = "android"))]
 use crate::binaries;
+#[cfg(target_os = "android")]
+use crate::commands::android_media::{execute_ffmpeg, execute_ffmpeg_with_progress};
 use crate::path_utils;
+#[cfg(not(target_os = "android"))]
 use crate::utils::process::configure_command_no_window;
 use crate::utils::temp_file::{app_temp_dir, TempFileGuard};
 
@@ -173,36 +179,44 @@ fn resolve_source_audio_path(
 /// Utilise une piste stereo 44.1kHz et une duree minimale pour permettre l'`atrim` des segments.
 fn create_silent_source_audio(
     temp_dir: &Path,
-    ffmpeg_path: &str,
+    _ffmpeg_path: &str,
     duration_s: f64,
 ) -> Result<(PathBuf, TempFileGuard), String> {
     let duration_s = duration_s.max(0.001);
     let (path, guard) = create_temp_file_path(temp_dir, "qurancaption-hifz-silence", "wav")?;
 
-    let mut cmd = Command::new(ffmpeg_path);
-    cmd.args([
-        "-y",
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-f",
-        "lavfi",
-        "-i",
-        "anullsrc=channel_layout=stereo:sample_rate=44100",
-        "-t",
-        &format!("{:.6}", duration_s),
-        "-ac",
-        "2",
-        "-ar",
-        "44100",
-        "-c:a",
-        "pcm_s16le",
-        path.to_string_lossy().as_ref(),
-    ]);
-    configure_command_no_window(&mut cmd);
-    let status = cmd.status().map_err(|e| format!("ffmpeg error: {}", e))?;
-    if !status.success() {
+    let args = vec![
+        "-y".to_string(),
+        "-hide_banner".to_string(),
+        "-loglevel".to_string(),
+        "error".to_string(),
+        "-f".to_string(),
+        "lavfi".to_string(),
+        "-i".to_string(),
+        "anullsrc=channel_layout=stereo:sample_rate=44100".to_string(),
+        "-t".to_string(),
+        format!("{:.6}", duration_s),
+        "-ac".to_string(),
+        "2".to_string(),
+        "-ar".to_string(),
+        "44100".to_string(),
+        "-c:a".to_string(),
+        "pcm_s16le".to_string(),
+        path.to_string_lossy().to_string(),
+    ];
+    #[cfg(target_os = "android")]
+    if !execute_ffmpeg(&args)?.success {
         return Err("Failed to generate silent audio source".to_string());
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let mut cmd = Command::new(_ffmpeg_path);
+        cmd.args(&args);
+        configure_command_no_window(&mut cmd);
+        let status = cmd.status().map_err(|e| format!("ffmpeg error: {}", e))?;
+        if !status.success() {
+            return Err("Failed to generate silent audio source".to_string());
+        }
     }
 
     Ok((path, guard))
@@ -219,8 +233,11 @@ pub async fn generate_hifz_audio(
         return Err("No Hifz audio segments were provided".to_string());
     }
 
+    #[cfg(not(target_os = "android"))]
     let ffmpeg_path =
         binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
+    #[cfg(target_os = "android")]
+    let ffmpeg_path = String::new();
     let temp_dir = app_temp_dir(&app_handle)?;
     let mut _guards: Vec<TempFileGuard> = Vec::new();
     let source_audio_path =
@@ -260,32 +277,31 @@ pub async fn generate_hifz_audio(
             .map_err(|e| format!("Failed to create Hifz output directory: {}", e))?;
     }
 
-    let mut cmd = Command::new(&ffmpeg_path);
-    cmd.args([
-        "-y",
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-progress",
-        "pipe:2",
-        "-i",
-        source_audio_path.to_string_lossy().as_ref(),
-        "-/filter_complex",
-        filter_script_path.to_string_lossy().as_ref(),
-        "-map",
-        "[outa]",
-        "-codec:a",
-        "libmp3lame",
-        "-b:a",
-        "192k",
-        "-ar",
-        "44100",
-        "-ac",
-        "2",
-        &output_path,
-    ]);
-    configure_command_no_window(&mut cmd);
-    cmd.stderr(Stdio::piped());
+    let args = vec![
+        "-y".to_string(),
+        "-hide_banner".to_string(),
+        "-loglevel".to_string(),
+        "error".to_string(),
+        "-i".to_string(),
+        source_audio_path.to_string_lossy().to_string(),
+        if cfg!(target_os = "android") {
+            "-filter_complex_script".to_string()
+        } else {
+            "-/filter_complex".to_string()
+        },
+        filter_script_path.to_string_lossy().to_string(),
+        "-map".to_string(),
+        "[outa]".to_string(),
+        "-codec:a".to_string(),
+        "libmp3lame".to_string(),
+        "-b:a".to_string(),
+        "192k".to_string(),
+        "-ar".to_string(),
+        "44100".to_string(),
+        "-ac".to_string(),
+        "2".to_string(),
+        output_path.clone(),
+    ];
 
     emit_hifz_progress(
         &app_handle,
@@ -295,23 +311,10 @@ pub async fn generate_hifz_audio(
         "Starting Hifz audio generation...",
     );
 
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| format!("Unable to execute ffmpeg: {}", e))?;
-    let stderr = child
-        .stderr
-        .take()
-        .ok_or_else(|| "Failed to capture ffmpeg progress".to_string())?;
-    let reader = BufReader::new(stderr);
-    let mut stderr_content = String::new();
-
-    for line in reader.lines() {
-        let line = line.map_err(|e| format!("Failed to read ffmpeg progress: {}", e))?;
-        stderr_content.push_str(&line);
-        stderr_content.push('\n');
-
-        if let Some(current_time_s) = parse_progress_time_s(&line) {
-            let current_time_s = current_time_s.min(output_duration_s);
+    #[cfg(target_os = "android")]
+    {
+        let output = execute_ffmpeg_with_progress(&args, |current_time_ms| {
+            let current_time_s = (current_time_ms / 1000.0).min(output_duration_s);
             let progress = (current_time_s / output_duration_s * 100.0).clamp(0.0, 100.0);
             emit_hifz_progress(
                 &app_handle,
@@ -320,14 +323,54 @@ pub async fn generate_hifz_audio(
                 output_duration_s,
                 "Generating Hifz repetition audio...",
             );
+        })?;
+        if !output.success {
+            return Err(format!("ffmpeg Hifz audio error: {}", output.output));
         }
     }
 
-    let status = child
-        .wait()
-        .map_err(|e| format!("Unable to wait for ffmpeg: {}", e))?;
-    if !status.success() {
-        return Err(format!("ffmpeg Hifz audio error: {}", stderr_content));
+    #[cfg(not(target_os = "android"))]
+    {
+        let mut cmd = Command::new(&ffmpeg_path);
+        cmd.args(["-progress", "pipe:2"]);
+        cmd.args(&args);
+        configure_command_no_window(&mut cmd);
+        cmd.stderr(Stdio::piped());
+
+        let mut child = cmd
+            .spawn()
+            .map_err(|e| format!("Unable to execute ffmpeg: {}", e))?;
+        let stderr = child
+            .stderr
+            .take()
+            .ok_or_else(|| "Failed to capture ffmpeg progress".to_string())?;
+        let reader = BufReader::new(stderr);
+        let mut stderr_content = String::new();
+
+        for line in reader.lines() {
+            let line = line.map_err(|e| format!("Failed to read ffmpeg progress: {}", e))?;
+            stderr_content.push_str(&line);
+            stderr_content.push('\n');
+
+            if let Some(current_time_s) = parse_progress_time_s(&line) {
+                let current_time_s = current_time_s.min(output_duration_s);
+                let progress = (current_time_s / output_duration_s * 100.0).clamp(0.0, 100.0);
+                emit_hifz_progress(
+                    &app_handle,
+                    progress,
+                    current_time_s,
+                    output_duration_s,
+                    "Generating Hifz repetition audio...",
+                );
+            }
+        }
+
+        let status = child
+            .wait()
+            .map_err(|e| format!("Unable to wait for ffmpeg: {}", e))?;
+        if !status.success() {
+            return Err(format!("ffmpeg Hifz audio error: {}", stderr_content));
+        }
     }
 
     emit_hifz_progress(

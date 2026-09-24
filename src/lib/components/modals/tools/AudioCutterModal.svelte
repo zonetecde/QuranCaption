@@ -113,34 +113,36 @@
 </script>
 
 <div
-	class="bg-secondary w-[500px] rounded-xl shadow-2xl overflow-hidden border border-color animate-in fade-in zoom-in duration-200"
+	class="bg-secondary w-[500px] rounded-xl shadow-2xl overflow-hidden border border-color flex flex-col relative"
 	use:mobileModalSheet={close}
 >
 	<!-- Header -->
 	<div
-		class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 p-6 border-b border-color relative"
+		class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 p-6 border-b border-color relative shrink-0"
 	>
-		<div class="flex items-center gap-4">
-			<div class="bg-accent-primary/20 p-3 rounded-xl">
-				<span class="material-icons text-accent-primary text-3xl">content_cut</span>
+		<div class="flex items-center justify-between gap-3">
+			<div class="flex items-center gap-3 min-w-0">
+				<div class="bg-accent-primary/20 p-3 rounded-xl">
+					<span class="material-icons text-accent-primary text-3xl">content_cut</span>
+				</div>
+				<div class="min-w-0">
+					<h2 class="text-xl font-bold text-primary tracking-tight">{$LL.tools.assetTrimmer()}</h2>
+					<p class="text-secondary text-sm">
+						{$LL.tools.trimmerDescription()}
+					</p>
+				</div>
 			</div>
-			<div>
-				<h2 class="text-2xl font-bold text-primary tracking-tight">{$LL.tools.assetTrimmer()}</h2>
-				<p class="text-secondary text-sm">
-					{$LL.tools.trimmerDescription()}
-				</p>
-			</div>
+			<button
+				class="text-thirdly hover:text-primary transition-colors cursor-pointer shrink-0"
+				onclick={close}
+			>
+				<span class="material-icons">close</span>
+			</button>
 		</div>
-		<button
-			class="absolute top-4 end-4 text-thirdly hover:text-primary transition-colors cursor-pointer"
-			onclick={close}
-		>
-			<span class="material-icons">close</span>
-		</button>
 	</div>
 
 	<!-- Body -->
-	<div class="p-8 space-y-8">
+	<div class="px-4 py-5 space-y-6 overflow-y-auto min-h-0 flex-1">
 		<!-- Asset Selection -->
 		<div class="space-y-3">
 			<label
@@ -163,7 +165,7 @@
 		</div>
 
 		{#if selectedAsset}
-			<div class="grid grid-cols-2 gap-8 animate-in slide-in-from-top-4 duration-300">
+			<div class="grid grid-cols-1 gap-6 animate-in slide-in-from-top-4 duration-300">
 				<!-- Start Time -->
 				<div class="space-y-4">
 					<span class="text-sm font-semibold text-secondary flex items-center gap-2">
@@ -290,7 +292,7 @@
 	</div>
 
 	<!-- Footer -->
-	<div class="bg-accent/30 p-6 flex justify-end items-center gap-4 border-t border-color">
+	<div class="bg-accent/30 p-4 flex justify-end items-center gap-3 border-t border-color shrink-0">
 		<button
 			class="btn px-6 py-2.5 text-sm font-medium hover:bg-accent transition-colors"
 			onclick={close}

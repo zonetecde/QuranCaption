@@ -153,7 +153,7 @@
 			var(--bg-titlebar);
 		border-bottom: 1px solid var(--border-color);
 		box-shadow: 0 1px 8px rgb(0 0 0 / 8%);
-		z-index: 60;
+		z-index: 200;
 	}
 
 	.app-bar-button {

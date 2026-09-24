@@ -5,6 +5,7 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 	import { syncTimedOverlayLegacyRange } from '$lib/services/TimedOverlayRanges';
 	import { get } from 'svelte/store';
 	import { slide } from 'svelte/transition';
@@ -309,6 +310,7 @@
 
 <div
 	class="bg-secondary border-color border rounded-2xl w-[720px] max-w-[94vw] max-h-[85vh] shadow-2xl shadow-black flex flex-col relative overflow-hidden"
+	use:mobileModalSheet={close}
 	transition:slide
 >
 	<div class="bg-gradient-to-r from-accent to-bg-accent px-6 py-4 border-b border-color shrink-0">
@@ -333,7 +335,7 @@
 		</div>
 	</div>
 
-	<div class="px-6 py-5 overflow-y-auto min-h-0">
+	<div class="px-6 py-5 overflow-y-auto min-h-0 flex-1">
 		{#if quranClips.length === 0}
 			<div class="rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
 				{$LL.tools.noQuranSubtitlesToCrop()}

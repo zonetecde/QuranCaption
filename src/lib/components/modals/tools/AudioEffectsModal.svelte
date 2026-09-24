@@ -3,12 +3,14 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 	import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 	import { exists } from '@tauri-apps/plugin-fs';
 	import { Howl } from 'howler';
 	import { onDestroy } from 'svelte';
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
+	import { slide } from 'svelte/transition';
 
 	type AudioEffectId = 'denoise' | 'clarity' | 'echo' | 'reverb';
 	const parameterKeys = ['primary', 'secondary'] as const;
@@ -260,33 +262,37 @@
 </script>
 
 <div
-	class="bg-secondary w-[620px] max-w-[calc(100vw-2rem)] max-h-[90vh] rounded-xl shadow-2xl overflow-hidden border border-color animate-in fade-in zoom-in duration-200"
+	class="bg-secondary border-color border rounded-2xl w-[620px] max-w-[90vw] shadow-2xl flex flex-col relative overflow-hidden"
+	use:mobileModalSheet={close}
+	transition:slide
 >
 	<div
-		class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 p-6 border-b border-color relative"
+		class="bg-gradient-to-r from-accent-primary/20 to-accent-secondary/20 px-6 py-4 border-b border-color shrink-0"
 	>
-		<div class="flex items-center gap-4">
-			<div class="bg-accent-primary/20 p-3 rounded-xl">
-				<span class="material-icons text-accent-primary text-3xl">spatial_audio</span>
+		<div class="flex items-center justify-between gap-3">
+			<div class="flex items-center gap-3 min-w-0">
+				<div class="bg-accent-primary/20 p-3 rounded-xl">
+					<span class="material-icons text-accent-primary text-3xl">spatial_audio</span>
+				</div>
+				<div class="min-w-0">
+					<h2 class="text-xl font-bold text-primary tracking-tight">
+						{toolsCopy.audioEffects()}
+					</h2>
+					<p class="text-secondary text-sm">{toolsCopy.audioEffectsDescription()}</p>
+				</div>
 			</div>
-			<div>
-				<h2 class="text-2xl font-bold text-primary tracking-tight">
-					{toolsCopy.audioEffects()}
-				</h2>
-				<p class="text-secondary text-sm">{toolsCopy.audioEffectsDescription()}</p>
-			</div>
+			<button
+				class="text-thirdly hover:text-primary transition-colors cursor-pointer shrink-0"
+				onclick={close}
+				disabled={isBusy}
+				aria-label={commonCopy.close()}
+			>
+				<span class="material-icons">close</span>
+			</button>
 		</div>
-		<button
-			class="absolute top-4 end-4 text-thirdly hover:text-primary transition-colors cursor-pointer"
-			onclick={close}
-			disabled={isBusy}
-			aria-label={commonCopy.close()}
-		>
-			<span class="material-icons">close</span>
-		</button>
 	</div>
 
-	<div class="p-8 space-y-6 overflow-y-auto max-h-[65vh]">
+	<div class="px-4 py-5 space-y-5 overflow-y-auto min-h-0 flex-1">
 		{#if globalState.getSubtitleTrack.clips.length === 0}
 			<div class="flex gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
 				<span class="material-icons text-amber-400">tips_and_updates</span>
@@ -386,9 +392,9 @@
 		{/if}
 	</div>
 
-	<div class="bg-accent/30 p-6 flex flex-wrap items-center gap-4 border-t border-color">
+	<div class="bg-accent/30 px-4 py-4 grid grid-cols-2 gap-2 border-t border-color shrink-0">
 		<button
-			class="btn px-5 py-2.5 text-sm font-medium flex items-center gap-2 me-auto"
+			class="btn px-4 py-2.5 text-sm font-medium flex items-center justify-center gap-2 col-span-2"
 			onclick={isPreviewing ? stopPreview : previewAudioEffect}
 			disabled={isBusy || !selectedOption}
 		>
@@ -403,11 +409,11 @@
 				{toolsCopy.previewTenSeconds()}
 			{/if}
 		</button>
-		<button class="btn px-6 py-2.5 text-sm font-medium" onclick={close} disabled={isBusy}>
+		<button class="btn px-4 py-2.5 text-sm font-medium" onclick={close} disabled={isBusy}>
 			{commonCopy.cancel()}
 		</button>
 		<button
-			class="btn-accent px-8 py-2.5 text-sm font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+			class="btn-accent px-4 py-2.5 text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 			onclick={applyAudioEffect}
 			disabled={isBusy || !selectedOption}
 		>

@@ -84,7 +84,7 @@
 	</div>
 
 	<!-- Body -->
-	<div class="px-6 py-5 space-y-6">
+	<div class="px-6 py-5 space-y-6 overflow-y-auto min-h-0 flex-1">
 		<p class="text-sm text-secondary leading-relaxed">
 			{$LL.tools.shiftBody()}
 		</p>
@@ -181,7 +181,7 @@
 	</div>
 
 	<!-- Footer -->
-	<div class="border-t border-color bg-primary px-6 py-4">
+	<div class="border-t border-color bg-primary px-6 py-4 shrink-0">
 		<div class="flex items-center justify-between">
 			<div class="text-xs text-thirdly">{$LL.tools.readyToApply()}</div>
 			<div class="flex gap-3">

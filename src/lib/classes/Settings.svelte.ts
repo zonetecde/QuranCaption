@@ -154,7 +154,7 @@ export default class Settings extends SerializableBase {
 		cloudModel: 'Base',
 		device: 'GPU',
 		riwayah: 'hafs',
-		includeWbwTimestamps: false,
+		includeWbwTimestamps: true,
 		fillBySilence: true,
 		extendBeforeSilence: false,
 		extendBeforeSilenceMs: 50

@@ -154,6 +154,9 @@ export class QuranicUniversalAudioService {
 		if (response?.error) {
 			throw new Error(response.error);
 		}
+		if (response.audio_url) {
+			response.audio_url = this.normalizeAudioUrl(response.audio_url);
+		}
 		return response;
 	}
 
@@ -172,7 +175,19 @@ export class QuranicUniversalAudioService {
 		if (response?.error) {
 			throw new Error(response.error);
 		}
+		if (response.audio_url) {
+			response.audio_url = this.normalizeAudioUrl(response.audio_url);
+		}
 		return response;
+	}
+
+	/**
+	 * Corrige les réponses QUA dont le domaine contient plusieurs hôtes séparés par une virgule.
+	 * @param {string} audioUrl URL audio renvoyée par QUA.
+	 * @returns {string} URL utilisant le premier hôte disponible.
+	 */
+	private static normalizeAudioUrl(audioUrl: string): string {
+		return audioUrl.replace(/^(https?:\/\/[^/,]+),[^/]+(?=\/)/, '$1');
 	}
 
 	/**

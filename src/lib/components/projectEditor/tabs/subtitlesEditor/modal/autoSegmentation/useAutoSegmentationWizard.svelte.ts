@@ -20,8 +20,7 @@ import { AnalyticsService } from '$lib/services/AnalyticsService';
 /** Creates the cloud-only mobile auto-segmentation state and actions. */
 export function useAutoSegmentationWizard() {
 	const persisted = globalState.settings?.autoSegmentationSettings as
-		| AutoSegmentationSettings
-		| undefined;
+		AutoSegmentationSettings | undefined;
 	const selection = $state({
 		aiVersion: 'multi_v2' as const,
 		mode: 'api' as const,
@@ -35,7 +34,7 @@ export function useAutoSegmentationWizard() {
 	let padMs = $state(persisted?.padMs ?? 100);
 	let padLeftMs = $state(persisted?.padLeftMs ?? 100);
 	let padRightMs = $state(persisted?.padRightMs ?? 200);
-	let includeWbwTimestamps = $state(persisted?.includeWbwTimestamps ?? false);
+	let includeWbwTimestamps = $state(persisted?.includeWbwTimestamps ?? true);
 	let subtitleApplicationMode = $state<SubtitleApplicationMode | null>('replace');
 	let fillBySilence = $state(persisted?.fillBySilence ?? true);
 	let extendBeforeSilence = $state(persisted?.extendBeforeSilence ?? false);

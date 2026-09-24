@@ -122,7 +122,8 @@
 	let isBusy = $derived(isProcessing || isPreparingPreview);
 
 	$effect(() => {
-		selectedClipId = initialClipId;
+		selectedClipId =
+			initialClipId || (audioClipOptions.length === 1 ? audioClipOptions[0].clip.id : 0);
 		selectedEffectId = initialEffectId;
 	});
 

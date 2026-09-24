@@ -1624,7 +1624,11 @@ fn apply_audio_effect_args(
         _ => return Err(format!("Unsupported audio effect: {effect}")),
     };
 
-    let mut args = Vec::new();
+    let mut args = vec![
+        "-hide_banner".to_string(),
+        "-loglevel".to_string(),
+        "error".to_string(),
+    ];
     if let Some(start_ms) = start_ms {
         args.extend(["-ss".to_string(), (start_ms as f64 / 1000.0).to_string()]);
     }
@@ -1741,7 +1745,7 @@ pub fn preview_audio_effect(
         std::process::id()
     ));
     let output = output_path.to_string_lossy().to_string();
-    if let Err(error) = run_audio_effect(
+    let mut result = run_audio_effect(
         &source_path,
         &output,
         &effect,
@@ -1749,7 +1753,20 @@ pub fn preview_audio_effect(
         secondary,
         Some(start_ms),
         Some(duration_ms),
-    ) {
+    );
+    if result.is_err() {
+        let _ = fs::remove_file(&output_path);
+        result = run_audio_effect(
+            &source_path,
+            &output,
+            &effect,
+            primary,
+            secondary,
+            Some(start_ms),
+            Some(duration_ms),
+        );
+    }
+    if let Err(error) = result {
         let _ = fs::remove_file(&output_path);
         return Err(error);
     }

@@ -74,6 +74,8 @@
 	const clipDragHoldDelayMs = 300;
 	const clipGestureMoveThresholdPx = 8;
 	let clipDragHoldTimer: ReturnType<typeof setTimeout> | null = null;
+	let clipContextMenuTimer: ReturnType<typeof setTimeout> | null = null;
+	let clipContextMenuOpen = false;
 	let clipGesturePointerId: number | null = null;
 	let clipGestureStartX = 0;
 	let clipGestureStartY = 0;
@@ -257,9 +259,22 @@
 		clipGestureScrollTop = clipGestureScrollElement?.scrollTop ?? 0;
 		clipGestureDidScroll = false;
 		clipDragHoldTimer = setTimeout(activateClipDragging, clipDragHoldDelayMs);
+		clipContextMenuTimer = setTimeout(openClipContextMenu, 650, event);
 		document.addEventListener('pointermove', handlePendingClipGesture);
 		document.addEventListener('pointerup', stopClipDragging);
 		document.addEventListener('pointercancel', stopClipDragging);
+	}
+
+	/**
+	 * Opens the asset menu while keeping the held clip ready to drag.
+	 * @param {PointerEvent} event Initial pointer event used to position the menu.
+	 * @returns {void}
+	 */
+	function openClipContextMenu(event: PointerEvent): void {
+		if (event.pointerId !== clipGesturePointerId || clipGestureDidScroll) return;
+		clipContextMenuTimer = null;
+		clipContextMenuOpen = true;
+		void showContextMenuInViewport(contextMenu, event);
 	}
 
 	/**
@@ -297,7 +312,9 @@
 		if (!clipGestureDidScroll && Math.hypot(deltaX, deltaY) < clipGestureMoveThresholdPx) return;
 
 		if (clipDragHoldTimer !== null) clearTimeout(clipDragHoldTimer);
+		if (clipContextMenuTimer !== null) clearTimeout(clipContextMenuTimer);
 		clipDragHoldTimer = null;
+		clipContextMenuTimer = null;
 		clipGestureDidScroll = true;
 		if (clipGestureScrollElement) {
 			clipGestureScrollElement.scrollLeft = clipGestureScrollLeft - deltaX;
@@ -313,6 +330,15 @@
 	 */
 	function moveClip(event: PointerEvent): void {
 		if (clipDragStartX === null || event.pointerId !== clipGesturePointerId) return;
+		if (
+			Math.hypot(event.clientX - clipGestureStartX, event.clientY - clipGestureStartY) >=
+			clipGestureMoveThresholdPx
+		) {
+			if (clipContextMenuTimer !== null) clearTimeout(clipContextMenuTimer);
+			clipContextMenuTimer = null;
+			if (clipContextMenuOpen) currentMenu.set(null);
+			clipContextMenuOpen = false;
+		}
 		event.preventDefault();
 		const deltaMs = Math.round(
 			((event.clientX - clipDragStartX) / track.getPixelPerSecond()) * 1000
@@ -366,9 +392,12 @@
 
 		const didActivateDragging = clipDragStartX !== null;
 		if (clipDragHoldTimer !== null) clearTimeout(clipDragHoldTimer);
+		if (clipContextMenuTimer !== null) clearTimeout(clipContextMenuTimer);
 		if (clipGestureDidScroll || didActivateDragging)
 			suppressClipClickUntil = performance.now() + 500;
 		clipDragHoldTimer = null;
+		clipContextMenuTimer = null;
+		clipContextMenuOpen = false;
 		clipGesturePointerId = null;
 		clipGestureScrollElement = null;
 		clipGestureDidScroll = false;
@@ -673,6 +702,7 @@
 	oncontextmenu={(e) => {
 		if (clipDragStartX !== null) {
 			e.preventDefault();
+			e.stopPropagation();
 			return;
 		}
 		void showContextMenuInViewport(contextMenu, e);

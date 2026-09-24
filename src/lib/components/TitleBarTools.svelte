@@ -74,7 +74,7 @@
 
 <button
 	id="tools-popover-button"
-	class="relative h-11 w-11 shrink-0 cursor-pointer rounded-xl hover:bg-gray-700"
+	class="relative h-[2.0625rem] w-[2.0625rem] shrink-0 cursor-pointer rounded-lg hover:bg-gray-700"
 	type="button"
 	disabled={globalState.uiState.isTourActive}
 	aria-label={$LL.editor.advancedOptions()}
@@ -85,7 +85,7 @@
 	aria-haspopup="dialog"
 	aria-expanded={showToolsPopover}
 >
-	<span class="material-icons pt-2">construction</span>
+	<span class="material-icons pt-1.5 text-[1.125rem]">construction</span>
 	{#if showToolsPopover}
 		<div
 			id="tools-popover"

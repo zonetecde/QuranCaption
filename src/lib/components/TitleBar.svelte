@@ -140,10 +140,10 @@
 	.mobile-app-bar {
 		position: relative;
 		display: flex;
-		min-height: calc(2.75rem + env(safe-area-inset-top));
+		min-height: calc(2.0625rem + env(safe-area-inset-top));
 		align-items: center;
-		gap: 0.25rem;
-		padding: env(safe-area-inset-top) 0.5rem 0;
+		gap: 0.125rem;
+		padding: env(safe-area-inset-top) 0.375rem 0;
 		background:
 			linear-gradient(
 				90deg,
@@ -158,49 +158,53 @@
 
 	.app-bar-button {
 		display: flex;
-		width: 2.75rem;
-		height: 2.75rem;
-		flex: 0 0 2.75rem;
+		width: 2.0625rem;
+		height: 2.0625rem;
+		flex: 0 0 2.0625rem;
 		align-items: center;
 		justify-content: center;
-		border-radius: 0.75rem;
+		border-radius: 0.5625rem;
 		color: var(--text-primary);
 		transition: background-color 120ms ease;
 	}
 
+	.app-bar-button .material-icons {
+		font-size: 1.125rem;
+	}
+
 	.app-bar-logo {
 		display: flex;
-		width: 2.75rem;
-		height: 2.75rem;
-		flex: 0 0 2.75rem;
+		width: 2.0625rem;
+		height: 2.0625rem;
+		flex: 0 0 2.0625rem;
 		align-items: center;
 		justify-content: center;
 	}
 
 	.app-bar-logo img {
-		width: 2rem;
-		height: 2rem;
-		border-radius: 0.6rem;
+		width: 1.5rem;
+		height: 1.5rem;
+		border-radius: 0.45rem;
 		box-shadow: 0 3px 10px rgb(0 0 0 / 18%);
 	}
 
 	.app-bar-title {
 		position: absolute;
-		top: calc(env(safe-area-inset-top) + 1.375rem);
+		top: calc(env(safe-area-inset-top) + 1.03125rem);
 		left: 50%;
-		width: calc(100% - 14.25rem);
+		width: calc(100% - 13.75rem);
 		transform: translate(-50%, -50%);
 		pointer-events: none;
 	}
 
 	.app-bar-title-text {
-		font-size: 0.9rem;
+		font-size: 0.675rem;
 		font-weight: 650;
 		letter-spacing: -0.01em;
 	}
 
 	.app-bar-brand-title {
-		font-size: 1.05rem;
+		font-size: 0.7875rem;
 		font-weight: 800;
 		letter-spacing: -0.025em;
 	}
@@ -222,15 +226,15 @@
 		top: 0.2rem;
 		right: 0.15rem;
 		display: flex;
-		min-width: 1.15rem;
-		height: 1.15rem;
+		min-width: 0.8625rem;
+		height: 0.8625rem;
 		align-items: center;
 		justify-content: center;
 		border-radius: 9999px;
-		padding: 0 0.25rem;
+		padding: 0 0.1875rem;
 		background: var(--accent-primary);
 		color: white;
-		font-size: 0.65rem;
+		font-size: 0.5rem;
 		font-weight: 700;
 	}
 </style>

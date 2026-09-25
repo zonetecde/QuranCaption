@@ -50,3 +50,4 @@ __screenshots__
 .opencode
 
 src-tauri/gen/android/*
+/src-tauri/plugins/android-media/

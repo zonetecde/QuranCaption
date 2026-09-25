@@ -26,7 +26,7 @@ describe('RTL interface regressions', () => {
 		expect(appCss).toContain("html[lang='ar']");
 		expect(appCss).toContain("--font-ui: 'Zain', sans-serif;");
 		expect(appCss).toContain("--font-sans: 'Zain', sans-serif;");
-		expect(appCss).toContain(".arabic {\n\tfont-family: 'Hafs', sans-serif;");
+		expect(appCss).toMatch(/\.arabic \{\r?\n\tfont-family: 'Hafs', sans-serif;/);
 	});
 
 	test('mirrors project card editing and status interactions', () => {

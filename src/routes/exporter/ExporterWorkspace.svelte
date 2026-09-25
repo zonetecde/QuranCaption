@@ -19,6 +19,7 @@
 	} from '@tauri-apps/plugin-fs';
 	import { appDataDir, join } from '@tauri-apps/api/path';
 	import ExportService, { type ExportProgress } from '$lib/services/ExportService';
+	import { releaseExportScreenshotResources } from '$lib/services/ExportScreenshotResources';
 	import {
 		buildBlurSegmentsForRange,
 		excludeTimeRanges,
@@ -2746,6 +2747,8 @@
 				const restoreSystemFonts = await QPCFontProvider.applySystemFontSubsetsForScreenshot(node);
 				const fontSubsetMs = performance.now() - fontSubsetStartedAt;
 				let blob: Blob | null = null;
+				let canvas: HTMLCanvasElement | null = null;
+				let context: ScreenshotContext<HTMLElement> | null = null;
 				let contextMs = 0;
 				let domCaptureMs = 0;
 				let cloneMs = 0;
@@ -2754,7 +2757,7 @@
 				let pngEncodeMs = 0;
 				try {
 					const contextStartedAt = performance.now();
-					const context = await getReusableScreenshotContext(
+					context = await getReusableScreenshotContext(
 						node,
 						node.clientWidth * scale,
 						node.clientHeight * scale,
@@ -2771,7 +2774,7 @@
 					};
 					const domCaptureStartedAt = performance.now();
 					const rasterStartedAt = performance.now();
-					const canvas = await withScreenshotTimeout(domToCanvas(context));
+					canvas = await withScreenshotTimeout(domToCanvas(context));
 					rasterMs = performance.now() - rasterStartedAt;
 					const pngEncodeStartedAt = performance.now();
 					blob = await withScreenshotTimeout(encodeScreenshotCanvasAsPng(canvas));
@@ -2780,6 +2783,7 @@
 					cloneMs = screenshotDomPhases.cloneMs;
 					embedMs = screenshotDomPhases.embedMs;
 				} finally {
+					releaseExportScreenshotResources(canvas, context);
 					restoreSystemFonts();
 				}
 
@@ -2794,6 +2798,7 @@
 				const writeMs = performance.now() - writeStartedAt;
 				const totalMs = performance.now() - screenshotStartedAt;
 				screenshotPerformance.count += 1;
+				if (screenshotPerformance.count % 16 === 0) destroyReusableScreenshotContext();
 				screenshotPerformance.totalMs += totalMs;
 				screenshotPerformance.maxMs = Math.max(screenshotPerformance.maxMs, totalMs);
 				screenshotPerformance.contextMs += contextMs;

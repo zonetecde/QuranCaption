@@ -2746,6 +2746,23 @@
 				const fontSubsetStartedAt = performance.now();
 				const restoreSystemFonts = await QPCFontProvider.applySystemFontSubsetsForScreenshot(node);
 				const fontSubsetMs = performance.now() - fontSubsetStartedAt;
+				const fontImportStylesheets: { sheet: CSSStyleSheet; ruleCount: number }[] = [];
+				for (const sheet of Array.from(document.styleSheets)) {
+					try {
+						for (let index = 0; index < sheet.cssRules.length; index++) {
+							const rule = sheet.cssRules[index];
+							if (
+								rule instanceof CSSImportRule &&
+								rule.href.startsWith('https://fonts.googleapis.com/')
+							) {
+								fontImportStylesheets.push({ sheet, ruleCount: sheet.cssRules.length });
+								break;
+							}
+						}
+					} catch {
+						// Les feuilles externes peuvent refuser l'accès à leurs règles CSS.
+					}
+				}
 				let blob: Blob | null = null;
 				let canvas: HTMLCanvasElement | null = null;
 				let context: ScreenshotContext<HTMLElement> | null = null;
@@ -2785,6 +2802,10 @@
 				} finally {
 					releaseExportScreenshotResources(canvas, context);
 					restoreSystemFonts();
+					// modern-screenshot ajoute les règles importées à la feuille du document à chaque capture.
+					for (const { sheet, ruleCount } of fontImportStylesheets) {
+						while (sheet.cssRules.length > ruleCount) sheet.deleteRule(sheet.cssRules.length - 1);
+					}
 				}
 
 				const blobReadStartedAt = performance.now();

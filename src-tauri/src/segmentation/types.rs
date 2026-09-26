@@ -24,7 +24,7 @@ pub const QURAN_SEGMENTATION_MOCK_PAYLOAD: &str = r#"
 "#;
 
 /// Clip audio transmis par le frontend pour une segmentation avec merge temporel.
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SegmentationAudioClip {
     /// Chemin du fichier audio.
@@ -152,11 +152,11 @@ impl LocalSegmentationEngine {
             Self::QuranWordTiming => &[
                 "numpy",
                 "librosa",
-                "pyloudnorm",
                 "onnxruntime",
                 "kaldi_native_fbank",
-                "sherpa_onnx",
-                "qua_sdk",
+                "numba",
+                "soundfile",
+                "scipy",
             ],
         }
     }

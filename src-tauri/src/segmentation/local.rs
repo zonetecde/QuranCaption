@@ -502,7 +502,8 @@ pub async fn segment_quran_audio_local_word_timing(
     min_speech_ms: Option<u32>,
     pad_ms: Option<u32>,
 ) -> Result<serde_json::Value, String> {
-    let extra_args = Vec::new();
+    let mut extra_args = Vec::new();
+    extra_args.push("--fast".to_string());
 
     run_local_segmentation_script(
         app_handle,

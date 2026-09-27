@@ -14,7 +14,6 @@ from config import (
     CTC_BLANK_PENALTY,
     LOOKAHEAD_OFFSET_FRAMES,
 )
-import config as _cfg
 from src.models import PhonemeToken
 
 logger = logging.getLogger(__name__)
@@ -121,7 +120,6 @@ class CtcViterbiAligner:
         logprobs_matrix: Optional[np.ndarray],
         num_frames: Optional[int] = None,
         custom_blank_id: Optional[int] = None,
-        pause_timestamps: Optional[List[float]] = None,
     ) -> List[PhonemeToken]:
         if not target_phonemes:
             return []
@@ -143,7 +141,9 @@ class CtcViterbiAligner:
                 PhonemeToken(
                     phoneme=p.phoneme, start=p.start, end=p.end, confidence=p.confidence,
                     is_recovered=p.is_recovered, start_frame=p.start_frame,
-                    end_frame=p.end_frame, peak_frame=p.peak_frame, peak_timestamp=p.peak_timestamp
+                    end_frame=p.end_frame, peak_frame=p.peak_frame, peak_timestamp=p.peak_timestamp,
+                    raw_start=p.raw_start if p.raw_start is not None else p.start,
+                    raw_end=p.raw_end if p.raw_end is not None else p.end,
                 )
                 for p in target_phonemes
             ]
@@ -269,18 +269,7 @@ class CtcViterbiAligner:
 
         token_starts = np.zeros(n, dtype=np.float64)
         token_ends = np.zeros(n, dtype=np.float64)
-
-        # Acoustic silence preservation settings
-        _trim = getattr(_cfg, "ENABLE_ACOUSTIC_SILENCE_PRESERVATION", False)
-        _min_gap = getattr(_cfg, "MIN_SILENCE_GAP_FRAMES", 12)
-        _onset_pad = getattr(_cfg, "PHONEME_ONSET_PAD_FRAMES", 7.5)
-        _offset_pad = getattr(_cfg, "PHONEME_OFFSET_PAD_FRAMES", 2.5)
-
-        # Anchor first phoneme: use actual speech onset with onset padding to capture consonant attack
-        if _trim and raw_starts[0] != -1:
-            token_starts[0] = max(0.0, float(raw_starts[0]) - _onset_pad)
-        else:
-            token_starts[0] = 0.0
+        token_starts[0] = 0.0
 
         for k in range(1, n):
             if raw_starts[k] == -1:
@@ -291,41 +280,27 @@ class CtcViterbiAligner:
                 token_starts[k] = token_ends[k - 1]
                 continue
 
-            if raw_starts[k] <= raw_ends[k - 1]:
+            gap_start = int(raw_ends[k - 1] + 1)
+            gap_end = int(raw_starts[k] - 1)
+
+            if gap_end < gap_start:
                 token_ends[k - 1] = float(raw_starts[k])
                 token_starts[k] = float(raw_starts[k])
                 continue
 
-            gap_frames = raw_starts[k] - raw_ends[k - 1]
-            lookahead = LOOKAHEAD_OFFSET_FRAMES
+            prev_tok = int(token_ids[k - 1])
+            curr_tok = int(token_ids[k])
+            crossover = gap_start
+            for t in range(gap_start, gap_end + 1):
+                if lp[t, curr_tok] >= lp[t, prev_tok]:
+                    crossover = t
+                    break
 
-            # Check if a REAL acoustic silence pause (from VAD) falls in this gap
-            t_gap_start = (raw_ends[k - 1] - lookahead) * cls.frame_step
-            t_gap_end = (raw_starts[k] - lookahead) * cls.frame_step
+            token_ends[k - 1] = float(crossover)
+            token_starts[k] = float(crossover)
 
-            if pause_timestamps is not None and len(pause_timestamps) > 0:
-                is_true_pause = any(t_gap_start - 0.10 <= p <= t_gap_end + 0.10 for p in pause_timestamps) or (gap_frames >= 45)
-            else:
-                is_true_pause = (gap_frames >= 40)
-
-            if _trim and is_true_pause and gap_frames >= _min_gap:
-                # Genuine breath pause (Waqf) detected by VAD & CTC Trellis — preserve silence
-                token_ends[k - 1] = min(float(raw_starts[k]), float(raw_ends[k - 1]) + _offset_pad)
-                token_starts[k] = max(float(token_ends[k - 1]), float(raw_starts[k]) - _onset_pad)
-            else:
-                # Continuous speech transition (Wasl, Ghunnah, stop consonants, Madd)
-                # In continuous speech, token k-1 has finished its vowel/consonant at raw_ends[k-1].
-                # Any subsequent acoustic energy (Ghunnah, Tashdeed closure, vowel onset) belongs to token k!
-                boundary = float(raw_ends[k - 1])
-                token_ends[k - 1] = boundary
-                token_starts[k] = boundary
-
-        # Anchor last phoneme: use actual speech offset instead of absorbing post-speech silence
         if n > 0:
-            if _trim and raw_ends[n - 1] != -1:
-                token_ends[n - 1] = min(float(total_frames), float(raw_ends[n - 1]) + _offset_pad)
-            else:
-                token_ends[n - 1] = float(total_frames)
+            token_ends[n - 1] = float(total_frames)
 
         lookahead = LOOKAHEAD_OFFSET_FRAMES
         aligned: List[PhonemeToken] = []
@@ -349,6 +324,8 @@ class CtcViterbiAligner:
                     end_frame=int(round(e_frame)),
                     peak_frame=int(peak_frames[i]),
                     peak_timestamp=round(pk_sec, 3),
+                    raw_start=target_phonemes[i].raw_start if target_phonemes[i].raw_start is not None else target_phonemes[i].start,
+                    raw_end=target_phonemes[i].raw_end if target_phonemes[i].raw_end is not None else target_phonemes[i].end,
                 )
             )
 

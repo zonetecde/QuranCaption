@@ -6,16 +6,22 @@ Runs the offline Zipformer-v3 Quran Recitation alignment engine
 and outputs normalized QuranCaption segment JSON with relative word timings to stdout.
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+import numpy as np
 
 if sys.platform == "win32":
-    sys.stdout.reconfigure(encoding="utf-8")
-    sys.stderr.reconfigure(encoding="utf-8")
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 SCRIPT_DIR = Path(__file__).parent.absolute()
 ENGINE_DIR = SCRIPT_DIR / "quran_recite_to_text"
@@ -24,19 +30,109 @@ if str(ENGINE_DIR) not in sys.path:
     sys.path.insert(0, str(ENGINE_DIR))
 
 
+def get_hardware_topology() -> Tuple[int, int]:
+    """Detects physical and logical CPU cores for optimal parallel execution.
+
+    @returns {Tuple[int, int]} Tuple of (physical_cores, logical_cores).
+    """
+    try:
+        import psutil
+        phys = psutil.cpu_count(logical=False) or 4
+        log = psutil.cpu_count(logical=True) or 8
+    except Exception:
+        log = os.cpu_count() or 4
+        phys = max(1, log // 2)
+    return phys, log
+
+
+def resolve_concurrency(
+    fast: bool,
+    user_workers: Optional[int],
+    user_threads: Optional[int],
+) -> Tuple[int, int]:
+    """Resolves optimal (workers, threads) based on hardware topology and CLI flags.
+
+    @param {bool} fast - Whether fast parallel mode is enabled.
+    @param {Optional[int]} user_workers - Optional user-specified segment worker count.
+    @param {Optional[int]} user_threads - Optional user-specified ONNX thread count.
+    @returns {Tuple[int, int]} Tuple of resolved (workers, threads).
+    """
+    phys, log = get_hardware_topology()
+    if fast:
+        # Fast mode: scale workers to physical cores (capped at 8), use 2 threads when SMT is available
+        opt_workers = min(max(1, phys), 8)
+        opt_threads = 2 if log >= (opt_workers * 2) else (2 if phys <= 4 else 1)
+        workers = user_workers if user_workers is not None else opt_workers
+        threads = user_threads if user_threads is not None else opt_threads
+    else:
+        workers = user_workers if user_workers is not None else 1
+        if user_threads is not None:
+            threads = user_threads
+        else:
+            threads = 2 if workers <= 4 else 1
+    return workers, threads
+
+
+def load_audio_slice(
+    file_path: str,
+    start_s: float = 0.0,
+    duration_s: Optional[float] = None,
+    sample_rate: int = 16000,
+) -> np.ndarray:
+    """Fast-seek audio decoding for timeline slices without decoding entire file.
+
+    @param {str} file_path - Path to the audio file.
+    @param {float} start_s - Start offset in seconds.
+    @param {Optional[float]} duration_s - Duration in seconds to extract.
+    @param {int} sample_rate - Desired audio sampling rate in Hz.
+    @returns {np.ndarray} Decoded PCM audio samples as 1D float32 array.
+    """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Audio file not found: {file_path}")
+
+    # 1. Primary: Streaming FFmpeg sub-range decode (~0.05s)
+    try:
+        import subprocess
+        cmd = ['ffmpeg', '-hide_banner', '-loglevel', 'error']
+        if start_s > 0:
+            cmd.extend(['-ss', f"{start_s:.3f}"])
+        if duration_s is not None and duration_s > 0:
+            cmd.extend(['-t', f"{duration_s:.3f}"])
+        cmd.extend([
+            '-i', file_path,
+            '-vn', '-sn', '-dn',
+            '-f', 'f32le', '-ac', '1', '-ar', str(sample_rate), '-'
+        ])
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        out, _ = proc.communicate()
+        if proc.returncode == 0 and len(out) > 0:
+            return np.frombuffer(out, dtype=np.float32)
+    except Exception:
+        pass
+
+    # 2. Fallback: In-process full decode with numpy slice
+    from src.audio import AudioDecoder
+    full_audio = AudioDecoder.load_audio_file(file_path, sample_rate=sample_rate)
+    start_sample = max(0, int(round(start_s * sample_rate)))
+    if duration_s is not None and duration_s > 0:
+        end_sample = min(len(full_audio), start_sample + int(round(duration_s * sample_rate)))
+    else:
+        end_sample = len(full_audio)
+    return full_audio[start_sample:end_sample]
+
+
 def emit_status_to_stderr(
     original_stderr_file,
     step: str,
     message: str,
     progress: Optional[float | int] = None,
 ) -> None:
-    """
-    Write a structured status update to the original stderr stream.
+    """Write a structured status update to the original stderr stream.
 
-    :param original_stderr_file: Output file handle for stderr.
-    :param step: Step identifier (e.g. 'loading', 'transcribing', 'complete').
-    :param message: Human-readable status description.
-    :param progress: Progress percentage between 0 and 100.
+    @param {Any} original_stderr_file - Output file handle for stderr.
+    @param {str} step - Step identifier (e.g. 'loading', 'transcribing', 'complete').
+    @param {str} message - Human-readable status description.
+    @param {Optional[float | int]} progress - Progress percentage between 0 and 100.
     """
     try:
         data: Dict[str, Any] = {"step": step, "message": message}
@@ -54,14 +150,13 @@ def adapt_pipeline_result_to_qurancaption(
     offset_s: float = 0.0,
     start_segment_idx: int = 1,
 ) -> List[Dict[str, Any]]:
-    """
-    Transforms hierarchical Zipformer pipeline results into QuranCaption's
+    """Transforms hierarchical Zipformer pipeline results into QuranCaption's
     expected flat segment list with relative word timestamps.
 
-    :param pipeline_result: PipelineResult instance from AudioPipeline.
-    :param offset_s: Global time offset in seconds for regional alignment.
-    :param start_segment_idx: Starting index for segment numbering.
-    :return: List of segment dictionaries matching QuranCaption schema.
+    @param {Any} pipeline_result - PipelineResult instance from AudioPipeline.
+    @param {float} offset_s - Global time offset in seconds for regional alignment.
+    @param {int} start_segment_idx - Starting index for segment numbering.
+    @returns {List[Dict[str, Any]]} List of segment dictionaries matching QuranCaption schema.
     """
     segments: List[Dict[str, Any]] = []
     current_idx = start_segment_idx
@@ -108,7 +203,7 @@ def adapt_pipeline_result_to_qurancaption(
         })
         current_idx += 1
 
-    # 2. Handle Ayahs and their segments
+    # 2. Handle Ayahs and their subsegments
     for seg in pipeline_segments:
         surah_num = getattr(seg, "surah_number", 1)
         if callable(getattr(seg, "to_dict", None)):
@@ -203,18 +298,23 @@ def adapt_pipeline_result_to_qurancaption(
 def main() -> int:
     parser = argparse.ArgumentParser(description="Local WordTiming Quran Segmenter")
     parser.add_argument("audio_path", help="Path to the input audio file")
-    parser.add_argument("--min-silence-ms", type=int, default=200)
-    parser.add_argument("--min-speech-ms", type=int, default=1000)
-    parser.add_argument("--pad-ms", type=int, default=100)
-    parser.add_argument("--fast", action="store_true", help="Enable parallel transcription")
-    parser.add_argument("--workers", type=int, default=None, help="Parallel CPU workers count")
+    parser.add_argument("--fast", action="store_true", default=True, help="Auto-configure top-speed parallel workers and threads for this CPU (default: True)")
+    parser.add_argument("--no-fast", dest="fast", action="store_false", help="Disable fast parallel mode")
+    parser.add_argument("--threads", type=int, default=None, help="ONNX execution threads (default: auto/2)")
+    parser.add_argument("--workers", type=int, default=None, help="Parallel CPU workers count (default: auto in fast mode)")
+    parser.add_argument("--min-silence-ms", type=int, default=200, help="Minimum silence pause threshold in ms")
+    parser.add_argument("--min-speech-ms", type=int, default=1000, help="Minimum speech duration in ms")
+    parser.add_argument("--pad-ms", type=int, default=100, help="Padding in ms")
     parser.add_argument("--timeline-clips-json", help="JSON array of timeline audio clips for in-memory slicing")
     parser.add_argument("--audio-regions-ms", help="JSON timeline regions to align independently")
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
 
-    workers = args.workers if args.workers is not None else 1
-    threads = 1 if workers > 1 else 2
+    workers, threads = resolve_concurrency(
+        fast=args.fast,
+        user_workers=args.workers,
+        user_threads=args.threads,
+    )
     os.environ["ONNX_SEGMENT_WORKERS"] = str(workers)
     os.environ["OMP_NUM_THREADS"] = str(threads)
     os.environ["ONNX_NUM_THREADS"] = str(threads)
@@ -280,7 +380,7 @@ def main() -> int:
                     f"Decoding audio clip {clip_idx + 1}/{total_clips}...",
                     progress=15,
                 )
-                clip_pcm = AudioDecoder.load_audio_slice(
+                clip_pcm = load_audio_slice(
                     clip_path,
                     start_s=source_start_s,
                     duration_s=duration_s if duration_s > 0 else None,
@@ -314,7 +414,7 @@ def main() -> int:
                     f"Decoding audio region {region_index + 1}/{len(regions)}...",
                     progress=15,
                 )
-                region_pcm = AudioDecoder.load_audio_slice(
+                region_pcm = load_audio_slice(
                     args.audio_path,
                     start_s=start_s,
                     duration_s=duration_s,
@@ -379,4 +479,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

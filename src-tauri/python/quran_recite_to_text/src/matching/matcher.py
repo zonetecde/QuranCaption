@@ -19,6 +19,7 @@ import config
 from config import DEFAULT_QURAN_PHONEMES_PATH
 from src.models import (
     PhonemeToken,
+    PauseInterval,
     QuranWord,
     QuranSegment,
     AyahSubSegment,
@@ -30,7 +31,7 @@ from src.matching.phonetics import (
 )
 from src.matching.kernels import _global_viterbi_fast
 from src.matching.reference import RefWord, SurahReferenceData
-from src.matching.detector import SurahDetector, find_near_matches
+from src.matching.detector import SurahDetector, SurahDetectionResult, find_near_matches
 
 logger = logging.getLogger(__name__)
 
@@ -48,19 +49,17 @@ class MatcherConfig:
     acoustic_confusion_cost: float = getattr(config, "ACOUSTIC_CONFUSION_COST", 0.25)
     wrap_penalty: float = getattr(config, "WRAP_PENALTY", 0.80)
     wrap_span_weight: float = getattr(config, "WRAP_SPAN_WEIGHT", 0.05)
+    min_word_coverage: float = getattr(config, "MIN_WORD_COVERAGE", 0.35)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 2. WORD & SEGMENT BUILDERS
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def _build_qword(
-    rw: RefWord,
-    tokens: List[PhonemeToken],
-    score: float,
-    all_passes: Optional[List[Dict[str, Any]]] = None,
-) -> QuranWord:
-    """Creates a unified QuranWord instance with phoneme breakdown and multi-pass support."""
+def _build_qword(rw: RefWord, tokens: List[PhonemeToken], score: float) -> QuranWord:
+    """Creates a unified QuranWord instance with phoneme breakdown and raw ASR bounds."""
+    r_start = tokens[0].raw_start if tokens[0].raw_start is not None else tokens[0].start
+    r_end = tokens[-1].raw_end if tokens[-1].raw_end is not None else tokens[-1].end
     return QuranWord(
         word=rw.uthmani,
         location=rw.location,
@@ -69,65 +68,9 @@ def _build_qword(
         end=round(tokens[-1].end, 2),
         score=round(score, 2),
         phonemes=[t.to_dict() for t in tokens],
-        all_passes=all_passes,
+        raw_start=round(r_start, 3),
+        raw_end=round(r_end, 3),
     )
-
-
-def _build_unaligned_qword(rw: RefWord) -> QuranWord:
-    """Creates an explicit unaligned placeholder for an elided/dropped word."""
-    return QuranWord(
-        word=rw.uthmani,
-        location=rw.location,
-        ref=rw.phoneme,
-        start=None,
-        end=None,
-        score=0.0,
-        phonemes=[],
-        all_passes=None,
-    )
-
-
-def _bridge_unaligned_words(words: List[QuranWord], seg_start: float, seg_end: float) -> None:
-    """Bridges unaligned words (start=None) to surrounding word boundaries in-place."""
-    n = len(words)
-    i = 0
-    while i < n:
-        if words[i].start is not None:
-            i += 1
-            continue
-
-        j = i
-        while j < n and words[j].start is None:
-            j += 1
-        count = j - i
-
-        left = words[i - 1].end if (i > 0 and words[i - 1].end is not None) else None
-        right = words[j].start if (j < n and words[j].start is not None) else None
-
-        if left is not None and right is not None:
-            gap = right - left
-            t_start, dur = left, (gap if gap >= 0.04 * count else 0.06 * count)
-        elif right is not None:
-            t_start, dur = max(0.0, right - 0.12 * count), 0.12 * count
-        else:
-            t_start, dur = (left if left is not None else seg_start), 0.15 * count
-
-        weights = [max(1, len(words[k].ref or words[k].word)) for k in range(i, j)]
-        total_weight = sum(weights)
-        curr = t_start
-        for k in range(i, j):
-            w_dur = dur * (weights[k - i] / total_weight)
-            w_start = round(curr, 2)
-            w_end = round(curr + w_dur, 2)
-            if w_end <= w_start:
-                w_end = round(w_start + 0.05, 2)
-            words[k].start = w_start
-            words[k].end = w_end
-            words[k].is_interpolated = True
-            curr += w_dur
-
-        i = j
-
 
 
 def _align_and_package_ayahs(
@@ -137,6 +80,7 @@ def _align_and_package_ayahs(
     target_end_ayah: Optional[int] = None,
     matcher_cfg: Optional[MatcherConfig] = None,
     pause_timestamps: Optional[List[float]] = None,
+    pause_intervals: Optional[List[PauseInterval]] = None,
 ) -> List[QuranSegment]:
     """Aligns speech tokens against Surah reference using JumpDTW Dynamic Programming."""
     if not aligned_tokens or ref_data.num_words == 0:
@@ -163,7 +107,7 @@ def _align_and_package_ayahs(
         target_end_word = ref_data.ayah_to_words[target_end_ayah][-1].global_index + 1
         win_end = min(word_count, max(min_required_end, target_end_word + 30))
     else:
-        win_end = word_count
+        win_end = min(word_count, min_required_end)
 
     p_start = ref_data.word_boundaries[win_start]
     p_end = ref_data.word_boundaries[win_end] if win_end < word_count else len(ref_data.full_phonemes)
@@ -223,11 +167,40 @@ def _align_and_package_ayahs(
     if curr_w >= 0 and span_s >= 0:
         word_passes.append((curr_w, span_s, m))
 
+    min_cov = getattr(cfg, "min_word_coverage", getattr(config, "MIN_WORD_COVERAGE", 0.35))
+
     for w, s_char, e_char in word_passes:
         if e_char > s_char:
             t_s = char_to_tok[s_char]
             t_e = char_to_tok[e_char]
-            if t_e > t_s:
+            if t_e > t_s and 0 <= w < word_count:
+                rw = ref_data.words[w]
+                ref_len = len(rw.phoneme)
+
+                # Reference boundary for word w within the current sub_r_str window
+                w_j_start = ref_data.word_boundaries[w] - p_start
+                w_j_end = ref_data.word_boundaries[w + 1] - p_start
+
+                # Count unique reference phoneme positions covered in this pass
+                covered_j = set()
+                for i in range(s_char, e_char):
+                    j = int(char_j_map[i])
+                    if w_j_start <= j < w_j_end:
+                        covered_j.add(j)
+
+                ref_covered = len(covered_j)
+                coverage = ref_covered / max(1, ref_len)
+
+                # Pure coverage guard (no confidence check, robust to noisy/fast ASR):
+                # 1. Short words (<= 2 chars like "وَ", "فَ") require at least 1 covered char.
+                # 2. Longer words (>= 3 chars) require at least 2 covered chars AND coverage >= min_cov.
+                if ref_len <= 2:
+                    if ref_covered < 1:
+                        continue
+                else:
+                    if ref_covered < 2 or coverage < min_cov:
+                        continue
+
                 w_toks = aligned_tokens[t_s:t_e]
                 matched_word_tokens[w].append(w_toks)
                 w_conf = sum(t.confidence for t in w_toks) / len(w_toks)
@@ -252,46 +225,23 @@ def _align_and_package_ayahs(
 
         qwords: List[QuranWord] = []
         has_repeated = False
-        has_any_match = False
 
         for rw in ay_words:
             w_idx = rw.global_index
             passes = matched_word_tokens.get(w_idx)
             if passes:
-                has_any_match = True
-                multi_passes = None
                 if len(passes) > 1:
                     has_repeated = True
-                    multi_passes = [
-                        {
-                            "pass_number": p_idx + 1,
-                            "start": float(round(p[0].start, 2)),
-                            "end": float(round(p[-1].end, 2)),
-                            "score": float(round(sum(t.confidence for t in p) / len(p), 2)),
-                        }
-                        for p_idx, p in enumerate(passes)
-                    ]
                 chosen_pass = passes[-1]
                 score = matched_word_scores.get(w_idx, 1.0)
-                qwords.append(_build_qword(rw, chosen_pass, score, all_passes=multi_passes))
-            else:
-                qwords.append(_build_unaligned_qword(rw))
+                qwords.append(_build_qword(rw, chosen_pass, score))
 
-        if not has_any_match:
+        if not qwords:
             continue
-
-        all_ay_passes = [p for rw in ay_words for p in matched_word_tokens.get(rw.global_index, []) if p]
-        seg_start = min(p[0].start for p in all_ay_passes)
-        seg_end = max(p[-1].end for p in all_ay_passes)
-
-        if getattr(config, "ENABLE_WORD_TIMING_BRIDGE", True):
-            _bridge_unaligned_words(qwords, seg_start=seg_start, seg_end=seg_end)
 
         sub_segments: Optional[List[AyahSubSegment]] = None
         repeated_ranges: Optional[List[str]] = None
         repeated_text: Optional[List[str]] = None
-
-        matched_words = [w for w in qwords if w.start is not None]
 
         # Tier 1: Group word instances into passes (repetition tracking)
         passes: List[Tuple[List[QuranWord], bool]] = []
@@ -300,22 +250,10 @@ def _align_and_package_ayahs(
             all_word_instances = []
             for rw in ay_words:
                 w_idx = rw.global_index
-                passes_w = matched_word_tokens.get(w_idx, [])
-                multi_passes = None
-                if len(passes_w) > 1:
-                    multi_passes = [
-                        {
-                            "pass_number": p_idx + 1,
-                            "start": float(round(p[0].start, 2)),
-                            "end": float(round(p[-1].end, 2)),
-                            "score": float(round(sum(t.confidence for t in p) / len(p), 2)),
-                        }
-                        for p_idx, p in enumerate(passes_w)
-                    ]
-                for p in passes_w:
+                for p in matched_word_tokens.get(w_idx, []):
                     if p:
                         score = matched_word_scores.get(w_idx, 1.0)
-                        all_word_instances.append((w_idx, _build_qword(rw, p, score, all_passes=multi_passes)))
+                        all_word_instances.append((w_idx, _build_qword(rw, p, score)))
 
             all_word_instances.sort(key=lambda x: x[1].start or 0.0)
 
@@ -332,11 +270,13 @@ def _align_and_package_ayahs(
             if current_pass:
                 passes.append((current_pass, len(passes) > 0))
         else:
-            passes = [(matched_words, False)]
+            passes = [(qwords, False)]
 
         # Tier 2: Split passes on Phase 1 pauses with 'Never Cut Word' geometric validation
         sub_segs_list: List[AyahSubSegment] = []
         pauses = pause_timestamps or []
+        intervals = pause_intervals or []
+        min_sub_pause = getattr(config, "SUBSEGMENT_MIN_PAUSE_S", 0.20)
 
         def _build_sub(pass_words: List[QuranWord], is_rep: bool) -> AyahSubSegment:
             sub_asr = " ".join("".join(p.get("phoneme", "") for p in (w.phonemes or [])) for w in pass_words if w.phonemes)
@@ -350,16 +290,74 @@ def _align_and_package_ayahs(
                 words=pass_words,
             )
 
+        def _find_pause_cut(w_prev: QuranWord, w_curr: QuranWord) -> Optional[float]:
+            # Raw ASR bounds (before forced alignment) where acoustic pauses actually sit in <blank> frames
+            w_prev_raw_e = w_prev.raw_end if w_prev.raw_end is not None else (w_prev.end or 0.0)
+            w_curr_raw_s = w_curr.raw_start if w_curr.raw_start is not None else (w_curr.start or 0.0)
+
+            w_prev_s = w_prev.start or 0.0
+            w_prev_e = w_prev.end or 0.0
+            w_curr_s = w_curr.start or 0.0
+            w_curr_e = w_curr.end or 0.0
+
+            mid_prev = (w_prev_s + w_prev_e) / 2.0
+            mid_curr = (w_curr_s + w_curr_e) / 2.0
+            if mid_curr <= mid_prev:
+                return None
+
+            if intervals:
+                for p in intervals:
+                    if p.duration_sec < min_sub_pause:
+                        continue
+                    cut = p.optimal_cut_point
+
+                    # 1. Primary check using raw CTC ASR time before forced alignment:
+                    # In raw ASR time, w_prev_raw_e is when speech stopped and w_curr_raw_s is when speech started.
+                    # The pause valley 'cut' sits cleanly between the two raw speech emissions.
+                    if (w_prev_raw_e - 0.08) <= cut <= (w_curr_raw_s + 0.08) and (mid_prev < cut < mid_curr):
+                        return cut
+
+                    # 2. Interval overlap check in raw ASR time:
+                    # Pause interval begins after w_prev raw speech and ends before w_curr raw speech
+                    if (p.start_sec >= w_prev_raw_e - 0.12) and (p.end_sec <= w_curr_raw_s + 0.12):
+                        if mid_prev < cut < mid_curr:
+                            return cut
+
+                    # 3. Geometric fallback: cut point sits safely between the word boundaries
+                    if cut > (w_prev_s + 0.04) and cut < (w_curr_e - 0.04) and (mid_prev < cut < mid_curr):
+                        if (p.start_sec - 0.15) <= w_prev_e and (p.end_sec + 0.15) >= w_curr_s:
+                            return cut
+            elif pauses:
+                for pt in pauses:
+                    if (w_prev_raw_e - 0.08) <= pt <= (w_curr_raw_s + 0.08) and (mid_prev < pt < mid_curr):
+                        return pt
+                    if mid_prev < pt < mid_curr and pt > (w_prev_s + 0.04) and pt < (w_curr_e - 0.04):
+                        return pt
+
+            return None
+
         for pass_words, is_rep in passes:
             current_chunk: List[QuranWord] = []
             for w in pass_words:
                 if current_chunk:
                     prev_w = current_chunk[-1]
-                    min_p = (prev_w.end or 0.0) - 0.15
-                    c_curr = ((w.start or 0.0) + (w.end or 0.0)) / 2.0
+                    cut = _find_pause_cut(prev_w, w)
+                    if cut is not None:
+                        # Snap acoustic boundary cleanly to the silence cut point
+                        if prev_w.end and prev_w.end > cut:
+                            prev_w.end = round(cut, 2)
+                            if prev_w.phonemes:
+                                prev_w.phonemes[-1]["end"] = round(cut, 2)
+                                if prev_w.phonemes[-1]["start"] >= prev_w.end:
+                                    prev_w.phonemes[-1]["start"] = max(prev_w.start or 0.0, round(prev_w.end - 0.04, 2))
 
-                    p_idx = bisect.bisect_left(pauses, min_p)
-                    if p_idx < len(pauses) and pauses[p_idx] < c_curr:
+                        if w.start and w.start < cut:
+                            w.start = round(cut, 2)
+                            if w.phonemes:
+                                w.phonemes[0]["start"] = round(cut, 2)
+                                if w.phonemes[0]["end"] <= w.start:
+                                    w.phonemes[0]["end"] = min(w.end or 999999.0, round(w.start + 0.04, 2))
+
                         sub_segs_list.append(_build_sub(current_chunk, is_rep))
                         current_chunk = []
 
@@ -368,11 +366,14 @@ def _align_and_package_ayahs(
             if current_chunk:
                 sub_segs_list.append(_build_sub(current_chunk, is_rep))
 
-        if sub_segs_list:
+        if len(sub_segs_list) > 1 or has_repeated:
             sub_segments = sub_segs_list
             repeated_ranges = [s.words_range for s in sub_segments if s.is_repetition] or None
             repeated_text = [s.text for s in sub_segments if s.is_repetition] or None
 
+        all_ay_passes = [p for rw in ay_words for p in matched_word_tokens.get(rw.global_index, []) if p]
+        seg_start = min(p[0].start for p in all_ay_passes)
+        seg_end = max(p[-1].end for p in all_ay_passes)
         matched_ref_str = f"{ref_data.surah}:{ay}:1-{ref_data.surah}:{ay}:{len(ay_words)}"
 
         segments.append(QuranSegment(
@@ -388,6 +389,10 @@ def _align_and_package_ayahs(
             sub_segments=sub_segments,
         ))
         seg_number += 1
+
+    if pause_intervals and len(segments) > 1:
+        from src.vad import align_ayah_boundaries
+        align_ayah_boundaries(segments, pause_intervals)
 
     return segments
 
@@ -551,63 +556,137 @@ class QuranMatcher:
         target_surah: Optional[int] = None,
         start_ayah: Optional[int] = None,
         pause_timestamps: Optional[List[float]] = None,
+        pause_intervals: Optional[List[PauseInterval]] = None,
     ) -> List[QuranSegment]:
         if not self._is_initialized:
             self.initialize_from_file()
         if not aligned_phonemes or not self._verses:
             return []
 
-        # 1. Automatic Surah & Start Ayah Detection
-        detected_surah = target_surah
-        detected_start_ayah = start_ayah
-        detected_end_ayah: Optional[int] = None
-
-        if detected_surah is None:
-            det_res = self.detector.detect_single_surah(aligned_phonemes)
-            if det_res is not None:
-                detected_surah = det_res.surah
-                detected_start_ayah = det_res.start_ayah
-                # Only trust detected_end_ayah if it verified an Ayah after start_ayah
-                if det_res.end_ayah is not None and det_res.end_ayah > det_res.start_ayah:
-                    detected_end_ayah = det_res.end_ayah
-                logger.info(
-                    "Detected Surah %d starting at Ayah %d (confidence=%.2f)",
-                    detected_surah,
-                    detected_start_ayah,
-                    det_res.confidence,
+        # 1. Automatic Multi-Surah / Single-Surah Detection
+        if target_surah is not None:
+            detected_surah = target_surah
+            detected_start_ayah = start_ayah
+            detected_end_ayah: Optional[int] = None
+            sections = [
+                SurahDetectionResult(
+                    surah=detected_surah,
+                    start_ayah=detected_start_ayah or 1,
+                    end_ayah=detected_end_ayah,
+                    token_start_idx=0,
+                    token_end_idx=len(aligned_phonemes),
                 )
-            else:
-                detected_surah = 1
-                detected_start_ayah = 1
+            ]
+        else:
+            sections = self.detector.detect_multi_surah(
+                aligned_phonemes,
+                pause_timestamps=pause_timestamps,
+                pause_intervals=pause_intervals,
+            )
 
-        # 2. Opening Preamble Extraction (Isti'adha & pre-verse Basmalah)
-        intro_dict, remaining_tokens = _extract_opening_preamble(
-            aligned_tokens=aligned_phonemes,
-            surah=detected_surah,
-            start_ayah=detected_start_ayah or 1,
-            ref_surah_1=self._get_surah_ref(1),
-        )
+        if not sections:
+            sections = [SurahDetectionResult(surah=1, start_ayah=1, token_start_idx=0, token_end_idx=len(aligned_phonemes))]
 
-        ref_data = self._get_surah_ref(detected_surah)
-        effective_start_ayah = detected_start_ayah or 1
-        if intro_dict and any(w.get("location", "").startswith("1:1:") for w in intro_dict.get("words", [])):
-            effective_start_ayah = 1
-        start_word_idx = ref_data.ayah_start_word_index.get(effective_start_ayah, 0)
+        if len(sections) == 1:
+            det_res = sections[0]
+            detected_surah = det_res.surah
+            detected_start_ayah = det_res.start_ayah
+            detected_end_ayah = None
+            if det_res.end_ayah is not None and det_res.end_ayah > det_res.start_ayah:
+                detected_end_ayah = det_res.end_ayah
+            logger.info(
+                "Detected Surah %d starting at Ayah %d (confidence=%.2f)",
+                detected_surah,
+                detected_start_ayah,
+                det_res.confidence,
+            )
 
-        # 3. 3D JumpDTW Alignment & Segment Construction
-        segments = _align_and_package_ayahs(
-            aligned_tokens=remaining_tokens,
-            ref_data=ref_data,
-            start_word_index=start_word_idx,
-            target_end_ayah=detected_end_ayah,
-            matcher_cfg=self.config,
-            pause_timestamps=pause_timestamps,
-        )
+            # 2. Opening Preamble Extraction (Isti'adha & pre-verse Basmalah)
+            intro_dict, remaining_tokens = _extract_opening_preamble(
+                aligned_tokens=aligned_phonemes,
+                surah=detected_surah,
+                start_ayah=detected_start_ayah or 1,
+                ref_surah_1=self._get_surah_ref(1),
+            )
 
-        if intro_dict and segments:
-            segments[0].intro = intro_dict
+            ref_data = self._get_surah_ref(detected_surah)
+            effective_start_ayah = detected_start_ayah or 1
+            if intro_dict and any(w.get("location", "").startswith("1:1:") for w in intro_dict.get("words", [])):
+                effective_start_ayah = 1
+            start_word_idx = ref_data.ayah_start_word_index.get(effective_start_ayah, 0)
 
-        return segments
+            # 3. 3D JumpDTW Alignment & Segment Construction
+            segments = _align_and_package_ayahs(
+                aligned_tokens=remaining_tokens,
+                ref_data=ref_data,
+                start_word_index=start_word_idx,
+                target_end_ayah=detected_end_ayah,
+                matcher_cfg=self.config,
+                pause_timestamps=pause_timestamps,
+                pause_intervals=pause_intervals,
+            )
+
+            if intro_dict and segments:
+                segments[0].intro = intro_dict
+
+            return segments
+
+        # Multi-Surah Recitation Sequential Alignment
+        logger.info("Multi-Surah recitation detected: %d distinct Surah sections found", len(sections))
+        all_segments: List[QuranSegment] = []
+        global_seg_idx = 1
+
+        for sec in sections:
+            sec_tokens = aligned_phonemes[sec.token_start_idx : sec.token_end_idx]
+            if not sec_tokens:
+                continue
+
+            sec_surah = sec.surah
+            sec_start_ay = sec.start_ayah or 1
+            sec_end_ay = sec.end_ayah if (sec.end_ayah is not None and sec.end_ayah > sec_start_ay) else None
+
+            logger.info(
+                "Aligning section Surah %d (Ayah %d to %s, confidence=%.2f, tokens=[%d:%d])",
+                sec_surah,
+                sec_start_ay,
+                str(sec_end_ay or "end"),
+                sec.confidence,
+                sec.token_start_idx,
+                sec.token_end_idx,
+            )
+
+            intro_dict, remaining_tokens = _extract_opening_preamble(
+                aligned_tokens=sec_tokens,
+                surah=sec_surah,
+                start_ayah=sec_start_ay,
+                ref_surah_1=self._get_surah_ref(1),
+            )
+
+            ref_data = self._get_surah_ref(sec_surah)
+            effective_start_ayah = sec_start_ay
+            if intro_dict and any(w.get("location", "").startswith("1:1:") for w in intro_dict.get("words", [])):
+                effective_start_ayah = 1
+            start_word_idx = ref_data.ayah_start_word_index.get(effective_start_ayah, 0)
+
+            segs = _align_and_package_ayahs(
+                aligned_tokens=remaining_tokens,
+                ref_data=ref_data,
+                start_word_index=start_word_idx,
+                target_end_ayah=sec_end_ay,
+                matcher_cfg=self.config,
+                pause_timestamps=pause_timestamps,
+                pause_intervals=pause_intervals,
+            )
+
+            if intro_dict and segs:
+                segs[0].intro = intro_dict
+
+            for seg in segs:
+                seg.segment_number = global_seg_idx
+                global_seg_idx += 1
+                all_segments.append(seg)
+
+        return all_segments
 
 
 # Backward compatibility alias

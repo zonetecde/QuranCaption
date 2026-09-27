@@ -80,46 +80,6 @@ class AudioDecoder:
         return float(20.0 * math.log10(max(rms, 1e-8)))
 
     @classmethod
-    def load_audio_slice(
-        cls,
-        file_path: str,
-        start_s: float = 0.0,
-        duration_s: Optional[float] = None,
-        sample_rate: int = SAMPLE_RATE,
-    ) -> np.ndarray:
-        """Fast-seek audio decoding for timeline slices without decoding entire file."""
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"Audio file not found: {file_path}")
-
-        # 1. Primary: Ultra-fast streaming FFmpeg seek (~0.05s)
-        try:
-            cmd = ['ffmpeg', '-hide_banner', '-loglevel', 'error']
-            if start_s > 0:
-                cmd.extend(['-ss', f"{start_s:.3f}"])
-            if duration_s is not None and duration_s > 0:
-                cmd.extend(['-t', f"{duration_s:.3f}"])
-            cmd.extend([
-                '-i', file_path,
-                '-vn', '-sn', '-dn',
-                '-f', 'f32le', '-ac', '1', '-ar', str(sample_rate), '-'
-            ])
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-            out, _ = proc.communicate()
-            if proc.returncode == 0 and len(out) > 0:
-                return np.frombuffer(out, dtype=np.float32)
-        except Exception:
-            pass
-
-        # 2. Fallback: Full decode and NumPy slice
-        full_audio = cls.load_audio_file(file_path, sample_rate=sample_rate)
-        start_sample = max(0, int(round(start_s * sample_rate)))
-        if duration_s is not None and duration_s > 0:
-            end_sample = min(len(full_audio), start_sample + int(round(duration_s * sample_rate)))
-        else:
-            end_sample = len(full_audio)
-        return full_audio[start_sample:end_sample]
-
-    @classmethod
     def load_audio_file(
         cls,
         file_path: str,

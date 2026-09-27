@@ -24,6 +24,7 @@ from config import (
 )
 from src.models import (
     PhonemeToken,
+    PauseInterval,
     RawTranscriptionResult,
     RecoveryEvent,
     RecoverySummary,
@@ -119,9 +120,25 @@ class AudioPipeline:
         overall_start = time.time()
         audio_duration = len(audio_pcm) / SAMPLE_RATE
 
-        # Phase 1: ASR Transcription
+        # VAD & Phase 1: ASR Transcription
         asr_start = time.time()
         last_progress_time = [0.0]
+
+        def _on_vad_done(vad_seconds: float) -> None:
+            if json_progress:
+                sys.stdout.write(json.dumps({"stage": "vad", "elapsed": round(vad_seconds, 2)}) + "\n")
+                sys.stdout.flush()
+            elif live_profile:
+                print(f"VAD & Silence       : {vad_seconds:.2f}s", flush=True)
+            if on_progress_event:
+                on_progress_event(
+                    PipelineProgressEvent(
+                        stage=PipelineStage.vad,
+                        percent=100.0,
+                        elapsed_seconds=vad_seconds,
+                        message=f"VAD completed in {vad_seconds:.2f}s",
+                    )
+                )
 
         def _on_asr_progress(pct: float, spd: float, elp: float) -> None:
             now = time.time()
@@ -150,11 +167,13 @@ class AudioPipeline:
             audio=audio_pcm,
             sample_rate=SAMPLE_RATE,
             on_progress=_on_asr_progress if (live_profile or json_progress or on_progress_event) else None,
+            on_vad_done=_on_vad_done if (live_profile or json_progress or on_progress_event) else None,
         )
         raw_phonemes = raw_result.phonemes
-        asr_time = time.time() - asr_start
+        vad_time = getattr(raw_result, "vad_time", 0.0)
+        pure_asr_time = max(0.0, (time.time() - asr_start) - vad_time)
         if live_profile:
-            sys.stdout.write("\r" + " " * 75 + f"\rPhase 1 Transcribe  : {asr_time:.2f}s\n")
+            sys.stdout.write("\r" + " " * 75 + f"\rPhase 1 Transcribe  : {pure_asr_time:.2f}s\n")
             sys.stdout.flush()
 
         # Phase 1.1: Speech Recovery (if enabled)
@@ -183,15 +202,6 @@ class AudioPipeline:
         audio_pcm = None
 
         # Phase 2: CTC Viterbi Trellis Alignment
-        if on_progress_event:
-            on_progress_event(
-                PipelineProgressEvent(
-                    stage=PipelineStage.matching,
-                    percent=70.0,
-                    elapsed_seconds=round(time.time() - overall_start, 2),
-                    message="Aligning phonemes (CTC Trellis)...",
-                )
-            )
         align_start = time.time()
         aligned_phonemes = CtcViterbiAligner.align_phonemes(
             target_phonemes=effective_phonemes,
@@ -200,7 +210,6 @@ class AudioPipeline:
             logprobs_matrix=raw_result.logprobs_matrix,
             num_frames=raw_result.num_frames,
             custom_blank_id=BLANK_ID,
-            pause_timestamps=raw_result.pause_timestamps,
         )
         align_time = time.time() - align_start
         if live_profile:
@@ -211,15 +220,6 @@ class AudioPipeline:
         gc.collect()
 
         # Phase 3: Quran Text Matcher & Sequencer
-        if on_progress_event:
-            on_progress_event(
-                PipelineProgressEvent(
-                    stage=PipelineStage.matching,
-                    percent=85.0,
-                    elapsed_seconds=round(time.time() - overall_start, 2),
-                    message="Matching Quran verses...",
-                )
-            )
         match_start = time.time()
         segments = self.matcher.match_segments(
             aligned_phonemes=aligned_phonemes,
@@ -227,6 +227,7 @@ class AudioPipeline:
             target_surah=target_surah,
             start_ayah=start_ayah,
             pause_timestamps=raw_result.pause_timestamps,
+            pause_intervals=raw_result.pause_intervals,
         )
         match_time = time.time() - match_start
         if live_profile:
@@ -250,6 +251,7 @@ class AudioPipeline:
             ctc_aligned_phonemes=aligned_phonemes,
             segments=segments,
             pause_timestamps=raw_result.pause_timestamps,
+            pause_intervals=raw_result.pause_intervals,
         )
 
         if export_json_files:
@@ -263,7 +265,8 @@ class AudioPipeline:
         profiling = PipelineProfiling(
             audio_duration=audio_duration,
             load_time=load_time,
-            asr_time=asr_time,
+            vad_time=vad_time,
+            asr_time=pure_asr_time,
             recovery_time=recovery_time,
             alignment_time=align_time,
             match_time=match_time,
@@ -335,6 +338,7 @@ __all__ = [
     "QuranWordMatcher",
     "MatcherConfig",
     "PhonemeToken",
+    "PauseInterval",
     "QuranWord",
     "QuranSegment",
     "AyahSubSegment",

@@ -1,6 +1,7 @@
 """Global Surah Discovery & Gene Myers' Bit-Parallel Phonetic Search Engine."""
-
 from __future__ import annotations
+
+from typing import Dict
 
 import os
 import logging
@@ -11,7 +12,7 @@ import numpy as np
 
 import config
 from config import DEFAULT_REF_NORM_PH_PATH, DEFAULT_PH_INDEX_PATH
-from src.models import PhonemeToken
+from src.models import PhonemeToken, PauseInterval
 from src.matching.phonetics import normalize_phoneme_query
 from src.matching.kernels import _bit_parallel_search_fast, _refine_match_start
 
@@ -81,6 +82,9 @@ class SurahDetectionResult:
     start_time: float = 0.0
     end_time: float = 0.0
     confidence: float = 1.0
+    token_start_idx: int = 0
+    token_end_idx: int = -1
+
 
 
 def _adaptive_error_ratio(q_len: int) -> float:
@@ -291,3 +295,207 @@ class SurahDetector:
             end_time=aligned_phonemes[-1].end,
             confidence=0.5,
         )
+
+    def detect_multi_surah(
+        self,
+        aligned_phonemes: List[PhonemeToken],
+        sample_length: int = 24,
+        step: int = 16,
+        pause_timestamps: Optional[List[float]] = None,
+        pause_intervals: Optional[List[PauseInterval]] = None,
+    ) -> List[SurahDetectionResult]:
+        """Discovers sequential Surahs in continuous recitation audio (Waqf, Sakt, Wasl, with or without Basmalah)."""
+        if not aligned_phonemes:
+            return [SurahDetectionResult(surah=1, start_ayah=1, end_ayah=1, token_start_idx=0, token_end_idx=0)]
+
+        total_toks = len(aligned_phonemes)
+        if total_toks < 60:
+            single = self.detect_single_surah(aligned_phonemes)
+            single.token_start_idx = 0
+            single.token_end_idx = total_toks
+            return [single]
+
+        # 1. Timeline sliding probe using Gene Myers' 64-bit Bit-Parallel search
+        probe_hits: List[Tuple[int, int, int, float]] = []  # (offset, surah, ayah, norm_dist)
+        for offset in range(0, max(1, total_toks - 12), step):
+            slice_tokens = aligned_phonemes[offset : offset + sample_length]
+            q = "".join(p.phoneme for p in slice_tokens)
+            norm_q = normalize_phoneme_query(q)
+            q_len = min(len(norm_q), 64)
+            if q_len < 10:
+                continue
+
+            ratio = _adaptive_error_ratio(q_len)
+            res = self._phonetic_search.search(q, error_ratio=ratio)
+            if res:
+                top = res[0]
+                norm_d = top.distance / max(1, q_len)
+                if norm_d <= 0.22:
+                    probe_hits.append((offset, top.surah_number, top.ayah_number, norm_d))
+
+        if not probe_hits:
+            single = self.detect_single_surah(aligned_phonemes)
+            single.token_start_idx = 0
+            single.token_end_idx = total_toks
+            return [single]
+
+        # 2. Inter-surah Basmalah disambiguation
+        # If Surah Al-Fatiha is genuinely recited, we will see hits for Ayah 2, 3, etc.
+        # Otherwise, any (1:1) hit is an inter-surah Basmalah and must not declare Surah 1.
+        has_fatiha = any(h[1] == 1 and h[2] >= 2 for h in probe_hits)
+        filtered_hits = [
+            h for h in probe_hits
+            if not (h[1] == 1 and h[2] == 1 and not has_fatiha)
+        ]
+
+        if not filtered_hits:
+            single = self.detect_single_surah(aligned_phonemes)
+            single.token_start_idx = 0
+            single.token_end_idx = total_toks
+            return [single]
+
+        # 3. Temporal grouping into consecutive candidate clusters
+        clusters: List[List[Tuple[int, int, int, float]]] = []
+        for h in filtered_hits:
+            if not clusters:
+                clusters.append([h])
+            elif h[1] == clusters[-1][0][1]:
+                clusters[-1].append(h)
+            else:
+                clusters.append([h])
+
+        # 4. Filter isolated noise spikes (< 2 hits) and merge consecutive same-surah clusters
+        valid_clusters = [c for c in clusters if len(c) >= 2]
+        merged_clusters: List[List[Tuple[int, int, int, float]]] = []
+        for c in valid_clusters:
+            if not merged_clusters:
+                merged_clusters.append(c)
+            elif c[0][1] == merged_clusters[-1][0][1]:
+                merged_clusters[-1].extend(c)
+            else:
+                merged_clusters.append(c)
+        clusters = merged_clusters
+
+        # 5. Non-Reentrant Macro-Block Rule (Anti-Ping-Pong / Mutashabihat Absorption)
+        # In Quranic recitation, each Surah is recited once in a continuous macro-block.
+        # If Surah A is active, and Surah A appears again later, any intermediate clusters
+        # (e.g. Surah B) are 100% false Mutashabihat hits and are absorbed into Surah A.
+        i = 0
+        while i < len(clusters):
+            surah = clusters[i][0][1]
+            last_idx = max(j for j in range(len(clusters)) if clusters[j][0][1] == surah)
+            if last_idx > i:
+                for k in range(i + 1, last_idx + 1):
+                    clusters[i].extend(clusters[k])
+                del clusters[i + 1 : last_idx + 1]
+            i += 1
+
+        # 6. Minimum Macro-Block Support Filter
+        # In multi-Surah recitations, an independent Surah block must have at least 2 hits (to support short 3-ayah Surahs)
+        if len(clusters) > 1:
+            clusters = [c for c in clusters if len([h for h in c if h[1] == c[0][1]]) >= 2]
+
+        # Merge adjacent clusters if any same-surah neighbors remain
+        merged_final: List[List[Tuple[int, int, int, float]]] = []
+        for c in clusters:
+            if not merged_final:
+                merged_final.append(c)
+            elif c[0][1] == merged_final[-1][0][1]:
+                merged_final[-1].extend(c)
+            else:
+                merged_final.append(c)
+        clusters = merged_final
+
+        # If filtered to empty or single cluster, fallback to proven single-surah detector
+        if not clusters or len(clusters) == 1:
+            single = self.detect_single_surah(aligned_phonemes)
+            single.token_start_idx = 0
+            single.token_end_idx = total_toks
+            return [single]
+
+        # 7. Build timeline partitions with acoustic pause snapping
+        results: List[SurahDetectionResult] = []
+        num_clusters = len(clusters)
+        prev_end = 0
+
+        for i, cluster in enumerate(clusters):
+            surah = cluster[0][1]
+            surah_hits = [c for c in cluster if c[1] == surah]
+            ayahs = [c[2] for c in surah_hits] if surah_hits else [c[2] for c in cluster]
+            s_ayah = min(ayahs)
+            e_ayah = max(ayahs)
+
+            tok_start = 0 if i == 0 else prev_end
+
+            if i + 1 < num_clusters:
+                next_surah = clusters[i + 1][0][1]
+                next_hits = [c for c in clusters[i + 1] if c[1] == next_surah]
+                off_last = surah_hits[-1][0] if surah_hits else cluster[-1][0]
+                off_next = next_hits[0][0] if next_hits else clusters[i + 1][0][0]
+                t_low = aligned_phonemes[min(off_last + sample_length - 1, total_toks - 1)].end
+                t_high = aligned_phonemes[min(off_next, total_toks - 1)].start
+
+                # Try snapping boundary to an acoustic pause (Sakt/Waqf) between the two clusters
+                snapped = False
+                candidate_pauses = [p.optimal_cut_point for p in pause_intervals if p.duration_sec >= 0.25] if pause_intervals else (pause_timestamps or [])
+                if candidate_pauses and t_low < t_high + 0.5:
+                    for p in candidate_pauses:
+                        if (t_low - 0.3) <= p <= (t_high + 0.3):
+                            for idx in range(off_last, min(off_next + sample_length, total_toks)):
+                                if aligned_phonemes[idx].start >= p:
+                                    tok_end = idx
+                                    snapped = True
+                                    break
+                            if snapped:
+                                break
+
+                if not snapped:
+                    mid = (off_last + sample_length + off_next) // 2
+                    tok_end = max(off_last + 1, min(mid, off_next))
+            else:
+                tok_end = total_toks
+
+            prev_end = tok_end
+
+            # Determine end ayah: if final cluster, probe tail like detect_single_surah
+            confirmed_end: Optional[int] = e_ayah if e_ayah > s_ayah else None
+            if i == num_clusters - 1 and (tok_end - tok_start) > sample_length:
+                tail_offsets = [
+                    tok_end - sample_length,
+                    tok_end - sample_length - 15,
+                    tok_end - sample_length - 35,
+                    tok_end - sample_length - 60,
+                ]
+                for end_offset in tail_offsets:
+                    if end_offset >= tok_start:
+                        slice_toks = aligned_phonemes[end_offset : end_offset + sample_length]
+                        q = "".join(p.phoneme for p in slice_toks)
+                        norm_q = normalize_phoneme_query(q)
+                        q_l = min(len(norm_q), 64)
+                        if len(norm_q) >= 6:
+                            res = self._phonetic_search.search(q, error_ratio=_adaptive_error_ratio(q_l))
+                            for r in res:
+                                if r.surah_number == surah and r.ayah_number >= s_ayah:
+                                    target_ay = r.end_ayah_number or r.ayah_number
+                                    confirmed_end = max(confirmed_end or s_ayah, target_ay)
+                                    break
+                            if confirmed_end is not None:
+                                break
+
+            norm_vals = [c[3] for c in surah_hits] if surah_hits else [c[3] for c in cluster]
+            avg_norm = sum(norm_vals) / len(norm_vals)
+            results.append(
+                SurahDetectionResult(
+                    surah=surah,
+                    start_ayah=s_ayah,
+                    end_ayah=confirmed_end,
+                    start_time=aligned_phonemes[tok_start].start,
+                    end_time=aligned_phonemes[min(tok_end - 1, total_toks - 1)].end,
+                    confidence=round(max(0.5, 1.0 - avg_norm), 2),
+                    token_start_idx=tok_start,
+                    token_end_idx=tok_end,
+                )
+            )
+
+        return results
+

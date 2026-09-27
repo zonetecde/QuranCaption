@@ -20,6 +20,8 @@ class PhonemeToken:
     end_frame: Optional[int] = None
     peak_frame: Optional[int] = None
     peak_timestamp: Optional[float] = None
+    raw_start: Optional[float] = None
+    raw_end: Optional[float] = None
 
     @property
     def duration(self) -> float:
@@ -47,6 +49,36 @@ class PhonemeToken:
 
 
 @dataclass
+class PauseInterval:
+    """Continuous acoustic silence interval with duration and Tajweed pause classification."""
+    start_sec: float
+    end_sec: float
+    duration_sec: float
+    pause_type: str = "waqf"  # "waqf" (>= 0.45s) or "sakt" (0.20s - 0.45s)
+    min_energy_db: Optional[float] = None
+    cut_point: Optional[float] = None
+
+    @property
+    def optimal_cut_point(self) -> float:
+        """Exact click-free acoustic cut point or midpoint of silence interval."""
+        if self.cut_point is not None:
+            return round(self.cut_point, 3)
+        return round((self.start_sec + self.end_sec) / 2.0, 3)
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = {
+            "start": round(self.start_sec, 3),
+            "end": round(self.end_sec, 3),
+            "duration": round(self.duration_sec, 3),
+            "type": self.pause_type,
+            "cut_point": self.optimal_cut_point,
+        }
+        if self.min_energy_db is not None:
+            d["min_energy_db"] = round(self.min_energy_db, 1)
+        return d
+
+
+@dataclass
 class RawTranscriptionResult:
     """Consolidated result of Phase 1 pure ONNX Zipformer CTC transcription."""
     phonemes: List[PhonemeToken] = field(default_factory=list)
@@ -56,6 +88,8 @@ class RawTranscriptionResult:
     num_frames: int = 0
     vocab_size: int = 251
     pause_timestamps: List[float] = field(default_factory=list)
+    pause_intervals: List[PauseInterval] = field(default_factory=list)
+    vad_time: float = 0.0
 
     @property
     def raw_text(self) -> str:
@@ -130,11 +164,11 @@ class QuranWord:
     end: Optional[float] = None
     score: Optional[float] = None
     phonemes: Optional[List[Dict[str, Any]]] = None
-    all_passes: Optional[List[Dict[str, Any]]] = None
-    is_interpolated: bool = False
+    raw_start: Optional[float] = None
+    raw_end: Optional[float] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        d = {
+        return {
             "word": self.word,
             "location": self.location,
             "ref": self.ref,
@@ -143,11 +177,6 @@ class QuranWord:
             "score": round(self.score, 2) if self.score is not None else 0.0,
             "phonemes": self.phonemes if self.phonemes is not None else [],
         }
-        if self.is_interpolated:
-            d["is_interpolated"] = True
-        if self.all_passes:
-            d["all_passes"] = self.all_passes
-        return d
 
 
 @dataclass
@@ -231,6 +260,7 @@ class PipelineProfiling:
     """Profiling breakdown for all pipeline stages."""
     audio_duration: float = 0.0
     load_time: float = 0.0
+    vad_time: float = 0.0
     asr_time: float = 0.0
     recovery_time: float = 0.0
     alignment_time: float = 0.0
@@ -260,6 +290,7 @@ class PipelineResult:
     total_processing_time_seconds: float = 0.0
     profiling: Optional[PipelineProfiling] = None
     pause_timestamps: List[float] = field(default_factory=list)
+    pause_intervals: List[PauseInterval] = field(default_factory=list)
 
     def to_output_dict(self) -> Dict[str, Any]:
         return {"total_ayahs": len(self.segments), "ayahs": [s.to_dict() for s in self.segments]}
@@ -281,6 +312,8 @@ class PipelineResult:
                 "audio_duration_seconds": dur,
                 "total_tokens": len(self.raw_phonemes),
                 "raw_text": "".join(p.phoneme for p in self.raw_phonemes),
+                "pause_intervals": [p.to_dict() for p in self.pause_intervals],
+                "pause_timestamps": self.pause_timestamps,
                 "phoneme_tokens": [p.to_raw_dict(i + 1) for i, p in enumerate(self.raw_phonemes)],
             },
             "recovered_speech.json": {
@@ -319,6 +352,7 @@ class PipelineStage(str, Enum):
     """Processing stages for progress callbacks."""
     idle = "idle"
     loading = "loading"
+    vad = "vad"
     transcribing = "transcribing"
     recovering = "recovering"
     aligning = "aligning"

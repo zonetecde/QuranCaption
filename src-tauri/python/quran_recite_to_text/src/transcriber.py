@@ -44,219 +44,20 @@ from config import (
 )
 from src.models import (
     PhonemeToken,
+    PauseInterval,
     RawTranscriptionResult,
     RecoveryEvent,
     RecoverySummary,
     SpeechRecoveryResult,
 )
 from src.audio import AudioDecoder
+from src.vad import SpeechSegment, QuranSilenceVAD
 
 logger = logging.getLogger(__name__)
 
 FRAME_TIME_STEP = 0.04  # 10ms fbank hop x 4 subsampling = 40ms per encoder frame (25 Hz)
 CHUNK_LEN = 48         # decode chunk length in fbank frames (480ms)
 T_LEN = 61             # total chunk window including right context in fbank frames (610ms)
-
-
-@dataclass
-class SpeechSegment:
-    """Acoustically detected continuous speech segment with safe clamped context."""
-    segment_id: int
-    raw_start_sec: float
-    raw_end_sec: float
-    padded_start_sec: float
-    padded_end_sec: float
-    start_sample: int
-    end_sample: int
-
-    @property
-    def duration_sec(self) -> float:
-        return self.padded_end_sec - self.padded_start_sec
-
-
-class QuranSilenceSegmenter:
-    """Tajweed-aware acoustic silence segmenter.
-    
-    Features:
-    - Dual-threshold Schmitt trigger to prevent fluttering on soft Tajweed letters.
-    - Hangover buffer to ensure trailing Madd and Ghunnah are never cut.
-    - Rejection of micro-stops (< 500ms) to preserve Qalqalah consonant closures.
-    - Gap-clamped padding guaranteeing zero boundary overlap between chunks.
-    """
-
-    def __init__(
-        self,
-        sample_rate: int = SAMPLE_RATE,
-        frame_ms: float = 20.0,
-        min_pause_s: float = VAD_MIN_PAUSE_S,
-        onset_db: float = VAD_ONSET_DB,
-        offset_db: float = VAD_OFFSET_DB,
-        hangover_s: float = VAD_HANGOVER_S,
-        max_pad_s: float = VAD_MAX_PAD_S,
-        preroll_s: float = VAD_PREROLL_S,
-    ):
-        self.sr = sample_rate
-        self.frame_samples = int((frame_ms / 1000.0) * sample_rate)
-        self.min_pause_s = min_pause_s
-        self.hangover_frames = int(hangover_s / (frame_ms / 1000.0))
-        self.preroll_frames = int(preroll_s / (frame_ms / 1000.0))
-        self.max_pad_s = max_pad_s
-        self.onset_db = onset_db
-        self.offset_db = offset_db
-        self.pause_timestamps: List[float] = []
-
-    def segment_audio(self, audio: np.ndarray) -> List[SpeechSegment]:
-        total_samples = len(audio)
-        total_duration = total_samples / self.sr
-        if total_samples == 0:
-            return []
-
-        # 1. Compute frame-level RMS energy in dB
-        num_frames = total_samples // self.frame_samples
-        if num_frames == 0:
-            return [
-                SpeechSegment(
-                    segment_id=1,
-                    raw_start_sec=0.0,
-                    raw_end_sec=total_duration,
-                    padded_start_sec=0.0,
-                    padded_end_sec=total_duration,
-                    start_sample=0,
-                    end_sample=total_samples,
-                )
-            ]
-
-        reshaped = audio[:num_frames * self.frame_samples].reshape(num_frames, self.frame_samples)
-        rms = np.sqrt(np.einsum('ij,ij->i', reshaped, reshaped) / self.frame_samples + 1e-12)
-        rms_db = 20.0 * np.log10(np.maximum(rms, 1e-5))
-
-        # Apply a 5-frame (100ms) median filter to remove micro-glitches and breath spikes
-        try:
-            from scipy.ndimage import median_filter
-            energy_curve = median_filter(rms_db, size=5)
-        except Exception:
-            energy_curve = rms_db
-
-        # Dynamic noise-floor adaptation (calibrates thresholds to audio recording's dynamic range)
-        if getattr(config, "VAD_ADAPTIVE", True):
-            p15 = float(np.percentile(energy_curve, 15))
-            p85 = float(np.percentile(energy_curve, 85))
-            dr = max(6.0, p85 - p15)
-            onset_th = max(self.onset_db, p15 + 0.38 * dr)
-            offset_th = max(self.offset_db, p15 + 0.22 * dr)
-        else:
-            onset_th = self.onset_db
-            offset_th = self.offset_db
-
-        # 2. Dual-threshold state machine with hangover
-        is_speech = np.zeros(num_frames, dtype=bool)
-        in_speech = False
-        silence_count = 0
-
-        for t in range(num_frames):
-            e = energy_curve[t]
-            if not in_speech:
-                if e >= onset_th:
-                    in_speech = True
-                    is_speech[t] = True
-                    silence_count = 0
-            else:
-                if e >= offset_th:
-                    is_speech[t] = True
-                    silence_count = 0
-                else:
-                    silence_count += 1
-                    if silence_count <= self.hangover_frames:
-                        is_speech[t] = True  # Hangover protection
-                    else:
-                        in_speech = False
-
-        # 3. Extract continuous speech intervals with pre-roll protection
-        raw_intervals: List[Tuple[float, float]] = []
-        seg_start = None
-        for t in range(num_frames):
-            if is_speech[t] and seg_start is None:
-                seg_start = max(0, t - self.preroll_frames)
-            elif not is_speech[t] and seg_start is not None:
-                raw_intervals.append((
-                    seg_start * self.frame_samples / self.sr,
-                    t * self.frame_samples / self.sr
-                ))
-                seg_start = None
-
-        if seg_start is not None:
-            raw_intervals.append((seg_start * self.frame_samples / self.sr, total_duration))
-
-        if not raw_intervals:
-            self.pause_timestamps = []
-            return [
-                SpeechSegment(
-                    segment_id=1,
-                    raw_start_sec=0.0,
-                    raw_end_sec=total_duration,
-                    padded_start_sec=0.0,
-                    padded_end_sec=total_duration,
-                    start_sample=0,
-                    end_sample=total_samples,
-                )
-            ]
-
-        # 4. Merge micro-gaps (< min_pause_s) to preserve Qalqalah stop closures & extract fine pause moments
-        merged_intervals: List[Tuple[float, float]] = []
-        pause_timestamps: List[float] = []
-        agg_pause = getattr(config, "AGGRESSIVE_MIN_PAUSE_S", 0.20)
-
-        for s, e in raw_intervals:
-            if not merged_intervals:
-                merged_intervals.append((s, e))
-            else:
-                prev_s, prev_e = merged_intervals[-1]
-                gap = s - prev_e
-                if gap >= agg_pause:
-                    pause_timestamps.append(round((prev_e + s) / 2.0, 3))
-                if gap < self.min_pause_s:
-                    merged_intervals[-1] = (prev_s, e)
-                else:
-                    merged_intervals.append((s, e))
-
-        self.pause_timestamps = pause_timestamps
-
-        # 5. Apply Gap-Clamped Padding (guarantees zero boundary overlap between chunks)
-        segments: List[SpeechSegment] = []
-        num_merged = len(merged_intervals)
-
-        for i, (raw_s, raw_e) in enumerate(merged_intervals):
-            gap_before = (raw_s - merged_intervals[i - 1][1]) if i > 0 else 10.0
-            gap_after = (merged_intervals[i + 1][0] - raw_e) if i < num_merged - 1 else 10.0
-
-            pad_left = min(self.max_pad_s, max(0.0, gap_before / 2.0))
-            pad_right = min(self.max_pad_s, max(0.0, gap_after / 2.0))
-
-            padded_s = max(0.0, raw_s - pad_left)
-            padded_e = min(total_duration, raw_e + pad_right)
-
-            # Snap to exact 40ms encoder frame boundaries (640 audio samples = 4 fbank frames = 1 encoder frame)
-            # This completely eliminates sub-frame phase jitter and time-quantization drift at segment boundaries
-            FRAME_SAMPLES = int(round(FRAME_TIME_STEP * self.sr))  # 640 samples (40ms)
-            start_sample = int(math.floor((padded_s * self.sr) / FRAME_SAMPLES)) * FRAME_SAMPLES
-            end_sample = min(total_samples, int(math.ceil((padded_e * self.sr) / FRAME_SAMPLES)) * FRAME_SAMPLES)
-
-            aligned_padded_s = start_sample / self.sr
-            aligned_padded_e = end_sample / self.sr
-
-            segments.append(
-                SpeechSegment(
-                    segment_id=i + 1,
-                    raw_start_sec=round(raw_s, 3),
-                    raw_end_sec=round(raw_e, 3),
-                    padded_start_sec=round(aligned_padded_s, 4),
-                    padded_end_sec=round(aligned_padded_e, 4),
-                    start_sample=start_sample,
-                    end_sample=end_sample,
-                )
-            )
-
-        return segments
 
 
 class ZipformerONNX:
@@ -281,9 +82,9 @@ class ZipformerONNX:
         if not os.path.exists(DEFAULT_MODEL_PATH):
             os.makedirs(os.path.dirname(DEFAULT_MODEL_PATH), exist_ok=True)
             url = "https://github.com/Iam-Muslim/Natlu/releases/download/models-latest/zipformer_p_arabic_v3.int8.onnx"
-            logger.info(f"[*] Downloading Zipformer ONNX model from {url}...")
+            logger.info(f"Downloading Zipformer ONNX model from {url}...")
             urllib.request.urlretrieve(url, DEFAULT_MODEL_PATH)
-            logger.info("[*] Zipformer ONNX model downloaded successfully.")
+            logger.info("Zipformer ONNX model downloaded successfully.")
 
         sess_opts = ort.SessionOptions()
         sess_opts.log_severity_level = 3
@@ -362,14 +163,7 @@ class ZipformerONNX:
             self._state_buffers[k].fill(0)
         self._state_buffers['processed_lens'].fill(0)
 
-    def _extract_fbank(self, audio: np.ndarray, num_workers: int = 1) -> np.ndarray:
-        if not audio.flags.c_contiguous or audio.dtype != np.float32:
-            audio = np.ascontiguousarray(audio, dtype=np.float32)
-
-        total_frames = (len(audio) + 80) // 160
-        if total_frames == 0:
-            return np.empty((0, 80), dtype=np.float32)
-
+    def _extract_fbank(self, audio: np.ndarray) -> np.ndarray:
         opts = knf.FbankOptions()
         opts.frame_opts.samp_freq = SAMPLE_RATE
         opts.mel_opts.num_bins = 80
@@ -383,39 +177,11 @@ class ZipformerONNX:
         opts.frame_opts.frame_shift_ms = 10.0
         opts.frame_opts.frame_length_ms = 25.0
 
-        # Fast parallel extraction across workers using 10-frame left-context warmup margin
-        # Guarantees 100% bitwise identical output (Max diff = 0.0) while saving ~22 seconds on long audio
-        if num_workers > 1 and len(audio) >= SAMPLE_RATE * 5:
-            pad_frames = 10
-            pad_samples = pad_frames * 160
-            chunk_len_frames = (total_frames + num_workers - 1) // num_workers
-
-            def _extract_part(part_idx: int) -> np.ndarray:
-                s_f = part_idx * chunk_len_frames
-                e_f = min(total_frames, (part_idx + 1) * chunk_len_frames)
-                if s_f >= e_f:
-                    return np.empty((0, 80), dtype=np.float32)
-                s_samp = s_f * 160
-                e_samp = min(len(audio), e_f * 160 + (400 - 160))
-                c_s = max(0, s_samp - pad_samples)
-                prefix_frames = (s_samp - c_s) // 160
-                f = knf.OnlineFbank(opts)
-                f.accept_waveform(SAMPLE_RATE, audio[c_s:e_samp])
-                f.input_finished()
-                num_f = f.num_frames_ready
-                part_feats = np.empty((num_f, 80), dtype=np.float32)
-                get_frame = f.get_frame
-                for i in range(num_f):
-                    part_feats[i] = get_frame(i)
-                need = e_f - s_f
-                return part_feats[prefix_frames : prefix_frames + need]
-
-            with ThreadPoolExecutor(max_workers=num_workers) as ex:
-                parts = list(ex.map(_extract_part, range(num_workers)))
-            return np.vstack(parts)
-
-        # Single-worker sequential fallback
         fbank = knf.OnlineFbank(opts)
+        if not audio.flags.c_contiguous or audio.dtype != np.float32:
+            audio = np.ascontiguousarray(audio, dtype=np.float32)
+
+        # Chunked ingestion avoids buffering entire multi-hour waveforms in C++
         chunk_samples = SAMPLE_RATE * 30
         for pos in range(0, len(audio), chunk_samples):
             fbank.accept_waveform(SAMPLE_RATE, audio[pos:pos + chunk_samples])
@@ -468,13 +234,36 @@ class ZipformerONNX:
 
         num_frames = len(padded_feats)
         chunk_logprobs = []
-        pos = 0
+        enable_in_loop_reset = getattr(config, "ENABLE_IN_LOOP_BLANK_RESET", False)
+        min_blank_chunks = getattr(config, "IN_LOOP_RESET_MIN_CHUNKS", 1)
+        if enable_in_loop_reset:
+            slice_frame_energy = np.mean(padded_feats, axis=-1)
+            silence_th = float(np.percentile(slice_frame_energy[:len(feats)], 20) + 1.0) if len(feats) > 0 else -10.0
+            consecutive_silence_chunks = 0
 
+        pos = 0
         while pos + T_LEN <= num_frames:
             states['x'] = padded_feats[pos:pos + T_LEN][None, :]
             outs = self.session.run(None, states)
             states.update(zip(self._state_names, outs[1:]))
-            chunk_logprobs.append(outs[0][0])
+            chunk_lp = outs[0][0]
+            chunk_logprobs.append(chunk_lp)
+
+            if enable_in_loop_reset:
+                chunk_preds = np.argmax(chunk_lp, axis=-1)
+                chunk_energy = float(np.mean(slice_frame_energy[pos:pos + CHUNK_LEN]))
+                is_pure_blank = bool(np.all(chunk_preds == BLANK_ID))
+                is_acoustic_silence = chunk_energy <= silence_th
+
+                if is_pure_blank and is_acoustic_silence:
+                    consecutive_silence_chunks += 1
+                    if consecutive_silence_chunks >= min_blank_chunks:
+                        for k in self._state_names:
+                            states[k].fill(0)
+                        states['processed_lens'].fill(0)
+                else:
+                    consecutive_silence_chunks = 0
+
             pos += CHUNK_LEN
 
         if not chunk_logprobs:
@@ -561,8 +350,8 @@ class ZipformerONNX:
         sample_rate: int = SAMPLE_RATE,
         silence_pad_frames: Optional[int] = None,
         on_progress=None,
+        on_vad_done=None,
         reset_on_silence: Optional[bool] = None,
-        min_blank_chunks: Optional[int] = None,
     ) -> RawTranscriptionResult:
         """Transcribes audio using global Fbank caching, Tajweed pause segmentation & zero-drift segment feeding."""
         if self.session is None or len(audio) == 0:
@@ -571,18 +360,20 @@ class ZipformerONNX:
         audio_pcm = audio.astype(np.float32, copy=False)
         audio_duration = len(audio_pcm) / sample_rate
 
-        # 1. Segment audio on natural Waqf pauses & extract fine pause moments in a single pass
-        segmenter = QuranSilenceSegmenter(sample_rate=sample_rate)
-        segments = segmenter.segment_audio(audio_pcm)
-        pause_timestamps = segmenter.pause_timestamps
+        # 1. Unified Tajweed pause & silence detection
+        vad_start = time.time()
+        vad = QuranSilenceVAD(sample_rate=sample_rate)
+        segments, pause_intervals, pause_timestamps = vad.detect_speech_and_pauses(audio_pcm)
+        vad_time = max(0.0, time.time() - vad_start)
 
-        num_workers = int(os.environ.get("ONNX_SEGMENT_WORKERS", getattr(config, "NUM_SEGMENT_WORKERS", 1)))
+        if on_vad_done is not None:
+            on_vad_done(vad_time)
 
         # 2. Extract Mel Filterbank ONCE globally across entire audio (blazing fast in C++)
-        global_feats = self._extract_fbank(audio_pcm, num_workers=num_workers)
+        global_feats = self._extract_fbank(audio_pcm)
         total_fbank_frames = len(global_feats)
         if total_fbank_frames == 0:
-            return RawTranscriptionResult(vocab_size=len(self.vocab))
+            return RawTranscriptionResult(vocab_size=len(self.vocab), vad_time=vad_time)
 
         del audio_pcm
 
@@ -604,6 +395,7 @@ class ZipformerONNX:
         num_segments = len(segments)
         do_reset_on_silence = getattr(config, "RESET_ENCODER_ON_SILENCE", True) if reset_on_silence is None else reset_on_silence
 
+        num_workers = int(os.environ.get("ONNX_SEGMENT_WORKERS", getattr(config, "NUM_SEGMENT_WORKERS", 1)))
         use_parallel = (num_workers > 1) and (num_segments > 2) and do_reset_on_silence
 
         results_by_idx: List[Optional[Tuple[np.ndarray, List[PhonemeToken]]]] = [None] * num_segments
@@ -624,8 +416,7 @@ class ZipformerONNX:
             return s_idx, seg_lp, seg_phonemes
 
         if use_parallel:
-            completed_audio_sec = 0.0
-            total_speech_sec = sum(s.duration_sec for s in segments)
+            completed_dur = 0.0
             # Pre-allocate exactly one state buffer per worker thread (saves ~10.5s of heap allocations)
             buffer_pool = queue.SimpleQueue()
             for _ in range(num_workers):
@@ -646,10 +437,10 @@ class ZipformerONNX:
                     s_idx, seg_lp, seg_phonemes = fut.result()
                     results_by_idx[s_idx] = (seg_lp, seg_phonemes)
                     if on_progress is not None:
-                        completed_audio_sec += (segments[s_idx].padded_end_sec - segments[s_idx].padded_start_sec)
-                        pct = min(100.0, (completed_audio_sec / max(0.001, total_speech_sec)) * 100.0)
+                        completed_dur += segments[s_idx].duration_sec
+                        pct = min(100.0, (completed_dur / max(0.001, audio_duration)) * 100.0)
                         elp = max(0.001, time.time() - start_time)
-                        spd = (completed_audio_sec / max(0.001, total_speech_sec) * audio_duration) / elp
+                        spd = completed_dur / elp
                         on_progress(pct, spd, elp)
         else:
             # Single-worker mode: 100% zero extra heap allocation with in-place buffer reuse
@@ -717,6 +508,8 @@ class ZipformerONNX:
             num_frames=total_frames,
             vocab_size=vocab_size,
             pause_timestamps=pause_timestamps,
+            pause_intervals=pause_intervals,
+            vad_time=vad_time,
         )
 
 

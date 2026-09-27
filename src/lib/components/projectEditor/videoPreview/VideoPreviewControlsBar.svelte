@@ -195,6 +195,7 @@
 		height: 14px;
 		background: transparent;
 		cursor: pointer;
+		border: none;
 	}
 
 	.preview-progress::-webkit-slider-runnable-track {

@@ -1,0 +1,30 @@
+const status = {
+	notSet: 'غير محدد',
+	toCaption: 'إلى التسمية التوضيحية',
+	toTranslate: 'للترجمة',
+	toReview: 'للمراجعة',
+	toExport: 'للتصدير',
+	exported: 'تصدير',
+	taraweeh: 'التراويح',
+	prayer: 'الصلاة',
+	studio: 'استوديو',
+	oldRecordings: 'التسجيلات القديمة',
+	rareRecitation: 'تلاوة نادرة',
+	others: 'الآخرين',
+	video: 'فيديو',
+	audio: 'الصوت',
+	subtitle: 'الترجمة',
+	customClip: 'CustomClip',
+	unknown: 'غير معروف',
+	local: 'محلي',
+	youtube: 'يوتيوب',
+	mp3quran: 'mp3quran',
+	quranfoundation: 'quranfoundation',
+	videoEditor: 'محرر الفيديو',
+	subtitlesEditor: 'محرر الترجمة',
+	translations: 'ترجمات',
+	style: 'النمط',
+	export: 'تصدير'
+} as const;
+
+export default status;

@@ -25,7 +25,7 @@
 		class="btn-accent flex w-full cursor-pointer items-center justify-center rounded-md px-3 py-2 text-sm transition-colors duration-200"
 		{disabled}
 	>
-		<span class="material-icons mr-2 text-base">folder_open</span>
+		<span class="material-icons me-2 text-base">folder_open</span>
 		Pick an image
 	</button>
 	{#if value}

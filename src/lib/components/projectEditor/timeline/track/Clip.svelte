@@ -76,11 +76,19 @@
 	let timelineVideoThumbnails = $state<Array<TimelineVideoThumbnailSlot & { src: string }>>([]);
 	let thumbnailRequestId = 0;
 	const VIDEO_CLIP_SNAP_DISTANCE_PX = 8;
+	type AudioEffectId = 'denoise' | 'clarity' | 'echo' | 'reverb';
 
-	let canTrim = $derived(
-		clip instanceof AssetClip && asset.type !== AssetType.Image && !clip.loopUntilAudioEnd
+	let isFullVideoBackgroundImage = $derived(
+		asset.type === AssetType.Image &&
+			track.type === TrackType.Video &&
+			track.clips.length === 1 &&
+			clip.endTime === 0
 	);
-	let canMove = $derived(clip instanceof AssetClip && asset.type !== AssetType.Image);
+	let canTrim = $derived(
+		clip instanceof AssetClip && !clip.loopUntilAudioEnd && !isFullVideoBackgroundImage
+	);
+	let canMove = $derived(clip instanceof AssetClip && !isFullVideoBackgroundImage);
+	let canSplit = $derived(canTrim && asset.type !== AssetType.Image);
 
 	$effect(() => {
 		if (globalState.settings?.defaultValuesSettings.showTimelineVideoThumbnails === false) {
@@ -344,7 +352,7 @@
 		const previousClip = track.type === TrackType.Audio ? null : track.getClipBefore(clip.id);
 		const minimumStart = Math.max(
 			0,
-			trimOriginalStartTime - trimOriginalSourceStartTime,
+			asset.type === AssetType.Image ? 0 : trimOriginalStartTime - trimOriginalSourceStartTime,
 			previousClip ? previousClip.endTime + 1 : 0
 		);
 		const rawStart = getSnappedAssetClipTime(trimOriginalStartTime + deltaMs, [0], previousClip);
@@ -352,7 +360,10 @@
 
 		clip.startTime = newStart;
 		clip.duration = clip.endTime - newStart;
-		clip.sourceStartTime = trimOriginalSourceStartTime + (newStart - trimOriginalStartTime);
+		clip.sourceStartTime =
+			asset.type === AssetType.Image
+				? 0
+				: trimOriginalSourceStartTime + (newStart - trimOriginalStartTime);
 	}
 
 	/**
@@ -369,7 +380,9 @@
 		const sourceEndTime =
 			trimOriginalSourceStartTime + (trimOriginalEndTime - trimOriginalStartTime);
 		const maximumEnd = Math.min(
-			trimOriginalEndTime + Math.max(0, asset.duration.ms - sourceEndTime),
+			asset.type === AssetType.Image
+				? Number.POSITIVE_INFINITY
+				: trimOriginalEndTime + Math.max(0, asset.duration.ms - sourceEndTime),
 			nextClip ? nextClip.startTime - 1 : Number.POSITIVE_INFINITY
 		);
 		const rawEnd = getSnappedAssetClipTime(trimOriginalEndTime + deltaMs, [0], null, nextClip);
@@ -510,6 +523,16 @@
 
 		globalState.currentProject?.detail.updateVideoDetailAttributes();
 		globalState.updateVideoPreviewUI();
+	}
+
+	/**
+	 * Ouvre les réglages de l'effet choisi pour le clip audio courant.
+	 * @param {AudioEffectId} effect Effet présélectionné.
+	 * @returns {void}
+	 */
+	function openAudioEffectFromContextMenu(effect: AudioEffectId): void {
+		currentMenu.set(null);
+		void ModalManager.audioEffectsModal(clip.id, effect);
 	}
 
 	/**
@@ -685,8 +708,33 @@
 			/>
 		</li>
 		<Divider />
+		<Item on:click={() => openAudioEffectFromContextMenu('denoise')}>
+			<div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">hearing</span>
+				{get(LL).tools.denoise()}
+			</div>
+		</Item>
+		<Item on:click={() => openAudioEffectFromContextMenu('clarity')}>
+			<div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">record_voice_over</span>
+				{get(LL).tools.clarity()}
+			</div>
+		</Item>
+		<Item on:click={() => openAudioEffectFromContextMenu('echo')}>
+			<div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">graphic_eq</span>
+				{get(LL).tools.echo()}
+			</div>
+		</Item>
+		<Item on:click={() => openAudioEffectFromContextMenu('reverb')}>
+			<div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">surround_sound</span>
+				{get(LL).tools.reverb()}
+			</div>
+		</Item>
+		<Divider />
 	{/if}
-	{#if track.type === TrackType.Video && clip instanceof AssetClip}
+	{#if track.type === TrackType.Video && clip instanceof AssetClip && asset.type === AssetType.Video}
 		<Item on:click={loopUntilTheEndClicked}>
 			<div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">
@@ -697,7 +745,7 @@
 		</Item>
 		<Divider />
 	{/if}
-	{#if canTrim}
+	{#if canSplit}
 		<Item on:click={splitAssetClipFromContextMenu}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">call_split</span>{get(

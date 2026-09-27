@@ -37,6 +37,8 @@ const editor = {
 	backgroundImageError: 'Background Image Error',
 	cannotAddBackgroundImage:
 		'You cannot add a background image to the timeline when background images are not supported in this context.',
+	setImageAsFullBackgroundConfirm:
+		'The video track is empty. Use this image as the background for the entire video? Choose No to add it as a regular timeline clip.',
 	loopingError: 'Looping Error',
 	canOnlyEnableLoopIfOnlyClip:
 		'You can only enable "Loop until the end" if this is the only clip in the track.',
@@ -144,9 +146,9 @@ const editor = {
 	both: 'Both',
 	unmergeGroup: 'Unmerge Group',
 	videoClipsSelected:
-		'{count} video clip{plural} selected. Overlay styles will apply only to these clips.',
+		'{count} media clip{plural} selected. Media layout, overlay, and video frame styles will apply only to these clips.',
 	clickToSelect:
-		'Click a subtitle or video clip to select it. Ctrl/Cmd+click selects additional items.',
+		'Click a subtitle or media clip to select it. Ctrl/Cmd+click selects additional items.',
 	cannotEditGlobalWithSelection:
 		'You cannot edit global styles when subtitle clips are selected. Clear the selection to edit global styles.',
 	backgroundVisibilityHint: 'Background is visible only when Max Height style is set.',
@@ -285,7 +287,7 @@ const editor = {
 	zoomOut: 'Zoom out',
 	zoomIn: 'Zoom in',
 	dismissHints: 'Dismiss timeline wheel hints',
-	antiCollisionNotice: 'Subtitle anti-collision is on',
+	antiCollisionNotice: 'Anti-collision style is enabled',
 	antiCollisionNoticeHelpEnabled:
 		'is enabled. It can automatically move subtitles and interfere with the exact layout you want. You can disable it in the left panel.',
 	antiCollisionNoticeHelpAlternative:

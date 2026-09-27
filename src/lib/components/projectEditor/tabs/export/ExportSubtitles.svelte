@@ -129,7 +129,7 @@
 						</div>
 
 						<!-- Verse numbers option -->
-						<div class="ml-7 {!included ? 'opacity-50 pointer-events-none' : ''}">
+						<div class="ms-7 {!included ? 'opacity-50 pointer-events-none' : ''}">
 							<div class="flex items-start gap-3">
 								<input
 									type="checkbox"

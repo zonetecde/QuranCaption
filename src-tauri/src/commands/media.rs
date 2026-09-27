@@ -16,6 +16,7 @@ use tauri::{AppHandle, Manager};
 use crate::binaries;
 use crate::path_utils;
 use crate::utils::process::configure_command_no_window;
+use crate::utils::temp_file::unique_temp_path;
 
 use super::diagnostics::{format_ffprobe_exec_failed, map_ffprobe_resolve_error};
 
@@ -472,16 +473,20 @@ fn add_font_source_if_requested(
     };
 
     let source_family = font.family_name();
-    let Some(requested_family) = requested_families
-        .iter()
-        .find(|family| family.as_str() == source_family.as_str())
-    else {
+    let full_name = font.full_name();
+    let postscript_name = font.postscript_name();
+    let Some(requested_family) = requested_families.iter().find(|family| {
+        font_source_matches_requested_family(
+            family,
+            &source_family,
+            &full_name,
+            postscript_name.as_deref(),
+        )
+    }) else {
         return;
     };
 
     let properties = font.properties();
-    let full_name = font.full_name();
-    let postscript_name = font.postscript_name();
     let font_style = match properties.style {
         Style::Normal => "normal",
         Style::Italic => "italic",
@@ -513,6 +518,34 @@ fn add_font_source_if_requested(
         font_weight_range,
         font_style,
     });
+}
+
+/// Vérifie qu'une face appartient bien à la famille demandée sans accepter une variante de largeur.
+fn font_source_matches_requested_family(
+    requested_family: &str,
+    source_family: &str,
+    full_name: &str,
+    postscript_name: Option<&str>,
+) -> bool {
+    let requested = requested_family.to_ascii_lowercase();
+    let source = source_family.to_ascii_lowercase();
+    let full = full_name.to_ascii_lowercase();
+    let postscript = postscript_name.unwrap_or_default().to_ascii_lowercase();
+    let family_matches = source == requested
+        || full == requested
+        || full
+            .strip_prefix(&requested)
+            .is_some_and(|suffix| suffix.starts_with([' ', '-']));
+    if !family_matches {
+        return false;
+    }
+
+    ["narrow", "condensed", "compressed", "expanded", "extended"]
+        .into_iter()
+        .all(|variant| {
+            requested.contains(variant)
+                || (!full.contains(variant) && !postscript.contains(variant))
+        })
 }
 
 fn font_weight_range_for_source(
@@ -858,6 +891,150 @@ pub fn cut_audio(
     }
 }
 
+/// Construit les arguments FFmpeg d'un préréglage d'effet audio autorisé.
+fn apply_audio_effect_args(
+    source_path: &str,
+    output_path: &str,
+    effect: &str,
+    primary: f64,
+    secondary: f64,
+    start_ms: Option<u64>,
+    duration_ms: Option<u64>,
+) -> Result<Vec<String>, String> {
+    let filter = match effect {
+        "denoise" if (1.0..=30.0).contains(&primary) && (-80.0..=-20.0).contains(&secondary) => {
+            format!("afftdn=nr={primary}:nf={secondary}")
+        }
+        "clarity" if (40.0..=200.0).contains(&primary) && (0.0..=6.0).contains(&secondary) => {
+            format!("highpass=f={primary},lowpass=f=14000,equalizer=f=3000:t=q:w=1:g={secondary}")
+        }
+        "echo" if (20.0..=300.0).contains(&primary) && (5.0..=40.0).contains(&secondary) => {
+            format!("aecho=0.8:0.7:{primary}:{}", secondary / 100.0)
+        }
+        "reverb" if (15.0..=120.0).contains(&primary) && (5.0..=30.0).contains(&secondary) => {
+            format!(
+                "aecho=0.8:0.75:{primary}|{}:{}|{}",
+                primary * 2.0,
+                secondary / 100.0,
+                secondary / 200.0
+            )
+        }
+        "denoise" | "clarity" | "echo" | "reverb" => {
+            return Err(format!("Invalid parameters for audio effect: {effect}"));
+        }
+        _ => return Err(format!("Unsupported audio effect: {effect}")),
+    };
+
+    let mut args = Vec::new();
+    if let Some(start_ms) = start_ms {
+        args.extend(["-ss".to_string(), (start_ms as f64 / 1000.0).to_string()]);
+    }
+    args.extend(["-i".to_string(), source_path.to_string()]);
+    if let Some(duration_ms) = duration_ms {
+        if duration_ms == 0 {
+            return Err("Audio effect duration must be positive".to_string());
+        }
+        args.extend(["-t".to_string(), (duration_ms as f64 / 1000.0).to_string()]);
+    }
+    args.extend([
+        "-map".to_string(),
+        "0:a:0".to_string(),
+        "-vn".to_string(),
+        "-af".to_string(),
+        filter,
+        "-c:a".to_string(),
+        "pcm_s16le".to_string(),
+        "-y".to_string(),
+        output_path.to_string(),
+    ]);
+    Ok(args)
+}
+
+/// Exécute FFmpeg avec un effet audio validé et une plage facultative.
+fn run_audio_effect(
+    source_path: &str,
+    output_path: &str,
+    effect: &str,
+    primary: f64,
+    secondary: f64,
+    start_ms: Option<u64>,
+    duration_ms: Option<u64>,
+) -> Result<(), String> {
+    if !Path::new(source_path).exists() {
+        return Err(format!("Source file not found: {}", source_path));
+    }
+
+    let ffmpeg_path =
+        binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
+    let mut cmd = Command::new(&ffmpeg_path);
+    cmd.args(apply_audio_effect_args(
+        source_path,
+        output_path,
+        effect,
+        primary,
+        secondary,
+        start_ms,
+        duration_ms,
+    )?);
+    configure_command_no_window(&mut cmd);
+
+    match cmd.output() {
+        Ok(result) if result.status.success() => Ok(()),
+        Ok(result) => Err(format!(
+            "ffmpeg error: {}",
+            String::from_utf8_lossy(&result.stderr)
+        )),
+        Err(error) => Err(format!("Unable to execute ffmpeg: {}", error)),
+    }
+}
+
+/// Applique un effet audio paramétré à la source complète.
+#[tauri::command]
+pub fn apply_audio_effect(
+    source_path: String,
+    output_path: String,
+    effect: String,
+    primary: f64,
+    secondary: f64,
+) -> Result<(), String> {
+    run_audio_effect(
+        &source_path,
+        &output_path,
+        &effect,
+        primary,
+        secondary,
+        None,
+        None,
+    )
+}
+
+/// Crée un extrait temporaire paramétré pour la préécoute d'un effet audio.
+#[tauri::command]
+pub fn preview_audio_effect(
+    source_path: String,
+    effect: String,
+    primary: f64,
+    secondary: f64,
+    start_ms: u64,
+    duration_ms: u64,
+) -> Result<String, String> {
+    let output_path = unique_temp_path("qurancaption-audio-effect-preview", "wav")?;
+    let output = output_path.to_string_lossy().to_string();
+    if let Err(error) = run_audio_effect(
+        &source_path,
+        &output,
+        &effect,
+        primary,
+        secondary,
+        Some(start_ms),
+        Some(duration_ms),
+    ) {
+        let _ = fs::remove_file(&output_path);
+        return Err(error);
+    }
+    Ok(output)
+}
+
 /// Coupe une portion vidéo sans ré-encodage (copie de flux).
 #[tauri::command]
 pub fn cut_video(
@@ -954,6 +1131,90 @@ pub fn concat_audio(source_paths: Vec<String>, output_path: String) -> Result<()
             String::from_utf8_lossy(&result.stderr)
         )),
         Err(e) => Err(format!("Unable to execute ffmpeg: {}", e)),
+    }
+}
+
+#[cfg(test)]
+mod audio_effect_tests {
+    use super::apply_audio_effect_args;
+
+    /// Vérifie que chaque préréglage utilise le filtre FFmpeg attendu et une sortie WAV PCM.
+    #[test]
+    fn builds_supported_audio_effects() {
+        let cases = [
+            ("denoise", 18.0, -55.0, "afftdn=nr=18:nf=-55"),
+            (
+                "clarity",
+                100.0,
+                4.0,
+                "highpass=f=100,lowpass=f=14000,equalizer=f=3000:t=q:w=1:g=4",
+            ),
+            ("echo", 120.0, 35.0, "aecho=0.8:0.7:120:0.35"),
+            ("reverb", 50.0, 24.0, "aecho=0.8:0.75:50|100:0.24|0.12"),
+        ];
+
+        for (effect, primary, secondary, filter) in cases {
+            let args = apply_audio_effect_args(
+                "input.mp3",
+                "output.wav",
+                effect,
+                primary,
+                secondary,
+                None,
+                None,
+            )
+            .unwrap();
+            assert!(args.iter().any(|arg| arg == filter));
+            assert!(args.windows(2).any(|pair| pair == ["-c:a", "pcm_s16le"]));
+        }
+    }
+
+    /// Vérifie que la préécoute limite FFmpeg aux dix secondes centrales demandées.
+    #[test]
+    fn builds_audio_effect_preview_range() {
+        let args = apply_audio_effect_args(
+            "input.mp3",
+            "output.wav",
+            "denoise",
+            12.0,
+            -50.0,
+            Some(55_000),
+            Some(10_000),
+        )
+        .unwrap();
+
+        assert!(args.windows(2).any(|pair| pair == ["-ss", "55"]));
+        assert!(args.windows(2).any(|pair| pair == ["-t", "10"]));
+    }
+
+    /// Vérifie qu'un effet inconnu ne peut pas injecter un filtre FFmpeg arbitraire.
+    #[test]
+    fn rejects_unknown_audio_effects() {
+        assert!(apply_audio_effect_args(
+            "input.mp3",
+            "output.wav",
+            "volume=10",
+            1.0,
+            1.0,
+            None,
+            None,
+        )
+        .is_err());
+    }
+
+    /// Vérifie que les paramètres hors limites sont rejetés.
+    #[test]
+    fn rejects_out_of_range_audio_effect_parameters() {
+        assert!(apply_audio_effect_args(
+            "input.mp3",
+            "output.wav",
+            "echo",
+            1_000.0,
+            100.0,
+            None,
+            None,
+        )
+        .is_err());
     }
 }
 
@@ -1345,5 +1606,30 @@ mod directory_size_tests {
 
         assert_eq!(directory_size(&test_root).unwrap(), 8);
         fs::remove_dir_all(test_root).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod system_font_source_tests {
+    use super::*;
+
+    /// Vérifie qu'Arial et Arial Narrow restent deux familles distinctes pendant l'export.
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn distinguishes_arial_from_arial_narrow() {
+        let sources = get_system_font_sources(vec!["Arial".to_string()]).unwrap();
+        let narrow_sources = get_system_font_sources(vec!["Arial Narrow".to_string()]).unwrap();
+
+        assert!(!sources.is_empty());
+        assert!(
+            sources
+                .iter()
+                .all(|source| !source.full_name.to_ascii_lowercase().contains("narrow")),
+            "Resolved Arial sources: {sources:#?}"
+        );
+        assert!(!narrow_sources.is_empty());
+        assert!(narrow_sources
+            .iter()
+            .all(|source| source.full_name.to_ascii_lowercase().contains("narrow")));
     }
 }

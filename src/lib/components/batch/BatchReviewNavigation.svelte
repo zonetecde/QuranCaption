@@ -123,7 +123,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <div
-	class="absolute left-1/2 flex h-9 max-w-[52vw] -translate-x-1/2 items-center gap-1 rounded-lg border border-color bg-secondary px-1"
+	class="absolute start-1/2 flex h-9 max-w-[52vw] -translate-x-1/2 items-center gap-1 rounded-lg border border-color bg-secondary px-1"
 >
 	<button
 		class="flex h-7 w-7 items-center justify-center rounded text-primary hover:bg-accent disabled:cursor-not-allowed disabled:opacity-35"
@@ -133,7 +133,7 @@
 		aria-label={reviewMessage('reviewPreviousProject')}
 		title={reviewMessage('reviewPreviousProject')}
 	>
-		<span class="material-icons text-[20px]!">chevron_left</span>
+		<span class="material-icons rtl-mirror text-[20px]!">chevron_left</span>
 	</button>
 	<span class="max-w-64 truncate px-2 text-sm font-medium text-primary">
 		{globalState.currentProject?.detail.name ?? ''}{reviewKind === 'translation' && editionName
@@ -157,10 +157,10 @@
 		aria-label={reviewMessage('reviewNextProject')}
 		title={reviewMessage('reviewNextProject')}
 	>
-		<span class="material-icons text-[20px]!">chevron_right</span>
+		<span class="material-icons rtl-mirror text-[20px]!">chevron_right</span>
 	</button>
 	<button
-		class="ml-1 flex h-7 w-7 items-center justify-center rounded text-red-500 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-35"
+		class="ms-1 flex h-7 w-7 items-center justify-center rounded text-red-500 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-35"
 		type="button"
 		disabled={globalState.shared.batchReview.isNavigating}
 		onclick={deleteCurrentProject}
@@ -170,7 +170,7 @@
 		<span class="material-icons text-[18px]!">delete</span>
 	</button>
 	<button
-		class="ml-1 flex h-7 w-7 items-center justify-center rounded text-primary hover:bg-accent disabled:cursor-not-allowed disabled:opacity-35"
+		class="ms-1 flex h-7 w-7 items-center justify-center rounded text-primary hover:bg-accent disabled:cursor-not-allowed disabled:opacity-35"
 		type="button"
 		disabled={globalState.shared.batchReview.isNavigating}
 		onclick={() => leaveBatchReview('batch')}

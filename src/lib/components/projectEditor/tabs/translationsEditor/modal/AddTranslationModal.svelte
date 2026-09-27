@@ -339,11 +339,12 @@
 					type="text"
 					placeholder={$LL.editor.searchLanguagesOrAuthors()}
 					bind:value={searchQuery}
-					class="w-full pr-4 py-3 bg-secondary border border-color rounded-xl text-primary focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-opacity-20 transition-all duration-200"
-					style="padding-left: 40px; "
+					class="w-full pe-4 py-3 bg-secondary border border-color rounded-xl text-primary focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-opacity-20 transition-all duration-200"
+					style="padding-inline-start: 40px; "
 				/>
 
-				<span class="material-icons absolute left-3 top-1/2 transform -translate-y-1/2 text-thirdly"
+				<span
+					class="material-icons absolute start-3 top-1/2 transform -translate-y-1/2 text-thirdly"
 					>search</span
 				>
 			</div>
@@ -417,7 +418,7 @@
 			<!-- Two column layout: Selection + Preview -->
 			<div class="h-full flex">
 				<!-- Left column: Selection -->
-				<div class="w-1/2 border-r border-color overflow-y-auto px-6 py-4">
+				<div class="w-1/2 border-e border-color overflow-y-auto px-6 py-4">
 					<div class="mb-4">
 						<h3 class="text-lg font-semibold text-primary mb-2">
 							{$LL.translations.availableTranslations()}
@@ -445,7 +446,7 @@
 								<!-- TXT Import button -->
 								<div class="p-3">
 									<button
-										class="w-full p-3 bg-secondary border border-color rounded-lg hover:border-accent-primary hover:bg-[rgba(88,166,255,0.05)] transition-all duration-200 text-left flex items-center justify-between group"
+										class="w-full p-3 bg-secondary border border-color rounded-lg hover:border-accent-primary hover:bg-[rgba(88,166,255,0.05)] transition-all duration-200 text-start flex items-center justify-between group"
 										onclick={importTranslationFromTxt}
 										disabled={isImportingTxt}
 									>
@@ -464,7 +465,7 @@
 											</span>
 										</div>
 										<span
-											class="material-icons text-thirdly text-sm opacity-50 group-hover:opacity-100 transition-opacity"
+											class="material-icons rtl-mirror text-thirdly text-sm opacity-50 group-hover:opacity-100 transition-opacity"
 										>
 											chevron_right
 										</span>
@@ -535,7 +536,7 @@
 									{#each translations as translationDetail (translationDetail.key)}
 										{@const isSelected = isTranslationSelected(translationDetail)}
 										<button
-											class="w-full p-3 bg-secondary border border-color rounded-lg hover:border-accent-primary transition-all duration-200 text-left
+											class="w-full p-3 bg-secondary border border-color rounded-lg hover:border-accent-primary transition-all duration-200 text-start
 											       {isSelected ? 'border-accent-primary bg-[rgba(88,166,255,0.1)]' : ''}"
 											onclick={() => toggleTranslationSelection(translationDetail)}
 										>
@@ -766,7 +767,7 @@
 							<!-- TXT Import button -->
 							<div class="p-4">
 								<button
-									class="w-full p-4 bg-secondary border border-color rounded-lg hover:border-accent-primary hover:bg-[rgba(88,166,255,0.05)] transition-all duration-200 text-left flex items-center justify-between group"
+									class="w-full p-4 bg-secondary border border-color rounded-lg hover:border-accent-primary hover:bg-[rgba(88,166,255,0.05)] transition-all duration-200 text-start flex items-center justify-between group"
 									onclick={importTranslationFromTxt}
 									disabled={isImportingTxt}
 								>
@@ -783,7 +784,7 @@
 										</span>
 									</div>
 									<span
-										class="material-icons text-thirdly opacity-50 group-hover:opacity-100 transition-opacity"
+										class="material-icons rtl-mirror text-thirdly opacity-50 group-hover:opacity-100 transition-opacity"
 									>
 										chevron_right
 									</span>
@@ -844,13 +845,13 @@
 									{#each translations as translationDetail (translationDetail.key)}
 										{@const isSelected = isTranslationSelected(translationDetail)}
 										<button
-											class="group relative p-4 bg-secondary border border-color rounded-lg hover:border-accent-primary hover:bg-[rgba(88,166,255,0.05)] transition-all duration-200 text-left cursor-pointer
+											class="group relative p-4 bg-secondary border border-color rounded-lg hover:border-accent-primary hover:bg-[rgba(88,166,255,0.05)] transition-all duration-200 text-start cursor-pointer
 											       {isSelected ? 'border-accent-primary bg-[rgba(88,166,255,0.1)]' : ''}"
 											onclick={() => toggleTranslationSelection(translationDetail)}
 										>
 											<!-- Selection indicator -->
 											<div
-												class="absolute top-2 right-2 w-5 h-5 rounded-full border-2 border-accent-primary flex items-center justify-center transition-all duration-200
+												class="absolute top-2 end-2 w-5 h-5 rounded-full border-2 border-accent-primary flex items-center justify-center transition-all duration-200
 												       {isSelected
 													? 'bg-accent-primary'
 													: 'group-hover:bg-accent-primary group-hover:bg-opacity-20'}"
@@ -861,13 +862,13 @@
 											</div>
 
 											<!-- Content -->
-											<div class="pr-8 cursor-pointer">
+											<div class="pe-8 cursor-pointer">
 												<h4
 													class="font-semibold text-primary group-hover:text-accent-primary transition-colors duration-200 flex items-center"
 												>
 													{#if translationDetail.comments === 'Ponctuation' || translationDetail.comments === 'Saheeh International'}
 														<!-- star icon -->
-														<span class="material-icons text-yellow-200 text-xs mr-1">star</span>
+														<span class="material-icons text-yellow-200 text-xs me-1">star</span>
 													{/if}
 													{translationDetail.author}
 												</h4>
@@ -998,7 +999,7 @@
 	}
 
 	/* Selection indicator animation */
-	.group:hover .absolute.top-2.right-2 {
+	.group:hover .absolute.top-2.end-2 {
 		animation: pulse 2s infinite;
 	}
 

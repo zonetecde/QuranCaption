@@ -347,11 +347,11 @@
 							</p>
 						</div>
 					{:else}
-						<div class="max-h-[42vh] space-y-2 overflow-y-auto pr-1">
+						<div class="max-h-[42vh] space-y-2 overflow-y-auto pe-1">
 							{#each collections as collection (collection.id)}
 								<button
 									type="button"
-									class={`w-full rounded-xl border px-4 py-3 text-left transition-all ${
+									class={`w-full rounded-xl border px-4 py-3 text-start transition-all ${
 										selectedCollectionIds.includes(collection.id)
 											? 'border-[var(--accent-primary)]/60 bg-[var(--accent-primary)]/10 shadow-sm'
 											: 'border-color bg-secondary hover:bg-[var(--bg-accent)]'

@@ -265,7 +265,7 @@ describe('BatchWorkspace media import', () => {
 		);
 		let globalGroup = component.container.querySelector('[data-batch-global-actions]')!;
 		expect(globalGroup).not.toBeNull();
-		expect(globalGroup.classList.contains('ml-auto')).toBe(true);
+		expect(globalGroup.classList.contains('ms-auto')).toBe(true);
 		expect(globalGroup.parentElement?.classList.contains('w-full')).toBe(true);
 		expect(component.container.querySelector('[data-batch-context-actions]')).not.toBeNull();
 		expect(

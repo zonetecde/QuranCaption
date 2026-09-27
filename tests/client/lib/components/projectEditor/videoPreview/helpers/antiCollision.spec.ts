@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from 'vitest';
 import {
+	getSubtitleCollisionElements,
 	getTargetFromElement,
 	resolveSubtitleCollisions
 } from '$lib/components/projectEditor/videoPreview/helpers/antiCollision';
@@ -43,6 +44,28 @@ async function fakeWait(_signal: AbortSignal): Promise<void> {
 }
 
 describe('antiCollision', () => {
+	test('returns both subtitle boxes when the dragged subtitle collides', () => {
+		const container = document.createElement('div');
+		const arabicEl = createElementWithClasses('div', ['arabic', 'subtitle'], {
+			top: 0,
+			bottom: 50,
+			left: 0,
+			right: 100
+		});
+		const translationEl = createElementWithClasses('div', ['translation', 'subtitle'], {
+			top: 40,
+			bottom: 90,
+			left: 0,
+			right: 100
+		});
+		container.append(arabicEl, translationEl);
+
+		expect(getSubtitleCollisionElements(container, translationEl, 0)).toEqual([
+			translationEl,
+			arabicEl
+		]);
+	});
+
 	describe('getTargetFromElement', () => {
 		test('retourne "arabic" si l\'élément a la classe arabic', () => {
 			const el = document.createElement('div');

@@ -104,7 +104,7 @@
 
 			{#if isExpanded}
 				<div
-					class="absolute right-0 top-full z-20 mt-2 w-[min(20rem,calc(100vw-4rem))] rounded-xl border border-color bg-primary p-3 shadow-xl"
+					class="absolute end-0 top-full z-20 mt-2 w-[min(20rem,calc(100vw-4rem))] rounded-xl border border-color bg-primary p-3 shadow-xl"
 				>
 					<p class="text-xs text-thirdly">{copy.huggingFaceQuotaDescription()}</p>
 					<div class="mt-3 flex gap-2">

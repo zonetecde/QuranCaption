@@ -215,7 +215,7 @@
 			/>
 		</div>
 
-		<div class="words-selector-container flex-1 min-h-0">
+		<div dir="ltr" class="words-selector-container flex-1 min-h-0">
 			<WordsSelector
 				bind:this={wordsSelector}
 				playbackControlsExpanded={showPlaybackControls && controlsVisible}

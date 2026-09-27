@@ -537,7 +537,7 @@
 							{#if firstClipInGroup instanceof SubtitleClip}
 								<!-- Affiche le numéro de verset en haut à gauche -->
 								<div
-									class="absolute top-0 left-0 bg-white/10 px-1 py-1 rounded-br-lg border-color border-l-0 border-t-0 border-1 text-sm"
+									class="absolute top-0 start-0 bg-white/10 px-1 py-1 rounded-br-lg border-color border-l-0 border-t-0 border-1 text-sm"
 								>
 									{firstClipInGroup.surah}:{firstClipInGroup.verse}
 								</div>
@@ -558,7 +558,7 @@
 								>
 									{#if lastRead.highlightedClipId === clip.id}
 										<div
-											class="absolute left-6 top-0 z-10 -translate-y-1/2 rounded-full border border-[var(--accent-primary)]/35 bg-[var(--bg-primary)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-primary"
+											class="absolute start-6 top-0 z-10 -translate-y-1/2 rounded-full border border-[var(--accent-primary)]/35 bg-[var(--bg-primary)] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-primary"
 										>
 											{$LL.editor.lastRead()}
 										</div>

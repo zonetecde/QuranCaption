@@ -67,7 +67,7 @@
 					data-choice={c.id}
 					aria-checked={globalState.getExportState.selectedChoice === c.id}
 					onclick={() => select(c.id)}
-					class="group relative flex flex-col items-start rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-left transition focus-visible:outline-none focus-visible:ring-2 ring-accent/70 hover:bg-white/10 hover:border-white/20 [&.selected]:border-accent/60 [&.selected]:bg-accent/10 cursor-pointer group"
+					class="group relative flex flex-col items-start rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-start transition focus-visible:outline-none focus-visible:ring-2 ring-accent/70 hover:bg-white/10 hover:border-white/20 [&.selected]:border-accent/60 [&.selected]:bg-accent/10 cursor-pointer group"
 					class:selected={globalState.getExportState.selectedChoice === c.id}
 					title={c.hint()}
 				>
@@ -90,7 +90,8 @@
 					>
 
 					{#if globalState.getExportState.selectedChoice === c.id}
-						<span class="absolute top-2 right-2 material-icons-outlined text-accent text-sm"
+						<span
+							class="absolute top-2 right-2 rtl:right-auto rtl:left-2 material-icons-outlined text-accent text-sm"
 							>check_circle</span
 						>
 					{/if}

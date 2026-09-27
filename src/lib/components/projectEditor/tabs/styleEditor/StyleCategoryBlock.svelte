@@ -160,7 +160,7 @@
 		color: var(--text-primary);
 	}
 	.style-category-header-control {
-		margin-left: auto;
+		margin-inline-start: auto;
 	}
 	.style-control-list,
 	.style-control-groups {

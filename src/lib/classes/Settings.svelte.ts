@@ -45,7 +45,7 @@ export type StockMediaSettings = {
 	pixabayApiKey: string;
 };
 
-export type PerformanceProfile = 'fastest' | 'balanced' | 'low_cpu';
+export type PerformanceProfile = 'balanced' | 'max_quality';
 
 export type AITranslationSettings = {
 	omitPromptPrefix: boolean; // If true, only include JSON input in the prompt.
@@ -140,7 +140,7 @@ export default class Settings extends SerializableBase {
 		themeIntensity: 100,
 		hasSeenTour: false,
 		showFirstVideoGuide: true,
-		language: 'en' as 'en' | 'fr' | 'de' | 'es' | 'zh' | 'id',
+		language: 'en' as 'ar' | 'en' | 'fr' | 'de' | 'es' | 'zh' | 'id',
 		theme: 'default' as
 			| 'default'
 			| 'emerald-forest'
@@ -314,6 +314,26 @@ export default class Settings extends SerializableBase {
 				name: 'Edit Subtitle at Cursor',
 				description: 'Edit the subtitle under the cursor, or the last one if none'
 			},
+			EDIT_SUBTITLE_AT_CURSOR: {
+				keys: [],
+				name: 'Open Subtitle Editor at Cursor',
+				description: 'Open the subtitle editor for the subtitle under the cursor'
+			},
+			EDIT_TRANSLATION_AT_CURSOR: {
+				keys: [],
+				name: 'Open Translation Editor at Cursor',
+				description: 'Open the translation editor for the subtitle under the cursor'
+			},
+			EDIT_WBW_TIMESTAMP_AT_CURSOR: {
+				keys: [],
+				name: 'Open WBW Timestamp Editor at Cursor',
+				description: 'Open the WBW timestamp editor for the subtitle under the cursor'
+			},
+			EDIT_WBW_STYLE_AT_CURSOR: {
+				keys: [],
+				name: 'Open WBW Style/Translation at Cursor',
+				description: 'Open WBW style and translation editing for the subtitle under the cursor'
+			},
 			ADD_SILENCE: {
 				keys: ['s'],
 				name: 'Add Silence',
@@ -423,6 +443,16 @@ export default class Settings extends SerializableBase {
 				keys: ['y'],
 				name: 'Toggle Quick Merge',
 				description: 'Merge or unmerge subtitles at the closest boundary to the cursor'
+			},
+			PREVIOUS_MARKED_SEGMENT: {
+				keys: [],
+				name: 'Go to Previous Marked Segment',
+				description: 'Move the cursor to the first marked segment to its left'
+			},
+			NEXT_MARKED_SEGMENT: {
+				keys: [],
+				name: 'Go to Next Marked Segment',
+				description: 'Move the cursor to the first marked segment to its right'
 			}
 		}
 	};
@@ -482,6 +512,22 @@ export default class Settings extends SerializableBase {
 		const settings = globalState.settings;
 		const previousVersion = settings.appVersion;
 		let shouldSave = false;
+		if (!settings.shortcuts.TIMELINE.NEXT_MARKED_SEGMENT) {
+			settings.shortcuts.TIMELINE.NEXT_MARKED_SEGMENT = {
+				keys: [],
+				name: 'Go to Next Marked Segment',
+				description: 'Move the cursor to the first marked segment to its right'
+			};
+			shouldSave = true;
+		}
+		if (!settings.shortcuts.TIMELINE.PREVIOUS_MARKED_SEGMENT) {
+			settings.shortcuts.TIMELINE.PREVIOUS_MARKED_SEGMENT = {
+				keys: [],
+				name: 'Go to Previous Marked Segment',
+				description: 'Move the cursor to the first marked segment to its left'
+			};
+			shouldSave = true;
+		}
 
 		// Migrations ================
 		if (!settings.exportSettings || typeof settings.exportSettings !== 'object') {
@@ -541,7 +587,8 @@ export default class Settings extends SerializableBase {
 		}
 
 		const projectEditorLayout = settings.persistentUiState.projectEditorLayout as
-			Partial<ProjectEditorLayout> | undefined;
+			| Partial<ProjectEditorLayout>
+			| undefined;
 		if (!projectEditorLayout || typeof projectEditorLayout !== 'object') {
 			settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
 			shouldSave = true;
@@ -714,11 +761,14 @@ export default class Settings extends SerializableBase {
 			shouldSave = true;
 		}
 
-		if (
-			settings.exportSettings.performanceProfile !== 'fastest' &&
-			settings.exportSettings.performanceProfile !== 'balanced' &&
-			settings.exportSettings.performanceProfile !== 'low_cpu'
-		) {
+		const performanceProfile = settings.exportSettings.performanceProfile as string;
+		if (performanceProfile === 'fastest') {
+			settings.exportSettings.performanceProfile = 'balanced';
+			shouldSave = true;
+		} else if (performanceProfile === 'low_cpu') {
+			settings.exportSettings.performanceProfile = 'max_quality';
+			shouldSave = true;
+		} else if (performanceProfile !== 'balanced' && performanceProfile !== 'max_quality') {
 			settings.exportSettings.performanceProfile =
 				Settings.DEFAULT_EXPORT_SETTINGS.performanceProfile;
 			shouldSave = true;

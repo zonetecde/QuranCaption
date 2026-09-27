@@ -210,7 +210,7 @@
 							</button>
 						{/each}
 						{#if reviewRating > 0}
-							<span class="ml-2 text-sm text-thirdly">{reviewRating}/5</span>
+							<span class="ms-2 text-sm text-thirdly">{reviewRating}/5</span>
 						{/if}
 					</div>
 				</div>
@@ -273,7 +273,7 @@
 					class="w-full text-sm resize-y min-h-[110px] rounded-lg border border-color bg-accent px-4 py-2.5 text-primary placeholder:text-thirdly focus:outline-none focus:ring-2 focus:ring-accent-primary transition-all duration-200"
 					bind:value={message}
 				></textarea>
-				<p class="mt-1 text-xs text-thirdly text-right">{message.length}/500</p>
+				<p class="mt-1 text-xs text-thirdly text-end">{message.length}/500</p>
 			</div>
 		</div>
 

@@ -1,11 +1,15 @@
 <script lang="ts">
-	import { setLocale, locale } from '$lib/i18n/i18n-svelte';
+	import LL, { setLocale, locale } from '$lib/i18n/i18n-svelte';
 	import type { Locales } from '$lib/i18n/i18n-types';
 	import { globalState } from '$lib/runes/main.svelte';
 	import Settings from '$lib/classes/Settings.svelte';
-	import LL from '$lib/i18n/i18n-svelte';
 
-	function switchLanguage(lang: Locales) {
+	/**
+	 * Applies and persists the selected application language.
+	 * @param {Locales} lang Selected application locale.
+	 * @returns {void}
+	 */
+	function switchLanguage(lang: Locales): void {
 		setLocale(lang);
 		if (globalState.settings) {
 			globalState.settings.persistentUiState.language = lang;
@@ -14,6 +18,7 @@
 	}
 
 	const languageOptions: { value: Locales; label: string }[] = [
+		{ value: 'ar', label: 'العربية' },
 		{ value: 'en', label: 'English' },
 		{ value: 'fr', label: 'Fran\u00e7ais' },
 		{ value: 'de', label: 'Deutsch' },
@@ -28,7 +33,7 @@
 	<div class="relative">
 		<select
 			id="language-switcher"
-			class="w-full appearance-none rounded-lg border border-color bg-secondary px-3 py-2 pr-8 text-sm text-primary"
+			class="w-full appearance-none rounded-lg border border-color bg-secondary px-3 py-2 pe-8 text-sm text-primary"
 			value={$locale}
 			onchange={(e) => switchLanguage((e.target as HTMLSelectElement).value as Locales)}
 		>
@@ -37,7 +42,7 @@
 			{/each}
 		</select>
 		<span
-			class="material-icons pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[18px]! text-thirdly"
+			class="material-icons pointer-events-none absolute end-2 top-1/2 -translate-y-1/2 text-[18px]! text-thirdly"
 		>
 			expand_more
 		</span>

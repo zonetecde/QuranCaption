@@ -1469,7 +1469,7 @@
 		<header class="flex flex-wrap items-center justify-between gap-4">
 			<div class="flex min-w-0 flex-wrap items-center gap-4">
 				<button class="btn btn-icon h-10 px-4" type="button" onclick={backToHome}>
-					<span class="material-icons-outlined mr-2">arrow_back</span>
+					<span class="material-icons-outlined rtl-mirror me-2">arrow_back</span>
 					{$LL.batch.backToHome()}
 				</button>
 				{#if batch}
@@ -1566,7 +1566,7 @@
 						{/if}
 					</div>
 					<div
-						class="ml-auto flex items-center gap-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-1.5"
+						class="ms-auto flex items-center gap-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-secondary)] p-1.5"
 						data-batch-global-actions
 						role="group"
 						aria-label={batchMessage('globalActions')}
@@ -1729,7 +1729,7 @@
 						total: projects.length
 					})}
 				</p>
-				<div class="ml-auto flex flex-wrap items-center gap-3">
+				<div class="ms-auto flex flex-wrap items-center gap-3">
 					{#if reviewProjects.length > 0 && !allSegmentationsVerified}
 						<button
 							class="btn-accent inline-flex h-10 items-center justify-center gap-2 px-4"
@@ -2060,7 +2060,7 @@
 						{batchMessage('selectOutputFolder')}
 					</p>
 					<button class="btn btn-icon h-10 px-4" type="button" onclick={selectBatchExportFolder}>
-						<span class="material-icons-outlined mr-2 text-base">folder_open</span>
+						<span class="material-icons-outlined me-2 text-base">folder_open</span>
 						{batchMessage('selectOutputFolder')}
 					</button>
 					{#if exportOutputFolder}
@@ -2201,7 +2201,7 @@
 					disabled={incompatibleProjects.length > 0 || queueActive}
 					onclick={startMediaImport}
 				>
-					<span class="material-icons-outlined mr-2">download</span>
+					<span class="material-icons-outlined me-2">download</span>
 					{batchMessage('startImport')}
 				</button>
 			</div>
@@ -2592,7 +2592,7 @@
 						(needsSurahChoice && !surahSplitterChoice)}
 					onclick={startSegmentation}
 				>
-					<span class="material-icons-outlined mr-2">auto_fix_high</span>
+					<span class="material-icons-outlined me-2">auto_fix_high</span>
 					{batchMessage('startSegmentation')}
 				</button>
 			</div>
@@ -2614,7 +2614,7 @@
 			<div class="mt-4 space-y-2">
 				{#each translationEditionsNeedingReview as editionName (editionName)}
 					<button
-						class="btn flex w-full items-center justify-between px-4 py-3 text-left"
+						class="btn flex w-full items-center justify-between px-4 py-3 text-start"
 						type="button"
 						onclick={async () => {
 							selectActiveTranslationEdition(editionName);

@@ -225,6 +225,10 @@ const settings = {
 		ADD_SUBTITLE: 'Add Subtitle',
 		REMOVE_LAST_SUBTITLE: 'Remove Last Subtitle',
 		EDIT_LAST_SUBTITLE: 'Edit Subtitle at Cursor',
+		EDIT_SUBTITLE_AT_CURSOR: 'Open Subtitle Editor at Cursor',
+		EDIT_TRANSLATION_AT_CURSOR: 'Open Translation Editor at Cursor',
+		EDIT_WBW_TIMESTAMP_AT_CURSOR: 'Open WBW Timestamp Editor at Cursor',
+		EDIT_WBW_STYLE_AT_CURSOR: 'Open WBW Style/Translation at Cursor',
 		ADD_SILENCE: 'Add Silence',
 		SET_LAST_SUBTITLE_END: 'Set Subtitle End Time',
 		SET_LAST_SUBTITLE_START: 'Set Subtitle Start Time',
@@ -243,7 +247,9 @@ const settings = {
 		FRAME_BY_FRAME_SCROLL: 'Frame-by-frame with Scroll',
 		FRAME_BACKWARD: 'Previous Frame',
 		FRAME_FORWARD: 'Next Frame',
-		QUICK_MERGE_AT_CURSOR: 'Toggle Quick Merge'
+		QUICK_MERGE_AT_CURSOR: 'Toggle Quick Merge',
+		NEXT_MARKED_SEGMENT: 'Go to Next Marked Segment',
+		PREVIOUS_MARKED_SEGMENT: 'Go to Previous Marked Segment'
 	},
 	shortcutActionDesc: {
 		MOVE_FORWARD: 'Move preview forward by 2 seconds',
@@ -264,6 +270,11 @@ const settings = {
 		ADD_SUBTITLE: 'Create a subtitle with selected words',
 		REMOVE_LAST_SUBTITLE: 'Delete the most recent subtitle',
 		EDIT_LAST_SUBTITLE: 'Edit the subtitle under the cursor, or the last one if none',
+		EDIT_SUBTITLE_AT_CURSOR: 'Open the subtitle editor for the subtitle under the cursor',
+		EDIT_TRANSLATION_AT_CURSOR: 'Open the translation editor for the subtitle under the cursor',
+		EDIT_WBW_TIMESTAMP_AT_CURSOR: 'Open the WBW timestamp editor for the subtitle under the cursor',
+		EDIT_WBW_STYLE_AT_CURSOR:
+			'Open WBW style and translation editing for the subtitle under the cursor',
 		ADD_SILENCE: 'Insert a silent period in the timeline',
 		SET_LAST_SUBTITLE_END:
 			'Set end time of subtitle at cursor position and adjust next subtitle start',
@@ -285,7 +296,9 @@ const settings = {
 		FRAME_BY_FRAME_SCROLL: 'Hold this shortcut while scrolling to move frame by frame',
 		FRAME_BACKWARD: 'Move the cursor backward by one frame',
 		FRAME_FORWARD: 'Move the cursor forward by one frame',
-		QUICK_MERGE_AT_CURSOR: 'Merge or unmerge subtitles at the closest boundary to the cursor'
+		QUICK_MERGE_AT_CURSOR: 'Merge or unmerge subtitles at the closest boundary to the cursor',
+		NEXT_MARKED_SEGMENT: 'Move the cursor to the first marked segment to its right',
+		PREVIOUS_MARKED_SEGMENT: 'Move the cursor to the first marked segment to its left'
 	},
 	stockMediaDescription:
 		'Configure your Pexels and Pixabay API keys to search and import free stock media.',

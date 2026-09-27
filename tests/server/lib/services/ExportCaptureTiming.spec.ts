@@ -490,6 +490,41 @@ describe('getExportWordByWordHighlightTimings', () => {
 });
 
 describe('calculateCaptureTimingsForRange', () => {
+	it('forces captures when the active video clip changes without subtitles', () => {
+		const result = calculateCaptureTimingsForRange({
+			rangeStart: 0,
+			rangeEnd: 3_000,
+			fadeDuration: 0,
+			subtitleClips: [],
+			timedOverlayClips: [],
+			videoClipChangeTimings: [0, 1_000, 2_000],
+			getCurrentSurah: () => -1
+		});
+
+		expect(result.uniqueSorted).toEqual([0, 1_000, 2_000, 3_000]);
+		expect(result.videoClipChangeTimings).toEqual(new Set([0, 1_000, 2_000]));
+
+		const plan = buildExportCaptureJobPlan({
+			timings: result,
+			rangeStart: 0,
+			rangeEnd: 3_000,
+			fadeDuration: 0,
+			workerCount: 1,
+			isBlankCaptureTiming: () => true,
+			getReusableBlankFileName: () => 'blank'
+		});
+
+		expect(plan.captureJobs).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					timing: 2_000,
+					isBlankImage: false,
+					reusableBlankFileName: null
+				})
+			])
+		);
+	});
+
 	it('captures every style keyframe inside the export range', () => {
 		const subtitleClips = [subtitle(0, 5_000, 1)];
 		const result = calculateCaptureTimingsForRange({

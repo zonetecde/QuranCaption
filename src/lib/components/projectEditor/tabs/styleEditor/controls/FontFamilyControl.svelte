@@ -213,7 +213,7 @@
 	<button
 		bind:this={triggerButton}
 		type="button"
-		class="flex w-full items-center justify-between gap-2 rounded-lg border border-color bg-[var(--bg-secondary)] px-3 py-2 text-left text-sm text-primary transition-colors hover:border-[var(--accent-primary)]"
+		class="flex w-full items-center justify-between gap-2 rounded-lg border border-color bg-[var(--bg-secondary)] px-3 py-2 text-start text-sm text-primary transition-colors hover:border-[var(--accent-primary)]"
 		aria-haspopup="listbox"
 		aria-expanded={isOpen}
 		onclick={togglePanel}
@@ -231,7 +231,7 @@
 			<div class="border-b border-color p-2">
 				<div class="relative">
 					<span
-						class="material-icons-outlined pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-[17px]! text-secondary"
+						class="material-icons-outlined pointer-events-none absolute top-1/2 start-2.5 -translate-y-1/2 text-[17px]! text-secondary"
 					>
 						search
 					</span>
@@ -240,7 +240,7 @@
 						bind:value={searchQuery}
 						type="text"
 						role="searchbox"
-						class="w-full rounded-lg border border-color bg-[var(--bg-secondary)] py-2 pr-3 pl-9! text-sm text-primary placeholder:text-secondary"
+						class="w-full rounded-lg border border-color bg-[var(--bg-secondary)] py-2 pe-3 ps-9! text-sm text-primary placeholder:text-secondary"
 						placeholder={getFontControlCopy('searchFonts')}
 						aria-label={getFontControlCopy('searchFonts')}
 					/>
@@ -250,7 +250,7 @@
 			<div class="max-h-80 overflow-y-auto p-1">
 				<button
 					type="button"
-					class="flex w-full items-center gap-2 rounded-lg border-b border-color px-3 py-2.5 text-left text-sm font-semibold text-accent transition-colors hover:bg-[var(--bg-accent)] disabled:cursor-wait disabled:opacity-60"
+					class="flex w-full items-center gap-2 rounded-lg border-b border-color px-3 py-2.5 text-start text-sm font-semibold text-accent transition-colors hover:bg-[var(--bg-accent)] disabled:cursor-wait disabled:opacity-60"
 					disabled={isImporting}
 					onclick={importFont}
 				>
@@ -275,7 +275,7 @@
 									type="button"
 									role="option"
 									aria-selected={font.value === String(value)}
-									class="group flex w-full flex-col gap-1 rounded-lg px-3 py-2 text-left transition-colors hover:bg-[var(--bg-accent)] aria-selected:bg-[color-mix(in_srgb,var(--accent-primary)_18%,var(--bg-secondary))]"
+									class="group flex w-full flex-col gap-1 rounded-lg px-3 py-2 text-start transition-colors hover:bg-[var(--bg-accent)] aria-selected:bg-[color-mix(in_srgb,var(--accent-primary)_18%,var(--bg-secondary))]"
 									onclick={() => selectFont(font.value)}
 								>
 									<span

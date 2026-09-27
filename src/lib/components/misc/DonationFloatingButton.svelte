@@ -196,7 +196,7 @@
 
 {#if isPromptVisible && !globalState.uiState.showReflectionPrompt}
 	<section
-		class="support-prompt fixed bottom-3 right-3 xl:bottom-5 xl:right-5 z-20 w-[420px] max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-1.5rem)] overflow-auto rounded-2xl"
+		class="support-prompt fixed bottom-3 end-3 xl:bottom-5 xl:end-5 z-20 w-[420px] max-w-[calc(100vw-1.5rem)] max-h-[calc(100vh-1.5rem)] overflow-auto rounded-2xl"
 	>
 		<div class="prompt-header px-4 py-3.5 flex items-start justify-between gap-3">
 			<div class="flex items-start gap-3 min-w-0">
@@ -285,7 +285,7 @@
 						<p class="text-xs text-thirdly">{$LL.donation.tapWalletToCopy()}</p>
 						{#each DONATION_WALLETS as wallet (wallet.label)}
 							<button
-								class="wallet-card w-full rounded-lg border border-color bg-secondary/70 px-3 py-2 text-left flex items-center justify-between gap-3"
+								class="wallet-card w-full rounded-lg border border-color bg-secondary/70 px-3 py-2 text-start flex items-center justify-between gap-3"
 								onclick={() => copyWalletAddress(wallet.address, wallet.label)}
 								aria-label={$LL.common.copyWalletAddress({ wallet: wallet.label })}
 							>

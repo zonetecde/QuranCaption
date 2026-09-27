@@ -8,6 +8,7 @@ import DeleteConfirmation from './DeleteConfirmation.svelte';
 import ShiftSubtitlesModal from './tools/ShiftSubtitlesModal.svelte';
 import HifzRepetitionModal from './tools/HifzRepetitionModal.svelte';
 import AudioCutterModal from './tools/AudioCutterModal.svelte';
+import AudioEffectsModal from './tools/AudioEffectsModal.svelte';
 import VerseRangeCropModal from './tools/VerseRangeCropModal.svelte';
 import BookmarkVerseModal from './BookmarkVerseModal.svelte';
 import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
@@ -27,6 +28,8 @@ type YouTubePublicationUpdate = {
 	url?: string;
 	error?: string;
 };
+
+type AudioEffectId = 'denoise' | 'clarity' | 'echo' | 'reverb';
 
 export default class ModalManager {
 	static async confirmModal(text: string, yesNo: boolean = false): Promise<boolean> {
@@ -252,6 +255,36 @@ export default class ModalManager {
 						resolve();
 					},
 					initialAssetId
+				}
+			});
+		});
+	}
+
+	/**
+	 * Ouvre la modale des effets audio avec une sélection initiale facultative.
+	 * @param {number | undefined} initialClipId Clip audio sélectionné.
+	 * @param {AudioEffectId | undefined} initialEffectId Effet sélectionné.
+	 * @returns {Promise<void>} Résolution après fermeture.
+	 */
+	static async audioEffectsModal(
+		initialClipId?: number,
+		initialEffectId?: AudioEffectId
+	): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+
+			const modal = mount(AudioEffectsModal, {
+				target: container,
+				props: {
+					close: () => {
+						unmount(modal);
+						container.remove();
+						resolve();
+					},
+					initialClipId,
+					initialEffectId
 				}
 			});
 		});

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ProjectEditorTabs, TrackType, AssetClip, type Asset } from '$lib/classes';
+	import { AssetType, ProjectEditorTabs, TrackType, AssetClip, type Asset } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 	import { onDestroy, onMount, untrack } from 'svelte';
@@ -67,17 +67,24 @@
 	// Récupère l'asset vidéo actuellement sous le curseur de la timeline
 	// Seulement si movePreviewTo est défini (pour éviter les recalculs inutiles)
 	let currentVideo = $derived(() => {
-		if (getTimelineSettings().movePreviewTo !== undefined)
+		if (getTimelineSettings().movePreviewTo !== undefined) {
 			return untrack(() => {
-				return globalState.currentProject!.content.timeline.getCurrentAssetOnTrack(TrackType.Video);
+				const asset = globalState.currentProject!.content.timeline.getCurrentAssetOnTrack(
+					TrackType.Video
+				);
+				return asset?.type === AssetType.Video ? asset : null;
 			});
+		}
 	});
 
 	let currentImage = $derived(() => {
-		if (getTimelineSettings().movePreviewTo !== undefined)
+		if (getTimelineSettings().movePreviewTo !== undefined) {
 			return untrack(() => {
-				return globalState.currentProject!.content.timeline.getBackgroundImage();
+				const timeline = globalState.currentProject!.content.timeline;
+				const asset = timeline.getCurrentAssetOnTrack(TrackType.Video);
+				return asset?.type === AssetType.Image ? asset : timeline.getBackgroundImage();
 			});
+		}
 	});
 
 	// Récupère l'asset audio actuellement sous le curseur de la timeline
@@ -106,22 +113,24 @@
 	});
 
 	let backgroundMediaStyle = $derived.by(() => {
-		const mediaFill = Boolean(globalState.getStyleValue('global', 'media-fill'));
+		const clipId = currentVideoClip()?.id;
+		const globalStyles = globalState.getVideoStyle.getStylesOfTarget('global');
+		const mediaFill = Boolean(globalStyles.getEffectiveValue('media-fill', clipId));
 		const scale = Math.min(
 			3,
-			Math.max(1, Number(globalState.getStyleValue('global', 'media-scale') ?? 100) / 100)
+			Math.max(1, Number(globalStyles.getEffectiveValue('media-scale', clipId) ?? 100) / 100)
 		);
 		const positionX =
 			(Math.min(
 				100,
-				Math.max(-100, Number(globalState.getStyleValue('global', 'media-position-x') ?? 0))
+				Math.max(-100, Number(globalStyles.getEffectiveValue('media-position-x', clipId) ?? 0))
 			) +
 				100) /
 			200;
 		const positionY =
 			(Math.min(
 				100,
-				Math.max(-100, Number(globalState.getStyleValue('global', 'media-position-y') ?? 0))
+				Math.max(-100, Number(globalStyles.getEffectiveValue('media-position-y', clipId) ?? 0))
 			) +
 				100) /
 			200;
@@ -137,7 +146,11 @@
 
 	// Effect qui redimensionne la vidéo quand la hauteur de la prévisualisation change
 	$effect(() => {
-		const _ = globalState.settings?.persistentUiState.projectEditorLayout.upperSectionHeight;
+		const _ = [
+			globalState.settings?.persistentUiState.projectEditorLayout.upperSectionHeight,
+			globalState.settings?.persistentUiState.projectEditorLayout.subtitlesEditorPreviewHeight,
+			globalState.settings?.persistentUiState.projectEditorLayout.subtitlesEditorRightPanelWidth
+		];
 
 		resizeVideoToFitScreen();
 	});
@@ -410,16 +423,15 @@
 	 * @returns {number} Multiplicateur de vitesse à utiliser.
 	 */
 	function getSpeed() {
-		let speed = globalState.getSubtitlesEditorState.playbackSpeed;
+		let speed = globalState.getVideoPreviewState.playbackSpeed;
+		if (
+			globalState.currentProject?.projectEditorState.currentTab ===
+			ProjectEditorTabs.SubtitlesEditor
+		) {
+			speed = globalState.getSubtitlesEditorState.playbackSpeed;
+		}
 		if (globalState.shared.wbwEdit.active) {
 			speed = globalState.getSubtitlesEditorState.wbwPlaybackSpeed;
-		}
-		if (
-			!globalState.shared.wbwEdit.active &&
-			globalState.currentProject?.projectEditorState.currentTab !==
-				ProjectEditorTabs.SubtitlesEditor
-		) {
-			speed = 1; // Réinitialise la vitesse si on n'est pas dans l'éditeur de sous-titres
 		}
 		return speed;
 	}
@@ -1661,6 +1673,7 @@
 />
 
 <section
+	dir="ltr"
 	class="overflow-hidden min-h-0"
 	id="video-preview-section"
 	style={showControls
@@ -1668,6 +1681,7 @@
 		: ''}
 >
 	<div
+		dir="ltr"
 		class="w-full h-full flex flex-col relative overflow-hidden background-primary"
 		id="preview-container"
 	>

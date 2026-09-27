@@ -87,6 +87,7 @@ jobs:
           cp "$(brew --prefix ffmpeg-full)/bin/ffmpeg" src-tauri/binaries/ffmpeg
           chmod +x src-tauri/binaries/ffprobe
           chmod +x src-tauri/binaries/ffmpeg
+          src-tauri/binaries/ffmpeg -hide_banner -filters | grep -qw afftdn
           if src-tauri/binaries/ffmpeg -hide_banner -filters | grep -qi xfade_vulkan; then
             echo "xfade_vulkan available in macOS FFmpeg build"
           else
@@ -131,6 +132,9 @@ jobs:
 
           $filters = & (Join-Path $binDir "ffmpeg.exe") -hide_banner -filters
           $filtersText = $filters -join "`n"
+          if ($filtersText -notmatch "\bafftdn\b") {
+            throw "afftdn unavailable in Windows FFmpeg build"
+          }
           $xfadeFilters = $filters | Select-String -Pattern "xfade" -CaseSensitive:$false
           if ($xfadeFilters) {
             $xfadeFilters | ForEach-Object { Write-Host $_.Line }
@@ -178,6 +182,7 @@ jobs:
           cp "$ffmpeg_bin" src-tauri/binaries/ffmpeg
           cp "$ffprobe_bin" src-tauri/binaries/ffprobe
           chmod +x src-tauri/binaries/ffmpeg src-tauri/binaries/ffprobe
+          src-tauri/binaries/ffmpeg -hide_banner -filters | grep -qw afftdn
           if ! src-tauri/binaries/ffmpeg -hide_banner -filters | grep -qi xfade_vulkan; then
             echo "xfade_vulkan unavailable in Linux FFmpeg build; OpenCL/CPU fallback will be used"
           fi

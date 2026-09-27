@@ -74,7 +74,7 @@
 
 {#if isVisible}
 	<div
-		class="filter-menu absolute top-full right-0 mt-2 w-[330px] bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg shadow-xl z-50 py-2"
+		class="filter-menu absolute top-full end-0 mt-2 w-[330px] bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg shadow-xl z-50 py-2"
 		transition:slide={{ duration: 200 }}
 	>
 		<div

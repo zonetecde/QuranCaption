@@ -70,7 +70,7 @@
 		<div class="flex gap-2 items-center group relative" data-tour-id="subtitles-help-button">
 			<span class="material-icons text-2xl!">help</span>
 			<div
-				class="group transition-opacity text-sm text-[var(--text-secondary)] absolute top-4.5 left-3.5 bg-primary px-3 w-[400px] py-3 border-2 border-[var(--border-color)]/90 rounded-lg max-h-[400px] overflow-auto z-[950] opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+				class="group transition-opacity text-sm text-[var(--text-secondary)] absolute top-4.5 start-3.5 bg-primary px-3 w-[400px] py-3 border-2 border-[var(--border-color)]/90 rounded-lg max-h-[400px] overflow-auto z-[950] opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
 			>
 				<button
 					type="button"
@@ -142,7 +142,7 @@
 	</div>
 
 	<!-- Surah Selector with Autocomplete -->
-	<div class="flex min-w-0 items-center gap-2 ml-auto">
+	<div class="flex min-w-0 items-center gap-2 ms-auto">
 		<span class="shrink-0 text-sm font-medium text-secondary">{$LL.editor.surahLabel()}</span>
 		<div class="min-w-0 w-[200px]">
 			<AutocompleteInput

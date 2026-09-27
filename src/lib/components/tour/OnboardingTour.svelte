@@ -392,7 +392,7 @@
 						"
 					></div>
 				{/each}
-				<span class="ml-auto text-xs" style="color: var(--text-thirdly);"
+				<span class="ms-auto text-xs" style="color: var(--text-thirdly);"
 					>{currentStepIndex + 1} / {TOUR_STEPS.length}</span
 				>
 			</div>
@@ -401,7 +401,7 @@
 			<div class="flex items-center justify-between gap-2">
 				{#if currentStepIndex > 0}
 					<button class="tour-btn-secondary" onclick={goBack}>
-						<span class="material-icons" style="font-size: 14px;">arrow_back</span>
+						<span class="material-icons rtl-mirror" style="font-size: 14px;">arrow_back</span>
 						{$LL.common.back()}
 					</button>
 				{:else}
@@ -411,7 +411,11 @@
 				{#if currentStep.advanceMode === 'button'}
 					<button class="tour-btn-primary" onclick={advance}>
 						{currentStep.buttonLabel ?? $LL.common.next()}
-						<span class="material-icons" style="font-size: 14px;">
+						<span
+							class="material-icons"
+							class:rtl-mirror={currentStep.buttonLabel !== $LL.common.finish()}
+							style="font-size: 14px;"
+						>
 							{currentStep.buttonLabel === $LL.common.finish() ? 'check' : 'arrow_forward'}
 						</span>
 					</button>

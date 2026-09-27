@@ -627,6 +627,8 @@ const es = {
 		backgroundImageError: 'Error de imagen de fondo',
 		cannotAddBackgroundImage:
 			'No se puede agregar una imagen de fondo a la línea de tiempo cuando las imágenes de fondo no son compatibles en este contexto.',
+		setImageAsFullBackgroundConfirm:
+			'La pista de vídeo está vacía. ¿Usar esta imagen como fondo durante todo el vídeo? Elige No para añadirla como un clip normal en la línea de tiempo.',
 		loopingError: 'Error de repetición',
 		canOnlyEnableLoopIfOnlyClip:
 			'Solo puede activar \u00ab\u00a0Repetir hasta el final\u00a0\u00bb si es el único clip de la pista.',
@@ -700,7 +702,7 @@ const es = {
 		zoomOut: 'Alejar',
 		zoomIn: 'Acercar',
 		dismissHints: 'Descartar consejos de la rueda de línea de tiempo',
-		antiCollisionNotice: 'La anti-colisión de subtítulos está activada',
+		antiCollisionNotice: 'El estilo anticolisión está activado',
 		antiCollisionNoticeHelpEnabled:
 			'está activado. Puede mover automáticamente los subtítulos e interferir con el diseño exacto que desea. Puede desactivarlo en el panel izquierdo.',
 		antiCollisionNoticeHelpAlternative:
@@ -756,9 +758,9 @@ const es = {
 		both: 'Ambos',
 		unmergeGroup: 'Separar grupo',
 		videoClipsSelected:
-			'{count}\u00a0clip de video{plural} seleccionado{plural}. Los estilos de superposición solo se aplicarán a estos clips.',
+			'{count}\u00a0clip multimedia seleccionado{plural}. Los estilos de encuadre, superposición y marco de video solo se aplicarán a estos clips.',
 		clickToSelect:
-			'Haga clic en un subtítulo o clip de video para seleccionarlo. Ctrl/Cmd+clic selecciona elementos adicionales.',
+			'Haga clic en un subtítulo o clip multimedia para seleccionarlo. Ctrl/Cmd+clic selecciona elementos adicionales.',
 		cannotEditGlobalWithSelection:
 			'No puede editar estilos globales cuando hay clips de subtítulos seleccionados. Limpie la selección para editar estilos globales.',
 		backgroundVisibilityHint:
@@ -2091,6 +2093,9 @@ const es = {
 		removeSkip: 'Eliminar corte',
 		exportDuration: 'Duración de exportación :',
 		exportVerseRange: 'Rango de versículos a exportar :',
+		orientation: 'Orientación',
+		quality: 'Calidad',
+		customDimensions: 'Dimensiones personalizadas',
 		videoQualityOrientation: 'Calidad y orientación del video',
 		setResolutionOrientation:
 			'Establezca la resolución y la orientación del video exportado. La resolución está bloqueada en las dimensiones actuales del proyecto.',
@@ -2172,10 +2177,10 @@ const es = {
 			'Exportación más rápida. Puede usar codificación por hardware, con riesgo de artefactos en fondos 4K detallados.',
 		balanced: 'Equilibrado',
 		balancedDescription:
-			'Recomendado para exportaciones finales. Conserva mejor la calidad en alta resolución, pero tarda más.',
-		lowCpu: 'CPU bajo',
+			'Usa codificación por GPU para exportar más rápido, pero puede causar ligeras distorsiones visuales.',
+		lowCpu: 'Calidad máxima',
 		lowCpuDescription:
-			'Limita el uso de CPU para mantener el equipo más responsive. Normalmente es la opción más lenta.',
+			'Garantiza la mejor calidad usando únicamente codificación por software con la CPU, pero exporta más lentamente.',
 		exportInProgressButton: 'Exportación en curso...',
 		fileNotFound: 'Archivo no encontrado',
 		exportedFileNotFound:
@@ -2787,6 +2792,10 @@ const es = {
 			ADD_SUBTITLE: 'Agregar subtítulo',
 			REMOVE_LAST_SUBTITLE: 'Eliminar último subtítulo',
 			EDIT_LAST_SUBTITLE: 'Editar subtítulo en el cursor',
+			EDIT_SUBTITLE_AT_CURSOR: 'Abrir editor de subtítulos en el cursor',
+			EDIT_TRANSLATION_AT_CURSOR: 'Abrir editor de traducción en el cursor',
+			EDIT_WBW_TIMESTAMP_AT_CURSOR: 'Abrir editor de tiempos WBW en el cursor',
+			EDIT_WBW_STYLE_AT_CURSOR: 'Abrir estilo/traducción WBW en el cursor',
 			ADD_SILENCE: 'Agregar silencio',
 			SET_LAST_SUBTITLE_END: 'Establecer fin del subtítulo',
 			SET_LAST_SUBTITLE_START: 'Establecer inicio del subtítulo',
@@ -2805,7 +2814,9 @@ const es = {
 			FRAME_BY_FRAME_SCROLL: 'Fotograma a fotograma con la rueda',
 			FRAME_BACKWARD: 'Fotograma anterior',
 			FRAME_FORWARD: 'Fotograma siguiente',
-			QUICK_MERGE_AT_CURSOR: 'Alternar fusión rápida'
+			QUICK_MERGE_AT_CURSOR: 'Alternar fusión rápida',
+			NEXT_MARKED_SEGMENT: 'Ir al siguiente segmento marcado',
+			PREVIOUS_MARKED_SEGMENT: 'Ir al segmento marcado anterior'
 		},
 		shortcutActionDesc: {
 			MOVE_FORWARD: 'Avanza la vista previa 2 segundos',
@@ -2826,6 +2837,11 @@ const es = {
 			ADD_SUBTITLE: 'Crear un subtítulo con las palabras seleccionadas',
 			REMOVE_LAST_SUBTITLE: 'Eliminar el subtítulo más reciente',
 			EDIT_LAST_SUBTITLE: 'Editar el subtítulo bajo el cursor, o el último si no hay ninguno',
+			EDIT_SUBTITLE_AT_CURSOR: 'Abrir el editor para el subtítulo bajo el cursor',
+			EDIT_TRANSLATION_AT_CURSOR: 'Abrir el editor de traducción del subtítulo bajo el cursor',
+			EDIT_WBW_TIMESTAMP_AT_CURSOR: 'Abrir el editor de tiempos WBW del subtítulo bajo el cursor',
+			EDIT_WBW_STYLE_AT_CURSOR:
+				'Abrir la edición de estilo y traducción WBW del subtítulo bajo el cursor',
 			ADD_SILENCE: 'Insertar un período de silencio en la línea de tiempo',
 			SET_LAST_SUBTITLE_END:
 				'Establecer la hora de fin del subtítulo en la posición del cursor y ajustar el inicio del subtítulo siguiente',
@@ -2848,7 +2864,9 @@ const es = {
 				'Mantener este atajo mientras se desplaza para avanzar fotograma a fotograma',
 			FRAME_BACKWARD: 'Retroceder el cursor un fotograma',
 			FRAME_FORWARD: 'Avanzar el cursor un fotograma',
-			QUICK_MERGE_AT_CURSOR: 'Fusionar o separar subtítulos en el límite más cercano al cursor'
+			QUICK_MERGE_AT_CURSOR: 'Fusionar o separar subtítulos en el límite más cercano al cursor',
+			NEXT_MARKED_SEGMENT: 'Mover el cursor al primer segmento marcado a su derecha',
+			PREVIOUS_MARKED_SEGMENT: 'Mover el cursor al primer segmento marcado a su izquierda'
 		},
 		stockMediaDescription:
 			'Configure sus claves API de Pexels y Pixabay para buscar e importar medios de stock gratuitos.',
@@ -2938,14 +2956,42 @@ const es = {
 		hifzRepetition: 'Repetición Hifz',
 		hifzDescription: 'Repetir los subtítulos existentes y generar el audio correspondiente',
 		hifzBody:
-			'Transforme sus subtítulos existentes en una pista de repetición adaptada al Hifz. Cada versículo se repetirá con intervalos de silencio configurables.',
+			'Convierta sus subtítulos en una pista Hifz personalizable con repeticiones estándar o enlazadas.',
+		standardSequence: 'Repetición estándar',
+		standardSequenceHelp:
+			'Repite cada aleya o subtítulo seleccionado por separado según la cantidad indicada.',
+		linkedSequence: 'Enlazada / acumulativa',
+		linkedSequenceDescription:
+			'Crea transiciones como V1, V1+V2, V2, V2+V3. Se pueden configurar las cantidades, el tamaño del grupo y las pasadas completas.',
+		individualRepeatCount: 'Repeticiones de cada bloque individual',
+		individualRepeatCountHelp:
+			'Cantidad de veces que se reproduce cada bloque individual de aleya o subtítulo.',
+		firstLastRepeatCount: 'Primero / último',
+		firstLastRepeatCountHelp:
+			'Cantidad de repeticiones de los bloques individuales primero y último.',
+		linkedBlockSize: 'Tamaño enlazado',
+		linkedBlockSizeHelp: 'Cantidad de bloques consecutivos combinados en cada transición enlazada.',
+		linkedRepeatCount: 'Repeticiones enlazadas',
+		linkedRepeatCountHelp: 'Cantidad de veces que se reproduce cada grupo enlazado.',
+		playFullAtStart: 'Secuencia completa al inicio',
+		playFullAtStartHelp: 'Reproduce una vez todos los subtítulos incluidos antes de la práctica.',
+		playFullAtEnd: 'Secuencia completa al final',
+		playFullAtEndHelp: 'Reproduce una vez todos los subtítulos incluidos después de la práctica.',
+		pauseBetweenRepeats: 'Pausa entre repeticiones del mismo bloque',
+		pauseBetweenRepeatsHelp:
+			'Añade silencio entre repeticiones del mismo bloque, proporcional a su duración.',
+		pauseBetweenGroups: 'Pausa entre bloques',
+		pauseBetweenGroupsHelp:
+			'Añade silencio después de cada bloque o grupo enlazado, proporcional a su duración.',
+		repetitionSelection: 'Subtítulos incluidos en las repeticiones de práctica',
+		repetitionSelectionDescription:
+			'Los elementos desmarcados no se practican. El modo estándar los conserva una vez; el enlazado solo los incluye en las pasadas completas activadas.',
 		repeatEachVerse: 'Repetir cada versículo',
 		repeatEachSubtitle: 'Repetir cada subtítulo',
 		generatingHifzAudio: 'Generando audio Hifz...',
 		repeatCount: 'Número de repeticiones',
 		silenceDuration: 'Duración del silencio entre repeticiones',
-		silenceDescription:
-			'El silencio corresponde a la duración del segmento repetido. Aumente para más pausa entre repeticiones.',
+		silenceDescription: 'Cada pausa multiplica la duración del bloque (0 la desactiva).',
 		keepVisualMerges: 'Conservar fusiones visuales',
 		keepSubtitlesVisible: 'Mantener subtítulos visibles durante las pausas',
 		stretchCompleteSubtitles: 'Estirar subtítulos completos sobre los ciclos repetidos',
@@ -3002,7 +3048,51 @@ const es = {
 		endTimeExceedsDuration: 'La hora de fin supera la duración del elemento',
 		assetTrimmedSuccess:
 			'¡Elemento recortado con éxito! La versión recortada se ha agregado al proyecto.',
-		failedToTrim: 'Error al recortar el elemento : {error}'
+		failedToTrim: 'Error al recortar el elemento : {error}',
+		noiseReduction: 'Reducción de ruido',
+		noiseReductionDescription:
+			'Reducir el ruido de fondo constante de un clip de audio de la línea de tiempo',
+		selectTimelineAudio: 'SELECCIONAR AUDIO DE LA LÍNEA DE TIEMPO',
+		chooseTimelineAudio: 'Elige un clip de audio...',
+		noTimelineAudio: 'Primero añade un clip de audio a la línea de tiempo.',
+		noiseReductionResultHint:
+			'Se añadirá al proyecto un archivo WAV limpio y se usará como fuente del clip seleccionado.',
+		applyNoiseReduction: 'Reducir ruido',
+		pleaseSelectTimelineAudio: 'Selecciona un clip de audio de la línea de tiempo',
+		noiseReductionSuccess: 'Ruido reducido. El clip seleccionado ahora usa el audio limpio.',
+		noiseReductionFailed: 'No se pudo reducir el ruido del audio: {error}',
+		audioEffects: 'Efectos de audio',
+		audioEffectsDescription:
+			'Aplica efectos FFmpeg ajustados cuidadosamente para la recitación del Corán',
+		audioEffectsSegmentationRecommendation:
+			'Para obtener subtítulos más precisos, ejecuta primero la alineación de AI Segmentation sobre el audio original. Aplica los efectos solo después, ya que el eco, la reverberación y otros procesos pueden reducir la precisión de la detección y la sincronización.',
+		chooseAudioEffect: 'ELEGIR UN EFECTO',
+		denoise: 'Reducción de ruido',
+		denoiseDescription: 'Reduce el ruido de fondo constante y conserva la voz',
+		clarity: 'Claridad de voz',
+		clarityDescription: 'Elimina los graves molestos y realza suavemente la articulación',
+		echo: 'Eco ligero',
+		echoDescription: 'Añade una repetición corta y sutil a la recitación',
+		reverb: 'Reverberación ligera',
+		reverbDescription: 'Añade una sensación suave de espacio con reflejos moderados',
+		effectParameters: 'AJUSTAR EFECTO',
+		denoiseStrength: 'Reducción de ruido',
+		noiseFloor: 'Umbral de ruido',
+		lowCut: 'Frecuencia de corte bajo',
+		presenceGain: 'Realce de presencia',
+		echoDelay: 'Retardo del eco',
+		echoAmount: 'Intensidad del eco',
+		roomSize: 'Tamaño de la sala',
+		reverbAmount: 'Intensidad de reverberación',
+		previewTenSeconds: 'Previsualizar 10 segundos',
+		preparingPreview: 'Preparando previsualización...',
+		stopPreview: 'Detener previsualización',
+		audioEffectResultHint:
+			'Se añadirá al proyecto un archivo WAV procesado y se usará como fuente del clip seleccionado.',
+		applyAudioEffect: 'Aplicar efecto',
+		audioEffectSuccess: '{effect} aplicado. El clip seleccionado ahora usa el audio procesado.',
+		audioEffectFailed: 'No se pudo aplicar el efecto de audio: {error}',
+		audioEffectPreviewFailed: 'No se pudo previsualizar el efecto de audio: {error}'
 	},
 	status: {
 		notSet: 'No definido',

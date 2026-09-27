@@ -1,6 +1,7 @@
 import { TrackType } from '../enums.js';
 import {
 	Clip,
+	isClipPendingVerification,
 	PredefinedSubtitleClip,
 	SilenceClip,
 	SubtitleClip,
@@ -18,6 +19,42 @@ export class SubtitleTrack extends SubtitleVisualMergeTrack {
 	/** Initialise la piste dédiée aux sous-titres. */
 	constructor() {
 		super(TrackType.Subtitle);
+	}
+
+	/**
+	 * Retourne le premier sous-titre marqué strictement après le curseur.
+	 * @param {number} cursorPosition Position courante du curseur en millisecondes.
+	 * @returns {SubtitleClip | PredefinedSubtitleClip | null} Prochain sous-titre marqué.
+	 */
+	getNextMarkedClip(cursorPosition: number): SubtitleClip | PredefinedSubtitleClip | null {
+		return (
+			this.clips
+				.filter(
+					(clip): clip is SubtitleClip | PredefinedSubtitleClip =>
+						(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
+						clip.startTime > cursorPosition &&
+						isClipPendingVerification(clip)
+				)
+				.sort((first, second) => first.startTime - second.startTime)[0] ?? null
+		);
+	}
+
+	/**
+	 * Retourne le premier sous-titre marqué strictement avant le curseur.
+	 * @param {number} cursorPosition Position courante du curseur en millisecondes.
+	 * @returns {SubtitleClip | PredefinedSubtitleClip | null} Sous-titre marqué précédent.
+	 */
+	getPreviousMarkedClip(cursorPosition: number): SubtitleClip | PredefinedSubtitleClip | null {
+		return (
+			this.clips
+				.filter(
+					(clip): clip is SubtitleClip | PredefinedSubtitleClip =>
+						(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
+						clip.startTime < cursorPosition &&
+						isClipPendingVerification(clip)
+				)
+				.sort((first, second) => second.startTime - first.startTime)[0] ?? null
+		);
 	}
 
 	/**

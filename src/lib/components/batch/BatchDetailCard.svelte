@@ -129,7 +129,7 @@
 <svelte:window onclick={closeStatusMenu} />
 
 <div
-	class="group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-xl border border-[var(--border-color)] bg-secondary text-left shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] backdrop-blur-[10px] transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
+	class="group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-xl border border-[var(--border-color)] bg-secondary text-start shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] backdrop-blur-[10px] transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
 	data-batch-card={batchDetail.id}
 	role="button"
 	tabindex="0"
@@ -151,7 +151,7 @@
 				<span class="material-icons relative text-6xl! text-white drop-shadow-lg">dynamic_feed</span
 				>
 				<span
-					class="absolute right-3 top-3 rounded-full border border-[var(--accent-primary)] bg-[var(--bg-secondary)]/90 px-2.5 py-1 text-xs font-semibold text-[var(--accent-primary)]"
+					class="absolute end-3 top-3 rounded-full border border-[var(--accent-primary)] bg-[var(--bg-secondary)]/90 px-2.5 py-1 text-xs font-semibold text-[var(--accent-primary)]"
 				>
 					{$LL.batch.batch()}
 				</span>
@@ -171,14 +171,14 @@
 						onclick={toggleStatusMenu}
 					>
 						<span
-							class="mr-2 inline-block h-3 w-3 rounded-full"
+							class="me-2 inline-block h-3 w-3 rounded-full"
 							style={`background-color: ${batchDetail.status.color}`}
 						></span>
 						{getStatusLabel(batchDetail.status, get(LL))}
 					</button>
 					{#if showStatusMenu}
 						<ul
-							class="absolute right-0 top-full z-20 mt-1 w-40 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] py-1 shadow-xl backdrop-blur-sm"
+							class="absolute end-0 top-full z-20 mt-1 w-40 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] py-1 shadow-xl backdrop-blur-sm"
 							onclick={(event) => event.stopPropagation()}
 						>
 							{#each statuses as status (status.status)}
@@ -251,21 +251,21 @@
 <ContextMenu bind:this={contextMenu}>
 	<Item on:click={exportBatch}
 		><div class="btn-icon">
-			<span class="material-icons-outlined mr-1 text-sm">file_download</span>{batchMessage(
+			<span class="material-icons-outlined me-1 text-sm">file_download</span>{batchMessage(
 				'exportBatch'
 			)}
 		</div></Item
 	>
 	<Item on:click={dissolveBatch}
 		><div class="btn-icon">
-			<span class="material-icons-outlined mr-1 text-sm">call_split</span>{batchMessage(
+			<span class="material-icons-outlined me-1 text-sm">call_split</span>{batchMessage(
 				'dissolveBatch'
 			)}
 		</div></Item
 	>
 	<Item on:click={deleteBatch}
 		><div class="btn-icon danger-color">
-			<span class="material-icons-outlined mr-1 text-sm">delete</span>{batchMessage('deleteBatch')}
+			<span class="material-icons-outlined me-1 text-sm">delete</span>{batchMessage('deleteBatch')}
 		</div></Item
 	>
 </ContextMenu>

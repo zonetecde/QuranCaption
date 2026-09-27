@@ -1,6 +1,7 @@
 import { globalState } from '$lib/runes/main.svelte';
 import type { StyleName } from '$lib/classes/VideoStyle.svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import { getSubtitleCollisionElements } from '$lib/components/projectEditor/videoPreview/helpers/antiCollision';
 
 export interface VerticalDragOptions {
 	// Mode simple : fonction manuelle
@@ -80,6 +81,10 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 	let previewScaleX = 1;
 	let previewScaleY = 1;
 	let subtitlePositionDragContainer: HTMLElement | null = null;
+	let collisionFrameId: number | null = null;
+	let runtimeVerticalOffset = 0;
+	let lastVerticalValue = 0;
+	let hasMoved = false;
 	let isStuckToZero = false; // Pour le sticky behavior horizontal
 	const HORIZONTAL_STICK_RANGE = 50; // Zone de stick autour de 0 (-50 à +50)
 	const ELEMENT_SNAP_RANGE = 8;
@@ -103,6 +108,66 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		if (y !== null) horizontalGuide.style.top = `${(y - overlayRect.top) / previewScaleY}px`;
 	}
 
+	/**
+	 * Retire l'indication visuelle de collision du drag courant.
+	 * @returns {void}
+	 */
+	function clearSubtitleCollisionPreview(): void {
+		if (collisionFrameId !== null) cancelAnimationFrame(collisionFrameId);
+		collisionFrameId = null;
+		subtitlePositionDragContainer
+			?.querySelectorAll('.position-drag-collision')
+			.forEach((element) => element.classList.remove('position-drag-collision'));
+		if (subtitlePositionDragContainer) {
+			delete subtitlePositionDragContainer.dataset.positionDragCollision;
+		}
+	}
+
+	/**
+	 * Planifie la détection visuelle après la mise à jour du layout par Svelte.
+	 * @returns {void}
+	 */
+	function scheduleSubtitleCollisionPreview(): void {
+		if (!subtitlePositionDragContainer) return;
+		if (collisionFrameId !== null) cancelAnimationFrame(collisionFrameId);
+		collisionFrameId = requestAnimationFrame(() => {
+			collisionFrameId = null;
+			clearSubtitleCollisionPreview();
+			if (!Boolean(globalState.getStyleValue('global', 'anti-collision'))) return;
+
+			const spacing = Number(globalState.getStyleValue('global', 'spacing')) || 0;
+			const elements = getSubtitleCollisionElements(subtitlePositionDragContainer!, node, spacing);
+			for (const element of elements) element.classList.add('position-drag-collision');
+			if (elements.length > 0) {
+				subtitlePositionDragContainer!.dataset.positionDragCollision = 'true';
+			}
+		});
+	}
+
+	/**
+	 * Applique une position verticale au style automatique courant.
+	 * @param {number} value Position verticale à enregistrer.
+	 * @returns {void}
+	 */
+	function applyAutomaticVertical(value: number): void {
+		if (!opts.target || !opts.verticalStyleId) return;
+		const styles = globalState.getVideoStyle.getStylesOfTarget(opts.target);
+		const selectedIds =
+			globalState.currentProject!.projectEditorState.stylesEditor.selectedSubtitles.map(
+				(s) => s.id
+			);
+		if (styles.getKeyframeTimes(opts.verticalStyleId, selectedIds).length > 0) {
+			styles.setKeyframe(
+				opts.verticalStyleId,
+				globalState.getTimelineState.cursorPosition,
+				value,
+				selectedIds
+			);
+		} else if (selectedIds.length > 0) {
+			styles.setStyleForClips(selectedIds, opts.verticalStyleId, value);
+		} else styles.setStyle(opts.verticalStyleId, value);
+	}
+
 	function mousedown(e: MouseEvent) {
 		if (e.button !== 0) return;
 		e.preventDefault();
@@ -110,6 +175,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		startY = e.clientY;
 		startX = e.clientX;
 		isStuckToZero = false;
+		hasMoved = false;
 		dragStartRect = getVisibleContentRect(node);
 		snapTargetRects = Array.from(
 			node.closest('#overlay')?.querySelectorAll<HTMLElement>('[data-preview-draggable]') ?? []
@@ -171,6 +237,11 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 				originHorizontal = opts.getInitialHorizontal();
 			}
 		}
+		runtimeVerticalOffset =
+			opts.target && opts.verticalStyleId === 'vertical-position'
+				? Number.parseFloat(getComputedStyle(node).getPropertyValue('--reactive-y-position')) || 0
+				: 0;
+		lastVerticalValue = originVertical;
 
 		dragging = true;
 		const isPositionDrag = [opts.verticalStyleId, opts.horizontalStyleId].some(
@@ -241,24 +312,12 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		}
 
 		if (opts.round !== false) verticalVal = Math.round(verticalVal);
+		lastVerticalValue = verticalVal;
+		hasMoved = true;
 
 		// Application du vertical
 		if (opts.target && opts.verticalStyleId) {
-			const styles = globalState.getVideoStyle.getStylesOfTarget(opts.target);
-			const selectedIds =
-				globalState.currentProject!.projectEditorState.stylesEditor.selectedSubtitles.map(
-					(s) => s.id
-				);
-			if (styles.getKeyframeTimes(opts.verticalStyleId, selectedIds).length > 0) {
-				styles.setKeyframe(
-					opts.verticalStyleId,
-					globalState.getTimelineState.cursorPosition,
-					verticalVal,
-					selectedIds
-				);
-			} else if (selectedIds.length > 0) {
-				styles.setStyleForClips(selectedIds, opts.verticalStyleId, verticalVal);
-			} else styles.setStyle(opts.verticalStyleId, verticalVal);
+			applyAutomaticVertical(verticalVal);
 		} else {
 			opts.applyVertical!(verticalVal);
 		}
@@ -331,17 +390,39 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 		) {
 			globalState.updateVideoPreviewUI();
 		}
+		scheduleSubtitleCollisionPreview();
 	}
 
 	function mouseup() {
 		if (!dragging) return;
 		dragging = false;
+		if (
+			hasMoved &&
+			runtimeVerticalOffset !== 0 &&
+			opts.target &&
+			opts.verticalStyleId === 'vertical-position'
+		) {
+			const style = globalState.getVideoStyle
+				.getStylesOfTarget(opts.target)
+				.findStyle(opts.verticalStyleId)!;
+			let committedVertical = lastVerticalValue + runtimeVerticalOffset;
+			if (typeof style.valueMin === 'number') {
+				committedVertical = Math.max(style.valueMin, committedVertical);
+			}
+			if (typeof style.valueMax === 'number') {
+				committedVertical = Math.min(style.valueMax, committedVertical);
+			}
+			if (opts.round !== false) committedVertical = Math.round(committedVertical);
+			applyAutomaticVertical(committedVertical);
+			node.style.setProperty('--reactive-y-position', '0px');
+		}
 		globalState.getVideoPreviewState.showAlignmentGridWhileDragging = false;
 		updateSnapGuides(null, null);
 		document.removeEventListener('mousemove', mousemove);
 		document.removeEventListener('mouseup', mouseup);
 		const cls = opts.classWhileDragging || 'dragging-vertical';
 		node.classList.remove(cls);
+		clearSubtitleCollisionPreview();
 		ProjectHistoryManager.commit();
 		if (subtitlePositionDragContainer) {
 			delete subtitlePositionDragContainer.dataset.positionDragTarget;
@@ -363,6 +444,7 @@ export function mouseDrag(node: HTMLElement, options: VerticalDragOptions) {
 			globalState.getVideoPreviewState.showAlignmentGridWhileDragging = false;
 			updateSnapGuides(null, null);
 			delete node.dataset.previewDraggable;
+			clearSubtitleCollisionPreview();
 			if (subtitlePositionDragContainer) {
 				delete subtitlePositionDragContainer.dataset.positionDragTarget;
 				delete subtitlePositionDragContainer.dataset.positionDragCommit;

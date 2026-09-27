@@ -2,7 +2,7 @@ import { globalState } from '$lib/runes/main.svelte.js';
 import type { Category } from './Category.svelte.js';
 import type { Style } from './Style.svelte.js';
 import {
-	isGlobalOverlayStyleId,
+	isGlobalClipStyleId,
 	resolveKeyframeVisibilityOpacity,
 	resolvePreviewKeyframeValue
 } from './styleRuntime.js';
@@ -46,7 +46,7 @@ export class StyleOverrideService {
 			context.findStyle(styleId)?.setKeyframe(time, value);
 			return;
 		}
-		if (context.target === 'global' && !isGlobalOverlayStyleId(styleId)) return;
+		if (context.target === 'global' && !isGlobalClipStyleId(styleId)) return;
 		const normalizedTime = Math.max(0, Math.floor(time));
 		for (const clipId of clipIds) {
 			context.overrideKeyframes[clipId] ??= {};
@@ -137,7 +137,7 @@ export class StyleOverrideService {
 		styleId: StyleName,
 		value: StyleOverrideValue
 	): void {
-		if (context.target === 'global' && !isGlobalOverlayStyleId(styleId)) return;
+		if (context.target === 'global' && !isGlobalClipStyleId(styleId)) return;
 		const baseValue = context.findStyle(styleId)?.value;
 		const matchesBase =
 			Array.isArray(baseValue) && Array.isArray(value)
@@ -162,7 +162,7 @@ export class StyleOverrideService {
 		clipIds: number[],
 		styleId: StyleName
 	): void {
-		if (context.target === 'global' && !isGlobalOverlayStyleId(styleId)) return;
+		if (context.target === 'global' && !isGlobalClipStyleId(styleId)) return;
 		for (const clipId of clipIds) {
 			const byClip = context.overrides[clipId];
 			if (!byClip) continue;
@@ -190,7 +190,7 @@ export class StyleOverrideService {
 		const style = context.findStyle(styleId);
 		const currentTime =
 			time ?? globalState.currentProject?.projectEditorState?.timeline.cursorPosition ?? 0;
-		const canOverride = context.target !== 'global' || isGlobalOverlayStyleId(styleId);
+		const canOverride = context.target !== 'global' || isGlobalClipStyleId(styleId);
 		let value = style ? style.getValueAt(currentTime, fadeDuration) : '';
 		if (canOverride && clipId !== undefined && context.overrides[clipId]?.[styleId] !== undefined) {
 			value = context.overrides[clipId][styleId]!;
@@ -250,7 +250,7 @@ export class StyleOverrideService {
 		clipIds: number[],
 		styleId: StyleName
 	): boolean {
-		if (context.target === 'global' && !isGlobalOverlayStyleId(styleId)) return false;
+		if (context.target === 'global' && !isGlobalClipStyleId(styleId)) return false;
 		return clipIds.some((clipId) => context.overrides[clipId]?.[styleId] !== undefined);
 	}
 

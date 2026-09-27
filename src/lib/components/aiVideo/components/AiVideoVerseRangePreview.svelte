@@ -82,7 +82,9 @@
 	>
 		<div class="flex items-center gap-2">
 			<span class="material-icons text-accent-primary text-sm">menu_book</span>
-			<span class="text-xs font-semibold text-thirdly uppercase tracking-wide">{$LL.aiVideo.versePreview()}</span>
+			<span class="text-xs font-semibold text-thirdly uppercase tracking-wide"
+				>{$LL.aiVideo.versePreview()}</span
+			>
 		</div>
 		<span class="text-xs text-thirdly">
 			{surahName()} — {ayahStart}:{ayahEnd}
@@ -114,7 +116,7 @@
 						<div class="min-w-0 flex-1 space-y-1.5">
 							<!-- Arabic text -->
 							<p
-								class="text-primary text-base leading-loose text-right font-['Amiri',serif]"
+								class="text-primary text-base leading-loose text-end font-['Amiri',serif]"
 								dir="rtl"
 							>
 								{v.arabic}

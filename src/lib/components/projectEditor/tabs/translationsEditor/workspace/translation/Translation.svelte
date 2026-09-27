@@ -586,7 +586,7 @@
 				</div>
 			</div>
 
-			<div class="ml-auto">
+			<div class="ms-auto">
 				<div class="flex items-center gap-2">
 					<span class="text-xs text-secondary font-medium">{$LL.editor.statusLabel()}</span>
 					<div
@@ -693,7 +693,7 @@
 			{#if translation().type === 'verse' && !isInlineStyleMode() && !isTranslationWbwMappingMode()}
 				<!-- toggle: brute force -->
 				<label
-					class="absolute top-1 right-1.75 text-primary opacity-40 hover:opacity-100 duration-200 cursor-pointer"
+					class="absolute top-1 end-1.75 text-primary opacity-40 hover:opacity-100 duration-200 cursor-pointer"
 				>
 					<span class="text-xs">{$LL.editor.manuallyEdit()}</span>
 					<!-- prettier-ignore -->

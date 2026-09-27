@@ -39,7 +39,7 @@
 								: 'text-secondary'
 					}`}
 				>
-					<span class="mr-2 uppercase opacity-70">[{entry.step}]</span>
+					<span class="me-2 uppercase opacity-70">[{entry.step}]</span>
 					<span>{entry.message}</span>
 				</div>
 			{/each}

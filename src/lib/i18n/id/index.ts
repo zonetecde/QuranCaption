@@ -704,6 +704,10 @@ const id = {
 			ADD_SUBTITLE: 'Tambah Subtitle',
 			REMOVE_LAST_SUBTITLE: 'Hapus Subtitle Terakhir',
 			EDIT_LAST_SUBTITLE: 'Edit Subtitle di Kursor',
+			EDIT_SUBTITLE_AT_CURSOR: 'Buka Editor Subtitle di Kursor',
+			EDIT_TRANSLATION_AT_CURSOR: 'Buka Editor Terjemahan di Kursor',
+			EDIT_WBW_TIMESTAMP_AT_CURSOR: 'Buka Editor Waktu WBW di Kursor',
+			EDIT_WBW_STYLE_AT_CURSOR: 'Buka Gaya/Terjemahan WBW di Kursor',
 			ADD_SILENCE: 'Tambah Senyap',
 			SET_LAST_SUBTITLE_END: 'Atur Waktu Akhir Subtitle',
 			SET_LAST_SUBTITLE_START: 'Atur Waktu Awal Subtitle',
@@ -722,7 +726,9 @@ const id = {
 			FRAME_BY_FRAME_SCROLL: 'Frame demi Frame dengan Scroll',
 			FRAME_BACKWARD: 'Frame Sebelumnya',
 			FRAME_FORWARD: 'Frame Berikutnya',
-			QUICK_MERGE_AT_CURSOR: 'Alihkan Quick Merge'
+			QUICK_MERGE_AT_CURSOR: 'Alihkan Quick Merge',
+			NEXT_MARKED_SEGMENT: 'Ke segmen bertanda berikutnya',
+			PREVIOUS_MARKED_SEGMENT: 'Ke segmen bertanda sebelumnya'
 		},
 		shortcutActionDesc: {
 			MOVE_FORWARD: 'Majukan pratinjau 2 detik',
@@ -742,6 +748,11 @@ const id = {
 			ADD_SUBTITLE: 'Buat subtitle dengan kata yang dipilih',
 			REMOVE_LAST_SUBTITLE: 'Hapus subtitle yang paling baru',
 			EDIT_LAST_SUBTITLE: 'Edit subtitle di bawah kursor, atau subtitle terakhir jika tidak ada',
+			EDIT_SUBTITLE_AT_CURSOR: 'Buka editor untuk subtitle di bawah kursor',
+			EDIT_TRANSLATION_AT_CURSOR: 'Buka editor terjemahan untuk subtitle di bawah kursor',
+			EDIT_WBW_TIMESTAMP_AT_CURSOR: 'Buka editor waktu WBW untuk subtitle di bawah kursor',
+			EDIT_WBW_STYLE_AT_CURSOR:
+				'Buka pengeditan gaya dan terjemahan WBW untuk subtitle di bawah kursor',
 			ADD_SILENCE: 'Sisipkan periode senyap di timeline',
 			SET_LAST_SUBTITLE_END:
 				'Atur waktu akhir subtitle pada posisi kursor dan sesuaikan awal subtitle berikutnya',
@@ -764,7 +775,9 @@ const id = {
 			FRAME_BACKWARD: 'Pindahkan kursor mundur satu frame',
 			FRAME_FORWARD: 'Pindahkan kursor maju satu frame',
 			QUICK_MERGE_AT_CURSOR:
-				'Gabungkan atau pisahkan subtitle pada batas yang paling dekat dengan kursor'
+				'Gabungkan atau pisahkan subtitle pada batas yang paling dekat dengan kursor',
+			NEXT_MARKED_SEGMENT: 'Pindahkan kursor ke segmen bertanda pertama di sebelah kanannya',
+			PREVIOUS_MARKED_SEGMENT: 'Pindahkan kursor ke segmen bertanda pertama di sebelah kirinya'
 		},
 		stockMediaDescription:
 			'Atur API key Pexels dan Pixabay kamu untuk mencari dan mengimpor stok media gratis.',
@@ -794,7 +807,7 @@ const id = {
 		},
 		...({
 			searchFonts: 'Cari font...',
-			antiCollisionNotice: 'Anti-tabrakan subtitle aktif',
+			antiCollisionNotice: 'Gaya anti-tabrakan diaktifkan',
 			antiCollisionNoticeHelpEnabled:
 				'sedang aktif. Gaya ini dapat memindahkan subtitle secara otomatis dan mengganggu tata letak persis yang Anda inginkan. Anda dapat menonaktifkannya di panel kiri.',
 			antiCollisionNoticeHelpAlternative:
@@ -854,6 +867,8 @@ const id = {
 		backgroundImageError: 'Error gambar latar belakang',
 		cannotAddBackgroundImage:
 			'Tidak bisa menambahkan gambar latar belakang ke timeline saat gambar latar belakang tidak didukung dalam konteks ini.',
+		setImageAsFullBackgroundConfirm:
+			'Track video kosong. Gunakan gambar ini sebagai latar belakang untuk seluruh video? Pilih Tidak untuk menambahkannya sebagai clip timeline biasa.',
 		loopingError: 'Error looping',
 		canOnlyEnableLoopIfOnlyClip:
 			'Kamu hanya bisa mengaktifkan "Loop until the end" jika ini satu-satunya clip di track.',
@@ -1134,8 +1149,10 @@ const id = {
 		} as Translation['editor']['styleDescription'],
 		chooseTarget: 'Pilih target',
 		selectTranslation: 'Pilih terjemahan',
+		videoClipsSelected:
+			'{count} klip media{plural} dipilih. Gaya tata letak media, overlay, dan bingkai video hanya akan diterapkan pada klip ini.',
 		clickToSelect:
-			'Klik subtitle atau clip video untuk memilihnya. Ctrl/Cmd+klik memilih item tambahan.',
+			'Klik subtitle atau klip media untuk memilihnya. Ctrl/Cmd+klik memilih item tambahan.',
 		global: 'Global',
 		arabic: 'Arab',
 		translation: 'Terjemahan',
@@ -1410,6 +1427,9 @@ const id = {
 		removeSkip: 'Hapus potongan',
 		exportDuration: 'Durasi export:',
 		exportVerseRange: 'Rentang ayat export:',
+		orientation: 'Orientasi',
+		quality: 'Kualitas',
+		customDimensions: 'Dimensi khusus',
 		videoQualityOrientation: 'Kualitas & Orientasi Video',
 		setResolutionOrientation:
 			'Atur resolusi dan orientasi video hasil export. Resolusi dikunci mengikuti dimensi project saat ini.',
@@ -1489,10 +1509,10 @@ const id = {
 			'Export paling cepat. Bisa memakai hardware encoding, yang kadang menimbulkan artifact pada background 4K yang detail.',
 		balanced: 'Seimbang',
 		balancedDescription:
-			'Direkomendasikan untuk final export. Kualitas lebih terjaga di resolusi tinggi, tapi prosesnya lebih lama.',
-		lowCpu: 'CPU rendah',
+			'Memakai encoding GPU agar ekspor lebih cepat, tetapi dapat menyebabkan sedikit distorsi visual.',
+		lowCpu: 'Kualitas maksimal',
 		lowCpuDescription:
-			'Membatasi penggunaan CPU supaya komputer kamu tetap lebih responsif. Biasanya ini opsi paling lambat.',
+			'Menjamin kualitas terbaik dengan software encoding hanya melalui CPU, tetapi proses ekspornya lebih lambat.',
 		exportInProgressButton: 'Sedang export...',
 		fileNotFound: 'File tidak ditemukan',
 		exportedFileNotFound: 'File hasil export tidak ditemukan. Mungkin sudah dipindah atau dihapus.',
@@ -1748,14 +1768,40 @@ const id = {
 		hifzRepetition: 'Hifz Repetition',
 		hifzDescription: 'Ulang subtitle yang sudah ada dan generate audio yang sesuai',
 		hifzBody:
-			'Ubah subtitle yang sudah ada menjadi track pengulangan siap Hifz. Setiap ayat akan diulang dengan jeda hening yang bisa diatur.',
+			'Ubah subtitle menjadi track Hifz yang dapat disesuaikan dengan pengulangan standar atau terkait.',
+		standardSequence: 'Pengulangan standar',
+		standardSequenceHelp:
+			'Mengulang setiap ayat atau subtitle terpilih secara terpisah sesuai jumlah pengulangan.',
+		linkedSequence: 'Terkait / kumulatif',
+		linkedSequenceDescription:
+			'Membuat transisi seperti V1, V1+V2, V2, V2+V3. Jumlah, ukuran grup, dan pemutaran penuh dapat diatur.',
+		individualRepeatCount: 'Pengulangan tiap blok individual',
+		individualRepeatCountHelp: 'Jumlah pemutaran setiap blok ayat atau subtitle individual.',
+		firstLastRepeatCount: 'Pertama / terakhir',
+		firstLastRepeatCountHelp: 'Jumlah pengulangan untuk blok individual pertama dan terakhir.',
+		linkedBlockSize: 'Ukuran terkait',
+		linkedBlockSizeHelp: 'Jumlah blok berurutan yang digabungkan dalam setiap transisi terkait.',
+		linkedRepeatCount: 'Pengulangan terkait',
+		linkedRepeatCountHelp: 'Jumlah pemutaran setiap grup terkait.',
+		playFullAtStart: 'Urutan penuh di awal',
+		playFullAtStartHelp: 'Memutar semua subtitle yang disertakan sekali sebelum urutan latihan.',
+		playFullAtEnd: 'Urutan penuh di akhir',
+		playFullAtEndHelp: 'Memutar semua subtitle yang disertakan sekali setelah urutan latihan.',
+		pauseBetweenRepeats: 'Jeda antar pengulangan blok yang sama',
+		pauseBetweenRepeatsHelp:
+			'Menambahkan keheningan antar pengulangan blok yang sama, sebanding dengan durasinya.',
+		pauseBetweenGroups: 'Jeda antar blok',
+		pauseBetweenGroupsHelp:
+			'Menambahkan keheningan setelah setiap blok atau grup terkait, sebanding dengan durasinya.',
+		repetitionSelection: 'Subtitle dalam pengulangan latihan',
+		repetitionSelectionDescription:
+			'Item yang tidak dicentang tidak dilatih. Mode standar memutarnya sekali; mode terkait hanya menyertakannya dalam pemutaran penuh yang diaktifkan.',
 		repeatEachVerse: 'Ulangi setiap ayat',
 		repeatEachSubtitle: 'Ulangi setiap subtitle',
 		generatingHifzAudio: 'Sedang generate audio Hifz...',
 		repeatCount: 'Jumlah pengulangan',
 		silenceDuration: 'Durasi hening antar pengulangan',
-		silenceDescription:
-			'Durasi hening mengikuti durasi segmen yang diulang. Naikkan nilainya untuk jeda yang lebih panjang antar pengulangan.',
+		silenceDescription: 'Setiap jeda adalah pengali durasi blok (0 menonaktifkannya).',
 		keepVisualMerges: 'Pertahankan visual merge',
 		keepSubtitlesVisible: 'Tetap tampilkan subtitle saat jeda',
 		stretchCompleteSubtitles: 'Bentangkan subtitle penuh ke seluruh siklus pengulangan',
@@ -1806,7 +1852,51 @@ const id = {
 		startTimeMustBeLess: 'Waktu mulai harus lebih kecil dari waktu selesai',
 		endTimeExceedsDuration: 'Waktu selesai melebihi durasi asset',
 		assetTrimmedSuccess: 'Asset berhasil dipotong! Versi hasil trim sudah ditambahkan ke project.',
-		failedToTrim: 'Gagal memotong asset: {error}'
+		failedToTrim: 'Gagal memotong asset: {error}',
+		noiseReduction: 'Pengurangan noise',
+		noiseReductionDescription: 'Kurangi noise latar konstan dari clip audio di timeline',
+		selectTimelineAudio: 'PILIH AUDIO TIMELINE',
+		chooseTimelineAudio: 'Pilih clip audio...',
+		noTimelineAudio: 'Tambahkan clip audio ke timeline terlebih dahulu.',
+		noiseReductionResultHint:
+			'File WAV yang sudah dibersihkan akan ditambahkan ke project dan digunakan sebagai sumber clip terpilih.',
+		applyNoiseReduction: 'Kurangi noise',
+		pleaseSelectTimelineAudio: 'Pilih clip audio dari timeline',
+		noiseReductionSuccess:
+			'Noise berhasil dikurangi. Clip terpilih sekarang menggunakan audio yang sudah dibersihkan.',
+		noiseReductionFailed: 'Gagal mengurangi noise audio: {error}',
+		audioEffects: 'Efek audio',
+		audioEffectsDescription: 'Terapkan efek FFmpeg yang disesuaikan untuk lantunan Al-Qur’an',
+		audioEffectsSegmentationRecommendation:
+			'Untuk subtitle yang paling akurat, jalankan penyelarasan AI Segmentation pada audio asli terlebih dahulu. Terapkan efek audio hanya setelahnya karena gema, reverb, dan pemrosesan lain dapat mengurangi akurasi deteksi dan sinkronisasi.',
+		chooseAudioEffect: 'PILIH EFEK',
+		denoise: 'Pengurangan noise',
+		denoiseDescription: 'Kurangi noise latar yang stabil sambil mempertahankan suara',
+		clarity: 'Kejernihan suara',
+		clarityDescription: 'Hilangkan dengung rendah dan tingkatkan artikulasi secara lembut',
+		echo: 'Gema ringan',
+		echoDescription: 'Tambahkan pengulangan singkat dan halus pada lantunan',
+		reverb: 'Reverb ringan',
+		reverbDescription: 'Tambahkan kesan ruang yang lembut dengan pantulan terbatas',
+		effectParameters: 'SESUAIKAN EFEK',
+		denoiseStrength: 'Pengurangan noise',
+		noiseFloor: 'Ambang noise',
+		lowCut: 'Frekuensi potong rendah',
+		presenceGain: 'Peningkatan kejernihan',
+		echoDelay: 'Jeda gema',
+		echoAmount: 'Intensitas gema',
+		roomSize: 'Ukuran ruangan',
+		reverbAmount: 'Intensitas reverb',
+		previewTenSeconds: 'Pratinjau 10 detik',
+		preparingPreview: 'Menyiapkan pratinjau...',
+		stopPreview: 'Hentikan pratinjau',
+		audioEffectResultHint:
+			'File WAV yang diproses akan ditambahkan ke project dan digunakan sebagai sumber clip terpilih.',
+		applyAudioEffect: 'Terapkan efek',
+		audioEffectSuccess:
+			'{effect} diterapkan. Clip terpilih sekarang menggunakan audio yang diproses.',
+		audioEffectFailed: 'Gagal menerapkan efek audio: {error}',
+		audioEffectPreviewFailed: 'Gagal mempratinjau efek audio: {error}'
 	},
 	status: {
 		...baseEn.status,

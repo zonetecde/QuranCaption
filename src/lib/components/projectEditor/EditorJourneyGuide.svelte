@@ -143,7 +143,9 @@
 		</div>
 		{#if nextStep && canContinue}
 			<button type="button" class="journey-next" onclick={() => openStep(nextStep.tab)}>
-				{copy.nextStep({ step: nextStep.label })}<span class="material-icons">arrow_forward</span>
+				{copy.nextStep({ step: nextStep.label })}<span class="material-icons rtl-mirror"
+					>arrow_forward</span
+				>
 			</button>
 		{/if}
 	</div>

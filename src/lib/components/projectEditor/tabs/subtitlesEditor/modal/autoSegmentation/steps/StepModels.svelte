@@ -41,7 +41,7 @@
 				{#each MULTI_MODEL_OPTIONS as option (option.value)}
 					<button
 						type="button"
-						class="rounded-lg border p-3 text-left"
+						class="rounded-lg border p-3 text-start"
 						class:border-accent-primary={wizard.selection.cloudModel === option.value}
 						class:border-color={wizard.selection.cloudModel !== option.value}
 						onclick={() => wizard.setCloudModel(option.value as 'Base' | 'Large')}
@@ -61,7 +61,7 @@
 					{#each SURAH_SPLITTER_MODEL_OPTIONS as option (option.value)}
 						<button
 							type="button"
-							class="rounded-lg border p-3 text-left"
+							class="rounded-lg border p-3 text-start"
 							class:border-accent-primary={wizard.selection.multiModel === option.value}
 							class:border-color={wizard.selection.multiModel !== option.value}
 							onclick={() => wizard.setMultiModel(option.value)}
@@ -123,7 +123,7 @@
 				{#each MULTI_MODEL_OPTIONS as option (option.value)}
 					<button
 						type="button"
-						class="rounded-lg border p-3 text-left"
+						class="rounded-lg border p-3 text-start"
 						class:border-accent-primary={wizard.selection.multiModel === option.value}
 						class:border-color={wizard.selection.multiModel !== option.value}
 						onclick={() => wizard.setMultiModel(option.value)}

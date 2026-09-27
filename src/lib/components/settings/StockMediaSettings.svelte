@@ -31,7 +31,7 @@
 				{$LL.settings.pexelsApiKeyHint()}
 				<button
 					type="button"
-					class="text-[var(--accent-primary)] hover:underline ml-1"
+					class="text-[var(--accent-primary)] hover:underline ms-1"
 					onclick={() => openUrl('https://www.pexels.com/api/key/')}
 				>
 					pexels.com/api/key
@@ -52,7 +52,7 @@
 				{$LL.settings.pixabayApiKeyHint()}
 				<button
 					type="button"
-					class="text-[var(--accent-primary)] hover:underline ml-1"
+					class="text-[var(--accent-primary)] hover:underline ms-1"
 					onclick={() => openUrl('https://pixabay.com/api/docs/')}
 				>
 					pixabay.com/api/docs

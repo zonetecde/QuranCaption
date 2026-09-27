@@ -36,7 +36,7 @@
 </script>
 
 <button
-	class={`2xl:hidden absolute right-0 ${triggerTopClass} z-30 flex h-8 w-8 items-center justify-center rounded-l-md rounded-r-none border border-r-0 border-color bg-secondary/90 text-secondary shadow-md backdrop-blur-sm bg-accent transition hover:bg-accent hover:text-primary`}
+	class={`2xl:hidden absolute end-0 ${triggerTopClass} z-30 flex h-8 w-8 items-center justify-center rounded-s-md rounded-e-none border border-r-0 border-color bg-secondary/90 text-secondary shadow-md backdrop-blur-sm bg-accent transition hover:bg-accent hover:text-primary`}
 	type="button"
 	onclick={() => (open = true)}
 	aria-label={`Open ${title}`}
@@ -55,7 +55,7 @@
 		></button>
 
 		<aside
-			class="absolute right-0 top-0 h-full w-[88vw] max-w-[360px] border-l border-color bg-secondary shadow-2xl"
+			class="absolute end-0 top-0 h-full w-[88vw] max-w-[360px] border-s border-color bg-secondary shadow-2xl"
 		>
 			<div class="flex items-center justify-between border-b border-color px-3 py-2">
 				<div class="flex items-center gap-2">

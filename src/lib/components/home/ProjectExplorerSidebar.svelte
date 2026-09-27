@@ -155,11 +155,11 @@
 						type="button"
 						class="tree-toggle"
 						data-explorer-toggle={reciterNode.reciter}
-					title={isExpanded(reciterNode.reciter) ? $LL.home.collapse() : $LL.home.expand()}
-					onclick={(event) => handleToggleClick(event, reciterNode.reciter)}
+						title={isExpanded(reciterNode.reciter) ? $LL.home.collapse() : $LL.home.expand()}
+						onclick={(event) => handleToggleClick(event, reciterNode.reciter)}
 					>
 						<span
-							class={`material-icons-outlined tree-chevron ${isExpanded(reciterNode.reciter) ? 'expanded' : ''}`}
+							class={`material-icons-outlined rtl-mirror tree-chevron ${isExpanded(reciterNode.reciter) ? 'expanded' : ''}`}
 						>
 							chevron_right
 						</span>
@@ -225,16 +225,16 @@
 											<button
 												type="button"
 												class="tree-mini-toggle"
-											title={isTypeExpanded(typeNode.reciter, typeNode.projectType)
-												? $LL.home.collapse()
-												: $LL.home.expand()}
+												title={isTypeExpanded(typeNode.reciter, typeNode.projectType)
+													? $LL.home.collapse()
+													: $LL.home.expand()}
 												onclick={(event) => {
 													event.stopPropagation();
 													toggleType(typeNode.reciter, typeNode.projectType);
 												}}
 											>
 												<span
-													class={`material-icons-outlined tree-chevron ${
+													class={`material-icons-outlined rtl-mirror tree-chevron ${
 														isTypeExpanded(typeNode.reciter, typeNode.projectType) ? 'expanded' : ''
 													}`}
 												>
@@ -345,7 +345,7 @@
 		min-height: 2.35rem;
 		border-radius: 0.5rem;
 		padding: 0.35rem 0.5rem;
-		text-align: left;
+		text-align: start;
 		color: var(--text-secondary);
 		transition:
 			background-color 0.15s ease,
@@ -403,7 +403,7 @@
 		gap: 0.5rem;
 		flex: 1;
 		min-width: 0;
-		text-align: left;
+		text-align: start;
 		color: inherit;
 	}
 
@@ -439,15 +439,15 @@
 	}
 
 	.tree-children {
-		margin-left: 2rem;
+		margin-inline-start: 2rem;
 		position: relative;
-		padding-left: 0.3rem;
+		padding-inline-start: 0.3rem;
 	}
 
 	.tree-children::before {
 		content: '';
 		position: absolute;
-		left: 0.55rem;
+		inset-inline-start: 0.55rem;
 		top: 0.2rem;
 		bottom: 0.2rem;
 		width: 1px;
@@ -455,11 +455,11 @@
 	}
 
 	.child-row {
-		padding-left: 0.3rem;
+		padding-inline-start: 0.3rem;
 	}
 
 	.tree-year-children {
-		margin-left: 1.1rem;
+		margin-inline-start: 1.1rem;
 		position: relative;
 	}
 

@@ -183,7 +183,7 @@
 	<!-- Body -->
 	<div class="grid grid-cols-[220px_1fr] gap-0 flex-1 min-h-0">
 		<!-- Sidebar -->
-		<div class="bg-primary border-r border-color p-3 overflow-auto flex flex-col">
+		<div class="bg-primary border-e border-color p-3 overflow-auto flex flex-col">
 			<div class="flex flex-col gap-2">
 				{#each [{ name: $LL.settings.support(), tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' }, { name: $LL.settings.shortcuts(), tab: SettingsTab.SHORTCUTS, icon: 'keyboard' }, { name: $LL.settings.theme(), tab: SettingsTab.THEME, icon: 'light_mode' }, { name: $LL.settings.notifications(), tab: SettingsTab.NOTIFICATIONS, icon: 'notifications' }, { name: apiKeysCopy.apiKeys(), tab: SettingsTab.AI_KEY, icon: 'key' }, { name: quranFoundationCopy.quranFoundationIntegration(), tab: SettingsTab.QURAN_FOUNDATION, icon: 'menu_book' }, { name: defaultValuesCopy.defaultValues(), tab: SettingsTab.DEFAULT_VALUES, icon: 'tune' }, { name: $LL.settings.backup(), tab: SettingsTab.BACKUP, icon: 'archive' }, { name: $LL.settings.contact(), tab: SettingsTab.CONTACT, icon: 'mail' }, { name: $LL.settings.about(), tab: SettingsTab.ABOUT, icon: 'info' }] as setting (setting.tab)}
 					<button
@@ -192,7 +192,7 @@
 						onclick={() => (globalState.uiState.settingsTab = setting.tab)}
 					>
 						<span class="material-icons text-accent-secondary">{setting.icon}</span>
-						<span class="text-left leading-tight">{setting.name}</span>
+						<span class="text-start leading-tight">{setting.name}</span>
 					</button>
 				{/each}
 			</div>
@@ -229,7 +229,7 @@
 										bind:value={globalState.settings.persistentUiState.themeIntensity}
 										onchange={() => Settings.save()}
 									/>
-									<span class="text-xs w-8 text-right font-mono"
+									<span class="text-xs w-8 text-end font-mono"
 										>{globalState.settings.persistentUiState.themeIntensity}%</span
 									>
 								</div>
@@ -336,7 +336,7 @@
 						<p class="text-xs text-thirdly">{$LL.settings.tapWalletToCopy()}</p>
 						{#each DONATION_WALLETS as wallet (wallet.label)}
 							<button
-								class="wallet-card w-full rounded-lg border border-color bg-secondary/70 px-3 py-2 text-left flex items-center justify-between gap-3"
+								class="wallet-card w-full rounded-lg border border-color bg-secondary/70 px-3 py-2 text-start flex items-center justify-between gap-3"
 								onclick={() => copyWalletAddress(wallet.address, wallet.label)}
 								aria-label={`Copy ${wallet.label} wallet address`}
 							>

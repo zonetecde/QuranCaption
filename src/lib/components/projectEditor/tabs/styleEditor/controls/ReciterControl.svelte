@@ -25,7 +25,7 @@
 	/>
 
 	{#if reciter.number !== -1}
-		<p class="reciters-font -mr-3 text-center text-3xl">{reciter.number}</p>
+		<p class="reciters-font -me-3 text-center text-3xl">{reciter.number}</p>
 	{:else}
 		<p class="mt-2 text-sm text-yellow-500">
 			<span class="material-icons text-[18px]! align-middle">block</span>

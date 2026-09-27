@@ -33,7 +33,7 @@
 					onclick={wizard.goBack}
 					disabled={wizard.currentStep === 0 || wizard.isRunning}
 				>
-					<span class="material-icons text-base leading-none">arrow_back</span>
+					<span class="material-icons rtl-mirror text-base leading-none">arrow_back</span>
 				</button>
 				{#if isLastStep()}
 					<button
@@ -53,7 +53,7 @@
 						disabled={!wizard.canGoNext() || wizard.isRunning}
 					>
 						{$LL.common.next()}
-						<span class="material-icons text-base leading-none">arrow_forward</span>
+						<span class="material-icons rtl-mirror text-base leading-none">arrow_forward</span>
 					</button>
 				{/if}
 			{/if}

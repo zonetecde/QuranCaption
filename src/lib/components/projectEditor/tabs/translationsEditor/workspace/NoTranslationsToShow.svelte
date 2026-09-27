@@ -38,7 +38,7 @@
 
 			<div class="flex flex-col gap-3">
 				<button
-					class="group flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-color/30 hover:bg-accent hover:border-blue-300/50 transition-all duration-200 text-left cursor-pointer"
+					class="group flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-color/30 hover:bg-accent hover:border-blue-300/50 transition-all duration-200 text-start cursor-pointer"
 					onclick={() => {
 						globalState.getTranslationsState.searchQuery = '';
 						globalState.getTranslationsState.onlyShowOverlappingSubtitles = false;
@@ -59,7 +59,7 @@
 				</button>
 
 				<button
-					class="group flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-color/30 hover:bg-accent hover:border-blue-300/50 transition-all duration-200 text-left cursor-pointer"
+					class="group flex items-center gap-3 p-3 rounded-lg bg-secondary/30 border border-color/30 hover:bg-accent hover:border-blue-300/50 transition-all duration-200 text-start cursor-pointer"
 					onclick={() => {
 						globalState.getTranslationsState.checkOnlyFilters(['to review', 'ai error', 'error']);
 					}}

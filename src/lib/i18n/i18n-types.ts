@@ -9,7 +9,7 @@ import type {
 export type BaseTranslation = BaseTranslationType;
 export type BaseLocale = 'en';
 
-export type Locales = 'de' | 'en' | 'es' | 'fr' | 'id' | 'zh';
+export type Locales = 'ar' | 'de' | 'en' | 'es' | 'fr' | 'id' | 'zh';
 
 export type Translation = RootTranslation;
 
@@ -1242,6 +1242,10 @@ type RootTranslation = {
 		 */
 		cannotAddBackgroundImage: string;
 		/**
+		 * T​h​e​ ​v​i​d​e​o​ ​t​r​a​c​k​ ​i​s​ ​e​m​p​t​y​.​ ​U​s​e​ ​t​h​i​s​ ​i​m​a​g​e​ ​a​s​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​f​o​r​ ​t​h​e​ ​e​n​t​i​r​e​ ​v​i​d​e​o​?​ ​C​h​o​o​s​e​ ​N​o​ ​t​o​ ​a​d​d​ ​i​t​ ​a​s​ ​a​ ​r​e​g​u​l​a​r​ ​t​i​m​e​l​i​n​e​ ​c​l​i​p​.
+		 */
+		setImageAsFullBackgroundConfirm: string;
+		/**
 		 * L​o​o​p​i​n​g​ ​E​r​r​o​r
 		 */
 		loopingError: string;
@@ -1636,13 +1640,13 @@ type RootTranslation = {
 		 */
 		unmergeGroup: string;
 		/**
-		 * {​c​o​u​n​t​}​ ​v​i​d​e​o​ ​c​l​i​p​{​p​l​u​r​a​l​}​ ​s​e​l​e​c​t​e​d​.​ ​O​v​e​r​l​a​y​ ​s​t​y​l​e​s​ ​w​i​l​l​ ​a​p​p​l​y​ ​o​n​l​y​ ​t​o​ ​t​h​e​s​e​ ​c​l​i​p​s​.
+		 * {​c​o​u​n​t​}​ ​m​e​d​i​a​ ​c​l​i​p​{​p​l​u​r​a​l​}​ ​s​e​l​e​c​t​e​d​.​ ​M​e​d​i​a​ ​l​a​y​o​u​t​,​ ​o​v​e​r​l​a​y​,​ ​a​n​d​ ​v​i​d​e​o​ ​f​r​a​m​e​ ​s​t​y​l​e​s​ ​w​i​l​l​ ​a​p​p​l​y​ ​o​n​l​y​ ​t​o​ ​t​h​e​s​e​ ​c​l​i​p​s​.
 		 * @param {unknown} count
 		 * @param {unknown} plural
 		 */
 		videoClipsSelected: RequiredParams<'count' | 'plural'>;
 		/**
-		 * C​l​i​c​k​ ​a​ ​s​u​b​t​i​t​l​e​ ​o​r​ ​v​i​d​e​o​ ​c​l​i​p​ ​t​o​ ​s​e​l​e​c​t​ ​i​t​.​ ​C​t​r​l​/​C​m​d​+​c​l​i​c​k​ ​s​e​l​e​c​t​s​ ​a​d​d​i​t​i​o​n​a​l​ ​i​t​e​m​s​.
+		 * C​l​i​c​k​ ​a​ ​s​u​b​t​i​t​l​e​ ​o​r​ ​m​e​d​i​a​ ​c​l​i​p​ ​t​o​ ​s​e​l​e​c​t​ ​i​t​.​ ​C​t​r​l​/​C​m​d​+​c​l​i​c​k​ ​s​e​l​e​c​t​s​ ​a​d​d​i​t​i​o​n​a​l​ ​i​t​e​m​s​.
 		 */
 		clickToSelect: string;
 		/**
@@ -2146,7 +2150,7 @@ type RootTranslation = {
 		 */
 		dismissHints: string;
 		/**
-		 * S​u​b​t​i​t​l​e​ ​a​n​t​i​-​c​o​l​l​i​s​i​o​n​ ​i​s​ ​o​n
+		 * A​n​t​i​-​c​o​l​l​i​s​i​o​n​ ​s​t​y​l​e​ ​i​s​ ​e​n​a​b​l​e​d
 		 */
 		antiCollisionNotice: string;
 		/**
@@ -6260,6 +6264,18 @@ type RootTranslation = {
 		 */
 		exportVerseRange: string;
 		/**
+		 * O​r​i​e​n​t​a​t​i​o​n
+		 */
+		orientation: string;
+		/**
+		 * Q​u​a​l​i​t​y
+		 */
+		quality: string;
+		/**
+		 * C​u​s​t​o​m​ ​d​i​m​e​n​s​i​o​n​s
+		 */
+		customDimensions: string;
+		/**
 		 * V​i​d​e​o​ ​Q​u​a​l​i​t​y​ ​&​ ​O​r​i​e​n​t​a​t​i​o​n
 		 */
 		videoQualityOrientation: string;
@@ -6505,15 +6521,15 @@ type RootTranslation = {
 		 */
 		balanced: string;
 		/**
-		 * R​e​c​o​m​m​e​n​d​e​d​ ​f​o​r​ ​f​i​n​a​l​ ​e​x​p​o​r​t​s​.​ ​P​r​e​s​e​r​v​e​s​ ​b​e​t​t​e​r​ ​q​u​a​l​i​t​y​ ​i​n​ ​h​i​g​h​ ​r​e​s​o​l​u​t​i​o​n​,​ ​b​u​t​ ​t​a​k​e​s​ ​l​o​n​g​e​r​.
+		 * U​s​e​s​ ​G​P​U​ ​e​n​c​o​d​i​n​g​ ​f​o​r​ ​f​a​s​t​e​r​ ​e​x​p​o​r​t​s​,​ ​b​u​t​ ​m​a​y​ ​c​a​u​s​e​ ​s​l​i​g​h​t​ ​v​i​s​u​a​l​ ​d​i​s​t​o​r​t​i​o​n​s​.
 		 */
 		balancedDescription: string;
 		/**
-		 * L​o​w​ ​C​P​U
+		 * M​a​x​ ​Q​u​a​l​i​t​y
 		 */
 		lowCpu: string;
 		/**
-		 * L​i​m​i​t​s​ ​C​P​U​ ​u​s​a​g​e​ ​t​o​ ​k​e​e​p​ ​y​o​u​r​ ​c​o​m​p​u​t​e​r​ ​m​o​r​e​ ​r​e​s​p​o​n​s​i​v​e​.​ ​U​s​u​a​l​l​y​ ​t​h​e​ ​s​l​o​w​e​s​t​ ​o​p​t​i​o​n​.
+		 * G​u​a​r​a​n​t​e​e​s​ ​t​h​e​ ​b​e​s​t​ ​q​u​a​l​i​t​y​ ​u​s​i​n​g​ ​C​P​U​-​o​n​l​y​ ​s​o​f​t​w​a​r​e​ ​e​n​c​o​d​i​n​g​,​ ​b​u​t​ ​e​x​p​o​r​t​s​ ​m​o​r​e​ ​s​l​o​w​l​y​.
 		 */
 		lowCpuDescription: string;
 		/**
@@ -8869,6 +8885,22 @@ type RootTranslation = {
 			 */
 			EDIT_LAST_SUBTITLE: string;
 			/**
+			 * O​p​e​n​ ​S​u​b​t​i​t​l​e​ ​E​d​i​t​o​r​ ​a​t​ ​C​u​r​s​o​r
+			 */
+			EDIT_SUBTITLE_AT_CURSOR: string;
+			/**
+			 * O​p​e​n​ ​T​r​a​n​s​l​a​t​i​o​n​ ​E​d​i​t​o​r​ ​a​t​ ​C​u​r​s​o​r
+			 */
+			EDIT_TRANSLATION_AT_CURSOR: string;
+			/**
+			 * O​p​e​n​ ​W​B​W​ ​T​i​m​e​s​t​a​m​p​ ​E​d​i​t​o​r​ ​a​t​ ​C​u​r​s​o​r
+			 */
+			EDIT_WBW_TIMESTAMP_AT_CURSOR: string;
+			/**
+			 * O​p​e​n​ ​W​B​W​ ​S​t​y​l​e​/​T​r​a​n​s​l​a​t​i​o​n​ ​a​t​ ​C​u​r​s​o​r
+			 */
+			EDIT_WBW_STYLE_AT_CURSOR: string;
+			/**
 			 * A​d​d​ ​S​i​l​e​n​c​e
 			 */
 			ADD_SILENCE: string;
@@ -8944,6 +8976,14 @@ type RootTranslation = {
 			 * T​o​g​g​l​e​ ​Q​u​i​c​k​ ​M​e​r​g​e
 			 */
 			QUICK_MERGE_AT_CURSOR: string;
+			/**
+			 * G​o​ ​t​o​ ​N​e​x​t​ ​M​a​r​k​e​d​ ​S​e​g​m​e​n​t
+			 */
+			NEXT_MARKED_SEGMENT: string;
+			/**
+			 * G​o​ ​t​o​ ​P​r​e​v​i​o​u​s​ ​M​a​r​k​e​d​ ​S​e​g​m​e​n​t
+			 */
+			PREVIOUS_MARKED_SEGMENT: string;
 		};
 		shortcutActionDesc: {
 			/**
@@ -9014,6 +9054,22 @@ type RootTranslation = {
 			 * E​d​i​t​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​u​n​d​e​r​ ​t​h​e​ ​c​u​r​s​o​r​,​ ​o​r​ ​t​h​e​ ​l​a​s​t​ ​o​n​e​ ​i​f​ ​n​o​n​e
 			 */
 			EDIT_LAST_SUBTITLE: string;
+			/**
+			 * O​p​e​n​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​e​d​i​t​o​r​ ​f​o​r​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​u​n​d​e​r​ ​t​h​e​ ​c​u​r​s​o​r
+			 */
+			EDIT_SUBTITLE_AT_CURSOR: string;
+			/**
+			 * O​p​e​n​ ​t​h​e​ ​t​r​a​n​s​l​a​t​i​o​n​ ​e​d​i​t​o​r​ ​f​o​r​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​u​n​d​e​r​ ​t​h​e​ ​c​u​r​s​o​r
+			 */
+			EDIT_TRANSLATION_AT_CURSOR: string;
+			/**
+			 * O​p​e​n​ ​t​h​e​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​ ​e​d​i​t​o​r​ ​f​o​r​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​u​n​d​e​r​ ​t​h​e​ ​c​u​r​s​o​r
+			 */
+			EDIT_WBW_TIMESTAMP_AT_CURSOR: string;
+			/**
+			 * O​p​e​n​ ​W​B​W​ ​s​t​y​l​e​ ​a​n​d​ ​t​r​a​n​s​l​a​t​i​o​n​ ​e​d​i​t​i​n​g​ ​f​o​r​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​u​n​d​e​r​ ​t​h​e​ ​c​u​r​s​o​r
+			 */
+			EDIT_WBW_STYLE_AT_CURSOR: string;
 			/**
 			 * I​n​s​e​r​t​ ​a​ ​s​i​l​e​n​t​ ​p​e​r​i​o​d​ ​i​n​ ​t​h​e​ ​t​i​m​e​l​i​n​e
 			 */
@@ -9090,6 +9146,14 @@ type RootTranslation = {
 			 * M​e​r​g​e​ ​o​r​ ​u​n​m​e​r​g​e​ ​s​u​b​t​i​t​l​e​s​ ​a​t​ ​t​h​e​ ​c​l​o​s​e​s​t​ ​b​o​u​n​d​a​r​y​ ​t​o​ ​t​h​e​ ​c​u​r​s​o​r
 			 */
 			QUICK_MERGE_AT_CURSOR: string;
+			/**
+			 * M​o​v​e​ ​t​h​e​ ​c​u​r​s​o​r​ ​t​o​ ​t​h​e​ ​f​i​r​s​t​ ​m​a​r​k​e​d​ ​s​e​g​m​e​n​t​ ​t​o​ ​i​t​s​ ​r​i​g​h​t
+			 */
+			NEXT_MARKED_SEGMENT: string;
+			/**
+			 * M​o​v​e​ ​t​h​e​ ​c​u​r​s​o​r​ ​t​o​ ​t​h​e​ ​f​i​r​s​t​ ​m​a​r​k​e​d​ ​s​e​g​m​e​n​t​ ​t​o​ ​i​t​s​ ​l​e​f​t
+			 */
+			PREVIOUS_MARKED_SEGMENT: string;
 		};
 		/**
 		 * C​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​P​e​x​e​l​s​ ​a​n​d​ ​P​i​x​a​b​a​y​ ​A​P​I​ ​k​e​y​s​ ​t​o​ ​s​e​a​r​c​h​ ​a​n​d​ ​i​m​p​o​r​t​ ​f​r​e​e​ ​s​t​o​c​k​ ​m​e​d​i​a​.
@@ -9355,9 +9419,97 @@ type RootTranslation = {
 		 */
 		hifzDescription: string;
 		/**
-		 * T​u​r​n​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​i​n​t​o​ ​a​ ​H​i​f​z​-​r​e​a​d​y​ ​r​e​p​e​t​i​t​i​o​n​ ​t​r​a​c​k​.​ ​E​a​c​h​ ​v​e​r​s​e​ ​w​i​l​l​ ​b​e​ ​r​e​p​e​a​t​e​d​ ​w​i​t​h​ ​c​o​n​f​i​g​u​r​a​b​l​e​ ​s​i​l​e​n​c​e​ ​g​a​p​s​.
+		 * T​u​r​n​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​i​n​t​o​ ​a​ ​c​u​s​t​o​m​i​z​a​b​l​e​ ​H​i​f​z​ ​t​r​a​c​k​ ​w​i​t​h​ ​s​t​a​n​d​a​r​d​ ​o​r​ ​l​i​n​k​e​d​ ​r​e​p​e​t​i​t​i​o​n​s​.
 		 */
 		hifzBody: string;
+		/**
+		 * S​t​a​n​d​a​r​d​ ​r​e​p​e​t​i​t​i​o​n
+		 */
+		standardSequence: string;
+		/**
+		 * R​e​p​e​a​t​s​ ​e​a​c​h​ ​s​e​l​e​c​t​e​d​ ​v​e​r​s​e​ ​o​r​ ​s​u​b​t​i​t​l​e​ ​i​n​d​e​p​e​n​d​e​n​t​l​y​ ​u​s​i​n​g​ ​t​h​e​ ​r​e​p​e​a​t​ ​c​o​u​n​t​.
+		 */
+		standardSequenceHelp: string;
+		/**
+		 * L​i​n​k​e​d​ ​/​ ​c​u​m​u​l​a​t​i​v​e
+		 */
+		linkedSequence: string;
+		/**
+		 * B​u​i​l​d​s​ ​t​r​a​n​s​i​t​i​o​n​s​ ​s​u​c​h​ ​a​s​ ​V​1​,​ ​V​1​+​V​2​,​ ​V​2​,​ ​V​2​+​V​3​.​ ​C​o​u​n​t​s​,​ ​l​i​n​k​e​d​ ​g​r​o​u​p​ ​s​i​z​e​,​ ​a​n​d​ ​f​u​l​l​ ​p​a​s​s​e​s​ ​a​r​e​ ​c​o​n​f​i​g​u​r​a​b​l​e​.
+		 */
+		linkedSequenceDescription: string;
+		/**
+		 * I​n​d​i​v​i​d​u​a​l​ ​b​l​o​c​k​ ​r​e​p​e​a​t​s
+		 */
+		individualRepeatCount: string;
+		/**
+		 * N​u​m​b​e​r​ ​o​f​ ​t​i​m​e​s​ ​e​a​c​h​ ​i​n​d​i​v​i​d​u​a​l​ ​v​e​r​s​e​ ​o​r​ ​s​u​b​t​i​t​l​e​ ​b​l​o​c​k​ ​i​s​ ​p​l​a​y​e​d​.
+		 */
+		individualRepeatCountHelp: string;
+		/**
+		 * F​i​r​s​t​ ​/​ ​l​a​s​t
+		 */
+		firstLastRepeatCount: string;
+		/**
+		 * N​u​m​b​e​r​ ​o​f​ ​r​e​p​e​t​i​t​i​o​n​s​ ​f​o​r​ ​t​h​e​ ​f​i​r​s​t​ ​a​n​d​ ​l​a​s​t​ ​i​n​d​i​v​i​d​u​a​l​ ​b​l​o​c​k​s​.
+		 */
+		firstLastRepeatCountHelp: string;
+		/**
+		 * L​i​n​k​e​d​ ​s​i​z​e
+		 */
+		linkedBlockSize: string;
+		/**
+		 * N​u​m​b​e​r​ ​o​f​ ​c​o​n​s​e​c​u​t​i​v​e​ ​b​l​o​c​k​s​ ​c​o​m​b​i​n​e​d​ ​i​n​ ​e​a​c​h​ ​l​i​n​k​e​d​ ​t​r​a​n​s​i​t​i​o​n​.
+		 */
+		linkedBlockSizeHelp: string;
+		/**
+		 * L​i​n​k​e​d​ ​r​e​p​e​a​t​s
+		 */
+		linkedRepeatCount: string;
+		/**
+		 * N​u​m​b​e​r​ ​o​f​ ​t​i​m​e​s​ ​e​a​c​h​ ​l​i​n​k​e​d​ ​g​r​o​u​p​ ​i​s​ ​p​l​a​y​e​d​.
+		 */
+		linkedRepeatCountHelp: string;
+		/**
+		 * F​u​l​l​ ​s​e​q​u​e​n​c​e​ ​a​t​ ​s​t​a​r​t
+		 */
+		playFullAtStart: string;
+		/**
+		 * P​l​a​y​s​ ​a​l​l​ ​i​n​c​l​u​d​e​d​ ​s​u​b​t​i​t​l​e​s​ ​o​n​c​e​ ​b​e​f​o​r​e​ ​t​h​e​ ​p​r​a​c​t​i​c​e​ ​s​e​q​u​e​n​c​e​.
+		 */
+		playFullAtStartHelp: string;
+		/**
+		 * F​u​l​l​ ​s​e​q​u​e​n​c​e​ ​a​t​ ​e​n​d
+		 */
+		playFullAtEnd: string;
+		/**
+		 * P​l​a​y​s​ ​a​l​l​ ​i​n​c​l​u​d​e​d​ ​s​u​b​t​i​t​l​e​s​ ​o​n​c​e​ ​a​f​t​e​r​ ​t​h​e​ ​p​r​a​c​t​i​c​e​ ​s​e​q​u​e​n​c​e​.
+		 */
+		playFullAtEndHelp: string;
+		/**
+		 * P​a​u​s​e​ ​b​e​t​w​e​e​n​ ​s​a​m​e​-​b​l​o​c​k​ ​r​e​p​e​a​t​s
+		 */
+		pauseBetweenRepeats: string;
+		/**
+		 * A​d​d​s​ ​s​i​l​e​n​c​e​ ​b​e​t​w​e​e​n​ ​r​e​p​e​t​i​t​i​o​n​s​ ​o​f​ ​t​h​e​ ​s​a​m​e​ ​b​l​o​c​k​,​ ​a​s​ ​a​ ​m​u​l​t​i​p​l​e​ ​o​f​ ​i​t​s​ ​d​u​r​a​t​i​o​n​.
+		 */
+		pauseBetweenRepeatsHelp: string;
+		/**
+		 * P​a​u​s​e​ ​b​e​t​w​e​e​n​ ​b​l​o​c​k​s
+		 */
+		pauseBetweenGroups: string;
+		/**
+		 * A​d​d​s​ ​s​i​l​e​n​c​e​ ​a​f​t​e​r​ ​e​a​c​h​ ​b​l​o​c​k​ ​o​r​ ​l​i​n​k​e​d​ ​g​r​o​u​p​,​ ​a​s​ ​a​ ​m​u​l​t​i​p​l​e​ ​o​f​ ​i​t​s​ ​d​u​r​a​t​i​o​n​.
+		 */
+		pauseBetweenGroupsHelp: string;
+		/**
+		 * S​u​b​t​i​t​l​e​s​ ​i​n​c​l​u​d​e​d​ ​i​n​ ​p​r​a​c​t​i​c​e​ ​r​e​p​e​t​i​t​i​o​n​s
+		 */
+		repetitionSelection: string;
+		/**
+		 * U​n​c​h​e​c​k​e​d​ ​i​t​e​m​s​ ​a​r​e​ ​n​o​t​ ​p​r​a​c​t​i​c​e​d​.​ ​S​t​a​n​d​a​r​d​ ​m​o​d​e​ ​k​e​e​p​s​ ​t​h​e​m​ ​o​n​c​e​;​ ​l​i​n​k​e​d​ ​m​o​d​e​ ​i​n​c​l​u​d​e​s​ ​t​h​e​m​ ​o​n​l​y​ ​i​n​ ​e​n​a​b​l​e​d​ ​f​u​l​l​ ​p​a​s​s​e​s​.
+		 */
+		repetitionSelectionDescription: string;
 		/**
 		 * R​e​p​e​a​t​ ​e​a​c​h​ ​v​e​r​s​e
 		 */
@@ -9379,7 +9531,7 @@ type RootTranslation = {
 		 */
 		silenceDuration: string;
 		/**
-		 * T​h​e​ ​s​i​l​e​n​c​e​ ​i​s​ ​t​h​e​ ​d​u​r​a​t​i​o​n​ ​o​f​ ​t​h​e​ ​r​e​p​e​a​t​e​d​ ​s​e​g​m​e​n​t​.​ ​I​n​c​r​e​a​s​e​ ​f​o​r​ ​m​o​r​e​ ​p​a​u​s​e​ ​t​i​m​e​ ​b​e​t​w​e​e​n​ ​r​e​p​e​t​i​t​i​o​n​s​.
+		 * E​a​c​h​ ​p​a​u​s​e​ ​i​s​ ​a​ ​m​u​l​t​i​p​l​i​e​r​ ​o​f​ ​t​h​e​ ​b​l​o​c​k​ ​d​u​r​a​t​i​o​n​ ​(​0​ ​d​i​s​a​b​l​e​s​ ​i​t​)​.
 		 */
 		silenceDescription: string;
 		/**
@@ -9599,6 +9751,166 @@ type RootTranslation = {
 		 * @param {unknown} error
 		 */
 		failedToTrim: RequiredParams<'error'>;
+		/**
+		 * N​o​i​s​e​ ​r​e​d​u​c​t​i​o​n
+		 */
+		noiseReduction: string;
+		/**
+		 * R​e​d​u​c​e​ ​c​o​n​s​t​a​n​t​ ​b​a​c​k​g​r​o​u​n​d​ ​n​o​i​s​e​ ​i​n​ ​a​n​ ​a​u​d​i​o​ ​c​l​i​p​ ​f​r​o​m​ ​t​h​e​ ​t​i​m​e​l​i​n​e
+		 */
+		noiseReductionDescription: string;
+		/**
+		 * S​E​L​E​C​T​ ​T​I​M​E​L​I​N​E​ ​A​U​D​I​O
+		 */
+		selectTimelineAudio: string;
+		/**
+		 * C​h​o​o​s​e​ ​a​n​ ​a​u​d​i​o​ ​c​l​i​p​.​.​.
+		 */
+		chooseTimelineAudio: string;
+		/**
+		 * A​d​d​ ​a​n​ ​a​u​d​i​o​ ​c​l​i​p​ ​t​o​ ​t​h​e​ ​t​i​m​e​l​i​n​e​ ​f​i​r​s​t​.
+		 */
+		noTimelineAudio: string;
+		/**
+		 * A​ ​c​l​e​a​n​e​d​ ​W​A​V​ ​f​i​l​e​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​p​r​o​j​e​c​t​ ​a​n​d​ ​u​s​e​d​ ​a​s​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​c​l​i​p​ ​s​o​u​r​c​e​.
+		 */
+		noiseReductionResultHint: string;
+		/**
+		 * R​e​d​u​c​e​ ​n​o​i​s​e
+		 */
+		applyNoiseReduction: string;
+		/**
+		 * P​l​e​a​s​e​ ​s​e​l​e​c​t​ ​a​n​ ​a​u​d​i​o​ ​c​l​i​p​ ​f​r​o​m​ ​t​h​e​ ​t​i​m​e​l​i​n​e
+		 */
+		pleaseSelectTimelineAudio: string;
+		/**
+		 * N​o​i​s​e​ ​r​e​d​u​c​e​d​.​ ​T​h​e​ ​s​e​l​e​c​t​e​d​ ​c​l​i​p​ ​n​o​w​ ​u​s​e​s​ ​t​h​e​ ​c​l​e​a​n​e​d​ ​a​u​d​i​o​.
+		 */
+		noiseReductionSuccess: string;
+		/**
+		 * F​a​i​l​e​d​ ​t​o​ ​r​e​d​u​c​e​ ​a​u​d​i​o​ ​n​o​i​s​e​:​ ​{​e​r​r​o​r​}
+		 * @param {unknown} error
+		 */
+		noiseReductionFailed: RequiredParams<'error'>;
+		/**
+		 * A​u​d​i​o​ ​e​f​f​e​c​t​s
+		 */
+		audioEffects: string;
+		/**
+		 * A​p​p​l​y​ ​c​a​r​e​f​u​l​l​y​ ​t​u​n​e​d​ ​F​F​m​p​e​g​ ​e​f​f​e​c​t​s​ ​t​o​ ​Q​u​r​a​n​ ​r​e​c​i​t​a​t​i​o​n
+		 */
+		audioEffectsDescription: string;
+		/**
+		 * F​o​r​ ​t​h​e​ ​m​o​s​t​ ​a​c​c​u​r​a​t​e​ ​s​u​b​t​i​t​l​e​s​,​ ​r​u​n​ ​A​I​ ​S​e​g​m​e​n​t​a​t​i​o​n​ ​a​l​i​g​n​m​e​n​t​ ​o​n​ ​t​h​e​ ​o​r​i​g​i​n​a​l​ ​a​u​d​i​o​ ​f​i​r​s​t​.​ ​A​p​p​l​y​ ​a​u​d​i​o​ ​e​f​f​e​c​t​s​ ​o​n​l​y​ ​a​f​t​e​r​w​a​r​d​s​,​ ​s​i​n​c​e​ ​e​c​h​o​,​ ​r​e​v​e​r​b​,​ ​a​n​d​ ​o​t​h​e​r​ ​p​r​o​c​e​s​s​i​n​g​ ​c​a​n​ ​r​e​d​u​c​e​ ​d​e​t​e​c​t​i​o​n​ ​a​n​d​ ​s​y​n​c​h​r​o​n​i​z​a​t​i​o​n​ ​a​c​c​u​r​a​c​y​.
+		 */
+		audioEffectsSegmentationRecommendation: string;
+		/**
+		 * C​H​O​O​S​E​ ​A​N​ ​E​F​F​E​C​T
+		 */
+		chooseAudioEffect: string;
+		/**
+		 * D​e​n​o​i​s​e
+		 */
+		denoise: string;
+		/**
+		 * R​e​d​u​c​e​ ​s​t​e​a​d​y​ ​b​a​c​k​g​r​o​u​n​d​ ​n​o​i​s​e​ ​w​h​i​l​e​ ​p​r​e​s​e​r​v​i​n​g​ ​t​h​e​ ​v​o​i​c​e
+		 */
+		denoiseDescription: string;
+		/**
+		 * V​o​i​c​e​ ​c​l​a​r​i​t​y
+		 */
+		clarity: string;
+		/**
+		 * R​e​m​o​v​e​ ​l​o​w​ ​r​u​m​b​l​e​ ​a​n​d​ ​g​e​n​t​l​y​ ​e​n​h​a​n​c​e​ ​a​r​t​i​c​u​l​a​t​i​o​n
+		 */
+		clarityDescription: string;
+		/**
+		 * L​i​g​h​t​ ​e​c​h​o
+		 */
+		echo: string;
+		/**
+		 * A​d​d​ ​a​ ​s​h​o​r​t​,​ ​s​u​b​t​l​e​ ​r​e​p​e​a​t​ ​t​o​ ​t​h​e​ ​r​e​c​i​t​a​t​i​o​n
+		 */
+		echoDescription: string;
+		/**
+		 * L​i​g​h​t​ ​r​e​v​e​r​b
+		 */
+		reverb: string;
+		/**
+		 * A​d​d​ ​a​ ​s​o​f​t​ ​s​e​n​s​e​ ​o​f​ ​s​p​a​c​e​ ​w​i​t​h​ ​r​e​s​t​r​a​i​n​e​d​ ​r​e​f​l​e​c​t​i​o​n​s
+		 */
+		reverbDescription: string;
+		/**
+		 * A​D​J​U​S​T​ ​E​F​F​E​C​T
+		 */
+		effectParameters: string;
+		/**
+		 * N​o​i​s​e​ ​r​e​d​u​c​t​i​o​n
+		 */
+		denoiseStrength: string;
+		/**
+		 * N​o​i​s​e​ ​f​l​o​o​r
+		 */
+		noiseFloor: string;
+		/**
+		 * L​o​w​-​c​u​t​ ​f​r​e​q​u​e​n​c​y
+		 */
+		lowCut: string;
+		/**
+		 * P​r​e​s​e​n​c​e​ ​b​o​o​s​t
+		 */
+		presenceGain: string;
+		/**
+		 * E​c​h​o​ ​d​e​l​a​y
+		 */
+		echoDelay: string;
+		/**
+		 * E​c​h​o​ ​i​n​t​e​n​s​i​t​y
+		 */
+		echoAmount: string;
+		/**
+		 * R​o​o​m​ ​s​i​z​e
+		 */
+		roomSize: string;
+		/**
+		 * R​e​v​e​r​b​ ​i​n​t​e​n​s​i​t​y
+		 */
+		reverbAmount: string;
+		/**
+		 * P​r​e​v​i​e​w​ ​1​0​ ​s​e​c​o​n​d​s
+		 */
+		previewTenSeconds: string;
+		/**
+		 * P​r​e​p​a​r​i​n​g​ ​p​r​e​v​i​e​w​.​.​.
+		 */
+		preparingPreview: string;
+		/**
+		 * S​t​o​p​ ​p​r​e​v​i​e​w
+		 */
+		stopPreview: string;
+		/**
+		 * A​ ​p​r​o​c​e​s​s​e​d​ ​W​A​V​ ​f​i​l​e​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​p​r​o​j​e​c​t​ ​a​n​d​ ​u​s​e​d​ ​a​s​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​c​l​i​p​ ​s​o​u​r​c​e​.
+		 */
+		audioEffectResultHint: string;
+		/**
+		 * A​p​p​l​y​ ​e​f​f​e​c​t
+		 */
+		applyAudioEffect: string;
+		/**
+		 * {​e​f​f​e​c​t​}​ ​a​p​p​l​i​e​d​.​ ​T​h​e​ ​s​e​l​e​c​t​e​d​ ​c​l​i​p​ ​n​o​w​ ​u​s​e​s​ ​t​h​e​ ​p​r​o​c​e​s​s​e​d​ ​a​u​d​i​o​.
+		 * @param {unknown} effect
+		 */
+		audioEffectSuccess: RequiredParams<'effect'>;
+		/**
+		 * F​a​i​l​e​d​ ​t​o​ ​a​p​p​l​y​ ​t​h​e​ ​a​u​d​i​o​ ​e​f​f​e​c​t​:​ ​{​e​r​r​o​r​}
+		 * @param {unknown} error
+		 */
+		audioEffectFailed: RequiredParams<'error'>;
+		/**
+		 * F​a​i​l​e​d​ ​t​o​ ​p​r​e​v​i​e​w​ ​t​h​e​ ​a​u​d​i​o​ ​e​f​f​e​c​t​:​ ​{​e​r​r​o​r​}
+		 * @param {unknown} error
+		 */
+		audioEffectPreviewFailed: RequiredParams<'error'>;
 	};
 	status: {
 		/**
@@ -13081,6 +13393,10 @@ export type TranslationFunctions = {
 		 */
 		cannotAddBackgroundImage: () => LocalizedString;
 		/**
+		 * The video track is empty. Use this image as the background for the entire video? Choose No to add it as a regular timeline clip.
+		 */
+		setImageAsFullBackgroundConfirm: () => LocalizedString;
+		/**
 		 * Looping Error
 		 */
 		loopingError: () => LocalizedString;
@@ -13461,11 +13777,11 @@ export type TranslationFunctions = {
 		 */
 		unmergeGroup: () => LocalizedString;
 		/**
-		 * {count} video clip{plural} selected. Overlay styles will apply only to these clips.
+		 * {count} media clip{plural} selected. Media layout, overlay, and video frame styles will apply only to these clips.
 		 */
 		videoClipsSelected: (arg: { count: unknown; plural: unknown }) => LocalizedString;
 		/**
-		 * Click a subtitle or video clip to select it. Ctrl/Cmd+click selects additional items.
+		 * Click a subtitle or media clip to select it. Ctrl/Cmd+click selects additional items.
 		 */
 		clickToSelect: () => LocalizedString;
 		/**
@@ -13957,7 +14273,7 @@ export type TranslationFunctions = {
 		 */
 		dismissHints: () => LocalizedString;
 		/**
-		 * Subtitle anti-collision is on
+		 * Anti-collision style is enabled
 		 */
 		antiCollisionNotice: () => LocalizedString;
 		/**
@@ -18022,6 +18338,18 @@ export type TranslationFunctions = {
 		 */
 		exportVerseRange: () => LocalizedString;
 		/**
+		 * Orientation
+		 */
+		orientation: () => LocalizedString;
+		/**
+		 * Quality
+		 */
+		quality: () => LocalizedString;
+		/**
+		 * Custom dimensions
+		 */
+		customDimensions: () => LocalizedString;
+		/**
 		 * Video Quality & Orientation
 		 */
 		videoQualityOrientation: () => LocalizedString;
@@ -18265,15 +18593,15 @@ export type TranslationFunctions = {
 		 */
 		balanced: () => LocalizedString;
 		/**
-		 * Recommended for final exports. Preserves better quality in high resolution, but takes longer.
+		 * Uses GPU encoding for faster exports, but may cause slight visual distortions.
 		 */
 		balancedDescription: () => LocalizedString;
 		/**
-		 * Low CPU
+		 * Max Quality
 		 */
 		lowCpu: () => LocalizedString;
 		/**
-		 * Limits CPU usage to keep your computer more responsive. Usually the slowest option.
+		 * Guarantees the best quality using CPU-only software encoding, but exports more slowly.
 		 */
 		lowCpuDescription: () => LocalizedString;
 		/**
@@ -20592,6 +20920,22 @@ export type TranslationFunctions = {
 			 */
 			EDIT_LAST_SUBTITLE: () => LocalizedString;
 			/**
+			 * Open Subtitle Editor at Cursor
+			 */
+			EDIT_SUBTITLE_AT_CURSOR: () => LocalizedString;
+			/**
+			 * Open Translation Editor at Cursor
+			 */
+			EDIT_TRANSLATION_AT_CURSOR: () => LocalizedString;
+			/**
+			 * Open WBW Timestamp Editor at Cursor
+			 */
+			EDIT_WBW_TIMESTAMP_AT_CURSOR: () => LocalizedString;
+			/**
+			 * Open WBW Style/Translation at Cursor
+			 */
+			EDIT_WBW_STYLE_AT_CURSOR: () => LocalizedString;
+			/**
 			 * Add Silence
 			 */
 			ADD_SILENCE: () => LocalizedString;
@@ -20667,6 +21011,14 @@ export type TranslationFunctions = {
 			 * Toggle Quick Merge
 			 */
 			QUICK_MERGE_AT_CURSOR: () => LocalizedString;
+			/**
+			 * Go to Next Marked Segment
+			 */
+			NEXT_MARKED_SEGMENT: () => LocalizedString;
+			/**
+			 * Go to Previous Marked Segment
+			 */
+			PREVIOUS_MARKED_SEGMENT: () => LocalizedString;
 		};
 		shortcutActionDesc: {
 			/**
@@ -20737,6 +21089,22 @@ export type TranslationFunctions = {
 			 * Edit the subtitle under the cursor, or the last one if none
 			 */
 			EDIT_LAST_SUBTITLE: () => LocalizedString;
+			/**
+			 * Open the subtitle editor for the subtitle under the cursor
+			 */
+			EDIT_SUBTITLE_AT_CURSOR: () => LocalizedString;
+			/**
+			 * Open the translation editor for the subtitle under the cursor
+			 */
+			EDIT_TRANSLATION_AT_CURSOR: () => LocalizedString;
+			/**
+			 * Open the WBW timestamp editor for the subtitle under the cursor
+			 */
+			EDIT_WBW_TIMESTAMP_AT_CURSOR: () => LocalizedString;
+			/**
+			 * Open WBW style and translation editing for the subtitle under the cursor
+			 */
+			EDIT_WBW_STYLE_AT_CURSOR: () => LocalizedString;
 			/**
 			 * Insert a silent period in the timeline
 			 */
@@ -20813,6 +21181,14 @@ export type TranslationFunctions = {
 			 * Merge or unmerge subtitles at the closest boundary to the cursor
 			 */
 			QUICK_MERGE_AT_CURSOR: () => LocalizedString;
+			/**
+			 * Move the cursor to the first marked segment to its right
+			 */
+			NEXT_MARKED_SEGMENT: () => LocalizedString;
+			/**
+			 * Move the cursor to the first marked segment to its left
+			 */
+			PREVIOUS_MARKED_SEGMENT: () => LocalizedString;
 		};
 		/**
 		 * Configure your Pexels and Pixabay API keys to search and import free stock media.
@@ -21077,9 +21453,97 @@ export type TranslationFunctions = {
 		 */
 		hifzDescription: () => LocalizedString;
 		/**
-		 * Turn your existing subtitles into a Hifz-ready repetition track. Each verse will be repeated with configurable silence gaps.
+		 * Turn your existing subtitles into a customizable Hifz track with standard or linked repetitions.
 		 */
 		hifzBody: () => LocalizedString;
+		/**
+		 * Standard repetition
+		 */
+		standardSequence: () => LocalizedString;
+		/**
+		 * Repeats each selected verse or subtitle independently using the repeat count.
+		 */
+		standardSequenceHelp: () => LocalizedString;
+		/**
+		 * Linked / cumulative
+		 */
+		linkedSequence: () => LocalizedString;
+		/**
+		 * Builds transitions such as V1, V1+V2, V2, V2+V3. Counts, linked group size, and full passes are configurable.
+		 */
+		linkedSequenceDescription: () => LocalizedString;
+		/**
+		 * Individual block repeats
+		 */
+		individualRepeatCount: () => LocalizedString;
+		/**
+		 * Number of times each individual verse or subtitle block is played.
+		 */
+		individualRepeatCountHelp: () => LocalizedString;
+		/**
+		 * First / last
+		 */
+		firstLastRepeatCount: () => LocalizedString;
+		/**
+		 * Number of repetitions for the first and last individual blocks.
+		 */
+		firstLastRepeatCountHelp: () => LocalizedString;
+		/**
+		 * Linked size
+		 */
+		linkedBlockSize: () => LocalizedString;
+		/**
+		 * Number of consecutive blocks combined in each linked transition.
+		 */
+		linkedBlockSizeHelp: () => LocalizedString;
+		/**
+		 * Linked repeats
+		 */
+		linkedRepeatCount: () => LocalizedString;
+		/**
+		 * Number of times each linked group is played.
+		 */
+		linkedRepeatCountHelp: () => LocalizedString;
+		/**
+		 * Full sequence at start
+		 */
+		playFullAtStart: () => LocalizedString;
+		/**
+		 * Plays all included subtitles once before the practice sequence.
+		 */
+		playFullAtStartHelp: () => LocalizedString;
+		/**
+		 * Full sequence at end
+		 */
+		playFullAtEnd: () => LocalizedString;
+		/**
+		 * Plays all included subtitles once after the practice sequence.
+		 */
+		playFullAtEndHelp: () => LocalizedString;
+		/**
+		 * Pause between same-block repeats
+		 */
+		pauseBetweenRepeats: () => LocalizedString;
+		/**
+		 * Adds silence between repetitions of the same block, as a multiple of its duration.
+		 */
+		pauseBetweenRepeatsHelp: () => LocalizedString;
+		/**
+		 * Pause between blocks
+		 */
+		pauseBetweenGroups: () => LocalizedString;
+		/**
+		 * Adds silence after each block or linked group, as a multiple of its duration.
+		 */
+		pauseBetweenGroupsHelp: () => LocalizedString;
+		/**
+		 * Subtitles included in practice repetitions
+		 */
+		repetitionSelection: () => LocalizedString;
+		/**
+		 * Unchecked items are not practiced. Standard mode keeps them once; linked mode includes them only in enabled full passes.
+		 */
+		repetitionSelectionDescription: () => LocalizedString;
 		/**
 		 * Repeat each verse
 		 */
@@ -21101,7 +21565,7 @@ export type TranslationFunctions = {
 		 */
 		silenceDuration: () => LocalizedString;
 		/**
-		 * The silence is the duration of the repeated segment. Increase for more pause time between repetitions.
+		 * Each pause is a multiplier of the block duration (0 disables it).
 		 */
 		silenceDescription: () => LocalizedString;
 		/**
@@ -21317,6 +21781,162 @@ export type TranslationFunctions = {
 		 * Failed to trim asset: {error}
 		 */
 		failedToTrim: (arg: { error: unknown }) => LocalizedString;
+		/**
+		 * Noise reduction
+		 */
+		noiseReduction: () => LocalizedString;
+		/**
+		 * Reduce constant background noise in an audio clip from the timeline
+		 */
+		noiseReductionDescription: () => LocalizedString;
+		/**
+		 * SELECT TIMELINE AUDIO
+		 */
+		selectTimelineAudio: () => LocalizedString;
+		/**
+		 * Choose an audio clip...
+		 */
+		chooseTimelineAudio: () => LocalizedString;
+		/**
+		 * Add an audio clip to the timeline first.
+		 */
+		noTimelineAudio: () => LocalizedString;
+		/**
+		 * A cleaned WAV file will be added to the project and used as the selected clip source.
+		 */
+		noiseReductionResultHint: () => LocalizedString;
+		/**
+		 * Reduce noise
+		 */
+		applyNoiseReduction: () => LocalizedString;
+		/**
+		 * Please select an audio clip from the timeline
+		 */
+		pleaseSelectTimelineAudio: () => LocalizedString;
+		/**
+		 * Noise reduced. The selected clip now uses the cleaned audio.
+		 */
+		noiseReductionSuccess: () => LocalizedString;
+		/**
+		 * Failed to reduce audio noise: {error}
+		 */
+		noiseReductionFailed: (arg: { error: unknown }) => LocalizedString;
+		/**
+		 * Audio effects
+		 */
+		audioEffects: () => LocalizedString;
+		/**
+		 * Apply carefully tuned FFmpeg effects to Quran recitation
+		 */
+		audioEffectsDescription: () => LocalizedString;
+		/**
+		 * For the most accurate subtitles, run AI Segmentation alignment on the original audio first. Apply audio effects only afterwards, since echo, reverb, and other processing can reduce detection and synchronization accuracy.
+		 */
+		audioEffectsSegmentationRecommendation: () => LocalizedString;
+		/**
+		 * CHOOSE AN EFFECT
+		 */
+		chooseAudioEffect: () => LocalizedString;
+		/**
+		 * Denoise
+		 */
+		denoise: () => LocalizedString;
+		/**
+		 * Reduce steady background noise while preserving the voice
+		 */
+		denoiseDescription: () => LocalizedString;
+		/**
+		 * Voice clarity
+		 */
+		clarity: () => LocalizedString;
+		/**
+		 * Remove low rumble and gently enhance articulation
+		 */
+		clarityDescription: () => LocalizedString;
+		/**
+		 * Light echo
+		 */
+		echo: () => LocalizedString;
+		/**
+		 * Add a short, subtle repeat to the recitation
+		 */
+		echoDescription: () => LocalizedString;
+		/**
+		 * Light reverb
+		 */
+		reverb: () => LocalizedString;
+		/**
+		 * Add a soft sense of space with restrained reflections
+		 */
+		reverbDescription: () => LocalizedString;
+		/**
+		 * ADJUST EFFECT
+		 */
+		effectParameters: () => LocalizedString;
+		/**
+		 * Noise reduction
+		 */
+		denoiseStrength: () => LocalizedString;
+		/**
+		 * Noise floor
+		 */
+		noiseFloor: () => LocalizedString;
+		/**
+		 * Low-cut frequency
+		 */
+		lowCut: () => LocalizedString;
+		/**
+		 * Presence boost
+		 */
+		presenceGain: () => LocalizedString;
+		/**
+		 * Echo delay
+		 */
+		echoDelay: () => LocalizedString;
+		/**
+		 * Echo intensity
+		 */
+		echoAmount: () => LocalizedString;
+		/**
+		 * Room size
+		 */
+		roomSize: () => LocalizedString;
+		/**
+		 * Reverb intensity
+		 */
+		reverbAmount: () => LocalizedString;
+		/**
+		 * Preview 10 seconds
+		 */
+		previewTenSeconds: () => LocalizedString;
+		/**
+		 * Preparing preview...
+		 */
+		preparingPreview: () => LocalizedString;
+		/**
+		 * Stop preview
+		 */
+		stopPreview: () => LocalizedString;
+		/**
+		 * A processed WAV file will be added to the project and used as the selected clip source.
+		 */
+		audioEffectResultHint: () => LocalizedString;
+		/**
+		 * Apply effect
+		 */
+		applyAudioEffect: () => LocalizedString;
+		/**
+		 * {effect} applied. The selected clip now uses the processed audio.
+		 */
+		audioEffectSuccess: (arg: { effect: unknown }) => LocalizedString;
+		/**
+		 * Failed to apply the audio effect: {error}
+		 */
+		audioEffectFailed: (arg: { error: unknown }) => LocalizedString;
+		/**
+		 * Failed to preview the audio effect: {error}
+		 */
+		audioEffectPreviewFailed: (arg: { error: unknown }) => LocalizedString;
 	};
 	status: {
 		/**

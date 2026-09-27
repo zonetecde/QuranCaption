@@ -27,18 +27,16 @@ fn supports_h264_nvenc_dimensions(width: i32, height: i32) -> bool {
 
 /// Calcule le nombre maximal de threads FFmpeg selon le profil de performance.
 ///
-/// - `Fastest` : pas de limite (None)
 /// - `Balanced` : ~75% des cœurs (min 2)
-/// - `LowCpu` : ~50% des cœurs (min 1)
+/// - `MaxQuality` : pas de limite
 pub fn compute_ffmpeg_thread_cap(profile: ExportPerformanceProfile) -> Option<usize> {
     let cores = std::thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(1);
 
     match profile {
-        ExportPerformanceProfile::Fastest => None,
         ExportPerformanceProfile::Balanced => Some((((cores * 3) + 3) / 4).max(2)),
-        ExportPerformanceProfile::LowCpu => Some(cores.div_ceil(2).max(1)),
+        ExportPerformanceProfile::MaxQuality => None,
     }
 }
 
@@ -272,20 +270,41 @@ pub fn choose_best_codec(
 ) -> (String, Vec<String>, HashMap<String, Option<String>>) {
     let high_resolution = is_high_resolution_export(width, height);
     let ffmpeg_exe = ffmpeg_utils::resolve_ffmpeg_binary();
-    let hw = if prefer_hw {
+    let max_quality = matches!(performance_profile, ExportPerformanceProfile::MaxQuality);
+    let hw = if prefer_hw && !max_quality {
         probe_hw_encoders(ffmpeg_exe.as_deref())
     } else {
         Vec::new()
     };
 
-    // En haute résolution, LowCpu conserve libx264 pour la qualité.
-    // Balanced tente d'abord l'encodage matériel et garde ce chemin comme fallback.
-    let force_cpu_high_quality = high_resolution
-        && matches!(performance_profile, ExportPerformanceProfile::LowCpu)
-        && !hw.iter().any(|encoder| encoder == "h264_videotoolbox");
+    // MaxQuality reprend le chemin libx264 haute qualité historique, sans encodeur matériel.
+    if max_quality {
+        println!(
+            "[codec] usage={:?} profile={:?} resolution={}x{} selected=libx264",
+            usage, performance_profile, width, height
+        );
+
+        let mut extra = HashMap::new();
+        let (preset, crf) = match usage {
+            CodecUsage::Intermediate => ("veryfast", "14"),
+            CodecUsage::Final => ("veryfast", "16"),
+        };
+        extra.insert("preset".to_string(), Some(preset.to_string()));
+
+        return (
+            "libx264".to_string(),
+            vec![
+                "-pix_fmt".to_string(),
+                "yuv420p".to_string(),
+                "-crf".to_string(),
+                crf.to_string(),
+            ],
+            extra,
+        );
+    }
 
     // Encodeur hardware disponible
-    if !force_cpu_high_quality && !hw.is_empty() {
+    if !hw.is_empty() {
         // NVENC : test de disponibilité réelle
         if hw[0] == "h264_nvenc" {
             if !supports_h264_nvenc_dimensions(width, height) {
@@ -365,7 +384,7 @@ pub fn choose_best_codec(
     }
 
     // Conserver la qualité logicielle actuelle si aucun encodeur matériel ne fonctionne.
-    if high_resolution && !matches!(performance_profile, ExportPerformanceProfile::Fastest) {
+    if high_resolution {
         println!(
             "[codec] Export haute résolution détecté ({}x{}), fallback libx264 haute qualité",
             width, height
@@ -428,7 +447,7 @@ pub fn choose_h265_codec(
 ) -> (String, Vec<String>, HashMap<String, Option<String>>) {
     let high_resolution = is_high_resolution_export(width, height);
     let ffmpeg_exe = ffmpeg_utils::resolve_ffmpeg_binary();
-    let hw = if prefer_hw {
+    let hw = if prefer_hw && !matches!(performance_profile, ExportPerformanceProfile::MaxQuality) {
         probe_hw_encoders(ffmpeg_exe.as_deref())
     } else {
         Vec::new()
@@ -546,10 +565,11 @@ mod tests {
     // compute_ffmpeg_thread_cap
     // -----------------------------------------------------------------------
 
+    /// Vérifie que le profil de qualité maximale peut utiliser tous les cœurs disponibles.
     #[test]
-    fn test_fastest_profile_has_no_thread_cap() {
+    fn test_max_quality_profile_has_no_thread_cap() {
         assert_eq!(
-            compute_ffmpeg_thread_cap(ExportPerformanceProfile::Fastest),
+            compute_ffmpeg_thread_cap(ExportPerformanceProfile::MaxQuality),
             None
         );
     }
@@ -560,30 +580,6 @@ mod tests {
         let cap = compute_ffmpeg_thread_cap(ExportPerformanceProfile::Balanced);
         assert!(cap.is_some());
         assert!(cap.unwrap() >= 2);
-    }
-
-    #[test]
-    fn test_lowcpu_profile_has_thread_cap() {
-        // Au moins 1 thread pour LowCpu
-        let cap = compute_ffmpeg_thread_cap(ExportPerformanceProfile::LowCpu);
-        assert!(cap.is_some());
-        assert!(cap.unwrap() >= 1);
-    }
-
-    #[test]
-    fn test_balanced_is_less_than_fastest_implicit() {
-        // Fastest = None (pas de limite), Balanced = Some (limité)
-        let fastest = compute_ffmpeg_thread_cap(ExportPerformanceProfile::Fastest);
-        let balanced = compute_ffmpeg_thread_cap(ExportPerformanceProfile::Balanced);
-        let lowcpu = compute_ffmpeg_thread_cap(ExportPerformanceProfile::LowCpu);
-
-        // Fastest doit être moins restrictif que les autres
-        assert!(fastest.is_none());
-        // Balanced et LowCpu ont une limite
-        assert!(balanced.is_some());
-        assert!(lowcpu.is_some());
-        // LowCpu doit être plus restrictif que Balanced (ou égal)
-        assert!(lowcpu.unwrap() <= balanced.unwrap());
     }
 
     // -----------------------------------------------------------------------

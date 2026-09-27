@@ -33,6 +33,7 @@
 	import { Translation, VerseTranslation } from '$lib/classes/Translation.svelte';
 	import type { StyleName } from '$lib/classes/VideoStyle.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
 	import { tick, untrack } from 'svelte';
 	import ReciterName from '../tabs/styleEditor/ReciterName.svelte';
 	import SurahName from '../tabs/styleEditor/SurahName.svelte';
@@ -72,6 +73,7 @@
 	};
 
 	const MAX_RUNTIME_LAYOUT_CACHE_ENTRIES = 300;
+	let antiCollisionStyleEnabledCopy = $derived($LL.editor.antiCollisionNotice());
 
 	// =========================================================================
 	// Dérivations réactives globales
@@ -268,25 +270,31 @@
 	});
 
 	let videoFrameSettings = $derived.by(() => {
+		const clipId = currentVideoClip()?.id;
+		const globalStyles = globalState.getVideoStyle.getStylesOfTarget('global');
 		const visibilityOpacity = resolveStyleVisibilityOpacity(
-			globalState.getVideoStyle.getStylesOfTarget('global'),
-			'video-frame-enable'
+			globalStyles,
+			'video-frame-enable',
+			clipId
 		);
 		const verticalSize = Math.min(
 			45,
-			Math.max(0, Number(globalState.getStyleValue('global', 'video-frame-vertical-size') ?? 8))
+			Math.max(0, Number(globalStyles.getEffectiveValue('video-frame-vertical-size', clipId) ?? 8))
 		);
 		const horizontalSize = Math.min(
 			45,
-			Math.max(0, Number(globalState.getStyleValue('global', 'video-frame-horizontal-size') ?? 8))
+			Math.max(
+				0,
+				Number(globalStyles.getEffectiveValue('video-frame-horizontal-size', clipId) ?? 8)
+			)
 		);
 		const radius = Math.min(
 			50,
-			Math.max(0, Number(globalState.getStyleValue('global', 'video-frame-radius') ?? 4))
+			Math.max(0, Number(globalStyles.getEffectiveValue('video-frame-radius', clipId) ?? 4))
 		);
 		const softness = Math.min(
 			5,
-			Math.max(0, Number(globalState.getStyleValue('global', 'video-frame-softness') ?? 0))
+			Math.max(0, Number(globalStyles.getEffectiveValue('video-frame-softness', clipId) ?? 0))
 		);
 		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
 			| { width: number; height: number }
@@ -309,8 +317,8 @@
 		return {
 			enable: visibilityOpacity > 0,
 			opacity: visibilityOpacity,
-			contentAbove: Boolean(globalState.getStyleValue('global', 'video-frame-content-above')),
-			color: String(globalState.getStyleValue('global', 'video-frame-color') ?? '#000000'),
+			contentAbove: Boolean(globalStyles.getEffectiveValue('video-frame-content-above', clipId)),
+			color: String(globalStyles.getEffectiveValue('video-frame-color', clipId) ?? '#000000'),
 			softness: `${softnessX} ${softnessY}`,
 			path: `M -100 -100 H 200 V 200 H -100 Z M ${left + radiusX} ${top} H ${right - radiusX} A ${radiusX} ${radiusY} 0 0 1 ${right} ${top + radiusY} V ${bottom - radiusY} A ${radiusX} ${radiusY} 0 0 1 ${right - radiusX} ${bottom} H ${left + radiusX} A ${radiusX} ${radiusY} 0 0 1 ${left} ${bottom - radiusY} V ${top + radiusY} A ${radiusX} ${radiusY} 0 0 1 ${left + radiusX} ${top} Z`
 		};
@@ -1085,10 +1093,12 @@
 						try {
 							const styles = globalState.getVideoStyle.getStylesOfTarget(target);
 							const referenceClip = getReferenceClipForTarget(target);
-							const maxHeightValue = globalState.getStyleValue(target, 'max-height') as number;
+							const maxHeightValue = Number(
+								styles.getEffectiveValue('max-height', referenceClip?.id)
+							);
 							const maxLineValue = hasForcedLineBreak(target)
 								? Infinity
-								: Number(globalState.getStyleValue(target, 'max-line'));
+								: Number(styles.getEffectiveValue('max-line', referenceClip?.id));
 							const initialFontSize = Number(
 								styles.getEffectiveValue('font-size', referenceClip?.id)
 							);
@@ -1239,6 +1249,9 @@
 				class="absolute inset-0 z-1 flex flex-col items-center justify-center"
 				style="opacity: 1;"
 			>
+				<div class="anti-collision-drag-notice" role="status">
+					{antiCollisionStyleEnabledCopy}
+				</div>
 				<!-- Couche 5 : Sous-titre arabe -->
 				{#if currentSubtitle() && currentSubtitle()!.id}
 					{@const arabicRefClip = getReferenceClipForTarget('arabic')}
@@ -1335,6 +1348,32 @@
 <!-- ===================================================================== -->
 
 <style>
+	:global(#subtitles-container .subtitle.position-drag-collision) {
+		outline: 6px solid #ef4444;
+		outline-offset: 4px;
+	}
+
+	.anti-collision-drag-notice {
+		position: absolute;
+		z-index: 30;
+		bottom: 24px;
+		left: 24px;
+		display: none;
+		border: 3px solid #ef4444;
+		border-radius: 10px;
+		background: rgb(15 23 42 / 90%);
+		padding: 10px 16px;
+		color: white;
+		font-size: 24px;
+		font-weight: 600;
+		line-height: 1.2;
+		pointer-events: none;
+	}
+
+	:global(#subtitles-container[data-position-drag-collision='true']) .anti-collision-drag-notice {
+		display: block;
+	}
+
 	/** Clone le décor sur chaque fragment créé par le retour à la ligne automatique. */
 	:global(#subtitles-container .line-background) {
 		position: relative;

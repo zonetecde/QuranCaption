@@ -86,7 +86,7 @@
 		dataTestId="translations-right-panel-resizer"
 	/>
 	<section
-		class="hidden 2xl:flex flex-shrink-0 h-full min-h-0 max-h-full overflow-hidden flex-col border-l border-color border-t ml-1 rounded-lg bg-secondary"
+		class="hidden 2xl:flex flex-shrink-0 h-full min-h-0 max-h-full overflow-hidden flex-col border-s border-color border-t ms-1 rounded-lg bg-secondary"
 		style={`width: ${globalState.settings!.persistentUiState.projectEditorLayout.translationsEditorRightPanelWidth}px;`}
 	>
 		<TranslationInlineStylePanel />

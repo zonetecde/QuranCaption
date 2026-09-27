@@ -82,6 +82,7 @@
 
 <header
 	data-tauri-drag-region
+	dir="ltr"
 	class="bg-titlebar shadow-md p-2 flex items-center justify-between fixed top-0 left-0 right-0 z-50 max-h-10"
 >
 	<div class="flex items-center space-x-5">
@@ -202,6 +203,7 @@
 			{#if showHelpPopover}
 				<div
 					id="help-popover"
+					dir="auto"
 					class="absolute right-0 mt-2 w-96 bg-primary border border-color rounded-lg shadow-lg p-4 z-50 text-sm text-secondary"
 					transition:slide
 				>

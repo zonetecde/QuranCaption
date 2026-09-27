@@ -82,7 +82,7 @@
 				operationActive}
 			onclick={() => onOpen(project)}
 		>
-			<span class="material-icons-outlined mr-2 text-base">open_in_new</span>
+			<span class="material-icons-outlined me-2 text-base">open_in_new</span>
 			{reviewRequired ? batchMessage('reviewProject') : $LL.batch.openProject()}
 		</button>
 	</td>

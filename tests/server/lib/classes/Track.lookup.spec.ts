@@ -45,6 +45,27 @@ function createSubtitle(startTime: number, endTime: number, verse: number): Subt
 }
 
 describe('Track lookup helpers', () => {
+	it('finds the closest marked subtitles on either side of the cursor', () => {
+		const earlierMarked = createSubtitle(1000, 1999, 1);
+		earlierMarked.needsCoverageReview = true;
+		const unmarked = createSubtitle(2000, 2999, 2);
+		unmarked.needsReview = false;
+		const nextMarked = createSubtitle(3000, 3999, 3);
+		nextMarked.needsReview = true;
+		nextMarked.hasBeenVerified = true;
+		const laterMarked = createSubtitle(4000, 4999, 4);
+		laterMarked.needsWbwTimestampReview = true;
+		const track = new SubtitleTrack();
+		track.clips = [laterMarked, unmarked, earlierMarked, nextMarked];
+
+		expect(track.getNextMarkedClip(1500)).toBe(laterMarked);
+		expect(track.getNextMarkedClip(3000)).toBe(laterMarked);
+		expect(track.getNextMarkedClip(5000)).toBeNull();
+		expect(track.getPreviousMarkedClip(3500)).toBe(earlierMarked);
+		expect(track.getPreviousMarkedClip(3000)).toBe(earlierMarked);
+		expect(track.getPreviousMarkedClip(1000)).toBeNull();
+	});
+
 	it('keeps derived IndoPak text out of serialized subtitle clips', () => {
 		const clip = new SubtitleClip(0, 1000, 1, 1, 0, 1, 'Uthmani text', [], true, true);
 

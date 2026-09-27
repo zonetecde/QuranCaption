@@ -632,6 +632,8 @@ const fr = {
 		backgroundImageError: 'Erreur d\u2019image d\u2019arrière-plan',
 		cannotAddBackgroundImage:
 			'Impossible d\u2019ajouter une image d\u2019arrière-plan à la timeline lorsque les images d\u2019arrière-plan ne sont pas prises en charge dans ce contexte.',
+		setImageAsFullBackgroundConfirm:
+			'La piste vidéo est vide. Utiliser cette image comme arrière-plan pendant toute la vidéo\u00a0? Choisissez Non pour l\u2019ajouter comme un clip normal dans la timeline.',
 		loopingError: 'Erreur de boucle',
 		canOnlyEnableLoopIfOnlyClip:
 			'Vous ne pouvez activer \u00ab\u00a0Boucler jusqu\u2019à la fin\u00a0\u00bb que si c\u2019est le seul clip de la piste.',
@@ -704,7 +706,7 @@ const fr = {
 		zoomOut: 'Zoom arrière',
 		zoomIn: 'Zoom avant',
 		dismissHints: 'Ignorer les conseils de la molette de timeline',
-		antiCollisionNotice: 'L’anti-collision des sous-titres est activée',
+		antiCollisionNotice: 'Le style anti-collision est activé',
 		antiCollisionNoticeHelpEnabled:
 			'est activé. Il peut déplacer automatiquement les sous-titres et perturber la mise en page précise souhaitée. Vous pouvez le désactiver dans le panneau de gauche.',
 		antiCollisionNoticeHelpAlternative:
@@ -760,9 +762,9 @@ const fr = {
 		both: 'Les deux',
 		unmergeGroup: 'Dissocier le groupe',
 		videoClipsSelected:
-			'{count}\u00a0clip vidéo{plural} sélectionné{plural}. Les styles de superposition s\u2019appliqueront uniquement à ces clips.',
+			'{count}\u00a0clip média sélectionné{plural}. Les styles de cadrage, de superposition et de cadre vidéo s\u2019appliqueront uniquement à ces clips.',
 		clickToSelect:
-			'Cliquez sur un sous-titre ou un clip vidéo pour le sélectionner. Ctrl/Cmd+clic sélectionne des éléments supplémentaires.',
+			'Cliquez sur un sous-titre ou un clip média pour le sélectionner. Ctrl/Cmd+clic sélectionne des éléments supplémentaires.',
 		cannotEditGlobalWithSelection:
 			'Vous ne pouvez pas modifier les styles globaux lorsque des clips de sous-titres sont sélectionnés. Effacez la sélection pour modifier les styles globaux.',
 		backgroundVisibilityHint:
@@ -2098,6 +2100,9 @@ const fr = {
 		removeSkip: 'Supprimer la coupure',
 		exportDuration: 'Durée d\u2019export\u00a0:',
 		exportVerseRange: 'Plage de versets à exporter\u00a0:',
+		orientation: 'Orientation',
+		quality: 'Qualité',
+		customDimensions: 'Dimensions personnalisées',
 		videoQualityOrientation: 'Qualité et orientation vidéo',
 		setResolutionOrientation:
 			'Définissez la résolution et l\u2019orientation de la vidéo exportée. La résolution est verrouillée sur les dimensions actuelles du projet.',
@@ -2180,10 +2185,10 @@ const fr = {
 			'Export le plus rapide. Peut utiliser l\u2019encodage matériel, avec un risque d\u2019artefacts sur les fonds 4K détaillés.',
 		balanced: 'Équilibré',
 		balancedDescription:
-			'Recommandé pour les exports finaux. Préserve mieux la qualité en haute résolution, mais prend plus de temps.',
-		lowCpu: 'CPU faible',
+			'Utilise l\u2019encodage GPU pour exporter plus rapidement, mais peut provoquer de légères déformations visuelles.',
+		lowCpu: 'Qualité maximale',
 		lowCpuDescription:
-			'Limite l\u2019utilisation du CPU pour garder l\u2019ordinateur plus réactif. Généralement l\u2019option la plus lente.',
+			'Garantit la meilleure qualité grâce à un encodage logiciel uniquement par le CPU, mais exporte plus lentement.',
 		exportInProgressButton: 'Export en cours...',
 		fileNotFound: 'Fichier introuvable',
 		exportedFileNotFound:
@@ -2814,6 +2819,10 @@ const fr = {
 			ADD_SUBTITLE: 'Ajouter un sous-titre',
 			REMOVE_LAST_SUBTITLE: 'Supprimer le dernier sous-titre',
 			EDIT_LAST_SUBTITLE: 'Modifier le sous-titre au curseur',
+			EDIT_SUBTITLE_AT_CURSOR: 'Ouvrir l’éditeur de sous-titre au curseur',
+			EDIT_TRANSLATION_AT_CURSOR: 'Ouvrir l’éditeur de traduction au curseur',
+			EDIT_WBW_TIMESTAMP_AT_CURSOR: 'Ouvrir l’éditeur de timestamps WBW au curseur',
+			EDIT_WBW_STYLE_AT_CURSOR: 'Ouvrir le style/traduction WBW au curseur',
 			ADD_SILENCE: 'Ajouter un silence',
 			SET_LAST_SUBTITLE_END: 'Définir la fin du sous-titre',
 			SET_LAST_SUBTITLE_START: 'Définir le début du sous-titre',
@@ -2832,7 +2841,9 @@ const fr = {
 			FRAME_BY_FRAME_SCROLL: 'Image par image avec la molette',
 			FRAME_BACKWARD: 'Image précédente',
 			FRAME_FORWARD: 'Image suivante',
-			QUICK_MERGE_AT_CURSOR: 'Basculer la fusion rapide'
+			QUICK_MERGE_AT_CURSOR: 'Basculer la fusion rapide',
+			NEXT_MARKED_SEGMENT: 'Aller au prochain segment marqué',
+			PREVIOUS_MARKED_SEGMENT: 'Aller au segment marqué précédent'
 		},
 		shortcutActionDesc: {
 			MOVE_FORWARD: "Avance l'aperçu de 2 secondes",
@@ -2852,6 +2863,12 @@ const fr = {
 			ADD_SUBTITLE: 'Créer un sous-titre avec les mots sélectionnés',
 			REMOVE_LAST_SUBTITLE: 'Supprimer le sous-titre le plus récent',
 			EDIT_LAST_SUBTITLE: 'Modifier le sous-titre sous le curseur, ou le dernier si aucun',
+			EDIT_SUBTITLE_AT_CURSOR: 'Ouvrir l’éditeur pour le sous-titre sous le curseur',
+			EDIT_TRANSLATION_AT_CURSOR: 'Ouvrir l’éditeur de traduction du sous-titre sous le curseur',
+			EDIT_WBW_TIMESTAMP_AT_CURSOR:
+				'Ouvrir l’éditeur de timestamps WBW du sous-titre sous le curseur',
+			EDIT_WBW_STYLE_AT_CURSOR:
+				'Ouvrir l’édition du style et de la traduction WBW du sous-titre sous le curseur',
 			ADD_SILENCE: 'Insérer une période de silence dans la timeline',
 			SET_LAST_SUBTITLE_END:
 				"Définir l'heure de fin du sous-titre à la position du curseur et ajuster le début du sous-titre suivant",
@@ -2874,7 +2891,9 @@ const fr = {
 			FRAME_BACKWARD: "Reculer le curseur d'une image",
 			FRAME_FORWARD: "Avancer le curseur d'une image",
 			QUICK_MERGE_AT_CURSOR:
-				'Fusionner ou dissocier les sous-titres à la jonction la plus proche du curseur'
+				'Fusionner ou dissocier les sous-titres à la jonction la plus proche du curseur',
+			NEXT_MARKED_SEGMENT: 'Déplacer le curseur vers le premier segment marqué à sa droite',
+			PREVIOUS_MARKED_SEGMENT: 'Déplacer le curseur vers le premier segment marqué à sa gauche'
 		},
 		stockMediaDescription:
 			'Configurez vos clés API Pexels et Pixabay pour rechercher et importer des médias libres de droits.',
@@ -2968,14 +2987,42 @@ const fr = {
 		hifzRepetition: 'Répétition Hifz',
 		hifzDescription: 'Répéter les sous-titres existants et générer l\u2019audio correspondant',
 		hifzBody:
-			'Transformez vos sous-titres existants en une piste de répétition adaptée au Hifz. Chaque verset sera répété avec des intervalles de silence configurables.',
+			'Transformez vos sous-titres en une piste Hifz personnalisable avec des répétitions standard ou liées.',
+		standardSequence: 'Répétition standard',
+		standardSequenceHelp:
+			'Répète chaque verset ou sous-titre sélectionné séparément selon le nombre défini.',
+		linkedSequence: 'Liée / cumulative',
+		linkedSequenceDescription:
+			'Crée des transitions comme V1, V1+V2, V2, V2+V3. Les nombres, la taille des groupes liés et les passages complets sont configurables.',
+		individualRepeatCount: 'Répétitions de chaque bloc individuel',
+		individualRepeatCountHelp:
+			'Nombre de lectures de chaque bloc individuel de verset ou de sous-titre.',
+		firstLastRepeatCount: 'Premier / dernier',
+		firstLastRepeatCountHelp: 'Nombre de répétitions des premier et dernier blocs individuels.',
+		linkedBlockSize: 'Taille liée',
+		linkedBlockSizeHelp: 'Nombre de blocs consécutifs réunis dans chaque transition liée.',
+		linkedRepeatCount: 'Répétitions liées',
+		linkedRepeatCountHelp: 'Nombre de lectures de chaque groupe lié.',
+		playFullAtStart: 'Séquence complète au début',
+		playFullAtStartHelp:
+			'Lit une fois tous les sous-titres inclus avant la séquence d’entraînement.',
+		playFullAtEnd: 'Séquence complète à la fin',
+		playFullAtEndHelp: 'Lit une fois tous les sous-titres inclus après la séquence d’entraînement.',
+		pauseBetweenRepeats: 'Pause entre répétitions du même bloc',
+		pauseBetweenRepeatsHelp:
+			'Ajoute un silence entre les répétitions du même bloc, proportionnel à sa durée.',
+		pauseBetweenGroups: 'Pause entre les blocs',
+		pauseBetweenGroupsHelp:
+			'Ajoute un silence après chaque bloc ou groupe lié, proportionnel à sa durée.',
+		repetitionSelection: 'Sous-titres inclus dans les répétitions d’entraînement',
+		repetitionSelectionDescription:
+			'Les éléments décochés ne sont pas travaillés. Le mode standard les conserve une fois ; le mode lié ne les inclut que dans les passages complets activés.',
 		repeatEachVerse: 'Répéter chaque verset',
 		repeatEachSubtitle: 'Répéter chaque sous-titre',
 		generatingHifzAudio: 'Génération de l\u2019audio Hifz...',
 		repeatCount: 'Nombre de répétitions',
 		silenceDuration: 'Durée du silence entre les répétitions',
-		silenceDescription:
-			'Le silence correspond à la durée du segment répété. Augmentez pour plus de pause entre les répétitions.',
+		silenceDescription: 'Chaque pause multiplie la durée du bloc (0 la désactive).',
 		keepVisualMerges: 'Conserver les fusions visuelles',
 		keepSubtitlesVisible: 'Garder les sous-titres visibles pendant les pauses',
 		stretchCompleteSubtitles: 'Étirer les sous-titres complets sur les cycles répétés',
@@ -3033,7 +3080,49 @@ const fr = {
 		endTimeExceedsDuration: 'L\u2019heure de fin dépasse la durée de l\u2019élément',
 		assetTrimmedSuccess:
 			'Élément rogné avec succès\u00a0! La version rognée a été ajoutée au projet.',
-		failedToTrim: 'Échec du rognage de l\u2019élément\u00a0: {error}'
+		failedToTrim: 'Échec du rognage de l\u2019élément\u00a0: {error}',
+		noiseReduction: 'Réduction du bruit',
+		noiseReductionDescription: 'Réduire le bruit de fond constant d’un clip audio de la timeline',
+		selectTimelineAudio: 'SÉLECTIONNER UN AUDIO DE LA TIMELINE',
+		chooseTimelineAudio: 'Choisissez un clip audio...',
+		noTimelineAudio: 'Ajoutez d’abord un clip audio à la timeline.',
+		noiseReductionResultHint:
+			'Un fichier WAV nettoyé sera ajouté au projet et utilisé comme source du clip sélectionné.',
+		applyNoiseReduction: 'Réduire le bruit',
+		pleaseSelectTimelineAudio: 'Veuillez sélectionner un clip audio de la timeline',
+		noiseReductionSuccess: 'Bruit réduit. Le clip sélectionné utilise maintenant l’audio nettoyé.',
+		noiseReductionFailed: 'Échec de la réduction du bruit audio\u00a0: {error}',
+		audioEffects: 'Effets audio',
+		audioEffectsDescription: 'Appliquer des effets FFmpeg soigneusement réglés pour la récitation',
+		audioEffectsSegmentationRecommendation:
+			'Pour obtenir des sous-titres aussi précis que possible, lancez d’abord l’alignement AI Segmentation sur l’audio original. Appliquez les effets audio seulement ensuite, car l’écho, la réverbération et les autres traitements peuvent réduire la précision de la détection et de la synchronisation.',
+		chooseAudioEffect: 'CHOISIR UN EFFET',
+		denoise: 'Réduction du bruit',
+		denoiseDescription: 'Réduire le bruit de fond constant tout en préservant la voix',
+		clarity: 'Clarté de la voix',
+		clarityDescription: 'Supprimer les graves parasites et renforcer doucement l’articulation',
+		echo: 'Écho léger',
+		echoDescription: 'Ajouter une répétition courte et discrète à la récitation',
+		reverb: 'Réverbération légère',
+		reverbDescription: 'Ajouter une sensation d’espace douce avec des réflexions modérées',
+		effectParameters: 'RÉGLER L’EFFET',
+		denoiseStrength: 'Réduction du bruit',
+		noiseFloor: 'Seuil de bruit',
+		lowCut: 'Fréquence de coupe basse',
+		presenceGain: 'Renforcement de présence',
+		echoDelay: 'Délai de l’écho',
+		echoAmount: 'Intensité de l’écho',
+		roomSize: 'Taille de la pièce',
+		reverbAmount: 'Intensité de la réverbération',
+		previewTenSeconds: 'Préécouter 10 secondes',
+		preparingPreview: 'Préparation de la préécoute...',
+		stopPreview: 'Arrêter la préécoute',
+		audioEffectResultHint:
+			'Un fichier WAV traité sera ajouté au projet et utilisé comme source du clip sélectionné.',
+		applyAudioEffect: 'Appliquer l’effet',
+		audioEffectSuccess: '{effect} appliqué. Le clip sélectionné utilise maintenant l’audio traité.',
+		audioEffectFailed: 'Échec de l’application de l’effet audio\u00a0: {error}',
+		audioEffectPreviewFailed: 'Échec de la préécoute de l’effet audio\u00a0: {error}'
 	},
 	status: {
 		notSet: 'Non défini',

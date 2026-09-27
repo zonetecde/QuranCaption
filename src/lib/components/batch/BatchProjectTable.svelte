@@ -44,7 +44,7 @@
 	class="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--bg-secondary)] shadow-xl"
 >
 	<div class="overflow-x-auto">
-		<table class="w-full text-left text-sm">
+		<table class="w-full text-start text-sm">
 			<thead class="bg-[var(--bg-accent)] text-[var(--text-secondary)]">
 				<tr>
 					<th class="px-4 py-3">

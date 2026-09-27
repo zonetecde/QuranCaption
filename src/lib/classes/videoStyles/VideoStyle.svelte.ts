@@ -118,7 +118,14 @@ export class VideoStyle extends SerializableBase {
 	 */
 	async addStylesForEdition(translationEdition: string) {
 		if (this.doesTargetStyleExist(translationEdition)) return;
-		this.styles.push(await VideoStyleFactory.createTranslationStyles(translationEdition));
+		const dimensions = this.getStylesOfTarget('global').findStyle('video-dimension')?.value as
+			| { width?: unknown; height?: unknown }
+			| undefined;
+		const portrait =
+			typeof dimensions?.width === 'number' &&
+			typeof dimensions.height === 'number' &&
+			dimensions.width < dimensions.height;
+		this.styles.push(await VideoStyleFactory.createTranslationStyles(translationEdition, portrait));
 	}
 
 	/**

@@ -7,6 +7,25 @@ import { Category } from './Category.svelte.js';
 import { StylesData } from './StylesData.svelte.js';
 import { getNonArabicSubtitleCategories } from './styleRuntime.js';
 
+/**
+ * Applique le preset de mise en page initial d'un sous-titre selon l'orientation vidéo.
+ * @param {StylesData} styles Styles du sous-titre à initialiser.
+ * @param {'arabic' | 'translation'} target Type de sous-titre.
+ * @param {boolean} portrait Indique si la vidéo est en portrait.
+ * @returns {void}
+ */
+export function applySubtitleCreationLayout(
+	styles: StylesData,
+	target: 'arabic' | 'translation',
+	portrait: boolean
+): void {
+	styles.setStyle('font-size', target === 'arabic' ? (portrait ? 60 : 90) : portrait ? 40 : 60);
+	styles.setStyle('vertical-position', target === 'arabic' ? -70 : portrait ? 100 : 175);
+	styles.setStyle('vertical-text-alignment', target === 'arabic' ? 'bottom' : 'top');
+	if (target === 'translation') styles.setStyle('max-height', portrait ? 175 : 265);
+	else if (portrait) styles.setStyle('max-height', 145);
+}
+
 /** Construit les collections et catégories de styles par défaut. */
 export class VideoStyleFactory {
 	/**
@@ -27,9 +46,10 @@ export class VideoStyleFactory {
 	/**
 	 * Construit les styles par défaut d'une édition de traduction.
 	 * @param {string} edition Identifiant de l'édition.
+	 * @param {boolean} portrait Indique si le projet utilise une résolution portrait.
 	 * @returns {Promise<StylesData>} Collection prête à être ajoutée.
 	 */
-	static async createTranslationStyles(edition: string): Promise<StylesData> {
+	static async createTranslationStyles(edition: string, portrait = false): Promise<StylesData> {
 		const definitions = getNonArabicSubtitleCategories(
 			await loadStyleCategoryDefinitions('subtitle')
 		);
@@ -38,8 +58,7 @@ export class VideoStyleFactory {
 			definitions.map((category) => new Category(category))
 		);
 		styles.setStyle('font-family', 'Georgia');
-		styles.setStyle('font-size', 60);
-		styles.setStyle('vertical-position', 70);
+		applySubtitleCreationLayout(styles, 'translation', portrait);
 		return styles;
 	}
 

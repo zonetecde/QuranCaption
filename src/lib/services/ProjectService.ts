@@ -12,11 +12,65 @@ import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import toast from 'svelte-5-french-toast';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import { applySubtitleCreationLayout } from '$lib/classes/videoStyles/VideoStyleFactory';
+
+export type ProjectVideoFormat = 'landscape' | 'portrait' | 'square';
+export type ProjectVideoQuality = '720p' | '1080p' | '1440p' | '2160p';
+
+/**
+ * Résout les dimensions d'un format et d'une qualité vidéo prédéfinis.
+ * @param {ProjectVideoFormat} format Format paysage, portrait ou carré.
+ * @param {ProjectVideoQuality} quality Qualité vidéo sélectionnée.
+ * @returns {{ width: number; height: number }} Dimensions correspondantes.
+ */
+export function getProjectVideoDimensions(
+	format: ProjectVideoFormat,
+	quality: ProjectVideoQuality
+): { width: number; height: number } {
+	const [width, height] = {
+		'720p': [1280, 720],
+		'1080p': [1920, 1080],
+		'1440p': [2560, 1440],
+		'2160p': [3840, 2160]
+	}[quality];
+	if (format === 'portrait') return { width: height, height: width };
+	if (format === 'square') return { width: height, height };
+	return { width, height };
+}
 
 export interface CreateEmptyProjectOptions {
 	name: string;
 	reciter: string;
 	projectType?: ProjectType;
+	videoDimensions?: { width: number; height: number };
+}
+
+/**
+ * Applique les dimensions choisies et le preset texte adapté à l'orientation d'un nouveau projet.
+ * @param {ProjectContent} content Contenu initial du projet.
+ * @param {{ width: number; height: number }} videoDimensions Dimensions vidéo sélectionnées.
+ * @returns {void}
+ */
+export function applyProjectCreationPreset(
+	content: ProjectContent,
+	videoDimensions: { width: number; height: number }
+): void {
+	ProjectHistoryManager.track('apply project creation preset', () => {
+		const dimensionStyle = content.videoStyle
+			.getStylesOfTarget('global')
+			.findStyle('video-dimension');
+		if (dimensionStyle) dimensionStyle.value = videoDimensions;
+		const antiCollision = content.videoStyle
+			.getStylesOfTarget('global')
+			.findStyle('anti-collision');
+		if (antiCollision) antiCollision.value = false;
+		const portrait = videoDimensions.width < videoDimensions.height;
+		for (const styles of content.videoStyle.styles) {
+			if (styles.target === 'arabic') applySubtitleCreationLayout(styles, 'arabic', portrait);
+			else if (styles.target !== 'global')
+				applySubtitleCreationLayout(styles, 'translation', portrait);
+		}
+	});
 }
 
 interface ProjectPackageAssetDescriptor {
@@ -174,6 +228,10 @@ export class ProjectService {
 				options.projectType ?? DEFAULT_PROJECT_TYPE
 			),
 			await ProjectContent.getDefaultProjectContent()
+		);
+		applyProjectCreationPreset(
+			project.content,
+			options.videoDimensions ?? { width: 1920, height: 1080 }
 		);
 		const projectsPath = await this.ensureFolder(this.projectsFolder);
 		while (await exists(await join(projectsPath, `${project.detail.id}.json`))) {

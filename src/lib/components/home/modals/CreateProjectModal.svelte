@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { ProjectDetail, Utilities } from '$lib/classes';
-	import { ProjectService } from '$lib/services/ProjectService';
+	import {
+		getProjectVideoDimensions,
+		ProjectService,
+		type ProjectVideoQuality
+	} from '$lib/services/ProjectService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -16,10 +20,20 @@
 	} from '$lib/types/projectType';
 	import { SettingsTab } from '$lib/classes/Settings.svelte';
 
+	type VideoFormat = 'landscape' | 'portrait' | 'square' | 'custom';
+
 	let { close } = $props();
 
 	let name: string = $state('');
 	let reciter: string = $state('');
+	let selectedVideoFormat = $state<VideoFormat>('landscape');
+	let selectedVideoQuality = $state<ProjectVideoQuality>('1080p');
+	let customVideoDimensions = $state({ width: 1920, height: 1080 });
+	let videoDimensions = $derived(
+		selectedVideoFormat === 'custom'
+			? customVideoDimensions
+			: getProjectVideoDimensions(selectedVideoFormat, selectedVideoQuality)
+	);
 	let projectType: ProjectType = $state(
 		globalState.settings?.defaultValuesSettings.projectCategories.includes(DEFAULT_PROJECT_TYPE)
 			? DEFAULT_PROJECT_TYPE
@@ -29,6 +43,38 @@
 		globalState.settings?.defaultValuesSettings.projectCategories ?? PROJECT_TYPE_OPTIONS
 	);
 	let homeCopy = $derived($LL.home as unknown as { addCategoryOption: () => string });
+	let videoFormats = $derived([
+		{
+			value: 'landscape' as const,
+			ratio: '16:9',
+			icon: 'crop_landscape',
+			label: $LL.style.orientationLandscape()
+		},
+		{
+			value: 'portrait' as const,
+			ratio: '9:16',
+			icon: 'crop_portrait',
+			label: $LL.style.orientationPortrait()
+		},
+		{
+			value: 'square' as const,
+			ratio: '1:1',
+			icon: 'crop_square',
+			label: $LL.style.orientationSquare()
+		},
+		{
+			value: 'custom' as const,
+			ratio: 'W×H',
+			icon: 'tune',
+			label: $LL.export.customDimensions()
+		}
+	]);
+	const videoQualities: Array<{ value: ProjectVideoQuality; label: string }> = [
+		{ value: '720p', label: '720p' },
+		{ value: '1080p', label: '1080p' },
+		{ value: '1440p', label: '1440p (2K)' },
+		{ value: '2160p', label: '2160p (4K)' }
+	];
 	const ADD_CATEGORY_VALUE = '__add_category__';
 
 	$effect(() => {
@@ -67,7 +113,12 @@
 			return;
 		}
 
-		const project = await ProjectService.createEmptyProject({ name, reciter, projectType });
+		const project = await ProjectService.createEmptyProject({
+			name,
+			reciter,
+			projectType,
+			videoDimensions
+		});
 		AnalyticsService.trackProjectCreated(projectType, reciter.trim().length > 0);
 
 		// Ouvre le projet
@@ -82,7 +133,7 @@
 
 <div
 	data-tour-id="create-project-modal"
-	class="bg-secondary border-color border rounded-2xl w-[700px] shadow-2xl shadow-black flex flex-col relative"
+	class="bg-secondary border-color border rounded-2xl w-[700px] max-h-[90vh] shadow-2xl shadow-black flex flex-col relative"
 >
 	<div
 		class="bg-gradient-to-r from-accent to-bg-accent rounded-t-2xl px-6 py-6 border-b border-color"
@@ -112,7 +163,7 @@
 		</div>
 	</div>
 	<!-- Content -->
-	<div class="p-8 space-y-6">
+	<div class="p-8 space-y-6 overflow-y-auto">
 		<!-- Project Name Field -->
 		<div class="space-y-2">
 			<label for="name" class="flex items-center gap-2 text-sm font-semibold text-primary">
@@ -155,6 +206,75 @@
 			/>
 		</div>
 		<div data-tour-id="create-project-tour-anchor" aria-hidden="true"></div>
+
+		<div class="space-y-3 rounded-xl border border-color bg-bg-secondary p-3">
+			<div class="flex items-center justify-between gap-3">
+				<div class="flex items-center gap-2 text-sm font-semibold text-primary">
+					<span class="material-icons text-accent-primary text-base">screen_rotation</span>
+					{$LL.export.videoQualityOrientation()}
+				</div>
+				<p class="text-xs whitespace-nowrap text-thirdly">
+					{videoDimensions.width} × {videoDimensions.height}
+				</p>
+			</div>
+
+			<div class="grid grid-cols-4 gap-2">
+				{#each videoFormats as format (format.value)}
+					<button
+						type="button"
+						aria-pressed={selectedVideoFormat === format.value}
+						class="flex min-h-20 flex-col items-center justify-center gap-0.5 rounded-lg border px-1.5 py-2 transition-all {selectedVideoFormat ===
+						format.value
+							? 'border-accent-primary bg-accent text-accent-primary shadow-md'
+							: 'border-color bg-primary text-secondary hover:border-accent-primary hover:text-primary'}"
+						onclick={() => (selectedVideoFormat = format.value)}
+					>
+						<span class="material-icons text-2xl">{format.icon}</span>
+						<span class="text-xs font-semibold text-primary">{format.ratio}</span>
+						<span class="text-xs">{format.label}</span>
+					</button>
+				{/each}
+			</div>
+
+			{#if selectedVideoFormat === 'custom'}
+				<div class="flex items-center gap-3">
+					<input
+						type="number"
+						bind:value={customVideoDimensions.width}
+						min="256"
+						max="7680"
+						class="w-full"
+					/>
+					<span class="text-thirdly">×</span>
+					<input
+						type="number"
+						bind:value={customVideoDimensions.height}
+						min="144"
+						max="4320"
+						class="w-full"
+					/>
+				</div>
+			{:else}
+				<div class="space-y-1.5">
+					<p class="text-xs font-medium text-thirdly">{$LL.export.quality()}</p>
+					<div class="grid grid-cols-4 gap-2">
+						{#each videoQualities as quality (quality.value)}
+							<button
+								type="button"
+								aria-pressed={selectedVideoQuality === quality.value}
+								class="rounded-lg border px-2 py-1.5 text-xs font-medium transition-all {selectedVideoQuality ===
+								quality.value
+									? 'border-accent-primary bg-accent text-accent-primary'
+									: 'border-color text-secondary hover:border-accent-primary hover:text-primary'}"
+								onclick={() => (selectedVideoQuality = quality.value)}
+							>
+								{quality.label}
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/if}
+		</div>
 
 		<div class="space-y-2">
 			<label for="project-type" class="flex items-center gap-2 text-sm font-semibold text-primary">

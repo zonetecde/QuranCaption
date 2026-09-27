@@ -23,6 +23,7 @@ from src.models import (
     QuranWord,
     QuranSegment,
     AyahSubSegment,
+    enforce_word_phoneme_monotonicity,
 )
 from src.matching.phonetics import (
     get_sub_cost_table,
@@ -60,7 +61,7 @@ def _build_qword(rw: RefWord, tokens: List[PhonemeToken], score: float) -> Quran
     """Creates a unified QuranWord instance with phoneme breakdown and raw ASR bounds."""
     r_start = tokens[0].raw_start if tokens[0].raw_start is not None else tokens[0].start
     r_end = tokens[-1].raw_end if tokens[-1].raw_end is not None else tokens[-1].end
-    return QuranWord(
+    qw = QuranWord(
         word=rw.uthmani,
         location=rw.location,
         ref=rw.phoneme,
@@ -71,6 +72,8 @@ def _build_qword(rw: RefWord, tokens: List[PhonemeToken], score: float) -> Quran
         raw_start=round(r_start, 3),
         raw_end=round(r_end, 3),
     )
+    enforce_word_phoneme_monotonicity(qw)
+    return qw
 
 
 def _align_and_package_ayahs(
@@ -276,6 +279,8 @@ def _align_and_package_ayahs(
         sub_segs_list: List[AyahSubSegment] = []
         pauses = pause_timestamps or []
         intervals = pause_intervals or []
+        interval_starts = [p.start_sec for p in intervals] if intervals else []
+        pause_pts = sorted(pauses) if pauses else []
         min_sub_pause = getattr(config, "SUBSEGMENT_MIN_PAUSE_S", 0.20)
 
         def _build_sub(pass_words: List[QuranWord], is_rep: bool) -> AyahSubSegment:
@@ -290,7 +295,7 @@ def _align_and_package_ayahs(
                 words=pass_words,
             )
 
-        def _find_pause_cut(w_prev: QuranWord, w_curr: QuranWord) -> Optional[float]:
+        def _find_pause_cut(w_prev: QuranWord, w_curr: QuranWord) -> Optional[Tuple[float, float]]:
             # Raw ASR bounds (before forced alignment) where acoustic pauses actually sit in <blank> frames
             w_prev_raw_e = w_prev.raw_end if w_prev.raw_end is not None else (w_prev.end or 0.0)
             w_curr_raw_s = w_curr.raw_start if w_curr.raw_start is not None else (w_curr.start or 0.0)
@@ -306,33 +311,38 @@ def _align_and_package_ayahs(
                 return None
 
             if intervals:
-                for p in intervals:
+                idx = bisect.bisect_right(interval_starts, w_curr_e + 0.50)
+                for i in range(idx - 1, -1, -1):
+                    p = intervals[i]
+                    if p.start_sec < w_prev_s - 1.0:
+                        break
                     if p.duration_sec < min_sub_pause:
                         continue
                     cut = p.optimal_cut_point
 
                     # 1. Primary check using raw CTC ASR time before forced alignment:
-                    # In raw ASR time, w_prev_raw_e is when speech stopped and w_curr_raw_s is when speech started.
-                    # The pause valley 'cut' sits cleanly between the two raw speech emissions.
                     if (w_prev_raw_e - 0.08) <= cut <= (w_curr_raw_s + 0.08) and (mid_prev < cut < mid_curr):
-                        return cut
+                        return (p.start_sec, p.end_sec)
 
                     # 2. Interval overlap check in raw ASR time:
-                    # Pause interval begins after w_prev raw speech and ends before w_curr raw speech
                     if (p.start_sec >= w_prev_raw_e - 0.12) and (p.end_sec <= w_curr_raw_s + 0.12):
                         if mid_prev < cut < mid_curr:
-                            return cut
+                            return (p.start_sec, p.end_sec)
 
                     # 3. Geometric fallback: cut point sits safely between the word boundaries
                     if cut > (w_prev_s + 0.04) and cut < (w_curr_e - 0.04) and (mid_prev < cut < mid_curr):
                         if (p.start_sec - 0.15) <= w_prev_e and (p.end_sec + 0.15) >= w_curr_s:
-                            return cut
+                            return (p.start_sec, p.end_sec)
             elif pauses:
-                for pt in pauses:
+                idx = bisect.bisect_right(pause_pts, w_curr_e + 0.50)
+                for i in range(idx - 1, -1, -1):
+                    pt = pause_pts[i]
+                    if pt < w_prev_s - 1.0:
+                        break
                     if (w_prev_raw_e - 0.08) <= pt <= (w_curr_raw_s + 0.08) and (mid_prev < pt < mid_curr):
-                        return pt
+                        return (pt - 0.10, pt + 0.10)
                     if mid_prev < pt < mid_curr and pt > (w_prev_s + 0.04) and pt < (w_curr_e - 0.04):
-                        return pt
+                        return (pt - 0.10, pt + 0.10)
 
             return None
 
@@ -341,22 +351,23 @@ def _align_and_package_ayahs(
             for w in pass_words:
                 if current_chunk:
                     prev_w = current_chunk[-1]
-                    cut = _find_pause_cut(prev_w, w)
-                    if cut is not None:
-                        # Snap acoustic boundary cleanly to the silence cut point
-                        if prev_w.end and prev_w.end > cut:
-                            prev_w.end = round(cut, 2)
-                            if prev_w.phonemes:
-                                prev_w.phonemes[-1]["end"] = round(cut, 2)
-                                if prev_w.phonemes[-1]["start"] >= prev_w.end:
-                                    prev_w.phonemes[-1]["start"] = max(prev_w.start or 0.0, round(prev_w.end - 0.04, 2))
+                    p_bounds = _find_pause_cut(prev_w, w)
+                    if p_bounds is not None:
+                        p_start, p_end = p_bounds
+                        # Enforce clean separation without merging to a single cut point
+                        if prev_w.end and prev_w.end > p_start:
+                            prev_w.end = round(p_start, 2)
+                            if prev_w.phonemes and prev_w.phonemes[-1]["end"] > prev_w.end:
+                                prev_w.phonemes[-1]["end"] = prev_w.end
 
-                        if w.start and w.start < cut:
-                            w.start = round(cut, 2)
-                            if w.phonemes:
-                                w.phonemes[0]["start"] = round(cut, 2)
-                                if w.phonemes[0]["end"] <= w.start:
-                                    w.phonemes[0]["end"] = min(w.end or 999999.0, round(w.start + 0.04, 2))
+                        if w.start and w.start < p_end:
+                            w.start = round(p_end, 2)
+                            if w.phonemes and w.phonemes[0]["start"] < w.start:
+                                w.phonemes[0]["start"] = w.start
+
+                        # Cascade monotonic fix through all phonemes in boundary words
+                        enforce_word_phoneme_monotonicity(prev_w)
+                        enforce_word_phoneme_monotonicity(w)
 
                         sub_segs_list.append(_build_sub(current_chunk, is_rep))
                         current_chunk = []
@@ -371,9 +382,13 @@ def _align_and_package_ayahs(
             repeated_ranges = [s.words_range for s in sub_segments if s.is_repetition] or None
             repeated_text = [s.text for s in sub_segments if s.is_repetition] or None
 
-        all_ay_passes = [p for rw in ay_words for p in matched_word_tokens.get(rw.global_index, []) if p]
-        seg_start = min(p[0].start for p in all_ay_passes)
-        seg_end = max(p[-1].end for p in all_ay_passes)
+        if qwords:
+            seg_start = qwords[0].start or 0.0
+            seg_end = qwords[-1].end or 0.0
+        else:
+            all_ay_passes = [p for rw in ay_words for p in matched_word_tokens.get(rw.global_index, []) if p]
+            seg_start = min(p[0].start for p in all_ay_passes) if all_ay_passes else 0.0
+            seg_end = max(p[-1].end for p in all_ay_passes) if all_ay_passes else 0.0
         matched_ref_str = f"{ref_data.surah}:{ay}:1-{ref_data.surah}:{ay}:{len(ay_words)}"
 
         segments.append(QuranSegment(

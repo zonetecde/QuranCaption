@@ -145,6 +145,39 @@ def emit_status_to_stderr(
         pass
 
 
+def normalize_word_boundaries(words: List[Dict[str, Any]], segment_duration: float) -> List[Dict[str, Any]]:
+    """Aligns word ends to next word starts within the segment duration.
+
+    @param {List[Dict[str, Any]]} words - List of word timestamp dictionaries.
+    @param {float} segment_duration - Total duration of the containing segment in seconds.
+    @returns {List[Dict[str, Any]]} Normalized word timestamp dictionaries.
+    """
+    if not words:
+        return words
+
+    duration = max(0.0, segment_duration)
+    normalized_starts: List[float] = []
+    previous_start = 0.0
+    for index, word in enumerate(words):
+        raw_start = 0.0 if index == 0 else float(word.get("start", 0.0))
+        start = max(previous_start, min(duration, raw_start))
+        normalized_starts.append(start)
+        previous_start = start
+
+    normalized_words: List[Dict[str, Any]] = []
+    for index, word in enumerate(words):
+        start = normalized_starts[index]
+        end = normalized_starts[index + 1] if index < len(words) - 1 else duration
+        normalized_words.append(
+            {
+                **word,
+                "start": round(start, 3),
+                "end": round(max(start, end), 3),
+            }
+        )
+    return normalized_words
+
+
 def adapt_pipeline_result_to_qurancaption(
     pipeline_result: Any,
     offset_s: float = 0.0,
@@ -170,23 +203,27 @@ def adapt_pipeline_result_to_qurancaption(
     if intro and intro.get("words"):
         intro_abs_start = round(float(intro.get("start", 0.0)) + offset_s, 3)
         intro_abs_end = round(float(intro.get("end", 0.0)) + offset_s, 3)
+        intro_dur = max(0.0, round(intro_abs_end - intro_abs_start, 3))
         intro_words: List[Dict[str, Any]] = []
 
         for w in intro["words"]:
-            w_abs_start = float(w.get("start") or 0.0) + offset_s
-            w_abs_end = float(w.get("end") or (w_abs_start + 0.1)) + offset_s
-            # Compute timing relative to segment start (required by QuranCaption)
+            w_dict = w.to_dict() if hasattr(w, "to_dict") else w
+            w_raw_s = float(w_dict.get("start") if w_dict.get("start") is not None else intro.get("start", 0.0))
+            w_raw_e = float(w_dict.get("end") if w_dict.get("end") is not None else intro.get("end", 0.0))
+            w_abs_start = w_raw_s + offset_s
+            w_abs_end = w_raw_e + offset_s
             rel_start = max(0.0, round(w_abs_start - intro_abs_start, 3))
             rel_end = max(rel_start, round(w_abs_end - intro_abs_start, 3))
             intro_words.append({
-                "word": w.get("word", ""),
-                "location": w.get("location", "1:1:1"),
+                "word": w_dict.get("word", ""),
+                "location": w_dict.get("location", "1:1:1"),
                 "start": rel_start,
                 "end": rel_end,
-                "phonemes": w.get("phonemes", []),
+                "phonemes": w_dict.get("phonemes", []),
             })
 
-        matched_text = " ".join(w["word"] for w in intro_words if w.get("word"))
+        norm_intro_words = normalize_word_boundaries(intro_words, intro_dur)
+        matched_text = " ".join(w["word"] for w in norm_intro_words if w.get("word"))
         is_istiadha = "أَعُوذُ" in matched_text or "اعوذ" in matched_text
         special_name = "Isti'adha" if is_istiadha else "Basmala"
 
@@ -199,98 +236,96 @@ def adapt_pipeline_result_to_qurancaption(
             "special_type": special_name,
             "matched_text": matched_text,
             "confidence": 1.0,
-            "words": intro_words,
+            "error": None,
+            "has_missing_words": False,
+            "potentially_undersegmented": False,
+            "words": norm_intro_words,
         })
         current_idx += 1
 
-    # 2. Handle Ayahs and their subsegments
+    # 2. Handle Ayahs
     for seg in pipeline_segments:
         surah_num = getattr(seg, "surah_number", 1)
-        if callable(getattr(seg, "to_dict", None)):
-            seg_dict = seg.to_dict()
-        elif isinstance(seg, dict):
-            seg_dict = seg
-        else:
-            sub_segs = getattr(seg, "sub_segments", None)
-            if sub_segs:
-                seg_list = [
-                    {
-                        "segment": idx + 1,
-                        "start": getattr(s, "start_time", s.get("start", 0.0) if isinstance(s, dict) else 0.0),
-                        "end": getattr(s, "end_time", s.get("end", 0.0) if isinstance(s, dict) else 0.0),
-                        "words": getattr(s, "words", s.get("words", []) if isinstance(s, dict) else []),
-                    }
-                    for idx, s in enumerate(sub_segs)
-                ]
-            else:
-                seg_list = [
-                    {
-                        "segment": 1,
-                        "start": getattr(seg, "start_time", 0.0),
-                        "end": getattr(seg, "end_time", 0.0),
-                        "words": getattr(seg, "words", []),
-                    }
-                ]
-            seg_dict = {
-                "ayah": getattr(seg, "ayah", 1),
-                "segments": seg_list,
-            }
+        ayah_num = getattr(seg, "ayah", 1)
+        raw_start = getattr(seg, "start_time", 0.0)
+        raw_end = getattr(seg, "end_time", 0.0)
 
-        ayah_num = seg_dict.get("ayah", 1)
-        ayah_segments = seg_dict.get("segments") or []
+        # Handle dictionary input if seg is already dict
+        if isinstance(seg, dict):
+            surah_num = seg.get("surah", surah_num)
+            ayah_num = seg.get("ayah", ayah_num)
+            raw_start = seg.get("start", raw_start)
+            raw_end = seg.get("end", raw_end)
 
-        for sub_seg in ayah_segments:
-            sub_abs_start = round(float(sub_seg.get("start", 0.0)) + offset_s, 3)
-            sub_abs_end = round(float(sub_seg.get("end", 0.0)) + offset_s, 3)
-            source_words = sub_seg.get("words", [])
+        abs_start = round(float(raw_start) + offset_s, 3)
+        abs_end = round(float(raw_end) + offset_s, 3)
+        duration = max(0.0, round(abs_end - abs_start, 3))
 
-            words_list: List[Dict[str, Any]] = []
-            scores: List[float] = []
+        # Collect words for this Ayah
+        source_words: List[Any] = []
+        if hasattr(seg, "words") and seg.words:
+            source_words = seg.words
+        elif isinstance(seg, dict) and seg.get("words"):
+            source_words = seg["words"]
+        elif hasattr(seg, "sub_segments") and seg.sub_segments:
+            for sub in seg.sub_segments:
+                sub_words = getattr(sub, "words", []) if hasattr(sub, "words") else (sub.get("words", []) if isinstance(sub, dict) else [])
+                source_words.extend(sub_words)
+        elif isinstance(seg, dict) and seg.get("segments"):
+            for sub in seg["segments"]:
+                source_words.extend(sub.get("words", []))
 
-            for w in source_words:
-                w_dict = w.to_dict() if hasattr(w, "to_dict") else w
-                raw_start = w_dict.get("start")
-                raw_end = w_dict.get("end")
+        words_list: List[Dict[str, Any]] = []
+        scores: List[float] = []
 
-                w_abs_start = (float(raw_start) if raw_start is not None else sub_abs_start) + offset_s
-                w_abs_end = (float(raw_end) if raw_end is not None else (w_abs_start + 0.1)) + offset_s
+        for w_idx, w in enumerate(source_words):
+            w_dict = w.to_dict() if hasattr(w, "to_dict") else (w if isinstance(w, dict) else {})
+            w_raw_s = float(w_dict.get("start") if w_dict.get("start") is not None else raw_start)
+            w_raw_e = float(w_dict.get("end") if w_dict.get("end") is not None else raw_end)
 
-                # Compute word start/end relative to segment time_from (required by QuranCaption)
-                rel_start = max(0.0, round(w_abs_start - sub_abs_start, 3))
-                rel_end = max(rel_start, round(w_abs_end - sub_abs_start, 3))
+            w_abs_start = w_raw_s + offset_s
+            w_abs_end = w_raw_e + offset_s
 
-                loc = w_dict.get("location") or f"{surah_num}:{ayah_num}:1"
-                word_text = w_dict.get("word", "")
-                if w_dict.get("score") is not None:
-                    scores.append(float(w_dict["score"]))
+            # Compute word start/end relative to segment time_from (required by QuranCaption)
+            rel_start = max(0.0, round(w_abs_start - abs_start, 3))
+            rel_end = max(rel_start, round(w_abs_end - abs_start, 3))
 
-                words_list.append({
-                    "word": word_text,
-                    "location": loc,
-                    "start": rel_start,
-                    "end": rel_end,
-                    "phonemes": w_dict.get("phonemes", []),
-                })
+            loc = w_dict.get("location") or f"{surah_num}:{ayah_num}:{w_idx + 1}"
+            word_text = w_dict.get("word", "")
+            if w_dict.get("score") is not None:
+                scores.append(float(w_dict["score"]))
 
-            if not words_list:
-                continue
-
-            ref_from = words_list[0]["location"]
-            ref_to = words_list[-1]["location"]
-            matched_text = " ".join(w["word"] for w in words_list if w.get("word"))
-            confidence = round(sum(scores) / max(1, len(scores)), 3) if scores else 1.0
-
-            segments.append({
-                "segment": current_idx,
-                "time_from": sub_abs_start,
-                "time_to": sub_abs_end,
-                "ref_from": ref_from,
-                "ref_to": ref_to,
-                "matched_text": matched_text,
-                "confidence": confidence,
-                "words": words_list,
+            words_list.append({
+                "word": word_text,
+                "location": loc,
+                "start": rel_start,
+                "end": rel_end,
+                "phonemes": w_dict.get("phonemes", []),
             })
-            current_idx += 1
+
+        if not words_list:
+            continue
+
+        normalized_words = normalize_word_boundaries(words_list, duration)
+        ref_from = normalized_words[0]["location"]
+        ref_to = normalized_words[-1]["location"]
+        matched_text = " ".join(w["word"] for w in normalized_words if w.get("word"))
+        confidence = round(sum(scores) / max(1, len(scores)), 3) if scores else 1.0
+
+        segments.append({
+            "segment": current_idx,
+            "time_from": abs_start,
+            "time_to": abs_end,
+            "ref_from": ref_from,
+            "ref_to": ref_to,
+            "matched_text": matched_text,
+            "confidence": confidence,
+            "error": None,
+            "has_missing_words": False,
+            "potentially_undersegmented": False,
+            "words": normalized_words,
+        })
+        current_idx += 1
 
     return segments
 

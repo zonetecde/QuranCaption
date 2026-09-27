@@ -316,8 +316,11 @@ class SurahDetector:
             return [single]
 
         # 1. Timeline sliding probe using Gene Myers' 64-bit Bit-Parallel search
+        # Use dense step=16 for short recitations (<120 tokens) to guarantee multiple hits for short 3-ayah Surahs;
+        # use step=32 for longer recitations to prevent redundant full-Quran scans while preserving exact boundaries.
+        effective_step = step if step != 16 else (16 if total_toks < 120 else 32)
         probe_hits: List[Tuple[int, int, int, float]] = []  # (offset, surah, ayah, norm_dist)
-        for offset in range(0, max(1, total_toks - 12), step):
+        for offset in range(0, max(1, total_toks - 12), effective_step):
             slice_tokens = aligned_phonemes[offset : offset + sample_length]
             q = "".join(p.phoneme for p in slice_tokens)
             norm_q = normalize_phoneme_query(q)

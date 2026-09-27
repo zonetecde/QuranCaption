@@ -42,7 +42,7 @@ from config import (
     VAD_MAX_PAD_S,
     VAD_PREROLL_S,
 )
-from src.models import PauseInterval, QuranWord, QuranSegment
+from src.models import PauseInterval, QuranWord, QuranSegment, enforce_word_phoneme_monotonicity
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,6 @@ def _get_silero_session():
             getattr(config, "DEFAULT_SILERO_PATH", None),
             os.path.join("data", "onnx", "silero_vad_half.onnx"),
             os.path.join("models", "silero_vad_half.onnx"),
-            os.path.join("data", "onnx", "silero_vad.onnx"),
         ]
         model_path = None
         for p in candidate_paths:
@@ -754,36 +753,39 @@ def align_ayah_boundaries(
         if mid_first <= mid_last:
             continue
 
-        inter_cut: Optional[float] = None
+        inter_pause: Optional[PauseInterval] = None
         for p in pause_intervals:
             cut = p.optimal_cut_point
             # 1. Primary check in raw ASR time: cut sits between previous ayah raw speech end and next ayah raw speech start
             if (w_last_raw_e - 0.08) <= cut <= (w_first_raw_s + 0.08) and (mid_last < cut < mid_first):
-                inter_cut = cut
+                inter_pause = p
                 break
             # 2. Geometric fallback
             if mid_last < cut < mid_first:
                 if cut > (w_last_s + 0.04) and cut < (w_first_e - 0.04):
-                    inter_cut = cut
+                    inter_pause = p
                     break
             if (p.start_sec - 0.10) <= w_last_e <= (p.end_sec + 0.10) and w_first_e >= (p.end_sec - 0.10):
-                inter_cut = cut
+                inter_pause = p
                 break
 
-        if inter_cut is not None:
-            if w_last.end and w_last.end > inter_cut:
-                w_last.end = round(inter_cut, 2)
-                if w_last.phonemes:
-                    w_last.phonemes[-1]["end"] = round(inter_cut, 2)
-                    if w_last.phonemes[-1]["start"] >= w_last.end:
-                        w_last.phonemes[-1]["start"] = max(w_last.start or 0.0, round(w_last.end - 0.04, 2))
+        if inter_pause is not None:
+            p_s = round(inter_pause.start_sec, 2)
+            p_e = round(inter_pause.end_sec, 2)
 
-            if w_first.start and w_first.start < inter_cut:
-                w_first.start = round(inter_cut, 2)
-                if w_first.phonemes:
-                    w_first.phonemes[0]["start"] = round(inter_cut, 2)
-                    if w_first.phonemes[0]["end"] <= w_first.start:
-                        w_first.phonemes[0]["end"] = min(w_first.end or 999999.0, round(w_first.start + 0.04, 2))
+            if w_last.end and w_last.end > p_s:
+                w_last.end = p_s
+                if w_last.phonemes and w_last.phonemes[-1]["end"] > w_last.end:
+                    w_last.phonemes[-1]["end"] = w_last.end
+
+            if w_first.start and w_first.start < p_e:
+                w_first.start = p_e
+                if w_first.phonemes and w_first.phonemes[0]["start"] < w_first.start:
+                    w_first.phonemes[0]["start"] = w_first.start
+
+            # Cascade monotonic fix through all phonemes in boundary words
+            enforce_word_phoneme_monotonicity(w_last)
+            enforce_word_phoneme_monotonicity(w_first)
 
             seg_prev.end_time = round(w_last.end or seg_prev.end_time, 2)
             seg_next.start_time = round(w_first.start or seg_next.start_time, 2)

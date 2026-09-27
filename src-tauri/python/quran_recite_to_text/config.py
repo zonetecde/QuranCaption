@@ -63,7 +63,7 @@ DETECTOR_MIN_PHONEMES: int = 12             # Minimum phonemes required to trigg
 # 5. PHASE 2 CTC FORCED ALIGNMENT TUNING
 # ==============================================================================
 CTC_BLANK_PENALTY: float = 1.8              # Trellis blank prior regularization
-LOOKAHEAD_OFFSET_FRAMES: float = 1.5        # -60ms streaming lookahead delay compensation
+LOOKAHEAD_OFFSET_FRAMES: float = 3.5        # -140ms streaming lookahead (130ms right-context + subsampling centering) compensation
 
 
 # ==============================================================================

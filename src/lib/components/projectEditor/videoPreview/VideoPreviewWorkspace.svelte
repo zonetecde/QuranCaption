@@ -1122,6 +1122,11 @@
 		if (isPlaying) {
 			pause();
 		} else {
+			const end = globalState.currentProject?.content.timeline.getLongestTrackDuration().ms ?? 0;
+			if (end > 0 && getTimelineSettings().cursorPosition >= end) {
+				getTimelineSettings().cursorPosition = 1;
+				getTimelineSettings().movePreviewTo = 1;
+			}
 			play(true);
 		}
 	}

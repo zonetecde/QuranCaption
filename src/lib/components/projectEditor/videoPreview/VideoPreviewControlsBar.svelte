@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { Duration, ProjectEditorTabs } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { goToAdjacentSubtitleFromCursor } from '$lib/services/SubtitleNavigation';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
 
 	let {
 		togglePlayPause
@@ -11,14 +11,21 @@
 	} = $props();
 
 	let isPlaying = $derived(() => globalState.getVideoPreviewState.isPlaying);
-
-	let videoDuration = $derived(() =>
-		globalState.currentProject!.content.timeline.getLongestTrackDuration().getFormattedTime(false)
+	let previewCopy = $derived(
+		$LL.editor as unknown as {
+			skipBackwardTenSeconds: () => string;
+			skipForwardTenSeconds: () => string;
+			seekVideo: () => string;
+		}
 	);
-
-	let currentDuration = $derived(() =>
-		new Duration(globalState.getTimelineState.cursorPosition).getFormattedTime(false, true)
+	let durationMs = $derived(
+		() => globalState.currentProject!.content.timeline.getLongestTrackDuration().ms
 	);
+	let cursorMs = $derived(() => globalState.getTimelineState.cursorPosition);
+
+	let videoDuration = $derived(() => new Duration(durationMs()).getFormattedTime(false));
+
+	let currentDuration = $derived(() => new Duration(cursorMs()).getFormattedTime(false, true));
 
 	let isStyleTab = $derived(
 		() => globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Style
@@ -28,99 +35,144 @@
 
 	let isPortraitVideo = $derived(() => {
 		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
-			{ width?: number; height?: number } | undefined;
+			| { width?: number; height?: number }
+			| undefined;
 		return Number(dimensions?.width) < Number(dimensions?.height);
 	});
 
 	let isTikTokOverlayVisible = $derived(() => globalState.getVideoPreviewState.showTikTokOverlay);
 
-	function goToPreviousSubtitleStart(): void {
-		goToAdjacentSubtitleFromCursor('previous');
+	/**
+	 * Déplace le curseur de prévisualisation dans la durée du projet.
+	 * @param {number} positionMs Position cible en millisecondes.
+	 * @returns {void}
+	 */
+	function seekTo(positionMs: number): void {
+		const position = Math.max(1, Math.min(positionMs, durationMs()));
+		globalState.getTimelineState.cursorPosition = position;
+		globalState.getTimelineState.movePreviewTo = position;
+		globalState.getVideoPreviewState.scrollTimelineToCursor();
 	}
 
-	function goToNextSubtitleStart(): void {
-		goToAdjacentSubtitleFromCursor('next');
+	/**
+	 * Déplace la lecture par rapport à la position actuelle.
+	 * @param {number} offsetMs Décalage signé en millisecondes.
+	 * @returns {void}
+	 */
+	function skipBy(offsetMs: number): void {
+		seekTo(cursorMs() + offsetMs);
+	}
+
+	/**
+	 * Laisse les boutons traiter Espace une seule fois et conserve ce raccourci sur le curseur.
+	 * @param {KeyboardEvent} event Événement clavier des contrôles.
+	 * @returns {void}
+	 */
+	function handleControlKeydown(event: KeyboardEvent): void {
+		if (event.key !== ' ') return;
+		event.stopPropagation();
+		if (event.target instanceof HTMLInputElement) {
+			event.preventDefault();
+			togglePlayPause();
+		}
 	}
 </script>
 
 <div
 	dir="ltr"
-	class="bg-primary h-10 w-full flex items-center justify-center relative pt-0.25 rounded-t-xl"
+	class="bg-primary w-full flex flex-wrap items-center gap-1 rounded-t-xl px-2 py-1"
+	role="group"
+	aria-label={get(LL).editor.playbackControls()}
+	onkeydown={handleControlKeydown}
 >
-	<!-- Timestamp dans la vidéo -->
-	<section class="absolute left-3 monospaced text-xs">
-		{currentDuration()} / {videoDuration()}
-	</section>
+	<span class="monospaced shrink-0 text-[11px] leading-none">{currentDuration()}</span>
+	<button
+		type="button"
+		class="preview-control-btn flex shrink-0 items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
+		onclick={() => skipBy(-10000)}
+		aria-label={previewCopy.skipBackwardTenSeconds()}
+		title={previewCopy.skipBackwardTenSeconds()}
+	>
+		<span class="material-icons text-xl">replay_10</span>
+	</button>
+	<button
+		type="button"
+		class="preview-control-btn flex shrink-0 items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
+		onclick={togglePlayPause}
+		aria-label={get(LL).settings.shortcutAction.PLAY_PAUSE()}
+	>
+		<span class="material-icons text-xl">
+			{isPlaying() ? 'pause' : 'play_arrow'}
+		</span>
+	</button>
+	<input
+		type="range"
+		class="preview-progress order-last min-w-0 basis-full"
+		min="1"
+		max={Math.max(durationMs(), 1)}
+		value={Math.min(cursorMs(), Math.max(durationMs(), 1))}
+		disabled={durationMs() <= 0}
+		oninput={(event) => seekTo(Number(event.currentTarget.value))}
+		aria-label={previewCopy.seekVideo()}
+		style={`--progress: ${durationMs() > 0 ? (Math.min(cursorMs(), durationMs()) / durationMs()) * 100 : 0}%`}
+	/>
+	<button
+		type="button"
+		class="preview-control-btn flex shrink-0 items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
+		onclick={() => skipBy(10000)}
+		aria-label={previewCopy.skipForwardTenSeconds()}
+		title={previewCopy.skipForwardTenSeconds()}
+	>
+		<span class="material-icons text-xl">forward_10</span>
+	</button>
+	<span class="monospaced shrink-0 text-[11px] leading-none">{videoDuration()}</span>
 
-	<!-- play/pause button with material icons -->
-	<section class="flex items-center gap-x-2">
-		<button
-			class="preview-control-btn flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
-			onclick={goToPreviousSubtitleStart}
-		>
-			<span class="material-icons text-xl pt-0.25">chevron_left</span>
-		</button>
-		<button
-			class="preview-control-btn flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
-			onclick={togglePlayPause}
-		>
-			<span class="material-icons text-xl pt-0.25">
-				{isPlaying() ? 'pause' : 'play_arrow'}
-			</span>
-		</button>
-		<button
-			class="preview-control-btn flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
-			onclick={goToNextSubtitleStart}
-		>
-			<span class="material-icons text-xl pt-0.25">chevron_right</span>
-		</button>
-	</section>
-
-	<!-- Toggle fullscreen -->
-	<section class="absolute right-3">
-		<div class="flex items-center gap-x-2">
-			{#if isStyleTab()}
-				<button
-					onclick={() =>
-						(globalState.getVideoPreviewState.showAlignmentGrid =
-							!globalState.getVideoPreviewState.showAlignmentGrid)}
-					class="preview-control-btn preview-control-btn-grid flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
-					class:active={isAlignmentGridVisible()}
-					title={isAlignmentGridVisible()
-						? $LL.editor.hideAlignmentGrid()
-						: $LL.editor.showAlignmentGrid()}
-				>
-					<span class="material-icons text-xl pt-0.25">
-						{isAlignmentGridVisible() ? 'grid_off' : 'grid_on'}
-					</span>
-				</button>
-				{#if isPortraitVideo()}
-					<button
-						onclick={() =>
-							(globalState.getVideoPreviewState.showTikTokOverlay =
-								!globalState.getVideoPreviewState.showTikTokOverlay)}
-						class="preview-control-btn preview-control-btn-grid flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
-						class:active={isTikTokOverlayVisible()}
-						aria-pressed={isTikTokOverlayVisible()}
-						aria-label={isTikTokOverlayVisible()
-							? $LL.editor.hideTikTokOverlay()
-							: $LL.editor.showTikTokOverlay()}
-						title={isTikTokOverlayVisible()
-							? $LL.editor.hideTikTokOverlay()
-							: $LL.editor.showTikTokOverlay()}
-					>
-						<span class="material-icons text-xl pt-0.25">smartphone</span>
-					</button>
-				{/if}
-			{/if}
+	<div class="flex shrink-0 items-center gap-x-1">
+		{#if isStyleTab()}
 			<button
-				onclick={globalState.getVideoPreviewState.toggleFullScreen}
-				class="preview-control-btn flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
+				type="button"
+				onclick={() =>
+					(globalState.getVideoPreviewState.showAlignmentGrid =
+						!globalState.getVideoPreviewState.showAlignmentGrid)}
+				class="preview-control-btn preview-control-btn-grid flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
+				class:active={isAlignmentGridVisible()}
+				title={isAlignmentGridVisible()
+					? $LL.editor.hideAlignmentGrid()
+					: $LL.editor.showAlignmentGrid()}
 			>
-				<span class="material-icons text-xl pt-0.25">fullscreen</span>
+				<span class="material-icons text-xl pt-0.25">
+					{isAlignmentGridVisible() ? 'grid_off' : 'grid_on'}
+				</span>
 			</button>
-		</div>
-	</section>
+			{#if isPortraitVideo()}
+				<button
+					type="button"
+					onclick={() =>
+						(globalState.getVideoPreviewState.showTikTokOverlay =
+							!globalState.getVideoPreviewState.showTikTokOverlay)}
+					class="preview-control-btn preview-control-btn-grid flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
+					class:active={isTikTokOverlayVisible()}
+					aria-pressed={isTikTokOverlayVisible()}
+					aria-label={isTikTokOverlayVisible()
+						? $LL.editor.hideTikTokOverlay()
+						: $LL.editor.showTikTokOverlay()}
+					title={isTikTokOverlayVisible()
+						? $LL.editor.hideTikTokOverlay()
+						: $LL.editor.showTikTokOverlay()}
+				>
+					<span class="material-icons text-xl pt-0.25">smartphone</span>
+				</button>
+			{/if}
+		{/if}
+		<button
+			type="button"
+			onclick={globalState.getVideoPreviewState.toggleFullScreen}
+			class="preview-control-btn flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
+			aria-label={get(LL).editor.fullscreenMode()}
+		>
+			<span class="material-icons text-xl pt-0.25">fullscreen</span>
+		</button>
+	</div>
 </div>
 
 <style>
@@ -136,5 +188,31 @@
 	.preview-control-btn-grid.active {
 		background-color: var(--bg-accent);
 		color: var(--text-primary);
+	}
+
+	.preview-progress {
+		appearance: none;
+		height: 14px;
+		background: transparent;
+		cursor: pointer;
+	}
+
+	.preview-progress::-webkit-slider-runnable-track {
+		height: 4px;
+		border-radius: 999px;
+		background: linear-gradient(
+			to right,
+			var(--accent-primary) var(--progress),
+			var(--bg-accent) var(--progress)
+		);
+	}
+
+	.preview-progress::-webkit-slider-thumb {
+		appearance: none;
+		width: 10px;
+		height: 10px;
+		margin-top: -3px;
+		border-radius: 50%;
+		background: var(--accent-primary);
 	}
 </style>

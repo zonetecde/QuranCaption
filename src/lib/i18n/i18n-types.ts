@@ -2528,6 +2528,18 @@ type RootTranslation = {
 		 */
 		fullscreenMode: string;
 		/**
+		 * B​a​c​k​ ​1​0​ ​s​e​c​o​n​d​s
+		 */
+		skipBackwardTenSeconds: string;
+		/**
+		 * F​o​r​w​a​r​d​ ​1​0​ ​s​e​c​o​n​d​s
+		 */
+		skipForwardTenSeconds: string;
+		/**
+		 * V​i​d​e​o​ ​p​o​s​i​t​i​o​n
+		 */
+		seekVideo: string;
+		/**
 		 * E​x​i​t​ ​F​u​l​l​s​c​r​e​e​n
 		 */
 		exitFullscreen: string;
@@ -14671,6 +14683,18 @@ export type TranslationFunctions = {
 		 * Fullscreen
 		 */
 		fullscreenMode: () => LocalizedString;
+		/**
+		 * Back 10 seconds
+		 */
+		skipBackwardTenSeconds: () => LocalizedString;
+		/**
+		 * Forward 10 seconds
+		 */
+		skipForwardTenSeconds: () => LocalizedString;
+		/**
+		 * Video position
+		 */
+		seekVideo: () => LocalizedString;
 		/**
 		 * Exit Fullscreen
 		 */

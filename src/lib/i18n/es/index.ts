@@ -1575,8 +1575,11 @@ const es = {
 			'mushaf-style': 'Mushaf',
 			'basmala-style': 'Estilo de la basmala',
 			'basmala-scale': 'Escala de la basmala',
+			'istiadha-style': 'Estilo de la istiʿādha',
+			'istiadha-scale': 'Escala de la istiʿādha',
 			'current-font': 'Fuente actual',
-			'verse-number-format': 'Formato del número de versículo',
+			'verse-number-format':
+				'Modificar el formato de los números de versículos. Usar la etiqueta <number> para personalizar.',
 			'verse-number-position': 'Posición del número de versículo',
 			'verse-number-numeral-system': 'Numerales del número de versículo',
 			'verse-number-vertical-position': 'Posición vertical',
@@ -1784,6 +1787,10 @@ const es = {
 			'basmala-style': 'Usar la fuente árabe actual o elegir una de las 122 basmalas caligráficas.',
 			'basmala-scale':
 				'Escalar las basmalas predefinidas caligráficas independientemente de los demás subtítulos.',
+			'istiadha-style':
+				'Usar la fuente árabe actual o elegir una de las 16 istiʿādhas caligráficas.',
+			'istiadha-scale':
+				'Escalar las istiʿādhas caligráficas independientemente de los demás subtítulos.',
 			'verse-number-format':
 				'Modificar el formato de los números de versículos. Usar la etiqueta <number> para personalizar.',
 			'verse-number-position': 'Establecer la posición de los números de versículos',

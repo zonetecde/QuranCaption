@@ -965,6 +965,8 @@ const editor = {
 		'mushaf-style': 'Mushaf',
 		'basmala-style': 'Basmala Style',
 		'basmala-scale': 'Basmala Scale',
+		'istiadha-style': 'Istiadha Style',
+		'istiadha-scale': 'Istiadha Scale',
 		'current-font': 'Current font',
 		'verse-number-format': 'Verse Number Format',
 		'verse-number-position': 'Verse Number Position',
@@ -1172,6 +1174,9 @@ const editor = {
 		'mushaf-style': 'Choose the Arabic script source for Quran subtitles.',
 		'basmala-style': 'Use the current Arabic font or choose one of 122 calligraphic basmalas.',
 		'basmala-scale': 'Scale calligraphic predefined basmalas independently from other subtitles.',
+		'istiadha-style': 'Use the current Arabic font or choose one of 16 calligraphic istiʿādhas.',
+		'istiadha-scale':
+			'Scale calligraphic predefined istiʿādhas independently from other subtitles.',
 		'verse-number-format': 'Change the format of verse numbers. Use <number> tag to customize.',
 		'verse-number-position': 'Set the position of verse numbers',
 		'verse-number-numeral-system': 'Choose how verse number digits are written in translations.',

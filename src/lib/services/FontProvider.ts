@@ -697,6 +697,7 @@ export class QPCFontProvider {
 			fontFamily === 'Surahs' ||
 			fontFamily === 'Surahs2' ||
 			fontFamily === 'Basmalah' ||
+			fontFamily === 'Elgharib-istieadha' ||
 			fontFamily === 'QPC1BSML' ||
 			fontFamily === 'QPC2BSML' ||
 			fontFamily.startsWith('QPC1') ||

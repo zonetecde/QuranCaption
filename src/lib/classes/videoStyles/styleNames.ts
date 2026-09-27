@@ -27,6 +27,8 @@ export type GeneralStyleName =
 	| 'mushaf-style'
 	| 'basmala-style'
 	| 'basmala-scale'
+	| 'istiadha-style'
+	| 'istiadha-scale'
 	| 'verse-number-format'
 	| 'verse-number-position'
 	| 'verse-number-numeral-system'

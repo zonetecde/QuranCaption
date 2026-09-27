@@ -1035,6 +1035,8 @@ const id = {
 			riwayah: 'Riwayah',
 			'basmala-style': 'Gaya Basmala',
 			'basmala-scale': 'Skala Basmala',
+			'istiadha-style': 'Gaya Istiʿādha',
+			'istiadha-scale': 'Skala Istiʿādha',
 			'current-font': 'Font saat ini',
 			general: 'Umum',
 			'verse-number': 'Nomor Ayat',
@@ -1113,6 +1115,9 @@ const id = {
 			'basmala-style':
 				'Gunakan font Arab saat ini atau pilih salah satu dari 122 basmala kaligrafi.',
 			'basmala-scale': 'Ubah skala basmala kaligrafi bawaan secara terpisah dari subtitle lainnya.',
+			'istiadha-style':
+				'Gunakan font Arab saat ini atau pilih salah satu dari 16 istiʿādha kaligrafi.',
+			'istiadha-scale': 'Ubah skala istiʿādha kaligrafi secara terpisah dari subtitle lainnya.',
 			'video-clip-transition-duration':
 				'Durasi default transisi antar klip video dalam milidetik. Dalam mode Crossfade, setiap crossfade dapat disesuaikan secara terpisah dengan menggeser klip di timeline. Tampilannya mungkin tidak akurat di pratinjau video, tetapi hasil video yang diekspor akan tetap benar.',
 			'media-fill': 'Pangkas video dan gambar latar agar memenuhi seluruh bingkai',

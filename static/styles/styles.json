@@ -15,6 +15,8 @@
 						"mushaf-style",
 						"basmala-style",
 						"basmala-scale",
+						"istiadha-style",
+						"istiadha-scale",
 						"text-direction"
 					]
 				},
@@ -158,6 +160,34 @@
 				"id": "basmala-scale",
 				"name": "Basmala Scale",
 				"description": "Scale calligraphic predefined basmalas independently from other subtitles.",
+				"value": 100,
+				"valueType": "number",
+				"valueMin": 75,
+				"valueMax": 400,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "zoom_in"
+			},
+			{
+				"id": "istiadha-style",
+				"name": "Istiadha Style",
+				"description": "Use the current Arabic font or choose one of 16 calligraphic istiʿādhas.",
+				"value": "current-font",
+				"valueType": "select",
+				"options": [
+					"current-font",
+					"1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
+					"11", "12", "13", "14", "15", "16"
+				],
+				"css": "",
+				"tailwind": false,
+				"icon": "auto_awesome"
+			},
+			{
+				"id": "istiadha-scale",
+				"name": "Istiadha Scale",
+				"description": "Scale calligraphic predefined istiʿādhas independently from other subtitles.",
 				"value": 100,
 				"valueType": "number",
 				"valueMin": 75,

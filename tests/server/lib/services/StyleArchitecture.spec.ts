@@ -416,6 +416,53 @@ describe('style architecture modules', () => {
 		}
 	});
 
+	it('renders the selected calligraphic istiadha with its bundled font', () => {
+		const clip = new PredefinedSubtitleClip(0, 1_000, "Isti'adha");
+		const arabicStyles = new StylesData('arabic', [
+			new Category({
+				id: 'general',
+				styles: [
+					new Style({ id: 'istiadha-style', value: '16', valueType: 'select' }),
+					new Style({ id: 'istiadha-scale', value: 125, valueType: 'number' })
+				]
+			}),
+			new Category({
+				id: 'text',
+				styles: [
+					new Style({
+						id: 'font-family',
+						value: 'QPC2',
+						valueType: 'select',
+						css: "font-family: '{value}', sans-serif;"
+					})
+				]
+			}),
+			new Category({
+				id: 'animation',
+				styles: [
+					new Style({ id: 'scale', value: 80, valueType: 'number', css: '--scale: {value}%;' })
+				]
+			})
+		]);
+		const videoStyle = new VideoStyle();
+		videoStyle.styles = [arabicStyles];
+		const originalProject = globalState.currentProject;
+		globalState.currentProject = {
+			content: {
+				videoStyle,
+				timeline: { getFirstTrack: () => ({ getClipById: () => clip }) }
+			}
+		} as never;
+
+		try {
+			expect(clip.getText()).toBe('16');
+			expect(arabicStyles.generateCSS(clip.id)).toContain('font-family: Elgharib-istieadha;');
+			expect(arabicStyles.generateCSS(clip.id)).toContain('--scale: 125%;');
+		} finally {
+			globalState.currentProject = originalProject;
+		}
+	});
+
 	it('preserves Hafs clip data across repeated riwayah style round trips', () => {
 		const clips = [
 			new SubtitleClip(0, 1_000, 57, 24, 0, 11, '57:24 Hafs', [], true, true),

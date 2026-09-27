@@ -1579,6 +1579,8 @@ const de = {
 			'mushaf-style': 'Mushaf',
 			'basmala-style': 'Basmala-Stil',
 			'basmala-scale': 'Basmala-Skalierung',
+			'istiadha-style': 'Istiʿādha-Stil',
+			'istiadha-scale': 'Istiʿādha-Skalierung',
 			'current-font': 'Aktuelle Schrift',
 			'verse-number-format': 'Format der Versnummer',
 			'verse-number-position': 'Position der Versnummer',
@@ -1788,6 +1790,9 @@ const de = {
 				'Aktuelle arabische Schrift verwenden oder eine von 122 kalligrafischen Basmalas wählen.',
 			'basmala-scale':
 				'Kalligrafische vordefinierte Basmalas unabhängig von anderen Untertiteln skalieren.',
+			'istiadha-style':
+				'Aktuelle arabische Schrift verwenden oder eine von 16 kalligrafischen Istiʿādhas wählen.',
+			'istiadha-scale': 'Kalligrafische Istiʿādhas unabhängig von anderen Untertiteln skalieren.',
 			'verse-number-format':
 				'Format der Versnummern ändern. Verwenden Sie das <number>-Tag zur Anpassung.',
 			'verse-number-position': 'Position der Versnummern festlegen',

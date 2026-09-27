@@ -7,14 +7,20 @@
 	let {
 		style,
 		value,
-		onChange
-	}: { style: Style; value: StyleControlValue; onChange: (value: string) => void } = $props();
+		onChange,
+		fontFamily = 'Basmalah'
+	}: {
+		style: Style;
+		value: StyleControlValue;
+		onChange: (value: string) => void;
+		fontFamily?: string;
+	} = $props();
 
 	let isOpen = $state(false);
 	let triggerButton: HTMLButtonElement | undefined = $state();
 
 	/**
-	 * Ferme la liste des basmalas.
+	 * Ferme la liste des calligraphies.
 	 * @returns {void}
 	 */
 	function closePanel(): void {
@@ -33,11 +39,11 @@
 	}
 
 	/**
-	 * Applique le style de basmala sélectionné.
-	 * @param {string} option Police actuelle ou numéro de basmala.
+	 * Applique la calligraphie sélectionnée.
+	 * @param {string} option Police actuelle ou numéro de calligraphie.
 	 * @returns {void}
 	 */
-	function selectBasmala(option: string): void {
+	function selectCalligraphy(option: string): void {
 		onChange(option);
 		closePanel();
 		triggerButton?.focus();
@@ -58,7 +64,7 @@
 		<span>{String(value) === 'current-font' ? getStyleName('current-font', $LL) : `#${value}`}</span
 		>
 		{#if String(value) !== 'current-font'}
-			<span class="truncate text-2xl leading-none" style="font-family: Basmalah;">{value}</span>
+			<span class="truncate text-2xl leading-none" style:font-family={fontFamily}>{value}</span>
 		{/if}
 		<span class="material-icons-outlined ms-auto shrink-0 text-[18px]! text-secondary">
 			{isOpen ? 'expand_less' : 'expand_more'}
@@ -76,12 +82,12 @@
 					role="option"
 					aria-selected={option === String(value)}
 					class="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-start text-sm text-primary transition-colors hover:bg-[var(--bg-accent)] aria-selected:bg-[color-mix(in_srgb,var(--accent-primary)_18%,var(--bg-secondary))]"
-					onclick={() => selectBasmala(option)}
+					onclick={() => selectCalligraphy(option)}
 				>
 					<span>{option === 'current-font' ? getStyleName('current-font', $LL) : `#${option}`}</span
 					>
 					{#if option !== 'current-font'}
-						<span class="truncate text-3xl leading-none" style="font-family: Basmalah;"
+						<span class="truncate text-3xl leading-none" style:font-family={fontFamily}
 							>{option}</span
 						>
 					{/if}

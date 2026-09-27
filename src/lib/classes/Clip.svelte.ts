@@ -1070,6 +1070,14 @@ export class PredefinedSubtitleClip extends ClipWithTranslation {
 		if (canonicalType === 'Basmala' && basmalaStyle !== 'current-font') {
 			return basmalaStyle;
 		}
+		const istiadhaStyle = String(
+			globalState.currentProject?.content.videoStyle
+				.getStylesOfTarget('arabic')
+				.getEffectiveValue('istiadha-style', this.id) ?? 'current-font'
+		);
+		if (canonicalType === "Isti'adha" && istiadhaStyle !== 'current-font') {
+			return istiadhaStyle;
+		}
 
 		// En fonction de la police d'ecriture, renvoie le bon texte
 		const fontFamily = String(

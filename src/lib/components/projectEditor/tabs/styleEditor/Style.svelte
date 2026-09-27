@@ -785,8 +785,13 @@
 					<ColorControl value={inputValue} onChange={applyValue} />
 				{:else if style.id === 'font-family'}
 					<FontFamilyControl value={inputValue} onChange={applySelectValue} />
-				{:else if style.id === 'basmala-style'}
-					<BasmalaStyleControl {style} value={inputValue} onChange={applySelectValue} />
+				{:else if style.id === 'basmala-style' || style.id === 'istiadha-style'}
+					<BasmalaStyleControl
+						{style}
+						value={inputValue}
+						onChange={applySelectValue}
+						fontFamily={style.id === 'basmala-style' ? 'Basmalah' : 'Elgharib-istieadha'}
+					/>
 				{:else if style.valueType === 'select'}
 					<SelectControl {style} value={inputValue} onChange={applySelectValue} />
 				{:else if style.valueType === 'brackets-font'}

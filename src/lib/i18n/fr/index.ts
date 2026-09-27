@@ -1570,6 +1570,8 @@ const fr = {
 			'mushaf-style': 'Mushaf',
 			'basmala-style': 'Style de la basmala',
 			'basmala-scale': 'Échelle de la basmala',
+			'istiadha-style': 'Style de l’istiʿādha',
+			'istiadha-scale': 'Échelle de l’istiʿādha',
 			'current-font': 'Police actuelle',
 			'verse-number-format': 'Format du numéro de verset',
 			'verse-number-position': 'Position du numéro de verset',
@@ -1780,6 +1782,10 @@ const fr = {
 				'Utiliser la police arabe actuelle ou choisir l’une des 122 basmalas calligraphiées.',
 			'basmala-scale':
 				'Agrandir ou réduire les basmalas prédéfinies calligraphiées indépendamment des autres sous-titres.',
+			'istiadha-style':
+				'Utiliser la police arabe actuelle ou choisir l’une des 16 istiʿādhas calligraphiées.',
+			'istiadha-scale':
+				'Agrandir ou réduire les istiʿādhas calligraphiées indépendamment des autres sous-titres.',
 			'verse-number-format':
 				'Modifier le format des numéros de versets. Balises prises en charge : <number>, <br>.',
 			'verse-number-position': 'Définir la position des numéros de versets',

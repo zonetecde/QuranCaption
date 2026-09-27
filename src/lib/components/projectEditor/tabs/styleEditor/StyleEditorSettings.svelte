@@ -410,8 +410,10 @@
 		if (style.id === 'show-decorative-brackets' && selection !== 'arabic') return true;
 		if (style.id === 'decorative-brackets-font-family' && selection !== 'arabic') return true;
 		if (style.id === 'riwayah' && selection !== 'arabic') return true;
-		if (style.id === 'basmala-style' || style.id === 'basmala-scale') {
+		if (['basmala-style', 'basmala-scale', 'istiadha-style', 'istiadha-scale'].includes(style.id)) {
 			if (selection !== 'arabic') return true;
+			const isIstiadha = style.id.startsWith('istiadha-');
+			const subtitleType = isIstiadha ? "Isti'adha" : 'Basmala';
 			const selected = globalState.getStylesState.selectedSubtitles;
 			const hasUnsupportedSelection =
 				selected.length > 0
@@ -419,17 +421,18 @@
 							(clip) =>
 								!(
 									clip instanceof PredefinedSubtitleClip &&
-									clip.predefinedSubtitleType === 'Basmala'
+									clip.predefinedSubtitleType === subtitleType
 								)
 						)
 					: !globalState.getSubtitleTrack.clips.some(
 							(clip) =>
-								clip instanceof PredefinedSubtitleClip && clip.predefinedSubtitleType === 'Basmala'
+								clip instanceof PredefinedSubtitleClip &&
+								clip.predefinedSubtitleType === subtitleType
 						);
 			if (hasUnsupportedSelection) return true;
 			return (
-				style.id === 'basmala-scale' &&
-				getEffectiveStyleValues('basmala-style', category).every(
+				style.id.endsWith('-scale') &&
+				getEffectiveStyleValues(isIstiadha ? 'istiadha-style' : 'basmala-style', category).every(
 					(value) => String(value) === 'current-font'
 				)
 			);

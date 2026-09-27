@@ -4607,6 +4607,14 @@ type RootTranslation = {
 			 */
 			'basmala-scale': string;
 			/**
+			 * I​s​t​i​a​d​h​a​ ​S​t​y​l​e
+			 */
+			'istiadha-style': string;
+			/**
+			 * I​s​t​i​a​d​h​a​ ​S​c​a​l​e
+			 */
+			'istiadha-scale': string;
+			/**
 			 * C​u​r​r​e​n​t​ ​f​o​n​t
 			 */
 			'current-font': string;
@@ -5424,6 +5432,14 @@ type RootTranslation = {
 			 * S​c​a​l​e​ ​c​a​l​l​i​g​r​a​p​h​i​c​ ​p​r​e​d​e​f​i​n​e​d​ ​b​a​s​m​a​l​a​s​ ​i​n​d​e​p​e​n​d​e​n​t​l​y​ ​f​r​o​m​ ​o​t​h​e​r​ ​s​u​b​t​i​t​l​e​s​.
 			 */
 			'basmala-scale': string;
+			/**
+			 * U​s​e​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​A​r​a​b​i​c​ ​f​o​n​t​ ​o​r​ ​c​h​o​o​s​e​ ​o​n​e​ ​o​f​ ​1​6​ ​c​a​l​l​i​g​r​a​p​h​i​c​ ​i​s​t​i​ʿ​ā​d​h​a​s​.
+			 */
+			'istiadha-style': string;
+			/**
+			 * S​c​a​l​e​ ​c​a​l​l​i​g​r​a​p​h​i​c​ ​p​r​e​d​e​f​i​n​e​d​ ​i​s​t​i​ʿ​ā​d​h​a​s​ ​i​n​d​e​p​e​n​d​e​n​t​l​y​ ​f​r​o​m​ ​o​t​h​e​r​ ​s​u​b​t​i​t​l​e​s​.
+			 */
+			'istiadha-scale': string;
 			/**
 			 * C​h​a​n​g​e​ ​t​h​e​ ​f​o​r​m​a​t​ ​o​f​ ​v​e​r​s​e​ ​n​u​m​b​e​r​s​.​ ​S​u​p​p​o​r​t​e​d​ ​t​a​g​s​:​ ​<​n​u​m​b​e​r​>​,​ ​<​b​r​>​.
 			 */
@@ -16697,6 +16713,14 @@ export type TranslationFunctions = {
 			 */
 			'basmala-scale': () => LocalizedString;
 			/**
+			 * Istiadha Style
+			 */
+			'istiadha-style': () => LocalizedString;
+			/**
+			 * Istiadha Scale
+			 */
+			'istiadha-scale': () => LocalizedString;
+			/**
 			 * Current font
 			 */
 			'current-font': () => LocalizedString;
@@ -17514,6 +17538,14 @@ export type TranslationFunctions = {
 			 * Scale calligraphic predefined basmalas independently from other subtitles.
 			 */
 			'basmala-scale': () => LocalizedString;
+			/**
+			 * Use the current Arabic font or choose one of 16 calligraphic istiʿādhas.
+			 */
+			'istiadha-style': () => LocalizedString;
+			/**
+			 * Scale calligraphic predefined istiʿādhas independently from other subtitles.
+			 */
+			'istiadha-scale': () => LocalizedString;
 			/**
 			 * Change the format of verse numbers. Supported tags: <number>, <br>.
 			 */

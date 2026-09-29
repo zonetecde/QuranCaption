@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import math
 import bisect
-import logging
 from typing import Optional, List, Dict, Tuple
 import numpy as np
 
@@ -17,7 +16,6 @@ from config import (
 )
 from src.models import PhonemeToken, PauseInterval
 
-logger = logging.getLogger(__name__)
 
 # Minimum phoneme duration to prevent UI flickering (60ms ≈ 1.5 CTC frames at 25 Hz)
 _MIN_PHONEME_DURATION_S = 0.060
@@ -380,7 +378,6 @@ class CtcViterbiAligner:
 
             # Prevent lookahead shift from absorbing pre-phoneme silence:
             # ONLY for token 0 (audio start) or tokens following a true VAD pause.
-            # In continuous speech, phoneme k-1 and phoneme k shift together and must stay contiguous!
             if k == 0 or is_vad_pause_gap[k]:
                 s_f_int = int(s_f)
                 orig_start = int(token_starts[k])
@@ -392,10 +389,6 @@ class CtcViterbiAligner:
                             s_f = float(t_scan)
                             break
                     e_f = max(s_f + min_dur_f, e_f)
-            else:
-                # Continuous speech: connect cleanly with previous token
-                s_f = max(0.0, token_starts[k] - lookahead)
-                e_f = max(s_f + min_dur_f, token_ends[k] - lookahead)
 
             s_secs[k] = s_f * cls.frame_step
             e_secs[k] = max(s_secs[k] + min_dur_s, e_f * cls.frame_step)
@@ -463,11 +456,7 @@ class CtcViterbiAligner:
             pk_final = min(audio_duration, max(s_final, min(e_final, pk_secs[i])))
 
             if aligned:
-                if not is_vad_pause_gap[i]:
-                    s_final = aligned[-1].end
-                    if e_final <= s_final:
-                        e_final = min(audio_duration, s_final + min_dur_s)
-                elif s_final < aligned[-1].end:
+                if not is_vad_pause_gap[i] or s_final < aligned[-1].end:
                     s_final = aligned[-1].end
                     if e_final <= s_final:
                         e_final = min(audio_duration, s_final + min_dur_s)

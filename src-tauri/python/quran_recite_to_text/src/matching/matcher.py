@@ -33,6 +33,7 @@ from src.matching.phonetics import (
 from src.matching.kernels import _global_viterbi_fast
 from src.matching.reference import RefWord, SurahReferenceData
 from src.matching.detector import SurahDetector, SurahDetectionResult, find_near_matches
+from src.vad import align_ayah_boundaries
 
 logger = logging.getLogger(__name__)
 
@@ -382,7 +383,10 @@ def _align_and_package_ayahs(
             repeated_ranges = [s.words_range for s in sub_segments if s.is_repetition] or None
             repeated_text = [s.text for s in sub_segments if s.is_repetition] or None
 
-        if qwords:
+        if sub_segments:
+            seg_start = sub_segments[0].start_time
+            seg_end = sub_segments[-1].end_time
+        elif qwords:
             seg_start = qwords[0].start or 0.0
             seg_end = qwords[-1].end or 0.0
         else:
@@ -406,7 +410,6 @@ def _align_and_package_ayahs(
         seg_number += 1
 
     if pause_intervals and len(segments) > 1:
-        from src.vad import align_ayah_boundaries
         align_ayah_boundaries(segments, pause_intervals)
 
     return segments
@@ -615,36 +618,14 @@ class QuranMatcher:
                 detected_start_ayah,
                 det_res.confidence,
             )
-
-            # 2. Opening Preamble Extraction (Isti'adha & pre-verse Basmalah)
-            intro_dict, remaining_tokens = _extract_opening_preamble(
-                aligned_tokens=aligned_phonemes,
+            return self._align_surah_section(
+                tokens=aligned_phonemes,
                 surah=detected_surah,
                 start_ayah=detected_start_ayah or 1,
-                ref_surah_1=self._get_surah_ref(1),
-            )
-
-            ref_data = self._get_surah_ref(detected_surah)
-            effective_start_ayah = detected_start_ayah or 1
-            if intro_dict and any(w.get("location", "").startswith("1:1:") for w in intro_dict.get("words", [])):
-                effective_start_ayah = 1
-            start_word_idx = ref_data.ayah_start_word_index.get(effective_start_ayah, 0)
-
-            # 3. 3D JumpDTW Alignment & Segment Construction
-            segments = _align_and_package_ayahs(
-                aligned_tokens=remaining_tokens,
-                ref_data=ref_data,
-                start_word_index=start_word_idx,
-                target_end_ayah=detected_end_ayah,
-                matcher_cfg=self.config,
+                end_ayah=detected_end_ayah,
                 pause_timestamps=pause_timestamps,
                 pause_intervals=pause_intervals,
             )
-
-            if intro_dict and segments:
-                segments[0].intro = intro_dict
-
-            return segments
 
         # Multi-Surah Recitation Sequential Alignment
         logger.info("Multi-Surah recitation detected: %d distinct Surah sections found", len(sections))
@@ -670,31 +651,14 @@ class QuranMatcher:
                 sec.token_end_idx,
             )
 
-            intro_dict, remaining_tokens = _extract_opening_preamble(
-                aligned_tokens=sec_tokens,
+            segs = self._align_surah_section(
+                tokens=sec_tokens,
                 surah=sec_surah,
                 start_ayah=sec_start_ay,
-                ref_surah_1=self._get_surah_ref(1),
-            )
-
-            ref_data = self._get_surah_ref(sec_surah)
-            effective_start_ayah = sec_start_ay
-            if intro_dict and any(w.get("location", "").startswith("1:1:") for w in intro_dict.get("words", [])):
-                effective_start_ayah = 1
-            start_word_idx = ref_data.ayah_start_word_index.get(effective_start_ayah, 0)
-
-            segs = _align_and_package_ayahs(
-                aligned_tokens=remaining_tokens,
-                ref_data=ref_data,
-                start_word_index=start_word_idx,
-                target_end_ayah=sec_end_ay,
-                matcher_cfg=self.config,
+                end_ayah=sec_end_ay,
                 pause_timestamps=pause_timestamps,
                 pause_intervals=pause_intervals,
             )
-
-            if intro_dict and segs:
-                segs[0].intro = intro_dict
 
             for seg in segs:
                 seg.segment_number = global_seg_idx
@@ -702,6 +666,44 @@ class QuranMatcher:
                 all_segments.append(seg)
 
         return all_segments
+
+    def _align_surah_section(
+        self,
+        tokens: List[PhonemeToken],
+        surah: int,
+        start_ayah: int,
+        end_ayah: Optional[int],
+        pause_timestamps: Optional[List[float]],
+        pause_intervals: Optional[List[PauseInterval]],
+    ) -> List[QuranSegment]:
+        """Aligns a continuous section against a specific Surah reference with preamble extraction."""
+        intro_dict, remaining_tokens = _extract_opening_preamble(
+            aligned_tokens=tokens,
+            surah=surah,
+            start_ayah=start_ayah,
+            ref_surah_1=self._get_surah_ref(1),
+        )
+
+        ref_data = self._get_surah_ref(surah)
+        effective_start_ayah = start_ayah
+        if intro_dict and any(w.get("location", "").startswith("1:1:") for w in intro_dict.get("words", [])):
+            effective_start_ayah = 1
+        start_word_idx = ref_data.ayah_start_word_index.get(effective_start_ayah, 0)
+
+        segs = _align_and_package_ayahs(
+            aligned_tokens=remaining_tokens,
+            ref_data=ref_data,
+            start_word_index=start_word_idx,
+            target_end_ayah=end_ayah,
+            matcher_cfg=self.config,
+            pause_timestamps=pause_timestamps,
+            pause_intervals=pause_intervals,
+        )
+
+        if intro_dict and segs:
+            segs[0].intro = intro_dict
+
+        return segs
 
 
 # Backward compatibility alias

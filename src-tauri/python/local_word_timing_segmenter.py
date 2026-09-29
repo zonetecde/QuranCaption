@@ -183,151 +183,22 @@ def adapt_pipeline_result_to_qurancaption(
     offset_s: float = 0.0,
     start_segment_idx: int = 1,
 ) -> List[Dict[str, Any]]:
-    """Transforms hierarchical Zipformer pipeline results into QuranCaption's
-    expected flat segment list with relative word timestamps.
+    """Converts a PipelineResult into QuranCaption's timeline segment list.
 
-    @param {Any} pipeline_result - PipelineResult instance from AudioPipeline.
-    @param {float} offset_s - Global time offset in seconds for regional alignment.
-    @param {int} start_segment_idx - Starting index for segment numbering.
-    @returns {List[Dict[str, Any]]} List of segment dictionaries matching QuranCaption schema.
+    Delegates directly to PipelineResult.to_qurancaption_response.
+
+    @param {Any} pipeline_result - PipelineResult object or dict from QuranReciteToText.
+    @param {float} offset_s - Audio offset in seconds for timeline sliced regions.
+    @param {int} start_segment_idx - Starting segment index (1-based).
+    @returns {List[Dict[str, Any]]} List of QuranCaption segment dictionaries.
     """
-    segments: List[Dict[str, Any]] = []
-    current_idx = start_segment_idx
+    if hasattr(pipeline_result, "to_qurancaption_response"):
+        return pipeline_result.to_qurancaption_response(
+            offset_s=offset_s,
+            start_segment_idx=start_segment_idx,
+        )
+    return []
 
-    pipeline_segments = getattr(pipeline_result, "segments", [])
-    if not pipeline_segments:
-        return segments
-
-    # 1. Handle opening intro (Basmala / Isti'adha) if detected
-    intro = getattr(pipeline_segments[0], "intro", None)
-    if intro and intro.get("words"):
-        intro_abs_start = round(float(intro.get("start", 0.0)) + offset_s, 3)
-        intro_abs_end = round(float(intro.get("end", 0.0)) + offset_s, 3)
-        intro_dur = max(0.0, round(intro_abs_end - intro_abs_start, 3))
-        intro_words: List[Dict[str, Any]] = []
-
-        for w in intro["words"]:
-            w_dict = w.to_dict() if hasattr(w, "to_dict") else w
-            w_raw_s = float(w_dict.get("start") if w_dict.get("start") is not None else intro.get("start", 0.0))
-            w_raw_e = float(w_dict.get("end") if w_dict.get("end") is not None else intro.get("end", 0.0))
-            w_abs_start = w_raw_s + offset_s
-            w_abs_end = w_raw_e + offset_s
-            rel_start = max(0.0, round(w_abs_start - intro_abs_start, 3))
-            rel_end = max(rel_start, round(w_abs_end - intro_abs_start, 3))
-            intro_words.append({
-                "word": w_dict.get("word", ""),
-                "location": w_dict.get("location", "1:1:1"),
-                "start": rel_start,
-                "end": rel_end,
-                "phonemes": w_dict.get("phonemes", []),
-            })
-
-        norm_intro_words = normalize_word_boundaries(intro_words, intro_dur)
-        matched_text = " ".join(w["word"] for w in norm_intro_words if w.get("word"))
-        is_istiadha = "أَعُوذُ" in matched_text or "اعوذ" in matched_text
-        special_name = "Isti'adha" if is_istiadha else "Basmala"
-
-        segments.append({
-            "segment": current_idx,
-            "time_from": intro_abs_start,
-            "time_to": intro_abs_end,
-            "ref_from": special_name,
-            "ref_to": special_name,
-            "special_type": special_name,
-            "matched_text": matched_text,
-            "confidence": 1.0,
-            "error": None,
-            "has_missing_words": False,
-            "potentially_undersegmented": False,
-            "words": norm_intro_words,
-        })
-        current_idx += 1
-
-    # 2. Handle Ayahs
-    for seg in pipeline_segments:
-        surah_num = getattr(seg, "surah_number", 1)
-        ayah_num = getattr(seg, "ayah", 1)
-        raw_start = getattr(seg, "start_time", 0.0)
-        raw_end = getattr(seg, "end_time", 0.0)
-
-        # Handle dictionary input if seg is already dict
-        if isinstance(seg, dict):
-            surah_num = seg.get("surah", surah_num)
-            ayah_num = seg.get("ayah", ayah_num)
-            raw_start = seg.get("start", raw_start)
-            raw_end = seg.get("end", raw_end)
-
-        abs_start = round(float(raw_start) + offset_s, 3)
-        abs_end = round(float(raw_end) + offset_s, 3)
-        duration = max(0.0, round(abs_end - abs_start, 3))
-
-        # Collect words for this Ayah
-        source_words: List[Any] = []
-        if hasattr(seg, "words") and seg.words:
-            source_words = seg.words
-        elif isinstance(seg, dict) and seg.get("words"):
-            source_words = seg["words"]
-        elif hasattr(seg, "sub_segments") and seg.sub_segments:
-            for sub in seg.sub_segments:
-                sub_words = getattr(sub, "words", []) if hasattr(sub, "words") else (sub.get("words", []) if isinstance(sub, dict) else [])
-                source_words.extend(sub_words)
-        elif isinstance(seg, dict) and seg.get("segments"):
-            for sub in seg["segments"]:
-                source_words.extend(sub.get("words", []))
-
-        words_list: List[Dict[str, Any]] = []
-        scores: List[float] = []
-
-        for w_idx, w in enumerate(source_words):
-            w_dict = w.to_dict() if hasattr(w, "to_dict") else (w if isinstance(w, dict) else {})
-            w_raw_s = float(w_dict.get("start") if w_dict.get("start") is not None else raw_start)
-            w_raw_e = float(w_dict.get("end") if w_dict.get("end") is not None else raw_end)
-
-            w_abs_start = w_raw_s + offset_s
-            w_abs_end = w_raw_e + offset_s
-
-            # Compute word start/end relative to segment time_from (required by QuranCaption)
-            rel_start = max(0.0, round(w_abs_start - abs_start, 3))
-            rel_end = max(rel_start, round(w_abs_end - abs_start, 3))
-
-            loc = w_dict.get("location") or f"{surah_num}:{ayah_num}:{w_idx + 1}"
-            word_text = w_dict.get("word", "")
-            if w_dict.get("score") is not None:
-                scores.append(float(w_dict["score"]))
-
-            words_list.append({
-                "word": word_text,
-                "location": loc,
-                "start": rel_start,
-                "end": rel_end,
-                "phonemes": w_dict.get("phonemes", []),
-            })
-
-        if not words_list:
-            continue
-
-        normalized_words = normalize_word_boundaries(words_list, duration)
-        ref_from = normalized_words[0]["location"]
-        ref_to = normalized_words[-1]["location"]
-        matched_text = " ".join(w["word"] for w in normalized_words if w.get("word"))
-        confidence = round(sum(scores) / max(1, len(scores)), 3) if scores else 1.0
-
-        segments.append({
-            "segment": current_idx,
-            "time_from": abs_start,
-            "time_to": abs_end,
-            "ref_from": ref_from,
-            "ref_to": ref_to,
-            "matched_text": matched_text,
-            "confidence": confidence,
-            "error": None,
-            "has_missing_words": False,
-            "potentially_undersegmented": False,
-            "words": normalized_words,
-        })
-        current_idx += 1
-
-    return segments
 
 
 def main() -> int:
@@ -371,21 +242,54 @@ def main() -> int:
 
         from src import AudioPipeline
         from src.audio import AudioDecoder
-        from src.models import PipelineProgressEvent
+        from src.models import PipelineProgressEvent, PipelineStage
 
         pipeline = AudioPipeline()
         pipeline.initialize(num_threads=threads)
 
+        STAGE_WEIGHTS: Dict[Any, Tuple[float, float]] = {
+            PipelineStage.loading: (0.0, 5.0),
+            PipelineStage.vad: (5.0, 15.0),
+            PipelineStage.transcribing: (15.0, 75.0),
+            PipelineStage.recovering: (75.0, 78.0),
+            PipelineStage.aligning: (78.0, 88.0),
+            PipelineStage.matching: (88.0, 96.0),
+            PipelineStage.exporting: (96.0, 98.0),
+            PipelineStage.completed: (98.0, 100.0),
+        }
+
+        STAGE_TO_STEP: Dict[Any, str] = {
+            PipelineStage.loading: "preparing",
+            PipelineStage.vad: "segmenting",
+            PipelineStage.transcribing: "transcribing",
+            PipelineStage.recovering: "transcribing",
+            PipelineStage.aligning: "matching",
+            PipelineStage.matching: "matching",
+            PipelineStage.exporting: "building",
+            PipelineStage.completed: "building",
+        }
+
+        last_progress = [10]
+
         def make_progress_cb(clip_idx: int, total_clips: int):
             def on_progress(event: PipelineProgressEvent):
-                base_pct = (clip_idx / max(1, total_clips)) * 100.0
-                span = 100.0 / max(1, total_clips)
-                clip_pct = base_pct + (event.percent * span / 100.0)
-                overall = min(92, max(18, int(18 + (clip_pct * 0.74))))
-                stage_name = event.stage.value if hasattr(event.stage, "value") else str(event.stage)
+                stage = event.stage
+                st_start, st_end = STAGE_WEIGHTS.get(stage, (15.0, 75.0))
+                clamped_sub_pct = max(0.0, min(100.0, float(event.percent)))
+                stage_pct = st_start + (clamped_sub_pct / 100.0) * (st_end - st_start)
+
+                clip_span = 84.0 / max(1, total_clips)
+                clip_base = 10.0 + (clip_idx * clip_span)
+                clip_global = clip_base + (stage_pct * clip_span / 100.0)
+
+                overall = int(round(clip_global))
+                overall = min(95, max(last_progress[0], overall))
+                last_progress[0] = overall
+
+                step = STAGE_TO_STEP.get(stage, "processing")
                 emit_status_to_stderr(
                     original_stderr_file,
-                    stage_name,
+                    step,
                     event.message or "Transcribing & aligning...",
                     progress=overall,
                 )
@@ -411,9 +315,9 @@ def main() -> int:
                 clip_path = clip.get("path") or args.audio_path
                 emit_status_to_stderr(
                     original_stderr_file,
-                    "loading",
+                    "preparing",
                     f"Decoding audio clip {clip_idx + 1}/{total_clips}...",
-                    progress=15,
+                    progress=last_progress[0],
                 )
                 clip_pcm = load_audio_slice(
                     clip_path,
@@ -445,9 +349,9 @@ def main() -> int:
                     continue
                 emit_status_to_stderr(
                     original_stderr_file,
-                    "loading",
+                    "preparing",
                     f"Decoding audio region {region_index + 1}/{len(regions)}...",
-                    progress=15,
+                    progress=last_progress[0],
                 )
                 region_pcm = load_audio_slice(
                     args.audio_path,
@@ -473,9 +377,9 @@ def main() -> int:
         else:
             emit_status_to_stderr(
                 original_stderr_file,
-                "loading",
+                "preparing",
                 "Decoding audio...",
-                progress=15,
+                progress=last_progress[0],
             )
             audio_pcm = AudioDecoder.load_audio_file(args.audio_path, sample_rate=sample_rate)
             cb = make_progress_cb(0, 1)
@@ -486,9 +390,20 @@ def main() -> int:
             )
             all_segments = adapt_pipeline_result_to_qurancaption(pipeline_res, offset_s=0.0, start_segment_idx=1)
 
-        emit_status_to_stderr(original_stderr_file, "formatting", "Formatting word timestamps...", progress=95)
+        emit_status_to_stderr(original_stderr_file, "building", "Formatting word timestamps...", progress=96)
+        all_segments.sort(key=lambda s: s["time_from"])
+        for i in range(len(all_segments) - 1):
+            curr_seg = all_segments[i]
+            next_seg = all_segments[i + 1]
+            if curr_seg["time_to"] > next_seg["time_from"]:
+                curr_seg["time_to"] = next_seg["time_from"]
+                dur = max(0.0, round(curr_seg["time_to"] - curr_seg["time_from"], 3))
+                if curr_seg.get("words"):
+                    curr_seg["words"] = normalize_word_boundaries(curr_seg["words"], dur)
+        for idx, seg in enumerate(all_segments, start=1):
+            seg["segment"] = idx
         result = {"segments": all_segments}
-        emit_status_to_stderr(original_stderr_file, "complete", "Segmentation complete", progress=100)
+        emit_status_to_stderr(original_stderr_file, "building", "Segmentation complete", progress=100)
 
     except Exception as error:
         import traceback

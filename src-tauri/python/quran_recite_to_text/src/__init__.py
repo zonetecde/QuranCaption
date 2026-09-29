@@ -7,7 +7,6 @@ import sys
 import gc
 import json
 import time
-import threading
 from typing import Optional, Callable, Dict, Any, List, Union, Tuple
 import numpy as np
 
@@ -43,8 +42,7 @@ from src.aligner import CtcViterbiAligner, warmup_aligner_jit
 from src.matching import (
     QuranWordMatcher,
     MatcherConfig,
-    warmup_matcher_jit,
-    warmup_detector_jit,
+    warmup_matching,
 )
 
 
@@ -64,6 +62,9 @@ class AudioPipeline:
         ph_index_path: str = DEFAULT_PH_INDEX_PATH,
         num_threads: int = 2,
     ) -> None:
+        if "ONNX_NUM_THREADS" not in os.environ:
+            os.environ["ONNX_NUM_THREADS"] = str(num_threads)
+
         if self.transcriber is None:
             self.transcriber = ZipformerONNX.get_instance()
 
@@ -77,13 +78,9 @@ class AudioPipeline:
         # Warm up Numba JIT kernels so runtime Phase 2 and Phase 3 are instant
         try:
             warmup_aligner_jit()
-            warmup_matcher_jit()
-            warmup_detector_jit()
+            warmup_matching()
         except Exception:
             pass
-
-
-
 
     def process_audio_file(
         self,
@@ -211,6 +208,15 @@ class AudioPipeline:
 
         # Phase 2: CTC Viterbi Trellis Alignment
         align_start = time.time()
+        if on_progress_event:
+            on_progress_event(
+                PipelineProgressEvent(
+                    stage=PipelineStage.aligning,
+                    percent=0.0,
+                    elapsed_seconds=time.time() - overall_start,
+                    message="Aligning word timings (CTC)...",
+                )
+            )
         aligned_phonemes = CtcViterbiAligner.align_phonemes(
             target_phonemes=effective_phonemes,
             audio_duration=audio_duration,
@@ -223,6 +229,15 @@ class AudioPipeline:
         align_time = time.time() - align_start
         if live_profile:
             print(f"Phase 2 CTC Align   : {align_time:.2f}s", flush=True)
+        if on_progress_event:
+            on_progress_event(
+                PipelineProgressEvent(
+                    stage=PipelineStage.aligning,
+                    percent=100.0,
+                    elapsed_seconds=time.time() - overall_start,
+                    message="Word timings aligned",
+                )
+            )
 
         # Release large emission logprobs matrix before Phase 3 to reclaim physical RAM
         raw_result.logprobs_matrix = None
@@ -230,6 +245,15 @@ class AudioPipeline:
 
         # Phase 3: Quran Text Matcher & Sequencer
         match_start = time.time()
+        if on_progress_event:
+            on_progress_event(
+                PipelineProgressEvent(
+                    stage=PipelineStage.matching,
+                    percent=0.0,
+                    elapsed_seconds=time.time() - overall_start,
+                    message="Matching verses to Medina reference...",
+                )
+            )
         segments = self.matcher.match_segments(
             aligned_phonemes=aligned_phonemes,
             audio_duration=audio_duration,
@@ -241,9 +265,27 @@ class AudioPipeline:
         match_time = time.time() - match_start
         if live_profile:
             print(f"Phase 3 Text Match  : {match_time:.2f}s", flush=True)
+        if on_progress_event:
+            on_progress_event(
+                PipelineProgressEvent(
+                    stage=PipelineStage.matching,
+                    percent=100.0,
+                    elapsed_seconds=time.time() - overall_start,
+                    message="Verses matched successfully",
+                )
+            )
 
         # Phase 4: Construct Consolidated Result & JSON Export
         export_start = time.time()
+        if on_progress_event:
+            on_progress_event(
+                PipelineProgressEvent(
+                    stage=PipelineStage.exporting,
+                    percent=100.0,
+                    elapsed_seconds=time.time() - overall_start,
+                    message="Building subtitle timeline...",
+                )
+            )
         for seg in segments:
             if not seg.sub_segments:
                 seg.sub_segments = None

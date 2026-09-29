@@ -1,13 +1,11 @@
 """Global Surah Discovery & Gene Myers' Bit-Parallel Phonetic Search Engine."""
 from __future__ import annotations
 
-from typing import Dict
-
 import os
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict
 import numpy as np
 
 import config
@@ -157,7 +155,20 @@ class PhoneticSearch:
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 3. SURAH DISCOVERY & TIMELINE DETECTOR
-# ═══════════════════════════════════════════════════════════════════════════════
+def _merge_same_surah_clusters(
+    cluster_list: List[List[Tuple[int, int, int, float]]]
+) -> List[List[Tuple[int, int, int, float]]]:
+    """Merges consecutive clusters belonging to the same Surah."""
+    merged: List[List[Tuple[int, int, int, float]]] = []
+    for c in cluster_list:
+        if not merged:
+            merged.append(c)
+        elif c[0][1] == merged[-1][0][1]:
+            merged[-1].extend(c)
+        else:
+            merged.append(c)
+    return merged
+
 
 class SurahDetector:
     """Discovers recited Surah and Ayah range in continuous recitation audio."""
@@ -369,15 +380,7 @@ class SurahDetector:
 
         # 4. Filter isolated noise spikes (< 2 hits) and merge consecutive same-surah clusters
         valid_clusters = [c for c in clusters if len(c) >= 2]
-        merged_clusters: List[List[Tuple[int, int, int, float]]] = []
-        for c in valid_clusters:
-            if not merged_clusters:
-                merged_clusters.append(c)
-            elif c[0][1] == merged_clusters[-1][0][1]:
-                merged_clusters[-1].extend(c)
-            else:
-                merged_clusters.append(c)
-        clusters = merged_clusters
+        clusters = _merge_same_surah_clusters(valid_clusters)
 
         # 5. Non-Reentrant Macro-Block Rule (Anti-Ping-Pong / Mutashabihat Absorption)
         # In Quranic recitation, each Surah is recited once in a continuous macro-block.
@@ -399,15 +402,7 @@ class SurahDetector:
             clusters = [c for c in clusters if len([h for h in c if h[1] == c[0][1]]) >= 2]
 
         # Merge adjacent clusters if any same-surah neighbors remain
-        merged_final: List[List[Tuple[int, int, int, float]]] = []
-        for c in clusters:
-            if not merged_final:
-                merged_final.append(c)
-            elif c[0][1] == merged_final[-1][0][1]:
-                merged_final[-1].extend(c)
-            else:
-                merged_final.append(c)
-        clusters = merged_final
+        clusters = _merge_same_surah_clusters(clusters)
 
         # If filtered to empty or single cluster, fallback to proven single-surah detector
         if not clusters or len(clusters) == 1:

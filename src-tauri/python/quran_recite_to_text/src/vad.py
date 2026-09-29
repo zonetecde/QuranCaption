@@ -365,7 +365,6 @@ class QuranSilenceVAD:
 
         # ── 4. Hangover buffer (protect consonant tails & transitions) ─────
         hangover_frames = max(1, int(self.hangover_s / frame_dur))
-        preroll_frames = max(1, int(self.preroll_s / frame_dur))
 
         smoothed = np.copy(speech_frame)
         sil_run = 0
@@ -444,9 +443,26 @@ class QuranSilenceVAD:
             else:
                 validated.append((cur_s, cur_e))
 
-        bridged_intervals = validated
-
         # ── 7. Extract Tajweed Pause Intervals & cut points ───────────────
+        return self._package_pauses_and_segments(
+            bridged_intervals=validated,
+            energy_arr=energy_db_arr,
+            step_samples=window_size,
+            dur=dur,
+            total_samples=total_samples,
+            margin_ratio=0.15,
+        )
+
+    def _package_pauses_and_segments(
+        self,
+        bridged_intervals: List[Tuple[float, float]],
+        energy_arr: np.ndarray,
+        step_samples: int,
+        dur: float,
+        total_samples: int,
+        margin_ratio: float = 0.15,
+    ) -> Tuple[List[SpeechSegment], List[PauseInterval], List[float]]:
+        """Extracts Tajweed Pause Intervals, click-free cut points, and gap-clamped model chunks."""
         pause_intervals: List[PauseInterval] = []
         pause_timestamps: List[float] = []
         merged_for_model: List[Tuple[float, float]] = []
@@ -461,22 +477,22 @@ class QuranSilenceVAD:
 
                 if gap >= self.min_sakt_s:
                     p_type = "waqf" if gap >= self.min_pause_s else "sakt"
-                    s_idx = max(0, int((prev_e * self.sr) / window_size))
-                    e_idx = min(len(energy_db_arr), int((s * self.sr) / window_size))
+                    s_idx = max(0, int((prev_e * self.sr) / step_samples))
+                    e_idx = min(len(energy_arr), int((s * self.sr) / step_samples))
 
                     cut_point = round((prev_e + s) / 2.0, 3)
                     min_e_val: Optional[float] = None
 
-                    if e_idx > s_idx:
-                        margin_frames = max(1, int(0.15 * (e_idx - s_idx)))
+                    if e_idx > s_idx and len(energy_arr) > 0:
+                        margin_frames = max(1, int(margin_ratio * (e_idx - s_idx)))
                         scan_s = min(e_idx - 1, s_idx + margin_frames)
                         scan_e = max(scan_s + 1, e_idx - margin_frames)
-                        valley_slice = energy_db_arr[scan_s:scan_e]
+                        valley_slice = energy_arr[scan_s:scan_e]
                         if len(valley_slice) > 0:
                             min_offset = int(np.argmin(valley_slice))
                             min_e_val = float(valley_slice[min_offset])
                             cut_point = round(
-                                ((scan_s + min_offset) * window_size) / self.sr, 3
+                                ((scan_s + min_offset) * step_samples) / self.sr, 3
                             )
 
                     interval = PauseInterval(
@@ -490,8 +506,7 @@ class QuranSilenceVAD:
                     pause_intervals.append(interval)
                     pause_timestamps.append(interval.optimal_cut_point)
 
-                # For model chunking: split speech segments only upon true Waqf pauses (>= min_pause_s, 0.50s)
-                # Keep subsegment/sakt detection for timestamps, but do NOT over-fragment model feeding
+                # For model chunking: split speech segments only upon true Waqf pauses (>= min_pause_s)
                 if gap < self.min_pause_s:
                     merged_for_model[-1] = (prev_s, e)
                 else:
@@ -500,7 +515,7 @@ class QuranSilenceVAD:
         self.pause_intervals = pause_intervals
         self.pause_timestamps = pause_timestamps
 
-        # ── 8. Build gap-clamped padded speech segments for model chunking ─
+        # Build gap-clamped padded speech segments for model chunking
         segments: List[SpeechSegment] = []
         enc_samples = int(round(FRAME_STEP * self.sr))
         n_merged = len(merged_for_model)
@@ -630,93 +645,15 @@ class QuranSilenceVAD:
                 else:
                     bridged_intervals.append((s, e))
 
-        # 6. Extract Tajweed Pause Intervals & sub-millisecond click-free cut points
-        pause_intervals: List[PauseInterval] = []
-        pause_timestamps: List[float] = []
-        merged_for_model: List[Tuple[float, float]] = []
-
-        for i in range(len(bridged_intervals)):
-            s, e = bridged_intervals[i]
-            if not merged_for_model:
-                merged_for_model.append((s, e))
-            else:
-                prev_s, prev_e = merged_for_model[-1]
-                gap = s - prev_e
-
-                if gap >= self.min_sakt_s:
-                    p_type = "waqf" if gap >= self.min_pause_s else "sakt"
-                    s_idx = max(0, int((prev_e * self.sr) / self.frame_samples))
-                    e_idx = min(
-                        len(energy_curve), int((s * self.sr) / self.frame_samples)
-                    )
-
-                    cut_point = round((prev_e + s) / 2.0, 3)
-                    min_e: Optional[float] = None
-
-                    if e_idx > s_idx and len(energy_curve) > 0:
-                        margin_frames = max(1, int(0.20 * (e_idx - s_idx)))
-                        scan_s = min(e_idx - 1, s_idx + margin_frames)
-                        scan_e = max(scan_s + 1, e_idx - margin_frames)
-                        valley_slice = energy_curve[scan_s:scan_e]
-                        if len(valley_slice) > 0:
-                            min_offset = int(np.argmin(valley_slice))
-                            min_e = float(valley_slice[min_offset])
-                            cut_point = round(
-                                ((scan_s + min_offset) * self.frame_samples)
-                                / self.sr,
-                                3,
-                            )
-
-                    interval = PauseInterval(
-                        start_sec=round(prev_e, 3),
-                        end_sec=round(s, 3),
-                        duration_sec=round(gap, 3),
-                        pause_type=p_type,
-                        min_energy_db=min_e,
-                        cut_point=cut_point,
-                    )
-                    pause_intervals.append(interval)
-                    pause_timestamps.append(interval.optimal_cut_point)
-
-                if gap < self.min_pause_s:
-                    merged_for_model[-1] = (prev_s, e)
-                else:
-                    merged_for_model.append((s, e))
-
-        self.pause_intervals = pause_intervals
-        self.pause_timestamps = pause_timestamps
-
-        # 7. Build gap-clamped padded speech segments for model chunking
-        segments: List[SpeechSegment] = []
-        enc_samples = int(round(FRAME_STEP * self.sr))
-        n_merged = len(merged_for_model)
-
-        for i, (rs, re) in enumerate(merged_for_model):
-            gb = (rs - merged_for_model[i - 1][1]) if i > 0 else 10.0
-            ga = (merged_for_model[i + 1][0] - re) if i < n_merged - 1 else 10.0
-
-            ps = max(0.0, rs - min(self.max_pad_s, max(0.0, gb / 2.0)))
-            pe = min(dur, re + min(self.max_pad_s, max(0.0, ga / 2.0)))
-
-            s_samp = int(math.floor((ps * self.sr) / enc_samples)) * enc_samples
-            e_samp = min(
-                total_samples,
-                int(math.ceil((pe * self.sr) / enc_samples)) * enc_samples,
-            )
-
-            segments.append(
-                SpeechSegment(
-                    segment_id=i + 1,
-                    raw_start_sec=round(rs, 3),
-                    raw_end_sec=round(re, 3),
-                    padded_start_sec=round(s_samp / self.sr, 4),
-                    padded_end_sec=round(e_samp / self.sr, 4),
-                    start_sample=s_samp,
-                    end_sample=e_samp,
-                )
-            )
-
-        return segments, self.pause_intervals, self.pause_timestamps
+        # 6. Extract Tajweed Pause Intervals & build speech segments
+        return self._package_pauses_and_segments(
+            bridged_intervals=bridged_intervals,
+            energy_arr=energy_curve,
+            step_samples=self.frame_samples,
+            dur=dur,
+            total_samples=total_samples,
+            margin_ratio=0.20,
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -735,10 +672,14 @@ def align_ayah_boundaries(
     for i in range(len(segments) - 1):
         seg_prev = segments[i]
         seg_next = segments[i + 1]
-        if not seg_prev.words or not seg_next.words:
+        
+        words_prev = seg_prev.sub_segments[-1].words if (seg_prev.sub_segments and seg_prev.sub_segments[-1].words) else seg_prev.words
+        words_next = seg_next.sub_segments[0].words if (seg_next.sub_segments and seg_next.sub_segments[0].words) else seg_next.words
+        
+        if not words_prev or not words_next:
             continue
-        w_last = seg_prev.words[-1]
-        w_first = seg_next.words[0]
+        w_last = words_prev[-1]
+        w_first = words_next[0]
 
         w_last_raw_e = w_last.raw_end if w_last.raw_end is not None else (w_last.end or 0.0)
         w_first_raw_s = w_first.raw_start if w_first.raw_start is not None else (w_first.start or 0.0)

@@ -93,7 +93,8 @@ def load_audio_slice(
     # 1. Primary: Streaming FFmpeg sub-range decode (~0.05s)
     try:
         import subprocess
-        cmd = ['ffmpeg', '-hide_banner', '-loglevel', 'error']
+        from src.audio import _resolve_ffmpeg_bin
+        cmd = [_resolve_ffmpeg_bin(), '-hide_banner', '-loglevel', 'error']
         if start_s > 0:
             cmd.extend(['-ss', f"{start_s:.3f}"])
         if duration_s is not None and duration_s > 0:

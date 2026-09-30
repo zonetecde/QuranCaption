@@ -36,11 +36,27 @@ def _miniaudio_decode_bytes(audio_bytes: bytes, sample_rate: int) -> np.ndarray:
     return np.frombuffer(decoded.samples, dtype=np.float32)
 
 
+def _resolve_ffmpeg_bin() -> str:
+    """Finds ffmpeg binary from PATH or app's bundled binary directories."""
+    import shutil
+    found = shutil.which("ffmpeg")
+    if found:
+        return found
+    from pathlib import Path
+    curr = Path(__file__).resolve()
+    for parent in list(curr.parents)[:5]:
+        for sub in ("binaries/ffmpeg.exe", "resources/binaries/ffmpeg.exe", "binaries/ffmpeg", "resources/binaries/ffmpeg"):
+            cand = parent / sub
+            if cand.is_file():
+                return str(cand)
+    return "ffmpeg"
+
+
 def _ffmpeg_pipe(source: str | bytes, sample_rate: int) -> np.ndarray:
     """Optimized streaming FFmpeg fallback for complex containers (m4a, aac, opus, etc.)."""
     is_bytes = isinstance(source, bytes)
     cmd = [
-        "ffmpeg", "-v", "quiet", "-nostdin", "-threads", "2", "-y",
+        _resolve_ffmpeg_bin(), "-v", "quiet", "-nostdin", "-threads", "2", "-y",
         "-i", "pipe:0" if is_bytes else source,
         "-vn", "-sn", "-dn", "-f", "f32le", "-ac", "1",
         "-ar", str(sample_rate), "-",
@@ -116,20 +132,16 @@ class AudioDecoder:
             except Exception:
                 pass
 
-        # 3. Tertiary: Soundfile / Librosa fallback
+        # 3. Tertiary: Optional Soundfile fallback if available in environment
         if audio is None or len(audio) == 0:
-            import soundfile as sf
             try:
+                import soundfile as sf
                 audio, sr = sf.read(file_path, dtype="float32")
                 if getattr(audio, "ndim", 1) > 1:
                     audio = audio.mean(axis=1)
                 audio = _resample_audio(audio, sr, sample_rate)
             except Exception:
-                import librosa
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    audio, _ = librosa.load(file_path, sr=sample_rate, mono=True)
-                    audio = audio.astype(np.float32)
+                pass
 
         if audio is None or len(audio) == 0:
             raise RuntimeError(f"Failed to decode audio file: {file_path}")
@@ -158,13 +170,16 @@ class AudioDecoder:
             except Exception:
                 pass
 
-        # 3. Tertiary: Soundfile fallback
+        # 3. Tertiary: Optional Soundfile fallback if installed
         if audio is None or len(audio) == 0:
-            import io, soundfile as sf
-            audio, sr = sf.read(io.BytesIO(audio_bytes), dtype="float32")
-            if getattr(audio, "ndim", 1) > 1:
-                audio = audio.mean(axis=1)
-            audio = _resample_audio(audio, sr, sample_rate)
+            try:
+                import io, soundfile as sf
+                audio, sr = sf.read(io.BytesIO(audio_bytes), dtype="float32")
+                if getattr(audio, "ndim", 1) > 1:
+                    audio = audio.mean(axis=1)
+                audio = _resample_audio(audio, sr, sample_rate)
+            except Exception:
+                pass
 
         if audio is None or len(audio) == 0:
             raise RuntimeError("Failed to decode audio bytes")

@@ -32,6 +32,47 @@ HAMZA_VARIANTS: frozenset[int] = frozenset({0x0621, 0x0622, 0x0623, 0x0625, 0x06
 # Madd long vowels and Quranic superscript vowels (ا, و, ي, ۥ, ۦ)
 MADD_VOWEL_CODES: frozenset[int] = frozenset({0x0627, 0x0648, 0x064A, 0x06E5, 0x06E6})
 
+# Canonical Recitation Preamble & Prayer Transition Constants
+ISTIAADHA_TEXT: str = "أَعُوذُ بِٱللَّهِ مِنَ ٱلشَّيْطَـٰنِ ٱلرَّجِيمِ"
+ISTIAADHA_PH: str = "ءَعُۥۥذُبِللَااهِمِنَششَيطَاانِررَجِۦۦۦۦم"
+
+BASMALAH_TEXT: str = "بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ"
+BASMALAH_PH: str = "بِسمِللَااهِررَحمَاانِررَحِۦۦۦۦم"
+
+TAKBEER_TEXT: str = "اللَّهُ أَكْبَرُ"
+TAKBEER_PH: str = "ءَللَااهُءَكڇبَر"
+
+TASMEE_TEXT: str = "سَمِعَ اللَّهُ لِمَنْ حَمِدَهُ"
+TASMEE_PH: str = "سَمِعَللَااهُلِمَںںںحَمِدَه"
+
+# Verses containing phrases resembling prayer phrases (e.g. الله أكبر, سمع الله)
+# that must NEVER be false matched as intro preambles:
+PRAYER_EXCLUDED_VERSES: frozenset[tuple[int, int]] = frozenset({
+    (2, 253),
+    (3, 181),   # لقد سمع الله
+    (4, 153),
+    (6, 19), (6, 78),
+    (7, 28),
+    (9, 3), (9, 72),  # ورضوان من الله أكبر
+    (10, 61),
+    (12, 31),
+    (16, 41),
+    (17, 21),
+    (18, 69),
+    (21, 103),
+    (29, 45),  # ولذكر الله أكبر
+    (30, 11),
+    (32, 21),
+    (34, 3),
+    (36, 47),
+    (39, 26),
+    (40, 10), (40, 57),  # لمقت الله أكبر
+    (43, 48),
+    (58, 1),   # قد سمع الله
+    (68, 33),
+    (88, 24),  # العذاب الأكبر
+})
+
 # Normalization core characters for fast phonetic search
 CORE_CHARS_SET: frozenset[str] = frozenset("ءبتثجحخدذرزسشصضطظعغفقكلمنهوياۥۦ۾ںـٲ")
 

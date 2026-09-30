@@ -29,6 +29,15 @@ from src.matching.phonetics import (
     get_sub_cost_table,
     _compute_insertion_costs_fast,
     _compute_deletion_costs_fast,
+    ISTIAADHA_TEXT,
+    ISTIAADHA_PH,
+    BASMALAH_TEXT,
+    BASMALAH_PH,
+    TAKBEER_TEXT,
+    TAKBEER_PH,
+    TASMEE_TEXT,
+    TASMEE_PH,
+    PRAYER_EXCLUDED_VERSES,
 )
 from src.matching.kernels import _global_viterbi_fast
 from src.matching.reference import RefWord, SurahReferenceData
@@ -432,9 +441,32 @@ ISTIAADHA_REF_DATA = SurahReferenceData(
     },
 )
 
+TAKBEER_REF_DATA = SurahReferenceData(
+    0,
+    {
+        "0:2": {
+            "aya_text": TAKBEER_TEXT,
+            "aya_phonemes_list": ["ءَللَااهُ", "ءَكڇبَر"],
+        }
+    },
+)
+
+TASMEE_REF_DATA = SurahReferenceData(
+    0,
+    {
+        "0:3": {
+            "aya_text": TASMEE_TEXT,
+            "aya_phonemes_list": ["سَمِعَ", "للَااهُ", "لِمَںںں", "حَمِدَه"],
+        }
+    },
+)
+
 
 def _slice_preamble_match(
-    pattern: str, tokens: List[PhonemeToken], max_error_ratio: float = 0.28
+    pattern: str,
+    tokens: List[PhonemeToken],
+    max_dist: Optional[int] = None,
+    max_error_ratio: float = 0.28,
 ) -> Tuple[Optional[Tuple[float, float, List[PhonemeToken]]], List[PhonemeToken]]:
     """Fast bit-parallel slice for opening preamble using Gene Myers' kernel."""
     if not tokens:
@@ -442,24 +474,28 @@ def _slice_preamble_match(
 
     head_len = min(len(tokens), len(pattern) + 30)
     head_str = "".join(t.phoneme for t in tokens[:head_len])
-    max_dist = max(3, int(len(pattern) * max_error_ratio))
+    if max_dist is None:
+        max_dist = max(2, int(len(pattern) * max_error_ratio))
 
     matches = find_near_matches(pattern, head_str, max_l_dist=max_dist)
-    if matches and matches[0].start <= 6:
+    if matches and matches[0].start <= 14:
         m = matches[0]
-        consumed, k = 0, len(tokens)
+        consumed = 0
+        start_tok_idx = 0
         start_t, end_t = None, None
+        k = len(tokens)
         for idx, tok in enumerate(tokens):
             consumed += len(tok.phoneme)
             if start_t is None and consumed > m.start:
                 start_t = tok.start
+                start_tok_idx = idx
             if consumed >= m.end:
                 end_t = tok.end
                 k = idx + 1
                 break
-        matched_toks = tokens[:k]
-        st = start_t if start_t is not None else matched_toks[0].start
-        et = end_t if end_t is not None else matched_toks[-1].end
+        matched_toks = tokens[start_tok_idx:k]
+        st = start_t if start_t is not None else (matched_toks[0].start if matched_toks else tokens[0].start)
+        et = end_t if end_t is not None else (matched_toks[-1].end if matched_toks else tokens[-1].end)
         return (st, et, matched_toks), tokens[k:]
 
     return None, tokens
@@ -471,7 +507,7 @@ def _extract_opening_preamble(
     start_ayah: int,
     ref_surah_1: SurahReferenceData,
 ) -> Tuple[Optional[Dict[str, Any]], List[PhonemeToken]]:
-    """Detects and isolates recited Isti'adha and/or pre-verse Basmalah before Ayah 1."""
+    """Detects and isolates prayer transition phrases (Takbeer/Tasmee'), Isti'adha, and/or Basmalah before Ayah 1."""
     if not aligned_tokens:
         return None, aligned_tokens
 
@@ -481,9 +517,9 @@ def _extract_opening_preamble(
     intro_starts: List[float] = []
     intro_ends: List[float] = []
 
-    def _match_and_align(pattern: str, ref: SurahReferenceData) -> None:
+    def _match_and_align(pattern: str, ref: SurahReferenceData, max_dist: Optional[int] = None) -> None:
         nonlocal curr
-        res, curr = _slice_preamble_match(pattern, curr)
+        res, curr = _slice_preamble_match(pattern, curr, max_dist=max_dist)
         if res:
             st, et, toks = res
             intro_starts.append(st)
@@ -492,7 +528,7 @@ def _extract_opening_preamble(
                 aligned_tokens=toks,
                 ref_data=ref,
                 start_word_index=0,
-                target_end_ayah=1,
+                target_end_ayah=None,
             )
             if segs:
                 if segs[0].sub_segments:
@@ -505,10 +541,25 @@ def _extract_opening_preamble(
                     for w in segs[0].words:
                         intro_words.append(w.to_dict())
 
-    # 1. Isti'adha (can precede any recitation)
+    # 1. Prayer transition phrases (Takbeer and/or Tasmee' in arbitrary prayer sequences)
+    # Strictly excluded on Quranic verses containing or resembling Allahu Akbar / Tasmee' to avoid false matching
+    if (surah, start_ayah) not in PRAYER_EXCLUDED_VERSES:
+        for _ in range(6):
+            prev_len = len(curr)
+            # Try Takbeer
+            _match_and_align(TAKBEER_PH, TAKBEER_REF_DATA, max_dist=3)
+            if len(curr) < prev_len:
+                continue
+            # Try Tasmee'
+            _match_and_align(TASMEE_PH, TASMEE_REF_DATA, max_dist=5)
+            if len(curr) < prev_len:
+                continue
+            break
+
+    # 3. Isti'adha (can precede any recitation)
     _match_and_align(ISTIAADHA_PH, ISTIAADHA_REF_DATA)
 
-    # 2. Basmalah (Surahs 2-114 except 9)
+    # 4. Basmalah (Surahs 2-114 except 9)
     if surah not in (1, 9):
         basmalah_ph = "".join(w.phoneme for w in ref_surah_1.ayah_to_words[1])
         _match_and_align(basmalah_ph, ref_surah_1)

@@ -11,7 +11,14 @@ import numpy as np
 import config
 from config import DEFAULT_REF_NORM_PH_PATH, DEFAULT_PH_INDEX_PATH
 from src.models import PhonemeToken, PauseInterval
-from src.matching.phonetics import normalize_phoneme_query
+from src.matching.phonetics import (
+    normalize_phoneme_query,
+    ISTIAADHA_PH,
+    BASMALAH_PH,
+    TAKBEER_PH,
+    TASMEE_PH,
+    PRAYER_EXCLUDED_VERSES,
+)
 from src.matching.kernels import _bit_parallel_search_fast, _refine_match_start
 
 logger = logging.getLogger(__name__)
@@ -142,12 +149,33 @@ class PhoneticSearch:
         for out in outs:
             s_row = self._index_array[out.start]
             e_row = self._index_array[max(0, out.end - 1)]
-            results.append(SurahSearchResult(
-                surah_number=int(s_row[0]),
-                ayah_number=int(s_row[1]),
-                distance=out.dist,
-                end_ayah_number=int(e_row[1]),
-            ))
+            surah_s = int(s_row[0])
+            surah_e = int(e_row[0])
+            if surah_s == surah_e:
+                results.append(SurahSearchResult(
+                    surah_number=surah_s,
+                    ayah_number=int(s_row[1]),
+                    distance=out.dist,
+                    end_ayah_number=int(e_row[1]),
+                ))
+            else:
+                mid_idx = (out.start + out.end) // 2
+                mid_row = self._index_array[mid_idx]
+                target_surah = int(mid_row[0])
+                if target_surah == surah_s:
+                    results.append(SurahSearchResult(
+                        surah_number=surah_s,
+                        ayah_number=int(s_row[1]),
+                        distance=out.dist,
+                        end_ayah_number=int(mid_row[1]),
+                    ))
+                else:
+                    results.append(SurahSearchResult(
+                        surah_number=surah_e,
+                        ayah_number=1,
+                        distance=out.dist,
+                        end_ayah_number=int(e_row[1]),
+                    ))
         results.sort(key=lambda r: r.distance)
         return results
 
@@ -327,9 +355,8 @@ class SurahDetector:
             return [single]
 
         # 1. Timeline sliding probe using Gene Myers' 64-bit Bit-Parallel search
-        # Use dense step=16 for short recitations (<120 tokens) to guarantee multiple hits for short 3-ayah Surahs;
-        # use step=32 for longer recitations to prevent redundant full-Quran scans while preserving exact boundaries.
-        effective_step = step if step != 16 else (16 if total_toks < 120 else 32)
+        # Dense step=16 guarantees reliable hits for short 3-ayah Surahs (103, 106, 108, 112)
+        effective_step = 16 if step == 16 else (step or 16)
         probe_hits: List[Tuple[int, int, int, float]] = []  # (offset, surah, ayah, norm_dist)
         for offset in range(0, max(1, total_toks - 12), effective_step):
             slice_tokens = aligned_phonemes[offset : offset + sample_length]
@@ -357,10 +384,13 @@ class SurahDetector:
         # If Surah Al-Fatiha is genuinely recited, we will see hits for Ayah 2, 3, etc.
         # Otherwise, any (1:1) hit is an inter-surah Basmalah and must not declare Surah 1.
         has_fatiha = any(h[1] == 1 and h[2] >= 2 for h in probe_hits)
-        filtered_hits = [
-            h for h in probe_hits
-            if not (h[1] == 1 and h[2] == 1 and not has_fatiha)
-        ]
+        inter_basmalah_hits: List[Tuple[int, int, int, float]] = []
+        filtered_hits: List[Tuple[int, int, int, float]] = []
+        for h in probe_hits:
+            if h[1] == 1 and h[2] == 1 and not has_fatiha:
+                inter_basmalah_hits.append(h)
+            else:
+                filtered_hits.append(h)
 
         if not filtered_hits:
             single = self.detect_single_surah(aligned_phonemes)
@@ -433,23 +463,110 @@ class SurahDetector:
                 t_low = aligned_phonemes[min(off_last + sample_length - 1, total_toks - 1)].end
                 t_high = aligned_phonemes[min(off_next, total_toks - 1)].start
 
-                # Try snapping boundary to an acoustic pause (Sakt/Waqf) between the two clusters
+                # Check if a prayer phrase (Takbeer/Tasmee') or preamble (Isti'adha/Basmalah) is recited in the transition gap
+                gap_tok_start = max(0, off_last)
+                gap_tok_end = min(total_toks, off_next + sample_length)
+                gap_tokens = aligned_phonemes[gap_tok_start:gap_tok_end]
+                gap_str = "".join(t.phoneme for t in gap_tokens)
+
+                preamble_candidates: List[int] = []
+
+                # A. Takbeer check in transition gap
+                # Strictly excluded on Quranic verses containing or resembling Allahu Akbar (e.g. 29:45, 88:24)
+                if (surah, e_ayah) not in PRAYER_EXCLUDED_VERSES and (next_surah, 1) not in PRAYER_EXCLUDED_VERSES:
+                    if len(gap_str) >= len(TAKBEER_PH) - 4:
+                        max_d_tak = 3
+                        tak_m = find_near_matches(TAKBEER_PH, gap_str, max_l_dist=max_d_tak)
+                        if tak_m:
+                            consumed = 0
+                            for g_i, tok in enumerate(gap_tokens):
+                                consumed += len(tok.phoneme)
+                                if consumed > tak_m[0].start:
+                                    preamble_candidates.append(gap_tok_start + g_i)
+                                    break
+
+                # B. Tasmee' check in transition gap
+                # Strictly excluded on Quranic verses resembling Tasmee' (e.g. 58:1, 3:181)
+                if (surah, e_ayah) not in PRAYER_EXCLUDED_VERSES and (next_surah, 1) not in PRAYER_EXCLUDED_VERSES:
+                    if len(gap_str) >= len(TASMEE_PH) - 6:
+                        max_d_tas = 5
+                        tas_m = find_near_matches(TASMEE_PH, gap_str, max_l_dist=max_d_tas)
+                        if tas_m:
+                            consumed = 0
+                            for g_i, tok in enumerate(gap_tokens):
+                                consumed += len(tok.phoneme)
+                                if consumed > tas_m[0].start:
+                                    preamble_candidates.append(gap_tok_start + g_i)
+                                    break
+
+                # C. Isti'adha check in transition gap
+                if len(gap_str) >= len(ISTIAADHA_PH) - 6:
+                    max_d_ist = max(3, int(len(ISTIAADHA_PH) * 0.28))
+                    ist_m = find_near_matches(ISTIAADHA_PH, gap_str, max_l_dist=max_d_ist)
+                    if ist_m:
+                        consumed = 0
+                        for g_i, tok in enumerate(gap_tokens):
+                            consumed += len(tok.phoneme)
+                            if consumed > ist_m[0].start:
+                                preamble_candidates.append(gap_tok_start + g_i)
+                                break
+
+                # D. Basmalah check in transition gap
+                gap_bas_probes = [h for h in inter_basmalah_hits if gap_tok_start <= h[0] <= off_next]
+                if gap_bas_probes:
+                    preamble_candidates.append(gap_bas_probes[0][0])
+                elif len(gap_str) >= len(BASMALAH_PH) - 6:
+                    max_d_bas = max(3, int(len(BASMALAH_PH) * 0.28))
+                    bas_m = find_near_matches(BASMALAH_PH, gap_str, max_l_dist=max_d_bas)
+                    if bas_m:
+                        consumed = 0
+                        for g_i, tok in enumerate(gap_tokens):
+                            consumed += len(tok.phoneme)
+                            if consumed > bas_m[0].start:
+                                preamble_candidates.append(gap_tok_start + g_i)
+                                break
+
+                preamble_tok_idx = min(preamble_candidates) if preamble_candidates else None
+
+                # Boundary assignment:
                 snapped = False
                 candidate_pauses = [p.optimal_cut_point for p in pause_intervals if p.duration_sec >= 0.25] if pause_intervals else (pause_timestamps or [])
-                if candidate_pauses and t_low < t_high + 0.5:
-                    for p in candidate_pauses:
-                        if (t_low - 0.3) <= p <= (t_high + 0.3):
-                            for idx in range(off_last, min(off_next + sample_length, total_toks)):
-                                if aligned_phonemes[idx].start >= p:
+
+                if preamble_tok_idx is not None and preamble_tok_idx > off_last:
+                    # Place boundary before the preamble so Surah B receives all preamble tokens
+                    t_preamble = aligned_phonemes[preamble_tok_idx].start
+                    if candidate_pauses:
+                        best_p = None
+                        for p in candidate_pauses:
+                            if (t_low - 0.25) <= p <= (t_preamble + 0.10):
+                                best_p = p
+                                break
+                        if best_p is not None:
+                            for idx in range(off_last, preamble_tok_idx + 1):
+                                if aligned_phonemes[idx].start >= best_p:
                                     tok_end = idx
                                     snapped = True
                                     break
-                            if snapped:
-                                break
+                    if not snapped:
+                        tok_end = preamble_tok_idx
+                        snapped = True
 
                 if not snapped:
-                    mid = (off_last + sample_length + off_next) // 2
-                    tok_end = max(off_last + 1, min(mid, off_next))
+                    # Standard pause snapping (Waqf/Sakt between the two clusters)
+                    if candidate_pauses and t_low < t_high + 0.5:
+                        for p in candidate_pauses:
+                            if (t_low - 0.3) <= p <= (t_high + 0.3):
+                                for idx in range(off_last, min(off_next + sample_length, total_toks)):
+                                    if aligned_phonemes[idx].start >= p:
+                                        tok_end = idx
+                                        snapped = True
+                                        break
+                                if snapped:
+                                    break
+
+                    if not snapped:
+                        mid = (off_last + sample_length + off_next) // 2
+                        tok_end = max(off_last + 1, min(mid, off_next))
             else:
                 tok_end = total_toks
 

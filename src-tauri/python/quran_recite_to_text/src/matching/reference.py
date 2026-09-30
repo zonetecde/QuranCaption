@@ -34,8 +34,16 @@ class SurahReferenceData:
         self.ayah_to_words: Dict[int, List[RefWord]] = defaultdict(list)
         self.ayah_start_word_index: Dict[int, int] = {}
 
-        a = 1
-        while f"{surah}:{a}" in verses_dict:
+        prefix = f"{surah}:"
+        ayah_numbers = []
+        for k in verses_dict:
+            if k.startswith(prefix):
+                suffix = k[len(prefix):]
+                if suffix.isdigit():
+                    ayah_numbers.append(int(suffix))
+        ayah_numbers.sort()
+
+        for a in ayah_numbers:
             v_data = verses_dict[f"{surah}:{a}"]
             ayah_text = v_data.get("aya_text", "").strip()
             ph_words = v_data.get("aya_phonemes_list", [])
@@ -56,7 +64,6 @@ class SurahReferenceData:
                     )
                     self.words.append(w)
                     self.ayah_to_words[a].append(w)
-            a += 1
 
         self.num_words = len(self.words)
         self.word_boundaries = [0]

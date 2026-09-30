@@ -1,8 +1,6 @@
 numpy
-librosa
 onnxruntime
 kaldi-native-fbank
 numba
 miniaudio
-soundfile
 scipy

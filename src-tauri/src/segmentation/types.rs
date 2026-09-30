@@ -151,11 +151,10 @@ impl LocalSegmentationEngine {
             ],
             Self::QuranWordTiming => &[
                 "numpy",
-                "librosa",
                 "onnxruntime",
                 "kaldi_native_fbank",
                 "numba",
-                "soundfile",
+                "miniaudio",
                 "scipy",
             ],
         }

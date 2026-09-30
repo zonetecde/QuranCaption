@@ -20,7 +20,7 @@ DEFAULT_QURAN_PHONEMES_PATH = str(DATA_PATH / "ordered_quran_phonemes.json")
 DEFAULT_REF_NORM_PH_PATH = str(DATA_PATH / "ref_norm_ph.txt")
 DEFAULT_PH_INDEX_PATH = str(DATA_PATH / "ph_index.npy")
 DEFAULT_OUTPUT_DIR = str(PROJECT_ROOT / "output")
-EXPORT_ALL_ARTIFACTS: bool = False
+EXPORT_ALL_ARTIFACTS: bool = True
 
 
 # ==============================================================================

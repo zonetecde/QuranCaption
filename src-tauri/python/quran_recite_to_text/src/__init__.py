@@ -203,10 +203,7 @@ class AudioPipeline:
             if live_profile:
                 print(f"Phase 1.1 Recovery  : {recovery_time:.2f}s", flush=True)
 
-        # Release raw PCM audio buffer to reclaim memory before Phase 2 CTC Alignment
-        audio_pcm = None
-
-        # Phase 2: CTC Viterbi Trellis Alignment
+        # Phase 2: CTC Viterbi Trellis Alignment (Acoustic-Neural Hybrid)
         align_start = time.time()
         if on_progress_event:
             on_progress_event(
@@ -225,7 +222,10 @@ class AudioPipeline:
             num_frames=raw_result.num_frames,
             custom_blank_id=BLANK_ID,
             pause_intervals=raw_result.pause_intervals,
+            audio_pcm=audio_pcm,
         )
+        # Release raw PCM audio buffer to reclaim memory after Phase 2 CTC Alignment
+        audio_pcm = None
         align_time = time.time() - align_start
         if live_profile:
             print(f"Phase 2 CTC Align   : {align_time:.2f}s", flush=True)
@@ -358,8 +358,8 @@ def process_audio(
     elif isinstance(audio_data, tuple):
         orig_sr, pcm = audio_data
         if orig_sr != SAMPLE_RATE:
-            import librosa
-            pcm = librosa.resample(pcm.astype(np.float32), orig_sr=orig_sr, target_sr=SAMPLE_RATE)
+            from src.audio import _resample_audio
+            pcm = _resample_audio(pcm.astype(np.float32), orig_sr, SAMPLE_RATE)
         result = pipeline.process_pcm(
             audio_pcm=pcm.astype(np.float32),
             output_dir=output_dir,

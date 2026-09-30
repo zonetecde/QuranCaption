@@ -233,6 +233,7 @@ export function getMergedClipsWithoutWordOverlap(clips: SubtitleClip[]): Subtitl
 			const nextTranslationStart = Math.max(translation.startWordIndex, previousTranslationEnd + 1);
 			nextTranslationStartByEdition.set(edition, nextTranslationStart);
 			if (nextTranslationStart !== translation.startWordIndex) shouldCloneClip = true;
+			if (nextTranslationStart > translation.endWordIndex) shouldCloneClip = true;
 		}
 
 		const clonedClip = shouldCloneClip ? clip.cloneWithTimes(clip.startTime, clip.endTime) : clip;

@@ -6,12 +6,14 @@ use tauri::Emitter;
 use crate::utils::process::configure_command_no_window;
 
 use super::data_files::{
-    required_multi_aligner_data_files, resolve_multi_aligner_data_dir,
-    validate_multi_aligner_data_file,
+    required_multi_aligner_data_files, required_word_timing_model_files,
+    resolve_multi_aligner_data_dir, validate_multi_aligner_data_file,
+    validate_word_timing_model_file,
 };
 use super::python_env::{
-    apply_hf_token_env, create_venv_if_missing, get_venv_python_exe, resolve_python_resource_path,
-    resolve_system_python, MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR,
+    apply_hf_token_env, create_venv_if_missing, get_venv_python_exe, get_word_timing_model_dir,
+    resolve_python_resource_path, resolve_system_python, MIN_LOCAL_PYTHON_MAJOR,
+    MIN_LOCAL_PYTHON_MINOR,
 };
 use super::requirements::{
     prepare_multi_requirements_file, prepare_windows_safe_quranic_phonemizer_source,
@@ -147,24 +149,62 @@ pub async fn install_local_segmentation_deps(
         "Failed to upgrade pip",
     )?;
 
-    if cfg!(target_os = "windows") {
-        emit_status("Installing PyTorch (CPU fallback available)...");
-        let mut cuda_installed = false;
-        let mut nvidia_cmd = Command::new("nvidia-smi");
-        configure_command_no_window(&mut nvidia_cmd);
-        let has_nvidia = nvidia_cmd
-            .output()
-            .map(|output| output.status.success())
-            .unwrap_or(false);
+    // QuranWordTiming est purement basé sur ONNX Runtime et kaldi-native-fbank (aucun PyTorch requis).
+    if !matches!(selected_engine, LocalSegmentationEngine::QuranWordTiming) {
+        if cfg!(target_os = "windows") {
+            emit_status("Installing PyTorch (CPU fallback available)...");
+            let mut cuda_installed = false;
+            let mut nvidia_cmd = Command::new("nvidia-smi");
+            configure_command_no_window(&mut nvidia_cmd);
+            let has_nvidia = nvidia_cmd
+                .output()
+                .map(|output| output.status.success())
+                .unwrap_or(false);
 
-        if has_nvidia {
-            for index_url in [
-                "https://download.pytorch.org/whl/cu124",
-                "https://download.pytorch.org/whl/cu121",
-                "https://download.pytorch.org/whl/cu118",
-            ] {
-                emit_status(&format!("Trying CUDA PyTorch from {}...", index_url));
-                let result = run_python_cmd(
+            if has_nvidia {
+                for index_url in [
+                    "https://download.pytorch.org/whl/cu124",
+                    "https://download.pytorch.org/whl/cu121",
+                    "https://download.pytorch.org/whl/cu118",
+                ] {
+                    emit_status(&format!("Trying CUDA PyTorch from {}...", index_url));
+                    let result = run_python_cmd(
+                        &[
+                            "-m",
+                            "pip",
+                            "install",
+                            "--upgrade",
+                            "torch",
+                            "torchvision",
+                            "torchaudio",
+                            "--index-url",
+                            index_url,
+                            "--quiet",
+                        ],
+                        "Failed to install CUDA PyTorch",
+                    );
+                    if result.is_ok() {
+                        let mut verify_cuda = Command::new(&python_exe);
+                        verify_cuda.args([
+                            "-c",
+                            "import torch; assert torch.cuda.is_available(), 'cuda not available'",
+                        ]);
+                        configure_command_no_window(&mut verify_cuda);
+                        if verify_cuda
+                            .output()
+                            .map(|output| output.status.success())
+                            .unwrap_or(false)
+                        {
+                            cuda_installed = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if !cuda_installed {
+                emit_status("Installing PyTorch CPU build...");
+                run_python_cmd(
                     &[
                         "-m",
                         "pip",
@@ -174,32 +214,14 @@ pub async fn install_local_segmentation_deps(
                         "torchvision",
                         "torchaudio",
                         "--index-url",
-                        index_url,
+                        "https://download.pytorch.org/whl/cpu",
                         "--quiet",
                     ],
-                    "Failed to install CUDA PyTorch",
-                );
-                if result.is_ok() {
-                    let mut verify_cuda = Command::new(&python_exe);
-                    verify_cuda.args([
-                        "-c",
-                        "import torch; assert torch.cuda.is_available(), 'cuda not available'",
-                    ]);
-                    configure_command_no_window(&mut verify_cuda);
-                    if verify_cuda
-                        .output()
-                        .map(|output| output.status.success())
-                        .unwrap_or(false)
-                    {
-                        cuda_installed = true;
-                        break;
-                    }
-                }
+                    "Failed to install CPU PyTorch",
+                )?;
             }
-        }
-
-        if !cuda_installed {
-            emit_status("Installing PyTorch CPU build...");
+        } else {
+            emit_status("Installing PyTorch...");
             run_python_cmd(
                 &[
                     "-m",
@@ -209,28 +231,11 @@ pub async fn install_local_segmentation_deps(
                     "torch",
                     "torchvision",
                     "torchaudio",
-                    "--index-url",
-                    "https://download.pytorch.org/whl/cpu",
                     "--quiet",
                 ],
-                "Failed to install CPU PyTorch",
+                "Failed to install PyTorch",
             )?;
         }
-    } else {
-        emit_status("Installing PyTorch...");
-        run_python_cmd(
-            &[
-                "-m",
-                "pip",
-                "install",
-                "--upgrade",
-                "torch",
-                "torchvision",
-                "torchaudio",
-                "--quiet",
-            ],
-            "Failed to install PyTorch",
-        )?;
     }
 
     // Install non-torch requirements and skip phonemizer Git dependency.
@@ -289,6 +294,22 @@ pub async fn install_local_segmentation_deps(
         ],
         "pip install failed",
     )?;
+
+    if matches!(selected_engine, LocalSegmentationEngine::QuranWordTiming) {
+        let model_dir = get_word_timing_model_dir(&app_handle)?;
+        fs::create_dir_all(&model_dir).map_err(|e| e.to_string())?;
+        for (file_name, url, size, hash) in required_word_timing_model_files() {
+            let path = model_dir.join(file_name);
+            if validate_word_timing_model_file(&path, *size, hash).is_err() {
+                emit_status(&format!(
+                    "Preparing {} local environment...",
+                    selected_engine.as_label()
+                ));
+                download_binary_file(url, &path).await?;
+                validate_word_timing_model_file(&path, *size, hash)?;
+            }
+        }
+    }
 
     // Installation explicite de Quranic-Phonemizer pour multi-aligner.
     if matches!(selected_engine, LocalSegmentationEngine::MultiAligner) {

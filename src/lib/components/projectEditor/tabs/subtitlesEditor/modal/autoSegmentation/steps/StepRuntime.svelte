@@ -8,6 +8,7 @@
 	const isCloud = $derived(() => wizard.selection.aiVersion === 'multi_v2');
 	const isLocalV2 = $derived(() => wizard.selection.aiVersion === 'multi_v2_local');
 	const isSurahSplitter = $derived(() => wizard.selection.aiVersion === 'surah_splitter');
+	const isWordTiming = $derived(() => wizard.selection.aiVersion === 'quran_word_timing');
 	const isLegacy = $derived(() => wizard.selection.aiVersion === 'legacy_v1');
 </script>
 
@@ -21,6 +22,8 @@
 				{$LL.editor.prepareMethodLocalV2Desc()}
 			{:else if isSurahSplitter()}
 				{$LL.editor.prepareMethodSurahSplitterDesc()}
+			{:else if isWordTiming()}
+				{$LL.editor.quranwordtimingDetail()}
 			{:else}
 				{$LL.editor.prepareMethodLegacyDesc()}
 			{/if}
@@ -87,6 +90,15 @@
 						isInstalling={wizard.isInstallingDeps && wizard.installingEngine === 'multi'}
 						isInstalled={!!wizard.localStatus?.engines?.multi?.ready}
 						onInstall={() => void wizard.installEngine('multi')}
+					/>
+				{:else if isWordTiming()}
+					<LocalEngineCard
+						title={$LL.editor.quranwordtimingLabel()}
+						status={wizard.localStatus?.engines?.quranwordtiming ?? null}
+						isInstalling={wizard.isInstallingDeps &&
+							wizard.installingEngine === 'quran_word_timing'}
+						isInstalled={!!wizard.localStatus?.engines?.quranwordtiming?.ready}
+						onInstall={() => void wizard.installEngine('quran_word_timing')}
 					/>
 				{:else}
 					<p class="text-xs text-thirdly">

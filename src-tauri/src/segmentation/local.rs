@@ -12,8 +12,10 @@ use crate::utils::process::configure_command_no_window;
 use crate::utils::temp_file::TempFileGuard;
 
 use super::audio_merge::merge_audio_clips_for_segmentation;
+use super::data_files::{required_word_timing_model_files, validate_word_timing_model_file};
 use super::python_env::{
-    apply_hf_token_env, resolve_engine_python_exe, resolve_python_resource_path,
+    apply_hf_token_env, get_word_timing_model_dir, resolve_engine_python_exe,
+    resolve_python_resource_path,
 };
 use super::types::{LocalSegmentationEngine, SegmentationAudioClip};
 
@@ -42,31 +44,11 @@ fn run_local_segmentation_script(
             .unwrap_or(false)
     );
 
-    // PrÃ©-traitement audio local identique au cloud: merge Ã©ventuel puis resample.
-    let ffmpeg_path =
-        binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
-    println!(
-        "[segmentation][local][debug] resolved ffmpeg path={}",
-        ffmpeg_path
-    );
-
     let mut _merged_guard: Option<TempFileGuard> = None;
-    let word_timing_regions = audio_clips
-        .as_ref()
-        .filter(|clips| {
-            matches!(engine, LocalSegmentationEngine::QuranWordTiming)
-                && (clips.len() > 1 || clips.first().map_or(false, |clip| clip.start_ms > 0))
-        })
-        .map(|clips| {
-            clips
-                .iter()
-                .filter_map(|clip| {
-                    let start_ms = clip.start_ms.max(0);
-                    let end_ms = clip.end_ms.max(start_ms);
-                    (end_ms > start_ms).then_some([start_ms, end_ms])
-                })
-                .collect::<Vec<_>>()
-        });
+    let mut _temp_guard: Option<TempFileGuard> = None;
+
+    // Pour QuranWordTiming, l'audio est chargé et découpé directement en mémoire par Python.
+    // Pour les autres moteurs, pré-traitement via ffmpeg (merge éventuel puis resample 16kHz mono).
     let audio_path = if let Some(clips) = audio_clips.as_ref().filter(|c| !c.is_empty()) {
         println!(
             "[segmentation][local][debug] received {} audio clip(s)",
@@ -78,13 +60,19 @@ fn run_local_segmentation_script(
                 idx, clip.path, clip.start_ms, clip.end_ms, clip.source_start_ms
             );
         }
-        let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
-        _merged_guard = Some(guard);
-        println!(
-            "[segmentation] Using merged audio for local: {}",
-            merged_path.to_string_lossy()
-        );
-        merged_path
+        if matches!(engine, LocalSegmentationEngine::QuranWordTiming) {
+            path_utils::normalize_existing_path(&clips[0].path)
+        } else {
+            let ffmpeg_path =
+                binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
+            let (merged_path, guard) = merge_audio_clips_for_segmentation(&ffmpeg_path, clips)?;
+            _merged_guard = Some(guard);
+            println!(
+                "[segmentation] Using merged audio for local: {}",
+                merged_path.to_string_lossy()
+            );
+            merged_path
+        }
     } else if let Some(path) = audio_path.as_ref() {
         path_utils::normalize_existing_path(path)
     } else {
@@ -101,75 +89,90 @@ fn run_local_segmentation_script(
         audio_path.exists()
     );
 
-    let stamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|e| e.to_string())?
-        .as_millis();
-    let temp_path = std::env::temp_dir().join(format!(
-        "qurancaption-local-{}-{}.wav",
-        engine.as_key(),
-        stamp
-    ));
-    let _temp_guard = TempFileGuard(temp_path.clone());
+    let target_audio_path_str = if matches!(engine, LocalSegmentationEngine::QuranWordTiming) {
+        audio_path_str
+    } else {
+        let ffmpeg_path =
+            binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
+        let stamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|e| e.to_string())?
+            .as_millis();
+        let temp_path = std::env::temp_dir().join(format!(
+            "qurancaption-local-{}-{}.wav",
+            engine.as_key(),
+            stamp
+        ));
+        _temp_guard = Some(TempFileGuard(temp_path.clone()));
 
-    let mut resample_cmd = Command::new(&ffmpeg_path);
-    resample_cmd.args([
-        "-y",
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-i",
-        &audio_path_str,
-        "-ac",
-        "1",
-        "-ar",
-        "16000",
-        "-c:a",
-        "pcm_s16le",
-        "-vn",
-        temp_path.to_string_lossy().as_ref(),
-    ]);
-    configure_command_no_window(&mut resample_cmd);
-    println!(
-        "[segmentation][local][debug] running ffmpeg preprocess -> {}",
-        temp_path.to_string_lossy()
-    );
-
-    let resample_output = resample_cmd
-        .output()
-        .map_err(|e| format!("Unable to execute ffmpeg for preprocessing: {}", e))?;
-    if !resample_output.status.success() {
-        let stderr = String::from_utf8_lossy(&resample_output.stderr);
-        eprintln!(
-            "[segmentation][local][debug] ffmpeg preprocessing failed (status={:?}): {}",
-            resample_output.status.code(),
-            stderr
+        let mut resample_cmd = Command::new(&ffmpeg_path);
+        resample_cmd.args([
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-i",
+            &audio_path_str,
+            "-ac",
+            "1",
+            "-ar",
+            "16000",
+            "-c:a",
+            "pcm_s16le",
+            "-vn",
+            temp_path.to_string_lossy().as_ref(),
+        ]);
+        configure_command_no_window(&mut resample_cmd);
+        println!(
+            "[segmentation][local][debug] running ffmpeg preprocess -> {}",
+            temp_path.to_string_lossy()
         );
-        return Err(format!("ffmpeg preprocessing error: {}", stderr));
-    }
-    let temp_size = fs::metadata(&temp_path).map(|m| m.len()).unwrap_or(0);
-    println!(
-        "[segmentation][local][debug] ffmpeg preprocessing ok temp_wav={} size={}B",
-        temp_path.to_string_lossy(),
-        temp_size
-    );
+
+        let resample_output = resample_cmd
+            .output()
+            .map_err(|e| format!("Unable to execute ffmpeg for preprocessing: {}", e))?;
+        if !resample_output.status.success() {
+            let stderr = String::from_utf8_lossy(&resample_output.stderr);
+            eprintln!(
+                "[segmentation][local][debug] ffmpeg preprocessing failed (status={:?}): {}",
+                resample_output.status.code(),
+                stderr
+            );
+            return Err(format!("ffmpeg preprocessing error: {}", stderr));
+        }
+        let temp_size = fs::metadata(&temp_path).map(|m| m.len()).unwrap_or(0);
+        println!(
+            "[segmentation][local][debug] ffmpeg preprocessing ok temp_wav={} size={}B",
+            temp_path.to_string_lossy(),
+            temp_size
+        );
+        temp_path.to_string_lossy().to_string()
+    };
 
     let python_exe = resolve_engine_python_exe(&app_handle, engine)?;
     let script_path = resolve_python_resource_path(&app_handle, engine.script_relative_path())?;
+    let word_timing_model_dir = if matches!(engine, LocalSegmentationEngine::QuranWordTiming) {
+        let dir = get_word_timing_model_dir(&app_handle)?;
+        for (name, _, size, hash) in required_word_timing_model_files() {
+            validate_word_timing_model_file(&dir.join(name), *size, hash)?;
+        }
+        Some(dir)
+    } else {
+        None
+    };
     println!(
         "[segmentation][local][debug] python_exe={} script_path={}",
         python_exe.to_string_lossy(),
         script_path.to_string_lossy()
     );
     println!(
-        "[segmentation][local][debug] script_exists={} temp_exists={}",
-        script_path.exists(),
-        temp_path.exists()
+        "[segmentation][local][debug] script_exists={}",
+        script_path.exists()
     );
 
     let mut args = vec![
         script_path.to_string_lossy().to_string(),
-        temp_path.to_string_lossy().to_string(),
+        target_audio_path_str,
     ];
     if let Some(ms) = min_silence_ms {
         args.push("--min-silence-ms".to_string());
@@ -183,9 +186,11 @@ fn run_local_segmentation_script(
         args.push("--pad-ms".to_string());
         args.push(ms.to_string());
     }
-    if let Some(regions) = word_timing_regions.filter(|regions| !regions.is_empty()) {
-        args.push("--audio-regions-ms".to_string());
-        args.push(serde_json::to_string(&regions).map_err(|error| error.to_string())?);
+    if matches!(engine, LocalSegmentationEngine::QuranWordTiming) {
+        if let Some(clips) = audio_clips.as_ref().filter(|c| !c.is_empty()) {
+            args.push("--timeline-clips-json".to_string());
+            args.push(serde_json::to_string(clips).map_err(|error| error.to_string())?);
+        }
     }
     args.append(&mut extra_args);
     println!("[segmentation][local][debug] python args={:?}", args);
@@ -213,6 +218,9 @@ fn run_local_segmentation_script(
     // ExÃ©cution Python + thread de lecture stderr pour status/events de progression.
     let mut cmd = Command::new(&python_exe);
     cmd.args(&args);
+    if let Some(dir) = word_timing_model_dir {
+        cmd.env("QC_WORD_TIMING_MODEL_DIR", dir);
+    }
     if let Some(token) = hf_token {
         if !token.trim().is_empty() {
             apply_hf_token_env(&mut cmd, token.trim());
@@ -508,7 +516,8 @@ pub async fn segment_quran_audio_local_word_timing(
     min_speech_ms: Option<u32>,
     pad_ms: Option<u32>,
 ) -> Result<serde_json::Value, String> {
-    let extra_args = Vec::new();
+    let mut extra_args = Vec::new();
+    extra_args.push("--fast".to_string());
 
     run_local_segmentation_script(
         app_handle,

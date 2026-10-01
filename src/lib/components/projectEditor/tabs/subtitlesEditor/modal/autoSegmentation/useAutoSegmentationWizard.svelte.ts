@@ -51,7 +51,8 @@ export function useAutoSegmentationWizard() {
 		SURAH_SPLITTER_MODEL_OPTIONS.map((option) => option.value)
 	);
 	const persisted = globalState.settings?.autoSegmentationSettings as
-		AutoSegmentationSettings | undefined;
+		| AutoSegmentationSettings
+		| undefined;
 	const initialSelection = deriveSelectionState(persisted);
 	const initialAudioRiwayah = getAutoSegmentationAudioInfo()?.riwayah;
 	if (initialAudioRiwayah) initialSelection.riwayah = initialAudioRiwayah;
@@ -151,6 +152,8 @@ export function useAutoSegmentationWizard() {
 		if (showExistingSubtitlesStep() && subtitleApplicationMode === null) return false;
 		if (selection.runtime === 'hf_json')
 			return hasAudio() && importedJsonRaw.trim().length > 0 && !isRunning;
+		if (selection.aiVersion === 'quran_word_timing' && !selectedLocalEngineStatus()?.usable)
+			return false;
 		return hasAudio() && !isRunning;
 	});
 	const canGoNext = $derived(() => {

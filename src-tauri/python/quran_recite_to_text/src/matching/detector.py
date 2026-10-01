@@ -412,21 +412,7 @@ class SurahDetector:
         valid_clusters = [c for c in clusters if len(c) >= 2]
         clusters = _merge_same_surah_clusters(valid_clusters)
 
-        # 5. Non-Reentrant Macro-Block Rule (Anti-Ping-Pong / Mutashabihat Absorption)
-        # In Quranic recitation, each Surah is recited once in a continuous macro-block.
-        # If Surah A is active, and Surah A appears again later, any intermediate clusters
-        # (e.g. Surah B) are 100% false Mutashabihat hits and are absorbed into Surah A.
-        i = 0
-        while i < len(clusters):
-            surah = clusters[i][0][1]
-            last_idx = max(j for j in range(len(clusters)) if clusters[j][0][1] == surah)
-            if last_idx > i:
-                for k in range(i + 1, last_idx + 1):
-                    clusters[i].extend(clusters[k])
-                del clusters[i + 1 : last_idx + 1]
-            i += 1
-
-        # 6. Minimum Macro-Block Support Filter
+        # 5. Minimum Macro-Block Support Filter
         # In multi-Surah recitations, an independent Surah block must have at least 2 hits (to support short 3-ayah Surahs)
         if len(clusters) > 1:
             clusters = [c for c in clusters if len([h for h in c if h[1] == c[0][1]]) >= 2]
@@ -441,7 +427,7 @@ class SurahDetector:
             single.token_end_idx = total_toks
             return [single]
 
-        # 7. Build timeline partitions with acoustic pause snapping
+        # 6. Build timeline partitions with acoustic pause snapping
         results: List[SurahDetectionResult] = []
         num_clusters = len(clusters)
         prev_end = 0

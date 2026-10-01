@@ -17,9 +17,9 @@ from config import (
 from src.models import PhonemeToken, PauseInterval
 
 
-# Minimum phoneme duration to prevent visual UI flickering (100ms ≈ 2.5 CTC frames at 25 Hz)
-_MIN_PHONEME_DURATION_S = 0.100
-_MIN_PHONEME_DURATION_FRAMES = 2.5
+# One CTC frame preserves fast phonemes without pushing later timings past the audio.
+_MIN_PHONEME_DURATION_S = FRAME_STEP
+_MIN_PHONEME_DURATION_FRAMES = _MIN_PHONEME_DURATION_S / FRAME_STEP
 
 try:
     from numba import njit

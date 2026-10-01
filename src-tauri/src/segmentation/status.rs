@@ -3,12 +3,14 @@ use std::process::Command;
 use crate::utils::process::configure_command_no_window;
 
 use super::data_files::{
-    required_multi_aligner_data_files, resolve_multi_aligner_data_dir,
-    validate_multi_aligner_data_file,
+    required_multi_aligner_data_files, required_word_timing_model_files,
+    resolve_multi_aligner_data_dir, validate_multi_aligner_data_file,
+    validate_word_timing_model_file,
 };
 use super::python_env::{
-    get_engine_venv_path, get_venv_python_exe, resolve_system_python, run_python_any_import_check,
-    run_python_import_check, MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR,
+    get_engine_venv_path, get_venv_python_exe, get_word_timing_model_dir, resolve_system_python,
+    run_python_any_import_check, run_python_import_check, MIN_LOCAL_PYTHON_MAJOR,
+    MIN_LOCAL_PYTHON_MINOR,
 };
 use super::types::LocalSegmentationEngine;
 
@@ -298,13 +300,7 @@ pub async fn check_local_segmentation_ready(
             let multi_venv_exists = multi_python.exists();
             let surah_splitter_venv_exists = surah_splitter_python.exists();
             let word_timing_python_venv_exe = get_venv_python_exe(&word_timing_venv);
-            let (word_timing_python, word_timing_venv_exists) = if word_timing_python_venv_exe.exists() {
-                (word_timing_python_venv_exe, true)
-            } else if let Ok(sp) = resolve_system_python(MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR) {
-                (std::path::PathBuf::from(sp.command), true)
-            } else {
-                (word_timing_python_venv_exe, false)
-            };
+            let word_timing_venv_exists = word_timing_python_venv_exe.exists();
 
             let (legacy_imports_ok, legacy_missing_modules) = run_python_import_check(
                 &legacy_python,
@@ -323,7 +319,7 @@ pub async fn check_local_segmentation_ready(
                 );
             let (word_timing_imports_ok, word_timing_missing_modules) =
                 run_python_import_check(
-                    &word_timing_python,
+                    &word_timing_python_venv_exe,
                     LocalSegmentationEngine::QuranWordTiming.required_import_modules(),
                 );
             let multi_phonemizer_ok = run_python_any_import_check(
@@ -345,7 +341,14 @@ pub async fn check_local_segmentation_ready(
             let legacy_packages = legacy_imports_ok && legacy_versions_ok;
             let multi_packages = multi_imports_ok && multi_phonemizer_ok && multi_data_error.is_none();
             let surah_splitter_packages = surah_splitter_imports_ok;
-            let word_timing_packages = word_timing_imports_ok;
+            let word_timing_models_ready = get_word_timing_model_dir(&app_handle)
+                .map(|dir| {
+                    required_word_timing_model_files().iter().all(|(name, _, size, hash)| {
+                        validate_word_timing_model_file(&dir.join(name), *size, hash).is_ok()
+                    })
+                })
+                .unwrap_or(false);
+            let word_timing_packages = word_timing_imports_ok && word_timing_models_ready;
             let legacy_ready = legacy_venv_exists && legacy_packages;
             let multi_ready = multi_venv_exists && multi_packages;
             let surah_splitter_ready = surah_splitter_venv_exists && surah_splitter_packages;
@@ -447,7 +450,7 @@ pub async fn check_local_segmentation_ready(
                         "usable": word_timing_ready,
                         "message": if word_timing_ready {
                             "Quran Karim words alignment engine is ready".to_string()
-                        } else if !word_timing_venv_exists {
+                        } else if !word_timing_venv_exists || !word_timing_models_ready {
                             "WordTiming Offline dependencies are not installed".to_string()
                         } else if !word_timing_missing_modules.is_empty() {
                             format!(

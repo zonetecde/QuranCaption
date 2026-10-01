@@ -12,8 +12,10 @@ use crate::utils::process::configure_command_no_window;
 use crate::utils::temp_file::TempFileGuard;
 
 use super::audio_merge::merge_audio_clips_for_segmentation;
+use super::data_files::{required_word_timing_model_files, validate_word_timing_model_file};
 use super::python_env::{
-    apply_hf_token_env, resolve_engine_python_exe, resolve_python_resource_path,
+    apply_hf_token_env, get_word_timing_model_dir, resolve_engine_python_exe,
+    resolve_python_resource_path,
 };
 use super::types::{LocalSegmentationEngine, SegmentationAudioClip};
 
@@ -149,6 +151,15 @@ fn run_local_segmentation_script(
 
     let python_exe = resolve_engine_python_exe(&app_handle, engine)?;
     let script_path = resolve_python_resource_path(&app_handle, engine.script_relative_path())?;
+    let word_timing_model_dir = if matches!(engine, LocalSegmentationEngine::QuranWordTiming) {
+        let dir = get_word_timing_model_dir(&app_handle)?;
+        for (name, _, size, hash) in required_word_timing_model_files() {
+            validate_word_timing_model_file(&dir.join(name), *size, hash)?;
+        }
+        Some(dir)
+    } else {
+        None
+    };
     println!(
         "[segmentation][local][debug] python_exe={} script_path={}",
         python_exe.to_string_lossy(),
@@ -207,6 +218,9 @@ fn run_local_segmentation_script(
     // ExÃ©cution Python + thread de lecture stderr pour status/events de progression.
     let mut cmd = Command::new(&python_exe);
     cmd.args(&args);
+    if let Some(dir) = word_timing_model_dir {
+        cmd.env("QC_WORD_TIMING_MODEL_DIR", dir);
+    }
     if let Some(token) = hf_token {
         if !token.trim().is_empty() {
             apply_hf_token_env(&mut cmd, token.trim());

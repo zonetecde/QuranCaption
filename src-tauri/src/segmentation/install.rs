@@ -6,12 +6,14 @@ use tauri::Emitter;
 use crate::utils::process::configure_command_no_window;
 
 use super::data_files::{
-    required_multi_aligner_data_files, resolve_multi_aligner_data_dir,
-    validate_multi_aligner_data_file,
+    required_multi_aligner_data_files, required_word_timing_model_files,
+    resolve_multi_aligner_data_dir, validate_multi_aligner_data_file,
+    validate_word_timing_model_file,
 };
 use super::python_env::{
-    apply_hf_token_env, create_venv_if_missing, get_venv_python_exe, resolve_python_resource_path,
-    resolve_system_python, MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR,
+    apply_hf_token_env, create_venv_if_missing, get_venv_python_exe, get_word_timing_model_dir,
+    resolve_python_resource_path, resolve_system_python, MIN_LOCAL_PYTHON_MAJOR,
+    MIN_LOCAL_PYTHON_MINOR,
 };
 use super::requirements::{
     prepare_multi_requirements_file, prepare_windows_safe_quranic_phonemizer_source,
@@ -292,6 +294,22 @@ pub async fn install_local_segmentation_deps(
         ],
         "pip install failed",
     )?;
+
+    if matches!(selected_engine, LocalSegmentationEngine::QuranWordTiming) {
+        let model_dir = get_word_timing_model_dir(&app_handle)?;
+        fs::create_dir_all(&model_dir).map_err(|e| e.to_string())?;
+        for (file_name, url, size, hash) in required_word_timing_model_files() {
+            let path = model_dir.join(file_name);
+            if validate_word_timing_model_file(&path, *size, hash).is_err() {
+                emit_status(&format!(
+                    "Preparing {} local environment...",
+                    selected_engine.as_label()
+                ));
+                download_binary_file(url, &path).await?;
+                validate_word_timing_model_file(&path, *size, hash)?;
+            }
+        }
+    }
 
     // Installation explicite de Quranic-Phonemizer pour multi-aligner.
     if matches!(selected_engine, LocalSegmentationEngine::MultiAligner) {

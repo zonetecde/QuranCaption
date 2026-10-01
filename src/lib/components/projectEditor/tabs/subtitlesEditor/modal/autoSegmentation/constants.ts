@@ -28,6 +28,7 @@ export const WIZARD_STEPS_CLOUD_V2: WizardStep[] = [
 /** Ordered steps for the offline word-timing path. */
 export const WIZARD_STEPS_quran_word_timing: WizardStep[] = [
 	{ key: 'version', title: 'Method', subtitle: 'Choose your workflow', icon: 'auto_awesome' },
+	WIZARD_STEPS_V2[1],
 	{ key: 'settings', title: 'Settings', subtitle: 'Timing and behavior', icon: 'tune' },
 	{ key: 'review', title: 'Review', subtitle: 'Check and launch', icon: 'play_arrow' }
 ];

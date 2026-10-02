@@ -149,14 +149,24 @@ impl LocalSegmentationEngine {
                 "rich",
                 "pydub",
             ],
-            Self::QuranWordTiming => &[
-                "numpy",
-                "onnxruntime",
-                "kaldi_native_fbank",
-                "numba",
-                "miniaudio",
-                "scipy",
-            ],
+            Self::QuranWordTiming => &["numpy", "onnxruntime", "numba", "miniaudio", "scipy"],
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::LocalSegmentationEngine;
+
+    /// Vérifie que le secours NumPy permet une installation sans Kaldi natif.
+    #[test]
+    fn word_timing_does_not_require_native_kaldi() {
+        let requirements = include_str!("../../python/word_timing_requirements.txt");
+        assert!(!requirements
+            .lines()
+            .any(|line| line.trim() == "kaldi-native-fbank"));
+        assert!(!LocalSegmentationEngine::QuranWordTiming
+            .required_import_modules()
+            .contains(&"kaldi_native_fbank"));
     }
 }

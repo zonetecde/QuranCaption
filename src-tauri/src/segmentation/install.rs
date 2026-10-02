@@ -436,6 +436,18 @@ pub async fn install_local_segmentation_deps(
     )?;
 
     if matches!(selected_engine, LocalSegmentationEngine::QuranWordTiming) {
+        // Kaldi natif est facultatif : sans wheel compatible, le secours NumPy prend le relais.
+        let _ = run_python_cmd(
+            &[
+                "-m",
+                "pip",
+                "install",
+                "--only-binary=:all:",
+                "kaldi-native-fbank",
+                "--quiet",
+            ],
+            "pip install failed",
+        );
         emit_status_progress("Preparing model storage...", 50);
         let model_dir = get_word_timing_model_dir(&app_handle)?;
         fs::create_dir_all(&model_dir).map_err(|e| e.to_string())?;

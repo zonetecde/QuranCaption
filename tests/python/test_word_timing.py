@@ -40,6 +40,18 @@ def matching_args(predicted: list[int], reference: list[int]) -> tuple:
 class WordTimingRegressionTests(unittest.TestCase):
     """Exercises the three regressions without downloading or running acoustic models."""
 
+    def test_filterbank_runs_without_native_kaldi(self) -> None:
+        """Extracts acoustic features when the optional native module is unavailable."""
+        with patch.dict(sys.modules, {"kaldi_native_fbank": None}):
+            from src.transcriber import ZipformerONNX
+
+            transcriber = object.__new__(ZipformerONNX)
+            audio = np.sin(np.arange(16000) * 0.1).astype(np.float32)
+            features = transcriber._extract_fbank(audio)
+        self.assertEqual(features.shape, (100, 80))
+        self.assertEqual(features.dtype, np.float32)
+        self.assertTrue(np.isfinite(features).all())
+
     def test_repeated_surahs_remain_in_timeline(self) -> None:
         """Keeps intervening chapters when a prayer returns to an earlier chapter."""
         for sequence in ([1, 112, 1, 113], [2, 3, 2]):

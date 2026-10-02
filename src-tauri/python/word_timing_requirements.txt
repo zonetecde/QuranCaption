@@ -1,6 +1,5 @@
 numpy
 onnxruntime
-kaldi-native-fbank
 numba
 miniaudio
 scipy

@@ -3,9 +3,9 @@ use std::process::Command;
 use crate::utils::process::configure_command_no_window;
 
 use super::data_files::{
-    is_word_timing_model_file_present, required_multi_aligner_data_files,
-    required_word_timing_model_files, resolve_multi_aligner_data_dir,
-    validate_multi_aligner_data_file,
+    required_multi_aligner_data_files, required_word_timing_model_files,
+    resolve_multi_aligner_data_dir, validate_multi_aligner_data_file,
+    validate_word_timing_model_file,
 };
 use super::python_env::{
     get_engine_venv_path, get_venv_python_exe, get_word_timing_model_dir,
@@ -380,8 +380,8 @@ pub async fn check_local_segmentation_ready(
             let surah_splitter_packages = surah_splitter_imports_ok;
             let word_timing_models_ready = get_word_timing_model_dir(&app_handle)
                 .map(|dir| {
-                    required_word_timing_model_files().iter().all(|(name, _, size, _)| {
-                        is_word_timing_model_file_present(&dir.join(name), *size)
+                    required_word_timing_model_files().iter().all(|(name, _, size, hash)| {
+                        validate_word_timing_model_file(&dir.join(name), *size, hash).is_ok()
                     })
                 })
                 .unwrap_or(false);

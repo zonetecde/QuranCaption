@@ -45,13 +45,6 @@ pub(crate) fn validate_word_timing_model_file(
     Ok(())
 }
 
-/// Vérifie rapidement la présence et la taille d'un modèle WordTiming sans recalculer le hachage lourd.
-pub(crate) fn is_word_timing_model_file_present(path: &Path, expected_size: usize) -> bool {
-    fs::metadata(path)
-        .map(|meta| meta.is_file() && meta.len() == expected_size as u64)
-        .unwrap_or(false)
-}
-
 const MULTI_ALIGNER_DATA_FILES: [(&str, &str); 6] = [
     (
         "phoneme_cache.pkl",

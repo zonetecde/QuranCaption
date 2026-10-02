@@ -140,7 +140,7 @@ export function useAutoSegmentationWizard() {
 			selection.aiVersion,
 			selection.runtime,
 			showExistingSubtitlesStep(),
-			isSetupReady()
+			isSetupReady() && activeStepKey !== 'setup'
 		)
 	);
 	const maxStep = $derived(() => Math.max(0, steps().length - 1));

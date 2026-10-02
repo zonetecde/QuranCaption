@@ -92,6 +92,10 @@ jobs:
         if: startsWith(matrix.os, 'macos')
         run: |
           brew update
+          # Avoid OpenSSL symlink conflicts with the runner's preinstalled version.
+          if brew list --versions openssl@1.1 >/dev/null 2>&1; then
+            brew unlink openssl@1.1
+          fi
           brew install ffmpeg-full
           mkdir -p src-tauri/binaries
           cp "$(brew --prefix ffmpeg-full)/bin/ffprobe" src-tauri/binaries/ffprobe

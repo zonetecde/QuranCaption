@@ -19,7 +19,9 @@
 	);
 </script>
 
-<aside class="w-[320px] min-w-[280px] border-e border-color bg-primary/80 p-5 space-y-4">
+<aside
+	class="w-[320px] min-w-[280px] min-h-0 overflow-y-auto border-e border-color bg-primary/80 p-5 space-y-4"
+>
 	<div class="space-y-1">
 		<div class="text-xs uppercase tracking-wide text-thirdly">
 			{$LL.editor.aiSegmentationHeading()}

@@ -50,7 +50,6 @@ export interface BatchSegmentationSettingsSnapshot {
 	fillBySilence: boolean;
 	extendBeforeSilence: boolean;
 	extendBeforeSilenceMs: number;
-	surahSplitterSurah: number | null;
 }
 
 export interface BatchSegmentationState {

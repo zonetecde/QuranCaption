@@ -208,31 +208,23 @@ pub async fn segment_quran_audio_local_multi(
     .await
 }
 
-/// Lance la segmentation locale en mode Surah Splitter.
+/// Lance le moteur historique FastConformer de QC-3.7.60.
 #[tauri::command]
-pub async fn segment_quran_audio_local_surah_splitter(
+pub async fn segment_quran_audio_local_word_timing_old(
     app_handle: tauri::AppHandle,
     audio_path: Option<String>,
     audio_clips: Option<Vec<SegmentationAudioClip>>,
     min_silence_ms: Option<u32>,
     min_speech_ms: Option<u32>,
     pad_ms: Option<u32>,
-    model_name: Option<String>,
-    device: Option<String>,
-    surah: Option<u32>,
-    include_wbw_timestamps: Option<bool>,
 ) -> Result<serde_json::Value, String> {
-    segmentation::segment_quran_audio_local_surah_splitter(
+    segmentation::segment_quran_audio_local_word_timing_old(
         app_handle,
         audio_path,
         audio_clips,
         min_silence_ms,
         min_speech_ms,
         pad_ms,
-        model_name,
-        device,
-        surah,
-        include_wbw_timestamps,
     )
     .await
 }

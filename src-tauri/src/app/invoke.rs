@@ -56,7 +56,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::segmentation::get_segmentation_mfa_timestamps_direct,
         commands::segmentation::segment_quran_audio_local,
         commands::segmentation::segment_quran_audio_local_multi,
-        commands::segmentation::segment_quran_audio_local_surah_splitter,
+        commands::segmentation::segment_quran_audio_local_word_timing_old,
         commands::segmentation::segment_quran_audio_local_word_timing,
         commands::segmentation::generate_hifz_audio,
         commands::segmentation::preload_recitations,

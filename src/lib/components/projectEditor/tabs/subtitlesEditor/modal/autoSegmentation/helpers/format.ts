@@ -8,11 +8,7 @@ import type {
 	SegmentationDevice,
 	SegmentationMode
 } from '$lib/services/AutoSegmentation';
-import {
-	LEGACY_MODEL_OPTIONS,
-	MULTI_MODEL_OPTIONS,
-	SURAH_SPLITTER_MODEL_OPTIONS
-} from '../constants';
+import { LEGACY_MODEL_OPTIONS, MULTI_MODEL_OPTIONS } from '../constants';
 import type { AiVersion } from '../types';
 
 /** Formats the token for compact display in UI. */
@@ -57,6 +53,9 @@ export function getSelectedModelLabel(
 	multiModel: MultiAlignerModel,
 	cloudModel: MultiAlignerModel
 ): string {
+	if (version === 'quran_word_timing_old') {
+		return get(LL).editor.quranwordtimingOldLabel();
+	}
 	if (version === 'quran_word_timing') {
 		return get(LL).editor.quranwordtimingLabel();
 	}
@@ -68,11 +67,7 @@ export function getSelectedModelLabel(
 	if (mode === 'api') {
 		return MULTI_MODEL_OPTIONS.find((option) => option.value === cloudModel)?.label ?? cloudModel;
 	}
-	return (
-		MULTI_MODEL_OPTIONS.find((option) => option.value === multiModel)?.label ??
-		SURAH_SPLITTER_MODEL_OPTIONS.find((option) => option.value === multiModel)?.label ??
-		multiModel
-	);
+	return MULTI_MODEL_OPTIONS.find((option) => option.value === multiModel)?.label ?? multiModel;
 }
 
 /** Resolves the effective device label for review and analytics. */
@@ -81,6 +76,7 @@ export function getDeviceLabel(
 	mode: SegmentationMode,
 	device: SegmentationDevice
 ): string {
+	if (version === 'quran_word_timing' || version === 'quran_word_timing_old') return 'CPU';
 	if (version === 'legacy_v1' && mode === 'local') return 'AUTO';
 	return device;
 }

@@ -26,11 +26,11 @@ const params: SegmentationAnalyticsParams = {
 afterEach(() => vi.restoreAllMocks());
 
 describe('segmentation analytics', () => {
-	it('uses stable identifiers for Surah Splitter and Quran word timing', () => {
+	it('uses stable identifiers for Old Quran Karim words alignment and Quran word timing', () => {
 		expect(
-			getSegmentationAnalyticsModel('surah_splitter', 'Base Quran', 'SurahSplitter-Base-Quran')
-		).toBe('SurahSplitter-Base-Quran');
-		expect(getSegmentationAnalyticsModel('quran_word_timing', 'Quran Word Timing', 'Base')).toBe(
+			getSegmentationAnalyticsModel('quran_word_timing_old', 'Old Quran Karim words alignment')
+		).toBe('quran_word_timing_old');
+		expect(getSegmentationAnalyticsModel('quran_word_timing', 'Quran Word Timing')).toBe(
 			'quran_word_timing'
 		);
 	});

@@ -92,8 +92,8 @@ function resolveContextModelName(
 	legacyWhisperModel: string
 ): string {
 	if (effectiveMode === 'api') return cloudModel;
-	if (localAsrMode === 'multi_aligner' || localAsrMode === 'surah_splitter')
-		return multiAlignerModel;
+	if (localAsrMode === 'multi_aligner') return multiAlignerModel;
+	if (localAsrMode === 'quran_word_timing_old') return 'quran_word_timing_old';
 	return legacyWhisperModel;
 }
 
@@ -126,7 +126,7 @@ export async function runAutoSegmentationForProject(
 	const legacyWhisperModel = options.legacyWhisperModel ?? 'base';
 	const multiAlignerModel = options.multiAlignerModel ?? 'Base';
 	const cloudModel = options.cloudModel ?? 'Base';
-	const surahSplitterSurah = options.surahSplitterSurah ?? null;
+
 	const device: SegmentationDevice = options.device ?? 'GPU';
 	const riwayah = options.riwayah ?? 'hafs';
 	const hfToken: string = (options.hfToken ?? '').trim();
@@ -202,14 +202,8 @@ export async function runAutoSegmentationForProject(
 				});
 			}
 
-			if (localAsrMode === 'surah_splitter') {
-				return await invoke('segment_quran_audio_local_surah_splitter', {
-					...basePayload,
-					modelName: multiAlignerModel,
-					device: targetDevice,
-					surah: surahSplitterSurah,
-					includeWbwTimestamps
-				});
+			if (localAsrMode === 'quran_word_timing_old') {
+				return await invoke('segment_quran_audio_local_word_timing_old', basePayload);
 			}
 
 			if (localAsrMode === 'quran_word_timing') {
@@ -338,7 +332,18 @@ export async function runAutoSegmentationForProject(
 		return result;
 	} catch (error) {
 		console.error('Segmentation request failed:', error);
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		let errorMessage = error instanceof Error ? error.message : String(error);
+		try {
+			const diagnostic = JSON.parse(errorMessage);
+			if (typeof diagnostic?.localSegmentationExitStatus === 'string') {
+				errorMessage = `${get(LL).editor.segmentationFailed()} [${diagnostic.localSegmentationExitStatus}]`;
+				if (typeof diagnostic.details === 'string' && diagnostic.details.trim()) {
+					errorMessage += `\n${diagnostic.details}`;
+				}
+			}
+		} catch {
+			// Les autres erreurs conservent leur message d'origine.
+		}
 		return { status: 'failed', message: errorMessage };
 	}
 }

@@ -755,15 +755,21 @@ export default class MigrationService {
 				| 'open_multi_aligner'
 				| 'muaalem_local'
 				| 'surah_splitter'
+				| 'quran_word_timing_old'
 				| 'quran_word_timing';
 			multiAlignerModel?: string;
 			includeWbwTimestamps?: boolean;
+			surahSplitterSurah?: number | null;
 		};
 
 		let hasChanges = false;
+		if ('surahSplitterSurah' in autoSegmentationSettings) {
+			delete autoSegmentationSettings.surahSplitterSurah;
+			hasChanges = true;
+		}
 
 		if (
-			['open_multi_aligner', 'legacy_whisper', 'muaalem_local'].includes(
+			['open_multi_aligner', 'legacy_whisper', 'muaalem_local', 'surah_splitter'].includes(
 				autoSegmentationSettings.localAsrMode ?? ''
 			)
 		) {

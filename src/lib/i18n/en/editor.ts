@@ -229,7 +229,6 @@ const editor = {
 	legacyWhisper: 'Legacy Whisper local packages',
 	privateQuranicAligner: 'Private Local Quranic Universal Aligner packages',
 	muaalemLocal: 'Muaalem Local packages',
-	surahSplitterLocal: 'Surah Splitter Local packages',
 	audioDetected: 'Audio detected',
 	noAudioClip: 'No audio clip',
 	noAudioClipInTimeline: 'No audio clip found in the timeline.',
@@ -453,10 +452,6 @@ const editor = {
 	surahSelectionLabel: 'Surah selection',
 	autoDetectSurah: 'Auto-detect surah',
 	specifySurah: 'Specify surah',
-	surahSplitterPrecisionHint:
-		'Specifying the surah improves precision because matching is restricted to that surah.',
-	surahSplitterMultiSurahNote:
-		'Note: if your audio contains multiple surahs, only the last one will be detected and segmented. Use another model for multi-surah files.',
 	reviewAndLaunch: 'Review and launch',
 	reviewAndLaunchDesc: 'Check your configuration before generating subtitles.',
 	methodLabel: 'Method',
@@ -474,8 +469,6 @@ const editor = {
 	prepareMethodLocalV2Desc:
 		'Install the required local packages and configure your Hugging Face token.',
 	prepareMethodMuaalemDesc: 'Install the required local packages for the Muaalem local workflow.',
-	prepareMethodSurahSplitterDesc:
-		'Install the required local packages for the Surah Splitter workflow.',
 	prepareMethodLegacyDesc: 'Install the legacy local dependencies.',
 	cloudMethodDescription: 'This method runs remotely and does not need local Python packages.',
 	huggingFaceTokenLabel: 'Local model download token',
@@ -487,12 +480,8 @@ const editor = {
 	checkingLocalEngines: 'Checking local engines in background...',
 	noTokenRequiredHint:
 		'No token required. Fully local installation with on-device model downloads.',
-	noTokenRequiredSurahSplitterHint:
-		'No token required. Surah Splitter downloads its WhisperX model during the first run.',
 	muaalemLocalHint:
 		'This option is fully local, but it is usually less accurate than the official Quranic Universal Aligner pipeline.',
-	surahSplitterLocalHint:
-		'This option can auto-detect the surah. Selecting the surah manually in the next step improves matching precision.',
 	chooseMethodLabel: 'Choose a method',
 	chooseMethodDesc:
 		'Pick the simplest method for your situation. You can still change advanced options later.',
@@ -500,21 +489,19 @@ const editor = {
 	bestOverallQuality: 'Best overall quality and easiest setup',
 	usesOfficialRemote:
 		'Uses the official Quranic Universal Aligner remotely. Recommended for most users.',
-	surahSplitterLocalLabel: 'Surah Splitter Local',
-	surahSplitterLocalDesc: 'Local ayah detection with optional surah hint',
-	surahSplitterLocalDetail:
-		'Runs Surah Splitter locally with WhisperX. It can auto-detect the surah and it supports word-by-word alignment, but selecting the surah manually improves precision.',
-	surahSplitterSingleSurahNote:
-		"Note: this option only works if there's one surah in the audio file.",
 	muaalemLocalLabel: 'Muaalem Local',
-	muaalemLocalDesc: 'Second option but less effective than Surah Splitter',
 	muaalemLocalDetail:
 		'Runs entirely on your machine with the Muaalem local pipeline. It uses Quran-specific segmentation and matching.',
 	privateLocalQuranicAlignerLabel: 'Private Local Quranic Universal Aligner',
 	bestLocalAccuracy: 'Best local accuracy',
 	privateLocalQuranicAlignerDetail:
 		'Runs on your machine with the private local Quranic Universal Aligner stack. Requires Python setup and a Hugging Face token.',
-	quranwordtimingLabel: 'Quran Karim - offline segmenter',
+	quranwordtimingLabel: 'Quran Karim words alignment',
+	quranwordtimingOldLabel: 'Old Quran Karim words alignment',
+	quranwordtimingOldDetail:
+		'FastConformer engine from QC-3.7.60, with offline verse and word timestamp alignment.',
+	quranwordtimingOldDownloadSizeHint:
+		'One-time download of Python packages and the model (~87 MB). Operates offline afterwards.',
 	quranwordtimingDesc: 'Ayahs Aligner - No Internet Required',
 	quranwordtimingDetail: 'Offline Quranic speech recognition and word-by-word timestamp alignment.',
 	quranwordtimingDownloadSizeHint:
@@ -644,17 +631,11 @@ const editor = {
 		'Experimental fallback models from the previous open local workflow. They do not use the full Muaalem phonetic path and may be less reliable.',
 	muaalemLocalFeatureDesc:
 		'Muaalem Local combines Quran-specific segmentation, phonetic speech recognition, monotonic Quran passage retrieval, and local forced alignment for real word-by-word timings.',
-	surahSplitterFeatureDesc:
-		'Surah Splitter transcribes the audio with WhisperX, matches recognized words to the Quran text, then returns ayah-level timestamps. Auto-detection is available, but specifying the surah improves precision.',
 	muaalemLocalEffectivenessHint:
 		'This method is fully local, but it is generally less effective than the official Quranic Universal Aligner. Advanced fallback models are hidden by default because they are more experimental than the recommended Muaalem v3.2 path.',
-	surahSplitterDownloadNote:
-		'Surah Splitter downloads the selected model during segmentation if it is not cached yet.',
 	tokenRequiredHint: 'This method requires a valid Hugging Face token before it can run.',
 	muaalemReviewHint:
 		'This method is fully local and simpler to install, but usually less effective than the official Quranic Universal Aligner pipeline.',
-	surahSplitterReviewHint:
-		'Auto-detection is available, but specifying the surah improves precision.',
 	legacyV1ReviewHint: 'Legacy V1 is an older fallback pipeline with lower alignment quality.',
 	noAudioDetectedWarning: 'No audio clip was detected in the current timeline.',
 	speechRecognitionModel: 'Speech recognition model',

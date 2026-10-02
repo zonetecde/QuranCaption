@@ -13,8 +13,8 @@
 				? 'Quranic Universal Aligner'
 				: wizard.selection.aiVersion === 'multi_v2_local'
 					? 'Private Local Quranic Universal Aligner'
-					: wizard.selection.aiVersion === 'surah_splitter'
-						? 'Surah Splitter Local'
+					: wizard.selection.aiVersion === 'quran_word_timing_old'
+						? $LL.editor.quranwordtimingOldLabel()
 						: $LL.editor.quranwordtimingLabel()
 	);
 </script>

@@ -151,9 +151,12 @@ fn run_local_segmentation_script(
 
     let python_exe = resolve_engine_python_exe(&app_handle, engine)?;
     let script_path = resolve_python_resource_path(&app_handle, engine.script_relative_path())?;
-    let word_timing_model_dir = if matches!(engine, LocalSegmentationEngine::QuranWordTiming) {
-        let dir = get_word_timing_model_dir(&app_handle)?;
-        for (name, _, size, hash) in required_word_timing_model_files() {
+    let word_timing_model_dir = if matches!(
+        engine,
+        LocalSegmentationEngine::QuranWordTiming | LocalSegmentationEngine::QuranWordTimingOld
+    ) {
+        let dir = get_word_timing_model_dir(&app_handle, engine)?;
+        for (name, _, size, hash) in required_word_timing_model_files(engine) {
             validate_word_timing_model_file(&dir.join(name), *size, hash)?;
         }
         Some(dir)
@@ -192,6 +195,21 @@ fn run_local_segmentation_script(
             args.push(serde_json::to_string(clips).map_err(|error| error.to_string())?);
         }
     }
+    if matches!(engine, LocalSegmentationEngine::QuranWordTimingOld) {
+        if let Some(clips) = audio_clips.as_ref().filter(|clips| !clips.is_empty()) {
+            // Le moteur historique reçoit l'audio fusionné avec ses offsets de timeline.
+            let regions: Vec<[i64; 2]> = clips
+                .iter()
+                .filter_map(|clip| {
+                    let start = clip.start_ms.max(0);
+                    let end = clip.end_ms.max(start);
+                    (end > start).then_some([start, end])
+                })
+                .collect();
+            args.push("--audio-regions-ms".to_string());
+            args.push(serde_json::to_string(&regions).map_err(|error| error.to_string())?);
+        }
+    }
     args.append(&mut extra_args);
     println!("[segmentation][local][debug] python args={:?}", args);
 
@@ -218,8 +236,18 @@ fn run_local_segmentation_script(
     // ExÃ©cution Python + thread de lecture stderr pour status/events de progression.
     let mut cmd = Command::new(&python_exe);
     cmd.args(&args);
+    // Conserve les traces des plantages natifs et garantit un stderr lisible en UTF-8.
+    cmd.env("PYTHONFAULTHANDLER", "1");
+    cmd.env("PYTHONIOENCODING", "utf-8");
     if let Some(dir) = word_timing_model_dir {
-        cmd.env("QC_WORD_TIMING_MODEL_DIR", dir);
+        cmd.env(
+            if matches!(engine, LocalSegmentationEngine::QuranWordTimingOld) {
+                "QC_WORD_TIMING_OLD_MODEL_DIR"
+            } else {
+                "QC_WORD_TIMING_MODEL_DIR"
+            },
+            dir,
+        );
     }
     if let Some(token) = hf_token {
         if !token.trim().is_empty() {
@@ -350,13 +378,20 @@ fn run_local_segmentation_script(
             }
         }
 
-        if !stdout.trim().is_empty() {
-            Err(format!("Python script failed: {}", stdout))
-        } else if !stderr_text.trim().is_empty() {
-            Err(format!("Python script failed: {}", stderr_text))
-        } else {
-            Err("Python script failed with no output".to_string())
-        }
+        let exit_status = output
+            .status
+            .code()
+            .map(|code| format!("{} (0x{:08X})", code, code as u32))
+            .unwrap_or_else(|| output.status.to_string());
+        Err(serde_json::json!({
+            "localSegmentationExitStatus": exit_status,
+            "details": ([stdout.trim(), stderr_text.trim()]
+                .into_iter()
+                .filter(|text| !text.is_empty())
+                .collect::<Vec<_>>()
+                .join("\n"))
+        })
+        .to_string())
     }
 }
 /// ExÃ©cute la segmentation locale via moteur legacy Whisper.
@@ -445,65 +480,24 @@ pub async fn segment_quran_audio_local_multi(
         hf_token,
     )
 }
-/// Exécute la segmentation locale via Surah Splitter sans token HF.
-pub async fn segment_quran_audio_local_surah_splitter(
+/// Exécute le moteur historique FastConformer de QC-3.7.60.
+pub async fn segment_quran_audio_local_word_timing_old(
     app_handle: tauri::AppHandle,
     audio_path: Option<String>,
     audio_clips: Option<Vec<SegmentationAudioClip>>,
     min_silence_ms: Option<u32>,
     min_speech_ms: Option<u32>,
     pad_ms: Option<u32>,
-    model_name: Option<String>,
-    device: Option<String>,
-    surah: Option<u32>,
-    include_wbw_timestamps: Option<bool>,
 ) -> Result<serde_json::Value, String> {
-    let selected_model = model_name.unwrap_or_else(|| "SurahSplitter-Base-Quran".to_string());
-    if selected_model != "SurahSplitter-Base-Quran" {
-        return Err(format!("Invalid model_name '{}'.", selected_model));
-    }
-
-    let selected_device = device.unwrap_or_else(|| "GPU".to_string()).to_uppercase();
-    if selected_device != "GPU" && selected_device != "CPU" {
-        return Err(format!(
-            "Invalid device '{}'. Expected 'GPU' or 'CPU'.",
-            selected_device
-        ));
-    }
-
-    if let Some(surah_number) = surah {
-        if !(1..=114).contains(&surah_number) {
-            return Err(format!(
-                "Invalid surah '{}'. Expected a value between 1 and 114.",
-                surah_number
-            ));
-        }
-    }
-
-    let extra_args = vec![
-        "--model-name".to_string(),
-        selected_model,
-        "--device".to_string(),
-        selected_device,
-        "--surah".to_string(),
-        surah.unwrap_or(0).to_string(),
-        "--include-wbw-timestamps".to_string(),
-        if include_wbw_timestamps.unwrap_or(false) {
-            "true".to_string()
-        } else {
-            "false".to_string()
-        },
-    ];
-
     run_local_segmentation_script(
         app_handle,
-        LocalSegmentationEngine::SurahSplitter,
+        LocalSegmentationEngine::QuranWordTimingOld,
         audio_path,
         audio_clips,
         min_silence_ms,
         min_speech_ms,
         pad_ms,
-        extra_args,
+        Vec::new(),
         None,
     )
 }

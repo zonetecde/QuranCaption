@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use sha2::{Digest, Sha256};
 
 use super::python_env::resolve_python_resource_path;
+use super::types::LocalSegmentationEngine;
 
 const LFS_POINTER_PREFIX: &[u8] = b"version https://git-lfs.github.com/spec/v1";
 
@@ -22,10 +23,21 @@ const WORD_TIMING_MODEL_FILES: [(&str, &str, usize, &str); 2] = [
     ),
 ];
 
+const OLD_WORD_TIMING_MODEL_FILES: [(&str, &str, usize, &str); 1] = [(
+    "qurankarim-fastconformer-mixed.onnx",
+    "https://github.com/Iam-Muslim/QuranReciteToText/releases/download/model/qurankarim-fastconformer-mixed.onnx",
+    86_983_112,
+    "e564c8b4ce93ec3e83190ab590caeb093be519133f16864cb611a495fdf48e6b",
+)];
+
 /// Retourne les modèles requis par le moteur WordTiming hors ligne.
 pub(crate) fn required_word_timing_model_files(
+    engine: LocalSegmentationEngine,
 ) -> &'static [(&'static str, &'static str, usize, &'static str)] {
-    &WORD_TIMING_MODEL_FILES
+    match engine {
+        LocalSegmentationEngine::QuranWordTimingOld => &OLD_WORD_TIMING_MODEL_FILES,
+        _ => &WORD_TIMING_MODEL_FILES,
+    }
 }
 
 /// Vérifie la taille et l'empreinte SHA-256 d'un modèle WordTiming téléchargé.

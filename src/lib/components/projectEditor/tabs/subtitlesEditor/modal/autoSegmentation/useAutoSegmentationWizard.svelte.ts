@@ -35,7 +35,7 @@ import {
 	getSelectedModelLabel
 } from './helpers/format';
 import { deriveSelectionState, persistSettingsPatch } from './helpers/persist';
-import { getWizardSteps, SURAH_SPLITTER_MODEL_OPTIONS } from './constants';
+import { getWizardSteps } from './constants';
 import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 import type {
 	AiVersion,
@@ -51,9 +51,6 @@ let statusCheckPromise: Promise<void> | null = null;
 
 /** Creates modal state and actions for the auto-segmentation wizard. */
 export function useAutoSegmentationWizard() {
-	const validSurahSplitterModels = new Set<string>(
-		SURAH_SPLITTER_MODEL_OPTIONS.map((option) => option.value)
-	);
 	const persisted = globalState.settings?.autoSegmentationSettings as
 		| AutoSegmentationSettings
 		| undefined;
@@ -77,9 +74,9 @@ export function useAutoSegmentationWizard() {
 	let localStatus = $state<LocalSegmentationStatus | null>(cachedLocalStatus);
 	let isCheckingStatus = $state(false);
 	let isInstallingDeps = $state(false);
-	let installingEngine = $state<'legacy' | 'multi' | 'surah_splitter' | 'quran_word_timing' | null>(
-		null
-	);
+	let installingEngine = $state<
+		'legacy' | 'multi' | 'quran_word_timing_old' | 'quran_word_timing' | null
+	>(null);
 	let installStatus = $state('');
 	let installStatusProgress = $state<number | null>(null);
 	let installStatusMessage = $state('');
@@ -112,19 +109,22 @@ export function useAutoSegmentationWizard() {
 
 	const selectedLocalEngineStatus = $derived(() => {
 		if (selection.localAsrMode === 'legacy_whisper') return localStatus?.engines?.legacy ?? null;
-		if (selection.localAsrMode === 'surah_splitter')
-			return localStatus?.engines?.surahSplitter ?? null;
+		if (selection.localAsrMode === 'quran_word_timing_old')
+			return localStatus?.engines?.quranwordtimingOld ?? null;
 		if (selection.localAsrMode === 'quran_word_timing')
 			return localStatus?.engines?.quranwordtiming ?? null;
 		return localStatus?.engines?.multi ?? null;
 	});
 
 	const isSetupReady = $derived(() => {
-		if (selection.aiVersion === 'quran_word_timing') {
+		if (
+			selection.aiVersion === 'quran_word_timing' ||
+			selection.aiVersion === 'quran_word_timing_old'
+		) {
 			if (selectedLocalEngineStatus()) {
 				return Boolean(selectedLocalEngineStatus()?.usable);
 			}
-			return isWordTimingReadyFromCache();
+			return selection.aiVersion === 'quran_word_timing' && isWordTimingReadyFromCache();
 		}
 		return false;
 	});
@@ -154,8 +154,8 @@ export function useAutoSegmentationWizard() {
 		() =>
 			selection.aiVersion === 'multi_v2' ||
 			selection.aiVersion === 'multi_v2_local' ||
-			selection.aiVersion === 'surah_splitter' ||
-			selection.aiVersion === 'quran_word_timing'
+			selection.aiVersion === 'quran_word_timing' ||
+			selection.aiVersion === 'quran_word_timing_old'
 	);
 
 	const audioLaneCount = $derived(() => getAutoSegmentationAudioLaneCount());
@@ -195,7 +195,11 @@ export function useAutoSegmentationWizard() {
 		if (showExistingSubtitlesStep() && subtitleApplicationMode === null) return false;
 		if (selection.runtime === 'hf_json')
 			return hasAudio() && importedJsonRaw.trim().length > 0 && !isRunning;
-		if (selection.aiVersion === 'quran_word_timing' && !selectedLocalEngineStatus()?.usable)
+		if (
+			(selection.aiVersion === 'quran_word_timing' ||
+				selection.aiVersion === 'quran_word_timing_old') &&
+			!selectedLocalEngineStatus()?.usable
+		)
 			return false;
 		return hasAudio() && !isRunning;
 	});
@@ -214,11 +218,9 @@ export function useAutoSegmentationWizard() {
 				  selection.mode === 'local' &&
 				  !selectedLocalEngineStatus()?.usable
 				? 'Install the required local packages first.'
-				: selection.aiVersion === 'surah_splitter'
-					? 'Surah Splitter can auto-detect the surah, but selecting it manually improves precision.'
-					: selection.mode === 'local'
-						? "Local mode uses your computer's resources."
-						: 'Cloud mode uses the Quranic Universal Aligner.'
+				: selection.mode === 'local'
+					? "Local mode uses your computer's resources."
+					: 'Cloud mode uses the Quranic Universal Aligner.'
 	);
 
 	/** Persists a partial settings update. */
@@ -270,25 +272,13 @@ export function useAutoSegmentationWizard() {
 				selection.multiModel = 'Base';
 				persistPatch({ multiAlignerModel: selection.multiModel });
 			}
-		} else if (aiVersion === 'quran_word_timing') {
+		} else if (aiVersion === 'quran_word_timing' || aiVersion === 'quran_word_timing_old') {
 			selection.mode = 'local';
 			selection.runtime = 'local';
-			selection.localAsrMode = 'quran_word_timing';
+			selection.localAsrMode = aiVersion;
 			if (!includeWbwTimestamps) {
 				includeWbwTimestamps = true;
 				persistPatch({ includeWbwTimestamps: true });
-			}
-		} else if (aiVersion === 'surah_splitter') {
-			selection.mode = 'local';
-			selection.runtime = 'local';
-			selection.localAsrMode = 'surah_splitter';
-			if (!includeWbwTimestamps) {
-				includeWbwTimestamps = true;
-				persistPatch({ includeWbwTimestamps: true });
-			}
-			if (!validSurahSplitterModels.has(selection.multiModel)) {
-				selection.multiModel = 'SurahSplitter-Base-Quran';
-				persistPatch({ multiAlignerModel: selection.multiModel });
 			}
 		} else {
 			selection.mode = 'api';
@@ -377,7 +367,7 @@ export function useAutoSegmentationWizard() {
 
 	/** Installs local dependencies for one engine with streamed status text. */
 	async function installEngine(
-		engine: 'legacy' | 'multi' | 'surah_splitter' | 'quran_word_timing'
+		engine: 'legacy' | 'multi' | 'quran_word_timing_old' | 'quran_word_timing'
 	): Promise<void> {
 		if (isInstallingDeps) return;
 		isInstallingDeps = true;
@@ -564,11 +554,7 @@ export function useAutoSegmentationWizard() {
 			requestedMode: selection.mode,
 			runtime: selection.runtime,
 			version: selection.aiVersion,
-			model: getSegmentationAnalyticsModel(
-				selection.aiVersion,
-				selectedModel(),
-				selection.multiModel
-			),
+			model: getSegmentationAnalyticsModel(selection.aiVersion, selectedModel()),
 			device: selectedDevice(),
 			minSilenceMs,
 			minSpeechMs,
@@ -602,7 +588,6 @@ export function useAutoSegmentationWizard() {
 					legacyWhisperModel: selection.legacyModel,
 					multiAlignerModel: selection.multiModel,
 					cloudModel: selection.cloudModel,
-					surahSplitterSurah: selection.surahSplitterSurah,
 					device: selection.device,
 					riwayah: selection.riwayah,
 					hfToken: selection.hfToken,
@@ -647,7 +632,9 @@ export function useAutoSegmentationWizard() {
 	function isPresetActive(preset: SegmentationPreset): boolean {
 		return (
 			minSilenceMs === preset.minSilenceMs &&
-			(selection.aiVersion === 'quran_word_timing' || minSpeechMs === preset.minSpeechMs) &&
+			(selection.aiVersion === 'quran_word_timing' ||
+				selection.aiVersion === 'quran_word_timing_old' ||
+				minSpeechMs === preset.minSpeechMs) &&
 			padMs === preset.padMs
 		);
 	}
@@ -661,11 +648,6 @@ export function useAutoSegmentationWizard() {
 	function setMultiModel(value: MultiAlignerModel): void {
 		selection.multiModel = value;
 		persistPatch({ multiAlignerModel: value });
-	}
-	/** Définit la sourate Surah Splitter et persiste le choix. */
-	function setSurahSplitterSurah(value: number | null): void {
-		selection.surahSplitterSurah = value;
-		persistPatch({ surahSplitterSurah: value });
 	}
 	/** Sets cloud model and persists the choice. */
 	function setCloudModel(value: 'Base' | 'Large'): void {
@@ -906,7 +888,6 @@ export function useAutoSegmentationWizard() {
 		setLegacyModel,
 		setMultiModel,
 		setCloudModel,
-		setSurahSplitterSurah,
 		setDevice,
 		setRiwayah,
 		setMinSilence,

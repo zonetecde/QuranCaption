@@ -124,19 +124,19 @@
 		<button
 			type="button"
 			class="rounded-xl border p-4 text-start transition-colors"
-			class:border-accent-primary={wizard.selection.aiVersion === 'surah_splitter'}
-			class:bg-accent={wizard.selection.aiVersion === 'surah_splitter'}
-			class:border-color={wizard.selection.aiVersion !== 'surah_splitter'}
-			onclick={() => wizard.onVersionChange('surah_splitter')}
+			class:border-accent-primary={wizard.selection.aiVersion === 'quran_word_timing_old'}
+			class:bg-accent={wizard.selection.aiVersion === 'quran_word_timing_old'}
+			class:border-color={wizard.selection.aiVersion !== 'quran_word_timing_old'}
+			onclick={() => wizard.onVersionChange('quran_word_timing_old')}
 		>
 			<div class="mb-1 flex items-center gap-2 text-primary">
-				<span class="material-icons">offline_bolt</span>{$LL.editor.surahSplitterLocalLabel()}
+				<span class="material-icons">offline_bolt</span>{$LL.editor.quranwordtimingOldLabel()}
 			</div>
 			<p class="text-sm font-medium text-primary">
-				{$LL.editor.surahSplitterLocalDesc()}
+				{$LL.editor.quranwordtimingDesc()}
 			</p>
 			<p class="mt-3 text-xs text-thirdly">
-				{$LL.editor.surahSplitterLocalDetail()} <br />{$LL.editor.surahSplitterSingleSurahNote()}
+				{$LL.editor.quranwordtimingOldDetail()}
 			</p>
 			<div
 				class="mt-3 inline-flex items-center rounded-full border border-color px-2 py-1 text-[11px] text-thirdly"

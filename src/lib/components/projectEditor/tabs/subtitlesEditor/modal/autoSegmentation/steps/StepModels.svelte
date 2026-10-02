@@ -1,14 +1,12 @@
 <script lang="ts">
-	import { MULTI_MODEL_OPTIONS, SURAH_SPLITTER_MODEL_OPTIONS } from '../constants';
+	import { MULTI_MODEL_OPTIONS } from '../constants';
 	import { getSharedWizard } from '../sharedWizard';
 	import LL from '$lib/i18n/i18n-svelte';
 	import type { SegmentationRiwayah } from '$lib/services/AutoSegmentation';
 	import HuggingFaceAccountSettings from '$lib/components/settings/HuggingFaceAccountSettings.svelte';
 
 	const wizard = getSharedWizard();
-	const isSurahSplitter = $derived(() => wizard.selection.aiVersion === 'surah_splitter');
 	const isCloud = $derived(() => wizard.selection.aiVersion === 'multi_v2');
-	const surahNumbers = Array.from({ length: 114 }, (_, index) => index + 1);
 	const riwayat: Array<{ value: SegmentationRiwayah; label: string }> = [
 		{ value: 'hafs', label: 'Hafs' },
 		{ value: 'warsh', label: 'Warsh' },
@@ -50,73 +48,6 @@
 						<div class="text-xs text-thirdly">{option.description}</div>
 					</button>
 				{/each}
-			</div>
-		{:else if isSurahSplitter()}
-			<div class="space-y-4">
-				<div class="rounded-xl border border-color bg-accent/40 p-3 text-sm text-thirdly">
-					{$LL.editor.surahSplitterFeatureDesc()}
-				</div>
-
-				<div class="grid grid-cols-1 gap-2">
-					{#each SURAH_SPLITTER_MODEL_OPTIONS as option (option.value)}
-						<button
-							type="button"
-							class="rounded-lg border p-3 text-start"
-							class:border-accent-primary={wizard.selection.multiModel === option.value}
-							class:border-color={wizard.selection.multiModel !== option.value}
-							onclick={() => wizard.setMultiModel(option.value)}
-						>
-							<div class="flex items-center justify-between gap-3">
-								<div class="text-sm font-medium text-primary">{option.label}</div>
-								<span
-									class="inline-flex items-center rounded-full border border-accent-primary bg-accent-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--bg-primary)]"
-								>
-									{$LL.editor.recommendedLabel()}
-								</span>
-							</div>
-							<div class="text-xs text-thirdly">{option.description}</div>
-							<div class="mt-1 text-[11px] font-mono text-thirdly/80">{option.source}</div>
-						</button>
-					{/each}
-				</div>
-
-				<div class="space-y-2 rounded-xl border border-color p-3">
-					<div class="text-xs uppercase text-thirdly">{$LL.editor.surahSelectionLabel()}</div>
-					<label class="flex items-center gap-2 text-sm text-primary">
-						<input
-							type="radio"
-							name="surah-splitter-surah"
-							checked={wizard.selection.surahSplitterSurah === null}
-							onchange={() => wizard.setSurahSplitterSurah(null)}
-						/>
-						{$LL.editor.autoDetectSurah()}
-					</label>
-					<label class="flex items-center gap-2 text-sm text-primary">
-						<input
-							type="radio"
-							name="surah-splitter-surah"
-							checked={wizard.selection.surahSplitterSurah !== null}
-							onchange={() =>
-								wizard.setSurahSplitterSurah(wizard.selection.surahSplitterSurah ?? 1)}
-						/>
-						{$LL.editor.specifySurah()}
-					</label>
-					{#if wizard.selection.surahSplitterSurah !== null}
-						<select
-							class="w-full rounded-lg border border-color bg-bg-primary px-3 py-2 text-sm text-primary"
-							value={wizard.selection.surahSplitterSurah}
-							onchange={(event) => wizard.setSurahSplitterSurah(Number(event.currentTarget.value))}
-						>
-							{#each surahNumbers as surah}
-								<option value={surah}>Surah {surah}</option>
-							{/each}
-						</select>
-					{/if}
-					<p class="text-xs text-thirdly">
-						{$LL.editor.surahSplitterPrecisionHint()}<br
-						/>{$LL.editor.surahSplitterMultiSurahNote()}
-					</p>
-				</div>
 			</div>
 		{:else}
 			<div class="grid grid-cols-1 gap-2 xl:grid-cols-2">
@@ -173,10 +104,4 @@
 			>
 		</div>
 	</div>
-
-	{#if isSurahSplitter()}
-		<div class="rounded-xl border border-color bg-accent/40 p-3 text-xs text-thirdly">
-			{$LL.editor.surahSplitterDownloadNote()}
-		</div>
-	{/if}
 </section>

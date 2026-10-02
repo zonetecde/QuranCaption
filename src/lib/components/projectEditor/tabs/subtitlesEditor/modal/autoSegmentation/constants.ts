@@ -48,13 +48,16 @@ export function getWizardSteps(
 	isSetupReady: boolean = false
 ): WizardStep[] {
 	let baseSteps =
-		aiVersion === 'quran_word_timing'
+		aiVersion === 'quran_word_timing' || aiVersion === 'quran_word_timing_old'
 			? WIZARD_STEPS_quran_word_timing
 			: aiVersion === 'multi_v2'
 				? WIZARD_STEPS_CLOUD_V2
 				: WIZARD_STEPS_V2;
 
-	if (isSetupReady && aiVersion === 'quran_word_timing') {
+	if (
+		isSetupReady &&
+		(aiVersion === 'quran_word_timing' || aiVersion === 'quran_word_timing_old')
+	) {
 		baseSteps = baseSteps.filter(({ key }) => key !== 'setup');
 	}
 
@@ -122,15 +125,5 @@ export const MULTI_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
 		label: 'Large',
 		description: 'More robust to noisy/non-studio recitations',
 		source: 'hetchyy/r7'
-	}
-];
-
-/** WhisperX models exposed by the Surah Splitter local pipeline. */
-export const SURAH_SPLITTER_MODEL_OPTIONS: Array<ModelOption<MultiAlignerModel>> = [
-	{
-		value: 'SurahSplitter-Base-Quran',
-		label: 'Base Quran',
-		description: 'Default Surah Splitter model with ayah auto-detection support.',
-		source: 'OdyAsh/faster-whisper-base-ar-quran'
 	}
 ];

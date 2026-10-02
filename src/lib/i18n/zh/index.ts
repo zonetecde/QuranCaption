@@ -442,9 +442,6 @@ const zh = {
 		segmentationErrorSETTINGS_UNAVAILABLE: '分段设置不可用。',
 		segmentationExistingCount: '{count} 个所选项目已包含字幕。',
 		segmentationReplaceExisting: '替换这些项目中的现有字幕',
-		segmentationFixedSurahWarning: '当前配置了固定苏拉，它将应用于所有所选项目。',
-		segmentationSurahAuto: '为每个项目自动检测',
-		segmentationSurahFixed: '所有项目使用已配置的苏拉',
 		segmentationIgnoredProjects: '已忽略的项目',
 		segmentationReasonPROJECT_MISSING: '找不到项目',
 		segmentationReasonMEDIA_NOT_READY: '媒体尚未就绪',
@@ -781,7 +778,6 @@ const zh = {
 		legacyWhisper: '旧版 Whisper 本地包',
 		privateQuranicAligner: '私有本地 Quranic Universal Aligner 包',
 		muaalemLocal: 'Muaalem 本地包',
-		surahSplitterLocal: 'Surah Splitter 本地包',
 		audioDetected: '检测到音频',
 		noAudioClip: '无音频片段',
 		noAudioClipInTimeline: '时间轴中未找到音频片段。',
@@ -977,9 +973,6 @@ const zh = {
 		surahSelectionLabel: '苏拉选择',
 		autoDetectSurah: '自动检测苏拉',
 		specifySurah: '指定苏拉',
-		surahSplitterPrecisionHint: '指定苏拉可提高精度，因为匹配仅限于该苏拉。',
-		surahSplitterMultiSurahNote:
-			'注意：如果您的音频包含多个苏拉，则只会检测和分割最后一个。对于多苏拉文件，请使用其他模型。',
 		reviewAndLaunch: '审阅并启动',
 		reviewAndLaunchDesc: '在生成字幕之前检查您的配置。',
 		methodLabel: '方法',
@@ -996,7 +989,6 @@ const zh = {
 		prepareMethodCloudDesc: '无需本地安装。',
 		prepareMethodLocalV2Desc: '安装所需的本地包并配置您的 Hugging Face Token。',
 		prepareMethodMuaalemDesc: '安装 Muaalem 本地工作流所需的本地包。',
-		prepareMethodSurahSplitterDesc: '安装 Surah Splitter 工作流所需的本地包。',
 		prepareMethodLegacyDesc: '安装旧版本地依赖项。',
 		cloudMethodDescription: '此方法远程运行，无需本地 Python 包。',
 		huggingFaceTokenLabel: '本地模型下载令牌',
@@ -1007,29 +999,24 @@ const zh = {
 		requiredLocalPackages: '所需本地包',
 		checkingLocalEngines: '正在后台检查本地引擎...',
 		noTokenRequiredHint: '无需 Token。完全本地安装，模型在设备上下载。',
-		noTokenRequiredSurahSplitterHint:
-			'无需 Token。Surah Splitter 在首次运行时下载其 WhisperX 模型。',
 		muaalemLocalHint: '此选项完全本地运行，但通常不如官方 Quranic Universal Aligner 管道精确。',
-		surahSplitterLocalHint: '此选项可以自动检测苏拉。在下一步中手动选择苏拉可提高匹配精度。',
 		chooseMethodLabel: '选择方法',
 		chooseMethodDesc: '选择适合您情况的最简单方法。您之后仍然可以更改高级选项。',
 		quranicUniversalAlignerLabel: 'Quranic Universal Aligner',
 		bestOverallQuality: '最佳整体质量和最简单的设置',
 		usesOfficialRemote: '远程使用官方 Quranic Universal Aligner。推荐大多数用户使用。',
-		surahSplitterLocalLabel: 'Surah Splitter 本地',
-		surahSplitterLocalDesc: '本地经文检测，可选苏拉提示',
-		surahSplitterLocalDetail:
-			'使用 WhisperX 在本地运行 Surah Splitter。它可以自动检测苏拉并支持逐词对齐，但手动选择苏拉可提高精度。',
-		surahSplitterSingleSurahNote: '注意：此选项仅在音频文件中只有一首苏拉时有效。',
 		muaalemLocalLabel: 'Muaalem 本地',
-		muaalemLocalDesc: '第二选项，但效果不如 Surah Splitter',
 		muaalemLocalDetail:
 			'通过 Muaalem 本地管道完全在您的机器上运行。它使用古兰经专用分段和专业匹配。',
 		privateLocalQuranicAlignerLabel: '私有本地 Quranic Universal Aligner',
 		bestLocalAccuracy: '最佳本地精度',
 		privateLocalQuranicAlignerDetail:
 			'通过私有本地 Quranic Universal Aligner 栈在您的机器上运行。需要 Python 设置和 Hugging Face Token。',
-		quranwordtimingLabel: 'Quran Karim - offline segmenter',
+		quranwordtimingLabel: 'Quran Karim 逐词对齐',
+		quranwordtimingOldLabel: '旧版 Quran Karim 逐词对齐',
+		quranwordtimingOldDetail: 'QC-3.7.60 的 FastConformer 引擎，支持离线经文和逐词时间戳对齐。',
+		quranwordtimingOldDownloadSizeHint:
+			'首次需下载 Python 软件包和模型（约 87 MB），之后可完全离线运行。',
 		quranwordtimingDesc: 'Ayahs 对齐器 - 无需互联网',
 		quranwordtimingDetail: '离线 Quran 语音识别与逐字时间戳对齐。',
 		quranwordtimingDownloadSizeHint:
@@ -1156,15 +1143,11 @@ const zh = {
 			'来自旧版开放本地工作流的实验性回退模型。它们不使用完整的 Muaalem 语音路径，可能不太可靠。',
 		muaalemLocalFeatureDesc:
 			'Muaalem 本地结合了古兰经专用分段、语音识别、单调古兰经段落搜索和本地强制对齐，以实现精确的逐词时间信息。',
-		surahSplitterFeatureDesc:
-			'Surah Splitter 使用 WhisperX 转录音频，将识别出的词与古兰经文本匹配，然后返回经文级别的时间信息。自动检测可用，但指定苏拉可提高精度。',
 		muaalemLocalEffectivenessHint:
 			'此方法完全本地运行，但通常不如官方 Quranic Universal Aligner 有效。高级回退模型默认隐藏，因为它们比推荐的 Muaalem v3.2 路径更具实验性。',
-		surahSplitterDownloadNote: '如果尚未缓存，Surah Splitter 会在分段过程中下载所选模型。',
 		tokenRequiredHint: '此方法需要有效的 Hugging Face Token 才能运行。',
 		muaalemReviewHint:
 			'此方法完全本地且安装更简单，但通常不如官方 Quranic Universal Aligner 管道有效。',
-		surahSplitterReviewHint: '自动检测可用，但指定苏拉可提高精度。',
 		legacyV1ReviewHint: 'Legacy V1 是旧版回退管道，对齐质量较低。',
 		noAudioDetectedWarning: '在当前时间轴中未检测到音频片段。',
 		speechRecognitionModel: '语音识别模型',

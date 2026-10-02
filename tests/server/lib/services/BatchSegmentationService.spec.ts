@@ -87,8 +87,7 @@ const configuration = {
 		riwayah: 'hafs',
 		fillBySilence: true,
 		extendBeforeSilence: false,
-		extendBeforeSilenceMs: 0,
-		surahSplitterSurah: null
+		extendBeforeSilenceMs: 0
 	}),
 	mode: 'api',
 	options: Object.freeze({})

@@ -176,10 +176,6 @@ const batch = {
 	segmentationErrorSETTINGS_UNAVAILABLE: 'Segmentation settings are unavailable.',
 	segmentationExistingCount: '{count} selected project(s) already contain subtitles.',
 	segmentationReplaceExisting: 'Replace existing subtitles in these projects',
-	segmentationFixedSurahWarning:
-		'A fixed surah is currently configured. It would be applied to every selected project.',
-	segmentationSurahAuto: 'Auto-detect for each project',
-	segmentationSurahFixed: 'Use the configured surah for every project',
 	segmentationIgnoredProjects: 'Ignored projects',
 	segmentationReasonPROJECT_MISSING: 'Project not found',
 	segmentationReasonMEDIA_NOT_READY: 'Media is not ready',

@@ -18,23 +18,35 @@ describe('getWizardSteps', () => {
 		]);
 	});
 
-	it('includes setup but excludes settings for quran_word_timing when setup is not ready', () => {
-		expect(
-			getWizardSteps('quran_word_timing', 'local', false, false).map(({ key }) => key)
-		).toEqual(['version', 'setup', 'review']);
-	});
+	it.each(['quran_word_timing', 'quran_word_timing_old'] as const)(
+		'includes setup but excludes settings for %s when setup is not ready',
+		(version) => {
+			expect(getWizardSteps(version, 'local', false, false).map(({ key }) => key)).toEqual([
+				'version',
+				'setup',
+				'review'
+			]);
+		}
+	);
 
-	it('hides setup and settings for quran_word_timing when setup is already ready', () => {
-		expect(getWizardSteps('quran_word_timing', 'local', false, true).map(({ key }) => key)).toEqual(
-			['version', 'review']
-		);
-	});
+	it.each(['quran_word_timing', 'quran_word_timing_old'] as const)(
+		'hides setup and settings for %s when setup is already ready',
+		(version) => {
+			expect(getWizardSteps(version, 'local', false, true).map(({ key }) => key)).toEqual([
+				'version',
+				'review'
+			]);
+		}
+	);
 
-	it('inserts existing-subtitles before review for ready quran_word_timing when subtitles exist', () => {
-		expect(getWizardSteps('quran_word_timing', 'local', true, true).map(({ key }) => key)).toEqual([
-			'version',
-			'existing-subtitles',
-			'review'
-		]);
-	});
+	it.each(['quran_word_timing', 'quran_word_timing_old'] as const)(
+		'inserts existing-subtitles before review for ready %s when subtitles exist',
+		(version) => {
+			expect(getWizardSteps(version, 'local', true, true).map(({ key }) => key)).toEqual([
+				'version',
+				'existing-subtitles',
+				'review'
+			]);
+		}
+	);
 });

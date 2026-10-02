@@ -296,13 +296,19 @@ pub(crate) fn get_local_venv_root(app_handle: &tauri::AppHandle) -> Result<PathB
 }
 
 /// Retourne le dossier accessible en écriture pour les modèles WordTiming téléchargés.
-pub(crate) fn get_word_timing_model_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn get_word_timing_model_dir(
+    app_handle: &tauri::AppHandle,
+    engine: LocalSegmentationEngine,
+) -> Result<PathBuf, String> {
     Ok(app_handle
         .path()
         .app_data_dir()
         .map_err(|e| e.to_string())?
         .join("models")
-        .join("word_timing"))
+        .join(match engine {
+            LocalSegmentationEngine::QuranWordTimingOld => "word_timing_old",
+            _ => "word_timing",
+        }))
 }
 
 /// Retourne le dossier venv d'un moteur local.

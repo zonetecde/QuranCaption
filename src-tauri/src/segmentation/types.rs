@@ -62,9 +62,9 @@ pub enum LocalSegmentationEngine {
     LegacyWhisper,
     /// Nouveau moteur multi-aligner prive.
     MultiAligner,
-    /// Pipeline locale Surah Splitter basee sur WhisperX et detection d'ayahs.
-    SurahSplitter,
-    /// Pipeline locale hors-ligne WordTiming basee sur FastConformer et CTC.
+    /// Pipeline historique hors-ligne FastConformer de QC-3.7.60.
+    QuranWordTimingOld,
+    /// Pipeline locale hors-ligne WordTiming basée sur Zipformer et CTC.
     QuranWordTiming,
 }
 
@@ -74,10 +74,10 @@ impl LocalSegmentationEngine {
         match raw {
             "legacy" | "legacy_whisper" => Ok(Self::LegacyWhisper),
             "multi" | "multi_aligner" => Ok(Self::MultiAligner),
-            "surah_splitter" | "surah-splitter" => Ok(Self::SurahSplitter),
+            "quran_word_timing_old" | "word-timing-old" => Ok(Self::QuranWordTimingOld),
             "word_timing" | "word_timing_offline" | "quran_word_timing" => Ok(Self::QuranWordTiming),
             _ => Err(format!(
-                "Unknown local segmentation engine '{}'. Expected 'legacy', 'multi', 'surah_splitter', or 'word_timing_offline'.",
+                "Unknown local segmentation engine '{}'. Expected 'legacy', 'multi', 'quran_word_timing_old', or 'word_timing_offline'.",
                 raw
             )),
         }
@@ -88,7 +88,7 @@ impl LocalSegmentationEngine {
         match self {
             Self::LegacyWhisper => "legacy",
             Self::MultiAligner => "multi",
-            Self::SurahSplitter => "surah_splitter",
+            Self::QuranWordTimingOld => "quran_word_timing_old",
             Self::QuranWordTiming => "word_timing_offline",
         }
     }
@@ -98,7 +98,7 @@ impl LocalSegmentationEngine {
         match self {
             Self::LegacyWhisper => "Legacy Whisper",
             Self::MultiAligner => "Multi-Aligner",
-            Self::SurahSplitter => "Surah Splitter",
+            Self::QuranWordTimingOld => "Old Quran Karim words alignment",
             Self::QuranWordTiming => "Quran Karim - offline segmenter",
         }
     }
@@ -108,7 +108,7 @@ impl LocalSegmentationEngine {
         match self {
             Self::LegacyWhisper => "python/requirements.txt",
             Self::MultiAligner => "python/quran-multi-aligner/requirements.txt",
-            Self::SurahSplitter => "python/surah_splitter_requirements.txt",
+            Self::QuranWordTimingOld => "python/word_timing_old_requirements.txt",
             Self::QuranWordTiming => "python/word_timing_requirements.txt",
         }
     }
@@ -118,7 +118,7 @@ impl LocalSegmentationEngine {
         match self {
             Self::LegacyWhisper => "python/local_segmenter.py",
             Self::MultiAligner => "python/local_multi_aligner_segmenter.py",
-            Self::SurahSplitter => "python/local_surah_splitter_segmenter.py",
+            Self::QuranWordTimingOld => "python/local_word_timing_old_segmenter.py",
             Self::QuranWordTiming => "python/local_word_timing_segmenter.py",
         }
     }
@@ -139,15 +139,15 @@ impl LocalSegmentationEngine {
                 "pyarrow",
                 "requests",
             ],
-            Self::SurahSplitter => &[
-                "torch",
-                "torchaudio",
-                "whisperx",
-                "huggingface_hub",
+            Self::QuranWordTimingOld => &[
                 "numpy",
-                "loguru",
-                "rich",
-                "pydub",
+                "librosa",
+                "pyloudnorm",
+                "onnxruntime",
+                "kaldi_native_fbank",
+                "sherpa_onnx",
+                "requests",
+                "qua_sdk",
             ],
             Self::QuranWordTiming => &["numpy", "onnxruntime", "numba", "miniaudio", "scipy"],
         }

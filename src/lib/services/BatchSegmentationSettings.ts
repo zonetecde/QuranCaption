@@ -8,8 +8,6 @@ import type {
 } from './AutoSegmentation';
 import { checkLocalSegmentationStatus } from './AutoSegmentation';
 
-export type BatchSurahSplitterChoice = 'auto' | 'fixed';
-
 export interface BatchSegmentationRunConfiguration {
 	snapshot: Readonly<BatchSegmentationSettingsSnapshot>;
 	mode: SegmentationMode;
@@ -19,19 +17,13 @@ export interface BatchSegmentationRunConfiguration {
 /**
  * Construit un snapshot de lancement depuis les réglages persistés du wizard existant.
  * @param {AutoSegmentationSettings} settings Réglages sauvegardés actuels.
- * @param {BatchSurahSplitterChoice | undefined} surahChoice Choix explicite propre à cette exécution.
  * @param {string} runtime Runtime courant, utilisé pour refuser l'import JSON.
  * @returns {BatchSegmentationRunConfiguration} Configuration immuable sans secret persistant.
  */
 export function buildBatchSegmentationRunConfiguration(
 	settings: AutoSegmentationSettings,
-	surahChoice?: BatchSurahSplitterChoice,
 	runtime: string = settings.mode
 ): BatchSegmentationRunConfiguration {
-	const surahSplitterSurah =
-		settings.localAsrMode === 'surah_splitter' && surahChoice === 'auto'
-			? null
-			: settings.surahSplitterSurah;
 	const model =
 		settings.mode === 'api'
 			? settings.cloudModel
@@ -52,8 +44,7 @@ export function buildBatchSegmentationRunConfiguration(
 		riwayah: settings.riwayah ?? 'hafs',
 		fillBySilence: settings.fillBySilence,
 		extendBeforeSilence: settings.extendBeforeSilence,
-		extendBeforeSilenceMs: settings.extendBeforeSilenceMs,
-		surahSplitterSurah
+		extendBeforeSilenceMs: settings.extendBeforeSilenceMs
 	});
 	const options = Object.freeze({
 		minSilenceMs: settings.minSilenceMs,
@@ -65,7 +56,6 @@ export function buildBatchSegmentationRunConfiguration(
 		legacyWhisperModel: settings.legacyWhisperModel,
 		multiAlignerModel: settings.multiAlignerModel,
 		cloudModel: settings.cloudModel,
-		surahSplitterSurah,
 		device: settings.device,
 		riwayah: settings.riwayah ?? 'hafs',
 		hfToken: settings.hfToken,
@@ -91,7 +81,7 @@ function getSelectedEngineStatus(
 	if (!status.engines) return null;
 	if (mode === 'legacy_whisper') return status.engines.legacy;
 	if (mode === 'multi_aligner') return status.engines.multi;
-	if (mode === 'surah_splitter') return status.engines.surahSplitter;
+	if (mode === 'quran_word_timing_old') return status.engines.quranwordtimingOld;
 	return status.engines.quranwordtiming ?? null;
 }
 

@@ -380,10 +380,6 @@ const id = {
 		segmentationErrorSETTINGS_UNAVAILABLE: 'Pengaturan segmentasi tidak tersedia.',
 		segmentationExistingCount: '{count} proyek yang dipilih sudah memiliki subtitle.',
 		segmentationReplaceExisting: 'Ganti subtitle yang ada di proyek ini',
-		segmentationFixedSurahWarning:
-			'Surah tetap sedang dikonfigurasi dan akan diterapkan ke semua proyek yang dipilih.',
-		segmentationSurahAuto: 'Deteksi otomatis untuk setiap proyek',
-		segmentationSurahFixed: 'Gunakan surah terkonfigurasi untuk semua proyek',
 		segmentationIgnoredProjects: 'Proyek yang diabaikan',
 		segmentationReasonPROJECT_MISSING: 'Proyek tidak ditemukan',
 		segmentationReasonMEDIA_NOT_READY: 'Media belum siap',
@@ -793,6 +789,12 @@ const id = {
 	},
 	editor: {
 		...baseEn.editor,
+		quranwordtimingLabel: 'Penyelarasan kata Quran Karim',
+		quranwordtimingOldLabel: 'Penyelarasan kata Quran Karim lama',
+		quranwordtimingOldDetail:
+			'Mesin FastConformer dari QC-3.7.60, dengan penyelarasan ayat dan waktu per kata secara luring.',
+		quranwordtimingOldDownloadSizeHint:
+			'Unduh paket Python dan model (~87 MB) sekali saja. Setelah itu berfungsi secara luring.',
 		howItWorksDescription2:
 			'Tebal, miring, garis bawah, dan baris baru dialihkan pada rentang yang dipilih. Warna dan cahaya diterapkan dengan pilihan warna saat ini. Mengedit teks terjemahan akan menghapus gaya kata terjemahan.',
 		alignmentStage: {

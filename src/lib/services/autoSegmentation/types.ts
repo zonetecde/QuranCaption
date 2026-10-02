@@ -103,10 +103,10 @@ export type SubtitleApplicationMode = 'replace' | 'align';
 export type LocalAsrMode =
 	| 'legacy_whisper'
 	| 'multi_aligner'
-	| 'surah_splitter'
+	| 'quran_word_timing_old'
 	| 'quran_word_timing';
 export type LegacyWhisperModelSize = 'tiny' | 'base' | 'medium' | 'large';
-export type MultiAlignerModel = 'Base' | 'Large' | 'SurahSplitter-Base-Quran';
+export type MultiAlignerModel = 'Base' | 'Large';
 export type SegmentationDevice = 'GPU' | 'CPU';
 export type SegmentationRiwayah = 'hafs' | 'warsh' | 'qalun' | 'shuba';
 
@@ -131,7 +131,7 @@ export type LocalSegmentationStatus = {
 	engines?: {
 		legacy: LocalEngineStatus;
 		multi: LocalEngineStatus;
-		surahSplitter: LocalEngineStatus;
+		quranwordtimingOld: LocalEngineStatus;
 		quranwordtiming?: LocalEngineStatus;
 	};
 };
@@ -148,7 +148,6 @@ export type AutoSegmentationOptions = {
 	legacyWhisperModel?: LegacyWhisperModelSize;
 	multiAlignerModel?: MultiAlignerModel;
 	cloudModel?: MultiAlignerModel;
-	surahSplitterSurah?: number | null;
 	device?: SegmentationDevice;
 	riwayah?: SegmentationRiwayah;
 	hfToken?: string;

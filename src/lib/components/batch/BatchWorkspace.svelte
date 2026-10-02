@@ -30,8 +30,7 @@
 	import {
 		buildBatchSegmentationRunConfiguration,
 		validateBatchSegmentationRuntime,
-		type BatchSegmentationRunConfiguration,
-		type BatchSurahSplitterChoice
+		type BatchSegmentationRunConfiguration
 	} from '$lib/services/BatchSegmentationSettings';
 	import { discordService } from '$lib/services/DiscordService';
 	import { ProjectService } from '$lib/services/ProjectService';
@@ -131,7 +130,6 @@
 	let segmentationRuntimeError = $state<string | null>(null);
 	let segmentationInspection = $state<BatchSegmentationEligibility[]>([]);
 	let replaceExistingSubtitles = $state(false);
-	let surahSplitterChoice = $state<BatchSurahSplitterChoice | null>(null);
 	let segmentationConfiguration = $state<BatchSegmentationRunConfiguration | null>(null);
 	let segmentationActivities = $state<Map<number, BatchSegmentationActivity>>(new Map());
 	let segmentationLive = $state<Map<number, BatchSegmentationLiveStatus>>(new Map());
@@ -223,12 +221,6 @@
 	);
 	let segmentationModalIgnored = $derived(
 		segmentationInspection.filter((result) => !segmentationModalEligible.includes(result))
-	);
-	let needsSurahChoice = $derived(
-		segmentationModalEligible.length > 1 &&
-			savedSegmentationSettings?.mode === 'local' &&
-			savedSegmentationSettings.localAsrMode === 'surah_splitter' &&
-			savedSegmentationSettings.surahSplitterSurah !== null
 	);
 	let reviewProjects = $derived(
 		projects.filter((project) => project.segmentation.status === 'needs_review')
@@ -1124,7 +1116,6 @@
 		segmentationModalLoading = true;
 		segmentationRuntimeError = null;
 		replaceExistingSubtitles = false;
-		surahSplitterChoice = null;
 		const settings = savedSegmentationSettings;
 		if (!settings) {
 			segmentationRuntimeError = 'SETTINGS_UNAVAILABLE';
@@ -1149,19 +1140,10 @@
 	 * @returns {Promise<void>} Promesse résolue lorsque toutes les tâches sont terminales.
 	 */
 	async function startSegmentation(): Promise<void> {
-		if (
-			!batch ||
-			segmentationRuntimeError ||
-			segmentationModalEligible.length === 0 ||
-			(needsSurahChoice && !surahSplitterChoice)
-		)
-			return;
+		if (!batch || segmentationRuntimeError || segmentationModalEligible.length === 0) return;
 		const settings = savedSegmentationSettings;
 		if (!settings) return;
-		const configuration = buildBatchSegmentationRunConfiguration(
-			settings,
-			surahSplitterChoice ?? undefined
-		);
+		const configuration = buildBatchSegmentationRunConfiguration(settings);
 		segmentationConfiguration = configuration;
 		showSegmentationModal = false;
 		if (!workflow.begin('segmentation')) return;
@@ -2534,32 +2516,6 @@
 					</div>
 				{/if}
 
-				{#if needsSurahChoice}
-					<div class="mt-4 rounded-xl border border-amber-400/40 bg-amber-400/10 p-4">
-						<p class="text-sm text-amber-200">{batchMessage('segmentationFixedSurahWarning')}</p>
-						<div class="mt-3 space-y-2 text-sm text-[var(--text-primary)]">
-							<label class="flex items-center gap-3">
-								<input
-									type="radio"
-									name="surah-splitter-choice"
-									value="auto"
-									bind:group={surahSplitterChoice}
-								/>
-								<span>{batchMessage('segmentationSurahAuto')}</span>
-							</label>
-							<label class="flex items-center gap-3">
-								<input
-									type="radio"
-									name="surah-splitter-choice"
-									value="fixed"
-									bind:group={surahSplitterChoice}
-								/>
-								<span>{batchMessage('segmentationSurahFixed')}</span>
-							</label>
-						</div>
-					</div>
-				{/if}
-
 				{#if segmentationModalIgnored.length > 0}
 					<div class="mt-4 rounded-xl border border-[var(--border-color)] p-4">
 						<p class="font-medium text-[var(--text-primary)]">
@@ -2588,8 +2544,7 @@
 					type="button"
 					disabled={segmentationModalLoading ||
 						!!segmentationRuntimeError ||
-						segmentationModalEligible.length === 0 ||
-						(needsSurahChoice && !surahSplitterChoice)}
+						segmentationModalEligible.length === 0}
 					onclick={startSegmentation}
 				>
 					<span class="material-icons-outlined me-2">auto_fix_high</span>

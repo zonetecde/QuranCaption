@@ -223,7 +223,6 @@ const editor = {
 	legacyWhisper: 'الحزم المحلية Legacy Whisper',
 	privateQuranicAligner: 'حزم المصففات القرآنية العالمية الخاصة المحلية',
 	muaalemLocal: 'باقات المعلم المحلية',
-	surahSplitterLocal: 'سورة الفاصل الحزم المحلية',
 	audioDetected: 'تم اكتشاف الصوت',
 	noAudioClip: 'لا يوجد مقطع صوتي',
 	noAudioClipInTimeline: 'لم يتم العثور على مقطع صوتي في المخطط الزمني.',
@@ -448,9 +447,6 @@ const editor = {
 	surahSelectionLabel: 'اختيار السورة',
 	autoDetectSurah: 'الكشف التلقائي عن السورة',
 	specifySurah: 'تحديد السورة',
-	surahSplitterPrecisionHint: 'تحديد السورة يحسن الدقة لأن المطابقة تقتصر على تلك السورة.',
-	surahSplitterMultiSurahNote:
-		'ملحوظة: إذا كان الصوت الخاص بك يحتوي على سور متعددة، فسيتم اكتشاف وتقسيم السورة الأخيرة فقط. استخدم نموذجًا آخر للملفات متعددة السور.',
 	reviewAndLaunch: 'المراجعة والتشغيل',
 	reviewAndLaunchDesc: 'تحقق من التكوين الخاص بك قبل إنشاء ترجمات.',
 	methodLabel: 'الطريقة',
@@ -468,7 +464,6 @@ const editor = {
 	prepareMethodLocalV2Desc:
 		'قم بتثبيت الحزم المحلية المطلوبة وقم بتكوين رمز Hugging Face المميز الخاص بك.',
 	prepareMethodMuaalemDesc: 'تثبيت الحزم المحلية المطلوبة لسير عمل المعلم المحلي.',
-	prepareMethodSurahSplitterDesc: 'تثبيت الحزم المحلية المطلوبة لسير عمل Surah Splitter.',
 	prepareMethodLegacyDesc: 'تثبيت التبعيات المحلية القديمة.',
 	cloudMethodDescription: 'تعمل هذه الطريقة عن بعد ولا تحتاج إلى حزم Python المحلية.',
 	huggingFaceTokenLabel: 'رمز تنزيل النموذج المحلي',
@@ -479,32 +474,26 @@ const editor = {
 	requiredLocalPackages: 'الحزم المحلية المطلوبة',
 	checkingLocalEngines: 'فحص المحركات المحلية في الخلفية...',
 	noTokenRequiredHint: 'لا يوجد رمز مطلوب. التثبيت المحلي بالكامل مع تنزيلات الطراز على الجهاز.',
-	noTokenRequiredSurahSplitterHint:
-		'لا يوجد رمز مطلوب. يقوم Surah Splitter بتنزيل نموذج WhisperX الخاص به أثناء التشغيل الأول.',
 	muaalemLocalHint:
 		'هذا الخيار محلي بالكامل، لكنه عادةً ما يكون أقل دقة من خط أنابيب محاذاة القرآن العالمي الرسمي.',
-	surahSplitterLocalHint:
-		'يمكن لهذا الخيار اكتشاف السورة تلقائيًا. يؤدي تحديد السورة يدويًا في الخطوة التالية إلى تحسين دقة المطابقة.',
 	chooseMethodLabel: 'اختر طريقة',
 	chooseMethodDesc: 'اختر أبسط طريقة لموقفك. لا يزال بإمكانك تغيير الخيارات المتقدمة لاحقًا.',
 	quranicUniversalAlignerLabel: 'محاذاة قرآنية عالمية',
 	bestOverallQuality: 'أفضل جودة شاملة وأسهل إعداد',
 	usesOfficialRemote: 'يستخدم المصفف القرآني العالمي الرسمي عن بعد. يوصى به لمعظم المستخدمين.',
-	surahSplitterLocalLabel: 'سورة الفاصل المحلية',
-	surahSplitterLocalDesc: 'كشف الآية المحلية مع تلميح سورة اختياري',
-	surahSplitterLocalDetail:
-		'تشغيل Surah Splitter محليًا باستخدام WhisperX. يمكنه اكتشاف السورة تلقائيًا ويدعم محاذاة كلمة بكلمة، لكن تحديد السورة يدويًا يؤدي إلى تحسين الدقة.',
-	surahSplitterSingleSurahNote:
-		'ملحوظة: هذا الخيار يعمل فقط في حالة وجود سورة واحدة في الملف الصوتي.',
 	muaalemLocalLabel: 'المعلم المحلي',
-	muaalemLocalDesc: 'الخيار الثاني ولكنه أقل فعالية من سورة الفاصل',
 	muaalemLocalDetail:
 		'يعمل بالكامل على جهازك من خلال خط أنابيب المعلم المحلي. ويستخدم التجزئة والمطابقة الخاصة بالقرآن.',
 	privateLocalQuranicAlignerLabel: 'مصفف قرآني عالمي خاص محلي',
 	bestLocalAccuracy: 'أفضل دقة محلية',
 	privateLocalQuranicAlignerDetail:
 		'يعمل على جهازك باستخدام مكدس محاذاة القرآن الكريم المحلي الخاص. يتطلب إعداد Python ورمز Hugging Face.',
-	quranwordtimingLabel: 'القرآن الكريم - مجزئ دون اتصال',
+	quranwordtimingLabel: 'محاذاة كلمات القرآن الكريم',
+	quranwordtimingOldLabel: 'محاذاة كلمات القرآن الكريم القديمة',
+	quranwordtimingOldDetail:
+		'محرك FastConformer من إصدار QC-3.7.60، مع محاذاة الآيات والطوابع الزمنية للكلمات دون اتصال.',
+	quranwordtimingOldDownloadSizeHint:
+		'تنزيل حزم Python والنموذج (~87 ميغابايت) مرة واحدة. يعمل دون اتصال بعد ذلك.',
 	quranwordtimingDesc: 'Ayahs Aligner - لا يتطلب الإنترنت',
 	quranwordtimingDetail:
 		'التعرف على الكلام القرآني دون اتصال بالإنترنت ومحاذاة الطابع الزمني لكل كلمة على حدة.',
@@ -634,17 +623,12 @@ const editor = {
 		'نماذج احتياطية تجريبية من سير العمل المحلي المفتوح السابق. إنهم لا يستخدمون المسار الصوتي الكامل للمعلم وقد يكونون أقل موثوقية.',
 	muaalemLocalFeatureDesc:
 		'يجمع تطبيق المعلم المحلي بين التجزئة الخاصة بالقرآن الكريم، والتعرف على الكلام الصوتي، واسترجاع مقاطع القرآن الرتيبة، والمحاذاة القسرية المحلية للتوقيت الحقيقي لكل كلمة على حدة.',
-	surahSplitterFeatureDesc:
-		'يقوم Surah Splitter بنسخ الصوت باستخدام WhisperX، ومطابقة الكلمات التي تم التعرف عليها مع نص القرآن، ثم إرجاع الطوابع الزمنية على مستوى الآية. الكشف التلقائي متاح، ولكن تحديد السورة يحسن الدقة.',
 	muaalemLocalEffectivenessHint:
 		'هذه الطريقة محلية بالكامل، لكنها بشكل عام أقل فعالية من المصفف القرآني العالمي الرسمي. يتم إخفاء النماذج الاحتياطية المتقدمة بشكل افتراضي لأنها أكثر تجريبية من مسار المعلم v3.2 الموصى به.',
-	surahSplitterDownloadNote:
-		'يقوم Surah Splitter بتنزيل النموذج المحدد أثناء التجزئة إذا لم يتم تخزينه مؤقتًا بعد.',
 	tokenRequiredHint:
 		'تتطلب هذه الطريقة رمزًا مميزًا صالحًا لـ Hugging Face قبل أن تتمكن من التشغيل.',
 	muaalemReviewHint:
 		'هذه الطريقة محلية بالكامل وأسهل في التثبيت، ولكنها عادة ما تكون أقل فعالية من خط أنابيب محاذاة القرآن العالمي الرسمي.',
-	surahSplitterReviewHint: 'الكشف التلقائي متاح، ولكن تحديد السورة يحسن الدقة.',
 	legacyV1ReviewHint: 'Legacy V1 عبارة عن مسار احتياطي أقدم بجودة محاذاة أقل.',
 	noAudioDetectedWarning: 'لم يتم اكتشاف أي مقطع صوتي في المخطط الزمني الحالي.',
 	speechRecognitionModel: 'نموذج التعرف على الكلام',

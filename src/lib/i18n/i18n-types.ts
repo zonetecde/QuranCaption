@@ -1939,10 +1939,6 @@ type RootTranslation = {
 		 */
 		muaalemLocal: string;
 		/**
-		 * S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​L​o​c​a​l​ ​p​a​c​k​a​g​e​s
-		 */
-		surahSplitterLocal: string;
-		/**
 		 * A​u​d​i​o​ ​d​e​t​e​c​t​e​d
 		 */
 		audioDetected: string;
@@ -2797,14 +2793,6 @@ type RootTranslation = {
 		 */
 		specifySurah: string;
 		/**
-		 * S​p​e​c​i​f​y​i​n​g​ ​t​h​e​ ​s​u​r​a​h​ ​i​m​p​r​o​v​e​s​ ​p​r​e​c​i​s​i​o​n​ ​b​e​c​a​u​s​e​ ​m​a​t​c​h​i​n​g​ ​i​s​ ​r​e​s​t​r​i​c​t​e​d​ ​t​o​ ​t​h​a​t​ ​s​u​r​a​h​.
-		 */
-		surahSplitterPrecisionHint: string;
-		/**
-		 * N​o​t​e​:​ ​i​f​ ​y​o​u​r​ ​a​u​d​i​o​ ​c​o​n​t​a​i​n​s​ ​m​u​l​t​i​p​l​e​ ​s​u​r​a​h​s​,​ ​o​n​l​y​ ​t​h​e​ ​l​a​s​t​ ​o​n​e​ ​w​i​l​l​ ​b​e​ ​d​e​t​e​c​t​e​d​ ​a​n​d​ ​s​e​g​m​e​n​t​e​d​.​ ​U​s​e​ ​a​n​o​t​h​e​r​ ​m​o​d​e​l​ ​f​o​r​ ​m​u​l​t​i​-​s​u​r​a​h​ ​f​i​l​e​s​.
-		 */
-		surahSplitterMultiSurahNote: string;
-		/**
 		 * R​e​v​i​e​w​ ​a​n​d​ ​l​a​u​n​c​h
 		 */
 		reviewAndLaunch: string;
@@ -2869,10 +2857,6 @@ type RootTranslation = {
 		 */
 		prepareMethodMuaalemDesc: string;
 		/**
-		 * I​n​s​t​a​l​l​ ​t​h​e​ ​r​e​q​u​i​r​e​d​ ​l​o​c​a​l​ ​p​a​c​k​a​g​e​s​ ​f​o​r​ ​t​h​e​ ​S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​w​o​r​k​f​l​o​w​.
-		 */
-		prepareMethodSurahSplitterDesc: string;
-		/**
 		 * I​n​s​t​a​l​l​ ​t​h​e​ ​l​e​g​a​c​y​ ​l​o​c​a​l​ ​d​e​p​e​n​d​e​n​c​i​e​s​.
 		 */
 		prepareMethodLegacyDesc: string;
@@ -2913,17 +2897,9 @@ type RootTranslation = {
 		 */
 		noTokenRequiredHint: string;
 		/**
-		 * N​o​ ​t​o​k​e​n​ ​r​e​q​u​i​r​e​d​.​ ​S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​d​o​w​n​l​o​a​d​s​ ​i​t​s​ ​W​h​i​s​p​e​r​X​ ​m​o​d​e​l​ ​d​u​r​i​n​g​ ​t​h​e​ ​f​i​r​s​t​ ​r​u​n​.
-		 */
-		noTokenRequiredSurahSplitterHint: string;
-		/**
 		 * T​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​f​u​l​l​y​ ​l​o​c​a​l​,​ ​b​u​t​ ​i​t​ ​i​s​ ​u​s​u​a​l​l​y​ ​l​e​s​s​ ​a​c​c​u​r​a​t​e​ ​t​h​a​n​ ​t​h​e​ ​o​f​f​i​c​i​a​l​ ​Q​u​r​a​n​i​c​ ​U​n​i​v​e​r​s​a​l​ ​A​l​i​g​n​e​r​ ​p​i​p​e​l​i​n​e​.
 		 */
 		muaalemLocalHint: string;
-		/**
-		 * T​h​i​s​ ​o​p​t​i​o​n​ ​c​a​n​ ​a​u​t​o​-​d​e​t​e​c​t​ ​t​h​e​ ​s​u​r​a​h​.​ ​S​e​l​e​c​t​i​n​g​ ​t​h​e​ ​s​u​r​a​h​ ​m​a​n​u​a​l​l​y​ ​i​n​ ​t​h​e​ ​n​e​x​t​ ​s​t​e​p​ ​i​m​p​r​o​v​e​s​ ​m​a​t​c​h​i​n​g​ ​p​r​e​c​i​s​i​o​n​.
-		 */
-		surahSplitterLocalHint: string;
 		/**
 		 * C​h​o​o​s​e​ ​a​ ​m​e​t​h​o​d
 		 */
@@ -2945,29 +2921,9 @@ type RootTranslation = {
 		 */
 		usesOfficialRemote: string;
 		/**
-		 * S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​L​o​c​a​l
-		 */
-		surahSplitterLocalLabel: string;
-		/**
-		 * L​o​c​a​l​ ​a​y​a​h​ ​d​e​t​e​c​t​i​o​n​ ​w​i​t​h​ ​o​p​t​i​o​n​a​l​ ​s​u​r​a​h​ ​h​i​n​t
-		 */
-		surahSplitterLocalDesc: string;
-		/**
-		 * R​u​n​s​ ​S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​l​o​c​a​l​l​y​ ​w​i​t​h​ ​W​h​i​s​p​e​r​X​.​ ​I​t​ ​c​a​n​ ​a​u​t​o​-​d​e​t​e​c​t​ ​t​h​e​ ​s​u​r​a​h​ ​a​n​d​ ​i​t​ ​s​u​p​p​o​r​t​s​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​a​l​i​g​n​m​e​n​t​,​ ​b​u​t​ ​s​e​l​e​c​t​i​n​g​ ​t​h​e​ ​s​u​r​a​h​ ​m​a​n​u​a​l​l​y​ ​i​m​p​r​o​v​e​s​ ​p​r​e​c​i​s​i​o​n​.
-		 */
-		surahSplitterLocalDetail: string;
-		/**
-		 * N​o​t​e​:​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​o​n​l​y​ ​w​o​r​k​s​ ​i​f​ ​t​h​e​r​e​'​s​ ​o​n​e​ ​s​u​r​a​h​ ​i​n​ ​t​h​e​ ​a​u​d​i​o​ ​f​i​l​e​.
-		 */
-		surahSplitterSingleSurahNote: string;
-		/**
 		 * M​u​a​a​l​e​m​ ​L​o​c​a​l
 		 */
 		muaalemLocalLabel: string;
-		/**
-		 * S​e​c​o​n​d​ ​o​p​t​i​o​n​ ​b​u​t​ ​l​e​s​s​ ​e​f​f​e​c​t​i​v​e​ ​t​h​a​n​ ​S​u​r​a​h​ ​S​p​l​i​t​t​e​r
-		 */
-		muaalemLocalDesc: string;
 		/**
 		 * R​u​n​s​ ​e​n​t​i​r​e​l​y​ ​o​n​ ​y​o​u​r​ ​m​a​c​h​i​n​e​ ​w​i​t​h​ ​t​h​e​ ​M​u​a​a​l​e​m​ ​l​o​c​a​l​ ​p​i​p​e​l​i​n​e​.​ ​I​t​ ​u​s​e​s​ ​Q​u​r​a​n​-​s​p​e​c​i​f​i​c​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​a​n​d​ ​m​a​t​c​h​i​n​g​.
 		 */
@@ -2985,9 +2941,21 @@ type RootTranslation = {
 		 */
 		privateLocalQuranicAlignerDetail: string;
 		/**
-		 * Q​u​r​a​n​ ​K​a​r​i​m​ ​-​ ​o​f​f​l​i​n​e​ ​s​e​g​m​e​n​t​e​r
+		 * Q​u​r​a​n​ ​K​a​r​i​m​ ​w​o​r​d​s​ ​a​l​i​g​n​m​e​n​t
 		 */
 		quranwordtimingLabel: string;
+		/**
+		 * O​l​d​ ​Q​u​r​a​n​ ​K​a​r​i​m​ ​w​o​r​d​s​ ​a​l​i​g​n​m​e​n​t
+		 */
+		quranwordtimingOldLabel: string;
+		/**
+		 * F​a​s​t​C​o​n​f​o​r​m​e​r​ ​e​n​g​i​n​e​ ​f​r​o​m​ ​Q​C​-​3​.​7​.​6​0​,​ ​w​i​t​h​ ​o​f​f​l​i​n​e​ ​v​e​r​s​e​ ​a​n​d​ ​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​ ​a​l​i​g​n​m​e​n​t​.
+		 */
+		quranwordtimingOldDetail: string;
+		/**
+		 * O​n​e​-​t​i​m​e​ ​d​o​w​n​l​o​a​d​ ​o​f​ ​P​y​t​h​o​n​ ​p​a​c​k​a​g​e​s​ ​a​n​d​ ​t​h​e​ ​m​o​d​e​l​ ​(​~​8​7​ ​M​B​)​.​ ​O​p​e​r​a​t​e​s​ ​o​f​f​l​i​n​e​ ​a​f​t​e​r​w​a​r​d​s​.
+		 */
+		quranwordtimingOldDownloadSizeHint: string;
 		/**
 		 * A​y​a​h​s​ ​A​l​i​g​n​e​r​ ​-​ ​N​o​ ​I​n​t​e​r​n​e​t​ ​R​e​q​u​i​r​e​d
 		 */
@@ -3471,17 +3439,9 @@ type RootTranslation = {
 		 */
 		muaalemLocalFeatureDesc: string;
 		/**
-		 * S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​t​r​a​n​s​c​r​i​b​e​s​ ​t​h​e​ ​a​u​d​i​o​ ​w​i​t​h​ ​W​h​i​s​p​e​r​X​,​ ​m​a​t​c​h​e​s​ ​r​e​c​o​g​n​i​z​e​d​ ​w​o​r​d​s​ ​t​o​ ​t​h​e​ ​Q​u​r​a​n​ ​t​e​x​t​,​ ​t​h​e​n​ ​r​e​t​u​r​n​s​ ​a​y​a​h​-​l​e​v​e​l​ ​t​i​m​e​s​t​a​m​p​s​.​ ​A​u​t​o​-​d​e​t​e​c​t​i​o​n​ ​i​s​ ​a​v​a​i​l​a​b​l​e​,​ ​b​u​t​ ​s​p​e​c​i​f​y​i​n​g​ ​t​h​e​ ​s​u​r​a​h​ ​i​m​p​r​o​v​e​s​ ​p​r​e​c​i​s​i​o​n​.
-		 */
-		surahSplitterFeatureDesc: string;
-		/**
 		 * T​h​i​s​ ​m​e​t​h​o​d​ ​i​s​ ​f​u​l​l​y​ ​l​o​c​a​l​,​ ​b​u​t​ ​i​t​ ​i​s​ ​g​e​n​e​r​a​l​l​y​ ​l​e​s​s​ ​e​f​f​e​c​t​i​v​e​ ​t​h​a​n​ ​t​h​e​ ​o​f​f​i​c​i​a​l​ ​Q​u​r​a​n​i​c​ ​U​n​i​v​e​r​s​a​l​ ​A​l​i​g​n​e​r​.​ ​A​d​v​a​n​c​e​d​ ​f​a​l​l​b​a​c​k​ ​m​o​d​e​l​s​ ​a​r​e​ ​h​i​d​d​e​n​ ​b​y​ ​d​e​f​a​u​l​t​ ​b​e​c​a​u​s​e​ ​t​h​e​y​ ​a​r​e​ ​m​o​r​e​ ​e​x​p​e​r​i​m​e​n​t​a​l​ ​t​h​a​n​ ​t​h​e​ ​r​e​c​o​m​m​e​n​d​e​d​ ​M​u​a​a​l​e​m​ ​v​3​.​2​ ​p​a​t​h​.
 		 */
 		muaalemLocalEffectivenessHint: string;
-		/**
-		 * S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​d​o​w​n​l​o​a​d​s​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​m​o​d​e​l​ ​d​u​r​i​n​g​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​i​f​ ​i​t​ ​i​s​ ​n​o​t​ ​c​a​c​h​e​d​ ​y​e​t​.
-		 */
-		surahSplitterDownloadNote: string;
 		/**
 		 * T​h​i​s​ ​m​e​t​h​o​d​ ​r​e​q​u​i​r​e​s​ ​a​ ​v​a​l​i​d​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​t​o​k​e​n​ ​b​e​f​o​r​e​ ​i​t​ ​c​a​n​ ​r​u​n​.
 		 */
@@ -3490,10 +3450,6 @@ type RootTranslation = {
 		 * T​h​i​s​ ​m​e​t​h​o​d​ ​i​s​ ​f​u​l​l​y​ ​l​o​c​a​l​ ​a​n​d​ ​s​i​m​p​l​e​r​ ​t​o​ ​i​n​s​t​a​l​l​,​ ​b​u​t​ ​u​s​u​a​l​l​y​ ​l​e​s​s​ ​e​f​f​e​c​t​i​v​e​ ​t​h​a​n​ ​t​h​e​ ​o​f​f​i​c​i​a​l​ ​Q​u​r​a​n​i​c​ ​U​n​i​v​e​r​s​a​l​ ​A​l​i​g​n​e​r​ ​p​i​p​e​l​i​n​e​.
 		 */
 		muaalemReviewHint: string;
-		/**
-		 * A​u​t​o​-​d​e​t​e​c​t​i​o​n​ ​i​s​ ​a​v​a​i​l​a​b​l​e​,​ ​b​u​t​ ​s​p​e​c​i​f​y​i​n​g​ ​t​h​e​ ​s​u​r​a​h​ ​i​m​p​r​o​v​e​s​ ​p​r​e​c​i​s​i​o​n​.
-		 */
-		surahSplitterReviewHint: string;
 		/**
 		 * L​e​g​a​c​y​ ​V​1​ ​i​s​ ​a​n​ ​o​l​d​e​r​ ​f​a​l​l​b​a​c​k​ ​p​i​p​e​l​i​n​e​ ​w​i​t​h​ ​l​o​w​e​r​ ​a​l​i​g​n​m​e​n​t​ ​q​u​a​l​i​t​y​.
 		 */
@@ -11758,18 +11714,6 @@ type RootTranslation = {
 		 */
 		segmentationReplaceExisting: string;
 		/**
-		 * A​ ​f​i​x​e​d​ ​s​u​r​a​h​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​c​o​n​f​i​g​u​r​e​d​.​ ​I​t​ ​w​o​u​l​d​ ​b​e​ ​a​p​p​l​i​e​d​ ​t​o​ ​e​v​e​r​y​ ​s​e​l​e​c​t​e​d​ ​p​r​o​j​e​c​t​.
-		 */
-		segmentationFixedSurahWarning: string;
-		/**
-		 * A​u​t​o​-​d​e​t​e​c​t​ ​f​o​r​ ​e​a​c​h​ ​p​r​o​j​e​c​t
-		 */
-		segmentationSurahAuto: string;
-		/**
-		 * U​s​e​ ​t​h​e​ ​c​o​n​f​i​g​u​r​e​d​ ​s​u​r​a​h​ ​f​o​r​ ​e​v​e​r​y​ ​p​r​o​j​e​c​t
-		 */
-		segmentationSurahFixed: string;
-		/**
 		 * I​g​n​o​r​e​d​ ​p​r​o​j​e​c​t​s
 		 */
 		segmentationIgnoredProjects: string;
@@ -14113,10 +14057,6 @@ export type TranslationFunctions = {
 		 */
 		muaalemLocal: () => LocalizedString;
 		/**
-		 * Surah Splitter Local packages
-		 */
-		surahSplitterLocal: () => LocalizedString;
-		/**
 		 * Audio detected
 		 */
 		audioDetected: () => LocalizedString;
@@ -14949,14 +14889,6 @@ export type TranslationFunctions = {
 		 */
 		specifySurah: () => LocalizedString;
 		/**
-		 * Specifying the surah improves precision because matching is restricted to that surah.
-		 */
-		surahSplitterPrecisionHint: () => LocalizedString;
-		/**
-		 * Note: if your audio contains multiple surahs, only the last one will be detected and segmented. Use another model for multi-surah files.
-		 */
-		surahSplitterMultiSurahNote: () => LocalizedString;
-		/**
 		 * Review and launch
 		 */
 		reviewAndLaunch: () => LocalizedString;
@@ -15021,10 +14953,6 @@ export type TranslationFunctions = {
 		 */
 		prepareMethodMuaalemDesc: () => LocalizedString;
 		/**
-		 * Install the required local packages for the Surah Splitter workflow.
-		 */
-		prepareMethodSurahSplitterDesc: () => LocalizedString;
-		/**
 		 * Install the legacy local dependencies.
 		 */
 		prepareMethodLegacyDesc: () => LocalizedString;
@@ -15065,17 +14993,9 @@ export type TranslationFunctions = {
 		 */
 		noTokenRequiredHint: () => LocalizedString;
 		/**
-		 * No token required. Surah Splitter downloads its WhisperX model during the first run.
-		 */
-		noTokenRequiredSurahSplitterHint: () => LocalizedString;
-		/**
 		 * This option is fully local, but it is usually less accurate than the official Quranic Universal Aligner pipeline.
 		 */
 		muaalemLocalHint: () => LocalizedString;
-		/**
-		 * This option can auto-detect the surah. Selecting the surah manually in the next step improves matching precision.
-		 */
-		surahSplitterLocalHint: () => LocalizedString;
 		/**
 		 * Choose a method
 		 */
@@ -15097,29 +15017,9 @@ export type TranslationFunctions = {
 		 */
 		usesOfficialRemote: () => LocalizedString;
 		/**
-		 * Surah Splitter Local
-		 */
-		surahSplitterLocalLabel: () => LocalizedString;
-		/**
-		 * Local ayah detection with optional surah hint
-		 */
-		surahSplitterLocalDesc: () => LocalizedString;
-		/**
-		 * Runs Surah Splitter locally with WhisperX. It can auto-detect the surah and it supports word-by-word alignment, but selecting the surah manually improves precision.
-		 */
-		surahSplitterLocalDetail: () => LocalizedString;
-		/**
-		 * Note: this option only works if there's one surah in the audio file.
-		 */
-		surahSplitterSingleSurahNote: () => LocalizedString;
-		/**
 		 * Muaalem Local
 		 */
 		muaalemLocalLabel: () => LocalizedString;
-		/**
-		 * Second option but less effective than Surah Splitter
-		 */
-		muaalemLocalDesc: () => LocalizedString;
 		/**
 		 * Runs entirely on your machine with the Muaalem local pipeline. It uses Quran-specific segmentation and matching.
 		 */
@@ -15137,9 +15037,21 @@ export type TranslationFunctions = {
 		 */
 		privateLocalQuranicAlignerDetail: () => LocalizedString;
 		/**
-		 * Quran Karim - offline segmenter
+		 * Quran Karim words alignment
 		 */
 		quranwordtimingLabel: () => LocalizedString;
+		/**
+		 * Old Quran Karim words alignment
+		 */
+		quranwordtimingOldLabel: () => LocalizedString;
+		/**
+		 * FastConformer engine from QC-3.7.60, with offline verse and word timestamp alignment.
+		 */
+		quranwordtimingOldDetail: () => LocalizedString;
+		/**
+		 * One-time download of Python packages and the model (~87 MB). Operates offline afterwards.
+		 */
+		quranwordtimingOldDownloadSizeHint: () => LocalizedString;
 		/**
 		 * Ayahs Aligner - No Internet Required
 		 */
@@ -15623,17 +15535,9 @@ export type TranslationFunctions = {
 		 */
 		muaalemLocalFeatureDesc: () => LocalizedString;
 		/**
-		 * Surah Splitter transcribes the audio with WhisperX, matches recognized words to the Quran text, then returns ayah-level timestamps. Auto-detection is available, but specifying the surah improves precision.
-		 */
-		surahSplitterFeatureDesc: () => LocalizedString;
-		/**
 		 * This method is fully local, but it is generally less effective than the official Quranic Universal Aligner. Advanced fallback models are hidden by default because they are more experimental than the recommended Muaalem v3.2 path.
 		 */
 		muaalemLocalEffectivenessHint: () => LocalizedString;
-		/**
-		 * Surah Splitter downloads the selected model during segmentation if it is not cached yet.
-		 */
-		surahSplitterDownloadNote: () => LocalizedString;
 		/**
 		 * This method requires a valid Hugging Face token before it can run.
 		 */
@@ -15642,10 +15546,6 @@ export type TranslationFunctions = {
 		 * This method is fully local and simpler to install, but usually less effective than the official Quranic Universal Aligner pipeline.
 		 */
 		muaalemReviewHint: () => LocalizedString;
-		/**
-		 * Auto-detection is available, but specifying the surah improves precision.
-		 */
-		surahSplitterReviewHint: () => LocalizedString;
 		/**
 		 * Legacy V1 is an older fallback pipeline with lower alignment quality.
 		 */
@@ -23773,18 +23673,6 @@ export type TranslationFunctions = {
 		 * Replace existing subtitles in these projects
 		 */
 		segmentationReplaceExisting: () => LocalizedString;
-		/**
-		 * A fixed surah is currently configured. It would be applied to every selected project.
-		 */
-		segmentationFixedSurahWarning: () => LocalizedString;
-		/**
-		 * Auto-detect for each project
-		 */
-		segmentationSurahAuto: () => LocalizedString;
-		/**
-		 * Use the configured surah for every project
-		 */
-		segmentationSurahFixed: () => LocalizedString;
 		/**
 		 * Ignored projects
 		 */

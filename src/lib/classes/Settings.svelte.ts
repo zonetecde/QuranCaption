@@ -21,16 +21,15 @@ import { PROJECT_TYPE_OPTIONS } from '$lib/types/projectType';
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
-	localAsrMode: 'legacy_whisper' | 'multi_aligner' | 'surah_splitter' | 'quran_word_timing';
+	localAsrMode: 'legacy_whisper' | 'multi_aligner' | 'quran_word_timing_old' | 'quran_word_timing';
 	minSilenceMs: number;
 	minSpeechMs: number;
 	padMs: number;
 	padLeftMs?: number;
 	padRightMs?: number;
 	legacyWhisperModel: 'tiny' | 'base' | 'medium' | 'large';
-	multiAlignerModel: 'Base' | 'Large' | 'SurahSplitter-Base-Quran';
+	multiAlignerModel: 'Base' | 'Large';
 	cloudModel: 'Base' | 'Large';
-	surahSplitterSurah: number | null;
 	device: 'GPU' | 'CPU';
 	riwayah?: 'hafs' | 'warsh' | 'qalun' | 'shuba';
 	hfToken: string;
@@ -165,7 +164,6 @@ export default class Settings extends SerializableBase {
 		legacyWhisperModel: 'base',
 		multiAlignerModel: 'Base',
 		cloudModel: 'Base',
-		surahSplitterSurah: null,
 		device: 'GPU',
 		riwayah: 'hafs',
 		hfToken: '',

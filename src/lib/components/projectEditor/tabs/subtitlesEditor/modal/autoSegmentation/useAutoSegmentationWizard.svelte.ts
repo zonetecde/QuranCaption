@@ -102,6 +102,7 @@ export function useAutoSegmentationWizard() {
 	 * @returns {boolean} Whether WordTiming setup is complete.
 	 */
 	const isWordTimingReadyFromCache = (): boolean => {
+		if (cachedLocalStatus?.engines?.quranwordtiming?.usable) return true;
 		if (cachedLocalStatus?.engines?.quranwordtiming?.ready) return true;
 		if (typeof localStorage !== 'undefined') {
 			return localStorage.getItem(WORD_TIMING_READY_STORAGE_KEY) === '1';
@@ -233,7 +234,10 @@ export function useAutoSegmentationWizard() {
 				localStatus = await checkLocalSegmentationStatus(selection.hfToken);
 				cachedLocalStatus = localStatus;
 				if (typeof localStorage !== 'undefined') {
-					const ready = Boolean(localStatus?.engines?.quranwordtiming?.ready);
+					const ready = Boolean(
+						localStatus?.engines?.quranwordtiming?.usable ??
+							localStatus?.engines?.quranwordtiming?.ready
+					);
 					localStorage.setItem(WORD_TIMING_READY_STORAGE_KEY, ready ? '1' : '0');
 				}
 			} catch {
@@ -747,7 +751,7 @@ export function useAutoSegmentationWizard() {
 	}
 	/** Moves to the next wizard step. */
 	async function goNext(): Promise<void> {
-		if (isCheckingStatus && statusCheckPromise) {
+		if (currentStepKey() === 'setup' && isCheckingStatus && statusCheckPromise) {
 			await statusCheckPromise;
 		}
 		if (!canGoNext()) {

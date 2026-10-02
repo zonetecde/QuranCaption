@@ -3,9 +3,9 @@ use std::process::Command;
 use crate::utils::process::configure_command_no_window;
 
 use super::data_files::{
-    required_multi_aligner_data_files, required_word_timing_model_files,
-    resolve_multi_aligner_data_dir, validate_multi_aligner_data_file,
-    validate_word_timing_model_file,
+    is_word_timing_model_file_present, required_multi_aligner_data_files,
+    required_word_timing_model_files, resolve_multi_aligner_data_dir,
+    validate_multi_aligner_data_file,
 };
 use super::python_env::{
     get_engine_venv_path, get_venv_python_exe, get_word_timing_model_dir,
@@ -306,30 +306,63 @@ pub async fn check_local_segmentation_ready(
             let word_timing_python_venv_exe = get_venv_python_exe(&word_timing_venv);
             let word_timing_venv_exists = word_timing_python_venv_exe.exists();
 
-            let (legacy_imports_ok, legacy_missing_modules) = run_python_import_check(
-                &legacy_python,
-                LocalSegmentationEngine::LegacyWhisper.required_import_modules(),
-            );
-            let (legacy_versions_ok, legacy_versions_message) =
-                check_legacy_python_versions(&legacy_python);
-            let (multi_imports_ok, multi_missing_modules) = run_python_import_check(
-                &multi_python,
-                LocalSegmentationEngine::MultiAligner.required_import_modules(),
-            );
-            let (surah_splitter_imports_ok, surah_splitter_missing_modules) =
-                run_python_import_check(
-                    &surah_splitter_python,
-                    LocalSegmentationEngine::SurahSplitter.required_import_modules(),
-                );
-            let (word_timing_imports_ok, word_timing_missing_modules) =
-                run_python_import_check(
-                    &word_timing_python_venv_exe,
-                    LocalSegmentationEngine::QuranWordTiming.required_import_modules(),
-                );
-            let multi_phonemizer_ok = run_python_any_import_check(
-                &multi_python,
-                &["core.phonemizer", "quranic_phonemizer"],
-            );
+            let (
+                (legacy_imports_ok, legacy_missing_modules, legacy_versions_ok, legacy_versions_message),
+                (multi_imports_ok, multi_missing_modules, multi_phonemizer_ok),
+                (surah_splitter_imports_ok, surah_splitter_missing_modules),
+                (word_timing_imports_ok, word_timing_missing_modules),
+            ) = std::thread::scope(|s| {
+                let legacy_t = s.spawn(|| {
+                    if !legacy_venv_exists {
+                        return (false, Vec::new(), false, None);
+                    }
+                    let (imp_ok, miss) = run_python_import_check(
+                        &legacy_python,
+                        LocalSegmentationEngine::LegacyWhisper.required_import_modules(),
+                    );
+                    let (ver_ok, ver_msg) = check_legacy_python_versions(&legacy_python);
+                    (imp_ok, miss, ver_ok, ver_msg)
+                });
+                let multi_t = s.spawn(|| {
+                    if !multi_venv_exists {
+                        return (false, Vec::new(), false);
+                    }
+                    let (imp_ok, miss) = run_python_import_check(
+                        &multi_python,
+                        LocalSegmentationEngine::MultiAligner.required_import_modules(),
+                    );
+                    let phone_ok = run_python_any_import_check(
+                        &multi_python,
+                        &["core.phonemizer", "quranic_phonemizer"],
+                    );
+                    (imp_ok, miss, phone_ok)
+                });
+                let surah_t = s.spawn(|| {
+                    if !surah_splitter_venv_exists {
+                        return (false, Vec::new());
+                    }
+                    run_python_import_check(
+                        &surah_splitter_python,
+                        LocalSegmentationEngine::SurahSplitter.required_import_modules(),
+                    )
+                });
+                let word_t = s.spawn(|| {
+                    if !word_timing_venv_exists {
+                        return (false, Vec::new());
+                    }
+                    run_python_import_check(
+                        &word_timing_python_venv_exe,
+                        LocalSegmentationEngine::QuranWordTiming.required_import_modules(),
+                    )
+                });
+
+                (
+                    legacy_t.join().unwrap_or((false, Vec::new(), false, None)),
+                    multi_t.join().unwrap_or((false, Vec::new(), false)),
+                    surah_t.join().unwrap_or((false, Vec::new())),
+                    word_t.join().unwrap_or((false, Vec::new())),
+                )
+            });
             let multi_data_error = resolve_multi_aligner_data_dir(&app_handle)
                 .ok()
                 .and_then(|data_dir| {
@@ -347,8 +380,8 @@ pub async fn check_local_segmentation_ready(
             let surah_splitter_packages = surah_splitter_imports_ok;
             let word_timing_models_ready = get_word_timing_model_dir(&app_handle)
                 .map(|dir| {
-                    required_word_timing_model_files().iter().all(|(name, _, size, hash)| {
-                        validate_word_timing_model_file(&dir.join(name), *size, hash).is_ok()
+                    required_word_timing_model_files().iter().all(|(name, _, size, _)| {
+                        is_word_timing_model_file_present(&dir.join(name), *size)
                     })
                 })
                 .unwrap_or(false);

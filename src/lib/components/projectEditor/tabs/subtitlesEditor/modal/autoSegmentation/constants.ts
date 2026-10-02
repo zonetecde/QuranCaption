@@ -29,22 +29,35 @@ export const WIZARD_STEPS_CLOUD_V2: WizardStep[] = [
 export const WIZARD_STEPS_quran_word_timing: WizardStep[] = [
 	{ key: 'version', title: 'Method', subtitle: 'Choose your workflow', icon: 'auto_awesome' },
 	WIZARD_STEPS_V2[1],
-	{ key: 'settings', title: 'Settings', subtitle: 'Timing and behavior', icon: 'tune' },
 	{ key: 'review', title: 'Review', subtitle: 'Check and launch', icon: 'play_arrow' }
 ];
 
-/** Returns the active step sequence for the selected AI version. */
+/**
+ * Returns the active step sequence for the selected AI version.
+ *
+ * @param {AiVersion} aiVersion Selected AI engine version.
+ * @param {WizardRuntime} _runtime Active runtime mode.
+ * @param {boolean} [showExistingSubtitlesStep=false] Whether existing subtitles step should be included.
+ * @param {boolean} [isSetupReady=false] Whether local engine dependencies and models are already installed.
+ * @returns {WizardStep[]} Ordered list of wizard steps.
+ */
 export function getWizardSteps(
 	aiVersion: AiVersion,
 	_runtime: WizardRuntime,
-	showExistingSubtitlesStep: boolean = false
+	showExistingSubtitlesStep: boolean = false,
+	isSetupReady: boolean = false
 ): WizardStep[] {
-	const baseSteps =
+	let baseSteps =
 		aiVersion === 'quran_word_timing'
 			? WIZARD_STEPS_quran_word_timing
 			: aiVersion === 'multi_v2'
 				? WIZARD_STEPS_CLOUD_V2
 				: WIZARD_STEPS_V2;
+
+	if (isSetupReady && aiVersion === 'quran_word_timing') {
+		baseSteps = baseSteps.filter(({ key }) => key !== 'setup');
+	}
+
 	if (aiVersion === 'multi_v2') return baseSteps;
 	if (!showExistingSubtitlesStep) return baseSteps;
 

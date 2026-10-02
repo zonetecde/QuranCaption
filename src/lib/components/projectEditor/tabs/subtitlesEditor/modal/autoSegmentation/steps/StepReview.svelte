@@ -81,14 +81,14 @@
 							: $LL.editor.disabledLabel()}</span
 			>
 		</div>
-		<div class="text-secondary">
-			{$LL.editor.presetTimingSummary()}:
-			<span class="text-primary font-semibold"
-				>{wizard.minSilenceMs}ms silence, {#if wizard.selection.aiVersion !== 'quran_word_timing'}{wizard.minSpeechMs}ms
-					speech,
-				{/if}{wizard.padMs}ms padding</span
-			>
-		</div>
+		{#if wizard.selection.aiVersion !== 'quran_word_timing'}
+			<div class="text-secondary">
+				{$LL.editor.presetTimingSummary()}:
+				<span class="text-primary font-semibold"
+					>{wizard.minSilenceMs}ms silence, {wizard.minSpeechMs}ms speech, {wizard.padMs}ms padding</span
+				>
+			</div>
+		{/if}
 		{#if wizard.selection.aiVersion === 'multi_v2_local' && !wizard.selection.hfToken.trim()}
 			<div
 				class="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-300"

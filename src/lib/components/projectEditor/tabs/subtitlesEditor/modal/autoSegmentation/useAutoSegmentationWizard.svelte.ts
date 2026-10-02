@@ -45,6 +45,10 @@ import type {
 	WizardSelectionState
 } from './types';
 
+const WORD_TIMING_READY_STORAGE_KEY = 'qc_quran_word_timing_ready';
+let cachedLocalStatus: LocalSegmentationStatus | null = null;
+let statusCheckPromise: Promise<void> | null = null;
+
 /** Creates modal state and actions for the auto-segmentation wizard. */
 export function useAutoSegmentationWizard() {
 	const validSurahSplitterModels = new Set<string>(
@@ -67,16 +71,18 @@ export function useAutoSegmentationWizard() {
 	let fillBySilence = $state(persisted?.fillBySilence ?? true);
 	let extendBeforeSilence = $state(persisted?.extendBeforeSilence ?? false);
 	let extendBeforeSilenceMs = $state(persisted?.extendBeforeSilenceMs ?? 50);
-	let currentStep = $state(0);
+	let activeStepKey = $state<string>('version');
 	let isRunning = $state(false);
 	let result = $state<AutoSegmentationResult | null>(null);
-	let localStatus = $state<LocalSegmentationStatus | null>(null);
+	let localStatus = $state<LocalSegmentationStatus | null>(cachedLocalStatus);
 	let isCheckingStatus = $state(false);
 	let isInstallingDeps = $state(false);
 	let installingEngine = $state<'legacy' | 'multi' | 'surah_splitter' | 'quran_word_timing' | null>(
 		null
 	);
 	let installStatus = $state('');
+	let installStatusProgress = $state<number | null>(null);
+	let installStatusMessage = $state('');
 	let currentStatus = $state('');
 	let currentStatusProgress = $state<number | null>(null);
 	let errorMessage = $state<string | null>(null);
@@ -88,17 +94,21 @@ export function useAutoSegmentationWizard() {
 	let importedJsonSegmentCount = $state(0);
 	let importedJsonParseError = $state<string | null>(null);
 	let selectedAudioLaneIndex = $state(0);
-	const showExistingSubtitlesStep = $derived(
-		() =>
-			globalState.getSubtitleTrack.clips.filter(
-				(clip) => clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip
-			).length >= 3
-	);
-	const steps = $derived(() =>
-		getWizardSteps(selection.aiVersion, selection.runtime, showExistingSubtitlesStep())
-	);
-	const maxStep = $derived(() => Math.max(0, steps().length - 1));
-	const currentStepKey = $derived(() => steps()[currentStep]?.key ?? 'review');
+
+	/**
+	 * Checks if WordTiming engine dependencies and models are already ready.
+	 * Consults live engine status first, falling back to cache or local storage.
+	 *
+	 * @returns {boolean} Whether WordTiming setup is complete.
+	 */
+	const isWordTimingReadyFromCache = (): boolean => {
+		if (cachedLocalStatus?.engines?.quranwordtiming?.ready) return true;
+		if (typeof localStorage !== 'undefined') {
+			return localStorage.getItem(WORD_TIMING_READY_STORAGE_KEY) === '1';
+		}
+		return false;
+	};
+
 	const selectedLocalEngineStatus = $derived(() => {
 		if (selection.localAsrMode === 'legacy_whisper') return localStatus?.engines?.legacy ?? null;
 		if (selection.localAsrMode === 'surah_splitter')
@@ -107,6 +117,38 @@ export function useAutoSegmentationWizard() {
 			return localStatus?.engines?.quranwordtiming ?? null;
 		return localStatus?.engines?.multi ?? null;
 	});
+
+	const isSetupReady = $derived(() => {
+		if (selection.aiVersion === 'quran_word_timing') {
+			if (selectedLocalEngineStatus()) {
+				return Boolean(selectedLocalEngineStatus()?.usable);
+			}
+			return isWordTimingReadyFromCache();
+		}
+		return false;
+	});
+
+	const showExistingSubtitlesStep = $derived(
+		() =>
+			globalState.getSubtitleTrack.clips.filter(
+				(clip) => clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip
+			).length >= 3
+	);
+	const steps = $derived(() =>
+		getWizardSteps(
+			selection.aiVersion,
+			selection.runtime,
+			showExistingSubtitlesStep(),
+			isSetupReady()
+		)
+	);
+	const maxStep = $derived(() => Math.max(0, steps().length - 1));
+	const currentStep = $derived(() => {
+		const list = steps();
+		const idx = list.findIndex((s) => s.key === activeStepKey);
+		return idx >= 0 ? idx : Math.max(0, list.length - 1);
+	});
+	const currentStepKey = $derived(() => steps()[currentStep()]?.key ?? 'review');
 	const supportsWbwTimestamps = $derived(
 		() =>
 			selection.aiVersion === 'multi_v2' ||
@@ -186,13 +228,23 @@ export function useAutoSegmentationWizard() {
 	/** Loads local engine readiness without blocking run action. */
 	async function refreshLocalStatus(): Promise<void> {
 		isCheckingStatus = true;
-		try {
-			localStatus = await checkLocalSegmentationStatus(selection.hfToken);
-		} catch {
-			localStatus = null;
-		} finally {
-			isCheckingStatus = false;
-		}
+		const promise = (async () => {
+			try {
+				localStatus = await checkLocalSegmentationStatus(selection.hfToken);
+				cachedLocalStatus = localStatus;
+				if (typeof localStorage !== 'undefined') {
+					const ready = Boolean(localStatus?.engines?.quranwordtiming?.ready);
+					localStorage.setItem(WORD_TIMING_READY_STORAGE_KEY, ready ? '1' : '0');
+				}
+			} catch {
+				localStatus = null;
+			} finally {
+				isCheckingStatus = false;
+				statusCheckPromise = null;
+			}
+		})();
+		statusCheckPromise = promise;
+		await promise;
 	}
 
 	/** Changes AI family and applies runtime constraints. */
@@ -243,7 +295,7 @@ export function useAutoSegmentationWizard() {
 				persistPatch({ multiAlignerModel: selection.multiModel });
 			}
 		}
-		currentStep = Math.max(0, Math.min(currentStep, maxStep()));
+		goToStep(currentStep());
 		persistPatch({ mode: selection.mode, localAsrMode: selection.localAsrMode });
 		if (selection.mode === 'local') void refreshLocalStatus();
 	}
@@ -327,13 +379,24 @@ export function useAutoSegmentationWizard() {
 		isInstallingDeps = true;
 		installingEngine = engine;
 		installStatus = '';
-		const unlisten = await listen<{ message: string }>('install-status', (event) => {
-			const payload = {
-				step: 'install',
-				message: event.payload.message
-			};
-			installStatus = `[segmentation][local][status][${engine}] STATUS:${JSON.stringify(payload)}`;
-		});
+		installStatusProgress = null;
+		installStatusMessage = '';
+		const unlisten = await listen<{ message: string; progress?: number }>(
+			'install-status',
+			(event) => {
+				installStatusMessage = event.payload.message;
+				if (typeof event.payload.progress === 'number') {
+					installStatusProgress = Math.max(0, Math.min(100, event.payload.progress));
+				} else {
+					installStatusProgress = null;
+				}
+				const payload = {
+					step: 'install',
+					message: event.payload.message
+				};
+				installStatus = `[segmentation][local][status][${engine}] STATUS:${JSON.stringify(payload)}`;
+			}
+		);
 		try {
 			await installLocalSegmentationDeps(
 				engine,
@@ -349,6 +412,8 @@ export function useAutoSegmentationWizard() {
 			isInstallingDeps = false;
 			installingEngine = null;
 			installStatus = '';
+			installStatusProgress = null;
+			installStatusMessage = '';
 		}
 	}
 
@@ -677,19 +742,23 @@ export function useAutoSegmentationWizard() {
 	}
 	/** Goes to any wizard step within bounds. */
 	function goToStep(step: number): void {
-		currentStep = Math.max(0, Math.min(maxStep(), step));
+		const targetStep = steps()[Math.max(0, Math.min(maxStep(), step))];
+		if (targetStep) activeStepKey = targetStep.key;
 	}
 	/** Moves to the next wizard step. */
-	function goNext(): void {
+	async function goNext(): Promise<void> {
+		if (isCheckingStatus && statusCheckPromise) {
+			await statusCheckPromise;
+		}
 		if (!canGoNext()) {
 			errorMessage = 'Install the required local packages before continuing.';
 			return;
 		}
-		goToStep(currentStep + 1);
+		goToStep(currentStep() + 1);
 	}
 	/** Moves to the previous wizard step. */
 	function goBack(): void {
-		goToStep(currentStep - 1);
+		goToStep(currentStep() - 1);
 	}
 
 	return {
@@ -739,7 +808,7 @@ export function useAutoSegmentationWizard() {
 			return extendBeforeSilenceMs;
 		},
 		get currentStep() {
-			return currentStep;
+			return currentStep();
 		},
 		get isRunning() {
 			return isRunning;
@@ -761,6 +830,12 @@ export function useAutoSegmentationWizard() {
 		},
 		get installStatus() {
 			return installStatus;
+		},
+		get installStatusProgress() {
+			return installStatusProgress;
+		},
+		get installStatusMessage() {
+			return installStatusMessage;
 		},
 		get currentStatus() {
 			return currentStatus;

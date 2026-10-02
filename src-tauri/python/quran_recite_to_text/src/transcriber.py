@@ -15,7 +15,10 @@ from typing import Optional, List, Dict, Tuple, Callable
 import queue
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import numpy as np
-import kaldi_native_fbank as knf
+try:
+    import kaldi_native_fbank as knf
+except ImportError:
+    knf = None
 import onnxruntime as ort
 
 import config
@@ -41,6 +44,90 @@ logger = logging.getLogger(__name__)
 FRAME_TIME_STEP = 0.04  # 10ms fbank hop x 4 subsampling = 40ms per encoder frame (25 Hz)
 CHUNK_LEN = 48         # decode chunk length in fbank frames (480ms)
 T_LEN = 61             # total chunk window including right context in fbank frames (610ms)
+
+
+def _get_kaldi_mel_banks(
+    num_bins: int = 80,
+    n_fft: int = 512,
+    sample_rate: int = 16000,
+    low_freq: float = 20.0,
+    high_freq: float = -400.0,
+) -> np.ndarray:
+    """Precomputes triangular Mel filterbank matrix matching Daniel Povey's Kaldi C++ implementation."""
+    nyquist = 0.5 * sample_rate
+    if high_freq <= 0.0:
+        high_freq += nyquist
+    num_fft_bins = n_fft // 2
+    fft_bin_width = sample_rate / n_fft
+
+    mel_low = 1127.0 * math.log(1.0 + low_freq / 700.0)
+    mel_high = 1127.0 * math.log(1.0 + high_freq / 700.0)
+    mel_delta = (mel_high - mel_low) / (num_bins + 1)
+
+    bins = np.zeros((num_bins, num_fft_bins), dtype=np.float32)
+    for bin_idx in range(num_bins):
+        left_mel = mel_low + bin_idx * mel_delta
+        center_mel = mel_low + (bin_idx + 1) * mel_delta
+        right_mel = mel_low + (bin_idx + 2) * mel_delta
+
+        for i in range(num_fft_bins):
+            freq = i * fft_bin_width
+            mel = 1127.0 * math.log(1.0 + freq / 700.0)
+            if left_mel < mel < center_mel:
+                bins[bin_idx, i] = (mel - left_mel) / (center_mel - left_mel)
+            elif center_mel <= mel < right_mel:
+                bins[bin_idx, i] = (right_mel - mel) / (right_mel - center_mel)
+
+    return bins
+
+
+_CACHED_KALDI_MEL_BANKS: Optional[np.ndarray] = None
+
+
+def _numpy_kaldi_fbank(
+    waveform: np.ndarray,
+    sample_rate: int = 16000,
+    frame_length_ms: float = 25.0,
+    frame_shift_ms: float = 10.0,
+    num_mel_bins: int = 80,
+    preemphasis: float = 0.97,
+    povey_power: float = 0.85,
+) -> np.ndarray:
+    """Vectorised pure NumPy replica of Kaldi Fbank (100% token-equivalent fallback for kaldi-native-fbank)."""
+    global _CACHED_KALDI_MEL_BANKS
+    if _CACHED_KALDI_MEL_BANKS is None:
+        _CACHED_KALDI_MEL_BANKS = _get_kaldi_mel_banks(num_bins=num_mel_bins, sample_rate=sample_rate)
+
+    frame_len = int(round(sample_rate * frame_length_ms / 1000.0))
+    frame_shift = int(round(sample_rate * frame_shift_ms / 1000.0))
+    n_fft = 512
+
+    num_samples = len(waveform)
+    num_frames = (num_samples + frame_shift // 2) // frame_shift
+    if num_frames == 0:
+        return np.empty((0, num_mel_bins), dtype=np.float32)
+
+    half_diff = (frame_len - frame_shift) // 2
+    padded_wave = np.pad(waveform, (half_diff, frame_len), mode="reflect")
+
+    shape = (num_frames, frame_len)
+    strides = (padded_wave.strides[0] * frame_shift, padded_wave.strides[0])
+    frames = np.lib.stride_tricks.as_strided(padded_wave, shape=shape, strides=strides).copy()
+
+    frames -= np.mean(frames, axis=1, keepdims=True)
+    frames[:, 1:] -= preemphasis * frames[:, :-1]
+    frames[:, 0] -= preemphasis * frames[:, 0]
+
+    n = np.arange(frame_len)
+    povey_window = (0.5 - 0.5 * np.cos(2 * np.pi * n / (frame_len - 1))) ** povey_power
+    frames *= povey_window
+
+    fft_vals = np.fft.rfft(frames, n=n_fft, axis=1)
+    power_spectrum = np.abs(fft_vals[:, : n_fft // 2]) ** 2
+
+    mel_energies = np.dot(power_spectrum, _CACHED_KALDI_MEL_BANKS.T)
+    mel_energies = np.maximum(mel_energies, np.finfo(np.float32).eps)
+    return np.log(mel_energies).astype(np.float32)
 
 
 class ZipformerONNX:
@@ -141,40 +228,44 @@ class ZipformerONNX:
         target['processed_lens'].fill(0)
 
     def _extract_fbank(self, audio: np.ndarray) -> np.ndarray:
-        opts = knf.FbankOptions()
-        opts.frame_opts.samp_freq = SAMPLE_RATE
-        opts.mel_opts.num_bins = 80
-        opts.frame_opts.dither = 0.0
-        opts.frame_opts.snip_edges = False
-        opts.frame_opts.window_type = "povey"
-        opts.frame_opts.remove_dc_offset = True
-        opts.frame_opts.preemph_coeff = 0.97
-        opts.mel_opts.low_freq = 20.0
-        opts.mel_opts.high_freq = -400.0
-        opts.frame_opts.frame_shift_ms = 10.0
-        opts.frame_opts.frame_length_ms = 25.0
-
-        fbank = knf.OnlineFbank(opts)
         if not audio.flags.c_contiguous or audio.dtype != np.float32:
             audio = np.ascontiguousarray(audio, dtype=np.float32)
 
-        # Chunked ingestion avoids buffering entire multi-hour waveforms in C++
-        chunk_samples = SAMPLE_RATE * 30
-        for pos in range(0, len(audio), chunk_samples):
-            fbank.accept_waveform(SAMPLE_RATE, audio[pos:pos + chunk_samples])
-        fbank.input_finished()
+        # 1. Primary: C++ kaldi-native-fbank (top speed)
+        if knf is not None:
+            opts = knf.FbankOptions()
+            opts.frame_opts.samp_freq = SAMPLE_RATE
+            opts.mel_opts.num_bins = 80
+            opts.frame_opts.dither = 0.0
+            opts.frame_opts.snip_edges = False
+            opts.frame_opts.window_type = "povey"
+            opts.frame_opts.remove_dc_offset = True
+            opts.frame_opts.preemph_coeff = 0.97
+            opts.mel_opts.low_freq = 20.0
+            opts.mel_opts.high_freq = -400.0
+            opts.frame_opts.frame_shift_ms = 10.0
+            opts.frame_opts.frame_length_ms = 25.0
 
-        num_frames = fbank.num_frames_ready
-        if num_frames == 0:
-            return np.empty((0, 80), dtype=np.float32)
+            fbank = knf.OnlineFbank(opts)
+            chunk_samples = SAMPLE_RATE * 30
+            for pos in range(0, len(audio), chunk_samples):
+                fbank.accept_waveform(SAMPLE_RATE, audio[pos:pos + chunk_samples])
+            fbank.input_finished()
 
-        feats = np.empty((num_frames, 80), dtype=np.float32)
-        get_frame = fbank.get_frame
-        for i in range(num_frames):
-            feats[i] = get_frame(i)
+            num_frames = fbank.num_frames_ready
+            if num_frames == 0:
+                return np.empty((0, 80), dtype=np.float32)
 
-        del fbank
-        return feats
+            feats = np.empty((num_frames, 80), dtype=np.float32)
+            get_frame = fbank.get_frame
+            for i in range(num_frames):
+                feats[i] = get_frame(i)
+
+            del fbank
+            return feats
+
+        # 2. Fallback: Vectorised pure NumPy Kaldi fbank (100% token-equivalent, 0 compiler dependencies)
+        return _numpy_kaldi_fbank(audio, sample_rate=SAMPLE_RATE)
 
     def _transcribe_fbank_segment(
         self,

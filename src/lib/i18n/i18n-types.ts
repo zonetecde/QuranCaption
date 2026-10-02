@@ -2985,7 +2985,7 @@ type RootTranslation = {
 		 */
 		privateLocalQuranicAlignerDetail: string;
 		/**
-		 * Q​u​r​a​n​ ​K​a​r​i​m​ ​w​o​r​d​s​ ​a​l​i​g​n​m​e​n​t
+		 * Q​u​r​a​n​ ​K​a​r​i​m​ ​-​ ​o​f​f​l​i​n​e​ ​s​e​g​m​e​n​t​e​r
 		 */
 		quranwordtimingLabel: string;
 		/**
@@ -2996,6 +2996,10 @@ type RootTranslation = {
 		 * O​f​f​l​i​n​e​ ​Q​u​r​a​n​i​c​ ​s​p​e​e​c​h​ ​r​e​c​o​g​n​i​t​i​o​n​ ​a​n​d​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​ ​a​l​i​g​n​m​e​n​t​.
 		 */
 		quranwordtimingDetail: string;
+		/**
+		 * O​n​e​-​t​i​m​e​ ​d​o​w​n​l​o​a​d​:​ ​~​1​5​0​ ​M​B​ ​(​~​7​5​ ​M​B​ ​p​a​c​k​a​g​e​s​ ​+​ ​~​7​4​ ​M​B​ ​m​o​d​e​l​s​)​.​ ​O​p​e​r​a​t​e​s​ ​c​o​m​p​l​e​t​e​l​y​ ​o​f​f​l​i​n​e​ ​a​f​t​e​r​w​a​r​d​s​.
+		 */
+		quranwordtimingDownloadSizeHint: string;
 		/**
 		 * O​f​f​l​i​n​e
 		 */
@@ -15125,7 +15129,7 @@ export type TranslationFunctions = {
 		 */
 		privateLocalQuranicAlignerDetail: () => LocalizedString;
 		/**
-		 * Quran Karim words alignment
+		 * Quran Karim - offline segmenter
 		 */
 		quranwordtimingLabel: () => LocalizedString;
 		/**
@@ -15136,6 +15140,10 @@ export type TranslationFunctions = {
 		 * Offline Quranic speech recognition and word-by-word timestamp alignment.
 		 */
 		quranwordtimingDetail: () => LocalizedString;
+		/**
+		 * One-time download: ~150 MB (~75 MB packages + ~74 MB models). Operates completely offline afterwards.
+		 */
+		quranwordtimingDownloadSizeHint: () => LocalizedString;
 		/**
 		 * Offline
 		 */

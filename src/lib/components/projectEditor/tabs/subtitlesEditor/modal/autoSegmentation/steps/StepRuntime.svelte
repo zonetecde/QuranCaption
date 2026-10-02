@@ -82,6 +82,8 @@
 						isInstalling={wizard.isInstallingDeps && wizard.installingEngine === 'legacy'}
 						isInstalled={!!wizard.localStatus?.engines?.legacy?.ready}
 						onInstall={() => void wizard.installEngine('legacy')}
+						progress={wizard.installStatusProgress}
+						statusMessage={wizard.installStatusMessage}
 					/>
 				{:else if isLocalV2()}
 					<LocalEngineCard
@@ -90,8 +92,13 @@
 						isInstalling={wizard.isInstallingDeps && wizard.installingEngine === 'multi'}
 						isInstalled={!!wizard.localStatus?.engines?.multi?.ready}
 						onInstall={() => void wizard.installEngine('multi')}
+						progress={wizard.installStatusProgress}
+						statusMessage={wizard.installStatusMessage}
 					/>
 				{:else if isWordTiming()}
+					<p class="text-xs text-thirdly">
+						{($LL.editor as any).quranwordtimingDownloadSizeHint?.() ?? ''}
+					</p>
 					<LocalEngineCard
 						title={$LL.editor.quranwordtimingLabel()}
 						status={wizard.localStatus?.engines?.quranwordtiming ?? null}
@@ -99,6 +106,8 @@
 							wizard.installingEngine === 'quran_word_timing'}
 						isInstalled={!!wizard.localStatus?.engines?.quranwordtiming?.ready}
 						onInstall={() => void wizard.installEngine('quran_word_timing')}
+						progress={wizard.installStatusProgress}
+						statusMessage={wizard.installStatusMessage}
 					/>
 				{:else}
 					<p class="text-xs text-thirdly">
@@ -110,9 +119,11 @@
 						isInstalling={wizard.isInstallingDeps && wizard.installingEngine === 'surah_splitter'}
 						isInstalled={!!wizard.localStatus?.engines?.surahSplitter?.ready}
 						onInstall={() => void wizard.installEngine('surah_splitter')}
+						progress={wizard.installStatusProgress}
+						statusMessage={wizard.installStatusMessage}
 					/>
 				{/if}
-				{#if wizard.installStatus}
+				{#if wizard.installStatus && !wizard.isInstallingDeps}
 					<div
 						class="rounded-lg border border-color bg-accent/30 px-3 py-2 text-[11px] font-mono text-thirdly whitespace-pre-wrap break-words"
 					>

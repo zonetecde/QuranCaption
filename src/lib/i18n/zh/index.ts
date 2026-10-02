@@ -1029,9 +1029,11 @@ const zh = {
 		bestLocalAccuracy: '最佳本地精度',
 		privateLocalQuranicAlignerDetail:
 			'通过私有本地 Quranic Universal Aligner 栈在您的机器上运行。需要 Python 设置和 Hugging Face Token。',
-		quranwordtimingLabel: 'Quran Karim words alignment',
+		quranwordtimingLabel: 'Quran Karim - offline segmenter',
 		quranwordtimingDesc: 'Ayahs 对齐器 - 无需互联网',
 		quranwordtimingDetail: '离线 Quran 语音识别与逐字时间戳对齐。',
+		quranwordtimingDownloadSizeHint:
+			'单次下载：约 150 MB（约 75 MB 依赖包 + 约 74 MB 模型）。之后完全离线运行。',
 		offlineLabel: '离线',
 		advancedLabel: '高级',
 		importHuggingFaceJson: '导入 Hugging Face JSON',

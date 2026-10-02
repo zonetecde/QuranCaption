@@ -8,13 +8,13 @@ use super::data_files::{
     validate_word_timing_model_file,
 };
 use super::python_env::{
-    get_engine_venv_path, get_venv_python_exe, get_word_timing_model_dir, resolve_system_python,
-    run_python_any_import_check, run_python_import_check, MIN_LOCAL_PYTHON_MAJOR,
-    MIN_LOCAL_PYTHON_MINOR,
+    get_engine_venv_path, get_venv_python_exe, get_word_timing_model_dir,
+    resolve_python_with_portable, run_python_any_import_check, run_python_import_check,
+    MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR,
 };
 use super::types::LocalSegmentationEngine;
 
-/// VÃ©rifie que les versions Python critiques du moteur legacy restent compatibles.
+/// Vérifie que les versions Python critiques du moteur legacy restent compatibles.
 fn check_legacy_python_versions(python_exe: &std::path::Path) -> (bool, Option<String>) {
     if !python_exe.exists() {
         return (
@@ -126,7 +126,7 @@ except Exception as e:
     )
 }
 
-/// VÃ©rifie l'Ã©tat de prÃ©paration des moteurs de segmentation locale.
+/// Vérifie l'état de préparation des moteurs de segmentation locale.
 pub async fn check_local_segmentation_ready(
     app_handle: tauri::AppHandle,
     hf_token: Option<String>,
@@ -138,11 +138,15 @@ pub async fn check_local_segmentation_ready(
         .map(|t| !t.trim().is_empty())
         .unwrap_or(false);
 
-    // Le check est exÃ©cutÃ© dans un thread bloquant avec timeout pour ne pas figer l'UI.
+    // Le check est exécuté dans un thread bloquant avec timeout pour ne pas figer l'UI.
     let check_result = timeout(
         Duration::from_secs(25),
         tokio::task::spawn_blocking(move || {
-            let python = resolve_system_python(MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR);
+            let python = resolve_python_with_portable(
+                &app_handle,
+                MIN_LOCAL_PYTHON_MAJOR,
+                MIN_LOCAL_PYTHON_MINOR,
+            );
             if let Err(error) = python {
                 return serde_json::json!({
                     "ready": false,
@@ -154,26 +158,26 @@ pub async fn check_local_segmentation_ready(
                         MIN_LOCAL_PYTHON_MINOR,
                         error
                     ),
-                        "engines": {
-                            "legacy": {
-                                "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
-                                "message": "Python not installed"
-                            },
-                            "multi": {
-                                "ready": false, "venvExists": false, "packagesInstalled": false,
-                                "tokenRequired": true, "tokenProvided": token_provided, "usable": false,
-                                "message": "Python not installed"
-                            },
-                            "surahSplitter": {
-                                "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
-                                "message": "Python not installed"
-                            },
-                            "quranwordtiming": {
-                                "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
-                                "message": "Python not installed"
-                            }
+                    "engines": {
+                        "legacy": {
+                            "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
+                            "message": "Python not installed"
+                        },
+                        "multi": {
+                            "ready": false, "venvExists": false, "packagesInstalled": false,
+                            "tokenRequired": true, "tokenProvided": token_provided, "usable": false,
+                            "message": "Python not installed"
+                        },
+                        "surahSplitter": {
+                            "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
+                            "message": "Python not installed"
+                        },
+                        "quranwordtiming": {
+                            "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
+                            "message": "Portable Python 3.11 will be automatically installed on setup"
                         }
-                    });
+                    }
+                });
             }
 
             let legacy_venv = match get_engine_venv_path(&app_handle, LocalSegmentationEngine::LegacyWhisper) {
@@ -449,7 +453,7 @@ pub async fn check_local_segmentation_ready(
                         "packagesInstalled": word_timing_packages,
                         "usable": word_timing_ready,
                         "message": if word_timing_ready {
-                            "Quran Karim words alignment engine is ready".to_string()
+                            "Quran Karim - offline segmenter engine is ready".to_string()
                         } else if !word_timing_venv_exists || !word_timing_models_ready {
                             "WordTiming Offline dependencies are not installed".to_string()
                         } else if !word_timing_missing_modules.is_empty() {

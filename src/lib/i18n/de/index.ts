@@ -1130,9 +1130,11 @@ const de = {
 		bestLocalAccuracy: 'Beste lokale Genauigkeit',
 		privateLocalQuranicAlignerDetail:
 			'Wird auf Ihrem Rechner mit dem privaten lokalen Quranic Universal Aligner-Stack ausgeführt. Erfordert Python-Installation und Hugging Face-Token.',
-		quranwordtimingLabel: 'Quran Karim words alignment',
+		quranwordtimingLabel: 'Quran Karim - offline segmenter',
 		quranwordtimingDesc: 'Ayahs-Ausrichter - Kein Internet erforderlich',
 		quranwordtimingDetail: 'Offline-Koran-Spracherkennung und Ausrichtung von Wort-Zeitstempeln.',
+		quranwordtimingDownloadSizeHint:
+			'Einmaliger Download: ~150 MB (~75 MB Pakete + ~74 MB Modelle). Funktioniert danach komplett offline.',
 		offlineLabel: 'Offline',
 		advancedLabel: 'Erweitert',
 		importHuggingFaceJson: 'Hugging Face-JSON importieren',

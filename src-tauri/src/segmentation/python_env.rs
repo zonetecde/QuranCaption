@@ -11,6 +11,7 @@ use super::types::LocalSegmentationEngine;
 
 pub(crate) const MIN_LOCAL_PYTHON_MAJOR: u8 = 3;
 pub(crate) const MIN_LOCAL_PYTHON_MINOR: u8 = 10;
+pub(crate) const MAX_LOCAL_PYTHON_MINOR: u8 = 13;
 
 #[derive(Clone, Debug)]
 pub(crate) struct PythonInterpreter {
@@ -21,9 +22,9 @@ pub(crate) struct PythonInterpreter {
     pub patch: u8,
 }
 
-/// Checks whether a Python version satisfies a required minimum.
+/// Checks whether a Python version satisfies the supported version range (3.10 - 3.13).
 pub(crate) fn python_version_meets_min(major: u8, minor: u8, min_major: u8, min_minor: u8) -> bool {
-    major > min_major || (major == min_major && minor >= min_minor)
+    major == min_major && minor >= min_minor && minor <= MAX_LOCAL_PYTHON_MINOR
 }
 
 /// Reads the version of a Python executable.
@@ -52,7 +53,17 @@ fn python_command_candidates() -> Vec<String> {
     let mut candidates: Vec<String> = Vec::new();
 
     if cfg!(target_os = "windows") {
-        candidates.push("python".to_string());
+        candidates.extend(
+            [
+                "python3.12",
+                "python3.11",
+                "python3.10",
+                "python3",
+                "python",
+            ]
+            .iter()
+            .map(|entry| entry.to_string()),
+        );
     } else if cfg!(target_os = "macos") {
         candidates.extend(
             [
@@ -136,8 +147,8 @@ pub(crate) fn resolve_system_python(
 
     if discovered.is_empty() {
         Err(format!(
-            "No usable Python interpreter found. Install Python {}.{}+ and ensure it is available in PATH.",
-            min_major, min_minor
+            "No usable Python interpreter found. Install Python {}.{}-{}.{} (64-bit, recommended: 3.11 or 3.12) and ensure it is available in PATH.",
+            min_major, min_minor, min_major, MAX_LOCAL_PYTHON_MINOR
         ))
     } else {
         let versions = discovered
@@ -146,8 +157,8 @@ pub(crate) fn resolve_system_python(
             .collect::<Vec<_>>()
             .join(", ");
         Err(format!(
-            "Python {}.{}+ is required, but found only: {}",
-            min_major, min_minor, versions
+            "Python {}.{}-{}.{} is required (recommended: 3.11 or 3.12), but found only: {}",
+            min_major, min_minor, min_major, MAX_LOCAL_PYTHON_MINOR, versions
         ))
     }
 }
@@ -189,6 +200,82 @@ pub(crate) fn resolve_python_resource_path(
             relative_path
         ))
     }
+}
+
+/// Retourne le dossier racine contenant le runtime Python portable téléchargé.
+/// @param {&tauri::AppHandle} app_handle - Handle de l'application Tauri.
+/// @returns {Result<PathBuf, String>} Chemin vers le dossier racine du runtime Python.
+pub(crate) fn get_portable_python_root(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    Ok(app_data_dir.join("python_runtime"))
+}
+
+/// Retourne le chemin de l'exécutable Python portable s'il existe.
+/// @param {&tauri::AppHandle} app_handle - Handle de l'application Tauri.
+/// @returns {Result<PathBuf, String>} Chemin vers l'exécutable python portable.
+pub(crate) fn get_portable_python_exe(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let root = get_portable_python_root(app_handle)?;
+    let exe = if cfg!(target_os = "windows") {
+        root.join("python").join("python.exe")
+    } else {
+        root.join("python").join("bin").join("python3")
+    };
+    Ok(exe)
+}
+
+/// Retourne l'URL et le nom de fichier pour télécharger Python 3.11 portable selon l'OS et l'architecture.
+/// @returns {Result<(&'static str, &'static str), String>} Tuple de (URL de téléchargement, nom d'archive).
+pub(crate) fn get_portable_python_download_info() -> Result<(&'static str, &'static str), String> {
+    if cfg!(target_os = "windows") {
+        Ok((
+            "https://github.com/astral-sh/python-build-standalone/releases/download/20261001/cpython-3.11.17%2B20261001-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+            "cpython-3.11-windows-x64.tar.gz",
+        ))
+    } else if cfg!(target_os = "macos") {
+        if cfg!(target_arch = "aarch64") {
+            Ok((
+                "https://github.com/astral-sh/python-build-standalone/releases/download/20261001/cpython-3.11.17%2B20261001-aarch64-apple-darwin-install_only_stripped.tar.gz",
+                "cpython-3.11-macos-arm64.tar.gz",
+            ))
+        } else {
+            Ok((
+                "https://github.com/astral-sh/python-build-standalone/releases/download/20261001/cpython-3.11.17%2B20261001-x86_64-apple-darwin-install_only_stripped.tar.gz",
+                "cpython-3.11-macos-x64.tar.gz",
+            ))
+        }
+    } else if cfg!(target_os = "linux") {
+        Ok((
+            "https://github.com/astral-sh/python-build-standalone/releases/download/20261001/cpython-3.11.17%2B20261001-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+            "cpython-3.11-linux-x64.tar.gz",
+        ))
+    } else {
+        Err("Unsupported operating system for portable Python auto-download.".to_string())
+    }
+}
+
+/// Résout un interpréteur Python en vérifiant d'abord le runtime portable, puis les interpréteurs système.
+/// @param {&tauri::AppHandle} app_handle - Handle de l'application Tauri.
+/// @param {u8} min_major - Version majeure minimale.
+/// @param {u8} min_minor - Version mineure minimale.
+/// @returns {Result<PythonInterpreter, String>} Interpréteur Python résolu.
+pub(crate) fn resolve_python_with_portable(
+    app_handle: &tauri::AppHandle,
+    min_major: u8,
+    min_minor: u8,
+) -> Result<PythonInterpreter, String> {
+    if let Ok(portable_exe) = get_portable_python_exe(app_handle) {
+        if portable_exe.exists() {
+            if let Some(interpreter) = probe_python_interpreter(portable_exe.to_string_lossy().as_ref()) {
+                if python_version_meets_min(interpreter.major, interpreter.minor, min_major, min_minor) {
+                    return Ok(interpreter);
+                }
+            }
+        }
+    }
+    resolve_system_python(min_major, min_minor)
 }
 
 /// Retourne le dossier racine contenant tous les environnements virtuels locaux.
@@ -330,7 +417,7 @@ pub(crate) fn create_venv_if_missing(
         })?;
     }
 
-    let system_python = resolve_system_python(min_major, min_minor)?;
+    let system_python = resolve_python_with_portable(app_handle, min_major, min_minor)?;
     let mut cmd = Command::new(&system_python.command);
     cmd.args(["-m", "venv", venv_dir.to_string_lossy().as_ref()]);
     configure_command_no_window(&mut cmd);
@@ -361,12 +448,14 @@ pub(crate) fn create_venv_if_missing(
     if let Some((major, minor, _)) = read_python_version(&python_exe) {
         if !python_version_meets_min(major, minor, min_major, min_minor) {
             return Err(format!(
-                "Python venv for {} uses Python {}.{} but {}.{}+ is required.",
+                "Python venv for {} uses Python {}.{} but {}.{}-{}.{} is required.",
                 engine.as_label(),
                 major,
                 minor,
                 min_major,
-                min_minor
+                min_minor,
+                min_major,
+                MAX_LOCAL_PYTHON_MINOR
             ));
         }
     } else {

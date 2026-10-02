@@ -99,7 +99,7 @@ impl LocalSegmentationEngine {
             Self::LegacyWhisper => "Legacy Whisper",
             Self::MultiAligner => "Multi-Aligner",
             Self::SurahSplitter => "Surah Splitter",
-            Self::QuranWordTiming => "Quran Karim words alignment",
+            Self::QuranWordTiming => "Quran Karim - offline segmenter",
         }
     }
 

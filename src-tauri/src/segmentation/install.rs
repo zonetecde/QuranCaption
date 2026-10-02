@@ -11,18 +11,115 @@ use super::data_files::{
     validate_word_timing_model_file,
 };
 use super::python_env::{
-    apply_hf_token_env, create_venv_if_missing, get_venv_python_exe, get_word_timing_model_dir,
-    resolve_python_resource_path, resolve_system_python, MIN_LOCAL_PYTHON_MAJOR,
-    MIN_LOCAL_PYTHON_MINOR,
+    apply_hf_token_env, create_venv_if_missing, get_portable_python_download_info,
+    get_portable_python_exe, get_portable_python_root, get_venv_python_exe,
+    get_word_timing_model_dir, read_python_version, resolve_python_resource_path,
+    resolve_python_with_portable, MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR,
 };
 use super::requirements::{
     prepare_multi_requirements_file, prepare_windows_safe_quranic_phonemizer_source,
 };
 use super::types::LocalSegmentationEngine;
 
+/// Télécharge et extrait le runtime portable Python 3.11 pour QuranWordTiming si aucun Python compatible n'est installé.
+/// @param {&tauri::AppHandle} app_handle - Handle de l'application Tauri.
+/// @param {&F} emit_progress - Fonction d'émission d'avancement (message, pourcentage).
+/// @returns {Result<std::path::PathBuf, String>} Chemin vers l'exécutable portable extrait.
+async fn ensure_portable_python_runtime<F>(
+    app_handle: &tauri::AppHandle,
+    emit_progress: &F,
+) -> Result<std::path::PathBuf, String>
+where
+    F: Fn(&str, u8),
+{
+    let portable_root = get_portable_python_root(app_handle)?;
+    let portable_exe = get_portable_python_exe(app_handle)?;
+    if portable_exe.exists() {
+        if read_python_version(&portable_exe).is_some() {
+            return Ok(portable_exe);
+        }
+        let python_dir = portable_root.join("python");
+        let _ = fs::remove_dir_all(&python_dir);
+    }
+
+    fs::create_dir_all(&portable_root).map_err(|e| {
+        format!(
+            "Failed to create portable Python directory '{}': {}",
+            portable_root.to_string_lossy(),
+            e
+        )
+    })?;
+
+    let (url, file_name) = get_portable_python_download_info()?;
+    let archive_path = portable_root.join(file_name);
+
+    download_binary_file(url, &archive_path, |downloaded, total| {
+        let (pct, status_text) = if let Some(tot) = total {
+            let ratio = (downloaded as f32 / tot as f32).min(1.0);
+            let p = 5 + (ratio * 15.0).round() as u8;
+            let mb_down = downloaded as f64 / 1_048_576.0;
+            let mb_tot = tot as f64 / 1_048_576.0;
+            (p, format!("Downloading portable Python 3.11 ({:.1}/{:.1} MB)...", mb_down, mb_tot))
+        } else {
+            let mb_down = downloaded as f64 / 1_048_576.0;
+            (10, format!("Downloading portable Python 3.11 ({:.1} MB)...", mb_down))
+        };
+        emit_progress(&status_text, pct);
+    })
+    .await?;
+
+    emit_progress("Extracting portable Python 3.11...", 22);
+
+    let tar_binary = if cfg!(target_os = "windows") {
+        let system32_tar = std::path::Path::new("C:\\Windows\\System32\\tar.exe");
+        if system32_tar.exists() {
+            system32_tar.to_string_lossy().to_string()
+        } else {
+            "tar".to_string()
+        }
+    } else {
+        "tar".to_string()
+    };
+
+    let mut cmd = Command::new(&tar_binary);
+    cmd.args([
+        "-xzf",
+        archive_path.to_str().ok_or("Invalid archive path")?,
+        "-C",
+        portable_root.to_str().ok_or("Invalid destination path")?,
+    ]);
+    configure_command_no_window(&mut cmd);
+    let output = cmd.output().map_err(|e| format!("Failed to extract portable Python: {}", e))?;
+    let _ = fs::remove_file(&archive_path);
+
+    if !output.status.success() {
+        return Err(format!(
+            "Failed to extract portable Python: {}",
+            crate::utils::process::sanitize_cmd_error(&output)
+        ));
+    }
+
+    if !portable_exe.exists() || read_python_version(&portable_exe).is_none() {
+        return Err(format!(
+            "Portable Python extracted but executable was not found or invalid at {}",
+            portable_exe.to_string_lossy()
+        ));
+    }
+
+    emit_progress("Portable Python 3.11 ready.", 25);
+    Ok(portable_exe)
+}
+
 /// Installs Python dependencies for the selected local engine.
-/// Downloads a remote binary file and writes it locally.
-async fn download_binary_file(url: &str, destination_path: &std::path::Path) -> Result<(), String> {
+/// Downloads a remote binary file and writes it locally with progress reporting.
+async fn download_binary_file<F>(
+    url: &str,
+    destination_path: &std::path::Path,
+    mut on_progress: F,
+) -> Result<(), String>
+where
+    F: FnMut(u64, Option<u64>),
+{
     let response = reqwest::get(url)
         .await
         .map_err(|e| format!("Failed to download '{}': {}", url, e))?;
@@ -34,21 +131,48 @@ async fn download_binary_file(url: &str, destination_path: &std::path::Path) -> 
         ));
     }
 
-    let bytes = response
-        .bytes()
+    let total = response.content_length();
+    let mut downloaded = 0u64;
+    on_progress(0, total);
+
+    let temp_path = destination_path.with_extension("download");
+    let mut file = tokio::fs::File::create(&temp_path)
         .await
-        .map_err(|e| format!("Failed to read downloaded bytes from '{}': {}", url, e))?;
-    if bytes.is_empty() {
+        .map_err(|e| format!("Failed to create file: {}", e))?;
+
+    let mut response = response;
+    let mut last_emit = std::time::Instant::now();
+    use tokio::io::AsyncWriteExt;
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|e| format!("Failed to read chunk from '{}': {}", url, e))?
+    {
+        file.write_all(&chunk)
+            .await
+            .map_err(|e| format!("Failed to write chunk: {}", e))?;
+        downloaded += chunk.len() as u64;
+        if last_emit.elapsed() >= std::time::Duration::from_millis(150) {
+            on_progress(downloaded, total);
+            last_emit = std::time::Instant::now();
+        }
+    }
+    file.flush()
+        .await
+        .map_err(|e| format!("Failed to flush: {}", e))?;
+    drop(file);
+
+    on_progress(downloaded, total.or(Some(downloaded)));
+
+    if downloaded == 0 {
+        let _ = tokio::fs::remove_file(&temp_path).await;
         return Err(format!("Downloaded file from '{}' is empty", url));
     }
 
-    fs::write(destination_path, &bytes).map_err(|e| {
-        format!(
-            "Failed to write '{}': {}",
-            destination_path.to_string_lossy(),
-            e
-        )
-    })?;
+    tokio::fs::rename(&temp_path, destination_path)
+        .await
+        .map_err(|e| format!("Failed to rename temp download: {}", e))?;
+
     Ok(())
 }
 
@@ -72,7 +196,7 @@ async fn ensure_multi_aligner_data_files(
             continue;
         }
 
-        download_binary_file(url, &file_path).await?;
+        download_binary_file(url, &file_path, |_, _| {}).await?;
         validate_multi_aligner_data_file(&file_path)?;
         repaired_files.push((*file_name).to_string());
     }
@@ -89,15 +213,30 @@ pub async fn install_local_segmentation_deps(
     let emit_status = |message: &str| {
         let _ = app_handle.emit("install-status", serde_json::json!({ "message": message }));
     };
+    let emit_status_progress = |message: &str, progress: u8| {
+        let _ = app_handle.emit(
+            "install-status",
+            serde_json::json!({ "message": message, "progress": progress }),
+        );
+    };
 
-    // Validate system Python and prepare the dedicated venv.
-    let system_python = resolve_system_python(MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR)
-        .map_err(|e| {
-            format!(
-                "Python {}.{}+ is required to install local dependencies: {}",
-                MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR, e
-            )
-        })?;
+    // Validate system Python or auto-provision portable Python 3.11 for QuranWordTiming.
+    let system_python = match resolve_python_with_portable(&app_handle, MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR) {
+        Ok(interpreter) => interpreter,
+        Err(e) => {
+            if matches!(selected_engine, LocalSegmentationEngine::QuranWordTiming) {
+                emit_status_progress("Downloading portable Python 3.11...", 5);
+                ensure_portable_python_runtime(&app_handle, &emit_status_progress).await?;
+                resolve_python_with_portable(&app_handle, MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR)
+                    .map_err(|err| format!("Failed to initialize portable Python: {}", err))?
+            } else {
+                return Err(format!(
+                    "Python {}.{}+ is required to install local dependencies: {}",
+                    MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR, e
+                ));
+            }
+        }
+    };
     emit_status(&format!(
         "Using Python {}.{}.{} ({})",
         system_python.major, system_python.minor, system_python.patch, system_python.executable
@@ -288,6 +427,7 @@ pub async fn install_local_segmentation_deps(
             "-m",
             "pip",
             "install",
+            "--prefer-binary",
             "-r",
             filtered_requirements_path.to_string_lossy().as_ref(),
             "--quiet",
@@ -296,19 +436,33 @@ pub async fn install_local_segmentation_deps(
     )?;
 
     if matches!(selected_engine, LocalSegmentationEngine::QuranWordTiming) {
+        emit_status_progress("Preparing model storage...", 50);
         let model_dir = get_word_timing_model_dir(&app_handle)?;
         fs::create_dir_all(&model_dir).map_err(|e| e.to_string())?;
-        for (file_name, url, size, hash) in required_word_timing_model_files() {
+        let files = required_word_timing_model_files();
+        let total_files = files.len();
+        for (idx, (file_name, url, size, hash)) in files.iter().enumerate() {
             let path = model_dir.join(file_name);
             if validate_word_timing_model_file(&path, *size, hash).is_err() {
-                emit_status(&format!(
-                    "Preparing {} local environment...",
-                    selected_engine.as_label()
-                ));
-                download_binary_file(url, &path).await?;
+                let base_pct = 50.0 + (idx as f32 / total_files as f32) * 45.0;
+                let span_pct = 45.0 / total_files as f32;
+                download_binary_file(url, &path, |downloaded, total| {
+                    let (progress_pct, status_text) = if let Some(tot) = total {
+                        let ratio = (downloaded as f32 / tot as f32).min(1.0);
+                        let pct = (base_pct + ratio * span_pct).round() as u8;
+                        let mb_down = downloaded as f64 / 1_048_576.0;
+                        let mb_tot = tot as f64 / 1_048_576.0;
+                        (pct, format!("Downloading {} ({:.1}/{:.1} MB)...", file_name, mb_down, mb_tot))
+                    } else {
+                        let mb_down = downloaded as f64 / 1_048_576.0;
+                        (base_pct as u8, format!("Downloading {} ({:.1} MB)...", file_name, mb_down))
+                    };
+                    emit_status_progress(&status_text, progress_pct);
+                }).await?;
                 validate_word_timing_model_file(&path, *size, hash)?;
             }
         }
+        emit_status_progress("Validating model integrity...", 98);
     }
 
     // Installation explicite de Quranic-Phonemizer pour multi-aligner.
@@ -352,7 +506,7 @@ pub async fn install_local_segmentation_deps(
         }
     }
 
-    emit_status("Local dependencies installed successfully.");
+    emit_status_progress("Local dependencies installed successfully.", 100);
     Ok(format!(
         "{} dependencies installed successfully",
         selected_engine.as_label()

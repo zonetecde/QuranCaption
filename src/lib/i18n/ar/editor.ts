@@ -504,10 +504,12 @@ const editor = {
 	bestLocalAccuracy: 'أفضل دقة محلية',
 	privateLocalQuranicAlignerDetail:
 		'يعمل على جهازك باستخدام مكدس محاذاة القرآن الكريم المحلي الخاص. يتطلب إعداد Python ورمز Hugging Face.',
-	quranwordtimingLabel: 'محاذاة كلمات القرآن الكريم',
+	quranwordtimingLabel: 'القرآن الكريم - مجزئ دون اتصال',
 	quranwordtimingDesc: 'Ayahs Aligner - لا يتطلب الإنترنت',
 	quranwordtimingDetail:
 		'التعرف على الكلام القرآني دون اتصال بالإنترنت ومحاذاة الطابع الزمني لكل كلمة على حدة.',
+	quranwordtimingDownloadSizeHint:
+		'تنزيل لمرة واحدة: حوالي 150 ميغابايت (~75 ميغابايت حزم + ~74 ميغابايت نماذج). يعمل بعد ذلك دون اتصال بالإنترنت تمامًا.',
 	offlineLabel: 'غير متصل',
 	advancedLabel: 'متقدم',
 	importHuggingFaceJson: 'استيراد معانقة الوجه JSON',

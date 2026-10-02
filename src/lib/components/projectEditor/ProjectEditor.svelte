@@ -192,7 +192,11 @@
 		const project = globalState.currentProject;
 		if (!project || isAutosaving) return;
 
-		if (globalState.getVideoPreviewState.isPlaying) {
+		// Différer la sauvegarde si la lecture est en cours ou si une modale est ouverte
+		const isModalOpen =
+			typeof document !== 'undefined' &&
+			document.querySelector('.modal-wrapper, [role="dialog"]') !== null;
+		if (globalState.getVideoPreviewState.isPlaying || isModalOpen) {
 			saveRetryTimeout = setTimeout(markDirty, AUTOSAVE_RETRY_DELAY_MS);
 			return;
 		}

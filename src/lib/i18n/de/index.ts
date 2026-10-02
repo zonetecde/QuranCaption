@@ -2638,6 +2638,9 @@ const de = {
 		about: 'Über',
 		selectTheme: 'Wählen Sie das App-Design und die Akzentfarben.',
 		intensity: 'Intensität',
+		dimmedModalBackdrop: 'Abgedunkelten Hintergrund hinter Dialogfenstern verwenden',
+		dimmedModalBackdropDescription:
+			'Ersetzt die Hintergrundunschärfe durch eine abgedunkelte Fläche. Dies kann die Leistung bei geöffneten Dialogfenstern verbessern.',
 		dark: 'Dunkel',
 		light: 'Hell',
 		sepia: 'Sepia',

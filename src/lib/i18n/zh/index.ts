@@ -2389,6 +2389,8 @@ const zh = {
 		about: '关于',
 		selectTheme: '选择应用主题和强调色。',
 		intensity: '强度',
+		dimmedModalBackdrop: '在对话框后使用暗色背景',
+		dimmedModalBackdropDescription: '将背景模糊替换为暗色遮罩。这可能改善对话框打开时的性能。',
 		dark: '深色',
 		light: '浅色',
 		sepia: '棕褐',

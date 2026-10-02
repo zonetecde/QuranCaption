@@ -2661,6 +2661,9 @@ const fr = {
 		about: 'À propos',
 		selectTheme: 'Sélectionnez le thème de l\u2019application et les couleurs d\u2019accentuation.',
 		intensity: 'Intensité',
+		dimmedModalBackdrop: 'Utiliser un fond assombri derrière les fenêtres de dialogue',
+		dimmedModalBackdropDescription:
+			'Remplace le flou par un fond assombri. Cela peut améliorer les performances lorsque les fenêtres de dialogue sont ouvertes.',
 		dark: 'Sombre',
 		light: 'Clair',
 		sepia: 'Sépia',

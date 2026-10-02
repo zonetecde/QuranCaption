@@ -2634,6 +2634,9 @@ const es = {
 		about: 'Acerca de',
 		selectTheme: 'Seleccione el tema de la aplicación y los colores de acento.',
 		intensity: 'Intensidad',
+		dimmedModalBackdrop: 'Usar un fondo oscurecido detrás de los diálogos',
+		dimmedModalBackdropDescription:
+			'Sustituye el desenfoque del fondo por una capa oscurecida. Esto puede mejorar el rendimiento mientras los diálogos están abiertos.',
 		dark: 'Oscuro',
 		light: 'Claro',
 		sepia: 'Sepia',

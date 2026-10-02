@@ -45,6 +45,10 @@
 		// Apply intensity
 		const intensity = globalState.settings?.persistentUiState?.themeIntensity ?? 100;
 		document.body.style.setProperty('--theme-intensity', `${intensity}%`);
+		document.body.classList.toggle(
+			'dimmed-modal-backdrop',
+			globalState.settings?.persistentUiState.dimmedModalBackdrop ?? false
+		);
 	});
 </script>
 

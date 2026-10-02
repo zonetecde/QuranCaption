@@ -61,6 +61,9 @@ const settings = {
 	about: 'حول',
 	selectTheme: 'حدد سمة التطبيق وألوان التمييز.',
 	intensity: 'الشدة',
+	dimmedModalBackdrop: 'استخدام خلفية معتمة خلف نوافذ الحوار',
+	dimmedModalBackdropDescription:
+		'يستبدل ضبابية الخلفية بطبقة معتمة. قد يساعد ذلك على تحسين الأداء أثناء فتح نوافذ الحوار.',
 	dark: 'الظلام',
 	light: 'ضوء',
 	sepia: 'بني داكن',

@@ -8313,6 +8313,14 @@ type RootTranslation = {
 		 */
 		intensity: string;
 		/**
+		 * U​s​e​ ​a​ ​d​i​m​m​e​d​ ​b​a​c​k​g​r​o​u​n​d​ ​b​e​h​i​n​d​ ​d​i​a​l​o​g​s
+		 */
+		dimmedModalBackdrop: string;
+		/**
+		 * R​e​p​l​a​c​e​ ​b​a​c​k​g​r​o​u​n​d​ ​b​l​u​r​ ​w​i​t​h​ ​a​ ​d​i​m​m​e​d​ ​o​v​e​r​l​a​y​.​ ​T​h​i​s​ ​m​a​y​ ​i​m​p​r​o​v​e​ ​p​e​r​f​o​r​m​a​n​c​e​ ​w​h​i​l​e​ ​d​i​a​l​o​g​s​ ​a​r​e​ ​o​p​e​n​.
+		 */
+		dimmedModalBackdropDescription: string;
+		/**
 		 * D​a​r​k
 		 */
 		dark: string;
@@ -20390,6 +20398,14 @@ export type TranslationFunctions = {
 		 * Intensity
 		 */
 		intensity: () => LocalizedString;
+		/**
+		 * Use a dimmed background behind dialogs
+		 */
+		dimmedModalBackdrop: () => LocalizedString;
+		/**
+		 * Replace background blur with a dimmed overlay. This may improve performance while dialogs are open.
+		 */
+		dimmedModalBackdropDescription: () => LocalizedString;
 		/**
 		 * Dark
 		 */

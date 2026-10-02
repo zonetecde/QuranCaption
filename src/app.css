@@ -722,11 +722,16 @@ html[dir='rtl'] .rtl-mirror {
 	left: 0;
 	width: 100vw;
 	height: 100vh;
-	background-color: rgba(0, 0, 0, 0.65);
+	backdrop-filter: blur(var(--surface-blur));
 	z-index: 999;
 	display: flex;
 	justify-content: center;
 	align-items: center;
+}
+
+body.dimmed-modal-backdrop .modal-wrapper {
+	backdrop-filter: none;
+	background-color: rgba(0, 0, 0, 0.65);
 }
 
 .btn {

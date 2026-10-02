@@ -138,6 +138,7 @@ export default class Settings extends SerializableBase {
 		desktopNotificationsEnabled: true,
 		hideReflectionPromptAfterExport: false,
 		themeIntensity: 100,
+		dimmedModalBackdrop: false,
 		hasSeenTour: false,
 		showFirstVideoGuide: true,
 		language: 'en' as 'ar' | 'en' | 'fr' | 'de' | 'es' | 'zh' | 'id',
@@ -636,6 +637,10 @@ export default class Settings extends SerializableBase {
 				TrackType.Video,
 				TrackType.Audio
 			];
+			shouldSave = true;
+		}
+		if (typeof settings.persistentUiState.dimmedModalBackdrop !== 'boolean') {
+			settings.persistentUiState.dimmedModalBackdrop = false;
 			shouldSave = true;
 		}
 		if (typeof settings.persistentUiState.desktopNotificationsEnabled !== 'boolean') {

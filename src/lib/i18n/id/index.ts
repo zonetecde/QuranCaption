@@ -510,6 +510,9 @@ const id = {
 		about: 'Tentang',
 		selectTheme: 'Pilih tema aplikasi dan warna aksen.',
 		intensity: 'Intensitas',
+		dimmedModalBackdrop: 'Gunakan latar belakang redup di belakang dialog',
+		dimmedModalBackdropDescription:
+			'Mengganti efek buram pada latar belakang dengan lapisan redup. Ini dapat meningkatkan kinerja saat dialog terbuka.',
 		dark: 'Gelap',
 		light: 'Terang',
 		sepia: 'Sepia',

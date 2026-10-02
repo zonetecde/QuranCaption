@@ -62,6 +62,9 @@ const settings = {
 	about: 'About',
 	selectTheme: 'Select application theme and accent colors.',
 	intensity: 'Intensity',
+	dimmedModalBackdrop: 'Use a dimmed background behind dialogs',
+	dimmedModalBackdropDescription:
+		'Replace background blur with a dimmed overlay. This may improve performance while dialogs are open.',
 	dark: 'Dark',
 	light: 'Light',
 	sepia: 'Sepia',

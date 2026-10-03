@@ -14,20 +14,69 @@ import os
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-import numpy as np
-
-if sys.platform == "win32":
-    try:
-        sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
-    except Exception:
-        pass
 
 SCRIPT_DIR = Path(__file__).parent.absolute()
 ENGINE_DIR = SCRIPT_DIR / "quran_recite_to_text"
 
 if str(ENGINE_DIR) not in sys.path:
     sys.path.insert(0, str(ENGINE_DIR))
+
+# Bootstrap environment: Windows console and MSVC runtime DLLs
+def _bootstrap_environment() -> None:
+    """Configure Windows console streams and preload bundled MSVC runtime DLLs."""
+    if sys.platform == "win32":
+        for stream in (sys.stdout, sys.stderr):
+            if stream is not None:
+                reconfig = getattr(stream, "reconfigure", None)
+                if callable(reconfig):
+                    try:
+                        reconfig(encoding="utf-8")
+                    except Exception:
+                        pass
+
+    bin_dir = ENGINE_DIR / "data" / "bin"
+    if sys.platform == "win32" and bin_dir.is_dir():
+        if hasattr(os, "add_dll_directory"):
+            try:
+                os.add_dll_directory(str(bin_dir))
+            except Exception:
+                pass
+        try:
+            import ctypes
+            dll_names = (
+                "vcruntime140.dll",
+                "vcruntime140_1.dll",
+                "msvcp140.dll",
+                "msvcp140_1.dll",
+                "msvcp140_2.dll",
+                "msvcp140_codecvt_ids.dll",
+                "vcomp140.dll",
+            )
+            for name in dll_names:
+                dll_file = bin_dir / name
+                if dll_file.is_file():
+                    ctypes.CDLL(str(dll_file))
+
+            import importlib.util
+            import shutil
+            ort_spec = importlib.util.find_spec("onnxruntime")
+            if ort_spec and ort_spec.submodule_search_locations:
+                capi_dir = Path(list(ort_spec.submodule_search_locations)[0]) / "capi"
+                if capi_dir.is_dir():
+                    for name in dll_names:
+                        src = bin_dir / name
+                        dst = capi_dir / name
+                        if src.is_file() and not dst.is_file():
+                            try:
+                                shutil.copy2(str(src), str(dst))
+                            except Exception:
+                                pass
+        except Exception:
+            pass
+
+_bootstrap_environment()
+
+import numpy as np
 
 
 def get_hardware_topology() -> Tuple[int, int]:
@@ -93,7 +142,7 @@ def load_audio_slice(
     # 1. Primary: Streaming FFmpeg sub-range decode (~0.05s)
     try:
         import subprocess
-        from src.audio import _resolve_ffmpeg_bin
+        from src.audio import _resolve_ffmpeg_bin  # type: ignore
         cmd = [_resolve_ffmpeg_bin(), '-hide_banner', '-loglevel', 'error']
         if start_s > 0:
             cmd.extend(['-ss', f"{start_s:.3f}"])
@@ -112,7 +161,7 @@ def load_audio_slice(
         pass
 
     # 2. Fallback: In-process full decode with numpy slice
-    from src.audio import AudioDecoder
+    from src.audio import AudioDecoder  # type: ignore
     full_audio = AudioDecoder.load_audio_file(file_path, sample_rate=sample_rate)
     start_sample = max(0, int(round(start_s * sample_rate)))
     if duration_s is not None and duration_s > 0:
@@ -136,10 +185,10 @@ def emit_status_to_stderr(
     @param {Optional[float | int]} progress - Progress percentage between 0 and 100.
     """
     try:
-        data: Dict[str, Any] = {"step": step, "message": message}
+        status_payload: Dict[str, Any] = {"step": step, "message": message}
         if progress is not None:
-            data["progress"] = progress
-        status_json = json.dumps(data, ensure_ascii=False)
+            status_payload["progress"] = progress
+        status_json = json.dumps(status_payload, ensure_ascii=False)
         original_stderr_file.write(f"STATUS:{status_json}\n")
         original_stderr_file.flush()
     except Exception:
@@ -237,13 +286,40 @@ def main() -> int:
     error_result = None
 
     try:
-        emit_status_to_stderr(
-            original_stderr_file, "loading", "Initializing Zipformer engine & models...", progress=10
-        )
+        import config  # type: ignore
 
-        from src import AudioPipeline
-        from src.audio import AudioDecoder
-        from src.models import PipelineProgressEvent, PipelineStage
+        has_zipformer = any(
+            p and os.path.exists(p) and os.path.getsize(p) > 10_000_000
+            for p in [
+                getattr(config, "DEFAULT_MODEL_PATH", None),
+                str(getattr(config, "ONNX_DIR", config.DATA_PATH / "onnx") / "zipformer_p_arabic_v3.int8.onnx"),
+                str(config.PROJECT_ROOT / "data" / "onnx" / "zipformer_p_arabic_v3.int8.onnx"),
+            ]
+        )
+        has_silero = any(
+            p and os.path.exists(p) and os.path.getsize(p) > 500_000
+            for p in [
+                getattr(config, "DEFAULT_SILERO_PATH", None),
+                str(getattr(config, "ONNX_DIR", config.DATA_PATH / "onnx") / "silero_vad_half.onnx"),
+                str(config.PROJECT_ROOT / "data" / "onnx" / "silero_vad_half.onnx"),
+            ]
+        )
+        if not has_zipformer:
+            emit_status_to_stderr(
+                original_stderr_file, "loading", "Downloading Zipformer ONNX model (~72 MB)...", progress=3
+            )
+        elif not has_silero:
+            emit_status_to_stderr(
+                original_stderr_file, "loading", "Downloading Silero VAD ONNX model (~1.3 MB)...", progress=7
+            )
+        else:
+            emit_status_to_stderr(
+                original_stderr_file, "loading", "Initializing Zipformer engine & models...", progress=10
+            )
+
+        from src import AudioPipeline  # type: ignore
+        from src.audio import AudioDecoder  # type: ignore
+        from src.models import PipelineProgressEvent, PipelineStage  # type: ignore
 
         pipeline = AudioPipeline()
         pipeline.initialize(num_threads=threads)

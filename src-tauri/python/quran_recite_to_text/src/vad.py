@@ -16,17 +16,10 @@ import numpy as np
 import os
 import urllib.request
 
-try:
-    from scipy.ndimage import median_filter
-except ImportError:
-    median_filter = None
+from scipy.ndimage import median_filter
+import onnxruntime as ort
 
-try:
-    import onnxruntime as ort
-    _HAS_ORT = True
-except ImportError:
-    _HAS_ORT = False
-    ort = None
+_HAS_ORT = True
 
 import config
 from config import (
@@ -63,6 +56,8 @@ def _get_silero_session():
     if _SILERO_SESSION_INSTANCE is None and _HAS_ORT:
         candidate_paths = [
             getattr(config, "DEFAULT_SILERO_PATH", None),
+            os.path.join(getattr(config, "ONNX_DIR", "data/onnx"), "silero_vad_half.onnx"),
+            os.path.join(getattr(config, "DATA_PATH", "data"), "onnx", "silero_vad_half.onnx"),
             os.path.join("data", "onnx", "silero_vad_half.onnx"),
             os.path.join("models", "silero_vad_half.onnx"),
         ]
@@ -79,9 +74,16 @@ def _get_silero_session():
             try:
                 urllib.request.urlretrieve(SILERO_VAD_URL, model_path)
                 logger.info("Silero VAD ONNX model downloaded successfully.")
-            except Exception as e:
-                logger.warning(f"Failed to auto-download Silero VAD ONNX model: {e}")
-                return None, None
+            except Exception:
+                try:
+                    import shutil
+                    req = urllib.request.Request(SILERO_VAD_URL, headers={"User-Agent": "Mozilla/5.0"})
+                    with urllib.request.urlopen(req) as resp, open(model_path, "wb") as out:
+                        shutil.copyfileobj(resp, out)
+                    logger.info("Silero VAD ONNX model downloaded successfully.")
+                except Exception as e:
+                    logger.warning(f"Failed to auto-download Silero VAD ONNX model: {e}")
+                    return None, None
 
         try:
             sess_opts = ort.SessionOptions()

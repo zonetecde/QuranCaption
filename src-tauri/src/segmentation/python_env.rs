@@ -231,8 +231,8 @@ pub(crate) fn get_portable_python_exe(app_handle: &tauri::AppHandle) -> Result<P
 pub(crate) fn get_portable_python_download_info() -> Result<(&'static str, &'static str), String> {
     if cfg!(target_os = "windows") {
         Ok((
-            "https://github.com/astral-sh/python-build-standalone/releases/download/20261001/cpython-3.11.17%2B20261001-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
-            "cpython-3.11-windows-x64.tar.gz",
+            "https://www.python.org/ftp/python/3.11.0/python-3.11.0-embed-amd64.zip",
+            "python-3.11.0-embed-amd64.zip",
         ))
     } else if cfg!(target_os = "macos") {
         if cfg!(target_arch = "aarch64") {
@@ -436,11 +436,23 @@ pub(crate) fn create_venv_if_missing(
         )
     })?;
     if !output.status.success() {
-        return Err(format!(
-            "Failed to create Python venv for {}: {}",
-            engine.as_label(),
-            sanitize_cmd_error(&output)
-        ));
+        let mut venv_cmd = Command::new(&system_python.command);
+        venv_cmd.args(["-m", "virtualenv", venv_dir.to_string_lossy().as_ref()]);
+        configure_command_no_window(&mut venv_cmd);
+        let venv_output = venv_cmd.output().map_err(|e| {
+            format!(
+                "Failed to create Python virtualenv for {}: {}",
+                engine.as_label(),
+                e
+            )
+        })?;
+        if !venv_output.status.success() {
+            return Err(format!(
+                "Failed to create Python venv for {}: {}",
+                engine.as_label(),
+                sanitize_cmd_error(&venv_output)
+            ));
+        }
     }
 
     if !python_exe.exists() {

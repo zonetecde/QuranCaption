@@ -3,9 +3,24 @@
 	import { Quran } from '$lib/classes/Quran';
 	import { audioNormalizationStatus } from '$lib/services/autoSegmentation/audio-normalize.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
+	import toast from 'svelte-5-french-toast';
 
 	let { isImportMode = false } = $props<{ isImportMode?: boolean }>();
 	const wizard = getSharedWizard();
+
+	/**
+	 * Copies the complete segmentation error to the clipboard.
+	 * @returns {Promise<void>} Resolves after showing copy success or failure feedback.
+	 */
+	async function copyError(): Promise<void> {
+		try {
+			await navigator.clipboard.writeText(wizard.errorMessage ?? '');
+			toast.success(get(LL).exporterMonitor.errorCopiedToClipboard());
+		} catch {
+			toast.error(get(LL).exporterMonitor.failedToCopyError());
+		}
+	}
 </script>
 
 {#if wizard.isRunning}
@@ -119,7 +134,17 @@
 	</div>
 {:else if wizard.errorMessage}
 	<div class="rounded-xl border border-danger-color bg-danger-color/10 px-4 py-3">
-		<div class="text-sm font-semibold text-danger-color">{$LL.editor.aiSegmentationFailed()}</div>
+		<div class="flex items-center justify-between gap-3">
+			<div class="text-sm font-semibold text-danger-color">{$LL.editor.aiSegmentationFailed()}</div>
+			<button
+				type="button"
+				class="btn inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs"
+				onclick={copyError}
+			>
+				<span class="material-icons text-sm leading-none">content_copy</span>
+				{get(LL).export.copyErrorButton()}
+			</button>
+		</div>
 		<div class="max-h-36 overflow-y-auto text-sm text-secondary">{wizard.errorMessage}</div>
 	</div>
 {/if}

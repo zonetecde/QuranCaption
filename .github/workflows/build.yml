@@ -85,6 +85,11 @@ jobs:
           if brew list --versions openssl@1.1 >/dev/null 2>&1; then
             brew unlink openssl@1.1
           fi
+          # Remove the legacy symlink that brew unlink may leave behind.
+          openssl_bin="$(brew --prefix)/bin/openssl"
+          if [ -L "$openssl_bin" ] && [ "$(readlink "$openssl_bin")" = "$(brew --prefix)/opt/openssl@1.1/bin/openssl" ]; then
+            rm "$openssl_bin"
+          fi
           brew install ffmpeg-full
           mkdir -p src-tauri/binaries
           cp "$(brew --prefix ffmpeg-full)/bin/ffprobe" src-tauri/binaries/ffprobe

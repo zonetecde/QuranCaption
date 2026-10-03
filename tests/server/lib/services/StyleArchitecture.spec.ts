@@ -240,6 +240,34 @@ describe('style architecture modules', () => {
 		).toEqual({ enabled: true, alwaysShow: false, startTime: 500, endTime: 2500 });
 	});
 
+	it('ignores stored blur when the overlay is disabled globally or for a clip', () => {
+		const styles = new StylesData('global', [
+			new Category({
+				id: 'overlay',
+				styles: [
+					new Style({ id: 'overlay-enable', value: false }),
+					new Style({ id: 'overlay-blur', value: 5.5 })
+				]
+			})
+		]);
+
+		expect(resolveOverlayVisualState(styles)).toMatchObject({ enable: false, blur: 0 });
+		expect(styles.findStyle('overlay-blur')?.value).toBe(5.5);
+
+		styles.setStyleForClips([7], 'overlay-enable', true);
+		expect(resolveOverlayVisualState(styles, 7)).toMatchObject({ enable: true, blur: 5.5 });
+
+		styles.findStyle('overlay-enable')!.value = true;
+		styles.setStyleForClips([7], 'overlay-enable', false);
+		styles.setStyleForClips([7], 'overlay-blur', 9);
+		expect(resolveOverlayVisualState(styles)).toMatchObject({ enable: true, blur: 5.5 });
+		expect(resolveOverlayVisualState(styles, 7)).toMatchObject({ enable: false, blur: 0 });
+		expect(styles.getEffectiveValue('overlay-blur', 7)).toBe(9);
+
+		styles.setStyleForClips([7], 'overlay-enable', true);
+		expect(resolveOverlayVisualState(styles, 7)).toMatchObject({ enable: true, blur: 9 });
+	});
+
 	it('keeps scope, coercion and Arabic invariants in one mutation', () => {
 		const riwayahStyle = new Style({ id: 'riwayah', value: 'Hafs', valueType: 'select' });
 		const mushafStyle = new Style({ id: 'mushaf-style', value: 'Uthmani', valueType: 'select' });

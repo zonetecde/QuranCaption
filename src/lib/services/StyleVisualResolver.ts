@@ -74,7 +74,7 @@ export function resolveOverlayVisualState(styles: StylesData, clipId?: number): 
 
 	return {
 		enable: visibilityOpacity > 0,
-		blur: Number(styles.getEffectiveValue('overlay-blur', clipId)),
+		blur: visibilityOpacity > 0 ? Number(styles.getEffectiveValue('overlay-blur', clipId)) : 0,
 		opacity: Number(styles.getEffectiveValue('overlay-opacity', clipId)) * visibilityOpacity,
 		color: String(styles.getEffectiveValue('overlay-color', clipId)),
 		mode: String(styles.getEffectiveValue('background-overlay-mode', clipId)),

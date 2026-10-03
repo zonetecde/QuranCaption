@@ -18,7 +18,8 @@ use super::python_env::{
     apply_hf_token_env, create_venv_if_missing, get_portable_python_download_info,
     get_portable_python_exe, get_portable_python_root, get_venv_python_exe,
     get_word_timing_model_dir, read_python_version, resolve_python_resource_path,
-    resolve_python_with_portable, MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR,
+    resolve_python_with_portable, run_python_any_import_check, run_python_import_check,
+    MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR,
 };
 use super::requirements::{
     prepare_multi_requirements_file, prepare_windows_safe_quranic_phonemizer_source,
@@ -40,6 +41,7 @@ where
     let portable_exe = get_portable_python_exe(app_handle)?;
     if portable_exe.exists() {
         if read_python_version(&portable_exe).is_some() {
+            bootstrap_portable_python(&portable_exe, emit_progress).await?;
             return Ok(portable_exe);
         }
         let python_dir = portable_root.join("python");
@@ -115,50 +117,7 @@ where
         ));
     }
 
-    if cfg!(target_os = "windows") {
-        // Enable site-packages in python311._pth
-        let pth_file = python_dir.join("python311._pth");
-        if pth_file.exists() {
-            if let Ok(content) = fs::read_to_string(&pth_file) {
-                let mut lines: Vec<String> = content
-                    .lines()
-                    .map(|l| {
-                        let trimmed = l.trim();
-                        if trimmed == "#import site" || trimmed == "# import site" {
-                            "import site".to_string()
-                        } else {
-                            l.to_string()
-                        }
-                    })
-                    .collect();
-                if !lines.iter().any(|l| l.trim() == "import site") {
-                    lines.push("import site".to_string());
-                }
-                if !lines.iter().any(|l| l.trim() == "Lib/site-packages" || l.trim() == "Lib\\site-packages") {
-                    lines.push("Lib/site-packages".to_string());
-                }
-                let _ = fs::write(&pth_file, lines.join("\n"));
-            }
-        }
-        let _ = fs::create_dir_all(python_dir.join("Lib").join("site-packages"));
-
-        // Bootstrap pip & virtualenv for creating engine environments
-        emit_progress("Bootstrapping pip in portable Python 3.11.0...", 23);
-        let get_pip_path = python_dir.join("get-pip.py");
-        download_binary_file("https://bootstrap.pypa.io/get-pip.py", &get_pip_path, |_, _| {}).await?;
-
-        let mut pip_boot = Command::new(&portable_exe);
-        pip_boot.args([get_pip_path.to_str().unwrap_or(""), "--no-warn-script-location", "--quiet"]);
-        configure_command_no_window(&mut pip_boot);
-        let _ = pip_boot.output();
-        let _ = fs::remove_file(&get_pip_path);
-
-        emit_progress("Bootstrapping virtualenv in portable Python...", 24);
-        let mut venv_boot = Command::new(&portable_exe);
-        venv_boot.args(["-m", "pip", "install", "virtualenv", "--no-warn-script-location", "--quiet"]);
-        configure_command_no_window(&mut venv_boot);
-        let _ = venv_boot.output();
-    }
+    bootstrap_portable_python(&portable_exe, emit_progress).await?;
     if !portable_exe.exists() || read_python_version(&portable_exe).is_none() {
         return Err(format!(
             "Portable Python extracted but executable was not found or invalid at {}",
@@ -168,6 +127,92 @@ where
 
     emit_progress("Portable Python 3.11 ready.", 25);
     Ok(portable_exe)
+}
+
+/// Prépare pip et un créateur de venv pour Python embarqué, y compris après une interruption.
+/// @param {&Path} portable_exe - Exécutable du runtime portable.
+/// @param {&F} emit_progress - Fonction d'émission d'avancement.
+/// @returns {Result<(), String>} Succès ou erreur de préparation.
+async fn bootstrap_portable_python<F>(portable_exe: &Path, emit_progress: &F) -> Result<(), String>
+where
+    F: Fn(&str, u8),
+{
+    if cfg!(target_os = "windows") {
+        let python_dir = portable_exe.parent().ok_or("Invalid archive path")?;
+        // Enable site-packages in python311._pth
+        let pth_file = python_dir.join("python311._pth");
+        if !pth_file.exists() {
+            return Ok(());
+        }
+        let content = fs::read_to_string(&pth_file).map_err(|e| e.to_string())?;
+        let mut lines: Vec<String> = content
+            .lines()
+            .map(|l| {
+                let trimmed = l.trim();
+                if trimmed == "#import site" || trimmed == "# import site" {
+                    "import site".to_string()
+                } else {
+                    l.to_string()
+                }
+            })
+            .collect();
+        if !lines.iter().any(|l| l.trim() == "import site") {
+            lines.push("import site".to_string());
+        }
+        if !lines
+            .iter()
+            .any(|l| l.trim() == "Lib/site-packages" || l.trim() == "Lib\\site-packages")
+        {
+            lines.push("Lib/site-packages".to_string());
+        }
+        fs::write(&pth_file, lines.join("\n")).map_err(|e| e.to_string())?;
+        fs::create_dir_all(python_dir.join("Lib").join("site-packages"))
+            .map_err(|e| e.to_string())?;
+
+        // Bootstrap pip & virtualenv for creating engine environments
+        if !run_python_import_check(portable_exe, &["pip"]).0 {
+            emit_progress("Bootstrapping pip in portable Python 3.11.0...", 23);
+            let get_pip_path = python_dir.join("get-pip.py");
+            download_binary_file(
+                "https://bootstrap.pypa.io/get-pip.py",
+                &get_pip_path,
+                |_, _| {},
+            )
+            .await?;
+
+            let mut pip_boot = Command::new(portable_exe);
+            pip_boot.args([
+                get_pip_path.to_str().unwrap_or(""),
+                "--no-warn-script-location",
+                "--quiet",
+            ]);
+            configure_command_no_window(&mut pip_boot);
+            let output = pip_boot.output().map_err(|e| e.to_string())?;
+            let _ = fs::remove_file(&get_pip_path);
+            if !output.status.success() {
+                return Err(crate::utils::process::sanitize_cmd_error(&output));
+            }
+        }
+
+        if !run_python_any_import_check(portable_exe, &["venv", "virtualenv"]) {
+            emit_progress("Bootstrapping virtualenv in portable Python...", 24);
+            let mut venv_boot = Command::new(portable_exe);
+            venv_boot.args([
+                "-m",
+                "pip",
+                "install",
+                "virtualenv",
+                "--no-warn-script-location",
+                "--quiet",
+            ]);
+            configure_command_no_window(&mut venv_boot);
+            let output = venv_boot.output().map_err(|e| e.to_string())?;
+            if !output.status.success() {
+                return Err(crate::utils::process::sanitize_cmd_error(&output));
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Installs Python dependencies for the selected local engine.
@@ -428,6 +473,11 @@ pub async fn install_local_segmentation_deps(
             }
         }
     };
+    if cfg!(target_os = "windows")
+        && Path::new(&system_python.executable) == get_portable_python_exe(&app_handle)?.as_path()
+    {
+        bootstrap_portable_python(Path::new(&system_python.executable), &emit_status_progress).await?;
+    }
     emit_status_progress(&format!(
         "Using Python {}.{}.{} ({})",
         system_python.major, system_python.minor, system_python.patch, system_python.executable

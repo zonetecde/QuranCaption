@@ -76,11 +76,9 @@ def _get_silero_session():
                 logger.info("Silero VAD ONNX model downloaded successfully.")
             except Exception:
                 try:
-                    import ssl
                     import shutil
-                    ctx = ssl._create_unverified_context() if hasattr(ssl, "_create_unverified_context") else None
                     req = urllib.request.Request(SILERO_VAD_URL, headers={"User-Agent": "Mozilla/5.0"})
-                    with urllib.request.urlopen(req, context=ctx) as resp, open(model_path, "wb") as out:
+                    with urllib.request.urlopen(req) as resp, open(model_path, "wb") as out:
                         shutil.copyfileobj(resp, out)
                     logger.info("Silero VAD ONNX model downloaded successfully.")
                 except Exception as e:

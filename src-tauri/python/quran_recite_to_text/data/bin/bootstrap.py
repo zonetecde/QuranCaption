@@ -1,7 +1,7 @@
 """Runtime bootstrap coordinator for QuranReciteToText.
 
 Handles Windows console streams, auto-installs missing dependencies on first run,
-bypasses SSL certificate verification issues, and preloads bundled MSVC runtime DLLs.
+and preloads bundled MSVC runtime DLLs.
 """
 
 from __future__ import annotations
@@ -13,7 +13,6 @@ import sys
 os.environ["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
 os.environ["PYLAUNCH_NO_UPDATE_CHECK"] = "1"
 
-import ssl
 import ctypes
 import shutil
 import subprocess
@@ -45,15 +44,6 @@ def fix_windows_console() -> None:
                 pass
 
 
-def fix_ssl_certificates() -> None:
-    """Bypasses missing root CA certificates on fresh Windows Python installs."""
-    try:
-        if hasattr(ssl, "_create_unverified_context"):
-            ssl._create_default_https_context = ssl._create_unverified_context
-    except Exception:
-        pass
-
-
 def _is_package_installed(pkg_name: str) -> bool:
     """Checks if a distribution package or module is installed in the current environment."""
     try:
@@ -65,13 +55,12 @@ def _is_package_installed(pkg_name: str) -> bool:
 
 
 def ensure_pip_dependencies() -> None:
-    """Installs missing requirements via pip on first run, ensuring onnxruntime-gpu installs after onnxruntime."""
+    """Installs missing CPU pipeline requirements via pip on first run."""
     base_required = ("numpy", "onnxruntime", "numba", "miniaudio", "scipy")
     missing_base = [pkg for pkg in base_required if not _is_package_installed(pkg)]
 
     pip_cmd = [sys.executable, "-m", "pip", "install", "--disable-pip-version-check", "--no-warn-script-location"]
 
-    # 1. Install base requirements (onnxruntime finishes first)
     if missing_base:
         print("=" * 60, file=sys.stderr)
         print(f"[*] Missing base dependencies: {', '.join(missing_base)}", file=sys.stderr)
@@ -84,17 +73,6 @@ def ensure_pip_dependencies() -> None:
             print(f"[!] Failed to install base dependencies: {exc}", file=sys.stderr)
             print("[!] Please run manually: pip install -r requirements.txt", file=sys.stderr)
             sys.exit(1)
-
-    # 2. Only attempt onnxruntime-gpu during initial install when onnxruntime was just installed
-    if ("onnxruntime" in missing_base) and not _is_package_installed("onnxruntime-gpu"):
-        print("=" * 60, file=sys.stderr)
-        print("[*] Attempting onnxruntime-gpu installation...", file=sys.stderr)
-        print("=" * 60, file=sys.stderr, flush=True)
-        try:
-            subprocess.check_call([*pip_cmd, "onnxruntime-gpu"])
-            print("[*] onnxruntime-gpu installed successfully!\n", file=sys.stderr, flush=True)
-        except Exception as exc:
-            print(f"[!] Continuing with CPU onnxruntime: {exc}", file=sys.stderr)
 
 
 def load_msvc_runtime() -> None:
@@ -147,7 +125,6 @@ def load_msvc_runtime() -> None:
 def bootstrap() -> None:
     """Executes environment bootstrap."""
     fix_windows_console()
-    fix_ssl_certificates()
     ensure_pip_dependencies()
     load_msvc_runtime()
 

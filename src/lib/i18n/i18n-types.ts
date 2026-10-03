@@ -3163,6 +3163,32 @@ type RootTranslation = {
 		 */
 		downloadFromLink: string;
 		/**
+		 * U​s​e​ ​s​e​c​o​n​d​s​,​ ​M​M​:​S​S​ ​o​r​ ​H​H​:​M​M​:​S​S​ ​(​d​e​c​i​m​a​l​s​ ​a​l​l​o​w​e​d​)​.​ ​L​e​a​v​e​ ​s​t​a​r​t​ ​o​r​ ​e​n​d​ ​b​l​a​n​k​ ​t​o​ ​u​s​e​ ​t​h​e​ ​b​e​g​i​n​n​i​n​g​ ​o​r​ ​e​n​d​ ​o​f​ ​t​h​e​ ​m​e​d​i​a​.
+		 */
+		downloadTimeRangeHint: string;
+		/**
+		 * C​h​e​c​k​ ​t​h​e​ ​d​o​w​n​l​o​a​d​ ​s​e​t​t​i​n​g​s​:​ ​e​n​t​e​r​ ​v​a​l​i​d​ ​t​i​m​e​s​t​a​m​p​s​ ​a​n​d​ ​a​n​ ​e​n​d​ ​t​i​m​e​ ​g​r​e​a​t​e​r​ ​t​h​a​n​ ​t​h​e​ ​s​t​a​r​t​ ​t​i​m​e​.
+		 */
+		invalidDownloadOptions: string;
+		/**
+		 * {​b​i​t​r​a​t​e​}​ ​k​b​p​s
+		 * @param {number} bitrate
+		 */
+		downloadAudioBitrate: RequiredParams<'bitrate'>;
+		/**
+		 * U​p​ ​t​o​ ​{​h​e​i​g​h​t​}​p
+		 * @param {number} height
+		 */
+		downloadMaxHeight: RequiredParams<'height'>;
+		/**
+		 * C​l​e​a​n​e​r​ ​v​i​d​e​o​ ​c​u​t​s
+		 */
+		downloadPreciseCuts: string;
+		/**
+		 * R​e​-​e​n​c​o​d​e​s​ ​t​h​e​ ​v​i​d​e​o​ ​t​o​ ​r​e​d​u​c​e​ ​a​r​t​i​f​a​c​t​s​ ​a​t​ ​t​h​e​ ​c​u​t​s​.​ ​T​a​k​e​s​ ​l​o​n​g​e​r​.
+		 */
+		downloadPreciseCutsHint: string;
+		/**
 		 * F​i​n​a​l​i​z​i​n​g​ ​d​o​w​n​l​o​a​d​.​.​.
 		 */
 		finalizingDownload: string;
@@ -15258,6 +15284,30 @@ export type TranslationFunctions = {
 		 * Download from Link
 		 */
 		downloadFromLink: () => LocalizedString;
+		/**
+		 * Use seconds, MM:SS or HH:MM:SS (decimals allowed). Leave start or end blank to use the beginning or end of the media.
+		 */
+		downloadTimeRangeHint: () => LocalizedString;
+		/**
+		 * Check the download settings: enter valid timestamps and an end time greater than the start time.
+		 */
+		invalidDownloadOptions: () => LocalizedString;
+		/**
+		 * {bitrate} kbps
+		 */
+		downloadAudioBitrate: (arg: { bitrate: number }) => LocalizedString;
+		/**
+		 * Up to {height}p
+		 */
+		downloadMaxHeight: (arg: { height: number }) => LocalizedString;
+		/**
+		 * Cleaner video cuts
+		 */
+		downloadPreciseCuts: () => LocalizedString;
+		/**
+		 * Re-encodes the video to reduce artifacts at the cuts. Takes longer.
+		 */
+		downloadPreciseCutsHint: () => LocalizedString;
 		/**
 		 * Finalizing download...
 		 */

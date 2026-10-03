@@ -165,8 +165,9 @@
 
 				const result: string = await invoke('download_from_youtube', {
 					url: asset.sourceUrl,
-					type: type,
-					downloadPath: downloadPath
+					type: asset.metadata.youtubeDownloadType ?? type,
+					downloadPath: downloadPath,
+					options: asset.metadata.youtubeDownloadOptions
 				});
 
 				asset.updateFilePath(result);

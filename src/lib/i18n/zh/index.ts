@@ -1071,6 +1071,13 @@ const zh = {
 		downloadFromSocialMedia: '从社交媒体下载',
 		chooseMediaType: '选择要下载的媒体类型',
 		downloadFromLink: '从链接下载',
+		downloadTimeRangeHint:
+			'使用秒数、MM:SS 或 HH:MM:SS（允许小数）。留空开始或结束时间以使用媒体的开头或结尾。',
+		invalidDownloadOptions: '请检查下载设置：输入有效的时间戳，结束时间必须晚于开始时间。',
+		downloadAudioBitrate: '{bitrate} 千比特/秒',
+		downloadMaxHeight: '最高 {height}p',
+		downloadPreciseCuts: '更干净的视频剪切',
+		downloadPreciseCutsHint: '重新编码视频以减少剪切处的画面瑕疵。需要更长时间。',
 		finalizingDownload: '正在完成下载...',
 		downloadingMedia: '正在下载媒体...',
 		downloadFailed: '下载失败',

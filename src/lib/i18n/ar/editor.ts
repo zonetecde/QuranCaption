@@ -550,6 +550,14 @@ const editor = {
 	downloadFromSocialMedia: 'تحميل من وسائل الاعلام الاجتماعية',
 	chooseMediaType: 'اختر نوع الوسائط للتنزيل',
 	downloadFromLink: 'التحميل من الرابط',
+	downloadTimeRangeHint:
+		'استخدم الثواني أو MM:SS أو HH:MM:SS (تُقبل الكسور العشرية). اترك البداية أو النهاية فارغة لاستخدام بداية الوسائط أو نهايتها.',
+	invalidDownloadOptions:
+		'تحقق من إعدادات التنزيل: أدخل أوقاتًا صالحة ووقت نهاية أكبر من وقت البداية.',
+	downloadAudioBitrate: '{bitrate} كيلوبت/ثانية',
+	downloadMaxHeight: 'حتى {height}p',
+	downloadPreciseCuts: 'قص فيديو أنظف',
+	downloadPreciseCutsHint: 'يعيد ترميز الفيديو لتقليل التشوهات عند نقاط القص. يستغرق وقتًا أطول.',
 	finalizingDownload: 'جارٍ الانتهاء من التنزيل...',
 	downloadingMedia: 'جارٍ تنزيل الوسائط...',
 	downloadFailed: 'فشل التنزيل',

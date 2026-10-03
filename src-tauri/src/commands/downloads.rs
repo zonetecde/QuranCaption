@@ -10,6 +10,17 @@ use crate::path_utils;
 use crate::utils::process::configure_command_no_window;
 use tauri::Emitter;
 
+/// Options facultatives du téléchargement ; les valeurs absentes conservent les réglages actuels.
+#[derive(Default, serde::Deserialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct YoutubeDownloadOptions {
+    start_time: Option<f64>,
+    end_time: Option<f64>,
+    max_height: Option<u32>,
+    audio_bitrate: Option<u32>,
+    precise_cuts: bool,
+}
+
 /// Emet un evenement de progression du telechargement YouTube vers le frontend.
 ///
 /// @param app_handle Gestionnaire Tauri utilise pour publier l'evenement.
@@ -114,6 +125,7 @@ fn find_downloaded_file_by_suffix(
 /// @param _type Type de telechargement demande (`audio`, `video` ou `video_no_audio`).
 /// @param download_path Dossier de destination.
 /// @param download_request_id Identifiant optionnel pour relayer la progression au frontend.
+/// @param options Plage temporelle et qualité facultatives.
 /// @param app_handle Gestionnaire Tauri utilise pour emettre les evenements.
 #[tauri::command]
 pub async fn download_from_youtube(
@@ -121,8 +133,26 @@ pub async fn download_from_youtube(
     _type: String,
     download_path: String,
     download_request_id: Option<String>,
+    options: Option<YoutubeDownloadOptions>,
     app_handle: tauri::AppHandle,
 ) -> Result<String, String> {
+    let options = options.unwrap_or_default();
+    let start_time = options.start_time.unwrap_or(0.0);
+    if !start_time.is_finite()
+        || start_time < 0.0
+        || options
+            .end_time
+            .map_or(false, |end| !end.is_finite() || end <= start_time)
+        || options.max_height.map_or(false, |height| {
+            ![360, 480, 720, 1080, 1440, 2160].contains(&height)
+        })
+        || options.audio_bitrate.map_or(false, |bitrate| {
+            ![96, 128, 192, 256, 320].contains(&bitrate)
+        })
+    {
+        return Err("invalid_download_options".to_string());
+    }
+
     let download_path_buf = path_utils::normalize_input_path(&download_path);
     let download_path_str = download_path_buf.to_string_lossy().to_string();
     if let Err(e) = fs::create_dir_all(&download_path_buf) {
@@ -171,22 +201,38 @@ pub async fn download_from_youtube(
         download_path_str, download_request_id
     );
 
+    let audio_quality = options
+        .audio_bitrate
+        .map_or_else(|| "0".to_string(), |bitrate| format!("{bitrate}K"));
+    let audio_settings = format!(
+        "ffmpeg:-b:a {}k -ar 44100",
+        options.audio_bitrate.unwrap_or(320)
+    );
+    let video_format = options.max_height.map_or_else(
+        || "bv*+ba/b".to_string(),
+        |height| format!("bv*[height<={height}]+ba/b[height<={height}]"),
+    );
+    let video_only_format = format!(
+        "bestvideo[height<={0}][ext=mp4]/bestvideo[height<={0}]",
+        options.max_height.unwrap_or(1080)
+    );
+
     match _type.as_str() {
         "audio" => args.extend_from_slice(&[
             "--extract-audio",
             "--audio-format",
             "mp3",
             "--audio-quality",
-            "0",
+            &audio_quality,
             "--postprocessor-args",
-            "ffmpeg:-b:a 320k -ar 44100",
+            &audio_settings,
             "--newline",
             "-o",
             &output_pattern,
         ]),
         "video_no_audio" => args.extend_from_slice(&[
             "--format",
-            "bestvideo[height<=1080][ext=mp4]/bestvideo[height<=1080]",
+            &video_only_format,
             "--remux-video",
             "mp4",
             "--newline",
@@ -195,7 +241,7 @@ pub async fn download_from_youtube(
         ]),
         "video" => args.extend_from_slice(&[
             "--format",
-            "bv*+ba/b",
+            &video_format,
             "--merge-output-format",
             "mp4",
             "--newline",
@@ -203,6 +249,24 @@ pub async fn download_from_youtube(
             &output_pattern,
         ]),
         _ => return Err("Invalid type: must be 'audio', 'video' or 'video_no_audio'".to_string()),
+    }
+
+    let download_section = if options.start_time.is_some() || options.end_time.is_some() {
+        Some(format!(
+            "*{}-{}",
+            start_time,
+            options
+                .end_time
+                .map_or_else(|| "inf".to_string(), |end| end.to_string())
+        ))
+    } else {
+        None
+    };
+    if let Some(section) = &download_section {
+        args.extend_from_slice(&["--download-sections", section]);
+        if options.precise_cuts && _type != "audio" {
+            args.push("--force-keyframes-at-cuts");
+        }
     }
 
     let lowered_url = url.to_ascii_lowercase();

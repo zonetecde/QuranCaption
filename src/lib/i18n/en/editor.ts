@@ -557,6 +557,14 @@ const editor = {
 	downloadFromSocialMedia: 'Download from Social Media',
 	chooseMediaType: 'Choose media type to download',
 	downloadFromLink: 'Download from Link',
+	downloadTimeRangeHint:
+		'Use seconds, MM:SS or HH:MM:SS (decimals allowed). Leave start or end blank to use the beginning or end of the media.',
+	invalidDownloadOptions:
+		'Check the download settings: enter valid timestamps and an end time greater than the start time.',
+	downloadAudioBitrate: '{bitrate:number} kbps',
+	downloadMaxHeight: 'Up to {height:number}p',
+	downloadPreciseCuts: 'Cleaner video cuts',
+	downloadPreciseCutsHint: 'Re-encodes the video to reduce artifacts at the cuts. Takes longer.',
 	finalizingDownload: 'Finalizing download...',
 	downloadingMedia: 'Downloading media...',
 	downloadFailed: 'Download failed',

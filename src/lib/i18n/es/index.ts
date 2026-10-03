@@ -1163,6 +1163,15 @@ const es = {
 		downloadFromSocialMedia: 'Descargar desde redes sociales',
 		chooseMediaType: 'Elegir tipo de medio a descargar',
 		downloadFromLink: 'Descargar desde enlace',
+		downloadTimeRangeHint:
+			'Usa segundos, MM:SS o HH:MM:SS (se permiten decimales). Deja el inicio o el final vacío para usar el principio o el final del archivo multimedia.',
+		invalidDownloadOptions:
+			'Revisa los ajustes de descarga: introduce tiempos válidos y un final posterior al inicio.',
+		downloadAudioBitrate: '{bitrate} kbit/s',
+		downloadMaxHeight: 'Hasta {height}p',
+		downloadPreciseCuts: 'Cortes de vídeo más limpios',
+		downloadPreciseCutsHint:
+			'Vuelve a codificar el vídeo para reducir los artefactos en los cortes. Tarda más.',
 		finalizingDownload: 'Finalizando descarga...',
 		downloadingMedia: 'Descargando medio...',
 		downloadFailed: 'Error de descarga',

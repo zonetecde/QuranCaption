@@ -1236,6 +1236,15 @@ const id = {
 		downloadingLabel: 'Sedang mengunduh...',
 		chooseMediaType: 'Pilih tipe media untuk diunduh',
 		downloadFromLink: 'Unduh dari link',
+		downloadTimeRangeHint:
+			'Gunakan detik, MM:SS atau HH:MM:SS (desimal diperbolehkan). Kosongkan awal atau akhir untuk menggunakan awal atau akhir media.',
+		invalidDownloadOptions:
+			'Periksa pengaturan unduhan: masukkan waktu yang valid dan waktu akhir setelah waktu awal.',
+		downloadAudioBitrate: '{bitrate} kbit/detik',
+		downloadMaxHeight: 'Hingga {height}p',
+		downloadPreciseCuts: 'Potongan video lebih bersih',
+		downloadPreciseCutsHint:
+			'Mengodekan ulang video untuk mengurangi artefak pada titik potong. Memerlukan waktu lebih lama.',
 		supportedLinksHint:
 			'Link publik yang didukung termasuk YouTube, unggahan surah atau mushaf penuh di SoundCloud, koleksi Internet Archive, link publik Google Drive, dan clip bacaan pendek dari Facebook, Instagram, TikTok, atau X/Twitter.',
 		stockMedia: 'Stok Media',

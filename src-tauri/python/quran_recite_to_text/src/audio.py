@@ -4,17 +4,19 @@ from __future__ import annotations
 
 import os
 import math
+import shutil
 import subprocess
-import warnings
+from pathlib import Path
 from typing import Optional
 import numpy as np
+import miniaudio
+from scipy.signal import resample_poly
 
 from config import SAMPLE_RATE, CLIP_AUDIO_PEAKS
 
 
 def _miniaudio_decode(file_path: str, sample_rate: int) -> np.ndarray:
-    """Fast in-process C decoding via miniaudio (dr_mp3 / dr_wav / dr_flac)."""
-    import miniaudio
+    """Fast in-process C decoding via miniaudio (MP3, WAV, FLAC)."""
     decoded = miniaudio.decode_file(
         file_path,
         output_format=miniaudio.SampleFormat.FLOAT32,
@@ -26,7 +28,6 @@ def _miniaudio_decode(file_path: str, sample_rate: int) -> np.ndarray:
 
 def _miniaudio_decode_bytes(audio_bytes: bytes, sample_rate: int) -> np.ndarray:
     """Fast in-process C decoding from in-memory bytes via miniaudio."""
-    import miniaudio
     decoded = miniaudio.decode(
         audio_bytes,
         output_format=miniaudio.SampleFormat.FLOAT32,
@@ -38,11 +39,9 @@ def _miniaudio_decode_bytes(audio_bytes: bytes, sample_rate: int) -> np.ndarray:
 
 def _resolve_ffmpeg_bin() -> str:
     """Finds ffmpeg binary from PATH or app's bundled binary directories."""
-    import shutil
     found = shutil.which("ffmpeg")
     if found:
         return found
-    from pathlib import Path
     curr = Path(__file__).resolve()
     for parent in list(curr.parents)[:5]:
         for sub in ("binaries/ffmpeg.exe", "resources/binaries/ffmpeg.exe", "binaries/ffmpeg", "resources/binaries/ffmpeg"):
@@ -53,7 +52,7 @@ def _resolve_ffmpeg_bin() -> str:
 
 
 def _ffmpeg_pipe(source: str | bytes, sample_rate: int) -> np.ndarray:
-    """Optimized streaming FFmpeg fallback for complex containers (m4a, aac, opus, etc.)."""
+    """Streaming FFmpeg fallback for extended containers (M4A, AAC, OPUS, OGG, etc.)."""
     is_bytes = isinstance(source, bytes)
     cmd = [
         _resolve_ffmpeg_bin(), "-v", "quiet", "-nostdin", "-threads", "2", "-y",
@@ -77,7 +76,6 @@ def _ffmpeg_pipe(source: str | bytes, sample_rate: int) -> np.ndarray:
 def _resample_audio(audio: np.ndarray, orig_sr: int, target_sr: int) -> np.ndarray:
     """Resamples audio array to target sample rate using rational polyphase filtering."""
     if orig_sr != target_sr:
-        from scipy.signal import resample_poly
         gcd = math.gcd(target_sr, orig_sr)
         return resample_poly(audio, target_sr // gcd, orig_sr // gcd).astype(np.float32)
     return audio.astype(np.float32, copy=False)
@@ -125,21 +123,10 @@ class AudioDecoder:
         except Exception:
             pass
 
-        # 2. Secondary: Streaming FFmpeg pipe (M4A, AAC, OPUS, etc.)
+        # 2. Secondary: Streaming FFmpeg pipe (M4A, AAC, OPUS, OGG, etc.)
         if audio is None or len(audio) == 0:
             try:
                 audio = _ffmpeg_pipe(file_path, sample_rate)
-            except Exception:
-                pass
-
-        # 3. Tertiary: Optional Soundfile fallback if available in environment
-        if audio is None or len(audio) == 0:
-            try:
-                import soundfile as sf
-                audio, sr = sf.read(file_path, dtype="float32")
-                if getattr(audio, "ndim", 1) > 1:
-                    audio = audio.mean(axis=1)
-                audio = _resample_audio(audio, sr, sample_rate)
             except Exception:
                 pass
 
@@ -170,20 +157,7 @@ class AudioDecoder:
             except Exception:
                 pass
 
-        # 3. Tertiary: Optional Soundfile fallback if installed
-        if audio is None or len(audio) == 0:
-            try:
-                import io, soundfile as sf
-                audio, sr = sf.read(io.BytesIO(audio_bytes), dtype="float32")
-                if getattr(audio, "ndim", 1) > 1:
-                    audio = audio.mean(axis=1)
-                audio = _resample_audio(audio, sr, sample_rate)
-            except Exception:
-                pass
-
         if audio is None or len(audio) == 0:
             raise RuntimeError("Failed to decode audio bytes")
 
         return _normalize_peaks(audio, clip_peaks)
-
-

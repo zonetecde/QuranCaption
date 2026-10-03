@@ -198,6 +198,64 @@ def _merge_same_surah_clusters(
     return merged
 
 
+def _suppress_sandwich_clusters(
+    cluster_list: List[List[Tuple[int, int, int, float]]],
+    inter_basmalah_hits: List[Tuple[int, int, int, float]],
+) -> List[List[Tuple[int, int, int, float]]]:
+    """Suppresses isolated 1-2 ayah Mutashabihat glitches sandwiched between two sections of the same Surah (A -> B -> A)."""
+    if len(cluster_list) < 3:
+        return cluster_list
+
+    modified = True
+    current = cluster_list
+    while modified and len(current) >= 3:
+        modified = False
+        new_clusters: List[List[Tuple[int, int, int, float]]] = []
+        i = 0
+        while i < len(current):
+            if 0 < i < len(current) - 1:
+                prev_s = current[i - 1][0][1]
+                next_s = current[i + 1][0][1]
+                curr_s = current[i][0][1]
+                if prev_s == next_s and curr_s != prev_s:
+                    b_ayahs = [h[2] for h in current[i] if h[1] == curr_s]
+                    ayah_span = (max(b_ayahs) - min(b_ayahs) + 1) if b_ayahs else 1
+                    c_start = current[i][0][0]
+                    prev_end = current[i - 1][-1][0]
+                    has_bas = any(prev_end <= b[0] <= c_start + 16 for b in inter_basmalah_hits)
+                    if not has_bas and (ayah_span <= 2 or len(current[i]) <= 3):
+                        # Suppress sandwich glitch: merge prev and next
+                        new_clusters[-1].extend(current[i + 1])
+                        i += 2  # skip current and next
+                        modified = True
+                        continue
+            new_clusters.append(current[i])
+            i += 1
+        current = _merge_same_surah_clusters(new_clusters)
+    return current
+
+
+def _filter_spurious_edge_clusters(
+    cluster_list: List[List[Tuple[int, int, int, float]]],
+    inter_basmalah_hits: List[Tuple[int, int, int, float]],
+) -> List[List[Tuple[int, int, int, float]]]:
+    """Filters spurious 1-ayah edge clusters that lack Basmalah in multi-surah audio."""
+    if len(cluster_list) <= 1:
+        return cluster_list
+    filtered = []
+    for c in cluster_list:
+        s = c[0][1]
+        ayahs = [h[2] for h in c if h[1] == s]
+        ayah_span = (max(ayahs) - min(ayahs) + 1) if ayahs else 1
+        c_start = c[0][0]
+        has_bas = any(abs(b[0] - c_start) <= 24 for b in inter_basmalah_hits)
+        # In multi-surah, an isolated edge cluster with only 1 Ayah and <= 2 hits without Basmalah is a spurious glitch
+        if ayah_span == 1 and len(c) <= 2 and not has_bas and len(cluster_list) > 1:
+            continue
+        filtered.append(c)
+    return filtered if filtered else cluster_list
+
+
 class SurahDetector:
     """Discovers recited Surah and Ayah range in continuous recitation audio."""
 
@@ -286,7 +344,11 @@ class SurahDetector:
             # Outlier-resistant start Ayah: consider probes within best_distance + 2
             min_dist = best_list[0][0]
             reliable_probes = [c for c in best_list if c[0] <= min_dist + 2]
-            start_ayah = min(c[2] for c in reliable_probes)
+            # Resolve start Ayah from the earliest temporal probe window (near t ≈ 0s)
+            earliest_off = min(c[3] for c in reliable_probes)
+            opening_probes = [c for c in reliable_probes if c[3] <= earliest_off + 32]
+            opening_probes.sort(key=lambda c: (c[0], c[1], c[2], c[3]))
+            start_ayah = opening_probes[0][2]
 
             # Determine end Ayah by probing near the recitation tail
             confirmed_end_ayah: Optional[int] = None
@@ -416,6 +478,12 @@ class SurahDetector:
         # In multi-Surah recitations, an independent Surah block must have at least 2 hits (to support short 3-ayah Surahs)
         if len(clusters) > 1:
             clusters = [c for c in clusters if len([h for h in c if h[1] == c[0][1]]) >= 2]
+
+        # 5.1 Suppress A -> B -> A sandwich false positives (e.g. 1-ayah Mutashabihat glitches)
+        clusters = _suppress_sandwich_clusters(clusters, inter_basmalah_hits)
+
+        # 5.2 Filter spurious 1-ayah edge glitches lacking Basmalah
+        clusters = _filter_spurious_edge_clusters(clusters, inter_basmalah_hits)
 
         # Merge adjacent clusters if any same-surah neighbors remain
         clusters = _merge_same_surah_clusters(clusters)

@@ -381,8 +381,6 @@ export function useAutoSegmentationWizard() {
 				installStatusMessage = event.payload.message;
 				if (typeof event.payload.progress === 'number') {
 					installStatusProgress = Math.max(0, Math.min(100, event.payload.progress));
-				} else {
-					installStatusProgress = null;
 				}
 				const payload = {
 					step: 'install',

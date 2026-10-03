@@ -7,6 +7,7 @@ segmentation, gap-clamped padding, and intra-segment speech recovery.
 from __future__ import annotations
 
 import os
+import sys
 import math
 import time
 import urllib.request
@@ -81,7 +82,8 @@ def _get_kaldi_mel_banks(
     return bins
 
 
-_CACHED_KALDI_MEL_BANKS: Optional[np.ndarray] = None
+_CACHED_KALDI_MEL_BANKS_T: Optional[np.ndarray] = None
+_CACHED_POVEY_WINDOW: Optional[np.ndarray] = None
 
 
 def _numpy_kaldi_fbank(
@@ -93,14 +95,19 @@ def _numpy_kaldi_fbank(
     preemphasis: float = 0.97,
     povey_power: float = 0.85,
 ) -> np.ndarray:
-    """Vectorised pure NumPy replica of Kaldi Fbank (100% token-equivalent fallback for kaldi-native-fbank)."""
-    global _CACHED_KALDI_MEL_BANKS
-    if _CACHED_KALDI_MEL_BANKS is None:
-        _CACHED_KALDI_MEL_BANKS = _get_kaldi_mel_banks(num_bins=num_mel_bins, sample_rate=sample_rate)
+    """High-performance vectorized pure NumPy implementation of Daniel Povey's Kaldi Mel filterbank."""
+    global _CACHED_KALDI_MEL_BANKS_T, _CACHED_POVEY_WINDOW
+    if _CACHED_KALDI_MEL_BANKS_T is None:
+        mel_banks = _get_kaldi_mel_banks(num_bins=num_mel_bins, sample_rate=sample_rate)
+        _CACHED_KALDI_MEL_BANKS_T = np.ascontiguousarray(mel_banks.T, dtype=np.float32)
 
     frame_len = int(round(sample_rate * frame_length_ms / 1000.0))
     frame_shift = int(round(sample_rate * frame_shift_ms / 1000.0))
     n_fft = 512
+
+    if _CACHED_POVEY_WINDOW is None or len(_CACHED_POVEY_WINDOW) != frame_len:
+        n = np.arange(frame_len, dtype=np.float32)
+        _CACHED_POVEY_WINDOW = ((0.5 - 0.5 * np.cos(2 * np.pi * n / (frame_len - 1))) ** povey_power).astype(np.float32)
 
     num_samples = len(waveform)
     num_frames = (num_samples + frame_shift // 2) // frame_shift
@@ -117,15 +124,12 @@ def _numpy_kaldi_fbank(
     frames -= np.mean(frames, axis=1, keepdims=True)
     frames[:, 1:] -= preemphasis * frames[:, :-1]
     frames[:, 0] -= preemphasis * frames[:, 0]
-
-    n = np.arange(frame_len)
-    povey_window = (0.5 - 0.5 * np.cos(2 * np.pi * n / (frame_len - 1))) ** povey_power
-    frames *= povey_window
+    frames *= _CACHED_POVEY_WINDOW
 
     fft_vals = np.fft.rfft(frames, n=n_fft, axis=1)
-    power_spectrum = np.abs(fft_vals[:, : n_fft // 2]) ** 2
+    power_spectrum = (fft_vals[:, : n_fft // 2].real ** 2 + fft_vals[:, : n_fft // 2].imag ** 2)
 
-    mel_energies = np.dot(power_spectrum, _CACHED_KALDI_MEL_BANKS.T)
+    mel_energies = np.dot(power_spectrum, _CACHED_KALDI_MEL_BANKS_T)
     mel_energies = np.maximum(mel_energies, np.finfo(np.float32).eps)
     return np.log(mel_energies).astype(np.float32)
 
@@ -149,12 +153,34 @@ class ZipformerONNX:
         return cls._instance
 
     def _load_model(self):
-        if not os.path.exists(DEFAULT_MODEL_PATH):
-            os.makedirs(os.path.dirname(DEFAULT_MODEL_PATH), exist_ok=True)
+        candidate_paths = [
+            DEFAULT_MODEL_PATH,
+            os.path.join(getattr(config, "ONNX_DIR", "data/onnx"), "zipformer_p_arabic_v3.int8.onnx"),
+            os.path.join(getattr(config, "DATA_PATH", "data"), "onnx", "zipformer_p_arabic_v3.int8.onnx"),
+        ]
+        resolved_model_path = None
+        for p in candidate_paths:
+            if p and os.path.exists(p) and os.path.getsize(p) > 10_000_000:
+                resolved_model_path = p
+                break
+
+        if not resolved_model_path:
+            resolved_model_path = DEFAULT_MODEL_PATH
+            os.makedirs(os.path.dirname(resolved_model_path), exist_ok=True)
             url = "https://github.com/Iam-Muslim/Natlu/releases/download/models-latest/zipformer_p_arabic_v3.int8.onnx"
             logger.info(f"Downloading Zipformer ONNX model from {url}...")
-            urllib.request.urlretrieve(url, DEFAULT_MODEL_PATH)
+            print("[*] Downloading Zipformer ONNX acoustic model (~72 MB)...", file=sys.stderr, flush=True)
+            try:
+                urllib.request.urlretrieve(url, resolved_model_path)
+            except Exception:
+                import ssl
+                import shutil
+                ctx = ssl._create_unverified_context() if hasattr(ssl, "_create_unverified_context") else None
+                req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, context=ctx) as resp, open(resolved_model_path, "wb") as out:
+                    shutil.copyfileobj(resp, out)
             logger.info("Zipformer ONNX model downloaded successfully.")
+            print("[*] Zipformer ONNX model downloaded successfully.", file=sys.stderr, flush=True)
 
         sess_opts = ort.SessionOptions()
         sess_opts.log_severity_level = 3
@@ -165,7 +191,7 @@ class ZipformerONNX:
         sess_opts.intra_op_num_threads = num_threads
         sess_opts.inter_op_num_threads = 1
 
-        opt_model_path = os.path.splitext(DEFAULT_MODEL_PATH)[0] + ".opt.onnx"
+        opt_model_path = os.path.splitext(resolved_model_path)[0] + ".opt.onnx"
         if os.path.exists(opt_model_path):
             sess_opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_DISABLE_ALL
             self.session = ort.InferenceSession(
@@ -177,14 +203,14 @@ class ZipformerONNX:
             try:
                 sess_opts.optimized_model_filepath = opt_model_path
                 self.session = ort.InferenceSession(
-                    DEFAULT_MODEL_PATH,
+                    resolved_model_path,
                     sess_opts,
                     providers=['CPUExecutionProvider']
                 )
             except Exception:
                 sess_opts.optimized_model_filepath = ""
                 self.session = ort.InferenceSession(
-                    DEFAULT_MODEL_PATH,
+                    resolved_model_path,
                     sess_opts,
                     providers=['CPUExecutionProvider']
                 )
@@ -408,7 +434,7 @@ class ZipformerONNX:
         if on_vad_done is not None:
             on_vad_done(vad_time)
 
-        # 2. Extract Mel Filterbank ONCE globally across entire audio (blazing fast in C++)
+        # 2. Extract Mel Filterbank ONCE globally across entire audio (blazing fast vectorized NumPy)
         global_feats = self._extract_fbank(audio_pcm)
         total_fbank_frames = len(global_feats)
         if total_fbank_frames == 0:

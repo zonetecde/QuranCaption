@@ -1,5 +1,9 @@
 use std::fs;
+use std::io::{BufRead, BufReader};
+use std::path::Path;
 use std::process::Command;
+use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::{Arc, Mutex};
 
 use tauri::Emitter;
 
@@ -70,6 +74,9 @@ where
 
     emit_progress("Extracting portable Python 3.11...", 22);
 
+    let python_dir = portable_root.join("python");
+    fs::create_dir_all(&python_dir).map_err(|e| format!("Failed to create python dir: {}", e))?;
+
     let tar_binary = if cfg!(target_os = "windows") {
         let system32_tar = std::path::Path::new("C:\\Windows\\System32\\tar.exe");
         if system32_tar.exists() {
@@ -82,12 +89,21 @@ where
     };
 
     let mut cmd = Command::new(&tar_binary);
-    cmd.args([
-        "-xzf",
-        archive_path.to_str().ok_or("Invalid archive path")?,
-        "-C",
-        portable_root.to_str().ok_or("Invalid destination path")?,
-    ]);
+    if cfg!(target_os = "windows") {
+        cmd.args([
+            "-xf",
+            archive_path.to_str().ok_or("Invalid archive path")?,
+            "-C",
+            python_dir.to_str().ok_or("Invalid destination path")?,
+        ]);
+    } else {
+        cmd.args([
+            "-xzf",
+            archive_path.to_str().ok_or("Invalid archive path")?,
+            "-C",
+            portable_root.to_str().ok_or("Invalid destination path")?,
+        ]);
+    }
     configure_command_no_window(&mut cmd);
     let output = cmd.output().map_err(|e| format!("Failed to extract portable Python: {}", e))?;
     let _ = fs::remove_file(&archive_path);
@@ -99,6 +115,50 @@ where
         ));
     }
 
+    if cfg!(target_os = "windows") {
+        // Enable site-packages in python311._pth
+        let pth_file = python_dir.join("python311._pth");
+        if pth_file.exists() {
+            if let Ok(content) = fs::read_to_string(&pth_file) {
+                let mut lines: Vec<String> = content
+                    .lines()
+                    .map(|l| {
+                        let trimmed = l.trim();
+                        if trimmed == "#import site" || trimmed == "# import site" {
+                            "import site".to_string()
+                        } else {
+                            l.to_string()
+                        }
+                    })
+                    .collect();
+                if !lines.iter().any(|l| l.trim() == "import site") {
+                    lines.push("import site".to_string());
+                }
+                if !lines.iter().any(|l| l.trim() == "Lib/site-packages" || l.trim() == "Lib\\site-packages") {
+                    lines.push("Lib/site-packages".to_string());
+                }
+                let _ = fs::write(&pth_file, lines.join("\n"));
+            }
+        }
+        let _ = fs::create_dir_all(python_dir.join("Lib").join("site-packages"));
+
+        // Bootstrap pip & virtualenv for creating engine environments
+        emit_progress("Bootstrapping pip in portable Python 3.11.0...", 23);
+        let get_pip_path = python_dir.join("get-pip.py");
+        download_binary_file("https://bootstrap.pypa.io/get-pip.py", &get_pip_path, |_, _| {}).await?;
+
+        let mut pip_boot = Command::new(&portable_exe);
+        pip_boot.args([get_pip_path.to_str().unwrap_or(""), "--no-warn-script-location", "--quiet"]);
+        configure_command_no_window(&mut pip_boot);
+        let _ = pip_boot.output();
+        let _ = fs::remove_file(&get_pip_path);
+
+        emit_progress("Bootstrapping virtualenv in portable Python...", 24);
+        let mut venv_boot = Command::new(&portable_exe);
+        venv_boot.args(["-m", "pip", "install", "virtualenv", "--no-warn-script-location", "--quiet"]);
+        configure_command_no_window(&mut venv_boot);
+        let _ = venv_boot.output();
+    }
     if !portable_exe.exists() || read_python_version(&portable_exe).is_none() {
         return Err(format!(
             "Portable Python extracted but executable was not found or invalid at {}",
@@ -204,19 +264,146 @@ async fn ensure_multi_aligner_data_files(
     Ok(repaired_files)
 }
 
+/// Exécute pip install en mode streaming avec remontée en temps réel de la progression et des packages installés.
+/// @param {&Path} python_exe - Chemin de l'exécutable Python dans le venv.
+/// @param {&[&str]} args - Arguments supplémentaires pour pip install.
+/// @param {Option<&str>} hf_token - Token Hugging Face optionnel pour l'environnement.
+/// @param {&F} emit_progress - Callback pour notifier le frontend (message, pourcentage).
+/// @param {u8} start_pct - Pourcentage de départ.
+/// @param {u8} end_pct - Pourcentage maximum pour cette étape.
+/// @param {&str} context - Message contextuel d'erreur.
+/// @returns {Result<(), String>} Succès ou message d'erreur.
+fn run_pip_install_streaming<F>(
+    python_exe: &Path,
+    args: &[&str],
+    hf_token: Option<&str>,
+    emit_progress: &F,
+    start_pct: u8,
+    end_pct: u8,
+    context: &str,
+) -> Result<(), String>
+where
+    F: Fn(&str, u8),
+{
+    let mut cmd = Command::new(python_exe);
+    cmd.arg("-m")
+        .arg("pip")
+        .arg("install")
+        .arg("--prefer-binary")
+        .arg("--no-compile")
+        .arg("--progress-bar")
+        .arg("off")
+        .arg("--no-input");
+    cmd.args(args);
+
+    if let Some(token) = hf_token {
+        apply_hf_token_env(&mut cmd, token);
+    }
+    configure_command_no_window(&mut cmd);
+    cmd.stdout(std::process::Stdio::piped());
+    cmd.stderr(std::process::Stdio::piped());
+
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| format!("{}: failed to run pip: {}", context, e))?;
+
+    let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
+    let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
+
+    let stderr_lines = Arc::new(Mutex::new(Vec::<String>::new()));
+    let stderr_lines_clone = Arc::clone(&stderr_lines);
+    let stderr_handle = std::thread::spawn(move || {
+        let reader = BufReader::new(stderr);
+        for line in reader.lines().flatten() {
+            if let Ok(mut l) = stderr_lines_clone.lock() {
+                l.push(line);
+            }
+        }
+    });
+
+    let span = end_pct.saturating_sub(start_pct).max(1) as f32;
+    let mut step_count: u32 = 0;
+
+    let reader = BufReader::new(stdout);
+    let mut output_lines: Vec<String> = Vec::new();
+
+    for line in reader.lines().flatten() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        output_lines.push(trimmed.to_string());
+
+        if trimmed.starts_with("Collecting ") {
+            step_count += 1;
+            let pkg_spec = trimmed.trim_start_matches("Collecting ").trim();
+            let pkg_name = pkg_spec
+                .split(|c: char| c == '=' || c == '<' || c == '>' || c == '~' || c.is_whitespace())
+                .next()
+                .unwrap_or(pkg_spec);
+            let pct = (start_pct as f32 + (step_count as f32 * 1.5).min(span - 2.0)) as u8;
+            emit_progress(&format!("Downloading package: {}...", pkg_name), pct);
+        } else if trimmed.starts_with("Downloading ") {
+            let file_info = trimmed.trim_start_matches("Downloading ").trim();
+            let short_info = if let Some(open_paren) = file_info.find('(') {
+                let fname = file_info[..open_paren].trim();
+                let size = &file_info[open_paren..];
+                let simple_name = fname.split('-').next().unwrap_or(fname);
+                format!("{} {}", simple_name, size)
+            } else {
+                file_info.to_string()
+            };
+            step_count += 1;
+            let pct = (start_pct as f32 + (step_count as f32 * 1.5).min(span - 2.0)) as u8;
+            emit_progress(&format!("Downloading: {}...", short_info), pct);
+        } else if trimmed.starts_with("Installing collected packages:") {
+            emit_progress(
+                "Installing downloaded packages into environment...",
+                end_pct.saturating_sub(1),
+            );
+        } else if trimmed.starts_with("Successfully installed ") {
+            emit_progress("Packages installed successfully.", end_pct);
+        }
+    }
+
+    let _ = stderr_handle.join();
+    let status = child
+        .wait()
+        .map_err(|e| format!("{}: failed to wait on pip: {}", context, e))?;
+
+    if !status.success() {
+        let err_vec = stderr_lines.lock().map(|l| l.clone()).unwrap_or_default();
+        let last_err = if !err_vec.is_empty() {
+            err_vec.join("\n")
+        } else {
+            output_lines.join("\n")
+        };
+        return Err(format!("{}: {}", context, last_err));
+    }
+
+    emit_progress("Python packages ready.", end_pct);
+    Ok(())
+}
+
 pub async fn install_local_segmentation_deps(
     app_handle: tauri::AppHandle,
     engine: String,
     hf_token: Option<String>,
 ) -> Result<String, String> {
     let selected_engine = LocalSegmentationEngine::from_raw(engine.as_str())?;
-    let emit_status = |message: &str| {
-        let _ = app_handle.emit("install-status", serde_json::json!({ "message": message }));
-    };
+    let current_progress = AtomicU8::new(0);
     let emit_status_progress = |message: &str, progress: u8| {
+        current_progress.store(progress, Ordering::Relaxed);
         let _ = app_handle.emit(
             "install-status",
             serde_json::json!({ "message": message, "progress": progress }),
+        );
+    };
+    let emit_status = |message: &str| {
+        let p = current_progress.load(Ordering::Relaxed);
+        let _ = app_handle.emit(
+            "install-status",
+            serde_json::json!({ "message": message, "progress": p }),
         );
     };
 
@@ -241,14 +428,14 @@ pub async fn install_local_segmentation_deps(
             }
         }
     };
-    emit_status(&format!(
+    emit_status_progress(&format!(
         "Using Python {}.{}.{} ({})",
         system_python.major, system_python.minor, system_python.patch, system_python.executable
-    ));
-    emit_status(&format!(
+    ), 25);
+    emit_status_progress(&format!(
         "Preparing {} local environment...",
         selected_engine.as_label()
-    ));
+    ), 26);
     let venv_dir = create_venv_if_missing(&app_handle, selected_engine)?;
     let python_exe = get_venv_python_exe(&venv_dir);
     let normalized_hf_token = hf_token
@@ -277,7 +464,7 @@ pub async fn install_local_segmentation_deps(
     };
 
     // Installation outillage pip + torch (CUDA si possible, CPU fallback).
-    emit_status("Upgrading pip...");
+    emit_status_progress("Upgrading pip...", 27);
     run_python_cmd(
         &[
             "-m",
@@ -285,12 +472,12 @@ pub async fn install_local_segmentation_deps(
             "install",
             "--upgrade",
             "pip",
-            "setuptools",
-            "wheel",
+            "--no-compile",
             "--quiet",
         ],
         "Failed to upgrade pip",
     )?;
+    emit_status_progress("Pip ready.", 29);
 
     // QuranWordTiming est purement basé sur ONNX Runtime et kaldi-native-fbank (aucun PyTorch requis).
     if !matches!(
@@ -428,21 +615,19 @@ pub async fn install_local_segmentation_deps(
         )
     })?;
 
-    emit_status("Installing Python packages...");
-    run_python_cmd(
-        &[
-            "-m",
-            "pip",
-            "install",
-            "--prefer-binary",
-            "-r",
-            filtered_requirements_path.to_string_lossy().as_ref(),
-            "--quiet",
-        ],
+    emit_status_progress("Resolving dependencies...", 30);
+    run_pip_install_streaming(
+        &python_exe,
+        &["-r", filtered_requirements_path.to_string_lossy().as_ref()],
+        normalized_hf_token.as_deref(),
+        &emit_status_progress,
+        30,
+        48,
         "pip install failed",
     )?;
 
     if matches!(selected_engine, LocalSegmentationEngine::QuranWordTiming) {
+        emit_status_progress("Checking kaldi-native-fbank acceleration...", 49);
         // Kaldi natif est facultatif : sans wheel compatible, le secours NumPy prend le relais.
         let _ = run_python_cmd(
             &[
@@ -455,6 +640,18 @@ pub async fn install_local_segmentation_deps(
             ],
             "pip install failed",
         );
+
+        // Preload and deploy bundled MSVC DLLs into onnxruntime/capi immediately
+        if cfg!(target_os = "windows") {
+            if let Ok(segmenter_script) = resolve_python_resource_path(&app_handle, "python/local_word_timing_segmenter.py") {
+                if segmenter_script.exists() {
+                    let mut init_cmd = Command::new(&python_exe);
+                    init_cmd.arg(&segmenter_script).arg("--help");
+                    configure_command_no_window(&mut init_cmd);
+                    let _ = init_cmd.output();
+                }
+            }
+        }
     }
     if matches!(
         selected_engine,

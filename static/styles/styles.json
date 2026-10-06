@@ -1211,6 +1211,19 @@
 				"css": "--line-background-height: {value}px;",
 				"tailwind": false,
 				"icon": "line_weight"
+			},
+			{
+				"id": "line-background-roundness",
+				"name": "Bar Roundness (%)",
+				"description": "Adjust corner roundness: 0% for square corners, 100% for fully rounded ends",
+				"value": 100,
+				"valueType": "number",
+				"valueMin": 0,
+				"valueMax": 100,
+				"step": 1,
+				"css": "--line-background-roundness: {value};",
+				"tailwind": false,
+				"icon": "rounded_corner"
 			}
 		]
 	},

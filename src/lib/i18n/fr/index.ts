@@ -1646,6 +1646,7 @@ const fr = {
 			'line-background-color': 'Couleur de la barre',
 			'line-background-position': 'Position de la barre',
 			'line-background-height': 'Hauteur de la barre',
+			'line-background-roundness': 'Rondeur de la barre (%)',
 			effects: 'Effets visuels',
 			opacity: 'Opacité du texte',
 			blur: 'Effet de flou',
@@ -1880,6 +1881,8 @@ const fr = {
 			'line-background-color': 'Définir la couleur de la barre de fond',
 			'line-background-position': 'Ajuster la position verticale de la barre par rapport au texte',
 			'line-background-height': 'Ajuster la hauteur de la barre de fond',
+			'line-background-roundness':
+				'Ajuster la rondeur : 0 % pour des angles droits, 100 % pour des extrémités entièrement arrondies',
 			effects:
 				'Ajouter des effets visuels et des filtres pour améliorer l\u2019apparence des sous-titres',
 			opacity: 'Contrôler la transparence du texte',

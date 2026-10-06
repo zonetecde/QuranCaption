@@ -1644,6 +1644,7 @@ const es = {
 			'line-background-color': 'Color de la barra',
 			'line-background-position': 'Posición de la barra',
 			'line-background-height': 'Altura de la barra',
+			'line-background-roundness': 'Redondez de la barra (%)',
 			effects: 'Efectos visuales',
 			opacity: 'Opacidad del texto',
 			blur: 'Efecto de desenfoque',
@@ -1874,6 +1875,8 @@ const es = {
 			'line-background-color': 'Establecer el color de la barra de fondo',
 			'line-background-position': 'Ajustar la posición vertical de la barra respecto al texto',
 			'line-background-height': 'Ajustar la altura de la barra de fondo',
+			'line-background-roundness':
+				'Ajustar el redondeo: 0% para esquinas rectas, 100% para extremos totalmente redondeados',
 			effects: 'Agregar efectos visuales y filtros para mejorar la apariencia de los subtítulos',
 			opacity: 'Controlar la transparencia del texto',
 			blur: 'Aplicar un efecto de desenfoque al texto',

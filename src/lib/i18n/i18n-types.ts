@@ -6738,6 +6738,38 @@ type RootTranslation = {
 		 */
 		projectDataDescription: string;
 		/**
+		 * G​e​n​e​r​a​t​e​ ​t​h​u​m​b​n​a​i​l
+		 */
+		generateThumbnail: string;
+		/**
+		 * T​h​e​ ​b​u​t​t​o​n​ ​b​e​l​o​w​ ​o​p​e​n​s​ ​Q​u​r​a​n​ ​T​h​u​m​b​n​a​i​l​s​,​ ​a​ ​w​e​b​s​i​t​e​ ​b​y​ ​@​s​a​d​a​a​l​a​y​a​t​ ​o​n​ ​D​i​s​c​o​r​d​ ​f​o​r​ ​q​u​i​c​k​l​y​ ​c​r​e​a​t​i​n​g​ ​t​h​u​m​b​n​a​i​l​s​.​ ​Y​o​u​r​ ​p​r​o​j​e​c​t​ ​d​e​t​a​i​l​s​ ​w​i​l​l​ ​b​e​ ​f​i​l​l​e​d​ ​i​n​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​.
+		 */
+		thumbnailDescription: string;
+		/**
+		 * T​h​u​m​b​n​a​i​l​ ​d​e​t​a​i​l​s
+		 */
+		thumbnailSummary: string;
+		/**
+		 * T​r​a​n​s​l​a​t​i​o​n​ ​l​a​n​g​u​a​g​e
+		 */
+		thumbnailTranslationLanguage: string;
+		/**
+		 * O​p​e​n​ ​Q​u​r​a​n​ ​T​h​u​m​b​n​a​i​l​s
+		 */
+		thumbnailOpen: string;
+		/**
+		 * C​o​u​l​d​ ​n​o​t​ ​o​p​e​n​ ​Q​u​r​a​n​ ​T​h​u​m​b​n​a​i​l​s​.
+		 */
+		thumbnailOpenError: string;
+		/**
+		 * C​h​o​o​s​e​ ​a​ ​t​e​m​p​l​a​t​e
+		 */
+		thumbnailTemplates: string;
+		/**
+		 * C​o​u​l​d​ ​n​o​t​ ​l​o​a​d​ ​t​h​e​ ​t​e​m​p​l​a​t​e​s​ ​f​r​o​m​ ​Q​u​r​a​n​ ​T​h​u​m​b​n​a​i​l​s​.
+		 */
+		thumbnailTemplatesError: string;
+		/**
 		 * E​x​p​o​r​t​ ​S​u​b​t​i​t​l​e​s
 		 */
 		exportSubtitlesHeading: string;
@@ -18863,6 +18895,38 @@ export type TranslationFunctions = {
 		 * Export project raw data
 		 */
 		projectDataDescription: () => LocalizedString;
+		/**
+		 * Generate thumbnail
+		 */
+		generateThumbnail: () => LocalizedString;
+		/**
+		 * The button below opens Quran Thumbnails, a website by @sadaalayat on Discord for quickly creating thumbnails. Your project details will be filled in automatically.
+		 */
+		thumbnailDescription: () => LocalizedString;
+		/**
+		 * Thumbnail details
+		 */
+		thumbnailSummary: () => LocalizedString;
+		/**
+		 * Translation language
+		 */
+		thumbnailTranslationLanguage: () => LocalizedString;
+		/**
+		 * Open Quran Thumbnails
+		 */
+		thumbnailOpen: () => LocalizedString;
+		/**
+		 * Could not open Quran Thumbnails.
+		 */
+		thumbnailOpenError: () => LocalizedString;
+		/**
+		 * Choose a template
+		 */
+		thumbnailTemplates: () => LocalizedString;
+		/**
+		 * Could not load the templates from Quran Thumbnails.
+		 */
+		thumbnailTemplatesError: () => LocalizedString;
 		/**
 		 * Export Subtitles
 		 */

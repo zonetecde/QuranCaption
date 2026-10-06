@@ -430,7 +430,7 @@ export interface ExportSkipRange {
 
 export class ExportState extends SerializableBase {
 	// Indique le type d'export choisie
-	selectedChoice: 'video' | 'subtitles' | 'chapters' | 'project' = $state('video');
+	selectedChoice: 'video' | 'subtitles' | 'chapters' | 'project' | 'thumbnail' = $state('video');
 
 	/*
 	 * ============================================

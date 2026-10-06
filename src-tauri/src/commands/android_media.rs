@@ -416,3 +416,25 @@ fn extract_metadata(
         .map(|value| Some(value.into()))
         .map_err(|e| format!("Unable to read Android media metadata string: {}", e))
 }
+
+/// Charge la galerie de miniatures dans une WebView Android temporaire.
+///
+/// @param script Script de collecte des modèles et de leurs aperçus.
+/// @returns Liste JSON des modèles ou erreur JNI.
+pub fn load_thumbnail_templates(script: &str) -> Result<String, String> {
+    let context = ndk_context::android_context();
+    let vm = unsafe { JavaVM::from_raw(context.vm().cast()) }
+        .map_err(|error| error.to_string())?;
+    let mut env = vm.attach_current_thread().map_err(|error| error.to_string())?;
+    let activity = unsafe { JObject::from_raw(context.context().cast()) };
+    let script = env.new_string(script).map_err(|error| error.to_string())?;
+    let result = env.call_method(
+        &activity,
+        "nativeLoadThumbnailTemplates",
+        "(Ljava/lang/String;)Ljava/lang/String;",
+        &[JValue::Object(&script)],
+    ).map_err(|error| error.to_string())?.l().map_err(|error| error.to_string())?;
+    let result = JString::from(result);
+    let data = env.get_string(&result).map_err(|error| error.to_string())?;
+    Ok(data.into())
+}

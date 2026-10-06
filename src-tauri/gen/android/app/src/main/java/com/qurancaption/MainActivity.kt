@@ -9,6 +9,8 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.ParcelFileDescriptor
+import android.view.View
+import android.view.ViewGroup
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -90,6 +92,86 @@ class MainActivity : TauriActivity() {
         } else {
             ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
+    }
+
+    /**
+     * Charge la galerie dans une WebView temporaire et renvoie les modèles détectés.
+     *
+     * @param script Script de collecte des modèles et de leurs aperçus.
+     * @return Liste JSON des modèles, vide en cas d'erreur ou de délai dépassé.
+     */
+    @Keep
+    fun nativeLoadThumbnailTemplates(script: String): String {
+        val latch = CountDownLatch(1)
+        var result = "[]"
+        runOnUiThread {
+            val handler = Handler(Looper.getMainLooper())
+            var webView: WebView? = null
+            var completed = false
+
+            /**
+             * Libère la WebView et débloque l'appel JNI une seule fois.
+             * @param data Liste JSON récupérée.
+             */
+            fun finish(data: String) {
+                if (completed) return
+                completed = true
+                result = data
+                handler.removeCallbacksAndMessages(null)
+                webView?.let { view ->
+                    view.stopLoading()
+                    (view.parent as? ViewGroup)?.removeView(view)
+                    view.destroy()
+                }
+                latch.countDown()
+            }
+
+            try {
+                val view = WebView(this)
+                webView = view
+                view.visibility = View.INVISIBLE
+                view.settings.javaScriptEnabled = true
+                var injected = false
+                view.webViewClient = object : WebViewClient() {
+                    /** Exécute la collecte après le chargement de la galerie. */
+                    override fun onPageFinished(view: WebView, url: String) {
+                        if (!injected && Uri.parse(url).host == "quranthumbnails.com") {
+                            injected = true
+                            view.evaluateJavascript(script, null)
+                        }
+                    }
+
+                    /** Intercepte le résultat et limite la navigation au site de la galerie. */
+                    override fun shouldOverrideUrlLoading(
+                        view: WebView,
+                        request: WebResourceRequest
+                    ): Boolean {
+                        val url = request.url
+                        if (url.scheme == "qurancaption-templates") {
+                            finish(url.getQueryParameter("data") ?: "[]")
+                            return true
+                        }
+                        return url.scheme != "https" || url.host != "quranthumbnails.com"
+                    }
+
+                    /** Libère la WebView lorsque le document principal ne peut pas être chargé. */
+                    override fun onReceivedError(
+                        view: WebView,
+                        request: WebResourceRequest,
+                        error: WebResourceError
+                    ) {
+                        if (request.isForMainFrame) finish("[]")
+                    }
+                }
+                addContentView(view, ViewGroup.LayoutParams(1440, 1000))
+                handler.postDelayed({ finish("[]") }, 45_000)
+                view.loadUrl("https://quranthumbnails.com/")
+            } catch (_: Exception) {
+                finish("[]")
+            }
+        }
+        latch.await(50, TimeUnit.SECONDS)
+        return result
     }
 
     /**

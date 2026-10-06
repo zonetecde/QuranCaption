@@ -5043,6 +5043,10 @@ type RootTranslation = {
 			 */
 			'line-background-height': string;
 			/**
+			 * B​a​r​ ​R​o​u​n​d​n​e​s​s​ ​(​%​)
+			 */
+			'line-background-roundness': string;
+			/**
 			 * V​i​s​u​a​l​ ​E​f​f​e​c​t​s
 			 */
 			effects: string;
@@ -5864,6 +5868,10 @@ type RootTranslation = {
 			 * A​d​j​u​s​t​ ​t​h​e​ ​h​e​i​g​h​t​ ​o​f​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​b​a​r
 			 */
 			'line-background-height': string;
+			/**
+			 * A​d​j​u​s​t​ ​c​o​r​n​e​r​ ​r​o​u​n​d​n​e​s​s​:​ ​0​%​ ​f​o​r​ ​s​q​u​a​r​e​ ​c​o​r​n​e​r​s​,​ ​1​0​0​%​ ​f​o​r​ ​f​u​l​l​y​ ​r​o​u​n​d​e​d​ ​e​n​d​s
+			 */
+			'line-background-roundness': string;
 			/**
 			 * A​d​d​ ​v​i​s​u​a​l​ ​e​f​f​e​c​t​s​ ​a​n​d​ ​f​i​l​t​e​r​s​ ​t​o​ ​e​n​h​a​n​c​e​ ​s​u​b​t​i​t​l​e​ ​a​p​p​e​a​r​a​n​c​e
 			 */
@@ -17208,6 +17216,10 @@ export type TranslationFunctions = {
 			 */
 			'line-background-height': () => LocalizedString;
 			/**
+			 * Bar Roundness (%)
+			 */
+			'line-background-roundness': () => LocalizedString;
+			/**
 			 * Visual Effects
 			 */
 			effects: () => LocalizedString;
@@ -18029,6 +18041,10 @@ export type TranslationFunctions = {
 			 * Adjust the height of the background bar
 			 */
 			'line-background-height': () => LocalizedString;
+			/**
+			 * Adjust corner roundness: 0% for square corners, 100% for fully rounded ends
+			 */
+			'line-background-roundness': () => LocalizedString;
 			/**
 			 * Add visual effects and filters to enhance subtitle appearance
 			 */

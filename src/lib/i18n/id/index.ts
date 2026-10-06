@@ -1106,6 +1106,7 @@ const id = {
 			'line-background-color': 'Warna bilah',
 			'line-background-position': 'Posisi bilah',
 			'line-background-height': 'Tinggi bilah',
+			'line-background-roundness': 'Kelengkungan bilah (%)',
 			'text-glow': 'Cahaya Teks',
 			'text-glow-color': 'Warna Cahaya'
 		} as Translation['editor']['styleName'],
@@ -1161,7 +1162,9 @@ const id = {
 			'line-background-enable': 'Aktifkan atau nonaktifkan bilah latar di belakang setiap baris',
 			'line-background-color': 'Atur warna bilah latar',
 			'line-background-position': 'Atur posisi vertikal bilah terhadap teks',
-			'line-background-height': 'Atur tinggi bilah latar'
+			'line-background-height': 'Atur tinggi bilah latar',
+			'line-background-roundness':
+				'Atur kelengkungan sudut: 0% untuk sudut siku-siku, 100% untuk ujung yang sepenuhnya membulat'
 		} as Translation['editor']['styleDescription'],
 		chooseTarget: 'Pilih target',
 		selectTranslation: 'Pilih terjemahan',

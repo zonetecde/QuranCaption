@@ -100,7 +100,8 @@ export type LineBackgroundStyleName =
 	| 'line-background-enable'
 	| 'line-background-color'
 	| 'line-background-position'
-	| 'line-background-height';
+	| 'line-background-height'
+	| 'line-background-roundness';
 
 export type AnimationStyleName = 'scale' | 'rotation';
 

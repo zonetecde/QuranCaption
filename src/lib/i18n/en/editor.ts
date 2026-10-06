@@ -1053,6 +1053,7 @@ const editor = {
 		'line-background-color': 'Bar Color',
 		'line-background-position': 'Bar Position',
 		'line-background-height': 'Bar Height',
+		'line-background-roundness': 'Bar Roundness (%)',
 		effects: 'Visual Effects',
 		opacity: 'Text Opacity',
 		blur: 'Blur Effect',
@@ -1272,6 +1273,8 @@ const editor = {
 		'line-background-color': 'Set the color of the background bar',
 		'line-background-position': 'Adjust the vertical position of the bar relative to the text',
 		'line-background-height': 'Adjust the height of the background bar',
+		'line-background-roundness':
+			'Adjust corner roundness: 0% for square corners, 100% for fully rounded ends',
 		effects: 'Add visual effects and filters to enhance subtitle appearance',
 		opacity: 'Control the transparency of the text',
 		blur: 'Apply blur effect to the text',

@@ -1026,6 +1026,7 @@ const editor = {
 		'line-background-color': 'لون الشريط',
 		'line-background-position': 'موقف البار',
 		'line-background-height': 'ارتفاع البار',
+		'line-background-roundness': 'استدارة الشريط (%)',
 		effects: 'المؤثرات البصرية',
 		opacity: 'عتامة النص',
 		blur: 'تأثير طمس',
@@ -1242,6 +1243,8 @@ const editor = {
 		'line-background-color': 'ضبط لون شريط الخلفية',
 		'line-background-position': 'اضبط الموضع الرأسي للشريط بالنسبة للنص',
 		'line-background-height': 'ضبط ارتفاع شريط الخلفية',
+		'line-background-roundness':
+			'اضبط استدارة الزوايا: 0% للزوايا القائمة، و100% للأطراف المستديرة بالكامل',
 		effects: 'أضف تأثيرات بصرية ومرشحات لتحسين مظهر الترجمة',
 		opacity: 'التحكم في شفافية النص',
 		blur: 'تطبيق تأثير طمس على النص',

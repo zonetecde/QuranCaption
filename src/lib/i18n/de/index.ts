@@ -1667,6 +1667,7 @@ const de = {
 			'line-background-color': 'Balkenfarbe',
 			'line-background-position': 'Balkenposition',
 			'line-background-height': 'Balkenhöhe',
+			'line-background-roundness': 'Balkenrundung (%)',
 			effects: 'Visuelle Effekte',
 			opacity: 'Textdeckkraft',
 			blur: 'Unschärfeeffekt',
@@ -1898,6 +1899,8 @@ const de = {
 			'line-background-color': 'Farbe des Hintergrundbalkens festlegen',
 			'line-background-position': 'Vertikale Position des Balkens relativ zum Text anpassen',
 			'line-background-height': 'Höhe des Hintergrundbalkens anpassen',
+			'line-background-roundness':
+				'Eckenrundung anpassen: 0% für rechte Winkel, 100% für vollständig abgerundete Enden',
 			effects:
 				'Visuelle Effekte und Filter hinzufügen, um das Erscheinungsbild der Untertitel zu verbessern',
 			opacity: 'Transparenz des Textes steuern',

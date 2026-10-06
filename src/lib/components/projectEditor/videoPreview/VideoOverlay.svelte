@@ -315,7 +315,8 @@
 			Math.max(0, Number(globalStyles.getEffectiveValue('video-frame-softness', clipId) ?? 0))
 		);
 		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
-			{ width: number; height: number } | undefined;
+			| { width: number; height: number }
+			| undefined;
 		const width = Math.max(1, Number(dimensions?.width ?? 1920));
 		const height = Math.max(1, Number(dimensions?.height ?? 1080));
 		const innerWidth = width * (1 - horizontalSize / 50);
@@ -362,7 +363,8 @@
 		const isStyleTab =
 			globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Style;
 		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
-			{ width?: number; height?: number } | undefined;
+			| { width?: number; height?: number }
+			| undefined;
 		const isPortrait = Number(dimensions?.width) < Number(dimensions?.height);
 
 		return (
@@ -1404,6 +1406,9 @@
 
 	/** Clone le décor sur chaque fragment créé par le retour à la ligne automatique. */
 	:global(#subtitles-container .line-background) {
+		--line-background-radius: calc(
+			var(--line-background-height, 0px) * var(--line-background-roundness, 100) / 200
+		);
 		position: relative;
 		z-index: 0;
 		-webkit-box-decoration-break: clone;
@@ -1413,15 +1418,16 @@
 			var(--line-background-height) / 2 +
 				max(var(--line-background-position), calc(0px - var(--line-background-position)))
 		);
+		/* Des extrémités continues évitent les raccords visibles entre les coins. */
 		background:
-			radial-gradient(circle closest-side, var(--line-background-color) 99%, transparent) left
-				calc(50% + var(--line-background-position)) / var(--line-background-height)
+			radial-gradient(ellipse closest-side, var(--line-background-color) 99%, transparent) left
+				calc(50% + var(--line-background-position)) / calc(2 * var(--line-background-radius))
 				var(--line-background-height) no-repeat,
-			radial-gradient(circle closest-side, var(--line-background-color) 99%, transparent) right
-				calc(50% + var(--line-background-position)) / var(--line-background-height)
+			radial-gradient(ellipse closest-side, var(--line-background-color) 99%, transparent) right
+				calc(50% + var(--line-background-position)) / calc(2 * var(--line-background-radius))
 				var(--line-background-height) no-repeat,
 			linear-gradient(var(--line-background-color), var(--line-background-color)) center
-				calc(50% + var(--line-background-position)) / calc(100% - var(--line-background-height))
+				calc(50% + var(--line-background-position)) / calc(100% - 2 * var(--line-background-radius))
 				var(--line-background-height) no-repeat;
 	}
 

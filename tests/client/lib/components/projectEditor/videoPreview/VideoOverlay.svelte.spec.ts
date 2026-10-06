@@ -962,6 +962,33 @@ describe('Video overlay subtitle preview', () => {
 		action.destroy();
 	});
 
+	test('moves an imported SRT translation with spaces in its name below Arabic', async () => {
+		const edition = '_MConverter.eu_ali imran çeviri.srt';
+		const clip = createVerseSubtitle(0, 999, 'Arabic', 'Translation');
+		clip.translations = { [edition]: clip.translations.english };
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 500 });
+		const globalStyles = fixture.videoStyle.getStylesOfTarget('global');
+		globalStyles.setStyle('anti-collision', true);
+		globalStyles.setStyle('spacing', 9);
+		fixture.videoStyle.getStylesOfTarget('arabic').generateCSS = () =>
+			'position: absolute; top: 0; width: 100px; height: 50px;';
+		fixture.videoStyle.getStylesOfTarget(edition).generateCSS = () =>
+			'position: absolute; top: 40px; width: 100px; height: 50px; transform: translateY(var(--reactive-y-position, 0px));';
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+		const arabicNode = getForegroundArabicNode(component.container)!;
+		const translationNode = component.container.querySelector<HTMLElement>(
+			'#subtitles-container .translation.subtitle'
+		)!;
+
+		await vi.waitFor(() => {
+			expect(translationNode.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+				arabicNode.getBoundingClientRect().bottom + 9
+			);
+		});
+	});
+
 	test('keeps the anti-collision offset when a subtitle is repositioned', async () => {
 		const fixture = setupVideoOverlayFixture(
 			[createVerseSubtitle(0, 999, 'Arabic', 'Translation')],

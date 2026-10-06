@@ -761,6 +761,7 @@
 		horizontalStyleId: 'horizontal-position'
 	}}
 	class={`translation absolute subtitle select-none z-10 ${edition} ${tailwind} ${helperStyles}`}
+	data-subtitle-target={edition}
 	style={`opacity: ${wbwState().enabled ? 1 : subtitleOpacity}; ${css}; ${runtimeLayoutCss}; ${backgroundHorizontalPaddingCss} white-space: pre-line;`}
 >
 	{#if !isExportCapturePreview}

@@ -17,7 +17,7 @@ type SubtitleRectEntry = { target: string; rect: DOMRect };
 
 /**
  * Détecte le target de style (arabic, nom d'édition de traduction...)
- * à partir des classes CSS d'un élément de sous-titre.
+ * à partir de l'attribut data-subtitle-target ou des classes CSS d'un élément.
  *
  * @param element - L'élément HTML du sous-titre.
  * @param translationKeys - Liste des clés d'édition de traduction connues.
@@ -33,6 +33,9 @@ export function getTargetFromElement(
 	if (classList.includes('arabic')) {
 		return 'arabic';
 	}
+
+	const target = element.dataset.subtitleTarget;
+	if (target && translationKeys.includes(target)) return target;
 
 	// Cherche si l'élément correspond à une édition de traduction
 	for (const translationKey of translationKeys) {

@@ -18,7 +18,12 @@ import {
 import { PROJECT_TYPE_OPTIONS } from '$lib/types/projectType';
 
 export type HomeSortProperty =
-	'updatedAt' | 'createdAt' | 'name' | 'reciter' | 'duration' | 'surah';
+	| 'updatedAt'
+	| 'createdAt'
+	| 'name'
+	| 'reciter'
+	| 'duration'
+	| 'surah';
 
 export type AutoSegmentationSettings = {
 	minSilenceMs: number;
@@ -61,6 +66,8 @@ export type ExportSettings = {
 	videoCodec: 'h264' | 'h265';
 	performanceProfile: PerformanceProfile;
 	randomBackgroundFolder: string;
+	includeQuranCaptionPromotion: boolean;
+	quranCaptionPromotionPosition: 'start' | 'end';
 };
 
 export type DefaultValuesSettings = {
@@ -98,7 +105,9 @@ export default class Settings extends SerializableBase {
 		parallelCaptureWorkers: 1,
 		videoCodec: 'h264',
 		performanceProfile: 'balanced',
-		randomBackgroundFolder: ''
+		randomBackgroundFolder: '',
+		includeQuranCaptionPromotion: false,
+		quranCaptionPromotionPosition: 'end'
 	};
 
 	// État UI persistant
@@ -313,7 +322,8 @@ export default class Settings extends SerializableBase {
 		}
 
 		const projectEditorLayout = settings.persistentUiState.projectEditorLayout as
-			Partial<ProjectEditorLayout> | undefined;
+			| Partial<ProjectEditorLayout>
+			| undefined;
 		if (!projectEditorLayout || typeof projectEditorLayout !== 'object') {
 			settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
 			shouldSave = true;
@@ -408,6 +418,20 @@ export default class Settings extends SerializableBase {
 		if (typeof settings.exportSettings.randomBackgroundFolder !== 'string') {
 			settings.exportSettings.randomBackgroundFolder =
 				Settings.DEFAULT_EXPORT_SETTINGS.randomBackgroundFolder;
+			shouldSave = true;
+		}
+
+		if (typeof settings.exportSettings.includeQuranCaptionPromotion !== 'boolean') {
+			settings.exportSettings.includeQuranCaptionPromotion =
+				Settings.DEFAULT_EXPORT_SETTINGS.includeQuranCaptionPromotion;
+			shouldSave = true;
+		}
+		if (
+			settings.exportSettings.quranCaptionPromotionPosition !== 'start' &&
+			settings.exportSettings.quranCaptionPromotionPosition !== 'end'
+		) {
+			settings.exportSettings.quranCaptionPromotionPosition =
+				Settings.DEFAULT_EXPORT_SETTINGS.quranCaptionPromotionPosition;
 			shouldSave = true;
 		}
 

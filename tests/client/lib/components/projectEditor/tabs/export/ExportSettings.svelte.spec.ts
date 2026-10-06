@@ -9,6 +9,7 @@ import LL, { setLocale } from '$lib/i18n/i18n-svelte';
 import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { invoke } from '@tauri-apps/api/core';
+import '../../../../../../../src/app.css';
 
 vi.mock('@tauri-apps/api/core', async () => ({
 	...(await vi.importActual<typeof import('@tauri-apps/api/core')>('@tauri-apps/api/core')),
@@ -80,7 +81,19 @@ test('opens the thumbnail editor with project details from a full-width fifth ch
 		.querySelector('img');
 	expect(haramainPreview?.getAttribute('src')).toBe(preview);
 	await vi.waitFor(() => expect(haramainPreview?.naturalWidth).toBeGreaterThan(0));
-	await component.getByRole('button', { name: 'Haramain style' }).click();
+	const haramainChoice = component.getByRole('button', { name: 'Haramain style' });
+	const futureChoice = component.getByRole('button', { name: 'New style' });
+	await haramainChoice.click();
+	await expect.element(haramainChoice).toHaveAttribute('aria-pressed', 'true');
+	await expect.element(haramainChoice.getByText('check_circle')).toBeVisible();
+	await vi.waitFor(() => {
+		expect(getComputedStyle(haramainChoice.element()).backgroundColor).not.toBe(
+			getComputedStyle(futureChoice.element()).backgroundColor
+		);
+		expect(getComputedStyle(haramainChoice.element()).borderColor).not.toBe(
+			getComputedStyle(futureChoice.element()).borderColor
+		);
+	});
 	await component.getByRole('button', { name: copy.thumbnailOpen() }).click();
 	expect(openUrl).toHaveBeenCalledOnce();
 	const url = new URL(vi.mocked(openUrl).mock.calls[0][0]);
@@ -89,12 +102,14 @@ test('opens the thumbnail editor with project details from a full-width fifth ch
 	expect(url.searchParams.get('reciter')).toBe('Yasser Al Dosari');
 	expect(url.searchParams.get('translationLanguage')).toBe('French');
 	expect(url.hash).toBe('#haramain');
-	await component.getByRole('button', { name: 'New style' }).click();
+	await futureChoice.click();
+	await expect.element(futureChoice).toHaveAttribute('aria-pressed', 'true');
+	await expect.element(futureChoice.getByText('check_circle')).toBeVisible();
+	await expect.element(haramainChoice).toHaveAttribute('aria-pressed', 'false');
+	expect(haramainChoice.element().querySelector('[aria-hidden="true"]')).toBeNull();
 	await component.getByRole('button', { name: copy.thumbnailOpen() }).click();
 	expect(new URL(vi.mocked(openUrl).mock.calls[1][0]).hash).toBe('#future-template');
-	expect(
-		component.container.querySelector('button[aria-pressed="true"]')?.textContent?.trim()
-	).toBe('New style');
+	expect(component.container.querySelectorAll('button[aria-pressed="true"]')).toHaveLength(1);
 	expect(invoke).toHaveBeenCalledWith('get_thumbnail_templates');
 });
 

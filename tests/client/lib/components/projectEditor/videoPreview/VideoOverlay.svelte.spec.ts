@@ -1,6 +1,7 @@
 import { cleanup, render } from 'vitest-browser-svelte';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { tick } from 'svelte';
+import { page } from '@vitest/browser/context';
 
 import VideoOverlay from '$lib/components/projectEditor/videoPreview/VideoOverlay.svelte';
 import { globalState } from '$lib/runes/main.svelte';
@@ -440,6 +441,24 @@ function getArabicVerseNumberSpans(container: HTMLElement): HTMLElement[] {
 	);
 }
 
+/**
+ * Lit les pixels réellement rendus afin de détecter les raccords du fond par ligne.
+ * @param {HTMLElement} element Élément à capturer dans le navigateur.
+ * @returns {Promise<ImageData>} Pixels de la capture, sans fichier de référence.
+ */
+async function capturePixels(element: HTMLElement): Promise<ImageData> {
+	const screenshot = await page.screenshot({ element, save: false });
+	const image = new Image();
+	image.src = `data:image/png;base64,${screenshot}`;
+	await image.decode();
+	const canvas = document.createElement('canvas');
+	canvas.width = image.naturalWidth;
+	canvas.height = image.naturalHeight;
+	const context = canvas.getContext('2d')!;
+	context.drawImage(image, 0, 0);
+	return context.getImageData(0, 0, canvas.width, canvas.height);
+}
+
 describe('Video overlay subtitle preview', () => {
 	afterEach(() => {
 		cleanup();
@@ -449,6 +468,53 @@ describe('Video overlay subtitle preview', () => {
 		QPCFontProvider.qpc2Glyphs = undefined;
 		QPCFontProvider.verseMappingV2 = undefined;
 	});
+
+	test.each([0, 50, 100, undefined])(
+		'renders square or rounded line backgrounds without dark seams at %s percent',
+		async (roundness) => {
+			setupVideoOverlayFixture([createVerseSubtitle(0, 999, 'Arabic', 'Translation')], {
+				cursorPosition: 500
+			});
+			const component = render(VideoOverlay);
+			await settleOverlay();
+			const host = document.createElement('div');
+			host.style.cssText =
+				'position: fixed; top: 10px; left: 10px; width: 330px; padding: 20px; background: black; color: transparent; font: 24px/120px monospace; white-space: pre; transform: scale(0.83); transform-origin: top left; z-index: 9999; --line-background-height: 73px; --line-background-position: 0px; --line-background-color: #c08020;';
+			if (roundness !== undefined)
+				host.style.setProperty('--line-background-roundness', String(roundness));
+			const bar = document.createElement('span');
+			bar.className = 'line-background';
+			bar.textContent = 'AAAAAAAAAAAA\nAAAAAA';
+			host.append(bar);
+			getSubtitlesContainer(component.container)!.append(host);
+			const bounds = host.getBoundingClientRect();
+			const fragments = Array.from(bar.getClientRects());
+			expect(fragments).toHaveLength(2);
+			const pixels = await capturePixels(host);
+			const scaleX = pixels.width / bounds.width;
+			const scaleY = pixels.height / bounds.height;
+			for (const fragment of fragments) {
+				const left = Math.round((fragment.left - bounds.left) * scaleX);
+				const right = Math.round((fragment.right - bounds.left) * scaleX);
+				const centerY = Math.round(((fragment.top + fragment.bottom) / 2 - bounds.top) * scaleY);
+				for (const y of [centerY - 1, centerY, centerY + 1]) {
+					for (let x = left + 2; x < right - 2; x++) {
+						const index = (y * pixels.width + x) * 4;
+						for (const [channel, expected] of [192, 128, 32].entries()) {
+							expect(
+								Math.abs(pixels.data[index + channel] - expected),
+								`Seam at ${x}, ${y}`
+							).toBeLessThanOrEqual(4);
+						}
+					}
+				}
+				const cornerY = Math.round(centerY - (73 * 0.83 * scaleY) / 2 + 3);
+				const cornerIndex = (cornerY * pixels.width + left + 2) * 4;
+				if (roundness === 0) expect(pixels.data[cornerIndex]).toBeGreaterThan(180);
+				else expect(pixels.data[cornerIndex]).toBeLessThan(10);
+			}
+		}
+	);
 
 	test('keeps the subtitle container visible when playback advances within the new subtitle', async () => {
 		const fixture = setupVideoOverlayFixture(

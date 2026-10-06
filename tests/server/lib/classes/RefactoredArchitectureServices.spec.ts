@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Clip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { Category } from '$lib/classes/videoStyles/Category.svelte';
@@ -9,8 +9,51 @@ import { SubtitleVisualMergeService } from '$lib/classes/tracks/subtitles/Subtit
 import { TrackClipQueries } from '$lib/classes/tracks/TrackClipQueries';
 import { VideoTrackTiming } from '$lib/classes/tracks/VideoTrackTiming';
 import { VideoStyleSchemaService } from '$lib/classes/videoStyles/VideoStyleSchemaService';
+import subtitleDefaults from '../../../../static/styles/styles.json';
+import type { RawCategoryDefinition } from '$lib/services/StyleDefinitionCatalog';
 
 describe('refactored architecture services', () => {
+	afterEach(() => vi.restoreAllMocks());
+	it.each(['arabic', 'english'])(
+		'adds line background roundness to old %s styles and preserves its value',
+		(target) => {
+			vi.spyOn(Style.prototype, 'getCategory').mockReturnValue('line-background');
+			const defaults = subtitleDefaults.filter(
+				(category) => category.id === 'line-background'
+			) as RawCategoryDefinition[];
+			const styles = [
+				new StylesData(target, [
+					new Category({
+						id: 'line-background',
+						styles: [
+							new Style({
+								...defaults[0].styles!.find((style) => style.id === 'line-background-enable'),
+								value: true
+							}),
+							new Style({
+								...defaults[0].styles!.find((style) => style.id === 'line-background-height'),
+								value: 73
+							})
+						]
+					})
+				])
+			];
+			expect(VideoStyleSchemaService.mergeMissingStylesForTarget(styles, target, defaults)).toBe(
+				true
+			);
+			expect(styles[0].findStyle('line-background-roundness')?.value).toBe(100);
+			expect(styles[0].findStyle('line-background-height')?.value).toBe(73);
+			expect(styles[0].generateCSS()).toContain('--line-background-roundness: 100;');
+			styles[0].setStyle('line-background-roundness', 0);
+			expect(VideoStyleSchemaService.mergeMissingStylesForTarget(styles, target, defaults)).toBe(
+				false
+			);
+			expect(styles[0].generateCSS()).toContain('--line-background-roundness: 0;');
+			styles[0].setStyle('line-background-enable', false);
+			expect(styles[0].generateCSS()).not.toContain('--line-background-roundness');
+		}
+	);
+
 	it('chooses the closest valid word boundary for a subtitle split', () => {
 		const clip = new SubtitleClip(1_000, 3_000, 1, 1, 0, 2, 'text', [], true, true);
 		clip.alignmentMetadata = {

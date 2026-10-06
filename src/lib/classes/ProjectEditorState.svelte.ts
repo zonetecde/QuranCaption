@@ -446,6 +446,12 @@ export interface ExportSkipRange {
 }
 
 export class ExportState extends SerializableBase {
+	// Ces anciennes options de projet sont désormais des réglages globaux.
+	static override __ignoredProperties = [
+		'includeQuranCaptionPromotion',
+		'quranCaptionPromotionPosition'
+	] as const;
+
 	// Indique le type d'export choisie
 	selectedChoice: 'video' | 'subtitles' | 'chapters' | 'project' | 'thumbnail' = $state('video');
 
@@ -485,8 +491,6 @@ export class ExportState extends SerializableBase {
 	exportOnlyRecitation: boolean = $state(false);
 	recitationCutMarginMs: number = $state(DEFAULT_RECITATION_CUT_MARGIN_MS);
 	recitationMinimumSilenceMs: number = $state(DEFAULT_RECITATION_MINIMUM_SILENCE_MS);
-	includeQuranCaptionPromotion: boolean = $state(false);
-	quranCaptionPromotionPosition: 'start' | 'end' = $state('end');
 	exportWithoutBackground: boolean = $state(false);
 	addRandomBackground: boolean = $state(false);
 	transparentExportFormat: 'mov_prores_4444' | 'webm_vp9_alpha' = $state('mov_prores_4444');

@@ -1575,8 +1575,10 @@
 				performanceProfile: globalState.settings?.exportSettings.performanceProfile ?? 'balanced',
 				videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
 				fps: Math.round(exportData!.fps),
-				promotionEnabled: globalState.getExportState.includeQuranCaptionPromotion,
-				promotionPosition: globalState.getExportState.quranCaptionPromotionPosition,
+				promotionEnabled:
+					globalState.settings?.exportSettings.includeQuranCaptionPromotion ?? false,
+				promotionPosition:
+					globalState.settings?.exportSettings.quranCaptionPromotionPosition ?? 'end',
 				videoWidth: Math.round(exportData!.videoDimensions.width),
 				videoHeight: Math.round(exportData!.videoDimensions.height),
 				exportWithoutBackground: globalState.getExportState.exportWithoutBackground ?? false,
@@ -2022,8 +2024,10 @@
 				videoCodec: globalState.settings?.exportSettings.videoCodec ?? 'h264',
 				videoClipTransitionMode: getVideoClipTransitionMode(),
 				videoClipTransitionDurationMs: getVideoClipTransitionDurationMs(),
-				promotionEnabled: globalState.getExportState.includeQuranCaptionPromotion,
-				promotionPosition: globalState.getExportState.quranCaptionPromotionPosition,
+				promotionEnabled:
+					globalState.settings?.exportSettings.includeQuranCaptionPromotion ?? false,
+				promotionPosition:
+					globalState.settings?.exportSettings.quranCaptionPromotionPosition ?? 'end',
 				videoWidth: Math.round(exportData!.videoDimensions.width),
 				videoHeight: Math.round(exportData!.videoDimensions.height),
 				blankTimings,

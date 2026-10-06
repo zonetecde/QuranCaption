@@ -560,29 +560,25 @@
 	}
 
 	/**
-	 * Active ou désactive la carte promotionnelle Quran Caption pour l'export.
+	 * Sauvegarde l'activation globale de la carte promotionnelle Quran Caption.
 	 * @param {boolean} enabled Nouvel état de l'option.
-	 * @returns {void}
+	 * @returns {Promise<void>} Promesse terminée après la sauvegarde du réglage.
 	 */
-	function setQuranCaptionPromotionEnabled(enabled: boolean): void {
-		if (globalState.getExportState.includeQuranCaptionPromotion === enabled) return;
-
-		ProjectHistoryManager.track('toggle Quran Caption promotion', () => {
-			globalState.getExportState.includeQuranCaptionPromotion = enabled;
-		});
+	async function setQuranCaptionPromotionEnabled(enabled: boolean): Promise<void> {
+		if (!globalState.settings) return;
+		globalState.settings.exportSettings.includeQuranCaptionPromotion = enabled;
+		await Settings.save();
 	}
 
 	/**
-	 * Modifie la position de la carte promotionnelle dans la vidéo exportée.
+	 * Sauvegarde la position globale de la carte promotionnelle dans les vidéos exportées.
 	 * @param {'start' | 'end'} position Nouvelle position.
-	 * @returns {void}
+	 * @returns {Promise<void>} Promesse terminée après la sauvegarde du réglage.
 	 */
-	function setQuranCaptionPromotionPosition(position: 'start' | 'end'): void {
-		if (globalState.getExportState.quranCaptionPromotionPosition === position) return;
-
-		ProjectHistoryManager.track('set Quran Caption promotion position', () => {
-			globalState.getExportState.quranCaptionPromotionPosition = position;
-		});
+	async function setQuranCaptionPromotionPosition(position: 'start' | 'end'): Promise<void> {
+		if (!globalState.settings) return;
+		globalState.settings.exportSettings.quranCaptionPromotionPosition = position;
+		await Settings.save();
 	}
 
 	/**
@@ -1116,7 +1112,7 @@
 					<input
 						type="checkbox"
 						class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
-						checked={globalState.getExportState.includeQuranCaptionPromotion}
+						checked={globalState.settings?.exportSettings.includeQuranCaptionPromotion ?? false}
 						onchange={(event) =>
 							setQuranCaptionPromotionEnabled((event.currentTarget as HTMLInputElement).checked)}
 					/>
@@ -1128,7 +1124,7 @@
 					</span>
 				</label>
 
-				{#if globalState.getExportState.includeQuranCaptionPromotion}
+				{#if globalState.settings?.exportSettings.includeQuranCaptionPromotion}
 					<div class="mt-4 border-t border-color pt-4">
 						<label
 							class="block text-sm font-medium text-primary mb-2"
@@ -1139,7 +1135,7 @@
 						<select
 							id="quran-caption-promotion-position"
 							class="input w-full"
-							value={globalState.getExportState.quranCaptionPromotionPosition}
+							value={globalState.settings?.exportSettings.quranCaptionPromotionPosition ?? 'end'}
 							onchange={(event) =>
 								setQuranCaptionPromotionPosition(
 									(event.currentTarget as HTMLSelectElement).value as 'start' | 'end'

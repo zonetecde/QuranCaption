@@ -18,6 +18,8 @@ pub mod media;
 pub mod preview_audio;
 /// Commandes de capture d'écran.
 pub mod screenshot;
+/// Détection des modèles de miniatures et cache de leurs aperçus.
+pub mod thumbnail_templates;
 /// Commandes de segmentation cloud/local.
 pub mod segmentation;
 /// Commandes de recherche de medias stock (Pexels / Pixabay).

@@ -2200,6 +2200,15 @@ const de = {
 		youtubeChaptersDescription: 'Liste mit Zeitstempel-Kapiteln',
 		projectDataOption: 'Projektdaten',
 		projectDataDescription: 'Rohdaten des Projekts exportieren',
+		generateThumbnail: 'Vorschaubild erstellen',
+		thumbnailDescription:
+			'Die Schaltfläche unten öffnet Quran Thumbnails, eine Website von @sadaalayat auf Discord zum schnellen Erstellen von Vorschaubildern. Die Angaben deines Projekts werden automatisch übernommen.',
+		thumbnailSummary: 'Angaben zum Vorschaubild',
+		thumbnailTranslationLanguage: 'Übersetzungssprache',
+		thumbnailOpen: 'Quran Thumbnails öffnen',
+		thumbnailOpenError: 'Quran Thumbnails konnte nicht geöffnet werden.',
+		thumbnailTemplates: 'Vorlage auswählen',
+		thumbnailTemplatesError: 'Die Vorlagen von Quran Thumbnails konnten nicht geladen werden.',
 		exportSubtitlesHeading: 'Untertitel exportieren',
 		exportSubtitlesDescription:
 			'Exportieren Sie die Untertitel Ihres Projekts in verschiedenen Formaten.',

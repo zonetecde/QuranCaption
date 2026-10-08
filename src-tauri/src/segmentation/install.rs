@@ -39,11 +39,14 @@ where
     let portable_root = get_portable_python_root(app_handle)?;
     let portable_exe = get_portable_python_exe(app_handle)?;
     if portable_exe.exists() {
-        if read_python_version(&portable_exe).is_some() {
+        let old_embed_pth = portable_root.join("python").join("python311._pth");
+        if old_embed_pth.exists() {
+            let _ = fs::remove_dir_all(portable_root.join("python"));
+        } else if read_python_version(&portable_exe).is_some() {
             return Ok(portable_exe);
+        } else {
+            let _ = fs::remove_dir_all(portable_root.join("python"));
         }
-        let python_dir = portable_root.join("python");
-        let _ = fs::remove_dir_all(&python_dir);
     }
 
     fs::create_dir_all(&portable_root).map_err(|e| {
@@ -74,9 +77,6 @@ where
 
     emit_progress("Extracting portable Python 3.11...", 22);
 
-    let python_dir = portable_root.join("python");
-    fs::create_dir_all(&python_dir).map_err(|e| format!("Failed to create python dir: {}", e))?;
-
     let tar_binary = if cfg!(target_os = "windows") {
         let system32_tar = std::path::Path::new("C:\\Windows\\System32\\tar.exe");
         if system32_tar.exists() {
@@ -89,21 +89,12 @@ where
     };
 
     let mut cmd = Command::new(&tar_binary);
-    if cfg!(target_os = "windows") {
-        cmd.args([
-            "-xf",
-            archive_path.to_str().ok_or("Invalid archive path")?,
-            "-C",
-            python_dir.to_str().ok_or("Invalid destination path")?,
-        ]);
-    } else {
-        cmd.args([
-            "-xzf",
-            archive_path.to_str().ok_or("Invalid archive path")?,
-            "-C",
-            portable_root.to_str().ok_or("Invalid destination path")?,
-        ]);
-    }
+    cmd.args([
+        "-xzf",
+        archive_path.to_str().ok_or("Invalid archive path")?,
+        "-C",
+        portable_root.to_str().ok_or("Invalid destination path")?,
+    ]);
     configure_command_no_window(&mut cmd);
     let output = cmd.output().map_err(|e| format!("Failed to extract portable Python: {}", e))?;
     let _ = fs::remove_file(&archive_path);
@@ -115,50 +106,6 @@ where
         ));
     }
 
-    if cfg!(target_os = "windows") {
-        // Enable site-packages in python311._pth
-        let pth_file = python_dir.join("python311._pth");
-        if pth_file.exists() {
-            if let Ok(content) = fs::read_to_string(&pth_file) {
-                let mut lines: Vec<String> = content
-                    .lines()
-                    .map(|l| {
-                        let trimmed = l.trim();
-                        if trimmed == "#import site" || trimmed == "# import site" {
-                            "import site".to_string()
-                        } else {
-                            l.to_string()
-                        }
-                    })
-                    .collect();
-                if !lines.iter().any(|l| l.trim() == "import site") {
-                    lines.push("import site".to_string());
-                }
-                if !lines.iter().any(|l| l.trim() == "Lib/site-packages" || l.trim() == "Lib\\site-packages") {
-                    lines.push("Lib/site-packages".to_string());
-                }
-                let _ = fs::write(&pth_file, lines.join("\n"));
-            }
-        }
-        let _ = fs::create_dir_all(python_dir.join("Lib").join("site-packages"));
-
-        // Bootstrap pip & virtualenv for creating engine environments
-        emit_progress("Bootstrapping pip in portable Python 3.11.0...", 23);
-        let get_pip_path = python_dir.join("get-pip.py");
-        download_binary_file("https://bootstrap.pypa.io/get-pip.py", &get_pip_path, |_, _| {}).await?;
-
-        let mut pip_boot = Command::new(&portable_exe);
-        pip_boot.args([get_pip_path.to_str().unwrap_or(""), "--no-warn-script-location", "--quiet"]);
-        configure_command_no_window(&mut pip_boot);
-        let _ = pip_boot.output();
-        let _ = fs::remove_file(&get_pip_path);
-
-        emit_progress("Bootstrapping virtualenv in portable Python...", 24);
-        let mut venv_boot = Command::new(&portable_exe);
-        venv_boot.args(["-m", "pip", "install", "virtualenv", "--no-warn-script-location", "--quiet"]);
-        configure_command_no_window(&mut venv_boot);
-        let _ = venv_boot.output();
-    }
     if !portable_exe.exists() || read_python_version(&portable_exe).is_none() {
         return Err(format!(
             "Portable Python extracted but executable was not found or invalid at {}",

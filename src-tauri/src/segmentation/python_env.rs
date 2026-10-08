@@ -231,8 +231,8 @@ pub(crate) fn get_portable_python_exe(app_handle: &tauri::AppHandle) -> Result<P
 pub(crate) fn get_portable_python_download_info() -> Result<(&'static str, &'static str), String> {
     if cfg!(target_os = "windows") {
         Ok((
-            "https://www.python.org/ftp/python/3.11.0/python-3.11.0-embed-amd64.zip",
-            "python-3.11.0-embed-amd64.zip",
+            "https://github.com/astral-sh/python-build-standalone/releases/download/20261001/cpython-3.11.17%2B20261001-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+            "cpython-3.11-windows-x64.tar.gz",
         ))
     } else if cfg!(target_os = "macos") {
         if cfg!(target_arch = "aarch64") {

@@ -123,36 +123,93 @@ def _global_viterbi_fast(
     wrap_penalty: float,
     wrap_span_weight: float,
 ) -> Tuple[int, int, float, np.ndarray, np.ndarray]:
-    """Runs exact JumpDTW with checkpointed traceback in O(N*sqrt(M)) memory."""
+    """Runs exact unconstrained JumpDTW with single-pass direct backtrack.
+    
+    Zero heuristic pruning, zero lookback cap, zero beam approximations.
+    Mathematically identical to the global JumpDTW dynamic programming recurrence.
+    """
     m = len(p_codes)
     n = len(r_codes)
     INF = 1e9
+
     dp_prev = np.full(n + 1, INF, dtype=np.float64)
     dp_curr = np.full(n + 1, INF, dtype=np.float64)
     dp_prev[0] = 0.0
     for j in range(1, n + 1):
         dp_prev[j] = dp_prev[j - 1] + del_costs[j - 1]
 
-    # Balance eight-byte score checkpoints against three-byte traceback rows.
-    block_size = max(1, int(np.sqrt(8.0 * m / 3.0)))
-    checkpoints = np.empty((max(1, (m + block_size - 1) // block_size), n + 1), dtype=np.float64)
-    checkpoints[0] = dp_prev
-    row_op = np.zeros(n + 1, dtype=np.uint8)
-    row_wrap = np.zeros(n + 1, dtype=np.uint16)
+    # Direct 2D backtrack matrices for single-pass O(M+N) tracing without Hirschberg replay
+    backtrack_op = np.zeros((m + 1, n + 1), dtype=np.uint8)
+    wrap_from_j = np.zeros((m + 1, n + 1), dtype=np.uint16)
+
     min_C_after = np.empty(n + 2, dtype=np.float64)
     best_j_after = np.empty(n + 2, dtype=np.int32)
 
     for i in range(1, m + 1):
-        _advance_viterbi_row(
-            p_codes[i - 1], r_codes, r_phone_to_word, word_starts_mask, word_ends_mask,
-            del_costs, ins_costs[i - 1], sub_table, wrap_penalty, wrap_span_weight,
-            dp_prev, dp_curr, row_op, row_wrap, min_C_after, best_j_after,
-        )
-        dp_prev[:] = dp_curr
-        if i % block_size == 0 and i < m:
-            checkpoints[i // block_size] = dp_prev
+        p_code = p_codes[i - 1]
+        ins_c = ins_costs[i - 1]
+        dp_curr[0] = dp_prev[0] + ins_c
+        backtrack_op[i, 0] = 2
 
-    # Best endpoint among word boundaries
+        p_row = sub_table[p_code]
+
+        # 1. Standard insertions, deletions, substitutions across 100% of reference
+        for j in range(1, n + 1):
+            asr_ins_opt = dp_prev[j] + ins_c
+            ref_del_opt = dp_curr[j - 1] + del_costs[j - 1]
+            sub_opt = dp_prev[j - 1] + p_row[r_codes[j - 1]]
+
+            best = sub_opt
+            choice = 1
+            if asr_ins_opt < best:
+                best = asr_ins_opt
+                choice = 2
+            if ref_del_opt < best:
+                best = ref_del_opt
+                choice = 3
+
+            dp_curr[j] = best
+            backtrack_op[i, j] = choice
+
+        # 2. Lookback / backward wrap across 100% of reference (0 to n)
+        current_min_C = INF
+        current_best_j = -1
+        min_C_after[n + 1] = INF
+        best_j_after[n + 1] = -1
+
+        for j in range(n, -1, -1):
+            if word_ends_mask[j] and dp_curr[j] < INF:
+                w_end = r_phone_to_word[j - 1]
+                C = dp_curr[j] + (wrap_span_weight * w_end)
+                if C < current_min_C:
+                    current_min_C = C
+                    current_best_j = j
+            min_C_after[j] = current_min_C
+            best_j_after[j] = current_best_j
+
+        has_wrap = False
+        for j_start in range(0, n + 1):
+            if word_starts_mask[j_start]:
+                c_after = min_C_after[j_start + 1]
+                if c_after < INF:
+                    w_start = r_phone_to_word[j_start] if j_start < n else r_phone_to_word[n - 1] + 1
+                    new_cost = c_after + wrap_penalty - (wrap_span_weight * w_start)
+                    if new_cost < dp_curr[j_start]:
+                        dp_curr[j_start] = new_cost
+                        backtrack_op[i, j_start] = 4
+                        wrap_from_j[i, j_start] = np.uint16(best_j_after[j_start + 1])
+                        has_wrap = True
+
+        if has_wrap:
+            for j in range(1, n + 1):
+                ref_del_opt = dp_curr[j - 1] + del_costs[j - 1]
+                if ref_del_opt < dp_curr[j]:
+                    dp_curr[j] = ref_del_opt
+                    backtrack_op[i, j] = 3
+
+        dp_prev[:] = dp_curr
+
+    # Best endpoint among reference word boundaries
     best_score = INF
     best_j = -1
     for j in range(1, n + 1):
@@ -160,48 +217,33 @@ def _global_viterbi_fast(
             best_score = dp_curr[j]
             best_j = j
 
-    # Replay one block at a time instead of retaining the full traceback matrices.
-    backtrack_op = np.zeros((block_size + 1, n + 1), dtype=np.uint8)
-    wrap_from_j = np.zeros((block_size + 1, n + 1), dtype=np.uint16)
+    # Direct single-pass O(M+N) backtrack
     char_word_map = np.full(m, -1, dtype=np.int32)
     char_j_map = np.full(m, -1, dtype=np.int32)
     ci = m
     cj = best_j
 
     while ci > 0:
-        block = (ci - 1) // block_size
-        first_i = block * block_size
-        dp_prev[:] = checkpoints[block]
-        for i in range(first_i + 1, ci + 1):
-            _advance_viterbi_row(
-                p_codes[i - 1], r_codes, r_phone_to_word, word_starts_mask, word_ends_mask,
-                del_costs, ins_costs[i - 1], sub_table, wrap_penalty, wrap_span_weight,
-                dp_prev, dp_curr, backtrack_op[i - first_i], wrap_from_j[i - first_i],
-                min_C_after, best_j_after,
-            )
-            dp_prev[:] = dp_curr
-
-        while ci > first_i:
-            op = backtrack_op[ci - first_i, cj]
-            if op == 1:
-                w = r_phone_to_word[cj - 1]
-                char_word_map[ci - 1] = w
-                char_j_map[ci - 1] = cj - 1
-                ci -= 1
-                cj -= 1
-            elif op == 2:
-                w = r_phone_to_word[cj - 1] if cj > 0 else -1
-                char_word_map[ci - 1] = w
-                char_j_map[ci - 1] = cj - 1 if cj > 0 else -1
-                ci -= 1
-            elif op == 3:
-                cj -= 1
-            elif op == 4:
-                cj = int(wrap_from_j[ci - first_i, cj])
-            elif cj > 0:
-                cj -= 1
-            else:
-                ci -= 1
+        op = backtrack_op[ci, cj]
+        if op == 1:
+            w = r_phone_to_word[cj - 1]
+            char_word_map[ci - 1] = w
+            char_j_map[ci - 1] = cj - 1
+            ci -= 1
+            cj -= 1
+        elif op == 2:
+            w = r_phone_to_word[cj - 1] if cj > 0 else -1
+            char_word_map[ci - 1] = w
+            char_j_map[ci - 1] = cj - 1 if cj > 0 else -1
+            ci -= 1
+        elif op == 3:
+            cj -= 1
+        elif op == 4:
+            cj = int(wrap_from_j[ci, cj])
+        elif cj > 0:
+            cj -= 1
+        else:
+            ci -= 1
 
     return m, best_j, best_score, char_word_map, char_j_map
 
@@ -315,13 +357,14 @@ def warmup_matcher_jit() -> None:
     if not HAS_NUMBA:
         return
     try:
+        from src.matching.phonetics import _compute_insertion_costs_fast, _compute_deletion_costs_fast
         p_dummy = np.array([0x0642, 0x0627, 0x0644], dtype=np.int32)
         r_dummy = np.array([0x0642, 0x0627, 0x0644], dtype=np.int32)
         phone_to_w = np.array([0, 0, 0], dtype=np.int32)
         w_starts = np.array([True, False, False, False], dtype=np.bool_)
         w_ends = np.array([False, False, False, True], dtype=np.bool_)
-        del_c = np.array([1.0, 1.0, 1.0], dtype=np.float64)
-        ins_c = np.array([0.75, 0.75, 0.75], dtype=np.float64)
+        del_c = _compute_deletion_costs_fast(r_dummy, 1.0, 0.25)
+        ins_c = _compute_insertion_costs_fast(p_dummy, 0.75, 0.25)
         tbl_dummy = get_sub_cost_table(0.25)
 
         _global_viterbi_fast(

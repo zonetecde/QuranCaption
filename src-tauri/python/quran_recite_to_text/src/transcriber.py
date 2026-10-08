@@ -7,7 +7,6 @@ segmentation, gap-clamped padding, and intra-segment speech recovery.
 from __future__ import annotations
 
 import os
-import sys
 import math
 import time
 import urllib.request
@@ -16,10 +15,6 @@ from typing import Optional, List, Dict, Tuple, Callable
 import queue
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import numpy as np
-try:
-    import kaldi_native_fbank as knf
-except ImportError:
-    knf = None
 import onnxruntime as ort
 
 import config
@@ -153,34 +148,22 @@ class ZipformerONNX:
         return cls._instance
 
     def _load_model(self):
-        candidate_paths = [
-            DEFAULT_MODEL_PATH,
-            os.path.join(getattr(config, "ONNX_DIR", "data/onnx"), "zipformer_p_arabic_v3.int8.onnx"),
-            os.path.join(getattr(config, "DATA_PATH", "data"), "onnx", "zipformer_p_arabic_v3.int8.onnx"),
-        ]
-        resolved_model_path = None
-        for p in candidate_paths:
-            if p and os.path.exists(p) and os.path.getsize(p) > 10_000_000:
-                resolved_model_path = p
-                break
-
-        if not resolved_model_path:
-            resolved_model_path = DEFAULT_MODEL_PATH
-            os.makedirs(os.path.dirname(resolved_model_path), exist_ok=True)
+        if not os.path.exists(DEFAULT_MODEL_PATH):
+            os.makedirs(os.path.dirname(DEFAULT_MODEL_PATH), exist_ok=True)
             url = "https://github.com/Iam-Muslim/Natlu/releases/download/models-latest/zipformer_p_arabic_v3.int8.onnx"
             logger.info(f"Downloading Zipformer ONNX model from {url}...")
-            print("[*] Downloading Zipformer ONNX acoustic model (~72 MB)...", file=sys.stderr, flush=True)
+            print("[*] Downloading Zipformer ONNX acoustic model (~72 MB)...", flush=True)
             try:
-                urllib.request.urlretrieve(url, resolved_model_path)
+                urllib.request.urlretrieve(url, DEFAULT_MODEL_PATH)
             except Exception:
                 import ssl
                 import shutil
                 ctx = ssl._create_unverified_context() if hasattr(ssl, "_create_unverified_context") else None
                 req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-                with urllib.request.urlopen(req, context=ctx) as resp, open(resolved_model_path, "wb") as out:
+                with urllib.request.urlopen(req, context=ctx) as resp, open(DEFAULT_MODEL_PATH, "wb") as out:
                     shutil.copyfileobj(resp, out)
             logger.info("Zipformer ONNX model downloaded successfully.")
-            print("[*] Zipformer ONNX model downloaded successfully.", file=sys.stderr, flush=True)
+            print("[*] Zipformer ONNX model downloaded successfully.", flush=True)
 
         sess_opts = ort.SessionOptions()
         sess_opts.log_severity_level = 3
@@ -190,8 +173,9 @@ class ZipformerONNX:
         num_threads = int(os.environ.get("ONNX_NUM_THREADS", str(default_threads)))
         sess_opts.intra_op_num_threads = num_threads
         sess_opts.inter_op_num_threads = 1
+        sess_opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
 
-        opt_model_path = os.path.splitext(resolved_model_path)[0] + ".opt.onnx"
+        opt_model_path = os.path.splitext(DEFAULT_MODEL_PATH)[0] + ".opt.onnx"
         if os.path.exists(opt_model_path):
             sess_opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_DISABLE_ALL
             self.session = ort.InferenceSession(
@@ -203,14 +187,14 @@ class ZipformerONNX:
             try:
                 sess_opts.optimized_model_filepath = opt_model_path
                 self.session = ort.InferenceSession(
-                    resolved_model_path,
+                    DEFAULT_MODEL_PATH,
                     sess_opts,
                     providers=['CPUExecutionProvider']
                 )
             except Exception:
                 sess_opts.optimized_model_filepath = ""
                 self.session = ort.InferenceSession(
-                    resolved_model_path,
+                    DEFAULT_MODEL_PATH,
                     sess_opts,
                     providers=['CPUExecutionProvider']
                 )
@@ -256,41 +240,6 @@ class ZipformerONNX:
     def _extract_fbank(self, audio: np.ndarray) -> np.ndarray:
         if not audio.flags.c_contiguous or audio.dtype != np.float32:
             audio = np.ascontiguousarray(audio, dtype=np.float32)
-
-        # 1. Primary: C++ kaldi-native-fbank (top speed)
-        if knf is not None:
-            opts = knf.FbankOptions()
-            opts.frame_opts.samp_freq = SAMPLE_RATE
-            opts.mel_opts.num_bins = 80
-            opts.frame_opts.dither = 0.0
-            opts.frame_opts.snip_edges = False
-            opts.frame_opts.window_type = "povey"
-            opts.frame_opts.remove_dc_offset = True
-            opts.frame_opts.preemph_coeff = 0.97
-            opts.mel_opts.low_freq = 20.0
-            opts.mel_opts.high_freq = -400.0
-            opts.frame_opts.frame_shift_ms = 10.0
-            opts.frame_opts.frame_length_ms = 25.0
-
-            fbank = knf.OnlineFbank(opts)
-            chunk_samples = SAMPLE_RATE * 30
-            for pos in range(0, len(audio), chunk_samples):
-                fbank.accept_waveform(SAMPLE_RATE, audio[pos:pos + chunk_samples])
-            fbank.input_finished()
-
-            num_frames = fbank.num_frames_ready
-            if num_frames == 0:
-                return np.empty((0, 80), dtype=np.float32)
-
-            feats = np.empty((num_frames, 80), dtype=np.float32)
-            get_frame = fbank.get_frame
-            for i in range(num_frames):
-                feats[i] = get_frame(i)
-
-            del fbank
-            return feats
-
-        # 2. Fallback: Vectorised pure NumPy Kaldi fbank (100% token-equivalent, 0 compiler dependencies)
         return _numpy_kaldi_fbank(audio, sample_rate=SAMPLE_RATE)
 
     def _transcribe_fbank_segment(
@@ -400,14 +349,17 @@ class ZipformerONNX:
         segment_pcm: np.ndarray,
         sample_rate: int = SAMPLE_RATE,
         silence_pad_frames: Optional[int] = None,
+        state_buffers: Optional[dict] = None,
     ) -> Tuple[np.ndarray, List[PhonemeToken]]:
         """Transcribes a standalone audio slice (used by SpeechRecoveryEngine)."""
         if self.session is None or len(segment_pcm) == 0:
             return np.empty((0, len(self.vocab)), dtype=np.float32), []
-        feats = self._extract_fbank(segment_pcm.astype(np.float32))
+        feats = self._extract_fbank(segment_pcm)
         if len(feats) == 0:
             return np.empty((0, len(self.vocab)), dtype=np.float32), []
-        return self._transcribe_fbank_segment(feats, silence_pad_frames=silence_pad_frames, reset_states=True)
+        return self._transcribe_fbank_segment(
+            feats, silence_pad_frames=silence_pad_frames, reset_states=True, state_buffers=state_buffers
+        )
 
     def transcribe_audio(
         self,
@@ -575,6 +527,8 @@ class ZipformerONNX:
             pause_timestamps=pause_timestamps,
             pause_intervals=pause_intervals,
             vad_time=vad_time,
+            noise_floor_db=getattr(vad, "noise_floor_db", None),
+            silence_threshold_db=getattr(vad, "silence_threshold_db", None),
         )
 
 
@@ -599,14 +553,23 @@ class SpeechRecoveryEngine:
         min_hole_duration_s: Optional[float] = None,
         sample_rate: int = SAMPLE_RATE,
         on_progress: Optional[Callable[[float, float], None]] = None,
+        noise_floor_db: Optional[float] = None,
     ) -> SpeechRecoveryResult:
         start_time = time.time()
-
         min_hole_dur = min_hole_duration_s if min_hole_duration_s is not None else getattr(config, "SPEECH_RECOVERY_MIN_HOLE_DURATION_S", 1.40)
         pad_pre_s = getattr(config, "SPEECH_RECOVERY_PADDING_PRE_S", 0.16)
         pad_post_s = getattr(config, "SPEECH_RECOVERY_PADDING_POST_S", 0.24)
         min_tokens = getattr(config, "SPEECH_RECOVERY_MIN_PHONEMES_IN_GAP", 2)
 
+        rec_mode = str(getattr(config, "SPEECH_RECOVERY_MODE", "legacy")).strip().lower()
+        if not getattr(config, "ENABLE_SPEECH_RECOVERY", True) or rec_mode == "off":
+            return SpeechRecoveryResult(
+                recovered_phonemes=list(initial_phonemes),
+                recovery_events=[],
+                recovery_summary=RecoverySummary(0.0, 0, 0, 0, 0, 0.0, min_hole_dur),
+            )
+
+        energy_th = -55.0 if rec_mode == "legacy" else (float(noise_floor_db + 4.0) if noise_floor_db is not None else -38.0)
         candidate_gaps: List[Tuple[Optional[PhonemeToken], Optional[PhonemeToken], float, float]] = []
 
         # Null-safe gap extraction (handling start, interior, and tail of audio)
@@ -616,52 +579,93 @@ class SpeechRecoveryEngine:
         else:
             if initial_phonemes[0].start >= min_hole_dur:
                 candidate_gaps.append((None, initial_phonemes[0], 0.0, initial_phonemes[0].start))
-
             for i in range(len(initial_phonemes) - 1):
-                p_prev = initial_phonemes[i]
-                p_next = initial_phonemes[i + 1]
-                g_dur = p_next.start - p_prev.end
-                if g_dur >= min_hole_dur:
+                p_prev, p_next = initial_phonemes[i], initial_phonemes[i + 1]
+                if (p_next.start - p_prev.end) >= min_hole_dur:
                     candidate_gaps.append((p_prev, p_next, p_prev.end, p_next.start))
-
             if audio_duration - initial_phonemes[-1].end >= min_hole_dur:
                 candidate_gaps.append((initial_phonemes[-1], None, initial_phonemes[-1].end, audio_duration))
+
+        num_gaps = len(candidate_gaps)
+        results_by_idx: List[Optional[Tuple[np.ndarray, List[PhonemeToken], float, float, float]]] = [None] * num_gaps
+
+        def _transcribe_single_gap(
+            g_idx: int, states: Optional[dict] = None
+        ) -> Tuple[int, Optional[Tuple[np.ndarray, List[PhonemeToken], float, float, float]]]:
+            prev_tok, next_tok, g_s, g_e = candidate_gaps[g_idx]
+            gap_audio = audio_pcm[max(0, int(round(g_s * sample_rate))):min(len(audio_pcm), int(round(g_e * sample_rate)))]
+            if len(gap_audio) == 0:
+                return g_idx, None
+
+            # Digital silence check: skip dead digital silence / ambient room noise buffers
+            rms = np.sqrt(np.mean(gap_audio**2) + 1e-12)
+            edb = float(20.0 * np.log10(max(rms, 1e-5)))
+            if edb < energy_th:
+                return g_idx, None
+
+            p_start, p_end = max(0.0, g_s - pad_pre_s), min(audio_duration, g_e + pad_post_s)
+            slice_pcm = audio_pcm[int(round(p_start * sample_rate)):int(round(p_end * sample_rate))]
+            if len(slice_pcm) == 0:
+                return g_idx, None
+
+            slice_lp, raw_ph = transcriber.transcribe_segment(slice_pcm, state_buffers=states)
+            if not raw_ph:
+                return g_idx, None
+            return g_idx, (slice_lp, raw_ph, edb, p_start, p_end)
+
+        num_workers = int(os.environ.get("ONNX_SEGMENT_WORKERS", getattr(config, "NUM_SEGMENT_WORKERS", 1)))
+        use_parallel = (num_workers > 1) and (num_gaps > 2)
+
+        if use_parallel:
+            completed_dur = 0.0
+            total_gap_dur = sum(g[3] - g[2] for g in candidate_gaps) if candidate_gaps else 1.0
+            buffer_pool = queue.SimpleQueue()
+            for _ in range(num_workers):
+                buffer_pool.put(transcriber._create_initial_states())
+
+            def _worker_task(g_idx: int) -> Tuple[int, Optional[Tuple[np.ndarray, List[PhonemeToken], float, float, float]]]:
+                buf = buffer_pool.get()
+                try:
+                    return _transcribe_single_gap(g_idx, buf)
+                finally:
+                    buffer_pool.put(buf)
+
+            with ThreadPoolExecutor(max_workers=num_workers) as executor:
+                sorted_indices = sorted(range(num_gaps), key=lambda i: (candidate_gaps[i][3] - candidate_gaps[i][2]), reverse=True)
+                futures = [executor.submit(_worker_task, i) for i in sorted_indices]
+                for fut in as_completed(futures):
+                    g_idx, res = fut.result()
+                    results_by_idx[g_idx] = res
+                    if on_progress is not None:
+                        completed_dur += (candidate_gaps[g_idx][3] - candidate_gaps[g_idx][2])
+                        pct = min(100.0, (completed_dur / max(0.001, total_gap_dur)) * 100.0)
+                        on_progress(pct, max(0.001, time.time() - start_time))
+        else:
+            for g_idx in range(num_gaps):
+                _, res = _transcribe_single_gap(g_idx, None)
+                results_by_idx[g_idx] = res
+                if on_progress is not None:
+                    pct = min(100.0, ((g_idx + 1) / max(1, num_gaps)) * 100.0)
+                    on_progress(pct, max(0.001, time.time() - start_time))
 
         recovery_events: List[RecoveryEvent] = []
         new_phonemes_to_insert: List[PhonemeToken] = []
         speech_holes_detected = 0
 
-        for g_idx, (prev_tok, next_tok, g_s, g_e) in enumerate(candidate_gaps):
+        # Deterministic chronological re-assembly into global timeline
+        for g_idx in range(num_gaps):
+            gap_data = results_by_idx[g_idx]
+            if gap_data is None:
+                continue
+
+            prev_tok, next_tok, g_s, g_e = candidate_gaps[g_idx]
             gap_dur = g_e - g_s
-            s_samp = max(0, int(round(g_s * sample_rate)))
-            e_samp = min(len(audio_pcm), int(round(g_e * sample_rate)))
-            gap_audio = audio_pcm[s_samp:e_samp]
-            if len(gap_audio) == 0:
-                continue
-
-            # Digital silence check: skip dead digital silence buffers (< -55 dB)
-            rms = np.sqrt(np.mean(gap_audio**2) + 1e-12)
-            edb = float(20.0 * np.log10(max(rms, 1e-5)))
-            if edb < -55.0:
-                continue
-
-            # Padded audio slicing with clean causal convolutional pre-roll & tail flush
-            p_start = max(0.0, g_s - pad_pre_s)
-            p_end = min(audio_duration, g_e + pad_post_s)
-            slice_pcm = audio_pcm[int(round(p_start * sample_rate)):int(round(p_end * sample_rate))]
-            if len(slice_pcm) == 0:
-                continue
-
-            feats = transcriber._extract_fbank(slice_pcm)
-            slice_lp, raw_ph = transcriber._transcribe_fbank_segment(feats, reset_states=True)
-            if not raw_ph:
-                continue
+            slice_lp, raw_ph, edb, p_start, p_end = gap_data
 
             # Soft peak-based timestamp inclusion (protects onset & coda consonants from edge clipping)
             slice_tokens: List[PhonemeToken] = []
             for sp in raw_ph:
-                r_start = round(p_start + sp.start, 3)
-                r_end = round(p_start + sp.end, 3)
+                r_start, r_end = round(p_start + sp.start, 3), round(p_start + sp.end, 3)
                 r_pk = round(p_start + (sp.peak_timestamp if sp.peak_timestamp else (sp.start + sp.end) / 2), 3)
 
                 if (g_s - 0.08) <= r_pk <= (g_e + 0.08):
@@ -683,13 +687,11 @@ class SpeechRecoveryEngine:
                 continue
 
             # Strict 1-token seam deduplication: prune only if adjacent word border token matches exactly in time
-            if prev_tok is not None and slice_tokens:
-                if slice_tokens[0].phoneme == prev_tok.phoneme and abs(slice_tokens[0].start - prev_tok.start) < 0.20:
-                    slice_tokens.pop(0)
+            if prev_tok and slice_tokens and slice_tokens[0].phoneme == prev_tok.phoneme and abs(slice_tokens[0].start - prev_tok.start) < 0.20:
+                slice_tokens.pop(0)
 
-            if next_tok is not None and slice_tokens:
-                if slice_tokens[-1].phoneme == next_tok.phoneme and abs(slice_tokens[-1].end - next_tok.end) < 0.20:
-                    slice_tokens.pop(-1)
+            if next_tok and slice_tokens and slice_tokens[-1].phoneme == next_tok.phoneme and abs(slice_tokens[-1].end - next_tok.end) < 0.20:
+                slice_tokens.pop(-1)
 
             # Minimum length filter: reject single-token acoustic glitches
             if len(slice_tokens) < min_tokens:
@@ -709,8 +711,7 @@ class SpeechRecoveryEngine:
                     c_end = min(c_end, next_tok.start)
                     c_start = min(c_start, c_end - 0.02)
 
-                tok.start = round(c_start, 3)
-                tok.end = round(c_end, 3)
+                tok.start, tok.end = round(c_start, 3), round(c_end, 3)
                 prev_end_time = tok.end
                 clamped_tokens.append(tok)
 
@@ -728,7 +729,7 @@ class SpeechRecoveryEngine:
             recovery_events.append(event)
             new_phonemes_to_insert.extend(clamped_tokens)
 
-            # Direct patch of global CTC emission matrix inside gap frames (restores true probabilities without blank peak)
+            # Direct patch of global CTC emission matrix inside gap frames
             if logprobs_matrix is not None and len(slice_lp) > 0:
                 s_frame = int(round(g_s / FRAME_TIME_STEP))
                 e_frame = min(logprobs_matrix.shape[0], int(round(g_e / FRAME_TIME_STEP)))
@@ -736,9 +737,6 @@ class SpeechRecoveryEngine:
                 local_e = local_s + (e_frame - s_frame)
                 if local_e <= len(slice_lp) and e_frame > s_frame:
                     logprobs_matrix[s_frame:e_frame] = slice_lp[local_s:local_e]
-
-            if on_progress:
-                on_progress(((g_idx + 1) / max(1, len(candidate_gaps))) * 100.0, time.time() - start_time)
 
         # Merge and sort all phonemes chronologically
         all_phonemes = list(initial_phonemes) + new_phonemes_to_insert
@@ -750,7 +748,7 @@ class SpeechRecoveryEngine:
             speech_holes_detected=speech_holes_detected,
             recovered_events_count=len(recovery_events),
             recovered_phonemes_count=len(new_phonemes_to_insert),
-            energy_threshold_db=-55.0,
+            energy_threshold_db=round(energy_th, 1),
             min_hole_duration_s=min_hole_dur,
         )
 

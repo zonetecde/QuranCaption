@@ -9,9 +9,11 @@ from __future__ import annotations
 import os
 import sys
 
-# Silence pip and Python launcher background update checks
+# Silence pip and Python launcher background update checks, prevent OpenMP thread busy-spin
 os.environ["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
 os.environ["PYLAUNCH_NO_UPDATE_CHECK"] = "1"
+os.environ.setdefault("OMP_WAIT_POLICY", "PASSIVE")
+os.environ.setdefault("KMP_BLOCKTIME", "0")
 
 import ssl
 import ctypes
@@ -21,7 +23,7 @@ import importlib.util
 from pathlib import Path
 
 _BIN_DIR = Path(__file__).resolve().parent
-_PROJECT_ROOT = _BIN_DIR.parent if (_BIN_DIR.parent / "config.py").is_file() else _BIN_DIR.parent.parent
+_PROJECT_ROOT = _BIN_DIR.parent.parent
 
 
 def fix_windows_console() -> None:
@@ -65,36 +67,24 @@ def _is_package_installed(pkg_name: str) -> bool:
 
 
 def ensure_pip_dependencies() -> None:
-    """Installs missing requirements via pip on first run, ensuring onnxruntime-gpu installs after onnxruntime."""
+    """Installs missing requirements via pip on first run."""
     base_required = ("numpy", "onnxruntime", "numba", "miniaudio", "scipy")
     missing_base = [pkg for pkg in base_required if not _is_package_installed(pkg)]
 
     pip_cmd = [sys.executable, "-m", "pip", "install", "--disable-pip-version-check", "--no-warn-script-location"]
 
-    # 1. Install base requirements (onnxruntime finishes first)
     if missing_base:
-        print("=" * 60, file=sys.stderr)
-        print(f"[*] Missing base dependencies: {', '.join(missing_base)}", file=sys.stderr)
-        print("[*] Installing base requirements via pip. Please wait...", file=sys.stderr)
-        print("=" * 60, file=sys.stderr, flush=True)
+        print("=" * 60)
+        print(f"[*] Missing base dependencies: {', '.join(missing_base)}")
+        print("[*] Installing base requirements via pip. Please wait...")
+        print("=" * 60, flush=True)
         try:
             subprocess.check_call([*pip_cmd, *missing_base])
-            print("[*] Base dependencies installed successfully!\n", file=sys.stderr, flush=True)
+            print("[*] Base dependencies installed successfully!\n", flush=True)
         except Exception as exc:
             print(f"[!] Failed to install base dependencies: {exc}", file=sys.stderr)
             print("[!] Please run manually: pip install -r requirements.txt", file=sys.stderr)
             sys.exit(1)
-
-    # 2. Only attempt onnxruntime-gpu during initial install when onnxruntime was just installed
-    if ("onnxruntime" in missing_base) and not _is_package_installed("onnxruntime-gpu"):
-        print("=" * 60, file=sys.stderr)
-        print("[*] Attempting onnxruntime-gpu installation...", file=sys.stderr)
-        print("=" * 60, file=sys.stderr, flush=True)
-        try:
-            subprocess.check_call([*pip_cmd, "onnxruntime-gpu"])
-            print("[*] onnxruntime-gpu installed successfully!\n", file=sys.stderr, flush=True)
-        except Exception as exc:
-            print(f"[!] Continuing with CPU onnxruntime: {exc}", file=sys.stderr)
 
 
 def load_msvc_runtime() -> None:

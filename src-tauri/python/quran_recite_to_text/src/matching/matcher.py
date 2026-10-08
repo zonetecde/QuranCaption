@@ -86,6 +86,104 @@ def _build_qword(rw: RefWord, tokens: List[PhonemeToken], score: float) -> Quran
     return qw
 
 
+# Tajweed cross-word assimilation rules: (category, recognizable_suffixes)
+_TAJWEED_BRIDGE_RULES = (
+    ("ghunnah", ("مم", "نن", "وو", "يي")),
+    ("bila_ghunnah", ("لل", "رر", "ل", "ر")),
+    ("ghunnah", ("۾",)),  # Iqlab
+    ("mutajanisayn", ("ط", "ت", "ذ", "د", "و", "ك", "ق", "ب", "ث")),
+)
+
+
+def _repair_tajweed_boundary_bridges(words: List[QuranWord]) -> None:
+    """Repairs cross-word Tajweed boundary transitions where bridge phonemes were absorbed into the following word.
+
+    Covers all Quranic boundary assimilation phenomena:
+    - Idgham with Ghunnah (Meem, Noon, Waw, Yaa)
+    - Idgham Shafawi (Meem Sakinah into Meem)
+    - Idgham without Ghunnah (Lam, Raa)
+    - Idgham Mutajanisayn & Mutamathilayn (Ta into Taa, Waw into Waw, etc.)
+    - Iqlab (Noon/Tanween into Meem before Baa)
+    """
+    if len(words) < 2:
+        return
+
+    for i in range(len(words) - 1):
+        w1 = words[i]
+        w2 = words[i + 1]
+
+        if not w1.phonemes or not w2.phonemes:
+            continue
+        if w1.end is None or w2.start is None:
+            continue
+
+        # Connected speech check: only split if there is no significant acoustic pause (Waqf)
+        gap = w2.start - w1.end
+        if gap > 0.08:
+            continue
+
+        w1_ref = w1.ref or ""
+        w1_matched_str = "".join(p.get("phoneme", "") for p in w1.phonemes)
+        w2_first_ph = w2.phonemes[0]
+        w2_first_str = w2_first_ph.get("phoneme", "")
+
+        bridge_cat = None
+        bridge_phone = None
+
+        for cat, suffixes in _TAJWEED_BRIDGE_RULES:
+            for suf in suffixes:
+                if w1_ref.endswith(suf) or (suf == "۾" and "۾" in w1_ref):
+                    target_char = "م" if suf == "۾" else suf[0]
+                    if not w1_matched_str.endswith(target_char):
+                        if w2_first_str.startswith(target_char):
+                            bridge_cat = cat
+                            bridge_phone = "مم" if suf == "۾" else suf
+                            break
+            if bridge_cat:
+                break
+
+        if bridge_cat and bridge_phone:
+            ph_start = w2_first_ph.get("start", w2.start)
+            ph_end = w2_first_ph.get("end", w2.start)
+            dur = ph_end - ph_start
+
+            # Require minimum duration (at least 0.12s) to split
+            if dur >= 0.12:
+                # Dynamic tempo-scaled release duration:
+                # - Ghunnah: 80-85% to Word 1 (Tanween hold), 15-20% to Word 2 (release into vowel)
+                # - Bila Ghunnah: 60% closure to Word 1, 40% release to Word 2
+                # - Mutajanisayn: 65% mechanical closure to Word 1, 35% burst to Word 2
+                rel_ratio = 0.20 if bridge_cat == "ghunnah" else (0.40 if bridge_cat == "bila_ghunnah" else 0.35)
+                max_rel = 0.16 if bridge_cat != "mutajanisayn" else 0.14
+                min_rel = 0.08 if bridge_cat == "ghunnah" else 0.06
+                rel = max(min_rel, min(max_rel, rel_ratio * dur))
+
+                # Align exactly to the 40ms acoustic encoder frame grid (25 Hz)
+                raw_bound = ph_end - rel
+                max_frames = max(1, int((dur - 0.040) / 0.040))
+                n_frames = max(1, min(max_frames, round((raw_bound - ph_start) / 0.040)))
+                mid_point = round(ph_start + n_frames * 0.040, 2)
+
+                # Ensure strict monotonic contiguity with previous phoneme
+                b_start = max(w1.phonemes[-1].get("end", ph_start), ph_start)
+
+                # Assign closing bridge phoneme to w1
+                w1.phonemes.append({
+                    "phoneme": bridge_phone,
+                    "start": round(b_start, 2),
+                    "end": mid_point,
+                    "is_assimilated_bridge": True,
+                })
+                w1.end = mid_point
+
+                # Update w2's first phoneme and start
+                w2_first_ph["start"] = mid_point
+                w2.start = mid_point
+
+                enforce_word_phoneme_monotonicity(w1)
+                enforce_word_phoneme_monotonicity(w2)
+
+
 def _align_and_package_ayahs(
     aligned_tokens: List[PhonemeToken],
     ref_data: SurahReferenceData,
@@ -134,13 +232,15 @@ def _align_and_package_ayahs(
     p_codes = np.array([ord(c) for c in asr_str], dtype=np.int32)
     r_codes = np.array([ord(c) for c in sub_r_str], dtype=np.int32)
 
-    word_starts_mask = np.zeros(n + 1, dtype=np.bool_)
-    word_ends_mask = np.zeros(n + 1, dtype=np.bool_)
-    for j in range(n + 1):
-        if j == 0 or (j < n and sub_phone_to_word[j] != sub_phone_to_word[j - 1]):
-            word_starts_mask[j] = True
-        if j == n or (j > 0 and j < n and sub_phone_to_word[j] != sub_phone_to_word[j - 1]):
-            word_ends_mask[j] = True
+    diff = sub_phone_to_word[1:] != sub_phone_to_word[:-1]
+    word_starts_mask = np.empty(n + 1, dtype=np.bool_)
+    word_ends_mask = np.empty(n + 1, dtype=np.bool_)
+    word_starts_mask[0] = True
+    word_starts_mask[1:n] = diff
+    word_starts_mask[n] = False
+    word_ends_mask[0] = False
+    word_ends_mask[1:n] = diff
+    word_ends_mask[n] = True
 
     # Fast JIT-vectorized edit costs
     ins_costs = _compute_insertion_costs_fast(p_codes, cfg.cost_insertion, cfg.acoustic_confusion_cost)
@@ -285,6 +385,12 @@ def _align_and_package_ayahs(
         else:
             passes = [(qwords, False)]
 
+        # Repair cross-word Tajweed boundary bridges across words in connected speech
+        if has_repeated:
+            _repair_tajweed_boundary_bridges(qwords)
+        for pass_words, _ in passes:
+            _repair_tajweed_boundary_bridges(pass_words)
+
         # Tier 2: Split passes on Phase 1 pauses with 'Never Cut Word' geometric validation
         sub_segs_list: List[AyahSubSegment] = []
         pauses = pause_timestamps or []
@@ -332,17 +438,17 @@ def _align_and_package_ayahs(
 
                     # 1. Primary check using raw CTC ASR time before forced alignment:
                     if (w_prev_raw_e - 0.08) <= cut <= (w_curr_raw_s + 0.08) and (mid_prev < cut < mid_curr):
-                        return (p.start_sec, p.end_sec)
+                        return (cut, p.end_sec)
 
                     # 2. Interval overlap check in raw ASR time:
                     if (p.start_sec >= w_prev_raw_e - 0.12) and (p.end_sec <= w_curr_raw_s + 0.12):
                         if mid_prev < cut < mid_curr:
-                            return (p.start_sec, p.end_sec)
+                            return (cut, p.end_sec)
 
                     # 3. Geometric fallback: cut point sits safely between the word boundaries
                     if cut > (w_prev_s + 0.04) and cut < (w_curr_e - 0.04) and (mid_prev < cut < mid_curr):
                         if (p.start_sec - 0.15) <= w_prev_e and (p.end_sec + 0.15) >= w_curr_s:
-                            return (p.start_sec, p.end_sec)
+                            return (cut, p.end_sec)
             elif pauses:
                 idx = bisect.bisect_right(pause_pts, w_curr_e + 0.50)
                 for i in range(idx - 1, -1, -1):
@@ -350,9 +456,9 @@ def _align_and_package_ayahs(
                     if pt < w_prev_s - 1.0:
                         break
                     if (w_prev_raw_e - 0.08) <= pt <= (w_curr_raw_s + 0.08) and (mid_prev < pt < mid_curr):
-                        return (pt - 0.10, pt + 0.10)
+                        return (pt, pt + 0.10)
                     if mid_prev < pt < mid_curr and pt > (w_prev_s + 0.04) and pt < (w_curr_e - 0.04):
-                        return (pt - 0.10, pt + 0.10)
+                        return (pt, pt + 0.10)
 
             return None
 
@@ -363,10 +469,10 @@ def _align_and_package_ayahs(
                     prev_w = current_chunk[-1]
                     p_bounds = _find_pause_cut(prev_w, w)
                     if p_bounds is not None:
-                        p_start, p_end = p_bounds
-                        # Enforce clean separation without merging to a single cut point
-                        if prev_w.end and prev_w.end > p_start:
-                            prev_w.end = round(p_start, 2)
+                        cut_pt, p_end = p_bounds
+                        # Enforce clean separation without premature truncation
+                        if prev_w.end and prev_w.end > cut_pt:
+                            prev_w.end = round(cut_pt, 2)
                             if prev_w.phonemes and prev_w.phonemes[-1]["end"] > prev_w.end:
                                 prev_w.phonemes[-1]["end"] = prev_w.end
 
@@ -386,6 +492,39 @@ def _align_and_package_ayahs(
 
             if current_chunk:
                 sub_segs_list.append(_build_sub(current_chunk, is_rep))
+
+        # Determine accurate is_repetition for each subsegment:
+        # A subsegment is marked as a repetition if:
+        # 1. Trailing duplicate or subset: its words were already covered by an earlier subsegment.
+        # 2. Leading interrupted start: its words are a strict subset of a later complete subsegment that supersedes it.
+        if sub_segs_list and has_repeated and len(sub_segs_list) > 1:
+            n_subs = len(sub_segs_list)
+            word_sets = [set(w.location for w in s.words if w.location) for s in sub_segs_list]
+            is_rep_flags = [False] * n_subs
+
+            # Pass 1: Trailing duplicates and subsets (classic repeats)
+            for i in range(1, n_subs):
+                if not word_sets[i]:
+                    continue
+                for j in range(0, i):
+                    if not is_rep_flags[j] and word_sets[i].issubset(word_sets[j]):
+                        is_rep_flags[i] = True
+                        break
+
+            # Pass 2: Leading interrupted starts (where reciter stopped, then re-recited the whole phrase later)
+            for i in range(n_subs - 1):
+                if is_rep_flags[i] or not word_sets[i]:
+                    continue
+                for j in range(i + 1, n_subs):
+                    if not is_rep_flags[j] and word_sets[i].issubset(word_sets[j]) and len(word_sets[i]) < len(word_sets[j]):
+                        is_rep_flags[i] = True
+                        break
+
+            for sub, rep in zip(sub_segs_list, is_rep_flags):
+                sub.is_repetition = rep
+        elif sub_segs_list:
+            for sub in sub_segs_list:
+                sub.is_repetition = False
 
         if len(sub_segs_list) > 1 or has_repeated:
             sub_segments = sub_segs_list

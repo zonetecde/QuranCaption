@@ -235,27 +235,6 @@ def _suppress_sandwich_clusters(
     return current
 
 
-def _filter_spurious_edge_clusters(
-    cluster_list: List[List[Tuple[int, int, int, float]]],
-    inter_basmalah_hits: List[Tuple[int, int, int, float]],
-) -> List[List[Tuple[int, int, int, float]]]:
-    """Filters spurious 1-ayah edge clusters that lack Basmalah in multi-surah audio."""
-    if len(cluster_list) <= 1:
-        return cluster_list
-    filtered = []
-    for c in cluster_list:
-        s = c[0][1]
-        ayahs = [h[2] for h in c if h[1] == s]
-        ayah_span = (max(ayahs) - min(ayahs) + 1) if ayahs else 1
-        c_start = c[0][0]
-        has_bas = any(abs(b[0] - c_start) <= 24 for b in inter_basmalah_hits)
-        # In multi-surah, an isolated edge cluster with only 1 Ayah and <= 2 hits without Basmalah is a spurious glitch
-        if ayah_span == 1 and len(c) <= 2 and not has_bas and len(cluster_list) > 1:
-            continue
-        filtered.append(c)
-    return filtered if filtered else cluster_list
-
-
 class SurahDetector:
     """Discovers recited Surah and Ayah range in continuous recitation audio."""
 
@@ -481,9 +460,6 @@ class SurahDetector:
 
         # 5.1 Suppress A -> B -> A sandwich false positives (e.g. 1-ayah Mutashabihat glitches)
         clusters = _suppress_sandwich_clusters(clusters, inter_basmalah_hits)
-
-        # 5.2 Filter spurious 1-ayah edge glitches lacking Basmalah
-        clusters = _filter_spurious_edge_clusters(clusters, inter_basmalah_hits)
 
         # Merge adjacent clusters if any same-surah neighbors remain
         clusters = _merge_same_surah_clusters(clusters)

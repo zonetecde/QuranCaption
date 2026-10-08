@@ -1,7 +1,7 @@
 """Runtime bootstrap coordinator for QuranReciteToText.
 
 Handles Windows console streams, auto-installs missing dependencies on first run,
-bypasses SSL certificate verification issues, and preloads bundled MSVC runtime DLLs.
+and preloads bundled MSVC runtime DLLs.
 """
 
 from __future__ import annotations
@@ -15,7 +15,6 @@ os.environ["PYLAUNCH_NO_UPDATE_CHECK"] = "1"
 os.environ.setdefault("OMP_WAIT_POLICY", "PASSIVE")
 os.environ.setdefault("KMP_BLOCKTIME", "0")
 
-import ssl
 import ctypes
 import shutil
 import subprocess
@@ -47,15 +46,6 @@ def fix_windows_console() -> None:
                 pass
 
 
-def fix_ssl_certificates() -> None:
-    """Bypasses missing root CA certificates on fresh Windows Python installs."""
-    try:
-        if hasattr(ssl, "_create_unverified_context"):
-            ssl._create_default_https_context = ssl._create_unverified_context
-    except Exception:
-        pass
-
-
 def _is_package_installed(pkg_name: str) -> bool:
     """Checks if a distribution package or module is installed in the current environment."""
     try:
@@ -67,7 +57,7 @@ def _is_package_installed(pkg_name: str) -> bool:
 
 
 def ensure_pip_dependencies() -> None:
-    """Installs missing requirements via pip on first run."""
+    """Installs missing CPU pipeline requirements via pip on first run."""
     base_required = ("numpy", "onnxruntime", "numba", "miniaudio", "scipy")
     missing_base = [pkg for pkg in base_required if not _is_package_installed(pkg)]
 
@@ -137,7 +127,6 @@ def load_msvc_runtime() -> None:
 def bootstrap() -> None:
     """Executes environment bootstrap."""
     fix_windows_console()
-    fix_ssl_certificates()
     ensure_pip_dependencies()
     load_msvc_runtime()
 

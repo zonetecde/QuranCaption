@@ -1,6 +1,5 @@
 numpy
 onnxruntime
-onnxruntime-gpu
 numba
 miniaudio
 scipy

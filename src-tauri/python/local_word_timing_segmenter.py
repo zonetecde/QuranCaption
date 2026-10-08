@@ -21,8 +21,9 @@ ENGINE_DIR = SCRIPT_DIR / "quran_recite_to_text"
 if str(ENGINE_DIR) not in sys.path:
     sys.path.insert(0, str(ENGINE_DIR))
 
-# Bootstrap environment: Windows console, SSL certs, MSVC runtime DLLs
+# Bootstrap environment: Windows console and MSVC runtime DLLs
 def _bootstrap_environment() -> None:
+    """Configure Windows console streams and preload bundled MSVC runtime DLLs."""
     if sys.platform == "win32":
         for stream in (sys.stdout, sys.stderr):
             if stream is not None:
@@ -32,13 +33,6 @@ def _bootstrap_environment() -> None:
                         reconfig(encoding="utf-8")
                     except Exception:
                         pass
-
-    try:
-        import ssl
-        if hasattr(ssl, "_create_unverified_context"):
-            ssl._create_default_https_context = ssl._create_unverified_context
-    except Exception:
-        pass
 
     bin_dir = ENGINE_DIR / "data" / "bin"
     if sys.platform == "win32" and bin_dir.is_dir():

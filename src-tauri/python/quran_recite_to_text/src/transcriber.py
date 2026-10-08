@@ -156,11 +156,9 @@ class ZipformerONNX:
             try:
                 urllib.request.urlretrieve(url, DEFAULT_MODEL_PATH)
             except Exception:
-                import ssl
                 import shutil
-                ctx = ssl._create_unverified_context() if hasattr(ssl, "_create_unverified_context") else None
                 req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-                with urllib.request.urlopen(req, context=ctx) as resp, open(DEFAULT_MODEL_PATH, "wb") as out:
+                with urllib.request.urlopen(req) as resp, open(DEFAULT_MODEL_PATH, "wb") as out:
                     shutil.copyfileobj(resp, out)
             logger.info("Zipformer ONNX model downloaded successfully.")
             print("[*] Zipformer ONNX model downloaded successfully.", flush=True)

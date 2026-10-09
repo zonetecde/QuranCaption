@@ -193,15 +193,19 @@
 	}
 
 	/**
-	 * Retourne le type MIME à utiliser pour ouvrir un export Android.
+	 * Retourne le type MIME à utiliser pour ouvrir ou partager un export Android.
 	 * @param {string} fileName Nom du fichier.
-	 * @returns {string} Type MIME compatible avec ACTION_VIEW.
+	 * @returns {string} Type MIME compatible avec ACTION_VIEW et ACTION_SEND.
 	 */
 	function getMimeType(fileName: string): string {
 		const extension = fileName.split('.').pop()?.toLowerCase();
 		if (extension === 'webm') return 'video/webm';
 		if (extension === 'mov') return 'video/quicktime';
 		if (extension === 'mp4') return 'video/mp4';
+		if (extension === 'json') return 'application/json';
+		if (extension === 'qc') return 'application/zip';
+		if (extension === 'srt') return 'application/x-subrip';
+		if (extension === 'vtt') return 'text/vtt';
 		return 'text/plain';
 	}
 
@@ -247,7 +251,9 @@
 					mimeType: getMimeType(exportation.finalFileName)
 				});
 				if (shared) {
-					AnalyticsService.trackVideoExportShareOpened();
+					if (exportation.exportKind === ExportKind.Video) {
+						AnalyticsService.trackVideoExportShareOpened();
+					}
 					return;
 				}
 			}
@@ -590,17 +596,15 @@
 											{monitorMessage('openFile')}
 										</button>
 
-										{#if exportation.exportLabel === 'Project data' || exportation.finalFileName.startsWith('qurancaption_backup_')}
-											<button
-												type="button"
-												class="small-action shrink-0 justify-center px-3!"
-												onclick={() => shareExportedFile(exportation)}
-												aria-label={monitorMessage('shareFile')}
-												title={monitorMessage('shareFile')}
-											>
-												<span class="material-icons text-[18px]!">share</span>
-											</button>
-										{/if}
+										<button
+											type="button"
+											class="small-action shrink-0 justify-center px-3!"
+											onclick={() => shareExportedFile(exportation)}
+											aria-label={monitorMessage('shareFile')}
+											title={monitorMessage('shareFile')}
+										>
+											<span class="material-icons text-[18px]!">share</span>
+										</button>
 									{:else}
 										<button
 											type="button"

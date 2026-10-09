@@ -3,6 +3,7 @@ package com.qurancaption.androidmedia
 import android.Manifest
 import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.ClipData
 import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Color
@@ -354,9 +355,25 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
 
         hostActivity.runOnUiThread {
             try {
+                val sourceUri = Uri.parse(args.uri)
+                // Le sélecteur demande une colonne "flags" absente de MediaStore.
+                val filePath = if (sourceUri.scheme == "content" &&
+                    sourceUri.authority == MediaStore.AUTHORITY) {
+                    hostActivity.contentResolver.query(
+                        sourceUri, arrayOf(MediaStore.MediaColumns.DATA), null, null, null
+                    )?.use { cursor ->
+                        if (cursor.moveToFirst()) cursor.getString(0)?.takeIf { it.isNotBlank() }
+                        else null
+                    }
+                } else null
+                val uri = shareableUri(filePath ?: args.uri)
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = args.mimeType.ifBlank { "*/*" }
-                    putExtra(Intent.EXTRA_STREAM, shareableUri(args.uri))
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    // ClipData permet au sélecteur de lire le nom et l'aperçu du fichier.
+                    clipData = ClipData.newUri(
+                        hostActivity.contentResolver, resolveDisplayName(args.uri), uri
+                    )
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
                 hostActivity.startActivity(Intent.createChooser(intent, null))

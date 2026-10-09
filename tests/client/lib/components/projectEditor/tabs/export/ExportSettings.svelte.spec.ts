@@ -10,6 +10,7 @@ import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { invoke } from '@tauri-apps/api/core';
 import '../../../../../../../src/app.css';
+import thumbnailTemplateScript from '../../../../../../../src-tauri/src/commands/thumbnail_templates.js?raw';
 
 vi.mock('@tauri-apps/api/core', async () => ({
 	...(await vi.importActual<typeof import('@tauri-apps/api/core')>('@tauri-apps/api/core')),
@@ -40,6 +41,32 @@ afterEach(() => {
 	vi.restoreAllMocks();
 	vi.clearAllMocks();
 	globalState.currentProject = null;
+});
+
+test('collects gallery templates and HTML previews when injected after page load on Android', async () => {
+	const gallery = document.createElement('section');
+	gallery.id = 'templates';
+	gallery.innerHTML = `<div class="tile-grid">
+		<a class="tile" href="/editor#blank"><h3>Blank canvas</h3><div class="tile-thumb" style="width:128px;height:72px;background:green"></div></a>
+		<a class="tile" href="/editor#photo"><h3>Photo</h3><div class="tile-thumb"><img src="https://quranthumbnails.com/photo.png" alt="" /></div></a>
+		<a class="tile" href="/editor#invalid_hash"><h3>Invalid</h3><div class="tile-thumb"></div></a>
+	</div>`;
+	document.body.append(gallery);
+	const location = { href: '' };
+	try {
+		new Function('location', thumbnailTemplateScript)(location);
+		await vi.waitFor(() => expect(location.href).toContain('qurancaption-templates://result/'));
+		const templates = JSON.parse(new URL(location.href).searchParams.get('data')!);
+		expect(templates).toHaveLength(2);
+		expect(templates[0]).toMatchObject({ hash: '#blank', name: 'Blank canvas' });
+		expect(decodeURIComponent(templates[0].preview)).toContain('width="128"');
+		expect(templates[1]).toMatchObject({
+			hash: '#photo',
+			preview: 'https://quranthumbnails.com/photo.png'
+		});
+	} finally {
+		gallery.remove();
+	}
 });
 
 test('opens the thumbnail editor with project details from a full-width fifth choice', async () => {

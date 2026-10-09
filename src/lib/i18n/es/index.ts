@@ -1578,8 +1578,7 @@ const es = {
 			'istiadha-style': 'Estilo de la istiʿādha',
 			'istiadha-scale': 'Escala de la istiʿādha',
 			'current-font': 'Fuente actual',
-			'verse-number-format':
-				'Modificar el formato de los números de versículos. Usar la etiqueta <number> para personalizar.',
+			'verse-number-format': 'Formato del número de versículo',
 			'verse-number-position': 'Posición del número de versículo',
 			'verse-number-numeral-system': 'Numerales del número de versículo',
 			'verse-number-vertical-position': 'Posición vertical',

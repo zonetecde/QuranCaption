@@ -1579,8 +1579,7 @@ const fr = {
 			'istiadha-style': 'Style de l’istiʿādha',
 			'istiadha-scale': 'Échelle de l’istiʿādha',
 			'current-font': 'Police actuelle',
-			'verse-number-format':
-				'Modifier le format des numéros de versets. Utiliser la balise <number> pour personnaliser.',
+			'verse-number-format': 'Format du numéro de verset',
 			'verse-number-position': 'Position du numéro de verset',
 			'verse-number-numeral-system': 'Chiffres du numéro de verset',
 			'verse-number-vertical-position': 'Position verticale',

@@ -93,21 +93,21 @@
 	<button
 		type="button"
 		class="preview-control-btn flex shrink-0 items-center justify-center w-6 h-7 rounded-full transition-colors cursor-pointer duration-200"
-		onclick={() => skipBy(-10000)}
-		aria-label={previewCopy.skipBackwardTenSeconds()}
-		title={previewCopy.skipBackwardTenSeconds()}
-	>
-		<span class="material-icons text-xl">replay_10</span>
-	</button>
-	<button
-		type="button"
-		class="preview-control-btn flex shrink-0 items-center justify-center w-6 h-7 rounded-full transition-colors cursor-pointer duration-200"
 		onclick={togglePlayPause}
 		aria-label={get(LL).settings.shortcutAction.PLAY_PAUSE()}
 	>
 		<span class="material-icons text-xl">
 			{isPlaying() ? 'pause' : 'play_arrow'}
 		</span>
+	</button>
+	<button
+		type="button"
+		class="preview-control-btn flex shrink-0 items-center justify-center w-6 h-7 rounded-full transition-colors cursor-pointer duration-200"
+		onclick={() => skipBy(-10000)}
+		aria-label={previewCopy.skipBackwardTenSeconds()}
+		title={previewCopy.skipBackwardTenSeconds()}
+	>
+		<span class="material-icons text-xl">replay_10</span>
 	</button>
 	<input
 		type="range"

@@ -3,6 +3,28 @@ use tauri::Manager;
 #[cfg(target_os = "android")]
 use tauri_plugin_android_media::AndroidMediaExt;
 
+/// Résout un dossier Tauri sans conserver le verrou des plugins pendant l'appel Android.
+///
+/// @param app_handle Handle de l'application.
+/// @param directory Répertoire système à résoudre.
+/// @param path Chemin relatif optionnel dans ce répertoire.
+/// @returns Chemin absolu résolu ou erreur native.
+#[tauri::command]
+pub async fn resolve_android_directory(
+    app_handle: tauri::AppHandle,
+    directory: tauri::path::BaseDirectory,
+    path: Option<std::path::PathBuf>,
+) -> Result<std::path::PathBuf, String> {
+    tokio::task::spawn_blocking(move || {
+        app_handle
+            .path()
+            .resolve(path.unwrap_or_default(), directory)
+            .map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
 /// Enregistre un fichier texte dans le dossier public Download du téléphone.
 ///
 /// @param app_handle Handle de l'application.

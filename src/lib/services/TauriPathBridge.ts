@@ -38,7 +38,7 @@ import { invoke } from './TauriCoreBridge';
  * @returns Le chemin absolu résolu.
  */
 function resolveDirectory(directory: BaseDirectory, path?: string): Promise<string> {
-	return invoke<string>('plugin:path|resolve_directory', { directory, path });
+	return invoke<string>('resolve_android_directory', { directory, path });
 }
 
 /**

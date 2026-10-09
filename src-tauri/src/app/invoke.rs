@@ -15,6 +15,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::auth::hugging_face_account_connect,
         commands::auth::hugging_face_account_status,
         commands::auth::hugging_face_account_disconnect,
+        commands::android_export::resolve_android_directory,
         commands::android_export::save_android_download_file,
         commands::android_export::publish_android_export,
         commands::android_export::open_android_export,

@@ -217,7 +217,7 @@
 				</p>
 			</div>
 
-			<div class="grid grid-cols-2 gap-2">
+			<div class="grid grid-cols-4 gap-2">
 				{#each videoFormats as format (format.value)}
 					<button
 						type="button"
@@ -230,7 +230,7 @@
 					>
 						<span class="material-icons text-2xl">{format.icon}</span>
 						<span class="text-xs font-semibold text-primary">{format.ratio}</span>
-						<span class="text-xs">{format.label}</span>
+						<span class="max-w-full break-words text-xs">{format.label}</span>
 					</button>
 				{/each}
 			</div>

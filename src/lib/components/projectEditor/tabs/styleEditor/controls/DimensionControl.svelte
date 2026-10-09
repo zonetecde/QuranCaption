@@ -101,7 +101,7 @@
 <div class="flex flex-col gap-3">
 	<div class="flex flex-col gap-2">
 		<p class="text-sm font-medium">{dimensionCopy.orientation()}:</p>
-		<div class="grid grid-cols-2 gap-2">
+		<div class="grid grid-cols-4 gap-2">
 			{#each orientations as orientation (orientation.value)}
 				<button
 					type="button"
@@ -115,7 +115,7 @@
 				>
 					<span class="material-icons text-2xl">{orientation.icon}</span>
 					<span class="text-xs font-semibold text-primary">{orientation.ratio}</span>
-					<span class="text-xs">{orientation.label}</span>
+					<span class="max-w-full break-words text-xs">{orientation.label}</span>
 				</button>
 			{/each}
 		</div>

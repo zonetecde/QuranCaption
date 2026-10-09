@@ -276,7 +276,8 @@
 		for (let index = 0; index < files.length; index++) {
 			try {
 				const filePath = await AndroidMediaService.materializeSelectedFile(files[index], 0);
-				if (filePath.toLowerCase().endsWith('.qc')) {
+				// Android peut ajouter un suffixe de doublon après l'extension.
+				if (/\.qc(?:\s+\(\d+\))*$/i.test(filePath)) {
 					await ProjectService.importProjectPackage(filePath);
 					AnalyticsService.trackProjectImported();
 				} else {

@@ -125,6 +125,8 @@
 	});
 
 	$effect(() => {
+		// Le plein écran du renderer d'export sert uniquement aux captures.
+		if (isExportRenderer) return;
 		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
 			| { width: number; height: number }
 			| undefined;
@@ -309,7 +311,7 @@
 
 	onDestroy(() => {
 		pause(); // Met en pause la lecture pour éviter les fuites de mémoire
-		void invoke('set_android_landscape_allowed', { allowed: false });
+		if (!isExportRenderer) void invoke('set_android_landscape_allowed', { allowed: false });
 
 		// Supprime la div de fond fullscreen si elle existe
 		const backgroundDiv = document.getElementById('fullscreen-background');

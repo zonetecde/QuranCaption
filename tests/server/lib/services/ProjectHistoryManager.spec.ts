@@ -93,18 +93,42 @@ describe('ProjectHistoryManager', () => {
 	it('undoes and redoes a subtitle insertion and removal', () => {
 		const subtitleTrack = globalState.getSubtitleTrack;
 		subtitleTrack.clips.push(new SubtitleClip(0, 1000, 1, 1, 0, 0, 'text', [], true, true, {}));
+		const subtitleId = subtitleTrack.clips[0].id;
+		globalState.getSubtitlesEditorState.editSubtitle = subtitleTrack.clips[0] as SubtitleClip;
+		globalState.getSubtitlesEditorState.pendingSplitEditNextId = 42;
 
 		ProjectHistoryManager.track('remove test subtitle', () => {
 			subtitleTrack.removeClip(subtitleTrack.clips[0].id, true);
 		});
 		expect(globalState.getSubtitleTrack.clips).toHaveLength(0);
+		expect(globalState.getSubtitlesEditorState.editSubtitle).toBeNull();
+		expect(globalState.getSubtitlesEditorState.pendingSplitEditNextId).toBeNull();
 
 		expect(ProjectHistoryManager.undo()).toBe(true);
 		expect(globalState.getSubtitleTrack.clips).toHaveLength(1);
 		expect(globalState.getSubtitleTrack.clips[0]).toBeInstanceOf(SubtitleClip);
+		expect(globalState.getSubtitlesEditorState.editSubtitle?.id).toBe(subtitleId);
+		expect(globalState.getSubtitlesEditorState.pendingSplitEditNextId).toBe(42);
 
 		expect(ProjectHistoryManager.redo()).toBe(true);
 		expect(globalState.getSubtitleTrack.clips).toHaveLength(0);
+		expect(globalState.getSubtitlesEditorState.editSubtitle).toBeNull();
+		expect(globalState.getSubtitlesEditorState.pendingSplitEditNextId).toBeNull();
+	});
+
+	it('keeps subtitle editing active when removing another subtitle', () => {
+		const subtitleTrack = globalState.getSubtitleTrack;
+		const editedSubtitle = new SubtitleClip(0, 999, 1, 1, 0, 0, 'first', [], true, true, {});
+		const otherSubtitle = new SubtitleClip(1000, 1999, 1, 2, 0, 0, 'second', [], true, true, {});
+		subtitleTrack.clips = [editedSubtitle, otherSubtitle];
+		globalState.getSubtitlesEditorState.editSubtitle = editedSubtitle;
+		globalState.getSubtitlesEditorState.pendingSplitEditNextId = 42;
+
+		subtitleTrack.removeClip(otherSubtitle.id, true);
+
+		expect(subtitleTrack.clips).toHaveLength(1);
+		expect(globalState.getSubtitlesEditorState.editSubtitle?.id).toBe(editedSubtitle.id);
+		expect(globalState.getSubtitlesEditorState.pendingSplitEditNextId).toBe(42);
 	});
 
 	it('clears redo after a new action', () => {

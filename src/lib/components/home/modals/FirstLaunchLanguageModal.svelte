@@ -8,14 +8,15 @@
 	let { confirm } = $props<{ confirm: () => void }>();
 	let selectedLanguage = $state<Locales>(get(locale));
 
-	const languageOptions: { value: Locales; label: string; flag: string }[] = [
+	const languageOptions: { value: Locales; label: string; flag: string }[] = $derived([
+		{ value: 'ar', label: $LL.editor.arabic(), flag: '🇸🇦' },
 		{ value: 'en', label: 'English', flag: '🇬🇧' },
 		{ value: 'fr', label: 'Français', flag: '🇫🇷' },
 		{ value: 'de', label: 'Deutsch', flag: '🇩🇪' },
 		{ value: 'es', label: 'Español', flag: '🇪🇸' },
 		{ value: 'id', label: 'Indonesia', flag: '🇮🇩' },
 		{ value: 'zh', label: '中文', flag: '🇨🇳' }
-	];
+	]);
 
 	/** Enregistre la langue initiale et reporte la bannière de soutien de trois jours. */
 	async function confirmLanguage(): Promise<void> {

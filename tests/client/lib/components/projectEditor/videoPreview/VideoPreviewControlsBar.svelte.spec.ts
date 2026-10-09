@@ -62,9 +62,14 @@ test('seeks and clamps ten-second skips within the project on a narrow mobile pr
 	expect(togglePlayPause).toHaveBeenCalledOnce();
 
 	const bounds = component.container.getBoundingClientRect();
+	const sliderBounds = slider.getBoundingClientRect();
+	expect(sliderBounds.width).toBeGreaterThan(0);
 	for (const control of component.container.querySelectorAll('button, input')) {
 		const rect = control.getBoundingClientRect();
 		expect(rect.left).toBeGreaterThanOrEqual(bounds.left);
 		expect(rect.right).toBeLessThanOrEqual(bounds.right);
+		expect(
+			Math.abs(rect.top + rect.height / 2 - (sliderBounds.top + sliderBounds.height / 2))
+		).toBeLessThanOrEqual(1);
 	}
 });

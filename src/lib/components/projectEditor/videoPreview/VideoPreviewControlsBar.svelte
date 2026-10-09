@@ -80,7 +80,7 @@
 
 <div
 	dir="ltr"
-	class="bg-primary w-full flex flex-wrap items-center gap-1 rounded-t-xl px-2 py-1"
+	class="bg-primary w-full min-w-0 flex items-center gap-1 rounded-t-xl px-2 py-1"
 	role="group"
 	aria-label={get(LL).editor.playbackControls()}
 	onkeydown={handleControlKeydown}
@@ -88,7 +88,7 @@
 	<span class="monospaced shrink-0 text-[11px] leading-none">{currentDuration()}</span>
 	<button
 		type="button"
-		class="preview-control-btn flex shrink-0 items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
+		class="preview-control-btn flex shrink-0 items-center justify-center w-6 h-7 rounded-full transition-colors cursor-pointer duration-200"
 		onclick={() => skipBy(-10000)}
 		aria-label={previewCopy.skipBackwardTenSeconds()}
 		title={previewCopy.skipBackwardTenSeconds()}
@@ -97,7 +97,7 @@
 	</button>
 	<button
 		type="button"
-		class="preview-control-btn flex shrink-0 items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
+		class="preview-control-btn flex shrink-0 items-center justify-center w-6 h-7 rounded-full transition-colors cursor-pointer duration-200"
 		onclick={togglePlayPause}
 		aria-label={get(LL).settings.shortcutAction.PLAY_PAUSE()}
 	>
@@ -107,7 +107,7 @@
 	</button>
 	<input
 		type="range"
-		class="preview-progress order-last min-w-0 basis-full"
+		class="preview-progress min-w-0 flex-1"
 		min="1"
 		max={Math.max(durationMs(), 1)}
 		value={Math.min(cursorMs(), Math.max(durationMs(), 1))}
@@ -118,7 +118,7 @@
 	/>
 	<button
 		type="button"
-		class="preview-control-btn flex shrink-0 items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
+		class="preview-control-btn flex shrink-0 items-center justify-center w-6 h-7 rounded-full transition-colors cursor-pointer duration-200"
 		onclick={() => skipBy(10000)}
 		aria-label={previewCopy.skipForwardTenSeconds()}
 		title={previewCopy.skipForwardTenSeconds()}
@@ -134,7 +134,7 @@
 				onclick={() =>
 					(globalState.getVideoPreviewState.showAlignmentGrid =
 						!globalState.getVideoPreviewState.showAlignmentGrid)}
-				class="preview-control-btn preview-control-btn-grid flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
+				class="preview-control-btn preview-control-btn-grid flex items-center justify-center w-6 h-7 rounded-full transition-colors cursor-pointer duration-200"
 				class:active={isAlignmentGridVisible()}
 				title={isAlignmentGridVisible()
 					? $LL.editor.hideAlignmentGrid()
@@ -150,7 +150,7 @@
 					onclick={() =>
 						(globalState.getVideoPreviewState.showTikTokOverlay =
 							!globalState.getVideoPreviewState.showTikTokOverlay)}
-					class="preview-control-btn preview-control-btn-grid flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
+					class="preview-control-btn preview-control-btn-grid flex items-center justify-center w-6 h-7 rounded-full transition-colors cursor-pointer duration-200"
 					class:active={isTikTokOverlayVisible()}
 					aria-pressed={isTikTokOverlayVisible()}
 					aria-label={isTikTokOverlayVisible()
@@ -167,7 +167,7 @@
 		<button
 			type="button"
 			onclick={globalState.getVideoPreviewState.toggleFullScreen}
-			class="preview-control-btn flex items-center justify-center w-8 h-8 rounded-full transition-colors cursor-pointer duration-200"
+			class="preview-control-btn flex items-center justify-center w-6 h-7 rounded-full transition-colors cursor-pointer duration-200"
 			aria-label={get(LL).editor.fullscreenMode()}
 		>
 			<span class="material-icons text-xl pt-0.25">fullscreen</span>

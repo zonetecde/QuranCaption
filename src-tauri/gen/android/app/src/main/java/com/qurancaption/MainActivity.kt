@@ -131,6 +131,7 @@ class MainActivity : TauriActivity() {
                 webView = view
                 view.visibility = View.INVISIBLE
                 view.settings.javaScriptEnabled = true
+                view.settings.domStorageEnabled = true
                 var injected = false
                 view.webViewClient = object : WebViewClient() {
                     /** Exécute la collecte après le chargement de la galerie. */

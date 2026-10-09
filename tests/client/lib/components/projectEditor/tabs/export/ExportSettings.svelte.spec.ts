@@ -69,7 +69,7 @@ test('collects gallery templates and HTML previews when injected after page load
 	}
 });
 
-test('opens the thumbnail editor with project details from a full-width fifth choice', async () => {
+test('opens the thumbnail editor with project details from a fifth icon choice on the same row', async () => {
 	loadLocale('en');
 	setLocale('en');
 	const preview =
@@ -92,7 +92,9 @@ test('opens the thumbnail editor with project details from a full-width fifth ch
 	expect(choices).toHaveLength(5);
 	const thumbnailChoice = choices[4] as HTMLElement;
 	expect(thumbnailChoice.dataset.choice).toBe('thumbnail');
-	expect(thumbnailChoice.classList.contains('col-span-4')).toBe(true);
+	expect(thumbnailChoice.getAttribute('aria-label')).toBe('Generate thumbnail');
+	expect(thumbnailChoice.textContent?.trim()).toBe('image');
+	expect(thumbnailChoice.getBoundingClientRect().top).toBe(choices[0].getBoundingClientRect().top);
 	thumbnailChoice.click();
 	await expect.element(component.getByText('@sadaalayat', { exact: false })).toBeVisible();
 	await expect.element(component.getByText('Yasser Al Dosari')).toBeVisible();

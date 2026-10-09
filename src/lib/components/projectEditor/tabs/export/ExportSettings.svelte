@@ -134,7 +134,7 @@
 >
 	<div class="min-h-0 min-w-0 flex flex-1 flex-col overflow-hidden px-2 pb-0 pt-3">
 		<div
-			class="export-choice-tabs grid min-w-0 flex-shrink-0 grid-cols-4 gap-1.5"
+			class="export-choice-tabs grid min-w-0 flex-shrink-0 grid-cols-[repeat(4,minmax(0,1fr))_2rem] gap-1.5"
 			role="radiogroup"
 			aria-label={$LL.export.exportType()}
 			tabindex="0"
@@ -144,15 +144,19 @@
 					type="button"
 					role="radio"
 					data-choice={c.id}
+					aria-label={c.label()}
 					aria-checked={globalState.getExportState.selectedChoice === c.id}
 					onclick={() => select(c.id)}
 					class="export-choice-tab"
-					class:col-span-4={c.id === 'thumbnail'}
 					class:export-choice-tab-active={globalState.getExportState.selectedChoice === c.id}
-					title={c.hint()}
+					title={c.id === 'thumbnail' ? c.label() : c.hint()}
 				>
-					<span class="material-icons-outlined text-[16px]!">{c.icon}</span>
-					<span>{c.label()}</span>
+					<span class="material-icons-outlined shrink-0 text-[16px]!" aria-hidden="true"
+						>{c.icon}</span
+					>
+					{#if c.id !== 'thumbnail'}
+						<span class="truncate">{c.label()}</span>
+					{/if}
 				</button>
 			{/each}
 		</div>

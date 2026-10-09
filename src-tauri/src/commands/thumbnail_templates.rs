@@ -33,7 +33,8 @@ pub async fn get_thumbnail_templates(
     app: tauri::AppHandle,
 ) -> Result<Vec<ThumbnailTemplate>, String> {
     let cache_dir = app.path().app_cache_dir().map_err(|e| e.to_string())?;
-    let cache_path = cache_dir.join("thumbnail-templates.json");
+    // Renouvelle les aperçus capturés avant l'activation du stockage DOM de la galerie.
+    let cache_path = cache_dir.join("thumbnail-templates-v2.json");
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|e| e.to_string())?

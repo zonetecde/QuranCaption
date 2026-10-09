@@ -2262,7 +2262,8 @@ const fr = {
 		uthmani1405: 'Mushaf 1405H par Uthman Taha',
 		uthmani1423: 'Mushaf 1423H par Uthman Taha',
 		exportFolder: 'Dossier d\u2019export',
-		exportFolderDescription: 'Choisissez où vos fichiers exportés seront enregistrés.',
+		exportFolderDescription:
+			'Tous les fichiers exportés sont automatiquement enregistrés dans le dossier Téléchargements de votre appareil.',
 		exportSubtitlesButton: 'Exporter les sous-titres',
 		exportSubtitlesButtonDescription:
 			'Générer des fichiers de sous-titres avec votre configuration',
@@ -3378,6 +3379,7 @@ const fr = {
 	},
 	exporterMonitor: {
 		exportsMonitor: 'Moniteur d\u2019exports',
+		downloadsHint: 'Tous les exports sont enregistrés dans Téléchargements.',
 		closeExportMonitor: 'Fermer le moniteur d\u2019exports',
 		cancelExport: 'Annuler l\u2019export',
 		cancelExportConfirm:

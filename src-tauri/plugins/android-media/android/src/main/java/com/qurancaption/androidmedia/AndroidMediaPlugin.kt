@@ -1,10 +1,12 @@
 package com.qurancaption.androidmedia
 
+import android.Manifest
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Color
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -15,6 +17,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import android.view.WindowManager
+import android.webkit.MimeTypeMap
 import androidx.activity.result.ActivityResult
 import androidx.core.content.FileProvider
 import androidx.core.view.WindowInsetsControllerCompat
@@ -22,10 +25,13 @@ import app.tauri.Logger
 import app.tauri.annotation.ActivityCallback
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
+import app.tauri.annotation.Permission
+import app.tauri.annotation.PermissionCallback
 import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Invoke
 import app.tauri.plugin.JSObject
 import app.tauri.plugin.Plugin
+import app.tauri.PermissionState
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.FFmpegKitConfig
 import com.arthenica.ffmpegkit.FFmpegSession
@@ -34,13 +40,13 @@ import com.arthenica.ffmpegkit.FFprobeKit
 import com.arthenica.ffmpegkit.SessionState
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileInputStream
-import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.InputStream
-import java.io.OutputStream
 import java.security.KeyStore
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -129,7 +135,9 @@ class SecureKeyArgs {
     lateinit var key: String
 }
 
-@TauriPlugin
+@TauriPlugin(permissions = [
+    Permission(strings = [Manifest.permission.WRITE_EXTERNAL_STORAGE], alias = "downloads")
+])
 class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
     private val hostActivity = activity
     private val ffmpegLogOffsets = ConcurrentHashMap<Long, Int>()
@@ -268,14 +276,13 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
     }
 
     /**
-     * Copie un fichier local vers une URI Android sans charger son contenu en mémoire.
+     * Publie un fichier local dans Download sans charger son contenu en mémoire.
      *
-     * Un chemin de destination local, brut ou préfixé par `file://`, est aussi accepté.
-     *
-     * @param invoke Appel Tauri contenant le chemin source et l'URI de destination.
+     * @param invoke Appel Tauri contenant le chemin source et le nom de destination.
      */
     @Command
     fun publishFile(invoke: Invoke) {
+        if (!ensureDownloadsPermission(invoke)) return
         val args = try {
             invoke.parseArgs(PublishFileArgs::class.java)
         } catch (error: Exception) {
@@ -287,17 +294,8 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
             val source = localFile(args.sourcePath)
             require(source.isFile) { "Source file does not exist: ${args.sourcePath}" }
 
-            var publishedUri = args.destinationUri
             BufferedInputStream(FileInputStream(source), COPY_BUFFER_SIZE).use { input ->
-                val (output, normalizedUri) = openPublishDestination(args.destinationUri)
-                publishedUri = normalizedUri
-                BufferedOutputStream(output, COPY_BUFFER_SIZE).use { destination ->
-                    input.copyTo(destination, COPY_BUFFER_SIZE)
-                }
-            }
-
-            JSObject().apply {
-                put("uri", publishedUri)
+                writeFileToDownloads(resolveDisplayName(args.destinationUri), input)
             }
         }
     }
@@ -440,12 +438,13 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
     }
 
     /**
-     * Écrit un fichier JSON dans le dossier public Download via MediaStore.
+     * Écrit un fichier texte dans le dossier public Download.
      *
      * @param invoke Appel Tauri contenant le nom et le contenu du fichier.
      */
     @Command
     fun saveTextFileToDownloads(invoke: Invoke) {
+        if (!ensureDownloadsPermission(invoke)) return
         val args = try {
             invoke.parseArgs(SaveDownloadFileArgs::class.java)
         } catch (error: Exception) {
@@ -454,7 +453,9 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
         }
 
         runInBackground(invoke, "Failed to save file to Downloads") {
-            writeTextFileToDownloads(args.fileName, args.content)
+            ByteArrayInputStream(args.content.toByteArray(Charsets.UTF_8)).use { input ->
+                writeFileToDownloads(args.fileName, input)
+            }
         }
     }
 
@@ -839,86 +840,100 @@ class AndroidMediaPlugin(activity: Activity) : Plugin(activity) {
     }
 
     /**
-     * Ouvre la destination d'une publication et normalise sa valeur de retour.
-     *
-     * @param value URI Android ou chemin local de destination.
-     * @return Flux de sortie et URI ou chemin publié.
+     * Demande l'accès à Download sur Android 7 à 9 lorsque nécessaire.
+     * @param invoke Appel à reprendre après autorisation.
+     * @return `true` si la publication peut démarrer.
      */
-    private fun openPublishDestination(value: String): Pair<OutputStream, String> {
-        val uri = Uri.parse(value)
-        if (uri.scheme.equals("content", ignoreCase = true)) {
-            try {
-                hostActivity.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                )
-            } catch (_: SecurityException) {
-                // Certains fournisseurs accordent uniquement l'accès pour la session courante.
-            }
-            val stream = try {
-                hostActivity.contentResolver.openOutputStream(uri, "rwt")
-            } catch (_: FileNotFoundException) {
-                null
-            } ?: hostActivity.contentResolver.openOutputStream(uri, "w")
-                ?: error("Cannot open destination URI: $value")
-            return stream to uri.toString()
-        }
+    private fun ensureDownloadsPermission(invoke: Invoke): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ||
+            getPermissionState("downloads") == PermissionState.GRANTED) return true
 
-        require(uri.scheme == null || uri.scheme.equals("file", ignoreCase = true)) {
-            "Unsupported destination URI: $value"
+        hostActivity.runOnUiThread {
+            requestPermissionForAlias("downloads", invoke, "downloadsPermissionResult")
         }
-        val destination = localFile(value)
-        destination.parentFile?.let { parent ->
-            require(parent.isDirectory || (!parent.exists() && parent.mkdirs())) {
-                "Cannot create destination directory: ${parent.absolutePath}"
-            }
+        return false
+    }
+
+    /**
+     * Reprend la publication après l'autorisation de stockage Android.
+     * @param invoke Appel de publication en attente.
+     */
+    @PermissionCallback
+    fun downloadsPermissionResult(invoke: Invoke) {
+        if (getPermissionState("downloads") != PermissionState.GRANTED) {
+            invoke.reject("Downloads storage permission denied")
+            return
         }
-        return FileOutputStream(destination) to if (uri.scheme == null) {
-            destination.absolutePath
-        } else {
-            uri.toString()
+        when (invoke.command) {
+            "publishFile" -> publishFile(invoke)
+            "saveTextFileToDownloads" -> saveTextFileToDownloads(invoke)
         }
     }
 
     /**
-     * Crée et remplit un document JSON dans la collection publique Downloads.
-     *
-     * @param fileName Nom proposé pour le document.
-     * @param content Contenu UTF-8 du document.
-     * @return Réponse contenant l'URI publique créée.
+     * Copie un flux dans Download et publie son type MIME pour les autres applications.
+     * @param fileName Nom proposé pour le fichier.
+     * @param input Flux source, fermé par l'appelant.
+     * @return Réponse contenant l'URI publique ou le chemin créé.
      */
-    private fun writeTextFileToDownloads(fileName: String, content: String): JSObject {
-        require(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            "Public Downloads export requires Android 10 or newer"
+    private fun writeFileToDownloads(fileName: String, input: InputStream): JSObject {
+        val extension = File(fileName).extension.lowercase(Locale.ROOT).take(16)
+        val ending = if (extension.isEmpty()) "" else ".${sanitizeFileName(extension)}"
+        val safeName = sanitizeFileName(File(fileName).nameWithoutExtension)
+            .take(MAX_FILENAME_LENGTH - ending.length) + ending
+        val mimeType = when (extension) {
+            "json" -> "application/json"
+            "qc" -> "application/zip"
+            "srt" -> "application/x-subrip"
+            "vtt" -> "text/vtt"
+            "txt" -> "text/plain"
+            "mp4" -> "video/mp4"
+            "webm" -> "video/webm"
+            "mov" -> "video/quicktime"
+            else -> MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
+                ?: "application/octet-stream"
+        }
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            val folder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            require(folder.isDirectory || folder.mkdirs()) { "Unable to create public Downloads" }
+            val destination = createAvailableFile(folder, safeName)
+            try {
+                BufferedOutputStream(FileOutputStream(destination), COPY_BUFFER_SIZE).use { output ->
+                    input.copyTo(output, COPY_BUFFER_SIZE)
+                }
+            } catch (error: Exception) {
+                destination.delete()
+                throw error
+            }
+            MediaScannerConnection.scanFile(
+                hostActivity, arrayOf(destination.absolutePath), arrayOf(mimeType), null
+            )
+            return JSObject().apply { put("uri", destination.absolutePath) }
         }
 
         val values = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, sanitizeFileName(fileName))
-            put(MediaStore.MediaColumns.MIME_TYPE, "application/json")
+            put(MediaStore.MediaColumns.DISPLAY_NAME, safeName)
+            put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
             put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
             put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
         val resolver = hostActivity.contentResolver
         val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
             ?: error("Unable to create file in public Downloads")
-
         try {
-            resolver.openOutputStream(uri, "w")?.use { output ->
-                output.write(content.toByteArray(Charsets.UTF_8))
-            } ?: error("Unable to open file in public Downloads")
-
-            resolver.update(
-                uri,
-                ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) },
-                null,
-                null
-            )
+            val stream = resolver.openOutputStream(uri, "w")
+                ?: error("Unable to open file in public Downloads")
+            BufferedOutputStream(stream, COPY_BUFFER_SIZE).use { output ->
+                input.copyTo(output, COPY_BUFFER_SIZE)
+            }
+            check(resolver.update(uri, ContentValues().apply {
+                put(MediaStore.MediaColumns.IS_PENDING, 0)
+            }, null, null) == 1) { "Unable to publish file in public Downloads" }
         } catch (error: Exception) {
             resolver.delete(uri, null, null)
             throw error
         }
-
         return JSObject().apply { put("uri", uri.toString()) }
     }
 

@@ -182,7 +182,8 @@ const export_ = {
 	uthmani1405: '1405H Mushaf by Uthman Taha',
 	uthmani1423: '1423H Mushaf by Uthman Taha',
 	exportFolder: 'Export Folder',
-	exportFolderDescription: 'Choose where your exported files will be saved.',
+	exportFolderDescription:
+		'All exported files are saved automatically in your device’s Downloads folder.',
 	exportSubtitlesButton: 'Export Subtitles',
 	exportSubtitlesButtonDescription: 'Generate subtitle files with your selected configuration',
 	exportYoutubeChapters: 'Export YouTube Chapters',

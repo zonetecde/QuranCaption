@@ -1,5 +1,6 @@
 const exporterMonitor = {
 	exportsMonitor: 'مراقب الصادرات',
+	downloadsHint: 'تُحفظ جميع الصادرات في مجلد التنزيلات.',
 	closeExportMonitor: 'إغلاق مراقب التصدير',
 	exportFolderSizeLabel: 'مجلد الصادرات:',
 	openExportFolder: 'افتح مجلد الصادرات',

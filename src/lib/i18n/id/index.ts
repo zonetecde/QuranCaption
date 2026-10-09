@@ -1558,7 +1558,8 @@ const id = {
 		arabicTextFormat: 'Format teks Arab',
 		arabicTextFormatDescription: 'Format tulisan Arab untuk subtitle kamu.',
 		exportFolder: 'Folder export',
-		exportFolderDescription: 'Pilih lokasi penyimpanan file hasil export.',
+		exportFolderDescription:
+			'Semua file hasil ekspor otomatis disimpan di folder Download perangkat Anda.',
 		exportSubtitlesButton: 'Ekspor Subtitle',
 		exportSubtitlesButtonDescription: 'Generate file subtitle dengan konfigurasi yang kamu pilih',
 		exportYoutubeChapters: 'Ekspor Chapter YouTube',
@@ -2012,6 +2013,7 @@ const id = {
 	exporterMonitor: {
 		...baseEn.exporterMonitor,
 		exportsMonitor: 'Monitor Ekspor',
+		downloadsHint: 'Semua ekspor disimpan di folder Download.',
 		closeExportMonitor: 'Tutup monitor export',
 		cancelExport: 'Batalkan export',
 		cancelExportConfirm: 'Yakin ingin membatalkan export ini? Progres kamu akan hilang.',

@@ -85,7 +85,7 @@
 	aria-haspopup="dialog"
 	aria-expanded={showToolsPopover}
 >
-	<span class="material-icons pt-1.5 text-[1.125rem]">construction</span>
+	<span class="material-icons pt-1.5 text-[1.125rem]!">construction</span>
 	{#if showToolsPopover}
 		<div
 			id="tools-popover"

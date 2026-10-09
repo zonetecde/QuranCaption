@@ -378,11 +378,14 @@
 						<p class="text-xs text-thirdly">
 							{get(LL).export.inProgressCount({ count: ongoingCount })}
 						</p>
+						<p class="mt-1 text-[11px] leading-snug text-secondary">
+							{monitorMessage('downloadsHint')}
+						</p>
 					</div>
 				</div>
 				<button
 					type="button"
-					class="touch-button"
+					class="touch-button shrink-0"
 					onclick={closeMonitor}
 					aria-label={$LL.exporterMonitor.closeExportMonitor()}
 				>

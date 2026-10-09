@@ -2259,7 +2259,8 @@ const de = {
 		uthmani1405: 'Mushaf 1405H von Uthman Taha',
 		uthmani1423: 'Mushaf 1423H von Uthman Taha',
 		exportFolder: 'Exportordner',
-		exportFolderDescription: 'Wählen Sie, wo Ihre exportierten Dateien gespeichert werden sollen.',
+		exportFolderDescription:
+			'Alle exportierten Dateien werden automatisch im Downloads-Ordner Ihres Geräts gespeichert.',
 		exportSubtitlesButton: 'Untertitel exportieren',
 		exportSubtitlesButtonDescription: 'Untertiteldateien mit Ihrer Konfiguration generieren',
 		exportYoutubeChapters: 'YouTube-Kapitel exportieren',
@@ -3359,6 +3360,7 @@ const de = {
 	},
 	exporterMonitor: {
 		exportsMonitor: 'Export-Monitor',
+		downloadsHint: 'Alle Exporte werden im Downloads-Ordner gespeichert.',
 		closeExportMonitor: 'Export-Monitor schließen',
 		cancelExport: 'Export abbrechen',
 		cancelExportConfirm:

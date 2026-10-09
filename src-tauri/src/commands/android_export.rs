@@ -3,11 +3,11 @@ use tauri::Manager;
 #[cfg(target_os = "android")]
 use tauri_plugin_android_media::AndroidMediaExt;
 
-/// Enregistre un fichier JSON dans le dossier public Download du téléphone.
+/// Enregistre un fichier texte dans le dossier public Download du téléphone.
 ///
 /// @param app_handle Handle de l'application.
 /// @param file_name Nom du fichier à créer.
-/// @param content Contenu JSON à enregistrer.
+/// @param content Contenu UTF-8 à enregistrer.
 /// @returns URI Android ou chemin du fichier enregistré.
 #[tauri::command]
 pub async fn save_android_download_file(
@@ -41,11 +41,11 @@ pub async fn save_android_download_file(
     }
 }
 
-/// Publie un rendu privé vers la destination choisie par le sélecteur Android.
+/// Publie un rendu privé dans le dossier public Download Android.
 ///
 /// @param app_handle Handle de l'application.
 /// @param source_path Chemin réel du rendu FFmpeg.
-/// @param destination_uri URI SAF ou chemin final.
+/// @param destination_uri Nom proposé pour le fichier publié.
 /// @returns URI ou chemin effectivement publié.
 #[tauri::command]
 pub async fn publish_android_export(

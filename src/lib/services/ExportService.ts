@@ -114,14 +114,10 @@ export default class ExportService {
 	}
 
 	/**
-	 * Retourne le chemin du dossier d'export.
-	 * @returns Le chemin du dossier d'export
+	 * Retourne le dossier privé des fichiers de travail avant publication dans Download.
+	 * @returns {Promise<string>} Chemin du dossier de travail.
 	 */
 	static async getExportFolder(): Promise<string> {
-		if (globalState.settings?.persistentUiState.videoExportFolder) {
-			return globalState.settings.persistentUiState.videoExportFolder;
-		}
-
 		return join(await appDataDir(), this.exportFolder);
 	}
 
@@ -149,7 +145,7 @@ export default class ExportService {
 		let filePath = options.finalFilePath ?? (await join(await this.getExportFolder(), fileName));
 
 		filePath = await this.constrainFilePathLength(filePath);
-		fileName = filePath.split(/[/\\]/).at(-1)!;
+		if (!options.finalFileName) fileName = filePath.split(/[/\\]/).at(-1)!;
 		if (options.finalFilePath && (await exists(filePath))) throw new Error('EXPORT_FILE_EXISTS');
 
 		console.log('Final export file path:', filePath);

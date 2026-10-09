@@ -2052,7 +2052,7 @@ const zh = {
 		uthmani1405: 'Mushaf 1405H by Uthman Taha',
 		uthmani1423: 'Mushaf 1423H by Uthman Taha',
 		exportFolder: '导出文件夹',
-		exportFolderDescription: '选择导出文件的保存位置。',
+		exportFolderDescription: '所有导出的文件都会自动保存到设备的下载文件夹。',
 		exportSubtitlesButton: '导出字幕',
 		exportSubtitlesButtonDescription: '使用您的配置生成字幕文件',
 		exportYoutubeChapters: '导出 YouTube 章节',
@@ -3043,6 +3043,7 @@ const zh = {
 	},
 	exporterMonitor: {
 		exportsMonitor: '导出监视器',
+		downloadsHint: '所有导出文件均保存在下载文件夹中。',
 		closeExportMonitor: '关闭导出监视器',
 		cancelExport: '取消导出',
 		cancelExportConfirm: '您确定要取消此导出吗？您的进度将丢失。',

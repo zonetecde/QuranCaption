@@ -169,7 +169,7 @@ const export_ = {
 	uthmani1405: 'مصحف 1405هـ لعثمان طه',
 	uthmani1423: 'مصحف 1423هـ لعثمان طه',
 	exportFolder: 'مجلد التصدير',
-	exportFolderDescription: 'اختر المكان الذي سيتم حفظ الملفات المصدرة فيه.',
+	exportFolderDescription: 'تُحفظ جميع الملفات المصدّرة تلقائيًا في مجلد التنزيلات على جهازك.',
 	exportSubtitlesButton: 'تصدير ترجمات',
 	exportSubtitlesButtonDescription: 'قم بإنشاء ملفات الترجمة بالتكوين الذي حددته',
 	exportYoutubeChapters: 'تصدير فصول يوتيوب',

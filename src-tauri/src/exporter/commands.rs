@@ -390,7 +390,7 @@ pub async fn export_video(
 /// @param app Handle Tauri donnant accès au plugin Android.
 /// @param export_id Identifiant de l'export final.
 /// @param local_path Chemin privé produit par FFmpeg.
-/// @param destination_uri URI SAF choisie par l'utilisateur, absente pour un segment intermédiaire.
+/// @param destination_uri Nom proposé dans Download, absent pour un segment intermédiaire.
 /// @returns URI publiée, ou chemin local lorsqu'aucune publication n'est demandée.
 pub(super) fn publish_completed_android_export(
 	app: &tauri::AppHandle,

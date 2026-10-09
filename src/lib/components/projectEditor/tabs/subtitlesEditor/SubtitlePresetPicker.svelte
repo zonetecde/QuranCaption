@@ -98,23 +98,24 @@
 	/**
 	 * Valide le choix courant en mode ajout ou modification.
 	 *
-	 * @returns {void}
+	 * @returns {boolean} `true` si un preset sélectionné a été traité.
 	 */
-	function applyPreset(): void {
-		if (!selectedPreset) return;
+	export function applyPreset(): boolean {
+		if (!selectedPreset) return false;
 
 		if (selectedPreset === "Qur'an") {
 			void onAddQuranSubtitle();
 			onClose();
-			return;
+			return true;
 		}
 
 		if (isEditing) {
 			editPreset(selectedPreset);
-			return;
+			return true;
 		}
 
 		addPreset(selectedPreset);
+		return true;
 	}
 
 	/**

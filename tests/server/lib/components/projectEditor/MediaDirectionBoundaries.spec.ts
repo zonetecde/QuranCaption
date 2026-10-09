@@ -23,7 +23,7 @@ describe('media editor direction boundaries', () => {
 	test('keeps the video preview and its controls independent from the application locale', () => {
 		expect(previewWorkspace).toMatch(/<section\s+dir="ltr"[\s\S]*?id="video-preview-section"/);
 		expect(previewWorkspace).toMatch(/<div\s+dir="ltr"[\s\S]*?id="preview-container"/);
-		expect(previewControls).toMatch(/<div\s+dir="ltr"\s+class="bg-primary/);
+		expect(previewControls).toMatch(/<div\s+dir="ltr"[^>]*\brole="group"/);
 	});
 
 	test('keeps timeline geometry independent from the application locale', () => {

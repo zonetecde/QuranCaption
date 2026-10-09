@@ -28,9 +28,9 @@ pub fn initialize_ffmpeg(app_handle: tauri::AppHandle) -> Result<(), String> {
         .map_err(|_| "Android FFmpeg handle is already initialized".to_string())
 }
 
-/// Autorise le paysage Android ou restaure le verrouillage en portrait.
+/// Force le paysage Android ou restaure le verrouillage en portrait.
 ///
-/// @param allowed `true` pour suivre le capteur, `false` pour forcer le portrait.
+/// @param allowed `true` pour forcer le paysage, `false` pour forcer le portrait.
 /// @returns Erreur JNI éventuelle.
 pub fn set_landscape_allowed(allowed: bool) -> Result<(), String> {
     let context = ndk_context::android_context();

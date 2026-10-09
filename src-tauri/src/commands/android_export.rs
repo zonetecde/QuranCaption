@@ -221,9 +221,9 @@ pub async fn set_android_export_keep_screen_on(
     }
 }
 
-/// Autorise le paysage Android uniquement pour la prévisualisation plein écran.
+/// Force le paysage Android pour la prévisualisation plein écran ou restaure le portrait.
 ///
-/// @param allowed `true` pour suivre le capteur, `false` pour forcer le portrait.
+/// @param allowed `true` pour forcer le paysage, `false` pour forcer le portrait.
 /// @returns Erreur native éventuelle.
 #[tauri::command]
 pub fn set_android_landscape_allowed(allowed: bool) -> Result<(), String> {

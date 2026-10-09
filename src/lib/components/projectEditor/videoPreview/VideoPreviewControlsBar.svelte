@@ -5,9 +5,11 @@
 	import { get } from 'svelte/store';
 
 	let {
-		togglePlayPause
+		togglePlayPause,
+		overlay = false
 	}: {
 		togglePlayPause: () => void;
+		overlay?: boolean;
 	} = $props();
 
 	let isPlaying = $derived(() => globalState.getVideoPreviewState.isPlaying);
@@ -80,7 +82,9 @@
 
 <div
 	dir="ltr"
-	class="bg-primary w-full min-w-0 flex items-center gap-1 rounded-t-xl px-2 py-1"
+	class="w-full min-w-0 flex items-center gap-1 rounded-t-xl px-2 py-1"
+	class:bg-primary={!overlay}
+	class:fullscreen-overlay={overlay}
 	role="group"
 	aria-label={get(LL).editor.playbackControls()}
 	onkeydown={handleControlKeydown}
@@ -128,7 +132,7 @@
 	<span class="monospaced shrink-0 text-[11px] leading-none">{videoDuration()}</span>
 
 	<div class="flex shrink-0 items-center gap-x-1">
-		{#if isStyleTab()}
+		{#if isStyleTab() && !overlay}
 			<button
 				type="button"
 				onclick={() =>
@@ -168,14 +172,29 @@
 			type="button"
 			onclick={globalState.getVideoPreviewState.toggleFullScreen}
 			class="preview-control-btn flex items-center justify-center w-6 h-7 rounded-full transition-colors cursor-pointer duration-200"
-			aria-label={get(LL).editor.fullscreenMode()}
+			aria-label={globalState.getVideoPreviewState.isFullscreen
+				? get(LL).editor.exitFullscreen()
+				: get(LL).editor.fullscreenMode()}
 		>
-			<span class="material-icons text-xl pt-0.25">fullscreen</span>
+			<span class="material-icons text-xl pt-0.25">
+				{globalState.getVideoPreviewState.isFullscreen ? 'fullscreen_exit' : 'fullscreen'}
+			</span>
 		</button>
 	</div>
 </div>
 
 <style>
+	.fullscreen-overlay {
+		border-radius: 12px;
+		background: rgb(0 0 0 / 75%);
+		color: white;
+		padding-block: 8px;
+	}
+
+	.fullscreen-overlay .preview-control-btn {
+		color: white;
+	}
+
 	.preview-control-btn {
 		color: var(--text-primary);
 	}

@@ -932,6 +932,7 @@ const id = {
 		skipBackwardTenSeconds: 'Mundur 10 detik',
 		skipForwardTenSeconds: 'Maju 10 detik',
 		seekVideo: 'Posisi video',
+		exitFullscreen: 'Keluar dari layar penuh',
 		searchTranslations: 'Teks terjemahan',
 		addNewTranslation: 'Tambah terjemahan baru',
 		translationFilters: 'Filter terjemahan',

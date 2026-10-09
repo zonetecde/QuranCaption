@@ -6,7 +6,8 @@ git add src/lib/i18n/i18n-types.ts src/lib/i18n/i18n-util.ts src/lib/i18n/i18n-u
 # Formate tous les fichiers stagés avec Prettier avant le commit
 FILES=$(git diff --cached --name-only --diff-filter=ACMR)
 [ -z "$FILES" ] || npx prettier --write --ignore-unknown $FILES
-[ -z "$FILES" ] || git add $FILES
+# Met à jour les fichiers déjà dans l'index, même sous un dossier ignoré.
+[ -z "$FILES" ] || git add -u -- $FILES
 
 
 npm run verify

@@ -81,14 +81,14 @@ class MainActivity : TauriActivity() {
     fun nativeAudioRelease() = NativeAudioPlayer.release()
 
     /**
-     * Autorise la rotation complète uniquement pendant le plein écran vidéo.
+     * Passe en paysage pendant le plein écran vidéo ou restaure le portrait.
      *
-     * @param allowed Vrai pour suivre le capteur, faux pour verrouiller le portrait.
+     * @param allowed Vrai pour forcer le paysage, faux pour verrouiller le portrait.
      */
     @Keep
     fun nativeSetLandscapeAllowed(allowed: Boolean) = runOnUiThread {
         requestedOrientation = if (allowed) {
-            ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         } else {
             ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }

@@ -6864,7 +6864,7 @@ type RootTranslation = {
 		 */
 		exportFolder: string;
 		/**
-		 * C​h​o​o​s​e​ ​w​h​e​r​e​ ​y​o​u​r​ ​e​x​p​o​r​t​e​d​ ​f​i​l​e​s​ ​w​i​l​l​ ​b​e​ ​s​a​v​e​d​.
+		 * A​l​l​ ​e​x​p​o​r​t​e​d​ ​f​i​l​e​s​ ​a​r​e​ ​s​a​v​e​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​i​n​ ​y​o​u​r​ ​d​e​v​i​c​e​’​s​ ​D​o​w​n​l​o​a​d​s​ ​f​o​l​d​e​r​.
 		 */
 		exportFolderDescription: string;
 		/**
@@ -10860,6 +10860,10 @@ type RootTranslation = {
 		 * E​x​p​o​r​t​s​ ​M​o​n​i​t​o​r
 		 */
 		exportsMonitor: string;
+		/**
+		 * A​l​l​ ​e​x​p​o​r​t​s​ ​a​r​e​ ​s​a​v​e​d​ ​i​n​ ​t​h​e​ ​D​o​w​n​l​o​a​d​s​ ​f​o​l​d​e​r​.
+		 */
+		downloadsHint: string;
 		/**
 		 * C​l​o​s​e​ ​e​x​p​o​r​t​ ​m​o​n​i​t​o​r
 		 */
@@ -19028,7 +19032,7 @@ export type TranslationFunctions = {
 		 */
 		exportFolder: () => LocalizedString;
 		/**
-		 * Choose where your exported files will be saved.
+		 * All exported files are saved automatically in your device’s Downloads folder.
 		 */
 		exportFolderDescription: () => LocalizedString;
 		/**
@@ -22970,6 +22974,10 @@ export type TranslationFunctions = {
 		 * Exports Monitor
 		 */
 		exportsMonitor: () => LocalizedString;
+		/**
+		 * All exports are saved in the Downloads folder.
+		 */
+		downloadsHint: () => LocalizedString;
 		/**
 		 * Close export monitor
 		 */

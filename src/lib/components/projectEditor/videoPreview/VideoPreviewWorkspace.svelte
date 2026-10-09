@@ -25,6 +25,7 @@
 		typeof window !== 'undefined' && window.location.pathname.includes('/exporter');
 	const NATIVE_SILENCE_PATH = '__qurancaption_silence__';
 	let lastTimeErrorShown = 0; // Timestamp of the last error shown (prevent spam)
+	let fullscreenControlsVisible = $state(false);
 
 	// === ÉTATS RÉACTIFS DÉRIVÉS ===
 	// Récupère les paramètres de la timeline depuis l'état global
@@ -111,6 +112,9 @@
 	type VideoClipTransitionMode = 'none' | 'fade-through-black' | 'crossfade';
 
 	// === EFFETS RÉACTIFS ===
+	$effect(() => {
+		if (!globalState.getVideoPreviewState.isFullscreen) fullscreenControlsVisible = false;
+	});
 
 	// Effect qui redimensionne la vidéo quand la hauteur de la prévisualisation change
 	$effect(() => {
@@ -121,8 +125,13 @@
 	});
 
 	$effect(() => {
+		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
+			| { width: number; height: number }
+			| undefined;
 		void invoke('set_android_landscape_allowed', {
-			allowed: globalState.getVideoPreviewState.isFullscreen
+			allowed:
+				globalState.getVideoPreviewState.isFullscreen &&
+				Boolean(dimensions && dimensions.width >= dimensions.height)
 		}).catch((error) => console.error('Android orientation error:', error));
 	});
 
@@ -512,7 +521,7 @@
 					backgroundDiv.style.backgroundColor = '#11151c';
 					backgroundDiv.style.background =
 						'repeating-linear-gradient(45deg, #161b22, #161b22 5px, #11151c 5px, #11151c 25px)';
-					backgroundDiv.addEventListener('click', exitMobileFullscreen);
+					backgroundDiv.addEventListener('click', toggleFullscreenControls);
 					document.body.appendChild(backgroundDiv);
 				}
 
@@ -1254,20 +1263,19 @@
 	}
 
 	/**
-	 * Quitte le plein écran mobile depuis la vidéo ou son arrière-plan quadrillé.
+	 * Affiche ou masque les contrôles depuis la vidéo ou son arrière-plan en plein écran.
 	 * @param {MouseEvent} event Événement de clic reçu par la vidéo ou son arrière-plan.
 	 * @returns {void}
 	 */
-	function exitMobileFullscreen(event: MouseEvent): void {
-		if (!isAndroid || !globalState.getVideoPreviewState.isFullscreen) return;
+	function toggleFullscreenControls(event: MouseEvent): void {
+		if (!globalState.getVideoPreviewState.isFullscreen) return;
 		if (
 			event.target instanceof Element &&
 			event.target.closest('button, input, select, textarea, a, [contenteditable="true"]')
 		) {
 			return;
 		}
-		globalState.getVideoPreviewState.isFullscreen = false;
-		resizeVideoToFitScreen();
+		fullscreenControlsVisible = !fullscreenControlsVisible;
 	}
 
 	onMount(() => {
@@ -1293,7 +1301,7 @@
 		dir="ltr"
 		class="w-full h-full flex flex-col relative overflow-hidden background-primary"
 		id="preview-container"
-		onclick={exitMobileFullscreen}
+		onclick={toggleFullscreenControls}
 	>
 		<!-- Conteneur de la prévisualisation vidéo avec mise à l'échelle -->
 		<div class="relative origin-top-left overflow-hidden bg-black" id="preview">
@@ -1332,11 +1340,26 @@
 	</div>
 </section>
 
-{#if showControls}
+{#if globalState.getVideoPreviewState.isFullscreen}
+	{#if fullscreenControlsVisible}
+		<div class="fullscreen-preview-controls">
+			<VideoPreviewControlsBar {togglePlayPause} overlay />
+		</div>
+	{/if}
+{:else if showControls}
 	<VideoPreviewControlsBar {togglePlayPause} />
 {/if}
 
 <style>
+	.fullscreen-preview-controls {
+		position: fixed;
+		inset-inline: 0;
+		bottom: 0;
+		z-index: 10000;
+		padding: 8px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom))
+			max(8px, env(safe-area-inset-left));
+	}
+
 	/* Styles pour assurer un dimensionnement correct */
 	#preview-container {
 		height: 100%;

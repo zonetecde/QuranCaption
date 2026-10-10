@@ -1,5 +1,10 @@
 import type { ProjectContent } from '$lib/classes/ProjectContent.svelte';
-import type { StylesData, VideoStyle, VideoStyleFileData } from '$lib/classes/VideoStyle.svelte';
+import type {
+	StyleName,
+	StylesData,
+	VideoStyle,
+	VideoStyleFileData
+} from '$lib/classes/VideoStyle.svelte';
 import { importCustomStyleClips } from './ProjectStyleContentService';
 
 type ApplyStylePresetOptions = {
@@ -29,6 +34,16 @@ export function getPresetTranslationTargets(data: VideoStyleFileData): string[] 
  * @returns {Promise<void>} Promesse résolue après la mise à niveau du schéma.
  */
 export async function applyStylePresetToProject(options: ApplyStylePresetOptions): Promise<void> {
+	const preservedStyleIds: StyleName[] = [
+		'video-clip-transition',
+		'video-clip-transition-duration',
+		'media-position-x',
+		'media-position-y',
+		'media-scale'
+	];
+	const previousGlobalStyles = options.videoStyle.styles.find(
+		(styles) => styles.target === 'global'
+	);
 	const videoStyleConstructor = options.videoStyle.constructor as unknown as {
 		fromJSON(data: Record<string, unknown>): VideoStyle;
 	};
@@ -65,6 +80,28 @@ export async function applyStylePresetToProject(options: ApplyStylePresetOptions
 			: (options.data.customTextClips ?? [])
 	);
 	await options.videoStyle.ensureStylesSchemaUpToDate(options.projectContent);
+	const globalStyles = options.videoStyle.styles.find((styles) => styles.target === 'global');
+	if (previousGlobalStyles && globalStyles) {
+		for (const id of preservedStyleIds) {
+			const previous = previousGlobalStyles.findStyle(id);
+			const current = globalStyles.findStyle(id);
+			if (previous && current) {
+				current.value = previous.value;
+				current.keyframes = previous.keyframes;
+			}
+			for (const key of ['overrides', 'overrideKeyframes'] as const) {
+				const clipIds = new Set([
+					...Object.keys(previousGlobalStyles[key]),
+					...Object.keys(globalStyles[key])
+				]);
+				for (const clipId of clipIds) {
+					const value = previousGlobalStyles[key][Number(clipId)]?.[id];
+					if (value === undefined) delete globalStyles[key][Number(clipId)]?.[id];
+					else (globalStyles[key][Number(clipId)] ??= {})[id] = value;
+				}
+			}
+		}
+	}
 }
 
 /**

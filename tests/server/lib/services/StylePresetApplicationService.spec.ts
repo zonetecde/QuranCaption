@@ -11,6 +11,7 @@ import {
 	VideoStyle
 } from '$lib/classes';
 import type { Edition } from '$lib/classes/Edition';
+import type { StyleName } from '$lib/classes/VideoStyle.svelte';
 import { CustomTextTrack } from '$lib/classes/Track.svelte';
 import {
 	applyStylePresetToProject,
@@ -19,6 +20,79 @@ import {
 import { getCustomStyleClips } from '$lib/services/ProjectStyleContentService';
 
 describe('StylePresetApplicationService', () => {
+	it.each([true, false])(
+		'preserves video transitions and background transforms when preset settings are present: %s',
+		async (includePreservedStyles) => {
+			const values: Partial<Record<StyleName, string | number>> = {
+				'video-clip-transition': 'crossfade',
+				'video-clip-transition-duration': 1200,
+				'media-position-x': 25,
+				'media-position-y': -15,
+				'media-scale': 180
+			};
+			const previous = new StylesData('global', [
+				new Category({
+					id: 'general',
+					styles: Object.entries(values).map(([id, value]) => new Style({ id, value }))
+				})
+			]);
+			previous.findStyle('media-scale')!.keyframes = [{ time: 1000, value: 200 }];
+			previous.overrides = { 7: { 'media-position-x': 40 } };
+			previous.overrideKeyframes = { 7: { 'media-scale': [{ time: 2000, value: 220 }] } };
+			const target = new VideoStyle();
+			target.styles = [previous];
+			const source = new VideoStyle();
+			source.styles = [
+				new StylesData('global', [
+					new Category({
+						id: 'general',
+						styles: [
+							...(includePreservedStyles
+								? Object.keys(values).map((id) => new Style({ id, value: 0 }))
+								: []),
+							new Style({ id: 'fade-duration', value: 300 })
+						]
+					})
+				])
+			];
+			source.styles[0].overrides = {
+				7: { 'media-position-x': -50, 'overlay-opacity': 0.4 },
+				8: { 'media-scale': 250 }
+			};
+			source.styles[0].overrideKeyframes = {
+				8: { 'media-position-y': [{ time: 1000, value: 80 }] }
+			};
+			const content = new ProjectContent(
+				new Timeline([new CustomTextTrack()]),
+				[],
+				new ProjectTranslation(),
+				target
+			);
+			vi.spyOn(target, 'ensureStylesSchemaUpToDate').mockImplementation(async () => {
+				const styles = target.getStylesOfTarget('global');
+				for (const id of Object.keys(values) as StyleName[]) {
+					if (!styles.findStyle(id)) styles.categories[0].styles.push(new Style({ id, value: 0 }));
+				}
+				return false;
+			});
+			await applyStylePresetToProject({
+				videoStyle: target,
+				projectContent: content,
+				data: { videoStyle: JSON.parse(JSON.stringify(source)) }
+			});
+			const actual = target.getStylesOfTarget('global');
+			for (const [id, value] of Object.entries(values)) {
+				expect(actual.findStyle(id as StyleName)?.value).toBe(value);
+			}
+			expect(actual.findStyle('media-scale')?.keyframes).toEqual([{ time: 1000, value: 200 }]);
+			expect(actual.overrides[7]).toEqual({ 'media-position-x': 40, 'overlay-opacity': 0.4 });
+			expect(actual.overrides[8]?.['media-scale']).toBeUndefined();
+			expect(actual.overrideKeyframes[7]).toEqual(previous.overrideKeyframes[7]);
+			expect(actual.overrideKeyframes[8]?.['media-position-y']).toBeUndefined();
+			expect(actual.findStyle('fade-duration')?.value).toBe(300);
+		}
+	);
+
 	it('applies legacy preset data to an explicit project without global state', async () => {
 		const source = new VideoStyle();
 		source.styles = [

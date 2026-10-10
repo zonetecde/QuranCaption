@@ -855,6 +855,12 @@ const es = {
 		aiTrimmingFinishedWithErrors: 'Recorte IA finalizado con errores',
 		checkActivityLog: 'Consulte el registro de actividad para más detalles.',
 		aiSegmentationFailed: 'Error de segmentación IA',
+		cloudAlignerUnavailable: 'Alineador en la nube no disponible',
+		cloudAlignerUnavailableDetails:
+			'El Space de Hugging Face no está accesible. Puede deberse a una caída de Hugging Face o a un error excepcional del Space, independientemente de Quran Caption.',
+		cloudAlignerUnavailableAdvice:
+			'Espere a que se restablezca el servicio y vuelva a intentarlo. Mientras tanto, puede usar el alineador local, que también ofrece resultados muy precisos. Gracias por su comprensión.',
+		cloudAlignerSpaceLink: 'Abrir el Space de Hugging Face',
 		aiSegmentationFinished: 'Segmentación IA finalizada',
 		convertToMp4Error:
 			'Por favor convierta su archivo a mp4 para usarlo en la pista de audio (este archivo está actualmente en un formato no compatible)',

@@ -791,6 +791,12 @@ const id = {
 	},
 	editor: {
 		...baseEn.editor,
+		cloudAlignerUnavailable: 'Penyelaras cloud tidak tersedia',
+		cloudAlignerUnavailableDetails:
+			'Space Hugging Face tidak dapat diakses. Penyebabnya mungkin gangguan Hugging Face atau kesalahan tak terduga pada Space, terlepas dari Quran Caption.',
+		cloudAlignerUnavailableAdvice:
+			'Tunggu hingga layanan pulih lalu coba lagi. Sementara itu, Anda dapat menggunakan penyelaras lokal yang juga memberikan hasil sangat akurat. Terima kasih atas pengertian Anda.',
+		cloudAlignerSpaceLink: 'Buka Space Hugging Face',
 		quranwordtimingLabel: 'Penyelarasan kata Quran Karim',
 		quranwordtimingOldLabel: 'Penyelarasan kata Quran Karim lama',
 		quranwordtimingOldDetail:

@@ -861,6 +861,12 @@ const fr = {
 		aiTrimmingFinishedWithErrors: 'Rognage IA terminé avec des erreurs',
 		checkActivityLog: 'Consultez le journal d\u2019activité pour plus de détails.',
 		aiSegmentationFailed: 'Échec de la segmentation IA',
+		cloudAlignerUnavailable: 'Aligneur cloud indisponible',
+		cloudAlignerUnavailableDetails:
+			'Le Space Hugging Face est inaccessible. Cela peut venir d’une panne de Hugging Face ou d’une erreur exceptionnelle du Space, indépendamment de Quran Caption.',
+		cloudAlignerUnavailableAdvice:
+			'Attendez le rétablissement du service, puis réessayez. En attendant, vous pouvez utiliser l’aligneur local, qui offre lui aussi des résultats très précis. Merci de votre compréhension.',
+		cloudAlignerSpaceLink: 'Ouvrir le Space Hugging Face',
 		aiSegmentationFinished: 'Segmentation IA terminée',
 		convertToMp4Error:
 			'Veuillez convertir votre fichier en mp4 pour l\u2019utiliser dans la piste audio (ce fichier est actuellement dans un format non pris en charge)',

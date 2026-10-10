@@ -244,6 +244,12 @@ const editor = {
 	aiTrimmingFinishedWithErrors: 'AI trimming finished with errors',
 	checkActivityLog: 'Check the activity log for details.',
 	aiSegmentationFailed: 'AI segmentation failed',
+	cloudAlignerUnavailable: 'Cloud aligner unavailable',
+	cloudAlignerUnavailableDetails:
+		'The Hugging Face Space is unreachable. This may be due to a Hugging Face outage or an unexpected error in the Space, independently of Quran Caption.',
+	cloudAlignerUnavailableAdvice:
+		'Wait for the service to recover, then try again. In the meantime, you can use the local aligner, which also provides very accurate results. Thank you for your understanding.',
+	cloudAlignerSpaceLink: 'Open the Hugging Face Space',
 	aiSegmentationFinished: 'AI segmentation finished',
 	convertToMp4Error:
 		'Please convert your file to mp4 to use it in audio track (this file is currently in an unsupported format)',

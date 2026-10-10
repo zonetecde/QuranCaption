@@ -2003,6 +2003,22 @@ type RootTranslation = {
 		 */
 		aiSegmentationFailed: string;
 		/**
+		 * C​l​o​u​d​ ​a​l​i​g​n​e​r​ ​u​n​a​v​a​i​l​a​b​l​e
+		 */
+		cloudAlignerUnavailable: string;
+		/**
+		 * T​h​e​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​S​p​a​c​e​ ​i​s​ ​u​n​r​e​a​c​h​a​b​l​e​.​ ​T​h​i​s​ ​m​a​y​ ​b​e​ ​d​u​e​ ​t​o​ ​a​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​o​u​t​a​g​e​ ​o​r​ ​a​n​ ​u​n​e​x​p​e​c​t​e​d​ ​e​r​r​o​r​ ​i​n​ ​t​h​e​ ​S​p​a​c​e​,​ ​i​n​d​e​p​e​n​d​e​n​t​l​y​ ​o​f​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​.
+		 */
+		cloudAlignerUnavailableDetails: string;
+		/**
+		 * W​a​i​t​ ​f​o​r​ ​t​h​e​ ​s​e​r​v​i​c​e​ ​t​o​ ​r​e​c​o​v​e​r​,​ ​t​h​e​n​ ​t​r​y​ ​a​g​a​i​n​.​ ​I​n​ ​t​h​e​ ​m​e​a​n​t​i​m​e​,​ ​y​o​u​ ​c​a​n​ ​u​s​e​ ​t​h​e​ ​l​o​c​a​l​ ​a​l​i​g​n​e​r​,​ ​w​h​i​c​h​ ​a​l​s​o​ ​p​r​o​v​i​d​e​s​ ​v​e​r​y​ ​a​c​c​u​r​a​t​e​ ​r​e​s​u​l​t​s​.​ ​T​h​a​n​k​ ​y​o​u​ ​f​o​r​ ​y​o​u​r​ ​u​n​d​e​r​s​t​a​n​d​i​n​g​.
+		 */
+		cloudAlignerUnavailableAdvice: string;
+		/**
+		 * O​p​e​n​ ​t​h​e​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​S​p​a​c​e
+		 */
+		cloudAlignerSpaceLink: string;
+		/**
 		 * A​I​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​f​i​n​i​s​h​e​d
 		 */
 		aiSegmentationFinished: string;
@@ -14198,6 +14214,22 @@ export type TranslationFunctions = {
 		 * AI segmentation failed
 		 */
 		aiSegmentationFailed: () => LocalizedString;
+		/**
+		 * Cloud aligner unavailable
+		 */
+		cloudAlignerUnavailable: () => LocalizedString;
+		/**
+		 * The Hugging Face Space is unreachable. This may be due to a Hugging Face outage or an unexpected error in the Space, independently of Quran Caption.
+		 */
+		cloudAlignerUnavailableDetails: () => LocalizedString;
+		/**
+		 * Wait for the service to recover, then try again. In the meantime, you can use the local aligner, which also provides very accurate results. Thank you for your understanding.
+		 */
+		cloudAlignerUnavailableAdvice: () => LocalizedString;
+		/**
+		 * Open the Hugging Face Space
+		 */
+		cloudAlignerSpaceLink: () => LocalizedString;
 		/**
 		 * AI segmentation finished
 		 */

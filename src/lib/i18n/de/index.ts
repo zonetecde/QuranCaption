@@ -862,6 +862,12 @@ const de = {
 		aiTrimmingFinishedWithErrors: 'KI-Zuschnitt mit Fehlern abgeschlossen',
 		checkActivityLog: 'Siehe Aktivitätsprotokoll für weitere Details.',
 		aiSegmentationFailed: 'KI-Segmentierung fehlgeschlagen',
+		cloudAlignerUnavailable: 'Cloud-Aligner nicht verfügbar',
+		cloudAlignerUnavailableDetails:
+			'Der Hugging Face Space ist nicht erreichbar. Die Ursache kann ein Ausfall bei Hugging Face oder ein unerwarteter Fehler im Space sein, unabhängig von Quran Caption.',
+		cloudAlignerUnavailableAdvice:
+			'Warten Sie, bis der Dienst wieder verfügbar ist, und versuchen Sie es erneut. In der Zwischenzeit können Sie den lokalen Aligner verwenden, der ebenfalls sehr genaue Ergebnisse liefert. Vielen Dank für Ihr Verständnis.',
+		cloudAlignerSpaceLink: 'Hugging Face Space öffnen',
 		aiSegmentationFinished: 'KI-Segmentierung abgeschlossen',
 		convertToMp4Error:
 			'Bitte konvertieren Sie Ihre Datei in MP4, um sie in der Audiospur zu verwenden (diese Datei ist derzeit in einem nicht unterstützten Format)',

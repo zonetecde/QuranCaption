@@ -793,6 +793,12 @@ const zh = {
 		aiTrimmingFinishedWithErrors: 'AI 裁剪已完成但存在错误',
 		checkActivityLog: '请查看活动日志以了解详情。',
 		aiSegmentationFailed: 'AI 分段失败',
+		cloudAlignerUnavailable: '云端对齐工具不可用',
+		cloudAlignerUnavailableDetails:
+			'无法访问 Hugging Face Space。这可能是 Hugging Face 服务故障或 Space 出现异常错误，与 Quran Caption 无关。',
+		cloudAlignerUnavailableAdvice:
+			'请等待服务恢复后重试。在此期间，您可以使用本地对齐工具，它同样能提供非常准确的结果。感谢您的理解。',
+		cloudAlignerSpaceLink: '打开 Hugging Face Space',
 		aiSegmentationFinished: 'AI 分段已完成',
 		convertToMp4Error: '请将您的文件转换为 mp4 以用于音频轨道（此文件当前格式不受支持）',
 		unknownAudioError: '加载音频时发生未知错误：{error}',

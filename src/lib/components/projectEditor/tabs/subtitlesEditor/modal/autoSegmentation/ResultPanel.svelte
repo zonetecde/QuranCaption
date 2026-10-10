@@ -5,6 +5,7 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
+	import { openUrl } from '@tauri-apps/plugin-opener';
 
 	let { isImportMode = false } = $props<{ isImportMode?: boolean }>();
 	const wizard = getSharedWizard();
@@ -146,5 +147,29 @@
 			</button>
 		</div>
 		<div class="max-h-36 overflow-y-auto text-sm text-secondary">{wizard.errorMessage}</div>
+		{#if wizard.errorMessage.includes('error sending request')}
+			<div
+				class="mt-3 space-y-3 rounded-lg border border-color bg-primary/60 p-4 text-sm leading-relaxed"
+			>
+				<div class="flex items-center gap-2 font-bold text-primary">
+					<span class="material-icons text-xl" aria-hidden="true">cloud_off</span>
+					{(Reflect.get($LL.editor, 'cloudAlignerUnavailable') as () => string)()}
+				</div>
+				<p class="text-secondary">
+					{(Reflect.get($LL.editor, 'cloudAlignerUnavailableDetails') as () => string)()}
+				</p>
+				<p class="font-semibold text-primary">
+					{(Reflect.get($LL.editor, 'cloudAlignerUnavailableAdvice') as () => string)()}
+				</p>
+				<button
+					type="button"
+					class="inline-flex items-center gap-1.5 text-accent-primary underline underline-offset-4 hover:no-underline"
+					onclick={() => openUrl('https://huggingface.co/spaces/hetchyy/quranic-universal-aligner')}
+				>
+					{(Reflect.get($LL.editor, 'cloudAlignerSpaceLink') as () => string)()}
+					<span class="material-icons text-base" aria-hidden="true">open_in_new</span>
+				</button>
+			</div>
+		{/if}
 	</div>
 {/if}

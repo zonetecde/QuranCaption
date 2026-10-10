@@ -162,6 +162,8 @@ jobs:
           # GTK/WebKit deps (try 4.1 first, fallback to 4.0)
           sudo apt-get install -y libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf
           sudo apt-get install -y libwebkit2gtk-4.1-dev || sudo apt-get install -y libwebkit2gtk-4.0-dev
+          # GStreamer plugins included in the AppImage for audio playback and decoding.
+          sudo apt-get install -y gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-libav gstreamer1.0-pulseaudio
           # Additional dependencies for better Linux compatibility
           sudo apt-get install -y xdg-utils desktop-file-utils
 

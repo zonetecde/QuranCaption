@@ -115,6 +115,9 @@
 			"minimumSystemVersion": "10.13"
 		},
 		"linux": {
+			"appimage": {
+				"bundleMediaFramework": true
+			},
 			"deb": {
 				"depends": [
 					"libc6",

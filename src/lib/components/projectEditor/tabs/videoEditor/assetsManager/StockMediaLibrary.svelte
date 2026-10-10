@@ -9,11 +9,17 @@
 	import type { StockMediaResult } from './stockMediaTypes';
 	import { SourceType } from '$lib/classes';
 	import toast from 'svelte-5-french-toast';
+	import {
+		downloadFileWithProgress,
+		type DownloadProgress
+	} from '$lib/services/DownloadWithProgress';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let { onBack }: { onBack: () => void } = $props();
 
 	const lib = $derived(globalState.stockMediaLibrary);
 	let searchQuery = $state('');
+	let downloadProgress = $state<DownloadProgress | null>(null);
 
 	// Charger les medias populaires des l'ouverture de la librairie
 	let hasLoadedPopular = $state(false);
@@ -113,24 +119,38 @@
 		if (searchQuery.trim().length > 0) doSearch();
 	}
 
-	async function downloadAsset(result: StockMediaResult) {
+	/**
+	 * Télécharge le média et ajoute les vidéos à la piste vidéo du projet courant.
+	 * @param {StockMediaResult} result Média sélectionné.
+	 * @returns {Promise<void>} Promesse résolue après l'import.
+	 */
+	async function downloadAsset(result: StockMediaResult): Promise<void> {
+		const project = globalState.currentProject;
+		if (!project || lib.downloadingId !== null) return;
 		const sourceType = result.source === 'pexels' ? SourceType.Pexels : SourceType.Pixabay;
 		try {
 			globalState.stockMediaLibrary.downloadingId = result.id;
+			downloadProgress = null;
 
 			const downloadDir = await join(await appDataDir(), 'downloads', 'stock-media');
 			const ext = result.type === 'video' ? 'mp4' : 'jpg';
 			const fileName = `${result.id}.${ext}`;
 			const fullPath = await join(downloadDir, fileName);
 
-			await invoke('download_file', {
-				url: result.downloadUrl,
-				path: fullPath
+			await downloadFileWithProgress(result.downloadUrl, fullPath, (progress) => {
+				downloadProgress = progress;
 			});
 
-			globalState.currentProject?.content.addAsset(fullPath, result.pageUrl, sourceType, {
-				authorName: result.authorName,
-				authorUrl: result.authorUrl
+			if (globalState.currentProject !== project) return;
+			await ProjectHistoryManager.trackAsync('import stock media', async () => {
+				const asset = project.content.addAsset(fullPath, result.pageUrl, sourceType, {
+					authorName: result.authorName,
+					authorUrl: result.authorUrl
+				});
+				if (asset && result.type === 'video') {
+					await asset.ensureDurationLoaded();
+					if (globalState.currentProject === project) globalState.getVideoTrack.addAsset(asset);
+				}
 			});
 
 			toast.success(get(LL).editor.downloadSuccessful());
@@ -138,6 +158,7 @@
 			toast.error(get(LL).editor.stockMediaDownloadError({ error: String(e) }));
 		} finally {
 			globalState.stockMediaLibrary.downloadingId = null;
+			downloadProgress = null;
 		}
 	}
 
@@ -317,6 +338,8 @@
 						{result}
 						onDownload={downloadAsset}
 						isDownloading={lib.downloadingId === result.id}
+						downloadDisabled={lib.downloadingId !== null}
+						progress={lib.downloadingId === result.id ? downloadProgress : null}
 					/>
 				{/each}
 			</div>

@@ -38,6 +38,9 @@
 		const ongoingExports = ExportService.currentlyExportingProjects();
 		await Promise.all(ongoingExports.map((exportation) => exportation.cancelExport('app_close')));
 		await ExportService.saveExports();
+		await ExportService.flushExportLogs().catch((error) =>
+			console.error('Unable to write export logs:', error)
+		);
 	}
 
 	/**
@@ -48,23 +51,27 @@
 		if (allowWindowClose) return;
 
 		const ongoingExports = ExportService.currentlyExportingProjects();
-		if (ongoingExports.length === 0) return;
 
 		event.preventDefault();
 		if (isHandlingCloseRequest) return;
 		isHandlingCloseRequest = true;
 
 		try {
-			// Si des exports sont en cours alors on demande confirmation
-			const confirmed = await ModalManager.confirmModal(
-				get(LL).home.exportInProgressWarning(),
-				true
-			);
-
-			if (!confirmed) return;
+			if (ongoingExports.length > 0) {
+				// Si des exports sont en cours alors on demande confirmation
+				const confirmed = await ModalManager.confirmModal(
+					get(LL).home.exportInProgressWarning(),
+					true
+				);
+				if (!confirmed) return;
+				await cancelOngoingExports();
+			} else {
+				await ExportService.flushExportLogs().catch((error) =>
+					console.error('Unable to write export logs:', error)
+				);
+			}
 
 			allowWindowClose = true;
-			await cancelOngoingExports();
 			await getCurrentWindow().close();
 		} finally {
 			isHandlingCloseRequest = false;

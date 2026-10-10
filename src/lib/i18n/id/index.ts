@@ -2033,6 +2033,9 @@ const id = {
 	},
 	exporterMonitor: {
 		...baseEn.exporterMonitor,
+		openExportLogs: 'Buka file log ekspor',
+		failedToOpenExportLogs: 'File log ekspor tidak dapat dibuka. File mungkin belum tersedia.',
+		capturedFrames: 'Frame yang diambil',
 		exportsMonitor: 'Monitor Ekspor',
 		closeExportMonitor: 'Tutup monitor export',
 		exportFolderSizeLabel: 'Folder ekspor:',

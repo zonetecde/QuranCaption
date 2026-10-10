@@ -354,6 +354,8 @@ export default class Exporter {
 			nextExport.currentState = ExportState.CapturingFrames;
 			nextExport.percentageProgress = 0;
 			nextExport.currentTreatedTime = 0;
+			nextExport.capturedFrames = 0;
+			nextExport.totalCaptureFrames = null;
 			await ExportService.saveExports();
 
 			await Exporter.openExportWindow(nextExport.exportId.toString());

@@ -1,4 +1,4 @@
-﻿import { domToBlob } from 'modern-screenshot';
+﻿import { captureExportOverlayBlob } from './ExportScreenshot';
 
 const EXPORT_TEXT_WEIGHT_COMPENSATION_MAX_PX = 0.45;
 const EXPORT_TEXT_WEIGHT_COMPENSATION_RATIO = 0.0125;
@@ -124,7 +124,7 @@ export async function captureMacOsOverlayPngBytes(
 	let blob: Blob | null = null;
 
 	try {
-		blob = await domToBlob(root, {
+		blob = await captureExportOverlayBlob(root, {
 			width: root.clientWidth,
 			height: root.clientHeight,
 			scale,

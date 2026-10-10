@@ -3,6 +3,7 @@ import { exists, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { openPath } from '@tauri-apps/plugin-opener';
 import { globalState } from '$lib/runes/main.svelte';
 import Exportation, {
 	ExportKind,
@@ -37,6 +38,9 @@ export default class ExportService {
 	static exportFolder: string = 'exports/';
 	private static loadedExportIds = new Set<number>();
 	private static ownedExportIds = new Set<number>();
+	private static exportLogBuffers = new Map<number, string[]>();
+	private static exportLogFlushTimer: ReturnType<typeof setTimeout> | undefined;
+	private static exportLogWrite: Promise<void> = Promise.resolve();
 
 	constructor() {}
 
@@ -312,6 +316,60 @@ export default class ExportService {
 		listen('export-log-main', exportLog);
 	}
 
+	/**
+	 * Regroupe les lignes de log sans modifier l'état réactif du moniteur.
+	 * @param {ExportLogPayload} log Ligne reçue depuis un renderer d'export.
+	 * @returns {void} Rien.
+	 */
+	static bufferExportLog(log: ExportLogPayload): void {
+		const exportId = Number(log.exportId);
+		if (!Number.isSafeInteger(exportId) || exportId <= 0) return;
+		const lines = this.exportLogBuffers.get(exportId) ?? [];
+		lines.push(`[${log.timestamp}] [${log.level}] [${log.source}] ${log.message}\n`);
+		this.exportLogBuffers.set(exportId, lines);
+		if (this.exportLogFlushTimer !== undefined) return;
+		this.exportLogFlushTimer = setTimeout(() => {
+			this.exportLogFlushTimer = undefined;
+			void this.flushExportLogs().catch((error) =>
+				console.error('Unable to write export logs:', error)
+			);
+		}, 500);
+	}
+
+	/**
+	 * Ajoute les lots en attente aux fichiers, dans l'ordre de réception des lots.
+	 * @returns {Promise<void>} Promesse résolue après les écritures déjà demandées.
+	 */
+	static flushExportLogs(): Promise<void> {
+		if (this.exportLogFlushTimer !== undefined) clearTimeout(this.exportLogFlushTimer);
+		this.exportLogFlushTimer = undefined;
+		const buffers = this.exportLogBuffers;
+		this.exportLogBuffers = new Map();
+		// Sérialiser les écritures empêche deux lots de se dépasser ou de s'écraser.
+		this.exportLogWrite = this.exportLogWrite
+			.catch(() => undefined)
+			.then(async () => {
+				if (buffers.size === 0) return;
+				const folder = await ProjectService.ensureFolder('logs');
+				for (const [exportId, lines] of buffers) {
+					await writeTextFile(await join(folder, `export_${exportId}.txt`), lines.join(''), {
+						append: true
+					});
+				}
+			});
+		return this.exportLogWrite;
+	}
+
+	/**
+	 * Vide le tampon puis ouvre le fichier de log dans l'application associée.
+	 * @param {number} exportId Identifiant de l'export.
+	 * @returns {Promise<void>} Promesse résolue après l'ouverture du fichier.
+	 */
+	static async openExportLogs(exportId: number): Promise<void> {
+		await this.flushExportLogs();
+		await openPath(await join(await appDataDir(), 'logs', `export_${exportId}.txt`));
+	}
+
 	static currentlyExportingProjects() {
 		return globalState.exportations.filter(
 			(exp) => exp.isOnGoing() && this.ownedExportIds.has(exp.exportId)
@@ -320,24 +378,12 @@ export default class ExportService {
 }
 
 /**
- * Ajoute une ligne de log d'export uniquement en memoire.
+ * Transmet une ligne de log au tampon d'écriture des fichiers.
  * @param {TauriEvent<ExportLogPayload>} event Evenement de log recu depuis une fenetre d'export.
  * @returns {void}
  */
 function exportLog(event: TauriEvent<ExportLogPayload>): void {
-	const data = event.payload;
-	const exportation = globalState.exportations.find(
-		(exp) => exp.exportId === Number(data.exportId)
-	);
-
-	if (!exportation) return;
-
-	exportation.addExportLog({
-		timestamp: data.timestamp,
-		source: data.source,
-		level: data.level,
-		message: data.message
-	});
+	ExportService.bufferExportLog(event.payload);
 }
 
 function exportProgress(event: TauriEvent<ExportProgress>): void {
@@ -356,6 +402,9 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 		exportation.percentageProgress = data.progress;
 		exportation.currentState = data.currentState;
 		exportation.currentTreatedTime = data.currentTime;
+		if (typeof data.capturedFrames === 'number') exportation.capturedFrames = data.capturedFrames;
+		if (typeof data.totalCaptureFrames === 'number')
+			exportation.totalCaptureFrames = data.totalCaptureFrames;
 		exportation.hasSecondarySegmentProgress = data.hasSecondarySegmentProgress ?? false;
 		exportation.processingBackgroundProgress = data.processingBackgroundProgress ?? 0;
 		exportation.processingBackgroundCurrentSegment = data.processingBackgroundCurrentSegment ?? 0;
@@ -407,6 +456,15 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
 		}
 	}
 
+	if (
+		data.currentState === ExportState.Exported ||
+		data.currentState === ExportState.Error ||
+		data.currentState === ExportState.Canceled
+	) {
+		void ExportService.flushExportLogs().catch((error) =>
+			console.error('Unable to write export logs:', error)
+		);
+	}
 	ExportService.saveExports();
 }
 
@@ -415,6 +473,8 @@ export interface ExportProgress {
 	progress: number;
 	currentState: ExportState;
 	currentTime: number;
+	capturedFrames?: number;
+	totalCaptureFrames?: number;
 	hasSecondarySegmentProgress?: boolean;
 	processingBackgroundProgress?: number;
 	processingBackgroundCurrentSegment?: number;

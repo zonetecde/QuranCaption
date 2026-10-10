@@ -3351,6 +3351,10 @@ const de = {
 		monthlyGoal: 'Monatsziel'
 	},
 	exporterMonitor: {
+		openExportLogs: 'Exportprotokolldatei öffnen',
+		failedToOpenExportLogs:
+			'Die Exportprotokolldatei konnte nicht geöffnet werden. Möglicherweise existiert sie noch nicht.',
+		capturedFrames: 'Erfasste Bilder',
 		exportsMonitor: 'Export-Monitor',
 		closeExportMonitor: 'Export-Monitor schließen',
 		exportFolderSizeLabel: 'Exportordner:',

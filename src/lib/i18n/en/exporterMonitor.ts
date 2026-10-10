@@ -1,4 +1,7 @@
 const exporterMonitor = {
+	openExportLogs: 'Open export log file',
+	failedToOpenExportLogs: 'Unable to open the export log file. It may not exist yet.',
+	capturedFrames: 'Frames captured',
 	exportsMonitor: 'Exports Monitor',
 	closeExportMonitor: 'Close export monitor',
 	exportFolderSizeLabel: 'Exports folder:',

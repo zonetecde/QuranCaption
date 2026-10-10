@@ -3372,6 +3372,10 @@ const fr = {
 		monthlyGoal: 'Objectif mensuel'
 	},
 	exporterMonitor: {
+		openExportLogs: 'Ouvrir le fichier de logs d’export',
+		failedToOpenExportLogs:
+			'Impossible d’ouvrir le fichier de logs d’export. Il n’existe peut-être pas encore.',
+		capturedFrames: 'Images capturées',
 		exportsMonitor: 'Moniteur d\u2019exports',
 		closeExportMonitor: 'Fermer le moniteur d\u2019exports',
 		exportFolderSizeLabel: 'Dossier exports\u00a0:',

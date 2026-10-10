@@ -3041,6 +3041,9 @@ const zh = {
 		monthlyGoal: '月度目标'
 	},
 	exporterMonitor: {
+		openExportLogs: '打开导出日志文件',
+		failedToOpenExportLogs: '无法打开导出日志文件。该文件可能尚不存在。',
+		capturedFrames: '已捕获帧数',
 		exportsMonitor: '导出监视器',
 		closeExportMonitor: '关闭导出监视器',
 		exportFolderSizeLabel: '导出文件夹：',

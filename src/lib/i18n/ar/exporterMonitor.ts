@@ -1,4 +1,7 @@
 const exporterMonitor = {
+	openExportLogs: 'فتح ملف سجل التصدير',
+	failedToOpenExportLogs: 'تعذر فتح ملف سجل التصدير. قد لا يكون موجودًا بعد.',
+	capturedFrames: 'الإطارات الملتقطة',
 	exportsMonitor: 'مراقب الصادرات',
 	closeExportMonitor: 'إغلاق مراقب التصدير',
 	exportFolderSizeLabel: 'مجلد الصادرات:',

@@ -10828,6 +10828,18 @@ type RootTranslation = {
 	};
 	exporterMonitor: {
 		/**
+		 * O​p​e​n​ ​e​x​p​o​r​t​ ​l​o​g​ ​f​i​l​e
+		 */
+		openExportLogs: string;
+		/**
+		 * U​n​a​b​l​e​ ​t​o​ ​o​p​e​n​ ​t​h​e​ ​e​x​p​o​r​t​ ​l​o​g​ ​f​i​l​e​.​ ​I​t​ ​m​a​y​ ​n​o​t​ ​e​x​i​s​t​ ​y​e​t​.
+		 */
+		failedToOpenExportLogs: string;
+		/**
+		 * F​r​a​m​e​s​ ​c​a​p​t​u​r​e​d
+		 */
+		capturedFrames: string;
+		/**
 		 * E​x​p​o​r​t​s​ ​M​o​n​i​t​o​r
 		 */
 		exportsMonitor: string;
@@ -22889,6 +22901,18 @@ export type TranslationFunctions = {
 		monthlyGoal: () => LocalizedString;
 	};
 	exporterMonitor: {
+		/**
+		 * Open export log file
+		 */
+		openExportLogs: () => LocalizedString;
+		/**
+		 * Unable to open the export log file. It may not exist yet.
+		 */
+		failedToOpenExportLogs: () => LocalizedString;
+		/**
+		 * Frames captured
+		 */
+		capturedFrames: () => LocalizedString;
 		/**
 		 * Exports Monitor
 		 */

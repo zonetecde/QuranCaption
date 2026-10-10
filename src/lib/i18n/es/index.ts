@@ -3342,6 +3342,10 @@ const es = {
 		monthlyGoal: 'Objetivo mensual'
 	},
 	exporterMonitor: {
+		openExportLogs: 'Abrir archivo de registro de exportación',
+		failedToOpenExportLogs:
+			'No se pudo abrir el archivo de registro de exportación. Puede que aún no exista.',
+		capturedFrames: 'Fotogramas capturados',
 		exportsMonitor: 'Monitor de exportaciones',
 		closeExportMonitor: 'Cerrar monitor de exportaciones',
 		exportFolderSizeLabel: 'Carpeta de exportaciones:',

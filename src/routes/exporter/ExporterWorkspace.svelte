@@ -5,8 +5,8 @@
 	import { invoke } from '@tauri-apps/api/core';
 	import { getCurrentWebviewWindow, WebviewWindow } from '@tauri-apps/api/webviewWindow';
 	import { LogicalPosition } from '@tauri-apps/api/dpi';
-	import { listen } from '@tauri-apps/api/event';
-	import { onMount } from 'svelte';
+	import { emitTo, listen } from '@tauri-apps/api/event';
+	import { onDestroy, onMount } from 'svelte';
 	import {
 		exists,
 		BaseDirectory,
@@ -49,7 +49,7 @@
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
-	import { domToBlob } from 'modern-screenshot';
+	import { captureExportOverlayBlob, releaseExportScreenshotContext } from './ExportScreenshot';
 	import { captureMacOsOverlayPngBytes, shouldRedrawExportTextWithCanvas } from './MacOSExport';
 	import {
 		ClipWithTranslation,
@@ -83,6 +83,7 @@
 
 	// Récupère les données d'export de la vidéo
 	let exportData: Exportation | undefined;
+	onDestroy(releaseExportScreenshotContext);
 
 	const DEFAULT_PARALLEL_CAPTURE_WORKERS = 4;
 	const CAPTURE_WORKER_MODE = 'capture-worker';
@@ -99,6 +100,8 @@
 	let currentVideoExportState: ExportState = ExportState.AddingSubtitles;
 	let subtitleMainProgress = 0;
 	let hasCompletedCapturingFrames = false;
+	let capturedFrames = 0;
+	let totalCaptureFrames = 0;
 	let hasSecondarySegmentProgress = false;
 	let processingBackgroundProgress = 0;
 	let captureWorkerWindows: WebviewWindow[] = [];
@@ -419,7 +422,7 @@
 	}
 
 	/**
-	 * Envoie une ligne de log d'export au monitor principal.
+	 * Envoie une ligne de log au tampon de fichier de la fenêtre principale.
 	 * @param {ExportLogLevel} level Niveau de log.
 	 * @param {string} message Message court.
 	 * @param {Record<string, unknown>} context Contexte serialisable.
@@ -440,8 +443,6 @@
 			console.error(`[export:${exportId}:${source}] ${fullMessage}`);
 		} else if (level === 'warn') {
 			console.warn(`[export:${exportId}:${source}] ${fullMessage}`);
-		} else {
-			console.log(`[export:${exportId}:${source}] ${fullMessage}`);
 		}
 
 		const payload: ExportLogPayload = {
@@ -452,7 +453,7 @@
 			message: fullMessage
 		};
 
-		await (await getAllWindows()).find((w) => w.label === 'main')?.emit(EXPORT_LOG_EVENT, payload);
+		await emitTo('main', EXPORT_LOG_EVENT, payload);
 	}
 
 	/**
@@ -828,17 +829,28 @@
 		refreshSecondarySegmentProgressVisibility();
 
 		const generatedVideoFiles: string[] = [];
+		const capturePlans = renderSegments.map((segment) =>
+			buildImageCapturePlan(
+				calculateTimingsForRange(segment.start, segment.end),
+				segment.start,
+				segment.end,
+				true
+			)
+		);
+		capturedFrames = 0;
+		totalCaptureFrames = capturePlans.reduce(
+			(total, plan) => total + plan.blankSourceJobs.length + plan.captureJobs.length,
+			0
+		);
 		const segmentBlankImageIndexes = new Map<number, number[]>();
 		for (let segmentIndex = 0; segmentIndex < renderSegments.length; segmentIndex++) {
-			const segment = renderSegments[segmentIndex];
 			const segmentImageFolder = `segment_${segmentIndex}`;
 
 			await createSegmentImageFolder(segmentImageFolder);
 			const blankTimings = await generateImagesForSegment(
 				segmentIndex,
-				segment.start,
-				segment.end,
 				segmentImageFolder,
+				capturePlans[segmentIndex],
 				renderSegments.length,
 				0,
 				100
@@ -1338,6 +1350,8 @@
 		onProgress: (completed: number, total: number, timing?: number) => void
 	): Promise<void> {
 		const totalJobs = Math.max(1, plan.totalJobs);
+		const capturesInPlan = plan.blankSourceJobs.length + plan.captureJobs.length;
+		const capturedBeforePlan = capturedFrames;
 		let completed = 0;
 		let lastReportedCompleted = 0;
 		await emitExportLog('info', 'Image capture plan started', {
@@ -1357,8 +1371,11 @@
 		 */
 		const reportProgress = (nextCompleted: number, timing?: number) => {
 			lastReportedCompleted = Math.max(lastReportedCompleted, nextCompleted);
+			// Les captures précèdent les copies, qui ne doivent pas augmenter le compteur.
+			capturedFrames = capturedBeforePlan + Math.min(lastReportedCompleted, capturesInPlan);
 			onProgress(lastReportedCompleted, totalJobs, timing);
 		};
+		reportProgress(0);
 
 		const retryBlankSourceJobs: ExportBlankSourceJob[] = [];
 		for (const job of plan.blankSourceJobs) {
@@ -1410,11 +1427,10 @@
 	}
 
 	/**
-	 * Calcule puis produit les captures nécessaires à un segment vidéo.
+	 * Produit les captures nécessaires à un segment vidéo à partir de son plan.
 	 * @param {number} segmentIndex Index du segment dans le pipeline.
-	 * @param {number} segmentStart Début absolu du segment en millisecondes.
-	 * @param {number} segmentEnd Fin absolue du segment en millisecondes.
 	 * @param {string} segmentImageFolder Dossier relatif des captures.
+	 * @param {ReturnType<typeof buildExportCaptureJobPlan>} plan Plan des captures du segment.
 	 * @param {number} totalSegments Nombre total de segments à traiter.
 	 * @param {number} phaseStartProgress Progression initiale de cette phase.
 	 * @param {number} phaseEndProgress Progression finale de cette phase.
@@ -1422,21 +1438,13 @@
 	 */
 	async function generateImagesForSegment(
 		segmentIndex: number,
-		segmentStart: number,
-		segmentEnd: number,
 		segmentImageFolder: string,
+		plan: ReturnType<typeof buildExportCaptureJobPlan>,
 		totalSegments: number,
 		phaseStartProgress: number = 0,
 		phaseEndProgress: number = 100
 	): Promise<number[]> {
-		// Calculer les timings pour ce segment spécifique
-		const segmentTimings = calculateTimingsForRange(segmentStart, segmentEnd);
-
-		console.log(
-			`Segment ${segmentIndex}: ${segmentTimings.uniqueSorted.length} screenshots to take`
-		);
-
-		const plan = buildImageCapturePlan(segmentTimings, segmentStart, segmentEnd, true);
+		console.log(`Segment ${segmentIndex}: ${plan.totalJobs} images to prepare`);
 		const totalDuration = exportData!.videoEndTime - exportData!.videoStartTime;
 
 		await executeImageCapturePlan(plan, segmentImageFolder, (completed, total) => {
@@ -1449,6 +1457,8 @@
 				exportId: Number(exportId),
 				progress: globalProgress,
 				currentState: ExportState.CapturingFrames,
+				capturedFrames,
+				totalCaptureFrames,
 				currentTime: (globalProgress / 100) * totalDuration,
 				totalTime: totalDuration
 			} as ExportProgress);
@@ -1641,6 +1651,8 @@
 		);
 
 		const plan = buildImageCapturePlan(timings, exportStart, exportEnd, false);
+		capturedFrames = 0;
+		totalCaptureFrames = plan.blankSourceJobs.length + plan.captureJobs.length;
 
 		await executeImageCapturePlan(plan, null, (completed, total) => {
 			const progress = (completed / total) * 100;
@@ -1648,6 +1660,8 @@
 				exportId: Number(exportId),
 				progress,
 				currentState: ExportState.CapturingFrames,
+				capturedFrames,
+				totalCaptureFrames,
 				currentTime: (progress / 100) * totalDuration,
 				totalTime: totalDuration
 			} as ExportProgress);
@@ -2050,6 +2064,7 @@
 	 * @returns {Promise<void>} Promesse résolue lorsque le nettoyage est terminé.
 	 */
 	async function finalCleanup() {
+		releaseExportScreenshotContext();
 		await closeCaptureWorkerWindows();
 		try {
 			// Supprime le dossier temporaire des images
@@ -2175,7 +2190,7 @@
 				}
 				let blob: Blob | null = null;
 				try {
-					blob = await domToBlob(node, {
+					blob = await captureExportOverlayBlob(node, {
 						width: node.clientWidth * scale,
 						height: node.clientHeight * scale,
 						style: {
@@ -2199,7 +2214,6 @@
 				const bytes = new Uint8Array(buffer);
 
 				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
-				console.log('Screenshot saved to:', filePathWithName);
 				await emitExportLog('info', 'Screenshot saved', {
 					file: fileName,
 					path: filePathWithName
@@ -2220,7 +2234,6 @@
 				});
 
 				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
-				console.log('Screenshot saved to:', filePathWithName);
 				await emitExportLog('info', 'Screenshot saved', {
 					file: fileName,
 					path: filePathWithName
@@ -2283,7 +2296,6 @@
 				source: await join(await appDataDir(), sourceFilePathWithName),
 				destination: await join(await appDataDir(), targetFilePathWithName)
 			});
-			console.log('Duplicate screenshot saved to:', targetFilePathWithName);
 		} catch (error) {
 			// Fallback: lire et écrire si la commande Rust n'existe pas
 			if (!(await exists(sourceFilePathWithName, { baseDir: BaseDirectory.AppData }))) {
@@ -2293,7 +2305,6 @@
 			const data = await readFile(sourceFilePathWithName, { baseDir: BaseDirectory.AppData });
 			await writeFile(targetFilePathWithName, data, { baseDir: BaseDirectory.AppData });
 			console.warn('copy_file failed, fallback copy used:', error);
-			console.log('Duplicate screenshot saved to (fallback):', targetFilePathWithName);
 		}
 	}
 
@@ -2358,7 +2369,6 @@
 	 */
 	async function wait(timing: number): Promise<boolean> {
 		// globalState.updateVideoPreviewUI();
-		console.log(`Waiting for frame at ${timing}ms...`);
 
 		await waitForAnimationFrame();
 

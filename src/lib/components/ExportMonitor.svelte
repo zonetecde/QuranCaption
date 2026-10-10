@@ -1,10 +1,6 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
-	import Exportation, {
-		ExportKind,
-		ExportState,
-		type ExportLogEntry
-	} from '$lib/classes/Exportation.svelte';
+	import Exportation, { ExportKind, ExportState } from '$lib/classes/Exportation.svelte';
 	import { exists, mkdir } from '@tauri-apps/plugin-fs';
 	import { invoke } from '@tauri-apps/api/core';
 	import { appDataDir, join } from '@tauri-apps/api/path';
@@ -37,7 +33,6 @@
 	// Variable réactive pour forcer les mises à jour
 	let currentTime = $state(Date.now());
 	let intervalId: ReturnType<typeof setInterval> | undefined;
-	let expandedLogsByExportId = $state<Record<number, boolean>>({});
 	let youtubePublications = $state<Record<number, YouTubePublicationState>>({});
 	let exportFolderPath = '';
 	let exportFolderSize = $state<number | null>(null);
@@ -398,58 +393,15 @@
 
 	// Lifecycle hooks pour gérer l'intervalle
 	/**
-	 * Ouvre ou ferme le panneau de logs d'un export.
-	 * @param {number} exportId Identifiant de l'export affiche.
-	 * @returns {void}
+	 * Ouvre le fichier de log d'un export dans l'application associée.
+	 * @param {number} exportId Identifiant de l'export affiché.
+	 * @returns {Promise<void>} Promesse résolue après l'ouverture ou l'affichage de l'erreur.
 	 */
-	function toggleExportLogs(exportId: number): void {
-		expandedLogsByExportId = {
-			...expandedLogsByExportId,
-			[exportId]: !expandedLogsByExportId[exportId]
-		};
-	}
-
-	/**
-	 * Formate l'heure d'une ligne de log en HH:MM:SS.
-	 * @param {string} timestamp Date ISO de la ligne.
-	 * @returns {string} Heure lisible ou valeur brute si invalide.
-	 */
-	function formatExportLogTime(timestamp: string): string {
-		const date = new Date(timestamp);
-		if (Number.isNaN(date.getTime())) return timestamp;
-		return date.toLocaleTimeString(undefined, {
-			hour: '2-digit',
-			minute: '2-digit',
-			second: '2-digit'
-		});
-	}
-
-	/**
-	 * Retourne la couleur du niveau de log.
-	 * @param {ExportLogEntry['level']} level Niveau de log.
-	 * @returns {string} Classes CSS Tailwind.
-	 */
-	function getExportLogLevelColor(level: ExportLogEntry['level']): string {
-		if (level === 'error') return 'text-red-300';
-		if (level === 'warn') return 'text-yellow-300';
-		return 'text-blue-300';
-	}
-
-	/**
-	 * Copie toutes les lignes de log d'un export.
-	 * @param {ExportLogEntry[]} logs Lignes de log a copier.
-	 * @returns {Promise<void>}
-	 */
-	async function copyExportLogs(logs: ExportLogEntry[]): Promise<void> {
+	async function openExportLogs(exportId: number): Promise<void> {
 		try {
-			const text = logs
-				.map((log) => `[${log.timestamp}] [${log.level}] [${log.source}] ${log.message}`)
-				.join('\n');
-
-			await navigator.clipboard.writeText(text);
-			toast.success(get(LL).common.logsCopiedToClipboard());
+			await ExportService.openExportLogs(exportId);
 		} catch {
-			toast.error(get(LL).common.error());
+			toast.error(monitorMessage('failedToOpenExportLogs'));
 		}
 	}
 
@@ -657,7 +609,15 @@
 									</div>
 								{/if}
 								<div class="flex justify-between text-xs text-gray-400 mt-1">
-									{#if exportation.currentTreatedTime > 0}
+									{#if exportation.currentState === ExportState.CapturingFrames}
+										<div>
+											{monitorMessage('capturedFrames')}:
+											<span class="monospaced"
+												>{exportation.capturedFrames} / {exportation.totalCaptureFrames ??
+													'—'}</span
+											>
+										</div>
+									{:else if exportation.currentTreatedTime > 0}
 										<div>
 											{get(LL).export.processedTime()}
 											<span class="monospaced"
@@ -744,52 +704,20 @@
 							</div>
 						{/if}
 
-						{#if !isTextExport(exportation) && exportation.isOnGoing()}
+						{#if !isTextExport(exportation)}
 							<div
 								class="mt-1 flex justify-end absolute end-2 bottom-2 gap-1 opacity-20 hover:opacity-100 transition-opacity"
 							>
 								<button
 									type="button"
 									class="relative flex size-7 items-center justify-center rounded-md border border-gray-700 bg-gray-800/40 text-gray-400 transition-colors hover:bg-gray-800 hover:text-cyan-300 cursor-pointer"
-									onclick={() => toggleExportLogs(exportation.exportId)}
-									title={get(LL).export.exportLogs()}
-									aria-label={get(LL).export.exportLogs()}
+									onclick={() => openExportLogs(exportation.exportId)}
+									title={monitorMessage('openExportLogs')}
+									aria-label={monitorMessage('openExportLogs')}
 								>
 									<span class="material-icons text-[16px]">terminal</span>
 								</button>
 							</div>
-
-							{#if expandedLogsByExportId[exportation.exportId]}
-								<div
-									class="mt-1 max-h-48 overflow-y-auto rounded-md border border-gray-700 bg-black/50 p-2 font-mono text-[11px] leading-4 text-gray-300"
-								>
-									<div class="mb-2 flex justify-end">
-										<button
-											type="button"
-											class="flex items-center gap-1 rounded border border-gray-700 px-2 py-0.5 text-[11px] text-gray-300 transition-colors hover:bg-gray-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-											onclick={() => copyExportLogs(exportation.exportLogs)}
-											disabled={exportation.exportLogs.length === 0}
-											title={`${get(LL).common.copy()} ${get(LL).export.exportLogs()}`}
-											aria-label={`${get(LL).common.copy()} ${get(LL).export.exportLogs()}`}
-										>
-											<span class="material-icons text-[13px]">content_copy</span>
-											{get(LL).common.copy()}
-										</button>
-									</div>
-									{#if exportation.exportLogs.length === 0}
-										<div class="text-gray-500">{get(LL).export.noExportLogs()}</div>
-									{:else}
-										{#each exportation.exportLogs as log, index (index)}
-											<div class="grid grid-cols-[72px_44px_110px_1fr] gap-2">
-												<span class="text-gray-500">{formatExportLogTime(log.timestamp)}</span>
-												<span class={getExportLogLevelColor(log.level)}>{log.level}</span>
-												<span class="truncate text-cyan-300" title={log.source}>{log.source}</span>
-												<span class="whitespace-pre-wrap break-words">{log.message}</span>
-											</div>
-										{/each}
-									{/if}
-								</div>
-							{/if}
 						{/if}
 
 						<!-- Error Message (if error) -->

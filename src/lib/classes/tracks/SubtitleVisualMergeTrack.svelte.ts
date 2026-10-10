@@ -46,6 +46,13 @@ export abstract class SubtitleVisualMergeTrack extends SubtitleSplitTrack {
 			}
 
 			super.removeClip(id, makeNextClipStartAtThisClipStartTime);
+			if (clipToRemove && globalState.currentProject) {
+				const editorState = globalState.getSubtitlesEditorState;
+				if (editorState.editSubtitle?.id === id) {
+					editorState.editSubtitle = null;
+					editorState.pendingSplitEditNextId = null;
+				}
+			}
 		} finally {
 			ProjectHistoryManager.commit();
 		}

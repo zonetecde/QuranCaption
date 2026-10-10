@@ -96,6 +96,12 @@ def _normalize_peaks(audio: np.ndarray, clip_peaks: Optional[bool] = None) -> np
 class AudioDecoder:
     """High-speed in-process audio loading with optimized fallback cascade."""
     target_sample_rate: int = SAMPLE_RATE
+    SUPPORTED_EXTENSIONS = {
+        # Audio formats (Miniaudio & FFmpeg)
+        ".mp3", ".wav", ".m4a", ".flac", ".ogg", ".opus", ".aac", ".wma", ".aiff",
+        # Video containers (FFmpeg extracts audio directly via -vn)
+        ".webm", ".mp4", ".mkv", ".mov", ".avi", ".m4v", ".flv", ".wmv",
+    }
 
     @staticmethod
     def calculate_energy_db(samples: np.ndarray, start_idx: int = 0, end_idx: Optional[int] = None) -> float:

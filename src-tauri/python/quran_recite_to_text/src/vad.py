@@ -56,8 +56,6 @@ def _get_silero_session():
     if _SILERO_SESSION_INSTANCE is None and _HAS_ORT:
         candidate_paths = [
             getattr(config, "DEFAULT_SILERO_PATH", None),
-            os.path.join(getattr(config, "ONNX_DIR", "data/onnx"), "silero_vad_half.onnx"),
-            os.path.join(getattr(config, "DATA_PATH", "data"), "onnx", "silero_vad_half.onnx"),
             os.path.join("data", "onnx", "silero_vad_half.onnx"),
             os.path.join("models", "silero_vad_half.onnx"),
         ]
@@ -198,6 +196,8 @@ class QuranSilenceVAD:
 
         self.pause_timestamps: List[float] = []
         self.pause_intervals: List[PauseInterval] = []
+        self.noise_floor_db: Optional[float] = None
+        self.silence_threshold_db: Optional[float] = None
 
     def detect_speech_and_pauses(
         self, audio: np.ndarray
@@ -278,6 +278,9 @@ class QuranSilenceVAD:
         else:
             silence_energy_threshold = self.offset_db
             noise_floor_db = self.offset_db
+
+        self.noise_floor_db = noise_floor_db
+        self.silence_threshold_db = silence_energy_threshold
 
         # ── 2. Silero ONNX Forward Pass (with Silence-Valley Guided Batching)
         has_sr_input = input_names is not None and "sr" in input_names
@@ -363,6 +366,13 @@ class QuranSilenceVAD:
             & (lowband_db > silence_energy_threshold + 5.0)
             & (pitch_ac >= 0.35)
         )
+        # Deep acoustic silence floor: when energy drops significantly below speech (>=15-20dB drop)
+        deep_silence_floor = min(-36.0, silence_energy_threshold - 6.0)
+        is_deep_silence = energy_db_arr <= deep_silence_floor
+
+        # Compensate for Silero LSTM state bleed: do not keep speech alive when energy is in true deep silence
+        #speech_frame = (
+        #    ((silero_probs >= self.silero_threshold) & ~is_deep_silence)| is_madd| is_ghunnah)
         speech_frame = (silero_probs >= self.silero_threshold) | is_madd | is_ghunnah
 
         # ── 4. Hangover buffer (protect consonant tails & transitions) ─────
@@ -374,7 +384,8 @@ class QuranSilenceVAD:
             if speech_frame[i]:
                 sil_run = 0
             else:
-                if sil_run < hangover_frames and i > 0 and smoothed[i - 1]:
+                # Hangover protects unvoiced consonants & transitions, but never bridges true deep acoustic silence
+                if sil_run < hangover_frames and i > 0 and smoothed[i - 1] and not is_deep_silence[i]:
                     smoothed[i] = True
                     sil_run += 1
                 else:
@@ -436,7 +447,7 @@ class QuranSilenceVAD:
             # Validate whether this gap is an acoustic silence or continuous speech
             has_madd = voiced_pitch_ratio > 0.25 and mean_e > silence_energy_threshold
             is_tonal_speech = avg_flatness < 0.25 and mean_e > silence_energy_threshold
-            no_energy_drop = (gap < 0.35) and (min_e > (silence_energy_threshold + 6.0))
+            no_energy_drop = (gap < 0.25) and (min_e > (silence_energy_threshold + 6.0))
 
             is_false_silence = has_madd or is_tonal_speech or no_energy_drop
 
@@ -586,9 +597,13 @@ class QuranSilenceVAD:
             dyn_range = max(6.0, p85 - p15)
             onset_th = max(self.onset_db, p15 + 0.38 * dyn_range)
             offset_th = max(self.offset_db, p15 + 0.22 * dyn_range)
+            self.noise_floor_db = p15
+            self.silence_threshold_db = offset_th
         else:
             onset_th = self.onset_db
             offset_th = self.offset_db
+            self.noise_floor_db = self.offset_db
+            self.silence_threshold_db = self.offset_db
 
         # 3. Dual-threshold Schmitt trigger with hangover buffer
         is_speech = np.zeros(num_frames, dtype=bool)
@@ -715,9 +730,10 @@ def align_ayah_boundaries(
         if inter_pause is not None:
             p_s = round(inter_pause.start_sec, 2)
             p_e = round(inter_pause.end_sec, 2)
+            cut_pt = round(inter_pause.optimal_cut_point, 2)
 
-            if w_last.end and w_last.end > p_s:
-                w_last.end = p_s
+            if w_last.end and w_last.end > cut_pt:
+                w_last.end = cut_pt
                 if w_last.phonemes and w_last.phonemes[-1]["end"] > w_last.end:
                     w_last.phonemes[-1]["end"] = w_last.end
 

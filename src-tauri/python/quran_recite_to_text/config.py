@@ -84,13 +84,14 @@ VAD_PREROLL_S: float = 0.20                 # 200ms pre-roll margin
 FLUSH_PAD_FRAMES: int = 36                  # 360ms tail flush padding
 
 RESET_ENCODER_ON_SILENCE: bool = True       # Encoder state reset at Waqf boundaries
-SUBSEGMENT_MIN_PAUSE_S: float = 0.16        # Minimum pause duration (seconds) to split Ayah into Subsegment
+SUBSEGMENT_MIN_PAUSE_S: float = 0.25        # Minimum pause duration (seconds) to split Ayah into Subsegment
 
 
 # ==============================================================================
 # 7. SPEECH RECOVERY CONTROLS (INTRA-SEGMENT HOLE RE-TRANSCRIPTION)
 # ==============================================================================
 ENABLE_SPEECH_RECOVERY: bool = True          # Targeted re-transcription of severe deletion holes
+SPEECH_RECOVERY_MODE: str = "legacy"             # "legacy" (default, exact original -55dB brute-force), "adaptive" (VAD noise floor), or "off"
 SPEECH_RECOVERY_MIN_HOLE_DURATION_S: float = 1.40  # Minimum gap duration to inspect
 SPEECH_RECOVERY_PADDING_PRE_S: float = 0.16        # 160ms pre-roll for causal conv states ramp-up
 SPEECH_RECOVERY_PADDING_POST_S: float = 0.24       # 240ms flush padding for trailing vowels
@@ -101,4 +102,18 @@ SPEECH_RECOVERY_MIN_PHONEMES_IN_GAP: int = 2       # Minimum tokens to accept re
 # 8. RUNTIME CONCURRENCY
 # ==============================================================================
 NUM_SEGMENT_WORKERS: int = 1
+
+
+# ==============================================================================
+# 9. MONTREAL FORCED ALIGNER (MFA) SECONDARY REFINEMENT (OPTIONAL --mfa)
+# ==============================================================================
+DEFAULT_MFA_DIR = DATA_PATH / "mfa"
+DEFAULT_MFA_ACOUSTIC_PATH = str(DEFAULT_MFA_DIR / "quran_hafs_acoustic.zip")
+DEFAULT_MFA_DICT_PATH = str(DEFAULT_MFA_DIR / "quran_hafs.dict")
+DEFAULT_MFA_RULES_PATH = str(DEFAULT_MFA_DIR / "rule_index.jsonl")
+CLEANUP_MFA_WORKSPACE: bool = True           # Discard temporary sliced WAVs/TextGrids after JSON export
+MFA_BEAM: int = 40                           # MFA search beam width (tuned for recitation madd vowels)
+MFA_RETRY_BEAM: int = 160                    # MFA retry beam width on difficult elongations
+MFA_NUM_JOBS: int = 2                        # Parallel acoustic alignment worker threads
+
 

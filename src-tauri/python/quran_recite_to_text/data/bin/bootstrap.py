@@ -9,9 +9,11 @@ from __future__ import annotations
 import os
 import sys
 
-# Silence pip and Python launcher background update checks
+# Silence pip and Python launcher background update checks, prevent OpenMP thread busy-spin
 os.environ["PIP_DISABLE_PIP_VERSION_CHECK"] = "1"
 os.environ["PYLAUNCH_NO_UPDATE_CHECK"] = "1"
+os.environ.setdefault("OMP_WAIT_POLICY", "PASSIVE")
+os.environ.setdefault("KMP_BLOCKTIME", "0")
 
 import ctypes
 import shutil
@@ -20,7 +22,7 @@ import importlib.util
 from pathlib import Path
 
 _BIN_DIR = Path(__file__).resolve().parent
-_PROJECT_ROOT = _BIN_DIR.parent if (_BIN_DIR.parent / "config.py").is_file() else _BIN_DIR.parent.parent
+_PROJECT_ROOT = _BIN_DIR.parent.parent
 
 
 def fix_windows_console() -> None:
@@ -62,13 +64,13 @@ def ensure_pip_dependencies() -> None:
     pip_cmd = [sys.executable, "-m", "pip", "install", "--disable-pip-version-check", "--no-warn-script-location"]
 
     if missing_base:
-        print("=" * 60, file=sys.stderr)
-        print(f"[*] Missing base dependencies: {', '.join(missing_base)}", file=sys.stderr)
-        print("[*] Installing base requirements via pip. Please wait...", file=sys.stderr)
-        print("=" * 60, file=sys.stderr, flush=True)
+        print("=" * 60)
+        print(f"[*] Missing base dependencies: {', '.join(missing_base)}")
+        print("[*] Installing base requirements via pip. Please wait...")
+        print("=" * 60, flush=True)
         try:
             subprocess.check_call([*pip_cmd, *missing_base])
-            print("[*] Base dependencies installed successfully!\n", file=sys.stderr, flush=True)
+            print("[*] Base dependencies installed successfully!\n", flush=True)
         except Exception as exc:
             print(f"[!] Failed to install base dependencies: {exc}", file=sys.stderr)
             print("[!] Please run manually: pip install -r requirements.txt", file=sys.stderr)

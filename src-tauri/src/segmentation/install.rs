@@ -40,12 +40,15 @@ where
     let portable_root = get_portable_python_root(app_handle)?;
     let portable_exe = get_portable_python_exe(app_handle)?;
     if portable_exe.exists() {
-        if read_python_version(&portable_exe).is_some() {
+        let old_embed_pth = portable_root.join("python").join("python311._pth");
+        if old_embed_pth.exists() {
+            let _ = fs::remove_dir_all(portable_root.join("python"));
+        } else if read_python_version(&portable_exe).is_some() {
             bootstrap_portable_python(&portable_exe, emit_progress).await?;
             return Ok(portable_exe);
+        } else {
+            let _ = fs::remove_dir_all(portable_root.join("python"));
         }
-        let python_dir = portable_root.join("python");
-        let _ = fs::remove_dir_all(&python_dir);
     }
 
     fs::create_dir_all(&portable_root).map_err(|e| {
@@ -76,9 +79,6 @@ where
 
     emit_progress("Extracting portable Python 3.11...", 22);
 
-    let python_dir = portable_root.join("python");
-    fs::create_dir_all(&python_dir).map_err(|e| format!("Failed to create python dir: {}", e))?;
-
     let tar_binary = if cfg!(target_os = "windows") {
         let system32_tar = std::path::Path::new("C:\\Windows\\System32\\tar.exe");
         if system32_tar.exists() {
@@ -91,21 +91,12 @@ where
     };
 
     let mut cmd = Command::new(&tar_binary);
-    if cfg!(target_os = "windows") {
-        cmd.args([
-            "-xf",
-            archive_path.to_str().ok_or("Invalid archive path")?,
-            "-C",
-            python_dir.to_str().ok_or("Invalid destination path")?,
-        ]);
-    } else {
-        cmd.args([
-            "-xzf",
-            archive_path.to_str().ok_or("Invalid archive path")?,
-            "-C",
-            portable_root.to_str().ok_or("Invalid destination path")?,
-        ]);
-    }
+    cmd.args([
+        "-xzf",
+        archive_path.to_str().ok_or("Invalid archive path")?,
+        "-C",
+        portable_root.to_str().ok_or("Invalid destination path")?,
+    ]);
     configure_command_no_window(&mut cmd);
     let output = cmd.output().map_err(|e| format!("Failed to extract portable Python: {}", e))?;
     let _ = fs::remove_file(&archive_path);
@@ -116,7 +107,6 @@ where
             crate::utils::process::sanitize_cmd_error(&output)
         ));
     }
-
     bootstrap_portable_python(&portable_exe, emit_progress).await?;
     if !portable_exe.exists() || read_python_version(&portable_exe).is_none() {
         return Err(format!(

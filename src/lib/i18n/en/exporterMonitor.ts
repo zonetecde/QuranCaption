@@ -27,6 +27,7 @@ const exporterMonitor = {
 	stateRendering: 'Rendering video',
 	stateMerging: 'Merging files',
 	stateCapturing: 'Capturing frames',
+	capturedFrames: 'Frames captured',
 	stateInitializing: 'Initializing',
 	stateExported: 'Exported',
 	stateError: 'Failed',

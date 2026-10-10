@@ -3,6 +3,36 @@ use tauri::Manager;
 #[cfg(target_os = "android")]
 use tauri_plugin_android_media::AndroidMediaExt;
 
+/// Dessine et enregistre un overlay transparent sur le renderer Android partagé.
+///
+/// @param payload Paramètres JSON du DOM, des polices et de la destination du PNG.
+/// @returns Durées et taille du PNG, ou erreur native.
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn capture_android_export_overlay(
+    payload: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::commands::android_media::capture_overlay(&payload.to_string())
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+/// Ferme la WebView de capture après la fin ou l'annulation d'un export.
+///
+/// @param export_id Identifiant de l'export terminé.
+/// @returns Erreur native éventuelle.
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn release_android_export_overlay(export_id: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::commands::android_media::release_overlay_capture(&export_id)
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
 /// Résout un dossier Tauri sans conserver le verrou des plugins pendant l'appel Android.
 ///
 /// @param app_handle Handle de l'application.

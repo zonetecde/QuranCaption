@@ -3381,6 +3381,7 @@ const es = {
 		stateRendering: 'Renderizando vídeo',
 		stateMerging: 'Combinando archivos',
 		stateCapturing: 'Capturando fotogramas',
+		capturedFrames: 'Fotogramas capturados',
 		stateInitializing: 'Inicializando',
 		stateExported: 'Exportado',
 		stateError: 'Error',

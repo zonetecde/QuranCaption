@@ -3390,6 +3390,7 @@ const de = {
 		stateRendering: 'Video wird gerendert',
 		stateMerging: 'Dateien werden zusammengeführt',
 		stateCapturing: 'Frames werden erfasst',
+		capturedFrames: 'Erfasste Bilder',
 		stateInitializing: 'Initialisierung',
 		stateExported: 'Exportiert',
 		stateError: 'Fehlgeschlagen',

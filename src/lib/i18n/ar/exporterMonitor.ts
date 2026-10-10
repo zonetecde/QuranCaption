@@ -76,6 +76,7 @@ const exporterMonitor = {
 	stateRendering: 'جارٍ إنشاء الفيديو',
 	stateMerging: 'جارٍ دمج الملفات',
 	stateCapturing: 'جارٍ التقاط الإطارات',
+	capturedFrames: 'الإطارات الملتقطة',
 	stateInitializing: 'جارٍ البدء',
 	stateExported: 'تم التصدير',
 	stateError: 'فشل',

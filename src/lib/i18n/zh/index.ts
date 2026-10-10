@@ -3069,6 +3069,7 @@ const zh = {
 		stateRendering: '正在渲染视频',
 		stateMerging: '正在合并文件',
 		stateCapturing: '正在捕获帧',
+		capturedFrames: '已捕获帧数',
 		stateInitializing: '正在初始化',
 		stateExported: '已导出',
 		stateError: '失败',

@@ -533,10 +533,15 @@
 										class="mt-3 flex flex-wrap justify-between gap-x-4 gap-y-1 text-[11px] text-thirdly"
 									>
 										<span>
-											{get(LL).export.processedTime()}
-											{formatDuration(exportation.currentTreatedTime)} / {formatDuration(
-												exportation.videoLength
-											)}
+											{#if exportation.currentState === ExportState.CapturingFrames}
+												{monitorMessage('capturedFrames')}: {exportation.capturedFrames} / {exportation.totalCaptureFrames ??
+													'—'}
+											{:else}
+												{get(LL).export.processedTime()}
+												{formatDuration(exportation.currentTreatedTime)} / {formatDuration(
+													exportation.videoLength
+												)}
+											{/if}
 										</span>
 										<span>
 											{get(LL).export.exportTime()}

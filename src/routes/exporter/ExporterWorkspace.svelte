@@ -55,10 +55,9 @@
 	import {
 		createContext,
 		destroyContext,
-		domToCanvas,
 		type Context as ScreenshotContext
 	} from 'modern-screenshot';
-	import { captureMacOsOverlayPngBytes, shouldRedrawExportTextWithCanvas } from './MacOSExport';
+	import { prepareAndroidOverlay, runAndroidCapturePipeline } from './AndroidExport';
 	import {
 		ClipWithTranslation,
 		CustomClip,
@@ -102,10 +101,12 @@
 	let currentVideoExportState: ExportState = ExportState.AddingSubtitles;
 	let subtitleMainProgress = 0;
 	let hasCompletedCapturingFrames = false;
+	let capturedFrames = 0;
+	let totalCaptureFrames = 0;
 	let hasSecondarySegmentProgress = false;
 	let processingBackgroundProgress = 0;
 	let captureWorkerIds: number[] = [];
-	let configuredParallelCaptureWorkers = 1;
+	const configuredParallelCaptureWorkers = 1;
 	let currentCaptureWorkerId: number | null = null;
 	let cancellationRequested = false;
 	let cleanupStarted = false;
@@ -128,28 +129,10 @@
 		timeline_start_ms: number;
 		duration_ms: number;
 	};
-	type PngEncoderWorkerResponse = {
-		requestId: number;
-		blob?: Blob;
-		durationMs?: number;
-		error?: string;
-	};
 	let reusableScreenshotContext: ScreenshotContext<HTMLElement> | null = null;
 	let reusableScreenshotContextKey = '';
-	let pngEncoderWorker: Worker | null = null;
-	let pngEncoderWorkerUnavailable = false;
-	let pngEncoderWorkerFallbackReason: string | null = null;
-	let pngEncoderRequestSequence = 0;
-	let pendingPngEncodings = new Map<
-		number,
-		{
-			resolve: (result: { blob: Blob; durationMs: number }) => void;
-			reject: (error: Error) => void;
-		}
-	>();
-	let lastPngEncodingMode: 'worker' | 'main-thread' = 'main-thread';
-	let lastImageBitmapMs = 0;
-	let lastWorkerEncodeMs = 0;
+	let preparedScreenshotCount = 0;
+	let pendingNativeScreenshot: Promise<unknown> | null = null;
 	let screenshotDomPhases = {
 		startedAt: 0,
 		cloneMs: 0,
@@ -984,16 +967,20 @@
 				});
 				let completed = 0;
 				const retryJobs: ExportFrameCaptureJob[] = [];
-				for (const job of data.jobs) {
-					if (await captureFrameJob(job, data.subfolder)) retryJobs.push(job);
-					completed += 1;
-					await emitToCoordinator(WORKER_PROGRESS_EVENT, {
-						exportId,
-						workerId,
-						completed,
-						total: data.jobs.length
-					} satisfies CaptureWorkerProgressPayload);
-				}
+				await runAndroidCapturePipeline(
+					data.jobs,
+					(job, onPrepared) => captureFrameJob(job, data.subfolder, onPrepared),
+					async (layoutTimedOut, job) => {
+						if (layoutTimedOut) retryJobs.push(job);
+						completed += 1;
+						await emitToCoordinator(WORKER_PROGRESS_EVENT, {
+							exportId,
+							workerId,
+							completed,
+							total: data.jobs.length
+						} satisfies CaptureWorkerProgressPayload);
+					}
+				);
 				if (retryJobs.length > 0) {
 					await emitExportLog('warn', 'Capture worker retrying layout timeouts', {
 						workerId,
@@ -1043,10 +1030,7 @@
 		const isWorker = params.get('mode') === CAPTURE_WORKER_MODE;
 		const workerId = Number(params.get('worker') ?? '0');
 		const requestedWorkerCount = Number(params.get('workers') ?? '1');
-		configuredParallelCaptureWorkers = Math.max(
-			1,
-			Math.min(4, Number.isFinite(requestedWorkerCount) ? Math.round(requestedWorkerCount) : 1)
-		);
+		// Le renderer natif et son bitmap sont uniques, quel que soit l'ancien réglage.
 		currentCaptureWorkerId = isWorker ? workerId : null;
 		const bridgeWindow = window as EmbeddedTauriBridgeWindow;
 
@@ -1097,7 +1081,8 @@
 			await emitExportLog('info', 'Export window initialized', {
 				mode: isWorker ? 'worker' : 'coordinator',
 				workerId: isWorker ? workerId : undefined,
-				parallelCaptureWorkers: isWorker ? undefined : configuredParallelCaptureWorkers
+				parallelCaptureWorkers: isWorker ? undefined : configuredParallelCaptureWorkers,
+				requestedParallelCaptureWorkers: isWorker ? undefined : requestedWorkerCount
 			});
 
 			await emitExportLog('info', 'Loading export project JSON', { exportId: id });
@@ -1165,10 +1150,15 @@
 	});
 
 	onDestroy(() => {
+		cancellationRequested = true;
 		for (const unlisten of exporterUnlisteners) unlisten();
 		exporterUnlisteners = [];
 		destroyReusableScreenshotContext();
-		destroyPngEncoderWorker();
+		if (currentCaptureWorkerId === null) {
+			void invoke('release_android_export_overlay', { exportId }).catch((error) =>
+				console.warn('Could not release native overlay renderer:', error)
+			);
+		}
 		if (currentCaptureWorkerId === null) void setExportScreenAwake(false);
 	});
 
@@ -1263,6 +1253,19 @@
 
 	async function handleSegmentedExport(renderSegments: BlurSegment[], totalDuration: number) {
 		if (renderSegments.length === 0) return;
+		const capturePlans = renderSegments.map((segment) =>
+			buildImageCapturePlan(
+				calculateTimingsForRange(segment.start, segment.end),
+				segment.start,
+				segment.end,
+				true
+			)
+		);
+		capturedFrames = 0;
+		totalCaptureFrames = capturePlans.reduce(
+			(total, plan) => total + plan.blankSourceJobs.length + plan.captureJobs.length,
+			0
+		);
 		isSegmentedVideoExport = true;
 		activeVideoSegments = renderSegments.map((segment) => ({
 			start: segment.start,
@@ -1274,15 +1277,13 @@
 
 		const segmentBlankImageIndexes = new Map<number, number[]>();
 		for (let segmentIndex = 0; segmentIndex < renderSegments.length; segmentIndex++) {
-			const segment = renderSegments[segmentIndex];
 			const segmentImageFolder = `segment_${segmentIndex}`;
 
 			await createSegmentImageFolder(segmentImageFolder);
 			const blankTimings = await generateImagesForSegment(
 				segmentIndex,
-				segment.start,
-				segment.end,
 				segmentImageFolder,
+				capturePlans[segmentIndex],
 				renderSegments.length,
 				0,
 				100
@@ -1348,8 +1349,8 @@
 	}
 
 	/**
-	 * Retourne le nombre de renderers iframe configuré pour la capture PNG.
-	 * @returns {number} Nombre de workers borné entre 1 et 4.
+	 * Retourne le renderer DOM unique utilisé pour la capture native Android.
+	 * @returns {number} Un seul renderer pour éviter les captures concurrentes en mémoire.
 	 */
 	function getParallelCaptureWorkerCount(): number {
 		return configuredParallelCaptureWorkers;
@@ -1426,11 +1427,13 @@
 	 * Capture une frame numerotee avec la preview du renderer courant.
 	 * @param {ExportFrameCaptureJob} job Job de capture.
 	 * @param {string | null} subfolder Sous-dossier de sortie, ou null.
+	 * @param {(() => void) | undefined} onPrepared Signale que le DOM cloné peut être rendu indépendamment.
 	 * @returns {Promise<boolean>} true si la capture a continue apres un timeout de layout.
 	 */
 	async function captureFrameJob(
 		job: ExportFrameCaptureJob,
-		subfolder: string | null
+		subfolder: string | null,
+		onPrepared?: () => void
 	): Promise<boolean> {
 		const jobStartedAt = performance.now();
 		ensureCaptureNotCancelled();
@@ -1455,7 +1458,7 @@
 			file: job.fileName
 		});
 		const screenshotStartedAt = performance.now();
-		await takeScreenshot(job.fileName, subfolder, job.reusableBlankFileName, job.hideArabicText);
+		await takeScreenshot(job.fileName, subfolder, job.hideArabicText, onPrepared);
 		await emitExportLog('info', 'Frame captured', {
 			timing: job.timing,
 			captureTiming: job.captureTiming,
@@ -1485,16 +1488,18 @@
 			subfolder
 		});
 		const retryJobs: ExportFrameCaptureJob[] = [];
-		for (let index = 0; index < jobs.length; index++) {
-			ensureCaptureNotCancelled();
-			const job = jobs[index];
-			if (await captureFrameJob(job, subfolder)) retryJobs.push(job);
-			onProgress(index + 1, job.timing);
+		await runAndroidCapturePipeline(
+			jobs,
+			(job, onPrepared) => captureFrameJob(job, subfolder, onPrepared),
+			async (layoutTimedOut, job, index) => {
+				if (layoutTimedOut) retryJobs.push(job);
+				onProgress(index + 1, job.timing);
 
-			if ((index + 1) % 20 === 0) {
-				await new Promise((resolve) => setTimeout(resolve, 50));
+				if ((index + 1) % 20 === 0) {
+					await new Promise((resolve) => setTimeout(resolve, 50));
+				}
 			}
-		}
+		);
 		if (retryJobs.length > 0) {
 			await emitExportLog('warn', 'Serial capture retrying layout timeouts', {
 				jobs: retryJobs.length,
@@ -1580,10 +1585,14 @@
 	}
 
 	/**
-	 * Demande à la page Android de démonter tous les renderers de capture.
+	 * Libère les ressources natives et demande le démontage des renderers de capture.
 	 * @returns {Promise<void>}
 	 */
 	async function closeCaptureWorkerRenderers(): Promise<void> {
+		await pendingNativeScreenshot?.catch(() => {});
+		pendingNativeScreenshot = null;
+		destroyReusableScreenshotContext();
+		await invoke('release_android_export_overlay', { exportId });
 		captureWorkerIds = [];
 		window.parent.postMessage(
 			{
@@ -1802,6 +1811,8 @@
 		onProgress: (completed: number, total: number, timing?: number) => void
 	): Promise<void> {
 		const totalJobs = Math.max(1, plan.totalJobs);
+		const capturesInPlan = plan.blankSourceJobs.length + plan.captureJobs.length;
+		const capturedBeforePlan = capturedFrames;
 		let completed = 0;
 		let lastReportedCompleted = 0;
 		await emitExportLog('info', 'Image capture plan started', {
@@ -1821,8 +1832,10 @@
 		 */
 		const reportProgress = (nextCompleted: number, timing?: number) => {
 			lastReportedCompleted = Math.max(lastReportedCompleted, nextCompleted);
+			capturedFrames = capturedBeforePlan + Math.min(lastReportedCompleted, capturesInPlan);
 			onProgress(lastReportedCompleted, totalJobs, timing);
 		};
+		reportProgress(0);
 
 		const retryBlankSourceJobs: ExportBlankSourceJob[] = [];
 		for (const job of plan.blankSourceJobs) {
@@ -1876,21 +1889,13 @@
 
 	async function generateImagesForSegment(
 		segmentIndex: number,
-		segmentStart: number,
-		segmentEnd: number,
 		segmentImageFolder: string,
+		plan: ReturnType<typeof buildExportCaptureJobPlan>,
 		totalSegments: number,
 		phaseStartProgress: number = 0,
 		phaseEndProgress: number = 100
 	): Promise<number[]> {
-		// Calculer les timings pour ce segment spécifique
-		const segmentTimings = calculateTimingsForRange(segmentStart, segmentEnd);
-
-		console.log(
-			`Segment ${segmentIndex}: ${segmentTimings.uniqueSorted.length} screenshots to take`
-		);
-
-		const plan = buildImageCapturePlan(segmentTimings, segmentStart, segmentEnd, true);
+		console.log(`Segment ${segmentIndex}: ${plan.totalJobs} images to prepare`);
 		const totalDuration = exportData!.videoEndTime - exportData!.videoStartTime;
 
 		await executeImageCapturePlan(plan, segmentImageFolder, (completed, total) => {
@@ -1903,6 +1908,8 @@
 				exportId: Number(exportId),
 				progress: globalProgress,
 				currentState: ExportState.CapturingFrames,
+				capturedFrames,
+				totalCaptureFrames,
 				currentTime: (globalProgress / 100) * totalDuration,
 				totalTime: totalDuration
 			} as ExportProgress);
@@ -2002,6 +2009,8 @@
 		);
 
 		const plan = buildImageCapturePlan(timings, exportStart, exportEnd, false);
+		capturedFrames = 0;
+		totalCaptureFrames = plan.blankSourceJobs.length + plan.captureJobs.length;
 
 		await executeImageCapturePlan(plan, null, (completed, total) => {
 			const progress = (completed / total) * 100;
@@ -2009,6 +2018,8 @@
 				exportId: Number(exportId),
 				progress,
 				currentState: ExportState.CapturingFrames,
+				capturedFrames,
+				totalCaptureFrames,
 				currentTime: (progress / 100) * totalDuration,
 				totalTime: totalDuration
 			} as ExportProgress);
@@ -2420,7 +2431,6 @@
 		if (cleanupStarted) return;
 		cleanupStarted = true;
 		destroyReusableScreenshotContext();
-		destroyPngEncoderWorker();
 		try {
 			await closeCaptureWorkerRenderers();
 		} catch (error) {
@@ -2465,21 +2475,6 @@
 	}
 
 	/**
-	 * Lit un PNG blank deja capture pour servir de fond sans sous-titres.
-	 * @param {string | null} fileName Nom du fichier sans extension.
-	 * @returns {Promise<Blob | null>} Blob PNG ou null si indisponible.
-	 */
-	async function readReusableBlankBlob(fileName: string | null): Promise<Blob | null> {
-		if (!fileName) return null;
-
-		const filePath = await join(ExportService.exportFolder, exportId, fileName + '.png');
-		if (!(await exists(filePath, { baseDir: BaseDirectory.AppData }))) return null;
-
-		const bytes = await readFile(filePath, { baseDir: BaseDirectory.AppData });
-		return new Blob([bytes], { type: 'image/png' });
-	}
-
-	/**
 	 * Détruit le contexte de capture DOM partagé par le renderer courant.
 	 * @returns {void}
 	 */
@@ -2519,6 +2514,7 @@
 				transformOrigin: 'top left'
 			},
 			quality: 1,
+			font: false,
 			autoDestruct: false,
 			onCloneNode: () => {
 				const now = performance.now();
@@ -2543,148 +2539,18 @@
 	}
 
 	/**
-	 * Résout une réponse de l'encodeur PNG exécuté dans le Web Worker.
-	 * @param {MessageEvent<PngEncoderWorkerResponse>} event Réponse du worker.
-	 * @returns {void}
+	 * Capture l'overlay existant et enregistre son PNG sur le renderer natif Android.
+	 * @param {string} fileName Nom du PNG sans extension.
+	 * @param {string | null} subfolder Sous-dossier de sortie éventuel.
+	 * @param {boolean} hideArabicText Indique si le texte arabe doit être masqué.
+	 * @param {(() => void) | undefined} onPrepared Signale que la preview peut passer à la capture suivante.
+	 * @returns {Promise<void>} Promesse résolue après l'écriture complète du PNG.
 	 */
-	function handlePngEncoderWorkerMessage(event: MessageEvent<PngEncoderWorkerResponse>): void {
-		const pending = pendingPngEncodings.get(event.data.requestId);
-		if (!pending) return;
-		pendingPngEncodings.delete(event.data.requestId);
-
-		if (event.data.error || !event.data.blob) {
-			pending.reject(new Error(event.data.error || 'ANDROID_PNG_WORKER_EMPTY_RESULT'));
-			return;
-		}
-
-		pending.resolve({
-			blob: event.data.blob,
-			durationMs: event.data.durationMs ?? 0
-		});
-	}
-
-	/**
-	 * Désactive l'encodeur PNG worker après une erreur d'exécution.
-	 * @param {ErrorEvent} event Erreur remontée par le worker.
-	 * @returns {void}
-	 */
-	function handlePngEncoderWorkerError(event: ErrorEvent): void {
-		pngEncoderWorkerUnavailable = true;
-		pngEncoderWorkerFallbackReason = event.message || 'ANDROID_PNG_WORKER_FAILED';
-		const error = new Error(event.message || 'ANDROID_PNG_WORKER_FAILED');
-		for (const pending of pendingPngEncodings.values()) pending.reject(error);
-		pendingPngEncodings.clear();
-		pngEncoderWorker?.terminate();
-		pngEncoderWorker = null;
-	}
-
-	/**
-	 * Retourne l'encodeur PNG worker lorsqu'il est supporté par la WebView.
-	 * @returns {Worker | null} Worker partagé ou null lorsque le fallback est requis.
-	 */
-	function getPngEncoderWorker(): Worker | null {
-		if (pngEncoderWorkerUnavailable) return null;
-		if (
-			typeof Worker === 'undefined' ||
-			typeof OffscreenCanvas === 'undefined' ||
-			typeof createImageBitmap === 'undefined'
-		) {
-			pngEncoderWorkerUnavailable = true;
-			pngEncoderWorkerFallbackReason = 'ANDROID_PNG_WORKER_UNSUPPORTED';
-			return null;
-		}
-		if (pngEncoderWorker) return pngEncoderWorker;
-
-		try {
-			pngEncoderWorker = new Worker(new URL('./PngEncoder.worker.ts', import.meta.url), {
-				type: 'module'
-			});
-			pngEncoderWorker.addEventListener('message', handlePngEncoderWorkerMessage);
-			pngEncoderWorker.addEventListener('error', handlePngEncoderWorkerError);
-			return pngEncoderWorker;
-		} catch (error) {
-			console.warn('Unable to create Android PNG encoder worker:', error);
-			pngEncoderWorkerUnavailable = true;
-			pngEncoderWorkerFallbackReason = error instanceof Error ? error.message : String(error);
-			return null;
-		}
-	}
-
-	/**
-	 * Arrête l'encodeur PNG worker et rejette ses requêtes encore actives.
-	 * @returns {void}
-	 */
-	function destroyPngEncoderWorker(): void {
-		const error = new Error('ANDROID_PNG_WORKER_DESTROYED');
-		for (const pending of pendingPngEncodings.values()) pending.reject(error);
-		pendingPngEncodings.clear();
-		pngEncoderWorker?.terminate();
-		pngEncoderWorker = null;
-	}
-
-	/**
-	 * Encode un canvas en PNG sur le thread principal en solution de repli.
-	 * @param {HTMLCanvasElement} canvas Canvas final à encoder.
-	 * @returns {Promise<Blob>} Image PNG encodée.
-	 */
-	async function encodeScreenshotCanvasAsPngOnMainThread(canvas: HTMLCanvasElement): Promise<Blob> {
-		return await new Promise<Blob>((resolve, reject) => {
-			canvas.toBlob((blob) => {
-				if (blob) resolve(blob);
-				else reject(new Error('EXPORT_SCREENSHOT_PNG_ENCODING_FAILED'));
-			}, 'image/png');
-		});
-	}
-
-	/**
-	 * Encode un canvas en PNG dans un worker pour éviter l'attente idle de Chromium Android.
-	 * @param {HTMLCanvasElement} canvas Canvas final à encoder.
-	 * @returns {Promise<Blob>} Image PNG encodée.
-	 */
-	async function encodeScreenshotCanvasAsPng(canvas: HTMLCanvasElement): Promise<Blob> {
-		lastPngEncodingMode = 'main-thread';
-		lastImageBitmapMs = 0;
-		lastWorkerEncodeMs = 0;
-		const worker = getPngEncoderWorker();
-		if (!worker) return await encodeScreenshotCanvasAsPngOnMainThread(canvas);
-
-		let bitmap: ImageBitmap | null = null;
-		const requestId = pngEncoderRequestSequence++;
-		try {
-			const imageBitmapStartedAt = performance.now();
-			bitmap = await createImageBitmap(canvas);
-			lastImageBitmapMs = performance.now() - imageBitmapStartedAt;
-			const resultPromise = new Promise<{ blob: Blob; durationMs: number }>((resolve, reject) => {
-				pendingPngEncodings.set(requestId, { resolve, reject });
-			});
-
-			try {
-				worker.postMessage({ requestId, bitmap }, [bitmap]);
-				bitmap = null;
-			} catch (error) {
-				pendingPngEncodings.delete(requestId);
-				throw error;
-			}
-
-			const result = await resultPromise;
-			lastPngEncodingMode = 'worker';
-			lastWorkerEncodeMs = result.durationMs;
-			return result.blob;
-		} catch (error) {
-			bitmap?.close();
-			console.warn('Android PNG worker failed, using main-thread fallback:', error);
-			pngEncoderWorkerUnavailable = true;
-			pngEncoderWorkerFallbackReason = error instanceof Error ? error.message : String(error);
-			destroyPngEncoderWorker();
-			return await encodeScreenshotCanvasAsPngOnMainThread(canvas);
-		}
-	}
-
 	async function takeScreenshot(
 		fileName: string,
 		subfolder: string | null = null,
-		reusableBlankFileName: string | null = null,
-		hideArabicText: boolean = false
+		hideArabicText: boolean = false,
+		onPrepared?: () => void
 	) {
 		const screenshotStartedAt = performance.now();
 		// L'element a transformer en image
@@ -2734,152 +2600,94 @@
 
 			const filePathWithName = await join(...pathComponents);
 
-			const isMacOS = shouldRedrawExportTextWithCanvas();
-
-			const useLiveTextCanvasCapture = isMacOS;
 			await emitExportLog('info', 'Screenshot started', {
 				file: fileName,
 				subfolder,
-				isMacOS,
+				mode: 'native-webview',
 				width: targetWidth,
 				height: targetHeight,
 				scale
 			});
-			if (!useLiveTextCanvasCapture) {
-				const fontSubsetStartedAt = performance.now();
-				const restoreSystemFonts = await QPCFontProvider.applySystemFontSubsetsForScreenshot(node);
-				const fontSubsetMs = performance.now() - fontSubsetStartedAt;
-				const fontImportStylesheets: { sheet: CSSStyleSheet; ruleCount: number }[] = [];
-				for (const sheet of Array.from(document.styleSheets)) {
-					try {
-						for (let index = 0; index < sheet.cssRules.length; index++) {
-							const rule = sheet.cssRules[index];
-							if (
-								rule instanceof CSSImportRule &&
-								rule.href.startsWith('https://fonts.googleapis.com/')
-							) {
-								fontImportStylesheets.push({ sheet, ruleCount: sheet.cssRules.length });
-								break;
-							}
-						}
-					} catch {
-						// Les feuilles externes peuvent refuser l'accès à leurs règles CSS.
-					}
-				}
-				let blob: Blob | null = null;
-				let canvas: HTMLCanvasElement | null = null;
-				let context: ScreenshotContext<HTMLElement> | null = null;
-				let contextMs = 0;
-				let domCaptureMs = 0;
-				let cloneMs = 0;
-				let embedMs = 0;
-				let rasterMs = 0;
-				let pngEncodeMs = 0;
-				try {
-					const contextStartedAt = performance.now();
-					context = await getReusableScreenshotContext(
-						node,
-						node.clientWidth * scale,
-						node.clientHeight * scale,
-						scale
-					);
-					contextMs = performance.now() - contextStartedAt;
-					context.fontFamilies.clear();
-					context.shadowRoots.length = 0;
-					screenshotDomPhases = {
-						startedAt: performance.now(),
-						cloneMs: 0,
-						embedMs: 0,
-						foreignObjectMs: 0
-					};
-					const domCaptureStartedAt = performance.now();
-					const rasterStartedAt = performance.now();
-					canvas = await withScreenshotTimeout(domToCanvas(context));
-					rasterMs = performance.now() - rasterStartedAt;
-					const pngEncodeStartedAt = performance.now();
-					blob = await withScreenshotTimeout(encodeScreenshotCanvasAsPng(canvas));
-					pngEncodeMs = performance.now() - pngEncodeStartedAt;
-					domCaptureMs = performance.now() - domCaptureStartedAt;
-					cloneMs = screenshotDomPhases.cloneMs;
-					embedMs = screenshotDomPhases.embedMs;
-				} finally {
-					releaseExportScreenshotResources(canvas, context);
-					restoreSystemFonts();
-					// modern-screenshot ajoute les règles importées à la feuille du document à chaque capture.
-					for (const { sheet, ruleCount } of fontImportStylesheets) {
-						while (sheet.cssRules.length > ruleCount) sheet.deleteRule(sheet.cssRules.length - 1);
-					}
-				}
-
-				const blobReadStartedAt = performance.now();
-				const buffer = await blob.arrayBuffer();
-				const bytes = new Uint8Array(buffer);
-				const byteLength = bytes.byteLength;
-				const blobReadMs = performance.now() - blobReadStartedAt;
-
-				const writeStartedAt = performance.now();
-				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
-				const writeMs = performance.now() - writeStartedAt;
-				const totalMs = performance.now() - screenshotStartedAt;
-				screenshotPerformance.count += 1;
-				if (screenshotPerformance.count % 16 === 0) destroyReusableScreenshotContext();
-				screenshotPerformance.totalMs += totalMs;
-				screenshotPerformance.maxMs = Math.max(screenshotPerformance.maxMs, totalMs);
-				screenshotPerformance.contextMs += contextMs;
-				screenshotPerformance.fontSubsetMs += fontSubsetMs;
-				screenshotPerformance.cloneMs += cloneMs;
-				screenshotPerformance.embedMs += embedMs;
-				screenshotPerformance.rasterMs += rasterMs;
-				screenshotPerformance.pngEncodeMs += pngEncodeMs;
-				screenshotPerformance.domCaptureMs += domCaptureMs;
-				screenshotPerformance.blobReadMs += blobReadMs;
-				screenshotPerformance.writeMs += writeMs;
-				screenshotPerformance.bytes += byteLength;
-				console.log('Screenshot saved to:', filePathWithName);
-				await emitExportLog('info', 'Screenshot performance', {
-					file: fileName,
-					totalMs: Math.round(totalMs),
-					contextMs: Math.round(contextMs),
-					fontSubsetMs: Math.round(fontSubsetMs),
-					cloneMs: Math.round(cloneMs),
-					embedMs: Math.round(embedMs),
-					rasterMs: Math.round(rasterMs),
-					pngEncodeMs: Math.round(pngEncodeMs),
-					pngEncodingMode: lastPngEncodingMode,
-					pngWorkerFallbackReason: pngEncoderWorkerFallbackReason,
-					imageBitmapMs: Math.round(lastImageBitmapMs),
-					workerEncodeMs: Math.round(lastWorkerEncodeMs),
-					domCaptureMs: Math.round(domCaptureMs),
-					blobReadMs: Math.round(blobReadMs),
-					writeMs: Math.round(writeMs),
-					bytes: byteLength
-				});
-				await emitExportLog('info', 'Screenshot saved', {
-					file: fileName,
-					path: filePathWithName
-				});
-			} else {
-				const backgroundBlob = hasVisibleSubtitleBackground(node)
-					? null
-					: await readReusableBlankBlob(reusableBlankFileName);
-				await emitExportLog('info', 'macOS canvas capture started', {
-					file: fileName,
-					reusableBlank: reusableBlankFileName,
-					backgroundReused: Boolean(backgroundBlob)
-				});
-				const bytes = await captureMacOsOverlayPngBytes(node, scale, targetWidth, targetHeight, {
-					backgroundBlob,
-					compensateTextWeight: isMacOS,
-					textRootSelector: backgroundBlob ? '#subtitles-container' : undefined
-				});
-
-				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
-				console.log('Screenshot saved to:', filePathWithName);
-				await emitExportLog('info', 'Screenshot saved', {
-					file: fileName,
-					path: filePathWithName
-				});
+			const contextStartedAt = performance.now();
+			const context = await getReusableScreenshotContext(
+				node,
+				node.clientWidth * scale,
+				node.clientHeight * scale,
+				scale
+			);
+			const contextMs = performance.now() - contextStartedAt;
+			screenshotDomPhases = {
+				startedAt: performance.now(),
+				cloneMs: 0,
+				embedMs: 0,
+				foreignObjectMs: 0
+			};
+			const domCaptureStartedAt = performance.now();
+			let overlay: { html: string; fontCss: string[] };
+			try {
+				overlay = await withScreenshotTimeout(prepareAndroidOverlay(context));
+			} finally {
+				releaseExportScreenshotResources(null, context);
+				// Restaurer la preview avant d'autoriser la préparation de l'image suivante.
+				for (const { el, prev } of forcedOverlayElements) el.style.opacity = prev;
+				for (const { el, prev } of forcedArabicTextElements) el.style.visibility = prev;
+				forcedOverlayElements.length = 0;
+				forcedArabicTextElements.length = 0;
 			}
+			const domCaptureMs = performance.now() - domCaptureStartedAt;
+			const domPhases = { ...screenshotDomPhases };
+			if (++preparedScreenshotCount % 16 === 0) destroyReusableScreenshotContext();
+			const path = await join(await appDataDir(), filePathWithName);
+			const previousCapture = pendingNativeScreenshot;
+			const capture = (async () => {
+				await previousCapture;
+				ensureCaptureNotCancelled();
+				return invoke<{
+					rasterMs: number;
+					drawMs: number;
+					pngEncodeMs: number;
+					bytes: number;
+				}>('capture_android_export_overlay', {
+					payload: {
+						exportId,
+						baseUrl: document.baseURI,
+						...overlay,
+						width: targetWidth,
+						height: targetHeight,
+						path
+					}
+				});
+			})();
+			pendingNativeScreenshot = capture;
+			void capture.catch(() => {});
+			onPrepared?.();
+			const result = await withScreenshotTimeout(capture);
+			const totalMs = performance.now() - screenshotStartedAt;
+			screenshotPerformance.count += 1;
+			screenshotPerformance.totalMs += totalMs;
+			screenshotPerformance.maxMs = Math.max(screenshotPerformance.maxMs, totalMs);
+			screenshotPerformance.contextMs += contextMs;
+			screenshotPerformance.cloneMs += domPhases.cloneMs;
+			screenshotPerformance.embedMs += domPhases.embedMs;
+			screenshotPerformance.rasterMs += result.rasterMs;
+			screenshotPerformance.pngEncodeMs += result.pngEncodeMs;
+			screenshotPerformance.domCaptureMs += domCaptureMs;
+			screenshotPerformance.bytes += result.bytes;
+			await emitExportLog('info', 'Screenshot performance', {
+				file: fileName,
+				mode: 'native-webview',
+				totalMs: Math.round(totalMs),
+				contextMs: Math.round(contextMs),
+				cloneMs: Math.round(domPhases.cloneMs),
+				embedMs: Math.round(domPhases.embedMs),
+				domCaptureMs: Math.round(domCaptureMs),
+				rasterMs: Math.round(result.rasterMs),
+				drawMs: Math.round(result.drawMs),
+				pngEncodeMs: Math.round(result.pngEncodeMs),
+				htmlCharacters: overlay.html.length,
+				bytes: result.bytes
+			});
+			await emitExportLog('info', 'Screenshot saved', { file: fileName, path: filePathWithName });
 		} catch (error: unknown) {
 			console.error('Error while taking screenshot: ', error);
 			const message =

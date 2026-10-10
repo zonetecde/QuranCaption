@@ -394,6 +394,10 @@ export function applyExportProgress(data: ExportProgress): void {
 		exportation.percentageProgress = data.progress;
 		exportation.currentState = data.currentState;
 		exportation.currentTreatedTime = data.currentTime;
+		if (typeof data.capturedFrames === 'number') exportation.capturedFrames = data.capturedFrames;
+		if (typeof data.totalCaptureFrames === 'number') {
+			exportation.totalCaptureFrames = data.totalCaptureFrames;
+		}
 		if (data.finalFilePath) exportation.finalFilePath = data.finalFilePath;
 		if (typeof data.fileSizeBytes === 'number') exportation.fileSizeBytes = data.fileSizeBytes;
 		exportation.hasSecondarySegmentProgress = data.hasSecondarySegmentProgress ?? false;
@@ -488,6 +492,8 @@ export interface ExportProgress {
 	progress: number;
 	currentState: ExportState;
 	currentTime: number;
+	capturedFrames?: number;
+	totalCaptureFrames?: number;
 	hasSecondarySegmentProgress?: boolean;
 	processingBackgroundProgress?: number;
 	processingBackgroundCurrentSegment?: number;

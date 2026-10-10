@@ -61,6 +61,7 @@
 
 	let rail: HTMLDivElement;
 	let activeBoundary: 'start' | 'end' | null = null;
+	let collapsedDragIndex: number | null = null;
 	const lastIndex = $derived(Math.max(0, verses.length - 1));
 	const denominator = $derived(Math.max(1, lastIndex));
 	const startPosition = $derived((startIndex / denominator) * 100);
@@ -140,6 +141,11 @@
 	 */
 	function updateActiveBoundary(clientX: number): void {
 		const index = getIndexAtPosition(clientX);
+		// Les poignées superposées se départagent au premier déplacement vers un autre verset.
+		if (collapsedDragIndex !== null && index !== collapsedDragIndex) {
+			activeBoundary = index < collapsedDragIndex ? 'start' : 'end';
+			collapsedDragIndex = null;
+		}
 		if (activeBoundary === 'start') applyStartIndex(Math.min(index, endIndex));
 		if (activeBoundary === 'end') applyEndIndex(Math.max(index, startIndex));
 	}
@@ -183,6 +189,7 @@
 		const boundary = (event.target as HTMLElement).closest<HTMLElement>('[data-boundary]')?.dataset
 			.boundary;
 		const index = getIndexAtPosition(event.clientX);
+		collapsedDragIndex = startIndex === endIndex ? startIndex : null;
 		activeBoundary =
 			boundary === 'start' || boundary === 'end'
 				? boundary
@@ -212,6 +219,7 @@
 	function handlePointerUp(): void {
 		if (!activeBoundary) return;
 		activeBoundary = null;
+		collapsedDragIndex = null;
 		onDragEnd();
 	}
 

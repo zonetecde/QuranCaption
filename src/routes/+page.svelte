@@ -325,8 +325,8 @@
 			homepageMessage = hasContent ? message : null;
 			homepageMessageVisible = Boolean(
 				hasContent &&
-				message.fingerprint !==
-					globalState.settings?.persistentUiState.dismissedHomepageMessageFingerprint
+					message.fingerprint !==
+						globalState.settings?.persistentUiState.dismissedHomepageMessageFingerprint
 			);
 		} catch (error) {
 			console.error('Failed to load homepage message:', error);
@@ -453,8 +453,7 @@
 			class="export-renderer"
 			src={`/exporter?${new URLSearchParams({
 				id: globalState.uiState.activeExportId,
-				embedded: '1',
-				workers: String(globalState.settings?.exportSettings.parallelCaptureWorkers ?? 1)
+				embedded: '1'
 			})}`}
 			title={$LL.export.exportVideo()}
 			aria-hidden="true"

@@ -575,19 +575,6 @@
 	}
 
 	/**
-	 * Normalise et sauvegarde le nombre de renderers utilisés pour capturer les frames.
-	 * @returns {Promise<void>}
-	 */
-	async function saveParallelCaptureWorkers(): Promise<void> {
-		if (!globalState.settings) return;
-		globalState.settings.exportSettings.parallelCaptureWorkers = Math.max(
-			1,
-			Math.min(4, Math.round(globalState.settings.exportSettings.parallelCaptureWorkers || 1))
-		);
-		await Settings.save();
-	}
-
-	/**
 	 * Active ou désactive l'ajout d'un arrière-plan aléatoire pour les exports vidéo.
 	 * @param {boolean} enabled Nouvel état de l'option.
 	 * @returns {void}
@@ -1475,29 +1462,6 @@
 							</div>
 						{/if}
 					</div>
-
-					{#if globalState.settings}
-						<div class="mt-4 rounded-lg border border-color bg-secondary p-2.5">
-							<div class="flex items-center justify-between gap-3">
-								<label class="text-xs font-medium text-secondary" for="parallel-capture-workers">
-									{$LL.export.parallelCaptureWorkers()}
-								</label>
-								<input
-									id="parallel-capture-workers"
-									type="number"
-									min="1"
-									max="4"
-									step="1"
-									class="input h-9 w-16 px-2 text-sm"
-									bind:value={globalState.settings.exportSettings.parallelCaptureWorkers}
-									onchange={saveParallelCaptureWorkers}
-								/>
-							</div>
-							<p class="mt-1.5 text-[11px] leading-4 text-thirdly">
-								{$LL.export.parallelCaptureWorkersDescription()}
-							</p>
-						</div>
-					{/if}
 				</div>
 			{/if}
 		</div>

@@ -3409,6 +3409,7 @@ const fr = {
 		stateRendering: 'Rendu de la vidéo',
 		stateMerging: 'Fusion des fichiers',
 		stateCapturing: 'Capture des frames',
+		capturedFrames: 'Images capturées',
 		stateInitializing: 'Initialisation',
 		stateExported: 'Exporté',
 		stateError: 'Échec',

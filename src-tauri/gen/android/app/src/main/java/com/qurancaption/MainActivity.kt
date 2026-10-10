@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.pm.ActivityInfo
 import android.content.res.AssetFileDescriptor
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -11,6 +13,7 @@ import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -26,11 +29,21 @@ import androidx.webkit.WebViewCompat
 import com.arthenica.ffmpegkit.FFmpegKit
 import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import org.json.JSONObject
 
 class MainActivity : TauriActivity() {
+    private var sourceWebView: WebView? = null
+    private var overlayWebView: WebView? = null
+    private var overlayExportId = ""
+    private var overlayBaseUrl = ""
+    private var pendingOverlayCapture: (() -> Unit)? = null
+    private val overlayCaptureLock = Any()
+    private var overlayCaptureSequence = 0L
+
     /**
      * Initialise le lecteur audio natif au démarrage de l'activité.
      *
@@ -45,6 +58,269 @@ class MainActivity : TauriActivity() {
     override fun onWebViewCreate(webView: WebView) {
         super.onWebViewCreate(webView)
         webView.webViewClient = LocalMediaWebViewClient(WebViewCompat.getWebViewClient(webView))
+        sourceWebView = webView
+    }
+
+    /** Libère le renderer d'export et débloque une capture lors de la destruction de l'activité. */
+    override fun onDestroy() {
+        releaseOverlayWebView()
+        sourceWebView = null
+        super.onDestroy()
+    }
+
+    /**
+     * Dessine l'overlay dans un bitmap transparent, puis encode le PNG sur le thread JNI appelant.
+     *
+     * @param payload Paramètres JSON du document, des polices, des dimensions et du fichier cible.
+     * @return Durées et taille du PNG, ou erreur JSON sans exception JNI pendante.
+     */
+    @Keep
+    fun nativeCaptureOverlay(payload: String): String = synchronized(overlayCaptureLock) {
+        var bitmap: Bitmap? = null
+        try {
+            val args = JSONObject(payload)
+            val width = args.getInt("width")
+            val height = args.getInt("height")
+            require(width > 0 && height > 0 && width.toLong() * height <= Int.MAX_VALUE / 4) {
+                "Invalid overlay dimensions"
+            }
+            val destination = File(args.getString("path")).canonicalFile
+            val exports = File(applicationInfo.dataDir, "exports").canonicalFile
+            require(destination.path.startsWith(exports.path + File.separator)) { "Invalid overlay destination" }
+            val latch = CountDownLatch(1)
+            val completed = AtomicBoolean(false)
+            val handler = Handler(Looper.getMainLooper())
+            var failure: String? = null
+            val startedAt = System.nanoTime()
+            var drawMs = 0.0
+
+            /**
+             * Termine la capture une seule fois et recycle un éventuel résultat tardif.
+             * @param image Bitmap dessiné, ou null en cas d'échec.
+             * @param error Erreur à transmettre au code Rust.
+             */
+            fun finish(image: Bitmap?, error: String?) {
+                if (!completed.compareAndSet(false, true)) {
+                    image?.recycle()
+                    return
+                }
+                bitmap = image
+                failure = error
+                handler.removeCallbacksAndMessages(null)
+                latch.countDown()
+            }
+
+            runOnUiThread {
+                try {
+                    if (completed.get()) return@runOnUiThread
+                    check(!isFinishing && !isDestroyed) { "Overlay activity is unavailable" }
+                    val source = requireNotNull(sourceWebView) { "Tauri WebView is unavailable" }
+                    val delegate = WebViewCompat.getWebViewClient(source)
+                    val exportId = args.getString("exportId")
+                    val baseUrl = args.getString("baseUrl")
+                    var view = overlayWebView
+                    val needsLoad = view == null || overlayExportId != exportId ||
+                        overlayBaseUrl != baseUrl || view.width != width || view.height != height
+                    if (needsLoad) {
+                        releaseOverlayWebView()
+                        view = WebView(this).apply {
+                            setBackgroundColor(Color.TRANSPARENT)
+                            settings.javaScriptEnabled = true
+                            settings.textZoom = 100
+                            settings.useWideViewPort = true
+                            settings.loadWithOverviewMode = false
+                            // 100 % correspond ici à un pixel physique par pixel CSS, indépendamment du DPI.
+                            setInitialScale(100)
+                            isHorizontalScrollBarEnabled = false
+                            isVerticalScrollBarEnabled = false
+                            isFocusable = false
+                            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+                            translationX = -(width + 16).toFloat()
+                        }
+                        overlayWebView = view
+                        overlayExportId = exportId
+                        overlayBaseUrl = baseUrl
+                        addContentView(view, ViewGroup.LayoutParams(width, height))
+                        view.measure(
+                            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+                        )
+                        view.layout(0, 0, width, height)
+                    }
+                    val renderer = requireNotNull(view)
+                    val captureId = ++overlayCaptureSequence
+                    pendingOverlayCapture = { finish(null, "Overlay renderer released") }
+                    var injected = false
+
+                    /** Injecte le DOM et attend les images et les polices sans recharger le document. */
+                    fun render() {
+                        if (injected || completed.get()) return
+                        injected = true
+                        renderer.evaluateJavascript(
+                            """
+                            (async () => {
+                                let error = '';
+                                try {
+                                    const fonts = window.captureFonts ||= new Map();
+                                    const usedFonts = new Set(${args.getJSONArray("fontCss")});
+                                    const stylesheets = [];
+                                    for (const [css, style] of fonts) {
+                                        if (usedFonts.has(css)) continue;
+                                        style.remove();
+                                        fonts.delete(css);
+                                    }
+                                    for (const css of usedFonts) {
+                                        if (fonts.has(css)) continue;
+                                        const style = document.createElement('style');
+                                        style.textContent = css;
+                                        if (css.startsWith('@import')) {
+                                            stylesheets.push(new Promise((resolve, reject) => {
+                                                style.onload = resolve;
+                                                style.onerror = () => reject(new Error('Overlay font stylesheet failed to load'));
+                                            }));
+                                        }
+                                        document.head.appendChild(style);
+                                        fonts.set(css, style);
+                                    }
+                                    await Promise.all(stylesheets);
+                                    document.body.innerHTML = ${JSONObject.quote(args.getString("html"))};
+                                    document.body.getBoundingClientRect();
+                                    await Promise.all(Array.from(document.images, image => image.decode()));
+                                    await document.fonts.ready;
+                                    if (Array.from(document.fonts).some(font => font.status === 'error')) {
+                                        throw new Error('Overlay font failed to load');
+                                    }
+                                    if (Math.abs(window.innerWidth - $width) > 1) {
+                                        throw new Error('Unexpected overlay viewport: ' + window.innerWidth);
+                                    }
+                                } catch (failure) { error = String(failure); }
+                                location.href = 'qurancaption-capture://ready/$captureId?error=' + encodeURIComponent(error);
+                            })();
+                            """.trimIndent(), null
+                        )
+                    }
+
+                    renderer.webViewClient = object : WebViewClient() {
+                        /** Réutilise les protocoles Tauri pour les polices et ressources locales. */
+                        override fun shouldInterceptRequest(
+                            view: WebView, request: WebResourceRequest
+                        ): WebResourceResponse? = delegate.shouldInterceptRequest(source, request)
+
+                        /** Lance la première capture après le chargement du document transparent. */
+                        override fun onPageFinished(view: WebView, url: String) = render()
+
+                        /** Attend le rendu Chromium avant de dessiner les pixels dans le bitmap. */
+                        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                            val uri = request.url
+                            if (uri.scheme == "qurancaption-capture" &&
+                                uri.lastPathSegment == captureId.toString() && !completed.get()) {
+                                val error = uri.getQueryParameter("error").orEmpty()
+                                if (error.isNotEmpty()) {
+                                    finish(null, error)
+                                } else {
+                                    view.postVisualStateCallback(captureId, object : WebView.VisualStateCallback() {
+                                        /** Dessine uniquement l'overlay, à la résolution d'export et avec son alpha. */
+                                        override fun onComplete(requestId: Long) {
+                                            if (completed.get()) return
+                                            var image: Bitmap? = null
+                                            try {
+                                                val drawStartedAt = System.nanoTime()
+                                                image = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                                                view.draw(Canvas(image))
+                                                drawMs = (System.nanoTime() - drawStartedAt) / 1_000_000.0
+                                                finish(image, null)
+                                            } catch (error: Throwable) {
+                                                image?.recycle()
+                                                finish(null, error.message ?: error.javaClass.simpleName)
+                                            }
+                                        }
+                                    })
+                                }
+                            }
+                            return true
+                        }
+
+                        /** Signale un échec du document principal sans produire de PNG vide. */
+                        override fun onReceivedError(
+                            view: WebView, request: WebResourceRequest, error: WebResourceError
+                        ) {
+                            if (request.isForMainFrame) finish(null, error.description.toString())
+                        }
+
+                        /** Détruit la WebView si Chromium termine son processus de rendu. */
+                        override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                            finish(null, "Overlay renderer process exited")
+                            releaseOverlayWebView()
+                            return true
+                        }
+                    }
+                    handler.postDelayed({ finish(null, "Overlay capture timed out") }, 45_000)
+                    if (needsLoad) {
+                        renderer.loadDataWithBaseURL(
+                            baseUrl,
+                            """<!DOCTYPE html><html><head><meta name="viewport" content="width=$width"><style>html,body{margin:0;padding:0;background:transparent;overflow:hidden}</style></head><body></body></html>""",
+                            "text/html", "UTF-8", null
+                        )
+                    } else render()
+                } catch (error: Throwable) {
+                    finish(null, error.message ?: error.javaClass.simpleName)
+                }
+            }
+            if (!latch.await(50, TimeUnit.SECONDS)) finish(null, "Overlay capture timed out")
+            failure?.let { error(it) }
+            val image = requireNotNull(bitmap) { "Overlay capture returned no bitmap" }
+            val rasterMs = (System.nanoTime() - startedAt) / 1_000_000.0
+            val encodeStartedAt = System.nanoTime()
+            try {
+                FileOutputStream(destination).use { output ->
+                    check(image.compress(Bitmap.CompressFormat.PNG, 100, output)) { "Overlay PNG encoding failed" }
+                }
+            } catch (error: Throwable) {
+                destination.delete()
+                throw error
+            }
+            JSONObject()
+                .put("rasterMs", rasterMs)
+                .put("drawMs", drawMs)
+                .put("pngEncodeMs", (System.nanoTime() - encodeStartedAt) / 1_000_000.0)
+                .put("bytes", destination.length())
+                .toString()
+        } catch (error: Throwable) {
+            JSONObject().put("error", error.message ?: error.javaClass.simpleName).toString()
+        } finally {
+            bitmap?.recycle()
+        }
+    }
+
+    /**
+     * Libère la WebView de cet export après sa dernière capture.
+     * @param exportId Identifiant à vérifier pour ne pas fermer un export plus récent.
+     */
+    @Keep
+    fun nativeReleaseOverlayCapture(exportId: String) = synchronized(overlayCaptureLock) {
+        val latch = CountDownLatch(1)
+        runOnUiThread {
+            try {
+                if (overlayExportId == exportId) releaseOverlayWebView()
+            } finally {
+                latch.countDown()
+            }
+        }
+        check(latch.await(5, TimeUnit.SECONDS)) { "Overlay release timed out" }
+    }
+
+    /** Détruit le renderer et ses ressources ; doit être appelée sur le thread UI Android. */
+    private fun releaseOverlayWebView() {
+        pendingOverlayCapture?.invoke()
+        pendingOverlayCapture = null
+        overlayWebView?.let { view ->
+            view.stopLoading()
+            (view.parent as? ViewGroup)?.removeView(view)
+            view.destroy()
+        }
+        overlayWebView = null
+        overlayExportId = ""
+        overlayBaseUrl = ""
     }
 
     /** Transmet le chargement audio JNI au lecteur Media3. */

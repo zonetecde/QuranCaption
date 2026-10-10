@@ -10965,6 +10965,10 @@ type RootTranslation = {
 		 */
 		stateCapturing: string;
 		/**
+		 * F​r​a​m​e​s​ ​c​a​p​t​u​r​e​d
+		 */
+		capturedFrames: string;
+		/**
 		 * I​n​i​t​i​a​l​i​z​i​n​g
 		 */
 		stateInitializing: string;
@@ -23078,6 +23082,10 @@ export type TranslationFunctions = {
 		 * Capturing frames
 		 */
 		stateCapturing: () => LocalizedString;
+		/**
+		 * Frames captured
+		 */
+		capturedFrames: () => LocalizedString;
 		/**
 		 * Initializing
 		 */

@@ -2042,6 +2042,7 @@ const id = {
 		stateRendering: 'Merender video',
 		stateMerging: 'Menggabungkan file',
 		stateCapturing: 'Mengambil frame',
+		capturedFrames: 'Frame yang diambil',
 		stateInitializing: 'Menginisialisasi',
 		stateExported: 'Diekspor',
 		stateError: 'Gagal',

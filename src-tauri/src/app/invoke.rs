@@ -16,6 +16,10 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::auth::hugging_face_account_status,
         commands::auth::hugging_face_account_disconnect,
         commands::android_export::resolve_android_directory,
+        #[cfg(target_os = "android")]
+        commands::android_export::capture_android_export_overlay,
+        #[cfg(target_os = "android")]
+        commands::android_export::release_android_export_overlay,
         commands::android_export::save_android_download_file,
         commands::android_export::publish_android_export,
         commands::android_export::open_android_export,

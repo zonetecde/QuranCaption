@@ -15,6 +15,8 @@ const settings = {
 	huggingFaceConnectedBadge: 'HF connected',
 	huggingFaceConfigureBadge: 'Add HF token',
 	huggingFaceInvalidToken: 'This token is invalid or has been revoked.',
+	huggingFaceInvalidTokenFallback:
+		'Your Hugging Face token is invalid or has been revoked. Regenerate it and update it in settings. Segmentation will continue without this token.',
 	huggingFaceConnect: 'Add token',
 	huggingFaceDisconnect: 'Disconnect',
 	huggingFaceCreateToken: 'Create a free token',

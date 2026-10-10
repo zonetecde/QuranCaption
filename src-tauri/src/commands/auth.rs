@@ -171,6 +171,7 @@ pub struct HuggingFaceAccountStatus {
 async fn validate_hugging_face_token(token: &str) -> Result<HuggingFaceAccountStatus, String> {
     let response = reqwest::Client::new()
         .get("https://huggingface.co/api/whoami-v2")
+        .timeout(std::time::Duration::from_secs(10))
         .bearer_auth(token)
         .send()
         .await
@@ -247,7 +248,14 @@ pub fn hugging_face_account_disconnect() -> Result<(), String> {
     }
 }
 
-/// Lit le token cloud pour authentifier les appels directs au Space.
-pub(crate) fn hugging_face_cloud_token() -> Result<Option<String>, String> {
-    get_hugging_face_token()
+/// Lit le token cloud et ignore les tokens refusés par Hugging Face.
+pub(crate) async fn hugging_face_cloud_token() -> Result<Option<String>, String> {
+    let Some(token) = get_hugging_face_token()?.filter(|token| !token.trim().is_empty()) else {
+        return Ok(None);
+    };
+    if matches!(validate_hugging_face_token(token.trim()).await, Ok(status) if !status.valid) {
+        return Ok(None);
+    }
+    // Une erreur réseau de validation ne doit pas supprimer une authentification valide.
+    Ok(Some(token))
 }

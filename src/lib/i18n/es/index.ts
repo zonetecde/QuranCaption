@@ -2585,6 +2585,8 @@ const es = {
 		huggingFaceConnectedBadge: 'HF conectado',
 		huggingFaceConfigureBadge: 'Añadir token HF',
 		huggingFaceInvalidToken: 'Este token no es válido o ha sido revocado.',
+		huggingFaceInvalidTokenFallback:
+			'Su token de Hugging Face no es v?lido o ha sido revocado. Genere uno nuevo y actual?celo en los ajustes. La segmentaci?n continuar? sin este token.',
 		huggingFaceConnect: 'Añadir token',
 		huggingFaceDisconnect: 'Desconectar',
 		huggingFaceCreateToken: 'Crear un token gratuito',

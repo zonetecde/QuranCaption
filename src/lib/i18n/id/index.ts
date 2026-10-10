@@ -524,6 +524,8 @@ const id = {
 		huggingFaceConnectedBadge: 'HF terhubung',
 		huggingFaceConfigureBadge: 'Tambahkan token HF',
 		huggingFaceInvalidToken: 'Token ini tidak valid atau telah dicabut.',
+		huggingFaceInvalidTokenFallback:
+			'Token Hugging Face Anda tidak valid atau telah dicabut. Buat token baru dan perbarui di pengaturan. Segmentasi akan dilanjutkan tanpa token ini.',
 		huggingFaceConnect: 'Tambahkan token',
 		huggingFaceDisconnect: 'Putuskan koneksi',
 		huggingFaceCreateToken: 'Buat token gratis',

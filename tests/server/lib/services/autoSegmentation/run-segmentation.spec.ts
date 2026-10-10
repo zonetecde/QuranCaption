@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
+import toast from 'svelte-5-french-toast';
 import type { Project } from '$lib/classes/Project';
 import LL, { setLocale } from '$lib/i18n/i18n-svelte';
 import { loadLocale } from '$lib/i18n/i18n-util.sync';
@@ -13,6 +14,7 @@ import {
 } from '$lib/services/autoSegmentation/run-segmentation';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
+vi.mock('svelte-5-french-toast', () => ({ default: vi.fn() }));
 vi.mock('$lib/services/autoSegmentation/audio', () => ({
 	getAutoSegmentationAudioInfo: () => ({
 		filePath: 'audio.mp3',
@@ -36,6 +38,51 @@ vi.mock('$lib/services/autoSegmentation/apply-segmentation', () => ({
  * d'intégration et les tests manuels.
  */
 describe('runAutoSegmentation exports', () => {
+	it.each(['en', 'fr', 'ar', 'de', 'es', 'id', 'zh'] as const)(
+		'provides the invalid cloud token warning in %s',
+		(locale) => {
+			loadLocale(locale);
+			setLocale(locale);
+			const warning = Reflect.get(
+				get(LL).settings,
+				'huggingFaceInvalidTokenFallback'
+			) as () => string;
+			expect(warning()).toContain('Hugging');
+			setLocale('en');
+		}
+	);
+
+	it.each([
+		{ configured: true, valid: false, warns: true },
+		{ configured: true, valid: true, warns: false },
+		{ configured: false, valid: false, warns: false },
+		{ error: true, warns: false }
+	])('checks the cloud token before segmentation: %j', async (status) => {
+		vi.resetAllMocks();
+		loadLocale('en');
+		setLocale('en');
+		const project = {
+			content: { timeline: { getFirstTrack: () => ({ clips: [] }) } }
+		} as unknown as Project;
+		if ('error' in status)
+			vi.mocked(invoke).mockRejectedValueOnce(new Error('Network unavailable'));
+		else vi.mocked(invoke).mockResolvedValueOnce(status);
+		vi.mocked(invoke).mockResolvedValueOnce({ segments: [] });
+		vi.mocked(applySegmentationResponseToProject).mockResolvedValueOnce({ status: 'cancelled' });
+		await runAutoSegmentationForProject(project, { includeWbwTimestamps: true }, 'api', {
+			headless: true
+		});
+		expect(invoke).toHaveBeenNthCalledWith(1, 'hugging_face_account_status');
+		expect(invoke).toHaveBeenNthCalledWith(2, 'segment_quran_audio', expect.any(Object));
+		expect(toast).toHaveBeenCalledTimes(status.warns ? 1 : 0);
+		if (status.warns) {
+			expect(toast).toHaveBeenCalledWith(
+				expect.stringContaining('Regenerate'),
+				expect.objectContaining({ icon: '⚠️' })
+			);
+		}
+	});
+
 	it('is a function', () => {
 		expect(typeof runAutoSegmentation).toBe('function');
 	});

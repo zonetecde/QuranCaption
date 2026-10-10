@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import toast from 'svelte-5-french-toast';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { globalState } from '$lib/runes/main.svelte';
@@ -178,8 +179,26 @@ export async function runAutoSegmentationForProject(
 		});
 
 		// Fonctions d'invocation
-		const invokeCloud = async (): Promise<unknown> =>
-			executionOptions.cloudBatch
+		let cloudTokenChecked = false;
+		const invokeCloud = async (): Promise<unknown> => {
+			if (!cloudTokenChecked) {
+				cloudTokenChecked = true;
+				try {
+					const status = await invoke<{ configured: boolean; valid: boolean }>(
+						'hugging_face_account_status'
+					);
+					if (status.configured && !status.valid) {
+						const warning = Reflect.get(
+							get(LL).settings,
+							'huggingFaceInvalidTokenFallback'
+						) as () => string;
+						toast(warning(), { icon: '⚠️', duration: 10000 });
+					}
+				} catch {
+					// Une panne réseau ne signifie pas que le token est invalide.
+				}
+			}
+			return executionOptions.cloudBatch
 				? await invoke('segment_quran_audio_batch', {
 						...basePayload,
 						batchId: executionOptions.cloudBatch.batchId,
@@ -193,6 +212,7 @@ export async function runAutoSegmentationForProject(
 						padLeftMs,
 						padRightMs
 					});
+		};
 
 		const invokeLocalWithDevice = async (targetDevice: SegmentationDevice): Promise<unknown> => {
 			if (localAsrMode === 'legacy_whisper') {

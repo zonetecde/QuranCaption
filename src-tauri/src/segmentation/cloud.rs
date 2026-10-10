@@ -295,8 +295,10 @@ fn prepared_alignment_part(
 }
 
 /// Ajoute le token du compte Hugging Face configuré sans l'exposer au frontend.
-fn authenticated(request: reqwest::RequestBuilder) -> Result<reqwest::RequestBuilder, String> {
-    let token = hugging_face_cloud_token()?;
+async fn authenticated(
+    request: reqwest::RequestBuilder,
+) -> Result<reqwest::RequestBuilder, String> {
+    let token = hugging_face_cloud_token().await?;
     Ok(
         match token
             .as_deref()
@@ -374,7 +376,8 @@ pub async fn mfa_timestamps_session(
     }
     let request = client(Duration::from_secs(300))?.post(url(&format!("/sessions/{}/timestamps", audio_id)))
         .json(&serde_json::json!({"segments": segments, "granularity": granularity.unwrap_or_else(|| "words".into())}));
-    let response = authenticated(request)?
+    let response = authenticated(request)
+        .await?
         .send()
         .await
         .map_err(|e| format!("Session timestamps request failed: {}", e))?;
@@ -456,7 +459,8 @@ pub async fn mfa_timestamps_direct(
     let request = client(Duration::from_secs(300))?
         .post(url("/timestamps"))
         .multipart(form);
-    let response = authenticated(request)?
+    let response = authenticated(request)
+        .await?
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -491,7 +495,8 @@ pub async fn segment_quran_audio(
         .text("riwayah", selected_riwayah);
     let http = client(Duration::from_secs(60 * 60))?;
     let request = http.post(url("/align/audio/stream")).multipart(form);
-    let response = authenticated(request)?
+    let response = authenticated(request)
+        .await?
         .send()
         .await
         .map_err(|e| format!("Alignment request failed: {}", e))?;
@@ -511,7 +516,8 @@ pub async fn split_quran_alignment_session(
     emit_status(&app, "splitting", None);
     let http = client(Duration::from_secs(60 * 60))?;
     let request = http.post(url(&format!("/sessions/{}/split", audio_id))).json(&serde_json::json!({"max_verses":1,"max_words":null,"max_duration":null,"require_stop_sign":false}));
-    let response = authenticated(request)?
+    let response = authenticated(request)
+        .await?
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -542,7 +548,8 @@ pub async fn create_quran_alignment_batch(
     });
     let http = client(Duration::from_secs(60))?;
     let request = http.post(url("/batches")).json(&body);
-    let response = authenticated(request)?
+    let response = authenticated(request)
+        .await?
         .send()
         .await
         .map_err(|e| format!("Batch creation failed: {}", e))?;
@@ -582,7 +589,8 @@ pub async fn segment_quran_audio_batch(
             batch_id, item_id
         )))
         .multipart(form);
-    let response = authenticated(request)?
+    let response = authenticated(request)
+        .await?
         .send()
         .await
         .map_err(|e| format!("Batch item request failed: {}", e))?;

@@ -2588,6 +2588,8 @@ const de = {
 		huggingFaceConnectedBadge: 'HF verbunden',
 		huggingFaceConfigureBadge: 'HF-Token hinzufügen',
 		huggingFaceInvalidToken: 'Dieses Token ist ungültig oder wurde widerrufen.',
+		huggingFaceInvalidTokenFallback:
+			'Ihr Hugging-Face-Token ist ung?ltig oder wurde widerrufen. Erstellen Sie ein neues Token und aktualisieren Sie es in den Einstellungen. Die Segmentierung wird ohne dieses Token fortgesetzt.',
 		huggingFaceConnect: 'Token hinzufügen',
 		huggingFaceDisconnect: 'Trennen',
 		huggingFaceCreateToken: 'Kostenloses Token erstellen',

@@ -78,7 +78,7 @@ describe('StylePresetApplicationService', () => {
 			await applyStylePresetToProject({
 				videoStyle: target,
 				projectContent: content,
-				data: { videoStyle: JSON.parse(JSON.stringify(source)) }
+				data: { videoStyle: JSON.parse(JSON.stringify(source)), customClips: [] }
 			});
 			const actual = target.getStylesOfTarget('global');
 			for (const [id, value] of Object.entries(values)) {

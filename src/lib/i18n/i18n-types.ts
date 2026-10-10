@@ -8171,6 +8171,10 @@ type RootTranslation = {
 		 */
 		huggingFaceInvalidToken: string;
 		/**
+		 * Y​o​u​r​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​t​o​k​e​n​ ​i​s​ ​i​n​v​a​l​i​d​ ​o​r​ ​h​a​s​ ​b​e​e​n​ ​r​e​v​o​k​e​d​.​ ​R​e​g​e​n​e​r​a​t​e​ ​i​t​ ​a​n​d​ ​u​p​d​a​t​e​ ​i​t​ ​i​n​ ​s​e​t​t​i​n​g​s​.​ ​S​e​g​m​e​n​t​a​t​i​o​n​ ​w​i​l​l​ ​c​o​n​t​i​n​u​e​ ​w​i​t​h​o​u​t​ ​t​h​i​s​ ​t​o​k​e​n​.
+		 */
+		huggingFaceInvalidTokenFallback: string;
+		/**
 		 * A​d​d​ ​t​o​k​e​n
 		 */
 		huggingFaceConnect: string;
@@ -20276,6 +20280,10 @@ export type TranslationFunctions = {
 		 * This token is invalid or has been revoked.
 		 */
 		huggingFaceInvalidToken: () => LocalizedString;
+		/**
+		 * Your Hugging Face token is invalid or has been revoked. Regenerate it and update it in settings. Segmentation will continue without this token.
+		 */
+		huggingFaceInvalidTokenFallback: () => LocalizedString;
 		/**
 		 * Add token
 		 */

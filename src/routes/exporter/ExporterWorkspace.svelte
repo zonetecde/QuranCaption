@@ -2170,7 +2170,10 @@
 				scale
 			});
 			if (!useLiveTextCanvasCapture) {
+				const timings: Record<string, number> = {};
+				const screenshotStarted = performance.now();
 				const restoreSystemFonts = await QPCFontProvider.applySystemFontSubsetsForScreenshot(node);
+				timings.systemFontSubsetsMs = Math.round(performance.now() - screenshotStarted);
 				const fontImportStylesheets: { sheet: CSSStyleSheet; ruleCount: number }[] = [];
 				for (const sheet of Array.from(document.styleSheets)) {
 					try {
@@ -2190,16 +2193,20 @@
 				}
 				let blob: Blob | null = null;
 				try {
-					blob = await captureExportOverlayBlob(node, {
-						width: node.clientWidth * scale,
-						height: node.clientHeight * scale,
-						style: {
-							// Garder la logique historique de mise a l'echelle pour preserver le centrage.
-							transform: 'scale(' + scale + ')',
-							transformOrigin: 'top left'
+					blob = await captureExportOverlayBlob(
+						node,
+						{
+							width: node.clientWidth * scale,
+							height: node.clientHeight * scale,
+							style: {
+								// Garder la logique historique de mise a l'echelle pour preserver le centrage.
+								transform: 'scale(' + scale + ')',
+								transformOrigin: 'top left'
+							},
+							quality: 1
 						},
-						quality: 1
-					});
+						timings
+					);
 				} finally {
 					restoreSystemFonts();
 					// modern-screenshot ajoute les règles importées à la feuille du document à chaque capture.
@@ -2210,13 +2217,19 @@
 
 				if (!blob) throw new Error('domToBlob returned null');
 
+				const bufferStarted = performance.now();
 				const buffer = await blob.arrayBuffer();
 				const bytes = new Uint8Array(buffer);
+				timings.bufferMs = Math.round(performance.now() - bufferStarted);
 
+				const writeStarted = performance.now();
 				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
+				timings.writeMs = Math.round(performance.now() - writeStarted);
+				timings.totalMs = Math.round(performance.now() - screenshotStarted);
 				await emitExportLog('info', 'Screenshot saved', {
 					file: fileName,
-					path: filePathWithName
+					path: filePathWithName,
+					timings
 				});
 			} else {
 				const backgroundBlob = ExportOverlayInspector.hasVisibleSubtitleBackground(node)

@@ -25,11 +25,13 @@ export function releaseExportScreenshotContext(): void {
  * Réutilise le contexte et les polices entre les captures d'un même worker.
  * @param {HTMLElement} node Racine DOM de l'overlay.
  * @param {Pick<Options, 'width' | 'height' | 'scale' | 'quality' | 'style' | 'onCloneNode'>} options Dimensions, échelle et traitement du clone.
+ * @param {Record<string, number>} [timings] Durées des étapes de capture en millisecondes.
  * @returns {Promise<Blob>} PNG de l'overlay courant.
  */
 export async function captureExportOverlayBlob(
 	node: HTMLElement,
-	options: Pick<Options, 'width' | 'height' | 'scale' | 'quality' | 'style' | 'onCloneNode'>
+	options: Pick<Options, 'width' | 'height' | 'scale' | 'quality' | 'style' | 'onCloneNode'>,
+	timings?: Record<string, number>
 ): Promise<Blob> {
 	const key = JSON.stringify({ ...options, onCloneNode: undefined });
 	if (context && (context.node !== node || contextKey !== key)) releaseExportScreenshotContext();
@@ -44,6 +46,19 @@ export async function captureExportOverlayBlob(
 	context.currentParentNodeStyle = undefined;
 	context.fontFamilies.clear();
 	context.shadowRoots.length = 0;
+	const log = context.log;
+	if (timings) {
+		const starts = new Map<string, number>();
+		// Mesurer les étapes existantes sans activer les logs console de modern-screenshot.
+		context.log = {
+			...log,
+			time: (label) => starts.set(label, performance.now()),
+			timeEnd: (label) => {
+				const started = starts.get(label);
+				if (started !== undefined) timings[label] = Math.round(performance.now() - started);
+			}
+		};
+	}
 	try {
 		return await domToBlob(context);
 	} catch (error) {
@@ -51,6 +66,7 @@ export async function captureExportOverlayBlob(
 		throw error;
 	} finally {
 		if (context) {
+			context.log = log;
 			// Les images et les sous-ensembles système dépendent du texte de la frame courante.
 			for (const [url, request] of context.requests) {
 				if (request.type === 'image') context.requests.delete(url);

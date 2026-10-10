@@ -140,6 +140,30 @@ describe('contexte de capture réutilisé par worker', () => {
 		);
 	});
 
+	it('isole le délai de conversion PNG dans les mesures de chaque capture', async () => {
+		const root = await createOverlay();
+		const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+		const toBlobSpy = vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(function (
+			this: HTMLCanvasElement,
+			callback,
+			type,
+			quality
+		) {
+			originalToBlob.call(this, (blob) => setTimeout(() => callback(blob), 40), type, quality);
+		});
+		const options = { width: 320, height: 180 };
+		const timings: Record<string, number> = {};
+		const captured = await captureExportOverlayBlob(root, options, timings);
+		expect(timings['canvas to blob']).toBeGreaterThanOrEqual(35);
+		for (const stage of ['clone node', 'embed web font', 'embed node', 'image to canvas']) {
+			expect(timings[stage]).toBeGreaterThanOrEqual(0);
+		}
+		toBlobSpy.mockRestore();
+		const measured = { ...timings };
+		await expectSamePixels(captured, await captureExportOverlayBlob(root, options));
+		expect(timings).toEqual(measured);
+	});
+
 	it('utilise le nouveau sous-ensemble quand une même police change de caractères', async () => {
 		const root = await createOverlay();
 		const style = document.createElement('style');

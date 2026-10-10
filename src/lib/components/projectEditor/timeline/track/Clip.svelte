@@ -633,7 +633,7 @@
 				<div
 					class="absolute inset-y-0"
 					aria-hidden="true"
-					style={`left: ${thumbnail.leftPx}px; width: ${thumbnail.widthPx}px; background-image: url('${thumbnail.src}'); background-position: left center; background-repeat: repeat-x; background-size: contain;`}
+					style={`left: ${thumbnail.leftPx}px; width: ${thumbnail.widthPx}px; background-image: url('${thumbnail.src}'); background-position: left center; background-repeat: repeat-x; background-size: auto 100%;`}
 				></div>
 			{/each}
 		</div>

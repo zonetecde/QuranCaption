@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createContext, destroyContext, type Context } from 'modern-screenshot';
 import {
 	prepareAndroidOverlay,
@@ -129,11 +129,41 @@ async function createOverlay(): Promise<Context<HTMLElement>> {
 }
 
 afterEach(() => {
+	vi.restoreAllMocks();
 	for (const context of contexts.splice(0)) destroyContext(context);
 	for (const element of elements.splice(0)) element.remove();
 });
 
 describe('capture DOM pour le renderer Android', () => {
+	it.each(['QCNativeCapture', 'Inter', 'IBM Plex Mono'])(
+		'exclut les imports Google Fonts inutilisés avec %s quand leur CSSOM est inaccessible',
+		async (font) => {
+			const context = await createOverlay();
+			context.node.querySelector('p')!.style.fontFamily = `QCNativeCapture, "${font}"`;
+			const style = document.createElement('style');
+			style.textContent = '@import url("data:text/css,"); @import url("data:text/css,");';
+			document.head.append(style);
+			elements.push(style);
+			const imports = [
+				'https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap',
+				'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;1,400&display=swap'
+			];
+			for (const [index, rule] of Array.from(style.sheet!.cssRules).entries()) {
+				vi.spyOn(rule as CSSImportRule, 'href', 'get').mockReturnValue(imports[index]);
+				vi.spyOn(rule as CSSImportRule, 'styleSheet', 'get').mockImplementation(() => {
+					throw new DOMException('CSSOM inaccessible', 'SecurityError');
+				});
+			}
+			const capture = await prepareAndroidOverlay(context);
+			expect(capture.fontCss.filter((css) => css.startsWith('@import'))).toEqual(
+				font === 'QCNativeCapture'
+					? []
+					: [`@import url(${JSON.stringify(imports[font === 'Inter' ? 0 : 1])});`]
+			);
+			expect(capture.fontCss.join('\n')).toContain(new URL('/Hafs.ttf', document.baseURI).href);
+		}
+	);
+
 	it('transmet une URL de police sans copier le fichier dans chaque image', async () => {
 		const context = await createOverlay();
 		const capture = await prepareAndroidOverlay(context);

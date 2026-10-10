@@ -71,6 +71,15 @@ function collectFontRules(
 					collectFontRules(rule.styleSheet.cssRules, rule.href, families, result);
 			} catch {
 				// Les feuilles Google Fonts peuvent refuser l'accès à leur CSSOM.
+				const url = new URL(rule.href, baseUrl);
+				if (
+					url.hostname === 'fonts.googleapis.com' &&
+					!url.searchParams
+						.getAll('family')
+						.some((family) => families.has(family.split(':')[0].toLowerCase()))
+				) {
+					continue;
+				}
 				result.add(`@import url(${JSON.stringify(rule.href)});`);
 			}
 		} else if ('cssRules' in rule) {

@@ -6,6 +6,7 @@
 	import { SubtitleClip, VerseRange } from '$lib/classes';
 	import { resolveQuranTextTags } from '$lib/services/QuranTextTagResolver.svelte';
 	import { resolveStyleVisibilityOpacity } from '$lib/services/StyleVisualResolver';
+	import { isNonHafsRiwayah, RiwayahProvider } from '$lib/services/RiwayahProvider';
 
 	let {
 		currentSurah,
@@ -33,6 +34,7 @@
 	let verseSubtitleRange = $derived(() => {
 		const subtitle = currentSubtitle();
 		if (!(subtitle instanceof SubtitleClip)) return null;
+		const verse = getVerseNumber(subtitle);
 
 		// Les splits contigus du même verset partagent un seul cycle de fondu.
 		const clips = globalState.getSubtitleTrack.clips;
@@ -45,7 +47,7 @@
 			if (
 				!(clip instanceof SubtitleClip) ||
 				clip.surah !== currentSurah ||
-				clip.verse !== currentVerse ||
+				getVerseNumber(clip) !== verse ||
 				clip.endTime + 1 < startTime
 			) {
 				break;
@@ -58,7 +60,7 @@
 			if (
 				!(clip instanceof SubtitleClip) ||
 				clip.surah !== currentSurah ||
-				clip.verse !== currentVerse ||
+				getVerseNumber(clip) !== verse ||
 				clip.startTime > endTime + 1
 			) {
 				break;
@@ -119,15 +121,41 @@
 	});
 
 	/**
+	 * Résout le numéro ou la plage de versets selon la riwayah effective du clip.
+	 * @param {SubtitleClip} subtitle Sous-titre à résoudre.
+	 * @returns {number | string} Numéro affiché, ou une chaîne vide sans numéro disponible.
+	 */
+	function getVerseNumber(subtitle: SubtitleClip): number | string {
+		const riwayah = globalState.getVideoStyle
+			.getStylesOfTarget('arabic')
+			.getEffectiveValue('riwayah', subtitle.id);
+		if (isNonHafsRiwayah(riwayah)) {
+			const slice = RiwayahProvider.getVerseSlice(
+				riwayah,
+				subtitle.surah,
+				subtitle.verse,
+				subtitle.startWordIndex,
+				subtitle.endWordIndex,
+				false
+			);
+			return slice?.targetAyahs.join('-') ?? '';
+		}
+		return subtitle.verse;
+	}
+
+	/**
 	 * Remplace les balises du format de numéro de verset par leurs valeurs courantes.
 	 * @returns {string} Format résolu pour le verset affiché.
 	 */
 	function formatVerseNumber(): string {
 		const range = VerseRange.getExportVerseRange().getRangeForSurah(currentSurah);
+		const subtitle = currentSubtitle();
+		const verse = subtitle instanceof SubtitleClip ? getVerseNumber(subtitle) : currentVerse;
+		if (verse === '') return '';
 		return resolveQuranTextTags(verseNumberSettings().verseNumberFormat, {
-			number: currentVerse,
+			number: verse,
 			surah: currentSurah,
-			verse: currentVerse,
+			verse,
 			minRange: range.verseStart,
 			maxRange: range.verseEnd
 		});

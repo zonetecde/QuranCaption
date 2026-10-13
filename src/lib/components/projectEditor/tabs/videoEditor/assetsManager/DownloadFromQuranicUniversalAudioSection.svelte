@@ -54,12 +54,11 @@
 	const download = $derived(getAudioDownload(projectId, 'qua'));
 	const isDownloading = $derived(download.busy);
 
-	// Options de segmentation (reprend les défauts de l'assistant auto-segmentation).
-	// Les timestamps mot à mot sont toujours fournis par le Preload → case forcée/désactivée.
+	// Options de segmentation : mêmes bornes et gestion des silences que l'aligneur cloud.
 	const segDefaults = globalState.settings?.autoSegmentationSettings;
 	let fillBySilence = $state(segDefaults?.fillBySilence ?? true);
-	let extendBeforeSilence = $state(segDefaults?.extendBeforeSilence ?? false);
-	let extendBeforeSilenceMs = $state(segDefaults?.extendBeforeSilenceMs ?? 50);
+	let padLeftMs = $state(segDefaults?.padLeftMs ?? 100);
+	let padRightMs = $state(segDefaults?.padRightMs ?? 200);
 
 	// Récitation choisie et ses chapitres disponibles.
 	const selectedRecitation = $derived(
@@ -226,8 +225,8 @@
 		to: number;
 		max: number;
 		fillBySilence: boolean;
-		extendBeforeSilence: boolean;
-		extendBeforeSilenceMs: number;
+		padLeftMs: number;
+		padRightMs: number;
 		riwayah: SegmentationRiwayah | null;
 	};
 
@@ -292,8 +291,8 @@
 			ctx.setLabel('Applying segments to the timeline…');
 			const result = await applyPreloadSegmentsToProject(payload, {
 				fillBySilence: sel.fillBySilence,
-				extendBeforeSilence: sel.extendBeforeSilence,
-				extendBeforeSilenceMs: sel.extendBeforeSilenceMs,
+				padLeftMs: sel.padLeftMs,
+				padRightMs: sel.padRightMs,
 				timeOffsetMs: window.timeOffsetMs
 			});
 			if (result?.status === 'completed' && sel.riwayah) {
@@ -403,8 +402,8 @@
 			max: maxAyah,
 			riwayah: normalizeSegmentationRiwayah(selectedRecitation?.riwayah),
 			fillBySilence,
-			extendBeforeSilence,
-			extendBeforeSilenceMs
+			padLeftMs,
+			padRightMs
 		};
 
 		void runAudioDownload({
@@ -551,39 +550,55 @@
 				</div>
 			</div>
 
-			<!-- Options sous-titres (compactes — panneau latéral étroit). -->
+			<!-- Options sous-titres (compactes — panneau latéral étroit), comme l'aligneur cloud. -->
 			<div class="space-y-2 rounded-lg border border-color px-3 py-2.5 text-xs">
-				<label class="flex items-center gap-2 text-secondary">
-					<input
-						type="checkbox"
-						bind:checked={fillBySilence}
-						class="accent-[var(--accent-primary)]"
-					/>
-					<span class="text-primary">Fill gaps with silence clips</span>
-				</label>
-
-				{#if fillBySilence}
-					<div class="flex items-center gap-2 ps-6 text-secondary">
-						<label class="flex items-center gap-2">
+				<div class="text-[11px] uppercase text-thirdly">{get(LL).editor.segmentBoundaries()}</div>
+				<div class="grid grid-cols-2 gap-2">
+					<label class="space-y-1 text-thirdly">
+						<span>{get(LL).editor.startEarlier()}</span>
+						<div class="flex items-center gap-1">
 							<input
-								type="checkbox"
-								bind:checked={extendBeforeSilence}
-								class="accent-[var(--accent-primary)]"
+								type="number"
+								min="0"
+								max="1000"
+								step="10"
+								bind:value={padLeftMs}
+								class="min-w-0 flex-1 rounded border border-color bg-primary px-2 py-1 text-xs text-primary"
 							/>
-							<span class="text-primary">Extend before silence</span>
-						</label>
-						<input
-							type="number"
-							min="0"
-							max="2000"
-							step="10"
-							bind:value={extendBeforeSilenceMs}
-							disabled={!extendBeforeSilence}
-							class="w-16 rounded border border-color bg-primary px-2 py-1 text-xs text-primary disabled:cursor-not-allowed disabled:opacity-50"
-						/>
-						<span class="text-thirdly">ms</span>
-					</div>
-				{/if}
+							<span>ms</span>
+						</div>
+					</label>
+					<label class="space-y-1 text-thirdly">
+						<span>{get(LL).editor.endLater()}</span>
+						<div class="flex items-center gap-1">
+							<input
+								type="number"
+								min="0"
+								max="1000"
+								step="10"
+								bind:value={padRightMs}
+								class="min-w-0 flex-1 rounded border border-color bg-primary px-2 py-1 text-xs text-primary"
+							/>
+							<span>ms</span>
+						</div>
+					</label>
+				</div>
+				<div class="grid grid-cols-2 gap-2 pt-1">
+					<button
+						type="button"
+						class="rounded border px-2 py-1.5 text-start text-primary"
+						class:border-accent-primary={fillBySilence}
+						class:border-color={!fillBySilence}
+						onclick={() => (fillBySilence = true)}>{get(LL).editor.keepSilentGaps()}</button
+					>
+					<button
+						type="button"
+						class="rounded border px-2 py-1.5 text-start text-primary"
+						class:border-accent-primary={!fillBySilence}
+						class:border-color={fillBySilence}
+						onclick={() => (fillBySilence = false)}>{get(LL).editor.keepSubtitlesVisible()}</button
+					>
+				</div>
 			</div>
 		{/if}
 

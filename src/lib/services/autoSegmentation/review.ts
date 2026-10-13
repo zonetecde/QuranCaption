@@ -143,18 +143,31 @@ export function clearWbwTimestampReview(): void {
 }
 
 /**
+ * Bornes audio (s) à retimer pour un clip : celles de l'alignement d'origine si elles
+ * recouvrent encore le clip, sinon celles du clip (audio remplacé ou clip déplacé depuis).
+ *
+ * @param {WbwTimestampClip} clip Clip à retimer.
+ * @returns {{ from: number; to: number }} Début et fin en secondes sur la timeline.
+ */
+function getClipTimingBoundsS(clip: WbwTimestampClip): { from: number; to: number } {
+	const clipFrom = clip.startTime / 1000;
+	const clipTo = clip.endTime / 1000;
+	const meta = clip.alignmentMetadata;
+	if (meta && meta.timeFrom < clipTo && meta.timeTo > clipFrom) {
+		return { from: meta.timeFrom, to: meta.timeTo };
+	}
+	return { from: clipFrom, to: clipTo };
+}
+
+/**
  * Calcule la fenêtre audio (ms, coordonnées timeline) couvrant un ensemble de clips.
  *
  * @param {WbwTimestampClip[]} clips Clips concernés.
  * @returns {RealignWindow} Fenêtre `[startMs, endMs]` à trancher/téléverser.
  */
 export function computeRealignWindow(clips: WbwTimestampClip[]): RealignWindow {
-	const starts = clips.map((clip) =>
-		Math.round((clip.alignmentMetadata?.timeFrom ?? clip.startTime / 1000) * 1000)
-	);
-	const ends = clips.map((clip) =>
-		Math.round((clip.alignmentMetadata?.timeTo ?? clip.endTime / 1000) * 1000)
-	);
+	const starts = clips.map((clip) => Math.round(getClipTimingBoundsS(clip).from * 1000));
+	const ends = clips.map((clip) => Math.round(getClipTimingBoundsS(clip).to * 1000));
 	return { startMs: Math.min(...starts), endMs: Math.max(...ends) };
 }
 
@@ -243,8 +256,8 @@ export async function computeWbwTimestampsForClipsSliced(
 			ref_to: refTo,
 			matched_text: meta?.matchedText || clip.text,
 			special_type: specialType,
-			time_from: meta?.timeFrom ?? clip.startTime / 1000,
-			time_to: meta?.timeTo ?? clip.endTime / 1000,
+			time_from: getClipTimingBoundsS(clip).from,
+			time_to: getClipTimingBoundsS(clip).to,
 			words: []
 		};
 	});

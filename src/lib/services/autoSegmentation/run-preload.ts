@@ -1,6 +1,11 @@
 import { parseImportedSegmentationJson } from './parsing';
 import { applySegmentationResponseToProject } from './apply-segmentation';
-import { getAutoSegmentationAudioInfo, getAutoSegmentationAudioClips } from './audio';
+import {
+	getAutoSegmentationAudioInfo,
+	getAutoSegmentationAudioClips,
+	getAutoSegmentationAudioDurationS
+} from './audio';
+import { padSegmentBoundaries } from './padding';
 import { beginAudioNormalizationIfNeeded } from './audio-normalize.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
 import { globalState } from '$lib/runes/main.svelte';
@@ -28,7 +33,7 @@ import {
 /** Options du flux Preload : options de segmentation + décalage temporel optionnel. */
 export type ApplyPreloadOptions = Pick<
 	AutoSegmentationOptions,
-	'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs'
+	'fillBySilence' | 'extendBeforeSilence' | 'extendBeforeSilenceMs' | 'padLeftMs' | 'padRightMs'
 > & {
 	/**
 	 * Décalage (ms) ajouté à TOUS les timestamps de segments/mots avant application.
@@ -90,6 +95,12 @@ async function applyPreloadSegmentsToProjectCore(
 		const parsed = parseImportedSegmentationJson(payload);
 		// Réaligne les timestamps sur la fenêtre audio réellement téléchargée.
 		shiftSegmentTimestamps(parsed.response, timeOffsetMs);
+		padSegmentBoundaries(
+			parsed.response.segments ?? [],
+			options.padLeftMs ?? 0,
+			options.padRightMs ?? 0,
+			getAutoSegmentationAudioDurationS() || undefined
+		);
 		return await applySegmentationResponseToProject({
 			response: parsed.response,
 			fillBySilence,

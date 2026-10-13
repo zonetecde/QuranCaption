@@ -1,6 +1,6 @@
 /// URL racine de production, remplaçable au lancement pour tester l'API dev.
 pub const QURAN_MULTI_ALIGNER_API_V1_URL: &str =
-    "https://hetchyy-quranic-universal-aligner.hf.space/api/v1";
+    "https://qud-technologies-quranic-universal-aligner.hf.space/api/v1";
 
 /// Flag de developpement pour forcer un payload mock au lieu d'appeler le cloud.
 pub const QURAN_SEGMENTATION_USE_MOCK: bool = false;

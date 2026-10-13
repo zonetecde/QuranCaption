@@ -17,15 +17,15 @@ describe('padSegmentBoundaries', () => {
 		expect(segments[0].words?.[0].end).toBeCloseTo(1.1);
 	});
 
-	it('splits a short gap by the left/right ratio and keeps a minimum silence', () => {
+	it('never pads a segment into its neighbour', () => {
 		const segments: SegmentationSegment[] = [
 			{ time_from: 0.05, time_to: 1 },
 			{ time_from: 1.18, time_to: 2 }
 		];
 		padSegmentBoundaries(segments, 100, 200, 2.1);
 		expect(segments[0].time_from).toBe(0);
-		expect(segments[0].time_to).toBeCloseTo(1.1);
-		expect(segments[1].time_from).toBeCloseTo(1.13);
+		expect(segments[0].time_to).toBeCloseTo(1.18);
+		expect(segments[1].time_from).toBeCloseTo(1.18);
 		expect(segments[1].time_to).toBeCloseTo(2.1);
 	});
 });

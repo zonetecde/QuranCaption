@@ -532,6 +532,7 @@ const editor = {
 		segmenting: 'إيجاد حدود التلاوة',
 		transcribing: 'نسخ التلاوة',
 		matching: 'مطابقة آيات القرآن',
+		timing_words: 'توقيت كل كلمة',
 		building: 'نتائج البناء',
 		splitting: 'إنشاء عنوان فرعي واحد لكل آية',
 		processing: 'معالجة الصوت'

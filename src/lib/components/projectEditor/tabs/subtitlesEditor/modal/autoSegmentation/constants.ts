@@ -21,9 +21,18 @@ export const WIZARD_STEPS_V2: WizardStep[] = [
 /** Ordered steps for the cloud multi-aligner path. */
 export const WIZARD_STEPS_CLOUD_V2: WizardStep[] = [
 	{ key: 'version', title: 'Method', subtitle: 'Choose your workflow', icon: 'auto_awesome' },
-	{ key: 'models', title: 'Alignment', subtitle: 'Recognition and boundaries', icon: 'memory' },
-	{ key: 'settings', title: 'Timeline', subtitle: 'Apply the results', icon: 'tune' }
+	{ key: 'models', title: 'Alignment', subtitle: 'Recognition and boundaries', icon: 'memory' }
 ];
+
+/** Public site of the Quranic Universal Aligner. */
+export const ALIGNER_SITE_URL = 'https://aligner.qud.dev/';
+
+/** Hugging Face Space of the Quranic Universal Aligner (QUD Technologies organization). */
+export const ALIGNER_SPACE_URL =
+	'https://huggingface.co/spaces/QUD-Technologies/quranic-universal-aligner';
+
+/** Discussions board of the aligner Space, used for user feedback. */
+export const ALIGNER_DISCUSSIONS_URL = `${ALIGNER_SPACE_URL}/discussions`;
 
 /** Ordered steps for the offline word-timing path. */
 export const WIZARD_STEPS_quran_word_timing: WizardStep[] = [
@@ -61,19 +70,20 @@ export function getWizardSteps(
 		baseSteps = baseSteps.filter(({ key }) => key !== 'setup');
 	}
 
-	if (aiVersion === 'multi_v2') return baseSteps;
 	if (!showExistingSubtitlesStep) return baseSteps;
 
+	// The cloud flow has no review step, so the question becomes its last step.
 	const reviewIndex = baseSteps.findIndex(({ key }) => key === 'review');
+	const insertIndex = reviewIndex === -1 ? baseSteps.length : reviewIndex;
 	return [
-		...baseSteps.slice(0, reviewIndex),
+		...baseSteps.slice(0, insertIndex),
 		{
 			key: 'existing-subtitles',
 			title: get(LL).editor.existingSubtitlesStep(),
 			subtitle: get(LL).editor.existingSubtitlesStepDescription(),
 			icon: 'subtitles'
 		},
-		...baseSteps.slice(reviewIndex)
+		...baseSteps.slice(insertIndex)
 	];
 }
 

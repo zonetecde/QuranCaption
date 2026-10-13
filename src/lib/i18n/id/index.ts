@@ -814,6 +814,7 @@ const id = {
 			segmenting: 'Mendeteksi batas bacaan',
 			transcribing: 'Mentranskripsikan bacaan',
 			matching: 'Mencocokkan ayat Al-Qur’an',
+			timing_words: 'Menentukan waktu setiap kata',
 			building: 'Menyusun hasil',
 			splitting: 'Membuat satu subtitle per ayat',
 			processing: 'Memproses audio'

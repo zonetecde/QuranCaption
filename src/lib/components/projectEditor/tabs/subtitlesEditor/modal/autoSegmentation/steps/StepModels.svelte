@@ -4,6 +4,7 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import type { SegmentationRiwayah } from '$lib/services/AutoSegmentation';
 	import HuggingFaceAccountSettings from '$lib/components/settings/HuggingFaceAccountSettings.svelte';
+	import StepSettings from './StepSettings.svelte';
 
 	const wizard = getSharedWizard();
 	const isCloud = $derived(() => wizard.selection.aiVersion === 'multi_v2');
@@ -104,4 +105,8 @@
 			>
 		</div>
 	</div>
+
+	{#if isCloud()}
+		<StepSettings embedded />
+	{/if}
 </section>

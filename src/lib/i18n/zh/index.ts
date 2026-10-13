@@ -1053,6 +1053,7 @@ const zh = {
 			segmenting: '正在检测诵读边界',
 			transcribing: '正在转录诵读',
 			matching: '正在匹配古兰经经文',
+			timing_words: '正在为每个词计时',
 			building: '正在生成结果',
 			splitting: '正在为每节创建字幕',
 			processing: '正在处理音频'

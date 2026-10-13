@@ -2,24 +2,25 @@
 	import { SEGMENTATION_PRESETS } from '../constants';
 	import { getSharedWizard } from '../sharedWizard';
 	import LL from '$lib/i18n/i18n-svelte';
-	import StepExistingSubtitles from './StepExistingSubtitles.svelte';
 
+	// `embedded` renders the settings inside another step, without their own heading.
+	let { embedded = false }: { embedded?: boolean } = $props();
 	const wizard = getSharedWizard();
 </script>
 
 <section class="space-y-4">
-	<div>
-		<h3 class="text-lg font-semibold text-primary">
-			{wizard.selection.aiVersion === 'multi_v2'
-				? $LL.editor.timelineBehavior()
-				: $LL.editor.adjustSegmentation()}
-		</h3>
-		<p class="text-sm text-thirdly">
-			{wizard.selection.aiVersion === 'multi_v2'
-				? $LL.editor.timelineBehaviorDesc()
-				: $LL.editor.adjustSegmentationDesc()}
-		</p>
-	</div>
+	{#if !embedded}<div>
+			<h3 class="text-lg font-semibold text-primary">
+				{wizard.selection.aiVersion === 'multi_v2'
+					? $LL.editor.timelineBehavior()
+					: $LL.editor.adjustSegmentation()}
+			</h3>
+			<p class="text-sm text-thirdly">
+				{wizard.selection.aiVersion === 'multi_v2'
+					? $LL.editor.timelineBehaviorDesc()
+					: $LL.editor.adjustSegmentationDesc()}
+			</p>
+		</div>{/if}
 
 	{#if wizard.selection.aiVersion !== 'multi_v2'}
 		<div class="grid grid-cols-1 gap-2 xl:grid-cols-3">
@@ -84,22 +85,25 @@
 	{/if}
 
 	<div class="rounded-xl border border-color p-4 space-y-2">
-		<div class="mb-3 space-y-2 border-b border-color pb-3">
-			<label class="flex items-center gap-2 text-sm text-secondary"
-				><input
-					type="checkbox"
-					checked={wizard.supportsWbwTimestamps() ? wizard.includeWbwTimestamps : false}
-					onchange={(e) =>
-						wizard.setIncludeWbwTimestamps((e.currentTarget as HTMLInputElement).checked)}
-					disabled={!wizard.supportsWbwTimestamps()}
-					class="accent-accent-primary disabled:cursor-not-allowed disabled:opacity-50"
-				/>
-				{$LL.editor.includeWbwTimestamps()}</label
+		<!-- The cloud aligner always returns word timings, so the toggle is only for local engines. -->
+		{#if wizard.selection.aiVersion !== 'multi_v2'}<div
+				class="mb-3 space-y-2 border-b border-color pb-3"
 			>
-			<p class="text-xs text-thirdly">
-				{$LL.editor.wbwTimestampsDescription()}
-			</p>
-		</div>
+				<label class="flex items-center gap-2 text-sm text-secondary"
+					><input
+						type="checkbox"
+						checked={wizard.supportsWbwTimestamps() ? wizard.includeWbwTimestamps : false}
+						onchange={(e) =>
+							wizard.setIncludeWbwTimestamps((e.currentTarget as HTMLInputElement).checked)}
+						disabled={!wizard.supportsWbwTimestamps()}
+						class="accent-accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+					/>
+					{$LL.editor.includeWbwTimestamps()}</label
+				>
+				<p class="text-xs text-thirdly">
+					{$LL.editor.wbwTimestampsDescription()}
+				</p>
+			</div>{/if}
 
 		{#if wizard.selection.aiVersion === 'multi_v2'}
 			<div class="mb-3 space-y-2 border-b border-color pb-3">
@@ -195,8 +199,4 @@
 			</p>
 		{/if}
 	</div>
-
-	{#if wizard.selection.aiVersion === 'multi_v2' && wizard.showExistingSubtitlesStep}
-		<StepExistingSubtitles />
-	{/if}
 </section>

@@ -6,6 +6,7 @@
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 	import { openUrl } from '@tauri-apps/plugin-opener';
+	import { ALIGNER_SPACE_URL } from './constants';
 
 	let { isImportMode = false } = $props<{ isImportMode?: boolean }>();
 	const wizard = getSharedWizard();
@@ -164,7 +165,7 @@
 				<button
 					type="button"
 					class="inline-flex items-center gap-1.5 text-accent-primary underline underline-offset-4 hover:no-underline"
-					onclick={() => openUrl('https://huggingface.co/spaces/hetchyy/quranic-universal-aligner')}
+					onclick={() => openUrl(ALIGNER_SPACE_URL)}
 				>
 					{(Reflect.get($LL.editor, 'cloudAlignerSpaceLink') as () => string)()}
 					<span class="material-icons text-base" aria-hidden="true">open_in_new</span>

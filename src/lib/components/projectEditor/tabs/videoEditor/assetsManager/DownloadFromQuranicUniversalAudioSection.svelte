@@ -32,7 +32,7 @@
 		type QuaRecitation
 	} from '$lib/services/QuranicUniversalAudioService';
 
-	const CONTRIBUTE_URL = 'https://huggingface.co/spaces/hetchyy/quranic-universal-audio';
+	const CONTRIBUTE_URL = 'https://huggingface.co/spaces/QUD-Technologies/quranic-universal-audio';
 
 	/** Mode de la source : audio pré-aligné (segments) ou audio seul (catalogue étendu). */
 	type QuaMode = 'audio_segments' | 'audio_only';
@@ -553,21 +553,6 @@
 
 			<!-- Options sous-titres (compactes — panneau latéral étroit). -->
 			<div class="space-y-2 rounded-lg border border-color px-3 py-2.5 text-xs">
-				<label class="flex items-start gap-2 text-secondary">
-					<input
-						type="checkbox"
-						checked
-						disabled
-						class="mt-0.5 accent-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-60"
-					/>
-					<span class="leading-snug">
-						<span class="font-medium text-primary">Include wbw timestamps</span>
-						<span class="block text-[11px] text-thirdly">
-							Always on here — per-word timings for finer splitting/editing.
-						</span>
-					</span>
-				</label>
-
 				<label class="flex items-center gap-2 text-secondary">
 					<input
 						type="checkbox"

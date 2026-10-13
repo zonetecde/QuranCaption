@@ -3086,6 +3086,10 @@ type RootTranslation = {
 			 */
 			matching: string;
 			/**
+			 * T​i​m​i​n​g​ ​e​a​c​h​ ​w​o​r​d
+			 */
+			timing_words: string;
+			/**
 			 * B​u​i​l​d​i​n​g​ ​r​e​s​u​l​t​s
 			 */
 			building: string;
@@ -15279,6 +15283,10 @@ export type TranslationFunctions = {
 			 * Matching Quran verses
 			 */
 			matching: () => LocalizedString;
+			/**
+			 * Timing each word
+			 */
+			timing_words: () => LocalizedString;
 			/**
 			 * Building results
 			 */

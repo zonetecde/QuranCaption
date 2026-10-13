@@ -37,6 +37,11 @@ describe('computeRealignWindow', () => {
 		expect(computeRealignWindow([clip])).toEqual({ startMs: 4200, endMs: 7700 });
 	});
 
+	it('falls back to the clip times when the stored alignment runs past the clip', () => {
+		const clip = makeClip({ startTime: 7000, endTime: 12000, timeFrom: 7.04, timeTo: 44.4 });
+		expect(computeRealignWindow([clip])).toEqual({ startMs: 7000, endMs: 12000 });
+	});
+
 	it('falls back to clip start/end time (ms) when no alignment metadata', () => {
 		const clip = makeClip({ startTime: 4200, endTime: 7700 });
 		expect(computeRealignWindow([clip])).toEqual({ startMs: 4200, endMs: 7700 });

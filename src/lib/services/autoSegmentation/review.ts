@@ -142,9 +142,13 @@ export function clearWbwTimestampReview(): void {
 	}
 }
 
+/** Marge (s) tolérée entre les bornes d'alignement stockées et celles du clip. */
+const ALIGNMENT_BOUNDS_TOLERANCE_S = 1;
+
 /**
  * Bornes audio (s) à retimer pour un clip : celles de l'alignement d'origine si elles
- * recouvrent encore le clip, sinon celles du clip (audio remplacé ou clip déplacé depuis).
+ * tiennent encore dans le clip, sinon celles du clip (audio remplacé, clip déplacé ou
+ * raccourci depuis l'alignement).
  *
  * @param {WbwTimestampClip} clip Clip à retimer.
  * @returns {{ from: number; to: number }} Début et fin en secondes sur la timeline.
@@ -153,7 +157,12 @@ function getClipTimingBoundsS(clip: WbwTimestampClip): { from: number; to: numbe
 	const clipFrom = clip.startTime / 1000;
 	const clipTo = clip.endTime / 1000;
 	const meta = clip.alignmentMetadata;
-	if (meta && meta.timeFrom < clipTo && meta.timeTo > clipFrom) {
+	if (
+		meta &&
+		meta.timeFrom >= clipFrom - ALIGNMENT_BOUNDS_TOLERANCE_S &&
+		meta.timeTo <= clipTo + ALIGNMENT_BOUNDS_TOLERANCE_S &&
+		meta.timeFrom < meta.timeTo
+	) {
 		return { from: meta.timeFrom, to: meta.timeTo };
 	}
 	return { from: clipFrom, to: clipTo };
@@ -263,11 +272,13 @@ export async function computeWbwTimestampsForClipsSliced(
 	});
 
 	// Pour un appel tranché, on recale les temps des segments sur l'origine de la fenêtre uploadée.
+	// Bornées à la fenêtre envoyée : jamais négatives ni au-delà de sa fin.
+	const windowLengthS = window ? (window.endMs - window.startMs) / 1000 : Infinity;
 	const requestSegments: SegmentationSegment[] = window
 		? segments.map((segment) => ({
 				...segment,
-				time_from: (segment.time_from ?? 0) - baseS,
-				time_to: (segment.time_to ?? 0) - baseS
+				time_from: Math.min(windowLengthS, Math.max(0, (segment.time_from ?? 0) - baseS)),
+				time_to: Math.min(windowLengthS, Math.max(0, (segment.time_to ?? 0) - baseS))
 			}))
 		: segments;
 

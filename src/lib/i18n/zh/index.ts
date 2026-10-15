@@ -554,6 +554,8 @@ const zh = {
 		deleteBatchConfirm: '确定要删除批次“{name}”吗？其中的 {count} 个项目也将被永久删除。'
 	},
 	editor: {
+		appendImportedSubtitles: '追加到现有字幕之后',
+		appendImportedSubtitlesDescription: '保留现有字幕，并将导入的字幕追加到其后，自动调整时间。',
 		videoEditor: '视频编辑器',
 		subtitlesEditor: '字幕编辑器',
 		translations: '翻译',

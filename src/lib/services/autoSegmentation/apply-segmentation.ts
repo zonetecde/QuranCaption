@@ -613,7 +613,11 @@ export async function applySegmentationResponseToProject(
 			};
 		});
 	}
-	subtitleTrack.clips = [];
+	const append = params.subtitleApplicationMode === 'append';
+	const existingClips = append ? [...subtitleTrack.clips] : [];
+	const appendOffsetMs = existingClips.length > 0 ? subtitleTrack.getDuration().ms + 1 : 0;
+	const previousContext = project.projectEditorState.subtitlesEditor.segmentationContext;
+	if (!append) subtitleTrack.clips = [];
 	await Quran.load();
 
 	const segmentsApplied = { value: 0 };
@@ -828,7 +832,21 @@ export async function applySegmentationResponseToProject(
 		finalClips = builtClips;
 	}
 	finalClips.sort((a, b) => a.startTime - b.startTime);
-	subtitleTrack.clips = finalClips;
+	if (appendOffsetMs > 0) {
+		for (const clip of finalClips) {
+			clip.startTime += appendOffsetMs;
+			clip.endTime += appendOffsetMs;
+			if (
+				(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
+				clip.alignmentMetadata
+			) {
+				// Les mots restent relatifs au clip ; seuls les repères absolus sont décalés.
+				clip.alignmentMetadata.timeFrom += appendOffsetMs / 1000;
+				clip.alignmentMetadata.timeTo += appendOffsetMs / 1000;
+			}
+		}
+	}
+	subtitleTrack.clips = [...existingClips, ...finalClips];
 
 	// Mise à jour des timestamps dans les segments alignés.
 	// Index clip-par-id construit une seule fois : `getClipById` fait un scan
@@ -852,16 +870,18 @@ export async function applySegmentationResponseToProject(
 	const audioTrack = project.content.timeline.getFirstTrack(TrackType.Audio) as AssetTrack;
 	project.detail.updateVideoDetailAttributesForTracks(audioTrack, subtitleTrack);
 	if (!headless) globalState.updateVideoPreviewUI();
-	project.projectEditorState.subtitlesEditor.initialLowConfidenceCount = reviewSegments.value;
+	project.projectEditorState.subtitlesEditor.initialLowConfidenceCount =
+		(append ? project.projectEditorState.subtitlesEditor.initialLowConfidenceCount : 0) +
+		reviewSegments.value;
 	project.projectEditorState.subtitlesEditor.segmentationContext = {
-		audioId: response.audio_id ?? null,
+		audioId: append && existingClips.length > 0 ? null : (response.audio_id ?? null),
 		source: segmentationSource,
 		effectiveMode,
 		modelName: modelName ?? null,
 		device: device ?? null,
 		riwayah: riwayah ?? null,
-		includeWbwTimestamps,
-		alignedSegments: storedAlignedSegments
+		includeWbwTimestamps: includeWbwTimestamps || (append && previousContext.includeWbwTimestamps),
+		alignedSegments: [...(append ? previousContext.alignedSegments : []), ...storedAlignedSegments]
 	};
 
 	if (payloadForLog !== undefined) {

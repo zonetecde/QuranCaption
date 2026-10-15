@@ -589,6 +589,9 @@ const de = {
 			'Möchten Sie den Batch „{name}“ wirklich löschen? Seine {count} Projekte werden ebenfalls dauerhaft gelöscht.'
 	},
 	editor: {
+		appendImportedSubtitles: 'Nach vorhandenen Untertiteln hinzufügen',
+		appendImportedSubtitlesDescription:
+			'Aktuelle Untertitel beibehalten und importierte Untertitel danach hinzufügen. Ihre Zeitangaben werden automatisch verschoben.',
 		videoEditor: 'Video-Editor',
 		subtitlesEditor: 'Untertitel-Editor',
 		translations: 'Übersetzungen',

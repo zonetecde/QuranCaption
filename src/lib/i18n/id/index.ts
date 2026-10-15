@@ -791,6 +791,9 @@ const id = {
 	},
 	editor: {
 		...baseEn.editor,
+		appendImportedSubtitles: 'Tambahkan setelah subtitle yang ada',
+		appendImportedSubtitlesDescription:
+			'Pertahankan subtitle saat ini dan tambahkan subtitle impor setelahnya dengan menggeser waktunya secara otomatis.',
 		cloudAlignerUnavailable: 'Penyelaras cloud tidak tersedia',
 		cloudAlignerUnavailableDetails:
 			'Space Hugging Face tidak dapat diakses. Penyebabnya mungkin gangguan Hugging Face atau kesalahan tak terduga pada Space, terlepas dari Quran Caption.',

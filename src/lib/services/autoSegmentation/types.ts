@@ -99,7 +99,7 @@ export type ImportedSegmentationParseResult = {
  * Mode de traitement de la segmentation.
  */
 export type SegmentationMode = 'api' | 'local';
-export type SubtitleApplicationMode = 'replace' | 'align';
+export type SubtitleApplicationMode = 'replace' | 'align' | 'append';
 export type LocalAsrMode = 'legacy_whisper' | 'multi_aligner' | 'quran_word_timing';
 export type LegacyWhisperModelSize = 'tiny' | 'base' | 'medium' | 'large';
 export type MultiAlignerModel = 'Base' | 'Large';

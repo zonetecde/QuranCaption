@@ -1108,6 +1108,14 @@ type RootTranslation = {
 	};
 	editor: {
 		/**
+		 * A​p​p​e​n​d​ ​a​f​t​e​r​ ​e​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s
+		 */
+		appendImportedSubtitles: string;
+		/**
+		 * K​e​e​p​ ​c​u​r​r​e​n​t​ ​s​u​b​t​i​t​l​e​s​ ​a​n​d​ ​a​d​d​ ​t​h​e​ ​i​m​p​o​r​t​e​d​ ​s​u​b​t​i​t​l​e​s​ ​a​f​t​e​r​ ​t​h​e​m​,​ ​s​h​i​f​t​i​n​g​ ​t​h​e​i​r​ ​t​i​m​i​n​g​s​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​.
+		 */
+		appendImportedSubtitlesDescription: string;
+		/**
 		 * V​i​d​e​o​ ​e​d​i​t​o​r
 		 */
 		videoEditor: string;
@@ -13342,6 +13350,14 @@ export type TranslationFunctions = {
 		continue: () => LocalizedString;
 	};
 	editor: {
+		/**
+		 * Append after existing subtitles
+		 */
+		appendImportedSubtitles: () => LocalizedString;
+		/**
+		 * Keep current subtitles and add the imported subtitles after them, shifting their timings automatically.
+		 */
+		appendImportedSubtitlesDescription: () => LocalizedString;
 		/**
 		 * Video editor
 		 */

@@ -581,6 +581,9 @@ const es = {
 			'¿Seguro que desea eliminar el lote «{name}»? Sus {count} proyectos también se eliminarán permanentemente.'
 	},
 	editor: {
+		appendImportedSubtitles: 'Añadir después de los subtítulos existentes',
+		appendImportedSubtitlesDescription:
+			'Conservar los subtítulos actuales y añadir los importados a continuación, ajustando sus tiempos automáticamente.',
 		videoEditor: 'Editor de video',
 		subtitlesEditor: 'Editor de subtítulos',
 		translations: 'Traducciones',

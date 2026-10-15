@@ -30,6 +30,7 @@
 
 	/** Returns to the main wizard from the JSON import view. */
 	function returnToWizard(): void {
+		if (wizard.subtitleApplicationMode === 'append') wizard.setSubtitleApplicationMode('replace');
 		activeView = 'wizard';
 	}
 
@@ -90,8 +91,8 @@
 			<section class="flex min-w-0 flex-1 flex-col">
 				<div class="flex-1 overflow-y-auto p-6">
 					<div class="mx-auto max-w-4xl space-y-6">
-						{#if wizard.showExistingSubtitlesStep}
-							<StepExistingSubtitles />
+						{#if wizard.hasExistingSubtitles}
+							<StepExistingSubtitles isImport />
 						{/if}
 						<StepImportJson />
 						{#if importResultVisible || wizard.isRunning || wizard.importedJsonParseError}

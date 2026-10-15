@@ -123,10 +123,10 @@ export function useAutoSegmentationWizard() {
 	});
 
 	const showExistingSubtitlesStep = $derived(
-		() =>
+		(minimumCount = 3) =>
 			globalState.getSubtitleTrack.clips.filter(
 				(clip) => clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip
-			).length >= 3
+			).length >= minimumCount
 	);
 	const steps = $derived(() =>
 		getWizardSteps(
@@ -502,7 +502,7 @@ export function useAutoSegmentationWizard() {
 				fillBySilence,
 				extendBeforeSilence,
 				extendBeforeSilenceMs,
-				subtitleApplicationMode: showExistingSubtitlesStep()
+				subtitleApplicationMode: showExistingSubtitlesStep(1)
 					? (subtitleApplicationMode ?? 'replace')
 					: 'replace'
 			});
@@ -764,7 +764,11 @@ export function useAutoSegmentationWizard() {
 			return includeWbwTimestamps;
 		},
 		get subtitleApplicationMode() {
-			return showExistingSubtitlesStep() ? subtitleApplicationMode : 'replace';
+			return showExistingSubtitlesStep(1) ? subtitleApplicationMode : 'replace';
+		},
+		/** @returns {boolean} Whether the JSON import can keep existing subtitles. */
+		get hasExistingSubtitles() {
+			return showExistingSubtitlesStep(1);
 		},
 		get showExistingSubtitlesStep() {
 			return showExistingSubtitlesStep();

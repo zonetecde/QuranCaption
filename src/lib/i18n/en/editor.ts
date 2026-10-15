@@ -1,4 +1,7 @@
 const editor = {
+	appendImportedSubtitles: 'Append after existing subtitles',
+	appendImportedSubtitlesDescription:
+		'Keep current subtitles and add the imported subtitles after them, shifting their timings automatically.',
 	videoEditor: 'Video editor',
 	subtitlesEditor: 'Subtitles editor',
 	translations: 'Translations',

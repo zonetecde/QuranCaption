@@ -1,4 +1,7 @@
 const editor = {
+	appendImportedSubtitles: 'إضافة بعد الترجمات الحالية',
+	appendImportedSubtitlesDescription:
+		'الاحتفاظ بالترجمات الحالية وإضافة الترجمات المستوردة بعدها مع إزاحة توقيتها تلقائيًا.',
 	videoEditor: 'محرر الفيديو',
 	subtitlesEditor: 'محرر الترجمة',
 	translations: 'ترجمات',

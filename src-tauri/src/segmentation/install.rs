@@ -446,11 +446,7 @@ pub async fn install_local_segmentation_deps(
     let system_python = match resolve_python_with_portable(&app_handle, MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR) {
         Ok(interpreter) => interpreter,
         Err(e) => {
-            if matches!(
-                selected_engine,
-                LocalSegmentationEngine::QuranWordTiming
-                    | LocalSegmentationEngine::QuranWordTimingOld
-            ) {
+            if matches!(selected_engine, LocalSegmentationEngine::QuranWordTiming) {
                 emit_status_progress("Downloading portable Python 3.11...", 5);
                 ensure_portable_python_runtime(&app_handle, &emit_status_progress).await?;
                 resolve_python_with_portable(&app_handle, MIN_LOCAL_PYTHON_MAJOR, MIN_LOCAL_PYTHON_MINOR)
@@ -520,10 +516,7 @@ pub async fn install_local_segmentation_deps(
     emit_status_progress("Pip ready.", 29);
 
     // QuranWordTiming est purement basé sur ONNX Runtime et kaldi-native-fbank (aucun PyTorch requis).
-    if !matches!(
-        selected_engine,
-        LocalSegmentationEngine::QuranWordTiming | LocalSegmentationEngine::QuranWordTimingOld
-    ) {
+    if !matches!(selected_engine, LocalSegmentationEngine::QuranWordTiming) {
         if cfg!(target_os = "windows") {
             emit_status("Installing PyTorch (CPU fallback available)...");
             let mut cuda_installed = false;
@@ -693,14 +686,11 @@ pub async fn install_local_segmentation_deps(
             }
         }
     }
-    if matches!(
-        selected_engine,
-        LocalSegmentationEngine::QuranWordTiming | LocalSegmentationEngine::QuranWordTimingOld
-    ) {
+    if matches!(selected_engine, LocalSegmentationEngine::QuranWordTiming) {
         emit_status_progress("Preparing model storage...", 50);
-        let model_dir = get_word_timing_model_dir(&app_handle, selected_engine)?;
+        let model_dir = get_word_timing_model_dir(&app_handle)?;
         fs::create_dir_all(&model_dir).map_err(|e| e.to_string())?;
-        let files = required_word_timing_model_files(selected_engine);
+        let files = required_word_timing_model_files();
         let total_files = files.len();
         for (idx, (file_name, url, size, hash)) in files.iter().enumerate() {
             let path = model_dir.join(file_name);

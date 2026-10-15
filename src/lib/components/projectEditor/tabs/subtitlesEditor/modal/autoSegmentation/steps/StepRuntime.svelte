@@ -7,12 +7,8 @@
 	const wizard = getSharedWizard();
 	const isCloud = $derived(() => wizard.selection.aiVersion === 'multi_v2');
 	const isLocalV2 = $derived(() => wizard.selection.aiVersion === 'multi_v2_local');
-	const isQuranWordTimingOld = $derived(
-		() => wizard.selection.aiVersion === 'quran_word_timing_old'
-	);
 	const isWordTiming = $derived(() => wizard.selection.aiVersion === 'quran_word_timing');
 	const isLegacy = $derived(() => wizard.selection.aiVersion === 'legacy_v1');
-	const oldWordTimingStatus = $derived(wizard.localStatus?.engines?.quranwordtimingOld);
 </script>
 
 <section class="space-y-4">
@@ -23,8 +19,6 @@
 				{$LL.editor.prepareMethodCloudDesc()}
 			{:else if isLocalV2()}
 				{$LL.editor.prepareMethodLocalV2Desc()}
-			{:else if isQuranWordTimingOld()}
-				{$LL.editor.quranwordtimingOldDetail()}
 			{:else if isWordTiming()}
 				{$LL.editor.quranwordtimingDetail()}
 			{:else}
@@ -109,27 +103,6 @@
 							wizard.installingEngine === 'quran_word_timing'}
 						isInstalled={!!wizard.localStatus?.engines?.quranwordtiming?.ready}
 						onInstall={() => void wizard.installEngine('quran_word_timing')}
-						progress={wizard.installStatusProgress}
-						statusMessage={wizard.installStatusMessage}
-					/>
-				{:else}
-					<p class="text-xs text-thirdly">
-						{$LL.editor.quranwordtimingOldDownloadSizeHint()}
-					</p>
-					<LocalEngineCard
-						title={$LL.editor.quranwordtimingOldLabel()}
-						status={oldWordTimingStatus
-							? {
-									...oldWordTimingStatus,
-									message: oldWordTimingStatus.usable
-										? $LL.editor.readyToUse()
-										: $LL.editor.requiredLocalPackages()
-								}
-							: null}
-						isInstalling={wizard.isInstallingDeps &&
-							wizard.installingEngine === 'quran_word_timing_old'}
-						isInstalled={!!wizard.localStatus?.engines?.quranwordtimingOld?.ready}
-						onInstall={() => void wizard.installEngine('quran_word_timing_old')}
 						progress={wizard.installStatusProgress}
 						statusMessage={wizard.installStatusMessage}
 					/>

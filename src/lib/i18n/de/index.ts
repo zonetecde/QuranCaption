@@ -1115,11 +1115,6 @@ const de = {
 		privateLocalQuranicAlignerDetail:
 			'Wird auf Ihrem Rechner mit dem privaten lokalen Quranic Universal Aligner-Stack ausgeführt. Erfordert Python-Installation und Hugging Face-Token.',
 		quranwordtimingLabel: 'Quran Karim Wortausrichtung',
-		quranwordtimingOldLabel: 'Alte Quran Karim Wortausrichtung',
-		quranwordtimingOldDetail:
-			'FastConformer aus QC-3.7.60 mit Offline-Ausrichtung von Versen und Wortzeitstempeln.',
-		quranwordtimingOldDownloadSizeHint:
-			'Einmaliger Download der Python-Pakete und des Modells (~87 MB). Funktioniert danach offline.',
 		quranwordtimingDesc: 'Ayahs-Ausrichter - Kein Internet erforderlich',
 		quranwordtimingDetail: 'Offline-Koran-Spracherkennung und Ausrichtung von Wort-Zeitstempeln.',
 		quranwordtimingDownloadSizeHint:

@@ -76,8 +76,8 @@ describe('analytics privacy sanitizer', () => {
 	it('preserves only known model identifiers and redacts custom values', () => {
 		expect(sanitizeAnalyticsProperties({ model: 'gpt-5.4' })).toEqual({ model: 'gpt-5.4' });
 		expect(sanitizeAnalyticsProperties({ model: ' GPT-5.4 ' })).toEqual({ model: 'gpt-5.4' });
-		expect(sanitizeAnalyticsProperties({ model: 'quran_word_timing_old' })).toEqual({
-			model: 'quran_word_timing_old'
+		expect(sanitizeAnalyticsProperties({ model: 'quran_word_timing' })).toEqual({
+			model: 'quran_word_timing'
 		});
 		expect(sanitizeAnalyticsProperties({ model: 'private-fine-tune-name' })).toEqual({
 			model: 'custom'

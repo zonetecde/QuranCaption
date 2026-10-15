@@ -495,11 +495,6 @@ const editor = {
 	privateLocalQuranicAlignerDetail:
 		'يعمل على جهازك باستخدام مكدس محاذاة القرآن الكريم المحلي الخاص. يتطلب إعداد Python ورمز Hugging Face.',
 	quranwordtimingLabel: 'محاذاة كلمات القرآن الكريم',
-	quranwordtimingOldLabel: 'محاذاة كلمات القرآن الكريم القديمة',
-	quranwordtimingOldDetail:
-		'محرك FastConformer من إصدار QC-3.7.60، مع محاذاة الآيات والطوابع الزمنية للكلمات دون اتصال.',
-	quranwordtimingOldDownloadSizeHint:
-		'تنزيل حزم Python والنموذج (~87 ميغابايت) مرة واحدة. يعمل دون اتصال بعد ذلك.',
 	quranwordtimingDesc: 'Ayahs Aligner - لا يتطلب الإنترنت',
 	quranwordtimingDetail:
 		'التعرف على الكلام القرآني دون اتصال بالإنترنت ومحاذاة الطابع الزمني لكل كلمة على حدة.',

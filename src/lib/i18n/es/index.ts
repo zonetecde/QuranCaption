@@ -1108,11 +1108,6 @@ const es = {
 		privateLocalQuranicAlignerDetail:
 			'Se ejecuta en su máquina con la pila privada local Quranic Universal Aligner. Requiere instalación Python y un token Hugging Face.',
 		quranwordtimingLabel: 'Alineación de palabras Quran Karim',
-		quranwordtimingOldLabel: 'Antigua alineación de palabras Quran Karim',
-		quranwordtimingOldDetail:
-			'Motor FastConformer de QC-3.7.60, con alineación sin conexión de aleyas y marcas de tiempo por palabra.',
-		quranwordtimingOldDownloadSizeHint:
-			'Descarga inicial de los paquetes Python y del modelo (~87 MB). Después funciona sin conexión.',
 		quranwordtimingDesc: 'Alineador de Ayahs - Sin necesidad de internet',
 		quranwordtimingDetail:
 			'Reconocimiento de voz coránica sin conexión y alineación de marcas de tiempo palabra por palabra.',

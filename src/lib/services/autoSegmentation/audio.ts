@@ -163,13 +163,6 @@ export async function checkLocalSegmentationStatus(
 					tokenRequired: true,
 					tokenProvided: false,
 					message: 'Status check failed'
-				},
-				quranwordtimingOld: {
-					ready: false,
-					venvExists: false,
-					packagesInstalled: false,
-					usable: false,
-					message: 'Status check failed'
 				}
 			}
 		};
@@ -179,12 +172,12 @@ export async function checkLocalSegmentationStatus(
 /**
  * Installe les dépendances pour la segmentation locale.
  *
- * @param {'legacy' | 'multi' | 'quran_word_timing_old' | 'quran_word_timing'} engine Moteur cible.
+ * @param {'legacy' | 'multi' | 'quran_word_timing'} engine Moteur cible.
  * @param {string} [hfToken] Token Hugging Face optionnel.
  * @returns {Promise<void>}
  */
 export async function installLocalSegmentationDeps(
-	engine: 'legacy' | 'multi' | 'quran_word_timing_old' | 'quran_word_timing',
+	engine: 'legacy' | 'multi' | 'quran_word_timing',
 	hfToken?: string
 ): Promise<void> {
 	try {

@@ -151,12 +151,9 @@ fn run_local_segmentation_script(
 
     let python_exe = resolve_engine_python_exe(&app_handle, engine)?;
     let script_path = resolve_python_resource_path(&app_handle, engine.script_relative_path())?;
-    let word_timing_model_dir = if matches!(
-        engine,
-        LocalSegmentationEngine::QuranWordTiming | LocalSegmentationEngine::QuranWordTimingOld
-    ) {
-        let dir = get_word_timing_model_dir(&app_handle, engine)?;
-        for (name, _, size, hash) in required_word_timing_model_files(engine) {
+    let word_timing_model_dir = if matches!(engine, LocalSegmentationEngine::QuranWordTiming) {
+        let dir = get_word_timing_model_dir(&app_handle)?;
+        for (name, _, size, hash) in required_word_timing_model_files() {
             validate_word_timing_model_file(&dir.join(name), *size, hash)?;
         }
         Some(dir)
@@ -195,21 +192,6 @@ fn run_local_segmentation_script(
             args.push(serde_json::to_string(clips).map_err(|error| error.to_string())?);
         }
     }
-    if matches!(engine, LocalSegmentationEngine::QuranWordTimingOld) {
-        if let Some(clips) = audio_clips.as_ref().filter(|clips| !clips.is_empty()) {
-            // Le moteur historique reçoit l'audio fusionné avec ses offsets de timeline.
-            let regions: Vec<[i64; 2]> = clips
-                .iter()
-                .filter_map(|clip| {
-                    let start = clip.start_ms.max(0);
-                    let end = clip.end_ms.max(start);
-                    (end > start).then_some([start, end])
-                })
-                .collect();
-            args.push("--audio-regions-ms".to_string());
-            args.push(serde_json::to_string(&regions).map_err(|error| error.to_string())?);
-        }
-    }
     args.append(&mut extra_args);
     println!("[segmentation][local][debug] python args={:?}", args);
 
@@ -240,14 +222,7 @@ fn run_local_segmentation_script(
     cmd.env("PYTHONFAULTHANDLER", "1");
     cmd.env("PYTHONIOENCODING", "utf-8");
     if let Some(dir) = word_timing_model_dir {
-        cmd.env(
-            if matches!(engine, LocalSegmentationEngine::QuranWordTimingOld) {
-                "QC_WORD_TIMING_OLD_MODEL_DIR"
-            } else {
-                "QC_WORD_TIMING_MODEL_DIR"
-            },
-            dir,
-        );
+        cmd.env("QC_WORD_TIMING_MODEL_DIR", dir);
     }
     if let Some(token) = hf_token {
         if !token.trim().is_empty() {
@@ -478,27 +453,6 @@ pub async fn segment_quran_audio_local_multi(
         pad_ms,
         extra_args,
         hf_token,
-    )
-}
-/// Exécute le moteur historique FastConformer de QC-3.7.60.
-pub async fn segment_quran_audio_local_word_timing_old(
-    app_handle: tauri::AppHandle,
-    audio_path: Option<String>,
-    audio_clips: Option<Vec<SegmentationAudioClip>>,
-    min_silence_ms: Option<u32>,
-    min_speech_ms: Option<u32>,
-    pad_ms: Option<u32>,
-) -> Result<serde_json::Value, String> {
-    run_local_segmentation_script(
-        app_handle,
-        LocalSegmentationEngine::QuranWordTimingOld,
-        audio_path,
-        audio_clips,
-        min_silence_ms,
-        min_speech_ms,
-        pad_ms,
-        Vec::new(),
-        None,
     )
 }
 /// Exécute la segmentation locale via le moteur hors-ligne WordTiming.

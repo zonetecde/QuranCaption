@@ -92,7 +92,7 @@ describe('runAutoSegmentation exports', () => {
 		expect(resolveIncludeWbwTimestamps(false, 'replace')).toBe(false);
 	});
 
-	it.each(['quran_word_timing', 'quran_word_timing_old'] as const)(
+	it.each(['quran_word_timing'] as const)(
 		'routes %s to its own local command and keeps native word timings',
 		async (localAsrMode) => {
 			vi.clearAllMocks();
@@ -120,9 +120,7 @@ describe('runAutoSegmentation exports', () => {
 				{ headless: true }
 			);
 			expect(invoke).toHaveBeenCalledExactlyOnceWith(
-				localAsrMode === 'quran_word_timing_old'
-					? 'segment_quran_audio_local_word_timing_old'
-					: 'segment_quran_audio_local_word_timing',
+				'segment_quran_audio_local_word_timing',
 				expect.objectContaining({
 					audioClips: [{ path: 'audio.mp3', startMs: 0, endMs: 1000, sourceStartMs: 0 }]
 				})
@@ -130,20 +128,6 @@ describe('runAutoSegmentation exports', () => {
 			expect(applySegmentationResponseToProject).toHaveBeenCalledWith(
 				expect.objectContaining({ response, device: 'CPU', includeWbwTimestamps: true })
 			);
-		}
-	);
-
-	it.each(['en', 'fr', 'ar', 'de', 'es', 'id', 'zh'] as const)(
-		'provides translated old aligner labels and setup information in %s',
-		(locale) => {
-			loadLocale(locale);
-			setLocale(locale);
-			expect(get(LL).editor.quranwordtimingOldLabel()).not.toBe(
-				get(LL).editor.quranwordtimingLabel()
-			);
-			expect(get(LL).editor.quranwordtimingOldDetail()).toContain('QC-3.7.60');
-			expect(get(LL).editor.quranwordtimingOldDownloadSizeHint()).toContain('87');
-			setLocale('en');
 		}
 	);
 

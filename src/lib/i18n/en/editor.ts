@@ -503,11 +503,6 @@ const editor = {
 	privateLocalQuranicAlignerDetail:
 		'Runs on your machine with the private local Quranic Universal Aligner stack. Requires Python setup and a Hugging Face token.',
 	quranwordtimingLabel: 'Quran Karim words alignment',
-	quranwordtimingOldLabel: 'Old Quran Karim words alignment',
-	quranwordtimingOldDetail:
-		'FastConformer engine from QC-3.7.60, with offline verse and word timestamp alignment.',
-	quranwordtimingOldDownloadSizeHint:
-		'One-time download of Python packages and the model (~87 MB). Operates offline afterwards.',
 	quranwordtimingDesc: 'Ayahs Aligner - No Internet Required',
 	quranwordtimingDetail: 'Offline Quranic speech recognition and word-by-word timestamp alignment.',
 	quranwordtimingDownloadSizeHint:

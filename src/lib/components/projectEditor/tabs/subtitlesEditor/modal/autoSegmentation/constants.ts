@@ -57,16 +57,13 @@ export function getWizardSteps(
 	isSetupReady: boolean = false
 ): WizardStep[] {
 	let baseSteps =
-		aiVersion === 'quran_word_timing' || aiVersion === 'quran_word_timing_old'
+		aiVersion === 'quran_word_timing'
 			? WIZARD_STEPS_quran_word_timing
 			: aiVersion === 'multi_v2'
 				? WIZARD_STEPS_CLOUD_V2
 				: WIZARD_STEPS_V2;
 
-	if (
-		isSetupReady &&
-		(aiVersion === 'quran_word_timing' || aiVersion === 'quran_word_timing_old')
-	) {
+	if (isSetupReady && aiVersion === 'quran_word_timing') {
 		baseSteps = baseSteps.filter(({ key }) => key !== 'setup');
 	}
 

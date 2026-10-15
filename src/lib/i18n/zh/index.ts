@@ -1019,10 +1019,6 @@ const zh = {
 		privateLocalQuranicAlignerDetail:
 			'通过私有本地 Quranic Universal Aligner 栈在您的机器上运行。需要 Python 设置和 Hugging Face Token。',
 		quranwordtimingLabel: 'Quran Karim 逐词对齐',
-		quranwordtimingOldLabel: '旧版 Quran Karim 逐词对齐',
-		quranwordtimingOldDetail: 'QC-3.7.60 的 FastConformer 引擎，支持离线经文和逐词时间戳对齐。',
-		quranwordtimingOldDownloadSizeHint:
-			'首次需下载 Python 软件包和模型（约 87 MB），之后可完全离线运行。',
 		quranwordtimingDesc: 'Ayahs 对齐器 - 无需互联网',
 		quranwordtimingDetail: '离线 Quran 语音识别与逐字时间戳对齐。',
 		quranwordtimingDownloadSizeHint:

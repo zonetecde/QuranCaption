@@ -17,7 +17,7 @@ describe('getWizardSteps', () => {
 		]);
 	});
 
-	it.each(['quran_word_timing', 'quran_word_timing_old'] as const)(
+	it.each(['quran_word_timing'] as const)(
 		'includes setup but excludes settings for %s when setup is not ready',
 		(version) => {
 			expect(getWizardSteps(version, 'local', false, false).map(({ key }) => key)).toEqual([
@@ -28,7 +28,7 @@ describe('getWizardSteps', () => {
 		}
 	);
 
-	it.each(['quran_word_timing', 'quran_word_timing_old'] as const)(
+	it.each(['quran_word_timing'] as const)(
 		'hides setup and settings for %s when setup is already ready',
 		(version) => {
 			expect(getWizardSteps(version, 'local', false, true).map(({ key }) => key)).toEqual([
@@ -38,7 +38,7 @@ describe('getWizardSteps', () => {
 		}
 	);
 
-	it.each(['quran_word_timing', 'quran_word_timing_old'] as const)(
+	it.each(['quran_word_timing'] as const)(
 		'inserts existing-subtitles before review for ready %s when subtitles exist',
 		(version) => {
 			expect(getWizardSteps(version, 'local', true, true).map(({ key }) => key)).toEqual([

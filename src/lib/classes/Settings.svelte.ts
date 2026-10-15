@@ -21,7 +21,7 @@ import { PROJECT_TYPE_OPTIONS } from '$lib/types/projectType';
 
 export type AutoSegmentationSettings = {
 	mode: 'api' | 'local';
-	localAsrMode: 'legacy_whisper' | 'multi_aligner' | 'quran_word_timing_old' | 'quran_word_timing';
+	localAsrMode: 'legacy_whisper' | 'multi_aligner' | 'quran_word_timing';
 	minSilenceMs: number;
 	minSpeechMs: number;
 	padMs: number;

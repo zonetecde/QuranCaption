@@ -83,7 +83,6 @@ function getSelectedEngineStatus(
 	if (!status.engines) return null;
 	if (mode === 'legacy_whisper') return status.engines.legacy;
 	if (mode === 'multi_aligner') return status.engines.multi;
-	if (mode === 'quran_word_timing_old') return status.engines.quranwordtimingOld;
 	return status.engines.quranwordtiming ?? null;
 }
 

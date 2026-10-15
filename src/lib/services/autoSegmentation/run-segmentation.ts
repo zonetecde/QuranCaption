@@ -94,7 +94,6 @@ function resolveContextModelName(
 ): string {
 	if (effectiveMode === 'api') return cloudModel;
 	if (localAsrMode === 'multi_aligner') return multiAlignerModel;
-	if (localAsrMode === 'quran_word_timing_old') return 'quran_word_timing_old';
 	return legacyWhisperModel;
 }
 
@@ -220,10 +219,6 @@ export async function runAutoSegmentationForProject(
 					...basePayload,
 					whisperModel: legacyWhisperModel
 				});
-			}
-
-			if (localAsrMode === 'quran_word_timing_old') {
-				return await invoke('segment_quran_audio_local_word_timing_old', basePayload);
 			}
 
 			if (localAsrMode === 'quran_word_timing') {

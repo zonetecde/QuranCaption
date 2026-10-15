@@ -120,7 +120,6 @@ const ALLOWED_ANALYTICS_MODELS = new Map(
 		'hetchyy/r15_95m',
 		'hetchyy/r7',
 		'quran_word_timing',
-		'quran_word_timing_old',
 		'imported_json',
 		'not_applicable',
 		'Pika Labs / High Quality',

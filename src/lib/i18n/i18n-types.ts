@@ -2961,18 +2961,6 @@ type RootTranslation = {
 		 */
 		quranwordtimingLabel: string;
 		/**
-		 * O​l​d​ ​Q​u​r​a​n​ ​K​a​r​i​m​ ​w​o​r​d​s​ ​a​l​i​g​n​m​e​n​t
-		 */
-		quranwordtimingOldLabel: string;
-		/**
-		 * F​a​s​t​C​o​n​f​o​r​m​e​r​ ​e​n​g​i​n​e​ ​f​r​o​m​ ​Q​C​-​3​.​7​.​6​0​,​ ​w​i​t​h​ ​o​f​f​l​i​n​e​ ​v​e​r​s​e​ ​a​n​d​ ​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​ ​a​l​i​g​n​m​e​n​t​.
-		 */
-		quranwordtimingOldDetail: string;
-		/**
-		 * O​n​e​-​t​i​m​e​ ​d​o​w​n​l​o​a​d​ ​o​f​ ​P​y​t​h​o​n​ ​p​a​c​k​a​g​e​s​ ​a​n​d​ ​t​h​e​ ​m​o​d​e​l​ ​(​~​8​7​ ​M​B​)​.​ ​O​p​e​r​a​t​e​s​ ​o​f​f​l​i​n​e​ ​a​f​t​e​r​w​a​r​d​s​.
-		 */
-		quranwordtimingOldDownloadSizeHint: string;
-		/**
 		 * A​y​a​h​s​ ​A​l​i​g​n​e​r​ ​-​ ​N​o​ ​I​n​t​e​r​n​e​t​ ​R​e​q​u​i​r​e​d
 		 */
 		quranwordtimingDesc: string;
@@ -15158,18 +15146,6 @@ export type TranslationFunctions = {
 		 * Quran Karim words alignment
 		 */
 		quranwordtimingLabel: () => LocalizedString;
-		/**
-		 * Old Quran Karim words alignment
-		 */
-		quranwordtimingOldLabel: () => LocalizedString;
-		/**
-		 * FastConformer engine from QC-3.7.60, with offline verse and word timestamp alignment.
-		 */
-		quranwordtimingOldDetail: () => LocalizedString;
-		/**
-		 * One-time download of Python packages and the model (~87 MB). Operates offline afterwards.
-		 */
-		quranwordtimingOldDownloadSizeHint: () => LocalizedString;
 		/**
 		 * Ayahs Aligner - No Internet Required
 		 */

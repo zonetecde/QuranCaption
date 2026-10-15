@@ -798,11 +798,6 @@ const id = {
 			'Tunggu hingga layanan pulih lalu coba lagi. Sementara itu, Anda dapat menggunakan penyelaras lokal yang juga memberikan hasil sangat akurat. Terima kasih atas pengertian Anda.',
 		cloudAlignerSpaceLink: 'Buka Space Hugging Face',
 		quranwordtimingLabel: 'Penyelarasan kata Quran Karim',
-		quranwordtimingOldLabel: 'Penyelarasan kata Quran Karim lama',
-		quranwordtimingOldDetail:
-			'Mesin FastConformer dari QC-3.7.60, dengan penyelarasan ayat dan waktu per kata secara luring.',
-		quranwordtimingOldDownloadSizeHint:
-			'Unduh paket Python dan model (~87 MB) sekali saja. Setelah itu berfungsi secara luring.',
 		howItWorksDescription2:
 			'Tebal, miring, garis bawah, dan baris baru dialihkan pada rentang yang dipilih. Warna dan cahaya diterapkan dengan pilihan warna saat ini. Mengedit teks terjemahan akan menghapus gaya kata terjemahan.',
 		alignmentStage: {

@@ -168,10 +168,6 @@ pub async fn check_local_segmentation_ready(
                             "tokenRequired": true, "tokenProvided": token_provided, "usable": false,
                             "message": "Python not installed"
                         },
-                        "quranwordtimingOld": {
-                            "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
-                            "message": "Python not installed"
-                        },
                         "quranwordtiming": {
                             "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
                             "message": "Portable Python 3.11 will be automatically installed on setup"
@@ -194,10 +190,6 @@ pub async fn check_local_segmentation_ready(
                             "multi": {
                                 "ready": false, "venvExists": false, "packagesInstalled": false,
                                 "tokenRequired": true, "tokenProvided": token_provided, "usable": false,
-                                "message": "Failed to resolve local env path"
-                            },
-                            "quranwordtimingOld": {
-                                "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
                                 "message": "Failed to resolve local env path"
                             },
                             "quranwordtiming": {
@@ -225,10 +217,6 @@ pub async fn check_local_segmentation_ready(
                                 "tokenRequired": true, "tokenProvided": token_provided, "usable": false,
                                 "message": "Failed to resolve local env path"
                             },
-                            "quranwordtimingOld": {
-                                "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
-                                "message": "Failed to resolve local env path"
-                            },
                             "quranwordtiming": {
                                 "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
                                 "message": "Failed to resolve local env path"
@@ -238,35 +226,6 @@ pub async fn check_local_segmentation_ready(
                 }
             };
             // Vérifications import/venv par moteur.
-            let quran_word_timing_old_venv =
-                match get_engine_venv_path(&app_handle, LocalSegmentationEngine::QuranWordTimingOld) {
-                    Ok(path) => path,
-                    Err(error) => {
-                        return serde_json::json!({
-                            "ready": false, "pythonInstalled": true, "packagesInstalled": false,
-                            "message": format!("Failed to resolve local env paths: {}", error),
-                            "engines": {
-                                "legacy": {
-                                    "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
-                                    "message": "Failed to resolve local env path"
-                                },
-                                "multi": {
-                                    "ready": false, "venvExists": false, "packagesInstalled": false,
-                                    "tokenRequired": true, "tokenProvided": token_provided, "usable": false,
-                                    "message": "Failed to resolve local env path"
-                                },
-                                "quranwordtimingOld": {
-                                    "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
-                                    "message": "Failed to resolve local env path"
-                                },
-                                "quranwordtiming": {
-                                    "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
-                                    "message": "Failed to resolve local env path"
-                                }
-                            }
-                        });
-                    }
-                };
             let word_timing_venv =
                 match get_engine_venv_path(&app_handle, LocalSegmentationEngine::QuranWordTiming) {
                     Ok(path) => path,
@@ -284,10 +243,6 @@ pub async fn check_local_segmentation_ready(
                                     "tokenRequired": true, "tokenProvided": token_provided, "usable": false,
                                     "message": "Failed to resolve local env path"
                                 },
-                                "quranwordtimingOld": {
-                                    "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
-                                    "message": "Failed to resolve local env path"
-                                },
                                 "quranwordtiming": {
                                     "ready": false, "venvExists": false, "packagesInstalled": false, "usable": false,
                                     "message": "Failed to resolve local env path"
@@ -299,17 +254,14 @@ pub async fn check_local_segmentation_ready(
 
             let legacy_python = get_venv_python_exe(&legacy_venv);
             let multi_python = get_venv_python_exe(&multi_venv);
-            let quran_word_timing_old_python = get_venv_python_exe(&quran_word_timing_old_venv);
             let legacy_venv_exists = legacy_python.exists();
             let multi_venv_exists = multi_python.exists();
-            let quran_word_timing_old_venv_exists = quran_word_timing_old_python.exists();
             let word_timing_python_venv_exe = get_venv_python_exe(&word_timing_venv);
             let word_timing_venv_exists = word_timing_python_venv_exe.exists();
 
             let (
                 (legacy_imports_ok, legacy_missing_modules, legacy_versions_ok, legacy_versions_message),
                 (multi_imports_ok, multi_missing_modules, multi_phonemizer_ok),
-                (quran_word_timing_old_imports_ok, quran_word_timing_old_missing_modules),
                 (word_timing_imports_ok, word_timing_missing_modules),
             ) = std::thread::scope(|s| {
                 let legacy_t = s.spawn(|| {
@@ -337,15 +289,6 @@ pub async fn check_local_segmentation_ready(
                     );
                     (imp_ok, miss, phone_ok)
                 });
-                let old_word_t = s.spawn(|| {
-                    if !quran_word_timing_old_venv_exists {
-                        return (false, Vec::new());
-                    }
-                    run_python_import_check(
-                        &quran_word_timing_old_python,
-                        LocalSegmentationEngine::QuranWordTimingOld.required_import_modules(),
-                    )
-                });
                 let word_t = s.spawn(|| {
                     if !word_timing_venv_exists {
                         return (false, Vec::new());
@@ -359,7 +302,6 @@ pub async fn check_local_segmentation_ready(
                 (
                     legacy_t.join().unwrap_or((false, Vec::new(), false, None)),
                     multi_t.join().unwrap_or((false, Vec::new(), false)),
-                    old_word_t.join().unwrap_or((false, Vec::new())),
                     word_t.join().unwrap_or((false, Vec::new())),
                 )
             });
@@ -377,17 +319,9 @@ pub async fn check_local_segmentation_ready(
 
             let legacy_packages = legacy_imports_ok && legacy_versions_ok;
             let multi_packages = multi_imports_ok && multi_phonemizer_ok && multi_data_error.is_none();
-            let old_word_timing_models_ready = get_word_timing_model_dir(&app_handle, LocalSegmentationEngine::QuranWordTimingOld)
+            let word_timing_models_ready = get_word_timing_model_dir(&app_handle)
                 .map(|dir| {
-                    required_word_timing_model_files(LocalSegmentationEngine::QuranWordTimingOld).iter().all(|(name, _, size, hash)| {
-                        validate_word_timing_model_file(&dir.join(name), *size, hash).is_ok()
-                    })
-                })
-                .unwrap_or(false);
-            let quran_word_timing_old_packages = quran_word_timing_old_imports_ok && old_word_timing_models_ready;
-            let word_timing_models_ready = get_word_timing_model_dir(&app_handle, LocalSegmentationEngine::QuranWordTiming)
-                .map(|dir| {
-                    required_word_timing_model_files(LocalSegmentationEngine::QuranWordTiming).iter().all(|(name, _, size, hash)| {
+                    required_word_timing_model_files().iter().all(|(name, _, size, hash)| {
                         validate_word_timing_model_file(&dir.join(name), *size, hash).is_ok()
                     })
                 })
@@ -395,17 +329,16 @@ pub async fn check_local_segmentation_ready(
             let word_timing_packages = word_timing_imports_ok && word_timing_models_ready;
             let legacy_ready = legacy_venv_exists && legacy_packages;
             let multi_ready = multi_venv_exists && multi_packages;
-            let quran_word_timing_old_ready = quran_word_timing_old_venv_exists && quran_word_timing_old_packages;
             let word_timing_ready = word_timing_venv_exists && word_timing_packages;
             let multi_usable = multi_ready && token_provided;
-            let any_ready = legacy_ready || multi_usable || quran_word_timing_old_ready || word_timing_ready;
+            let any_ready = legacy_ready || multi_usable || word_timing_ready;
 
             let overall_message = if any_ready {
                 "Local segmentation is ready".to_string()
             } else if legacy_ready && !multi_usable {
                 "Legacy local engine is ready. Multi-aligner requires a Hugging Face token with access to private models.".to_string()
-            } else if !legacy_venv_exists && !multi_venv_exists && !quran_word_timing_old_venv_exists && !word_timing_venv_exists {
-                "Local engines are not installed yet. Install dependencies for Legacy Whisper, Multi-Aligner, Old Quran Karim words alignment, or WordTiming Offline.".to_string()
+            } else if !legacy_venv_exists && !multi_venv_exists && !word_timing_venv_exists {
+                "Local engines are not installed yet. Install dependencies for Legacy Whisper, Multi-Aligner, or WordTiming Offline.".to_string()
             } else {
                 "Local engines need setup or a Hugging Face token with private model access for Multi-Aligner.".to_string()
             };
@@ -413,7 +346,7 @@ pub async fn check_local_segmentation_ready(
             serde_json::json!({
                 "ready": any_ready,
                 "pythonInstalled": true,
-                "packagesInstalled": legacy_ready || multi_ready || quran_word_timing_old_ready || word_timing_ready,
+                "packagesInstalled": legacy_ready || multi_ready || word_timing_ready,
                 "message": overall_message,
                 "engines": {
                     "legacy": {
@@ -469,24 +402,6 @@ pub async fn check_local_segmentation_ready(
                             "Multi-Aligner packages are incomplete".to_string()
                         }
                     },
-                    "quranwordtimingOld": {
-                        "ready": quran_word_timing_old_ready,
-                        "venvExists": quran_word_timing_old_venv_exists,
-                        "packagesInstalled": quran_word_timing_old_packages,
-                        "usable": quran_word_timing_old_ready,
-                        "message": if quran_word_timing_old_ready {
-                            "Old Quran Karim words alignment local engine is ready".to_string()
-                        } else if !quran_word_timing_old_venv_exists || !old_word_timing_models_ready {
-                            "Old Quran Karim words alignment dependencies are not installed".to_string()
-                        } else if !quran_word_timing_old_missing_modules.is_empty() {
-                            format!(
-                                "Old Quran Karim words alignment packages are incomplete (missing imports: {})",
-                                quran_word_timing_old_missing_modules.join(", ")
-                            )
-                        } else {
-                            "Old Quran Karim words alignment packages are incomplete".to_string()
-                        }
-                    },
                     "quranwordtiming": {
                         "ready": word_timing_ready,
                         "venvExists": word_timing_venv_exists,
@@ -528,10 +443,6 @@ pub async fn check_local_segmentation_ready(
                     "ready": false, "venvExists": false, "packagesInstalled": false,
                     "tokenRequired": true, "tokenProvided": token_provided, "usable": false,
                     "message": "Check timed out"
-                },
-                "quranwordtimingOld": {
-                    "ready": false, "venvExists": false, "packagesInstalled": false,
-                    "usable": false, "message": "Check timed out"
                 },
                 "quranwordtiming": {
                     "ready": false, "venvExists": false, "packagesInstalled": false,

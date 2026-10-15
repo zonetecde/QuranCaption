@@ -53,9 +53,6 @@ export function getSelectedModelLabel(
 	multiModel: MultiAlignerModel,
 	cloudModel: MultiAlignerModel
 ): string {
-	if (version === 'quran_word_timing_old') {
-		return get(LL).editor.quranwordtimingOldLabel();
-	}
 	if (version === 'quran_word_timing') {
 		return get(LL).editor.quranwordtimingLabel();
 	}
@@ -76,7 +73,7 @@ export function getDeviceLabel(
 	mode: SegmentationMode,
 	device: SegmentationDevice
 ): string {
-	if (version === 'quran_word_timing' || version === 'quran_word_timing_old') return 'CPU';
+	if (version === 'quran_word_timing') return 'CPU';
 	if (version === 'legacy_v1' && mode === 'local') return 'AUTO';
 	return device;
 }

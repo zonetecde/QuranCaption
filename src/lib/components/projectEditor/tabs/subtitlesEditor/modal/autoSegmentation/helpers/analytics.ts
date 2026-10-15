@@ -33,19 +33,18 @@ export type SegmentationAnalyticsParams = {
  * @returns {string} Stable analytics model identifier.
  */
 export function getSegmentationAnalyticsModel(version: AiVersion, displayedModel: string): string {
-	if (version === 'quran_word_timing_old') return 'quran_word_timing_old';
 	if (version === 'quran_word_timing') return 'quran_word_timing';
 	return displayedModel;
 }
 
 /**
  * Tracks installation failures for local segmentation engines.
- * @param {'legacy' | 'multi' | 'quran_word_timing_old' | 'quran_word_timing'} engine Stable engine identifier.
+ * @param {'legacy' | 'multi' | 'quran_word_timing'} engine Stable engine identifier.
  * @param {LocalSegmentationStatus | null} status Current structural readiness status.
  * @returns {void} Nothing.
  */
 export function trackInstallFailure(
-	engine: 'legacy' | 'multi' | 'quran_word_timing_old' | 'quran_word_timing',
+	engine: 'legacy' | 'multi' | 'quran_word_timing',
 	status: LocalSegmentationStatus | null
 ): void {
 	AnalyticsService.track('local_segmentation_dependencies_install_failed', {
@@ -56,7 +55,6 @@ export function trackInstallFailure(
 		python_installed: status?.pythonInstalled,
 		legacy_ready: status?.engines?.legacy?.ready,
 		multi_ready: status?.engines?.multi?.ready,
-		quran_word_timing_old_ready: status?.engines?.quranwordtimingOld?.ready,
 		word_timing_ready: status?.engines?.quranwordtiming?.ready
 	});
 }

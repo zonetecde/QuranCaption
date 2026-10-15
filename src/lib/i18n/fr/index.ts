@@ -1111,11 +1111,6 @@ const fr = {
 		privateLocalQuranicAlignerDetail:
 			'S\u2019exécute sur votre machine avec la pile privée locale Quranic Universal Aligner. Nécessite une installation Python et un token Hugging Face.',
 		quranwordtimingLabel: 'Alignement mot à mot Quran Karim',
-		quranwordtimingOldLabel: 'Ancien alignement mot à mot Quran Karim',
-		quranwordtimingOldDetail:
-			'Moteur FastConformer de QC-3.7.60, avec alignement hors ligne des versets et des timestamps mot à mot.',
-		quranwordtimingOldDownloadSizeHint:
-			'Téléchargement initial des paquets Python et du modèle (~87 Mo). Fonctionne ensuite hors ligne.',
 		quranwordtimingDesc: 'Aligneur d\u2019Ayahs - Aucune connexion internet requise',
 		quranwordtimingDetail: 'Reconnaissance vocale coranique hors ligne et alignement mot par mot.',
 		quranwordtimingDownloadSizeHint:

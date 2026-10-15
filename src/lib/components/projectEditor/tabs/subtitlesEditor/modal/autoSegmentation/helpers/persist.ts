@@ -7,7 +7,6 @@ export function deriveAiVersion(settings?: AutoSegmentationSettings): AiVersion 
 	if (!settings) return 'multi_v2';
 	if (settings.mode === 'local') {
 		if (settings.localAsrMode === 'legacy_whisper') return 'quran_word_timing';
-		if (settings.localAsrMode === 'quran_word_timing_old') return 'quran_word_timing_old';
 		if (settings.localAsrMode === 'quran_word_timing') return 'quran_word_timing';
 		return 'multi_v2_local';
 	}
@@ -20,25 +19,16 @@ export function deriveSelectionState(settings?: AutoSegmentationSettings): Wizar
 	return {
 		aiVersion,
 		mode:
-			aiVersion === 'multi_v2_local' ||
-			aiVersion === 'quran_word_timing_old' ||
-			aiVersion === 'quran_word_timing'
+			aiVersion === 'multi_v2_local' || aiVersion === 'quran_word_timing'
 				? 'local'
 				: (settings?.mode ?? 'api'),
 		runtime:
-			aiVersion === 'multi_v2_local' ||
-			aiVersion === 'quran_word_timing_old' ||
-			aiVersion === 'quran_word_timing'
+			aiVersion === 'multi_v2_local' || aiVersion === 'quran_word_timing'
 				? 'local'
 				: settings?.mode === 'local'
 					? 'cloud'
 					: 'cloud',
-		localAsrMode:
-			aiVersion === 'quran_word_timing_old'
-				? 'quran_word_timing_old'
-				: aiVersion === 'quran_word_timing'
-					? 'quran_word_timing'
-					: 'multi_aligner',
+		localAsrMode: aiVersion === 'quran_word_timing' ? 'quran_word_timing' : 'multi_aligner',
 		legacyModel: settings?.legacyWhisperModel ?? 'base',
 		multiModel: settings?.multiAlignerModel ?? 'Base',
 		cloudModel: settings?.cloudModel ?? 'Base',

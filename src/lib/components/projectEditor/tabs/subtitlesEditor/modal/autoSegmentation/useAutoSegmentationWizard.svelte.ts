@@ -74,9 +74,7 @@ export function useAutoSegmentationWizard() {
 	let localStatus = $state<LocalSegmentationStatus | null>(cachedLocalStatus);
 	let isCheckingStatus = $state(false);
 	let isInstallingDeps = $state(false);
-	let installingEngine = $state<
-		'legacy' | 'multi' | 'quran_word_timing_old' | 'quran_word_timing' | null
-	>(null);
+	let installingEngine = $state<'legacy' | 'multi' | 'quran_word_timing' | null>(null);
 	let installStatus = $state('');
 	let installStatusProgress = $state<number | null>(null);
 	let installStatusMessage = $state('');
@@ -109,18 +107,13 @@ export function useAutoSegmentationWizard() {
 
 	const selectedLocalEngineStatus = $derived(() => {
 		if (selection.localAsrMode === 'legacy_whisper') return localStatus?.engines?.legacy ?? null;
-		if (selection.localAsrMode === 'quran_word_timing_old')
-			return localStatus?.engines?.quranwordtimingOld ?? null;
 		if (selection.localAsrMode === 'quran_word_timing')
 			return localStatus?.engines?.quranwordtiming ?? null;
 		return localStatus?.engines?.multi ?? null;
 	});
 
 	const isSetupReady = $derived(() => {
-		if (
-			selection.aiVersion === 'quran_word_timing' ||
-			selection.aiVersion === 'quran_word_timing_old'
-		) {
+		if (selection.aiVersion === 'quran_word_timing') {
 			if (selectedLocalEngineStatus()) {
 				return Boolean(selectedLocalEngineStatus()?.usable);
 			}
@@ -154,8 +147,7 @@ export function useAutoSegmentationWizard() {
 		() =>
 			selection.aiVersion === 'multi_v2' ||
 			selection.aiVersion === 'multi_v2_local' ||
-			selection.aiVersion === 'quran_word_timing' ||
-			selection.aiVersion === 'quran_word_timing_old'
+			selection.aiVersion === 'quran_word_timing'
 	);
 
 	const audioLaneCount = $derived(() => getAutoSegmentationAudioLaneCount());
@@ -195,11 +187,7 @@ export function useAutoSegmentationWizard() {
 		if (showExistingSubtitlesStep() && subtitleApplicationMode === null) return false;
 		if (selection.runtime === 'hf_json')
 			return hasAudio() && importedJsonRaw.trim().length > 0 && !isRunning;
-		if (
-			(selection.aiVersion === 'quran_word_timing' ||
-				selection.aiVersion === 'quran_word_timing_old') &&
-			!selectedLocalEngineStatus()?.usable
-		)
+		if (selection.aiVersion === 'quran_word_timing' && !selectedLocalEngineStatus()?.usable)
 			return false;
 		return hasAudio() && !isRunning;
 	});
@@ -272,7 +260,7 @@ export function useAutoSegmentationWizard() {
 				selection.multiModel = 'Base';
 				persistPatch({ multiAlignerModel: selection.multiModel });
 			}
-		} else if (aiVersion === 'quran_word_timing' || aiVersion === 'quran_word_timing_old') {
+		} else if (aiVersion === 'quran_word_timing') {
 			selection.mode = 'local';
 			selection.runtime = 'local';
 			selection.localAsrMode = aiVersion;
@@ -366,9 +354,7 @@ export function useAutoSegmentationWizard() {
 	}
 
 	/** Installs local dependencies for one engine with streamed status text. */
-	async function installEngine(
-		engine: 'legacy' | 'multi' | 'quran_word_timing_old' | 'quran_word_timing'
-	): Promise<void> {
+	async function installEngine(engine: 'legacy' | 'multi' | 'quran_word_timing'): Promise<void> {
 		if (isInstallingDeps) return;
 		isInstallingDeps = true;
 		installingEngine = engine;
@@ -633,9 +619,7 @@ export function useAutoSegmentationWizard() {
 	function isPresetActive(preset: SegmentationPreset): boolean {
 		return (
 			minSilenceMs === preset.minSilenceMs &&
-			(selection.aiVersion === 'quran_word_timing' ||
-				selection.aiVersion === 'quran_word_timing_old' ||
-				minSpeechMs === preset.minSpeechMs) &&
+			(selection.aiVersion === 'quran_word_timing' || minSpeechMs === preset.minSpeechMs) &&
 			padMs === preset.padMs
 		);
 	}

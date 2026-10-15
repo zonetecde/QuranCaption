@@ -769,9 +769,13 @@ export default class MigrationService {
 		}
 
 		if (
-			['open_multi_aligner', 'legacy_whisper', 'muaalem_local', 'surah_splitter'].includes(
-				autoSegmentationSettings.localAsrMode ?? ''
-			)
+			[
+				'open_multi_aligner',
+				'legacy_whisper',
+				'muaalem_local',
+				'surah_splitter',
+				'quran_word_timing_old'
+			].includes(autoSegmentationSettings.localAsrMode ?? '')
 		) {
 			autoSegmentationSettings.localAsrMode = 'quran_word_timing';
 			autoSegmentationSettings.multiAlignerModel = 'Base';

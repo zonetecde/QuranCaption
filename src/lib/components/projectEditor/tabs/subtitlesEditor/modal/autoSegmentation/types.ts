@@ -9,12 +9,7 @@ import type {
 } from '$lib/services/AutoSegmentation';
 
 /** Defines the high-level AI family shown in the wizard. */
-export type AiVersion =
-	| 'legacy_v1'
-	| 'multi_v2'
-	| 'multi_v2_local'
-	| 'quran_word_timing_old'
-	| 'quran_word_timing';
+export type AiVersion = 'legacy_v1' | 'multi_v2' | 'multi_v2_local' | 'quran_word_timing';
 
 /** Represents a wizard navigation item. */
 export type WizardStep = {

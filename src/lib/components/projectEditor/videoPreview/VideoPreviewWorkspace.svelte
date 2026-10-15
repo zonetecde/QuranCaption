@@ -140,6 +140,8 @@
 
 	// === ÉTATS LOCAUX ===
 	let videoElement = $state<HTMLVideoElement | null>(null); // Référence à l'élément <video> HTML
+	let fullscreenControlsVisible = $state(true);
+	let fullscreenControlsTimer: ReturnType<typeof setTimeout> | undefined;
 	type VideoClipTransitionMode = 'none' | 'fade-through-black' | 'crossfade';
 
 	// === EFFETS RÉACTIFS ===
@@ -1659,6 +1661,25 @@
 		getTimelineSettings().movePreviewTo = getTimelineSettings().cursorPosition;
 	}
 
+	/**
+	 * Affiche les contrôles plein écran puis les masque après deux secondes d'inactivité.
+	 * @returns {void}
+	 */
+	function revealFullscreenControls(): void {
+		if (!globalState.getVideoPreviewState.isFullscreen) return;
+		fullscreenControlsVisible = true;
+		clearTimeout(fullscreenControlsTimer);
+		fullscreenControlsTimer = setTimeout(() => {
+			fullscreenControlsVisible = false;
+		}, 2000);
+	}
+
+	$effect(() => {
+		if (!globalState.getVideoPreviewState.isFullscreen) return;
+		revealFullscreenControls();
+		return () => clearTimeout(fullscreenControlsTimer);
+	});
+
 	onMount(() => {
 		// Si Quran Caption a été quitté en fullscreen, on enlève le fullscreen.
 		if (globalState.getVideoPreviewState.isFullscreen) {
@@ -1670,7 +1691,10 @@
 </script>
 
 <svelte:window
+	onpointermove={revealFullscreenControls}
+	onpointerdown={revealFullscreenControls}
 	onkeydown={(e) => {
+		revealFullscreenControls();
 		if (e.key === 'Escape' && globalState.getVideoPreviewState.isFullscreen) {
 			globalState.getVideoPreviewState.toggleFullScreen();
 		}
@@ -1719,11 +1743,34 @@
 	</div>
 </section>
 
-{#if showControls}
+{#if globalState.getVideoPreviewState.isFullscreen && !isExportCapturePreview}
+	<div
+		class="fullscreen-controls"
+		class:controls-hidden={!fullscreenControlsVisible}
+		inert={!fullscreenControlsVisible}
+		onfocusin={revealFullscreenControls}
+	>
+		<VideoPreviewControlsBar {togglePlayPause} />
+	</div>
+{:else if showControls}
 	<VideoPreviewControlsBar {togglePlayPause} />
 {/if}
 
 <style>
+	.fullscreen-controls {
+		position: fixed;
+		inset: auto 0 0;
+		z-index: 10000;
+		padding: 1.5rem;
+		background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+		transition: opacity 200ms ease;
+	}
+
+	.controls-hidden {
+		opacity: 0;
+		pointer-events: none;
+	}
+
 	/* Styles pour assurer un dimensionnement correct */
 	#preview-container {
 		height: 100%;

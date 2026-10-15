@@ -11,6 +11,7 @@
 	} = $props();
 
 	let isPlaying = $derived(() => globalState.getVideoPreviewState.isPlaying);
+	let isFullscreen = $derived(() => globalState.getVideoPreviewState.isFullscreen);
 	let previewCopy = $derived(
 		$LL.editor as unknown as {
 			skipBackwardTenSeconds: () => string;
@@ -168,9 +169,13 @@
 			type="button"
 			onclick={globalState.getVideoPreviewState.toggleFullScreen}
 			class="preview-control-btn flex items-center justify-center w-6 h-7 rounded-full transition-colors cursor-pointer duration-200"
-			aria-label={get(LL).editor.fullscreenMode()}
+			aria-label={isFullscreen()
+				? get(LL).editor.exitFullscreen()
+				: get(LL).editor.fullscreenMode()}
 		>
-			<span class="material-icons text-xl pt-0.25">fullscreen</span>
+			<span class="material-icons text-xl pt-0.25">
+				{isFullscreen() ? 'fullscreen_exit' : 'fullscreen'}
+			</span>
 		</button>
 	</div>
 </div>

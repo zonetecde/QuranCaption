@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getSharedWizard } from '../sharedWizard';
+	import { ALIGNER_DISCUSSIONS_URL, ALIGNER_SITE_URL } from '../constants';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import {
@@ -59,7 +60,7 @@
 						class="inline-flex items-center gap-1 underline decoration-transparent underline-offset-2 transition hover:decoration-current"
 						onclick={(event) => {
 							event.stopPropagation();
-							void openUrl('https://hetchyy-quranic-universal-aligner.hf.space/');
+							void openUrl(ALIGNER_SITE_URL);
 						}}
 					>
 						{$LL.editor.quranicUniversalAlignerLabel()}
@@ -82,9 +83,7 @@
 					class="text-xs text-secondary underline underline-offset-2 hover:text-primary"
 					onclick={(event) => {
 						event.stopPropagation();
-						void openUrl(
-							'https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/discussions'
-						);
+						void openUrl(ALIGNER_DISCUSSIONS_URL);
 					}}>{$LL.donation.leaveFeedback()}</button
 				>
 			</div>

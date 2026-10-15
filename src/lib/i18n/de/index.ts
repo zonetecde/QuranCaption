@@ -1151,6 +1151,7 @@ const de = {
 			segmenting: 'Rezitationsgrenzen werden erkannt',
 			transcribing: 'Rezitation wird transkribiert',
 			matching: 'Koranverse werden zugeordnet',
+			timing_words: 'Jedes Wort wird zeitlich ausgerichtet',
 			building: 'Ergebnisse werden erstellt',
 			splitting: 'Ein Untertitel pro Vers wird erstellt',
 			processing: 'Audio wird verarbeitet'

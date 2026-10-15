@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 
 const HF_CHANGELOG_URL =
-	'https://huggingface.co/spaces/hetchyy/quranic-universal-aligner/raw/main/docs/CHANGELOG.md';
+	'https://huggingface.co/spaces/QUD-Technologies/quranic-universal-aligner/raw/main/docs/CHANGELOG.md';
 
 export type HuggingFaceChangelogSection = {
 	title: string;

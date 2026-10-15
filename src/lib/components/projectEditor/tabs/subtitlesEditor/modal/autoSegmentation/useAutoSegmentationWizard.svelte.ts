@@ -548,6 +548,11 @@ export function useAutoSegmentationWizard() {
 		}
 		const extendBeforeSilenceEffective =
 			selection.aiVersion === 'multi_v2' ? false : extendBeforeSilence;
+		// The cloud aligner always returns word timings with each segment.
+		const includeWbwTimestampsEffective =
+			subtitleApplicationMode === 'align' ||
+			selection.aiVersion === 'multi_v2' ||
+			(includeWbwTimestamps && supportsWbwTimestamps());
 		const analyticsParams: SegmentationAnalyticsParams = {
 			requestedMode: selection.mode,
 			runtime: selection.runtime,
@@ -557,7 +562,7 @@ export function useAutoSegmentationWizard() {
 			minSilenceMs,
 			minSpeechMs,
 			padMs,
-			includeWordByWord: includeWbwTimestamps,
+			includeWordByWord: includeWbwTimestampsEffective,
 			fillBySilence,
 			extendBeforeSilence: extendBeforeSilenceEffective,
 			extendBeforeSilenceMs
@@ -590,9 +595,7 @@ export function useAutoSegmentationWizard() {
 					riwayah: selection.riwayah,
 					hfToken: selection.hfToken,
 					allowCloudFallback: selection.mode !== 'local',
-					includeWbwTimestamps:
-						subtitleApplicationMode === 'align' ||
-						(includeWbwTimestamps && supportsWbwTimestamps()),
+					includeWbwTimestamps: includeWbwTimestampsEffective,
 					subtitleApplicationMode: showExistingSubtitlesStep()
 						? (subtitleApplicationMode ?? 'replace')
 						: 'replace',

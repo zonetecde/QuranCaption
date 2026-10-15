@@ -30,12 +30,14 @@ export function buildBatchSegmentationRunConfiguration(
 			: settings.localAsrMode === 'legacy_whisper'
 				? settings.legacyWhisperModel
 				: settings.multiAlignerModel;
+	// The cloud aligner always returns word timings with each segment.
+	const includeWbwTimestamps = settings.mode === 'api' || settings.includeWbwTimestamps;
 	const snapshot = Object.freeze({
 		runtime,
 		mode: settings.localAsrMode,
 		model,
 		device: settings.device,
-		includeWbwTimestamps: settings.includeWbwTimestamps,
+		includeWbwTimestamps,
 		minSilenceMs: settings.minSilenceMs,
 		minSpeechMs: settings.minSpeechMs,
 		padMs: settings.padMs,
@@ -60,7 +62,7 @@ export function buildBatchSegmentationRunConfiguration(
 		riwayah: settings.riwayah ?? 'hafs',
 		hfToken: settings.hfToken,
 		allowCloudFallback: settings.mode !== 'local',
-		includeWbwTimestamps: settings.includeWbwTimestamps,
+		includeWbwTimestamps,
 		fillBySilence: settings.fillBySilence,
 		extendBeforeSilence: settings.extendBeforeSilence,
 		extendBeforeSilenceMs: settings.extendBeforeSilenceMs

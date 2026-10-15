@@ -1145,6 +1145,7 @@ const es = {
 			segmenting: 'Detectando límites de recitación',
 			transcribing: 'Transcribiendo la recitación',
 			matching: 'Comparando versículos del Corán',
+			timing_words: 'Sincronizando cada palabra',
 			building: 'Construyendo resultados',
 			splitting: 'Creando un subtítulo por versículo',
 			processing: 'Procesando audio'

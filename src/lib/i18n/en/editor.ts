@@ -539,6 +539,7 @@ const editor = {
 		segmenting: 'Finding recitation boundaries',
 		transcribing: 'Transcribing recitation',
 		matching: 'Matching Quran verses',
+		timing_words: 'Timing each word',
 		building: 'Building results',
 		splitting: 'Creating one subtitle per verse',
 		processing: 'Processing audio'

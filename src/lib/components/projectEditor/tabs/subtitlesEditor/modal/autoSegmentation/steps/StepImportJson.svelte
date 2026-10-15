@@ -5,6 +5,7 @@
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { onDestroy, onMount } from 'svelte';
 	import { getSharedWizard } from '../sharedWizard';
+	import { ALIGNER_SPACE_URL } from '../constants';
 	import LL from '$lib/i18n/i18n-svelte';
 
 	const wizard = getSharedWizard();
@@ -13,7 +14,7 @@
 
 	/** Opens the official Hugging Face space page. */
 	async function openHuggingFaceSpace(): Promise<void> {
-		await openUrl('https://huggingface.co/spaces/hetchyy/quranic-universal-aligner');
+		await openUrl(ALIGNER_SPACE_URL);
 	}
 
 	/** Reads a dropped JSON file path and stores its content in the wizard state. */
@@ -96,7 +97,9 @@
 				{$LL.editor.browseJsonFile()}
 			</button>
 			{#if wizard.importedJsonFileName}
-				<p class="mt-2 text-xs text-thirdly">{$LL.editor.loadedFileLabel()}: {wizard.importedJsonFileName}</p>
+				<p class="mt-2 text-xs text-thirdly">
+					{$LL.editor.loadedFileLabel()}: {wizard.importedJsonFileName}
+				</p>
 			{/if}
 		</div>
 
@@ -121,7 +124,8 @@
 					checked={wizard.fillBySilence}
 					onchange={(e) => wizard.setFillBySilence((e.currentTarget as HTMLInputElement).checked)}
 					class="accent-accent-primary"
-				/> {$LL.editor.fillGapsWithSilence()}</label
+				/>
+				{$LL.editor.fillGapsWithSilence()}</label
 			>
 			{#if wizard.fillBySilence}
 				<div class="flex items-center gap-2 text-sm text-secondary">
@@ -132,7 +136,8 @@
 							onchange={(e) =>
 								wizard.setExtendBeforeSilence((e.currentTarget as HTMLInputElement).checked)}
 							class="accent-accent-primary"
-						/> {$LL.editor.extendSubtitleBeforeSilence()}</label
+						/>
+						{$LL.editor.extendSubtitleBeforeSilence()}</label
 					>
 					<input
 						id="import-extend-before-silence-ms"

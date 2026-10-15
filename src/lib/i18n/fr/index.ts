@@ -1149,6 +1149,7 @@ const fr = {
 			segmenting: 'Détection des limites de récitation',
 			transcribing: 'Transcription de la récitation',
 			matching: 'Correspondance avec les versets',
+			timing_words: 'Synchronisation de chaque mot',
 			building: 'Construction des résultats',
 			splitting: 'Création d’un sous-titre par verset',
 			processing: 'Traitement de l’audio'

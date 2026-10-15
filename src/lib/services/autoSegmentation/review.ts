@@ -142,6 +142,32 @@ export function clearWbwTimestampReview(): void {
 	}
 }
 
+/** Marge (s) tolérée entre les bornes d'alignement stockées et celles du clip. */
+const ALIGNMENT_BOUNDS_TOLERANCE_S = 1;
+
+/**
+ * Bornes audio (s) à retimer pour un clip : celles de l'alignement d'origine si elles
+ * tiennent encore dans le clip, sinon celles du clip (audio remplacé, clip déplacé ou
+ * raccourci depuis l'alignement).
+ *
+ * @param {WbwTimestampClip} clip Clip à retimer.
+ * @returns {{ from: number; to: number }} Début et fin en secondes sur la timeline.
+ */
+function getClipTimingBoundsS(clip: WbwTimestampClip): { from: number; to: number } {
+	const clipFrom = clip.startTime / 1000;
+	const clipTo = clip.endTime / 1000;
+	const meta = clip.alignmentMetadata;
+	if (
+		meta &&
+		meta.timeFrom >= clipFrom - ALIGNMENT_BOUNDS_TOLERANCE_S &&
+		meta.timeTo <= clipTo + ALIGNMENT_BOUNDS_TOLERANCE_S &&
+		meta.timeFrom < meta.timeTo
+	) {
+		return { from: meta.timeFrom, to: meta.timeTo };
+	}
+	return { from: clipFrom, to: clipTo };
+}
+
 /**
  * Calcule la fenêtre audio (ms, coordonnées timeline) couvrant un ensemble de clips.
  *
@@ -149,12 +175,8 @@ export function clearWbwTimestampReview(): void {
  * @returns {RealignWindow} Fenêtre `[startMs, endMs]` à trancher/téléverser.
  */
 export function computeRealignWindow(clips: WbwTimestampClip[]): RealignWindow {
-	const starts = clips.map((clip) =>
-		Math.round((clip.alignmentMetadata?.timeFrom ?? clip.startTime / 1000) * 1000)
-	);
-	const ends = clips.map((clip) =>
-		Math.round((clip.alignmentMetadata?.timeTo ?? clip.endTime / 1000) * 1000)
-	);
+	const starts = clips.map((clip) => Math.round(getClipTimingBoundsS(clip).from * 1000));
+	const ends = clips.map((clip) => Math.round(getClipTimingBoundsS(clip).to * 1000));
 	return { startMs: Math.min(...starts), endMs: Math.max(...ends) };
 }
 
@@ -243,18 +265,20 @@ export async function computeWbwTimestampsForClipsSliced(
 			ref_to: refTo,
 			matched_text: meta?.matchedText || clip.text,
 			special_type: specialType,
-			time_from: meta?.timeFrom ?? clip.startTime / 1000,
-			time_to: meta?.timeTo ?? clip.endTime / 1000,
+			time_from: getClipTimingBoundsS(clip).from,
+			time_to: getClipTimingBoundsS(clip).to,
 			words: []
 		};
 	});
 
 	// Pour un appel tranché, on recale les temps des segments sur l'origine de la fenêtre uploadée.
+	// Bornées à la fenêtre envoyée : jamais négatives ni au-delà de sa fin.
+	const windowLengthS = window ? (window.endMs - window.startMs) / 1000 : Infinity;
 	const requestSegments: SegmentationSegment[] = window
 		? segments.map((segment) => ({
 				...segment,
-				time_from: (segment.time_from ?? 0) - baseS,
-				time_to: (segment.time_to ?? 0) - baseS
+				time_from: Math.min(windowLengthS, Math.max(0, (segment.time_from ?? 0) - baseS)),
+				time_to: Math.min(windowLengthS, Math.max(0, (segment.time_to ?? 0) - baseS))
 			}))
 		: segments;
 

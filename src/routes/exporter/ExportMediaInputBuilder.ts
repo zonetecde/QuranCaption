@@ -9,6 +9,7 @@ export type ExportVideoInput = {
 	duration_ms?: number;
 	media_fill?: boolean;
 	media_scale?: number;
+	media_rotation?: number;
 	media_position_x?: number;
 	media_position_y?: number;
 };
@@ -66,6 +67,9 @@ export class ExportMediaInputBuilder {
 			}
 			if (styles?.hasOverrideForAny([clip.id], 'media-scale')) {
 				input.media_scale = Number(styles.getEffectiveValue('media-scale', clip.id));
+			}
+			if (styles?.hasOverrideForAny([clip.id], 'media-rotation')) {
+				input.media_rotation = Number(styles.getEffectiveValue('media-rotation', clip.id));
 			}
 			if (styles?.hasOverrideForAny([clip.id], 'media-position-x')) {
 				input.media_position_x = Number(styles.getEffectiveValue('media-position-x', clip.id));

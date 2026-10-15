@@ -134,6 +134,8 @@ pub struct VideoInput {
     pub media_position_x: Option<f64>,
     /// Position verticale spécifique au clip.
     pub media_position_y: Option<f64>,
+    /// Rotation spécifique au clip, en degrés.
+    pub media_rotation: Option<f64>,
 }
 
 /// Entrée audio temporelle utilisée lorsqu'un clip a un timing ou volume individuel.

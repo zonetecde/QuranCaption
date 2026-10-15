@@ -265,6 +265,7 @@ pub fn build_and_run_ffmpeg_filter_complex(
                 100.0,
                 0.0,
                 0.0,
+                0.0,
                 blur,
                 performance_profile,
                 export_id,

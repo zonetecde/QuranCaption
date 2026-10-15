@@ -391,7 +391,13 @@
 			return true;
 		if (
 			category.id === 'general' &&
-			['media-fill', 'media-scale', 'media-position-x', 'media-position-y'].includes(style.id) &&
+			[
+				'media-fill',
+				'media-scale',
+				'media-rotation',
+				'media-position-x',
+				'media-position-y'
+			].includes(style.id) &&
 			globalState.getVideoTrack.clips.length === 0
 		)
 			return true;

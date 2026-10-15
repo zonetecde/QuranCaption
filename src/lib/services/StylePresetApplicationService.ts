@@ -39,6 +39,7 @@ export async function applyStylePresetToProject(options: ApplyStylePresetOptions
 		'video-clip-transition-duration',
 		'media-position-x',
 		'media-position-y',
+		'media-rotation',
 		'media-scale'
 	];
 	const previousGlobalStyles = options.videoStyle.styles.find(

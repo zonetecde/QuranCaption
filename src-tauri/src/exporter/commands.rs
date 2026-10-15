@@ -40,6 +40,7 @@ use super::types::{
 /// * `media_scale` - Zoom du média de fond en pourcentage.
 /// * `media_position_x` - Position horizontale relative au centre, entre -100 et 100.
 /// * `media_position_y` - Position verticale relative au centre, entre -100 et 100.
+/// * `media_rotation` - Rotation du média de fond en degrés, entre -180 et 180.
 /// * `blur` - Intensité du flou de fond.
 /// * `blank_timings` - Timestamps sans sous-titres (fond uniquement).
 #[tauri::command]
@@ -59,6 +60,7 @@ pub async fn export_video(
     media_scale: Option<f64>,
     media_position_x: Option<f64>,
     media_position_y: Option<f64>,
+    media_rotation: Option<f64>,
     blur: Option<f64>,
     video_fade_in_enabled: Option<bool>,
     video_fade_out_enabled: Option<bool>,
@@ -301,6 +303,7 @@ pub async fn export_video(
     let media_scale = media_scale.unwrap_or(100.0).clamp(100.0, 300.0);
     let media_position_x = media_position_x.unwrap_or(0.0).clamp(-100.0, 100.0);
     let media_position_y = media_position_y.unwrap_or(0.0).clamp(-100.0, 100.0);
+    let media_rotation = media_rotation.unwrap_or(0.0).clamp(-180.0, 180.0);
 
     // Lancement du rendu dans un thread bloquant (tokio::task::spawn_blocking)
     tokio::task::spawn_blocking(move || {
@@ -321,6 +324,7 @@ pub async fn export_video(
             media_scale,
             media_position_x,
             media_position_y,
+            media_rotation,
             true, // prefer_hw
             duration,
             blur,

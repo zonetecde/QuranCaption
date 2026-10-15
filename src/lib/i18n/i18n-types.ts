@@ -5005,6 +5005,10 @@ type RootTranslation = {
 			 */
 			'media-scale': string;
 			/**
+			 * R​o​t​a​t​i​o​n
+			 */
+			'media-rotation': string;
+			/**
 			 * H​o​r​i​z​o​n​t​a​l​ ​P​o​s​i​t​i​o​n
 			 */
 			'media-position-x': string;
@@ -5830,6 +5834,10 @@ type RootTranslation = {
 			 * Z​o​o​m​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​m​e​d​i​a
 			 */
 			'media-scale': string;
+			/**
+			 * R​o​t​a​t​e​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​m​e​d​i​a​ ​i​n​ ​d​e​g​r​e​e​s
+			 */
+			'media-rotation': string;
 			/**
 			 * M​o​v​e​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​m​e​d​i​a​ ​h​o​r​i​z​o​n​t​a​l​l​y​ ​r​e​l​a​t​i​v​e​ ​t​o​ ​t​h​e​ ​c​e​n​t​e​r
 			 */
@@ -17155,6 +17163,10 @@ export type TranslationFunctions = {
 			 */
 			'media-scale': () => LocalizedString;
 			/**
+			 * Rotation
+			 */
+			'media-rotation': () => LocalizedString;
+			/**
 			 * Horizontal Position
 			 */
 			'media-position-x': () => LocalizedString;
@@ -17980,6 +17992,10 @@ export type TranslationFunctions = {
 			 * Zoom the background media
 			 */
 			'media-scale': () => LocalizedString;
+			/**
+			 * Rotate the background media in degrees
+			 */
+			'media-rotation': () => LocalizedString;
 			/**
 			 * Move the background media horizontally relative to the center
 			 */

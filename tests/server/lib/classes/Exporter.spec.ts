@@ -324,6 +324,7 @@ describe('Background media export inputs', () => {
 				styles: [
 					new Style({ id: 'media-fill', value: false }),
 					new Style({ id: 'media-scale', value: 100 }),
+					new Style({ id: 'media-rotation', value: 0 }),
 					new Style({ id: 'media-position-x', value: 0 }),
 					new Style({ id: 'media-position-y', value: 0 })
 				]
@@ -331,6 +332,8 @@ describe('Background media export inputs', () => {
 		]);
 		styles.setStyleForClips([videoClip.id], 'media-fill', true);
 		styles.setStyleForClips([videoClip.id], 'media-scale', 125);
+		styles.setStyleForClips([videoClip.id], 'media-rotation', 90);
+		styles.setStyleForClips([imageClip.id], 'media-rotation', -90);
 		styles.setStyleForClips([imageClip.id], 'media-position-x', -20);
 		styles.setStyleForClips([imageClip.id], 'media-position-y', 35);
 		const assets = new Map([
@@ -350,12 +353,14 @@ describe('Background media export inputs', () => {
 				expect.objectContaining({
 					path: 'background.mp4',
 					media_fill: true,
-					media_scale: 125
+					media_scale: 125,
+					media_rotation: 90
 				}),
 				expect.objectContaining({
 					path: 'still.png',
 					media_position_x: -20,
-					media_position_y: 35
+					media_position_y: 35,
+					media_rotation: -90
 				})
 			]);
 		} finally {

@@ -116,6 +116,10 @@
 		const clipId = currentVideoClip()?.id;
 		const globalStyles = globalState.getVideoStyle.getStylesOfTarget('global');
 		const mediaFill = Boolean(globalStyles.getEffectiveValue('media-fill', clipId));
+		const rotation = Math.min(
+			180,
+			Math.max(-180, Number(globalStyles.getEffectiveValue('media-rotation', clipId) ?? 0))
+		);
 		const scale = Math.min(
 			3,
 			Math.max(1, Number(globalStyles.getEffectiveValue('media-scale', clipId) ?? 100) / 100)
@@ -135,7 +139,10 @@
 				100) /
 			200;
 
-		return `position: absolute; width: ${scale * 100}% !important; height: ${scale * 100}% !important; max-width: none; left: ${-(scale - 1) * positionX * 100}%; top: ${-(scale - 1) * positionY * 100}%; object-fit: ${mediaFill ? 'cover' : 'contain'}; object-position: ${positionX * 100}% ${positionY * 100}%;`;
+		// Le cadrage interne pivote avec le média ; seul le cadre doit déplacer un média pivoté.
+		const objectPosition = rotation === 0 ? `${positionX * 100}% ${positionY * 100}%` : '50% 50%';
+
+		return `position: absolute; width: ${scale * 100}% !important; height: ${scale * 100}% !important; max-width: none; left: ${-(scale - 1) * positionX * 100}%; top: ${-(scale - 1) * positionY * 100}%; object-fit: ${mediaFill ? 'cover' : 'contain'}; object-position: ${objectPosition}; transform: rotate(${rotation}deg);`;
 	});
 
 	// === ÉTATS LOCAUX ===

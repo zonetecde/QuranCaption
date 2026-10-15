@@ -511,10 +511,59 @@ export default class Settings extends SerializableBase {
 		const fileContent = await readTextFile(filePath);
 		const settingsData = JSON.parse(fileContent);
 
-		globalState.settings = Settings.fromJSON(settingsData) as Settings;
-		const settings = globalState.settings;
+		const settings = Settings.fromJSON(settingsData) as Settings;
 		const previousVersion = settings.appVersion;
 		let shouldSave = false;
+
+		// Répare la mise en page avant de l'exposer aux composants et aux migrations.
+		if (
+			!settings.persistentUiState ||
+			typeof settings.persistentUiState !== 'object' ||
+			Array.isArray(settings.persistentUiState)
+		) {
+			settings.persistentUiState = new Settings().persistentUiState;
+			shouldSave = true;
+		}
+
+		const projectEditorLayout = settings.persistentUiState.projectEditorLayout as
+			| Partial<ProjectEditorLayout>
+			| undefined;
+		if (
+			!projectEditorLayout ||
+			typeof projectEditorLayout !== 'object' ||
+			Array.isArray(projectEditorLayout)
+		) {
+			settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
+			shouldSave = true;
+		} else {
+			const usesPreviousDefaults =
+				projectEditorLayout.upperSectionHeight === 68 &&
+				projectEditorLayout.videoEditorPanelWidth === 300 &&
+				projectEditorLayout.stylePanelWidth === 438 &&
+				projectEditorLayout.subtitlesEditorLeftPanelWidth === 225 &&
+				projectEditorLayout.subtitlesEditorRightPanelWidth === 200 &&
+				projectEditorLayout.translationsEditorLeftPanelWidth === 230 &&
+				projectEditorLayout.translationsEditorRightPanelWidth === 330 &&
+				projectEditorLayout.exportPanelWidth === 350;
+
+			if (usesPreviousDefaults) {
+				settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
+				shouldSave = true;
+			} else {
+				for (const key of Object.keys(DEFAULT_PROJECT_EDITOR_LAYOUT) as Array<
+					keyof ProjectEditorLayout
+				>) {
+					if (
+						typeof projectEditorLayout[key] !== 'number' ||
+						!Number.isFinite(projectEditorLayout[key])
+					) {
+						projectEditorLayout[key] = DEFAULT_PROJECT_EDITOR_LAYOUT[key];
+						shouldSave = true;
+					}
+				}
+			}
+		}
+		globalState.settings = settings;
 		if (!settings.shortcuts.TIMELINE.NEXT_MARKED_SEGMENT) {
 			settings.shortcuts.TIMELINE.NEXT_MARKED_SEGMENT = {
 				keys: [],
@@ -589,37 +638,6 @@ export default class Settings extends SerializableBase {
 			shouldSave = true;
 		}
 
-		const projectEditorLayout = settings.persistentUiState.projectEditorLayout as
-			| Partial<ProjectEditorLayout>
-			| undefined;
-		if (!projectEditorLayout || typeof projectEditorLayout !== 'object') {
-			settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
-			shouldSave = true;
-		} else {
-			const usesPreviousDefaults =
-				projectEditorLayout.upperSectionHeight === 68 &&
-				projectEditorLayout.videoEditorPanelWidth === 300 &&
-				projectEditorLayout.stylePanelWidth === 438 &&
-				projectEditorLayout.subtitlesEditorLeftPanelWidth === 225 &&
-				projectEditorLayout.subtitlesEditorRightPanelWidth === 200 &&
-				projectEditorLayout.translationsEditorLeftPanelWidth === 230 &&
-				projectEditorLayout.translationsEditorRightPanelWidth === 330 &&
-				projectEditorLayout.exportPanelWidth === 350;
-
-			if (usesPreviousDefaults) {
-				settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
-				shouldSave = true;
-			} else {
-				for (const key of Object.keys(DEFAULT_PROJECT_EDITOR_LAYOUT) as Array<
-					keyof ProjectEditorLayout
-				>) {
-					if (typeof projectEditorLayout[key] !== 'number') {
-						projectEditorLayout[key] = DEFAULT_PROJECT_EDITOR_LAYOUT[key];
-						shouldSave = true;
-					}
-				}
-			}
-		}
 		if (typeof settings.persistentUiState.showTimelineWheelHints !== 'boolean') {
 			settings.persistentUiState.showTimelineWheelHints = true;
 			shouldSave = true;

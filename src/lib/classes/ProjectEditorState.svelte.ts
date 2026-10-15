@@ -416,6 +416,7 @@ export class TranslationsEditorState extends SerializableBase {
 		error: true,
 		'ai trimmed': true,
 		'automatically trimmed': true,
+		fetched: false,
 		reviewed: true,
 		'completed by default': false
 	});

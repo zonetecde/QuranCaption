@@ -33,6 +33,9 @@
 		if (globalState.getTranslationsState.filters.error === undefined) {
 			globalState.getTranslationsState.filters.error = true;
 		}
+		if (globalState.getTranslationsState.filters.fetched === undefined) {
+			globalState.getTranslationsState.filters.fetched = false;
+		}
 	});
 
 	/**

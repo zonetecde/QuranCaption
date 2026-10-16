@@ -1,10 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::sync::{Arc, Mutex, OnceLock};
-use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use font_kit::file_type::FileType;
@@ -13,11 +11,12 @@ use font_kit::handle::Handle;
 use font_kit::properties::Style;
 use font_kit::source::SystemSource;
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager};
 
 use crate::binaries;
 use crate::path_utils;
 use crate::utils::process::configure_command_no_window;
+use crate::utils::temp_file::unique_temp_path;
 
 use super::diagnostics::{format_ffprobe_exec_failed, map_ffprobe_resolve_error};
 
@@ -474,16 +473,20 @@ fn add_font_source_if_requested(
     };
 
     let source_family = font.family_name();
-    let Some(requested_family) = requested_families
-        .iter()
-        .find(|family| family.as_str() == source_family.as_str())
-    else {
+    let full_name = font.full_name();
+    let postscript_name = font.postscript_name();
+    let Some(requested_family) = requested_families.iter().find(|family| {
+        font_source_matches_requested_family(
+            family,
+            &source_family,
+            &full_name,
+            postscript_name.as_deref(),
+        )
+    }) else {
         return;
     };
 
     let properties = font.properties();
-    let full_name = font.full_name();
-    let postscript_name = font.postscript_name();
     let font_style = match properties.style {
         Style::Normal => "normal",
         Style::Italic => "italic",
@@ -515,6 +518,34 @@ fn add_font_source_if_requested(
         font_weight_range,
         font_style,
     });
+}
+
+/// Vérifie qu'une face appartient bien à la famille demandée sans accepter une variante de largeur.
+fn font_source_matches_requested_family(
+    requested_family: &str,
+    source_family: &str,
+    full_name: &str,
+    postscript_name: Option<&str>,
+) -> bool {
+    let requested = requested_family.to_ascii_lowercase();
+    let source = source_family.to_ascii_lowercase();
+    let full = full_name.to_ascii_lowercase();
+    let postscript = postscript_name.unwrap_or_default().to_ascii_lowercase();
+    let family_matches = source == requested
+        || full == requested
+        || full
+            .strip_prefix(&requested)
+            .is_some_and(|suffix| suffix.starts_with([' ', '-']));
+    if !family_matches {
+        return false;
+    }
+
+    ["narrow", "condensed", "compressed", "expanded", "extended"]
+        .into_iter()
+        .all(|variant| {
+            requested.contains(variant)
+                || (!full.contains(variant) && !postscript.contains(variant))
+        })
 }
 
 fn font_weight_range_for_source(
@@ -816,100 +847,6 @@ pub fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String
     }
 }
 
-/// Detects whether the primary media stream uses a near-constant bitrate.
-///
-/// For video containers, this checks audio stream `a:0` first (subtitle sync issue is audio-driven),
-/// then falls back to video stream `v:0` if no audio packets are available.
-#[tauri::command]
-pub fn is_constant_bitrate(file_path: String) -> Result<bool, String> {
-    let file_path = path_utils::normalize_existing_path(&file_path);
-    let file_path_str = file_path.to_string_lossy().to_string();
-    if !file_path.exists() {
-        return Err(format!("File not found: {}", file_path_str));
-    }
-
-    let ffprobe_path =
-        binaries::resolve_binary_detailed("ffprobe").map_err(map_ffprobe_resolve_error)?;
-
-    fn probe_stream_variation(
-        ffprobe_path: &str,
-        file_path_str: &str,
-        stream_selector: &str,
-    ) -> Result<Option<f64>, String> {
-        let mut cmd = Command::new(ffprobe_path);
-        cmd.args([
-            "-v",
-            "error",
-            "-select_streams",
-            stream_selector,
-            "-show_entries",
-            "packet=size,duration_time",
-            "-of",
-            "csv=p=0",
-            file_path_str,
-        ]);
-        configure_command_no_window(&mut cmd);
-
-        let output = cmd.output().map_err(|e| {
-            format_ffprobe_exec_failed(&format!("Unable to execute ffprobe: {}", e))
-        })?;
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            return Err(format_ffprobe_exec_failed(&stderr));
-        }
-
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let mut bitrates: Vec<f64> = Vec::new();
-
-        for line in stdout.lines() {
-            let mut parts = line.split(',');
-            let size = parts.next().and_then(|v| v.trim().parse::<f64>().ok());
-            let duration = parts.next().and_then(|v| v.trim().parse::<f64>().ok());
-            let (Some(size_bytes), Some(duration_seconds)) = (size, duration) else {
-                continue;
-            };
-            if duration_seconds <= 0.0 {
-                continue;
-            }
-            let bitrate = (size_bytes * 8.0) / duration_seconds;
-            if bitrate.is_finite() && bitrate > 0.0 {
-                bitrates.push(bitrate);
-            }
-        }
-
-        if bitrates.len() < 20 {
-            return Ok(None);
-        }
-
-        let mean = bitrates.iter().sum::<f64>() / bitrates.len() as f64;
-        if mean <= 0.0 {
-            return Ok(None);
-        }
-        let variance = bitrates
-            .iter()
-            .map(|v| {
-                let d = v - mean;
-                d * d
-            })
-            .sum::<f64>()
-            / bitrates.len() as f64;
-        let stddev = variance.sqrt();
-        Ok(Some(stddev / mean))
-    }
-
-    let variation = probe_stream_variation(&ffprobe_path, &file_path_str, "a:0")?.or(
-        probe_stream_variation(&ffprobe_path, &file_path_str, "v:0")?,
-    );
-
-    // If we cannot reliably sample enough packets, avoid false warnings.
-    let Some(relative_stddev) = variation else {
-        return Ok(true);
-    };
-
-    // <= 5% relative stddev is considered "near CBR" for practical subtitle sync guidance.
-    Ok(relative_stddev <= 0.05)
-}
-
 /// Coupe une portion audio sans ré-encodage (copie de flux).
 #[tauri::command]
 pub fn cut_audio(
@@ -954,37 +891,91 @@ pub fn cut_audio(
     }
 }
 
-/// Construit les arguments FFmpeg utilisés pour réduire le bruit d'une source audio.
-fn reduce_audio_noise_args(source_path: &str, output_path: &str) -> Vec<String> {
-    [
-        "-i",
-        source_path,
-        "-map",
-        "0:a:0",
-        "-vn",
-        "-af",
-        "afftdn=nr=12:nf=-50",
-        "-c:a",
-        "pcm_s16le",
-        "-y",
-        output_path,
-    ]
-    .iter()
-    .map(|value| value.to_string())
-    .collect()
+/// Construit les arguments FFmpeg d'un préréglage d'effet audio autorisé.
+fn apply_audio_effect_args(
+    source_path: &str,
+    output_path: &str,
+    effect: &str,
+    primary: f64,
+    secondary: f64,
+    start_ms: Option<u64>,
+    duration_ms: Option<u64>,
+) -> Result<Vec<String>, String> {
+    let filter = match effect {
+        "denoise" if (1.0..=30.0).contains(&primary) && (-80.0..=-20.0).contains(&secondary) => {
+            format!("afftdn=nr={primary}:nf={secondary}")
+        }
+        "clarity" if (40.0..=200.0).contains(&primary) && (0.0..=6.0).contains(&secondary) => {
+            format!("highpass=f={primary},lowpass=f=14000,equalizer=f=3000:t=q:w=1:g={secondary}")
+        }
+        "echo" if (20.0..=300.0).contains(&primary) && (5.0..=40.0).contains(&secondary) => {
+            format!("aecho=0.8:0.7:{primary}:{}", secondary / 100.0)
+        }
+        "reverb" if (15.0..=120.0).contains(&primary) && (5.0..=30.0).contains(&secondary) => {
+            format!(
+                "aecho=0.8:0.75:{primary}|{}:{}|{}",
+                primary * 2.0,
+                secondary / 100.0,
+                secondary / 200.0
+            )
+        }
+        "denoise" | "clarity" | "echo" | "reverb" => {
+            return Err(format!("Invalid parameters for audio effect: {effect}"));
+        }
+        _ => return Err(format!("Unsupported audio effect: {effect}")),
+    };
+
+    let mut args = Vec::new();
+    if let Some(start_ms) = start_ms {
+        args.extend(["-ss".to_string(), (start_ms as f64 / 1000.0).to_string()]);
+    }
+    args.extend(["-i".to_string(), source_path.to_string()]);
+    if let Some(duration_ms) = duration_ms {
+        if duration_ms == 0 {
+            return Err("Audio effect duration must be positive".to_string());
+        }
+        args.extend(["-t".to_string(), (duration_ms as f64 / 1000.0).to_string()]);
+    }
+    args.extend([
+        "-map".to_string(),
+        "0:a:0".to_string(),
+        "-vn".to_string(),
+        "-af".to_string(),
+        filter,
+        "-c:a".to_string(),
+        "pcm_s16le".to_string(),
+        "-y".to_string(),
+        output_path.to_string(),
+    ]);
+    Ok(args)
 }
 
-/// Réduit le bruit d'une source audio avec le filtre FFT intégré à FFmpeg.
-#[tauri::command]
-pub fn reduce_audio_noise(source_path: String, output_path: String) -> Result<(), String> {
-    if !Path::new(&source_path).exists() {
+/// Exécute FFmpeg avec un effet audio validé et une plage facultative.
+fn run_audio_effect(
+    source_path: &str,
+    output_path: &str,
+    effect: &str,
+    primary: f64,
+    secondary: f64,
+    start_ms: Option<u64>,
+    duration_ms: Option<u64>,
+) -> Result<(), String> {
+    if !Path::new(source_path).exists() {
         return Err(format!("Source file not found: {}", source_path));
     }
 
     let ffmpeg_path =
         binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
     let mut cmd = Command::new(&ffmpeg_path);
-    cmd.args(reduce_audio_noise_args(&source_path, &output_path));
+    cmd.args(apply_audio_effect_args(
+        source_path,
+        output_path,
+        effect,
+        primary,
+        secondary,
+        start_ms,
+        duration_ms,
+    )?);
     configure_command_no_window(&mut cmd);
 
     match cmd.output() {
@@ -997,18 +988,51 @@ pub fn reduce_audio_noise(source_path: String, output_path: String) -> Result<()
     }
 }
 
-#[cfg(test)]
-mod noise_reduction_tests {
-    use super::reduce_audio_noise_args;
+/// Applique un effet audio paramétré à la source complète.
+#[tauri::command]
+pub fn apply_audio_effect(
+    source_path: String,
+    output_path: String,
+    effect: String,
+    primary: f64,
+    secondary: f64,
+) -> Result<(), String> {
+    run_audio_effect(
+        &source_path,
+        &output_path,
+        &effect,
+        primary,
+        secondary,
+        None,
+        None,
+    )
+}
 
-    /// Vérifie que la réduction de bruit utilise le filtre disponible dans les binaires de release.
-    #[test]
-    fn uses_afftdn_and_wav_pcm_output() {
-        let args = reduce_audio_noise_args("input.mp3", "output.wav");
-
-        assert!(args.iter().any(|arg| arg == "afftdn=nr=12:nf=-50"));
-        assert!(args.windows(2).any(|pair| pair == ["-c:a", "pcm_s16le"]));
+/// Crée un extrait temporaire paramétré pour la préécoute d'un effet audio.
+#[tauri::command]
+pub fn preview_audio_effect(
+    source_path: String,
+    effect: String,
+    primary: f64,
+    secondary: f64,
+    start_ms: u64,
+    duration_ms: u64,
+) -> Result<String, String> {
+    let output_path = unique_temp_path("qurancaption-audio-effect-preview", "wav")?;
+    let output = output_path.to_string_lossy().to_string();
+    if let Err(error) = run_audio_effect(
+        &source_path,
+        &output,
+        &effect,
+        primary,
+        secondary,
+        Some(start_ms),
+        Some(duration_ms),
+    ) {
+        let _ = fs::remove_file(&output_path);
+        return Err(error);
     }
+    Ok(output)
 }
 
 /// Coupe une portion vidéo sans ré-encodage (copie de flux).
@@ -1107,259 +1131,6 @@ pub fn concat_audio(source_paths: Vec<String>, output_path: String) -> Result<()
             String::from_utf8_lossy(&result.stderr)
         )),
         Err(e) => Err(format!("Unable to execute ffmpeg: {}", e)),
-    }
-}
-
-/// Emet la progression d'une conversion CBR vers le frontend.
-///
-/// @param app_handle Gestionnaire Tauri utilise pour publier l'evenement.
-/// @param conversion_request_id Identifiant de correlation de la conversion.
-/// @param progress Pourcentage de progression entre 0 et 100.
-/// @param current_time_s Temps traite par ffmpeg en secondes.
-/// @param total_time_s Duree totale estimee en secondes.
-/// @param status Etat textuel de la conversion.
-fn emit_cbr_conversion_progress(
-    app_handle: &AppHandle,
-    conversion_request_id: &str,
-    progress: f64,
-    current_time_s: f64,
-    total_time_s: f64,
-    status: &str,
-) {
-    let _ = app_handle.emit(
-        "cbr-conversion-progress",
-        serde_json::json!({
-            "conversionRequestId": conversion_request_id,
-            "progress": progress,
-            "currentTime": current_time_s,
-            "totalTime": total_time_s,
-            "status": status
-        }),
-    );
-}
-
-/// Extrait le temps courant depuis la sortie `-progress` de ffmpeg.
-///
-/// @param line Ligne brute emise par ffmpeg.
-/// @returns Le temps courant en secondes, ou `None` si la ligne ne contient pas de temps.
-fn parse_ffmpeg_progress_time_s(line: &str) -> Option<f64> {
-    if let Some(value) = line.strip_prefix("out_time_ms=") {
-        return value.trim().parse::<f64>().ok().map(|ms| ms / 1_000_000.0);
-    }
-    if let Some(value) = line.strip_prefix("out_time_us=") {
-        return value.trim().parse::<f64>().ok().map(|us| us / 1_000_000.0);
-    }
-    if let Some(value) = line.strip_prefix("out_time=") {
-        let parts: Vec<&str> = value.trim().split(':').collect();
-        if parts.len() != 3 {
-            return None;
-        }
-
-        let hours = parts[0].parse::<f64>().ok()?;
-        let minutes = parts[1].parse::<f64>().ok()?;
-        let seconds = parts[2].parse::<f64>().ok()?;
-        return Some(hours * 3600.0 + minutes * 60.0 + seconds);
-    }
-    None
-}
-
-/// Lance une conversion CBR asynchrone sans bloquer le thread principal.
-///
-/// @param file_path Chemin du fichier a convertir.
-/// @param conversion_request_id Identifiant optionnel pour relayer la progression.
-/// @param app_handle Gestionnaire Tauri utilise pour emettre les evenements.
-/// @returns Resultat de la conversion.
-#[tauri::command]
-pub async fn convert_audio_to_cbr(
-    file_path: String,
-    conversion_request_id: Option<String>,
-    app_handle: AppHandle,
-) -> Result<(), String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        convert_audio_to_cbr_blocking(file_path, conversion_request_id, app_handle)
-    })
-    .await
-    .map_err(|e| format!("Unable to join CBR conversion task: {}", e))?
-}
-
-/// Execute la conversion CBR bloquante hors du thread principal.
-///
-/// @param file_path Chemin du fichier a convertir.
-/// @param conversion_request_id Identifiant optionnel pour relayer la progression.
-/// @param app_handle Gestionnaire Tauri utilise pour emettre les evenements.
-/// @returns Resultat de la conversion.
-fn convert_audio_to_cbr_blocking(
-    file_path: String,
-    conversion_request_id: Option<String>,
-    app_handle: AppHandle,
-) -> Result<(), String> {
-    let file_path = path_utils::normalize_existing_path(&file_path);
-    let file_path_str = file_path.to_string_lossy().to_string();
-    if !file_path.exists() {
-        return Err(format!("File not found: {}", file_path_str));
-    }
-
-    let ffmpeg_path =
-        binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
-    let extension = file_path
-        .extension()
-        .and_then(|ext| ext.to_str())
-        .unwrap_or("mp4");
-    let file_stem = file_path
-        .file_stem()
-        .and_then(|stem| stem.to_str())
-        .unwrap_or("temp");
-    let temp_path = if let Some(parent_dir) = file_path.parent() {
-        parent_dir.join(format!("{}_temp.{}", file_stem, extension))
-    } else {
-        PathBuf::from(format!("{}_temp.{}", file_stem, extension))
-    };
-    let conversion_request_id = conversion_request_id.unwrap_or_else(|| {
-        format!(
-            "cbr-{}",
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .map(|duration| duration.as_millis())
-                .unwrap_or(0)
-        )
-    });
-    let total_duration_s = (get_duration(&file_path_str).unwrap_or(0).max(0) as f64) / 1000.0;
-    emit_cbr_conversion_progress(
-        &app_handle,
-        &conversion_request_id,
-        0.0,
-        0.0,
-        total_duration_s,
-        "converting",
-    );
-
-    // Paramètres ffmpeg distincts pour flux audio pur vs conteneur vidéo.
-    let mut cmd = Command::new(&ffmpeg_path);
-    let is_audio_only = matches!(
-        extension.to_lowercase().as_str(),
-        "mp3" | "wav" | "flac" | "aac" | "ogg" | "m4a"
-    );
-    if is_audio_only {
-        cmd.args([
-            "-nostdin",
-            "-hide_banner",
-            "-i",
-            &file_path_str,
-            "-codec:a",
-            "libmp3lame",
-            "-b:a",
-            "192k",
-            "-ar",
-            "44100",
-            "-ac",
-            "2",
-            "-f",
-            "mp3",
-            "-progress",
-            "pipe:1",
-            "-y",
-            temp_path.to_string_lossy().as_ref(),
-        ]);
-    } else {
-        cmd.args([
-            "-nostdin",
-            "-hide_banner",
-            "-i",
-            &file_path_str,
-            "-b:v",
-            "1200k",
-            "-minrate",
-            "1200k",
-            "-maxrate",
-            "1200k",
-            "-bufsize",
-            "1200k",
-            "-b:a",
-            "64k",
-            "-vcodec",
-            "libx264",
-            "-acodec",
-            "aac",
-            "-strict",
-            "-2",
-            "-ac",
-            "2",
-            "-ar",
-            "44100",
-            "-progress",
-            "pipe:1",
-            "-y",
-            temp_path.to_string_lossy().as_ref(),
-        ]);
-    }
-    cmd.stdout(Stdio::piped());
-    cmd.stderr(Stdio::piped());
-    configure_command_no_window(&mut cmd);
-
-    let mut child = cmd
-        .spawn()
-        .map_err(|e| format!("Unable to execute ffmpeg: {}", e))?;
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| "Failed to capture ffmpeg progress".to_string())?;
-    let stderr = child
-        .stderr
-        .take()
-        .ok_or_else(|| "Failed to capture ffmpeg stderr".to_string())?;
-    let stderr_handle = thread::spawn(move || {
-        let reader = BufReader::new(stderr);
-        reader
-            .lines()
-            .map_while(Result::ok)
-            .collect::<Vec<String>>()
-            .join("\n")
-    });
-
-    let reader = BufReader::new(stdout);
-    for line in reader.lines().map_while(Result::ok) {
-        if let Some(current_time_s) = parse_ffmpeg_progress_time_s(&line) {
-            let progress = if total_duration_s > 0.0 {
-                (current_time_s / total_duration_s * 100.0).clamp(0.0, 99.5)
-            } else {
-                0.0
-            };
-            emit_cbr_conversion_progress(
-                &app_handle,
-                &conversion_request_id,
-                progress,
-                current_time_s,
-                total_duration_s,
-                "converting",
-            );
-        }
-    }
-
-    let status = child
-        .wait()
-        .map_err(|e| format!("Unable to wait for ffmpeg: {}", e))?;
-    let stderr = stderr_handle.join().unwrap_or_default();
-
-    if status.success() {
-        if let Err(e) = std::fs::remove_file(&file_path) {
-            let _ = std::fs::remove_file(&temp_path);
-            return Err(format!("Failed to remove original file: {}", e));
-        }
-        if let Err(e) = std::fs::rename(&temp_path, &file_path) {
-            return Err(format!("Failed to replace original file: {}", e));
-        }
-        emit_cbr_conversion_progress(
-            &app_handle,
-            &conversion_request_id,
-            100.0,
-            total_duration_s,
-            total_duration_s,
-            "finished",
-        );
-        Ok(())
-    } else {
-        let _ = std::fs::remove_file(&temp_path);
-        Err(format!("ffmpeg error: {}", stderr))
     }
 }
 
@@ -1526,8 +1297,7 @@ fn probe_audio_for_retime(file_path_str: &str) -> (String, String, u32, u32, u32
 /// - **Repli (ré-encodage)** : sinon, on ré-encode l'audio avec `asetpts=N/SR/TB`
 ///   en PRÉSERVANT le débit source (pas de gonflement).
 ///
-/// Volontairement distinct de `convert_audio_to_cbr` (qui ne touche pas aux
-/// timestamps). Remplacement sur place (temp -> rename), comme `convert_audio_to_cbr`.
+/// Remplacement sur place (temp -> rename), sans ré-encodage vidéo.
 #[tauri::command]
 pub fn normalize_audio_timestamps(file_path: String) -> Result<(), String> {
     let file_path = path_utils::normalize_existing_path(&file_path);
@@ -1752,5 +1522,30 @@ mod directory_size_tests {
 
         assert_eq!(directory_size(&test_root).unwrap(), 8);
         fs::remove_dir_all(test_root).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod system_font_source_tests {
+    use super::*;
+
+    /// Vérifie qu'Arial et Arial Narrow restent deux familles distinctes pendant l'export.
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn distinguishes_arial_from_arial_narrow() {
+        let sources = get_system_font_sources(vec!["Arial".to_string()]).unwrap();
+        let narrow_sources = get_system_font_sources(vec!["Arial Narrow".to_string()]).unwrap();
+
+        assert!(!sources.is_empty());
+        assert!(
+            sources
+                .iter()
+                .all(|source| !source.full_name.to_ascii_lowercase().contains("narrow")),
+            "Resolved Arial sources: {sources:#?}"
+        );
+        assert!(!narrow_sources.is_empty());
+        assert!(narrow_sources
+            .iter()
+            .all(|source| source.full_name.to_ascii_lowercase().contains("narrow")));
     }
 }

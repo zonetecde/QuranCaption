@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Project, ProjectContent, ProjectDetail, Timeline } from '$lib/classes';
+import {
+	Category,
+	Style,
+	StylesData,
+	VideoStyle,
+	Project,
+	ProjectContent,
+	ProjectDetail,
+	Timeline
+} from '$lib/classes';
 import { SubtitleClip } from '$lib/classes/Clip.svelte';
 import { AssetTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import { TrackType } from '$lib/classes/enums';
@@ -86,6 +95,69 @@ describe('Project transcription application and sessions', () => {
 		mocks.saveSettings.mockResolvedValue(undefined);
 		vi.mocked(cleanupAITranscript).mockImplementation(async (result) => reportFor(result));
 		ProjectHistoryManager.resetForCurrentProject();
+	});
+
+	it('keeps the selected panel and media transforms when importing subtitle presets, with undo', async () => {
+		const project = globalState.currentProject!;
+		const videoStyle = new VideoStyle();
+		const original = new StylesData('global', [
+			new Category({
+				id: 'general',
+				styles: [
+					new Style({ id: 'media-rotation', value: 25 }),
+					new Style({ id: 'media-scale', value: 140 }),
+					new Style({ id: 'video-clip-transition', value: 'crossfade' }),
+					new Style({ id: 'overlay-color', value: '#000000' })
+				]
+			})
+		]);
+		original.overrides[55] = { 'media-rotation': 35 };
+		original.overrideKeyframes[55] = { 'media-position-x': [{ time: 1000, value: 10 }] };
+		videoStyle.styles = [original];
+		project.content.videoStyle = videoStyle;
+		globalState.getStylesState.currentPanel = 'appearance';
+		ProjectHistoryManager.resetForCurrentProject();
+		vi.spyOn(videoStyle, 'ensureStylesSchemaUpToDate').mockImplementation(async () => {
+			globalState.getStylesState.currentPanel = 'video';
+			return true;
+		});
+		const imported = new StylesData('global', [
+			new Category({
+				id: 'general',
+				styles: [
+					new Style({ id: 'media-rotation', value: -45 }),
+					new Style({ id: 'media-scale', value: 100 }),
+					new Style({ id: 'video-clip-transition', value: 'none' }),
+					new Style({ id: 'overlay-color', value: '#ffffff' })
+				]
+			})
+		]);
+		imported.overrides[55] = { 'media-rotation': -80 };
+		await videoStyle.importStyles({ videoStyle: { styles: [imported.toJSON()] }, customClips: [] });
+		const applied = videoStyle.getStylesOfTarget('global');
+		expect(globalState.getStylesState.currentPanel).toBe('appearance');
+		expect(applied.getEffectiveValue('media-rotation', 55)).toBe(35);
+		expect(applied.getEffectiveValue('media-scale')).toBe(140);
+		expect(applied.getEffectiveValue('video-clip-transition')).toBe('crossfade');
+		expect(applied.overrideKeyframes[55]['media-position-x']).toEqual([{ time: 1000, value: 10 }]);
+		expect(applied.getEffectiveValue('overlay-color')).toBe('#ffffff');
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(
+			globalState.getVideoStyle.getStylesOfTarget('global').getEffectiveValue('overlay-color')
+		).toBe('#000000');
+	});
+
+	it('closes subtitle editing when deleting the edited transcript clip and supports undo', () => {
+		const clip = new SubtitleClip(0, 1000, 'Lecture text', 'Speaker');
+		globalState.getSubtitleTrack.clips = [clip];
+		globalState.getSubtitlesEditorState.editSubtitle = clip;
+		globalState.getSubtitlesEditorState.pendingSplitEditNextId = 42;
+		ProjectHistoryManager.resetForCurrentProject();
+		globalState.getSubtitleTrack.removeClip(clip.id);
+		expect(globalState.getSubtitlesEditorState.editSubtitle).toBeNull();
+		expect(globalState.getSubtitlesEditorState.pendingSplitEditNextId).toBeNull();
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(globalState.getSubtitleTrack.clips[0].id).toBe(clip.id);
 	});
 
 	it('preserves edited clip identity, translations, images and inline styles during cleanup', () => {

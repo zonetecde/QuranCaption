@@ -119,30 +119,41 @@
 	});
 
 	let backgroundMediaStyle = $derived.by(() => {
-		const mediaFill = Boolean(globalState.getStyleValue('global', 'media-fill'));
+		const clipId = currentVideoClip()?.id;
+		const globalStyles = globalState.getVideoStyle.getStylesOfTarget('global');
+		const mediaFill = Boolean(globalStyles.getEffectiveValue('media-fill', clipId));
+		const rotation = Math.min(
+			180,
+			Math.max(-180, Number(globalStyles.getEffectiveValue('media-rotation', clipId) ?? 0))
+		);
 		const scale = Math.min(
 			3,
-			Math.max(1, Number(globalState.getStyleValue('global', 'media-scale') ?? 100) / 100)
+			Math.max(1, Number(globalStyles.getEffectiveValue('media-scale', clipId) ?? 100) / 100)
 		);
 		const positionX =
 			(Math.min(
 				100,
-				Math.max(-100, Number(globalState.getStyleValue('global', 'media-position-x') ?? 0))
+				Math.max(-100, Number(globalStyles.getEffectiveValue('media-position-x', clipId) ?? 0))
 			) +
 				100) /
 			200;
 		const positionY =
 			(Math.min(
 				100,
-				Math.max(-100, Number(globalState.getStyleValue('global', 'media-position-y') ?? 0))
+				Math.max(-100, Number(globalStyles.getEffectiveValue('media-position-y', clipId) ?? 0))
 			) +
 				100) /
 			200;
 
-		return `position: absolute; width: ${scale * 100}% !important; height: ${scale * 100}% !important; max-width: none; left: ${-(scale - 1) * positionX * 100}%; top: ${-(scale - 1) * positionY * 100}%; object-fit: ${mediaFill ? 'cover' : 'contain'}; object-position: ${positionX * 100}% ${positionY * 100}%;`;
+		// Le cadrage interne pivote avec le média ; seul le cadre doit déplacer un média pivoté.
+		const objectPosition = rotation === 0 ? `${positionX * 100}% ${positionY * 100}%` : '50% 50%';
+
+		return `position: absolute; width: ${scale * 100}% !important; height: ${scale * 100}% !important; max-width: none; left: ${-(scale - 1) * positionX * 100}%; top: ${-(scale - 1) * positionY * 100}%; object-fit: ${mediaFill ? 'cover' : 'contain'}; object-position: ${objectPosition}; transform: rotate(${rotation}deg);`;
 	});
 
 	// === ÉTATS LOCAUX ===
+	let fullscreenControlsVisible = $state(true);
+	let fullscreenControlsTimer: ReturnType<typeof setTimeout> | undefined;
 	let videoElement = $state<HTMLVideoElement | null>(null); // Référence à l'élément <video> HTML
 	type VideoClipTransitionMode = 'none' | 'fade-through-black' | 'crossfade';
 
@@ -1116,6 +1127,11 @@
 		if (isPlaying) {
 			pause();
 		} else {
+			const end = globalState.currentProject?.content.timeline.getLongestTrackDuration().ms ?? 0;
+			if (end > 0 && getTimelineSettings().cursorPosition >= end) {
+				getTimelineSettings().cursorPosition = 1;
+				getTimelineSettings().movePreviewTo = 1;
+			}
 			play(true);
 		}
 	}
@@ -1636,6 +1652,25 @@
 		getTimelineSettings().movePreviewTo = getTimelineSettings().cursorPosition;
 	}
 
+	/**
+	 * Affiche les contrôles plein écran puis les masque après deux secondes d'inactivité.
+	 * @returns {void}
+	 */
+	function revealFullscreenControls(): void {
+		if (!globalState.getVideoPreviewState.isFullscreen) return;
+		fullscreenControlsVisible = true;
+		clearTimeout(fullscreenControlsTimer);
+		fullscreenControlsTimer = setTimeout(() => {
+			fullscreenControlsVisible = false;
+		}, 2000);
+	}
+
+	$effect(() => {
+		if (!globalState.getVideoPreviewState.isFullscreen) return;
+		revealFullscreenControls();
+		return () => clearTimeout(fullscreenControlsTimer);
+	});
+
 	onMount(() => {
 		// Si Minbar Studio a été quitté en fullscreen, on enlève le fullscreen.
 		if (globalState.getVideoPreviewState.isFullscreen) {
@@ -1650,7 +1685,10 @@
 </script>
 
 <svelte:window
+	onpointermove={revealFullscreenControls}
+	onpointerdown={revealFullscreenControls}
 	onkeydown={(e) => {
+		revealFullscreenControls();
 		if (e.key === 'Escape' && globalState.getVideoPreviewState.isFullscreen) {
 			globalState.getVideoPreviewState.toggleFullScreen();
 		}
@@ -1761,11 +1799,34 @@
 	</div>
 </section>
 
-{#if showControls}
+{#if globalState.getVideoPreviewState.isFullscreen && !isExportCapturePreview}
+	<div
+		class="fullscreen-controls"
+		class:controls-hidden={!fullscreenControlsVisible}
+		inert={!fullscreenControlsVisible}
+		onfocusin={revealFullscreenControls}
+	>
+		<VideoPreviewControlsBar {togglePlayPause} />
+	</div>
+{:else if showControls}
 	<VideoPreviewControlsBar {togglePlayPause} />
 {/if}
 
 <style>
+	.fullscreen-controls {
+		position: fixed;
+		inset: auto 0 0;
+		z-index: 10000;
+		padding: 1.5rem;
+		background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+		transition: opacity 200ms ease;
+	}
+
+	.controls-hidden {
+		opacity: 0;
+		pointer-events: none;
+	}
+
 	/* Styles pour assurer un dimensionnement correct */
 	#preview-container {
 		height: 100%;

@@ -4,6 +4,7 @@ import {
 	AssetClip,
 	Clip,
 	ClipWithTranslation,
+	isClipPendingVerification,
 	CustomClip,
 	CustomImageClip,
 	CustomTextClip,
@@ -1074,6 +1075,13 @@ export class SubtitleTrack extends Track {
 			}
 
 			super.removeClip(id, makeNextClipStartAtThisClipStartTime);
+			if (clipToRemove && globalState.currentProject) {
+				const editorState = globalState.getSubtitlesEditorState;
+				if (editorState.editSubtitle?.id === id) {
+					editorState.editSubtitle = null;
+					editorState.pendingSplitEditNextId = null;
+				}
+			}
 		} finally {
 			ProjectHistoryManager.commit();
 		}
@@ -1557,6 +1565,42 @@ export class SubtitleTrack extends Track {
 		} finally {
 			ProjectHistoryManager.commit();
 		}
+	}
+
+	/**
+	 * Retourne le premier sous-titre marqué strictement après le curseur.
+	 * @param {number} cursorPosition Position courante du curseur en millisecondes.
+	 * @returns {SubtitleClip | PredefinedSubtitleClip | null} Prochain sous-titre marqué.
+	 */
+	getNextMarkedClip(cursorPosition: number): SubtitleClip | PredefinedSubtitleClip | null {
+		return (
+			this.clips
+				.filter(
+					(clip): clip is SubtitleClip | PredefinedSubtitleClip =>
+						(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
+						clip.startTime > cursorPosition &&
+						isClipPendingVerification(clip)
+				)
+				.sort((first, second) => first.startTime - second.startTime)[0] ?? null
+		);
+	}
+
+	/**
+	 * Retourne le premier sous-titre marqué strictement avant le curseur.
+	 * @param {number} cursorPosition Position courante du curseur en millisecondes.
+	 * @returns {SubtitleClip | PredefinedSubtitleClip | null} Sous-titre marqué précédent.
+	 */
+	getPreviousMarkedClip(cursorPosition: number): SubtitleClip | PredefinedSubtitleClip | null {
+		return (
+			this.clips
+				.filter(
+					(clip): clip is SubtitleClip | PredefinedSubtitleClip =>
+						(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
+						clip.startTime < cursorPosition &&
+						isClipPendingVerification(clip)
+				)
+				.sort((first, second) => second.startTime - first.startTime)[0] ?? null
+		);
 	}
 
 	/**

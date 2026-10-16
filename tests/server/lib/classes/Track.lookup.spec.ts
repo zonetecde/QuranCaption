@@ -42,6 +42,20 @@ function createSubtitle(startTime: number, endTime: number, verse: number): Subt
 }
 
 describe('Track lookup helpers', () => {
+	it('navigates marked transcript clips in time order and skips verified clips and silence', () => {
+		const first = createSubtitle(0, 999, 1);
+		const verified = createSubtitle(1000, 1999, 2);
+		const last = createSubtitle(3000, 3999, 3);
+		first.needsReview = true;
+		last.needsCoverageReview = true;
+		const track = new SubtitleTrack();
+		track.clips = [last, new SilenceClip(2000, 2999), verified, first];
+		expect(track.getNextMarkedClip(0)).toBe(last);
+		expect(track.getPreviousMarkedClip(3000)).toBe(first);
+		expect(track.getNextMarkedClip(4000)).toBeNull();
+		expect(track.getPreviousMarkedClip(0)).toBeNull();
+	});
+
 	it('preserves Quran markers when splitting aligned transcript text', async () => {
 		expect(await splitTranscriptTextAtWordBoundary('{{2:153:2-4}}', 1, 3)).toEqual([
 			'{{2:153:2-2}}',

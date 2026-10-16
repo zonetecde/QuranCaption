@@ -17,7 +17,7 @@ type SubtitleRectEntry = { target: string; rect: DOMRect };
 
 /**
  * Détecte le target de style (arabic, nom d'édition de traduction...)
- * à partir des classes CSS d'un élément de sous-titre.
+ * à partir de l'attribut data-subtitle-target ou des classes CSS d'un élément.
  *
  * @param element - L'élément HTML du sous-titre.
  * @param translationKeys - Liste des clés d'édition de traduction connues.
@@ -34,6 +34,9 @@ export function getTargetFromElement(
 		return 'arabic';
 	}
 
+	const target = element.dataset.subtitleTarget;
+	if (target && translationKeys.includes(target)) return target;
+
 	// Cherche si l'élément correspond à une édition de traduction
 	for (const translationKey of translationKeys) {
 		if (classList.includes(translationKey)) {
@@ -42,6 +45,30 @@ export function getTargetFromElement(
 	}
 
 	return null;
+}
+
+/**
+ * Retourne les boîtes à signaler lorsque le sous-titre déplacé entre en collision.
+ * @param {HTMLElement} container Conteneur des sous-titres visibles.
+ * @param {HTMLElement} draggedElement Sous-titre actuellement déplacé.
+ * @param {number} spacing Espacement minimal configuré.
+ * @returns {HTMLElement[]} Sous-titre déplacé suivi des sous-titres en collision.
+ */
+export function getSubtitleCollisionElements(
+	container: HTMLElement,
+	draggedElement: HTMLElement,
+	spacing: number
+): HTMLElement[] {
+	const draggedRect = draggedElement.getBoundingClientRect();
+	const collidingElements = Array.from(container.querySelectorAll<HTMLElement>('.subtitle')).filter(
+		(element) => {
+			if (element === draggedElement) return false;
+			const rect = element.getBoundingClientRect();
+			return rect.width > 0 && rect.height > 0 && areRectsColliding(draggedRect, rect, spacing);
+		}
+	);
+
+	return collidingElements.length > 0 ? [draggedElement, ...collidingElements] : [];
 }
 
 /**

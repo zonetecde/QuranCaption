@@ -46,14 +46,18 @@
 		}
 	];
 
+	let modalBackdropCopy = $derived(
+		$LL.settings as unknown as {
+			dimmedModalBackdrop: () => string;
+			dimmedModalBackdropDescription: () => string;
+		}
+	);
 	let supportModalTab = $state<'review' | 'feedback'>('review');
 	let supportModalSource = $state<'support_prompt' | 'settings_support' | 'donation_post_export'>(
 		'settings_support'
 	);
 	let isSupportModalOpen = $state(false);
-	let defaultValuesCopy = $derived(
-		$LL.settings as unknown as { defaultValues: () => string }
-	);
+	let defaultValuesCopy = $derived($LL.settings as unknown as { defaultValues: () => string });
 
 	/**
 	 * Copie une adresse de portefeuille dans le presse-papiers.
@@ -235,6 +239,27 @@
 							</div>
 						{/if}
 					</div>
+
+					{#if globalState.settings}
+						<div class="rounded-xl border border-color bg-primary p-4">
+							<label class="flex items-center justify-between gap-4">
+								<div>
+									<p class="text-sm font-medium text-primary">
+										{modalBackdropCopy.dimmedModalBackdrop()}
+									</p>
+									<p class="mt-1 text-xs text-thirdly">
+										{modalBackdropCopy.dimmedModalBackdropDescription()}
+									</p>
+								</div>
+								<input
+									type="checkbox"
+									class="h-5 w-5 accent-accent-primary"
+									bind:checked={globalState.settings.persistentUiState.dimmedModalBackdrop}
+									onchange={() => Settings.save()}
+								/>
+							</label>
+						</div>
+					{/if}
 
 					<div class="space-y-6">
 						<div class="space-y-3">

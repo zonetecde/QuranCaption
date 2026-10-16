@@ -2,7 +2,12 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onDestroy, onMount, untrack } from 'svelte';
 	import { slide } from 'svelte/transition';
-	import type { Style, StyleName, StyleOverrideValue } from '$lib/classes/VideoStyle.svelte';
+	import {
+		isGlobalClipStyleId,
+		type Style,
+		type StyleName,
+		type StyleOverrideValue
+	} from '$lib/classes/VideoStyle.svelte';
 	import type { CustomClip } from '$lib/classes/Clip.svelte';
 	import { default as StyleComponent } from '$lib/components/projectEditor/tabs/styleEditor/Style.svelte';
 	import toast from 'svelte-5-french-toast';
@@ -32,6 +37,7 @@
 		'video-dimension',
 		'media-fill',
 		'media-scale',
+		'media-rotation',
 		'media-position-x',
 		'media-position-y',
 		'fade-duration',
@@ -149,35 +155,14 @@
 	});
 
 	// Gestion sélection de clips
-	const overlayGlobalStyleIds = new Set<string>([
-		'overlay-enable',
-		'overlay-color',
-		'overlay-opacity',
-		'background-overlay-mode',
-		'background-overlay-fade-intensity',
-		'background-overlay-fade-coverage',
-		'background-overlay-fade-softness',
-		'background-overlay-fade-curve',
-		'background-overlay-fade-invert',
-		'background-overlay-fade-position-x',
-		'background-overlay-fade-position-y',
-		'background-overlay-fade-width',
-		'background-overlay-fade-height',
-		'overlay-custom-css',
-		'overlay-blur'
-	]);
-
-	function isGlobalOverlayStyle(): boolean {
-		return target === 'global' && overlayGlobalStyleIds.has(style.id);
-	}
 
 	const selectedClipIds = $derived(() => {
 		// Pour les targets de sous-titres/traductions: sélection de sous-titres.
 		if (target && target !== 'global') {
 			return globalState.getStylesState.selectedSubtitles.map((s) => s.id);
 		}
-		// Pour global.overlay.*: sélection de clips vidéo.
-		if (isGlobalOverlayStyle()) {
+		// Les réglages média compatibles ciblent la sélection de clips vidéo.
+		if (target === 'global' && isGlobalClipStyleId(style.id as StyleName)) {
 			return globalState.getStylesState.selectedVideos.map((clip) => clip.id);
 		}
 		// Les autres styles globaux restent strictement globaux.

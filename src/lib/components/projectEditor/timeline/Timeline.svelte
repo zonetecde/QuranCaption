@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { globalState } from '$lib/runes/main.svelte';
+	import { globalState, type QuickTimelineEditorMode } from '$lib/runes/main.svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import TrackComponent from './track/Track.svelte';
 	import {
@@ -58,6 +58,12 @@
 
 	const TIMELINE_LEFT_HEADER_WIDTH_PX = 180;
 	const OVERSCAN_MS = 120000;
+	const quickEditorShortcutModes = {
+		EDIT_SUBTITLE_AT_CURSOR: 'subtitle',
+		EDIT_TRANSLATION_AT_CURSOR: 'translation',
+		EDIT_WBW_TIMESTAMP_AT_CURSOR: 'wbwTimestamp',
+		EDIT_WBW_STYLE_AT_CURSOR: 'wbw'
+	} as const satisfies Record<string, QuickTimelineEditorMode>;
 
 	let timelineDiv: HTMLDivElement | null = null;
 	let timelineTracksDiv: HTMLDivElement | null = null;
@@ -91,6 +97,7 @@
 	let removeShortcutRegistered = false;
 	let splitShortcutRegistered = false;
 	let quickSubtitleEditShortcutRegistered = false;
+	let quickEditorShortcutsRegistered = false;
 	let setEndShortcutRegistered = false;
 	let setStartShortcutRegistered = false;
 	let frameBackwardShortcutRegistered = false;
@@ -98,6 +105,8 @@
 	let regenerateWbwShortcutRegistered = false;
 	let removeSubtitleAtCursorShortcutRegistered = false;
 	let quickMergeShortcutRegistered = false;
+	let nextMarkedSegmentShortcutRegistered = false;
+	let previousMarkedSegmentShortcutRegistered = false;
 	let lastVerifiedClipId: number | null = null;
 	let quickEditLongPressTimer: ReturnType<typeof setTimeout> | null = null;
 	let didTriggerQuickLongPressAction = false;
@@ -387,6 +396,58 @@
 		);
 
 		quickSubtitleEditShortcutRegistered = false;
+	}
+
+	/**
+	 * Ouvre le mode d'édition rapide demandé pour le sous-titre sous le curseur.
+	 * @param {QuickTimelineEditorMode} mode Mode d'édition rapide à ouvrir.
+	 * @returns {void}
+	 */
+	function openQuickEditorForSubtitleAtCursor(mode: QuickTimelineEditorMode): void {
+		const cursorPosition = globalState.getTimelineState.cursorPosition;
+		const clip = globalState.getSubtitleTrack.getCurrentClip(cursorPosition);
+		if (!(clip instanceof SubtitleClip)) return;
+
+		if (mode === 'translation') {
+			globalState.getTranslationsState.isTranslationWbwMappingMode = false;
+			globalState.getTranslationsState.isInlineStyleMode = false;
+		}
+		globalState.openQuickTimelineEditor(clip.id, mode);
+	}
+
+	/**
+	 * Enregistre les quatre raccourcis de l'éditeur rapide au curseur.
+	 * @returns {void}
+	 */
+	function registerQuickEditorShortcuts(): void {
+		if (!globalState.settings || quickEditorShortcutsRegistered) return;
+
+		for (const [action, mode] of Object.entries(quickEditorShortcutModes)) {
+			ShortcutService.registerShortcut({
+				key: globalState.settings.shortcuts.SUBTITLES_EDITOR[
+					action as keyof typeof quickEditorShortcutModes
+				],
+				onKeyDown: () => openQuickEditorForSubtitleAtCursor(mode)
+			});
+		}
+		quickEditorShortcutsRegistered = true;
+	}
+
+	/**
+	 * Supprime les quatre raccourcis de l'éditeur rapide au curseur.
+	 * @returns {void}
+	 */
+	function unregisterQuickEditorShortcuts(): void {
+		if (!globalState.settings || !quickEditorShortcutsRegistered) return;
+
+		for (const action of Object.keys(quickEditorShortcutModes)) {
+			ShortcutService.unregisterShortcut(
+				globalState.settings.shortcuts.SUBTITLES_EDITOR[
+					action as keyof typeof quickEditorShortcutModes
+				]
+			);
+		}
+		quickEditorShortcutsRegistered = false;
 	}
 
 	/**
@@ -709,6 +770,82 @@
 		frameForwardShortcutRegistered = false;
 	}
 
+	/**
+	 * Enregistre le raccourci vers le prochain segment marqué.
+	 * @returns {void}
+	 */
+	/**
+	 * Déplace le curseur vers le premier segment marqué situé à sa droite.
+	 * @returns {void}
+	 */
+	function handleNextMarkedSegment(): void {
+		const nextClip = globalState.getSubtitleTrack.getNextMarkedClip(timelineState().cursorPosition);
+		if (!nextClip) return;
+
+		timelineState().cursorPosition = nextClip.startTime;
+		timelineState().movePreviewTo = nextClip.startTime;
+		globalState.getVideoPreviewState.scrollTimelineToCursor();
+	}
+
+	/**
+	 * Déplace le curseur vers le premier segment marqué situé à sa gauche.
+	 * @returns {void}
+	 */
+	function handlePreviousMarkedSegment(): void {
+		const previousClip = globalState.getSubtitleTrack.getPreviousMarkedClip(
+			timelineState().cursorPosition
+		);
+		if (!previousClip) return;
+
+		timelineState().cursorPosition = previousClip.startTime;
+		timelineState().movePreviewTo = previousClip.startTime;
+		globalState.getVideoPreviewState.scrollTimelineToCursor();
+	}
+
+	function registerNextMarkedSegmentShortcut(): void {
+		if (!globalState.settings || nextMarkedSegmentShortcutRegistered) return;
+		ShortcutService.registerShortcut({
+			key: globalState.settings.shortcuts.TIMELINE.NEXT_MARKED_SEGMENT,
+			onKeyDown: handleNextMarkedSegment
+		});
+		nextMarkedSegmentShortcutRegistered = true;
+	}
+
+	/**
+	 * Supprime le raccourci vers le prochain segment marqué.
+	 * @returns {void}
+	 */
+	function unregisterNextMarkedSegmentShortcut(): void {
+		if (!globalState.settings || !nextMarkedSegmentShortcutRegistered) return;
+		ShortcutService.unregisterShortcut(globalState.settings.shortcuts.TIMELINE.NEXT_MARKED_SEGMENT);
+		nextMarkedSegmentShortcutRegistered = false;
+	}
+
+	/**
+	 * Enregistre le raccourci vers le segment marqué précédent.
+	 * @returns {void}
+	 */
+	function registerPreviousMarkedSegmentShortcut(): void {
+		if (!globalState.settings || previousMarkedSegmentShortcutRegistered) return;
+		ShortcutService.registerShortcut({
+			key: globalState.settings.shortcuts.TIMELINE.PREVIOUS_MARKED_SEGMENT,
+			onKeyDown: handlePreviousMarkedSegment
+		});
+		previousMarkedSegmentShortcutRegistered = true;
+	}
+
+	/**
+	 * Supprime le raccourci vers le segment marqué précédent.
+	 * @returns {void}
+	 */
+	function unregisterPreviousMarkedSegmentShortcut(): void {
+		if (!globalState.settings || !previousMarkedSegmentShortcutRegistered) return;
+		ShortcutService.unregisterShortcut(
+			globalState.settings.shortcuts.TIMELINE.PREVIOUS_MARKED_SEGMENT
+		);
+		previousMarkedSegmentShortcutRegistered = false;
+	}
+
 	$effect(() => {
 		const currentTab = globalState.currentProject?.projectEditorState.currentTab;
 
@@ -721,6 +858,17 @@
 			registerRemoveShortcut();
 		} else {
 			unregisterRemoveShortcut();
+		}
+
+		if (
+			currentTab === ProjectEditorTabs.VideoEditor ||
+			currentTab === ProjectEditorTabs.Transcription ||
+			currentTab === ProjectEditorTabs.Style ||
+			currentTab === ProjectEditorTabs.Export
+		) {
+			registerQuickEditorShortcuts();
+		} else {
+			unregisterQuickEditorShortcuts();
 		}
 
 		if (
@@ -760,11 +908,14 @@
 		registerRegenerateWbwShortcut();
 		registerRemoveSubtitleAtCursorShortcut();
 		registerQuickMergeShortcut();
+		registerNextMarkedSegmentShortcut();
+		registerPreviousMarkedSegmentShortcut();
 
 		return () => {
 			unregisterSplitShortcut();
 			unregisterRemoveShortcut();
 			unregisterQuickSubtitleEditShortcut();
+			unregisterQuickEditorShortcuts();
 			unregisterSetEndShortcut();
 			unregisterSetStartShortcut();
 			unregisterFrameBackwardShortcut();
@@ -772,6 +923,8 @@
 			unregisterRegenerateWbwShortcut();
 			unregisterRemoveSubtitleAtCursorShortcut();
 			unregisterQuickMergeShortcut();
+			unregisterNextMarkedSegmentShortcut();
+			unregisterPreviousMarkedSegmentShortcut();
 		};
 	});
 
@@ -1073,6 +1226,7 @@
 		unregisterSplitShortcut();
 		unregisterRemoveShortcut();
 		unregisterQuickSubtitleEditShortcut();
+		unregisterQuickEditorShortcuts();
 		unregisterSetEndShortcut();
 		unregisterSetStartShortcut();
 		unregisterFrameBackwardShortcut();

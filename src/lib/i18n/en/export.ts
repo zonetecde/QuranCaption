@@ -1,4 +1,7 @@
 const export_ = {
+	quality: 'Quality',
+	orientation: 'Orientation',
+	customDimensions: 'Custom dimensions',
 	exportVideo: 'Export Video',
 	configureExportSettings: 'Configure your video export settings and select the portion to export.',
 	exportRange: 'Export Range',

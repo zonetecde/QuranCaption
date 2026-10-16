@@ -8,7 +8,7 @@ import DeleteConfirmation from './DeleteConfirmation.svelte';
 import ShiftSubtitlesModal from './tools/ShiftSubtitlesModal.svelte';
 import HifzRepetitionModal from './tools/HifzRepetitionModal.svelte';
 import AudioCutterModal from './tools/AudioCutterModal.svelte';
-import NoiseReductionModal from './tools/NoiseReductionModal.svelte';
+import AudioEffectsModal from './tools/AudioEffectsModal.svelte';
 import BookmarkVerseModal from './BookmarkVerseModal.svelte';
 import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
 import AiWbwTranslationModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiWbwTranslationModal.svelte';
@@ -224,21 +224,31 @@ export default class ModalManager {
 		});
 	}
 
-	/** Ouvre la modale de réduction du bruit audio. @returns {Promise<void>} Résolution après fermeture. */
-	static async noiseReductionModal(): Promise<void> {
+	/**
+	 * Ouvre la modale des effets audio avec une sélection initiale facultative.
+	 * @param {number | undefined} initialClipId Clip audio sélectionné.
+	 * @param {'denoise' | 'clarity' | 'echo' | 'reverb' | undefined} initialEffectId Effet sélectionné.
+	 * @returns {Promise<void>} Résolution après fermeture.
+	 */
+	static async audioEffectsModal(
+		initialClipId?: number,
+		initialEffectId?: 'denoise' | 'clarity' | 'echo' | 'reverb'
+	): Promise<void> {
 		return new Promise<void>((resolve) => {
 			const container = document.createElement('div');
 			container.classList.add('modal-wrapper');
 			document.body.appendChild(container);
 
-			const modal = mount(NoiseReductionModal, {
+			const modal = mount(AudioEffectsModal, {
 				target: container,
 				props: {
 					close: () => {
 						unmount(modal);
 						container.remove();
 						resolve();
-					}
+					},
+					initialClipId,
+					initialEffectId
 				}
 			});
 		});

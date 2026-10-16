@@ -1,19 +1,30 @@
 <script lang="ts">
 	import type { StockMediaResult } from './stockMediaTypes';
 	import { openUrl } from '@tauri-apps/plugin-opener';
+	import type { DownloadProgress } from '$lib/services/DownloadWithProgress';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	let {
 		result,
 		onDownload,
-		isDownloading = false
+		isDownloading = false,
+		downloadDisabled = false,
+		progress = null
 	}: {
 		result: StockMediaResult;
 		onDownload: (result: StockMediaResult) => void;
 		isDownloading?: boolean;
+		downloadDisabled?: boolean;
+		progress?: DownloadProgress | null;
 	} = $props();
 
 	let isHovering = $state(false);
 	let videoEl: HTMLVideoElement | undefined = $state();
+	const percent = $derived(
+		progress?.total && progress.total > 0
+			? Math.min(100, Math.max(0, (progress.downloaded / progress.total) * 100))
+			: null
+	);
 
 	$effect(() => {
 		if (!videoEl) return;
@@ -39,10 +50,11 @@
 </script>
 
 <button
-	class="block w-full text-left rounded-lg border border-color bg-primary/30 overflow-hidden hover:border-[var(--accent-primary)]/50 transition-colors group"
+	class="block w-full text-start rounded-lg border border-color bg-primary/30 overflow-hidden hover:border-[var(--accent-primary)]/50 transition-colors group"
 	type="button"
 	onclick={() => onDownload(result)}
-	disabled={isDownloading}
+	disabled={isDownloading || downloadDisabled}
+	aria-busy={isDownloading}
 	onmouseenter={() => (isHovering = true)}
 	onmouseleave={() => (isHovering = false)}
 >
@@ -66,7 +78,7 @@
 		{/if}
 
 		<span
-			class="absolute top-1 right-1 bg-black/50 hover:bg-black/80 text-white rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+			class="absolute top-1 end-1 bg-black/50 hover:bg-black/80 text-white rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
 			onclick={(e: MouseEvent) => {
 				e.stopPropagation();
 				openUrl(result.pageUrl);
@@ -78,7 +90,7 @@
 
 		{#if result.type === 'video'}
 			<div
-				class="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1 py-0.5 rounded flex items-center gap-1"
+				class="absolute bottom-1 end-1 bg-black/70 text-white text-[10px] px-1 py-0.5 rounded flex items-center gap-1"
 			>
 				<span class="material-icons text-[10px]">videocam</span>
 				{#if result.duration}
@@ -90,6 +102,21 @@
 		{#if isDownloading}
 			<div class="absolute inset-0 bg-black/50 flex items-center justify-center">
 				<span class="material-icons animate-spin text-white text-lg">download</span>
+				<div
+					class="absolute bottom-0 inset-x-0 h-1 bg-white/20 overflow-hidden"
+					role="progressbar"
+					aria-label={$LL.editor.downloadingMediaAsset()}
+					aria-valuemin={0}
+					aria-valuemax={100}
+					aria-valuenow={percent ?? undefined}
+				>
+					<div
+						class="h-full bg-accent-primary transition-[width] {percent === null
+							? 'animate-pulse'
+							: ''}"
+						style="width: {percent ?? 100}%"
+					></div>
+				</div>
 			</div>
 		{/if}
 	</div>

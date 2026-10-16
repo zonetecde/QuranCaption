@@ -13,6 +13,7 @@
 						"video-dimension",
 						"media-fill",
 						"media-scale",
+						"media-rotation",
 						"media-position-x",
 						"media-position-y"
 					]
@@ -64,6 +65,20 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "zoom_in"
+			},
+
+			{
+				"id": "media-rotation",
+				"name": "Rotation",
+				"description": "Rotate the background media in degrees",
+				"value": 0,
+				"valueType": "number",
+				"valueMin": -180,
+				"valueMax": 180,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "rotate_right"
 			},
 			{
 				"id": "media-position-x",

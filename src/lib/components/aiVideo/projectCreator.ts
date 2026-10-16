@@ -139,9 +139,7 @@ export async function createAiVideoProject(): Promise<void> {
 			});
 
 			setStatus(get(LL).aiVideo.addingBgVideo());
-			content.addAsset(backgroundVideoPath, backgroundVideoUrl, SourceType.YouTube, {
-				skipConstantBitrateWarning: true
-			});
+			content.addAsset(backgroundVideoPath, backgroundVideoUrl, SourceType.YouTube);
 
 			const normalizedBackgroundVideoPath = backgroundVideoPath
 				.replace(/\\/g, '/')

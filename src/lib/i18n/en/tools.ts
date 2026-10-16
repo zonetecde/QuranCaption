@@ -67,7 +67,38 @@ const tools = {
 	applyNoiseReduction: 'Reduce noise',
 	pleaseSelectTimelineAudio: 'Please select an audio clip from the timeline',
 	noiseReductionSuccess: 'Noise reduced. The selected clip now uses the cleaned audio.',
-	noiseReductionFailed: 'Failed to reduce audio noise: {error}'
+	noiseReductionFailed: 'Failed to reduce audio noise: {error}',
+	audioEffects: 'Audio effects',
+	audioEffectsDescription: 'Apply carefully tuned FFmpeg effects to speech audio',
+	audioEffectsSegmentationRecommendation:
+		'For the most accurate subtitles, transcribe the original audio first. Apply audio effects only afterwards, since echo, reverb, and other processing can reduce detection and synchronization accuracy.',
+	chooseAudioEffect: 'CHOOSE AN EFFECT',
+	denoise: 'Denoise',
+	denoiseDescription: 'Reduce steady background noise while preserving the voice',
+	clarity: 'Voice clarity',
+	clarityDescription: 'Remove low rumble and gently enhance articulation',
+	echo: 'Light echo',
+	echoDescription: 'Add a short, subtle repeat to the voice',
+	reverb: 'Light reverb',
+	reverbDescription: 'Add a soft sense of space with restrained reflections',
+	effectParameters: 'ADJUST EFFECT',
+	denoiseStrength: 'Noise reduction',
+	noiseFloor: 'Noise floor',
+	lowCut: 'Low-cut frequency',
+	presenceGain: 'Presence boost',
+	echoDelay: 'Echo delay',
+	echoAmount: 'Echo intensity',
+	roomSize: 'Room size',
+	reverbAmount: 'Reverb intensity',
+	previewTenSeconds: 'Preview 10 seconds',
+	preparingPreview: 'Preparing preview...',
+	stopPreview: 'Stop preview',
+	audioEffectResultHint:
+		'A processed WAV file will be added to the project and used as the selected clip source.',
+	applyAudioEffect: 'Apply effect',
+	audioEffectSuccess: '{effect} applied. The selected clip now uses the processed audio.',
+	audioEffectFailed: 'Failed to apply the audio effect: {error}',
+	audioEffectPreviewFailed: 'Failed to preview the audio effect: {error}'
 };
 
 export default tools;

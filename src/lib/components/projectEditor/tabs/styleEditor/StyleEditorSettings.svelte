@@ -5,7 +5,12 @@
 	import PresetLibrary from './presets/components/PresetLibrary.svelte';
 	import { CustomTextClip } from '$lib/classes';
 	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
-	import type { Category, Style, StyleName } from '$lib/classes/VideoStyle.svelte';
+	import {
+		isGlobalClipStyleId,
+		type Category,
+		type Style,
+		type StyleName
+	} from '$lib/classes/VideoStyle.svelte';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import { getStyleName } from '$lib/i18n/styleMapper';
 	import { get } from 'svelte/store';
@@ -113,9 +118,11 @@
 			return categories.filter((category) => REFERENCE_STYLE_CATEGORY_IDS.has(category.id));
 		}
 
-		// Les sélections de clips vidéo ne peuvent modifier que l'overlay.
+		// Une sélection média expose ses réglages de cadrage, d’overlay et de cadre.
 		if (target === 'global' && globalState.getStylesState.selectedVideos.length > 0) {
-			return categories.filter((category) => category.id === 'overlay');
+			return categories.filter((category) =>
+				category.styles.some((style) => isGlobalClipStyleId(style.id as StyleName))
+			);
 		}
 
 		return categories;
@@ -394,13 +401,21 @@
 		const selection = globalState.getStylesState.currentSelection;
 		const target = currentStyleTarget();
 		const selectedSubtitles = globalState.getStylesState.selectedSubtitles.length > 0;
+		const selectedVideos = globalState.getStylesState.selectedVideos.length > 0;
+		if (selectedVideos && !isGlobalClipStyleId(style.id as StyleName)) return true;
 
 		if (style.id === 'reactive-font-size' || style.id === 'reactive-y-position') return true;
 		if (
 			((isQuranReferenceTarget() || isCitationReferenceTarget()) &&
 				['line-height', 'max-height', 'max-line'].includes(style.id)) ||
 			(category.id === 'general' &&
-				['media-fill', 'media-scale', 'media-position-x', 'media-position-y'].includes(style.id) &&
+				[
+					'media-fill',
+					'media-scale',
+					'media-rotation',
+					'media-position-x',
+					'media-position-y'
+				].includes(style.id) &&
 				globalState.getVideoTrack.clips.length === 0)
 		)
 			return true;

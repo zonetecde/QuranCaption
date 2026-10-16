@@ -81,6 +81,14 @@ jobs:
         if: startsWith(matrix.os, 'macos')
         run: |
           brew update
+          if brew list --versions openssl@1.1 >/dev/null 2>&1; then
+            brew unlink openssl@1.1
+          fi
+          # Remove the legacy symlink that brew unlink may leave behind.
+          openssl_bin="$(brew --prefix)/bin/openssl"
+          if [ -L "$openssl_bin" ] && [ "$(readlink "$openssl_bin")" = "$(brew --prefix)/opt/openssl@1.1/bin/openssl" ]; then
+            rm "$openssl_bin"
+          fi
           brew install ffmpeg-full
           mkdir -p src-tauri/binaries
           cp "$(brew --prefix ffmpeg-full)/bin/ffprobe" src-tauri/binaries/ffprobe
@@ -153,6 +161,8 @@ jobs:
           # GTK/WebKit deps (try 4.1 first, fallback to 4.0)
           sudo apt-get install -y libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf
           sudo apt-get install -y libwebkit2gtk-4.1-dev || sudo apt-get install -y libwebkit2gtk-4.0-dev
+          # GStreamer plugins included in the AppImage for audio playback and decoding.
+          sudo apt-get install -y gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-libav gstreamer1.0-pulseaudio
           # Additional dependencies for better Linux compatibility
           sudo apt-get install -y xdg-utils desktop-file-utils
 

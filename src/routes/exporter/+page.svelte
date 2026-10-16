@@ -6,8 +6,8 @@
 	import { invoke } from '@tauri-apps/api/core';
 	import { getCurrentWebviewWindow, WebviewWindow } from '@tauri-apps/api/webviewWindow';
 	import { LogicalPosition } from '@tauri-apps/api/dpi';
-	import { listen } from '@tauri-apps/api/event';
-	import { onMount } from 'svelte';
+	import { emitTo, listen } from '@tauri-apps/api/event';
+	import { onDestroy, onMount } from 'svelte';
 	import {
 		exists,
 		BaseDirectory,
@@ -53,7 +53,7 @@
 	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
-	import { domToBlob } from 'modern-screenshot';
+	import { captureExportOverlayBlob, releaseExportScreenshotContext } from './ExportScreenshot';
 	import { captureMacOsOverlayPngBytes, shouldRedrawExportTextWithCanvas } from './MacOSExport';
 	import {
 		ClipWithTranslation,
@@ -78,6 +78,7 @@
 
 	// Récupère les données d'export de la vidéo
 	let exportData: Exportation | undefined;
+	onDestroy(releaseExportScreenshotContext);
 
 	const DEFAULT_PARALLEL_CAPTURE_WORKERS = 4;
 	const CAPTURE_WORKER_MODE = 'capture-worker';
@@ -94,6 +95,8 @@
 	let currentVideoExportState: ExportState = ExportState.AddingSubtitles;
 	let subtitleMainProgress = 0;
 	let hasCompletedCapturingFrames = false;
+	let capturedFrames = 0;
+	let totalCaptureFrames = 0;
 	let hasSecondarySegmentProgress = false;
 	let processingBackgroundProgress = 0;
 	let captureWorkerWindows: WebviewWindow[] = [];
@@ -104,6 +107,11 @@
 		source_start_ms?: number;
 		timeline_start_ms?: number;
 		duration_ms?: number;
+		media_fill?: boolean;
+		media_scale?: number;
+		media_rotation?: number;
+		media_position_x?: number;
+		media_position_y?: number;
 	};
 
 	type ExportAudioClipInput = {
@@ -167,12 +175,28 @@
 	function getVideoExportInputs(): ExportVideoInput[] {
 		const clips = globalState.getVideoTrack.clips as AssetClip[];
 		const requiresTiming = requiresTimedAssetExport(clips);
+		const styles = globalState.getVideoStyle.getStylesOfTarget('global');
 
 		return clips.map((clip) => {
 			const input: ExportVideoInput = {
 				path: globalState.currentProject!.content.getAssetById(clip.assetId).filePath,
 				loop_until_audio_end: clip.loopUntilAudioEnd
 			};
+			if (styles?.hasOverrideForAny([clip.id], 'media-fill')) {
+				input.media_fill = Boolean(styles.getEffectiveValue('media-fill', clip.id));
+			}
+			if (styles?.hasOverrideForAny([clip.id], 'media-scale')) {
+				input.media_scale = Number(styles.getEffectiveValue('media-scale', clip.id));
+			}
+			if (styles?.hasOverrideForAny([clip.id], 'media-rotation')) {
+				input.media_rotation = Number(styles.getEffectiveValue('media-rotation', clip.id));
+			}
+			if (styles?.hasOverrideForAny([clip.id], 'media-position-x')) {
+				input.media_position_x = Number(styles.getEffectiveValue('media-position-x', clip.id));
+			}
+			if (styles?.hasOverrideForAny([clip.id], 'media-position-y')) {
+				input.media_position_y = Number(styles.getEffectiveValue('media-position-y', clip.id));
+			}
 			if (requiresTiming) {
 				input.source_start_ms = Math.round(clip.sourceStartTime ?? 0);
 				input.timeline_start_ms = Math.round(clip.startTime);
@@ -521,7 +545,7 @@
 	}
 
 	/**
-	 * Envoie une ligne de log d'export au monitor principal.
+	 * Envoie une ligne de log au tampon de fichier de la fenêtre principale.
 	 * @param {ExportLogLevel} level Niveau de log.
 	 * @param {string} message Message court.
 	 * @param {Record<string, unknown>} context Contexte serialisable.
@@ -542,8 +566,6 @@
 			console.error(`[export:${exportId}:${source}] ${fullMessage}`);
 		} else if (level === 'warn') {
 			console.warn(`[export:${exportId}:${source}] ${fullMessage}`);
-		} else {
-			console.log(`[export:${exportId}:${source}] ${fullMessage}`);
 		}
 
 		const payload: ExportLogPayload = {
@@ -554,7 +576,7 @@
 			message: fullMessage
 		};
 
-		await (await getAllWindows()).find((w) => w.label === 'main')?.emit(EXPORT_LOG_EVENT, payload);
+		await emitTo('main', EXPORT_LOG_EVENT, payload);
 	}
 
 	/**
@@ -862,11 +884,10 @@
 		const roundedTime = Math.round(time);
 		const clip = globalState.getVideoTrack.getCurrentClip(roundedTime);
 		const clipId = clip?.id;
-		return Number(
-			globalState.getVideoStyle
-				.getStylesOfTarget('global')
-				.getEffectiveValue('overlay-blur', clipId)
-		);
+		const styles = globalState.getVideoStyle.getStylesOfTarget('global');
+		return styles.getEffectiveVisibilityOpacity('overlay-enable', clipId, roundedTime) > 0
+			? Number(styles.getEffectiveValue('overlay-blur', clipId))
+			: 0;
 	}
 
 	function getVideoBlurBoundaries(rangeStart: number, rangeEnd: number): number[] {
@@ -901,17 +922,28 @@
 		refreshSecondarySegmentProgressVisibility();
 
 		const generatedVideoFiles: string[] = [];
+		const capturePlans = renderSegments.map((segment) =>
+			buildImageCapturePlan(
+				calculateTimingsForRange(segment.start, segment.end),
+				segment.start,
+				segment.end,
+				true
+			)
+		);
+		capturedFrames = 0;
+		totalCaptureFrames = capturePlans.reduce(
+			(total, plan) => total + plan.blankSourceJobs.length + plan.captureJobs.length,
+			0
+		);
 		const segmentBlankImageIndexes = new Map<number, number[]>();
 		for (let segmentIndex = 0; segmentIndex < renderSegments.length; segmentIndex++) {
-			const segment = renderSegments[segmentIndex];
 			const segmentImageFolder = `segment_${segmentIndex}`;
 
 			await createSegmentImageFolder(segmentImageFolder);
 			const blankTimings = await generateImagesForSegment(
 				segmentIndex,
-				segment.start,
-				segment.end,
 				segmentImageFolder,
+				capturePlans[segmentIndex],
 				renderSegments.length,
 				0,
 				100
@@ -1393,6 +1425,8 @@
 		onProgress: (completed: number, total: number, timing?: number) => void
 	): Promise<void> {
 		const totalJobs = Math.max(1, plan.totalJobs);
+		const capturesInPlan = plan.blankSourceJobs.length + plan.captureJobs.length;
+		const capturedBeforePlan = capturedFrames;
 		let completed = 0;
 		let lastReportedCompleted = 0;
 		await emitExportLog('info', 'Image capture plan started', {
@@ -1412,8 +1446,11 @@
 		 */
 		const reportProgress = (nextCompleted: number, timing?: number) => {
 			lastReportedCompleted = Math.max(lastReportedCompleted, nextCompleted);
+			// Les captures précèdent les copies, qui ne doivent pas augmenter le compteur.
+			capturedFrames = capturedBeforePlan + Math.min(lastReportedCompleted, capturesInPlan);
 			onProgress(lastReportedCompleted, totalJobs, timing);
 		};
+		reportProgress(0);
 
 		const retryBlankSourceJobs: ExportBlankSourceJob[] = [];
 		for (const job of plan.blankSourceJobs) {
@@ -1464,23 +1501,25 @@
 		await emitExportLog('info', 'Image capture plan completed', { totalJobs, subfolder });
 	}
 
+	/**
+	 * Produit les captures d'un segment à partir du plan partagé avec le moniteur.
+	 * @param {number} segmentIndex Index du segment.
+	 * @param {string} segmentImageFolder Dossier de capture.
+	 * @param {ReturnType<typeof buildExportCaptureJobPlan>} plan Captures et copies prévues.
+	 * @param {number} totalSegments Nombre de segments.
+	 * @param {number} phaseStartProgress Début de progression de la phase.
+	 * @param {number} phaseEndProgress Fin de progression de la phase.
+	 * @returns {Promise<number[]>} Index des images sans sous-titre.
+	 */
 	async function generateImagesForSegment(
 		segmentIndex: number,
-		segmentStart: number,
-		segmentEnd: number,
 		segmentImageFolder: string,
+		plan: ReturnType<typeof buildExportCaptureJobPlan>,
 		totalSegments: number,
 		phaseStartProgress: number = 0,
 		phaseEndProgress: number = 100
 	): Promise<number[]> {
-		// Calculer les timings pour ce segment spécifique
-		const segmentTimings = calculateTimingsForRange(segmentStart, segmentEnd);
-
-		console.log(
-			`Segment ${segmentIndex}: ${segmentTimings.uniqueSorted.length} screenshots to take`
-		);
-
-		const plan = buildImageCapturePlan(segmentTimings, segmentStart, segmentEnd, true);
+		console.log(`Segment ${segmentIndex}: ${plan.totalJobs} images to prepare`);
 		const totalDuration = exportData!.videoEndTime - exportData!.videoStartTime;
 
 		await executeImageCapturePlan(plan, segmentImageFolder, (completed, total) => {
@@ -1493,6 +1532,8 @@
 				exportId: Number(exportId),
 				progress: globalProgress,
 				currentState: ExportState.CapturingFrames,
+				capturedFrames,
+				totalCaptureFrames,
 				currentTime: (globalProgress / 100) * totalDuration,
 				totalTime: totalDuration
 			} as ExportProgress);
@@ -1554,6 +1595,7 @@
 				videos: videos,
 				mediaFill: Boolean(globalState.getStyle('global', 'media-fill')?.value),
 				mediaScale: Number(globalState.getStyle('global', 'media-scale')?.value ?? 100),
+				mediaRotation: Number(globalState.getStyle('global', 'media-rotation')?.value ?? 0),
 				mediaPositionX: Number(globalState.getStyle('global', 'media-position-x')?.value ?? 0),
 				mediaPositionY: Number(globalState.getStyle('global', 'media-position-y')?.value ?? 0),
 				blur: blur,
@@ -1655,6 +1697,8 @@
 		);
 
 		const plan = buildImageCapturePlan(timings, exportStart, exportEnd, false);
+		capturedFrames = 0;
+		totalCaptureFrames = plan.blankSourceJobs.length + plan.captureJobs.length;
 
 		await executeImageCapturePlan(plan, null, (completed, total) => {
 			const progress = (completed / total) * 100;
@@ -1662,6 +1706,8 @@
 				exportId: Number(exportId),
 				progress,
 				currentState: ExportState.CapturingFrames,
+				capturedFrames,
+				totalCaptureFrames,
 				currentTime: (progress / 100) * totalDuration,
 				totalTime: totalDuration
 			} as ExportProgress);
@@ -1794,6 +1840,10 @@
 			subtitleClips,
 			timedOverlayClips: getTimedOverlayCaptureClips(),
 			styleKeyframeTimings: globalState.getAllStyleKeyframeTimes(),
+			videoClipChangeTimings: globalState.getVideoTrack.clips.flatMap((clip) => [
+				clip.startTime,
+				clip.endTime + 1
+			]),
 			getCurrentSurah: (time) => globalState.getSubtitleTrack.getCurrentSurah(time)
 		});
 	}
@@ -1983,6 +2033,7 @@
 				videos: videos,
 				mediaFill: Boolean(globalState.getStyle('global', 'media-fill')?.value),
 				mediaScale: Number(globalState.getStyle('global', 'media-scale')?.value ?? 100),
+				mediaRotation: Number(globalState.getStyle('global', 'media-rotation')?.value ?? 0),
 				mediaPositionX: Number(globalState.getStyle('global', 'media-position-x')?.value ?? 0),
 				mediaPositionY: Number(globalState.getStyle('global', 'media-position-y')?.value ?? 0),
 				blur: blur,
@@ -2011,6 +2062,7 @@
 	}
 
 	async function finalCleanup() {
+		releaseExportScreenshotContext();
 		await closeCaptureWorkerWindows();
 		try {
 			// Supprime le dossier temporaire des images
@@ -2108,33 +2160,66 @@
 				scale
 			});
 			if (!useLiveTextCanvasCapture) {
+				const timings: Record<string, number> = {};
+				const screenshotStarted = performance.now();
 				const restoreSystemFonts = await QPCFontProvider.applySystemFontSubsetsForScreenshot(node);
+				timings.systemFontSubsetsMs = Math.round(performance.now() - screenshotStarted);
+				const fontImportStylesheets: { sheet: CSSStyleSheet; ruleCount: number }[] = [];
+				for (const sheet of Array.from(document.styleSheets)) {
+					try {
+						for (let index = 0; index < sheet.cssRules.length; index++) {
+							const rule = sheet.cssRules[index];
+							if (
+								rule instanceof CSSImportRule &&
+								rule.href.startsWith('https://fonts.googleapis.com/')
+							) {
+								fontImportStylesheets.push({ sheet, ruleCount: sheet.cssRules.length });
+								break;
+							}
+						}
+					} catch {
+						// Les feuilles externes peuvent refuser l'accès à leurs règles CSS.
+					}
+				}
 				let blob: Blob | null = null;
 				try {
-					blob = await domToBlob(node, {
-						width: node.clientWidth * scale,
-						height: node.clientHeight * scale,
-						style: {
-							// Garder la logique historique de mise a l'echelle pour preserver le centrage.
-							transform: 'scale(' + scale + ')',
-							transformOrigin: 'top left'
+					blob = await captureExportOverlayBlob(
+						node,
+						{
+							width: node.clientWidth * scale,
+							height: node.clientHeight * scale,
+							style: {
+								// Garder la logique historique de mise a l'echelle pour preserver le centrage.
+								transform: 'scale(' + scale + ')',
+								transformOrigin: 'top left'
+							},
+							quality: 1
 						},
-						quality: 1
-					});
+						timings
+					);
 				} finally {
 					restoreSystemFonts();
+					// modern-screenshot ajoute les règles importées à la feuille du document à chaque capture.
+					for (const { sheet, ruleCount } of fontImportStylesheets) {
+						while (sheet.cssRules.length > ruleCount) sheet.deleteRule(sheet.cssRules.length - 1);
+					}
 				}
 
 				if (!blob) throw new Error('domToBlob returned null');
 
+				const bufferStarted = performance.now();
 				const buffer = await blob.arrayBuffer();
 				const bytes = new Uint8Array(buffer);
+				timings.bufferMs = Math.round(performance.now() - bufferStarted);
 
+				const writeStarted = performance.now();
 				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
-				console.log('Screenshot saved to:', filePathWithName);
+				timings.writeMs = Math.round(performance.now() - writeStarted);
+				timings.totalMs = Math.round(performance.now() - screenshotStarted);
 				await emitExportLog('info', 'Screenshot saved', {
 					file: fileName,
-					path: filePathWithName
+					path: filePathWithName,
+					timings
 				});
 			} else {
 				const backgroundBlob = hasVisibleSubtitleBackground(node)
@@ -2152,7 +2237,6 @@
 				});
 
 				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
-				console.log('Screenshot saved to:', filePathWithName);
 				await emitExportLog('info', 'Screenshot saved', {
 					file: fileName,
 					path: filePathWithName
@@ -2214,7 +2298,6 @@
 				source: await join(await appDataDir(), sourceFilePathWithName),
 				destination: await join(await appDataDir(), targetFilePathWithName)
 			});
-			console.log('Duplicate screenshot saved to:', targetFilePathWithName);
 		} catch (error) {
 			// Fallback: lire et écrire si la commande Rust n'existe pas
 			if (!(await exists(sourceFilePathWithName, { baseDir: BaseDirectory.AppData }))) {
@@ -2224,7 +2307,6 @@
 			const data = await readFile(sourceFilePathWithName, { baseDir: BaseDirectory.AppData });
 			await writeFile(targetFilePathWithName, data, { baseDir: BaseDirectory.AppData });
 			console.warn('copy_file failed, fallback copy used:', error);
-			console.log('Duplicate screenshot saved to (fallback):', targetFilePathWithName);
 		}
 	}
 
@@ -2289,7 +2371,6 @@
 	 */
 	async function wait(timing: number): Promise<boolean> {
 		// globalState.updateVideoPreviewUI();
-		console.log(`Waiting for frame at ${timing}ms...`);
 
 		await waitForAnimationFrame();
 

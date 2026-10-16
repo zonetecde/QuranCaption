@@ -617,6 +617,11 @@ body {
 	align-items: center;
 }
 
+body.dimmed-modal-backdrop .modal-wrapper {
+	backdrop-filter: none;
+	background-color: rgba(0, 0, 0, 0.65);
+}
+
 .btn {
 	background-color: var(--bg-secondary);
 	border: var(--border-w) solid var(--border-color);

@@ -45,6 +45,8 @@ export default class Exportation extends SerializableBase {
 	currentState: ExportState;
 	percentageProgress: number;
 	currentTreatedTime: number;
+	capturedFrames = $state(0);
+	totalCaptureFrames = $state<number | null>(null);
 	hasSecondarySegmentProgress: boolean;
 	processingBackgroundProgress: number;
 	processingBackgroundCurrentSegment: number;
@@ -55,7 +57,6 @@ export default class Exportation extends SerializableBase {
 	errorLog: string;
 	fps: number;
 	currentBatchSize: number | null;
-	exportLogs: ExportLogEntry[] = $state([]);
 	date: string;
 	totalExportTimeMs: number | null;
 
@@ -113,15 +114,6 @@ export default class Exportation extends SerializableBase {
 		const data = super.toJSON();
 		delete data.exportLogs;
 		return data;
-	}
-
-	/**
-	 * Ajoute une ligne de log runtime sans la rendre serialisable.
-	 * @param {ExportLogEntry} log Ligne de log a afficher dans le monitor.
-	 * @returns {void}
-	 */
-	addExportLog(log: ExportLogEntry): void {
-		this.exportLogs = [...(this.exportLogs ?? []), log];
 	}
 
 	isOnGoing() {

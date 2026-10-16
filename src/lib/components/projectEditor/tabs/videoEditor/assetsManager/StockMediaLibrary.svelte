@@ -9,11 +9,17 @@
 	import type { StockMediaResult } from './stockMediaTypes';
 	import { SourceType } from '$lib/classes';
 	import toast from 'svelte-5-french-toast';
+	import {
+		downloadFileWithProgress,
+		type DownloadProgress
+	} from '$lib/services/DownloadWithProgress';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let { onBack }: { onBack: () => void } = $props();
 
 	const lib = $derived(globalState.stockMediaLibrary);
 	let searchQuery = $state('');
+	let downloadProgress = $state<DownloadProgress | null>(null);
 
 	// Charger les medias populaires des l'ouverture de la librairie
 	let hasLoadedPopular = $state(false);
@@ -113,25 +119,38 @@
 		if (searchQuery.trim().length > 0) doSearch();
 	}
 
-	async function downloadAsset(result: StockMediaResult) {
+	/**
+	 * Télécharge le média et ajoute les vidéos à la piste vidéo du projet courant.
+	 * @param {StockMediaResult} result Média sélectionné.
+	 * @returns {Promise<void>} Promesse résolue après l'import.
+	 */
+	async function downloadAsset(result: StockMediaResult): Promise<void> {
+		const project = globalState.currentProject;
+		if (!project || lib.downloadingId !== null) return;
 		const sourceType = result.source === 'pexels' ? SourceType.Pexels : SourceType.Pixabay;
 		try {
 			globalState.stockMediaLibrary.downloadingId = result.id;
+			downloadProgress = null;
 
 			const downloadDir = await join(await appDataDir(), 'downloads', 'stock-media');
 			const ext = result.type === 'video' ? 'mp4' : 'jpg';
 			const fileName = `${result.id}.${ext}`;
 			const fullPath = await join(downloadDir, fileName);
 
-			await invoke('download_file', {
-				url: result.downloadUrl,
-				path: fullPath
+			await downloadFileWithProgress(result.downloadUrl, fullPath, (progress) => {
+				downloadProgress = progress;
 			});
 
-			globalState.currentProject?.content.addAsset(fullPath, result.pageUrl, sourceType, {
-				authorName: result.authorName,
-				authorUrl: result.authorUrl,
-				skipConstantBitrateWarning: true
+			if (globalState.currentProject !== project) return;
+			await ProjectHistoryManager.trackAsync('import stock media', async () => {
+				const asset = project.content.addAsset(fullPath, result.pageUrl, sourceType, {
+					authorName: result.authorName,
+					authorUrl: result.authorUrl
+				});
+				if (asset && result.type === 'video') {
+					await asset.ensureDurationLoaded();
+					if (globalState.currentProject === project) globalState.getVideoTrack.addAsset(asset);
+				}
 			});
 
 			toast.success(get(LL).editor.downloadSuccessful());
@@ -139,6 +158,7 @@
 			toast.error(get(LL).editor.stockMediaDownloadError({ error: String(e) }));
 		} finally {
 			globalState.stockMediaLibrary.downloadingId = null;
+			downloadProgress = null;
 		}
 	}
 
@@ -178,7 +198,7 @@
 			onclick={onBack}
 			aria-label={get(LL).editor.backToAssets()}
 		>
-			<span class="material-icons-outlined text-lg">arrow_back</span>
+			<span class="material-icons-outlined rtl-mirror text-lg">arrow_back</span>
 		</button>
 		<div class="min-w-0 flex-1">
 			<h2 class="truncate text-lg font-semibold text-primary">
@@ -195,14 +215,14 @@
 		<!-- Barre de recherche -->
 		<div class="relative">
 			<span
-				class="material-icons-outlined pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-sm text-thirdly"
+				class="material-icons-outlined pointer-events-none absolute start-2 top-1/2 -translate-y-1/2 text-sm text-thirdly"
 			>
 				search
 			</span>
 			<input
 				bind:value={searchQuery}
 				onkeydown={handleKeyDown}
-				class="h-9 w-full rounded-md border border-color bg-primary py-1 pl-8 pr-2 text-xs text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
+				class="h-9 w-full rounded-md border border-color bg-primary py-1 ps-8 pe-2 text-xs text-primary outline-none transition-colors placeholder:text-thirdly focus:border-[var(--accent-primary)]"
 				type="search"
 				placeholder={get(LL).editor.searchStockMedia()}
 			/>
@@ -318,6 +338,8 @@
 						{result}
 						onDownload={downloadAsset}
 						isDownloading={lib.downloadingId === result.id}
+						downloadDisabled={lib.downloadingId !== null}
+						progress={lib.downloadingId === result.id ? downloadProgress : null}
 					/>
 				{/each}
 			</div>

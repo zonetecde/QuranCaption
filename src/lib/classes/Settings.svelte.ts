@@ -179,6 +179,7 @@ export default class Settings extends SerializableBase {
 		] as TrackType[],
 		desktopNotificationsEnabled: true,
 		themeIntensity: 100,
+		dimmedModalBackdrop: false,
 		hasSeenTour: false,
 		language: 'en' as 'en' | 'fr' | 'de' | 'es' | 'zh' | 'id',
 		theme: 'default' as
@@ -378,6 +379,26 @@ export default class Settings extends SerializableBase {
 				name: 'Edit Subtitle at Cursor',
 				description: 'Edit the subtitle under the cursor, or the last one if none'
 			},
+			EDIT_SUBTITLE_AT_CURSOR: {
+				keys: [],
+				name: 'Open Subtitle Editor at Cursor',
+				description: 'Open the subtitle editor for the subtitle under the cursor'
+			},
+			EDIT_TRANSLATION_AT_CURSOR: {
+				keys: [],
+				name: 'Open Translation Editor at Cursor',
+				description: 'Open the translation editor for the subtitle under the cursor'
+			},
+			EDIT_WBW_TIMESTAMP_AT_CURSOR: {
+				keys: [],
+				name: 'Open WBW Timestamp Editor at Cursor',
+				description: 'Open the WBW timestamp editor for the subtitle under the cursor'
+			},
+			EDIT_WBW_STYLE_AT_CURSOR: {
+				keys: [],
+				name: 'Open WBW Style/Translation at Cursor',
+				description: 'Open WBW style and translation editing for the subtitle under the cursor'
+			},
 			ADD_SILENCE: {
 				keys: ['s'],
 				name: 'Add Silence',
@@ -482,6 +503,16 @@ export default class Settings extends SerializableBase {
 				keys: ['y'],
 				name: 'Toggle Quick Merge',
 				description: 'Merge or unmerge subtitles at the closest boundary to the cursor'
+			},
+			PREVIOUS_MARKED_SEGMENT: {
+				keys: [],
+				name: 'Go to Previous Marked Segment',
+				description: 'Move the cursor to the first marked segment to its left'
+			},
+			NEXT_MARKED_SEGMENT: {
+				keys: [],
+				name: 'Go to Next Marked Segment',
+				description: 'Move the cursor to the first marked segment to its right'
 			}
 		}
 	};
@@ -537,10 +568,71 @@ export default class Settings extends SerializableBase {
 		const fileContent = await readTextFile(filePath);
 		const settingsData = JSON.parse(fileContent);
 
-		globalState.settings = Settings.fromJSON(settingsData) as Settings;
-		const settings = globalState.settings;
+		const settings = Settings.fromJSON(settingsData) as Settings;
 		const previousVersion = settings.appVersion;
 		let shouldSave = false;
+		// Répare la mise en page avant de l'exposer aux composants et aux migrations.
+		if (
+			!settings.persistentUiState ||
+			typeof settings.persistentUiState !== 'object' ||
+			Array.isArray(settings.persistentUiState)
+		) {
+			settings.persistentUiState = new Settings().persistentUiState;
+			shouldSave = true;
+		}
+
+		const projectEditorLayout = settings.persistentUiState.projectEditorLayout as
+			| Partial<ProjectEditorLayout>
+			| undefined;
+		if (
+			!projectEditorLayout ||
+			typeof projectEditorLayout !== 'object' ||
+			Array.isArray(projectEditorLayout)
+		) {
+			settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
+			shouldSave = true;
+		} else {
+			const usesPreviousDefaults =
+				projectEditorLayout.upperSectionHeight === 68 &&
+				projectEditorLayout.videoEditorPanelWidth === 300 &&
+				projectEditorLayout.stylePanelWidth === 438 &&
+				projectEditorLayout.subtitlesEditorLeftPanelWidth === 225 &&
+				projectEditorLayout.subtitlesEditorRightPanelWidth === 200 &&
+				projectEditorLayout.translationsEditorLeftPanelWidth === 230 &&
+				projectEditorLayout.translationsEditorRightPanelWidth === 330 &&
+				projectEditorLayout.exportPanelWidth === 350;
+
+			if (usesPreviousDefaults) {
+				settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
+				shouldSave = true;
+			} else {
+				for (const key of Object.keys(DEFAULT_PROJECT_EDITOR_LAYOUT) as Array<
+					keyof ProjectEditorLayout
+				>) {
+					if (
+						typeof projectEditorLayout[key] !== 'number' ||
+						!Number.isFinite(projectEditorLayout[key])
+					) {
+						projectEditorLayout[key] = DEFAULT_PROJECT_EDITOR_LAYOUT[key];
+						shouldSave = true;
+					}
+				}
+			}
+		}
+		globalState.settings = settings;
+		const defaultShortcuts = new Settings().shortcuts;
+		for (const namespace of ['SUBTITLES_EDITOR', 'TIMELINE'] as const) {
+			if (!settings.shortcuts[namespace]) {
+				Reflect.set(settings.shortcuts, namespace, { ...defaultShortcuts[namespace] });
+				shouldSave = true;
+			}
+			for (const [action, shortcut] of Object.entries(defaultShortcuts[namespace])) {
+				if (!Reflect.has(settings.shortcuts[namespace], action)) {
+					Reflect.set(settings.shortcuts[namespace], action, shortcut);
+					shouldSave = true;
+				}
+			}
+		}
 
 		// Migrations ================
 		const subtitleShortcuts = settings.shortcuts.SUBTITLES_EDITOR;
@@ -647,37 +739,6 @@ export default class Settings extends SerializableBase {
 				shouldSave = true;
 			}
 		}
-		const projectEditorLayout = settings.persistentUiState.projectEditorLayout as
-			| Partial<ProjectEditorLayout>
-			| undefined;
-		if (!projectEditorLayout || typeof projectEditorLayout !== 'object') {
-			settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
-			shouldSave = true;
-		} else {
-			const usesPreviousDefaults =
-				projectEditorLayout.upperSectionHeight === 68 &&
-				projectEditorLayout.videoEditorPanelWidth === 300 &&
-				projectEditorLayout.stylePanelWidth === 438 &&
-				projectEditorLayout.subtitlesEditorLeftPanelWidth === 225 &&
-				projectEditorLayout.subtitlesEditorRightPanelWidth === 200 &&
-				projectEditorLayout.translationsEditorLeftPanelWidth === 230 &&
-				projectEditorLayout.translationsEditorRightPanelWidth === 330 &&
-				projectEditorLayout.exportPanelWidth === 350;
-
-			if (usesPreviousDefaults) {
-				settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
-				shouldSave = true;
-			} else {
-				for (const key of Object.keys(DEFAULT_PROJECT_EDITOR_LAYOUT) as Array<
-					keyof ProjectEditorLayout
-				>) {
-					if (typeof projectEditorLayout[key] !== 'number') {
-						projectEditorLayout[key] = DEFAULT_PROJECT_EDITOR_LAYOUT[key];
-						shouldSave = true;
-					}
-				}
-			}
-		}
 		if (typeof settings.persistentUiState.showTimelineWheelHints !== 'boolean') {
 			settings.persistentUiState.showTimelineWheelHints = true;
 			shouldSave = true;
@@ -702,6 +763,10 @@ export default class Settings extends SerializableBase {
 				TrackType.Video,
 				TrackType.Audio
 			];
+			shouldSave = true;
+		}
+		if (typeof settings.persistentUiState.dimmedModalBackdrop !== 'boolean') {
+			settings.persistentUiState.dimmedModalBackdrop = false;
 			shouldSave = true;
 		}
 		if (typeof settings.persistentUiState.desktopNotificationsEnabled !== 'boolean') {

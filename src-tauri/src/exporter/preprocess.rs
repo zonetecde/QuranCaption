@@ -21,6 +21,7 @@ pub fn build_background_fit_filter(
     media_scale: f64,
     media_position_x: f64,
     media_position_y: f64,
+    media_rotation: f64,
 ) -> String {
     let scale = (media_scale / 100.0).clamp(1.0, 3.0);
     let scaled_w = ((w as f64 * scale).round() as i32).max(w);
@@ -28,10 +29,60 @@ pub fn build_background_fit_filter(
     let position_x = ((media_position_x.clamp(-100.0, 100.0) + 100.0) / 200.0).clamp(0.0, 1.0);
     let position_y = ((media_position_y.clamp(-100.0, 100.0) + 100.0) / 200.0).clamp(0.0, 1.0);
 
+    if media_rotation.abs() > f64::EPSILON {
+        let angle = media_rotation.clamp(-180.0, 180.0).to_radians();
+        let fit = if media_fill {
+            format!(
+                "scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase,crop={scaled_w}:{scaled_h}:(in_w-{scaled_w})/2:(in_h-{scaled_h})/2"
+            )
+        } else {
+            format!(
+                "scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad={scaled_w}:{scaled_h}:(ow-iw)/2:(oh-ih)/2:color=black"
+            )
+        };
+        // Conserve les coins pivotés avant le recadrage final, comme la preview CSS.
+        return format!(
+            "{fit},setsar=1,rotate={angle:.12}:ow='ceil(max(iw,rotw({angle:.12}))/2)*2':oh='ceil(max(ih,roth({angle:.12}))/2)*2':c=black,crop={w}:{h}:(in_w-{scaled_w})/2+({scaled_w}-{w})*{position_x:.6}:(in_h-{scaled_h})/2+({scaled_h}-{h})*{position_y:.6},setsar=1"
+        );
+    }
+
+    if !media_fill {
+        return format!(
+            "scale=w={}:h={}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad={}:{}:(ow-iw)*{:.6}:(oh-ih)*{:.6}:color=black,crop={}:{}:(in_w-{})*{:.6}:(in_h-{})*{:.6},setsar=1",
+            scaled_w,
+            scaled_h,
+            scaled_w,
+            scaled_h,
+            position_x,
+            position_y,
+            w,
+            h,
+            w,
+            position_x,
+            h,
+            position_y
+        );
+    }
+
     format!(
-        "scale={}:{}:force_original_aspect_ratio=increase,crop={}:{}:(in_w-{})*{:.6}:(in_h-{})*{:.6}",
+        "scale={}:{}:force_original_aspect_ratio=increase,crop={}:{}:(in_w-{})*{:.6}:(in_h-{})*{:.6},setsar=1",
         scaled_w, scaled_h, w, h, w, position_x, h, position_y
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::build_background_fit_filter;
+
+    /// Vérifie que tous les cadrages produisent des pixels carrés avant concaténation.
+    #[test]
+    fn background_fit_filter_normalizes_sample_aspect_ratio() {
+        let contained = build_background_fit_filter(1920, 1080, false, 153.0, -100.0, 0.0, 0.0);
+        let filled = build_background_fit_filter(1920, 1080, true, 100.0, 0.0, 0.0, 0.0);
+
+        assert!(contained.ends_with(",setsar=1"));
+        assert!(filled.ends_with(",setsar=1"));
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -58,6 +109,7 @@ pub fn ffmpeg_preprocess_video(
     media_scale: f64,
     media_position_x: f64,
     media_position_y: f64,
+    media_rotation: f64,
     blur: Option<f64>,
     loop_video: bool,
     performance_profile: ExportPerformanceProfile,
@@ -87,6 +139,7 @@ pub fn ffmpeg_preprocess_video(
         media_scale,
         media_position_x,
         media_position_y,
+        media_rotation,
     )];
 
     // Ajouter le flou si spécifié et > 0
@@ -225,6 +278,7 @@ pub fn create_video_from_image(
     media_scale: f64,
     media_position_x: f64,
     media_position_y: f64,
+    media_rotation: f64,
     blur: Option<f64>,
     performance_profile: ExportPerformanceProfile,
     export_id: &str,
@@ -246,6 +300,7 @@ pub fn create_video_from_image(
         media_scale,
         media_position_x,
         media_position_y,
+        media_rotation,
     )];
 
     if let Some(blur_value) = blur {
@@ -347,8 +402,8 @@ pub fn create_video_from_image(
 /// Prétraite toutes les vidéos de fond pour un export.
 ///
 /// Parcourt les `video_inputs`, calcule les segments pertinents selon `start_time_ms`
-/// et `duration_ms`, puis appelle `ffmpeg_preprocess_video` (ou `create_video_from_image`
-/// pour une image seule). Les résultats sont mis en cache dans `%TEMP%/minbarstudio-preproc`.
+/// et `duration_ms`, puis appelle `ffmpeg_preprocess_video` ou `create_video_from_image`.
+/// Les résultats sont mis en cache dans `%TEMP%/minbarstudio-preproc`.
 ///
 /// # Retourne
 /// La liste des chemins vers les vidéos prétraitées, dans l'ordre.
@@ -364,6 +419,7 @@ pub fn preprocess_background_videos(
     media_scale: f64,
     media_position_x: f64,
     media_position_y: f64,
+    media_rotation: f64,
     blur: Option<f64>,
     performance_profile: ExportPerformanceProfile,
     export_id: &str,
@@ -372,7 +428,7 @@ pub fn preprocess_background_videos(
 ) -> Vec<PreparedBackgroundVideo> {
     let mut out_paths = Vec::new();
     let cache_dir = std::env::temp_dir().join("minbarstudio-preproc");
-    let preproc_cache_version = "fit-v11-media-layout";
+    let preproc_cache_version = "fit-v14-rotation-screen-axes";
     fs::create_dir_all(&cache_dir).ok();
     let total_inputs = video_inputs.len().max(1);
     let clamped_total_s = total_duration_s.max(0.001);
@@ -404,12 +460,18 @@ pub fn preprocess_background_videos(
 
     emit_bg_progress(0);
 
-    // Cas spécial : une seule image → créer une vidéo à partir de l'image
+    // Cas spécial historique : une image sans durée couvre tout l'export.
     if video_inputs.len() == 1
         && ffmpeg_utils::is_image_file(&video_inputs[0].path)
         && video_inputs[0].duration_ms.unwrap_or(0) <= 0
     {
-        let image_path = &video_inputs[0].path;
+        let input = &video_inputs[0];
+        let image_path = &input.path;
+        let clip_media_fill = input.media_fill.unwrap_or(media_fill);
+        let clip_media_scale = input.media_scale.unwrap_or(media_scale);
+        let clip_media_position_x = input.media_position_x.unwrap_or(media_position_x);
+        let clip_media_position_y = input.media_position_y.unwrap_or(media_position_y);
+        let clip_media_rotation = input.media_rotation.unwrap_or(media_rotation);
         let duration_s = if let Some(dur_ms) = duration_ms {
             dur_ms as f64 / 1000.0
         } else {
@@ -428,7 +490,7 @@ pub fn preprocess_background_videos(
         };
         let mtime = file_mtime_sec(image_path);
         let hash_input = format!(
-            "{}-{}-{}x{}-{}-dur{}-mtime{}-profile{:?}-hw{}-fill{}-scale{}-x{}-y{}{}",
+            "{}-{}-{}x{}-{}-dur{}-mtime{}-profile{:?}-hw{}-fill{}-scale{}-x{}-y{}-rotation{}{}",
             preproc_cache_version,
             image_path,
             w,
@@ -438,10 +500,11 @@ pub fn preprocess_background_videos(
             mtime,
             performance_profile,
             prefer_hw,
-            media_fill,
-            media_scale,
-            media_position_x,
-            media_position_y,
+            clip_media_fill,
+            clip_media_scale,
+            clip_media_position_x,
+            clip_media_position_y,
+            clip_media_rotation,
             blur_suffix
         );
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
@@ -466,10 +529,11 @@ pub fn preprocess_background_videos(
                 fps,
                 duration_s,
                 prefer_hw,
-                media_fill,
-                media_scale,
-                media_position_x,
-                media_position_y,
+                clip_media_fill,
+                clip_media_scale,
+                clip_media_position_x,
+                clip_media_position_y,
+                clip_media_rotation,
                 blur,
                 performance_profile,
                 export_id,
@@ -525,12 +589,33 @@ pub fn preprocess_background_videos(
 
     // Détection du cas "direct single pass": une seule vidéo sans blur.
     // La boucle est ignorée plus bas si la source couvre déjà toute la durée nécessaire.
+    let first_input_media_fill = video_inputs
+        .first()
+        .and_then(|input| input.media_fill)
+        .unwrap_or(media_fill);
+    let first_input_media_scale = video_inputs
+        .first()
+        .and_then(|input| input.media_scale)
+        .unwrap_or(media_scale);
+    let first_input_media_position_x = video_inputs
+        .first()
+        .and_then(|input| input.media_position_x)
+        .unwrap_or(media_position_x);
+    let first_input_media_position_y = video_inputs
+        .first()
+        .and_then(|input| input.media_position_y)
+        .unwrap_or(media_position_y);
+    let first_input_media_rotation = video_inputs
+        .first()
+        .and_then(|input| input.media_rotation)
+        .unwrap_or(media_rotation);
     let can_direct_single_pass = !has_timeline_metadata
         && video_inputs.len() == 1
-        && !media_fill
-        && (media_scale - 100.0).abs() < f64::EPSILON
-        && media_position_x.abs() < f64::EPSILON
-        && media_position_y.abs() < f64::EPSILON
+        && !first_input_media_fill
+        && (first_input_media_scale - 100.0).abs() < f64::EPSILON
+        && first_input_media_position_x.abs() < f64::EPSILON
+        && first_input_media_position_y.abs() < f64::EPSILON
+        && first_input_media_rotation.abs() < f64::EPSILON
         && !blur.map_or(false, |b| b > 0.0);
 
     // Parcourir les vidéos et extraire uniquement les segments pertinents
@@ -548,6 +633,11 @@ pub fn preprocess_background_videos(
         let is_loop = input.loop_until_audio_end.unwrap_or(false);
         let clip_start = input.timeline_start_ms.unwrap_or(cum_start).max(0);
         let source_start = input.source_start_ms.unwrap_or(0).max(0);
+        let clip_media_fill = input.media_fill.unwrap_or(media_fill);
+        let clip_media_scale = input.media_scale.unwrap_or(media_scale);
+        let clip_media_position_x = input.media_position_x.unwrap_or(media_position_x);
+        let clip_media_position_y = input.media_position_y.unwrap_or(media_position_y);
+        let clip_media_rotation = input.media_rotation.unwrap_or(media_rotation);
 
         // Si la vidéo boucle, elle peut couvrir tout le reste de la plage
         if is_loop {
@@ -609,7 +699,7 @@ pub fn preprocess_background_videos(
         let should_prefer_hw = prefer_hw && !(cfg!(target_os = "macos") && is_loop);
 
         let hash_input = format!(
-            "{}-{}-{}x{}-{}-start{}-len{}-mtime{}-profile{:?}-hw{}-fill{}-scale{}-x{}-y{}{}{}",
+            "{}-{}-{}x{}-{}-start{}-len{}-mtime{}-profile{:?}-hw{}-fill{}-scale{}-x{}-y{}-rotation{}{}{}",
             preproc_cache_version,
             vid_path,
             w,
@@ -620,10 +710,11 @@ pub fn preprocess_background_videos(
             mtime,
             performance_profile,
             should_prefer_hw,
-            media_fill,
-            media_scale,
-            media_position_x,
-            media_position_y,
+            clip_media_fill,
+            clip_media_scale,
+            clip_media_position_x,
+            clip_media_position_y,
+            clip_media_rotation,
             blur_suffix,
             loop_suffix
         );
@@ -680,10 +771,11 @@ pub fn preprocess_background_videos(
                     fps,
                     expected_duration_s,
                     should_prefer_hw,
-                    media_fill,
-                    media_scale,
-                    media_position_x,
-                    media_position_y,
+                    clip_media_fill,
+                    clip_media_scale,
+                    clip_media_position_x,
+                    clip_media_position_y,
+                    clip_media_rotation,
                     blur,
                     performance_profile,
                     export_id,
@@ -699,10 +791,11 @@ pub fn preprocess_background_videos(
                     should_prefer_hw,
                     Some(start_within as i32),
                     Some(take_ms as i32),
-                    media_fill,
-                    media_scale,
-                    media_position_x,
-                    media_position_y,
+                    clip_media_fill,
+                    clip_media_scale,
+                    clip_media_position_x,
+                    clip_media_position_y,
+                    clip_media_rotation,
                     blur,
                     is_loop,
                     performance_profile,

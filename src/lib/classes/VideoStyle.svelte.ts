@@ -75,6 +75,7 @@ export type GlobalAnimationStyleName =
 	| 'video-dimension'
 	| 'media-fill'
 	| 'media-scale'
+	| 'media-rotation'
 	| 'media-position-x'
 	| 'media-position-y'
 	| 'fade-duration'
@@ -137,7 +138,8 @@ export type LineBackgroundStyleName =
 	| 'line-background-enable'
 	| 'line-background-color'
 	| 'line-background-position'
-	| 'line-background-height';
+	| 'line-background-height'
+	| 'line-background-roundness';
 
 export type AnimationStyleName = 'scale' | 'rotation';
 
@@ -319,7 +321,31 @@ function getNonArabicSubtitleCategories(categories: RawCategory[]): RawCategory[
 	return categories;
 }
 
-const GLOBAL_OVERLAY_STYLE_IDS = new Set<OverlayStyleName>([
+/**
+ * Applique le preset de mise en page initial d'un sous-titre selon l'orientation vidéo.
+ * @param {StylesData} styles Styles du sous-titre à initialiser.
+ * @param {'arabic' | 'translation'} target Type de sous-titre.
+ * @param {boolean} portrait Indique si la vidéo est en portrait.
+ * @returns {void}
+ */
+export function applySubtitleCreationLayout(
+	styles: StylesData,
+	target: 'arabic' | 'translation',
+	portrait: boolean
+): void {
+	styles.setStyle('font-size', target === 'arabic' ? (portrait ? 60 : 90) : portrait ? 40 : 60);
+	styles.setStyle('vertical-position', target === 'arabic' ? -70 : portrait ? 100 : 175);
+	styles.setStyle('vertical-text-alignment', target === 'arabic' ? 'bottom' : 'top');
+	if (target === 'translation') styles.setStyle('max-height', portrait ? 175 : 265);
+	else if (portrait) styles.setStyle('max-height', 145);
+}
+
+const GLOBAL_CLIP_STYLE_IDS = new Set<StyleName>([
+	'media-fill',
+	'media-scale',
+	'media-rotation',
+	'media-position-x',
+	'media-position-y',
 	'overlay-enable',
 	'overlay-color',
 	'overlay-opacity',
@@ -334,7 +360,14 @@ const GLOBAL_OVERLAY_STYLE_IDS = new Set<OverlayStyleName>([
 	'background-overlay-fade-width',
 	'background-overlay-fade-height',
 	'overlay-custom-css',
-	'overlay-blur'
+	'overlay-blur',
+	'video-frame-enable',
+	'video-frame-content-above',
+	'video-frame-color',
+	'video-frame-vertical-size',
+	'video-frame-horizontal-size',
+	'video-frame-radius',
+	'video-frame-softness'
 ]);
 
 const RUNTIME_LAYOUT_STYLE_IDS = new Set<StyleName>(['reactive-font-size', 'reactive-y-position']);
@@ -501,8 +534,13 @@ function collectStyleKeyframeTimes(style: Style): number[] {
 	return [...ownTimes, ...(style.value as Style[]).flatMap(collectStyleKeyframeTimes)];
 }
 
-function isGlobalOverlayStyleId(styleId: StyleName): styleId is OverlayStyleName {
-	return GLOBAL_OVERLAY_STYLE_IDS.has(styleId as OverlayStyleName);
+/**
+ * Vérifie si un réglage global accepte une valeur locale à un clip média.
+ * @param {StyleName} styleId Identifiant du réglage.
+ * @returns {boolean} `true` si la sélection média peut le modifier.
+ */
+export function isGlobalClipStyleId(styleId: StyleName): boolean {
+	return GLOBAL_CLIP_STYLE_IDS.has(styleId);
 }
 
 export class Style extends SerializableBase {
@@ -1070,7 +1108,7 @@ export class StylesData extends SerializableBase {
 			this.findStyle(styleId)?.setKeyframe(time, value);
 			return;
 		}
-		if (this.target === 'global' && !isGlobalOverlayStyleId(styleId)) return;
+		if (this.target === 'global' && !isGlobalClipStyleId(styleId)) return;
 		const normalizedTime = Math.max(0, Math.floor(time));
 		for (const clipId of clipIds) {
 			this.overrideKeyframes[clipId] ??= {};
@@ -1152,8 +1190,8 @@ export class StylesData extends SerializableBase {
 	setStyleForClips(clipIds: number[], styleId: StyleName, value: StyleOverrideValue) {
 		ProjectHistoryManager.begin('set clip style override');
 		try {
-			// Cas spécial: sur le target global, on n'autorise les overrides que pour la catégorie overlay.
-			if (this.target === 'global' && !isGlobalOverlayStyleId(styleId)) {
+			// Les valeurs locales ciblent uniquement les réglages média compatibles.
+			if (this.target === 'global' && !isGlobalClipStyleId(styleId)) {
 				return;
 			}
 
@@ -1191,8 +1229,8 @@ export class StylesData extends SerializableBase {
 	clearStyleForClips(clipIds: number[], styleId: StyleName): void {
 		ProjectHistoryManager.begin('clear clip style override');
 		try {
-			// Cas spécial: sur le target global, on n'autorise les overrides que pour la catégorie overlay.
-			if (this.target === 'global' && !isGlobalOverlayStyleId(styleId)) {
+			// Les valeurs locales ciblent uniquement les réglages média compatibles.
+			if (this.target === 'global' && !isGlobalClipStyleId(styleId)) {
 				return;
 			}
 
@@ -1238,7 +1276,7 @@ export class StylesData extends SerializableBase {
 			time ?? globalState.currentProject?.projectEditorState?.timeline.cursorPosition ?? 0;
 
 		const canUseClipOverride =
-			this.target !== 'global' || (this.target === 'global' && isGlobalOverlayStyleId(styleId));
+			this.target !== 'global' || (this.target === 'global' && isGlobalClipStyleId(styleId));
 
 		// Structure des overrides pour StylesData : overrides[clipId][styleId] = value
 		let value = style ? style.getValueAt(currentTime) : '';
@@ -1297,7 +1335,7 @@ export class StylesData extends SerializableBase {
 	 * @returns true si le clip a un override pour le style, false sinon
 	 */
 	hasOverrideForAny(clipIds: number[], styleId: StyleName): boolean {
-		if (this.target === 'global' && !isGlobalOverlayStyleId(styleId)) return false;
+		if (this.target === 'global' && !isGlobalClipStyleId(styleId)) return false;
 
 		return clipIds.some((clipId) => {
 			const byClip = this.overrides[clipId];
@@ -1519,8 +1557,14 @@ export class VideoStyle extends SerializableBase {
 			// Styles par défaut pour les traductions
 			stylesData.setStyle('font-family', 'Georgia'); // Définit la police par défaut
 			// stylesData.setStyle('max-height', 280); // 3 lignes max
-			stylesData.setStyle('font-size', 60); // Définit la taille de police par défaut
-			stylesData.setStyle('vertical-position', 70); // Définit la hauteur de ligne par défaut
+			const dimensions = this.getStylesOfTarget('global').findStyle('video-dimension')?.value as
+				| { width: number; height: number }
+				| undefined;
+			applySubtitleCreationLayout(
+				stylesData,
+				'translation',
+				Boolean(dimensions && dimensions.width < dimensions.height)
+			);
 			// Styles spécifiques pour les traductions du Coran et les citations
 			if (target === `${translationEdition}-quran`) {
 				stylesData.setStyle('text-color', '#ffffff');
@@ -1852,6 +1896,9 @@ export class VideoStyle extends SerializableBase {
 	}
 
 	async importStyles(json: VideoStyleFileData) {
+		const stylesState = globalState.getStylesState;
+		const currentPanel = stylesState.currentPanel;
+		const previousGlobalStyles = this.getStylesOfTarget('global');
 		ProjectHistoryManager.begin('import styles');
 		try {
 			// Crée une nouvelle instance VideoStyle à partir des données JSON
@@ -1964,7 +2011,38 @@ export class VideoStyle extends SerializableBase {
 			// Garantit que les styles ajoutes dans les nouvelles versions existent aussi apres import
 			// d'un ancien fichier de styles.
 			await this.ensureStylesSchemaUpToDate();
+			const preservedStyleIds: StyleName[] = [
+				'video-clip-transition',
+				'video-clip-transition-duration',
+				'media-position-x',
+				'media-position-y',
+				'media-scale',
+				'media-rotation'
+			];
+			const globalStyles = this.styles.find((styles) => styles.target === 'global');
+			if (previousGlobalStyles && globalStyles) {
+				for (const id of preservedStyleIds) {
+					const previous = previousGlobalStyles.findStyle(id);
+					const current = globalStyles.findStyle(id);
+					if (previous && current) {
+						current.value = previous.value;
+						current.keyframes = previous.keyframes;
+					}
+					for (const key of ['overrides', 'overrideKeyframes'] as const) {
+						const clipIds = new Set([
+							...Object.keys(previousGlobalStyles[key]),
+							...Object.keys(globalStyles[key])
+						]);
+						for (const clipId of clipIds) {
+							const value = previousGlobalStyles[key][Number(clipId)]?.[id];
+							if (value === undefined) delete globalStyles[key][Number(clipId)]?.[id];
+							else (globalStyles[key][Number(clipId)] ??= {})[id] = value;
+						}
+					}
+				}
+			}
 		} finally {
+			stylesState.currentPanel = currentPanel;
 			ProjectHistoryManager.commit();
 		}
 	}

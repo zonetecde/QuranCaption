@@ -1,8 +1,11 @@
 import { cleanup, render } from 'vitest-browser-svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { tick } from 'svelte';
+import { loadLocale } from '$lib/i18n/i18n-util.sync';
+import { setLocale } from '$lib/i18n/i18n-svelte';
+import Settings from '$lib/classes/Settings.svelte';
 
-import { ProjectContent } from '$lib/classes';
+import { Category, Style, StylesData, Timeline, VideoStyle, ProjectContent } from '$lib/classes';
 import { globalState } from '$lib/runes/main.svelte';
 import { ProjectService } from '$lib/services/ProjectService';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
@@ -22,9 +25,23 @@ vi.mock('$lib/services/DiscordService', () => ({
 
 describe('CreateProjectModal', () => {
 	beforeEach(() => {
+		loadLocale('en');
+		setLocale('en');
+		globalState.settings = new Settings();
 		globalState.currentProject = null;
 		globalState.userProjectsDetails = [];
-		vi.spyOn(ProjectContent, 'getDefaultProjectContent').mockResolvedValue({} as never);
+		const videoStyle = new VideoStyle();
+		videoStyle.styles = [
+			new StylesData('global', [
+				new Category({
+					id: 'general',
+					styles: [new Style({ id: 'video-dimension', value: { width: 1920, height: 1080 } })]
+				})
+			])
+		];
+		vi.spyOn(ProjectContent, 'getDefaultProjectContent').mockResolvedValue(
+			new ProjectContent(new Timeline(), [], undefined, videoStyle)
+		);
 		vi.spyOn(ProjectService, 'save').mockResolvedValue();
 		vi.spyOn(AnalyticsService, 'trackProjectCreated').mockImplementation(() => undefined);
 	});
@@ -52,15 +69,19 @@ describe('CreateProjectModal', () => {
 		reciterInput.value = 'Yasser Al Dosari';
 		reciterInput.dispatchEvent(new Event('input', { bubbles: true }));
 
-		await typeSelect.selectOptions('Prayer');
+		await typeSelect.selectOptions('Khutbah');
+		await component.getByRole('button', { name: 'crop_portrait 9:16 Portrait' }).click();
 		await component.getByRole('button', { name: 'Create Project' }).click();
 		await tick();
 
-		expect(globalState.currentProject?.detail.projectType).toBe('Prayer');
+		expect(globalState.currentProject?.detail.projectType).toBe('Khutbah');
+		expect(
+			globalState.getVideoStyle.getStylesOfTarget('global').findStyle('video-dimension')?.value
+		).toEqual({ width: 1080, height: 1920 });
 		expect(AnalyticsService.trackProjectCreated).toHaveBeenCalledWith(
 			'Ramadan Night 27',
 			'Yasser Al Dosari',
-			'Prayer'
+			'Khutbah'
 		);
 		expect(close).toHaveBeenCalledTimes(1);
 	});

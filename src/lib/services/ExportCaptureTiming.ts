@@ -425,6 +425,7 @@ type CalculateCaptureTimingParams = {
 	subtitleClips: ExportSubtitleCaptureClip[];
 	timedOverlayClips: ExportTimedOverlayCaptureClip[];
 	styleKeyframeTimings?: number[];
+	videoClipChangeTimings?: number[];
 	getCurrentSurah: (time: number) => number;
 };
 
@@ -438,6 +439,7 @@ export type ExportCaptureTimingResult = {
 	hiddenArabicTextTimings?: Set<number>;
 	hiddenArabicTextTimingValues?: Map<number, number>;
 	styleKeyframeTimings: Set<number>;
+	videoClipChangeTimings?: Set<number>;
 };
 
 export type ExportFrameCaptureJob = {
@@ -494,6 +496,7 @@ export function calculateCaptureTimingsForRange({
 	subtitleClips,
 	timedOverlayClips,
 	styleKeyframeTimings = [],
+	videoClipChangeTimings = [],
 	getCurrentSurah
 }: CalculateCaptureTimingParams): ExportCaptureTimingResult {
 	const timingsToTakeScreenshots: number[] = [rangeStart, rangeEnd];
@@ -508,6 +511,7 @@ export function calculateCaptureTimingsForRange({
 	const hiddenArabicTextTimings: Set<number> = new Set();
 	const hiddenArabicTextTimingValues: Map<number, number> = new Map();
 	const capturedStyleKeyframeTimings: Set<number> = new Set();
+	const capturedVideoClipChangeTimings: Set<number> = new Set();
 
 	function add(t: number | undefined | null) {
 		if (t == null) return;
@@ -669,6 +673,13 @@ export function calculateCaptureTimingsForRange({
 		add(roundedTiming);
 	}
 
+	for (const timing of videoClipChangeTimings) {
+		if (timing < rangeStart || timing > rangeEnd) continue;
+		const roundedTiming = Math.round(timing);
+		capturedVideoClipChangeTimings.add(roundedTiming);
+		add(roundedTiming);
+	}
+
 	const uniqueSorted = Array.from(new Set(timingsToTakeScreenshots))
 		.filter((t) => t >= rangeStart && t <= rangeEnd)
 		.sort((a, b) => a - b);
@@ -682,7 +693,8 @@ export function calculateCaptureTimingsForRange({
 		exactCaptureTimingValues,
 		hiddenArabicTextTimings,
 		hiddenArabicTextTimingValues,
-		styleKeyframeTimings: capturedStyleKeyframeTimings
+		styleKeyframeTimings: capturedStyleKeyframeTimings,
+		videoClipChangeTimings: capturedVideoClipChangeTimings
 	};
 }
 
@@ -746,7 +758,8 @@ export function buildExportCaptureJobPlan({
 		const imageIndex = Math.max(Math.round(timing - rangeStart + base + nextImageIndexOffset), 0);
 		imageIndexesByTiming.set(timing, imageIndex);
 		const blankTimingInfo = hasTiming(timings.blankImgs, timing);
-		const isBlankImage = isBlankCaptureTiming(timing);
+		const isVideoClipChange = timings.videoClipChangeTimings?.has(timing) ?? false;
+		const isBlankImage = !isVideoClipChange && isBlankCaptureTiming(timing);
 
 		if (isBlankImage) {
 			blankImageIndexes.add(imageIndex);
@@ -757,7 +770,7 @@ export function buildExportCaptureJobPlan({
 			sourceTimingForDuplication !== undefined
 				? imageIndexesByTiming.get(sourceTimingForDuplication)
 				: undefined;
-		if (sourceIndex !== undefined) {
+		if (!isVideoClipChange && sourceIndex !== undefined) {
 			copyJobs.push({
 				kind: 'copy',
 				timing,
@@ -766,6 +779,7 @@ export function buildExportCaptureJobPlan({
 				reason: 'duplicable'
 			});
 		} else if (
+			!isVideoClipChange &&
 			blankTimingInfo.hasIt &&
 			blankTimingInfo.key &&
 			hasBlankImg(timings.imgWithNothingShown, blankTimingInfo.key)
@@ -788,7 +802,8 @@ export function buildExportCaptureJobPlan({
 				imageIndex,
 				fileName: `${imageIndex}`,
 				isBlankImage,
-				reusableBlankFileName: isBlankImage ? null : getReusableBlankFileName(timing),
+				reusableBlankFileName:
+					isBlankImage || isVideoClipChange ? null : getReusableBlankFileName(timing),
 				hideArabicText: false
 			};
 			captureJobs.push(job);

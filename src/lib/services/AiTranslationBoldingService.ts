@@ -1,3 +1,4 @@
+import { getSubtitleVerseKeyLabel } from '$lib/services/SubtitleNavigation';
 import { invoke } from '@tauri-apps/api/core';
 
 import type { Edition, SubtitleClip } from '$lib/classes';
@@ -201,7 +202,7 @@ export function buildAiBoldCandidates(
 
 			return {
 				segmentIndex,
-				verseKey: subtitle.getVerseKey(),
+				verseKey: getSubtitleVerseKeyLabel(subtitle),
 				startTime: subtitle.startTime,
 				endTime: subtitle.endTime,
 				segmentArabic: subtitle.text,

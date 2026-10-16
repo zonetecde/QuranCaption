@@ -1,3 +1,4 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { cleanup, render } from 'vitest-browser-svelte';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { tick } from 'svelte';
@@ -62,6 +63,7 @@ type MockStyleTarget = {
 	generateCSS: (clipId?: number) => string;
 	generateTailwind: () => string;
 	getEffectiveValue: (styleId: string) => string | number | boolean | null;
+	getEffectiveVisibilityOpacity: (styleId: string) => number;
 	setStyle: (styleId: string, value: string | number | boolean | null) => void;
 };
 
@@ -151,6 +153,14 @@ function createMockVideoStyle(targets: string[]): MockVideoStyle {
 			getEffectiveValue(styleId: string) {
 				return this.findStyle(styleId).value;
 			},
+			/**
+			 * Résout la visibilité des styles simulés comme le ferait le moteur de styles.
+			 * @param {string} styleId Identifiant du style de visibilité.
+			 * @returns {number} Opacité effective.
+			 */
+			getEffectiveVisibilityOpacity(styleId: string) {
+				return this.findStyle(styleId).value ? 1 : 0;
+			},
 			setStyle(styleId: string, value: string | number | boolean | null) {
 				this.findStyle(styleId).value = value;
 			}
@@ -182,10 +192,22 @@ function createVerseSubtitle(
 	translationText: string,
 	surah: number = 1,
 	verse: number = 1
-): SubtitleClip {
-	return new SubtitleClip(startTime, endTime, surah, verse, 0, 1, arabicText, [], false, false, {
-		english: new VerseTranslation(translationText, 'reviewed')
-	});
+): QuranSubtitleClip {
+	return new QuranSubtitleClip(
+		startTime,
+		endTime,
+		surah,
+		verse,
+		0,
+		1,
+		arabicText,
+		[],
+		false,
+		false,
+		{
+			english: new VerseTranslation(translationText, 'reviewed')
+		}
+	);
 }
 
 function createTimedTranscriptSubtitle(
@@ -256,7 +278,7 @@ function createLastWordsQpcSubtitle(
 	startWordIndex: number,
 	endWordIndex: number
 ): SubtitleClip {
-	return new SubtitleClip(
+	return new QuranSubtitleClip(
 		startTime,
 		endTime,
 		surah,
@@ -800,10 +822,10 @@ describe('Video overlay subtitle preview', () => {
 	});
 
 	test('removes overlapping words inside merged clips for arabic and translations', async () => {
-		const firstClip = new SubtitleClip(0, 999, 1, 1, 0, 2, 'w1 w2 w3', [], false, false, {
+		const firstClip = new QuranSubtitleClip(0, 999, 1, 1, 0, 2, 'w1 w2 w3', [], false, false, {
 			english: new VerseTranslation('t1 t2 t3', 'reviewed')
 		});
-		const secondClip = new SubtitleClip(1000, 1999, 1, 1, 1, 3, 'w2 w3 w4', [], false, false, {
+		const secondClip = new QuranSubtitleClip(1000, 1999, 1, 1, 1, 3, 'w2 w3 w4', [], false, false, {
 			english: new VerseTranslation('t2 t3 t4', 'reviewed')
 		});
 		applyVisualMerge([firstClip, secondClip], 'both');
@@ -1558,7 +1580,7 @@ describe('Word-by-word highlight', () => {
 	});
 
 	test('re-highlights overlapping words in the next merged clip', async () => {
-		const firstClip = new SubtitleClip(0, 2999, 1, 1, 0, 2, 'w1 w2 w3', [], false, false);
+		const firstClip = new QuranSubtitleClip(0, 2999, 1, 1, 0, 2, 'w1 w2 w3', [], false, false);
 		firstClip.alignmentMetadata = {
 			source: 'local',
 			segment: 0,
@@ -1573,7 +1595,7 @@ describe('Word-by-word highlight', () => {
 				{ location: '1:1:3', start: 1, end: 3 }
 			]
 		};
-		const secondClip = new SubtitleClip(3000, 5999, 1, 1, 1, 3, 'w2 w3 w4', [], false, false);
+		const secondClip = new QuranSubtitleClip(3000, 5999, 1, 1, 1, 3, 'w2 w3 w4', [], false, false);
 		secondClip.alignmentMetadata = {
 			source: 'local',
 			segment: 1,
@@ -1652,7 +1674,7 @@ describe('Word-by-word highlight', () => {
 			'تُرابًا'
 		];
 		vi.spyOn(MinimalQuranProvider, 'getVerseWordsSlice').mockReturnValue(minimalWords);
-		const clip = new SubtitleClip(
+		const clip = new QuranSubtitleClip(
 			0,
 			1499,
 			78,
@@ -1742,7 +1764,7 @@ describe('Translation inline styles', () => {
 	});
 
 	test('renders translation with bold inline style', async () => {
-		const clip = new SubtitleClip(0, 999, 1, 1, 0, 2, 'Arabic text', [], false, false, {
+		const clip = new QuranSubtitleClip(0, 999, 1, 1, 0, 2, 'Arabic text', [], false, false, {
 			english: new VerseTranslation('Bold translation word', 'reviewed')
 		});
 		const verseTrans = clip.translations['english'] as VerseTranslation;
@@ -1768,7 +1790,7 @@ describe('Translation inline styles', () => {
 	});
 
 	test('renders translation with color inline style', async () => {
-		const clip = new SubtitleClip(0, 999, 1, 1, 0, 1, 'Arabic', [], false, false, {
+		const clip = new QuranSubtitleClip(0, 999, 1, 1, 0, 1, 'Arabic', [], false, false, {
 			english: new VerseTranslation('Colored word', 'reviewed')
 		});
 		const verseTrans = clip.translations['english'] as VerseTranslation;

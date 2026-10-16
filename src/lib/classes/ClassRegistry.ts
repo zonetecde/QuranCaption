@@ -1,3 +1,7 @@
+import {
+	QuranSubtitleClip,
+	migrateLegacySubtitleData
+} from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { SerializableBase } from './misc/SerializableBase';
 import { Asset, Category, Style, StylesData, VerseRange, VideoStyle } from '.';
 import {
@@ -58,7 +62,8 @@ export function initializeClassRegistry() {
 	SerializableBase.registerClass('AssetTrack', AssetTrack);
 	SerializableBase.registerClass('SubtitleTrack', SubtitleTrack);
 	SerializableBase.registerClass('CustomTextTrack', CustomTextTrack);
-	SerializableBase.registerClass('SubtitleClip', SubtitleClip);
+	SerializableBase.registerClass('SubtitleClip', SubtitleClip, migrateLegacySubtitleData);
+	SerializableBase.registerClass('QuranSubtitleClip', QuranSubtitleClip);
 	SerializableBase.registerClass('CustomClip', CustomClip);
 	SerializableBase.registerClass('CustomTextClip', CustomTextClip);
 	SerializableBase.registerClass('CustomImageClip', CustomImageClip);

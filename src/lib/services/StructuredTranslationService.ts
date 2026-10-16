@@ -1,7 +1,7 @@
 import {
 	parseQuranTranscriptReference,
 	type QuranTranscriptReference
-} from '$lib/services/TranscriptReferenceService';
+} from '$lib/services/TranscriptMarkup';
 
 const MARKER_REGEX = /\{\{([^{}]*)\}\}/g;
 

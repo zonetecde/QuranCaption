@@ -1,3 +1,4 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { describe, expect, it } from 'vitest';
 
 import { SubtitleClip } from '$lib/classes/Clip.svelte';
@@ -26,7 +27,7 @@ function createClip(
 	legacyQuran = false
 ): SubtitleClip {
 	const clip = legacyQuran
-		? new SubtitleClip(
+		? new QuranSubtitleClip(
 				startTime,
 				startTime + 4000,
 				2,

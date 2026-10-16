@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
+
 	import { SubtitleClip } from '$lib/classes';
 	import {
 		ClipWithTranslation,
@@ -617,7 +619,7 @@
 	 */
 	function canShowAutomaticSplitForWord(wordIndex: number): boolean {
 		const editSubtitle = subtitlesEditorState().editSubtitle;
-		if (!(editSubtitle instanceof SubtitleClip)) return false;
+		if (!(editSubtitle instanceof QuranSubtitleClip)) return false;
 		if (!editSubtitle.alignmentMetadata) return false;
 		if (wordIndex < editSubtitle.startWordIndex || wordIndex >= editSubtitle.endWordIndex)
 			return false;
@@ -639,7 +641,7 @@
 		if (!canShowAutomaticSplitForWord(wordIndex)) {
 			const editSubtitle = subtitlesEditorState().editSubtitle;
 			if (
-				editSubtitle instanceof SubtitleClip &&
+				editSubtitle instanceof QuranSubtitleClip &&
 				editSubtitle.alignmentMetadata &&
 				editSubtitle.alignmentMetadata.words.length === 0
 			) {
@@ -673,7 +675,7 @@
 		currentMenu.set(null);
 		await tick();
 
-		if (wordIndex === null || !(editSubtitle instanceof SubtitleClip)) return;
+		if (wordIndex === null || !(editSubtitle instanceof QuranSubtitleClip)) return;
 		if (
 			!segmentationContext.includeWbwTimestamps &&
 			(editSubtitle.alignmentMetadata?.words.length ?? 0) === 0
@@ -706,7 +708,7 @@
 	$effect(() => {
 		const editSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
 		untrack(() => {
-			if (editSubtitle && editSubtitle instanceof SubtitleClip) {
+			if (editSubtitle && editSubtitle instanceof QuranSubtitleClip) {
 				// Met l'éditeur de sous-titres à la position du verset à éditer
 				if (globalState.shared.wbwEdit.active) return;
 				subtitlesEditorState().selectedSurah = editSubtitle.surah;

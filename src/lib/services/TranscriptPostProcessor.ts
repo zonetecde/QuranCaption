@@ -2,7 +2,7 @@ import type {
 	AITranscriptionResult,
 	AITranscriptionSegment,
 	AITranscriptionWord
-} from '$lib/services/AITranscription';
+} from '$lib/types/transcription';
 
 const ARABIC_LETTER_REGEX = /[\u0621-\u063A\u0641-\u064A]/u;
 const ARABIC_DIACRITICS_REGEX = /[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/gu;
@@ -1276,6 +1276,45 @@ export function segmentProcessedTranscript(
 }
 
 /**
+ * Reconstruit un projet édité dans ses limites existantes pour conserver les identités et les éditions.
+ * @param {ProcessedTranscriptToken[]} tokens Mots corrigés et annotés.
+ * @param {AITranscriptionResult} source Sous-titres source portant leurs identifiants.
+ * @returns {AITranscriptionSegment[]} Sous-titres corrigés sans redécouper le travail existant.
+ */
+function restoreEditedTranscriptSegments(
+	tokens: ProcessedTranscriptToken[],
+	source: AITranscriptionResult
+): AITranscriptionSegment[] {
+	const grouped = new Map<number, ProcessedTranscriptToken[]>();
+	for (const token of tokens) {
+		const midpoint = (token.start + token.end) / 2;
+		const owner = source.segments.reduce((nearest, segment) => {
+			const distance = Math.max(segment.start - midpoint, 0, midpoint - segment.end);
+			const nearestDistance = Math.max(nearest.start - midpoint, 0, midpoint - nearest.end);
+			return distance < nearestDistance ? segment : nearest;
+		});
+		const words = grouped.get(owner.clipId!) ?? [];
+		words.push(token);
+		grouped.set(owner.clipId!, words);
+	}
+	return source.segments.map((segment) => {
+		const words = grouped.get(segment.clipId!);
+		if (!words?.length) return segment;
+		return {
+			...segment,
+			text: renderProcessedSubtitleText(words),
+			words: words.map((token) => ({
+				word: token.text,
+				start: token.start,
+				end: token.end,
+				confidence: token.confidence,
+				speaker: token.speaker
+			}))
+		};
+	});
+}
+
+/**
  * Applique les opérations de contenu validées avant toute décision de segmentation.
  * @param {AITranscriptionResult} source Résultat ASR original.
  * @param {ProcessedTranscriptToken[]} preparedTokens Tokens protégés par la première passe Quran.
@@ -1344,7 +1383,10 @@ export function finalizeTranscriptProcessing(
 ): TranscriptProcessingReport {
 	const prepared = prepareFinalTranscriptTokens(source, preparedTokens, corpus, analysis);
 	const annotated = applyTranscriptSemanticBoundaries(prepared.tokens, semanticBoundaries);
-	const segments = segmentProcessedTranscript(annotated, settings);
+	const segments =
+		source.segments.length > 0 && source.segments.every((segment) => segment.clipId !== undefined)
+			? restoreEditedTranscriptSegments(annotated, source)
+			: segmentProcessedTranscript(annotated, settings);
 	const quoteIds = new Set(annotated.map((token) => token.quoteId).filter((id) => id !== null));
 	return {
 		result: {

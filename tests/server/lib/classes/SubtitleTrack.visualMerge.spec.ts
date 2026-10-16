@@ -1,3 +1,4 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PredefinedSubtitleClip, SilenceClip, SubtitleClip } from '$lib/classes/Clip.svelte';
@@ -24,8 +25,19 @@ describe('subtitle visual merge helpers', () => {
 	 * @param {number} verse Numero de verset.
 	 * @returns {SubtitleClip} Clip Quran cree.
 	 */
-	function createSubtitle(startTime: number, endTime: number, verse: number): SubtitleClip {
-		return new SubtitleClip(startTime, endTime, 1, verse, 0, 0, `Verse ${verse}`, [], true, true);
+	function createSubtitle(startTime: number, endTime: number, verse: number): QuranSubtitleClip {
+		return new QuranSubtitleClip(
+			startTime,
+			endTime,
+			1,
+			verse,
+			0,
+			0,
+			`Verse ${verse}`,
+			[],
+			true,
+			true
+		);
 	}
 
 	it('accepts a consecutive Quran-only selection', () => {

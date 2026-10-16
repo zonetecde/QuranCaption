@@ -1,3 +1,4 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import toast from 'svelte-5-french-toast';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
@@ -194,7 +195,7 @@ export async function runNativeSegmentation(
 				surahId
 			);
 
-			const clip = new SubtitleClip(
+			const clip = new QuranSubtitleClip(
 				Math.max(0, absStart),
 				Math.max(0, absEnd),
 				surahId,
@@ -236,7 +237,7 @@ export async function runNativeSegmentation(
 		// 8. Remplacer le premier silence par une basmala si pertinent
 		const firstClip = subtitleTrack.clips[0];
 		const secondClip = subtitleTrack.clips[1];
-		if (firstClip && firstClip instanceof SilenceClip && secondClip instanceof SubtitleClip) {
+		if (firstClip && firstClip instanceof SilenceClip && secondClip instanceof QuranSubtitleClip) {
 			const basmalaClip = new PredefinedSubtitleClip(
 				firstClip.startTime,
 				firstClip.endTime,
@@ -249,7 +250,9 @@ export async function runNativeSegmentation(
 		globalState.updateVideoPreviewUI();
 		globalState.getSubtitlesEditorState.initialLowConfidenceCount = 0;
 
-		toast.success(get(LL).editor.appliedSubtitlesFromMp3Quran({ count: segmentsApplied }), { id: toastId });
+		toast.success(get(LL).editor.appliedSubtitlesFromMp3Quran({ count: segmentsApplied }), {
+			id: toastId
+		});
 
 		return {
 			status: 'completed',

@@ -9,10 +9,9 @@ import {
 import { ProjectEditorTabs } from './enums';
 import { SerializableBase } from './misc/SerializableBase';
 import { globalState } from '$lib/runes/main.svelte';
-import ModalManager from '$lib/components/modals/ModalManager';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
-import type { AITranscriptionResult, SpeakerNameMap } from '$lib/services/AITranscription';
+import type { AITranscriptionResult, SpeakerNameMap } from '$lib/types/transcription';
 import type { TranscriptAiAnalysis } from '$lib/services/TranscriptPostProcessor';
 import type { StoredSegmentationContext } from '$lib/services/autoSegmentation/types';
 
@@ -317,6 +316,7 @@ export class VideoPreviewState extends SerializableBase {
 				globalState.currentProject!.projectEditorState.videoPreview.isFullscreen
 			);
 		} catch (err: unknown) {
+			const { default: ModalManager } = await import('$lib/components/modals/ModalManager');
 			ModalManager.errorModal(
 				get(LL).common.error(),
 				get(LL).common.unexpectedError(),

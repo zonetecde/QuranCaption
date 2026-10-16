@@ -1,6 +1,7 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { Quran } from '$lib/classes/Quran';
 import type { SubtitleClip, TranscriptWordTiming } from '$lib/classes/Clip.svelte';
-import type { AITranscriptionResult } from '$lib/services/AITranscription';
+import type { AITranscriptionResult } from '$lib/types/transcription';
 import {
 	getTranscriptReferenceLogicalParts,
 	type QuranTranscriptReference,
@@ -162,7 +163,7 @@ async function buildAssignedTranscriptBandWords(
 	for (const clip of orderedClips) {
 		const sourceWords = clip.alignmentMetadata?.words ?? [];
 		const legacyQuranReference =
-			getTranscriptReferenceLogicalParts(clip.text) === null && clip.surah > 0 && clip.verse > 0
+			getTranscriptReferenceLogicalParts(clip.text) === null && clip instanceof QuranSubtitleClip
 				? {
 						surah: clip.surah,
 						verse: clip.verse,

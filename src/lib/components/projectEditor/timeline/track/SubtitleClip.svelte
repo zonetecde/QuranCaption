@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
+
 	import {
 		PredefinedSubtitleClip,
 		SubtitleClip,
@@ -26,7 +28,7 @@
 		sliceTranslationTrimUnits,
 		VerseTranslation
 	} from '$lib/classes/Translation.svelte';
-	import { getTranscriptReferenceRenderParts } from '$lib/services/TranscriptReferenceService';
+	import { getTranscriptReferenceRenderParts } from '$lib/components/projectEditor/videoPreview/helpers/transcriptReferences';
 	import { getStructuredTranslationDraft } from '$lib/services/StructuredTranslationService';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
@@ -213,7 +215,10 @@
 		if (!(clip instanceof SubtitleClip) || !word.location)
 			return String(word.location ?? '').trim();
 
-		const relativeWordIndex = Number(word.location.split(':')[2]) - clip.startWordIndex - 1;
+		const relativeWordIndex =
+			clip instanceof QuranSubtitleClip
+				? Number(word.location.split(':')[2]) - clip.startWordIndex - 1
+				: (clip.alignmentMetadata?.words.indexOf(word as never) ?? -1);
 		const clipWords = clip.text.split(/\s+/).filter(Boolean);
 		const fallbackLabel = clipWords[relativeWordIndex];
 
@@ -571,7 +576,8 @@
 
 		currentMenu.set(null);
 		await tick();
-		await ModalManager.bookmarkVerseModal(clip.surah, clip.verse);
+		if (clip instanceof QuranSubtitleClip)
+			await ModalManager.bookmarkVerseModal(clip.surah, clip.verse);
 	}
 
 	/**

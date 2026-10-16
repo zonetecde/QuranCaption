@@ -1,3 +1,4 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import toast from 'svelte-5-french-toast';
 import { Quran } from '$lib/classes/Quran';
 import { PredefinedSubtitleClip, SilenceClip, SubtitleClip, type Translation } from '$lib/classes';
@@ -200,7 +201,7 @@ async function materializeTemplate(
 		template.surah
 	);
 
-	const clip: SubtitleClip = new SubtitleClip(
+	const clip: SubtitleClip = new QuranSubtitleClip(
 		startMs,
 		endMs,
 		template.surah,

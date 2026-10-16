@@ -1,3 +1,4 @@
+import type { Project } from '$lib/classes/Project';
 import { invoke } from '@tauri-apps/api/core';
 import { SilenceClip, SubtitleClip } from '$lib/classes';
 import {
@@ -16,48 +17,21 @@ import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryMana
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 
-export type AITranscriptionRuntimeStatus = {
-	ready: boolean;
-	venvExists: boolean;
-	packagesInstalled: boolean;
-	missingModules?: string[];
-	message: string;
-};
-
-export type AITranscriptionWord = {
-	word: string;
-	start: number;
-	end: number;
-	confidence?: number | null;
-	speaker?: string;
-};
-
-export type AITranscriptionSegment = {
-	start: number;
-	end: number;
-	text: string;
-	speaker: string;
-	confidence?: number | null;
-	words: AITranscriptionWord[];
-};
-
-export type AITranscriptionResult = {
-	language: string;
-	device: string;
-	model: string;
-	segments: AITranscriptionSegment[];
-	speakers: string[];
-	wordTimestampsAvailable: boolean;
-	alignmentWarning?: string | null;
-	gpuFallbackReason?: string;
-};
-
-export type SpeakerNameMap = Record<string, string>;
-
-export type AppliedAITranscription = {
-	count: number;
-	clipIds: number[];
-};
+export type {
+	AITranscriptionRuntimeStatus,
+	AITranscriptionWord,
+	AITranscriptionSegment,
+	AITranscriptionResult,
+	SpeakerNameMap,
+	AppliedAITranscription
+} from '$lib/types/transcription';
+import type {
+	AITranscriptionRuntimeStatus,
+	AITranscriptionSegment,
+	AITranscriptionResult,
+	SpeakerNameMap,
+	AppliedAITranscription
+} from '$lib/types/transcription';
 
 export type SubtitleRetranscriptionCandidate = {
 	text: string;
@@ -319,19 +293,39 @@ export function padAITranscriptionSilences(
 	return padded;
 }
 
+/**
+ * Applique un résultat au projet actif en préservant les éditions des sous-titres identifiés.
+ * @param {AITranscriptionResult} result Résultat du moteur.
+ * @param {SpeakerNameMap} speakerMap Noms des intervenants.
+ * @param {boolean} replaceExisting Remplace les sous-titres existants si aucun identifiant n'est fourni.
+ * @param {number[]} replaceClipIds Identifiants des clips issus de ce traitement.
+ * @param {Project | null} project Projet ayant démarré le traitement.
+ * @returns {AppliedAITranscription} Identifiants et nombre de sous-titres appliqués.
+ */
 export function applyAITranscription(
 	result: AITranscriptionResult,
 	speakerMap: SpeakerNameMap,
 	replaceExisting: boolean,
-	replaceClipIds: number[] = []
+	replaceClipIds: number[] = [],
+	project: Project | null = globalState.currentProject
 ): AppliedAITranscription {
+	if (!project || globalState.currentProject !== project)
+		throw new Error(get(LL).common.unexpectedError());
 	const track = globalState.getSubtitleTrack;
 	const transcriptionSettings = globalState.settings?.aiTranscriptionSettings;
-	const generated = padAITranscriptionSilences(
-		normalizeAITranscriptionSegments(result.segments),
-		transcriptionSettings?.subtitleEndPaddingMs ?? 250,
-		transcriptionSettings?.subtitleStartLeadMs ?? 150
-	)
+	const replacedIds = new Set(replaceClipIds);
+	const previousClips = track.clips.filter(
+		(clip): clip is SubtitleClip => clip instanceof SubtitleClip && replacedIds.has(clip.id)
+	);
+	const normalizedSegments = normalizeAITranscriptionSegments(result.segments);
+	const preparedSegments = result.segments.every((segment) => segment.clipId !== undefined)
+		? normalizedSegments
+		: padAITranscriptionSilences(
+				normalizedSegments,
+				transcriptionSettings?.subtitleEndPaddingMs ?? 250,
+				transcriptionSettings?.subtitleStartLeadMs ?? 150
+			);
+	const generated = preparedSegments
 		.map((segment) => {
 			const startMs = Math.max(0, Math.round(Number(segment.start) * 1000));
 			const endMs = Math.max(startMs + 1, Math.round(Number(segment.end) * 1000));
@@ -339,16 +333,35 @@ export function applyAITranscription(
 			if (!text || !Number.isFinite(startMs) || !Number.isFinite(endMs)) return null;
 			const mappedSpeaker =
 				speakerMap[segment.speaker]?.trim() || segment.speaker || 'Unknown speaker';
-			return new SubtitleClip(
-				startMs,
-				endMs,
-				text,
-				mappedSpeaker,
-				{},
-				true,
-				typeof segment.confidence === 'number' ? segment.confidence : null,
-				buildAlignmentMetadata(segment)
+			const previous = previousClips.find(
+				(clip) =>
+					segment.clipId === clip.id || (clip.startTime === startMs && clip.endTime === endMs)
 			);
+			const clip = previous
+				? SubtitleClip.prototype.cloneWithTimes.call(previous, startMs, endMs)
+				: new SubtitleClip(
+						startMs,
+						endMs,
+						text,
+						mappedSpeaker,
+						project.content.projectTranslation.createTranslationsForSubtitleText(text),
+						true,
+						typeof segment.confidence === 'number' ? segment.confidence : null,
+						buildAlignmentMetadata(segment)
+					);
+			if (previous) {
+				clip.id = previous.id;
+				clip.text = text;
+				clip.speaker = mappedSpeaker;
+				clip.alignmentMetadata = buildAlignmentMetadata(segment);
+				if (previous.text !== text) {
+					clip.hasBeenVerified = false;
+					for (const translation of Object.values(clip.translations)) {
+						if (translation.text.trim()) translation.status = 'to review';
+					}
+				}
+			}
+			return clip;
 		})
 		.filter((clip): clip is SubtitleClip => clip !== null);
 
@@ -367,7 +380,6 @@ export function applyAITranscription(
 	ProjectHistoryManager.begin('apply AI transcription');
 	try {
 		globalState.getSubtitlesEditorState.rawTranscription = result;
-		const replacedIds = new Set(replaceClipIds);
 		const preservedClips =
 			replacedIds.size > 0
 				? track.clips.filter((clip) => !replacedIds.has(clip.id))
@@ -421,6 +433,7 @@ export function buildAITranscriptionFromSubtitleTrack(): {
 			device: 'project',
 			model: 'project',
 			segments: subtitles.map((clip) => ({
+				clipId: clip.id,
 				start: clip.startTime / 1000,
 				end: clip.endTime / 1000,
 				text: clip.text,

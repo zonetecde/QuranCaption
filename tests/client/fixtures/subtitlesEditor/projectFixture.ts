@@ -1,3 +1,4 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { vi, type MockInstance } from 'vitest';
 
 import { globalState } from '$lib/runes/main.svelte';
@@ -172,9 +173,9 @@ export function setupSubtitlesEditorProjectFixture(
 		timelineCursorPosition = 0,
 		quranSurahs,
 		clips = [
-			new SubtitleClip(0, 999, 1, 1, 0, 1, 'First subtitle', [], true, false),
-			new SubtitleClip(1000, 1999, 1, 2, 0, 0, 'Second subtitle', [], true, false),
-			new SubtitleClip(2000, 2999, 2, 2, 1, 2, 'Third subtitle', [], false, false)
+			new QuranSubtitleClip(0, 999, 1, 1, 0, 1, 'First subtitle', [], true, false),
+			new QuranSubtitleClip(1000, 1999, 1, 2, 0, 0, 'Second subtitle', [], true, false),
+			new QuranSubtitleClip(2000, 2999, 2, 2, 1, 2, 'Third subtitle', [], false, false)
 		],
 		editSubtitle = null,
 		pendingSplitEditNextId = null

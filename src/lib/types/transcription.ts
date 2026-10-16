@@ -1,0 +1,75 @@
+export type AITranscriptionRuntimeStatus = {
+	ready: boolean;
+	venvExists: boolean;
+	packagesInstalled: boolean;
+	missingModules?: string[];
+	message: string;
+};
+
+export type AITranscriptionWord = {
+	word: string;
+	start: number;
+	end: number;
+	confidence?: number | null;
+	speaker?: string;
+};
+
+export type AITranscriptionSegment = {
+	/** Identité du sous-titre lors du nettoyage d’un projet déjà édité. */
+	clipId?: number;
+	start: number;
+	end: number;
+	text: string;
+	speaker: string;
+	confidence?: number | null;
+	words: AITranscriptionWord[];
+};
+
+export type AITranscriptionResult = {
+	language: string;
+	device: string;
+	model: string;
+	segments: AITranscriptionSegment[];
+	speakers: string[];
+	wordTimestampsAvailable: boolean;
+	alignmentWarning?: string | null;
+	gpuFallbackReason?: string;
+};
+
+export type SpeakerNameMap = Record<string, string>;
+
+export type AppliedAITranscription = {
+	count: number;
+	clipIds: number[];
+};
+
+export type AIStreamBatchState = {
+	batchId: string;
+	index: number;
+	total: number;
+	status: 'pending' | 'running' | 'completed' | 'failed';
+	reasoning: string;
+	response: string;
+};
+
+export type TranscriptWordTiming = {
+	word?: string;
+	location?: string;
+	start: number;
+	end: number;
+	confidence?: number;
+};
+
+export type TranscriptAlignmentMetadata = {
+	source: 'api' | 'local' | 'import' | 'manual';
+	segment?: number;
+	refFrom?: string;
+	refTo?: string;
+	matchedText?: string;
+	specialType?: string;
+	timeFrom: number;
+	timeTo: number;
+	words: TranscriptWordTiming[];
+};
+
+export type VisualMergeMode = 'arabic' | 'translation' | 'both';

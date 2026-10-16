@@ -1,3 +1,4 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { SubtitleClip } from '$lib/classes';
 import { normalizeTranscriptWordTimings } from '$lib/classes/Clip.svelte';
@@ -17,7 +18,11 @@ import { refreshSegmentationContextFromTrack } from './context';
  * @returns {number} Nombre de mots dans la plage du clip.
  */
 export function getSubtitleClipWordCount(clip: SubtitleClip): number {
-	return Math.max(0, clip.endWordIndex - clip.startWordIndex + 1);
+	if (clip instanceof QuranSubtitleClip)
+		return Math.max(0, clip.endWordIndex - clip.startWordIndex + 1);
+	return (
+		clip.alignmentMetadata?.words.length ?? clip.text.trim().split(/\s+/u).filter(Boolean).length
+	);
 }
 
 /**

@@ -1,6 +1,7 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { invoke } from '@tauri-apps/api/core';
 
-import type { Edition, SubtitleClip } from '$lib/classes';
+import type { Edition } from '$lib/classes';
 import {
 	tokenizeTranslationText,
 	type TranslationWbwRange,
@@ -12,17 +13,12 @@ import {
 	WbwTranslationService,
 	type WbwTranslationLanguageCode
 } from '$lib/services/WbwTranslationService';
-import type {
-	AdvancedTrimModel,
-	AdvancedTrimReasoningEffort,
-	AdvancedTrimUsage
-} from './AdvancedAITrimming';
+import type { AdvancedTrimModel, AdvancedTrimReasoningEffort } from './AdvancedAITrimming';
 import type {
 	AiWbwTranslationApplyReport,
 	AiWbwTranslationBatch,
 	AiWbwTranslationBatchResponse,
 	AiWbwTranslationBatchResultSegment,
-	AiWbwTranslationBatchSegmentPayload,
 	AiWbwTranslationCandidate,
 	AiWbwTranslationCostEstimate,
 	AiWbwTranslationValidationReport,
@@ -36,7 +32,6 @@ export type {
 	AiWbwTranslationBatch,
 	AiWbwTranslationBatchResponse,
 	AiWbwTranslationBatchResultSegment,
-	AiWbwTranslationBatchSegmentPayload,
 	AiWbwTranslationCandidate,
 	AiWbwTranslationCostEstimate,
 	AiWbwTranslationValidationReport,
@@ -240,45 +235,48 @@ export async function buildAiWbwTranslationCandidates(
 	helperLanguage: WbwTranslationLanguageCode
 ): Promise<AiWbwTranslationCandidate[]> {
 	const candidates = await Promise.all(
-		globalState.getSubtitleClips.map(async (subtitle, segmentIndex) => {
-			const translation = subtitle.translations[edition.name] as VerseTranslation | undefined;
-			const translationText = String(translation?.text ?? '').trim();
-			if (!translation || translationText.length === 0) return null;
+		globalState.getSubtitleClips.map(
+			async (subtitle, segmentIndex): Promise<AiWbwTranslationCandidate | null> => {
+				if (!(subtitle instanceof QuranSubtitleClip)) return null;
+				const translation = subtitle.translations[edition.name] as VerseTranslation | undefined;
+				const translationText = String(translation?.text ?? '').trim();
+				if (!translation || translationText.length === 0) return null;
 
-			const translationUnits = getSelectableTranslationUnits(translationText);
-			const wordCount = translationUnits.length;
-			if (wordCount <= 0) return null;
+				const translationUnits = getSelectableTranslationUnits(translationText);
+				const wordCount = translationUnits.length;
+				if (wordCount <= 0) return null;
 
-			const arabicWords = subtitle.getArabicRenderParts().text.split(' ').filter(Boolean);
-			if (arabicWords.length === 0) return null;
+				const arabicWords = subtitle.getArabicRenderParts().text.split(' ').filter(Boolean);
+				if (arabicWords.length === 0) return null;
 
-			const helperWords = await WbwTranslationService.getWordsForRange(
-				helperLanguage,
-				subtitle.surah,
-				subtitle.verse,
-				subtitle.startWordIndex,
-				subtitle.endWordIndex
-			).catch(() => []);
+				const helperWords = await WbwTranslationService.getWordsForRange(
+					helperLanguage,
+					subtitle.surah,
+					subtitle.verse,
+					subtitle.startWordIndex,
+					subtitle.endWordIndex
+				).catch(() => []);
 
-			return {
-				segmentIndex,
-				verseKey: subtitle.getVerseKey(),
-				startTime: subtitle.startTime,
-				endTime: subtitle.endTime,
-				segmentArabic: subtitle.text,
-				arabicWords: arabicWords.map((arabic, index) => ({
-					index,
-					arabic,
-					helper: helperWords[index] ?? ''
-				})),
-				translationText,
-				translationIndexed: buildIndexedWbwTranslationText(translationText),
-				translationUnits,
-				wordCount,
-				arabicWordCount: arabicWords.length,
-				subtitle
-			} satisfies AiWbwTranslationCandidate;
-		})
+				return {
+					segmentIndex,
+					verseKey: subtitle.getVerseKey(),
+					startTime: subtitle.startTime,
+					endTime: subtitle.endTime,
+					segmentArabic: subtitle.text,
+					arabicWords: arabicWords.map((arabic, index) => ({
+						index,
+						arabic,
+						helper: helperWords[index] ?? ''
+					})),
+					translationText,
+					translationIndexed: buildIndexedWbwTranslationText(translationText),
+					translationUnits,
+					wordCount,
+					arabicWordCount: arabicWords.length,
+					subtitle
+				} satisfies AiWbwTranslationCandidate;
+			}
+		)
 	);
 
 	return candidates.filter((candidate): candidate is AiWbwTranslationCandidate =>

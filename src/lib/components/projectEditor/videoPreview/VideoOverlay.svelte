@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
+
 	/**
 	 * VideoOverlay — Orchestrateur de l'affichage superposé à la vidéo.
 	 *
@@ -1302,8 +1304,8 @@
 		<SurahName />
 		<ReciterName />
 
-		{#if currentSubtitle() instanceof SubtitleClip}
-			{@const verseSubtitle = currentSubtitle() as SubtitleClip}
+		{#if currentSubtitle() instanceof QuranSubtitleClip}
+			{@const verseSubtitle = currentSubtitle() as QuranSubtitleClip}
 			<VerseNumber currentSurah={verseSubtitle.surah} currentVerse={verseSubtitle.verse} />
 		{/if}
 

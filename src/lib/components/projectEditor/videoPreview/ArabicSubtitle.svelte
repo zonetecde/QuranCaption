@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getTranscriptReferenceRenderParts } from '$lib/components/projectEditor/videoPreview/helpers/transcriptReferences';
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
 	import {
@@ -11,7 +12,6 @@
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import {
 		getTranscriptReferenceLogicalParts,
-		getTranscriptReferenceRenderParts,
 		parseQuranTranscriptReference,
 		prefetchTranscriptReferences,
 		type QuranTranscriptReference

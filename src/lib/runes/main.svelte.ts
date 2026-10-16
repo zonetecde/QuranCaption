@@ -1,10 +1,10 @@
-import {
+import { TrackType } from '$lib/classes/enums';
+import type {
 	SubtitleClip,
-	TrackType,
-	type Edition,
-	type Project,
-	type ProjectDetail,
-	type PredefinedSubtitleClip,
+	Edition,
+	Project,
+	ProjectDetail,
+	PredefinedSubtitleClip,
 	ProjectTranslation
 } from '$lib/classes';
 import { currentMenu } from 'svelte-contextmenu/stores';

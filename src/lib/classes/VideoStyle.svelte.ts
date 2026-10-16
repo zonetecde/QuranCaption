@@ -1,5 +1,5 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { globalState } from '$lib/runes/main.svelte';
-import { CustomTextClip, SubtitleClip } from '.';
 import { ProjectEditorTabs, TrackType } from './enums';
 import { SerializableBase } from './misc/SerializableBase';
 import { Utilities } from './misc/Utilities';
@@ -13,10 +13,11 @@ import { get } from 'svelte/store';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import {
 	CustomImageClip,
+	CustomTextClip,
 	PredefinedSubtitleClip,
+	type Clip,
 	getForcedFontForPredefinedSubtitle
 } from './Clip.svelte';
-import type { Clip } from './Clip.svelte';
 import {
 	getTimedOverlayRangesFromStyles,
 	type TimedOverlayRange
@@ -841,7 +842,7 @@ export class StylesData extends SerializableBase {
 					const mushafStyle = String(globalState.getStyle('arabic', 'mushaf-style')?.value ?? '');
 
 					// Le mushaf Tajweed est rendu avec les glyphes QPC + la police Tajweed v4 (par page).
-					if (mushafStyle === 'Tajweed' && subtitleClip instanceof SubtitleClip) {
+					if (mushafStyle === 'Tajweed' && subtitleClip instanceof QuranSubtitleClip) {
 						const tajweedFontName = QPCFontProvider.getTajweedFontNameForVerse(
 							subtitleClip.surah,
 							subtitleClip.verse
@@ -856,13 +857,13 @@ export class StylesData extends SerializableBase {
 					}
 
 					// Le mushaf IndoPak force la police IndoPak.
-					if (mushafStyle === 'Indopak' && subtitleClip instanceof SubtitleClip) {
+					if (mushafStyle === 'Indopak' && subtitleClip instanceof QuranSubtitleClip) {
 						css += `font-family: IndoPak, sans-serif;\n`;
 						continue;
 					}
 
 					// Le mushaf Soosi force la police Soosi.
-					if (mushafStyle === 'Soosi' && subtitleClip instanceof SubtitleClip) {
+					if (mushafStyle === 'Soosi' && subtitleClip instanceof QuranSubtitleClip) {
 						css += `font-family: Soosi, sans-serif;\n`;
 						continue;
 					}
@@ -912,7 +913,7 @@ export class StylesData extends SerializableBase {
 				) {
 					const subtitleClip = globalState.getSubtitleTrack.getClipById(clipId);
 					let fontname = '';
-					if (subtitleClip instanceof SubtitleClip) {
+					if (subtitleClip instanceof QuranSubtitleClip) {
 						fontname = QPCFontProvider.getFontNameForVerse(
 							subtitleClip.surah,
 							subtitleClip.verse,

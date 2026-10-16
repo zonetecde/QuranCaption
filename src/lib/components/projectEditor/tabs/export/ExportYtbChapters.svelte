@@ -1,14 +1,12 @@
 <script lang="ts">
+	import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
+
 	import Exporter from '$lib/classes/Exporter';
-	import { SubtitleClip } from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
 	import { slide } from 'svelte/transition';
 	import ExportFolderPicker from './ExportFolderPicker.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
-	import { get } from 'svelte/store';
-
-	const LL_ = get(LL);
 
 	const chapterPlaceholders = [
 		'<timestamp>',
@@ -24,7 +22,7 @@
 		const uniqueSurahs = new Set<number>();
 
 		for (const clip of globalState.getSubtitleClips) {
-			if (clip instanceof SubtitleClip) {
+			if (clip instanceof QuranSubtitleClip) {
 				uniqueSurahs.add(clip.surah);
 				if (uniqueSurahs.size > 1) {
 					break;

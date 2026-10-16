@@ -1,3 +1,4 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { LogicalPosition } from '@tauri-apps/api/dpi';
@@ -516,7 +517,7 @@ export default class Exporter {
 	}
 
 	/**
-	 * Exporte uniquement les sous-titres Quran édités, avec les informations word-level utiles.
+	 * Exporte les sous-titres Minbar et les métadonnées du moteur lorsqu’elles existent.
 	 * @returns {Promise<void>}
 	 */
 	static async exportSubtitlesJson() {
@@ -529,14 +530,22 @@ export default class Exporter {
 		const segments = globalState.getSubtitleTrack.clips
 			.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
 			.map((clip, index) => {
+				const quran = clip instanceof QuranSubtitleClip ? clip : null;
 				const alignmentBaseTimeS = clip.alignmentMetadata?.timeFrom ?? clip.startTime / 1000;
 				const arabicWords = clip.text.trim().split(/\s+/).filter(Boolean);
 				const fallbackWords = Array.from(
-					{ length: Math.max(0, clip.endWordIndex - clip.startWordIndex + 1) },
+					{
+						length: Math.max(
+							0,
+							(quran?.endWordIndex ?? arabicWords.length - 1) - (quran?.startWordIndex ?? 0) + 1
+						)
+					},
 					(_, wordIndex) => ({
-						location: `${clip.surah}:${clip.verse}:${clip.startWordIndex + wordIndex + 1}`,
+						location: quran
+							? `${quran.surah}:${quran.verse}:${quran.startWordIndex + wordIndex + 1}`
+							: undefined,
 						word: arabicWords[wordIndex] ?? null,
-						translation: clip.wbwTranslation[wordIndex] ?? null,
+						translation: quran?.wbwTranslation[wordIndex] ?? null,
 						relativeStartMs: null,
 						relativeEndMs: null,
 						startTimeMs: null,
@@ -550,17 +559,21 @@ export default class Exporter {
 					startTimeMs: clip.startTime,
 					endTimeMs: clip.endTime,
 					durationMs: clip.duration,
-					surah: clip.surah,
-					verse: clip.verse,
-					verseKey: clip.getVerseKey(),
-					startWordIndex: clip.startWordIndex,
-					endWordIndex: clip.endWordIndex,
-					wordCount: Math.max(0, clip.endWordIndex - clip.startWordIndex + 1),
+					surah: quran?.surah,
+					verse: quran?.verse,
+					verseKey: quran?.getVerseKey(),
+					startWordIndex: quran?.startWordIndex,
+					endWordIndex: quran?.endWordIndex,
+					wordCount: Math.max(
+						0,
+						(quran?.endWordIndex ?? arabicWords.length - 1) - (quran?.startWordIndex ?? 0) + 1
+					),
 					arabicText: clip.text,
 					displayText: clip.getText(),
-					indopakText: clip.indopakText,
-					isFullVerse: clip.isFullVerse,
-					isLastWordsOfVerse: clip.isLastWordsOfVerse,
+					speaker: clip.speaker,
+					indopakText: quran?.indopakText,
+					isFullVerse: quran?.isFullVerse,
+					isLastWordsOfVerse: quran?.isLastWordsOfVerse,
 					confidence: clip.confidence,
 					review: {
 						hasBeenVerified: clip.hasBeenVerified,
@@ -585,7 +598,7 @@ export default class Exporter {
 						clip.alignmentMetadata?.words.map((word, wordIndex) => ({
 							location: word.location,
 							word: word.word ?? arabicWords[wordIndex] ?? null,
-							translation: clip.wbwTranslation[wordIndex] ?? null,
+							translation: quran?.wbwTranslation[wordIndex] ?? null,
 							relativeStartMs: Math.round(word.start * 1000),
 							relativeEndMs: Math.round(word.end * 1000),
 							startTimeMs: Math.round((alignmentBaseTimeS + word.start) * 1000),
@@ -701,7 +714,7 @@ export default class Exporter {
 			let lastSurahAdded = -1;
 
 			for (const clip of subtitlesClips) {
-				if (!(clip instanceof SubtitleClip)) continue;
+				if (!(clip instanceof QuranSubtitleClip)) continue;
 				if (!clipWithinExportRange(clip)) continue;
 
 				if (clip.surah !== lastSurahAdded) {
@@ -720,7 +733,7 @@ export default class Exporter {
 			let lastSurahVerse = '';
 
 			for (const clip of subtitlesClips) {
-				if (!(clip instanceof SubtitleClip)) continue;
+				if (!(clip instanceof QuranSubtitleClip)) continue;
 				if (!clipWithinExportRange(clip)) continue;
 
 				const currentSurahVerse = `${clip.surah}:${clip.verse}`;
@@ -764,7 +777,7 @@ export default class Exporter {
 	 * @returns {Promise<YouTubeChapterFormatValues>} Valeurs de remplacement des placeholders.
 	 */
 	private static async getYouTubeChapterFormatValues(
-		clip: SubtitleClip,
+		clip: QuranSubtitleClip,
 		timestamp: string,
 		translationEdition: Edition | null
 	): Promise<YouTubeChapterFormatValues> {

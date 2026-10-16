@@ -1,11 +1,9 @@
 <script lang="ts">
+	import { getTranscriptReferenceRenderParts } from '$lib/components/projectEditor/videoPreview/helpers/transcriptReferences';
 	import type { SubtitleClip } from '$lib/classes/Clip.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
-	import {
-		getTranscriptReferenceRenderParts,
-		prefetchTranscriptReferences
-	} from '$lib/services/TranscriptReferenceService';
+	import { prefetchTranscriptReferences } from '$lib/services/TranscriptReferenceService';
 
 	let {
 		subtitle,

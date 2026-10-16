@@ -1,3 +1,4 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { AssetType, TrackType } from './enums.js';
 import {
 	AssetClip,
@@ -21,7 +22,6 @@ import toast from 'svelte-5-french-toast';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { Translation } from './Translation.svelte.js';
-import ModalManager from '$lib/components/modals/ModalManager.js';
 import type { Category } from './VideoStyle.svelte.js';
 import { open } from '@tauri-apps/plugin-dialog';
 import { resolveCurrentSurahFromClips } from '$lib/services/ExportCaptureTiming';
@@ -673,9 +673,11 @@ export class AssetTrack extends Track {
 			if (lastClip) {
 				// Prevent adding if an existing clip has the loop option enabled
 				if (this.clips.some((c) => c instanceof AssetClip && (c as AssetClip).loopUntilAudioEnd)) {
-					ModalManager.errorModal(
-						get(LL).editor.clipAdditionError(),
-						get(LL).editor.cannotAddMoreClips()
+					void import('$lib/components/modals/ModalManager').then(({ default: ModalManager }) =>
+						ModalManager.errorModal(
+							get(LL).editor.clipAdditionError(),
+							get(LL).editor.cannotAddMoreClips()
+						)
 					);
 					return false;
 				}
@@ -785,7 +787,7 @@ export class SubtitleTrack extends Track {
 				surah
 			);
 			this.clips.push(
-				new SubtitleClip(
+				new QuranSubtitleClip(
 					startTime,
 					endTime,
 					surah,
@@ -834,8 +836,8 @@ export class SubtitleTrack extends Track {
 				lastWordIndex,
 				surah
 			);
-			if (!(subtitle instanceof SubtitleClip)) {
-				const replacement = new SubtitleClip(
+			if (!(subtitle instanceof QuranSubtitleClip)) {
+				const replacement = new QuranSubtitleClip(
 					subtitle.startTime,
 					subtitle.endTime,
 					surah,
@@ -1123,6 +1125,11 @@ export class SubtitleTrack extends Track {
 		for (let index = 1; index < clips.length; index++) {
 			const previousClip = clips[index - 1];
 			const currentClip = clips[index];
+			if (
+				!(previousClip instanceof QuranSubtitleClip) ||
+				!(currentClip instanceof QuranSubtitleClip)
+			)
+				continue;
 
 			// Meme verset: aucun trou entre les indexes de mots.
 			if (previousClip.surah === currentClip.surah && previousClip.verse === currentClip.verse) {
@@ -1385,7 +1392,15 @@ export class SubtitleTrack extends Track {
 				return false;
 			}
 
-			this.clips.push(new SubtitleClip(startTime, endTime, normalizedText, normalizedSpeaker));
+			this.clips.push(
+				new SubtitleClip(
+					startTime,
+					endTime,
+					normalizedText,
+					normalizedSpeaker,
+					globalState.getProjectTranslation.createTranslationsForSubtitleText(normalizedText)
+				)
+			);
 			return true;
 		} finally {
 			ProjectHistoryManager.commit();

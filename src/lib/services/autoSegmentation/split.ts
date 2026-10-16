@@ -1,6 +1,6 @@
 import { Quran } from '$lib/classes/Quran';
 import { globalState } from '$lib/runes/main.svelte';
-import { SubtitleClip } from '$lib/classes';
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { SUBDIVIDE_MAX_WORDS_DISABLED, SUBDIVIDE_MAX_DURATION_DISABLED } from './types';
 import { refreshSegmentationContextFromTrack } from './context';
 import { getSubtitleClipWordCount } from './review';
@@ -9,13 +9,13 @@ import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryMana
 /**
  * Applique silencieusement une nouvelle plage de mots à un clip Quran existant.
  *
- * @param {SubtitleClip} clip Clip à mettre à jour.
+ * @param {QuranSubtitleClip} clip Clip à mettre à jour.
  * @param {Awaited<ReturnType<typeof Quran.getVerse>>} verse Verset source.
  * @param {number} startWordIndex Index du premier mot.
  * @param {number} endWordIndex Index du dernier mot.
  */
 export async function hydrateSubtitleClipRange(
-	clip: SubtitleClip,
+	clip: QuranSubtitleClip,
 	verse: Awaited<ReturnType<typeof Quran.getVerse>>,
 	startWordIndex: number,
 	endWordIndex: number
@@ -45,14 +45,14 @@ export async function hydrateSubtitleClipRange(
 /**
  * Découpe localement les métadonnées d'alignement d'un clip Quran autour d'un mot.
  *
- * @param {SubtitleClip} clip Clip source.
+ * @param {QuranSubtitleClip} clip Clip source.
  * @param {number} splitWordIndex Index du dernier mot de la partie gauche.
- * @returns {Promise<SubtitleClip | null>} Nouveau clip droit créé, ou null si impossible.
+ * @returns {Promise<QuranSubtitleClip | null>} Nouveau clip droit créé, ou null si impossible.
  */
 export async function splitSubtitleClipLocally(
-	clip: SubtitleClip,
+	clip: QuranSubtitleClip,
 	splitWordIndex: number
-): Promise<SubtitleClip | null> {
+): Promise<QuranSubtitleClip | null> {
 	const metadata = clip.alignmentMetadata;
 	if (!metadata) return null;
 	if (splitWordIndex < clip.startWordIndex || splitWordIndex >= clip.endWordIndex) return null;
@@ -153,13 +153,13 @@ function _getWordIndexFromLocation(location: string): number | null {
 /**
  * Cherche le meilleur point de coupe sur un waqf proche d'une cible.
  *
- * @param {SubtitleClip} clip Clip Quran à inspecter.
+ * @param {QuranSubtitleClip} clip Clip Quran à inspecter.
  * @param {Awaited<ReturnType<typeof Quran.getVerse>>} verse Verset source.
  * @param {number} targetIndex Index cible autour duquel couper.
  * @returns {number | null} Index du dernier mot de la partie gauche.
  */
 function findPreferredStopSplitIndex(
-	clip: SubtitleClip,
+	clip: QuranSubtitleClip,
 	verse: Awaited<ReturnType<typeof Quran.getVerse>>,
 	targetIndex: number
 ): number | null {
@@ -187,14 +187,14 @@ function findPreferredStopSplitIndex(
 /**
  * Calcule le meilleur mot de coupe pour la subdivision locale d'un clip.
  *
- * @param {SubtitleClip} clip Clip Quran à subdiviser.
+ * @param {QuranSubtitleClip} clip Clip Quran à subdiviser.
  * @param {number | null} maxWords Limite de mots active, ou null.
  * @param {number | null} maxDurationSeconds Limite de durée active, ou null.
  * @param {boolean} onlyStopSigns Si true, interdit le fallback hors waqf.
  * @returns {Promise<number | null>} Index du dernier mot de gauche, ou null.
  */
 async function getAutomaticSplitWordIndex(
-	clip: SubtitleClip,
+	clip: QuranSubtitleClip,
 	maxWords: number | null,
 	maxDurationSeconds: number | null,
 	onlyStopSigns: boolean
@@ -226,12 +226,12 @@ async function getAutomaticSplitWordIndex(
 /**
  * Coupe automatiquement un sous-titre Quran au mot fourni.
  *
- * @param {SubtitleClip} clip Clip Quran actuellement édité.
+ * @param {QuranSubtitleClip} clip Clip Quran actuellement édité.
  * @param {number} splitWordIndex Index du dernier mot de la partie gauche.
  * @returns {Promise<boolean>} True si la coupe a été appliquée.
  */
 export async function automaticSplitSubtitleAtWord(
-	clip: SubtitleClip,
+	clip: QuranSubtitleClip,
 	splitWordIndex: number
 ): Promise<boolean> {
 	ProjectHistoryManager.begin('automatic split subtitle');
@@ -315,14 +315,14 @@ export async function automaticSplitSubtitleAtWord(
  * Subdivise localement tous les sous-titres Quran dépassant les critères actifs.
  *
  * @param {object} options Options de subdivision.
- * @param {(clip: SubtitleClip) => boolean} options.shouldSplitClip Filtre optionnel des clips a subdiviser.
- * @param {(leftClip: SubtitleClip, rightClip: SubtitleClip) => void} options.onSplit Callback optionnel apres chaque coupe.
+ * @param {(clip: QuranSubtitleClip) => boolean} options.shouldSplitClip Filtre optionnel des clips a subdiviser.
+ * @param {(leftClip: QuranSubtitleClip, rightClip: QuranSubtitleClip) => void} options.onSplit Callback optionnel apres chaque coupe.
  * @returns {Promise<number>} Nombre de coupes appliquées.
  */
 export async function subdivideLongSubtitleSegments(
 	options: {
-		shouldSplitClip?: (clip: SubtitleClip) => boolean;
-		onSplit?: (leftClip: SubtitleClip, rightClip: SubtitleClip) => void;
+		shouldSplitClip?: (clip: QuranSubtitleClip) => boolean;
+		onSplit?: (leftClip: QuranSubtitleClip, rightClip: QuranSubtitleClip) => void;
 	} = {}
 ): Promise<number> {
 	ProjectHistoryManager.begin('subdivide subtitles');
@@ -345,6 +345,7 @@ export async function subdivideLongSubtitleSegments(
 				(left, right) => left.startTime - right.startTime
 			);
 			for (const clip of clips) {
+				if (!(clip instanceof QuranSubtitleClip)) continue;
 				if (options.shouldSplitClip && !options.shouldSplitClip(clip)) continue;
 
 				const splitWordIndex = await getAutomaticSplitWordIndex(

@@ -1,3 +1,4 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import {
 	ClipWithTranslation,
 	PredefinedSubtitleClip,
@@ -237,7 +238,7 @@ export function getMergedClipsWithoutWordOverlap(clips: SubtitleClip[]): Subtitl
 	for (const clip of clips) {
 		// Les transcriptions structurées stockent leurs références Quran dans le texte
 		// (`{{...}}`) et n'ont pas de plage legacy à dédupliquer.
-		if (clip.surah <= 0 || clip.verse <= 0 || clip.endWordIndex < clip.startWordIndex) {
+		if (!(clip instanceof QuranSubtitleClip) || clip.endWordIndex < clip.startWordIndex) {
 			normalizedClips.push(clip);
 			continue;
 		}

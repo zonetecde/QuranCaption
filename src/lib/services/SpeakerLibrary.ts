@@ -1,12 +1,10 @@
-import { mount, unmount } from 'svelte';
 import { SubtitleClip } from '$lib/classes/Clip.svelte';
-import SpeakerRemovalModal from '$lib/components/modals/SpeakerRemovalModal.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 export const UNASSIGNED_SPEAKER = 'Unassigned';
 
-type SpeakerRemovalChoice =
+export type SpeakerRemovalChoice =
 	| { action: 'cancel' }
 	| { action: 'unassigned' }
 	| { action: 'reassign'; replacement: string };
@@ -63,7 +61,9 @@ export function addProjectSpeaker(value: string): string | null {
 	);
 	if (existing) return existing;
 
-	getEditorState().additionalSpeakers.push(normalized);
+	ProjectHistoryManager.track('add speaker', () =>
+		getEditorState().additionalSpeakers.push(normalized)
+	);
 	return normalized;
 }
 
@@ -82,7 +82,12 @@ export function getSpeakerReplacementOptions(value: string): string[] {
 	);
 }
 
-function isProjectMainSpeaker(value: string): boolean {
+/**
+ * Indique si le nom correspond à l'intervenant principal du projet.
+ * @param {string} value Nom recherché.
+ * @returns {boolean} Vrai pour l'intervenant principal.
+ */
+export function isProjectMainSpeaker(value: string): boolean {
 	return isSameSpeaker(globalState.currentProject?.detail.speaker ?? '', value);
 }
 
@@ -93,16 +98,19 @@ function ensureUnassignedSpeakerIsAvailable(): void {
 	getEditorState().additionalSpeakers.push(UNASSIGNED_SPEAKER);
 }
 
-function removeProjectSpeaker(
-	value: string,
-	replacement: string | null,
-	affectedSegments: number
-): string {
+/**
+ * Supprime un intervenant et réaffecte ses segments dans une seule opération annulable.
+ * @param {string} value Intervenant à supprimer.
+ * @param {string | null} replacement Remplacement choisi ou absence d'affectation.
+ * @returns {string} Intervenant à sélectionner après la suppression.
+ */
+export function removeProjectSpeaker(value: string, replacement: string | null): string {
 	const normalized = value.trim();
 	if (!canRemoveProjectSpeaker(normalized)) return '';
 
 	const editorState = getEditorState();
 	const replacementName = replacement?.trim() || '';
+	const affectedSegments = getSpeakerUsageCount(normalized);
 	ProjectHistoryManager.begin('remove speaker');
 	try {
 		if (affectedSegments > 0) {
@@ -144,80 +152,6 @@ function removeProjectSpeaker(
 	} finally {
 		ProjectHistoryManager.commit();
 	}
-}
-
-function openSpeakerRemovalModal(
-	speakerName: string,
-	usageCount: number,
-	replacementOptions: string[]
-): Promise<SpeakerRemovalChoice> {
-	return new Promise<SpeakerRemovalChoice>((resolve) => {
-		const container = document.createElement('div');
-		container.classList.add('modal-wrapper');
-		document.body.appendChild(container);
-
-		const modal = mount(SpeakerRemovalModal, {
-			target: container,
-			props: {
-				speakerName,
-				usageCount,
-				replacementOptions,
-				isProjectSpeaker: isProjectMainSpeaker(speakerName),
-				resolve: (choice: SpeakerRemovalChoice) => {
-					unmount(modal);
-					container.remove();
-					resolve(choice);
-				}
-			}
-		});
-	});
-}
-
-export async function requestProjectSpeakerRemoval(value: string): Promise<SpeakerRemovalOutcome> {
-	const normalized = value.trim();
-	if (!canRemoveProjectSpeaker(normalized)) {
-		return {
-			removed: false,
-			speaker: normalized,
-			replacement: null,
-			affectedSegments: 0
-		};
-	}
-
-	const affectedSegments = getSpeakerUsageCount(normalized);
-	if (affectedSegments === 0) {
-		const fallback = removeProjectSpeaker(normalized, null, 0);
-		return {
-			removed: true,
-			speaker: normalized,
-			replacement: fallback || null,
-			affectedSegments: 0
-		};
-	}
-
-	const choice = await openSpeakerRemovalModal(
-		normalized,
-		affectedSegments,
-		getSpeakerReplacementOptions(normalized)
-	);
-	if (choice.action === 'cancel') {
-		return {
-			removed: false,
-			speaker: normalized,
-			replacement: null,
-			affectedSegments
-		};
-	}
-
-	const replacement =
-		choice.action === 'unassigned' ? UNASSIGNED_SPEAKER : choice.replacement.trim();
-	const fallback = removeProjectSpeaker(normalized, replacement, affectedSegments);
-	return {
-		removed: true,
-		speaker: normalized,
-		replacement: fallback || replacement || null,
-		affectedSegments
-	};
 }
 
 export function isSpeakerVisible(value: string): boolean {

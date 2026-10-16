@@ -1,12 +1,6 @@
 <script module lang="ts">
-	export type AIStreamBatchState = {
-		batchId: string;
-		index: number;
-		total: number;
-		status: 'pending' | 'running' | 'completed' | 'failed';
-		reasoning: string;
-		response: string;
-	};
+	import type { AIStreamBatchState as StreamBatchState } from '$lib/types/transcription';
+	export type AIStreamBatchState = StreamBatchState;
 </script>
 
 <script lang="ts">

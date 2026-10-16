@@ -1,3 +1,4 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { cleanup, render } from 'vitest-browser-svelte';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
@@ -38,7 +39,18 @@ function createMockVideoStyle() {
 }
 
 function createSubtitle(startTime: number, endTime: number, verse: number): SubtitleClip {
-	return new SubtitleClip(startTime, endTime, 1, verse, 0, 0, `Verse ${verse}`, [], true, true);
+	return new QuranSubtitleClip(
+		startTime,
+		endTime,
+		1,
+		verse,
+		0,
+		0,
+		`Verse ${verse}`,
+		[],
+		true,
+		true
+	);
 }
 
 describe('style editor visual merge actions', () => {

@@ -3,7 +3,7 @@
  */
 type SerializableDictionary = Record<string, unknown>;
 
-type RegisteredSerializableClass<T extends SerializableBase = SerializableBase> = {
+export type RegisteredSerializableClass<T extends SerializableBase = SerializableBase> = {
 	fromJSON(data: SerializableDictionary): T;
 	__className?: string;
 	name: string;
@@ -31,12 +31,22 @@ export class SerializableBase {
 
 	// Registre global des classes pour la deserialisation automatique.
 	private static __classRegistry = new Map<string, RegisteredSerializableClass>();
+	private static __dataMigrations = new Map<
+		string,
+		(data: SerializableDictionary) => SerializableDictionary
+	>();
 
 	/**
 	 * Enregistre une classe dans le registre global pour permettre la deserialisation automatique.
 	 */
-	static registerClass(className: string, classConstructor: RegisteredSerializableClass): void {
+	static registerClass(
+		className: string,
+		classConstructor: RegisteredSerializableClass,
+		migrate?: (data: SerializableDictionary) => SerializableDictionary
+	): void {
 		this.__classRegistry.set(className, classConstructor);
+		if (migrate) this.__dataMigrations.set(className, migrate);
+		else this.__dataMigrations.delete(className);
 		classConstructor.__className = className;
 	}
 
@@ -155,6 +165,9 @@ export class SerializableBase {
 		this: RegisteredSerializableClass<T>,
 		data: SerializableDictionary
 	): T {
+		const storedClassName =
+			typeof data.__className === 'string' ? data.__className : (this.__className ?? this.name);
+		data = SerializableBase.__dataMigrations.get(storedClassName)?.(data) ?? data;
 		const className = typeof data.__className === 'string' ? data.__className : undefined;
 		const registeredClass =
 			className && SerializableBase.__classRegistry.has(className)

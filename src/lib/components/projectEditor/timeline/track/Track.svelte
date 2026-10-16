@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getSubtitleVerseKeyLabel } from '$lib/services/SubtitleNavigation';
 	import {
 		TrackType,
 		SubtitleClip as SubtitleClipModel,
@@ -11,15 +12,10 @@
 	import SubtitleClipComponent from './SubtitleClip.svelte';
 	import WbwSubtitleClipEditor from './WbwSubtitleClipEditor.svelte';
 	import CustomClipComponent from './CustomClip.svelte';
-	import { SubtitleTrack } from '$lib/classes/Track.svelte';
-	import {
-		getTimelineCustomClipLayout,
-		getTimelineCustomClips,
-		type TimelineCustomClipLike
-	} from './timelineCustomClip';
+	import { SubtitleTrack, AssetTrack } from '$lib/classes/Track.svelte';
+	import { getTimelineCustomClipLayout, getTimelineCustomClips } from './timelineCustomClip';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
 	import LL from '$lib/i18n/i18n-svelte';
-	import { AssetTrack } from '$lib/classes/Track.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import { getTimelineClipLayout } from './timelineClipLayout';
 
@@ -355,11 +351,11 @@
 				{#each visibleClips() as { clip, clipIndex } (clip.id)}
 					{#if track.type === TrackType.Subtitle}
 						{@const nextIsSameVerse =
-							(track as SubtitleTrack).getSubtitleAfter(clipIndex)?.verse ===
-							(clip as SubtitleClipType).verse}
+							getSubtitleVerseKeyLabel((track as SubtitleTrack).getSubtitleAfter(clipIndex)) ===
+							getSubtitleVerseKeyLabel(clip as SubtitleClipType)}
 						{@const previousIsSameVerse =
-							(track as SubtitleTrack).getSubtitleBefore(clipIndex)?.verse ===
-							(clip as SubtitleClipType).verse}
+							getSubtitleVerseKeyLabel((track as SubtitleTrack).getSubtitleBefore(clipIndex)) ===
+							getSubtitleVerseKeyLabel(clip as SubtitleClipType)}
 						{@const isManualWbwClip =
 							globalState.shared.wbwEdit.active &&
 							clip instanceof SubtitleClipModel &&

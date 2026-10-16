@@ -1,3 +1,4 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
@@ -92,7 +93,9 @@ describe('ProjectHistoryManager', () => {
 
 	it('undoes and redoes a subtitle insertion and removal', () => {
 		const subtitleTrack = globalState.getSubtitleTrack;
-		subtitleTrack.clips.push(new SubtitleClip(0, 1000, 1, 1, 0, 0, 'text', [], true, true, {}));
+		subtitleTrack.clips.push(
+			new QuranSubtitleClip(0, 1000, 1, 1, 0, 0, 'text', [], true, true, {})
+		);
 
 		ProjectHistoryManager.track('remove test subtitle', () => {
 			subtitleTrack.removeClip(subtitleTrack.clips[0].id, true);
@@ -182,7 +185,9 @@ describe('ProjectHistoryManager', () => {
 		const subtitleTrack = globalState.getSubtitleTrack;
 
 		ProjectHistoryManager.track('add test subtitle', () => {
-			subtitleTrack.clips.push(new SubtitleClip(0, 1000, 1, 1, 0, 0, 'text', [], true, true, {}));
+			subtitleTrack.clips.push(
+				new QuranSubtitleClip(0, 1000, 1, 1, 0, 0, 'text', [], true, true, {})
+			);
 		});
 
 		expect(ProjectHistoryManager.undo()).toBe(true);

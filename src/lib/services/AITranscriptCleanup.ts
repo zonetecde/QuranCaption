@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { AITranscriptionResult } from '$lib/services/AITranscription';
+import type { AITranscriptionResult } from '$lib/types/transcription';
 import type { AdvancedTrimModel } from '$lib/services/AdvancedAITrimming';
 import type { AIReasoningEffort } from '$lib/services/AIReasoning';
 import {

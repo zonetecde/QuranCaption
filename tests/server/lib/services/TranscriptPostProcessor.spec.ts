@@ -95,6 +95,47 @@ function token(id: number, text: string): ProcessedTranscriptToken {
 }
 
 describe('TranscriptPostProcessor Quran corpus', () => {
+	it('keeps authored clip identities and boundaries when correcting an existing project', () => {
+		const source = buildResult(['ordinary', 'lecture', 'words', 'remain']);
+		const original = source.segments[0];
+		source.segments = [
+			{
+				...original,
+				clipId: 10,
+				start: 0,
+				end: 2,
+				text: 'ordinary lecture',
+				words: original.words.slice(0, 2)
+			},
+			{
+				...original,
+				clipId: 20,
+				start: 2,
+				end: 4,
+				text: 'words remain',
+				words: original.words.slice(2)
+			}
+		];
+		const prepared = prepareTranscriptForAnalysis(source, corpus);
+		const analysis: TranscriptAiAnalysis = {
+			corrections: [{ startId: 0, endId: 0, replacement: 'corrected', confidence: 'high' }],
+			quotes: [],
+			breakAfter: [],
+			punctuationAfter: []
+		};
+		const result = finalizeTranscriptProcessing(source, prepared.tokens, corpus, analysis, {
+			maxWords: 20,
+			maxChars: 200,
+			maxGap: 1
+		}).result;
+		expect(
+			result.segments.map(({ clipId, start, end, text }) => ({ clipId, start, end, text }))
+		).toEqual([
+			{ clipId: 10, start: 0, end: 2, text: 'corrected lecture' },
+			{ clipId: 20, start: 2, end: 4, text: 'words remain' }
+		]);
+	});
+
 	it('keeps compact word indexes aligned with every rendered Quran verse', () => {
 		const minimal = JSON.parse(
 			readFileSync(resolve('static/minimal-quran/verses.json'), 'utf8')

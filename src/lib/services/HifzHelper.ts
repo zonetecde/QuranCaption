@@ -1,3 +1,4 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { invoke } from '@tauri-apps/api/core';
 import { join } from '@tauri-apps/api/path';
 import { mkdir } from '@tauri-apps/plugin-fs';
@@ -657,12 +658,13 @@ function buildHifzPlanTemplatesFromClips(clips: HifzSourceSubtitleClip[]): HifzP
 					kind: 'subtitle',
 					originalStartMs: clip.startTime,
 					originalEndMs: clip.endTime,
-					isMergeableCompleteUnit: clip.isFullVerse === true,
-					surah: clip.surah,
-					verseNumber: clip.verse,
-					startWordIndex: clip.startWordIndex,
-					isFullVerse: clip.isFullVerse,
-					isLastWordsOfVerse: clip.isLastWordsOfVerse,
+					isMergeableCompleteUnit: clip instanceof QuranSubtitleClip && clip.isFullVerse,
+					surah: clip instanceof QuranSubtitleClip ? clip.surah : undefined,
+					verseNumber: clip instanceof QuranSubtitleClip ? clip.verse : undefined,
+					startWordIndex: clip instanceof QuranSubtitleClip ? clip.startWordIndex : undefined,
+					isFullVerse: clip instanceof QuranSubtitleClip ? clip.isFullVerse : undefined,
+					isLastWordsOfVerse:
+						clip instanceof QuranSubtitleClip ? clip.isLastWordsOfVerse : undefined,
 					visualMergeGroupId: clip.visualMergeGroupId,
 					visualMergeMode: clip.visualMergeMode
 				}

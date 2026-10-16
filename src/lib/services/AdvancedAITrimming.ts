@@ -1,6 +1,7 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { invoke } from '@tauri-apps/api/core';
 
-import type { Edition, SubtitleClip } from '$lib/classes';
+import type { Edition } from '$lib/classes';
 import { getTranslationTrimUnits, type VerseTranslation } from '$lib/classes/Translation.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
@@ -14,7 +15,7 @@ export type AdvancedTrimSegment = {
 	wordByWordEnglish: string[];
 	needsAi: boolean;
 	existingText: string;
-	subtitle: SubtitleClip;
+	subtitle: QuranSubtitleClip;
 };
 
 export type AdvancedTrimVerseCandidate = {
@@ -22,7 +23,7 @@ export type AdvancedTrimVerseCandidate = {
 	verseKey: string;
 	startTime: number;
 	endTime: number;
-	subtitles: SubtitleClip[];
+	subtitles: QuranSubtitleClip[];
 	coverageOnlyTexts: string[];
 	hasFullVerseCoverage: boolean;
 	sourceTranslation: string;
@@ -105,7 +106,7 @@ export type AdvancedTrimErrorMarkReport = {
 };
 
 export type AdvancedTrimErrorMarkOptions = {
-	shouldCheckTranslation?: (translation: VerseTranslation, subtitle: SubtitleClip) => boolean;
+	shouldCheckTranslation?: (translation: VerseTranslation, subtitle: QuranSubtitleClip) => boolean;
 };
 
 export type AdvancedTrimCostEstimate = {
@@ -434,7 +435,7 @@ function estimateBatchCost(
 	};
 }
 
-function isVerseAlreadyReviewed(subtitles: SubtitleClip[], edition: Edition): boolean {
+function isVerseAlreadyReviewed(subtitles: QuranSubtitleClip[], edition: Edition): boolean {
 	return subtitles.every((subtitle) => {
 		const translation = subtitle.translations[edition.name] as VerseTranslation | undefined;
 		return translation?.isStatusComplete() ?? false;
@@ -445,17 +446,18 @@ export function buildAdvancedTrimVerseCandidates(
 	edition: Edition,
 	includeReviewed: boolean
 ): AdvancedTrimVerseCandidate[] {
-	const allSubtitlesByVerse = new Map<string, SubtitleClip[]>();
+	const allSubtitlesByVerse = new Map<string, QuranSubtitleClip[]>();
 	const grouped = new Map<
 		string,
 		{
 			index: number;
-			subtitles: SubtitleClip[];
+			subtitles: QuranSubtitleClip[];
 		}
 	>();
 
 	for (let i = 0; i < globalState.getSubtitleClips.length; i++) {
 		const subtitle = globalState.getSubtitleClips[i];
+		if (!(subtitle instanceof QuranSubtitleClip)) continue;
 		const verseKey = subtitle.getVerseKey();
 		const allSubtitles = allSubtitlesByVerse.get(verseKey);
 		if (allSubtitles) {

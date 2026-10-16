@@ -1,3 +1,4 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -7,7 +8,6 @@ import {
 	mapTimeToExportRanges,
 	splitRangeByBoundaries
 } from '$lib/services/OverlayBlurSegmentation';
-import { SubtitleClip } from '$lib/classes/Clip.svelte';
 
 describe('splitRangeByBoundaries', () => {
 	it('splits a range using internal boundaries only', () => {
@@ -69,8 +69,8 @@ describe('excludeTimeRanges', () => {
 describe('recitation export timeline', () => {
 	it('maps source timestamps after removed silence', () => {
 		const clips = [
-			new SubtitleClip(1000, 3000, 1, 1, 0, 0, 'a', [], true, true),
-			new SubtitleClip(7000, 9000, 1, 2, 0, 0, 'b', [], true, true)
+			new QuranSubtitleClip(1000, 3000, 1, 1, 0, 0, 'a', [], true, true),
+			new QuranSubtitleClip(7000, 9000, 1, 2, 0, 0, 'b', [], true, true)
 		];
 		const ranges = getRecitationRangesForExport(clips, 0, 10_000, 3000, 350);
 
@@ -83,8 +83,8 @@ describe('recitation export timeline', () => {
 
 	it('keeps short silences in a single range', () => {
 		const clips = [
-			new SubtitleClip(1000, 3000, 1, 1, 0, 0, 'a', [], true, true),
-			new SubtitleClip(5000, 7000, 1, 2, 0, 0, 'b', [], true, true)
+			new QuranSubtitleClip(1000, 3000, 1, 1, 0, 0, 'a', [], true, true),
+			new QuranSubtitleClip(5000, 7000, 1, 2, 0, 0, 'b', [], true, true)
 		];
 
 		expect(getRecitationRangesForExport(clips, 0, 8000, 3000, 350)).toEqual([

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { requestProjectSpeakerRemoval } from '$lib/components/modals/speakerRemoval';
 	import { SubtitleClip } from '$lib/classes';
 	import {
 		normalizeTranscriptWordTimings,
@@ -7,11 +8,7 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { scheduleWbwRealign } from '$lib/services/AutoSegmentation';
-	import {
-		canRemoveProjectSpeaker,
-		getVisibleProjectSpeakers,
-		requestProjectSpeakerRemoval
-	} from '$lib/services/SpeakerLibrary';
+	import { canRemoveProjectSpeaker, getVisibleProjectSpeakers } from '$lib/services/SpeakerLibrary';
 	import { onDestroy, onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';

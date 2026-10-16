@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+	import { requestProjectSpeakerRemoval } from '$lib/components/modals/speakerRemoval';
+	import { TranscriptionRuntimeSession } from '$lib/services/TranscriptionRuntimeSession.svelte';
+	import { TranscriptCleanupSession } from '$lib/services/TranscriptCleanupSession.svelte';
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { onDestroy, onMount, tick } from 'svelte';
 	import { get } from 'svelte/store';
@@ -15,36 +17,22 @@
 	import {
 		addProjectSpeaker,
 		canRemoveProjectSpeaker,
-		getVisibleProjectSpeakers,
-		requestProjectSpeakerRemoval
+		getVisibleProjectSpeakers
 	} from '$lib/services/SpeakerLibrary';
 	import {
-		applyAITranscription,
-		buildAITranscriptionFromSubtitleTrack,
-		buildDefaultSpeakerMap,
-		checkAITranscriptionStatus,
-		installAITranscriptionRuntime,
 		loadGroqApiKey,
-		runAITranscription,
 		saveAITranscriptionSettings,
 		saveGroqApiKey,
-		type AITranscriptionResult,
-		type AITranscriptionRuntimeStatus,
-		type SpeakerNameMap
+		type AITranscriptionResult
 	} from '$lib/services/AITranscription';
-	import {
-		cleanupAITranscript,
-		estimateTranscriptCleanupBatchCount
-	} from '$lib/services/AITranscriptCleanup';
 	import AIReasoningControls from '$lib/components/ai/AIReasoningControls.svelte';
-	import AIStreamBatchList, {
-		type AIStreamBatchState
-	} from '$lib/components/ai/AIStreamBatchList.svelte';
+	import AIStreamBatchList from '$lib/components/ai/AIStreamBatchList.svelte';
 	import { resolveAIReasoning, type AIReasoningMode } from '$lib/services/AIReasoning';
 
 	let { close, cleanupOnly = false } = $props<{ close: () => void; cleanupOnly?: boolean }>();
 	const settings = globalState.settings!.aiTranscriptionSettings;
-	const TRANSCRIPT_PREFERRED_GAP_SECONDS = 1.2;
+	const session = new TranscriptCleanupSession(globalState.currentProject!, settings);
+	const runtime = new TranscriptionRuntimeSession(settings, session);
 	const diarizationEnabled = $derived(
 		settings.provider === 'local' &&
 			((settings.minSpeakers ?? 1) > 1 || (settings.maxSpeakers ?? 1) > 1)
@@ -58,38 +46,17 @@
 	];
 
 	let currentStep = $state(0);
-	let runtimeStatus = $state<AITranscriptionRuntimeStatus | null>(null);
-	let checkingRuntime = $state(false);
-	let installing = $state(false);
-	let running = $state(false);
-	let installMessage = $state('');
-	let runMessage = $state('');
-	let progress = $state<number | null>(null);
-	let errorMessage = $state('');
-	let result = $state<AITranscriptionResult | null>(null);
-	let speakerMap = $state<SpeakerNameMap>({});
 	let previewingSpeakerId = $state<string | null>(null);
 	let addingSpeakerForId = $state<string | null>(null);
 	let newSpeakerName = $state('');
 	let newSpeakerInput: HTMLInputElement | null = $state(null);
-	let statusUnlisten: UnlistenFn | null = null;
-	let installUnlisten: UnlistenFn | null = null;
-	let cleanupChunkUnlisten: UnlistenFn | null = null;
-	let cleanupReasoningUnlisten: UnlistenFn | null = null;
-	let cleanupRunning = $state(false);
-	let cleanupPauseRequested = $state(false);
-	let cleanupCompleted = $state(false);
-	let cleanupMessage = $state('');
-	let cleanupErrors = $state<string[]>([]);
-	let cleanupBatchStreams = $state<Record<string, AIStreamBatchState>>({});
-	let semanticBatchStreams = $state<Record<string, AIStreamBatchState>>({});
 	let advancedSubtitleSettingsOpen = $state(false);
 	let groqApiKey = $state('');
 	let groqApiKeyLoading = $state(true);
 	const setupReady = $derived(
 		settings.provider === 'groq'
 			? Boolean(groqApiKey.trim()) && !groqApiKeyLoading
-			: Boolean(runtimeStatus?.ready && (!diarizationEnabled || settings.hfToken.trim()))
+			: Boolean(runtime.runtimeStatus?.ready && (!diarizationEnabled || settings.hfToken.trim()))
 	);
 
 	/**
@@ -107,7 +74,6 @@
 		).effort;
 		void saveAITranscriptionSettings();
 	}
-	let appliedClipIds = $state<number[]>([]);
 
 	const subtitleLengthPresetEntries = Object.entries(SUBTITLE_LENGTH_PRESETS) as Array<
 		[BuiltInSubtitleLengthPreset, (typeof SUBTITLE_LENGTH_PRESETS)[BuiltInSubtitleLengthPreset]]
@@ -137,14 +103,12 @@
 		globalState.getSubtitleTrack.clips.filter((clip) => clip instanceof SubtitleClip).length
 	);
 	const existingSpeakerNames = $derived(() => getVisibleProjectSpeakers());
-	const cleanupBatchCount = $derived(
-		result ? estimateTranscriptCleanupBatchCount(result, settings.cleanupBatchWords) : 0
-	);
+
 	const streamedCleanupBatches = $derived(() =>
-		Object.values(cleanupBatchStreams).sort((left, right) => left.index - right.index)
+		Object.values(session.cleanupBatchStreams).sort((left, right) => left.index - right.index)
 	);
 	const streamedSemanticBatches = $derived(() =>
-		Object.values(semanticBatchStreams).sort((left, right) => left.index - right.index)
+		Object.values(session.semanticBatchStreams).sort((left, right) => left.index - right.index)
 	);
 
 	/**
@@ -174,9 +138,9 @@
 	 */
 	async function selectTranscriptionProvider(provider: 'groq' | 'local'): Promise<void> {
 		settings.provider = provider;
-		errorMessage = '';
+		session.errorMessage = '';
 		await saveAITranscriptionSettings();
-		if (provider === 'local' && !runtimeStatus) await refreshRuntime();
+		if (provider === 'local' && !runtime.runtimeStatus) await refreshRuntime();
 	}
 
 	/**
@@ -186,142 +150,48 @@
 	async function persistGroqApiKey(): Promise<void> {
 		try {
 			await saveGroqApiKey(groqApiKey);
-			errorMessage = '';
+			session.errorMessage = '';
 		} catch (error) {
-			errorMessage = error instanceof Error ? error.message : String(error);
+			session.errorMessage = error instanceof Error ? error.message : String(error);
 		}
 	}
 
+	/** @returns {Promise<void>} Actualise l'état du moteur affiché par la vue. */
 	async function refreshRuntime(): Promise<void> {
-		checkingRuntime = true;
-		errorMessage = '';
-		try {
-			runtimeStatus = await checkAITranscriptionStatus();
-		} catch (error) {
-			runtimeStatus = null;
-			errorMessage = error instanceof Error ? error.message : String(error);
-		} finally {
-			checkingRuntime = false;
-		}
+		await runtime.refreshRuntime();
 	}
 
+	/** @returns {Promise<void>} Installe le moteur puis confirme sa disponibilité. */
 	async function installRuntime(): Promise<void> {
-		if (installing) return;
-		installing = true;
-		errorMessage = '';
-		installMessage = 'Preparing managed Python...';
-		installUnlisten = await listen<{ message?: string }>('install-status', (event) => {
-			if (event.payload.message) installMessage = event.payload.message;
-		});
-		try {
-			await installAITranscriptionRuntime(settings.hfToken);
-			await refreshRuntime();
-			toast.success('WhisperX transcription runtime installed.');
-		} catch (error) {
-			errorMessage = error instanceof Error ? error.message : String(error);
-		} finally {
-			installUnlisten?.();
-			installUnlisten = null;
-			installing = false;
-			installMessage = '';
-		}
+		if (await runtime.installRuntime()) toast.success(get(LL).common.done());
 	}
 
+	/** @returns {Promise<void>} Lance la transcription puis affiche les intervenants détectés. */
 	async function startTranscription(): Promise<void> {
-		if (running || !setupReady || !audioAvailable) return;
-		running = true;
-		result = null;
-		cleanupCompleted = false;
-		cleanupErrors = [];
-		speakerMap = {};
-		errorMessage = '';
-		runMessage =
-			settings.provider === 'groq' ? get(LL).editor.groqPreparingAudio() : 'Preparing audio...';
-		progress = 0;
-		await saveAITranscriptionSettings();
-		statusUnlisten = await listen<{ message?: string; phase?: string; progress?: number }>(
-			'segmentation-status',
-			(event) => {
-				const groqMessages: Record<string, string> = {
-					groq_prepare: get(LL).editor.groqPreparingAudio(),
-					groq_transcribe: get(LL).editor.groqTranscribing(),
-					groq_timestamps: get(LL).editor.groqPreparingTimestamps(),
-					groq_complete: get(LL).editor.groqTranscriptionCompleted()
-				};
-				runMessage = groqMessages[event.payload.phase ?? ''] ?? event.payload.message ?? runMessage;
-				if (typeof event.payload.progress === 'number') progress = event.payload.progress;
-			}
-		);
-		try {
-			const transcription = await runAITranscription(settings, groqApiKey);
-			runMessage = get(LL).editor.matchingQuranPassages();
-			progress = 100;
-			await tick();
-			const quranReport = await cleanupAITranscript(transcription, {
-				maxWords: settings.maxWordsPerSegment,
-				maxChars: settings.maxCharsPerSegment,
-				maxGap: TRANSCRIPT_PREFERRED_GAP_SECONDS,
-				onPreparationStart: () => {
-					runMessage = get(LL).editor.matchingQuranPassages();
-					progress = 100;
-				},
-				onSemanticSegmentationStart: () => {
-					runMessage = get(LL).editor.transcriptSemanticSegmentation();
-					progress = 100;
-				},
-				onFinalizationStart: () => {
-					runMessage = get(LL).editor.cleaningTranscript();
-					progress = 100;
-				},
-				onValidationStart: () => {
-					runMessage = get(LL).editor.cleaningTranscript();
-					progress = 100;
-				}
-			});
-			result = quranReport.result;
-			cleanupErrors = quranReport.errors;
-			globalState.getSubtitlesEditorState.aiTranscriptCleanup = null;
-			speakerMap = buildDefaultSpeakerMap(result);
-			runMessage = get(LL).common.processing();
-			progress = 100;
-			await tick();
-			const applied = applyAITranscription(result, speakerMap, settings.replaceExisting);
-			appliedClipIds = applied.clipIds;
-			await globalState.currentProject?.save(false);
+		if (!setupReady || !audioAvailable) return;
+		if (await runtime.startTranscription(groqApiKey)) {
 			currentStep = 3;
-			toast.success(`Transcribed ${result.segments.length} subtitle segments.`);
-		} catch (error) {
-			errorMessage = error instanceof Error ? error.message : String(error);
-		} finally {
-			statusUnlisten?.();
-			statusUnlisten = null;
-			running = false;
-			progress = null;
+			toast.success(
+				get(LL).editor.transcriptCleanupCompleted({
+					cleaned: session.result!.segments.length,
+					total: session.result!.segments.length
+				})
+			);
 		}
 	}
 
+	/** @returns {Promise<void>} Enregistre les noms choisis puis ferme la vue. */
 	async function applyResult(): Promise<void> {
-		if (!result) return;
-		for (const speakerId of result.speakers) {
-			if (!speakerMap[speakerId]?.trim()) {
-				errorMessage = `Choose a name for ${speakerId} before applying the transcription.`;
-				return;
-			}
+		if (!session.result) return;
+		if (!session.cleanupCompleted) {
+			if (!(await session.persistCurrentResult())) return;
+			toast.success(
+				get(LL).editor.transcriptCleanupCompleted({
+					cleaned: session.result.segments.length,
+					total: session.result.segments.length
+				})
+			);
 		}
-		if (cleanupCompleted) {
-			close();
-			return;
-		}
-		const applied = applyAITranscription(
-			result,
-			speakerMap,
-			settings.replaceExisting,
-			appliedClipIds
-		);
-		appliedClipIds = applied.clipIds;
-		await saveAITranscriptionSettings();
-		await globalState.currentProject?.save(false);
-		toast.success(`Applied ${applied.count} transcript segments with word timestamps.`);
 		close();
 	}
 
@@ -332,285 +202,14 @@
 	async function openTranscriptCleanup(): Promise<void> {
 		const previewState = globalState.getVideoPreviewState;
 		if (previewState.isPlaying) previewState.togglePlayPause();
-		for (const speakerId of result?.speakers ?? []) {
-			if (!speakerMap[speakerId]?.trim()) {
-				errorMessage = get(LL).editor.chooseSpeakerBeforeCleanup({ speaker: speakerId });
-				return;
-			}
-		}
-		errorMessage = '';
-		if (result) {
-			const applied = applyAITranscription(
-				result,
-				speakerMap,
-				settings.replaceExisting,
-				appliedClipIds
-			);
-			appliedClipIds = applied.clipIds;
-			await globalState.currentProject?.save(false);
-		}
+		if (!(await session.persistCurrentResult())) return;
 		currentStep = 4;
-	}
-
-	/**
-	 * Charge une reprise existante ou les sous-titres actuels pour un nettoyage après-coup.
-	 * @returns {void}
-	 */
-	function initializeCleanupOnly(): void {
-		currentStep = 4;
-		const pending = globalState.getSubtitlesEditorState.aiTranscriptCleanup;
-		if (pending) {
-			result = pending.sourceResult;
-			speakerMap = pending.speakerMap;
-			appliedClipIds = pending.appliedClipIds;
-			settings.cleanupBatchWords = pending.batchWords;
-			cleanupErrors = pending.errors;
-			cleanupMessage = get(LL).editor.transcriptCleanupPaused({
-				remaining: pending.totalBatches - pending.nextBatchIndex
-			});
-			return;
-		}
-		const snapshot = buildAITranscriptionFromSubtitleTrack();
-		result = snapshot.result;
-		speakerMap = snapshot.speakerMap;
-		appliedClipIds = snapshot.clipIds;
-	}
-
-	/**
-	 * Prépare les mots transcrits, détecte le Quran et reconstruit les sous-titres.
-	 * @returns {Promise<void>} Promesse résolue après tous les batches.
-	 */
-	async function startTranscriptCleanup(): Promise<void> {
-		if (!result || cleanupRunning) return;
-		const aiSettings = globalState.settings!.aiTranslationSettings;
-		const editorState = globalState.getSubtitlesEditorState;
-		const apiKey = aiSettings.openAiApiKey.trim();
-		const endpoint = aiSettings.textAiApiEndpoint.trim();
-		const model = aiSettings.advancedTrimModel.trim();
-		if (!apiKey || !endpoint || !model) {
-			errorMessage = get(LL).translations.aiTranslationProviderMissing();
-			return;
-		}
-		let task = editorState.aiTranscriptCleanup;
-		if (!task) {
-			task = {
-				sourceResult: result,
-				speakerMap: { ...speakerMap },
-				analyses: [],
-				errors: [],
-				nextBatchIndex: 0,
-				totalBatches: cleanupBatchCount,
-				batchWords: settings.cleanupBatchWords,
-				appliedClipIds: [...appliedClipIds]
-			};
-			editorState.aiTranscriptCleanup = task;
-			await globalState.currentProject?.save(false);
-		}
-		let activeTask = task;
-
-		cleanupRunning = true;
-		cleanupPauseRequested = false;
-		cleanupCompleted = false;
-		cleanupErrors = [];
-		semanticBatchStreams = {};
-		cleanupBatchStreams = Object.fromEntries(
-			Array.from(
-				{ length: Math.max(0, activeTask.totalBatches - activeTask.nextBatchIndex) },
-				(_, index) => {
-					const batchIndex = activeTask.nextBatchIndex + index + 1;
-					const batchId = `pending-${batchIndex}`;
-					return [
-						batchId,
-						{
-							batchId,
-							index: batchIndex,
-							total: activeTask.totalBatches,
-							status: 'pending',
-							reasoning: '',
-							response: ''
-						} satisfies AIStreamBatchState
-					];
-				}
-			)
-		);
-		cleanupMessage = get(LL).common.processing();
-		errorMessage = '';
-		await saveAITranscriptionSettings();
-		try {
-			const reasoning = resolveAIReasoning(
-				endpoint,
-				model,
-				aiSettings.transcriptCleanupReasoningMode
-			);
-			cleanupChunkUnlisten = await listen<{
-				batchId: string;
-				accumulatedText: string;
-			}>('ai-transcript-cleanup-chunk', (event) => {
-				const batch =
-					cleanupBatchStreams[event.payload.batchId] ?? semanticBatchStreams[event.payload.batchId];
-				if (batch) batch.response = event.payload.accumulatedText;
-			});
-			cleanupReasoningUnlisten = await listen<{
-				batchId: string;
-				accumulatedText: string;
-			}>('ai-transcript-cleanup-reasoning', (event) => {
-				const batch =
-					cleanupBatchStreams[event.payload.batchId] ?? semanticBatchStreams[event.payload.batchId];
-				if (batch) batch.reasoning = event.payload.accumulatedText;
-			});
-			const report = await cleanupAITranscript(activeTask.sourceResult, {
-				apiKey,
-				endpoint,
-				model,
-				reasoningEffort: reasoning.effort,
-				thinkingEnabled: reasoning.thinkingEnabled,
-				batchWords: activeTask.batchWords,
-				maxWords: settings.maxWordsPerSegment,
-				maxChars: settings.maxCharsPerSegment,
-				maxGap: TRANSCRIPT_PREFERRED_GAP_SECONDS,
-				resume: {
-					analyses: activeTask.analyses,
-					errors: activeTask.errors,
-					nextBatchIndex: activeTask.nextBatchIndex
-				},
-				shouldPause: () => cleanupPauseRequested,
-				onPreparationStart: () => {
-					cleanupMessage = get(LL).editor.matchingQuranPassages();
-				},
-				onProgress: (current, total, batchId) => {
-					delete cleanupBatchStreams[`pending-${current}`];
-					cleanupBatchStreams[batchId] = {
-						batchId,
-						index: current,
-						total,
-						status: 'running',
-						reasoning: '',
-						response: ''
-					};
-					cleanupMessage = get(LL).editor.transcriptCleanupBatchProgress({ current, total });
-				},
-				onSemanticSegmentationStart: () => {
-					cleanupMessage = get(LL).editor.transcriptSemanticSegmentation();
-					semanticBatchStreams = {};
-				},
-				onSemanticSegmentationProgress: (current, total, batchId) => {
-					semanticBatchStreams[batchId] = {
-						batchId,
-						index: current,
-						total,
-						status: 'running',
-						reasoning: '',
-						response: ''
-					};
-					cleanupMessage = get(LL).editor.transcriptSemanticSegmentation();
-				},
-				onSemanticSegmentationBatchComplete: (batchId) => {
-					if (semanticBatchStreams[batchId]) {
-						semanticBatchStreams[batchId].status = 'completed';
-					}
-				},
-				onSemanticSegmentationBatchFailed: (batchId) => {
-					if (semanticBatchStreams[batchId]) {
-						semanticBatchStreams[batchId].status = 'failed';
-					}
-				},
-				onFinalizationStart: () => {
-					cleanupMessage = get(LL).editor.cleaningTranscript();
-				},
-				onValidationStart: () => {
-					cleanupMessage = get(LL).editor.cleaningTranscript();
-				},
-				onBatchComplete: async (batchReport, batchId) => {
-					if (cleanupBatchStreams[batchId]) {
-						cleanupBatchStreams[batchId].status = 'completed';
-					}
-					result = batchReport.result;
-					cleanupErrors = batchReport.errors;
-					const applied = applyAITranscription(
-						batchReport.result,
-						activeTask.speakerMap,
-						false,
-						activeTask.appliedClipIds
-					);
-					appliedClipIds = applied.clipIds;
-					activeTask = {
-						...activeTask,
-						analyses: batchReport.analyses,
-						errors: batchReport.errors,
-						nextBatchIndex: batchReport.nextBatchIndex,
-						totalBatches: batchReport.totalBatches,
-						appliedClipIds: applied.clipIds
-					};
-					editorState.aiTranscriptCleanup = activeTask;
-					await globalState.currentProject?.save(false);
-				}
-			});
-			result = report.result;
-			cleanupErrors = report.errors;
-			if (report.paused) {
-				activeTask = {
-					...activeTask,
-					analyses: report.analyses,
-					errors: report.errors,
-					nextBatchIndex: report.nextBatchIndex,
-					totalBatches: report.totalBatches,
-					appliedClipIds: [...appliedClipIds]
-				};
-				editorState.aiTranscriptCleanup = activeTask;
-				cleanupMessage = get(LL).editor.transcriptCleanupPaused({
-					remaining: report.totalBatches - report.nextBatchIndex
-				});
-				await globalState.currentProject?.save(false);
-				return;
-			}
-			const applied = applyAITranscription(
-				report.result,
-				activeTask.speakerMap,
-				false,
-				activeTask.appliedClipIds
-			);
-			appliedClipIds = applied.clipIds;
-			cleanupCompleted = true;
-			editorState.aiTranscriptCleanup = null;
-			cleanupMessage =
-				report.errors.length > 0
-					? get(LL).editor.transcriptCleanupCompletedWithIssues({
-							cleaned: report.processedSegments,
-							total: report.processedSegments,
-							errors: report.errors.length
-						})
-					: get(LL).editor.transcriptCleanupCompleted({
-							cleaned: report.processedSegments,
-							total: report.processedSegments
-						});
-			await globalState.currentProject?.save(false);
-		} catch (error) {
-			for (const batch of Object.values(cleanupBatchStreams)) {
-				if (batch.status === 'running') batch.status = 'failed';
-			}
-			for (const batch of Object.values(semanticBatchStreams)) {
-				if (batch.status === 'running') batch.status = 'failed';
-			}
-			errorMessage = error instanceof Error ? error.message : String(error);
-		} finally {
-			cleanupChunkUnlisten?.();
-			cleanupChunkUnlisten = null;
-			cleanupReasoningUnlisten?.();
-			cleanupReasoningUnlisten = null;
-			cleanupRunning = false;
-		}
-	}
-
-	/**
-	 * Demande l'arrêt du nettoyage après le batch en cours.
-	 * @returns {void}
-	 */
-	function pauseTranscriptCleanup(): void {
-		cleanupPauseRequested = true;
 	}
 
 	function getSpeakerExamples(speakerId: string): AITranscriptionResult['segments'] {
-		return result?.segments.filter((segment) => segment.speaker === speakerId).slice(0, 2) ?? [];
+		return (
+			session.result?.segments.filter((segment) => segment.speaker === speakerId).slice(0, 2) ?? []
+		);
 	}
 
 	function isSpeakerPreviewActive(speakerId: string): boolean {
@@ -649,7 +248,7 @@
 
 	function getSpeakerOptions(speakerId: string): string[] {
 		const options = existingSpeakerNames();
-		const current = speakerMap[speakerId]?.trim();
+		const current = session.speakerMap[speakerId]?.trim();
 		if (
 			!current ||
 			options.some((name) => name.toLocaleLowerCase() === current.toLocaleLowerCase())
@@ -677,7 +276,7 @@
 
 		const speakerName = addProjectSpeaker(normalized);
 		if (!speakerName) return;
-		speakerMap[speakerId] = speakerName;
+		session.speakerMap[speakerId] = speakerName;
 		cancelAddSpeaker();
 	}
 
@@ -685,9 +284,9 @@
 		const outcome = await requestProjectSpeakerRemoval(speakerName);
 		if (!outcome.removed) return;
 
-		for (const speakerId of Object.keys(speakerMap)) {
-			if (speakerMap[speakerId]?.toLocaleLowerCase() === speakerName.toLocaleLowerCase()) {
-				speakerMap[speakerId] = outcome.replacement ?? '';
+		for (const speakerId of Object.keys(session.speakerMap)) {
+			if (session.speakerMap[speakerId]?.toLocaleLowerCase() === speakerName.toLocaleLowerCase()) {
+				session.speakerMap[speakerId] = outcome.replacement ?? '';
 			}
 		}
 	}
@@ -706,30 +305,32 @@
 		if (currentStep === 0) return setupReady;
 		if (currentStep === 1)
 			return Boolean((!diarizationEnabled || settings.hfToken.trim()) && audioAvailable);
-		if (currentStep === 2) return Boolean(result);
+		if (currentStep === 2) return Boolean(session.result);
 		return false;
 	}
 
 	function closeSafely(): void {
-		if (!running && !installing && !cleanupRunning) close();
+		if (!runtime.running && !runtime.installing && !session.cleanupRunning) close();
 	}
 
 	onMount(() => {
 		if (!settings.subtitleLengthPreset) applySubtitleLengthPreset('balanced');
-		if (cleanupOnly) initializeCleanupOnly();
-		else {
+		if (cleanupOnly) {
+			currentStep = 4;
+			session.initializeCleanupOnly();
+		} else {
 			void loadGroqApiKey()
 				.then((value) => (groqApiKey = value))
-				.catch((error) => (errorMessage = error instanceof Error ? error.message : String(error)))
+				.catch(
+					(error) => (session.errorMessage = error instanceof Error ? error.message : String(error))
+				)
 				.finally(() => (groqApiKeyLoading = false));
 			if (settings.provider === 'local') void refreshRuntime();
 		}
 	});
 	onDestroy(() => {
-		statusUnlisten?.();
-		installUnlisten?.();
-		cleanupChunkUnlisten?.();
-		cleanupReasoningUnlisten?.();
+		runtime.dispose();
+		session.dispose();
 	});
 </script>
 
@@ -752,7 +353,7 @@
 			type="button"
 			class="ml-auto flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-secondary transition hover:bg-accent hover:text-primary disabled:opacity-40"
 			onclick={closeSafely}
-			disabled={running || installing || cleanupRunning}
+			disabled={runtime.running || runtime.installing || session.cleanupRunning}
 			aria-label={$LL.common.close()}
 		>
 			<span class="material-icons">close</span>
@@ -765,9 +366,9 @@
 					{#each steps as step, index (step.label)}
 						<button
 							type="button"
-							class={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold transition ${index === currentStep ? 'bg-accent text-primary' : 'text-secondary hover:bg-accent/60 hover:text-primary'} ${index > currentStep && !(index === 3 && result) ? 'cursor-default opacity-45' : 'cursor-pointer'}`}
+							class={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold transition ${index === currentStep ? 'bg-accent text-primary' : 'text-secondary hover:bg-accent/60 hover:text-primary'} ${index > currentStep && !(index === 3 && session.result) ? 'cursor-default opacity-45' : 'cursor-pointer'}`}
 							onclick={() => {
-								if (index <= currentStep || (index === 3 && result)) currentStep = index;
+								if (index <= currentStep || (index === 3 && session.result)) currentStep = index;
 							}}
 						>
 							<span class="material-icons text-lg">{step.icon}</span>
@@ -866,43 +467,44 @@
 								</p>
 							</div>
 							<div
-								class={`rounded-xl border p-5 ${runtimeStatus?.ready ? 'border-green-500/40 bg-green-500/10' : 'border-color bg-primary'}`}
+								class={`rounded-xl border p-5 ${runtime.runtimeStatus?.ready ? 'border-green-500/40 bg-green-500/10' : 'border-color bg-primary'}`}
 							>
 								<div class="flex items-center gap-4">
 									<span
-										class="material-icons text-3xl {runtimeStatus?.ready
+										class="material-icons text-3xl {runtime.runtimeStatus?.ready
 											? 'text-green-400'
 											: 'text-secondary'}"
-										>{runtimeStatus?.ready ? 'check_circle' : 'download_for_offline'}</span
+										>{runtime.runtimeStatus?.ready ? 'check_circle' : 'download_for_offline'}</span
 									>
 									<div class="min-w-0 flex-1">
 										<p class="font-semibold text-primary">
-											{$LL.editor.aiTranscription()} · {runtimeStatus?.ready
+											{$LL.editor.aiTranscription()} · {runtime.runtimeStatus?.ready
 												? $LL.common.done()
 												: $LL.common.required()}
 										</p>
 										<p class="mt-1 text-xs text-secondary">
-											{checkingRuntime
+											{runtime.checkingRuntime
 												? 'Checking local runtime...'
-												: (runtimeStatus?.message ?? 'Runtime status has not been checked yet.')}
+												: (runtime.runtimeStatus?.message ??
+													'Runtime status has not been checked yet.')}
 										</p>
 									</div>
-									{#if !runtimeStatus?.ready}
+									{#if !runtime.runtimeStatus?.ready}
 										<button
 											type="button"
 											class="btn-accent inline-flex cursor-pointer items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50"
 											onclick={() => void installRuntime()}
-											disabled={installing || checkingRuntime}
+											disabled={runtime.installing || runtime.checkingRuntime}
 										>
 											<span class="material-icons text-lg">download</span>
-											{installing ? 'Installing...' : 'Install automatically'}
+											{runtime.installing ? 'Installing...' : 'Install automatically'}
 										</button>
 									{/if}
 								</div>
-								{#if installMessage}<p
+								{#if runtime.installMessage}<p
 										class="mt-4 rounded-lg bg-secondary px-3 py-2 font-mono text-xs text-secondary"
 									>
-										{installMessage}
+										{runtime.installMessage}
 									</p>{/if}
 							</div>
 							<div class="rounded-xl border border-color bg-primary p-5">
@@ -1193,19 +795,19 @@
 								</p>
 							</div>
 						</div>
-						{#if running}
+						{#if runtime.running}
 							<div class="rounded-xl border border-color bg-primary p-5">
 								<div class="flex items-center gap-3">
 									<span class="material-icons animate-spin text-accent-primary">sync</span>
 									<div>
 										<p class="font-semibold text-primary">Transcription in progress</p>
-										<p class="text-xs text-secondary">{runMessage}</p>
+										<p class="text-xs text-secondary">{runtime.runMessage}</p>
 									</div>
 								</div>
 								<div class="mt-4 h-2 overflow-hidden rounded-full bg-secondary">
 									<div
 										class="h-full bg-[var(--accent-primary)] transition-all"
-										style={`width: ${progress ?? 5}%`}
+										style={`width: ${runtime.progress ?? 5}%`}
 									></div>
 								</div>
 							</div>
@@ -1219,7 +821,7 @@
 							>
 						{/if}
 					</section>
-				{:else if currentStep === 3 && result}
+				{:else if currentStep === 3 && session.result}
 					<section class="space-y-6">
 						<div>
 							<h3 class="text-lg font-bold text-primary">Match detected voices</h3>
@@ -1232,24 +834,24 @@
 						<div class="grid gap-3 sm:grid-cols-3">
 							<div class="rounded-xl bg-primary p-4">
 								<p class="text-xs text-secondary">Subtitle segments</p>
-								<p class="mt-1 text-xl font-bold text-primary">{result.segments.length}</p>
+								<p class="mt-1 text-xl font-bold text-primary">{session.result.segments.length}</p>
 							</div>
 							<div class="rounded-xl bg-primary p-4">
 								<p class="text-xs text-secondary">Detected voices</p>
-								<p class="mt-1 text-xl font-bold text-primary">{result.speakers.length}</p>
+								<p class="mt-1 text-xl font-bold text-primary">{session.result.speakers.length}</p>
 							</div>
 							<div class="rounded-xl bg-primary p-4">
 								<p class="text-xs text-secondary">Word timestamps</p>
 								<p
-									class="mt-1 text-xl font-bold {result.wordTimestampsAvailable
+									class="mt-1 text-xl font-bold {session.result.wordTimestampsAvailable
 										? 'text-green-400'
 										: 'text-yellow-400'}"
 								>
-									{result.wordTimestampsAvailable ? 'Available' : 'Unavailable'}
+									{session.result.wordTimestampsAvailable ? 'Available' : 'Unavailable'}
 								</p>
 							</div>
 						</div>
-						{#if result.alignmentWarning}
+						{#if session.result.alignmentWarning}
 							<div
 								class="rounded-lg border border-yellow-500/40 bg-yellow-500/10 p-3 text-xs leading-relaxed text-yellow-200"
 							>
@@ -1306,7 +908,7 @@
 							</div>
 						{/if}
 						<div class="space-y-3">
-							{#each result.speakers as speakerId, speakerIndex (speakerId)}
+							{#each session.result.speakers as speakerId, speakerIndex (speakerId)}
 								<div class="rounded-xl border border-color bg-primary p-4">
 									<div class="flex items-center gap-4">
 										<span
@@ -1340,8 +942,9 @@
 											<div class="mt-3 flex items-center gap-2">
 												<select
 													class="min-w-0 flex-1 rounded-lg border border-color bg-secondary px-3 py-2.5 text-primary outline-none focus:border-[var(--accent-primary)]"
-													value={speakerMap[speakerId] ?? ''}
-													onchange={(event) => (speakerMap[speakerId] = event.currentTarget.value)}
+													value={session.speakerMap[speakerId] ?? ''}
+													onchange={(event) =>
+														(session.speakerMap[speakerId] = event.currentTarget.value)}
 												>
 													<option value="" disabled>Select a speaker</option>
 													{#each getSpeakerOptions(speakerId) as speakerName (speakerName)}
@@ -1408,7 +1011,7 @@
 							></label
 						>
 					</section>
-				{:else if currentStep === 4 && result}
+				{:else if currentStep === 4 && session.result}
 					<section class="space-y-6">
 						<div>
 							<h3 class="text-lg font-bold text-primary">
@@ -1458,24 +1061,24 @@
 									{get(LL).editor.transcriptCleanupBatchPreview({
 										count:
 											globalState.getSubtitlesEditorState.aiTranscriptCleanup?.totalBatches ??
-											cleanupBatchCount
+											session.cleanupBatchCount
 									})}
 								</p>
 							</label>
 						</div>
-						{#if cleanupRunning || cleanupMessage}
+						{#if session.cleanupRunning || session.cleanupMessage}
 							<div class="rounded-xl border border-color bg-primary p-5">
 								<div class="flex items-center gap-3">
 									<span
-										class={`material-icons ${cleanupRunning ? 'animate-spin text-accent-primary' : cleanupErrors.length > 0 ? 'text-yellow-400' : 'text-green-400'}`}
+										class={`material-icons ${session.cleanupRunning ? 'animate-spin text-accent-primary' : session.cleanupErrors.length > 0 ? 'text-yellow-400' : 'text-green-400'}`}
 									>
-										{cleanupRunning
+										{session.cleanupRunning
 											? 'sync'
-											: cleanupErrors.length > 0
+											: session.cleanupErrors.length > 0
 												? 'warning'
 												: 'check_circle'}
 									</span>
-									<p class="text-sm text-secondary">{cleanupMessage}</p>
+									<p class="text-sm text-secondary">{session.cleanupMessage}</p>
 								</div>
 								{#if streamedCleanupBatches().length > 0}
 									<div class="mt-4">
@@ -1501,12 +1104,12 @@
 					</section>
 				{/if}
 
-				{#if errorMessage}<div
+				{#if session.errorMessage}<div
 						class="rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300"
 					>
 						<div class="flex items-start gap-2">
 							<span class="material-icons text-lg">error</span><span class="whitespace-pre-wrap"
-								>{errorMessage}</span
+								>{session.errorMessage}</span
 							>
 						</div>
 					</div>{/if}
@@ -1523,33 +1126,37 @@
 					type="button"
 					class="btn cursor-pointer px-4 py-2 text-sm disabled:opacity-40"
 					onclick={() => (currentStep -= 1)}
-					disabled={running || installing || cleanupRunning}>Back</button
+					disabled={runtime.running || runtime.installing || session.cleanupRunning}>Back</button
 				>{/if}
 			{#if currentStep < 2}<button
 					type="button"
 					class="btn-accent cursor-pointer px-4 py-2 text-sm disabled:opacity-40"
 					onclick={() => (currentStep += 1)}
-					disabled={!canGoNext() || running || installing || cleanupRunning}>Next</button
-				>{:else if currentStep === 3 && result}<button
+					disabled={!canGoNext() || runtime.running || runtime.installing || session.cleanupRunning}
+					>Next</button
+				>{:else if currentStep === 3 && session.result}<button
 					type="button"
 					class="btn-accent inline-flex cursor-pointer items-center gap-2 px-5 py-2 text-sm font-semibold"
 					onclick={() => void openTranscriptCleanup()}
 					><span class="material-icons text-lg">arrow_forward</span>{get(LL).common.next()}</button
-				>{:else if currentStep === 4 && result && !cleanupCompleted}<button
+				>{:else if currentStep === 4 && session.result && !session.cleanupCompleted}<button
 					type="button"
 					class="btn-accent inline-flex cursor-pointer items-center gap-2 px-5 py-2 text-sm font-semibold disabled:opacity-50"
 					onclick={() =>
-						cleanupRunning ? pauseTranscriptCleanup() : void startTranscriptCleanup()}
-					disabled={cleanupPauseRequested}
-					><span class="material-icons text-lg">{cleanupRunning ? 'pause' : 'auto_fix_high'}</span
-					>{cleanupRunning
-						? cleanupPauseRequested
+						session.cleanupRunning
+							? session.pauseTranscriptCleanup()
+							: void session.startTranscriptCleanup()}
+					disabled={session.cleanupPauseRequested}
+					><span class="material-icons text-lg"
+						>{session.cleanupRunning ? 'pause' : 'auto_fix_high'}</span
+					>{session.cleanupRunning
+						? session.cleanupPauseRequested
 							? get(LL).editor.pausingTranscriptCleanup()
 							: get(LL).editor.pauseTranscriptCleanup()
 						: globalState.getSubtitlesEditorState.aiTranscriptCleanup
 							? get(LL).editor.resumeTranscriptCleanup()
 							: get(LL).editor.cleanTranscript()}</button
-				>{:else if currentStep === 4 && result}<button
+				>{:else if currentStep === 4 && session.result}<button
 					type="button"
 					class="btn-accent inline-flex cursor-pointer items-center gap-2 px-5 py-2 text-sm font-semibold"
 					onclick={() => void applyResult()}

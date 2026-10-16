@@ -1,9 +1,10 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { cleanup, render } from 'vitest-browser-svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { tick } from 'svelte';
 
 import { globalState } from '$lib/runes/main.svelte';
-import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes/Clip.svelte';
+import { PredefinedSubtitleClip } from '$lib/classes/Clip.svelte';
 import { Quran } from '$lib/classes/Quran';
 import WordsSelector from '$lib/components/projectEditor/tabs/subtitlesEditor/WordsSelector.svelte';
 import {
@@ -253,7 +254,7 @@ describe('WordsSelector', () => {
 		const fixture = setupSubtitlesEditorProjectFixture({
 			initialSurah: 1,
 			initialVerse: 1,
-			editSubtitle: new SubtitleClip(0, 500, 2, 2, 1, 2, 'Clip', [], false, false)
+			editSubtitle: new QuranSubtitleClip(0, 500, 2, 2, 1, 2, 'Clip', [], false, false)
 		});
 
 		const component = render(WordsSelector);
@@ -452,7 +453,7 @@ describe('WordsSelector', () => {
 			initialVerse: 1,
 			startWordIndex: 0,
 			endWordIndex: 0,
-			editSubtitle: new SubtitleClip(0, 500, 1, 1, 0, 0, 'Editing', [], false, false),
+			editSubtitle: new QuranSubtitleClip(0, 500, 1, 1, 0, 0, 'Editing', [], false, false),
 			timelineCursorPosition: 1500
 		});
 
@@ -489,7 +490,7 @@ describe('WordsSelector', () => {
 
 	test('handles silence, predefined subtitle and escape shortcuts', async () => {
 		const fixture = setupSubtitlesEditorProjectFixture({
-			editSubtitle: new SubtitleClip(0, 100, 1, 1, 0, 0, 'Edit', [], false, false),
+			editSubtitle: new QuranSubtitleClip(0, 100, 1, 1, 0, 0, 'Edit', [], false, false),
 			pendingSplitEditNextId: 123
 		});
 

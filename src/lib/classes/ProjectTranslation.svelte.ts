@@ -7,7 +7,6 @@ import {
 	sliceTranslationTrimUnits,
 	VerseTranslation
 } from './Translation.svelte';
-import ModalManager from '$lib/components/modals/ModalManager';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { QdcTranslationService } from '$lib/services/QdcTranslationService';
@@ -455,6 +454,7 @@ export class ProjectTranslation extends SerializableBase {
 	 * @returns {Promise<void>} Promesse résolue après la réinitialisation.
 	 */
 	async resetTranslation(edition: Edition): Promise<void> {
+		const { default: ModalManager } = await import('$lib/components/modals/ModalManager');
 		const response = await ModalManager.confirmModal(
 			get(LL).translations.translationResetConfirm({ author: edition.language })
 		);
@@ -475,6 +475,7 @@ export class ProjectTranslation extends SerializableBase {
 	 */
 	async removeTranslation(edition: Edition, force: boolean = false): Promise<void> {
 		if (!force) {
+			const { default: ModalManager } = await import('$lib/components/modals/ModalManager');
 			const response = await ModalManager.confirmModal(
 				get(LL).translations.translationRemoveConfirm({ author: edition.language })
 			);

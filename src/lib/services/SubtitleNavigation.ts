@@ -1,4 +1,6 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
+import { getUniqueQuranReferences } from '$lib/services/StructuredTranslationService';
 import { globalState } from '$lib/runes/main.svelte';
 
 export type SubtitleNavigationDirection = 'previous' | 'next';
@@ -33,8 +35,9 @@ export function findFirstSubtitleByVerseKey(verseKey: string): SubtitleClip | nu
 	if (!Number.isInteger(surah) || !Number.isInteger(verse)) return null;
 
 	return (
-		globalState.getSubtitleClips.find((clip) => clip.surah === surah && clip.verse === verse) ??
-		null
+		globalState.getSubtitleClips.find(
+			(clip) => getSubtitleVerseKeyLabel(clip) === `${surah}:${verse}`
+		) ?? null
 	);
 }
 
@@ -43,8 +46,11 @@ export function findFirstSubtitleByVerseKey(verseKey: string): SubtitleClip | nu
  * @param {SubtitleClip} clip Sous-titre Quran.
  * @returns {string} Clé au format `sourate:verset`.
  */
-export function getSubtitleVerseKeyLabel(clip: SubtitleClip): string {
-	return clip.getVerseKey();
+export function getSubtitleVerseKeyLabel(clip: SubtitleClip | null | undefined): string {
+	if (!clip) return '';
+	if (clip instanceof QuranSubtitleClip) return clip.getVerseKey();
+	const reference = getUniqueQuranReferences([clip.text])[0];
+	return reference ? `${reference.surah}:${reference.verse}` : '';
 }
 
 /**

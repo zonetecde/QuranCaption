@@ -1,10 +1,7 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-	normalizeTranscriptWordTimings,
-	PredefinedSubtitleClip,
-	SubtitleClip
-} from '$lib/classes/Clip.svelte';
+import { normalizeTranscriptWordTimings, PredefinedSubtitleClip } from '$lib/classes/Clip.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';
 
@@ -120,7 +117,7 @@ describe('arabic inline styles', () => {
 			}
 		});
 
-		const clip = new SubtitleClip(0, 1_000, 102, 8, 0, 1, 'foo bar', ['a', 'b'], false, true);
+		const clip = new QuranSubtitleClip(0, 1_000, 102, 8, 0, 1, 'foo bar', ['a', 'b'], false, true);
 
 		expect(clip.getArabicRenderParts('editor')).toEqual({
 			text: 'foo bar',
@@ -143,7 +140,7 @@ describe('arabic inline styles', () => {
 			}
 		});
 
-		const clip = new SubtitleClip(
+		const clip = new QuranSubtitleClip(
 			0,
 			1_000,
 			102,
@@ -185,7 +182,7 @@ describe('arabic inline styles', () => {
 			'كُنتُ',
 			'تُرابًا'
 		]);
-		const clip = new SubtitleClip(
+		const clip = new QuranSubtitleClip(
 			0,
 			1_000,
 			78,
@@ -218,7 +215,7 @@ describe('arabic inline styles', () => {
 			}
 		});
 
-		const clip = new SubtitleClip(
+		const clip = new QuranSubtitleClip(
 			0,
 			1_000,
 			102,
@@ -259,7 +256,18 @@ describe('arabic inline styles', () => {
 	});
 
 	it('keeps WBW timestamps and preserves global word positions when the subtitle start changes', () => {
-		const clip = new SubtitleClip(1_000, 5_000, 102, 8, 0, 2, 'one two three', [], false, false);
+		const clip = new QuranSubtitleClip(
+			1_000,
+			5_000,
+			102,
+			8,
+			0,
+			2,
+			'one two three',
+			[],
+			false,
+			false
+		);
 		clip.alignmentMetadata = {
 			source: 'local',
 			segment: 0,
@@ -289,7 +297,18 @@ describe('arabic inline styles', () => {
 	});
 
 	it('keeps WBW timestamps and pins the last word to the new subtitle end', () => {
-		const clip = new SubtitleClip(1_000, 5_000, 102, 8, 0, 2, 'one two three', [], false, false);
+		const clip = new QuranSubtitleClip(
+			1_000,
+			5_000,
+			102,
+			8,
+			0,
+			2,
+			'one two three',
+			[],
+			false,
+			false
+		);
 		clip.alignmentMetadata = {
 			source: 'local',
 			segment: 0,

@@ -1,3 +1,4 @@
+import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { SubtitleClip } from '$lib/classes/Clip.svelte';
@@ -15,7 +16,18 @@ import { globalState } from '$lib/runes/main.svelte';
  * @returns {SubtitleClip} Clip de test.
  */
 function createSubtitle(startTime: number, endTime: number, verse: number): SubtitleClip {
-	return new SubtitleClip(startTime, endTime, 1, verse, 0, 0, `Verse ${verse}`, [], true, true);
+	return new QuranSubtitleClip(
+		startTime,
+		endTime,
+		1,
+		verse,
+		0,
+		0,
+		`Verse ${verse}`,
+		[],
+		true,
+		true
+	);
 }
 
 /**

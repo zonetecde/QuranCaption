@@ -58,16 +58,16 @@ describe('CreateProjectModal', () => {
 		const component = render(CreateProjectModal, { close });
 		const inputs = component.container.querySelectorAll('input');
 		const nameInput = inputs[0] as HTMLInputElement;
-		const reciterInput = inputs[1] as HTMLInputElement;
+		const speakerInput = inputs[1] as HTMLInputElement;
 		const typeSelect = component.getByRole('combobox');
 
 		await nameInput.focus();
 		nameInput.value = 'Ramadan Night 27';
 		nameInput.dispatchEvent(new Event('input', { bubbles: true }));
 
-		await reciterInput.focus();
-		reciterInput.value = 'Yasser Al Dosari';
-		reciterInput.dispatchEvent(new Event('input', { bubbles: true }));
+		await speakerInput.focus();
+		speakerInput.value = 'Yasser Al Dosari';
+		speakerInput.dispatchEvent(new Event('input', { bubbles: true }));
 
 		await typeSelect.selectOptions('Khutbah');
 		await component.getByRole('button', { name: 'crop_portrait 9:16 Portrait' }).click();

@@ -711,55 +711,55 @@
 		]
 	},
 	{
-		"id": "reciter-name",
-		"name": "Reciter Name",
-		"description": "Control display of the Reciter name",
+		"id": "speaker-name",
+		"name": "Speaker Name",
+		"description": "Control display of the Speaker name",
 		"icon": "person",
 		"ui": {
 			"panel": { "id": "on-screen", "icon": "branding_watermark", "label": "onScreenElements", "order": 2, "categoryOrder": 1, "categoryNavigation": true },
-			"headerStyle": "show-reciter-name",
+			"headerStyle": "show-speaker-name",
 			"groups": [
 				{
 					"id": "basics",
 					"styleIds": [
-						"show-reciter-name",
-						"reciter-name",
-						"reciter-show-arabic",
-						"reciter-show-latin"
+						"show-speaker-name",
+						"speaker-name",
+						"speaker-show-arabic",
+						"speaker-show-latin"
 					]
 				},
 				{
 					"id": "typography",
 					"styleIds": [
-						"reciter-name-format",
-						"reciter-size",
-						"reciter-latin-spacing",
-						"reciter-latin-text-style"
+						"speaker-name-format",
+						"speaker-size",
+						"speaker-latin-spacing",
+						"speaker-latin-text-style"
 					]
 				},
 				{
 					"id": "layout",
 					"styleIds": [
-						"reciter-name-vertical-position",
-						"reciter-name-horizontal-position",
-						"reciter-opacity"
+						"speaker-name-vertical-position",
+						"speaker-name-horizontal-position",
+						"speaker-opacity"
 					]
 				},
 				{
 					"id": "timing",
 					"styleIds": [
-						"reciter-name-always-show",
-						"reciter-name-time-appearance",
-						"reciter-name-time-disappearance"
+						"speaker-name-always-show",
+						"speaker-name-time-appearance",
+						"speaker-name-time-disappearance"
 					]
 				}
 			]
 		},
 		"styles": [
 			{
-				"id": "show-reciter-name",
-				"name": "Show Reciter Name",
-				"description": "Show or hide the Reciter name",
+				"id": "show-speaker-name",
+				"name": "Show Speaker Name",
+				"description": "Show or hide the Speaker name",
 				"value": true,
 				"valueType": "boolean",
 				"css": "",
@@ -768,9 +768,9 @@
 				"icon": "visibility"
 			},
 			{
-				"id": "reciter-name-always-show",
+				"id": "speaker-name-always-show",
 				"name": "Always Show",
-				"description": "Always show the Reciter name (ignore timing)",
+				"description": "Always show the Speaker name (ignore timing)",
 				"value": true,
 				"valueType": "boolean",
 				"css": "",
@@ -778,9 +778,9 @@
 				"icon": "visibility"
 			},
 			{
-				"id": "reciter-name-time-appearance",
+				"id": "speaker-name-time-appearance",
 				"name": "Time Appearance",
-				"description": "Change the time where the Reciter name appears",
+				"description": "Change the time where the Speaker name appears",
 				"value": 0,
 				"valueType": "time",
 				"css": "",
@@ -788,9 +788,9 @@
 				"icon": "access_time"
 			},
 			{
-				"id": "reciter-name-time-disappearance",
+				"id": "speaker-name-time-disappearance",
 				"name": "Time Disappearance",
-				"description": "Change the time where the Reciter name disappears",
+				"description": "Change the time where the Speaker name disappears",
 				"value": 10000,
 				"valueType": "time",
 				"css": "",
@@ -798,19 +798,19 @@
 				"icon": "access_time"
 			},
 			{
-				"id": "reciter-name",
-				"name": "Reciter Name",
-				"description": "Change the reciter of the project",
+				"id": "speaker-name",
+				"name": "Speaker Name",
+				"description": "Change the speaker of the project",
 				"value": "",
-				"valueType": "reciter",
+				"valueType": "speaker",
 				"css": "",
 				"tailwind": false,
 				"icon": "format_quote"
 			},
 			{
-				"id": "reciter-name-vertical-position",
+				"id": "speaker-name-vertical-position",
 				"name": "Vertical Position",
-				"description": "Change the vertical position of the reciter name (pixels from center)",
+				"description": "Change the vertical position of the speaker name (pixels from center)",
 				"value": 350,
 				"valueType": "number",
 				"valueMin": -540,
@@ -820,9 +820,9 @@
 				"icon": "vertical_align_center"
 			},
 			{
-				"id": "reciter-name-horizontal-position",
+				"id": "speaker-name-horizontal-position",
 				"name": "Horizontal Position",
-				"description": "Change the horizontal position of the reciter name (pixels from center)",
+				"description": "Change the horizontal position of the speaker name (pixels from center)",
 				"value": 0,
 				"valueType": "number",
 				"valueMin": -960,
@@ -832,9 +832,9 @@
 				"icon": "horizontal_rule"
 			},
 			{
-				"id": "reciter-name-format",
+				"id": "speaker-name-format",
 				"name": "Latin Text Format",
-				"description": "Format of the Reciter name display. Use <arabic> and <transliteration> tags to customize.",
+				"description": "Format of the Speaker name display. Use <arabic> and <transliteration> tags to customize.",
 				"value": "<transliteration>",
 				"valueType": "text",
 				"css": "",
@@ -843,9 +843,9 @@
 				"icon": "format_quote"
 			},
 			{
-				"id": "reciter-show-arabic",
+				"id": "speaker-show-arabic",
 				"name": "Show Arabic",
-				"description": "Show the Reciter name in Arabic",
+				"description": "Show the Speaker name in Arabic",
 				"value": true,
 				"valueType": "boolean",
 				"css": "",
@@ -854,7 +854,7 @@
 				"icon": "translate"
 			},
 			{
-				"id": "reciter-show-latin",
+				"id": "speaker-show-latin",
 				"name": "Show Latin",
 				"description": "Show additional Latin text (see Latin Text Format)",
 				"value": true,
@@ -864,9 +864,9 @@
 				"icon": "translate"
 			},
 			{
-				"id": "reciter-size",
+				"id": "speaker-size",
 				"name": "Size",
-				"description": "Size of Reciter Arabic Calligraphy Name",
+				"description": "Size of Speaker Arabic Calligraphy Name",
 				"value": 6.5,
 				"valueType": "number",
 				"valueMin": 1,
@@ -878,9 +878,9 @@
 				"icon": "zoom_in"
 			},
 			{
-				"id": "reciter-latin-spacing",
+				"id": "speaker-latin-spacing",
 				"name": "Spacing",
-				"description": "Adjust spacing between the Arabic Reciter name and its Latin equivalent",
+				"description": "Adjust spacing between the Arabic Speaker name and its Latin equivalent",
 				"value": 11,
 				"valueType": "number",
 				"valueMin": 0.2,
@@ -891,9 +891,9 @@
 				"icon": "format_line_spacing"
 			},
 			{
-				"id": "reciter-opacity",
+				"id": "speaker-opacity",
 				"name": "Opacity",
-				"description": "Adjust the opacity of the Reciter name",
+				"description": "Adjust the opacity of the Speaker name",
 				"value": 0.75,
 				"valueType": "number",
 				"valueMin": 0,
@@ -904,9 +904,9 @@
 				"icon": "opacity"
 			},
 			{
-				"id": "reciter-latin-text-style",
+				"id": "speaker-latin-text-style",
 				"name": "Text Styles",
-				"description": "Style for the Latin transliteration of the Reciter name",
+				"description": "Style for the Latin transliteration of the Speaker name",
 				"value": "Click to expand",
 				"valueType": "composite",
 				"css": "",

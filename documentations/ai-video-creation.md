@@ -1,7 +1,7 @@
 # AI Video Creation (POC)
 
 Feature de creation automatisee de projets Minbar Studio via un prompt utilisateur. L'IA choisit les
-versets, le recitateur, genere un prompt video, et le pipeline automatise toute la creation du
+versets, le intervenant, genere un prompt video, et le pipeline automatise toute la creation du
 projet jusqu'a obtenir un projet pret avec sous-titres segmentes et traductions trimees.
 
 **Branche** : `prompt-v2` **Statut** : POC (Proof of Concept)
@@ -12,7 +12,7 @@ projet jusqu'a obtenir un projet pret avec sous-titres segmentes et traductions 
 
 L'utilisateur entre un theme/sujet (ex: "patience dans l'epreuve"), et le systeme :
 
-1. Demande a l'IA de generer un plan (versets, recitateur, prompt video, titre)
+1. Demande a l'IA de generer un plan (versets, intervenant, prompt video, titre)
 2. Affiche un ecran de review ou l'utilisateur peut ajuster les parametres
 3. Execute un pipeline automatise de creation de projet en arriere-plan
 
@@ -28,7 +28,7 @@ src/lib/components/aiVideo/
   AiVideoPage.svelte                 # Page principale, logique du pipeline
   AiVideoPromptField.svelte          # Champ de saisie du prompt utilisateur
   AiVideoGenerationOptions.svelte    # Options: modele video, resolution, etc.
-  AiVideoQuranSourceSettings.svelte  # Config source Quran (recitateur, sourate, versets)
+  AiVideoQuranSourceSettings.svelte  # Config source Quran (intervenant, sourate, versets)
   AiVideoVerseRangePreview.svelte    # Preview des versets selectionnes
 ```
 
@@ -46,23 +46,23 @@ src/lib/components/aiVideo/
 
 L'utilisateur configure :
 
-| Champ                          | Description                                                   |
-| ------------------------------ | ------------------------------------------------------------- |
-| `prompt`                       | Theme/sujet pour la video (texte libre)                       |
-| `selectedModel`                | Modele de generation video (placeholder pour l'instant)       |
-| `resolution`                   | Portrait ou paysage                                           |
-| `letAiChoose`                  | Si true, l'IA choisit le recitateur et les versets            |
-| `selectedTranslation`          | Edition de traduction a appliquer (ex: `fra-muhammadhameedu`) |
-| Recitateur / Sourate / Versets | Config manuelle si `letAiChoose` est false                    |
+| Champ                           | Description                                                   |
+| ------------------------------- | ------------------------------------------------------------- |
+| `prompt`                        | Theme/sujet pour la video (texte libre)                       |
+| `selectedModel`                 | Modele de generation video (placeholder pour l'instant)       |
+| `resolution`                    | Portrait ou paysage                                           |
+| `letAiChoose`                   | Si true, l'IA choisit le intervenant et les versets           |
+| `selectedTranslation`           | Edition de traduction a appliquer (ex: `fra-muhammadhameedu`) |
+| Intervenant / Sourate / Versets | Config manuelle si `letAiChoose` est false                    |
 
 Au clic sur "Generate", `handleGeneratePlan()` est appele :
 
-- Appelle `generateAiPlan()` qui envoie le prompt + la liste complete des recitateurs MP3Quran a
+- Appelle `generateAiPlan()` qui envoie le prompt + la liste complete des intervenants MP3Quran a
   l'API OpenAI
-- L'IA retourne un JSON avec : `title`, `videoPrompt`, `reciterId`, `moshafId`, `reciter`, `surah`,
+- L'IA retourne un JSON avec : `title`, `videoPrompt`, `speakerId`, `moshafId`, `speaker`, `surah`,
   `ayahStart`, `ayahEnd`
 - Les valeurs sont injectees dans l'ecran de review
-- Le `reciterId`/`moshafId` retournes sont resolus en `ReciterOption` via `resolveReciterOption()`
+- Le `speakerId`/`moshafId` retournes sont resolus en `SpeakerOption` via `resolveSpeakerOption()`
   (avec fallback chain)
 
 ### Etape 2 : Review (step = `'review'`)
@@ -71,7 +71,7 @@ L'utilisateur voit et peut modifier :
 
 - Le titre du projet (genere par l'IA, max 50 caracteres)
 - Le prompt video
-- Le recitateur choisi
+- Le intervenant choisi
 - La sourate et la plage de versets
 - Preview des versets arabes
 
@@ -141,7 +141,7 @@ Un flag `AI_VIDEO_DEBUG = true` dans `AiVideoPage.svelte` permet de :
 
 - Skip l'appel API de generation de plan et retourner un `MOCK_AI_PLAN` en dur
 - Eviter de depenser des tokens pendant les tests
-- Mock actuel : Sourate 1 (Al-Fatiha), versets 3-7, recitateur Abdulrahman Alsudaes
+- Mock actuel : Sourate 1 (Al-Fatiha), versets 3-7, intervenant Abdulrahman Alsudaes
 
 Pour desactiver : mettre `AI_VIDEO_DEBUG = false`.
 
@@ -162,18 +162,18 @@ l'editeur de projet).
 
 ---
 
-## Resolution des recitateurs (MP3Quran)
+## Resolution des intervenants (MP3Quran)
 
-Au `onMount`, tous les recitateurs MP3Quran sont charges et transformes en `ReciterOption[]`.
+Au `onMount`, tous les intervenants MP3Quran sont charges et transformes en `SpeakerOption[]`.
 
-Quand l'IA choisit un recitateur, `resolveReciterOption(reciterId, moshafId, surahId)` tente de le
+Quand l'IA choisit un intervenant, `resolveSpeakerOption(speakerId, moshafId, surahId)` tente de le
 resoudre avec une chaine de fallback :
 
-1. Match exact : meme reciterId + moshafId + la sourate est disponible
-2. Meme reciteur, autre moshaf qui a la sourate
-3. Meme reciteur, n'importe quel moshaf
+1. Match exact : meme speakerId + moshafId + la sourate est disponible
+2. Meme intervenant, autre moshaf qui a la sourate
+3. Meme intervenant, n'importe quel moshaf
 
-La liste des recitateurs est aussi injectee dans le prompt systeme de l'IA pour qu'elle choisisse
+La liste des intervenants est aussi injectee dans le prompt systeme de l'IA pour qu'elle choisisse
 parmi les IDs valides.
 
 ---
@@ -210,7 +210,7 @@ Note : les parametres Tauri subissent une conversion automatique camelCase → s
 
 ## Dependances cles
 
-- **MP3Quran API** : liste des recitateurs, URLs audio, timings par verset
+- **MP3Quran API** : liste des intervenants, URLs audio, timings par verset
 - **API OpenAI** (ou compatible) : generation du plan IA + trim des traductions
 - **Cloud Segmentation API** : segmentation audio → sous-titres arabes
 - **FFmpeg** (via Tauri) : trim de l'audio

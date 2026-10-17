@@ -230,7 +230,7 @@ def create_segmentation_settings(id_suffix=""):
         minimum=MIN_SILENCE_MIN, maximum=MIN_SILENCE_MAX,
         value=_default_silence, step=MIN_SILENCE_STEP,
         label="Min Silence Duration (ms)",
-        info="Shorter = more segments. Decrease for reciters who have short pauses"
+        info="Shorter = more segments. Decrease for speakers who have short pauses"
     )
     speech = gr.Slider(
         minimum=MIN_SPEECH_MIN, maximum=MIN_SPEECH_MAX,

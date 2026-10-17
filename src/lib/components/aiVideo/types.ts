@@ -17,12 +17,12 @@ export interface VerseRange {
 	endVerse: number;
 }
 
-/** Option de recitateur Hafs A'n Assem / 114 sourates chargee depuis MP3Quran. */
-export interface ReciterOption {
+/** Option de intervenant Hafs A'n Assem / 114 sourates chargee depuis MP3Quran. */
+export interface SpeakerOption {
 	label: string;
-	reciterName: string;
+	speakerName: string;
 	moshaf: Mp3QuranMoshaf;
-	reciterId: number;
+	speakerId: number;
 	surahSet: Set<number>;
 }
 
@@ -45,16 +45,16 @@ export interface AiOptions {
 export interface AudioSource {
 	useLocal: boolean;
 	localPath: string;
-	reciterName: string;
-	reciter: ReciterOption | null;
+	speakerName: string;
+	speaker: SpeakerOption | null;
 }
 
-/** Resultat du plan IA (sourate + versets + recitateur + titre + prompt video). */
+/** Resultat du plan IA (sourate + versets + intervenant + titre + prompt video). */
 export interface AiPlan {
 	title: string;
 	videoPrompt: string;
-	reciter: string;
-	reciterId: number;
+	speaker: string;
+	speakerId: number;
 	surah: number;
 	ayahStart: number;
 	ayahEnd: number;
@@ -64,7 +64,7 @@ export interface AiPlan {
 export interface ReviewState {
 	title: string;
 	videoPrompt: string;
-	reciterName: string;
+	speakerName: string;
 	verseRange: VerseRange;
 }
 
@@ -86,6 +86,6 @@ export interface AiVideoState {
 	review: ReviewState;
 	isCreatingProject: boolean;
 	generationStatus: string;
-	reciterOptions: ReciterOption[];
-	isLoadingReciters: boolean;
+	speakerOptions: SpeakerOption[];
+	isLoadingSpeakers: boolean;
 }

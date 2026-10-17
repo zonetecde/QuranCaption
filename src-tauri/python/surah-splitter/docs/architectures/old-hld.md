@@ -36,7 +36,7 @@ The primary goals of the Surah Splitter project are:
 *   **Accurate Segmentation**: To accurately split Surah audio files into individual Ayah audio segments.
 *   **Automation**: To automate the otherwise manual and time-consuming process of segmenting Quranic audio.
 *   **Ease of Use**: To provide a user-friendly command-line interface for processing audio files.
-*   **Extensibility**: To design the system in a modular way that allows for future enhancements, such as supporting different reciters or improving alignment accuracy.
+*   **Extensibility**: To design the system in a modular way that allows for future enhancements, such as supporting different speakers or improving alignment accuracy.
 
 Key objectives include:
 
@@ -273,7 +273,7 @@ sequenceDiagram
 
 ### 5.3. Data Management (`data/` directory)
 
-*   **`input_surahs_to_split/`**: Contains subdirectories for different reciters, each holding the raw MP3 Surah audio files.
+*   **`input_surahs_to_split/`**: Contains subdirectories for different speakers, each holding the raw MP3 Surah audio files.
 *   **`outputs/`**:
     *   **`ayah_audio/`**: The final output. Subdirectories for each Surah (e.g., `001/`, `076/`) containing the individual Ayah MP3 files.
     *   **`timestamps/`**: Stores all intermediate files generated during the transcription and alignment process.
@@ -309,7 +309,7 @@ sequenceDiagram
     *   The quality of WhisperX's initial word-level timestamps.
     *   The robustness of the Python-based `align_words` function in matching transcribed words (which may contain errors or variations) to the canonical Quranic text. Variations in recitation style, speed, and Tajweed rules remain challenging.
 *   **Transcription Errors**: WhisperX, while using a specialized Quran model, is not infallible. Transcription errors propagate to both alignment stages.
-*   **Handling Different Reciters**: Different reciters have unique styles. The system needs to be robust enough or configurable to handle these variations.
+*   **Handling Different Speakers**: Different speakers have unique styles. The system needs to be robust enough or configurable to handle these variations.
 *   **Performance**: Processing long audio files, especially the transcription and the two alignment phases, can be computationally intensive. The Python implementation of `align_words`, while avoiding C++ dependencies, might be slower than a compiled C++ version for very long sequences.
 *   **Noise and Audio Quality**: Poor audio quality or background noise can significantly degrade transcription accuracy, impacting subsequent alignments.
 *   **Dependency Management**: Managing Python dependencies and the downloaded Hugging Face models.
@@ -317,7 +317,7 @@ sequenceDiagram
 ## 8. Future Enhancements
 
 *   **Improved Alignment Algorithms**: Research and integrate more advanced alignment techniques, possibly incorporating acoustic features or prosodic information.
-*   **Reciter-Specific Models**: If significant variations exist, train or fine-tune transcription/alignment models for specific popular reciters.
+*   **Speaker-Specific Models**: If significant variations exist, train or fine-tune transcription/alignment models for specific popular speakers.
 *   **Confidence Scoring**: Provide confidence scores for each split Ayah, allowing users to identify potentially problematic segmentations.
 *   **GUI**: Develop a graphical user interface for users less comfortable with CLIs.
 *   **Batch Processing UI**: A more sophisticated interface for managing and monitoring the processing of large batches of Surahs.

@@ -668,7 +668,7 @@ type RootTranslation = {
 		 * {​c​o​u​n​t​}​ ​p​r​o​j​e​c​t​(​s​)​ ​f​o​r​ ​t​h​i​s​ ​s​p​e​a​k​e​r
 		 * @param {unknown} count
 		 */
-		projectsForReciter: RequiredParams<'count'>;
+		projectsForSpeaker: RequiredParams<'count'>;
 		/**
 		 * {​c​o​u​n​t​}​ ​p​r​o​j​e​c​t​(​s​)​ ​f​o​r​ ​y​e​a​r​ ​{​y​e​a​r​}
 		 * @param {unknown} count
@@ -701,7 +701,7 @@ type RootTranslation = {
 		/**
 		 * S​p​e​a​k​e​r
 		 */
-		reciter: string;
+		speaker: string;
 		/**
 		 * C​o​n​t​e​n​t​ ​T​y​p​e
 		 */
@@ -713,7 +713,7 @@ type RootTranslation = {
 		/**
 		 * E​n​t​e​r​ ​o​r​ ​s​e​a​r​c​h​ ​s​p​e​a​k​e​r​s​.​.​.
 		 */
-		searchReciters: string;
+		searchSpeakers: string;
 		/**
 		 * F​i​l​l​ ​i​n​ ​t​h​e​ ​d​e​t​a​i​l​s​ ​t​o​ ​c​r​e​a​t​e​ ​y​o​u​r​ ​p​r​o​j​e​c​t
 		 */
@@ -774,11 +774,11 @@ type RootTranslation = {
 		/**
 		 * E​n​t​e​r​ ​p​r​o​j​e​c​t​ ​s​p​e​a​k​e​r
 		 */
-		projectReciterPlaceholder: string;
+		projectSpeakerPlaceholder: string;
 		/**
 		 * S​p​e​a​k​e​r​:
 		 */
-		reciterLabel: string;
+		speakerLabel: string;
 		/**
 		 * D​u​r​a​t​i​o​n​:
 		 */
@@ -1743,9 +1743,9 @@ type RootTranslation = {
 		 */
 		failedToDeleteFile: RequiredParams<'error'>;
 		/**
-		 * F​a​i​l​e​d​ ​t​o​ ​l​o​a​d​ ​r​e​c​i​t​e​r​s​ ​l​i​s​t​.
+		 * F​a​i​l​e​d​ ​t​o​ ​l​o​a​d​ ​s​p​e​a​k​e​r​s​ ​l​i​s​t​.
 		 */
-		failedToLoadReciters: string;
+		failedToLoadSpeakers: string;
 		/**
 		 * T​r​i​m​ ​i​s​ ​o​n​l​y​ ​a​v​a​i​l​a​b​l​e​ ​f​o​r​ ​a​u​d​i​o​ ​a​n​d​ ​v​i​d​e​o​ ​a​s​s​e​t​s​.
 		 */
@@ -1768,7 +1768,7 @@ type RootTranslation = {
 		 */
 		noNativeTimingAudio: string;
 		/**
-		 * N​o​ ​t​i​m​i​n​g​ ​d​a​t​a​ ​f​o​u​n​d​ ​f​o​r​ ​t​h​i​s​ ​r​e​c​i​t​e​r​/​s​u​r​a​h​.
+		 * N​o​ ​t​i​m​i​n​g​ ​d​a​t​a​ ​f​o​u​n​d​ ​f​o​r​ ​t​h​i​s​ ​s​p​e​a​k​e​r​/​s​u​r​a​h​.
 		 */
 		noTimingDataFound: string;
 		/**
@@ -1982,11 +1982,11 @@ type RootTranslation = {
 		 */
 		redownloading: string;
 		/**
-		 * D​o​w​n​l​o​a​d​i​n​g​ ​{​s​u​r​a​h​}​ ​b​y​ ​{​r​e​c​i​t​e​r​}​.​.​.
-		 * @param {unknown} reciter
+		 * D​o​w​n​l​o​a​d​i​n​g​ ​{​s​u​r​a​h​}​ ​b​y​ ​{​s​p​e​a​k​e​r​}​.​.​.
+		 * @param {unknown} speaker
 		 * @param {unknown} surah
 		 */
-		downloadingSurah: RequiredParams<'reciter' | 'surah'>;
+		downloadingSurah: RequiredParams<'speaker' | 'surah'>;
 		/**
 		 * D​o​w​n​l​o​a​d​ ​a​u​d​i​o
 		 */
@@ -2149,7 +2149,7 @@ type RootTranslation = {
 		 */
 		usePreviewCursorTime: string;
 		/**
-		 * A​r​a​b​i​c​ ​c​a​l​l​i​g​r​a​p​h​y​ ​i​s​ ​n​o​t​ ​a​v​a​i​l​a​b​l​e​ ​f​o​r​ ​t​h​i​s​ ​r​e​c​i​t​e​r​.
+		 * A​r​a​b​i​c​ ​c​a​l​l​i​g​r​a​p​h​y​ ​i​s​ ​n​o​t​ ​a​v​a​i​l​a​b​l​e​ ​f​o​r​ ​t​h​i​s​ ​s​p​e​a​k​e​r​.
 		 */
 		arabicCalligraphyUnavailable: string;
 		/**
@@ -3506,17 +3506,17 @@ type RootTranslation = {
 		 */
 		sourceLabel: string;
 		/**
-		 * R​e​c​i​t​e​r
+		 * S​p​e​a​k​e​r
 		 */
-		reciterLabel: string;
+		speakerLabel: string;
 		/**
-		 * L​o​a​d​i​n​g​ ​r​e​c​i​t​e​r​s​.​.​.
+		 * L​o​a​d​i​n​g​ ​s​p​e​a​k​e​r​s​.​.​.
 		 */
-		loadingReciters: string;
+		loadingSpeakers: string;
 		/**
-		 * S​e​l​e​c​t​ ​a​ ​r​e​c​i​t​e​r
+		 * S​e​l​e​c​t​ ​a​ ​s​p​e​a​k​e​r
 		 */
-		selectReciter: string;
+		selectCatalogSpeaker: string;
 		/**
 		 * ★​ ​m​e​a​n​s​ ​o​f​f​i​c​i​a​l​ ​v​e​r​s​e​ ​t​i​m​i​n​g​ ​c​a​n​ ​b​e​ ​l​o​a​d​e​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​a​f​t​e​r​ ​d​o​w​n​l​o​a​d​.
 		 */
@@ -3542,11 +3542,11 @@ type RootTranslation = {
 		 */
 		quaCalloutSegments: string;
 		/**
-		 * D​o​w​n​l​o​a​d​ ​a​u​d​i​o​ ​f​o​r​ ​1​0​0​0​+​ ​r​e​c​i​t​e​r​s​ ​s​o​u​r​c​e​d​ ​f​r​o​m​ ​s​e​r​v​e​r​s​ ​a​c​r​o​s​s​ ​t​h​e​ ​w​e​b​.
+		 * D​o​w​n​l​o​a​d​ ​a​u​d​i​o​ ​f​o​r​ ​1​0​0​0​+​ ​s​p​e​a​k​e​r​s​ ​s​o​u​r​c​e​d​ ​f​r​o​m​ ​s​e​r​v​e​r​s​ ​a​c​r​o​s​s​ ​t​h​e​ ​w​e​b​.
 		 */
 		quaCalloutAudioOnly: string;
 		/**
-		 * H​e​l​p​ ​c​o​n​t​r​i​b​u​t​e​ ​m​o​r​e​ ​r​e​c​i​t​e​r​s
+		 * H​e​l​p​ ​c​o​n​t​r​i​b​u​t​e​ ​m​o​r​e​ ​s​p​e​a​k​e​r​s
 		 */
 		quaContribute: string;
 		/**
@@ -4147,7 +4147,7 @@ type RootTranslation = {
 		 */
 		arrowsToSelectWords: string;
 		/**
-		 * W​h​e​n​ ​t​h​e​ ​r​e​c​i​t​e​r​ ​f​i​n​i​s​h​e​s​ ​a​ ​v​e​r​s​e​,​ ​o​r​ ​a​ ​p​a​r​t​ ​o​f​ ​a​ ​v​e​r​s​e​,​ ​p​r​e​s​s​ ​<​s​p​a​n​ ​c​l​a​s​s​=​"​f​o​n​t​-​m​o​n​o​ ​b​g​-​a​c​c​e​n​t​ ​p​x​-​1​ ​r​o​u​n​d​e​d​-​s​m​"​>​e​n​t​e​r​<​/​s​p​a​n​>​ ​t​o​ ​a​d​d​ ​a​ ​s​u​b​t​i​t​l​e​ ​a​t​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​t​i​m​e​ ​w​i​t​h​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​w​o​r​d​s​.
+		 * W​h​e​n​ ​t​h​e​ ​s​p​e​a​k​e​r​ ​f​i​n​i​s​h​e​s​ ​a​ ​v​e​r​s​e​,​ ​o​r​ ​a​ ​p​a​r​t​ ​o​f​ ​a​ ​v​e​r​s​e​,​ ​p​r​e​s​s​ ​<​s​p​a​n​ ​c​l​a​s​s​=​"​f​o​n​t​-​m​o​n​o​ ​b​g​-​a​c​c​e​n​t​ ​p​x​-​1​ ​r​o​u​n​d​e​d​-​s​m​"​>​e​n​t​e​r​<​/​s​p​a​n​>​ ​t​o​ ​a​d​d​ ​a​ ​s​u​b​t​i​t​l​e​ ​a​t​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​t​i​m​e​ ​w​i​t​h​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​w​o​r​d​s​.
 		 */
 		enterToAddSubtitleWalkthrough: string;
 		/**
@@ -5474,61 +5474,61 @@ type RootTranslation = {
 			 */
 			'surah-latin-text-style': string;
 			/**
-			 * R​e​c​i​t​e​r​ ​N​a​m​e
+			 * S​p​e​a​k​e​r​ ​N​a​m​e
 			 */
-			'reciter-name': string;
+			'speaker-name': string;
 			/**
-			 * S​h​o​w​ ​R​e​c​i​t​e​r​ ​N​a​m​e
+			 * S​h​o​w​ ​S​p​e​a​k​e​r​ ​N​a​m​e
 			 */
-			'show-reciter-name': string;
+			'show-speaker-name': string;
 			/**
 			 * A​l​w​a​y​s​ ​S​h​o​w
 			 */
-			'reciter-name-always-show': string;
+			'speaker-name-always-show': string;
 			/**
 			 * T​i​m​e​ ​A​p​p​e​a​r​a​n​c​e
 			 */
-			'reciter-name-time-appearance': string;
+			'speaker-name-time-appearance': string;
 			/**
 			 * T​i​m​e​ ​D​i​s​a​p​p​e​a​r​a​n​c​e
 			 */
-			'reciter-name-time-disappearance': string;
+			'speaker-name-time-disappearance': string;
 			/**
 			 * V​e​r​t​i​c​a​l​ ​P​o​s​i​t​i​o​n
 			 */
-			'reciter-name-vertical-position': string;
+			'speaker-name-vertical-position': string;
 			/**
 			 * H​o​r​i​z​o​n​t​a​l​ ​P​o​s​i​t​i​o​n
 			 */
-			'reciter-name-horizontal-position': string;
+			'speaker-name-horizontal-position': string;
 			/**
 			 * L​a​t​i​n​ ​T​e​x​t​ ​F​o​r​m​a​t
 			 */
-			'reciter-name-format': string;
+			'speaker-name-format': string;
 			/**
 			 * S​h​o​w​ ​A​r​a​b​i​c
 			 */
-			'reciter-show-arabic': string;
+			'speaker-show-arabic': string;
 			/**
 			 * S​h​o​w​ ​L​a​t​i​n
 			 */
-			'reciter-show-latin': string;
+			'speaker-show-latin': string;
 			/**
 			 * S​i​z​e
 			 */
-			'reciter-size': string;
+			'speaker-size': string;
 			/**
 			 * S​p​a​c​i​n​g
 			 */
-			'reciter-latin-spacing': string;
+			'speaker-latin-spacing': string;
 			/**
 			 * O​p​a​c​i​t​y
 			 */
-			'reciter-opacity': string;
+			'speaker-opacity': string;
 			/**
 			 * T​e​x​t​ ​S​t​y​l​e​s
 			 */
-			'reciter-latin-text-style': string;
+			'speaker-latin-text-style': string;
 			/**
 			 * T​e​x​t​ ​C​o​n​t​a​i​n​e​r
 			 */
@@ -6204,61 +6204,61 @@ type RootTranslation = {
 			 */
 			'surah-latin-text-style': string;
 			/**
-			 * C​o​n​t​r​o​l​ ​d​i​s​p​l​a​y​ ​o​f​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e
+			 * C​o​n​t​r​o​l​ ​d​i​s​p​l​a​y​ ​o​f​ ​t​h​e​ ​S​p​e​a​k​e​r​ ​n​a​m​e
 			 */
-			'reciter-name': string;
+			'speaker-name': string;
 			/**
-			 * S​h​o​w​ ​o​r​ ​h​i​d​e​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e
+			 * S​h​o​w​ ​o​r​ ​h​i​d​e​ ​t​h​e​ ​S​p​e​a​k​e​r​ ​n​a​m​e
 			 */
-			'show-reciter-name': string;
+			'show-speaker-name': string;
 			/**
-			 * A​l​w​a​y​s​ ​s​h​o​w​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e​ ​(​i​g​n​o​r​e​ ​t​i​m​i​n​g​)
+			 * A​l​w​a​y​s​ ​s​h​o​w​ ​t​h​e​ ​S​p​e​a​k​e​r​ ​n​a​m​e​ ​(​i​g​n​o​r​e​ ​t​i​m​i​n​g​)
 			 */
-			'reciter-name-always-show': string;
+			'speaker-name-always-show': string;
 			/**
-			 * C​h​a​n​g​e​ ​t​h​e​ ​t​i​m​e​ ​w​h​e​r​e​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e​ ​a​p​p​e​a​r​s
+			 * C​h​a​n​g​e​ ​t​h​e​ ​t​i​m​e​ ​w​h​e​r​e​ ​t​h​e​ ​S​p​e​a​k​e​r​ ​n​a​m​e​ ​a​p​p​e​a​r​s
 			 */
-			'reciter-name-time-appearance': string;
+			'speaker-name-time-appearance': string;
 			/**
-			 * C​h​a​n​g​e​ ​t​h​e​ ​t​i​m​e​ ​w​h​e​r​e​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e​ ​d​i​s​a​p​p​e​a​r​s
+			 * C​h​a​n​g​e​ ​t​h​e​ ​t​i​m​e​ ​w​h​e​r​e​ ​t​h​e​ ​S​p​e​a​k​e​r​ ​n​a​m​e​ ​d​i​s​a​p​p​e​a​r​s
 			 */
-			'reciter-name-time-disappearance': string;
+			'speaker-name-time-disappearance': string;
 			/**
-			 * C​h​a​n​g​e​ ​t​h​e​ ​v​e​r​t​i​c​a​l​ ​p​o​s​i​t​i​o​n​ ​o​f​ ​t​h​e​ ​r​e​c​i​t​e​r​ ​n​a​m​e​ ​(​p​i​x​e​l​s​ ​f​r​o​m​ ​c​e​n​t​e​r​)
+			 * C​h​a​n​g​e​ ​t​h​e​ ​v​e​r​t​i​c​a​l​ ​p​o​s​i​t​i​o​n​ ​o​f​ ​t​h​e​ ​s​p​e​a​k​e​r​ ​n​a​m​e​ ​(​p​i​x​e​l​s​ ​f​r​o​m​ ​c​e​n​t​e​r​)
 			 */
-			'reciter-name-vertical-position': string;
+			'speaker-name-vertical-position': string;
 			/**
-			 * C​h​a​n​g​e​ ​t​h​e​ ​h​o​r​i​z​o​n​t​a​l​ ​p​o​s​i​t​i​o​n​ ​o​f​ ​t​h​e​ ​r​e​c​i​t​e​r​ ​n​a​m​e​ ​(​p​i​x​e​l​s​ ​f​r​o​m​ ​c​e​n​t​e​r​)
+			 * C​h​a​n​g​e​ ​t​h​e​ ​h​o​r​i​z​o​n​t​a​l​ ​p​o​s​i​t​i​o​n​ ​o​f​ ​t​h​e​ ​s​p​e​a​k​e​r​ ​n​a​m​e​ ​(​p​i​x​e​l​s​ ​f​r​o​m​ ​c​e​n​t​e​r​)
 			 */
-			'reciter-name-horizontal-position': string;
+			'speaker-name-horizontal-position': string;
 			/**
-			 * F​o​r​m​a​t​ ​o​f​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e​ ​d​i​s​p​l​a​y​.​ ​U​s​e​ ​<​a​r​a​b​i​c​>​ ​a​n​d​ ​<​t​r​a​n​s​l​i​t​e​r​a​t​i​o​n​>​ ​t​a​g​s​ ​t​o​ ​c​u​s​t​o​m​i​z​e​.
+			 * F​o​r​m​a​t​ ​o​f​ ​t​h​e​ ​S​p​e​a​k​e​r​ ​n​a​m​e​ ​d​i​s​p​l​a​y​.​ ​U​s​e​ ​<​a​r​a​b​i​c​>​ ​a​n​d​ ​<​t​r​a​n​s​l​i​t​e​r​a​t​i​o​n​>​ ​t​a​g​s​ ​t​o​ ​c​u​s​t​o​m​i​z​e​.
 			 */
-			'reciter-name-format': string;
+			'speaker-name-format': string;
 			/**
-			 * S​h​o​w​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e​ ​i​n​ ​A​r​a​b​i​c
+			 * S​h​o​w​ ​t​h​e​ ​S​p​e​a​k​e​r​ ​n​a​m​e​ ​i​n​ ​A​r​a​b​i​c
 			 */
-			'reciter-show-arabic': string;
+			'speaker-show-arabic': string;
 			/**
 			 * S​h​o​w​ ​a​d​d​i​t​i​o​n​a​l​ ​L​a​t​i​n​ ​t​e​x​t​ ​(​s​e​e​ ​L​a​t​i​n​ ​T​e​x​t​ ​F​o​r​m​a​t​)
 			 */
-			'reciter-show-latin': string;
+			'speaker-show-latin': string;
 			/**
-			 * S​i​z​e​ ​o​f​ ​R​e​c​i​t​e​r​ ​A​r​a​b​i​c​ ​C​a​l​l​i​g​r​a​p​h​y​ ​N​a​m​e
+			 * S​i​z​e​ ​o​f​ ​S​p​e​a​k​e​r​ ​A​r​a​b​i​c​ ​C​a​l​l​i​g​r​a​p​h​y​ ​N​a​m​e
 			 */
-			'reciter-size': string;
+			'speaker-size': string;
 			/**
-			 * A​d​j​u​s​t​ ​s​p​a​c​i​n​g​ ​b​e​t​w​e​e​n​ ​t​h​e​ ​A​r​a​b​i​c​ ​R​e​c​i​t​e​r​ ​n​a​m​e​ ​a​n​d​ ​i​t​s​ ​L​a​t​i​n​ ​e​q​u​i​v​a​l​e​n​t
+			 * A​d​j​u​s​t​ ​s​p​a​c​i​n​g​ ​b​e​t​w​e​e​n​ ​t​h​e​ ​A​r​a​b​i​c​ ​S​p​e​a​k​e​r​ ​n​a​m​e​ ​a​n​d​ ​i​t​s​ ​L​a​t​i​n​ ​e​q​u​i​v​a​l​e​n​t
 			 */
-			'reciter-latin-spacing': string;
+			'speaker-latin-spacing': string;
 			/**
-			 * A​d​j​u​s​t​ ​t​h​e​ ​o​p​a​c​i​t​y​ ​o​f​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e
+			 * A​d​j​u​s​t​ ​t​h​e​ ​o​p​a​c​i​t​y​ ​o​f​ ​t​h​e​ ​S​p​e​a​k​e​r​ ​n​a​m​e
 			 */
-			'reciter-opacity': string;
+			'speaker-opacity': string;
 			/**
-			 * S​t​y​l​e​ ​f​o​r​ ​t​h​e​ ​L​a​t​i​n​ ​t​r​a​n​s​l​i​t​e​r​a​t​i​o​n​ ​o​f​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e
+			 * S​t​y​l​e​ ​f​o​r​ ​t​h​e​ ​L​a​t​i​n​ ​t​r​a​n​s​l​i​t​e​r​a​t​i​o​n​ ​o​f​ ​t​h​e​ ​S​p​e​a​k​e​r​ ​n​a​m​e
 			 */
-			'reciter-latin-text-style': string;
+			'speaker-latin-text-style': string;
 			/**
 			 * A​d​d​ ​a​ ​d​e​c​o​r​a​t​i​v​e​ ​b​a​c​k​g​r​o​u​n​d​ ​i​m​a​g​e​ ​b​e​h​i​n​d​ ​t​h​e​ ​a​y​a​h
 			 */
@@ -7623,11 +7623,11 @@ type RootTranslation = {
 		 */
 		createMemorizationVideos: string;
 		/**
-		 * G​l​o​b​a​l​ ​—​ ​v​i​d​e​o​ ​o​v​e​r​l​a​y​,​ ​r​e​c​i​t​e​r​ ​n​a​m​e​,​ ​a​n​d​ ​b​a​c​k​g​r​o​u​n​d​ ​s​e​t​t​i​n​g​s
+		 * G​l​o​b​a​l​ ​—​ ​v​i​d​e​o​ ​o​v​e​r​l​a​y​,​ ​s​p​e​a​k​e​r​ ​n​a​m​e​,​ ​a​n​d​ ​b​a​c​k​g​r​o​u​n​d​ ​s​e​t​t​i​n​g​s
 		 */
 		globalSettings: string;
 		/**
-		 * S​u​r​a​h​ ​—​ ​r​e​c​i​t​e​r​ ​a​n​d​ ​s​u​r​a​h​ ​n​a​m​e​ ​d​i​s​p​l​a​y​ ​o​n​ ​t​h​e​ ​s​c​r​e​e​n
+		 * S​u​r​a​h​ ​—​ ​s​p​e​a​k​e​r​ ​a​n​d​ ​s​u​r​a​h​ ​n​a​m​e​ ​d​i​s​p​l​a​y​ ​o​n​ ​t​h​e​ ​s​c​r​e​e​n
 		 */
 		surahSettings: string;
 		/**
@@ -7639,7 +7639,7 @@ type RootTranslation = {
 		 */
 		threeStyleCategories: string;
 		/**
-		 * G​l​o​b​a​l​ ​—​ ​v​i​d​e​o​ ​o​v​e​r​l​a​y​,​ ​r​e​c​i​t​e​r​ ​n​a​m​e​,​ ​a​n​d​ ​b​a​c​k​g​r​o​u​n​d​ ​s​e​t​t​i​n​g​s​.​ ​S​u​r​a​h​ ​—​ ​r​e​c​i​t​e​r​ ​a​n​d​ ​s​u​r​a​h​ ​n​a​m​e​ ​d​i​s​p​l​a​y​.​ ​V​e​r​s​e​ ​—​ ​s​u​b​t​i​t​l​e​s​ ​f​o​n​t​,​ ​c​o​l​o​r​,​ ​s​i​z​e​,​ ​a​n​d​ ​a​n​i​m​a​t​i​o​n​s​.
+		 * G​l​o​b​a​l​ ​—​ ​v​i​d​e​o​ ​o​v​e​r​l​a​y​,​ ​s​p​e​a​k​e​r​ ​n​a​m​e​,​ ​a​n​d​ ​b​a​c​k​g​r​o​u​n​d​ ​s​e​t​t​i​n​g​s​.​ ​S​u​r​a​h​ ​—​ ​s​p​e​a​k​e​r​ ​a​n​d​ ​s​u​r​a​h​ ​n​a​m​e​ ​d​i​s​p​l​a​y​.​ ​V​e​r​s​e​ ​—​ ​s​u​b​t​i​t​l​e​s​ ​f​o​n​t​,​ ​c​o​l​o​r​,​ ​s​i​z​e​,​ ​a​n​d​ ​a​n​i​m​a​t​i​o​n​s​.
 		 */
 		threeStyleCategoriesDescription: string;
 		/**
@@ -8652,11 +8652,11 @@ type RootTranslation = {
 		 */
 		creatingQuranVideo: string;
 		/**
-		 * W​o​r​k​i​n​g​ ​o​n​ ​{​n​a​m​e​}​ ​(​{​r​e​c​i​t​e​r​}​)
+		 * W​o​r​k​i​n​g​ ​o​n​ ​{​n​a​m​e​}​ ​(​{​s​p​e​a​k​e​r​}​)
 		 * @param {unknown} name
-		 * @param {unknown} reciter
+		 * @param {unknown} speaker
 		 */
-		workingOnProject: RequiredParams<'name' | 'reciter'>;
+		workingOnProject: RequiredParams<'name' | 'speaker'>;
 		/**
 		 * W​o​r​k​i​n​g​ ​o​n​ ​{​n​a​m​e​}
 		 * @param {unknown} name
@@ -9185,7 +9185,7 @@ type RootTranslation = {
 		 */
 		stepAdaptingTranslationsTitle: string;
 		/**
-		 * N​o​t​i​c​e​ ​h​o​w​ ​v​e​r​s​e​ ​1​:​7​ ​w​a​s​ ​r​e​c​i​t​e​d​ ​i​n​ ​t​w​o​ ​p​a​r​t​s​.​ ​Y​o​u​ ​c​a​n​ ​s​p​l​i​t​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​t​o​ ​m​a​t​c​h​ ​h​o​w​ ​t​h​e​ ​r​e​c​i​t​e​r​ ​r​e​a​d​s​.
+		 * N​o​t​i​c​e​ ​h​o​w​ ​v​e​r​s​e​ ​1​:​7​ ​w​a​s​ ​r​e​c​i​t​e​d​ ​i​n​ ​t​w​o​ ​p​a​r​t​s​.​ ​Y​o​u​ ​c​a​n​ ​s​p​l​i​t​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​t​o​ ​m​a​t​c​h​ ​h​o​w​ ​t​h​e​ ​s​p​e​a​k​e​r​ ​r​e​a​d​s​.
 		 */
 		stepAdaptingTranslationsDesc: string;
 		/**
@@ -9201,7 +9201,7 @@ type RootTranslation = {
 		 */
 		stepStyleCategoriesTitle: string;
 		/**
-		 * G​l​o​b​a​l​ ​—​ ​v​i​d​e​o​ ​o​v​e​r​l​a​y​,​ ​r​e​c​i​t​e​r​ ​n​a​m​e​.​ ​S​u​r​a​h​ ​—​ ​r​e​c​i​t​e​r​ ​a​n​d​ ​s​u​r​a​h​ ​n​a​m​e​.​ ​V​e​r​s​e​ ​—​ ​f​o​n​t​,​ ​c​o​l​o​r​,​ ​s​i​z​e​,​ ​a​n​i​m​a​t​i​o​n​s​.
+		 * G​l​o​b​a​l​ ​—​ ​v​i​d​e​o​ ​o​v​e​r​l​a​y​,​ ​s​p​e​a​k​e​r​ ​n​a​m​e​.​ ​S​u​r​a​h​ ​—​ ​s​p​e​a​k​e​r​ ​a​n​d​ ​s​u​r​a​h​ ​n​a​m​e​.​ ​V​e​r​s​e​ ​—​ ​f​o​n​t​,​ ​c​o​l​o​r​,​ ​s​i​z​e​,​ ​a​n​i​m​a​t​i​o​n​s​.
 		 */
 		stepStyleCategoriesDesc: string;
 		/**
@@ -9267,13 +9267,13 @@ type RootTranslation = {
 		 */
 		inputDefaultPlaceholder: string;
 		/**
-		 * S​t​a​r​t​ ​t​y​p​i​n​g​ ​t​o​ ​s​e​a​r​c​h​ ​r​e​c​i​t​e​r​s​.​.​.
+		 * S​t​a​r​t​ ​t​y​p​i​n​g​ ​t​o​ ​s​e​a​r​c​h​ ​s​p​e​a​k​e​r​s​.​.​.
 		 */
-		searchReciters: string;
+		searchSpeakers: string;
 		/**
-		 * R​e​c​i​t​e​r
+		 * S​p​e​a​k​e​r
 		 */
-		reciterLabel: string;
+		speakerLabel: string;
 		/**
 		 * D​e​l​e​t​e​ ​C​o​n​f​i​r​m​a​t​i​o​n
 		 */
@@ -9898,7 +9898,7 @@ type RootTranslation = {
 		 */
 		internetRequired: string;
 		/**
-		 * A​n​ ​a​c​t​i​v​e​ ​i​n​t​e​r​n​e​t​ ​c​o​n​n​e​c​t​i​o​n​ ​i​s​ ​n​e​e​d​e​d​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​r​e​c​i​t​e​r​ ​d​a​t​a​ ​a​n​d​ ​Q​u​r​a​n​ ​t​e​x​t​ ​d​u​r​i​n​g​ ​m​i​g​r​a​t​i​o​n​.
+		 * A​n​ ​a​c​t​i​v​e​ ​i​n​t​e​r​n​e​t​ ​c​o​n​n​e​c​t​i​o​n​ ​i​s​ ​n​e​e​d​e​d​ ​t​o​ ​d​o​w​n​l​o​a​d​ ​s​p​e​a​k​e​r​ ​d​a​t​a​ ​a​n​d​ ​Q​u​r​a​n​ ​t​e​x​t​ ​d​u​r​i​n​g​ ​m​i​g​r​a​t​i​o​n​.
 		 */
 		internetRequiredDesc: string;
 		/**
@@ -9949,9 +9949,9 @@ type RootTranslation = {
 		 */
 		youtubeUrlPlaceholder: string;
 		/**
-		 * S​e​l​e​c​t​ ​a​ ​r​e​c​i​t​e​r
+		 * S​e​l​e​c​t​ ​a​ ​s​p​e​a​k​e​r
 		 */
-		selectReciter: string;
+		selectCatalogSpeaker: string;
 		/**
 		 * O​r​ ​c​h​o​o​s​e​ ​a​ ​l​o​c​a​l​ ​a​u​d​i​o​ ​f​i​l​e
 		 */
@@ -9993,17 +9993,17 @@ type RootTranslation = {
 		 */
 		pleaseEnterYoutubeUrl: string;
 		/**
-		 * P​l​e​a​s​e​ ​s​e​l​e​c​t​ ​a​ ​r​e​c​i​t​e​r​ ​o​r​ ​c​h​o​o​s​e​ ​a​ ​l​o​c​a​l​ ​a​u​d​i​o​ ​f​i​l​e​.
+		 * P​l​e​a​s​e​ ​s​e​l​e​c​t​ ​a​ ​s​p​e​a​k​e​r​ ​o​r​ ​c​h​o​o​s​e​ ​a​ ​l​o​c​a​l​ ​a​u​d​i​o​ ​f​i​l​e​.
 		 */
-		pleaseSelectReciter: string;
+		pleaseSelectSpeaker: string;
 		/**
 		 * P​l​e​a​s​e​ ​s​e​l​e​c​t​ ​a​ ​l​o​c​a​l​ ​a​u​d​i​o​ ​f​i​l​e​.
 		 */
 		pleaseSelectLocalAudio: string;
 		/**
-		 * R​e​c​i​t​e​r​s​ ​a​r​e​ ​s​t​i​l​l​ ​l​o​a​d​i​n​g​.​ ​P​l​e​a​s​e​ ​w​a​i​t​ ​a​ ​m​o​m​e​n​t​ ​a​n​d​ ​t​r​y​ ​a​g​a​i​n​.
+		 * S​p​e​a​k​e​r​s​ ​a​r​e​ ​s​t​i​l​l​ ​l​o​a​d​i​n​g​.​ ​P​l​e​a​s​e​ ​w​a​i​t​ ​a​ ​m​o​m​e​n​t​ ​a​n​d​ ​t​r​y​ ​a​g​a​i​n​.
 		 */
-		recitersStillLoading: string;
+		speakersStillLoading: string;
 		/**
 		 * P​l​e​a​s​e​ ​c​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​A​I​ ​A​P​I​ ​k​e​y​ ​a​n​d​ ​e​n​d​p​o​i​n​t​ ​i​n​ ​S​e​t​t​i​n​g​s​ ​>​ ​A​I​ ​K​e​y​ ​f​i​r​s​t​.
 		 */
@@ -10102,21 +10102,21 @@ type RootTranslation = {
 		 */
 		videoGenerationPrompt: string;
 		/**
-		 * R​e​c​i​t​e​r
+		 * S​p​e​a​k​e​r
 		 */
-		selectReciterLabel: string;
+		selectSpeakerLabel: string;
 		/**
-		 * S​e​l​e​c​t​ ​a​ ​r​e​c​i​t​e​r
+		 * S​e​l​e​c​t​ ​a​ ​s​p​e​a​k​e​r
 		 */
-		selectReciterPlaceholder: string;
+		selectSpeakerPlaceholder: string;
 		/**
-		 * S​e​a​r​c​h​ ​r​e​c​i​t​e​r​s​.​.​.
+		 * S​e​a​r​c​h​ ​s​p​e​a​k​e​r​s​.​.​.
 		 */
-		searchRecitersPlaceholder: string;
+		searchSpeakersPlaceholder: string;
 		/**
-		 * N​o​ ​r​e​c​i​t​e​r​s​ ​f​o​u​n​d
+		 * N​o​ ​s​p​e​a​k​e​r​s​ ​f​o​u​n​d
 		 */
-		noRecitersFound: string;
+		noSpeakersFound: string;
 		/**
 		 * V​e​r​s​e​ ​R​a​n​g​e
 		 */
@@ -10286,9 +10286,9 @@ type RootTranslation = {
 		 */
 		cleanupReasoning: string;
 		/**
-		 * A​I​ ​s​e​l​e​c​t​e​d​ ​a​ ​r​e​c​i​t​e​r​ ​t​h​a​t​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​r​e​s​o​l​v​e​d​.​ ​P​l​e​a​s​e​ ​p​i​c​k​ ​o​n​e​ ​m​a​n​u​a​l​l​y​ ​i​n​ ​t​h​e​ ​r​e​v​i​e​w​.
+		 * A​I​ ​s​e​l​e​c​t​e​d​ ​a​ ​s​p​e​a​k​e​r​ ​t​h​a​t​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​r​e​s​o​l​v​e​d​.​ ​P​l​e​a​s​e​ ​p​i​c​k​ ​o​n​e​ ​m​a​n​u​a​l​l​y​ ​i​n​ ​t​h​e​ ​r​e​v​i​e​w​.
 		 */
-		aiSelectedReciterError: string;
+		aiSelectedSpeakerError: string;
 		/**
 		 * S​u​b​t​i​t​l​e​s​ ​f​a​i​l​e​d​:​ ​{​m​e​s​s​a​g​e​}​.​ ​P​r​o​j​e​c​t​ ​c​r​e​a​t​e​d​ ​w​i​t​h​o​u​t​ ​s​u​b​t​i​t​l​e​s​.
 		 * @param {unknown} message
@@ -10315,9 +10315,9 @@ type RootTranslation = {
 		 */
 		quranSourceSettings: string;
 		/**
-		 * M​P​3​Q​u​r​a​n​ ​R​e​c​i​t​e​r
+		 * M​P​3​Q​u​r​a​n​ ​S​p​e​a​k​e​r
 		 */
-		mp3QuranReciter: string;
+		mp3QuranSpeaker: string;
 		/**
 		 * L​o​c​a​l​ ​A​u​d​i​o​ ​F​i​l​e
 		 */
@@ -10331,15 +10331,15 @@ type RootTranslation = {
 		 */
 		browse: string;
 		/**
-		 * L​o​a​d​i​n​g​ ​r​e​c​i​t​e​r​s​ ​f​r​o​m​ ​M​P​3​Q​u​r​a​n​.​.​.
+		 * L​o​a​d​i​n​g​ ​s​p​e​a​k​e​r​s​ ​f​r​o​m​ ​M​P​3​Q​u​r​a​n​.​.​.
 		 */
-		loadingReciters: string;
+		loadingSpeakers: string;
 		/**
 		 * S​u​r​a​h​ ​&​ ​V​e​r​s​e​ ​R​a​n​g​e
 		 */
 		surahAndVerseRange: string;
 		/**
-		 * T​h​i​s​ ​s​u​r​a​h​ ​i​s​ ​n​o​t​ ​a​v​a​i​l​a​b​l​e​ ​f​o​r​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​r​e​c​i​t​e​r​/​m​o​s​h​a​f​.
+		 * T​h​i​s​ ​s​u​r​a​h​ ​i​s​ ​n​o​t​ ​a​v​a​i​l​a​b​l​e​ ​f​o​r​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​s​p​e​a​k​e​r​/​m​o​s​h​a​f​.
 		 */
 		surahNotAvailable: string;
 		/**
@@ -10444,7 +10444,7 @@ type RootTranslation = {
 		 */
 		reviewContinue: string;
 		/**
-		 * A​I​ ​w​i​l​l​ ​u​s​e​ ​y​o​u​r​ ​c​o​n​f​i​g​u​r​e​d​ ​A​P​I​ ​t​o​ ​s​e​l​e​c​t​ ​a​ ​v​e​r​s​e​ ​r​a​n​g​e​ ​a​n​d​,​ ​i​f​ ​n​e​e​d​e​d​,​ ​a​ ​r​e​c​i​t​e​r​.
+		 * A​I​ ​w​i​l​l​ ​u​s​e​ ​y​o​u​r​ ​c​o​n​f​i​g​u​r​e​d​ ​A​P​I​ ​t​o​ ​s​e​l​e​c​t​ ​a​ ​v​e​r​s​e​ ​r​a​n​g​e​ ​a​n​d​,​ ​i​f​ ​n​e​e​d​e​d​,​ ​a​ ​s​p​e​a​k​e​r​.
 		 */
 		aiWillChoose: string;
 		/**
@@ -11308,7 +11308,7 @@ export type TranslationFunctions = {
 		/**
 		 * {count} project(s) for this speaker
 		 */
-		projectsForReciter: (arg: { count: unknown }) => LocalizedString;
+		projectsForSpeaker: (arg: { count: unknown }) => LocalizedString;
 		/**
 		 * {count} project(s) for year {year}
 		 */
@@ -11336,7 +11336,7 @@ export type TranslationFunctions = {
 		/**
 		 * Speaker
 		 */
-		reciter: () => LocalizedString;
+		speaker: () => LocalizedString;
 		/**
 		 * Content Type
 		 */
@@ -11348,7 +11348,7 @@ export type TranslationFunctions = {
 		/**
 		 * Enter or search speakers...
 		 */
-		searchReciters: () => LocalizedString;
+		searchSpeakers: () => LocalizedString;
 		/**
 		 * Fill in the details to create your project
 		 */
@@ -11408,11 +11408,11 @@ export type TranslationFunctions = {
 		/**
 		 * Enter project speaker
 		 */
-		projectReciterPlaceholder: () => LocalizedString;
+		projectSpeakerPlaceholder: () => LocalizedString;
 		/**
 		 * Speaker:
 		 */
-		reciterLabel: () => LocalizedString;
+		speakerLabel: () => LocalizedString;
 		/**
 		 * Duration:
 		 */
@@ -12352,9 +12352,9 @@ export type TranslationFunctions = {
 		 */
 		failedToDeleteFile: (arg: { error: unknown }) => LocalizedString;
 		/**
-		 * Failed to load reciters list.
+		 * Failed to load speakers list.
 		 */
-		failedToLoadReciters: () => LocalizedString;
+		failedToLoadSpeakers: () => LocalizedString;
 		/**
 		 * Trim is only available for audio and video assets.
 		 */
@@ -12376,7 +12376,7 @@ export type TranslationFunctions = {
 		 */
 		noNativeTimingAudio: () => LocalizedString;
 		/**
-		 * No timing data found for this reciter/surah.
+		 * No timing data found for this speaker/surah.
 		 */
 		noTimingDataFound: () => LocalizedString;
 		/**
@@ -12584,9 +12584,9 @@ export type TranslationFunctions = {
 		 */
 		redownloading: () => LocalizedString;
 		/**
-		 * Downloading {surah} by {reciter}...
+		 * Downloading {surah} by {speaker}...
 		 */
-		downloadingSurah: (arg: { reciter: unknown; surah: unknown }) => LocalizedString;
+		downloadingSurah: (arg: { speaker: unknown; surah: unknown }) => LocalizedString;
 		/**
 		 * Download audio
 		 */
@@ -12744,7 +12744,7 @@ export type TranslationFunctions = {
 		 */
 		usePreviewCursorTime: () => LocalizedString;
 		/**
-		 * Arabic calligraphy is not available for this reciter.
+		 * Arabic calligraphy is not available for this speaker.
 		 */
 		arabicCalligraphyUnavailable: () => LocalizedString;
 		/**
@@ -14084,17 +14084,17 @@ export type TranslationFunctions = {
 		 */
 		sourceLabel: () => LocalizedString;
 		/**
-		 * Reciter
+		 * Speaker
 		 */
-		reciterLabel: () => LocalizedString;
+		speakerLabel: () => LocalizedString;
 		/**
-		 * Loading reciters...
+		 * Loading speakers...
 		 */
-		loadingReciters: () => LocalizedString;
+		loadingSpeakers: () => LocalizedString;
 		/**
-		 * Select a reciter
+		 * Select a speaker
 		 */
-		selectReciter: () => LocalizedString;
+		selectCatalogSpeaker: () => LocalizedString;
 		/**
 		 * ★ means official verse timing can be loaded automatically after download.
 		 */
@@ -14120,11 +14120,11 @@ export type TranslationFunctions = {
 		 */
 		quaCalloutSegments: () => LocalizedString;
 		/**
-		 * Download audio for 1000+ reciters sourced from servers across the web.
+		 * Download audio for 1000+ speakers sourced from servers across the web.
 		 */
 		quaCalloutAudioOnly: () => LocalizedString;
 		/**
-		 * Help contribute more reciters
+		 * Help contribute more speakers
 		 */
 		quaContribute: () => LocalizedString;
 		/**
@@ -14716,7 +14716,7 @@ export type TranslationFunctions = {
 		 */
 		arrowsToSelectWords: () => LocalizedString;
 		/**
-		 * When the reciter finishes a verse, or a part of a verse, press <span class="font-mono bg-accent px-1 rounded-sm">enter</span> to add a subtitle at the current time with the selected words.
+		 * When the speaker finishes a verse, or a part of a verse, press <span class="font-mono bg-accent px-1 rounded-sm">enter</span> to add a subtitle at the current time with the selected words.
 		 */
 		enterToAddSubtitleWalkthrough: () => LocalizedString;
 		/**
@@ -16025,61 +16025,61 @@ export type TranslationFunctions = {
 			 */
 			'surah-latin-text-style': () => LocalizedString;
 			/**
-			 * Reciter Name
+			 * Speaker Name
 			 */
-			'reciter-name': () => LocalizedString;
+			'speaker-name': () => LocalizedString;
 			/**
-			 * Show Reciter Name
+			 * Show Speaker Name
 			 */
-			'show-reciter-name': () => LocalizedString;
+			'show-speaker-name': () => LocalizedString;
 			/**
 			 * Always Show
 			 */
-			'reciter-name-always-show': () => LocalizedString;
+			'speaker-name-always-show': () => LocalizedString;
 			/**
 			 * Time Appearance
 			 */
-			'reciter-name-time-appearance': () => LocalizedString;
+			'speaker-name-time-appearance': () => LocalizedString;
 			/**
 			 * Time Disappearance
 			 */
-			'reciter-name-time-disappearance': () => LocalizedString;
+			'speaker-name-time-disappearance': () => LocalizedString;
 			/**
 			 * Vertical Position
 			 */
-			'reciter-name-vertical-position': () => LocalizedString;
+			'speaker-name-vertical-position': () => LocalizedString;
 			/**
 			 * Horizontal Position
 			 */
-			'reciter-name-horizontal-position': () => LocalizedString;
+			'speaker-name-horizontal-position': () => LocalizedString;
 			/**
 			 * Latin Text Format
 			 */
-			'reciter-name-format': () => LocalizedString;
+			'speaker-name-format': () => LocalizedString;
 			/**
 			 * Show Arabic
 			 */
-			'reciter-show-arabic': () => LocalizedString;
+			'speaker-show-arabic': () => LocalizedString;
 			/**
 			 * Show Latin
 			 */
-			'reciter-show-latin': () => LocalizedString;
+			'speaker-show-latin': () => LocalizedString;
 			/**
 			 * Size
 			 */
-			'reciter-size': () => LocalizedString;
+			'speaker-size': () => LocalizedString;
 			/**
 			 * Spacing
 			 */
-			'reciter-latin-spacing': () => LocalizedString;
+			'speaker-latin-spacing': () => LocalizedString;
 			/**
 			 * Opacity
 			 */
-			'reciter-opacity': () => LocalizedString;
+			'speaker-opacity': () => LocalizedString;
 			/**
 			 * Text Styles
 			 */
-			'reciter-latin-text-style': () => LocalizedString;
+			'speaker-latin-text-style': () => LocalizedString;
 			/**
 			 * Text Container
 			 */
@@ -16755,61 +16755,61 @@ export type TranslationFunctions = {
 			 */
 			'surah-latin-text-style': () => LocalizedString;
 			/**
-			 * Control display of the Reciter name
+			 * Control display of the Speaker name
 			 */
-			'reciter-name': () => LocalizedString;
+			'speaker-name': () => LocalizedString;
 			/**
-			 * Show or hide the Reciter name
+			 * Show or hide the Speaker name
 			 */
-			'show-reciter-name': () => LocalizedString;
+			'show-speaker-name': () => LocalizedString;
 			/**
-			 * Always show the Reciter name (ignore timing)
+			 * Always show the Speaker name (ignore timing)
 			 */
-			'reciter-name-always-show': () => LocalizedString;
+			'speaker-name-always-show': () => LocalizedString;
 			/**
-			 * Change the time where the Reciter name appears
+			 * Change the time where the Speaker name appears
 			 */
-			'reciter-name-time-appearance': () => LocalizedString;
+			'speaker-name-time-appearance': () => LocalizedString;
 			/**
-			 * Change the time where the Reciter name disappears
+			 * Change the time where the Speaker name disappears
 			 */
-			'reciter-name-time-disappearance': () => LocalizedString;
+			'speaker-name-time-disappearance': () => LocalizedString;
 			/**
-			 * Change the vertical position of the reciter name (pixels from center)
+			 * Change the vertical position of the speaker name (pixels from center)
 			 */
-			'reciter-name-vertical-position': () => LocalizedString;
+			'speaker-name-vertical-position': () => LocalizedString;
 			/**
-			 * Change the horizontal position of the reciter name (pixels from center)
+			 * Change the horizontal position of the speaker name (pixels from center)
 			 */
-			'reciter-name-horizontal-position': () => LocalizedString;
+			'speaker-name-horizontal-position': () => LocalizedString;
 			/**
-			 * Format of the Reciter name display. Use <arabic> and <transliteration> tags to customize.
+			 * Format of the Speaker name display. Use <arabic> and <transliteration> tags to customize.
 			 */
-			'reciter-name-format': () => LocalizedString;
+			'speaker-name-format': () => LocalizedString;
 			/**
-			 * Show the Reciter name in Arabic
+			 * Show the Speaker name in Arabic
 			 */
-			'reciter-show-arabic': () => LocalizedString;
+			'speaker-show-arabic': () => LocalizedString;
 			/**
 			 * Show additional Latin text (see Latin Text Format)
 			 */
-			'reciter-show-latin': () => LocalizedString;
+			'speaker-show-latin': () => LocalizedString;
 			/**
-			 * Size of Reciter Arabic Calligraphy Name
+			 * Size of Speaker Arabic Calligraphy Name
 			 */
-			'reciter-size': () => LocalizedString;
+			'speaker-size': () => LocalizedString;
 			/**
-			 * Adjust spacing between the Arabic Reciter name and its Latin equivalent
+			 * Adjust spacing between the Arabic Speaker name and its Latin equivalent
 			 */
-			'reciter-latin-spacing': () => LocalizedString;
+			'speaker-latin-spacing': () => LocalizedString;
 			/**
-			 * Adjust the opacity of the Reciter name
+			 * Adjust the opacity of the Speaker name
 			 */
-			'reciter-opacity': () => LocalizedString;
+			'speaker-opacity': () => LocalizedString;
 			/**
-			 * Style for the Latin transliteration of the Reciter name
+			 * Style for the Latin transliteration of the Speaker name
 			 */
-			'reciter-latin-text-style': () => LocalizedString;
+			'speaker-latin-text-style': () => LocalizedString;
 			/**
 			 * Add a decorative background image behind the ayah
 			 */
@@ -18146,11 +18146,11 @@ export type TranslationFunctions = {
 		 */
 		createMemorizationVideos: () => LocalizedString;
 		/**
-		 * Global — video overlay, reciter name, and background settings
+		 * Global — video overlay, speaker name, and background settings
 		 */
 		globalSettings: () => LocalizedString;
 		/**
-		 * Surah — reciter and surah name display on the screen
+		 * Surah — speaker and surah name display on the screen
 		 */
 		surahSettings: () => LocalizedString;
 		/**
@@ -18162,7 +18162,7 @@ export type TranslationFunctions = {
 		 */
 		threeStyleCategories: () => LocalizedString;
 		/**
-		 * Global — video overlay, reciter name, and background settings. Surah — reciter and surah name display. Verse — subtitles font, color, size, and animations.
+		 * Global — video overlay, speaker name, and background settings. Surah — speaker and surah name display. Verse — subtitles font, color, size, and animations.
 		 */
 		threeStyleCategoriesDescription: () => LocalizedString;
 		/**
@@ -19164,9 +19164,9 @@ export type TranslationFunctions = {
 		 */
 		creatingQuranVideo: () => LocalizedString;
 		/**
-		 * Working on {name} ({reciter})
+		 * Working on {name} ({speaker})
 		 */
-		workingOnProject: (arg: { name: unknown; reciter: unknown }) => LocalizedString;
+		workingOnProject: (arg: { name: unknown; speaker: unknown }) => LocalizedString;
 		/**
 		 * Working on {name}
 		 */
@@ -19694,7 +19694,7 @@ export type TranslationFunctions = {
 		 */
 		stepAdaptingTranslationsTitle: () => LocalizedString;
 		/**
-		 * Notice how verse 1:7 was recited in two parts. You can split translations to match how the reciter reads.
+		 * Notice how verse 1:7 was recited in two parts. You can split translations to match how the speaker reads.
 		 */
 		stepAdaptingTranslationsDesc: () => LocalizedString;
 		/**
@@ -19710,7 +19710,7 @@ export type TranslationFunctions = {
 		 */
 		stepStyleCategoriesTitle: () => LocalizedString;
 		/**
-		 * Global — video overlay, reciter name. Surah — reciter and surah name. Verse — font, color, size, animations.
+		 * Global — video overlay, speaker name. Surah — speaker and surah name. Verse — font, color, size, animations.
 		 */
 		stepStyleCategoriesDesc: () => LocalizedString;
 		/**
@@ -19776,13 +19776,13 @@ export type TranslationFunctions = {
 		 */
 		inputDefaultPlaceholder: () => LocalizedString;
 		/**
-		 * Start typing to search reciters...
+		 * Start typing to search speakers...
 		 */
-		searchReciters: () => LocalizedString;
+		searchSpeakers: () => LocalizedString;
 		/**
-		 * Reciter
+		 * Speaker
 		 */
-		reciterLabel: () => LocalizedString;
+		speakerLabel: () => LocalizedString;
 		/**
 		 * Delete Confirmation
 		 */
@@ -20399,7 +20399,7 @@ export type TranslationFunctions = {
 		 */
 		internetRequired: () => LocalizedString;
 		/**
-		 * An active internet connection is needed to download reciter data and Quran text during migration.
+		 * An active internet connection is needed to download speaker data and Quran text during migration.
 		 */
 		internetRequiredDesc: () => LocalizedString;
 		/**
@@ -20449,9 +20449,9 @@ export type TranslationFunctions = {
 		 */
 		youtubeUrlPlaceholder: () => LocalizedString;
 		/**
-		 * Select a reciter
+		 * Select a speaker
 		 */
-		selectReciter: () => LocalizedString;
+		selectCatalogSpeaker: () => LocalizedString;
 		/**
 		 * Or choose a local audio file
 		 */
@@ -20493,17 +20493,17 @@ export type TranslationFunctions = {
 		 */
 		pleaseEnterYoutubeUrl: () => LocalizedString;
 		/**
-		 * Please select a reciter or choose a local audio file.
+		 * Please select a speaker or choose a local audio file.
 		 */
-		pleaseSelectReciter: () => LocalizedString;
+		pleaseSelectSpeaker: () => LocalizedString;
 		/**
 		 * Please select a local audio file.
 		 */
 		pleaseSelectLocalAudio: () => LocalizedString;
 		/**
-		 * Reciters are still loading. Please wait a moment and try again.
+		 * Speakers are still loading. Please wait a moment and try again.
 		 */
-		recitersStillLoading: () => LocalizedString;
+		speakersStillLoading: () => LocalizedString;
 		/**
 		 * Please configure your AI API key and endpoint in Settings > AI Key first.
 		 */
@@ -20601,21 +20601,21 @@ export type TranslationFunctions = {
 		 */
 		videoGenerationPrompt: () => LocalizedString;
 		/**
-		 * Reciter
+		 * Speaker
 		 */
-		selectReciterLabel: () => LocalizedString;
+		selectSpeakerLabel: () => LocalizedString;
 		/**
-		 * Select a reciter
+		 * Select a speaker
 		 */
-		selectReciterPlaceholder: () => LocalizedString;
+		selectSpeakerPlaceholder: () => LocalizedString;
 		/**
-		 * Search reciters...
+		 * Search speakers...
 		 */
-		searchRecitersPlaceholder: () => LocalizedString;
+		searchSpeakersPlaceholder: () => LocalizedString;
 		/**
-		 * No reciters found
+		 * No speakers found
 		 */
-		noRecitersFound: () => LocalizedString;
+		noSpeakersFound: () => LocalizedString;
 		/**
 		 * Verse Range
 		 */
@@ -20785,9 +20785,9 @@ export type TranslationFunctions = {
 		 */
 		cleanupReasoning: () => LocalizedString;
 		/**
-		 * AI selected a reciter that could not be resolved. Please pick one manually in the review.
+		 * AI selected a speaker that could not be resolved. Please pick one manually in the review.
 		 */
-		aiSelectedReciterError: () => LocalizedString;
+		aiSelectedSpeakerError: () => LocalizedString;
 		/**
 		 * Subtitles failed: {message}. Project created without subtitles.
 		 */
@@ -20809,9 +20809,9 @@ export type TranslationFunctions = {
 		 */
 		quranSourceSettings: () => LocalizedString;
 		/**
-		 * MP3Quran Reciter
+		 * MP3Quran Speaker
 		 */
-		mp3QuranReciter: () => LocalizedString;
+		mp3QuranSpeaker: () => LocalizedString;
 		/**
 		 * Local Audio File
 		 */
@@ -20825,15 +20825,15 @@ export type TranslationFunctions = {
 		 */
 		browse: () => LocalizedString;
 		/**
-		 * Loading reciters from MP3Quran...
+		 * Loading speakers from MP3Quran...
 		 */
-		loadingReciters: () => LocalizedString;
+		loadingSpeakers: () => LocalizedString;
 		/**
 		 * Surah & Verse Range
 		 */
 		surahAndVerseRange: () => LocalizedString;
 		/**
-		 * This surah is not available for the selected reciter/moshaf.
+		 * This surah is not available for the selected speaker/moshaf.
 		 */
 		surahNotAvailable: () => LocalizedString;
 		/**
@@ -20937,7 +20937,7 @@ export type TranslationFunctions = {
 		 */
 		reviewContinue: () => LocalizedString;
 		/**
-		 * AI will use your configured API to select a verse range and, if needed, a reciter.
+		 * AI will use your configured API to select a verse range and, if needed, a speaker.
 		 */
 		aiWillChoose: () => LocalizedString;
 		/**

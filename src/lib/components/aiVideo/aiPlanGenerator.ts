@@ -1,6 +1,6 @@
 import { globalState } from '$lib/runes/main.svelte';
 import { IS_DEBUG_MODE, MOCK_AI_PLAN } from './debug';
-import { resolveAiReciterOption } from './reciterLoader';
+import { resolveAiSpeakerOption } from './speakerLoader';
 import type { AiPlan } from './types';
 import toast from 'svelte-5-french-toast';
 import LL from '$lib/i18n/i18n-svelte';
@@ -18,10 +18,10 @@ function wait(ms: number): Promise<void> {
 /**
  * Genere un plan de projet video via l'IA (ou manuellement si letAiChoose est desactive).
  * Cote la page, construit le prompt system, appelle l'API et parse la reponse JSON.
- * @param {string} reciterList Liste des recitateurs formatee pour le prompt (obtenue via buildReciterListForAi).
- * @returns {Promise<AiPlan>} Plan complet (titre, plage de versets, recitateur, prompt video).
+ * @param {string} speakerList Liste des intervenants formatee pour le prompt (obtenue via buildSpeakerListForAi).
+ * @returns {Promise<AiPlan>} Plan complet (titre, plage de versets, intervenant, prompt video).
  */
-export async function generateAiPlan(reciterList: string): Promise<AiPlan> {
+export async function generateAiPlan(speakerList: string): Promise<AiPlan> {
 	const aiv = globalState.aiVideo;
 
 	// Mode manuel : pas d'appel IA, on retourne les selections de l'utilisateur
@@ -32,8 +32,8 @@ export async function generateAiPlan(reciterList: string): Promise<AiPlan> {
 					? 'YouTube Video Project'
 					: aiv.video.prompt.trim().slice(0, 50) || 'AI Video Project',
 			videoPrompt: aiv.video.sourceMode === 'youtube' ? aiv.video.youtubeUrl : aiv.video.prompt,
-			reciter: aiv.audio.reciterName,
-			reciterId: aiv.audio.reciter?.reciterId ?? 0,
+			speaker: aiv.audio.speakerName,
+			speakerId: aiv.audio.speaker?.speakerId ?? 0,
 			surah: aiv.selectedVerseRange.surah,
 			ayahStart: aiv.selectedVerseRange.startVerse,
 			ayahEnd: aiv.selectedVerseRange.endVerse
@@ -48,9 +48,9 @@ export async function generateAiPlan(reciterList: string): Promise<AiPlan> {
 	}
 
 	// Verification des prerequis
-	if (aiv.reciterOptions.length === 0) {
-		toast.error(get(LL).aiVideo.recitersStillLoading());
-		throw new Error('Reciters not loaded yet');
+	if (aiv.speakerOptions.length === 0) {
+		toast.error(get(LL).aiVideo.speakersStillLoading());
+		throw new Error(get(LL).aiVideo.speakersStillLoading());
 	}
 
 	const aiSettings = globalState.settings?.aiTranslationSettings;
@@ -60,28 +60,28 @@ export async function generateAiPlan(reciterList: string): Promise<AiPlan> {
 	}
 
 	const shouldAskForVideoPrompt = aiv.video.sourceMode === 'ai';
-	const forcedReciterOption =
-		aiv.audio.reciter && !aiv.audio.useLocal
-			? resolveAiReciterOption(aiv.audio.reciter.reciterId)
+	const forcedSpeakerOption =
+		aiv.audio.speaker && !aiv.audio.useLocal
+			? resolveAiSpeakerOption(aiv.audio.speaker.speakerId)
 			: null;
-	const forcedReciterInstruction = forcedReciterOption
-		? `\nThe user already selected this reciter. You MUST use reciterId = ${forcedReciterOption.reciterId}, reciter = "${forcedReciterOption.reciterName}".`
+	const forcedSpeakerInstruction = forcedSpeakerOption
+		? `\nThe user already selected this speaker. You MUST use speakerId = ${forcedSpeakerOption.speakerId}, speaker = "${forcedSpeakerOption.speakerName}".`
 		: '';
 
 	const systemPrompt = `You are a Quran video planning assistant. Given a theme or topic, you must:
 1. Select the most relevant Quran verses for this theme
-2. Choose a reciter from the available list below
+2. Choose a speaker from the available list below
 ${shouldAskForVideoPrompt ? '3. Write a detailed visual prompt that would be sent to an AI video generation model' : ''}
 
-AVAILABLE RECITERS (you MUST pick from this list using exact IDs):
-${reciterList}
+AVAILABLE SPEAKERS (you MUST pick from this list using exact IDs):
+${speakerList}
 
 Respond ONLY with valid JSON in this exact format:
 {
   "title": "A short project title (max 50 characters) summarizing the theme and verses",
   "videoPrompt": "${shouldAskForVideoPrompt ? 'A cinematic, detailed visual description for AI video generation. Describe the mood, colors, camera movement, scenery. Do not include humans or any living beings. Be very descriptive and visual.' : ''}",
-  "reciterId": <reciter ID from the list above>,
-  "reciter": "Name of the selected reciter",
+  "speakerId": <speaker ID from the list above>,
+  "speaker": "Name of the selected speaker",
   "surah": <surah number 1-114>,
   "ayahStart": <starting verse number>,
   "ayahEnd": <ending verse number>
@@ -91,8 +91,8 @@ Rules:
 - Choose verses that are MOST relevant to the given theme
 - Keep the verse range reasonable (3-15 verses)
 - ${shouldAskForVideoPrompt ? 'The videoPrompt should describe a beautiful, contemplative visual scene matching the theme, without humans or any living beings' : 'Leave videoPrompt as an empty string'}
-- Pick a reciter whose style matches the mood (e.g. emotional themes → emotional reciter)
-- You MUST use reciterId from the available reciters list${forcedReciterInstruction}`;
+- Pick a speaker whose style matches the mood (e.g. emotional themes → emotional speaker)
+- You MUST use speakerId from the available speakers list${forcedSpeakerInstruction}`;
 
 	const response = await fetch(aiSettings.textAiApiEndpoint, {
 		method: 'POST',
@@ -136,8 +136,8 @@ Rules:
 			aiv.video.sourceMode === 'youtube'
 				? aiv.video.youtubeUrl
 				: String(plan.videoPrompt || aiv.video.prompt),
-		reciter: String(plan.reciter || 'Unknown'),
-		reciterId: Number(plan.reciterId || 0),
+		speaker: String(plan.speaker || 'Unknown'),
+		speakerId: Number(plan.speakerId || 0),
 		surah: Math.max(1, Math.min(114, Number(plan.surah || 1))),
 		ayahStart: Math.max(1, Number(plan.ayahStart || 1)),
 		ayahEnd: Math.max(1, Number(plan.ayahEnd || 7))

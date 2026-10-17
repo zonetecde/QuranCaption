@@ -18,7 +18,7 @@ class SegmentationService:
         audio_path: Path,
         ayah_timestamps: List[Dict],
         surah_number: int,
-        reciter_name: str,
+        speaker_name: str,
         output_dir: Path,
         save_incoming_surah_audio: bool = False,
     ) -> Dict[int, Path]:
@@ -28,7 +28,7 @@ class SegmentationService:
             audio_path: Path to original surah audio
             ayah_timestamps: List of ayah timestamps from AyahMatchingService
             surah_number: Surah number
-            reciter_name: Name of reciter
+            speaker_name: Name of speaker
             output_dir: Base output directory
             save_incoming_surah_audio: Whether to save original surah audio
 
@@ -46,15 +46,15 @@ class SegmentationService:
             raise
 
         # Create output directories
-        reciter_output_dir = output_dir / reciter_name
-        ayah_audio_dir = reciter_output_dir / "ayah_audios" / f"{surah_number:03d}"
+        speaker_output_dir = output_dir / speaker_name
+        ayah_audio_dir = speaker_output_dir / "ayah_audios" / f"{surah_number:03d}"
         ayah_audio_dir.mkdir(parents=True, exist_ok=True)
 
         logger.debug(f"Created output directory: {ayah_audio_dir}")
 
         # Save original surah if requested
         if save_incoming_surah_audio:
-            surah_audio_dir = reciter_output_dir / "surah_audios"
+            surah_audio_dir = speaker_output_dir / "surah_audios"
             surah_audio_dir.mkdir(parents=True, exist_ok=True)
             surah_audio_path = surah_audio_dir / f"{surah_number:03d}.mp3"
 

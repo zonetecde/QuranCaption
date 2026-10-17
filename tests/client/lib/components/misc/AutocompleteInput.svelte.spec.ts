@@ -55,11 +55,11 @@ describe('AutocompleteInput', () => {
 	test('renders label, icon and maxlength counter when provided', async () => {
 		const component = renderAutocomplete({
 			value: 'Ab',
-			label: 'Reciter',
+			label: 'Speaker',
 			maxlength: 10
 		});
 
-		await expect.element(component.getByText('Reciter')).toBeVisible();
+		await expect.element(component.getByText('Speaker')).toBeVisible();
 		await expect.element(component.getByText('search')).toBeVisible();
 		await expect.element(component.getByText('2/10')).toBeVisible();
 	});

@@ -81,6 +81,7 @@ _LOGS_V3_SCHEMA: Dict[str, Dict[str, str]] = {
     "anchor":           {"_type": "Value", "dtype": "string"},
     "gpu_memory":       {"_type": "Value", "dtype": "string"},
     "results_summary":  {"_type": "Value", "dtype": "string"},
+    # Keep the published HF column name compatible with existing datasets.
     "reciter_stats":    {"_type": "Value", "dtype": "string"},
     "audio_analytics":  {"_type": "Value", "dtype": "string"},
 }
@@ -500,7 +501,7 @@ def log_alignment(
     anchor: dict,
     gpu_memory: Optional[dict],
     results_summary: dict,
-    reciter_stats: dict,
+    speaker_stats: dict,
     audio_analytics: Optional[dict] = None,
     _async: bool = True,
 ) -> Optional[Dict[str, Any]]:
@@ -534,7 +535,7 @@ def log_alignment(
             "anchor":          json.dumps(anchor),
             "gpu_memory":      json.dumps(gpu_memory) if gpu_memory is not None else None,
             "results_summary": json.dumps(results_summary),
-            "reciter_stats":   json.dumps(reciter_stats),
+            "reciter_stats":   json.dumps(speaker_stats),
             "audio_analytics": json.dumps(audio_analytics) if audio_analytics is not None else None,
         }
         if _logs_scheduler is not None:

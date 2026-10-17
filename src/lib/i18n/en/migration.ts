@@ -18,7 +18,7 @@ const migration = {
 	customTextsDesc: 'Will be replaced with silence clips',
 	internetRequired: 'Internet Connection Required',
 	internetRequiredDesc:
-		'An active internet connection is needed to download reciter data and Quran text during migration.',
+		'An active internet connection is needed to download speaker data and Quran text during migration.',
 	importProgress: 'Import Progress',
 	processing: 'Processing:',
 	couldNotFindV2Data: 'Could not find Minbar Studio V2 data directory',

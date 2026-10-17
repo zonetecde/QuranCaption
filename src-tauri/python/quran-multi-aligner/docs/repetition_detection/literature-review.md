@@ -7,7 +7,7 @@ problem profile:
 - **Known reference R** (Quranic text phonemes, word-boundary-constrained)
 - **Noisy query P** (ASR output, ~10-20% phoneme error rate)
 - **Short sequences** (50-200 phonemes)
-- **1-3 repetitions** (reciter restarts from earlier words in the verse)
+- **1-3 repetitions** (speaker restarts from earlier words in the verse)
 - **Word-level granularity** required
 
 Our proposed algorithm (decomposition + DP hypothesis testing, documented in
@@ -79,7 +79,7 @@ known-Quran-text setting.
 
 **Concept:** Given a set of short exact matches ("anchors") between P and R, find the maximum-weight
 ordered subset where positions increase monotonically in both sequences. Where colinearity breaks —
-the R-coordinate goes backward — that's where the reciter restarted.
+the R-coordinate goes backward — that's where the speaker restarted.
 
 **How it works:**
 
@@ -320,7 +320,7 @@ and independently aligns each P-segment to R. Same result, different search stra
 
 **Concept:** Compute a running alignment cost as a sliding window moves through P, then detect
 abrupt changes (change points) where the cost spikes. A spike indicates the phonemes stopped
-matching the expected R continuation — i.e., the reciter restarted.
+matching the expected R continuation — i.e., the speaker restarted.
 
 **How it works:**
 

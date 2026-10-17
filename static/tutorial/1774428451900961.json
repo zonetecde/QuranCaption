@@ -18,7 +18,7 @@
       "ms": 48013
     },
     "name": "Tutorial Project",
-    "reciter": "Yasser Al-Dosari",
+    "speaker": "Yasser Al-Dosari",
     "createdAt": "2026-03-25T08:47:31.900Z",
     "updatedAt": "2026-03-25T08:58:51.259Z",
     "percentageCaptioned": 100,
@@ -388,7 +388,7 @@
         "sourceType": "mp3quran",
         "metadata": {
           "mp3Quran": {
-            "reciterId": 92,
+            "speakerId": 92,
             "moshafId": 92,
             "surahId": 1
           }
@@ -962,33 +962,33 @@
             },
             {
               "__className": "Category",
-              "name": "Reciter Name",
-              "description": "Control display of the Reciter name",
+              "name": "Speaker Name",
+              "description": "Control display of the Speaker name",
               "icon": "person",
-              "id": "reciter-name",
+              "id": "speaker-name",
               "styles": [
                 {
                   "__className": "Style",
-                  "name": "Show Reciter Name",
-                  "description": "Show or hide the Reciter name",
+                  "name": "Show Speaker Name",
+                  "description": "Show or hide the Speaker name",
                   "valueType": "boolean",
                   "css": "",
                   "tailwind": false,
                   "icon": "visibility",
-                  "id": "show-reciter-name",
+                  "id": "show-speaker-name",
                   "value": true,
                   "valueMin": -540,
                   "valueMax": 540
                 },
                 {
                   "__className": "Style",
-                  "name": "Reciter Name",
-                  "description": "Change the reciter of the project",
-                  "valueType": "reciter",
+                  "name": "Speaker Name",
+                  "description": "Change the speaker of the project",
+                  "valueType": "speaker",
                   "css": "",
                   "tailwind": false,
                   "icon": "format_quote",
-                  "id": "reciter-name",
+                  "id": "speaker-name",
                   "value": "",
                   "valueMin": -540,
                   "valueMax": 540
@@ -996,12 +996,12 @@
                 {
                   "__className": "Style",
                   "name": "Vertical Position",
-                  "description": "Change the vertical position of the reciter name (pixels from center)",
+                  "description": "Change the vertical position of the speaker name (pixels from center)",
                   "valueType": "number",
                   "css": "",
                   "tailwind": false,
                   "icon": "vertical_align_center",
-                  "id": "reciter-name-vertical-position",
+                  "id": "speaker-name-vertical-position",
                   "value": 350,
                   "valueMin": -540,
                   "valueMax": 540
@@ -1009,12 +1009,12 @@
                 {
                   "__className": "Style",
                   "name": "Horizontal Position",
-                  "description": "Change the horizontal position of the reciter name (pixels from center)",
+                  "description": "Change the horizontal position of the speaker name (pixels from center)",
                   "valueType": "number",
                   "css": "",
                   "tailwind": false,
                   "icon": "horizontal_rule",
-                  "id": "reciter-name-horizontal-position",
+                  "id": "speaker-name-horizontal-position",
                   "value": 0,
                   "valueMin": -960,
                   "valueMax": 960
@@ -1022,12 +1022,12 @@
                 {
                   "__className": "Style",
                   "name": "Latin Text Format",
-                  "description": "Format of the Reciter name display. Use <arabic> and <transliteration> tags to customize.",
+                  "description": "Format of the Speaker name display. Use <arabic> and <transliteration> tags to customize.",
                   "valueType": "text",
                   "css": "",
                   "tailwind": false,
                   "icon": "format_quote",
-                  "id": "reciter-name-format",
+                  "id": "speaker-name-format",
                   "value": "<transliteration>",
                   "valueMin": -540,
                   "valueMax": 540
@@ -1035,12 +1035,12 @@
                 {
                   "__className": "Style",
                   "name": "Show Arabic",
-                  "description": "Show the Reciter name in Arabic",
+                  "description": "Show the Speaker name in Arabic",
                   "valueType": "boolean",
                   "css": "",
                   "tailwind": false,
                   "icon": "translate",
-                  "id": "reciter-show-arabic",
+                  "id": "speaker-show-arabic",
                   "value": true,
                   "valueMin": -540,
                   "valueMax": 540
@@ -1053,7 +1053,7 @@
                   "css": "",
                   "tailwind": false,
                   "icon": "translate",
-                  "id": "reciter-show-latin",
+                  "id": "speaker-show-latin",
                   "value": true,
                   "valueMin": -540,
                   "valueMax": 540
@@ -1061,13 +1061,13 @@
                 {
                   "__className": "Style",
                   "name": "Size",
-                  "description": "Size of Reciter Arabic Calligraphy Name",
+                  "description": "Size of Speaker Arabic Calligraphy Name",
                   "valueType": "number",
                   "step": 0.05,
                   "css": "",
                   "tailwind": false,
                   "icon": "zoom_in",
-                  "id": "reciter-size",
+                  "id": "speaker-size",
                   "value": 6.5,
                   "valueMin": 1,
                   "valueMax": 16
@@ -1075,13 +1075,13 @@
                 {
                   "__className": "Style",
                   "name": "Spacing",
-                  "description": "Adjust spacing between the Arabic Reciter name and its Latin equivalent",
+                  "description": "Adjust spacing between the Arabic Speaker name and its Latin equivalent",
                   "valueType": "number",
                   "step": 0.1,
                   "css": "",
                   "tailwind": false,
                   "icon": "format_line_spacing",
-                  "id": "reciter-latin-spacing",
+                  "id": "speaker-latin-spacing",
                   "value": 11,
                   "valueMin": 0.2,
                   "valueMax": 25
@@ -1089,13 +1089,13 @@
                 {
                   "__className": "Style",
                   "name": "Opacity",
-                  "description": "Adjust the opacity of the Reciter name",
+                  "description": "Adjust the opacity of the Speaker name",
                   "valueType": "number",
                   "step": 0.01,
                   "css": "",
                   "tailwind": false,
                   "icon": "opacity",
-                  "id": "reciter-opacity",
+                  "id": "speaker-opacity",
                   "value": 0.75,
                   "valueMin": 0,
                   "valueMax": 1
@@ -1103,12 +1103,12 @@
                 {
                   "__className": "Style",
                   "name": "Text Styles",
-                  "description": "Style for the Latin transliteration of the Reciter name",
+                  "description": "Style for the Latin transliteration of the Speaker name",
                   "valueType": "composite",
                   "css": "",
                   "tailwind": false,
                   "icon": "auto_fix_high",
-                  "id": "reciter-latin-text-style",
+                  "id": "speaker-latin-text-style",
                   "value": [
                     {
                       "__className": "Style",
@@ -3445,40 +3445,40 @@
       "Surah Name": {
         "extended": true
       },
-      "show-reciter-name": {
+      "show-speaker-name": {
         "extended": false
       },
-      "reciter-name": {
+      "speaker-name": {
         "extended": false
       },
-      "reciter-name-vertical-position": {
+      "speaker-name-vertical-position": {
         "extended": false
       },
-      "reciter-name-horizontal-position": {
+      "speaker-name-horizontal-position": {
         "extended": false
       },
-      "reciter-name-format": {
+      "speaker-name-format": {
         "extended": false
       },
-      "reciter-show-arabic": {
+      "speaker-show-arabic": {
         "extended": false
       },
-      "reciter-show-latin": {
+      "speaker-show-latin": {
         "extended": false
       },
-      "reciter-size": {
+      "speaker-size": {
         "extended": false
       },
-      "reciter-latin-spacing": {
+      "speaker-latin-spacing": {
         "extended": false
       },
-      "reciter-opacity": {
+      "speaker-opacity": {
         "extended": false
       },
-      "reciter-latin-text-style": {
+      "speaker-latin-text-style": {
         "extended": false
       },
-      "Reciter Name": {
+      "Speaker Name": {
         "extended": true
       },
       "show-verse-number": {

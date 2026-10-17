@@ -838,7 +838,7 @@ def _run_post_vad_pipeline(
             from src.core.log_blocks import (
                 build_settings, build_timing, build_asr_batches, build_segments,
                 build_events, build_anchor, build_results_summary,
-                build_reciter_stats, build_gpu_memory,
+                build_speaker_stats, build_gpu_memory,
             )
             from src.core.audio_analytics import (
                 compute_audio_analytics, compute_noise_floor_rms,
@@ -850,7 +850,7 @@ def _run_post_vad_pipeline(
             #   1) sync: noise_floor_rms only (~10-50ms) so per-segment SNR
             #      lands in the initial log row.
             #   2) bg thread (after response yielded): full `audio_analytics`
-            #      dict (whole / speech / nonspeech Welch PSDs + reciter_stats
+            #      dict (whole / speech / nonspeech Welch PSDs + speaker_stats
             #      additive fields), mutates the same log_row and re-syncs
             #      via `_sync_row_to_scheduler`. Keeps the long-clip 3-5s
             #      Welch-PSD cost off the user's wall-time path.
@@ -862,7 +862,7 @@ def _run_post_vad_pipeline(
                 print(f"[USAGE_LOG] noise_floor_rms failed: {_e}")
                 _noise_floor_rms = None
 
-            # Reciter stats fallbacks when there are no matched segments
+            # Speaker stats fallbacks when there are no matched segments
             _log_wpm   = wpm   if matched_words else 0.0
             _log_avg_d = avg_d if matched_words else 0.0
             _log_std_d = std_d if matched_words else 0.0
@@ -917,7 +917,7 @@ def _run_post_vad_pipeline(
                     total_speech_s=_total_speech_s,
                     missing_word_count=_missing_word_count,
                 ),
-                reciter_stats=build_reciter_stats(
+                speaker_stats=build_speaker_stats(
                     wpm=_log_wpm,
                     avg_seg_dur=_log_avg_d, std_seg_dur=_log_std_d,
                     avg_pause_dur=_log_avg_p, std_pause_dur=_log_std_p,

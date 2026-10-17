@@ -1,11 +1,11 @@
 # Wraparound DP Evaluation Results
 
-Tested on 1,252 verses across 2 reciters with real ASR phonemes from the HF dataset
+Tested on 1,252 verses across 2 speakers with real ASR phonemes from the HF dataset
 `hetchyy/quranic-universal-ayahs`.
 
 ## Test Set
 
-| Set                       | Reciter           | Verses | Source                                                    |
+| Set                       | Speaker           | Verses | Source                                                    |
 | ------------------------- | ----------------- | ------ | --------------------------------------------------------- |
 | Repetition (positive)     | ali_jaber         | 133    | Verses with overlapping segment word ranges               |
 | Repetition (positive)     | minshawy_murattal | 472    | Same detection criteria                                   |
@@ -56,7 +56,7 @@ old standard DP).
 
 ## 3 False Negatives
 
-All caused by ASR collapsing the repetition — P ≈ R despite the reciter repeating words.
+All caused by ASR collapsing the repetition — P ≈ R despite the speaker repeating words.
 
 | Verse | P   | R   | Issue                                                           |
 | ----- | --- | --- | --------------------------------------------------------------- |
@@ -111,7 +111,7 @@ had its wrap count reduced by the dynamic K cap — the thresholds are conservat
 ### 4. Traceback reveals wrap structure
 
 The full-matrix DP with parent pointers enables traceback: for each wrap, we know (P position, R end
-position, R start position). This shows exactly which words the reciter repeated.
+position, R start position). This shows exactly which words the speaker repeated.
 
 Example — ali_jaber/2:33 (gt: words 8–11 repeated):
 
@@ -177,7 +177,7 @@ released, with no hard timeout.
 
 The test set evaluates full-verse ASR against full-verse reference. In production, each VAD segment
 is aligned independently against a windowed reference. A repetition that spans a VAD pause boundary
-(reciter pauses mid-repeat) would appear as two segments:
+(speaker pauses mid-repeat) would appear as two segments:
 
 - Segment A: words 1–10 (first reading)
 - Segment B: words 8–15 (repeats 8–10, continues with 11–15)

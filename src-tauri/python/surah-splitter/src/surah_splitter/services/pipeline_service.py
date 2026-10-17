@@ -25,7 +25,7 @@ class PipelineService:
     def process_surah(
         self,
         audio_path: Path,
-        reciter_name: str,
+        speaker_name: str,
         output_dir: Path,
         surah_number: Optional[int] = None,
         ayah_numbers: Optional[list[int]] = None,
@@ -44,7 +44,7 @@ class PipelineService:
         Args:
             audio_path: Path to the surah audio file.
             surah_number: Surah number (1-114).
-            reciter_name: Name of the reciter.
+            speaker_name: Name of the speaker.
             output_dir: Base directory to save the output files.
             ayah_numbers: Optional list of specific ayahs to process.
             model_name: Name of the transcription model to use.
@@ -57,16 +57,16 @@ class PipelineService:
             A dictionary containing the results of transcription, ayah matching,
             and segmentation.
         """
-        logger.info(f"Starting processing pipeline for reciter {reciter_name}")
+        logger.info(f"Starting processing pipeline for speaker {speaker_name}")
 
         # Create timestamps directory if needed - using temporary surah_number
         timestamps_dir = None
         if save_intermediates:
             if surah_number is None:
                 logger.warning("No surah number provided, using temporary directory")
-                temp_dir = output_dir / reciter_name / "timestamps" / "temp"
+                temp_dir = output_dir / speaker_name / "timestamps" / "temp"
             else:
-                temp_dir = output_dir / reciter_name / "timestamps" / f"{surah_number:03d}"
+                temp_dir = output_dir / speaker_name / "timestamps" / f"{surah_number:03d}"
             timestamps_dir = temp_dir
             timestamps_dir.mkdir(parents=True, exist_ok=True)
             logger.debug(f"Created timestamps directory: {timestamps_dir}")
@@ -91,7 +91,7 @@ class PipelineService:
 
         # Update timestamps directory with correct surah number if it was initially unknown
         if save_intermediates and surah_number and timestamps_dir.name == "temp":
-            new_timestamps_dir = output_dir / reciter_name / "timestamps" / f"{surah_number:03d}"
+            new_timestamps_dir = output_dir / speaker_name / "timestamps" / f"{surah_number:03d}"
             new_timestamps_dir.mkdir(parents=True, exist_ok=True)
             if timestamps_dir.exists():
                 for file in timestamps_dir.iterdir():
@@ -113,17 +113,17 @@ class PipelineService:
             audio_path,
             ayah_matching_result["ayah_timestamps"],
             surah_number,
-            reciter_name,
+            speaker_name,
             output_dir,
             save_incoming_surah_audio,
         )
         logger.success("Audio segmentation completed")
 
-        logger.success(f"Pipeline processing completed for surah {surah_number} by {reciter_name}")
+        logger.success(f"Pipeline processing completed for surah {surah_number} by {speaker_name}")
         return {
             "transcription": transcription_result,
             "ayah_matching": ayah_matching_result,
             "segmentation": {ayah: str(path) for ayah, path in segmentation_result.items()},
-            "reciter_name": reciter_name,
+            "speaker_name": speaker_name,
             "surah_number": surah_number,
         }

@@ -87,7 +87,7 @@ describe('direct style controls', () => {
 		['reactive-y-position', 'number'],
 		['always-show', 'boolean'],
 		['surah-name-always-show', 'boolean'],
-		['reciter-name-always-show', 'boolean'],
+		['speaker-name-always-show', 'boolean'],
 		['time-appearance', 'time'],
 		['time-ranges', 'time-ranges'],
 		['filepath', 'file'],

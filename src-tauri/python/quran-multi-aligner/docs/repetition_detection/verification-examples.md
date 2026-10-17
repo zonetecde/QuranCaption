@@ -286,7 +286,7 @@ Phoneme data is from the Quranic Phonemizer (real IPA output for each verse).
 | w3  | تُكَذِّبَانِ | `t u k a ðð i b aː n` | 9      |
 |     | **Total R**  |                       | **31** |
 
-**Ground truth:** Reciter says w0-w3, then repeats w2-w3.
+**Ground truth:** Speaker says w0-w3, then repeats w2-w3.
 
 ```
 Pass 1: w0  w1  w2  w3       (31 phones)
@@ -459,7 +459,7 @@ inner alignment calls.
 | w11 | `n a w m u`          | 5   | w24 | `ʔ i ll aː`          | 4       |
 | w12 | `ll a h uː`          | 4   |     | **Total R**          | **115** |
 
-**Ground truth:** Reciter hesitates after w24 and repeats w22-w24.
+**Ground truth:** Speaker hesitates after w24 and repeats w22-w24.
 
 ```
 Pass 1: w0 ──── w24    (115 phones)
@@ -559,7 +559,7 @@ widens further with longer segments.
 | w6  | ٱلْقَمَرَ   | `l q aˤ m a rˤ aˤ` | 7      |
 |     | **Total R** |                    | **36** |
 
-**Ground truth:** Reciter completes w0-w6, restarts from w3 (middle restart).
+**Ground truth:** Speaker completes w0-w6, restarts from w3 (middle restart).
 
 ```
 Pass 1: w0  w1  w2  w3  w4  w5  w6    (36 phones)
@@ -765,7 +765,7 @@ decompositions could explain P almost equally well.
 | w11 | ٱكْتَسَبَتْ | `k t a s a b a t`    | 8      |
 |     | **Total R** |                      | **32** |
 
-**Ground truth:** Reciter says w6-w11, then repeats from w9.
+**Ground truth:** Speaker says w6-w11, then repeats from w9.
 
 ```
 Pass 1: w6  w7  w8  w9  w10  w11    (32 phones)
@@ -868,7 +868,7 @@ norm_dist than k=2 but k=2 is the true explanation.
 
 #### Setup
 
-**Ground truth:** Reciter says w0-w6, then repeats w5-w6 (a simple 2-word suffix repeat).
+**Ground truth:** Speaker says w0-w6, then repeats w5-w6 (a simple 2-word suffix repeat).
 
 ```
 Pass 1: w0  w1  w2  w3  w4  w5  w6    (36 phones)

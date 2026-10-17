@@ -46,7 +46,7 @@ VideoPreview.svelte
     ├── Fonds des sous-titres (toujours visibles)
     ├── Sous-titre arabe ──► ArabicSubtitle.svelte
     ├── Traductions ──► TranslationSubtitle.svelte (×N)
-    ├── Décorations fixes (SurahName, ReciterName, VerseNumber)
+    ├── Décorations fixes (SurahName, SpeakerName, VerseNumber)
     └── Clips custom (CustomText, CustomImage)
 ```
 
@@ -368,11 +368,11 @@ Affiche le nom de la sourate selon la position configurée dans les styles.
 
 **Source :** `SurahName.svelte` (dans `tabs/styleEditor/`)
 
-### ReciterName
+### SpeakerName
 
-Affiche le nom du récitateur selon la position configurée.
+Affiche le nom de l’intervenant selon la position configurée.
 
-**Source :** `ReciterName.svelte` (dans `tabs/styleEditor/`)
+**Source :** `SpeakerName.svelte` (dans `tabs/styleEditor/`)
 
 ### VerseNumber
 

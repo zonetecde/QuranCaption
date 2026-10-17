@@ -781,7 +781,7 @@ describe('calculateCaptureTimingsForRange', () => {
 	it('prevents duplication when a timed global overlay changes state during the subtitle', () => {
 		const result = calculateTimings(
 			[subtitle(0, 1_000, 1)],
-			[timedOverlay('reciter-name', 0, 300)]
+			[timedOverlay('speaker-name', 0, 300)]
 		);
 
 		expect(result.duplicableTimings.size).toBe(0);

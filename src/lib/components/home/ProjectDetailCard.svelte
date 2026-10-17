@@ -259,9 +259,9 @@
 				</div>
 			</div>
 			<div class="flex items-center gap-x-1 text-xs text-[var(--text-secondary)] -mb-1.5">
-				{$LL.home.reciterLabel()}
+				{$LL.home.speakerLabel()}
 				<EditableText
-					text={$LL.home.projectReciterPlaceholder()}
+					text={$LL.home.projectSpeakerPlaceholder()}
 					bind:value={projectDetail.speaker}
 					maxLength={ProjectDetail.SPEAKER_MAX_LENGTH}
 					placeholder={projectDetail.speaker}

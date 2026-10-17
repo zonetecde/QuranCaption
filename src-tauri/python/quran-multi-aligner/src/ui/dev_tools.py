@@ -156,7 +156,7 @@ def _row_to_dict(row) -> dict:
     """Extract the fields we care about from a V3 dataset row.
 
     V3 layout: flat columns + JSON-string columns (`timing`, `settings`,
-    `results_summary`, `reciter_stats`, `segments`, etc.). This helper
+    `results_summary`, `speaker_stats`, `segments`, etc.). This helper
     unpacks the JSON side into flat keys so the rest of the dev_tools UI
     keeps working with the same shape it used to get from v2.
     """
@@ -223,7 +223,7 @@ def _row_to_dict(row) -> dict:
         "events":          row.get("events"),
         "anchor":          row.get("anchor"),
         "asr_batches":     row.get("asr_batches"),
-        "reciter_stats":   row.get("reciter_stats"),
+        "speaker_stats":   row.get("reciter_stats"),
         "gpu_memory":      row.get("gpu_memory"),
         "timing":          row.get("timing"),
         "results_summary": row.get("results_summary"),

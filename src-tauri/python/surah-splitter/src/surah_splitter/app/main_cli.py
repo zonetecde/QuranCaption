@@ -49,7 +49,8 @@ console = Console()
 def process_surah(
     ######### Required args #########
     audio_file: Annotated[Path, Parameter(name=["audio_file", "-au"])],
-    reciter: Annotated[str, Parameter(name=["--reciter", "-re"])],
+    # Preserve the previous CLI spellings for existing callers.
+    speaker: Annotated[str, Parameter(name=["--speaker", "--reciter", "-re"])],
     ######### Optional args #########
     surah: Annotated[Optional[int], Parameter(name=["--surah", "-su"], validator=validators.Number(gte=1, lte=114))] = None,
     ayahs: Annotated[Optional[str], Parameter(name=["--ayahs", "-ay"])] = None,
@@ -71,7 +72,7 @@ def process_surah(
     Args:
         audio_file: Path to the input audio file.
         surah: Surah number (1-114).
-        reciter: Name of the reciter.
+        speaker: Name of the speaker.
         ayahs: Optional comma-separated list of ayah numbers to process.
         model_name: Name of the transcription model to use.
         model_size: Size of the transcription model (tiny, small, medium, large).
@@ -100,7 +101,7 @@ def process_surah(
         model_name = model_name or model_size
         result = pipeline_service.process_surah(
             audio_path=audio_file,
-            reciter_name=reciter,
+            speaker_name=speaker,
             output_dir=output_dir,
             surah_number=surah,
             ayah_numbers=ayahs,
@@ -252,7 +253,8 @@ def match_ayahs(
 def segment_audio(
     audio_file: Annotated[Path, Parameter(name=["audio_file", "-au"])],
     timestamps_file: Annotated[Path, Parameter(name=["timestamps_file", "-tf"])],
-    reciter: Annotated[str, Parameter(name=["--reciter", "-re"])],
+    # Preserve the previous CLI spellings for existing callers.
+    speaker: Annotated[str, Parameter(name=["--speaker", "--reciter", "-re"])],
     surah: Annotated[Optional[int], Parameter(name=["--surah", "-su"], validator=validators.Number(gte=1, lte=114))] = None,
     output_dir: Annotated[Path, Parameter(name=["--output-dir", "-o"])] = OUTPUTS_PATH,
     save_incoming_surah_audio: Annotated[bool, Parameter(name=["--save-incoming-surah-audio", "-ssu"])] = False,
@@ -267,7 +269,7 @@ def segment_audio(
         audio_file: Path to the input audio file.
         timestamps_file: Path to the timestamps file.
         surah: Surah number (1-114).
-        reciter: Name of the reciter.
+        speaker: Name of the speaker.
         output_dir: Directory to save the segmented audio files.
         save_incoming_surah_audio: Whether to save the original surah audio.
 
@@ -287,7 +289,7 @@ def segment_audio(
 
         # Segment audio
         result = segmentation_service.split_audio(
-            audio_file, ayah_timestamps, surah, reciter, output_dir, save_incoming_surah_audio
+            audio_file, ayah_timestamps, surah, speaker, output_dir, save_incoming_surah_audio
         )
 
         # Print results

@@ -207,7 +207,7 @@ class SegmentationService:
         audio_path: Path,
         ayah_timestamps: List[Dict], 
         surah_number: int,
-        reciter_name: str,
+        speaker_name: str,
         output_dir: Path,
         save_incoming_surah_audio: bool = False
     ) -> Dict[str, Path]:
@@ -217,7 +217,7 @@ class SegmentationService:
             audio_path: Path to original surah audio
             ayah_timestamps: List of ayah timestamps from AyahMatchingService
             surah_number: Surah number 
-            reciter_name: Name of reciter
+            speaker_name: Name of speaker
             output_dir: Base output directory
             save_incoming_surah_audio: Whether to save original surah audio
             
@@ -228,8 +228,8 @@ class SegmentationService:
         # ...
         
         # Create output directories
-        reciter_output_dir = output_dir / reciter_name
-        ayah_audio_dir = reciter_output_dir / "ayah_audios" / f"{surah_number:03d}"
+        speaker_output_dir = output_dir / speaker_name
+        ayah_audio_dir = speaker_output_dir / "ayah_audios" / f"{surah_number:03d}"
         ayah_audio_dir.mkdir(parents=True, exist_ok=True)
         
         # Save original surah if requested
@@ -352,7 +352,7 @@ class PipelineService:
         self, 
         audio_path: Path,
         surah_number: int,
-        reciter_name: str,
+        speaker_name: str,
         output_dir: Path,
         model_name: str = "OdyAsh/faster-whisper-base-ar-quran",
         device: Optional[str] = None,
@@ -364,7 +364,7 @@ class PipelineService:
         Args:
             audio_path: Path to surah audio file
             surah_number: Surah number (1-114)
-            reciter_name: Name of the reciter
+            speaker_name: Name of the speaker
             output_dir: Base output directory
             model_name: WhisperX model name
             device: Device to use (cuda/cpu)
@@ -380,14 +380,14 @@ class PipelineService:
         # Transcribe audio
         transcription_result = self.transcription_service.transcribe(
             audio_path, 
-            output_dir / reciter_name / "timestamps" / f"{surah_number:03d}" if save_intermediates else None
+            output_dir / speaker_name / "timestamps" / f"{surah_number:03d}" if save_intermediates else None
         )
         
         # Match ayahs to transcription
         ayah_matching_result = self.ayah_matching_service.match_ayahs(
             transcription_result,
             surah_number,
-            output_dir / reciter_name / "timestamps" / f"{surah_number:03d}" if save_intermediates else None,
+            output_dir / speaker_name / "timestamps" / f"{surah_number:03d}" if save_intermediates else None,
             save_intermediates
         )
         
@@ -396,7 +396,7 @@ class PipelineService:
             audio_path,
             ayah_matching_result["ayah_timestamps"],
             surah_number,
-            reciter_name,
+            speaker_name,
             output_dir,
             save_incoming_surah_audio
         )
@@ -443,7 +443,7 @@ def process_surah(
     ######### Required args #########
     audio_file: Annotated[Path, Parameter(name=["audio_file", "-au"])],
     surah: Annotated[int, Parameter(name=["--surah", "-su"], validator=validators.Number(gte=1, lte=114))],
-    reciter: Annotated[str, Parameter(name=["--reciter", "-re"])],
+    speaker: Annotated[str, Parameter(name=["--speaker", "-re"])],
     ######### Optional args #########
     model_name: Annotated[str, Parameter(name=["--model-name", "-mn"])] = "OdyAsh/faster-whisper-base-ar-quran",
     model_size: Annotated[Literal["tiny", "small", "medium", "large"], Parameter(name=["--model-size", "-ms"])] = "small",
@@ -465,7 +465,7 @@ def process_surah(
         result = pipeline_service.process_surah(
             audio_path=audio_file,
             surah_number=surah,
-            reciter_name=reciter,
+            speaker_name=speaker,
             output_dir=output_dir,
             model_name=model_name,
             device=device,
@@ -559,7 +559,7 @@ def segment_audio(
     audio_file: Annotated[Path, Parameter(name=["audio_file", "-au"])],
     timestamps_file: Annotated[Path, Parameter(name=["timestamps_file", "-tf"])],
     surah: Annotated[int, Parameter(name=["--surah", "-su"], validator=validators.Number(gte=1, lte=114))],
-    reciter: Annotated[str, Parameter(name=["--reciter", "-re"])],
+    speaker: Annotated[str, Parameter(name=["--speaker", "-re"])],
     output_dir: Annotated[Path, Parameter(name=["--output-dir", "-o"])] = OUTPUTS_PATH,
     save_incoming_surah_audio: Annotated[bool, Parameter(name=["--save-incoming-surah-audio", "-ssu"])] = False,
 ):
@@ -583,7 +583,7 @@ def segment_audio(
             audio_file,
             ayah_timestamps,
             surah,
-            reciter,
+            speaker,
             output_dir,
             save_incoming_surah_audio
         )

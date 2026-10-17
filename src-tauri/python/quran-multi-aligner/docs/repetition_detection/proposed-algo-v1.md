@@ -2,10 +2,10 @@
 
 ## Context
 
-When a reciter pauses (undetected by VAD) and repeats earlier words, the ASR phonemes for that
+When a speaker pauses (undetected by VAD) and repeats earlier words, the ASR phonemes for that
 segment contain the original phrase + the repeated portion. The current DP finds the best contiguous
 word match and absorbs the extra phonemes as edit cost — reporting contiguous words (e.g. 1-9) when
-the reciter actually said 1-5, 3-7, 6-9. Confidence can still be high (0.75-0.85) because deletion
+the speaker actually said 1-5, 3-7, 6-9. Confidence can still be high (0.75-0.85) because deletion
 cost is low (0.8/phoneme).
 
 **Goal:** Detect this during alignment by comparing hypotheses using the full
@@ -83,7 +83,7 @@ explains P best wins. This is simpler and more robust:
 - **Handles ASR noise** — edit distance absorbs phoneme errors naturally
 - **Textual repetitions filtered** — when the Quran text itself repeats, H0 already fits well (P
   length ≈ R length, low C₀), so the pre-filter rejects immediately
-- **Reciter repetitions caught** — H0 has high C₀ (extra phonemes as deletions), H1 fits much better
+- **Speaker repetitions caught** — H0 has high C₀ (extra phonemes as deletions), H1 fits much better
 - **Phoneme ordering matters** — wrong decompositions produce R_expanded with mismatched phoneme
   order, causing high DP cost even when length matches
 
@@ -166,7 +166,7 @@ output segment.
 
 ### 5. `inspector/server.py`
 
-**In `/api/seg/validate/<reciter>` and `_chapter_validation_counts`:** Read `has_repetition` field
+**In `/api/seg/validate/<speaker>` and `_chapter_validation_counts`:** Read `has_repetition` field
 from segment data instead of calling `detect_phoneme_repetition()`. Replace the n-gram detection
 logic with a simple field check:
 
@@ -194,7 +194,7 @@ unchanged.
 2. Run extraction on a test chapter with known textual repetitions (e.g., Surah 55) and verify those
    are NOT flagged
 3. Start inspector, confirm "Detected Repetitions" accordion works with the new detection
-4. Measure extraction time before/after on a full reciter — should be <1% overhead
+4. Measure extraction time before/after on a full speaker — should be <1% overhead
 
 ---
 
@@ -205,7 +205,7 @@ working end-to-end.
 
 ## Algorithm Summary
 
-**Goal:** Detect when a reciter pauses (undetected by VAD) and repeats earlier words within a single
+**Goal:** Detect when a speaker pauses (undetected by VAD) and repeats earlier words within a single
 segment.
 
 **Approach:**
@@ -277,9 +277,9 @@ This catches 2+ word repeats in any segment length while filtering out normal AS
 | w3  | تُكَذِّبَانِ | `t u k a ðð i b aː n` | 9      |
 |     | **Total R**  |                       | **31** |
 
-### What the reciter said
+### What the speaker said
 
-The reciter pauses after word 3, then repeats words 2-3 before the next segment starts.
+The speaker pauses after word 3, then repeats words 2-3 before the next segment starts.
 
 ```
 Pass 1: w0  w1  w2  w3       (31 phones)
@@ -389,9 +389,9 @@ H1 norm (0.06) ≤ MAX_NORM_DIST (0.25) →  quality floor passed
 | w11 | نَوْمٌ      | 5      | w24 | إِلَّا         | 4       |
 | w12 | لَّهُۥ      | 4      |     | **Total R**    | **115** |
 
-### What the reciter said
+### What the speaker said
 
-After word 24 (إِلَّا), the reciter hesitates and repeats from word 22 (يَشْفَعُ):
+After word 24 (إِلَّا), the speaker hesitates and repeats from word 22 (يَشْفَعُ):
 
 ```
 Pass 1: w0 ──────────────────────── w24    (115 phones)
@@ -480,9 +480,9 @@ lower norm_dist and wins automatically.
 | w6  | ٱلْقَمَرَ   | `ʔ a l q a m a r` | 7      |
 |     | **Total R** |                   | **37** |
 
-### What the reciter said
+### What the speaker said
 
-The reciter completes all 7 words, then restarts from word 3 (لَهَآ) — a **middle restart**, not a
+The speaker completes all 7 words, then restarts from word 3 (لَهَآ) — a **middle restart**, not a
 suffix:
 
 ```
@@ -523,8 +523,8 @@ Key candidates after length filter (P=60, tolerance ±20%):
 | 5     | [w0–w6, w4–w6]     | 36 + 18 = 54     | 6       | 0.10     | 0.90     |
 | 6     | [w0–w6, w5–w6]     | 36 + 15 = 51     | 9       | 0.15     | 0.85     |
 
-**Candidate 4 wins** — its R_expanded (58 phones) most closely matches P (60 phones), and the
-phoneme _ordering_ matches the ASR output exactly.
+**Candidate 4 wins** — its R*expanded (58 phones) most closely matches P (60 phones), and the
+phoneme \_ordering* matches the ASR output exactly.
 
 Note: Candidate 6 `[w0-w6, w5-w6]` (suffix repeat) has worse confidence than candidate 4
 `[w0-w6, w3-w6]` (middle restart). **The v1 algorithm only tried suffix patterns and would have
@@ -571,9 +571,9 @@ H0 norm = 0.31,  H1 norm = 0.04  →  H1 wins  →  REPETITION DETECTED
 | w10 | ٱلنَّهَارِ  | `ñ a h aː r i`     | 6      |
 |     | **Total R** |                    | **57** |
 
-### What the reciter said
+### What the speaker said
 
-Complex 3-pass pattern — the reciter restarts twice:
+Complex 3-pass pattern — the speaker restarts twice:
 
 ```
 Pass 1: w0  w1  w2  w3  w4  w5  w6                   (36 phones)
@@ -700,9 +700,9 @@ Repeated phoneme patterns in the text:
 - `m aː` appears at w13 and within w16 (`w a m aː`)
 - `f i` appears at both w14 and w17 (identical!)
 
-### What the reciter said
+### What the speaker said
 
-The reciter reads it **once through** — no repetition:
+The speaker reads it **once through** — no repetition:
 
 ```
 Pass 1: w7  w8  w9  w10  w11  w12  w13  w14  w15  w16  w17  w18    (54 phones)
@@ -719,16 +719,16 @@ excess = 56 - 54 = 2  <  8  →  STOP. No hypothesis testing needed.
 ```
 
 **The pre-filter immediately rejects this segment.** Despite the text having repeated phoneme
-patterns (فِى appears twice, مَا/وَمَا share phonemes), the reciter said each word exactly once, so
+patterns (فِى appears twice, مَا/وَمَا share phonemes), the speaker said each word exactly once, so
 P length matches R length. No excess phonemes means no repetition to detect.
 
 ### Why textual repetition doesn't cause false positives
 
 The repetition detection isn't triggered by repeated _patterns_ in the reference — it's triggered by
-the ASR output being **longer than expected**. When text has internal repetition but the reciter
+the ASR output being **longer than expected**. When text has internal repetition but the speaker
 reads it once:
 
-| Condition           | Reciter repeat | Textual repeat   |
+| Condition           | Speaker repeat | Textual repeat   |
 | ------------------- | -------------- | ---------------- |
 | P length            | >> R length    | ≈ R length       |
 | Excess phonemes     | 10-30+         | 0-3 (noise only) |

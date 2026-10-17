@@ -147,7 +147,7 @@ const settings = {
 	atHomeMenu: 'At the Home Menu',
 	idle: 'Idle',
 	creatingQuranVideo: 'Creating a Quran video',
-	workingOnProject: 'Working on {name} ({reciter})',
+	workingOnProject: 'Working on {name} ({speaker})',
 	workingOn: 'Working on {name}',
 	captioningStatus: 'Captioning',
 	unableToStartSignIn: 'Unable to start Quran.com sign-in.',

@@ -70,13 +70,13 @@ export async function createAiVideoProject(): Promise<void> {
 	const aiv = globalState.aiVideo;
 	const snapshot = {
 		translation: aiv.selectedTranslation,
-		reciterOption: aiv.audio.reciter,
+		speakerOption: aiv.audio.speaker,
 		useLocal: aiv.audio.useLocal,
 		localPath: aiv.audio.localPath,
 		surah: aiv.review.verseRange.surah,
 		ayahStart: aiv.review.verseRange.startVerse,
 		ayahEnd: aiv.review.verseRange.endVerse,
-		reciterName: aiv.review.reciterName,
+		speakerName: aiv.review.speakerName,
 		prompt: aiv.video.prompt,
 		title: aiv.review.title,
 		reviewVideoPrompt: aiv.review.videoPrompt,
@@ -102,7 +102,7 @@ export async function createAiVideoProject(): Promise<void> {
 
 		const projectDetail = new ProjectDetail(
 			projectName,
-			snapshot.reciterName,
+			snapshot.speakerName,
 			undefined,
 			undefined,
 			'Other'
@@ -179,16 +179,16 @@ export async function createAiVideoProject(): Promise<void> {
 		const sourceType = snapshot.useLocal ? SourceType.Local : SourceType.Mp3Quran;
 		const metadata: Record<string, unknown> = {};
 
-		if (!snapshot.useLocal && snapshot.reciterOption) {
+		if (!snapshot.useLocal && snapshot.speakerOption) {
 			metadata.mp3Quran = {
-				reciterId: snapshot.reciterOption.reciterId,
-				moshafId: snapshot.reciterOption.moshaf.id,
+				speakerId: snapshot.speakerOption.speakerId,
+				moshafId: snapshot.speakerOption.moshaf.id,
 				surahId: snapshot.surah
 			};
 			metadata.nativeTiming = {
 				provider: 'mp3quran',
-				reciterId: snapshot.reciterOption.reciterId,
-				moshafId: snapshot.reciterOption.moshaf.id,
+				speakerId: snapshot.speakerOption.speakerId,
+				moshafId: snapshot.speakerOption.moshaf.id,
 				surahId: snapshot.surah
 			};
 		}
@@ -295,8 +295,8 @@ async function prepareAudio(
 	snapshot: {
 		useLocal: boolean;
 		localPath: string;
-		reciterOption: import('./types').ReciterOption | null;
-		reciterName: string;
+		speakerOption: import('./types').SpeakerOption | null;
+		speakerName: string;
 		surah: number;
 		ayahStart: number;
 		ayahEnd: number;
@@ -312,10 +312,10 @@ async function prepareAudio(
 		return destPath;
 	}
 
-	if (snapshot.reciterOption) {
+	if (snapshot.speakerOption) {
 		setStatus(get(LL).aiVideo.downloadingRecitation());
 		const formattedSurahId = snapshot.surah.toString().padStart(3, '0');
-		const audioUrl = `${snapshot.reciterOption.moshaf.server}${formattedSurahId}.mp3`;
+		const audioUrl = `${snapshot.speakerOption.moshaf.server}${formattedSurahId}.mp3`;
 		const fullSurahPath = await join(assetFolder, `full-surah-${formattedSurahId}.mp3`);
 
 		await invoke('download_file', {
@@ -332,7 +332,7 @@ async function prepareAudio(
 		setStatus(get(LL).aiVideo.trimmingAudio());
 		try {
 			const timings = await Mp3QuranService.getSurahTiming(
-				snapshot.reciterOption.moshaf.id,
+				snapshot.speakerOption.moshaf.id,
 				snapshot.surah
 			);
 
@@ -341,7 +341,7 @@ async function prepareAudio(
 				const endTiming = timings.find((t) => t.ayah === snapshot.ayahEnd);
 
 				if (startTiming && endTiming) {
-					const trimmedFileName = `${snapshot.reciterName.replace(/[<>:"/\\|?*]/g, '').trim() || 'reciter'}-${snapshot.surah}-${snapshot.ayahStart}-${snapshot.ayahEnd}.mp3`;
+					const trimmedFileName = `${snapshot.speakerName.replace(/[<>:"/\\|?*]/g, '').trim() || 'speaker'}-${snapshot.surah}-${snapshot.ayahStart}-${snapshot.ayahEnd}.mp3`;
 					const trimmedPath = await join(assetFolder, trimmedFileName);
 
 					await invoke('cut_audio', {

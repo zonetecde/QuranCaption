@@ -189,7 +189,7 @@
 		}
 
 		if (selection.kind === 'speaker') {
-			return get(LL).home.projectsForReciter({ count });
+			return get(LL).home.projectsForSpeaker({ count });
 		}
 
 		if (selection.kind === 'year') {

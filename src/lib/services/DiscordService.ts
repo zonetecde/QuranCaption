@@ -82,7 +82,7 @@ class DiscordService {
 			details: get(LL).settings.creatingQuranVideo(),
 			state:
 				speaker && speaker !== 'Unknown speaker'
-					? get(LL).settings.workingOnProject({ name, reciter: speaker })
+					? get(LL).settings.workingOnProject({ name, speaker: speaker })
 					: `Working on ${name}`,
 			large_image_key: 'logo',
 			large_image_text: 'Minbar Studio',

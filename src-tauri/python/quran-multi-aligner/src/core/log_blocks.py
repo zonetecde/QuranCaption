@@ -256,10 +256,10 @@ def build_anchor(debug_collector) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# reciter_stats (adds audio_rms / audio_peak; drops pps)
+# speaker_stats (adds audio_rms / audio_peak; drops pps)
 # ---------------------------------------------------------------------------
 
-def build_reciter_stats(wpm: float, avg_seg_dur: float, std_seg_dur: float,
+def build_speaker_stats(wpm: float, avg_seg_dur: float, std_seg_dur: float,
                         avg_pause_dur: float, std_pause_dur: float,
                         audio,
                         audio_analytics: Optional[dict] = None) -> dict:

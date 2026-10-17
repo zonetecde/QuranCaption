@@ -35,8 +35,8 @@
 }
 
 @font-face {
-	font-family: 'Reciters';
-	src: url('/reciters/reciters.ttf') format('truetype');
+	font-family: 'Speakers';
+	src: url('/speakers/speakers.ttf') format('truetype');
 	font-weight: normal;
 	font-style: normal;
 }
@@ -62,8 +62,8 @@
 	font-style: normal;
 }
 
-.reciters-font {
-	font-family: 'Reciters', sans-serif;
+.speakers-font {
+	font-family: 'Speakers', sans-serif;
 }
 
 .surahs-font {

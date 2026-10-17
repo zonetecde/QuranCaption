@@ -2,7 +2,7 @@ const QURAN_CAPTION_WEBSITE_BASE_URL = 'https://qurancaption.com';
 
 export type QdcRecitation = {
 	id: number;
-	reciter_name: string;
+	speaker_name: string;
 	style?: string;
 	translated_name?: {
 		name?: string;
@@ -28,7 +28,7 @@ export type QdcChapterAudio = {
 };
 
 type QdcRecitationsResponse = {
-	recitations: QdcRecitation[];
+	recitations: (Omit<QdcRecitation, 'speaker_name'> & { reciter_name: string })[];
 };
 
 type QdcChapterAudioResponse = {
@@ -44,7 +44,10 @@ export class QdcRecitationService {
 			);
 			if (!response.ok) throw new Error('Failed to fetch QDC recitations');
 			const data = (await response.json()) as QdcRecitationsResponse;
-			return data.recitations || [];
+			return (data.recitations || []).map(({ reciter_name: speaker_name, ...recitation }) => ({
+				...recitation,
+				speaker_name
+			}));
 		} catch (error) {
 			console.error('QdcRecitationService.getRecitations error:', error);
 			return [];

@@ -17,7 +17,7 @@ const { invoke, openUrl } = vi.hoisted(() => {
 		{
 			slug: 'abdul_basit_hafs_mujawwad',
 			label: 'Abdul Basit · Hafs · Mujawwad',
-			reciter: { reciter_id: 'abdul_basit', name_en: 'Abdul Basit', name_ar: 'عبد الباسط' },
+			speaker: { speaker_id: 'abdul_basit', name_en: 'Abdul Basit', name_ar: 'عبد الباسط' },
 			riwayah: 'Hafs',
 			style: 'Mujawwad',
 			channel: '',
@@ -25,13 +25,13 @@ const { invoke, openUrl } = vi.hoisted(() => {
 			chapters: [1, 2]
 		}
 	];
-	// Audio-only catalog — distinct (non-published) reciter, mutually exclusive
+	// Audio-only catalog — distinct (non-published) speaker, mutually exclusive
 	// with the published RECITATIONS above.
 	const AUDIO_RECITATIONS = [
 		{
-			slug: 'unpublished_reciter_yt',
-			label: 'Unpublished Reciter · Hafs · Murattal',
-			reciter: { reciter_id: 'unpublished', name_en: 'Unpublished Reciter', name_ar: '' },
+			slug: 'unpublished_speaker_yt',
+			label: 'Unpublished Speaker · Hafs · Murattal',
+			speaker: { speaker_id: 'unpublished', name_en: 'Unpublished Speaker', name_ar: '' },
 			riwayah: 'Hafs',
 			style: 'Murattal',
 			channel: 'YouTube',
@@ -103,7 +103,7 @@ describe('DownloadFromQuranicUniversalAudioSection', () => {
 				})
 			)
 			.toBeVisible();
-		await expect.element(component.getByText('Help contribute more reciters')).toBeVisible();
+		await expect.element(component.getByText('Help contribute more speakers')).toBeVisible();
 
 		await component.getByRole('textbox', { name: 'Recitation' }).click();
 		await expect
@@ -143,7 +143,7 @@ describe('DownloadFromQuranicUniversalAudioSection', () => {
 		await component.getByRole('button', { name: 'Audio only' }).click();
 		await component.getByRole('textbox', { name: 'Recitation' }).click();
 		await expect
-			.element(component.getByRole('button', { name: 'Unpublished Reciter · Hafs · Murattal' }))
+			.element(component.getByRole('button', { name: 'Unpublished Speaker · Hafs · Murattal' }))
 			.toBeVisible();
 		expect(component.container.textContent).not.toContain('Abdul Basit');
 		expect(invoke).toHaveBeenCalledWith('preload_audio_recitations');
@@ -152,7 +152,7 @@ describe('DownloadFromQuranicUniversalAudioSection', () => {
 		expect(component.container.querySelector('#qua-ayah-from')).toBeNull();
 		expect(component.container.querySelector('#qua-ayah-to')).toBeNull();
 		await expect
-			.element(component.getByText('Download audio for 1000+ reciters', { exact: false }))
+			.element(component.getByText('Download audio for 1000+ speakers', { exact: false }))
 			.toBeVisible();
 	});
 });

@@ -1,19 +1,19 @@
 <script lang="ts">
 	import { ProjectDetail } from '$lib/classes';
-	import RecitersManager from '$lib/classes/Reciter';
+	import SpeakersManager from '$lib/classes/Speaker';
 	import EditableText from '$lib/components/misc/EditableText.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
 
 	const speakerCalligraphy = $derived(
-		RecitersManager.getReciterObject(globalState.currentProject!.detail.speaker)
+		SpeakersManager.getSpeakerObject(globalState.currentProject!.detail.speaker)
 	);
 </script>
 
 <div class="flex flex-col gap-x-2">
 	<EditableText
-		text={$LL.home.projectReciterPlaceholder()}
+		text={$LL.home.projectSpeakerPlaceholder()}
 		bind:value={globalState.currentProject!.detail.speaker}
 		maxLength={ProjectDetail.SPEAKER_MAX_LENGTH}
 		placeholder={globalState.currentProject!.detail.speaker}
@@ -25,7 +25,7 @@
 	/>
 
 	{#if speakerCalligraphy.number !== -1}
-		<p class="reciters-font -mr-3 text-center text-3xl">{speakerCalligraphy.number}</p>
+		<p class="speakers-font -mr-3 text-center text-3xl">{speakerCalligraphy.number}</p>
 	{:else}
 		<p class="mt-2 text-sm text-yellow-500">
 			<span class="material-icons text-[18px]! align-middle">block</span>

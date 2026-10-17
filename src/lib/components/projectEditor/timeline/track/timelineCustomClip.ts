@@ -28,7 +28,7 @@ type GlobalTimedOverlayConfig = {
 };
 
 /**
- * Adaptateur timeline pour les overlays globaux (Surah/Reciter).
+ * Adaptateur timeline pour les overlays globaux (Surah/Speaker).
  * Cette classe expose la même surface utile que les custom clips:
  * start/end, width, always-show, setStartTime, setEndTime...
  */
@@ -234,12 +234,12 @@ const GLOBAL_SURAH_NAME_TIMELINE_CLIP = new GlobalTimedOverlayTimelineClip({
 	endStyleId: 'surah-name-time-disappearance'
 });
 
-const GLOBAL_RECITER_NAME_TIMELINE_CLIP = new GlobalTimedOverlayTimelineClip({
-	id: 'global-reciter-name',
-	label: 'Reciter Name',
-	alwaysShowStyleId: 'reciter-name-always-show',
-	startStyleId: 'reciter-name-time-appearance',
-	endStyleId: 'reciter-name-time-disappearance'
+const GLOBAL_SPEAKER_NAME_TIMELINE_CLIP = new GlobalTimedOverlayTimelineClip({
+	id: 'global-speaker-name',
+	label: 'Speaker Name',
+	alwaysShowStyleId: 'speaker-name-always-show',
+	startStyleId: 'speaker-name-time-appearance',
+	endStyleId: 'speaker-name-time-disappearance'
 });
 
 const GLOBAL_AYAH_CONTAINER_TIMELINE_CLIP = new GlobalTimedOverlayTimelineClip({
@@ -270,13 +270,13 @@ export function getTimelineCustomClips(): TimelineCustomClipLike[] {
 		clips.push(GLOBAL_SURAH_NAME_TIMELINE_CLIP);
 	}
 
-	// Reciter Name: même règle, avec garde-fou si reciter non défini.
+	// Speaker Name: même règle, avec garde-fou si speaker non défini.
 	if (
-		globalState.getStyle('global', 'show-reciter-name')?.value === true &&
+		globalState.getStyle('global', 'show-speaker-name')?.value === true &&
 		globalState.currentProject?.detail.speaker !== 'Unknown speaker' &&
-		globalState.getStyle('global', 'reciter-name-always-show')?.value !== true
+		globalState.getStyle('global', 'speaker-name-always-show')?.value !== true
 	) {
-		clips.push(GLOBAL_RECITER_NAME_TIMELINE_CLIP);
+		clips.push(GLOBAL_SPEAKER_NAME_TIMELINE_CLIP);
 	}
 
 	if (

@@ -277,18 +277,18 @@ export class AnalyticsService {
 		});
 	}
 
-	static downloadFromMP3Quran(reciter: string, surah: string, fileName: string) {
+	static downloadFromMP3Quran(speaker: string, surah: string, fileName: string) {
 		this.track('download_from_mp3quran', {
-			reciter,
+			speaker,
 			surah,
 			file_name: fileName
 		});
 	}
 
-	static downloadRecitationAudio(source: string, reciter: string, surah: string, fileName: string) {
+	static downloadRecitationAudio(source: string, speaker: string, surah: string, fileName: string) {
 		this.track('download_recitation_audio', {
 			source,
-			reciter,
+			speaker,
 			surah,
 			file_name: fileName
 		});

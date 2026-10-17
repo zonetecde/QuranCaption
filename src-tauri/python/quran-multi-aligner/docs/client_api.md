@@ -28,7 +28,7 @@
 **04/04/2026**
 
 - New fields on segment objects: `has_repeated_words`, `repeated_ranges`, `repeated_text` — surfaces
-  repetition detection data when a reciter re-reads a portion of text
+  repetition detection data when a speaker re-reads a portion of text
 
 **30/03/2026**
 
@@ -517,7 +517,7 @@ Returned by all alignment endpoints (`/process_audio_session`, `/resegment`, `/r
 | `matched_text`       | str   | Quran text for the matched range (or special segment text)                                                                                                 |
 | `confidence`         | float | 0.0–1.0 — how well the segment matched the Quran text                                                                                                      |
 | `has_missing_words`  | bool  | Whether some expected words were not found in the audio                                                                                                    |
-| `has_repeated_words` | bool  | Whether the reciter repeated words within this segment                                                                                                     |
+| `has_repeated_words` | bool  | Whether the speaker repeated words within this segment                                                                                                     |
 | `repeated_ranges`    | array | Only present when `has_repeated_words` is true. Array of `[ref_from, ref_to]` pairs showing the full reading sequence in recitation order                  |
 | `repeated_text`      | array | Only present when `has_repeated_words` is true. Array of text strings parallel to `repeated_ranges`, each containing the Arabic text for that reading pass |
 | `special_type`       | str   | Only present for special (non-Quranic) segments — see below. Absent for normal segments                                                                    |

@@ -28,13 +28,13 @@ const tour = {
 		'Head to the Translations tab to add translated subtitles below the Arabic text.',
 	stepAdaptingTranslationsTitle: 'Adapting translations',
 	stepAdaptingTranslationsDesc:
-		'Notice how verse 1:7 was recited in two parts. You can split translations to match how the reciter reads.',
+		'Notice how verse 1:7 was recited in two parts. You can split translations to match how the speaker reads.',
 	stepStyleTitle: 'Go to Style',
 	stepStyleDesc:
 		'Head to the Style tab to customize the visual appearance of your captions and video overlay.',
 	stepStyleCategoriesTitle: 'Three style categories',
 	stepStyleCategoriesDesc:
-		'Global \u2014 video overlay, reciter name. Surah \u2014 reciter and surah name. Verse \u2014 font, color, size, animations.',
+		'Global \u2014 video overlay, speaker name. Surah \u2014 speaker and surah name. Verse \u2014 font, color, size, animations.',
 	stepExportTitle: 'Go to Export',
 	stepExportDesc: 'Finally, head to the Export tab to render your captioned video.',
 	stepExportVideoTitle: 'Export your video',

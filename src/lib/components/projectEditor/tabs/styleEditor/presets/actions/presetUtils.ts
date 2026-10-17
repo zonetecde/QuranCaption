@@ -1,3 +1,4 @@
+import MigrationService from '$lib/services/MigrationService';
 import { invoke } from '@tauri-apps/api/core';
 import { globalState } from '$lib/runes/main.svelte';
 import ExportFileService from '$lib/services/ExportFileService';
@@ -227,7 +228,7 @@ export async function checkMissingFonts(styleData: VideoStyleFileData): Promise<
 	const fonts = new Set<string>();
 
 	// Parcourt récursivement les styles pour extraire les font-family utilisées
-	const videoStyle = styleData.videoStyle as {
+	const videoStyle = MigrationService.migrateSpeakerData(styleData.videoStyle) as {
 		styles?: { categories?: { styles?: { id: string; value: string }[] }[] }[];
 	};
 	for (const styleGroup of videoStyle.styles ?? []) {
@@ -245,7 +246,7 @@ export async function checkMissingFonts(styleData: VideoStyleFileData): Promise<
 		'Noto Sans Arabic',
 		'Hafs',
 		'IndoPak',
-		'Reciters',
+		'Speakers',
 		'Surahs',
 		'Surahs2',
 		'QPC1BSML',

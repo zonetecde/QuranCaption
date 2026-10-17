@@ -96,11 +96,11 @@
 				<AutocompleteInput
 					bind:value={inputValue}
 					suggestions={speakerSuggestions}
-					placeholder={$LL.home.searchReciters()}
+					placeholder={$LL.home.searchSpeakers()}
 					maxlength={ProjectDetail.SPEAKER_MAX_LENGTH}
 					icon="person"
 					labelIcon="record_voice_over"
-					label={$LL.home.reciter()}
+					label={$LL.home.speaker()}
 					onEnterPress={handleConfirm}
 					focusOnMount={true}
 				/>

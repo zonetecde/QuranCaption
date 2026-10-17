@@ -3,8 +3,8 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import SearchableSelect from '$lib/components/misc/SearchableSelect.svelte';
 	import AiVideoVerseRangePreview from './AiVideoVerseRangePreview.svelte';
-	import { getReciterOptionKey } from '../reciterLoader';
-	import type { ReciterOption } from '../types';
+	import { getSpeakerOptionKey } from '../speakerLoader';
+	import type { SpeakerOption } from '../types';
 	import LL from '$lib/i18n/i18n-svelte';
 
 	const aiv = globalState.aiVideo;
@@ -16,15 +16,15 @@
 		}))
 	);
 
-	let reciterSelectOptions = $derived(
-		aiv.reciterOptions.map((option) => ({
-			value: getReciterOptionKey(option),
+	let speakerSelectOptions = $derived(
+		aiv.speakerOptions.map((option) => ({
+			value: getSpeakerOptionKey(option),
 			label: option.label
 		}))
 	);
 
 	let reviewSurahKey = $state(aiv.review.verseRange.surah.toString());
-	let reviewReciterKey = $state(aiv.audio.reciter ? getReciterOptionKey(aiv.audio.reciter) : '');
+	let reviewSpeakerKey = $state(aiv.audio.speaker ? getSpeakerOptionKey(aiv.audio.speaker) : '');
 
 	let reviewMaxAyah = $derived(Quran.getVerseCount(aiv.review.verseRange.surah) || 1);
 
@@ -58,14 +58,14 @@
 	}
 
 	/**
-	 * Applique le recitateur choisi dans le select de review.
+	 * Applique le intervenant choisi dans le select de review.
 	 * @returns {void}
 	 */
-	function handleReviewReciterChange() {
-		const option = aiv.reciterOptions.find((o) => getReciterOptionKey(o) === reviewReciterKey);
-		aiv.audio.reciter = option ?? null;
-		aiv.review.reciterName = option?.reciterName ?? '';
-		aiv.audio.reciterName = option?.reciterName ?? '';
+	function handleReviewSpeakerChange() {
+		const option = aiv.speakerOptions.find((o) => getSpeakerOptionKey(o) === reviewSpeakerKey);
+		aiv.audio.speaker = option ?? null;
+		aiv.review.speakerName = option?.speakerName ?? '';
+		aiv.audio.speakerName = option?.speakerName ?? '';
 	}
 </script>
 
@@ -91,7 +91,9 @@
 				{$LL.aiVideo.downloadedVideoOrientation()}
 			</p>
 		{:else if aiv.video.sourceMode === 'none'}
-			<div class="rounded-xl border border-dashed border-color bg-bg-secondary px-4 py-3 text-sm text-thirdly">
+			<div
+				class="rounded-xl border border-dashed border-color bg-bg-secondary px-4 py-3 text-sm text-thirdly"
+			>
 				{$LL.aiVideo.noBackgroundDescription()}
 			</div>
 		{:else}
@@ -107,20 +109,20 @@
 		{/if}
 	</div>
 
-	<!-- Reciter -->
+	<!-- Speaker -->
 	<div class="space-y-2">
 		<span class="flex items-center gap-2 text-sm font-semibold text-primary">
 			<span class="material-icons text-accent-primary text-base">record_voice_over</span>
-			{$LL.aiVideo.selectReciterLabel()}
+			{$LL.aiVideo.selectSpeakerLabel()}
 		</span>
 		<SearchableSelect
-			id="review-reciter-select"
-			bind:value={reviewReciterKey}
-			options={reciterSelectOptions}
-			placeholder={$LL.aiVideo.selectReciterPlaceholder()}
-			searchPlaceholder={$LL.aiVideo.searchRecitersPlaceholder()}
-			emptyMessage={$LL.aiVideo.noRecitersFound()}
-			onChange={handleReviewReciterChange}
+			id="review-speaker-select"
+			bind:value={reviewSpeakerKey}
+			options={speakerSelectOptions}
+			placeholder={$LL.aiVideo.selectSpeakerPlaceholder()}
+			searchPlaceholder={$LL.aiVideo.searchSpeakersPlaceholder()}
+			emptyMessage={$LL.aiVideo.noSpeakersFound()}
+			onChange={handleReviewSpeakerChange}
 		/>
 	</div>
 
@@ -144,7 +146,9 @@
 
 			<div class="flex gap-3">
 				<div class="flex-1 space-y-1">
-					<label for="review-ayah-start" class="text-xs text-thirdly">{$LL.aiVideo.fromAyah()}</label>
+					<label for="review-ayah-start" class="text-xs text-thirdly"
+						>{$LL.aiVideo.fromAyah()}</label
+					>
 					<input
 						id="review-ayah-start"
 						type="number"
@@ -219,14 +223,16 @@
 				</p>
 			</div>
 			<div>
-				<span class="text-thirdly text-xs">{$LL.aiVideo.selectReciterLabel()}</span>
-				<p class="text-primary font-medium truncate">{aiv.review.reciterName}</p>
+				<span class="text-thirdly text-xs">{$LL.aiVideo.selectSpeakerLabel()}</span>
+				<p class="text-primary font-medium truncate">{aiv.review.speakerName}</p>
 			</div>
 			{#if aiv.video.sourceMode === 'ai'}
 				<div>
 					<span class="text-thirdly text-xs">{$LL.aiVideo.resolutionLabel()}</span>
 					<p class="text-primary font-medium">
-						{aiv.video.resolution === 'portrait' ? $LL.aiVideo.portrait916() : $LL.aiVideo.landscape169()}
+						{aiv.video.resolution === 'portrait'
+							? $LL.aiVideo.portrait916()
+							: $LL.aiVideo.landscape169()}
 					</p>
 				</div>
 			{/if}

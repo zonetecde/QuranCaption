@@ -13,7 +13,7 @@
 	 * 4. Fond des sous-titres (visible en continu).
 	 * 5. Sous-titre arabe (avec highlight mot-à-mot, crochets décoratifs).
 	 * 6. Traductions (une par édition configurée).
-	 * 7. Décorations fixes (nom de sourate, récitateur, numéro de verset).
+	 * 7. Décorations fixes (nom de sourate, intervenant, numéro de verset).
 	 * 8. Clips custom (texte et images).
 	 *
 	 * La logique métier complexe est extraite dans :
@@ -37,7 +37,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { tick, untrack } from 'svelte';
-	import ReciterName from '../tabs/styleEditor/ReciterName.svelte';
+	import SpeakerName from '../tabs/styleEditor/SpeakerName.svelte';
 	import SurahName from '../tabs/styleEditor/SurahName.svelte';
 	import VerseNumber from '../tabs/styleEditor/VerseNumber.svelte';
 	import AyahContainer from '../tabs/styleEditor/AyahContainer.svelte';
@@ -1315,7 +1315,7 @@
 
 		<!-- Couche 7 : Décorations fixes -->
 		<SurahName />
-		<ReciterName />
+		<SpeakerName />
 
 		{#if currentSubtitle() instanceof QuranSubtitleClip}
 			{@const verseSubtitle = currentSubtitle() as QuranSubtitleClip}

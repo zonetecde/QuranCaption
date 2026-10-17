@@ -186,7 +186,7 @@ few windows for reliable variance estimation.
 | w3  | تُكَذِّبَانِ | `t u k a ðð i b a: n` | 9      |
 |     | **Total R**  |                       | **31** |
 
-**What the reciter said:** Reads all 4 words, then repeats w2-w3.
+**What the speaker said:** Reads all 4 words, then repeats w2-w3.
 
 ```
 Pass 1: w0  w1  w2  w3       (31 phones)
@@ -299,7 +299,7 @@ All four pre-filters correctly identify this segment as suspicious.
 
 **Verse:** Ayat al-Kursi, first 25 words. R = 115 phonemes.
 
-**What the reciter said:** Reads all 25 words, then repeats w22-w24 (يَشْفَعُ عِندَهُۥٓ إِلَّا).
+**What the speaker said:** Reads all 25 words, then repeats w22-w24 (يَشْفَعُ عِندَهُۥٓ إِلَّا).
 
 ```
 Pass 1: w0 ──────────────── w24   (115 phones)
@@ -399,7 +399,7 @@ All four pass, though the displacement histogram has more background noise in th
 | w6  | ٱلْقَمَرَ   | `l q aˤ m a rˤ aˤ` | 7      |
 |     | **Total R** |                    | **36** |
 
-**What the reciter said:** All 7 words, then restarts from w3 (a middle restart, not a suffix):
+**What the speaker said:** All 7 words, then restarts from w3 (a middle restart, not a suffix):
 
 ```
 Pass 1: w0  w1  w2  w3  w4  w5  w6    (36 phones)
@@ -500,7 +500,7 @@ Spike starts at window 6 (P position ~30)
 | w10 | ٱلنَّهَارِ  | `ñ a h a: r i`     | 6      |
 |     | **Total R** |                    | **57** |
 
-**What the reciter said:** Three-pass pattern with two restarts:
+**What the speaker said:** Three-pass pattern with two restarts:
 
 ```
 Pass 1: w0  w1  w2  w3  w4  w5  w6                   (36 phones)
@@ -611,7 +611,7 @@ This segment has **textually repeated** words within the Quran text itself:
 | w18 | ٱلْأَرْضِ      | `l ʔ a rˤ dˤ i`      | 6      |
 |     | **Total R**    |                      | **54** |
 
-**What the reciter said:** Reads it once through, no repetition.
+**What the speaker said:** Reads it once through, no repetition.
 
 **P = 56 phonemes** (54 + 2 noise).
 
@@ -624,7 +624,7 @@ excess = 56 - 54 = 2
 
 #### Pre-filter 2: Displacement Histogram
 
-Even though the reciter reads once through, the textual repetitions create self-similarity in P:
+Even though the speaker reads once through, the textual repetitions create self-similarity in P:
 
 | 3-gram             | Pos 1         | Pos 2                   | d   |
 | ------------------ | ------------- | ----------------------- | --- |
@@ -659,7 +659,7 @@ LRS length = 4 < 5  -->  FAIL (correctly rejects)
 
 #### Pre-filter 4: Cost-Profile Variance
 
-P=56, R=54. The reciter reads linearly through R, so every window in P maps cleanly to the
+P=56, R=54. The speaker reads linearly through R, so every window in P maps cleanly to the
 corresponding R region. All window costs are uniformly low (~0.05-0.10 from ASR noise).
 
 ```
@@ -698,7 +698,7 @@ phonemes.
 | w8  | قَدِيرٌ     | `q aˤ d i: r`        | 5      |
 |     | **Total R** |                      | **51** |
 
-**Scenario:** The reciter reads the verse once through -- no repetition -- but the ASR model
+**Scenario:** The speaker reads the verse once through -- no repetition -- but the ASR model
 performs poorly, producing ~15% error rate. This models a segment with a non-standard recitation
 style, background noise, or an unusual vocal timbre that confuses the ASR.
 
@@ -776,7 +776,7 @@ LRS length = 3 < 5  -->  FAIL (correctly rejects)
 
 #### Pre-filter 4: Cost-Profile Variance
 
-P=62, R=51. The reciter reads linearly, so the mapping from P to R is monotone but noisy. Every
+P=62, R=51. The speaker reads linearly, so the mapping from P to R is monotone but noisy. Every
 window has moderate cost (~0.15-0.25) due to the high error rate, but the cost is **uniformly**
 moderate -- no window is dramatically worse than others.
 
@@ -818,7 +818,7 @@ non-repetition. The cost is ~50-100 unnecessary DP calls, which is negligible.
 | w3  | ٱلْعَـٰلَمِينَ | `l ʕ a: l a m i: n` | 8      |
 |     | **Total R**    |                     | **26** |
 
-**Scenario:** The reciter completes the verse, then repeats just the last word w3 (ٱلْعَـٰلَمِينَ)
+**Scenario:** The speaker completes the verse, then repeats just the last word w3 (ٱلْعَـٰلَمِينَ)
 -- a single-word repeat. This tests the sensitivity boundary since our decomposition requires each
 sub-range to have >= 2 words.
 
@@ -908,7 +908,7 @@ investigation entirely for single-word repeats.
 **Scenario:** A cross-verse segment spanning 55:15 (وَخَلَقَ ٱلْجَآنَّ مِن مَّارِجٍ مِّن نَّارٍ) and
 55:16 (فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ -- the refrain). This tests whether the
 pre-filters trigger on a segment where the refrain (identical to 55:13 from Example 1) appears as
-textual content, not as a reciter repeat.
+textual content, not as a speaker repeat.
 
 | Verse | Idx         | Arabic       | Phonemes              | Count |
 | ----- | ----------- | ------------ | --------------------- | ----- |
@@ -928,7 +928,7 @@ The refrain in 55:16 (w6-w9) has identical phonemes to 55:13 (w0-w3 from Example
 self-similarity check might think the refrain at the end is "repeating" something from earlier in
 Surah 55.
 
-**What the reciter said:** Reads both verses once through, no repetition.
+**What the speaker said:** Reads both verses once through, no repetition.
 
 **P = 59 phonemes** (57 + 2 noise).
 
@@ -977,7 +977,7 @@ LRS length = 2 < 5  -->  FAIL (correctly rejects)
 
 #### Pre-filter 4: Cost-Profile Variance
 
-P=59, R=57. The reciter reads linearly, so all windows align well. Uniformly low cost.
+P=59, R=57. The speaker reads linearly, so all windows align well. Uniformly low cost.
 
 ```
 Cost range ~ 0.05 < 0.15  -->  FAIL (correctly rejects)

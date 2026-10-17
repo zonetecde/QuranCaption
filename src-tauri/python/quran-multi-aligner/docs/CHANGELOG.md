@@ -35,7 +35,7 @@
     or vice versa
   - Automatically updates "Missing Words" flags on neighbouring segments when a reference changes
   - Changes are saved and reflected in the JSON output
-- Repetition detection — single segments where the reciter repeated words are now automatically
+- Repetition detection — single segments where the speaker repeated words are now automatically
   detected and flagged with a "Repeated Words" badge
   - Accounts for segmentation failures and undetected pauses. If you see many repetitions, try
     re-segmenting with a lower silence threshold to split them out

@@ -29,7 +29,7 @@ export type StyleValueType =
 	| 'dimension'
 	| 'fade'
 	| 'composite'
-	| 'reciter'
+	| 'speaker'
 	| 'file'
 	| 'ayah-image'
 	| 'time-ranges';
@@ -49,7 +49,7 @@ export type StyleCategoryName =
 	| 'general'
 	| 'overlay'
 	| 'surah-name'
-	| 'reciter-name'
+	| 'speaker-name'
 	| 'verse-number'
 	| 'ayah-container'
 	| 'creator-text';
@@ -203,21 +203,22 @@ export type SurahNameStyleName =
 	| 'surah-latin-spacing'
 	| 'surah-latin-text-style';
 
-export type ReciterNameStyleName =
-	| 'show-reciter-name'
-	| 'reciter-name-always-show'
-	| 'reciter-name-format'
-	| 'reciter-name-time-appearance'
-	| 'reciter-name-time-disappearance'
-	| 'reciter-name-time-ranges'
-	| 'reciter-show-arabic'
-	| 'reciter-name-vertical-position'
-	| 'reciter-name-horizontal-position'
-	| 'reciter-show-latin'
-	| 'reciter-size'
-	| 'reciter-opacity'
-	| 'reciter-latin-spacing'
-	| 'reciter-latin-text-style';
+export type SpeakerNameStyleName =
+	| 'speaker-name'
+	| 'show-speaker-name'
+	| 'speaker-name-always-show'
+	| 'speaker-name-format'
+	| 'speaker-name-time-appearance'
+	| 'speaker-name-time-disappearance'
+	| 'speaker-name-time-ranges'
+	| 'speaker-show-arabic'
+	| 'speaker-name-vertical-position'
+	| 'speaker-name-horizontal-position'
+	| 'speaker-show-latin'
+	| 'speaker-size'
+	| 'speaker-opacity'
+	| 'speaker-latin-spacing'
+	| 'speaker-latin-text-style';
 
 // Nouvelle définition pour les styles du Creator Text
 export type CreatorTextStyleName = 'creator-text' | 'creator-text-composite';
@@ -269,7 +270,7 @@ export type StyleName =
 	| WordByWordHighlightStyleName
 	| OverlayStyleName
 	| SurahNameStyleName
-	| ReciterNameStyleName
+	| SpeakerNameStyleName
 	| CreatorTextStyleName
 	| CustomTextStyleName
 	| GlobalAnimationStyleName
@@ -801,7 +802,7 @@ export class Category extends SerializableBase {
 				// Transforme chaque entrée en véritable instance de Style
 				style.value = raw.map((s) => (s instanceof Style ? s : new Style(s)));
 
-				if (style.id === 'surah-latin-text-style' || style.id === 'reciter-latin-text-style') {
+				if (style.id === 'surah-latin-text-style' || style.id === 'speaker-latin-text-style') {
 					style.setCompositeStyleValue('font-size', 30);
 				}
 			}

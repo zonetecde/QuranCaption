@@ -342,7 +342,7 @@ class AyahMatchingService:
             recognized_words: List of recognized words.
             reference_words: List of reference words.
             previous_ayahs_to_match: How many previous ayahs to search for rematches, where:
-            * `-1` means we assume the reciter is not repeating words, so no rematches are needed.
+            * `-1` means we assume the speaker is not repeating words, so no rematches are needed.
             * `0` means search for rematches in the current ayah only.
             * `1` means search for rematches in the current and previous ayah, and so on
 

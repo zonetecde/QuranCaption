@@ -16,8 +16,8 @@
 	import { runNativeSegmentation } from '$lib/services/AutoSegmentation';
 	import {
 		Mp3QuranService,
-		type Mp3QuranReciter,
-		type TimingReciter
+		type Mp3QuranSpeaker,
+		type TimingSpeaker
 	} from '$lib/services/Mp3QuranService';
 	import { ProjectService } from '$lib/services/ProjectService';
 	import { QdcRecitationService, type QdcRecitation } from '$lib/services/QdcRecitationService';
@@ -27,25 +27,25 @@
 		source: 'mp3quran' | 'qdc';
 		sourceLabel: 'MP3Quran' | 'QDC';
 		label: string;
-		reciterName: string;
+		speakerName: string;
 		surahList: Set<number> | null;
 		supportsNativeTiming: boolean;
 		mp3Server?: string;
-		mp3ReciterId?: number;
+		mp3SpeakerId?: number;
 		mp3MoshafId?: number;
 		qdcRecitationId?: number;
 	};
 
 	// Données brutes des deux catalogues de récitations.
-	let mp3Reciters: Mp3QuranReciter[] = $state([]);
+	let mp3Speakers: Mp3QuranSpeaker[] = $state([]);
 	let qdcRecitations: QdcRecitation[] = $state([]);
-	let timingReciters: TimingReciter[] = $state([]);
+	let timingSpeakers: TimingSpeaker[] = $state([]);
 	// IDs MP3Quran qui exposent un timing officiel.
 	let supportedMp3ReadIds: Set<number> = $state(new Set());
 	let downloadOptions: DownloadOption[] = $state([]);
 	let selectedOptionIndex = $state(-1);
 	let selectedSurahId = $state(-1);
-	let isLoadingReciters = $state(true);
+	let isLoadingSpeakers = $state(true);
 	let isDownloading = $state(false);
 	// Quran.com est l'onglet par défaut comme demandé.
 	let selectedSource = $state<'qdc' | 'mp3quran'>('qdc');
@@ -80,23 +80,23 @@
 	 * Cela évite de dupliquer toute la logique de sélection et de téléchargement.
 	 */
 	function buildDownloadOptions(
-		reciters: Mp3QuranReciter[],
+		speakers: Mp3QuranSpeaker[],
 		qdcItems: QdcRecitation[]
 	): DownloadOption[] {
 		const options: DownloadOption[] = [];
 
-		for (const reciter of reciters) {
-			for (const moshaf of reciter.moshaf) {
+		for (const speaker of speakers) {
+			for (const moshaf of speaker.moshaf) {
 				const supportsNativeTiming = supportedMp3ReadIds.has(moshaf.id);
 				options.push({
 					source: 'mp3quran',
 					sourceLabel: 'MP3Quran',
-					label: `${reciter.name} - ${moshaf.name}`,
-					reciterName: reciter.name,
+					label: `${speaker.name} - ${moshaf.name}`,
+					speakerName: speaker.name,
 					surahList: new Set(moshaf.surah_list.split(',').map(Number)),
 					supportsNativeTiming,
 					mp3Server: moshaf.server,
-					mp3ReciterId: reciter.id,
+					mp3SpeakerId: speaker.id,
 					mp3MoshafId: moshaf.id
 				});
 			}
@@ -110,8 +110,8 @@
 			options.push({
 				source: 'qdc',
 				sourceLabel: 'QDC',
-				label: `${recitation.reciter_name}${detailParts.length > 0 ? ` - ${detailParts.join(' - ')}` : ''}`,
-				reciterName: recitation.reciter_name,
+				label: `${recitation.speaker_name}${detailParts.length > 0 ? ` - ${detailParts.join(' - ')}` : ''}`,
+				speakerName: recitation.speaker_name,
 				surahList: null,
 				supportsNativeTiming: true,
 				qdcRecitationId: recitation.id
@@ -126,22 +126,22 @@
 			// Sert à alimenter immédiatement la liste des sourates et leurs labels.
 			await Quran.load();
 
-			const [loadedMp3Reciters, loadedTimingReciters, loadedQdcRecitations] = await Promise.all([
-				Mp3QuranService.getReciters(),
-				Mp3QuranService.getTimingReciters(),
+			const [loadedMp3Speakers, loadedTimingSpeakers, loadedQdcRecitations] = await Promise.all([
+				Mp3QuranService.getSpeakers(),
+				Mp3QuranService.getTimingSpeakers(),
 				QdcRecitationService.getRecitations()
 			]);
 
-			mp3Reciters = loadedMp3Reciters;
-			timingReciters = loadedTimingReciters;
+			mp3Speakers = loadedMp3Speakers;
+			timingSpeakers = loadedTimingSpeakers;
 			qdcRecitations = loadedQdcRecitations;
-			supportedMp3ReadIds = new Set(timingReciters.map((reciter) => reciter.id));
-			downloadOptions = buildDownloadOptions(mp3Reciters, qdcRecitations);
+			supportedMp3ReadIds = new Set(timingSpeakers.map((speaker) => speaker.id));
+			downloadOptions = buildDownloadOptions(mp3Speakers, qdcRecitations);
 		} catch (error) {
-			console.error('Error fetching reciters:', error);
-			toast.error(get(LL).editor.failedToLoadReciters());
+			console.error('Error fetching speakers:', error);
+			toast.error(get(LL).editor.failedToLoadSpeakers());
 		} finally {
-			isLoadingReciters = false;
+			isLoadingSpeakers = false;
 		}
 	});
 
@@ -167,7 +167,7 @@
 		const surahName =
 			availableSurahs.find((surah) => surah.id === selectedSurahId)?.name.split(' (')[0] ??
 			`Surah ${formattedSurahId}`;
-		const rawBaseName = `${selectedOption.reciterName} - ${surahName}`;
+		const rawBaseName = `${selectedOption.speakerName} - ${surahName}`;
 		let sanitizedBaseName = rawBaseName.replace(/[<>:"/\\|?*]/g, '').trim();
 		if (!sanitizedBaseName) {
 			sanitizedBaseName = `surah-${formattedSurahId}`;
@@ -181,7 +181,7 @@
 			toastId = toast.loading(
 				get(LL).editor.downloadingSurah({
 					surah: surahName.split('.')[1].trim(),
-					reciter: selectedOption.reciterName
+					speaker: selectedOption.speakerName
 				})
 			);
 
@@ -198,13 +198,13 @@
 				if (selectedOption.supportsNativeTiming) {
 					metadata = {
 						mp3Quran: {
-							reciterId: selectedOption.mp3ReciterId,
+							speakerId: selectedOption.mp3SpeakerId,
 							moshafId: selectedOption.mp3MoshafId,
 							surahId: selectedSurahId
 						},
 						nativeTiming: {
 							provider: 'mp3quran',
-							reciterId: selectedOption.mp3ReciterId,
+							speakerId: selectedOption.mp3SpeakerId,
 							moshafId: selectedOption.mp3MoshafId,
 							surahId: selectedSurahId
 						}
@@ -271,11 +271,11 @@
 			}
 
 			if (selectedOption.source === 'mp3quran') {
-				AnalyticsService.downloadFromMP3Quran(selectedOption.reciterName, surahName, fileName);
+				AnalyticsService.downloadFromMP3Quran(selectedOption.speakerName, surahName, fileName);
 			}
 			AnalyticsService.downloadRecitationAudio(
 				selectedOption.sourceLabel,
-				selectedOption.reciterName,
+				selectedOption.speakerName,
 				surahName,
 				fileName
 			);
@@ -299,21 +299,21 @@
 		</div>
 
 		<div class="space-y-2">
-			<label for="reciter-select" class="text-sm font-medium text-secondary"
-				>{get(LL).editor.reciterLabel()}</label
+			<label for="speaker-select" class="text-sm font-medium text-secondary"
+				>{get(LL).editor.speakerLabel()}</label
 			>
 
 			<select
-				id="reciter-select"
+				id="speaker-select"
 				class="w-full bg-secondary border border-color rounded-lg py-3 px-4 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent"
 				bind:value={selectedOptionIndex}
-				disabled={isLoadingReciters}
+				disabled={isLoadingSpeakers}
 				onchange={() => (selectedSurahId = -1)}
 			>
-				{#if isLoadingReciters}
-					<option value={-1}>{get(LL).editor.loadingReciters()}</option>
+				{#if isLoadingSpeakers}
+					<option value={-1}>{get(LL).editor.loadingSpeakers()}</option>
 				{:else}
-					<option value={-1}>{get(LL).editor.selectReciter()}</option>
+					<option value={-1}>{get(LL).editor.selectCatalogSpeaker()}</option>
 					{#each filteredDownloadOptions as option, index (`${option.source}-${option.mp3MoshafId ?? option.qdcRecitationId}`)}
 						<option value={index}
 							>{option.supportsNativeTiming ? `★ ${option.label}` : option.label}</option

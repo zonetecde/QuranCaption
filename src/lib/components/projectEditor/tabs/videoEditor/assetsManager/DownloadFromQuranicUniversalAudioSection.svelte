@@ -84,7 +84,7 @@
 
 	/**
 	 * Charge le catalogue correspondant au mode courant : récitations publiées
-	 * (audio + segments) ou catalogue audio-only (récitateurs non publiés).
+	 * (audio + segments) ou catalogue audio-only (intervenants non publiés).
 	 */
 	async function loadRecitations(): Promise<void> {
 		isLoadingRecitations = true;
@@ -95,7 +95,7 @@
 					: await QuranicUniversalAudioService.getRecitations();
 		} catch (error) {
 			console.error('Error fetching Quranic Universal Audio recitations:', error);
-			toast.error(get(LL).editor.failedToLoadReciters());
+			toast.error(get(LL).editor.failedToLoadSpeakers());
 			recitations = [];
 		} finally {
 			isLoadingRecitations = false;
@@ -141,13 +141,13 @@
 		}
 	}
 
-	/** Noms d'affichage (récitateur + sourate) de la sélection courante. */
-	function currentNames(): { reciterName: string; surahName: string } {
+	/** Noms d'affichage (intervenant + sourate) de la sélection courante. */
+	function currentNames(): { speakerName: string; surahName: string } {
 		const surah = availableSurahs.find((item) => item.id === selectedSurahId);
 		const surahName = surah?.name.split('. ')[1]?.split(' (')[0] ?? `Surah ${selectedSurahId}`;
-		const reciterName =
-			selectedRecitation?.reciter?.name_en ?? selectedRecitation?.label ?? 'Reciter';
-		return { reciterName, surahName };
+		const speakerName =
+			selectedRecitation?.speaker?.name_en ?? selectedRecitation?.label ?? get(LL).editor.speaker();
+		return { speakerName, surahName };
 	}
 
 	/**
@@ -156,18 +156,18 @@
 	 */
 	async function importChapterAudio(
 		audioUrl: string,
-		reciterName: string,
+		speakerName: string,
 		surahName: string,
 		assetMeta: Record<string, unknown>
 	): Promise<void> {
 		const project = globalState.currentProject;
 		if (!project) return;
 		const toastId = toast.loading(
-			get(LL).editor.downloadingSurah({ surah: surahName, reciter: reciterName })
+			get(LL).editor.downloadingSurah({ surah: surahName, speaker: speakerName })
 		);
 		try {
 			const downloadPath = await ProjectService.getAssetFolderForProject(project.detail.id);
-			const rawBaseName = `${reciterName} - ${surahName}`;
+			const rawBaseName = `${speakerName} - ${surahName}`;
 			let sanitizedBaseName = rawBaseName.replace(/[<>:"/\\|?*]/g, '').trim();
 			if (!sanitizedBaseName) sanitizedBaseName = `surah-${selectedSurahId}`;
 			const fullPath = await join(downloadPath, `${sanitizedBaseName}.mp3`);
@@ -200,7 +200,7 @@
 	/** Audio + segments : télécharge le chapitre et applique les segments pré-alignés. */
 	async function downloadAndApply(): Promise<void> {
 		clampAyahRange();
-		const { reciterName, surahName } = currentNames();
+		const { speakerName, surahName } = currentNames();
 
 		const payload = await QuranicUniversalAudioService.getSegments(
 			selectedSlug,
@@ -216,7 +216,7 @@
 			throw new Error('No pre-aligned segments are available for this selection.');
 		}
 
-		await importChapterAudio(audioUrl, reciterName, surahName, {
+		await importChapterAudio(audioUrl, speakerName, surahName, {
 			quranicUniversalAudio: {
 				recitation: selectedSlug,
 				surah: selectedSurahId,
@@ -235,7 +235,7 @@
 
 	/** Audio seul : télécharge le chapitre complet, sans aucun segment. */
 	async function downloadAudioOnly(): Promise<void> {
-		const { reciterName, surahName } = currentNames();
+		const { speakerName, surahName } = currentNames();
 
 		const payload = await QuranicUniversalAudioService.getAudioUrl(selectedSlug, selectedSurahId);
 		const audioUrl = payload.audio_url ?? '';
@@ -243,7 +243,7 @@
 			throw new Error('No audio is available for this recitation/chapter.');
 		}
 
-		await importChapterAudio(audioUrl, reciterName, surahName, {
+		await importChapterAudio(audioUrl, speakerName, surahName, {
 			quranicUniversalAudio: {
 				recitation: selectedSlug,
 				surah: selectedSurahId
@@ -342,10 +342,10 @@
 				bind:value={selectedSlug}
 				options={recitationOptions}
 				placeholder={isLoadingRecitations
-					? get(LL).editor.loadingReciters()
-					: get(LL).editor.selectReciter()}
-				searchPlaceholder={get(LL).aiVideo.searchRecitersPlaceholder()}
-				emptyMessage={get(LL).aiVideo.noRecitersFound()}
+					? get(LL).editor.loadingSpeakers()
+					: get(LL).editor.selectCatalogSpeaker()}
+				searchPlaceholder={get(LL).aiVideo.searchSpeakersPlaceholder()}
+				emptyMessage={get(LL).aiVideo.noSpeakersFound()}
 				maxHeightClass="max-h-72"
 				disabled={isLoadingRecitations}
 				onChange={onRecitationChange}

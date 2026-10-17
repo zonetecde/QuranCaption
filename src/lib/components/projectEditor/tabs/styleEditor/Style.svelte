@@ -23,7 +23,7 @@
 	import FileControl from './controls/FileControl.svelte';
 	import FontFamilyControl from './controls/FontFamilyControl.svelte';
 	import NumberControl from './controls/NumberControl.svelte';
-	import ReciterControl from './controls/ReciterControl.svelte';
+	import SpeakerControl from './controls/SpeakerControl.svelte';
 	import SelectControl from './controls/SelectControl.svelte';
 	import TextControl from './controls/TextControl.svelte';
 	import TimeControl from './controls/TimeControl.svelte';
@@ -51,11 +51,11 @@
 		'reactive-y-position',
 		'always-show',
 		'surah-name-always-show',
-		'reciter-name-always-show'
+		'speaker-name-always-show'
 	]);
 	const NON_ANIMATABLE_STYLE_TYPES = new Set([
 		'composite',
-		'reciter',
+		'speaker',
 		'file',
 		'ayah-image',
 		'time',
@@ -494,7 +494,7 @@
 	function getStyleValue() {
 		if (style.valueType === 'composite') {
 			return LL_.common.details();
-		} else if (style.valueType === 'reciter') {
+		} else if (style.valueType === 'speaker') {
 			return globalState.currentProject!.detail.speaker || LL_.common.none();
 		} else if (style.valueType === 'dimension') {
 			const dimension = asDimensionValue(inputValue);
@@ -522,13 +522,13 @@
 		const beginToEndStyle: Partial<Record<StyleName, StyleName>> = {
 			'time-appearance': 'time-disappearance',
 			'surah-name-time-appearance': 'surah-name-time-disappearance',
-			'reciter-name-time-appearance': 'reciter-name-time-disappearance'
+			'speaker-name-time-appearance': 'speaker-name-time-disappearance'
 		};
 
 		const endToBeginStyle: Partial<Record<StyleName, StyleName>> = {
 			'time-disappearance': 'time-appearance',
 			'surah-name-time-disappearance': 'surah-name-time-appearance',
-			'reciter-name-time-disappearance': 'reciter-name-time-appearance'
+			'speaker-name-time-disappearance': 'speaker-name-time-appearance'
 		};
 
 		const currentStyleId = style.id as StyleName;
@@ -574,7 +574,7 @@
 				}
 			}
 
-			// Cas style global (surah/reciter): simple mise a jour du style global.
+			// Cas style global (surah/speaker): simple mise a jour du style global.
 			const globalEndStyle = globalState.getStyle('global', endStyleId);
 			const currentEnd = Number(globalEndStyle.value ?? 0);
 			if (cursorMs > currentEnd) {
@@ -850,7 +850,7 @@
 
 		{#if (extended || showControl) && style.valueType !== 'boolean'}
 			<div class={showControl ? 'style-control-direct-body' : 'my-2 px-2'} transition:slide>
-				{#if !showControl || ['dimension', 'fade', 'composite', 'ayah-image', 'file', 'reciter', 'time-ranges'].includes(style.valueType)}
+				{#if !showControl || ['dimension', 'fade', 'composite', 'ayah-image', 'file', 'speaker', 'time-ranges'].includes(style.valueType)}
 					<p class="text-xs text-secondary mb-2 flex items-center gap-1">
 						<span class="material-icons-outlined text-[12px]">info</span>
 						{getStyleDescription(style.id, get(LL))}
@@ -878,8 +878,8 @@
 					/>
 				{:else if style.valueType === 'time-ranges'}
 					<TimedRangesControl value={inputValue} onChange={applyValue} />
-				{:else if style.valueType === 'reciter'}
-					<ReciterControl />
+				{:else if style.valueType === 'speaker'}
+					<SpeakerControl />
 				{:else if style.valueType === 'file'}
 					<FileControl value={inputValue} {disabled} onChange={applyValue} />
 				{:else if style.valueType === 'ayah-image'}

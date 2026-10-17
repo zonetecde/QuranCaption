@@ -77,7 +77,7 @@ describe('getTimelineCustomClipLayout', () => {
 		const originalProject = globalState.currentProject;
 
 		globalState.currentProject = {
-			detail: { reciter: 'not set' },
+			detail: { speaker: 'not set' },
 			content: {
 				videoStyle,
 				timeline: {

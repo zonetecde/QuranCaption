@@ -28,7 +28,7 @@ export async function runNativeSegmentation(
 	let nativeTimingMeta:
 		| {
 				provider: 'mp3quran';
-				reciterId: number;
+				speakerId: number;
 				surahId: number;
 				moshafId?: number;
 		  }
@@ -58,16 +58,16 @@ export async function runNativeSegmentation(
 			if (asset?.metadata?.nativeTiming) {
 				const meta = asset.metadata.nativeTiming as Partial<{
 					provider: 'mp3quran' | 'qdc';
-					reciterId: number;
+					speakerId: number;
 					recitationId: number;
 					surahId: number;
 					moshafId?: number;
 				}>;
 				if (meta.provider === 'mp3quran') {
-					if (typeof meta.reciterId !== 'number' || typeof meta.surahId !== 'number') continue;
+					if (typeof meta.speakerId !== 'number' || typeof meta.surahId !== 'number') continue;
 					nativeTimingMeta = {
 						provider: 'mp3quran',
-						reciterId: meta.reciterId,
+						speakerId: meta.speakerId,
 						surahId: meta.surahId,
 						moshafId: meta.moshafId
 					};
@@ -88,14 +88,14 @@ export async function runNativeSegmentation(
 			}
 			if (asset?.metadata?.mp3Quran) {
 				const meta = asset.metadata.mp3Quran as Partial<{
-					reciterId: number;
+					speakerId: number;
 					surahId: number;
 					moshafId?: number;
 				}>;
-				if (typeof meta.reciterId !== 'number' || typeof meta.surahId !== 'number') continue;
+				if (typeof meta.speakerId !== 'number' || typeof meta.surahId !== 'number') continue;
 				nativeTimingMeta = {
 					provider: 'mp3quran',
-					reciterId: meta.reciterId,
+					speakerId: meta.speakerId,
 					surahId: meta.surahId,
 					moshafId: meta.moshafId
 				};
@@ -147,7 +147,7 @@ export async function runNativeSegmentation(
 						end_time: timestamp.timestamp_to
 					})) ?? [])
 				: await Mp3QuranService.getSurahTiming(
-						nativeTimingMeta.moshafId ?? nativeTimingMeta.reciterId,
+						nativeTimingMeta.moshafId ?? nativeTimingMeta.speakerId,
 						surahId
 					);
 

@@ -41,7 +41,7 @@ function createHistoryTestProject(): Project {
 		undefined,
 		videoStyle
 	);
-	return new Project(new ProjectDetail('Undo test', 'reciter'), content);
+	return new Project(new ProjectDetail('Undo test', 'speaker'), content);
 }
 
 /**
@@ -62,7 +62,7 @@ function createAssetSplitTestProject(assetTrack: AssetTrack): Project {
 	];
 
 	return new Project(
-		new ProjectDetail('Asset split test', 'reciter'),
+		new ProjectDetail('Asset split test', 'speaker'),
 		new ProjectContent(new Timeline([assetTrack, new SubtitleTrack()]), [], undefined, videoStyle)
 	);
 }

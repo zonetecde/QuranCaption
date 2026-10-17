@@ -1,3 +1,4 @@
+import MigrationService from '$lib/services/MigrationService';
 import {
 	QuranSubtitleClip,
 	migrateLegacySubtitleData
@@ -45,13 +46,13 @@ export function initializeClassRegistry() {
 	SerializableBase.registerClass('VerseRange', VerseRange);
 	SerializableBase.registerClass('Duration', Duration);
 	SerializableBase.registerClass('Status', Status);
-	SerializableBase.registerClass('Settings', Settings);
+	SerializableBase.registerClass('Settings', Settings, MigrationService.migrateSpeakerData);
 
 	// Classes de style
-	SerializableBase.registerClass('VideoStyle', VideoStyle);
-	SerializableBase.registerClass('Category', Category);
-	SerializableBase.registerClass('Style', Style);
-	SerializableBase.registerClass('StylesData', StylesData);
+	SerializableBase.registerClass('VideoStyle', VideoStyle, MigrationService.migrateSpeakerData);
+	SerializableBase.registerClass('Category', Category, MigrationService.migrateSpeakerData);
+	SerializableBase.registerClass('Style', Style, MigrationService.migrateSpeakerData);
+	SerializableBase.registerClass('StylesData', StylesData, MigrationService.migrateSpeakerData);
 
 	// Classes de clips
 	SerializableBase.registerClass('Clip', Clip);
@@ -67,20 +68,28 @@ export function initializeClassRegistry() {
 	SerializableBase.registerClass('CustomClip', CustomClip);
 	SerializableBase.registerClass('CustomTextClip', CustomTextClip);
 	SerializableBase.registerClass('CustomImageClip', CustomImageClip);
-	SerializableBase.registerClass('Asset', Asset);
+	SerializableBase.registerClass('Asset', Asset, MigrationService.migrateSpeakerData);
 
 	// Classes de projet
 	SerializableBase.registerClass('Track', Track);
 	SerializableBase.registerClass('Timeline', Timeline);
 	SerializableBase.registerClass('ProjectContent', ProjectContent);
 	SerializableBase.registerClass('Project', Project);
-	SerializableBase.registerClass('ProjectDetail', ProjectDetail);
+	SerializableBase.registerClass(
+		'ProjectDetail',
+		ProjectDetail,
+		MigrationService.migrateSpeakerData
+	);
 	// Classes d'état
 	SerializableBase.registerClass('VideoPreviewState', VideoPreviewState);
 	SerializableBase.registerClass('ProjectEditorState', ProjectEditorState);
 	SerializableBase.registerClass('SubtitlesEditorState', SubtitlesEditorState);
 	SerializableBase.registerClass('TimelineState', TimelineState);
-	SerializableBase.registerClass('StylesEditorState', StylesEditorState);
+	SerializableBase.registerClass(
+		'StylesEditorState',
+		StylesEditorState,
+		MigrationService.migrateSpeakerData
+	);
 	SerializableBase.registerClass('ExportState', ExportState);
 	// Classes de traduction
 	SerializableBase.registerClass('ProjectTranslation', ProjectTranslation);

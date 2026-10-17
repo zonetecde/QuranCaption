@@ -1,6 +1,6 @@
 import { ProjectTranslation } from '$lib/classes';
 import { Quran } from '$lib/classes/Quran';
-import RecitersManager from '$lib/classes/Reciter';
+import SpeakersManager from '$lib/classes/Speaker';
 import Settings from '$lib/classes/Settings.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
 import ExportService from '$lib/services/ExportService';
@@ -24,8 +24,8 @@ loadAllLocales();
 // Load le Qur'an au démarrage de l'application
 Quran.load();
 
-// Load les réciteurs au démarrage de l'application
-RecitersManager.loadReciters();
+// Load les intervenants au démarrage de l'application
+SpeakersManager.loadSpeakers();
 
 // Load la police d'écriture du Mushaf
 QPCFontProvider.loadQPC2Data();

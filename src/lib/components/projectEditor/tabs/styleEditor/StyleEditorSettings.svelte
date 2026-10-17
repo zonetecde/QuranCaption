@@ -596,22 +596,22 @@
 				return true;
 		}
 
-		if (category.id === 'reciter-name') {
+		if (category.id === 'speaker-name') {
 			if (
-				id !== 'show-reciter-name' &&
-				id !== 'reciter-name' &&
-				!isFeatureEnabled('show-reciter-name', category)
+				id !== 'show-speaker-name' &&
+				id !== 'speaker-name' &&
+				!isFeatureEnabled('show-speaker-name', category)
 			)
 				return true;
 			if (
-				['reciter-name-time-appearance', 'reciter-name-time-disappearance'].includes(id) &&
-				isFeatureEnabled('reciter-name-always-show', category)
+				['speaker-name-time-appearance', 'speaker-name-time-disappearance'].includes(id) &&
+				isFeatureEnabled('speaker-name-always-show', category)
 			)
 				return true;
-			if (id === 'reciter-size' && !isFeatureEnabled('reciter-show-arabic', category)) return true;
+			if (id === 'speaker-size' && !isFeatureEnabled('speaker-show-arabic', category)) return true;
 			if (
-				['reciter-name-format', 'reciter-latin-spacing', 'reciter-latin-text-style'].includes(id) &&
-				!isFeatureEnabled('reciter-show-latin', category)
+				['speaker-name-format', 'speaker-latin-spacing', 'speaker-latin-text-style'].includes(id) &&
+				!isFeatureEnabled('speaker-show-latin', category)
 			)
 				return true;
 		}

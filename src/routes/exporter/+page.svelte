@@ -1754,14 +1754,14 @@
 		}
 
 		if (
-			globalState.getStyle('global', 'show-reciter-name')!.value === true &&
+			globalState.getStyle('global', 'show-speaker-name')!.value === true &&
 			globalState.currentProject?.detail.speaker !== 'Unknown speaker'
 		) {
 			timedOverlayClips.push({
-				id: 'reciter-name',
-				startTime: globalState.getStyle('global', 'reciter-name-time-appearance')!.value as number,
-				endTime: globalState.getStyle('global', 'reciter-name-time-disappearance')!.value as number,
-				alwaysShow: Boolean(globalState.getStyle('global', 'reciter-name-always-show')!.value)
+				id: 'speaker-name',
+				startTime: globalState.getStyle('global', 'speaker-name-time-appearance')!.value as number,
+				endTime: globalState.getStyle('global', 'speaker-name-time-disappearance')!.value as number,
+				alwaysShow: Boolean(globalState.getStyle('global', 'speaker-name-always-show')!.value)
 			});
 		}
 
@@ -2104,7 +2104,7 @@
 		// L'element a transformer en image
 		const node = document.getElementById('overlay')!;
 
-		// Pour les blanks, forcer les overlays (surahName, reciterName, customText) à leur opacité max
+		// Pour les blanks, forcer les overlays (surahName, speakerName, customText) à leur opacité max
 		// afin d'éviter une capture en cours de fade-in, et masquer les sous-titres (arabe/traduction).
 		const isBlankScreenshot = fileName.startsWith('blank_');
 		const forcedOverlayElements: { el: HTMLElement; prev: string }[] = [];

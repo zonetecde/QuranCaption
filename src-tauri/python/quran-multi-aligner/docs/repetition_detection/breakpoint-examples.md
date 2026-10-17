@@ -176,7 +176,7 @@ middle restarts, accuracy depends on the self-similar n-grams spanning the break
 
 ### Example 1: Short Suffix Repeat (55:13)
 
-**Verse:** 55:13, 4 words. Reciter says w0-w3, then repeats w2-w3.
+**Verse:** 55:13, 4 words. Speaker says w0-w3, then repeats w2-w3.
 
 #### Word-Level Phoneme Data
 
@@ -347,7 +347,7 @@ insertion that shifts positions slightly.
 
 ### Example 2: Middle Restart (36:40, w0-w6)
 
-**Verse:** 36:40, words 0-6. Reciter says w0-w6, then restarts from w3.
+**Verse:** 36:40, words 0-6. Speaker says w0-w6, then restarts from w3.
 
 #### Word-Level Phoneme Data
 
@@ -373,7 +373,7 @@ Total P (no noise):              58 phones
 
 **True breakpoint:** P-position 36 (end of pass 1).
 
-The repeat starts at w3 (`l a h a:`), not at the end. This is a **middle restart** -- the reciter
+The repeat starts at w3 (`l a h a:`), not at the end. This is a **middle restart** -- the speaker
 goes back to the middle of the verse, not the last few words.
 
 #### Simulated ASR Output (P = 60 phones)
@@ -527,7 +527,7 @@ inflating |P| slightly beyond the true pass1 + pass2 length.
 
 ### Example 3: Multi-Pass k=3 (36:40, w0-w10)
 
-**Verse:** 36:40, words 0-10. Reciter makes TWO restarts: after w6 (back to w4), and the second pass
+**Verse:** 36:40, words 0-10. Speaker makes TWO restarts: after w6 (back to w4), and the second pass
 runs w4-w8, then after w8 back to w7 for the final pass w7-w10.
 
 #### Word-Level Phoneme Data
@@ -753,7 +753,7 @@ R flat: q aˤ: l a | l a q aˤ d Q | ðˤ aˤ l a m a k a | ...
         These 2 phonemes ("l a") appear at both the end of w0 and start of w1
 ```
 
-If the reciter repeats from w1 onward, the breakpoint falls at P-position 4 (after w0). But the
+If the speaker repeats from w1 onward, the breakpoint falls at P-position 4 (after w0). But the
 first phonemes of the repeat (`l a q aˤ...`) overlap with the last phonemes of w0 (`l a`). This
 means the breakpoint region contains `...l a l a q aˤ...` which could be parsed as:
 
@@ -762,7 +762,7 @@ means the breakpoint region contains `...l a l a q aˤ...` which could be parsed
 
 #### Ground Truth Structure
 
-Reciter says w0-w5, then repeats from w1:
+Speaker says w0-w5, then repeats from w1:
 
 ```
 Pass 1: w0 w1 w2 w3 w4 w5         (39 phones)
@@ -893,7 +893,7 @@ costs. But for breakpoint estimation, it is manageable.
 
 ### Example 5: Sub-Word Repeat Overlap (1:3)
 
-**Verse:** 1:3, 2 words. The reciter stumbles and repeats just the last 3 phonemes of w0 before
+**Verse:** 1:3, 2 words. The speaker stumbles and repeats just the last 3 phonemes of w0 before
 continuing to w1. This tests the resolution limits of each algorithm.
 
 #### Word-Level Phoneme Data
@@ -910,7 +910,7 @@ shared phoneme pattern.
 
 #### Ground Truth Structure
 
-The reciter says all of w0, stutters on the last 3 phonemes (`a: n i`), then continues with w1:
+The speaker says all of w0, stutters on the last 3 phonemes (`a: n i`), then continues with w1:
 
 ```
 Pass 1: w0 (full)                     (9 phones)

@@ -2,11 +2,11 @@
 	import { onMount } from 'svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
-		loadHafsReciters,
-		buildReciterListForAi,
-		resolveAiReciterOption,
-		getReciterOptionKey
-	} from './reciterLoader';
+		loadHafsSpeakers,
+		buildSpeakerListForAi,
+		resolveAiSpeakerOption,
+		getSpeakerOptionKey
+	} from './speakerLoader';
 	import { generateAiPlan } from './aiPlanGenerator';
 	import { Quran } from '$lib/classes/Quran';
 	import toast from 'svelte-5-french-toast';
@@ -21,9 +21,9 @@
 
 	const aiv = globalState.aiVideo;
 
-	// ── Chargement unique des recitateurs au mount ──
+	// ── Chargement unique des intervenants au mount ──
 	onMount(() => {
-		loadHafsReciters();
+		loadHafsSpeakers();
 	});
 
 	/**
@@ -52,8 +52,8 @@
 			return;
 		}
 
-		if (!aiv.ai.letAiChoose && !aiv.audio.useLocal && aiv.audio.reciterName.trim() === '') {
-			toast.error(get(LL).aiVideo.pleaseSelectReciter());
+		if (!aiv.ai.letAiChoose && !aiv.audio.useLocal && aiv.audio.speakerName.trim() === '') {
+			toast.error(get(LL).aiVideo.pleaseSelectSpeaker());
 			return;
 		}
 
@@ -65,8 +65,8 @@
 		aiv.ai.isGeneratingPlan = true;
 
 		try {
-			const reciterList = buildReciterListForAi();
-			const plan = await generateAiPlan(reciterList);
+			const speakerList = buildSpeakerListForAi();
+			const plan = await generateAiPlan(speakerList);
 
 			// Remplit l'etat de review avec le plan genere
 			aiv.review.title = plan.title;
@@ -76,20 +76,20 @@
 					: aiv.video.sourceMode === 'none'
 						? ''
 						: plan.videoPrompt;
-			aiv.review.reciterName = plan.reciter;
+			aiv.review.speakerName = plan.speaker;
 			aiv.review.verseRange.surah = plan.surah;
 			aiv.review.verseRange.startVerse = plan.ayahStart;
 			aiv.review.verseRange.endVerse = plan.ayahEnd;
 
-			// Resout le recitateur choisi par l'IA vers une ReciterOption reelle
-			if (aiv.ai.letAiChoose && plan.reciterId) {
-				const resolved = resolveAiReciterOption(plan.reciterId);
+			// Resout le intervenant choisi par l'IA vers une SpeakerOption reelle
+			if (aiv.ai.letAiChoose && plan.speakerId) {
+				const resolved = resolveAiSpeakerOption(plan.speakerId);
 				if (resolved) {
-					aiv.audio.reciter = resolved;
-					aiv.audio.reciterName = resolved.reciterName;
-					aiv.review.reciterName = resolved.reciterName;
+					aiv.audio.speaker = resolved;
+					aiv.audio.speakerName = resolved.speakerName;
+					aiv.review.speakerName = resolved.speakerName;
 				} else {
-					toast.error(get(LL).aiVideo.aiSelectedReciterError());
+					toast.error(get(LL).aiVideo.aiSelectedSpeakerError());
 				}
 			}
 

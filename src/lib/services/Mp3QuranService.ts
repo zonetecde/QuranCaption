@@ -1,4 +1,4 @@
-export interface Mp3QuranReciter {
+export interface Mp3QuranSpeaker {
 	id: number;
 	name: string;
 	letter: string;
@@ -14,7 +14,7 @@ export interface Mp3QuranMoshaf {
 	surah_list: string;
 }
 
-export interface TimingReciter {
+export interface TimingSpeaker {
 	id: number;
 	name: string;
 	rewaya: string;
@@ -33,7 +33,7 @@ export interface VerseTiming {
 	page: string;
 }
 
-export const FULL_HAFS_MP3QURAN_RECITER_IDS = [
+export const FULL_HAFS_MP3QURAN_SPEAKER_IDS = [
 	1, 3, 4, 5, 6, 8, 9, 10, 12, 13, 17, 18, 20, 21, 22, 24, 25, 30, 31, 32, 33, 36, 38, 39, 40, 42,
 	43, 44, 46, 47, 48, 49, 50, 51, 54, 55, 56, 58, 59, 60, 61, 62, 63, 64, 66, 67, 69, 70, 71, 72,
 	74, 76, 77, 78, 79, 81, 86, 87, 88, 89, 92, 93, 96, 97, 98, 102, 106, 107, 108, 109, 110, 111,
@@ -44,7 +44,7 @@ export const FULL_HAFS_MP3QURAN_RECITER_IDS = [
 	21193, 21196, 21197
 ];
 
-export const FULL_HAFS_MP3QURAN_RECITER_ID_SET = new Set(FULL_HAFS_MP3QURAN_RECITER_IDS);
+export const FULL_HAFS_MP3QURAN_SPEAKER_ID_SET = new Set(FULL_HAFS_MP3QURAN_SPEAKER_IDS);
 
 /**
  * Indique si un moshaf MP3Quran est Hafs A'n Assem et contient les 114 sourates.
@@ -62,50 +62,50 @@ export function isFullHafsMoshaf(moshaf: Mp3QuranMoshaf): boolean {
 }
 
 /**
- * Indique si un recitateur MP3Quran fait partie des recitateurs Hafs complets autorises.
- * @param {number} reciterId Identifiant MP3Quran du recitateur.
- * @returns {boolean} True si le recitateur est autorise.
+ * Indique si un intervenant MP3Quran fait partie des intervenants Hafs complets autorises.
+ * @param {number} speakerId Identifiant MP3Quran de l’intervenant.
+ * @returns {boolean} True si le intervenant est autorise.
  */
-export function isFullHafsReciterId(reciterId: number): boolean {
-	return FULL_HAFS_MP3QURAN_RECITER_ID_SET.has(reciterId);
+export function isFullHafsSpeakerId(speakerId: number): boolean {
+	return FULL_HAFS_MP3QURAN_SPEAKER_ID_SET.has(speakerId);
 }
 
 export class Mp3QuranService {
 	private static readonly BASE_URL = 'https://mp3quran.net/api/v3';
 
 	/**
-	 * Fetches the list of all reciters from the main API.
+	 * Fetches the list of all speakers from the main API.
 	 */
-	static async getReciters(language: string = 'eng'): Promise<Mp3QuranReciter[]> {
+	static async getSpeakers(language: string = 'eng'): Promise<Mp3QuranSpeaker[]> {
 		try {
 			const response = await fetch(`${this.BASE_URL}/reciters?language=${language}`);
-			if (!response.ok) throw new Error('Failed to fetch reciters');
-			const data = (await response.json()) as { reciters: Mp3QuranReciter[] };
+			if (!response.ok) throw new Error('Failed to fetch speakers');
+			const data = (await response.json()) as { reciters: Mp3QuranSpeaker[] };
 			return data.reciters || [];
 		} catch (error) {
-			console.error('Mp3QuranService.getReciters error:', error);
+			console.error('Mp3QuranService.getSpeakers error:', error);
 			return [];
 		}
 	}
 
 	/**
-	 * Fetches the list of reciters that support Ayat Timing.
+	 * Fetches the list of speakers that support Ayat Timing.
 	 */
-	static async getTimingReciters(): Promise<TimingReciter[]> {
+	static async getTimingSpeakers(): Promise<TimingSpeaker[]> {
 		try {
 			const response = await fetch(`${this.BASE_URL}/ayat_timing/reads`);
-			if (!response.ok) throw new Error('Failed to fetch timing reciters');
-			const data = (await response.json()) as TimingReciter[];
+			if (!response.ok) throw new Error('Failed to fetch timing speakers');
+			const data = (await response.json()) as TimingSpeaker[];
 			return data || [];
 		} catch (error) {
-			console.error('Mp3QuranService.getTimingReciters error:', error);
+			console.error('Mp3QuranService.getTimingSpeakers error:', error);
 			return [];
 		}
 	}
 
 	/**
-	 * Fetches the timing data for a specific surah and reciter (readId).
-	 * @param readId The reciter ID from the timing API (usually matches the main API ID)
+	 * Fetches the timing data for a specific surah and speaker (readId).
+	 * @param readId The speaker ID from the timing API (usually matches the main API ID)
 	 * @param surahId The Surah ID (1-114)
 	 */
 	static async getSurahTiming(readId: number, surahId: number): Promise<VerseTiming[]> {

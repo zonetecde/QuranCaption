@@ -17,18 +17,18 @@ import { exists, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
  *    en cache instantanément, puis revalide en arrière-plan si elle est périmée).
  */
 
-/** Détails du récitateur, identiques à ceux affichés dans l'UI de l'aligner. */
-export type QuaReciter = {
-	reciter_id: string;
+/** Détails de l’intervenant, identiques à ceux affichés dans l'UI de l'aligner. */
+export type QuaSpeaker = {
+	speaker_id: string;
 	name_en: string;
 	name_ar: string;
 };
 
-/** Une récitation disponible (récitateur + spécificités) et ses chapitres alignés. */
+/** Une récitation disponible (intervenant + spécificités) et ses chapitres alignés. */
 export type QuaRecitation = {
 	slug: string;
 	label: string;
-	reciter: QuaReciter;
+	speaker: QuaSpeaker;
 	riwayah: string;
 	style: string;
 	channel: string;
@@ -36,8 +36,27 @@ export type QuaRecitation = {
 	chapters: number[];
 };
 
+/** Format imposé par l'API QUA et les anciens caches. */
+type QuaWireRecitation = Omit<QuaRecitation, 'speaker'> & {
+	reciter: Omit<QuaSpeaker, 'speaker_id'> & { reciter_id: string };
+};
+
+/**
+ * Convertit une entrée fournisseur ou un ancien cache vers le vocabulaire métier Minbar.
+ * @param {QuaRecitation | QuaWireRecitation} recitation Entrée reçue.
+ * @returns {QuaRecitation} Récitation avec un intervenant normalisé.
+ */
+export function normalizeQuaSpeaker(recitation: QuaRecitation | QuaWireRecitation): QuaRecitation {
+	if ('speaker' in recitation) return recitation;
+	const {
+		reciter: { reciter_id: speaker_id, ...speaker },
+		...data
+	} = recitation;
+	return { ...data, speaker: { ...speaker, speaker_id } };
+}
+
 type QuaRecitationsResponse = {
-	recitations?: QuaRecitation[];
+	recitations?: (QuaRecitation | QuaWireRecitation)[];
 	error?: string;
 };
 
@@ -104,12 +123,12 @@ export class QuranicUniversalAudioService {
 				throw new Error(response.error);
 			}
 			const recitations = response?.recitations ?? [];
-			return [...recitations].sort((a, b) => a.label.localeCompare(b.label));
+			return recitations.map(normalizeQuaSpeaker).sort((a, b) => a.label.localeCompare(b.label));
 		});
 	}
 
 	/**
-	 * Liste les récitations audio-only : le catalogue audio complet (récitateurs
+	 * Liste les récitations audio-only : le catalogue audio complet (intervenants
 	 * non publiés, depuis de nombreux serveurs) — mutuellement exclusif avec
 	 * {@link getRecitations}. Ces récitations n'offrent que l'audio (pas de
 	 * segments révisés).
@@ -123,7 +142,7 @@ export class QuranicUniversalAudioService {
 				throw new Error(response.error);
 			}
 			const recitations = response?.recitations ?? [];
-			return [...recitations].sort((a, b) => a.label.localeCompare(b.label));
+			return recitations.map(normalizeQuaSpeaker).sort((a, b) => a.label.localeCompare(b.label));
 		});
 	}
 
@@ -320,7 +339,7 @@ export class QuranicUniversalAudioService {
 			) {
 				this.memoryCache[kind] = {
 					fetchedAt: forceStale ? 0 : entry.fetchedAt,
-					recitations: entry.recitations
+					recitations: entry.recitations.map(normalizeQuaSpeaker)
 				};
 			}
 		}

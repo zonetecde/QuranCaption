@@ -20,9 +20,9 @@ is then anchored to whatever range step 1 chose. If step 1 was wrong, step 2 tes
 decompositions.
 
 **The enumeration ceiling.** Decomposition enumeration is viable for k=2 and k=3. Dataset analysis
-of the two aligned reciters shows:
+of the two aligned speakers shows:
 
-| Reciter           | Verses with reps | Max reps/verse | k=4+ verses |
+| Speaker           | Verses with reps | Max reps/verse | k=4+ verses |
 | ----------------- | ---------------- | -------------- | ----------- |
 | ali_jaber         | 133 (2.1%)       | 2              | 0           |
 | minshawy_murattal | 472 (7.6%)       | **5**          | 9           |
@@ -98,7 +98,7 @@ DP never wraps.
 | w2  | رَبِّكُمَا   | `rˤ aˤ bb i k u m aː` | 8      |
 | w3  | تُكَذِّبَانِ | `t u k a ðð i b aː n` | 9      |
 
-**Reciter**: reads w0-w3 once, pauses, repeats w2-w3, continues. **P** ≈ 50 phones (31 + 17
+**Speaker**: reads w0-w3 once, pauses, repeats w2-w3, continues. **P** ≈ 50 phones (31 + 17
 repeated + 2 noise).
 
 ### Standard DP (v1 result)
@@ -1014,7 +1014,7 @@ In v1, the prior penalizes being far from the `expected_word` at the **start** o
 this still applies to the overall start (first word of the first pass). However, the prior does not
 apply to the wrap-back positions — those are determined by the phoneme evidence, not the sequential
 position expectation. This is the correct behavior: we expect the match to start near
-`expected_word`, but where the reciter wraps to is entirely data-driven.
+`expected_word`, but where the speaker wraps to is entirely data-driven.
 
 ### `align_config.py` overlay
 
@@ -1059,11 +1059,11 @@ overlap cases (46 occurrences) are the hardest — they sit at the detection bou
 
 ### 2. Textual repetitions (Surah 55 refrain)
 
-Surah 55 repeats `فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ` 31 times. If the reciter reads a
+Surah 55 repeats `فَبِأَىِّ ءَالَآءِ رَبِّكُمَا تُكَذِّبَانِ` 31 times. If the speaker reads a
 segment containing one verse followed by the next, both P and R are long and `|P| ≈ |R|`. The wrap
 should not fire.
 
-However, if the reciter says verse N's refrain AND verse N+1's content in one segment, the R window
+However, if the speaker says verse N's refrain AND verse N+1's content in one segment, the R window
 may include adjacent verses. The DP might find a wrap from one refrain back to the previous refrain
 as slightly cheaper than a no-wrap path.
 
@@ -1134,7 +1134,7 @@ match.
 
 ### 6. Wrap-to-self (degenerate wrap)
 
-A wrap from j_end back to j_start where `j_start == 0` (start of R) is valid — it means the reciter
+A wrap from j_end back to j_start where `j_start == 0` (start of R) is valid — it means the speaker
 repeated the entire verse from the beginning. This is a legitimate case and the DP handles it
 correctly.
 
@@ -1142,7 +1142,7 @@ correctly.
 
 **Note — deferred to a later iteration.** When `alignment_pipeline.py` prepends Basmala phonemes
 (sentinel `word_index = -1`), they occupy the first positions of R. A wrap targeting those positions
-would be semantically wrong (the reciter isn't repeating the Basmala mid-verse). In practice this is
+would be semantically wrong (the speaker isn't repeating the Basmala mid-verse). In practice this is
 a narrow edge case: the Basmala sentinel causes all its phonemes to share one word-index value
 (`-1`), so no internal word boundaries exist within the prefix — the only vulnerable wrap target is
 position 0 (start of Basmala). Since wrap targets must satisfy `j_start < j_end` and the DP penalty
@@ -1152,7 +1152,7 @@ positives are unlikely. If observed, add `basmala_prefix_len` filtering to restr
 
 ### 8. Backward wraps (resolved — guarded in best-match selection)
 
-A wrap can target any `j_start < j_end`, including positions **before** the k=0 start. If a reciter
+A wrap can target any `j_start < j_end`, including positions **before** the k=0 start. If a speaker
 reads words 5–7 then backs up to words 2–4, the k=0 path starts at word 5 and the wrap goes to
 word 2. The final `best_j` could land before `best_j_start`, producing
 `ref_len = best_j - best_j_start < 0`. This inverts `start_word_idx > end_word_idx`, which would
@@ -1278,13 +1278,13 @@ production timeout on HF Space (`ZEROGPU_MAX_DURATION = 120s`).
 The HF dataset
 [`hetchyy/quranic-universal-ayahs`](https://huggingface.co/datasets/hetchyy/quranic-universal-ayahs)
 (config `hafs_an_asim`) contains verse-level audio clips with segment-level alignment metadata for
-two reciters. The `segments` column encodes reading order — when consecutive segments have
-overlapping word ranges (`curr_from <= prev_to`, inclusive), the reciter repeated words. This gives
+two speakers. The `segments` column encodes reading order — when consecutive segments have
+overlapping word ranges (`curr_from <= prev_to`, inclusive), the speaker repeated words. This gives
 us ground-truth decompositions to test against.
 
 #### Repetition prevalence
 
-| Reciter           | Total verses | Verses with reps | %    | Max reps/verse |
+| Speaker           | Total verses | Verses with reps | %    | Max reps/verse |
 | ----------------- | ------------ | ---------------- | ---- | -------------- |
 | Ali Jaber         | 6,235        | 133              | 2.1% | 2              |
 | Minshawy Murattal | 6,236        | 472              | 7.6% | 5              |
@@ -1325,7 +1325,7 @@ multiple segments.
 | 8+            | 16        | 34       |
 
 Peak at 2–5 words. The 1-word overlaps are borderline. Most overlaps are <50% of the preceding
-segment width (reciter repeats the tail portion before continuing).
+segment width (speaker repeats the tail portion before continuing).
 
 ### ASR phoneme test set
 
@@ -1366,7 +1366,7 @@ Large (`hetchyy/r7`) models on the verse audio.
 Each verse entry provides:
 
 - **`segments`** — ground-truth word ranges with timing
-  (`[word_from, word_to, time_from_ms, time_to_ms]`). Overlapping consecutive segments = reciter
+  (`[word_from, word_to, time_from_ms, time_to_ms]`). Overlapping consecutive segments = speaker
   repetition.
 - **`repetitions`** — pre-computed overlap metadata: which segment index, how many words overlap,
   the overlapping word range.
@@ -1394,8 +1394,8 @@ primary success metric.
 - **Recall** = true positives / (true positives + false negatives)
 - **F1** = harmonic mean
 
-Reported per-reciter and aggregate. False positives are tested on a sample of non-repetition verses
-(same reciters).
+Reported per-speaker and aggregate. False positives are tested on a sample of non-repetition verses
+(same speakers).
 
 #### 2. Wrap count accuracy
 
@@ -1417,7 +1417,7 @@ accounted for.
 
 #### 4. False positive rate
 
-Run on a random sample of non-repetition verses from the same reciters. Measure what % incorrectly
+Run on a random sample of non-repetition verses from the same speakers. Measure what % incorrectly
 get `n_wraps > 0`. Critical for validating that `WRAP_PENALTY` is set correctly.
 
 #### 5. Word range accuracy

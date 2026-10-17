@@ -9,8 +9,8 @@ const TUTORIAL_AUDIO_FILENAME = 'Yasser Al-Dosari - 1. Al-Fatihah.mp3';
 const YASSER_AL_DOSARI_ID = 92;
 
 async function downloadTutorialAudio(): Promise<string> {
-	const reciters = await Mp3QuranService.getReciters();
-	const yasser = reciters.find((r) => r.id === YASSER_AL_DOSARI_ID);
+	const speakers = await Mp3QuranService.getSpeakers();
+	const yasser = speakers.find((r) => r.id === YASSER_AL_DOSARI_ID);
 	if (!yasser || yasser.moshaf.length === 0) {
 		throw new Error('Yasser Al-Dosari (ID 92) not found on mp3quran');
 	}

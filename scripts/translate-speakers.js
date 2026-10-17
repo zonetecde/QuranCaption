@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Dictionnaire de traductions des noms de récitateurs
+// Dictionnaire de traductions des noms d’intervenants
 const translations = {
 	'Abd-Al-Raheem Alqawsh': 'عبد الرحيم القوش',
 	'Abdallah Al-Ghamdi': 'عبد الله الغامدي',
@@ -363,20 +363,20 @@ const translations = {
 	'Zayed Alatteah': 'زايد العطية'
 };
 
-// Lire le fichier /reciters/reciters.json
-const reciterPath = path.join(__dirname, '..', 'static', '/reciters/reciters.json');
-const reciters = JSON.parse(fs.readFileSync(reciterPath, 'utf8'));
+// Lire le fichier /speakers/speakers.json
+const speakerPath = path.join(__dirname, '..', 'static', '/speakers/speakers.json');
+const speakers = JSON.parse(fs.readFileSync(speakerPath, 'utf8'));
 
 // Mettre à jour les traductions
-reciters.forEach((reciter) => {
-	if (translations[reciter.latin]) {
-		reciter.arabic = translations[reciter.latin];
-		console.log(`Traduction ajoutée: ${reciter.latin} -> ${reciter.arabic}`);
+speakers.forEach((speaker) => {
+	if (translations[speaker.latin]) {
+		speaker.arabic = translations[speaker.latin];
+		console.log(`Traduction ajoutée: ${speaker.latin} -> ${speaker.arabic}`);
 	} else {
-		console.warn(`Traduction manquante pour: ${reciter.latin}`);
+		console.warn(`Traduction manquante pour: ${speaker.latin}`);
 	}
 });
 
 // Écrire le fichier mis à jour
-fs.writeFileSync(reciterPath, JSON.stringify(reciters, null, '\t'), 'utf8');
-console.log('Fichier /reciters/reciters.json mis à jour avec les traductions arabes!');
+fs.writeFileSync(speakerPath, JSON.stringify(speakers, null, '\t'), 'utf8');
+console.log('Fichier /speakers/speakers.json mis à jour avec les traductions arabes!');

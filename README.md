@@ -74,7 +74,7 @@ Every visual aspect is adjustable:
 - Font family, weight, size, spacing, alignment
 - Text colors, outline, shadow, background overlays
 - Subtitle placement and margins
-- Creator branding, reciter name (calligraphy), surah name, verse numbers
+- Creator branding, speaker name (calligraphy), surah name, verse numbers
 - Custom images and video overlays
 
 ### 📤 Export-Ready

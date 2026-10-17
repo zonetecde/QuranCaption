@@ -2,13 +2,13 @@
 	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
 	import SearchableSelect from '$lib/components/misc/SearchableSelect.svelte';
-	import { getReciterOptionKey, isSurahAvailableForReciter } from '../reciterLoader';
+	import { getSpeakerOptionKey, isSurahAvailableForSpeaker } from '../speakerLoader';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import LL from '$lib/i18n/i18n-svelte';
 
 	const aiv = globalState.aiVideo;
 
-	let selectedReciterKey = $state(aiv.audio.reciter ? getReciterOptionKey(aiv.audio.reciter) : '');
+	let selectedSpeakerKey = $state(aiv.audio.speaker ? getSpeakerOptionKey(aiv.audio.speaker) : '');
 	let surahKey = $state(aiv.selectedVerseRange.surah.toString());
 
 	let maxAyah = $derived(Quran.getVerseCount(aiv.selectedVerseRange.surah) || 1);
@@ -23,14 +23,14 @@
 	});
 
 	let isSurahAvailable = $derived.by(() => {
-		if (!aiv.audio.reciter) return true;
-		return isSurahAvailableForReciter(aiv.audio.reciter, aiv.selectedVerseRange.surah);
+		if (!aiv.audio.speaker) return true;
+		return isSurahAvailableForSpeaker(aiv.audio.speaker, aiv.selectedVerseRange.surah);
 	});
 
-	let reciterSelectOptions = $derived([
+	let speakerSelectOptions = $derived([
 		{ value: '', label: 'Let AI decide' },
-		...aiv.reciterOptions.map((option) => ({
-			value: getReciterOptionKey(option),
+		...aiv.speakerOptions.map((option) => ({
+			value: getSpeakerOptionKey(option),
 			label: option.label
 		}))
 	]);
@@ -43,7 +43,7 @@
 	);
 
 	$effect(() => {
-		selectedReciterKey = aiv.audio.reciter ? getReciterOptionKey(aiv.audio.reciter) : '';
+		selectedSpeakerKey = aiv.audio.speaker ? getSpeakerOptionKey(aiv.audio.speaker) : '';
 	});
 
 	$effect(() => {
@@ -51,13 +51,13 @@
 	});
 
 	/**
-	 * Applique le recitateur choisi dans le select.
+	 * Applique le intervenant choisi dans le select.
 	 * @returns {void}
 	 */
-	function handleReciterChange() {
-		const option = aiv.reciterOptions.find((o) => getReciterOptionKey(o) === selectedReciterKey);
-		aiv.audio.reciter = option ?? null;
-		aiv.audio.reciterName = option?.reciterName ?? '';
+	function handleSpeakerChange() {
+		const option = aiv.speakerOptions.find((o) => getSpeakerOptionKey(o) === selectedSpeakerKey);
+		aiv.audio.speaker = option ?? null;
+		aiv.audio.speakerName = option?.speakerName ?? '';
 	}
 
 	/**
@@ -104,7 +104,7 @@
 			onclick={() => (aiv.audio.useLocal = false)}
 		>
 			<span class="material-icons text-base align-middle mr-1">cloud</span>
-			{$LL.aiVideo.mp3QuranReciter()}
+			{$LL.aiVideo.mp3QuranSpeaker()}
 		</button>
 		<button
 			type="button"
@@ -144,27 +144,27 @@
 			</div>
 		</div>
 	{:else}
-		<!-- Mp3Quran reciter selector -->
+		<!-- Mp3Quran speaker selector -->
 		<div class="space-y-2">
 			<span class="flex items-center gap-2 text-sm font-semibold text-primary">
 				<span class="material-icons text-accent-primary text-base">record_voice_over</span>
-				{$LL.aiVideo.selectReciterLabel()}
+				{$LL.aiVideo.selectSpeakerLabel()}
 			</span>
 
-			{#if aiv.isLoadingReciters}
+			{#if aiv.isLoadingSpeakers}
 				<div class="flex items-center gap-2 text-sm text-thirdly py-3">
 					<span class="material-icons animate-spin text-base">autorenew</span>
-					{$LL.aiVideo.loadingReciters()}
+					{$LL.aiVideo.loadingSpeakers()}
 				</div>
 			{:else}
 				<SearchableSelect
-					id="reciter-select"
-					bind:value={selectedReciterKey}
-					options={reciterSelectOptions}
+					id="speaker-select"
+					bind:value={selectedSpeakerKey}
+					options={speakerSelectOptions}
 					placeholder={$LL.aiVideo.letAiDecide()}
-					searchPlaceholder={$LL.aiVideo.searchRecitersPlaceholder()}
-					emptyMessage={$LL.aiVideo.noRecitersFound()}
-					onChange={handleReciterChange}
+					searchPlaceholder={$LL.aiVideo.searchSpeakersPlaceholder()}
+					emptyMessage={$LL.aiVideo.noSpeakersFound()}
+					onChange={handleSpeakerChange}
 				/>
 			{/if}
 		</div>
@@ -188,7 +188,7 @@
 				onChange={handleSurahChange}
 			/>
 
-			{#if aiv.audio.reciter && !isSurahAvailable}
+			{#if aiv.audio.speaker && !isSurahAvailable}
 				<p class="text-xs text-red-400 flex items-center gap-1">
 					<span class="material-icons text-xs">warning</span>
 					{$LL.aiVideo.surahNotAvailable()}

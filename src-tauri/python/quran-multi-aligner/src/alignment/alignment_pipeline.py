@@ -366,7 +366,7 @@ def run_phoneme_matching(
                     # Fall through to existing if/else below
 
         # Basmala-fused retry: if this is the first segment after a transition
-        # and Basmala wasn't detected, the reciter may have merged Basmala with
+        # and Basmala wasn't detected, the speaker may have merged Basmala with
         # the first verse. Always try prepending Basmala phonemes to R and pick
         # the better result (even if the plain alignment already succeeded).
         if is_first_after_transition:

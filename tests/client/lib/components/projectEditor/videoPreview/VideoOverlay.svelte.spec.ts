@@ -17,7 +17,7 @@ import { prefetchTranscriptReferences } from '$lib/services/TranscriptReferenceS
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import { getRenderedLineCount } from '$lib/components/projectEditor/videoPreview/helpers/reactiveFontSize';
 
-vi.mock('$lib/components/projectEditor/tabs/styleEditor/ReciterName.svelte', async () => ({
+vi.mock('$lib/components/projectEditor/tabs/styleEditor/SpeakerName.svelte', async () => ({
 	default: (await import('../../../../stubs/EmptyComponent.svelte')).default
 }));
 
@@ -378,7 +378,7 @@ function setupVideoOverlayFixture(
 			videoStyle
 		},
 		detail: {
-			reciter: '',
+			speaker: '',
 			updatePercentageTranslated: vi.fn()
 		}
 	} as never;

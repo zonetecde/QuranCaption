@@ -55,8 +55,8 @@ class GlobalState {
 		audio: {
 			useLocal: false,
 			localPath: '',
-			reciterName: '',
-			reciter: null
+			speakerName: '',
+			speaker: null
 		},
 		selectedVerseRange: {
 			surah: 1,
@@ -67,7 +67,7 @@ class GlobalState {
 		review: {
 			title: '',
 			videoPrompt: '',
-			reciterName: '',
+			speakerName: '',
 			verseRange: {
 				surah: 1,
 				startVerse: 1,
@@ -76,8 +76,8 @@ class GlobalState {
 		},
 		isCreatingProject: false,
 		generationStatus: '',
-		reciterOptions: [],
-		isLoadingReciters: true
+		speakerOptions: [],
+		isLoadingSpeakers: true
 	});
 
 	// Etat complet de la librairie de presets communautaires

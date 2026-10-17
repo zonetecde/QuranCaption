@@ -159,7 +159,7 @@ The `scripts/` directory contains various Node.js scripts for data maintenance a
 
 - **Data Downloaders**: Scripts to fetch translations (German, Spanish, Wolof) and Surah SVGs.
 - **SVG Processing**: Tools to add padding, crop, or replace SVG images used for Quranic text.
-- **Reciter Management**: Scripts to sort, translate, and transform reciter metadata.
+- **Speaker Management**: Scripts to sort, translate, and transform speaker metadata.
 - **JSON Optimization**: Tools like `simplify-qpc-json.js` to minimize the size of Quran data files.
 
 To run these scripts, use `node scripts/<script-name>.js`.

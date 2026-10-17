@@ -7,7 +7,7 @@ suivre pour ajouter ou modifier un style sans casser l’éditeur, les anciens p
 
 - `static/styles/styles.json` contient les styles des sous-titres arabes et des traductions.
 - `static/styles/globalStyles.json` contient les styles globaux de la vidéo et les éléments affichés
-  à l’écran : overlay, nom de sourate, récitateur, conteneur d’ayah et numéro de verset.
+  à l’écran : overlay, nom de sourate, intervenant, conteneur d’ayah et numéro de verset.
 - `static/styles/customText.json`, `customImage.json` et `compositeStyles.json` décrivent les styles
   des éléments personnalisés et composites. Ils n’utilisent pas encore la navigation par panneaux
   documentée ci-dessous.
@@ -272,6 +272,13 @@ Une migration dans `src/lib/services/MigrationService.ts` est nécessaire pour :
 - convertir le type ou la forme d’une valeur ;
 - transformer une ancienne valeur dont le sens a changé ;
 - nettoyer un ancien champ persistant.
+
+Les styles du nom d'intervenant utilisent les identifiants `speaker-*` et `show-speaker-name`, la
+catégorie `speaker-name` et le contrôle `speaker`. `MigrationService.migrateSpeakerData()` est
+enregistrée dans le registre de désérialisation pour convertir les anciens identifiants `reciter-*`,
+les réglages locaux, les animations, les presets sauvegardés et la police historique. Les valeurs et
+les textes libres sont conservés ; une clé déjà au format `speaker` prend priorité sur son alias.
+Les composants, le catalogue et la police embarquée utilisent également le nom `Speaker`.
 
 Les métadonnées `ui` ne sont pas enregistrées dans les projets. Elles sont non énumérables et sont
 réhydratées depuis les JSON par `MigrationService.HydrateStyleEditorUiMetadata()` avant l’affichage

@@ -57,8 +57,11 @@ export class TranscriptCleanupSession {
 
 	/** @returns {number} Nombre de lots estimé pour le résultat courant. */
 	get cleanupBatchCount(): number {
-		return this.result
-			? estimateTranscriptCleanupBatchCount(this.result, this.settings.cleanupBatchWords)
+		const source =
+			this.project.projectEditorState.subtitlesEditor.aiTranscriptCleanup?.sourceResult ??
+			this.result;
+		return source
+			? estimateTranscriptCleanupBatchCount(source, this.settings.cleanupBatchWords)
 			: 0;
 	}
 
@@ -174,6 +177,7 @@ export class TranscriptCleanupSession {
 			this.speakerMap = pending.speakerMap;
 			this.appliedClipIds = pending.appliedClipIds;
 			this.settings.cleanupBatchWords = pending.batchWords;
+			this.settings.poemMode = pending.poemMode ?? false;
 			this.cleanupErrors = pending.errors;
 			this.cleanupMessage = get(LL).editor.transcriptCleanupPaused({
 				remaining: pending.totalBatches - pending.nextBatchIndex
@@ -220,7 +224,31 @@ export class TranscriptCleanupSession {
 				nextBatchIndex: 0,
 				totalBatches: this.cleanupBatchCount,
 				batchWords: this.settings.cleanupBatchWords,
+				poemMode: Boolean(this.settings.poemMode),
 				appliedClipIds: [...this.appliedClipIds]
+			};
+			this.setCheckpoint(task);
+		} else if (
+			task.batchWords !== this.settings.cleanupBatchWords ||
+			Boolean(task.poemMode) !== Boolean(this.settings.poemMode)
+		) {
+			const batchSizeChanged = task.batchWords !== this.settings.cleanupBatchWords;
+			task = {
+				...task,
+				batchWords: this.settings.cleanupBatchWords,
+				poemMode: Boolean(this.settings.poemMode),
+				// Les analyses et leurs indices dépendent des anciennes fenêtres de mots.
+				...(batchSizeChanged
+					? {
+							analyses: [],
+							errors: [],
+							nextBatchIndex: 0,
+							totalBatches: estimateTranscriptCleanupBatchCount(
+								task.sourceResult,
+								this.settings.cleanupBatchWords
+							)
+						}
+					: {})
 			};
 			this.setCheckpoint(task);
 		}
@@ -289,6 +317,7 @@ export class TranscriptCleanupSession {
 				maxWords: this.settings.maxWordsPerSegment,
 				maxChars: this.settings.maxCharsPerSegment,
 				maxGap: TRANSCRIPT_PREFERRED_GAP_SECONDS,
+				poemMode: activeTask.poemMode,
 				resume: {
 					analyses: activeTask.analyses,
 					errors: activeTask.errors,
@@ -347,12 +376,15 @@ export class TranscriptCleanupSession {
 					}
 					this.result = batchReport.result;
 					this.cleanupErrors = batchReport.errors;
-					const applied = this.apply(
-						batchReport.result,
-						activeTask.speakerMap,
-						false,
-						activeTask.appliedClipIds
-					);
+					// Les fins de vers sont connues après la dernière passe sémantique.
+					const applied = activeTask.poemMode
+						? { clipIds: activeTask.appliedClipIds }
+						: this.apply(
+								batchReport.result,
+								activeTask.speakerMap,
+								false,
+								activeTask.appliedClipIds
+							);
 					this.appliedClipIds = applied.clipIds;
 					activeTask = {
 						...activeTask,

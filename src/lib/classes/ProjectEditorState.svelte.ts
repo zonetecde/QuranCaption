@@ -23,6 +23,7 @@ export type AITranscriptCleanupState = {
 	nextBatchIndex: number;
 	totalBatches: number;
 	batchWords: number;
+	poemMode?: boolean;
 	appliedClipIds: number[];
 };
 

@@ -124,6 +124,7 @@ export type TranscriptProcessingSettings = {
 	maxChars: number;
 	maxGap: number;
 	preserveWordSilences?: boolean;
+	poemMode?: boolean;
 };
 
 export type TranscriptProcessingReport = {
@@ -416,7 +417,7 @@ function levenshteinDistance(left: string, right: string): number {
  * @param {string} right Second mot.
  * @returns {number} Score compris entre 0 et 1.
  */
-function wordSimilarity(left: string, right: string): number {
+export function wordSimilarity(left: string, right: string): number {
 	if (left === right) return 1;
 	if (!left || !right) return 0;
 	const maxLength = Math.max(left.length, right.length);
@@ -1237,9 +1238,11 @@ export function segmentProcessedTranscript(
 		if (
 			previous &&
 			(previous.speaker !== token.speaker ||
-				(settings.preserveWordSilences
-					? token.start > previous.end
-					: token.start - previous.end >= HARD_TRANSCRIPT_GAP_SECONDS))
+				(settings.poemMode
+					? previous.semanticBreakAfter === 'sentence'
+					: settings.preserveWordSilences
+						? token.start > previous.end
+						: token.start - previous.end >= HARD_TRANSCRIPT_GAP_SECONDS))
 		) {
 			blocks.push(current);
 			current = [];
@@ -1249,7 +1252,7 @@ export function segmentProcessedTranscript(
 	if (current.length > 0) blocks.push(current);
 
 	return blocks
-		.flatMap((block) => segmentContinuousBlock(block, settings))
+		.flatMap((block) => (settings.poemMode ? [block] : segmentContinuousBlock(block, settings)))
 		.map((segmentTokens) => {
 			const confidenceValues = segmentTokens
 				.map((token) => token.confidence)
@@ -1384,7 +1387,9 @@ export function finalizeTranscriptProcessing(
 	const prepared = prepareFinalTranscriptTokens(source, preparedTokens, corpus, analysis);
 	const annotated = applyTranscriptSemanticBoundaries(prepared.tokens, semanticBoundaries);
 	const segments =
-		source.segments.length > 0 && source.segments.every((segment) => segment.clipId !== undefined)
+		!settings.poemMode &&
+		source.segments.length > 0 &&
+		source.segments.every((segment) => segment.clipId !== undefined)
 			? restoreEditedTranscriptSegments(annotated, source)
 			: segmentProcessedTranscript(annotated, settings);
 	const quoteIds = new Set(annotated.map((token) => token.quoteId).filter((id) => id !== null));

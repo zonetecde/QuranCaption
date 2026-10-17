@@ -38,16 +38,18 @@
 	);
 	const runtime = new TranscriptionRuntimeSession(settings, session);
 	const diarizationEnabled = $derived(
-		settings.provider === 'local' &&
+		settings.provider !== 'groq' &&
 			((settings.minSpeakers ?? 1) > 1 || (settings.maxSpeakers ?? 1) > 1)
 	);
-	const steps = [
-		{ label: 'Setup', icon: 'download' },
-		{ label: 'Model & speakers', icon: 'tune' },
-		{ label: 'Transcribe', icon: 'graphic_eq' },
-		{ label: 'Name speakers', icon: 'groups' },
-		{ label: get(LL).editor.transcriptCleanupStep(), icon: 'auto_fix_high' }
-	];
+	const steps = $derived(
+		[
+			{ label: 'Setup', icon: 'download' },
+			{ label: 'Model & speakers', icon: 'tune' },
+			{ label: 'Transcribe', icon: 'graphic_eq' },
+			{ label: 'Name speakers', icon: 'groups' },
+			{ label: get(LL).editor.transcriptCleanupStep(), icon: 'auto_fix_high' }
+		].filter((_, index) => settings.provider !== 'alignment' || index < 4)
+	);
 
 	let currentStep = $state(0);
 	let previewingSpeakerId = $state<string | null>(null);
@@ -56,11 +58,16 @@
 	let newSpeakerInput: HTMLInputElement | null = $state(null);
 	let advancedSubtitleSettingsOpen = $state(false);
 	let groqApiKey = $state('');
+	let referenceText = $state('');
 	let groqApiKeyLoading = $state(true);
 	const setupReady = $derived(
 		settings.provider === 'groq'
 			? Boolean(groqApiKey.trim()) && !groqApiKeyLoading
-			: Boolean(runtime.runtimeStatus?.ready && (!diarizationEnabled || settings.hfToken.trim()))
+			: Boolean(
+					runtime.runtimeStatus?.ready &&
+						(!diarizationEnabled || settings.hfToken.trim()) &&
+						(settings.provider !== 'alignment' || referenceText.trim())
+				)
 	);
 
 	/**
@@ -137,14 +144,16 @@
 
 	/**
 	 * Sélectionne le fournisseur STT et prépare son écran de configuration.
-	 * @param {'groq' | 'local'} provider Fournisseur choisi.
+	 * @param {'groq' | 'alignment' | 'local'} provider Fournisseur choisi.
 	 * @returns {Promise<void>} Promesse résolue après la sauvegarde.
 	 */
-	async function selectTranscriptionProvider(provider: 'groq' | 'local'): Promise<void> {
+	async function selectTranscriptionProvider(
+		provider: 'groq' | 'alignment' | 'local'
+	): Promise<void> {
 		settings.provider = provider;
 		session.errorMessage = '';
 		await saveAITranscriptionSettings();
-		if (provider === 'local' && !runtime.runtimeStatus) await refreshRuntime();
+		if (provider !== 'groq' && !runtime.runtimeStatus) await refreshRuntime();
 	}
 
 	/**
@@ -173,7 +182,7 @@
 	/** @returns {Promise<void>} Lance la transcription puis affiche les intervenants détectés. */
 	async function startTranscription(): Promise<void> {
 		if (!setupReady || !audioAvailable) return;
-		if (await runtime.startTranscription(groqApiKey)) {
+		if (await runtime.startTranscription(groqApiKey, referenceText)) {
 			currentStep = 3;
 			toast.success(
 				get(LL).editor.transcriptCleanupCompleted({
@@ -329,7 +338,7 @@
 					(error) => (session.errorMessage = error instanceof Error ? error.message : String(error))
 				)
 				.finally(() => (groqApiKeyLoading = false));
-			if (settings.provider === 'local') void refreshRuntime();
+			if (settings.provider !== 'groq') void refreshRuntime();
 		}
 	});
 	onDestroy(() => {
@@ -350,7 +359,9 @@
 			<p class="text-xs text-secondary">
 				{settings.provider === 'groq'
 					? $LL.editor.aiTranscriptionGroqDescription()
-					: $LL.editor.aiTranscriptionLocalDescription()}
+					: settings.provider === 'alignment'
+						? $LL.editor.referenceAlignmentDescription()
+						: $LL.editor.aiTranscriptionLocalDescription()}
 			</p>
 		</div>
 		<button
@@ -389,12 +400,13 @@
 						<div>
 							<h3 class="text-lg font-bold text-primary">{$LL.editor.transcriptionEngine()}</h3>
 						</div>
-						<div class="grid gap-3 md:grid-cols-2">
+						<div class="grid gap-3 md:grid-cols-3">
 							<button
 								type="button"
 								aria-pressed={settings.provider === 'groq'}
 								class={`cursor-pointer rounded-xl border p-4 text-left transition ${settings.provider === 'groq' ? 'border-accent-primary bg-accent-primary/15' : 'border-color bg-primary hover:border-accent-primary/50'}`}
 								onclick={() => void selectTranscriptionProvider('groq')}
+								disabled={runtime.running || runtime.installing || session.cleanupRunning}
 							>
 								<div class="flex items-center justify-between gap-3">
 									<span class="font-semibold text-primary">{$LL.editor.groqCloud()}</span>
@@ -410,9 +422,22 @@
 							</button>
 							<button
 								type="button"
+								aria-pressed={settings.provider === 'alignment'}
+								class={`cursor-pointer rounded-xl border p-4 text-left transition ${settings.provider === 'alignment' ? 'border-accent-primary bg-accent-primary/15' : 'border-color bg-primary hover:border-accent-primary/50'}`}
+								onclick={() => void selectTranscriptionProvider('alignment')}
+								disabled={runtime.running || runtime.installing || session.cleanupRunning}
+							>
+								<span class="font-semibold text-primary">{$LL.editor.referenceAlignment()}</span>
+								<p class="mt-2 text-xs leading-relaxed text-secondary">
+									{$LL.editor.referenceAlignmentDescription()}
+								</p>
+							</button>
+							<button
+								type="button"
 								aria-pressed={settings.provider === 'local'}
 								class={`cursor-pointer rounded-xl border p-4 text-left transition ${settings.provider === 'local' ? 'border-accent-primary bg-accent-primary/15' : 'border-color bg-primary hover:border-accent-primary/50'}`}
 								onclick={() => void selectTranscriptionProvider('local')}
+								disabled={runtime.running || runtime.installing || session.cleanupRunning}
 							>
 								<span class="font-semibold text-primary">{$LL.editor.localWhisperX()}</span>
 								<p class="mt-2 text-xs leading-relaxed text-secondary">
@@ -420,6 +445,29 @@
 								</p>
 							</button>
 						</div>
+						{#if settings.provider === 'alignment'}
+							<label class="block space-y-2">
+								<span class="text-sm font-semibold text-primary"
+									>{$LL.editor.referenceTextLabel()}</span
+								>
+								<textarea
+									class="w-full rounded-lg border border-color bg-primary px-3 py-2.5 text-primary outline-none focus:border-[var(--accent-primary)]"
+									rows="8"
+									dir="auto"
+									bind:value={referenceText}
+									placeholder={$LL.editor.referenceTextPlaceholder()}
+									disabled={runtime.running}
+								></textarea>
+								<span class="block text-xs leading-relaxed text-secondary"
+									>{$LL.editor.referenceTextHelp()}</span
+								>
+								{#if !referenceText.trim()}
+									<span class="block text-xs text-yellow-300"
+										>{$LL.editor.referenceTextRequired()}</span
+									>
+								{/if}
+							</label>
+						{/if}
 						{#if settings.provider === 'groq'}
 							<div class="rounded-xl border border-color bg-primary p-5">
 								<h4 class="font-semibold text-primary">{$LL.editor.groqApiKeyTitle()}</h4>
@@ -772,7 +820,9 @@
 							<p class="mt-1 text-sm text-secondary">
 								{settings.provider === 'groq'
 									? $LL.editor.groqTranscriptionDescription()
-									: $LL.editor.aiTranscriptionLocalDescription()}
+									: settings.provider === 'alignment'
+										? $LL.editor.referenceAlignmentDescription()
+										: $LL.editor.aiTranscriptionLocalDescription()}
 							</p>
 						</div>
 						<div class="grid gap-3 sm:grid-cols-3">
@@ -821,7 +871,9 @@
 								class="btn-accent inline-flex cursor-pointer items-center gap-2 rounded-lg px-5 py-3 font-semibold disabled:opacity-50"
 								onclick={() => void startTranscription()}
 								disabled={!setupReady || !audioAvailable}
-								><span class="material-icons">auto_awesome</span>Start transcription</button
+								><span class="material-icons">auto_awesome</span>{settings.provider === 'alignment'
+									? $LL.editor.referenceAlignmentStart()
+									: $LL.editor.startAITranscription()}</button
 							>
 						{/if}
 					</section>
@@ -859,8 +911,12 @@
 							<div
 								class="rounded-lg border border-yellow-500/40 bg-yellow-500/10 p-3 text-xs leading-relaxed text-yellow-200"
 							>
-								Word-level alignment was unavailable, so these subtitles use segment timestamps
-								only. The transcription and speaker detection were still completed.
+								{#if settings.provider === 'alignment'}
+									{session.result.alignmentWarning}
+								{:else}
+									Word-level alignment was unavailable, so these subtitles use segment timestamps
+									only. The transcription and speaker detection were still completed.
+								{/if}
 							</div>
 						{/if}
 						<div class="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4">
@@ -1033,13 +1089,30 @@
 								</p>
 							</div>
 						</div>
+						<label
+							class="flex cursor-pointer items-start gap-3 rounded-xl border border-color bg-primary p-4"
+						>
+							<input
+								type="checkbox"
+								class="mt-1"
+								bind:checked={settings.poemMode}
+								disabled={session.cleanupRunning}
+								onchange={() => void saveAITranscriptionSettings()}
+							/>
+							<span>
+								<span class="block font-semibold text-primary">{$LL.editor.poemMode()}</span>
+								<span class="mt-1 block text-xs leading-relaxed text-secondary"
+									>{$LL.editor.poemModeDescription()}</span
+								>
+							</span>
+						</label>
 						<div class="grid gap-4 rounded-xl border border-color bg-primary p-5 md:grid-cols-2">
 							<AIReasoningControls
 								id="transcript-cleanup-reasoning-mode"
 								endpoint={globalState.settings!.aiTranslationSettings.textAiApiEndpoint}
 								model={globalState.settings!.aiTranslationSettings.advancedTrimModel}
 								mode={globalState.settings!.aiTranslationSettings.transcriptCleanupReasoningMode}
-								disabled={Boolean(globalState.getSubtitlesEditorState.aiTranscriptCleanup)}
+								disabled={session.cleanupRunning}
 								onchange={updateCleanupReasoningMode}
 							/>
 							<label class="space-y-3">
@@ -1058,16 +1131,19 @@
 									step="40"
 									class="w-full"
 									bind:value={settings.cleanupBatchWords}
-									disabled={Boolean(globalState.getSubtitlesEditorState.aiTranscriptCleanup)}
+									disabled={session.cleanupRunning}
 									onchange={() => void saveAITranscriptionSettings()}
 								/>
 								<p class="text-xs text-secondary">
 									{get(LL).editor.transcriptCleanupBatchPreview({
-										count:
-											globalState.getSubtitlesEditorState.aiTranscriptCleanup?.totalBatches ??
-											session.cleanupBatchCount
+										count: session.cleanupBatchCount
 									})}
 								</p>
+								{#if globalState.getSubtitlesEditorState.aiTranscriptCleanup && globalState.getSubtitlesEditorState.aiTranscriptCleanup.batchWords !== settings.cleanupBatchWords}
+									<p class="text-xs text-secondary">
+										{$LL.editor.transcriptCleanupBatchSizeChanged()}
+									</p>
+								{/if}
 							</label>
 						</div>
 						{#if session.cleanupRunning || session.cleanupMessage}
@@ -1141,8 +1217,11 @@
 				>{:else if currentStep === 3 && session.result}<button
 					type="button"
 					class="btn-accent inline-flex cursor-pointer items-center gap-2 px-5 py-2 text-sm font-semibold"
-					onclick={() => void openTranscriptCleanup()}
-					><span class="material-icons text-lg">arrow_forward</span>{get(LL).common.next()}</button
+					onclick={() =>
+						settings.provider === 'alignment' ? void applyResult() : void openTranscriptCleanup()}
+					><span class="material-icons text-lg"
+						>{settings.provider === 'alignment' ? 'done_all' : 'arrow_forward'}</span
+					>{settings.provider === 'alignment' ? $LL.common.done() : $LL.common.next()}</button
 				>{:else if currentStep === 4 && session.result && !session.cleanupCompleted}<button
 					type="button"
 					class="btn-accent inline-flex cursor-pointer items-center gap-2 px-5 py-2 text-sm font-semibold disabled:opacity-50"

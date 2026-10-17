@@ -82,9 +82,10 @@ export class TranscriptionRuntimeSession {
 	/**
 	 * Transcrit puis applique le résultat au projet capturé par la session.
 	 * @param {string} groqApiKey Clé du fournisseur cloud, si sélectionné.
+	 * @param {string} [referenceText] Texte lu utilisé par le mode alignement.
 	 * @returns {Promise<boolean>} Indique si les sous-titres ont été appliqués.
 	 */
-	async startTranscription(groqApiKey: string): Promise<boolean> {
+	async startTranscription(groqApiKey: string, referenceText = ''): Promise<boolean> {
 		if (this.running) return false;
 		this.running = true;
 		this.session.result = null;
@@ -117,33 +118,41 @@ export class TranscriptionRuntimeSession {
 			const transcription = await runAITranscription(
 				this.session.project,
 				this.settings,
-				groqApiKey
+				groqApiKey,
+				referenceText
 			);
 			this.session.ensureActive();
-			this.runMessage = get(LL).editor.matchingQuranPassages();
+			this.runMessage =
+				this.settings.provider === 'alignment'
+					? get(LL).common.processing()
+					: get(LL).editor.matchingQuranPassages();
 			this.progress = 100;
 			await tick();
-			const quranReport = await cleanupAITranscript(transcription, {
-				maxWords: this.settings.maxWordsPerSegment,
-				maxChars: this.settings.maxCharsPerSegment,
-				maxGap: TRANSCRIPT_PREFERRED_GAP_SECONDS,
-				onPreparationStart: () => {
-					this.runMessage = get(LL).editor.matchingQuranPassages();
-					this.progress = 100;
-				},
-				onSemanticSegmentationStart: () => {
-					this.runMessage = get(LL).editor.transcriptSemanticSegmentation();
-					this.progress = 100;
-				},
-				onFinalizationStart: () => {
-					this.runMessage = get(LL).editor.cleaningTranscript();
-					this.progress = 100;
-				},
-				onValidationStart: () => {
-					this.runMessage = get(LL).editor.cleaningTranscript();
-					this.progress = 100;
-				}
-			});
+			// Le texte fourni doit rester intact ; le nettoyage reste une action facultative.
+			const quranReport =
+				this.settings.provider === 'alignment'
+					? { result: transcription, errors: [] }
+					: await cleanupAITranscript(transcription, {
+							maxWords: this.settings.maxWordsPerSegment,
+							maxChars: this.settings.maxCharsPerSegment,
+							maxGap: TRANSCRIPT_PREFERRED_GAP_SECONDS,
+							onPreparationStart: () => {
+								this.runMessage = get(LL).editor.matchingQuranPassages();
+								this.progress = 100;
+							},
+							onSemanticSegmentationStart: () => {
+								this.runMessage = get(LL).editor.transcriptSemanticSegmentation();
+								this.progress = 100;
+							},
+							onFinalizationStart: () => {
+								this.runMessage = get(LL).editor.cleaningTranscript();
+								this.progress = 100;
+							},
+							onValidationStart: () => {
+								this.runMessage = get(LL).editor.cleaningTranscript();
+								this.progress = 100;
+							}
+						});
 			this.session.ensureActive();
 			this.session.result = quranReport.result;
 			this.session.cleanupErrors = quranReport.errors;

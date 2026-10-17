@@ -95,6 +95,35 @@ function token(id: number, text: string): ProcessedTranscriptToken {
 }
 
 describe('TranscriptPostProcessor Quran corpus', () => {
+	it('recuts existing clips at complete poetic lines and ignores internal silences and density limits', () => {
+		const lines = ['محمد أشرف الأعراب والعجم', 'محمد خير من يمشي على قدم'];
+		const source = buildResult(lines.join(' ').split(' '));
+		source.device = 'groq';
+		source.segments = source.segments[0].words.map((word, index) => ({
+			clipId: index,
+			text: word.word,
+			start: word.start * 3,
+			end: word.end * 3,
+			speaker: 'SPEAKER_00',
+			words: [{ ...word, start: word.start * 3, end: word.end * 3 }]
+		}));
+		const prepared = prepareTranscriptForAnalysis(source, buildQuranCorpus({}));
+		const report = finalizeTranscriptProcessing(
+			source,
+			prepared.tokens,
+			buildQuranCorpus({}),
+			{ corrections: [], quotes: [], breakAfter: [], punctuationAfter: [] },
+			{ maxWords: 2, maxChars: 20, maxGap: 1.2, poemMode: true, preserveWordSilences: true },
+			[
+				{ afterId: 3, kind: 'sentence' },
+				{ afterId: 9, kind: 'sentence' }
+			]
+		);
+		expect(report.result.segments.map((segment) => segment.text)).toEqual(lines);
+		expect(report.result.segments[1].start).toBe(source.segments[4].start);
+		expect(report.result.segments[1].end).toBe(source.segments[9].end);
+		expect(report.result.segments[0]).not.toHaveProperty('clipId');
+	});
 	it('keeps authored clip identities and boundaries when correcting an existing project', () => {
 		const source = buildResult(['ordinary', 'lecture', 'words', 'remain']);
 		const original = source.segments[0];

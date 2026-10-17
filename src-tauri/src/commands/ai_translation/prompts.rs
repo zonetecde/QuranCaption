@@ -548,6 +548,17 @@ pub fn build_transcript_segmentation_user_prompt(batch: &Value) -> Result<String
     let batch_json = serde_json::to_string(batch)
         .map_err(|error| format!("Failed to serialize batch: {}", error))?;
 
+    if batch
+        .get("poemMode")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        return Ok(format!(
+            "This is a poem or nasheed. Override the lecture density rules: return ONLY ends of complete poetic or sung lines as kind=sentence. One subtitle must contain one entire line, even when it exceeds normal subtitle length or duration. Do not return clause or phrase boundaries inside a line. Infer line endings from poetic structure, rhyme, parallel wording and meaning together; pauses and ASR chunks alone are not line endings. Keep each repeated line as a separate occurrence, and a standalone introductory invocation as its own unit. Do not merge adjacent lines or couplets. Never change any words or timings. Use before/after as context to avoid splitting at batch edges. Return IDs only from core as {{\"boundaries\":[{{\"after\":123,\"kind\":\"sentence\"}}]}}. JSON only.\n{}",
+            batch_json
+        ));
+    }
+
     Ok(format!(
         "Return semantic boundaries for `core` as {{\"boundaries\":[{{\"after\":123,\"kind\":\"sentence|clause|phrase\"}}]}}. Use `before`/`after` only as context. JSON only.\n{}",
         batch_json

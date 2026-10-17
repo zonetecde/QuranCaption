@@ -56,6 +56,29 @@ const editor = {
 	groqProviderDescription:
 		'Fast Whisper Large V3 transcription. Audio is sent securely to Groq and word timestamps are returned directly.',
 	localWhisperX: 'WhisperX local',
+	referenceAlignment: 'Reference text',
+	referenceAlignmentDescription:
+		'Align your Arabic text with the audio locally, allowing repetitions and restarts.',
+	referenceTextLabel: 'Text read in the audio',
+	referenceTextPlaceholder: 'Paste the poem, nasheed lyrics or spoken text here...',
+	referenceTextHelp:
+		'For a poem or nasheed, put one complete verse on each line: each non-empty line becomes one subtitle, even when it is long. Blank lines are ignored. You do not need to write out repetitions. WhisperX aligns the words locally; uncertain passages keep the recognized text for review. Singing and backing vocals can reduce accuracy.',
+	poemMode: 'Poem / nasheed — one complete verse per subtitle',
+	poemModeDescription:
+		'The text AI identifies complete poetic or sung lines and adjusts subtitle cuts to their word timings. Each verse stays together, even across internal pauses or beyond normal subtitle length and duration limits.',
+	poemSegmentationFailed:
+		'Complete verse boundaries could not be identified reliably. Retry or use Reference text with one verse per line.',
+	referenceTextRequired: 'Enter the Arabic text to align before continuing.',
+	referenceTextTooLong:
+		'The text and audio are too long to compare together. Use a shorter passage.',
+	referenceTextNoMatch:
+		'No reliable match was found. Check that the Arabic text matches the audio.',
+	referenceTextUnmatched:
+		'Some passages could not be matched reliably. Their recognized text was kept; please review them.',
+	referenceTextIncompleteAlignment:
+		'Some passages could not be fully aligned. Their original recognized text and timings were kept; please review them.',
+	referenceAlignmentStart: 'Align reference text',
+	startAITranscription: 'Start transcription',
 	localWhisperXProviderDescription:
 		'Keeps audio on this computer. A GPU is recommended; CPU processing can be much slower.',
 	groqApiKeyTitle: 'Groq API key',
@@ -111,6 +134,8 @@ const editor = {
 	transcriptCleanupCompletedWithIssues:
 		'Prepared {cleaned} of {total} subtitle segments. {errors} warning(s) require review.',
 	transcriptCleanupBatchSize: 'Batch size (words)',
+	transcriptCleanupBatchSizeChanged:
+		'Changing the batch size restarts cleanup from the original transcript when you resume.',
 	transcriptCleanupBatchPreview: 'Estimated total: {count} batch(es).',
 	pauseTranscriptCleanup: 'Pause after this batch',
 	pausingTranscriptCleanup: 'Pausing...',

@@ -95,4 +95,22 @@ describe('AITranscriptSegmentation batches', () => {
 		});
 		expect(validateTranscriptSegmentationBatch(batch, {}).errors).toHaveLength(1);
 	});
+
+	it('requests whole poetic lines and rejects internal clause and phrase boundaries', () => {
+		const batch = buildTranscriptSegmentationBatches(
+			Array.from({ length: 20 }, (_, id) => token(id)),
+			'word',
+			true
+		)[0];
+		expect(batch.request.poemMode).toBe(true);
+		const validation = validateTranscriptSegmentationBatch(batch, {
+			boundaries: [
+				{ after: 3, kind: 'phrase' },
+				{ after: 5, kind: 'clause' },
+				{ after: 10, kind: 'sentence' }
+			]
+		});
+		expect(validation.boundaries).toEqual([{ afterId: 10, kind: 'sentence' }]);
+		expect(validation.errors).toHaveLength(2);
+	});
 });

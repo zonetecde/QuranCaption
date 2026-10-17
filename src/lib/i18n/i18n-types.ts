@@ -1315,6 +1315,66 @@ type RootTranslation = {
 		 */
 		localWhisperX: string;
 		/**
+		 * R​e​f​e​r​e​n​c​e​ ​t​e​x​t
+		 */
+		referenceAlignment: string;
+		/**
+		 * A​l​i​g​n​ ​y​o​u​r​ ​A​r​a​b​i​c​ ​t​e​x​t​ ​w​i​t​h​ ​t​h​e​ ​a​u​d​i​o​ ​l​o​c​a​l​l​y​,​ ​a​l​l​o​w​i​n​g​ ​r​e​p​e​t​i​t​i​o​n​s​ ​a​n​d​ ​r​e​s​t​a​r​t​s​.
+		 */
+		referenceAlignmentDescription: string;
+		/**
+		 * T​e​x​t​ ​r​e​a​d​ ​i​n​ ​t​h​e​ ​a​u​d​i​o
+		 */
+		referenceTextLabel: string;
+		/**
+		 * P​a​s​t​e​ ​t​h​e​ ​p​o​e​m​,​ ​n​a​s​h​e​e​d​ ​l​y​r​i​c​s​ ​o​r​ ​s​p​o​k​e​n​ ​t​e​x​t​ ​h​e​r​e​.​.​.
+		 */
+		referenceTextPlaceholder: string;
+		/**
+		 * F​o​r​ ​a​ ​p​o​e​m​ ​o​r​ ​n​a​s​h​e​e​d​,​ ​p​u​t​ ​o​n​e​ ​c​o​m​p​l​e​t​e​ ​v​e​r​s​e​ ​o​n​ ​e​a​c​h​ ​l​i​n​e​:​ ​e​a​c​h​ ​n​o​n​-​e​m​p​t​y​ ​l​i​n​e​ ​b​e​c​o​m​e​s​ ​o​n​e​ ​s​u​b​t​i​t​l​e​,​ ​e​v​e​n​ ​w​h​e​n​ ​i​t​ ​i​s​ ​l​o​n​g​.​ ​B​l​a​n​k​ ​l​i​n​e​s​ ​a​r​e​ ​i​g​n​o​r​e​d​.​ ​Y​o​u​ ​d​o​ ​n​o​t​ ​n​e​e​d​ ​t​o​ ​w​r​i​t​e​ ​o​u​t​ ​r​e​p​e​t​i​t​i​o​n​s​.​ ​W​h​i​s​p​e​r​X​ ​a​l​i​g​n​s​ ​t​h​e​ ​w​o​r​d​s​ ​l​o​c​a​l​l​y​;​ ​u​n​c​e​r​t​a​i​n​ ​p​a​s​s​a​g​e​s​ ​k​e​e​p​ ​t​h​e​ ​r​e​c​o​g​n​i​z​e​d​ ​t​e​x​t​ ​f​o​r​ ​r​e​v​i​e​w​.​ ​S​i​n​g​i​n​g​ ​a​n​d​ ​b​a​c​k​i​n​g​ ​v​o​c​a​l​s​ ​c​a​n​ ​r​e​d​u​c​e​ ​a​c​c​u​r​a​c​y​.
+		 */
+		referenceTextHelp: string;
+		/**
+		 * P​o​e​m​ ​/​ ​n​a​s​h​e​e​d​ ​—​ ​o​n​e​ ​c​o​m​p​l​e​t​e​ ​v​e​r​s​e​ ​p​e​r​ ​s​u​b​t​i​t​l​e
+		 */
+		poemMode: string;
+		/**
+		 * T​h​e​ ​t​e​x​t​ ​A​I​ ​i​d​e​n​t​i​f​i​e​s​ ​c​o​m​p​l​e​t​e​ ​p​o​e​t​i​c​ ​o​r​ ​s​u​n​g​ ​l​i​n​e​s​ ​a​n​d​ ​a​d​j​u​s​t​s​ ​s​u​b​t​i​t​l​e​ ​c​u​t​s​ ​t​o​ ​t​h​e​i​r​ ​w​o​r​d​ ​t​i​m​i​n​g​s​.​ ​E​a​c​h​ ​v​e​r​s​e​ ​s​t​a​y​s​ ​t​o​g​e​t​h​e​r​,​ ​e​v​e​n​ ​a​c​r​o​s​s​ ​i​n​t​e​r​n​a​l​ ​p​a​u​s​e​s​ ​o​r​ ​b​e​y​o​n​d​ ​n​o​r​m​a​l​ ​s​u​b​t​i​t​l​e​ ​l​e​n​g​t​h​ ​a​n​d​ ​d​u​r​a​t​i​o​n​ ​l​i​m​i​t​s​.
+		 */
+		poemModeDescription: string;
+		/**
+		 * C​o​m​p​l​e​t​e​ ​v​e​r​s​e​ ​b​o​u​n​d​a​r​i​e​s​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​i​d​e​n​t​i​f​i​e​d​ ​r​e​l​i​a​b​l​y​.​ ​R​e​t​r​y​ ​o​r​ ​u​s​e​ ​R​e​f​e​r​e​n​c​e​ ​t​e​x​t​ ​w​i​t​h​ ​o​n​e​ ​v​e​r​s​e​ ​p​e​r​ ​l​i​n​e​.
+		 */
+		poemSegmentationFailed: string;
+		/**
+		 * E​n​t​e​r​ ​t​h​e​ ​A​r​a​b​i​c​ ​t​e​x​t​ ​t​o​ ​a​l​i​g​n​ ​b​e​f​o​r​e​ ​c​o​n​t​i​n​u​i​n​g​.
+		 */
+		referenceTextRequired: string;
+		/**
+		 * T​h​e​ ​t​e​x​t​ ​a​n​d​ ​a​u​d​i​o​ ​a​r​e​ ​t​o​o​ ​l​o​n​g​ ​t​o​ ​c​o​m​p​a​r​e​ ​t​o​g​e​t​h​e​r​.​ ​U​s​e​ ​a​ ​s​h​o​r​t​e​r​ ​p​a​s​s​a​g​e​.
+		 */
+		referenceTextTooLong: string;
+		/**
+		 * N​o​ ​r​e​l​i​a​b​l​e​ ​m​a​t​c​h​ ​w​a​s​ ​f​o​u​n​d​.​ ​C​h​e​c​k​ ​t​h​a​t​ ​t​h​e​ ​A​r​a​b​i​c​ ​t​e​x​t​ ​m​a​t​c​h​e​s​ ​t​h​e​ ​a​u​d​i​o​.
+		 */
+		referenceTextNoMatch: string;
+		/**
+		 * S​o​m​e​ ​p​a​s​s​a​g​e​s​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​m​a​t​c​h​e​d​ ​r​e​l​i​a​b​l​y​.​ ​T​h​e​i​r​ ​r​e​c​o​g​n​i​z​e​d​ ​t​e​x​t​ ​w​a​s​ ​k​e​p​t​;​ ​p​l​e​a​s​e​ ​r​e​v​i​e​w​ ​t​h​e​m​.
+		 */
+		referenceTextUnmatched: string;
+		/**
+		 * S​o​m​e​ ​p​a​s​s​a​g​e​s​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​f​u​l​l​y​ ​a​l​i​g​n​e​d​.​ ​T​h​e​i​r​ ​o​r​i​g​i​n​a​l​ ​r​e​c​o​g​n​i​z​e​d​ ​t​e​x​t​ ​a​n​d​ ​t​i​m​i​n​g​s​ ​w​e​r​e​ ​k​e​p​t​;​ ​p​l​e​a​s​e​ ​r​e​v​i​e​w​ ​t​h​e​m​.
+		 */
+		referenceTextIncompleteAlignment: string;
+		/**
+		 * A​l​i​g​n​ ​r​e​f​e​r​e​n​c​e​ ​t​e​x​t
+		 */
+		referenceAlignmentStart: string;
+		/**
+		 * S​t​a​r​t​ ​t​r​a​n​s​c​r​i​p​t​i​o​n
+		 */
+		startAITranscription: string;
+		/**
 		 * K​e​e​p​s​ ​a​u​d​i​o​ ​o​n​ ​t​h​i​s​ ​c​o​m​p​u​t​e​r​.​ ​A​ ​G​P​U​ ​i​s​ ​r​e​c​o​m​m​e​n​d​e​d​;​ ​C​P​U​ ​p​r​o​c​e​s​s​i​n​g​ ​c​a​n​ ​b​e​ ​m​u​c​h​ ​s​l​o​w​e​r​.
 		 */
 		localWhisperXProviderDescription: string;
@@ -1493,6 +1553,10 @@ type RootTranslation = {
 		 * B​a​t​c​h​ ​s​i​z​e​ ​(​w​o​r​d​s​)
 		 */
 		transcriptCleanupBatchSize: string;
+		/**
+		 * C​h​a​n​g​i​n​g​ ​t​h​e​ ​b​a​t​c​h​ ​s​i​z​e​ ​r​e​s​t​a​r​t​s​ ​c​l​e​a​n​u​p​ ​f​r​o​m​ ​t​h​e​ ​o​r​i​g​i​n​a​l​ ​t​r​a​n​s​c​r​i​p​t​ ​w​h​e​n​ ​y​o​u​ ​r​e​s​u​m​e​.
+		 */
+		transcriptCleanupBatchSizeChanged: string;
 		/**
 		 * E​s​t​i​m​a​t​e​d​ ​t​o​t​a​l​:​ ​{​c​o​u​n​t​}​ ​b​a​t​c​h​(​e​s​)​.
 		 * @param {unknown} count
@@ -11940,6 +12004,66 @@ export type TranslationFunctions = {
 		 */
 		localWhisperX: () => LocalizedString;
 		/**
+		 * Reference text
+		 */
+		referenceAlignment: () => LocalizedString;
+		/**
+		 * Align your Arabic text with the audio locally, allowing repetitions and restarts.
+		 */
+		referenceAlignmentDescription: () => LocalizedString;
+		/**
+		 * Text read in the audio
+		 */
+		referenceTextLabel: () => LocalizedString;
+		/**
+		 * Paste the poem, nasheed lyrics or spoken text here...
+		 */
+		referenceTextPlaceholder: () => LocalizedString;
+		/**
+		 * For a poem or nasheed, put one complete verse on each line: each non-empty line becomes one subtitle, even when it is long. Blank lines are ignored. You do not need to write out repetitions. WhisperX aligns the words locally; uncertain passages keep the recognized text for review. Singing and backing vocals can reduce accuracy.
+		 */
+		referenceTextHelp: () => LocalizedString;
+		/**
+		 * Poem / nasheed — one complete verse per subtitle
+		 */
+		poemMode: () => LocalizedString;
+		/**
+		 * The text AI identifies complete poetic or sung lines and adjusts subtitle cuts to their word timings. Each verse stays together, even across internal pauses or beyond normal subtitle length and duration limits.
+		 */
+		poemModeDescription: () => LocalizedString;
+		/**
+		 * Complete verse boundaries could not be identified reliably. Retry or use Reference text with one verse per line.
+		 */
+		poemSegmentationFailed: () => LocalizedString;
+		/**
+		 * Enter the Arabic text to align before continuing.
+		 */
+		referenceTextRequired: () => LocalizedString;
+		/**
+		 * The text and audio are too long to compare together. Use a shorter passage.
+		 */
+		referenceTextTooLong: () => LocalizedString;
+		/**
+		 * No reliable match was found. Check that the Arabic text matches the audio.
+		 */
+		referenceTextNoMatch: () => LocalizedString;
+		/**
+		 * Some passages could not be matched reliably. Their recognized text was kept; please review them.
+		 */
+		referenceTextUnmatched: () => LocalizedString;
+		/**
+		 * Some passages could not be fully aligned. Their original recognized text and timings were kept; please review them.
+		 */
+		referenceTextIncompleteAlignment: () => LocalizedString;
+		/**
+		 * Align reference text
+		 */
+		referenceAlignmentStart: () => LocalizedString;
+		/**
+		 * Start transcription
+		 */
+		startAITranscription: () => LocalizedString;
+		/**
 		 * Keeps audio on this computer. A GPU is recommended; CPU processing can be much slower.
 		 */
 		localWhisperXProviderDescription: () => LocalizedString;
@@ -12111,6 +12235,10 @@ export type TranslationFunctions = {
 		 * Batch size (words)
 		 */
 		transcriptCleanupBatchSize: () => LocalizedString;
+		/**
+		 * Changing the batch size restarts cleanup from the original transcript when you resume.
+		 */
+		transcriptCleanupBatchSizeChanged: () => LocalizedString;
 		/**
 		 * Estimated total: {count} batch(es).
 		 */

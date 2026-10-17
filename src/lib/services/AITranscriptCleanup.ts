@@ -1,4 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 import type { AITranscriptionResult } from '$lib/types/transcription';
 import type { AdvancedTrimModel } from '$lib/services/AdvancedAITrimming';
 import type { AIReasoningEffort } from '$lib/services/AIReasoning';
@@ -587,7 +589,7 @@ async function yieldToUi(): Promise<void> {
 /**
  * Corrige, annote et re-segmente une transcription avec une IA textuelle facultative.
  * @param {AITranscriptionResult} result Résultat ASR courant.
- * @param {{ apiKey?: string; endpoint?: string; model?: AdvancedTrimModel; reasoningEffort?: AIReasoningEffort; thinkingEnabled?: boolean | null; batchWords?: number; maxWords: number; maxChars: number; maxGap: number; resume?: { analyses: TranscriptAiAnalysis[]; errors: string[]; nextBatchIndex: number }; shouldPause?: () => boolean; onProgress?: (current: number, total: number, batchId: string) => void; onSemanticSegmentationStart?: () => void; onBatchComplete?: (report: TranscriptCleanupReport, batchId: string) => void | Promise<void> }} options Provider, reprise et contraintes.
+ * @param {{ apiKey?: string; endpoint?: string; model?: AdvancedTrimModel; reasoningEffort?: AIReasoningEffort; thinkingEnabled?: boolean | null; batchWords?: number; maxWords: number; maxChars: number; maxGap: number; poemMode?: boolean; resume?: { analyses: TranscriptAiAnalysis[]; errors: string[]; nextBatchIndex: number }; shouldPause?: () => boolean; onProgress?: (current: number, total: number, batchId: string) => void; onSemanticSegmentationStart?: () => void; onBatchComplete?: (report: TranscriptCleanupReport, batchId: string) => void | Promise<void> }} options Provider, reprise et contraintes.
  * @returns {Promise<TranscriptCleanupReport>} Transcription préparée et rapport.
  */
 export async function cleanupAITranscript(
@@ -602,6 +604,7 @@ export async function cleanupAITranscript(
 		maxWords: number;
 		maxChars: number;
 		maxGap: number;
+		poemMode?: boolean;
 		resume?: {
 			analyses: TranscriptAiAnalysis[];
 			errors: string[];
@@ -630,6 +633,9 @@ export async function cleanupAITranscript(
 	const endpoint = options.endpoint?.trim() ?? '';
 	const model = (options.model?.trim() ?? '') as AdvancedTrimModel;
 	const reasoningEffort = options.reasoningEffort ?? 'none';
+	if (options.poemMode && (!apiKey || !endpoint || !model)) {
+		throw new Error(get(LL).translations.aiTranslationProviderMissing());
+	}
 	const batches =
 		apiKey && endpoint && model
 			? buildTranscriptCleanupBatches(prepared.tokens, options.batchWords, sourceTokens)
@@ -735,7 +741,8 @@ export async function cleanupAITranscript(
 		maxWords: Math.max(2, options.maxWords),
 		maxChars: Math.max(20, options.maxChars),
 		maxGap: Math.max(0.1, options.maxGap),
-		preserveWordSilences: result.device === 'groq'
+		preserveWordSilences: result.device === 'groq',
+		poemMode: options.poemMode && !paused
 	};
 	options.onFinalizationStart?.();
 	await yieldToUi();
@@ -755,10 +762,14 @@ export async function cleanupAITranscript(
 			timingQuality: result.segments.every((segment) => (segment.words?.length ?? 0) > 0)
 				? 'word'
 				: 'estimated',
+			poemMode: options.poemMode,
 			onProgress: options.onSemanticSegmentationProgress,
 			onBatchComplete: options.onSemanticSegmentationBatchComplete,
 			onBatchFailed: options.onSemanticSegmentationBatchFailed
 		});
+	}
+	if (options.poemMode && !paused && (semantic.errors.length || !semantic.boundaries.length)) {
+		throw new Error(get(LL).editor.poemSegmentationFailed());
 	}
 	errors.push(...semantic.errors);
 	options.onFinalizationStart?.();

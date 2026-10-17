@@ -61,7 +61,7 @@ export type AutoSegmentationSettings = {
 };
 
 export type AITranscriptionSettings = {
-	provider: 'groq' | 'local';
+	provider: 'groq' | 'alignment' | 'local';
 	model: 'small' | 'medium' | 'large-v3' | 'large-v3-turbo' | 'qwen3-asr-1.7b';
 	language: string;
 	device: 'AUTO' | 'GPU' | 'CPU';
@@ -76,6 +76,7 @@ export type AITranscriptionSettings = {
 	subtitleStartLeadMs: number;
 	replaceExisting: boolean;
 	cleanupBatchWords: number;
+	poemMode?: boolean;
 };
 
 export type StockMediaSettings = {
@@ -227,7 +228,8 @@ export default class Settings extends SerializableBase {
 		subtitleEndPaddingMs: 250,
 		subtitleStartLeadMs: 150,
 		replaceExisting: true,
-		cleanupBatchWords: 160
+		cleanupBatchWords: 160,
+		poemMode: false
 	});
 
 	aiTranslationSettings = $state<AITranslationSettings>({
@@ -837,7 +839,7 @@ export default class Settings extends SerializableBase {
 			settings.aiTranscriptionSettings.language = 'ar';
 			shouldSave = true;
 		}
-		if (!['groq', 'local'].includes(settings.aiTranscriptionSettings.provider)) {
+		if (!['groq', 'alignment', 'local'].includes(settings.aiTranscriptionSettings.provider)) {
 			settings.aiTranscriptionSettings.provider = 'groq';
 			shouldSave = true;
 		}

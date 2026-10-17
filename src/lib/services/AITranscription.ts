@@ -16,6 +16,13 @@ import {
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
+import { matchReferenceTranscript } from './ReferenceTranscriptAlignment';
+import {
+	normalizeArabicForMatching,
+	buildTimedTranscriptTokens,
+	segmentProcessedTranscript
+} from './TranscriptPostProcessor';
+import type { SegmentationResponse } from './autoSegmentation/types';
 
 export type {
 	AITranscriptionRuntimeStatus,
@@ -100,13 +107,19 @@ export async function installAITranscriptionRuntime(hfToken: string): Promise<vo
  * @param {Project} project Projet propriétaire.
  * @param {AITranscriptionSettings} settings Réglages du moteur.
  * @param {string} [groqApiKey] Clé du fournisseur cloud.
+ * @param {string} [referenceText] Texte lu à retrouver dans l'audio.
  * @returns {Promise<AITranscriptionResult>} Résultat vocal.
  */
 export async function runAITranscription(
 	project: Project,
 	settings: AITranscriptionSettings,
-	groqApiKey = ''
+	groqApiKey = '',
+	referenceText = ''
 ): Promise<AITranscriptionResult> {
+	settings = { ...settings };
+	if (settings.provider === 'alignment' && !normalizeArabicForMatching(referenceText)) {
+		throw new Error(get(LL).editor.referenceTextRequired());
+	}
 	const clips = getAutoSegmentationAudioClips(project);
 	if (clips.length === 0) throw new Error('No audio clip is available on the project timeline.');
 	const audioClips = clips.map((clip) => ({
@@ -152,7 +165,97 @@ export async function runAITranscription(
 	if (response.segments.length === 0) {
 		throw new Error(get(LL).editor.transcriptionNoSpeech());
 	}
-	return response;
+	if (settings.provider !== 'alignment') return response;
+	const preserveLines =
+		Boolean(settings.poemMode) ||
+		referenceText.split(/\r?\n/u).filter((line) => line.trim()).length > 1;
+	let plan: ReturnType<typeof matchReferenceTranscript>;
+	try {
+		plan = matchReferenceTranscript(response, referenceText, preserveLines);
+	} catch (error) {
+		if (error instanceof Error && error.message === 'REFERENCE_TEXT_TOO_LONG') {
+			throw new Error(get(LL).editor.referenceTextTooLong());
+		}
+		throw error;
+	}
+	const matchedWords = plan.segments.reduce(
+		(count, segment, index) => count + (plan.matched[index] ? segment.words.length : 0),
+		0
+	);
+	if (!matchedWords || matchedWords < plan.unmatchedWords / 3) {
+		throw new Error(get(LL).editor.referenceTextNoMatch());
+	}
+	const aligned = (await invoke('align_transcript_words_local_whisperx', {
+		audioPath: clips.length === 1 ? clips[0].filePath : undefined,
+		audioClips,
+		segments: plan.segments.flatMap((segment, index) =>
+			plan.matched[index]
+				? [
+						{
+							segment: index,
+							time_from: segment.start,
+							time_to: segment.end,
+							matched_text: segment.text
+						}
+					]
+				: []
+		),
+		language: 'ar',
+		device: settings.device
+	})) as SegmentationResponse;
+	let incompleteAlignment = false;
+	for (const [index, segment] of plan.segments.entries()) {
+		if (!plan.matched[index]) continue;
+		const alignedWords = aligned.segments?.find((item) => item.segment === index)?.words ?? [];
+		const expectedWords = segment.text.split(/\s+/u);
+		if (
+			alignedWords.length !== expectedWords.length ||
+			alignedWords.some(
+				(word, wordIndex) =>
+					!Number.isFinite(word.start) ||
+					!Number.isFinite(word.end) ||
+					word.end <= word.start ||
+					word.start < 0 ||
+					word.end > segment.end - segment.start + 0.01 ||
+					(wordIndex > 0 && word.start < alignedWords[wordIndex - 1].end) ||
+					normalizeArabicForMatching(word.word ?? '') !==
+						normalizeArabicForMatching(expectedWords[wordIndex])
+			)
+		) {
+			incompleteAlignment = true;
+			// En cas d'échec, on conserve ensemble le texte ASR et ses timings d'origine.
+			segment.text = segment.words.map((word) => word.word).join(' ');
+			continue;
+		}
+		segment.words = alignedWords.map((word, wordIndex) => ({
+			word: expectedWords[wordIndex],
+			start: segment.start + word.start,
+			end: segment.start + word.end,
+			speaker: segment.speaker
+		}));
+	}
+	const warnings = [
+		plan.unmatchedWords > 0 ? get(LL).editor.referenceTextUnmatched() : '',
+		incompleteAlignment ? get(LL).editor.referenceTextIncompleteAlignment() : ''
+	].filter(Boolean);
+	return {
+		...response,
+		alignmentWarning: warnings.join(' ') || null,
+		wordTimestampsAvailable:
+			response.wordTimestampsAvailable || (!incompleteAlignment && plan.unmatchedWords === 0),
+		segments: preserveLines
+			? plan.segments
+			: plan.segments.flatMap((segment) =>
+					segmentProcessedTranscript(
+						buildTimedTranscriptTokens({ ...response, segments: [segment] }),
+						{
+							maxWords: settings.maxWordsPerSegment,
+							maxChars: settings.maxCharsPerSegment,
+							maxGap: 1.2
+						}
+					)
+				)
+	};
 }
 
 /**

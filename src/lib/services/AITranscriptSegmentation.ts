@@ -27,6 +27,7 @@ export type TranscriptSegmentationBatch = {
 	batchId: string;
 	request: {
 		timingQuality: 'word' | 'estimated';
+		poemMode?: true;
 		before: TranscriptSegmentationWordPayload[];
 		core: TranscriptSegmentationWordPayload[];
 		after: TranscriptSegmentationWordPayload[];
@@ -69,11 +70,13 @@ function toSegmentationWordPayload(
  * Construit des lots à cœur exclusif avec du contexte symétrique en lecture seule.
  * @param {ProcessedTranscriptToken[]} tokens Flux nettoyé dans son ordre final.
  * @param {'word' | 'estimated'} timingQuality Qualité des timestamps disponibles.
+ * @param {boolean} [poemMode] Demande uniquement les fins de vers complets.
  * @returns {TranscriptSegmentationBatch[]} Lots indépendants couvrant chaque mot une seule fois.
  */
 export function buildTranscriptSegmentationBatches(
 	tokens: ProcessedTranscriptToken[],
-	timingQuality: 'word' | 'estimated' = 'word'
+	timingQuality: 'word' | 'estimated' = 'word',
+	poemMode = false
 ): TranscriptSegmentationBatch[] {
 	const speakers = new Map<string, number>();
 	const payloads = tokens.map((token, index) => {
@@ -87,6 +90,7 @@ export function buildTranscriptSegmentationBatches(
 			batchId: `transcript-segmentation-${batches.length + 1}-${tokens[start].id}`,
 			request: {
 				timingQuality,
+				...(poemMode ? { poemMode: true as const } : {}),
 				before: payloads.slice(Math.max(0, start - SEGMENTATION_CONTEXT_WORDS), start),
 				core: payloads.slice(start, end),
 				after: payloads.slice(end, end + SEGMENTATION_CONTEXT_WORDS)
@@ -136,7 +140,8 @@ export function validateTranscriptSegmentationBatch(
 			!word ||
 			word.l === true ||
 			seen.has(afterId) ||
-			(kind !== 'sentence' && kind !== 'clause' && kind !== 'phrase')
+			(kind !== 'sentence' && kind !== 'clause' && kind !== 'phrase') ||
+			(batch.request.poemMode && kind !== 'sentence')
 		) {
 			errors.push('AI returned an invalid semantic subtitle boundary.');
 			continue;
@@ -151,7 +156,7 @@ export function validateTranscriptSegmentationBatch(
 /**
  * Analyse les coupures naturelles du transcript nettoyé avec le provider texte.
  * @param {ProcessedTranscriptToken[]} tokens Flux final avant segmentation.
- * @param {{ apiKey: string; endpoint: string; model: AdvancedTrimModel; reasoningEffort: AIReasoningEffort; thinkingEnabled?: boolean | null; timingQuality: 'word' | 'estimated' }} options Provider et qualité temporelle.
+ * @param {{ apiKey: string; endpoint: string; model: AdvancedTrimModel; reasoningEffort: AIReasoningEffort; thinkingEnabled?: boolean | null; timingQuality: 'word' | 'estimated'; poemMode?: boolean }} options Provider et qualité temporelle.
  * @returns {Promise<{ boundaries: TranscriptSemanticBoundary[]; errors: string[] }>} Coupures sémantiques validées.
  */
 export async function analyzeTranscriptSemanticBoundaries(
@@ -163,12 +168,17 @@ export async function analyzeTranscriptSemanticBoundaries(
 		reasoningEffort: AIReasoningEffort;
 		thinkingEnabled?: boolean | null;
 		timingQuality: 'word' | 'estimated';
+		poemMode?: boolean;
 		onProgress?: (current: number, total: number, batchId: string) => void;
 		onBatchComplete?: (batchId: string) => void;
 		onBatchFailed?: (batchId: string) => void;
 	}
 ): Promise<{ boundaries: TranscriptSemanticBoundary[]; errors: string[] }> {
-	const batches = buildTranscriptSegmentationBatches(tokens, options.timingQuality);
+	const batches = buildTranscriptSegmentationBatches(
+		tokens,
+		options.timingQuality,
+		options.poemMode
+	);
 	const boundaries: TranscriptSemanticBoundary[] = [];
 	const errors: string[] = [];
 	let nextBatch = 0;

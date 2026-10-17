@@ -293,6 +293,52 @@ describe('Project transcription application and sessions', () => {
 		expect(mocks.unlisten).toHaveBeenCalledOnce();
 	});
 
+	it('applies reference text without cleanup and supports undo and redo', async () => {
+		const settings = globalState.settings!.aiTranscriptionSettings;
+		settings.provider = 'alignment';
+		const original = new SubtitleClip(0, 1000, 'Original', 'Speaker');
+		globalState.getSubtitleTrack.clips = [original];
+		const source: AITranscriptionResult = {
+			language: 'ar',
+			device: 'cpu',
+			model: 'small',
+			speakers: ['SPEAKER_00'],
+			wordTimestampsAvailable: true,
+			segments: [
+				{
+					text: 'يَا قَلْبُ',
+					start: 2,
+					end: 3,
+					speaker: 'SPEAKER_00',
+					words: [
+						{ word: 'يَا', start: 2, end: 2.4 },
+						{ word: 'قَلْبُ', start: 2.5, end: 3 }
+					]
+				}
+			]
+		};
+		mocks.transcribe.mockResolvedValueOnce(source);
+		const session = new TranscriptCleanupSession(
+			globalState.currentProject!,
+			settings,
+			globalState.settings!.aiTranslationSettings
+		);
+		const runtime = new TranscriptionRuntimeSession(settings, session);
+		expect(await runtime.startTranscription('', 'يَا قَلْبُ')).toBe(true);
+		expect(mocks.transcribe).toHaveBeenCalledWith(
+			globalState.currentProject,
+			settings,
+			'',
+			'يَا قَلْبُ'
+		);
+		expect(cleanupAITranscript).not.toHaveBeenCalled();
+		expect(globalState.getSubtitleClips[0].text).toBe('يَا قَلْبُ');
+		ProjectHistoryManager.undo();
+		expect(globalState.getSubtitleClips[0].text).toBe('Original');
+		ProjectHistoryManager.redo();
+		expect(globalState.getSubtitleClips[0].text).toBe('يَا قَلْبُ');
+	});
+
 	it('persists a pause checkpoint and resumes without changing authored clip identities', async () => {
 		const original = new SubtitleClip(500, 1500, 'Authored transcript', 'Speaker');
 		globalState.getSubtitleTrack.clips = [original];
@@ -311,11 +357,50 @@ describe('Project transcription application and sessions', () => {
 		vi.mocked(cleanupAITranscript).mockResolvedValueOnce(paused);
 		await session.startTranscriptCleanup();
 		expect(globalState.getSubtitlesEditorState.aiTranscriptCleanup?.nextBatchIndex).toBe(1);
+		globalState.settings!.aiTranscriptionSettings.poemMode = true;
 		await session.startTranscriptCleanup();
 		expect(vi.mocked(cleanupAITranscript).mock.calls[1][1].resume?.nextBatchIndex).toBe(1);
+		expect(vi.mocked(cleanupAITranscript).mock.calls[1][1].poemMode).toBe(true);
 		expect(session.cleanupCompleted).toBe(true);
 		expect(globalState.getSubtitlesEditorState.aiTranscriptCleanup).toBeNull();
 		expect(globalState.getSubtitleClips[0].id).toBe(original.id);
+	});
+
+	it('restarts paused batches from the original source when their size changes', async () => {
+		globalState.getSubtitleTrack.clips = [
+			new SubtitleClip(0, 200000, 'كلمة '.repeat(400).trim(), 'Speaker')
+		];
+		const settings = globalState.settings!.aiTranscriptionSettings;
+		const session = new TranscriptCleanupSession(
+			globalState.currentProject!,
+			settings,
+			globalState.settings!.aiTranslationSettings
+		);
+		session.initializeCleanupOnly();
+		const source = session.result!;
+		const analysis = { corrections: [], quotes: [], breakAfter: [], punctuationAfter: [] };
+		vi.mocked(cleanupAITranscript).mockResolvedValueOnce({
+			...reportFor(source),
+			paused: true,
+			nextBatchIndex: 1,
+			totalBatches: 3,
+			analyses: [analysis],
+			errors: ['Old batch error']
+		});
+		await session.startTranscriptCleanup();
+		settings.cleanupBatchWords = 280;
+		const expectedBatches = session.cleanupBatchCount;
+		vi.mocked(cleanupAITranscript).mockImplementationOnce(async (result, options) => {
+			expect(result).toEqual(source);
+			expect(options.batchWords).toBe(280);
+			expect(options.resume).toEqual({ analyses: [], errors: [], nextBatchIndex: 0 });
+			expect(globalState.getSubtitlesEditorState.aiTranscriptCleanup?.totalBatches).toBe(
+				expectedBatches
+			);
+			return reportFor(result);
+		});
+		await session.startTranscriptCleanup();
+		expect(session.cleanupCompleted).toBe(true);
 	});
 
 	it('clears the running state when saving settings fails before transcription starts', async () => {
@@ -369,6 +454,33 @@ describe('Project transcription application and sessions', () => {
 		open(mocks.unlisten);
 		await rejected;
 		expect(mocks.unlisten).toHaveBeenCalledOnce();
+	});
+
+	it('saves poem mode in the checkpoint and waits for final line boundaries before applying changes', async () => {
+		globalState.getSubtitleTrack.clips = [new SubtitleClip(0, 1000, 'Original', 'Speaker')];
+		const settings = globalState.settings!.aiTranscriptionSettings;
+		settings.poemMode = true;
+		const session = new TranscriptCleanupSession(
+			globalState.currentProject!,
+			settings,
+			globalState.settings!.aiTranslationSettings
+		);
+		session.initializeCleanupOnly();
+		const source = session.result!;
+		vi.mocked(cleanupAITranscript).mockImplementationOnce(async (_, options) => {
+			expect(options.poemMode).toBe(true);
+			expect(globalState.getSubtitlesEditorState.aiTranscriptCleanup?.poemMode).toBe(true);
+			const interim = { ...source, segments: [{ ...source.segments[0], text: 'Interim' }] };
+			await options.onBatchComplete?.(reportFor(interim), 'batch-1');
+			expect(globalState.getSubtitleClips[0].text).toBe('Original');
+			return reportFor({ ...source, segments: [{ ...source.segments[0], text: 'Whole verse' }] });
+		});
+		await session.startTranscriptCleanup();
+		expect(globalState.getSubtitleClips[0].text).toBe('Whole verse');
+		expect(globalState.getSubtitlesEditorState.aiTranscriptCleanup).toBeNull();
+		ProjectHistoryManager.undo();
+		ProjectHistoryManager.undo();
+		expect(globalState.getSubtitleClips[0].text).toBe('Original');
 	});
 
 	it('does not apply a cleanup response after its project session is disposed', async () => {

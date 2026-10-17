@@ -70,6 +70,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-speakers", type=int)
     parser.add_argument("--max-speakers", type=int)
     parser.add_argument("--align-segments-json")
+    parser.add_argument("--align-segments-file")
     parser.add_argument("--clip-only", action="store_true")
     return parser.parse_args()
 
@@ -608,7 +609,11 @@ def run_forced_alignment(args: argparse.Namespace, selected_device: str) -> dict
     """Align caller-provided transcript segments without running ASR or diarization."""
     import whisperx
 
-    requested_segments = json.loads(args.align_segments_json or "[]")
+    if args.align_segments_file:
+        with open(args.align_segments_file, encoding="utf-8") as segments_file:
+            requested_segments = json.load(segments_file)
+    else:
+        requested_segments = json.loads(args.align_segments_json or "[]")
     if not isinstance(requested_segments, list) or not requested_segments:
         raise RuntimeError("At least one transcript segment is required for alignment.")
 
@@ -689,7 +694,7 @@ def run_requested_operation(
     args: argparse.Namespace, selected_device: str, token: str
 ) -> dict[str, Any]:
     """Run the transcription operation selected by the command-line arguments."""
-    if args.align_segments_json:
+    if args.align_segments_json or args.align_segments_file:
         return run_forced_alignment(args, selected_device)
     if args.clip_only:
         return run_clip_transcription(args, selected_device)
@@ -710,6 +715,7 @@ def main() -> None:
     if (
         not token
         and not args.align_segments_json
+        and not args.align_segments_file
         and not args.clip_only
         and should_run_diarization(args.min_speakers, args.max_speakers)
     ):

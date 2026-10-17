@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { loadLocale } from '$lib/i18n/i18n-util.sync';
+import { setLocale } from '$lib/i18n/i18n-svelte';
 
 const invokeMock = vi.hoisted(() => vi.fn());
 vi.mock('@tauri-apps/api/core', () => ({ invoke: invokeMock }));
@@ -677,5 +679,78 @@ describe('AITranscriptCleanup overlapping batch merge', () => {
 		);
 
 		expect(merged.quotes).toEqual([]);
+	});
+});
+
+describe('AITranscriptCleanup poem mode', () => {
+	it('requests poetic line endings and regroups existing clips into whole verses', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () => new Response(JSON.stringify({ verses: {} }), { status: 200 }))
+		);
+		invokeMock.mockImplementation(async (command) =>
+			command === 'run_ai_transcript_segmentation_batch_streaming'
+				? {
+						parsed: {
+							boundaries: [
+								{ after: 3, kind: 'sentence' },
+								{ after: 9, kind: 'sentence' }
+							]
+						}
+					}
+				: { parsed: { c: [], quotes: [], p: [], x: [] } }
+		);
+		const lines = ['محمد أشرف الأعراب والعجم', 'محمد خير من يمشي على قدم'];
+		const source = transcription(lines.join(' ').split(' '));
+		source.segments = source.segments[0].words.map((word, index) => ({
+			clipId: index,
+			text: word.word,
+			start: word.start * 3,
+			end: word.end * 3,
+			speaker: 'SPEAKER_00',
+			words: [{ ...word, start: word.start * 3, end: word.end * 3 }]
+		}));
+		const report = await cleanupAITranscript(source, {
+			apiKey: 'test-key',
+			endpoint: 'https://example.invalid/chat/completions',
+			model: 'deepseek-chat',
+			maxWords: 2,
+			maxChars: 20,
+			maxGap: 1.2,
+			poemMode: true
+		});
+		expect(report.result.segments.map((segment) => segment.text)).toEqual(lines);
+		expect(report.result.segments[0].end).toBe(source.segments[3].end);
+		expect(report.result.segments[1].start).toBe(source.segments[4].start);
+		expect(
+			invokeMock.mock.calls.find(
+				([command]) => command === 'run_ai_transcript_segmentation_batch_streaming'
+			)?.[1].request.batch.poemMode
+		).toBe(true);
+	});
+
+	it('reports failed verse detection instead of merging all words into one subtitle', async () => {
+		loadLocale('en');
+		setLocale('en');
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async () => new Response(JSON.stringify({ verses: {} }), { status: 200 }))
+		);
+		invokeMock.mockImplementation(async (command) =>
+			command === 'run_ai_transcript_segmentation_batch_streaming'
+				? { parsed: { boundaries: [] } }
+				: { parsed: { c: [], quotes: [], p: [], x: [] } }
+		);
+		await expect(
+			cleanupAITranscript(transcription(['محمد', 'أشرف', 'الأعراب', 'والعجم']), {
+				apiKey: 'test-key',
+				endpoint: 'https://example.invalid/chat/completions',
+				model: 'deepseek-chat',
+				maxWords: 2,
+				maxChars: 20,
+				maxGap: 1.2,
+				poemMode: true
+			})
+		).rejects.toThrow('Complete verse boundaries could not be identified');
 	});
 });

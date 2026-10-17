@@ -778,13 +778,26 @@ pub async fn align_transcript_words_local_whisperx(
         ));
     }
 
+    // Le texte complet peut dépasser la limite de ligne de commande Windows.
+    let stamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|error| error.to_string())?
+        .as_nanos();
+    let segments_path = std::env::temp_dir().join(format!("minbarstudio-align-{}.json", stamp));
+    let _segments_guard = TempFileGuard(segments_path.clone());
+    fs::write(
+        &segments_path,
+        serde_json::to_vec(&segments).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())?;
+
     let extra_args = vec![
         "--language".to_string(),
         selected_language,
         "--device".to_string(),
         selected_device,
-        "--align-segments-json".to_string(),
-        serde_json::to_string(&segments).map_err(|error| error.to_string())?,
+        "--align-segments-file".to_string(),
+        segments_path.to_string_lossy().to_string(),
     ];
 
     run_local_segmentation_script(

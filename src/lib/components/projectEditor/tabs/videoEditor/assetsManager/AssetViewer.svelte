@@ -1,8 +1,9 @@
 <script lang="ts">
+	import { addAssetToTimeline } from '$lib/components/projectEditor/tabs/videoEditor/assetsManager/assetTimelineActions';
 	import { AssetType, SourceType, type Asset } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc, invoke } from '@tauri-apps/api/core';
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { join } from '@tauri-apps/api/path';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -32,6 +33,18 @@
 	let isPreviewOpen = $state(false);
 	let isRedownloading = $state(false);
 	let mediaKey = $state(0);
+	let displayedDurationError: string | null = null;
+
+	$effect(() => {
+		const message = asset.durationLoadError;
+		if (!message) {
+			displayedDurationError = null;
+			return;
+		}
+		if (!asset.durationLoadErrorCode || displayedDurationError === message) return;
+		displayedDurationError = message;
+		untrack(() => void ModalManager.errorModal(get(LL).editor.ffmpegRequired(), message));
+	});
 
 	function assetTypeLabel(type: string): string {
 		const ll = get(LL);
@@ -143,7 +156,7 @@
 			return;
 		}
 
-		asset.addToTimeline(video, audio);
+		addAssetToTimeline(globalState.currentProject!, asset, video, audio);
 	}
 
 	async function redownloadAsset() {

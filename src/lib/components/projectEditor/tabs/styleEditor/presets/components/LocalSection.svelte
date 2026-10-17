@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { importStylesFromFile, resetProjectStyles } from '../actions/styleActions';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { getResolutionLabel } from '../actions/presetUtils';
@@ -25,7 +26,7 @@
 			<button
 				class="text-thirdly underline underline-offset-2 transition-colors hover:text-primary"
 				type="button"
-				onclick={() => globalState.getVideoStyle.importStylesFromFile()}
+				onclick={() => importStylesFromFile(globalState.currentProject!)}
 			>
 				{$LL.style.chooseFile()}
 			</button>
@@ -39,7 +40,7 @@
 			<button
 				class="text-thirdly underline underline-offset-2 transition-colors hover:text-primary"
 				type="button"
-				onclick={() => globalState.getVideoStyle.resetStyles()}
+				onclick={() => resetProjectStyles(globalState.currentProject!)}
 			>
 				{$LL.common.reset()}
 			</button>

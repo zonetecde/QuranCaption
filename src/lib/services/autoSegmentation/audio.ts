@@ -1,5 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { globalState } from '$lib/runes/main.svelte';
+import type { Project } from '$lib/classes/Project';
+import { TrackType } from '$lib/classes/enums';
 import type {
 	AutoSegmentationAudioClip,
 	AutoSegmentationAudioInfo,
@@ -9,12 +11,16 @@ import type {
 
 /**
  * Extrait les clips audio présents sur la timeline du projet.
+ * @param {Project | null} [project] Projet consulté, actif par défaut pour les appels historiques.
  *
  * @returns {AutoSegmentationAudioClip[]} Liste des clips audio triés par temps de début.
  */
-export function getAutoSegmentationAudioClips(): AutoSegmentationAudioClip[] {
-	const project = globalState.currentProject;
-	const audioTrack = globalState.getAudioTrack;
+export function getAutoSegmentationAudioClips(
+	project: Project | null = globalState.currentProject
+): AutoSegmentationAudioClip[] {
+	const audioTrack = project?.content.timeline.tracks.find(
+		(track) => track.type === TrackType.Audio
+	);
 
 	if (!project || !audioTrack) return [];
 

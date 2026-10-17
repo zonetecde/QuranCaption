@@ -45,6 +45,33 @@ elle ne prétend pas interrompre une requête fournisseur déjà partie.
 `SpeakerLibrary.ts` gère les intervenants et leurs mutations annulables. La demande de confirmation
 et le montage de la modale appartiennent à `components/modals/speakerRemoval.ts`.
 
+Les lectures et mutations de transcription et d'intervenants reçoivent leur `Project` explicitement.
+Les lectures peuvent consulter un projet inactif ; les commandes annulables refusent de modifier un
+projet qui n'est plus actif. Les réglages vocaux et linguistiques sont injectés dans les sessions.
+`ProjectHistoryManager.track(label, mutation, project)` vérifie le propriétaire avant d'exécuter la
+mutation. Les accès au projet actif qui protègent le cycle de vie restent aux frontières
+applicatives.
+
+`AudioEffectsService.ts` prépare la préécoute et traite la source audio. Il ajoute le nouvel asset
+et remplace la source du clip dans une seule entrée d'historique, après le traitement natif. Une
+fermeture, un changement de projet ou un remplacement de source rend le résultat obsolète. La modale
+conserve la lecture Howler, les paramètres, les messages et le nettoyage du fichier de préécoute.
+
+Les bornes d'un clip sont validées dans `Clip`. Les opérations qui ajustent aussi son voisin sont
+portées par `Track.updateClipStartTime` et `Track.updateClipEndTime` : elles mettent à jour les
+alignements des deux sous-titres et sont annulables ensemble. Le calcul de largeur en pixels
+appartient à `timelineClipLayout.ts`, dans l'interface, et reçoit le projet affiché.
+
+Les confirmations d'ajout d'assets et d'adaptation des dimensions appartiennent à
+`assetsManager/assetTimelineActions.ts`. `Asset` expose ses erreurs d'analyse ; `AssetViewer` décide
+de leur présentation. Le modèle ne monte plus de modale et ne consulte plus `globalState`.
+
+Les dialogues d'import et de remise à zéro des styles, ainsi que la navigation vers une catégorie,
+appartiennent à `presets/actions/styleActions.ts`. `StylePresetApplicationService.ts` prépare les
+styles et les clips personnalisés sur des copies, puis les applique dans une transaction synchrone.
+Les choix d'association de traductions sont des arguments de cette commande. Le preset source n'est
+pas modifié. Les trois cibles Minbar et les transformations média sont conservées lors de l'import.
+
 ## Conservation des projets et des éditions
 
 Le registre de sérialisation applique la migration des anciens `SubtitleClip` avant de restaurer
@@ -61,8 +88,20 @@ traduction dont le texte source a changé est signalée pour révision, avec son
 Les mutations de clips, d'intervenants et de points de reprise passent par `ProjectHistoryManager`.
 Les états de progression temporaires restent dans les sessions, sans être sérialisés avec le projet.
 
+## Limites du découplage actuel
+
+Le moteur hérité n'est pas entièrement indépendant de l'application : `Track` contient encore des
+opérations Quran et des interactions d'interface ; `VideoStyle` conserve des accès au contexte de
+rendu et certaines opérations sur les contenus personnalisés. `ProjectTranslation` regroupe encore
+les langues Minbar, le téléchargement des traductions Quran et des commandes avec confirmation. Les
+textes prédéfinis utilisent également le contexte de l'éditeur. Ces modules ne doivent pas être
+présentés comme un domaine pur ; les nouvelles commandes de transcription n'ont pas à dépendre de
+leurs interactions d'interface.
+
 ## Vérification
 
 Utiliser `npm run check`, `npm run test:unit -- --run` et les tests navigateur des parcours
 modifiés. Les tests couvrent notamment la migration des projets, la conservation des éditions,
 undo/redo, les erreurs avant lancement et les réponses reçues après destruction d'une session.
+`ProjectOperations.spec.ts` couvre aussi la propriété des données, le redimensionnement des voisins,
+les effets audio devenus obsolètes et l'absence de mutation partielle lors de l'import de styles.

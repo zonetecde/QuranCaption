@@ -31,7 +31,11 @@
 
 	let { close, cleanupOnly = false } = $props<{ close: () => void; cleanupOnly?: boolean }>();
 	const settings = globalState.settings!.aiTranscriptionSettings;
-	const session = new TranscriptCleanupSession(globalState.currentProject!, settings);
+	const session = new TranscriptCleanupSession(
+		globalState.currentProject!,
+		settings,
+		globalState.settings!.aiTranslationSettings
+	);
 	const runtime = new TranscriptionRuntimeSession(settings, session);
 	const diarizationEnabled = $derived(
 		settings.provider === 'local' &&
@@ -102,7 +106,7 @@
 	const existingSubtitleCount = $derived(
 		globalState.getSubtitleTrack.clips.filter((clip) => clip instanceof SubtitleClip).length
 	);
-	const existingSpeakerNames = $derived(() => getVisibleProjectSpeakers());
+	const existingSpeakerNames = $derived(() => getVisibleProjectSpeakers(session.project));
 
 	const streamedCleanupBatches = $derived(() =>
 		Object.values(session.cleanupBatchStreams).sort((left, right) => left.index - right.index)
@@ -274,14 +278,14 @@
 		const normalized = newSpeakerName.trim();
 		if (!normalized) return;
 
-		const speakerName = addProjectSpeaker(normalized);
+		const speakerName = addProjectSpeaker(session.project, normalized);
 		if (!speakerName) return;
 		session.speakerMap[speakerId] = speakerName;
 		cancelAddSpeaker();
 	}
 
 	async function removeAvailableSpeaker(speakerName: string): Promise<void> {
-		const outcome = await requestProjectSpeakerRemoval(speakerName);
+		const outcome = await requestProjectSpeakerRemoval(session.project, speakerName);
 		if (!outcome.removed) return;
 
 		for (const speakerId of Object.keys(session.speakerMap)) {

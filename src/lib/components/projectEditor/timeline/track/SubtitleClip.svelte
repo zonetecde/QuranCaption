@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getTimelineClipWidth } from './timelineClipLayout';
 	import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 
 	import {
@@ -283,7 +284,7 @@
 		if (dragStartX === null) return;
 		const cursorPosition = globalState.currentProject?.projectEditorState.timeline.cursorPosition;
 		if (cursorPosition === undefined) return;
-		clip.updateStartTime(cursorPosition);
+		track.updateClipStartTime(clip.id, cursorPosition);
 		didDrag = true;
 	}
 
@@ -333,7 +334,7 @@
 		if (dragStartX === null) return;
 		const cursorPosition = globalState.currentProject?.projectEditorState.timeline.cursorPosition;
 		if (cursorPosition === undefined) return;
-		clip.updateEndTime(cursorPosition);
+		track.updateClipEndTime(clip.id, cursorPosition);
 		didDrag = true;
 	}
 
@@ -643,7 +644,10 @@
 		globalState.currentProject!.projectEditorState.currentTab === 'Video editor'
 			? 'cursor-pointer'
 			: '')}
-	style="width: {clip.getWidth()}px; left: {positionLeft()}px;"
+	style="width: {getTimelineClipWidth(
+		clip,
+		globalState.currentProject
+	)}px; left: {positionLeft()}px;"
 	oncontextmenu={(e) => {
 		e.preventDefault();
 		contextMenu!.show(e);

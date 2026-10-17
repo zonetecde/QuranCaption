@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+﻿import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const invokeMock = vi.hoisted(() => vi.fn());
 vi.mock('@tauri-apps/api/core', () => ({ invoke: invokeMock }));
@@ -8,6 +8,8 @@ vi.mock('$lib/services/autoSegmentation/audio', () => ({
 	]
 }));
 
+import { Project } from '$lib/classes/Project';
+import { ProjectDetail } from '$lib/classes/ProjectDetail.svelte';
 import type { AITranscriptionSettings } from '$lib/classes/Settings.svelte';
 import {
 	loadGroqApiKey,
@@ -62,7 +64,9 @@ describe('AITranscription Groq provider', () => {
 		};
 		invokeMock.mockResolvedValue(response);
 
-		await expect(runAITranscription(settings, 'gsk_user')).resolves.toEqual(response);
+		await expect(
+			runAITranscription(new Project(new ProjectDetail('Lecture', 'Speaker')), settings, 'gsk_user')
+		).resolves.toEqual(response);
 		expect(invokeMock).toHaveBeenCalledWith('transcribe_audio_groq', {
 			audioPath: 'C:/audio/sample.wav',
 			audioClips: [{ path: 'C:/audio/sample.wav', startMs: 0, endMs: 1500 }],

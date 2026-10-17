@@ -257,6 +257,47 @@ export class Track extends SerializableBase {
 	type: TrackType = $state(TrackType.Unknown);
 	clips: Clip[] = $state([]);
 
+	/**
+	 * Déplace le début d'un clip et la fin de son voisin dans une seule action annulable.
+	 * @param {number} clipId Identifiant du clip de cette piste.
+	 * @param {number} newStartTime Nouvelle borne en millisecondes.
+	 * @returns {boolean} Vrai si les deux durées restent supérieures ou égales à 100 ms.
+	 */
+	updateClipStartTime(clipId: number, newStartTime: number): boolean {
+		const clip = this.clips.find((clip) => clip.id === clipId);
+		if (
+			!clip ||
+			!Number.isFinite(newStartTime) ||
+			newStartTime < 0 ||
+			clip.endTime - newStartTime < 100
+		)
+			return false;
+		const previous = this.getClipBefore(clipId);
+		if (previous && previous.id !== clipId && newStartTime - 1 - previous.startTime < 100)
+			return false;
+		return ProjectHistoryManager.track('resize clip start', () => {
+			if (previous && previous.id !== clipId) previous.setEndTime(newStartTime - 1);
+			return clip.setStartTime(newStartTime);
+		});
+	}
+
+	/**
+	 * Déplace la fin d'un clip et le début de son voisin dans une seule action annulable.
+	 * @param {number} clipId Identifiant du clip de cette piste.
+	 * @param {number} newEndTime Nouvelle borne en millisecondes.
+	 * @returns {boolean} Vrai si les deux durées restent supérieures ou égales à 100 ms.
+	 */
+	updateClipEndTime(clipId: number, newEndTime: number): boolean {
+		const clip = this.clips.find((clip) => clip.id === clipId);
+		if (!clip || !Number.isFinite(newEndTime) || newEndTime - clip.startTime < 100) return false;
+		const next = this.getClipAfter(clipId);
+		if (next && next.id !== clipId && next.endTime - (newEndTime + 1) < 100) return false;
+		return ProjectHistoryManager.track('resize clip end', () => {
+			if (next && next.id !== clipId) next.setStartTime(newEndTime + 1);
+			return clip.setEndTime(newEndTime);
+		});
+	}
+
 	constructor(type: TrackType) {
 		super();
 		this.type = type;

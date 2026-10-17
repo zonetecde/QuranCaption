@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { addAssetToTimeline } from '$lib/components/projectEditor/tabs/videoEditor/assetsManager/assetTimelineActions';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mount, onDestroy, onMount } from 'svelte';
 	import AssetViewer from './AssetViewer.svelte';
@@ -211,16 +212,19 @@
 	 * @returns {Promise<void>}
 	 */
 	async function addSelectedAssets(video: boolean, audio: boolean): Promise<void> {
+		const project = globalState.currentProject;
+		if (!project) return;
 		ProjectHistoryManager.begin('add selected assets to timeline');
 		try {
 			for (const asset of selectedAssets) {
 				const asVideo = video && asset.type !== AssetType.Audio;
 				const asAudio = audio && asset.type !== AssetType.Image;
 				if ((!asVideo && !asAudio) || !(await isAssetReady(asset))) continue;
-				await asset.addToTimeline(asVideo, asAudio);
+				if (globalState.currentProject !== project) return;
+				await addAssetToTimeline(project, asset, asVideo, asAudio);
 			}
 		} finally {
-			ProjectHistoryManager.commit();
+			if (globalState.currentProject === project) ProjectHistoryManager.commit();
 		}
 	}
 </script>

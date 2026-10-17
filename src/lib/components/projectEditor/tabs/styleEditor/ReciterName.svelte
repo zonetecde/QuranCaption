@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { highlightStyleCategory } from '$lib/components/projectEditor/tabs/styleEditor/presets/actions/styleActions';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import CompositeText from './CompositeText.svelte';
@@ -74,7 +75,7 @@
 {#if reciterNameSettings().show && reciter().latin !== 'not set' && timedReciterOpacity() > 0}
 	<div
 		ondblclick={() => {
-			globalState.getVideoStyle.highlightCategory('global', 'reciter-name');
+			highlightStyleCategory(globalState.currentProject!, 'global', 'reciter-name');
 		}}
 		use:mouseDrag={{
 			target: 'global',

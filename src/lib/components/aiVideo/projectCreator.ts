@@ -1,3 +1,4 @@
+import { addAssetToTimeline } from '$lib/components/projectEditor/tabs/videoEditor/assetsManager/assetTimelineActions';
 import {
 	Project,
 	ProjectContent,
@@ -162,7 +163,7 @@ export async function createAiVideoProject(): Promise<void> {
 
 			if (backgroundVideoAsset) {
 				await backgroundVideoAsset.ensureDurationLoaded();
-				await backgroundVideoAsset.addToTimeline(true, false, true);
+				await addAssetToTimeline(project, backgroundVideoAsset, true, false, true);
 			}
 		}
 
@@ -199,7 +200,7 @@ export async function createAiVideoProject(): Promise<void> {
 
 		if (addedAsset) {
 			await addedAsset.ensureDurationLoaded();
-			await addedAsset.addToTimeline(false, true);
+			await addAssetToTimeline(project, addedAsset, false, true);
 		}
 
 		const backgroundVideoClip = globalState.getVideoTrack.clips.find(

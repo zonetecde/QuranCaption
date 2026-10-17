@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { highlightStyleCategory } from '$lib/components/projectEditor/tabs/styleEditor/presets/actions/styleActions';
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 	import {
 		buildTranslationInlineTextSegments,
@@ -924,7 +925,11 @@
 
 <p
 	ondblclick={() => {
-		globalState.getVideoStyle.highlightCategory('translation', edition as StyleCategoryName);
+		highlightStyleCategory(
+			globalState.currentProject!,
+			'translation',
+			edition as StyleCategoryName
+		);
 		const subtitle = currentSubtitle();
 		if (subtitle) globalState.openQuickTimelineEditor(subtitle.id, 'translation');
 	}}

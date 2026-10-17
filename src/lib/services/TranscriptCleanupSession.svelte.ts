@@ -1,7 +1,9 @@
 import type { AITranscriptCleanupState } from '$lib/classes/ProjectEditorState.svelte';
 import { listen, type UnlistenFn, type EventCallback } from '@tauri-apps/api/event';
 import type { Project } from '$lib/classes/Project';
-import type { AITranscriptionSettings } from '$lib/classes/Settings.svelte';
+import { SubtitleClip } from '$lib/classes/clips/SubtitleClip.svelte';
+import { TrackType } from '$lib/classes/enums';
+import type { AITranscriptionSettings, AITranslationSettings } from '$lib/classes/Settings.svelte';
 import type {
 	AITranscriptionResult,
 	SpeakerNameMap,
@@ -45,10 +47,12 @@ export class TranscriptCleanupSession {
 	 * Capture le projet et ses réglages pour toute la durée du traitement.
 	 * @param {Project} project Projet ouvert par la modale.
 	 * @param {AITranscriptionSettings} settings Réglages de transcription.
+	 * @param {AITranslationSettings} aiSettings Réglages du nettoyage linguistique.
 	 */
 	constructor(
-		private readonly project: Project,
-		private readonly settings: AITranscriptionSettings
+		readonly project: Project,
+		private readonly settings: AITranscriptionSettings,
+		private readonly aiSettings: AITranslationSettings
 	) {}
 
 	/** @returns {number} Nombre de lots estimé pour le résultat courant. */
@@ -101,7 +105,16 @@ export class TranscriptCleanupSession {
 		clipIds: number[] = []
 	): ReturnType<typeof applyAITranscription> {
 		this.ensureActive();
-		return applyAITranscription(result, speakerMap, replaceExisting, clipIds, this.project);
+		const applied = applyAITranscription(
+			this.project,
+			result,
+			speakerMap,
+			replaceExisting,
+			clipIds,
+			this.settings
+		);
+		globalState.updateVideoPreviewUI();
+		return applied;
 	}
 
 	/**
@@ -119,7 +132,11 @@ export class TranscriptCleanupSession {
 				}
 			}
 			const ids = new Set(this.appliedClipIds);
-			const appliedClips = globalState.getSubtitleClips.filter((clip) => ids.has(clip.id));
+			const appliedClips = this.project.content.timeline
+				.getFirstTrack(TrackType.Subtitle)
+				.clips.filter(
+					(clip): clip is SubtitleClip => clip instanceof SubtitleClip && ids.has(clip.id)
+				);
 			if (appliedClips.length === this.result.segments.length) {
 				this.result = {
 					...this.result,
@@ -163,7 +180,7 @@ export class TranscriptCleanupSession {
 			});
 			return;
 		}
-		const snapshot = buildAITranscriptionFromSubtitleTrack();
+		const snapshot = buildAITranscriptionFromSubtitleTrack(this.project);
 		this.result = snapshot.result;
 		this.speakerMap = snapshot.speakerMap;
 		this.appliedClipIds = snapshot.clipIds;
@@ -175,7 +192,7 @@ export class TranscriptCleanupSession {
 	 */
 	async startTranscriptCleanup(): Promise<void> {
 		if (!this.result || this.cleanupRunning) return;
-		const aiSettings = globalState.settings!.aiTranslationSettings;
+		const aiSettings = this.aiSettings;
 		const editorState = this.project.projectEditorState.subtitlesEditor;
 		const apiKey = aiSettings.openAiApiKey.trim();
 		const endpoint = aiSettings.textAiApiEndpoint.trim();
@@ -186,7 +203,7 @@ export class TranscriptCleanupSession {
 		}
 		let task = editorState.aiTranscriptCleanup;
 		if (!task) {
-			const snapshot = buildAITranscriptionFromSubtitleTrack();
+			const snapshot = buildAITranscriptionFromSubtitleTrack(this.project);
 			const ids = new Set(this.appliedClipIds);
 			this.result = {
 				...snapshot.result,

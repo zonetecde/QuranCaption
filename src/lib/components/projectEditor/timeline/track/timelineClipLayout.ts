@@ -1,3 +1,5 @@
+import type { Project } from '$lib/classes/Project';
+
 export type TimelinePositionedClip<T> = {
 	clip: T;
 	laneIndex: number;
@@ -45,4 +47,21 @@ export function getTimelineClipLayout<T>(
 	});
 
 	return { clips: positionedClips, laneCount: laneEndTimes.length };
+}
+
+/**
+ * Calcule la largeur d'affichage sans introduire de dépendance UI dans les clips.
+ * @param {{ duration: number; type?: string; getAlwaysShow?: () => boolean }} clip Clip ou adaptateur visuel.
+ * @param {Project | null} project Projet affiché dans la timeline.
+ * @returns {number} Largeur en pixels au zoom courant.
+ */
+export function getTimelineClipWidth(
+	clip: { duration: number; type?: string; getAlwaysShow?: () => boolean },
+	project: Project | null
+): number {
+	const zoom = project?.projectEditorState.timeline.zoom ?? 0;
+	if (clip.getAlwaysShow?.() || (clip.duration === 0 && clip.type === 'Asset')) {
+		return (project?.content.timeline.getLongestTrackDuration().toSeconds() ?? 0) * zoom;
+	}
+	return (clip.duration / 1000) * zoom;
 }

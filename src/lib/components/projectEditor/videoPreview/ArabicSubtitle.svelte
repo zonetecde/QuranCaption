@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { highlightStyleCategory } from '$lib/components/projectEditor/tabs/styleEditor/presets/actions/styleActions';
 	import { getTranscriptReferenceRenderParts } from '$lib/components/projectEditor/videoPreview/helpers/transcriptReferences';
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
@@ -920,7 +921,7 @@
 	<!-- Le display: block est appliqué partout pour garder la preview normale alignée avec la preview d'export. Sans cela, modern-screenshot peut décaler le dernier mot/numéro de verset. -->
 	<p
 		ondblclick={() => {
-			globalState.getVideoStyle.highlightCategory('arabic', 'general');
+			highlightStyleCategory(globalState.currentProject!, 'arabic', 'general');
 			const subtitle = currentSubtitle();
 			if (subtitle) globalState.openQuickTimelineEditor(subtitle.id, 'subtitle');
 		}}

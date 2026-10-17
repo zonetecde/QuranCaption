@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { addAssetToTimeline } from '$lib/components/projectEditor/tabs/videoEditor/assetsManager/assetTimelineActions';
 	import toast from 'svelte-5-french-toast';
 	import { invoke } from '@tauri-apps/api/core';
 	import { join } from '@tauri-apps/api/path';
@@ -156,6 +157,8 @@
 	 * puis propose de charger les timings natifs si la source les fournit.
 	 */
 	async function downloadAsset(): Promise<void> {
+		const project = globalState.currentProject;
+		if (!project) return;
 		if (selectedOptionIndex === -1 || selectedSurahId === -1) return;
 
 		isDownloading = true;
@@ -174,9 +177,7 @@
 		let toastId: string | undefined;
 
 		try {
-			const downloadPath = await ProjectService.getAssetFolderForProject(
-				globalState.currentProject!.detail.id
-			);
+			const downloadPath = await ProjectService.getAssetFolderForProject(project.detail.id);
 			toastId = toast.loading(
 				get(LL).editor.downloadingSurah({
 					surah: surahName.split('.')[1].trim(),
@@ -243,7 +244,8 @@
 				path: fullPath
 			});
 
-			const projectContent = globalState.currentProject!.content;
+			if (globalState.currentProject !== project) return;
+			const projectContent = project.content;
 			projectContent.addAsset(fullPath, audioUrl, sourceType, metadata);
 
 			toast.success(get(LL).editor.downloadSuccessful(), { id: toastId });
@@ -261,9 +263,9 @@
 						true
 					);
 
-					if (confirmTimingLoad) {
-						await addedAsset.addToTimeline(false, true);
-						await runNativeSegmentation(addedAsset.id);
+					if (confirmTimingLoad && globalState.currentProject === project) {
+						await addAssetToTimeline(project, addedAsset, false, true);
+						if (globalState.currentProject === project) await runNativeSegmentation(addedAsset.id);
 					}
 				}
 			}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getTimelineClipWidth } from './timelineClipLayout';
 	import type { SubtitleClip, Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
@@ -105,7 +106,10 @@
 <div
 	bind:this={clipElement}
 	class="absolute inset-0 z-20 rounded-md border border-yellow-400/80 bg-yellow-500/8 overflow-hidden wbw-edit-clip"
-	style="width: {clip.getWidth()}px; left: {positionLeft()}px;"
+	style="width: {getTimelineClipWidth(
+		clip,
+		globalState.currentProject
+	)}px; left: {positionLeft()}px;"
 >
 	<div class="absolute inset-0 flex items-stretch">
 		{#each displayWords() as word, index (word.location)}

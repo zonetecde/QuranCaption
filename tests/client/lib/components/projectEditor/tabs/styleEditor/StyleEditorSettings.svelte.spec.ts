@@ -1,13 +1,16 @@
 import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { cleanup, render } from 'vitest-browser-svelte';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { tick } from 'svelte';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import StyleEditorSettings from '$lib/components/projectEditor/tabs/styleEditor/StyleEditorSettings.svelte';
 import { ProjectEditorState } from '$lib/classes/ProjectEditorState.svelte';
 import { Timeline } from '$lib/classes/Timeline.svelte';
 import { SubtitleClip, PredefinedSubtitleClip } from '$lib/classes/Clip.svelte';
-import { SubtitleTrack } from '$lib/classes/Track.svelte';
+import { CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import { globalState } from '$lib/runes/main.svelte';
+import { loadLocale } from '$lib/i18n/i18n-util.sync';
+import { setLocale } from '$lib/i18n/i18n-svelte';
 
 vi.mock('$lib/components/projectEditor/Section.svelte', async () => ({
 	default: (await import('../../../../../stubs/EmptyComponent.svelte')).default
@@ -54,6 +57,10 @@ function createSubtitle(startTime: number, endTime: number, verse: number): Subt
 }
 
 describe('style editor visual merge actions', () => {
+	beforeEach(() => {
+		loadLocale('en');
+		setLocale('en');
+	});
 	afterEach(() => {
 		cleanup();
 		vi.restoreAllMocks();
@@ -72,7 +79,7 @@ describe('style editor visual merge actions', () => {
 		globalState.currentProject = {
 			projectEditorState,
 			content: {
-				timeline: new Timeline([subtitleTrack]),
+				timeline: new Timeline([subtitleTrack, new CustomTextTrack()]),
 				projectTranslation: {
 					addedTranslationEditions: []
 				},
@@ -89,7 +96,7 @@ describe('style editor visual merge actions', () => {
 
 		await expect.element(component.getByTestId('Merge Arabic')).toHaveClass(/(^|\s)btn(\s|$)/);
 		await expect
-			.element(component.getByText('Merge Arabic'))
+			.element(component.getByTestId('Merge Arabic'))
 			.not.toHaveClass(/(^|\s)btn-accent(\s|$)/);
 		await expect.element(component.getByTestId('Merge Translation')).toHaveClass(/(^|\s)btn(\s|$)/);
 		await expect
@@ -115,7 +122,7 @@ describe('style editor visual merge actions', () => {
 		globalState.currentProject = {
 			projectEditorState,
 			content: {
-				timeline: new Timeline([subtitleTrack]),
+				timeline: new Timeline([subtitleTrack, new CustomTextTrack()]),
 				projectTranslation: {
 					addedTranslationEditions: []
 				},
@@ -126,13 +133,13 @@ describe('style editor visual merge actions', () => {
 		const component = render(StyleEditorSettings);
 
 		await expect
-			.element(component.getByText('Merge Arabic'))
+			.element(component.getByTestId('Merge Arabic'))
 			.not.toHaveClass(/(^|\s)btn-accent(\s|$)/);
 		await expect
-			.element(component.getByText('Merge Translation'))
+			.element(component.getByTestId('Merge Translation'))
 			.toHaveClass(/(^|\s)btn-accent(\s|$)/);
 		await expect
-			.element(component.getByText('Merge Both'))
+			.element(component.getByTestId('Merge Both'))
 			.not.toHaveClass(/(^|\s)btn-accent(\s|$)/);
 		await expect.element(component.getByText('Unmerge Group')).toBeVisible();
 	});
@@ -150,7 +157,7 @@ describe('style editor visual merge actions', () => {
 		globalState.currentProject = {
 			projectEditorState,
 			content: {
-				timeline: new Timeline([subtitleTrack]),
+				timeline: new Timeline([subtitleTrack, new CustomTextTrack()]),
 				projectTranslation: {
 					addedTranslationEditions: []
 				},
@@ -170,7 +177,7 @@ describe('style editor visual merge actions', () => {
 		globalState.currentProject = {
 			projectEditorState,
 			content: {
-				timeline: new Timeline([new SubtitleTrack()]),
+				timeline: new Timeline([new SubtitleTrack(), new CustomTextTrack()]),
 				projectTranslation: {
 					addedTranslationEditions: [
 						{ name: 'first-translation', author: 'First translation' },
@@ -182,7 +189,11 @@ describe('style editor visual merge actions', () => {
 		} as never;
 
 		const component = render(StyleEditorSettings);
-		await component.getByRole('button', { name: 'Translation' }).click();
+		const translationTab = component.container.querySelector<HTMLButtonElement>(
+			'[data-tour-id="style-subtabs"] button:last-child'
+		)!;
+		translationTab.click();
+		await tick();
 
 		await vi.waitFor(() => {
 			expect(projectEditorState.stylesEditor.currentSelectionTranslation).toBe('first-translation');

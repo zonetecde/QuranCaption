@@ -119,31 +119,33 @@ export class SubtitleClip extends ClipWithTranslation {
 	/**
 	 * Modifie les timings et leur alignement dans la même opération annulable.
 	 * @param {number} newEndTime Nouvelle borne en millisecondes.
-	 * @returns {void}
+	 * @returns {boolean} Vrai si les bornes et leur alignement ont été modifiés.
 	 */
-	override setEndTime(newEndTime: number): void {
-		ProjectHistoryManager.track('set subtitle end', () => {
-			super.setEndTime(newEndTime);
+	override setEndTime(newEndTime: number): boolean {
+		return ProjectHistoryManager.track('set subtitle end', () => {
+			if (!super.setEndTime(newEndTime)) return false;
 			if (this.endTime === newEndTime) {
 				this.retimeAlignmentAfterEndChange();
 				super.markAsManualEdit();
 			}
+			return true;
 		});
 	}
 
 	/**
 	 * Modifie les timings et leur alignement dans la même opération annulable.
 	 * @param {number} newStartTime Nouvelle borne en millisecondes.
-	 * @returns {void}
+	 * @returns {boolean} Vrai si les bornes et leur alignement ont été modifiés.
 	 */
-	override setStartTime(newStartTime: number): void {
-		ProjectHistoryManager.track('set subtitle start', () => {
+	override setStartTime(newStartTime: number): boolean {
+		return ProjectHistoryManager.track('set subtitle start', () => {
 			const previousStartTime = this.startTime;
-			super.setStartTime(newStartTime);
+			if (!super.setStartTime(newStartTime)) return false;
 			if (this.startTime === newStartTime) {
 				this.retimeAlignmentAfterStartChange(previousStartTime);
 				super.markAsManualEdit();
 			}
+			return true;
 		});
 	}
 

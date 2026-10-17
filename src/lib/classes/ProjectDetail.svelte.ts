@@ -1,3 +1,5 @@
+import type { Timeline } from './Timeline.svelte';
+import { TrackType } from './enums';
 import { SerializableBase } from './misc/SerializableBase';
 
 import { globalState } from '$lib/runes/main.svelte';
@@ -72,23 +74,31 @@ export class ProjectDetail extends SerializableBase {
 	/**
 	 * Met à jour le pourcentage de sous-titres captionnés par rapport
 	 * à la durée total de la vidéo du projet
+	 * @param {Timeline} [timeline] Timeline propriétaire des données à calculer.
+	 * @returns {void}
 	 */
-	public updateVideoDetailAttributes() {
-		this.duration = new Duration(globalState.getAudioTrack.getDuration().ms || 0);
-		this.updateTranscriptionProgress();
+	public updateVideoDetailAttributes(
+		timeline: Timeline = globalState.currentProject!.content.timeline
+	) {
+		const totalDuration = timeline.getFirstTrack(TrackType.Audio).getDuration().ms || 0;
+		const transcribedDuration = timeline.getFirstTrack(TrackType.Subtitle).getDuration().ms || 0;
+		this.duration = new Duration(totalDuration);
+		this.updateTranscriptionProgress(transcribedDuration, totalDuration);
 	}
 
-	private updateTranscriptionProgress() {
-		const transcribedDuration = globalState.getSubtitleTrack.getDuration().ms || 0;
-
-		const totalDuration = globalState.getAudioTrack.getDuration().ms || 0;
-
+	/**
+	 * Calcule la progression à partir des durées du projet propriétaire.
+	 * @param {number} transcribedDuration Durée sous-titrée en millisecondes.
+	 * @param {number} totalDuration Durée audio en millisecondes.
+	 * @returns {void}
+	 */
+	private updateTranscriptionProgress(transcribedDuration: number, totalDuration: number) {
 		let percentage = totalDuration > 0 ? (transcribedDuration / totalDuration) * 100 : 0;
 		if (percentage >= 97) {
 			percentage = 100;
 		}
 
-		globalState.currentProject!.detail.transcriptionProgress = Math.floor(percentage);
+		this.transcriptionProgress = Math.floor(percentage);
 	}
 
 	private updateVerseRange() {

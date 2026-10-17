@@ -1,3 +1,4 @@
+import { applyStylePreset } from '$lib/services/StylePresetApplicationService';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	Category,
@@ -117,10 +118,7 @@ describe('Project transcription application and sessions', () => {
 		project.content.videoStyle = videoStyle;
 		globalState.getStylesState.currentPanel = 'appearance';
 		ProjectHistoryManager.resetForCurrentProject();
-		vi.spyOn(videoStyle, 'ensureStylesSchemaUpToDate').mockImplementation(async () => {
-			globalState.getStylesState.currentPanel = 'video';
-			return true;
-		});
+		vi.spyOn(VideoStyle.prototype, 'ensureStylesSchemaUpToDate').mockResolvedValue(true);
 		const imported = new StylesData('global', [
 			new Category({
 				id: 'general',
@@ -133,8 +131,11 @@ describe('Project transcription application and sessions', () => {
 			})
 		]);
 		imported.overrides[55] = { 'media-rotation': -80 };
-		await videoStyle.importStyles({ videoStyle: { styles: [imported.toJSON()] }, customClips: [] });
-		const applied = videoStyle.getStylesOfTarget('global');
+		await applyStylePreset(project, {
+			videoStyle: { styles: [imported.toJSON()] },
+			customClips: []
+		});
+		const applied = project.content.videoStyle.getStylesOfTarget('global');
 		expect(globalState.getStylesState.currentPanel).toBe('appearance');
 		expect(applied.getEffectiveValue('media-rotation', 55)).toBe(35);
 		expect(applied.getEffectiveValue('media-scale')).toBe(140);
@@ -178,8 +179,14 @@ describe('Project transcription application and sessions', () => {
 		];
 		globalState.getSubtitleTrack.clips = [original];
 		ProjectHistoryManager.resetForCurrentProject();
-		const snapshot = buildAITranscriptionFromSubtitleTrack();
-		applyAITranscription(snapshot.result, snapshot.speakerMap, false, snapshot.clipIds);
+		const snapshot = buildAITranscriptionFromSubtitleTrack(globalState.currentProject!);
+		applyAITranscription(
+			globalState.currentProject!,
+			snapshot.result,
+			snapshot.speakerMap,
+			false,
+			snapshot.clipIds
+		);
 		const restored = globalState.getSubtitleClips[0];
 		expect(restored.id).toBe(original.id);
 		expect([restored.startTime, restored.endTime]).toEqual([500, 1500]);
@@ -200,9 +207,15 @@ describe('Project transcription application and sessions', () => {
 			english: new VerseTranslation('Authored translation', 'reviewed')
 		});
 		globalState.getSubtitleTrack.clips = [original];
-		const snapshot = buildAITranscriptionFromSubtitleTrack();
+		const snapshot = buildAITranscriptionFromSubtitleTrack(globalState.currentProject!);
 		snapshot.result.segments[0].text = 'Corrected text';
-		applyAITranscription(snapshot.result, snapshot.speakerMap, false, snapshot.clipIds);
+		applyAITranscription(
+			globalState.currentProject!,
+			snapshot.result,
+			snapshot.speakerMap,
+			false,
+			snapshot.clipIds
+		);
 		expect(globalState.getSubtitleClips[0].translations.english.text).toBe('Authored translation');
 		expect(globalState.getSubtitleClips[0].translations.english.status).toBe('to review');
 	});
@@ -236,9 +249,9 @@ describe('Project transcription application and sessions', () => {
 
 	it('rejects a result that belongs to a different project', () => {
 		const owner = globalState.currentProject!;
-		const snapshot = buildAITranscriptionFromSubtitleTrack();
+		const snapshot = buildAITranscriptionFromSubtitleTrack(globalState.currentProject!);
 		globalState.currentProject = createProject();
-		expect(() => applyAITranscription(snapshot.result, {}, true, [], owner)).toThrow();
+		expect(() => applyAITranscription(owner, snapshot.result, {}, true, [])).toThrow();
 		expect(globalState.getSubtitleClips).toHaveLength(0);
 	});
 
@@ -258,13 +271,14 @@ describe('Project transcription application and sessions', () => {
 
 	it('applies a successful vocal result through its owning project session', async () => {
 		globalState.getSubtitleTrack.clips = [new SubtitleClip(500, 1500, 'New transcript', 'voice-1')];
-		const source = buildAITranscriptionFromSubtitleTrack().result;
+		const source = buildAITranscriptionFromSubtitleTrack(globalState.currentProject!).result;
 		delete source.segments[0].clipId;
 		globalState.getSubtitleTrack.clips = [];
 		mocks.transcribe.mockResolvedValueOnce(source);
 		const session = new TranscriptCleanupSession(
 			globalState.currentProject!,
-			globalState.settings!.aiTranscriptionSettings
+			globalState.settings!.aiTranscriptionSettings,
+			globalState.settings!.aiTranslationSettings
 		);
 		const runtime = new TranscriptionRuntimeSession(
 			globalState.settings!.aiTranscriptionSettings,
@@ -284,7 +298,8 @@ describe('Project transcription application and sessions', () => {
 		globalState.getSubtitleTrack.clips = [original];
 		const session = new TranscriptCleanupSession(
 			globalState.currentProject!,
-			globalState.settings!.aiTranscriptionSettings
+			globalState.settings!.aiTranscriptionSettings,
+			globalState.settings!.aiTranslationSettings
 		);
 		session.initializeCleanupOnly();
 		const paused = {
@@ -307,7 +322,8 @@ describe('Project transcription application and sessions', () => {
 		mocks.saveSettings.mockRejectedValueOnce(new Error('Settings unavailable'));
 		const session = new TranscriptCleanupSession(
 			globalState.currentProject!,
-			globalState.settings!.aiTranscriptionSettings
+			globalState.settings!.aiTranscriptionSettings,
+			globalState.settings!.aiTranslationSettings
 		);
 		const runtime = new TranscriptionRuntimeSession(
 			globalState.settings!.aiTranscriptionSettings,
@@ -323,7 +339,8 @@ describe('Project transcription application and sessions', () => {
 		mocks.listen.mockRejectedValueOnce(new Error('Events unavailable'));
 		const session = new TranscriptCleanupSession(
 			globalState.currentProject!,
-			globalState.settings!.aiTranscriptionSettings
+			globalState.settings!.aiTranscriptionSettings,
+			globalState.settings!.aiTranslationSettings
 		);
 		const runtime = new TranscriptionRuntimeSession(
 			globalState.settings!.aiTranscriptionSettings,
@@ -343,7 +360,8 @@ describe('Project transcription application and sessions', () => {
 		);
 		const session = new TranscriptCleanupSession(
 			globalState.currentProject!,
-			globalState.settings!.aiTranscriptionSettings
+			globalState.settings!.aiTranscriptionSettings,
+			globalState.settings!.aiTranslationSettings
 		);
 		const subscription = session.subscribe('progress', () => {});
 		const rejected = expect(subscription).rejects.toThrow();
@@ -363,7 +381,8 @@ describe('Project transcription application and sessions', () => {
 		);
 		const session = new TranscriptCleanupSession(
 			globalState.currentProject!,
-			globalState.settings!.aiTranscriptionSettings
+			globalState.settings!.aiTranscriptionSettings,
+			globalState.settings!.aiTranslationSettings
 		);
 		session.initializeCleanupOnly();
 		const run = session.startTranscriptCleanup();

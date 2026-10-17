@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getTimelineClipWidth } from './timelineClipLayout';
 	import { AssetType, TrackType, AssetClip, type Clip, type Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { convertFileSrc } from '@tauri-apps/api/core';
@@ -617,7 +618,10 @@
 			? ' bg-[var(--video-clip-selection)]! ring-1 ring-[var(--video-clip-selection)]/60'
 			: '') +
 		(canMove ? ' cursor-move' : '')}
-	style="width: {clip.getWidth()}px; left: {positionLeft()}px;"
+	style="width: {getTimelineClipWidth(
+		clip,
+		globalState.currentProject
+	)}px; left: {positionLeft()}px;"
 	onclick={handleClipClick}
 	onmousedown={startClipDragging}
 	oncontextmenu={(e) => {

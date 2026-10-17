@@ -6,6 +6,10 @@ import DownloadFromQuranicUniversalAudioSection from '$lib/components/projectEdi
 import { Quran, Surah } from '$lib/classes/Quran';
 import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { setLocale } from '$lib/i18n/i18n-svelte';
+import {
+	QuranicUniversalAudioService,
+	type QuaRecitation
+} from '$lib/services/QuranicUniversalAudioService';
 
 // Hoisted mock state (vi.mock factories run before module-level vars are initialized).
 const { invoke, openUrl } = vi.hoisted(() => {
@@ -65,6 +69,16 @@ describe('DownloadFromQuranicUniversalAudioSection', () => {
 		// Initialise l'i18n en anglais pour que get(LL).editor.* résolve le texte.
 		loadLocale('en');
 		setLocale('en');
+		// Isole l'interface du cache disque et du catalogue embarqué.
+		vi.spyOn(QuranicUniversalAudioService, 'getRecitations').mockImplementation(
+			async () =>
+				((await invoke('preload_recitations')) as { recitations: QuaRecitation[] }).recitations
+		);
+		vi.spyOn(QuranicUniversalAudioService, 'getAudioRecitations').mockImplementation(
+			async () =>
+				((await invoke('preload_audio_recitations')) as { recitations: QuaRecitation[] })
+					.recitations
+		);
 		// Pré-charge le Quran pour que Quran.load() soit un no-op déterministe.
 		Quran.surahs = [
 			new Surah(1, 'الفاتحة', 'Al-Fatihah', 'The Opener', 7, 'سورة الفاتحة', 'Mecca'),
@@ -75,6 +89,7 @@ describe('DownloadFromQuranicUniversalAudioSection', () => {
 	afterEach(() => {
 		cleanup();
 		vi.clearAllMocks();
+		vi.restoreAllMocks();
 		Quran.surahs = [];
 	});
 
@@ -90,45 +105,26 @@ describe('DownloadFromQuranicUniversalAudioSection', () => {
 			.toBeVisible();
 		await expect.element(component.getByText('Help contribute more reciters')).toBeVisible();
 
-		// The recitation option renders the same label as the aligner UI.
-		const recitationSelect = component.container.querySelector(
-			'#qua-recitation-select'
-		) as HTMLSelectElement;
-		await vi.waitFor(() => {
-			expect(recitationSelect.querySelectorAll('option').length).toBeGreaterThan(1);
-		});
-		expect(recitationSelect.textContent).toContain('Abdul Basit · Hafs · Mujawwad');
+		await component.getByRole('textbox', { name: 'Recitation' }).click();
+		await expect
+			.element(component.getByRole('button', { name: 'Abdul Basit · Hafs · Mujawwad' }))
+			.toBeVisible();
 		expect(invoke).toHaveBeenCalledWith('preload_recitations');
 	});
 
 	test('enabling a recitation + surah defaults the Ayah range to 1 → last verse', async () => {
 		const component = render(DownloadFromQuranicUniversalAudioSection);
 
-		const recitationSelect = component.container.querySelector(
-			'#qua-recitation-select'
-		) as HTMLSelectElement;
-		const surahSelect = component.container.querySelector('#qua-surah-select') as HTMLSelectElement;
+		const surahSelect = component.container.querySelector('#qua-surah-select') as HTMLInputElement;
 		const ayahFrom = component.container.querySelector('#qua-ayah-from') as HTMLInputElement;
 		const ayahTo = component.container.querySelector('#qua-ayah-to') as HTMLInputElement;
-
-		// Surah + Ayah controls start disabled until a recitation is picked.
 		expect(surahSelect.disabled).toBe(true);
 		expect(ayahFrom.disabled).toBe(true);
-
-		await vi.waitFor(() => {
-			expect(recitationSelect.querySelectorAll('option').length).toBeGreaterThan(1);
-		});
-
-		recitationSelect.value = 'abdul_basit_hafs_mujawwad';
-		recitationSelect.dispatchEvent(new Event('change', { bubbles: true }));
-		await tick();
-
+		await component.getByRole('textbox', { name: 'Recitation' }).click();
+		await component.getByRole('button', { name: 'Abdul Basit · Hafs · Mujawwad' }).click();
 		expect(surahSelect.disabled).toBe(false);
-		// Only the recitation's available chapters (1, 2) are offered + the placeholder.
-		expect(surahSelect.querySelectorAll('option').length).toBe(3);
-
-		surahSelect.value = '2';
-		surahSelect.dispatchEvent(new Event('change', { bubbles: true }));
+		await component.getByRole('textbox', { name: 'Surah', exact: true }).click();
+		await component.getByRole('button', { name: /^2\. / }).click();
 		await tick();
 
 		expect(ayahFrom.disabled).toBe(false);
@@ -139,25 +135,17 @@ describe('DownloadFromQuranicUniversalAudioSection', () => {
 	test('switching to Audio only loads the audio catalog and hides the Ayah range', async () => {
 		const component = render(DownloadFromQuranicUniversalAudioSection);
 
-		const recitationSelect = component.container.querySelector(
-			'#qua-recitation-select'
-		) as HTMLSelectElement;
-
-		// Default mode = audio + segments: published catalog + Ayah inputs present.
-		await vi.waitFor(() => {
-			expect(recitationSelect.querySelectorAll('option').length).toBeGreaterThan(1);
-		});
 		expect(component.container.querySelector('#qua-ayah-from')).not.toBeNull();
-		expect(recitationSelect.textContent).toContain('Abdul Basit · Hafs · Mujawwad');
-
-		// Switch to Audio only.
+		await component.getByRole('textbox', { name: 'Recitation' }).click();
+		await expect
+			.element(component.getByRole('button', { name: 'Abdul Basit · Hafs · Mujawwad' }))
+			.toBeVisible();
 		await component.getByRole('button', { name: 'Audio only' }).click();
-
-		// Audio-only catalog (mutually exclusive) replaces the published one.
-		await vi.waitFor(() => {
-			expect(recitationSelect.textContent).toContain('Unpublished Reciter · Hafs · Murattal');
-		});
-		expect(recitationSelect.textContent).not.toContain('Abdul Basit');
+		await component.getByRole('textbox', { name: 'Recitation' }).click();
+		await expect
+			.element(component.getByRole('button', { name: 'Unpublished Reciter · Hafs · Murattal' }))
+			.toBeVisible();
+		expect(component.container.textContent).not.toContain('Abdul Basit');
 		expect(invoke).toHaveBeenCalledWith('preload_audio_recitations');
 
 		// Ayah range + segments callout are hidden; audio-only callout shows.

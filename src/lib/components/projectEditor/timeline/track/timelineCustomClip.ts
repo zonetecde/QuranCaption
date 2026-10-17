@@ -171,17 +171,6 @@ export class GlobalTimedOverlayTimelineClip {
 		}
 	}
 
-	getWidth(): number {
-		const timelineZoom = globalState.currentProject?.projectEditorState.timeline.zoom ?? 0;
-		if (this.getAlwaysShow()) {
-			// Meme comportement que les custom clips: occupe toute la duree projet.
-			const longestTrackDuration =
-				globalState.currentProject?.content.timeline.getLongestTrackDuration().toSeconds() ?? 0;
-			return longestTrackDuration * timelineZoom;
-		}
-		return (this.duration / 1000) * timelineZoom;
-	}
-
 	getDisplayLabel(): string {
 		if (this.source) return getTimelineCustomClipLabel(this.source);
 		return this.label;

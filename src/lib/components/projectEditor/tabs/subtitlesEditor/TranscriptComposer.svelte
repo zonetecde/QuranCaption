@@ -29,7 +29,7 @@
 		const clip = editorState().editSubtitle;
 		return clip instanceof SubtitleClip ? clip : null;
 	});
-	const availableSpeakers = $derived(() => getVisibleProjectSpeakers());
+	const availableSpeakers = $derived(() => getVisibleProjectSpeakers(globalState.currentProject!));
 
 	// Synchronise l'orchestration locale avec le segment choisi dans la timeline.
 	$effect(() => {
@@ -69,7 +69,7 @@
 	async function deleteSpeaker(event: MouseEvent, value: string): Promise<void> {
 		event.preventDefault();
 		event.stopPropagation();
-		await requestProjectSpeakerRemoval(value);
+		await requestProjectSpeakerRemoval(globalState.currentProject!, value);
 	}
 
 	function cancelEditing(): void {

@@ -1,16 +1,18 @@
 <script lang="ts">
-	import { Asset, AssetClip, AssetType } from '$lib/classes';
+	import { AssetClip, AssetType } from '$lib/classes';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import {
+		applyProjectAudioEffect,
+		prepareAudioEffectPreview,
+		type AudioEffectId
+	} from '$lib/services/AudioEffectsService';
 	import { convertFileSrc, invoke } from '@tauri-apps/api/core';
-	import { exists } from '@tauri-apps/plugin-fs';
 	import { Howl } from 'howler';
 	import { onDestroy } from 'svelte';
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 
-	type AudioEffectId = 'denoise' | 'clarity' | 'echo' | 'reverb';
 	const parameterKeys = ['primary', 'secondary'] as const;
 	type Props = {
 		close: () => void;
@@ -62,6 +64,7 @@
 	let previewAudio: Howl | null = null;
 	let previewPath: string | null = null;
 	let disposed = false;
+	const abortController = new AbortController();
 	let effectParameters = $state<Record<AudioEffectId, { primary: number; secondary: number }>>({
 		denoise: { primary: 12, secondary: -50 },
 		clarity: { primary: 80, secondary: 2 },
@@ -127,25 +130,9 @@
 
 	onDestroy(() => {
 		disposed = true;
+		abortController.abort();
 		void stopPreview();
 	});
-
-	/**
-	 * Retourne un chemin WAV disponible à côté de la source.
-	 * @param {string} sourcePath Chemin source.
-	 * @param {AudioEffectId} effect Effet ajouté au nom de sortie.
-	 * @returns {Promise<string>} Chemin de sortie unique.
-	 */
-	async function getUniqueOutputPath(sourcePath: string, effect: AudioEffectId): Promise<string> {
-		const basePath = sourcePath.replace(/\.[^./\\]+$/, '');
-		let suffix = 1;
-		let outputPath = `${basePath}_${effect}_${suffix}.wav`;
-		while (await exists(outputPath)) {
-			suffix += 1;
-			outputPath = `${basePath}_${effect}_${suffix}.wav`;
-		}
-		return outputPath;
-	}
 
 	/** Arrête la préécoute et supprime son fichier temporaire. @returns {Promise<void>} Fin du nettoyage. */
 	async function stopPreview(): Promise<void> {
@@ -173,27 +160,11 @@
 
 		await stopPreview();
 		isPreparingPreview = true;
-		const { clip, asset } = selectedOption;
+		const clipId = selectedOption.clip.id;
+		const effectId = selectedEffect.id;
 		const parameters = { ...selectedParameters };
 		try {
-			await asset.ensureDurationLoaded();
-			const availableSourceDuration = Math.max(0, asset.duration.ms - clip.sourceStartTime);
-			const clipDuration = Math.min(availableSourceDuration, clip.endTime - clip.startTime);
-			const previewDuration = Math.min(10_000, clipDuration);
-			if (previewDuration <= 0) {
-				throw new Error(toolsCopy.pleaseSelectTimelineAudio());
-			}
-			const previewStart = Math.round(
-				clip.sourceStartTime + Math.max(0, (clipDuration - previewDuration) / 2)
-			);
-			previewPath = await invoke<string>('preview_audio_effect', {
-				sourcePath: asset.filePath,
-				effect: selectedEffect.id,
-				primary: parameters.primary,
-				secondary: parameters.secondary,
-				startMs: previewStart,
-				durationMs: Math.round(previewDuration)
-			});
+			previewPath = await prepareAudioEffectPreview(project, clipId, effectId, parameters);
 			if (disposed || globalState.currentProject !== project) {
 				await stopPreview();
 				return;
@@ -234,32 +205,19 @@
 		await stopPreview();
 		isProcessing = true;
 		const clipId = selectedOption.clip.id;
-		const sourceAsset = selectedOption.asset;
+		const effect = selectedEffect;
 		const parameters = { ...selectedParameters };
 		try {
-			const outputPath = await getUniqueOutputPath(sourceAsset.filePath, selectedEffect.id);
-			await invoke('apply_audio_effect', {
-				sourcePath: sourceAsset.filePath,
-				outputPath,
-				effect: selectedEffect.id,
-				primary: parameters.primary,
-				secondary: parameters.secondary
-			});
-
-			const newAsset = new Asset(outputPath);
-			await newAsset.ensureDurationLoaded();
-			if (disposed || globalState.currentProject !== project) return;
-			const targetClip = globalState.getAudioTrack.clips.find((clip) => clip.id === clipId);
-			if (!(targetClip instanceof AssetClip)) {
-				throw new Error(toolsCopy.pleaseSelectTimelineAudio());
-			}
-
-			ProjectHistoryManager.track(toolsCopy.audioEffects(), () => {
-				project.content.assets.unshift(newAsset);
-				targetClip.assetId = newAsset.id;
-			});
+			const applied = await applyProjectAudioEffect(
+				project,
+				clipId,
+				effect.id,
+				parameters,
+				abortController.signal
+			);
+			if (!applied) return;
 			globalState.updateVideoPreviewUI();
-			toast.success(toolsCopy.audioEffectSuccess({ effect: selectedEffect.label }));
+			toast.success(toolsCopy.audioEffectSuccess({ effect: effect.label }));
 			close();
 		} catch (error) {
 			console.error('Audio effect failed:', error);

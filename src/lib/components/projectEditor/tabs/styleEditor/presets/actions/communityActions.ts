@@ -1,3 +1,4 @@
+import { applyProjectStylePreset } from './styleActions';
 import { globalState } from '$lib/runes/main.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
 import {
@@ -62,15 +63,17 @@ export async function loadPopularTags(): Promise<void> {
  * @returns {Promise<void>}
  */
 export async function downloadAndApply(preset: CommunityStylePreset): Promise<void> {
+	const project = globalState.currentProject;
+	if (!project) return;
 	const state = globalState.presetLibrary;
 
 	// Empêche les téléchargements simultanés
 	if (state.downloadingPresetId) return;
 
 	const confirmed = await ModalManager.confirmModal(
-			get(LL).editor.overwriteStylesConfirm({ name: preset.name }),
-			false
-		);
+		get(LL).editor.overwriteStylesConfirm({ name: preset.name }),
+		false
+	);
 	if (!confirmed) return;
 
 	state.downloadingPresetId = preset.id;
@@ -79,7 +82,7 @@ export async function downloadAndApply(preset: CommunityStylePreset): Promise<vo
 		const stored = await storeLocalPreset(buildCommunityPresetData(preset, styleData));
 		if (!stored) return;
 
-		await globalState.getVideoStyle.importStyles(styleData);
+		if (!(await applyProjectStylePreset(project, styleData))) return;
 
 		// Incrémente le compteur de téléchargements localement
 		state.communityPresets = state.communityPresets.map((item) =>
@@ -90,10 +93,7 @@ export async function downloadAndApply(preset: CommunityStylePreset): Promise<vo
 		// Vérifie les polices externes manquantes
 		const missing = await checkMissingFonts(styleData);
 		if (missing.length > 0) {
-			await ModalManager.confirmModal(
-				get(LL).editor.fontsNotInstalled(),
-				false
-			);
+			await ModalManager.confirmModal(get(LL).editor.fontsNotInstalled(), false);
 		}
 	} catch (error) {
 		toast.error(error instanceof Error ? error.message : String(error));

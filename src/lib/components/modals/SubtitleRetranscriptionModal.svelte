@@ -37,6 +37,8 @@
 	let selectedCandidate = $state<string>('current');
 	let previewing = $state(false);
 	let disposed = false;
+	const project = globalState.currentProject!;
+	const settings = globalState.settings!.aiTranscriptionSettings;
 
 	/**
 	 * Lance un modèle local et met à jour sa carte indépendamment des autres.
@@ -44,15 +46,15 @@
 	 * @returns {Promise<void>} Promesse résolue lorsque ce modèle a terminé.
 	 */
 	async function generateCandidate(candidate: CandidateState): Promise<void> {
-		if (disposed) return;
+		if (disposed || globalState.currentProject !== project) return;
 		candidate.status = 'running';
 		try {
-			const result = await runSubtitleRetranscription(clip, candidate.model);
-			if (disposed) return;
+			const result = await runSubtitleRetranscription(project, settings, clip, candidate.model);
+			if (disposed || globalState.currentProject !== project) return;
 			candidate.text = result.text.trim();
 			candidate.status = candidate.text ? 'completed' : 'failed';
 		} catch (error) {
-			if (disposed) return;
+			if (disposed || globalState.currentProject !== project) return;
 			candidate.status = 'failed';
 			candidate.error = error instanceof Error ? error.message : String(error);
 		}
@@ -71,6 +73,7 @@
 	 * @returns {void}
 	 */
 	function toggleClipPreview(): void {
+		if (globalState.currentProject !== project) return;
 		const previewState = globalState.getVideoPreviewState;
 		if (previewing && previewState.isPlaying) {
 			previewState.togglePlayPause();
@@ -91,7 +94,11 @@
 	 * @returns {void}
 	 */
 	function closeModal(): void {
-		if (previewing && globalState.getVideoPreviewState.isPlaying) {
+		if (
+			previewing &&
+			globalState.currentProject === project &&
+			project.projectEditorState.videoPreview.isPlaying
+		) {
 			globalState.getVideoPreviewState.togglePlayPause();
 		}
 		previewing = false;
@@ -103,6 +110,8 @@
 	 * @returns {void}
 	 */
 	function applySelectedText(): void {
+		if (disposed || globalState.currentProject !== project) return;
+		if (!globalState.getSubtitleTrack.clips.includes(clip)) return;
 		const normalizedText = (
 			selectedCandidate === 'current'
 				? clip.text
@@ -116,7 +125,7 @@
 				clip.speaker
 			);
 			if (!edited) return;
-			globalState.currentProject!.detail.updateVideoDetailAttributes();
+			project.detail.updateVideoDetailAttributes(project.content.timeline);
 			globalState.updateVideoPreviewUI();
 			scheduleWbwRealign([clip], { reason: 'text' });
 			toast.success($LL.editor.retranscribeApplied());
@@ -125,6 +134,7 @@
 	}
 
 	$effect(() => {
+		if (globalState.currentProject !== project) return;
 		const cursor = globalState.getTimelineState.cursorPosition;
 		const isPlaying = globalState.getVideoPreviewState.isPlaying;
 		if (!previewing) return;
@@ -144,7 +154,11 @@
 
 	onDestroy(() => {
 		disposed = true;
-		if (previewing && globalState.getVideoPreviewState.isPlaying) {
+		if (
+			previewing &&
+			globalState.currentProject === project &&
+			project.projectEditorState.videoPreview.isPlaying
+		) {
 			globalState.getVideoPreviewState.togglePlayPause();
 		}
 	});

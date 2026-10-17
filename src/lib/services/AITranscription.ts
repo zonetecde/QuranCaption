@@ -6,7 +6,7 @@ import {
 	type TranscriptAlignmentMetadata
 } from '$lib/classes/Clip.svelte';
 import Settings, { type AITranscriptionSettings } from '$lib/classes/Settings.svelte';
-import { globalState } from '$lib/runes/main.svelte';
+import { TrackType } from '$lib/classes/enums';
 import { getAutoSegmentationAudioClips } from '$lib/services/autoSegmentation/audio';
 import {
 	addProjectSpeaker,
@@ -95,11 +95,19 @@ export async function installAITranscriptionRuntime(hfToken: string): Promise<vo
 	});
 }
 
+/**
+ * Transcrit les sources audio du projet fourni.
+ * @param {Project} project Projet propriétaire.
+ * @param {AITranscriptionSettings} settings Réglages du moteur.
+ * @param {string} [groqApiKey] Clé du fournisseur cloud.
+ * @returns {Promise<AITranscriptionResult>} Résultat vocal.
+ */
 export async function runAITranscription(
+	project: Project,
 	settings: AITranscriptionSettings,
 	groqApiKey = ''
 ): Promise<AITranscriptionResult> {
-	const clips = getAutoSegmentationAudioClips();
+	const clips = getAutoSegmentationAudioClips(project);
 	if (clips.length === 0) throw new Error('No audio clip is available on the project timeline.');
 	const audioClips = clips.map((clip) => ({
 		path: clip.filePath,
@@ -149,17 +157,20 @@ export async function runAITranscription(
 
 /**
  * Retranscrit la plage audio exacte d'un sous-titre avec un modèle local donné.
+ * @param {Project} project Projet propriétaire.
+ * @param {AITranscriptionSettings} settings Réglages du moteur.
  * @param {SubtitleClip} clip Sous-titre dont les bornes définissent la plage audio.
  * @param {AITranscriptionSettings['model']} model Modèle local à utiliser.
  * @returns {Promise<SubtitleRetranscriptionCandidate>} Texte candidat produit par le modèle.
  */
 export async function runSubtitleRetranscription(
+	project: Project,
+	settings: AITranscriptionSettings,
 	clip: SubtitleClip,
 	model: AITranscriptionSettings['model']
 ): Promise<SubtitleRetranscriptionCandidate> {
-	const clips = getAutoSegmentationAudioClips();
+	const clips = getAutoSegmentationAudioClips(project);
 	if (clips.length === 0) throw new Error('No audio clip is available on the project timeline.');
-	const settings = globalState.settings!.aiTranscriptionSettings;
 
 	return (await invoke('retranscribe_subtitle_clip_local', {
 		audioPath: clips.length === 1 ? clips[0].filePath : undefined,
@@ -211,8 +222,17 @@ function buildAlignmentMetadata(
 	};
 }
 
-export function buildDefaultSpeakerMap(result: AITranscriptionResult): SpeakerNameMap {
-	const knownSpeakers = getVisibleProjectSpeakers().filter(
+/**
+ * Associe les voix détectées aux intervenants du projet fourni.
+ * @param {Project} project Projet consulté.
+ * @param {AITranscriptionResult} result Résultat vocal.
+ * @returns {SpeakerNameMap} Noms proposés pour chaque voix.
+ */
+export function buildDefaultSpeakerMap(
+	project: Project,
+	result: AITranscriptionResult
+): SpeakerNameMap {
+	const knownSpeakers = getVisibleProjectSpeakers(project).filter(
 		(speaker) => speaker.toLocaleLowerCase() !== UNASSIGNED_SPEAKER.toLocaleLowerCase()
 	);
 	return Object.fromEntries(
@@ -294,25 +314,27 @@ export function padAITranscriptionSilences(
 }
 
 /**
- * Applique un résultat au projet actif en préservant les éditions des sous-titres identifiés.
+ * Applique un résultat au projet propriétaire en préservant les éditions des sous-titres identifiés.
+ * @param {Project} project Projet ayant démarré le traitement.
  * @param {AITranscriptionResult} result Résultat du moteur.
  * @param {SpeakerNameMap} speakerMap Noms des intervenants.
  * @param {boolean} replaceExisting Remplace les sous-titres existants si aucun identifiant n'est fourni.
  * @param {number[]} replaceClipIds Identifiants des clips issus de ce traitement.
- * @param {Project | null} project Projet ayant démarré le traitement.
+ * @param {AITranscriptionSettings} [transcriptionSettings] Marges d'affichage choisies.
  * @returns {AppliedAITranscription} Identifiants et nombre de sous-titres appliqués.
  */
 export function applyAITranscription(
+	project: Project,
 	result: AITranscriptionResult,
 	speakerMap: SpeakerNameMap,
 	replaceExisting: boolean,
 	replaceClipIds: number[] = [],
-	project: Project | null = globalState.currentProject
+	transcriptionSettings?: Pick<
+		AITranscriptionSettings,
+		'subtitleEndPaddingMs' | 'subtitleStartLeadMs'
+	>
 ): AppliedAITranscription {
-	if (!project || globalState.currentProject !== project)
-		throw new Error(get(LL).common.unexpectedError());
-	const track = globalState.getSubtitleTrack;
-	const transcriptionSettings = globalState.settings?.aiTranscriptionSettings;
+	const track = project.content.timeline.getFirstTrack(TrackType.Subtitle);
 	const replacedIds = new Set(replaceClipIds);
 	const previousClips = track.clips.filter(
 		(clip): clip is SubtitleClip => clip instanceof SubtitleClip && replacedIds.has(clip.id)
@@ -377,54 +399,55 @@ export function applyAITranscription(
 		return [new SilenceClip(previous.endTime + 1, clip.startTime - 1), clip];
 	});
 
-	ProjectHistoryManager.begin('apply AI transcription');
-	try {
-		globalState.getSubtitlesEditorState.rawTranscription = result;
-		const preservedClips =
-			replacedIds.size > 0
-				? track.clips.filter((clip) => !replacedIds.has(clip.id))
-				: replaceExisting
-					? track.clips.filter(
-							(clip) => !(clip instanceof SubtitleClip) && !(clip instanceof SilenceClip)
-						)
-					: track.clips;
-		track.clips = [...preservedClips, ...generatedWithSilences].sort(
-			(a, b) => a.startTime - b.startTime
-		);
+	return ProjectHistoryManager.track(
+		'apply AI transcription',
+		() => {
+			project.projectEditorState.subtitlesEditor.rawTranscription = result;
+			const preservedClips =
+				replacedIds.size > 0
+					? track.clips.filter((clip) => !replacedIds.has(clip.id))
+					: replaceExisting
+						? track.clips.filter(
+								(clip) => !(clip instanceof SubtitleClip) && !(clip instanceof SilenceClip)
+							)
+						: track.clips;
+			track.clips = [...preservedClips, ...generatedWithSilences].sort(
+				(a, b) => a.startTime - b.startTime
+			);
 
-		const names = Array.from(
-			new Set(
-				Object.values(speakerMap)
-					.map((name) => name.trim())
-					.filter(Boolean)
-			)
-		);
-		for (const name of names) addProjectSpeaker(name);
-		const firstSpeaker = Object.values(speakerMap)
-			.find((name) => name.trim())
-			?.trim();
-		if (firstSpeaker) globalState.getSubtitlesEditorState.selectedSpeaker = firstSpeaker;
-		globalState.currentProject!.detail.updateVideoDetailAttributes();
-		globalState.updateVideoPreviewUI();
-		return {
-			count: generated.length,
-			clipIds: generatedWithSilences.map((clip) => clip.id)
-		};
-	} finally {
-		ProjectHistoryManager.commit();
-	}
+			const names = Array.from(
+				new Set(
+					Object.values(speakerMap)
+						.map((name) => name.trim())
+						.filter(Boolean)
+				)
+			);
+			for (const name of names) addProjectSpeaker(project, name);
+			const firstSpeaker = Object.values(speakerMap)
+				.find((name) => name.trim())
+				?.trim();
+			if (firstSpeaker) project.projectEditorState.subtitlesEditor.selectedSpeaker = firstSpeaker;
+			project.detail.updateVideoDetailAttributes(project.content.timeline);
+			return {
+				count: generated.length,
+				clipIds: generatedWithSilences.map((clip) => clip.id)
+			};
+		},
+		project
+	);
 }
 
 /**
  * Convertit les sous-titres du projet en résultat compatible avec le nettoyage IA.
+ * @param {Project} project Projet consulté.
  * @returns {{ result: AITranscriptionResult; speakerMap: SpeakerNameMap; clipIds: number[] }} Transcription et clips à remplacer progressivement.
  */
-export function buildAITranscriptionFromSubtitleTrack(): {
+export function buildAITranscriptionFromSubtitleTrack(project: Project): {
 	result: AITranscriptionResult;
 	speakerMap: SpeakerNameMap;
 	clipIds: number[];
 } {
-	const clips = globalState.getSubtitleTrack.clips;
+	const clips = project.content.timeline.getFirstTrack(TrackType.Subtitle).clips;
 	const subtitles = clips.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip);
 	const speakers = Array.from(new Set(subtitles.map((clip) => clip.speaker)));
 	return {

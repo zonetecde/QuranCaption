@@ -1,4 +1,3 @@
-import { globalState } from '$lib/runes/main.svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import { SerializableBase } from '../misc/SerializableBase';
 import { Clip } from './Clip.svelte';
@@ -33,9 +32,9 @@ export class CustomClip extends Clip {
 	/**
 	 * Met à jour le début du clip et sa première plage d'apparition.
 	 * @param {number} newStartTime Nouveau début en millisecondes.
-	 * @returns {void}
+	 * @returns {boolean} Vrai si les bornes et la plage ont été modifiées.
 	 */
-	override setStartTime(newStartTime: number): void {
+	override setStartTime(newStartTime: number): boolean {
 		ProjectHistoryManager.begin('set custom clip start');
 		try {
 			const rangesStyle = this.category?.getStyle('time-ranges');
@@ -43,11 +42,12 @@ export class CustomClip extends Clip {
 			const nextRanges = rangesStyle
 				? updateTimedOverlayRange(ranges, 0, 'startTime', newStartTime)
 				: [];
-			super.setStartTime(nextRanges[0]?.startTime ?? newStartTime);
+			if (!super.setStartTime(nextRanges[0]?.startTime ?? newStartTime)) return false;
 			if (rangesStyle) {
 				rangesStyle.value = nextRanges;
 				syncTimedOverlayLegacyRange(this.category?.styles ?? [], nextRanges[0]);
 			}
+			return true;
 		} finally {
 			ProjectHistoryManager.commit();
 		}
@@ -56,9 +56,9 @@ export class CustomClip extends Clip {
 	/**
 	 * Met à jour la fin du clip et sa première plage d'apparition.
 	 * @param {number} newEndTime Nouvelle fin en millisecondes.
-	 * @returns {void}
+	 * @returns {boolean} Vrai si les bornes et la plage ont été modifiées.
 	 */
-	override setEndTime(newEndTime: number): void {
+	override setEndTime(newEndTime: number): boolean {
 		ProjectHistoryManager.begin('set custom clip end');
 		try {
 			const rangesStyle = this.category?.getStyle('time-ranges');
@@ -66,11 +66,12 @@ export class CustomClip extends Clip {
 			const nextRanges = rangesStyle
 				? updateTimedOverlayRange(ranges, 0, 'endTime', newEndTime)
 				: [];
-			super.setEndTime(nextRanges[0]?.endTime ?? newEndTime);
+			if (!super.setEndTime(nextRanges[0]?.endTime ?? newEndTime)) return false;
 			if (rangesStyle) {
 				rangesStyle.value = nextRanges;
 				syncTimedOverlayLegacyRange(this.category?.styles ?? [], nextRanges[0]);
 			}
+			return true;
 		} finally {
 			ProjectHistoryManager.commit();
 		}
@@ -105,20 +106,6 @@ export class CustomClip extends Clip {
 
 	getAlwaysShow(): boolean {
 		return this.category?.getStyle('always-show')!.value as boolean;
-	}
-
-	override getWidth(): number {
-		const timelineZoom = globalState.currentProject?.projectEditorState.timeline.zoom ?? 0;
-		// Si le custom text s'affiche sur toute la durée de la vidéo, alors retourne le temps
-		// total de la vidéo
-		if (this.getAlwaysShow()) {
-			const longestTrackDuration =
-				globalState.currentProject?.content.timeline.getLongestTrackDuration().toSeconds() ?? 0;
-			return longestTrackDuration * timelineZoom;
-		} else {
-			// Appel du getWidth du parent
-			return super.getWidth();
-		}
 	}
 }
 

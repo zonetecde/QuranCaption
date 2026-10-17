@@ -10,7 +10,7 @@
 	let newSpeaker = $state('');
 	let speakerInput: HTMLInputElement | null = $state(null);
 
-	const knownSpeakers = $derived(() => getVisibleProjectSpeakers());
+	const knownSpeakers = $derived(() => getVisibleProjectSpeakers(globalState.currentProject!));
 
 	async function openSpeakerInput(): Promise<void> {
 		isAddingSpeaker = true;
@@ -38,7 +38,7 @@
 			return;
 		}
 
-		const addedSpeaker = addProjectSpeaker(normalized);
+		const addedSpeaker = addProjectSpeaker(globalState.currentProject!, normalized);
 		if (!addedSpeaker) return;
 		globalState.getSubtitlesEditorState.selectedSpeaker = addedSpeaker;
 		toast.success(get(LL).editor.speakerAdded({ speaker: addedSpeaker }));

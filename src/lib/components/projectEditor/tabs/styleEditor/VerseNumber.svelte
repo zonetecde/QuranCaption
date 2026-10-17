@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { highlightStyleCategory } from '$lib/components/projectEditor/tabs/styleEditor/presets/actions/styleActions';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { untrack } from 'svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
@@ -77,7 +78,7 @@
 {#if verseNumberSettings().show && currentSurah > 0 && currentVerse > 0 && verseNumberSubtitleOpacity() > 0}
 	<div
 		ondblclick={() => {
-			globalState.getVideoStyle.highlightCategory('global', 'verse-number');
+			highlightStyleCategory(globalState.currentProject!, 'global', 'verse-number');
 		}}
 		use:mouseDrag={{
 			target: 'global',

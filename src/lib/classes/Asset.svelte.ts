@@ -4,13 +4,8 @@ import { SerializableBase } from './misc/SerializableBase.js';
 import { Utilities } from './misc/Utilities.js';
 import { openPath } from '@tauri-apps/plugin-opener';
 import { exists } from '@tauri-apps/plugin-fs';
-import { globalState } from '$lib/runes/main.svelte.js';
-import LL from '$lib/i18n/i18n-svelte';
-import { get } from 'svelte/store';
 import { Duration } from './index.js';
-import ModalManager from '$lib/components/modals/ModalManager.js';
 import { WaveformService } from '$lib/services/WaveformService.svelte.js';
-import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager.js';
 import type { UnknownRecord } from '$lib/types/common.js';
 
 type DurationLoadState = 'idle' | 'loading' | 'success' | 'error';
@@ -27,6 +22,7 @@ export class Asset extends SerializableBase {
 	metadata: UnknownRecord = $state({});
 	durationLoadState: DurationLoadState = $state('idle');
 	durationLoadError: string | null = $state(null);
+	durationLoadErrorCode: string | null = $state(null);
 	mediaReloadToken: number = $state(0);
 
 	/** Promesse résolue quand la durée est chargée (null si pas de chargement nécessaire). */
@@ -83,91 +79,6 @@ export class Asset extends SerializableBase {
 		}
 	}
 
-	/**
-	 * Ajoute l'asset à la timeline.
-	 * @param {boolean} asVideo Ajouter en tant que piste vidéo.
-	 * @param {boolean} asAudio Ajouter en tant que piste audio.
-	 * @param {boolean} skipDimensionPrompt Si true, ne demande pas la confirmation pour adapter les dimensions.
-	 * @returns {Promise<void>}
-	 */
-	async addToTimeline(asVideo: boolean, asAudio: boolean, skipDimensionPrompt = false) {
-		let imageAsFullBackground = true;
-		if (asVideo && this.type === AssetType.Image && globalState.getVideoTrack.clips.length === 0) {
-			const message = Reflect.get(
-				get(LL).editor,
-				'setImageAsFullBackgroundConfirm'
-			) as () => string;
-			imageAsFullBackground = await ModalManager.confirmModal(message(), true);
-		}
-
-		let wasAddedToVideo = false;
-		if (asVideo) wasAddedToVideo = globalState.getVideoTrack.addAsset(this, imageAsFullBackground);
-		if (asAudio) globalState.getAudioTrack.addAsset(this);
-
-		if (asVideo && wasAddedToVideo && this.type === AssetType.Video) {
-			// Demande à l'utilisateur s'il veut que le format de les dimensions de la vidéo soient appliquées au projet
-			// Récupère les dimensions de la vidéo
-			const assetDimensions = (await invoke('get_video_dimensions', {
-				filePath: this.filePath
-			})) as {
-				width: number;
-				height: number;
-			};
-			// Si les dimensions sont invalides, on ne fait rien
-			if (assetDimensions.width <= 0 || assetDimensions.height <= 0) {
-				return;
-			}
-			// Si les dimensions sont déjà les mêmes, on ne fait rien non plus
-			const currentProjectDimensions = globalState.getStyle('global', 'video-dimension').value as {
-				width: number;
-				height: number;
-			};
-			if (
-				assetDimensions.width === currentProjectDimensions.width &&
-				assetDimensions.height === currentProjectDimensions.height
-			) {
-				return;
-			}
-
-			if (skipDimensionPrompt) {
-				// Applique automatiquement les dimensions sans demander confirmation
-				if (assetDimensions.width > 0 && assetDimensions.height > 0) {
-					globalState.getStyle('global', 'video-dimension').value = {
-						width: assetDimensions.width,
-						height: assetDimensions.height
-					};
-				}
-				return;
-			}
-			if (globalState.currentProject!.projectEditorState.hasAnsweredVideoDimensionPrompt) {
-				return;
-			}
-
-			// Demande confirmation à l'utilisateur
-			const confirm = await ModalManager.confirmModal(
-				get(LL).editor.setDimensionsMatchVideo({
-					width: String(assetDimensions.width),
-					height: String(assetDimensions.height)
-				}),
-				true
-			);
-
-			ProjectHistoryManager.track(
-				confirm ? 'set video dimensions from asset' : 'dismiss video dimensions prompt',
-				() => {
-					globalState.currentProject!.projectEditorState.hasAnsweredVideoDimensionPrompt = true;
-					if (!confirm) return;
-					if (assetDimensions.width > 0 && assetDimensions.height > 0) {
-						globalState.getStyle('global', 'video-dimension').value = {
-							width: assetDimensions.width,
-							height: assetDimensions.height
-						};
-					}
-				}
-			);
-		}
-	}
-
 	private normalizeFilePath(filePath: string): string {
 		// Nettoie le chemin en supprimant les doubles slashes et normalise les séparateurs
 		let normalized = filePath.replace(/\\/g, '/');
@@ -185,6 +96,7 @@ export class Asset extends SerializableBase {
 
 	private async initializeDuration() {
 		this.durationLoadState = 'loading';
+		this.durationLoadErrorCode = null;
 		this.durationLoadError = null;
 
 		try {
@@ -208,7 +120,7 @@ export class Asset extends SerializableBase {
 			if (ffprobeError) {
 				const message = this.getFfmpegErrorMessage(ffprobeError.code, ffprobeError.details);
 				this.durationLoadError = message;
-				await this.showMissingFfmpegModal(message);
+				this.durationLoadErrorCode = ffprobeError.code;
 			} else {
 				this.durationLoadError = 'Unable to retrieve media duration. Please check the logs.';
 				console.error('Unable to retrieve media duration', error);
@@ -449,10 +361,6 @@ export class Asset extends SerializableBase {
 		}
 
 		return `FFprobe execution failed.${details ? `\nReason: ${details}` : ''}\n\n${instructions}`;
-	}
-
-	private async showMissingFfmpegModal(message: string): Promise<void> {
-		await ModalManager.errorModal(get(LL).editor.ffmpegRequired(), message);
 	}
 
 	private getFfmpegInstallInstructions(): string {

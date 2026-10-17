@@ -114,7 +114,11 @@ export class TranscriptionRuntimeSession {
 					groqMessages[event.payload.phase ?? ''] ?? event.payload.message ?? this.runMessage;
 				if (typeof event.payload.progress === 'number') this.progress = event.payload.progress;
 			});
-			const transcription = await runAITranscription(this.settings, groqApiKey);
+			const transcription = await runAITranscription(
+				this.session.project,
+				this.settings,
+				groqApiKey
+			);
 			this.session.ensureActive();
 			this.runMessage = get(LL).editor.matchingQuranPassages();
 			this.progress = 100;
@@ -144,7 +148,7 @@ export class TranscriptionRuntimeSession {
 			this.session.result = quranReport.result;
 			this.session.cleanupErrors = quranReport.errors;
 			this.session.setCheckpoint(null);
-			this.session.speakerMap = buildDefaultSpeakerMap(this.session.result);
+			this.session.speakerMap = buildDefaultSpeakerMap(this.session.project, this.session.result);
 			this.runMessage = get(LL).common.processing();
 			this.progress = 100;
 			await tick();

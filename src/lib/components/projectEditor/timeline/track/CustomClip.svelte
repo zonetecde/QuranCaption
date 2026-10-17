@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getTimelineClipWidth } from './timelineClipLayout';
 	import type { Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import ContextMenu, { Item } from 'svelte-contextmenu';
@@ -152,7 +153,10 @@
 	class="absolute inset-0 z-10 border border-[var(--timeline-customtext-clip-border)] bg-[var(--timeline-customtext-clip-color)] rounded-md group overflow-hidden {clip.getAlwaysShow()
 		? ''
 		: 'cursor-move'}"
-	style="width: {clip.getWidth()}px; left: {positionLeft()}px;"
+	style="width: {getTimelineClipWidth(
+		clip,
+		globalState.currentProject
+	)}px; left: {positionLeft()}px;"
 	oncontextmenu={(e) => {
 		e.preventDefault();
 		contextMenu!.show(e);

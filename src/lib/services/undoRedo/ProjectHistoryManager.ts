@@ -1,6 +1,7 @@
 import { globalState } from '$lib/runes/main.svelte';
 import type { Project } from '$lib/classes/Project';
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
+import LL from '$lib/i18n/i18n-svelte';
 
 type ProjectSnapshot = string;
 
@@ -194,9 +195,13 @@ export class ProjectHistoryManager {
 	 * @template T
 	 * @param {string} label Nom court de l'action.
 	 * @param {() => T} mutate Mutation à exécuter.
+	 * @param {Project} [project] Propriétaire attendu ; refuse une mutation après changement de projet.
 	 * @returns {T} Résultat de la mutation.
 	 */
-	static track<T>(label: string, mutate: () => T): T {
+	static track<T>(label: string, mutate: () => T, project?: Project): T {
+		if (project && globalState.currentProject !== project) {
+			throw new Error(get(LL).common.unexpectedError());
+		}
 		if (this.shouldSkipTracking() || this.transaction) {
 			return mutate();
 		}

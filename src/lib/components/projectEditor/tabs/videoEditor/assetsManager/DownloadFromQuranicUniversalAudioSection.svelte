@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { addAssetToTimeline } from '$lib/components/projectEditor/tabs/videoEditor/assetsManager/assetTimelineActions';
 	import toast from 'svelte-5-french-toast';
 	import { invoke } from '@tauri-apps/api/core';
 	import { join } from '@tauri-apps/api/path';
@@ -159,13 +160,13 @@
 		surahName: string,
 		assetMeta: Record<string, unknown>
 	): Promise<void> {
+		const project = globalState.currentProject;
+		if (!project) return;
 		const toastId = toast.loading(
 			get(LL).editor.downloadingSurah({ surah: surahName, reciter: reciterName })
 		);
 		try {
-			const downloadPath = await ProjectService.getAssetFolderForProject(
-				globalState.currentProject!.detail.id
-			);
+			const downloadPath = await ProjectService.getAssetFolderForProject(project.detail.id);
 			const rawBaseName = `${reciterName} - ${surahName}`;
 			let sanitizedBaseName = rawBaseName.replace(/[<>:"/\\|?*]/g, '').trim();
 			if (!sanitizedBaseName) sanitizedBaseName = `surah-${selectedSurahId}`;
@@ -173,7 +174,11 @@
 
 			await invoke('download_file', { url: audioUrl, path: fullPath });
 
-			const asset = globalState.currentProject!.content.addAsset(
+			if (globalState.currentProject !== project) {
+				toast.dismiss(toastId);
+				return;
+			}
+			const asset = project.content.addAsset(
 				fullPath,
 				audioUrl,
 				SourceType.QuranicUniversalAudio,
@@ -183,7 +188,7 @@
 				throw new Error('Unable to add the downloaded audio as a project asset.');
 			}
 			await asset.ensureDurationLoaded();
-			await asset.addToTimeline(false, true);
+			await addAssetToTimeline(project, asset, false, true);
 
 			toast.success(get(LL).editor.downloadSuccessful(), { id: toastId });
 		} catch (error) {

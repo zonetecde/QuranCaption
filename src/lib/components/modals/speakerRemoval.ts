@@ -1,3 +1,5 @@
+import type { Project } from '$lib/classes/Project';
+import { globalState } from '$lib/runes/main.svelte';
 import { mount, unmount } from 'svelte';
 import SpeakerRemovalModal from './SpeakerRemovalModal.svelte';
 import {
@@ -13,12 +15,14 @@ import {
 
 /**
  * Affiche la confirmation de suppression sans introduire de dépendance DOM dans le service métier.
+ * @param {Project} project Projet propriétaire.
  * @param {string} speakerName Intervenant choisi.
  * @param {number} usageCount Nombre de segments concernés.
  * @param {string[]} replacementOptions Intervenants de remplacement.
  * @returns {Promise<SpeakerRemovalChoice>} Décision de l'utilisateur.
  */
 function openSpeakerRemovalModal(
+	project: Project,
 	speakerName: string,
 	usageCount: number,
 	replacementOptions: string[]
@@ -34,7 +38,7 @@ function openSpeakerRemovalModal(
 				speakerName,
 				usageCount,
 				replacementOptions,
-				isProjectSpeaker: isProjectMainSpeaker(speakerName),
+				isProjectSpeaker: isProjectMainSpeaker(project, speakerName),
 				resolve: (choice: SpeakerRemovalChoice) => {
 					unmount(modal);
 					container.remove();
@@ -47,12 +51,16 @@ function openSpeakerRemovalModal(
 
 /**
  * Recueille la décision puis délègue la mutation au service des intervenants.
+ * @param {Project} project Projet propriétaire.
  * @param {string} value Intervenant à supprimer.
  * @returns {Promise<SpeakerRemovalOutcome>} Résultat de la suppression.
  */
-export async function requestProjectSpeakerRemoval(value: string): Promise<SpeakerRemovalOutcome> {
+export async function requestProjectSpeakerRemoval(
+	project: Project,
+	value: string
+): Promise<SpeakerRemovalOutcome> {
 	const normalized = value.trim();
-	if (!canRemoveProjectSpeaker(normalized)) {
+	if (!canRemoveProjectSpeaker(normalized) || globalState.currentProject !== project) {
 		return {
 			removed: false,
 			speaker: normalized,
@@ -61,9 +69,10 @@ export async function requestProjectSpeakerRemoval(value: string): Promise<Speak
 		};
 	}
 
-	const affectedSegments = getSpeakerUsageCount(normalized);
+	const affectedSegments = getSpeakerUsageCount(project, normalized);
 	if (affectedSegments === 0) {
-		const fallback = removeProjectSpeaker(normalized, null);
+		const fallback = removeProjectSpeaker(project, normalized, null);
+		globalState.updateVideoPreviewUI();
 		return {
 			removed: true,
 			speaker: normalized,
@@ -73,11 +82,12 @@ export async function requestProjectSpeakerRemoval(value: string): Promise<Speak
 	}
 
 	const choice = await openSpeakerRemovalModal(
+		project,
 		normalized,
 		affectedSegments,
-		getSpeakerReplacementOptions(normalized)
+		getSpeakerReplacementOptions(project, normalized)
 	);
-	if (choice.action === 'cancel') {
+	if (choice.action === 'cancel' || globalState.currentProject !== project) {
 		return {
 			removed: false,
 			speaker: normalized,
@@ -88,7 +98,8 @@ export async function requestProjectSpeakerRemoval(value: string): Promise<Speak
 
 	const replacement =
 		choice.action === 'unassigned' ? UNASSIGNED_SPEAKER : choice.replacement.trim();
-	const fallback = removeProjectSpeaker(normalized, replacement);
+	const fallback = removeProjectSpeaker(project, normalized, replacement);
+	globalState.updateVideoPreviewUI();
 	return {
 		removed: true,
 		speaker: normalized,

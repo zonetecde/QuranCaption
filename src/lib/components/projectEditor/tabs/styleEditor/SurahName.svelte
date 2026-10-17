@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { highlightStyleCategory } from '$lib/components/projectEditor/tabs/styleEditor/presets/actions/styleActions';
 	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
@@ -243,7 +244,7 @@
 {#if surahNameSettings().show && currentSurah() >= 1 && currentSurah() <= 114 && timedSurahOpacity() > 0}
 	<div
 		ondblclick={() => {
-			globalState.getVideoStyle.highlightCategory('global', 'surah-name');
+			highlightStyleCategory(globalState.currentProject!, 'global', 'surah-name');
 		}}
 		use:mouseDrag={{
 			target: 'global',

@@ -352,10 +352,10 @@
 					{#if track.type === TrackType.Subtitle}
 						{@const nextIsSameVerse =
 							getSubtitleVerseKeyLabel((track as SubtitleTrack).getSubtitleAfter(clipIndex)) ===
-							getSubtitleVerseKeyLabel(clip as SubtitleClipType)}
+							getSubtitleVerseKeyLabel(clip)}
 						{@const previousIsSameVerse =
 							getSubtitleVerseKeyLabel((track as SubtitleTrack).getSubtitleBefore(clipIndex)) ===
-							getSubtitleVerseKeyLabel(clip as SubtitleClipType)}
+							getSubtitleVerseKeyLabel(clip)}
 						{@const isManualWbwClip =
 							globalState.shared.wbwEdit.active &&
 							clip instanceof SubtitleClipModel &&

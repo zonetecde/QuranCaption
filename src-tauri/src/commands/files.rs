@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 use tauri::Emitter;
 
-use reqwest::header::{ACCEPT, ACCEPT_ENCODING, RANGE, USER_AGENT};
+use reqwest::header::{ACCEPT, ACCEPT_ENCODING, CONTENT_RANGE, RANGE, USER_AGENT};
 use serde::{Deserialize, Serialize};
 use tokio::io::AsyncWriteExt;
 use zip::write::SimpleFileOptions;

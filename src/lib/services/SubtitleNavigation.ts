@@ -1,5 +1,5 @@
 import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
-import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
+import { PredefinedSubtitleClip, SubtitleClip, type Clip } from '$lib/classes';
 import { getUniqueQuranReferences } from '$lib/services/StructuredTranslationService';
 import { globalState } from '$lib/runes/main.svelte';
 
@@ -42,12 +42,12 @@ export function findFirstSubtitleByVerseKey(verseKey: string): SubtitleClip | nu
 }
 
 /**
- * Retourne la clé lisible d'un sous-titre Quran.
- * @param {SubtitleClip} clip Sous-titre Quran.
- * @returns {string} Clé au format `sourate:verset`.
+ * Retourne la clé Quran d'un sous-titre et ignore les autres clips de la timeline.
+ * @param {Clip | null | undefined} clip Clip à inspecter.
+ * @returns {string} Clé au format `sourate:verset`, ou chaîne vide sans référence.
  */
-export function getSubtitleVerseKeyLabel(clip: SubtitleClip | null | undefined): string {
-	if (!clip) return '';
+export function getSubtitleVerseKeyLabel(clip: Clip | null | undefined): string {
+	if (!(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip)) return '';
 	if (clip instanceof QuranSubtitleClip) return clip.getVerseKey();
 	const reference = getUniqueQuranReferences([clip.text])[0];
 	return reference ? `${reference.surah}:${reference.verse}` : '';

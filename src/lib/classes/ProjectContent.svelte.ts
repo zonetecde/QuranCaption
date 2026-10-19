@@ -18,6 +18,7 @@ export class ProjectContent extends SerializableBase {
 
 	// Style
 	videoStyle: VideoStyle;
+	overlayLayerOrder: string[] = $state([]);
 
 	/**
 	 * Crée une instance de ProjectContent.

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getOverlayLayerZIndex } from '$lib/services/OverlayLayerService';
 	import type { Category } from '$lib/classes/VideoStyle.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import CompositeText from './CompositeText.svelte';
@@ -52,6 +53,8 @@
 		horizontalMax: horizontalStyle.valueMax,
 		horizontalMin: horizontalStyle.valueMin
 	}}
+	data-overlay-layer={`custom:${clipId}`}
+	style:z-index={getOverlayLayerZIndex(`custom:${clipId}`)}
 	class="absolute customtext cursor-move select-none z-10 text-center"
 	data-clip-id={clipId}
 	data-overlay-max-opacity={Number(

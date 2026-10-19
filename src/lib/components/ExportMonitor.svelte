@@ -1,10 +1,6 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
-	import Exportation, {
-		ExportKind,
-		ExportState,
-		type ExportLogEntry
-	} from '$lib/classes/Exportation.svelte';
+	import Exportation, { ExportKind, ExportState } from '$lib/classes/Exportation.svelte';
 	import ExportService from '$lib/services/ExportService';
 	import { exists } from '@tauri-apps/plugin-fs';
 	import { invoke } from '@tauri-apps/api/core';
@@ -20,7 +16,6 @@
 	const exportStartedAt = new Map<number, number>();
 	let currentTime = $state(Date.now());
 	let intervalId: ReturnType<typeof setInterval> | undefined;
-	let expandedLogsByExportId = $state<Record<number, boolean>>({});
 	let ongoingCount = $derived(
 		globalState.exportations.filter((exportation) => exportation.isOnGoing()).length
 	);
@@ -298,40 +293,13 @@
 	}
 
 	/**
-	 * Ouvre ou ferme les logs techniques d'un export.
+	 * Partage le journal UTF-8 après les écritures en attente.
 	 * @param {number} exportId Identifiant de l'export.
-	 * @returns {void}
+	 * @returns {Promise<void>} Fin de l'ouverture ou du retour d'erreur.
 	 */
-	function toggleExportLogs(exportId: number): void {
-		expandedLogsByExportId = {
-			...expandedLogsByExportId,
-			[exportId]: !expandedLogsByExportId[exportId]
-		};
-	}
-
-	/**
-	 * Formate l'heure d'une ligne de log.
-	 * @param {string} timestamp Date ISO.
-	 * @returns {string} Heure locale.
-	 */
-	function formatExportLogTime(timestamp: string): string {
-		const date = new Date(timestamp);
-		return Number.isNaN(date.getTime()) ? timestamp : date.toLocaleTimeString();
-	}
-
-	/**
-	 * Copie les logs techniques dans le presse-papiers.
-	 * @param {ExportLogEntry[]} logs Logs à copier.
-	 * @returns {Promise<void>}
-	 */
-	async function copyExportLogs(logs: ExportLogEntry[]): Promise<void> {
+	async function toggleExportLogs(exportId: number): Promise<void> {
 		try {
-			await navigator.clipboard.writeText(
-				logs
-					.map((log) => `[${log.timestamp}] [${log.level}] [${log.source}] ${log.message}`)
-					.join('\n')
-			);
-			toast.success(get(LL).common.logsCopiedToClipboard());
+			await ExportService.openExportLogs(exportId);
 		} catch {
 			toast.error(get(LL).common.error());
 		}
@@ -639,35 +607,6 @@
 									</div>
 									<pre
 										class="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-words text-[11px] text-red-200">{exportation.errorLog}</pre>
-								</div>
-							{/if}
-
-							{#if expandedLogsByExportId[exportation.exportId]}
-								<div class="mt-3 rounded-xl border border-color bg-accent p-3">
-									<div class="mb-2 flex justify-end">
-										<button
-											type="button"
-											class="small-action"
-											onclick={() => copyExportLogs(exportation.exportLogs)}
-										>
-											<span class="material-icons text-[15px]!">content_copy</span>
-											{get(LL).common.copy()}
-										</button>
-									</div>
-									<div class="max-h-52 space-y-2 overflow-auto font-mono text-[10px]">
-										{#if exportation.exportLogs.length === 0}
-											<p class="text-secondary">{get(LL).export.noExportLogs()}</p>
-										{:else}
-											{#each exportation.exportLogs as log, index (index)}
-												<div class="break-words text-secondary">
-													<span class="text-thirdly">{formatExportLogTime(log.timestamp)}</span>
-													<span class="mx-1 uppercase">{log.level}</span>
-													<span class="text-accent-primary">[{log.source}]</span>
-													{log.message}
-												</div>
-											{/each}
-										{/if}
-									</div>
 								</div>
 							{/if}
 						</article>

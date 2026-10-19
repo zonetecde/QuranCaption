@@ -1,4 +1,20 @@
 const editor = {
+	cloudModelBase: 'Base',
+	cloudModelLarge: 'Large',
+	cloudDeviceGpu: 'GPU',
+	cloudDeviceCpu: 'CPU',
+	segmentationHafs: 'Hafs',
+	segmentationWarsh: 'Warsh',
+	segmentationQalun: 'Qalun',
+	segmentationShuba: 'Shu‘bah',
+	overlayLayerOrder: 'Layer order (Z)',
+	moveLayerUp: 'Move up',
+	moveLayerDown: 'Move down',
+	animateImageZoom: 'Progressive image zoom',
+	imageZoomEnd: 'Final zoom',
+	appendImportedSubtitles: 'Append after existing subtitles',
+	appendImportedSubtitlesDescription:
+		'Keep current subtitles and add the imported subtitles after them, shifting their timings automatically.',
 	videoEditor: 'Video',
 	subtitlesEditor: 'Subtitles',
 	translations: 'Translations',
@@ -243,6 +259,12 @@ const editor = {
 	aiTrimmingFinishedWithErrors: 'AI trimming finished with errors',
 	checkActivityLog: 'Check the activity log for details.',
 	aiSegmentationFailed: 'AI segmentation failed',
+	cloudAlignerUnavailable: 'Cloud aligner unavailable',
+	cloudAlignerUnavailableDetails:
+		'The Hugging Face Space is unreachable. This may be due to a Hugging Face outage or an unexpected error in the Space, independently of Quran Caption.',
+	cloudAlignerUnavailableAdvice:
+		'Wait for the service to recover, then try again.',
+	cloudAlignerSpaceLink: 'Open the Hugging Face Space',
 	aiSegmentationFinished: 'AI segmentation finished',
 	convertToMp4Error:
 		'Please convert your file to mp4 to use it in audio track (this file is currently in an unsupported format)',
@@ -1066,6 +1088,7 @@ const editor = {
 		'video-dimension': 'Video Quality & Orientation',
 		'media-fill': 'Fill Frame',
 		'media-scale': 'Zoom',
+		'media-rotation': 'Rotation',
 		'media-position-x': 'Horizontal Position',
 		'media-position-y': 'Vertical Position',
 		'fade-duration': 'Subtitle Fade Duration',
@@ -1130,7 +1153,7 @@ const editor = {
 		'surah-size': 'Size',
 		'surah-latin-spacing': 'Spacing',
 		'surah-opacity': 'Opacity',
-		'surah-latin-text-style': 'Text Styles',
+		'surah-latin-text-style': 'Shared appearance',
 		'reciter-name': 'Reciter Name',
 		'show-reciter-name': 'Show Reciter Name',
 		'reciter-name-always-show': 'Always Show',
@@ -1144,7 +1167,7 @@ const editor = {
 		'reciter-size': 'Size',
 		'reciter-latin-spacing': 'Spacing',
 		'reciter-opacity': 'Opacity',
-		'reciter-latin-text-style': 'Text Styles',
+		'reciter-latin-text-style': 'Shared appearance',
 		'ayah-container': 'Ayah Container',
 		'ayah-container-image': 'Container Image',
 		'ayah-container-vertical-position': 'Vertical Position',
@@ -1287,6 +1310,7 @@ const editor = {
 		'video-dimension': 'Quality and orientation of the video',
 		'media-fill': 'Crop background videos and images to fill the entire frame',
 		'media-scale': 'Zoom the background media',
+		'media-rotation': 'Rotate the background media in degrees',
 		'media-position-x': 'Move the background media horizontally relative to the center',
 		'media-position-y': 'Move the background media vertically relative to the center',
 		'fade-duration': 'Duration of fade in/out effect in milliseconds',
@@ -1339,7 +1363,8 @@ const editor = {
 		'surah-size': 'Scale size of Surah Calligraphy',
 		'surah-latin-spacing': 'Adjust spacing between the Arabic Surah name and its Latin equivalent',
 		'surah-opacity': 'Adjust the opacity of the Surah name',
-		'surah-latin-text-style': 'Style for the Latin transliteration of the Surah name',
+		'surah-latin-text-style':
+			'Appearance shared by Arabic calligraphy and Latin text; font, font size and capitalization apply only to Latin text.',
 		'reciter-name': 'Control display of the Reciter name',
 		'show-reciter-name': 'Show or hide the Reciter name',
 		'reciter-name-always-show': 'Always show the Reciter name (ignore timing)',
@@ -1357,7 +1382,8 @@ const editor = {
 		'reciter-latin-spacing':
 			'Adjust spacing between the Arabic Reciter name and its Latin equivalent',
 		'reciter-opacity': 'Adjust the opacity of the Reciter name',
-		'reciter-latin-text-style': 'Style for the Latin transliteration of the Reciter name',
+		'reciter-latin-text-style':
+			'Appearance shared by Arabic calligraphy and Latin text; font, font size and capitalization apply only to Latin text.',
 		'ayah-container': 'Add a decorative background image behind the ayah',
 		'ayah-container-image': 'Select a decorative container image for the ayah',
 		'ayah-container-vertical-position':

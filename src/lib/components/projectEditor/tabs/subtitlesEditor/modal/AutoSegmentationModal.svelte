@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { onDestroy, onMount, tick } from 'svelte';
+	import { onDestroy, tick } from 'svelte';
+	import { open } from '@tauri-apps/plugin-dialog';
+	import { readTextFile } from '@tauri-apps/plugin-fs';
+	import toast from 'svelte-5-french-toast';
 	import LL from '$lib/i18n/i18n-svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import ResultPanel from './autoSegmentation/ResultPanel.svelte';
@@ -15,12 +18,13 @@
 	let panelScale = $derived(
 		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
 	);
-	const wizard = useAutoSegmentationWizard();
+	let importedPayload = $state<string | null>(null);
+	let importedFileName = $state('');
+	const wizard = useAutoSegmentationWizard(() => importedPayload);
 	let panel: HTMLElement;
 	let closeTimer: ReturnType<typeof setTimeout> | undefined;
 	setSharedWizard(wizard);
 
-	/** Force le seul workflow pris en charge sur la version mobile. */
 	/**
 	 * Closes the segmentation wizard before opening the Ayah range crop tool.
 	 * @returns {Promise<void>} Resolution after the crop modal is closed.
@@ -30,12 +34,22 @@
 		await tick();
 		await ModalManager.verseRangeCropModal();
 	}
-	function initializeModal(): void {
-		if (wizard.selection.aiVersion !== 'multi_v2' || wizard.selection.mode !== 'api') {
-			wizard.onVersionChange('multi_v2');
+	/**
+	 * Reads an aligner JSON using the Android file picker.
+	 * @returns {Promise<void>} Resolution after selecting and reading a file.
+	 */
+	async function browseJson(): Promise<void> {
+		try {
+			const path = await open({
+				multiple: false,
+				filters: [{ name: $LL.editor.importJsonDescription(), extensions: ['json'] }]
+			});
+			if (typeof path !== 'string') return;
+			importedPayload = await readTextFile(path);
+			importedFileName = path.split(/[\\/]/).pop() ?? '';
+		} catch {
+			toast.error($LL.common.error());
 		}
-		if (wizard.selection.cloudModel !== 'Base') wizard.setCloudModel('Base');
-		if (wizard.selection.device !== 'GPU') wizard.setDevice('GPU');
 	}
 
 	/** Fait glisser le modal vers le bas avant de le fermer. */
@@ -51,7 +65,6 @@
 		clearSharedWizard(wizard);
 	}
 
-	onMount(initializeModal);
 	onDestroy(disposeModal);
 </script>
 
@@ -67,12 +80,18 @@
 		<div class="flex-1 overflow-y-auto p-4">
 			<div class="mx-auto flex max-w-4xl flex-col gap-5">
 				{#if !wizard.isRunning && !wizard.result && !wizard.errorMessage}
-					{#if wizard.showExistingSubtitlesStep}
-						<StepExistingSubtitles />
+					{#if wizard.showExistingSubtitlesStep || (importedPayload && globalState.getSubtitleClips.length > 0)}
+						<StepExistingSubtitles isImport={importedPayload !== null} />
 					{/if}
-					<StepSettings />
+					{#if !importedPayload}<StepSettings />{/if}
+					<!-- <button type="button" class="btn w-full" onclick={browseJson}
+						>{$LL.editor.browseJsonFile()}</button
+					> -->
+					{#if importedFileName}<p class="break-all text-xs text-secondary">
+							{importedFileName}
+						</p>{/if}
 				{/if}
-				<ResultPanel />
+				<ResultPanel isImportMode={importedPayload !== null} />
 			</div>
 		</div>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getOverlayLayerZIndex } from '$lib/services/OverlayLayerService';
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 	import {
 		EMPTY_INLINE_STYLE_FLAGS,
@@ -757,6 +758,8 @@
 		verticalStyleId: 'vertical-position',
 		horizontalStyleId: 'horizontal-position'
 	}}
+	data-overlay-layer={edition}
+	style:z-index={getOverlayLayerZIndex(edition)}
 	class={`translation absolute subtitle select-none z-10 ${edition} ${tailwind} ${helperStyles}`}
 	data-subtitle-target={edition}
 	style={`opacity: ${wbwState().enabled ? 1 : subtitleOpacity}; ${css}; ${runtimeLayoutCss}; ${backgroundHorizontalPaddingCss} white-space: pre-line;`}

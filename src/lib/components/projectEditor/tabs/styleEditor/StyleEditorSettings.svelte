@@ -467,7 +467,13 @@
 			return true;
 		if (
 			category.id === 'general' &&
-			['media-fill', 'media-scale', 'media-position-x', 'media-position-y'].includes(style.id) &&
+			[
+				'media-fill',
+				'media-scale',
+				'media-rotation',
+				'media-position-x',
+				'media-position-y'
+			].includes(style.id) &&
 			globalState.getVideoTrack.clips.length === 0
 		)
 			return true;
@@ -708,7 +714,13 @@
 				return true;
 			if (id === 'reciter-size' && !isFeatureEnabled('reciter-show-arabic', category)) return true;
 			if (
-				['reciter-name-format', 'reciter-latin-spacing', 'reciter-latin-text-style'].includes(id) &&
+				['reciter-name-format', 'reciter-latin-spacing'].includes(id) &&
+				!isFeatureEnabled('reciter-show-latin', category)
+			)
+				return true;
+			if (
+				id === 'reciter-latin-text-style' &&
+				!isFeatureEnabled('reciter-show-arabic', category) &&
 				!isFeatureEnabled('reciter-show-latin', category)
 			)
 				return true;
@@ -915,9 +927,10 @@
 		if (!definitions) return [{ styles }];
 
 		const stylesById = new Map(styles.map((style) => [style.id, style]));
-		const groups = definitions
-			.map(({ id, styleIds }) => ({
+		const groups: StyleControlGroup[] = definitions
+			.map(({ id, styleIds, layerControl }) => ({
 				label: getStyleGroupCopyKey(id),
+				layerControl,
 				styles: styleIds.flatMap((styleId) => {
 					const style = stylesById.get(styleId);
 					if (!style) return [];
@@ -934,7 +947,7 @@
 			else groups.push({ label: 'groupAdvanced', styles: remainingStyles });
 		}
 
-		return groups.length > 1 ? groups : [{ styles }];
+		return groups.length > 1 || groups.some((group) => group.layerControl) ? groups : [{ styles }];
 	}
 
 	/**

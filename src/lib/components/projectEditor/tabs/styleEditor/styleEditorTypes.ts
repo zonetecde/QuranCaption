@@ -13,6 +13,9 @@ export type StylePanel = {
 export type StyleGroupCopyKey =
 	| 'groupBasics'
 	| 'groupTypography'
+	| 'groupArabicCalligraphy'
+	| 'groupLatinText'
+	| 'groupSharedAppearance'
 	| 'groupColors'
 	| 'groupSpacing'
 	| 'groupLayout'
@@ -27,6 +30,7 @@ export type StyleGroupCopyKey =
 
 export type StyleControlGroup = {
 	label?: StyleGroupCopyKey;
+	layerControl?: boolean;
 	styles: Style[];
 };
 

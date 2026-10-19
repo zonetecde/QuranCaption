@@ -10,6 +10,7 @@ import {
 	getAutoSegmentationBusyMessage
 } from '$lib/services/AutoSegmentationExecutionCoordinator';
 import type { Project } from '$lib/classes/Project';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 /**
  * Applique les sous-titres à partir d'un JSON exporté par Hugging Face Multi-Aligner.
@@ -113,7 +114,9 @@ export async function runAutoSegmentationFromImportedJson(
 		return { status: 'failed', message: getAutoSegmentationBusyMessage() };
 	}
 	try {
-		return await runAutoSegmentationFromImportedJsonCore(importedPayload, options);
+		return await ProjectHistoryManager.trackAsync('import subtitles', () =>
+			runAutoSegmentationFromImportedJsonCore(importedPayload, options)
+		);
 	} finally {
 		release();
 	}

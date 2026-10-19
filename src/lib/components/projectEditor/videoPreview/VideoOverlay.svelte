@@ -35,6 +35,10 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { tick, untrack } from 'svelte';
+	import ContextMenu from 'svelte-contextmenu';
+	import OverlayLayerActions from './OverlayLayerActions.svelte';
+	import { getOverlayLayerZIndex } from '$lib/services/OverlayLayerService';
+
 	import ReciterName from '../tabs/styleEditor/ReciterName.svelte';
 	import SurahName from '../tabs/styleEditor/SurahName.svelte';
 	import VerseNumber from '../tabs/styleEditor/VerseNumber.svelte';
@@ -65,6 +69,23 @@
 	} from '$lib/services/StyleVisualResolver';
 	import { applyReactiveFontSize } from './helpers/reactiveFontSize';
 	import { resolveSubtitleCollisions } from './helpers/antiCollision';
+
+	let layerMenu: ContextMenu | undefined = $state();
+	let selectedLayerId = $state('');
+
+	/**
+	 * Ouvre les actions du calque cliqué sans remplacer le menu propre aux sous-titres.
+	 * @param {MouseEvent} event Clic droit dans l'aperçu.
+	 * @returns {void}
+	 */
+	function showLayerMenu(event: MouseEvent): void {
+		if (event.defaultPrevented || isExportCapturePreview()) return;
+		const element = (event.target as Element).closest<HTMLElement>('[data-overlay-layer]');
+		if (!element?.dataset.overlayLayer) return;
+		selectedLayerId = element.dataset.overlayLayer;
+		event.preventDefault();
+		layerMenu?.show(event);
+	}
 
 	type RuntimeSubtitleLayout = {
 		fontSize: number | null;
@@ -1206,7 +1227,12 @@
 
 <svelte:window onpointerdown={updateSubtitleResizeSelection} />
 
-<div class="inset-0 absolute" id="overlay">
+<ContextMenu bind:this={layerMenu}>
+	<OverlayLayerActions layerId={selectedLayerId} />
+</ContextMenu>
+
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="inset-0 absolute" id="overlay" oncontextmenu={showLayerMenu}>
 	<!-- Couche 1 : Grille d'alignement (onglet Style uniquement) -->
 	{#if canShowAlignmentOverlay()}
 		<div class="alignment-overlay absolute inset-0 pointer-events-none" aria-hidden="true">
@@ -1276,7 +1302,7 @@
 		{#if currentSubtitle()}
 			<div
 				id="subtitles-container"
-				class="absolute inset-0 z-1 flex flex-col items-center justify-center"
+				class="absolute inset-0 flex flex-col items-center justify-center"
 				style="opacity: 1;"
 			>
 				<div class="anti-collision-drag-notice" role="status">
@@ -1344,6 +1370,7 @@
 		<!-- À z-0, l'overlay déclaré avant reste dessous et les contenus à partir de z-1 passent dessus. -->
 		<svg
 			class={`pointer-events-none absolute inset-0 h-full w-full ${videoFrameSettings.contentAbove ? 'z-0' : 'z-20'}`}
+			style:z-index={videoFrameSettings.contentAbove ? 0 : getOverlayLayerZIndex('video-frame')}
 			style:opacity={videoFrameSettings.opacity}
 			viewBox="0 0 100 100"
 			preserveAspectRatio="none"

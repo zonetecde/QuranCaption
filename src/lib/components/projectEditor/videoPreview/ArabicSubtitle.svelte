@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getOverlayLayerZIndex } from '$lib/services/OverlayLayerService';
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
 	import {
@@ -758,6 +759,8 @@
 			horizontalStyleId: 'horizontal-position'
 		}}
 		dir={showDecorativeBrackets() || shouldForceRtlJustify() ? 'rtl' : undefined}
+		data-overlay-layer="arabic"
+		style:z-index={getOverlayLayerZIndex('arabic')}
 		class={'arabic absolute subtitle select-none z-10 ' + tailwind + helperStyles}
 		style="opacity: {wbwState().enabled
 			? 1

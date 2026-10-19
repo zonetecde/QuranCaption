@@ -1,4 +1,4 @@
-import { SubtitleClip } from '$lib/classes';
+import { SubtitleClip, type PredefinedSubtitleClip } from '$lib/classes';
 import { Quran } from '$lib/classes/Quran';
 import { globalState } from '$lib/runes/main.svelte';
 import {
@@ -8,6 +8,7 @@ import {
 	type SegmentationWordTimestamp
 } from '$lib/services/AutoSegmentation';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import { parseVerseRef } from './autoSegmentation/verse-ref';
 
 export type ManualWordByWordDraftWord = SegmentationWordTimestamp & {
 	word: string;
@@ -33,6 +34,34 @@ const WBW_DISPLAY_STRIP_MARKERS = /[۟۠]/g;
  */
 export function stripWbwDisplayMarkers(text: string): string {
 	return text.replace(WBW_DISPLAY_STRIP_MARKERS, '');
+}
+
+/**
+ * Résout le texte d'un mot WBW sans afficher sa référence à la place du mot arabe.
+ * @param {SubtitleClip | PredefinedSubtitleClip} clip Sous-titre portant le mot.
+ * @param {{ location: string; word?: string }} word Mot WBW source.
+ * @param {number} index Position du mot dans le segment, pour les sous-titres prédéfinis.
+ * @returns {string} Texte arabe disponible, sans marqueurs d'affichage ni référence technique.
+ */
+export function getTimelineWbwWordLabel(
+	clip: SubtitleClip | PredefinedSubtitleClip,
+	word: { location: string; word?: string },
+	index = 0
+): string {
+	const directLabel = stripWbwDisplayMarkers(String(word.word ?? '').trim());
+	if (directLabel && !parseVerseRef(directLabel)) return directLabel;
+	const ref = parseVerseRef(word.location);
+	const canonicalWord = ref
+		? Quran.getSurahs()
+				.find((surah) => surah.id === ref.surah)
+				?.verses.find((verse) => verse.id === ref.verse)?.words[ref.word - 1]?.arabic
+		: undefined;
+	const relativeIndex =
+		clip instanceof SubtitleClip && ref ? ref.word - clip.startWordIndex - 1 : index;
+	const label = stripWbwDisplayMarkers(
+		canonicalWord ?? clip.text.split(/\s+/).filter(Boolean)[relativeIndex] ?? ''
+	).trim();
+	return parseVerseRef(label) ? '' : label;
 }
 
 type SubtitlesEditorState = typeof globalState.getSubtitlesEditorState;

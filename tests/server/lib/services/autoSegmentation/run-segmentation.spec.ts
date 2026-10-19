@@ -15,8 +15,8 @@ describe('runAutoSegmentation exports', () => {
 		expect(typeof runAutoSegmentation).toBe('function');
 	});
 
-	it('forces WBW timestamps when existing subtitles are aligned', () => {
+	it('always keeps cloud word timestamps', () => {
 		expect(resolveIncludeWbwTimestamps(false, 'align')).toBe(true);
-		expect(resolveIncludeWbwTimestamps(false, 'replace')).toBe(false);
+		expect(resolveIncludeWbwTimestamps(false, 'replace')).toBe(true);
 	});
 });

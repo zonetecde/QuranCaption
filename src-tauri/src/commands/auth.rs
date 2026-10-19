@@ -81,6 +81,7 @@ pub struct HuggingFaceAccountStatus {
 async fn validate_hugging_face_token(token: &str) -> Result<HuggingFaceAccountStatus, String> {
     let response = reqwest::Client::new()
         .get("https://huggingface.co/api/whoami-v2")
+        .timeout(std::time::Duration::from_secs(10))
         .bearer_auth(token)
         .send()
         .await
@@ -137,7 +138,7 @@ pub async fn hugging_face_account_connect(
 pub async fn hugging_face_account_status(
     app: AppHandle,
 ) -> Result<HuggingFaceAccountStatus, String> {
-    let Some(token) = hugging_face_cloud_token(&app)? else {
+    let Some(token) = quran_auth_secure_get(app.clone(), HF_CLOUD_TOKEN_KEY.to_string())? else {
         return Ok(HuggingFaceAccountStatus {
             configured: false,
             valid: false,
@@ -153,7 +154,14 @@ pub fn hugging_face_account_disconnect(app: AppHandle) -> Result<(), String> {
     quran_auth_secure_delete(app, HF_CLOUD_TOKEN_KEY.to_string())
 }
 
-/// Lit le token cloud pour authentifier les appels d'alignement.
-pub(crate) fn hugging_face_cloud_token(app: &AppHandle) -> Result<Option<String>, String> {
-    quran_auth_secure_get(app.clone(), HF_CLOUD_TOKEN_KEY.to_string())
+/// Lit le token cloud et ignore les tokens refusés par Hugging Face.
+pub(crate) async fn hugging_face_cloud_token(app: &AppHandle) -> Result<Option<String>, String> {
+    let Some(token) = quran_auth_secure_get(app.clone(), HF_CLOUD_TOKEN_KEY.to_string())?.filter(|token| !token.trim().is_empty()) else {
+        return Ok(None);
+    };
+    if matches!(validate_hugging_face_token(token.trim()).await, Ok(status) if !status.valid) {
+        return Ok(None);
+    }
+    // Une erreur réseau de validation ne doit pas supprimer une authentification valide.
+    Ok(Some(token))
 }

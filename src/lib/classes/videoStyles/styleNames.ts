@@ -38,6 +38,7 @@ export type GlobalAnimationStyleName =
 	| 'video-dimension'
 	| 'media-fill'
 	| 'media-scale'
+	| 'media-rotation'
 	| 'media-position-x'
 	| 'media-position-y'
 	| 'fade-duration'

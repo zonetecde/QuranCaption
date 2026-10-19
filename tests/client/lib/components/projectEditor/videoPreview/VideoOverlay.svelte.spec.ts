@@ -469,6 +469,41 @@ describe('Video overlay subtitle preview', () => {
 		QPCFontProvider.verseMappingV2 = undefined;
 	});
 
+	test('reorders subtitle layers from the preview context menu without trapping them in a parent layer', async () => {
+		setupVideoOverlayFixture([createVerseSubtitle(0, 999, 'Arabic', 'Translation')], {
+			cursorPosition: 500
+		});
+		vi.spyOn(ProjectHistoryManager, 'track').mockImplementation((_label, action) => action());
+		const component = render(VideoOverlay);
+		await settleOverlay();
+		const arabic = getForegroundArabicNode(component.container)!;
+		const translation = getForegroundTranslationNode(component.container, 'english')!;
+		expect(Number(getComputedStyle(arabic).zIndex)).toBeLessThan(
+			Number(getComputedStyle(translation).zIndex)
+		);
+		expect(getComputedStyle(getSubtitlesContainer(component.container)!).zIndex).toBe('auto');
+		arabic.dispatchEvent(
+			new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 100, clientY: 100 })
+		);
+		await tick();
+		const moveUpIcon = Array.from(
+			document.querySelectorAll('button .material-icons-outlined')
+		).find(
+			(element) => element.textContent === 'flip_to_front' && element.getClientRects().length > 0
+		);
+		expect(moveUpIcon).toBeDefined();
+		moveUpIcon!.closest<HTMLButtonElement>('button')!.click();
+		await tick();
+		expect(Number(getComputedStyle(arabic).zIndex)).toBeGreaterThan(
+			Number(getComputedStyle(translation).zIndex)
+		);
+		expect(getComputedStyle(getSubtitlesContainer(component.container)!).zIndex).toBe('auto');
+		expect(ProjectHistoryManager.track).toHaveBeenCalledWith(
+			'move overlay layer',
+			expect.any(Function)
+		);
+	});
+
 	test.each([0, 50, 100, undefined])(
 		'renders square or rounded line backgrounds without dark seams at %s percent',
 		async (roundness) => {

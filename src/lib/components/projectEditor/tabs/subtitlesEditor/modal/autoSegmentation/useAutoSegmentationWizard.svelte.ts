@@ -13,14 +13,20 @@ import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { buildAudioLabel } from './helpers/format';
 import { persistSettingsPatch } from './helpers/persist';
-import type { SegmentationPreset } from './types';
+import { runAutoSegmentationFromImportedJson } from '$lib/services/AutoSegmentation';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 
-/** Creates the cloud-only mobile auto-segmentation state and actions. */
-export function useAutoSegmentationWizard() {
+/**
+ * Creates the mobile cloud alignment and JSON import actions.
+ * @param {(() => string | null) | undefined} getImportedPayload Current optional JSON import.
+ * @returns {object} Reactive cloud alignment state and actions.
+ */
+export function useAutoSegmentationWizard(getImportedPayload?: () => string | null) {
 	const persisted = globalState.settings?.autoSegmentationSettings as
-		AutoSegmentationSettings | undefined;
+		| AutoSegmentationSettings
+		| undefined;
 	const selection = $state({
 		aiVersion: 'multi_v2' as const,
 		mode: 'api' as const,
@@ -29,16 +35,10 @@ export function useAutoSegmentationWizard() {
 		device: persisted?.device ?? ('GPU' as SegmentationDevice),
 		riwayah: persisted?.riwayah ?? ('hafs' as const)
 	});
-	let minSilenceMs = $state(persisted?.minSilenceMs ?? 200);
-	let minSpeechMs = $state(persisted?.minSpeechMs ?? 1000);
-	let padMs = $state(persisted?.padMs ?? 100);
 	let padLeftMs = $state(persisted?.padLeftMs ?? 100);
 	let padRightMs = $state(persisted?.padRightMs ?? 200);
-	let includeWbwTimestamps = $state(persisted?.includeWbwTimestamps ?? true);
 	let subtitleApplicationMode = $state<SubtitleApplicationMode | null>('replace');
 	let fillBySilence = $state(persisted?.fillBySilence ?? true);
-	let extendBeforeSilence = $state(persisted?.extendBeforeSilence ?? false);
-	let extendBeforeSilenceMs = $state(persisted?.extendBeforeSilenceMs ?? 50);
 	let isRunning = $state(false);
 	let result = $state<AutoSegmentationResult | null>(null);
 	let currentStatus = $state('');
@@ -50,7 +50,7 @@ export function useAutoSegmentationWizard() {
 		() =>
 			globalState.getSubtitleTrack.clips.filter(
 				(clip) => clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip
-			).length >= 3
+			).length >= (getImportedPayload?.() ? 1 : 3)
 	);
 
 	const audioInfo = $derived(() => getAutoSegmentationAudioInfo());
@@ -156,28 +156,31 @@ export function useAutoSegmentationWizard() {
 			model: selection.cloudModel,
 			device: selection.device,
 			applicationMode,
-			includeWbwTimestamps: applicationMode === 'align' || includeWbwTimestamps
+			includeWbwTimestamps: true
 		});
 		let response: AutoSegmentationResult | null = null;
 		try {
-			response = await runAutoSegmentation(
-				{
-					minSilenceMs,
-					minSpeechMs,
-					padMs,
-					padLeftMs,
-					padRightMs,
-					cloudModel: selection.cloudModel,
-					device: selection.device,
-					riwayah: selection.riwayah,
-					includeWbwTimestamps: applicationMode === 'align' || includeWbwTimestamps,
-					subtitleApplicationMode: applicationMode,
-					fillBySilence,
-					extendBeforeSilence,
-					extendBeforeSilenceMs
-				},
-				'api'
-			);
+			const importedPayload = getImportedPayload?.();
+			response = importedPayload
+				? await ProjectHistoryManager.trackAsync('import subtitle segmentation', () =>
+						runAutoSegmentationFromImportedJson(importedPayload, {
+							fillBySilence,
+							subtitleApplicationMode: applicationMode
+						})
+					)
+				: await runAutoSegmentation(
+						{
+							padLeftMs,
+							padRightMs,
+							cloudModel: selection.cloudModel,
+							device: selection.device,
+							riwayah: selection.riwayah,
+							includeWbwTimestamps: true,
+							subtitleApplicationMode: applicationMode,
+							fillBySilence
+						},
+						'api'
+					);
 			applySegmentationResponse(response);
 		} catch (error) {
 			response = {
@@ -209,41 +212,6 @@ export function useAutoSegmentationWizard() {
 		}
 	}
 
-	/** Applies a timing preset and persists it. */
-	function applyPreset(preset: SegmentationPreset): void {
-		minSilenceMs = preset.minSilenceMs;
-		minSpeechMs = preset.minSpeechMs;
-		padMs = preset.padMs;
-		persistPatch({ minSilenceMs, minSpeechMs, padMs });
-	}
-
-	/** Reports whether a timing preset matches the current values. */
-	function isPresetActive(preset: SegmentationPreset): boolean {
-		return (
-			minSilenceMs === preset.minSilenceMs &&
-			minSpeechMs === preset.minSpeechMs &&
-			padMs === preset.padMs
-		);
-	}
-
-	/** Persists the minimum silence duration. */
-	function setMinSilence(value: number): void {
-		minSilenceMs = value;
-		persistPatch({ minSilenceMs: value });
-	}
-
-	/** Persists the minimum speech duration. */
-	function setMinSpeech(value: number): void {
-		minSpeechMs = value;
-		persistPatch({ minSpeechMs: value });
-	}
-
-	/** Persists the segmentation padding. */
-	function setPad(value: number): void {
-		padMs = value;
-		persistPatch({ padMs: value });
-	}
-
 	/** Persists the amount added before cloud segment boundaries. */
 	function setPadLeft(value: number): void {
 		padLeftMs = Math.max(0, Math.min(1000, value));
@@ -254,12 +222,6 @@ export function useAutoSegmentationWizard() {
 	function setPadRight(value: number): void {
 		padRightMs = Math.max(0, Math.min(1000, value));
 		persistPatch({ padRightMs });
-	}
-
-	/** Persists word-by-word timestamp generation. */
-	function setIncludeWbwTimestamps(value: boolean): void {
-		includeWbwTimestamps = value;
-		persistPatch({ includeWbwTimestamps: value });
 	}
 
 	/**
@@ -277,39 +239,15 @@ export function useAutoSegmentationWizard() {
 		persistPatch({ fillBySilence: value });
 	}
 
-	/** Persists subtitle extension before silence. */
-	function setExtendBeforeSilence(value: boolean): void {
-		extendBeforeSilence = value;
-		persistPatch({ extendBeforeSilence: value });
-	}
-
-	/** Persists the subtitle extension duration. */
-	function setExtendBeforeSilenceMs(value: number): void {
-		extendBeforeSilenceMs = value;
-		persistPatch({ extendBeforeSilenceMs: value });
-	}
-
 	return {
 		get selection() {
 			return selection;
-		},
-		get minSilenceMs() {
-			return minSilenceMs;
-		},
-		get minSpeechMs() {
-			return minSpeechMs;
-		},
-		get padMs() {
-			return padMs;
 		},
 		get padLeftMs() {
 			return padLeftMs;
 		},
 		get padRightMs() {
 			return padRightMs;
-		},
-		get includeWbwTimestamps() {
-			return includeWbwTimestamps;
 		},
 		get subtitleApplicationMode() {
 			return showExistingSubtitlesStep() ? subtitleApplicationMode : 'replace';
@@ -319,12 +257,6 @@ export function useAutoSegmentationWizard() {
 		},
 		get fillBySilence() {
 			return fillBySilence;
-		},
-		get extendBeforeSilence() {
-			return extendBeforeSilence;
-		},
-		get extendBeforeSilenceMs() {
-			return extendBeforeSilenceMs;
 		},
 		get isRunning() {
 			return isRunning;
@@ -372,18 +304,10 @@ export function useAutoSegmentationWizard() {
 		setDevice,
 		setRiwayah,
 		startSegmentation,
-		applyPreset,
-		isPresetActive,
-		setMinSilence,
-		setMinSpeech,
-		setPad,
 		setPadLeft,
 		setPadRight,
-		setIncludeWbwTimestamps,
 		setSubtitleApplicationMode,
 		setFillBySilence,
-		setExtendBeforeSilence,
-		setExtendBeforeSilenceMs,
 		audioLabel: () => buildAudioLabel(audioInfo()?.fileName, audioInfo()?.clipCount)
 	};
 }

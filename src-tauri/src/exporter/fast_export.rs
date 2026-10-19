@@ -162,6 +162,7 @@ pub(super) fn run_fast_export(
     media_scale: f64,
     media_position_x: f64,
     media_position_y: f64,
+    media_rotation: f64,
     prefer_hw: bool,
     duration_ms: Option<i32>,
     blur: Option<f64>,
@@ -318,6 +319,7 @@ pub(super) fn run_fast_export(
             media_scale,
             media_position_x,
             media_position_y,
+            media_rotation,
             blur,
             performance_profile,
             export_id,
@@ -590,6 +592,7 @@ pub(super) fn run_fast_export(
         media_scale,
         media_position_x,
         media_position_y,
+        media_rotation,
     );
     let mut filter_lines = Vec::new();
     filter_lines.push(format!(

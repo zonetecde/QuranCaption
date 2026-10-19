@@ -130,10 +130,16 @@ pub struct VideoInput {
     pub media_fill: Option<bool>,
     /// Zoom spécifique au clip, en pourcentage.
     pub media_scale: Option<f64>,
+    /// Durée originale du zoom progressif de l'image, avant un éventuel export partiel.
+    pub image_zoom_duration_ms: Option<i64>,
+    /// Facteur final du zoom progressif de l'image (1,5 par défaut).
+    pub image_zoom_end: Option<f64>,
     /// Position horizontale spécifique au clip.
     pub media_position_x: Option<f64>,
     /// Position verticale spécifique au clip.
     pub media_position_y: Option<f64>,
+    /// Rotation spécifique au clip, en degrés.
+    pub media_rotation: Option<f64>,
 }
 
 /// Entrée audio temporelle utilisée uniquement lorsqu'un clip est trimé.

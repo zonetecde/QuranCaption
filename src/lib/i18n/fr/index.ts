@@ -575,6 +575,22 @@ const fr = {
 			'Êtes-vous sûr de vouloir supprimer le batch « {name} » ? Ses {count} projet(s) seront également supprimés définitivement.'
 	},
 	editor: {
+		cloudModelBase: 'Base',
+		cloudModelLarge: 'Large',
+		cloudDeviceGpu: 'GPU',
+		cloudDeviceCpu: 'CPU',
+		segmentationHafs: 'Hafs',
+		segmentationWarsh: 'Warsh',
+		segmentationQalun: 'Qalun',
+		segmentationShuba: 'Shu‘bah',
+		overlayLayerOrder: 'Ordre des calques (Z)',
+		moveLayerUp: 'Monter',
+		moveLayerDown: 'Descendre',
+		animateImageZoom: 'Zoom progressif de l’image',
+		imageZoomEnd: 'Zoom final',
+		appendImportedSubtitles: 'Ajouter après les sous-titres existants',
+		appendImportedSubtitlesDescription:
+			'Conserver les sous-titres actuels et ajouter les sous-titres importés à leur suite, en décalant automatiquement leurs timings.',
 		videoEditor: 'Vidéo',
 		subtitlesEditor: 'Sous-titres',
 		translations: 'Traductions',
@@ -850,6 +866,12 @@ const fr = {
 		aiTrimmingFinishedWithErrors: 'Rognage IA terminé avec des erreurs',
 		checkActivityLog: 'Consultez le journal d\u2019activité pour plus de détails.',
 		aiSegmentationFailed: 'Échec de la segmentation IA',
+		cloudAlignerUnavailable: 'Aligneur cloud indisponible',
+		cloudAlignerUnavailableDetails:
+			'Le Space Hugging Face est inaccessible. Cela peut venir d’une panne de Hugging Face ou d’une erreur exceptionnelle du Space, indépendamment de Quran Caption.',
+		cloudAlignerUnavailableAdvice:
+			'Attendez le rétablissement du service, puis réessayez.',
+		cloudAlignerSpaceLink: 'Ouvrir le Space Hugging Face',
 		aiSegmentationFinished: 'Segmentation IA terminée',
 		convertToMp4Error:
 			'Veuillez convertir votre fichier en mp4 pour l\u2019utiliser dans la piste audio (ce fichier est actuellement dans un format non pris en charge)',
@@ -1677,6 +1699,7 @@ const fr = {
 			'video-dimension': 'Qualité et orientation de la vidéo',
 			'media-fill': 'Remplir le cadre',
 			'media-scale': 'Zoom',
+			'media-rotation': 'Rotation',
 			'media-position-x': 'Position horizontale',
 			'media-position-y': 'Position verticale',
 			'fade-duration': 'Durée du fondu des sous-titres',
@@ -1741,7 +1764,7 @@ const fr = {
 			'surah-size': 'Taille',
 			'surah-latin-spacing': 'Espacement',
 			'surah-opacity': 'Opacité',
-			'surah-latin-text-style': 'Styles de texte',
+			'surah-latin-text-style': 'Apparence commune',
 			'reciter-name': 'Nom du récitateur',
 			'show-reciter-name': 'Afficher le nom du récitateur',
 			'reciter-name-always-show': 'Toujours afficher',
@@ -1755,7 +1778,7 @@ const fr = {
 			'reciter-size': 'Taille',
 			'reciter-latin-spacing': 'Espacement',
 			'reciter-opacity': 'Opacité',
-			'reciter-latin-text-style': 'Styles de texte',
+			'reciter-latin-text-style': 'Apparence commune',
 			'ayah-container': 'Conteneur du verset',
 			'ayah-container-image': 'Image du conteneur',
 			'ayah-container-vertical-position': 'Position verticale',
@@ -1915,6 +1938,7 @@ const fr = {
 			'video-dimension': 'Qualité et orientation de la vidéo',
 			'media-fill': 'Recadrer les vidéos et images de fond pour remplir tout le cadre',
 			'media-scale': 'Zoomer le média de fond',
+			'media-rotation': 'Faire pivoter le média de fond en degrés',
 			'media-position-x': 'Déplacer le média de fond horizontalement par rapport au centre',
 			'media-position-y': 'Déplacer le média de fond verticalement par rapport au centre',
 			'fade-duration': 'Durée de l\u2019effet de fondu entrée/sortie en millisecondes',
@@ -1974,7 +1998,8 @@ const fr = {
 			'surah-latin-spacing':
 				'Ajuster l\u2019espacement entre le nom arabe de la sourate et son équivalent latin',
 			'surah-opacity': 'Ajuster l\u2019opacité du nom de la sourate',
-			'surah-latin-text-style': 'Style pour la translittération latine du nom de la sourate',
+			'surah-latin-text-style':
+				'Apparence commune à la calligraphie arabe et au texte latin ; la police, sa taille et la casse concernent uniquement le texte latin.',
 			'reciter-name': 'Contrôler l\u2019affichage du nom du récitateur',
 			'show-reciter-name': 'Afficher ou masquer le nom du récitateur',
 			'reciter-name-always-show': 'Toujours afficher le nom du récitateur (ignorer le minutage)',
@@ -1994,7 +2019,8 @@ const fr = {
 			'reciter-latin-spacing':
 				'Ajuster l\u2019espacement entre le nom arabe du récitateur et son équivalent latin',
 			'reciter-opacity': 'Ajuster l\u2019opacité du nom du récitateur',
-			'reciter-latin-text-style': 'Style pour la translittération latine du nom du récitateur',
+			'reciter-latin-text-style':
+				'Apparence commune à la calligraphie arabe et au texte latin ; la police, sa taille et la casse concernent uniquement le texte latin.',
 			'ayah-container': 'Ajouter une image d\u2019arrière-plan décorative derrière le verset',
 			'ayah-container-image': 'Sélectionner une image de conteneur décorative pour le verset',
 			'ayah-container-vertical-position':
@@ -2606,6 +2632,9 @@ const fr = {
 		fontControlledByMushaf: 'Cette police est contrôlée par le Mushaf sélectionné.',
 		groupBasics: 'Essentiel',
 		groupTypography: 'Typographie',
+		groupArabicCalligraphy: 'Calligraphie arabe',
+		groupLatinText: 'Texte latin',
+		groupSharedAppearance: 'Apparence commune',
 		groupColors: 'Couleurs',
 		groupSpacing: 'Espacement',
 		groupLayout: 'Disposition',
@@ -2639,6 +2668,8 @@ const fr = {
 		huggingFaceConnectedBadge: 'HF connecté',
 		huggingFaceConfigureBadge: 'Ajouter un token HF',
 		huggingFaceInvalidToken: 'Ce token est invalide ou a été révoqué.',
+		huggingFaceInvalidTokenFallback:
+			'Votre token Hugging Face est invalide ou r?voqu?. R?g?n?rez-le et mettez-le ? jour dans les param?tres. La segmentation continuera sans ce token.',
 		huggingFaceConnect: 'Ajouter un token',
 		huggingFaceDisconnect: 'Déconnecter',
 		huggingFaceCreateToken: 'Créer un token gratuit',
@@ -3009,6 +3040,15 @@ const fr = {
 		restart: 'Redémarrer'
 	},
 	tools: {
+		mediaSpeed: 'Changer la vitesse du média',
+		mediaSpeedDescription:
+			'Ralentir ou accélérer un asset audio ou vidéo, ou un clip de la timeline.',
+		mediaSpeedScale: '−3 : 3× plus lent · 0 : normal · +3 : 3× plus rapide',
+		mediaSpeedHint:
+			'Un nouveau fichier est ajouté aux assets. Le clip sélectionné dans la timeline l’utilise et sa durée est ajustée.',
+		mediaSpeedAdaptSubtitles: 'Adapter les sous-titres à la nouvelle durée de l’audio',
+		mediaSpeedSuccess: 'Le média à la nouvelle vitesse a été ajouté au projet.',
+		mediaSpeedFailed: 'Impossible de changer la vitesse du média : {error}',
 		hifzRepetition: 'Répétition Hifz',
 		hifzDescription: 'Répéter les sous-titres existants et générer l\u2019audio correspondant',
 		hifzBody:

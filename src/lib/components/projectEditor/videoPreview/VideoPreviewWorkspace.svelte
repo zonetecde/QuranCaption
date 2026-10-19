@@ -26,6 +26,7 @@
 	const NATIVE_SILENCE_PATH = '__qurancaption_silence__';
 	let lastTimeErrorShown = 0; // Timestamp of the last error shown (prevent spam)
 	let fullscreenControlsVisible = $state(false);
+	let fullscreenControlsTimer: ReturnType<typeof setTimeout> | undefined;
 
 	// === ÉTATS RÉACTIFS DÉRIVÉS ===
 	// Récupère les paramètres de la timeline depuis l'état global
@@ -81,10 +82,28 @@
 		return clip instanceof AssetClip && clip.loopUntilAudioEnd;
 	});
 
+	let imageZoom = $derived.by(() => {
+		const track = globalState.getVideoTrack;
+		const clip =
+			currentVideoClip() ??
+			(track.clips.length === 1 && track.clips[0].endTime === 0 ? track.clips[0] : null);
+		if (!(clip instanceof AssetClip) || !clip.animateImageZoom) return 1;
+		return clip.getImageZoomScale(
+			globalState.getTimelineState.cursorPosition,
+			track.getVisualClipStartTime(track.clips.indexOf(clip)),
+			clip.duration ||
+				globalState.currentProject!.content.timeline.getLongestTrackDurationIgnoringLoopedVideo().ms
+		);
+	});
+
 	let backgroundMediaStyle = $derived.by(() => {
 		const clipId = currentVideoClip()?.id;
 		const globalStyles = globalState.getVideoStyle.getStylesOfTarget('global');
 		const mediaFill = Boolean(globalStyles.getEffectiveValue('media-fill', clipId));
+		const rotation = Math.min(
+			180,
+			Math.max(-180, Number(globalStyles.getEffectiveValue('media-rotation', clipId) ?? 0))
+		);
 		const scale = Math.min(
 			3,
 			Math.max(1, Number(globalStyles.getEffectiveValue('media-scale', clipId) ?? 100) / 100)
@@ -104,7 +123,10 @@
 				100) /
 			200;
 
-		return `position: absolute; width: ${scale * 100}% !important; height: ${scale * 100}% !important; max-width: none; left: ${-(scale - 1) * positionX * 100}%; top: ${-(scale - 1) * positionY * 100}%; object-fit: ${mediaFill ? 'cover' : 'contain'}; object-position: ${positionX * 100}% ${positionY * 100}%;`;
+		// Le cadrage interne pivote avec le média ; seul le cadre doit déplacer un média pivoté.
+		const objectPosition = rotation === 0 ? `${positionX * 100}% ${positionY * 100}%` : '50% 50%';
+
+		return `position: absolute; width: ${scale * 100}% !important; height: ${scale * 100}% !important; max-width: none; left: ${-(scale - 1) * positionX * 100}%; top: ${-(scale - 1) * positionY * 100}%; object-fit: ${mediaFill ? 'cover' : 'contain'}; object-position: ${objectPosition}; transform: rotate(${rotation}deg);`;
 	});
 
 	// === ÉTATS LOCAUX ===
@@ -1277,8 +1299,28 @@
 		) {
 			return;
 		}
-		fullscreenControlsVisible = !fullscreenControlsVisible;
+		revealFullscreenControls();
 	}
+
+	/**
+	 * Affiche les contrôles tactiles plein écran pendant deux secondes.
+	 * @returns {void} Rien.
+	 */
+	function revealFullscreenControls(): void {
+		if (!globalState.getVideoPreviewState.isFullscreen) return;
+		fullscreenControlsVisible = true;
+		clearTimeout(fullscreenControlsTimer);
+		fullscreenControlsTimer = setTimeout(() => {
+			fullscreenControlsVisible = false;
+		}, 2000);
+	}
+
+	$effect(() => {
+		if (globalState.getVideoPreviewState.isFullscreen) revealFullscreenControls();
+		return () => clearTimeout(fullscreenControlsTimer);
+	});
+
+	onDestroy(() => clearTimeout(fullscreenControlsTimer));
 
 	onMount(() => {
 		// Si Quran Caption a été quitté en fullscreen, on enlève le fullscreen.
@@ -1289,6 +1331,8 @@
 		globalState.getVideoPreviewState.togglePlayPause = togglePlayPause;
 	});
 </script>
+
+<svelte:window onpointerdown={revealFullscreenControls} />
 
 <section
 	dir="ltr"
@@ -1328,11 +1372,15 @@
 						<div class="crossfade-preview-notice">{getCrossfadePreviewNotice()}</div>
 					{/if}
 				{:else if currentImage()}
-					<img
-						src={`${convertFileSrc(currentImage()!.filePath)}?v=${currentImage()!.mediaReloadToken}`}
-						style={backgroundMediaStyle}
-						alt=""
-					/>
+					<div
+						style={`position: absolute; inset: 0; overflow: hidden; transform: scale(${imageZoom});`}
+					>
+						<img
+							src={`${convertFileSrc(currentImage()!.filePath)}?v=${currentImage()!.mediaReloadToken}`}
+							style={backgroundMediaStyle}
+							alt=""
+						/>
+					</div>
 				{/if}
 			{/if}
 

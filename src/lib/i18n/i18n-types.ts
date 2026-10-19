@@ -1115,8 +1115,44 @@ type RootTranslation = {
 		continue: string;
 	};
 	editor: {
+		cloudModelBase: string;
+		cloudModelLarge: string;
+		cloudDeviceGpu: string;
+		cloudDeviceCpu: string;
+		segmentationHafs: string;
+		segmentationWarsh: string;
+		segmentationQalun: string;
+		segmentationShuba: string;
 		/**
-		 * V​i​d​e​o
+		 * L​a​y​e​r​ ​o​r​d​e​r​ ​(​Z​)
+		 */
+		overlayLayerOrder: string;
+		/**
+		 * M​o​v​e​ ​u​p
+		 */
+		moveLayerUp: string;
+		/**
+		 * M​o​v​e​ ​d​o​w​n
+		 */
+		moveLayerDown: string;
+		/**
+		 * P​r​o​g​r​e​s​s​i​v​e​ ​i​m​a​g​e​ ​z​o​o​m
+		 */
+		animateImageZoom: string;
+		/**
+		 * F​i​n​a​l​ ​z​o​o​m
+		 */
+		imageZoomEnd: string;
+		/**
+		 * A​p​p​e​n​d​ ​a​f​t​e​r​ ​e​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s
+		 */
+		appendImportedSubtitles: string;
+		/**
+		 * K​e​e​p​ ​c​u​r​r​e​n​t​ ​s​u​b​t​i​t​l​e​s​ ​a​n​d​ ​a​d​d​ ​t​h​e​ ​i​m​p​o​r​t​e​d​ ​s​u​b​t​i​t​l​e​s​ ​a​f​t​e​r​ ​t​h​e​m​,​ ​s​h​i​f​t​i​n​g​ ​t​h​e​i​r​ ​t​i​m​i​n​g​s​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​.
+		 */
+		appendImportedSubtitlesDescription: string;
+		/**
+		 * V​i​d​e​o​ ​e​d​i​t​o​r
 		 */
 		videoEditor: string;
 		/**
@@ -2014,6 +2050,22 @@ type RootTranslation = {
 		 * A​I​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​f​a​i​l​e​d
 		 */
 		aiSegmentationFailed: string;
+		/**
+		 * C​l​o​u​d​ ​a​l​i​g​n​e​r​ ​u​n​a​v​a​i​l​a​b​l​e
+		 */
+		cloudAlignerUnavailable: string;
+		/**
+		 * T​h​e​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​S​p​a​c​e​ ​i​s​ ​u​n​r​e​a​c​h​a​b​l​e​.​ ​T​h​i​s​ ​m​a​y​ ​b​e​ ​d​u​e​ ​t​o​ ​a​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​o​u​t​a​g​e​ ​o​r​ ​a​n​ ​u​n​e​x​p​e​c​t​e​d​ ​e​r​r​o​r​ ​i​n​ ​t​h​e​ ​S​p​a​c​e​,​ ​i​n​d​e​p​e​n​d​e​n​t​l​y​ ​o​f​ ​Q​u​r​a​n​ ​C​a​p​t​i​o​n​.
+		 */
+		cloudAlignerUnavailableDetails: string;
+		/**
+		 * W​a​i​t​ ​f​o​r​ ​t​h​e​ ​s​e​r​v​i​c​e​ ​t​o​ ​r​e​c​o​v​e​r​,​ ​t​h​e​n​ ​t​r​y​ ​a​g​a​i​n​.​ ​I​n​ ​t​h​e​ ​m​e​a​n​t​i​m​e​,​ ​y​o​u​ ​c​a​n​ ​u​s​e​ ​t​h​e​ ​l​o​c​a​l​ ​a​l​i​g​n​e​r​,​ ​w​h​i​c​h​ ​a​l​s​o​ ​p​r​o​v​i​d​e​s​ ​v​e​r​y​ ​a​c​c​u​r​a​t​e​ ​r​e​s​u​l​t​s​.​ ​T​h​a​n​k​ ​y​o​u​ ​f​o​r​ ​y​o​u​r​ ​u​n​d​e​r​s​t​a​n​d​i​n​g​.
+		 */
+		cloudAlignerUnavailableAdvice: string;
+		/**
+		 * O​p​e​n​ ​t​h​e​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​S​p​a​c​e
+		 */
+		cloudAlignerSpaceLink: string;
 		/**
 		 * A​I​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​f​i​n​i​s​h​e​d
 		 */
@@ -5095,6 +5147,10 @@ type RootTranslation = {
 			 */
 			'media-scale': string;
 			/**
+			 * R​o​t​a​t​i​o​n
+			 */
+			'media-rotation': string;
+			/**
 			 * H​o​r​i​z​o​n​t​a​l​ ​P​o​s​i​t​i​o​n
 			 */
 			'media-position-x': string;
@@ -5351,7 +5407,7 @@ type RootTranslation = {
 			 */
 			'surah-opacity': string;
 			/**
-			 * T​e​x​t​ ​S​t​y​l​e​s
+			 * S​h​a​r​e​d​ ​a​p​p​e​a​r​a​n​c​e
 			 */
 			'surah-latin-text-style': string;
 			/**
@@ -5407,7 +5463,7 @@ type RootTranslation = {
 			 */
 			'reciter-opacity': string;
 			/**
-			 * T​e​x​t​ ​S​t​y​l​e​s
+			 * S​h​a​r​e​d​ ​a​p​p​e​a​r​a​n​c​e
 			 */
 			'reciter-latin-text-style': string;
 			/**
@@ -5921,6 +5977,10 @@ type RootTranslation = {
 			 */
 			'media-scale': string;
 			/**
+			 * R​o​t​a​t​e​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​m​e​d​i​a​ ​i​n​ ​d​e​g​r​e​e​s
+			 */
+			'media-rotation': string;
+			/**
 			 * M​o​v​e​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​ ​m​e​d​i​a​ ​h​o​r​i​z​o​n​t​a​l​l​y​ ​r​e​l​a​t​i​v​e​ ​t​o​ ​t​h​e​ ​c​e​n​t​e​r
 			 */
 			'media-position-x': string;
@@ -6101,7 +6161,7 @@ type RootTranslation = {
 			 */
 			'surah-opacity': string;
 			/**
-			 * S​t​y​l​e​ ​f​o​r​ ​t​h​e​ ​L​a​t​i​n​ ​t​r​a​n​s​l​i​t​e​r​a​t​i​o​n​ ​o​f​ ​t​h​e​ ​S​u​r​a​h​ ​n​a​m​e
+			 * A​p​p​e​a​r​a​n​c​e​ ​s​h​a​r​e​d​ ​b​y​ ​A​r​a​b​i​c​ ​c​a​l​l​i​g​r​a​p​h​y​ ​a​n​d​ ​L​a​t​i​n​ ​t​e​x​t​;​ ​f​o​n​t​,​ ​f​o​n​t​ ​s​i​z​e​ ​a​n​d​ ​c​a​p​i​t​a​l​i​z​a​t​i​o​n​ ​a​p​p​l​y​ ​o​n​l​y​ ​t​o​ ​L​a​t​i​n​ ​t​e​x​t​.
 			 */
 			'surah-latin-text-style': string;
 			/**
@@ -6157,7 +6217,7 @@ type RootTranslation = {
 			 */
 			'reciter-opacity': string;
 			/**
-			 * S​t​y​l​e​ ​f​o​r​ ​t​h​e​ ​L​a​t​i​n​ ​t​r​a​n​s​l​i​t​e​r​a​t​i​o​n​ ​o​f​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e
+			 * A​p​p​e​a​r​a​n​c​e​ ​s​h​a​r​e​d​ ​b​y​ ​A​r​a​b​i​c​ ​c​a​l​l​i​g​r​a​p​h​y​ ​a​n​d​ ​L​a​t​i​n​ ​t​e​x​t​;​ ​f​o​n​t​,​ ​f​o​n​t​ ​s​i​z​e​ ​a​n​d​ ​c​a​p​i​t​a​l​i​z​a​t​i​o​n​ ​a​p​p​l​y​ ​o​n​l​y​ ​t​o​ ​L​a​t​i​n​ ​t​e​x​t​.
 			 */
 			'reciter-latin-text-style': string;
 			/**
@@ -8188,6 +8248,18 @@ type RootTranslation = {
 		 */
 		groupTypography: string;
 		/**
+		 * A​r​a​b​i​c​ ​c​a​l​l​i​g​r​a​p​h​y
+		 */
+		groupArabicCalligraphy: string;
+		/**
+		 * L​a​t​i​n​ ​t​e​x​t
+		 */
+		groupLatinText: string;
+		/**
+		 * S​h​a​r​e​d​ ​a​p​p​e​a​r​a​n​c​e
+		 */
+		groupSharedAppearance: string;
+		/**
 		 * C​o​l​o​r​s
 		 */
 		groupColors: string;
@@ -8305,6 +8377,10 @@ type RootTranslation = {
 		 * T​h​i​s​ ​t​o​k​e​n​ ​i​s​ ​i​n​v​a​l​i​d​ ​o​r​ ​h​a​s​ ​b​e​e​n​ ​r​e​v​o​k​e​d​.
 		 */
 		huggingFaceInvalidToken: string;
+		/**
+		 * Y​o​u​r​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​t​o​k​e​n​ ​i​s​ ​i​n​v​a​l​i​d​ ​o​r​ ​h​a​s​ ​b​e​e​n​ ​r​e​v​o​k​e​d​.​ ​R​e​g​e​n​e​r​a​t​e​ ​i​t​ ​a​n​d​ ​u​p​d​a​t​e​ ​i​t​ ​i​n​ ​s​e​t​t​i​n​g​s​.​ ​S​e​g​m​e​n​t​a​t​i​o​n​ ​w​i​l​l​ ​c​o​n​t​i​n​u​e​ ​w​i​t​h​o​u​t​ ​t​h​i​s​ ​t​o​k​e​n​.
+		 */
+		huggingFaceInvalidTokenFallback: string;
 		/**
 		 * A​d​d​ ​t​o​k​e​n
 		 */
@@ -9527,6 +9603,35 @@ type RootTranslation = {
 		restart: string;
 	};
 	tools: {
+		/**
+		 * C​h​a​n​g​e​ ​m​e​d​i​a​ ​s​p​e​e​d
+		 */
+		mediaSpeed: string;
+		/**
+		 * S​l​o​w​ ​d​o​w​n​ ​o​r​ ​s​p​e​e​d​ ​u​p​ ​a​n​ ​a​u​d​i​o​ ​o​r​ ​v​i​d​e​o​ ​a​s​s​e​t​ ​o​r​ ​t​i​m​e​l​i​n​e​ ​c​l​i​p​.
+		 */
+		mediaSpeedDescription: string;
+		/**
+		 * −​3​:​ ​3​×​ ​s​l​o​w​e​r​ ​·​ ​0​:​ ​n​o​r​m​a​l​ ​·​ ​+​3​:​ ​3​×​ ​f​a​s​t​e​r
+		 */
+		mediaSpeedScale: string;
+		/**
+		 * A​ ​n​e​w​ ​f​i​l​e​ ​i​s​ ​a​d​d​e​d​ ​t​o​ ​A​s​s​e​t​s​.​ ​A​ ​s​e​l​e​c​t​e​d​ ​t​i​m​e​l​i​n​e​ ​c​l​i​p​ ​u​s​e​s​ ​i​t​ ​a​n​d​ ​a​d​j​u​s​t​s​ ​i​t​s​ ​d​u​r​a​t​i​o​n​.
+		 */
+		mediaSpeedHint: string;
+		/**
+		 * A​d​a​p​t​ ​s​u​b​t​i​t​l​e​s​ ​t​o​ ​t​h​e​ ​n​e​w​ ​a​u​d​i​o​ ​d​u​r​a​t​i​o​n
+		 */
+		mediaSpeedAdaptSubtitles: string;
+		/**
+		 * S​p​e​e​d​-​a​d​j​u​s​t​e​d​ ​m​e​d​i​a​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​p​r​o​j​e​c​t​.
+		 */
+		mediaSpeedSuccess: string;
+		/**
+		 * F​a​i​l​e​d​ ​t​o​ ​c​h​a​n​g​e​ ​m​e​d​i​a​ ​s​p​e​e​d​:​ ​{​e​r​r​o​r​}
+		 * @param {unknown} error
+		 */
+		mediaSpeedFailed: RequiredParams<'error'>;
 		/**
 		 * H​i​f​z​ ​R​e​p​e​t​i​t​i​o​n
 		 */
@@ -13371,8 +13476,44 @@ export type TranslationFunctions = {
 		continue: () => LocalizedString;
 	};
 	editor: {
+		cloudModelBase: () => LocalizedString;
+		cloudModelLarge: () => LocalizedString;
+		cloudDeviceGpu: () => LocalizedString;
+		cloudDeviceCpu: () => LocalizedString;
+		segmentationHafs: () => LocalizedString;
+		segmentationWarsh: () => LocalizedString;
+		segmentationQalun: () => LocalizedString;
+		segmentationShuba: () => LocalizedString;
 		/**
-		 * Video
+		 * Layer order (Z)
+		 */
+		overlayLayerOrder: () => LocalizedString;
+		/**
+		 * Move up
+		 */
+		moveLayerUp: () => LocalizedString;
+		/**
+		 * Move down
+		 */
+		moveLayerDown: () => LocalizedString;
+		/**
+		 * Progressive image zoom
+		 */
+		animateImageZoom: () => LocalizedString;
+		/**
+		 * Final zoom
+		 */
+		imageZoomEnd: () => LocalizedString;
+		/**
+		 * Append after existing subtitles
+		 */
+		appendImportedSubtitles: () => LocalizedString;
+		/**
+		 * Keep current subtitles and add the imported subtitles after them, shifting their timings automatically.
+		 */
+		appendImportedSubtitlesDescription: () => LocalizedString;
+		/**
+		 * Video editor
 		 */
 		videoEditor: () => LocalizedString;
 		/**
@@ -14247,6 +14388,22 @@ export type TranslationFunctions = {
 		 * AI segmentation failed
 		 */
 		aiSegmentationFailed: () => LocalizedString;
+		/**
+		 * Cloud aligner unavailable
+		 */
+		cloudAlignerUnavailable: () => LocalizedString;
+		/**
+		 * The Hugging Face Space is unreachable. This may be due to a Hugging Face outage or an unexpected error in the Space, independently of Quran Caption.
+		 */
+		cloudAlignerUnavailableDetails: () => LocalizedString;
+		/**
+		 * Wait for the service to recover, then try again. In the meantime, you can use the local aligner, which also provides very accurate results. Thank you for your understanding.
+		 */
+		cloudAlignerUnavailableAdvice: () => LocalizedString;
+		/**
+		 * Open the Hugging Face Space
+		 */
+		cloudAlignerSpaceLink: () => LocalizedString;
 		/**
 		 * AI segmentation finished
 		 */
@@ -17276,6 +17433,10 @@ export type TranslationFunctions = {
 			 */
 			'media-scale': () => LocalizedString;
 			/**
+			 * Rotation
+			 */
+			'media-rotation': () => LocalizedString;
+			/**
 			 * Horizontal Position
 			 */
 			'media-position-x': () => LocalizedString;
@@ -17532,7 +17693,7 @@ export type TranslationFunctions = {
 			 */
 			'surah-opacity': () => LocalizedString;
 			/**
-			 * Text Styles
+			 * Shared appearance
 			 */
 			'surah-latin-text-style': () => LocalizedString;
 			/**
@@ -17588,7 +17749,7 @@ export type TranslationFunctions = {
 			 */
 			'reciter-opacity': () => LocalizedString;
 			/**
-			 * Text Styles
+			 * Shared appearance
 			 */
 			'reciter-latin-text-style': () => LocalizedString;
 			/**
@@ -18102,6 +18263,10 @@ export type TranslationFunctions = {
 			 */
 			'media-scale': () => LocalizedString;
 			/**
+			 * Rotate the background media in degrees
+			 */
+			'media-rotation': () => LocalizedString;
+			/**
 			 * Move the background media horizontally relative to the center
 			 */
 			'media-position-x': () => LocalizedString;
@@ -18282,7 +18447,7 @@ export type TranslationFunctions = {
 			 */
 			'surah-opacity': () => LocalizedString;
 			/**
-			 * Style for the Latin transliteration of the Surah name
+			 * Appearance shared by Arabic calligraphy and Latin text; font, font size and capitalization apply only to Latin text.
 			 */
 			'surah-latin-text-style': () => LocalizedString;
 			/**
@@ -18338,7 +18503,7 @@ export type TranslationFunctions = {
 			 */
 			'reciter-opacity': () => LocalizedString;
 			/**
-			 * Style for the Latin transliteration of the Reciter name
+			 * Appearance shared by Arabic calligraphy and Latin text; font, font size and capitalization apply only to Latin text.
 			 */
 			'reciter-latin-text-style': () => LocalizedString;
 			/**
@@ -20336,6 +20501,18 @@ export type TranslationFunctions = {
 		 */
 		groupTypography: () => LocalizedString;
 		/**
+		 * Arabic calligraphy
+		 */
+		groupArabicCalligraphy: () => LocalizedString;
+		/**
+		 * Latin text
+		 */
+		groupLatinText: () => LocalizedString;
+		/**
+		 * Shared appearance
+		 */
+		groupSharedAppearance: () => LocalizedString;
+		/**
 		 * Colors
 		 */
 		groupColors: () => LocalizedString;
@@ -20453,6 +20630,10 @@ export type TranslationFunctions = {
 		 * This token is invalid or has been revoked.
 		 */
 		huggingFaceInvalidToken: () => LocalizedString;
+		/**
+		 * Your Hugging Face token is invalid or has been revoked. Regenerate it and update it in settings. Segmentation will continue without this token.
+		 */
+		huggingFaceInvalidTokenFallback: () => LocalizedString;
 		/**
 		 * Add token
 		 */
@@ -21663,6 +21844,34 @@ export type TranslationFunctions = {
 		restart: () => LocalizedString;
 	};
 	tools: {
+		/**
+		 * Change media speed
+		 */
+		mediaSpeed: () => LocalizedString;
+		/**
+		 * Slow down or speed up an audio or video asset or timeline clip.
+		 */
+		mediaSpeedDescription: () => LocalizedString;
+		/**
+		 * −3: 3× slower · 0: normal · +3: 3× faster
+		 */
+		mediaSpeedScale: () => LocalizedString;
+		/**
+		 * A new file is added to Assets. A selected timeline clip uses it and adjusts its duration.
+		 */
+		mediaSpeedHint: () => LocalizedString;
+		/**
+		 * Adapt subtitles to the new audio duration
+		 */
+		mediaSpeedAdaptSubtitles: () => LocalizedString;
+		/**
+		 * Speed-adjusted media added to the project.
+		 */
+		mediaSpeedSuccess: () => LocalizedString;
+		/**
+		 * Failed to change media speed: {error}
+		 */
+		mediaSpeedFailed: (arg: { error: unknown }) => LocalizedString;
 		/**
 		 * Hifz Repetition
 		 */

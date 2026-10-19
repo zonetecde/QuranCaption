@@ -515,6 +515,8 @@ const id = {
 		huggingFaceConnectedBadge: 'HF terhubung',
 		huggingFaceConfigureBadge: 'Tambahkan token HF',
 		huggingFaceInvalidToken: 'Token ini tidak valid atau telah dicabut.',
+		huggingFaceInvalidTokenFallback:
+			'Token Hugging Face Anda tidak valid atau telah dicabut. Buat token baru dan perbarui di pengaturan. Segmentasi akan dilanjutkan tanpa token ini.',
 		huggingFaceConnect: 'Tambahkan token',
 		huggingFaceDisconnect: 'Putuskan koneksi',
 		huggingFaceCreateToken: 'Buat token gratis',
@@ -769,6 +771,29 @@ const id = {
 	},
 	editor: {
 		...baseEn.editor,
+		cloudModelBase: 'Base',
+		cloudModelLarge: 'Large',
+		cloudDeviceGpu: 'GPU',
+		cloudDeviceCpu: 'CPU',
+		segmentationHafs: 'Hafs',
+		segmentationWarsh: 'Warsh',
+		segmentationQalun: 'Qalun',
+		segmentationShuba: 'Shu‘bah',
+		overlayLayerOrder: 'Urutan lapisan (Z)',
+		moveLayerUp: 'Naikkan',
+		moveLayerDown: 'Turunkan',
+		animateImageZoom: 'Zoom gambar bertahap',
+		imageZoomEnd: 'Zoom akhir',
+		appendImportedSubtitles: 'Tambahkan setelah subtitle yang ada',
+		appendImportedSubtitlesDescription:
+			'Pertahankan subtitle saat ini dan tambahkan subtitle impor setelahnya dengan menggeser waktunya secara otomatis.',
+		cloudAlignerUnavailable: 'Penyelaras cloud tidak tersedia',
+		cloudAlignerUnavailableDetails:
+			'Space Hugging Face tidak dapat diakses. Penyebabnya mungkin gangguan Hugging Face atau kesalahan tak terduga pada Space, terlepas dari Quran Caption.',
+		cloudAlignerUnavailableAdvice:
+			'Tunggu hingga layanan pulih lalu coba lagi.',
+		cloudAlignerSpaceLink: 'Buka Space Hugging Face',
+		quranwordtimingLabel: 'Penyelarasan kata Quran Karim',
 		howItWorksDescription2:
 			'Tebal, miring, garis bawah, dan baris baru dialihkan pada rentang yang dipilih. Warna dan cahaya diterapkan dengan pilihan warna saat ini. Mengedit teks terjemahan akan menghapus gaya kata terjemahan.',
 		alignmentStage: {
@@ -1045,6 +1070,7 @@ const id = {
 			'video-dimension': 'Kualitas & Orientasi Video',
 			'media-fill': 'Penuhi Bingkai',
 			'media-scale': 'Zoom',
+			'media-rotation': 'Rotasi',
 			'media-position-x': 'Posisi Horizontal',
 			'media-position-y': 'Posisi Vertikal',
 			'fade-duration': 'Durasi Fade Subtitle',
@@ -1109,7 +1135,9 @@ const id = {
 			'line-background-height': 'Tinggi bilah',
 			'line-background-roundness': 'Kelengkungan bilah (%)',
 			'text-glow': 'Cahaya Teks',
-			'text-glow-color': 'Warna Cahaya'
+			'text-glow-color': 'Warna Cahaya',
+			'surah-latin-text-style': 'Tampilan bersama',
+			'reciter-latin-text-style': 'Tampilan bersama'
 		} as Translation['editor']['styleName'],
 		styleDescription: {
 			...baseEn.editor.styleDescription,
@@ -1124,6 +1152,7 @@ const id = {
 				'Durasi default transisi antar klip video dalam milidetik. Dalam mode Crossfade, setiap crossfade dapat disesuaikan secara terpisah dengan menggeser klip di timeline. Tampilannya mungkin tidak akurat di pratinjau video, tetapi hasil video yang diekspor akan tetap benar.',
 			'media-fill': 'Pangkas video dan gambar latar agar memenuhi seluruh bingkai',
 			'media-scale': 'Perbesar media latar',
+			'media-rotation': 'Putar media latar dalam derajat',
 			'media-position-x': 'Geser media latar secara horizontal dari posisi tengah',
 			'media-position-y': 'Geser media latar secara vertikal dari posisi tengah',
 			'background-overlay-mode': 'Pilih arah atau bentuk fade overlay',
@@ -1165,7 +1194,11 @@ const id = {
 			'line-background-position': 'Atur posisi vertikal bilah terhadap teks',
 			'line-background-height': 'Atur tinggi bilah latar',
 			'line-background-roundness':
-				'Atur kelengkungan sudut: 0% untuk sudut siku-siku, 100% untuk ujung yang sepenuhnya membulat'
+				'Atur kelengkungan sudut: 0% untuk sudut siku-siku, 100% untuk ujung yang sepenuhnya membulat',
+			'surah-latin-text-style':
+				'Tampilan bersama untuk kaligrafi Arab dan teks Latin; jenis huruf, ukuran, dan kapitalisasi hanya berlaku untuk teks Latin.',
+			'reciter-latin-text-style':
+				'Tampilan bersama untuk kaligrafi Arab dan teks Latin; jenis huruf, ukuran, dan kapitalisasi hanya berlaku untuk teks Latin.'
 		} as Translation['editor']['styleDescription'],
 		chooseTarget: 'Pilih target',
 		selectTranslation: 'Pilih terjemahan',
@@ -1772,6 +1805,9 @@ const id = {
 		fontControlledByMushaf: 'Font ini dikontrol oleh Mushaf yang dipilih.',
 		groupBasics: 'Dasar',
 		groupTypography: 'Tipografi',
+		groupArabicCalligraphy: 'Kaligrafi Arab',
+		groupLatinText: 'Teks Latin',
+		groupSharedAppearance: 'Tampilan bersama',
 		groupColors: 'Warna',
 		groupSpacing: 'Jarak',
 		groupLayout: 'Tata letak',
@@ -1786,6 +1822,14 @@ const id = {
 	} as Translation['style'] & Record<string, string>,
 	tools: {
 		...baseEn.tools,
+		mediaSpeed: 'Ubah kecepatan media',
+		mediaSpeedDescription: 'Perlambat atau percepat aset audio atau video, atau klip di lini masa.',
+		mediaSpeedScale: '−3: 3× lebih lambat · 0: normal · +3: 3× lebih cepat',
+		mediaSpeedHint:
+			'File baru ditambahkan ke aset. Klip yang dipilih di lini masa menggunakannya dan durasinya disesuaikan.',
+		mediaSpeedAdaptSubtitles: 'Sesuaikan takarir dengan durasi audio yang baru',
+		mediaSpeedSuccess: 'Media dengan kecepatan baru ditambahkan ke proyek.',
+		mediaSpeedFailed: 'Gagal mengubah kecepatan media: {error}',
 		hifzRepetition: 'Hifz Repetition',
 		hifzDescription: 'Ulang subtitle yang sudah ada dan generate audio yang sesuai',
 		hifzBody:

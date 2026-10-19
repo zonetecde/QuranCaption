@@ -637,7 +637,13 @@
 				return true;
 			if (id === 'reciter-size' && !isFeatureEnabled('reciter-show-arabic', category)) return true;
 			if (
-				['reciter-name-format', 'reciter-latin-spacing', 'reciter-latin-text-style'].includes(id) &&
+				['reciter-name-format', 'reciter-latin-spacing'].includes(id) &&
+				!isFeatureEnabled('reciter-show-latin', category)
+			)
+				return true;
+			if (
+				id === 'reciter-latin-text-style' &&
+				!isFeatureEnabled('reciter-show-arabic', category) &&
 				!isFeatureEnabled('reciter-show-latin', category)
 			)
 				return true;

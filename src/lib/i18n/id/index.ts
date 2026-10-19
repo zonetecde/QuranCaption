@@ -1109,7 +1109,9 @@ const id = {
 			'line-background-height': 'Tinggi bilah',
 			'line-background-roundness': 'Kelengkungan bilah (%)',
 			'text-glow': 'Cahaya Teks',
-			'text-glow-color': 'Warna Cahaya'
+			'text-glow-color': 'Warna Cahaya',
+			'surah-latin-text-style': 'Tampilan bersama',
+			'reciter-latin-text-style': 'Tampilan bersama'
 		} as Translation['editor']['styleName'],
 		styleDescription: {
 			...baseEn.editor.styleDescription,
@@ -1173,7 +1175,11 @@ const id = {
 			'line-background-position': 'Atur posisi vertikal bilah terhadap teks',
 			'line-background-height': 'Atur tinggi bilah latar',
 			'line-background-roundness':
-				'Atur kelengkungan sudut: 0% untuk sudut siku-siku, 100% untuk ujung yang sepenuhnya membulat'
+				'Atur kelengkungan sudut: 0% untuk sudut siku-siku, 100% untuk ujung yang sepenuhnya membulat',
+			'surah-latin-text-style':
+				'Tampilan bersama untuk kaligrafi Arab dan teks Latin; jenis huruf, ukuran, dan kapitalisasi hanya berlaku untuk teks Latin.',
+			'reciter-latin-text-style':
+				'Tampilan bersama untuk kaligrafi Arab dan teks Latin; jenis huruf, ukuran, dan kapitalisasi hanya berlaku untuk teks Latin.'
 		} as Translation['editor']['styleDescription'],
 		chooseTarget: 'Pilih target',
 		selectTranslation: 'Pilih terjemahan',
@@ -1797,6 +1803,9 @@ const id = {
 		fontControlledByMushaf: 'Font ini dikontrol oleh Mushaf yang dipilih.',
 		groupBasics: 'Dasar',
 		groupTypography: 'Tipografi',
+		groupArabicCalligraphy: 'Kaligrafi Arab',
+		groupLatinText: 'Teks Latin',
+		groupSharedAppearance: 'Tampilan bersama',
 		groupColors: 'Warna',
 		groupSpacing: 'Jarak',
 		groupLayout: 'Tata letak',

@@ -5281,7 +5281,7 @@ type RootTranslation = {
 			 */
 			'surah-opacity': string;
 			/**
-			 * T​e​x​t​ ​S​t​y​l​e​s
+			 * S​h​a​r​e​d​ ​a​p​p​e​a​r​a​n​c​e
 			 */
 			'surah-latin-text-style': string;
 			/**
@@ -5337,7 +5337,7 @@ type RootTranslation = {
 			 */
 			'reciter-opacity': string;
 			/**
-			 * T​e​x​t​ ​S​t​y​l​e​s
+			 * S​h​a​r​e​d​ ​a​p​p​e​a​r​a​n​c​e
 			 */
 			'reciter-latin-text-style': string;
 			/**
@@ -6035,7 +6035,7 @@ type RootTranslation = {
 			 */
 			'surah-opacity': string;
 			/**
-			 * S​t​y​l​e​ ​f​o​r​ ​t​h​e​ ​L​a​t​i​n​ ​t​r​a​n​s​l​i​t​e​r​a​t​i​o​n​ ​o​f​ ​t​h​e​ ​S​u​r​a​h​ ​n​a​m​e
+			 * A​p​p​e​a​r​a​n​c​e​ ​s​h​a​r​e​d​ ​b​y​ ​A​r​a​b​i​c​ ​c​a​l​l​i​g​r​a​p​h​y​ ​a​n​d​ ​L​a​t​i​n​ ​t​e​x​t​;​ ​f​o​n​t​,​ ​f​o​n​t​ ​s​i​z​e​ ​a​n​d​ ​c​a​p​i​t​a​l​i​z​a​t​i​o​n​ ​a​p​p​l​y​ ​o​n​l​y​ ​t​o​ ​L​a​t​i​n​ ​t​e​x​t​.
 			 */
 			'surah-latin-text-style': string;
 			/**
@@ -6091,7 +6091,7 @@ type RootTranslation = {
 			 */
 			'reciter-opacity': string;
 			/**
-			 * S​t​y​l​e​ ​f​o​r​ ​t​h​e​ ​L​a​t​i​n​ ​t​r​a​n​s​l​i​t​e​r​a​t​i​o​n​ ​o​f​ ​t​h​e​ ​R​e​c​i​t​e​r​ ​n​a​m​e
+			 * A​p​p​e​a​r​a​n​c​e​ ​s​h​a​r​e​d​ ​b​y​ ​A​r​a​b​i​c​ ​c​a​l​l​i​g​r​a​p​h​y​ ​a​n​d​ ​L​a​t​i​n​ ​t​e​x​t​;​ ​f​o​n​t​,​ ​f​o​n​t​ ​s​i​z​e​ ​a​n​d​ ​c​a​p​i​t​a​l​i​z​a​t​i​o​n​ ​a​p​p​l​y​ ​o​n​l​y​ ​t​o​ ​L​a​t​i​n​ ​t​e​x​t​.
 			 */
 			'reciter-latin-text-style': string;
 			/**
@@ -8096,6 +8096,18 @@ type RootTranslation = {
 		 * T​y​p​o​g​r​a​p​h​y
 		 */
 		groupTypography: string;
+		/**
+		 * A​r​a​b​i​c​ ​c​a​l​l​i​g​r​a​p​h​y
+		 */
+		groupArabicCalligraphy: string;
+		/**
+		 * L​a​t​i​n​ ​t​e​x​t
+		 */
+		groupLatinText: string;
+		/**
+		 * S​h​a​r​e​d​ ​a​p​p​e​a​r​a​n​c​e
+		 */
+		groupSharedAppearance: string;
 		/**
 		 * C​o​l​o​r​s
 		 */
@@ -17484,7 +17496,7 @@ export type TranslationFunctions = {
 			 */
 			'surah-opacity': () => LocalizedString;
 			/**
-			 * Text Styles
+			 * Shared appearance
 			 */
 			'surah-latin-text-style': () => LocalizedString;
 			/**
@@ -17540,7 +17552,7 @@ export type TranslationFunctions = {
 			 */
 			'reciter-opacity': () => LocalizedString;
 			/**
-			 * Text Styles
+			 * Shared appearance
 			 */
 			'reciter-latin-text-style': () => LocalizedString;
 			/**
@@ -18238,7 +18250,7 @@ export type TranslationFunctions = {
 			 */
 			'surah-opacity': () => LocalizedString;
 			/**
-			 * Style for the Latin transliteration of the Surah name
+			 * Appearance shared by Arabic calligraphy and Latin text; font, font size and capitalization apply only to Latin text.
 			 */
 			'surah-latin-text-style': () => LocalizedString;
 			/**
@@ -18294,7 +18306,7 @@ export type TranslationFunctions = {
 			 */
 			'reciter-opacity': () => LocalizedString;
 			/**
-			 * Style for the Latin transliteration of the Reciter name
+			 * Appearance shared by Arabic calligraphy and Latin text; font, font size and capitalization apply only to Latin text.
 			 */
 			'reciter-latin-text-style': () => LocalizedString;
 			/**
@@ -20267,6 +20279,18 @@ export type TranslationFunctions = {
 		 * Typography
 		 */
 		groupTypography: () => LocalizedString;
+		/**
+		 * Arabic calligraphy
+		 */
+		groupArabicCalligraphy: () => LocalizedString;
+		/**
+		 * Latin text
+		 */
+		groupLatinText: () => LocalizedString;
+		/**
+		 * Shared appearance
+		 */
+		groupSharedAppearance: () => LocalizedString;
 		/**
 		 * Colors
 		 */

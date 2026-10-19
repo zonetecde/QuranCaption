@@ -1729,7 +1729,7 @@ const es = {
 			'surah-size': 'Tamaño',
 			'surah-latin-spacing': 'Espaciado',
 			'surah-opacity': 'Opacidad',
-			'surah-latin-text-style': 'Estilos de texto',
+			'surah-latin-text-style': 'Apariencia compartida',
 			'reciter-name': 'Nombre del recitador',
 			'show-reciter-name': 'Mostrar nombre del recitador',
 			'reciter-name-always-show': 'Mostrar siempre',
@@ -1743,7 +1743,7 @@ const es = {
 			'reciter-size': 'Tamaño',
 			'reciter-latin-spacing': 'Espaciado',
 			'reciter-opacity': 'Opacidad',
-			'reciter-latin-text-style': 'Estilos de texto',
+			'reciter-latin-text-style': 'Apariencia compartida',
 			'ayah-container': 'Contenedor del versículo',
 			'ayah-container-image': 'Imagen del contenedor',
 			'ayah-container-vertical-position': 'Posición vertical',
@@ -1958,7 +1958,8 @@ const es = {
 			'surah-latin-spacing':
 				'Ajustar el espaciado entre el nombre árabe de la sura y su equivalente latino',
 			'surah-opacity': 'Ajustar la opacidad del nombre de la sura',
-			'surah-latin-text-style': 'Estilo para la transliteración latina del nombre de la sura',
+			'surah-latin-text-style':
+				'Apariencia compartida por la caligrafía árabe y el texto latino; la fuente, el tamaño y las mayúsculas solo afectan al texto latino.',
 			'reciter-name': 'Controlar la visualización del nombre del recitador',
 			'show-reciter-name': 'Mostrar u ocultar el nombre del recitador',
 			'reciter-name-always-show': 'Mostrar siempre el nombre del recitador (ignorar temporización)',
@@ -1976,7 +1977,8 @@ const es = {
 			'reciter-latin-spacing':
 				'Ajustar el espaciado entre el nombre árabe del recitador y su equivalente latino',
 			'reciter-opacity': 'Ajustar la opacidad del nombre del recitador',
-			'reciter-latin-text-style': 'Estilo para la transliteración latina del nombre del recitador',
+			'reciter-latin-text-style':
+				'Apariencia compartida por la caligrafía árabe y el texto latino; la fuente, el tamaño y las mayúsculas solo afectan al texto latino.',
 			'ayah-container': 'Agregar una imagen de fondo decorativa detrás del versículo',
 			'ayah-container-image': 'Seleccionar una imagen de contenedor decorativa para el versículo',
 			'ayah-container-vertical-position':
@@ -2565,6 +2567,9 @@ const es = {
 		fontControlledByMushaf: 'Esta fuente está controlada por el Mushaf seleccionado.',
 		groupBasics: 'Básico',
 		groupTypography: 'Tipografía',
+		groupArabicCalligraphy: 'Caligrafía árabe',
+		groupLatinText: 'Texto latino',
+		groupSharedAppearance: 'Apariencia compartida',
 		groupColors: 'Colores',
 		groupSpacing: 'Espaciado',
 		groupLayout: 'Disposición',

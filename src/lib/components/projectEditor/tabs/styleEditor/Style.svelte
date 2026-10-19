@@ -117,6 +117,36 @@
 	let styleTooltip = $state<HTMLDivElement>();
 
 	/**
+	 * Masque les réglages composites dont le texte ou l'effet parent est désactivé.
+	 * @param {Style} subStyle Réglage composite évalué.
+	 * @returns {boolean} Vrai si le réglage reste utile.
+	 */
+	function isCompositeControlVisible(subStyle: Style): boolean {
+		const prefix =
+			style.id === 'surah-latin-text-style'
+				? 'surah'
+				: style.id === 'reciter-latin-text-style'
+					? 'reciter'
+					: undefined;
+		if (!prefix) return true;
+		if (
+			['opacity', 'font-family', 'font-size', 'text-transform'].includes(subStyle.id) &&
+			!globalState.getStyleValue('global', `${prefix}-show-latin`)
+		)
+			return false;
+		const styles = style.value as Style[];
+		if (['text-outline', 'text-outline-color'].includes(subStyle.id))
+			return Boolean(
+				styles.find((item) => item.id === 'outline-enable')?.getValueAt(getKeyframeCursorTime())
+			);
+		if (['text-glow-color', 'text-glow-blur'].includes(subStyle.id))
+			return Boolean(
+				styles.find((item) => item.id === 'text-glow-enable')?.getValueAt(getKeyframeCursorTime())
+			);
+		return true;
+	}
+
+	/**
 	 * Affiche la description du style près de son icône d'information.
 	 * @param {HTMLElement} anchor Icône servant de point d'ancrage.
 	 * @returns {void}
@@ -819,7 +849,7 @@
 					<FadeControl value={inputValue} onChange={applyValue} />
 				{:else if style.valueType === 'composite'}
 					<div class="style-control-list">
-						{#each style.value as Style[] as subStyle (subStyle.id)}
+						{#each (style.value as Style[]).filter(isCompositeControlVisible) as subStyle (subStyle.id)}
 							<StyleComponent
 								style={subStyle}
 								target={style.id}

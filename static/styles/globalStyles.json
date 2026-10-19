@@ -517,17 +517,19 @@
 			"groups": [
 				{
 					"id": "basics",
-					"styleIds": ["show-surah-name", "surah-show-arabic", "surah-show-latin"]
+					"styleIds": ["show-surah-name"]
 				},
 				{
-					"id": "typography",
-					"styleIds": [
-						"surah-name-format",
-						"surah-calligraphy-style",
-						"surah-size",
-						"surah-latin-spacing",
-						"surah-latin-text-style"
-					]
+					"id": "arabicCalligraphy",
+					"styleIds": ["surah-show-arabic", "surah-calligraphy-style", "surah-size"]
+				},
+				{
+					"id": "latinText",
+					"styleIds": ["surah-show-latin", "surah-name-format", "surah-latin-spacing"]
+				},
+				{
+					"id": "sharedAppearance",
+					"styleIds": ["surah-latin-text-style"]
 				},
 				{
 					"id": "layout",
@@ -731,21 +733,19 @@
 			"groups": [
 				{
 					"id": "basics",
-					"styleIds": [
-						"show-reciter-name",
-						"reciter-name",
-						"reciter-show-arabic",
-						"reciter-show-latin"
-					]
+					"styleIds": ["show-reciter-name", "reciter-name"]
 				},
 				{
-					"id": "typography",
-					"styleIds": [
-						"reciter-name-format",
-						"reciter-size",
-						"reciter-latin-spacing",
-						"reciter-latin-text-style"
-					]
+					"id": "arabicCalligraphy",
+					"styleIds": ["reciter-show-arabic", "reciter-size"]
+				},
+				{
+					"id": "latinText",
+					"styleIds": ["reciter-show-latin", "reciter-name-format", "reciter-latin-spacing"]
+				},
+				{
+					"id": "sharedAppearance",
+					"styleIds": ["reciter-latin-text-style"]
 				},
 				{
 					"id": "layout",

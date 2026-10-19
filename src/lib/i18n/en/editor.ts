@@ -1108,7 +1108,7 @@ const editor = {
 		'surah-size': 'Size',
 		'surah-latin-spacing': 'Spacing',
 		'surah-opacity': 'Opacity',
-		'surah-latin-text-style': 'Text Styles',
+		'surah-latin-text-style': 'Shared appearance',
 		'reciter-name': 'Reciter Name',
 		'show-reciter-name': 'Show Reciter Name',
 		'reciter-name-always-show': 'Always Show',
@@ -1122,7 +1122,7 @@ const editor = {
 		'reciter-size': 'Size',
 		'reciter-latin-spacing': 'Spacing',
 		'reciter-opacity': 'Opacity',
-		'reciter-latin-text-style': 'Text Styles',
+		'reciter-latin-text-style': 'Shared appearance',
 		'ayah-container': 'Ayah Container',
 		'ayah-container-image': 'Container Image',
 		'ayah-container-vertical-position': 'Vertical Position',
@@ -1318,7 +1318,8 @@ const editor = {
 		'surah-size': 'Scale size of Surah Calligraphy',
 		'surah-latin-spacing': 'Adjust spacing between the Arabic Surah name and its Latin equivalent',
 		'surah-opacity': 'Adjust the opacity of the Surah name',
-		'surah-latin-text-style': 'Style for the Latin transliteration of the Surah name',
+		'surah-latin-text-style':
+			'Appearance shared by Arabic calligraphy and Latin text; font, font size and capitalization apply only to Latin text.',
 		'reciter-name': 'Control display of the Reciter name',
 		'show-reciter-name': 'Show or hide the Reciter name',
 		'reciter-name-always-show': 'Always show the Reciter name (ignore timing)',
@@ -1336,7 +1337,8 @@ const editor = {
 		'reciter-latin-spacing':
 			'Adjust spacing between the Arabic Reciter name and its Latin equivalent',
 		'reciter-opacity': 'Adjust the opacity of the Reciter name',
-		'reciter-latin-text-style': 'Style for the Latin transliteration of the Reciter name',
+		'reciter-latin-text-style':
+			'Appearance shared by Arabic calligraphy and Latin text; font, font size and capitalization apply only to Latin text.',
 		'ayah-container': 'Add a decorative background image behind the ayah',
 		'ayah-container-image': 'Select a decorative container image for the ayah',
 		'ayah-container-vertical-position':

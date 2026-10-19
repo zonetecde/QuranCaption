@@ -13,6 +13,9 @@ export type StylePanel = {
 export type StyleGroupCopyKey =
 	| 'groupBasics'
 	| 'groupTypography'
+	| 'groupArabicCalligraphy'
+	| 'groupLatinText'
+	| 'groupSharedAppearance'
 	| 'groupColors'
 	| 'groupSpacing'
 	| 'groupLayout'

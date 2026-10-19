@@ -1734,7 +1734,7 @@ const de = {
 			'surah-size': 'Größe',
 			'surah-latin-spacing': 'Abstand',
 			'surah-opacity': 'Deckkraft',
-			'surah-latin-text-style': 'Textstile',
+			'surah-latin-text-style': 'Gemeinsames Aussehen',
 			'reciter-name': 'Name des Rezitators',
 			'show-reciter-name': 'Name des Rezitators anzeigen',
 			'reciter-name-always-show': 'Immer anzeigen',
@@ -1748,7 +1748,7 @@ const de = {
 			'reciter-size': 'Größe',
 			'reciter-latin-spacing': 'Abstand',
 			'reciter-opacity': 'Deckkraft',
-			'reciter-latin-text-style': 'Textstile',
+			'reciter-latin-text-style': 'Gemeinsames Aussehen',
 			'ayah-container': 'Vers-Container',
 			'ayah-container-image': 'Container-Bild',
 			'ayah-container-vertical-position': 'Vertikale Position',
@@ -1964,7 +1964,8 @@ const de = {
 			'surah-latin-spacing':
 				'Abstand zwischen arabischem Surennamen und seinem lateinischen Äquivalent anpassen',
 			'surah-opacity': 'Deckkraft des Surennamens anpassen',
-			'surah-latin-text-style': 'Stil für die lateinische Transliteration des Surennamens',
+			'surah-latin-text-style':
+				'Gemeinsames Aussehen für arabische Kalligrafie und lateinischen Text; Schriftart, Schriftgröße und Großschreibung gelten nur für lateinischen Text.',
 			'reciter-name': 'Anzeige des Rezitatorennamens steuern',
 			'show-reciter-name': 'Rezitatorennamen ein- oder ausblenden',
 			'reciter-name-always-show': 'Rezitatorennamen immer anzeigen (Zeit ignorieren)',
@@ -1983,7 +1984,8 @@ const de = {
 			'reciter-latin-spacing':
 				'Abstand zwischen arabischem Rezitatorennamen und seinem lateinischen Äquivalent anpassen',
 			'reciter-opacity': 'Deckkraft des Rezitatorennamens anpassen',
-			'reciter-latin-text-style': 'Stil für die lateinische Transliteration des Rezitatorennamens',
+			'reciter-latin-text-style':
+				'Gemeinsames Aussehen für arabische Kalligrafie und lateinischen Text; Schriftart, Schriftgröße und Großschreibung gelten nur für lateinischen Text.',
 			'ayah-container': 'Dekoratives Hintergrundbild hinter dem Vers hinzufügen',
 			'ayah-container-image': 'Ein dekoratives Container-Bild für den Vers auswählen',
 			'ayah-container-vertical-position':
@@ -2568,6 +2570,9 @@ const de = {
 		fontControlledByMushaf: 'Diese Schrift wird vom ausgewählten Mushaf gesteuert.',
 		groupBasics: 'Grundlagen',
 		groupTypography: 'Typografie',
+		groupArabicCalligraphy: 'Arabische Kalligrafie',
+		groupLatinText: 'Lateinischer Text',
+		groupSharedAppearance: 'Gemeinsames Aussehen',
 		groupColors: 'Farben',
 		groupSpacing: 'Abstände',
 		groupLayout: 'Layout',

@@ -1731,7 +1731,7 @@ const fr = {
 			'surah-size': 'Taille',
 			'surah-latin-spacing': 'Espacement',
 			'surah-opacity': 'Opacité',
-			'surah-latin-text-style': 'Styles de texte',
+			'surah-latin-text-style': 'Apparence commune',
 			'reciter-name': 'Nom du récitateur',
 			'show-reciter-name': 'Afficher le nom du récitateur',
 			'reciter-name-always-show': 'Toujours afficher',
@@ -1745,7 +1745,7 @@ const fr = {
 			'reciter-size': 'Taille',
 			'reciter-latin-spacing': 'Espacement',
 			'reciter-opacity': 'Opacité',
-			'reciter-latin-text-style': 'Styles de texte',
+			'reciter-latin-text-style': 'Apparence commune',
 			'ayah-container': 'Conteneur du verset',
 			'ayah-container-image': 'Image du conteneur',
 			'ayah-container-vertical-position': 'Position verticale',
@@ -1965,7 +1965,8 @@ const fr = {
 			'surah-latin-spacing':
 				'Ajuster l\u2019espacement entre le nom arabe de la sourate et son équivalent latin',
 			'surah-opacity': 'Ajuster l\u2019opacité du nom de la sourate',
-			'surah-latin-text-style': 'Style pour la translittération latine du nom de la sourate',
+			'surah-latin-text-style':
+				'Apparence commune à la calligraphie arabe et au texte latin ; la police, sa taille et la casse concernent uniquement le texte latin.',
 			'reciter-name': 'Contrôler l\u2019affichage du nom du récitateur',
 			'show-reciter-name': 'Afficher ou masquer le nom du récitateur',
 			'reciter-name-always-show': 'Toujours afficher le nom du récitateur (ignorer le minutage)',
@@ -1985,7 +1986,8 @@ const fr = {
 			'reciter-latin-spacing':
 				'Ajuster l\u2019espacement entre le nom arabe du récitateur et son équivalent latin',
 			'reciter-opacity': 'Ajuster l\u2019opacité du nom du récitateur',
-			'reciter-latin-text-style': 'Style pour la translittération latine du nom du récitateur',
+			'reciter-latin-text-style':
+				'Apparence commune à la calligraphie arabe et au texte latin ; la police, sa taille et la casse concernent uniquement le texte latin.',
 			'ayah-container': 'Ajouter une image d\u2019arrière-plan décorative derrière le verset',
 			'ayah-container-image': 'Sélectionner une image de conteneur décorative pour le verset',
 			'ayah-container-vertical-position':
@@ -2591,6 +2593,9 @@ const fr = {
 		fontControlledByMushaf: 'Cette police est contrôlée par le Mushaf sélectionné.',
 		groupBasics: 'Essentiel',
 		groupTypography: 'Typographie',
+		groupArabicCalligraphy: 'Calligraphie arabe',
+		groupLatinText: 'Texte latin',
+		groupSharedAppearance: 'Apparence commune',
 		groupColors: 'Couleurs',
 		groupSpacing: 'Espacement',
 		groupLayout: 'Disposition',

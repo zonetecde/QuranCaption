@@ -791,6 +791,9 @@ const id = {
 	},
 	editor: {
 		...baseEn.editor,
+		overlayLayerOrder: 'Urutan lapisan (Z)',
+		moveLayerUp: 'Naikkan',
+		moveLayerDown: 'Turunkan',
 		animateImageZoom: 'Zoom gambar bertahap',
 		imageZoomEnd: 'Zoom akhir',
 		appendImportedSubtitles: 'Tambahkan setelah subtitle yang ada',

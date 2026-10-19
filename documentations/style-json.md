@@ -126,6 +126,14 @@ même instance de style. Réservez ce partage aux prérequis utiles dans plusieu
 les duplications accidentelles. Pendant une recherche, seule l'occurrence de la catégorie d'origine
 est affichée afin de ne pas répéter le même résultat.
 
+### `ui.layerControl` et `ui.groups[].layerControl`
+
+`ui.layerControl: true` ajoute le curseur d'ordre des calques à la catégorie. Dans une catégorie
+regroupée, utilisez plutôt `layerControl: true` sur le groupe de positionnement concerné. Ce
+contrôle utilise l'ordre partagé de `ProjectContent.overlayLayerOrder`, comme le menu contextuel de
+l'aperçu, sans ajouter une valeur de style ni nécessiter de migration persistante. Sans ordre
+enregistré explicitement, les Z et la hiérarchie historiques restent inchangés.
+
 ### `ui.headerStyle`
 
 `headerStyle` place le switch principal à droite du titre de la catégorie et le retire de la liste :

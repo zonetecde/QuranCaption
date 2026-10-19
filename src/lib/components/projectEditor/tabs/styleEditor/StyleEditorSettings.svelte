@@ -841,9 +841,10 @@
 		if (!definitions) return [{ styles }];
 
 		const stylesById = new Map(styles.map((style) => [style.id, style]));
-		const groups = definitions
-			.map(({ id, styleIds }) => ({
+		const groups: StyleControlGroup[] = definitions
+			.map(({ id, styleIds, layerControl }) => ({
 				label: getStyleGroupCopyKey(id),
+				layerControl,
 				styles: styleIds.flatMap((styleId) => {
 					const style = stylesById.get(styleId);
 					if (!style) return [];
@@ -860,7 +861,7 @@
 			else groups.push({ label: 'groupAdvanced', styles: remainingStyles });
 		}
 
-		return groups.length > 1 ? groups : [{ styles }];
+		return groups.length > 1 || groups.some((group) => group.layerControl) ? groups : [{ styles }];
 	}
 
 	/**

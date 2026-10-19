@@ -749,7 +749,8 @@
 		"description": "Control the position and spacing of subtitles on screen",
 		"icon": "open_with",
 		"ui": {
-			"panel": { "id": "layout", "icon": "open_with", "label": "positioning", "order": 1, "categoryOrder": 0 }
+			"panel": { "id": "layout", "icon": "open_with", "label": "positioning", "order": 1, "categoryOrder": 0 },
+			"layerControl": true
 		},
 		"styles": [
 			{

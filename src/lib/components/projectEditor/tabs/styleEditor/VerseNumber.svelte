@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getOverlayLayerZIndex } from '$lib/services/OverlayLayerService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { untrack } from 'svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
@@ -172,6 +173,8 @@
 			verticalStyleId: 'verse-number-vertical-position',
 			horizontalStyleId: 'verse-number-horizontal-position'
 		}}
+		data-overlay-layer="verse-number"
+		style:z-index={getOverlayLayerZIndex('verse-number')}
 		class="w-[100px] absolute flex flex-col items-center cursor-move select-none z-10"
 		style={`opacity: ${verseNumberSubtitleOpacity()}; transform: translateY(${verseNumberSettings().verticalPosition}px) translateX(${verseNumberSettings().horizontalPosition}px);`}
 	>

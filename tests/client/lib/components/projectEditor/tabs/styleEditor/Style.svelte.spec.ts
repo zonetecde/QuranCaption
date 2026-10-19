@@ -6,6 +6,10 @@ import StyleComponent from '$lib/components/projectEditor/tabs/styleEditor/Style
 import { ProjectEditorState } from '$lib/classes/ProjectEditorState.svelte';
 import { Style } from '$lib/classes/VideoStyle.svelte';
 import { globalState } from '$lib/runes/main.svelte';
+import { ProjectContent } from '$lib/classes/ProjectContent.svelte';
+import { moveOverlayLayer } from '$lib/services/OverlayLayerService';
+import OverlayLayerControl from '$lib/components/projectEditor/tabs/styleEditor/controls/OverlayLayerControl.svelte';
+import { tick } from 'svelte';
 
 vi.mock('svelte-5-french-toast', () => ({ default: vi.fn() }));
 vi.mock('$lib/services/undoRedo/ProjectHistoryManager', () => ({
@@ -40,6 +44,25 @@ describe('direct style controls', () => {
 
 		expect(control).toHaveClass('style-control-direct');
 		expect(control?.children).toHaveLength(1);
+	});
+
+	test('keeps the bounded Z slider synchronized with context menu layer moves', async () => {
+		const content = new ProjectContent();
+		globalState.currentProject = {
+			projectEditorState: new ProjectEditorState(),
+			content
+		} as never;
+		const component = render(OverlayLayerControl, { layerId: 'arabic' });
+		const slider = component.container.querySelector<HTMLInputElement>('input[type="range"]')!;
+		expect(slider.min).toBe('1');
+		expect(slider.value).toBe('1');
+		slider.value = slider.max;
+		slider.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		expect(content.overlayLayerOrder.at(-1)).toBe('arabic');
+		moveOverlayLayer('arabic', -1);
+		await tick();
+		expect(Number(slider.value)).toBe(Number(slider.max) - 1);
 	});
 
 	test('shows the interpolation notice only for the first project keyframe', async () => {

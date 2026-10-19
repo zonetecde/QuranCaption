@@ -40,12 +40,14 @@ export type StyleEditorGroupMetadata = {
 	id: string;
 	styleIds: string[];
 	shared?: boolean;
+	layerControl?: boolean;
 };
 
 export type StyleCategoryUiMetadata = {
 	panel: StyleEditorPanelMetadata;
 	groups?: StyleEditorGroupMetadata[];
 	headerStyle?: string;
+	layerControl?: boolean;
 };
 
 export type ClipStyleOverrides = {

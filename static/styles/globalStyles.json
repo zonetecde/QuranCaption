@@ -533,6 +533,7 @@
 				},
 				{
 					"id": "layout",
+					"layerControl": true,
 					"styleIds": [
 						"surah-name-vertical-position",
 						"surah-name-horizontal-position",
@@ -749,6 +750,7 @@
 				},
 				{
 					"id": "layout",
+					"layerControl": true,
 					"styleIds": [
 						"reciter-name-vertical-position",
 						"reciter-name-horizontal-position",
@@ -1098,6 +1100,7 @@
 				},
 				{
 					"id": "layout",
+					"layerControl": true,
 					"styleIds": ["verse-number-vertical-position", "verse-number-horizontal-position"]
 				}
 			]

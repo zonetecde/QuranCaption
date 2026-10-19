@@ -586,6 +586,9 @@ const fr = {
 			'Êtes-vous sûr de vouloir supprimer le batch « {name} » ? Ses {count} projet(s) seront également supprimés définitivement.'
 	},
 	editor: {
+		overlayLayerOrder: 'Ordre des calques (Z)',
+		moveLayerUp: 'Monter',
+		moveLayerDown: 'Descendre',
 		animateImageZoom: 'Zoom progressif de l’image',
 		imageZoomEnd: 'Zoom final',
 		appendImportedSubtitles: 'Ajouter après les sous-titres existants',

@@ -1,4 +1,7 @@
 const editor = {
+	overlayLayerOrder: 'ترتيب الطبقات (Z)',
+	moveLayerUp: 'نقل إلى الأمام',
+	moveLayerDown: 'نقل إلى الخلف',
 	animateImageZoom: 'تكبير تدريجي للصورة',
 	imageZoomEnd: 'التكبير النهائي',
 	appendImportedSubtitles: 'إضافة بعد الترجمات الحالية',

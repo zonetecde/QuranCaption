@@ -1108,6 +1108,18 @@ type RootTranslation = {
 	};
 	editor: {
 		/**
+		 * L​a​y​e​r​ ​o​r​d​e​r​ ​(​Z​)
+		 */
+		overlayLayerOrder: string;
+		/**
+		 * M​o​v​e​ ​u​p
+		 */
+		moveLayerUp: string;
+		/**
+		 * M​o​v​e​ ​d​o​w​n
+		 */
+		moveLayerDown: string;
+		/**
 		 * P​r​o​g​r​e​s​s​i​v​e​ ​i​m​a​g​e​ ​z​o​o​m
 		 */
 		animateImageZoom: string;
@@ -13399,6 +13411,18 @@ export type TranslationFunctions = {
 		continue: () => LocalizedString;
 	};
 	editor: {
+		/**
+		 * Layer order (Z)
+		 */
+		overlayLayerOrder: () => LocalizedString;
+		/**
+		 * Move up
+		 */
+		moveLayerUp: () => LocalizedString;
+		/**
+		 * Move down
+		 */
+		moveLayerDown: () => LocalizedString;
 		/**
 		 * Progressive image zoom
 		 */

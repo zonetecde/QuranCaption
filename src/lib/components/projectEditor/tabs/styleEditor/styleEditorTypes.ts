@@ -30,6 +30,7 @@ export type StyleGroupCopyKey =
 
 export type StyleControlGroup = {
 	label?: StyleGroupCopyKey;
+	layerControl?: boolean;
 	styles: Style[];
 };
 

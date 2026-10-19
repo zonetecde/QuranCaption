@@ -589,6 +589,9 @@ const de = {
 			'Möchten Sie den Batch „{name}“ wirklich löschen? Seine {count} Projekte werden ebenfalls dauerhaft gelöscht.'
 	},
 	editor: {
+		overlayLayerOrder: 'Ebenenreihenfolge (Z)',
+		moveLayerUp: 'Nach vorne',
+		moveLayerDown: 'Nach hinten',
 		animateImageZoom: 'Bild schrittweise vergrößern',
 		imageZoomEnd: 'Endzoom',
 		appendImportedSubtitles: 'Nach vorhandenen Untertiteln hinzufügen',

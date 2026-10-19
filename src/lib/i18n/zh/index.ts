@@ -554,6 +554,9 @@ const zh = {
 		deleteBatchConfirm: '确定要删除批次“{name}”吗？其中的 {count} 个项目也将被永久删除。'
 	},
 	editor: {
+		overlayLayerOrder: '图层顺序（Z）',
+		moveLayerUp: '上移一层',
+		moveLayerDown: '下移一层',
 		animateImageZoom: '图片渐进缩放',
 		imageZoomEnd: '最终缩放',
 		appendImportedSubtitles: '追加到现有字幕之后',

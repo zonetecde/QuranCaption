@@ -1,4 +1,7 @@
 const editor = {
+	overlayLayerOrder: 'Layer order (Z)',
+	moveLayerUp: 'Move up',
+	moveLayerDown: 'Move down',
 	animateImageZoom: 'Progressive image zoom',
 	imageZoomEnd: 'Final zoom',
 	appendImportedSubtitles: 'Append after existing subtitles',

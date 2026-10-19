@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getOverlayLayerZIndex } from '$lib/services/OverlayLayerService';
 	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { onMount } from 'svelte';
@@ -141,6 +142,8 @@
 			verticalStyleId: 'surah-name-vertical-position',
 			horizontalStyleId: 'surah-name-horizontal-position'
 		}}
+		data-overlay-layer="surah-name"
+		style:z-index={getOverlayLayerZIndex('surah-name')}
 		class="w-[100px] absolute flex flex-col items-center cursor-move select- z-10"
 		data-overlay-max-opacity={surahNameSettings().opacity}
 		style={`transform: translateY(${surahNameSettings().verticalPosition}px) translateX(${surahNameSettings().horizontalPosition}px); opacity: ${timedSurahOpacity()}; `}

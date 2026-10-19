@@ -15,8 +15,15 @@ import {
 	TrackType,
 	VideoStyle
 } from '$lib/classes';
-import { AssetTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
+import { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
+import { CustomImageClip } from '$lib/classes/Clip.svelte';
 import { globalState } from '$lib/runes/main.svelte';
+import {
+	getOverlayLayerOrder,
+	getOverlayLayerZIndex,
+	moveOverlayLayer,
+	setOverlayLayerPosition
+} from '$lib/services/OverlayLayerService';
 
 /**
  * Crée un projet minimal pour tester l'historique sans charger les JSON de styles.
@@ -88,6 +95,94 @@ describe('ProjectHistoryManager', () => {
 		expect(
 			globalState.getVideoStyle.getStylesOfTarget('arabic').findStyle('font-size')?.value
 		).toBe(120);
+	});
+
+	it('preserves legacy Z values without an explicit layer order, including old projects', () => {
+		const content = globalState.currentProject!.content;
+		expect(content.overlayLayerOrder).toEqual([]);
+		expect(getOverlayLayerZIndex('surah-name')).toBe(10);
+		expect(getOverlayLayerZIndex('arabic')).toBe(10);
+		expect(getOverlayLayerZIndex('video-frame')).toBe(20);
+		const legacy = globalState.currentProject!.toJSON();
+		delete (legacy.content as Record<string, unknown>).overlayLayerOrder;
+		globalState.currentProject = Project.fromJSON(legacy) as Project;
+		expect(globalState.currentProject.content.overlayLayerOrder).toEqual([]);
+		expect(getOverlayLayerZIndex('surah-name')).toBe(10);
+		expect(getOverlayLayerZIndex('arabic')).toBe(10);
+	});
+
+	it('persists layer changes and restores the legacy order with undo and redo', () => {
+		for (let attempt = 0; attempt < 5; attempt++) {
+			moveOverlayLayer('surah-name', 1, ['surah-name', 'arabic']);
+		}
+		expect(globalState.currentProject!.content.overlayLayerOrder).toEqual([]);
+		expect(ProjectHistoryManager.undo()).toBe(false);
+		moveOverlayLayer('surah-name', -1, ['surah-name', 'arabic']);
+		expect(getOverlayLayerZIndex('surah-name')).toBeLessThan(getOverlayLayerZIndex('arabic'));
+		expect(
+			(Project.fromJSON(globalState.currentProject!.toJSON()) as Project).content.overlayLayerOrder
+		).toEqual(globalState.currentProject!.content.overlayLayerOrder);
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(globalState.currentProject!.content.overlayLayerOrder).toEqual([]);
+		expect(getOverlayLayerZIndex('surah-name')).toBe(10);
+		expect(getOverlayLayerZIndex('arabic')).toBe(10);
+		expect(ProjectHistoryManager.redo()).toBe(true);
+		expect(getOverlayLayerZIndex('surah-name')).toBeLessThan(getOverlayLayerZIndex('arabic'));
+	});
+
+	it('moves past hidden layers, ignores bounds, and adds new layers without retaining deleted IDs', () => {
+		const content = globalState.currentProject!.content;
+		const original = getOverlayLayerOrder(content);
+		moveOverlayLayer('arabic', -1, ['arabic', 'verse-number']);
+		expect(content.overlayLayerOrder).toEqual([]);
+		moveOverlayLayer('arabic', 1, ['arabic', 'verse-number']);
+		expect(getOverlayLayerZIndex('arabic')).toBeGreaterThan(getOverlayLayerZIndex('verse-number'));
+		content.overlayLayerOrder = ['deleted', 'arabic', 'arabic'];
+		expect(getOverlayLayerOrder(content)).toEqual([
+			'arabic',
+			...original.filter((id) => id !== 'arabic')
+		]);
+	});
+
+	it('keeps background images behind text until a layer move explicitly brings them above it', () => {
+		const track = new CustomTextTrack();
+		const image = new CustomImageClip(
+			new Category({
+				id: 'image',
+				styles: [new Style({ id: 'above-overlay', value: false, valueType: 'boolean' })]
+			})
+		);
+		track.clips.push(image);
+		globalState.currentProject!.content.timeline.tracks.push(track);
+		const imageId = `custom:${image.id}`;
+		expect(getOverlayLayerOrder(globalState.currentProject!.content)[0]).toBe(imageId);
+		moveOverlayLayer(imageId, -1, [imageId, 'arabic']);
+		expect(image.category!.getStyle('above-overlay')!.value).toBe(false);
+		moveOverlayLayer(imageId, 1, [imageId, 'arabic']);
+		expect(image.category!.getStyle('above-overlay')!.value).toBe(true);
+		expect(getOverlayLayerZIndex(imageId)).toBeGreaterThan(getOverlayLayerZIndex('arabic'));
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(getOverlayLayerOrder(globalState.currentProject!.content)[0]).toBe(imageId);
+	});
+
+	it('sets a bounded layer position and undoes a multi-layer slider change in one step', () => {
+		setOverlayLayerPosition('arabic', 999);
+		const content = globalState.currentProject!.content;
+		expect(getOverlayLayerOrder(content).at(-1)).toBe('arabic');
+		const savedOrder = [...content.overlayLayerOrder];
+		for (let attempt = 0; attempt < 5; attempt++) {
+			moveOverlayLayer('arabic', 1, ['reciter-name', 'arabic']);
+			setOverlayLayerPosition('arabic', 999);
+		}
+		expect(content.overlayLayerOrder).toEqual(savedOrder);
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(getOverlayLayerOrder(globalState.currentProject!.content)[0]).toBe('arabic');
+		expect(ProjectHistoryManager.undo()).toBe(false);
+		for (let attempt = 0; attempt < 5; attempt++) {
+			moveOverlayLayer('arabic', -1, ['reciter-name', 'arabic']);
+			setOverlayLayerPosition('arabic', -999);
+		}
+		expect(ProjectHistoryManager.undo()).toBe(false);
 	});
 
 	it('undoes and redoes a subtitle insertion and removal', () => {

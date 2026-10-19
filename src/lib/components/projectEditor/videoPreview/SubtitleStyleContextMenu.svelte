@@ -7,6 +7,7 @@
 	import { get } from 'svelte/store';
 	import { tick } from 'svelte';
 	import ContextMenu from 'svelte-contextmenu';
+	import OverlayLayerActions from './OverlayLayerActions.svelte';
 
 	type StyleMenuEntry = {
 		id: string;
@@ -124,6 +125,7 @@
 </script>
 
 <ContextMenu bind:this={contextMenu}>
+	<OverlayLayerActions layerId={target} />
 	<li
 		bind:this={menuElement}
 		data-autoclose="false"

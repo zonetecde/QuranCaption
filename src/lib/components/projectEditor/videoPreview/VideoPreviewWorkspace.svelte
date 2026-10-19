@@ -112,6 +112,20 @@
 		return clip instanceof AssetClip && clip.loopUntilAudioEnd;
 	});
 
+	let imageZoom = $derived.by(() => {
+		const track = globalState.getVideoTrack;
+		const clip =
+			currentVideoClip() ??
+			(track.clips.length === 1 && track.clips[0].endTime === 0 ? track.clips[0] : null);
+		if (!(clip instanceof AssetClip) || !clip.animateImageZoom) return 1;
+		return clip.getImageZoomScale(
+			globalState.getTimelineState.cursorPosition,
+			track.getVisualClipStartTime(track.clips.indexOf(clip)),
+			clip.duration ||
+				globalState.currentProject!.content.timeline.getLongestTrackDurationIgnoringLoopedVideo().ms
+		);
+	});
+
 	let backgroundMediaStyle = $derived.by(() => {
 		const clipId = currentVideoClip()?.id;
 		const globalStyles = globalState.getVideoStyle.getStylesOfTarget('global');
@@ -1737,6 +1751,7 @@
 					image={currentImage()}
 					loop={isVideoLooping()}
 					style={backgroundMediaStyle}
+					zoom={imageZoom}
 					opacity={transitionState.currentOpacity}
 					showCrossfadeNotice={transitionState.showCrossfadeNotice}
 					crossfadeNotice={getCrossfadePreviewNotice()}

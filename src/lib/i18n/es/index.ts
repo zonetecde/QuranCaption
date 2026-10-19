@@ -581,6 +581,8 @@ const es = {
 			'¿Seguro que desea eliminar el lote «{name}»? Sus {count} proyectos también se eliminarán permanentemente.'
 	},
 	editor: {
+		animateImageZoom: 'Zoom progresivo de la imagen',
+		imageZoomEnd: 'Zoom final',
 		appendImportedSubtitles: 'Añadir después de los subtítulos existentes',
 		appendImportedSubtitlesDescription:
 			'Conservar los subtítulos actuales y añadir los importados a continuación, ajustando sus tiempos automáticamente.',

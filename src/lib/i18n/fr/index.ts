@@ -586,6 +586,8 @@ const fr = {
 			'Êtes-vous sûr de vouloir supprimer le batch « {name} » ? Ses {count} projet(s) seront également supprimés définitivement.'
 	},
 	editor: {
+		animateImageZoom: 'Zoom progressif de l’image',
+		imageZoomEnd: 'Zoom final',
 		appendImportedSubtitles: 'Ajouter après les sous-titres existants',
 		appendImportedSubtitlesDescription:
 			'Conserver les sous-titres actuels et ajouter les sous-titres importés à leur suite, en décalant automatiquement leurs timings.',

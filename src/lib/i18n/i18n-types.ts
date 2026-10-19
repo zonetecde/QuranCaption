@@ -1108,6 +1108,14 @@ type RootTranslation = {
 	};
 	editor: {
 		/**
+		 * P​r​o​g​r​e​s​s​i​v​e​ ​i​m​a​g​e​ ​z​o​o​m
+		 */
+		animateImageZoom: string;
+		/**
+		 * F​i​n​a​l​ ​z​o​o​m
+		 */
+		imageZoomEnd: string;
+		/**
 		 * A​p​p​e​n​d​ ​a​f​t​e​r​ ​e​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s
 		 */
 		appendImportedSubtitles: string;
@@ -13379,6 +13387,14 @@ export type TranslationFunctions = {
 		continue: () => LocalizedString;
 	};
 	editor: {
+		/**
+		 * Progressive image zoom
+		 */
+		animateImageZoom: () => LocalizedString;
+		/**
+		 * Final zoom
+		 */
+		imageZoomEnd: () => LocalizedString;
 		/**
 		 * Append after existing subtitles
 		 */

@@ -267,6 +267,8 @@ describe('Background media export inputs', () => {
 		const previousProject = globalState.currentProject;
 		const videoClip = new AssetClip(0, 5_000, 10);
 		const imageClip = new AssetClip(5_001, 15_001, 11);
+		imageClip.animateImageZoom = true;
+		imageClip.imageZoomEnd = 2;
 		const assets = new Map([
 			[
 				10,
@@ -306,7 +308,9 @@ describe('Background media export inputs', () => {
 					loop_until_audio_end: false,
 					source_start_ms: 0,
 					timeline_start_ms: 5_001,
-					duration_ms: 10_000
+					duration_ms: 10_000,
+					image_zoom_duration_ms: 10_000,
+					image_zoom_end: 2
 				}
 			]);
 		} finally {

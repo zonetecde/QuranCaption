@@ -189,6 +189,8 @@ export class Clip extends SerializableBase {
 
 export class AssetClip extends Clip {
 	assetId: number = $state(0);
+	animateImageZoom: boolean = $state(false);
+	imageZoomEnd: number = $state(1.5);
 	loopUntilAudioEnd: boolean = $state(false);
 	sourceStartTime: number = $state(0);
 	volumePercent: number = $state(100);
@@ -196,6 +198,22 @@ export class AssetClip extends Clip {
 	constructor(startTime: number, endTime: number, assetId: number) {
 		super(startTime, endTime, 'Asset');
 		this.assetId = assetId;
+	}
+
+	/**
+	 * Calcule le zoom progressif de l'image sur sa durée visible.
+	 * @param {number} timeMs Position courante sur la timeline.
+	 * @param {number} startMs Début visible du clip.
+	 * @param {number} durationMs Durée visible, y compris pour une image de fond sans durée.
+	 * @returns {number} Facteur de zoom entre 1 et la valeur finale choisie.
+	 */
+	getImageZoomScale(timeMs: number, startMs: number, durationMs: number): number {
+		if (!this.animateImageZoom || durationMs <= 0) return 1;
+		return (
+			1 +
+			(Math.min(3, Math.max(1, this.imageZoomEnd)) - 1) *
+				Math.min(1, Math.max(0, (timeMs - startMs) / durationMs))
+		);
 	}
 }
 

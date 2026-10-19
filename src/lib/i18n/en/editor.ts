@@ -1,4 +1,6 @@
 const editor = {
+	animateImageZoom: 'Progressive image zoom',
+	imageZoomEnd: 'Final zoom',
 	appendImportedSubtitles: 'Append after existing subtitles',
 	appendImportedSubtitlesDescription:
 		'Keep current subtitles and add the imported subtitles after them, shifting their timings automatically.',

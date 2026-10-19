@@ -9,6 +9,8 @@ export type ExportVideoInput = {
 	duration_ms?: number;
 	media_fill?: boolean;
 	media_scale?: number;
+	image_zoom_duration_ms?: number;
+	image_zoom_end?: number;
 	media_rotation?: number;
 	media_position_x?: number;
 	media_position_y?: number;
@@ -62,6 +64,16 @@ export class ExportMediaInputBuilder {
 				path: this.getAssetPath(clip),
 				loop_until_audio_end: clip.loopUntilAudioEnd
 			};
+			if (
+				clip.animateImageZoom &&
+				globalState.currentProject!.content.getAssetById(clip.assetId).type === AssetType.Image
+			) {
+				input.image_zoom_end = clip.imageZoomEnd;
+				input.image_zoom_duration_ms =
+					clip.duration ||
+					globalState.currentProject!.content.timeline.getLongestTrackDurationIgnoringLoopedVideo()
+						.ms;
+			}
 			if (styles?.hasOverrideForAny([clip.id], 'media-fill')) {
 				input.media_fill = Boolean(styles.getEffectiveValue('media-fill', clip.id));
 			}

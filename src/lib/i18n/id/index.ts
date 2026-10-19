@@ -791,6 +791,8 @@ const id = {
 	},
 	editor: {
 		...baseEn.editor,
+		animateImageZoom: 'Zoom gambar bertahap',
+		imageZoomEnd: 'Zoom akhir',
 		appendImportedSubtitles: 'Tambahkan setelah subtitle yang ada',
 		appendImportedSubtitlesDescription:
 			'Pertahankan subtitle saat ini dan tambahkan subtitle impor setelahnya dengan menggeser waktunya secara otomatis.',

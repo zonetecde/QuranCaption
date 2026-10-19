@@ -8,6 +8,7 @@
 		image,
 		loop,
 		style,
+		zoom = 1,
 		opacity,
 		showCrossfadeNotice,
 		crossfadeNotice,
@@ -18,6 +19,7 @@
 		image: Asset | null | undefined;
 		loop: boolean;
 		style: string;
+		zoom?: number;
 		opacity: number;
 		showCrossfadeNotice: boolean;
 		crossfadeNotice: string;
@@ -35,11 +37,13 @@
 		style={`${style} opacity: ${opacity};`}
 	></video>
 {:else if image}
-	<img
-		src={`${convertFileSrc(image.filePath)}?v=${image.mediaReloadToken}`}
-		style={`${style} opacity: ${opacity};`}
-		alt=""
-	/>
+	<div style={`position: absolute; inset: 0; overflow: hidden; transform: scale(${zoom});`}>
+		<img
+			src={`${convertFileSrc(image.filePath)}?v=${image.mediaReloadToken}`}
+			style={`${style} opacity: ${opacity};`}
+			alt=""
+		/>
+	</div>
 {/if}
 {#if (video || image) && showCrossfadeNotice}
 	<div class="crossfade-preview-notice">{crossfadeNotice}</div>

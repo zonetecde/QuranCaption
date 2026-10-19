@@ -1,4 +1,6 @@
 const editor = {
+	animateImageZoom: 'تكبير تدريجي للصورة',
+	imageZoomEnd: 'التكبير النهائي',
 	appendImportedSubtitles: 'إضافة بعد الترجمات الحالية',
 	appendImportedSubtitlesDescription:
 		'الاحتفاظ بالترجمات الحالية وإضافة الترجمات المستوردة بعدها مع إزاحة توقيتها تلقائيًا.',

@@ -502,6 +502,33 @@
 		};
 	});
 
+	/**
+	 * Active ou désactive le zoom progressif de l'image courante.
+	 * @returns {void}
+	 */
+	function toggleImageZoom(): void {
+		if (!(clip instanceof AssetClip) || asset.type !== AssetType.Image) return;
+		const imageClip = clip;
+		ProjectHistoryManager.track('toggle image zoom', () => {
+			imageClip.animateImageZoom = !imageClip.animateImageZoom;
+		});
+		globalState.updateVideoPreviewUI();
+	}
+
+	/**
+	 * Met à jour le zoom final de l'image depuis le slider du menu.
+	 * @param {Event} event Événement de saisie du slider.
+	 * @returns {void}
+	 */
+	function setImageZoomEnd(event: Event): void {
+		if (!(clip instanceof AssetClip)) return;
+		const imageClip = clip;
+		const value = Number((event.currentTarget as HTMLInputElement).value);
+		ProjectHistoryManager.track('set image zoom end', () => {
+			imageClip.imageZoomEnd = Math.min(3, Math.max(1, value));
+		});
+	}
+
 	function removeClip() {
 		setTimeout(() => {
 			if (track.type === TrackType.Video && globalState.getStylesState.isSelectedVideo(clip.id)) {
@@ -688,6 +715,39 @@
 </div>
 
 <ContextMenu bind:this={contextMenu}>
+	{#if track.type === TrackType.Video && clip instanceof AssetClip && asset.type === AssetType.Image}
+		<Item autoclose={false} on:click={toggleImageZoom}>
+			<div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">
+					{clip.animateImageZoom ? 'check_box' : 'check_box_outline_blank'}
+				</span>
+				{(Reflect.get(get(LL).editor, 'animateImageZoom') as () => string)()}
+			</div>
+		</Item>
+		{#if clip.animateImageZoom}
+			<li data-autoclose="false" class="px-2 py-1.5 text-sm text-[var(--text-primary)]">
+				<div class="mb-1 flex items-center justify-between gap-4">
+					<label for={`image-zoom-end-${clip.id}`}>
+						{(Reflect.get(get(LL).editor, 'imageZoomEnd') as () => string)()}
+					</label>
+					<span>{clip.imageZoomEnd.toFixed(1)}×</span>
+				</div>
+				<input
+					id={`image-zoom-end-${clip.id}`}
+					type="range"
+					min="1"
+					max="3"
+					step="0.1"
+					value={clip.imageZoomEnd}
+					class="w-44 cursor-pointer"
+					onfocus={() => ProjectHistoryManager.begin('set image zoom end')}
+					oninput={setImageZoomEnd}
+					onblur={() => ProjectHistoryManager.commit()}
+				/>
+			</li>
+		{/if}
+		<Divider />
+	{/if}
 	{#if track.type === TrackType.Audio && clip instanceof AssetClip}
 		<li data-autoclose="false" class="px-2 py-1.5 text-sm text-[var(--text-primary)]">
 			<div class="mb-1 flex items-center justify-between gap-4">

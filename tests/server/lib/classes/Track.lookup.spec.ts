@@ -45,6 +45,26 @@ function createSubtitle(startTime: number, endTime: number, verse: number): Subt
 }
 
 describe('Track lookup helpers', () => {
+	it('resolves and preserves a progressive image zoom over the visible duration', () => {
+		const clip = new AssetClip(2000, 12000, 42);
+		expect(clip.getImageZoomScale(7000, 2000, 10000)).toBe(1);
+		clip.animateImageZoom = true;
+		expect(clip.getImageZoomScale(1000, 2000, 10000)).toBe(1);
+		expect(clip.getImageZoomScale(7000, 2000, 10000)).toBe(1.25);
+		expect(clip.getImageZoomScale(15000, 2000, 10000)).toBe(1.5);
+		clip.imageZoomEnd = 2;
+		expect(clip.getImageZoomScale(7000, 2000, 10000)).toBe(1.5);
+		expect(clip.getImageZoomScale(12000, 2000, 10000)).toBe(2);
+		const reopened = AssetClip.fromJSON(clip.toJSON()) as AssetClip;
+		expect(reopened.animateImageZoom).toBe(true);
+		expect(reopened.imageZoomEnd).toBe(2);
+		expect(reopened.getImageZoomScale(15000, 0, 30000)).toBe(1.5);
+		expect(reopened.getImageZoomScale(15000, 0, 0)).toBe(1);
+		const legacy = clip.toJSON();
+		delete legacy.imageZoomEnd;
+		expect((AssetClip.fromJSON(legacy) as AssetClip).imageZoomEnd).toBe(1.5);
+	});
+
 	it('finds the closest marked subtitles on either side of the cursor', () => {
 		const earlierMarked = createSubtitle(1000, 1999, 1);
 		earlierMarked.needsCoverageReview = true;

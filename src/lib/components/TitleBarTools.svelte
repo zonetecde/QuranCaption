@@ -18,6 +18,7 @@
 
 	let showToolsPopover = $state(false);
 	let audioEffectsLabel = $derived((Reflect.get(get(LL).tools, 'audioEffects') as () => string)());
+	let mediaSpeedLabel = $derived((Reflect.get(get(LL).tools, 'mediaSpeed') as () => string)());
 
 	function handleClickOutside(event: Event) {
 		if (!showToolsPopover) return;
@@ -239,6 +240,17 @@
 			>
 				<span class="material-icons text-lg text-accent">content_cut</span>
 				{$LL.editor.assetTrimmer()}
+			</button>
+			<!-- svelte-ignore node_invalid_placement_ssr -->
+			<button
+				class="w-full text-start px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
+				onclick={(event) => {
+					event.stopPropagation();
+					runAction(() => ModalManager.mediaSpeedModal());
+				}}
+			>
+				<span class="material-icons text-lg text-accent">speed</span>
+				{mediaSpeedLabel}
 			</button>
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button

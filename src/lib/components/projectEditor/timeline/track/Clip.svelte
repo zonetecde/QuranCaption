@@ -43,12 +43,12 @@
 		return (track.getVisualClipStartTime(clipIndex) / 1000) * track.getPixelPerSecond();
 	});
 
-	const clipAssetId = (clip as AssetClip).assetId;
-	const clipAsset = globalState.currentProject?.content.getAssetById(clipAssetId);
-	if (!clipAsset) {
-		throw new Error(`Missing asset ${clipAssetId} for clip ${clip.id}`);
-	}
-	const asset = clipAsset;
+	let asset = $derived.by(() => {
+		const clipAssetId = (clip as AssetClip).assetId;
+		const clipAsset = globalState.currentProject?.content.getAssetById(clipAssetId);
+		if (!clipAsset) throw new Error(`Missing asset ${clipAssetId} for clip ${clip.id}`);
+		return clipAsset;
+	});
 	let file = $derived(`${convertFileSrc(asset.filePath)}?v=${asset.mediaReloadToken}`);
 
 	const isSelectedVideo = $derived(() => {
@@ -730,6 +730,20 @@
 			<div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">surround_sound</span>
 				{get(LL).tools.reverb()}
+			</div>
+		</Item>
+		<Divider />
+	{/if}
+	{#if clip instanceof AssetClip && (asset.type === AssetType.Audio || asset.type === AssetType.Video)}
+		<Item
+			on:click={() => {
+				currentMenu.set(null);
+				void ModalManager.mediaSpeedModal(clip.id);
+			}}
+		>
+			<div class="btn-icon">
+				<span class="material-icons-outlined text-sm mr-1">speed</span>
+				{(Reflect.get(get(LL).tools, 'mediaSpeed') as () => string)()}
 			</div>
 		</Item>
 		<Divider />

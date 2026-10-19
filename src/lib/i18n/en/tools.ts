@@ -1,4 +1,12 @@
 const tools = {
+	mediaSpeed: 'Change media speed',
+	mediaSpeedDescription: 'Slow down or speed up an audio or video asset or timeline clip.',
+	mediaSpeedScale: '−3: 3× slower · 0: normal · +3: 3× faster',
+	mediaSpeedHint:
+		'A new file is added to Assets. A selected timeline clip uses it and adjusts its duration.',
+	mediaSpeedAdaptSubtitles: 'Adapt subtitles to the new audio duration',
+	mediaSpeedSuccess: 'Speed-adjusted media added to the project.',
+	mediaSpeedFailed: 'Failed to change media speed: {error}',
 	hifzRepetition: 'Hifz Repetition',
 	hifzDescription: 'Repeat existing subtitles and generate matching audio',
 	hifzBody:

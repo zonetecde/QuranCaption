@@ -9501,6 +9501,35 @@ type RootTranslation = {
 	};
 	tools: {
 		/**
+		 * C​h​a​n​g​e​ ​m​e​d​i​a​ ​s​p​e​e​d
+		 */
+		mediaSpeed: string;
+		/**
+		 * S​l​o​w​ ​d​o​w​n​ ​o​r​ ​s​p​e​e​d​ ​u​p​ ​a​n​ ​a​u​d​i​o​ ​o​r​ ​v​i​d​e​o​ ​a​s​s​e​t​ ​o​r​ ​t​i​m​e​l​i​n​e​ ​c​l​i​p​.
+		 */
+		mediaSpeedDescription: string;
+		/**
+		 * −​3​:​ ​3​×​ ​s​l​o​w​e​r​ ​·​ ​0​:​ ​n​o​r​m​a​l​ ​·​ ​+​3​:​ ​3​×​ ​f​a​s​t​e​r
+		 */
+		mediaSpeedScale: string;
+		/**
+		 * A​ ​n​e​w​ ​f​i​l​e​ ​i​s​ ​a​d​d​e​d​ ​t​o​ ​A​s​s​e​t​s​.​ ​A​ ​s​e​l​e​c​t​e​d​ ​t​i​m​e​l​i​n​e​ ​c​l​i​p​ ​u​s​e​s​ ​i​t​ ​a​n​d​ ​a​d​j​u​s​t​s​ ​i​t​s​ ​d​u​r​a​t​i​o​n​.
+		 */
+		mediaSpeedHint: string;
+		/**
+		 * A​d​a​p​t​ ​s​u​b​t​i​t​l​e​s​ ​t​o​ ​t​h​e​ ​n​e​w​ ​a​u​d​i​o​ ​d​u​r​a​t​i​o​n
+		 */
+		mediaSpeedAdaptSubtitles: string;
+		/**
+		 * S​p​e​e​d​-​a​d​j​u​s​t​e​d​ ​m​e​d​i​a​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​p​r​o​j​e​c​t​.
+		 */
+		mediaSpeedSuccess: string;
+		/**
+		 * F​a​i​l​e​d​ ​t​o​ ​c​h​a​n​g​e​ ​m​e​d​i​a​ ​s​p​e​e​d​:​ ​{​e​r​r​o​r​}
+		 * @param {unknown} error
+		 */
+		mediaSpeedFailed: RequiredParams<'error'>;
+		/**
 		 * H​i​f​z​ ​R​e​p​e​t​i​t​i​o​n
 		 */
 		hifzRepetition: string;
@@ -21622,6 +21651,34 @@ export type TranslationFunctions = {
 		restart: () => LocalizedString;
 	};
 	tools: {
+		/**
+		 * Change media speed
+		 */
+		mediaSpeed: () => LocalizedString;
+		/**
+		 * Slow down or speed up an audio or video asset or timeline clip.
+		 */
+		mediaSpeedDescription: () => LocalizedString;
+		/**
+		 * −3: 3× slower · 0: normal · +3: 3× faster
+		 */
+		mediaSpeedScale: () => LocalizedString;
+		/**
+		 * A new file is added to Assets. A selected timeline clip uses it and adjusts its duration.
+		 */
+		mediaSpeedHint: () => LocalizedString;
+		/**
+		 * Adapt subtitles to the new audio duration
+		 */
+		mediaSpeedAdaptSubtitles: () => LocalizedString;
+		/**
+		 * Speed-adjusted media added to the project.
+		 */
+		mediaSpeedSuccess: () => LocalizedString;
+		/**
+		 * Failed to change media speed: {error}
+		 */
+		mediaSpeedFailed: (arg: { error: unknown }) => LocalizedString;
 		/**
 		 * Hifz Repetition
 		 */

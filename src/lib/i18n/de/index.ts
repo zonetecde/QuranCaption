@@ -2983,6 +2983,15 @@ const de = {
 		restart: 'Neustarten'
 	},
 	tools: {
+		mediaSpeed: 'Mediengeschwindigkeit ändern',
+		mediaSpeedDescription:
+			'Audio- oder Videodateien und Timeline-Clips verlangsamen oder beschleunigen.',
+		mediaSpeedScale: '−3: 3× langsamer · 0: normal · +3: 3× schneller',
+		mediaSpeedHint:
+			'Eine neue Datei wird zu den Medien hinzugefügt. Ein ausgewählter Timeline-Clip verwendet sie und passt seine Dauer an.',
+		mediaSpeedAdaptSubtitles: 'Untertitel an die neue Audiodauer anpassen',
+		mediaSpeedSuccess: 'Medium mit angepasster Geschwindigkeit zum Projekt hinzugefügt.',
+		mediaSpeedFailed: 'Mediengeschwindigkeit konnte nicht geändert werden: {error}',
 		hifzRepetition: 'Hifz-Wiederholung',
 		hifzDescription: 'Vorhandene Untertitel wiederholen und entsprechendes Audio generieren',
 		hifzBody:

@@ -2704,6 +2704,13 @@ const zh = {
 		restart: '重启'
 	},
 	tools: {
+		mediaSpeed: '更改媒体速度',
+		mediaSpeedDescription: '减慢或加快音频、视频素材或时间轴片段的速度。',
+		mediaSpeedScale: '−3：慢至 1/3 · 0：正常 · +3：快至 3 倍',
+		mediaSpeedHint: '新文件将添加到素材中。选中的时间轴片段将使用该文件，并调整时长。',
+		mediaSpeedAdaptSubtitles: '将字幕调整到新的音频时长',
+		mediaSpeedSuccess: '已将调整速度后的媒体添加到项目。',
+		mediaSpeedFailed: '无法更改媒体速度：{error}',
 		hifzRepetition: 'Hifz 重复',
 		hifzDescription: '重复现有字幕并生成相应的音频',
 		hifzBody: '将现有字幕转换为可自定义的 Hifz 轨道，支持标准或衔接重复。',

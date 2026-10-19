@@ -1809,6 +1809,14 @@ const id = {
 	} as Translation['style'] & Record<string, string>,
 	tools: {
 		...baseEn.tools,
+		mediaSpeed: 'Ubah kecepatan media',
+		mediaSpeedDescription: 'Perlambat atau percepat aset audio atau video, atau klip di lini masa.',
+		mediaSpeedScale: '−3: 3× lebih lambat · 0: normal · +3: 3× lebih cepat',
+		mediaSpeedHint:
+			'File baru ditambahkan ke aset. Klip yang dipilih di lini masa menggunakannya dan durasinya disesuaikan.',
+		mediaSpeedAdaptSubtitles: 'Sesuaikan takarir dengan durasi audio yang baru',
+		mediaSpeedSuccess: 'Media dengan kecepatan baru ditambahkan ke proyek.',
+		mediaSpeedFailed: 'Gagal mengubah kecepatan media: {error}',
 		hifzRepetition: 'Hifz Repetition',
 		hifzDescription: 'Ulang subtitle yang sudah ada dan generate audio yang sesuai',
 		hifzBody:

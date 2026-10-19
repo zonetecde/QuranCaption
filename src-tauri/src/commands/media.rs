@@ -891,6 +891,92 @@ pub fn cut_audio(
     }
 }
 
+/// Construit les arguments de changement de vitesse en préservant la hauteur audio.
+fn media_speed_args(
+    source_path: &str,
+    output_path: &str,
+    rate: f64,
+    is_video: bool,
+) -> Result<Vec<String>, String> {
+    if !(1.0 / 3.0..=3.0).contains(&rate) {
+        return Err("Media speed must be between 1/3 and 3".to_string());
+    }
+    let tempo = rate.sqrt();
+    let mut args: Vec<String> = [
+        "-nostdin",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-n",
+        "-i",
+        source_path,
+    ]
+    .into_iter()
+    .map(str::to_string)
+    .collect();
+    if is_video {
+        args.extend([
+            "-map".to_string(),
+            "0:v:0".to_string(),
+            "-map".to_string(),
+            "0:a:0?".to_string(),
+            "-vf".to_string(),
+            format!("setpts=(PTS-STARTPTS)/{rate},pad=ceil(iw/2)*2:ceil(ih/2)*2"),
+            "-c:v".to_string(),
+            "libx264".to_string(),
+            "-preset".to_string(),
+            "veryfast".to_string(),
+            "-crf".to_string(),
+            "18".to_string(),
+            "-pix_fmt".to_string(),
+            "yuv420p".to_string(),
+            "-movflags".to_string(),
+            "+faststart".to_string(),
+        ]);
+    } else {
+        args.extend(["-map".to_string(), "0:a:0".to_string(), "-vn".to_string()]);
+    }
+    args.extend([
+        "-af".to_string(),
+        format!("asetpts=PTS-STARTPTS,atempo={tempo},atempo={tempo}"),
+        "-c:a".to_string(),
+        if is_video { "aac" } else { "pcm_s16le" }.to_string(),
+        output_path.to_string(),
+    ]);
+    Ok(args)
+}
+
+/// Crée une source audio ou vidéo à vitesse modifiée sans bloquer l'interface.
+#[tauri::command]
+pub async fn change_media_speed(
+    source_path: String,
+    output_path: String,
+    rate: f64,
+    is_video: bool,
+) -> Result<(), String> {
+    let args = media_speed_args(&source_path, &output_path, rate, is_video)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        if !Path::new(&source_path).is_file() {
+            return Err(format!("Source file not found: {source_path}"));
+        }
+        let ffmpeg_path = binaries::resolve_binary("ffmpeg")
+            .ok_or_else(|| "ffmpeg binary not found".to_string())?;
+        let mut cmd = Command::new(ffmpeg_path);
+        cmd.args(args);
+        configure_command_no_window(&mut cmd);
+        match cmd.output() {
+            Ok(result) if result.status.success() => Ok(()),
+            Ok(result) => Err(format!(
+                "ffmpeg error: {}",
+                String::from_utf8_lossy(&result.stderr)
+            )),
+            Err(error) => Err(format!("Unable to execute ffmpeg: {error}")),
+        }
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
 /// Construit les arguments FFmpeg d'un préréglage d'effet audio autorisé.
 fn apply_audio_effect_args(
     source_path: &str,
@@ -1131,6 +1217,36 @@ pub fn concat_audio(source_paths: Vec<String>, output_path: String) -> Result<()
             String::from_utf8_lossy(&result.stderr)
         )),
         Err(e) => Err(format!("Unable to execute ffmpeg: {}", e)),
+    }
+}
+
+#[cfg(test)]
+mod media_speed_tests {
+    use super::media_speed_args;
+
+    /// Vérifie la validation des vitesses reçues depuis le frontend.
+    #[test]
+    fn rejects_invalid_rates() {
+        for rate in [f64::NAN, f64::INFINITY, -3.0, 0.0, 0.3, 3.01] {
+            assert!(media_speed_args("input.wav", "output.wav", rate, false).is_err());
+        }
+    }
+
+    /// Vérifie les deux bornes et les filtres audio/vidéo correspondants.
+    #[test]
+    fn builds_audio_and_video_speed_filters() {
+        for rate in [1.0 / 3.0, 1.0, 3.0] {
+            for is_video in [false, true] {
+                let args = media_speed_args("input.mp4", "output", rate, is_video).unwrap();
+                let tempo = rate.sqrt();
+                assert!(args.contains(&format!(
+                    "asetpts=PTS-STARTPTS,atempo={tempo},atempo={tempo}"
+                )));
+                assert_eq!(args.contains(&"-vf".to_string()), is_video);
+                assert!(args.contains(&if is_video { "aac" } else { "pcm_s16le" }.to_string()));
+                assert!(args.contains(&"-n".to_string()));
+            }
+        }
     }
 }
 

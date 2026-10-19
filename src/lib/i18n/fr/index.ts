@@ -3005,6 +3005,15 @@ const fr = {
 		restart: 'Redémarrer'
 	},
 	tools: {
+		mediaSpeed: 'Changer la vitesse du média',
+		mediaSpeedDescription:
+			'Ralentir ou accélérer un asset audio ou vidéo, ou un clip de la timeline.',
+		mediaSpeedScale: '−3 : 3× plus lent · 0 : normal · +3 : 3× plus rapide',
+		mediaSpeedHint:
+			'Un nouveau fichier est ajouté aux assets. Le clip sélectionné dans la timeline l’utilise et sa durée est ajustée.',
+		mediaSpeedAdaptSubtitles: 'Adapter les sous-titres à la nouvelle durée de l’audio',
+		mediaSpeedSuccess: 'Le média à la nouvelle vitesse a été ajouté au projet.',
+		mediaSpeedFailed: 'Impossible de changer la vitesse du média : {error}',
 		hifzRepetition: 'Répétition Hifz',
 		hifzDescription: 'Répéter les sous-titres existants et générer l\u2019audio correspondant',
 		hifzBody:

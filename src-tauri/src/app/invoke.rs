@@ -45,6 +45,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::media::normalize_audio_timestamps,
         commands::media::cut_audio,
         commands::media::apply_audio_effect,
+        commands::media::change_media_speed,
         commands::media::preview_audio_effect,
         commands::media::cut_video,
         commands::media::concat_audio,

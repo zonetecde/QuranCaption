@@ -2974,6 +2974,15 @@ const es = {
 		restart: 'Reiniciar'
 	},
 	tools: {
+		mediaSpeed: 'Cambiar velocidad del medio',
+		mediaSpeedDescription:
+			'Ralentiza o acelera un archivo de audio o vídeo o un clip de la línea de tiempo.',
+		mediaSpeedScale: '−3: 3× más lento · 0: normal · +3: 3× más rápido',
+		mediaSpeedHint:
+			'Se añade un archivo nuevo a los recursos. El clip seleccionado en la línea de tiempo lo utiliza y ajusta su duración.',
+		mediaSpeedAdaptSubtitles: 'Adaptar los subtítulos a la nueva duración del audio',
+		mediaSpeedSuccess: 'Medio con la nueva velocidad añadido al proyecto.',
+		mediaSpeedFailed: 'No se pudo cambiar la velocidad del medio: {error}',
 		hifzRepetition: 'Repetición Hifz',
 		hifzDescription: 'Repetir los subtítulos existentes y generar el audio correspondiente',
 		hifzBody:

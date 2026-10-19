@@ -9,6 +9,7 @@ import ShiftSubtitlesModal from './tools/ShiftSubtitlesModal.svelte';
 import HifzRepetitionModal from './tools/HifzRepetitionModal.svelte';
 import AudioCutterModal from './tools/AudioCutterModal.svelte';
 import AudioEffectsModal from './tools/AudioEffectsModal.svelte';
+import MediaSpeedModal from './tools/MediaSpeedModal.svelte';
 import VerseRangeCropModal from './tools/VerseRangeCropModal.svelte';
 import BookmarkVerseModal from './BookmarkVerseModal.svelte';
 import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
@@ -228,6 +229,30 @@ export default class ModalManager {
 			const modal = mount(VerseRangeCropModal, {
 				target: container,
 				props: {
+					close: () => {
+						unmount(modal);
+						container.remove();
+						resolve();
+					}
+				}
+			});
+		});
+	}
+
+	/**
+	 * Ouvre l'outil de vitesse avec un clip présélectionné si fourni.
+	 * @param {number | undefined} initialClipId Clip audio ou vidéo sélectionné.
+	 * @returns {Promise<void>} Résolution après fermeture.
+	 */
+	static async mediaSpeedModal(initialClipId?: number): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+			const modal = mount(MediaSpeedModal, {
+				target: container,
+				props: {
+					initialClipId,
 					close: () => {
 						unmount(modal);
 						container.remove();

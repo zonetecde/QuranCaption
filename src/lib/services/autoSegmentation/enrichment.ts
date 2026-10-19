@@ -7,6 +7,8 @@ import type {
 } from './types';
 import { getAutoSegmentationAudioInfo, getAutoSegmentationAudioClips } from './audio';
 import { normalizeMfaSegments } from './parsing';
+import { Quran } from '$lib/classes/Quran';
+import { parseVerseRef } from './verse-ref';
 
 /**
  * Récupère les timestamps MFA pour une session cloud existante.
@@ -111,6 +113,23 @@ export async function enrichSegmentationResponseWithWordTimestamps(
 		}
 
 		const mfaSegments = normalizeMfaSegments(mfaResponse.segments ?? [], segments);
+		const verseLoads = new Map<string, ReturnType<typeof Quran.getVerse>>();
+		for (const segment of mfaSegments) {
+			for (const word of segment.words ?? []) {
+				if (word.word?.trim() && !parseVerseRef(word.word.trim())) continue;
+				const ref = parseVerseRef(word.location);
+				if (!ref) continue;
+				const key = `${ref.surah}:${ref.verse}`;
+				if (!verseLoads.has(key)) {
+					verseLoads.set(
+						key,
+						Quran.getVerse(ref.surah, ref.verse).catch(() => undefined)
+					);
+				}
+				const verse = await verseLoads.get(key);
+				word.word = verse?.words[ref.word - 1]?.arabic ?? word.word;
+			}
+		}
 		console.log('[AutoSegmentation] MFA timings payload:', {
 			source: mfaSource,
 			audioId: response.audio_id ?? mfaResponse.audio_id ?? null,

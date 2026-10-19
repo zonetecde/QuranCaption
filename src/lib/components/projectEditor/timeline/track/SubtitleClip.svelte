@@ -27,7 +27,8 @@
 		AUTO_REALIGN_DRAG_THRESHOLD_MS
 	} from '$lib/services/AutoSegmentation';
 	import LL from '$lib/i18n/i18n-svelte';
-	import { stripWbwDisplayMarkers } from '$lib/services/WbwHelper';
+	import { getTimelineWbwWordLabel } from '$lib/services/WbwHelper';
+	import { Quran } from '$lib/classes/Quran';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let {
@@ -144,23 +145,29 @@
 
 	const canBookmarkWithQuran = $derived(() => quranAuthService.publicState.status === 'connected');
 
-	/**
-	 * Retourne le libellé à afficher pour un mot WBW sur la timeline.
-	 * @param {{ location: string; word?: string }} word Mot WBW source.
-	 * @returns {string} Texte lisible du mot.
-	 */
-	function getWordBoundaryLabel(word: { location: string; word?: string }): string {
-		// Retire le petit zéro rond « lettre muette » à l'affichage uniquement.
-		const directLabel = stripWbwDisplayMarkers(String(word.word ?? '').trim());
-		if (directLabel) return directLabel;
-		if (!(clip instanceof SubtitleClip)) return String(word.location ?? '').trim();
-
-		const relativeWordIndex = Number(word.location.split(':')[2]) - clip.startWordIndex - 1;
-		const clipWords = clip.text.split(/\s+/).filter(Boolean);
-		const fallbackLabel = clipWords[relativeWordIndex];
-
-		return String(fallbackLabel ?? word.location ?? '').trim();
-	}
+	let resolvedWbwLabels = $state<string[]>([]);
+	$effect(() => {
+		const currentClip = clip;
+		const words = currentClip.alignmentMetadata?.words ?? [];
+		resolvedWbwLabels = [];
+		if (
+			!(currentClip instanceof SubtitleClip) ||
+			words.every((word, index) => getTimelineWbwWordLabel(currentClip, word, index))
+		)
+			return;
+		let active = true;
+		void Quran.getVerse(currentClip.surah, currentClip.verse)
+			.then(() => {
+				if (active)
+					resolvedWbwLabels = words.map((word, index) =>
+						getTimelineWbwWordLabel(currentClip, word, index)
+					);
+			})
+			.catch(() => undefined);
+		return () => {
+			active = false;
+		};
+	});
 
 	const wordBoundaryMarkers = $derived(() => {
 		if (!isWbwTimestampClip(clip)) return [];
@@ -177,7 +184,7 @@
 					key: `${clip.id}-wbw-marker-${index}`,
 					leftPercent,
 					widthPercent: Math.max(0.8, rightPercent - leftPercent),
-					label: getWordBoundaryLabel(word)
+					label: resolvedWbwLabels[index] || getTimelineWbwWordLabel(clip, word, index)
 				};
 			})
 			.filter((marker) => marker.leftPercent < 100 && marker.widthPercent > 0);

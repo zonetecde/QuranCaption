@@ -1115,13 +1115,37 @@ type RootTranslation = {
 		continue: string;
 	};
 	editor: {
+		/**
+		 * B​a​s​e
+		 */
 		cloudModelBase: string;
+		/**
+		 * L​a​r​g​e
+		 */
 		cloudModelLarge: string;
+		/**
+		 * G​P​U
+		 */
 		cloudDeviceGpu: string;
+		/**
+		 * C​P​U
+		 */
 		cloudDeviceCpu: string;
+		/**
+		 * H​a​f​s
+		 */
 		segmentationHafs: string;
+		/**
+		 * W​a​r​s​h
+		 */
 		segmentationWarsh: string;
+		/**
+		 * Q​a​l​u​n
+		 */
 		segmentationQalun: string;
+		/**
+		 * S​h​u​‘​b​a​h
+		 */
 		segmentationShuba: string;
 		/**
 		 * L​a​y​e​r​ ​o​r​d​e​r​ ​(​Z​)
@@ -1152,7 +1176,7 @@ type RootTranslation = {
 		 */
 		appendImportedSubtitlesDescription: string;
 		/**
-		 * V​i​d​e​o​ ​e​d​i​t​o​r
+		 * V​i​d​e​o
 		 */
 		videoEditor: string;
 		/**
@@ -2059,7 +2083,7 @@ type RootTranslation = {
 		 */
 		cloudAlignerUnavailableDetails: string;
 		/**
-		 * W​a​i​t​ ​f​o​r​ ​t​h​e​ ​s​e​r​v​i​c​e​ ​t​o​ ​r​e​c​o​v​e​r​,​ ​t​h​e​n​ ​t​r​y​ ​a​g​a​i​n​.​ ​I​n​ ​t​h​e​ ​m​e​a​n​t​i​m​e​,​ ​y​o​u​ ​c​a​n​ ​u​s​e​ ​t​h​e​ ​l​o​c​a​l​ ​a​l​i​g​n​e​r​,​ ​w​h​i​c​h​ ​a​l​s​o​ ​p​r​o​v​i​d​e​s​ ​v​e​r​y​ ​a​c​c​u​r​a​t​e​ ​r​e​s​u​l​t​s​.​ ​T​h​a​n​k​ ​y​o​u​ ​f​o​r​ ​y​o​u​r​ ​u​n​d​e​r​s​t​a​n​d​i​n​g​.
+		 * W​a​i​t​ ​f​o​r​ ​t​h​e​ ​s​e​r​v​i​c​e​ ​t​o​ ​r​e​c​o​v​e​r​,​ ​t​h​e​n​ ​t​r​y​ ​a​g​a​i​n​.
 		 */
 		cloudAlignerUnavailableAdvice: string;
 		/**
@@ -13476,13 +13500,37 @@ export type TranslationFunctions = {
 		continue: () => LocalizedString;
 	};
 	editor: {
+		/**
+		 * Base
+		 */
 		cloudModelBase: () => LocalizedString;
+		/**
+		 * Large
+		 */
 		cloudModelLarge: () => LocalizedString;
+		/**
+		 * GPU
+		 */
 		cloudDeviceGpu: () => LocalizedString;
+		/**
+		 * CPU
+		 */
 		cloudDeviceCpu: () => LocalizedString;
+		/**
+		 * Hafs
+		 */
 		segmentationHafs: () => LocalizedString;
+		/**
+		 * Warsh
+		 */
 		segmentationWarsh: () => LocalizedString;
+		/**
+		 * Qalun
+		 */
 		segmentationQalun: () => LocalizedString;
+		/**
+		 * Shu‘bah
+		 */
 		segmentationShuba: () => LocalizedString;
 		/**
 		 * Layer order (Z)
@@ -13513,7 +13561,7 @@ export type TranslationFunctions = {
 		 */
 		appendImportedSubtitlesDescription: () => LocalizedString;
 		/**
-		 * Video editor
+		 * Video
 		 */
 		videoEditor: () => LocalizedString;
 		/**
@@ -14397,7 +14445,7 @@ export type TranslationFunctions = {
 		 */
 		cloudAlignerUnavailableDetails: () => LocalizedString;
 		/**
-		 * Wait for the service to recover, then try again. In the meantime, you can use the local aligner, which also provides very accurate results. Thank you for your understanding.
+		 * Wait for the service to recover, then try again.
 		 */
 		cloudAlignerUnavailableAdvice: () => LocalizedString;
 		/**

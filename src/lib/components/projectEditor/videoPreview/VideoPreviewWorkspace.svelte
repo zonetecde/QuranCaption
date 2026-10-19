@@ -58,11 +58,11 @@
 	});
 
 	// Récupère l'asset audio actuellement sous le curseur de la timeline
+	let currentAudioAsset = $derived(
+		globalState.currentProject!.content.timeline.getCurrentAssetOnTrack(TrackType.Audio)
+	);
 	let currentAudio = $derived(() => {
-		if (getTimelineSettings().movePreviewTo !== undefined)
-			return untrack(() => {
-				return globalState.currentProject!.content.timeline.getCurrentAssetOnTrack(TrackType.Audio);
-			});
+		if (getTimelineSettings().movePreviewTo !== undefined) return currentAudioAsset;
 	});
 
 	let currentVideoClip = $derived(() => {

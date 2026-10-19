@@ -191,9 +191,7 @@ function applyArabicStyleInvariants(
 					? getRiwayahFontFamily(value)
 					: mushaf === 'Indopak'
 						? 'IndoPak'
-						: mushaf === 'Tajweed'
-							? 'QPC2'
-							: 'Hafs';
+						: 'QPC2';
 				arabicStyles.setStyleForClips([clipId], 'font-family', font);
 			}
 			return { handled: true, refreshPreview: true, showTajweedWarning: false };
@@ -204,9 +202,7 @@ function applyArabicStyleInvariants(
 			? getRiwayahFontFamily(value)
 			: mushaf === 'Indopak'
 				? 'IndoPak'
-				: mushaf === 'Tajweed'
-					? 'QPC2'
-					: 'Hafs';
+				: 'QPC2';
 		arabicStyles.setStyle('font-family', font);
 		return { handled: true, refreshPreview: true, showTajweedWarning: false };
 	}

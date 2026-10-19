@@ -8,6 +8,8 @@ import {
 	loadStyleCategoryDefinitions
 } from '$lib/services/StyleDefinitionCatalog';
 import { applyStyleMutation, coerceStyleValue } from '$lib/services/StyleMutationService';
+import { applySegmentationRiwayahToProject } from '$lib/services/autoSegmentation/riwayah';
+import type { Project } from '$lib/classes/Project';
 import MigrationService from '$lib/services/MigrationService';
 import {
 	isWordByWordVisualEnabled,
@@ -335,7 +337,7 @@ describe('style architecture modules', () => {
 			value: 'Hafs',
 			applyBaseValue: (value) => (riwayahStyle.value = value)
 		});
-		expect(fontStyle.value).toBe('Hafs');
+		expect(fontStyle.value).toBe('QPC2');
 
 		applyStyleMutation({
 			videoStyle,
@@ -349,7 +351,48 @@ describe('style architecture modules', () => {
 		expect(riwayahStyle.value).toBe('Hafs');
 		expect(arabicStyles.getEffectiveValue('riwayah', 42)).toBe('Warsh');
 		expect(arabicStyles.getEffectiveValue('font-family', 42)).toBe('warsh10');
+		applyStyleMutation({
+			videoStyle,
+			style: riwayahStyle,
+			target: 'arabic',
+			clipIds: [42],
+			value: 'Hafs',
+			applyBaseValue: (value) => (riwayahStyle.value = value)
+		});
+		expect(arabicStyles.getEffectiveValue('riwayah', 42)).toBe('Hafs');
+		expect(arabicStyles.getEffectiveValue('font-family', 42)).toBe('QPC2');
 	});
+
+	it.each(['QPC1', 'QPC2', 'SomeCustomFont'])(
+		'preserves the %s font when segmentation keeps Hafs',
+		async (font) => {
+			const videoStyle = new VideoStyle();
+			const arabicStyles = new StylesData('arabic', [
+				new Category({
+					id: 'general',
+					styles: [
+						new Style({ id: 'riwayah', value: 'Hafs', valueType: 'select' }),
+						new Style({ id: 'mushaf-style', value: 'Uthmani', valueType: 'select' }),
+						new Style({ id: 'font-family', value: font, valueType: 'select' })
+					]
+				})
+			]);
+			videoStyle.styles = [arabicStyles];
+			const project = { content: { videoStyle }, detail: { id: -1 } } as unknown as Project;
+
+			await applySegmentationRiwayahToProject(project, 'hafs');
+
+			expect(arabicStyles.findStyle('riwayah')?.value).toBe('Hafs');
+			expect(arabicStyles.findStyle('font-family')?.value).toBe(font);
+
+			arabicStyles.setStyle('riwayah', 'Warsh');
+			arabicStyles.setStyle('font-family', 'warsh10');
+			await applySegmentationRiwayahToProject(project, 'hafs');
+
+			expect(arabicStyles.findStyle('riwayah')?.value).toBe('Hafs');
+			expect(arabicStyles.findStyle('font-family')?.value).toBe('QPC2');
+		}
+	);
 
 	it('resolves WBW activation independently from its adapters', () => {
 		const values: Record<string, string | number | boolean> = {
@@ -572,7 +615,7 @@ describe('style architecture modules', () => {
 			['Soosi', 'soosi9'],
 			['Bazzi', 'bazzi7'],
 			['Qumbul', 'qumbul7'],
-			['Hafs', 'Hafs'],
+			['Hafs', 'QPC2'],
 			['Warsh', 'warsh10']
 		]) {
 			applyStyleMutation({

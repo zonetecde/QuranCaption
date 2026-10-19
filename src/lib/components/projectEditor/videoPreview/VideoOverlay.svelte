@@ -1273,9 +1273,6 @@
 			<div
 				id="subtitles-container"
 				class="absolute inset-0 flex flex-col items-center justify-center"
-				style:z-index={globalState.currentProject!.content.overlayLayerOrder?.length
-					? undefined
-					: 1}
 				style="opacity: 1;"
 			>
 				<div class="anti-collision-drag-notice" role="status">

@@ -11,6 +11,7 @@ import { Category } from './Category.svelte.js';
 import { Style } from './Style.svelte.js';
 import { StylesData } from './StylesData.svelte.js';
 import { getNonArabicSubtitleCategories } from './styleRuntime.js';
+import { ensureOverlayLayerOrder } from '$lib/services/OverlayLayerService';
 
 /** Maintient les styles persistés compatibles avec le schéma JSON courant. */
 export class VideoStyleSchemaService {
@@ -50,6 +51,7 @@ export class VideoStyleSchemaService {
 		}
 
 		if (!projectContent) return hasChanges;
+		hasChanges = ensureOverlayLayerOrder(projectContent) || hasChanges;
 		const customTextDefaults = await loadCustomStyleCategoryDefinition('text');
 		const compositeDefaults = await loadCompositeStyleDefinitions();
 		return (

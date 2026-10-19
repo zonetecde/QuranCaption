@@ -8,9 +8,13 @@ import { ProjectHistoryManager } from './undoRedo/ProjectHistoryManager';
 /**
  * Résout les calques du projet du fond vers le premier plan, y compris les nouveaux éléments.
  * @param {ProjectContent} content Contenu du projet.
+ * @param {string[]} [savedOrder] Ordre enregistré ; un tableau vide choisit les valeurs par défaut.
  * @returns {string[]} Identifiants ordonnés sans doublons ni éléments supprimés.
  */
-export function getOverlayLayerOrder(content: ProjectContent): string[] {
+export function getOverlayLayerOrder(
+	content: ProjectContent,
+	savedOrder: string[] = content.overlayLayerOrder ?? []
+): string[] {
 	const customTrack = content.timeline.tracks.find(
 		(track) => track.type === TrackType.CustomClip
 	) as CustomTextTrack | undefined;
@@ -22,20 +26,29 @@ export function getOverlayLayerOrder(content: ProjectContent): string[] {
 		)
 		.map((clip) => `custom:${clip.id}`);
 	const defaults = [
-		'arabic',
-		...content.projectTranslation.addedTranslationEditions.map((edition) => edition.name),
 		...customClips
 			.filter((clip) => clip.type === 'Custom Image')
 			.map((clip) => `custom:${clip.id}`),
 		'surah-name',
+		'arabic',
+		...content.projectTranslation.addedTranslationEditions.map((edition) => edition.name),
 		'reciter-name',
 		'verse-number',
 		...customClips.filter((clip) => clip.type !== 'Custom Image').map((clip) => `custom:${clip.id}`)
 	];
-	const order = [...new Set([...(content.overlayLayerOrder ?? []), ...defaults])].filter((id) =>
-		defaults.includes(id)
-	);
+	const order = [...new Set([...savedOrder, ...defaults])].filter((id) => defaults.includes(id));
 	return [...backgroundIds, ...order.filter((id) => !backgroundIds.includes(id))];
+}
+
+/**
+ * Complète les informations Z absentes sans modifier un ordre déjà enregistré.
+ * @param {ProjectContent} content Contenu chargé ou créé.
+ * @returns {boolean} Vrai si les informations Z ont été initialisées.
+ */
+export function ensureOverlayLayerOrder(content: ProjectContent): boolean {
+	if (content.overlayLayerOrder?.length) return false;
+	content.overlayLayerOrder = getOverlayLayerOrder(content, []);
+	return true;
 }
 
 /**
@@ -45,18 +58,7 @@ export function getOverlayLayerOrder(content: ProjectContent): string[] {
  */
 export function getOverlayLayerZIndex(id: string): number {
 	const content = globalState.currentProject?.content;
-	// La hiérarchie historique reste active jusqu'au premier déplacement explicite.
-	if (!content?.overlayLayerOrder?.length) {
-		if (id === 'video-frame') return 20;
-		const customTrack = content?.timeline.tracks.find(
-			(track) => track.type === TrackType.CustomClip
-		);
-		return customTrack?.clips.some(
-			(clip) => `custom:${clip.id}` === id && clip.type === 'Custom Image'
-		)
-			? 5
-			: 10;
-	}
+	if (!content) return 2;
 	const order = getOverlayLayerOrder(content);
 	const index = order.indexOf(id);
 	return 2 + (index < 0 ? order.length : index);

@@ -55,7 +55,7 @@ describe('direct style controls', () => {
 		const component = render(OverlayLayerControl, { layerId: 'arabic' });
 		const slider = component.container.querySelector<HTMLInputElement>('input[type="range"]')!;
 		expect(slider.min).toBe('1');
-		expect(slider.value).toBe('1');
+		expect(slider.value).toBe('2');
 		slider.value = slider.max;
 		slider.dispatchEvent(new Event('input', { bubbles: true }));
 		await tick();

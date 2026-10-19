@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 
 import {
 	Category,
@@ -18,8 +19,13 @@ import {
 	getPresetTranslationTargets
 } from '$lib/services/StylePresetApplicationService';
 import { getCustomStyleClips } from '$lib/services/ProjectStyleContentService';
+import { VideoStyleSchemaService } from '$lib/classes/videoStyles/VideoStyleSchemaService';
+import { getOverlayLayerOrder } from '$lib/services/OverlayLayerService';
+import globalStyleDefinitions from '../../../../static/styles/globalStyles.json';
+import type { RawCategoryDefinition } from '$lib/services/StyleDefinitionCatalog';
 
 describe('StylePresetApplicationService', () => {
+	beforeEach(() => initializeClassRegistry());
 	it.each([true, false])(
 		'preserves video transitions and background transforms when preset settings are present: %s',
 		async (includePreservedStyles) => {
@@ -97,7 +103,8 @@ describe('StylePresetApplicationService', () => {
 		const source = new VideoStyle();
 		source.styles = [
 			new StylesData('global', [
-				new Category({ id: 'overlay', styles: [new Style({ id: 'overlay-opacity', value: 0.4 })] })
+				new Category({ id: 'overlay', styles: [new Style({ id: 'overlay-opacity', value: 0.4 })] }),
+				new Category({ id: 'surah-name', styles: [new Style({ id: 'surah-size', value: 40 })] })
 			]),
 			new StylesData('arabic', [
 				new Category({ id: 'text', styles: [new Style({ id: 'font-size', value: 95 })] })
@@ -140,7 +147,20 @@ describe('StylePresetApplicationService', () => {
 		);
 		const ensureStylesSchema = vi
 			.spyOn(target, 'ensureStylesSchemaUpToDate')
-			.mockResolvedValue(false);
+			.mockImplementation(async () =>
+				VideoStyleSchemaService.mergeMissingStylesForTarget(
+					target.styles,
+					'global',
+					globalStyleDefinitions as RawCategoryDefinition[]
+				)
+			);
+		content.overlayLayerOrder = [
+			'reciter-name',
+			'arabic',
+			'project-edition',
+			'surah-name',
+			'verse-number'
+		];
 
 		await applyStylePresetToProject({
 			videoStyle: target,
@@ -150,7 +170,12 @@ describe('StylePresetApplicationService', () => {
 		});
 
 		expect(getPresetTranslationTargets(data)).toEqual(['source-edition']);
+		const layerOrder = getOverlayLayerOrder(content);
+		expect(content.overlayLayerOrder).toEqual(layerOrder);
+		expect(layerOrder.indexOf('surah-name')).toBeLessThan(layerOrder.indexOf('arabic'));
+		expect(layerOrder.indexOf('surah-name')).toBeLessThan(layerOrder.indexOf('project-edition'));
 		expect(target.getStylesOfTarget('global').findStyle('overlay-opacity')?.value).toBe(0.4);
+		expect(target.getStylesOfTarget('global').findStyle('surah-size')?.value).toBe(40);
 		expect(target.getStylesOfTarget('arabic').findStyle('font-size')?.value).toBe(95);
 		expect(target.getStylesOfTarget('project-edition').findStyle('font-size')?.value).toBe(52);
 		expect(getCustomStyleClips(content)).toHaveLength(1);
@@ -158,7 +183,28 @@ describe('StylePresetApplicationService', () => {
 		expect(getCustomStyleClips(content)[0].id).not.toBe(customClip.id);
 		expect(ensureStylesSchema).toHaveBeenCalledOnce();
 		const importedClipId = getCustomStyleClips(content)[0].id;
+		content.overlayLayerOrder = [
+			'arabic',
+			`custom:${importedClipId}`,
+			'surah-name',
+			'project-edition',
+			'reciter-name',
+			'verse-number'
+		];
 		const exported = target.exportStylesData(new Set([importedClipId]), content);
+		expect(exported.overlayLayerOrder).toEqual(content.overlayLayerOrder);
+		await applyStylePresetToProject({
+			videoStyle: target,
+			projectContent: content,
+			data: exported
+		});
+		const newClipId = getCustomStyleClips(content).at(-1)!.id;
+		expect(content.overlayLayerOrder.slice(0, 4)).toEqual([
+			'arabic',
+			`custom:${newClipId}`,
+			'surah-name',
+			'project-edition'
+		]);
 		expect(exported.customClips).toHaveLength(1);
 		expect(exported.customTextClips).toBeUndefined();
 	});

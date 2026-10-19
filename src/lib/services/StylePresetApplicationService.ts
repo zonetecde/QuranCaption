@@ -5,7 +5,8 @@ import type {
 	VideoStyle,
 	VideoStyleFileData
 } from '$lib/classes/VideoStyle.svelte';
-import { importCustomStyleClips } from './ProjectStyleContentService';
+import { getCustomStyleClips, importCustomStyleClips } from './ProjectStyleContentService';
+import { getOverlayLayerOrder } from './OverlayLayerService';
 
 type ApplyStylePresetOptions = {
 	videoStyle: VideoStyle;
@@ -74,13 +75,36 @@ export async function applyStylePresetToProject(options: ApplyStylePresetOptions
 		replaceTargetStyles(options.videoStyle, target, copied);
 	}
 
-	importCustomStyleClips(
-		options.projectContent,
-		options.data.customClips?.length
-			? options.data.customClips
-			: (options.data.customTextClips ?? [])
+	const customClips = options.data.customClips?.length
+		? options.data.customClips
+		: (options.data.customTextClips ?? []);
+	const existingCustomCount = getCustomStyleClips(options.projectContent).length;
+	importCustomStyleClips(options.projectContent, customClips);
+	const importedCustomClips = getCustomStyleClips(options.projectContent).slice(
+		existingCustomCount
 	);
 	await options.videoStyle.ensureStylesSchemaUpToDate(options.projectContent);
+	const presetOrder = Array.isArray(options.data.overlayLayerOrder)
+		? options.data.overlayLayerOrder.flatMap((id) => {
+				if (typeof id !== 'string') return [];
+				if (id.startsWith('custom:')) {
+					const clip =
+						importedCustomClips[customClips.findIndex((raw) => `custom:${raw.id}` === id)];
+					return clip ? [`custom:${clip.id}`] : [];
+				}
+				const targets = projectTranslations
+					.filter(
+						(edition) =>
+							edition.name === id || options.translationAssignments?.[edition.name] === id
+					)
+					.map((edition) => edition.name);
+				return targets.length ? targets : [id];
+			})
+		: [];
+	options.projectContent.overlayLayerOrder = getOverlayLayerOrder(
+		options.projectContent,
+		presetOrder
+	);
 	const globalStyles = options.videoStyle.styles.find((styles) => styles.target === 'global');
 	if (previousGlobalStyles && globalStyles) {
 		for (const id of preservedStyleIds) {

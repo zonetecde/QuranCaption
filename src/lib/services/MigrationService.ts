@@ -1,3 +1,4 @@
+import { ensureOverlayLayerOrder } from './OverlayLayerService';
 import {
 	Asset,
 	Duration,
@@ -219,6 +220,7 @@ export default class MigrationService {
 	 * @returns {Promise<void>}
 	 */
 	static async HydrateStyleEditorUiMetadata(project: Project): Promise<void> {
+		ensureOverlayLayerOrder(project.content);
 		await project.content.videoStyle.hydrateStyleEditorUiMetadata();
 	}
 

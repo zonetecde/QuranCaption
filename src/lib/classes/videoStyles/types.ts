@@ -61,6 +61,7 @@ export type ClipStyleOverrides = {
 };
 
 export interface VideoStyleFileData {
+	overlayLayerOrder?: string[];
 	videoStyle: Record<string, unknown>;
 	customClips: Array<Record<string, unknown>>;
 	customTextClips?: Array<Record<string, unknown>>;

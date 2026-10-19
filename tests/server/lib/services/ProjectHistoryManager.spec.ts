@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
@@ -20,6 +20,7 @@ import { CustomImageClip } from '$lib/classes/Clip.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import {
 	getOverlayLayerOrder,
+	ensureOverlayLayerOrder,
 	getOverlayLayerZIndex,
 	moveOverlayLayer,
 	setOverlayLayerPosition
@@ -97,37 +98,43 @@ describe('ProjectHistoryManager', () => {
 		).toBe(120);
 	});
 
-	it('preserves legacy Z values without an explicit layer order, including old projects', () => {
+	it('places Surah names behind Arabic and translations in both new and legacy projects', () => {
 		const content = globalState.currentProject!.content;
+		content.projectTranslation.addedTranslationEditions.push({ name: 'english' } as never);
 		expect(content.overlayLayerOrder).toEqual([]);
-		expect(getOverlayLayerZIndex('surah-name')).toBe(10);
-		expect(getOverlayLayerZIndex('arabic')).toBe(10);
-		expect(getOverlayLayerZIndex('video-frame')).toBe(20);
+		expect(getOverlayLayerZIndex('surah-name')).toBeLessThan(getOverlayLayerZIndex('arabic'));
+		expect(getOverlayLayerZIndex('arabic')).toBeGreaterThan(getOverlayLayerZIndex('surah-name'));
+		expect(getOverlayLayerZIndex('video-frame')).toBeGreaterThan(
+			getOverlayLayerZIndex('verse-number')
+		);
+		expect(getOverlayLayerZIndex('surah-name')).toBeLessThan(getOverlayLayerZIndex('english'));
 		const legacy = globalState.currentProject!.toJSON();
 		delete (legacy.content as Record<string, unknown>).overlayLayerOrder;
 		globalState.currentProject = Project.fromJSON(legacy) as Project;
 		expect(globalState.currentProject.content.overlayLayerOrder).toEqual([]);
-		expect(getOverlayLayerZIndex('surah-name')).toBe(10);
-		expect(getOverlayLayerZIndex('arabic')).toBe(10);
+		expect(ensureOverlayLayerOrder(globalState.currentProject.content)).toBe(true);
+		expect(globalState.currentProject.content.overlayLayerOrder).toContain('surah-name');
+		expect(getOverlayLayerZIndex('surah-name')).toBeLessThan(getOverlayLayerZIndex('arabic'));
+		expect(getOverlayLayerZIndex('arabic')).toBeGreaterThan(getOverlayLayerZIndex('surah-name'));
 	});
 
-	it('persists layer changes and restores the legacy order with undo and redo', () => {
+	it('preserves explicit layer changes and restores the default order with undo and redo', () => {
 		for (let attempt = 0; attempt < 5; attempt++) {
-			moveOverlayLayer('surah-name', 1, ['surah-name', 'arabic']);
+			moveOverlayLayer('surah-name', -1, ['surah-name', 'arabic']);
 		}
 		expect(globalState.currentProject!.content.overlayLayerOrder).toEqual([]);
 		expect(ProjectHistoryManager.undo()).toBe(false);
-		moveOverlayLayer('surah-name', -1, ['surah-name', 'arabic']);
-		expect(getOverlayLayerZIndex('surah-name')).toBeLessThan(getOverlayLayerZIndex('arabic'));
+		moveOverlayLayer('surah-name', 1, ['surah-name', 'arabic']);
+		expect(getOverlayLayerZIndex('surah-name')).toBeGreaterThan(getOverlayLayerZIndex('arabic'));
 		expect(
 			(Project.fromJSON(globalState.currentProject!.toJSON()) as Project).content.overlayLayerOrder
 		).toEqual(globalState.currentProject!.content.overlayLayerOrder);
 		expect(ProjectHistoryManager.undo()).toBe(true);
 		expect(globalState.currentProject!.content.overlayLayerOrder).toEqual([]);
-		expect(getOverlayLayerZIndex('surah-name')).toBe(10);
-		expect(getOverlayLayerZIndex('arabic')).toBe(10);
-		expect(ProjectHistoryManager.redo()).toBe(true);
 		expect(getOverlayLayerZIndex('surah-name')).toBeLessThan(getOverlayLayerZIndex('arabic'));
+		expect(getOverlayLayerZIndex('arabic')).toBeGreaterThan(getOverlayLayerZIndex('surah-name'));
+		expect(ProjectHistoryManager.redo()).toBe(true);
+		expect(getOverlayLayerZIndex('surah-name')).toBeGreaterThan(getOverlayLayerZIndex('arabic'));
 	});
 
 	it('moves past hidden layers, ignores bounds, and adds new layers without retaining deleted IDs', () => {
@@ -142,6 +149,43 @@ describe('ProjectHistoryManager', () => {
 			'arabic',
 			...original.filter((id) => id !== 'arabic')
 		]);
+	});
+
+	it('undoes and redoes the default Z initialization when importing a legacy preset', async () => {
+		const videoStyle = globalState.getVideoStyle;
+		globalState.currentProject!.content.overlayLayerOrder = ['arabic', 'surah-name'];
+		const schema = vi.spyOn(videoStyle, 'ensureStylesSchemaUpToDate').mockResolvedValue(false);
+		try {
+			await videoStyle.importStyles({ videoStyle: videoStyle.toJSON(), customClips: [] });
+		} finally {
+			schema.mockRestore();
+		}
+		expect(globalState.currentProject!.content.overlayLayerOrder[0]).toBe('surah-name');
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(globalState.currentProject!.content.overlayLayerOrder).toEqual(['arabic', 'surah-name']);
+		expect(ProjectHistoryManager.redo()).toBe(true);
+		expect(globalState.currentProject!.content.overlayLayerOrder[0]).toBe('surah-name');
+	});
+
+	it('initializes missing project Z data above custom images without changing a saved order', () => {
+		const content = globalState.currentProject!.content;
+		const track = new CustomTextTrack();
+		const image = new CustomImageClip(
+			new Category({ id: 'image', styles: [new Style({ id: 'above-overlay', value: true })] })
+		);
+		track.clips.push(image);
+		content.timeline.tracks.push(track);
+		expect(ensureOverlayLayerOrder(content)).toBe(true);
+		expect(content.overlayLayerOrder.indexOf(`custom:${image.id}`)).toBeLessThan(
+			content.overlayLayerOrder.indexOf('surah-name')
+		);
+		expect(content.overlayLayerOrder.indexOf('surah-name')).toBeLessThan(
+			content.overlayLayerOrder.indexOf('arabic')
+		);
+		moveOverlayLayer('surah-name', 1, ['surah-name', 'arabic']);
+		const saved = [...content.overlayLayerOrder];
+		expect(ensureOverlayLayerOrder(content)).toBe(false);
+		expect(content.overlayLayerOrder).toEqual(saved);
 	});
 
 	it('keeps background images behind text until a layer move explicitly brings them above it', () => {
@@ -166,21 +210,21 @@ describe('ProjectHistoryManager', () => {
 	});
 
 	it('sets a bounded layer position and undoes a multi-layer slider change in one step', () => {
-		setOverlayLayerPosition('arabic', 999);
+		setOverlayLayerPosition('surah-name', 999);
 		const content = globalState.currentProject!.content;
-		expect(getOverlayLayerOrder(content).at(-1)).toBe('arabic');
+		expect(getOverlayLayerOrder(content).at(-1)).toBe('surah-name');
 		const savedOrder = [...content.overlayLayerOrder];
 		for (let attempt = 0; attempt < 5; attempt++) {
-			moveOverlayLayer('arabic', 1, ['reciter-name', 'arabic']);
-			setOverlayLayerPosition('arabic', 999);
+			moveOverlayLayer('surah-name', 1, ['reciter-name', 'surah-name']);
+			setOverlayLayerPosition('surah-name', 999);
 		}
 		expect(content.overlayLayerOrder).toEqual(savedOrder);
 		expect(ProjectHistoryManager.undo()).toBe(true);
-		expect(getOverlayLayerOrder(globalState.currentProject!.content)[0]).toBe('arabic');
+		expect(getOverlayLayerOrder(globalState.currentProject!.content)[0]).toBe('surah-name');
 		expect(ProjectHistoryManager.undo()).toBe(false);
 		for (let attempt = 0; attempt < 5; attempt++) {
-			moveOverlayLayer('arabic', -1, ['reciter-name', 'arabic']);
-			setOverlayLayerPosition('arabic', -999);
+			moveOverlayLayer('surah-name', -1, ['reciter-name', 'surah-name']);
+			setOverlayLayerPosition('surah-name', -999);
 		}
 		expect(ProjectHistoryManager.undo()).toBe(false);
 	});

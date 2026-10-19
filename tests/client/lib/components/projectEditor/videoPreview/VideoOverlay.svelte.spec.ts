@@ -476,9 +476,10 @@ describe('Video overlay subtitle preview', () => {
 		await settleOverlay();
 		const arabic = getForegroundArabicNode(component.container)!;
 		const translation = getForegroundTranslationNode(component.container, 'english')!;
-		expect(getComputedStyle(arabic).zIndex).toBe('10');
-		expect(getComputedStyle(translation).zIndex).toBe('10');
-		expect(getComputedStyle(getSubtitlesContainer(component.container)!).zIndex).toBe('1');
+		expect(Number(getComputedStyle(arabic).zIndex)).toBeLessThan(
+			Number(getComputedStyle(translation).zIndex)
+		);
+		expect(getComputedStyle(getSubtitlesContainer(component.container)!).zIndex).toBe('auto');
 		arabic.dispatchEvent(
 			new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 100, clientY: 100 })
 		);

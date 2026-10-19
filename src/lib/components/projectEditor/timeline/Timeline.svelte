@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import TrackComponent from './track/Track.svelte';
 	import {
 		Duration,
@@ -16,6 +16,7 @@
 	import Settings from '$lib/classes/Settings.svelte';
 	import TimelineKeyframeMarkers from './TimelineKeyframeMarkers.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import LL from '$lib/i18n/i18n-svelte';
 
 	let {
 		useSplitHeight = true,
@@ -61,6 +62,10 @@
 
 	let timelineDiv: HTMLDivElement | null = null;
 	let timelineTracksDiv: HTMLDivElement | null = null;
+	let timelineContainerDiv: HTMLDivElement | null = null;
+	let primaryTouchPointerId: number | null = null;
+	let pinch: { distance: number; zoom: number; time: number } | null = null;
+	let suppressTimelineClickUntil = 0;
 	let tracksResizeObserver: ResizeObserver | null = null;
 	let tracksViewportWidth = $state(0);
 	let visibleRangeStartMs = $state(0);
@@ -100,15 +105,78 @@
 		const currentZoom = timelineState().zoom;
 
 		if (direction < 0 && currentZoom > 0.2) {
-			timelineState().zoom = currentZoom - 0.75;
+			timelineState().zoom = Math.max(0.2, currentZoom - 0.75);
 		} else if (direction > 0 && currentZoom < 100) {
-			timelineState().zoom = currentZoom + 0.75;
+			timelineState().zoom = Math.min(100, currentZoom + 0.75);
 		}
 
 		if (timelineState().zoom === 10) {
 			// Valeur interdite qui fait beuguer le rendu
 			timelineState().zoom = 10.01;
 		}
+	}
+
+	/**
+	 * Initialise le zoom à deux doigts et annule le déplacement éventuel d'un clip.
+	 * @param {TouchEvent} event Début du geste tactile.
+	 * @returns {void}
+	 */
+	function startTimelinePinch(event: TouchEvent): void {
+		if (event.touches.length !== 2 || !timelineDiv) return;
+		event.preventDefault();
+		if (primaryTouchPointerId !== null) {
+			document.dispatchEvent(
+				new PointerEvent('pointercancel', { pointerId: primaryTouchPointerId })
+			);
+			primaryTouchPointerId = null;
+		}
+		const [first, second] = event.touches;
+		const distance = Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
+		if (distance === 0) return;
+		const center = (first.clientX + second.clientX) / 2 - timelineDiv.getBoundingClientRect().left;
+		pinch = {
+			distance,
+			zoom: timelineState().zoom,
+			time: (timelineDiv.scrollLeft + center - timelineLeftHeaderWidthPx) / timelineState().zoom
+		};
+	}
+
+	/**
+	 * Ajuste le zoom en conservant le temps situé au centre des deux doigts.
+	 * @param {TouchEvent} event Mouvement des deux doigts.
+	 * @returns {Promise<void>}
+	 */
+	async function moveTimelinePinch(event: TouchEvent): Promise<void> {
+		if (!pinch || event.touches.length !== 2 || !timelineDiv || !timelineTracksDiv) return;
+		event.preventDefault();
+		const currentPinch = pinch;
+		const [first, second] = event.touches;
+		const distance = Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
+		const zoom = Math.min(
+			100,
+			Math.max(0.2, (currentPinch.zoom * distance) / currentPinch.distance)
+		);
+		timelineState().zoom = zoom === 10 ? 10.01 : zoom;
+		const center = (first.clientX + second.clientX) / 2 - timelineDiv.getBoundingClientRect().left;
+		await tick();
+		if (pinch !== currentPinch) return;
+		timelineDiv.scrollLeft = Math.max(
+			0,
+			timelineLeftHeaderWidthPx + currentPinch.time * timelineState().zoom - center
+		);
+		timelineTracksDiv.scrollLeft = timelineDiv.scrollLeft;
+		timelineState().scrollX = timelineDiv.scrollLeft;
+	}
+
+	/**
+	 * Termine le pincement sans déclencher de clic sur un clip ou sur la règle.
+	 * @param {TouchEvent} event Fin ou annulation du geste tactile.
+	 * @returns {void}
+	 */
+	function endTimelinePinch(event: TouchEvent): void {
+		if (event.touches.length === 2) return;
+		if (pinch) suppressTimelineClickUntil = performance.now() + 500;
+		pinch = null;
 	}
 
 	$effect(() => {
@@ -127,6 +195,12 @@
 	});
 
 	onMount(() => {
+		const container = timelineContainerDiv;
+		container?.addEventListener('touchstart', startTimelinePinch, {
+			passive: false,
+			capture: true
+		});
+		container?.addEventListener('touchmove', moveTimelinePinch, { passive: false, capture: true });
 		// Restitue le scroll
 		if (timelineDiv) {
 			timelineDiv.scrollLeft = timelineState().scrollX;
@@ -149,6 +223,8 @@
 		globalState.getVideoPreviewState.scrollTimelineToCursor = scrollTimelineToCursor;
 
 		return () => {
+			container?.removeEventListener('touchstart', startTimelinePinch, true);
+			container?.removeEventListener('touchmove', moveTimelinePinch, true);
 			tracksResizeObserver?.disconnect();
 			tracksResizeObserver = null;
 		};
@@ -176,9 +252,11 @@
 		const cursorPosition = timelineState().cursorPosition;
 		const clipUnderCursor = globalState.getSubtitleTrack?.getCurrentClip(cursorPosition);
 
-		if (!(
-			clipUnderCursor instanceof SubtitleClip || clipUnderCursor instanceof PredefinedSubtitleClip
-		)) {
+		if (
+			!(
+				clipUnderCursor instanceof SubtitleClip || clipUnderCursor instanceof PredefinedSubtitleClip
+			)
+		) {
 			lastVerifiedClipId = null;
 			return;
 		}
@@ -352,7 +430,21 @@
 			}%;`
 		: ''}
 >
-	<div class="timeline-container select-none">
+	<div
+		class="timeline-container select-none"
+		bind:this={timelineContainerDiv}
+		onpointerdowncapture={(event) => {
+			if (event.pointerType === 'touch' && event.isPrimary) primaryTouchPointerId = event.pointerId;
+		}}
+		ontouchend={endTimelinePinch}
+		ontouchcancel={endTimelinePinch}
+		onclickcapture={(event) => {
+			if (pinch || performance.now() < suppressTimelineClickUntil) {
+				event.preventDefault();
+				event.stopPropagation();
+			}
+		}}
+	>
 		<!-- Timeline Header -->
 		<div class="timeline-ruler" onscroll={syncScroll} bind:this={timelineDiv}>
 			<div
@@ -370,8 +462,8 @@
 						<button
 							class="ruler-zoom-button"
 							type="button"
-							title="Zoom out"
-							aria-label="Zoom out"
+							title={$LL.editor.zoomOut()}
+							aria-label={$LL.editor.zoomOut()}
 							onclick={(event) => {
 								event.stopPropagation();
 								adjustTimelineZoom(-1);
@@ -382,8 +474,8 @@
 						<button
 							class="ruler-zoom-button"
 							type="button"
-							title="Zoom in"
-							aria-label="Zoom in"
+							title={$LL.editor.zoomIn()}
+							aria-label={$LL.editor.zoomIn()}
 							onclick={(event) => {
 								event.stopPropagation();
 								adjustTimelineZoom(1);
@@ -532,6 +624,7 @@
 <style>
 	.timeline-container {
 		display: flex;
+		touch-action: pan-x pan-y;
 		flex-direction: column;
 		height: 100%;
 		background: var(--timeline-bg-primary);
@@ -558,13 +651,13 @@
 	}
 
 	.ruler-header-spacer {
-		position: absolute;
+		position: sticky;
 		left: 0;
 		top: 0;
 		height: 100%;
 		background: var(--timeline-ruler-bg);
 		border-right: 1px solid var(--timeline-track-border);
-		z-index: 5;
+		z-index: 30;
 		pointer-events: auto;
 	}
 

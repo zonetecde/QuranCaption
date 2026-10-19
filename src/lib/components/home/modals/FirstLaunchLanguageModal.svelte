@@ -9,9 +9,9 @@
 	let selectedLanguage = $state<Locales>(get(locale));
 
 	const languageOptions: { value: Locales; label: string; flag: string }[] = $derived([
-		{ value: 'ar', label: $LL.editor.arabic(), flag: '🇸🇦' },
 		{ value: 'en', label: 'English', flag: '🇬🇧' },
 		{ value: 'fr', label: 'Français', flag: '🇫🇷' },
+		{ value: 'ar', label: $LL.editor.arabic(), flag: '🇸🇦' },
 		{ value: 'de', label: 'Deutsch', flag: '🇩🇪' },
 		{ value: 'es', label: 'Español', flag: '🇪🇸' },
 		{ value: 'id', label: 'Indonesia', flag: '🇮🇩' },

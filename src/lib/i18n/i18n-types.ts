@@ -1103,6 +1103,132 @@ type RootTranslation = {
 		continue: string;
 	};
 	editor: {
+		speechToText: {
+			/**
+			 * A​u​t​o​m​a​t​i​c​ ​t​r​a​n​s​c​r​i​p​t​i​o​n
+			 */
+			title: string;
+			/**
+			 * T​r​a​n​s​c​r​i​b​e​ ​a​ ​t​i​m​e​l​i​n​e​ ​a​u​d​i​o​ ​c​l​i​p​ ​w​i​t​h​ ​y​o​u​r​ ​o​w​n​ ​G​r​o​q​ ​o​r​ ​E​l​e​v​e​n​L​a​b​s​ ​a​c​c​o​u​n​t​.
+			 */
+			description: string;
+			/**
+			 * P​r​o​v​i​d​e​r
+			 */
+			provider: string;
+			/**
+			 * M​o​d​e​l
+			 */
+			model: string;
+			/**
+			 * M​a​x​ ​d​u​r​a​t​i​o​n​ ​(​s​e​c​o​n​d​s​)
+			 */
+			maxDuration: string;
+			/**
+			 * Y​o​u​r​ ​p​e​r​s​o​n​a​l​ ​k​e​y​s​ ​a​r​e​ ​s​a​v​e​d​ ​i​n​ ​y​o​u​r​ ​l​o​c​a​l​ ​u​s​e​r​ ​s​e​t​t​i​n​g​s​.
+			 */
+			keyHint: string;
+			/**
+			 * L​e​a​v​e​ ​e​m​p​t​y​ ​f​o​r​ ​a​u​t​o​m​a​t​i​c​ ​d​e​t​e​c​t​i​o​n​,​ ​o​r​ ​e​n​t​e​r​ ​a​ ​l​a​n​g​u​a​g​e​ ​c​o​d​e​ ​s​u​c​h​ ​a​s​ ​a​r​,​ ​f​r​ ​o​r​ ​e​n​.
+			 */
+			languageHint: string;
+			/**
+			 * S​e​g​m​e​n​t​ ​b​y​ ​m​e​a​n​i​n​g
+			 */
+			semantic: string;
+			/**
+			 * U​s​e​s​ ​t​h​e​ ​t​e​x​t​ ​A​I​ ​k​e​y​,​ ​e​n​d​p​o​i​n​t​ ​a​n​d​ ​m​o​d​e​l​ ​a​l​r​e​a​d​y​ ​c​o​n​f​i​g​u​r​e​d​ ​i​n​ ​s​e​t​t​i​n​g​s​.​ ​W​o​r​d​s​ ​a​n​d​ ​w​o​r​d​ ​t​i​m​i​n​g​s​ ​a​r​e​ ​p​r​e​s​e​r​v​e​d​.
+			 */
+			semanticHint: string;
+			/**
+			 * T​e​x​t​ ​A​I​ ​s​e​t​t​i​n​g​s
+			 */
+			textAiSettings: string;
+			/**
+			 * S​o​m​e​ ​p​a​s​s​a​g​e​s​ ​w​e​r​e​ ​s​p​l​i​t​ ​u​s​i​n​g​ ​p​a​u​s​e​s​ ​a​n​d​ ​p​u​n​c​t​u​a​t​i​o​n​ ​b​e​c​a​u​s​e​ ​s​e​m​a​n​t​i​c​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​f​a​i​l​e​d​.
+			 */
+			fallback: string;
+			/**
+			 * T​r​a​n​s​c​r​i​b​e​ ​a​n​d​ ​a​d​d​ ​s​u​b​t​i​t​l​e​s
+			 */
+			start: string;
+			/**
+			 * T​r​a​n​s​c​r​i​b​i​n​g​ ​a​u​d​i​o
+			 */
+			transcribing: string;
+			/**
+			 * S​e​g​m​e​n​t​i​n​g​ ​s​u​b​t​i​t​l​e​s
+			 */
+			segmenting: string;
+			/**
+			 * S​u​b​t​i​t​l​e​s​ ​a​d​d​e​d​ ​t​o​ ​t​h​e​ ​p​r​o​j​e​c​t​.
+			 */
+			complete: string;
+			/**
+			 * N​o​ ​s​p​e​e​c​h​ ​w​a​s​ ​f​o​u​n​d​ ​i​n​ ​t​h​i​s​ ​a​u​d​i​o​ ​c​l​i​p​.
+			 */
+			noSpeech: string;
+			/**
+			 * T​h​e​ ​p​r​o​v​i​d​e​r​ ​d​i​d​ ​n​o​t​ ​r​e​t​u​r​n​ ​u​s​a​b​l​e​ ​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​.
+			 */
+			invalidTimings: string;
+			/**
+			 * T​h​e​ ​A​I​ ​r​e​t​u​r​n​e​d​ ​i​n​v​a​l​i​d​ ​s​u​b​t​i​t​l​e​ ​b​o​u​n​d​a​r​i​e​s​.
+			 */
+			invalidBoundaries: string;
+			/**
+			 * C​h​o​o​s​e​ ​1​-​5​0​ ​w​o​r​d​s​ ​a​n​d​ ​a​ ​d​u​r​a​t​i​o​n​ ​o​f​ ​1​-​3​0​ ​s​e​c​o​n​d​s​.
+			 */
+			invalidLimits: string;
+			/**
+			 * E​n​t​e​r​ ​a​ ​v​a​l​i​d​ ​A​P​I​ ​k​e​y​ ​f​o​r​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​p​r​o​v​i​d​e​r​.
+			 */
+			invalidKey: string;
+			/**
+			 * T​h​e​ ​p​r​o​v​i​d​e​r​ ​q​u​o​t​a​ ​o​r​ ​r​a​t​e​ ​l​i​m​i​t​ ​w​a​s​ ​r​e​a​c​h​e​d​.​ ​T​r​y​ ​a​g​a​i​n​ ​l​a​t​e​r​ ​o​r​ ​c​h​e​c​k​ ​y​o​u​r​ ​p​l​a​n​.
+			 */
+			rateLimit: string;
+			/**
+			 * U​n​a​b​l​e​ ​t​o​ ​e​x​t​r​a​c​t​ ​a​u​d​i​o​.​ ​C​h​e​c​k​ ​t​h​e​ ​s​o​u​r​c​e​ ​f​i​l​e​ ​a​n​d​ ​F​F​m​p​e​g​ ​i​n​s​t​a​l​l​a​t​i​o​n​.
+			 */
+			audioError: string;
+			/**
+			 * T​h​e​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​p​r​o​v​i​d​e​r​ ​r​e​q​u​e​s​t​ ​f​a​i​l​e​d​.​ ​C​h​e​c​k​ ​y​o​u​r​ ​c​o​n​n​e​c​t​i​o​n​ ​a​n​d​ ​a​c​c​o​u​n​t​.
+			 */
+			providerError: string;
+			/**
+			 * T​h​e​ ​p​r​o​j​e​c​t​ ​o​r​ ​a​u​d​i​o​ ​c​l​i​p​ ​c​h​a​n​g​e​d​ ​d​u​r​i​n​g​ ​p​r​o​c​e​s​s​i​n​g​.​ ​N​o​ ​s​u​b​t​i​t​l​e​s​ ​w​e​r​e​ ​a​d​d​e​d​.
+			 */
+			sourceChanged: string;
+			/**
+			 * T​h​i​s​ ​a​u​d​i​o​ ​r​a​n​g​e​ ​a​l​r​e​a​d​y​ ​c​o​n​t​a​i​n​s​ ​s​u​b​t​i​t​l​e​s​.​ ​C​h​o​o​s​e​ ​a​ ​c​l​i​p​ ​w​i​t​h​o​u​t​ ​o​v​e​r​l​a​p​p​i​n​g​ ​s​u​b​t​i​t​l​e​s​.
+			 */
+			overlap: string;
+			/**
+			 * A​d​d​ ​a​n​ ​a​u​d​i​o​ ​c​l​i​p​ ​t​o​ ​t​h​e​ ​t​i​m​e​l​i​n​e​ ​f​i​r​s​t​.
+			 */
+			noAudio: string;
+			/**
+			 * T​i​m​e​l​i​n​e​ ​a​u​d​i​o​ ​c​l​i​p
+			 */
+			selectAudio: string;
+			/**
+			 * S​e​t​t​i​n​g​s​ ​s​a​v​e​d​.
+			 */
+			saved: string;
+			/**
+			 * C​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​t​e​x​t​ ​A​I​ ​k​e​y​ ​a​n​d​ ​m​o​d​e​l​,​ ​o​r​ ​d​i​s​a​b​l​e​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​b​y​ ​m​e​a​n​i​n​g​.
+			 */
+			textAiRequired: string;
+			/**
+			 * C​a​n​c​e​l​l​a​t​i​o​n​ ​p​r​e​v​e​n​t​s​ ​a​d​d​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​a​n​d​ ​s​t​o​p​s​ ​s​u​b​s​e​q​u​e​n​t​ ​r​e​q​u​e​s​t​s​.​ ​A​ ​r​e​q​u​e​s​t​ ​a​l​r​e​a​d​y​ ​s​e​n​t​ ​m​a​y​ ​s​t​i​l​l​ ​c​o​m​p​l​e​t​e​ ​a​n​d​ ​b​e​ ​b​i​l​l​e​d​.
+			 */
+			cancelHint: string;
+			/**
+			 * U​n​a​b​l​e​ ​t​o​ ​s​a​v​e​ ​y​o​u​r​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​s​e​t​t​i​n​g​s​.
+			 */
+			saveError: string;
+		};
 		/**
 		 * V​i​d​e​o​ ​e​d​i​t​o​r
 		 */
@@ -10613,6 +10739,132 @@ export type TranslationFunctions = {
 		continue: () => LocalizedString;
 	};
 	editor: {
+		speechToText: {
+			/**
+			 * Automatic transcription
+			 */
+			title: () => LocalizedString;
+			/**
+			 * Transcribe a timeline audio clip with your own Groq or ElevenLabs account.
+			 */
+			description: () => LocalizedString;
+			/**
+			 * Provider
+			 */
+			provider: () => LocalizedString;
+			/**
+			 * Model
+			 */
+			model: () => LocalizedString;
+			/**
+			 * Max duration (seconds)
+			 */
+			maxDuration: () => LocalizedString;
+			/**
+			 * Your personal keys are saved in your local user settings.
+			 */
+			keyHint: () => LocalizedString;
+			/**
+			 * Leave empty for automatic detection, or enter a language code such as ar, fr or en.
+			 */
+			languageHint: () => LocalizedString;
+			/**
+			 * Segment by meaning
+			 */
+			semantic: () => LocalizedString;
+			/**
+			 * Uses the text AI key, endpoint and model already configured in settings. Words and word timings are preserved.
+			 */
+			semanticHint: () => LocalizedString;
+			/**
+			 * Text AI settings
+			 */
+			textAiSettings: () => LocalizedString;
+			/**
+			 * Some passages were split using pauses and punctuation because semantic segmentation failed.
+			 */
+			fallback: () => LocalizedString;
+			/**
+			 * Transcribe and add subtitles
+			 */
+			start: () => LocalizedString;
+			/**
+			 * Transcribing audio
+			 */
+			transcribing: () => LocalizedString;
+			/**
+			 * Segmenting subtitles
+			 */
+			segmenting: () => LocalizedString;
+			/**
+			 * Subtitles added to the project.
+			 */
+			complete: () => LocalizedString;
+			/**
+			 * No speech was found in this audio clip.
+			 */
+			noSpeech: () => LocalizedString;
+			/**
+			 * The provider did not return usable word timestamps.
+			 */
+			invalidTimings: () => LocalizedString;
+			/**
+			 * The AI returned invalid subtitle boundaries.
+			 */
+			invalidBoundaries: () => LocalizedString;
+			/**
+			 * Choose 1-50 words and a duration of 1-30 seconds.
+			 */
+			invalidLimits: () => LocalizedString;
+			/**
+			 * Enter a valid API key for the selected transcription provider.
+			 */
+			invalidKey: () => LocalizedString;
+			/**
+			 * The provider quota or rate limit was reached. Try again later or check your plan.
+			 */
+			rateLimit: () => LocalizedString;
+			/**
+			 * Unable to extract audio. Check the source file and FFmpeg installation.
+			 */
+			audioError: () => LocalizedString;
+			/**
+			 * The transcription provider request failed. Check your connection and account.
+			 */
+			providerError: () => LocalizedString;
+			/**
+			 * The project or audio clip changed during processing. No subtitles were added.
+			 */
+			sourceChanged: () => LocalizedString;
+			/**
+			 * This audio range already contains subtitles. Choose a clip without overlapping subtitles.
+			 */
+			overlap: () => LocalizedString;
+			/**
+			 * Add an audio clip to the timeline first.
+			 */
+			noAudio: () => LocalizedString;
+			/**
+			 * Timeline audio clip
+			 */
+			selectAudio: () => LocalizedString;
+			/**
+			 * Settings saved.
+			 */
+			saved: () => LocalizedString;
+			/**
+			 * Configure your text AI key and model, or disable segmentation by meaning.
+			 */
+			textAiRequired: () => LocalizedString;
+			/**
+			 * Cancellation prevents adding subtitles and stops subsequent requests. A request already sent may still complete and be billed.
+			 */
+			cancelHint: () => LocalizedString;
+			/**
+			 * Unable to save your transcription settings.
+			 */
+			saveError: () => LocalizedString;
+		};
 		/**
 		 * Video editor
 		 */

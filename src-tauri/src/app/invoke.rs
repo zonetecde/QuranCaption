@@ -8,6 +8,8 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::ai_translation::bold::run_advanced_ai_bold_batch_streaming,
         commands::ai_translation::wbw_translation::run_advanced_ai_wbw_translation_batch_streaming,
         commands::ai_translation::translate::run_ai_project_translation_batch_streaming,
+        commands::speech_to_text::transcribe_audio_chunk,
+        commands::speech_to_text::segment_speech_words,
         commands::auth::quran_auth_secure_set,
         commands::auth::quran_auth_secure_get,
         commands::auth::quran_auth_secure_delete,

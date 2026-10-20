@@ -2,6 +2,12 @@
 	import { SubtitleClip } from '$lib/classes';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
+	import ModalManager from '$lib/components/modals/ModalManager';
+	import type { SpeechToTextCopy } from '$lib/services/SpeechToTextService';
+
+	const speechCopy = $derived(
+		($LL.editor as unknown as { speechToText: SpeechToTextCopy }).speechToText
+	);
 
 	const transcriptCount = $derived(
 		globalState.getSubtitleTrack.clips.filter((clip) => clip instanceof SubtitleClip).length
@@ -15,6 +21,15 @@
 		<span class="material-icons text-xl text-accent">record_voice_over</span>
 		<h2 class="text-xl font-bold text-primary">{$LL.editor.transcription()}</h2>
 	</div>
+
+	<button
+		type="button"
+		onclick={() => ModalManager.speechToTextModal()}
+		class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent-primary px-3 py-3 text-sm font-semibold text-black"
+	>
+		<span class="material-icons text-lg">auto_awesome</span>
+		{speechCopy.title()}
+	</button>
 
 	<div class="space-y-3">
 		<h3 class="text-sm font-medium text-secondary">{$LL.editor.playbackSpeed()}</h3>

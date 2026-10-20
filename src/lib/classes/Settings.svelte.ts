@@ -28,6 +28,18 @@ export type StockMediaSettings = {
 	pixabayApiKey: string;
 };
 
+export type SpeechToTextSettings = {
+	provider: 'groq' | 'elevenlabs';
+	groqApiKey: string;
+	elevenLabsApiKey: string;
+	groqModel: string;
+	elevenLabsModel: string;
+	language: string;
+	maxWords: number;
+	maxDuration: number;
+	semanticSegmentation: boolean;
+};
+
 export type PerformanceProfile = 'balanced' | 'max_quality';
 
 export type IslamicTermTranslationMode = 'translated' | 'both' | 'transliterated';
@@ -156,6 +168,18 @@ export default class Settings extends SerializableBase {
 	stockMediaSettings = $state<StockMediaSettings>({
 		pexelsApiKey: '',
 		pixabayApiKey: ''
+	});
+
+	speechToTextSettings = $state<SpeechToTextSettings>({
+		provider: 'groq',
+		groqApiKey: '',
+		elevenLabsApiKey: '',
+		groqModel: 'whisper-large-v3',
+		elevenLabsModel: 'scribe_v2',
+		language: '',
+		maxWords: 8,
+		maxDuration: 6,
+		semanticSegmentation: true
 	});
 
 	exportSettings = $state<ExportSettings>({ ...Settings.DEFAULT_EXPORT_SETTINGS });

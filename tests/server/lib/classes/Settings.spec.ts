@@ -29,6 +29,37 @@ describe('loading legacy editor layout settings', () => {
 		vi.clearAllMocks();
 	});
 
+	it('restores transcription defaults for projects created before speech to text', async () => {
+		const saved: Record<string, unknown> = { ...new Settings().toJSON(), appVersion: '3.7.80' };
+		delete saved.speechToTextSettings;
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify(saved));
+		await Settings.load();
+		expect(globalState.settings!.speechToTextSettings).toMatchObject({
+			provider: 'groq',
+			groqApiKey: '',
+			elevenLabsApiKey: '',
+			maxWords: 8,
+			maxDuration: 6,
+			semanticSegmentation: true
+		});
+	});
+
+	it('persists personal transcription keys and the selected models separately', async () => {
+		const settings = new Settings();
+		settings.appVersion = '3.7.80';
+		Object.assign(settings.speechToTextSettings, {
+			provider: 'elevenlabs',
+			groqApiKey: 'groq-test',
+			elevenLabsApiKey: 'eleven-test',
+			groqModel: 'whisper-large-v3-turbo',
+			elevenLabsModel: 'scribe_v1',
+			maxWords: 12
+		});
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify(settings.toJSON()));
+		await Settings.load();
+		expect(globalState.settings!.speechToTextSettings).toEqual(settings.speechToTextSettings);
+	});
+
 	it.each([undefined, null, false, [], 'invalid'])(
 		'restores missing UI defaults when the saved UI state is %j',
 		async (persistentUiState) => {

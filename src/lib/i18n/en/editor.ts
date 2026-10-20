@@ -1,4 +1,42 @@
 const editor = {
+	speechToText: {
+		title: 'Automatic transcription',
+		description: 'Transcribe a timeline audio clip with your own Groq or ElevenLabs account.',
+		provider: 'Provider',
+		model: 'Model',
+		maxDuration: 'Max duration (seconds)',
+		keyHint: 'Your personal keys are saved in your local user settings.',
+		languageHint:
+			'Leave empty for automatic detection, or enter a language code such as ar, fr or en.',
+		semantic: 'Segment by meaning',
+		semanticHint:
+			'Uses the text AI key, endpoint and model already configured in settings. Words and word timings are preserved.',
+		textAiSettings: 'Text AI settings',
+		fallback:
+			'Some passages were split using pauses and punctuation because semantic segmentation failed.',
+		start: 'Transcribe and add subtitles',
+		transcribing: 'Transcribing audio',
+		segmenting: 'Segmenting subtitles',
+		complete: 'Subtitles added to the project.',
+		noSpeech: 'No speech was found in this audio clip.',
+		invalidTimings: 'The provider did not return usable word timestamps.',
+		invalidBoundaries: 'The AI returned invalid subtitle boundaries.',
+		invalidLimits: 'Choose 1-50 words and a duration of 1-30 seconds.',
+		invalidKey: 'Enter a valid API key for the selected transcription provider.',
+		rateLimit: 'The provider quota or rate limit was reached. Try again later or check your plan.',
+		audioError: 'Unable to extract audio. Check the source file and FFmpeg installation.',
+		providerError: 'The transcription provider request failed. Check your connection and account.',
+		sourceChanged: 'The project or audio clip changed during processing. No subtitles were added.',
+		overlap:
+			'This audio range already contains subtitles. Choose a clip without overlapping subtitles.',
+		noAudio: 'Add an audio clip to the timeline first.',
+		selectAudio: 'Timeline audio clip',
+		saved: 'Settings saved.',
+		textAiRequired: 'Configure your text AI key and model, or disable segmentation by meaning.',
+		cancelHint:
+			'Cancellation prevents adding subtitles and stops subsequent requests. A request already sent may still complete and be billed.',
+		saveError: 'Unable to save your transcription settings.'
+	},
 	videoEditor: 'Video editor',
 	transcription: 'Transcription',
 	transcriptSegments: 'Transcript segments',

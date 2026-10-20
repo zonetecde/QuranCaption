@@ -8,6 +8,7 @@ import DeleteConfirmation from './DeleteConfirmation.svelte';
 import ShiftSubtitlesModal from './tools/ShiftSubtitlesModal.svelte';
 import AudioCutterModal from './tools/AudioCutterModal.svelte';
 import AudioEffectsModal from './tools/AudioEffectsModal.svelte';
+import SpeechToTextModal from './tools/SpeechToTextModal.svelte';
 import BookmarkVerseModal from './BookmarkVerseModal.svelte';
 import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
 import AiWbwTranslationModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiWbwTranslationModal.svelte';
@@ -17,6 +18,28 @@ import { type UpdateInfo } from '$lib/services/VersionService.svelte';
 import LL from '$lib/i18n/i18n-svelte';
 
 export default class ModalManager {
+	/**
+	 * Ouvre la transcription automatique avec les clés personnelles de l'utilisateur.
+	 * @returns {Promise<void>} Résolution après fermeture de la modale.
+	 */
+	static async speechToTextModal(): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+			const modal = mount(SpeechToTextModal, {
+				target: container,
+				props: {
+					close: () => {
+						void unmount(modal);
+						container.remove();
+						resolve();
+					}
+				}
+			});
+		});
+	}
+
 	static async confirmModal(text: string, yesNo: boolean = false): Promise<boolean> {
 		return new Promise<boolean>((resolve) => {
 			// Créer un conteneur pour le modal

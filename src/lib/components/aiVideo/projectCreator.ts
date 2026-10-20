@@ -12,7 +12,6 @@ import { globalState } from '$lib/runes/main.svelte';
 import { discordService } from '$lib/services/DiscordService';
 import { Mp3QuranService } from '$lib/services/Mp3QuranService';
 import { ProjectService } from '$lib/services/ProjectService';
-import { runAutoSegmentation } from '$lib/services/AutoSegmentation';
 import {
 	buildAdvancedTrimVerseCandidates,
 	buildAdvancedTrimBatches,
@@ -212,53 +211,6 @@ export async function createAiVideoProject(): Promise<void> {
 			backgroundVideoClip.setEndTime(
 				globalState.currentProject!.content.timeline.getLongestTrackDurationIgnoringLoopedVideo().ms
 			);
-		}
-
-		await project.save();
-
-		// ── 4. Auto-segmentation ──
-		setStatus(get(LL).aiVideo.generatingSubtitles());
-		const segmentationSettings = globalState.settings?.autoSegmentationSettings;
-		const useLocalUniversalAligner =
-			segmentationSettings?.mode === 'local' &&
-			segmentationSettings.localAsrMode === 'multi_aligner';
-		const segResult = await runAutoSegmentation(
-			useLocalUniversalAligner
-				? {
-						minSilenceMs: segmentationSettings.minSilenceMs,
-						minSpeechMs: segmentationSettings.minSpeechMs,
-						padMs: segmentationSettings.padMs,
-						localAsrMode: segmentationSettings.localAsrMode,
-						multiAlignerModel: segmentationSettings.multiAlignerModel,
-						cloudModel: segmentationSettings.cloudModel,
-						device: segmentationSettings.device,
-						hfToken: segmentationSettings.hfToken,
-						allowCloudFallback: false,
-						includeWbwTimestamps: segmentationSettings.includeWbwTimestamps,
-						fillBySilence: segmentationSettings.fillBySilence,
-						extendBeforeSilence: segmentationSettings.extendBeforeSilence,
-						extendBeforeSilenceMs: segmentationSettings.extendBeforeSilenceMs
-					}
-				: {
-						minSilenceMs: segmentationSettings?.minSilenceMs,
-						minSpeechMs: segmentationSettings?.minSpeechMs,
-						padMs: segmentationSettings?.padMs,
-						localAsrMode: 'multi_aligner',
-						cloudModel: segmentationSettings?.cloudModel,
-						device: segmentationSettings?.device,
-						includeWbwTimestamps: segmentationSettings?.includeWbwTimestamps,
-						fillBySilence: segmentationSettings?.fillBySilence,
-						extendBeforeSilence: segmentationSettings?.extendBeforeSilence,
-						extendBeforeSilenceMs: segmentationSettings?.extendBeforeSilenceMs
-					},
-			useLocalUniversalAligner ? 'local' : 'api'
-		);
-		console.log('[AiVideo] Segmentation result:', segResult);
-
-		if (segResult && segResult.status === 'failed') {
-			toast.error(get(LL).aiVideo.subtitlesFailed({ message: segResult.message }));
-			await project.save();
-			return;
 		}
 
 		await project.save();

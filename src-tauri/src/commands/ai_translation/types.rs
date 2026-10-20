@@ -38,32 +38,6 @@ pub struct AdvancedWbwTranslationCommandRequest {
     pub batch: AdvancedWbwTranslationBatchPayload,
 }
 
-/// Requête pour le nettoyage et la détection de citations d'une transcription.
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TranscriptCleanupCommandRequest {
-    pub api_key: String,
-    pub endpoint: String,
-    pub model: String,
-    pub reasoning_effort: String,
-    pub thinking_enabled: Option<bool>,
-    pub batch_id: String,
-    pub batch: TranscriptCleanupBatchPayload,
-}
-
-/// Requête pour l'analyse sémantique des coupures d'une transcription nettoyée.
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TranscriptSegmentationCommandRequest {
-    pub api_key: String,
-    pub endpoint: String,
-    pub model: String,
-    pub reasoning_effort: String,
-    pub thinking_enabled: Option<bool>,
-    pub batch_id: String,
-    pub batch: serde_json::Value,
-}
-
 /// Requête pour la traduction structurée d'un batch de sous-titres.
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -96,34 +70,6 @@ pub struct AdvancedBoldBatchPayload {
 pub struct AdvancedWbwTranslationBatchPayload {
     #[serde(rename = "s", alias = "segments")]
     pub segments: Vec<AdvancedWbwTranslationSegmentPayload>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TranscriptCleanupBatchPayload {
-    #[serde(rename = "w", alias = "words")]
-    pub words: Vec<TranscriptCleanupWordPayload>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TranscriptCleanupWordPayload {
-    pub i: i64,
-    pub p: i64,
-    pub t: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub q: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub r: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub o: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub u: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub a: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub z: Option<bool>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub g: Option<f64>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

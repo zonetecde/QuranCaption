@@ -93,8 +93,7 @@
 		],
 		"resources": [
 			"binaries/**/*",
-			"resources/notifications/**/*",
-			"python/**/*"
+			"resources/notifications/**/*"
 		],
 		"icon": [
 			"icons/32x32.png",

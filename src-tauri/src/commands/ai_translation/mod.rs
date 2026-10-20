@@ -21,7 +21,6 @@ static AI_EXCHANGE_LOG_LOCK: Mutex<()> = Mutex::new(());
 pub(crate) mod bold;
 pub(crate) mod prompts;
 pub(crate) mod sse;
-pub(crate) mod transcript_cleanup;
 pub(crate) mod translate;
 pub(crate) mod trim;
 pub(crate) mod types;

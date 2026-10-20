@@ -1,27 +1,4 @@
 const tools = {
-	hifzRepetition: 'Hifz Repetition',
-	hifzDescription: 'Repeat existing subtitles and generate matching audio',
-	hifzBody:
-		'Turn your existing subtitles into a Hifz-ready repetition track. Each verse will be repeated with configurable silence gaps.',
-	repeatEachVerse: 'Repeat each verse',
-	repeatEachSubtitle: 'Repeat each subtitle',
-	generatingHifzAudio: 'Generating Hifz audio...',
-	repeatCount: 'Repeat count',
-	silenceDuration: 'Silence duration between repetitions',
-	silenceDescription:
-		'The silence is the duration of the repeated segment. Increase for more pause time between repetitions.',
-	keepVisualMerges: 'Keep visual merges',
-	keepSubtitlesVisible: 'Keep subtitles visible during pause intervals',
-	stretchCompleteSubtitles: 'Stretch complete subtitles across repeated cycles',
-	noAudioFoundSilentHifz: 'No audio found. A silent Hifz track will be generated.',
-	addSubtitlesBeforeHifz: 'Add subtitles before generating a Hifz track.',
-	readyToGenerate: 'Ready to generate.',
-	generating: 'Generating...',
-	generateHifz: 'Generate Hifz',
-	hifzTrackGenerated: 'Hifz track generated with {count} subtitles.',
-	hifzConfirmation: 'Hifz repetition confirmation',
-	hifzConfirmationMessage:
-		'This will create a new track with repeated subtitles. Existing subtitles will not be modified.',
 	shiftAllSubtitles: 'Shift All Subtitles',
 	importSrtTranslation: 'Import SRT translation',
 	srtFileFilter: 'SRT subtitle files',

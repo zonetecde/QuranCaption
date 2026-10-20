@@ -6,16 +6,13 @@ import Error from './Error.svelte';
 import NewUpdateModal from '../home/modals/NewUpdateModal.svelte';
 import DeleteConfirmation from './DeleteConfirmation.svelte';
 import ShiftSubtitlesModal from './tools/ShiftSubtitlesModal.svelte';
-import HifzRepetitionModal from './tools/HifzRepetitionModal.svelte';
 import AudioCutterModal from './tools/AudioCutterModal.svelte';
 import AudioEffectsModal from './tools/AudioEffectsModal.svelte';
 import BookmarkVerseModal from './BookmarkVerseModal.svelte';
 import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
 import AiWbwTranslationModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiWbwTranslationModal.svelte';
-import AITranscriptionModal from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/AITranscriptionModal.svelte';
-import SubtitleRetranscriptionModal from './SubtitleRetranscriptionModal.svelte';
 import AskIAModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AskIAModal.svelte';
-import type { Edition, SubtitleClip } from '$lib/classes';
+import type { Edition } from '$lib/classes';
 import { type UpdateInfo } from '$lib/services/VersionService.svelte';
 import LL from '$lib/i18n/i18n-svelte';
 
@@ -177,31 +174,6 @@ export default class ModalManager {
 		});
 	}
 
-	/**
-	 * Ouvre la modale du tool de répétition Hifz.
-	 *
-	 * @returns {Promise<void>} Résolution après fermeture de la modale.
-	 */
-	static async hifzRepetitionModal(): Promise<void> {
-		return new Promise<void>((resolve) => {
-			// Crée un conteneur pour la modale du tool Hifz.
-			const container = document.createElement('div');
-			container.classList.add('modal-wrapper');
-			document.body.appendChild(container);
-
-			const modal = mount(HifzRepetitionModal, {
-				target: container,
-				props: {
-					close: () => {
-						unmount(modal);
-						container.remove();
-						resolve();
-					}
-				}
-			});
-		});
-	}
-
 	static async audioCutterModal(initialAssetId?: number): Promise<void> {
 		return new Promise<void>((resolve) => {
 			// Create a container for the modal
@@ -265,56 +237,6 @@ export default class ModalManager {
 				props: {
 					surah,
 					verse,
-					resolve: () => {
-						unmount(modal);
-						container.remove();
-						resolve();
-					}
-				}
-			});
-		});
-	}
-
-	/**
-	 * Ouvre le workflow de transcription ou directement son nettoyage IA.
-	 * @param {boolean} cleanupOnly Ouvre uniquement le nettoyage des sous-titres existants.
-	 * @returns {Promise<void>} Résolution après fermeture de la modale.
-	 */
-	static async aiTranscriptionModal(cleanupOnly: boolean = false): Promise<void> {
-		return new Promise<void>((resolve) => {
-			const container = document.createElement('div');
-			container.classList.add('modal-wrapper');
-			document.body.appendChild(container);
-
-			const modal = mount(AITranscriptionModal, {
-				target: container,
-				props: {
-					close: () => {
-						unmount(modal);
-						container.remove();
-						resolve();
-					},
-					cleanupOnly
-				}
-			});
-		});
-	}
-
-	/**
-	 * Ouvre le comparateur de retranscriptions locales pour un sous-titre.
-	 * @param {SubtitleClip} clip Sous-titre à retranscrire.
-	 * @returns {Promise<void>} Résolution après fermeture de la modale.
-	 */
-	static async subtitleRetranscriptionModal(clip: SubtitleClip): Promise<void> {
-		return new Promise<void>((resolve) => {
-			const container = document.createElement('div');
-			container.classList.add('modal-wrapper');
-			document.body.appendChild(container);
-
-			const modal = mount(SubtitleRetranscriptionModal, {
-				target: container,
-				props: {
-					clip,
 					resolve: () => {
 						unmount(modal);
 						container.remove();

@@ -21,12 +21,6 @@
 	import type { SubtitleTrack } from '$lib/classes/Track.svelte';
 	import { onDestroy, tick } from 'svelte';
 	import { open } from '@tauri-apps/plugin-dialog';
-	import toast from 'svelte-5-french-toast';
-	import {
-		computeWbwTimestampsForClips,
-		scheduleWbwRealign,
-		getAutoRealignStatus
-	} from '$lib/services/AutoSegmentation';
 	import LL from '$lib/i18n/i18n-svelte';
 	import {
 		getTranslationTrimUnits,
@@ -52,9 +46,6 @@
 	let contextMenu: ContextMenu | undefined = $state(undefined); // Initialize context menu state
 
 	// Vrai si ce sous-titre Quran n'a pas encore de timestamps mot à mot.
-	let isMissingWbwTimestamps = $derived(
-		clip instanceof SubtitleClip && (clip.alignmentMetadata?.words.length ?? 0) === 0
-	);
 
 	// Timeline clips keep their stored marker syntax, but render its readable content for editing context.
 	const displayedTextParts = $derived(
@@ -259,11 +250,8 @@
 	let didDrag = false;
 	let suppressNextClick = false;
 
-	// Animation de la barre de mots : vidée pendant le redimensionnement, spinner pendant WhisperX.
+	// Masque la barre de mots pendant le redimensionnement.
 	let isResizing = $state(false);
-	const realignStatus = $derived(
-		clip instanceof SubtitleClip ? getAutoRealignStatus(clip.id) : 'idle'
-	);
 
 	function startLeftDragging(e: MouseEvent) {
 		if (e.button === 0) {
@@ -298,18 +286,6 @@
 		}
 		if (clip instanceof SubtitleClip) {
 			isResizing = false;
-			if (didDrag) {
-				// Un drag à gauche déplace aussi la fin du clip précédent → réaligner les deux.
-				const previous = (track as SubtitleTrack).getClipBefore(clip.id);
-				const group = previous instanceof SubtitleClip ? [previous, clip] : [clip];
-				scheduleWbwRealign(group, { reason: 'drag' });
-			}
-		} else if (clip.type === 'Silence' && didDrag) {
-			// Le silence n'a pas de mots : seul le sous-titre précédent voit sa fin modifiée.
-			const previous = (track as SubtitleTrack).getClipBefore(clip.id);
-			if (previous instanceof SubtitleClip) {
-				scheduleWbwRealign([previous], { reason: 'drag' });
-			}
 		}
 		if (didDrag) {
 			suppressNextClick = true;
@@ -348,18 +324,6 @@
 		}
 		if (clip instanceof SubtitleClip) {
 			isResizing = false;
-			if (didDrag) {
-				// Un drag à droite recale aussi le début du clip suivant → réaligner les deux.
-				const next = (track as SubtitleTrack).getClipAfter(clip.id);
-				const group = next instanceof SubtitleClip ? [clip, next] : [clip];
-				scheduleWbwRealign(group, { reason: 'drag' });
-			}
-		} else if (clip.type === 'Silence' && didDrag) {
-			// Le silence n'a pas de mots : seul le sous-titre suivant voit son début modifié.
-			const next = (track as SubtitleTrack).getClipAfter(clip.id);
-			if (next instanceof SubtitleClip) {
-				scheduleWbwRealign([next], { reason: 'drag' });
-			}
 		}
 		if (didDrag) {
 			suppressNextClick = true;
@@ -531,48 +495,11 @@
 	}
 
 	/**
-	 * Calcule à la demande les timestamps WBW pour ce seul sous-titre avec WhisperX local.
-	 * @returns {Promise<void>}
-	 */
-	async function generateWbwTimestampsFromContextMenu(): Promise<void> {
-		if (!(clip instanceof SubtitleClip)) return;
-
-		currentMenu.set(null);
-		await tick();
-
-		const loadingToast = toast.loading('Computing WBW timestamps…');
-		try {
-			const { enriched } = await computeWbwTimestampsForClips([clip]);
-			if (enriched > 0) {
-				toast.success('WBW timestamps generated.', { id: loadingToast });
-				globalState.currentProject?.detail.updateVideoDetailAttributes();
-				globalState.updateVideoPreviewUI();
-			} else {
-				toast.error('Could not generate WBW timestamps.', { id: loadingToast });
-			}
-		} catch (error) {
-			console.error('[WBW] Failed to generate timestamps for clip:', error);
-			toast.error('Failed to generate WBW timestamps.', { id: loadingToast });
-		}
-	}
-
-	/**
 	 * Ouvre l'editeur rapide de sous-titre sur le clip courant.
 	 * @returns {Promise<void>}
 	 */
 	async function editSubtitleFromQuickEditorContextMenu(): Promise<void> {
 		await openQuickTimelineEditorFromContextMenu('subtitle');
-	}
-
-	/**
-	 * Ouvre le comparateur de reconnaissance vocale locale pour le clip courant.
-	 * @returns {Promise<void>}
-	 */
-	async function retranscribeSubtitleFromContextMenu(): Promise<void> {
-		if (!(clip instanceof SubtitleClip)) return;
-		currentMenu.set(null);
-		await tick();
-		await ModalManager.subtitleRetranscriptionModal(clip);
 	}
 
 	async function bookmarkVerseFromContextMenu(): Promise<void> {
@@ -656,15 +583,7 @@
 >
 	{#if clip.type === 'Subtitle' || clip.type === 'Pre-defined Subtitle'}
 		{#if !isResizing}
-			{#if realignStatus === 'computing'}
-				<div class="absolute inset-0 z-6 pointer-events-none overflow-hidden">
-					<div class="wbw-bar-spinner">
-						<div
-							class="h-3 w-3 rounded-full border-2 border-white/70 border-t-transparent animate-spin"
-						></div>
-					</div>
-				</div>
-			{:else if wordBoundaryMarkers().length > 0}
+			{#if wordBoundaryMarkers().length > 0}
 				<div class="absolute inset-0 z-6 pointer-events-none overflow-hidden wbw-markers-fade">
 					{#each wordBoundaryMarkers() as marker (marker.key)}
 						<div
@@ -889,26 +808,12 @@
 				>{$LL.editor.editSubtitleContext()}
 			</div></Item
 		>
-		<Item on:click={retranscribeSubtitleFromContextMenu}
-			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">record_voice_over</span
-				>{$LL.editor.retranscribeSubtitleContext()}
-			</div></Item
-		>
 		<Item on:click={editTranslationFromContextMenu}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">translate</span
 				>{$LL.editor.editTranslationContext()}
 			</div></Item
 		>
-		{#if isMissingWbwTimestamps}
-			<Item on:click={generateWbwTimestampsFromContextMenu}
-				><div class="btn-icon">
-					<span class="material-icons-outlined text-sm mr-1">auto_awesome</span>Generate WBW
-					timestamps
-				</div></Item
-			>
-		{/if}
 		<Item on:click={editWbwTimestampFromContextMenu}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">timeline</span
@@ -1071,16 +976,6 @@
 
 	.review-band-long {
 		background-color: rgba(244, 63, 94, 0.88);
-	}
-
-	.wbw-bar-spinner {
-		position: absolute;
-		top: 0;
-		left: 0;
-		height: 16px;
-		display: flex;
-		align-items: center;
-		padding-left: 4px;
 	}
 
 	.wbw-markers-fade {

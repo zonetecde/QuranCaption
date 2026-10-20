@@ -1,5 +1,4 @@
 <script lang="ts">
-	import DownloadFromQuranicUniversalAudioSection from './DownloadFromQuranicUniversalAudioSection.svelte';
 	import DownloadFromYouTubeSection from './DownloadFromYouTubeSection.svelte';
 	import ProjectAssetSection from './ProjectAssetSection.svelte';
 	import StockMediaLibrary from './StockMediaLibrary.svelte';

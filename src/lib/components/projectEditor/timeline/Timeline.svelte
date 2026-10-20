@@ -25,7 +25,6 @@
 	import QuickTimelineEditorOverlay from './QuickTimelineEditorOverlay.svelte';
 	import TimelineKeyframeMarkers from './TimelineKeyframeMarkers.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
-	import { scheduleWbwRealign } from '$lib/services/autoSegmentation/auto-realign.svelte';
 
 	let totalDuration = $derived(() => {
 		// Récupère la fin du clip le plus loin dans la timeline
@@ -102,7 +101,6 @@
 	let setStartShortcutRegistered = false;
 	let frameBackwardShortcutRegistered = false;
 	let frameForwardShortcutRegistered = false;
-	let regenerateWbwShortcutRegistered = false;
 	let removeSubtitleAtCursorShortcutRegistered = false;
 	let quickMergeShortcutRegistered = false;
 	let nextMarkedSegmentShortcutRegistered = false;
@@ -583,46 +581,6 @@
 	}
 
 	/**
-	 * Relance WhisperX pour le sous-titre exactement sous le curseur timeline.
-	 * @returns {void}
-	 */
-	function handleRegenerateWbwTimestamps(): void {
-		const clip = globalState.getSubtitleTrack.getCurrentClip(
-			globalState.getTimelineState.cursorPosition
-		);
-		if (!(clip instanceof SubtitleClip)) return;
-
-		scheduleWbwRealign([clip], { reason: 'text', trackHistory: true });
-	}
-
-	/**
-	 * Enregistre le raccourci global de régénération WBW.
-	 * @returns {void}
-	 */
-	function registerRegenerateWbwShortcut(): void {
-		if (!globalState.settings || regenerateWbwShortcutRegistered) return;
-
-		ShortcutService.registerShortcut({
-			key: globalState.settings.shortcuts.SUBTITLES_EDITOR.REGENERATE_WBW_TIMESTAMPS,
-			onKeyDown: handleRegenerateWbwTimestamps
-		});
-		regenerateWbwShortcutRegistered = true;
-	}
-
-	/**
-	 * Supprime le raccourci global de régénération WBW.
-	 * @returns {void}
-	 */
-	function unregisterRegenerateWbwShortcut(): void {
-		if (!globalState.settings || !regenerateWbwShortcutRegistered) return;
-
-		ShortcutService.unregisterShortcut(
-			globalState.settings.shortcuts.SUBTITLES_EDITOR.REGENERATE_WBW_TIMESTAMPS
-		);
-		regenerateWbwShortcutRegistered = false;
-	}
-
-	/**
 	 * Registers the Delete shortcut for the clip under the timeline cursor.
 	 * @returns {void}
 	 */
@@ -905,7 +863,6 @@
 		registerSetStartShortcut();
 		registerFrameBackwardShortcut();
 		registerFrameForwardShortcut();
-		registerRegenerateWbwShortcut();
 		registerRemoveSubtitleAtCursorShortcut();
 		registerQuickMergeShortcut();
 		registerNextMarkedSegmentShortcut();
@@ -920,7 +877,6 @@
 			unregisterSetStartShortcut();
 			unregisterFrameBackwardShortcut();
 			unregisterFrameForwardShortcut();
-			unregisterRegenerateWbwShortcut();
 			unregisterRemoveSubtitleAtCursorShortcut();
 			unregisterQuickMergeShortcut();
 			unregisterNextMarkedSegmentShortcut();

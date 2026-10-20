@@ -122,21 +122,6 @@ export class AnalyticsService {
 		});
 	}
 
-	/** Track auto-segmentation usage. */
-	static trackSegmentationUsage(rangeOrProperties?: string | UnknownRecord, provider?: string) {
-		if (typeof rangeOrProperties === 'string' || rangeOrProperties === undefined) {
-			this.track('ai_segmentation_used', {
-				range: rangeOrProperties,
-				provider
-			});
-			return;
-		}
-
-		this.track('ai_segmentation_used', {
-			...rangeOrProperties
-		});
-	}
-
 	/** Track AI translation usage (legacy or advanced). */
 	static trackTranslationUsage(rangeOrProperties?: string | UnknownRecord, provider?: string) {
 		if (typeof rangeOrProperties === 'string' || rangeOrProperties === undefined) {

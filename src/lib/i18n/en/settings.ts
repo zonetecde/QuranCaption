@@ -42,8 +42,7 @@ const settings = {
 	themeDarkGlass: 'Dark & Glass',
 	themeDarkWhite: 'Dark & White',
 	desktopNotifications: 'Desktop notifications',
-	showOsNotifications:
-		'Show OS notifications when video exports, AI segmentation, or AI trimming finish.',
+	showOsNotifications: 'Show OS notifications when video exports or AI trimming finish.',
 	taskbarAttention:
 		'The taskbar attention signal stays enabled even when desktop notifications are off.',
 	supportMessage: 'If you enjoy Minbar Studio, a donation helps maintain and improve the app.',
@@ -184,7 +183,6 @@ const settings = {
 		SELECT_NEXT_WORD: 'Select Next Word',
 		SELECT_PREVIOUS_WORD: 'Select Previous Word',
 		RESET_START_CURSOR: 'Reset Start Cursor',
-		REGENERATE_WBW_TIMESTAMPS: 'Regenerate WBW Timestamps',
 		REMOVE_SUBTITLE_AT_CURSOR: 'Delete Clip at Cursor',
 		SELECT_ALL_WORDS: 'Select All Words',
 		SET_END_TO_LAST: 'Set End to Next Punctuation',
@@ -228,8 +226,6 @@ const settings = {
 		SELECT_NEXT_WORD: 'Move selection to the next word',
 		SELECT_PREVIOUS_WORD: 'Move selection to the previous word',
 		RESET_START_CURSOR: 'Put the start cursor on the end cursor position',
-		REGENERATE_WBW_TIMESTAMPS:
-			'Regenerate WBW timestamps for the subtitle under the timeline cursor',
 		REMOVE_SUBTITLE_AT_CURSOR: 'Delete the subtitle or silence clip under the cursor',
 		SELECT_ALL_WORDS: 'Select all words in the current verse',
 		SET_END_TO_LAST: 'Move end cursor to the next punctuation mark',

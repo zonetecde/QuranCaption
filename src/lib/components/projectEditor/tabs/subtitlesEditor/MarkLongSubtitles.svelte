@@ -7,7 +7,7 @@
 		clearLongSegmentsReview,
 		getLongSubtitleClips,
 		markLongSegmentsForReview
-	} from '$lib/services/AutoSegmentation';
+	} from '$lib/services/subtitleEditing/review';
 
 	let longSegmentsMatchingThreshold = $derived(
 		getLongSubtitleClips(
@@ -53,7 +53,9 @@
 				<span class="material-icons text-pink-400 text-sm">flag</span>
 				<span class="text-xs text-secondary">{$LL.editor.markBasedOnLength()}</span>
 			</div>
-			<span class="text-xs font-bold text-pink-400">{$LL.editor.markedCount({ count: longSegmentsMarkedCount })}</span>
+			<span class="text-xs font-bold text-pink-400"
+				>{$LL.editor.markedCount({ count: longSegmentsMarkedCount })}</span
+			>
 		</div>
 
 		<div class="grid grid-cols-2 gap-2">

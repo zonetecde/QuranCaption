@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { Mp3QuranService } from '$lib/services/Mp3QuranService';
 import { QdcRecitationService } from '$lib/services/QdcRecitationService';
-import { normalizeQuaSpeaker } from '$lib/services/QuranicUniversalAudioService';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -29,27 +28,5 @@ describe('speaker provider boundaries', () => {
 		expect(await QdcRecitationService.getRecitations()).toEqual([
 			{ id: 7, speaker_name: 'Known speaker', style: 'Murattal' }
 		]);
-	});
-
-	test('normalizes QUA responses and older cache entries without altering the wire data', () => {
-		const wire = {
-			slug: 'speaker-hafs',
-			label: 'Known speaker',
-			reciter: { reciter_id: 'known', name_en: 'Known speaker', name_ar: 'اسم' },
-			riwayah: 'Hafs',
-			style: '',
-			channel: '',
-			source: 'mp3quran',
-			chapters: [1]
-		};
-		const normalized = normalizeQuaSpeaker(wire);
-		expect(normalized.speaker).toEqual({
-			speaker_id: 'known',
-			name_en: 'Known speaker',
-			name_ar: 'اسم'
-		});
-		expect(normalized).not.toHaveProperty('reciter');
-		expect(wire.reciter.reciter_id).toBe('known');
-		expect(normalizeQuaSpeaker(normalized)).toEqual(normalized);
 	});
 });

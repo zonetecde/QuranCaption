@@ -17,67 +17,11 @@ import {
 	type ProjectEditorLayout
 } from '$lib/constants/projectEditor';
 import {
-	DEFAULT_SUBTITLE_LENGTH_PRESET,
-	isSubtitleLengthPreset,
-	SUBTITLE_LENGTH_PRESETS,
-	type SubtitleLengthPreset
-} from '$lib/constants/subtitleLengthPresets';
-import {
 	isAIReasoningMode,
 	type AIReasoningEffort,
 	type AIReasoningMode
 } from '$lib/services/AIReasoning';
 import { PROJECT_TYPE_OPTIONS } from '$lib/types/projectType';
-
-export type AutoSegmentationSettings = {
-	mode: 'api' | 'local';
-	localAsrMode: 'legacy_whisper' | 'multi_aligner' | 'muaalem_local' | 'surah_splitter';
-	minSilenceMs: number;
-	minSpeechMs: number;
-	padMs: number;
-	legacyWhisperModel: 'tiny' | 'base' | 'medium' | 'large';
-	multiAlignerModel:
-		| 'Base'
-		| 'Large'
-		| 'Muaalem-v3.2'
-		| 'Open-Tadabur-Small'
-		| 'Open-DeepDML-Small-Mix'
-		| 'Open-DeepDML-Medium-Mix'
-		| 'Open-IJyad-Large-V3'
-		| 'Open-Naazim-Large-V3-Turbo'
-		| 'Open-Legacy-Tiny'
-		| 'Open-Legacy-Base'
-		| 'Open-Legacy-Medium'
-		| 'Open-Legacy-Large'
-		| 'SurahSplitter-Base-Quran';
-	cloudModel: 'Base' | 'Large';
-	surahSplitterSurah: number | null;
-	device: 'GPU' | 'CPU';
-	hfToken: string;
-	includeWbwTimestamps: boolean;
-	fillBySilence: boolean; // Si true, insère des SilenceClip. Sinon, étend les sous-titres.
-	extendBeforeSilence: boolean; // If true, extend subtitles before silence clips.
-	extendBeforeSilenceMs: number; // Extra ms added before silence when enabled.
-};
-
-export type AITranscriptionSettings = {
-	provider: 'groq' | 'alignment' | 'local';
-	model: 'small' | 'medium' | 'large-v3' | 'large-v3-turbo' | 'qwen3-asr-1.7b';
-	language: string;
-	device: 'AUTO' | 'GPU' | 'CPU';
-	hfToken: string;
-	minSpeakers: number | null;
-	maxSpeakers: number | null;
-	batchSize: number;
-	subtitleLengthPreset: SubtitleLengthPreset;
-	maxWordsPerSegment: number;
-	maxCharsPerSegment: number;
-	subtitleEndPaddingMs: number;
-	subtitleStartLeadMs: number;
-	replaceExisting: boolean;
-	cleanupBatchWords: number;
-	poemMode?: boolean;
-};
 
 export type StockMediaSettings = {
 	pexelsApiKey: string;
@@ -95,7 +39,6 @@ export type AITranslationSettings = {
 	advancedTrimModel: string;
 	advancedTrimReasoningEffort: AIReasoningEffort;
 	projectTranslationReasoningMode: AIReasoningMode;
-	transcriptCleanupReasoningMode: AIReasoningMode;
 	projectTranslationBatchWords: number;
 	projectTranslationIslamicTerms: IslamicTermTranslationMode;
 	advancedAlsoAskReviewed: boolean;
@@ -195,43 +138,6 @@ export default class Settings extends SerializableBase {
 			| 'inverted-minimal-zen'
 	});
 
-	autoSegmentationSettings = $state<AutoSegmentationSettings>({
-		mode: 'api',
-		localAsrMode: 'legacy_whisper',
-		minSilenceMs: 200,
-		minSpeechMs: 1000,
-		padMs: 100,
-		legacyWhisperModel: 'base',
-		multiAlignerModel: 'Base',
-		cloudModel: 'Base',
-		surahSplitterSurah: null,
-		device: 'GPU',
-		hfToken: '',
-		includeWbwTimestamps: false,
-		fillBySilence: true,
-		extendBeforeSilence: false,
-		extendBeforeSilenceMs: 50
-	});
-
-	aiTranscriptionSettings = $state<AITranscriptionSettings>({
-		provider: 'groq',
-		model: 'qwen3-asr-1.7b',
-		language: 'ar',
-		device: 'AUTO',
-		hfToken: '',
-		minSpeakers: null,
-		maxSpeakers: null,
-		batchSize: 8,
-		subtitleLengthPreset: DEFAULT_SUBTITLE_LENGTH_PRESET,
-		maxWordsPerSegment: SUBTITLE_LENGTH_PRESETS.balanced.maxWords,
-		maxCharsPerSegment: SUBTITLE_LENGTH_PRESETS.balanced.maxChars,
-		subtitleEndPaddingMs: 250,
-		subtitleStartLeadMs: 150,
-		replaceExisting: true,
-		cleanupBatchWords: 160,
-		poemMode: false
-	});
-
 	aiTranslationSettings = $state<AITranslationSettings>({
 		omitPromptPrefix: false,
 		openAiApiKey: '',
@@ -239,7 +145,6 @@ export default class Settings extends SerializableBase {
 		advancedTrimModel: 'gpt-5.4-mini',
 		advancedTrimReasoningEffort: 'none',
 		projectTranslationReasoningMode: 'auto',
-		transcriptCleanupReasoningMode: 'auto',
 		projectTranslationBatchWords: 450,
 		projectTranslationIslamicTerms: 'both',
 		advancedAlsoAskReviewed: false,
@@ -345,11 +250,6 @@ export default class Settings extends SerializableBase {
 				keys: [] as string[],
 				name: 'Reset Start Cursor',
 				description: 'Put the start cursor on the end cursor position'
-			},
-			REGENERATE_WBW_TIMESTAMPS: {
-				keys: ['r'],
-				name: 'Regenerate WBW Timestamps',
-				description: 'Regenerate WBW timestamps for the subtitle under the timeline cursor'
 			},
 			SELECT_ALL_WORDS: {
 				keys: ['v'],
@@ -569,6 +469,7 @@ export default class Settings extends SerializableBase {
 		// Lit le fichier JSON
 		const fileContent = await readTextFile(filePath);
 		const settingsData = JSON.parse(fileContent);
+		delete settingsData.shortcuts?.SUBTITLES_EDITOR?.REGENERATE_WBW_TIMESTAMPS;
 
 		const settings = Settings.fromJSON(settingsData) as Settings;
 		const previousVersion = settings.appVersion;
@@ -638,14 +539,6 @@ export default class Settings extends SerializableBase {
 
 		// Migrations ================
 		const subtitleShortcuts = settings.shortcuts.SUBTITLES_EDITOR;
-		if (!subtitleShortcuts.REGENERATE_WBW_TIMESTAMPS) {
-			subtitleShortcuts.REGENERATE_WBW_TIMESTAMPS = {
-				keys: ['r'],
-				name: 'Regenerate WBW Timestamps',
-				description: 'Regenerate WBW timestamps for the subtitle under the timeline cursor'
-			};
-			shouldSave = true;
-		}
 		if (!subtitleShortcuts.REMOVE_SUBTITLE_AT_CURSOR) {
 			subtitleShortcuts.REMOVE_SUBTITLE_AT_CURSOR = {
 				keys: ['delete'],
@@ -791,84 +684,6 @@ export default class Settings extends SerializableBase {
 			settings.persistentUiState.language = 'en';
 			shouldSave = true;
 		}
-		if (!isSubtitleLengthPreset(settings.aiTranscriptionSettings.subtitleLengthPreset)) {
-			const defaultLength = SUBTITLE_LENGTH_PRESETS[DEFAULT_SUBTITLE_LENGTH_PRESET];
-			settings.aiTranscriptionSettings.subtitleLengthPreset = DEFAULT_SUBTITLE_LENGTH_PRESET;
-			settings.aiTranscriptionSettings.maxWordsPerSegment = defaultLength.maxWords;
-			settings.aiTranscriptionSettings.maxCharsPerSegment = defaultLength.maxChars;
-			shouldSave = true;
-		} else if (settings.aiTranscriptionSettings.subtitleLengthPreset !== 'custom') {
-			const preset = SUBTITLE_LENGTH_PRESETS[settings.aiTranscriptionSettings.subtitleLengthPreset];
-			if (
-				settings.aiTranscriptionSettings.maxWordsPerSegment !== preset.maxWords ||
-				settings.aiTranscriptionSettings.maxCharsPerSegment !== preset.maxChars
-			) {
-				settings.aiTranscriptionSettings.maxWordsPerSegment = preset.maxWords;
-				settings.aiTranscriptionSettings.maxCharsPerSegment = preset.maxChars;
-				shouldSave = true;
-			}
-		} else if (
-			typeof settings.aiTranscriptionSettings.maxWordsPerSegment !== 'number' ||
-			!Number.isFinite(settings.aiTranscriptionSettings.maxWordsPerSegment) ||
-			typeof settings.aiTranscriptionSettings.maxCharsPerSegment !== 'number' ||
-			!Number.isFinite(settings.aiTranscriptionSettings.maxCharsPerSegment)
-		) {
-			const defaultLength = SUBTITLE_LENGTH_PRESETS[DEFAULT_SUBTITLE_LENGTH_PRESET];
-			settings.aiTranscriptionSettings.subtitleLengthPreset = DEFAULT_SUBTITLE_LENGTH_PRESET;
-			settings.aiTranscriptionSettings.maxWordsPerSegment = defaultLength.maxWords;
-			settings.aiTranscriptionSettings.maxCharsPerSegment = defaultLength.maxChars;
-			shouldSave = true;
-		}
-		const subtitleEndPaddingMs = Number(settings.aiTranscriptionSettings.subtitleEndPaddingMs);
-		const normalizedSubtitleEndPaddingMs = Number.isFinite(subtitleEndPaddingMs)
-			? Math.min(2000, Math.max(0, Math.round(subtitleEndPaddingMs)))
-			: 250;
-		if (settings.aiTranscriptionSettings.subtitleEndPaddingMs !== normalizedSubtitleEndPaddingMs) {
-			settings.aiTranscriptionSettings.subtitleEndPaddingMs = normalizedSubtitleEndPaddingMs;
-			shouldSave = true;
-		}
-		const subtitleStartLeadMs = Number(settings.aiTranscriptionSettings.subtitleStartLeadMs);
-		const normalizedSubtitleStartLeadMs = Number.isFinite(subtitleStartLeadMs)
-			? Math.min(2000, Math.max(0, Math.round(subtitleStartLeadMs)))
-			: 150;
-		if (settings.aiTranscriptionSettings.subtitleStartLeadMs !== normalizedSubtitleStartLeadMs) {
-			settings.aiTranscriptionSettings.subtitleStartLeadMs = normalizedSubtitleStartLeadMs;
-			shouldSave = true;
-		}
-		if (settings.aiTranscriptionSettings.language !== 'ar') {
-			settings.aiTranscriptionSettings.language = 'ar';
-			shouldSave = true;
-		}
-		if (!['groq', 'alignment', 'local'].includes(settings.aiTranscriptionSettings.provider)) {
-			settings.aiTranscriptionSettings.provider = 'groq';
-			shouldSave = true;
-		}
-		const legacyTranscriptionSettings =
-			settings.aiTranscriptionSettings as AITranscriptionSettings & {
-				addDiacritics?: unknown;
-				cleanupReasoningEffort?: unknown;
-				minSilenceDuration?: unknown;
-			};
-		if ('addDiacritics' in legacyTranscriptionSettings) {
-			delete legacyTranscriptionSettings.addDiacritics;
-			shouldSave = true;
-		}
-		if ('cleanupReasoningEffort' in legacyTranscriptionSettings) {
-			delete legacyTranscriptionSettings.cleanupReasoningEffort;
-			shouldSave = true;
-		}
-		if ('minSilenceDuration' in legacyTranscriptionSettings) {
-			delete legacyTranscriptionSettings.minSilenceDuration;
-			shouldSave = true;
-		}
-		const cleanupBatchWords = Math.min(
-			640,
-			Math.max(160, Number(settings.aiTranscriptionSettings.cleanupBatchWords) || 160)
-		);
-		if (settings.aiTranscriptionSettings.cleanupBatchWords !== cleanupBatchWords) {
-			settings.aiTranscriptionSettings.cleanupBatchWords = cleanupBatchWords;
-			shouldSave = true;
-		}
 		if (!settings.aiTranslationSettings.textAiApiEndpoint?.trim()) {
 			settings.aiTranslationSettings.textAiApiEndpoint = DEFAULT_TEXT_AI_ENDPOINT;
 			shouldSave = true;
@@ -882,10 +697,6 @@ export default class Settings extends SerializableBase {
 		}
 		if (!isAIReasoningMode(settings.aiTranslationSettings.projectTranslationReasoningMode)) {
 			settings.aiTranslationSettings.projectTranslationReasoningMode = 'auto';
-			shouldSave = true;
-		}
-		if (!isAIReasoningMode(settings.aiTranslationSettings.transcriptCleanupReasoningMode)) {
-			settings.aiTranslationSettings.transcriptCleanupReasoningMode = 'auto';
 			shouldSave = true;
 		}
 		const projectTranslationBatchWords = Math.min(

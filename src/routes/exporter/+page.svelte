@@ -43,7 +43,7 @@
 		type ExportFrameCopyJob,
 		type ExportBlankSourceJob
 	} from '$lib/services/ExportCaptureTiming';
-	import type { ExportFadeSettings } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
+	import type { ExportFadeSettings } from '$lib/components/projectEditor/tabs/styleEditor/controls/types';
 	import QPCFontProvider from '$lib/services/FontProvider';
 	import SoosiProvider from '$lib/services/SoosiProvider';
 	import MinimalQuranProvider from '$lib/services/MinimalQuranProvider';

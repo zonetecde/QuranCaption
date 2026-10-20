@@ -1,5 +1,4 @@
-import type { SubtitleClip } from '$lib/classes/Clip.svelte';
-import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
+import type { SubtitleClip, TranscriptWordTiming } from '$lib/classes/Clip.svelte';
 import { getTimedOverlayRanges, type TimedOverlayRange } from './TimedOverlayRanges';
 
 /**
@@ -168,7 +167,7 @@ export function getExportWordByWordHighlightTimings({
 		const baseTimeS = sourceClip.alignmentMetadata?.timeFrom ?? sourceClip.startTime / 1000;
 		const words = sourceClip.alignmentMetadata?.words ?? [];
 		const wordStartTimings = words
-			.map((word: SegmentationWordTimestamp) => Math.round((baseTimeS + word.start) * 1000))
+			.map((word: TranscriptWordTiming) => Math.round((baseTimeS + word.start) * 1000))
 			.filter((timing: number) => timing >= sourceClip.startTime && timing <= sourceClip.endTime);
 
 		if (!isShowCurrentWordOnlyEnabledForClipId(sourceClip.id)) return wordStartTimings;

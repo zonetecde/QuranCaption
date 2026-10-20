@@ -18,8 +18,6 @@ pub mod media;
 pub mod preview_audio;
 /// Commandes de capture d'écran.
 pub mod screenshot;
-/// Commandes de segmentation cloud/local.
-pub mod segmentation;
 /// Commandes de recherche de medias stock (Pexels / Pixabay).
 pub mod stock_media;
 /// Commandes de mise à jour de Minbar Studio.

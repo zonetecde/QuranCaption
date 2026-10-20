@@ -58,6 +58,18 @@ function createClip(
 }
 
 describe('TranscriptBandService', () => {
+	it('shows selectable words from manual subtitles without word timestamps', async () => {
+		const clip = createClip(5, 1000, 'manual {{quoted words}}', []);
+		clip.alignmentMetadata = null;
+		const words = await buildTranscriptBandWords([clip]);
+
+		expect(words.map((word) => word.text)).toEqual(['manual', 'quoted', 'words']);
+		expect(words.map((word) => word.kind)).toEqual(['plain', 'citation', 'citation']);
+		expect(getTranscriptBandClipRange(words, 5)).toEqual({ startIndex: 0, endIndex: 2 });
+		expect(createTranscriptBandSelection(words, 0, 2)?.text).toBe('manual {{quoted words}}');
+		expect(clip.alignmentMetadata).toBeNull();
+	});
+
 	it('flattens aligned words and preserves Quran and citation portions', async () => {
 		const words = await buildTranscriptBandWords([
 			createClip(10, 1000, 'before {{2:255:1-2}} {{a quote}}', [

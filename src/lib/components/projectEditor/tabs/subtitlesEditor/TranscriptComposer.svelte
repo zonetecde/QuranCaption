@@ -7,7 +7,6 @@
 	} from '$lib/classes/Clip.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { scheduleWbwRealign } from '$lib/services/AutoSegmentation';
 	import { canRemoveProjectSpeaker, getVisibleProjectSpeakers } from '$lib/services/SpeakerLibrary';
 	import { onDestroy, onMount } from 'svelte';
 	import { get } from 'svelte/store';
@@ -108,7 +107,8 @@
 	): TranscriptAlignmentMetadata | null {
 		if (!selection) return null;
 		const selectedWords = selection.words;
-		if (selectedWords.length === 0) return null;
+		if (selectedWords.length === 0 || selectedWords.some((word) => word.estimatedTiming))
+			return null;
 
 		const durationS = Math.max(0, (clip.endTime - clip.startTime) / 1000);
 		const words = normalizeTranscriptWordTimings(
@@ -172,7 +172,6 @@
 		}
 
 		const clip = editedTranscript();
-		const textChanged = clip?.text !== normalizedText;
 		const selectionAlignment = clip
 			? buildSelectionAlignmentMetadata(clip, selectedTranscriptSelection, normalizedText)
 			: null;
@@ -205,7 +204,6 @@
 		globalState.currentProject!.detail.updateVideoDetailAttributes();
 		globalState.updateVideoPreviewUI();
 		toast.success(clip ? get(LL).editor.transcriptUpdated() : get(LL).editor.transcriptAdded());
-		if (clip && textChanged && !selectionAlignment) scheduleWbwRealign([clip], { reason: 'text' });
 
 		editorState().editSubtitle = null;
 		editorState().pendingSplitEditNextId = null;

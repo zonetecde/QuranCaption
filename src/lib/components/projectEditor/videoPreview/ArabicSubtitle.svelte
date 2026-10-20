@@ -2,7 +2,7 @@
 	import { highlightStyleCategory } from '$lib/components/projectEditor/tabs/styleEditor/presets/actions/styleActions';
 	import { getTranscriptReferenceRenderParts } from '$lib/components/projectEditor/videoPreview/helpers/transcriptReferences';
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
-	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
+	import { ClipWithTranslation, type TranscriptWordTiming } from '$lib/classes/Clip.svelte';
 	import {
 		EMPTY_INLINE_STYLE_FLAGS,
 		getInlineStyleCss,
@@ -18,7 +18,6 @@
 		type QuranTranscriptReference
 	} from '$lib/services/TranscriptReferenceService';
 	import { untrack } from 'svelte';
-	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 	import {
 		createPlainOverlaySegment,
 		getMergedClipsWithoutWordOverlap,
@@ -343,7 +342,7 @@
 	/** Mot rendu avec un ou plusieurs timings WBW. */
 	type ArabicWordByWordEntry = {
 		text: string;
-		timings: SegmentationWordTimestamp[];
+		timings: TranscriptWordTiming[];
 		flags: TranslationInlineStyleFlags;
 	};
 
@@ -407,20 +406,19 @@
 	 * @returns Le timing sélectionné, ou `null` si aucun.
 	 */
 	function selectWordTimingForCurrentClip(
-		timings: SegmentationWordTimestamp[],
+		timings: TranscriptWordTiming[],
 		cursorTimeS: number,
 		currentClipId: number | null
-	): SegmentationWordTimestamp | null {
+	): TranscriptWordTiming | null {
 		const validTimings = timings.filter(
-			(timing): timing is SegmentationWordTimestamp => timing !== undefined && timing !== null
+			(timing): timing is TranscriptWordTiming => timing !== undefined && timing !== null
 		);
 		if (validTimings.length === 0) return null;
 
 		// Priorité 1 : timing correspondant au clip courant
 		if (currentClipId !== null) {
 			const currentClipTiming = validTimings.find(
-				(timing) =>
-					(timing as SegmentationWordTimestamp & { clipId?: number }).clipId === currentClipId
+				(timing) => (timing as TranscriptWordTiming & { clipId?: number }).clipId === currentClipId
 			);
 			if (currentClipTiming) return currentClipTiming;
 		}
@@ -650,7 +648,7 @@
 						start: word.start + clipOffsetS,
 						end: word.end + clipOffsetS,
 						clipId: sourceClip.id
-					}) as SegmentationWordTimestamp & { clipId: number }
+					}) as TranscriptWordTiming & { clipId: number }
 			);
 			const hasReferenceParts = getTranscriptReferenceLogicalParts(sourceClip.text) !== null;
 			const sourceWordCount = splitVisibleWords(sourceClip.text).length;
@@ -746,7 +744,7 @@
 								currentClipId
 							) ?? word.timings[0]
 					)
-					.filter((word): word is SegmentationWordTimestamp => word !== null) ?? [],
+					.filter((word): word is TranscriptWordTiming => word !== null) ?? [],
 			clipStartTimeS: renderData?.clipStartTimeS,
 			baseOpacity: subtitleOpacity,
 			getStyleValue: (styleId) =>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { DimensionValue } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
+	import type { DimensionValue } from '$lib/components/projectEditor/tabs/styleEditor/controls/types';
 	import LL from '$lib/i18n/i18n-svelte';
 	import type { ApplyStyleControlValue, StyleControlValue } from './types';
 	import { asDimensionValue } from './utils';

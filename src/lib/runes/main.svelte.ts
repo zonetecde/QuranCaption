@@ -165,7 +165,6 @@ class GlobalState {
 	});
 
 	shared = $state({
-		autoSegmentationWizard: null as unknown,
 		projectSearch: {
 			openRequest: 0
 		},

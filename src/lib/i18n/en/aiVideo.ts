@@ -89,10 +89,8 @@ const aiVideo = {
 	reasoningMaximum: 'Maximum',
 	enableThinking: 'Enable thinking',
 	translationReasoning: 'Translation reasoning',
-	cleanupReasoning: 'Transcript cleanup reasoning',
 	aiSelectedSpeakerError:
 		'AI selected a speaker that could not be resolved. Please pick one manually in the review.',
-	subtitlesFailed: 'Subtitles failed: {message}. Project created without subtitles.',
 	failedToCreateProject: 'Failed to create project: {error}',
 	aiTrimBatchFailed: 'AI trim batch {batch} failed: {error}',
 	segmentsNeedReview: '{count} segments need manual review.',
@@ -143,7 +141,6 @@ const aiVideo = {
 	downloadingBgVideo: 'Downloading background video...',
 	addingBgVideo: 'Adding background video...',
 	addingAudioToTimeline: 'Adding audio to timeline...',
-	generatingSubtitles: 'Generating subtitles with AI...',
 	copyingAudio: 'Copying audio file...',
 	downloadingRecitation: 'Downloading recitation...',
 	trimmingAudio: 'Trimming audio to verse range...',

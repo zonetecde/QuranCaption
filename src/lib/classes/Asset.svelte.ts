@@ -106,7 +106,6 @@ export class Asset extends SerializableBase {
 
 			this.duration = new Duration(durationMs);
 			this.durationLoadState = 'success';
-			await this.checkAudioTimestampStretch();
 
 			if (durationMs === -1) {
 				this.duration = new Duration(0);
@@ -125,31 +124,6 @@ export class Asset extends SerializableBase {
 				this.durationLoadError = 'Unable to retrieve media duration. Please check the logs.';
 				console.error('Unable to retrieve media duration', error);
 			}
-		}
-	}
-
-	/**
-	 * Détecte un éventuel "étirement" des timestamps audio (PTS plus longs que le
-	 * contenu réel décodé) et mémorise le résultat dans les métadonnées, afin que
-	 * l'auto-segmentation puisse re-timer l'audio plus tard — y compris dans une
-	 * session ultérieure. Silencieux : aucune action n'est prise ici, le re-timing
-	 * a lieu au moment d'une auto-segmentation.
-	 * @returns {Promise<void>}
-	 */
-	private async checkAudioTimestampStretch(): Promise<void> {
-		if (this.type !== AssetType.Audio && this.type !== AssetType.Video) return;
-		// Déjà corrigé, ou déjà détecté précédemment : rien à refaire.
-		if (this.metadata.audioRetimeDone === true) return;
-		if (typeof this.metadata.audioRetimeNeeded === 'boolean') return;
-
-		try {
-			const stretchMs = (await invoke('audio_timestamp_stretch_ms', {
-				filePath: this.filePath
-			})) as number;
-			// ~500ms d'écart cumulé avant de considérer la dérive comme perceptible.
-			this.metadata.audioRetimeNeeded = stretchMs > 500;
-		} catch (error) {
-			console.warn('Unable to detect audio timestamp stretch for asset:', error);
 		}
 	}
 

@@ -11,21 +11,7 @@ import { SerializableBase } from './misc/SerializableBase';
 import { globalState } from '$lib/runes/main.svelte';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
-import type { AITranscriptionResult, SpeakerNameMap } from '$lib/types/transcription';
-import type { TranscriptAiAnalysis } from '$lib/services/TranscriptPostProcessor';
-import type { StoredSegmentationContext } from '$lib/services/autoSegmentation/types';
-
-export type AITranscriptCleanupState = {
-	sourceResult: AITranscriptionResult;
-	speakerMap: SpeakerNameMap;
-	analyses: TranscriptAiAnalysis[];
-	errors: string[];
-	nextBatchIndex: number;
-	totalBatches: number;
-	batchWords: number;
-	poemMode?: boolean;
-	appliedClipIds: number[];
-};
+import type { AITranscriptionResult } from '$lib/types/transcription';
 
 /**
  * État de l'éditeur de projet, utilisé pour gérer l'interface utilisateur et les interactions
@@ -337,20 +323,10 @@ export class SubtitlesEditorState extends SerializableBase {
 	showWordTranslation: boolean = $state(true);
 	showWordTransliteration: boolean = $state(false);
 	initialLowConfidenceCount: number = $state(0);
-	segmentationContext: StoredSegmentationContext = $state({
-		audioId: null,
-		source: null,
-		effectiveMode: null,
-		modelName: null,
-		device: null,
-		includeWbwTimestamps: true,
-		alignedSegments: []
-	});
 	subdivideMaxVersesPerSegment: number = $state(1);
 	subdivideMaxWordsPerSegment: number = $state(30);
 	subdivideMaxDurationPerSegment: number = $state(30);
 	subdivideOnlySplitAtStopSigns: boolean = $state(true);
-	aiSemanticSplitMaxWords: number = $state(10);
 
 	// Vitesse de lecture utilisée pendant la transcription manuelle.
 	playbackSpeed: number = $state(1.0);
@@ -361,8 +337,6 @@ export class SubtitlesEditorState extends SerializableBase {
 	// Intervenants ajoutés manuellement avant leur première utilisation dans un segment.
 	additionalSpeakers: string[] = $state([]);
 
-	// Nettoyage IA interrompu, conservé avec le projet pour pouvoir le reprendre.
-	aiTranscriptCleanup: AITranscriptCleanupState | null = $state(null);
 	// Dernier résultat nettoyé conservé pour la bande transcript complète.
 	rawTranscription: AITranscriptionResult | null = $state(null);
 

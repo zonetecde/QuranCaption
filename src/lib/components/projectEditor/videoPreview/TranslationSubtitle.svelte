@@ -31,7 +31,7 @@
 		getDecorativeBracketCss,
 		getDecorativeBracketGlyphs
 	} from './helpers/decorativeBrackets';
-	import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
+	import type { TranscriptWordTiming } from '$lib/classes/Clip.svelte';
 	import {
 		type WordByWordHighlightState,
 		getWordByWordLineBackgroundClass,
@@ -83,7 +83,7 @@
 
 	type TranslationWbwRenderData = {
 		segments: TranslationWbwOverlaySegment[];
-		words: SegmentationWordTimestamp[];
+		words: TranscriptWordTiming[];
 		clipStartTimeS: number;
 		maxRevealedUnitIndexByWordIndex: number[];
 	};
@@ -393,7 +393,7 @@
 		}
 
 		const segments: TranslationWbwOverlaySegment[] = [];
-		const words: SegmentationWordTimestamp[] = [];
+		const words: TranscriptWordTiming[] = [];
 		const wbwIndexByArabicWord = new Map<number, number>();
 		const maxRevealedUnitIndexByWordIndex: number[] = [];
 
@@ -524,7 +524,7 @@
 		}
 
 		const segments: TranslationWbwOverlaySegment[] = [];
-		const words: SegmentationWordTimestamp[] = [];
+		const words: TranscriptWordTiming[] = [];
 		const maxRevealedUnitIndexByWordIndex: number[] = [];
 		const sourceClips = getMergedClipsWithoutWordOverlap(group.clips);
 		let clipStartTimeS = group.startTime / 1000;

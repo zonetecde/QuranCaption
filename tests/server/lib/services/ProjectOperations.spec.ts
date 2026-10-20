@@ -13,8 +13,6 @@ import {
 	getVisibleProjectSpeakers,
 	removeProjectSpeaker
 } from '$lib/services/SpeakerLibrary';
-import { buildAITranscriptionFromSubtitleTrack } from '$lib/services/AITranscription';
-import { getAutoSegmentationAudioClips } from '$lib/services/autoSegmentation/audio';
 import {
 	applyProjectAudioEffect,
 	prepareAudioEffectPreview
@@ -86,7 +84,7 @@ afterEach(() => {
 });
 
 describe('explicit project ownership', () => {
-	it('reads speakers, transcript and audio from the requested inactive project', () => {
+	it('reads speakers from the requested inactive project', () => {
 		const owner = globalState.currentProject!;
 		owner.content.timeline.getFirstTrack(TrackType.Subtitle).clips = [
 			new SubtitleClip(0, 1000, 'Owned text', 'Guest')
@@ -94,9 +92,6 @@ describe('explicit project ownership', () => {
 		addAudio(owner);
 		globalState.currentProject = createProject('Other');
 		expect(getVisibleProjectSpeakers(owner)).toEqual(['Owner', 'Guest']);
-		expect(buildAITranscriptionFromSubtitleTrack(owner).result.segments[0].text).toBe('Owned text');
-		expect(getAutoSegmentationAudioClips(owner)[0].filePath).toBe('C:/lecture/source.wav');
-		expect(getAutoSegmentationAudioClips(globalState.currentProject)).toEqual([]);
 		expect(() => addProjectSpeaker(owner, 'Late arrival')).toThrow();
 		expect(owner.projectEditorState.subtitlesEditor.additionalSpeakers).toEqual([]);
 		expect(ProjectHistoryManager.undo()).toBe(false);

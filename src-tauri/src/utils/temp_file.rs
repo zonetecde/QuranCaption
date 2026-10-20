@@ -1,4 +1,3 @@
-﻿use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -20,16 +19,6 @@ pub fn unique_temp_path(prefix: &str, extension: &str) -> Result<PathBuf, String
         nonce,
         extension.trim_start_matches('.')
     )))
-}
-
-/// Garde RAII qui supprime automatiquement un fichier temporaire à la sortie de scope.
-pub struct TempFileGuard(pub PathBuf);
-
-impl Drop for TempFileGuard {
-    /// Tente de supprimer le fichier temporaire sans propager d'erreur.
-    fn drop(&mut self) {
-        let _ = fs::remove_file(&self.0);
-    }
 }
 
 #[cfg(test)]

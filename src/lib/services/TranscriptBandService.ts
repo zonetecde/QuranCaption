@@ -3,6 +3,7 @@ import { Quran } from '$lib/classes/Quran';
 import type { SubtitleClip, TranscriptWordTiming } from '$lib/classes/Clip.svelte';
 import type { AITranscriptionResult } from '$lib/types/transcription';
 import {
+	formatTranscriptReferencesForExport,
 	getTranscriptReferenceLogicalParts,
 	type QuranTranscriptReference,
 	type TranscriptReferenceLogicalPart
@@ -19,6 +20,7 @@ export type TranscriptBandWord = {
 	clipWordIndex: number;
 	location?: string;
 	confidence?: number;
+	estimatedTiming?: boolean;
 	partIndex: number;
 	partWordIndex: number;
 	partWordCount: number;
@@ -127,7 +129,7 @@ async function resolveTranscriptParts(
 /**
  * Construit la bande globale de mots alignés du projet, dans l'ordre de l'audio.
  *
- * @param {ReadonlyArray<SubtitleClip>} clips Sous-titres portant des timestamps WBW.
+ * @param {ReadonlyArray<SubtitleClip>} clips Sous-titres du projet, avec ou sans timestamps WBW.
  * @param {AITranscriptionResult | null} sourceResult Dernier résultat nettoyé éventuel.
  * @returns {Promise<TranscriptBandWord[]>} Mots aplatis avec timestamps absolus et structure source.
  */
@@ -148,20 +150,30 @@ export async function buildTranscriptBandWords(
 /**
  * Construit la bande à partir des mots encore présents dans les sous-titres.
  *
- * @param {ReadonlyArray<SubtitleClip>} clips Sous-titres portant des timestamps WBW.
+ * @param {ReadonlyArray<SubtitleClip>} clips Sous-titres du projet, avec ou sans timestamps WBW.
  * @returns {Promise<TranscriptBandWord[]>} Mots associés à leurs clips.
  */
 async function buildAssignedTranscriptBandWords(
 	clips: ReadonlyArray<SubtitleClip>
 ): Promise<TranscriptBandWord[]> {
 	const orderedClips = clips
-		.filter((clip) => (clip.alignmentMetadata?.words.length ?? 0) > 0)
 		.slice()
 		.sort((left, right) => left.startTime - right.startTime || left.id - right.id);
 	const words: TranscriptBandWord[] = [];
 
 	for (const clip of orderedClips) {
-		const sourceWords = clip.alignmentMetadata?.words ?? [];
+		let sourceWords = clip.alignmentMetadata?.words ?? [];
+		const estimatedTiming = sourceWords.length === 0;
+		if (estimatedTiming) {
+			const text = await formatTranscriptReferencesForExport(clip.text, 'Plain', false, false);
+			const plainWords = text.trim().split(/\s+/u).filter(Boolean);
+			const wordDuration = Math.max(0, clip.endTime - clip.startTime) / plainWords.length / 1000;
+			sourceWords = plainWords.map((word, index) => ({
+				word,
+				start: index * wordDuration,
+				end: (index + 1) * wordDuration
+			}));
+		}
 		const legacyQuranReference =
 			getTranscriptReferenceLogicalParts(clip.text) === null && clip instanceof QuranSubtitleClip
 				? {
@@ -172,9 +184,10 @@ async function buildAssignedTranscriptBandWords(
 					}
 				: null;
 		const parts = await resolveTranscriptParts(clip.text, sourceWords.length, legacyQuranReference);
-		const baseTimeS = Number.isFinite(clip.alignmentMetadata?.timeFrom)
-			? Number(clip.alignmentMetadata?.timeFrom)
-			: clip.startTime / 1000;
+		const baseTimeS =
+			!estimatedTiming && Number.isFinite(clip.alignmentMetadata?.timeFrom)
+				? Number(clip.alignmentMetadata?.timeFrom)
+				: clip.startTime / 1000;
 		let sourceWordIndex = 0;
 
 		for (const [partIndex, part] of parts.entries()) {
@@ -204,6 +217,7 @@ async function buildAssignedTranscriptBandWords(
 					),
 					clipId: clip.id,
 					clipWordIndex: sourceWordIndex,
+					...(estimatedTiming ? { estimatedTiming: true } : {}),
 					...(sourceWord.location ? { location: sourceWord.location } : {}),
 					...(typeof sourceWord.confidence === 'number'
 						? { confidence: sourceWord.confidence }

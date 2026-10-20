@@ -983,7 +983,6 @@
 										{styleGroups}
 										{headerStyle}
 										target={currentStyleTarget()}
-										searchActive={styleSearchQuery() !== ''}
 										mushafFontLocked={isMushafFontLocked()}
 										backgroundRequiresMaxHeight={category.id === 'background' &&
 											isBackgroundMaxHeightMissing()}

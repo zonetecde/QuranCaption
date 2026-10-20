@@ -20,9 +20,6 @@ const tour = {
 	stepShortcutsTitle: 'Shortcuts & walkthrough',
 	stepShortcutsDesc:
 		'Hover the ? icon to see all available shortcuts. These speed up the segmentation process significantly.',
-	stepAutoSegmentTitle: 'Auto-Segment with AI',
-	stepAutoSegmentDesc:
-		'Prefer automation? Click Auto-Segment to have the AI detect surah boundaries and verse timings from the audio.',
 	stepTranslationsTitle: 'Go to Translations',
 	stepTranslationsDesc:
 		'Head to the Translations tab to add translated subtitles below the Arabic text.',

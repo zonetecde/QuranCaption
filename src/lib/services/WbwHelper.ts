@@ -1,19 +1,13 @@
-import type { SubtitleClip } from '$lib/classes/Clip.svelte';
+import type { SubtitleClip, TranscriptWordTiming } from '$lib/classes/Clip.svelte';
 import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { Quran } from '$lib/classes/Quran';
 import { globalState } from '$lib/runes/main.svelte';
-import {
-	buildSubtitleAlignmentMetadata,
-	refreshSegmentationContextFromTrack,
-	type SegmentationSegment,
-	type SegmentationWordTimestamp
-} from '$lib/services/AutoSegmentation';
 import toast from 'svelte-5-french-toast';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
-export type ManualWordByWordDraftWord = SegmentationWordTimestamp & {
+export type ManualWordByWordDraftWord = TranscriptWordTiming & {
 	location: string;
 	word: string;
 };
@@ -379,7 +373,6 @@ export function stampManualWordByWordCurrentWordAtCursor(): void {
 			clip,
 			normalizeManualWordByWordDraftWords(draftWords, clipDurationS)
 		);
-		refreshSegmentationContextFromTrack(false);
 		exitManualWordByWordEdit(true);
 		return;
 	}
@@ -399,7 +392,6 @@ export function stampManualWordByWordCurrentWordAtCursor(): void {
 		clip,
 		normalizeManualWordByWordDraftWords(draftWords, clipDurationS)
 	);
-	refreshSegmentationContextFromTrack(false);
 	exitManualWordByWordEdit(true);
 }
 
@@ -561,29 +553,16 @@ function syncManualWordByWordDraftToClip(
 	clip: QuranSubtitleClip,
 	draftWords: ManualWordByWordDraftWord[]
 ): void {
-	const segment: SegmentationSegment = {
-		segment: clip.alignmentMetadata?.segment ?? 0,
-		ref_from: `${clip.surah}:${clip.verse}:${clip.startWordIndex + 1}`,
-		ref_to: `${clip.surah}:${clip.verse}:${clip.endWordIndex + 1}`,
-		matched_text: clip.text,
-		time_from: clip.startTime / 1000,
-		time_to: clip.endTime / 1000
-	};
-
 	markWordByWordEditAsManual(clip);
 	clip.needsWbwTimestampReview = false;
-	clip.alignmentMetadata = buildSubtitleAlignmentMetadata(
-		clip.alignmentMetadata?.source ?? 'local',
-		segment,
-		draftWords
-	) ?? {
+	clip.alignmentMetadata = {
 		source: clip.alignmentMetadata?.source ?? 'local',
-		segment: segment.segment ?? 0,
-		refFrom: segment.ref_from ?? '',
-		refTo: segment.ref_to ?? '',
-		matchedText: segment.matched_text ?? '',
-		timeFrom: segment.time_from ?? 0,
-		timeTo: segment.time_to ?? 0,
+		segment: clip.alignmentMetadata?.segment ?? 0,
+		refFrom: `${clip.surah}:${clip.verse}:${clip.startWordIndex + 1}`,
+		refTo: `${clip.surah}:${clip.verse}:${clip.endWordIndex + 1}`,
+		matchedText: clip.text,
+		timeFrom: clip.startTime / 1000,
+		timeTo: clip.endTime / 1000,
 		words: draftWords
 	};
 

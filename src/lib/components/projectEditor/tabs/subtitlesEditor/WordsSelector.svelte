@@ -9,7 +9,7 @@
 	} from '$lib/classes/Clip.svelte';
 	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { automaticSplitSubtitleAtWord } from '$lib/services/AutoSegmentation';
+	import { automaticSplitSubtitleAtWord } from '$lib/services/subtitleEditing/split';
 	import {
 		ensureManualWordByWordEditStateIsValid,
 		exitManualWordByWordEdit,
@@ -670,16 +670,12 @@
 	async function handleAutomaticSplitFromContextMenu(): Promise<void> {
 		const wordIndex = contextMenuWordIndex;
 		const editSubtitle = subtitlesEditorState().editSubtitle;
-		const segmentationContext = globalState.getSubtitlesEditorState.segmentationContext;
 		contextMenuWordIndex = null;
 		currentMenu.set(null);
 		await tick();
 
 		if (wordIndex === null || !(editSubtitle instanceof QuranSubtitleClip)) return;
-		if (
-			!segmentationContext.includeWbwTimestamps &&
-			(editSubtitle.alignmentMetadata?.words.length ?? 0) === 0
-		) {
+		if ((editSubtitle.alignmentMetadata?.words.length ?? 0) === 0) {
 			toast.error(get(LL).editor.noWbwTimestampsError());
 			return;
 		}

@@ -86,13 +86,6 @@
 			advanceMode: 'button',
 			buttonLabel: $LL.common.next()
 		},
-		{
-			targetId: 'auto-segment-button',
-			title: $LL.tour.stepAutoSegmentTitle(),
-			description: $LL.tour.stepAutoSegmentDesc(),
-			advanceMode: 'button',
-			buttonLabel: $LL.common.next()
-		},
 		// ── TRANSLATIONS ────────────────────────────────────────────────────────
 		{
 			targetId: 'nav-tab-translations',

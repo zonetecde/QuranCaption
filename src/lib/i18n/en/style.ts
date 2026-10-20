@@ -10,9 +10,6 @@ const style = {
 	stylePresetDeleted: 'Style preset deleted.',
 	communityPresetSaved: 'Community preset saved and applied.',
 	communityPresetPublished: 'Community preset published.',
-	hifzMode: 'Hifz Mode',
-	enableHifzMode: 'Enable Hifz mode',
-	createMemorizationVideos: 'Create videos with repeated verses to help memorization.',
 	globalSettings: 'Global \u2014 video overlay, speaker name, and background settings',
 	surahSettings: 'Surah \u2014 speaker and surah name display on the screen',
 	verseSettings: 'Verse \u2014 subtitles font, color, size, and animations',
@@ -108,9 +105,7 @@ const style = {
 	wbwMissingInfo: 'Word-by-word styles need WBW timestamps on at least one subtitle.',
 	translationWbwMissingMappingInfo:
 		'Translation word-by-word styles need at least one WBW translation mapping in the translations editor.',
-	wbwStep1:
-		'1. Add them with AI-Segmentation and make sure to enable Include word-by-word timestamps.',
-	wbwStep2: '2. Or add them manually in Transcription by selecting a transcript segment.',
+	wbwStep2: 'Add them manually in Transcription by selecting a transcript segment.',
 	onScreenElements: 'On-screen elements',
 	customElements: 'Custom elements',
 	noCustomElements: 'No custom elements yet. Add text or an image to begin.',

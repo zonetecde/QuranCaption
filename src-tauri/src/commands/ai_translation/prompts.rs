@@ -2,7 +2,6 @@ use serde_json::{json, Value};
 
 use super::types::{
     AdvancedBoldBatchPayload, AdvancedTrimBatchPayload, AdvancedWbwTranslationBatchPayload,
-    TranscriptCleanupBatchPayload,
 };
 
 pub const DEFAULT_TEXT_AI_ENDPOINT: &str = "https://api.openai.com/v1/responses";
@@ -91,59 +90,6 @@ Rules:
 - Generated free text and citation text must not contain `{{` or `}}`.
 - Compact output keys: root `i`; item `i` subtitle id, `f` translated free-text slots, `c` citation translations, `q` Quran ranges. Citation keys: `i`,`t`. Quran range keys: `i`,`s`,`e`.
 - Return JSON only, matching the schema exactly.
-"#;
-
-pub const TRANSCRIPT_CLEANUP_SYSTEM_PROMPT: &str = r#"Review an indexed Islamic lecture transcript before subtitle segmentation. Return only conservative structured operations over the supplied word IDs.
-
-The local matcher has already inserted Quran text into words where `q=true`. Those words are protected, although the match itself may be rejected through `x`.
-
-General:
-- Preserve language, meaning, order, wording, and all meaningful speech. Never summarize, translate, invent, censor, or freely rewrite.
-- Correct only an unmistakable ASR error, using the smallest contiguous range. Corrections must not overlap or also receive punctuation. Use `high` only when certain; only high-confidence operations are applied.
-- Remove only an immediate accidental restart whose duplicate adds no meaning, e.g. `إذا لم ترتب إذا لم ترتب صلواتك` → `إذا لم ترتب صلواتك`. Preserve repetition for emphasis, teaching, rhythm, quotation, supplication, or recitation, including `اتق الله، اتق الله`. When unsure, preserve it.
-- Never edit, quote, punctuate, or remove a `q=true` word through `c`, `quotes`, or `p`; only `x` may reject its complete Quran candidate.
-
-Verbatim non-Quran quotations:
-- Detect exact narrated hadith wording, a scholar's exact words, or another unmistakable direct quotation. Never mark paraphrase, explanation, summary, common religious wording, or uncertainty as a quote.
-- `hadith` includes a Companion's or narrator's verbatim report concerning the Prophet ﷺ. Do not source, authenticate, grade, identify, or explain it. `scholar` requires a named or clearly identified scholar; use `generic` for another certain direct quote.
-- Exclude attribution such as `قال أنس`, `قال النبي`, `قال العالم`, `ذكر الشيخ`, or `روى فلان`. Begin with the reported wording and stop at the last quoted word before the lecturer resumes commentary, argument, paraphrase, or application—even if that transition begins with `و`, `ف`, or `ثم`.
-- Infer both edges from meaning. Punctuation, silence, conjunction, topic, and speaker are supporting evidence only. Do not extend a quote merely because commentary keeps the same subject.
-- Example: in `0:قال 1:أنس 2:لما ... 17:شيء، 18:وما 19:جاء ...`, return `{"s":2,"e":17,"k":"hadith","f":"high"}`.
-- A quote may cross batches; return only the exact visible portion. Exclude protected Quran words, using separate quote ranges around them only when independently certain. A corrected non-Quran word may remain inside a quote only if the correction is certain and verbatim.
-
-Quran review:
-- For `q=true`, `t` is locally inserted Quran text, `r` its reference, `u` the candidate ID, `a`/`z` its global first/final flags, and `o` the original ASR passage on the first word.
-- Reject in `x` only when the original wording and context make a wrong match highly certain. Cover exactly one complete contiguous `u`, from `a=true` through `z=true`; omit candidates crossing the batch edge.
-- Preserve uncertain matches and genuine partial or imperfectly recognized recitation. Never include protected Quran words in another operation.
-
-Other operations:
-- Add only contextually certain punctuation through `p`; `p.v` must be one of `.`, `,`, `;`, `:`, `?`, `!`, `…`, `،`, `؛`, `؟`, with no whitespace.
-- Replace a routine blessing for Prophet Muhammad with exactly `ﷺ` through `c`. Recognize `صلى الله عليه وسلم`, `عليه الصلاة والسلام`, translations such as `peace and blessings be upon him` or `sur lui la prière et le salut`, transliterations, and clear ASR/spelling variants. Preserve the full wording only when the speech teaches, discusses, or quotes the salutation itself.
-- Return JSON only. Root keys: `c`,`quotes`,`x`,`p`. Correction: `s`,`e`,`t`,`f`; quote: `s`,`e`,`k`,`f`; Quran rejection: `s`,`e`,`f`; punctuation: `i`,`v`.
-"#;
-
-pub const TRANSCRIPT_SEGMENTATION_SYSTEM_PROMPT: &str = r#"Mark natural subtitle-boundary candidates in a cleaned, ordered Arabic Islamic lecture transcript. Never alter, translate, remove, reorder, or punctuate text.
-
-Input:
-- `before` and `after` are read-only context; return IDs only from `core`. Array order is authoritative and IDs need not be consecutive.
-- Compact word keys: `i` ID, `t` text, `p` speaker-group number, `s`/`e` start/end seconds, optional `g` gap after, optional `l=true` forbidden break, optional `q` Quran reference, optional `v` quotation group. Missing optional keys mean none.
-- `g` is evidence, never proof. With `timingQuality=estimated`, treat fine pauses as unreliable.
-
-Return every genuinely natural candidate in `core`; the application, not you, selects the final density preset.
-- `sentence`: complete statement, question, command, supplication, or independent thought.
-- `clause`: complete grammatical clause that can naturally continue afterward.
-- `phrase`: weaker coherent boundary that leaves both sides understandable.
-
-Rules:
-- Meaning and Arabic syntax override punctuation, pauses, ASR chunks, and target length. Prefer sentences, then complete clauses, then safe phrases.
-- Never leave a dangling/orphan fragment or end after an article, preposition, conjunction, negation, vocative, relative pronoun, auxiliary, or word whose complement follows.
-- Do not separate verb from subject or essential complement; noun from adjective; idafa; preposition from object; exception from its particle; vocative from addressee; number from counted item; or parts of a proper name.
-- Keep short fixed expressions, invocations, Prophet names with `ﷺ`, attributions, questions/answers, conditions/results, comparisons, and cause/effect units together. Split a long unit only after a self-sufficient grammatical component.
-- For lists, split between complete items only. Preserve intentional repetition.
-- Long quotations may split only at complete clauses or safe phrases. In Quran, never break where `l=true`; prefer verse endings or approved waqf.
-- Speaker changes are unavoidable; classify the best preceding semantic end when present.
-- Handle dialects, Modern Standard Arabic, transliteration, and code-switching from the whole window. If ASR is garbled or ambiguous, return fewer boundaries and never guess missing words.
-- Return each core ID at most once, in order. An empty array is valid. Return schema-matching JSON only.
 "#;
 
 // ---------------------------------------------------------------------------
@@ -311,100 +257,6 @@ pub fn build_project_translation_response_schema() -> Value {
     })
 }
 
-/// Schéma JSON de réponse pour l'analyse structurée d'une transcription.
-pub fn build_transcript_cleanup_response_schema() -> Value {
-    json!({
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-            "c": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "s": { "type": "integer" },
-                        "e": { "type": "integer" },
-                        "t": { "type": "string" },
-                        "f": { "type": "string", "enum": ["high", "medium", "low"] }
-                    },
-                    "required": ["s", "e", "t", "f"]
-                }
-            },
-            "quotes": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "s": { "type": "integer" },
-                        "e": { "type": "integer" },
-                        "k": { "type": "string", "enum": ["hadith", "scholar", "generic"] },
-                        "f": { "type": "string", "enum": ["high", "medium", "low"] }
-                    },
-                    "required": ["s", "e", "k", "f"]
-                }
-            },
-            "x": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "s": { "type": "integer" },
-                        "e": { "type": "integer" },
-                        "f": { "type": "string", "enum": ["high", "medium", "low"] }
-                    },
-                    "required": ["s", "e", "f"]
-                }
-            },
-            "p": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "i": { "type": "integer" },
-                        "v": {
-                            "type": "string",
-                            "enum": [".", ",", ";", ":", "?", "!", "…", "،", "؛", "؟"]
-                        }
-                    },
-                    "required": ["i", "v"]
-                }
-            }
-        },
-        "required": ["c", "quotes", "x", "p"]
-    })
-}
-
-/// Schéma JSON des coupures sémantiques d'une transcription.
-pub fn build_transcript_segmentation_response_schema() -> Value {
-    json!({
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-            "boundaries": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": false,
-                    "properties": {
-                        "after": { "type": "integer" },
-                        "kind": { "type": "string", "enum": ["sentence", "clause", "phrase"] }
-                    },
-                    "required": ["after", "kind"]
-                }
-            }
-        },
-        "required": ["boundaries"]
-    })
-}
-
-// ---------------------------------------------------------------------------
-// User prompt builders
-// ---------------------------------------------------------------------------
-
 /// Construit le prompt utilisateur pour un batch de trimming.
 pub fn build_user_prompt(batch: &AdvancedTrimBatchPayload) -> Result<String, String> {
     let batch_json = serde_json::to_string_pretty(batch)
@@ -522,45 +374,6 @@ pub fn build_project_translation_user_prompt(
          Batch JSON:\n{}",
         target_language.trim(),
         term_instruction,
-        batch_json
-    ))
-}
-
-/// Construit le prompt utilisateur pour un batch d'analyse de transcription.
-pub fn build_transcript_cleanup_user_prompt(
-    batch: &TranscriptCleanupBatchPayload,
-) -> Result<String, String> {
-    let batch_json = serde_json::to_string(batch)
-        .map_err(|error| format!("Failed to serialize batch: {}", error))?;
-
-    Ok(format!(
-        "Review the ordered `w` words and return JSON only.\n\
-         Return exactly this shape: {{\"c\":[],\"quotes\":[],\"x\":[],\"p\":[]}}.\n\
-         Word keys: `i` stable ID, `p` speaker-group number, `t` token, optional `g` gap after; Quran keys are defined in the system instructions. Missing optional keys mean none/false.\n\
-         Operations: correction `c`={{\"s\":firstId,\"e\":lastId,\"t\":\"replacement\",\"f\":\"high|medium|low\"}}; quotation `quotes`={{\"s\":firstId,\"e\":lastId,\"k\":\"hadith|scholar|generic\",\"f\":\"high|medium|low\"}}; rejection `x`={{\"s\":firstId,\"e\":lastId,\"f\":\"high|medium|low\"}}; punctuation `p`={{\"i\":wordId,\"v\":\"،\"}}.\n\
-         Use only supplied IDs. Never output Quran references or braces. Empty arrays are correct when no operation is certain.\n\n{}",
-        batch_json
-    ))
-}
-
-/// Construit le prompt utilisateur pour les coupures sémantiques d'un transcript nettoyé.
-pub fn build_transcript_segmentation_user_prompt(batch: &Value) -> Result<String, String> {
-    let batch_json = serde_json::to_string(batch)
-        .map_err(|error| format!("Failed to serialize batch: {}", error))?;
-
-    if batch
-        .get("poemMode")
-        .and_then(Value::as_bool)
-        .unwrap_or(false)
-    {
-        return Ok(format!(
-            "This is a poem or nasheed. Override the lecture density rules: return ONLY ends of complete poetic or sung lines as kind=sentence. One subtitle must contain one entire line, even when it exceeds normal subtitle length or duration. Do not return clause or phrase boundaries inside a line. Infer line endings from poetic structure, rhyme, parallel wording and meaning together; pauses and ASR chunks alone are not line endings. Keep each repeated line as a separate occurrence, and a standalone introductory invocation as its own unit. Do not merge adjacent lines or couplets. Never change any words or timings. Use before/after as context to avoid splitting at batch edges. Return IDs only from core as {{\"boundaries\":[{{\"after\":123,\"kind\":\"sentence\"}}]}}. JSON only.\n{}",
-            batch_json
-        ));
-    }
-
-    Ok(format!(
-        "Return semantic boundaries for `core` as {{\"boundaries\":[{{\"after\":123,\"kind\":\"sentence|clause|phrase\"}}]}}. Use `before`/`after` only as context. JSON only.\n{}",
         batch_json
     ))
 }

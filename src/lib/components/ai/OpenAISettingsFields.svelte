@@ -7,13 +7,11 @@
 	import {
 		resolveAIReasoning,
 		TEXT_AI_PRESETS,
-		type AIReasoningMode,
 		type TextAIPreset
 	} from '$lib/services/AIReasoning';
 
 	type ReasoningSettingsCopy = {
 		translationReasoning: () => string;
-		cleanupReasoning: () => string;
 	};
 
 	let {
@@ -39,28 +37,12 @@
 		settings.textAiApiEndpoint = preset.endpoint;
 		settings.advancedTrimModel = preset.model;
 		settings.projectTranslationReasoningMode = 'auto';
-		settings.transcriptCleanupReasoningMode = 'auto';
 		settings.advancedTrimReasoningEffort = resolveAIReasoning(
 			preset.endpoint,
 			preset.model,
 			'auto'
 		).effort;
 		onSettingsChanged();
-		onBatchSettingsChanged();
-	}
-
-	/**
-	 * Synchronise le nettoyage et les outils IA historiques sur le même réglage provider.
-	 * @param {AIReasoningMode} mode Nouveau mode de nettoyage.
-	 * @returns {void}
-	 */
-	function updateCleanupReasoning(mode: AIReasoningMode): void {
-		const settings = globalState.settings!.aiTranslationSettings;
-		settings.advancedTrimReasoningEffort = resolveAIReasoning(
-			settings.textAiApiEndpoint,
-			settings.advancedTrimModel,
-			mode
-		).effort;
 		onBatchSettingsChanged();
 	}
 </script>
@@ -145,16 +127,6 @@
 			model={globalState.settings!.aiTranslationSettings.advancedTrimModel}
 			bind:mode={globalState.settings!.aiTranslationSettings.projectTranslationReasoningMode}
 			onchange={onBatchSettingsChanged}
-		/>
-	</div>
-	<div>
-		<p class="mb-2 text-xs text-thirdly">{reasoningCopy.cleanupReasoning()}</p>
-		<AIReasoningControls
-			id="settings-cleanup-reasoning-mode"
-			endpoint={globalState.settings!.aiTranslationSettings.textAiApiEndpoint}
-			model={globalState.settings!.aiTranslationSettings.advancedTrimModel}
-			bind:mode={globalState.settings!.aiTranslationSettings.transcriptCleanupReasoningMode}
-			onchange={updateCleanupReasoning}
 		/>
 	</div>
 </div>

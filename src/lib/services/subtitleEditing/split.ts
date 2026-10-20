@@ -1,10 +1,11 @@
 import { Quran } from '$lib/classes/Quran';
 import { globalState } from '$lib/runes/main.svelte';
 import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
-import { SUBDIVIDE_MAX_WORDS_DISABLED, SUBDIVIDE_MAX_DURATION_DISABLED } from './types';
-import { refreshSegmentationContextFromTrack } from './context';
 import { getSubtitleClipWordCount } from './review';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+
+const SUBDIVIDE_MAX_WORDS_DISABLED = 30;
+const SUBDIVIDE_MAX_DURATION_DISABLED = 30;
 
 /**
  * Applique silencieusement une nouvelle plage de mots à un clip Quran existant.
@@ -238,7 +239,7 @@ export async function automaticSplitSubtitleAtWord(
 	try {
 		const metadata = clip.alignmentMetadata;
 		if (!metadata) {
-			console.warn('[AutoSegmentation] Automatic split aborted: missing alignment metadata.', {
+			console.warn('[Subtitles] Automatic split aborted: missing alignment metadata.', {
 				clipId: clip.id,
 				surah: clip.surah,
 				verse: clip.verse,
@@ -249,7 +250,7 @@ export async function automaticSplitSubtitleAtWord(
 
 		if (metadata.words.length === 0) {
 			console.warn(
-				'[AutoSegmentation] Automatic split aborted: no MFA word timestamps are available for this clip.',
+				'[Subtitles] Automatic split aborted: no MFA word timestamps are available for this clip.',
 				{
 					clipId: clip.id,
 					surah: clip.surah,
@@ -265,7 +266,7 @@ export async function automaticSplitSubtitleAtWord(
 		const splitWord = metadata.words.find((word) => word.location === splitLocation);
 		if (!splitWord) {
 			console.warn(
-				'[AutoSegmentation] Automatic split aborted: selected word timestamp was not found in alignment metadata.',
+				'[Subtitles] Automatic split aborted: selected word timestamp was not found in alignment metadata.',
 				{
 					clipId: clip.id,
 					splitWordIndex,
@@ -279,7 +280,7 @@ export async function automaticSplitSubtitleAtWord(
 		const splitTimeMs = Math.round((metadata.timeFrom + splitWord.end) * 1000);
 		if (splitTimeMs - clip.startTime < 100 || clip.endTime - splitTimeMs < 100) {
 			console.warn(
-				'[AutoSegmentation] Automatic split aborted: computed split point would create a segment shorter than 100ms.',
+				'[Subtitles] Automatic split aborted: computed split point would create a segment shorter than 100ms.',
 				{
 					clipId: clip.id,
 					splitWordIndex,
@@ -293,15 +294,13 @@ export async function automaticSplitSubtitleAtWord(
 
 		const rightClip = await splitSubtitleClipLocally(clip, splitWordIndex);
 		if (!rightClip) {
-			console.warn('[AutoSegmentation] Local split failed.', {
+			console.warn('[Subtitles] Local split failed.', {
 				clipId: clip.id,
 				splitWordIndex,
 				splitLocation
 			});
 			return false;
 		}
-
-		refreshSegmentationContextFromTrack(false);
 		globalState.currentProject?.detail.updateVideoDetailAttributes();
 		globalState.updateVideoPreviewUI();
 		globalState.getSubtitlesEditorState.editSubtitle = rightClip;
@@ -367,7 +366,6 @@ export async function subdivideLongSubtitleSegments(
 		}
 
 		if (splitCount > 0) {
-			refreshSegmentationContextFromTrack(false);
 			globalState.currentProject?.detail.updateVideoDetailAttributes();
 			globalState.updateVideoPreviewUI();
 		}

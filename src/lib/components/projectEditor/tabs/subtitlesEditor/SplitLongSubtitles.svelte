@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
 	import toast from 'svelte-5-french-toast';
-	import { subdivideLongSubtitleSegments } from '$lib/services/AutoSegmentation';
+	import { subdivideLongSubtitleSegments } from '$lib/services/subtitleEditing/split';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 
@@ -38,7 +38,9 @@
 			return;
 		}
 
-		toast.success(LL_.editor.splitApplied({ count: splitCount, plural: splitCount > 1 ? 's were' : ' was' }));
+		toast.success(
+			LL_.editor.splitApplied({ count: splitCount, plural: splitCount > 1 ? 's were' : ' was' })
+		);
 	}
 
 	$effect(() => {

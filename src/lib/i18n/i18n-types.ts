@@ -1283,73 +1283,9 @@ type RootTranslation = {
 		 */
 		speakerCannotBeEmpty: string;
 		/**
-		 * A​I​ ​t​r​a​n​s​c​r​i​p​t​i​o​n
-		 */
-		aiTranscription: string;
-		/**
-		 * F​a​s​t​ ​A​r​a​b​i​c​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​w​i​t​h​ ​G​r​o​q​ ​a​n​d​ ​w​o​r​d​-​l​e​v​e​l​ ​t​i​m​e​s​t​a​m​p​s​.
-		 */
-		aiTranscriptionGroqDescription: string;
-		/**
-		 * L​o​c​a​l​ ​W​h​i​s​p​e​r​X​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​,​ ​w​o​r​d​ ​a​l​i​g​n​m​e​n​t​,​ ​a​n​d​ ​o​p​t​i​o​n​a​l​ ​s​p​e​a​k​e​r​ ​d​e​t​e​c​t​i​o​n​.
-		 */
-		aiTranscriptionLocalDescription: string;
-		/**
-		 * T​r​a​n​s​c​r​i​p​t​i​o​n​ ​e​n​g​i​n​e
-		 */
-		transcriptionEngine: string;
-		/**
-		 * G​r​o​q​ ​C​l​o​u​d
-		 */
-		groqCloud: string;
-		/**
-		 * R​e​c​o​m​m​e​n​d​e​d
-		 */
-		groqRecommended: string;
-		/**
-		 * F​a​s​t​ ​W​h​i​s​p​e​r​ ​L​a​r​g​e​ ​V​3​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​.​ ​A​u​d​i​o​ ​i​s​ ​s​e​n​t​ ​s​e​c​u​r​e​l​y​ ​t​o​ ​G​r​o​q​ ​a​n​d​ ​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​ ​a​r​e​ ​r​e​t​u​r​n​e​d​ ​d​i​r​e​c​t​l​y​.
-		 */
-		groqProviderDescription: string;
-		/**
-		 * W​h​i​s​p​e​r​X​ ​l​o​c​a​l
-		 */
-		localWhisperX: string;
-		/**
-		 * R​e​f​e​r​e​n​c​e​ ​t​e​x​t
-		 */
-		referenceAlignment: string;
-		/**
-		 * A​l​i​g​n​ ​y​o​u​r​ ​A​r​a​b​i​c​ ​t​e​x​t​ ​w​i​t​h​ ​t​h​e​ ​a​u​d​i​o​ ​l​o​c​a​l​l​y​,​ ​a​l​l​o​w​i​n​g​ ​r​e​p​e​t​i​t​i​o​n​s​ ​a​n​d​ ​r​e​s​t​a​r​t​s​.
-		 */
-		referenceAlignmentDescription: string;
-		/**
-		 * T​e​x​t​ ​r​e​a​d​ ​i​n​ ​t​h​e​ ​a​u​d​i​o
-		 */
-		referenceTextLabel: string;
-		/**
-		 * P​a​s​t​e​ ​t​h​e​ ​p​o​e​m​,​ ​n​a​s​h​e​e​d​ ​l​y​r​i​c​s​ ​o​r​ ​s​p​o​k​e​n​ ​t​e​x​t​ ​h​e​r​e​.​.​.
-		 */
-		referenceTextPlaceholder: string;
-		/**
-		 * F​o​r​ ​a​ ​p​o​e​m​ ​o​r​ ​n​a​s​h​e​e​d​,​ ​p​u​t​ ​o​n​e​ ​c​o​m​p​l​e​t​e​ ​v​e​r​s​e​ ​o​n​ ​e​a​c​h​ ​l​i​n​e​:​ ​e​a​c​h​ ​n​o​n​-​e​m​p​t​y​ ​l​i​n​e​ ​b​e​c​o​m​e​s​ ​o​n​e​ ​s​u​b​t​i​t​l​e​,​ ​e​v​e​n​ ​w​h​e​n​ ​i​t​ ​i​s​ ​l​o​n​g​.​ ​B​l​a​n​k​ ​l​i​n​e​s​ ​a​r​e​ ​i​g​n​o​r​e​d​.​ ​Y​o​u​ ​d​o​ ​n​o​t​ ​n​e​e​d​ ​t​o​ ​w​r​i​t​e​ ​o​u​t​ ​r​e​p​e​t​i​t​i​o​n​s​.​ ​W​h​i​s​p​e​r​X​ ​a​l​i​g​n​s​ ​t​h​e​ ​w​o​r​d​s​ ​l​o​c​a​l​l​y​;​ ​u​n​c​e​r​t​a​i​n​ ​p​a​s​s​a​g​e​s​ ​k​e​e​p​ ​t​h​e​ ​r​e​c​o​g​n​i​z​e​d​ ​t​e​x​t​ ​f​o​r​ ​r​e​v​i​e​w​.​ ​S​i​n​g​i​n​g​ ​a​n​d​ ​b​a​c​k​i​n​g​ ​v​o​c​a​l​s​ ​c​a​n​ ​r​e​d​u​c​e​ ​a​c​c​u​r​a​c​y​.
-		 */
-		referenceTextHelp: string;
-		/**
-		 * P​o​e​m​ ​/​ ​n​a​s​h​e​e​d​ ​—​ ​o​n​e​ ​c​o​m​p​l​e​t​e​ ​v​e​r​s​e​ ​p​e​r​ ​s​u​b​t​i​t​l​e
-		 */
-		poemMode: string;
-		/**
-		 * T​h​e​ ​t​e​x​t​ ​A​I​ ​i​d​e​n​t​i​f​i​e​s​ ​c​o​m​p​l​e​t​e​ ​p​o​e​t​i​c​ ​o​r​ ​s​u​n​g​ ​l​i​n​e​s​ ​a​n​d​ ​a​d​j​u​s​t​s​ ​s​u​b​t​i​t​l​e​ ​c​u​t​s​ ​t​o​ ​t​h​e​i​r​ ​w​o​r​d​ ​t​i​m​i​n​g​s​.​ ​E​a​c​h​ ​v​e​r​s​e​ ​s​t​a​y​s​ ​t​o​g​e​t​h​e​r​,​ ​e​v​e​n​ ​a​c​r​o​s​s​ ​i​n​t​e​r​n​a​l​ ​p​a​u​s​e​s​ ​o​r​ ​b​e​y​o​n​d​ ​n​o​r​m​a​l​ ​s​u​b​t​i​t​l​e​ ​l​e​n​g​t​h​ ​a​n​d​ ​d​u​r​a​t​i​o​n​ ​l​i​m​i​t​s​.
-		 */
-		poemModeDescription: string;
-		/**
 		 * C​o​m​p​l​e​t​e​ ​v​e​r​s​e​ ​b​o​u​n​d​a​r​i​e​s​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​i​d​e​n​t​i​f​i​e​d​ ​r​e​l​i​a​b​l​y​.​ ​R​e​t​r​y​ ​o​r​ ​u​s​e​ ​R​e​f​e​r​e​n​c​e​ ​t​e​x​t​ ​w​i​t​h​ ​o​n​e​ ​v​e​r​s​e​ ​p​e​r​ ​l​i​n​e​.
 		 */
 		poemSegmentationFailed: string;
-		/**
-		 * E​n​t​e​r​ ​t​h​e​ ​A​r​a​b​i​c​ ​t​e​x​t​ ​t​o​ ​a​l​i​g​n​ ​b​e​f​o​r​e​ ​c​o​n​t​i​n​u​i​n​g​.
-		 */
-		referenceTextRequired: string;
 		/**
 		 * T​h​e​ ​t​e​x​t​ ​a​n​d​ ​a​u​d​i​o​ ​a​r​e​ ​t​o​o​ ​l​o​n​g​ ​t​o​ ​c​o​m​p​a​r​e​ ​t​o​g​e​t​h​e​r​.​ ​U​s​e​ ​a​ ​s​h​o​r​t​e​r​ ​p​a​s​s​a​g​e​.
 		 */
@@ -1367,267 +1303,11 @@ type RootTranslation = {
 		 */
 		referenceTextIncompleteAlignment: string;
 		/**
-		 * A​l​i​g​n​ ​r​e​f​e​r​e​n​c​e​ ​t​e​x​t
-		 */
-		referenceAlignmentStart: string;
-		/**
-		 * S​t​a​r​t​ ​t​r​a​n​s​c​r​i​p​t​i​o​n
-		 */
-		startAITranscription: string;
-		/**
-		 * K​e​e​p​s​ ​a​u​d​i​o​ ​o​n​ ​t​h​i​s​ ​c​o​m​p​u​t​e​r​.​ ​A​ ​G​P​U​ ​i​s​ ​r​e​c​o​m​m​e​n​d​e​d​;​ ​C​P​U​ ​p​r​o​c​e​s​s​i​n​g​ ​c​a​n​ ​b​e​ ​m​u​c​h​ ​s​l​o​w​e​r​.
-		 */
-		localWhisperXProviderDescription: string;
-		/**
-		 * G​r​o​q​ ​A​P​I​ ​k​e​y
-		 */
-		groqApiKeyTitle: string;
-		/**
-		 * E​a​c​h​ ​u​s​e​r​ ​c​a​n​ ​c​r​e​a​t​e​ ​a​ ​f​r​e​e​ ​k​e​y​ ​w​i​t​h​o​u​t​ ​e​n​t​e​r​i​n​g​ ​a​ ​p​a​y​m​e​n​t​ ​c​a​r​d​.​ ​T​h​e​ ​k​e​y​ ​i​s​ ​s​t​o​r​e​d​ ​i​n​ ​t​h​e​ ​o​p​e​r​a​t​i​n​g​ ​s​y​s​t​e​m​ ​s​e​c​u​r​e​ ​v​a​u​l​t​.
-		 */
-		groqApiKeyDescription: string;
-		/**
-		 * H​o​w​ ​t​o​ ​g​e​t​ ​y​o​u​r​ ​f​r​e​e​ ​k​e​y
-		 */
-		groqApiKeyTutorialTitle: string;
-		/**
-		 * C​r​e​a​t​e​ ​o​r​ ​s​i​g​n​ ​i​n​ ​t​o​ ​a​ ​G​r​o​q​C​l​o​u​d​ ​a​c​c​o​u​n​t​.
-		 */
-		groqApiKeyTutorialAccount: string;
-		/**
-		 * O​p​e​n​ ​A​P​I​ ​K​e​y​s​ ​a​n​d​ ​s​e​l​e​c​t​ ​C​r​e​a​t​e​ ​A​P​I​ ​K​e​y​.
-		 */
-		groqApiKeyTutorialCreate: string;
-		/**
-		 * C​o​p​y​ ​t​h​e​ ​k​e​y​ ​o​n​c​e​,​ ​t​h​e​n​ ​p​a​s​t​e​ ​i​t​ ​b​e​l​o​w​.
-		 */
-		groqApiKeyTutorialPaste: string;
-		/**
-		 * O​p​e​n​ ​G​r​o​q​ ​A​P​I​ ​K​e​y​s
-		 */
-		groqOpenApiKeys: string;
-		/**
-		 * G​r​o​q​ ​A​P​I​ ​k​e​y
-		 */
-		groqApiKeyLabel: string;
-		/**
-		 * E​n​t​e​r​ ​a​ ​G​r​o​q​ ​A​P​I​ ​k​e​y​ ​t​o​ ​c​o​n​t​i​n​u​e​.
-		 */
-		groqApiKeyRequired: string;
-		/**
-		 * T​h​e​ ​k​e​y​ ​i​s​ ​s​t​o​r​e​d​ ​s​e​c​u​r​e​l​y​ ​o​n​ ​t​h​i​s​ ​c​o​m​p​u​t​e​r​.
-		 */
-		groqApiKeyStored: string;
-		/**
-		 * G​r​o​q​ ​r​e​j​e​c​t​e​d​ ​t​h​i​s​ ​A​P​I​ ​k​e​y​.​ ​C​h​e​c​k​ ​i​t​ ​o​r​ ​c​r​e​a​t​e​ ​a​ ​n​e​w​ ​o​n​e​.
-		 */
-		groqInvalidApiKey: string;
-		/**
-		 * T​h​e​ ​f​r​e​e​ ​G​r​o​q​ ​u​s​a​g​e​ ​l​i​m​i​t​ ​h​a​s​ ​b​e​e​n​ ​r​e​a​c​h​e​d​.​ ​T​r​y​ ​a​g​a​i​n​ ​a​f​t​e​r​ ​t​h​e​ ​q​u​o​t​a​ ​r​e​s​e​t​s​ ​o​r​ ​u​s​e​ ​W​h​i​s​p​e​r​X​ ​l​o​c​a​l​.
-		 */
-		groqRateLimitReached: string;
-		/**
-		 * T​h​e​ ​p​r​e​p​a​r​e​d​ ​a​u​d​i​o​ ​e​x​c​e​e​d​s​ ​G​r​o​q​’​s​ ​2​5​ ​M​B​ ​f​r​e​e​-​t​i​e​r​ ​l​i​m​i​t​.​ ​U​s​e​ ​W​h​i​s​p​e​r​X​ ​l​o​c​a​l​ ​f​o​r​ ​t​h​i​s​ ​p​r​o​j​e​c​t​.
-		 */
-		groqFileTooLarge: string;
-		/**
-		 * G​r​o​q​ ​d​i​d​ ​n​o​t​ ​r​e​t​u​r​n​ ​t​h​e​ ​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​ ​r​e​q​u​i​r​e​d​ ​f​o​r​ ​i​n​t​e​l​l​i​g​e​n​t​ ​s​u​b​t​i​t​l​e​s​.
-		 */
-		groqWordTimestampsMissing: string;
-		/**
-		 * G​r​o​q​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​f​a​i​l​e​d​:​ ​{​e​r​r​o​r​}
-		 * @param {unknown} error
-		 */
-		groqRequestFailed: RequiredParams<'error'>;
-		/**
-		 * P​r​e​p​a​r​i​n​g​ ​a​u​d​i​o​ ​f​o​r​ ​G​r​o​q​.​.​.
-		 */
-		groqPreparingAudio: string;
-		/**
-		 * T​r​a​n​s​c​r​i​b​i​n​g​ ​w​i​t​h​ ​G​r​o​q​ ​W​h​i​s​p​e​r​ ​L​a​r​g​e​ ​V​3​.​.​.
-		 */
-		groqTranscribing: string;
-		/**
-		 * P​r​e​p​a​r​i​n​g​ ​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​.​.​.
-		 */
-		groqPreparingTimestamps: string;
-		/**
-		 * G​r​o​q​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​c​o​m​p​l​e​t​e​d​.
-		 */
-		groqTranscriptionCompleted: string;
-		/**
-		 * T​h​e​ ​s​p​e​e​c​h​-​t​o​-​t​e​x​t​ ​p​r​o​v​i​d​e​r​ ​r​e​t​u​r​n​e​d​ ​a​n​ ​i​n​v​a​l​i​d​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​r​e​s​u​l​t​.
-		 */
-		transcriptionInvalidResponse: string;
-		/**
-		 * N​o​ ​t​r​a​n​s​c​r​i​b​a​b​l​e​ ​s​p​e​e​c​h​ ​w​a​s​ ​d​e​t​e​c​t​e​d​ ​i​n​ ​t​h​e​ ​p​r​o​j​e​c​t​ ​a​u​d​i​o​.
-		 */
-		transcriptionNoSpeech: string;
-		/**
-		 * G​r​o​q​ ​p​r​o​v​i​d​e​s​ ​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​ ​b​u​t​ ​n​o​t​ ​s​p​e​a​k​e​r​ ​d​e​t​e​c​t​i​o​n​.​ ​S​e​l​e​c​t​ ​W​h​i​s​p​e​r​X​ ​l​o​c​a​l​ ​w​h​e​n​ ​t​h​e​ ​a​u​d​i​o​ ​c​o​n​t​a​i​n​s​ ​m​u​l​t​i​p​l​e​ ​s​p​e​a​k​e​r​s​.
-		 */
-		groqSingleSpeakerNotice: string;
-		/**
-		 * C​l​o​u​d​ ​p​r​o​c​e​s​s​i​n​g
-		 */
-		groqProcessingLabel: string;
-		/**
-		 * G​r​o​q​ ​W​h​i​s​p​e​r​ ​L​a​r​g​e​ ​V​3​ ​w​i​l​l​ ​t​r​a​n​s​c​r​i​b​e​ ​t​h​e​ ​A​r​a​b​i​c​ ​a​u​d​i​o​ ​a​n​d​ ​r​e​t​u​r​n​ ​t​i​m​e​s​t​a​m​p​s​ ​f​o​r​ ​e​v​e​r​y​ ​a​v​a​i​l​a​b​l​e​ ​w​o​r​d​.
-		 */
-		groqTranscriptionDescription: string;
-		/**
-		 * G​r​o​q​ ​t​r​e​a​t​s​ ​t​h​i​s​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​a​s​ ​o​n​e​ ​v​o​i​c​e​.​ ​C​h​o​o​s​e​ ​t​h​e​ ​s​p​e​a​k​e​r​ ​n​a​m​e​ ​b​e​f​o​r​e​ ​a​d​d​i​n​g​ ​t​h​e​ ​s​u​b​t​i​t​l​e​s​.
-		 */
-		groqSpeakerResultDescription: string;
-		/**
-		 * p​y​a​n​n​o​t​e​ ​r​e​c​o​g​n​i​z​e​s​ ​r​e​c​u​r​r​i​n​g​ ​v​o​i​c​e​s​ ​b​u​t​ ​n​o​t​ ​t​h​e​i​r​ ​r​e​a​l​ ​n​a​m​e​s​.​ ​A​s​s​i​g​n​ ​e​a​c​h​ ​d​e​t​e​c​t​e​d​ ​v​o​i​c​e​ ​b​e​f​o​r​e​ ​a​d​d​i​n​g​ ​t​h​e​ ​s​u​b​t​i​t​l​e​s​.
-		 */
-		localSpeakerResultDescription: string;
-		/**
-		 * T​h​e​ ​a​u​d​i​o​ ​m​u​s​t​ ​b​e​ ​e​n​t​i​r​e​l​y​ ​i​n​ ​A​r​a​b​i​c​.
-		 */
-		arabicAudioRequired: string;
-		/**
-		 * M​a​t​c​h​i​n​g​ ​Q​u​r​a​n​ ​p​a​s​s​a​g​e​s​.​.​.
-		 */
-		matchingQuranPassages: string;
-		/**
-		 * P​r​e​p​a​r​e​ ​t​r​a​n​s​c​r​i​p​t
-		 */
-		transcriptCleanupStep: string;
-		/**
-		 * C​r​e​a​t​e​ ​c​l​e​a​n​,​ ​r​e​a​d​a​b​l​e​ ​s​u​b​t​i​t​l​e​s
-		 */
-		transcriptCleanupTitle: string;
-		/**
-		 * M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​l​o​c​a​l​l​y​ ​d​e​t​e​c​t​s​ ​Q​u​r​a​n​ ​p​a​s​s​a​g​e​s​,​ ​v​a​l​i​d​a​t​e​s​ ​t​h​e​i​r​ ​e​x​a​c​t​ ​w​o​r​d​ ​r​a​n​g​e​s​,​ ​a​n​d​ ​r​e​b​u​i​l​d​s​ ​n​a​t​u​r​a​l​ ​s​u​b​t​i​t​l​e​ ​b​o​u​n​d​a​r​i​e​s​.​ ​Y​o​u​r​ ​c​o​n​f​i​g​u​r​e​d​ ​t​e​x​t​ ​A​I​ ​i​s​ ​o​p​t​i​o​n​a​l​ ​a​n​d​ ​o​n​l​y​ ​s​u​g​g​e​s​t​s​ ​c​e​r​t​a​i​n​ ​c​o​r​r​e​c​t​i​o​n​s​,​ ​p​u​n​c​t​u​a​t​i​o​n​,​ ​s​e​m​a​n​t​i​c​ ​b​r​e​a​k​s​,​ ​a​n​d​ ​v​e​r​b​a​t​i​m​ ​n​o​n​-​Q​u​r​a​n​ ​q​u​o​t​a​t​i​o​n​s​.
-		 */
-		transcriptCleanupDescription: string;
-		/**
-		 * Q​u​r​a​n​ ​m​a​r​k​e​r​s​ ​a​r​e​ ​c​r​e​a​t​e​d​ ​o​n​l​y​ ​f​r​o​m​ ​t​h​e​ ​b​u​n​d​l​e​d​ ​Q​u​r​a​n​ ​c​o​r​p​u​s​ ​a​n​d​ ​v​a​l​i​d​a​t​e​d​ ​w​o​r​d​ ​r​a​n​g​e​s​.​ ​V​e​r​b​a​t​i​m​ ​h​a​d​i​t​h​,​ ​s​c​h​o​l​a​r​,​ ​a​n​d​ ​o​t​h​e​r​ ​d​i​r​e​c​t​ ​q​u​o​t​a​t​i​o​n​s​ ​a​r​e​ ​d​e​t​e​c​t​e​d​ ​s​e​p​a​r​a​t​e​l​y​ ​a​n​d​ ​r​e​m​a​i​n​ ​w​r​a​p​p​e​d​ ​f​o​r​ ​e​d​i​t​i​n​g​.
-		 */
-		transcriptCleanupMarkersInfo: string;
-		/**
-		 * C​h​o​o​s​e​ ​a​ ​n​a​m​e​ ​f​o​r​ ​{​s​p​e​a​k​e​r​}​ ​b​e​f​o​r​e​ ​c​l​e​a​n​i​n​g​ ​t​h​e​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​.
-		 * @param {unknown} speaker
-		 */
-		chooseSpeakerBeforeCleanup: RequiredParams<'speaker'>;
-		/**
-		 * C​l​e​a​n​ ​t​r​a​n​s​c​r​i​p​t
-		 */
-		cleanTranscript: string;
-		/**
-		 * C​l​e​a​n​i​n​g​ ​t​r​a​n​s​c​r​i​p​t​.​.​.
-		 */
-		cleaningTranscript: string;
-		/**
-		 * P​r​o​c​e​s​s​i​n​g​ ​b​a​t​c​h​ ​{​c​u​r​r​e​n​t​}​ ​o​f​ ​{​t​o​t​a​l​}​.​.​.
-		 * @param {unknown} current
-		 * @param {unknown} total
-		 */
-		transcriptCleanupBatchProgress: RequiredParams<'current' | 'total'>;
-		/**
-		 * F​i​n​d​i​n​g​ ​n​a​t​u​r​a​l​ ​s​u​b​t​i​t​l​e​ ​b​o​u​n​d​a​r​i​e​s​.​.​.
-		 */
-		transcriptSemanticSegmentation: string;
-		/**
 		 * B​a​t​c​h​ ​{​c​u​r​r​e​n​t​}​ ​o​f​ ​{​t​o​t​a​l​}
 		 * @param {unknown} current
 		 * @param {unknown} total
 		 */
 		streamedBatchLabel: RequiredParams<'current' | 'total'>;
-		/**
-		 * P​r​e​p​a​r​e​d​ ​{​c​l​e​a​n​e​d​}​ ​o​f​ ​{​t​o​t​a​l​}​ ​s​u​b​t​i​t​l​e​ ​s​e​g​m​e​n​t​s​.
-		 * @param {unknown} cleaned
-		 * @param {unknown} total
-		 */
-		transcriptCleanupCompleted: RequiredParams<'cleaned' | 'total'>;
-		/**
-		 * P​r​e​p​a​r​e​d​ ​{​c​l​e​a​n​e​d​}​ ​o​f​ ​{​t​o​t​a​l​}​ ​s​u​b​t​i​t​l​e​ ​s​e​g​m​e​n​t​s​.​ ​{​e​r​r​o​r​s​}​ ​w​a​r​n​i​n​g​(​s​)​ ​r​e​q​u​i​r​e​ ​r​e​v​i​e​w​.
-		 * @param {unknown} cleaned
-		 * @param {unknown} errors
-		 * @param {unknown} total
-		 */
-		transcriptCleanupCompletedWithIssues: RequiredParams<'cleaned' | 'errors' | 'total'>;
-		/**
-		 * B​a​t​c​h​ ​s​i​z​e​ ​(​w​o​r​d​s​)
-		 */
-		transcriptCleanupBatchSize: string;
-		/**
-		 * C​h​a​n​g​i​n​g​ ​t​h​e​ ​b​a​t​c​h​ ​s​i​z​e​ ​r​e​s​t​a​r​t​s​ ​c​l​e​a​n​u​p​ ​f​r​o​m​ ​t​h​e​ ​o​r​i​g​i​n​a​l​ ​t​r​a​n​s​c​r​i​p​t​ ​w​h​e​n​ ​y​o​u​ ​r​e​s​u​m​e​.
-		 */
-		transcriptCleanupBatchSizeChanged: string;
-		/**
-		 * E​s​t​i​m​a​t​e​d​ ​t​o​t​a​l​:​ ​{​c​o​u​n​t​}​ ​b​a​t​c​h​(​e​s​)​.
-		 * @param {unknown} count
-		 */
-		transcriptCleanupBatchPreview: RequiredParams<'count'>;
-		/**
-		 * P​a​u​s​e​ ​a​f​t​e​r​ ​t​h​i​s​ ​b​a​t​c​h
-		 */
-		pauseTranscriptCleanup: string;
-		/**
-		 * P​a​u​s​i​n​g​.​.​.
-		 */
-		pausingTranscriptCleanup: string;
-		/**
-		 * R​e​s​u​m​e​ ​c​l​e​a​n​u​p
-		 */
-		resumeTranscriptCleanup: string;
-		/**
-		 * C​l​e​a​n​u​p​ ​p​a​u​s​e​d​ ​·​ ​{​r​e​m​a​i​n​i​n​g​}​ ​b​a​t​c​h​(​e​s​)​ ​r​e​m​a​i​n​i​n​g​.
-		 * @param {unknown} remaining
-		 */
-		transcriptCleanupPaused: RequiredParams<'remaining'>;
-		/**
-		 * C​l​e​a​n​ ​e​x​i​s​t​i​n​g​ ​t​r​a​n​s​c​r​i​p​t​ ​w​i​t​h​ ​A​I
-		 */
-		cleanExistingTranscript: string;
-		/**
-		 * R​u​n​ ​t​h​e​ ​o​p​t​i​o​n​a​l​ ​A​I​ ​c​l​e​a​n​u​p​ ​n​o​w​,​ ​o​r​ ​r​e​s​u​m​e​ ​a​ ​c​l​e​a​n​u​p​ ​s​a​v​e​d​ ​w​i​t​h​ ​t​h​i​s​ ​p​r​o​j​e​c​t​.
-		 */
-		cleanExistingTranscriptDescription: string;
-		/**
-		 * {​r​e​m​a​i​n​i​n​g​}​ ​b​a​t​c​h​(​e​s​)​ ​r​e​m​a​i​n​i​n​g
-		 * @param {unknown} remaining
-		 */
-		transcriptCleanupRemaining: RequiredParams<'remaining'>;
-		/**
-		 * A​u​d​i​o​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​,​ ​Q​u​r​a​n​ ​m​a​t​c​h​i​n​g​,​ ​a​n​d​ ​f​i​n​a​l​ ​s​u​b​t​i​t​l​e​ ​a​s​s​e​m​b​l​y​ ​s​t​a​y​ ​l​o​c​a​l​.​ ​C​l​e​a​n​e​d​ ​i​n​d​e​x​e​d​ ​w​o​r​d​s​,​ ​t​i​m​i​n​g​s​,​ ​a​n​d​ ​c​o​n​t​e​x​t​ ​m​e​t​a​d​a​t​a​ ​a​r​e​ ​s​e​n​t​ ​o​n​l​y​ ​t​o​ ​y​o​u​r​ ​c​o​n​f​i​g​u​r​e​d​ ​t​e​x​t​ ​A​I​ ​p​r​o​v​i​d​e​r​ ​w​h​e​n​ ​o​n​e​ ​i​s​ ​a​v​a​i​l​a​b​l​e​.
-		 */
-		transcriptionDataPrivacy: string;
-		/**
-		 * S​h​o​r​t
-		 */
-		subtitleLengthShort: string;
-		/**
-		 * S​h​o​r​t​ ​s​u​b​t​i​t​l​e​s​ ​w​i​t​h​ ​m​o​r​e​ ​f​r​e​q​u​e​n​t​ ​n​a​t​u​r​a​l​ ​c​h​a​n​g​e​s​.
-		 */
-		subtitleLengthShortDescription: string;
-		/**
-		 * M​e​d​i​u​m
-		 */
-		subtitleLengthMedium: string;
-		/**
-		 * B​a​l​a​n​c​e​d​,​ ​r​e​a​d​a​b​l​e​ ​s​u​b​t​i​t​l​e​s​ ​f​o​r​ ​m​o​s​t​ ​l​e​c​t​u​r​e​s​.
-		 */
-		subtitleLengthMediumDescription: string;
-		/**
-		 * L​o​n​g
-		 */
-		subtitleLengthLong: string;
-		/**
-		 * L​o​n​g​e​r​ ​c​o​m​p​l​e​t​e​ ​i​d​e​a​s​ ​w​i​t​h​ ​f​e​w​e​r​ ​v​i​s​u​a​l​ ​c​h​a​n​g​e​s​.
-		 */
-		subtitleLengthLongDescription: string;
-		/**
-		 * A​I​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​a​d​d​e​d​ ​l​a​t​e​r
-		 */
-		aiTranscriptionComingSoon: string;
-		/**
-		 * F​o​r​ ​n​o​w​,​ ​u​s​e​ ​t​h​e​ ​m​a​n​u​a​l​ ​c​o​m​p​o​s​e​r​ ​t​o​ ​c​r​e​a​t​e​ ​a​n​d​ ​e​d​i​t​ ​t​r​a​n​s​c​r​i​p​t​ ​s​e​g​m​e​n​t​s​.
-		 */
-		aiTranscriptionComingSoonDescription: string;
 		/**
 		 * T​r​a​n​s​l​a​t​i​o​n​s
 		 */
@@ -1690,10 +1370,6 @@ type RootTranslation = {
 		 * S​h​i​f​t​ ​A​l​l​ ​S​u​b​t​i​t​l​e​s
 		 */
 		shiftAllSubtitles: string;
-		/**
-		 * H​i​f​z​ ​R​e​p​e​t​i​t​i​o​n
-		 */
-		hifzRepetition: string;
 		/**
 		 * A​s​s​e​t​ ​T​r​i​m​m​e​r
 		 */
@@ -1828,27 +1504,6 @@ type RootTranslation = {
 		 */
 		errorConvertingAsset: RequiredParams<'error'>;
 		/**
-		 * N​o​ ​n​a​t​i​v​e​-​t​i​m​i​n​g​ ​a​u​d​i​o​ ​f​o​u​n​d​ ​o​n​ ​t​i​m​e​l​i​n​e​.
-		 */
-		noNativeTimingAudio: string;
-		/**
-		 * N​o​ ​t​i​m​i​n​g​ ​d​a​t​a​ ​f​o​u​n​d​ ​f​o​r​ ​t​h​i​s​ ​s​p​e​a​k​e​r​/​s​u​r​a​h​.
-		 */
-		noTimingDataFound: string;
-		/**
-		 * A​p​p​l​i​e​d​ ​{​c​o​u​n​t​}​ ​s​u​b​t​i​t​l​e​s​ ​f​r​o​m​ ​M​p​3​Q​u​r​a​n​!
-		 * @param {unknown} count
-		 */
-		appliedSubtitlesFromMp3Quran: RequiredParams<'count'>;
-		/**
-		 * T​h​e​r​e​ ​a​r​e​ ​a​l​r​e​a​d​y​ ​s​u​b​t​i​t​l​e​s​ ​i​n​ ​t​h​i​s​ ​p​r​o​j​e​c​t​.​ ​T​h​i​s​ ​p​r​o​c​e​s​s​ ​w​i​l​l​ ​o​v​e​r​r​i​d​e​ ​t​h​e​m​.​ ​C​o​n​t​i​n​u​e​?
-		 */
-		subtitlesAlreadyExist: string;
-		/**
-		 * T​h​e​r​e​ ​a​r​e​ ​a​l​r​e​a​d​y​ ​s​u​b​t​i​t​l​e​s​ ​i​n​ ​t​h​i​s​ ​p​r​o​j​e​c​t​.​ ​T​h​i​s​ ​p​r​o​c​e​s​s​ ​w​i​l​l​ ​r​e​p​l​a​c​e​ ​t​h​e​m​ ​w​i​t​h​ ​n​a​t​i​v​e​ ​t​i​m​i​n​g​.​ ​C​o​n​t​i​n​u​e​?
-		 */
-		subtitlesAlreadyExistNative: string;
-		/**
 		 * T​h​i​s​ ​a​u​d​i​o​ ​i​n​c​l​u​d​e​s​ ​o​f​f​i​c​i​a​l​ ​n​a​t​i​v​e​ ​t​i​m​i​n​g​s​.​ ​W​o​u​l​d​ ​y​o​u​ ​l​i​k​e​ ​t​o​ ​a​p​p​l​y​ ​t​h​e​m​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​?
 		 */
 		nativeTimingsDetected: string;
@@ -1858,14 +1513,6 @@ type RootTranslation = {
 		 * @param {unknown} width
 		 */
 		setDimensionsMatchVideo: RequiredParams<'height' | 'width'>;
-		/**
-		 * N​o​ ​a​u​d​i​o​ ​f​o​u​n​d​.​ ​A​ ​s​i​l​e​n​t​ ​H​i​f​z​ ​t​r​a​c​k​ ​w​i​l​l​ ​b​e​ ​g​e​n​e​r​a​t​e​d​.
-		 */
-		noAudioFoundSilentHifz: string;
-		/**
-		 * A​d​d​ ​s​u​b​t​i​t​l​e​s​ ​b​e​f​o​r​e​ ​g​e​n​e​r​a​t​i​n​g​ ​a​ ​H​i​f​z​ ​t​r​a​c​k​.
-		 */
-		addSubtitlesBeforeHifz: string;
 		/**
 		 * C​h​o​o​s​e​ ​a​n​ ​a​u​d​i​o​ ​o​r​ ​v​i​d​e​o​ ​f​i​l​e​.​.​.
 		 */
@@ -1969,10 +1616,6 @@ type RootTranslation = {
 		 * F​i​n​i​s​h
 		 */
 		arrowForward: string;
-		/**
-		 * A​u​t​o​ ​s​e​g​m​e​n​t​ ​a​u​d​i​o​ ​i​n​t​o​ ​Q​u​r​a​n​ ​v​e​r​s​e​s
-		 */
-		autoSegmentButton: string;
 		/**
 		 * T​r​a​n​s​c​r​i​p​t​i​o​n​ ​w​a​l​k​t​h​r​o​u​g​h
 		 */
@@ -2433,38 +2076,6 @@ type RootTranslation = {
 		 */
 		aiBoldApplied: string;
 		/**
-		 * R​e​a​d​y​ ​t​o​ ​u​s​e
-		 */
-		readyToUse: string;
-		/**
-		 * L​e​g​a​c​y​ ​W​h​i​s​p​e​r​ ​l​o​c​a​l​ ​p​a​c​k​a​g​e​s
-		 */
-		legacyWhisper: string;
-		/**
-		 * P​r​i​v​a​t​e​ ​L​o​c​a​l​ ​Q​u​r​a​n​i​c​ ​U​n​i​v​e​r​s​a​l​ ​A​l​i​g​n​e​r​ ​p​a​c​k​a​g​e​s
-		 */
-		privateQuranicAligner: string;
-		/**
-		 * M​u​a​a​l​e​m​ ​L​o​c​a​l​ ​p​a​c​k​a​g​e​s
-		 */
-		muaalemLocal: string;
-		/**
-		 * S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​L​o​c​a​l​ ​p​a​c​k​a​g​e​s
-		 */
-		surahSplitterLocal: string;
-		/**
-		 * A​u​d​i​o​ ​d​e​t​e​c​t​e​d
-		 */
-		audioDetected: string;
-		/**
-		 * N​o​ ​a​u​d​i​o​ ​c​l​i​p
-		 */
-		noAudioClip: string;
-		/**
-		 * N​o​ ​a​u​d​i​o​ ​c​l​i​p​ ​f​o​u​n​d​ ​i​n​ ​t​h​e​ ​t​i​m​e​l​i​n​e​.
-		 */
-		noAudioClipInTimeline: string;
-		/**
 		 * M​a​r​k​ ​A​l​l
 		 */
 		aimarkAll: string;
@@ -2513,14 +2124,6 @@ type RootTranslation = {
 		 */
 		checkActivityLog: string;
 		/**
-		 * A​I​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​f​a​i​l​e​d
-		 */
-		aiSegmentationFailed: string;
-		/**
-		 * A​I​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​f​i​n​i​s​h​e​d
-		 */
-		aiSegmentationFinished: string;
-		/**
 		 * P​l​e​a​s​e​ ​c​o​n​v​e​r​t​ ​y​o​u​r​ ​f​i​l​e​ ​t​o​ ​m​p​4​ ​t​o​ ​u​s​e​ ​i​t​ ​i​n​ ​a​u​d​i​o​ ​t​r​a​c​k​ ​(​t​h​i​s​ ​f​i​l​e​ ​i​s​ ​c​u​r​r​e​n​t​l​y​ ​i​n​ ​a​n​ ​u​n​s​u​p​p​o​r​t​e​d​ ​f​o​r​m​a​t​)
 		 */
 		convertToMp4Error: string;
@@ -2554,10 +2157,6 @@ type RootTranslation = {
 		 */
 		cannotShiftBackward: string;
 		/**
-		 * T​h​i​s​ ​a​u​d​i​o​ ​i​n​c​l​u​d​e​s​ ​o​f​f​i​c​i​a​l​ ​n​a​t​i​v​e​ ​t​i​m​i​n​g​s​.​ ​A​d​d​ ​i​t​ ​t​o​ ​t​h​e​ ​t​i​m​e​l​i​n​e​ ​a​n​d​ ​l​o​a​d​ ​t​h​e​ ​s​u​b​t​i​t​l​e​s​ ​n​o​w​?
-		 */
-		nativeTimingsConfirm: string;
-		/**
 		 * T​o​ ​m​a​k​e​ ​t​h​i​s​ ​s​u​b​t​i​t​l​e​ ​Q​u​r​’​a​n​,​ ​p​l​e​a​s​e​ ​s​e​l​e​c​t​ ​t​h​e​ ​w​o​r​d​s​ ​i​n​ ​t​h​e​ ​s​e​l​e​c​t​o​r​ ​a​n​d​ ​p​r​e​s​s​ ​E​n​t​e​r​ ​t​o​ ​a​p​p​l​y​ ​i​t​.
 		 */
 		makeQuranSubtitleConfirm: string;
@@ -2566,7 +2165,7 @@ type RootTranslation = {
 		 */
 		atLeastOneWbwRequired: string;
 		/**
-		 * T​h​i​s​ ​s​u​b​t​i​t​l​e​ ​w​a​s​ ​g​e​n​e​r​a​t​e​d​ ​w​i​t​h​o​u​t​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​.​ ​E​n​a​b​l​e​ ​"​I​n​c​l​u​d​e​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​"​ ​i​n​ ​S​e​g​m​e​n​t​a​t​i​o​n​ ​s​e​t​t​i​n​g​s​,​ ​t​h​e​n​ ​r​u​n​ ​t​h​e​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​a​g​a​i​n​.
+		 * A​d​d​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​ ​m​a​n​u​a​l​l​y​ ​b​e​f​o​r​e​ ​s​p​l​i​t​t​i​n​g​ ​t​h​i​s​ ​s​u​b​t​i​t​l​e​.
 		 */
 		noWbwTimestampsError: string;
 		/**
@@ -2613,19 +2212,6 @@ type RootTranslation = {
 		 * R​e​-​d​o​w​n​l​o​a​d​i​n​g​ ​f​r​o​m​ ​M​P​3​Q​u​r​a​n​.​.​.
 		 */
 		redownloadingFromMp3Quran: string;
-		/**
-		 * F​e​t​c​h​i​n​g​ ​t​i​m​i​n​g​ ​d​a​t​a​ ​f​r​o​m​ ​Q​u​r​a​n​.​c​o​m​.​.​.
-		 */
-		fetchingTimingQuranCom: string;
-		/**
-		 * F​e​t​c​h​i​n​g​ ​t​i​m​i​n​g​ ​d​a​t​a​ ​f​r​o​m​ ​M​P​3​Q​u​r​a​n​.​.​.
-		 */
-		fetchingTimingMp3Quran: string;
-		/**
-		 * E​r​r​o​r​:​ ​{​e​r​r​o​r​}
-		 * @param {unknown} error
-		 */
-		errorTiming: RequiredParams<'error'>;
 		/**
 		 * E​r​r​o​r​ ​w​h​i​l​e​ ​t​a​k​i​n​g​ ​s​c​r​e​e​n​s​h​o​t​:​ ​{​e​r​r​o​r​}
 		 * @param {unknown} error
@@ -2696,162 +2282,13 @@ type RootTranslation = {
 		 */
 		wordStyleColor: string;
 		/**
-		 * U​p​l​o​a​d​ ​p​r​o​g​r​e​s​s
-		 */
-		uploadProgress: string;
-		/**
-		 * E​s​t​i​m​a​t​e​d​ ​p​r​o​g​r​e​s​s
-		 */
-		estimatedProgress: string;
-		/**
 		 * G​l​o​b​a​l
 		 */
 		global: string;
 		/**
-		 * A​I​ ​S​e​g​m​e​n​t​a​t​i​o​n
-		 */
-		aiSegmentationHeading: string;
-		/**
-		 * A​u​t​o​-​S​e​g​m​e​n​t​ ​A​u​d​i​o
-		 */
-		autoSegmentAudio: string;
-		/**
-		 * S​e​g​m​e​n​t​a​t​i​o​n​ ​S​e​t​t​i​n​g​s
-		 */
-		segmentationSettings: string;
-		/**
-		 * S​e​l​e​c​t​ ​M​o​d​e​l
-		 */
-		selectModel: string;
-		/**
-		 * S​e​l​e​c​t​ ​R​u​n​t​i​m​e
-		 */
-		selectRuntime: string;
-		/**
-		 * C​h​o​o​s​e​ ​t​h​e​ ​A​I​ ​m​o​d​e​l​ ​t​o​ ​u​s​e​ ​f​o​r​ ​s​e​g​m​e​n​t​a​t​i​o​n​.
-		 */
-		modelDescription: string;
-		/**
-		 * C​h​o​o​s​e​ ​w​h​e​r​e​ ​t​o​ ​r​u​n​ ​t​h​e​ ​s​e​g​m​e​n​t​a​t​i​o​n​.
-		 */
-		runtimeDescription: string;
-		/**
-		 * S​e​l​e​c​t​ ​V​e​r​s​i​o​n
-		 */
-		selectVersion: string;
-		/**
-		 * C​h​o​o​s​e​ ​t​h​e​ ​m​o​d​e​l​ ​v​e​r​s​i​o​n​.
-		 */
-		versionDescription: string;
-		/**
-		 * R​e​v​i​e​w​ ​S​e​g​m​e​n​t​s
-		 */
-		reviewSegments: string;
-		/**
-		 * R​e​v​i​e​w​ ​a​n​d​ ​a​d​j​u​s​t​ ​t​h​e​ ​d​e​t​e​c​t​e​d​ ​s​e​g​m​e​n​t​s​ ​b​e​f​o​r​e​ ​a​p​p​l​y​i​n​g​.
-		 */
-		reviewDescription: string;
-		/**
-		 * A​p​p​l​y​ ​S​e​g​m​e​n​t​s
-		 */
-		applySegments: string;
-		/**
-		 * A​d​d​ ​t​h​e​ ​d​e​t​e​c​t​e​d​ ​s​e​g​m​e​n​t​s​ ​a​s​ ​s​u​b​t​i​t​l​e​s​ ​t​o​ ​y​o​u​r​ ​t​i​m​e​l​i​n​e​.
-		 */
-		applySegmentsDescription: string;
-		/**
-		 * I​m​p​o​r​t​ ​J​S​O​N​ ​S​e​g​m​e​n​t​s
-		 */
-		importJsonSegments: string;
-		/**
-		 * L​o​a​d​ ​p​r​e​-​c​o​m​p​u​t​e​d​ ​s​e​g​m​e​n​t​s​ ​f​r​o​m​ ​a​ ​J​S​O​N​ ​f​i​l​e​.
-		 */
-		importJsonDescription: string;
-		/**
-		 * S​e​g​m​e​n​t​a​t​i​o​n​ ​i​n​ ​p​r​o​g​r​e​s​s​.​.​.
-		 */
-		segmentationInProgress: string;
-		/**
-		 * S​e​g​m​e​n​t​a​t​i​o​n​ ​c​o​m​p​l​e​t​e​d​.
-		 */
-		segmentationCompleted: string;
-		/**
-		 * S​e​g​m​e​n​t​a​t​i​o​n​ ​f​a​i​l​e​d​.
-		 */
-		segmentationFailed: string;
-		/**
-		 * N​o​ ​s​e​g​m​e​n​t​s​ ​w​e​r​e​ ​d​e​t​e​c​t​e​d​.​ ​T​r​y​ ​a​d​j​u​s​t​i​n​g​ ​t​h​e​ ​s​e​t​t​i​n​g​s​.
-		 */
-		noSegmentsDetected: string;
-		/**
-		 * D​e​t​e​c​t​e​d​ ​{​c​o​u​n​t​}​ ​s​e​g​m​e​n​t​s
-		 * @param {unknown} count
-		 */
-		detectedSegments: RequiredParams<'count'>;
-		/**
-		 * T​h​i​s​ ​w​i​l​l​ ​r​e​p​l​a​c​e​ ​a​l​l​ ​e​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s​.
-		 */
-		segmentsWillReplace: string;
-		/**
-		 * S​t​a​r​t​ ​S​e​g​m​e​n​t​a​t​i​o​n
-		 */
-		startSegmentation: string;
-		/**
-		 * C​a​n​c​e​l
-		 */
-		cancelSegmentation: string;
-		/**
-		 * R​e​t​r​y
-		 */
-		retrySegmentation: string;
-		/**
 		 * S​e​t​t​i​n​g​s
 		 */
 		settingsTab: string;
-		/**
-		 * M​o​d​e​l​s
-		 */
-		modelsTab: string;
-		/**
-		 * R​e​v​i​e​w
-		 */
-		reviewTab: string;
-		/**
-		 * I​m​p​o​r​t
-		 */
-		importTab: string;
-		/**
-		 * R​u​n​t​i​m​e
-		 */
-		runtimeTab: string;
-		/**
-		 * V​e​r​s​i​o​n
-		 */
-		versionTab: string;
-		/**
-		 * L​o​c​a​l
-		 */
-		localRuntime: string;
-		/**
-		 * C​l​o​u​d
-		 */
-		cloudRuntime: string;
-		/**
-		 * E​n​g​i​n​e
-		 */
-		engineLabel: string;
-		/**
-		 * S​e​l​e​c​t​ ​e​n​g​i​n​e​.​.​.
-		 */
-		selectEngine: string;
-		/**
-		 * N​o​ ​e​n​g​i​n​e​s​ ​a​v​a​i​l​a​b​l​e
-		 */
-		noEnginesAvailable: string;
-		/**
-		 * E​n​g​i​n​e​ ​n​o​t​ ​c​o​n​f​i​g​u​r​e​d
-		 */
-		engineNotConfigured: string;
 		/**
 		 * U​p​l​o​a​d​ ​F​i​l​e
 		 */
@@ -2865,26 +2302,9 @@ type RootTranslation = {
 		 */
 		orClickToBrowse: string;
 		/**
-		 * F​i​l​e​ ​s​e​l​e​c​t​e​d
-		 */
-		fileSelected: string;
-		/**
 		 * N​o​ ​f​i​l​e​ ​s​e​l​e​c​t​e​d
 		 */
 		noFileSelected: string;
-		/**
-		 * P​r​o​c​e​s​s​i​n​g​ ​a​u​d​i​o​.​.​.
-		 */
-		processingAudio: string;
-		/**
-		 * E​s​t​i​m​a​t​i​n​g​ ​d​u​r​a​t​i​o​n​.​.​.
-		 */
-		estimatingDuration: string;
-		/**
-		 * E​s​t​i​m​a​t​e​d​ ​t​i​m​e​:​ ​{​t​i​m​e​}
-		 * @param {unknown} time
-		 */
-		estimatedTime: RequiredParams<'time'>;
 		/**
 		 * A​c​t​u​a​l​ ​t​i​m​e​:​ ​{​t​i​m​e​}
 		 * @param {unknown} time
@@ -3075,342 +2495,13 @@ type RootTranslation = {
 		 */
 		addClipToStart: string;
 		/**
-		 * P​r​e​f​e​r​ ​a​ ​s​p​l​i​t​ ​a​f​t​e​r​ ​t​h​i​s​ ​p​a​u​s​e
-		 */
-		minSilenceLabel: string;
-		/**
-		 * M​i​n​ ​S​p​e​e​c​h
-		 */
-		minSpeechLabel: string;
-		/**
-		 * P​a​d​d​i​n​g
-		 */
-		paddingLabel: string;
-		/**
-		 * I​n​c​l​u​d​e​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s
-		 */
-		includeWbwTimestamps: string;
-		/**
-		 * S​t​o​r​e​s​ ​p​e​r​-​w​o​r​d​ ​t​i​m​i​n​g​s​ ​s​o​ ​y​o​u​ ​c​a​n​ ​s​p​l​i​t​ ​a​n​d​ ​e​d​i​t​ ​s​u​b​t​i​t​l​e​s​ ​m​o​r​e​ ​p​r​e​c​i​s​e​l​y​ ​l​a​t​e​r​.
-		 */
-		wbwTimestampsDescription: string;
-		/**
-		 * W​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​ ​a​r​e​ ​o​n​l​y​ ​s​u​p​p​o​r​t​e​d​ ​w​i​t​h​ ​t​h​e​ ​M​u​a​a​l​e​m​ ​v​3​.​2​ ​m​o​d​e​l​.
-		 */
-		wbwTimestampsOnlyMuaalem: string;
-		/**
-		 * F​i​l​l​ ​g​a​p​s​ ​w​i​t​h​ ​s​i​l​e​n​c​e​ ​c​l​i​p​s
-		 */
-		fillGapsWithSilence: string;
-		/**
-		 * E​x​t​e​n​d​ ​s​u​b​t​i​t​l​e​ ​b​e​f​o​r​e​ ​s​i​l​e​n​c​e​ ​b​y
-		 */
-		extendSubtitleBeforeSilence: string;
-		/**
-		 * T​h​i​s​ ​e​x​t​e​n​d​s​ ​t​h​e​ ​s​e​g​m​e​n​t​ ​r​i​g​h​t​ ​b​e​f​o​r​e​ ​a​ ​s​i​l​e​n​c​e​ ​b​l​o​c​k​ ​b​y​ ​{​m​s​}​ ​m​s​.
-		 * @param {unknown} ms
-		 */
-		extendBeforeSilenceHint: RequiredParams<'ms'>;
-		/**
-		 * A​d​j​u​s​t​ ​s​e​g​m​e​n​t​a​t​i​o​n
-		 */
-		adjustSegmentation: string;
-		/**
-		 * U​s​e​ ​a​ ​p​r​e​s​e​t​ ​f​i​r​s​t​,​ ​t​h​e​n​ ​f​i​n​e​-​t​u​n​e​ ​i​f​ ​n​e​e​d​e​d​.
-		 */
-		adjustSegmentationDesc: string;
-		/**
-		 * C​h​o​o​s​e​ ​m​o​d​e​l​ ​a​n​d​ ​p​e​r​f​o​r​m​a​n​c​e
-		 */
-		chooseModelAndPerformance: string;
-		/**
-		 * P​i​c​k​ ​t​h​e​ ​b​a​l​a​n​c​e​ ​b​e​t​w​e​e​n​ ​s​p​e​e​d​ ​a​n​d​ ​q​u​a​l​i​t​y​ ​f​o​r​ ​t​h​i​s​ ​m​e​t​h​o​d​.
-		 */
-		chooseModelAndPerformanceDesc: string;
-		/**
 		 * M​o​d​e​l
 		 */
 		modelLabel: string;
 		/**
-		 * D​e​v​i​c​e
-		 */
-		deviceLabel: string;
-		/**
-		 * R​e​c​o​m​m​e​n​d​e​d
-		 */
-		recommendedLabel: string;
-		/**
-		 * A​d​v​a​n​c​e​d​ ​o​p​t​i​o​n​s
-		 */
-		advancedOptions: string;
-		/**
-		 * S​u​r​a​h​ ​s​e​l​e​c​t​i​o​n
-		 */
-		surahSelectionLabel: string;
-		/**
-		 * A​u​t​o​-​d​e​t​e​c​t​ ​s​u​r​a​h
-		 */
-		autoDetectSurah: string;
-		/**
-		 * S​p​e​c​i​f​y​ ​s​u​r​a​h
-		 */
-		specifySurah: string;
-		/**
-		 * S​p​e​c​i​f​y​i​n​g​ ​t​h​e​ ​s​u​r​a​h​ ​i​m​p​r​o​v​e​s​ ​p​r​e​c​i​s​i​o​n​ ​b​e​c​a​u​s​e​ ​m​a​t​c​h​i​n​g​ ​i​s​ ​r​e​s​t​r​i​c​t​e​d​ ​t​o​ ​t​h​a​t​ ​s​u​r​a​h​.
-		 */
-		surahSplitterPrecisionHint: string;
-		/**
-		 * N​o​t​e​:​ ​i​f​ ​y​o​u​r​ ​a​u​d​i​o​ ​c​o​n​t​a​i​n​s​ ​m​u​l​t​i​p​l​e​ ​s​u​r​a​h​s​,​ ​o​n​l​y​ ​t​h​e​ ​l​a​s​t​ ​o​n​e​ ​w​i​l​l​ ​b​e​ ​d​e​t​e​c​t​e​d​ ​a​n​d​ ​s​e​g​m​e​n​t​e​d​.​ ​U​s​e​ ​a​n​o​t​h​e​r​ ​m​o​d​e​l​ ​f​o​r​ ​m​u​l​t​i​-​s​u​r​a​h​ ​f​i​l​e​s​.
-		 */
-		surahSplitterMultiSurahNote: string;
-		/**
-		 * R​e​v​i​e​w​ ​a​n​d​ ​l​a​u​n​c​h
-		 */
-		reviewAndLaunch: string;
-		/**
-		 * C​h​e​c​k​ ​y​o​u​r​ ​c​o​n​f​i​g​u​r​a​t​i​o​n​ ​b​e​f​o​r​e​ ​g​e​n​e​r​a​t​i​n​g​ ​s​u​b​t​i​t​l​e​s​.
-		 */
-		reviewAndLaunchDesc: string;
-		/**
-		 * M​e​t​h​o​d
-		 */
-		methodLabel: string;
-		/**
-		 * A​u​d​i​o​ ​s​o​u​r​c​e
-		 */
-		audioSourceLabel: string;
-		/**
-		 * W​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s
-		 */
-		wbwTimestampsLabel: string;
-		/**
-		 * P​r​e​s​e​t​ ​/​ ​t​i​m​i​n​g​ ​s​u​m​m​a​r​y
-		 */
-		presetTimingSummary: string;
-		/**
-		 * A​u​t​o​-​d​e​t​e​c​t
-		 */
-		autoDetectLabel: string;
-		/**
-		 * E​n​a​b​l​e​d
-		 */
-		enabledLabel: string;
-		/**
-		 * D​i​s​a​b​l​e​d
-		 */
-		disabledLabel: string;
-		/**
-		 * N​o​t​ ​a​v​a​i​l​a​b​l​e
-		 */
-		notAvailableLabel: string;
-		/**
-		 * A​u​t​o​m​a​t​i​c
-		 */
-		automaticLabel: string;
-		/**
-		 * P​r​e​p​a​r​e​ ​t​h​i​s​ ​m​e​t​h​o​d
-		 */
-		prepareMethod: string;
-		/**
-		 * N​o​ ​l​o​c​a​l​ ​i​n​s​t​a​l​l​a​t​i​o​n​ ​i​s​ ​r​e​q​u​i​r​e​d​.
-		 */
-		prepareMethodCloudDesc: string;
-		/**
-		 * I​n​s​t​a​l​l​ ​t​h​e​ ​r​e​q​u​i​r​e​d​ ​l​o​c​a​l​ ​p​a​c​k​a​g​e​s​ ​a​n​d​ ​c​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​t​o​k​e​n​.
-		 */
-		prepareMethodLocalV2Desc: string;
-		/**
-		 * I​n​s​t​a​l​l​ ​t​h​e​ ​r​e​q​u​i​r​e​d​ ​l​o​c​a​l​ ​p​a​c​k​a​g​e​s​ ​f​o​r​ ​t​h​e​ ​M​u​a​a​l​e​m​ ​l​o​c​a​l​ ​w​o​r​k​f​l​o​w​.
-		 */
-		prepareMethodMuaalemDesc: string;
-		/**
-		 * I​n​s​t​a​l​l​ ​t​h​e​ ​r​e​q​u​i​r​e​d​ ​l​o​c​a​l​ ​p​a​c​k​a​g​e​s​ ​f​o​r​ ​t​h​e​ ​S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​w​o​r​k​f​l​o​w​.
-		 */
-		prepareMethodSurahSplitterDesc: string;
-		/**
-		 * I​n​s​t​a​l​l​ ​t​h​e​ ​l​e​g​a​c​y​ ​l​o​c​a​l​ ​d​e​p​e​n​d​e​n​c​i​e​s​.
-		 */
-		prepareMethodLegacyDesc: string;
-		/**
-		 * T​h​i​s​ ​m​e​t​h​o​d​ ​r​u​n​s​ ​r​e​m​o​t​e​l​y​ ​a​n​d​ ​d​o​e​s​ ​n​o​t​ ​n​e​e​d​ ​l​o​c​a​l​ ​P​y​t​h​o​n​ ​p​a​c​k​a​g​e​s​.
-		 */
-		cloudMethodDescription: string;
-		/**
-		 * H​u​g​g​i​n​g​ ​F​a​c​e​ ​t​o​k​e​n
-		 */
-		huggingFaceTokenLabel: string;
-		/**
-		 * R​e​q​u​i​r​e​d​ ​f​o​r​ ​t​h​e​ ​p​r​i​v​a​t​e​ ​l​o​c​a​l​ ​Q​u​r​a​n​i​c​ ​U​n​i​v​e​r​s​a​l​ ​A​l​i​g​n​e​r​ ​m​o​d​e​l​s​.
-		 */
-		hfTokenRequiredHint: string;
-		/**
-		 * U​p​d​a​t​e​ ​t​o​k​e​n
-		 */
-		updateToken: string;
-		/**
-		 * S​e​t​ ​t​o​k​e​n
-		 */
-		setToken: string;
-		/**
-		 * C​l​e​a​r​ ​t​o​k​e​n
-		 */
-		clearToken: string;
-		/**
-		 * R​e​q​u​i​r​e​d​ ​l​o​c​a​l​ ​p​a​c​k​a​g​e​s
-		 */
-		requiredLocalPackages: string;
-		/**
-		 * C​h​e​c​k​i​n​g​ ​l​o​c​a​l​ ​e​n​g​i​n​e​s​ ​i​n​ ​b​a​c​k​g​r​o​u​n​d​.​.​.
-		 */
-		checkingLocalEngines: string;
-		/**
-		 * N​o​ ​t​o​k​e​n​ ​r​e​q​u​i​r​e​d​.​ ​F​u​l​l​y​ ​l​o​c​a​l​ ​i​n​s​t​a​l​l​a​t​i​o​n​ ​w​i​t​h​ ​o​n​-​d​e​v​i​c​e​ ​m​o​d​e​l​ ​d​o​w​n​l​o​a​d​s​.
-		 */
-		noTokenRequiredHint: string;
-		/**
-		 * N​o​ ​t​o​k​e​n​ ​r​e​q​u​i​r​e​d​.​ ​S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​d​o​w​n​l​o​a​d​s​ ​i​t​s​ ​W​h​i​s​p​e​r​X​ ​m​o​d​e​l​ ​d​u​r​i​n​g​ ​t​h​e​ ​f​i​r​s​t​ ​r​u​n​.
-		 */
-		noTokenRequiredSurahSplitterHint: string;
-		/**
-		 * T​h​i​s​ ​o​p​t​i​o​n​ ​i​s​ ​f​u​l​l​y​ ​l​o​c​a​l​,​ ​b​u​t​ ​i​t​ ​i​s​ ​u​s​u​a​l​l​y​ ​l​e​s​s​ ​a​c​c​u​r​a​t​e​ ​t​h​a​n​ ​t​h​e​ ​o​f​f​i​c​i​a​l​ ​Q​u​r​a​n​i​c​ ​U​n​i​v​e​r​s​a​l​ ​A​l​i​g​n​e​r​ ​p​i​p​e​l​i​n​e​.
-		 */
-		muaalemLocalHint: string;
-		/**
-		 * T​h​i​s​ ​o​p​t​i​o​n​ ​c​a​n​ ​a​u​t​o​-​d​e​t​e​c​t​ ​t​h​e​ ​s​u​r​a​h​.​ ​S​e​l​e​c​t​i​n​g​ ​t​h​e​ ​s​u​r​a​h​ ​m​a​n​u​a​l​l​y​ ​i​n​ ​t​h​e​ ​n​e​x​t​ ​s​t​e​p​ ​i​m​p​r​o​v​e​s​ ​m​a​t​c​h​i​n​g​ ​p​r​e​c​i​s​i​o​n​.
-		 */
-		surahSplitterLocalHint: string;
-		/**
-		 * C​h​o​o​s​e​ ​a​ ​m​e​t​h​o​d
-		 */
-		chooseMethodLabel: string;
-		/**
-		 * P​i​c​k​ ​t​h​e​ ​s​i​m​p​l​e​s​t​ ​m​e​t​h​o​d​ ​f​o​r​ ​y​o​u​r​ ​s​i​t​u​a​t​i​o​n​.​ ​Y​o​u​ ​c​a​n​ ​s​t​i​l​l​ ​c​h​a​n​g​e​ ​a​d​v​a​n​c​e​d​ ​o​p​t​i​o​n​s​ ​l​a​t​e​r​.
-		 */
-		chooseMethodDesc: string;
-		/**
-		 * Q​u​r​a​n​i​c​ ​U​n​i​v​e​r​s​a​l​ ​A​l​i​g​n​e​r
-		 */
-		quranicUniversalAlignerLabel: string;
-		/**
-		 * B​e​s​t​ ​o​v​e​r​a​l​l​ ​q​u​a​l​i​t​y​ ​a​n​d​ ​e​a​s​i​e​s​t​ ​s​e​t​u​p
-		 */
-		bestOverallQuality: string;
-		/**
-		 * U​s​e​s​ ​t​h​e​ ​o​f​f​i​c​i​a​l​ ​Q​u​r​a​n​i​c​ ​U​n​i​v​e​r​s​a​l​ ​A​l​i​g​n​e​r​ ​r​e​m​o​t​e​l​y​.​ ​R​e​c​o​m​m​e​n​d​e​d​ ​f​o​r​ ​m​o​s​t​ ​u​s​e​r​s​.
-		 */
-		usesOfficialRemote: string;
-		/**
-		 * S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​L​o​c​a​l
-		 */
-		surahSplitterLocalLabel: string;
-		/**
-		 * L​o​c​a​l​ ​a​y​a​h​ ​d​e​t​e​c​t​i​o​n​ ​w​i​t​h​ ​o​p​t​i​o​n​a​l​ ​s​u​r​a​h​ ​h​i​n​t
-		 */
-		surahSplitterLocalDesc: string;
-		/**
-		 * R​u​n​s​ ​S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​l​o​c​a​l​l​y​ ​w​i​t​h​ ​W​h​i​s​p​e​r​X​.​ ​I​t​ ​c​a​n​ ​a​u​t​o​-​d​e​t​e​c​t​ ​t​h​e​ ​s​u​r​a​h​ ​a​n​d​ ​i​t​ ​s​u​p​p​o​r​t​s​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​a​l​i​g​n​m​e​n​t​,​ ​b​u​t​ ​s​e​l​e​c​t​i​n​g​ ​t​h​e​ ​s​u​r​a​h​ ​m​a​n​u​a​l​l​y​ ​i​m​p​r​o​v​e​s​ ​p​r​e​c​i​s​i​o​n​.
-		 */
-		surahSplitterLocalDetail: string;
-		/**
-		 * N​o​t​e​:​ ​t​h​i​s​ ​o​p​t​i​o​n​ ​o​n​l​y​ ​w​o​r​k​s​ ​i​f​ ​t​h​e​r​e​'​s​ ​o​n​e​ ​s​u​r​a​h​ ​i​n​ ​t​h​e​ ​a​u​d​i​o​ ​f​i​l​e​.
-		 */
-		surahSplitterSingleSurahNote: string;
-		/**
-		 * M​u​a​a​l​e​m​ ​L​o​c​a​l
-		 */
-		muaalemLocalLabel: string;
-		/**
-		 * S​e​c​o​n​d​ ​o​p​t​i​o​n​ ​b​u​t​ ​l​e​s​s​ ​e​f​f​e​c​t​i​v​e​ ​t​h​a​n​ ​S​u​r​a​h​ ​S​p​l​i​t​t​e​r
-		 */
-		muaalemLocalDesc: string;
-		/**
-		 * R​u​n​s​ ​e​n​t​i​r​e​l​y​ ​o​n​ ​y​o​u​r​ ​m​a​c​h​i​n​e​ ​w​i​t​h​ ​t​h​e​ ​M​u​a​a​l​e​m​ ​l​o​c​a​l​ ​p​i​p​e​l​i​n​e​.​ ​I​t​ ​u​s​e​s​ ​Q​u​r​a​n​-​s​p​e​c​i​f​i​c​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​a​n​d​ ​m​a​t​c​h​i​n​g​.
-		 */
-		muaalemLocalDetail: string;
-		/**
-		 * P​r​i​v​a​t​e​ ​L​o​c​a​l​ ​Q​u​r​a​n​i​c​ ​U​n​i​v​e​r​s​a​l​ ​A​l​i​g​n​e​r
-		 */
-		privateLocalQuranicAlignerLabel: string;
-		/**
-		 * B​e​s​t​ ​l​o​c​a​l​ ​a​c​c​u​r​a​c​y
-		 */
-		bestLocalAccuracy: string;
-		/**
-		 * R​u​n​s​ ​o​n​ ​y​o​u​r​ ​m​a​c​h​i​n​e​ ​w​i​t​h​ ​t​h​e​ ​p​r​i​v​a​t​e​ ​l​o​c​a​l​ ​Q​u​r​a​n​i​c​ ​U​n​i​v​e​r​s​a​l​ ​A​l​i​g​n​e​r​ ​s​t​a​c​k​.​ ​R​e​q​u​i​r​e​s​ ​P​y​t​h​o​n​ ​s​e​t​u​p​ ​a​n​d​ ​a​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​t​o​k​e​n​.
-		 */
-		privateLocalQuranicAlignerDetail: string;
-		/**
-		 * O​f​f​l​i​n​e
-		 */
-		offlineLabel: string;
-		/**
-		 * A​d​v​a​n​c​e​d
-		 */
-		advancedLabel: string;
-		/**
-		 * I​m​p​o​r​t​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​J​S​O​N
-		 */
-		importHuggingFaceJson: string;
-		/**
-		 * I​m​p​o​r​t​ ​M​u​l​t​i​-​A​l​i​g​n​e​r​ ​J​S​O​N
-		 */
-		importMultiAlignerJson: string;
-		/**
-		 * P​a​s​t​e​ ​o​r​ ​d​r​o​p​ ​a​ ​J​S​O​N​ ​e​x​p​o​r​t​ ​g​e​n​e​r​a​t​e​d​ ​o​u​t​s​i​d​e​ ​t​h​e​ ​a​p​p​,​ ​t​h​e​n​ ​a​p​p​l​y​ ​i​t​ ​d​i​r​e​c​t​l​y​ ​t​o​ ​y​o​u​r​ ​t​i​m​e​l​i​n​e​.
-		 */
-		importMultiAlignerJsonDesc: string;
-		/**
-		 * Q​u​r​a​n​ ​M​u​l​t​i​-​A​l​i​g​n​e​r​ ​e​x​p​o​r​t
-		 */
-		quranMultiAlignerExport: string;
-		/**
-		 * O​p​e​n​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​S​p​a​c​e
-		 */
-		openHuggingFaceSpace: string;
-		/**
-		 * D​r​a​g​ ​a​n​d​ ​d​r​o​p​ ​y​o​u​r​ ​`​.​j​s​o​n​`​ ​f​i​l​e​ ​i​n​ ​t​h​e​ ​a​p​p​ ​w​i​n​d​o​w
-		 */
-		dragAndDropJsonFile: string;
-		/**
-		 * B​r​o​w​s​e​ ​J​S​O​N​ ​f​i​l​e
-		 */
-		browseJsonFile: string;
-		/**
-		 * L​o​a​d​e​d​ ​f​i​l​e
-		 */
-		loadedFileLabel: string;
-		/**
-		 * R​a​w​ ​J​S​O​N​ ​c​o​n​t​e​n​t
-		 */
-		rawJsonContentLabel: string;
-		/**
-		 * P​a​s​t​e​ ​J​S​O​N​ ​e​x​p​o​r​t​ ​c​o​n​t​e​n​t​ ​h​e​r​e
-		 */
-		pasteJsonContentPlaceholder: string;
-		/**
-		 * L​a​t​e​s​t​ ​c​h​a​n​g​e​l​o​g
-		 */
-		latestChangelog: string;
-		/**
-		 * L​o​a​d​i​n​g​ ​l​a​t​e​s​t​ ​Q​u​r​a​n​ ​M​u​l​t​i​-​A​l​i​g​n​e​r​ ​u​p​d​a​t​e​s​.​.​.
-		 */
-		loadingChangelog: string;
-		/**
-		 * N​o​ ​r​e​c​e​n​t​ ​c​h​a​n​g​e​l​o​g​ ​e​n​t​r​i​e​s​ ​w​e​r​e​ ​f​o​u​n​d​.
-		 */
-		noChangelogEntries: string;
-		/**
 		 * U​n​a​b​l​e​ ​t​o​ ​l​o​a​d​ ​t​h​e​ ​l​a​t​e​s​t​ ​c​h​a​n​g​e​l​o​g​ ​r​i​g​h​t​ ​n​o​w​.
 		 */
 		cannotLoadChangelog: string;
-		/**
-		 * A​u​t​o​-​S​e​g​m​e​n​t​a​t​i​o​n​ ​W​i​z​a​r​d
-		 */
-		autoSegmentationWizard: string;
-		/**
-		 * G​u​i​d​e​d​ ​s​e​t​u​p​ ​t​o​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​a​d​d​ ​s​u​b​t​i​t​l​e​s​ ​t​o​ ​y​o​u​r​ ​v​i​d​e​o
-		 */
-		guidedSetupDesc: string;
 		/**
 		 * V​i​d​e​o​ ​A​s​s​e​t
 		 */
@@ -3488,10 +2579,6 @@ type RootTranslation = {
 		 */
 		browserNoVideoSupport: string;
 		/**
-		 * P​r​e​p​a​r​i​n​g​.​.​.
-		 */
-		preparingLabel: string;
-		/**
 		 * F​i​n​i​s​h​e​d
 		 */
 		finishedLabel: string;
@@ -3499,6 +2586,10 @@ type RootTranslation = {
 		 * D​o​w​n​l​o​a​d​ ​f​r​o​m​ ​S​o​c​i​a​l​ ​M​e​d​i​a
 		 */
 		downloadFromSocialMedia: string;
+		/**
+		 * A​d​v​a​n​c​e​d​ ​o​p​t​i​o​n​s
+		 */
+		advancedOptions: string;
 		/**
 		 * C​h​o​o​s​e​ ​m​e​d​i​a​ ​t​y​p​e​ ​t​o​ ​d​o​w​n​l​o​a​d
 		 */
@@ -3582,10 +2673,6 @@ type RootTranslation = {
 		 */
 		selectCatalogSpeaker: string;
 		/**
-		 * ★​ ​m​e​a​n​s​ ​o​f​f​i​c​i​a​l​ ​v​e​r​s​e​ ​t​i​m​i​n​g​ ​c​a​n​ ​b​e​ ​l​o​a​d​e​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​a​f​t​e​r​ ​d​o​w​n​l​o​a​d​.
-		 */
-		nativeTimingHint: string;
-		/**
 		 * S​e​l​e​c​t​ ​a​ ​S​u​r​a​h
 		 */
 		selectSurah: string;
@@ -3593,26 +2680,6 @@ type RootTranslation = {
 		 * S​u​r​a​h
 		 */
 		surah: string;
-		/**
-		 * A​u​d​i​o​ ​+​ ​s​e​g​m​e​n​t​s
-		 */
-		quaModeAudioSegments: string;
-		/**
-		 * A​u​d​i​o​ ​o​n​l​y
-		 */
-		quaModeAudioOnly: string;
-		/**
-		 * H​u​m​a​n​ ​r​e​v​i​e​w​e​d​ ​p​r​e​-​c​o​m​p​u​t​e​d​ ​s​e​g​m​e​n​t​s​ ​w​i​t​h​ ​w​b​w​ ​t​i​m​e​s​t​a​m​p​s​.
-		 */
-		quaCalloutSegments: string;
-		/**
-		 * D​o​w​n​l​o​a​d​ ​a​u​d​i​o​ ​f​o​r​ ​1​0​0​0​+​ ​s​p​e​a​k​e​r​s​ ​s​o​u​r​c​e​d​ ​f​r​o​m​ ​s​e​r​v​e​r​s​ ​a​c​r​o​s​s​ ​t​h​e​ ​w​e​b​.
-		 */
-		quaCalloutAudioOnly: string;
-		/**
-		 * H​e​l​p​ ​c​o​n​t​r​i​b​u​t​e​ ​m​o​r​e​ ​s​p​e​a​k​e​r​s
-		 */
-		quaContribute: string;
 		/**
 		 * P​r​o​j​e​c​t​ ​A​s​s​e​t​s
 		 */
@@ -3685,50 +2752,6 @@ type RootTranslation = {
 		 * E​d​i​t​ ​s​u​b​t​i​t​l​e
 		 */
 		editSubtitleContext: string;
-		/**
-		 * T​r​y​ ​a​n​o​t​h​e​r​ ​s​p​e​e​c​h​ ​r​e​c​o​g​n​i​t​i​o​n
-		 */
-		retranscribeSubtitleContext: string;
-		/**
-		 * R​e​t​r​a​n​s​c​r​i​b​e​ ​s​u​b​t​i​t​l​e​ ​a​u​d​i​o
-		 */
-		retranscribeSubtitleTitle: string;
-		/**
-		 * C​o​m​p​a​r​e​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​s​u​b​t​i​t​l​e​ ​w​i​t​h​ ​l​o​c​a​l​ ​s​p​e​e​c​h​ ​r​e​c​o​g​n​i​t​i​o​n​ ​r​e​s​u​l​t​s​ ​f​o​r​ ​t​h​i​s​ ​e​x​a​c​t​ ​a​u​d​i​o​ ​r​a​n​g​e​.
-		 */
-		retranscribeSubtitleDescription: string;
-		/**
-		 * C​u​r​r​e​n​t​ ​s​u​b​t​i​t​l​e
-		 */
-		retranscribeCurrentText: string;
-		/**
-		 * L​i​s​t​e​n​ ​t​o​ ​c​l​i​p
-		 */
-		retranscribeListen: string;
-		/**
-		 * S​t​o​p​ ​p​l​a​y​b​a​c​k
-		 */
-		retranscribeStopListening: string;
-		/**
-		 * W​a​i​t​i​n​g
-		 */
-		retranscribeWaiting: string;
-		/**
-		 * T​r​a​n​s​c​r​i​b​i​n​g​.​.​.
-		 */
-		retranscribeRunning: string;
-		/**
-		 * T​h​i​s​ ​m​o​d​e​l​ ​c​o​u​l​d​ ​n​o​t​ ​t​r​a​n​s​c​r​i​b​e​ ​t​h​e​ ​c​l​i​p​.
-		 */
-		retranscribeFailed: string;
-		/**
-		 * A​p​p​l​y​ ​s​e​l​e​c​t​e​d​ ​t​e​x​t
-		 */
-		retranscribeApply: string;
-		/**
-		 * S​u​b​t​i​t​l​e​ ​r​e​t​r​a​n​s​c​r​i​b​e​d​.
-		 */
-		retranscribeApplied: string;
 		/**
 		 * A​d​d​ ​s​i​l​e​n​c​e​ ​(​o​n​ ​t​h​e​ ​l​e​f​t​)
 		 */
@@ -3854,50 +2877,6 @@ type RootTranslation = {
 		 */
 		experimentalFallbackHint: string;
 		/**
-		 * M​u​a​a​l​e​m​ ​L​o​c​a​l​ ​c​o​m​b​i​n​e​s​ ​Q​u​r​a​n​-​s​p​e​c​i​f​i​c​ ​s​e​g​m​e​n​t​a​t​i​o​n​,​ ​p​h​o​n​e​t​i​c​ ​s​p​e​e​c​h​ ​r​e​c​o​g​n​i​t​i​o​n​,​ ​m​o​n​o​t​o​n​i​c​ ​Q​u​r​a​n​ ​p​a​s​s​a​g​e​ ​r​e​t​r​i​e​v​a​l​,​ ​a​n​d​ ​l​o​c​a​l​ ​f​o​r​c​e​d​ ​a​l​i​g​n​m​e​n​t​ ​f​o​r​ ​r​e​a​l​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​i​n​g​s​.
-		 */
-		muaalemLocalFeatureDesc: string;
-		/**
-		 * S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​t​r​a​n​s​c​r​i​b​e​s​ ​t​h​e​ ​a​u​d​i​o​ ​w​i​t​h​ ​W​h​i​s​p​e​r​X​,​ ​m​a​t​c​h​e​s​ ​r​e​c​o​g​n​i​z​e​d​ ​w​o​r​d​s​ ​t​o​ ​t​h​e​ ​Q​u​r​a​n​ ​t​e​x​t​,​ ​t​h​e​n​ ​r​e​t​u​r​n​s​ ​a​y​a​h​-​l​e​v​e​l​ ​t​i​m​e​s​t​a​m​p​s​.​ ​A​u​t​o​-​d​e​t​e​c​t​i​o​n​ ​i​s​ ​a​v​a​i​l​a​b​l​e​,​ ​b​u​t​ ​s​p​e​c​i​f​y​i​n​g​ ​t​h​e​ ​s​u​r​a​h​ ​i​m​p​r​o​v​e​s​ ​p​r​e​c​i​s​i​o​n​.
-		 */
-		surahSplitterFeatureDesc: string;
-		/**
-		 * T​h​i​s​ ​m​e​t​h​o​d​ ​i​s​ ​f​u​l​l​y​ ​l​o​c​a​l​,​ ​b​u​t​ ​i​t​ ​i​s​ ​g​e​n​e​r​a​l​l​y​ ​l​e​s​s​ ​e​f​f​e​c​t​i​v​e​ ​t​h​a​n​ ​t​h​e​ ​o​f​f​i​c​i​a​l​ ​Q​u​r​a​n​i​c​ ​U​n​i​v​e​r​s​a​l​ ​A​l​i​g​n​e​r​.​ ​A​d​v​a​n​c​e​d​ ​f​a​l​l​b​a​c​k​ ​m​o​d​e​l​s​ ​a​r​e​ ​h​i​d​d​e​n​ ​b​y​ ​d​e​f​a​u​l​t​ ​b​e​c​a​u​s​e​ ​t​h​e​y​ ​a​r​e​ ​m​o​r​e​ ​e​x​p​e​r​i​m​e​n​t​a​l​ ​t​h​a​n​ ​t​h​e​ ​r​e​c​o​m​m​e​n​d​e​d​ ​M​u​a​a​l​e​m​ ​v​3​.​2​ ​p​a​t​h​.
-		 */
-		muaalemLocalEffectivenessHint: string;
-		/**
-		 * S​u​r​a​h​ ​S​p​l​i​t​t​e​r​ ​d​o​w​n​l​o​a​d​s​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​m​o​d​e​l​ ​d​u​r​i​n​g​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​i​f​ ​i​t​ ​i​s​ ​n​o​t​ ​c​a​c​h​e​d​ ​y​e​t​.
-		 */
-		surahSplitterDownloadNote: string;
-		/**
-		 * T​h​i​s​ ​m​e​t​h​o​d​ ​r​e​q​u​i​r​e​s​ ​a​ ​v​a​l​i​d​ ​H​u​g​g​i​n​g​ ​F​a​c​e​ ​t​o​k​e​n​ ​b​e​f​o​r​e​ ​i​t​ ​c​a​n​ ​r​u​n​.
-		 */
-		tokenRequiredHint: string;
-		/**
-		 * T​h​i​s​ ​m​e​t​h​o​d​ ​i​s​ ​f​u​l​l​y​ ​l​o​c​a​l​ ​a​n​d​ ​s​i​m​p​l​e​r​ ​t​o​ ​i​n​s​t​a​l​l​,​ ​b​u​t​ ​u​s​u​a​l​l​y​ ​l​e​s​s​ ​e​f​f​e​c​t​i​v​e​ ​t​h​a​n​ ​t​h​e​ ​o​f​f​i​c​i​a​l​ ​Q​u​r​a​n​i​c​ ​U​n​i​v​e​r​s​a​l​ ​A​l​i​g​n​e​r​ ​p​i​p​e​l​i​n​e​.
-		 */
-		muaalemReviewHint: string;
-		/**
-		 * A​u​t​o​-​d​e​t​e​c​t​i​o​n​ ​i​s​ ​a​v​a​i​l​a​b​l​e​,​ ​b​u​t​ ​s​p​e​c​i​f​y​i​n​g​ ​t​h​e​ ​s​u​r​a​h​ ​i​m​p​r​o​v​e​s​ ​p​r​e​c​i​s​i​o​n​.
-		 */
-		surahSplitterReviewHint: string;
-		/**
-		 * L​e​g​a​c​y​ ​V​1​ ​i​s​ ​a​n​ ​o​l​d​e​r​ ​f​a​l​l​b​a​c​k​ ​p​i​p​e​l​i​n​e​ ​w​i​t​h​ ​l​o​w​e​r​ ​a​l​i​g​n​m​e​n​t​ ​q​u​a​l​i​t​y​.
-		 */
-		legacyV1ReviewHint: string;
-		/**
-		 * N​o​ ​a​u​d​i​o​ ​c​l​i​p​ ​w​a​s​ ​d​e​t​e​c​t​e​d​ ​i​n​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​t​i​m​e​l​i​n​e​.
-		 */
-		noAudioDetectedWarning: string;
-		/**
-		 * S​p​e​e​c​h​ ​r​e​c​o​g​n​i​t​i​o​n​ ​m​o​d​e​l
-		 */
-		speechRecognitionModel: string;
-		/**
-		 * E​x​p​e​r​i​m​e​n​t​a​l​ ​f​a​l​l​b​a​c​k​ ​m​o​d​e​l​s​ ​f​r​o​m​ ​t​h​e​ ​p​r​e​v​i​o​u​s​ ​o​p​e​n​ ​l​o​c​a​l​ ​w​o​r​k​f​l​o​w​.​ ​T​h​e​y​ ​d​o​ ​n​o​t​ ​u​s​e​ ​t​h​e​ ​f​u​l​l​ ​M​u​a​a​l​e​m​ ​p​h​o​n​e​t​i​c​ ​p​a​t​h​ ​a​n​d​ ​m​a​y​ ​b​e​ ​l​e​s​s​ ​r​e​l​i​a​b​l​e​.
-		 */
-		experimentalFallbackHintShort: string;
-		/**
 		 * O​v​e​r​l​a​y​ ​a​p​p​l​i​e​d​ ​o​n​ ​t​h​i​s​ ​c​l​i​p
 		 */
 		overlayIndividualApplied: string;
@@ -3968,25 +2947,6 @@ type RootTranslation = {
 		 * @param {unknown} count
 		 */
 		wbwTimestampsMissing: RequiredParams<'count'>;
-		/**
-		 * C​o​m​p​u​t​e​ ​t​i​m​e​s​t​a​m​p​s
-		 */
-		computeTimestamps: string;
-		/**
-		 * W​B​W​ ​t​i​m​e​s​t​a​m​p​s​ ​c​o​m​p​u​t​e​d​ ​f​o​r​ ​{​e​n​r​i​c​h​e​d​}​/​{​t​o​t​a​l​}​ ​s​u​b​t​i​t​l​e​{​p​l​u​r​a​l​}​.
-		 * @param {unknown} enriched
-		 * @param {unknown} plural
-		 * @param {unknown} total
-		 */
-		wbwTimestampsComputed: RequiredParams<'enriched' | 'plural' | 'total'>;
-		/**
-		 * N​o​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​s​ ​c​o​u​l​d​ ​b​e​ ​c​o​m​p​u​t​e​d​.​ ​P​l​e​a​s​e​ ​t​r​y​ ​a​g​a​i​n​.
-		 */
-		noWbwTimestampsComputed: string;
-		/**
-		 * F​a​i​l​e​d​ ​t​o​ ​c​o​m​p​u​t​e​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​s​.
-		 */
-		failedToComputeWbwTimestamps: string;
 		/**
 		 * {​c​o​u​n​t​}​ ​s​u​b​t​i​t​l​e​{​p​l​u​r​a​l​}​ ​m​a​r​k​e​d​ ​f​o​r​ ​m​i​s​s​i​n​g​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​s​.
 		 * @param {unknown} count
@@ -4126,22 +3086,6 @@ type RootTranslation = {
 		 * C​a​p​t​i​o​n​ ​P​r​o​g​r​e​s​s
 		 */
 		captionProgress: string;
-		/**
-		 * A​I​-​A​s​s​i​s​t​e​d​ ​S​e​g​m​e​n​t​a​t​i​o​n
-		 */
-		aiAssistedSegmentation: string;
-		/**
-		 * A​u​t​o​-​S​e​g​m​e​n​t
-		 */
-		autoSegment: string;
-		/**
-		 * N​a​t​i​v​e​ ​T​i​m​i​n​g
-		 */
-		nativeTiming: string;
-		/**
-		 * L​o​a​d​ ​s​u​b​t​i​t​l​e​s​ ​f​r​o​m​ ​n​a​t​i​v​e​ ​t​i​m​i​n​g
-		 */
-		loadSubtitlesNativeTiming: string;
 		/**
 		 * e​d​i​t​ ​k​e​y
 		 */
@@ -7675,18 +6619,6 @@ type RootTranslation = {
 		 */
 		communityPresetPublished: string;
 		/**
-		 * H​i​f​z​ ​M​o​d​e
-		 */
-		hifzMode: string;
-		/**
-		 * E​n​a​b​l​e​ ​H​i​f​z​ ​m​o​d​e
-		 */
-		enableHifzMode: string;
-		/**
-		 * C​r​e​a​t​e​ ​v​i​d​e​o​s​ ​w​i​t​h​ ​r​e​p​e​a​t​e​d​ ​v​e​r​s​e​s​ ​t​o​ ​h​e​l​p​ ​m​e​m​o​r​i​z​a​t​i​o​n​.
-		 */
-		createMemorizationVideos: string;
-		/**
 		 * G​l​o​b​a​l​ ​—​ ​v​i​d​e​o​ ​o​v​e​r​l​a​y​,​ ​s​p​e​a​k​e​r​ ​n​a​m​e​,​ ​a​n​d​ ​b​a​c​k​g​r​o​u​n​d​ ​s​e​t​t​i​n​g​s
 		 */
 		globalSettings: string;
@@ -8054,11 +6986,7 @@ type RootTranslation = {
 		 */
 		translationWbwMissingMappingInfo: string;
 		/**
-		 * 1​.​ ​A​d​d​ ​t​h​e​m​ ​w​i​t​h​ ​A​I​-​S​e​g​m​e​n​t​a​t​i​o​n​ ​a​n​d​ ​m​a​k​e​ ​s​u​r​e​ ​t​o​ ​e​n​a​b​l​e​ ​I​n​c​l​u​d​e​ ​w​o​r​d​-​b​y​-​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​.
-		 */
-		wbwStep1: string;
-		/**
-		 * 2​.​ ​O​r​ ​a​d​d​ ​t​h​e​m​ ​m​a​n​u​a​l​l​y​ ​i​n​ ​T​r​a​n​s​c​r​i​p​t​i​o​n​ ​b​y​ ​s​e​l​e​c​t​i​n​g​ ​a​ ​t​r​a​n​s​c​r​i​p​t​ ​s​e​g​m​e​n​t​.
+		 * A​d​d​ ​t​h​e​m​ ​m​a​n​u​a​l​l​y​ ​i​n​ ​T​r​a​n​s​c​r​i​p​t​i​o​n​ ​b​y​ ​s​e​l​e​c​t​i​n​g​ ​a​ ​t​r​a​n​s​c​r​i​p​t​ ​s​e​g​m​e​n​t​.
 		 */
 		wbwStep2: string;
 		/**
@@ -8328,7 +7256,7 @@ type RootTranslation = {
 		 */
 		desktopNotifications: string;
 		/**
-		 * S​h​o​w​ ​O​S​ ​n​o​t​i​f​i​c​a​t​i​o​n​s​ ​w​h​e​n​ ​v​i​d​e​o​ ​e​x​p​o​r​t​s​,​ ​A​I​ ​s​e​g​m​e​n​t​a​t​i​o​n​,​ ​o​r​ ​A​I​ ​t​r​i​m​m​i​n​g​ ​f​i​n​i​s​h​.
+		 * S​h​o​w​ ​O​S​ ​n​o​t​i​f​i​c​a​t​i​o​n​s​ ​w​h​e​n​ ​v​i​d​e​o​ ​e​x​p​o​r​t​s​ ​o​r​ ​A​I​ ​t​r​i​m​m​i​n​g​ ​f​i​n​i​s​h​.
 		 */
 		showOsNotifications: string;
 		/**
@@ -8848,10 +7776,6 @@ type RootTranslation = {
 			 */
 			RESET_START_CURSOR: string;
 			/**
-			 * R​e​g​e​n​e​r​a​t​e​ ​W​B​W​ ​T​i​m​e​s​t​a​m​p​s
-			 */
-			REGENERATE_WBW_TIMESTAMPS: string;
-			/**
 			 * D​e​l​e​t​e​ ​C​l​i​p​ ​a​t​ ​C​u​r​s​o​r
 			 */
 			REMOVE_SUBTITLE_AT_CURSOR: string;
@@ -9017,10 +7941,6 @@ type RootTranslation = {
 			 * P​u​t​ ​t​h​e​ ​s​t​a​r​t​ ​c​u​r​s​o​r​ ​o​n​ ​t​h​e​ ​e​n​d​ ​c​u​r​s​o​r​ ​p​o​s​i​t​i​o​n
 			 */
 			RESET_START_CURSOR: string;
-			/**
-			 * R​e​g​e​n​e​r​a​t​e​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​s​ ​f​o​r​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​u​n​d​e​r​ ​t​h​e​ ​t​i​m​e​l​i​n​e​ ​c​u​r​s​o​r
-			 */
-			REGENERATE_WBW_TIMESTAMPS: string;
 			/**
 			 * D​e​l​e​t​e​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​o​r​ ​s​i​l​e​n​c​e​ ​c​l​i​p​ ​u​n​d​e​r​ ​t​h​e​ ​c​u​r​s​o​r
 			 */
@@ -9229,14 +8149,6 @@ type RootTranslation = {
 		 */
 		stepShortcutsDesc: string;
 		/**
-		 * A​u​t​o​-​S​e​g​m​e​n​t​ ​w​i​t​h​ ​A​I
-		 */
-		stepAutoSegmentTitle: string;
-		/**
-		 * P​r​e​f​e​r​ ​a​u​t​o​m​a​t​i​o​n​?​ ​C​l​i​c​k​ ​A​u​t​o​-​S​e​g​m​e​n​t​ ​t​o​ ​h​a​v​e​ ​t​h​e​ ​A​I​ ​d​e​t​e​c​t​ ​s​u​r​a​h​ ​b​o​u​n​d​a​r​i​e​s​ ​a​n​d​ ​v​e​r​s​e​ ​t​i​m​i​n​g​s​ ​f​r​o​m​ ​t​h​e​ ​a​u​d​i​o​.
-		 */
-		stepAutoSegmentDesc: string;
-		/**
 		 * G​o​ ​t​o​ ​T​r​a​n​s​l​a​t​i​o​n​s
 		 */
 		stepTranslationsTitle: string;
@@ -9405,87 +8317,6 @@ type RootTranslation = {
 		restart: string;
 	};
 	tools: {
-		/**
-		 * H​i​f​z​ ​R​e​p​e​t​i​t​i​o​n
-		 */
-		hifzRepetition: string;
-		/**
-		 * R​e​p​e​a​t​ ​e​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​a​n​d​ ​g​e​n​e​r​a​t​e​ ​m​a​t​c​h​i​n​g​ ​a​u​d​i​o
-		 */
-		hifzDescription: string;
-		/**
-		 * T​u​r​n​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​i​n​t​o​ ​a​ ​H​i​f​z​-​r​e​a​d​y​ ​r​e​p​e​t​i​t​i​o​n​ ​t​r​a​c​k​.​ ​E​a​c​h​ ​v​e​r​s​e​ ​w​i​l​l​ ​b​e​ ​r​e​p​e​a​t​e​d​ ​w​i​t​h​ ​c​o​n​f​i​g​u​r​a​b​l​e​ ​s​i​l​e​n​c​e​ ​g​a​p​s​.
-		 */
-		hifzBody: string;
-		/**
-		 * R​e​p​e​a​t​ ​e​a​c​h​ ​v​e​r​s​e
-		 */
-		repeatEachVerse: string;
-		/**
-		 * R​e​p​e​a​t​ ​e​a​c​h​ ​s​u​b​t​i​t​l​e
-		 */
-		repeatEachSubtitle: string;
-		/**
-		 * G​e​n​e​r​a​t​i​n​g​ ​H​i​f​z​ ​a​u​d​i​o​.​.​.
-		 */
-		generatingHifzAudio: string;
-		/**
-		 * R​e​p​e​a​t​ ​c​o​u​n​t
-		 */
-		repeatCount: string;
-		/**
-		 * S​i​l​e​n​c​e​ ​d​u​r​a​t​i​o​n​ ​b​e​t​w​e​e​n​ ​r​e​p​e​t​i​t​i​o​n​s
-		 */
-		silenceDuration: string;
-		/**
-		 * T​h​e​ ​s​i​l​e​n​c​e​ ​i​s​ ​t​h​e​ ​d​u​r​a​t​i​o​n​ ​o​f​ ​t​h​e​ ​r​e​p​e​a​t​e​d​ ​s​e​g​m​e​n​t​.​ ​I​n​c​r​e​a​s​e​ ​f​o​r​ ​m​o​r​e​ ​p​a​u​s​e​ ​t​i​m​e​ ​b​e​t​w​e​e​n​ ​r​e​p​e​t​i​t​i​o​n​s​.
-		 */
-		silenceDescription: string;
-		/**
-		 * K​e​e​p​ ​v​i​s​u​a​l​ ​m​e​r​g​e​s
-		 */
-		keepVisualMerges: string;
-		/**
-		 * K​e​e​p​ ​s​u​b​t​i​t​l​e​s​ ​v​i​s​i​b​l​e​ ​d​u​r​i​n​g​ ​p​a​u​s​e​ ​i​n​t​e​r​v​a​l​s
-		 */
-		keepSubtitlesVisible: string;
-		/**
-		 * S​t​r​e​t​c​h​ ​c​o​m​p​l​e​t​e​ ​s​u​b​t​i​t​l​e​s​ ​a​c​r​o​s​s​ ​r​e​p​e​a​t​e​d​ ​c​y​c​l​e​s
-		 */
-		stretchCompleteSubtitles: string;
-		/**
-		 * N​o​ ​a​u​d​i​o​ ​f​o​u​n​d​.​ ​A​ ​s​i​l​e​n​t​ ​H​i​f​z​ ​t​r​a​c​k​ ​w​i​l​l​ ​b​e​ ​g​e​n​e​r​a​t​e​d​.
-		 */
-		noAudioFoundSilentHifz: string;
-		/**
-		 * A​d​d​ ​s​u​b​t​i​t​l​e​s​ ​b​e​f​o​r​e​ ​g​e​n​e​r​a​t​i​n​g​ ​a​ ​H​i​f​z​ ​t​r​a​c​k​.
-		 */
-		addSubtitlesBeforeHifz: string;
-		/**
-		 * R​e​a​d​y​ ​t​o​ ​g​e​n​e​r​a​t​e​.
-		 */
-		readyToGenerate: string;
-		/**
-		 * G​e​n​e​r​a​t​i​n​g​.​.​.
-		 */
-		generating: string;
-		/**
-		 * G​e​n​e​r​a​t​e​ ​H​i​f​z
-		 */
-		generateHifz: string;
-		/**
-		 * H​i​f​z​ ​t​r​a​c​k​ ​g​e​n​e​r​a​t​e​d​ ​w​i​t​h​ ​{​c​o​u​n​t​}​ ​s​u​b​t​i​t​l​e​s​.
-		 * @param {unknown} count
-		 */
-		hifzTrackGenerated: RequiredParams<'count'>;
-		/**
-		 * H​i​f​z​ ​r​e​p​e​t​i​t​i​o​n​ ​c​o​n​f​i​r​m​a​t​i​o​n
-		 */
-		hifzConfirmation: string;
-		/**
-		 * T​h​i​s​ ​w​i​l​l​ ​c​r​e​a​t​e​ ​a​ ​n​e​w​ ​t​r​a​c​k​ ​w​i​t​h​ ​r​e​p​e​a​t​e​d​ ​s​u​b​t​i​t​l​e​s​.​ ​E​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​w​i​l​l​ ​n​o​t​ ​b​e​ ​m​o​d​i​f​i​e​d​.
-		 */
-		hifzConfirmationMessage: string;
 		/**
 		 * S​h​i​f​t​ ​A​l​l​ ​S​u​b​t​i​t​l​e​s
 		 */
@@ -10346,18 +9177,9 @@ type RootTranslation = {
 		 */
 		translationReasoning: string;
 		/**
-		 * T​r​a​n​s​c​r​i​p​t​ ​c​l​e​a​n​u​p​ ​r​e​a​s​o​n​i​n​g
-		 */
-		cleanupReasoning: string;
-		/**
 		 * A​I​ ​s​e​l​e​c​t​e​d​ ​a​ ​s​p​e​a​k​e​r​ ​t​h​a​t​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​r​e​s​o​l​v​e​d​.​ ​P​l​e​a​s​e​ ​p​i​c​k​ ​o​n​e​ ​m​a​n​u​a​l​l​y​ ​i​n​ ​t​h​e​ ​r​e​v​i​e​w​.
 		 */
 		aiSelectedSpeakerError: string;
-		/**
-		 * S​u​b​t​i​t​l​e​s​ ​f​a​i​l​e​d​:​ ​{​m​e​s​s​a​g​e​}​.​ ​P​r​o​j​e​c​t​ ​c​r​e​a​t​e​d​ ​w​i​t​h​o​u​t​ ​s​u​b​t​i​t​l​e​s​.
-		 * @param {unknown} message
-		 */
-		subtitlesFailed: RequiredParams<'message'>;
 		/**
 		 * F​a​i​l​e​d​ ​t​o​ ​c​r​e​a​t​e​ ​p​r​o​j​e​c​t​:​ ​{​e​r​r​o​r​}
 		 * @param {unknown} error
@@ -10547,10 +9369,6 @@ type RootTranslation = {
 		 * A​d​d​i​n​g​ ​a​u​d​i​o​ ​t​o​ ​t​i​m​e​l​i​n​e​.​.​.
 		 */
 		addingAudioToTimeline: string;
-		/**
-		 * G​e​n​e​r​a​t​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​w​i​t​h​ ​A​I​.​.​.
-		 */
-		generatingSubtitles: string;
 		/**
 		 * C​o​p​y​i​n​g​ ​a​u​d​i​o​ ​f​i​l​e​.​.​.
 		 */
@@ -11972,73 +10790,9 @@ export type TranslationFunctions = {
 		 */
 		speakerCannotBeEmpty: () => LocalizedString;
 		/**
-		 * AI transcription
-		 */
-		aiTranscription: () => LocalizedString;
-		/**
-		 * Fast Arabic transcription with Groq and word-level timestamps.
-		 */
-		aiTranscriptionGroqDescription: () => LocalizedString;
-		/**
-		 * Local WhisperX transcription, word alignment, and optional speaker detection.
-		 */
-		aiTranscriptionLocalDescription: () => LocalizedString;
-		/**
-		 * Transcription engine
-		 */
-		transcriptionEngine: () => LocalizedString;
-		/**
-		 * Groq Cloud
-		 */
-		groqCloud: () => LocalizedString;
-		/**
-		 * Recommended
-		 */
-		groqRecommended: () => LocalizedString;
-		/**
-		 * Fast Whisper Large V3 transcription. Audio is sent securely to Groq and word timestamps are returned directly.
-		 */
-		groqProviderDescription: () => LocalizedString;
-		/**
-		 * WhisperX local
-		 */
-		localWhisperX: () => LocalizedString;
-		/**
-		 * Reference text
-		 */
-		referenceAlignment: () => LocalizedString;
-		/**
-		 * Align your Arabic text with the audio locally, allowing repetitions and restarts.
-		 */
-		referenceAlignmentDescription: () => LocalizedString;
-		/**
-		 * Text read in the audio
-		 */
-		referenceTextLabel: () => LocalizedString;
-		/**
-		 * Paste the poem, nasheed lyrics or spoken text here...
-		 */
-		referenceTextPlaceholder: () => LocalizedString;
-		/**
-		 * For a poem or nasheed, put one complete verse on each line: each non-empty line becomes one subtitle, even when it is long. Blank lines are ignored. You do not need to write out repetitions. WhisperX aligns the words locally; uncertain passages keep the recognized text for review. Singing and backing vocals can reduce accuracy.
-		 */
-		referenceTextHelp: () => LocalizedString;
-		/**
-		 * Poem / nasheed — one complete verse per subtitle
-		 */
-		poemMode: () => LocalizedString;
-		/**
-		 * The text AI identifies complete poetic or sung lines and adjusts subtitle cuts to their word timings. Each verse stays together, even across internal pauses or beyond normal subtitle length and duration limits.
-		 */
-		poemModeDescription: () => LocalizedString;
-		/**
 		 * Complete verse boundaries could not be identified reliably. Retry or use Reference text with one verse per line.
 		 */
 		poemSegmentationFailed: () => LocalizedString;
-		/**
-		 * Enter the Arabic text to align before continuing.
-		 */
-		referenceTextRequired: () => LocalizedString;
 		/**
 		 * The text and audio are too long to compare together. Use a shorter passage.
 		 */
@@ -12056,257 +10810,9 @@ export type TranslationFunctions = {
 		 */
 		referenceTextIncompleteAlignment: () => LocalizedString;
 		/**
-		 * Align reference text
-		 */
-		referenceAlignmentStart: () => LocalizedString;
-		/**
-		 * Start transcription
-		 */
-		startAITranscription: () => LocalizedString;
-		/**
-		 * Keeps audio on this computer. A GPU is recommended; CPU processing can be much slower.
-		 */
-		localWhisperXProviderDescription: () => LocalizedString;
-		/**
-		 * Groq API key
-		 */
-		groqApiKeyTitle: () => LocalizedString;
-		/**
-		 * Each user can create a free key without entering a payment card. The key is stored in the operating system secure vault.
-		 */
-		groqApiKeyDescription: () => LocalizedString;
-		/**
-		 * How to get your free key
-		 */
-		groqApiKeyTutorialTitle: () => LocalizedString;
-		/**
-		 * Create or sign in to a GroqCloud account.
-		 */
-		groqApiKeyTutorialAccount: () => LocalizedString;
-		/**
-		 * Open API Keys and select Create API Key.
-		 */
-		groqApiKeyTutorialCreate: () => LocalizedString;
-		/**
-		 * Copy the key once, then paste it below.
-		 */
-		groqApiKeyTutorialPaste: () => LocalizedString;
-		/**
-		 * Open Groq API Keys
-		 */
-		groqOpenApiKeys: () => LocalizedString;
-		/**
-		 * Groq API key
-		 */
-		groqApiKeyLabel: () => LocalizedString;
-		/**
-		 * Enter a Groq API key to continue.
-		 */
-		groqApiKeyRequired: () => LocalizedString;
-		/**
-		 * The key is stored securely on this computer.
-		 */
-		groqApiKeyStored: () => LocalizedString;
-		/**
-		 * Groq rejected this API key. Check it or create a new one.
-		 */
-		groqInvalidApiKey: () => LocalizedString;
-		/**
-		 * The free Groq usage limit has been reached. Try again after the quota resets or use WhisperX local.
-		 */
-		groqRateLimitReached: () => LocalizedString;
-		/**
-		 * The prepared audio exceeds Groq’s 25 MB free-tier limit. Use WhisperX local for this project.
-		 */
-		groqFileTooLarge: () => LocalizedString;
-		/**
-		 * Groq did not return the word timestamps required for intelligent subtitles.
-		 */
-		groqWordTimestampsMissing: () => LocalizedString;
-		/**
-		 * Groq transcription failed: {error}
-		 */
-		groqRequestFailed: (arg: { error: unknown }) => LocalizedString;
-		/**
-		 * Preparing audio for Groq...
-		 */
-		groqPreparingAudio: () => LocalizedString;
-		/**
-		 * Transcribing with Groq Whisper Large V3...
-		 */
-		groqTranscribing: () => LocalizedString;
-		/**
-		 * Preparing word timestamps...
-		 */
-		groqPreparingTimestamps: () => LocalizedString;
-		/**
-		 * Groq transcription completed.
-		 */
-		groqTranscriptionCompleted: () => LocalizedString;
-		/**
-		 * The speech-to-text provider returned an invalid transcription result.
-		 */
-		transcriptionInvalidResponse: () => LocalizedString;
-		/**
-		 * No transcribable speech was detected in the project audio.
-		 */
-		transcriptionNoSpeech: () => LocalizedString;
-		/**
-		 * Groq provides word timestamps but not speaker detection. Select WhisperX local when the audio contains multiple speakers.
-		 */
-		groqSingleSpeakerNotice: () => LocalizedString;
-		/**
-		 * Cloud processing
-		 */
-		groqProcessingLabel: () => LocalizedString;
-		/**
-		 * Groq Whisper Large V3 will transcribe the Arabic audio and return timestamps for every available word.
-		 */
-		groqTranscriptionDescription: () => LocalizedString;
-		/**
-		 * Groq treats this transcription as one voice. Choose the speaker name before adding the subtitles.
-		 */
-		groqSpeakerResultDescription: () => LocalizedString;
-		/**
-		 * pyannote recognizes recurring voices but not their real names. Assign each detected voice before adding the subtitles.
-		 */
-		localSpeakerResultDescription: () => LocalizedString;
-		/**
-		 * The audio must be entirely in Arabic.
-		 */
-		arabicAudioRequired: () => LocalizedString;
-		/**
-		 * Matching Quran passages...
-		 */
-		matchingQuranPassages: () => LocalizedString;
-		/**
-		 * Prepare transcript
-		 */
-		transcriptCleanupStep: () => LocalizedString;
-		/**
-		 * Create clean, readable subtitles
-		 */
-		transcriptCleanupTitle: () => LocalizedString;
-		/**
-		 * Minbar Studio locally detects Quran passages, validates their exact word ranges, and rebuilds natural subtitle boundaries. Your configured text AI is optional and only suggests certain corrections, punctuation, semantic breaks, and verbatim non-Quran quotations.
-		 */
-		transcriptCleanupDescription: () => LocalizedString;
-		/**
-		 * Quran markers are created only from the bundled Quran corpus and validated word ranges. Verbatim hadith, scholar, and other direct quotations are detected separately and remain wrapped for editing.
-		 */
-		transcriptCleanupMarkersInfo: () => LocalizedString;
-		/**
-		 * Choose a name for {speaker} before cleaning the transcription.
-		 */
-		chooseSpeakerBeforeCleanup: (arg: { speaker: unknown }) => LocalizedString;
-		/**
-		 * Clean transcript
-		 */
-		cleanTranscript: () => LocalizedString;
-		/**
-		 * Cleaning transcript...
-		 */
-		cleaningTranscript: () => LocalizedString;
-		/**
-		 * Processing batch {current} of {total}...
-		 */
-		transcriptCleanupBatchProgress: (arg: { current: unknown; total: unknown }) => LocalizedString;
-		/**
-		 * Finding natural subtitle boundaries...
-		 */
-		transcriptSemanticSegmentation: () => LocalizedString;
-		/**
 		 * Batch {current} of {total}
 		 */
 		streamedBatchLabel: (arg: { current: unknown; total: unknown }) => LocalizedString;
-		/**
-		 * Prepared {cleaned} of {total} subtitle segments.
-		 */
-		transcriptCleanupCompleted: (arg: { cleaned: unknown; total: unknown }) => LocalizedString;
-		/**
-		 * Prepared {cleaned} of {total} subtitle segments. {errors} warning(s) require review.
-		 */
-		transcriptCleanupCompletedWithIssues: (arg: {
-			cleaned: unknown;
-			errors: unknown;
-			total: unknown;
-		}) => LocalizedString;
-		/**
-		 * Batch size (words)
-		 */
-		transcriptCleanupBatchSize: () => LocalizedString;
-		/**
-		 * Changing the batch size restarts cleanup from the original transcript when you resume.
-		 */
-		transcriptCleanupBatchSizeChanged: () => LocalizedString;
-		/**
-		 * Estimated total: {count} batch(es).
-		 */
-		transcriptCleanupBatchPreview: (arg: { count: unknown }) => LocalizedString;
-		/**
-		 * Pause after this batch
-		 */
-		pauseTranscriptCleanup: () => LocalizedString;
-		/**
-		 * Pausing...
-		 */
-		pausingTranscriptCleanup: () => LocalizedString;
-		/**
-		 * Resume cleanup
-		 */
-		resumeTranscriptCleanup: () => LocalizedString;
-		/**
-		 * Cleanup paused · {remaining} batch(es) remaining.
-		 */
-		transcriptCleanupPaused: (arg: { remaining: unknown }) => LocalizedString;
-		/**
-		 * Clean existing transcript with AI
-		 */
-		cleanExistingTranscript: () => LocalizedString;
-		/**
-		 * Run the optional AI cleanup now, or resume a cleanup saved with this project.
-		 */
-		cleanExistingTranscriptDescription: () => LocalizedString;
-		/**
-		 * {remaining} batch(es) remaining
-		 */
-		transcriptCleanupRemaining: (arg: { remaining: unknown }) => LocalizedString;
-		/**
-		 * Audio transcription, Quran matching, and final subtitle assembly stay local. Cleaned indexed words, timings, and context metadata are sent only to your configured text AI provider when one is available.
-		 */
-		transcriptionDataPrivacy: () => LocalizedString;
-		/**
-		 * Short
-		 */
-		subtitleLengthShort: () => LocalizedString;
-		/**
-		 * Short subtitles with more frequent natural changes.
-		 */
-		subtitleLengthShortDescription: () => LocalizedString;
-		/**
-		 * Medium
-		 */
-		subtitleLengthMedium: () => LocalizedString;
-		/**
-		 * Balanced, readable subtitles for most lectures.
-		 */
-		subtitleLengthMediumDescription: () => LocalizedString;
-		/**
-		 * Long
-		 */
-		subtitleLengthLong: () => LocalizedString;
-		/**
-		 * Longer complete ideas with fewer visual changes.
-		 */
-		subtitleLengthLongDescription: () => LocalizedString;
-		/**
-		 * AI transcription will be added later
-		 */
-		aiTranscriptionComingSoon: () => LocalizedString;
-		/**
-		 * For now, use the manual composer to create and edit transcript segments.
-		 */
-		aiTranscriptionComingSoonDescription: () => LocalizedString;
 		/**
 		 * Translations
 		 */
@@ -12367,10 +10873,6 @@ export type TranslationFunctions = {
 		 * Shift All Subtitles
 		 */
 		shiftAllSubtitles: () => LocalizedString;
-		/**
-		 * Hifz Repetition
-		 */
-		hifzRepetition: () => LocalizedString;
 		/**
 		 * Asset Trimmer
 		 */
@@ -12500,26 +11002,6 @@ export type TranslationFunctions = {
 		 */
 		errorConvertingAsset: (arg: { error: unknown }) => LocalizedString;
 		/**
-		 * No native-timing audio found on timeline.
-		 */
-		noNativeTimingAudio: () => LocalizedString;
-		/**
-		 * No timing data found for this speaker/surah.
-		 */
-		noTimingDataFound: () => LocalizedString;
-		/**
-		 * Applied {count} subtitles from Mp3Quran!
-		 */
-		appliedSubtitlesFromMp3Quran: (arg: { count: unknown }) => LocalizedString;
-		/**
-		 * There are already subtitles in this project. This process will override them. Continue?
-		 */
-		subtitlesAlreadyExist: () => LocalizedString;
-		/**
-		 * There are already subtitles in this project. This process will replace them with native timing. Continue?
-		 */
-		subtitlesAlreadyExistNative: () => LocalizedString;
-		/**
 		 * This audio includes official native timings. Would you like to apply them automatically?
 		 */
 		nativeTimingsDetected: () => LocalizedString;
@@ -12527,14 +11009,6 @@ export type TranslationFunctions = {
 		 * Would you like to set the project dimensions to match this video? ({width}x{height})
 		 */
 		setDimensionsMatchVideo: (arg: { height: unknown; width: unknown }) => LocalizedString;
-		/**
-		 * No audio found. A silent Hifz track will be generated.
-		 */
-		noAudioFoundSilentHifz: () => LocalizedString;
-		/**
-		 * Add subtitles before generating a Hifz track.
-		 */
-		addSubtitlesBeforeHifz: () => LocalizedString;
 		/**
 		 * Choose an audio or video file...
 		 */
@@ -12635,10 +11109,6 @@ export type TranslationFunctions = {
 		 * Finish
 		 */
 		arrowForward: () => LocalizedString;
-		/**
-		 * Auto segment audio into Quran verses
-		 */
-		autoSegmentButton: () => LocalizedString;
 		/**
 		 * Transcription walkthrough
 		 */
@@ -13092,38 +11562,6 @@ export type TranslationFunctions = {
 		 */
 		aiBoldApplied: () => LocalizedString;
 		/**
-		 * Ready to use
-		 */
-		readyToUse: () => LocalizedString;
-		/**
-		 * Legacy Whisper local packages
-		 */
-		legacyWhisper: () => LocalizedString;
-		/**
-		 * Private Local Quranic Universal Aligner packages
-		 */
-		privateQuranicAligner: () => LocalizedString;
-		/**
-		 * Muaalem Local packages
-		 */
-		muaalemLocal: () => LocalizedString;
-		/**
-		 * Surah Splitter Local packages
-		 */
-		surahSplitterLocal: () => LocalizedString;
-		/**
-		 * Audio detected
-		 */
-		audioDetected: () => LocalizedString;
-		/**
-		 * No audio clip
-		 */
-		noAudioClip: () => LocalizedString;
-		/**
-		 * No audio clip found in the timeline.
-		 */
-		noAudioClipInTimeline: () => LocalizedString;
-		/**
 		 * Mark All
 		 */
 		aimarkAll: () => LocalizedString;
@@ -13168,14 +11606,6 @@ export type TranslationFunctions = {
 		 */
 		checkActivityLog: () => LocalizedString;
 		/**
-		 * AI segmentation failed
-		 */
-		aiSegmentationFailed: () => LocalizedString;
-		/**
-		 * AI segmentation finished
-		 */
-		aiSegmentationFinished: () => LocalizedString;
-		/**
 		 * Please convert your file to mp4 to use it in audio track (this file is currently in an unsupported format)
 		 */
 		convertToMp4Error: () => LocalizedString;
@@ -13208,10 +11638,6 @@ export type TranslationFunctions = {
 		 */
 		cannotShiftBackward: () => LocalizedString;
 		/**
-		 * This audio includes official native timings. Add it to the timeline and load the subtitles now?
-		 */
-		nativeTimingsConfirm: () => LocalizedString;
-		/**
 		 * To make this subtitle Qur’an, please select the words in the selector and press Enter to apply it.
 		 */
 		makeQuranSubtitleConfirm: () => LocalizedString;
@@ -13220,7 +11646,7 @@ export type TranslationFunctions = {
 		 */
 		atLeastOneWbwRequired: () => LocalizedString;
 		/**
-		 * This subtitle was generated without word-by-word timestamps. Enable "Include word-by-word timestamps" in Segmentation settings, then run the segmentation again.
+		 * Add word-by-word timestamps manually before splitting this subtitle.
 		 */
 		noWbwTimestampsError: () => LocalizedString;
 		/**
@@ -13263,18 +11689,6 @@ export type TranslationFunctions = {
 		 * Re-downloading from MP3Quran...
 		 */
 		redownloadingFromMp3Quran: () => LocalizedString;
-		/**
-		 * Fetching timing data from Quran.com...
-		 */
-		fetchingTimingQuranCom: () => LocalizedString;
-		/**
-		 * Fetching timing data from MP3Quran...
-		 */
-		fetchingTimingMp3Quran: () => LocalizedString;
-		/**
-		 * Error: {error}
-		 */
-		errorTiming: (arg: { error: unknown }) => LocalizedString;
 		/**
 		 * Error while taking screenshot: {error}
 		 */
@@ -13344,161 +11758,13 @@ export type TranslationFunctions = {
 		 */
 		wordStyleColor: () => LocalizedString;
 		/**
-		 * Upload progress
-		 */
-		uploadProgress: () => LocalizedString;
-		/**
-		 * Estimated progress
-		 */
-		estimatedProgress: () => LocalizedString;
-		/**
 		 * Global
 		 */
 		global: () => LocalizedString;
 		/**
-		 * AI Segmentation
-		 */
-		aiSegmentationHeading: () => LocalizedString;
-		/**
-		 * Auto-Segment Audio
-		 */
-		autoSegmentAudio: () => LocalizedString;
-		/**
-		 * Segmentation Settings
-		 */
-		segmentationSettings: () => LocalizedString;
-		/**
-		 * Select Model
-		 */
-		selectModel: () => LocalizedString;
-		/**
-		 * Select Runtime
-		 */
-		selectRuntime: () => LocalizedString;
-		/**
-		 * Choose the AI model to use for segmentation.
-		 */
-		modelDescription: () => LocalizedString;
-		/**
-		 * Choose where to run the segmentation.
-		 */
-		runtimeDescription: () => LocalizedString;
-		/**
-		 * Select Version
-		 */
-		selectVersion: () => LocalizedString;
-		/**
-		 * Choose the model version.
-		 */
-		versionDescription: () => LocalizedString;
-		/**
-		 * Review Segments
-		 */
-		reviewSegments: () => LocalizedString;
-		/**
-		 * Review and adjust the detected segments before applying.
-		 */
-		reviewDescription: () => LocalizedString;
-		/**
-		 * Apply Segments
-		 */
-		applySegments: () => LocalizedString;
-		/**
-		 * Add the detected segments as subtitles to your timeline.
-		 */
-		applySegmentsDescription: () => LocalizedString;
-		/**
-		 * Import JSON Segments
-		 */
-		importJsonSegments: () => LocalizedString;
-		/**
-		 * Load pre-computed segments from a JSON file.
-		 */
-		importJsonDescription: () => LocalizedString;
-		/**
-		 * Segmentation in progress...
-		 */
-		segmentationInProgress: () => LocalizedString;
-		/**
-		 * Segmentation completed.
-		 */
-		segmentationCompleted: () => LocalizedString;
-		/**
-		 * Segmentation failed.
-		 */
-		segmentationFailed: () => LocalizedString;
-		/**
-		 * No segments were detected. Try adjusting the settings.
-		 */
-		noSegmentsDetected: () => LocalizedString;
-		/**
-		 * Detected {count} segments
-		 */
-		detectedSegments: (arg: { count: unknown }) => LocalizedString;
-		/**
-		 * This will replace all existing subtitles.
-		 */
-		segmentsWillReplace: () => LocalizedString;
-		/**
-		 * Start Segmentation
-		 */
-		startSegmentation: () => LocalizedString;
-		/**
-		 * Cancel
-		 */
-		cancelSegmentation: () => LocalizedString;
-		/**
-		 * Retry
-		 */
-		retrySegmentation: () => LocalizedString;
-		/**
 		 * Settings
 		 */
 		settingsTab: () => LocalizedString;
-		/**
-		 * Models
-		 */
-		modelsTab: () => LocalizedString;
-		/**
-		 * Review
-		 */
-		reviewTab: () => LocalizedString;
-		/**
-		 * Import
-		 */
-		importTab: () => LocalizedString;
-		/**
-		 * Runtime
-		 */
-		runtimeTab: () => LocalizedString;
-		/**
-		 * Version
-		 */
-		versionTab: () => LocalizedString;
-		/**
-		 * Local
-		 */
-		localRuntime: () => LocalizedString;
-		/**
-		 * Cloud
-		 */
-		cloudRuntime: () => LocalizedString;
-		/**
-		 * Engine
-		 */
-		engineLabel: () => LocalizedString;
-		/**
-		 * Select engine...
-		 */
-		selectEngine: () => LocalizedString;
-		/**
-		 * No engines available
-		 */
-		noEnginesAvailable: () => LocalizedString;
-		/**
-		 * Engine not configured
-		 */
-		engineNotConfigured: () => LocalizedString;
 		/**
 		 * Upload File
 		 */
@@ -13512,25 +11778,9 @@ export type TranslationFunctions = {
 		 */
 		orClickToBrowse: () => LocalizedString;
 		/**
-		 * File selected
-		 */
-		fileSelected: () => LocalizedString;
-		/**
 		 * No file selected
 		 */
 		noFileSelected: () => LocalizedString;
-		/**
-		 * Processing audio...
-		 */
-		processingAudio: () => LocalizedString;
-		/**
-		 * Estimating duration...
-		 */
-		estimatingDuration: () => LocalizedString;
-		/**
-		 * Estimated time: {time}
-		 */
-		estimatedTime: (arg: { time: unknown }) => LocalizedString;
 		/**
 		 * Actual time: {time}
 		 */
@@ -13720,341 +11970,13 @@ export type TranslationFunctions = {
 		 */
 		addClipToStart: () => LocalizedString;
 		/**
-		 * Prefer a split after this pause
-		 */
-		minSilenceLabel: () => LocalizedString;
-		/**
-		 * Min Speech
-		 */
-		minSpeechLabel: () => LocalizedString;
-		/**
-		 * Padding
-		 */
-		paddingLabel: () => LocalizedString;
-		/**
-		 * Include word-by-word timestamps
-		 */
-		includeWbwTimestamps: () => LocalizedString;
-		/**
-		 * Stores per-word timings so you can split and edit subtitles more precisely later.
-		 */
-		wbwTimestampsDescription: () => LocalizedString;
-		/**
-		 * Word-by-word timestamps are only supported with the Muaalem v3.2 model.
-		 */
-		wbwTimestampsOnlyMuaalem: () => LocalizedString;
-		/**
-		 * Fill gaps with silence clips
-		 */
-		fillGapsWithSilence: () => LocalizedString;
-		/**
-		 * Extend subtitle before silence by
-		 */
-		extendSubtitleBeforeSilence: () => LocalizedString;
-		/**
-		 * This extends the segment right before a silence block by {ms} ms.
-		 */
-		extendBeforeSilenceHint: (arg: { ms: unknown }) => LocalizedString;
-		/**
-		 * Adjust segmentation
-		 */
-		adjustSegmentation: () => LocalizedString;
-		/**
-		 * Use a preset first, then fine-tune if needed.
-		 */
-		adjustSegmentationDesc: () => LocalizedString;
-		/**
-		 * Choose model and performance
-		 */
-		chooseModelAndPerformance: () => LocalizedString;
-		/**
-		 * Pick the balance between speed and quality for this method.
-		 */
-		chooseModelAndPerformanceDesc: () => LocalizedString;
-		/**
 		 * Model
 		 */
 		modelLabel: () => LocalizedString;
 		/**
-		 * Device
-		 */
-		deviceLabel: () => LocalizedString;
-		/**
-		 * Recommended
-		 */
-		recommendedLabel: () => LocalizedString;
-		/**
-		 * Advanced options
-		 */
-		advancedOptions: () => LocalizedString;
-		/**
-		 * Surah selection
-		 */
-		surahSelectionLabel: () => LocalizedString;
-		/**
-		 * Auto-detect surah
-		 */
-		autoDetectSurah: () => LocalizedString;
-		/**
-		 * Specify surah
-		 */
-		specifySurah: () => LocalizedString;
-		/**
-		 * Specifying the surah improves precision because matching is restricted to that surah.
-		 */
-		surahSplitterPrecisionHint: () => LocalizedString;
-		/**
-		 * Note: if your audio contains multiple surahs, only the last one will be detected and segmented. Use another model for multi-surah files.
-		 */
-		surahSplitterMultiSurahNote: () => LocalizedString;
-		/**
-		 * Review and launch
-		 */
-		reviewAndLaunch: () => LocalizedString;
-		/**
-		 * Check your configuration before generating subtitles.
-		 */
-		reviewAndLaunchDesc: () => LocalizedString;
-		/**
-		 * Method
-		 */
-		methodLabel: () => LocalizedString;
-		/**
-		 * Audio source
-		 */
-		audioSourceLabel: () => LocalizedString;
-		/**
-		 * Word-by-word timestamps
-		 */
-		wbwTimestampsLabel: () => LocalizedString;
-		/**
-		 * Preset / timing summary
-		 */
-		presetTimingSummary: () => LocalizedString;
-		/**
-		 * Auto-detect
-		 */
-		autoDetectLabel: () => LocalizedString;
-		/**
-		 * Enabled
-		 */
-		enabledLabel: () => LocalizedString;
-		/**
-		 * Disabled
-		 */
-		disabledLabel: () => LocalizedString;
-		/**
-		 * Not available
-		 */
-		notAvailableLabel: () => LocalizedString;
-		/**
-		 * Automatic
-		 */
-		automaticLabel: () => LocalizedString;
-		/**
-		 * Prepare this method
-		 */
-		prepareMethod: () => LocalizedString;
-		/**
-		 * No local installation is required.
-		 */
-		prepareMethodCloudDesc: () => LocalizedString;
-		/**
-		 * Install the required local packages and configure your Hugging Face token.
-		 */
-		prepareMethodLocalV2Desc: () => LocalizedString;
-		/**
-		 * Install the required local packages for the Muaalem local workflow.
-		 */
-		prepareMethodMuaalemDesc: () => LocalizedString;
-		/**
-		 * Install the required local packages for the Surah Splitter workflow.
-		 */
-		prepareMethodSurahSplitterDesc: () => LocalizedString;
-		/**
-		 * Install the legacy local dependencies.
-		 */
-		prepareMethodLegacyDesc: () => LocalizedString;
-		/**
-		 * This method runs remotely and does not need local Python packages.
-		 */
-		cloudMethodDescription: () => LocalizedString;
-		/**
-		 * Hugging Face token
-		 */
-		huggingFaceTokenLabel: () => LocalizedString;
-		/**
-		 * Required for the private local Quranic Universal Aligner models.
-		 */
-		hfTokenRequiredHint: () => LocalizedString;
-		/**
-		 * Update token
-		 */
-		updateToken: () => LocalizedString;
-		/**
-		 * Set token
-		 */
-		setToken: () => LocalizedString;
-		/**
-		 * Clear token
-		 */
-		clearToken: () => LocalizedString;
-		/**
-		 * Required local packages
-		 */
-		requiredLocalPackages: () => LocalizedString;
-		/**
-		 * Checking local engines in background...
-		 */
-		checkingLocalEngines: () => LocalizedString;
-		/**
-		 * No token required. Fully local installation with on-device model downloads.
-		 */
-		noTokenRequiredHint: () => LocalizedString;
-		/**
-		 * No token required. Surah Splitter downloads its WhisperX model during the first run.
-		 */
-		noTokenRequiredSurahSplitterHint: () => LocalizedString;
-		/**
-		 * This option is fully local, but it is usually less accurate than the official Quranic Universal Aligner pipeline.
-		 */
-		muaalemLocalHint: () => LocalizedString;
-		/**
-		 * This option can auto-detect the surah. Selecting the surah manually in the next step improves matching precision.
-		 */
-		surahSplitterLocalHint: () => LocalizedString;
-		/**
-		 * Choose a method
-		 */
-		chooseMethodLabel: () => LocalizedString;
-		/**
-		 * Pick the simplest method for your situation. You can still change advanced options later.
-		 */
-		chooseMethodDesc: () => LocalizedString;
-		/**
-		 * Quranic Universal Aligner
-		 */
-		quranicUniversalAlignerLabel: () => LocalizedString;
-		/**
-		 * Best overall quality and easiest setup
-		 */
-		bestOverallQuality: () => LocalizedString;
-		/**
-		 * Uses the official Quranic Universal Aligner remotely. Recommended for most users.
-		 */
-		usesOfficialRemote: () => LocalizedString;
-		/**
-		 * Surah Splitter Local
-		 */
-		surahSplitterLocalLabel: () => LocalizedString;
-		/**
-		 * Local ayah detection with optional surah hint
-		 */
-		surahSplitterLocalDesc: () => LocalizedString;
-		/**
-		 * Runs Surah Splitter locally with WhisperX. It can auto-detect the surah and it supports word-by-word alignment, but selecting the surah manually improves precision.
-		 */
-		surahSplitterLocalDetail: () => LocalizedString;
-		/**
-		 * Note: this option only works if there's one surah in the audio file.
-		 */
-		surahSplitterSingleSurahNote: () => LocalizedString;
-		/**
-		 * Muaalem Local
-		 */
-		muaalemLocalLabel: () => LocalizedString;
-		/**
-		 * Second option but less effective than Surah Splitter
-		 */
-		muaalemLocalDesc: () => LocalizedString;
-		/**
-		 * Runs entirely on your machine with the Muaalem local pipeline. It uses Quran-specific segmentation and matching.
-		 */
-		muaalemLocalDetail: () => LocalizedString;
-		/**
-		 * Private Local Quranic Universal Aligner
-		 */
-		privateLocalQuranicAlignerLabel: () => LocalizedString;
-		/**
-		 * Best local accuracy
-		 */
-		bestLocalAccuracy: () => LocalizedString;
-		/**
-		 * Runs on your machine with the private local Quranic Universal Aligner stack. Requires Python setup and a Hugging Face token.
-		 */
-		privateLocalQuranicAlignerDetail: () => LocalizedString;
-		/**
-		 * Offline
-		 */
-		offlineLabel: () => LocalizedString;
-		/**
-		 * Advanced
-		 */
-		advancedLabel: () => LocalizedString;
-		/**
-		 * Import Hugging Face JSON
-		 */
-		importHuggingFaceJson: () => LocalizedString;
-		/**
-		 * Import Multi-Aligner JSON
-		 */
-		importMultiAlignerJson: () => LocalizedString;
-		/**
-		 * Paste or drop a JSON export generated outside the app, then apply it directly to your timeline.
-		 */
-		importMultiAlignerJsonDesc: () => LocalizedString;
-		/**
-		 * Quran Multi-Aligner export
-		 */
-		quranMultiAlignerExport: () => LocalizedString;
-		/**
-		 * Open Hugging Face Space
-		 */
-		openHuggingFaceSpace: () => LocalizedString;
-		/**
-		 * Drag and drop your `.json` file in the app window
-		 */
-		dragAndDropJsonFile: () => LocalizedString;
-		/**
-		 * Browse JSON file
-		 */
-		browseJsonFile: () => LocalizedString;
-		/**
-		 * Loaded file
-		 */
-		loadedFileLabel: () => LocalizedString;
-		/**
-		 * Raw JSON content
-		 */
-		rawJsonContentLabel: () => LocalizedString;
-		/**
-		 * Paste JSON export content here
-		 */
-		pasteJsonContentPlaceholder: () => LocalizedString;
-		/**
-		 * Latest changelog
-		 */
-		latestChangelog: () => LocalizedString;
-		/**
-		 * Loading latest Quran Multi-Aligner updates...
-		 */
-		loadingChangelog: () => LocalizedString;
-		/**
-		 * No recent changelog entries were found.
-		 */
-		noChangelogEntries: () => LocalizedString;
-		/**
 		 * Unable to load the latest changelog right now.
 		 */
 		cannotLoadChangelog: () => LocalizedString;
-		/**
-		 * Auto-Segmentation Wizard
-		 */
-		autoSegmentationWizard: () => LocalizedString;
-		/**
-		 * Guided setup to automatically add subtitles to your video
-		 */
-		guidedSetupDesc: () => LocalizedString;
 		/**
 		 * Video Asset
 		 */
@@ -14132,10 +12054,6 @@ export type TranslationFunctions = {
 		 */
 		browserNoVideoSupport: () => LocalizedString;
 		/**
-		 * Preparing...
-		 */
-		preparingLabel: () => LocalizedString;
-		/**
 		 * Finished
 		 */
 		finishedLabel: () => LocalizedString;
@@ -14143,6 +12061,10 @@ export type TranslationFunctions = {
 		 * Download from Social Media
 		 */
 		downloadFromSocialMedia: () => LocalizedString;
+		/**
+		 * Advanced options
+		 */
+		advancedOptions: () => LocalizedString;
 		/**
 		 * Choose media type to download
 		 */
@@ -14224,10 +12146,6 @@ export type TranslationFunctions = {
 		 */
 		selectCatalogSpeaker: () => LocalizedString;
 		/**
-		 * ★ means official verse timing can be loaded automatically after download.
-		 */
-		nativeTimingHint: () => LocalizedString;
-		/**
 		 * Select a Surah
 		 */
 		selectSurah: () => LocalizedString;
@@ -14235,26 +12153,6 @@ export type TranslationFunctions = {
 		 * Surah
 		 */
 		surah: () => LocalizedString;
-		/**
-		 * Audio + segments
-		 */
-		quaModeAudioSegments: () => LocalizedString;
-		/**
-		 * Audio only
-		 */
-		quaModeAudioOnly: () => LocalizedString;
-		/**
-		 * Human reviewed pre-computed segments with wbw timestamps.
-		 */
-		quaCalloutSegments: () => LocalizedString;
-		/**
-		 * Download audio for 1000+ speakers sourced from servers across the web.
-		 */
-		quaCalloutAudioOnly: () => LocalizedString;
-		/**
-		 * Help contribute more speakers
-		 */
-		quaContribute: () => LocalizedString;
 		/**
 		 * Project Assets
 		 */
@@ -14327,50 +12225,6 @@ export type TranslationFunctions = {
 		 * Edit subtitle
 		 */
 		editSubtitleContext: () => LocalizedString;
-		/**
-		 * Try another speech recognition
-		 */
-		retranscribeSubtitleContext: () => LocalizedString;
-		/**
-		 * Retranscribe subtitle audio
-		 */
-		retranscribeSubtitleTitle: () => LocalizedString;
-		/**
-		 * Compare the current subtitle with local speech recognition results for this exact audio range.
-		 */
-		retranscribeSubtitleDescription: () => LocalizedString;
-		/**
-		 * Current subtitle
-		 */
-		retranscribeCurrentText: () => LocalizedString;
-		/**
-		 * Listen to clip
-		 */
-		retranscribeListen: () => LocalizedString;
-		/**
-		 * Stop playback
-		 */
-		retranscribeStopListening: () => LocalizedString;
-		/**
-		 * Waiting
-		 */
-		retranscribeWaiting: () => LocalizedString;
-		/**
-		 * Transcribing...
-		 */
-		retranscribeRunning: () => LocalizedString;
-		/**
-		 * This model could not transcribe the clip.
-		 */
-		retranscribeFailed: () => LocalizedString;
-		/**
-		 * Apply selected text
-		 */
-		retranscribeApply: () => LocalizedString;
-		/**
-		 * Subtitle retranscribed.
-		 */
-		retranscribeApplied: () => LocalizedString;
 		/**
 		 * Add silence (on the left)
 		 */
@@ -14496,50 +12350,6 @@ export type TranslationFunctions = {
 		 */
 		experimentalFallbackHint: () => LocalizedString;
 		/**
-		 * Muaalem Local combines Quran-specific segmentation, phonetic speech recognition, monotonic Quran passage retrieval, and local forced alignment for real word-by-word timings.
-		 */
-		muaalemLocalFeatureDesc: () => LocalizedString;
-		/**
-		 * Surah Splitter transcribes the audio with WhisperX, matches recognized words to the Quran text, then returns ayah-level timestamps. Auto-detection is available, but specifying the surah improves precision.
-		 */
-		surahSplitterFeatureDesc: () => LocalizedString;
-		/**
-		 * This method is fully local, but it is generally less effective than the official Quranic Universal Aligner. Advanced fallback models are hidden by default because they are more experimental than the recommended Muaalem v3.2 path.
-		 */
-		muaalemLocalEffectivenessHint: () => LocalizedString;
-		/**
-		 * Surah Splitter downloads the selected model during segmentation if it is not cached yet.
-		 */
-		surahSplitterDownloadNote: () => LocalizedString;
-		/**
-		 * This method requires a valid Hugging Face token before it can run.
-		 */
-		tokenRequiredHint: () => LocalizedString;
-		/**
-		 * This method is fully local and simpler to install, but usually less effective than the official Quranic Universal Aligner pipeline.
-		 */
-		muaalemReviewHint: () => LocalizedString;
-		/**
-		 * Auto-detection is available, but specifying the surah improves precision.
-		 */
-		surahSplitterReviewHint: () => LocalizedString;
-		/**
-		 * Legacy V1 is an older fallback pipeline with lower alignment quality.
-		 */
-		legacyV1ReviewHint: () => LocalizedString;
-		/**
-		 * No audio clip was detected in the current timeline.
-		 */
-		noAudioDetectedWarning: () => LocalizedString;
-		/**
-		 * Speech recognition model
-		 */
-		speechRecognitionModel: () => LocalizedString;
-		/**
-		 * Experimental fallback models from the previous open local workflow. They do not use the full Muaalem phonetic path and may be less reliable.
-		 */
-		experimentalFallbackHintShort: () => LocalizedString;
-		/**
 		 * Overlay applied on this clip
 		 */
 		overlayIndividualApplied: () => LocalizedString;
@@ -14607,26 +12417,6 @@ export type TranslationFunctions = {
 		 * {count} subtitle(s) are missing word-by-word timestamps.
 		 */
 		wbwTimestampsMissing: (arg: { count: unknown }) => LocalizedString;
-		/**
-		 * Compute timestamps
-		 */
-		computeTimestamps: () => LocalizedString;
-		/**
-		 * WBW timestamps computed for {enriched}/{total} subtitle{plural}.
-		 */
-		wbwTimestampsComputed: (arg: {
-			enriched: unknown;
-			plural: unknown;
-			total: unknown;
-		}) => LocalizedString;
-		/**
-		 * No WBW timestamps could be computed. Please try again.
-		 */
-		noWbwTimestampsComputed: () => LocalizedString;
-		/**
-		 * Failed to compute WBW timestamps.
-		 */
-		failedToComputeWbwTimestamps: () => LocalizedString;
 		/**
 		 * {count} subtitle{plural} marked for missing WBW timestamps.
 		 */
@@ -14763,22 +12553,6 @@ export type TranslationFunctions = {
 		 * Caption Progress
 		 */
 		captionProgress: () => LocalizedString;
-		/**
-		 * AI-Assisted Segmentation
-		 */
-		aiAssistedSegmentation: () => LocalizedString;
-		/**
-		 * Auto-Segment
-		 */
-		autoSegment: () => LocalizedString;
-		/**
-		 * Native Timing
-		 */
-		nativeTiming: () => LocalizedString;
-		/**
-		 * Load subtitles from native timing
-		 */
-		loadSubtitlesNativeTiming: () => LocalizedString;
 		/**
 		 * edit key
 		 */
@@ -18262,18 +16036,6 @@ export type TranslationFunctions = {
 		 */
 		communityPresetPublished: () => LocalizedString;
 		/**
-		 * Hifz Mode
-		 */
-		hifzMode: () => LocalizedString;
-		/**
-		 * Enable Hifz mode
-		 */
-		enableHifzMode: () => LocalizedString;
-		/**
-		 * Create videos with repeated verses to help memorization.
-		 */
-		createMemorizationVideos: () => LocalizedString;
-		/**
 		 * Global — video overlay, speaker name, and background settings
 		 */
 		globalSettings: () => LocalizedString;
@@ -18638,11 +16400,7 @@ export type TranslationFunctions = {
 		 */
 		translationWbwMissingMappingInfo: () => LocalizedString;
 		/**
-		 * 1. Add them with AI-Segmentation and make sure to enable Include word-by-word timestamps.
-		 */
-		wbwStep1: () => LocalizedString;
-		/**
-		 * 2. Or add them manually in Transcription by selecting a transcript segment.
+		 * Add them manually in Transcription by selecting a transcript segment.
 		 */
 		wbwStep2: () => LocalizedString;
 		/**
@@ -18912,7 +16670,7 @@ export type TranslationFunctions = {
 		 */
 		desktopNotifications: () => LocalizedString;
 		/**
-		 * Show OS notifications when video exports, AI segmentation, or AI trimming finish.
+		 * Show OS notifications when video exports or AI trimming finish.
 		 */
 		showOsNotifications: () => LocalizedString;
 		/**
@@ -19421,10 +17179,6 @@ export type TranslationFunctions = {
 			 */
 			RESET_START_CURSOR: () => LocalizedString;
 			/**
-			 * Regenerate WBW Timestamps
-			 */
-			REGENERATE_WBW_TIMESTAMPS: () => LocalizedString;
-			/**
 			 * Delete Clip at Cursor
 			 */
 			REMOVE_SUBTITLE_AT_CURSOR: () => LocalizedString;
@@ -19590,10 +17344,6 @@ export type TranslationFunctions = {
 			 * Put the start cursor on the end cursor position
 			 */
 			RESET_START_CURSOR: () => LocalizedString;
-			/**
-			 * Regenerate WBW timestamps for the subtitle under the timeline cursor
-			 */
-			REGENERATE_WBW_TIMESTAMPS: () => LocalizedString;
 			/**
 			 * Delete the subtitle or silence clip under the cursor
 			 */
@@ -19802,14 +17552,6 @@ export type TranslationFunctions = {
 		 */
 		stepShortcutsDesc: () => LocalizedString;
 		/**
-		 * Auto-Segment with AI
-		 */
-		stepAutoSegmentTitle: () => LocalizedString;
-		/**
-		 * Prefer automation? Click Auto-Segment to have the AI detect surah boundaries and verse timings from the audio.
-		 */
-		stepAutoSegmentDesc: () => LocalizedString;
-		/**
 		 * Go to Translations
 		 */
 		stepTranslationsTitle: () => LocalizedString;
@@ -19977,86 +17719,6 @@ export type TranslationFunctions = {
 		restart: () => LocalizedString;
 	};
 	tools: {
-		/**
-		 * Hifz Repetition
-		 */
-		hifzRepetition: () => LocalizedString;
-		/**
-		 * Repeat existing subtitles and generate matching audio
-		 */
-		hifzDescription: () => LocalizedString;
-		/**
-		 * Turn your existing subtitles into a Hifz-ready repetition track. Each verse will be repeated with configurable silence gaps.
-		 */
-		hifzBody: () => LocalizedString;
-		/**
-		 * Repeat each verse
-		 */
-		repeatEachVerse: () => LocalizedString;
-		/**
-		 * Repeat each subtitle
-		 */
-		repeatEachSubtitle: () => LocalizedString;
-		/**
-		 * Generating Hifz audio...
-		 */
-		generatingHifzAudio: () => LocalizedString;
-		/**
-		 * Repeat count
-		 */
-		repeatCount: () => LocalizedString;
-		/**
-		 * Silence duration between repetitions
-		 */
-		silenceDuration: () => LocalizedString;
-		/**
-		 * The silence is the duration of the repeated segment. Increase for more pause time between repetitions.
-		 */
-		silenceDescription: () => LocalizedString;
-		/**
-		 * Keep visual merges
-		 */
-		keepVisualMerges: () => LocalizedString;
-		/**
-		 * Keep subtitles visible during pause intervals
-		 */
-		keepSubtitlesVisible: () => LocalizedString;
-		/**
-		 * Stretch complete subtitles across repeated cycles
-		 */
-		stretchCompleteSubtitles: () => LocalizedString;
-		/**
-		 * No audio found. A silent Hifz track will be generated.
-		 */
-		noAudioFoundSilentHifz: () => LocalizedString;
-		/**
-		 * Add subtitles before generating a Hifz track.
-		 */
-		addSubtitlesBeforeHifz: () => LocalizedString;
-		/**
-		 * Ready to generate.
-		 */
-		readyToGenerate: () => LocalizedString;
-		/**
-		 * Generating...
-		 */
-		generating: () => LocalizedString;
-		/**
-		 * Generate Hifz
-		 */
-		generateHifz: () => LocalizedString;
-		/**
-		 * Hifz track generated with {count} subtitles.
-		 */
-		hifzTrackGenerated: (arg: { count: unknown }) => LocalizedString;
-		/**
-		 * Hifz repetition confirmation
-		 */
-		hifzConfirmation: () => LocalizedString;
-		/**
-		 * This will create a new track with repeated subtitles. Existing subtitles will not be modified.
-		 */
-		hifzConfirmationMessage: () => LocalizedString;
 		/**
 		 * Shift All Subtitles
 		 */
@@ -20909,17 +18571,9 @@ export type TranslationFunctions = {
 		 */
 		translationReasoning: () => LocalizedString;
 		/**
-		 * Transcript cleanup reasoning
-		 */
-		cleanupReasoning: () => LocalizedString;
-		/**
 		 * AI selected a speaker that could not be resolved. Please pick one manually in the review.
 		 */
 		aiSelectedSpeakerError: () => LocalizedString;
-		/**
-		 * Subtitles failed: {message}. Project created without subtitles.
-		 */
-		subtitlesFailed: (arg: { message: unknown }) => LocalizedString;
 		/**
 		 * Failed to create project: {error}
 		 */
@@ -21104,10 +18758,6 @@ export type TranslationFunctions = {
 		 * Adding audio to timeline...
 		 */
 		addingAudioToTimeline: () => LocalizedString;
-		/**
-		 * Generating subtitles with AI...
-		 */
-		generatingSubtitles: () => LocalizedString;
 		/**
 		 * Copying audio file...
 		 */

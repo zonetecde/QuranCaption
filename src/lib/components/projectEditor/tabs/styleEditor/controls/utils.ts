@@ -2,7 +2,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import type {
 	DimensionValue,
 	FadeValue
-} from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
+} from '$lib/components/projectEditor/tabs/styleEditor/controls/types';
 
 /**
  * Normalise une valeur de dimensions issue d'un style.

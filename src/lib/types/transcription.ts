@@ -1,11 +1,3 @@
-export type AITranscriptionRuntimeStatus = {
-	ready: boolean;
-	venvExists: boolean;
-	packagesInstalled: boolean;
-	missingModules?: string[];
-	message: string;
-};
-
 export type AITranscriptionWord = {
 	word: string;
 	start: number;
@@ -34,13 +26,6 @@ export type AITranscriptionResult = {
 	wordTimestampsAvailable: boolean;
 	alignmentWarning?: string | null;
 	gpuFallbackReason?: string;
-};
-
-export type SpeakerNameMap = Record<string, string>;
-
-export type AppliedAITranscription = {
-	count: number;
-	clipIds: number[];
 };
 
 export type AIStreamBatchState = {

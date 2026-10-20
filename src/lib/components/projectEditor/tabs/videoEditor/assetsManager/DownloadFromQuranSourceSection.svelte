@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { addAssetToTimeline } from '$lib/components/projectEditor/tabs/videoEditor/assetsManager/assetTimelineActions';
 	import toast from 'svelte-5-french-toast';
 	import { invoke } from '@tauri-apps/api/core';
 	import { join } from '@tauri-apps/api/path';
@@ -10,10 +9,8 @@
 	import { SourceType } from '$lib/classes';
 	import { Quran } from '$lib/classes/Quran';
 	import Section from '$lib/components/projectEditor/Section.svelte';
-	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
-	import { runNativeSegmentation } from '$lib/services/AutoSegmentation';
 	import {
 		Mp3QuranService,
 		type Mp3QuranSpeaker,
@@ -250,26 +247,6 @@
 
 			toast.success(get(LL).editor.downloadSuccessful(), { id: toastId });
 
-			if (selectedOption.supportsNativeTiming) {
-				// On retrouve l'asset fraîchement ajouté pour l'insérer dans la timeline si l'utilisateur accepte.
-				const normalizedFullPath = fullPath.replace(/\\/g, '/').replace(/\/+/g, '/');
-				const addedAsset = projectContent.assets.find(
-					(asset) => asset.filePath === normalizedFullPath
-				);
-
-				if (addedAsset) {
-					const confirmTimingLoad = await ModalManager.confirmModal(
-						get(LL).editor.nativeTimingsConfirm(),
-						true
-					);
-
-					if (confirmTimingLoad && globalState.currentProject === project) {
-						await addAssetToTimeline(project, addedAsset, false, true);
-						if (globalState.currentProject === project) await runNativeSegmentation(addedAsset.id);
-					}
-				}
-			}
-
 			if (selectedOption.source === 'mp3quran') {
 				AnalyticsService.downloadFromMP3Quran(selectedOption.speakerName, surahName, fileName);
 			}
@@ -315,20 +292,10 @@
 				{:else}
 					<option value={-1}>{get(LL).editor.selectCatalogSpeaker()}</option>
 					{#each filteredDownloadOptions as option, index (`${option.source}-${option.mp3MoshafId ?? option.qdcRecitationId}`)}
-						<option value={index}
-							>{option.supportsNativeTiming ? `★ ${option.label}` : option.label}</option
-						>
+						<option value={index}>{option.label}</option>
 					{/each}
 				{/if}
 			</select>
-
-			<div
-				class="flex items-start gap-2 px-3 py-2 bg-green-500/5 border border-green-500/10 rounded-lg"
-			>
-				<p class="text-[11px] text-secondary/80 leading-relaxed">
-					{get(LL).editor.nativeTimingHint()}
-				</p>
-			</div>
 		</div>
 
 		<div class="space-y-2">

@@ -1,7 +1,7 @@
 ﻿<script lang="ts">
 	import Exporter from '$lib/classes/Exporter';
 	import Settings, { type PerformanceProfile } from '$lib/classes/Settings.svelte';
-	import type { FadeValue } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
+	import type { FadeValue } from '$lib/components/projectEditor/tabs/styleEditor/controls/types';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { slide } from 'svelte/transition';
 	import TimeInput from './TimeInput.svelte';

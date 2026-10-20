@@ -5,51 +5,15 @@
 	import { get } from 'svelte/store';
 	import {
 		clearWbwTimestampReview,
-		computeMissingWbwTimestamps,
 		getSubtitleClipsWithoutWbwTimestamps,
 		markSubtitlesWithoutWbwTimestampsForReview
-	} from '$lib/services/AutoSegmentation';
+	} from '$lib/services/subtitleEditing/review';
 
 	let missingWbwSegmentsCount = $derived(getSubtitleClipsWithoutWbwTimestamps().length);
 	let missingWbwSegmentsMarkedCount = $derived(
 		(globalState.getSubtitleClips || []).filter((clip) => clip.needsWbwTimestampReview === true)
 			.length
 	);
-
-	let isComputing = $state(false);
-
-	/**
-	 * Calcule à la demande les timestamps WBW manquants avec WhisperX local.
-	 */
-	async function handleComputeWbwTimestamps(): Promise<void> {
-		if (isComputing) return;
-		const targetCount = missingWbwSegmentsCount;
-		if (targetCount <= 0) {
-			toast(get(LL).editor.noMissingWbw());
-			return;
-		}
-
-		isComputing = true;
-		try {
-			const { enriched, total } = await computeMissingWbwTimestamps();
-			if (enriched > 0) {
-				toast.success(
-					get(LL).editor.wbwTimestampsComputed({
-						enriched,
-						total,
-						plural: total > 1 ? 's' : ''
-					})
-				);
-			} else {
-				toast.error(get(LL).editor.noWbwTimestampsComputed());
-			}
-		} catch (error) {
-			console.error('[WBW] Failed to compute timestamps:', error);
-			toast.error(get(LL).editor.failedToComputeWbwTimestamps());
-		} finally {
-			isComputing = false;
-		}
-	}
 
 	/**
 	 * Marque en bleu clair tous les segments qui n'ont pas de timestamps WBW.
@@ -103,24 +67,6 @@
 			</p>
 		</div>
 
-		<div class="space-y-2">
-			<button
-				class="w-full px-2 py-1.5 rounded-md bg-emerald-500/20 border border-emerald-400/40 text-primary font-medium flex items-center justify-center gap-1.5 hover:bg-emerald-500/30 transition cursor-pointer text-xs disabled:opacity-60 disabled:cursor-not-allowed"
-				type="button"
-				onclick={handleComputeWbwTimestamps}
-				disabled={isComputing}
-			>
-				{#if isComputing}
-					<span
-						class="h-3.5 w-3.5 rounded-full border-2 border-[var(--text-primary)] border-t-transparent animate-spin"
-					></span>
-				{:else}
-					<span class="material-icons text-sm!">auto_awesome</span>
-					{$LL.editor.computeTimestamps()}
-				{/if}
-			</button>
-		</div>
-
 		<div class="grid grid-cols-3 gap-2">
 			<button
 				class="px-2 py-1.5 rounded-md bg-sky-500/20 border border-sky-400/40 text-primary font-medium flex items-center justify-center gap-1.5 hover:bg-sky-500/30 transition cursor-pointer text-xs disabled:opacity-60 disabled:cursor-not-allowed {missingWbwSegmentsMarkedCount <=
@@ -129,7 +75,6 @@
 					: 'col-span-2'}"
 				type="button"
 				onclick={handleMarkMissingWbwTimestamps}
-				disabled={isComputing}
 			>
 				<span class="material-icons text-sm!">flag</span>
 				{$LL.editor.mark()}
@@ -139,7 +84,6 @@
 					class="px-2 py-1.5 rounded-md bg-secondary border border-color text-secondary text-xs font-medium flex items-center justify-center gap-1.5 hover:bg-secondary/80 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
 					type="button"
 					onclick={handleClearMissingWbwTimestamps}
-					disabled={isComputing}
 				>
 					<span class="material-icons text-sm!">cancel</span>
 					{$LL.common.clear()}

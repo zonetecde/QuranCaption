@@ -111,10 +111,7 @@ par-dessus l'editeur de projet.
 4. Ajouter l'audio a la timeline
    - content.addAsset() + addToTimeline(false, true)
 
-5. Generer les sous-titres avec l'IA (segmentation)
-   - Appelle runAutoSegmentation({}, 'api') — segmentation cloud
-   - Produit les clips de sous-titres arabes alignes sur l'audio
-   - Fallback automatique CPU si quota GPU epuise
+5. Créer les sous-titres manuellement dans le projet avant de les traduire.
 
 6. Ajouter la traduction
    - Telecharge les traductions via getAllProjectSubtitlesTranslations()
@@ -212,7 +209,6 @@ Note : les parametres Tauri subissent une conversion automatique camelCase → s
 
 - **MP3Quran API** : liste des intervenants, URLs audio, timings par verset
 - **API OpenAI** (ou compatible) : generation du plan IA + trim des traductions
-- **Cloud Segmentation API** : segmentation audio → sous-titres arabes
 - **FFmpeg** (via Tauri) : trim de l'audio
 
 ---

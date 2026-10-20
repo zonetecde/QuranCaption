@@ -2,7 +2,6 @@
 	import type { Category, Style } from '$lib/classes/VideoStyle.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { getStyleName } from '$lib/i18n/styleMapper';
-	import ModalManager from '$lib/components/modals/ModalManager';
 	import { get } from 'svelte/store';
 	import StyleComponent from './Style.svelte';
 	import type { StyleControlGroup, StyleUiCopyKey } from './styleEditorTypes';
@@ -13,7 +12,6 @@
 		styleGroups,
 		headerStyle,
 		target,
-		searchActive,
 		mushafFontLocked,
 		backgroundRequiresMaxHeight,
 		wordByWordHint,
@@ -25,7 +23,6 @@
 		styleGroups: StyleControlGroup[];
 		headerStyle?: Style;
 		target: string;
-		searchActive: boolean;
 		mushafFontLocked: boolean;
 		backgroundRequiresMaxHeight: boolean;
 		wordByWordHint: 'arabic' | 'translation' | null;
@@ -77,7 +74,6 @@
 					<p>{$LL.style.translationWbwMissingMappingInfo()}</p>
 				{:else}
 					<p>{$LL.style.wbwMissingInfo()}</p>
-					<p class="mt-1">{$LL.style.wbwStep1()}</p>
 					<p class="mt-1">{$LL.style.wbwStep2()}</p>
 				{/if}
 			</div>
@@ -104,24 +100,6 @@
 			</div>
 		{/each}
 	</div>
-
-	{#if category.id === 'general' && target === 'global' && !searchActive}
-		<div class="mt-2 flex items-center justify-between gap-3 border-t border-color pt-2">
-			<div class="min-w-0">
-				<p class="text-sm font-medium text-primary">{$LL.style.hifzMode()}</p>
-				<p class="mt-0.5 text-xs leading-relaxed text-secondary">
-					{$LL.style.createMemorizationVideos()}
-				</p>
-			</div>
-			<button
-				type="button"
-				class="btn shrink-0 px-2 py-1.5 text-xs"
-				onclick={() => void ModalManager.hifzRepetitionModal()}
-			>
-				{$LL.style.enableHifzMode()}
-			</button>
-		</div>
-	{/if}
 </div>
 
 <style>

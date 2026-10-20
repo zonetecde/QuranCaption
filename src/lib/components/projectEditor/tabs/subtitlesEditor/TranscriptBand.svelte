@@ -38,10 +38,7 @@
 		)
 	);
 	const rawTranscription = $derived(
-		() =>
-			globalState.getSubtitlesEditorState.rawTranscription ??
-			globalState.getSubtitlesEditorState.aiTranscriptCleanup?.sourceResult ??
-			null
+		() => globalState.getSubtitlesEditorState.rawTranscription ?? null
 	);
 	const cursorPosition = $derived(() => globalState.getTimelineState.cursorPosition);
 	const activePlaybackClipId = $derived.by(() => {

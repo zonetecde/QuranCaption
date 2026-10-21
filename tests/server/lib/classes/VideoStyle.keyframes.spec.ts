@@ -1,10 +1,39 @@
 import { describe, expect, it, vi } from 'vitest';
+import defaults from '../../../../static/styles/styles.json';
 
 import { CustomTextClip } from '$lib/classes/Clip.svelte';
 import { Category, Style, StylesData, VideoStyle } from '$lib/classes/VideoStyle.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 
 describe('Style keyframes', () => {
+	it('adds the salawat display option to old styles without overwriting an existing choice', async () => {
+		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(
+			async (input) =>
+				({
+					json: async () =>
+						String(input).endsWith('/styles.json')
+							? defaults
+							: String(input).includes('customText') || String(input).includes('customImage')
+								? { styles: [] }
+								: []
+				}) as Response
+		);
+		const previousProject = globalState.currentProject;
+		globalState.currentProject = null;
+		try {
+			const videoStyle = new VideoStyle();
+			videoStyle.styles = [new StylesData('arabic', [])];
+			await videoStyle.ensureStylesSchemaUpToDate([]);
+			const arabic = videoStyle.getStylesOfTarget('arabic');
+			expect(arabic.findStyle('salawat-as-symbol')?.value).toBe(false);
+			arabic.setStyle('salawat-as-symbol', true);
+			await videoStyle.ensureStylesSchemaUpToDate([]);
+			expect(arabic.findStyle('salawat-as-symbol')?.value).toBe(true);
+		} finally {
+			globalState.currentProject = previousProject;
+			fetchSpy.mockRestore();
+		}
+	});
 	it('keeps the base value until the first keyframe is reached', () => {
 		const style = new Style({ id: 'vertical-position', value: 10 });
 

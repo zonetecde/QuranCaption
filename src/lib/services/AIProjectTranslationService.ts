@@ -802,7 +802,7 @@ export function applyAIProjectTranslationResults(
 
 /**
  * Exécute un batch de traduction structurée via la commande Tauri.
- * @param {{ apiKey: string; endpoint: string; model: string; reasoningEffort: AIReasoningEffort; thinkingEnabled?: boolean | null; additionalPreferences?: string; targetLanguage: string; islamicTermMode: IslamicTermTranslationMode; batch: AIProjectTranslationBatch }} params Paramètres du provider, terminologie et batch.
+ * @param {{ apiKey: string; endpoint: string; model: string; reasoningEffort: AIReasoningEffort; thinkingEnabled?: boolean | null; additionalPreferences?: string; useSalawatSymbol?: boolean; targetLanguage: string; islamicTermMode: IslamicTermTranslationMode; batch: AIProjectTranslationBatch }} params Paramètres du provider, terminologie et batch.
  * @returns {Promise<AIProjectTranslationBatchResponse>} Réponse structurée du backend.
  */
 export async function runAIProjectTranslationBatchStreaming(params: {
@@ -812,6 +812,7 @@ export async function runAIProjectTranslationBatchStreaming(params: {
 	reasoningEffort: AIReasoningEffort;
 	thinkingEnabled?: boolean | null;
 	additionalPreferences?: string;
+	useSalawatSymbol?: boolean;
 	targetLanguage: string;
 	islamicTermMode: IslamicTermTranslationMode;
 	batch: AIProjectTranslationBatch;
@@ -824,6 +825,7 @@ export async function runAIProjectTranslationBatchStreaming(params: {
 			reasoningEffort: params.reasoningEffort,
 			thinkingEnabled: params.thinkingEnabled,
 			additionalPreferences: params.additionalPreferences ?? '',
+			useSalawatSymbol: params.useSalawatSymbol ?? true,
 			batchId: params.batch.batchId,
 			targetLanguage: params.targetLanguage,
 			islamicTermMode: params.islamicTermMode,

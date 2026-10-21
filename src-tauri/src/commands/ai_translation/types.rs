@@ -52,6 +52,7 @@ pub struct ProjectTranslationCommandRequest {
     pub islamic_term_mode: String,
     #[serde(default)]
     pub additional_preferences: String,
+    pub use_salawat_symbol: Option<bool>,
     pub batch: serde_json::Value,
 }
 

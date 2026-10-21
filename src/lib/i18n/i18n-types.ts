@@ -4138,6 +4138,10 @@ type RootTranslation = {
 		backToAssets: string;
 		styleName: {
 			/**
+			 * D​i​s​p​l​a​y​ ​s​a​l​a​w​a​t​ ​a​s​ ​ﷺ
+			 */
+			'salawat-as-symbol': string;
+			/**
 			 * G​e​n​e​r​a​l
 			 */
 			general: string;
@@ -4947,6 +4951,10 @@ type RootTranslation = {
 			'time-disappearance': string;
 		};
 		styleDescription: {
+			/**
+			 * D​i​s​p​l​a​y​ ​c​o​m​p​l​e​t​e​ ​A​r​a​b​i​c​ ​p​r​a​y​e​r​s​ ​o​n​ ​t​h​e​ ​P​r​o​p​h​e​t​ ​a​s​ ​ﷺ​ ​w​i​t​h​o​u​t​ ​c​h​a​n​g​i​n​g​ ​t​h​e​ ​s​o​u​r​c​e​ ​t​e​x​t​ ​o​r​ ​w​o​r​d​ ​t​i​m​i​n​g​s​.​ ​A​p​p​l​i​e​s​ ​t​o​ ​n​o​r​m​a​l​ ​t​e​x​t​ ​a​n​d​ ​q​u​o​t​a​t​i​o​n​s​.
+			 */
+			'salawat-as-symbol': string;
 			/**
 			 * G​e​n​e​r​a​l​ ​s​t​y​l​i​n​g​ ​o​p​t​i​o​n​s​ ​f​o​r​ ​s​u​b​t​i​t​l​e​s
 			 */
@@ -6821,6 +6829,14 @@ type RootTranslation = {
 		 * A​d​d​i​t​i​o​n​a​l​ ​p​r​e​f​e​r​e​n​c​e​s
 		 */
 		aiTranslationPreferences: string;
+		/**
+		 * W​r​i​t​e​ ​p​r​a​y​e​r​s​ ​o​n​ ​t​h​e​ ​P​r​o​p​h​e​t​ ​a​s​ ​ﷺ
+		 */
+		aiTranslationSalawatSymbol: string;
+		/**
+		 * W​h​e​n​ ​d​i​s​a​b​l​e​d​,​ ​t​h​e​ ​A​I​ ​w​r​i​t​e​s​ ​t​h​e​ ​p​r​a​y​e​r​s​ ​i​n​ ​f​u​l​l​ ​i​n​ ​t​h​e​ ​t​a​r​g​e​t​ ​l​a​n​g​u​a​g​e​.
+		 */
+		aiTranslationSalawatSymbolHint: string;
 		/**
 		 * F​o​r​ ​e​x​a​m​p​l​e​:​ ​u​s​e​ ​s​i​m​p​l​e​ ​F​r​e​n​c​h​,​ ​o​r​ ​s​p​e​l​l​ ​t​h​e​ ​n​a​m​e​ ​Y​u​s​u​f​ ​a​s​ ​Y​o​u​s​o​u​f​.
 		 */
@@ -13995,6 +14011,10 @@ export type TranslationFunctions = {
 		backToAssets: () => LocalizedString;
 		styleName: {
 			/**
+			 * Display salawat as ﷺ
+			 */
+			'salawat-as-symbol': () => LocalizedString;
+			/**
 			 * General
 			 */
 			general: () => LocalizedString;
@@ -14804,6 +14824,10 @@ export type TranslationFunctions = {
 			'time-disappearance': () => LocalizedString;
 		};
 		styleDescription: {
+			/**
+			 * Display complete Arabic prayers on the Prophet as ﷺ without changing the source text or word timings. Applies to normal text and quotations.
+			 */
+			'salawat-as-symbol': () => LocalizedString;
 			/**
 			 * General styling options for subtitles
 			 */
@@ -16657,6 +16681,14 @@ export type TranslationFunctions = {
 		 * Additional preferences
 		 */
 		aiTranslationPreferences: () => LocalizedString;
+		/**
+		 * Write prayers on the Prophet as ﷺ
+		 */
+		aiTranslationSalawatSymbol: () => LocalizedString;
+		/**
+		 * When disabled, the AI writes the prayers in full in the target language.
+		 */
+		aiTranslationSalawatSymbolHint: () => LocalizedString;
 		/**
 		 * For example: use simple French, or spell the name Yusuf as Yousouf.
 		 */

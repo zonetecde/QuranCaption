@@ -106,6 +106,9 @@ describe('AI translation modal', () => {
 
 		expect(component.container.querySelector('input[type="range"]')).toBeNull();
 		expect(component.container.querySelector('#ai-translation-reasoning-mode')).toBeNull();
+		const salawat = getCheckbox(component.container, 'Write prayers on the Prophet as ﷺ');
+		expect(salawat.checked).toBe(true);
+		salawat.click();
 		expect(getCheckbox(component.container, 'Overwrite manual Quran translations').checked).toBe(
 			false
 		);
@@ -135,6 +138,7 @@ describe('AI translation modal', () => {
 				expect.objectContaining({
 					islamicTermMode: 'translated',
 					additionalPreferences: 'Use simple French',
+					useSalawatSymbol: false,
 					reasoningEffort: 'medium'
 				})
 			);
@@ -188,6 +192,9 @@ describe('AI translation modal', () => {
 			.find((button) => button.textContent?.includes('Translate video'))!
 			.click();
 		await vi.waitFor(() => expect(mocks.runBatch).toHaveBeenCalledTimes(3));
+		expect(mocks.runBatch).toHaveBeenCalledWith(
+			expect.objectContaining({ useSalawatSymbol: true })
+		);
 		Array.from(component.container.querySelectorAll('button'))
 			.find((button) => button.textContent?.includes('Stop after current requests'))!
 			.click();

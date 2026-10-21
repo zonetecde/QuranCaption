@@ -43,6 +43,8 @@
 		aiTranslationScopeAll: () => string;
 		aiTranslationPreferences: () => string;
 		aiTranslationPreferencesHint: () => string;
+		aiTranslationSalawatSymbol: () => string;
+		aiTranslationSalawatSymbolHint: () => string;
 		aiTranslationAdvanced: () => string;
 		aiTranslationStop: () => string;
 		aiTranslationStopping: () => string;
@@ -60,6 +62,7 @@
 	let scope = $state('missing');
 	let overwriteManualQuran = $state(false);
 	let additionalPreferences = $state('');
+	let useSalawatSymbol = $state(true);
 	let stopRequested = $state(false);
 	let disposed = false;
 	const options = $derived<AIProjectTranslationOptions>({
@@ -188,6 +191,7 @@
 							targetLanguage: edition.language,
 							islamicTermMode: provider.projectTranslationIslamicTerms,
 							additionalPreferences,
+							useSalawatSymbol,
 							batch
 						});
 						if (disposed) return;
@@ -295,6 +299,13 @@
 				disabled={isRunning}
 				placeholder={copy.aiTranslationPreferencesHint()}
 			></textarea>
+		</div>
+		<div>
+			<label class="flex cursor-pointer items-center gap-2 text-sm text-primary">
+				<input type="checkbox" bind:checked={useSalawatSymbol} disabled={isRunning} />
+				{copy.aiTranslationSalawatSymbol()}
+			</label>
+			<p class="mt-1 text-xs text-secondary">{copy.aiTranslationSalawatSymbolHint()}</p>
 		</div>
 		<details class="rounded-lg border border-color p-3">
 			<summary class="cursor-pointer text-sm text-secondary">{copy.aiTranslationAdvanced()}</summary

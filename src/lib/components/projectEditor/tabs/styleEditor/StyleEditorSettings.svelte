@@ -402,6 +402,7 @@
 		const target = currentStyleTarget();
 		const selectedSubtitles = globalState.getStylesState.selectedSubtitles.length > 0;
 		const selectedVideos = globalState.getStylesState.selectedVideos.length > 0;
+		if (style.id === 'salawat-as-symbol' && target !== 'arabic') return true;
 		if (selectedVideos && !isGlobalClipStyleId(style.id as StyleName)) return true;
 
 		if (style.id === 'reactive-font-size' || style.id === 'reactive-y-position') return true;

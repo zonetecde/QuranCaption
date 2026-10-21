@@ -825,6 +825,7 @@ const editor = {
 	stockMediaError: 'Search error',
 	backToAssets: 'Back to assets',
 	styleName: {
+		'salawat-as-symbol': 'Display salawat as ﷺ',
 		general: 'General',
 		'show-subtitles': 'Show Subtitles',
 		'verse-number': 'Verse Number',
@@ -1029,6 +1030,8 @@ const editor = {
 		'time-disappearance': 'Time Disappearance'
 	},
 	styleDescription: {
+		'salawat-as-symbol':
+			'Display complete Arabic prayers on the Prophet as ﷺ without changing the source text or word timings. Applies to normal text and quotations.',
 		general: 'General styling options for subtitles',
 		'show-subtitles': 'Toggle the visibility of subtitles',
 		'show-verse-number': 'Toggle the visibility of verse numbers',

@@ -9,7 +9,7 @@
 			"groups": [
 				{
 					"id": "basics",
-					"styleIds": ["show-subtitles", "mushaf-style", "text-direction"]
+					"styleIds": ["show-subtitles", "mushaf-style", "text-direction", "salawat-as-symbol"]
 				},
 				{
 					"id": "verseNumber",
@@ -27,6 +27,16 @@
 			]
 		},
 		"styles": [
+			{
+				"id": "salawat-as-symbol",
+				"name": "Display salawat as ﷺ",
+				"description": "Display complete Arabic prayers on the Prophet as ﷺ without changing the source text or word timings.",
+				"value": false,
+				"valueType": "boolean",
+				"css": "",
+				"tailwind": false,
+				"icon": "text_format"
+			},
 			{
 				"id": "show-subtitles",
 				"name": "Show Subtitles",

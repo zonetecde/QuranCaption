@@ -57,6 +57,7 @@ export type StyleCategoryName =
 // Types spécifiques pour chaque catégorie de styles
 export type GeneralStyleName =
 	| 'show-subtitles'
+	| 'salawat-as-symbol'
 	| 'show-verse-number'
 	| 'show-decorative-brackets'
 	| 'decorative-brackets-font-family'

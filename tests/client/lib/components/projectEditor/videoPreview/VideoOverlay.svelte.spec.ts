@@ -463,6 +463,49 @@ describe('Video overlay subtitle preview', () => {
 		QPCFontProvider.verseMappingV2 = undefined;
 	});
 
+	test.each([false, true])(
+		'renders plain and quoted Arabic with salawat substitution set to %s',
+		async (enabled) => {
+			const clip = new SubtitleClip(
+				0,
+				9000,
+				'قال النبي صلى الله عليه وسلم {{عليه الصلاة والسلام}}'
+			);
+			const fixture = setupVideoOverlayFixture([clip]);
+			const styles = fixture.videoStyle.getStylesOfTarget('arabic');
+			styles.setStyle('salawat-as-symbol', enabled);
+			const component = render(VideoOverlay);
+			await settleOverlay();
+			expect(normalizeText(getForegroundArabicNode(component.container)!.textContent)).toBe(
+				enabled ? 'قال النبي ﷺ ﷺ' : 'قال النبي صلى الله عليه وسلم عليه الصلاة والسلام'
+			);
+			expect(clip.text).toBe('قال النبي صلى الله عليه وسلم {{عليه الصلاة والسلام}}');
+		}
+	);
+
+	test.each([2500, 4500])(
+		'keeps one salawat symbol active throughout the original word timings at %s',
+		async (cursorPosition) => {
+			const clip = createTimedTranscriptSubtitle('قال صلى الله عليه وسلم ثم', [
+				'قال',
+				'صلى',
+				'الله',
+				'عليه',
+				'وسلم',
+				'ثم'
+			]);
+			const originalWords = JSON.stringify(clip.alignmentMetadata!.words);
+			const fixture = setupVideoOverlayFixture([clip], { cursorPosition });
+			const styles = fixture.videoStyle.getStylesOfTarget('arabic');
+			styles.setStyle('salawat-as-symbol', true);
+			styles.setStyle('wbw-show-current-word-only', true);
+			const component = render(VideoOverlay);
+			await settleOverlay();
+			expect(normalizeText(getForegroundArabicNode(component.container)!.textContent)).toBe('ﷺ');
+			expect(JSON.stringify(clip.alignmentMetadata!.words)).toBe(originalWords);
+		}
+	);
+
 	test('renders an Arabic citation in an isolated RTL context', async () => {
 		setupVideoOverlayFixture([
 			new SubtitleClip(0, 999, '{{ولمَّا ماتَ أظلمَ منها كل شيء،}}', 'Unknown speaker', {

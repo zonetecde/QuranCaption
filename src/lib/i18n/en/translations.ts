@@ -107,6 +107,9 @@ const translations = {
 	aiTranslationScopeAi: 'Missing, failed and AI translations',
 	aiTranslationScopeAll: 'All translations, including manual translations',
 	aiTranslationPreferences: 'Additional preferences',
+	aiTranslationSalawatSymbol: 'Write prayers on the Prophet as ﷺ',
+	aiTranslationSalawatSymbolHint:
+		'When disabled, the AI writes the prayers in full in the target language.',
 	aiTranslationPreferencesHint:
 		'For example: use simple French, or spell the name Yusuf as Yousouf.',
 	aiTranslationAdvanced: 'Advanced options',

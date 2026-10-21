@@ -89,6 +89,7 @@ pub async fn run_ai_project_translation_batch_streaming(
         &request.target_language,
         &request.islamic_term_mode,
         &request.additional_preferences,
+        request.use_salawat_symbol.unwrap_or(true),
         &request.batch,
     )?;
     let schema = prompts::build_project_translation_response_schema();

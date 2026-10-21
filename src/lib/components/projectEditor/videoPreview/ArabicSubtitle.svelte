@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { highlightStyleCategory } from '$lib/components/projectEditor/tabs/styleEditor/presets/actions/styleActions';
 	import { getTranscriptReferenceRenderParts } from '$lib/components/projectEditor/videoPreview/helpers/transcriptReferences';
+	import { collapseSalawatDisplaySegments } from './helpers/salawat';
+	import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 	import { ClipWithTranslation, type TranscriptWordTiming } from '$lib/classes/Clip.svelte';
 	import {
@@ -246,7 +248,7 @@
 	 * @param keyPrefix - Préfixe de clé pour la stabilité du rendu.
 	 * @returns Les segments de texte à afficher.
 	 */
-	function getArabicOverlaySegments(
+	function buildArabicOverlaySegments(
 		subtitle: ClipWithTranslation,
 		keyPrefix: string
 	): OverlayTextSegment[] {
@@ -321,6 +323,30 @@
 				suffixFontCss + 'color: var(--verse-number-color);'
 			)
 		];
+	}
+
+	/**
+	 * Applique l'option de salawat aux spans sans modifier le texte ni les références Quran.
+	 * @param {ClipWithTranslation} subtitle Clip source.
+	 * @param {string} keyPrefix Préfixe des clés de rendu.
+	 * @returns {OverlayTextSegment[]} Spans prêts à afficher.
+	 */
+	function getArabicOverlaySegments(
+		subtitle: ClipWithTranslation,
+		keyPrefix: string
+	): OverlayTextSegment[] {
+		const segments = buildArabicOverlaySegments(subtitle, keyPrefix);
+		if (
+			!(subtitle instanceof SubtitleClip) ||
+			subtitle instanceof QuranSubtitleClip ||
+			!globalState.getVideoStyle
+				.getStylesOfTarget('arabic')
+				.getEffectiveValue('salawat-as-symbol', subtitle.id)
+		)
+			return segments;
+		return collapseSalawatDisplaySegments(segments, (parts, text) => ({ ...parts[0], text })).map(
+			(segment, index) => ({ ...segment, key: `${keyPrefix}-salawat-${index}` })
+		);
 	}
 
 	/**
@@ -715,7 +741,47 @@
 		}
 
 		if (groups.length === 0 || words.length === 0) return null;
-		return { words, groups, clipStartTimeS };
+		const displayWords: ArabicWordByWordEntry[] = [];
+		for (const group of groups) {
+			if (
+				group.referenceType !== 'quran' &&
+				!(
+					globalState.getSubtitleTrack.getClipById(group.sourceClipId) instanceof QuranSubtitleClip
+				) &&
+				globalState.getVideoStyle
+					.getStylesOfTarget('arabic')
+					.getEffectiveValue('salawat-as-symbol', group.sourceClipId)
+			) {
+				group.words = collapseSalawatDisplaySegments(group.words, mergeSalawatWordTimings, ' ');
+			}
+			group.startWordIndex = displayWords.length;
+			displayWords.push(...group.words);
+		}
+		return { words: displayWords, groups, clipStartTimeS };
+	}
+
+	/**
+	 * Associe le symbole à toute la durée de la formule pour chaque clip source.
+	 * @param {ArabicWordByWordEntry[]} entries Mots fusionnés à l'affichage.
+	 * @param {string} text Symbole avec sa ponctuation éventuelle.
+	 * @returns {ArabicWordByWordEntry} Unité WBW affichée sans mutation des timings source.
+	 */
+	function mergeSalawatWordTimings(
+		entries: ArabicWordByWordEntry[],
+		text: string
+	): ArabicWordByWordEntry {
+		const timings = new Map<number | undefined, TranscriptWordTiming>();
+		for (const timing of entries.flatMap((entry) => entry.timings)) {
+			const clipId = (timing as TranscriptWordTiming & { clipId?: number }).clipId;
+			const previous = timings.get(clipId);
+			timings.set(clipId, {
+				...timing,
+				word: text,
+				start: Math.min(previous?.start ?? timing.start, timing.start),
+				end: Math.max(previous?.end ?? timing.end, timing.end)
+			});
+		}
+		return { ...entries[0], text, timings: [...timings.values()] };
 	}
 
 	/** État du highlight WBW courant. */

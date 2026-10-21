@@ -20,6 +20,7 @@ import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { setLocale } from '$lib/i18n/i18n-svelte';
 import SpeechToTextModal from '$lib/components/modals/tools/SpeechToTextModal.svelte';
 import { transcribeProjectAudio } from '$lib/services/SpeechToTextService';
+import { rearrangeProjectSubtitles } from '$lib/services/SubtitleRearrangementService';
 import RearrangeSubtitlesModal from '$lib/components/modals/tools/RearrangeSubtitlesModal.svelte';
 import SubtitlesEditorSettings from '$lib/components/projectEditor/tabs/subtitlesEditor/SubtitlesEditorSettings.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
@@ -34,6 +35,9 @@ vi.mock('$lib/services/SpeechToTextService', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/services/SpeechToTextService')>()),
 	transcribeProjectAudio: vi.fn()
 }));
+vi.mock('$lib/services/SubtitleRearrangementService', () => ({
+	rearrangeProjectSubtitles: vi.fn()
+}));
 
 const originalSettings = globalState.settings;
 
@@ -43,6 +47,7 @@ beforeEach(() => {
 	globalState.settings = new Settings();
 	vi.spyOn(Settings, 'save').mockResolvedValue(undefined);
 	vi.mocked(transcribeProjectAudio).mockResolvedValue({ count: 2 });
+	vi.mocked(rearrangeProjectSubtitles).mockResolvedValue({ count: 2, skipped: 0 });
 	const asset = new Asset();
 	asset.id = 42;
 	asset.fileName = 'lecture.wav';
@@ -59,6 +64,7 @@ afterEach(() => {
 	cleanup();
 	vi.restoreAllMocks();
 	vi.mocked(transcribeProjectAudio).mockReset();
+	vi.mocked(rearrangeProjectSubtitles).mockReset();
 	globalState.currentProject = null;
 	globalState.settings = originalSettings;
 	vi.mocked(openUrl).mockClear();
@@ -157,9 +163,49 @@ test('lists existing subtitles and requires a text AI key before enabling rearra
 	await action.click();
 	await expect
 		.element(component.getByRole('status'))
-		.toHaveTextContent('Rearranging subtitles by meaning is not available yet.');
+		.toHaveTextContent('Subtitles rearranged. You can undo this change. (2)');
+	expect(rearrangeProjectSubtitles).toHaveBeenCalledOnce();
 	expect(globalState.getSubtitleTrack.clips).toHaveLength(3);
 	expect(transcribeProjectAudio).not.toHaveBeenCalled();
+});
+
+test('passes additional preferences, prevents duplicate requests and cancels on close', async () => {
+	globalState.getSubtitleTrack.clips = [new SubtitleClip(0, 1000, 'A passage')];
+	globalState.settings!.aiTranslationSettings.openAiApiKey = 'text-ai-key';
+	vi.mocked(rearrangeProjectSubtitles).mockReturnValue(new Promise(() => {}));
+	const close = vi.fn();
+	const component = render(RearrangeSubtitlesModal, { close });
+	await component
+		.getByRole('textbox', { name: 'Additional preferences' })
+		.fill('Keep poetic lines together.');
+	const action = component.getByRole('button', { name: 'Rearrange subtitles', exact: true });
+	await action.click();
+	await expect.element(action).toBeDisabled();
+	expect(vi.mocked(rearrangeProjectSubtitles).mock.calls[0][1]).toMatchObject({
+		maxWords: 8,
+		maxDuration: 6,
+		additionalPreferences: 'Keep poetic lines together.'
+	});
+	const signal = vi.mocked(rearrangeProjectSubtitles).mock.calls[0][2];
+	await component.getByRole('button', { name: 'Cancel', exact: true }).click();
+	expect(signal.aborted).toBe(true);
+	expect(close).toHaveBeenCalledOnce();
+});
+
+test('shows rearrangement errors and allows retrying', async () => {
+	globalState.getSubtitleTrack.clips = [new SubtitleClip(0, 1000, 'A passage')];
+	globalState.settings!.aiTranslationSettings.openAiApiKey = 'text-ai-key';
+	vi.mocked(rearrangeProjectSubtitles).mockRejectedValueOnce(
+		new Error('The AI returned invalid subtitle boundaries.')
+	);
+	const component = render(RearrangeSubtitlesModal, { close: vi.fn() });
+	const action = component.getByRole('button', { name: 'Rearrange subtitles', exact: true });
+	await action.click();
+	await expect
+		.element(component.getByRole('alert'))
+		.toHaveTextContent('The AI returned invalid subtitle boundaries.');
+	await action.click();
+	await expect.element(component.getByRole('status')).toHaveTextContent('Subtitles rearranged.');
 });
 
 test('shows the rearrangement entry only after subtitles exist', async () => {

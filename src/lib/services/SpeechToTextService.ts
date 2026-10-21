@@ -291,7 +291,8 @@ export async function transcribeProjectAudio(
 					words: segment.words.map((word) => ({
 						word: word.word,
 						start: word.start - segment.start,
-						end: word.end - segment.start
+						end: word.end - segment.start,
+						spokenDuration: word.end - word.start
 					}))
 				}
 			)

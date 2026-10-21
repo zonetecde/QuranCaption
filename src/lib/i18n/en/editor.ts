@@ -10,7 +10,20 @@ const editor = {
 		rearrangeDescription:
 			'Review your existing subtitles and choose your preferences for rearranging them.',
 		rearrangeAction: 'Rearrange subtitles',
-		rearrangeUnavailable: 'Rearranging subtitles by meaning is not available yet.',
+		rearranging: 'Rearranging subtitles by meaning',
+		rearrangeComplete: 'Subtitles rearranged. You can undo this change.',
+		rearrangeSkipped:
+			'Some clips were kept unchanged because their word timings are missing or inconsistent, or they contain custom styling, images or visual merges.',
+		rearrangeNoTimings: 'No editable subtitles with reliable word timestamps were found.',
+		rearrangeSourceChanged:
+			'The subtitles or project changed during processing. No rearrangement was applied.',
+		rearrangeOverlap: 'Resolve overlapping or invalid subtitle timings before rearranging.',
+		rearrangeProviderError:
+			'The text AI request failed. Check your API key, endpoint, model and account quota.',
+		rearrangeNotice:
+			'Silence clips are preserved. Measured pauses of one second or more are mandatory breaks. Translations of changed subtitles will be reset; Undo restores them.',
+		rearrangeTimingNotice:
+			'Older projects may lack the original word endings. Their existing silence clips are preserved, but additional pauses cannot be recovered without retranscribing.',
 		rearrangeKeyRequired: 'Add an API key in Text AI Settings to enable subtitle rearrangement.',
 		additionalPreferences: 'Additional preferences',
 		additionalPreferencesHint: 'For example: keep poetic lines together or prefer short sentences.',

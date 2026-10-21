@@ -1141,9 +1141,41 @@ type RootTranslation = {
 			 */
 			rearrangeAction: string;
 			/**
-			 * R​e​a​r​r​a​n​g​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​b​y​ ​m​e​a​n​i​n​g​ ​i​s​ ​n​o​t​ ​a​v​a​i​l​a​b​l​e​ ​y​e​t​.
+			 * R​e​a​r​r​a​n​g​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​b​y​ ​m​e​a​n​i​n​g
 			 */
-			rearrangeUnavailable: string;
+			rearranging: string;
+			/**
+			 * S​u​b​t​i​t​l​e​s​ ​r​e​a​r​r​a​n​g​e​d​.​ ​Y​o​u​ ​c​a​n​ ​u​n​d​o​ ​t​h​i​s​ ​c​h​a​n​g​e​.
+			 */
+			rearrangeComplete: string;
+			/**
+			 * S​o​m​e​ ​c​l​i​p​s​ ​w​e​r​e​ ​k​e​p​t​ ​u​n​c​h​a​n​g​e​d​ ​b​e​c​a​u​s​e​ ​t​h​e​i​r​ ​w​o​r​d​ ​t​i​m​i​n​g​s​ ​a​r​e​ ​m​i​s​s​i​n​g​ ​o​r​ ​i​n​c​o​n​s​i​s​t​e​n​t​,​ ​o​r​ ​t​h​e​y​ ​c​o​n​t​a​i​n​ ​c​u​s​t​o​m​ ​s​t​y​l​i​n​g​,​ ​i​m​a​g​e​s​ ​o​r​ ​v​i​s​u​a​l​ ​m​e​r​g​e​s​.
+			 */
+			rearrangeSkipped: string;
+			/**
+			 * N​o​ ​e​d​i​t​a​b​l​e​ ​s​u​b​t​i​t​l​e​s​ ​w​i​t​h​ ​r​e​l​i​a​b​l​e​ ​w​o​r​d​ ​t​i​m​e​s​t​a​m​p​s​ ​w​e​r​e​ ​f​o​u​n​d​.
+			 */
+			rearrangeNoTimings: string;
+			/**
+			 * T​h​e​ ​s​u​b​t​i​t​l​e​s​ ​o​r​ ​p​r​o​j​e​c​t​ ​c​h​a​n​g​e​d​ ​d​u​r​i​n​g​ ​p​r​o​c​e​s​s​i​n​g​.​ ​N​o​ ​r​e​a​r​r​a​n​g​e​m​e​n​t​ ​w​a​s​ ​a​p​p​l​i​e​d​.
+			 */
+			rearrangeSourceChanged: string;
+			/**
+			 * R​e​s​o​l​v​e​ ​o​v​e​r​l​a​p​p​i​n​g​ ​o​r​ ​i​n​v​a​l​i​d​ ​s​u​b​t​i​t​l​e​ ​t​i​m​i​n​g​s​ ​b​e​f​o​r​e​ ​r​e​a​r​r​a​n​g​i​n​g​.
+			 */
+			rearrangeOverlap: string;
+			/**
+			 * T​h​e​ ​t​e​x​t​ ​A​I​ ​r​e​q​u​e​s​t​ ​f​a​i​l​e​d​.​ ​C​h​e​c​k​ ​y​o​u​r​ ​A​P​I​ ​k​e​y​,​ ​e​n​d​p​o​i​n​t​,​ ​m​o​d​e​l​ ​a​n​d​ ​a​c​c​o​u​n​t​ ​q​u​o​t​a​.
+			 */
+			rearrangeProviderError: string;
+			/**
+			 * S​i​l​e​n​c​e​ ​c​l​i​p​s​ ​a​r​e​ ​p​r​e​s​e​r​v​e​d​.​ ​M​e​a​s​u​r​e​d​ ​p​a​u​s​e​s​ ​o​f​ ​o​n​e​ ​s​e​c​o​n​d​ ​o​r​ ​m​o​r​e​ ​a​r​e​ ​m​a​n​d​a​t​o​r​y​ ​b​r​e​a​k​s​.​ ​T​r​a​n​s​l​a​t​i​o​n​s​ ​o​f​ ​c​h​a​n​g​e​d​ ​s​u​b​t​i​t​l​e​s​ ​w​i​l​l​ ​b​e​ ​r​e​s​e​t​;​ ​U​n​d​o​ ​r​e​s​t​o​r​e​s​ ​t​h​e​m​.
+			 */
+			rearrangeNotice: string;
+			/**
+			 * O​l​d​e​r​ ​p​r​o​j​e​c​t​s​ ​m​a​y​ ​l​a​c​k​ ​t​h​e​ ​o​r​i​g​i​n​a​l​ ​w​o​r​d​ ​e​n​d​i​n​g​s​.​ ​T​h​e​i​r​ ​e​x​i​s​t​i​n​g​ ​s​i​l​e​n​c​e​ ​c​l​i​p​s​ ​a​r​e​ ​p​r​e​s​e​r​v​e​d​,​ ​b​u​t​ ​a​d​d​i​t​i​o​n​a​l​ ​p​a​u​s​e​s​ ​c​a​n​n​o​t​ ​b​e​ ​r​e​c​o​v​e​r​e​d​ ​w​i​t​h​o​u​t​ ​r​e​t​r​a​n​s​c​r​i​b​i​n​g​.
+			 */
+			rearrangeTimingNotice: string;
 			/**
 			 * A​d​d​ ​a​n​ ​A​P​I​ ​k​e​y​ ​i​n​ ​T​e​x​t​ ​A​I​ ​S​e​t​t​i​n​g​s​ ​t​o​ ​e​n​a​b​l​e​ ​s​u​b​t​i​t​l​e​ ​r​e​a​r​r​a​n​g​e​m​e​n​t​.
 			 */
@@ -10829,9 +10861,41 @@ export type TranslationFunctions = {
 			 */
 			rearrangeAction: () => LocalizedString;
 			/**
-			 * Rearranging subtitles by meaning is not available yet.
+			 * Rearranging subtitles by meaning
 			 */
-			rearrangeUnavailable: () => LocalizedString;
+			rearranging: () => LocalizedString;
+			/**
+			 * Subtitles rearranged. You can undo this change.
+			 */
+			rearrangeComplete: () => LocalizedString;
+			/**
+			 * Some clips were kept unchanged because their word timings are missing or inconsistent, or they contain custom styling, images or visual merges.
+			 */
+			rearrangeSkipped: () => LocalizedString;
+			/**
+			 * No editable subtitles with reliable word timestamps were found.
+			 */
+			rearrangeNoTimings: () => LocalizedString;
+			/**
+			 * The subtitles or project changed during processing. No rearrangement was applied.
+			 */
+			rearrangeSourceChanged: () => LocalizedString;
+			/**
+			 * Resolve overlapping or invalid subtitle timings before rearranging.
+			 */
+			rearrangeOverlap: () => LocalizedString;
+			/**
+			 * The text AI request failed. Check your API key, endpoint, model and account quota.
+			 */
+			rearrangeProviderError: () => LocalizedString;
+			/**
+			 * Silence clips are preserved. Measured pauses of one second or more are mandatory breaks. Translations of changed subtitles will be reset; Undo restores them.
+			 */
+			rearrangeNotice: () => LocalizedString;
+			/**
+			 * Older projects may lack the original word endings. Their existing silence clips are preserved, but additional pauses cannot be recovered without retranscribing.
+			 */
+			rearrangeTimingNotice: () => LocalizedString;
 			/**
 			 * Add an API key in Text AI Settings to enable subtitle rearrangement.
 			 */

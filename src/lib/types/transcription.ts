@@ -42,6 +42,8 @@ export type TranscriptWordTiming = {
 	location?: string;
 	start: number;
 	end: number;
+	/** Durée vocale mesurée, indépendante de l'étirement pour l'affichage WBW. */
+	spokenDuration?: number;
 	confidence?: number;
 };
 

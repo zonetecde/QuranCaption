@@ -2083,7 +2083,7 @@ type RootTranslation = {
 		 */
 		quranPassages: string;
 		/**
-		 * C​i​t​a​t​i​o​n​s​ ​(​h​a​d​i​t​h​,​ ​e​t​c​.​)
+		 * C​i​t​a​t​i​o​n​s
 		 */
 		citations: string;
 		/**
@@ -12002,7 +12002,7 @@ export type TranslationFunctions = {
 		 */
 		quranPassages: () => LocalizedString;
 		/**
-		 * Citations (hadith, etc.)
+		 * Citations
 		 */
 		citations: () => LocalizedString;
 		/**

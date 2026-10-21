@@ -279,7 +279,7 @@ const editor = {
 	selectArabicContent: 'Select Arabic content',
 	normalText: 'Normal text',
 	quranPassages: 'Quran',
-	citations: 'Citations (hadith, etc.)',
+	citations: 'Citations',
 	noTranslationsYet: 'You have no translations yet.',
 	clearSearch: 'Clear search',
 	subtitlesSelected:

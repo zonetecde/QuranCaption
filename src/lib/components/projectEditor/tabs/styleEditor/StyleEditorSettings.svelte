@@ -29,12 +29,17 @@
 	type FeatureState = 'active' | 'inactive' | 'mixed';
 	const REFERENCE_STYLE_CATEGORY_IDS = new Set(['text', 'text-glow', 'text-neon', 'effects']);
 	const QURAN_REFERENCE_STYLE_IDS = new Set([
+		'riwayah',
+		'basmala-style',
+		'basmala-scale',
 		'show-verse-number',
 		'show-decorative-brackets',
 		'decorative-brackets-font-family',
 		'verse-number-format',
 		'verse-number-position',
-		'verse-number-numeral-system'
+		'verse-number-numeral-system',
+		'verse-number-color',
+		'wbw-always-show-verse-number'
 	]);
 
 	let {
@@ -402,6 +407,7 @@
 		const target = currentStyleTarget();
 		const selectedSubtitles = globalState.getStylesState.selectedSubtitles.length > 0;
 		const selectedVideos = globalState.getStylesState.selectedVideos.length > 0;
+		if (style.id === 'verse-number-new-line') return true;
 		if (style.id === 'salawat-as-symbol' && target !== 'arabic') return true;
 		if (selectedVideos && !isGlobalClipStyleId(style.id as StyleName)) return true;
 
@@ -432,7 +438,11 @@
 		)
 			return true;
 
-		if (style.id === 'mushaf-style' && target !== 'arabic-quran') return true;
+		if (
+			['mushaf-style', 'riwayah', 'basmala-style', 'basmala-scale'].includes(style.id) &&
+			target !== 'arabic-quran'
+		)
+			return true;
 		if (QURAN_REFERENCE_STYLE_IDS.has(style.id) && !isQuranReferenceTarget()) return true;
 		if (
 			isQuranReferenceTarget() &&

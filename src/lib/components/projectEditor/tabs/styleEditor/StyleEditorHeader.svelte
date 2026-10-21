@@ -38,6 +38,16 @@
 	const canMergeArabicModes = $derived(
 		canMergeArabicVisualModes(visualMergeSelection, globalState.getSubtitleTrack)
 	);
+	const contentTabs = [
+		{ arabic: 'arabic', translation: 'normal', label: 'normalText', icon: 'text_fields' },
+		{ arabic: 'arabic-quran', translation: 'quran', label: 'quranPassages', icon: 'menu_book' },
+		{
+			arabic: 'arabic-citation',
+			translation: 'citation',
+			label: 'citations',
+			icon: 'format_quote'
+		}
+	] as const;
 
 	/**
 	 * Applique un merge visuel à la sélection courante.
@@ -142,34 +152,42 @@
 					{/each}
 				</select>
 			</label>
-			<label class="flex items-center gap-2">
-				<span class="material-icons-outlined text-sm text-secondary">format_quote</span>
-				<select
-					class="flex-1 text-sm"
-					aria-label={$LL.editor.selectTranslation()}
-					bind:value={globalState.getStylesState.currentSelectionTranslationContent}
-				>
-					<option value="normal">{$LL.editor.normalText()}</option>
-					<option value="quran">{$LL.editor.quranPassages()}</option>
-					<option value="citation">{$LL.editor.citations()}</option>
-				</select>
-			</label>
 		{:else}
 			<p class="py-1 text-center text-xs text-secondary">{$LL.editor.noTranslationsYet()}</p>
 		{/if}
-	{:else if globalState.getStylesState.currentSelection === 'arabic'}
-		<label class="flex items-center gap-2">
-			<span class="material-icons-outlined text-sm text-secondary">format_quote</span>
-			<select
-				class="flex-1 text-sm"
-				aria-label={$LL.editor.selectArabicContent()}
-				bind:value={globalState.getStylesState.currentSelectionArabic}
-			>
-				<option value="arabic">{$LL.editor.normalText()}</option>
-				<option value="arabic-quran">{$LL.editor.quranPassages()}</option>
-				<option value="arabic-citation">{$LL.editor.citations()}</option>
-			</select>
-		</label>
+	{/if}
+
+	{#if globalState.getStylesState.currentSelection === 'arabic' || (globalState.getStylesState.currentSelection === 'translation' && globalState.getProjectTranslation.addedTranslationEditions.length > 0)}
+		<div
+			class="grid grid-cols-3 gap-1.5"
+			aria-label={globalState.getStylesState.currentSelection === 'arabic'
+				? $LL.editor.selectArabicContent()
+				: $LL.editor.selectTranslation()}
+		>
+			{#each contentTabs as tab (tab.translation)}
+				{@const active =
+					globalState.getStylesState.currentSelection === 'arabic'
+						? globalState.getStylesState.currentSelectionArabic === tab.arabic
+						: globalState.getStylesState.currentSelectionTranslationContent === tab.translation}
+				<button
+					type="button"
+					class="style-panel-tab"
+					class:style-panel-tab-active={active}
+					aria-pressed={active}
+					title={$LL.editor[tab.label]()}
+					onclick={() => {
+						if (globalState.getStylesState.currentSelection === 'arabic') {
+							globalState.getStylesState.currentSelectionArabic = tab.arabic;
+						} else {
+							globalState.getStylesState.currentSelectionTranslationContent = tab.translation;
+						}
+					}}
+				>
+					<span class="material-icons-outlined text-[16px]!">{tab.icon}</span>
+					<span>{$LL.editor[tab.label]()}</span>
+				</button>
+			{/each}
+		</div>
 	{/if}
 
 	<div class="relative">

@@ -30,10 +30,6 @@ jobs:
             target: aarch64-apple-darwin
             args: '--target aarch64-apple-darwin --bundles app,dmg'
             assetNamePattern: 'QuranCaption.MacOS.ARM[ext]'
-          - os: macos-15-intel
-            target: x86_64-apple-darwin
-            args: '--target x86_64-apple-darwin --bundles app,dmg'
-            assetNamePattern: 'QuranCaption.MacOS.Intel[ext]'
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             args: '--bundles nsis'

@@ -30,10 +30,10 @@ jobs:
             target: aarch64-apple-darwin
             args: '--target aarch64-apple-darwin --bundles app,dmg'
             assetNamePattern: 'QuranCaption.MacOS.ARM[ext]'
-          # - os: macos-15-intel
-          #   target: x86_64-apple-darwin
-          #   args: '--target x86_64-apple-darwin --bundles app,dmg'
-          #   assetNamePattern: 'QuranCaption.MacOS.Intel[ext]'
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            args: '--target x86_64-apple-darwin --bundles app,dmg'
+            assetNamePattern: 'QuranCaption.MacOS.Intel[ext]'
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             args: '--bundles nsis'
@@ -77,8 +77,8 @@ jobs:
           mkdir -p src-tauri/binaries
           mv yt-dlp src-tauri/binaries/yt-dlp
 
-      - name: Install ffmpeg and copy binaries (macOS)
-        if: startsWith(matrix.os, 'macos')
+      - name: Install ffmpeg and copy binaries (macOS ARM)
+        if: matrix.target == 'aarch64-apple-darwin'
         run: |
           brew update
           # Avoid OpenSSL symlink conflicts with the runner's preinstalled version.
@@ -102,6 +102,24 @@ jobs:
           else
             echo "xfade_vulkan unavailable in macOS FFmpeg build; CPU fallback will be used"
           fi
+
+      - name: Download ffmpeg and ffprobe (macOS Intel)
+        if: matrix.target == 'x86_64-apple-darwin'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p src-tauri/binaries "$RUNNER_TEMP/qc-ffmpeg"
+          for binary in ffmpeg ffprobe; do
+            curl -fL --retry 3 --connect-timeout 30 --max-time 300 \
+              -o "$RUNNER_TEMP/qc-ffmpeg/$binary.zip" \
+              "https://evermeet.cx/ffmpeg/$binary-9.0.2.zip"
+            unzip -q "$RUNNER_TEMP/qc-ffmpeg/$binary.zip" -d "$RUNNER_TEMP/qc-ffmpeg/$binary"
+            install -m 755 "$RUNNER_TEMP/qc-ffmpeg/$binary/$binary" "src-tauri/binaries/$binary"
+            lipo -archs "src-tauri/binaries/$binary" | grep -qw x86_64
+          done
+          src-tauri/binaries/ffprobe -version
+          filters="$(src-tauri/binaries/ffmpeg -hide_banner -filters)"
+          grep -qw afftdn <<< "$filters"
 
       # ─── Windows binary setup ───
       - name: Download yt-dlp (Windows)

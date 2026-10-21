@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, untrack } from 'svelte';
 	import { AssetClip, TrackType } from '$lib/classes';
-	import Settings, { SettingsTab } from '$lib/classes/Settings.svelte';
+	import Settings from '$lib/classes/Settings.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { transcribeProjectAudio, type SpeechToTextCopy } from '$lib/services/SpeechToTextService';
@@ -11,11 +11,6 @@
 	let { close }: { close: () => void } = $props();
 	const project = untrack(() => globalState.currentProject!);
 	let settings = $state(untrack(() => ({ ...globalState.settings!.speechToTextSettings })));
-	let speaker = $state(
-		untrack(
-			() => project.projectEditorState.subtitlesEditor.selectedSpeaker || project.detail.speaker
-		)
-	);
 	let selectedClipId = $state(0);
 	let busy = $state(false);
 	let errorMessage = $state('');
@@ -60,17 +55,6 @@
 	}
 
 	/**
-	 * Sauvegarde le brouillon puis ouvre les réglages IA textuels existants.
-	 * @returns {Promise<void>}
-	 */
-	async function openTextAiSettings(): Promise<void> {
-		if (!(await saveSettings(false))) return;
-		globalState.uiState.settingsTab = SettingsTab.AI_KEY;
-		globalState.uiState.isSettingsOpen = true;
-		close();
-	}
-
-	/**
 	 * Annule les prochaines requêtes et empêche l'ajout d'un résultat après fermeture.
 	 * @returns {void}
 	 */
@@ -89,11 +73,10 @@
 		busy = true;
 		try {
 			if (!(await saveSettings(false))) return;
-			const result = await transcribeProjectAudio(
+			await transcribeProjectAudio(
 				project,
 				selectedClipId,
 				{ ...settings },
-				speaker,
 				controller.signal,
 				(nextPhase, value) => {
 					phase = nextPhase;
@@ -103,7 +86,6 @@
 				}
 			);
 			toast.success(copy.complete());
-			if (result.semanticFallback) toast(copy.fallback(), { duration: 10000 });
 			close();
 		} catch (error) {
 			if (!controller.signal.aborted)
@@ -244,10 +226,7 @@
 					<input bind:value={settings.language} maxlength="3" class={inputClass} />
 					<span class="block text-xs text-thirdly">{copy.languageHint()}</span>
 				</label>
-				<label class="block space-y-1 text-sm text-secondary"
-					><span>{$LL.editor.speaker()}</span>
-					<input bind:value={speaker} required class={inputClass} />
-				</label>
+				<h3 class="pt-2 text-sm font-semibold text-primary">{copy.preferences()}</h3>
 				<div class="grid grid-cols-2 gap-3">
 					<label class="space-y-1 text-sm text-secondary"
 						><span>{$LL.editor.maxWordsPerSegment()}</span>
@@ -274,17 +253,6 @@
 						/>
 					</label>
 				</div>
-				<div class="space-y-2 rounded-lg border border-color bg-accent p-3">
-					<label class="flex cursor-pointer items-center gap-2 text-sm text-primary">
-						<input type="checkbox" bind:checked={settings.semanticSegmentation} />{copy.semantic()}
-					</label>
-					<p class="text-xs text-secondary">{copy.semanticHint()}</p>
-					<button
-						type="button"
-						onclick={openTextAiSettings}
-						class="cursor-pointer text-sm text-accent underline">{copy.textAiSettings()}</button
-					>
-				</div>
 			</fieldset>
 			{#if busy}
 				<div role="status" class="space-y-2 text-sm text-secondary">
@@ -304,7 +272,7 @@
 			>
 			<button
 				type="submit"
-				disabled={busy || !selectedClipId || !key.trim() || !speaker.trim()}
+				disabled={busy || !selectedClipId || !key.trim()}
 				class="btn-accent px-3 py-2 font-semibold disabled:cursor-not-allowed disabled:opacity-50"
 				>{copy.start()}</button
 			>

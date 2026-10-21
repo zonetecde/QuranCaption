@@ -5,6 +5,15 @@ const editor = {
 		provider: 'Provider',
 		model: 'Model',
 		maxDuration: 'Max duration (seconds)',
+		preferences: 'Subtitles preferences',
+		rearrangeTitle: 'Rearrange subtitles by meaning',
+		rearrangeDescription:
+			'Review your existing subtitles and choose your preferences for rearranging them.',
+		rearrangeAction: 'Rearrange subtitles',
+		rearrangeUnavailable: 'Rearranging subtitles by meaning is not available yet.',
+		rearrangeKeyRequired: 'Add an API key in Text AI Settings to enable subtitle rearrangement.',
+		additionalPreferences: 'Additional preferences',
+		additionalPreferencesHint: 'For example: keep poetic lines together or prefer short sentences.',
 		keyHint: 'Your personal keys are saved in your local user settings.',
 		keyHelp: 'How do I get an API key?',
 		groqKeyStep1: 'Open Groq Console and sign in or create an account.',
@@ -18,12 +27,7 @@ const editor = {
 		openKeysPage: 'Open API keys page',
 		languageHint:
 			'Leave empty for automatic detection, or enter a language code such as ar, fr or en.',
-		semantic: 'Segment by meaning',
-		semanticHint:
-			'Uses the text AI key, endpoint and model already configured in settings. Words and word timings are preserved.',
 		textAiSettings: 'Text AI settings',
-		fallback:
-			'Some passages were split using pauses and punctuation because semantic segmentation failed.',
 		start: 'Transcribe and add subtitles',
 		transcribing: 'Transcribing audio',
 		segmenting: 'Segmenting subtitles',
@@ -42,7 +46,6 @@ const editor = {
 		noAudio: 'Add an audio clip to the timeline first.',
 		selectAudio: 'Timeline audio clip',
 		saved: 'Settings saved.',
-		textAiRequired: 'Configure your text AI key and model, or disable segmentation by meaning.',
 		cancelHint:
 			'Cancellation prevents adding subtitles and stops subsequent requests. A request already sent may still complete and be billed.',
 		saveError: 'Unable to save your transcription settings.'

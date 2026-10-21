@@ -1125,6 +1125,38 @@ type RootTranslation = {
 			 */
 			maxDuration: string;
 			/**
+			 * S​u​b​t​i​t​l​e​s​ ​p​r​e​f​e​r​e​n​c​e​s
+			 */
+			preferences: string;
+			/**
+			 * R​e​a​r​r​a​n​g​e​ ​s​u​b​t​i​t​l​e​s​ ​b​y​ ​m​e​a​n​i​n​g
+			 */
+			rearrangeTitle: string;
+			/**
+			 * R​e​v​i​e​w​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​a​n​d​ ​c​h​o​o​s​e​ ​y​o​u​r​ ​p​r​e​f​e​r​e​n​c​e​s​ ​f​o​r​ ​r​e​a​r​r​a​n​g​i​n​g​ ​t​h​e​m​.
+			 */
+			rearrangeDescription: string;
+			/**
+			 * R​e​a​r​r​a​n​g​e​ ​s​u​b​t​i​t​l​e​s
+			 */
+			rearrangeAction: string;
+			/**
+			 * R​e​a​r​r​a​n​g​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​b​y​ ​m​e​a​n​i​n​g​ ​i​s​ ​n​o​t​ ​a​v​a​i​l​a​b​l​e​ ​y​e​t​.
+			 */
+			rearrangeUnavailable: string;
+			/**
+			 * A​d​d​ ​a​n​ ​A​P​I​ ​k​e​y​ ​i​n​ ​T​e​x​t​ ​A​I​ ​S​e​t​t​i​n​g​s​ ​t​o​ ​e​n​a​b​l​e​ ​s​u​b​t​i​t​l​e​ ​r​e​a​r​r​a​n​g​e​m​e​n​t​.
+			 */
+			rearrangeKeyRequired: string;
+			/**
+			 * A​d​d​i​t​i​o​n​a​l​ ​p​r​e​f​e​r​e​n​c​e​s
+			 */
+			additionalPreferences: string;
+			/**
+			 * F​o​r​ ​e​x​a​m​p​l​e​:​ ​k​e​e​p​ ​p​o​e​t​i​c​ ​l​i​n​e​s​ ​t​o​g​e​t​h​e​r​ ​o​r​ ​p​r​e​f​e​r​ ​s​h​o​r​t​ ​s​e​n​t​e​n​c​e​s​.
+			 */
+			additionalPreferencesHint: string;
+			/**
 			 * Y​o​u​r​ ​p​e​r​s​o​n​a​l​ ​k​e​y​s​ ​a​r​e​ ​s​a​v​e​d​ ​i​n​ ​y​o​u​r​ ​l​o​c​a​l​ ​u​s​e​r​ ​s​e​t​t​i​n​g​s​.
 			 */
 			keyHint: string;
@@ -1169,21 +1201,9 @@ type RootTranslation = {
 			 */
 			languageHint: string;
 			/**
-			 * S​e​g​m​e​n​t​ ​b​y​ ​m​e​a​n​i​n​g
-			 */
-			semantic: string;
-			/**
-			 * U​s​e​s​ ​t​h​e​ ​t​e​x​t​ ​A​I​ ​k​e​y​,​ ​e​n​d​p​o​i​n​t​ ​a​n​d​ ​m​o​d​e​l​ ​a​l​r​e​a​d​y​ ​c​o​n​f​i​g​u​r​e​d​ ​i​n​ ​s​e​t​t​i​n​g​s​.​ ​W​o​r​d​s​ ​a​n​d​ ​w​o​r​d​ ​t​i​m​i​n​g​s​ ​a​r​e​ ​p​r​e​s​e​r​v​e​d​.
-			 */
-			semanticHint: string;
-			/**
 			 * T​e​x​t​ ​A​I​ ​s​e​t​t​i​n​g​s
 			 */
 			textAiSettings: string;
-			/**
-			 * S​o​m​e​ ​p​a​s​s​a​g​e​s​ ​w​e​r​e​ ​s​p​l​i​t​ ​u​s​i​n​g​ ​p​a​u​s​e​s​ ​a​n​d​ ​p​u​n​c​t​u​a​t​i​o​n​ ​b​e​c​a​u​s​e​ ​s​e​m​a​n​t​i​c​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​f​a​i​l​e​d​.
-			 */
-			fallback: string;
 			/**
 			 * T​r​a​n​s​c​r​i​b​e​ ​a​n​d​ ​a​d​d​ ​s​u​b​t​i​t​l​e​s
 			 */
@@ -1252,10 +1272,6 @@ type RootTranslation = {
 			 * S​e​t​t​i​n​g​s​ ​s​a​v​e​d​.
 			 */
 			saved: string;
-			/**
-			 * C​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​t​e​x​t​ ​A​I​ ​k​e​y​ ​a​n​d​ ​m​o​d​e​l​,​ ​o​r​ ​d​i​s​a​b​l​e​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​b​y​ ​m​e​a​n​i​n​g​.
-			 */
-			textAiRequired: string;
 			/**
 			 * C​a​n​c​e​l​l​a​t​i​o​n​ ​p​r​e​v​e​n​t​s​ ​a​d​d​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​a​n​d​ ​s​t​o​p​s​ ​s​u​b​s​e​q​u​e​n​t​ ​r​e​q​u​e​s​t​s​.​ ​A​ ​r​e​q​u​e​s​t​ ​a​l​r​e​a​d​y​ ​s​e​n​t​ ​m​a​y​ ​s​t​i​l​l​ ​c​o​m​p​l​e​t​e​ ​a​n​d​ ​b​e​ ​b​i​l​l​e​d​.
 			 */
@@ -10797,6 +10813,38 @@ export type TranslationFunctions = {
 			 */
 			maxDuration: () => LocalizedString;
 			/**
+			 * Subtitles preferences
+			 */
+			preferences: () => LocalizedString;
+			/**
+			 * Rearrange subtitles by meaning
+			 */
+			rearrangeTitle: () => LocalizedString;
+			/**
+			 * Review your existing subtitles and choose your preferences for rearranging them.
+			 */
+			rearrangeDescription: () => LocalizedString;
+			/**
+			 * Rearrange subtitles
+			 */
+			rearrangeAction: () => LocalizedString;
+			/**
+			 * Rearranging subtitles by meaning is not available yet.
+			 */
+			rearrangeUnavailable: () => LocalizedString;
+			/**
+			 * Add an API key in Text AI Settings to enable subtitle rearrangement.
+			 */
+			rearrangeKeyRequired: () => LocalizedString;
+			/**
+			 * Additional preferences
+			 */
+			additionalPreferences: () => LocalizedString;
+			/**
+			 * For example: keep poetic lines together or prefer short sentences.
+			 */
+			additionalPreferencesHint: () => LocalizedString;
+			/**
 			 * Your personal keys are saved in your local user settings.
 			 */
 			keyHint: () => LocalizedString;
@@ -10841,21 +10889,9 @@ export type TranslationFunctions = {
 			 */
 			languageHint: () => LocalizedString;
 			/**
-			 * Segment by meaning
-			 */
-			semantic: () => LocalizedString;
-			/**
-			 * Uses the text AI key, endpoint and model already configured in settings. Words and word timings are preserved.
-			 */
-			semanticHint: () => LocalizedString;
-			/**
 			 * Text AI settings
 			 */
 			textAiSettings: () => LocalizedString;
-			/**
-			 * Some passages were split using pauses and punctuation because semantic segmentation failed.
-			 */
-			fallback: () => LocalizedString;
 			/**
 			 * Transcribe and add subtitles
 			 */
@@ -10924,10 +10960,6 @@ export type TranslationFunctions = {
 			 * Settings saved.
 			 */
 			saved: () => LocalizedString;
-			/**
-			 * Configure your text AI key and model, or disable segmentation by meaning.
-			 */
-			textAiRequired: () => LocalizedString;
 			/**
 			 * Cancellation prevents adding subtitles and stops subsequent requests. A request already sent may still complete and be billed.
 			 */

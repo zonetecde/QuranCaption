@@ -9,6 +9,7 @@ import {
 	ProjectContent,
 	ProjectDetail,
 	SubtitleClip,
+	SilenceClip,
 	Timeline,
 	TrackType
 } from '$lib/classes';
@@ -112,15 +113,13 @@ describe('transcribing timeline audio', () => {
 		globalState.currentProject = project;
 		globalState.settings = new Settings();
 		globalState.settings.speechToTextSettings.groqApiKey = 'test-groq-key';
-		globalState.settings.aiTranslationSettings.openAiApiKey = 'test-text-key';
+		globalState.settings.speechToTextSettings.maxWords = 2;
 		vi.spyOn(project.detail, 'updateVideoDetailAttributes').mockImplementation(() => {});
 		vi.spyOn(globalState, 'updateVideoPreviewUI').mockImplementation(() => {});
 		ProjectHistoryManager.resetForCurrentProject();
-		vi.mocked(invoke).mockImplementation(async (command) =>
-			command === 'segment_speech_words'
-				? { ends: [2, 4] }
-				: { words: ['a', 'b', 'c', 'd'].map((word, i) => ({ word, start: i, end: i + 0.8 })) }
-		);
+		vi.mocked(invoke).mockResolvedValue({
+			words: ['a', 'b', 'c', 'd'].map((word, i) => ({ word, start: i, end: i + 0.8 }))
+		});
 	});
 
 	afterEach(() => {
@@ -131,16 +130,15 @@ describe('transcribing timeline audio', () => {
 		globalState.settings = originalSettings;
 	});
 
-	test('reuses text AI settings, maps trimmed audio to the timeline and undoes the whole import', async () => {
+	test('imports subtitles and gap silences together without using text AI', async () => {
 		const result = await transcribeProjectAudio(
 			project,
 			clip.id,
 			{ ...globalState.settings!.speechToTextSettings },
-			'speaker',
 			new AbortController().signal,
 			vi.fn()
 		);
-		expect(result).toEqual({ count: 2, semanticFallback: false });
+		expect(result).toEqual({ count: 2 });
 		expect(vi.mocked(invoke).mock.calls[0]).toEqual([
 			'transcribe_audio_chunk',
 			{
@@ -155,40 +153,31 @@ describe('transcribing timeline audio', () => {
 				}
 			}
 		]);
-		expect(vi.mocked(invoke).mock.calls[1][1]).toMatchObject({
-			request: {
-				apiKey: 'test-text-key',
-				model: globalState.settings!.aiTranslationSettings.advancedTrimModel
-			}
-		});
+		expect(invoke).toHaveBeenCalledTimes(1);
 		expect(
-			track.clips.map((item) => [item.startTime, item.endTime, (item as SubtitleClip).text])
+			track.clips
+				.filter((item) => item instanceof SubtitleClip)
+				.map((item) => [item.startTime, item.endTime, (item as SubtitleClip).text])
 		).toEqual([
 			[10000, 11800, 'a b'],
 			[12000, 13800, 'c d']
 		]);
-		expect((track.clips[1] as SubtitleClip).alignmentMetadata!.words[0].start).toBe(0);
+		expect(track.clips[1]).toBeInstanceOf(SilenceClip);
+		expect([track.clips[1].startTime, track.clips[1].endTime]).toEqual([11801, 11999]);
+		expect((track.clips[2] as SubtitleClip).alignmentMetadata!.words[0].start).toBe(0);
 		expect(ProjectHistoryManager.undo()).toBe(true);
 		expect(globalState.getSubtitleTrack.clips).toHaveLength(0);
 		expect(ProjectHistoryManager.redo()).toBe(true);
-		expect(globalState.getSubtitleTrack.clips).toHaveLength(2);
+		expect(globalState.getSubtitleTrack.clips).toHaveLength(3);
 	});
 
 	test('uses the ElevenLabs key and model independently of the Groq key', async () => {
 		const options = {
 			...globalState.settings!.speechToTextSettings,
 			provider: 'elevenlabs' as const,
-			elevenLabsApiKey: 'test-eleven-key',
-			semanticSegmentation: false
+			elevenLabsApiKey: 'test-eleven-key'
 		};
-		await transcribeProjectAudio(
-			project,
-			clip.id,
-			options,
-			'speaker',
-			new AbortController().signal,
-			vi.fn()
-		);
+		await transcribeProjectAudio(project, clip.id, options, new AbortController().signal, vi.fn());
 		expect(vi.mocked(invoke).mock.calls[0][1]).toMatchObject({
 			request: {
 				provider: 'elevenlabs',
@@ -206,7 +195,6 @@ describe('transcribing timeline audio', () => {
 				project,
 				clip.id,
 				{ ...globalState.settings!.speechToTextSettings },
-				'speaker',
 				new AbortController().signal,
 				vi.fn()
 			)
@@ -226,7 +214,6 @@ describe('transcribing timeline audio', () => {
 				project,
 				clip.id,
 				{ ...globalState.settings!.speechToTextSettings },
-				'speaker',
 				controller.signal,
 				vi.fn()
 			)
@@ -235,22 +222,39 @@ describe('transcribing timeline audio', () => {
 		expect(invoke).toHaveBeenCalledTimes(1);
 	});
 
-	test('keeps the paid transcript when semantic AI fails and reports the fallback', async () => {
-		vi.mocked(invoke).mockImplementation(async (command) =>
-			command === 'segment_speech_words'
-				? { ends: [2] }
-				: { words: ['a', 'b', 'c', 'd'].map((word, i) => ({ word, start: i, end: i + 0.8 })) }
-		);
-		const result = await transcribeProjectAudio(
+	test('assigns every imported subtitle to the main project speaker', async () => {
+		project.detail.speaker = 'Main speaker';
+		project.projectEditorState.subtitlesEditor.selectedSpeaker = 'Another speaker';
+		await transcribeProjectAudio(
 			project,
 			clip.id,
 			{ ...globalState.settings!.speechToTextSettings },
-			'speaker',
 			new AbortController().signal,
 			vi.fn()
 		);
-		expect(result.semanticFallback).toBe(true);
-		expect(track.clips.map((item) => (item as SubtitleClip).text).join(' ')).toBe('a b c d');
+		expect(
+			track.clips
+				.filter((item) => item instanceof SubtitleClip)
+				.map((item) => (item as SubtitleClip).speaker)
+		).toEqual(['Main speaker', 'Main speaker']);
+	});
+
+	test('does not create empty silence clips between touching subtitles', async () => {
+		vi.mocked(invoke).mockResolvedValue({
+			words: [
+				{ word: 'a', start: 0, end: 1 },
+				{ word: 'b', start: 1, end: 2 }
+			]
+		});
+		await transcribeProjectAudio(
+			project,
+			clip.id,
+			{ ...globalState.settings!.speechToTextSettings, maxWords: 1 },
+			new AbortController().signal,
+			vi.fn()
+		);
+		expect(track.clips).toHaveLength(2);
+		expect(track.clips.every((item) => item instanceof SubtitleClip)).toBe(true);
 	});
 
 	test('does not apply results after the source clip has been edited', async () => {
@@ -263,7 +267,6 @@ describe('transcribing timeline audio', () => {
 				project,
 				clip.id,
 				{ ...globalState.settings!.speechToTextSettings },
-				'speaker',
 				new AbortController().signal,
 				vi.fn()
 			)
@@ -273,7 +276,7 @@ describe('transcribing timeline audio', () => {
 
 	test('owns each overlap word only once across long audio chunks', async () => {
 		clip.endTime = 614000;
-		const options = { ...globalState.settings!.speechToTextSettings, semanticSegmentation: false };
+		const options = { ...globalState.settings!.speechToTextSettings };
 		vi.mocked(invoke).mockImplementation(async (_command, args) => {
 			const request = (args as { request: { startSeconds: number; durationSeconds: number } })
 				.request;
@@ -284,17 +287,13 @@ describe('transcribing timeline audio', () => {
 					.map((start) => ({ word: String(start), start: start - from, end: start + 0.1 - from }))
 			};
 		});
-		await transcribeProjectAudio(
-			project,
-			clip.id,
-			options,
-			'speaker',
-			new AbortController().signal,
-			vi.fn()
-		);
-		expect(track.clips.map((item) => (item as SubtitleClip).text).join(' ')).toBe(
-			'0 299.8 300.5 599.9 603'
-		);
+		await transcribeProjectAudio(project, clip.id, options, new AbortController().signal, vi.fn());
+		expect(
+			track.clips
+				.filter((item) => item instanceof SubtitleClip)
+				.map((item) => (item as SubtitleClip).text)
+				.join(' ')
+		).toBe('0 299.8 300.5 599.9 603');
 		expect(invoke).toHaveBeenCalledTimes(3);
 	});
 });

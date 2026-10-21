@@ -39,8 +39,7 @@ describe('loading legacy editor layout settings', () => {
 			groqApiKey: '',
 			elevenLabsApiKey: '',
 			maxWords: 8,
-			maxDuration: 6,
-			semanticSegmentation: true
+			maxDuration: 6
 		});
 	});
 

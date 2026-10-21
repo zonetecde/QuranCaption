@@ -20,7 +20,7 @@ pub mod preview_audio;
 pub mod screenshot;
 /// Commandes de recherche de medias stock (Pexels / Pixabay).
 pub mod stock_media;
-/// Commandes de transcription audio et de découpage sémantique.
+/// Commandes de transcription audio.
 pub mod speech_to_text;
 /// Commandes de mise à jour de Minbar Studio.
 pub mod updater;

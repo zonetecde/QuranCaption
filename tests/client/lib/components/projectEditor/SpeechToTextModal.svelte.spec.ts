@@ -8,6 +8,8 @@ import {
 	Project,
 	ProjectContent,
 	ProjectDetail,
+	SilenceClip,
+	SubtitleClip,
 	Timeline,
 	TrackType
 } from '$lib/classes';
@@ -18,6 +20,9 @@ import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { setLocale } from '$lib/i18n/i18n-svelte';
 import SpeechToTextModal from '$lib/components/modals/tools/SpeechToTextModal.svelte';
 import { transcribeProjectAudio } from '$lib/services/SpeechToTextService';
+import RearrangeSubtitlesModal from '$lib/components/modals/tools/RearrangeSubtitlesModal.svelte';
+import SubtitlesEditorSettings from '$lib/components/projectEditor/tabs/subtitlesEditor/SubtitlesEditorSettings.svelte';
+import ModalManager from '$lib/components/modals/ModalManager';
 import { openUrl } from '@tauri-apps/plugin-opener';
 
 vi.mock('@tauri-apps/plugin-opener', async (importOriginal) => ({
@@ -37,7 +42,7 @@ beforeEach(() => {
 	setLocale('en');
 	globalState.settings = new Settings();
 	vi.spyOn(Settings, 'save').mockResolvedValue(undefined);
-	vi.mocked(transcribeProjectAudio).mockResolvedValue({ count: 2, semanticFallback: false });
+	vi.mocked(transcribeProjectAudio).mockResolvedValue({ count: 2 });
 	const asset = new Asset();
 	asset.id = 42;
 	asset.fileName = 'lecture.wav';
@@ -57,6 +62,7 @@ afterEach(() => {
 	globalState.currentProject = null;
 	globalState.settings = originalSettings;
 	vi.mocked(openUrl).mockClear();
+	globalState.uiState.isSettingsOpen = false;
 });
 
 test('shows API key instructions and opens the keys page for the selected provider', async () => {
@@ -99,7 +105,7 @@ test('saves independent provider keys and restores them when switching providers
 
 test('passes segmentation preferences to the workflow and disables duplicate submissions', async () => {
 	globalState.settings!.speechToTextSettings.groqApiKey = 'groq-personal';
-	let finish!: (value: { count: number; semanticFallback: boolean }) => void;
+	let finish!: (value: { count: number }) => void;
 	vi.mocked(transcribeProjectAudio).mockReturnValue(
 		new Promise((resolve) => {
 			finish = resolve;
@@ -114,19 +120,64 @@ test('passes segmentation preferences to the workflow and disables duplicate sub
 		.toBeDisabled();
 	expect(vi.mocked(transcribeProjectAudio).mock.calls[0][2]).toMatchObject({
 		maxWords: 8,
-		maxDuration: 6,
-		semanticSegmentation: true
+		maxDuration: 6
 	});
-	finish({ count: 2, semanticFallback: false });
+	finish({ count: 2 });
 	await vi.waitFor(() => expect(close).toHaveBeenCalledOnce());
 });
 
-test('opens the existing text AI settings after saving the draft', async () => {
+test('shows subtitle preferences without speaker selection or semantic segmentation', async () => {
+	const component = render(SpeechToTextModal, { close: vi.fn() });
+	await expect
+		.element(component.getByRole('heading', { name: 'Subtitles preferences' }))
+		.toBeVisible();
+	await expect
+		.element(component.getByLabelText('Speaker', { exact: true }))
+		.not.toBeInTheDocument();
+	await expect
+		.element(component.getByRole('checkbox', { name: 'Segment by meaning' }))
+		.not.toBeInTheDocument();
+});
+
+test('lists existing subtitles and requires a text AI key before enabling rearrangement', async () => {
+	globalState.getSubtitleTrack.clips = [
+		new SubtitleClip(2000, 3000, 'Second passage'),
+		new SilenceClip(1001, 1999),
+		new SubtitleClip(0, 1000, 'First passage')
+	];
+	const component = render(RearrangeSubtitlesModal, { close: vi.fn() });
+	const action = component.getByRole('button', { name: 'Rearrange subtitles', exact: true });
+	await expect.element(component.getByText('First passage', { exact: true })).toBeVisible();
+	await expect.element(component.getByText('Second passage', { exact: true })).toBeVisible();
+	await expect.element(action).toBeDisabled();
+	globalState.settings!.aiTranslationSettings.openAiApiKey = '  ';
+	await expect.element(action).toBeDisabled();
+	globalState.settings!.aiTranslationSettings.openAiApiKey = 'text-ai-key';
+	await expect.element(action).not.toBeDisabled();
+	await action.click();
+	await expect
+		.element(component.getByRole('status'))
+		.toHaveTextContent('Rearranging subtitles by meaning is not available yet.');
+	expect(globalState.getSubtitleTrack.clips).toHaveLength(3);
+	expect(transcribeProjectAudio).not.toHaveBeenCalled();
+});
+
+test('shows the rearrangement entry only after subtitles exist', async () => {
+	const open = vi.spyOn(ModalManager, 'rearrangeSubtitlesModal').mockResolvedValue(undefined);
+	const component = render(SubtitlesEditorSettings);
+	const entry = component.getByRole('button', { name: 'Rearrange subtitles by meaning' });
+	await expect.element(entry).not.toBeInTheDocument();
+	globalState.getSubtitleTrack.clips.push(new SubtitleClip(0, 1000, 'A passage'));
+	await expect.element(entry).toBeVisible();
+	await entry.click();
+	expect(open).toHaveBeenCalledOnce();
+});
+
+test('opens existing text AI settings from the rearrangement modal', async () => {
 	const close = vi.fn();
-	const component = render(SpeechToTextModal, { close });
+	const component = render(RearrangeSubtitlesModal, { close });
 	await component.getByRole('button', { name: 'Text AI settings' }).click();
 	await vi.waitFor(() => expect(close).toHaveBeenCalledOnce());
-	expect(Settings.save).toHaveBeenCalledOnce();
 	expect(globalState.uiState.settingsTab).toBe('ai-key');
 	expect(globalState.uiState.isSettingsOpen).toBe(true);
 	globalState.uiState.isSettingsOpen = false;

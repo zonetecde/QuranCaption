@@ -22,15 +22,6 @@
 		<h2 class="text-xl font-bold text-primary">{$LL.editor.transcription()}</h2>
 	</div>
 
-	<button
-		type="button"
-		onclick={() => ModalManager.speechToTextModal()}
-		class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent-primary px-3 py-3 text-sm font-semibold text-black"
-	>
-		<span class="material-icons text-lg">auto_awesome</span>
-		{speechCopy.title()}
-	</button>
-
 	<div class="space-y-3">
 		<h3 class="text-sm font-medium text-secondary">{$LL.editor.playbackSpeed()}</h3>
 		<div class="flex flex-wrap items-center justify-center gap-2">
@@ -74,4 +65,22 @@
 			</div>
 		</div>
 	</div>
+	<button
+		type="button"
+		onclick={() => ModalManager.speechToTextModal()}
+		class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent-primary px-3 py-3 text-sm font-semibold text-black"
+	>
+		<span class="material-icons text-lg">auto_awesome</span>
+		{speechCopy.title()}
+	</button>
+	{#if transcriptCount > 0}
+		<button
+			type="button"
+			onclick={() => ModalManager.rearrangeSubtitlesModal()}
+			class="btn flex w-full items-center justify-center gap-2 px-3 py-3 text-sm font-semibold"
+		>
+			<span class="material-icons text-lg">reorder</span>
+			{speechCopy.rearrangeTitle()}
+		</button>
+	{/if}
 </div>

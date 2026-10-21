@@ -1,12 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
 import { get } from 'svelte/store';
-import { AssetClip, SubtitleClip, TrackType } from '$lib/classes';
+import { AssetClip, SilenceClip, SubtitleClip, TrackType } from '$lib/classes';
 import type { Project } from '$lib/classes/Project';
 import type { SpeechToTextSettings } from '$lib/classes/Settings.svelte';
 import type editor from '$lib/i18n/en/editor';
 import LL from '$lib/i18n/i18n-svelte';
 import { globalState } from '$lib/runes/main.svelte';
-import { resolveAIReasoning } from './AIReasoning';
 import { ProjectHistoryManager } from './undoRedo/ProjectHistoryManager';
 
 export type SpeechToTextCopy = {
@@ -166,19 +165,17 @@ function speechRequestError(error: unknown): Error {
  * @param {Project} project Projet propriétaire du traitement.
  * @param {number} clipId Clip audio sélectionné.
  * @param {SpeechToTextSettings} options Réglages et clés personnels copiés au lancement.
- * @param {string} speaker Intervenant attribué aux nouveaux sous-titres.
  * @param {AbortSignal} signal Annulation empêchant toute requête suivante et tout ajout tardif.
  * @param {(phase: 'transcribing' | 'segmenting', progress: number) => void} onProgress Progression locale.
- * @returns {Promise<{ count: number; semanticFallback: boolean }>} Nombre ajouté et éventuel repli sans IA.
+ * @returns {Promise<{ count: number }>} Nombre de sous-titres ajoutés.
  */
 export async function transcribeProjectAudio(
 	project: Project,
 	clipId: number,
 	options: SpeechToTextSettings,
-	speaker: string,
 	signal: AbortSignal,
 	onProgress: (phase: 'transcribing' | 'segmenting', progress: number) => void
-): Promise<{ count: number; semanticFallback: boolean }> {
+): Promise<{ count: number }> {
 	const copy = getSpeechToTextCopy();
 	const audioTrack = project.content.timeline.getFirstTrack(TrackType.Audio);
 	const clip = audioTrack.clips.find((item) => item.id === clipId);
@@ -193,10 +190,8 @@ export async function transcribeProjectAudio(
 		offset: clip.sourceStartTime
 	};
 	const track = project.content.timeline.getFirstTrack(TrackType.Subtitle);
-	const textSettings = { ...globalState.settings!.aiTranslationSettings };
 	const apiKey = options.provider === 'groq' ? options.groqApiKey : options.elevenLabsApiKey;
 	if (!apiKey.trim()) throw new Error(copy.invalidKey());
-	if (!speaker.trim()) throw new Error(get(LL).editor.speakerCannotBeEmpty());
 	if (
 		!Number.isInteger(options.maxWords) ||
 		options.maxWords < 1 ||
@@ -206,12 +201,6 @@ export async function transcribeProjectAudio(
 		options.maxDuration > 30
 	)
 		throw new Error(copy.invalidLimits());
-	if (
-		options.semanticSegmentation &&
-		(!textSettings.openAiApiKey.trim() || !textSettings.advancedTrimModel.trim())
-	) {
-		throw new Error(copy.textAiRequired());
-	}
 
 	/**
 	 * Empêche d'appliquer un résultat à un clip modifié, un autre projet ou une plage déjà sous-titrée.
@@ -276,49 +265,13 @@ export async function transcribeProjectAudio(
 		words[i].start = Math.max(words[i].start, words[i - 1].end);
 		words[i].end = Math.max(words[i].start + 0.001, words[i].end);
 	}
-	const subtitles: SpeechSubtitle[] = [];
-	let semanticFallback = false;
-	for (let start = 0; start < words.length; ) {
-		assertCurrentSource();
-		onProgress('segmenting', start / words.length);
-		let batchEnd = Math.min(start + 400, words.length);
-		if (batchEnd < words.length) {
-			for (let i = batchEnd; i > start + 350; i--) {
-				if (/[.!?؟،,;؛:…]$/u.test(words[i - 1].word) || words[i].start - words[i - 1].end >= 0.5) {
-					batchEnd = i;
-					break;
-				}
-			}
-		}
-		const batch = words.slice(start, batchEnd);
-		let ends = [batch.length];
-		if (options.semanticSegmentation) {
-			try {
-				const reasoning = resolveAIReasoning(
-					textSettings.textAiApiEndpoint,
-					textSettings.advancedTrimModel,
-					textSettings.projectTranslationReasoningMode
-				);
-				const response = await invoke('segment_speech_words', {
-					request: {
-						apiKey: textSettings.openAiApiKey,
-						endpoint: textSettings.textAiApiEndpoint,
-						model: textSettings.advancedTrimModel,
-						reasoningEffort: reasoning.effort,
-						thinkingEnabled: reasoning.thinkingEnabled,
-						words: batch,
-						maxWords: options.maxWords,
-						maxDuration: options.maxDuration
-					}
-				});
-				ends = validateSpeechBoundaries(response, batch.length);
-			} catch {
-				semanticFallback = true;
-			}
-		}
-		subtitles.push(...buildSpeechSubtitles(batch, ends, options.maxWords, options.maxDuration));
-		start = batchEnd;
-	}
+	onProgress('segmenting', 0);
+	const subtitles = buildSpeechSubtitles(
+		words,
+		[words.length],
+		options.maxWords,
+		options.maxDuration
+	);
 	assertCurrentSource();
 	const clips = subtitles.map(
 		(segment) =>
@@ -326,7 +279,7 @@ export async function transcribeProjectAudio(
 				Math.round(segment.start * 1000),
 				Math.round(segment.end * 1000),
 				segment.text,
-				speaker.trim(),
+				project.detail.speaker,
 				project.content.projectTranslation.createTranslationsForSubtitleText(segment.text),
 				true,
 				null,
@@ -346,12 +299,18 @@ export async function transcribeProjectAudio(
 	ProjectHistoryManager.track(
 		copy.title(),
 		() => {
-			track.clips.push(...clips);
+			for (const [index, clip] of clips.entries()) {
+				const previous = clips[index - 1];
+				if (previous && clip.startTime - previous.endTime > 2) {
+					track.clips.push(new SilenceClip(previous.endTime + 1, clip.startTime - 1));
+				}
+				track.clips.push(clip);
+			}
 			track.clips.sort((a, b) => a.startTime - b.startTime);
 			project.detail.updateVideoDetailAttributes();
 		},
 		project
 	);
 	globalState.updateVideoPreviewUI();
-	return { count: clips.length, semanticFallback };
+	return { count: clips.length };
 }

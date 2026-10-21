@@ -37,7 +37,6 @@ export type SpeechToTextSettings = {
 	language: string;
 	maxWords: number;
 	maxDuration: number;
-	semanticSegmentation: boolean;
 };
 
 export type PerformanceProfile = 'balanced' | 'max_quality';
@@ -178,8 +177,7 @@ export default class Settings extends SerializableBase {
 		elevenLabsModel: 'scribe_v2',
 		language: '',
 		maxWords: 8,
-		maxDuration: 6,
-		semanticSegmentation: true
+		maxDuration: 6
 	});
 
 	exportSettings = $state<ExportSettings>({ ...Settings.DEFAULT_EXPORT_SETTINGS });

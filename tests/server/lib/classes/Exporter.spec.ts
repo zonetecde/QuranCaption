@@ -263,6 +263,82 @@ describe('Random export backgrounds', () => {
 });
 
 describe('Background media export inputs', () => {
+	it('rounds audio and video timings while preserving fractional volume', () => {
+		const previousProject = globalState.currentProject;
+		const clip = new AssetClip(1000.25, 8030.75, 10);
+		clip.sourceStartTime = 7.75;
+		clip.volumePercent = 89.5;
+		globalState.currentProject = {
+			content: {
+				timeline: { getFirstTrack: () => ({ clips: [clip] }) },
+				getAssetById: () => ({ filePath: 'media.mp4', type: AssetType.Video })
+			}
+		} as unknown as Project;
+
+		try {
+			expect(ExportMediaInputBuilder.getVideoInputs()).toEqual([
+				{
+					path: 'media.mp4',
+					loop_until_audio_end: false,
+					source_start_ms: 8,
+					timeline_start_ms: 1000,
+					duration_ms: 7031
+				}
+			]);
+			expect(ExportMediaInputBuilder.getAudioInputs()).toEqual({
+				audios: ['media.mp4'],
+				audioClips: [
+					{
+						path: 'media.mp4',
+						source_start_ms: 8,
+						timeline_start_ms: 1000,
+						duration_ms: 7031,
+						volume_percent: 89.5
+					}
+				]
+			});
+		} finally {
+			globalState.currentProject = previousProject;
+		}
+	});
+
+	it.each([
+		[7030.08547008544, 7030],
+		[7030.9, 7031],
+		[0, 7030]
+	])('exports integer image zoom durations for a %s ms clip', (duration, expectedZoomDuration) => {
+		const previousProject = globalState.currentProject;
+		const imageClip = new AssetClip(0, duration, 11);
+		imageClip.animateImageZoom = true;
+		imageClip.imageZoomEnd = 1.75;
+		globalState.currentProject = {
+			content: {
+				timeline: {
+					getFirstTrack: () => ({ clips: [imageClip] }),
+					getLongestTrackDurationIgnoringLoopedVideo: () => ({ ms: 7030.08547008544 })
+				},
+				getAssetById: () => ({ filePath: 'still.png', type: AssetType.Image })
+			}
+		} as unknown as Project;
+
+		try {
+			expect(ExportMediaInputBuilder.getVideoInputs()).toEqual([
+				{
+					path: 'still.png',
+					loop_until_audio_end: false,
+					source_start_ms: 0,
+					timeline_start_ms: 0,
+					duration_ms: Math.round(duration),
+					image_zoom_duration_ms: expectedZoomDuration,
+					image_zoom_end: 1.75
+				}
+			]);
+			expect(imageClip.duration).toBe(duration);
+		} finally {
+			globalState.currentProject = previousProject;
+		}
+	});
+
 	it('exports timed image clips with their timeline duration', () => {
 		const previousProject = globalState.currentProject;
 		const videoClip = new AssetClip(0, 5_000, 10);
@@ -335,11 +411,11 @@ describe('Background media export inputs', () => {
 			})
 		]);
 		styles.setStyleForClips([videoClip.id], 'media-fill', true);
-		styles.setStyleForClips([videoClip.id], 'media-scale', 125);
-		styles.setStyleForClips([videoClip.id], 'media-rotation', 90);
-		styles.setStyleForClips([imageClip.id], 'media-rotation', -90);
-		styles.setStyleForClips([imageClip.id], 'media-position-x', -20);
-		styles.setStyleForClips([imageClip.id], 'media-position-y', 35);
+		styles.setStyleForClips([videoClip.id], 'media-scale', 125.5);
+		styles.setStyleForClips([videoClip.id], 'media-rotation', 90.5);
+		styles.setStyleForClips([imageClip.id], 'media-rotation', -90.25);
+		styles.setStyleForClips([imageClip.id], 'media-position-x', -20.75);
+		styles.setStyleForClips([imageClip.id], 'media-position-y', 35.25);
 		const assets = new Map([
 			[10, { filePath: 'background.mp4', type: AssetType.Video, duration: { ms: 5_000 } }],
 			[11, { filePath: 'still.png', type: AssetType.Image, duration: { ms: 0 } }]
@@ -357,14 +433,14 @@ describe('Background media export inputs', () => {
 				expect.objectContaining({
 					path: 'background.mp4',
 					media_fill: true,
-					media_scale: 125,
-					media_rotation: 90
+					media_scale: 125.5,
+					media_rotation: 90.5
 				}),
 				expect.objectContaining({
 					path: 'still.png',
-					media_position_x: -20,
-					media_position_y: 35,
-					media_rotation: -90
+					media_position_x: -20.75,
+					media_position_y: 35.25,
+					media_rotation: -90.25
 				})
 			]);
 		} finally {

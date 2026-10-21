@@ -143,7 +143,7 @@ test('turns measured one-second pauses into hard boundaries and never displays t
 			{ word: 'after', start: 1.3, end: 1.6, spokenDuration: 0.3 }
 		]
 	});
-	track.clips = [SubtitleClip.fromJSON(clip.toJSON())];
+	track.clips = [SubtitleClip.fromJSON<SubtitleClip>(clip.toJSON())];
 	await rearrangeProjectSubtitles(project, options, new AbortController().signal, vi.fn());
 	expect(
 		track.clips

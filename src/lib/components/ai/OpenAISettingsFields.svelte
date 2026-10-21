@@ -2,7 +2,6 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { maskApiKey } from '$lib/services/AdvancedAITrimming';
 	import LL from '$lib/i18n/i18n-svelte';
-	import { get } from 'svelte/store';
 	import AIReasoningControls from './AIReasoningControls.svelte';
 	import {
 		resolveAIReasoning,
@@ -12,6 +11,7 @@
 
 	type ReasoningSettingsCopy = {
 		translationReasoning: () => string;
+		recommended: () => string;
 	};
 
 	let {
@@ -25,7 +25,7 @@
 		onBatchSettingsChanged?: () => void;
 		onCandidatesChanged?: () => void;
 	} = $props();
-	const reasoningCopy = get(LL).aiVideo as unknown as ReasoningSettingsCopy;
+	const reasoningCopy = $derived($LL.aiVideo as unknown as ReasoningSettingsCopy);
 
 	/**
 	 * Applique un preset rapide sans modifier la clé API.
@@ -61,8 +61,18 @@
 					class="flex min-h-14 flex-col items-start justify-between rounded-lg border border-color bg-secondary px-2 py-2 text-left transition-colors hover:border-[var(--accent-primary)]/50 hover:bg-tertiary"
 					onclick={() => applyTextAiPreset(preset)}
 				>
-					<span class="text-sm font-medium text-primary">{preset.label}</span>
-					<span class="line-clamp-1 text-[11px] text-thirdly">{preset.model}</span>
+					<span class="flex flex-wrap items-center gap-1.5 text-sm font-medium text-primary">
+						{preset.label}
+						{#if preset.id === 'openai'}
+							<span
+								class="rounded-full bg-[var(--accent-primary)]/15 px-1.5 py-0.5 text-[9px] font-semibold text-[var(--accent-primary)]"
+								>{reasoningCopy.recommended()}</span
+							>
+						{/if}
+					</span>
+					<span class="flex flex-wrap items-center gap-1.5 text-[11px] text-thirdly">
+						{preset.model}
+					</span>
 				</button>
 			{/each}
 		</div>
@@ -108,8 +118,8 @@
 			class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-sm text-primary"
 		/>
 		<datalist id="text-ai-model-suggestions">
+			<option value="gpt-5.4" label={reasoningCopy.recommended()}></option>
 			<option value="gpt-5.4-mini"></option>
-			<option value="gpt-5.4"></option>
 			<option value="gpt-5.4-nano"></option>
 			<option value="gemini-3.1-flash-lite"></option>
 			<option value="gemini-2.5-flash"></option>

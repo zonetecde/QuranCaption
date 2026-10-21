@@ -9327,6 +9327,10 @@ type RootTranslation = {
 		 */
 		quickPresets: string;
 		/**
+		 * R​e​c​o​m​m​e​n​d​e​d
+		 */
+		recommended: string;
+		/**
 		 * L​o​a​d​s​ ​e​n​d​p​o​i​n​t​,​ ​m​o​d​e​l​,​ ​a​n​d​ ​a​u​t​o​m​a​t​i​c​ ​r​e​a​s​o​n​i​n​g​ ​d​e​f​a​u​l​t​s
 		 */
 		loadsEndpointModel: string;
@@ -18930,6 +18934,10 @@ export type TranslationFunctions = {
 		 * Quick presets
 		 */
 		quickPresets: () => LocalizedString;
+		/**
+		 * Recommended
+		 */
+		recommended: () => LocalizedString;
 		/**
 		 * Loads endpoint, model, and automatic reasoning defaults
 		 */

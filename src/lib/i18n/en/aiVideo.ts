@@ -74,6 +74,7 @@ const aiVideo = {
 	letAiChooseVerseRange: 'Let AI choose the verse range',
 	versePreview: 'Verse Preview',
 	quickPresets: 'Quick presets',
+	recommended: 'Recommended',
 	loadsEndpointModel: 'Loads endpoint, model, and automatic reasoning defaults',
 	providerApiKeyPlaceholder: 'Provider API key',
 	textAiEndpoint: 'Text AI endpoint',

@@ -30,7 +30,7 @@ export const TEXT_AI_PRESETS: TextAIPreset[] = [
 		id: 'openai',
 		label: 'OpenAI',
 		endpoint: 'https://api.openai.com/v1/chat/completions',
-		model: 'gpt-5.4-mini'
+		model: 'gpt-5.4'
 	},
 	{
 		id: 'gemini',

@@ -1768,6 +1768,7 @@
 {#if globalState.getVideoPreviewState.isFullscreen && !isExportCapturePreview}
 	<div
 		class="fullscreen-controls"
+		hidden={globalState.presetLibrary.isGeneratingPreview}
 		class:controls-hidden={!fullscreenControlsVisible}
 		inert={!fullscreenControlsVisible}
 		onfocusin={revealFullscreenControls}

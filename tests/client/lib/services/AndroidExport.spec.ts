@@ -292,6 +292,42 @@ describe('capture DOM pour le renderer Android', () => {
 		}
 	);
 
+	it.each([-45, 45, 90])(
+		'conserve la rotation de %s degrés à la capture Android',
+		async (angle) => {
+			const sourceContext = await createOverlay();
+			const root = sourceContext.node;
+			const paragraph = root.querySelector('p')!;
+			paragraph.style.rotate = `${angle}deg`;
+			const sourceRoot = root.getBoundingClientRect();
+			const source = paragraph.getBoundingClientRect();
+			for (const scale of [1, 2]) {
+				const context = await createContext(root, {
+					width: root.clientWidth * scale,
+					height: root.clientHeight * scale,
+					style: { transform: `scale(${scale})`, transformOrigin: 'top left' },
+					font: false,
+					autoDestruct: false
+				});
+				contexts.push(context);
+				const capture = await prepareAndroidOverlay(context);
+				const target = document.createElement('div');
+				target.innerHTML = capture.html;
+				document.body.append(target);
+				elements.push(target);
+				const svg = target.querySelector('svg')!.getBoundingClientRect();
+				const clone = target.querySelector('p')!;
+				const rect = clone.getBoundingClientRect();
+				expect(getComputedStyle(clone).rotate).toBe(`${angle}deg`);
+				expect(rect.left - svg.left).toBeCloseTo((source.left - sourceRoot.left) * scale, 0);
+				expect(rect.top - svg.top).toBeCloseTo((source.top - sourceRoot.top) * scale, 0);
+				expect(rect.width).toBeCloseTo(source.width * scale, 0);
+				expect(rect.height).toBeCloseTo(source.height * scale, 0);
+			}
+			expect(paragraph.style.rotate).toBe(`${angle}deg`);
+		}
+	);
+
 	it('neutralise le flou de fond dans la copie en conservant les filtres du texte', async () => {
 		const context = await createOverlay();
 		context.node.style.backdropFilter = 'blur(0px)';

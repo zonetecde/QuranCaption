@@ -258,8 +258,7 @@ const editor = {
 	cloudAlignerUnavailable: 'أداة المحاذاة السحابية غير متاحة',
 	cloudAlignerUnavailableDetails:
 		'مساحة Hugging Face غير متاحة. قد يكون السبب عطلاً في Hugging Face أو خطأً استثنائياً في المساحة، بصورة مستقلة عن Quran Caption.',
-	cloudAlignerUnavailableAdvice:
-		'انتظر حتى تتم استعادة الخدمة، ثم حاول مجددًا.',
+	cloudAlignerUnavailableAdvice: 'انتظر حتى تتم استعادة الخدمة، ثم حاول مجددًا.',
 	cloudAlignerSpaceLink: 'فتح مساحة Hugging Face',
 	aiSegmentationFinished: 'انتهى تجزئة الذكاء الاصطناعي',
 	convertToMp4Error:
@@ -1275,7 +1274,7 @@ const editor = {
 		contrast: 'ضبط تباين النص',
 		animation: 'إضافة تأثيرات الحركة والانتقال إلى الترجمة',
 		scale: 'قم بقياس حجم العنوان الفرعي',
-		rotation: 'قم بتدوير العنوان الفرعي بالدرجات',
+		rotation: 'تدوير النص بالدرجات',
 		'custom-css': 'اكتب أي CSS مخصص للترجمات. استخدم !مهم إذا لزم الأمر.',
 		'video-dimension': 'جودة واتجاه الفيديو',
 		'media-fill': 'قم بقص مقاطع الفيديو والصور الخلفية لملء الإطار بأكمله',

@@ -802,8 +802,7 @@ const zh = {
 		cloudAlignerUnavailable: '云端对齐工具不可用',
 		cloudAlignerUnavailableDetails:
 			'无法访问 Hugging Face Space。这可能是 Hugging Face 服务故障或 Space 出现异常错误，与 Quran Caption 无关。',
-		cloudAlignerUnavailableAdvice:
-			'请等待服务恢复后重试。',
+		cloudAlignerUnavailableAdvice: '请等待服务恢复后重试。',
 		cloudAlignerSpaceLink: '打开 Hugging Face Space',
 		aiSegmentationFinished: 'AI 分段已完成',
 		convertToMp4Error: '请将您的文件转换为 mp4 以用于音频轨道（此文件当前格式不受支持）',
@@ -1775,7 +1774,7 @@ const zh = {
 			contrast: '调整文本的对比度',
 			animation: '为字幕添加运动和过渡效果',
 			scale: '缩放字幕',
-			rotation: '旋转字幕（度数）',
+			rotation: '旋转文本（度数）',
 			'custom-css': '为字幕编写自定义 CSS。必要时使用 !important。',
 			'video-dimension': '视频质量和方向',
 			'media-fill': '裁剪背景视频和图片以填满整个画面',

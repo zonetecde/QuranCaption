@@ -18,6 +18,7 @@ import {
 import { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import { CustomImageClip } from '$lib/classes/Clip.svelte';
 import { globalState } from '$lib/runes/main.svelte';
+import { applyStyleMutation } from '$lib/services/StyleMutationService';
 import {
 	getOverlayLayerOrder,
 	ensureOverlayLayerOrder,
@@ -96,6 +97,42 @@ describe('ProjectHistoryManager', () => {
 		expect(
 			globalState.getVideoStyle.getStylesOfTarget('arabic').findStyle('font-size')?.value
 		).toBe(120);
+	});
+
+	it('undoes and redoes a composite text rotation through the shared style mutation', () => {
+		const rotation = new Style({
+			id: 'rotation',
+			value: 0,
+			valueType: 'number',
+			css: 'rotate: {value}deg;'
+		});
+		const composite = new Style({
+			id: 'surah-latin-text-style',
+			valueType: 'composite',
+			value: [rotation]
+		});
+		globalState.getVideoStyle.styles.push(
+			new StylesData('global', [new Category({ id: 'surah-name', styles: [composite] })])
+		);
+		applyStyleMutation({
+			videoStyle: globalState.getVideoStyle,
+			style: rotation,
+			target: composite.id,
+			clipIds: [],
+			value: -45,
+			applyBaseValue: (value) => {
+				rotation.value = value;
+			}
+		});
+		expect(composite.generateCSSForComposite()).toContain('rotate: -45deg;');
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(
+			globalState.getStyle('global', 'surah-latin-text-style').generateCSSForComposite()
+		).toContain('rotate: 0deg;');
+		expect(ProjectHistoryManager.redo()).toBe(true);
+		expect(
+			globalState.getStyle('global', 'surah-latin-text-style').generateCSSForComposite()
+		).toContain('rotate: -45deg;');
 	});
 
 	it('places Surah names behind Arabic and translations in both new and legacy projects', () => {

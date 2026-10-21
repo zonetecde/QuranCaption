@@ -790,8 +790,7 @@ const id = {
 		cloudAlignerUnavailable: 'Penyelaras cloud tidak tersedia',
 		cloudAlignerUnavailableDetails:
 			'Space Hugging Face tidak dapat diakses. Penyebabnya mungkin gangguan Hugging Face atau kesalahan tak terduga pada Space, terlepas dari Quran Caption.',
-		cloudAlignerUnavailableAdvice:
-			'Tunggu hingga layanan pulih lalu coba lagi.',
+		cloudAlignerUnavailableAdvice: 'Tunggu hingga layanan pulih lalu coba lagi.',
 		cloudAlignerSpaceLink: 'Buka Space Hugging Face',
 		quranwordtimingLabel: 'Penyelarasan kata Quran Karim',
 		howItWorksDescription2:
@@ -1058,6 +1057,7 @@ const id = {
 		saveStylesCommunityPresets: 'Simpan gaya & preset komunitas',
 		styleName: {
 			...baseEn.editor.styleName,
+			rotation: 'Rotasi',
 			riwayah: 'Riwayah',
 			'basmala-style': 'Gaya Basmala',
 			'basmala-scale': 'Skala Basmala',
@@ -1141,6 +1141,7 @@ const id = {
 		} as Translation['editor']['styleName'],
 		styleDescription: {
 			...baseEn.editor.styleDescription,
+			rotation: 'Putar teks dalam derajat',
 			riwayah: 'Pilih riwayat bacaan Al-Qur’an untuk subtitle bahasa Arab.',
 			'basmala-style':
 				'Gunakan font Arab saat ini atau pilih salah satu dari 122 basmala kaligrafi.',

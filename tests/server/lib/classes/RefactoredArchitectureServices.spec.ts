@@ -10,10 +10,39 @@ import { TrackClipQueries } from '$lib/classes/tracks/TrackClipQueries';
 import { VideoTrackTiming } from '$lib/classes/tracks/VideoTrackTiming';
 import { VideoStyleSchemaService } from '$lib/classes/videoStyles/VideoStyleSchemaService';
 import subtitleDefaults from '../../../../static/styles/styles.json';
-import type { RawCategoryDefinition } from '$lib/services/StyleDefinitionCatalog';
+import compositeDefaults from '../../../../static/styles/compositeStyles.json';
+import type {
+	RawCategoryDefinition,
+	RawStyleDefinition
+} from '$lib/services/StyleDefinitionCatalog';
 
 describe('refactored architecture services', () => {
 	afterEach(() => vi.restoreAllMocks());
+	it.each([
+		'surah-latin-text-style',
+		'reciter-latin-text-style',
+		'verse-number-text-style',
+		'custom-text-composite-old'
+	])('adds rotation to old %s composites without overwriting values or keyframes', async (id) => {
+		const font = new Style({ id: 'font-size', value: 77 });
+		font.setKeyframe(1000, 90);
+		const composite = new Style({ id, valueType: 'composite', value: [font] });
+		const category = new Category({ id: 'legacy', styles: [composite] });
+		expect(await category.loadCompositeStyle(compositeDefaults as RawStyleDefinition[])).toBe(true);
+		const rotation = composite.getCompositeStyle('rotation')!;
+		expect(rotation.value).toBe(0);
+		expect(font.value).toBe(77);
+		expect(font.keyframes).toEqual([{ time: 1000, value: 90 }]);
+		rotation.value = -30;
+		rotation.setKeyframe(2000, 45);
+		expect(composite.generateCSSForComposite(0)).toContain('rotate: -30deg;');
+		expect(composite.generateCSSForComposite(3000)).toContain('rotate: 45deg;');
+		expect(await category.loadCompositeStyle(compositeDefaults as RawStyleDefinition[])).toBe(
+			false
+		);
+		expect(rotation.value).toBe(-30);
+		expect(rotation.keyframes).toEqual([{ time: 2000, value: 45 }]);
+	});
 	it.each(['arabic', 'english'])(
 		'adds line background roundness to old %s styles and preserves its value',
 		(target) => {

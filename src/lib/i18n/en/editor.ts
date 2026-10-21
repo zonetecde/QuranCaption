@@ -262,8 +262,7 @@ const editor = {
 	cloudAlignerUnavailable: 'Cloud aligner unavailable',
 	cloudAlignerUnavailableDetails:
 		'The Hugging Face Space is unreachable. This may be due to a Hugging Face outage or an unexpected error in the Space, independently of Quran Caption.',
-	cloudAlignerUnavailableAdvice:
-		'Wait for the service to recover, then try again.',
+	cloudAlignerUnavailableAdvice: 'Wait for the service to recover, then try again.',
 	cloudAlignerSpaceLink: 'Open the Hugging Face Space',
 	aiSegmentationFinished: 'AI segmentation finished',
 	convertToMp4Error:
@@ -1305,7 +1304,7 @@ const editor = {
 		contrast: 'Adjust the contrast of the text',
 		animation: 'Add motion and transition effects to subtitles',
 		scale: 'Scale the size of the subtitle',
-		rotation: 'Rotate the subtitle in degrees',
+		rotation: 'Rotate the text in degrees',
 		'custom-css': 'Write any custom CSS for subtitles. Use !important if needed.',
 		'video-dimension': 'Quality and orientation of the video',
 		'media-fill': 'Crop background videos and images to fill the entire frame',

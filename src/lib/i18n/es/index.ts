@@ -864,8 +864,7 @@ const es = {
 		cloudAlignerUnavailable: 'Alineador en la nube no disponible',
 		cloudAlignerUnavailableDetails:
 			'El Space de Hugging Face no está accesible. Puede deberse a una caída de Hugging Face o a un error excepcional del Space, independientemente de Quran Caption.',
-		cloudAlignerUnavailableAdvice:
-			'Espera a que se restablezca el servicio y vuelve a intentarlo.',
+		cloudAlignerUnavailableAdvice: 'Espera a que se restablezca el servicio y vuelve a intentarlo.',
 		cloudAlignerSpaceLink: 'Abrir el Space de Hugging Face',
 		aiSegmentationFinished: 'Segmentación IA finalizada',
 		convertToMp4Error:
@@ -1926,7 +1925,7 @@ const es = {
 			contrast: 'Ajustar el contraste del texto',
 			animation: 'Agregar efectos de movimiento y transición a los subtítulos',
 			scale: 'Escalar el subtítulo',
-			rotation: 'Rotar el subtítulo en grados',
+			rotation: 'Girar el texto en grados',
 			'custom-css':
 				'Escribir CSS personalizado para los subtítulos. Usar !important si es necesario.',
 			'video-dimension': 'Calidad y orientación del video',

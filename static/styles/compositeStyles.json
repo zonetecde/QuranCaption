@@ -39,6 +39,19 @@
 		"icon": "format_size"
 	},
 	{
+		"id": "rotation",
+		"name": "Rotation",
+		"description": "Rotate the text in degrees",
+		"value": 0,
+		"valueType": "number",
+		"valueMin": -180,
+		"valueMax": 180,
+		"step": 1,
+		"css": "rotate: {value}deg;",
+		"tailwind": false,
+		"icon": "rotate_right"
+	},
+	{
 		"id": "text-color",
 		"name": "Color",
 		"description": "Change the color of the text",

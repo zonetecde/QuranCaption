@@ -102,6 +102,7 @@
 		{:else}
 			<p
 				class="arabic w-[300px] text-center h-[155px] pt-7"
+				style:rotate={`${globalState.getStyle('global', 'reciter-latin-text-style').getCompositeStyle('rotation')!.getValueAt(globalState.getTimelineState.cursorPosition)}deg`}
 				style={`opacity: ${reciterNameSettings().showArabic}; font-size: ${reciterNameSettings().size / 2}rem;`}
 			>
 				{reciter().arabic}

@@ -210,13 +210,18 @@ test('shows rearrangement errors and allows retrying', async () => {
 
 test('shows the rearrangement entry only after subtitles exist', async () => {
 	const open = vi.spyOn(ModalManager, 'rearrangeSubtitlesModal').mockResolvedValue(undefined);
+	const detect = vi.spyOn(ModalManager, 'detectReferencesModal').mockResolvedValue(undefined);
 	const component = render(SubtitlesEditorSettings);
 	const entry = component.getByRole('button', { name: 'Rearrange subtitles by meaning' });
 	await expect.element(entry).not.toBeInTheDocument();
+	const referenceEntry = component.getByRole('button', { name: 'Detect quotes and Quran verses' });
+	await expect.element(referenceEntry).not.toBeInTheDocument();
 	globalState.getSubtitleTrack.clips.push(new SubtitleClip(0, 1000, 'A passage'));
 	await expect.element(entry).toBeVisible();
 	await entry.click();
 	expect(open).toHaveBeenCalledOnce();
+	await referenceEntry.click();
+	expect(detect).toHaveBeenCalledOnce();
 });
 
 test('opens existing text AI settings from the rearrangement modal', async () => {

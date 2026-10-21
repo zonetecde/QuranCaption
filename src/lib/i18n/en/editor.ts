@@ -1,4 +1,45 @@
 const editor = {
+	referenceDetection: {
+		title: 'Detect quotes and Quran verses',
+		description: 'Review contextual AI suggestions before adding quotation and Quran markers.',
+		quran: 'Quran quotations',
+		citations: 'Other quotations',
+		start: 'Find quotations',
+		analyzing: 'Analyzing quotations and context',
+		apply: 'Apply selected annotations',
+		before: 'Before',
+		after: 'After',
+		confirmed: 'Confirmed',
+		uncertain: 'Needs review',
+		rejected: 'Rejected',
+		noResults: 'No quotations were found.',
+		preview: 'Subtitle preview',
+		proposals: 'Proposals',
+		selectProposal: 'Select proposal',
+		complete: 'Annotations applied. You can undo this change.',
+		notice:
+			'AI evaluates context, may reject local Quran matches and may discover new ones. Ordinary religious expressions are not automatically treated as Quran quotations. Detecting reported speech does not authenticate its attribution.',
+		preserved:
+			'Timing, silence clips and existing markers are preserved. Existing translations keep their displayed text as plain translations; translate again to align the new annotations.',
+		skipped:
+			'Subtitles with custom inline styles, translation word mappings or legacy clip types are protected.',
+		keyRequired: 'Add an API key in Text AI settings to detect quotations.',
+		chooseCategory: 'Select at least one quotation category.',
+		noText: 'No editable subtitle text was found.',
+		corpusError: 'Unable to load the Quran corpus. Try again or disable Quran detection.',
+		requestError: 'The text AI request failed. Check your key, endpoint, model and account quota.',
+		invalidResponse:
+			'The AI returned invalid quotation ranges or omitted a candidate verdict. Nothing was applied.',
+		sourceChanged:
+			'The project or subtitles changed. Run detection again before applying annotations.',
+		unverifiedQuran:
+			'This Quran reference could not be matched to the transcribed words. It cannot be applied automatically.',
+		ambiguousMarker: 'This quotation would be confused with a Quran marker. Annotate it manually.',
+		overlappingProposal: 'This range overlaps another confirmed proposal. Review it manually.',
+		invalidSelection: 'Only confirmed, non-overlapping proposals can be applied.',
+		translationError:
+			'An existing structured translation could not be preserved. Check the project languages before applying annotations.'
+	},
 	speechToText: {
 		title: 'Automatic transcription',
 		description: 'Transcribe a timeline audio clip with your own Groq or ElevenLabs account.',

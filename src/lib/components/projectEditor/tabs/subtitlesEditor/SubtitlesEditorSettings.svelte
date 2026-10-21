@@ -4,6 +4,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import type { SpeechToTextCopy } from '$lib/services/SpeechToTextService';
+	import type { ReferenceDetectionCopy } from '$lib/services/ReferenceDetectionService';
 
 	const speechCopy = $derived(
 		($LL.editor as unknown as { speechToText: SpeechToTextCopy }).speechToText
@@ -11,6 +12,9 @@
 
 	const transcriptCount = $derived(
 		globalState.getSubtitleTrack.clips.filter((clip) => clip instanceof SubtitleClip).length
+	);
+	const referenceCopy = $derived(
+		($LL.editor as unknown as { referenceDetection: ReferenceDetectionCopy }).referenceDetection
 	);
 </script>
 
@@ -81,6 +85,14 @@
 		>
 			<span class="material-icons text-lg">reorder</span>
 			{speechCopy.rearrangeTitle()}
+		</button>
+		<button
+			type="button"
+			onclick={() => ModalManager.detectReferencesModal()}
+			class="btn flex w-full items-center justify-center gap-2 px-3 py-3 text-sm font-semibold"
+		>
+			<span class="material-icons text-lg">format_quote</span>
+			{referenceCopy.title()}
 		</button>
 	{/if}
 </div>

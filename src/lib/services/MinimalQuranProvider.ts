@@ -30,6 +30,14 @@ async function loadVerses(): Promise<Record<string, string[]>> {
 
 export class MinimalQuranProvider {
 	/**
+	 * Expose les mots du corpus avec les mêmes indices que le rendu des références.
+	 * @returns {Promise<Readonly<Record<string, readonly string[]>>>} Versets et mots canoniques.
+	 */
+	static async getVerses(): Promise<Readonly<Record<string, readonly string[]>>> {
+		return loadVerses();
+	}
+
+	/**
 	 * Précharge le texte avant un export synchrone.
 	 * @returns {Promise<void>}
 	 */

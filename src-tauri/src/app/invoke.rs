@@ -10,6 +10,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::ai_translation::translate::run_ai_project_translation_batch_streaming,
         commands::speech_to_text::transcribe_audio_chunk,
         commands::speech_to_text::rearrange_subtitle_words,
+        commands::speech_to_text::detect_subtitle_references,
         commands::auth::quran_auth_secure_set,
         commands::auth::quran_auth_secure_get,
         commands::auth::quran_auth_secure_delete,

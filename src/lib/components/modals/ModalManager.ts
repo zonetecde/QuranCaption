@@ -10,6 +10,7 @@ import AudioCutterModal from './tools/AudioCutterModal.svelte';
 import AudioEffectsModal from './tools/AudioEffectsModal.svelte';
 import SpeechToTextModal from './tools/SpeechToTextModal.svelte';
 import RearrangeSubtitlesModal from './tools/RearrangeSubtitlesModal.svelte';
+import DetectReferencesModal from './tools/DetectReferencesModal.svelte';
 import BookmarkVerseModal from './BookmarkVerseModal.svelte';
 import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
 import AiWbwTranslationModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiWbwTranslationModal.svelte';
@@ -19,6 +20,28 @@ import { type UpdateInfo } from '$lib/services/VersionService.svelte';
 import LL from '$lib/i18n/i18n-svelte';
 
 export default class ModalManager {
+	/**
+	 * Ouvre la détection contextuelle des citations et références coraniques.
+	 * @returns {Promise<void>} Résolution après fermeture du modal.
+	 */
+	static async detectReferencesModal(): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+			const modal = mount(DetectReferencesModal, {
+				target: container,
+				props: {
+					close: () => {
+						void unmount(modal);
+						container.remove();
+						resolve();
+					}
+				}
+			});
+		});
+	}
+
 	/**
 	 * Ouvre les sous-titres existants et les préférences de réorganisation par sens.
 	 * @returns {Promise<void>} Résolution après fermeture de la modale.

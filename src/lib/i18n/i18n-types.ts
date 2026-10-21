@@ -1103,6 +1103,136 @@ type RootTranslation = {
 		continue: string;
 	};
 	editor: {
+		referenceDetection: {
+			/**
+			 * D​e​t​e​c​t​ ​q​u​o​t​e​s​ ​a​n​d​ ​Q​u​r​a​n​ ​v​e​r​s​e​s
+			 */
+			title: string;
+			/**
+			 * R​e​v​i​e​w​ ​c​o​n​t​e​x​t​u​a​l​ ​A​I​ ​s​u​g​g​e​s​t​i​o​n​s​ ​b​e​f​o​r​e​ ​a​d​d​i​n​g​ ​q​u​o​t​a​t​i​o​n​ ​a​n​d​ ​Q​u​r​a​n​ ​m​a​r​k​e​r​s​.
+			 */
+			description: string;
+			/**
+			 * Q​u​r​a​n​ ​q​u​o​t​a​t​i​o​n​s
+			 */
+			quran: string;
+			/**
+			 * O​t​h​e​r​ ​q​u​o​t​a​t​i​o​n​s
+			 */
+			citations: string;
+			/**
+			 * F​i​n​d​ ​q​u​o​t​a​t​i​o​n​s
+			 */
+			start: string;
+			/**
+			 * A​n​a​l​y​z​i​n​g​ ​q​u​o​t​a​t​i​o​n​s​ ​a​n​d​ ​c​o​n​t​e​x​t
+			 */
+			analyzing: string;
+			/**
+			 * A​p​p​l​y​ ​s​e​l​e​c​t​e​d​ ​a​n​n​o​t​a​t​i​o​n​s
+			 */
+			apply: string;
+			/**
+			 * B​e​f​o​r​e
+			 */
+			before: string;
+			/**
+			 * A​f​t​e​r
+			 */
+			after: string;
+			/**
+			 * C​o​n​f​i​r​m​e​d
+			 */
+			confirmed: string;
+			/**
+			 * N​e​e​d​s​ ​r​e​v​i​e​w
+			 */
+			uncertain: string;
+			/**
+			 * R​e​j​e​c​t​e​d
+			 */
+			rejected: string;
+			/**
+			 * N​o​ ​q​u​o​t​a​t​i​o​n​s​ ​w​e​r​e​ ​f​o​u​n​d​.
+			 */
+			noResults: string;
+			/**
+			 * S​u​b​t​i​t​l​e​ ​p​r​e​v​i​e​w
+			 */
+			preview: string;
+			/**
+			 * P​r​o​p​o​s​a​l​s
+			 */
+			proposals: string;
+			/**
+			 * S​e​l​e​c​t​ ​p​r​o​p​o​s​a​l
+			 */
+			selectProposal: string;
+			/**
+			 * A​n​n​o​t​a​t​i​o​n​s​ ​a​p​p​l​i​e​d​.​ ​Y​o​u​ ​c​a​n​ ​u​n​d​o​ ​t​h​i​s​ ​c​h​a​n​g​e​.
+			 */
+			complete: string;
+			/**
+			 * A​I​ ​e​v​a​l​u​a​t​e​s​ ​c​o​n​t​e​x​t​,​ ​m​a​y​ ​r​e​j​e​c​t​ ​l​o​c​a​l​ ​Q​u​r​a​n​ ​m​a​t​c​h​e​s​ ​a​n​d​ ​m​a​y​ ​d​i​s​c​o​v​e​r​ ​n​e​w​ ​o​n​e​s​.​ ​O​r​d​i​n​a​r​y​ ​r​e​l​i​g​i​o​u​s​ ​e​x​p​r​e​s​s​i​o​n​s​ ​a​r​e​ ​n​o​t​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​t​r​e​a​t​e​d​ ​a​s​ ​Q​u​r​a​n​ ​q​u​o​t​a​t​i​o​n​s​.​ ​D​e​t​e​c​t​i​n​g​ ​r​e​p​o​r​t​e​d​ ​s​p​e​e​c​h​ ​d​o​e​s​ ​n​o​t​ ​a​u​t​h​e​n​t​i​c​a​t​e​ ​i​t​s​ ​a​t​t​r​i​b​u​t​i​o​n​.
+			 */
+			notice: string;
+			/**
+			 * T​i​m​i​n​g​,​ ​s​i​l​e​n​c​e​ ​c​l​i​p​s​ ​a​n​d​ ​e​x​i​s​t​i​n​g​ ​m​a​r​k​e​r​s​ ​a​r​e​ ​p​r​e​s​e​r​v​e​d​.​ ​E​x​i​s​t​i​n​g​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​k​e​e​p​ ​t​h​e​i​r​ ​d​i​s​p​l​a​y​e​d​ ​t​e​x​t​ ​a​s​ ​p​l​a​i​n​ ​t​r​a​n​s​l​a​t​i​o​n​s​;​ ​t​r​a​n​s​l​a​t​e​ ​a​g​a​i​n​ ​t​o​ ​a​l​i​g​n​ ​t​h​e​ ​n​e​w​ ​a​n​n​o​t​a​t​i​o​n​s​.
+			 */
+			preserved: string;
+			/**
+			 * S​u​b​t​i​t​l​e​s​ ​w​i​t​h​ ​c​u​s​t​o​m​ ​i​n​l​i​n​e​ ​s​t​y​l​e​s​,​ ​t​r​a​n​s​l​a​t​i​o​n​ ​w​o​r​d​ ​m​a​p​p​i​n​g​s​ ​o​r​ ​l​e​g​a​c​y​ ​c​l​i​p​ ​t​y​p​e​s​ ​a​r​e​ ​p​r​o​t​e​c​t​e​d​.
+			 */
+			skipped: string;
+			/**
+			 * A​d​d​ ​a​n​ ​A​P​I​ ​k​e​y​ ​i​n​ ​T​e​x​t​ ​A​I​ ​s​e​t​t​i​n​g​s​ ​t​o​ ​d​e​t​e​c​t​ ​q​u​o​t​a​t​i​o​n​s​.
+			 */
+			keyRequired: string;
+			/**
+			 * S​e​l​e​c​t​ ​a​t​ ​l​e​a​s​t​ ​o​n​e​ ​q​u​o​t​a​t​i​o​n​ ​c​a​t​e​g​o​r​y​.
+			 */
+			chooseCategory: string;
+			/**
+			 * N​o​ ​e​d​i​t​a​b​l​e​ ​s​u​b​t​i​t​l​e​ ​t​e​x​t​ ​w​a​s​ ​f​o​u​n​d​.
+			 */
+			noText: string;
+			/**
+			 * U​n​a​b​l​e​ ​t​o​ ​l​o​a​d​ ​t​h​e​ ​Q​u​r​a​n​ ​c​o​r​p​u​s​.​ ​T​r​y​ ​a​g​a​i​n​ ​o​r​ ​d​i​s​a​b​l​e​ ​Q​u​r​a​n​ ​d​e​t​e​c​t​i​o​n​.
+			 */
+			corpusError: string;
+			/**
+			 * T​h​e​ ​t​e​x​t​ ​A​I​ ​r​e​q​u​e​s​t​ ​f​a​i​l​e​d​.​ ​C​h​e​c​k​ ​y​o​u​r​ ​k​e​y​,​ ​e​n​d​p​o​i​n​t​,​ ​m​o​d​e​l​ ​a​n​d​ ​a​c​c​o​u​n​t​ ​q​u​o​t​a​.
+			 */
+			requestError: string;
+			/**
+			 * T​h​e​ ​A​I​ ​r​e​t​u​r​n​e​d​ ​i​n​v​a​l​i​d​ ​q​u​o​t​a​t​i​o​n​ ​r​a​n​g​e​s​ ​o​r​ ​o​m​i​t​t​e​d​ ​a​ ​c​a​n​d​i​d​a​t​e​ ​v​e​r​d​i​c​t​.​ ​N​o​t​h​i​n​g​ ​w​a​s​ ​a​p​p​l​i​e​d​.
+			 */
+			invalidResponse: string;
+			/**
+			 * T​h​e​ ​p​r​o​j​e​c​t​ ​o​r​ ​s​u​b​t​i​t​l​e​s​ ​c​h​a​n​g​e​d​.​ ​R​u​n​ ​d​e​t​e​c​t​i​o​n​ ​a​g​a​i​n​ ​b​e​f​o​r​e​ ​a​p​p​l​y​i​n​g​ ​a​n​n​o​t​a​t​i​o​n​s​.
+			 */
+			sourceChanged: string;
+			/**
+			 * T​h​i​s​ ​Q​u​r​a​n​ ​r​e​f​e​r​e​n​c​e​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​m​a​t​c​h​e​d​ ​t​o​ ​t​h​e​ ​t​r​a​n​s​c​r​i​b​e​d​ ​w​o​r​d​s​.​ ​I​t​ ​c​a​n​n​o​t​ ​b​e​ ​a​p​p​l​i​e​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​.
+			 */
+			unverifiedQuran: string;
+			/**
+			 * T​h​i​s​ ​q​u​o​t​a​t​i​o​n​ ​w​o​u​l​d​ ​b​e​ ​c​o​n​f​u​s​e​d​ ​w​i​t​h​ ​a​ ​Q​u​r​a​n​ ​m​a​r​k​e​r​.​ ​A​n​n​o​t​a​t​e​ ​i​t​ ​m​a​n​u​a​l​l​y​.
+			 */
+			ambiguousMarker: string;
+			/**
+			 * T​h​i​s​ ​r​a​n​g​e​ ​o​v​e​r​l​a​p​s​ ​a​n​o​t​h​e​r​ ​c​o​n​f​i​r​m​e​d​ ​p​r​o​p​o​s​a​l​.​ ​R​e​v​i​e​w​ ​i​t​ ​m​a​n​u​a​l​l​y​.
+			 */
+			overlappingProposal: string;
+			/**
+			 * O​n​l​y​ ​c​o​n​f​i​r​m​e​d​,​ ​n​o​n​-​o​v​e​r​l​a​p​p​i​n​g​ ​p​r​o​p​o​s​a​l​s​ ​c​a​n​ ​b​e​ ​a​p​p​l​i​e​d​.
+			 */
+			invalidSelection: string;
+			/**
+			 * A​n​ ​e​x​i​s​t​i​n​g​ ​s​t​r​u​c​t​u​r​e​d​ ​t​r​a​n​s​l​a​t​i​o​n​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​p​r​e​s​e​r​v​e​d​.​ ​C​h​e​c​k​ ​t​h​e​ ​p​r​o​j​e​c​t​ ​l​a​n​g​u​a​g​e​s​ ​b​e​f​o​r​e​ ​a​p​p​l​y​i​n​g​ ​a​n​n​o​t​a​t​i​o​n​s​.
+			 */
+			translationError: string;
+		};
 		speechToText: {
 			/**
 			 * A​u​t​o​m​a​t​i​c​ ​t​r​a​n​s​c​r​i​p​t​i​o​n
@@ -10827,6 +10957,136 @@ export type TranslationFunctions = {
 		continue: () => LocalizedString;
 	};
 	editor: {
+		referenceDetection: {
+			/**
+			 * Detect quotes and Quran verses
+			 */
+			title: () => LocalizedString;
+			/**
+			 * Review contextual AI suggestions before adding quotation and Quran markers.
+			 */
+			description: () => LocalizedString;
+			/**
+			 * Quran quotations
+			 */
+			quran: () => LocalizedString;
+			/**
+			 * Other quotations
+			 */
+			citations: () => LocalizedString;
+			/**
+			 * Find quotations
+			 */
+			start: () => LocalizedString;
+			/**
+			 * Analyzing quotations and context
+			 */
+			analyzing: () => LocalizedString;
+			/**
+			 * Apply selected annotations
+			 */
+			apply: () => LocalizedString;
+			/**
+			 * Before
+			 */
+			before: () => LocalizedString;
+			/**
+			 * After
+			 */
+			after: () => LocalizedString;
+			/**
+			 * Confirmed
+			 */
+			confirmed: () => LocalizedString;
+			/**
+			 * Needs review
+			 */
+			uncertain: () => LocalizedString;
+			/**
+			 * Rejected
+			 */
+			rejected: () => LocalizedString;
+			/**
+			 * No quotations were found.
+			 */
+			noResults: () => LocalizedString;
+			/**
+			 * Subtitle preview
+			 */
+			preview: () => LocalizedString;
+			/**
+			 * Proposals
+			 */
+			proposals: () => LocalizedString;
+			/**
+			 * Select proposal
+			 */
+			selectProposal: () => LocalizedString;
+			/**
+			 * Annotations applied. You can undo this change.
+			 */
+			complete: () => LocalizedString;
+			/**
+			 * AI evaluates context, may reject local Quran matches and may discover new ones. Ordinary religious expressions are not automatically treated as Quran quotations. Detecting reported speech does not authenticate its attribution.
+			 */
+			notice: () => LocalizedString;
+			/**
+			 * Timing, silence clips and existing markers are preserved. Existing translations keep their displayed text as plain translations; translate again to align the new annotations.
+			 */
+			preserved: () => LocalizedString;
+			/**
+			 * Subtitles with custom inline styles, translation word mappings or legacy clip types are protected.
+			 */
+			skipped: () => LocalizedString;
+			/**
+			 * Add an API key in Text AI settings to detect quotations.
+			 */
+			keyRequired: () => LocalizedString;
+			/**
+			 * Select at least one quotation category.
+			 */
+			chooseCategory: () => LocalizedString;
+			/**
+			 * No editable subtitle text was found.
+			 */
+			noText: () => LocalizedString;
+			/**
+			 * Unable to load the Quran corpus. Try again or disable Quran detection.
+			 */
+			corpusError: () => LocalizedString;
+			/**
+			 * The text AI request failed. Check your key, endpoint, model and account quota.
+			 */
+			requestError: () => LocalizedString;
+			/**
+			 * The AI returned invalid quotation ranges or omitted a candidate verdict. Nothing was applied.
+			 */
+			invalidResponse: () => LocalizedString;
+			/**
+			 * The project or subtitles changed. Run detection again before applying annotations.
+			 */
+			sourceChanged: () => LocalizedString;
+			/**
+			 * This Quran reference could not be matched to the transcribed words. It cannot be applied automatically.
+			 */
+			unverifiedQuran: () => LocalizedString;
+			/**
+			 * This quotation would be confused with a Quran marker. Annotate it manually.
+			 */
+			ambiguousMarker: () => LocalizedString;
+			/**
+			 * This range overlaps another confirmed proposal. Review it manually.
+			 */
+			overlappingProposal: () => LocalizedString;
+			/**
+			 * Only confirmed, non-overlapping proposals can be applied.
+			 */
+			invalidSelection: () => LocalizedString;
+			/**
+			 * An existing structured translation could not be preserved. Check the project languages before applying annotations.
+			 */
+			translationError: () => LocalizedString;
+		};
 		speechToText: {
 			/**
 			 * Automatic transcription

@@ -1,5 +1,8 @@
 import type { ProjectContent } from '../ProjectContent.svelte.js';
-import { ensureCustomStyleSchema } from '$lib/services/ProjectStyleContentService';
+import {
+	ensureCustomStyleSchema,
+	getCustomStyleClips
+} from '$lib/services/ProjectStyleContentService';
 import {
 	loadCompositeStyleDefinitions,
 	loadCustomStyleCategoryDefinition,
@@ -50,18 +53,30 @@ export class VideoStyleSchemaService {
 			hasChanges = true;
 		}
 
-		if (!projectContent) return hasChanges;
-		hasChanges = ensureOverlayLayerOrder(projectContent) || hasChanges;
-		const customTextDefaults = await loadCustomStyleCategoryDefinition('text');
+		const customTextDefaults = projectContent
+			? await loadCustomStyleCategoryDefinition('text')
+			: undefined;
 		const compositeDefaults = await loadCompositeStyleDefinitions();
-		return (
+		for (const stylesData of styles) {
+			for (const category of stylesData.categories) {
+				hasChanges = (await category.loadCompositeStyle(compositeDefaults)) || hasChanges;
+			}
+		}
+
+		if (!projectContent || !customTextDefaults) return hasChanges;
+		hasChanges = ensureOverlayLayerOrder(projectContent) || hasChanges;
+		hasChanges =
 			ensureCustomStyleSchema(
 				projectContent,
 				customTextDefaults,
 				compositeDefaults,
 				(definition) => new Style(definition)
-			) || hasChanges
-		);
+			) || hasChanges;
+		for (const clip of getCustomStyleClips(projectContent)) {
+			if (clip.category)
+				hasChanges = (await clip.category.loadCompositeStyle(compositeDefaults)) || hasChanges;
+		}
+		return hasChanges;
 	}
 
 	/**

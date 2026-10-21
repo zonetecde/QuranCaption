@@ -1,7 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Category, Style, StylesData, VideoStyle } from '$lib/classes/VideoStyle.svelte';
-import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes/Clip.svelte';
+import { CustomTextClip, PredefinedSubtitleClip, SubtitleClip } from '$lib/classes/Clip.svelte';
+import { ProjectContent } from '$lib/classes/ProjectContent.svelte';
+import { CustomTextTrack } from '$lib/classes/Track.svelte';
+import globalDefinitions from '../../../../static/styles/globalStyles.json';
+import subtitleDefinitions from '../../../../static/styles/styles.json';
+import customTextDefinitions from '../../../../static/styles/customText.json';
+import compositeDefinitions from '../../../../static/styles/compositeStyles.json';
 import { globalState } from '$lib/runes/main.svelte';
 import {
 	loadCustomStyleCategoryDefinition,
@@ -19,6 +25,46 @@ import {
 
 describe('style architecture modules', () => {
 	afterEach(() => vi.unstubAllGlobals());
+	it('upgrades global and custom text composites together and preserves their saved values', async () => {
+		const catalogs: Record<string, unknown> = {
+			'./styles/globalStyles.json': globalDefinitions,
+			'./styles/styles.json': subtitleDefinitions,
+			'./styles/customText.json': customTextDefinitions,
+			'./styles/compositeStyles.json': compositeDefinitions
+		};
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (path: string) => ({ json: async () => catalogs[path] }))
+		);
+		const content = new ProjectContent();
+		const globalComposite = new Style({
+			id: 'surah-latin-text-style',
+			valueType: 'composite',
+			value: [new Style({ id: 'font-size', value: 77 })]
+		});
+		const customComposite = new Style({
+			id: 'custom-text-composite-old',
+			valueType: 'composite',
+			value: [new Style({ id: 'font-size', value: 88 })]
+		});
+		content.videoStyle.styles = [
+			new StylesData('global', [new Category({ id: 'surah-name', styles: [globalComposite] })])
+		];
+		const track = new CustomTextTrack();
+		track.clips = [
+			new CustomTextClip(new Category({ id: 'custom-text-old', styles: [customComposite] }))
+		];
+		content.timeline.tracks = [track];
+
+		expect(await content.videoStyle.ensureStylesSchemaUpToDate(content)).toBe(true);
+		expect(globalComposite.getCompositeStyle('font-size')!.value).toBe(77);
+		expect(customComposite.getCompositeStyle('font-size')!.value).toBe(88);
+		expect(globalComposite.getCompositeStyle('rotation')!.value).toBe(0);
+		expect(customComposite.getCompositeStyle('rotation')!.value).toBe(0);
+		customComposite.getCompositeStyle('rotation')!.value = 35;
+		expect(await content.videoStyle.ensureStylesSchemaUpToDate(content)).toBe(false);
+		expect(customComposite.generateCSSForComposite()).toContain('rotate: 35deg;');
+	});
 
 	it('migrates subtitle spacing minimums without changing existing values', async () => {
 		const videoStyle = new VideoStyle();
@@ -159,7 +205,6 @@ describe('style architecture modules', () => {
 					}
 				]
 			})
-			.mockResolvedValueOnce({ json: async () => ({ id: 'custom-text', styles: [] }) })
 			.mockResolvedValueOnce({ json: async () => [] });
 		vi.stubGlobal('fetch', fetchMock);
 

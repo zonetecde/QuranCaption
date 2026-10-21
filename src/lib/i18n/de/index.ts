@@ -1901,7 +1901,7 @@ const de = {
 			contrast: 'Kontrast des Textes anpassen',
 			animation: 'Bewegungs- und Übergangseffekte zu Untertiteln hinzufügen',
 			scale: 'Untertitel skalieren',
-			rotation: 'Untertitel in Grad drehen',
+			rotation: 'Text in Grad drehen',
 			'custom-css':
 				'Benutzerdefiniertes CSS für Untertitel schreiben. Bei Bedarf !important verwenden.',
 			'video-dimension': 'Videoqualität und -ausrichtung',

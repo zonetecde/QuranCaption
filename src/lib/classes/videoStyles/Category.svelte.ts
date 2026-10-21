@@ -1,7 +1,8 @@
 import { SerializableBase } from '../misc/SerializableBase';
 import {
 	loadCompositeStyleDefinitions,
-	type RawCategoryDefinition
+	type RawCategoryDefinition,
+	type RawStyleDefinition
 } from '$lib/services/StyleDefinitionCatalog';
 import { Style } from './Style.svelte';
 import { collectStyleKeyframeTimes } from './styleRuntime';
@@ -78,22 +79,33 @@ export class Category extends SerializableBase {
 	}
 
 	/**
-	 * Si la catégorie contient un style composite, le load avec
-	 * ses valeurs par défaut.
-	 * @returns {Promise<void>} Promesse résolue lorsque les styles composites sont chargés.
+	 * Initialise les composites et complète les anciens sans écraser leurs valeurs.
+	 * @param {RawStyleDefinition[]} [defaults] Définitions déjà chargées du catalogue composite.
+	 * @returns {Promise<boolean>} Vrai si un composite a été initialisé ou complété.
 	 */
-	async loadCompositeStyle() {
+	async loadCompositeStyle(defaults?: RawStyleDefinition[]): Promise<boolean> {
+		let hasChanges = false;
 		for (const style of this.styles) {
-			if (style.valueType === 'composite' && !(style.value instanceof Array)) {
-				// Charge les styles composites (JSON brut)
-				const raw = await loadCompositeStyleDefinitions();
+			if (style.valueType !== 'composite') continue;
+			const raw = defaults ?? (await loadCompositeStyleDefinitions());
+			if (Array.isArray(style.value)) {
+				const children = style.value as Style[];
+				for (const definition of raw) {
+					if (!children.some((existing) => existing.id === definition.id)) {
+						children.push(new Style(definition));
+						hasChanges = true;
+					}
+				}
+			} else {
 				// Transforme chaque entrée en véritable instance de Style
 				style.value = raw.map((s) => (s instanceof Style ? s : new Style(s)));
+				hasChanges = true;
 
 				if (style.id === 'surah-latin-text-style' || style.id === 'reciter-latin-text-style') {
 					style.setCompositeStyleValue('font-size', 30);
 				}
 			}
 		}
+		return hasChanges;
 	}
 }

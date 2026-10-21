@@ -104,6 +104,52 @@ afterEach(() => {
 });
 
 describe('contexte de capture réutilisé par worker', () => {
+	it.each([-45, 45, 90])(
+		'préserve la rotation de %s degrés dans le rendu canvas macOS',
+		async (angle) => {
+			const root = await createOverlay();
+			root.innerHTML = `<p style="position:absolute;left:70px;top:60px;margin:0;width:180px;font:24px Georgia;line-height:1.2;color:white;text-align:center;rotate:${angle}deg">Reciter name</p>`;
+			const text = root.querySelector('p')!;
+			const originalStyle = text.style.cssText;
+			for (const scale of [1, 2]) {
+				const expected = await readPixels(await domToBlob(root, { scale }));
+				const actual = await readPixels(
+					new Blob([
+						await captureMacOsOverlayPngBytes(root, scale, 320 * scale, 180 * scale, {
+							compensateTextWeight: false
+						})
+					])
+				);
+				const bounds = getColorVerticalBounds(expected, [255, 255, 255]);
+				for (const [index, value] of getColorVerticalBounds(actual, [255, 255, 255]).entries())
+					expect(Math.abs(value - bounds[index])).toBeLessThanOrEqual(2 * scale);
+				let expectedPixels = 0;
+				let overlappingPixels = 0;
+				for (let index = 3; index < expected.data.length; index += 4) {
+					if (expected.data[index] < 32) continue;
+					expectedPixels++;
+					const x = ((index - 3) / 4) % expected.width;
+					const y = Math.floor((index - 3) / 4 / expected.width);
+					let overlaps = false;
+					// Tolère un pixel CSS d'écart sur les contours rastérisés des glyphes.
+					for (let dy = -scale; dy <= scale && !overlaps; dy++) {
+						for (let dx = -scale; dx <= scale; dx++) {
+							if (x + dx < 0 || x + dx >= actual.width || y + dy < 0 || y + dy >= actual.height)
+								continue;
+							if (actual.data[((y + dy) * actual.width + x + dx) * 4 + 3] >= 32) {
+								overlaps = true;
+								break;
+							}
+						}
+					}
+					if (overlaps) overlappingPixels++;
+				}
+				expect(overlappingPixels / expectedPixels).toBeGreaterThan(0.95);
+				expect(text.style.cssText).toBe(originalStyle);
+			}
+		}
+	);
+
 	it.each([
 		['QCExportQpc', 'ﲭ ﲮ ﲯ'],
 		['QCExportHafs', 'بِسْمِ اللَّهِ الرَّحْمَٰنِ'],

@@ -12,6 +12,7 @@ type ParsedTextShadow = {
 
 type TextDrawRun = {
 	text: string;
+	transform?: DOMMatrix;
 	x: number;
 	y: number;
 	width: number;
@@ -617,74 +618,119 @@ function stabilizeTimedOverlayTextPosition(
  * @returns Liste des runs texte.
  */
 function collectLiveTextDrawRuns(root: HTMLElement, textRootSelector?: string): TextDrawRun[] {
-	const rootRect = root.getBoundingClientRect();
-	const localScaleX = root.clientWidth / rootRect.width;
-	const localScaleY = root.clientHeight / rootRect.height;
-	const runs: TextDrawRun[] = [];
-	const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+	const rotations = new Map<
+		HTMLElement,
+		{ value: string; priority: string; angle: number; transform?: DOMMatrix }
+	>();
+	try {
+		for (const element of root.querySelectorAll<HTMLElement>('*')) {
+			const rotate = getComputedStyle(element).rotate;
+			if (!/^-?[\d.]+deg$/.test(rotate) || Number.parseFloat(rotate) === 0) continue;
+			rotations.set(element, {
+				value: element.style.getPropertyValue('rotate'),
+				priority: element.style.getPropertyPriority('rotate'),
+				angle: Number.parseFloat(rotate)
+			});
+			// Mesure les lignes avant rotation pour éviter leurs rectangles englobants inclinés.
+			element.style.setProperty('rotate', 'none', 'important');
+		}
+		const rootRect = root.getBoundingClientRect();
+		const localScaleX = root.clientWidth / rootRect.width;
+		const localScaleY = root.clientHeight / rootRect.height;
+		for (const [element, rotation] of rotations) {
+			const rect = element.getBoundingClientRect();
+			const [originX, originY] = getComputedStyle(element)
+				.transformOrigin.split(' ')
+				.map(Number.parseFloat);
+			const x = (rect.left - rootRect.left) * localScaleX + originX;
+			const y = (rect.top - rootRect.top) * localScaleY + originY;
+			rotation.transform = new DOMMatrix().translate(x, y).rotate(rotation.angle).translate(-x, -y);
+		}
+		const runs: TextDrawRun[] = [];
+		const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
 
-	while (walker.nextNode()) {
-		const textNode = walker.currentNode as Text;
-		const parent = textNode.parentElement;
-		if (!parent || !textNode.data.trim()) continue;
-		if (textRootSelector && !parent.closest(textRootSelector)) continue;
+		while (walker.nextNode()) {
+			const textNode = walker.currentNode as Text;
+			const parent = textNode.parentElement;
+			if (!parent || !textNode.data.trim()) continue;
+			if (textRootSelector && !parent.closest(textRootSelector)) continue;
 
-		const computedStyle = getComputedStyle(parent);
-		if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') continue;
+			const computedStyle = getComputedStyle(parent);
+			if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') continue;
 
-		const opacity = getCumulativeOpacity(parent, root);
-		if (opacity <= 0) continue;
+			const opacity = getCumulativeOpacity(parent, root);
+			if (opacity <= 0) continue;
+			let transform: DOMMatrix | undefined;
+			for (
+				let element: HTMLElement | null = parent;
+				element && element !== root;
+				element = element.parentElement
+			) {
+				const rotation = rotations.get(element)?.transform;
+				if (rotation) transform = rotation.multiply(transform ?? new DOMMatrix());
+			}
 
-		const direction = toCanvasDirection(computedStyle.direction);
-		const align = toCanvasTextAlign(direction);
-		const shadows = parseTextShadows(computedStyle.textShadow, computedStyle.color, computedStyle);
-
-		for (const line of getTextLineRects(textNode, localScaleY)) {
-			const text = textNode.data.slice(line.start, line.end).trim();
-			if (!text) continue;
-
-			const x =
-				direction === 'rtl'
-					? (line.rect.right - rootRect.left) * localScaleX
-					: (line.rect.left - rootRect.left) * localScaleX;
-			const stablePosition = stabilizeTimedOverlayTextPosition(
-				getStableTimedOverlayTextPositionKey(parent, text, computedStyle),
-				{
-					x,
-					y: (line.rect.top - rootRect.top) * localScaleY,
-					width: line.rect.width * localScaleX,
-					height: line.rect.height * localScaleY
-				}
+			const direction = toCanvasDirection(computedStyle.direction);
+			const align = toCanvasTextAlign(direction);
+			const shadows = parseTextShadows(
+				computedStyle.textShadow,
+				computedStyle.color,
+				computedStyle
 			);
 
-			runs.push({
-				text: applyTextTransform(text, computedStyle.textTransform),
-				x: stablePosition.x,
-				y: stablePosition.y,
-				width: stablePosition.width,
-				height: stablePosition.height,
-				font: computedStyle.font,
-				color: computedStyle.color,
-				opacity,
-				direction,
-				align,
-				letterSpacing: computedStyle.letterSpacing,
-				wordSpacing: computedStyle.wordSpacing,
-				filter: getCumulativeFilter(parent, root),
-				fontKerning: computedStyle.fontKerning,
-				fontStretch: computedStyle.fontStretch,
-				fontVariantCaps: computedStyle.fontVariantCaps,
-				textDecorationLine: computedStyle.textDecorationLine,
-				textDecorationColor: computedStyle.textDecorationColor,
-				textDecorationStyle: computedStyle.textDecorationStyle,
-				textDecorationThickness: computedStyle.textDecorationThickness,
-				textUnderlineOffset: computedStyle.textUnderlineOffset,
-				shadows
-			});
+			for (const line of getTextLineRects(textNode, localScaleY)) {
+				const text = textNode.data.slice(line.start, line.end).trim();
+				if (!text) continue;
+
+				const x =
+					direction === 'rtl'
+						? (line.rect.right - rootRect.left) * localScaleX
+						: (line.rect.left - rootRect.left) * localScaleX;
+				const stablePosition = stabilizeTimedOverlayTextPosition(
+					getStableTimedOverlayTextPositionKey(parent, text, computedStyle),
+					{
+						x,
+						y: (line.rect.top - rootRect.top) * localScaleY,
+						width: line.rect.width * localScaleX,
+						height: line.rect.height * localScaleY
+					}
+				);
+
+				runs.push({
+					text: applyTextTransform(text, computedStyle.textTransform),
+					transform,
+					x: stablePosition.x,
+					y: stablePosition.y,
+					width: stablePosition.width,
+					height: stablePosition.height,
+					font: computedStyle.font,
+					color: computedStyle.color,
+					opacity,
+					direction,
+					align,
+					letterSpacing: computedStyle.letterSpacing,
+					wordSpacing: computedStyle.wordSpacing,
+					filter: getCumulativeFilter(parent, root),
+					fontKerning: computedStyle.fontKerning,
+					fontStretch: computedStyle.fontStretch,
+					fontVariantCaps: computedStyle.fontVariantCaps,
+					textDecorationLine: computedStyle.textDecorationLine,
+					textDecorationColor: computedStyle.textDecorationColor,
+					textDecorationStyle: computedStyle.textDecorationStyle,
+					textDecorationThickness: computedStyle.textDecorationThickness,
+					textUnderlineOffset: computedStyle.textUnderlineOffset,
+					shadows
+				});
+			}
+		}
+
+		return runs;
+	} finally {
+		for (const [element, rotation] of rotations) {
+			if (rotation.value) element.style.setProperty('rotate', rotation.value, rotation.priority);
+			else element.style.removeProperty('rotate');
 		}
 	}
-
-	return runs;
 }
 
 /**
@@ -841,6 +887,10 @@ function drawTextRunContent(
 
 	context.save();
 	context.globalAlpha = opacity;
+	if (run.transform) {
+		const { a, b, c, d, e, f } = run.transform;
+		context.transform(a, (b * scaleY) / scaleX, (c * scaleX) / scaleY, d, e * scaleX, f * scaleY);
+	}
 	context.font = scaleCanvasFont(run.font, scaleY);
 	context.fillStyle = run.color;
 	context.strokeStyle = run.color;
@@ -906,8 +956,14 @@ function drawTextRunContent(
 			context.save();
 			context.shadowColor = shadow.color;
 			context.shadowBlur = shadow.blur * Math.max(scaleX, scaleY);
-			context.shadowOffsetX = shadow.offsetX * scaleX;
-			context.shadowOffsetY = shadow.offsetY * scaleY;
+			context.shadowOffsetX =
+				(run.transform
+					? run.transform.a * shadow.offsetX + run.transform.c * shadow.offsetY
+					: shadow.offsetX) * scaleX;
+			context.shadowOffsetY =
+				(run.transform
+					? run.transform.b * shadow.offsetX + run.transform.d * shadow.offsetY
+					: shadow.offsetY) * scaleY;
 			context.fillText(run.text, x, y);
 			context.restore();
 		}

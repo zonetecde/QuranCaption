@@ -1750,7 +1750,7 @@ const zh = {
 			contrast: '调整文本的对比度',
 			animation: '为字幕添加运动和过渡效果',
 			scale: '缩放字幕',
-			rotation: '旋转字幕（度数）',
+			rotation: '旋转文本（度数）',
 			'custom-css': '为字幕编写自定义 CSS。必要时使用 !important。',
 			'video-dimension': '视频质量和方向',
 			'media-fill': '裁剪背景视频和图片以填满整个画面',

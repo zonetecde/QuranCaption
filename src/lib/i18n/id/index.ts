@@ -1035,6 +1035,7 @@ const id = {
 		saveStylesCommunityPresets: 'Simpan gaya & preset komunitas',
 		styleName: {
 			...baseEn.editor.styleName,
+			rotation: 'Rotasi',
 			riwayah: 'Riwayah',
 			'basmala-style': 'Gaya Basmala',
 			'basmala-scale': 'Skala Basmala',
@@ -1118,6 +1119,7 @@ const id = {
 		} as Translation['editor']['styleName'],
 		styleDescription: {
 			...baseEn.editor.styleDescription,
+			rotation: 'Putar teks dalam derajat',
 			'verse-number-format': 'Ubah format nomor ayat. Tag yang didukung: <number>, <br>.',
 			'surah-name-format':
 				'Format tampilan nama surah. Tag yang didukung: <number>, <surah>, <transliteration>, <translation>, <min-range>, <max-range>, <translation-[language-code]>, <br>.',

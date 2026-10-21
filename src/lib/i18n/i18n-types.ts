@@ -5843,7 +5843,7 @@ type RootTranslation = {
 			 */
 			scale: string;
 			/**
-			 * R​o​t​a​t​e​ ​t​h​e​ ​s​u​b​t​i​t​l​e​ ​i​n​ ​d​e​g​r​e​e​s
+			 * R​o​t​a​t​e​ ​t​h​e​ ​t​e​x​t​ ​i​n​ ​d​e​g​r​e​e​s
 			 */
 			rotation: string;
 			/**
@@ -18070,7 +18070,7 @@ export type TranslationFunctions = {
 			 */
 			scale: () => LocalizedString;
 			/**
-			 * Rotate the subtitle in degrees
+			 * Rotate the text in degrees
 			 */
 			rotation: () => LocalizedString;
 			/**

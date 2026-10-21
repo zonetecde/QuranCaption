@@ -1895,7 +1895,7 @@ const es = {
 			contrast: 'Ajustar el contraste del texto',
 			animation: 'Agregar efectos de movimiento y transición a los subtítulos',
 			scale: 'Escalar el subtítulo',
-			rotation: 'Rotar el subtítulo en grados',
+			rotation: 'Girar el texto en grados',
 			'custom-css':
 				'Escribir CSS personalizado para los subtítulos. Usar !important si es necesario.',
 			'video-dimension': 'Calidad y orientación del video',

@@ -308,6 +308,9 @@ export async function transcribeProjectAudio(
 				track.clips.push(clip);
 			}
 			track.clips.sort((a, b) => a.startTime - b.startTime);
+			const first = track.clips[0];
+			if (first && first.startTime > 1)
+				track.clips.unshift(new SilenceClip(0, first.startTime - 1));
 			project.detail.updateVideoDetailAttributes();
 		},
 		project

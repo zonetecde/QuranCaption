@@ -345,6 +345,7 @@ export async function rearrangeProjectSubtitles(
 	assertCurrent();
 	output.sort((a, b) => a.startTime - b.startTime);
 	const withSilences: Clip[] = [];
+	if (output[0]?.startTime > 1) withSilences.push(new SilenceClip(0, output[0].startTime - 1));
 	for (const clip of output) {
 		const previous = withSilences[withSilences.length - 1];
 		if (

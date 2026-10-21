@@ -160,6 +160,24 @@ test('turns measured one-second pauses into hard boundaries and never displays t
 	).toBe(true);
 });
 
+test('adds missing silence from zero to the first subtitle and restores the gap with undo', async () => {
+	track.clips = [subtitle(1000, 'first words')];
+	await rearrangeProjectSubtitles(project, options, new AbortController().signal, vi.fn());
+	expect(track.clips[0]).toBeInstanceOf(SilenceClip);
+	expect([track.clips[0].startTime, track.clips[0].endTime]).toEqual([0, 999]);
+	ProjectHistoryManager.undo();
+	expect(globalState.getSubtitleTrack.clips).toHaveLength(1);
+	expect(globalState.getSubtitleTrack.clips[0].startTime).toBe(1000);
+});
+
+test('keeps an existing initial silence without duplicating or replacing it', async () => {
+	const silence = new SilenceClip(0, 999);
+	track.clips = [silence, subtitle(1000, 'first words')];
+	await rearrangeProjectSubtitles(project, options, new AbortController().signal, vi.fn());
+	expect(track.clips[0]).toBe(silence);
+	expect(track.clips.filter((clip) => clip instanceof SilenceClip)).toEqual([silence]);
+});
+
 test('preserves quotations and Quran ranges when splitting and merging', async () => {
 	track.clips = [subtitle(0, 'one {{two three}}'), subtitle(1500, '{{1:1:1-2}}')];
 	track.clips[1] = new SubtitleClip(1500, 2500, '{{1:1:1-2}}', 'speaker', {}, true, null, {

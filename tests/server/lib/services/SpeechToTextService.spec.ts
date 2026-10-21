@@ -162,13 +162,15 @@ describe('transcribing timeline audio', () => {
 			[10000, 11800, 'a b'],
 			[12000, 13800, 'c d']
 		]);
-		expect(track.clips[1]).toBeInstanceOf(SilenceClip);
-		expect([track.clips[1].startTime, track.clips[1].endTime]).toEqual([11801, 11999]);
-		expect((track.clips[2] as SubtitleClip).alignmentMetadata!.words[0].start).toBe(0);
+		expect(track.clips[0]).toBeInstanceOf(SilenceClip);
+		expect([track.clips[0].startTime, track.clips[0].endTime]).toEqual([0, 9999]);
+		expect(track.clips[2]).toBeInstanceOf(SilenceClip);
+		expect([track.clips[2].startTime, track.clips[2].endTime]).toEqual([11801, 11999]);
+		expect((track.clips[3] as SubtitleClip).alignmentMetadata!.words[0].start).toBe(0);
 		expect(ProjectHistoryManager.undo()).toBe(true);
 		expect(globalState.getSubtitleTrack.clips).toHaveLength(0);
 		expect(ProjectHistoryManager.redo()).toBe(true);
-		expect(globalState.getSubtitleTrack.clips).toHaveLength(3);
+		expect(globalState.getSubtitleTrack.clips).toHaveLength(4);
 	});
 
 	test('uses the ElevenLabs key and model independently of the Groq key', async () => {
@@ -240,6 +242,7 @@ describe('transcribing timeline audio', () => {
 	});
 
 	test('does not create empty silence clips between touching subtitles', async () => {
+		clip.startTime = 0;
 		vi.mocked(invoke).mockResolvedValue({
 			words: [
 				{ word: 'a', start: 0, end: 1 },
@@ -255,6 +258,20 @@ describe('transcribing timeline audio', () => {
 		);
 		expect(track.clips).toHaveLength(2);
 		expect(track.clips.every((item) => item instanceof SubtitleClip)).toBe(true);
+	});
+
+	test('preserves the existing initial silence without duplicating it', async () => {
+		const initial = new SilenceClip(0, 9999);
+		track.clips = [initial];
+		await transcribeProjectAudio(
+			project,
+			clip.id,
+			{ ...globalState.settings!.speechToTextSettings },
+			new AbortController().signal,
+			vi.fn()
+		);
+		expect(track.clips[0]).toBe(initial);
+		expect(track.clips.filter((item) => item instanceof SilenceClip)).toHaveLength(2);
 	});
 
 	test('does not apply results after the source clip has been edited', async () => {

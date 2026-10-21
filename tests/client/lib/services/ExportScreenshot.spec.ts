@@ -5,7 +5,10 @@ import {
 	releaseExportScreenshotContext
 } from '../../../../src/routes/exporter/ExportScreenshot';
 import { captureMacOsOverlayPngBytes } from '../../../../src/routes/exporter/MacOSExport';
+import { ExportOverlayInspector } from '../../../../src/routes/exporter/ExportOverlayInspector';
 import { getSystemFontSubsetDataUrl } from '$lib/services/SystemFontSubset';
+
+vi.mock('$lib/runes/main.svelte', () => ({ globalState: {} }));
 
 const elements: HTMLElement[] = [];
 
@@ -58,6 +61,27 @@ async function readPixels(blob: Blob): Promise<ImageData> {
 }
 
 /**
+ * Repère les limites verticales des pixels visibles d'une couleur.
+ * @param {ImageData} pixels Capture à analyser.
+ * @param {number[]} color Composantes rouge, verte et bleue recherchées.
+ * @returns {number[]} Première et dernière lignes contenant la couleur.
+ */
+function getColorVerticalBounds(pixels: ImageData, color: number[]): number[] {
+	let top = pixels.height;
+	let bottom = -1;
+	for (let index = 0; index < pixels.data.length; index += 4) {
+		if (pixels.data[index + 3] < 16) continue;
+		if (!color.every((value, channel) => Math.abs(pixels.data[index + channel] - value) <= 4))
+			continue;
+		const y = Math.floor(index / 4 / pixels.width);
+		top = Math.min(top, y);
+		bottom = Math.max(bottom, y);
+	}
+	expect(bottom).toBeGreaterThanOrEqual(top);
+	return [top, bottom];
+}
+
+/**
  * Vérifie l'égalité des captures pixel par pixel.
  * @param {Blob} expected Capture de référence avec un contexte neuf.
  * @param {Blob} actual Capture utilisant le cache du worker.
@@ -80,6 +104,52 @@ afterEach(() => {
 });
 
 describe('contexte de capture réutilisé par worker', () => {
+	it.each([
+		['QCExportQpc', 'ﲭ ﲮ ﲯ'],
+		['QCExportHafs', 'بِسْمِ اللَّهِ الرَّحْمَٰنِ'],
+		['Georgia', 'By the wise Quran']
+	])('aligne le texte canvas %s avec son fond comme le DOM', async (font, text) => {
+		const root = await createOverlay();
+		root.style.height = '360px';
+		root.innerHTML = `<div id="subtitles-container"><p dir="${font === 'Georgia' ? 'ltr' : 'rtl'}" style="margin:0;padding:20px;font:48px ${font};line-height:1.6;text-align:center;color:white;white-space:pre-line"><span class="line-background" style="background:linear-gradient(#c08020,#c08020) center calc(50% + 15px) / 100% 10px no-repeat;padding:20px 5px;box-decoration-break:clone;-webkit-box-decoration-break:clone">${text}\n${text}</span></p></div>`;
+		for (const scale of [1, 2]) {
+			const expected = await readPixels(await domToBlob(root, { scale }));
+			const actual = await readPixels(
+				new Blob([
+					await captureMacOsOverlayPngBytes(root, scale, 320 * scale, 360 * scale, {
+						compensateTextWeight: false
+					})
+				])
+			);
+			for (const color of [
+				[255, 255, 255],
+				[192, 128, 32]
+			]) {
+				const bounds = getColorVerticalBounds(expected, color);
+				for (const [index, value] of getColorVerticalBounds(actual, color).entries()) {
+					// Tolère deux pixels CSS pour les différences de rastérisation des glyphes.
+					expect(Math.abs(value - bounds[index])).toBeLessThanOrEqual(
+						color[0] === 255 ? 2 * scale : 1
+					);
+				}
+			}
+		}
+	});
+
+	it('refuse le fond vide réutilisable uniquement quand un fond par ligne est visible', async () => {
+		const root = await createOverlay();
+		root.innerHTML =
+			'<div id="subtitles-container"><span class="line-background">Verse</span></div>';
+		const line = root.querySelector<HTMLElement>('.line-background')!;
+		expect(ExportOverlayInspector.hasVisibleSubtitleBackground(root)).toBe(false);
+		line.style.backgroundImage = 'linear-gradient(gold, gold)';
+		expect(ExportOverlayInspector.hasVisibleSubtitleBackground(root)).toBe(true);
+		line.style.visibility = 'hidden';
+		expect(ExportOverlayInspector.hasVisibleSubtitleBackground(root)).toBe(false);
+		line.style.visibility = 'visible';
+		line.style.opacity = '0';
+		expect(ExportOverlayInspector.hasVisibleSubtitleBackground(root)).toBe(false);
+	});
 	it('conserve le rendu quand le texte, la police, le halo et la visibilité changent', async () => {
 		const root = await createOverlay();
 		const arabic = root.querySelector<HTMLElement>('.arabic')!;

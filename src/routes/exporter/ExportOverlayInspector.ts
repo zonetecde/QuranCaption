@@ -30,6 +30,14 @@ export class ExportOverlayInspector {
 	 * @returns {boolean} true si le blank réutilisable ne convient pas.
 	 */
 	static hasVisibleSubtitleBackground(node: HTMLElement): boolean {
+		// Les fonds par ligne dépendent du texte courant et sont absents du blank.
+		if (
+			Array.from(node.querySelectorAll<HTMLElement>('#subtitles-container .line-background')).some(
+				(element) => this.isVisible(element) && getComputedStyle(element).backgroundImage !== 'none'
+			)
+		)
+			return true;
+
 		const backgrounds = node.querySelector<HTMLElement>('#subtitles-backgrounds');
 		if (!backgrounds || !this.isVisible(backgrounds)) return false;
 

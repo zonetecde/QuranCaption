@@ -827,7 +827,7 @@ function drawTextRunContent(
 	opacity: number
 ) {
 	const x = run.x * scaleX;
-	const y = run.y * scaleY;
+	let y = run.y * scaleY;
 	const fontSizePx = getFontSizePx(run.font);
 	const compensationCssPx = !compensateTextWeight
 		? 0
@@ -849,6 +849,9 @@ function drawTextRunContent(
 	context.textBaseline = 'top';
 	context.textAlign = run.align;
 	context.direction = run.direction;
+	// Le haut du cadre DOM peut dépasser le repère « top » du canvas selon la police.
+	const fontAscent = context.measureText(run.text).fontBoundingBoxAscent;
+	if (Number.isFinite(fontAscent)) y += fontAscent;
 	const extendedContext = context as CanvasRenderingContext2D & {
 		letterSpacing?: string;
 		wordSpacing?: string;

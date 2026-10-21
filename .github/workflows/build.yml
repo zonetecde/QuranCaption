@@ -109,12 +109,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p src-tauri/binaries "$RUNNER_TEMP/qc-ffmpeg"
+          curl -fL --retry 3 --connect-timeout 30 --max-time 300 \
+            -o "$RUNNER_TEMP/qc-ffmpeg/ffmpeg.zip" \
+            "https://github.com/Tyrrrz/FFmpegBin/releases/download/9.0.2/ffmpeg-osx-x64.zip"
+          echo "e1938c2df4024c13eeef068f5561e7782ec4003b3f40b428065147e40b92e9a0  $RUNNER_TEMP/qc-ffmpeg/ffmpeg.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/qc-ffmpeg/ffmpeg.zip" ffmpeg ffprobe -d "$RUNNER_TEMP/qc-ffmpeg"
           for binary in ffmpeg ffprobe; do
-            curl -fL --retry 3 --connect-timeout 30 --max-time 300 \
-              -o "$RUNNER_TEMP/qc-ffmpeg/$binary.zip" \
-              "https://evermeet.cx/ffmpeg/$binary-9.0.2.zip"
-            unzip -q "$RUNNER_TEMP/qc-ffmpeg/$binary.zip" -d "$RUNNER_TEMP/qc-ffmpeg/$binary"
-            install -m 755 "$RUNNER_TEMP/qc-ffmpeg/$binary/$binary" "src-tauri/binaries/$binary"
+            install -m 755 "$RUNNER_TEMP/qc-ffmpeg/$binary" "src-tauri/binaries/$binary"
             lipo -archs "src-tauri/binaries/$binary" | grep -qw x86_64
           done
           src-tauri/binaries/ffprobe -version

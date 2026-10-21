@@ -3797,7 +3797,7 @@ dependencies = [
 
 [[package]]
 name = "polling"
-version = "3.8.0"
+version = "3.8.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b53a684391ad002dd6a596ceb6c74fd004fdce75f4be2e3f615068abbea5fd50"
 dependencies = [
@@ -4029,7 +4029,7 @@ dependencies = [
 
 [[package]]
 name = "qurancaption"
-version = "3.8.0"
+version = "3.8.10"
 dependencies = [
  "base64 0.22.1",
  "bytes",

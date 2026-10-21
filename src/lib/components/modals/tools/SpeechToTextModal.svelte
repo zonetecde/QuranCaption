@@ -6,6 +6,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { transcribeProjectAudio, type SpeechToTextCopy } from '$lib/services/SpeechToTextService';
 	import toast from 'svelte-5-french-toast';
+	import { openUrl } from '@tauri-apps/plugin-opener';
 
 	let { close }: { close: () => void } = $props();
 	const project = untrack(() => globalState.currentProject!);
@@ -18,6 +19,7 @@
 	let selectedClipId = $state(0);
 	let busy = $state(false);
 	let errorMessage = $state('');
+	let showKeyHelp = $state(false);
 	let phase = $state<'transcribing' | 'segmenting'>('transcribing');
 	let progress = $state(0);
 	const controller = new AbortController();
@@ -178,10 +180,49 @@
 						{/if}
 					</label>
 				</div>
-				<label class="block space-y-1 text-sm text-secondary"
-					><span>{$LL.aiVideo.aiApiKeyLabel()}</span>
+				<div class="space-y-1 text-sm text-secondary">
+					<div class="flex items-center gap-1.5">
+						<label for="speech-to-text-api-key">{$LL.aiVideo.aiApiKeyLabel()}</label>
+						<button
+							type="button"
+							aria-label={copy.keyHelp()}
+							title={copy.keyHelp()}
+							aria-expanded={showKeyHelp}
+							aria-controls="speech-to-text-key-help"
+							onclick={() => (showKeyHelp = !showKeyHelp)}
+							class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full hover:bg-accent hover:text-primary"
+						>
+							<span class="material-icons text-base" aria-hidden="true">help_outline</span>
+						</button>
+					</div>
+					{#if showKeyHelp}
+						<div
+							id="speech-to-text-key-help"
+							class="space-y-2 rounded-lg border border-color bg-accent p-3 text-xs"
+						>
+							<ol class="list-decimal space-y-1.5 pl-4">
+								{#each settings.provider === 'groq' ? [copy.groqKeyStep1(), copy.groqKeyStep2(), copy.groqKeyStep3()] : [copy.elevenLabsKeyStep1(), copy.elevenLabsKeyStep2(), copy.elevenLabsKeyStep3()] as step (step)}
+									<li>{step}</li>
+								{/each}
+								<li>{copy.keyPasteStep()}</li>
+							</ol>
+							<button
+								type="button"
+								class="cursor-pointer text-accent underline"
+								onclick={() =>
+									openUrl(
+										settings.provider === 'groq'
+											? 'https://console.groq.com/keys'
+											: 'https://elevenlabs.io/app/developers/api-keys'
+									)}
+							>
+								{copy.openKeysPage()}
+							</button>
+						</div>
+					{/if}
 					{#if settings.provider === 'groq'}
 						<input
+							id="speech-to-text-api-key"
 							type="password"
 							autocomplete="off"
 							bind:value={settings.groqApiKey}
@@ -189,6 +230,7 @@
 						/>
 					{:else}
 						<input
+							id="speech-to-text-api-key"
 							type="password"
 							autocomplete="off"
 							bind:value={settings.elevenLabsApiKey}
@@ -196,7 +238,7 @@
 						/>
 					{/if}
 					<span class="block text-xs text-thirdly">{copy.keyHint()}</span>
-				</label>
+				</div>
 				<label class="block space-y-1 text-sm text-secondary"
 					><span>{$LL.common.language()}</span>
 					<input bind:value={settings.language} maxlength="3" class={inputClass} />

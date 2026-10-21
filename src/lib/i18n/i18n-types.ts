@@ -1129,6 +1129,42 @@ type RootTranslation = {
 			 */
 			keyHint: string;
 			/**
+			 * H​o​w​ ​d​o​ ​I​ ​g​e​t​ ​a​n​ ​A​P​I​ ​k​e​y​?
+			 */
+			keyHelp: string;
+			/**
+			 * O​p​e​n​ ​G​r​o​q​ ​C​o​n​s​o​l​e​ ​a​n​d​ ​s​i​g​n​ ​i​n​ ​o​r​ ​c​r​e​a​t​e​ ​a​n​ ​a​c​c​o​u​n​t​.
+			 */
+			groqKeyStep1: string;
+			/**
+			 * I​n​ ​A​P​I​ ​K​e​y​s​,​ ​s​e​l​e​c​t​ ​C​r​e​a​t​e​ ​A​P​I​ ​K​e​y​ ​a​n​d​ ​g​i​v​e​ ​y​o​u​r​ ​k​e​y​ ​a​ ​n​a​m​e​.
+			 */
+			groqKeyStep2: string;
+			/**
+			 * C​r​e​a​t​e​ ​t​h​e​ ​k​e​y​ ​a​n​d​ ​c​o​p​y​ ​t​h​e​ ​d​i​s​p​l​a​y​e​d​ ​v​a​l​u​e​.
+			 */
+			groqKeyStep3: string;
+			/**
+			 * O​p​e​n​ ​E​l​e​v​e​n​L​a​b​s​ ​a​n​d​ ​s​i​g​n​ ​i​n​ ​o​r​ ​c​r​e​a​t​e​ ​a​n​ ​a​c​c​o​u​n​t​.
+			 */
+			elevenLabsKeyStep1: string;
+			/**
+			 * G​o​ ​t​o​ ​D​e​v​e​l​o​p​e​r​s​,​ ​t​h​e​n​ ​A​P​I​ ​K​e​y​s​,​ ​a​n​d​ ​c​r​e​a​t​e​ ​a​ ​n​e​w​ ​k​e​y​.
+			 */
+			elevenLabsKeyStep2: string;
+			/**
+			 * G​i​v​e​ ​y​o​u​r​ ​k​e​y​ ​a​ ​n​a​m​e​,​ ​e​n​a​b​l​e​ ​t​h​e​ ​S​p​e​e​c​h​ ​t​o​ ​T​e​x​t​ ​p​e​r​m​i​s​s​i​o​n​,​ ​t​h​e​n​ ​c​r​e​a​t​e​ ​a​n​d​ ​c​o​p​y​ ​t​h​e​ ​k​e​y​.
+			 */
+			elevenLabsKeyStep3: string;
+			/**
+			 * P​a​s​t​e​ ​t​h​e​ ​k​e​y​ ​i​n​t​o​ ​t​h​e​ ​A​P​I​ ​k​e​y​ ​f​i​e​l​d​,​ ​t​h​e​n​ ​s​e​l​e​c​t​ ​S​a​v​e​.
+			 */
+			keyPasteStep: string;
+			/**
+			 * O​p​e​n​ ​A​P​I​ ​k​e​y​s​ ​p​a​g​e
+			 */
+			openKeysPage: string;
+			/**
 			 * L​e​a​v​e​ ​e​m​p​t​y​ ​f​o​r​ ​a​u​t​o​m​a​t​i​c​ ​d​e​t​e​c​t​i​o​n​,​ ​o​r​ ​e​n​t​e​r​ ​a​ ​l​a​n​g​u​a​g​e​ ​c​o​d​e​ ​s​u​c​h​ ​a​s​ ​a​r​,​ ​f​r​ ​o​r​ ​e​n​.
 			 */
 			languageHint: string;
@@ -10764,6 +10800,42 @@ export type TranslationFunctions = {
 			 * Your personal keys are saved in your local user settings.
 			 */
 			keyHint: () => LocalizedString;
+			/**
+			 * How do I get an API key?
+			 */
+			keyHelp: () => LocalizedString;
+			/**
+			 * Open Groq Console and sign in or create an account.
+			 */
+			groqKeyStep1: () => LocalizedString;
+			/**
+			 * In API Keys, select Create API Key and give your key a name.
+			 */
+			groqKeyStep2: () => LocalizedString;
+			/**
+			 * Create the key and copy the displayed value.
+			 */
+			groqKeyStep3: () => LocalizedString;
+			/**
+			 * Open ElevenLabs and sign in or create an account.
+			 */
+			elevenLabsKeyStep1: () => LocalizedString;
+			/**
+			 * Go to Developers, then API Keys, and create a new key.
+			 */
+			elevenLabsKeyStep2: () => LocalizedString;
+			/**
+			 * Give your key a name, enable the Speech to Text permission, then create and copy the key.
+			 */
+			elevenLabsKeyStep3: () => LocalizedString;
+			/**
+			 * Paste the key into the API key field, then select Save.
+			 */
+			keyPasteStep: () => LocalizedString;
+			/**
+			 * Open API keys page
+			 */
+			openKeysPage: () => LocalizedString;
 			/**
 			 * Leave empty for automatic detection, or enter a language code such as ar, fr or en.
 			 */

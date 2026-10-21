@@ -6,6 +6,16 @@ const editor = {
 		model: 'Model',
 		maxDuration: 'Max duration (seconds)',
 		keyHint: 'Your personal keys are saved in your local user settings.',
+		keyHelp: 'How do I get an API key?',
+		groqKeyStep1: 'Open Groq Console and sign in or create an account.',
+		groqKeyStep2: 'In API Keys, select Create API Key and give your key a name.',
+		groqKeyStep3: 'Create the key and copy the displayed value.',
+		elevenLabsKeyStep1: 'Open ElevenLabs and sign in or create an account.',
+		elevenLabsKeyStep2: 'Go to Developers, then API Keys, and create a new key.',
+		elevenLabsKeyStep3:
+			'Give your key a name, enable the Speech to Text permission, then create and copy the key.',
+		keyPasteStep: 'Paste the key into the API key field, then select Save.',
+		openKeysPage: 'Open API keys page',
 		languageHint:
 			'Leave empty for automatic detection, or enter a language code such as ar, fr or en.',
 		semantic: 'Segment by meaning',

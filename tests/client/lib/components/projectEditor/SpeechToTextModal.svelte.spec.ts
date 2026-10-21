@@ -18,6 +18,12 @@ import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { setLocale } from '$lib/i18n/i18n-svelte';
 import SpeechToTextModal from '$lib/components/modals/tools/SpeechToTextModal.svelte';
 import { transcribeProjectAudio } from '$lib/services/SpeechToTextService';
+import { openUrl } from '@tauri-apps/plugin-opener';
+
+vi.mock('@tauri-apps/plugin-opener', async (importOriginal) => ({
+	...(await importOriginal<typeof import('@tauri-apps/plugin-opener')>()),
+	openUrl: vi.fn(async () => {})
+}));
 
 vi.mock('$lib/services/SpeechToTextService', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/services/SpeechToTextService')>()),
@@ -50,6 +56,26 @@ afterEach(() => {
 	vi.mocked(transcribeProjectAudio).mockReset();
 	globalState.currentProject = null;
 	globalState.settings = originalSettings;
+	vi.mocked(openUrl).mockClear();
+});
+
+test('shows API key instructions and opens the keys page for the selected provider', async () => {
+	const component = render(SpeechToTextModal, { close: vi.fn() });
+	const help = component.getByRole('button', { name: 'How do I get an API key?' });
+	await help.click();
+	await expect.element(help).toHaveAttribute('aria-expanded', 'true');
+	await expect
+		.element(component.getByText('Open Groq Console and sign in or create an account.'))
+		.toBeVisible();
+	await component.getByRole('button', { name: 'Open API keys page' }).click();
+	expect(openUrl).toHaveBeenLastCalledWith('https://console.groq.com/keys');
+	await component.getByRole('combobox', { name: 'Provider' }).selectOptions('elevenlabs');
+	await expect.element(component.getByText(/enable the Speech to Text permission/)).toBeVisible();
+	await component.getByRole('button', { name: 'Open API keys page' }).click();
+	expect(openUrl).toHaveBeenLastCalledWith('https://elevenlabs.io/app/developers/api-keys');
+	await help.click();
+	await expect.element(help).toHaveAttribute('aria-expanded', 'false');
+	expect(transcribeProjectAudio).not.toHaveBeenCalled();
 });
 
 test('saves independent provider keys and restores them when switching providers', async () => {

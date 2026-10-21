@@ -107,11 +107,11 @@ export class ProjectDetail extends SerializableBase {
 	}
 
 	/**
-	 * Met à jour le pourcentage de complétion des traductions du projet pour
-	 * une édition donnée
-	 * @param edition L'édition à mettre à jour
+	 * Calcule le pourcentage traduit, y compris les traductions IA non relues.
+	 * @param {Edition} edition Édition à mesurer.
+	 * @returns {number} Pourcentage entier de sous-titres traduits.
 	 */
-	updatePercentageTranslated(edition: Edition) {
+	getPercentageTranslated(edition: Edition): number {
 		// Calcul le nbre de traduction complété/nbre de traduction total
 		let total: number = 0;
 		let completed: number = 0;
@@ -123,7 +123,10 @@ export class ProjectDetail extends SerializableBase {
 					// Si la traduction existe, on l'ajoute au pourcentage
 					if (!(translations[edition.name] instanceof VerseTranslation)) continue;
 
-					if (translations[edition.name].isStatusComplete()) {
+					if (
+						translations[edition.name].isStatusComplete() ||
+						translations[edition.name].status === 'ai translated'
+					) {
 						completed++;
 					}
 
@@ -132,9 +135,16 @@ export class ProjectDetail extends SerializableBase {
 			}
 		}
 
-		globalState.currentProject!.detail.translations[edition.author] = Math.floor(
-			total > 0 ? (completed / total) * 100 : 0
-		);
+		return Math.floor(total > 0 ? (completed / total) * 100 : 0);
+	}
+
+	/**
+	 * Met à jour le pourcentage traduit enregistré pour une édition.
+	 * @param {Edition} edition Édition à mettre à jour.
+	 * @returns {void}
+	 */
+	updatePercentageTranslated(edition: Edition): void {
+		this.translations[edition.author] = this.getPercentageTranslated(edition);
 	}
 
 	matchSearchQuery(searchQuery: string): boolean {

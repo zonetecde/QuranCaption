@@ -48,7 +48,6 @@ vi.mock('@tauri-apps/api/event', () => ({
 vi.mock('$lib/services/AIProjectTranslationService', () => ({
 	applyAIProjectTranslationResults: vi.fn(() => ({ appliedSubtitles: 0 })),
 	buildAIProjectTranslationBatches: mocks.buildBatches,
-	estimateAIProjectTranslationBatchCount: vi.fn(() => 1),
 	getEligibleAIProjectTranslationSubtitles: mocks.getEligible,
 	resolveAIProjectTranslationSuccessContext: vi.fn(() => ''),
 	runAIProjectTranslationBatchStreaming: mocks.runBatch,
@@ -91,7 +90,7 @@ describe('AI translation modal', () => {
 		return element!.querySelector('input') as HTMLInputElement;
 	}
 
-	test('uses overwrite defaults, streams AI output and hides the run button when complete', async () => {
+	test('keeps terminology and preferences visible while protecting reviewed translations', async () => {
 		const edition = new Edition(
 			'language-french',
 			'language-french',
@@ -105,22 +104,16 @@ describe('AI translation modal', () => {
 		);
 		const component = render(AskIAModal, { edition, close: vi.fn() });
 
-		expect(getCheckbox(component.container, 'Overwrite AI translations').checked).toBe(true);
-		expect(getCheckbox(component.container, 'Overwrite reviewed translations').checked).toBe(true);
+		expect(component.container.querySelector('input[type="range"]')).toBeNull();
+		expect(component.container.querySelector('#ai-translation-reasoning-mode')).toBeNull();
 		expect(getCheckbox(component.container, 'Overwrite manual Quran translations').checked).toBe(
-			true
+			false
 		);
-
-		const reasoningSelect = component.container.querySelector<HTMLSelectElement>(
-			'#ai-translation-reasoning-mode'
+		const preferences = component.container.querySelector<HTMLTextAreaElement>(
+			'#ai-translation-preferences'
 		)!;
-		expect(reasoningSelect.value).toBe('medium');
-		reasoningSelect.value = 'high';
-		reasoningSelect.dispatchEvent(new Event('change', { bubbles: true }));
-		expect(globalState.settings!.aiTranslationSettings.projectTranslationReasoningMode).toBe(
-			'high'
-		);
-		expect(Settings.save).toHaveBeenCalled();
+		preferences.value = 'Use simple French';
+		preferences.dispatchEvent(new Event('input', { bubbles: true }));
 
 		const terminologySelect = component.container.querySelector<HTMLSelectElement>(
 			'#ai-translation-islamic-terms'
@@ -139,19 +132,71 @@ describe('AI translation modal', () => {
 
 		await vi.waitFor(() => {
 			expect(mocks.runBatch).toHaveBeenCalledWith(
-				expect.objectContaining({ islamicTermMode: 'translated' })
+				expect.objectContaining({
+					islamicTermMode: 'translated',
+					additionalPreferences: 'Use simple French',
+					reasoningEffort: 'medium'
+				})
 			);
-			const streamedValues = Array.from(
-				component.container.querySelectorAll<HTMLTextAreaElement>('textarea[readonly]')
-			).map((textarea) => textarea.value);
-			expect(streamedValues).toContain('Reasoning live');
-			expect(streamedValues).toContain('{"i":[]}');
+			expect(mocks.buildBatches).toHaveBeenCalledWith(edition, {
+				retryErrors: true,
+				overwriteAiTranslated: false,
+				overwriteReviewed: false,
+				overwriteManualQuran: false
+			});
+			expect(component.container.textContent).not.toContain('{"i":[]}');
 			expect(
 				Array.from(component.container.querySelectorAll('button')).some((button) =>
 					button.textContent?.includes('Translate video')
 				)
 			).toBe(false);
 		});
+	});
+
+	test('stops launching queued batches after the current requests finish', async () => {
+		const batches = Array.from({ length: 4 }, (_, index) => ({
+			batchId: `stop-${index}`,
+			candidates: [{}],
+			beforeSubtitleIds: [],
+			afterSubtitleIds: [],
+			request: { b: [], i: [], a: [] },
+			wordCount: 1
+		}));
+		mocks.buildBatches.mockResolvedValueOnce(batches);
+		const releases: Array<() => void> = [];
+		mocks.runBatch.mockImplementation(
+			({ batch }: { batch: { batchId: string } }) =>
+				new Promise((resolve) => {
+					releases.push(() =>
+						resolve({ batchId: batch.batchId, rawText: '{"i":[]}', parsed: { i: [] } })
+					);
+				})
+		);
+		const edition = new Edition(
+			'test',
+			'test',
+			'French',
+			'French',
+			'ltr',
+			'project-language',
+			'',
+			'',
+			''
+		);
+		const component = render(AskIAModal, { edition, close: vi.fn() });
+		Array.from(component.container.querySelectorAll('button'))
+			.find((button) => button.textContent?.includes('Translate video'))!
+			.click();
+		await vi.waitFor(() => expect(mocks.runBatch).toHaveBeenCalledTimes(3));
+		Array.from(component.container.querySelectorAll('button'))
+			.find((button) => button.textContent?.includes('Stop after current requests'))!
+			.click();
+		await vi.waitFor(() => expect(component.container.textContent).toContain('Stopping'));
+		for (const release of releases) release();
+		await vi.waitFor(() =>
+			expect(component.container.textContent).toContain('Translation stopped')
+		);
+		expect(mocks.runBatch).toHaveBeenCalledTimes(3);
 	});
 
 	test('runs at most three translation batches concurrently', async () => {

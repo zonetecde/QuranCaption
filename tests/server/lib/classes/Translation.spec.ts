@@ -13,6 +13,20 @@ import {
 	VerseTranslation
 } from '$lib/classes/Translation.svelte';
 
+describe('Translation filter categories', () => {
+	it('groups manual and supplied translations together and exposes old failures as untranslated', () => {
+		expect(new VerseTranslation('AI text', 'ai translated').getFilterStatus()).toBe(
+			'ai translated'
+		);
+		expect(new VerseTranslation('Manual text', 'reviewed').getFilterStatus()).toBe('reviewed');
+		expect(new VerseTranslation('Quran edition', 'completed by default').getFilterStatus()).toBe(
+			'reviewed'
+		);
+		expect(new VerseTranslation('', 'error').getFilterStatus()).toBe('to translate');
+		expect(new VerseTranslation('', 'ai error').getFilterStatus()).toBe('to translate');
+	});
+});
+
 describe('VerseTranslation.tryRecalculateTranslationIndexes', () => {
 	const edition = new Edition('test', 'test', 'Test Author', 'en', 'ltr', 'test', '', '', '');
 

@@ -685,6 +685,15 @@ export class Translation extends SerializableBase {
 		);
 	}
 
+	/**
+	 * Regroupe les statuts historiques dans les trois filtres de traduction.
+	 * @returns {'to translate' | 'ai translated' | 'reviewed'} Catégorie visible dans l'éditeur.
+	 */
+	getFilterStatus(): 'to translate' | 'ai translated' | 'reviewed' {
+		if (this.status === 'ai translated') return 'ai translated';
+		return this.isStatusComplete() ? 'reviewed' : 'to translate';
+	}
+
 	getText(_edition?: string, _subtitle?: SubtitleClip): string {
 		return this.text.replaceAll('— ', '—'); // Enlève l'espace après le tiret long qu'on a ajouté pour pouvoir sélectionner les mots avant et après le tiret
 	}

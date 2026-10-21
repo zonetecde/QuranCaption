@@ -1,4 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
+import { get } from 'svelte/store';
+import LL from '$lib/i18n/i18n-svelte';
 
 import type { Edition, SubtitleClip } from '$lib/classes';
 import type { IslamicTermTranslationMode } from '$lib/classes/Settings.svelte';
@@ -22,6 +24,8 @@ import type { AIReasoningEffort } from '$lib/services/AIReasoning';
 
 const MAX_BATCH_WORDS = 450;
 const CONTEXT_CLIP_COUNT = 10;
+const MAX_BATCH_CHARACTERS = 24000;
+const MAX_CONTEXT_CHARACTERS = 12000;
 
 export type AIProjectTranslationOptions = {
 	retryErrors: boolean;
@@ -30,10 +34,13 @@ export type AIProjectTranslationOptions = {
 	overwriteManualQuran: boolean;
 };
 
-export type AIProjectTranslationContextItem = {
+export type AIProjectTranslationInputItem = {
 	i: number;
-	s: string;
-	t: string;
+	editable: boolean;
+	durationMs: number;
+	pauseBeforeMs: number;
+	parts: (AIProjectTranslationAnchorPayload | { k: 't'; i: number; s: string })[];
+	t?: string;
 };
 
 export type AIProjectTranslationAnchorPayload = {
@@ -46,6 +53,7 @@ export type AIProjectTranslationAnchorPayload = {
 	a?: string;
 	u?: string[];
 	w?: string[];
+	t?: string;
 };
 
 export type AIProjectTranslationItemPayload = {
@@ -60,9 +68,7 @@ export type AIProjectTranslationBatch = {
 	beforeSubtitleIds: number[];
 	afterSubtitleIds: number[];
 	request: {
-		b: AIProjectTranslationContextItem[];
-		i: AIProjectTranslationItemPayload[];
-		a: AIProjectTranslationContextItem[];
+		timeline: AIProjectTranslationInputItem[];
 	};
 	wordCount: number;
 };
@@ -94,6 +100,7 @@ export type AIProjectTranslationCandidate = {
 	citationIds: string[];
 	quranExpectations: AIProjectTranslationQuranExpectation[];
 	wordCount: number;
+	snapshot: string;
 };
 
 export type AIProjectTranslationSuccess = {
@@ -144,10 +151,11 @@ function shouldTranslate(
 	options: AIProjectTranslationOptions
 ): boolean {
 	if (translation.status === 'to translate') return true;
-	if (translation.status === 'error') return options.retryErrors;
+	if (translation.status === 'error' || translation.status === 'ai error')
+		return options.retryErrors;
 	if (translation.status === 'ai translated') return options.overwriteAiTranslated;
 	if (translation.status === 'reviewed') return options.overwriteReviewed;
-	return false;
+	return options.overwriteReviewed;
 }
 
 /**
@@ -170,26 +178,62 @@ export function getEligibleAIProjectTranslationSubtitles(
 }
 
 /**
- * Construit une entrée de contexte non modifiable.
+ * Construit une lecture linéaire des blocs source avec leur durée et leur pause précédente.
  * @param {SubtitleClip} subtitle Sous-titre de contexte.
  * @param {Edition} edition Langue cible.
- * @returns {AIProjectTranslationContextItem} Contexte source et traduction actuelle.
+ * @param {number} index Index chronologique local au batch.
+ * @param {SubtitleClip | undefined} previous Sous-titre précédent dans la timeline.
+ * @param {AIProjectTranslationCandidate | undefined} candidate Candidat modifiable éventuel.
+ * @returns {AIProjectTranslationInputItem} Blocs ordonnés et contexte non modifiable éventuel.
  */
 function buildContextItem(
 	subtitle: SubtitleClip,
-	edition: Edition
-): AIProjectTranslationContextItem {
+	edition: Edition,
+	index: number,
+	previous?: SubtitleClip,
+	candidate?: AIProjectTranslationCandidate
+): AIProjectTranslationInputItem {
 	const translation = subtitle.translations[edition.name] as VerseTranslation | undefined;
+	const draft = getStructuredTranslationDraft(subtitle.text, '');
+	const anchors =
+		candidate?.payload.a ??
+		draft.anchors.map((anchor) => ({
+			i: anchor.id,
+			k: anchor.type === 'quran' ? ('q' as const) : ('c' as const),
+			s:
+				anchor.type === 'quran'
+					? (MinimalQuranProvider.getVerseSlice(
+							anchor.quranReference!.surah,
+							anchor.quranReference!.verse,
+							Math.max(0, (anchor.quranReference!.startWord ?? 1) - 1),
+							(anchor.quranReference!.endWord ?? Number.MAX_SAFE_INTEGER) - 1
+						) ?? anchor.sourceValue)
+					: anchor.sourceValue
+		}));
+	const parts: AIProjectTranslationInputItem['parts'] = [];
+	for (let slot = 0; slot < draft.sourceFreeTexts.length; slot += 1) {
+		parts.push({ k: 't', i: slot, s: draft.sourceFreeTexts[slot] });
+		if (anchors[slot]) parts.push(anchors[slot]);
+	}
 	return {
-		i: subtitle.id,
-		s: subtitle.text,
-		t: translation
-			? globalState.getProjectTranslation.resolveStructuredTranslationText(
-					edition,
-					subtitle,
-					translation
-				)
-			: ''
+		i: index,
+		editable: Boolean(candidate),
+		durationMs: subtitle.endTime - subtitle.startTime,
+		pauseBeforeMs: previous
+			? Math.max(0, subtitle.startTime - previous.endTime)
+			: subtitle.startTime,
+		parts,
+		...(!candidate
+			? {
+					t: translation
+						? globalState.getProjectTranslation.resolveStructuredTranslationText(
+								edition,
+								subtitle,
+								translation
+							)
+						: ''
+				}
+			: {})
 	};
 }
 
@@ -249,14 +293,13 @@ async function buildAnchorPayload(
 		startWordIndex,
 		(reference.endWord ?? reference.startWord ?? 1) - 1
 	);
-	const arabic = fullVerse
-		? ''
-		: (MinimalQuranProvider.getVerseSlice(
-				reference.surah,
-				reference.verse,
-				startWordIndex,
-				endWordIndex
-			) ?? '');
+	const arabic =
+		MinimalQuranProvider.getVerseSlice(
+			reference.surah,
+			reference.verse,
+			startWordIndex,
+			fullVerse ? Number.MAX_SAFE_INTEGER : endWordIndex
+		) ?? '';
 	const wbw =
 		fullVerse || locked
 			? []
@@ -278,7 +321,19 @@ async function buildAnchorPayload(
 			l: locked,
 			a: arabic,
 			u: units,
-			w: wbw
+			w: wbw,
+			...(locked
+				? {
+						t:
+							settings.isBruteForce && !options.overwriteManualQuran
+								? settings.manualText
+								: sliceTranslationTrimUnits(
+										original,
+										fullVerse ? 0 : settings.startUnitIndex,
+										fullVerse ? Math.max(0, units.length - 1) : settings.endUnitIndex
+									)
+					}
+				: {})
 		},
 		expectation: {
 			anchor,
@@ -303,6 +358,12 @@ async function buildCandidate(
 	options: AIProjectTranslationOptions
 ): Promise<AIProjectTranslationCandidate> {
 	const translation = subtitle.translations[edition.name] as VerseTranslation;
+	const snapshot = JSON.stringify([
+		subtitle.text,
+		subtitle.startTime,
+		subtitle.endTime,
+		translation
+	]);
 	const draft = getStructuredTranslationDraft(subtitle.text, translation.text);
 	const builtAnchors = await Promise.all(
 		draft.anchors.map((anchor) => buildAnchorPayload(anchor, translation, edition, options))
@@ -318,6 +379,7 @@ async function buildCandidate(
 	return {
 		subtitle,
 		translation,
+		snapshot,
 		payload,
 		citationIds: draft.anchors
 			.filter((anchor) => anchor.type === 'citation')
@@ -335,8 +397,7 @@ async function buildCandidate(
  */
 export async function buildAIProjectTranslationBatches(
 	edition: Edition,
-	options: AIProjectTranslationOptions,
-	maxBatchWords: number = MAX_BATCH_WORDS
+	options: AIProjectTranslationOptions
 ): Promise<AIProjectTranslationBatch[]> {
 	await MinimalQuranProvider.prefetch();
 	const subtitles = getEligibleAIProjectTranslationSubtitles(edition, options);
@@ -347,82 +408,96 @@ export async function buildAIProjectTranslationBatches(
 		(left, right) => left.startTime - right.startTime
 	);
 	const batches: AIProjectTranslationBatch[] = [];
-	const normalizedBatchWords = Math.max(1, Math.round(maxBatchWords));
 	let current: AIProjectTranslationCandidate[] = [];
 	let currentWords = 0;
+	let currentCharacters = 0;
+	const positions = new Map(allSubtitles.map((subtitle, index) => [subtitle.id, index]));
 
+	/** Enregistre le passage courant avec son contexte chronologique borné. @returns {void} */
 	const pushCurrent = (): void => {
 		if (current.length === 0) return;
-		const firstIndex = allSubtitles.findIndex((subtitle) => subtitle.id === current[0].subtitle.id);
-		const lastIndex = allSubtitles.findIndex(
-			(subtitle) => subtitle.id === current[current.length - 1].subtitle.id
-		);
-		const beforeSubtitles = allSubtitles.slice(
+		const firstIndex = positions.get(current[0].subtitle.id)!;
+		const lastIndex = positions.get(current[current.length - 1].subtitle.id)!;
+		let beforeSubtitles = allSubtitles.slice(
 			Math.max(0, firstIndex - CONTEXT_CLIP_COUNT),
 			Math.max(0, firstIndex)
 		);
-		const afterSubtitles = allSubtitles.slice(lastIndex + 1, lastIndex + 1 + CONTEXT_CLIP_COUNT);
-		const before = beforeSubtitles.map((subtitle, index) => ({
-			...buildContextItem(subtitle, edition),
-			i: index - beforeSubtitles.length
-		}));
-		const after = afterSubtitles.map((subtitle, index) => ({
-			...buildContextItem(subtitle, edition),
-			i: current.length + index
-		}));
+		let afterSubtitles = allSubtitles.slice(lastIndex + 1, lastIndex + 1 + CONTEXT_CLIP_COUNT);
+		while (
+			JSON.stringify(beforeSubtitles.map((subtitle) => buildContextItem(subtitle, edition, 0)))
+				.length >
+			MAX_CONTEXT_CHARACTERS / 2
+		)
+			beforeSubtitles = beforeSubtitles.slice(1);
+		while (
+			JSON.stringify(afterSubtitles.map((subtitle) => buildContextItem(subtitle, edition, 0)))
+				.length >
+			MAX_CONTEXT_CHARACTERS / 2
+		)
+			afterSubtitles = afterSubtitles.slice(0, -1);
+		const candidateBySubtitle = new Map(
+			current.map((candidate) => [candidate.subtitle.id, candidate])
+		);
+		const timeline = [
+			...beforeSubtitles,
+			...allSubtitles.slice(firstIndex, lastIndex + 1),
+			...afterSubtitles
+		].map((subtitle, index) =>
+			buildContextItem(
+				subtitle,
+				edition,
+				index,
+				allSubtitles[(positions.get(subtitle.id) ?? 0) - 1],
+				candidateBySubtitle.get(subtitle.id)
+			)
+		);
 		batches.push({
 			batchId: `project-translation-${batches.length + 1}-${current[0].subtitle.id}`,
 			candidates: current,
 			beforeSubtitleIds: beforeSubtitles.map((subtitle) => subtitle.id),
 			afterSubtitleIds: afterSubtitles.map((subtitle) => subtitle.id),
-			request: {
-				b: before,
-				i: current.map((candidate, index) => ({ ...candidate.payload, i: index })),
-				a: after
-			},
+			request: { timeline },
 			wordCount: currentWords
 		});
 		current = [];
 		currentWords = 0;
+		currentCharacters = 0;
 	};
 
 	for (const candidate of candidates) {
-		if (current.length > 0 && currentWords + candidate.wordCount > normalizedBatchWords) {
+		const previous = current.at(-1);
+		const between = previous
+			? allSubtitles.slice(
+					positions.get(previous.subtitle.id)! + 1,
+					positions.get(candidate.subtitle.id)!
+				)
+			: [];
+		const candidateCharacters = JSON.stringify(
+			buildContextItem(candidate.subtitle, edition, 0, undefined, candidate)
+		).length;
+		const characters =
+			candidateCharacters +
+			JSON.stringify(between.map((subtitle) => buildContextItem(subtitle, edition, 0))).length;
+		const naturalBoundary =
+			previous &&
+			currentWords >= (MAX_BATCH_WORDS * 2) / 3 &&
+			(/[.!?؟。！？」»]\s*$/u.test(previous.subtitle.text) ||
+				candidate.subtitle.startTime - previous.subtitle.endTime >= 1200);
+		if (
+			current.length > 0 &&
+			(currentWords + candidate.wordCount > MAX_BATCH_WORDS ||
+				naturalBoundary ||
+				currentCharacters + characters > MAX_BATCH_CHARACTERS ||
+				between.length > CONTEXT_CLIP_COUNT * 2)
+		) {
 			pushCurrent();
 		}
 		current.push(candidate);
 		currentWords += candidate.wordCount;
+		currentCharacters += current.length === 1 ? candidateCharacters : characters;
 	}
 	pushCurrent();
 	return batches;
-}
-
-/**
- * Estime le nombre de batches sans charger les données Quran nécessaires à l'exécution réelle.
- * @param {Edition} edition Langue cible.
- * @param {AIProjectTranslationOptions} options Options du workflow.
- * @param {number} maxBatchWords Taille maximale d'un batch en mots.
- * @returns {number} Nombre de batches qui seront créés.
- */
-export function estimateAIProjectTranslationBatchCount(
-	edition: Edition,
-	options: AIProjectTranslationOptions,
-	maxBatchWords: number = MAX_BATCH_WORDS
-): number {
-	const normalizedBatchWords = Math.max(1, Math.round(maxBatchWords));
-	let batches = 0;
-	let currentWords = 0;
-
-	for (const subtitle of getEligibleAIProjectTranslationSubtitles(edition, options)) {
-		const wordCount = getTranslationBatchWordCount(subtitle);
-		if (currentWords > 0 && currentWords + wordCount > normalizedBatchWords) {
-			batches += 1;
-			currentWords = 0;
-		}
-		currentWords += wordCount;
-	}
-
-	return currentWords > 0 ? batches + 1 : batches;
 }
 
 /**
@@ -453,11 +528,12 @@ export function validateAIProjectTranslationBatch(
 	if (!Array.isArray(rawItems)) {
 		return { validItems, errors: ['AI response is missing the items array.'] };
 	}
+	const editableItems = batch.request.timeline.filter((item) => item.editable);
 	const candidateById = new Map(
-		batch.request.i.map((item, index) => [item.i, batch.candidates[index]])
+		editableItems.map((item, index) => [item.i, batch.candidates[index]])
 	);
 	const promptIdByCandidate = new Map(
-		batch.candidates.map((candidate, index) => [candidate, batch.request.i[index]?.i])
+		batch.candidates.map((candidate, index) => [candidate, editableItems[index]?.i])
 	);
 	const seenIds = new Set<number>();
 
@@ -668,6 +744,25 @@ export function applyAIProjectTranslationResults(
 		overwriteManualQuran: false
 	}
 ): AIProjectTranslationApplyReport {
+	if (
+		successes.some(
+			({ candidate }) =>
+				!globalState.getSubtitleClips.includes(candidate.subtitle) ||
+				candidate.snapshot !==
+					JSON.stringify([
+						candidate.subtitle.text,
+						candidate.subtitle.startTime,
+						candidate.subtitle.endTime,
+						candidate.translation
+					])
+		)
+	) {
+		throw new Error(
+			(
+				get(LL).translations as unknown as { aiTranslationSourceChanged: () => string }
+			).aiTranslationSourceChanged()
+		);
+	}
 	return ProjectHistoryManager.track('apply AI project translation', () => {
 		if (options.overwriteManualQuran) resetFullVerseQuranTranslations(edition);
 		for (const success of successes) {
@@ -707,7 +802,7 @@ export function applyAIProjectTranslationResults(
 
 /**
  * Exécute un batch de traduction structurée via la commande Tauri.
- * @param {{ apiKey: string; endpoint: string; model: string; reasoningEffort: AIReasoningEffort; thinkingEnabled?: boolean | null; targetLanguage: string; islamicTermMode: IslamicTermTranslationMode; batch: AIProjectTranslationBatch }} params Paramètres du provider, terminologie et batch.
+ * @param {{ apiKey: string; endpoint: string; model: string; reasoningEffort: AIReasoningEffort; thinkingEnabled?: boolean | null; additionalPreferences?: string; targetLanguage: string; islamicTermMode: IslamicTermTranslationMode; batch: AIProjectTranslationBatch }} params Paramètres du provider, terminologie et batch.
  * @returns {Promise<AIProjectTranslationBatchResponse>} Réponse structurée du backend.
  */
 export async function runAIProjectTranslationBatchStreaming(params: {
@@ -716,6 +811,7 @@ export async function runAIProjectTranslationBatchStreaming(params: {
 	model: string;
 	reasoningEffort: AIReasoningEffort;
 	thinkingEnabled?: boolean | null;
+	additionalPreferences?: string;
 	targetLanguage: string;
 	islamicTermMode: IslamicTermTranslationMode;
 	batch: AIProjectTranslationBatch;
@@ -727,6 +823,7 @@ export async function runAIProjectTranslationBatchStreaming(params: {
 			model: params.model,
 			reasoningEffort: params.reasoningEffort,
 			thinkingEnabled: params.thinkingEnabled,
+			additionalPreferences: params.additionalPreferences ?? '',
 			batchId: params.batch.batchId,
 			targetLanguage: params.targetLanguage,
 			islamicTermMode: params.islamicTermMode,

@@ -1,43 +1,35 @@
 <script lang="ts">
-	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+	import { onDestroy } from 'svelte';
+	import { get } from 'svelte/store';
 	import type { Edition } from '$lib/classes';
-	import Settings, { type IslamicTermTranslationMode } from '$lib/classes/Settings.svelte';
+	import Settings, {
+		SettingsTab,
+		type IslamicTermTranslationMode
+	} from '$lib/classes/Settings.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
 		applyAIProjectTranslationResults,
 		buildAIProjectTranslationBatches,
-		estimateAIProjectTranslationBatchCount,
 		getEligibleAIProjectTranslationSubtitles,
 		runAIProjectTranslationBatchStreaming,
 		validateAIProjectTranslationBatch,
+		resolveAIProjectTranslationSuccessContext,
 		type AIProjectTranslationOptions,
 		type AIProjectTranslationSuccess
 	} from '$lib/services/AIProjectTranslationService';
-	import { onDestroy } from 'svelte';
-	import { get } from 'svelte/store';
+	import { resolveAIReasoning } from '$lib/services/AIReasoning';
 	import TranslationsEditorModalShell from './shared/TranslationsEditorModalShell.svelte';
-	import AIReasoningControls from '$lib/components/ai/AIReasoningControls.svelte';
-	import AIStreamBatchList, {
-		type AIStreamBatchState
-	} from '$lib/components/ai/AIStreamBatchList.svelte';
-	import { resolveAIReasoning, type AIReasoningMode } from '$lib/services/AIReasoning';
-
 	type TranslationCopy = {
 		aiTranslationTitle: () => string;
 		aiTranslationSubtitle: (args: { language: string }) => string;
 		aiTranslationEligibleCount: (args: { count: number }) => string;
-		aiTranslationBatchSize: () => string;
-		aiTranslationBatchPreview: (args: { count: number }) => string;
 		aiTranslationIslamicTerms: () => string;
 		aiTranslationIslamicTermsDescription: () => string;
 		aiTranslationTermsTranslated: () => string;
 		aiTranslationTermsBoth: () => string;
 		aiTranslationTermsTransliterated: () => string;
 		aiTranslationNoEligible: () => string;
-		aiTranslationRetryErrors: () => string;
-		aiTranslationOverwriteAi: () => string;
-		aiTranslationOverwriteReviewed: () => string;
 		aiTranslationOverwriteManualQuran: () => string;
 		aiTranslationStart: () => string;
 		aiTranslationPreparing: () => string;
@@ -45,21 +37,36 @@
 		aiTranslationCompleted: (args: { count: number }) => string;
 		aiTranslationFailed: (args: { count: number }) => string;
 		aiTranslationProviderMissing: () => string;
+		aiTranslationScope: () => string;
+		aiTranslationScopeMissing: () => string;
+		aiTranslationScopeAi: () => string;
+		aiTranslationScopeAll: () => string;
+		aiTranslationPreferences: () => string;
+		aiTranslationPreferencesHint: () => string;
+		aiTranslationAdvanced: () => string;
+		aiTranslationStop: () => string;
+		aiTranslationStopping: () => string;
+		aiTranslationStopped: () => string;
+		aiTranslationStopHint: () => string;
+		aiTranslationPreview: () => string;
+		aiTranslationWaiting: () => string;
+		aiTranslationSourceChanged: () => string;
+		aiTranslationOpenSettings: () => string;
 	};
 
-	type StreamEventPayload = {
-		batchId: string;
-		accumulatedText: string;
-	};
 	const PROJECT_TRANSLATION_CONCURRENCY = 3;
-
 	let { close, edition }: { close: () => void; edition: Edition } = $props();
 	const copy = get(LL).translations as unknown as TranslationCopy;
-	let options = $state<AIProjectTranslationOptions>({
+	let scope = $state('missing');
+	let overwriteManualQuran = $state(false);
+	let additionalPreferences = $state('');
+	let stopRequested = $state(false);
+	let disposed = false;
+	const options = $derived<AIProjectTranslationOptions>({
 		retryErrors: true,
-		overwriteAiTranslated: true,
-		overwriteReviewed: true,
-		overwriteManualQuran: true
+		overwriteAiTranslated: scope !== 'missing',
+		overwriteReviewed: scope === 'all',
+		overwriteManualQuran
 	});
 	let isRunning = $state(false);
 	let hasFinished = $state(false);
@@ -69,15 +76,20 @@
 	let failedSubtitles = $state(0);
 	let errors = $state<string[]>([]);
 	let currentMessage = $state('');
-	let batchStreams = $state<Record<string, AIStreamBatchState>>({});
-	let unlistenFns: UnlistenFn[] = [];
-
+	let previews = $state<
+		Array<{
+			index: number;
+			status: 'pending' | 'running' | 'completed' | 'failed';
+			texts: string[];
+		}>
+	>([]);
 	const settings = $derived(() => globalState.settings!.aiTranslationSettings);
-	const providerConfigured = $derived(
-		() =>
-			settings().openAiApiKey.trim().length > 0 &&
-			settings().textAiApiEndpoint.trim().length > 0 &&
-			settings().advancedTrimModel.trim().length > 0
+	const providerConfigured = $derived(() =>
+		Boolean(
+			settings().openAiApiKey.trim() &&
+				settings().textAiApiEndpoint.trim() &&
+				settings().advancedTrimModel.trim()
+		)
 	);
 	const eligibleCount = $derived(
 		() => getEligibleAIProjectTranslationSubtitles(edition, options).length
@@ -85,46 +97,15 @@
 	const progressPercent = $derived(() =>
 		totalBatches > 0 ? Math.round((completedBatches / totalBatches) * 100) : 0
 	);
-	const estimatedBatchCount = $derived(() =>
-		estimateAIProjectTranslationBatchCount(
-			edition,
-			options,
-			settings().projectTranslationBatchWords
-		)
-	);
-	const streamedBatches = $derived(() =>
-		Object.values(batchStreams).sort((left, right) => left.index - right.index)
-	);
 
-	/**
-	 * Ferme le modal uniquement lorsqu'aucune traduction n'est en cours.
-	 * @returns {void}
-	 */
+	/** Ferme le modal lorsqu'aucune requête n'est en cours. @returns {void} */
 	function closeSafely(): void {
 		if (!isRunning) close();
 	}
 
 	/**
-	 * Met à jour et sauvegarde le mode de raisonnement de la traduction.
-	 * @param {AIReasoningMode} value Nouveau mode de raisonnement.
-	 * @returns {void}
-	 */
-	function updateReasoningMode(value: AIReasoningMode): void {
-		settings().projectTranslationReasoningMode = value;
-		void Settings.save();
-	}
-
-	/**
-	 * Sauvegarde la taille de batch de traduction choisie par l'utilisateur.
-	 * @returns {void}
-	 */
-	function saveBatchSize(): void {
-		void Settings.save();
-	}
-
-	/**
-	 * Sauvegarde la présentation choisie pour les termes islamiques arabes.
-	 * @param {IslamicTermTranslationMode} value Mode de traduction choisi.
+	 * Sauvegarde la présentation des termes islamiques.
+	 * @param {IslamicTermTranslationMode} value Mode choisi.
 	 * @returns {void}
 	 */
 	function updateIslamicTermMode(value: IslamicTermTranslationMode): void {
@@ -132,166 +113,129 @@
 		void Settings.save();
 	}
 
-	/**
-	 * Met à jour la taille de batch affichée pendant le déplacement du slider.
-	 * @param {string} value Valeur brute du contrôle range.
-	 * @returns {void}
-	 */
-	function updateBatchSize(value: string): void {
-		settings().projectTranslationBatchWords = Number(value);
+	/** Demande l'arrêt après les requêtes déjà envoyées. @returns {void} */
+	function stop(): void {
+		stopRequested = true;
+		currentMessage = copy.aiTranslationStopping();
 	}
 
-	/**
-	 * Arrête les écouteurs de streaming actifs.
-	 * @returns {void}
-	 */
-	function stopStreamListeners(): void {
-		for (const unlisten of unlistenFns) unlisten();
-		unlistenFns = [];
+	/** Ouvre les réglages du fournisseur texte. @returns {void} */
+	function openSettings(): void {
+		globalState.uiState.settingsTab = SettingsTab.AI_KEY;
+		globalState.uiState.isSettingsOpen = true;
+		close();
 	}
 
-	/**
-	 * Écoute le raisonnement et la réponse de chaque batch actif.
-	 * @returns {Promise<void>} Promesse résolue lorsque les écouteurs sont installés.
-	 */
-	async function startStreamListeners(): Promise<void> {
-		stopStreamListeners();
-		unlistenFns = [
-			await listen<StreamEventPayload>('ai-project-translation-reasoning', (event) => {
-				const batch = batchStreams[event.payload.batchId];
-				if (batch) batch.reasoning = event.payload.accumulatedText;
-			}),
-			await listen<StreamEventPayload>('ai-project-translation-chunk', (event) => {
-				const batch = batchStreams[event.payload.batchId];
-				if (batch) batch.response = event.payload.accumulatedText;
-			})
-		];
-	}
+	onDestroy(() => {
+		disposed = true;
+		stopRequested = true;
+	});
 
-	onDestroy(stopStreamListeners);
-
-	/**
-	 * Traduit les batches avec une concurrence limitée puis applique les résultats dans leur ordre initial.
-	 * @returns {Promise<void>} Promesse résolue après l'application ou l'échec du workflow.
-	 */
+	/** Traduit les passages en parallèle puis applique les résultats validés. @returns {Promise<void>} */
 	async function translateVideo(): Promise<void> {
 		if (isRunning || !providerConfigured()) return;
+		const project = globalState.currentProject;
+		const runOptions = { ...options };
+		const provider = { ...settings() };
 		isRunning = true;
 		hasFinished = false;
+		stopRequested = false;
 		completedBatches = 0;
 		totalBatches = 0;
 		translatedSubtitles = 0;
 		failedSubtitles = 0;
 		errors = [];
-		batchStreams = {};
+		previews = [];
 		currentMessage = copy.aiTranslationPreparing();
-
 		try {
-			await startStreamListeners();
-			const batches = await buildAIProjectTranslationBatches(
-				edition,
-				options,
-				settings().projectTranslationBatchWords
-			);
+			const batches = await buildAIProjectTranslationBatches(edition, runOptions);
+			if (disposed) return;
+			if (globalState.currentProject !== project)
+				throw new Error(copy.aiTranslationSourceChanged());
 			totalBatches = batches.length;
-			batchStreams = Object.fromEntries(
-				batches.map((batch, index) => [
-					batch.batchId,
-					{
-						batchId: batch.batchId,
-						index: index + 1,
-						total: batches.length,
-						status: 'pending',
-						reasoning: '',
-						response: ''
-					} satisfies AIStreamBatchState
-				])
-			);
+			previews = batches.map((_, index) => ({ index: index + 1, status: 'pending', texts: [] }));
 			if (batches.length === 0) {
 				currentMessage = copy.aiTranslationNoEligible();
 				return;
 			}
-
 			const batchSuccesses: AIProjectTranslationSuccess[][] = batches.map(() => []);
 			const batchErrors: string[][] = batches.map(() => []);
 			const batchFailures = batches.map(() => 0);
 			let nextBatchIndex = 0;
+			const reasoning = resolveAIReasoning(
+				provider.textAiApiEndpoint,
+				provider.advancedTrimModel,
+				provider.projectTranslationReasoningMode
+			);
 
-			/**
-			 * Consomme les batches disponibles jusqu'à épuisement de la file partagée.
-			 * @returns {Promise<void>} Promesse résolue lorsque ce worker n'a plus de batch.
-			 */
+			/** Consomme la file tant qu'aucun arrêt n'est demandé. @returns {Promise<void>} */
 			async function runTranslationWorker(): Promise<void> {
-				while (nextBatchIndex < batches.length) {
-					const batchIndex = nextBatchIndex;
-					nextBatchIndex += 1;
+				while (!stopRequested && nextBatchIndex < batches.length) {
+					const batchIndex = nextBatchIndex++;
 					const batch = batches[batchIndex];
-					batchStreams[batch.batchId].status = 'running';
+					previews[batchIndex].status = 'running';
 					currentMessage = copy.aiTranslationBatchProgress({
 						current: batchIndex + 1,
 						total: batches.length
 					});
 					try {
-						const reasoning = resolveAIReasoning(
-							settings().textAiApiEndpoint,
-							settings().advancedTrimModel,
-							settings().projectTranslationReasoningMode
-						);
 						const response = await runAIProjectTranslationBatchStreaming({
-							apiKey: settings().openAiApiKey,
-							endpoint: settings().textAiApiEndpoint,
-							model: settings().advancedTrimModel,
+							apiKey: provider.openAiApiKey,
+							endpoint: provider.textAiApiEndpoint,
+							model: provider.advancedTrimModel,
 							reasoningEffort: reasoning.effort,
 							thinkingEnabled: reasoning.thinkingEnabled,
 							targetLanguage: edition.language,
-							islamicTermMode: settings().projectTranslationIslamicTerms,
+							islamicTermMode: provider.projectTranslationIslamicTerms,
+							additionalPreferences,
 							batch
 						});
-						batchStreams[batch.batchId].response = response.rawText;
-						batchStreams[batch.batchId].status = 'completed';
+						if (disposed) return;
 						const validation = validateAIProjectTranslationBatch(batch, response.parsed);
+						previews[batchIndex].status = validation.errors.length ? 'failed' : 'completed';
+						previews[batchIndex].texts = validation.validItems.map((success) =>
+							resolveAIProjectTranslationSuccessContext(edition, success)
+						);
 						batchSuccesses[batchIndex] = validation.validItems;
 						batchErrors[batchIndex] = validation.errors;
 						batchFailures[batchIndex] = batch.candidates.length - validation.validItems.length;
 					} catch (error) {
-						batchStreams[batch.batchId].status = 'failed';
+						if (disposed) return;
+						previews[batchIndex].status = 'failed';
 						batchFailures[batchIndex] = batch.candidates.length;
 						batchErrors[batchIndex] = [error instanceof Error ? error.message : String(error)];
 					}
 					completedBatches += 1;
 				}
 			}
-
 			await Promise.all(
 				Array.from({ length: Math.min(PROJECT_TRANSLATION_CONCURRENCY, batches.length) }, () =>
 					runTranslationWorker()
 				)
 			);
+			if (disposed) return;
 			const successes = batchSuccesses.flat();
 			errors = batchErrors.flat();
 			failedSubtitles = batchFailures.reduce((total, count) => total + count, 0);
-
+			if (globalState.currentProject !== project)
+				throw new Error(copy.aiTranslationSourceChanged());
 			if (successes.length > 0) {
 				translatedSubtitles = applyAIProjectTranslationResults(
 					edition,
 					successes,
-					options
+					runOptions
 				).appliedSubtitles;
-				try {
-					await globalState.currentProject?.save(false);
-				} catch (error) {
-					errors = [...errors, error instanceof Error ? error.message : String(error)];
-				}
+				await project?.save(false);
 			}
-			currentMessage = copy.aiTranslationCompleted({
-				count: translatedSubtitles
-			});
+			currentMessage = stopRequested
+				? copy.aiTranslationStopped()
+				: copy.aiTranslationCompleted({ count: translatedSubtitles });
 		} catch (error) {
-			failedSubtitles = eligibleCount();
+			if (disposed) return;
+			failedSubtitles = Math.max(failedSubtitles, eligibleCount() - translatedSubtitles);
 			errors = [...errors, error instanceof Error ? error.message : String(error)];
 			currentMessage = copy.aiTranslationFailed({ count: failedSubtitles });
 		} finally {
-			stopStreamListeners();
 			isRunning = false;
 			hasFinished = true;
 		}
@@ -305,38 +249,31 @@
 	shellClass="w-[720px] max-w-[94vw] max-h-[88vh]"
 	bodyClass="min-h-0 overflow-y-auto"
 >
-	{#snippet subtitle()}
-		{copy.aiTranslationSubtitle({ language: edition.language })}
-	{/snippet}
-
+	{#snippet subtitle()}{copy.aiTranslationSubtitle({ language: edition.language })}{/snippet}
 	<div class="space-y-5 p-5">
-		<div class="grid grid-cols-2 gap-3">
-			<div class="rounded-lg border border-color bg-accent p-3">
-				<p class="text-xs text-thirdly">{$LL.translations.aiModelLabel()}</p>
-				<p class="mt-1 truncate text-sm font-medium text-primary">
-					{settings().advancedTrimModel || '—'}
-				</p>
-			</div>
-			<div class="rounded-lg border border-color bg-accent p-3">
-				<AIReasoningControls
-					id="ai-translation-reasoning-mode"
-					endpoint={settings().textAiApiEndpoint}
-					model={settings().advancedTrimModel}
-					mode={settings().projectTranslationReasoningMode}
-					disabled={isRunning}
-					onchange={updateReasoningMode}
-				/>
-			</div>
+		<div>
+			<label class="text-sm font-medium text-primary" for="ai-translation-scope"
+				>{copy.aiTranslationScope()}</label
+			>
+			<select
+				id="ai-translation-scope"
+				class="mt-2 w-full rounded-md border border-color bg-secondary px-3 py-2 text-sm text-primary"
+				bind:value={scope}
+				disabled={isRunning}
+			>
+				<option value="missing">{copy.aiTranslationScopeMissing()}</option>
+				<option value="ai">{copy.aiTranslationScopeAi()}</option>
+				<option value="all">{copy.aiTranslationScopeAll()}</option>
+			</select>
 		</div>
-
-		<div class="rounded-lg border border-color bg-accent p-3">
-			<label class="block text-sm font-medium text-primary" for="ai-translation-islamic-terms">
-				{copy.aiTranslationIslamicTerms()}
-			</label>
+		<div>
+			<label class="text-sm font-medium text-primary" for="ai-translation-islamic-terms"
+				>{copy.aiTranslationIslamicTerms()}</label
+			>
 			<p class="mt-1 text-xs text-secondary">{copy.aiTranslationIslamicTermsDescription()}</p>
 			<select
 				id="ai-translation-islamic-terms"
-				class="mt-3 w-full rounded-md border border-color bg-secondary px-3 py-2 text-sm text-primary"
+				class="mt-2 w-full rounded-md border border-color bg-secondary px-3 py-2 text-sm text-primary"
 				value={settings().projectTranslationIslamicTerms}
 				disabled={isRunning}
 				onchange={(event) =>
@@ -347,69 +284,42 @@
 				<option value="transliterated">{copy.aiTranslationTermsTransliterated()}</option>
 			</select>
 		</div>
-
-		<div class="rounded-lg border border-color bg-accent p-3">
-			<div class="flex items-center justify-between gap-3">
-				<span class="text-sm font-medium text-primary">{copy.aiTranslationBatchSize()}</span>
-				<span class="text-sm font-bold text-accent-primary">
-					{settings().projectTranslationBatchWords}
-				</span>
-			</div>
-			<input
-				type="range"
-				min="160"
-				max="640"
-				step="10"
-				class="mt-3 w-full"
-				value={settings().projectTranslationBatchWords}
+		<div>
+			<label class="text-sm font-medium text-primary" for="ai-translation-preferences"
+				>{copy.aiTranslationPreferences()}</label
+			>
+			<textarea
+				id="ai-translation-preferences"
+				class="mt-2 min-h-24 w-full rounded-md border border-color bg-secondary px-3 py-2 text-sm text-primary"
+				bind:value={additionalPreferences}
 				disabled={isRunning}
-				oninput={(event) => updateBatchSize(event.currentTarget.value)}
-				onchange={saveBatchSize}
-			/>
-			<p class="mt-2 text-xs text-secondary">
-				{copy.aiTranslationBatchPreview({ count: estimatedBatchCount() })}
-			</p>
+				placeholder={copy.aiTranslationPreferencesHint()}
+			></textarea>
 		</div>
-
+		<details class="rounded-lg border border-color p-3">
+			<summary class="cursor-pointer text-sm text-secondary">{copy.aiTranslationAdvanced()}</summary
+			>
+			<label class="mt-3 flex items-center gap-2 text-sm text-secondary">
+				<input type="checkbox" bind:checked={overwriteManualQuran} disabled={isRunning} />
+				{copy.aiTranslationOverwriteManualQuran()}
+			</label>
+		</details>
+		<p class="text-sm text-secondary">
+			{copy.aiTranslationEligibleCount({ count: eligibleCount() })}
+		</p>
 		{#if !providerConfigured()}
 			<div class="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
-				{copy.aiTranslationProviderMissing()}
+				<p>{copy.aiTranslationProviderMissing()}</p>
+				<button class="mt-2 underline" onclick={openSettings}
+					>{copy.aiTranslationOpenSettings()}</button
+				>
 			</div>
 		{/if}
-
-		<div class="rounded-lg border border-color bg-accent p-4">
-			<p class="text-sm font-semibold text-primary">
-				{copy.aiTranslationEligibleCount({ count: eligibleCount() })}
-			</p>
-			<div class="mt-3 grid gap-2 text-sm text-secondary sm:grid-cols-2">
-				<label class="flex cursor-pointer items-center gap-2">
-					<input type="checkbox" bind:checked={options.retryErrors} disabled={isRunning} />
-					{copy.aiTranslationRetryErrors()}
-				</label>
-				<label class="flex cursor-pointer items-center gap-2">
-					<input
-						type="checkbox"
-						bind:checked={options.overwriteAiTranslated}
-						disabled={isRunning}
-					/>
-					{copy.aiTranslationOverwriteAi()}
-				</label>
-				<label class="flex cursor-pointer items-center gap-2">
-					<input type="checkbox" bind:checked={options.overwriteReviewed} disabled={isRunning} />
-					{copy.aiTranslationOverwriteReviewed()}
-				</label>
-				<label class="flex cursor-pointer items-center gap-2">
-					<input type="checkbox" bind:checked={options.overwriteManualQuran} disabled={isRunning} />
-					{copy.aiTranslationOverwriteManualQuran()}
-				</label>
-			</div>
-		</div>
-
 		{#if currentMessage}
-			<div class="rounded-lg border border-color bg-accent p-4">
-				<div class="flex items-center justify-between gap-3 text-sm">
-					<span class="text-primary">{currentMessage}</span>
-					{#if totalBatches > 0}<span class="text-thirdly">{progressPercent()}%</span>{/if}
+			<div class="rounded-lg border border-color bg-accent p-4" role="status">
+				<div class="flex items-center justify-between gap-3 text-sm text-primary">
+					<span>{currentMessage}</span>
+					{#if totalBatches > 0}<span>{progressPercent()}%</span>{/if}
 				</div>
 				{#if totalBatches > 0}
 					<div class="mt-3 h-2 overflow-hidden rounded-full bg-[var(--border-color)]">
@@ -419,49 +329,75 @@
 						></div>
 					</div>
 				{/if}
-				{#if translatedSubtitles > 0 || failedSubtitles > 0}
-					<div class="mt-3 flex gap-4 text-xs">
-						<span class="text-green-300">
-							{copy.aiTranslationCompleted({ count: translatedSubtitles })}
-						</span>
-						{#if failedSubtitles > 0}
-							<span class="text-red-300">
-								{copy.aiTranslationFailed({ count: failedSubtitles })}
-							</span>
-						{/if}
-					</div>
-				{/if}
+				{#if translatedSubtitles > 0}<p class="mt-2 text-xs text-secondary">
+						{copy.aiTranslationCompleted({ count: translatedSubtitles })}
+					</p>{/if}
+				{#if failedSubtitles > 0}<p class="mt-2 text-xs text-red-300">
+						{copy.aiTranslationFailed({ count: failedSubtitles })}
+					</p>{/if}
+				{#if stopRequested}<p class="mt-2 text-xs text-secondary">
+						{copy.aiTranslationStopHint()}
+					</p>{/if}
 			</div>
 		{/if}
-
-		{#if streamedBatches().length > 0}
-			<AIStreamBatchList
-				batches={streamedBatches()}
-				placeholder={$LL.translations.streamingResponsePlaceholder()}
-			/>
+		{#if previews.length > 0}
+			<details class="rounded-lg border border-color p-3" open>
+				<summary class="cursor-pointer text-sm font-medium text-primary"
+					>{copy.aiTranslationPreview()}</summary
+				>
+				<div class="mt-3 max-h-60 space-y-3 overflow-y-auto">
+					{#each previews as preview (preview.index)}
+						<div class="rounded-md bg-accent p-3">
+							<p class="flex items-center gap-2 text-xs text-secondary">
+								<span
+									class="material-icons text-sm"
+									class:animate-spin={preview.status === 'running'}
+									>{preview.status === 'completed'
+										? 'check_circle'
+										: preview.status === 'failed'
+											? 'error'
+											: preview.status === 'running'
+												? 'sync'
+												: 'schedule'}</span
+								>
+								{$LL.editor.streamedBatchLabel({ current: preview.index, total: totalBatches })}
+							</p>
+							{#each preview.texts as text, index (index)}<p
+									class="mt-2 text-sm text-primary"
+									dir="auto"
+								>
+									{text}
+								</p>{/each}
+							{#if preview.status === 'running'}<p class="mt-2 text-xs text-secondary">
+									{copy.aiTranslationWaiting()}
+								</p>{/if}
+						</div>
+					{/each}
+				</div>
+			</details>
 		{/if}
-
 		{#if errors.length > 0}
 			<div class="max-h-36 overflow-y-auto rounded-lg border border-red-500/30 bg-red-500/10 p-3">
-				{#each errors as error, index (`${index}-${error}`)}
-					<p class="text-xs text-red-200">{error}</p>
-				{/each}
+				{#each errors as error, index (`${index}-${error}`)}<p class="text-xs text-red-200">
+						{error}
+					</p>{/each}
 			</div>
 		{/if}
-
 		<div class="flex justify-end gap-3 border-t border-color pt-4">
-			<button class="btn px-4 py-2" onclick={closeSafely} disabled={isRunning}>
-				{$LL.common.close()}
-			</button>
-			{#if !hasFinished}
-				<button
-					class="btn-accent flex items-center gap-2 px-5 py-2"
-					onclick={() => void translateVideo()}
-					disabled={isRunning || !providerConfigured() || eligibleCount() === 0}
+			<button class="btn px-4 py-2" onclick={closeSafely} disabled={isRunning}
+				>{$LL.common.close()}</button
+			>
+			{#if isRunning}
+				<button class="btn px-4 py-2" onclick={stop} disabled={stopRequested}
+					>{copy.aiTranslationStop()}</button
 				>
-					<span class="material-icons text-base">auto_awesome</span>
-					{copy.aiTranslationStart()}
-				</button>
+			{:else if !hasFinished}
+				<button
+					class="btn-accent px-5 py-2"
+					onclick={() => void translateVideo()}
+					disabled={!providerConfigured() || eligibleCount() === 0}
+					>{copy.aiTranslationStart()}</button
+				>
 			{/if}
 		</div>
 	</div>

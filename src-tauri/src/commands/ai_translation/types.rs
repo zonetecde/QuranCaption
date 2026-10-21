@@ -50,6 +50,8 @@ pub struct ProjectTranslationCommandRequest {
     pub batch_id: String,
     pub target_language: String,
     pub islamic_term_mode: String,
+    #[serde(default)]
+    pub additional_preferences: String,
     pub batch: serde_json::Value,
 }
 

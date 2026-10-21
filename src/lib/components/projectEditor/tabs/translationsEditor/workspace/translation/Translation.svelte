@@ -49,6 +49,7 @@
 		wordsRange: (args: { start: number; end: number }) => string;
 		quranTranslationMissing: () => string;
 		aiTranslatedStatus: () => string;
+		manuallyTranslatedStatus: () => string;
 	};
 
 	let {
@@ -570,13 +571,11 @@
 						? 'border-green-500/30 bg-green-500/15 text-green-300'
 						: 'border-orange-500/30 bg-orange-500/15 text-orange-300'}"
 			>
-				{translation().status === 'completed by default'
-					? $LL.editor.completedByDefault()
-					: translation().status === 'ai translated'
-						? copy.aiTranslatedStatus()
-						: translation().status === 'reviewed'
-							? $LL.editor.reviewed()
-							: $LL.editor.toReview()}
+				{translation().getFilterStatus() === 'ai translated'
+					? copy.aiTranslatedStatus()
+					: translation().getFilterStatus() === 'reviewed'
+						? copy.manuallyTranslatedStatus()
+						: $LL.editor.toReview()}
 			</span>
 		</div>
 	</div>

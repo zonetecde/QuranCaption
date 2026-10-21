@@ -6802,6 +6802,66 @@ type RootTranslation = {
 		 */
 		aiTranslationTitle: string;
 		/**
+		 * S​u​b​t​i​t​l​e​s​ ​t​o​ ​t​r​a​n​s​l​a​t​e
+		 */
+		aiTranslationScope: string;
+		/**
+		 * M​i​s​s​i​n​g​ ​a​n​d​ ​f​a​i​l​e​d​ ​t​r​a​n​s​l​a​t​i​o​n​s
+		 */
+		aiTranslationScopeMissing: string;
+		/**
+		 * M​i​s​s​i​n​g​,​ ​f​a​i​l​e​d​ ​a​n​d​ ​A​I​ ​t​r​a​n​s​l​a​t​i​o​n​s
+		 */
+		aiTranslationScopeAi: string;
+		/**
+		 * A​l​l​ ​t​r​a​n​s​l​a​t​i​o​n​s​,​ ​i​n​c​l​u​d​i​n​g​ ​m​a​n​u​a​l​ ​t​r​a​n​s​l​a​t​i​o​n​s
+		 */
+		aiTranslationScopeAll: string;
+		/**
+		 * A​d​d​i​t​i​o​n​a​l​ ​p​r​e​f​e​r​e​n​c​e​s
+		 */
+		aiTranslationPreferences: string;
+		/**
+		 * F​o​r​ ​e​x​a​m​p​l​e​:​ ​u​s​e​ ​s​i​m​p​l​e​ ​F​r​e​n​c​h​,​ ​o​r​ ​s​p​e​l​l​ ​t​h​e​ ​n​a​m​e​ ​Y​u​s​u​f​ ​a​s​ ​Y​o​u​s​o​u​f​.
+		 */
+		aiTranslationPreferencesHint: string;
+		/**
+		 * A​d​v​a​n​c​e​d​ ​o​p​t​i​o​n​s
+		 */
+		aiTranslationAdvanced: string;
+		/**
+		 * S​t​o​p​ ​a​f​t​e​r​ ​c​u​r​r​e​n​t​ ​r​e​q​u​e​s​t​s
+		 */
+		aiTranslationStop: string;
+		/**
+		 * S​t​o​p​p​i​n​g​ ​a​f​t​e​r​ ​c​u​r​r​e​n​t​ ​r​e​q​u​e​s​t​s​…
+		 */
+		aiTranslationStopping: string;
+		/**
+		 * T​r​a​n​s​l​a​t​i​o​n​ ​s​t​o​p​p​e​d​.​ ​C​o​m​p​l​e​t​e​d​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​h​a​v​e​ ​b​e​e​n​ ​k​e​p​t​.
+		 */
+		aiTranslationStopped: string;
+		/**
+		 * R​e​q​u​e​s​t​s​ ​a​l​r​e​a​d​y​ ​s​e​n​t​ ​m​a​y​ ​f​i​n​i​s​h​ ​a​n​d​ ​b​e​ ​b​i​l​l​e​d​.​ ​N​o​ ​f​u​r​t​h​e​r​ ​b​a​t​c​h​e​s​ ​w​i​l​l​ ​s​t​a​r​t​.
+		 */
+		aiTranslationStopHint: string;
+		/**
+		 * T​r​a​n​s​l​a​t​i​o​n​ ​p​r​e​v​i​e​w
+		 */
+		aiTranslationPreview: string;
+		/**
+		 * T​r​a​n​s​l​a​t​i​n​g​…​ ​T​h​e​ ​t​e​x​t​ ​w​i​l​l​ ​a​p​p​e​a​r​ ​o​n​c​e​ ​t​h​i​s​ ​b​a​t​c​h​ ​i​s​ ​v​a​l​i​d​a​t​e​d​.
+		 */
+		aiTranslationWaiting: string;
+		/**
+		 * T​h​e​ ​p​r​o​j​e​c​t​ ​o​r​ ​s​u​b​t​i​t​l​e​s​ ​c​h​a​n​g​e​d​ ​d​u​r​i​n​g​ ​t​r​a​n​s​l​a​t​i​o​n​.​ ​R​u​n​ ​t​h​e​ ​t​r​a​n​s​l​a​t​i​o​n​ ​a​g​a​i​n​.
+		 */
+		aiTranslationSourceChanged: string;
+		/**
+		 * O​p​e​n​ ​T​e​x​t​ ​A​I​ ​s​e​t​t​i​n​g​s
+		 */
+		aiTranslationOpenSettings: string;
+		/**
 		 * T​r​a​n​s​l​a​t​e​ ​t​h​e​ ​s​t​r​u​c​t​u​r​e​d​ ​s​u​b​t​i​t​l​e​s​ ​i​n​t​o​ ​{​l​a​n​g​u​a​g​e​}​.
 		 * @param {unknown} language
 		 */
@@ -6810,6 +6870,14 @@ type RootTranslation = {
 		 * A​I​ ​t​r​a​n​s​l​a​t​e​d
 		 */
 		aiTranslatedStatus: string;
+		/**
+		 * M​a​n​u​a​l​l​y​ ​t​r​a​n​s​l​a​t​e​d
+		 */
+		manuallyTranslatedStatus: string;
+		/**
+		 * P​e​r​c​e​n​t​a​g​e​ ​t​r​a​n​s​l​a​t​e​d​:
+		 */
+		percentageTranslated: string;
 		/**
 		 * {​c​o​u​n​t​}​ ​s​u​b​t​i​t​l​e​(​s​)​ ​r​e​a​d​y​ ​t​o​ ​t​r​a​n​s​l​a​t​e
 		 * @param {unknown} count
@@ -16570,6 +16638,66 @@ export type TranslationFunctions = {
 		 */
 		aiTranslationTitle: () => LocalizedString;
 		/**
+		 * Subtitles to translate
+		 */
+		aiTranslationScope: () => LocalizedString;
+		/**
+		 * Missing and failed translations
+		 */
+		aiTranslationScopeMissing: () => LocalizedString;
+		/**
+		 * Missing, failed and AI translations
+		 */
+		aiTranslationScopeAi: () => LocalizedString;
+		/**
+		 * All translations, including manual translations
+		 */
+		aiTranslationScopeAll: () => LocalizedString;
+		/**
+		 * Additional preferences
+		 */
+		aiTranslationPreferences: () => LocalizedString;
+		/**
+		 * For example: use simple French, or spell the name Yusuf as Yousouf.
+		 */
+		aiTranslationPreferencesHint: () => LocalizedString;
+		/**
+		 * Advanced options
+		 */
+		aiTranslationAdvanced: () => LocalizedString;
+		/**
+		 * Stop after current requests
+		 */
+		aiTranslationStop: () => LocalizedString;
+		/**
+		 * Stopping after current requests…
+		 */
+		aiTranslationStopping: () => LocalizedString;
+		/**
+		 * Translation stopped. Completed translations have been kept.
+		 */
+		aiTranslationStopped: () => LocalizedString;
+		/**
+		 * Requests already sent may finish and be billed. No further batches will start.
+		 */
+		aiTranslationStopHint: () => LocalizedString;
+		/**
+		 * Translation preview
+		 */
+		aiTranslationPreview: () => LocalizedString;
+		/**
+		 * Translating… The text will appear once this batch is validated.
+		 */
+		aiTranslationWaiting: () => LocalizedString;
+		/**
+		 * The project or subtitles changed during translation. Run the translation again.
+		 */
+		aiTranslationSourceChanged: () => LocalizedString;
+		/**
+		 * Open Text AI settings
+		 */
+		aiTranslationOpenSettings: () => LocalizedString;
+		/**
 		 * Translate the structured subtitles into {language}.
 		 */
 		aiTranslationSubtitle: (arg: { language: unknown }) => LocalizedString;
@@ -16577,6 +16705,14 @@ export type TranslationFunctions = {
 		 * AI translated
 		 */
 		aiTranslatedStatus: () => LocalizedString;
+		/**
+		 * Manually translated
+		 */
+		manuallyTranslatedStatus: () => LocalizedString;
+		/**
+		 * Percentage translated:
+		 */
+		percentageTranslated: () => LocalizedString;
 		/**
 		 * {count} subtitle(s) ready to translate
 		 */

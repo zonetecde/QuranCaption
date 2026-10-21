@@ -2,12 +2,22 @@ import { cleanup, render } from 'vitest-browser-svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { tick } from 'svelte';
 
-import { Edition, ProjectEditorState, VideoStyle } from '$lib/classes';
+import {
+	Edition,
+	ProjectDetail,
+	ProjectEditorState,
+	Timeline,
+	TrackType,
+	VideoStyle
+} from '$lib/classes';
+import { SubtitleTrack } from '$lib/classes/Track.svelte';
+import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 import Settings from '$lib/classes/Settings.svelte';
 import { SubtitleClip } from '$lib/classes/Clip.svelte';
 import { ProjectTranslation } from '$lib/classes/ProjectTranslation.svelte';
 import { VerseTranslation } from '$lib/classes/Translation.svelte';
 import EditionViewer from '$lib/components/projectEditor/tabs/translationsEditor/leftPanel/EditionViewer.svelte';
+import TranslationsEditorSettings from '$lib/components/projectEditor/tabs/translationsEditor/leftPanel/TranslationsEditorSettings.svelte';
 import ArabicText from '$lib/components/projectEditor/tabs/translationsEditor/workspace/ArabicText.svelte';
 import Translation from '$lib/components/projectEditor/tabs/translationsEditor/workspace/translation/Translation.svelte';
 import { loadLocale } from '$lib/i18n/i18n-util.sync';
@@ -54,8 +64,12 @@ describe('Structured translation editor', () => {
 		globalState.qdcAvailableTranslations = {};
 		globalState.currentProject = {
 			projectEditorState: new ProjectEditorState(),
-			content: { projectTranslation, videoStyle: new VideoStyle() },
-			detail: { translations: {}, updatePercentageTranslated: vi.fn() }
+			content: {
+				projectTranslation,
+				videoStyle: new VideoStyle(),
+				timeline: new Timeline([new SubtitleTrack()])
+			},
+			detail: new ProjectDetail('Translation test', 'Speaker')
 		} as never;
 		vi.spyOn(ProjectHistoryManager, 'begin').mockImplementation(() => undefined);
 		vi.spyOn(ProjectHistoryManager, 'commit').mockImplementation(() => undefined);
@@ -93,6 +107,53 @@ describe('Structured translation editor', () => {
 		await component.getByRole('button', { name: 'Translate video with AI' }).click();
 
 		expect(onTranslateWithAi).toHaveBeenCalledOnce();
+	});
+
+	test('ignores serialized translation metadata while counting filters and translated progress', async () => {
+		initializeClassRegistry();
+		const clips = (['ai translated', 'reviewed', 'completed by default', 'error'] as const).map(
+			(status) => {
+				const subtitle = createSubtitle('Source', 'Translation');
+				subtitle.translations[edition.name].status = status;
+				const serialized = subtitle.toJSON();
+				serialized.translations = {
+					__className: 'Translation',
+					type: 'other',
+					[edition.name]: subtitle.translations[edition.name].toJSON()
+				};
+				return SubtitleClip.fromJSON(serialized) as SubtitleClip;
+			}
+		);
+		globalState
+			.currentProject!.content.timeline.getFirstTrack(TrackType.Subtitle)!
+			.clips.push(...clips);
+		globalState.currentProject!.detail.translations.French = 0;
+		globalState.getTranslationsState.filters['completed by default'] = false;
+		globalState.getTranslationsState.filters.error = false;
+		const component = render(TranslationsEditorSettings, {
+			setAddTranslationModalVisibility: vi.fn(),
+			setAiTranslationEdition: vi.fn()
+		});
+		await tick();
+		expect(component.getByText('Percentage translated:')).toBeVisible();
+		expect(component.getByText('75%')).toBeVisible();
+		const labels = Array.from(component.container.querySelectorAll('label'));
+		expect(
+			labels.find((label) => label.textContent?.includes('Manually translated'))?.textContent
+		).toMatch(/Manually translated\s+2/);
+		expect(
+			labels.find((label) => label.textContent?.includes('To translate'))?.textContent
+		).toMatch(/To translate\s+1/);
+		expect(component.container.textContent).not.toContain('Completed by default');
+		expect(component.container.textContent).not.toContain('Reviewed');
+		expect(component.container.textContent).not.toContain('Error');
+		clips[3].translations[edition.name].status = 'reviewed';
+		await tick();
+		expect(component.getByText('100%')).toBeVisible();
+		await component.getByRole('checkbox', { name: /Manually translated/ }).click();
+		expect(globalState.getTranslationsState.filters.reviewed).toBe(false);
+		await component.getByRole('button', { name: 'All', exact: true }).click();
+		expect(globalState.getTranslationsState.filters.reviewed).toBe(true);
 	});
 
 	test('shows only source-backed free text and inserts ﷺ with Ctrl+S', async () => {

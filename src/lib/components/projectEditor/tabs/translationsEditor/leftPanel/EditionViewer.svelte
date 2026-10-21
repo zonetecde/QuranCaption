@@ -9,6 +9,7 @@
 	type TranslationCopy = {
 		quranEdition: () => string;
 		translateVideoWithAi: () => string;
+		percentageTranslated: () => string;
 	};
 
 	let {
@@ -20,6 +21,9 @@
 	} = $props();
 	const copy = get(LL).translations as unknown as TranslationCopy;
 	const translationMetadata = $derived(() => globalState.getTranslationMetadata(edition.language));
+	const percentageTranslated = $derived(
+		globalState.currentProject!.detail.getPercentageTranslated(edition)
+	);
 
 	/**
 	 * Réinitialise une langue dans une transaction undo/redo.
@@ -89,19 +93,17 @@
 			{copy.translateVideoWithAi()}
 		</button>
 
-		{#if globalState.currentProject!.detail.translations[edition.language] !== undefined}
-			<div class="mt-3">
-				<div class="mb-1 flex justify-between text-xs text-secondary">
-					<span>{$LL.editor.percentageReviewed()}</span>
-					<span>{globalState.currentProject!.detail.translations[edition.language]}%</span>
-				</div>
-				<div class="h-2 overflow-hidden rounded bg-[var(--border-color)]">
-					<div
-						class="h-full rounded bg-[var(--accent-primary)]"
-						style={`width: ${globalState.currentProject!.detail.translations[edition.language]}%;`}
-					></div>
-				</div>
+		<div class="mt-3">
+			<div class="mb-1 flex justify-between text-xs text-secondary">
+				<span>{copy.percentageTranslated()}</span>
+				<span>{percentageTranslated}%</span>
 			</div>
-		{/if}
+			<div class="h-2 overflow-hidden rounded bg-[var(--border-color)]">
+				<div
+					class="h-full rounded bg-[var(--accent-primary)]"
+					style={`width: ${percentageTranslated}%;`}
+				></div>
+			</div>
+		</div>
 	</Section>
 </div>

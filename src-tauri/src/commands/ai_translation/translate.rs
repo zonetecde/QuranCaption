@@ -78,7 +78,7 @@ pub async fn run_ai_project_translation_batch_streaming(
     let endpoint = prompts::normalize_text_ai_endpoint(&request.endpoint)?;
     let items = request
         .batch
-        .get("i")
+        .get("timeline")
         .and_then(Value::as_array)
         .ok_or_else(|| "Project translation batch is missing its items array.".to_string())?;
     if items.is_empty() {
@@ -88,6 +88,7 @@ pub async fn run_ai_project_translation_batch_streaming(
     let user_prompt = prompts::build_project_translation_user_prompt(
         &request.target_language,
         &request.islamic_term_mode,
+        &request.additional_preferences,
         &request.batch,
     )?;
     let schema = prompts::build_project_translation_response_schema();

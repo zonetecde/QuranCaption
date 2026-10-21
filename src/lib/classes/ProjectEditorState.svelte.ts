@@ -390,9 +390,7 @@ export class TranslationsEditorState extends SerializableBase {
 	filters: { [statut: string]: boolean } = $state({
 		'to translate': true,
 		'ai translated': true,
-		reviewed: true,
-		'completed by default': true,
-		error: true
+		reviewed: true
 	});
 
 	searchQuery: string = $state('');

@@ -136,7 +136,7 @@
 			if (visibleTranslations.length === 0) return false;
 
 			const matchesStatus = visibleTranslations.some(
-				([, translation]) => filters[translation.status]
+				([, translation]) => filters[translation.getFilterStatus()]
 			);
 			if (!matchesStatus) return false;
 			if (!search) return true;

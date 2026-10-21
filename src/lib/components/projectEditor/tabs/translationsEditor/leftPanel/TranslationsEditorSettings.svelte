@@ -10,6 +10,7 @@
 
 	type TranslationCopy = {
 		aiTranslatedStatus: () => string;
+		manuallyTranslatedStatus: () => string;
 	};
 
 	const SEARCH_DEBOUNCE_MS = 250;
@@ -24,13 +25,7 @@
 
 	let localSearchQuery = $state(globalState.getTranslationsState.searchQuery);
 	let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
-	const visibleStatuses = [
-		'to translate',
-		'ai translated',
-		'reviewed',
-		'completed by default',
-		'error'
-	] as const;
+	const visibleStatuses = ['to translate', 'ai translated', 'reviewed'] as const;
 
 	/**
 	 * Applique la recherche locale au workspace.
@@ -58,7 +53,9 @@
 	 */
 	function countStatus(status: string): number {
 		return globalState.getSubtitleClips.filter((clip) =>
-			Object.values(clip.translations).some((translation) => translation.status === status)
+			globalState.getProjectTranslation.addedTranslationEditions.some(
+				(edition) => clip.translations[edition.name]?.getFilterStatus() === status
+			)
 		).length;
 	}
 
@@ -171,11 +168,7 @@
 								? $LL.editor.toReview()
 								: status === 'ai translated'
 									? copy.aiTranslatedStatus()
-									: status === 'reviewed'
-										? $LL.editor.reviewed()
-										: status === 'completed by default'
-											? $LL.editor.completedByDefault()
-											: $LL.editor.errorStatus()}
+									: copy.manuallyTranslatedStatus()}
 						</span>
 						<span class="rounded-full bg-primary px-1.5 py-0.5 text-[10px] text-thirdly">
 							{countStatus(status)}
@@ -193,14 +186,7 @@
 				</button>
 				<button
 					class="btn px-2 py-2 text-xs"
-					onclick={() =>
-						globalState.getTranslationsState.checkOnlyFilters([
-							'to translate',
-							'ai translated',
-							'reviewed',
-							'completed by default',
-							'error'
-						])}
+					onclick={() => globalState.getTranslationsState.checkOnlyFilters([...visibleStatuses])}
 				>
 					{$LL.common.all()}
 				</button>

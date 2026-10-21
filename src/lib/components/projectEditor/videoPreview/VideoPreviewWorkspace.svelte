@@ -1392,7 +1392,7 @@
 
 {#if globalState.getVideoPreviewState.isFullscreen}
 	{#if fullscreenControlsVisible}
-		<div class="fullscreen-preview-controls">
+		<div class="fullscreen-preview-controls" hidden={globalState.presetLibrary.isGeneratingPreview}>
 			<VideoPreviewControlsBar {togglePlayPause} overlay />
 		</div>
 	{/if}

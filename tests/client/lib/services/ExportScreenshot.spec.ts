@@ -182,6 +182,44 @@ describe('contexte de capture réutilisé par worker', () => {
 		}
 	});
 
+	it.each([
+		[0.5, 0],
+		[1.88, 0],
+		[1.88, 15]
+	])(
+		'aligne le texte agrandi à %s et tourné de %s degrés avec son fond par ligne',
+		async (zoom, angle) => {
+			const root = await createOverlay();
+			root.style.width = '800px';
+			root.style.height = '500px';
+			root.innerHTML = `<div id="subtitles-container" style="position:absolute;inset:0;transform:translate(-20px, 12px)"><p dir="rtl" style="position:absolute;left:200px;top:150px;width:400px;margin:0;font:90px QCExportQpc;line-height:1.6;text-align:center;color:white;transform-origin:40% 60%;transform:translate(15px, 10px) rotate(${angle}deg) scale(${zoom})"><span class="line-background" style="background:linear-gradient(#c08020,#c08020) center calc(50% + 15px) / 100% 20px no-repeat;padding:25px 10px;box-decoration-break:clone;-webkit-box-decoration-break:clone">ﲭ ﲮ ﲯ</span></p></div>`;
+			const transformedElements = Array.from(
+				root.querySelectorAll<HTMLElement>('#subtitles-container, p')
+			);
+			const originalStyles = transformedElements.map((element) => element.style.cssText);
+			for (const scale of [1, 2]) {
+				const expected = await readPixels(await domToBlob(root, { scale }));
+				const actual = await readPixels(
+					new Blob([
+						await captureMacOsOverlayPngBytes(root, scale, 800 * scale, 500 * scale, {
+							compensateTextWeight: false
+						})
+					])
+				);
+				for (const color of [
+					[255, 255, 255],
+					[192, 128, 32]
+				]) {
+					const bounds = getColorVerticalBounds(expected, color);
+					for (const [index, value] of getColorVerticalBounds(actual, color).entries()) {
+						expect(Math.abs(value - bounds[index])).toBeLessThanOrEqual(2 * scale);
+					}
+				}
+				expect(transformedElements.map((element) => element.style.cssText)).toEqual(originalStyles);
+			}
+		}
+	);
+
 	it('refuse le fond vide réutilisable uniquement quand un fond par ligne est visible', async () => {
 		const root = await createOverlay();
 		root.innerHTML =

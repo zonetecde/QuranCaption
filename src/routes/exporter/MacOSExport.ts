@@ -573,18 +573,20 @@ function getCumulativeFilter(element: HTMLElement, root: HTMLElement): string {
  * @param parent Element parent du noeud texte.
  * @param text Texte visible.
  * @param computedStyle Style calcule du texte.
+ * @param {Map<HTMLElement, { value: string }>} transforms Transformations avant la mesure DOM.
  * @returns Cle stable ou null pour les textes non concernes.
  */
 function getStableTimedOverlayTextPositionKey(
 	parent: HTMLElement,
 	text: string,
-	computedStyle: CSSStyleDeclaration
+	computedStyle: CSSStyleDeclaration,
+	transforms: Map<HTMLElement, { value: string }>
 ): string | null {
 	const overlay = parent.closest<HTMLElement>('[data-overlay-max-opacity]');
 	if (!overlay) return null;
 
 	return [
-		overlay.style.transform,
+		transforms.get(overlay)?.value ?? overlay.style.transform,
 		text,
 		computedStyle.font,
 		computedStyle.direction,
@@ -618,33 +620,46 @@ function stabilizeTimedOverlayTextPosition(
  * @returns Liste des runs texte.
  */
 function collectLiveTextDrawRuns(root: HTMLElement, textRootSelector?: string): TextDrawRun[] {
-	const rotations = new Map<
+	const transforms = new Map<
 		HTMLElement,
-		{ value: string; priority: string; angle: number; transform?: DOMMatrix }
+		{
+			value: string;
+			priority: string;
+			rotateValue: string;
+			rotatePriority: string;
+			matrix: DOMMatrix;
+			transform?: DOMMatrix;
+		}
 	>();
 	try {
 		for (const element of root.querySelectorAll<HTMLElement>('*')) {
-			const rotate = getComputedStyle(element).rotate;
-			if (!/^-?[\d.]+deg$/.test(rotate) || Number.parseFloat(rotate) === 0) continue;
-			rotations.set(element, {
-				value: element.style.getPropertyValue('rotate'),
-				priority: element.style.getPropertyPriority('rotate'),
-				angle: Number.parseFloat(rotate)
+			const style = getComputedStyle(element);
+			const angle = /^-?[\d.]+deg$/.test(style.rotate) ? Number.parseFloat(style.rotate) : 0;
+			if (style.transform === 'none' && angle === 0) continue;
+			transforms.set(element, {
+				value: element.style.getPropertyValue('transform'),
+				priority: element.style.getPropertyPriority('transform'),
+				rotateValue: element.style.getPropertyValue('rotate'),
+				rotatePriority: element.style.getPropertyPriority('rotate'),
+				matrix: new DOMMatrix()
+					.rotate(angle)
+					.multiply(new DOMMatrix(style.transform === 'none' ? undefined : style.transform))
 			});
-			// Mesure les lignes avant rotation pour éviter leurs rectangles englobants inclinés.
+			// L'identité conserve le bloc de positionnement des descendants pendant la mesure.
+			element.style.setProperty('transform', 'matrix(1, 0, 0, 1, 0, 0)', 'important');
 			element.style.setProperty('rotate', 'none', 'important');
 		}
 		const rootRect = root.getBoundingClientRect();
 		const localScaleX = root.clientWidth / rootRect.width;
 		const localScaleY = root.clientHeight / rootRect.height;
-		for (const [element, rotation] of rotations) {
+		for (const [element, entry] of transforms) {
 			const rect = element.getBoundingClientRect();
 			const [originX, originY] = getComputedStyle(element)
 				.transformOrigin.split(' ')
 				.map(Number.parseFloat);
 			const x = (rect.left - rootRect.left) * localScaleX + originX;
 			const y = (rect.top - rootRect.top) * localScaleY + originY;
-			rotation.transform = new DOMMatrix().translate(x, y).rotate(rotation.angle).translate(-x, -y);
+			entry.transform = new DOMMatrix().translate(x, y).multiply(entry.matrix).translate(-x, -y);
 		}
 		const runs: TextDrawRun[] = [];
 		const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -666,8 +681,8 @@ function collectLiveTextDrawRuns(root: HTMLElement, textRootSelector?: string): 
 				element && element !== root;
 				element = element.parentElement
 			) {
-				const rotation = rotations.get(element)?.transform;
-				if (rotation) transform = rotation.multiply(transform ?? new DOMMatrix());
+				const ancestorTransform = transforms.get(element)?.transform;
+				if (ancestorTransform) transform = ancestorTransform.multiply(transform ?? new DOMMatrix());
 			}
 
 			const direction = toCanvasDirection(computedStyle.direction);
@@ -687,7 +702,7 @@ function collectLiveTextDrawRuns(root: HTMLElement, textRootSelector?: string): 
 						? (line.rect.right - rootRect.left) * localScaleX
 						: (line.rect.left - rootRect.left) * localScaleX;
 				const stablePosition = stabilizeTimedOverlayTextPosition(
-					getStableTimedOverlayTextPositionKey(parent, text, computedStyle),
+					getStableTimedOverlayTextPositionKey(parent, text, computedStyle, transforms),
 					{
 						x,
 						y: (line.rect.top - rootRect.top) * localScaleY,
@@ -726,8 +741,11 @@ function collectLiveTextDrawRuns(root: HTMLElement, textRootSelector?: string): 
 
 		return runs;
 	} finally {
-		for (const [element, rotation] of rotations) {
-			if (rotation.value) element.style.setProperty('rotate', rotation.value, rotation.priority);
+		for (const [element, entry] of transforms) {
+			if (entry.value) element.style.setProperty('transform', entry.value, entry.priority);
+			else element.style.removeProperty('transform');
+			if (entry.rotateValue)
+				element.style.setProperty('rotate', entry.rotateValue, entry.rotatePriority);
 			else element.style.removeProperty('rotate');
 		}
 	}

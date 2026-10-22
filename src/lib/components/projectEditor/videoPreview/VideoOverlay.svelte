@@ -967,10 +967,17 @@
 	function consumeReactiveDependencies(..._deps: unknown[]): void {}
 
 	/**
-	 * Promesse qui attend 1ms et s'annule si le signal est aborté.
-	 * Permet de céder au navigateur entre deux ajustements DOM.
+	 * Attend la mise à jour DOM en export, ou 1ms dans l'éditeur, avec annulation.
+	 * @param {AbortSignal} abortSignal Signal d'annulation du layout.
+	 * @returns {Promise<void>} Résolution après application de l'ajustement DOM.
 	 */
 	async function wait(abortSignal: AbortSignal) {
+		if (isExportCapturePreview()) {
+			// Les timers des WebViews hors écran peuvent retarder chaque étape du fit.
+			await tick();
+			if (abortSignal.aborted) throw new Error('Aborted');
+			return;
+		}
 		await new Promise((resolve, reject) => {
 			if (abortSignal.aborted) {
 				reject(new Error('Aborted'));
@@ -1066,6 +1073,8 @@
 			const targets = isResizing ? [resizingTarget!] : layoutTargets;
 			const layoutKey = getLayoutCacheKey(targets);
 			if (!isPositionDragCommit && layoutKey === lastLayoutKey) {
+				// Une clé identique peut encore être en cours de calcul dans l'effet précédent.
+				if (subtitlesContainer?.dataset.exportLayoutState === 'pending') return;
 				// Le layout est réutilisé, mais l'export attend un timing à jour pour chaque frame.
 				if (subtitlesContainer) {
 					subtitlesContainer.style.opacity = '1';

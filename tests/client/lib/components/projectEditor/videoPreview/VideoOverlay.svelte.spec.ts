@@ -469,6 +469,40 @@ describe('Video overlay subtitle preview', () => {
 		QPCFontProvider.verseMappingV2 = undefined;
 	});
 
+	test('finishes export layout only after fonts and fitting, even when timers are suspended', async () => {
+		const originalUrl = window.location.href;
+		let releaseFonts!: () => void;
+		const fontsReady = new Promise<void>((resolve) => {
+			releaseFonts = resolve;
+		});
+		vi.spyOn(QPCFontProvider, 'waitForFontsInElement').mockReturnValue(fontsReady);
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		window.history.replaceState(null, '', '/exporter?id=layout-test');
+		try {
+			const fixture = setupVideoOverlayFixture(
+				[createVerseSubtitle(0, 999, 'Arabic '.repeat(30), 'Translation '.repeat(30))],
+				{ cursorPosition: 100 }
+			);
+			fixture.videoStyle.getStylesOfTarget('arabic').setStyle('max-line', 1);
+			const component = render(VideoOverlay);
+			await tick();
+			const container = getSubtitlesContainer(component.container)!;
+			expect(container.dataset.exportLayoutState).toBe('pending');
+			await fixture.setCursor(150);
+			expect(container.dataset.exportLayoutState).toBe('pending');
+			releaseFonts();
+			// Flush Svelte updates without running any background-window timer callbacks.
+			for (let update = 0; update < 100; update++) await tick();
+			expect(container.dataset.exportLayoutState).toBe('ready');
+			expect(container.dataset.exportLayoutTiming).toBe('150');
+			expect(container.style.opacity).toBe('1');
+		} finally {
+			releaseFonts();
+			vi.useRealTimers();
+			window.history.replaceState(null, '', originalUrl);
+		}
+	});
+
 	test('reorders subtitle layers from the preview context menu without trapping them in a parent layer', async () => {
 		setupVideoOverlayFixture([createVerseSubtitle(0, 999, 'Arabic', 'Translation')], {
 			cursorPosition: 500

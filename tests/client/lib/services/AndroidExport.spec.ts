@@ -216,6 +216,82 @@ describe('capture DOM pour le renderer Android', () => {
 		).toBe('rgba(0, 0, 0, 0)');
 	});
 
+	it.each([2 / 3, 1, 720 / 608, 2])(
+		'conserve la géométrie du texte et de la calligraphie sans transform de capture à l’échelle %s',
+		async (scale) => {
+			const sourceContext = await createOverlay();
+			const root = sourceContext.node;
+			root.style.width = '608px';
+			root.style.height = '1080px';
+			const style = document.createElement('style');
+			style.textContent = `
+				@font-face { font-family: Surahs; src: url('/Surahs.ttf') format('truetype'); }
+				@font-face { font-family: Surahs2; src: url('/Surahs2.ttf') format('truetype'); }
+			`;
+			document.head.append(style);
+			elements.push(style);
+			root.innerHTML = `
+				<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
+					<div style="position:absolute;width:100px;display:flex;flex-direction:column;align-items:center;transform:translate(-172px,-465px);opacity:0.75">
+						<p style="font:131.2px/1.5 Surahs;direction:ltr">055</p>
+						<div style="width:700px;text-align:center;margin-top:-56px"><p style="font:30px/1.5 sans-serif;direction:ltr">Surah Ar-Rahman</p></div>
+					</div>
+					<p style="position:absolute;width:80%;transform:translateY(58px)">بِسْمِ اللَّهِ</p>
+					<p style="position:absolute;width:80%;font-family:Surahs2;transform:translateY(191px)">055</p>
+				</div>
+			`;
+			await Promise.all([
+				document.fonts.load('131.2px Surahs'),
+				document.fonts.load('32px Surahs2')
+			]);
+			const sourceRoot = root.getBoundingClientRect();
+			const sourceRects = Array.from(root.querySelectorAll('p')).map((paragraph) => {
+				const range = document.createRange();
+				range.selectNodeContents(paragraph);
+				return range.getBoundingClientRect();
+			});
+			const context = await createContext(root, {
+				width: root.clientWidth * scale,
+				height: root.clientHeight * scale,
+				style: { transform: `scale(${scale})`, transformOrigin: 'top left' },
+				font: false,
+				autoDestruct: false
+			});
+			contexts.push(context);
+			const capture = await prepareAndroidOverlay(context);
+			const frame = document.createElement('iframe');
+			elements.push(frame);
+			const loaded = new Promise<void>((resolve) =>
+				frame.addEventListener('load', () => resolve(), { once: true })
+			);
+			frame.srcdoc = `<html><head><style>html,body{margin:0;background:transparent;overflow:hidden}</style>${capture.fontCss.map((css) => `<style>${css}</style>`).join('')}</head><body>${capture.html}</body></html>`;
+			document.body.append(frame);
+			await loaded;
+			const target = frame.contentDocument!;
+			target.body.getBoundingClientRect();
+			await target.fonts.ready;
+			const clone = target.querySelector<HTMLElement>('foreignObject > div')!;
+			// Le renderer logiciel Android déforme les glyphes sous ce transform, malgré des rectangles corrects.
+			expect(frame.contentWindow!.getComputedStyle(clone).transform).toBe('none');
+			for (const [index, paragraph] of Array.from(target.querySelectorAll('p')).entries()) {
+				const range = target.createRange();
+				range.selectNodeContents(paragraph);
+				const rect = range.getBoundingClientRect();
+				// Le zoom arrondit les métriques des polices à la résolution cible.
+				expect(
+					Math.abs(rect.left - (sourceRects[index].left - sourceRoot.left) * scale)
+				).toBeLessThan(2);
+				expect(Math.abs(rect.top - (sourceRects[index].top - sourceRoot.top) * scale)).toBeLessThan(
+					2
+				);
+				expect(Math.abs(rect.width - sourceRects[index].width * scale)).toBeLessThan(2);
+				expect(Math.abs(rect.height - sourceRects[index].height * scale)).toBeLessThan(2);
+			}
+			expect(root.style.transform).toBe('');
+			expect(getComputedStyle(root.firstElementChild!.firstElementChild!).opacity).toBe('0.75');
+		}
+	);
+
 	it('neutralise le flou de fond dans la copie en conservant les filtres du texte', async () => {
 		const context = await createOverlay();
 		context.node.style.backdropFilter = 'blur(0px)';

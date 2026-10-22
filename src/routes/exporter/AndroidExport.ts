@@ -105,6 +105,11 @@ export async function prepareAndroidOverlay(
 			'.______background-clip--text{background-clip:text;-webkit-background-clip:text}';
 	}
 	const svg = await domToForeignObjectSvg(context);
+	// Le dessin logiciel Android déforme les glyphes sous un transform de mise à l'échelle.
+	// Le zoom conserve les positions et applique l'échelle au layout du texte.
+	const root = svg.querySelector<HTMLElement>('foreignObject > *')!;
+	root.style.transform = 'none';
+	root.style.zoom = String(context.width / context.node.clientWidth);
 	// Le flou du fond vidéo est appliqué par FFmpeg ; les backdrop-filters étaient ignorés
 	// par la capture SVG et déforment le dessin bitmap de la WebView Android.
 	for (const element of svg.querySelectorAll<HTMLElement>('[style]')) {

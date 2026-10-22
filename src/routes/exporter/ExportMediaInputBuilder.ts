@@ -67,10 +67,11 @@ export class ExportMediaInputBuilder {
 				globalState.currentProject!.content.getAssetById(clip.assetId).type === AssetType.Image
 			) {
 				input.image_zoom_end = clip.imageZoomEnd;
-				input.image_zoom_duration_ms =
+				input.image_zoom_duration_ms = Math.round(
 					clip.duration ||
-					globalState.currentProject!.content.timeline.getLongestTrackDurationIgnoringLoopedVideo()
-						.ms;
+						globalState.currentProject!.content.timeline.getLongestTrackDurationIgnoringLoopedVideo()
+							.ms
+				);
 			}
 			if (styles?.hasOverrideForAny([clip.id], 'media-fill')) {
 				input.media_fill = Boolean(styles.getEffectiveValue('media-fill', clip.id));

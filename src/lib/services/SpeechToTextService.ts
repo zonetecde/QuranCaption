@@ -195,6 +195,10 @@ export async function transcribeProjectAudio(
 	const originalSubtitles = overwriteExisting ? JSON.stringify(track.toJSON()) : null;
 	const apiKey = options.provider === 'groq' ? options.groqApiKey : options.elevenLabsApiKey;
 	if (!apiKey.trim()) throw new Error(copy.invalidKey());
+	const beforePadding = options.paddingBeforeMs ?? 500;
+	const afterPadding = options.paddingAfterMs ?? 500;
+	if (![beforePadding, afterPadding].every((value) => Number.isSafeInteger(value) && value >= 0))
+		throw new Error(copy.invalidPadding());
 	if (
 		!Number.isInteger(options.maxWords) ||
 		options.maxWords < 1 ||
@@ -281,11 +285,32 @@ export async function transcribeProjectAudio(
 		options.maxDuration
 	);
 	assertCurrentSource();
+	// Le seuil de 2 ms correspond aux clips de silence créés ci-dessous.
+	const starts = subtitles.map((segment) => Math.round(segment.start * 1000));
+	const ends = subtitles.map((segment) => Math.round(segment.end * 1000));
+	const firstLimit = overwriteExisting
+		? 0
+		: track.clips.reduce(
+				(limit, existing) =>
+					existing.endTime <= starts[0] ? Math.max(limit, existing.endTime) : limit,
+				0
+			);
+	if (starts[0] - firstLimit > 2) starts[0] = Math.max(firstLimit, starts[0] - beforePadding);
+	for (let index = 1; index < subtitles.length; index++) {
+		const silence = starts[index] - ends[index - 1];
+		if (silence <= 2) continue;
+		// Répartit un silence trop court entre les deux marges sans chevauchement.
+		const scale = Math.min(1, silence / Math.max(1, beforePadding + afterPadding));
+		ends[index - 1] += Math.floor(afterPadding * scale);
+		starts[index] -= Math.floor(beforePadding * scale);
+	}
+	const last = ends.length - 1;
+	if (source.end - ends[last] > 2) ends[last] = Math.min(source.end, ends[last] + afterPadding);
 	const clips = subtitles.map(
-		(segment) =>
+		(segment, index) =>
 			new SubtitleClip(
-				Math.round(segment.start * 1000),
-				Math.round(segment.end * 1000),
+				starts[index],
+				ends[index],
 				segment.text,
 				project.detail.speaker,
 				project.content.projectTranslation.createTranslationsForSubtitleText(segment.text),
@@ -293,13 +318,13 @@ export async function transcribeProjectAudio(
 				null,
 				{
 					source: 'api',
-					timeFrom: segment.start,
-					timeTo: segment.end,
+					timeFrom: starts[index] / 1000,
+					timeTo: ends[index] / 1000,
 					matchedText: segment.text,
 					words: segment.words.map((word) => ({
 						word: word.word,
-						start: word.start - segment.start,
-						end: word.end - segment.start,
+						start: word.start - starts[index] / 1000,
+						end: word.end - starts[index] / 1000,
 						spokenDuration: word.end - word.start
 					}))
 				}

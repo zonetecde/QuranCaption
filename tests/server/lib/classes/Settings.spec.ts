@@ -39,7 +39,25 @@ describe('loading legacy editor layout settings', () => {
 			groqApiKey: '',
 			elevenLabsApiKey: '',
 			maxWords: 8,
-			maxDuration: 6
+			maxDuration: 6,
+			paddingBeforeMs: 500,
+			paddingAfterMs: 500
+		});
+	});
+
+	it('adds default silence padding to older transcription settings without changing saved keys', async () => {
+		const settings = new Settings();
+		settings.speechToTextSettings.groqApiKey = 'existing-groq-key';
+		const saved: Record<string, unknown> = { ...settings.toJSON(), appVersion: '3.7.80' };
+		const speech = saved.speechToTextSettings as Record<string, unknown>;
+		delete speech.paddingBeforeMs;
+		delete speech.paddingAfterMs;
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify(saved));
+		await Settings.load();
+		expect(globalState.settings!.speechToTextSettings).toMatchObject({
+			groqApiKey: 'existing-groq-key',
+			paddingBeforeMs: 500,
+			paddingAfterMs: 500
 		});
 	});
 
@@ -52,7 +70,9 @@ describe('loading legacy editor layout settings', () => {
 			elevenLabsApiKey: 'eleven-test',
 			groqModel: 'whisper-large-v3-turbo',
 			elevenLabsModel: 'scribe_v1',
-			maxWords: 12
+			maxWords: 12,
+			paddingBeforeMs: 0,
+			paddingAfterMs: 750
 		});
 		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify(settings.toJSON()));
 		await Settings.load();

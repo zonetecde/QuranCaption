@@ -143,6 +143,11 @@ const editor = {
 		provider: 'Provider',
 		model: 'Model',
 		maxDuration: 'Max duration (seconds)',
+		paddingBefore: 'Padding before (ms)',
+		paddingAfter: 'Padding after (ms)',
+		paddingHint:
+			'Padding uses available silence only. Consecutive subtitles keep their shared boundary.',
+		invalidPadding: 'Choose a non-negative whole number of milliseconds for each padding value.',
 		preferences: 'Subtitles preferences',
 		rearrangeTitle: 'Rearrange subtitles by meaning',
 		rearrangeDescription:

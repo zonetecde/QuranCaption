@@ -37,6 +37,8 @@ export type SpeechToTextSettings = {
 	language: string;
 	maxWords: number;
 	maxDuration: number;
+	paddingBeforeMs: number;
+	paddingAfterMs: number;
 };
 
 export type PerformanceProfile = 'balanced' | 'max_quality';
@@ -177,7 +179,9 @@ export default class Settings extends SerializableBase {
 		elevenLabsModel: 'scribe_v2',
 		language: '',
 		maxWords: 8,
-		maxDuration: 6
+		maxDuration: 6,
+		paddingBeforeMs: 500,
+		paddingAfterMs: 500
 	});
 
 	exportSettings = $state<ExportSettings>({ ...Settings.DEFAULT_EXPORT_SETTINGS });
@@ -496,6 +500,15 @@ export default class Settings extends SerializableBase {
 		const settings = Settings.fromJSON(settingsData) as Settings;
 		const previousVersion = settings.appVersion;
 		let shouldSave = false;
+		for (const key of ['paddingBeforeMs', 'paddingAfterMs'] as const) {
+			if (
+				!Number.isSafeInteger(settings.speechToTextSettings[key]) ||
+				settings.speechToTextSettings[key] < 0
+			) {
+				settings.speechToTextSettings[key] = 500;
+				shouldSave = true;
+			}
+		}
 		// Répare la mise en page avant de l'exposer aux composants et aux migrations.
 		if (
 			!settings.persistentUiState ||

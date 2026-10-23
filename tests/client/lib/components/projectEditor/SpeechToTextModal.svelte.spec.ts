@@ -192,6 +192,14 @@ test('passes segmentation preferences to the workflow and disables duplicate sub
 	);
 	const close = vi.fn();
 	const component = render(SpeechToTextModal, { close });
+	await expect
+		.element(component.getByLabelText('Padding before (ms)', { exact: true }))
+		.toHaveValue(500);
+	await expect
+		.element(component.getByLabelText('Padding after (ms)', { exact: true }))
+		.toHaveValue(500);
+	await component.getByLabelText('Padding before (ms)', { exact: true }).fill('250');
+	await component.getByLabelText('Padding after (ms)', { exact: true }).fill('750');
 	await component.getByRole('button', { name: 'Transcribe and add subtitles' }).click();
 	await vi.waitFor(() => expect(transcribeProjectAudio).toHaveBeenCalledOnce());
 	await expect
@@ -199,7 +207,9 @@ test('passes segmentation preferences to the workflow and disables duplicate sub
 		.toBeDisabled();
 	expect(vi.mocked(transcribeProjectAudio).mock.calls[0][2]).toMatchObject({
 		maxWords: 8,
-		maxDuration: 6
+		maxDuration: 6,
+		paddingBeforeMs: 250,
+		paddingAfterMs: 750
 	});
 	finish({ count: 2 });
 	await vi.waitFor(() => expect(close).toHaveBeenCalledOnce());

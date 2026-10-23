@@ -1614,6 +1614,22 @@ type RootTranslation = {
 			 */
 			maxDuration: string;
 			/**
+			 * P​a​d​d​i​n​g​ ​b​e​f​o​r​e​ ​(​m​s​)
+			 */
+			paddingBefore: string;
+			/**
+			 * P​a​d​d​i​n​g​ ​a​f​t​e​r​ ​(​m​s​)
+			 */
+			paddingAfter: string;
+			/**
+			 * P​a​d​d​i​n​g​ ​u​s​e​s​ ​a​v​a​i​l​a​b​l​e​ ​s​i​l​e​n​c​e​ ​o​n​l​y​.​ ​C​o​n​s​e​c​u​t​i​v​e​ ​s​u​b​t​i​t​l​e​s​ ​k​e​e​p​ ​t​h​e​i​r​ ​s​h​a​r​e​d​ ​b​o​u​n​d​a​r​y​.
+			 */
+			paddingHint: string;
+			/**
+			 * C​h​o​o​s​e​ ​a​ ​n​o​n​-​n​e​g​a​t​i​v​e​ ​w​h​o​l​e​ ​n​u​m​b​e​r​ ​o​f​ ​m​i​l​l​i​s​e​c​o​n​d​s​ ​f​o​r​ ​e​a​c​h​ ​p​a​d​d​i​n​g​ ​v​a​l​u​e​.
+			 */
+			invalidPadding: string;
+			/**
 			 * S​u​b​t​i​t​l​e​s​ ​p​r​e​f​e​r​e​n​c​e​s
 			 */
 			preferences: string;
@@ -12259,6 +12275,22 @@ export type TranslationFunctions = {
 			 * Max duration (seconds)
 			 */
 			maxDuration: () => LocalizedString;
+			/**
+			 * Padding before (ms)
+			 */
+			paddingBefore: () => LocalizedString;
+			/**
+			 * Padding after (ms)
+			 */
+			paddingAfter: () => LocalizedString;
+			/**
+			 * Padding uses available silence only. Consecutive subtitles keep their shared boundary.
+			 */
+			paddingHint: () => LocalizedString;
+			/**
+			 * Choose a non-negative whole number of milliseconds for each padding value.
+			 */
+			invalidPadding: () => LocalizedString;
 			/**
 			 * Subtitles preferences
 			 */

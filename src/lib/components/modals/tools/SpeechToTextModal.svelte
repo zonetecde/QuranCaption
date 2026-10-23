@@ -224,6 +224,31 @@
 						/>
 					</label>
 				</div>
+				<div class="grid grid-cols-2 gap-3">
+					<label class="space-y-1 text-sm text-secondary">
+						<span>{copy.paddingBefore()}</span>
+						<input
+							type="number"
+							min="0"
+							step="1"
+							required
+							bind:value={settings.paddingBeforeMs}
+							class={inputClass}
+						/>
+					</label>
+					<label class="space-y-1 text-sm text-secondary">
+						<span>{copy.paddingAfter()}</span>
+						<input
+							type="number"
+							min="0"
+							step="1"
+							required
+							bind:value={settings.paddingAfterMs}
+							class={inputClass}
+						/>
+					</label>
+				</div>
+				<p class="text-xs text-thirdly">{copy.paddingHint()}</p>
 			</fieldset>
 			{#if busy}
 				<div role="status" class="space-y-2 text-sm text-secondary">

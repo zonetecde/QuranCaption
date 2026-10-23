@@ -115,6 +115,8 @@ describe('transcribing timeline audio', () => {
 		globalState.settings = new Settings();
 		globalState.settings.speechToTextSettings.groqApiKey = 'test-groq-key';
 		globalState.settings.speechToTextSettings.maxWords = 2;
+		globalState.settings.speechToTextSettings.paddingBeforeMs = 0;
+		globalState.settings.speechToTextSettings.paddingAfterMs = 0;
 		vi.spyOn(project.detail, 'updateVideoDetailAttributes').mockImplementation(() => {});
 		vi.spyOn(globalState, 'updateVideoPreviewUI').mockImplementation(() => {});
 		ProjectHistoryManager.resetForCurrentProject();
@@ -202,6 +204,146 @@ describe('transcribing timeline audio', () => {
 		});
 		expect(invoke).toHaveBeenCalledTimes(1);
 	});
+
+	test('adds 500 ms on each silent side and keeps padding in the transcription undo action', async () => {
+		clip.endTime = 18000;
+		vi.mocked(invoke).mockResolvedValue({
+			words: [
+				{ word: 'one', start: 1, end: 1.5 },
+				{ word: 'two', start: 1.5, end: 2 },
+				{ word: 'three', start: 4, end: 4.5 },
+				{ word: 'four', start: 4.5, end: 5 }
+			]
+		});
+		await transcribeProjectAudio(
+			project,
+			clip.id,
+			{ ...globalState.settings!.speechToTextSettings, paddingBeforeMs: 500, paddingAfterMs: 500 },
+			new AbortController().signal,
+			vi.fn()
+		);
+		const subtitles = globalState.getSubtitleClips;
+		expect(subtitles.map((subtitle) => [subtitle.startTime, subtitle.endTime])).toEqual([
+			[10500, 12500],
+			[13500, 15500]
+		]);
+		expect(subtitles[0].duration).toBe(2000);
+		expect(subtitles[0].alignmentMetadata).toMatchObject({ timeFrom: 10.5, timeTo: 12.5 });
+		expect(subtitles[0].alignmentMetadata!.words[1]).toMatchObject({
+			start: 1,
+			spokenDuration: 0.5
+		});
+		expect(
+			track.clips
+				.filter((item) => item instanceof SilenceClip)
+				.map((item) => [item.startTime, item.endTime])
+		).toEqual([
+			[0, 10499],
+			[12501, 13499]
+		]);
+		ProjectHistoryManager.undo();
+		expect(globalState.getSubtitleTrack.clips).toEqual([]);
+		ProjectHistoryManager.redo();
+		expect(
+			globalState.getSubtitleClips.map((subtitle) => [subtitle.startTime, subtitle.endTime])
+		).toEqual([
+			[10500, 12500],
+			[13500, 15500]
+		]);
+	});
+
+	test('keeps consecutive subtitle boundaries unchanged and stays inside the timeline and audio end', async () => {
+		clip.startTime = 0;
+		clip.endTime = 2000;
+		vi.mocked(invoke).mockResolvedValue({
+			words: [
+				{ word: 'one', start: 0, end: 1 },
+				{ word: 'two', start: 1, end: 2 }
+			]
+		});
+		await transcribeProjectAudio(
+			project,
+			clip.id,
+			{
+				...globalState.settings!.speechToTextSettings,
+				maxWords: 1,
+				paddingBeforeMs: 500,
+				paddingAfterMs: 500
+			},
+			new AbortController().signal,
+			vi.fn()
+		);
+		expect(
+			globalState.getSubtitleClips.map((subtitle) => [subtitle.startTime, subtitle.endTime])
+		).toEqual([
+			[0, 1000],
+			[1000, 2000]
+		]);
+		expect(track.clips).toHaveLength(2);
+	});
+
+	test.each([
+		{
+			before: 500,
+			after: 500,
+			expected: [
+				[0, 1300],
+				[1300, 2500]
+			]
+		},
+		{
+			before: 0,
+			after: 300,
+			expected: [
+				[0, 1300],
+				[1600, 2300]
+			]
+		}
+	])(
+		'uses only the available silence and supports disabling one padding side: $before/$after',
+		async ({ before, after, expected }) => {
+			clip.startTime = 0;
+			clip.endTime = 3000;
+			vi.mocked(invoke).mockResolvedValue({
+				words: [
+					{ word: 'one', start: 0, end: 1 },
+					{ word: 'two', start: 1.6, end: 2 }
+				]
+			});
+			await transcribeProjectAudio(
+				project,
+				clip.id,
+				{
+					...globalState.settings!.speechToTextSettings,
+					maxWords: 1,
+					paddingBeforeMs: before,
+					paddingAfterMs: after
+				},
+				new AbortController().signal,
+				vi.fn()
+			);
+			expect(
+				globalState.getSubtitleClips.map((subtitle) => [subtitle.startTime, subtitle.endTime])
+			).toEqual(expected);
+		}
+	);
+
+	test.each([-1, 1.5, Infinity])(
+		'rejects invalid padding before contacting the provider: %s',
+		async (paddingBeforeMs) => {
+			await expect(
+				transcribeProjectAudio(
+					project,
+					clip.id,
+					{ ...globalState.settings!.speechToTextSettings, paddingBeforeMs },
+					new AbortController().signal,
+					vi.fn()
+				)
+			).rejects.toThrow();
+			expect(invoke).not.toHaveBeenCalled();
+			expect(track.clips).toEqual([]);
+		}
+	);
 
 	test('replaces all existing subtitles only after success and restores them with undo', async () => {
 		const outside = new SubtitleClip(0, 3000, 'Earlier subtitle');

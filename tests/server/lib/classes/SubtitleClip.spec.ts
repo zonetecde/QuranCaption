@@ -18,6 +18,44 @@ describe('Minbar subtitle model', () => {
 		}
 	});
 
+	it.each([false, true])(
+		'restores a plain translation dictionary, including legacy wrappers: %s',
+		(legacyWrapper) => {
+			const translation = new VerseTranslation('Translation', 'reviewed');
+			translation.inlineStyleRuns = [
+				{ startWordIndex: 0, endWordIndex: 0, bold: true, italic: false, underline: false }
+			];
+			const stored = new SubtitleClip(100, 900, 'Source', 'Speaker', {
+				english: translation
+			}).toJSON();
+			if (legacyWrapper)
+				stored.translations = {
+					__className: 'Translation',
+					type: 'other',
+					english: translation.toJSON()
+				};
+			const before = JSON.stringify(stored);
+			const clip = SubtitleClip.fromJSON<SubtitleClip>(stored);
+
+			expect(Object.getPrototypeOf(clip.translations)).toBe(Object.prototype);
+			expect(Object.keys(clip.translations)).toEqual(['english']);
+			expect(clip.translations.english).toBeInstanceOf(VerseTranslation);
+			expect(clip.translations.english.text).toBe('Translation');
+			expect((clip.translations.english as VerseTranslation).inlineStyleRuns).toEqual(
+				translation.inlineStyleRuns
+			);
+			expect(clip.toJSON().translations).not.toHaveProperty('__className');
+			expect(JSON.stringify(stored)).toBe(before);
+			expect(clip.cloneWithTimes(200, 800).translations.english.text).toBe('Translation');
+		}
+	);
+
+	it('restores empty translation dictionaries without class metadata', () => {
+		const clip = SubtitleClip.fromJSON<SubtitleClip>(new SubtitleClip(100, 900, 'Source').toJSON());
+		expect(Object.getPrototypeOf(clip.translations)).toBe(Object.prototype);
+		expect(Object.keys(clip.translations)).toEqual([]);
+	});
+
 	it('cleans obsolete Quran defaults from saved Minbar clips without mutating their data', () => {
 		const stored = {
 			...new SubtitleClip(100, 900, 'Lecture', 'Speaker').toJSON(),

@@ -20,6 +20,7 @@ import EditionViewer from '$lib/components/projectEditor/tabs/translationsEditor
 import TranslationsEditorSettings from '$lib/components/projectEditor/tabs/translationsEditor/leftPanel/TranslationsEditorSettings.svelte';
 import ArabicText from '$lib/components/projectEditor/tabs/translationsEditor/workspace/ArabicText.svelte';
 import Translation from '$lib/components/projectEditor/tabs/translationsEditor/workspace/translation/Translation.svelte';
+import ModalManager from '$lib/components/modals/ModalManager';
 import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { setLocale } from '$lib/i18n/i18n-svelte';
 import { globalState } from '$lib/runes/main.svelte';
@@ -107,6 +108,73 @@ describe('Structured translation editor', () => {
 		await component.getByRole('button', { name: 'Translate video with AI' }).click();
 
 		expect(onTranslateWithAi).toHaveBeenCalledOnce();
+	});
+
+	test.each([
+		{ source: 'كلام عادي', text: 'Une traduction IA.', expected: ['Une traduction IA.'] },
+		{
+			source: 'قال: {{حديث}}',
+			text: 'Il dit : {{Une citation traduite.}}',
+			expected: ['Il dit : ', 'Une citation traduite.']
+		}
+	])(
+		'refreshes mounted translation inputs after AI updates and reset: $source',
+		async ({ source, text, expected }) => {
+			initializeClassRegistry();
+			const subtitle = SubtitleClip.fromJSON(
+				createSubtitle(source, source.includes('{{') ? '{{}}' : '').toJSON()
+			) as SubtitleClip;
+			globalState.getSubtitleTrack.clips.push(subtitle);
+			vi.spyOn(ModalManager, 'confirmModal').mockResolvedValue(true);
+			vi.spyOn(projectTranslation, 'downloadReferencedQuranTranslations').mockResolvedValue({});
+			const component = render(Translation, { edition, subtitle });
+			await tick();
+
+			subtitle.translations[edition.name].setTextAndClearInlineStyles(text);
+			subtitle.translations[edition.name].status = 'ai translated';
+			await tick();
+			expect(
+				Array.from(component.container.querySelectorAll('textarea'), (input) => input.value)
+			).toEqual(expected);
+
+			await projectTranslation.resetTranslation(edition);
+			await tick();
+			expect(
+				Array.from(component.container.querySelectorAll('textarea'), (input) => input.value)
+			).toEqual(expected.map(() => ''));
+
+			subtitle.translations[edition.name].setTextAndClearInlineStyles(text);
+			subtitle.translations[edition.name].status = 'ai translated';
+			await tick();
+			expect(
+				Array.from(component.container.querySelectorAll('textarea'), (input) => input.value)
+			).toEqual(expected);
+		}
+	);
+
+	test('refreshes mounted Quran settings when the translation is replaced by reset', async () => {
+		initializeClassRegistry();
+		const subtitle = SubtitleClip.fromJSON(
+			createSubtitle('{{2:255}}', '{{2:255}}').toJSON()
+		) as SubtitleClip;
+		projectTranslation.versesTranslations[edition.name] = { '2:255': 'one two three four' };
+		const translation = subtitle.translations[edition.name] as VerseTranslation;
+		const settings = translation.getOrCreateQuranSegment('quran-0', '2:255', 3);
+		settings.isBruteForce = true;
+		settings.manualText = 'Manual translation';
+		const component = render(Translation, { edition, subtitle });
+		await tick();
+		expect(component.container.querySelector('textarea')?.value).toBe('Manual translation');
+
+		subtitle.translations[edition.name] = projectTranslation.createTranslationForText(
+			subtitle.text
+		);
+		await tick();
+		await expect
+			.element(component.getByRole('checkbox', { name: 'Manual translation' }))
+			.not.toBeChecked();
+		expect(component.container.querySelector('textarea')).toBeNull();
+		await expect.element(component.getByText('one two three four')).toBeVisible();
 	});
 
 	test('ignores serialized translation metadata while counting filters and translated progress', async () => {

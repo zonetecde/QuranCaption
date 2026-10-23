@@ -48,7 +48,7 @@ export class SubtitleClip extends ClipWithTranslation {
 	}
 
 	/**
-	 * Restaure les timings relatifs après désérialisation sans consulter le projet actif.
+	 * Restaure le dictionnaire réactif des traductions et les timings relatifs sans consulter le projet actif.
 	 * @param {Record<string, unknown>} data Données sérialisées du sous-titre.
 	 * @returns {T} Sous-titre restauré.
 	 */
@@ -57,6 +57,14 @@ export class SubtitleClip extends ClipWithTranslation {
 		data: Record<string, unknown>
 	): T {
 		const clip = super.fromJSON.call(this, data) as T;
+		if (clip instanceof SubtitleClip && clip.translations instanceof Translation) {
+			// Une instance de classe ne rend pas réactif le remplacement des traductions par langue.
+			clip.translations = Object.fromEntries(
+				Object.entries(clip.translations).filter(
+					([, translation]) => translation instanceof Translation
+				)
+			);
+		}
 		if (clip instanceof SubtitleClip && clip.alignmentMetadata) {
 			clip.alignmentMetadata = {
 				...clip.alignmentMetadata,

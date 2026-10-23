@@ -1,7 +1,7 @@
 {
 	"$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
 	"productName": "Minbar Studio",
-	"version": "1.1.10",
+	"version": "1.1.20",
 	"identifier": "com.minbarstudio",
 	"build": {
 		"frontendDist": "../build",

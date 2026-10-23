@@ -1053,29 +1053,39 @@ async function blobToExactPngBytesWithLiveText(
 	canvas.width = targetWidth;
 	canvas.height = targetHeight;
 
-	const context = canvas.getContext('2d');
-	if (!context) throw new Error('Could not create export frame canvas.');
+	// WKWebView peut substituer les polices locales si le contexte est créé hors du document.
+	const canvasHost = document.createElement('div');
+	canvasHost.hidden = true;
+	canvasHost.append(canvas);
+	document.body.append(canvasHost);
+	try {
+		const context = canvas.getContext('2d');
+		if (!context) throw new Error('Could not create export frame canvas.');
 
-	context.imageSmoothingEnabled = true;
-	context.imageSmoothingQuality = 'high';
-	context.clearRect(0, 0, targetWidth, targetHeight);
-	context.drawImage(image, 0, 0, targetWidth, targetHeight);
+		context.imageSmoothingEnabled = true;
+		context.imageSmoothingQuality = 'high';
+		context.clearRect(0, 0, targetWidth, targetHeight);
+		context.drawImage(image, 0, 0, targetWidth, targetHeight);
 
-	const scaleX = targetWidth / sourceWidth;
-	const scaleY = targetHeight / sourceHeight;
-	let filterScratch: TextFilterScratch | null = null;
-	if (textRuns.some((run) => run.filter && run.filter !== 'none')) {
-		const scratchCanvas = document.createElement('canvas');
-		scratchCanvas.width = targetWidth;
-		scratchCanvas.height = targetHeight;
-		const scratchContext = scratchCanvas.getContext('2d');
-		if (!scratchContext) throw new Error('Could not create export text filter canvas.');
-		filterScratch = { canvas: scratchCanvas, context: scratchContext };
+		const scaleX = targetWidth / sourceWidth;
+		const scaleY = targetHeight / sourceHeight;
+		let filterScratch: TextFilterScratch | null = null;
+		if (textRuns.some((run) => run.filter && run.filter !== 'none')) {
+			const scratchCanvas = document.createElement('canvas');
+			scratchCanvas.width = targetWidth;
+			scratchCanvas.height = targetHeight;
+			canvasHost.append(scratchCanvas);
+			const scratchContext = scratchCanvas.getContext('2d');
+			if (!scratchContext) throw new Error('Could not create export text filter canvas.');
+			filterScratch = { canvas: scratchCanvas, context: scratchContext };
+		}
+
+		for (const run of textRuns) {
+			drawTextRun(context, run, scaleX, scaleY, compensateTextWeight, filterScratch);
+		}
+
+		return await canvasToPngBytes(canvas);
+	} finally {
+		canvasHost.remove();
 	}
-
-	for (const run of textRuns) {
-		drawTextRun(context, run, scaleX, scaleY, compensateTextWeight, filterScratch);
-	}
-
-	return await canvasToPngBytes(canvas);
 }

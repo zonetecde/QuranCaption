@@ -104,6 +104,38 @@ afterEach(() => {
 });
 
 describe('contexte de capture réutilisé par worker', () => {
+	it.each([false, true])(
+		'connecte les canvas macOS avant le rendu normal/gras et les nettoie (erreur : %s)',
+		async (failEncoding) => {
+			const root = await createOverlay();
+			root.innerHTML = '';
+			const backgroundBlob = await domToBlob(root);
+			root.innerHTML = `<p style="margin:0;font:24px Arial;color:white">SEEK YOUR <span style="font-weight:700;filter:blur(1px)">LORD'S FORGIVENESS</span></p>`;
+			const canvases: HTMLCanvasElement[] = [];
+			const originalGetContext = HTMLCanvasElement.prototype.getContext;
+			vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function (
+				this: HTMLCanvasElement,
+				...args
+			) {
+				// Simule la contrainte WKWebView dès la création du contexte, avant la police.
+				expect(this.isConnected).toBe(true);
+				expect(this.closest('[hidden]')).not.toBeNull();
+				canvases.push(this);
+				return Reflect.apply(originalGetContext, this, args);
+			});
+			if (failEncoding) {
+				vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => {
+					callback(null);
+				});
+			}
+			const capture = captureMacOsOverlayPngBytes(root, 1, 320, 180, { backgroundBlob });
+			if (failEncoding) await expect(capture).rejects.toThrow('Could not encode export frame');
+			else expect((await capture).length).toBeGreaterThan(0);
+			expect(canvases).toHaveLength(2);
+			expect(canvases.every((canvas) => !canvas.isConnected)).toBe(true);
+		}
+	);
+
 	it.each([-45, 45, 90])(
 		'préserve la rotation de %s degrés dans le rendu canvas macOS',
 		async (angle) => {

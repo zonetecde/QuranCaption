@@ -89,8 +89,8 @@ jobs:
           mkdir -p src-tauri/binaries
           mv yt-dlp src-tauri/binaries/yt-dlp
 
-      - name: Install ffmpeg and copy binaries (macOS)
-        if: startsWith(matrix.os, 'macos')
+      - name: Install ffmpeg and copy binaries (macOS ARM)
+        if: matrix.target == 'aarch64-apple-darwin'
         run: |
           brew update
           if brew list --versions openssl@1.1 >/dev/null 2>&1; then
@@ -113,6 +113,25 @@ jobs:
           else
             echo "xfade_vulkan unavailable in macOS FFmpeg build; CPU fallback will be used"
           fi
+
+      - name: Download ffmpeg and ffprobe (macOS Intel)
+        if: matrix.target == 'x86_64-apple-darwin'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p src-tauri/binaries "$RUNNER_TEMP/qc-ffmpeg"
+          curl -fL --retry 3 --connect-timeout 30 --max-time 300 \
+            -o "$RUNNER_TEMP/qc-ffmpeg/ffmpeg.zip" \
+            "https://github.com/Tyrrrz/FFmpegBin/releases/download/9.0.2/ffmpeg-osx-x64.zip"
+          echo "e1938c2df4024c13eeef068f5561e7782ec4003b3f40b428065147e40b92e9a0  $RUNNER_TEMP/qc-ffmpeg/ffmpeg.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/qc-ffmpeg/ffmpeg.zip" ffmpeg ffprobe -d "$RUNNER_TEMP/qc-ffmpeg"
+          for binary in ffmpeg ffprobe; do
+            install -m 755 "$RUNNER_TEMP/qc-ffmpeg/$binary" "src-tauri/binaries/$binary"
+            lipo -archs "src-tauri/binaries/$binary" | grep -qw x86_64
+          done
+          src-tauri/binaries/ffprobe -version
+          filters="$(src-tauri/binaries/ffmpeg -hide_banner -filters)"
+          grep -qw afftdn <<< "$filters"
 
       # ─── Windows binary setup ───
       - name: Download yt-dlp (Windows)

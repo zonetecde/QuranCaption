@@ -1488,6 +1488,10 @@ type RootTranslation = {
 			 */
 			apply: string;
 			/**
+			 * A​p​p​l​y​ ​a​l​l​ ​d​e​t​e​c​t​e​d​ ​a​n​n​o​t​a​t​i​o​n​s
+			 */
+			applyAll: string;
+			/**
 			 * B​e​f​o​r​e
 			 */
 			before: string;
@@ -1618,9 +1622,21 @@ type RootTranslation = {
 			 */
 			rearrangeTitle: string;
 			/**
-			 * R​e​v​i​e​w​ ​y​o​u​r​ ​e​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​a​n​d​ ​c​h​o​o​s​e​ ​y​o​u​r​ ​p​r​e​f​e​r​e​n​c​e​s​ ​f​o​r​ ​r​e​a​r​r​a​n​g​i​n​g​ ​t​h​e​m​.
+			 * C​h​o​o​s​e​ ​y​o​u​r​ ​p​r​e​f​e​r​e​n​c​e​s​,​ ​t​h​e​n​ ​r​e​v​i​e​w​ ​t​h​e​ ​p​r​o​p​o​s​e​d​ ​s​u​b​t​i​t​l​e​ ​b​o​u​n​d​a​r​i​e​s​ ​b​e​f​o​r​e​ ​a​p​p​l​y​i​n​g​ ​t​h​e​m​.
 			 */
 			rearrangeDescription: string;
+			/**
+			 * C​o​m​p​a​r​e​ ​t​h​e​ ​a​f​f​e​c​t​e​d​ ​s​u​b​t​i​t​l​e​s​ ​b​e​f​o​r​e​ ​a​n​d​ ​a​f​t​e​r​ ​t​h​e​ ​p​r​o​p​o​s​e​d​ ​r​e​a​r​r​a​n​g​e​m​e​n​t​.
+			 */
+			rearrangePreviewDescription: string;
+			/**
+			 * A​p​p​l​y​ ​a​l​l​ ​p​r​o​p​o​s​e​d​ ​c​h​a​n​g​e​s
+			 */
+			rearrangeApplyAll: string;
+			/**
+			 * N​o​ ​s​u​b​t​i​t​l​e​ ​c​h​a​n​g​e​s​ ​w​e​r​e​ ​p​r​o​p​o​s​e​d​.
+			 */
+			rearrangeNoChanges: string;
 			/**
 			 * R​e​a​r​r​a​n​g​e​ ​s​u​b​t​i​t​l​e​s
 			 */
@@ -12090,6 +12106,10 @@ export type TranslationFunctions = {
 			 */
 			apply: () => LocalizedString;
 			/**
+			 * Apply all detected annotations
+			 */
+			applyAll: () => LocalizedString;
+			/**
 			 * Before
 			 */
 			before: () => LocalizedString;
@@ -12220,9 +12240,21 @@ export type TranslationFunctions = {
 			 */
 			rearrangeTitle: () => LocalizedString;
 			/**
-			 * Review your existing subtitles and choose your preferences for rearranging them.
+			 * Choose your preferences, then review the proposed subtitle boundaries before applying them.
 			 */
 			rearrangeDescription: () => LocalizedString;
+			/**
+			 * Compare the affected subtitles before and after the proposed rearrangement.
+			 */
+			rearrangePreviewDescription: () => LocalizedString;
+			/**
+			 * Apply all proposed changes
+			 */
+			rearrangeApplyAll: () => LocalizedString;
+			/**
+			 * No subtitle changes were proposed.
+			 */
+			rearrangeNoChanges: () => LocalizedString;
 			/**
 			 * Rearrange subtitles
 			 */

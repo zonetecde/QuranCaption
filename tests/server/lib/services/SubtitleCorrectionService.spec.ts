@@ -116,6 +116,11 @@ test('omits uncertain and unchanged proposals', async () => {
 	expect(
 		(await detectSubtitleCorrections(project, new AbortController().signal, vi.fn())).proposals
 	).toEqual([]);
+	expect(project.projectEditorState.subtitlesEditor.completedAiSteps.correction).toBe(true);
+	ProjectHistoryManager.undo();
+	expect(globalState.getSubtitlesEditorState.completedAiSteps.correction).toBe(false);
+	ProjectHistoryManager.redo();
+	expect(globalState.getSubtitlesEditorState.completedAiSteps.correction).toBe(true);
 });
 
 test('preserves measured word timings for one-to-one substitutions and resets them when word counts change', async () => {
@@ -229,6 +234,7 @@ test.each(['cancel', 'edit', 'switch', 'network'])(
 			return { corrections: [correction()] };
 		});
 		await expect(detectSubtitleCorrections(project, controller.signal, vi.fn())).rejects.toThrow();
+		expect(project.projectEditorState.subtitlesEditor.completedAiSteps.correction).toBe(false);
 	}
 );
 

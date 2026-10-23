@@ -312,6 +312,11 @@ export async function transcribeProjectAudio(
 			if (first && first.startTime > 1)
 				track.clips.unshift(new SilenceClip(0, first.startTime - 1));
 			project.detail.updateVideoDetailAttributes();
+			project.projectEditorState.subtitlesEditor.completedAiSteps = {
+				correction: false,
+				rearrangement: false,
+				references: false
+			};
 		},
 		project
 	);

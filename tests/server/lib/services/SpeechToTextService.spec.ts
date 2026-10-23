@@ -131,6 +131,11 @@ describe('transcribing timeline audio', () => {
 	});
 
 	test('imports subtitles and gap silences together without using text AI', async () => {
+		project.projectEditorState.subtitlesEditor.completedAiSteps = {
+			correction: true,
+			rearrangement: true,
+			references: true
+		};
 		const result = await transcribeProjectAudio(
 			project,
 			clip.id,
@@ -139,6 +144,11 @@ describe('transcribing timeline audio', () => {
 			vi.fn()
 		);
 		expect(result).toEqual({ count: 2 });
+		expect(project.projectEditorState.subtitlesEditor.completedAiSteps).toEqual({
+			correction: false,
+			rearrangement: false,
+			references: false
+		});
 		expect(vi.mocked(invoke).mock.calls[0]).toEqual([
 			'transcribe_audio_chunk',
 			{
@@ -168,8 +178,10 @@ describe('transcribing timeline audio', () => {
 		expect([track.clips[2].startTime, track.clips[2].endTime]).toEqual([11801, 11999]);
 		expect((track.clips[3] as SubtitleClip).alignmentMetadata!.words[0].start).toBe(0);
 		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(globalState.getSubtitlesEditorState.completedAiSteps.correction).toBe(true);
 		expect(globalState.getSubtitleTrack.clips).toHaveLength(0);
 		expect(ProjectHistoryManager.redo()).toBe(true);
+		expect(globalState.getSubtitlesEditorState.completedAiSteps.correction).toBe(false);
 		expect(globalState.getSubtitleTrack.clips).toHaveLength(4);
 	});
 

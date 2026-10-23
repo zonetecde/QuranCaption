@@ -40,6 +40,7 @@ vi.mock('$lib/services/SubtitleRearrangementService', () => ({
 }));
 
 const originalSettings = globalState.settings;
+const applyRearrangement = vi.fn();
 
 beforeEach(() => {
 	loadLocale('en');
@@ -47,7 +48,13 @@ beforeEach(() => {
 	globalState.settings = new Settings();
 	vi.spyOn(Settings, 'save').mockResolvedValue(undefined);
 	vi.mocked(transcribeProjectAudio).mockResolvedValue({ count: 2 });
-	vi.mocked(rearrangeProjectSubtitles).mockResolvedValue({ count: 2, skipped: 0 });
+	applyRearrangement.mockReset().mockReturnValue({ count: 2, skipped: 0 });
+	vi.mocked(rearrangeProjectSubtitles).mockImplementation(async () => ({
+		before: globalState.getSubtitleClips,
+		after: [new SubtitleClip(0, 3000, 'Proposed subtitle boundaries')],
+		skipped: 0,
+		apply: applyRearrangement
+	}));
 	const asset = new Asset();
 	asset.id = 42;
 	asset.fileName = 'lecture.wav';
@@ -151,7 +158,8 @@ test('lists existing subtitles and requires a text AI key before enabling rearra
 		new SilenceClip(1001, 1999),
 		new SubtitleClip(0, 1000, 'First passage')
 	];
-	const component = render(RearrangeSubtitlesModal, { close: vi.fn() });
+	const close = vi.fn();
+	const component = render(RearrangeSubtitlesModal, { close });
 	const action = component.getByRole('button', { name: 'Rearrange subtitles', exact: true });
 	await expect.element(component.getByText('First passage', { exact: true })).toBeVisible();
 	await expect.element(component.getByText('Second passage', { exact: true })).toBeVisible();
@@ -162,11 +170,16 @@ test('lists existing subtitles and requires a text AI key before enabling rearra
 	await expect.element(action).not.toBeDisabled();
 	await action.click();
 	await expect
-		.element(component.getByRole('status'))
-		.toHaveTextContent('Subtitles rearranged. You can undo this change. (2)');
+		.element(component.getByText('Proposed subtitle boundaries', { exact: true }))
+		.toBeVisible();
+	expect(applyRearrangement).not.toHaveBeenCalled();
+	expect(close).not.toHaveBeenCalled();
 	expect(rearrangeProjectSubtitles).toHaveBeenCalledOnce();
 	expect(globalState.getSubtitleTrack.clips).toHaveLength(3);
 	expect(transcribeProjectAudio).not.toHaveBeenCalled();
+	await component.getByRole('button', { name: 'Apply all proposed changes', exact: true }).click();
+	expect(applyRearrangement).toHaveBeenCalledOnce();
+	expect(close).toHaveBeenCalledOnce();
 });
 
 test('passes additional preferences, prevents duplicate requests and cancels on close', async () => {
@@ -205,14 +218,45 @@ test('shows rearrangement errors and allows retrying', async () => {
 		.element(component.getByRole('alert'))
 		.toHaveTextContent('The AI returned invalid subtitle boundaries.');
 	await action.click();
-	await expect.element(component.getByRole('status')).toHaveTextContent('Subtitles rearranged.');
+	await expect
+		.element(component.getByRole('button', { name: 'Apply all proposed changes', exact: true }))
+		.toBeVisible();
+});
+
+test('discards a rearrangement preview when preferences change and keeps failed applications open', async () => {
+	globalState.getSubtitleTrack.clips = [new SubtitleClip(0, 1000, 'A passage')];
+	globalState.settings!.aiTranslationSettings.openAiApiKey = 'text-ai-key';
+	const close = vi.fn();
+	const component = render(RearrangeSubtitlesModal, { close });
+	await component.getByRole('button', { name: 'Rearrange subtitles', exact: true }).click();
+	const applyAll = component.getByRole('button', {
+		name: 'Apply all proposed changes',
+		exact: true
+	});
+	await expect.element(applyAll).toBeVisible();
+	await component.getByRole('textbox', { name: 'Additional preferences' }).fill('Shorter lines');
+	await expect.element(applyAll).not.toBeInTheDocument();
+	expect(applyRearrangement).not.toHaveBeenCalled();
+	await component.getByRole('button', { name: 'Rearrange subtitles', exact: true }).click();
+	applyRearrangement.mockImplementationOnce(() => {
+		throw new Error('The subtitles changed.');
+	});
+	await applyAll.click();
+	await expect.element(component.getByRole('alert')).toHaveTextContent('The subtitles changed.');
+	expect(close).not.toHaveBeenCalled();
 });
 
 test('shows the rearrangement entry only after subtitles exist', async () => {
+	const transcribe = vi.spyOn(ModalManager, 'speechToTextModal').mockResolvedValue(undefined);
 	const open = vi.spyOn(ModalManager, 'rearrangeSubtitlesModal').mockResolvedValue(undefined);
 	const detect = vi.spyOn(ModalManager, 'detectReferencesModal').mockResolvedValue(undefined);
 	const correct = vi.spyOn(ModalManager, 'correctTranscriptionModal').mockResolvedValue(undefined);
 	const component = render(SubtitlesEditorSettings);
+	const transcriptionEntry = component.getByRole('button', {
+		name: 'Automatic transcription',
+		exact: true
+	});
+	await expect.element(transcriptionEntry).toHaveClass('bg-accent-primary');
 	const entry = component.getByRole('button', { name: 'Rearrange subtitles by meaning' });
 	await expect.element(entry).not.toBeInTheDocument();
 	const referenceEntry = component.getByRole('button', { name: 'Detect quotes and Quran verses' });
@@ -221,6 +265,21 @@ test('shows the rearrangement entry only after subtitles exist', async () => {
 	await expect.element(correctionEntry).not.toBeInTheDocument();
 	globalState.getSubtitleTrack.clips.push(new SubtitleClip(0, 1000, 'A passage'));
 	await expect.element(entry).toBeVisible();
+	await expect.element(transcriptionEntry).toHaveClass('btn');
+	expect(component.container.querySelectorAll('div[aria-hidden="true"]')).toHaveLength(3);
+	await expect.element(correctionEntry).toHaveClass('bg-accent-primary');
+	await expect.element(entry).toHaveClass('bg-accent-primary');
+	await expect.element(referenceEntry).toHaveClass('bg-accent-primary');
+	globalState.getSubtitlesEditorState.completedAiSteps = {
+		correction: true,
+		rearrangement: true,
+		references: true
+	};
+	await expect.element(correctionEntry).toHaveClass('btn');
+	await expect.element(entry).toHaveClass('btn');
+	await expect.element(referenceEntry).toHaveClass('btn');
+	await transcriptionEntry.click();
+	expect(transcribe).toHaveBeenCalledOnce();
 	await correctionEntry.click();
 	expect(correct).toHaveBeenCalledOnce();
 	expect(

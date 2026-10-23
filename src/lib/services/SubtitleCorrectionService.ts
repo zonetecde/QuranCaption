@@ -60,7 +60,7 @@ function assertCurrent(plan: SubtitleCorrectionPlan): void {
 }
 
 /**
- * Recherche uniquement les erreurs de transcription très probables sans modifier le projet.
+ * Recherche uniquement les erreurs de transcription très probables sans modifier les sous-titres.
  * @param {Project} project Projet à analyser.
  * @param {AbortSignal} signal Annulation de l'analyse.
  * @param {(progress: number) => void} onProgress Progression entre zéro et un.
@@ -177,6 +177,14 @@ export async function detectSubtitleCorrections(
 	assertCurrent(plan);
 	signal.throwIfAborted();
 	plan.proposals.sort((a, b) => a.id - b.id);
+	if (!project.projectEditorState.subtitlesEditor.completedAiSteps.correction)
+		ProjectHistoryManager.track(
+			copy.title(),
+			() => {
+				project.projectEditorState.subtitlesEditor.completedAiSteps.correction = true;
+			},
+			project
+		);
 	onProgress(1);
 	return plan;
 }

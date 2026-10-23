@@ -158,7 +158,7 @@ function findCandidates(
 }
 
 /**
- * Analyse les citations sans modifier le projet, avec recherche canonique et contexte autour des lots.
+ * Analyse les citations sans modifier les sous-titres, avec recherche canonique et contexte autour des lots.
  * @param {Project} project Projet à analyser.
  * @param {ReferenceDetectionOptions} options Catégories et préférences éditoriales.
  * @param {AbortSignal} signal Annulation empêchant les requêtes suivantes.
@@ -396,6 +396,14 @@ export async function detectProjectReferences(
 	}
 	assertCurrent(plan);
 	signal.throwIfAborted();
+	if (!project.projectEditorState.subtitlesEditor.completedAiSteps.references)
+		ProjectHistoryManager.track(
+			copy.title(),
+			() => {
+				project.projectEditorState.subtitlesEditor.completedAiSteps.references = true;
+			},
+			project
+		);
 	onProgress(1);
 	return plan;
 }

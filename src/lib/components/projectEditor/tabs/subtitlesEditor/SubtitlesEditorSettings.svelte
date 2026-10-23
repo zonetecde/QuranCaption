@@ -20,6 +20,7 @@
 	const correctionCopy = $derived(
 		($LL.editor as unknown as { subtitleCorrection: SubtitleCorrectionCopy }).subtitleCorrection
 	);
+	const completedSteps = $derived(globalState.getSubtitlesEditorState.completedAiSteps);
 </script>
 
 <div
@@ -73,38 +74,58 @@
 			</div>
 		</div>
 	</div>
-	<button
-		type="button"
-		onclick={() => ModalManager.speechToTextModal()}
-		class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-accent-primary px-3 py-3 text-sm font-semibold text-black"
-	>
-		<span class="material-icons text-lg">auto_awesome</span>
-		{speechCopy.title()}
-	</button>
-	{#if transcriptCount > 0}
+	<div class="space-y-2">
 		<button
 			type="button"
-			onclick={() => ModalManager.correctTranscriptionModal()}
-			class="btn flex w-full items-center justify-center gap-2 px-3 py-3 text-sm font-semibold"
+			onclick={() => ModalManager.speechToTextModal()}
+			class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-semibold transition-colors {transcriptCount >
+			0
+				? 'btn'
+				: 'bg-accent-primary text-black'}"
 		>
-			<span class="material-icons text-lg">spellcheck</span>
-			{correctionCopy.title()}
+			<span class="material-icons text-lg" aria-hidden="true">auto_awesome</span>
+			{speechCopy.title()}
 		</button>
-		<button
-			type="button"
-			onclick={() => ModalManager.rearrangeSubtitlesModal()}
-			class="btn flex w-full items-center justify-center gap-2 px-3 py-3 text-sm font-semibold"
-		>
-			<span class="material-icons text-lg">reorder</span>
-			{speechCopy.rearrangeTitle()}
-		</button>
-		<button
-			type="button"
-			onclick={() => ModalManager.detectReferencesModal()}
-			class="btn flex w-full items-center justify-center gap-2 px-3 py-3 text-sm font-semibold"
-		>
-			<span class="material-icons text-lg">format_quote</span>
-			{referenceCopy.title()}
-		</button>
-	{/if}
+		{#if transcriptCount > 0}
+			<div class="flex justify-center text-secondary" aria-hidden="true">
+				<span class="material-icons text-xl">arrow_downward</span>
+			</div>
+			<button
+				type="button"
+				onclick={() => ModalManager.correctTranscriptionModal()}
+				class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-semibold transition-colors {completedSteps.correction
+					? 'btn'
+					: 'bg-accent-primary text-black'}"
+			>
+				<span class="material-icons text-lg" aria-hidden="true">spellcheck</span>
+				{correctionCopy.title()}
+			</button>
+			<div class="flex justify-center text-secondary" aria-hidden="true">
+				<span class="material-icons text-xl">arrow_downward</span>
+			</div>
+			<button
+				type="button"
+				onclick={() => ModalManager.rearrangeSubtitlesModal()}
+				class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-semibold transition-colors {completedSteps.rearrangement
+					? 'btn'
+					: 'bg-accent-primary text-black'}"
+			>
+				<span class="material-icons text-lg" aria-hidden="true">reorder</span>
+				{speechCopy.rearrangeTitle()}
+			</button>
+			<div class="flex justify-center text-secondary" aria-hidden="true">
+				<span class="material-icons text-xl">arrow_downward</span>
+			</div>
+			<button
+				type="button"
+				onclick={() => ModalManager.detectReferencesModal()}
+				class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-semibold transition-colors {completedSteps.references
+					? 'btn'
+					: 'bg-accent-primary text-black'}"
+			>
+				<span class="material-icons text-lg" aria-hidden="true">format_quote</span>
+				{referenceCopy.title()}
+			</button>
+		{/if}
+	</div>
 </div>

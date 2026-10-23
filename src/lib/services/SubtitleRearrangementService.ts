@@ -24,25 +24,31 @@ export type RearrangementPreferences = {
 	maxDuration: number;
 	additionalPreferences: string;
 };
+export type SubtitleRearrangementPlan = {
+	before: SubtitleClip[];
+	after: SubtitleClip[];
+	skipped: number;
+	apply: () => { count: number; skipped: number };
+};
 type SpeechBlock = { type: 'speech'; id: number; words: TranscriptBandWord[] };
 type TimelineEntry =
 	| SpeechBlock
 	| { type: 'silence' | 'protected'; start: number; end: number; text?: string };
 
 /**
- * Réorganise les mots existants sans autoriser l'IA à réécrire le texte ou les timings.
+ * Prépare une réorganisation des mots existants sans modifier les sous-titres du projet.
  * @param {Project} project Projet capturé à l'ouverture du modal.
  * @param {RearrangementPreferences} preferences Limites et indications sémantiques.
  * @param {AbortSignal} signal Annulation empêchant toute application tardive.
  * @param {(progress: number) => void} onProgress Progression entre les requêtes bornées.
- * @returns {Promise<{count: number; skipped: number}>} Nombre de segments et de clips protégés.
+ * @returns {Promise<SubtitleRearrangementPlan>} Aperçu des changements et application différée.
  */
 export async function rearrangeProjectSubtitles(
 	project: Project,
 	preferences: RearrangementPreferences,
 	signal: AbortSignal,
 	onProgress: (progress: number) => void
-): Promise<{ count: number; skipped: number }> {
+): Promise<SubtitleRearrangementPlan> {
 	const copy = getSpeechToTextCopy();
 	if (
 		!Number.isInteger(preferences.maxWords) ||
@@ -357,24 +363,48 @@ export async function rearrangeProjectSubtitles(
 			withSilences.push(new SilenceClip(previous.endTime + 1, clip.startTime - 1));
 		withSilences.push(clip);
 	}
-	ProjectHistoryManager.track(
-		copy.rearrangeTitle(),
-		() => {
-			track.clips = withSilences;
-			const editor = project.projectEditorState.subtitlesEditor;
-			if (editor.editSubtitle && !withSilences.some((clip) => clip.id === editor.editSubtitle!.id))
-				editor.editSubtitle = null;
-			if (!withSilences.some((clip) => clip.id === editor.pendingSplitEditNextId))
-				editor.pendingSplitEditNextId = null;
-			project.projectEditorState.stylesEditor.selectedSubtitles =
-				project.projectEditorState.stylesEditor.selectedSubtitles.filter((selected) =>
-					withSilences.some((clip) => clip.id === selected.id)
-				);
-			project.detail.updateVideoDetailAttributes();
-		},
-		project
-	);
-	globalState.updateVideoPreviewUI();
+	let applied = false;
+	/**
+	 * Applique l'aperçu dans une seule action annulable si ses sources sont toujours valides.
+	 * @returns {{count: number; skipped: number}} Nombre de segments et de clips protégés.
+	 */
+	function apply(): { count: number; skipped: number } {
+		if (applied) throw new Error(copy.rearrangeSourceChanged());
+		assertCurrent();
+		ProjectHistoryManager.track(
+			copy.rearrangeTitle(),
+			() => {
+				track.clips = withSilences;
+				const editor = project.projectEditorState.subtitlesEditor;
+				editor.completedAiSteps.rearrangement = true;
+				if (
+					editor.editSubtitle &&
+					!withSilences.some((clip) => clip.id === editor.editSubtitle!.id)
+				)
+					editor.editSubtitle = null;
+				if (!withSilences.some((clip) => clip.id === editor.pendingSplitEditNextId))
+					editor.pendingSplitEditNextId = null;
+				project.projectEditorState.stylesEditor.selectedSubtitles =
+					project.projectEditorState.stylesEditor.selectedSubtitles.filter((selected) =>
+						withSilences.some((clip) => clip.id === selected.id)
+					);
+				project.detail.updateVideoDetailAttributes();
+			},
+			project
+		);
+		applied = true;
+		globalState.updateVideoPreviewUI();
+		return { count: output.filter((clip) => clip instanceof SubtitleClip).length, skipped };
+	}
 	onProgress(1);
-	return { count: output.filter((clip) => clip instanceof SubtitleClip).length, skipped };
+	return {
+		before: originals.filter(
+			(clip): clip is SubtitleClip => clip instanceof SubtitleClip && !withSilences.includes(clip)
+		),
+		after: withSilences.filter(
+			(clip): clip is SubtitleClip => clip instanceof SubtitleClip && !originals.includes(clip)
+		),
+		skipped,
+		apply
+	};
 }

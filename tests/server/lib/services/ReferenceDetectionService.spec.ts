@@ -274,6 +274,11 @@ test('does not load Quran data when only ordinary quotations are requested', asy
 		vi.fn()
 	);
 	expect(MinimalQuranProvider.getVerses).not.toHaveBeenCalled();
+	expect(project.projectEditorState.subtitlesEditor.completedAiSteps.references).toBe(true);
+	ProjectHistoryManager.undo();
+	expect(globalState.getSubtitlesEditorState.completedAiSteps.references).toBe(false);
+	ProjectHistoryManager.redo();
+	expect(globalState.getSubtitlesEditorState.completedAiSteps.references).toBe(true);
 });
 
 test('provides context on both sides of long batches and supports a quotation crossing the batch boundary', async () => {

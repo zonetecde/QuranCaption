@@ -314,6 +314,9 @@ export class VideoPreviewState extends SerializableBase {
 }
 
 export class SubtitlesEditorState extends SerializableBase {
+	// Étapes IA déjà exécutées avec succès dans ce projet.
+	completedAiSteps = $state({ correction: false, rearrangement: false, references: false });
+
 	// Sélection Qur'an conservée pour le workflow WBW et les projets existants.
 	selectedSurah: number = $state(1);
 	selectedVerse: number = $state(1);

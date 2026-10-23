@@ -17,7 +17,10 @@ import { setLocale } from '$lib/i18n/i18n-svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import { VerseTranslation } from '$lib/classes/Translation.svelte';
-import { rearrangeProjectSubtitles } from '$lib/services/SubtitleRearrangementService';
+import {
+	rearrangeProjectSubtitles as previewProjectSubtitles,
+	type RearrangementPreferences
+} from '$lib/services/SubtitleRearrangementService';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 const originalSettings = globalState.settings;
@@ -28,6 +31,24 @@ const options = {
 	maxDuration: 6,
 	additionalPreferences: 'Keep poetic lines together.'
 };
+
+/**
+ * Exécute la préparation et l'approbation pour les tests du découpage existant.
+ * @param {Project} project Projet de test.
+ * @param {RearrangementPreferences} preferences Limites et préférences de découpage.
+ * @param {AbortSignal} signal Annulation du traitement.
+ * @param {(progress: number) => void} onProgress Suivi de progression.
+ * @returns {Promise<{count: number; skipped: number}>} Résultat appliqué.
+ */
+async function rearrangeProjectSubtitles(
+	project: Project,
+	preferences: RearrangementPreferences,
+	signal: AbortSignal,
+	onProgress: (progress: number) => void
+): Promise<{ count: number; skipped: number }> {
+	const plan = await previewProjectSubtitles(project, preferences, signal, onProgress);
+	return plan.apply();
+}
 
 /**
  * Construit un sous-titre avec des durées vocales mesurées.
@@ -84,6 +105,61 @@ afterEach(() => {
 	globalState.settings = originalSettings;
 });
 
+test('previews only changed subtitles without mutating the track until approval', async () => {
+	const first = subtitle(0, 'one two');
+	const second = subtitle(1000, 'three four');
+	const untouched = new SubtitleClip(4000, 5000, 'untimed and unchanged');
+	track.clips = [first, second, untouched];
+	const plan = await previewProjectSubtitles(
+		project,
+		options,
+		new AbortController().signal,
+		vi.fn()
+	);
+	expect(track.clips).toEqual([first, second, untouched]);
+	expect(project.projectEditorState.subtitlesEditor.completedAiSteps.rearrangement).toBe(false);
+	expect(plan.before).toEqual([first, second]);
+	expect(plan.after.map((clip) => clip.text)).toEqual(['one two three four']);
+	expect(plan.skipped).toBe(1);
+	plan.apply();
+	expect(project.projectEditorState.subtitlesEditor.completedAiSteps.rearrangement).toBe(true);
+	expect(track.clips).toContain(untouched);
+	expect(() => plan.apply()).toThrow();
+	ProjectHistoryManager.undo();
+	expect(globalState.getSubtitleClips.map((clip) => clip.text)).toEqual([
+		'one two',
+		'three four',
+		'untimed and unchanged'
+	]);
+});
+
+test.each(['edit', 'switch', 'cancel', 'translations', 'undo'])(
+	'refuses applying an outdated preview after %s',
+	async (action) => {
+		track.clips = [subtitle(0, 'one two')];
+		const controller = new AbortController();
+		const plan = await previewProjectSubtitles(project, options, controller.signal, vi.fn());
+		if (action === 'edit') (track.clips[0] as SubtitleClip).text = 'Manual edit';
+		if (action === 'switch') globalState.currentProject = null;
+		if (action === 'cancel') controller.abort();
+		if (action === 'translations')
+			project.content.projectTranslation.versesTranslations.english = {
+				'1:1': 'Updated translation'
+			};
+		if (action === 'undo') {
+			ProjectHistoryManager.track(
+				'edit',
+				() => {
+					(track.clips[0] as SubtitleClip).text = 'Manual edit';
+				},
+				project
+			);
+			ProjectHistoryManager.undo();
+		}
+		expect(() => plan.apply()).toThrow();
+	}
+);
+
 test('sends chronological words and immutable silence without old subtitle boundaries, and supports undo', async () => {
 	const silence = new SilenceClip(1001, 1999);
 	track.clips = [
@@ -99,6 +175,7 @@ test('sends chronological words and immutable silence without old subtitle bound
 		clip instanceof SubtitleClip ? clip.text : ''
 	]);
 	await rearrangeProjectSubtitles(project, options, new AbortController().signal, vi.fn());
+	expect(project.projectEditorState.subtitlesEditor.completedAiSteps.rearrangement).toBe(true);
 	const request = vi.mocked(invoke).mock.calls[0][1] as { request: { batch: unknown } };
 	expect(request.request.batch).toMatchObject({
 		preferences: options,
@@ -117,6 +194,7 @@ test('sends chronological words and immutable silence without old subtitle bound
 	expect(subs.map((clip) => clip.text)).toEqual(['one two', 'three four five six']);
 	expect(subs.every((clip) => clip.endTime <= 1001 || clip.startTime >= 1999)).toBe(true);
 	await ProjectHistoryManager.undo();
+	expect(globalState.getSubtitlesEditorState.completedAiSteps.rearrangement).toBe(false);
 	expect(
 		globalState
 			.currentProject!.content.timeline.getFirstTrack(TrackType.Subtitle)
@@ -128,6 +206,7 @@ test('sends chronological words and immutable silence without old subtitle bound
 			])
 	).toEqual(before);
 	await ProjectHistoryManager.redo();
+	expect(globalState.getSubtitlesEditorState.completedAiSteps.rearrangement).toBe(true);
 	expect(
 		globalState.getSubtitleTrack.clips.filter((clip) => clip instanceof SubtitleClip)
 	).toHaveLength(2);

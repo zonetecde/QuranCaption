@@ -7,6 +7,7 @@
 	import BackupSettings from './BackupSettings.svelte';
 	import DefaultValuesSettings from './DefaultValuesSettings.svelte';
 	import AiKeySettings from './AiKeySettings.svelte';
+	import TranscriptKeySettings from './TranscriptKeySettings.svelte';
 	import StockMediaSettings from './StockMediaSettings.svelte';
 	import QuranIntegrationSettings from './QuranIntegrationSettings.svelte';
 	import ThemeButton, { type ThemeConfig } from './ThemeButton.svelte';
@@ -58,6 +59,7 @@
 	);
 	let isSupportModalOpen = $state(false);
 	let defaultValuesCopy = $derived($LL.settings as unknown as { defaultValues: () => string });
+	const transcriptKeyCopy = $derived($LL.settings as unknown as { transcriptKey: () => string });
 
 	/**
 	 * Copie une adresse de portefeuille dans le presse-papiers.
@@ -188,7 +190,7 @@
 		<!-- Sidebar -->
 		<div class="bg-primary border-r border-color p-3 overflow-auto flex flex-col">
 			<div class="flex flex-col gap-2">
-				{#each [{ name: $LL.settings.support(), tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' }, { name: $LL.settings.shortcuts(), tab: SettingsTab.SHORTCUTS, icon: 'keyboard' }, { name: $LL.settings.theme(), tab: SettingsTab.THEME, icon: 'light_mode' }, { name: $LL.settings.notifications(), tab: SettingsTab.NOTIFICATIONS, icon: 'notifications' }, { name: $LL.settings.aiKey(), tab: SettingsTab.AI_KEY, icon: 'key' }, { name: $LL.settings.stockMedia(), tab: SettingsTab.STOCK_MEDIA, icon: 'public' }, { name: $LL.settings.quranComIntegration(), tab: SettingsTab.QURAN_INTEGRATION, icon: 'account_circle' }, { name: defaultValuesCopy.defaultValues(), tab: SettingsTab.DEFAULT_VALUES, icon: 'tune' }, { name: $LL.settings.backup(), tab: SettingsTab.BACKUP, icon: 'archive' }, { name: $LL.settings.contact(), tab: SettingsTab.CONTACT, icon: 'mail' }, { name: $LL.settings.about(), tab: SettingsTab.ABOUT, icon: 'info' }] as setting (setting.tab)}
+				{#each [{ name: $LL.settings.support(), tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' }, { name: $LL.settings.shortcuts(), tab: SettingsTab.SHORTCUTS, icon: 'keyboard' }, { name: $LL.settings.theme(), tab: SettingsTab.THEME, icon: 'light_mode' }, { name: $LL.settings.notifications(), tab: SettingsTab.NOTIFICATIONS, icon: 'notifications' }, { name: $LL.settings.aiKey(), tab: SettingsTab.AI_KEY, icon: 'key' }, { name: transcriptKeyCopy.transcriptKey(), tab: SettingsTab.TRANSCRIPT_KEY, icon: 'record_voice_over' }, { name: $LL.settings.stockMedia(), tab: SettingsTab.STOCK_MEDIA, icon: 'public' }, { name: $LL.settings.quranComIntegration(), tab: SettingsTab.QURAN_INTEGRATION, icon: 'account_circle' }, { name: defaultValuesCopy.defaultValues(), tab: SettingsTab.DEFAULT_VALUES, icon: 'tune' }, { name: $LL.settings.backup(), tab: SettingsTab.BACKUP, icon: 'archive' }, { name: $LL.settings.contact(), tab: SettingsTab.CONTACT, icon: 'mail' }, { name: $LL.settings.about(), tab: SettingsTab.ABOUT, icon: 'info' }] as setting (setting.tab)}
 					<button
 						class="flex items-center gap-3 text-sm px-3 py-2 rounded-lg w-full transition-colors duration-150 justify-start"
 						class:selected={globalState.uiState.settingsTab === setting.tab}
@@ -298,6 +300,8 @@
 				</div>
 			{:else if globalState.uiState.settingsTab === SettingsTab.AI_KEY}
 				<AiKeySettings />
+			{:else if globalState.uiState.settingsTab === SettingsTab.TRANSCRIPT_KEY}
+				<TranscriptKeySettings />
 			{:else if globalState.uiState.settingsTab === SettingsTab.STOCK_MEDIA}
 				<StockMediaSettings />
 			{:else if globalState.uiState.settingsTab === SettingsTab.NOTIFICATIONS}

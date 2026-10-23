@@ -1722,9 +1722,21 @@ type RootTranslation = {
 			 */
 			elevenLabsKeyStep3: string;
 			/**
-			 * P​a​s​t​e​ ​t​h​e​ ​k​e​y​ ​i​n​t​o​ ​t​h​e​ ​A​P​I​ ​k​e​y​ ​f​i​e​l​d​,​ ​t​h​e​n​ ​s​e​l​e​c​t​ ​S​a​v​e​.
+			 * P​a​s​t​e​ ​t​h​e​ ​k​e​y​ ​i​n​t​o​ ​t​h​e​ ​A​P​I​ ​k​e​y​ ​f​i​e​l​d​.​ ​I​t​ ​i​s​ ​s​a​v​e​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​.
 			 */
 			keyPasteStep: string;
+			/**
+			 * T​r​a​n​s​c​r​i​p​t​i​o​n​ ​k​e​y​ ​s​e​t​t​i​n​g​s
+			 */
+			transcriptKeySettings: string;
+			/**
+			 * A​d​d​ ​a​n​ ​A​P​I​ ​k​e​y​ ​f​o​r​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​p​r​o​v​i​d​e​r​ ​i​n​ ​S​e​t​t​i​n​g​s​ ​>​ ​T​r​a​n​s​c​r​i​p​t​i​o​n​ ​k​e​y​s​.
+			 */
+			keyRequired: string;
+			/**
+			 * T​h​i​s​ ​t​i​m​e​l​i​n​e​ ​a​l​r​e​a​d​y​ ​c​o​n​t​a​i​n​s​ ​s​u​b​t​i​t​l​e​s​.​ ​R​e​p​l​a​c​e​ ​a​l​l​ ​e​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​w​i​t​h​ ​a​ ​n​e​w​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​?​ ​T​h​e​ ​e​x​i​s​t​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​w​i​l​l​ ​b​e​ ​k​e​p​t​ ​i​f​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​f​a​i​l​s​.​ ​Y​o​u​ ​c​a​n​ ​u​n​d​o​ ​t​h​e​ ​r​e​p​l​a​c​e​m​e​n​t​.
+			 */
+			overwriteConfirm: string;
 			/**
 			 * O​p​e​n​ ​A​P​I​ ​k​e​y​s​ ​p​a​g​e
 			 */
@@ -1786,7 +1798,7 @@ type RootTranslation = {
 			 */
 			providerError: string;
 			/**
-			 * T​h​e​ ​p​r​o​j​e​c​t​ ​o​r​ ​a​u​d​i​o​ ​c​l​i​p​ ​c​h​a​n​g​e​d​ ​d​u​r​i​n​g​ ​p​r​o​c​e​s​s​i​n​g​.​ ​N​o​ ​s​u​b​t​i​t​l​e​s​ ​w​e​r​e​ ​a​d​d​e​d​.
+			 * T​h​e​ ​p​r​o​j​e​c​t​,​ ​a​u​d​i​o​ ​c​l​i​p​ ​o​r​ ​s​u​b​t​i​t​l​e​s​ ​c​h​a​n​g​e​d​ ​d​u​r​i​n​g​ ​p​r​o​c​e​s​s​i​n​g​.​ ​N​o​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​w​a​s​ ​a​p​p​l​i​e​d​.
 			 */
 			sourceChanged: string;
 			/**
@@ -4036,7 +4048,7 @@ type RootTranslation = {
 		 */
 		aiProvider: string;
 		/**
-		 * C​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​A​P​I​ ​k​e​y​,​ ​t​e​x​t​ ​e​n​d​p​o​i​n​t​,​ ​m​o​d​e​l​,​ ​a​n​d​ ​r​e​a​s​o​n​i​n​g​ ​e​f​f​o​r​t​ ​i​n​ ​S​e​t​t​i​n​g​s​ ​>​ ​A​I​ ​K​e​y​ ​b​e​f​o​r​e​ ​r​u​n​n​i​n​g​ ​t​h​i​s​ ​a​s​s​i​s​t​a​n​t​.
+		 * C​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​A​P​I​ ​k​e​y​,​ ​t​e​x​t​ ​e​n​d​p​o​i​n​t​,​ ​m​o​d​e​l​,​ ​a​n​d​ ​r​e​a​s​o​n​i​n​g​ ​e​f​f​o​r​t​ ​i​n​ ​S​e​t​t​i​n​g​s​ ​>​ ​T​e​x​t​ ​A​I​ ​k​e​y​ ​b​e​f​o​r​e​ ​r​u​n​n​i​n​g​ ​t​h​i​s​ ​a​s​s​i​s​t​a​n​t​.
 		 */
 		aiProviderConfigHint: string;
 		/**
@@ -7098,11 +7110,11 @@ type RootTranslation = {
 		 */
 		errorProcessingAiResponseDesc: string;
 		/**
-		 * C​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​A​I​ ​A​P​I​ ​k​e​y​ ​i​n​ ​S​e​t​t​i​n​g​s​ ​>​ ​A​I​ ​K​e​y​ ​f​i​r​s​t​.
+		 * C​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​A​I​ ​A​P​I​ ​k​e​y​ ​i​n​ ​S​e​t​t​i​n​g​s​ ​>​ ​T​e​x​t​ ​A​I​ ​k​e​y​ ​f​i​r​s​t​.
 		 */
 		configureAiKeyFirst: string;
 		/**
-		 * C​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​t​e​x​t​ ​A​I​ ​e​n​d​p​o​i​n​t​ ​i​n​ ​S​e​t​t​i​n​g​s​ ​>​ ​A​I​ ​K​e​y​ ​f​i​r​s​t​.
+		 * C​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​t​e​x​t​ ​A​I​ ​e​n​d​p​o​i​n​t​ ​i​n​ ​S​e​t​t​i​n​g​s​ ​>​ ​T​e​x​t​ ​A​I​ ​k​e​y​ ​f​i​r​s​t​.
 		 */
 		configureTextAiFirst: string;
 		/**
@@ -8173,9 +8185,25 @@ type RootTranslation = {
 		 */
 		notifications: string;
 		/**
-		 * A​I​ ​K​e​y
+		 * T​e​x​t​ ​A​I​ ​k​e​y
 		 */
 		aiKey: string;
+		/**
+		 * T​r​a​n​s​c​r​i​p​t​i​o​n​ ​k​e​y​s
+		 */
+		transcriptKey: string;
+		/**
+		 * C​o​n​f​i​g​u​r​e​ ​G​r​o​q​ ​a​n​d​ ​E​l​e​v​e​n​L​a​b​s​ ​f​o​r​ ​a​u​d​i​o​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​.​ ​C​h​a​n​g​e​s​ ​a​r​e​ ​s​a​v​e​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​.
+		 */
+		transcriptKeyDescription: string;
+		/**
+		 * G​r​o​q​ ​A​P​I​ ​k​e​y
+		 */
+		groqApiKey: string;
+		/**
+		 * E​l​e​v​e​n​L​a​b​s​ ​A​P​I​ ​k​e​y
+		 */
+		elevenLabsApiKey: string;
 		/**
 		 * S​t​o​c​k​ ​M​e​d​i​a
 		 */
@@ -10022,7 +10050,7 @@ type RootTranslation = {
 		 */
 		speakersStillLoading: string;
 		/**
-		 * P​l​e​a​s​e​ ​c​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​A​I​ ​A​P​I​ ​k​e​y​ ​a​n​d​ ​e​n​d​p​o​i​n​t​ ​i​n​ ​S​e​t​t​i​n​g​s​ ​>​ ​A​I​ ​K​e​y​ ​f​i​r​s​t​.
+		 * P​l​e​a​s​e​ ​c​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​A​I​ ​A​P​I​ ​k​e​y​ ​a​n​d​ ​e​n​d​p​o​i​n​t​ ​i​n​ ​S​e​t​t​i​n​g​s​ ​>​ ​T​e​x​t​ ​A​I​ ​k​e​y​ ​f​i​r​s​t​.
 		 */
 		configureAiKey: string;
 		/**
@@ -12340,9 +12368,21 @@ export type TranslationFunctions = {
 			 */
 			elevenLabsKeyStep3: () => LocalizedString;
 			/**
-			 * Paste the key into the API key field, then select Save.
+			 * Paste the key into the API key field. It is saved automatically.
 			 */
 			keyPasteStep: () => LocalizedString;
+			/**
+			 * Transcription key settings
+			 */
+			transcriptKeySettings: () => LocalizedString;
+			/**
+			 * Add an API key for the selected provider in Settings > Transcription keys.
+			 */
+			keyRequired: () => LocalizedString;
+			/**
+			 * This timeline already contains subtitles. Replace all existing subtitles with a new transcription? The existing subtitles will be kept if transcription fails. You can undo the replacement.
+			 */
+			overwriteConfirm: () => LocalizedString;
 			/**
 			 * Open API keys page
 			 */
@@ -12404,7 +12444,7 @@ export type TranslationFunctions = {
 			 */
 			providerError: () => LocalizedString;
 			/**
-			 * The project or audio clip changed during processing. No subtitles were added.
+			 * The project, audio clip or subtitles changed during processing. No transcription was applied.
 			 */
 			sourceChanged: () => LocalizedString;
 			/**
@@ -14601,7 +14641,7 @@ export type TranslationFunctions = {
 		 */
 		aiProvider: () => LocalizedString;
 		/**
-		 * Configure your API key, text endpoint, model, and reasoning effort in Settings > AI Key before running this assistant.
+		 * Configure your API key, text endpoint, model, and reasoning effort in Settings > Text AI key before running this assistant.
 		 */
 		aiProviderConfigHint: () => LocalizedString;
 		/**
@@ -17619,11 +17659,11 @@ export type TranslationFunctions = {
 		 */
 		errorProcessingAiResponseDesc: () => LocalizedString;
 		/**
-		 * Configure your AI API key in Settings > AI Key first.
+		 * Configure your AI API key in Settings > Text AI key first.
 		 */
 		configureAiKeyFirst: () => LocalizedString;
 		/**
-		 * Configure your text AI endpoint in Settings > AI Key first.
+		 * Configure your text AI endpoint in Settings > Text AI key first.
 		 */
 		configureTextAiFirst: () => LocalizedString;
 		/**
@@ -18675,9 +18715,25 @@ export type TranslationFunctions = {
 		 */
 		notifications: () => LocalizedString;
 		/**
-		 * AI Key
+		 * Text AI key
 		 */
 		aiKey: () => LocalizedString;
+		/**
+		 * Transcription keys
+		 */
+		transcriptKey: () => LocalizedString;
+		/**
+		 * Configure Groq and ElevenLabs for audio transcription. Changes are saved automatically.
+		 */
+		transcriptKeyDescription: () => LocalizedString;
+		/**
+		 * Groq API key
+		 */
+		groqApiKey: () => LocalizedString;
+		/**
+		 * ElevenLabs API key
+		 */
+		elevenLabsApiKey: () => LocalizedString;
 		/**
 		 * Stock Media
 		 */
@@ -20498,7 +20554,7 @@ export type TranslationFunctions = {
 		 */
 		speakersStillLoading: () => LocalizedString;
 		/**
-		 * Please configure your AI API key and endpoint in Settings > AI Key first.
+		 * Please configure your AI API key and endpoint in Settings > Text AI key first.
 		 */
 		configureAiKey: () => LocalizedString;
 		/**

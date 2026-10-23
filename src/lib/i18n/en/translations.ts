@@ -79,8 +79,8 @@ const translations = {
 	errorProcessingAiResponse: 'Error processing AI response',
 	errorProcessingAiResponseDesc:
 		'An error occurred while processing the AI response. Please try again.',
-	configureAiKeyFirst: 'Configure your AI API key in Settings > AI Key first.',
-	configureTextAiFirst: 'Configure your text AI endpoint in Settings > AI Key first.',
+	configureAiKeyFirst: 'Configure your AI API key in Settings > Text AI key first.',
+	configureTextAiFirst: 'Configure your text AI endpoint in Settings > Text AI key first.',
 	noEligibleVerseBatch: 'No eligible verse batch was found for the selected range.',
 	liveResponseCopied: 'Live response copied.',
 	checkedSegmentsNoErrors: 'Checked {count} translation segment(s). No errors found.',

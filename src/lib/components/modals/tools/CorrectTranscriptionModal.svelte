@@ -151,6 +151,7 @@
 			appliedCount = applySubtitleCorrections(project, plan, ids);
 			plan = null;
 			selectedIds = [];
+			dismiss();
 		} catch (error) {
 			errorMessage = error instanceof Error ? error.message : copy.sourceChanged();
 		}

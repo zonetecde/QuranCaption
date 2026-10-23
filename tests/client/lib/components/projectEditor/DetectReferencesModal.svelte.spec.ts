@@ -104,10 +104,17 @@ test('requires a key and a selected category before detecting', async () => {
 });
 
 test('previews confirmed selections before applying and prevents uncertain proposals from being selected', async () => {
-	const component = render(DetectReferencesModal, { close: vi.fn() });
+	const close = vi.fn();
+	const component = render(DetectReferencesModal, { close });
+	await expect
+		.element(component.getByText('quoted words plus', { exact: true }))
+		.not.toBeInTheDocument();
 	await component.getByRole('textbox', { name: 'Additional preferences' }).fill('Include poetry.');
 	await component.getByRole('button', { name: 'Find quotations', exact: true }).click();
-	await expect.element(component.getByText('{{quoted words}} plus', { exact: true })).toBeVisible();
+	await expect.element(component.getByText('quoted words', { exact: true })).toBeVisible();
+	await expect
+		.element(component.getByText('{{quoted words}} plus', { exact: true }))
+		.not.toBeInTheDocument();
 	expect(clip.text).toBe('quoted words plus');
 	expect(applyReferenceAnnotations).not.toHaveBeenCalled();
 	expect(vi.mocked(detectProjectReferences).mock.calls[0][1]).toMatchObject({
@@ -127,9 +134,52 @@ test('previews confirmed selections before applying and prevents uncertain propo
 	await component.getByRole('button', { name: /Apply selected annotations/ }).click();
 	expect(applyReferenceAnnotations).toHaveBeenCalledOnce();
 	expect(vi.mocked(applyReferenceAnnotations).mock.calls[0][2]).toEqual([0]);
+	expect(close).toHaveBeenCalledOnce();
 	await expect
 		.element(component.getByRole('status'))
 		.toHaveTextContent('Annotations applied. You can undo this change. (1)');
+});
+
+test('shows only detected passages and applies all confirmed annotations before closing', async () => {
+	globalState.getSubtitleTrack.clips.push(new SubtitleClip(2100, 3000, 'Unrelated subtitle'));
+	const result = makePlan();
+	result.proposals.push({
+		...result.proposals[0],
+		id: 2,
+		kind: 'none',
+		status: 'rejected',
+		source: 'Rejected ordinary speech'
+	});
+	vi.mocked(detectProjectReferences).mockResolvedValue(result);
+	const close = vi.fn();
+	const component = render(DetectReferencesModal, { close });
+	await component.getByRole('button', { name: 'Find quotations', exact: true }).click();
+	await expect
+		.element(component.getByText('Unrelated subtitle', { exact: true }))
+		.not.toBeInTheDocument();
+	await expect
+		.element(component.getByText('Rejected ordinary speech', { exact: true }))
+		.not.toBeInTheDocument();
+	await component.getByRole('checkbox', { name: 'Select proposal 1', exact: true }).click();
+	await component
+		.getByRole('button', { name: 'Apply all detected annotations (1)', exact: true })
+		.click();
+	expect(vi.mocked(applyReferenceAnnotations).mock.calls[0][2]).toEqual([0]);
+	expect(close).toHaveBeenCalledOnce();
+});
+
+test('keeps detected passages open when applying annotations fails', async () => {
+	const close = vi.fn();
+	const component = render(DetectReferencesModal, { close });
+	await component.getByRole('button', { name: 'Find quotations', exact: true }).click();
+	vi.mocked(applyReferenceAnnotations).mockImplementationOnce(() => {
+		throw new Error('Source changed.');
+	});
+	await component
+		.getByRole('button', { name: 'Apply all detected annotations (1)', exact: true })
+		.click();
+	await expect.element(component.getByRole('alert')).toHaveTextContent('Source changed.');
+	expect(close).not.toHaveBeenCalled();
 });
 
 test('discards a preview when preferences change', async () => {

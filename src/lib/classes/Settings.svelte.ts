@@ -850,6 +850,7 @@ export enum SettingsTab {
 	THEME = 'theme',
 	NOTIFICATIONS = 'notifications',
 	AI_KEY = 'ai-key',
+	TRANSCRIPT_KEY = 'transcript-key',
 	STOCK_MEDIA = 'stock-media',
 	QURAN_INTEGRATION = 'quran-integration',
 	BACKUP = 'backup',

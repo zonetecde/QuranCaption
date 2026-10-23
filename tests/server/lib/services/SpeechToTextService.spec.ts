@@ -18,6 +18,7 @@ import Settings from '$lib/classes/Settings.svelte';
 import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 import { globalState } from '$lib/runes/main.svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import { VerseTranslation } from '$lib/classes/Translation.svelte';
 import {
 	buildSpeechSubtitles,
 	normalizeSpeechWords,
@@ -201,6 +202,74 @@ describe('transcribing timeline audio', () => {
 		});
 		expect(invoke).toHaveBeenCalledTimes(1);
 	});
+
+	test('replaces all existing subtitles only after success and restores them with undo', async () => {
+		const outside = new SubtitleClip(0, 3000, 'Earlier subtitle');
+		const overlapping = new SubtitleClip(10000, 12000, 'Existing subtitle');
+		overlapping.translations.french = new VerseTranslation('Traduction existante', 'reviewed');
+		track.clips = [outside, overlapping];
+		project.projectEditorState.subtitlesEditor.editSubtitle = overlapping;
+		project.projectEditorState.subtitlesEditor.pendingSplitEditNextId = outside.id;
+		project.projectEditorState.stylesEditor.selectedSubtitles = [overlapping];
+		vi.mocked(invoke).mockImplementationOnce(async () => {
+			expect(track.clips).toEqual([outside, overlapping]);
+			return { words: ['a', 'b', 'c', 'd'].map((word, i) => ({ word, start: i, end: i + 0.8 })) };
+		});
+		await transcribeProjectAudio(
+			project,
+			clip.id,
+			{ ...globalState.settings!.speechToTextSettings },
+			new AbortController().signal,
+			vi.fn(),
+			true
+		);
+		expect(
+			track.clips
+				.filter((item) => item instanceof SubtitleClip)
+				.map((item) => (item as SubtitleClip).text)
+		).toEqual(['a b', 'c d']);
+		expect(project.projectEditorState.subtitlesEditor.editSubtitle).toBeNull();
+		expect(project.projectEditorState.subtitlesEditor.pendingSplitEditNextId).toBeNull();
+		expect(project.projectEditorState.stylesEditor.selectedSubtitles).toEqual([]);
+		ProjectHistoryManager.undo();
+		expect(globalState.getSubtitleClips.map((subtitle) => subtitle.text)).toEqual([
+			'Earlier subtitle',
+			'Existing subtitle'
+		]);
+		expect(globalState.getSubtitleClips[1].translations.french.text).toBe('Traduction existante');
+		ProjectHistoryManager.redo();
+		expect(globalState.getSubtitleClips.map((subtitle) => subtitle.text)).toEqual(['a b', 'c d']);
+	});
+
+	test.each(['network', 'cancel', 'edit', 'switch', 'noSpeech'])(
+		'keeps the existing subtitles after an overwrite fails: %s',
+		async (action) => {
+			const existing = new SubtitleClip(10000, 12000, 'Existing subtitle');
+			track.clips = [existing];
+			const controller = new AbortController();
+			vi.mocked(invoke).mockImplementationOnce(async () => {
+				if (action === 'network') throw new Error('Provider error');
+				if (action === 'cancel') controller.abort();
+				if (action === 'edit') existing.text = 'Manual edit during transcription';
+				if (action === 'switch') globalState.currentProject = null;
+				return { words: action === 'noSpeech' ? [] : [{ word: 'hello', start: 0, end: 1 }] };
+			});
+			await expect(
+				transcribeProjectAudio(
+					project,
+					clip.id,
+					{ ...globalState.settings!.speechToTextSettings },
+					controller.signal,
+					vi.fn(),
+					true
+				)
+			).rejects.toThrow();
+			expect(track.clips).toEqual([existing]);
+			expect(existing.text).toBe(
+				action === 'edit' ? 'Manual edit during transcription' : 'Existing subtitle'
+			);
+		}
+	);
 
 	test('does not send paid requests when the selected range already has subtitles', async () => {
 		track.clips.push(new SubtitleClip(11000, 12000, 'existing'));

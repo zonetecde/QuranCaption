@@ -103,6 +103,7 @@ const editor = {
 		start: 'Find quotations',
 		analyzing: 'Analyzing quotations and context',
 		apply: 'Apply selected annotations',
+		applyAll: 'Apply all detected annotations',
 		before: 'Before',
 		after: 'After',
 		confirmed: 'Confirmed',
@@ -145,7 +146,11 @@ const editor = {
 		preferences: 'Subtitles preferences',
 		rearrangeTitle: 'Rearrange subtitles by meaning',
 		rearrangeDescription:
-			'Review your existing subtitles and choose your preferences for rearranging them.',
+			'Choose your preferences, then review the proposed subtitle boundaries before applying them.',
+		rearrangePreviewDescription:
+			'Compare the affected subtitles before and after the proposed rearrangement.',
+		rearrangeApplyAll: 'Apply all proposed changes',
+		rearrangeNoChanges: 'No subtitle changes were proposed.',
 		rearrangeAction: 'Rearrange subtitles',
 		rearranging: 'Rearranging subtitles by meaning',
 		rearrangeComplete: 'Subtitles rearranged. You can undo this change.',
@@ -173,7 +178,11 @@ const editor = {
 		elevenLabsKeyStep2: 'Go to Developers, then API Keys, and create a new key.',
 		elevenLabsKeyStep3:
 			'Give your key a name, enable the Speech to Text permission, then create and copy the key.',
-		keyPasteStep: 'Paste the key into the API key field, then select Save.',
+		keyPasteStep: 'Paste the key into the API key field. It is saved automatically.',
+		transcriptKeySettings: 'Transcription key settings',
+		keyRequired: 'Add an API key for the selected provider in Settings > Transcription keys.',
+		overwriteConfirm:
+			'This timeline already contains subtitles. Replace all existing subtitles with a new transcription? The existing subtitles will be kept if transcription fails. You can undo the replacement.',
 		openKeysPage: 'Open API keys page',
 		languageHint:
 			'Leave empty for automatic detection, or enter a language code such as ar, fr or en.',
@@ -190,7 +199,8 @@ const editor = {
 		rateLimit: 'The provider quota or rate limit was reached. Try again later or check your plan.',
 		audioError: 'Unable to extract audio. Check the source file and FFmpeg installation.',
 		providerError: 'The transcription provider request failed. Check your connection and account.',
-		sourceChanged: 'The project or audio clip changed during processing. No subtitles were added.',
+		sourceChanged:
+			'The project, audio clip or subtitles changed during processing. No transcription was applied.',
 		overlap:
 			'This audio range already contains subtitles. Choose a clip without overlapping subtitles.',
 		noAudio: 'Add an audio clip to the timeline first.',
@@ -803,7 +813,7 @@ const editor = {
 	targetingEdition: 'Targeting {author} ({language}).',
 	aiProvider: 'AI Provider',
 	aiProviderConfigHint:
-		'Configure your API key, text endpoint, model, and reasoning effort in Settings > AI Key before running this assistant.',
+		'Configure your API key, text endpoint, model, and reasoning effort in Settings > Text AI key before running this assistant.',
 	currentModel: 'Current model',
 	endpoint: 'Endpoint',
 	notSet: 'Not set',

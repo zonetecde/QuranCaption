@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { onDestroy, untrack } from 'svelte';
 	import { AssetClip, TrackType } from '$lib/classes';
-	import Settings from '$lib/classes/Settings.svelte';
+	import Settings, { SettingsTab } from '$lib/classes/Settings.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { transcribeProjectAudio, type SpeechToTextCopy } from '$lib/services/SpeechToTextService';
 	import toast from 'svelte-5-french-toast';
-	import { openUrl } from '@tauri-apps/plugin-opener';
+	import ModalManager from '$lib/components/modals/ModalManager';
 
 	let { close }: { close: () => void } = $props();
 	const project = untrack(() => globalState.currentProject!);
@@ -14,7 +14,6 @@
 	let selectedClipId = $state(0);
 	let busy = $state(false);
 	let errorMessage = $state('');
-	let showKeyHelp = $state(false);
 	let phase = $state<'transcribing' | 'segmenting'>('transcribing');
 	let progress = $state(0);
 	const controller = new AbortController();
@@ -26,7 +25,9 @@
 			.filter((option) => option.asset)
 	);
 	const key = $derived(
-		settings.provider === 'groq' ? settings.groqApiKey : settings.elevenLabsApiKey
+		settings.provider === 'groq'
+			? globalState.settings!.speechToTextSettings.groqApiKey
+			: globalState.settings!.speechToTextSettings.elevenLabsApiKey
 	);
 	const inputClass =
 		'w-full rounded-lg border border-color bg-primary px-3 py-2 text-sm text-primary';
@@ -44,7 +45,12 @@
 	 */
 	async function saveSettings(notify: boolean): Promise<boolean> {
 		try {
-			globalState.settings!.speechToTextSettings = { ...settings };
+			const current = globalState.settings!.speechToTextSettings;
+			globalState.settings!.speechToTextSettings = {
+				...settings,
+				groqApiKey: current.groqApiKey,
+				elevenLabsApiKey: current.elevenLabsApiKey
+			};
 			await Settings.save();
 			if (notify) toast.success(copy.saved());
 			return true;
@@ -64,6 +70,16 @@
 	}
 
 	/**
+	 * Ouvre l'onglet dédié aux clés de transcription dans les paramètres.
+	 * @returns {void}
+	 */
+	function openTranscriptKeys(): void {
+		globalState.uiState.settingsTab = SettingsTab.TRANSCRIPT_KEY;
+		globalState.uiState.isSettingsOpen = true;
+		dismiss();
+	}
+
+	/**
 	 * Transcrit la portion audio sélectionnée et applique un résultat validé au projet.
 	 * @returns {Promise<void>}
 	 */
@@ -72,18 +88,23 @@
 		errorMessage = '';
 		busy = true;
 		try {
+			const overwrite = project.content.timeline.getFirstTrack(TrackType.Subtitle).clips.length > 0;
+			if (overwrite && !(await ModalManager.confirmModal(copy.overwriteConfirm()))) return;
+			if (controller.signal.aborted || globalState.currentProject !== project) return;
 			if (!(await saveSettings(false))) return;
+			if (controller.signal.aborted) return;
 			await transcribeProjectAudio(
 				project,
 				selectedClipId,
-				{ ...settings },
+				{ ...globalState.settings!.speechToTextSettings },
 				controller.signal,
 				(nextPhase, value) => {
 					phase = nextPhase;
 					progress = Math.round(
 						(nextPhase === 'transcribing' ? value * 0.8 : 0.8 + value * 0.2) * 100
 					);
-				}
+				},
+				overwrite
 			);
 			toast.success(copy.complete());
 			close();
@@ -162,64 +183,14 @@
 						{/if}
 					</label>
 				</div>
-				<div class="space-y-1 text-sm text-secondary">
-					<div class="flex items-center gap-1.5">
-						<label for="speech-to-text-api-key">{$LL.aiVideo.aiApiKeyLabel()}</label>
-						<button
-							type="button"
-							aria-label={copy.keyHelp()}
-							title={copy.keyHelp()}
-							aria-expanded={showKeyHelp}
-							aria-controls="speech-to-text-key-help"
-							onclick={() => (showKeyHelp = !showKeyHelp)}
-							class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full hover:bg-accent hover:text-primary"
-						>
-							<span class="material-icons text-base" aria-hidden="true">help_outline</span>
-						</button>
-					</div>
-					{#if showKeyHelp}
-						<div
-							id="speech-to-text-key-help"
-							class="space-y-2 rounded-lg border border-color bg-accent p-3 text-xs"
-						>
-							<ol class="list-decimal space-y-1.5 pl-4">
-								{#each settings.provider === 'groq' ? [copy.groqKeyStep1(), copy.groqKeyStep2(), copy.groqKeyStep3()] : [copy.elevenLabsKeyStep1(), copy.elevenLabsKeyStep2(), copy.elevenLabsKeyStep3()] as step (step)}
-									<li>{step}</li>
-								{/each}
-								<li>{copy.keyPasteStep()}</li>
-							</ol>
-							<button
-								type="button"
-								class="cursor-pointer text-accent underline"
-								onclick={() =>
-									openUrl(
-										settings.provider === 'groq'
-											? 'https://console.groq.com/keys'
-											: 'https://elevenlabs.io/app/developers/api-keys'
-									)}
-							>
-								{copy.openKeysPage()}
-							</button>
-						</div>
-					{/if}
-					{#if settings.provider === 'groq'}
-						<input
-							id="speech-to-text-api-key"
-							type="password"
-							autocomplete="off"
-							bind:value={settings.groqApiKey}
-							class={inputClass}
-						/>
-					{:else}
-						<input
-							id="speech-to-text-api-key"
-							type="password"
-							autocomplete="off"
-							bind:value={settings.elevenLabsApiKey}
-							class={inputClass}
-						/>
-					{/if}
-					<span class="block text-xs text-thirdly">{copy.keyHint()}</span>
+				<div class="space-y-2">
+					<button
+						type="button"
+						onclick={openTranscriptKeys}
+						class="cursor-pointer text-sm text-accent underline underline-offset-4"
+						>{copy.transcriptKeySettings()}</button
+					>
+					{#if !key.trim()}<p class="text-xs text-amber-400">{copy.keyRequired()}</p>{/if}
 				</div>
 				<label class="block space-y-1 text-sm text-secondary"
 					><span>{$LL.common.language()}</span>

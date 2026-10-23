@@ -95,7 +95,8 @@ afterEach(() => {
 
 test('previews before/after without applying and lets users approve a subset', async () => {
 	await page.viewport(1280, 900);
-	const component = render(CorrectTranscriptionModal, { close: vi.fn() });
+	const close = vi.fn();
+	const component = render(CorrectTranscriptionModal, { close });
 	await component.getByRole('button', { name: 'Find likely errors' }).click();
 	await expect.element(component.getByText('He read a message.', { exact: true })).toBeVisible();
 	await expect.element(component.getByText('He read a massage.', { exact: true })).toBeVisible();
@@ -106,13 +107,15 @@ test('previews before/after without applying and lets users approve a subset', a
 		.getByRole('button', { name: 'Apply selected corrections (1)', exact: true })
 		.click();
 	expect(vi.mocked(applySubtitleCorrections).mock.calls[0][2]).toEqual([1]);
+	expect(close).toHaveBeenCalledOnce();
 	await expect
 		.element(component.getByRole('status'))
 		.toHaveTextContent('Corrections applied. You can undo this change. (1)');
 });
 
 test('supports deselecting, selecting and applying all suggestions', async () => {
-	const component = render(CorrectTranscriptionModal, { close: vi.fn() });
+	const close = vi.fn();
+	const component = render(CorrectTranscriptionModal, { close });
 	await component.getByRole('button', { name: 'Find likely errors' }).click();
 	await component.getByRole('button', { name: 'Deselect All', exact: true }).click();
 	await expect
@@ -125,6 +128,20 @@ test('supports deselecting, selecting and applying all suggestions', async () =>
 	await component.getByRole('button', { name: 'Deselect All', exact: true }).click();
 	await component.getByRole('button', { name: 'Apply all corrections', exact: true }).click();
 	expect(vi.mocked(applySubtitleCorrections).mock.calls[0][2]).toEqual([1, 2]);
+	expect(close).toHaveBeenCalledOnce();
+});
+
+test('keeps the correction preview open when applying fails', async () => {
+	const close = vi.fn();
+	const component = render(CorrectTranscriptionModal, { close });
+	await component.getByRole('button', { name: 'Find likely errors' }).click();
+	vi.mocked(applySubtitleCorrections).mockImplementationOnce(() => {
+		throw new Error('Source changed.');
+	});
+	await component.getByRole('button', { name: 'Apply all corrections', exact: true }).click();
+	await expect.element(component.getByRole('alert')).toHaveTextContent('Source changed.');
+	expect(close).not.toHaveBeenCalled();
+	await expect.element(component.getByText('He read a message.', { exact: true })).toBeVisible();
 });
 
 test('seeks, pauses, resumes, switches passage and stops playback at the subtitle end', async () => {

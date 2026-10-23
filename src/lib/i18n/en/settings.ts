@@ -5,7 +5,12 @@ const settings = {
 	shortcuts: 'Shortcuts',
 	theme: 'Theme',
 	notifications: 'Notifications',
-	aiKey: 'AI Key',
+	aiKey: 'Text AI key',
+	transcriptKey: 'Transcription keys',
+	transcriptKeyDescription:
+		'Configure Groq and ElevenLabs for audio transcription. Changes are saved automatically.',
+	groqApiKey: 'Groq API key',
+	elevenLabsApiKey: 'ElevenLabs API key',
 	stockMedia: 'Stock Media',
 	quranComIntegration: 'Quran.com Integration',
 	backup: 'Backup',

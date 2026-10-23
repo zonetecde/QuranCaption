@@ -6,7 +6,6 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
 		detectProjectReferences,
-		previewReferenceAnnotations,
 		applyReferenceAnnotations,
 		type ReferenceDetectionCopy,
 		type ReferenceDetectionPlan
@@ -33,7 +32,14 @@
 		($LL.editor as unknown as { speechToText: SpeechToTextCopy }).speechToText
 	);
 	const hasKey = $derived(Boolean(globalState.settings?.aiTranslationSettings.openAiApiKey.trim()));
-	const changes = $derived(plan ? previewReferenceAnnotations(plan, selectedIds) : []);
+	const proposals = $derived(
+		plan?.proposals.filter(
+			(proposal) => proposal.kind !== 'none' && proposal.status !== 'rejected'
+		) ?? []
+	);
+	const confirmedIds = $derived(
+		proposals.filter((proposal) => proposal.status === 'confirmed').map((proposal) => proposal.id)
+	);
 	const subtitles = $derived(
 		project.content.timeline
 			.getFirstTrack(TrackType.Subtitle)
@@ -73,7 +79,7 @@
 		busy = true;
 		progress = 0;
 		try {
-			plan = await detectProjectReferences(
+			const result = await detectProjectReferences(
 				project,
 				{ detectQuran, detectCitations, additionalPreferences },
 				controller.signal,
@@ -81,9 +87,9 @@
 					progress = Math.round(value * 100);
 				}
 			);
-			selectedIds = plan.proposals
-				.filter((proposal) => proposal.status === 'confirmed')
-				.map((proposal) => proposal.id);
+			if (controller.signal.aborted) return;
+			plan = result;
+			selectedIds = confirmedIds;
 		} catch (error) {
 			if (!controller.signal.aborted)
 				errorMessage = error instanceof Error ? error.message : copy.requestError();
@@ -94,15 +100,17 @@
 
 	/**
 	 * Applique uniquement les propositions choisies dans l'aperçu.
+	 * @param {number[]} ids Propositions sélectionnées ou totalité des annotations confirmées.
 	 * @returns {void}
 	 */
-	function apply(): void {
-		if (!plan || busy || !selectedIds.length) return;
+	function apply(ids: number[]): void {
+		if (!plan || busy || !ids.length) return;
 		errorMessage = '';
 		try {
-			appliedCount = applyReferenceAnnotations(project, plan, selectedIds);
+			appliedCount = applyReferenceAnnotations(project, plan, ids);
 			plan = null;
 			selectedIds = [];
+			dismiss();
 		} catch (error) {
 			errorMessage = error instanceof Error ? error.message : copy.sourceChanged();
 		}
@@ -133,13 +141,13 @@
 		>
 			{#if plan}
 				<h3 class="text-sm font-semibold text-primary">
-					{copy.proposals()} ({plan.proposals.length})
+					{copy.proposals()} ({proposals.length})
 				</h3>
-				{#if !plan.proposals.length}<p role="status" class="text-sm text-secondary">
+				{#if !proposals.length}<p role="status" class="text-sm text-secondary">
 						{copy.noResults()}
 					</p>{/if}
 				<ol class="space-y-3">
-					{#each plan.proposals as proposal (proposal.id)}
+					{#each proposals as proposal (proposal.id)}
 						<li class="space-y-2 rounded-lg border border-color bg-primary p-3">
 							<label class="flex items-start gap-3 text-sm text-primary">
 								<input
@@ -175,34 +183,11 @@
 						</li>
 					{/each}
 				</ol>
-				{#if changes.length}
-					<h3 class="text-sm font-semibold text-primary">{copy.preview()} ({changes.length})</h3>
-					{#each changes as change (change.clip.id)}
-						<div class="space-y-2 rounded-lg border border-color bg-primary p-3 text-sm">
-							<p class="text-xs text-thirdly">{copy.before()}</p>
-							<p dir="auto" class="whitespace-pre-wrap break-words text-secondary">
-								{change.before}
-							</p>
-							<p class="text-xs text-accent">{copy.after()}</p>
-							<p dir="auto" class="whitespace-pre-wrap break-words text-primary">{change.after}</p>
-						</div>
-					{/each}
-				{/if}
 				{#if plan.skipped}<p class="text-xs text-amber-400">
 						{copy.skipped()} ({plan.skipped})
 					</p>{/if}
 			{:else}
-				<h3 class="text-sm font-semibold text-primary">
-					{$LL.editor.transcriptSegments()} ({subtitles.length})
-				</h3>
-				{#each subtitles as subtitle (subtitle.id)}
-					<p
-						dir="auto"
-						class="whitespace-pre-wrap break-words rounded-lg border border-color bg-primary p-3 text-sm leading-relaxed text-primary"
-					>
-						{subtitle.text}
-					</p>
-				{/each}
+				<p class="text-sm text-secondary">{copy.description()}</p>
 			{/if}
 		</section>
 		<section class="space-y-5 overflow-y-auto p-5">
@@ -247,10 +232,17 @@
 			>
 			{#if plan}<button
 					type="button"
-					onclick={apply}
+					onclick={() => apply(selectedIds)}
 					disabled={busy || !selectedIds.length}
 					class="btn-accent w-full px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
 					>{copy.apply()} ({selectedIds.length})</button
+				>{/if}
+			{#if plan}<button
+					type="button"
+					onclick={() => apply(confirmedIds)}
+					disabled={busy || !confirmedIds.length}
+					class="btn-accent w-full px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+					>{copy.applyAll()} ({confirmedIds.length})</button
 				>{/if}
 			{#if busy}
 				<p role="status" class="text-sm text-secondary">{copy.analyzing()} ({progress}%)</p>

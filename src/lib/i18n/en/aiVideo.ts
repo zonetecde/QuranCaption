@@ -22,7 +22,7 @@ const aiVideo = {
 	pleaseSelectSpeaker: 'Please select a speaker or choose a local audio file.',
 	pleaseSelectLocalAudio: 'Please select a local audio file.',
 	speakersStillLoading: 'Speakers are still loading. Please wait a moment and try again.',
-	configureAiKey: 'Please configure your AI API key and endpoint in Settings > AI Key first.',
+	configureAiKey: 'Please configure your AI API key and endpoint in Settings > Text AI key first.',
 	aiApiError: 'AI API error: {status}',
 	aiEmptyResponse: 'AI returned an empty response.',
 	projectReady: 'Project ready!',

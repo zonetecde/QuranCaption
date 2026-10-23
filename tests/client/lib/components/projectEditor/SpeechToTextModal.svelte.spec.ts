@@ -19,6 +19,8 @@ import { globalState } from '$lib/runes/main.svelte';
 import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { setLocale } from '$lib/i18n/i18n-svelte';
 import SpeechToTextModal from '$lib/components/modals/tools/SpeechToTextModal.svelte';
+import TranscriptKeySettings from '$lib/components/settings/TranscriptKeySettings.svelte';
+import SettingsModal from '$lib/components/settings/Settings.svelte';
 import { transcribeProjectAudio } from '$lib/services/SpeechToTextService';
 import { rearrangeProjectSubtitles } from '$lib/services/SubtitleRearrangementService';
 import RearrangeSubtitlesModal from '$lib/components/modals/tools/RearrangeSubtitlesModal.svelte';
@@ -78,43 +80,107 @@ afterEach(() => {
 	globalState.uiState.isSettingsOpen = false;
 });
 
-test('shows API key instructions and opens the keys page for the selected provider', async () => {
-	const component = render(SpeechToTextModal, { close: vi.fn() });
-	const help = component.getByRole('button', { name: 'How do I get an API key?' });
-	await help.click();
-	await expect.element(help).toHaveAttribute('aria-expanded', 'true');
+test('shows both transcription key guides in settings and opens their key pages', async () => {
+	const component = render(TranscriptKeySettings);
 	await expect
 		.element(component.getByText('Open Groq Console and sign in or create an account.'))
 		.toBeVisible();
-	await component.getByRole('button', { name: 'Open API keys page' }).click();
+	await component.getByRole('button', { name: 'Open API keys page', exact: true }).nth(0).click();
 	expect(openUrl).toHaveBeenLastCalledWith('https://console.groq.com/keys');
-	await component.getByRole('combobox', { name: 'Provider' }).selectOptions('elevenlabs');
 	await expect.element(component.getByText(/enable the Speech to Text permission/)).toBeVisible();
-	await component.getByRole('button', { name: 'Open API keys page' }).click();
+	await component.getByRole('button', { name: 'Open API keys page', exact: true }).nth(1).click();
 	expect(openUrl).toHaveBeenLastCalledWith('https://elevenlabs.io/app/developers/api-keys');
-	await help.click();
-	await expect.element(help).toHaveAttribute('aria-expanded', 'false');
 	expect(transcribeProjectAudio).not.toHaveBeenCalled();
 });
 
-test('saves independent provider keys and restores them when switching providers', async () => {
+test('automatically saves both keys independently and preserves them when saving transcription preferences', async () => {
 	await page.viewport(1024, 900);
+	const keySettings = render(TranscriptKeySettings);
+	await keySettings.getByLabelText('Groq API key', { exact: true }).fill('groq-personal');
+	await vi.waitFor(() => expect(Settings.save).toHaveBeenCalled());
+	await keySettings.getByLabelText('ElevenLabs API key', { exact: true }).fill('eleven-personal');
+	await vi.waitFor(() =>
+		expect(globalState.settings!.speechToTextSettings.elevenLabsApiKey).toBe('eleven-personal')
+	);
+	cleanup();
 	const component = render(SpeechToTextModal, { close: vi.fn() });
-	await expect.element(component.getByRole('dialog')).toBeVisible();
-	await component.getByLabelText(/AI API key/).fill('groq-personal');
+	globalState.settings!.speechToTextSettings.groqApiKey = 'updated-groq-key';
 	await component.getByRole('combobox', { name: 'Provider' }).selectOptions('elevenlabs');
-	await component.getByLabelText(/AI API key/).fill('eleven-personal');
 	await component.getByRole('combobox', { name: 'Model' }).selectOptions('scribe_v1');
 	await component.getByRole('button', { name: 'Save', exact: true }).click();
 	expect(globalState.settings!.speechToTextSettings).toMatchObject({
-		groqApiKey: 'groq-personal',
+		groqApiKey: 'updated-groq-key',
 		elevenLabsApiKey: 'eleven-personal',
 		provider: 'elevenlabs',
 		elevenLabsModel: 'scribe_v1'
 	});
-	await component.getByRole('combobox', { name: 'Provider' }).selectOptions('groq');
-	await expect.element(component.getByLabelText(/AI API key/)).toHaveValue('groq-personal');
+	expect(component.container.querySelector('input[type="password"]')).toBeNull();
 });
+
+test('opens the separate transcription keys tab when the provider key is missing', async () => {
+	const close = vi.fn();
+	const component = render(SpeechToTextModal, { close });
+	await expect
+		.element(component.getByRole('button', { name: 'Transcribe and add subtitles' }))
+		.toBeDisabled();
+	await component.getByRole('button', { name: 'Transcription key settings' }).click();
+	expect(globalState.uiState.settingsTab).toBe('transcript-key');
+	expect(globalState.uiState.isSettingsOpen).toBe(true);
+	expect(close).toHaveBeenCalledOnce();
+});
+
+test('separates text AI settings and transcription keys in the settings sidebar', async () => {
+	globalState.uiState.settingsTab = 'transcript-key';
+	const component = render(SettingsModal, { resolve: vi.fn() });
+	await expect
+		.element(component.getByRole('heading', { name: 'Transcription keys', exact: true }))
+		.toBeVisible();
+	await expect.element(component.getByLabelText('Groq API key', { exact: true })).toBeVisible();
+	await component.getByRole('button', { name: /Text AI key/ }).click();
+	await expect
+		.element(component.getByRole('heading', { name: 'Text AI key', exact: true }))
+		.toBeVisible();
+	await expect
+		.element(component.getByLabelText('Groq API key', { exact: true }))
+		.not.toBeInTheDocument();
+});
+
+test('flushes a pending key save when leaving settings and reports save failures', async () => {
+	const component = render(TranscriptKeySettings);
+	vi.mocked(Settings.save).mockRejectedValueOnce(new Error('Disk error'));
+	await component.getByLabelText('Groq API key', { exact: true }).fill('groq-personal');
+	await expect
+		.element(component.getByRole('alert'))
+		.toHaveTextContent('Unable to save your transcription settings.');
+	await component.getByLabelText('Groq API key', { exact: true }).fill('updated-groq-key');
+	vi.mocked(Settings.save).mockClear();
+	cleanup();
+	expect(Settings.save).toHaveBeenCalledOnce();
+});
+
+test.each([true, false])(
+	'asks before overwriting existing subtitles: confirmed=%s',
+	async (confirmed) => {
+		globalState.settings!.speechToTextSettings.groqApiKey = 'groq-personal';
+		const original = new SubtitleClip(0, 1000, 'Existing subtitle');
+		globalState.getSubtitleTrack.clips = [original];
+		const confirm = vi.spyOn(ModalManager, 'confirmModal').mockResolvedValue(confirmed);
+		const close = vi.fn();
+		const component = render(SpeechToTextModal, { close });
+		await component.getByRole('button', { name: 'Transcribe and add subtitles' }).click();
+		expect(confirm).toHaveBeenCalledOnce();
+		expect(confirm.mock.calls[0][0]).toContain('Replace all existing subtitles');
+		if (confirmed) {
+			await vi.waitFor(() => expect(transcribeProjectAudio).toHaveBeenCalledOnce());
+			expect(vi.mocked(transcribeProjectAudio).mock.calls[0][5]).toBe(true);
+			await vi.waitFor(() => expect(close).toHaveBeenCalledOnce());
+		} else {
+			expect(transcribeProjectAudio).not.toHaveBeenCalled();
+			expect(globalState.getSubtitleTrack.clips).toEqual([original]);
+			expect(close).not.toHaveBeenCalled();
+		}
+	}
+);
 
 test('passes segmentation preferences to the workflow and disables duplicate submissions', async () => {
 	globalState.settings!.speechToTextSettings.groqApiKey = 'groq-personal';

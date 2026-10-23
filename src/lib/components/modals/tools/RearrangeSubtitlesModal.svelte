@@ -5,7 +5,10 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import type { SpeechToTextCopy } from '$lib/services/SpeechToTextService';
-	import { rearrangeProjectSubtitles } from '$lib/services/SubtitleRearrangementService';
+	import {
+		rearrangeProjectSubtitles,
+		type SubtitleRearrangementPlan
+	} from '$lib/services/SubtitleRearrangementService';
 	import TranslationsEditorModalShell from '$lib/components/projectEditor/tabs/translationsEditor/modal/shared/TranslationsEditorModalShell.svelte';
 
 	let { close }: { close: () => void } = $props();
@@ -16,7 +19,8 @@
 	let busy = $state(false);
 	let progress = $state(0);
 	let errorMessage = $state('');
-	let result = $state<{ count: number; skipped: number } | null>(null);
+	let plan = $state<SubtitleRearrangementPlan | null>(null);
+	const previewSides = ['before', 'after'] as const;
 	const controller = new AbortController();
 	const copy = $derived(($LL.editor as unknown as { speechToText: SpeechToTextCopy }).speechToText);
 	const subtitles = $derived(
@@ -43,7 +47,7 @@
 	}
 
 	/**
-	 * Applique le découpage validé en une seule action annulable.
+	 * Prépare le découpage pour validation sans changer les sous-titres du projet.
 	 * @returns {Promise<void>}
 	 */
 	async function rearrange(): Promise<void> {
@@ -51,9 +55,9 @@
 		busy = true;
 		progress = 0;
 		errorMessage = '';
-		result = null;
+		plan = null;
 		try {
-			result = await rearrangeProjectSubtitles(
+			const result = await rearrangeProjectSubtitles(
 				project,
 				{ maxWords, maxDuration, additionalPreferences },
 				controller.signal,
@@ -61,11 +65,27 @@
 					progress = Math.round(value * 100);
 				}
 			);
+			if (!controller.signal.aborted) plan = result;
 		} catch (error) {
 			if (!controller.signal.aborted)
 				errorMessage = error instanceof Error ? error.message : copy.rearrangeProviderError();
 		} finally {
 			busy = false;
+		}
+	}
+
+	/**
+	 * Applique toutes les propositions validées puis ferme la fenêtre.
+	 * @returns {void}
+	 */
+	function apply(): void {
+		if (!plan || busy) return;
+		errorMessage = '';
+		try {
+			plan.apply();
+			dismiss();
+		} catch (error) {
+			errorMessage = error instanceof Error ? error.message : copy.rearrangeSourceChanged();
 		}
 	}
 
@@ -90,34 +110,84 @@
 	>
 		{#snippet subtitle()}{copy.rearrangeDescription()}{/snippet}
 		<section class="flex min-h-0 flex-col border-b border-color md:border-b-0 md:border-r">
-			<h3
-				class="flex shrink-0 items-center justify-between border-b border-color px-5 py-3 text-sm font-semibold text-primary"
-			>
-				{$LL.editor.transcriptSegments()} <span class="text-secondary">{subtitles.length}</span>
-			</h3>
-			<ol class="min-h-40 space-y-3 overflow-y-auto p-4 md:min-h-0">
-				{#each subtitles as subtitle, index (subtitle.id)}
-					<li class="space-y-2 rounded-lg border border-color bg-primary p-3">
-						<div class="flex items-center justify-between gap-3 text-xs text-thirdly">
-							<span>{index + 1}</span>
-							<span class="monospaced"
-								>{new Duration(subtitle.startTime).getFormattedTime(false, true)} – {new Duration(
-									subtitle.endTime
-								).getFormattedTime(false, true)}</span
+			{#if plan}
+				<div class="border-b border-color px-5 py-4">
+					<h3 class="text-sm font-semibold text-primary">
+						{$LL.editor.referenceDetection.preview()}
+					</h3>
+					<p class="mt-1 text-xs text-secondary">{copy.rearrangePreviewDescription()}</p>
+				</div>
+				{#if !plan.before.length && !plan.after.length}
+					<p role="status" class="p-5 text-sm text-secondary">{copy.rearrangeNoChanges()}</p>
+				{:else}
+					<div class="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto sm:grid-cols-2">
+						{#each previewSides as side (side)}
+							<section
+								class="p-4 {side === 'before'
+									? 'border-b border-color sm:border-b-0 sm:border-r'
+									: 'bg-accent/20'}"
 							>
-						</div>
-						<p
-							dir="auto"
-							class="whitespace-pre-wrap break-words text-sm leading-relaxed text-primary"
-						>
-							{subtitle.text}
-						</p>
-					</li>
-				{/each}
-			</ol>
+								<h4
+									class="mb-3 text-xs font-semibold {side === 'after'
+										? 'text-accent'
+										: 'text-secondary'}"
+								>
+									{$LL.editor.referenceDetection[side]()} ({plan[side].length})
+								</h4>
+								<ol class="space-y-3">
+									{#each plan[side] as subtitle (subtitle.id)}
+										<li class="space-y-2 rounded-xl border border-color bg-primary p-3">
+											<p class="monospaced text-xs text-thirdly">
+												{new Duration(subtitle.startTime).getFormattedTime(false, true)} – {new Duration(
+													subtitle.endTime
+												).getFormattedTime(false, true)}
+											</p>
+											<p
+												dir="auto"
+												class="whitespace-pre-wrap break-words text-sm leading-relaxed {side ===
+												'after'
+													? 'text-primary'
+													: 'text-secondary'}"
+											>
+												{subtitle.text}
+											</p>
+										</li>
+									{/each}
+								</ol>
+							</section>
+						{/each}
+					</div>
+				{/if}
+			{:else}
+				<h3
+					class="flex shrink-0 items-center justify-between border-b border-color px-5 py-3 text-sm font-semibold text-primary"
+				>
+					{$LL.editor.transcriptSegments()} <span class="text-secondary">{subtitles.length}</span>
+				</h3>
+				<ol class="min-h-40 space-y-3 overflow-y-auto p-4 md:min-h-0">
+					{#each subtitles as subtitle, index (subtitle.id)}
+						<li class="space-y-2 rounded-lg border border-color bg-primary p-3">
+							<div class="flex items-center justify-between gap-3 text-xs text-thirdly">
+								<span>{index + 1}</span>
+								<span class="monospaced"
+									>{new Duration(subtitle.startTime).getFormattedTime(false, true)} – {new Duration(
+										subtitle.endTime
+									).getFormattedTime(false, true)}</span
+								>
+							</div>
+							<p
+								dir="auto"
+								class="whitespace-pre-wrap break-words text-sm leading-relaxed text-primary"
+							>
+								{subtitle.text}
+							</p>
+						</li>
+					{/each}
+				</ol>
+			{/if}
 		</section>
 		<section class="space-y-5 overflow-y-auto p-5">
-			<fieldset disabled={busy} class="space-y-5 disabled:opacity-60">
+			<fieldset disabled={busy} oninput={() => (plan = null)} class="space-y-5 disabled:opacity-60">
 				<h3 class="text-sm font-semibold text-primary">{copy.preferences()}</h3>
 				<label class="block space-y-1 text-sm text-secondary">
 					<span>{$LL.editor.maxWordsPerSegment()}</span>
@@ -159,6 +229,15 @@
 			>
 				{copy.rearrangeAction()}
 			</button>
+			{#if plan}
+				<button
+					type="button"
+					onclick={apply}
+					disabled={busy}
+					class="btn-accent w-full px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+					>{copy.rearrangeApplyAll()}</button
+				>
+			{/if}
 			{#if busy}
 				<p role="status" class="text-sm text-secondary">{copy.rearranging()} ({progress}%)</p>
 				<p class="text-xs text-thirdly">{copy.cancelHint()}</p>
@@ -169,14 +248,9 @@
 					>{$LL.common.cancel()}</button
 				>
 			{/if}
-			{#if result}
-				<p role="status" class="text-sm text-secondary">
-					{copy.rearrangeComplete()} ({result.count})
-				</p>
-				{#if result.skipped}<p class="text-sm text-amber-400">
-						{copy.rearrangeSkipped()} ({result.skipped})
-					</p>{/if}
-			{/if}
+			{#if plan?.skipped}<p class="text-sm text-amber-400">
+					{copy.rearrangeSkipped()} ({plan.skipped})
+				</p>{/if}
 			{#if errorMessage}<p role="alert" class="text-sm text-red-400">{errorMessage}</p>{/if}
 		</section>
 	</TranslationsEditorModalShell>

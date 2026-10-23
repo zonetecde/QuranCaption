@@ -167,6 +167,7 @@ function speechRequestError(error: unknown): Error {
  * @param {SpeechToTextSettings} options Réglages et clés personnels copiés au lancement.
  * @param {AbortSignal} signal Annulation empêchant toute requête suivante et tout ajout tardif.
  * @param {(phase: 'transcribing' | 'segmenting', progress: number) => void} onProgress Progression locale.
+ * @param {boolean} overwriteExisting Autorise le remplacement de la piste après confirmation utilisateur.
  * @returns {Promise<{ count: number }>} Nombre de sous-titres ajoutés.
  */
 export async function transcribeProjectAudio(
@@ -174,7 +175,8 @@ export async function transcribeProjectAudio(
 	clipId: number,
 	options: SpeechToTextSettings,
 	signal: AbortSignal,
-	onProgress: (phase: 'transcribing' | 'segmenting', progress: number) => void
+	onProgress: (phase: 'transcribing' | 'segmenting', progress: number) => void,
+	overwriteExisting = false
 ): Promise<{ count: number }> {
 	const copy = getSpeechToTextCopy();
 	const audioTrack = project.content.timeline.getFirstTrack(TrackType.Audio);
@@ -190,6 +192,7 @@ export async function transcribeProjectAudio(
 		offset: clip.sourceStartTime
 	};
 	const track = project.content.timeline.getFirstTrack(TrackType.Subtitle);
+	const originalSubtitles = overwriteExisting ? JSON.stringify(track.toJSON()) : null;
 	const apiKey = options.provider === 'groq' ? options.groqApiKey : options.elevenLabsApiKey;
 	if (!apiKey.trim()) throw new Error(copy.invalidKey());
 	if (
@@ -221,7 +224,12 @@ export async function transcribeProjectAudio(
 			project.content.timeline.getFirstTrack(TrackType.Subtitle) !== track
 		)
 			throw new Error(copy.sourceChanged());
-		if (track.clips.some((item) => item.startTime < source.end && item.endTime > source.start)) {
+		if (overwriteExisting && JSON.stringify(track.toJSON()) !== originalSubtitles)
+			throw new Error(copy.sourceChanged());
+		if (
+			!overwriteExisting &&
+			track.clips.some((item) => item.startTime < source.end && item.endTime > source.start)
+		) {
 			throw new Error(copy.overlap());
 		}
 	}
@@ -300,6 +308,12 @@ export async function transcribeProjectAudio(
 	ProjectHistoryManager.track(
 		copy.title(),
 		() => {
+			if (overwriteExisting) {
+				track.clips = [];
+				project.projectEditorState.subtitlesEditor.editSubtitle = null;
+				project.projectEditorState.subtitlesEditor.pendingSplitEditNextId = null;
+				project.projectEditorState.stylesEditor.selectedSubtitles = [];
+			}
 			for (const [index, clip] of clips.entries()) {
 				const previous = clips[index - 1];
 				if (previous && clip.startTime - previous.endTime > 2) {

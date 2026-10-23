@@ -1328,6 +1328,136 @@ type RootTranslation = {
 			 */
 			installOther: string;
 		};
+		subtitleCorrection: {
+			/**
+			 * C​o​r​r​e​c​t​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​e​r​r​o​r​s
+			 */
+			title: string;
+			/**
+			 * F​i​n​d​ ​o​b​v​i​o​u​s​ ​s​p​e​e​c​h​-​t​o​-​t​e​x​t​ ​m​i​s​t​a​k​e​s​,​ ​t​h​e​n​ ​l​i​s​t​e​n​ ​a​n​d​ ​c​h​o​o​s​e​ ​w​h​a​t​ ​t​o​ ​c​o​r​r​e​c​t​.
+			 */
+			description: string;
+			/**
+			 * F​i​n​d​ ​l​i​k​e​l​y​ ​e​r​r​o​r​s
+			 */
+			start: string;
+			/**
+			 * C​h​e​c​k​i​n​g​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​a​n​d​ ​c​o​n​t​e​x​t
+			 */
+			analyzing: string;
+			/**
+			 * A​ ​s​e​c​o​n​d​ ​l​o​o​k​ ​a​t​ ​y​o​u​r​ ​t​r​a​n​s​c​r​i​p​t
+			 */
+			introTitle: string;
+			/**
+			 * A​I​ ​r​e​a​d​s​ ​y​o​u​r​ ​s​u​b​t​i​t​l​e​s​ ​i​n​ ​c​o​n​t​e​x​t​ ​a​n​d​ ​s​u​g​g​e​s​t​s​ ​s​m​a​l​l​ ​c​o​r​r​e​c​t​i​o​n​s​ ​o​n​l​y​ ​w​h​e​n​ ​a​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​e​r​r​o​r​ ​i​s​ ​v​e​r​y​ ​l​i​k​e​l​y​.
+			 */
+			introDescription: string;
+			/**
+			 * O​n​l​y​ ​c​l​e​a​r​ ​m​i​s​t​a​k​e​s
+			 */
+			conservative: string;
+			/**
+			 * U​n​u​s​u​a​l​ ​w​o​r​d​i​n​g​,​ ​d​i​a​l​e​c​t​,​ ​n​a​m​e​s​ ​a​n​d​ ​s​t​y​l​i​s​t​i​c​ ​c​h​o​i​c​e​s​ ​a​r​e​ ​l​e​f​t​ ​a​l​o​n​e​ ​w​h​e​n​ ​t​h​e​r​e​ ​i​s​ ​a​n​y​ ​d​o​u​b​t​.
+			 */
+			conservativeDescription: string;
+			/**
+			 * R​e​v​i​e​w​ ​c​o​r​r​e​c​t​i​o​n​s
+			 */
+			reviewTitle: string;
+			/**
+			 * C​o​m​p​a​r​e​ ​e​a​c​h​ ​s​u​g​g​e​s​t​i​o​n​ ​a​n​d​ ​l​i​s​t​e​n​ ​t​o​ ​t​h​e​ ​o​r​i​g​i​n​a​l​ ​b​e​f​o​r​e​ ​a​p​p​r​o​v​i​n​g​.
+			 */
+			reviewDescription: string;
+			/**
+			 * P​l​a​y​ ​s​u​b​t​i​t​l​e​ ​a​u​d​i​o
+			 */
+			listen: string;
+			/**
+			 * P​a​u​s​e​ ​s​u​b​t​i​t​l​e​ ​a​u​d​i​o
+			 */
+			pause: string;
+			/**
+			 * P​l​a​y​b​a​c​k​ ​s​t​o​p​s​ ​a​t​ ​t​h​e​ ​e​n​d​ ​o​f​ ​t​h​e​ ​s​u​b​t​i​t​l​e​.
+			 */
+			listenHint: string;
+			/**
+			 * N​o​ ​t​i​m​e​l​i​n​e​ ​a​u​d​i​o​ ​i​s​ ​a​v​a​i​l​a​b​l​e​ ​f​o​r​ ​t​h​i​s​ ​s​u​b​t​i​t​l​e​.
+			 */
+			noAudio: string;
+			/**
+			 * O​r​i​g​i​n​a​l​ ​t​r​a​n​s​c​r​i​p​t​i​o​n
+			 */
+			original: string;
+			/**
+			 * S​u​g​g​e​s​t​e​d​ ​c​o​r​r​e​c​t​i​o​n
+			 */
+			corrected: string;
+			/**
+			 * S​e​l​e​c​t​ ​c​o​r​r​e​c​t​i​o​n
+			 */
+			select: string;
+			/**
+			 * S​e​l​e​c​t​e​d​ ​c​o​r​r​e​c​t​i​o​n​s
+			 */
+			selected: string;
+			/**
+			 * A​p​p​l​y​ ​s​e​l​e​c​t​e​d​ ​c​o​r​r​e​c​t​i​o​n​s
+			 */
+			apply: string;
+			/**
+			 * A​p​p​l​y​ ​a​l​l​ ​c​o​r​r​e​c​t​i​o​n​s
+			 */
+			applyAll: string;
+			/**
+			 * N​o​ ​o​b​v​i​o​u​s​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​e​r​r​o​r​s​ ​f​o​u​n​d
+			 */
+			noResults: string;
+			/**
+			 * N​o​ ​c​h​a​n​g​e​s​ ​w​e​r​e​ ​s​u​g​g​e​s​t​e​d​.​ ​Y​o​u​r​ ​s​u​b​t​i​t​l​e​s​ ​a​r​e​ ​u​n​c​h​a​n​g​e​d​.
+			 */
+			noResultsDescription: string;
+			/**
+			 * C​o​r​r​e​c​t​i​o​n​s​ ​a​p​p​l​i​e​d​.​ ​Y​o​u​ ​c​a​n​ ​u​n​d​o​ ​t​h​i​s​ ​c​h​a​n​g​e​.
+			 */
+			complete: string;
+			/**
+			 * A​I​ ​s​u​g​g​e​s​t​s​ ​c​h​a​n​g​e​s​ ​f​r​o​m​ ​t​e​x​t​ ​o​n​l​y​.​ ​L​i​s​t​e​n​ ​t​o​ ​c​o​n​f​i​r​m​ ​t​h​e​ ​w​o​r​d​s​ ​a​c​t​u​a​l​l​y​ ​s​p​o​k​e​n​.
+			 */
+			notice: string;
+			/**
+			 * S​u​b​t​i​t​l​e​ ​t​i​m​i​n​g​ ​a​n​d​ ​e​x​i​s​t​i​n​g​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​a​r​e​ ​k​e​p​t​.​ ​W​o​r​d​ ​t​i​m​i​n​g​ ​i​s​ ​p​r​e​s​e​r​v​e​d​ ​f​o​r​ ​o​n​e​-​t​o​-​o​n​e​ ​c​o​r​r​e​c​t​i​o​n​s​;​ ​o​t​h​e​r​w​i​s​e​ ​w​o​r​d​ ​a​l​i​g​n​m​e​n​t​ ​i​s​ ​r​e​s​e​t​.
+			 */
+			preserved: string;
+			/**
+			 * S​u​b​t​i​t​l​e​s​ ​w​i​t​h​ ​e​x​i​s​t​i​n​g​ ​m​a​r​k​e​r​s​,​ ​c​u​s​t​o​m​ ​i​n​l​i​n​e​ ​s​t​y​l​e​s​,​ ​t​r​a​n​s​l​a​t​i​o​n​ ​w​o​r​d​ ​m​a​p​p​i​n​g​s​ ​o​r​ ​v​i​s​u​a​l​ ​m​e​r​g​e​s​ ​a​r​e​ ​p​r​o​t​e​c​t​e​d​.
+			 */
+			skipped: string;
+			/**
+			 * A​d​d​ ​a​n​ ​A​P​I​ ​k​e​y​ ​i​n​ ​T​e​x​t​ ​A​I​ ​s​e​t​t​i​n​g​s​ ​t​o​ ​f​i​n​d​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​e​r​r​o​r​s​.
+			 */
+			keyRequired: string;
+			/**
+			 * N​o​ ​e​d​i​t​a​b​l​e​ ​s​u​b​t​i​t​l​e​ ​t​e​x​t​ ​w​a​s​ ​f​o​u​n​d​.
+			 */
+			noText: string;
+			/**
+			 * T​h​e​ ​t​e​x​t​ ​A​I​ ​r​e​q​u​e​s​t​ ​f​a​i​l​e​d​.​ ​C​h​e​c​k​ ​y​o​u​r​ ​k​e​y​,​ ​e​n​d​p​o​i​n​t​,​ ​m​o​d​e​l​ ​a​n​d​ ​a​c​c​o​u​n​t​ ​q​u​o​t​a​.
+			 */
+			requestError: string;
+			/**
+			 * T​h​e​ ​A​I​ ​r​e​t​u​r​n​e​d​ ​i​n​v​a​l​i​d​ ​c​o​r​r​e​c​t​i​o​n​s​.​ ​N​o​t​h​i​n​g​ ​w​a​s​ ​a​p​p​l​i​e​d​.
+			 */
+			invalidResponse: string;
+			/**
+			 * T​h​e​ ​p​r​o​j​e​c​t​ ​o​r​ ​s​u​b​t​i​t​l​e​s​ ​c​h​a​n​g​e​d​.​ ​R​u​n​ ​t​h​e​ ​a​n​a​l​y​s​i​s​ ​a​g​a​i​n​ ​b​e​f​o​r​e​ ​a​p​p​l​y​i​n​g​ ​c​o​r​r​e​c​t​i​o​n​s​.
+			 */
+			sourceChanged: string;
+			/**
+			 * S​e​l​e​c​t​ ​v​a​l​i​d​ ​c​o​r​r​e​c​t​i​o​n​s​ ​f​r​o​m​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​a​n​a​l​y​s​i​s​.
+			 */
+			invalidSelection: string;
+		};
 		referenceDetection: {
 			/**
 			 * D​e​t​e​c​t​ ​q​u​o​t​e​s​ ​a​n​d​ ​Q​u​r​a​n​ ​v​e​r​s​e​s
@@ -11799,6 +11929,136 @@ export type TranslationFunctions = {
 			 * Install the official FFmpeg build for your platform from https://ffmpeg.org/download.html and add both ffmpeg and ffprobe to your PATH.
 			 */
 			installOther: () => LocalizedString;
+		};
+		subtitleCorrection: {
+			/**
+			 * Correct transcription errors
+			 */
+			title: () => LocalizedString;
+			/**
+			 * Find obvious speech-to-text mistakes, then listen and choose what to correct.
+			 */
+			description: () => LocalizedString;
+			/**
+			 * Find likely errors
+			 */
+			start: () => LocalizedString;
+			/**
+			 * Checking transcription and context
+			 */
+			analyzing: () => LocalizedString;
+			/**
+			 * A second look at your transcript
+			 */
+			introTitle: () => LocalizedString;
+			/**
+			 * AI reads your subtitles in context and suggests small corrections only when a transcription error is very likely.
+			 */
+			introDescription: () => LocalizedString;
+			/**
+			 * Only clear mistakes
+			 */
+			conservative: () => LocalizedString;
+			/**
+			 * Unusual wording, dialect, names and stylistic choices are left alone when there is any doubt.
+			 */
+			conservativeDescription: () => LocalizedString;
+			/**
+			 * Review corrections
+			 */
+			reviewTitle: () => LocalizedString;
+			/**
+			 * Compare each suggestion and listen to the original before approving.
+			 */
+			reviewDescription: () => LocalizedString;
+			/**
+			 * Play subtitle audio
+			 */
+			listen: () => LocalizedString;
+			/**
+			 * Pause subtitle audio
+			 */
+			pause: () => LocalizedString;
+			/**
+			 * Playback stops at the end of the subtitle.
+			 */
+			listenHint: () => LocalizedString;
+			/**
+			 * No timeline audio is available for this subtitle.
+			 */
+			noAudio: () => LocalizedString;
+			/**
+			 * Original transcription
+			 */
+			original: () => LocalizedString;
+			/**
+			 * Suggested correction
+			 */
+			corrected: () => LocalizedString;
+			/**
+			 * Select correction
+			 */
+			select: () => LocalizedString;
+			/**
+			 * Selected corrections
+			 */
+			selected: () => LocalizedString;
+			/**
+			 * Apply selected corrections
+			 */
+			apply: () => LocalizedString;
+			/**
+			 * Apply all corrections
+			 */
+			applyAll: () => LocalizedString;
+			/**
+			 * No obvious transcription errors found
+			 */
+			noResults: () => LocalizedString;
+			/**
+			 * No changes were suggested. Your subtitles are unchanged.
+			 */
+			noResultsDescription: () => LocalizedString;
+			/**
+			 * Corrections applied. You can undo this change.
+			 */
+			complete: () => LocalizedString;
+			/**
+			 * AI suggests changes from text only. Listen to confirm the words actually spoken.
+			 */
+			notice: () => LocalizedString;
+			/**
+			 * Subtitle timing and existing translations are kept. Word timing is preserved for one-to-one corrections; otherwise word alignment is reset.
+			 */
+			preserved: () => LocalizedString;
+			/**
+			 * Subtitles with existing markers, custom inline styles, translation word mappings or visual merges are protected.
+			 */
+			skipped: () => LocalizedString;
+			/**
+			 * Add an API key in Text AI settings to find transcription errors.
+			 */
+			keyRequired: () => LocalizedString;
+			/**
+			 * No editable subtitle text was found.
+			 */
+			noText: () => LocalizedString;
+			/**
+			 * The text AI request failed. Check your key, endpoint, model and account quota.
+			 */
+			requestError: () => LocalizedString;
+			/**
+			 * The AI returned invalid corrections. Nothing was applied.
+			 */
+			invalidResponse: () => LocalizedString;
+			/**
+			 * The project or subtitles changed. Run the analysis again before applying corrections.
+			 */
+			sourceChanged: () => LocalizedString;
+			/**
+			 * Select valid corrections from the current analysis.
+			 */
+			invalidSelection: () => LocalizedString;
 		};
 		referenceDetection: {
 			/**

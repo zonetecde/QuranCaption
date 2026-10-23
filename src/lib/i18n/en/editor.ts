@@ -56,6 +56,45 @@ const editor = {
 		installOther:
 			'Install the official FFmpeg build for your platform from https://ffmpeg.org/download.html and add both ffmpeg and ffprobe to your PATH.'
 	},
+	subtitleCorrection: {
+		title: 'Correct transcription errors',
+		description: 'Find obvious speech-to-text mistakes, then listen and choose what to correct.',
+		start: 'Find likely errors',
+		analyzing: 'Checking transcription and context',
+		introTitle: 'A second look at your transcript',
+		introDescription:
+			'AI reads your subtitles in context and suggests small corrections only when a transcription error is very likely.',
+		conservative: 'Only clear mistakes',
+		conservativeDescription:
+			'Unusual wording, dialect, names and stylistic choices are left alone when there is any doubt.',
+		reviewTitle: 'Review corrections',
+		reviewDescription: 'Compare each suggestion and listen to the original before approving.',
+		listen: 'Play subtitle audio',
+		pause: 'Pause subtitle audio',
+		listenHint: 'Playback stops at the end of the subtitle.',
+		noAudio: 'No timeline audio is available for this subtitle.',
+		original: 'Original transcription',
+		corrected: 'Suggested correction',
+		select: 'Select correction',
+		selected: 'Selected corrections',
+		apply: 'Apply selected corrections',
+		applyAll: 'Apply all corrections',
+		noResults: 'No obvious transcription errors found',
+		noResultsDescription: 'No changes were suggested. Your subtitles are unchanged.',
+		complete: 'Corrections applied. You can undo this change.',
+		notice: 'AI suggests changes from text only. Listen to confirm the words actually spoken.',
+		preserved:
+			'Subtitle timing and existing translations are kept. Word timing is preserved for one-to-one corrections; otherwise word alignment is reset.',
+		skipped:
+			'Subtitles with existing markers, custom inline styles, translation word mappings or visual merges are protected.',
+		keyRequired: 'Add an API key in Text AI settings to find transcription errors.',
+		noText: 'No editable subtitle text was found.',
+		requestError: 'The text AI request failed. Check your key, endpoint, model and account quota.',
+		invalidResponse: 'The AI returned invalid corrections. Nothing was applied.',
+		sourceChanged:
+			'The project or subtitles changed. Run the analysis again before applying corrections.',
+		invalidSelection: 'Select valid corrections from the current analysis.'
+	},
 	referenceDetection: {
 		title: 'Detect quotes and Quran verses',
 		description: 'Review contextual AI suggestions before adding quotation and Quran markers.',

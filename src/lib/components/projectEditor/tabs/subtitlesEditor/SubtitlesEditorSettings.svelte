@@ -5,6 +5,7 @@
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import type { SpeechToTextCopy } from '$lib/services/SpeechToTextService';
 	import type { ReferenceDetectionCopy } from '$lib/services/ReferenceDetectionService';
+	import type { SubtitleCorrectionCopy } from '$lib/services/SubtitleCorrectionService';
 
 	const speechCopy = $derived(
 		($LL.editor as unknown as { speechToText: SpeechToTextCopy }).speechToText
@@ -15,6 +16,9 @@
 	);
 	const referenceCopy = $derived(
 		($LL.editor as unknown as { referenceDetection: ReferenceDetectionCopy }).referenceDetection
+	);
+	const correctionCopy = $derived(
+		($LL.editor as unknown as { subtitleCorrection: SubtitleCorrectionCopy }).subtitleCorrection
 	);
 </script>
 
@@ -78,6 +82,14 @@
 		{speechCopy.title()}
 	</button>
 	{#if transcriptCount > 0}
+		<button
+			type="button"
+			onclick={() => ModalManager.correctTranscriptionModal()}
+			class="btn flex w-full items-center justify-center gap-2 px-3 py-3 text-sm font-semibold"
+		>
+			<span class="material-icons text-lg">spellcheck</span>
+			{correctionCopy.title()}
+		</button>
 		<button
 			type="button"
 			onclick={() => ModalManager.rearrangeSubtitlesModal()}

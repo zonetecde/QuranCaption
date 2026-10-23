@@ -211,13 +211,22 @@ test('shows rearrangement errors and allows retrying', async () => {
 test('shows the rearrangement entry only after subtitles exist', async () => {
 	const open = vi.spyOn(ModalManager, 'rearrangeSubtitlesModal').mockResolvedValue(undefined);
 	const detect = vi.spyOn(ModalManager, 'detectReferencesModal').mockResolvedValue(undefined);
+	const correct = vi.spyOn(ModalManager, 'correctTranscriptionModal').mockResolvedValue(undefined);
 	const component = render(SubtitlesEditorSettings);
 	const entry = component.getByRole('button', { name: 'Rearrange subtitles by meaning' });
 	await expect.element(entry).not.toBeInTheDocument();
 	const referenceEntry = component.getByRole('button', { name: 'Detect quotes and Quran verses' });
 	await expect.element(referenceEntry).not.toBeInTheDocument();
+	const correctionEntry = component.getByRole('button', { name: 'Correct transcription errors' });
+	await expect.element(correctionEntry).not.toBeInTheDocument();
 	globalState.getSubtitleTrack.clips.push(new SubtitleClip(0, 1000, 'A passage'));
 	await expect.element(entry).toBeVisible();
+	await correctionEntry.click();
+	expect(correct).toHaveBeenCalledOnce();
+	expect(
+		correctionEntry.element().compareDocumentPosition(entry.element()) &
+			Node.DOCUMENT_POSITION_FOLLOWING
+	).toBeTruthy();
 	await entry.click();
 	expect(open).toHaveBeenCalledOnce();
 	await referenceEntry.click();

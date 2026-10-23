@@ -2234,9 +2234,16 @@
 					timings
 				});
 			} else {
-				const backgroundBlob = ExportOverlayInspector.hasVisibleSubtitleBackground(node)
-					? null
-					: await readReusableBlankBlob(reusableBlankFileName);
+				// Les blanks ne distinguent pas les états des keyframes entre deux captures.
+				const hasStyleKeyframes =
+					globalState.getVideoStyle.getAllKeyframeTimes().length > 0 ||
+					((globalState.getCustomClipTrack?.clips || []) as CustomClip[]).some(
+						(clip) => (clip.category?.getAllKeyframeTimes().length ?? 0) > 0
+					);
+				const backgroundBlob =
+					hasStyleKeyframes || ExportOverlayInspector.hasVisibleSubtitleBackground(node)
+						? null
+						: await readReusableBlankBlob(reusableBlankFileName);
 				await emitExportLog('info', 'macOS canvas capture started', {
 					file: fileName,
 					reusableBlank: reusableBlankFileName,

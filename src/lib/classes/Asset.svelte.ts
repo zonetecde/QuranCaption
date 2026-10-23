@@ -7,6 +7,8 @@ import { exists } from '@tauri-apps/plugin-fs';
 import { Duration } from './index.js';
 import { WaveformService } from '$lib/services/WaveformService.svelte.js';
 import type { UnknownRecord } from '$lib/types/common.js';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 
 type DurationLoadState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -325,30 +327,33 @@ export class Asset extends SerializableBase {
 	 */
 	private getFfmpegErrorMessage(code: string, details?: string): string {
 		const instructions = this.getFfmpegInstallInstructions();
+		const copy = Reflect.get(get(LL).editor, 'ffprobe');
+		const reason = details ? copy.reason({ details }) : '';
 
 		if (code === 'FFPROBE_NOT_FOUND') {
-			return `FFprobe could not be found. MinbarStudio needs FFmpeg (ffmpeg + ffprobe).\n\n${instructions}`;
+			return `${copy.notFound()}\n\n${instructions}`;
 		}
 
 		if (code === 'FFPROBE_NOT_EXECUTABLE') {
-			return `FFprobe was found but could not be executed.${details ? `\nReason: ${details}` : ''}\n\nTry reinstalling FFmpeg for your CPU architecture and remove macOS quarantine if needed.\n\n${instructions}`;
+			return `${copy.notExecutable({ reason })}\n\n${instructions}`;
 		}
 
-		return `FFprobe execution failed.${details ? `\nReason: ${details}` : ''}\n\n${instructions}`;
+		return `${copy.failed({ reason })}\n\n${instructions}`;
 	}
 
 	private getFfmpegInstallInstructions(): string {
 		const userAgent = navigator?.userAgent?.toLowerCase() ?? '';
+		const copy = Reflect.get(get(LL).editor, 'ffprobe');
 
 		if (userAgent.includes('mac')) {
-			return 'macOS: install with Homebrew using `brew install ffmpeg`, which also provides ffprobe.';
+			return copy.installMac();
 		}
 
 		if (userAgent.includes('linux')) {
-			return 'Linux: install via your distribution package manager (e.g. `sudo apt install ffmpeg`, `sudo dnf install ffmpeg`, or `sudo pacman -S ffmpeg`) and ensure ffmpeg/ffprobe are on your PATH.';
+			return copy.installLinux();
 		}
 
-		return 'Install the official FFmpeg build for your platform from https://ffmpeg.org/download.html and add both ffmpeg and ffprobe to your PATH.';
+		return copy.installOther();
 	}
 }
 

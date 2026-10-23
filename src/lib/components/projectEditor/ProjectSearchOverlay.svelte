@@ -272,7 +272,7 @@
 							}
 							searchInput?.focus();
 						}}
-						aria-label="Effacer la recherche"
+						aria-label={$LL.editor.clearSearch()}
 					>
 						<span class="material-icons text-sm">close</span>
 					</button>

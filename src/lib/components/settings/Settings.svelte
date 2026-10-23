@@ -364,7 +364,7 @@
 							<button
 								class="wallet-card w-full rounded-lg border border-color bg-secondary/70 px-3 py-2 text-left flex items-center justify-between gap-3"
 								onclick={() => copyWalletAddress(wallet.address, wallet.label)}
-								aria-label={`Copy ${wallet.label} wallet address`}
+								aria-label={$LL.common.copyWalletAddress({ wallet: wallet.label })}
 							>
 								<div class="min-w-0">
 									<div class="flex items-center gap-2">

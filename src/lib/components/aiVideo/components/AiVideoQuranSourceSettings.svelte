@@ -28,7 +28,7 @@
 	});
 
 	let speakerSelectOptions = $derived([
-		{ value: '', label: 'Let AI decide' },
+		{ value: '', label: $LL.aiVideo.letAiDecide() },
 		...aiv.speakerOptions.map((option) => ({
 			value: getSpeakerOptionKey(option),
 			label: option.label

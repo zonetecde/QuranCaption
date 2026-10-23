@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getSpeakerDisplayName } from '$lib/services/SpeakerLibrary';
 	import { get } from 'svelte/store';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { getProjectTypeLabel } from '$lib/i18n/statusMapper';
@@ -179,7 +180,12 @@
 <aside class="project-explorer">
 	<div class="explorer-header">
 		<p class="explorer-label">{$LL.home.projectExplorer()}</p>
-		<p class="explorer-hint">{tree.totalCount} project{tree.totalCount === 1 ? '' : 's'}</p>
+		<p class="explorer-hint">
+			{Reflect.get(
+				$LL.editor,
+				'projectCount'
+			)({ count: tree.totalCount, plural: tree.totalCount === 1 ? '' : 's' })}
+		</p>
 	</div>
 
 	<div class="explorer-tree">
@@ -220,7 +226,7 @@
 						onclick={() => handleSpeakerClick(speakerNode.speaker)}
 					>
 						<span class="material-icons-outlined tree-icon">record_voice_over</span>
-						<span class="tree-name">{speakerNode.label}</span>
+						<span class="tree-name">{getSpeakerDisplayName(speakerNode.label)}</span>
 						<span class="tree-count">{speakerNode.count}</span>
 					</button>
 				</div>

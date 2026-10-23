@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import type { ApplyStyleControlValue, StyleControlValue } from './types';
 	import { pickImageFile } from './utils';
 
@@ -26,7 +27,7 @@
 		{disabled}
 	>
 		<span class="material-icons mr-2 text-base">folder_open</span>
-		Pick an image
+		{Reflect.get($LL.editor, 'pickImage')()}
 	</button>
 	{#if value}
 		<div class="rounded-md bg-gray-100 p-3 dark:bg-gray-800">

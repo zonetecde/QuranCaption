@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import { getTimelineClipWidth } from './timelineClipLayout';
 	import type { SubtitleClip, Track } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -131,7 +132,7 @@
 		<button
 			class="absolute top-0 bottom-0 z-30 w-2 -ml-1 cursor-col-resize wbw-edit-boundary"
 			style={`left: ${((word.end / clipDurationS()) * 100).toFixed(4)}%;`}
-			title="Drag word boundary"
+			title={$LL.editor.dragWordBoundary()}
 			onmousedown={(event) => startBoundaryDragging(index, event)}
 		>
 			<span class="wbw-edit-boundary-line"></span>

@@ -83,7 +83,7 @@ class DiscordService {
 			state:
 				speaker && speaker !== 'Unknown speaker'
 					? get(LL).settings.workingOnProject({ name, speaker: speaker })
-					: `Working on ${name}`,
+					: Reflect.get(get(LL).settings, 'workingOnProjectWithoutSpeaker')({ name }),
 			large_image_key: 'logo',
 			large_image_text: 'Minbar Studio',
 			small_image_key: 'edit',

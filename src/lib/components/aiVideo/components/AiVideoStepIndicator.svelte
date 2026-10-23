@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 
 	const aiv = globalState.aiVideo;
@@ -15,7 +16,7 @@
 			1
 		</div>
 		<span class="text-sm {aiv.step === 'input' ? 'text-primary font-medium' : 'text-thirdly'}">
-			Options
+			{Reflect.get($LL.aiVideo, 'options')()}
 		</span>
 	</div>
 	<div class="flex-1 h-px bg-[var(--border-color)]"></div>
@@ -29,7 +30,7 @@
 			2
 		</div>
 		<span class="text-sm {aiv.step === 'review' ? 'text-primary font-medium' : 'text-thirdly'}">
-			Review & Create
+			{Reflect.get($LL.aiVideo, 'reviewAndCreate')()}
 		</span>
 	</div>
 </div>

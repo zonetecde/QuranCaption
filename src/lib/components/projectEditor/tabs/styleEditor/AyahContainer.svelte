@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import { getTimedOverlayOpacity } from '$lib/services/TimedOverlayVisibility';
@@ -84,7 +85,7 @@
 	>
 		<img
 			src={imageSrc()}
-			alt="Ayah container"
+			alt={$LL.editor.styleName['ayah-container']()}
 			class="w-full h-full"
 			style="object-fit: {stretch() ? 'fill' : 'contain'};"
 		/>

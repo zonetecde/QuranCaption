@@ -21,12 +21,12 @@
 <div class="flex flex-col gap-4">
 	<div class="rounded-md bg-gray-100 p-2 dark:bg-gray-800">
 		<p class="text-sm text-gray-700 dark:text-gray-300">
-			Note: Fade effects are applied only to exported videos and will not appear in the preview.
+			{Reflect.get($LL.editor, 'fadePreviewNote')()}
 		</p>
 	</div>
 
 	<div class="flex flex-col gap-2">
-		<p class="text-sm font-medium">Fade In:</p>
+		<p class="text-sm font-medium">{Reflect.get($LL.editor, 'fadeIn')()}</p>
 		<div class="flex gap-4">
 			<label class="flex cursor-pointer items-center gap-2">
 				<input
@@ -54,7 +54,7 @@
 	</div>
 
 	<div class="flex flex-col gap-2">
-		<p class="text-sm font-medium">Fade Out:</p>
+		<p class="text-sm font-medium">{Reflect.get($LL.editor, 'fadeOut')()}</p>
 		<div class="flex gap-4">
 			<label class="flex cursor-pointer items-center gap-2">
 				<input
@@ -83,7 +83,7 @@
 
 	{#if hasFadeEnabled(fadeValue)}
 		<div class="flex flex-col gap-2">
-			<p class="text-sm font-medium">Fade Duration:</p>
+			<p class="text-sm font-medium">{Reflect.get($LL.editor, 'fadeDuration')()}</p>
 			<input
 				type="number"
 				class="w-full"

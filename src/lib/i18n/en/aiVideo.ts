@@ -1,4 +1,6 @@
 const aiVideo = {
+	options: 'Options',
+	reviewAndCreate: 'Review & Create',
 	aiVideo: 'AI Video',
 	aiVideoDescription: 'Generate a Minbar Studioed video from a YouTube link or your own audio',
 	videoThemeOrTopic: 'Video theme or topic',

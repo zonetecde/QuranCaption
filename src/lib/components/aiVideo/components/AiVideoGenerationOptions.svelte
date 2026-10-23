@@ -42,7 +42,7 @@
 	});
 
 	let translationSelectOptions = $derived.by(() => {
-		const options: TranslationSelectOption[] = [{ value: '', label: 'No translation' }];
+		const options: TranslationSelectOption[] = [{ value: '', label: $LL.aiVideo.noTranslation() }];
 		for (const [language, data] of Object.entries(activeTranslationsMap)) {
 			options.push({
 				value: `language:${language}`,

@@ -10,7 +10,7 @@
 
 	let {
 		activityLog,
-		title = 'Activity log',
+		title = Reflect.get($LL.editor, 'activityLog')(),
 		maxHeightClass = 'max-h-72',
 		containerClass = 'rounded-xl border border-color bg-secondary p-4'
 	}: {

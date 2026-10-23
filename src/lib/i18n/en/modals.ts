@@ -1,4 +1,19 @@
 const modals = {
+	speakerRemoval: {
+		title: 'Remove speaker',
+		usage: '{speaker} is assigned to {count} transcript segment{plural}.',
+		description:
+			'Choose what should happen to those segments before removing the speaker from the project.',
+		mainSpeakerWarning:
+			"This is also the project's main speaker. That project field will be replaced or cleared.",
+		reassignSegments: 'Reassign the segments',
+		noReplacement: 'No other speaker available',
+		reassignAndRemove: 'Reassign and remove',
+		leaveUnassigned: 'Leave the segments without a speaker',
+		unassignedDescription:
+			'The affected segments will be marked as {speaker} and can be reviewed later.',
+		markUnassignedAndRemove: 'Mark unassigned and remove'
+	},
 	removeAsset: 'Remove Asset',
 	alsoDeleteFile: 'Also delete file from computer',
 	actionCannotBeUndone: 'Warning: This action cannot be undone.',

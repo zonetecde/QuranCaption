@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
 	Category,
@@ -113,6 +113,11 @@ function createProject(): Project {
 }
 
 describe('AIProjectTranslationService', () => {
+	beforeEach(() => {
+		loadLocale('en');
+		setLocale('en');
+	});
+
 	afterEach(() => {
 		globalState.currentProject = null;
 		vi.unstubAllGlobals();

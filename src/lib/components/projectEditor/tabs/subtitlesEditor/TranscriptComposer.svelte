@@ -7,7 +7,11 @@
 	} from '$lib/classes/Clip.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { canRemoveProjectSpeaker, getVisibleProjectSpeakers } from '$lib/services/SpeakerLibrary';
+	import {
+		canRemoveProjectSpeaker,
+		getVisibleProjectSpeakers,
+		getSpeakerDisplayName
+	} from '$lib/services/SpeakerLibrary';
 	import { onDestroy, onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
@@ -381,7 +385,7 @@
 						}`}
 						onclick={() => selectSpeaker(candidate)}
 					>
-						{candidate}
+						{getSpeakerDisplayName(candidate)}
 					</button>
 					{#if canRemoveProjectSpeaker(candidate)}
 						<button
@@ -391,8 +395,14 @@
 									? 'border-[var(--accent-primary)]'
 									: 'border-color')}
 							onclick={(event) => void deleteSpeaker(event, candidate)}
-							aria-label={`Remove ${candidate}`}
-							title={`Remove ${candidate} from the project`}
+							aria-label={Reflect.get(
+								$LL.editor,
+								'removeSpeaker'
+							)({ speaker: getSpeakerDisplayName(candidate) })}
+							title={Reflect.get(
+								$LL.editor,
+								'removeSpeakerFromProject'
+							)({ speaker: getSpeakerDisplayName(candidate) })}
 						>
 							<span class="material-icons text-sm!">close</span>
 						</button>

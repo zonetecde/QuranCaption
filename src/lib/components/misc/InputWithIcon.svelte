@@ -1,8 +1,9 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import 'material-icons/iconfont/material-icons.css';
 
 	let {
-		placeholder = 'Search...',
+		placeholder = $LL.common.search(),
 		icon = 'search',
 		classes = '',
 		value = $bindable()
@@ -32,7 +33,7 @@
 			type="button"
 			class="absolute right-2 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full text-[var(--text-thirdly)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
 			onclick={clearValue}
-			aria-label="Effacer la recherche"
+			aria-label={$LL.editor.clearSearch()}
 		>
 			<span class="material-icons-outlined text-base">close</span>
 		</button>

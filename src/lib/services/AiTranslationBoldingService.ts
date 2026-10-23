@@ -1,3 +1,5 @@
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 import { getSubtitleVerseKeyLabel } from '$lib/services/SubtitleNavigation';
 import { invoke } from '@tauri-apps/api/core';
 
@@ -295,10 +297,10 @@ export function estimateAiBoldCost(
 		totalEstimatedOutputTokens,
 		totalEstimatedCostUsd,
 		reasoningNote: batches.some((batch) => batch.estimatedCostUsd === 0)
-			? 'Approximation based on prompt/output size only. Cost is unavailable for one or more custom models.'
+			? Reflect.get(get(LL).translations, 'aiCost').unavailable()
 			: reasoningEffort === 'none'
-				? 'Approximation based on prompt/output size only.'
-				: 'Approximation based on prompt/output size only. Actual cost may increase with reasoning effort.'
+				? Reflect.get(get(LL).translations, 'aiCost').approximation()
+				: Reflect.get(get(LL).translations, 'aiCost').withReasoning()
 	};
 }
 

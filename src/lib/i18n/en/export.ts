@@ -1,4 +1,15 @@
 const export_ = {
+	chapterFormat: 'Chapter Format',
+	chapterTextFormat: 'Text format',
+	chapterPlaceholders: 'Placeholders: {placeholders}',
+	chapterTranslation: 'Translation for {placeholder}',
+	subtitleJson: 'Subtitle JSON',
+	memoryError:
+		'It appears your computer cannot allocate enough memory for the export process. Try the following:',
+	memoryReduceBatch: 'Reduce the batch size.',
+	memoryLowerResolution: 'Lower the video resolution.',
+	memoryRemoveBackground: 'Remove any background video.',
+	memoryCloseApps: 'Close other applications to free up memory for the export.',
 	quality: 'Quality',
 	orientation: 'Orientation',
 	customDimensions: 'Custom dimensions',

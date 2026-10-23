@@ -1,5 +1,7 @@
 import { Quran, type Verse } from '$lib/classes/Quran';
 import QPCFontProvider from '$lib/services/FontProvider';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
 
 import {
 	MARKER_REGEX,
@@ -86,18 +88,20 @@ export async function loadReferencedVerse(surah: number, verse: number): Promise
 export async function validateTranscriptQuranReferences(text: string): Promise<string | null> {
 	const textWithoutCompleteMarkers = text.replace(MARKER_REGEX, '');
 	if (textWithoutCompleteMarkers.includes('{{') || textWithoutCompleteMarkers.includes('}}')) {
-		return 'Reference markers must open and close inside the same subtitle segment.';
+		return Reflect.get(get(LL).editor, 'referenceMarkersInvalid')();
 	}
 	for (const match of text.matchAll(MARKER_REGEX)) {
 		const value = match[1].trim();
 		const reference = parseQuranTranscriptReference(value);
 		if (!reference) {
-			if (/^\d+\s*:\s*\d+/.test(value)) return `Invalid Quran reference: {{${value}}}.`;
+			if (/^\d+\s*:\s*\d+/.test(value))
+				return Reflect.get(get(LL).editor, 'quranReferenceInvalid')({ reference: `{{${value}}}` });
 			continue;
 		}
 
 		const verse = await loadReferencedVerse(reference.surah, reference.verse);
-		if (!verse) return `Quran reference does not exist: {{${value}}}.`;
+		if (!verse)
+			return Reflect.get(get(LL).editor, 'quranReferenceMissing')({ reference: `{{${value}}}` });
 		if (reference.startWord === null && reference.endWord === null) continue;
 		if (
 			reference.startWord === null ||
@@ -106,7 +110,7 @@ export async function validateTranscriptQuranReferences(text: string): Promise<s
 			reference.endWord < reference.startWord ||
 			reference.endWord > verse.words.length
 		) {
-			return `Quran word range does not exist: {{${value}}}.`;
+			return Reflect.get(get(LL).editor, 'quranWordRangeMissing')({ reference: `{{${value}}}` });
 		}
 	}
 	return null;

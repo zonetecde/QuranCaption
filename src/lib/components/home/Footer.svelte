@@ -24,6 +24,8 @@
 				label={$LL.home.donateViaPaypal()}
 			/>
 		</div>
-		<p class="mb-1">© 2026 Minbar Studio. Made by Rayane STASZEWSKI.</p>
+		<p class="mb-1">
+			{Reflect.get($LL.home, 'copyright')({ year: 2026, author: 'Rayane STASZEWSKI' })}
+		</p>
 	</div>
 </footer>

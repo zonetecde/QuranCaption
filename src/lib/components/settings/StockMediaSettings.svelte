@@ -24,7 +24,7 @@
 				type="password"
 				bind:value={globalState.settings!.stockMediaSettings.pexelsApiKey}
 				onblur={persistSettings}
-				placeholder="Pexels API key"
+				placeholder={$LL.settings.pexelsApiKey()}
 				class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-sm text-primary"
 			/>
 			<p class="text-xs text-thirdly">
@@ -45,7 +45,7 @@
 				type="password"
 				bind:value={globalState.settings!.stockMediaSettings.pixabayApiKey}
 				onblur={persistSettings}
-				placeholder="Pixabay API key"
+				placeholder={$LL.settings.pixabayApiKey()}
 				class="w-full rounded-lg border border-color bg-secondary px-3 py-2 text-sm text-primary"
 			/>
 			<p class="text-xs text-thirdly">

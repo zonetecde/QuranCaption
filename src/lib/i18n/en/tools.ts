@@ -1,4 +1,9 @@
 const tools = {
+	shiftScope: ' (from {seconds}s onward)',
+	left: 'left',
+	right: 'right',
+	shiftWarning:
+		'This action will move {count} of {total} subtitles. Please ensure no subtitles will be pushed before 0:00.',
 	shiftAllSubtitles: 'Shift All Subtitles',
 	importSrtTranslation: 'Import SRT translation',
 	srtFileFilter: 'SRT subtitle files',

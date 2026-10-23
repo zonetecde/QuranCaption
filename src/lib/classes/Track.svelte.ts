@@ -365,15 +365,15 @@ export class Track extends SerializableBase {
 	getName(): string {
 		switch (this.type) {
 			case TrackType.Video:
-				return 'Video';
+				return get(LL).status.video();
 			case TrackType.Audio:
-				return 'Audio';
+				return get(LL).status.audio();
 			case TrackType.Subtitle:
-				return 'Subtitles';
+				return Reflect.get(get(LL).editor, 'subtitleTrack')();
 			case TrackType.CustomClip:
-				return 'Custom Clips';
+				return get(LL).style.customClipsLabel();
 			default:
-				return 'Unknown Track';
+				return Reflect.get(get(LL).editor, 'unknownTrack')();
 		}
 	}
 
@@ -1922,7 +1922,7 @@ export class CustomTextTrack extends Track {
 					directory: false,
 					filters: [
 						{
-							name: 'Image Files',
+							name: get(LL).editor.images(),
 							extensions: ['png', 'jpg', 'jpeg', 'gif']
 						}
 					]

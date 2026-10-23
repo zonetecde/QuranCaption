@@ -214,16 +214,14 @@
 					selectedSurahId
 				);
 				if (!chapterAudio?.audio_url) {
-					throw new Error('Unable to fetch Quran.com audio URL for this recitation.');
+					throw new Error(Reflect.get(get(LL).editor, 'quranAudioUrlUnavailable')());
 				}
 				// Certains audios QDC sont listés mais absents côté CDN. On le vérifie avant download.
 				const isAudioAvailable = await QdcRecitationService.isAudioUrlAvailable(
 					chapterAudio.audio_url
 				);
 				if (!isAudioAvailable) {
-					throw new Error(
-						'This Quran.com recitation is listed, but the source audio file is unavailable upstream for this surah.'
-					);
+					throw new Error(Reflect.get(get(LL).editor, 'quranAudioSourceUnavailable')());
 				}
 				audioUrl = chapterAudio.audio_url;
 				sourceType = SourceType.QuranFoundation;

@@ -106,11 +106,13 @@
 
 	<!-- Custom Format -->
 	<div class="mb-6">
-		<h4 class="text-base font-medium text-secondary mb-3">Chapter Format</h4>
+		<h4 class="text-base font-medium text-secondary mb-3">
+			{Reflect.get($LL.export, 'chapterFormat')()}
+		</h4>
 		<div class="space-y-4">
 			<div>
 				<label for="ytb-chapters-format" class="text-secondary text-sm font-medium">
-					Text format
+					{Reflect.get($LL.export, 'chapterTextFormat')()}
 				</label>
 				<textarea
 					id="ytb-chapters-format"
@@ -118,20 +120,23 @@
 					bind:value={globalState.getExportState.ytbChaptersFormat}
 				></textarea>
 				<p class="mt-2 text-xs text-thirdly">
-					Placeholders: {chapterPlaceholders.join(', ')}
+					{Reflect.get(
+						$LL.export,
+						'chapterPlaceholders'
+					)({ placeholders: chapterPlaceholders.join(', ') })}
 				</p>
 			</div>
 
 			<div>
 				<label for="ytb-chapters-translation" class="text-secondary text-sm font-medium">
-					Translation for &lt;verse-translation&gt;
+					{Reflect.get($LL.export, 'chapterTranslation')({ placeholder: '<verse-translation>' })}
 				</label>
 				<select
 					id="ytb-chapters-translation"
 					class="mt-2 w-full rounded-lg border border-color bg-accent p-3 text-sm text-primary outline-none focus:border-accent-primary"
 					bind:value={globalState.getExportState.ytbChaptersTranslationEditionName}
 				>
-					<option value="">No translation</option>
+					<option value="">{$LL.aiVideo.noTranslation()}</option>
 					{#each globalState.getProjectTranslation.addedTranslationEditions as edition (edition.name)}
 						<option value={edition.name}>{edition.author}</option>
 					{/each}

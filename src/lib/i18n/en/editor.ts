@@ -1,4 +1,61 @@
 const editor = {
+	removeSpeaker: 'Remove {speaker}',
+	activityLog: 'Activity log',
+	removeSpeakerFromProject: 'Remove {speaker} from the project',
+	unassignedSpeaker: 'Unassigned',
+	unknownSpeaker: 'Unknown speaker',
+	unknownTrack: 'Unknown Track',
+	subtitleTrack: 'Subtitles',
+	noImage: 'No Image',
+	pickImage: 'Pick an image',
+	bannerCredits: 'New banners made by {author} on Discord.',
+	fadePreviewNote:
+		'Note: Fade effects are applied only to exported videos and will not appear in the preview.',
+	fadeIn: 'Fade In:',
+	fadeOut: 'Fade Out:',
+	fadeDuration: 'Fade Duration:',
+	timelineWheelZoom: 'Ctrl + Scroll = Zoom',
+	timelineWheelHorizontal: 'Ctrl + Shift + Scroll = Horizontal Scroll',
+	timelineWheelVertical: 'Scroll = Vertical Scroll',
+	timelineWheelFrame: 'Alt + Scroll = Frame-by-frame Cursor',
+	startMinutes: 'Start minutes',
+	startSeconds: 'Start seconds',
+	startMilliseconds: 'Start milliseconds',
+	endMinutes: 'End minutes',
+	endSeconds: 'End seconds',
+	endMilliseconds: 'End milliseconds',
+	timeRange: '{start} to {end}',
+	verseCount: '{count} verse{plural}',
+	projectCount: '{count} project{plural}',
+	timelineBackground: '{name} Background',
+	transcriptShortcutKeys: {
+		newLine: 'Shift + Enter',
+		playPause: 'Ctrl/Shift + Space',
+		seekBackward: 'Ctrl/Shift + ←',
+		seekForward: 'Ctrl/Shift + →',
+		temporarySpeed: 'Ctrl/Shift + PageUp/PageDown'
+	},
+	quranAudioUrlUnavailable: 'Unable to fetch Quran.com audio URL for this recitation.',
+	quranAudioSourceUnavailable:
+		'This Quran.com recitation is listed, but the source audio file is unavailable upstream for this surah.',
+	referenceMarkersInvalid:
+		'Reference markers must open and close inside the same subtitle segment.',
+	quranReferenceInvalid: 'Invalid Quran reference: {reference}.',
+	quranReferenceMissing: 'Quran reference does not exist: {reference}.',
+	quranWordRangeMissing: 'Quran word range does not exist: {reference}.',
+	ffprobe: {
+		notFound: 'FFprobe could not be found. Minbar Studio needs FFmpeg (ffmpeg + ffprobe).',
+		notExecutable:
+			'FFprobe was found but could not be executed.{reason}\n\nTry reinstalling FFmpeg for your CPU architecture and remove macOS quarantine if needed.',
+		failed: 'FFprobe execution failed.{reason}',
+		reason: '\nReason: {details}',
+		installMac:
+			'macOS: install with Homebrew using `brew install ffmpeg`, which also provides ffprobe.',
+		installLinux:
+			'Linux: install via your distribution package manager (e.g. `sudo apt install ffmpeg`, `sudo dnf install ffmpeg`, or `sudo pacman -S ffmpeg`) and ensure ffmpeg/ffprobe are on your PATH.',
+		installOther:
+			'Install the official FFmpeg build for your platform from https://ffmpeg.org/download.html and add both ffmpeg and ffprobe to your PATH.'
+	},
 	referenceDetection: {
 		title: 'Detect quotes and Quran verses',
 		description: 'Review contextual AI suggestions before adding quotation and Quran markers.',

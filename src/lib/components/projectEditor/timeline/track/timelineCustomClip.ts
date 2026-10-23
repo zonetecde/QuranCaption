@@ -8,6 +8,9 @@ import {
 	type TimedOverlayRange
 } from '$lib/services/TimedOverlayRanges';
 import { getTimelineClipLayout } from './timelineClipLayout';
+import LL from '$lib/i18n/i18n-svelte';
+import { get } from 'svelte/store';
+import { getStyleName } from '$lib/i18n/styleMapper';
 
 const CUSTOM_CLIP_SNAP_DISTANCE_PX = 8;
 
@@ -173,7 +176,15 @@ export class GlobalTimedOverlayTimelineClip {
 
 	getDisplayLabel(): string {
 		if (this.source) return getTimelineCustomClipLabel(this.source);
-		return this.label;
+		if (this.id.endsWith('-background-container')) {
+			return Reflect.get(
+				get(LL).editor,
+				'timelineBackground'
+			)({
+				name: this.target === 'arabic' ? get(LL).editor.arabic() : this.target
+			});
+		}
+		return getStyleName(this.label, get(LL));
 	}
 }
 
@@ -228,7 +239,7 @@ function createCustomTimelineClips(clip: CustomClip): TimelineCustomClipLike[] {
 
 const GLOBAL_SURAH_NAME_TIMELINE_CLIP = new GlobalTimedOverlayTimelineClip({
 	id: 'global-surah-name',
-	label: 'Surah Name',
+	label: 'surah-name',
 	alwaysShowStyleId: 'surah-name-always-show',
 	startStyleId: 'surah-name-time-appearance',
 	endStyleId: 'surah-name-time-disappearance'
@@ -236,7 +247,7 @@ const GLOBAL_SURAH_NAME_TIMELINE_CLIP = new GlobalTimedOverlayTimelineClip({
 
 const GLOBAL_SPEAKER_NAME_TIMELINE_CLIP = new GlobalTimedOverlayTimelineClip({
 	id: 'global-speaker-name',
-	label: 'Speaker Name',
+	label: 'speaker-name',
 	alwaysShowStyleId: 'speaker-name-always-show',
 	startStyleId: 'speaker-name-time-appearance',
 	endStyleId: 'speaker-name-time-disappearance'
@@ -244,7 +255,7 @@ const GLOBAL_SPEAKER_NAME_TIMELINE_CLIP = new GlobalTimedOverlayTimelineClip({
 
 const GLOBAL_AYAH_CONTAINER_TIMELINE_CLIP = new GlobalTimedOverlayTimelineClip({
 	id: 'global-ayah-container',
-	label: 'Ayah Container',
+	label: 'ayah-container',
 	alwaysShowStyleId: 'always-show',
 	startStyleId: 'time-appearance',
 	endStyleId: 'time-disappearance'
@@ -294,8 +305,7 @@ export function getTimelineCustomClips(): TimelineCustomClipLike[] {
 		clips.push(
 			new GlobalTimedOverlayTimelineClip({
 				id: `${stylesData.target}-background-container`,
-				label:
-					stylesData.target === 'arabic' ? 'Arabic Background' : `${stylesData.target} Background`,
+				label: 'background',
 				target: stylesData.target,
 				alwaysShowStyleId: 'always-show',
 				startStyleId: 'time-appearance',
@@ -389,8 +399,11 @@ export function getTimelineCustomClipLabel(clip: TimelineCustomClipLike): string
 	}
 
 	if (clip.type === 'Custom Image') {
-		return (clip as CustomImageClip).getFilePath().split('\\').pop() || 'No Image';
+		return (
+			(clip as CustomImageClip).getFilePath().split('\\').pop() ||
+			Reflect.get(get(LL).editor, 'noImage')()
+		);
 	}
 
-	return 'No Image';
+	return Reflect.get(get(LL).editor, 'noImage')();
 }

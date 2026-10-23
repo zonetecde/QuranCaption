@@ -46,8 +46,16 @@
 
 		const success = globalState.getSubtitleTrack.shiftAllClips(offsetMs, fromMs);
 		if (success) {
-			const scope = fromMs > 0 ? ` (from ${fromMs / 1000}s onward)` : '';
-			toast.success(get(LL).tools.subtitlesShifted({ amount: shiftAmount, unit, direction, scope }));
+			const scope =
+				fromMs > 0 ? Reflect.get(get(LL).tools, 'shiftScope')({ seconds: fromMs / 1000 }) : '';
+			toast.success(
+				get(LL).tools.subtitlesShifted({
+					amount: shiftAmount,
+					unit: get(LL).common[unit](),
+					direction: Reflect.get(get(LL).tools, direction)(),
+					scope
+				})
+			);
 			close();
 		}
 	}
@@ -111,7 +119,9 @@
 
 		<!-- Amount Input -->
 		<div class="space-y-2">
-			<label for="shift-amount" class="text-sm font-medium text-primary block">{$LL.tools.shiftAmount()}</label>
+			<label for="shift-amount" class="text-sm font-medium text-primary block"
+				>{$LL.tools.shiftAmount()}</label
+			>
 			<div class="flex gap-2">
 				<input
 					id="shift-amount"
@@ -151,7 +161,7 @@
 					type="button"
 					onclick={setFromPlayhead}
 					class="bg-accent border border-color rounded-lg px-3 py-2 text-primary hover:bg-secondary/60 transition-colors cursor-pointer flex items-center gap-2 text-sm"
-					title="Use current playhead position"
+					title={$LL.editor.usePlayheadTitle()}
 				>
 					<span class="material-icons text-base">my_location</span>
 					{$LL.tools.usePlayhead()}
@@ -167,9 +177,10 @@
 		>
 			<span class="material-icons text-sm text-accent-primary mt-0.5">info</span>
 			<p class="leading-relaxed">
-				This action will move <strong class="text-primary">{affectedCount}</strong> of {globalState
-					.getSubtitleTrack.clips.length} subtitles. Please ensure no subtitles will be pushed before
-				0:00.
+				{Reflect.get(
+					$LL.tools,
+					'shiftWarning'
+				)({ count: affectedCount, total: globalState.getSubtitleTrack.clips.length })}
 			</p>
 		</div>
 	</div>

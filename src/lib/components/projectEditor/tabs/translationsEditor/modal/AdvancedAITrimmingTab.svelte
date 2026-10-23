@@ -26,6 +26,8 @@
 	import { onDestroy, onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
 
+	const copy = $derived(Reflect.get($LL.translations, 'advancedTrim'));
+
 	type ActivityTone = 'info' | 'success' | 'error';
 	type ActivityEntry = {
 		id: string;
@@ -71,7 +73,7 @@
 		totalEstimatedInputTokens: 0,
 		totalEstimatedOutputTokens: 0,
 		totalEstimatedCostUsd: 0,
-		reasoningNote: 'Approximation based on prompt/output size only.'
+		reasoningNote: Reflect.get($LL.translations, 'aiCost').approximation()
 	});
 
 	let selectedStartTimeMs: number = $state(0);
@@ -234,13 +236,13 @@
 
 	function getActualUsageSummary(): string {
 		const usageList = Object.values(batchUsageById);
-		if (usageList.length === 0) return 'Usage unavailable';
+		if (usageList.length === 0) return $LL.editor.usageUnavailable();
 
 		const input = usageList.reduce((total, item) => total + (item.inputTokens ?? 0), 0);
 		const output = usageList.reduce((total, item) => total + (item.outputTokens ?? 0), 0);
 		const total = usageList.reduce((sum, item) => sum + (item.totalTokens ?? 0), 0);
 
-		return `${input} input / ${output} output / ${total} total tokens`;
+		return $LL.editor.tokenUsageSummary({ input, output, total });
 	}
 
 	async function runAdvancedTrimming(): Promise<void> {
@@ -267,7 +269,7 @@
 		activeBatchIds = new Set<string>(advancedBatches.map((batch) => batch.batchId));
 		addActivity(
 			'queued',
-			`Starting advanced trim for ${advancedEstimate.totalVerses} verse(s) across ${advancedBatches.length} batch(es).`
+			copy.starting({ verses: advancedEstimate.totalVerses, batches: advancedBatches.length })
 		);
 
 		const reportLines: string[] = [];
@@ -279,13 +281,20 @@
 		for (let batchIndex = 0; batchIndex < advancedBatches.length; batchIndex++) {
 			const batch = advancedBatches[batchIndex];
 			currentBatchId = batch.batchId;
-			currentBatchLabel = `Batch ${batchIndex + 1} / ${advancedBatches.length}`;
+			currentBatchLabel = $LL.editor.batchProgress({
+				current: batchIndex + 1,
+				total: advancedBatches.length
+			});
 			currentBatchVerseKeys = batch.verses.map((verse) => verse.verseKey).join(', ');
 			streamedResponse = '';
 
 			addActivity(
 				'queued',
-				`${currentBatchLabel}: ${batch.verses.length} verse(s), ${batch.wordCount} words.`,
+				copy.batchQueued({
+					label: currentBatchLabel,
+					verses: batch.verses.length,
+					words: batch.wordCount
+				}),
 				'info',
 				batch.batchId
 			);
@@ -301,7 +310,12 @@
 				});
 
 				streamedResponse = response.rawText;
-				addActivity('validating', `Validating ${currentBatchLabel}...`, 'info', batch.batchId);
+				addActivity(
+					'validating',
+					$LL.editor.validatingBatch({ label: currentBatchLabel }),
+					'info',
+					batch.batchId
+				);
 
 				const validation = validateAdvancedTrimBatchResult(batch, response.parsed);
 				const applyReport = applyAdvancedTrimValidationSuccess(edition, validation.validVerses);
@@ -322,25 +336,24 @@
 				if (applyReport.alignedVerses > 0) {
 					addActivity(
 						'applied',
-						`Applied ${applyReport.alignedVerses}/${batch.verses.length} fully aligned verse(s), ${applyReport.alignedSegments} aligned segment(s).`,
+						copy.appliedVerses({
+							applied: applyReport.alignedVerses,
+							total: batch.verses.length,
+							segments: applyReport.alignedSegments
+						}),
 						'success',
 						batch.batchId
 					);
 				}
 
 				if (validation.validVerses.length === 0) {
-					addActivity(
-						'failed',
-						'No verse from this batch passed validation.',
-						'error',
-						batch.batchId
-					);
+					addActivity('failed', copy.noValidVerse(), 'error', batch.batchId);
 				}
 
 				if (applyReport.erroredSegments > 0) {
 					addActivity(
 						'failed',
-						`${applyReport.erroredSegments} segment(s) were kept but marked AI Error because word range remapping failed.`,
+						copy.remappingFailed({ count: applyReport.erroredSegments }),
 						'error',
 						batch.batchId
 					);
@@ -388,7 +401,13 @@
 			versesWithIssues: failedVerses,
 			rejectedVerses: totalRejectedVerses
 		};
-		latestSummary = `${successfulBatches}/${advancedBatches.length} batch(es) were fully successful. ${totalAiSetSegments} segment(s) were set by AI, ${totalAiErrorSegments} segment(s) were marked AI Error and need review, and ${failedVerses} verse(s) had issues overall.`;
+		latestSummary = copy.runSummary({
+			successful: successfulBatches,
+			total: advancedBatches.length,
+			applied: totalAiSetSegments,
+			errors: totalAiErrorSegments,
+			verses: failedVerses
+		});
 
 		AnalyticsService.trackTranslationUsage({
 			range: `time ${selectedStartTimeMs}-${selectedEndTimeMs}`,
@@ -451,9 +470,9 @@
 			<div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20">
 				<span class="material-icons text-2xl text-green-500">task_alt</span>
 			</div>
-			<h3 class="mb-2 text-xl font-semibold text-primary">No eligible verses</h3>
+			<h3 class="mb-2 text-xl font-semibold text-primary">{copy.noEligibleVerses()}</h3>
 			<p class="text-secondary">
-				The selected edition already looks complete for advanced trimming.
+				{copy.alreadyComplete()}
 			</p>
 		</div>
 	{:else}
@@ -462,28 +481,30 @@
 				<div class="rounded-xl border border-[var(--accent-primary)]/35 bg-accent p-4">
 					<div class="flex items-center gap-2">
 						<span class="material-icons text-accent-primary">summarize</span>
-						<h3 class="text-lg font-semibold text-primary">Latest Run Recap</h3>
+						<h3 class="text-lg font-semibold text-primary">{copy.latestRecap()}</h3>
 					</div>
 					<div class="mt-2 text-sm text-secondary">{latestSummary}</div>
 
 					<div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
 						<div class="rounded-lg border border-color bg-secondary p-3">
 							<div class="text-xs uppercase tracking-wide text-thirdly">
-								Fully Successful Batches
+								{copy.fullySuccessfulBatches()}
 							</div>
 							<div class="mt-1 text-xl font-semibold text-primary">
 								{latestRunStats.successfulBatches}/{latestRunStats.totalBatches}
 							</div>
 						</div>
 						<div class="rounded-lg border border-color bg-secondary p-3">
-							<div class="text-xs uppercase tracking-wide text-thirdly">Segments Set By AI</div>
+							<div class="text-xs uppercase tracking-wide text-thirdly">
+								{copy.segmentsSetByAi()}
+							</div>
 							<div class="mt-1 text-xl font-semibold text-primary">
 								{latestRunStats.aiSetSegments}
 							</div>
 						</div>
 						<div class="rounded-lg border border-color bg-secondary p-3">
 							<div class="text-xs uppercase tracking-wide text-thirdly">
-								AI Error Segments To Review
+								{copy.errorSegmentsToReview()}
 							</div>
 							<div class="mt-1 text-xl font-semibold text-red-200">
 								{latestRunStats.aiErrorSegments}
@@ -491,7 +512,7 @@
 						</div>
 						<div class="rounded-lg border border-color bg-secondary p-3">
 							<div class="text-xs uppercase tracking-wide text-thirdly">
-								Rejected Verses At Validation
+								{copy.rejectedVerses()}
 							</div>
 							<div class="mt-1 text-xl font-semibold text-primary">
 								{latestRunStats.rejectedVerses}
@@ -501,13 +522,10 @@
 
 					<div class="mt-3 grid gap-3 md:grid-cols-2">
 						<div class="rounded-lg border border-color bg-secondary p-3 text-sm text-secondary">
-							<span class="font-semibold text-primary">{latestRunStats.cleanVerses}</span>
-							verse(s) were applied cleanly as `AI Trimmed`.
+							{copy.cleanVerses({ count: latestRunStats.cleanVerses })}
 						</div>
 						<div class="rounded-lg border border-color bg-secondary p-3 text-sm text-secondary">
-							<span class="font-semibold text-primary">{latestRunStats.versesWithIssues}</span>
-							verse(s) had validation or remapping issues. Check the activity log below for the exact
-							reason.
+							{copy.versesWithIssues({ count: latestRunStats.versesWithIssues })}
 						</div>
 					</div>
 				</div>
@@ -524,9 +542,9 @@
 							bind:endTimeMs={selectedEndTimeMs}
 							title={$LL.editor.timeSelection()}
 							icon="schedule"
-							totalLabel="eligible verses"
-							selectionLabel="Select time range to process:"
-							selectionHint="(based on the video timeline)"
+							totalLabel={$LL.editor.eligibleVerses()}
+							selectionLabel={$LL.editor.selectTimeRangeToProcess()}
+							selectionHint={copy.timelineRangeHint()}
 							onRangeChange={refreshBatchPreview}
 						/>
 					{/if}
@@ -535,12 +553,15 @@
 						title={$LL.editor.batchPreview()}
 						icon="analytics"
 						metrics={[
-							{ label: 'Verses', value: advancedEstimate.totalVerses },
-							{ label: 'Words', value: advancedEstimate.totalWords },
-							{ label: 'Batches', value: advancedBatches.length }
+							{ label: $LL.export.versesColumn(), value: advancedEstimate.totalVerses },
+							{ label: $LL.editor.words(), value: advancedEstimate.totalWords },
+							{ label: $LL.editor.batches(), value: advancedBatches.length }
 						]}
 						estimatedCostLabel={formatUsd(advancedEstimate.totalEstimatedCostUsd)}
-						tokenSummary={`${advancedEstimate.totalEstimatedInputTokens} input tokens estimated, ${advancedEstimate.totalEstimatedOutputTokens} output tokens estimated.`}
+						tokenSummary={$LL.editor.estimatedTokenSummary({
+							input: advancedEstimate.totalEstimatedInputTokens,
+							output: advancedEstimate.totalEstimatedOutputTokens
+						})}
 						reasoningNote={advancedEstimate.reasoningNote}
 						columnsClass="md:grid-cols-3"
 					/>
@@ -551,21 +572,20 @@
 								<span class="material-icons text-accent-primary">settings</span>
 							</div>
 							<div class="space-y-1">
-								<div class="text-sm font-semibold text-primary">AI Provider</div>
+								<div class="text-sm font-semibold text-primary">{$LL.editor.aiProvider()}</div>
 								<p class="text-sm leading-relaxed text-thirdly">
-									Configure your API key, text endpoint, model, and reasoning effort in Settings
-									&gt; AI Key before running Advanced AI Trimming.
+									{$LL.editor.aiProviderConfigHint()}
 								</p>
 								<div class="text-xs text-thirdly">
-									Current model:
+									{$LL.editor.currentModel()}:
 									<span class="font-medium text-primary">
-										{aiSettings().advancedTrimModel || 'Not set'}
+										{aiSettings().advancedTrimModel || $LL.editor.notSet()}
 									</span>
 								</div>
 								<div class="text-xs text-thirdly break-all">
-									Endpoint:
+									{$LL.editor.endpoint()}:
 									<span class="font-medium text-primary">
-										{aiSettings().textAiApiEndpoint || 'Not set'}
+										{aiSettings().textAiApiEndpoint || $LL.editor.notSet()}
 									</span>
 								</div>
 							</div>
@@ -578,30 +598,30 @@
 						<div class="mb-4 flex items-center justify-between">
 							<div class="flex items-center gap-2">
 								<span class="material-icons text-accent-secondary">auto_awesome</span>
-								<h3 class="text-lg font-semibold text-primary">Run</h3>
+								<h3 class="text-lg font-semibold text-primary">{$LL.editor.run()}</h3>
 							</div>
 							<button
 								class="btn-accent px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
 								onclick={runAdvancedTrimming}
 								disabled={isRunning || advancedBatches.length === 0}
 							>
-								{isRunning ? 'Running...' : 'Run Advanced AI Trimming'}
+								{isRunning ? copy.running() : copy.run()}
 							</button>
 						</div>
 
 						<AiRunStatusCard
 							title={$LL.editor.currentRun()}
-							subtitle={currentBatchLabel || 'Idle'}
+							subtitle={currentBatchLabel || $LL.settings.idle()}
 							progressPercent={getProgressPercent()}
 							metrics={[
-								{ label: 'Current step', value: currentBatchStep },
-								{ label: 'Usage', value: getActualUsageSummary() }
+								{ label: copy.currentStep(), value: currentBatchStep },
+								{ label: $LL.editor.usage(), value: getActualUsageSummary() }
 							]}
 							progressTrackClass="bg-secondary"
 							progressBarClass="bg-accent-secondary"
 							containerClass="space-y-3"
 							metricCardClass="rounded-lg border border-color bg-secondary p-3"
-							detailLabel={currentBatchVerseKeys ? 'Current verses: ' : undefined}
+							detailLabel={currentBatchVerseKeys ? copy.currentVerses() : undefined}
 							detailText={currentBatchVerseKeys || undefined}
 						/>
 					</div>
@@ -610,7 +630,7 @@
 						<div class="mb-3 flex items-center justify-between">
 							<div class="flex items-center gap-2">
 								<span class="material-icons text-accent-primary">monitoring</span>
-								<h3 class="text-lg font-semibold text-primary">Live Activity & Response</h3>
+								<h3 class="text-lg font-semibold text-primary">{copy.liveActivity()}</h3>
 							</div>
 							<button
 								class="btn px-3 py-1.5 text-xs"
@@ -620,7 +640,7 @@
 								}}
 								disabled={!streamedResponse}
 							>
-								Copy Response
+								{copy.copyResponse()}
 							</button>
 						</div>
 

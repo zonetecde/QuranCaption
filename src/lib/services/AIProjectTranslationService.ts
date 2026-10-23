@@ -521,12 +521,13 @@ export function validateAIProjectTranslationBatch(
 ): AIProjectTranslationValidationReport {
 	const validItems: AIProjectTranslationSuccess[] = [];
 	const errors: string[] = [];
+	const copy = Reflect.get(get(LL).translations, 'aiResponseErrors');
 	if (!parsed || typeof parsed !== 'object') {
-		return { validItems, errors: ['AI response is not a JSON object.'] };
+		return { validItems, errors: [copy.notObject()] };
 	}
 	const rawItems = (parsed as Record<string, unknown>).i;
 	if (!Array.isArray(rawItems)) {
-		return { validItems, errors: ['AI response is missing the items array.'] };
+		return { validItems, errors: [copy.missingItems()] };
 	}
 	const editableItems = batch.request.timeline.filter((item) => item.editable);
 	const candidateById = new Map(
@@ -539,14 +540,14 @@ export function validateAIProjectTranslationBatch(
 
 	for (const rawItem of rawItems) {
 		if (!rawItem || typeof rawItem !== 'object') {
-			errors.push('AI response contains an invalid item.');
+			errors.push(copy.invalidItem());
 			continue;
 		}
 		const item = rawItem as Record<string, unknown>;
 		const id = Number(item.i);
 		const candidate = candidateById.get(id);
 		if (!Number.isInteger(id) || !candidate || seenIds.has(id)) {
-			errors.push(`AI response contains an unexpected or duplicate subtitle id ${String(item.i)}.`);
+			errors.push(copy.unexpectedId({ id: String(item.i) }));
 			continue;
 		}
 		seenIds.add(id);
@@ -557,13 +558,13 @@ export function validateAIProjectTranslationBatch(
 			freeTexts.length !== candidate.payload.a.length + 1 ||
 			!freeTexts.every(isSafeGeneratedText)
 		) {
-			errors.push(`Subtitle ${id}: invalid free text slots.`);
+			errors.push(copy.invalidFreeTexts({ id }));
 			continue;
 		}
 
 		const citationValues = item.c ?? (candidate.citationIds.length === 0 ? [] : null);
 		if (!Array.isArray(citationValues)) {
-			errors.push(`Subtitle ${id}: invalid citation payload.`);
+			errors.push(copy.invalidCitation({ id }));
 			continue;
 		}
 		const citations: Record<string, string> = {};
@@ -588,14 +589,14 @@ export function validateAIProjectTranslationBatch(
 			citations[citationId] = text.trim();
 		}
 		if (invalid || Object.keys(citations).length !== candidate.citationIds.length) {
-			errors.push(`Subtitle ${id}: citation anchors do not match the source.`);
+			errors.push(copy.citationMismatch({ id }));
 			continue;
 		}
 
 		const expectedRanges = candidate.quranExpectations.filter((expectation) => !expectation.locked);
 		const rawRanges = item.q ?? (expectedRanges.length === 0 ? [] : null);
 		if (!Array.isArray(rawRanges)) {
-			errors.push(`Subtitle ${id}: invalid Quran range payload.`);
+			errors.push(copy.invalidQuranRange({ id }));
 			continue;
 		}
 		const quranRanges: Record<string, { startUnitIndex: number; endUnitIndex: number }> = {};
@@ -624,7 +625,7 @@ export function validateAIProjectTranslationBatch(
 			quranRanges[anchorId] = { startUnitIndex: start, endUnitIndex: end };
 		}
 		if (invalid || Object.keys(quranRanges).length !== expectedRanges.length) {
-			errors.push(`Subtitle ${id}: Quran ranges do not match the editable partial passages.`);
+			errors.push(copy.quranRangeMismatch({ id }));
 			continue;
 		}
 
@@ -639,7 +640,7 @@ export function validateAIProjectTranslationBatch(
 	for (const candidate of batch.candidates) {
 		const promptId = promptIdByCandidate.get(candidate);
 		if (promptId === undefined || !seenIds.has(promptId)) {
-			errors.push(`Subtitle ${candidate.subtitle.id}: missing from AI response.`);
+			errors.push(copy.missingSubtitle({ id: candidate.subtitle.id }));
 		}
 	}
 	return { validItems, errors };

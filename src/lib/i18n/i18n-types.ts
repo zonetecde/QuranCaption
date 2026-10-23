@@ -18,6 +18,18 @@ export type Translations = RootTranslation;
 type RootTranslation = {
 	common: {
 		/**
+		 * L​o​g​o
+		 */
+		logo: string;
+		/**
+		 * S​e​l​e​c​t​ ​a​n​ ​o​p​t​i​o​n
+		 */
+		selectOption: string;
+		/**
+		 * N​o​ ​o​p​t​i​o​n​s​ ​f​o​u​n​d
+		 */
+		noOptionsFound: string;
+		/**
 		 * C​a​n​c​e​l
 		 */
 		cancel: string;
@@ -599,6 +611,12 @@ type RootTranslation = {
 	};
 	home: {
 		/**
+		 * ©​ ​{​y​e​a​r​}​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​.​ ​M​a​d​e​ ​b​y​ ​{​a​u​t​h​o​r​}​.
+		 * @param {unknown} author
+		 * @param {unknown} year
+		 */
+		copyright: RequiredParams<'author' | 'year'>;
+		/**
 		 * W​e​l​c​o​m​e​ ​B​a​c​k​!
 		 */
 		welcomeBack: string;
@@ -1103,6 +1121,213 @@ type RootTranslation = {
 		continue: string;
 	};
 	editor: {
+		/**
+		 * R​e​m​o​v​e​ ​{​s​p​e​a​k​e​r​}
+		 * @param {unknown} speaker
+		 */
+		removeSpeaker: RequiredParams<'speaker'>;
+		/**
+		 * A​c​t​i​v​i​t​y​ ​l​o​g
+		 */
+		activityLog: string;
+		/**
+		 * R​e​m​o​v​e​ ​{​s​p​e​a​k​e​r​}​ ​f​r​o​m​ ​t​h​e​ ​p​r​o​j​e​c​t
+		 * @param {unknown} speaker
+		 */
+		removeSpeakerFromProject: RequiredParams<'speaker'>;
+		/**
+		 * U​n​a​s​s​i​g​n​e​d
+		 */
+		unassignedSpeaker: string;
+		/**
+		 * U​n​k​n​o​w​n​ ​s​p​e​a​k​e​r
+		 */
+		unknownSpeaker: string;
+		/**
+		 * U​n​k​n​o​w​n​ ​T​r​a​c​k
+		 */
+		unknownTrack: string;
+		/**
+		 * S​u​b​t​i​t​l​e​s
+		 */
+		subtitleTrack: string;
+		/**
+		 * N​o​ ​I​m​a​g​e
+		 */
+		noImage: string;
+		/**
+		 * P​i​c​k​ ​a​n​ ​i​m​a​g​e
+		 */
+		pickImage: string;
+		/**
+		 * N​e​w​ ​b​a​n​n​e​r​s​ ​m​a​d​e​ ​b​y​ ​{​a​u​t​h​o​r​}​ ​o​n​ ​D​i​s​c​o​r​d​.
+		 * @param {unknown} author
+		 */
+		bannerCredits: RequiredParams<'author'>;
+		/**
+		 * N​o​t​e​:​ ​F​a​d​e​ ​e​f​f​e​c​t​s​ ​a​r​e​ ​a​p​p​l​i​e​d​ ​o​n​l​y​ ​t​o​ ​e​x​p​o​r​t​e​d​ ​v​i​d​e​o​s​ ​a​n​d​ ​w​i​l​l​ ​n​o​t​ ​a​p​p​e​a​r​ ​i​n​ ​t​h​e​ ​p​r​e​v​i​e​w​.
+		 */
+		fadePreviewNote: string;
+		/**
+		 * F​a​d​e​ ​I​n​:
+		 */
+		fadeIn: string;
+		/**
+		 * F​a​d​e​ ​O​u​t​:
+		 */
+		fadeOut: string;
+		/**
+		 * F​a​d​e​ ​D​u​r​a​t​i​o​n​:
+		 */
+		fadeDuration: string;
+		/**
+		 * C​t​r​l​ ​+​ ​S​c​r​o​l​l​ ​=​ ​Z​o​o​m
+		 */
+		timelineWheelZoom: string;
+		/**
+		 * C​t​r​l​ ​+​ ​S​h​i​f​t​ ​+​ ​S​c​r​o​l​l​ ​=​ ​H​o​r​i​z​o​n​t​a​l​ ​S​c​r​o​l​l
+		 */
+		timelineWheelHorizontal: string;
+		/**
+		 * S​c​r​o​l​l​ ​=​ ​V​e​r​t​i​c​a​l​ ​S​c​r​o​l​l
+		 */
+		timelineWheelVertical: string;
+		/**
+		 * A​l​t​ ​+​ ​S​c​r​o​l​l​ ​=​ ​F​r​a​m​e​-​b​y​-​f​r​a​m​e​ ​C​u​r​s​o​r
+		 */
+		timelineWheelFrame: string;
+		/**
+		 * S​t​a​r​t​ ​m​i​n​u​t​e​s
+		 */
+		startMinutes: string;
+		/**
+		 * S​t​a​r​t​ ​s​e​c​o​n​d​s
+		 */
+		startSeconds: string;
+		/**
+		 * S​t​a​r​t​ ​m​i​l​l​i​s​e​c​o​n​d​s
+		 */
+		startMilliseconds: string;
+		/**
+		 * E​n​d​ ​m​i​n​u​t​e​s
+		 */
+		endMinutes: string;
+		/**
+		 * E​n​d​ ​s​e​c​o​n​d​s
+		 */
+		endSeconds: string;
+		/**
+		 * E​n​d​ ​m​i​l​l​i​s​e​c​o​n​d​s
+		 */
+		endMilliseconds: string;
+		/**
+		 * {​s​t​a​r​t​}​ ​t​o​ ​{​e​n​d​}
+		 * @param {unknown} end
+		 * @param {unknown} start
+		 */
+		timeRange: RequiredParams<'end' | 'start'>;
+		/**
+		 * {​c​o​u​n​t​}​ ​v​e​r​s​e​{​p​l​u​r​a​l​}
+		 * @param {unknown} count
+		 * @param {unknown} plural
+		 */
+		verseCount: RequiredParams<'count' | 'plural'>;
+		/**
+		 * {​c​o​u​n​t​}​ ​p​r​o​j​e​c​t​{​p​l​u​r​a​l​}
+		 * @param {unknown} count
+		 * @param {unknown} plural
+		 */
+		projectCount: RequiredParams<'count' | 'plural'>;
+		/**
+		 * {​n​a​m​e​}​ ​B​a​c​k​g​r​o​u​n​d
+		 * @param {unknown} name
+		 */
+		timelineBackground: RequiredParams<'name'>;
+		transcriptShortcutKeys: {
+			/**
+			 * S​h​i​f​t​ ​+​ ​E​n​t​e​r
+			 */
+			newLine: string;
+			/**
+			 * C​t​r​l​/​S​h​i​f​t​ ​+​ ​S​p​a​c​e
+			 */
+			playPause: string;
+			/**
+			 * C​t​r​l​/​S​h​i​f​t​ ​+​ ​←
+			 */
+			seekBackward: string;
+			/**
+			 * C​t​r​l​/​S​h​i​f​t​ ​+​ ​→
+			 */
+			seekForward: string;
+			/**
+			 * C​t​r​l​/​S​h​i​f​t​ ​+​ ​P​a​g​e​U​p​/​P​a​g​e​D​o​w​n
+			 */
+			temporarySpeed: string;
+		};
+		/**
+		 * U​n​a​b​l​e​ ​t​o​ ​f​e​t​c​h​ ​Q​u​r​a​n​.​c​o​m​ ​a​u​d​i​o​ ​U​R​L​ ​f​o​r​ ​t​h​i​s​ ​r​e​c​i​t​a​t​i​o​n​.
+		 */
+		quranAudioUrlUnavailable: string;
+		/**
+		 * T​h​i​s​ ​Q​u​r​a​n​.​c​o​m​ ​r​e​c​i​t​a​t​i​o​n​ ​i​s​ ​l​i​s​t​e​d​,​ ​b​u​t​ ​t​h​e​ ​s​o​u​r​c​e​ ​a​u​d​i​o​ ​f​i​l​e​ ​i​s​ ​u​n​a​v​a​i​l​a​b​l​e​ ​u​p​s​t​r​e​a​m​ ​f​o​r​ ​t​h​i​s​ ​s​u​r​a​h​.
+		 */
+		quranAudioSourceUnavailable: string;
+		/**
+		 * R​e​f​e​r​e​n​c​e​ ​m​a​r​k​e​r​s​ ​m​u​s​t​ ​o​p​e​n​ ​a​n​d​ ​c​l​o​s​e​ ​i​n​s​i​d​e​ ​t​h​e​ ​s​a​m​e​ ​s​u​b​t​i​t​l​e​ ​s​e​g​m​e​n​t​.
+		 */
+		referenceMarkersInvalid: string;
+		/**
+		 * I​n​v​a​l​i​d​ ​Q​u​r​a​n​ ​r​e​f​e​r​e​n​c​e​:​ ​{​r​e​f​e​r​e​n​c​e​}​.
+		 * @param {unknown} reference
+		 */
+		quranReferenceInvalid: RequiredParams<'reference'>;
+		/**
+		 * Q​u​r​a​n​ ​r​e​f​e​r​e​n​c​e​ ​d​o​e​s​ ​n​o​t​ ​e​x​i​s​t​:​ ​{​r​e​f​e​r​e​n​c​e​}​.
+		 * @param {unknown} reference
+		 */
+		quranReferenceMissing: RequiredParams<'reference'>;
+		/**
+		 * Q​u​r​a​n​ ​w​o​r​d​ ​r​a​n​g​e​ ​d​o​e​s​ ​n​o​t​ ​e​x​i​s​t​:​ ​{​r​e​f​e​r​e​n​c​e​}​.
+		 * @param {unknown} reference
+		 */
+		quranWordRangeMissing: RequiredParams<'reference'>;
+		ffprobe: {
+			/**
+			 * F​F​p​r​o​b​e​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​f​o​u​n​d​.​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​n​e​e​d​s​ ​F​F​m​p​e​g​ ​(​f​f​m​p​e​g​ ​+​ ​f​f​p​r​o​b​e​)​.
+			 */
+			notFound: string;
+			/**
+			 * F​F​p​r​o​b​e​ ​w​a​s​ ​f​o​u​n​d​ ​b​u​t​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​e​x​e​c​u​t​e​d​.​{​r​e​a​s​o​n​}​
+		​
+		​T​r​y​ ​r​e​i​n​s​t​a​l​l​i​n​g​ ​F​F​m​p​e​g​ ​f​o​r​ ​y​o​u​r​ ​C​P​U​ ​a​r​c​h​i​t​e​c​t​u​r​e​ ​a​n​d​ ​r​e​m​o​v​e​ ​m​a​c​O​S​ ​q​u​a​r​a​n​t​i​n​e​ ​i​f​ ​n​e​e​d​e​d​.
+			 * @param {unknown} reason
+			 */
+			notExecutable: RequiredParams<'reason'>;
+			/**
+			 * F​F​p​r​o​b​e​ ​e​x​e​c​u​t​i​o​n​ ​f​a​i​l​e​d​.​{​r​e​a​s​o​n​}
+			 * @param {unknown} reason
+			 */
+			failed: RequiredParams<'reason'>;
+			/**
+			 * 
+		​R​e​a​s​o​n​:​ ​{​d​e​t​a​i​l​s​}
+			 * @param {unknown} details
+			 */
+			reason: RequiredParams<'details'>;
+			/**
+			 * m​a​c​O​S​:​ ​i​n​s​t​a​l​l​ ​w​i​t​h​ ​H​o​m​e​b​r​e​w​ ​u​s​i​n​g​ ​`​b​r​e​w​ ​i​n​s​t​a​l​l​ ​f​f​m​p​e​g​`​,​ ​w​h​i​c​h​ ​a​l​s​o​ ​p​r​o​v​i​d​e​s​ ​f​f​p​r​o​b​e​.
+			 */
+			installMac: string;
+			/**
+			 * L​i​n​u​x​:​ ​i​n​s​t​a​l​l​ ​v​i​a​ ​y​o​u​r​ ​d​i​s​t​r​i​b​u​t​i​o​n​ ​p​a​c​k​a​g​e​ ​m​a​n​a​g​e​r​ ​(​e​.​g​.​ ​`​s​u​d​o​ ​a​p​t​ ​i​n​s​t​a​l​l​ ​f​f​m​p​e​g​`​,​ ​`​s​u​d​o​ ​d​n​f​ ​i​n​s​t​a​l​l​ ​f​f​m​p​e​g​`​,​ ​o​r​ ​`​s​u​d​o​ ​p​a​c​m​a​n​ ​-​S​ ​f​f​m​p​e​g​`​)​ ​a​n​d​ ​e​n​s​u​r​e​ ​f​f​m​p​e​g​/​f​f​p​r​o​b​e​ ​a​r​e​ ​o​n​ ​y​o​u​r​ ​P​A​T​H​.
+			 */
+			installLinux: string;
+			/**
+			 * I​n​s​t​a​l​l​ ​t​h​e​ ​o​f​f​i​c​i​a​l​ ​F​F​m​p​e​g​ ​b​u​i​l​d​ ​f​o​r​ ​y​o​u​r​ ​p​l​a​t​f​o​r​m​ ​f​r​o​m​ ​h​t​t​p​s​:​/​/​f​f​m​p​e​g​.​o​r​g​/​d​o​w​n​l​o​a​d​.​h​t​m​l​ ​a​n​d​ ​a​d​d​ ​b​o​t​h​ ​f​f​m​p​e​g​ ​a​n​d​ ​f​f​p​r​o​b​e​ ​t​o​ ​y​o​u​r​ ​P​A​T​H​.
+			 */
+			installOther: string;
+		};
 		referenceDetection: {
 			/**
 			 * D​e​t​e​c​t​ ​q​u​o​t​e​s​ ​a​n​d​ ​Q​u​r​a​n​ ​v​e​r​s​e​s
@@ -5687,6 +5912,48 @@ type RootTranslation = {
 	};
 	export: {
 		/**
+		 * C​h​a​p​t​e​r​ ​F​o​r​m​a​t
+		 */
+		chapterFormat: string;
+		/**
+		 * T​e​x​t​ ​f​o​r​m​a​t
+		 */
+		chapterTextFormat: string;
+		/**
+		 * P​l​a​c​e​h​o​l​d​e​r​s​:​ ​{​p​l​a​c​e​h​o​l​d​e​r​s​}
+		 * @param {unknown} placeholders
+		 */
+		chapterPlaceholders: RequiredParams<'placeholders'>;
+		/**
+		 * T​r​a​n​s​l​a​t​i​o​n​ ​f​o​r​ ​{​p​l​a​c​e​h​o​l​d​e​r​}
+		 * @param {unknown} placeholder
+		 */
+		chapterTranslation: RequiredParams<'placeholder'>;
+		/**
+		 * S​u​b​t​i​t​l​e​ ​J​S​O​N
+		 */
+		subtitleJson: string;
+		/**
+		 * I​t​ ​a​p​p​e​a​r​s​ ​y​o​u​r​ ​c​o​m​p​u​t​e​r​ ​c​a​n​n​o​t​ ​a​l​l​o​c​a​t​e​ ​e​n​o​u​g​h​ ​m​e​m​o​r​y​ ​f​o​r​ ​t​h​e​ ​e​x​p​o​r​t​ ​p​r​o​c​e​s​s​.​ ​T​r​y​ ​t​h​e​ ​f​o​l​l​o​w​i​n​g​:
+		 */
+		memoryError: string;
+		/**
+		 * R​e​d​u​c​e​ ​t​h​e​ ​b​a​t​c​h​ ​s​i​z​e​.
+		 */
+		memoryReduceBatch: string;
+		/**
+		 * L​o​w​e​r​ ​t​h​e​ ​v​i​d​e​o​ ​r​e​s​o​l​u​t​i​o​n​.
+		 */
+		memoryLowerResolution: string;
+		/**
+		 * R​e​m​o​v​e​ ​a​n​y​ ​b​a​c​k​g​r​o​u​n​d​ ​v​i​d​e​o​.
+		 */
+		memoryRemoveBackground: string;
+		/**
+		 * C​l​o​s​e​ ​o​t​h​e​r​ ​a​p​p​l​i​c​a​t​i​o​n​s​ ​t​o​ ​f​r​e​e​ ​u​p​ ​m​e​m​o​r​y​ ​f​o​r​ ​t​h​e​ ​e​x​p​o​r​t​.
+		 */
+		memoryCloseApps: string;
+		/**
 		 * Q​u​a​l​i​t​y
 		 */
 		quality: string;
@@ -6424,6 +6691,225 @@ type RootTranslation = {
 		textExport: string;
 	};
 	translations: {
+		aiCost: {
+			/**
+			 * A​p​p​r​o​x​i​m​a​t​i​o​n​ ​b​a​s​e​d​ ​o​n​ ​p​r​o​m​p​t​/​o​u​t​p​u​t​ ​s​i​z​e​ ​o​n​l​y​.
+			 */
+			approximation: string;
+			/**
+			 * A​p​p​r​o​x​i​m​a​t​i​o​n​ ​b​a​s​e​d​ ​o​n​ ​p​r​o​m​p​t​/​o​u​t​p​u​t​ ​s​i​z​e​ ​o​n​l​y​.​ ​C​o​s​t​ ​i​s​ ​u​n​a​v​a​i​l​a​b​l​e​ ​f​o​r​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​c​u​s​t​o​m​ ​m​o​d​e​l​s​.
+			 */
+			unavailable: string;
+			/**
+			 * A​p​p​r​o​x​i​m​a​t​i​o​n​ ​b​a​s​e​d​ ​o​n​ ​p​r​o​m​p​t​/​o​u​t​p​u​t​ ​s​i​z​e​ ​o​n​l​y​.​ ​A​c​t​u​a​l​ ​c​o​s​t​ ​m​a​y​ ​i​n​c​r​e​a​s​e​ ​w​i​t​h​ ​r​e​a​s​o​n​i​n​g​ ​e​f​f​o​r​t​.
+			 */
+			withReasoning: string;
+		};
+		aiBold: {
+			/**
+			 * C​h​o​o​s​e​ ​a​n​ ​e​d​i​t​i​o​n​,​ ​a​ ​t​i​m​e​ ​r​a​n​g​e​,​ ​a​n​d​ ​l​e​t​ ​y​o​u​r​ ​t​e​x​t​ ​A​I​ ​p​r​o​v​i​d​e​r​ ​r​e​t​u​r​n​ ​o​n​l​y​ ​t​h​e​ ​w​o​r​d​ ​i​n​d​e​x​e​s​ ​t​o​ ​b​o​l​d​.
+			 */
+			subtitle: string;
+			/**
+			 * A​I​ ​B​o​l​d​ ​r​e​p​l​a​c​e​s​ ​e​x​i​s​t​i​n​g​ ​i​n​l​i​n​e​ ​b​o​l​d​ ​f​o​r​ ​t​h​e​ ​p​r​o​c​e​s​s​e​d​ ​s​e​g​m​e​n​t​s​ ​o​n​l​y​.​ ​I​t​a​l​i​c​ ​a​n​d​ ​u​n​d​e​r​l​i​n​e​ ​r​e​m​a​i​n​ ​u​n​t​o​u​c​h​e​d​.
+			 */
+			configDescription: string;
+			/**
+			 * I​n​c​l​u​d​e​ ​a​l​r​e​a​d​y​ ​b​o​l​d​e​d​ ​s​e​g​m​e​n​t​s
+			 */
+			includeAlreadyBolded: string;
+			/**
+			 * W​h​e​n​ ​e​n​a​b​l​e​d​,​ ​A​I​ ​B​o​l​d​ ​c​a​n​ ​r​e​p​l​a​c​e​ ​b​o​l​d​ ​s​t​y​l​i​n​g​ ​o​n​ ​s​e​g​m​e​n​t​s​ ​t​h​a​t​ ​a​l​r​e​a​d​y​ ​c​o​n​t​a​i​n​ ​b​o​l​d​.
+			 */
+			includeAlreadyBoldedHint: string;
+			/**
+			 * T​h​e​ ​A​I​ ​r​e​c​e​i​v​e​s​ ​A​r​a​b​i​c​ ​t​e​x​t​ ​p​l​u​s​ ​i​n​d​e​x​e​d​ ​t​r​a​n​s​l​a​t​i​o​n​ ​w​o​r​d​s​ ​a​n​d​ ​m​u​s​t​ ​r​e​t​u​r​n​ ​J​S​O​N​ ​w​o​r​d​ ​i​n​d​e​x​e​s​ ​o​n​l​y​.
+			 */
+			runDescription: string;
+			/**
+			 * R​u​n​n​i​n​g​ ​A​I​ ​B​o​l​d​.​.​.
+			 */
+			running: string;
+			/**
+			 * R​u​n​ ​A​I​ ​B​o​l​d
+			 */
+			run: string;
+			/**
+			 * A​I​ ​B​o​l​d​ ​i​n​ ​p​r​o​g​r​e​s​s
+			 */
+			inProgress: string;
+			/**
+			 * L​a​t​e​s​t​ ​A​I​ ​B​o​l​d​ ​r​u​n
+			 */
+			latestRun: string;
+			/**
+			 * S​t​a​r​t​i​n​g​ ​A​I​ ​B​o​l​d​ ​f​o​r​ ​{​s​e​g​m​e​n​t​s​}​ ​s​e​g​m​e​n​t​(​s​)​ ​a​c​r​o​s​s​ ​{​b​a​t​c​h​e​s​}​ ​b​a​t​c​h​(​e​s​)​.
+			 * @param {unknown} batches
+			 * @param {unknown} segments
+			 */
+			starting: RequiredParams<'batches' | 'segments'>;
+			/**
+			 * A​p​p​l​i​e​d​ ​A​I​ ​b​o​l​d​ ​t​o​ ​{​a​p​p​l​i​e​d​}​/​{​t​o​t​a​l​}​ ​s​e​g​m​e​n​t​(​s​)​.
+			 * @param {unknown} applied
+			 * @param {unknown} total
+			 */
+			appliedSegments: RequiredParams<'applied' | 'total'>;
+		};
+		advancedTrim: {
+			/**
+			 * N​o​ ​e​l​i​g​i​b​l​e​ ​v​e​r​s​e​s
+			 */
+			noEligibleVerses: string;
+			/**
+			 * T​h​e​ ​s​e​l​e​c​t​e​d​ ​e​d​i​t​i​o​n​ ​a​l​r​e​a​d​y​ ​l​o​o​k​s​ ​c​o​m​p​l​e​t​e​ ​f​o​r​ ​a​d​v​a​n​c​e​d​ ​t​r​i​m​m​i​n​g​.
+			 */
+			alreadyComplete: string;
+			/**
+			 * L​a​t​e​s​t​ ​R​u​n​ ​R​e​c​a​p
+			 */
+			latestRecap: string;
+			/**
+			 * F​u​l​l​y​ ​S​u​c​c​e​s​s​f​u​l​ ​B​a​t​c​h​e​s
+			 */
+			fullySuccessfulBatches: string;
+			/**
+			 * S​e​g​m​e​n​t​s​ ​S​e​t​ ​B​y​ ​A​I
+			 */
+			segmentsSetByAi: string;
+			/**
+			 * A​I​ ​E​r​r​o​r​ ​S​e​g​m​e​n​t​s​ ​T​o​ ​R​e​v​i​e​w
+			 */
+			errorSegmentsToReview: string;
+			/**
+			 * R​e​j​e​c​t​e​d​ ​V​e​r​s​e​s​ ​A​t​ ​V​a​l​i​d​a​t​i​o​n
+			 */
+			rejectedVerses: string;
+			/**
+			 * {​c​o​u​n​t​}​ ​v​e​r​s​e​(​s​)​ ​w​e​r​e​ ​a​p​p​l​i​e​d​ ​c​l​e​a​n​l​y​ ​a​s​ ​`​A​I​ ​T​r​i​m​m​e​d​`​.
+			 * @param {unknown} count
+			 */
+			cleanVerses: RequiredParams<'count'>;
+			/**
+			 * {​c​o​u​n​t​}​ ​v​e​r​s​e​(​s​)​ ​h​a​d​ ​v​a​l​i​d​a​t​i​o​n​ ​o​r​ ​r​e​m​a​p​p​i​n​g​ ​i​s​s​u​e​s​.​ ​C​h​e​c​k​ ​t​h​e​ ​a​c​t​i​v​i​t​y​ ​l​o​g​ ​b​e​l​o​w​ ​f​o​r​ ​t​h​e​ ​e​x​a​c​t​ ​r​e​a​s​o​n​.
+			 * @param {unknown} count
+			 */
+			versesWithIssues: RequiredParams<'count'>;
+			/**
+			 * R​u​n​n​i​n​g​.​.​.
+			 */
+			running: string;
+			/**
+			 * R​u​n​ ​A​d​v​a​n​c​e​d​ ​A​I​ ​T​r​i​m​m​i​n​g
+			 */
+			run: string;
+			/**
+			 * C​u​r​r​e​n​t​ ​s​t​e​p
+			 */
+			currentStep: string;
+			/**
+			 * C​u​r​r​e​n​t​ ​v​e​r​s​e​s​:​
+			 */
+			currentVerses: string;
+			/**
+			 * L​i​v​e​ ​A​c​t​i​v​i​t​y​ ​&​ ​R​e​s​p​o​n​s​e
+			 */
+			liveActivity: string;
+			/**
+			 * C​o​p​y​ ​R​e​s​p​o​n​s​e
+			 */
+			copyResponse: string;
+			/**
+			 * (​b​a​s​e​d​ ​o​n​ ​t​h​e​ ​v​i​d​e​o​ ​t​i​m​e​l​i​n​e​)
+			 */
+			timelineRangeHint: string;
+			/**
+			 * S​t​a​r​t​i​n​g​ ​a​d​v​a​n​c​e​d​ ​t​r​i​m​ ​f​o​r​ ​{​v​e​r​s​e​s​}​ ​v​e​r​s​e​(​s​)​ ​a​c​r​o​s​s​ ​{​b​a​t​c​h​e​s​}​ ​b​a​t​c​h​(​e​s​)​.
+			 * @param {unknown} batches
+			 * @param {unknown} verses
+			 */
+			starting: RequiredParams<'batches' | 'verses'>;
+			/**
+			 * {​l​a​b​e​l​}​:​ ​{​v​e​r​s​e​s​}​ ​v​e​r​s​e​(​s​)​,​ ​{​w​o​r​d​s​}​ ​w​o​r​d​s​.
+			 * @param {unknown} label
+			 * @param {unknown} verses
+			 * @param {unknown} words
+			 */
+			batchQueued: RequiredParams<'label' | 'verses' | 'words'>;
+			/**
+			 * A​p​p​l​i​e​d​ ​{​a​p​p​l​i​e​d​}​/​{​t​o​t​a​l​}​ ​f​u​l​l​y​ ​a​l​i​g​n​e​d​ ​v​e​r​s​e​(​s​)​,​ ​{​s​e​g​m​e​n​t​s​}​ ​a​l​i​g​n​e​d​ ​s​e​g​m​e​n​t​(​s​)​.
+			 * @param {unknown} applied
+			 * @param {unknown} segments
+			 * @param {unknown} total
+			 */
+			appliedVerses: RequiredParams<'applied' | 'segments' | 'total'>;
+			/**
+			 * N​o​ ​v​e​r​s​e​ ​f​r​o​m​ ​t​h​i​s​ ​b​a​t​c​h​ ​p​a​s​s​e​d​ ​v​a​l​i​d​a​t​i​o​n​.
+			 */
+			noValidVerse: string;
+			/**
+			 * {​c​o​u​n​t​}​ ​s​e​g​m​e​n​t​(​s​)​ ​w​e​r​e​ ​k​e​p​t​ ​b​u​t​ ​m​a​r​k​e​d​ ​A​I​ ​E​r​r​o​r​ ​b​e​c​a​u​s​e​ ​w​o​r​d​ ​r​a​n​g​e​ ​r​e​m​a​p​p​i​n​g​ ​f​a​i​l​e​d​.
+			 * @param {unknown} count
+			 */
+			remappingFailed: RequiredParams<'count'>;
+			/**
+			 * {​s​u​c​c​e​s​s​f​u​l​}​/​{​t​o​t​a​l​}​ ​b​a​t​c​h​(​e​s​)​ ​w​e​r​e​ ​f​u​l​l​y​ ​s​u​c​c​e​s​s​f​u​l​.​ ​{​a​p​p​l​i​e​d​}​ ​s​e​g​m​e​n​t​(​s​)​ ​w​e​r​e​ ​s​e​t​ ​b​y​ ​A​I​,​ ​{​e​r​r​o​r​s​}​ ​s​e​g​m​e​n​t​(​s​)​ ​w​e​r​e​ ​m​a​r​k​e​d​ ​A​I​ ​E​r​r​o​r​ ​a​n​d​ ​n​e​e​d​ ​r​e​v​i​e​w​,​ ​a​n​d​ ​{​v​e​r​s​e​s​}​ ​v​e​r​s​e​(​s​)​ ​h​a​d​ ​i​s​s​u​e​s​ ​o​v​e​r​a​l​l​.
+			 * @param {unknown} applied
+			 * @param {unknown} errors
+			 * @param {unknown} successful
+			 * @param {unknown} total
+			 * @param {unknown} verses
+			 */
+			runSummary: RequiredParams<'applied' | 'errors' | 'successful' | 'total' | 'verses'>;
+		};
+		aiResponseErrors: {
+			/**
+			 * A​I​ ​r​e​s​p​o​n​s​e​ ​i​s​ ​n​o​t​ ​a​ ​J​S​O​N​ ​o​b​j​e​c​t​.
+			 */
+			notObject: string;
+			/**
+			 * A​I​ ​r​e​s​p​o​n​s​e​ ​i​s​ ​m​i​s​s​i​n​g​ ​t​h​e​ ​i​t​e​m​s​ ​a​r​r​a​y​.
+			 */
+			missingItems: string;
+			/**
+			 * A​I​ ​r​e​s​p​o​n​s​e​ ​c​o​n​t​a​i​n​s​ ​a​n​ ​i​n​v​a​l​i​d​ ​i​t​e​m​.
+			 */
+			invalidItem: string;
+			/**
+			 * A​I​ ​r​e​s​p​o​n​s​e​ ​c​o​n​t​a​i​n​s​ ​a​n​ ​u​n​e​x​p​e​c​t​e​d​ ​o​r​ ​d​u​p​l​i​c​a​t​e​ ​s​u​b​t​i​t​l​e​ ​i​d​ ​{​i​d​}​.
+			 * @param {unknown} id
+			 */
+			unexpectedId: RequiredParams<'id'>;
+			/**
+			 * S​u​b​t​i​t​l​e​ ​{​i​d​}​:​ ​i​n​v​a​l​i​d​ ​f​r​e​e​ ​t​e​x​t​ ​s​l​o​t​s​.
+			 * @param {unknown} id
+			 */
+			invalidFreeTexts: RequiredParams<'id'>;
+			/**
+			 * S​u​b​t​i​t​l​e​ ​{​i​d​}​:​ ​i​n​v​a​l​i​d​ ​c​i​t​a​t​i​o​n​ ​p​a​y​l​o​a​d​.
+			 * @param {unknown} id
+			 */
+			invalidCitation: RequiredParams<'id'>;
+			/**
+			 * S​u​b​t​i​t​l​e​ ​{​i​d​}​:​ ​c​i​t​a​t​i​o​n​ ​a​n​c​h​o​r​s​ ​d​o​ ​n​o​t​ ​m​a​t​c​h​ ​t​h​e​ ​s​o​u​r​c​e​.
+			 * @param {unknown} id
+			 */
+			citationMismatch: RequiredParams<'id'>;
+			/**
+			 * S​u​b​t​i​t​l​e​ ​{​i​d​}​:​ ​i​n​v​a​l​i​d​ ​Q​u​r​a​n​ ​r​a​n​g​e​ ​p​a​y​l​o​a​d​.
+			 * @param {unknown} id
+			 */
+			invalidQuranRange: RequiredParams<'id'>;
+			/**
+			 * S​u​b​t​i​t​l​e​ ​{​i​d​}​:​ ​Q​u​r​a​n​ ​r​a​n​g​e​s​ ​d​o​ ​n​o​t​ ​m​a​t​c​h​ ​t​h​e​ ​e​d​i​t​a​b​l​e​ ​p​a​r​t​i​a​l​ ​p​a​s​s​a​g​e​s​.
+			 * @param {unknown} id
+			 */
+			quranRangeMismatch: RequiredParams<'id'>;
+			/**
+			 * S​u​b​t​i​t​l​e​ ​{​i​d​}​:​ ​m​i​s​s​i​n​g​ ​f​r​o​m​ ​A​I​ ​r​e​s​p​o​n​s​e​.
+			 * @param {unknown} id
+			 */
+			missingSubtitle: RequiredParams<'id'>;
+		};
 		/**
 		 * T​h​e​ ​t​r​a​n​s​l​a​t​i​o​n​ ​{​a​u​t​h​o​r​}​ ​i​s​ ​a​l​r​e​a​d​y​ ​a​d​d​e​d​.​ ​D​o​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​r​e​s​e​t​ ​i​t​?​ ​Y​o​u​r​ ​c​u​r​r​e​n​t​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​f​o​r​ ​t​h​i​s​ ​a​u​t​h​o​r​ ​w​i​l​l​ ​b​e​ ​c​l​e​a​r​e​d​.
 		 * @param {unknown} author
@@ -7515,6 +8001,11 @@ type RootTranslation = {
 		groupTransitions: string;
 	};
 	settings: {
+		/**
+		 * W​o​r​k​i​n​g​ ​o​n​ ​{​n​a​m​e​}
+		 * @param {unknown} name
+		 */
+		workingOnProjectWithoutSpeaker: RequiredParams<'name'>;
 		/**
 		 * S​e​t​t​i​n​g​s
 		 */
@@ -8638,6 +9129,52 @@ type RootTranslation = {
 		skipTutorial: string;
 	};
 	modals: {
+		speakerRemoval: {
+			/**
+			 * R​e​m​o​v​e​ ​s​p​e​a​k​e​r
+			 */
+			title: string;
+			/**
+			 * {​s​p​e​a​k​e​r​}​ ​i​s​ ​a​s​s​i​g​n​e​d​ ​t​o​ ​{​c​o​u​n​t​}​ ​t​r​a​n​s​c​r​i​p​t​ ​s​e​g​m​e​n​t​{​p​l​u​r​a​l​}​.
+			 * @param {unknown} count
+			 * @param {unknown} plural
+			 * @param {unknown} speaker
+			 */
+			usage: RequiredParams<'count' | 'plural' | 'speaker'>;
+			/**
+			 * C​h​o​o​s​e​ ​w​h​a​t​ ​s​h​o​u​l​d​ ​h​a​p​p​e​n​ ​t​o​ ​t​h​o​s​e​ ​s​e​g​m​e​n​t​s​ ​b​e​f​o​r​e​ ​r​e​m​o​v​i​n​g​ ​t​h​e​ ​s​p​e​a​k​e​r​ ​f​r​o​m​ ​t​h​e​ ​p​r​o​j​e​c​t​.
+			 */
+			description: string;
+			/**
+			 * T​h​i​s​ ​i​s​ ​a​l​s​o​ ​t​h​e​ ​p​r​o​j​e​c​t​'​s​ ​m​a​i​n​ ​s​p​e​a​k​e​r​.​ ​T​h​a​t​ ​p​r​o​j​e​c​t​ ​f​i​e​l​d​ ​w​i​l​l​ ​b​e​ ​r​e​p​l​a​c​e​d​ ​o​r​ ​c​l​e​a​r​e​d​.
+			 */
+			mainSpeakerWarning: string;
+			/**
+			 * R​e​a​s​s​i​g​n​ ​t​h​e​ ​s​e​g​m​e​n​t​s
+			 */
+			reassignSegments: string;
+			/**
+			 * N​o​ ​o​t​h​e​r​ ​s​p​e​a​k​e​r​ ​a​v​a​i​l​a​b​l​e
+			 */
+			noReplacement: string;
+			/**
+			 * R​e​a​s​s​i​g​n​ ​a​n​d​ ​r​e​m​o​v​e
+			 */
+			reassignAndRemove: string;
+			/**
+			 * L​e​a​v​e​ ​t​h​e​ ​s​e​g​m​e​n​t​s​ ​w​i​t​h​o​u​t​ ​a​ ​s​p​e​a​k​e​r
+			 */
+			leaveUnassigned: string;
+			/**
+			 * T​h​e​ ​a​f​f​e​c​t​e​d​ ​s​e​g​m​e​n​t​s​ ​w​i​l​l​ ​b​e​ ​m​a​r​k​e​d​ ​a​s​ ​{​s​p​e​a​k​e​r​}​ ​a​n​d​ ​c​a​n​ ​b​e​ ​r​e​v​i​e​w​e​d​ ​l​a​t​e​r​.
+			 * @param {unknown} speaker
+			 */
+			unassignedDescription: RequiredParams<'speaker'>;
+			/**
+			 * M​a​r​k​ ​u​n​a​s​s​i​g​n​e​d​ ​a​n​d​ ​r​e​m​o​v​e
+			 */
+			markUnassignedAndRemove: string;
+		};
 		/**
 		 * R​e​m​o​v​e​ ​A​s​s​e​t
 		 */
@@ -8729,6 +9266,25 @@ type RootTranslation = {
 		restart: string;
 	};
 	tools: {
+		/**
+		 *  ​(​f​r​o​m​ ​{​s​e​c​o​n​d​s​}​s​ ​o​n​w​a​r​d​)
+		 * @param {unknown} seconds
+		 */
+		shiftScope: RequiredParams<'seconds'>;
+		/**
+		 * l​e​f​t
+		 */
+		left: string;
+		/**
+		 * r​i​g​h​t
+		 */
+		right: string;
+		/**
+		 * T​h​i​s​ ​a​c​t​i​o​n​ ​w​i​l​l​ ​m​o​v​e​ ​{​c​o​u​n​t​}​ ​o​f​ ​{​t​o​t​a​l​}​ ​s​u​b​t​i​t​l​e​s​.​ ​P​l​e​a​s​e​ ​e​n​s​u​r​e​ ​n​o​ ​s​u​b​t​i​t​l​e​s​ ​w​i​l​l​ ​b​e​ ​p​u​s​h​e​d​ ​b​e​f​o​r​e​ ​0​:​0​0​.
+		 * @param {unknown} count
+		 * @param {unknown} total
+		 */
+		shiftWarning: RequiredParams<'count' | 'total'>;
 		/**
 		 * S​h​i​f​t​ ​A​l​l​ ​S​u​b​t​i​t​l​e​s
 		 */
@@ -9231,6 +9787,14 @@ type RootTranslation = {
 		migrationFailed: string;
 	};
 	aiVideo: {
+		/**
+		 * O​p​t​i​o​n​s
+		 */
+		options: string;
+		/**
+		 * R​e​v​i​e​w​ ​&​ ​C​r​e​a​t​e
+		 */
+		reviewAndCreate: string;
 		/**
 		 * A​I​ ​V​i​d​e​o
 		 */
@@ -9974,6 +10538,18 @@ type RootTranslation = {
 export type TranslationFunctions = {
 	common: {
 		/**
+		 * Logo
+		 */
+		logo: () => LocalizedString;
+		/**
+		 * Select an option
+		 */
+		selectOption: () => LocalizedString;
+		/**
+		 * No options found
+		 */
+		noOptionsFound: () => LocalizedString;
+		/**
 		 * Cancel
 		 */
 		cancel: () => LocalizedString;
@@ -10540,6 +11116,10 @@ export type TranslationFunctions = {
 	};
 	home: {
 		/**
+		 * © {year} Minbar Studio. Made by {author}.
+		 */
+		copyright: (arg: { author: unknown; year: unknown }) => LocalizedString;
+		/**
 		 * Welcome Back!
 		 */
 		welcomeBack: () => LocalizedString;
@@ -11029,6 +11609,197 @@ export type TranslationFunctions = {
 		continue: () => LocalizedString;
 	};
 	editor: {
+		/**
+		 * Remove {speaker}
+		 */
+		removeSpeaker: (arg: { speaker: unknown }) => LocalizedString;
+		/**
+		 * Activity log
+		 */
+		activityLog: () => LocalizedString;
+		/**
+		 * Remove {speaker} from the project
+		 */
+		removeSpeakerFromProject: (arg: { speaker: unknown }) => LocalizedString;
+		/**
+		 * Unassigned
+		 */
+		unassignedSpeaker: () => LocalizedString;
+		/**
+		 * Unknown speaker
+		 */
+		unknownSpeaker: () => LocalizedString;
+		/**
+		 * Unknown Track
+		 */
+		unknownTrack: () => LocalizedString;
+		/**
+		 * Subtitles
+		 */
+		subtitleTrack: () => LocalizedString;
+		/**
+		 * No Image
+		 */
+		noImage: () => LocalizedString;
+		/**
+		 * Pick an image
+		 */
+		pickImage: () => LocalizedString;
+		/**
+		 * New banners made by {author} on Discord.
+		 */
+		bannerCredits: (arg: { author: unknown }) => LocalizedString;
+		/**
+		 * Note: Fade effects are applied only to exported videos and will not appear in the preview.
+		 */
+		fadePreviewNote: () => LocalizedString;
+		/**
+		 * Fade In:
+		 */
+		fadeIn: () => LocalizedString;
+		/**
+		 * Fade Out:
+		 */
+		fadeOut: () => LocalizedString;
+		/**
+		 * Fade Duration:
+		 */
+		fadeDuration: () => LocalizedString;
+		/**
+		 * Ctrl + Scroll = Zoom
+		 */
+		timelineWheelZoom: () => LocalizedString;
+		/**
+		 * Ctrl + Shift + Scroll = Horizontal Scroll
+		 */
+		timelineWheelHorizontal: () => LocalizedString;
+		/**
+		 * Scroll = Vertical Scroll
+		 */
+		timelineWheelVertical: () => LocalizedString;
+		/**
+		 * Alt + Scroll = Frame-by-frame Cursor
+		 */
+		timelineWheelFrame: () => LocalizedString;
+		/**
+		 * Start minutes
+		 */
+		startMinutes: () => LocalizedString;
+		/**
+		 * Start seconds
+		 */
+		startSeconds: () => LocalizedString;
+		/**
+		 * Start milliseconds
+		 */
+		startMilliseconds: () => LocalizedString;
+		/**
+		 * End minutes
+		 */
+		endMinutes: () => LocalizedString;
+		/**
+		 * End seconds
+		 */
+		endSeconds: () => LocalizedString;
+		/**
+		 * End milliseconds
+		 */
+		endMilliseconds: () => LocalizedString;
+		/**
+		 * {start} to {end}
+		 */
+		timeRange: (arg: { end: unknown; start: unknown }) => LocalizedString;
+		/**
+		 * {count} verse{plural}
+		 */
+		verseCount: (arg: { count: unknown; plural: unknown }) => LocalizedString;
+		/**
+		 * {count} project{plural}
+		 */
+		projectCount: (arg: { count: unknown; plural: unknown }) => LocalizedString;
+		/**
+		 * {name} Background
+		 */
+		timelineBackground: (arg: { name: unknown }) => LocalizedString;
+		transcriptShortcutKeys: {
+			/**
+			 * Shift + Enter
+			 */
+			newLine: () => LocalizedString;
+			/**
+			 * Ctrl/Shift + Space
+			 */
+			playPause: () => LocalizedString;
+			/**
+			 * Ctrl/Shift + ←
+			 */
+			seekBackward: () => LocalizedString;
+			/**
+			 * Ctrl/Shift + →
+			 */
+			seekForward: () => LocalizedString;
+			/**
+			 * Ctrl/Shift + PageUp/PageDown
+			 */
+			temporarySpeed: () => LocalizedString;
+		};
+		/**
+		 * Unable to fetch Quran.com audio URL for this recitation.
+		 */
+		quranAudioUrlUnavailable: () => LocalizedString;
+		/**
+		 * This Quran.com recitation is listed, but the source audio file is unavailable upstream for this surah.
+		 */
+		quranAudioSourceUnavailable: () => LocalizedString;
+		/**
+		 * Reference markers must open and close inside the same subtitle segment.
+		 */
+		referenceMarkersInvalid: () => LocalizedString;
+		/**
+		 * Invalid Quran reference: {reference}.
+		 */
+		quranReferenceInvalid: (arg: { reference: unknown }) => LocalizedString;
+		/**
+		 * Quran reference does not exist: {reference}.
+		 */
+		quranReferenceMissing: (arg: { reference: unknown }) => LocalizedString;
+		/**
+		 * Quran word range does not exist: {reference}.
+		 */
+		quranWordRangeMissing: (arg: { reference: unknown }) => LocalizedString;
+		ffprobe: {
+			/**
+			 * FFprobe could not be found. Minbar Studio needs FFmpeg (ffmpeg + ffprobe).
+			 */
+			notFound: () => LocalizedString;
+			/**
+			 * FFprobe was found but could not be executed.{reason}
+	
+		Try reinstalling FFmpeg for your CPU architecture and remove macOS quarantine if needed.
+			 */
+			notExecutable: (arg: { reason: unknown }) => LocalizedString;
+			/**
+			 * FFprobe execution failed.{reason}
+			 */
+			failed: (arg: { reason: unknown }) => LocalizedString;
+			/**
+			 * 
+		Reason: {details}
+			 */
+			reason: (arg: { details: unknown }) => LocalizedString;
+			/**
+			 * macOS: install with Homebrew using `brew install ffmpeg`, which also provides ffprobe.
+			 */
+			installMac: () => LocalizedString;
+			/**
+			 * Linux: install via your distribution package manager (e.g. `sudo apt install ffmpeg`, `sudo dnf install ffmpeg`, or `sudo pacman -S ffmpeg`) and ensure ffmpeg/ffprobe are on your PATH.
+			 */
+			installLinux: () => LocalizedString;
+			/**
+			 * Install the official FFmpeg build for your platform from https://ffmpeg.org/download.html and add both ffmpeg and ffprobe to your PATH.
+			 */
+			installOther: () => LocalizedString;
+		};
 		referenceDetection: {
 			/**
 			 * Detect quotes and Quran verses
@@ -15548,6 +16319,46 @@ export type TranslationFunctions = {
 	};
 	export: {
 		/**
+		 * Chapter Format
+		 */
+		chapterFormat: () => LocalizedString;
+		/**
+		 * Text format
+		 */
+		chapterTextFormat: () => LocalizedString;
+		/**
+		 * Placeholders: {placeholders}
+		 */
+		chapterPlaceholders: (arg: { placeholders: unknown }) => LocalizedString;
+		/**
+		 * Translation for {placeholder}
+		 */
+		chapterTranslation: (arg: { placeholder: unknown }) => LocalizedString;
+		/**
+		 * Subtitle JSON
+		 */
+		subtitleJson: () => LocalizedString;
+		/**
+		 * It appears your computer cannot allocate enough memory for the export process. Try the following:
+		 */
+		memoryError: () => LocalizedString;
+		/**
+		 * Reduce the batch size.
+		 */
+		memoryReduceBatch: () => LocalizedString;
+		/**
+		 * Lower the video resolution.
+		 */
+		memoryLowerResolution: () => LocalizedString;
+		/**
+		 * Remove any background video.
+		 */
+		memoryRemoveBackground: () => LocalizedString;
+		/**
+		 * Close other applications to free up memory for the export.
+		 */
+		memoryCloseApps: () => LocalizedString;
+		/**
 		 * Quality
 		 */
 		quality: () => LocalizedString;
@@ -16277,6 +17088,208 @@ export type TranslationFunctions = {
 		textExport: () => LocalizedString;
 	};
 	translations: {
+		aiCost: {
+			/**
+			 * Approximation based on prompt/output size only.
+			 */
+			approximation: () => LocalizedString;
+			/**
+			 * Approximation based on prompt/output size only. Cost is unavailable for one or more custom models.
+			 */
+			unavailable: () => LocalizedString;
+			/**
+			 * Approximation based on prompt/output size only. Actual cost may increase with reasoning effort.
+			 */
+			withReasoning: () => LocalizedString;
+		};
+		aiBold: {
+			/**
+			 * Choose an edition, a time range, and let your text AI provider return only the word indexes to bold.
+			 */
+			subtitle: () => LocalizedString;
+			/**
+			 * AI Bold replaces existing inline bold for the processed segments only. Italic and underline remain untouched.
+			 */
+			configDescription: () => LocalizedString;
+			/**
+			 * Include already bolded segments
+			 */
+			includeAlreadyBolded: () => LocalizedString;
+			/**
+			 * When enabled, AI Bold can replace bold styling on segments that already contain bold.
+			 */
+			includeAlreadyBoldedHint: () => LocalizedString;
+			/**
+			 * The AI receives Arabic text plus indexed translation words and must return JSON word indexes only.
+			 */
+			runDescription: () => LocalizedString;
+			/**
+			 * Running AI Bold...
+			 */
+			running: () => LocalizedString;
+			/**
+			 * Run AI Bold
+			 */
+			run: () => LocalizedString;
+			/**
+			 * AI Bold in progress
+			 */
+			inProgress: () => LocalizedString;
+			/**
+			 * Latest AI Bold run
+			 */
+			latestRun: () => LocalizedString;
+			/**
+			 * Starting AI Bold for {segments} segment(s) across {batches} batch(es).
+			 */
+			starting: (arg: { batches: unknown; segments: unknown }) => LocalizedString;
+			/**
+			 * Applied AI bold to {applied}/{total} segment(s).
+			 */
+			appliedSegments: (arg: { applied: unknown; total: unknown }) => LocalizedString;
+		};
+		advancedTrim: {
+			/**
+			 * No eligible verses
+			 */
+			noEligibleVerses: () => LocalizedString;
+			/**
+			 * The selected edition already looks complete for advanced trimming.
+			 */
+			alreadyComplete: () => LocalizedString;
+			/**
+			 * Latest Run Recap
+			 */
+			latestRecap: () => LocalizedString;
+			/**
+			 * Fully Successful Batches
+			 */
+			fullySuccessfulBatches: () => LocalizedString;
+			/**
+			 * Segments Set By AI
+			 */
+			segmentsSetByAi: () => LocalizedString;
+			/**
+			 * AI Error Segments To Review
+			 */
+			errorSegmentsToReview: () => LocalizedString;
+			/**
+			 * Rejected Verses At Validation
+			 */
+			rejectedVerses: () => LocalizedString;
+			/**
+			 * {count} verse(s) were applied cleanly as `AI Trimmed`.
+			 */
+			cleanVerses: (arg: { count: unknown }) => LocalizedString;
+			/**
+			 * {count} verse(s) had validation or remapping issues. Check the activity log below for the exact reason.
+			 */
+			versesWithIssues: (arg: { count: unknown }) => LocalizedString;
+			/**
+			 * Running...
+			 */
+			running: () => LocalizedString;
+			/**
+			 * Run Advanced AI Trimming
+			 */
+			run: () => LocalizedString;
+			/**
+			 * Current step
+			 */
+			currentStep: () => LocalizedString;
+			/**
+			 * Current verses:
+			 */
+			currentVerses: () => LocalizedString;
+			/**
+			 * Live Activity & Response
+			 */
+			liveActivity: () => LocalizedString;
+			/**
+			 * Copy Response
+			 */
+			copyResponse: () => LocalizedString;
+			/**
+			 * (based on the video timeline)
+			 */
+			timelineRangeHint: () => LocalizedString;
+			/**
+			 * Starting advanced trim for {verses} verse(s) across {batches} batch(es).
+			 */
+			starting: (arg: { batches: unknown; verses: unknown }) => LocalizedString;
+			/**
+			 * {label}: {verses} verse(s), {words} words.
+			 */
+			batchQueued: (arg: { label: unknown; verses: unknown; words: unknown }) => LocalizedString;
+			/**
+			 * Applied {applied}/{total} fully aligned verse(s), {segments} aligned segment(s).
+			 */
+			appliedVerses: (arg: {
+				applied: unknown;
+				segments: unknown;
+				total: unknown;
+			}) => LocalizedString;
+			/**
+			 * No verse from this batch passed validation.
+			 */
+			noValidVerse: () => LocalizedString;
+			/**
+			 * {count} segment(s) were kept but marked AI Error because word range remapping failed.
+			 */
+			remappingFailed: (arg: { count: unknown }) => LocalizedString;
+			/**
+			 * {successful}/{total} batch(es) were fully successful. {applied} segment(s) were set by AI, {errors} segment(s) were marked AI Error and need review, and {verses} verse(s) had issues overall.
+			 */
+			runSummary: (arg: {
+				applied: unknown;
+				errors: unknown;
+				successful: unknown;
+				total: unknown;
+				verses: unknown;
+			}) => LocalizedString;
+		};
+		aiResponseErrors: {
+			/**
+			 * AI response is not a JSON object.
+			 */
+			notObject: () => LocalizedString;
+			/**
+			 * AI response is missing the items array.
+			 */
+			missingItems: () => LocalizedString;
+			/**
+			 * AI response contains an invalid item.
+			 */
+			invalidItem: () => LocalizedString;
+			/**
+			 * AI response contains an unexpected or duplicate subtitle id {id}.
+			 */
+			unexpectedId: (arg: { id: unknown }) => LocalizedString;
+			/**
+			 * Subtitle {id}: invalid free text slots.
+			 */
+			invalidFreeTexts: (arg: { id: unknown }) => LocalizedString;
+			/**
+			 * Subtitle {id}: invalid citation payload.
+			 */
+			invalidCitation: (arg: { id: unknown }) => LocalizedString;
+			/**
+			 * Subtitle {id}: citation anchors do not match the source.
+			 */
+			citationMismatch: (arg: { id: unknown }) => LocalizedString;
+			/**
+			 * Subtitle {id}: invalid Quran range payload.
+			 */
+			invalidQuranRange: (arg: { id: unknown }) => LocalizedString;
+			/**
+			 * Subtitle {id}: Quran ranges do not match the editable partial passages.
+			 */
+			quranRangeMismatch: (arg: { id: unknown }) => LocalizedString;
+			/**
+			 * Subtitle {id}: missing from AI response.
+			 */
+			missingSubtitle: (arg: { id: unknown }) => LocalizedString;
+		};
 		/**
 		 * The translation {author} is already added. Do you want to reset it? Your current translations for this author will be cleared.
 		 */
@@ -17345,6 +18358,10 @@ export type TranslationFunctions = {
 		groupTransitions: () => LocalizedString;
 	};
 	settings: {
+		/**
+		 * Working on {name}
+		 */
+		workingOnProjectWithoutSpeaker: (arg: { name: unknown }) => LocalizedString;
 		/**
 		 * Settings
 		 */
@@ -18457,6 +19474,48 @@ export type TranslationFunctions = {
 		skipTutorial: () => LocalizedString;
 	};
 	modals: {
+		speakerRemoval: {
+			/**
+			 * Remove speaker
+			 */
+			title: () => LocalizedString;
+			/**
+			 * {speaker} is assigned to {count} transcript segment{plural}.
+			 */
+			usage: (arg: { count: unknown; plural: unknown; speaker: unknown }) => LocalizedString;
+			/**
+			 * Choose what should happen to those segments before removing the speaker from the project.
+			 */
+			description: () => LocalizedString;
+			/**
+			 * This is also the project's main speaker. That project field will be replaced or cleared.
+			 */
+			mainSpeakerWarning: () => LocalizedString;
+			/**
+			 * Reassign the segments
+			 */
+			reassignSegments: () => LocalizedString;
+			/**
+			 * No other speaker available
+			 */
+			noReplacement: () => LocalizedString;
+			/**
+			 * Reassign and remove
+			 */
+			reassignAndRemove: () => LocalizedString;
+			/**
+			 * Leave the segments without a speaker
+			 */
+			leaveUnassigned: () => LocalizedString;
+			/**
+			 * The affected segments will be marked as {speaker} and can be reviewed later.
+			 */
+			unassignedDescription: (arg: { speaker: unknown }) => LocalizedString;
+			/**
+			 * Mark unassigned and remove
+			 */
+			markUnassignedAndRemove: () => LocalizedString;
+		};
 		/**
 		 * Remove Asset
 		 */
@@ -18547,6 +19606,22 @@ export type TranslationFunctions = {
 		restart: () => LocalizedString;
 	};
 	tools: {
+		/**
+		 *  (from {seconds}s onward)
+		 */
+		shiftScope: (arg: { seconds: unknown }) => LocalizedString;
+		/**
+		 * left
+		 */
+		left: () => LocalizedString;
+		/**
+		 * right
+		 */
+		right: () => LocalizedString;
+		/**
+		 * This action will move {count} of {total} subtitles. Please ensure no subtitles will be pushed before 0:00.
+		 */
+		shiftWarning: (arg: { count: unknown; total: unknown }) => LocalizedString;
 		/**
 		 * Shift All Subtitles
 		 */
@@ -19042,6 +20117,14 @@ export type TranslationFunctions = {
 		migrationFailed: () => LocalizedString;
 	};
 	aiVideo: {
+		/**
+		 * Options
+		 */
+		options: () => LocalizedString;
+		/**
+		 * Review & Create
+		 */
+		reviewAndCreate: () => LocalizedString;
 		/**
 		 * AI Video
 		 */

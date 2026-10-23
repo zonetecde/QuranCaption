@@ -27,7 +27,7 @@
 <div class="flex flex-col gap-3">
 	<p class="flex items-center gap-1 text-xs text-secondary">
 		<span class="material-icons-outlined text-[12px]">info</span>
-		New banners made by @isaglace on Discord.
+		{Reflect.get($LL.editor, 'bannerCredits')({ author: '@isaglace' })}
 	</p>
 
 	<div class="grid grid-cols-2 gap-2">

@@ -1,4 +1,5 @@
 const settings = {
+	workingOnProjectWithoutSpeaker: 'Working on {name}',
 	settings: 'Settings',
 	customizeExperience: 'Customize your experience, shortcuts, and backups',
 	shortcuts: 'Shortcuts',

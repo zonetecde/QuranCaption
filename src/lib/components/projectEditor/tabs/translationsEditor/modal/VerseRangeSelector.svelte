@@ -81,7 +81,10 @@
 					{/if}
 				</p>
 				<div class="text-sm font-mono text-primary">
-					{formatTime(startTimeMs)} to {formatTime(endTimeMs)}
+					{Reflect.get(
+						$LL.editor,
+						'timeRange'
+					)({ start: formatTime(startTimeMs), end: formatTime(endTimeMs) })}
 				</div>
 			</div>
 

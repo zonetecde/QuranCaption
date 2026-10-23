@@ -1,4 +1,68 @@
 const translations = {
+	aiCost: {
+		approximation: 'Approximation based on prompt/output size only.',
+		unavailable:
+			'Approximation based on prompt/output size only. Cost is unavailable for one or more custom models.',
+		withReasoning:
+			'Approximation based on prompt/output size only. Actual cost may increase with reasoning effort.'
+	},
+	aiBold: {
+		subtitle:
+			'Choose an edition, a time range, and let your text AI provider return only the word indexes to bold.',
+		configDescription:
+			'AI Bold replaces existing inline bold for the processed segments only. Italic and underline remain untouched.',
+		includeAlreadyBolded: 'Include already bolded segments',
+		includeAlreadyBoldedHint:
+			'When enabled, AI Bold can replace bold styling on segments that already contain bold.',
+		runDescription:
+			'The AI receives Arabic text plus indexed translation words and must return JSON word indexes only.',
+		running: 'Running AI Bold...',
+		run: 'Run AI Bold',
+		inProgress: 'AI Bold in progress',
+		latestRun: 'Latest AI Bold run',
+		starting: 'Starting AI Bold for {segments} segment(s) across {batches} batch(es).',
+		appliedSegments: 'Applied AI bold to {applied}/{total} segment(s).'
+	},
+	advancedTrim: {
+		noEligibleVerses: 'No eligible verses',
+		alreadyComplete: 'The selected edition already looks complete for advanced trimming.',
+		latestRecap: 'Latest Run Recap',
+		fullySuccessfulBatches: 'Fully Successful Batches',
+		segmentsSetByAi: 'Segments Set By AI',
+		errorSegmentsToReview: 'AI Error Segments To Review',
+		rejectedVerses: 'Rejected Verses At Validation',
+		cleanVerses: '{count} verse(s) were applied cleanly as `AI Trimmed`.',
+		versesWithIssues:
+			'{count} verse(s) had validation or remapping issues. Check the activity log below for the exact reason.',
+		running: 'Running...',
+		run: 'Run Advanced AI Trimming',
+		currentStep: 'Current step',
+		currentVerses: 'Current verses: ',
+		liveActivity: 'Live Activity & Response',
+		copyResponse: 'Copy Response',
+		timelineRangeHint: '(based on the video timeline)',
+		starting: 'Starting advanced trim for {verses} verse(s) across {batches} batch(es).',
+		batchQueued: '{label}: {verses} verse(s), {words} words.',
+		appliedVerses:
+			'Applied {applied}/{total} fully aligned verse(s), {segments} aligned segment(s).',
+		noValidVerse: 'No verse from this batch passed validation.',
+		remappingFailed:
+			'{count} segment(s) were kept but marked AI Error because word range remapping failed.',
+		runSummary:
+			'{successful}/{total} batch(es) were fully successful. {applied} segment(s) were set by AI, {errors} segment(s) were marked AI Error and need review, and {verses} verse(s) had issues overall.'
+	},
+	aiResponseErrors: {
+		notObject: 'AI response is not a JSON object.',
+		missingItems: 'AI response is missing the items array.',
+		invalidItem: 'AI response contains an invalid item.',
+		unexpectedId: 'AI response contains an unexpected or duplicate subtitle id {id}.',
+		invalidFreeTexts: 'Subtitle {id}: invalid free text slots.',
+		invalidCitation: 'Subtitle {id}: invalid citation payload.',
+		citationMismatch: 'Subtitle {id}: citation anchors do not match the source.',
+		invalidQuranRange: 'Subtitle {id}: invalid Quran range payload.',
+		quranRangeMismatch: 'Subtitle {id}: Quran ranges do not match the editable partial passages.',
+		missingSubtitle: 'Subtitle {id}: missing from AI response.'
+	},
 	translationAdded:
 		'The translation {author} is already added. Do you want to reset it? Your current translations for this author will be cleared.',
 	translationResetConfirm:

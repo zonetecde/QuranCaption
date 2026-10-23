@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState, type QuickTimelineEditorMode } from '$lib/runes/main.svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import TrackComponent from './track/Track.svelte';
@@ -1216,8 +1217,8 @@
 						<button
 							class="ruler-zoom-button"
 							type="button"
-							title="Zoom out"
-							aria-label="Zoom out"
+							title={$LL.editor.zoomOut()}
+							aria-label={$LL.editor.zoomOut()}
 							onclick={(event) => {
 								event.stopPropagation();
 								adjustTimelineZoom(-1);
@@ -1228,8 +1229,8 @@
 						<button
 							class="ruler-zoom-button"
 							type="button"
-							title="Zoom in"
-							aria-label="Zoom in"
+							title={$LL.editor.zoomIn()}
+							aria-label={$LL.editor.zoomIn()}
 							onclick={(event) => {
 								event.stopPropagation();
 								adjustTimelineZoom(1);
@@ -1376,14 +1377,14 @@
 			class="absolute right-1 top-0 text-[15px] bg-primary leading-none text-thirdly hover:text-primary pointer-events-auto"
 			type="button"
 			onclick={dismissTimelineWheelHints}
-			aria-label="Dismiss timeline wheel hints"
+			aria-label={$LL.editor.dismissHints()}
 		>
 			×
 		</button>
-		<div>Ctrl + Scroll = Zoom</div>
-		<div>Ctrl + Shift + Scroll = Horizontal Scroll</div>
-		<div>Scroll = Vertical Scroll</div>
-		<div>Alt + Scroll = Frame-by-frame Cursor</div>
+		<div>{Reflect.get($LL.editor, 'timelineWheelZoom')()}</div>
+		<div>{Reflect.get($LL.editor, 'timelineWheelHorizontal')()}</div>
+		<div>{Reflect.get($LL.editor, 'timelineWheelVertical')()}</div>
+		<div>{Reflect.get($LL.editor, 'timelineWheelFrame')()}</div>
 	</div>
 {/if}
 

@@ -1,4 +1,7 @@
 const common = {
+	logo: 'Logo',
+	selectOption: 'Select an option',
+	noOptionsFound: 'No options found',
 	cancel: 'Cancel',
 	confirm: 'Confirm',
 	ok: 'OK',

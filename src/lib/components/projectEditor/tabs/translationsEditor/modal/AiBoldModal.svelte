@@ -23,6 +23,8 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 
+	const copy = $derived(Reflect.get($LL.translations, 'aiBold'));
+
 	type ActivityTone = 'info' | 'success' | 'error';
 	type ActivityEntry = {
 		id: string;
@@ -239,13 +241,13 @@
 
 	function getActualUsageSummary(): string {
 		const usageList = Object.values(batchUsageById);
-		if (usageList.length === 0) return 'Usage unavailable';
+		if (usageList.length === 0) return $LL.editor.usageUnavailable();
 
 		const input = usageList.reduce((total, item) => total + (item.inputTokens ?? 0), 0);
 		const output = usageList.reduce((total, item) => total + (item.outputTokens ?? 0), 0);
 		const total = usageList.reduce((sum, item) => sum + (item.totalTokens ?? 0), 0);
 
-		return `${input} input / ${output} output / ${total} total tokens`;
+		return $LL.editor.tokenUsageSummary({ input, output, total });
 	}
 
 	async function runAiBold(): Promise<void> {
@@ -279,7 +281,7 @@
 		activeBatchIds = new Set<string>(aiBoldBatches().map((batch) => batch.batchId));
 		addActivity(
 			'queued',
-			`Starting AI Bold for ${aiBoldEstimate().totalSegments} segment(s) across ${aiBoldBatches().length} batch(es).`
+			copy.starting({ segments: aiBoldEstimate().totalSegments, batches: aiBoldBatches().length })
 		);
 
 		const reportLines: string[] = [];
@@ -288,12 +290,19 @@
 		for (let batchIndex = 0; batchIndex < aiBoldBatches().length; batchIndex++) {
 			const batch = aiBoldBatches()[batchIndex];
 			currentBatchId = batch.batchId;
-			currentBatchLabel = `Batch ${batchIndex + 1} / ${aiBoldBatches().length}`;
+			currentBatchLabel = $LL.editor.batchProgress({
+				current: batchIndex + 1,
+				total: aiBoldBatches().length
+			});
 			streamedResponse = '';
 
 			addActivity(
 				'queued',
-				`${currentBatchLabel}: ${batch.segments.length} segment(s), ${batch.wordCount} words.`,
+				$LL.editor.aiWbwTranslationBatchQueued({
+					label: currentBatchLabel,
+					segments: batch.segments.length,
+					words: batch.wordCount
+				}),
 				'info',
 				batch.batchId
 			);
@@ -310,7 +319,12 @@
 				});
 
 				streamedResponse = response.rawText;
-				addActivity('validating', `Validating ${currentBatchLabel}...`, 'info', batch.batchId);
+				addActivity(
+					'validating',
+					$LL.editor.validatingBatch({ label: currentBatchLabel }),
+					'info',
+					batch.batchId
+				);
 
 				const validation = validateAiBoldBatchResult(batch, response.parsed);
 				const applyReport = applyAiBoldValidationSuccess(edition, validation.validSegments);
@@ -328,7 +342,10 @@
 				if (applyReport.appliedSegments > 0) {
 					addActivity(
 						'applied',
-						`Applied AI bold to ${applyReport.appliedSegments}/${batch.segments.length} segment(s).`,
+						copy.appliedSegments({
+							applied: applyReport.appliedSegments,
+							total: batch.segments.length
+						}),
 						'success',
 						batch.batchId
 					);
@@ -367,7 +384,11 @@
 		isRunning = false;
 		activeBatchIds = new Set<string>();
 		currentBatchStep = blockingFailure ? 'failed' : 'idle';
-		latestSummary = `${successfulSegments}/${aiBoldEstimate().totalSegments} segment(s) updated. ${failedSegments} segment(s) had issues.`;
+		latestSummary = $LL.editor.aiWbwTranslationRunSummary({
+			successful: successfulSegments,
+			total: aiBoldEstimate().totalSegments,
+			failed: failedSegments
+		});
 
 		AnalyticsService.trackAiBoldUsage({
 			range: `time ${translationsEditorState().aiBoldStartTimeMs}-${translationsEditorState().aiBoldEndTimeMs}`,
@@ -455,18 +476,16 @@
 	bodyClass="flex-1 min-h-0 overflow-hidden grid grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]"
 >
 	{#snippet subtitle()}
-		Choose an edition, a time range, and let your text AI provider return only the word indexes to
-		bold.
+		{copy.subtitle()}
 	{/snippet}
 
 	<div class="min-h-0 overflow-y-auto p-6 space-y-5 border-r border-color">
 		<div class="rounded-xl border border-color bg-accent px-4 py-4">
 			<div class="flex items-start justify-between gap-4">
 				<div>
-					<h3 class="text-base font-semibold text-primary">Configuration</h3>
+					<h3 class="text-base font-semibold text-primary">{$LL.editor.configuration()}</h3>
 					<p class="mt-1 text-sm text-thirdly leading-relaxed">
-						AI Bold replaces existing inline bold for the processed segments only. Italic and
-						underline remain untouched.
+						{copy.configDescription()}
 					</p>
 				</div>
 				<div class="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
@@ -477,7 +496,7 @@
 
 		{#if visibleEditions().length === 0}
 			<div class="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-4 text-sm text-red-100">
-				No visible translation edition is available in the editor.
+				{$LL.editor.noVisibleTranslation()}
 			</div>
 		{:else}
 			<label class="block space-y-2">
@@ -503,8 +522,8 @@
 			selectedItems={selectedAiBoldSegments()}
 			title={$LL.editor.aiBoldRange()}
 			icon="schedule"
-			totalLabel="eligible segments"
-			selectionLabel="Select time range to process:"
+			totalLabel={$LL.editor.eligibleSegments()}
+			selectionLabel={$LL.editor.selectTimeRangeToProcess()}
 			bind:startTimeMs={aiBoldStartTimeMs}
 			bind:endTimeMs={aiBoldEndTimeMs}
 			onRangeChange={persistAiBoldRange}
@@ -521,8 +540,7 @@
 				class="w-full resize-y rounded-lg border border-color bg-secondary px-3 py-2 text-sm text-primary"
 			></textarea>
 			<span class="text-xs text-thirdly">
-				This note is saved globally in Settings and appended to the fixed AI instruction. The AI
-				still returns indexes only.
+				{$LL.editor.aiWbwTranslationCustomNoteHint()}
 			</span>
 		</label>
 
@@ -539,9 +557,9 @@
 				class="h-4 w-4 rounded"
 			/>
 			<div>
-				<div class="text-sm font-medium text-primary">Include already bolded segments</div>
+				<div class="text-sm font-medium text-primary">{copy.includeAlreadyBolded()}</div>
 				<div class="text-xs text-thirdly">
-					When enabled, AI Bold can replace bold styling on segments that already contain bold.
+					{copy.includeAlreadyBoldedHint()}
 				</div>
 			</div>
 		</label>
@@ -550,20 +568,28 @@
 			title={$LL.editor.batchPreview()}
 			icon="analytics"
 			metrics={[
-				{ label: 'Segments', value: aiBoldEstimate().totalSegments },
-				{ label: 'Words', value: aiBoldEstimate().totalWords },
-				{ label: 'Batches', value: aiBoldBatches().length },
-				{ label: 'Estimated Cost', value: formatUsd(aiBoldEstimate().totalEstimatedCostUsd) }
+				{ label: $LL.editor.segments(), value: aiBoldEstimate().totalSegments },
+				{ label: $LL.editor.words(), value: aiBoldEstimate().totalWords },
+				{ label: $LL.editor.batches(), value: aiBoldBatches().length },
+				{
+					label: $LL.editor.estimatedCostShort(),
+					value: formatUsd(aiBoldEstimate().totalEstimatedCostUsd)
+				}
 			]}
 			estimatedCostLabel={formatUsd(aiBoldEstimate().totalEstimatedCostUsd)}
-			tokenSummary={`${aiBoldEstimate().totalEstimatedInputTokens} input tokens estimated, ${aiBoldEstimate().totalEstimatedOutputTokens} output tokens estimated.`}
+			tokenSummary={$LL.editor.estimatedTokenSummary({
+				input: aiBoldEstimate().totalEstimatedInputTokens,
+				output: aiBoldEstimate().totalEstimatedOutputTokens
+			})}
 			reasoningNote={aiBoldEstimate().reasoningNote}
 			columnsClass="grid-cols-2"
 		/>
 
 		<div class="rounded-lg border border-color bg-secondary px-3 py-3 text-xs text-thirdly">
-			Targeting <span class="font-semibold text-primary">{selectedAiBoldEdition()?.author}</span>
-			({selectedAiBoldEdition()?.language}).
+			{$LL.editor.targetingEdition({
+				author: selectedAiBoldEdition()?.author ?? '',
+				language: selectedAiBoldEdition()?.language ?? ''
+			})}
 		</div>
 
 		<div class="rounded-xl border border-color bg-secondary px-4 py-4">
@@ -572,21 +598,20 @@
 					<span class="material-icons text-accent-primary">settings</span>
 				</div>
 				<div class="space-y-1">
-					<div class="text-sm font-semibold text-primary">AI Provider</div>
+					<div class="text-sm font-semibold text-primary">{$LL.editor.aiProvider()}</div>
 					<p class="text-sm leading-relaxed text-thirdly">
-						Configure your API key, text endpoint, model, and reasoning effort in Settings &gt; AI
-						Key before running AI Bold.
+						{$LL.editor.aiProviderConfigHint()}
 					</p>
 					<div class="text-xs text-thirdly">
-						Current model:
+						{$LL.editor.currentModel()}:
 						<span class="font-medium text-primary">
-							{globalState.settings!.aiTranslationSettings.advancedTrimModel || 'Not set'}
+							{globalState.settings!.aiTranslationSettings.advancedTrimModel || $LL.editor.notSet()}
 						</span>
 					</div>
 					<div class="text-xs text-thirdly break-all">
-						Endpoint:
+						{$LL.editor.endpoint()}:
 						<span class="font-medium text-primary">
-							{globalState.settings!.aiTranslationSettings.textAiApiEndpoint || 'Not set'}
+							{globalState.settings!.aiTranslationSettings.textAiApiEndpoint || $LL.editor.notSet()}
 						</span>
 					</div>
 				</div>
@@ -598,10 +623,9 @@
 		<div class="rounded-xl border border-color bg-secondary px-4 py-4">
 			<div class="flex items-start justify-between gap-4">
 				<div>
-					<h3 class="text-base font-semibold text-primary">Run</h3>
+					<h3 class="text-base font-semibold text-primary">{$LL.editor.run()}</h3>
 					<p class="mt-1 text-sm text-thirdly leading-relaxed">
-						The AI receives Arabic text plus indexed translation words and must return JSON word
-						indexes only.
+						{copy.runDescription()}
 					</p>
 				</div>
 				<button
@@ -609,22 +633,22 @@
 					onclick={runAiBold}
 					disabled={isRunning || aiBoldBatches().length === 0 || visibleEditions().length === 0}
 				>
-					{isRunning ? 'Running AI Bold...' : 'Run AI Bold'}
+					{isRunning ? copy.running() : copy.run()}
 				</button>
 			</div>
 		</div>
 
 		<AiRunStatusCard
-			title={isRunning ? 'AI Bold in progress' : 'Latest AI Bold run'}
+			title={isRunning ? copy.inProgress() : copy.latestRun()}
 			subtitle={isRunning
-				? `${currentBatchLabel || 'Preparing batches...'}`
-				: latestSummary || 'No summary yet.'}
+				? `${currentBatchLabel || $LL.editor.preparingBatches()}`
+				: latestSummary || $LL.editor.noSummaryYet()}
 			progressPercent={getProgressPercent()}
 			metrics={[
-				{ label: 'Successful segments', value: successfulSegments },
-				{ label: 'Failed segments', value: failedSegments },
-				{ label: 'Successful batches', value: successfulBatches },
-				{ label: 'Usage', value: getActualUsageSummary() }
+				{ label: $LL.editor.successfulSegments(), value: successfulSegments },
+				{ label: $LL.editor.failedSegments(), value: failedSegments },
+				{ label: $LL.editor.successfulBatches(), value: successfulBatches },
+				{ label: $LL.editor.usage(), value: getActualUsageSummary() }
 			]}
 			columnsClass="grid-cols-2"
 		/>
@@ -632,7 +656,7 @@
 		{#if streamedResponse}
 			<div class="rounded-xl border border-color bg-secondary p-4">
 				<div class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-thirdly">
-					Latest streamed JSON
+					{$LL.editor.latestStreamedJson()}
 				</div>
 				<div
 					class="max-h-48 overflow-y-auto rounded-lg border border-color bg-accent px-3 py-2 text-[12px] leading-5 [font-family:Consolas,monospace]"

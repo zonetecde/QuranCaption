@@ -176,8 +176,8 @@
 								bind:value={startMin}
 								min="0"
 								class="bg-accent border border-color rounded-lg px-2 py-2 text-sm font-mono text-primary outline-none focus:ring-2 focus:ring-accent-primary/50 transition-all w-full text-center"
-								placeholder="Min"
-								aria-label="Start minutes"
+								placeholder={$LL.common.min()}
+								aria-label={Reflect.get($LL.editor, 'startMinutes')()}
 							/>
 							<span class="text-[10px] text-thirdly block text-center uppercase"
 								>{$LL.common.min()}</span
@@ -191,8 +191,8 @@
 								min="0"
 								max="59"
 								class="bg-accent border border-color rounded-lg px-2 py-2 text-sm font-mono text-primary outline-none focus:ring-2 focus:ring-accent-primary/50 transition-all w-full text-center"
-								placeholder="Sec"
-								aria-label="Start seconds"
+								placeholder={$LL.common.sec()}
+								aria-label={Reflect.get($LL.editor, 'startSeconds')()}
 							/>
 							<span class="text-[10px] text-thirdly block text-center uppercase"
 								>{$LL.common.sec()}</span
@@ -206,8 +206,8 @@
 								min="0"
 								max="999"
 								class="bg-accent border border-color rounded-lg px-2 py-2 text-sm font-mono text-primary outline-none focus:ring-2 focus:ring-accent-primary/50 transition-all w-full text-center"
-								placeholder="Ms"
-								aria-label="Start milliseconds"
+								placeholder={$LL.common.ms()}
+								aria-label={Reflect.get($LL.editor, 'startMilliseconds')()}
 							/>
 							<span class="text-[10px] text-thirdly block text-center uppercase"
 								>{$LL.common.ms()}</span
@@ -229,8 +229,8 @@
 								bind:value={endMin}
 								min="0"
 								class="bg-accent border border-color rounded-lg px-2 py-2 text-sm font-mono text-primary outline-none focus:ring-2 focus:ring-accent-primary/50 transition-all w-full text-center"
-								placeholder="Min"
-								aria-label="End minutes"
+								placeholder={$LL.common.min()}
+								aria-label={Reflect.get($LL.editor, 'endMinutes')()}
 							/>
 							<span class="text-[10px] text-thirdly block text-center uppercase"
 								>{$LL.common.min()}</span
@@ -244,8 +244,8 @@
 								min="0"
 								max="59"
 								class="bg-accent border border-color rounded-lg px-2 py-2 text-sm font-mono text-primary outline-none focus:ring-2 focus:ring-accent-primary/50 transition-all w-full text-center"
-								placeholder="Sec"
-								aria-label="End seconds"
+								placeholder={$LL.common.sec()}
+								aria-label={Reflect.get($LL.editor, 'endSeconds')()}
 							/>
 							<span class="text-[10px] text-thirdly block text-center uppercase"
 								>{$LL.common.sec()}</span
@@ -259,8 +259,8 @@
 								min="0"
 								max="999"
 								class="bg-accent border border-color rounded-lg px-2 py-2 text-sm font-mono text-primary outline-none focus:ring-2 focus:ring-accent-primary/50 transition-all w-full text-center"
-								placeholder="Ms"
-								aria-label="End milliseconds"
+								placeholder={$LL.common.ms()}
+								aria-label={Reflect.get($LL.editor, 'endMilliseconds')()}
 							/>
 							<span class="text-[10px] text-thirdly block text-center uppercase"
 								>{$LL.common.ms()}</span

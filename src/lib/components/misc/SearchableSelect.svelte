@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	type SearchableSelectOption = {
 		value: string;
 		label: string;
@@ -22,9 +23,9 @@
 		value = $bindable(),
 		options = [],
 		id,
-		placeholder = 'Select an option',
-		searchPlaceholder = 'Search...',
-		emptyMessage = 'No options found',
+		placeholder = Reflect.get($LL.common, 'selectOption')(),
+		searchPlaceholder = $LL.common.search(),
+		emptyMessage = Reflect.get($LL.common, 'noOptionsFound')(),
 		disabled = false,
 		maxHeightClass = 'max-h-60',
 		onChange

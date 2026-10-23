@@ -107,28 +107,36 @@
 			<div class="space-y-2 text-xs">
 				<div class="flex items-center justify-between gap-4">
 					<span>{$LL.editor.saveTranscriptShortcut()}</span>
-					<kbd class="rounded bg-accent px-2 py-1 font-mono">Enter</kbd>
+					<kbd class="rounded bg-accent px-2 py-1 font-mono">{$LL.settings.enter()}</kbd>
 				</div>
 				<div class="flex items-center justify-between gap-4">
 					<span>{$LL.editor.newLineShortcut()}</span>
-					<kbd class="rounded bg-accent px-2 py-1 font-mono">Shift + Enter</kbd>
+					<kbd class="rounded bg-accent px-2 py-1 font-mono"
+						>{Reflect.get($LL.editor, 'transcriptShortcutKeys').newLine()}</kbd
+					>
 				</div>
 				<div class="flex items-center justify-between gap-4">
 					<span>{$LL.editor.playPauseShortcut()}</span>
-					<kbd class="rounded bg-accent px-2 py-1 text-right font-mono">Ctrl/Shift + Space</kbd>
+					<kbd class="rounded bg-accent px-2 py-1 text-right font-mono"
+						>{Reflect.get($LL.editor, 'transcriptShortcutKeys').playPause()}</kbd
+					>
 				</div>
 				<div class="flex items-center justify-between gap-4">
 					<span>{$LL.editor.seekBackwardShortcut()}</span>
-					<kbd class="rounded bg-accent px-2 py-1 text-right font-mono">Ctrl/Shift + ←</kbd>
+					<kbd class="rounded bg-accent px-2 py-1 text-right font-mono"
+						>{Reflect.get($LL.editor, 'transcriptShortcutKeys').seekBackward()}</kbd
+					>
 				</div>
 				<div class="flex items-center justify-between gap-4">
 					<span>{$LL.editor.seekForwardShortcut()}</span>
-					<kbd class="rounded bg-accent px-2 py-1 text-right font-mono">Ctrl/Shift + →</kbd>
+					<kbd class="rounded bg-accent px-2 py-1 text-right font-mono"
+						>{Reflect.get($LL.editor, 'transcriptShortcutKeys').seekForward()}</kbd
+					>
 				</div>
 				<div class="flex items-center justify-between gap-4">
 					<span>{$LL.editor.temporarySpeedShortcut()}</span>
 					<kbd class="rounded bg-accent px-2 py-1 text-right font-mono"
-						>Ctrl/Shift + PageUp/PageDown</kbd
+						>{Reflect.get($LL.editor, 'transcriptShortcutKeys').temporarySpeed()}</kbd
 					>
 				</div>
 			</div>

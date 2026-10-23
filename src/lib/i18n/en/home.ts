@@ -1,4 +1,5 @@
 const home = {
+	copyright: '© {year} Minbar Studio. Made by {author}.',
 	welcomeBack: 'Welcome Back!',
 	letsCreate: "Let's transcribe something meaningful today.",
 	newProject: 'New Project',

@@ -13,7 +13,9 @@
 		}
 	}
 
-	const languageOptions: { value: Locales; label: string }[] = [{ value: 'en', label: 'English' }];
+	const languageOptions: { value: Locales; label: string }[] = $derived([
+		{ value: 'en', label: $LL.common.english() }
+	]);
 </script>
 
 <div class="flex flex-col gap-1.5">

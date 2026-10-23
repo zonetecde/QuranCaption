@@ -9,6 +9,8 @@
 	import type { DurationWithMs } from '$lib/types/common';
 	import { globalState } from '$lib/runes/main.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { getProjectTypeLabel } from '$lib/i18n/statusMapper';
+	import { getSpeakerDisplayName } from '$lib/services/SpeakerLibrary';
 	import { Status } from '$lib/classes/Status';
 	import Settings from '$lib/classes/Settings.svelte';
 	import TourManager from '$lib/components/tour/TourManager';
@@ -205,26 +207,26 @@
 			case 'speaker':
 				return [
 					{ label: get(LL).home.all(), target: ALL_PROJECTS_SELECTION },
-					{ label: selection.speaker }
+					{ label: getSpeakerDisplayName(selection.speaker) }
 				];
 			case 'type':
 				return [
 					{ label: get(LL).home.all(), target: ALL_PROJECTS_SELECTION },
 					{
-						label: selection.speaker,
+						label: getSpeakerDisplayName(selection.speaker),
 						target: { kind: 'speaker', speaker: selection.speaker }
 					},
-					{ label: selection.projectType }
+					{ label: getProjectTypeLabel(selection.projectType, get(LL)) }
 				];
 			case 'year':
 				return [
 					{ label: get(LL).home.all(), target: ALL_PROJECTS_SELECTION },
 					{
-						label: selection.speaker,
+						label: getSpeakerDisplayName(selection.speaker),
 						target: { kind: 'speaker', speaker: selection.speaker }
 					},
 					{
-						label: selection.projectType,
+						label: getProjectTypeLabel(selection.projectType, get(LL)),
 						target: {
 							kind: 'type',
 							speaker: selection.speaker,
@@ -493,7 +495,7 @@
 
 <div class="flex min-h-full flex-col overflow-auto overflow-x-hidden">
 	<div class="mb-8 mt-8 flex-grow px-4 xl:px-12 xl:mt-14">
-		<div placeholder="Upper section" class="flex gap-4 flex-row items-center">
+		<div placeholder={$LL.home.upperSection()} class="flex gap-4 flex-row items-center">
 			<section>
 				<h2 class="text-4xl font-bold">{$LL.home.welcomeBack()}</h2>
 				<h4 class="text-secondary">{$LL.home.letsCreate()}</h4>
@@ -537,7 +539,7 @@
 
 			<section class="min-w-0">
 				<div
-					placeholder="Recent projects"
+					placeholder={$LL.home.recentProjects()}
 					class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between"
 				>
 					<div>
@@ -702,7 +704,7 @@
 						</p>
 					{:else}
 						<div
-							placeholder="Project cards"
+							placeholder={$LL.home.projectCards()}
 							class={'mt-4 ' +
 								((globalState.settings?.persistentUiState.projectCardView ?? 'grid') === 'list'
 									? 'grid grid-cols-1 gap-3'
@@ -738,7 +740,10 @@
 			{draggingProject.name}
 		</p>
 		<p class="mt-1 text-xs text-[var(--text-secondary)]">
-			{draggingProject.speaker} • {draggingProject.projectType}
+			{getSpeakerDisplayName(draggingProject.speaker)} • {getProjectTypeLabel(
+				draggingProject.projectType,
+				$LL
+			)}
 		</p>
 	</div>
 {/if}

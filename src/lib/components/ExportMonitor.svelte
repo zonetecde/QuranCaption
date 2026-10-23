@@ -712,14 +712,13 @@
 								>
 									{#if exportation.errorLog.includes('allocate memory')}
 										<p>
-											It appears your computer cannot allocate enough memory for the export process.
-											Try the following:
+											{Reflect.get($LL.export, 'memoryError')()}
 										</p>
 										<ol class="ml-4 list-decimal text-sm">
-											<li>Reduce the batch size.</li>
-											<li>Lower the video resolution.</li>
-											<li>Remove any background video.</li>
-											<li>Close other applications to free up memory for the export.</li>
+											<li>{Reflect.get($LL.export, 'memoryReduceBatch')()}</li>
+											<li>{Reflect.get($LL.export, 'memoryLowerResolution')()}</li>
+											<li>{Reflect.get($LL.export, 'memoryRemoveBackground')()}</li>
+											<li>{Reflect.get($LL.export, 'memoryCloseApps')()}</li>
 										</ol>
 									{/if}
 

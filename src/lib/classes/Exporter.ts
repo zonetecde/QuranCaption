@@ -657,7 +657,11 @@ export default class Exporter {
 		const projectName = ExportFileService.getProjectNameForFile();
 		const fileName = `minbarstudio_subtitles_data_${projectName}.json`;
 		try {
-			await ExportFileService.saveTextFile(fileName, json, 'Subtitle JSON');
+			await ExportFileService.saveTextFile(
+				fileName,
+				json,
+				Reflect.get(get(LL).export, 'subtitleJson')()
+			);
 		} catch (error) {
 			console.error('Unable to export subtitle JSON:', error);
 		}
@@ -679,7 +683,7 @@ export default class Exporter {
 		await ExportFileService.saveTextFile(
 			`minbarstudio_backup_${Date.now()}.json`,
 			JSON.stringify(projects),
-			'Project backup'
+			get(LL).settings.projectBackup()
 		);
 	}
 	static async exportYtbChapters() {
@@ -753,7 +757,7 @@ export default class Exporter {
 		}
 
 		// Génère le contenu du fichier
-		let fileContent = 'YouTube Chapters:\n\n';
+		let fileContent = `${get(LL).export.youtubeChaptersOption()}:\n\n`;
 		for (const chapter of chapters) {
 			fileContent += `${chapter}\n`;
 		}
@@ -767,7 +771,11 @@ export default class Exporter {
 		const fileName = customFileName
 			? `${customFileName}.txt`
 			: `minbarstudio_chapters_${projectName}.txt`;
-		await ExportFileService.saveTextFile(fileName, fileContent, 'YouTube chapters');
+		await ExportFileService.saveTextFile(
+			fileName,
+			fileContent,
+			get(LL).export.youtubeChaptersOption()
+		);
 	}
 
 	/**

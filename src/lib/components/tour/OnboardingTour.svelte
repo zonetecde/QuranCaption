@@ -19,6 +19,8 @@
 		buttonLabel?: string;
 		/** When true, clicks inside the spotlight area are forwarded to the element below */
 		allowSpotlightClick?: boolean;
+		/** Allow native interactions, including forms, file imports and context menus. */
+		allowInteraction?: boolean;
 		/** Optional hint shown below the progress bar instead of generic action text */
 		hint?: string;
 	};
@@ -29,17 +31,9 @@
 			targetId: 'new-project-button',
 			title: $LL.tour.stepCreateProjectTitle(),
 			description: $LL.tour.stepCreateProjectDesc(),
-			advanceMode: 'button',
-			buttonLabel: $LL.common.next()
-		},
-		{
-			targetId: 'tutorial-project-card',
-			title: $LL.tour.stepOpenTutorialTitle(),
-			description: $LL.tour.stepOpenTutorialDesc(),
 			advanceMode: 'auto',
 			advanceCondition: () => globalState.currentProject !== null,
-			allowSpotlightClick: true,
-			hint: $LL.tour.hintClickTutorialCard()
+			allowInteraction: true
 		},
 		// ── VIDEO EDITOR ────────────────────────────────────────────────────────
 		{
@@ -55,9 +49,12 @@
 			description: $LL.tour.stepAddToTimelineDesc(),
 			advanceMode: 'auto',
 			advanceCondition: () =>
-				(globalState.currentProject?.content.timeline.getFirstTrack(TrackType.Audio)?.clips
-					?.length ?? 0) > 0,
-			allowSpotlightClick: true,
+				globalState.currentProject?.content.timeline.tracks.some(
+					(track) =>
+						(track.type === TrackType.Audio || track.type === TrackType.Video) &&
+						track.clips.length > 0
+				) ?? false,
+			allowInteraction: true,
 			hint: $LL.tour.hintHoverAndAdd()
 		},
 		// ── SUBTITLES EDITOR ────────────────────────────────────────────────────
@@ -73,14 +70,14 @@
 			hint: $LL.tour.hintClickSubtitlesTab()
 		},
 		{
-			targetId: 'verse-picker-area',
+			targetId: 'transcription-composer-area',
 			title: $LL.tour.stepManualSegmentationTitle(),
 			description: $LL.tour.stepManualSegmentationDesc(),
 			advanceMode: 'button',
 			buttonLabel: $LL.common.next()
 		},
 		{
-			targetId: 'subtitles-help-button',
+			targetId: 'transcription-help-button',
 			title: $LL.tour.stepShortcutsTitle(),
 			description: $LL.tour.stepShortcutsDesc(),
 			advanceMode: 'button',
@@ -362,13 +359,15 @@
 <div
 	style="position: fixed; top: {titleBarHeight}px; left: 0; right: 0; bottom: 0; z-index: 9997; pointer-events: none; overflow: hidden;"
 >
-	<!-- Blocking overlay: always present, blocks all interactions outside the spotlight -->
-	<div
-		style="position: absolute; inset: 0; pointer-events: auto; cursor: default;"
-		onclick={handleBlockingClick}
-		onmousemove={handleBlockingMouseMove}
-		onmouseenter={handleBlockingMouseMove}
-	></div>
+	<!-- Keep native interactions available while users create projects and import media. -->
+	{#if !currentStep.allowInteraction}
+		<div
+			style="position: absolute; inset: 0; pointer-events: auto; cursor: default;"
+			onclick={handleBlockingClick}
+			onmousemove={handleBlockingMouseMove}
+			onmouseenter={handleBlockingMouseMove}
+		></div>
+	{/if}
 
 	<!-- SVG overlay: dark background with spotlight hole -->
 	<svg

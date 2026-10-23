@@ -5,7 +5,6 @@
 	import TourManager from '$lib/components/tour/TourManager';
 	import Settings from '$lib/classes/Settings.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { setupTutorialProject } from '$lib/services/TutorialService';
 	import LL from '$lib/i18n/i18n-svelte';
 
 	let version = $state('');
@@ -36,12 +35,6 @@
 				if (globalState.currentProject) {
 					await globalState.currentProject?.save();
 					globalState.currentProject = null;
-				}
-				// Re-import tutorial project (force = true deletes and recreates it)
-				try {
-					await setupTutorialProject(true);
-				} catch (e) {
-					console.warn('Tutorial reset failed:', e);
 				}
 				// Small delay to let the settings modal animate out
 				setTimeout(() => TourManager.start(true), 300);

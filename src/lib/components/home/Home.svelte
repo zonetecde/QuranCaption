@@ -12,7 +12,6 @@
 	import { Status } from '$lib/classes/Status';
 	import Settings from '$lib/classes/Settings.svelte';
 	import TourManager from '$lib/components/tour/TourManager';
-	import { setupTutorialProject } from '$lib/services/TutorialService';
 	import { VersionService } from '$lib/services/VersionService.svelte';
 	import { ProjectService } from '$lib/services/ProjectService';
 
@@ -457,11 +456,6 @@
 
 		if (globalState.settings && !globalState.settings.persistentUiState.hasSeenTour) {
 			if (promise) await promise;
-			try {
-				await setupTutorialProject();
-			} catch (error) {
-				console.warn('Tutorial project setup failed:', error);
-			}
 			setTimeout(() => TourManager.start(), 600);
 		}
 	});
@@ -719,7 +713,6 @@
 							{#each paginatedProjects as project (project.id)}
 								<ProjectDetailCard
 									projectDetail={project}
-									isTutorial={project.name === 'Tutorial Project'}
 									draggable={true}
 									isActiveDrag={draggingProjectId === project.id}
 									onProjectDragStart={startProjectDrag}

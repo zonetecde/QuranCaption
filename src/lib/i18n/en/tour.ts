@@ -1,44 +1,40 @@
 const tour = {
-	stepCreateProjectTitle: 'Create a new project',
+	stepCreateProjectTitle: 'Welcome to Minbar Studio',
 	stepCreateProjectDesc:
-		'This button lets you create a new Minbar Studio project from scratch. You can import audio, video, or download recitations.',
-	stepOpenTutorialTitle: 'Open the tutorial project',
-	stepOpenTutorialDesc:
-		'A tutorial project with Surah Al-Fatihah by Yasser Al-Dosari has been created for you. Click its card to open it and follow along.',
+		'Edit Islamic videos: lectures, khutbahs, reminders, podcasts, nasheeds and recitations. Create a project with this button, choose its name, speaker and video format, or open an existing project to continue.',
 	stepVideoEditorTitle: 'The Video Editor',
 	stepVideoEditorDesc:
-		'Here you import your Quran recitation. Drag audio/video files or download from online sources. The editor manages all your media.',
+		'Import your audio, videos and images here, or download a video from YouTube. These media are the starting point for your edit.',
 	stepAddToTimelineTitle: 'Add to the timeline',
 	stepAddToTimelineDesc:
-		'Hover over the asset card in the list on the left, then click "Add to Timeline". This places the recitation into the main editing area.',
+		'Import your own media, then click its "Add to Timeline" button. For a video, choose how to add its image and audio. Add an audio or video clip to continue.',
 	stepSubtitlesEditorTitle: 'Go to Transcription',
 	stepSubtitlesEditorDesc:
 		'Head to Transcription to add what each speaker says and align every segment with the audio.',
-	stepManualSegmentationTitle: 'Manual segmentation',
+	stepManualSegmentationTitle: 'Transcribe each speaker',
 	stepManualSegmentationDesc:
-		'Subtitles are added in real time as the recitation plays. Type or select a verse, and it will appear at the current playback position.',
+		'Move the playhead to the end of a passage, select or add its speaker, type what was said, then press Enter to save the segment. Automatic transcription is also available in Tools with your own Groq or ElevenLabs API key.',
 	stepShortcutsTitle: 'Shortcuts & walkthrough',
 	stepShortcutsDesc:
-		'Hover the ? icon to see all available shortcuts. These speed up the segmentation process significantly.',
+		'The ? icon explains transcription and its shortcuts: Enter to save a segment, Shift + Enter for a new line, and Ctrl/Shift + Space to play or pause.',
 	stepTranslationsTitle: 'Go to Translations',
 	stepTranslationsDesc:
-		'Head to the Translations tab to add translated subtitles below the Arabic text.',
+		'Head to the Translations tab to translate your transcript into other languages and display translated subtitles alongside the original text.',
 	stepAdaptingTranslationsTitle: 'Adapting translations',
 	stepAdaptingTranslationsDesc:
-		'Notice how verse 1:7 was recited in two parts. You can split translations to match how the speaker reads.',
+		'Add a language, then write or edit the translation of each segment. You can also import an SRT file or use AI translation with your configured provider.',
 	stepStyleTitle: 'Go to Style',
 	stepStyleDesc:
 		'Head to the Style tab to customize the visual appearance of your captions and video overlay.',
-	stepStyleCategoriesTitle: 'Three style categories',
+	stepStyleCategoriesTitle: 'Video, original text and translations',
 	stepStyleCategoriesDesc:
-		'Global \u2014 video overlay, speaker name. Surah \u2014 speaker and surah name. Verse \u2014 font, color, size, animations.',
+		'Video controls the overall appearance and overlays. Arabic controls the original captions. Translation controls each translated language. Adjust fonts, colors, sizes and animations, or apply a style preset.',
 	stepExportTitle: 'Go to Export',
 	stepExportDesc: 'Finally, head to the Export tab to render your captioned video.',
 	stepExportVideoTitle: 'Export your video',
 	stepExportVideoDesc:
 		'Use the range inputs to select the time range, choose quality, and click Export to create your final video.',
-	hintClickTutorialCard: 'Click the tutorial project card to continue',
-	hintHoverAndAdd: 'Hover the asset and click "Add to Timeline" to continue',
+	hintHoverAndAdd: 'Add an audio or video clip to the timeline to continue',
 	hintClickSubtitlesTab: 'Click the "Transcription" tab to continue',
 	hintClickTranslationsTab: 'Click the "Translations" tab to continue',
 	hintClickStyleTab: 'Click the "Style" tab to continue',

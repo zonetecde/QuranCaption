@@ -8517,27 +8517,19 @@ type RootTranslation = {
 	};
 	tour: {
 		/**
-		 * C​r​e​a​t​e​ ​a​ ​n​e​w​ ​p​r​o​j​e​c​t
+		 * W​e​l​c​o​m​e​ ​t​o​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o
 		 */
 		stepCreateProjectTitle: string;
 		/**
-		 * T​h​i​s​ ​b​u​t​t​o​n​ ​l​e​t​s​ ​y​o​u​ ​c​r​e​a​t​e​ ​a​ ​n​e​w​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​p​r​o​j​e​c​t​ ​f​r​o​m​ ​s​c​r​a​t​c​h​.​ ​Y​o​u​ ​c​a​n​ ​i​m​p​o​r​t​ ​a​u​d​i​o​,​ ​v​i​d​e​o​,​ ​o​r​ ​d​o​w​n​l​o​a​d​ ​r​e​c​i​t​a​t​i​o​n​s​.
+		 * E​d​i​t​ ​I​s​l​a​m​i​c​ ​v​i​d​e​o​s​:​ ​l​e​c​t​u​r​e​s​,​ ​k​h​u​t​b​a​h​s​,​ ​r​e​m​i​n​d​e​r​s​,​ ​p​o​d​c​a​s​t​s​,​ ​n​a​s​h​e​e​d​s​ ​a​n​d​ ​r​e​c​i​t​a​t​i​o​n​s​.​ ​C​r​e​a​t​e​ ​a​ ​p​r​o​j​e​c​t​ ​w​i​t​h​ ​t​h​i​s​ ​b​u​t​t​o​n​,​ ​c​h​o​o​s​e​ ​i​t​s​ ​n​a​m​e​,​ ​s​p​e​a​k​e​r​ ​a​n​d​ ​v​i​d​e​o​ ​f​o​r​m​a​t​,​ ​o​r​ ​o​p​e​n​ ​a​n​ ​e​x​i​s​t​i​n​g​ ​p​r​o​j​e​c​t​ ​t​o​ ​c​o​n​t​i​n​u​e​.
 		 */
 		stepCreateProjectDesc: string;
-		/**
-		 * O​p​e​n​ ​t​h​e​ ​t​u​t​o​r​i​a​l​ ​p​r​o​j​e​c​t
-		 */
-		stepOpenTutorialTitle: string;
-		/**
-		 * A​ ​t​u​t​o​r​i​a​l​ ​p​r​o​j​e​c​t​ ​w​i​t​h​ ​S​u​r​a​h​ ​A​l​-​F​a​t​i​h​a​h​ ​b​y​ ​Y​a​s​s​e​r​ ​A​l​-​D​o​s​a​r​i​ ​h​a​s​ ​b​e​e​n​ ​c​r​e​a​t​e​d​ ​f​o​r​ ​y​o​u​.​ ​C​l​i​c​k​ ​i​t​s​ ​c​a​r​d​ ​t​o​ ​o​p​e​n​ ​i​t​ ​a​n​d​ ​f​o​l​l​o​w​ ​a​l​o​n​g​.
-		 */
-		stepOpenTutorialDesc: string;
 		/**
 		 * T​h​e​ ​V​i​d​e​o​ ​E​d​i​t​o​r
 		 */
 		stepVideoEditorTitle: string;
 		/**
-		 * H​e​r​e​ ​y​o​u​ ​i​m​p​o​r​t​ ​y​o​u​r​ ​Q​u​r​a​n​ ​r​e​c​i​t​a​t​i​o​n​.​ ​D​r​a​g​ ​a​u​d​i​o​/​v​i​d​e​o​ ​f​i​l​e​s​ ​o​r​ ​d​o​w​n​l​o​a​d​ ​f​r​o​m​ ​o​n​l​i​n​e​ ​s​o​u​r​c​e​s​.​ ​T​h​e​ ​e​d​i​t​o​r​ ​m​a​n​a​g​e​s​ ​a​l​l​ ​y​o​u​r​ ​m​e​d​i​a​.
+		 * I​m​p​o​r​t​ ​y​o​u​r​ ​a​u​d​i​o​,​ ​v​i​d​e​o​s​ ​a​n​d​ ​i​m​a​g​e​s​ ​h​e​r​e​,​ ​o​r​ ​d​o​w​n​l​o​a​d​ ​a​ ​v​i​d​e​o​ ​f​r​o​m​ ​Y​o​u​T​u​b​e​.​ ​T​h​e​s​e​ ​m​e​d​i​a​ ​a​r​e​ ​t​h​e​ ​s​t​a​r​t​i​n​g​ ​p​o​i​n​t​ ​f​o​r​ ​y​o​u​r​ ​e​d​i​t​.
 		 */
 		stepVideoEditorDesc: string;
 		/**
@@ -8545,7 +8537,7 @@ type RootTranslation = {
 		 */
 		stepAddToTimelineTitle: string;
 		/**
-		 * H​o​v​e​r​ ​o​v​e​r​ ​t​h​e​ ​a​s​s​e​t​ ​c​a​r​d​ ​i​n​ ​t​h​e​ ​l​i​s​t​ ​o​n​ ​t​h​e​ ​l​e​f​t​,​ ​t​h​e​n​ ​c​l​i​c​k​ ​"​A​d​d​ ​t​o​ ​T​i​m​e​l​i​n​e​"​.​ ​T​h​i​s​ ​p​l​a​c​e​s​ ​t​h​e​ ​r​e​c​i​t​a​t​i​o​n​ ​i​n​t​o​ ​t​h​e​ ​m​a​i​n​ ​e​d​i​t​i​n​g​ ​a​r​e​a​.
+		 * I​m​p​o​r​t​ ​y​o​u​r​ ​o​w​n​ ​m​e​d​i​a​,​ ​t​h​e​n​ ​c​l​i​c​k​ ​i​t​s​ ​"​A​d​d​ ​t​o​ ​T​i​m​e​l​i​n​e​"​ ​b​u​t​t​o​n​.​ ​F​o​r​ ​a​ ​v​i​d​e​o​,​ ​c​h​o​o​s​e​ ​h​o​w​ ​t​o​ ​a​d​d​ ​i​t​s​ ​i​m​a​g​e​ ​a​n​d​ ​a​u​d​i​o​.​ ​A​d​d​ ​a​n​ ​a​u​d​i​o​ ​o​r​ ​v​i​d​e​o​ ​c​l​i​p​ ​t​o​ ​c​o​n​t​i​n​u​e​.
 		 */
 		stepAddToTimelineDesc: string;
 		/**
@@ -8557,11 +8549,11 @@ type RootTranslation = {
 		 */
 		stepSubtitlesEditorDesc: string;
 		/**
-		 * M​a​n​u​a​l​ ​s​e​g​m​e​n​t​a​t​i​o​n
+		 * T​r​a​n​s​c​r​i​b​e​ ​e​a​c​h​ ​s​p​e​a​k​e​r
 		 */
 		stepManualSegmentationTitle: string;
 		/**
-		 * S​u​b​t​i​t​l​e​s​ ​a​r​e​ ​a​d​d​e​d​ ​i​n​ ​r​e​a​l​ ​t​i​m​e​ ​a​s​ ​t​h​e​ ​r​e​c​i​t​a​t​i​o​n​ ​p​l​a​y​s​.​ ​T​y​p​e​ ​o​r​ ​s​e​l​e​c​t​ ​a​ ​v​e​r​s​e​,​ ​a​n​d​ ​i​t​ ​w​i​l​l​ ​a​p​p​e​a​r​ ​a​t​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​p​l​a​y​b​a​c​k​ ​p​o​s​i​t​i​o​n​.
+		 * M​o​v​e​ ​t​h​e​ ​p​l​a​y​h​e​a​d​ ​t​o​ ​t​h​e​ ​e​n​d​ ​o​f​ ​a​ ​p​a​s​s​a​g​e​,​ ​s​e​l​e​c​t​ ​o​r​ ​a​d​d​ ​i​t​s​ ​s​p​e​a​k​e​r​,​ ​t​y​p​e​ ​w​h​a​t​ ​w​a​s​ ​s​a​i​d​,​ ​t​h​e​n​ ​p​r​e​s​s​ ​E​n​t​e​r​ ​t​o​ ​s​a​v​e​ ​t​h​e​ ​s​e​g​m​e​n​t​.​ ​A​u​t​o​m​a​t​i​c​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​i​s​ ​a​l​s​o​ ​a​v​a​i​l​a​b​l​e​ ​i​n​ ​T​o​o​l​s​ ​w​i​t​h​ ​y​o​u​r​ ​o​w​n​ ​G​r​o​q​ ​o​r​ ​E​l​e​v​e​n​L​a​b​s​ ​A​P​I​ ​k​e​y​.
 		 */
 		stepManualSegmentationDesc: string;
 		/**
@@ -8569,7 +8561,7 @@ type RootTranslation = {
 		 */
 		stepShortcutsTitle: string;
 		/**
-		 * H​o​v​e​r​ ​t​h​e​ ​?​ ​i​c​o​n​ ​t​o​ ​s​e​e​ ​a​l​l​ ​a​v​a​i​l​a​b​l​e​ ​s​h​o​r​t​c​u​t​s​.​ ​T​h​e​s​e​ ​s​p​e​e​d​ ​u​p​ ​t​h​e​ ​s​e​g​m​e​n​t​a​t​i​o​n​ ​p​r​o​c​e​s​s​ ​s​i​g​n​i​f​i​c​a​n​t​l​y​.
+		 * T​h​e​ ​?​ ​i​c​o​n​ ​e​x​p​l​a​i​n​s​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​a​n​d​ ​i​t​s​ ​s​h​o​r​t​c​u​t​s​:​ ​E​n​t​e​r​ ​t​o​ ​s​a​v​e​ ​a​ ​s​e​g​m​e​n​t​,​ ​S​h​i​f​t​ ​+​ ​E​n​t​e​r​ ​f​o​r​ ​a​ ​n​e​w​ ​l​i​n​e​,​ ​a​n​d​ ​C​t​r​l​/​S​h​i​f​t​ ​+​ ​S​p​a​c​e​ ​t​o​ ​p​l​a​y​ ​o​r​ ​p​a​u​s​e​.
 		 */
 		stepShortcutsDesc: string;
 		/**
@@ -8577,7 +8569,7 @@ type RootTranslation = {
 		 */
 		stepTranslationsTitle: string;
 		/**
-		 * H​e​a​d​ ​t​o​ ​t​h​e​ ​T​r​a​n​s​l​a​t​i​o​n​s​ ​t​a​b​ ​t​o​ ​a​d​d​ ​t​r​a​n​s​l​a​t​e​d​ ​s​u​b​t​i​t​l​e​s​ ​b​e​l​o​w​ ​t​h​e​ ​A​r​a​b​i​c​ ​t​e​x​t​.
+		 * H​e​a​d​ ​t​o​ ​t​h​e​ ​T​r​a​n​s​l​a​t​i​o​n​s​ ​t​a​b​ ​t​o​ ​t​r​a​n​s​l​a​t​e​ ​y​o​u​r​ ​t​r​a​n​s​c​r​i​p​t​ ​i​n​t​o​ ​o​t​h​e​r​ ​l​a​n​g​u​a​g​e​s​ ​a​n​d​ ​d​i​s​p​l​a​y​ ​t​r​a​n​s​l​a​t​e​d​ ​s​u​b​t​i​t​l​e​s​ ​a​l​o​n​g​s​i​d​e​ ​t​h​e​ ​o​r​i​g​i​n​a​l​ ​t​e​x​t​.
 		 */
 		stepTranslationsDesc: string;
 		/**
@@ -8585,7 +8577,7 @@ type RootTranslation = {
 		 */
 		stepAdaptingTranslationsTitle: string;
 		/**
-		 * N​o​t​i​c​e​ ​h​o​w​ ​v​e​r​s​e​ ​1​:​7​ ​w​a​s​ ​r​e​c​i​t​e​d​ ​i​n​ ​t​w​o​ ​p​a​r​t​s​.​ ​Y​o​u​ ​c​a​n​ ​s​p​l​i​t​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​t​o​ ​m​a​t​c​h​ ​h​o​w​ ​t​h​e​ ​s​p​e​a​k​e​r​ ​r​e​a​d​s​.
+		 * A​d​d​ ​a​ ​l​a​n​g​u​a​g​e​,​ ​t​h​e​n​ ​w​r​i​t​e​ ​o​r​ ​e​d​i​t​ ​t​h​e​ ​t​r​a​n​s​l​a​t​i​o​n​ ​o​f​ ​e​a​c​h​ ​s​e​g​m​e​n​t​.​ ​Y​o​u​ ​c​a​n​ ​a​l​s​o​ ​i​m​p​o​r​t​ ​a​n​ ​S​R​T​ ​f​i​l​e​ ​o​r​ ​u​s​e​ ​A​I​ ​t​r​a​n​s​l​a​t​i​o​n​ ​w​i​t​h​ ​y​o​u​r​ ​c​o​n​f​i​g​u​r​e​d​ ​p​r​o​v​i​d​e​r​.
 		 */
 		stepAdaptingTranslationsDesc: string;
 		/**
@@ -8597,11 +8589,11 @@ type RootTranslation = {
 		 */
 		stepStyleDesc: string;
 		/**
-		 * T​h​r​e​e​ ​s​t​y​l​e​ ​c​a​t​e​g​o​r​i​e​s
+		 * V​i​d​e​o​,​ ​o​r​i​g​i​n​a​l​ ​t​e​x​t​ ​a​n​d​ ​t​r​a​n​s​l​a​t​i​o​n​s
 		 */
 		stepStyleCategoriesTitle: string;
 		/**
-		 * G​l​o​b​a​l​ ​—​ ​v​i​d​e​o​ ​o​v​e​r​l​a​y​,​ ​s​p​e​a​k​e​r​ ​n​a​m​e​.​ ​S​u​r​a​h​ ​—​ ​s​p​e​a​k​e​r​ ​a​n​d​ ​s​u​r​a​h​ ​n​a​m​e​.​ ​V​e​r​s​e​ ​—​ ​f​o​n​t​,​ ​c​o​l​o​r​,​ ​s​i​z​e​,​ ​a​n​i​m​a​t​i​o​n​s​.
+		 * V​i​d​e​o​ ​c​o​n​t​r​o​l​s​ ​t​h​e​ ​o​v​e​r​a​l​l​ ​a​p​p​e​a​r​a​n​c​e​ ​a​n​d​ ​o​v​e​r​l​a​y​s​.​ ​A​r​a​b​i​c​ ​c​o​n​t​r​o​l​s​ ​t​h​e​ ​o​r​i​g​i​n​a​l​ ​c​a​p​t​i​o​n​s​.​ ​T​r​a​n​s​l​a​t​i​o​n​ ​c​o​n​t​r​o​l​s​ ​e​a​c​h​ ​t​r​a​n​s​l​a​t​e​d​ ​l​a​n​g​u​a​g​e​.​ ​A​d​j​u​s​t​ ​f​o​n​t​s​,​ ​c​o​l​o​r​s​,​ ​s​i​z​e​s​ ​a​n​d​ ​a​n​i​m​a​t​i​o​n​s​,​ ​o​r​ ​a​p​p​l​y​ ​a​ ​s​t​y​l​e​ ​p​r​e​s​e​t​.
 		 */
 		stepStyleCategoriesDesc: string;
 		/**
@@ -8621,11 +8613,7 @@ type RootTranslation = {
 		 */
 		stepExportVideoDesc: string;
 		/**
-		 * C​l​i​c​k​ ​t​h​e​ ​t​u​t​o​r​i​a​l​ ​p​r​o​j​e​c​t​ ​c​a​r​d​ ​t​o​ ​c​o​n​t​i​n​u​e
-		 */
-		hintClickTutorialCard: string;
-		/**
-		 * H​o​v​e​r​ ​t​h​e​ ​a​s​s​e​t​ ​a​n​d​ ​c​l​i​c​k​ ​"​A​d​d​ ​t​o​ ​T​i​m​e​l​i​n​e​"​ ​t​o​ ​c​o​n​t​i​n​u​e
+		 * A​d​d​ ​a​n​ ​a​u​d​i​o​ ​o​r​ ​v​i​d​e​o​ ​c​l​i​p​ ​t​o​ ​t​h​e​ ​t​i​m​e​l​i​n​e​ ​t​o​ ​c​o​n​t​i​n​u​e
 		 */
 		hintHoverAndAdd: string;
 		/**
@@ -18348,27 +18336,19 @@ export type TranslationFunctions = {
 	};
 	tour: {
 		/**
-		 * Create a new project
+		 * Welcome to Minbar Studio
 		 */
 		stepCreateProjectTitle: () => LocalizedString;
 		/**
-		 * This button lets you create a new Minbar Studio project from scratch. You can import audio, video, or download recitations.
+		 * Edit Islamic videos: lectures, khutbahs, reminders, podcasts, nasheeds and recitations. Create a project with this button, choose its name, speaker and video format, or open an existing project to continue.
 		 */
 		stepCreateProjectDesc: () => LocalizedString;
-		/**
-		 * Open the tutorial project
-		 */
-		stepOpenTutorialTitle: () => LocalizedString;
-		/**
-		 * A tutorial project with Surah Al-Fatihah by Yasser Al-Dosari has been created for you. Click its card to open it and follow along.
-		 */
-		stepOpenTutorialDesc: () => LocalizedString;
 		/**
 		 * The Video Editor
 		 */
 		stepVideoEditorTitle: () => LocalizedString;
 		/**
-		 * Here you import your Quran recitation. Drag audio/video files or download from online sources. The editor manages all your media.
+		 * Import your audio, videos and images here, or download a video from YouTube. These media are the starting point for your edit.
 		 */
 		stepVideoEditorDesc: () => LocalizedString;
 		/**
@@ -18376,7 +18356,7 @@ export type TranslationFunctions = {
 		 */
 		stepAddToTimelineTitle: () => LocalizedString;
 		/**
-		 * Hover over the asset card in the list on the left, then click "Add to Timeline". This places the recitation into the main editing area.
+		 * Import your own media, then click its "Add to Timeline" button. For a video, choose how to add its image and audio. Add an audio or video clip to continue.
 		 */
 		stepAddToTimelineDesc: () => LocalizedString;
 		/**
@@ -18388,11 +18368,11 @@ export type TranslationFunctions = {
 		 */
 		stepSubtitlesEditorDesc: () => LocalizedString;
 		/**
-		 * Manual segmentation
+		 * Transcribe each speaker
 		 */
 		stepManualSegmentationTitle: () => LocalizedString;
 		/**
-		 * Subtitles are added in real time as the recitation plays. Type or select a verse, and it will appear at the current playback position.
+		 * Move the playhead to the end of a passage, select or add its speaker, type what was said, then press Enter to save the segment. Automatic transcription is also available in Tools with your own Groq or ElevenLabs API key.
 		 */
 		stepManualSegmentationDesc: () => LocalizedString;
 		/**
@@ -18400,7 +18380,7 @@ export type TranslationFunctions = {
 		 */
 		stepShortcutsTitle: () => LocalizedString;
 		/**
-		 * Hover the ? icon to see all available shortcuts. These speed up the segmentation process significantly.
+		 * The ? icon explains transcription and its shortcuts: Enter to save a segment, Shift + Enter for a new line, and Ctrl/Shift + Space to play or pause.
 		 */
 		stepShortcutsDesc: () => LocalizedString;
 		/**
@@ -18408,7 +18388,7 @@ export type TranslationFunctions = {
 		 */
 		stepTranslationsTitle: () => LocalizedString;
 		/**
-		 * Head to the Translations tab to add translated subtitles below the Arabic text.
+		 * Head to the Translations tab to translate your transcript into other languages and display translated subtitles alongside the original text.
 		 */
 		stepTranslationsDesc: () => LocalizedString;
 		/**
@@ -18416,7 +18396,7 @@ export type TranslationFunctions = {
 		 */
 		stepAdaptingTranslationsTitle: () => LocalizedString;
 		/**
-		 * Notice how verse 1:7 was recited in two parts. You can split translations to match how the speaker reads.
+		 * Add a language, then write or edit the translation of each segment. You can also import an SRT file or use AI translation with your configured provider.
 		 */
 		stepAdaptingTranslationsDesc: () => LocalizedString;
 		/**
@@ -18428,11 +18408,11 @@ export type TranslationFunctions = {
 		 */
 		stepStyleDesc: () => LocalizedString;
 		/**
-		 * Three style categories
+		 * Video, original text and translations
 		 */
 		stepStyleCategoriesTitle: () => LocalizedString;
 		/**
-		 * Global — video overlay, speaker name. Surah — speaker and surah name. Verse — font, color, size, animations.
+		 * Video controls the overall appearance and overlays. Arabic controls the original captions. Translation controls each translated language. Adjust fonts, colors, sizes and animations, or apply a style preset.
 		 */
 		stepStyleCategoriesDesc: () => LocalizedString;
 		/**
@@ -18452,11 +18432,7 @@ export type TranslationFunctions = {
 		 */
 		stepExportVideoDesc: () => LocalizedString;
 		/**
-		 * Click the tutorial project card to continue
-		 */
-		hintClickTutorialCard: () => LocalizedString;
-		/**
-		 * Hover the asset and click "Add to Timeline" to continue
+		 * Add an audio or video clip to the timeline to continue
 		 */
 		hintHoverAndAdd: () => LocalizedString;
 		/**

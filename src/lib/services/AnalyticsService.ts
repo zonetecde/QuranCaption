@@ -4,6 +4,12 @@ import { browser } from '$app/environment';
 import { VersionService } from './VersionService.svelte';
 import type { UnknownRecord } from '$lib/types/common';
 
+type SubtitleAiAction =
+	| 'transcription'
+	| 'transcription_correction'
+	| 'subtitle_rearrangement'
+	| 'reference_detection';
+
 export class AnalyticsService {
 	private static isInitialized = false;
 	private static eventQueue: Array<{
@@ -40,6 +46,7 @@ export class AnalyticsService {
 			const appVersion = await Promise.race([versionPromise, timeoutPromise]);
 
 			posthog.register({
+				app_name: 'Minbar Studio',
 				app_version: appVersion
 			});
 
@@ -76,11 +83,60 @@ export class AnalyticsService {
 	}
 
 	static track(eventName: string, properties?: UnknownRecord) {
+		properties = { ...properties, app_name: 'Minbar Studio' };
 		if (!this.isInitialized) {
 			this.eventQueue.push({ eventName, properties, type: 'capture' });
 			return;
 		}
 		posthog.capture(eventName, properties);
+	}
+
+	/**
+	 * Tracks a subtitle AI request without sending its text, prompts or API keys.
+	 * @template T
+	 * @param {SubtitleAiAction} action Subtitle tool being used.
+	 * @param {AbortSignal} signal Cancellation signal owned by the modal.
+	 * @param {() => Promise<T>} request Existing operation to run.
+	 * @param {UnknownRecord} properties Non-sensitive provider and option metadata.
+	 * @returns {Promise<T>} Original result, preserving failures and cancellation.
+	 */
+	static async trackSubtitleAiRequest<T>(
+		action: SubtitleAiAction,
+		signal: AbortSignal,
+		request: () => Promise<T>,
+		properties: UnknownRecord = {}
+	): Promise<T> {
+		signal.throwIfAborted();
+		const startedAt = Date.now();
+		const metadata = { ...properties, workflow_id: crypto.randomUUID() };
+		let finished = false;
+		/**
+		 * Records exactly one terminal event, including immediate modal cancellation.
+		 * @param {'completed' | 'failed' | 'canceled'} outcome Request outcome.
+		 * @returns {void}
+		 */
+		const finish = (outcome: 'completed' | 'failed' | 'canceled'): void => {
+			if (finished) return;
+			finished = true;
+			this.track(`ai_${action}_${outcome}`, {
+				...metadata,
+				duration_ms: Date.now() - startedAt
+			});
+		};
+		const onAbort = finish.bind(null, 'canceled');
+		this.track(`ai_${action}_started`, metadata);
+		signal.addEventListener('abort', onAbort, { once: true });
+		try {
+			const result = await request();
+			signal.throwIfAborted();
+			finish('completed');
+			return result;
+		} catch (error) {
+			finish(signal.aborted ? 'canceled' : 'failed');
+			throw error;
+		} finally {
+			signal.removeEventListener('abort', onAbort);
+		}
 	}
 
 	private static sanitizeStack(stack?: string): string | undefined {

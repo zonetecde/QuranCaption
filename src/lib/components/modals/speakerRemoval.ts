@@ -1,4 +1,5 @@
 import type { Project } from '$lib/classes/Project';
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 import { globalState } from '$lib/runes/main.svelte';
 import { mount, unmount } from 'svelte';
 import SpeakerRemovalModal from './SpeakerRemovalModal.svelte';
@@ -72,6 +73,7 @@ export async function requestProjectSpeakerRemoval(
 	const affectedSegments = getSpeakerUsageCount(project, normalized);
 	if (affectedSegments === 0) {
 		const fallback = removeProjectSpeaker(project, normalized, null);
+		AnalyticsService.track('speaker_removed', { affected_segments: 0, reassigned: false });
 		globalState.updateVideoPreviewUI();
 		return {
 			removed: true,
@@ -99,6 +101,10 @@ export async function requestProjectSpeakerRemoval(
 	const replacement =
 		choice.action === 'unassigned' ? UNASSIGNED_SPEAKER : choice.replacement.trim();
 	const fallback = removeProjectSpeaker(project, normalized, replacement);
+	AnalyticsService.track('speaker_removed', {
+		affected_segments: affectedSegments,
+		reassigned: choice.action === 'reassign'
+	});
 	globalState.updateVideoPreviewUI();
 	return {
 		removed: true,

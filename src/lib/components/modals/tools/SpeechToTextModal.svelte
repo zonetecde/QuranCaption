@@ -7,6 +7,7 @@
 	import { transcribeProjectAudio, type SpeechToTextCopy } from '$lib/services/SpeechToTextService';
 	import toast from 'svelte-5-french-toast';
 	import ModalManager from '$lib/components/modals/ModalManager';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 	let { close }: { close: () => void } = $props();
 	const project = untrack(() => globalState.currentProject!);
@@ -93,19 +94,30 @@
 			if (controller.signal.aborted || globalState.currentProject !== project) return;
 			if (!(await saveSettings(false))) return;
 			if (controller.signal.aborted) return;
-			await transcribeProjectAudio(
-				project,
-				selectedClipId,
-				{ ...globalState.settings!.speechToTextSettings },
+			const result = await AnalyticsService.trackSubtitleAiRequest(
+				'transcription',
 				controller.signal,
-				(nextPhase, value) => {
-					phase = nextPhase;
-					progress = Math.round(
-						(nextPhase === 'transcribing' ? value * 0.8 : 0.8 + value * 0.2) * 100
-					);
-				},
-				overwrite
+				() =>
+					transcribeProjectAudio(
+						project,
+						selectedClipId,
+						{ ...globalState.settings!.speechToTextSettings },
+						controller.signal,
+						(nextPhase, value) => {
+							phase = nextPhase;
+							progress = Math.round(
+								(nextPhase === 'transcribing' ? value * 0.8 : 0.8 + value * 0.2) * 100
+							);
+						},
+						overwrite
+					),
+				{
+					provider: settings.provider,
+					model: settings.provider === 'groq' ? settings.groqModel : settings.elevenLabsModel,
+					overwrite
+				}
 			);
+			AnalyticsService.track('ai_transcription_applied', { subtitles_count: result.count });
 			toast.success(copy.complete());
 			close();
 		} catch (error) {

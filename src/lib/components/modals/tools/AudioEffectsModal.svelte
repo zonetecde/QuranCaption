@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { AssetClip, AssetType } from '$lib/classes';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
 		applyProjectAudioEffect,
@@ -216,6 +217,7 @@
 				abortController.signal
 			);
 			if (!applied) return;
+			AnalyticsService.track('audio_effect_applied', { effect: effect.id });
 			globalState.updateVideoPreviewUI();
 			toast.success(toolsCopy.audioEffectSuccess({ effect: effect.label }));
 			close();

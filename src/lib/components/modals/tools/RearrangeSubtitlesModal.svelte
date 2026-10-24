@@ -3,6 +3,7 @@
 	import { Duration, SubtitleClip, TrackType } from '$lib/classes';
 	import { SettingsTab } from '$lib/classes/Settings.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import type { SpeechToTextCopy } from '$lib/services/SpeechToTextService';
 	import {
@@ -57,13 +58,19 @@
 		errorMessage = '';
 		plan = null;
 		try {
-			const result = await rearrangeProjectSubtitles(
-				project,
-				{ maxWords, maxDuration, additionalPreferences },
+			const result = await AnalyticsService.trackSubtitleAiRequest(
+				'subtitle_rearrangement',
 				controller.signal,
-				(value) => {
-					progress = Math.round(value * 100);
-				}
+				() =>
+					rearrangeProjectSubtitles(
+						project,
+						{ maxWords, maxDuration, additionalPreferences },
+						controller.signal,
+						(value) => {
+							progress = Math.round(value * 100);
+						}
+					),
+				{ subtitles_count: subtitles.length, max_words: maxWords, max_duration: maxDuration }
 			);
 			if (!controller.signal.aborted) plan = result;
 		} catch (error) {
@@ -82,10 +89,15 @@
 		if (!plan || busy) return;
 		errorMessage = '';
 		try {
-			plan.apply();
+			const result = plan.apply();
+			AnalyticsService.track('ai_subtitle_rearrangement_applied', {
+				subtitles_count: result.count,
+				skipped_count: result.skipped
+			});
 			dismiss();
 		} catch (error) {
 			errorMessage = error instanceof Error ? error.message : copy.rearrangeSourceChanged();
+			AnalyticsService.track('ai_subtitle_rearrangement_failed', { stage: 'applying' });
 		}
 	}
 

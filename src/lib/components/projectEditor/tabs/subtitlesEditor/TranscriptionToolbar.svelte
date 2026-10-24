@@ -1,5 +1,6 @@
 <script lang="ts">
 	import LL from '$lib/i18n/i18n-svelte';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { addProjectSpeaker, getVisibleProjectSpeakers } from '$lib/services/SpeakerLibrary';
 	import { tick } from 'svelte';
@@ -40,6 +41,7 @@
 
 		const addedSpeaker = addProjectSpeaker(globalState.currentProject!, normalized);
 		if (!addedSpeaker) return;
+		AnalyticsService.track('speaker_added');
 		globalState.getSubtitlesEditorState.selectedSpeaker = addedSpeaker;
 		toast.success(get(LL).editor.speakerAdded({ speaker: addedSpeaker }));
 		closeSpeakerInput();

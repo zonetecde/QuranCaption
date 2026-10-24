@@ -3,6 +3,7 @@
 	import { AssetClip, AssetType, Duration, SubtitleClip, TrackType } from '$lib/classes';
 	import { SettingsTab } from '$lib/classes/Settings.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
 		detectSubtitleCorrections,
@@ -124,9 +125,15 @@
 		busy = true;
 		progress = 0;
 		try {
-			const result = await detectSubtitleCorrections(project, controller.signal, (value) => {
-				progress = Math.round(value * 100);
-			});
+			const result = await AnalyticsService.trackSubtitleAiRequest(
+				'transcription_correction',
+				controller.signal,
+				() =>
+					detectSubtitleCorrections(project, controller.signal, (value) => {
+						progress = Math.round(value * 100);
+					}),
+				{ subtitles_count: subtitles.length }
+			);
 			if (controller.signal.aborted) return;
 			plan = result;
 			selectedIds = result.proposals.map(({ id }) => id);
@@ -149,11 +156,15 @@
 		errorMessage = '';
 		try {
 			appliedCount = applySubtitleCorrections(project, plan, ids);
+			AnalyticsService.track('ai_transcription_correction_applied', {
+				corrections_count: appliedCount
+			});
 			plan = null;
 			selectedIds = [];
 			dismiss();
 		} catch (error) {
 			errorMessage = error instanceof Error ? error.message : copy.sourceChanged();
+			AnalyticsService.track('ai_transcription_correction_failed', { stage: 'applying' });
 		}
 	}
 

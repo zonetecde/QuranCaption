@@ -3,6 +3,7 @@
 	import { SubtitleClip, TrackType } from '$lib/classes';
 	import { SettingsTab } from '$lib/classes/Settings.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
 		detectProjectReferences,
@@ -79,12 +80,22 @@
 		busy = true;
 		progress = 0;
 		try {
-			const result = await detectProjectReferences(
-				project,
-				{ detectQuran, detectCitations, additionalPreferences },
+			const result = await AnalyticsService.trackSubtitleAiRequest(
+				'reference_detection',
 				controller.signal,
-				(value) => {
-					progress = Math.round(value * 100);
+				() =>
+					detectProjectReferences(
+						project,
+						{ detectQuran, detectCitations, additionalPreferences },
+						controller.signal,
+						(value) => {
+							progress = Math.round(value * 100);
+						}
+					),
+				{
+					subtitles_count: subtitles.length,
+					detect_quran: detectQuran,
+					detect_citations: detectCitations
 				}
 			);
 			if (controller.signal.aborted) return;
@@ -108,11 +119,13 @@
 		errorMessage = '';
 		try {
 			appliedCount = applyReferenceAnnotations(project, plan, ids);
+			AnalyticsService.track('ai_reference_detection_applied', { references_count: appliedCount });
 			plan = null;
 			selectedIds = [];
 			dismiss();
 		} catch (error) {
 			errorMessage = error instanceof Error ? error.message : copy.sourceChanged();
+			AnalyticsService.track('ai_reference_detection_failed', { stage: 'applying' });
 		}
 	}
 

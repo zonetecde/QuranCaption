@@ -13,6 +13,7 @@
 	import ModalManager from './modals/ModalManager';
 	import { WaveformService } from '$lib/services/WaveformService.svelte.js';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 
@@ -113,6 +114,7 @@
 				await project.save();
 			});
 
+			AnalyticsService.track('srt_translation_imported', { subtitles_count: matches.length });
 			globalState.updateVideoPreviewUI();
 			toast.success(
 				get(LL).tools.srtImportSuccess({ count: matches.length, fileName: edition.name })

@@ -19,6 +19,7 @@ import AskIAModal from '$lib/components/projectEditor/tabs/translationsEditor/mo
 import type { Edition } from '$lib/classes';
 import { type UpdateInfo } from '$lib/services/VersionService.svelte';
 import LL from '$lib/i18n/i18n-svelte';
+import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 export default class ModalManager {
 	/**
@@ -26,6 +27,7 @@ export default class ModalManager {
 	 * @returns {Promise<void>} Résolution après fermeture du modal.
 	 */
 	static async correctTranscriptionModal(): Promise<void> {
+		AnalyticsService.track('ai_transcription_correction_opened');
 		return new Promise<void>((resolve) => {
 			const container = document.createElement('div');
 			container.classList.add('modal-wrapper');
@@ -48,6 +50,7 @@ export default class ModalManager {
 	 * @returns {Promise<void>} Résolution après fermeture du modal.
 	 */
 	static async detectReferencesModal(): Promise<void> {
+		AnalyticsService.track('ai_reference_detection_opened');
 		return new Promise<void>((resolve) => {
 			const container = document.createElement('div');
 			container.classList.add('modal-wrapper');
@@ -70,6 +73,7 @@ export default class ModalManager {
 	 * @returns {Promise<void>} Résolution après fermeture de la modale.
 	 */
 	static async rearrangeSubtitlesModal(): Promise<void> {
+		AnalyticsService.track('ai_subtitle_rearrangement_opened');
 		return new Promise<void>((resolve) => {
 			const container = document.createElement('div');
 			container.classList.add('modal-wrapper');
@@ -92,6 +96,7 @@ export default class ModalManager {
 	 * @returns {Promise<void>} Résolution après fermeture de la modale.
 	 */
 	static async speechToTextModal(): Promise<void> {
+		AnalyticsService.track('ai_transcription_opened');
 		return new Promise<void>((resolve) => {
 			const container = document.createElement('div');
 			container.classList.add('modal-wrapper');

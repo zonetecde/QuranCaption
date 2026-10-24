@@ -9,9 +9,9 @@ describe('Minbar subtitle model', () => {
 	beforeEach(() => initializeClassRegistry());
 
 	it('constructs free text without Quran fields or implicit project translations', () => {
-		const clip = new SubtitleClip(100, 900, 'A lecture {{2:255}}', 'Speaker');
+		const clip = new SubtitleClip(100, 900, 'A lecture {{2:255}}');
 		expect(clip.text).toBe('A lecture {{2:255}}');
-		expect(clip.speaker).toBe('Speaker');
+		expect(clip.toJSON()).not.toHaveProperty('speaker');
 		expect(clip.translations).toEqual({});
 		for (const key of ['surah', 'verse', 'startWordIndex', 'wbwTranslation', 'isFullVerse']) {
 			expect(clip.toJSON()).not.toHaveProperty(key);
@@ -25,7 +25,7 @@ describe('Minbar subtitle model', () => {
 			translation.inlineStyleRuns = [
 				{ startWordIndex: 0, endWordIndex: 0, bold: true, italic: false, underline: false }
 			];
-			const stored = new SubtitleClip(100, 900, 'Source', 'Speaker', {
+			const stored = new SubtitleClip(100, 900, 'Source', {
 				english: translation
 			}).toJSON();
 			if (legacyWrapper)
@@ -58,7 +58,7 @@ describe('Minbar subtitle model', () => {
 
 	it('cleans obsolete Quran defaults from saved Minbar clips without mutating their data', () => {
 		const stored = {
-			...new SubtitleClip(100, 900, 'Lecture', 'Speaker').toJSON(),
+			...new SubtitleClip(100, 900, 'Lecture').toJSON(),
 			surah: 0,
 			verse: 0,
 			wbwTranslation: []

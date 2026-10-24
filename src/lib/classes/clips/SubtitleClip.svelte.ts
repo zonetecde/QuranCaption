@@ -1,4 +1,5 @@
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import MigrationService from '$lib/services/MigrationService';
 import { ClipWithTranslation } from './ClipWithTranslation.svelte';
 import { Translation } from '../Translation.svelte';
 import { SerializableBase, type RegisteredSerializableClass } from '../misc/SerializableBase';
@@ -6,7 +7,6 @@ import { normalizeTranscriptWordTimings } from '$lib/services/TranscriptTiming';
 import type { TranscriptAlignmentMetadata, VisualMergeMode } from '$lib/types/transcription';
 
 export class SubtitleClip extends ClipWithTranslation {
-	speaker: string = $state('Unknown speaker');
 	wbwTimestampsManuallyEdited: boolean = $state(false);
 	alignmentMetadata: TranscriptAlignmentMetadata | null = $state(null);
 	visualMergeGroupId: string | null = $state(null);
@@ -17,7 +17,6 @@ export class SubtitleClip extends ClipWithTranslation {
 	 * @param {number} startTime Début en millisecondes.
 	 * @param {number} endTime Fin en millisecondes.
 	 * @param {string} text Texte libre avec ses éventuelles annotations.
-	 * @param {string} speaker Intervenant associé.
 	 * @param {Record<string, Translation>} translations Traductions initialisées par le projet appelant.
 	 * @param {boolean} comeFromIA Origine automatique du sous-titre.
 	 * @param {number | null} confidence Confiance du moteur.
@@ -27,14 +26,12 @@ export class SubtitleClip extends ClipWithTranslation {
 		startTime = 0,
 		endTime = 0,
 		text = '',
-		speaker = 'Unknown speaker',
 		translations: Record<string, Translation> = {},
 		comeFromIA = false,
 		confidence: number | null = null,
 		alignmentMetadata: TranscriptAlignmentMetadata | null = null
 	) {
 		super(text, startTime, endTime, 'Subtitle', translations, comeFromIA, confidence);
-		this.speaker = speaker.trim() || 'Unknown speaker';
 		this.alignmentMetadata = alignmentMetadata;
 		if (this.alignmentMetadata) {
 			this.alignmentMetadata = {
@@ -56,7 +53,7 @@ export class SubtitleClip extends ClipWithTranslation {
 		this: RegisteredSerializableClass<T>,
 		data: Record<string, unknown>
 	): T {
-		const clip = super.fromJSON.call(this, data) as T;
+		const clip = super.fromJSON.call(this, MigrationService.migrateSingleSpeakerData(data)) as T;
 		if (clip instanceof SubtitleClip && clip.translations instanceof Translation) {
 			// Une instance de classe ne rend pas réactif le remplacement des traductions par langue.
 			clip.translations = Object.fromEntries(
@@ -209,7 +206,6 @@ export class SubtitleClip extends ClipWithTranslation {
 			newStartTime,
 			newEndTime,
 			this.text,
-			this.speaker,
 			Object.fromEntries(
 				Object.entries(this.translations).map(([key, translation]) => [
 					key,

@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { Asset, Project, ProjectContent, ProjectDetail, Timeline } from '$lib/classes';
+import {
+	Asset,
+	Project,
+	ProjectContent,
+	ProjectDetail,
+	SubtitleClip,
+	Timeline
+} from '$lib/classes';
 import { VideoStyle } from '$lib/classes/VideoStyle.svelte';
-import { StylesEditorState } from '$lib/classes/ProjectEditorState.svelte';
+import { StylesEditorState, SubtitlesEditorState } from '$lib/classes/ProjectEditorState.svelte';
 import Settings from '$lib/classes/Settings.svelte';
 import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 import MigrationService from '$lib/services/MigrationService';
@@ -55,6 +62,52 @@ afterEach(() => {
 });
 
 describe('speaker naming compatibility', () => {
+	test('drops legacy segment speakers without changing subtitle text, timings or translations', () => {
+		const stored = { ...new SubtitleClip(100, 900, 'Lecture').toJSON(), speaker: 'Guest' };
+		const clip = SubtitleClip.fromJSON<SubtitleClip>(stored);
+		expect(clip.text).toBe('Lecture');
+		expect(clip.startTime).toBe(100);
+		expect(clip.endTime).toBe(900);
+		expect(clip.toJSON()).not.toHaveProperty('speaker');
+		expect(clip.cloneWithTimes(200, 800).toJSON()).not.toHaveProperty('speaker');
+		expect(stored.speaker).toBe('Guest');
+	});
+
+	test('cleans legacy speaker selections and raw transcription labels without mutating saved data', () => {
+		const stored = {
+			selectedSpeaker: 'Guest',
+			additionalSpeakers: ['Guest'],
+			rawTranscription: {
+				language: 'en',
+				device: 'cpu',
+				model: 'test',
+				wordTimestampsAvailable: true,
+				speakers: ['Guest'],
+				segments: [
+					{
+						start: 0,
+						end: 1,
+						text: 'Hello',
+						speaker: 'Guest',
+						words: [{ word: 'Hello', start: 0, end: 1, speaker: 'Guest' }]
+					}
+				]
+			}
+		};
+		const before = JSON.stringify(stored);
+		const state = SubtitlesEditorState.fromJSON<SubtitlesEditorState>(stored);
+		expect(state.toJSON()).not.toHaveProperty('selectedSpeaker');
+		expect(state.toJSON()).not.toHaveProperty('additionalSpeakers');
+		expect(state.rawTranscription).not.toHaveProperty('speakers');
+		expect(state.rawTranscription?.segments[0]).toEqual({
+			start: 0,
+			end: 1,
+			text: 'Hello',
+			words: [{ word: 'Hello', start: 0, end: 1 }]
+		});
+		expect(JSON.stringify(stored)).toBe(before);
+	});
+
 	test('migrates saved style identifiers while preserving values, animations and free text', () => {
 		const original = legacyStyles();
 		const before = JSON.stringify(original);

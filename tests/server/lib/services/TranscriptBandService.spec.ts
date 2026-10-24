@@ -39,7 +39,7 @@ function createClip(
 				false,
 				false
 			)
-		: new SubtitleClip(startTime, startTime + 4000, text, 'Speaker', {}, true, null, {
+		: new SubtitleClip(startTime, startTime + 4000, text, {}, true, null, {
 				source: 'local',
 				timeFrom: startTime / 1000,
 				timeTo: (startTime + 4000) / 1000,
@@ -161,7 +161,6 @@ describe('TranscriptBandService', () => {
 						start: 1,
 						end: 4,
 						text: 'kept missing later',
-						speaker: 'SPEAKER_00',
 						words: [
 							{ word: 'kept', start: 1, end: 1.4 },
 							{ word: 'missing', start: 2, end: 2.4 },
@@ -169,7 +168,6 @@ describe('TranscriptBandService', () => {
 						]
 					}
 				],
-				speakers: ['SPEAKER_00'],
 				wordTimestampsAvailable: true
 			}
 		);
@@ -190,14 +188,12 @@ describe('TranscriptBandService', () => {
 						start: 1,
 						end: 1.8,
 						text: 'missing kept',
-						speaker: 'SPEAKER_00',
 						words: [
 							{ word: 'missing', start: 1, end: 1.4 },
 							{ word: 'kept', start: 1.4, end: 1.8 }
 						]
 					}
 				],
-				speakers: ['SPEAKER_00'],
 				wordTimestampsAvailable: true
 			}
 		);

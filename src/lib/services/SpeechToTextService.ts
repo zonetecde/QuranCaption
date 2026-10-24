@@ -312,7 +312,6 @@ export async function transcribeProjectAudio(
 				starts[index],
 				ends[index],
 				segment.text,
-				project.detail.speaker,
 				project.content.projectTranslation.createTranslationsForSubtitleText(segment.text),
 				true,
 				null,

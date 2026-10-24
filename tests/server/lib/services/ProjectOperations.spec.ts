@@ -9,11 +9,6 @@ import { getTimelineClipWidth } from '$lib/components/projectEditor/timeline/tra
 import { globalState } from '$lib/runes/main.svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import {
-	addProjectSpeaker,
-	getVisibleProjectSpeakers,
-	removeProjectSpeaker
-} from '$lib/services/SpeakerLibrary';
-import {
 	applyProjectAudioEffect,
 	prepareAudioEffectPreview
 } from '$lib/services/AudioEffectsService';
@@ -83,47 +78,30 @@ afterEach(() => {
 	globalState.currentProject = null;
 });
 
-describe('explicit project ownership', () => {
-	it('reads speakers from the requested inactive project', () => {
-		const owner = globalState.currentProject!;
-		owner.content.timeline.getFirstTrack(TrackType.Subtitle).clips = [
-			new SubtitleClip(0, 1000, 'Owned text', 'Guest')
-		];
-		addAudio(owner);
-		globalState.currentProject = createProject('Other');
-		expect(getVisibleProjectSpeakers(owner)).toEqual(['Owner', 'Guest']);
-		expect(() => addProjectSpeaker(owner, 'Late arrival')).toThrow();
-		expect(owner.projectEditorState.subtitlesEditor.additionalSpeakers).toEqual([]);
-		expect(ProjectHistoryManager.undo()).toBe(false);
-	});
-
-	it('removes a speaker and reassigns all segments and selection in one undo/redo action', () => {
-		const project = globalState.currentProject!;
-		project.content.timeline.getFirstTrack(TrackType.Subtitle).clips = [
-			new SubtitleClip(0, 1000, 'Text', 'Owner')
-		];
-		project.projectEditorState.subtitlesEditor.selectedSpeaker = 'Owner';
-		project.projectEditorState.subtitlesEditor.additionalSpeakers = ['Guest'];
-		removeProjectSpeaker(project, 'Owner', 'Guest');
-		expect(globalState.getSubtitleClips[0].speaker).toBe('Guest');
-		expect(project.detail.speaker).toBe('Guest');
-		expect(ProjectHistoryManager.undo()).toBe(true);
-		expect(globalState.getSubtitleClips[0].speaker).toBe('Owner');
-		expect(globalState.getSubtitlesEditorState.selectedSpeaker).toBe('Owner');
-		expect(ProjectHistoryManager.undo()).toBe(false);
-		expect(ProjectHistoryManager.redo()).toBe(true);
-		expect(globalState.getSubtitleClips[0].speaker).toBe('Guest');
-	});
-});
-
 describe('clip timing invariants', () => {
+	it('adds and edits subtitles without a speaker selection while preserving undo and redo', () => {
+		const project = globalState.currentProject!;
+		project.detail.speaker = '';
+		project.projectEditorState.timeline.cursorPosition = 1000;
+		expect(globalState.getSubtitleTrack.addTranscript('First passage')).toBe(true);
+		const clip = globalState.getSubtitleClips[0];
+		expect(clip.toJSON()).not.toHaveProperty('speaker');
+		expect(globalState.getSubtitleTrack.editTranscript(clip, 'Edited passage')).toBe(true);
+		expect(project.detail.speaker).toBe('');
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(globalState.getSubtitleClips[0].text).toBe('First passage');
+		expect(ProjectHistoryManager.redo()).toBe(true);
+		expect(globalState.getSubtitleClips[0].text).toBe('Edited passage');
+		expect(globalState.getSubtitleClips[0].toJSON()).not.toHaveProperty('speaker');
+	});
+
 	it('computes display widths from the supplied project without consulting the active one', () => {
 		const project = globalState.currentProject!;
 		addAudio(project);
 		project.projectEditorState.timeline.zoom = 40;
 		globalState.currentProject = createProject('Other');
 		globalState.currentProject.projectEditorState.timeline.zoom = 100;
-		expect(getTimelineClipWidth(new SubtitleClip(0, 1000, 'Text', 'Owner'), project)).toBe(40);
+		expect(getTimelineClipWidth(new SubtitleClip(0, 1000, 'Text'), project)).toBe(40);
 		expect(getTimelineClipWidth(new AssetClip(0, 0, 1), project)).toBe(800);
 		expect(getTimelineClipWidth({ duration: 1000, getAlwaysShow: () => true }, project)).toBe(800);
 		expect(getTimelineClipWidth({ duration: 1000 }, null)).toBe(0);
@@ -133,13 +111,13 @@ describe('clip timing invariants', () => {
 		'retimes both neighbours and their alignment atomically when resizing the %s',
 		(boundary) => {
 			const track = globalState.getSubtitleTrack;
-			const first = new SubtitleClip(0, 1000, 'First', 'Owner', {}, true, 0.9, {
+			const first = new SubtitleClip(0, 1000, 'First', {}, true, 0.9, {
 				source: 'local',
 				timeFrom: 0,
 				timeTo: 1,
 				words: [{ word: 'First', start: 0, end: 1 }]
 			});
-			const second = new SubtitleClip(1001, 2001, 'Second', 'Owner', {}, true, 0.9, {
+			const second = new SubtitleClip(1001, 2001, 'Second', {}, true, 0.9, {
 				source: 'local',
 				timeFrom: 1.001,
 				timeTo: 2.001,
@@ -176,7 +154,7 @@ describe('clip timing invariants', () => {
 	it('rejects invalid boundaries without mutating a neighbour or creating history', () => {
 		const track = globalState.getSubtitleTrack;
 		const first = new SilenceClip(0, 1000);
-		const second = new SubtitleClip(1001, 2001, 'Text', 'Owner');
+		const second = new SubtitleClip(1001, 2001, 'Text');
 		track.clips = [first, second];
 		for (const time of [NaN, Infinity, -1, 1902, 50])
 			expect(track.updateClipStartTime(second.id, time)).toBe(false);

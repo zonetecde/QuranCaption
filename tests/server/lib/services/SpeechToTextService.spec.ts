@@ -447,9 +447,8 @@ describe('transcribing timeline audio', () => {
 		expect(invoke).toHaveBeenCalledTimes(1);
 	});
 
-	test('assigns every imported subtitle to the main project speaker', async () => {
+	test('keeps the speaker only on the project when importing subtitles', async () => {
 		project.detail.speaker = 'Main speaker';
-		project.projectEditorState.subtitlesEditor.selectedSpeaker = 'Another speaker';
 		await transcribeProjectAudio(
 			project,
 			clip.id,
@@ -457,11 +456,9 @@ describe('transcribing timeline audio', () => {
 			new AbortController().signal,
 			vi.fn()
 		);
-		expect(
-			track.clips
-				.filter((item) => item instanceof SubtitleClip)
-				.map((item) => (item as SubtitleClip).speaker)
-		).toEqual(['Main speaker', 'Main speaker']);
+		expect(project.detail.speaker).toBe('Main speaker');
+		expect(track.clips.filter((item) => item instanceof SubtitleClip)).toHaveLength(2);
+		expect(track.clips.every((item) => !Object.hasOwn(item.toJSON(), 'speaker'))).toBe(true);
 	});
 
 	test('does not create empty silence clips between touching subtitles', async () => {

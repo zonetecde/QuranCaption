@@ -1,8 +1,8 @@
 # Architecture métier de Minbar Studio
 
 Minbar Studio réutilise le moteur multimédia et les outils Quran de Quran Caption. Son modèle de
-transcription est indépendant : un sous-titre contient du texte, un intervenant, un alignement, des
-traductions et des éditions locales. Il n'est pas défini par une sourate ou un verset.
+transcription est indépendant : un sous-titre contient du texte, un alignement, des traductions et
+des éditions locales. Il n'est pas défini par une sourate ou un verset.
 
 ## Modèles et moteur
 
@@ -34,20 +34,21 @@ Les annotations Minbar restent dans le texte : `{{2:255}}`, `{{2:255:2-4}}` ou `
 ## Traitements et interface
 
 `TranscriptionRuntimeSession.svelte.ts` pilote l'installation et la reconnaissance vocale.
-`TranscriptCleanupSession.svelte.ts` possède le résultat, les intervenants nommés, les lots de
-nettoyage, les abonnements de progression et la reprise enregistrée dans le projet.
+`TranscriptCleanupSession.svelte.ts` possède le résultat, les lots de nettoyage, les abonnements de
+progression et la reprise enregistrée dans le projet.
 
 La modale présente ces sessions et gère sa navigation, ses champs et les écoutes de voix. Les
 sessions capturent le projet au départ : une réponse tardive ne peut pas modifier un autre projet.
 Leur destruction détache les événements et arrête la planification de nouveaux lots de nettoyage ;
 elle ne prétend pas interrompre une requête fournisseur déjà partie.
 
-`SpeakerLibrary.ts` gère les intervenants et leurs mutations annulables. La demande de confirmation
-et le montage de la modale appartiennent à `components/modals/speakerRemoval.ts`.
+Chaque projet contient un seul intervenant, enregistré dans `ProjectDetail.speaker`. Les sous-titres
+ne portent aucune affectation d'intervenant. Les anciennes affectations et listes d'intervenants
+sont supprimées à la désérialisation, sans modifier les textes ni leurs timings.
 
-Les lectures et mutations de transcription et d'intervenants reçoivent leur `Project` explicitement.
-Les lectures peuvent consulter un projet inactif ; les commandes annulables refusent de modifier un
-projet qui n'est plus actif. Les réglages vocaux et linguistiques sont injectés dans les sessions.
+Les lectures et mutations de transcription reçoivent leur `Project` explicitement. Les lectures
+peuvent consulter un projet inactif ; les commandes annulables refusent de modifier un projet qui
+n'est plus actif. Les réglages vocaux et linguistiques sont injectés dans les sessions.
 `ProjectHistoryManager.track(label, mutation, project)` vérifie le propriétaire avant d'exécuter la
 mutation. Les accès au projet actif qui protègent le cycle de vie restent aux frontières
 applicatives.
@@ -85,8 +86,8 @@ identifiants et copie leurs traductions, images, styles en ligne et indicateurs 
 réglages de styles indexés par identifiant restent ainsi associés aux mêmes sous-titres. Une
 traduction dont le texte source a changé est signalée pour révision, avec son contenu conservé.
 
-Les mutations de clips, d'intervenants et de points de reprise passent par `ProjectHistoryManager`.
-Les états de progression temporaires restent dans les sessions, sans être sérialisés avec le projet.
+Les mutations de clips et de points de reprise passent par `ProjectHistoryManager`. Les états de
+progression temporaires restent dans les sessions, sans être sérialisés avec le projet.
 
 ## Limites du découplage actuel
 

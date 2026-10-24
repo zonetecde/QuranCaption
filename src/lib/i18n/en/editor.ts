@@ -1,8 +1,5 @@
 const editor = {
-	removeSpeaker: 'Remove {speaker}',
 	activityLog: 'Activity log',
-	removeSpeakerFromProject: 'Remove {speaker} from the project',
-	unassignedSpeaker: 'Unassigned',
 	unknownSpeaker: 'Unknown speaker',
 	unknownTrack: 'Unknown Track',
 	subtitleTrack: 'Subtitles',
@@ -228,17 +225,10 @@ const editor = {
 	convertQuotationToText: 'Convert to normal text',
 	selectQuranPassage: 'Select a Quran passage',
 	speaker: 'Speaker',
-	selectSpeaker: 'Select or enter a speaker',
-	addSpeakerOption: 'Add “{speaker}”',
-	addSpeaker: 'Add speaker',
-	newSpeakerPlaceholder: 'Speaker name',
-	speakerAdded: '{speaker} added.',
-	speakerSelected: '{speaker} selected.',
 	transcriptionHelpTitle: 'How transcription works',
 	transcriptionHelpDescription:
 		'Create one timed segment for each spoken passage. The segment starts after the previous one and ends at the current playhead position.',
 	transcriptionHelpPlayhead: 'Move the playhead to the end of the passage you want to transcribe.',
-	transcriptionHelpSpeaker: 'Select the person who is speaking, or add a new speaker.',
 	transcriptionHelpText: 'Write exactly what was said, then press Enter to save the segment.',
 	transcriptionShortcuts: 'Shortcuts',
 	saveTranscriptShortcut: 'Save the transcript segment',
@@ -261,7 +251,6 @@ const editor = {
 	transcriptAdded: 'Transcript segment added.',
 	transcriptUpdated: 'Transcript segment updated.',
 	transcriptCannotBeEmpty: 'Transcript text cannot be empty.',
-	speakerCannotBeEmpty: 'Please select or enter a speaker.',
 	poemSegmentationFailed:
 		'Complete verse boundaries could not be identified reliably. Retry or use Reference text with one verse per line.',
 	referenceTextTooLong:

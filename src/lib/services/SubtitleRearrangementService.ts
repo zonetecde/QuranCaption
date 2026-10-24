@@ -314,7 +314,6 @@ export async function rearrangeProjectSubtitles(
 					start,
 					end,
 					text,
-					source.speaker,
 					project.content.projectTranslation.createTranslationsForSubtitleText(text),
 					true,
 					null,

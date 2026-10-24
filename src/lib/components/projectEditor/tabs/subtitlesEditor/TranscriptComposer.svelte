@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { requestProjectSpeakerRemoval } from '$lib/components/modals/speakerRemoval';
 	import { SubtitleClip } from '$lib/classes';
 	import {
 		normalizeTranscriptWordTimings,
@@ -7,11 +6,6 @@
 	} from '$lib/classes/Clip.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
-	import {
-		canRemoveProjectSpeaker,
-		getVisibleProjectSpeakers,
-		getSpeakerDisplayName
-	} from '$lib/services/SpeakerLibrary';
 	import { onDestroy, onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
@@ -32,22 +26,13 @@
 		const clip = editorState().editSubtitle;
 		return clip instanceof SubtitleClip ? clip : null;
 	});
-	const availableSpeakers = $derived(() => getVisibleProjectSpeakers(globalState.currentProject!));
-
 	// Synchronise l'orchestration locale avec le segment choisi dans la timeline.
-	$effect(() => {
-		if (!editorState().selectedSpeaker.trim() && availableSpeakers()[0]) {
-			editorState().selectedSpeaker = availableSpeakers()[0];
-		}
-	});
-
 	$effect(() => {
 		const clip = editedTranscript();
 		if (clip && clip.id !== loadedEditId) {
 			loadedEditId = clip.id;
 			selectedTranscriptSelection = null;
 			transcriptText = clip.text;
-			editorState().selectedSpeaker = clip.speaker;
 			return;
 		}
 
@@ -64,16 +49,6 @@
 		selectedTranscriptSelection = null;
 		transcriptBandSelectionResetKey += 1;
 	});
-
-	function selectSpeaker(value: string): void {
-		editorState().selectedSpeaker = value.trim();
-	}
-
-	async function deleteSpeaker(event: MouseEvent, value: string): Promise<void> {
-		event.preventDefault();
-		event.stopPropagation();
-		await requestProjectSpeakerRemoval(globalState.currentProject!, value);
-	}
 
 	function cancelEditing(): void {
 		editorState().editSubtitle = null;
@@ -164,14 +139,9 @@
 
 	async function submitTranscript(): Promise<void> {
 		const normalizedText = transcriptText.trim();
-		const normalizedSpeaker = editorState().selectedSpeaker.trim();
 
 		if (!normalizedText) {
 			toast.error(get(LL).editor.transcriptCannotBeEmpty());
-			return;
-		}
-		if (!normalizedSpeaker) {
-			toast.error(get(LL).editor.speakerCannotBeEmpty());
 			return;
 		}
 
@@ -185,14 +155,9 @@
 		 * @returns {boolean} `true` si la modification a réussi.
 		 */
 		const editTranscript = (): boolean => {
-			if (!clip)
-				return globalState.getSubtitleTrack.addTranscript(normalizedText, normalizedSpeaker);
+			if (!clip) return globalState.getSubtitleTrack.addTranscript(normalizedText);
 
-			const success = globalState.getSubtitleTrack.editTranscript(
-				clip,
-				normalizedText,
-				normalizedSpeaker
-			);
+			const success = globalState.getSubtitleTrack.editTranscript(clip, normalizedText);
 			if (success && selectionAlignment) {
 				clip.alignmentMetadata = selectionAlignment;
 				clip.wbwTimestampsManuallyEdited = true;
@@ -215,7 +180,6 @@
 		transcriptBandSelectionResetKey += 1;
 		loadedEditId = null;
 		transcriptText = '';
-		editorState().selectedSpeaker = normalizedSpeaker;
 	}
 
 	// Les raccourcis de lecture restent au niveau du composeur afin de couvrir tous ses champs.
@@ -367,51 +331,6 @@
 <svelte:window onkeydown={handleComposerKeydown} onkeyup={handleComposerKeyup} />
 
 <div class="flex h-full min-h-0 flex-col gap-6 overflow-y-auto p-5 lg:p-8">
-	<div class="space-y-3">
-		<div class="flex items-center gap-2 text-sm font-semibold text-primary">
-			<span class="material-icons text-base text-accent-primary">person</span>
-			{$LL.editor.speaker()}
-		</div>
-
-		<div class="flex flex-wrap items-center gap-2">
-			{#each availableSpeakers() as candidate (candidate)}
-				<div class="group/speaker relative inline-flex">
-					<button
-						type="button"
-						class={`cursor-pointer rounded-full border py-2 px-4 text-sm font-semibold transition ${
-							editorState().selectedSpeaker.toLocaleLowerCase() === candidate.toLocaleLowerCase()
-								? 'border-[var(--accent-primary)] bg-[var(--accent-primary)] text-black shadow-sm'
-								: 'border-color bg-secondary text-secondary hover:border-[var(--accent-primary)] hover:bg-accent hover:text-primary'
-						}`}
-						onclick={() => selectSpeaker(candidate)}
-					>
-						{getSpeakerDisplayName(candidate)}
-					</button>
-					{#if canRemoveProjectSpeaker(candidate)}
-						<button
-							type="button"
-							class={'absolute -right-1 top-1 bg-secondary border-2 flex h-6 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full opacity-0 transition hover:bg-black/15 group-hover/speaker:opacity-100 focus:opacity-100 ' +
-								(editorState().selectedSpeaker === candidate
-									? 'border-[var(--accent-primary)]'
-									: 'border-color')}
-							onclick={(event) => void deleteSpeaker(event, candidate)}
-							aria-label={Reflect.get(
-								$LL.editor,
-								'removeSpeaker'
-							)({ speaker: getSpeakerDisplayName(candidate) })}
-							title={Reflect.get(
-								$LL.editor,
-								'removeSpeakerFromProject'
-							)({ speaker: getSpeakerDisplayName(candidate) })}
-						>
-							<span class="material-icons text-sm!">close</span>
-						</button>
-					{/if}
-				</div>
-			{/each}
-		</div>
-	</div>
-
 	{#key loadedEditId}
 		<StructuredTranscriptEditor
 			bind:value={transcriptText}

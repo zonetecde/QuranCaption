@@ -60,7 +60,7 @@ function subtitle(start: number, text: string): SubtitleClip {
 	const words = text
 		.split(' ')
 		.map((word, i) => ({ word, start: i * 0.5, end: i * 0.5 + 0.3, spokenDuration: 0.3 }));
-	return new SubtitleClip(start, start + words.length * 500, text, 'speaker', {}, true, null, {
+	return new SubtitleClip(start, start + words.length * 500, text, {}, true, null, {
 		source: 'api',
 		timeFrom: start / 1000,
 		timeTo: start / 1000 + words.length * 0.5,
@@ -213,7 +213,7 @@ test('sends chronological words and immutable silence without old subtitle bound
 });
 
 test('turns measured one-second pauses into hard boundaries and never displays text over them', async () => {
-	const clip = new SubtitleClip(0, 1600, 'before after', 'speaker', {}, true, null, {
+	const clip = new SubtitleClip(0, 1600, 'before after', {}, true, null, {
 		source: 'api',
 		timeFrom: 0,
 		timeTo: 1.6,
@@ -259,7 +259,7 @@ test('keeps an existing initial silence without duplicating or replacing it', as
 
 test('preserves quotations and Quran ranges when splitting and merging', async () => {
 	track.clips = [subtitle(0, 'one {{two three}}'), subtitle(1500, '{{1:1:1-2}}')];
-	track.clips[1] = new SubtitleClip(1500, 2500, '{{1:1:1-2}}', 'speaker', {}, true, null, {
+	track.clips[1] = new SubtitleClip(1500, 2500, '{{1:1:1-2}}', {}, true, null, {
 		source: 'api',
 		timeFrom: 1.5,
 		timeTo: 2.5,

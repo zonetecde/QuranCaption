@@ -1,61 +1,5 @@
 <script lang="ts">
 	import LL from '$lib/i18n/i18n-svelte';
-	import { AnalyticsService } from '$lib/services/AnalyticsService';
-	import { globalState } from '$lib/runes/main.svelte';
-	import { addProjectSpeaker, getVisibleProjectSpeakers } from '$lib/services/SpeakerLibrary';
-	import { tick } from 'svelte';
-	import { get } from 'svelte/store';
-	import toast from 'svelte-5-french-toast';
-
-	let isAddingSpeaker = $state(false);
-	let newSpeaker = $state('');
-	let speakerInput: HTMLInputElement | null = $state(null);
-
-	const knownSpeakers = $derived(() => getVisibleProjectSpeakers(globalState.currentProject!));
-
-	async function openSpeakerInput(): Promise<void> {
-		isAddingSpeaker = true;
-		newSpeaker = '';
-		await tick();
-		speakerInput?.focus();
-	}
-
-	function closeSpeakerInput(): void {
-		isAddingSpeaker = false;
-		newSpeaker = '';
-	}
-
-	function addSpeaker(): void {
-		const normalized = newSpeaker.trim();
-		if (!normalized) return;
-
-		const existing = knownSpeakers().find(
-			(speaker) => speaker.toLocaleLowerCase() === normalized.toLocaleLowerCase()
-		);
-		if (existing) {
-			globalState.getSubtitlesEditorState.selectedSpeaker = existing;
-			toast.success(get(LL).editor.speakerSelected({ speaker: existing }));
-			closeSpeakerInput();
-			return;
-		}
-
-		const addedSpeaker = addProjectSpeaker(globalState.currentProject!, normalized);
-		if (!addedSpeaker) return;
-		AnalyticsService.track('speaker_added');
-		globalState.getSubtitlesEditorState.selectedSpeaker = addedSpeaker;
-		toast.success(get(LL).editor.speakerAdded({ speaker: addedSpeaker }));
-		closeSpeakerInput();
-	}
-
-	function handleSpeakerInputKeydown(event: KeyboardEvent): void {
-		if (event.key === 'Enter') {
-			event.preventDefault();
-			addSpeaker();
-		} else if (event.key === 'Escape') {
-			event.preventDefault();
-			closeSpeakerInput();
-		}
-	}
 </script>
 
 <div
@@ -90,13 +34,6 @@
 					<span
 						class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold"
 						>2</span
-					>
-					<span>{$LL.editor.transcriptionHelpSpeaker()}</span>
-				</div>
-				<div class="flex gap-3">
-					<span
-						class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold"
-						>3</span
 					>
 					<span>{$LL.editor.transcriptionHelpText()}</span>
 				</div>
@@ -143,43 +80,5 @@
 				</div>
 			</div>
 		</div>
-	</div>
-
-	<div class="ml-auto flex items-center gap-2">
-		{#if isAddingSpeaker}
-			<input
-				bind:this={speakerInput}
-				bind:value={newSpeaker}
-				type="text"
-				class="h-8 min-w-48 rounded-lg border border-color bg-primary px-3 text-sm text-primary outline-none focus:border-[var(--accent-primary)]"
-				placeholder={$LL.editor.newSpeakerPlaceholder()}
-				onkeydown={handleSpeakerInputKeydown}
-			/>
-			<button
-				type="button"
-				class="btn-accent flex h-8 cursor-pointer items-center gap-1 rounded-lg px-3 text-xs font-semibold"
-				onclick={addSpeaker}
-			>
-				<span class="material-icons text-base">check</span>
-				{$LL.common.confirm()}
-			</button>
-			<button
-				type="button"
-				class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-secondary transition hover:bg-accent hover:text-primary"
-				onclick={closeSpeakerInput}
-				aria-label={$LL.common.cancel()}
-			>
-				<span class="material-icons text-base">close</span>
-			</button>
-		{:else}
-			<button
-				type="button"
-				class="flex h-8 cursor-pointer items-center gap-2 rounded-lg border border-color px-3 text-xs font-semibold text-secondary transition hover:border-[var(--accent-primary)] hover:bg-accent hover:text-primary"
-				onclick={() => void openSpeakerInput()}
-			>
-				<span class="material-icons text-base">person_add</span>
-				{$LL.editor.addSpeaker()}
-			</button>
-		{/if}
 	</div>
 </div>

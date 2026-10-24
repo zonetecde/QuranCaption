@@ -334,12 +334,6 @@ export class SubtitlesEditorState extends SerializableBase {
 	// Vitesse de lecture utilisée pendant la transcription manuelle.
 	playbackSpeed: number = $state(1.0);
 
-	// Intervenant actuellement sélectionné dans le composer.
-	selectedSpeaker: string = $state('');
-
-	// Intervenants ajoutés manuellement avant leur première utilisation dans un segment.
-	additionalSpeakers: string[] = $state([]);
-
 	// Dernier résultat nettoyé conservé pour la bande transcript complète.
 	rawTranscription: AITranscriptionResult | null = $state(null);
 

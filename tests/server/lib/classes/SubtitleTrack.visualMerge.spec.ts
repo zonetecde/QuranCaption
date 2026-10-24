@@ -65,8 +65,8 @@ describe('subtitle visual merge helpers', () => {
 	});
 
 	it('keeps generic and Quran marker clips in the merged Arabic preview', () => {
-		const first = new SubtitleClip(0, 999, 'Texte ordinaire', 'Unknown speaker', {}, true, null);
-		const second = new SubtitleClip(1000, 1999, '{{2:153:2-4}}', 'Unknown speaker', {}, true, null);
+		const first = new SubtitleClip(0, 999, 'Texte ordinaire', {}, true, null);
+		const second = new SubtitleClip(1000, 1999, '{{2:153:2-4}}', {}, true, null);
 		first.setVisualMerge('group-a', 'arabic');
 		second.setVisualMerge('group-a', 'arabic');
 

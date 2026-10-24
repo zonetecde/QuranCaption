@@ -1122,23 +1122,9 @@ type RootTranslation = {
 	};
 	editor: {
 		/**
-		 * R​e​m​o​v​e​ ​{​s​p​e​a​k​e​r​}
-		 * @param {unknown} speaker
-		 */
-		removeSpeaker: RequiredParams<'speaker'>;
-		/**
 		 * A​c​t​i​v​i​t​y​ ​l​o​g
 		 */
 		activityLog: string;
-		/**
-		 * R​e​m​o​v​e​ ​{​s​p​e​a​k​e​r​}​ ​f​r​o​m​ ​t​h​e​ ​p​r​o​j​e​c​t
-		 * @param {unknown} speaker
-		 */
-		removeSpeakerFromProject: RequiredParams<'speaker'>;
-		/**
-		 * U​n​a​s​s​i​g​n​e​d
-		 */
-		unassignedSpeaker: string;
 		/**
 		 * U​n​k​n​o​w​n​ ​s​p​e​a​k​e​r
 		 */
@@ -1895,33 +1881,6 @@ type RootTranslation = {
 		 */
 		speaker: string;
 		/**
-		 * S​e​l​e​c​t​ ​o​r​ ​e​n​t​e​r​ ​a​ ​s​p​e​a​k​e​r
-		 */
-		selectSpeaker: string;
-		/**
-		 * A​d​d​ ​“​{​s​p​e​a​k​e​r​}​”
-		 * @param {unknown} speaker
-		 */
-		addSpeakerOption: RequiredParams<'speaker'>;
-		/**
-		 * A​d​d​ ​s​p​e​a​k​e​r
-		 */
-		addSpeaker: string;
-		/**
-		 * S​p​e​a​k​e​r​ ​n​a​m​e
-		 */
-		newSpeakerPlaceholder: string;
-		/**
-		 * {​s​p​e​a​k​e​r​}​ ​a​d​d​e​d​.
-		 * @param {unknown} speaker
-		 */
-		speakerAdded: RequiredParams<'speaker'>;
-		/**
-		 * {​s​p​e​a​k​e​r​}​ ​s​e​l​e​c​t​e​d​.
-		 * @param {unknown} speaker
-		 */
-		speakerSelected: RequiredParams<'speaker'>;
-		/**
 		 * H​o​w​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​w​o​r​k​s
 		 */
 		transcriptionHelpTitle: string;
@@ -1933,10 +1892,6 @@ type RootTranslation = {
 		 * M​o​v​e​ ​t​h​e​ ​p​l​a​y​h​e​a​d​ ​t​o​ ​t​h​e​ ​e​n​d​ ​o​f​ ​t​h​e​ ​p​a​s​s​a​g​e​ ​y​o​u​ ​w​a​n​t​ ​t​o​ ​t​r​a​n​s​c​r​i​b​e​.
 		 */
 		transcriptionHelpPlayhead: string;
-		/**
-		 * S​e​l​e​c​t​ ​t​h​e​ ​p​e​r​s​o​n​ ​w​h​o​ ​i​s​ ​s​p​e​a​k​i​n​g​,​ ​o​r​ ​a​d​d​ ​a​ ​n​e​w​ ​s​p​e​a​k​e​r​.
-		 */
-		transcriptionHelpSpeaker: string;
 		/**
 		 * W​r​i​t​e​ ​e​x​a​c​t​l​y​ ​w​h​a​t​ ​w​a​s​ ​s​a​i​d​,​ ​t​h​e​n​ ​p​r​e​s​s​ ​E​n​t​e​r​ ​t​o​ ​s​a​v​e​ ​t​h​e​ ​s​e​g​m​e​n​t​.
 		 */
@@ -2017,10 +1972,6 @@ type RootTranslation = {
 		 * T​r​a​n​s​c​r​i​p​t​ ​t​e​x​t​ ​c​a​n​n​o​t​ ​b​e​ ​e​m​p​t​y​.
 		 */
 		transcriptCannotBeEmpty: string;
-		/**
-		 * P​l​e​a​s​e​ ​s​e​l​e​c​t​ ​o​r​ ​e​n​t​e​r​ ​a​ ​s​p​e​a​k​e​r​.
-		 */
-		speakerCannotBeEmpty: string;
 		/**
 		 * C​o​m​p​l​e​t​e​ ​v​e​r​s​e​ ​b​o​u​n​d​a​r​i​e​s​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​i​d​e​n​t​i​f​i​e​d​ ​r​e​l​i​a​b​l​y​.​ ​R​e​t​r​y​ ​o​r​ ​u​s​e​ ​R​e​f​e​r​e​n​c​e​ ​t​e​x​t​ ​w​i​t​h​ ​o​n​e​ ​v​e​r​s​e​ ​p​e​r​ ​l​i​n​e​.
 		 */
@@ -9319,52 +9270,6 @@ type RootTranslation = {
 		skipTutorial: string;
 	};
 	modals: {
-		speakerRemoval: {
-			/**
-			 * R​e​m​o​v​e​ ​s​p​e​a​k​e​r
-			 */
-			title: string;
-			/**
-			 * {​s​p​e​a​k​e​r​}​ ​i​s​ ​a​s​s​i​g​n​e​d​ ​t​o​ ​{​c​o​u​n​t​}​ ​t​r​a​n​s​c​r​i​p​t​ ​s​e​g​m​e​n​t​{​p​l​u​r​a​l​}​.
-			 * @param {unknown} count
-			 * @param {unknown} plural
-			 * @param {unknown} speaker
-			 */
-			usage: RequiredParams<'count' | 'plural' | 'speaker'>;
-			/**
-			 * C​h​o​o​s​e​ ​w​h​a​t​ ​s​h​o​u​l​d​ ​h​a​p​p​e​n​ ​t​o​ ​t​h​o​s​e​ ​s​e​g​m​e​n​t​s​ ​b​e​f​o​r​e​ ​r​e​m​o​v​i​n​g​ ​t​h​e​ ​s​p​e​a​k​e​r​ ​f​r​o​m​ ​t​h​e​ ​p​r​o​j​e​c​t​.
-			 */
-			description: string;
-			/**
-			 * T​h​i​s​ ​i​s​ ​a​l​s​o​ ​t​h​e​ ​p​r​o​j​e​c​t​'​s​ ​m​a​i​n​ ​s​p​e​a​k​e​r​.​ ​T​h​a​t​ ​p​r​o​j​e​c​t​ ​f​i​e​l​d​ ​w​i​l​l​ ​b​e​ ​r​e​p​l​a​c​e​d​ ​o​r​ ​c​l​e​a​r​e​d​.
-			 */
-			mainSpeakerWarning: string;
-			/**
-			 * R​e​a​s​s​i​g​n​ ​t​h​e​ ​s​e​g​m​e​n​t​s
-			 */
-			reassignSegments: string;
-			/**
-			 * N​o​ ​o​t​h​e​r​ ​s​p​e​a​k​e​r​ ​a​v​a​i​l​a​b​l​e
-			 */
-			noReplacement: string;
-			/**
-			 * R​e​a​s​s​i​g​n​ ​a​n​d​ ​r​e​m​o​v​e
-			 */
-			reassignAndRemove: string;
-			/**
-			 * L​e​a​v​e​ ​t​h​e​ ​s​e​g​m​e​n​t​s​ ​w​i​t​h​o​u​t​ ​a​ ​s​p​e​a​k​e​r
-			 */
-			leaveUnassigned: string;
-			/**
-			 * T​h​e​ ​a​f​f​e​c​t​e​d​ ​s​e​g​m​e​n​t​s​ ​w​i​l​l​ ​b​e​ ​m​a​r​k​e​d​ ​a​s​ ​{​s​p​e​a​k​e​r​}​ ​a​n​d​ ​c​a​n​ ​b​e​ ​r​e​v​i​e​w​e​d​ ​l​a​t​e​r​.
-			 * @param {unknown} speaker
-			 */
-			unassignedDescription: RequiredParams<'speaker'>;
-			/**
-			 * M​a​r​k​ ​u​n​a​s​s​i​g​n​e​d​ ​a​n​d​ ​r​e​m​o​v​e
-			 */
-			markUnassignedAndRemove: string;
-		};
 		/**
 		 * R​e​m​o​v​e​ ​A​s​s​e​t
 		 */
@@ -11800,21 +11705,9 @@ export type TranslationFunctions = {
 	};
 	editor: {
 		/**
-		 * Remove {speaker}
-		 */
-		removeSpeaker: (arg: { speaker: unknown }) => LocalizedString;
-		/**
 		 * Activity log
 		 */
 		activityLog: () => LocalizedString;
-		/**
-		 * Remove {speaker} from the project
-		 */
-		removeSpeakerFromProject: (arg: { speaker: unknown }) => LocalizedString;
-		/**
-		 * Unassigned
-		 */
-		unassignedSpeaker: () => LocalizedString;
 		/**
 		 * Unknown speaker
 		 */
@@ -12557,30 +12450,6 @@ export type TranslationFunctions = {
 		 */
 		speaker: () => LocalizedString;
 		/**
-		 * Select or enter a speaker
-		 */
-		selectSpeaker: () => LocalizedString;
-		/**
-		 * Add “{speaker}”
-		 */
-		addSpeakerOption: (arg: { speaker: unknown }) => LocalizedString;
-		/**
-		 * Add speaker
-		 */
-		addSpeaker: () => LocalizedString;
-		/**
-		 * Speaker name
-		 */
-		newSpeakerPlaceholder: () => LocalizedString;
-		/**
-		 * {speaker} added.
-		 */
-		speakerAdded: (arg: { speaker: unknown }) => LocalizedString;
-		/**
-		 * {speaker} selected.
-		 */
-		speakerSelected: (arg: { speaker: unknown }) => LocalizedString;
-		/**
 		 * How transcription works
 		 */
 		transcriptionHelpTitle: () => LocalizedString;
@@ -12592,10 +12461,6 @@ export type TranslationFunctions = {
 		 * Move the playhead to the end of the passage you want to transcribe.
 		 */
 		transcriptionHelpPlayhead: () => LocalizedString;
-		/**
-		 * Select the person who is speaking, or add a new speaker.
-		 */
-		transcriptionHelpSpeaker: () => LocalizedString;
 		/**
 		 * Write exactly what was said, then press Enter to save the segment.
 		 */
@@ -12676,10 +12541,6 @@ export type TranslationFunctions = {
 		 * Transcript text cannot be empty.
 		 */
 		transcriptCannotBeEmpty: () => LocalizedString;
-		/**
-		 * Please select or enter a speaker.
-		 */
-		speakerCannotBeEmpty: () => LocalizedString;
 		/**
 		 * Complete verse boundaries could not be identified reliably. Retry or use Reference text with one verse per line.
 		 */
@@ -19854,48 +19715,6 @@ export type TranslationFunctions = {
 		skipTutorial: () => LocalizedString;
 	};
 	modals: {
-		speakerRemoval: {
-			/**
-			 * Remove speaker
-			 */
-			title: () => LocalizedString;
-			/**
-			 * {speaker} is assigned to {count} transcript segment{plural}.
-			 */
-			usage: (arg: { count: unknown; plural: unknown; speaker: unknown }) => LocalizedString;
-			/**
-			 * Choose what should happen to those segments before removing the speaker from the project.
-			 */
-			description: () => LocalizedString;
-			/**
-			 * This is also the project's main speaker. That project field will be replaced or cleared.
-			 */
-			mainSpeakerWarning: () => LocalizedString;
-			/**
-			 * Reassign the segments
-			 */
-			reassignSegments: () => LocalizedString;
-			/**
-			 * No other speaker available
-			 */
-			noReplacement: () => LocalizedString;
-			/**
-			 * Reassign and remove
-			 */
-			reassignAndRemove: () => LocalizedString;
-			/**
-			 * Leave the segments without a speaker
-			 */
-			leaveUnassigned: () => LocalizedString;
-			/**
-			 * The affected segments will be marked as {speaker} and can be reviewed later.
-			 */
-			unassignedDescription: (arg: { speaker: unknown }) => LocalizedString;
-			/**
-			 * Mark unassigned and remove
-			 */
-			markUnassignedAndRemove: () => LocalizedString;
-		};
 		/**
 		 * Remove Asset
 		 */

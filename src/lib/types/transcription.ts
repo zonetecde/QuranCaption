@@ -3,7 +3,6 @@ export type AITranscriptionWord = {
 	start: number;
 	end: number;
 	confidence?: number | null;
-	speaker?: string;
 };
 
 export type AITranscriptionSegment = {
@@ -12,7 +11,6 @@ export type AITranscriptionSegment = {
 	start: number;
 	end: number;
 	text: string;
-	speaker: string;
 	confidence?: number | null;
 	words: AITranscriptionWord[];
 };
@@ -22,7 +20,6 @@ export type AITranscriptionResult = {
 	device: string;
 	model: string;
 	segments: AITranscriptionSegment[];
-	speakers: string[];
 	wordTimestampsAvailable: boolean;
 	alignmentWarning?: string | null;
 	gpuFallbackReason?: string;

@@ -12,7 +12,7 @@ beforeEach(() => {
 	loadLocale('en');
 	setLocale('en');
 	const track = new SubtitleTrack();
-	track.clips = [new SubtitleClip(0, 40000, 'Lecture', 'Speaker')];
+	track.clips = [new SubtitleClip(0, 40000, 'Lecture')];
 	globalState.currentProject = new Project(
 		new ProjectDetail('Lecture', 'Speaker'),
 		new ProjectContent(new Timeline([track]))

@@ -1417,18 +1417,12 @@ export class SubtitleTrack extends Track {
 	/**
 	 * Ajoute un segment de transcription entre la fin de la piste et la position actuelle du curseur.
 	 * @param {string} text Texte prononcé.
-	 * @param {string} speaker Intervenant associé au segment.
 	 * @returns {boolean} `true` lorsque le segment a été ajouté.
 	 */
-	addTranscript(text: string, speaker: string): boolean {
+	addTranscript(text: string): boolean {
 		const normalizedText = text.trim();
-		const normalizedSpeaker = speaker.trim();
 		if (!normalizedText) {
 			toast.error(get(LL).editor.transcriptCannotBeEmpty());
-			return false;
-		}
-		if (!normalizedSpeaker) {
-			toast.error(get(LL).editor.speakerCannotBeEmpty());
 			return false;
 		}
 
@@ -1446,7 +1440,6 @@ export class SubtitleTrack extends Track {
 					startTime,
 					endTime,
 					normalizedText,
-					normalizedSpeaker,
 					globalState.getProjectTranslation.createTranslationsForSubtitleText(normalizedText)
 				)
 			);
@@ -1457,21 +1450,15 @@ export class SubtitleTrack extends Track {
 	}
 
 	/**
-	 * Met à jour le texte et l'intervenant d'un segment de transcription.
+	 * Met à jour le texte d'un segment de transcription.
 	 * @param {SubtitleClip} clip Segment à modifier.
 	 * @param {string} text Nouveau texte.
-	 * @param {string} speaker Nouvel intervenant.
 	 * @returns {boolean} `true` lorsque le segment a été modifié.
 	 */
-	editTranscript(clip: SubtitleClip, text: string, speaker: string): boolean {
+	editTranscript(clip: SubtitleClip, text: string): boolean {
 		const normalizedText = text.trim();
-		const normalizedSpeaker = speaker.trim();
 		if (!normalizedText) {
 			toast.error(get(LL).editor.transcriptCannotBeEmpty());
-			return false;
-		}
-		if (!normalizedSpeaker) {
-			toast.error(get(LL).editor.speakerCannotBeEmpty());
 			return false;
 		}
 
@@ -1480,7 +1467,6 @@ export class SubtitleTrack extends Track {
 			if (clip.visualMergeGroupId) this.unmergeVisualGroup(clip.visualMergeGroupId, false);
 			const textChanged = clip.text !== normalizedText;
 			clip.text = normalizedText;
-			clip.speaker = normalizedSpeaker;
 			if (textChanged) {
 				clip.clearArabicInlineStyles();
 				clip.alignmentMetadata = clip.alignmentMetadata

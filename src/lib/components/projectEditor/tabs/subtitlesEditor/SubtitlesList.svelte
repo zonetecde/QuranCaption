@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { getSpeakerDisplayName } from '$lib/services/SpeakerLibrary';
 	import { Clip, Duration, SubtitleClip, TrackType } from '$lib/classes';
 	import { ClipWithTranslation, SilenceClip } from '$lib/classes/Clip.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -160,13 +159,7 @@
 						{new Duration(clip.startTime).getFormattedTime(false, false)}
 					</span>
 
-					{#if isTranscript}
-						<span
-							class="max-w-[60%] truncate rounded-full border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/10 px-2.5 py-1 text-xs font-semibold text-[var(--accent-primary)]"
-						>
-							{getSpeakerDisplayName(clip.speaker)}
-						</span>
-					{:else}
+					{#if !isTranscript}
 						<span
 							class="rounded-full border border-[var(--border-color)] px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-wide text-[var(--text-thirdly)]"
 						>

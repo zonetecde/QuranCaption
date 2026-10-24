@@ -6,6 +6,9 @@ import SubtitlesList from '$lib/components/projectEditor/tabs/subtitlesEditor/Su
 import SubtitlesWorkspace from '$lib/components/projectEditor/tabs/subtitlesEditor/SubtitlesWorkspace.svelte';
 
 import { Quran } from '$lib/classes/Quran';
+import { globalState } from '$lib/runes/main.svelte';
+import { loadLocale } from '$lib/i18n/i18n-util.sync';
+import { setLocale } from '$lib/i18n/i18n-svelte';
 import {
 	resetSubtitlesEditorProjectFixture,
 	setupSubtitlesEditorProjectFixture,
@@ -57,6 +60,26 @@ describe('Subtitles editor workflow', () => {
 		cleanup();
 		vi.restoreAllMocks();
 		resetSubtitlesEditorProjectFixture();
+	});
+
+	test('saves a transcript without any speaker controls or speaker argument', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const { subtitleTrack } = setupSubtitlesEditorProjectFixture({
+			clips: [],
+			timelineCursorPosition: 1000
+		});
+		globalState.currentProject!.detail.speaker = 'Only speaker';
+		const addTranscript = vi.spyOn(subtitleTrack, 'addTranscript').mockReturnValue(true);
+		const workspace = render(SubtitlesWorkspace);
+		await tick();
+		expect(workspace.container.textContent).not.toContain('Add speaker');
+		expect(workspace.container.textContent).not.toContain('Only speaker');
+		const input = workspace.getByRole('textbox');
+		await input.fill('A single spoken passage');
+		input.element().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		await expect.poll(() => addTranscript.mock.calls.length).toBe(1);
+		expect(addTranscript).toHaveBeenCalledWith('A single spoken passage');
 	});
 
 	test('shows the saved surah on mount and updates the verse words after a new surah selection', async () => {

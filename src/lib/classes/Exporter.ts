@@ -572,7 +572,6 @@ export default class Exporter {
 					),
 					arabicText: clip.text,
 					displayText: clip.getText(),
-					speaker: clip.speaker,
 					indopakText: quran?.indopakText,
 					isFullVerse: quran?.isFullVerse,
 					isLastWordsOfVerse: quran?.isLastWordsOfVerse,

@@ -219,7 +219,6 @@ function createTimedTranscriptSubtitle(
 		0,
 		durationMs,
 		text,
-		'Speaker',
 		{ english: new VerseTranslation('Transcript translation', 'reviewed') },
 		false,
 		null,
@@ -508,7 +507,7 @@ describe('Video overlay subtitle preview', () => {
 
 	test('renders an Arabic citation in an isolated RTL context', async () => {
 		setupVideoOverlayFixture([
-			new SubtitleClip(0, 999, '{{ولمَّا ماتَ أظلمَ منها كل شيء،}}', 'Unknown speaker', {
+			new SubtitleClip(0, 999, '{{ولمَّا ماتَ أظلمَ منها كل شيء،}}', {
 				english: new VerseTranslation('Citation translation', 'reviewed')
 			})
 		]);

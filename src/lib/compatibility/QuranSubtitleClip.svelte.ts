@@ -50,7 +50,7 @@ export class QuranSubtitleClip extends SubtitleClip {
 		comeFromIA = false,
 		confidence: number | null = null
 	) {
-		super(startTime, endTime, text, undefined, translations, comeFromIA, confidence);
+		super(startTime, endTime, text, translations, comeFromIA, confidence);
 		this.surah = surah;
 		this.verse = verse;
 		this.startWordIndex = startWordIndex;

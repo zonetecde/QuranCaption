@@ -2,6 +2,28 @@ import type { Project } from '$lib/classes';
 
 export default class MigrationService {
 	/**
+	 * Retire les anciennes affectations multi-intervenants des sous-titres et de leur éditeur.
+	 * @param {Record<string, unknown>} data Sous-titre, état d'édition ou résultat vocal sérialisé.
+	 * @returns {Record<string, unknown>} Copie sans affectation, conservant les textes et timings.
+	 */
+	static migrateSingleSpeakerData(data: Record<string, unknown>): Record<string, unknown> {
+		const migrated = { ...data };
+		for (const key of ['speaker', 'speakers', 'selectedSpeaker', 'additionalSpeakers'])
+			delete migrated[key];
+		for (const key of ['rawTranscription', 'segments', 'words']) {
+			const value = migrated[key];
+			if (Array.isArray(value)) {
+				migrated[key] = value.map((item) =>
+					item && typeof item === 'object' ? MigrationService.migrateSingleSpeakerData(item) : item
+				);
+			} else if (value && typeof value === 'object') {
+				migrated[key] = MigrationService.migrateSingleSpeakerData(value as Record<string, unknown>);
+			}
+		}
+		return migrated;
+	}
+
+	/**
 	 * Convertit les anciens champs et identifiants d'intervenants avant désérialisation.
 	 * @param {Record<string, unknown>} data Données de projet, de styles ou de paramètres.
 	 * @returns {Record<string, unknown>} Copie compatible avec les noms speaker, sans altérer les textes libres.

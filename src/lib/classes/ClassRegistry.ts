@@ -83,7 +83,11 @@ export function initializeClassRegistry() {
 	// Classes d'état
 	SerializableBase.registerClass('VideoPreviewState', VideoPreviewState);
 	SerializableBase.registerClass('ProjectEditorState', ProjectEditorState);
-	SerializableBase.registerClass('SubtitlesEditorState', SubtitlesEditorState);
+	SerializableBase.registerClass(
+		'SubtitlesEditorState',
+		SubtitlesEditorState,
+		MigrationService.migrateSingleSpeakerData
+	);
 	SerializableBase.registerClass('TimelineState', TimelineState);
 	SerializableBase.registerClass(
 		'StylesEditorState',

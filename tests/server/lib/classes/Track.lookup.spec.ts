@@ -28,15 +28,7 @@ function createClip(startTime: number, endTime: number): Clip {
  * @returns {SubtitleClip} Created subtitle clip.
  */
 function createSubtitle(startTime: number, endTime: number, verse: number): SubtitleClip {
-	const clip = new SubtitleClip(
-		startTime,
-		endTime,
-		`Verse ${verse}`,
-		'Unknown speaker',
-		{},
-		true,
-		null
-	);
+	const clip = new SubtitleClip(startTime, endTime, `Verse ${verse}`, {}, true, null);
 	clip.id = nextClipId++;
 	return clip;
 }

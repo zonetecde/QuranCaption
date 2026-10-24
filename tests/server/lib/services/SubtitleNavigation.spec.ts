@@ -15,9 +15,9 @@ describe('getSubtitleVerseKeyLabel', () => {
 	});
 
 	test('reads Quran annotations from Minbar subtitles', () => {
-		expect(
-			getSubtitleVerseKeyLabel(new SubtitleClip(1001, 2000, 'قال {{2:255:1-3}}', 'Speaker'))
-		).toBe('2:255');
+		expect(getSubtitleVerseKeyLabel(new SubtitleClip(1001, 2000, 'قال {{2:255:1-3}}'))).toBe(
+			'2:255'
+		);
 		expect(
 			getSubtitleVerseKeyLabel(new PredefinedSubtitleClip(1001, 2000, 'Other', '{{2:255}}'))
 		).toBe('2:255');
@@ -29,7 +29,7 @@ describe('getSubtitleVerseKeyLabel', () => {
 	});
 
 	test('returns no reference for ordinary subtitles and absent clips', () => {
-		expect(getSubtitleVerseKeyLabel(new SubtitleClip(0, 1000, 'Lecture text', 'Speaker'))).toBe('');
+		expect(getSubtitleVerseKeyLabel(new SubtitleClip(0, 1000, 'Lecture text'))).toBe('');
 		expect(getSubtitleVerseKeyLabel(null)).toBe('');
 		expect(getSubtitleVerseKeyLabel(undefined)).toBe('');
 	});

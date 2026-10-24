@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { webcrypto } from 'node:crypto';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import posthog from 'posthog-js';
 
 vi.mock('posthog-js', () => ({
@@ -17,8 +18,13 @@ let AnalyticsService: typeof import('$lib/services/AnalyticsService').AnalyticsS
 beforeEach(async () => {
 	vi.resetModules();
 	vi.clearAllMocks();
+	vi.stubGlobal('crypto', webcrypto);
 	({ AnalyticsService } = await import('$lib/services/AnalyticsService'));
 	await AnalyticsService.init();
+});
+
+afterEach(() => {
+	vi.unstubAllGlobals();
 });
 
 describe('Minbar Studio analytics', () => {

@@ -28,6 +28,8 @@ type AnalyticsServiceInternals = {
 	editorSection: 'video' | 'subtitles' | 'translations' | 'style' | 'export' | null;
 	editorSectionStartedAt: number;
 	capture(eventName: string, properties?: UnknownRecord): void;
+	flushQueue(): void;
+	eventQueue: { eventName: string; properties?: UnknownRecord }[];
 	state: 'idle' | 'initializing' | 'ready' | 'disabled' | 'failed';
 	terminalVideoExports: Set<string>;
 	appInstallationTracked: boolean;
@@ -35,6 +37,39 @@ type AnalyticsServiceInternals = {
 };
 
 describe('AnalyticsService privacy guard', () => {
+	it('marks queued and immediate events as Quran Caption without allowing caller overrides', () => {
+		const service = AnalyticsService as unknown as AnalyticsServiceInternals;
+		const previousState = service.state;
+		const previousQueue = service.eventQueue;
+		service.state = 'idle';
+		service.eventQueue = [];
+		posthogMock.capture.mockClear();
+		setLocale('en');
+
+		try {
+			service.capture('queued_event', { app_name: 'Minbar Studio', project_name: 'Private' });
+			expect(service.eventQueue[0].properties).toEqual({
+				app_name: 'Quran Caption',
+				app_locale: 'en'
+			});
+			service.state = 'ready';
+			service.flushQueue();
+			service.capture('immediate_event', {
+				app_name: 'Minbar Studio',
+				project_name: 'Private'
+			});
+			for (const eventName of ['queued_event', 'immediate_event']) {
+				expect(posthogMock.capture).toHaveBeenCalledWith(eventName, {
+					app_name: 'Quran Caption',
+					app_locale: 'en'
+				});
+			}
+		} finally {
+			service.state = previousState;
+			service.eventQueue = previousQueue;
+		}
+	});
+
 	it('removes sensitive keys and values while preserving approved structural properties', () => {
 		const service = AnalyticsService as unknown as AnalyticsServiceInternals;
 		const sanitized = service.sanitizeProperties({
@@ -161,11 +196,17 @@ describe('AnalyticsService privacy guard', () => {
 				})
 			);
 			expect(posthogMock.register).toHaveBeenCalledWith(
-				expect.objectContaining({ app_locale: 'fr' })
+				expect.objectContaining({
+					app_name: 'Quran Caption',
+					platform: 'android',
+					app_platform: 'mobile',
+					app_locale: 'fr'
+				})
 			);
 			setLocale('en');
 			service.capture('locale_changed');
 			expect(posthogMock.capture).toHaveBeenCalledWith('locale_changed', {
+				app_name: 'Quran Caption',
 				app_locale: 'en'
 			});
 		} finally {

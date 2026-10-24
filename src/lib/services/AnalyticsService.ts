@@ -249,6 +249,7 @@ export class AnalyticsService {
 			const appVersion = await Promise.race([versionPromise, timeoutPromise]);
 
 			posthog.register({
+				app_name: 'Quran Caption',
 				platform: 'android',
 				app_platform: 'mobile',
 				analytics_schema_version: 2,
@@ -306,10 +307,11 @@ export class AnalyticsService {
 	 */
 	private static capture(eventName: string, properties?: UnknownRecord): void {
 		if (!browser || this.state === 'disabled' || this.state === 'failed') return;
-		const sanitizedProperties = this.sanitizeProperties({
-			...properties,
+		const sanitizedProperties = {
+			...this.sanitizeProperties(properties),
+			app_name: 'Quran Caption',
 			app_locale: get(locale)
-		});
+		};
 		if (this.state === 'ready') {
 			posthog.capture(eventName, sanitizedProperties);
 			return;

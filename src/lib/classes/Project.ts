@@ -2,6 +2,7 @@ import { globalState } from '$lib/runes/main.svelte';
 import { ProjectService } from '$lib/services/ProjectService';
 import { ProjectContent, ProjectDetail, ProjectEditorState } from '.';
 import { SerializableBase } from './misc/SerializableBase';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 export class Project extends SerializableBase {
 	detail: ProjectDetail;
@@ -18,6 +19,12 @@ export class Project extends SerializableBase {
 		this.detail = detail;
 		this.content = content;
 		this.projectEditorState = new ProjectEditorState();
+		if (detail?.speaker === 'Unknown speaker') {
+			ProjectHistoryManager.track('hide unknown speaker name', () => {
+				const style = content.videoStyle.getStylesOfTarget('global').findStyle('show-speaker-name');
+				if (style) style.value = false;
+			});
+		}
 	}
 
 	/**

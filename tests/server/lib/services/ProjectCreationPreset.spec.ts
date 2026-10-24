@@ -1,5 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
-import { Category, Style, StylesData, VideoStyle, type ProjectContent } from '$lib/classes';
+import {
+	Category,
+	Project,
+	ProjectDetail,
+	Style,
+	StylesData,
+	VideoStyle,
+	type ProjectContent
+} from '$lib/classes';
+import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 import {
 	applyProjectCreationPreset,
 	getProjectVideoDimensions
@@ -18,7 +27,8 @@ function createContent(): ProjectContent {
 						value: { width: 1920, height: 1080 },
 						valueType: 'dimension'
 					}),
-					new Style({ id: 'anti-collision', value: true, valueType: 'boolean' })
+					new Style({ id: 'anti-collision', value: true, valueType: 'boolean' }),
+					new Style({ id: 'show-speaker-name', value: true, valueType: 'boolean' })
 				]
 			})
 		]),
@@ -147,6 +157,33 @@ describe('applyProjectCreationPreset', () => {
 		} finally {
 			vi.unstubAllGlobals();
 		}
+	});
+});
+
+describe('new project speaker visibility', () => {
+	it.each(['Unknown speaker', ''])('hides the default speaker name for %j', (speaker) => {
+		const project = new Project(new ProjectDetail('Lecture', speaker), createContent());
+		expect(
+			project.content.videoStyle.getStylesOfTarget('global').findStyle('show-speaker-name')?.value
+		).toBe(false);
+	});
+
+	it('keeps the default visibility for a named speaker', () => {
+		const project = new Project(new ProjectDetail('Lecture', 'Shaykh Ahmad'), createContent());
+		expect(
+			project.content.videoStyle.getStylesOfTarget('global').findStyle('show-speaker-name')?.value
+		).toBe(true);
+	});
+
+	it('preserves a saved visibility choice when reopening an unknown-speaker project', () => {
+		initializeClassRegistry();
+		const project = new Project(new ProjectDetail('Lecture', 'Unknown speaker'), createContent());
+		project.content.videoStyle.getStylesOfTarget('global').findStyle('show-speaker-name')!.value =
+			true;
+		const restored = Project.fromJSON<Project>(project.toJSON());
+		expect(
+			restored.content.videoStyle.getStylesOfTarget('global').findStyle('show-speaker-name')?.value
+		).toBe(true);
 	});
 });
 

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import posthog from 'posthog-js';
 import {
 	AnalyticsService,
 	isMainAnalyticsSurface,
@@ -126,6 +127,24 @@ describe('analytics privacy sanitizer', () => {
 });
 
 describe('analytics surface and queue', () => {
+	it('marks queued and immediate events as Quran Caption without allowing caller overrides', () => {
+		const capture = vi.spyOn(posthog, 'capture').mockReturnValue(undefined);
+		AnalyticsService.track('queued_event', { app_name: 'Minbar Studio', project_name: 'Private' });
+		expect(internals.eventQueue[0].properties).toEqual({
+			app_name: 'Quran Caption',
+			app_locale: 'en'
+		});
+		internals.state = 'ready';
+		AnalyticsService.track('immediate_event', {
+			app_name: 'Minbar Studio',
+			project_name: 'Private'
+		});
+		expect(capture).toHaveBeenCalledWith('immediate_event', {
+			app_name: 'Quran Caption',
+			app_locale: 'en'
+		});
+	});
+
 	it('accepts only a top-level main surface outside the exporter route', () => {
 		expect(isMainAnalyticsSurface('/', true, 'main')).toBe(true);
 		expect(isMainAnalyticsSurface('/projects', true, undefined)).toBe(true);

@@ -369,6 +369,7 @@ export class AnalyticsService {
 			const appVersion = await Promise.race([versionPromise, timeoutPromise]);
 
 			posthog.register({
+				app_name: 'Quran Caption',
 				platform: 'desktop',
 				app_platform: 'desktop',
 				analytics_schema_version: 2,
@@ -416,10 +417,11 @@ export class AnalyticsService {
 	static track(eventName: string, properties?: UnknownRecord): void {
 		if (this.state === 'disabled' || this.state === 'failed') return;
 
-		const sanitizedProperties = sanitizeAnalyticsProperties({
-			...properties,
+		const sanitizedProperties = {
+			...sanitizeAnalyticsProperties(properties),
+			app_name: 'Quran Caption',
 			app_locale: get(locale)
-		});
+		};
 		if (this.state !== 'ready') {
 			if (this.eventQueue.length >= MAX_QUEUED_EVENTS) this.eventQueue.shift();
 			this.eventQueue.push({ eventName, properties: sanitizedProperties });

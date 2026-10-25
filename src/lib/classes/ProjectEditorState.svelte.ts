@@ -79,6 +79,9 @@ export class StylesEditorState extends SerializableBase {
 	// Indique la catégorie active dans chaque panneau de l'éditeur de styles
 	activePanelCategoryIds: Record<string, string> = $state({});
 
+	// Preset local appliqué à ce projet, conservé lors des changements d'onglet.
+	activeLocalPresetId: number | null = $state(null);
+
 	// Indique les sous-titres actuellement sélectionnés dans l'éditeur de styles
 	selectedSubtitles: Array<SubtitleClip | PredefinedSubtitleClip> = $state([]);
 

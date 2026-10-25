@@ -8096,9 +8096,13 @@ type RootTranslation = {
 		 */
 		backToStyleEditor: string;
 		/**
-		 * S​a​v​e​ ​l​o​c​a​l​l​y
+		 * N​e​w
 		 */
 		saveLocally: string;
+		/**
+		 * U​p​d​a​t​e
+		 */
+		updatePreset: string;
 		/**
 		 * N​e​w​e​s​t
 		 */
@@ -20373,9 +20377,13 @@ export type TranslationFunctions = {
 		 */
 		backToStyleEditor: () => LocalizedString;
 		/**
-		 * Save locally
+		 * New
 		 */
 		saveLocally: () => LocalizedString;
+		/**
+		 * Update
+		 */
+		updatePreset: () => LocalizedString;
 		/**
 		 * Newest
 		 */

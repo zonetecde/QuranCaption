@@ -2,19 +2,27 @@ import { globalState } from '$lib/runes/main.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
 import Settings, { type SavedVideoStylePreset } from '$lib/classes/Settings.svelte';
 import ExportFileService from '$lib/services/ExportFileService';
-import { buildLocalPreset, buildStyleData, getExportFileName } from './presetUtils';
+import {
+	buildLocalPreset,
+	buildStyleData,
+	getCurrentResolution,
+	getExportFileName
+} from './presetUtils';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import toast from 'svelte-5-french-toast';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 /**
  * Insère ou remplace un preset local dans les paramètres.
  *
  * @param {SavedVideoStylePreset} preset Preset à stocker.
- * @returns {Promise<boolean>} True si le preset a bien été sauvegardé.
+ * @returns {Promise<SavedVideoStylePreset | null>} Preset sauvegardé, ou null après annulation.
  */
-export async function storeLocalPreset(preset: SavedVideoStylePreset): Promise<boolean> {
+export async function storeLocalPreset(
+	preset: SavedVideoStylePreset
+): Promise<SavedVideoStylePreset | null> {
 	const settings = globalState.settings ?? new Settings();
 	if (!globalState.settings) globalState.settings = settings;
 
@@ -31,7 +39,7 @@ export async function storeLocalPreset(preset: SavedVideoStylePreset): Promise<b
 			get(LL).editor.overwriteConfirm({ name: preset.name }),
 			false
 		);
-		if (!confirmed) return false;
+		if (!confirmed) return null;
 
 		// Conserve l'id et la date de création du preset existant
 		const existing = nextPresets[existingIndex];
@@ -46,7 +54,7 @@ export async function storeLocalPreset(preset: SavedVideoStylePreset): Promise<b
 
 	settings.savedVideoStylePresets = nextPresets;
 	await Settings.save();
-	return true;
+	return nextPresets[existingIndex === -1 ? 0 : existingIndex];
 }
 
 /**
@@ -59,9 +67,35 @@ export async function storeLocalPreset(preset: SavedVideoStylePreset): Promise<b
 export async function savePreset(name: string, includedClipIds: Set<number>): Promise<void> {
 	const stored = await storeLocalPreset(buildLocalPreset(name.trim(), includedClipIds));
 	if (!stored) return;
+	ProjectHistoryManager.track('select style preset', () => {
+		globalState.getStylesState.activeLocalPresetId = stored.id;
+	});
 
 	globalState.presetLibrary.modalMode = null;
 	AnalyticsService.trackStylePresetSaved(includedClipIds.size);
+	toast.success(get(LL).style.stylePresetSaved());
+}
+
+/**
+ * Met à jour le preset local sélectionné avec les styles et clips personnalisés actuels.
+ * @returns {Promise<void>} Résolution après la sauvegarde du preset existant.
+ */
+export async function updatePreset(): Promise<void> {
+	const settings = globalState.settings;
+	const preset = settings?.savedVideoStylePresets.find(
+		(item) => item.id === globalState.getStylesState.activeLocalPresetId
+	);
+	if (!settings || !preset) return;
+
+	const includedClipIds = new Set(globalState.getCustomClipTrack.clips.map((clip) => clip.id));
+	const data = buildStyleData(includedClipIds);
+	const resolution = getCurrentResolution();
+	settings.savedVideoStylePresets = settings.savedVideoStylePresets.map((item) =>
+		item.id === preset.id
+			? { ...item, data, resolution, updatedAt: new Date().toISOString() }
+			: item
+	);
+	await Settings.save();
 	toast.success(get(LL).style.stylePresetSaved());
 }
 
@@ -93,7 +127,10 @@ export async function applyPreset(preset: SavedVideoStylePreset): Promise<void> 
 	);
 	if (!confirmed) return;
 
-	await globalState.getVideoStyle.importStyles(preset.data);
+	await ProjectHistoryManager.trackAsync('apply style preset', async () => {
+		await globalState.getVideoStyle.importStyles(preset.data);
+		globalState.getStylesState.activeLocalPresetId = preset.id;
+	});
 	AnalyticsService.trackStylePresetApplied('local');
 	toast.success(get(LL).style.stylePresetApplied());
 }

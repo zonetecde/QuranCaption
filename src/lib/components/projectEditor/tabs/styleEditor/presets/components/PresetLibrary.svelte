@@ -3,7 +3,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { loadCommunity, loadPopularTags } from '../actions/communityActions';
 	import { getDefaultPresetName } from '../actions/presetUtils';
-	import { savePreset, exportJson } from '../actions/localActions';
+	import { savePreset, exportJson, updatePreset } from '../actions/localActions';
 	import { openPublishForm } from '../actions/publishActions';
 	import LL from '$lib/i18n/i18n-svelte';
 	import PresetHeader from './PresetHeader.svelte';
@@ -17,6 +17,11 @@
 	let publishMode = $derived(globalState.presetLibrary.publishMode);
 	let publishPreviewUrl = $derived(globalState.presetLibrary.publishPreviewUrl);
 	let modalMode = $derived(globalState.presetLibrary.modalMode);
+	let activePreset = $derived(
+		globalState.settings?.savedVideoStylePresets.find(
+			(preset) => preset.id === globalState.getStylesState.activeLocalPresetId
+		)
+	);
 
 	// Lorsque les paramètres de recherche communauté changent, recharge avec debounce
 	let communityQueryKey = $derived(() => {
@@ -70,6 +75,17 @@
 					<span class="material-icons-outlined shrink-0 text-base">add</span>
 					<span class="line-clamp-2 leading-tight">{$LL.style.saveLocally()}</span>
 				</button>
+				{#if activePreset}
+					<button
+						class="btn col-span-2 flex min-h-10 min-w-0 items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium"
+						type="button"
+						onclick={updatePreset}
+						title={activePreset.name}
+					>
+						<span class="material-icons-outlined shrink-0 text-base">save</span>
+						<span class="line-clamp-2 leading-tight">{$LL.style.updatePreset()}</span>
+					</button>
+				{/if}
 			</div>
 			<LocalSection />
 			<CommunitySection />

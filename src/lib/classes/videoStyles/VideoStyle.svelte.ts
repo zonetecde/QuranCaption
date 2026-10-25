@@ -259,6 +259,7 @@ export class VideoStyle extends SerializableBase {
 				data: json,
 				translationAssignments
 			});
+			if (stylesState) stylesState.activeLocalPresetId = null;
 		} finally {
 			if (stylesState && currentPanel !== undefined) stylesState.currentPanel = currentPanel;
 			if (!projectContent) ProjectHistoryManager.commit();
@@ -290,6 +291,7 @@ export class VideoStyle extends SerializableBase {
 
 			// Réinitialise les styles
 			globalState.currentProject!.content.videoStyle = await VideoStyle.getDefaultVideoStyle();
+			globalState.getStylesState.activeLocalPresetId = null;
 		} finally {
 			ProjectHistoryManager.commit();
 		}

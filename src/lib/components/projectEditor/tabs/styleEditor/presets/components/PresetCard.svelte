@@ -33,7 +33,7 @@
 	>
 		<div class="relative aspect-video w-full overflow-hidden bg-black/30">
 			<img
-				class="h-full w-full object-cover"
+				class="h-full w-full object-contain"
 				src={preset.previewUrl}
 				alt={preset.name}
 				loading="lazy"

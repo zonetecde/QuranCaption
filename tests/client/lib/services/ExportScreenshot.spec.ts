@@ -213,7 +213,7 @@ describe('contexte de capture réutilisé par worker', () => {
 			releaseExportScreenshotContext();
 			const fresh = await captureMacOsOverlayPngBytes(root, 1, 320, 180);
 			const reused = await captureMacOsOverlayPngBytes(root, 1, 320, 180);
-			await expectSamePixels(new Blob([fresh]), new Blob([reused]));
+			await expectSamePixels(new Blob([new Uint8Array(fresh)]), new Blob([new Uint8Array(reused)]));
 			expect(root.querySelector<HTMLElement>('.translation')!.style.visibility).not.toBe('hidden');
 		}
 	});

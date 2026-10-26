@@ -1,4 +1,3 @@
-import { webcrypto } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import posthog from 'posthog-js';
 
@@ -18,7 +17,9 @@ let AnalyticsService: typeof import('$lib/services/AnalyticsService').AnalyticsS
 beforeEach(async () => {
 	vi.resetModules();
 	vi.clearAllMocks();
-	vi.stubGlobal('crypto', webcrypto);
+	vi.stubGlobal('crypto', {
+		randomUUID: vi.fn().mockReturnValue('00000000-0000-4000-8000-000000000001')
+	});
 	({ AnalyticsService } = await import('$lib/services/AnalyticsService'));
 	await AnalyticsService.init();
 });

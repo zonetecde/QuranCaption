@@ -1,34 +1,16 @@
 <div align="center">
 
-<img src="https://qurancaption.com/icon.png" width="100" alt="Minbar Studio logo" />
+<img src="src-tauri/icons/128x128.png" width="100" alt="Minbar Studio logo" />
 
 <h1>Minbar Studio</h1>
 
-<p><strong>Create captioned Quran videos — AI-powered subtitles, 40+ languages, full visual control.</strong></p>
+<p><strong>Caption and translate lectures, khutbahs, reminders, podcasts, poetry, and nasheeds.</strong></p>
 
 <p>
-<a href="https://wakatime.com/badge/user/b8ecff52-7743-4a1e-8b28-93fcce7c9b7d/project/018df88a-8f8e-4ff4-b27c-d31e73490299"><img src="https://wakatime.com/badge/user/b8ecff52-7743-4a1e-8b28-93fcce7c9b7d/project/018df88a-8f8e-4ff4-b27c-d31e73490299.svg" alt="wakatime"></a><br><br>
-  <a href="https://github.com/zonetecde/QuranCaption/releases/latest"><img src="https://img.shields.io/github/v/release/zonetecde/QuranCaption?style=for-the-badge&color=4ade80" alt="Latest release" /></a>
-  <a href="https://github.com/zonetecde/QuranCaption/releases"><img src="https://img.shields.io/github/downloads/zonetecde/QuranCaption/total?style=for-the-badge&color=60a5fa" alt="Total downloads" /></a>
-  <a href="https://github.com/zonetecde/QuranCaption/stargazers"><img src="https://img.shields.io/github/stars/zonetecde/QuranCaption?style=for-the-badge&color=facc15" alt="Stars" /></a>  <a href="https://github.com/zonetecde/QuranCaption/commits/main"><img src="https://img.shields.io/github/last-commit/zonetecde/QuranCaption?style=for-the-badge" alt="Last commit" /></a>
+  <a href="https://github.com/zonetecde/QuranCaption/releases?q=MS-&amp;expanded=true">Minbar Studio releases</a> |
+  <a href="documentations/minbar-architecture.md">Architecture</a> |
+  <a href="https://discord.gg/Hxfqq2QA2J">Discord</a>
 </p>
-
-<p>
-  <a href="https://qurancaption.com/documentation/download-and-installation">
-    <img src="https://img.shields.io/badge/⬇ Download-Free-brightgreen?style=for-the-badge" alt="Download" />
-  </a>
-  <a href="https://qurancaption.com/documentation">
-    <img src="https://img.shields.io/badge/📘 Documentation-minbarstudio.com-blue?style=for-the-badge" alt="Docs" />
-  </a>
-  <a href="https://discord.gg/Hxfqq2QA2J">
-    <img src="https://img.shields.io/badge/💬 Discord-Join-5865F2?style=for-the-badge" alt="Discord" />
-  </a>
-</p>
-
-<br/>
-
-[![Demo Video](https://img.youtube.com/vi/Ree94CLsBcY/maxresdefault.jpg)](https://youtu.be/Ree94CLsBcY)
-<sub>▶ Click to watch the demo</sub>
 
 </div>
 
@@ -36,139 +18,81 @@
 
 ## What is Minbar Studio?
 
-Minbar Studio is a desktop video editor built specifically for Quranic recitations. Upload an audio
-or video file, let the AI generate perfectly-timed subtitles, pick your translation(s), customize
-the look, and export — ready for YouTube, TikTok, or Instagram.
+Minbar Studio is a desktop video editor for spoken and sung content: courses, Friday khutbahs,
+reminders, conferences, podcasts, poetry, and nasheeds. Import audio or video, transcribe the
+speech, add translations, customize the presentation, and export for YouTube, TikTok, or Instagram.
 
-No video editing experience required.
-
----
+Minbar Studio and Quran Caption are separate applications that share a multimedia foundation. Quran
+Caption focuses on Quranic recitations structured around verses. Minbar Studio uses free-text
+subtitles and can mark Quran passages and other quotations within a transcript.
 
 ## Features
 
-### 🤖 AI Subtitle Generation
+### Transcription and subtitle editing
 
-Drop in any recitation and Minbar Studio automatically segments it verse by verse. The AI handles:
+- Transcribe audio through Groq or ElevenLabs using your own provider API key.
+- Write and edit transcripts manually with the timeline and keyboard shortcuts.
+- Use word timestamps and configurable subtitle length limits.
+- Review AI suggestions for transcription corrections, subtitle boundaries, and Quran or quotation
+  detection. Text AI tools require your own configured API key.
 
-- Mid-verse cuts
-- Silence detection
-- Basmala & Istiʿādha detection
+### Translations and references
 
-Both cloud and local processing are supported.
+- Add project languages and generate editable translations with your configured text AI provider.
+- Keep ordinary speech, Quran passages, and quotations distinct within the same subtitle.
+- Insert Quran references such as `{{2:255}}` or a word range such as `{{2:255:2-4}}`.
+- Use Quran translation sources for referenced passages.
 
-### ✂️ AI Translation Trimmer
+### Visual customization
 
-When a verse is split mid-way, the translation is automatically trimmed to match exactly what's
-being recited. No more manually editing translation segments — the AI takes care of alignment, and
-you can always review and override.
+- Customize fonts, colors, outlines, shadows, backgrounds, placement, and margins.
+- Style ordinary speech, Quran passages, and quotations separately, including their translations.
+- Add speaker names, creator branding, custom text, images, and video overlays.
+- Save local presets and share styles through the dedicated Minbar Studio community library.
+- Undo and redo project edits.
 
-### 🌍 100+ Translations in 40+ Languages
+### Media and export
 
-A built-in library of translations syncs automatically with subtitles. Supported languages include
-English, French, Spanish, Dutch, Turkish, and 35+ more. All translations are editable.
-
-### 🎨 Full Visual Customization
-
-Every visual aspect is adjustable:
-
-- Font family, weight, size, spacing, alignment
-- Text colors, outline, shadow, background overlays
-- Subtitle placement and margins
-- Creator branding, speaker name (calligraphy), surah name, verse numbers
-- Custom images and video overlays
-
-### 📤 Export-Ready
-
-Output videos optimized for any platform — YouTube, Instagram Reels, TikTok, and more.
-
----
-
-## Screenshots
-
-<img width="1920" alt="Minbar Studio editor" src="https://github.com/user-attachments/assets/3875c5c9-2537-414c-a7cc-973e306fb302" />
-
-<img width="1920" alt="Minbar Studio translations panel" src="https://github.com/user-attachments/assets/f2ec1ddc-14bc-4b54-8a2d-5e7aea83458f" />
-
-<img width="1920" alt="Minbar Studio customization" src="https://github.com/user-attachments/assets/0119f716-f918-48d6-9b23-38530a65ae51" />
-
----
+- Edit audio and video on the timeline, adjust framing and rotation, and preview audio effects.
+- Create landscape, portrait, square, or custom video layouts.
+- Export finished videos and subtitles for your publishing workflow.
 
 ## Download
 
-| Platform                         | Link                                                                                                                  |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| 🪟 Windows                       | [Direct download (.exe)](https://github.com/zonetecde/QuranCaption/releases/latest/download/MinbarStudio.Windows.exe) |
-| 🍎 macOS (Apple Silicon & Intel) | [Installation guide](https://qurancaption.com/documentation/download-and-installation)                                |
-| 🐧 Linux (Ubuntu, Debian, Arch)  | [Installation guide](https://qurancaption.com/documentation/download-and-installation)                                |
+Open the
+[Minbar Studio releases](https://github.com/zonetecde/QuranCaption/releases?q=MS-&expanded=true) and
+choose the newest published stable release tagged **`MS-X.X.X`**. The repository also hosts Quran
+Caption (`QC-*`) and Quran Caption Mobile (`QCM-*`) releases.
 
-Free and open source. Always.
+| Platform              | Minbar Studio installer                                   |
+| --------------------- | --------------------------------------------------------- |
+| Windows               | `MinbarStudio.Windows.exe`                                |
+| macOS (Apple Silicon) | `MinbarStudio.MacOS.ARM.dmg`                              |
+| macOS (Intel)         | `MinbarStudio.MacOS.Intel.dmg`                            |
+| Linux                 | `MinbarStudio.Linux.AppImage` or `MinbarStudio.Linux.deb` |
 
----
+The desktop app checks for newer stable `MS-*` releases and offers their changelogs and an update.
+Minbar Studio is free and open source; external AI providers may charge for API usage.
 
-## Trusted by creators
+## For developers
 
-Minbar Studio is used by channels from small community pages to dedicated Quran media teams:
+This application lives on the **`minbar-studio`** branch of
+[`zonetecde/QuranCaption`](https://github.com/zonetecde/QuranCaption/tree/minbar-studio).
 
-[@MinbarStudio](https://www.youtube.com/@QuranCaption) ·
-[@SimpleQuran-tv](https://www.youtube.com/@SimpleQuran-tv) ·
-[@curlyhairedmuslim](https://www.youtube.com/@curlyhairedmuslim) ·
-[@quran.español](https://www.youtube.com/@quran.español) ·
-[@QuranTheNūr](https://www.youtube.com/@QuranTheNūr) ·
-[@quran_traduit](https://www.youtube.com/@quran_traduit) ·
-[@quranicoasis1](https://www.youtube.com/@quranicoasis1) ·
-[@MasjidDTWS](https://www.youtube.com/@MasjidDTWS) · and hundreds more 🤲
+**Stack:** Svelte 5 / TypeScript / Rust / Tauri 2 / Tailwind CSS / FFmpeg
 
----
-
-## Stats
-
-<div align="center">
-
-| 📥 Downloads | 🌍 Languages | 🎬 Videos Created | ⭐ Rating |
-| :----------: | :----------: | :---------------: | :-------: |
-|    7 000+    |     40+      |      10 000+      |  4.8 / 5  |
-
-</div>
-
----
-
-## Documentation
-
-Full documentation — installation, features, style editor, export settings — at:
-
-**[minbarstudio.com/documentation](https://qurancaption.com/documentation)**
-
----
-
-## For Developers
-
-See [DEVELOPMENT.md](DEVELOPMENT.md) for the full setup guide, architecture overview, and tech stack
-details.
-
-After cloning, you'll need to add `ffmpeg`, `ffprobe`, and `yt-dlp` binaries to
-`src-tauri/binaries/`. Instructions and download links are in
-[`src-tauri/binaries/README.md`](src-tauri/binaries/README.md).
-
-**Stack:** Svelte · TypeScript · Rust · Tauri · Python · Tailwind CSS
-
----
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/image?repos=zonetecde/QuranCaption&type=date&legend=top-left)](https://www.star-history.com/?repos=zonetecde%2FQuranCaption&type=date&legend=top-left)
+- [Development guide](DEVELOPMENT.md)
+- [Minbar Studio domain architecture](documentations/minbar-architecture.md)
+- [Video style schema and editor rules](documentations/style-json.md)
+- [Shared foundation ported from Quran Caption](documentations/minbar-main-portage.md)
+- [Required FFmpeg, FFprobe, and yt-dlp binaries](src-tauri/binaries/README.md)
 
 ## Contributing
 
-Issues and pull requests are welcome. If you've found a bug or have a feature idea, open an issue or
-jump into the [Discord](https://discord.gg/Hxfqq2QA2J).
+Issues and pull requests are welcome. Mention **Minbar Studio** when reporting a problem in the
+shared repository, or join the [Discord community](https://discord.gg/Hxfqq2QA2J).
 
 ---
 
-<div align="center">
-
-Made with ❤️ by [Rayane Staszewski](https://rayanestaszewski.fr)
-
-[Website](https://qurancaption.com) · [Discord](https://discord.gg/Hxfqq2QA2J) ·
-[Ko-fi](https://ko-fi.com/vzero)
-
-</div>
+Made by [Rayane Staszewski](https://rayanestaszewski.fr) |
+[Support the project](https://ko-fi.com/vzero)

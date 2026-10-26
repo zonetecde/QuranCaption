@@ -59,13 +59,13 @@ function getApiBaseUrl(): string {
 }
 
 /**
- * Builds a style library API URL.
+ * Builds a Minbar Studio style library API URL.
  *
  * @param {string} path API path starting with a slash.
  * @returns {URL} Absolute API URL.
  */
 function buildApiUrl(path: string): URL {
-	return new URL(`${getApiBaseUrl()}${path}`);
+	return new URL(`${getApiBaseUrl()}/products/minbar-studio${path}`);
 }
 
 /**
@@ -137,7 +137,7 @@ export async function likeCommunityPreset(
 	const response = await fetch(buildApiUrl(`/presets/${encodeURIComponent(id)}/like`), {
 		method: 'POST',
 		headers: {
-			'X-QC-Device-Id': deviceId
+			'X-Style-Library-Device-Id': deviceId
 		}
 	});
 	await assertOk(response);
@@ -175,7 +175,9 @@ export async function publishCommunityPreset(
 	form.append('resolution', JSON.stringify(params.resolution));
 	form.append(
 		'style',
-		new Blob([JSON.stringify(params.style)], { type: 'application/json' }),
+		new Blob([JSON.stringify({ ...params.style, product: 'minbar-studio', schemaVersion: 1 })], {
+			type: 'application/json'
+		}),
 		'style.json'
 	);
 	form.append('preview', params.preview, 'preview.jpg');

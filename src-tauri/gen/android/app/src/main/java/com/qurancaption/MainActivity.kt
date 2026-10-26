@@ -129,6 +129,8 @@ class MainActivity : TauriActivity() {
                             settings.textZoom = 100
                             settings.useWideViewPort = true
                             settings.loadWithOverviewMode = false
+                            // La capture attend le rendu d'une WebView placée hors écran.
+                            settings.offscreenPreRaster = true
                             // 100 % correspond ici à un pixel physique par pixel CSS, indépendamment du DPI.
                             setInitialScale(100)
                             isHorizontalScrollBarEnabled = false

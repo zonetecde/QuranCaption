@@ -142,7 +142,7 @@
 	});
 </script>
 
-<div class="z-20 flex h-full flex-col border-l border-[var(--border-color)] bg-[var(--bg-primary)]">
+<div class="z-20 flex h-full flex-col border-s border-[var(--border-color)] bg-[var(--bg-primary)]">
 	<div
 		class="flex h-10 shrink-0 items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-secondary)] px-3"
 	>

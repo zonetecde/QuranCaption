@@ -121,7 +121,7 @@
 		bodyClass="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto md:grid-cols-[minmax(0,1fr)_320px] md:overflow-hidden"
 	>
 		{#snippet subtitle()}{copy.rearrangeDescription()}{/snippet}
-		<section class="flex min-h-0 flex-col border-b border-color md:border-b-0 md:border-r">
+		<section class="flex min-h-0 flex-col border-b border-color md:border-b-0 md:border-e">
 			{#if plan}
 				<div class="border-b border-color px-5 py-4">
 					<h3 class="text-sm font-semibold text-primary">
@@ -136,7 +136,7 @@
 						{#each previewSides as side (side)}
 							<section
 								class="p-4 {side === 'before'
-									? 'border-b border-color sm:border-b-0 sm:border-r'
+									? 'border-b border-color sm:border-b-0 sm:border-e'
 									: 'bg-accent/20'}"
 							>
 								<h4

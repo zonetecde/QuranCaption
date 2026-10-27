@@ -36,7 +36,7 @@
 				disabled
 				onclick={() => (aiv.video.sourceMode = 'ai')}
 			>
-				<span class="material-icons text-base align-middle mr-1">auto_awesome</span>
+				<span class="material-icons text-base align-middle me-1">auto_awesome</span>
 				{$LL.aiVideo.generateVideoWithAI()}
 			</button>
 			<button
@@ -47,7 +47,7 @@
 					: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
 				onclick={() => (aiv.video.sourceMode = 'youtube')}
 			>
-				<span class="material-icons text-base align-middle mr-1">smart_display</span>
+				<span class="material-icons text-base align-middle me-1">smart_display</span>
 				{$LL.aiVideo.downloadFromYouTube()}
 			</button>
 			<button
@@ -85,7 +85,9 @@
 			</p>
 		</div>
 	{:else if aiv.video.sourceMode === 'none'}
-		<p class="rounded-xl border border-dashed border-color bg-bg-secondary px-4 py-3 text-xs text-thirdly">
+		<p
+			class="rounded-xl border border-dashed border-color bg-bg-secondary px-4 py-3 text-xs text-thirdly"
+		>
 			{$LL.aiVideo.noBackgroundDescription()}
 		</p>
 	{/if}

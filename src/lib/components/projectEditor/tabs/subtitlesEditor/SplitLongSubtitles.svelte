@@ -3,9 +3,8 @@
 	import toast from 'svelte-5-french-toast';
 	import { subdivideLongSubtitleSegments } from '$lib/services/subtitleEditing/split';
 	import LL from '$lib/i18n/i18n-svelte';
-	import { get } from 'svelte/store';
 
-	const LL_ = get(LL);
+	const LL_ = $derived($LL);
 
 	let hasWbwTimestamps = $derived(
 		globalState.currentProject ? globalState.getSubtitleTrack.hasWordByWordTimestamps() : false

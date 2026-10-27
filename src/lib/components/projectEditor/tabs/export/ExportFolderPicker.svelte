@@ -5,9 +5,8 @@
 	import ExportService from '$lib/services/ExportService';
 	import Settings from '$lib/classes/Settings.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
-	import { get } from 'svelte/store';
 
-	const LL_ = get(LL);
+	const LL_ = $derived($LL);
 
 	let { description = LL_.export.exportFolderDescription() }: { description?: string } = $props();
 
@@ -85,7 +84,7 @@
 	</div>
 	{#if globalState.settings?.persistentUiState.videoExportFolder}
 		<button
-			class="text-accent-primary text-xs self-start cursor-pointer ml-auto opacity-50 hover:underline underline-offset-2"
+			class="text-accent-primary text-xs self-start cursor-pointer ms-auto opacity-50 hover:underline underline-offset-2"
 			onclick={resetExportFolder}
 		>
 			{$LL.export.resetToDefault()}

@@ -6,7 +6,7 @@
 	import { get } from 'svelte/store';
 	import { openUrl } from '@tauri-apps/plugin-opener';
 
-	const LL_ = get(LL);
+	const LL_ = $derived($LL);
 
 	let subtitlesEditorState = $derived(() => globalState.getSubtitlesEditorState);
 

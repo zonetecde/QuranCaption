@@ -25,7 +25,7 @@
 	};
 
 	let { close }: { close: () => void } = $props();
-	const copy = get(LL).translations as unknown as TranslationCopy;
+	const copy = $derived($LL.translations as unknown as TranslationCopy);
 
 	let catalog = $state<TranslationMetadataMap>({});
 	let selectedLanguage = $state('');
@@ -161,7 +161,7 @@
 	</header>
 
 	<div class="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)]">
-		<section class="min-h-0 border-r border-color p-4 flex flex-col gap-3">
+		<section class="min-h-0 border-e border-color p-4 flex flex-col gap-3">
 			<label class="text-xs font-semibold text-secondary" for="translation-language-search">
 				{copy.projectLanguage()}
 			</label>
@@ -183,7 +183,7 @@
 						<button
 							type="button"
 							disabled={isAdded || data.translations.length === 0}
-							class="w-full rounded-lg border px-3 py-2 text-left transition {selectedLanguage ===
+							class="w-full rounded-lg border px-3 py-2 text-start transition {selectedLanguage ===
 							language
 								? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/12'
 								: 'border-transparent hover:border-color hover:bg-accent'} disabled:cursor-not-allowed disabled:opacity-45"

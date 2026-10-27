@@ -150,7 +150,7 @@
 	>
 		{#snippet subtitle()}{copy.description()}{/snippet}
 		<section
-			class="min-h-0 space-y-4 overflow-y-auto border-b border-color p-5 md:border-b-0 md:border-r"
+			class="min-h-0 space-y-4 overflow-y-auto border-b border-color p-5 md:border-b-0 md:border-e"
 		>
 			{#if plan}
 				<h3 class="text-sm font-semibold text-primary">

@@ -73,7 +73,7 @@
 				/>
 			</label>
 			<p class="text-xs font-medium text-secondary">{copy.keyHelp()}</p>
-			<ol class="list-decimal space-y-1.5 pl-4 text-xs leading-relaxed text-thirdly">
+			<ol class="list-decimal space-y-1.5 ps-4 text-xs leading-relaxed text-thirdly">
 				{#each provider === 'groq' ? [copy.groqKeyStep1(), copy.groqKeyStep2(), copy.groqKeyStep3()] : [copy.elevenLabsKeyStep1(), copy.elevenLabsKeyStep2(), copy.elevenLabsKeyStep3()] as step (step)}
 					<li>{step}</li>
 				{/each}

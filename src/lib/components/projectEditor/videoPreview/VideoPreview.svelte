@@ -1696,6 +1696,7 @@
 />
 
 <section
+	dir="ltr"
 	class="overflow-hidden min-h-0"
 	id="video-preview-section"
 	style={showControls
@@ -1703,6 +1704,7 @@
 		: ''}
 >
 	<div
+		dir="ltr"
 		class="w-full h-full flex flex-col relative overflow-hidden background-primary"
 		id="preview-container"
 	>

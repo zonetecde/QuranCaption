@@ -237,7 +237,7 @@
 				type="button"
 				onclick={addAssetButtonClick}
 			>
-				<span class="material-icons mr-1.5 text-base">add</span>{get(LL).editor.addAssetLabel()}
+				<span class="material-icons me-1.5 text-base">add</span>{get(LL).editor.addAssetLabel()}
 			</button>
 			{#if globalState.currentProject!.content.assets.length > 0}
 				<button
@@ -312,14 +312,14 @@
 	</li>
 	<Item on:click={() => addSelectedAssets(true, true)}>
 		<div class="btn-icon">
-			<span class="material-icons-outlined mr-1 text-sm">video_library</span>
+			<span class="material-icons-outlined me-1 text-sm">video_library</span>
 			{get(LL).editor.videoAndAudio()}
 		</div>
 	</Item>
 	{#if hasVideoCompatibleSelection}
 		<Item on:click={() => addSelectedAssets(true, false)}>
 			<div class="btn-icon">
-				<span class="material-icons-outlined mr-1 text-sm">videocam</span>
+				<span class="material-icons-outlined me-1 text-sm">videocam</span>
 				{get(LL).editor.videoOnly()}
 			</div>
 		</Item>
@@ -327,7 +327,7 @@
 	{#if hasAudioCompatibleSelection}
 		<Item on:click={() => addSelectedAssets(false, true)}>
 			<div class="btn-icon">
-				<span class="material-icons-outlined mr-1 text-sm">music_note</span>
+				<span class="material-icons-outlined me-1 text-sm">music_note</span>
 				{get(LL).editor.audioOnly()}
 			</div>
 		</Item>

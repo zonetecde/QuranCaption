@@ -5,7 +5,6 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { WBW_TRANSLATION_LANGUAGES } from '$lib/services/WbwTranslationService';
 	import { onDestroy } from 'svelte';
-	import { get } from 'svelte/store';
 	import EditionViewer from './EditionViewer.svelte';
 
 	type TranslationCopy = {
@@ -14,7 +13,7 @@
 	};
 
 	const SEARCH_DEBOUNCE_MS = 250;
-	const copy = get(LL).translations as unknown as TranslationCopy;
+	const copy = $derived($LL.translations as unknown as TranslationCopy);
 	let {
 		setAddTranslationModalVisibility,
 		setAiTranslationEdition
@@ -73,7 +72,7 @@
 </script>
 
 <div
-	class="bg-secondary h-full border border-color rounded-lg py-6 px-2 space-y-6 border-r-0 relative overflow-y-auto"
+	class="bg-secondary h-full border border-color rounded-lg py-6 px-2 space-y-6 border-e-0 relative overflow-y-auto"
 >
 	<div class="relative z-10 overflow-x-hidden">
 		<div class="flex gap-x-2 items-center justify-center mb-6">
@@ -130,7 +129,7 @@
 					type="text"
 					placeholder={$LL.translations.searchTranslations()}
 					autocomplete="off"
-					class="w-full px-3 py-1.5 text-sm border border-color rounded-r-none! border-r-0!"
+					class="w-full px-3 py-1.5 text-sm border border-color rounded-e-none! border-e-0!"
 					bind:value={localSearchQuery}
 					oninput={scheduleSearchQueryValidation}
 					onkeydown={(event) => {
@@ -139,7 +138,7 @@
 				/>
 				<button
 					onclick={validateSearchQuery}
-					class="flex items-center border border-color border-r-0 px-1 hover:bg-accent"
+					class="flex items-center border border-color border-e-0 px-1 hover:bg-accent"
 				>
 					<span class="material-icons text-base">search</span>
 				</button>
@@ -148,7 +147,7 @@
 						localSearchQuery = '';
 						validateSearchQuery();
 					}}
-					class="flex items-center border border-color rounded-r-lg px-1 hover:bg-accent"
+					class="flex items-center border border-color rounded-e-lg px-1 hover:bg-accent"
 				>
 					<span class="material-icons text-base">clear</span>
 				</button>

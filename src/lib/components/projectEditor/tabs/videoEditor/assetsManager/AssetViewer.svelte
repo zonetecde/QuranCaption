@@ -252,7 +252,7 @@
 >
 	<div class="flex min-w-0 items-center gap-1 p-1.5">
 		<button
-			class="flex min-w-0 flex-1 items-center gap-2 rounded-sm px-1.5 py-1 text-left outline-none transition-colors hover:bg-white/5 focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
+			class="flex min-w-0 flex-1 items-center gap-2 rounded-sm px-1.5 py-1 text-start outline-none transition-colors hover:bg-white/5 focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)]"
 			type="button"
 			title={asset.fileName}
 			onclick={handlePrimaryClick}
@@ -364,33 +364,33 @@
 	{#if asset.type === AssetType.Video}
 		<Item on:click={() => addInTheTimelineButtonClick(true, true)}>
 			<div class="btn-icon">
-				<span class="material-icons-outlined mr-1 text-sm">video_library</span>
+				<span class="material-icons-outlined me-1 text-sm">video_library</span>
 				{get(LL).editor.videoAndAudio()}
 			</div>
 		</Item>
 		<Item on:click={() => addInTheTimelineButtonClick(true, false)}>
 			<div class="btn-icon">
-				<span class="material-icons-outlined mr-1 text-sm">videocam</span>
+				<span class="material-icons-outlined me-1 text-sm">videocam</span>
 				{get(LL).editor.videoOnly()}
 			</div>
 		</Item>
 		<Item on:click={() => addInTheTimelineButtonClick(false, true)}>
 			<div class="btn-icon">
-				<span class="material-icons-outlined mr-1 text-sm">music_note</span>
+				<span class="material-icons-outlined me-1 text-sm">music_note</span>
 				{get(LL).editor.audioOnly()}
 			</div>
 		</Item>
 	{:else if asset.type === AssetType.Audio}
 		<Item on:click={() => addInTheTimelineButtonClick(false, true)}>
 			<div class="btn-icon">
-				<span class="material-icons-outlined mr-1 text-sm">music_note</span>
+				<span class="material-icons-outlined me-1 text-sm">music_note</span>
 				{get(LL).editor.audioOnly()}
 			</div>
 		</Item>
 	{:else}
 		<Item on:click={() => addInTheTimelineButtonClick(true, false)}>
 			<div class="btn-icon">
-				<span class="material-icons-outlined mr-1 text-sm">image</span>
+				<span class="material-icons-outlined me-1 text-sm">image</span>
 				{globalState.getVideoTrack.clips.length === 0
 					? get(LL).editor.setAsBackground()
 					: get(LL).editor.addToTimelineLabel()}
@@ -403,14 +403,14 @@
 	{#if asset.exists}
 		<Item on:click={() => asset.openParentDirectory()}>
 			<div class="btn-icon">
-				<span class="material-icons-outlined mr-1 text-sm">folder_open</span>
+				<span class="material-icons-outlined me-1 text-sm">folder_open</span>
 				{get(LL).editor.openDirectoryLabel()}
 			</div>
 		</Item>
 		{#if asset.type !== AssetType.Image}
 			<Item on:click={trimAsset}>
 				<div class="btn-icon">
-					<span class="material-icons-outlined mr-1 text-sm">content_cut</span>
+					<span class="material-icons-outlined me-1 text-sm">content_cut</span>
 					{get(LL).editor.trimLabel()}
 				</div>
 			</Item>
@@ -418,14 +418,14 @@
 	{:else}
 		<Item on:click={relocateAsset}>
 			<div class="btn-icon">
-				<span class="material-icons-outlined mr-1 text-sm">folder_open</span>
+				<span class="material-icons-outlined me-1 text-sm">folder_open</span>
 				{get(LL).editor.relocateLabel()}
 			</div>
 		</Item>
 		{#if asset.sourceUrl && (asset.sourceType === SourceType.YouTube || asset.sourceType === SourceType.Mp3Quran || asset.sourceType === SourceType.QuranFoundation)}
 			<Item on:click={redownloadAsset}>
 				<div class="btn-icon">
-					<span class="material-icons-outlined mr-1 text-sm">cloud_download</span>
+					<span class="material-icons-outlined me-1 text-sm">cloud_download</span>
 					{isRedownloading ? get(LL).editor.downloadingLabel() : get(LL).editor.redownloadLabel()}
 				</div>
 			</Item>
@@ -434,7 +434,7 @@
 	<Divider />
 	<Item on:click={removeAsset}>
 		<div class="btn-icon danger-color">
-			<span class="material-icons-outlined mr-1 text-sm">delete</span>
+			<span class="material-icons-outlined me-1 text-sm">delete</span>
 			{get(LL).common.remove()}
 		</div>
 	</Item>

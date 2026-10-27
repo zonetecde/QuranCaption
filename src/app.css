@@ -610,6 +610,15 @@ body {
 	transition: background-color var(--transition-speed) var(--transition-timing);
 }
 
+html[lang='ar'] {
+	--font-ui: 'Noto Sans Arabic', sans-serif;
+	--font-sans: 'Noto Sans Arabic', sans-serif;
+}
+
+html[dir='rtl'] .rtl-mirror {
+	scale: -1 1;
+}
+
 .modal-wrapper {
 	position: fixed;
 	top: 2.25rem;

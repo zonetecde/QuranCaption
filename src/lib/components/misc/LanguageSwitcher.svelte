@@ -5,6 +5,11 @@
 	import Settings from '$lib/classes/Settings.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 
+	/**
+	 * Applies and saves the selected interface language.
+	 * @param {Locales} lang Selected locale.
+	 * @returns {void}
+	 */
 	function switchLanguage(lang: Locales) {
 		setLocale(lang);
 		if (globalState.settings) {
@@ -14,7 +19,11 @@
 	}
 
 	const languageOptions: { value: Locales; label: string }[] = $derived([
-		{ value: 'en', label: $LL.common.english() }
+		{ value: 'ar', label: $LL.common.arabic() },
+		{ value: 'en', label: $LL.common.english() },
+		{ value: 'fr', label: $LL.common.french() },
+		{ value: 'de', label: $LL.common.german() },
+		{ value: 'es', label: $LL.common.spanish() }
 	]);
 </script>
 
@@ -23,7 +32,7 @@
 	<div class="relative">
 		<select
 			id="language-switcher"
-			class="w-full appearance-none rounded-lg border border-color bg-secondary px-3 py-2 pr-8 text-sm text-primary"
+			class="w-full appearance-none rounded-lg border border-color bg-secondary px-3 py-2 pe-8 text-sm text-primary"
 			value={$locale}
 			onchange={(e) => switchLanguage((e.target as HTMLSelectElement).value as Locales)}
 		>
@@ -32,7 +41,7 @@
 			{/each}
 		</select>
 		<span
-			class="material-icons pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[18px]! text-thirdly"
+			class="material-icons pointer-events-none absolute end-2 top-1/2 -translate-y-1/2 text-[18px]! text-thirdly"
 		>
 			expand_more
 		</span>

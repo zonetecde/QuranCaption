@@ -5,8 +5,9 @@
 	import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 	import { browser } from '$app/environment';
 	import { afterNavigate } from '$app/navigation';
-	import { setLocale } from '$lib/i18n/i18n-svelte';
+	import { locale, setLocale } from '$lib/i18n/i18n-svelte';
 	import { isLocale } from '$lib/i18n/i18n-util';
+	import { getLocaleDirection } from '$lib/i18n/direction';
 	import posthog from 'posthog-js';
 
 	let { children } = $props();
@@ -28,6 +29,12 @@
 		if (savedLocale && isLocale(savedLocale)) {
 			setLocale(savedLocale);
 		}
+	});
+
+	$effect(() => {
+		if (!browser) return;
+		document.documentElement.lang = $locale;
+		document.documentElement.dir = getLocaleDirection($locale);
 	});
 
 	$effect(() => {

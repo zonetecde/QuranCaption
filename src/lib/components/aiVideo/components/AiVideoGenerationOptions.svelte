@@ -151,7 +151,7 @@
 						: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
 					onclick={() => (aiv.video.resolution = 'portrait')}
 				>
-					<span class="material-icons text-base align-middle mr-1">stay_current_portrait</span>
+					<span class="material-icons text-base align-middle me-1">stay_current_portrait</span>
 					{$LL.aiVideo.portrait916()}
 				</button>
 				<button
@@ -162,7 +162,7 @@
 						: 'border-color bg-bg-secondary text-secondary hover:border-accent-primary/50'}"
 					onclick={() => (aiv.video.resolution = 'landscape')}
 				>
-					<span class="material-icons text-base align-middle mr-1">stay_current_landscape</span>
+					<span class="material-icons text-base align-middle me-1">stay_current_landscape</span>
 					{$LL.aiVideo.landscape169()}
 				</button>
 			</div>

@@ -5,7 +5,6 @@
 
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { get } from 'svelte/store';
 	import LL from '$lib/i18n/i18n-svelte';
 
 	type StreamCopy = {
@@ -15,7 +14,7 @@
 	};
 
 	let { batches, placeholder }: { batches: AIStreamBatchState[]; placeholder: string } = $props();
-	const copy = get(LL).editor as unknown as StreamCopy;
+	const copy = $derived($LL.editor as unknown as StreamCopy);
 
 	/**
 	 * Maintient chaque sortie streamée positionnée sur son contenu le plus récent.

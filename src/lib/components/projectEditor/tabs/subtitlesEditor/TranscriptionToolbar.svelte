@@ -15,7 +15,7 @@
 		</button>
 
 		<div
-			class="pointer-events-none absolute left-2 top-7 z-50 w-[420px] max-w-[80vw] translate-y-1 rounded-lg border-2 border-[var(--border-color)]/90 bg-primary px-4 py-4 text-sm text-secondary opacity-0 shadow-2xl transition-all group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100"
+			class="pointer-events-none absolute start-2 top-7 z-50 w-[420px] max-w-[80vw] translate-y-1 rounded-lg border-2 border-[var(--border-color)]/90 bg-primary px-4 py-4 text-sm text-secondary opacity-0 shadow-2xl transition-all group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100"
 		>
 			<h3 class="mb-2 font-semibold text-primary">{$LL.editor.transcriptionHelpTitle()}</h3>
 			<p class="mb-4 text-xs leading-relaxed text-thirdly">

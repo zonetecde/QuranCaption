@@ -450,7 +450,7 @@
 					<div class="p-2 border-b border-gray-800 last:border-b-0 relative">
 						<!-- delete cross -->
 						<button
-							class="absolute top-2 right-2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+							class="absolute top-2 end-2 text-gray-400 hover:text-white transition-colors cursor-pointer"
 							onclick={async (e) => {
 								e.stopPropagation();
 
@@ -501,7 +501,7 @@
 										</span>
 									</div>
 									{#if exportation.currentState === ExportState.Exported && getStoredTotalExportMs(exportation) !== null}
-										<span class="text-xs text-gray-300 ml-auto whitespace-nowrap">
+										<span class="text-xs text-gray-300 ms-auto whitespace-nowrap">
 											{get(LL).export.totalLabel()}
 											<span class="monospaced"
 												>{formatCurrentTime(getExportElapsedMs(exportation, currentTime))}</span
@@ -607,7 +607,7 @@
 											>
 										</div>
 									{/if}
-									<div class="ml-auto">
+									<div class="ms-auto">
 										{get(LL).export.exportTime()}<span class="monospaced"
 											>{' '}
 											{formatCurrentTime(getExportElapsedMs(exportation, currentTime))}
@@ -714,7 +714,7 @@
 										<p>
 											{Reflect.get($LL.export, 'memoryError')()}
 										</p>
-										<ol class="ml-4 list-decimal text-sm">
+										<ol class="ms-4 list-decimal text-sm">
 											<li>{Reflect.get($LL.export, 'memoryReduceBatch')()}</li>
 											<li>{Reflect.get($LL.export, 'memoryLowerResolution')()}</li>
 											<li>{Reflect.get($LL.export, 'memoryRemoveBackground')()}</li>

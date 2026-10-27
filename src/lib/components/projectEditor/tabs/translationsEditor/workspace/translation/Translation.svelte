@@ -25,7 +25,6 @@
 		WbwTranslationService,
 		type WbwTranslationLanguageCode
 	} from '$lib/services/WbwTranslationService';
-	import { get } from 'svelte/store';
 	import TranslationWordSelector from './TranslationWordSelector.svelte';
 
 	type StyledTranslationWord = {
@@ -61,7 +60,7 @@
 		previousSubtitle?: SubtitleClip;
 	} = $props();
 
-	const copy = get(LL).translations as unknown as TranslationCopy;
+	const copy = $derived($LL.translations as unknown as TranslationCopy);
 	const translationsEditorState = $derived(
 		() => globalState.currentProject!.projectEditorState.translationsEditor
 	);
@@ -563,7 +562,7 @@
 			<p class="text-sm font-semibold text-primary">{edition.language}</p>
 			<p class="truncate text-xs text-thirdly">{edition.quranEdition?.author ?? ''}</p>
 		</div>
-		<div class="ml-auto flex items-center gap-2">
+		<div class="ms-auto flex items-center gap-2">
 			<span
 				class="rounded-full border px-2 py-1 text-xs {translation().status === 'ai translated'
 					? 'border-blue-500/30 bg-blue-500/15 text-blue-300'

@@ -37,7 +37,7 @@
 			class="btn-accent flex w-full cursor-pointer items-center justify-center rounded-md px-3 py-1.5 text-sm transition-colors duration-200"
 			{disabled}
 		>
-			<span class="material-icons mr-2 text-base">folder_open</span>
+			<span class="material-icons me-2 text-base">folder_open</span>
 			{#if value && !images.includes(String(value))}
 				{String(value).split('\\').pop()}
 			{:else}
@@ -53,7 +53,7 @@
 					? 'bg-[var(--bg-accent)]/60 ring-1 ring-color'
 					: 'bg-gray-100 dark:bg-gray-800')}
 		>
-			<span class="material-icons mr-2 text-base">hide_image</span>
+			<span class="material-icons me-2 text-base">hide_image</span>
 			{$LL.common.none()}
 		</button>
 	</div>
@@ -76,9 +76,7 @@
 					loading="lazy"
 				/>
 				{#if selected}
-					<span
-						class="material-icons absolute top-1 right-1 text-[16px]! text-white drop-shadow-md"
-					>
+					<span class="material-icons absolute top-1 end-1 text-[16px]! text-white drop-shadow-md">
 						check_circle
 					</span>
 				{/if}

@@ -502,20 +502,20 @@
 				<h2 class="text-4xl font-bold">{$LL.home.welcomeBack()}</h2>
 				<h4 class="text-secondary">{$LL.home.letsCreate()}</h4>
 			</section>
-			<section class="ml-auto flex flex-wrap gap-3 xl:gap-x-4">
+			<section class="ms-auto flex flex-wrap gap-3 xl:gap-x-4">
 				<button
 					data-tour-id="new-project-button"
 					class="btn-accent btn-icon h-12 px-4 xl:px-7"
 					onclick={newProjectButtonClick}
 				>
-					<span class="material-icons-outlined mr-2">add_circle_outline</span>
+					<span class="material-icons-outlined me-2">add_circle_outline</span>
 					{$LL.home.newProject()}
 				</button>
 				<!-- <button class="btn btn-icon h-12 px-4 xl:px-7">
-					<span class="material-icons-outlined mr-2">auto_awesome</span> {$LL.home.aiVideo()}
+					<span class="material-icons-outlined me-2">auto_awesome</span> {$LL.home.aiVideo()}
 				</button> -->
 				<button class="btn btn-icon h-12 px-4 xl:px-7" onclick={importProject}>
-					<span class="material-icons-outlined mr-2">file_upload</span>
+					<span class="material-icons-outlined me-2">file_upload</span>
 					{$LL.home.importProject()}
 				</button>
 			</section>
@@ -550,7 +550,7 @@
 								{#if item.target}
 									<button
 										type="button"
-										class="cursor-pointer text-left hover:underline"
+										class="cursor-pointer text-start hover:underline"
 										onclick={() => selectExplorerNode(item.target!)}
 									>
 										{item.label}
@@ -586,7 +586,7 @@
 									onclick={() => (currentPage = Math.max(1, currentPage - 1))}
 									title={$LL.home.previousPage()}
 								>
-									<span class="material-icons-outlined text-base">chevron_left</span>
+									<span class="material-icons-outlined rtl-mirror text-base">chevron_left</span>
 								</button>
 								<span class="min-w-16 text-center text-[var(--text-primary)]">
 									{currentPage} / {totalPages}
@@ -598,7 +598,7 @@
 									onclick={() => (currentPage = Math.min(totalPages, currentPage + 1))}
 									title={$LL.home.nextPage()}
 								>
-									<span class="material-icons-outlined text-base">chevron_right</span>
+									<span class="material-icons-outlined rtl-mirror text-base">chevron_right</span>
 								</button>
 							</div>
 						{/if}

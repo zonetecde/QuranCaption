@@ -58,7 +58,7 @@
 			{#each TEXT_AI_PRESETS as preset (preset.id)}
 				<button
 					type="button"
-					class="flex min-h-14 flex-col items-start justify-between rounded-lg border border-color bg-secondary px-2 py-2 text-left transition-colors hover:border-[var(--accent-primary)]/50 hover:bg-tertiary"
+					class="flex min-h-14 flex-col items-start justify-between rounded-lg border border-color bg-secondary px-2 py-2 text-start transition-colors hover:border-[var(--accent-primary)]/50 hover:bg-tertiary"
 					onclick={() => applyTextAiPreset(preset)}
 				>
 					<span class="flex flex-wrap items-center gap-1.5 text-sm font-medium text-primary">

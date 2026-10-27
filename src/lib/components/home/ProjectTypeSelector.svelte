@@ -84,7 +84,7 @@
 
 		{#if isOpen}
 			<ul
-				class="absolute right-0 top-full z-20 mt-1 w-44 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] py-1 shadow-xl backdrop-blur-sm"
+				class="absolute end-0 top-full z-20 mt-1 w-44 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] py-1 shadow-xl backdrop-blur-sm"
 				data-no-drag
 				onpointerdown={stopPointerPropagation}
 			>
@@ -114,7 +114,7 @@
 
 		{#if isOpen}
 			<ul
-				class="absolute left-12 top-full z-20 mt-1 w-44 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] py-1 shadow-xl backdrop-blur-sm"
+				class="absolute start-12 top-full z-20 mt-1 w-44 rounded-md border border-[var(--border-color)] bg-[var(--bg-secondary)] py-1 shadow-xl backdrop-blur-sm"
 				data-no-drag
 				onpointerdown={stopPointerPropagation}
 			>

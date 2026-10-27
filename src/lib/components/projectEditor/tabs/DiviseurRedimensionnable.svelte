@@ -109,7 +109,8 @@
 	function resize(event: PointerEvent): void {
 		if (!isDragging) return;
 
-		const direction = reverse ? -1 : 1;
+		const direction =
+			reverse !== (orientation === 'vertical' && document.documentElement.dir === 'rtl') ? -1 : 1;
 		const pixelDelta = (getPointerPosition(event) - resizeStartPosition) * direction;
 		const delta = unit === 'percent' ? (pixelDelta / resizeContainerSize) * 100 : pixelDelta;
 		value = clampValue(resizeStartValue + delta);
@@ -139,7 +140,8 @@
 	 */
 	function handleKeydown(event: KeyboardEvent): void {
 		const keyboardStep = step ?? (unit === 'percent' ? 2 : 20);
-		const direction = reverse ? -1 : 1;
+		const direction =
+			reverse !== (orientation === 'vertical' && document.documentElement.dir === 'rtl') ? -1 : 1;
 		let nextValue: number | null = null;
 
 		if (event.key === 'Home') nextValue = min;

@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
-	import { get } from 'svelte/store';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
-	const LL_ = get(LL);
+	const LL_ = $derived($LL);
 
 	let {
 		label,

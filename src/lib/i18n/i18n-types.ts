@@ -9,7 +9,7 @@ import type {
 export type BaseTranslation = BaseTranslationType;
 export type BaseLocale = 'en';
 
-export type Locales = 'en';
+export type Locales = 'ar' | 'de' | 'en' | 'es' | 'fr';
 
 export type Translation = RootTranslation;
 
@@ -357,6 +357,18 @@ type RootTranslation = {
 		 * F​r​a​n​ç​a​i​s
 		 */
 		french: string;
+		/**
+		 * ا​ل​ع​ر​ب​ي​ة
+		 */
+		arabic: string;
+		/**
+		 * D​e​u​t​s​c​h
+		 */
+		german: string;
+		/**
+		 * E​s​p​a​ñ​o​l
+		 */
+		spanish: string;
 		/**
 		 * I​n​d​o​n​e​s​i​a
 		 */
@@ -10631,6 +10643,18 @@ export type TranslationFunctions = {
 		 * Français
 		 */
 		french: () => LocalizedString;
+		/**
+		 * العربية
+		 */
+		arabic: () => LocalizedString;
+		/**
+		 * Deutsch
+		 */
+		german: () => LocalizedString;
+		/**
+		 * Español
+		 */
+		spanish: () => LocalizedString;
 		/**
 		 * Indonesia
 		 */

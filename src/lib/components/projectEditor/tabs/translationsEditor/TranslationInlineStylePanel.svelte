@@ -86,7 +86,7 @@
 
 <div class="flex-1 overflow-y-auto px-4 py-4 space-y-4">
 	<button
-		class={`w-full rounded-xl border px-3 py-3 text-left transition-all duration-200 ${
+		class={`w-full rounded-xl border px-3 py-3 text-start transition-all duration-200 ${
 			translationsEditorState().isInlineStyleMode
 				? 'border-[var(--accent-primary)] bg-[color-mix(in_srgb,var(--accent-primary)_12%,var(--bg-secondary))] text-primary'
 				: 'border-color bg-accent text-secondary hover:border-[var(--accent-primary)]/45 hover:text-primary'
@@ -158,7 +158,7 @@
 			>
 				<div class="flex items-center justify-between gap-3">
 					<button
-						class="flex min-w-0 flex-1 items-center justify-between gap-3 text-left text-sm font-medium text-primary"
+						class="flex min-w-0 flex-1 items-center justify-between gap-3 text-start text-sm font-medium text-primary"
 						onclick={() => toggleStyle('inlineStyleGlowEnabled')}
 					>
 						<span class="flex items-center gap-2">

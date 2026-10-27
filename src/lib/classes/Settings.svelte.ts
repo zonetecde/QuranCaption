@@ -139,7 +139,7 @@ export default class Settings extends SerializableBase {
 		themeIntensity: 100,
 		dimmedModalBackdrop: false,
 		hasSeenTour: false,
-		language: 'en' as 'en' | 'fr' | 'de' | 'es' | 'zh' | 'id',
+		language: 'en' as 'en' | 'fr' | 'de' | 'es' | 'ar' | 'zh' | 'id',
 		theme: 'default' as
 			| 'default'
 			| 'emerald-forest'

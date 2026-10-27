@@ -72,8 +72,8 @@
 		echo: { primary: 70, secondary: 25 },
 		reverb: { primary: 35, secondary: 22 }
 	});
-	let toolsCopy = $derived(get(LL).tools as unknown as AudioEffectsCopy);
-	let commonCopy = $derived(get(LL).common);
+	let toolsCopy = $derived($LL.tools as unknown as AudioEffectsCopy);
+	let commonCopy = $derived($LL.common);
 	let effects = $derived([
 		{
 			id: 'denoise' as const,

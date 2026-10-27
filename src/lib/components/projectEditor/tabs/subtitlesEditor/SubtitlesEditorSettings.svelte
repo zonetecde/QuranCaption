@@ -24,7 +24,7 @@
 </script>
 
 <div
-	class="h-full min-h-0 space-y-6 overflow-y-auto rounded-lg border border-r-0 border-color bg-secondary px-3 py-6"
+	class="h-full min-h-0 space-y-6 overflow-y-auto rounded-lg border border-e-0 border-color bg-secondary px-3 py-6"
 >
 	<div class="flex items-center justify-center gap-2">
 		<span class="material-icons text-xl text-accent">record_voice_over</span>

@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import { get } from 'svelte/store';
 	import type { Edition } from '$lib/classes';
 	import Settings, {
 		SettingsTab,
@@ -58,7 +57,7 @@
 
 	const PROJECT_TRANSLATION_CONCURRENCY = 3;
 	let { close, edition }: { close: () => void; edition: Edition } = $props();
-	const copy = get(LL).translations as unknown as TranslationCopy;
+	const copy = $derived($LL.translations as unknown as TranslationCopy);
 	let scope = $state('missing');
 	let overwriteManualQuran = $state(false);
 	let additionalPreferences = $state('');

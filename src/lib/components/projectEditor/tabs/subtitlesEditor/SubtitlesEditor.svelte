@@ -59,7 +59,7 @@
 		dataTestId="subtitles-right-panel-resizer"
 	/>
 	<section
-		class="flex-shrink-0 h-full min-h-0 max-h-full overflow-hidden flex flex-col border border-color rounded-lg border-l-0 relative"
+		class="flex-shrink-0 h-full min-h-0 max-h-full overflow-hidden flex flex-col border border-color rounded-lg border-s-0 relative"
 		style={`width: ${globalState.settings!.persistentUiState.projectEditorLayout.subtitlesEditorRightPanelWidth}px;`}
 	>
 		<div
@@ -69,7 +69,7 @@
 			<VideoPreview showControls={false} />
 
 			<button
-				class="flex items-center justify-center w-8 h-8 text-[var(--text-on-hover)] bg-accent/20 hover:bg-accent rounded-full transition-colors cursor-pointer duration-200 absolute top-2 right-2 z-20 border-2 border-color"
+				class="flex items-center justify-center w-8 h-8 text-[var(--text-on-hover)] bg-accent/20 hover:bg-accent rounded-full transition-colors cursor-pointer duration-200 absolute top-2 end-2 z-20 border-2 border-color"
 				onclick={() => {
 					globalState.getVideoPreviewState.togglePlayPause();
 				}}

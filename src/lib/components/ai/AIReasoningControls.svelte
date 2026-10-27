@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { get } from 'svelte/store';
 	import LL from '$lib/i18n/i18n-svelte';
 	import {
 		detectTextAIProvider,
@@ -36,7 +35,7 @@
 		onchange?: (mode: AIReasoningMode) => void;
 	} = $props();
 
-	const copy = get(LL).aiVideo as unknown as ReasoningCopy;
+	const copy = $derived($LL.aiVideo as unknown as ReasoningCopy);
 	const provider = $derived(detectTextAIProvider(endpoint));
 	const supportedModes = $derived(getSupportedAIReasoningModes(endpoint, model));
 	const resolved = $derived(resolveAIReasoning(endpoint, model, mode));

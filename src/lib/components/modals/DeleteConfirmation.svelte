@@ -50,7 +50,7 @@
 				>
 			</div>
 			{#if alsoDeleteFromDisk}
-				<p class="text-xs text-red-400 mt-2 ml-1">
+				<p class="text-xs text-red-400 mt-2 ms-1">
 					{$LL.editor.actionCannotBeUndone()}
 				</p>
 			{/if}

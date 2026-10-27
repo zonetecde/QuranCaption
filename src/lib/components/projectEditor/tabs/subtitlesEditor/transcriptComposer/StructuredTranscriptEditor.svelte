@@ -9,7 +9,6 @@
 		type StructuredTranslationDraft
 	} from '$lib/services/StructuredTranslationService';
 	import type { QuranTranscriptReference } from '$lib/services/TranscriptReferenceService';
-	import { get } from 'svelte/store';
 	import { untrack } from 'svelte';
 	import QuranPassageSelector from './QuranPassageSelector.svelte';
 	import TranscriptAnchorBlock from './TranscriptAnchorBlock.svelte';
@@ -58,7 +57,7 @@
 	let verseSelectorIsNew = $state(false);
 	let nextAnchorId = 0;
 
-	const copy = get(LL).editor as unknown as TranscriptionCopy;
+	const copy = $derived($LL.editor as unknown as TranscriptionCopy);
 	const transcriptDirection = $derived(() => getTranscriptDirection());
 	const transcriptInputHeight = $derived(
 		48 + Math.ceil(Math.max(0, transcriptFontSize - 16) * 1.5)
@@ -371,7 +370,7 @@
 				</button>
 				<button
 					type="button"
-					class={`${FONT_SIZE_BUTTON_CLASS} border-l border-color`}
+					class={`${FONT_SIZE_BUTTON_CLASS} border-s border-color`}
 					aria-label={copy.increaseTranscriptTextSize()}
 					title={copy.increaseTranscriptTextSize()}
 					disabled={transcriptFontSize >= 32}
@@ -381,7 +380,7 @@
 				</button>
 			</div>
 			{#if isEditing}
-				<div class="ml-1 flex items-center gap-2 text-xs font-semibold text-accent-primary">
+				<div class="ms-1 flex items-center gap-2 text-xs font-semibold text-accent-primary">
 					<span class="material-icons text-sm">edit</span>
 					{$LL.editor.editingTranscript()}
 					<button

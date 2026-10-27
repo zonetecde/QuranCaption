@@ -6,9 +6,8 @@
 	import { slide } from 'svelte/transition';
 	import ExportFolderPicker from './ExportFolderPicker.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
-	import { get } from 'svelte/store';
 
-	const LL_ = get(LL);
+	const LL_ = $derived($LL);
 
 	const arabicFormatDescriptions: Record<'Plain' | 'V1' | 'V2', () => string> = {
 		Plain: () => LL_.export.simpleText(),
@@ -175,7 +174,8 @@
 							>
 								{format === 'Plain' ? $LL.export.simpleText() : `QPC ${format[1]}`}
 								<div
-									class="text-xs mt-1 {globalState.settings!.subtitleExportSettings.arabicTextFormat === format
+									class="text-xs mt-1 {globalState.settings!.subtitleExportSettings
+										.arabicTextFormat === format
 										? 'text-black/80'
 										: 'text-thirdly'}"
 								>
@@ -188,7 +188,8 @@
 			</div>
 
 			<div
-				class="flex items-start gap-3 {!globalState.settings!.subtitleExportSettings.includedTarget.arabic
+				class="flex items-start gap-3 {!globalState.settings!.subtitleExportSettings.includedTarget
+					.arabic
 					? 'opacity-50 pointer-events-none'
 					: ''}"
 			>
@@ -206,7 +207,8 @@
 			</div>
 
 			<div
-				class="flex items-start gap-3 {!globalState.settings!.subtitleExportSettings.includedTarget.arabic
+				class="flex items-start gap-3 {!globalState.settings!.subtitleExportSettings.includedTarget
+					.arabic
 					? 'opacity-50 pointer-events-none'
 					: ''}"
 			>

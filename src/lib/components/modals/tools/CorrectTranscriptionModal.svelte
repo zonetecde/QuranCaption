@@ -188,7 +188,7 @@
 		bodyClass="min-h-0 flex-1 overflow-y-auto md:grid md:grid-cols-[minmax(0,1fr)_300px] md:overflow-hidden"
 	>
 		{#snippet subtitle()}{copy.description()}{/snippet}
-		<section class="flex flex-col border-b border-color md:min-h-0 md:border-b-0 md:border-r">
+		<section class="flex flex-col border-b border-color md:min-h-0 md:border-b-0 md:border-e">
 			{#if plan && plan.proposals.length}
 				<div
 					class="flex flex-wrap items-center justify-between gap-3 border-b border-color px-5 py-4"
@@ -196,7 +196,7 @@
 					<div>
 						<h3 class="font-semibold text-primary">
 							{copy.reviewTitle()}
-							<span class="ml-2 rounded-full bg-accent px-2 py-0.5 text-sm text-accent"
+							<span class="ms-2 rounded-full bg-accent px-2 py-0.5 text-sm text-accent"
 								>{plan.proposals.length}</span
 							>
 						</h3>
@@ -260,7 +260,7 @@
 								</button>
 							</div>
 							<div class="grid grid-cols-1 sm:grid-cols-2">
-								<div class="space-y-2 border-b border-color p-4 sm:border-r sm:border-b-0">
+								<div class="space-y-2 border-b border-color p-4 sm:border-e sm:border-b-0">
 									<p class="text-xs font-medium text-secondary">{copy.original()}</p>
 									<p
 										dir="auto"

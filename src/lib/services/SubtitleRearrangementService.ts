@@ -293,8 +293,14 @@ export async function rearrangeProjectSubtitles(
 				const words = block.words.slice(used, used + segment.words.length);
 				used += words.length;
 				const start = Math.round(segment.start * 1000);
-				const end = Math.round(segment.end * 1000);
 				const source = eligible.get(words[0].clipId!)!;
+				const lastWord = words[words.length - 1];
+				const lastSource = eligible.get(lastWord.clipId!)!;
+				// Conserve la marge de fin du clip source sans étendre les coupures internes.
+				const end =
+					lastWord.clipWordIndex === lastSource.alignmentMetadata!.words.length - 1
+						? lastSource.endTime
+						: Math.round(segment.end * 1000);
 				const text = serializeTranscriptBandSelection(
 					words,
 					words[0].globalIndex,

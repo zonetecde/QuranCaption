@@ -212,6 +212,59 @@ test('sends chronological words and immutable silence without old subtitle bound
 	).toHaveLength(2);
 });
 
+test('preserves the final padding before existing silence when splitting and supports undo', async () => {
+	const padded = subtitle(1000, 'one two');
+	padded.endTime = 2500;
+	padded.duration = 1500;
+	padded.alignmentMetadata!.timeTo = 2.5;
+	const original = SubtitleClip.fromJSON<SubtitleClip>(padded.toJSON());
+	const silence = new SilenceClip(2501, 2999);
+	track.clips = [original, silence, subtitle(3000, 'three four')];
+	const before = JSON.stringify(track.toJSON());
+	const plan = await previewProjectSubtitles(
+		project,
+		{ ...options, maxWords: 1 },
+		new AbortController().signal,
+		vi.fn()
+	);
+	expect(JSON.stringify(track.toJSON())).toBe(before);
+	const last = plan.after.find((clip) => clip.text === 'two')!;
+	expect([last.startTime, last.endTime, last.duration]).toEqual([1500, 2500, 1000]);
+	expect(last.alignmentMetadata).toMatchObject({
+		timeFrom: 1.5,
+		timeTo: 2.5,
+		words: [{ word: 'two', start: 0, end: 1, spokenDuration: 0.3 }]
+	});
+	plan.apply();
+	expect(track.clips).toContain(silence);
+	expect(silence.startTime - last.endTime).toBe(1);
+	ProjectHistoryManager.undo();
+	expect(JSON.stringify(globalState.getSubtitleTrack.toJSON())).toBe(before);
+	ProjectHistoryManager.redo();
+	expect(globalState.getSubtitleTrack.clips.find((clip) => clip.id === last.id)?.endTime).toBe(
+		2500
+	);
+});
+
+test('keeps existing padding and translations when the semantic boundaries do not change', async () => {
+	const first = subtitle(0, 'one two');
+	first.translations.french = new VerseTranslation('un deux', 'reviewed');
+	const silence = new SilenceClip(1001, 1999);
+	track.clips = [first, silence, subtitle(2000, 'three four')];
+	const plan = await previewProjectSubtitles(
+		project,
+		options,
+		new AbortController().signal,
+		vi.fn()
+	);
+	expect(plan.before).toEqual([]);
+	expect(plan.after).toEqual([]);
+	plan.apply();
+	expect(track.clips).toContain(first);
+	expect(first.endTime).toBe(1000);
+	expect(first.translations.french.text).toBe('un deux');
+});
+
 test('turns measured one-second pauses into hard boundaries and never displays text over them', async () => {
 	const clip = new SubtitleClip(0, 1600, 'before after', {}, true, null, {
 		source: 'api',

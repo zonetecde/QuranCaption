@@ -1,11 +1,11 @@
-name: Build & Release Minbar Studio
+name: Build & Release Minbar Caption
 
 on:
   workflow_dispatch:
     inputs:
       tag:
         description:
-          'Minbar Studio release tag (e.g. MS-1.0.0). Must match the version in tauri.conf.json.'
+          'Minbar Caption release tag (e.g. MC-1.0.0). Must match the version in tauri.conf.json.'
         required: true
         type: string
       prerelease:
@@ -28,28 +28,28 @@ jobs:
           - os: macos-latest
             target: aarch64-apple-darwin
             args: '--target aarch64-apple-darwin --bundles app,dmg'
-            assetNamePattern: 'MinbarStudio.MacOS.ARM[ext]'
+            assetNamePattern: 'MinbarCaption.MacOS.ARM[ext]'
           - os: macos-15-intel
             target: x86_64-apple-darwin
             args: '--target x86_64-apple-darwin --bundles app,dmg'
-            assetNamePattern: 'MinbarStudio.MacOS.Intel[ext]'
+            assetNamePattern: 'MinbarCaption.MacOS.Intel[ext]'
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             args: '--bundles nsis'
-            assetNamePattern: 'MinbarStudio.Windows[ext]'
+            assetNamePattern: 'MinbarCaption.Windows[ext]'
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             args: '--bundles appimage,deb'
-            assetNamePattern: 'MinbarStudio.Linux[ext]'
+            assetNamePattern: 'MinbarCaption.Linux[ext]'
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
 
     steps:
-      - name: Checkout Minbar Studio branch
+      - name: Checkout Minbar Caption branch
         uses: actions/checkout@v4
         with:
-          ref: minbar-studio
+          ref: minbar-caption
           lfs: true
 
       - name: Install Node.js
@@ -57,13 +57,14 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Validate Minbar Studio tag
+      - name: Validate Minbar Caption tag
+        shell: bash
         env:
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
           APP_VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
-          test "$RELEASE_TAG" = "MS-$APP_VERSION" || {
-            echo "Expected tag MS-$APP_VERSION, received $RELEASE_TAG"
+          test "$RELEASE_TAG" = "MC-$APP_VERSION" || {
+            echo "Expected tag MC-$APP_VERSION, received $RELEASE_TAG"
             exit 1
           }
 
@@ -223,7 +224,7 @@ jobs:
           PUBLIC_POSTHOG_HOST: ${{ secrets.PUBLIC_POSTHOG_HOST }}
         with:
           tagName: ${{ inputs.tag }}
-          releaseName: 'Minbar Studio ${{ inputs.tag }}'
+          releaseName: 'Minbar Caption ${{ inputs.tag }}'
           releaseBody: 'See the changelog below for details.'
           releaseDraft: ${{ inputs.draft }}
           prerelease: ${{ inputs.prerelease }}

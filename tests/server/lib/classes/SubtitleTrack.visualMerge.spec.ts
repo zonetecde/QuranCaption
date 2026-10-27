@@ -145,6 +145,90 @@ describe('subtitle visual merge helpers', () => {
 		expect(second.visualMergeMode).toBeNull();
 	});
 
+	it('permanently merges text, structured translations and absolute word timings', () => {
+		const first = new SubtitleClip(1000, 2000, 'Before {{1:1:1-2}}', {
+			english: new VerseTranslation('Before {{1:1:1-2}}', 'reviewed')
+		});
+		const second = new SubtitleClip(2500, 3500, '{{quote}} {{1:2}} after', {
+			english: new VerseTranslation('{{quotation}} {{1:2}} after', 'reviewed')
+		});
+		const firstTranslation = first.translations.english as VerseTranslation;
+		const secondTranslation = second.translations.english as VerseTranslation;
+		firstTranslation.isStructuredTranslation = true;
+		secondTranslation.isStructuredTranslation = true;
+		firstTranslation.getOrCreateQuranSegment('quran-0', '1:1:1-2', 4).endUnitIndex = 2;
+		const manual = secondTranslation.getOrCreateQuranSegment('quran-1', '1:2', 4);
+		manual.isBruteForce = true;
+		manual.manualText = 'Manual translation';
+		first.alignmentMetadata = {
+			source: 'local',
+			timeFrom: 1,
+			timeTo: 2,
+			words: [{ word: 'first', start: 0, end: 1 }]
+		};
+		second.alignmentMetadata = {
+			source: 'local',
+			timeFrom: 2.5,
+			timeTo: 3.5,
+			words: [{ word: 'second', start: 0, end: 1 }]
+		};
+		const track = new SubtitleTrack();
+		track.clips = [first, second];
+		track.applyVisualMerge([first, second], 'both');
+
+		expect(track.mergeSubtitlesPermanently([second, first])).toBe(true);
+		expect(track.clips).toHaveLength(1);
+		const merged = track.clips[0] as SubtitleClip;
+		expect(merged).toMatchObject({
+			startTime: 1000,
+			endTime: 3500,
+			duration: 2500,
+			text: 'Before {{1:1:1-2}} {{quote}} {{1:2}} after',
+			visualMergeGroupId: null,
+			visualMergeMode: null
+		});
+		expect(merged.alignmentMetadata?.words).toEqual([
+			{ word: 'first', start: 0, end: 1.5 },
+			{ word: 'second', start: 1.5, end: 2.5 }
+		]);
+		const translation = merged.translations.english as VerseTranslation;
+		expect(translation.text).toBe('Before {{1:1:1-2}} {{quotation}} {{1:2}} after');
+		expect(translation.isStructuredTranslation).toBe(true);
+		expect(translation.quranSegments['quran-0'].endUnitIndex).toBe(2);
+		expect(translation.quranSegments['quran-2']).toEqual(manual);
+		expect(translation.quranSegments['quran-2']).not.toBe(manual);
+		expect(secondTranslation.quranSegments['quran-1']).toBe(manual);
+	});
+
+	it('keeps legacy Quran references and translations when permanently merging', () => {
+		const first = createSubtitle(0, 999, 1);
+		const second = createSubtitle(1000, 1999, 2);
+		first.translations.english = new VerseTranslation('First translation', 'reviewed');
+		second.translations.english = new VerseTranslation('Second translation', 'reviewed');
+		const track = new SubtitleTrack();
+		track.clips = [first, second];
+
+		expect(track.mergeSubtitlesPermanently([first, second])).toBe(true);
+		const merged = track.clips[0] as SubtitleClip;
+		expect(merged).not.toBeInstanceOf(QuranSubtitleClip);
+		expect(merged.text).toBe('{{1:1}} {{1:2}}');
+		const translation = merged.translations.english as VerseTranslation;
+		expect(translation.text).toBe('{{1:1}} {{1:2}}');
+		expect(translation.quranSegments['quran-0'].manualText).toBe('First translation');
+		expect(translation.quranSegments['quran-1'].manualText).toBe('Second translation');
+	});
+
+	it('rejects nonadjacent permanent merges without changing the track', () => {
+		const first = new SubtitleClip(0, 1000, 'First');
+		const gap = new SilenceClip(1000, 2000);
+		const second = new SubtitleClip(2000, 3000, 'Second');
+		const track = new SubtitleTrack();
+		track.clips = [first, gap, second];
+
+		expect(track.mergeSubtitlesPermanently([first, second])).toBe(false);
+		expect(track.clips).toEqual([first, gap, second]);
+	});
+
 	it('splits a four-clip visual merge into two groups at the selected boundary', () => {
 		const first = createSubtitle(0, 999, 1);
 		const second = createSubtitle(1000, 1999, 2);

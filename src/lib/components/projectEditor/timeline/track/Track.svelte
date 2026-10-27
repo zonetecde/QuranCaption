@@ -210,6 +210,19 @@
 	}
 
 	/**
+	 * Reunit les deux sous-titres de la frontiere cible en un seul segment.
+	 * @returns {void}
+	 */
+	function applyPermanentQuickMerge(): void {
+		if (!quickMergeContextTarget) return;
+		(track as SubtitleTrack).mergeSubtitlesPermanently([
+			quickMergeContextTarget.leftClip,
+			quickMergeContextTarget.rightClip
+		]);
+		quickMergeContextTarget = null;
+	}
+
+	/**
 	 * Déplace la piste vers le haut sans propager le clic à la timeline.
 	 * @param {MouseEvent} event Evenement du bouton.
 	 * @returns {void}
@@ -425,6 +438,9 @@
 	>
 	<Item on:click={() => applyQuickMergeWithMode('both')}
 		><div class="btn-icon">{$LL.editor.mergeBoth()}</div></Item
+	>
+	<Item on:click={applyPermanentQuickMerge}
+		><div class="btn-icon">{Reflect.get($LL.editor, 'mergePermanently')()}</div></Item
 	>
 </ContextMenu>
 

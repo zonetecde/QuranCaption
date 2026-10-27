@@ -124,6 +124,28 @@ describe('ProjectHistoryManager', () => {
 		).toBe(110);
 	});
 
+	it('undoes and redoes a permanent subtitle merge in one step', () => {
+		const track = globalState.getSubtitleTrack;
+		const first = new SubtitleClip(0, 1000, 'First');
+		const second = new SubtitleClip(1000, 2000, 'Second');
+		track.clips = [first, second];
+		globalState.getSubtitlesEditorState.editSubtitle = second;
+		globalState.getStylesState.selectedSubtitles = [first, second];
+
+		expect(track.mergeSubtitlesPermanently([first, second])).toBe(true);
+		expect(globalState.getSubtitleTrack.clips).toHaveLength(1);
+		expect(globalState.getStylesState.selectedSubtitles).toEqual([track.clips[0]]);
+		expect(globalState.getSubtitlesEditorState.editSubtitle).toBeNull();
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(globalState.getSubtitleTrack.clips.map((clip) => (clip as SubtitleClip).text)).toEqual([
+			'First',
+			'Second'
+		]);
+		expect(ProjectHistoryManager.redo()).toBe(true);
+		expect(globalState.getSubtitleTrack.clips).toHaveLength(1);
+		expect((globalState.getSubtitleTrack.clips[0] as SubtitleClip).text).toBe('First Second');
+	});
+
 	it('groups several mutations in one transaction', () => {
 		const styles = globalState.getVideoStyle.getStylesOfTarget('arabic');
 

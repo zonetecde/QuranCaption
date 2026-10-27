@@ -642,6 +642,7 @@ const editor = {
 	mergeArabic: 'Merge Arabic',
 	mergeTranslation: 'Merge Translation',
 	mergeBoth: 'Merge Both',
+	mergePermanently: 'Merge into one subtitle',
 	splitVisualMergeHere: 'Split visual merge here',
 	quickMergeTooltip: 'Quick merge those subtitles',
 	loopUntilTheEnd: 'Loop until the end',

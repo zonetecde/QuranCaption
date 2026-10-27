@@ -3423,6 +3423,10 @@ type RootTranslation = {
 		 */
 		mergeBoth: string;
 		/**
+		 * M​e​r​g​e​ ​i​n​t​o​ ​o​n​e​ ​s​u​b​t​i​t​l​e
+		 */
+		mergePermanently: string;
+		/**
 		 * S​p​l​i​t​ ​v​i​s​u​a​l​ ​m​e​r​g​e​ ​h​e​r​e
 		 */
 		splitVisualMergeHere: string;
@@ -6053,24 +6057,6 @@ type RootTranslation = {
 	};
 	export: {
 		/**
-		 * C​h​a​p​t​e​r​ ​F​o​r​m​a​t
-		 */
-		chapterFormat: string;
-		/**
-		 * T​e​x​t​ ​f​o​r​m​a​t
-		 */
-		chapterTextFormat: string;
-		/**
-		 * P​l​a​c​e​h​o​l​d​e​r​s​:​ ​{​p​l​a​c​e​h​o​l​d​e​r​s​}
-		 * @param {unknown} placeholders
-		 */
-		chapterPlaceholders: RequiredParams<'placeholders'>;
-		/**
-		 * T​r​a​n​s​l​a​t​i​o​n​ ​f​o​r​ ​{​p​l​a​c​e​h​o​l​d​e​r​}
-		 * @param {unknown} placeholder
-		 */
-		chapterTranslation: RequiredParams<'placeholder'>;
-		/**
 		 * S​u​b​t​i​t​l​e​ ​J​S​O​N
 		 */
 		subtitleJson: string;
@@ -6434,15 +6420,7 @@ type RootTranslation = {
 		 */
 		subtitlesExportDescription: string;
 		/**
-		 * Y​o​u​T​u​b​e​ ​C​h​a​p​t​e​r​s
-		 */
-		youtubeChaptersOption: string;
-		/**
-		 * T​i​m​e​s​t​a​m​p​e​d​ ​c​h​a​p​t​e​r​ ​l​i​s​t
-		 */
-		youtubeChaptersDescription: string;
-		/**
-		 * P​r​o​j​e​c​t​ ​D​a​t​a
+		 * P​r​o​j​e​c​t
 		 */
 		projectDataOption: string;
 		/**
@@ -6547,66 +6525,6 @@ type RootTranslation = {
 		 * G​e​n​e​r​a​t​e​ ​s​u​b​t​i​t​l​e​ ​f​i​l​e​s​ ​w​i​t​h​ ​y​o​u​r​ ​s​e​l​e​c​t​e​d​ ​c​o​n​f​i​g​u​r​a​t​i​o​n
 		 */
 		exportSubtitlesButtonDescription: string;
-		/**
-		 * E​x​p​o​r​t​ ​Y​o​u​T​u​b​e​ ​C​h​a​p​t​e​r​s
-		 */
-		exportYoutubeChapters: string;
-		/**
-		 * G​e​n​e​r​a​t​e​ ​c​h​a​p​t​e​r​ ​t​i​m​e​s​t​a​m​p​s​ ​f​o​r​ ​y​o​u​r​ ​Y​o​u​T​u​b​e​ ​v​i​d​e​o​ ​d​e​s​c​r​i​p​t​i​o​n​.
-		 */
-		exportYoutubeChaptersDescription: string;
-		/**
-		 * C​h​a​p​t​e​r​ ​G​e​n​e​r​a​t​i​o​n
-		 */
-		chapterGeneration: string;
-		/**
-		 * C​h​o​o​s​e​ ​h​o​w​ ​t​o​ ​o​r​g​a​n​i​z​e​ ​y​o​u​r​ ​v​i​d​e​o​ ​c​h​a​p​t​e​r​s​:
-		 */
-		chapterGenerationDescription: string;
-		/**
-		 * E​a​c​h​ ​S​u​r​a​h
-		 */
-		eachSurah: string;
-		/**
-		 * C​h​a​p​t​e​r​ ​p​e​r​ ​S​u​r​a​h
-		 */
-		chapterPerSurah: string;
-		/**
-		 * C​r​e​a​t​e​s​ ​o​n​e​ ​c​h​a​p​t​e​r​ ​f​o​r​ ​e​a​c​h​ ​s​u​r​a​h​ ​i​n​ ​y​o​u​r​ ​v​i​d​e​o​ ​t​i​m​e​l​i​n​e​.
-		 */
-		chapterPerSurahDescription: string;
-		/**
-		 * E​a​c​h​ ​V​e​r​s​e
-		 */
-		eachVerse: string;
-		/**
-		 * C​h​a​p​t​e​r​ ​p​e​r​ ​V​e​r​s​e
-		 */
-		chapterPerVerse: string;
-		/**
-		 * C​r​e​a​t​e​s​ ​o​n​e​ ​c​h​a​p​t​e​r​ ​f​o​r​ ​e​a​c​h​ ​v​e​r​s​e​ ​i​n​ ​y​o​u​r​ ​v​i​d​e​o​ ​t​i​m​e​l​i​n​e​.
-		 */
-		chapterPerVerseDescription: string;
-		/**
-		 * H​o​w​ ​t​o​ ​U​s​e
-		 */
-		howToUse: string;
-		/**
-		 * Y​o​u​T​u​b​e​ ​I​n​t​e​g​r​a​t​i​o​n
-		 */
-		youtubeIntegration: string;
-		/**
-		 * P​a​s​t​e​ ​t​h​e​ ​g​e​n​e​r​a​t​e​d​ ​c​h​a​p​t​e​r​ ​t​i​m​e​s​t​a​m​p​s​ ​i​n​t​o​ ​y​o​u​r​ ​Y​o​u​T​u​b​e​ ​v​i​d​e​o​ ​d​e​s​c​r​i​p​t​i​o​n​ ​t​o​ ​a​d​d​ ​c​h​a​p​t​e​r​s​.
-		 */
-		youtubeIntegrationDescription: string;
-		/**
-		 * E​x​p​o​r​t​ ​Y​o​u​T​u​b​e​ ​C​h​a​p​t​e​r​s
-		 */
-		exportYoutubeChaptersButton: string;
-		/**
-		 * G​e​n​e​r​a​t​e​ ​c​h​a​p​t​e​r​ ​t​i​m​e​s​t​a​m​p​s​ ​f​o​r​ ​y​o​u​r​ ​Y​o​u​T​u​b​e​ ​v​i​d​e​o​ ​d​e​s​c​r​i​p​t​i​o​n
-		 */
-		exportYoutubeChaptersButtonDescription: string;
 		/**
 		 * E​x​p​o​r​t​ ​P​r​o​j​e​c​t​ ​D​a​t​a
 		 */
@@ -13974,6 +13892,10 @@ export type TranslationFunctions = {
 		 */
 		mergeBoth: () => LocalizedString;
 		/**
+		 * Merge into one subtitle
+		 */
+		mergePermanently: () => LocalizedString;
+		/**
 		 * Split visual merge here
 		 */
 		splitVisualMergeHere: () => LocalizedString;
@@ -16576,22 +16498,6 @@ export type TranslationFunctions = {
 	};
 	export: {
 		/**
-		 * Chapter Format
-		 */
-		chapterFormat: () => LocalizedString;
-		/**
-		 * Text format
-		 */
-		chapterTextFormat: () => LocalizedString;
-		/**
-		 * Placeholders: {placeholders}
-		 */
-		chapterPlaceholders: (arg: { placeholders: unknown }) => LocalizedString;
-		/**
-		 * Translation for {placeholder}
-		 */
-		chapterTranslation: (arg: { placeholder: unknown }) => LocalizedString;
-		/**
 		 * Subtitle JSON
 		 */
 		subtitleJson: () => LocalizedString;
@@ -16952,15 +16858,7 @@ export type TranslationFunctions = {
 		 */
 		subtitlesExportDescription: () => LocalizedString;
 		/**
-		 * YouTube Chapters
-		 */
-		youtubeChaptersOption: () => LocalizedString;
-		/**
-		 * Timestamped chapter list
-		 */
-		youtubeChaptersDescription: () => LocalizedString;
-		/**
-		 * Project Data
+		 * Project
 		 */
 		projectDataOption: () => LocalizedString;
 		/**
@@ -17063,66 +16961,6 @@ export type TranslationFunctions = {
 		 * Generate subtitle files with your selected configuration
 		 */
 		exportSubtitlesButtonDescription: () => LocalizedString;
-		/**
-		 * Export YouTube Chapters
-		 */
-		exportYoutubeChapters: () => LocalizedString;
-		/**
-		 * Generate chapter timestamps for your YouTube video description.
-		 */
-		exportYoutubeChaptersDescription: () => LocalizedString;
-		/**
-		 * Chapter Generation
-		 */
-		chapterGeneration: () => LocalizedString;
-		/**
-		 * Choose how to organize your video chapters:
-		 */
-		chapterGenerationDescription: () => LocalizedString;
-		/**
-		 * Each Surah
-		 */
-		eachSurah: () => LocalizedString;
-		/**
-		 * Chapter per Surah
-		 */
-		chapterPerSurah: () => LocalizedString;
-		/**
-		 * Creates one chapter for each surah in your video timeline.
-		 */
-		chapterPerSurahDescription: () => LocalizedString;
-		/**
-		 * Each Verse
-		 */
-		eachVerse: () => LocalizedString;
-		/**
-		 * Chapter per Verse
-		 */
-		chapterPerVerse: () => LocalizedString;
-		/**
-		 * Creates one chapter for each verse in your video timeline.
-		 */
-		chapterPerVerseDescription: () => LocalizedString;
-		/**
-		 * How to Use
-		 */
-		howToUse: () => LocalizedString;
-		/**
-		 * YouTube Integration
-		 */
-		youtubeIntegration: () => LocalizedString;
-		/**
-		 * Paste the generated chapter timestamps into your YouTube video description to add chapters.
-		 */
-		youtubeIntegrationDescription: () => LocalizedString;
-		/**
-		 * Export YouTube Chapters
-		 */
-		exportYoutubeChaptersButton: () => LocalizedString;
-		/**
-		 * Generate chapter timestamps for your YouTube video description
-		 */
-		exportYoutubeChaptersButtonDescription: () => LocalizedString;
 		/**
 		 * Export Project Data
 		 */

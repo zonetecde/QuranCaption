@@ -22,13 +22,17 @@ import { globalState } from '$lib/runes/main.svelte.js';
 import toast from 'svelte-5-french-toast';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
-import { Translation } from './Translation.svelte.js';
+import { Translation, VerseTranslation } from './Translation.svelte.js';
 import type { Category } from './VideoStyle.svelte.js';
 import { open } from '@tauri-apps/plugin-dialog';
 import { resolveCurrentSurahFromClips } from '$lib/services/ExportCaptureTiming';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import { Quran, type Verse } from './Quran.js';
 import { getTranscriptReferenceLogicalParts } from '$lib/services/TranscriptReferenceService';
+import {
+	getStructuredTranslationDraft,
+	serializeStructuredTranslation
+} from '$lib/services/StructuredTranslationService';
 
 export type VisualMergeSelection = {
 	clips: SubtitleClip[];
@@ -1296,6 +1300,122 @@ export class SubtitleTrack extends Track {
 		} finally {
 			ProjectHistoryManager.commit();
 		}
+	}
+
+	/**
+	 * Remplace des sous-titres consecutifs par un seul segment avec leurs textes et timings.
+	 * @param {SubtitleClip[]} selection Sous-titres a reunir definitivement.
+	 * @returns {boolean} `true` si les sous-titres ont ete remplaces.
+	 */
+	mergeSubtitlesPermanently(selection: SubtitleClip[]): boolean {
+		const selected = this.getVisualMergeSelection(selection);
+		if (!selected) return false;
+
+		return ProjectHistoryManager.track('merge subtitles permanently', () => {
+			const clips = selected.clips;
+			const sourceTexts = clips.map((clip) =>
+				clip instanceof QuranSubtitleClip && !getTranscriptReferenceLogicalParts(clip.text)
+					? `{{${clip.surah}:${clip.verse}${clip.isFullVerse ? '' : `:${clip.startWordIndex + 1}-${clip.endWordIndex + 1}`}}}`
+					: clip.text.trim()
+			);
+			const startTime = Math.min(...clips.map((clip) => clip.startTime));
+			const endTime = Math.max(...clips.map((clip) => clip.endTime));
+			const merged = new SubtitleClip(startTime, endTime, sourceTexts.join(' '));
+			merged.id = clips[0].id;
+			merged.associatedImagePath = clips[0].associatedImagePath;
+
+			const editions = new Set(clips.flatMap((clip) => Object.keys(clip.translations)));
+			for (const edition of editions) {
+				const translations = clips.map((clip) => clip.translations[edition]);
+				const translation = new VerseTranslation(
+					'',
+					translations.every((value) => value?.isStatusComplete())
+						? 'reviewed'
+						: translations.every((value) => value && value.status === 'ai translated')
+							? 'ai translated'
+							: 'to translate'
+				);
+				let anchorOffset = 0;
+				const texts: string[] = [];
+				for (const [index, clip] of clips.entries()) {
+					const original = translations[index];
+					const legacyQuran =
+						clip instanceof QuranSubtitleClip && !getTranscriptReferenceLogicalParts(clip.text);
+					const draft = getStructuredTranslationDraft(
+						sourceTexts[index],
+						legacyQuran ? sourceTexts[index] : (original?.text ?? '')
+					);
+					for (const anchor of draft.anchors) {
+						if (anchor.type !== 'quran') continue;
+						const settings =
+							original instanceof VerseTranslation ? original.quranSegments[anchor.id] : null;
+						if (settings) {
+							translation.quranSegments[`quran-${anchorOffset + anchor.index}`] = JSON.parse(
+								JSON.stringify(settings)
+							);
+						} else if (legacyQuran && original) {
+							translation.quranSegments[`quran-${anchorOffset + anchor.index}`] = {
+								reference: anchor.sourceValue,
+								startUnitIndex: 0,
+								endUnitIndex: 0,
+								isBruteForce: true,
+								manualText: original.getText(edition, clip)
+							};
+						}
+					}
+					texts.push(serializeStructuredTranslation(draft).trim());
+					anchorOffset += draft.anchors.length;
+				}
+				translation.text = texts.join(' ').trim();
+				translation.isStructuredTranslation = true;
+				translation.isBruteForce = true;
+				merged.translations[edition] = translation;
+			}
+
+			if (clips.every((clip) => clip.alignmentMetadata?.words.length)) {
+				merged.alignmentMetadata = {
+					source: 'manual',
+					matchedText: merged.text,
+					timeFrom: startTime / 1000,
+					timeTo: endTime / 1000,
+					words: normalizeTranscriptWordTimings(
+						clips.flatMap((clip) => {
+							const metadata = clip.alignmentMetadata!;
+							const offset = metadata.timeFrom - startTime / 1000;
+							return metadata.words.map((word) => ({
+								...word,
+								start: word.start + offset,
+								end: word.end + offset
+							}));
+						}),
+						(endTime - startTime) / 1000
+					)
+				};
+				merged.wbwTimestampsManuallyEdited = clips.some((clip) => clip.wbwTimestampsManuallyEdited);
+			}
+
+			for (const clip of clips) {
+				if (clip.visualMergeGroupId) this.unmergeVisualGroup(clip.visualMergeGroupId, false);
+			}
+			this.clips.splice(selected.startIndex, clips.length, merged);
+			if (globalState.currentProject) {
+				const ids = new Set(clips.map((clip) => clip.id));
+				const styles = globalState.getStylesState;
+				if (styles.selectedSubtitles.some((clip) => ids.has(clip.id))) {
+					styles.selectedSubtitles = [
+						...styles.selectedSubtitles.filter((clip) => !ids.has(clip.id)),
+						merged
+					];
+				}
+				const editor = globalState.getSubtitlesEditorState;
+				if (editor.editSubtitle && ids.has(editor.editSubtitle.id)) {
+					editor.editSubtitle = null;
+					editor.pendingSplitEditNextId = null;
+				}
+			}
+			globalState.updateVideoPreviewUI();
+			return true;
+		});
 	}
 
 	/**

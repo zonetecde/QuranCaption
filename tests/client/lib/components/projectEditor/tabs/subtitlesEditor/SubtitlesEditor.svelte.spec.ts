@@ -118,7 +118,7 @@ describe('Subtitles editor workflow', () => {
 		expect(component.container.textContent).toContain(
 			'Translated {Manual verse translation} translated quotation end'
 		);
-		expect(fixture.subtitleTrack.clips[0].text).toBe('Before {{1:1:1-2}} {{quotation}} after');
+		expect(subtitle.text).toBe('Before {{1:1:1-2}} {{quotation}} after');
 		expect(translation.text).toBe('Translated {{1:1:1-2}} {{translated quotation}} end');
 		fixture.spies.getStyle.mockReturnValue({ value: true } as never);
 		subtitle.text = 'Before {{1:1}} {{quotation}} after';

@@ -2,6 +2,7 @@ import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { Quran } from '$lib/classes/Quran';
 import type { SubtitleClip, TranscriptWordTiming } from '$lib/classes/Clip.svelte';
 import type { AITranscriptionResult } from '$lib/types/transcription';
+import { spaceStructuredTranslationMarkers } from '$lib/services/StructuredTranslationService';
 import {
 	formatTranscriptReferencesForExport,
 	getTranscriptReferenceLogicalParts,
@@ -165,7 +166,12 @@ async function buildAssignedTranscriptBandWords(
 		let sourceWords = clip.alignmentMetadata?.words ?? [];
 		const estimatedTiming = sourceWords.length === 0;
 		if (estimatedTiming) {
-			const text = await formatTranscriptReferencesForExport(clip.text, 'Plain', false, false);
+			const text = await formatTranscriptReferencesForExport(
+				spaceStructuredTranslationMarkers(clip.text),
+				'Plain',
+				false,
+				false
+			);
 			const plainWords = text.trim().split(/\s+/u).filter(Boolean);
 			const wordDuration = Math.max(0, clip.endTime - clip.startTime) / plainWords.length / 1000;
 			sourceWords = plainWords.map((word, index) => ({

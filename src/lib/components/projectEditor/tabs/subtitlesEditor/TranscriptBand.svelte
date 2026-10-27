@@ -78,6 +78,11 @@
 		initializedClipId = currentClipId;
 		initializedWords = currentWords;
 		selectedRange = getTranscriptBandClipRange(currentWords, currentClipId);
+		if (currentClipId !== null) {
+			void tick().then(() => {
+				if (editedClipId === currentClipId) centerClipWords(currentClipId);
+			});
+		}
 	});
 
 	$effect(() => {
@@ -244,7 +249,7 @@
 				<button
 					type="button"
 					bind:this={wordElements[word.globalIndex]}
-					class={`transcript-word arabic -mx-px shrink-0 rounded-md border px-2 py-1 text-lg leading-relaxed transition ${getWordClass(word)} ${isSelected ? 'transcript-word-selected' : ''} ${isSelected && word.kind === 'plain' ? 'transcript-word-selected-plain' : ''} ${isPlaybackActive ? 'transcript-word-playback-active' : ''} ${selectionBoundaryClass}`}
+					class={`transcript-word -mx-px shrink-0 rounded-md border px-2 py-1 text-lg leading-relaxed transition ${getWordClass(word)} ${isSelected ? 'transcript-word-selected' : ''} ${isSelected && word.kind === 'plain' ? 'transcript-word-selected-plain' : ''} ${isPlaybackActive ? 'transcript-word-playback-active' : ''} ${selectionBoundaryClass}`}
 					onmousedown={(event) => handleMouseDown(event, word.globalIndex)}
 					onmouseenter={() => handleMouseEnter(word.globalIndex)}
 					onclick={() => {
@@ -266,6 +271,7 @@
 	}
 
 	.transcript-word {
+		font-family: 'Noto Sans Arabic', sans-serif;
 		user-select: none;
 	}
 

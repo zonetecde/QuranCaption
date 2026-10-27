@@ -352,12 +352,13 @@ export class ProjectTranslation extends SerializableBase {
 			quranEdition
 		);
 
-		this.addedTranslationEditions.push(projectLanguage);
 		this.versesTranslations[name] = await this.downloadReferencedQuranTranslations(projectLanguage);
 
 		for (const subtitle of globalState.getSubtitleClips) {
 			subtitle.translations[name] = this.createTranslationForText(subtitle.text);
 		}
+
+		this.addedTranslationEditions.push(projectLanguage);
 
 		await globalState.getVideoStyle.addStylesForEdition(name);
 		return projectLanguage;

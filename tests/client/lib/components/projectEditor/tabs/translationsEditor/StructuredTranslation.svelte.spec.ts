@@ -19,6 +19,7 @@ import { VerseTranslation } from '$lib/classes/Translation.svelte';
 import EditionViewer from '$lib/components/projectEditor/tabs/translationsEditor/leftPanel/EditionViewer.svelte';
 import TranslationsEditorSettings from '$lib/components/projectEditor/tabs/translationsEditor/leftPanel/TranslationsEditorSettings.svelte';
 import ArabicText from '$lib/components/projectEditor/tabs/translationsEditor/workspace/ArabicText.svelte';
+import Workspace from '$lib/components/projectEditor/tabs/translationsEditor/workspace/Workspace.svelte';
 import Translation from '$lib/components/projectEditor/tabs/translationsEditor/workspace/translation/Translation.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
 import { loadLocale } from '$lib/i18n/i18n-util.sync';
@@ -100,6 +101,39 @@ describe('Structured translation editor', () => {
 		subtitle.translations[edition.name] = translation;
 		return subtitle;
 	}
+
+	test('initializes a second language before exposing it to the mounted workspace', async () => {
+		const subtitle = createSubtitle('Source', 'Existing translation');
+		globalState.getSubtitleTrack.clips.push(subtitle);
+		Object.assign(globalState.currentProject!, { save: vi.fn().mockResolvedValue(undefined) });
+		let finishDownload!: () => void;
+		const download = new Promise<void>((resolve) => {
+			finishDownload = resolve;
+		});
+		vi.spyOn(projectTranslation, 'downloadReferencedQuranTranslations').mockImplementation(
+			async () => {
+				await download;
+				return {};
+			}
+		);
+		vi.spyOn(globalState.getVideoStyle, 'addStylesForEdition').mockResolvedValue(undefined);
+		const component = render(Workspace, { setAddTranslationModalVisibility: vi.fn() });
+		await tick();
+
+		const adding = projectTranslation.addLanguage('English', edition.quranEdition!);
+		await tick();
+		expect(projectTranslation.addedTranslationEditions).toHaveLength(1);
+		expect(component.container.querySelectorAll('textarea')).toHaveLength(1);
+
+		finishDownload();
+		const addedEdition = await adding;
+		await tick();
+		expect(projectTranslation.addedTranslationEditions).toHaveLength(2);
+		expect(subtitle.getTranslation(addedEdition)).toBeInstanceOf(VerseTranslation);
+		expect(
+			Array.from(component.container.querySelectorAll('textarea'), (input) => input.value)
+		).toEqual(['Existing translation', '']);
+	});
 
 	test('opens AI video translation from the selected language card', async () => {
 		const onTranslateWithAi = vi.fn();

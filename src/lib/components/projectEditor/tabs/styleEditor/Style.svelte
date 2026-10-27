@@ -863,7 +863,11 @@
 				{:else if style.valueType === 'color'}
 					<ColorControl value={inputValue} onChange={applyValue} />
 				{:else if style.id === 'font-family'}
-					<FontFamilyControl value={inputValue} onChange={applySelectValue} />
+					<FontFamilyControl
+						value={inputValue}
+						onChange={applySelectValue}
+						allowQuranFonts={target === 'arabic-quran'}
+					/>
 				{:else if style.valueType === 'select'}
 					<SelectControl {style} value={inputValue} onChange={applySelectValue} />
 				{:else if style.valueType === 'brackets-font'}

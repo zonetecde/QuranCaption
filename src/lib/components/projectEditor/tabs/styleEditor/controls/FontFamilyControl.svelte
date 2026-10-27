@@ -26,16 +26,29 @@
 	const BUILTIN_FONTS: FontOption[] = [
 		{ value: 'QPC2', label: 'Uthamic Mushaf QPC2', preview: 'qpc2' },
 		{ value: 'QPC1', label: 'Uthamic Mushaf QPC1', preview: 'qpc1' },
+		{
+			value: 'IBM Plex Sans Arabic Medium',
+			label: 'IBM Plex Sans Arabic Medium',
+			preview: 'arabic'
+		},
 		{ value: 'Noto Sans Arabic', label: 'Noto Sans Arabic', preview: 'arabic' },
 		{ value: 'Hafs', label: 'Hafs', preview: 'arabic' },
 		{ value: 'IndoPak', label: 'IndoPak', preview: 'arabic' },
 		{ value: 'Soosi', label: 'Soosi (Abu Amr)', preview: 'arabic' }
 	];
 	const BUILTIN_FONT_VALUES = new Set(BUILTIN_FONTS.map((font) => font.value));
+	const QURAN_FONT_VALUES = new Set(['QPC1', 'QPC2', 'Hafs', 'IndoPak', 'Soosi']);
 
 	let availableFontsPromise: Promise<string[]> | null = null;
-	let { value, onChange }: { value: StyleControlValue; onChange: (value: string) => void } =
-		$props();
+	let {
+		value,
+		onChange,
+		allowQuranFonts = false
+	}: {
+		value: StyleControlValue;
+		onChange: (value: string) => void;
+		allowQuranFonts?: boolean;
+	} = $props();
 
 	let isOpen = $state(false);
 	let isImporting = $state(false);
@@ -91,7 +104,7 @@
 			...systemFonts
 				.filter((font) => !BUILTIN_FONT_VALUES.has(font))
 				.map((font) => ({ value: font, label: font, preview: 'latin' as const }))
-		];
+		].filter((font) => allowQuranFonts || !QURAN_FONT_VALUES.has(font.value));
 		return query
 			? fonts.filter((font) => `${font.label} ${font.value}`.toLocaleLowerCase().includes(query))
 			: fonts;

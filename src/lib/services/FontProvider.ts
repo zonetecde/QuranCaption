@@ -693,6 +693,7 @@ export class QPCFontProvider {
 	private static isAppProvidedFontFamily(fontFamily: string): boolean {
 		return (
 			fontFamily.startsWith('QCImported-') ||
+			fontFamily === 'IBM Plex Sans Arabic Medium' ||
 			fontFamily === 'Noto Sans Arabic' ||
 			fontFamily === 'Hafs' ||
 			fontFamily === 'IndoPak' ||

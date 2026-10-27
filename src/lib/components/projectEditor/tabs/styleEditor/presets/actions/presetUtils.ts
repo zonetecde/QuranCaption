@@ -243,6 +243,7 @@ export async function checkMissingFonts(styleData: VideoStyleFileData): Promise<
 
 	// Polices toujours disponibles (embarquées dans l'app)
 	const builtin = [
+		'IBM Plex Sans Arabic Medium',
 		'Noto Sans Arabic',
 		'Hafs',
 		'IndoPak',

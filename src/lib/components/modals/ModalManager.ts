@@ -12,7 +12,6 @@ import SpeechToTextModal from './tools/SpeechToTextModal.svelte';
 import RearrangeSubtitlesModal from './tools/RearrangeSubtitlesModal.svelte';
 import DetectReferencesModal from './tools/DetectReferencesModal.svelte';
 import CorrectTranscriptionModal from './tools/CorrectTranscriptionModal.svelte';
-import BookmarkVerseModal from './BookmarkVerseModal.svelte';
 import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
 import AiWbwTranslationModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiWbwTranslationModal.svelte';
 import AskIAModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AskIAModal.svelte';
@@ -318,27 +317,6 @@ export default class ModalManager {
 					},
 					initialClipId,
 					initialEffectId
-				}
-			});
-		});
-	}
-
-	static async bookmarkVerseModal(surah: number, verse: number): Promise<void> {
-		return new Promise<void>((resolve) => {
-			const container = document.createElement('div');
-			container.classList.add('modal-wrapper');
-			document.body.appendChild(container);
-
-			const modal = mount(BookmarkVerseModal, {
-				target: container,
-				props: {
-					surah,
-					verse,
-					resolve: () => {
-						unmount(modal);
-						container.remove();
-						resolve();
-					}
 				}
 			});
 		});

@@ -1,13 +1,6 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
 	import Settings from '$lib/classes/Settings.svelte';
-	import {
-		mapLocalThemeToQuranPreference,
-		quranAuthService
-	} from '$lib/services/QuranAuthService.svelte';
-	import toast from 'svelte-5-french-toast';
-	import LL from '$lib/i18n/i18n-svelte';
-	import { get } from 'svelte/store';
 
 	export type ThemeId =
 		| 'default'
@@ -39,15 +32,6 @@
 		if (globalState.settings) {
 			globalState.settings.persistentUiState.theme = theme.id;
 			await Settings.save();
-
-			if (quranAuthService.publicState.status !== 'connected') return;
-
-			try {
-				await quranAuthService.updateThemePreference(mapLocalThemeToQuranPreference(theme.id));
-			} catch (error) {
-				console.error('Failed to update Quran.com theme preference:', error);
-				toast.error(get(LL).settings.unableToSyncTheme());
-			}
 		}
 	}
 </script>

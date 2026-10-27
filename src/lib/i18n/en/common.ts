@@ -115,41 +115,9 @@ const common = {
 	thanksForReview: 'Thanks for your review.',
 	thanksForFeedback: 'Thanks for your feedback.',
 	unableToSendMessage: 'Unable to send message.',
-	bookmarkVerse: 'Bookmark Verse',
-	addVerseToCollections: 'Add verse {key} to one or more Quran.com collections.',
-	loadingCollections: 'Loading your Quran.com collections...',
-	collectionError: 'Collection error',
-	availableCollections: 'Available collections',
-	hideForm: 'Hide form',
-	newCollection: 'New collection',
-	createFirstCollection: 'Create your first collection',
-	createNewCollection: 'Create a new collection',
-	newCollectionDescription:
-		'The new collection will be created on Quran.com and selected automatically.',
-	collectionName: 'Collection name',
-	creating: 'Creating...',
-	create: 'Create',
-	noCollectionsFound: 'No collections found yet',
-	createOneAbove: 'Create one above, then bookmark verse {key} into it.',
-	updatedDate: 'Updated {date}',
-	collectionsSelected: '{count} collection{plural} selected',
-	saveChanges: 'Save changes',
-	unableToLoadCollections: 'Unable to load your Quran.com collections.',
-	collectionCreated: 'Collection "{name}" created.',
-	unableToCreateCollection: 'Unable to create this collection.',
-	unableToUpdateVerse: 'Unable to update verse {verseKey} in the selected collections.',
-	addedToCollection: 'added to 1 collection',
-	addedToCollections: 'added to {count} collections',
-	removedFromCollection: 'removed from 1 collection',
-	removedFromCollections: 'removed from {count} collections',
-	verseWasUpdated: 'Verse {verseKey} was {changes}.',
-	someOperationsFailed: 'Some operations failed: {list}',
-	saving: 'Saving...',
 	finishButton: 'Finish',
 	aiKeyDescription:
-		'Configure your AI API key and endpoint to enable AI-powered features like translation, segmentation, and trimming.',
-	quranComDescription:
-		'Connect your Quran.com account to sync bookmarks, collections, and reading progress.'
+		'Configure your AI API key and endpoint to enable AI-powered features like translation, segmentation, and trimming.'
 };
 
 export default common;

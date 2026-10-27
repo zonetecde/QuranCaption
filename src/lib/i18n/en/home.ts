@@ -83,9 +83,6 @@ const home = {
 	autosave: 'Autosave',
 	searchProject: 'Search project',
 	needAssistance: 'Need Assistance?',
-	assistanceDescription:
-		'Watch the walkthrough below or open the full documentation for more details.',
-	minbarCaptionOverview: 'Minbar Caption Overview',
 	openOnlineDocumentation: 'Open Online Documentation',
 	githubRepo: 'GitHub Repo',
 	documentation: 'Documentation',

@@ -206,18 +206,6 @@
 							close
 						</button>
 					</div>
-					<p class="text-thirdly text-left text-xs mb-3">
-						{$LL.home.assistanceDescription()}
-					</p>
-					<div class="rounded-md overflow-hidden border border-color mb-3">
-						<iframe
-							class="w-full aspect-video"
-							src="https://www.youtube.com/embed/vCRUjzATRDk"
-							title={$LL.home.minbarCaptionOverview()}
-							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-							allowfullscreen
-						></iframe>
-					</div>
 					<!-- svelte-ignore node_invalid_placement_ssr -->
 					<button
 						class="btn-accent w-full text-center py-2 text-sm font-medium"

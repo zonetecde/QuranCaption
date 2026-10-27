@@ -1,7 +1,5 @@
 /// Commandes IA de trimming/traduction.
 pub mod ai_translation;
-/// Commandes d'authentification sécurisée Quran.com.
-pub mod auth;
 /// Commandes de diagnostic des binaires.
 pub mod diagnostics;
 /// Commandes Discord RPC.

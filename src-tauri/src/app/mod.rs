@@ -8,12 +8,6 @@ mod invoke;
 
 static NEXT_WINDOW_ID: AtomicU64 = AtomicU64::new(1);
 
-/// Returns whether the second launch was triggered by a Minbar Caption deep link.
-fn is_deep_link_launch(argv: &[String]) -> bool {
-    argv.iter()
-        .any(|arg| arg.to_ascii_lowercase().starts_with("minbarcaption://"))
-}
-
 /// Opens an additional main window using the existing Tauri window configuration.
 fn open_additional_window(app: &tauri::AppHandle) {
     let app = app.clone();
@@ -37,15 +31,11 @@ pub fn run() {
     let builder = if cfg!(debug_assertions) {
         builder
     } else {
-        builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
-            // The deep-link plugin handles the callback before this closure.
-            if !is_deep_link_launch(&argv) {
-                open_additional_window(app);
-            }
+        builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            open_additional_window(app);
         }))
     };
     let builder = builder
-        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_fs::init())

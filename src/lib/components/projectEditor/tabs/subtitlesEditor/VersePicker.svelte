@@ -4,6 +4,7 @@
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
+	import { openUrl } from '@tauri-apps/plugin-opener';
 
 	const LL_ = get(LL);
 
@@ -62,23 +63,13 @@
 			<div
 				class="group transition-opacity text-sm text-[var(--text-secondary)] absolute top-4.5 left-3.5 bg-primary px-3 w-[400px] py-3 border-2 border-[var(--border-color)]/90 rounded-lg max-h-[400px] overflow-auto z-20 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
 			>
-				<div class="space-y-2 mb-3">
-					<div class="text-secondary text-sm font-semibold">
-						{$LL.editor.needVisualWalkthrough()}
-					</div>
-					<p class="text-xs text-thirdly">
-						{$LL.editor.walkthroughDescription()}
-					</p>
-					<div class="relative w-full overflow-hidden rounded-md border border-color">
-						<iframe
-							class="w-full aspect-video"
-							src="https://www.youtube.com/embed/vCRUjzATRDk?start=35"
-							title={$LL.editor.transcriptionWalkthrough()}
-							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-							allowfullscreen
-						></iframe>
-					</div>
-				</div>
+				<button
+					class="btn-accent w-full text-center py-2 text-sm font-medium"
+					type="button"
+					onclick={() => openUrl('https://minbarcaption.com/documentation')}
+				>
+					{$LL.editor.openOnlineDocumentation()}
+				</button>
 
 				<div class="border-t border-color my-3"></div>
 

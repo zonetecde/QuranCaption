@@ -13,9 +13,7 @@
 		getClipPrimaryReviewIssueCategory,
 		markClipAsVerified
 	} from '$lib/classes/Clip.svelte';
-	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState, type QuickTimelineEditorMode } from '$lib/runes/main.svelte';
-	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
 	import ContextMenu, { Divider, Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
 	import type { SubtitleTrack } from '$lib/classes/Track.svelte';
@@ -197,8 +195,6 @@
 							: ''
 			: ''
 	);
-
-	const canBookmarkWithQuran = $derived(() => quranAuthService.publicState.status === 'connected');
 
 	/**
 	 * Retourne le libellé à afficher pour un mot WBW sur la timeline.
@@ -502,16 +498,6 @@
 		await openQuickTimelineEditorFromContextMenu('subtitle');
 	}
 
-	async function bookmarkVerseFromContextMenu(): Promise<void> {
-		if (!canBookmarkWithQuran()) return;
-		if (!(clip instanceof SubtitleClip)) return;
-
-		currentMenu.set(null);
-		await tick();
-		if (clip instanceof QuranSubtitleClip)
-			await ModalManager.bookmarkVerseModal(clip.surah, clip.verse);
-	}
-
 	/**
 	 * Retire le merge visuel du groupe du clip courant.
 	 * @returns {Promise<void>}
@@ -786,20 +772,6 @@
 			>{$LL.editor.removeSubtitleContext()}
 		</div></Item
 	>
-	{#if clip.type === 'Subtitle' && canBookmarkWithQuran()}
-		<Divider />
-		<Item
-			on:click={bookmarkVerseFromContextMenu}
-			disabled={!canBookmarkWithQuran()}
-			title={!canBookmarkWithQuran()
-				? $LL.editor.connectQuranComFirst()
-				: $LL.editor.addVerseToCollection()}
-			><div class="btn-icon">
-				<span class="material-icons-outlined text-sm mr-1">bookmark_add</span
-				>{$LL.editor.bookmarkContext()}
-			</div></Item
-		>
-	{/if}
 	{#if clip.type === 'Subtitle'}
 		<Divider />
 		<Item on:click={editSubtitleFromQuickEditorContextMenu}

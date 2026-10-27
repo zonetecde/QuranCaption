@@ -56,7 +56,6 @@
 		"core:window:allow-minimize",
 		"core:window:allow-start-dragging",
 		"dialog:default",
-		"deep-link:default",
 		"notification:default",
 		"store:default",
 		"core:webview:allow-create-webview",

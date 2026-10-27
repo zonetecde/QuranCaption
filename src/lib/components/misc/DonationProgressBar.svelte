@@ -6,7 +6,7 @@
 	import { get } from 'svelte/store';
 	import toast from 'svelte-5-french-toast';
 
-	const DONATION_API_URL = 'https://api.qurancaption.com/donation/progress';
+	const DONATION_API_URL = 'https://api.qurancaption.com/donation/progress?product=minbar-caption';
 	const CACHE_MS = 5 * 60 * 1000;
 	const BANNER_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000;
 

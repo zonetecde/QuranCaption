@@ -28,6 +28,17 @@ export type CommunityPresetTag = {
 	count: number;
 };
 
+export type HomepageMessage = {
+	enabled: boolean;
+	title: string;
+	description: string;
+	playStoreUrl: string | null;
+	qrCodeUrl: string | null;
+	imageUrls: string[];
+	fingerprint: string;
+	updatedAt: string;
+};
+
 export type CommunityPresetListParams = {
 	search?: string;
 	tag?: string;
@@ -156,6 +167,25 @@ export async function getPopularTags(): Promise<CommunityPresetTag[]> {
 	await assertOk(response);
 	const data = (await response.json()) as { tags?: CommunityPresetTag[] };
 	return Array.isArray(data.tags) ? data.tags : [];
+}
+
+/**
+ * Loads the independent Minbar Caption homepage announcement.
+ * @returns {Promise<HomepageMessage>} Current announcement, which may be disabled.
+ */
+export async function getHomepageMessage(): Promise<HomepageMessage> {
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), 5000);
+	try {
+		const response = await fetch(`${getApiBaseUrl()}/homepage-message/minbar-caption`, {
+			signal: controller.signal,
+			cache: 'no-store'
+		});
+		await assertOk(response);
+		return (await response.json()) as HomepageMessage;
+	} finally {
+		clearTimeout(timeout);
+	}
 }
 
 /**

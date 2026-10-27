@@ -20,6 +20,7 @@
 	import InputWithIcon from '../misc/InputWithIcon.svelte';
 	import ModalManager from '../modals/ModalManager';
 	import Footer from './Footer.svelte';
+	import HomepageMessageBanner from '../misc/HomepageMessageBanner.svelte';
 	import FilterMenu from './FilterMenu.svelte';
 	import SortMenu from './SortMenu.svelte';
 	import ProjectDetailCard from './ProjectDetailCard.svelte';
@@ -495,6 +496,7 @@
 
 <div class="flex min-h-full flex-col overflow-auto overflow-x-hidden">
 	<div class="mb-8 mt-8 flex-grow px-4 xl:px-12 xl:mt-14">
+		<HomepageMessageBanner />
 		<div placeholder={$LL.home.upperSection()} class="flex gap-4 flex-row items-center">
 			<section>
 				<h2 class="text-4xl font-bold">{$LL.home.welcomeBack()}</h2>

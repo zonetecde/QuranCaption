@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	getCommunityPresetStyle,
+	getHomepageMessage,
 	getPopularTags,
 	likeCommunityPreset,
 	listCommunityPresets,
@@ -25,6 +26,17 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Minbar community style library', () => {
+	it('loads only the independent Minbar homepage announcement', async () => {
+		await getHomepageMessage();
+		expect(String(fetchMock.mock.calls[0][0])).toBe(
+			'https://styles.example.test/homepage-message/minbar-caption'
+		);
+		expect(fetchMock.mock.calls[0][1]).toMatchObject({
+			cache: 'no-store',
+			signal: expect.any(AbortSignal)
+		});
+	});
+
 	it('lists and filters only the Minbar library and tags', async () => {
 		await listCommunityPresets({ search: ' sermon ', tag: ' clean ', orientation: 'portrait' });
 		const url = fetchMock.mock.calls[0][0] as URL;

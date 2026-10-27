@@ -7,6 +7,7 @@
 	import { Translation, VerseTranslation } from '$lib/classes/Translation.svelte';
 	import { getTranscriptReferenceRenderParts } from '$lib/components/projectEditor/videoPreview/helpers/transcriptReferences';
 	import { prefetchTranscriptReferences } from '$lib/services/TranscriptReferenceService';
+	import { spaceStructuredTranslationMarkers } from '$lib/services/StructuredTranslationService';
 
 	const TRANSCRIPT_LIST_PAGE_SIZE = 80;
 	const AUTO_SCROLL_THROTTLE_MS = 250;
@@ -49,7 +50,11 @@
 	): ReturnType<typeof getTranscriptReferenceRenderParts> {
 		const _ = referenceRenderVersion;
 		return (
-			getTranscriptReferenceRenderParts(text, 'Uthmani', 'Hafs')?.map((part) =>
+			getTranscriptReferenceRenderParts(
+				spaceStructuredTranslationMarkers(text),
+				'Uthmani',
+				'Hafs'
+			)?.map((part) =>
 				part.isQuran && part.suffix
 					? {
 							...part,

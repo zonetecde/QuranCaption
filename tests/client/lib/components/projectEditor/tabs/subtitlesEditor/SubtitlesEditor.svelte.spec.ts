@@ -126,6 +126,19 @@ describe('Subtitles editor workflow', () => {
 			expect(component.container.textContent).toContain('{W1V1-1 W1V1-2 W1V1-3 1}');
 		});
 		expect(component.container.textContent).not.toContain('\u06dd');
+
+		subtitle.text = 'Before{{1:1}}{{quotation}}after';
+		translation.text = 'Translated{{1:1}}{{translated quotation}}end';
+		await vi.waitFor(() => {
+			expect(component.container.textContent).toContain(
+				'Before {W1V1-1 W1V1-2 W1V1-3 1} quotation after'
+			);
+			expect(component.container.textContent).toContain(
+				'Translated {Manual verse translation} translated quotation end'
+			);
+		});
+		expect(subtitle.text).toBe('Before{{1:1}}{{quotation}}after');
+		expect(translation.text).toBe('Translated{{1:1}}{{translated quotation}}end');
 	});
 
 	test('saves a transcript without any speaker controls or speaker argument', async () => {

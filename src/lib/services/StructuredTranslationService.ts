@@ -5,6 +5,15 @@ import {
 
 const MARKER_REGEX = /\{\{([^{}]*)\}\}/g;
 
+/**
+ * Sépare les marqueurs du texte voisin pour leur affichage sans modifier le contenu stocké.
+ * @param {string} text Texte structuré à afficher.
+ * @returns {string} Texte avec un espace aux limites des marqueurs qui en manquent.
+ */
+export function spaceStructuredTranslationMarkers(text: string): string {
+	return text.replace(/(\S)(\{\{)/g, '$1 $2').replace(/(\}\})(?=\S)/g, '$1 ');
+}
+
 export type StructuredTranslationAnchor = {
 	id: string;
 	index: number;

@@ -14,6 +14,7 @@ import {
 	createStructuredTranslationSkeleton,
 	getStructuredTranslationDraft,
 	getUniqueQuranReferences,
+	spaceStructuredTranslationMarkers,
 	isCompleteQuranOnlySubtitle
 } from '$lib/services/StructuredTranslationService';
 
@@ -419,12 +420,16 @@ export class ProjectTranslation extends SerializableBase {
 	): string {
 		if (!translation.isStructuredTranslation) return translation.text;
 
-		const draft = getStructuredTranslationDraft(subtitle.text, translation.text);
+		const draft = getStructuredTranslationDraft(
+			subtitle.text,
+			wrapQuranReferences ? spaceStructuredTranslationMarkers(translation.text) : translation.text
+		);
 		let resolved = '';
 
 		for (let index = 0; index < draft.anchors.length; index++) {
 			const anchor = draft.anchors[index];
 			resolved += draft.freeTexts[index] ?? '';
+			if (wrapQuranReferences && resolved && !/\s$/.test(resolved)) resolved += ' ';
 			if (anchor.type === 'citation') {
 				resolved += anchor.value;
 				continue;

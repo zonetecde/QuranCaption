@@ -485,134 +485,6 @@ type RootTranslation = {
 		 */
 		unableToSendMessage: string;
 		/**
-		 * B​o​o​k​m​a​r​k​ ​V​e​r​s​e
-		 */
-		bookmarkVerse: string;
-		/**
-		 * A​d​d​ ​v​e​r​s​e​ ​{​k​e​y​}​ ​t​o​ ​o​n​e​ ​o​r​ ​m​o​r​e​ ​Q​u​r​a​n​.​c​o​m​ ​c​o​l​l​e​c​t​i​o​n​s​.
-		 * @param {unknown} key
-		 */
-		addVerseToCollections: RequiredParams<'key'>;
-		/**
-		 * L​o​a​d​i​n​g​ ​y​o​u​r​ ​Q​u​r​a​n​.​c​o​m​ ​c​o​l​l​e​c​t​i​o​n​s​.​.​.
-		 */
-		loadingCollections: string;
-		/**
-		 * C​o​l​l​e​c​t​i​o​n​ ​e​r​r​o​r
-		 */
-		collectionError: string;
-		/**
-		 * A​v​a​i​l​a​b​l​e​ ​c​o​l​l​e​c​t​i​o​n​s
-		 */
-		availableCollections: string;
-		/**
-		 * H​i​d​e​ ​f​o​r​m
-		 */
-		hideForm: string;
-		/**
-		 * N​e​w​ ​c​o​l​l​e​c​t​i​o​n
-		 */
-		newCollection: string;
-		/**
-		 * C​r​e​a​t​e​ ​y​o​u​r​ ​f​i​r​s​t​ ​c​o​l​l​e​c​t​i​o​n
-		 */
-		createFirstCollection: string;
-		/**
-		 * C​r​e​a​t​e​ ​a​ ​n​e​w​ ​c​o​l​l​e​c​t​i​o​n
-		 */
-		createNewCollection: string;
-		/**
-		 * T​h​e​ ​n​e​w​ ​c​o​l​l​e​c​t​i​o​n​ ​w​i​l​l​ ​b​e​ ​c​r​e​a​t​e​d​ ​o​n​ ​Q​u​r​a​n​.​c​o​m​ ​a​n​d​ ​s​e​l​e​c​t​e​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​.
-		 */
-		newCollectionDescription: string;
-		/**
-		 * C​o​l​l​e​c​t​i​o​n​ ​n​a​m​e
-		 */
-		collectionName: string;
-		/**
-		 * C​r​e​a​t​i​n​g​.​.​.
-		 */
-		creating: string;
-		/**
-		 * C​r​e​a​t​e
-		 */
-		create: string;
-		/**
-		 * N​o​ ​c​o​l​l​e​c​t​i​o​n​s​ ​f​o​u​n​d​ ​y​e​t
-		 */
-		noCollectionsFound: string;
-		/**
-		 * C​r​e​a​t​e​ ​o​n​e​ ​a​b​o​v​e​,​ ​t​h​e​n​ ​b​o​o​k​m​a​r​k​ ​v​e​r​s​e​ ​{​k​e​y​}​ ​i​n​t​o​ ​i​t​.
-		 * @param {unknown} key
-		 */
-		createOneAbove: RequiredParams<'key'>;
-		/**
-		 * U​p​d​a​t​e​d​ ​{​d​a​t​e​}
-		 * @param {unknown} date
-		 */
-		updatedDate: RequiredParams<'date'>;
-		/**
-		 * {​c​o​u​n​t​}​ ​c​o​l​l​e​c​t​i​o​n​{​p​l​u​r​a​l​}​ ​s​e​l​e​c​t​e​d
-		 * @param {unknown} count
-		 * @param {unknown} plural
-		 */
-		collectionsSelected: RequiredParams<'count' | 'plural'>;
-		/**
-		 * S​a​v​e​ ​c​h​a​n​g​e​s
-		 */
-		saveChanges: string;
-		/**
-		 * U​n​a​b​l​e​ ​t​o​ ​l​o​a​d​ ​y​o​u​r​ ​Q​u​r​a​n​.​c​o​m​ ​c​o​l​l​e​c​t​i​o​n​s​.
-		 */
-		unableToLoadCollections: string;
-		/**
-		 * C​o​l​l​e​c​t​i​o​n​ ​"​{​n​a​m​e​}​"​ ​c​r​e​a​t​e​d​.
-		 * @param {unknown} name
-		 */
-		collectionCreated: RequiredParams<'name'>;
-		/**
-		 * U​n​a​b​l​e​ ​t​o​ ​c​r​e​a​t​e​ ​t​h​i​s​ ​c​o​l​l​e​c​t​i​o​n​.
-		 */
-		unableToCreateCollection: string;
-		/**
-		 * U​n​a​b​l​e​ ​t​o​ ​u​p​d​a​t​e​ ​v​e​r​s​e​ ​{​v​e​r​s​e​K​e​y​}​ ​i​n​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​c​o​l​l​e​c​t​i​o​n​s​.
-		 * @param {unknown} verseKey
-		 */
-		unableToUpdateVerse: RequiredParams<'verseKey'>;
-		/**
-		 * a​d​d​e​d​ ​t​o​ ​1​ ​c​o​l​l​e​c​t​i​o​n
-		 */
-		addedToCollection: string;
-		/**
-		 * a​d​d​e​d​ ​t​o​ ​{​c​o​u​n​t​}​ ​c​o​l​l​e​c​t​i​o​n​s
-		 * @param {unknown} count
-		 */
-		addedToCollections: RequiredParams<'count'>;
-		/**
-		 * r​e​m​o​v​e​d​ ​f​r​o​m​ ​1​ ​c​o​l​l​e​c​t​i​o​n
-		 */
-		removedFromCollection: string;
-		/**
-		 * r​e​m​o​v​e​d​ ​f​r​o​m​ ​{​c​o​u​n​t​}​ ​c​o​l​l​e​c​t​i​o​n​s
-		 * @param {unknown} count
-		 */
-		removedFromCollections: RequiredParams<'count'>;
-		/**
-		 * V​e​r​s​e​ ​{​v​e​r​s​e​K​e​y​}​ ​w​a​s​ ​{​c​h​a​n​g​e​s​}​.
-		 * @param {unknown} changes
-		 * @param {unknown} verseKey
-		 */
-		verseWasUpdated: RequiredParams<'changes' | 'verseKey'>;
-		/**
-		 * S​o​m​e​ ​o​p​e​r​a​t​i​o​n​s​ ​f​a​i​l​e​d​:​ ​{​l​i​s​t​}
-		 * @param {unknown} list
-		 */
-		someOperationsFailed: RequiredParams<'list'>;
-		/**
-		 * S​a​v​i​n​g​.​.​.
-		 */
-		saving: string;
-		/**
 		 * F​i​n​i​s​h
 		 */
 		finishButton: string;
@@ -620,10 +492,6 @@ type RootTranslation = {
 		 * C​o​n​f​i​g​u​r​e​ ​y​o​u​r​ ​A​I​ ​A​P​I​ ​k​e​y​ ​a​n​d​ ​e​n​d​p​o​i​n​t​ ​t​o​ ​e​n​a​b​l​e​ ​A​I​-​p​o​w​e​r​e​d​ ​f​e​a​t​u​r​e​s​ ​l​i​k​e​ ​t​r​a​n​s​l​a​t​i​o​n​,​ ​s​e​g​m​e​n​t​a​t​i​o​n​,​ ​a​n​d​ ​t​r​i​m​m​i​n​g​.
 		 */
 		aiKeyDescription: string;
-		/**
-		 * C​o​n​n​e​c​t​ ​y​o​u​r​ ​Q​u​r​a​n​.​c​o​m​ ​a​c​c​o​u​n​t​ ​t​o​ ​s​y​n​c​ ​b​o​o​k​m​a​r​k​s​,​ ​c​o​l​l​e​c​t​i​o​n​s​,​ ​a​n​d​ ​r​e​a​d​i​n​g​ ​p​r​o​g​r​e​s​s​.
-		 */
-		quranComDescription: string;
 	};
 	home: {
 		/**
@@ -960,14 +828,6 @@ type RootTranslation = {
 		 * N​e​e​d​ ​A​s​s​i​s​t​a​n​c​e​?
 		 */
 		needAssistance: string;
-		/**
-		 * W​a​t​c​h​ ​t​h​e​ ​w​a​l​k​t​h​r​o​u​g​h​ ​b​e​l​o​w​ ​o​r​ ​o​p​e​n​ ​t​h​e​ ​f​u​l​l​ ​d​o​c​u​m​e​n​t​a​t​i​o​n​ ​f​o​r​ ​m​o​r​e​ ​d​e​t​a​i​l​s​.
-		 */
-		assistanceDescription: string;
-		/**
-		 * M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​O​v​e​r​v​i​e​w
-		 */
-		minbarCaptionOverview: string;
 		/**
 		 * O​p​e​n​ ​O​n​l​i​n​e​ ​D​o​c​u​m​e​n​t​a​t​i​o​n
 		 */
@@ -2323,10 +2183,6 @@ type RootTranslation = {
 		 */
 		arrowForward: string;
 		/**
-		 * T​r​a​n​s​c​r​i​p​t​i​o​n​ ​w​a​l​k​t​h​r​o​u​g​h
-		 */
-		transcriptionWalkthrough: string;
-		/**
 		 * S​u​r​a​h​:
 		 */
 		surahLabel: string;
@@ -3487,10 +3343,6 @@ type RootTranslation = {
 		 */
 		removeSubtitleContext: string;
 		/**
-		 * B​o​o​k​m​a​r​k
-		 */
-		bookmarkContext: string;
-		/**
 		 * E​d​i​t​ ​t​r​a​n​s​l​a​t​i​o​n
 		 */
 		editTranslationContext: string;
@@ -3502,14 +3354,6 @@ type RootTranslation = {
 		 * W​b​w​ ​S​t​y​l​e​/​T​r​a​n​s​l​a​t​i​o​n
 		 */
 		editWbwStyleContext: string;
-		/**
-		 * C​o​n​n​e​c​t​ ​Q​u​r​a​n​.​c​o​m​ ​f​i​r​s​t
-		 */
-		connectQuranComFirst: string;
-		/**
-		 * A​d​d​ ​t​h​i​s​ ​v​e​r​s​e​ ​t​o​ ​a​ ​Q​u​r​a​n​.​c​o​m​ ​c​o​l​l​e​c​t​i​o​n
-		 */
-		addVerseToCollection: string;
 		/**
 		 * A​r​a​b​i​c​ ​m​e​r​g​e​d​ ​g​r​o​u​p
 		 */
@@ -3848,14 +3692,6 @@ type RootTranslation = {
 		 * S​p​l​i​t​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​a​t​ ​t​h​i​s​ ​w​o​r​d
 		 */
 		splitAutomaticallyAtWord: string;
-		/**
-		 * N​e​e​d​ ​a​ ​v​i​s​u​a​l​ ​w​a​l​k​t​h​r​o​u​g​h​?
-		 */
-		needVisualWalkthrough: string;
-		/**
-		 * H​e​r​e​ ​i​s​ ​a​ ​s​h​o​r​t​ ​v​i​d​e​o​ ​t​h​a​t​ ​d​e​m​o​n​s​t​r​a​t​e​s​ ​h​o​w​ ​t​h​e​ ​s​u​b​t​i​t​l​e​s​ ​e​d​i​t​o​r​ ​w​o​r​k​s​:
-		 */
-		walkthroughDescription: string;
 		/**
 		 * P​r​e​s​s​ ​<​s​p​a​n​ ​c​l​a​s​s​=​"​f​o​n​t​-​m​o​n​o​ ​b​g​-​a​c​c​e​n​t​ ​p​x​-​1​ ​r​o​u​n​d​e​d​-​s​m​"​>​s​p​a​c​e​<​/​s​p​a​n​>​ ​t​o​ ​p​l​a​y​/​p​a​u​s​e​ ​t​h​e​ ​r​e​c​i​t​a​t​i​o​n​.
 		 */
@@ -8110,10 +7946,6 @@ type RootTranslation = {
 		 */
 		stockMedia: string;
 		/**
-		 * Q​u​r​a​n​.​c​o​m​ ​I​n​t​e​g​r​a​t​i​o​n
-		 */
-		quranComIntegration: string;
-		/**
 		 * B​a​c​k​u​p
 		 */
 		backup: string;
@@ -8389,14 +8221,6 @@ type RootTranslation = {
 		 */
 		unableToOpen: RequiredParams<'label'>;
 		/**
-		 * U​n​a​b​l​e​ ​t​o​ ​s​y​n​c​ ​t​h​e​m​e​ ​t​o​ ​Q​u​r​a​n​.​c​o​m​.
-		 */
-		unableToSyncTheme: string;
-		/**
-		 * C​o​n​n​e​c​t​e​d​ ​t​o​ ​Q​u​r​a​n​.​c​o​m​.
-		 */
-		connectedToQuranCom: string;
-		/**
 		 * P​r​o​v​i​d​e​r​ ​A​P​I​ ​k​e​y
 		 */
 		providerApiKey: string;
@@ -8543,61 +8367,6 @@ type RootTranslation = {
 		 */
 		restartTutorial: string;
 		/**
-		 * C​o​n​n​e​c​t​e​d
-		 */
-		connected: string;
-		/**
-		 * C​o​n​n​e​c​t​i​n​g
-		 */
-		connecting: string;
-		/**
-		 * C​o​n​n​e​c​t​i​o​n​ ​e​r​r​o​r
-		 */
-		connectionError: string;
-		/**
-		 * N​o​t​ ​c​o​n​n​e​c​t​e​d
-		 */
-		notConnected: string;
-		/**
-		 * S​i​g​n​e​d​ ​i​n​ ​a​s​ ​{​n​a​m​e​}
-		 * @param {unknown} name
-		 */
-		signedInAs: RequiredParams<'name'>;
-		/**
-		 * F​i​n​i​s​h​ ​t​h​e​ ​Q​u​r​a​n​.​c​o​m​ ​l​o​g​i​n​ ​i​n​ ​y​o​u​r​ ​b​r​o​w​s​e​r​ ​t​o​ ​c​o​m​p​l​e​t​e​ ​t​h​e​ ​c​o​n​n​e​c​t​i​o​n​.
-		 */
-		finishLoginBrowser: string;
-		/**
-		 * Y​o​u​ ​a​r​e​ ​c​u​r​r​e​n​t​l​y​ ​u​s​i​n​g​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​w​i​t​h​o​u​t​ ​a​ ​Q​u​r​a​n​.​c​o​m​ ​a​c​c​o​u​n​t​.
-		 */
-		notConnectedMessage: string;
-		/**
-		 * D​i​s​c​o​n​n​e​c​t
-		 */
-		disconnect: string;
-		/**
-		 * W​a​i​t​i​n​g​ ​f​o​r​ ​l​o​g​i​n​.​.​.
-		 */
-		waitingForLogin: string;
-		/**
-		 * C​o​n​n​e​c​t​ ​w​i​t​h​ ​Q​u​r​a​n​.​c​o​m
-		 */
-		connectWithQuranCom: string;
-		/**
-		 * A​c​c​o​u​n​t
-		 */
-		accountLabel: string;
-		/**
-		 * S​u​b​j​e​c​t​:​ ​{​i​d​}
-		 * @param {unknown} id
-		 */
-		subjectLabel: RequiredParams<'id'>;
-		/**
-		 * A​c​c​e​s​s​ ​t​o​k​e​n​ ​e​x​p​i​r​e​s​:​ ​{​d​a​t​e​}
-		 * @param {unknown} date
-		 */
-		accessTokenExpires: RequiredParams<'date'>;
-		/**
 		 * A​ ​s​e​c​o​n​d​ ​k​e​y​ ​i​s​ ​a​l​r​e​a​d​y​ ​d​e​f​i​n​e​d
 		 */
 		aSecondKeyAlreadyDefined: string;
@@ -8648,50 +8417,6 @@ type RootTranslation = {
 		 * C​a​p​t​i​o​n​i​n​g
 		 */
 		captioningStatus: string;
-		/**
-		 * U​n​a​b​l​e​ ​t​o​ ​s​t​a​r​t​ ​Q​u​r​a​n​.​c​o​m​ ​s​i​g​n​-​i​n​.
-		 */
-		unableToStartSignIn: string;
-		/**
-		 * A​u​t​h​e​n​t​i​c​a​t​i​o​n​ ​d​a​t​a​ ​i​s​ ​i​n​c​o​m​p​l​e​t​e​.
-		 */
-		authDataIncomplete: string;
-		/**
-		 * M​i​s​s​i​n​g​ ​s​a​v​e​d​ ​v​e​r​i​f​i​e​r​ ​f​o​r​ ​t​h​e​ ​O​A​u​t​h​ ​h​a​n​d​o​f​f​.
-		 */
-		missingVerifier: string;
-		/**
-		 * U​n​a​b​l​e​ ​t​o​ ​c​o​m​p​l​e​t​e​ ​Q​u​r​a​n​.​c​o​m​ ​s​i​g​n​-​i​n​.
-		 */
-		unableToCompleteSignIn: string;
-		/**
-		 * Y​o​u​r​ ​Q​u​r​a​n​.​c​o​m​ ​s​e​s​s​i​o​n​ ​e​x​p​i​r​e​d​ ​a​n​d​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​r​e​f​r​e​s​h​e​d​.
-		 */
-		sessionExpired: string;
-		/**
-		 * B​r​i​d​g​e​ ​r​e​s​p​o​n​s​e​ ​w​a​s​ ​e​m​p​t​y​.
-		 */
-		bridgeResponseEmpty: string;
-		/**
-		 * C​o​n​n​e​c​t​ ​y​o​u​r​ ​Q​u​r​a​n​.​c​o​m​ ​a​c​c​o​u​n​t​ ​f​i​r​s​t​.
-		 */
-		connectAccountFirst: string;
-		/**
-		 * Q​u​r​a​n​.​c​o​m​ ​a​c​c​e​s​s​ ​t​o​k​e​n​ ​i​s​ ​u​n​a​v​a​i​l​a​b​l​e​.​ ​P​l​e​a​s​e​ ​r​e​c​o​n​n​e​c​t​.
-		 */
-		accessTokenUnavailable: string;
-		/**
-		 * Q​u​r​a​n​ ​F​o​u​n​d​a​t​i​o​n​ ​c​l​i​e​n​t​ ​i​d​ ​i​s​ ​m​i​s​s​i​n​g​ ​f​r​o​m​ ​t​h​e​ ​c​u​r​r​e​n​t​ ​s​e​s​s​i​o​n​.​ ​P​l​e​a​s​e​ ​r​e​c​o​n​n​e​c​t​.
-		 */
-		clientIdMissing: string;
-		/**
-		 * C​o​l​l​e​c​t​i​o​n​ ​n​a​m​e​ ​c​a​n​n​o​t​ ​b​e​ ​e​m​p​t​y​.
-		 */
-		collectionNameEmpty: string;
-		/**
-		 * Q​u​r​a​n​ ​F​o​u​n​d​a​t​i​o​n​ ​A​P​I​ ​r​e​s​p​o​n​s​e​ ​w​a​s​ ​e​m​p​t​y​.
-		 */
-		apiResponseEmpty: string;
 		shortcutCat: {
 			/**
 			 * V​i​d​e​o​ ​P​r​e​v​i​e​w
@@ -11031,122 +10756,6 @@ export type TranslationFunctions = {
 		 */
 		unableToSendMessage: () => LocalizedString;
 		/**
-		 * Bookmark Verse
-		 */
-		bookmarkVerse: () => LocalizedString;
-		/**
-		 * Add verse {key} to one or more Quran.com collections.
-		 */
-		addVerseToCollections: (arg: { key: unknown }) => LocalizedString;
-		/**
-		 * Loading your Quran.com collections...
-		 */
-		loadingCollections: () => LocalizedString;
-		/**
-		 * Collection error
-		 */
-		collectionError: () => LocalizedString;
-		/**
-		 * Available collections
-		 */
-		availableCollections: () => LocalizedString;
-		/**
-		 * Hide form
-		 */
-		hideForm: () => LocalizedString;
-		/**
-		 * New collection
-		 */
-		newCollection: () => LocalizedString;
-		/**
-		 * Create your first collection
-		 */
-		createFirstCollection: () => LocalizedString;
-		/**
-		 * Create a new collection
-		 */
-		createNewCollection: () => LocalizedString;
-		/**
-		 * The new collection will be created on Quran.com and selected automatically.
-		 */
-		newCollectionDescription: () => LocalizedString;
-		/**
-		 * Collection name
-		 */
-		collectionName: () => LocalizedString;
-		/**
-		 * Creating...
-		 */
-		creating: () => LocalizedString;
-		/**
-		 * Create
-		 */
-		create: () => LocalizedString;
-		/**
-		 * No collections found yet
-		 */
-		noCollectionsFound: () => LocalizedString;
-		/**
-		 * Create one above, then bookmark verse {key} into it.
-		 */
-		createOneAbove: (arg: { key: unknown }) => LocalizedString;
-		/**
-		 * Updated {date}
-		 */
-		updatedDate: (arg: { date: unknown }) => LocalizedString;
-		/**
-		 * {count} collection{plural} selected
-		 */
-		collectionsSelected: (arg: { count: unknown; plural: unknown }) => LocalizedString;
-		/**
-		 * Save changes
-		 */
-		saveChanges: () => LocalizedString;
-		/**
-		 * Unable to load your Quran.com collections.
-		 */
-		unableToLoadCollections: () => LocalizedString;
-		/**
-		 * Collection "{name}" created.
-		 */
-		collectionCreated: (arg: { name: unknown }) => LocalizedString;
-		/**
-		 * Unable to create this collection.
-		 */
-		unableToCreateCollection: () => LocalizedString;
-		/**
-		 * Unable to update verse {verseKey} in the selected collections.
-		 */
-		unableToUpdateVerse: (arg: { verseKey: unknown }) => LocalizedString;
-		/**
-		 * added to 1 collection
-		 */
-		addedToCollection: () => LocalizedString;
-		/**
-		 * added to {count} collections
-		 */
-		addedToCollections: (arg: { count: unknown }) => LocalizedString;
-		/**
-		 * removed from 1 collection
-		 */
-		removedFromCollection: () => LocalizedString;
-		/**
-		 * removed from {count} collections
-		 */
-		removedFromCollections: (arg: { count: unknown }) => LocalizedString;
-		/**
-		 * Verse {verseKey} was {changes}.
-		 */
-		verseWasUpdated: (arg: { changes: unknown; verseKey: unknown }) => LocalizedString;
-		/**
-		 * Some operations failed: {list}
-		 */
-		someOperationsFailed: (arg: { list: unknown }) => LocalizedString;
-		/**
-		 * Saving...
-		 */
-		saving: () => LocalizedString;
-		/**
 		 * Finish
 		 */
 		finishButton: () => LocalizedString;
@@ -11154,10 +10763,6 @@ export type TranslationFunctions = {
 		 * Configure your AI API key and endpoint to enable AI-powered features like translation, segmentation, and trimming.
 		 */
 		aiKeyDescription: () => LocalizedString;
-		/**
-		 * Connect your Quran.com account to sync bookmarks, collections, and reading progress.
-		 */
-		quranComDescription: () => LocalizedString;
 	};
 	home: {
 		/**
@@ -11480,14 +11085,6 @@ export type TranslationFunctions = {
 		 * Need Assistance?
 		 */
 		needAssistance: () => LocalizedString;
-		/**
-		 * Watch the walkthrough below or open the full documentation for more details.
-		 */
-		assistanceDescription: () => LocalizedString;
-		/**
-		 * Minbar Caption Overview
-		 */
-		minbarCaptionOverview: () => LocalizedString;
 		/**
 		 * Open Online Documentation
 		 */
@@ -12812,10 +12409,6 @@ export type TranslationFunctions = {
 		 */
 		arrowForward: () => LocalizedString;
 		/**
-		 * Transcription walkthrough
-		 */
-		transcriptionWalkthrough: () => LocalizedString;
-		/**
 		 * Surah:
 		 */
 		surahLabel: () => LocalizedString;
@@ -13956,10 +13549,6 @@ export type TranslationFunctions = {
 		 */
 		removeSubtitleContext: () => LocalizedString;
 		/**
-		 * Bookmark
-		 */
-		bookmarkContext: () => LocalizedString;
-		/**
 		 * Edit translation
 		 */
 		editTranslationContext: () => LocalizedString;
@@ -13971,14 +13560,6 @@ export type TranslationFunctions = {
 		 * Wbw Style/Translation
 		 */
 		editWbwStyleContext: () => LocalizedString;
-		/**
-		 * Connect Quran.com first
-		 */
-		connectQuranComFirst: () => LocalizedString;
-		/**
-		 * Add this verse to a Quran.com collection
-		 */
-		addVerseToCollection: () => LocalizedString;
 		/**
 		 * Arabic merged group
 		 */
@@ -14307,14 +13888,6 @@ export type TranslationFunctions = {
 		 * Split automatically at this word
 		 */
 		splitAutomaticallyAtWord: () => LocalizedString;
-		/**
-		 * Need a visual walkthrough?
-		 */
-		needVisualWalkthrough: () => LocalizedString;
-		/**
-		 * Here is a short video that demonstrates how the subtitles editor works:
-		 */
-		walkthroughDescription: () => LocalizedString;
 		/**
 		 * Press <span class="font-mono bg-accent px-1 rounded-sm">space</span> to play/pause the recitation.
 		 */
@@ -18502,10 +18075,6 @@ export type TranslationFunctions = {
 		 */
 		stockMedia: () => LocalizedString;
 		/**
-		 * Quran.com Integration
-		 */
-		quranComIntegration: () => LocalizedString;
-		/**
 		 * Backup
 		 */
 		backup: () => LocalizedString;
@@ -18778,14 +18347,6 @@ export type TranslationFunctions = {
 		 */
 		unableToOpen: (arg: { label: unknown }) => LocalizedString;
 		/**
-		 * Unable to sync theme to Quran.com.
-		 */
-		unableToSyncTheme: () => LocalizedString;
-		/**
-		 * Connected to Quran.com.
-		 */
-		connectedToQuranCom: () => LocalizedString;
-		/**
 		 * Provider API key
 		 */
 		providerApiKey: () => LocalizedString;
@@ -18930,58 +18491,6 @@ export type TranslationFunctions = {
 		 */
 		restartTutorial: () => LocalizedString;
 		/**
-		 * Connected
-		 */
-		connected: () => LocalizedString;
-		/**
-		 * Connecting
-		 */
-		connecting: () => LocalizedString;
-		/**
-		 * Connection error
-		 */
-		connectionError: () => LocalizedString;
-		/**
-		 * Not connected
-		 */
-		notConnected: () => LocalizedString;
-		/**
-		 * Signed in as {name}
-		 */
-		signedInAs: (arg: { name: unknown }) => LocalizedString;
-		/**
-		 * Finish the Quran.com login in your browser to complete the connection.
-		 */
-		finishLoginBrowser: () => LocalizedString;
-		/**
-		 * You are currently using Minbar Caption without a Quran.com account.
-		 */
-		notConnectedMessage: () => LocalizedString;
-		/**
-		 * Disconnect
-		 */
-		disconnect: () => LocalizedString;
-		/**
-		 * Waiting for login...
-		 */
-		waitingForLogin: () => LocalizedString;
-		/**
-		 * Connect with Quran.com
-		 */
-		connectWithQuranCom: () => LocalizedString;
-		/**
-		 * Account
-		 */
-		accountLabel: () => LocalizedString;
-		/**
-		 * Subject: {id}
-		 */
-		subjectLabel: (arg: { id: unknown }) => LocalizedString;
-		/**
-		 * Access token expires: {date}
-		 */
-		accessTokenExpires: (arg: { date: unknown }) => LocalizedString;
-		/**
 		 * A second key is already defined
 		 */
 		aSecondKeyAlreadyDefined: () => LocalizedString;
@@ -19029,50 +18538,6 @@ export type TranslationFunctions = {
 		 * Captioning
 		 */
 		captioningStatus: () => LocalizedString;
-		/**
-		 * Unable to start Quran.com sign-in.
-		 */
-		unableToStartSignIn: () => LocalizedString;
-		/**
-		 * Authentication data is incomplete.
-		 */
-		authDataIncomplete: () => LocalizedString;
-		/**
-		 * Missing saved verifier for the OAuth handoff.
-		 */
-		missingVerifier: () => LocalizedString;
-		/**
-		 * Unable to complete Quran.com sign-in.
-		 */
-		unableToCompleteSignIn: () => LocalizedString;
-		/**
-		 * Your Quran.com session expired and could not be refreshed.
-		 */
-		sessionExpired: () => LocalizedString;
-		/**
-		 * Bridge response was empty.
-		 */
-		bridgeResponseEmpty: () => LocalizedString;
-		/**
-		 * Connect your Quran.com account first.
-		 */
-		connectAccountFirst: () => LocalizedString;
-		/**
-		 * Quran.com access token is unavailable. Please reconnect.
-		 */
-		accessTokenUnavailable: () => LocalizedString;
-		/**
-		 * Quran Foundation client id is missing from the current session. Please reconnect.
-		 */
-		clientIdMissing: () => LocalizedString;
-		/**
-		 * Collection name cannot be empty.
-		 */
-		collectionNameEmpty: () => LocalizedString;
-		/**
-		 * Quran Foundation API response was empty.
-		 */
-		apiResponseEmpty: () => LocalizedString;
 		shortcutCat: {
 			/**
 			 * Video Preview

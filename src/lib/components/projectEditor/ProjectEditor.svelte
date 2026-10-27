@@ -11,6 +11,7 @@
 	import StyleEditor from './tabs/styleEditor/StyleEditor.svelte';
 	import Export from './tabs/export/Export.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import { getUniqueQuranReferences } from '$lib/services/StructuredTranslationService';
 
 	const AUTOSAVE_CHECK_INTERVAL_MS = 15000;
 	const AUTOSAVE_RETRY_DELAY_MS = 3000;
@@ -21,9 +22,51 @@
 	let lastSavedSnapshot = '';
 	let isAutosaveScheduled = false;
 	let isAutosaving = false;
+	let quranTranslationsLoad = Promise.resolve();
 	let searchOverlayVisible = $state(false);
 	let searchOverlay: { focusInput: () => Promise<void>; containsFocus: () => boolean } | null =
 		$state(null);
+
+	$effect(() => {
+		const project = globalState.currentProject;
+		if (!project) return;
+		const references = getUniqueQuranReferences(
+			globalState.getSubtitleClips.map((clip) => clip.text)
+		);
+		const translations = project.content.projectTranslation;
+		const languages = translations.addedTranslationEditions.filter(
+			(language) => language.quranEdition
+		);
+		if (references.length === 0 || languages.length === 0) return;
+
+		// Les chargements sont sérialisés pour réutiliser le cache pendant les modifications rapides.
+		quranTranslationsLoad = quranTranslationsLoad
+			.then(async () => {
+				for (const language of languages) {
+					if (globalState.currentProject !== project) return;
+					if (!translations.addedTranslationEditions.includes(language)) continue;
+					if (
+						references.every(
+							(reference) =>
+								translations.versesTranslations[language.name]?.[
+									`${reference.surah}:${reference.verse}`
+								]
+						)
+					)
+						continue;
+
+					const downloaded = await translations.downloadReferencedQuranTranslations(language);
+					if (globalState.currentProject !== project) return;
+					if (!translations.addedTranslationEditions.includes(language)) continue;
+					translations.versesTranslations[language.name] = {
+						...translations.versesTranslations[language.name],
+						...downloaded
+					};
+				}
+				if (globalState.currentProject === project) globalState.updateVideoPreviewUI();
+			})
+			.catch((error) => console.error('Failed to load referenced Quran translations:', error));
+	});
 
 	function isTypingTarget(target: EventTarget | null): boolean {
 		return (

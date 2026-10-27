@@ -1115,7 +1115,7 @@
 	<span
 		class="translation-inline-flow line-background"
 		dir={hasQuranReference || hasRtlText ? 'rtl' : undefined}
-		style={hasRtlText ? 'unicode-bidi: plaintext;' : undefined}
+		style={hasRtlText ? 'unicode-bidi: isolate;' : undefined}
 	>
 		{#each segments as segment (segment.key)}
 			{@const segmentStyle = `${getInlineStyleCss(segment.flags)} ${segment.extraCss ?? ''}`.trim()}

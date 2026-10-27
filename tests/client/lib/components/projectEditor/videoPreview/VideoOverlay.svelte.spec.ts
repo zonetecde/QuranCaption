@@ -523,10 +523,35 @@ describe('Video overlay subtitle preview', () => {
 		);
 
 		expect(flow?.getAttribute('dir')).toBe('rtl');
-		expect(flow?.getAttribute('style')).toContain('unicode-bidi: plaintext');
+		expect(flow?.getAttribute('style')).toContain('unicode-bidi: isolate');
 		expect(citation?.getAttribute('dir')).toBe('rtl');
 		expect(citation?.getAttribute('style')).toContain('unicode-bidi: isolate');
 		expect(citation?.textContent).toBe('ولمَّا ماتَ أظلمَ منها كل شيء،');
+	});
+
+	test('keeps merged Arabic citations in reading order with salawat after Muhammad', async () => {
+		const first = new SubtitleClip(78980, 80907, '{{وأحسن الهدي هدي محمد}}');
+		const second = new SubtitleClip(80908, 84040, '{{صلى الله عليه وآله وسلم،}}');
+		applyVisualMerge([first, second], 'both');
+		const fixture = setupVideoOverlayFixture([first, second], { cursorPosition: 79500 });
+		const component = render(VideoOverlay);
+		await settleOverlay();
+
+		const arabic = getForegroundArabicNode(component.container)!;
+		arabic.style.cssText += '; width: 1200px; font-size: 24px; white-space: nowrap;';
+		for (const cursor of [79500, 82000]) {
+			await fixture.setCursor(cursor);
+			const citations = getArabicInlineFlowSpans(component.container).filter(
+				(span) => span.getAttribute('dir') === 'rtl'
+			);
+			expect(citations.map((span) => span.textContent)).toEqual([
+				'وأحسن الهدي هدي محمد',
+				'صلى الله عليه وآله وسلم،'
+			]);
+			expect(citations[0].getBoundingClientRect().left).toBeGreaterThanOrEqual(
+				citations[1].getBoundingClientRect().right
+			);
+		}
 	});
 
 	test('keeps WBW highlight enabled across a quoted passage', async () => {

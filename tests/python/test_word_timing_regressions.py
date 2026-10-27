@@ -4,8 +4,11 @@ import importlib.metadata
 import itertools
 from pathlib import Path
 import runpy
+import shutil
 import ssl
+import subprocess
 import sys
+import tempfile
 import types
 import unittest
 from unittest.mock import Mock, patch
@@ -27,6 +30,37 @@ from src.models import PhonemeToken
 
 class WordTimingRegressionTests(unittest.TestCase):
     """Exercise certificate validation and short recitation boundaries."""
+
+    def test_aligner_package_takes_precedence_over_legacy_module(self) -> None:
+        """Import the CTC aligner when an app update leaves the old aligner.py behind."""
+        with tempfile.TemporaryDirectory() as directory:
+            install_dir = Path(directory)
+            shutil.copytree(
+                ENGINE_DIR / "src" / "aligner",
+                install_dir / "aligner",
+                ignore=shutil.ignore_patterns("__pycache__"),
+            )
+            (install_dir / "aligner.py").write_text(
+                "raise AssertionError('Legacy aligner module was loaded')\n", encoding="utf-8"
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-c",
+                    "import sys, types\n"
+                    "package = types.ModuleType('src')\n"
+                    "package.__path__ = [sys.argv[1], sys.argv[2]]\n"
+                    "sys.modules['src'] = package\n"
+                    "from src.aligner.ctc_aligner import CtcViterbiAligner, warmup_aligner_jit\n",
+                    str(install_dir),
+                    str(ENGINE_DIR / "src"),
+                ],
+                cwd=ENGINE_DIR,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_bootstrap_preserves_verified_https(self) -> None:
         """Keep default HTTPS certificate and hostname checks in both entrypoints."""

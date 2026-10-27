@@ -6233,7 +6233,7 @@ type RootTranslation = {
 		 */
 		exportMissingWordsReviewWarning: RequiredParams<'count'>;
 		/**
-		 * W​a​r​n​i​n​g​:​ ​y​o​u​r​ ​p​r​o​j​e​c​t​ ​c​o​n​t​a​i​n​s​ ​{​c​o​u​n​t​}​ ​t​r​a​n​s​l​a​t​i​o​n​(​s​)​ ​t​h​a​t​ ​n​e​e​d​ ​r​e​v​i​e​w​.
+		 * W​a​r​n​i​n​g​:​ ​{​c​o​u​n​t​}​ ​t​r​a​n​s​l​a​t​i​o​n​(​s​)​ ​a​r​e​ ​m​i​s​s​i​n​g​ ​i​n​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​e​x​p​o​r​t​ ​r​a​n​g​e​.
 		 * @param {unknown} count
 		 */
 		exportTranslationReviewWarning: RequiredParams<'count'>;
@@ -16752,7 +16752,7 @@ export type TranslationFunctions = {
 		 */
 		exportMissingWordsReviewWarning: (arg: { count: unknown }) => LocalizedString;
 		/**
-		 * Warning: your project contains {count} translation(s) that need review.
+		 * Warning: {count} translation(s) are missing in the selected export range.
 		 */
 		exportTranslationReviewWarning: (arg: { count: unknown }) => LocalizedString;
 		/**

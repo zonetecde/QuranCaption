@@ -52,7 +52,7 @@ const export_ = {
 	exportMissingWordsReviewWarning:
 		'Warning: your project contains {count} subtitle(s) with missing words.',
 	exportTranslationReviewWarning:
-		'Warning: your project contains {count} translation(s) that need review.',
+		'Warning: {count} translation(s) are missing in the selected export range.',
 	exportReviewAcknowledgement:
 		'I understand that my video may contain errors if I do not review these issues.',
 	advancedSettings: 'Advanced Settings',

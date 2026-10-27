@@ -7,7 +7,7 @@
 	import TimeInput from './TimeInput.svelte';
 	import Style from '../styleEditor/Style.svelte';
 	import { VerseRange } from '$lib/classes';
-	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
+	import { ClipWithTranslation, SubtitleClip } from '$lib/classes/Clip.svelte';
 	import ExportFolderPicker from './ExportFolderPicker.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
@@ -64,10 +64,13 @@
 				if (clip.needsCoverageReview) counts.missingWords += 1;
 			}
 
-			for (const [editionName, translation] of Object.entries(clip.translations)) {
-				if (visibleTranslationEditions.has(editionName) && !translation.isStatusComplete()) {
-					counts.translations += 1;
-				}
+			for (const editionName of visibleTranslationEditions) {
+				const translation = clip.getTranslation(editionName);
+				const text =
+					clip instanceof SubtitleClip
+						? translation?.getText(editionName, clip)
+						: translation?.getText();
+				if (!text?.trim()) counts.translations += 1;
 			}
 		}
 

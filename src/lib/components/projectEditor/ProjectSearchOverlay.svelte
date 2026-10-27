@@ -3,7 +3,7 @@
 	import { tick } from 'svelte';
 
 	const LL_ = $derived($LL);
-	import { ProjectEditorTabs } from '$lib/classes';
+	import { Duration, ProjectEditorTabs } from '$lib/classes';
 	import type { SubtitleClip } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
@@ -20,13 +20,15 @@
 	let searchInput: HTMLInputElement | null = null;
 	let query = $state('');
 	let searchMode: SearchMode = $state('verse');
-	let sliderIndex = $state(0);
+	let sliderTime = $state(globalState.getTimelineState.cursorPosition);
 	let resultMessage = $state('');
 
 	const currentTab = $derived(() => globalState.currentProject?.projectEditorState.currentTab);
 	const isTranslationsTab = $derived(() => currentTab() === ProjectEditorTabs.Translations);
 	const subtitles = $derived(() => globalState.getSubtitleClips);
-	const currentSliderClip = $derived(() => subtitles()[sliderIndex] ?? null);
+	const durationMs = $derived(
+		() => globalState.currentProject!.content.timeline.getLongestTrackDuration().ms
+	);
 	const versePlaceholder = $derived(() => `Verse key (${getProjectVerseBoundsPlaceholder()})`);
 
 	/**
@@ -51,14 +53,18 @@
 	/**
 	 * Déplace le curseur vers un sous-titre et met à jour l'état UI associé.
 	 * @param {SubtitleClip} clip Sous-titre cible.
+	 * @param {boolean} atStart Positionne exactement au début du sous-titre.
 	 * @returns {void}
 	 */
-	function jumpToSubtitle(clip: SubtitleClip): void {
-		goToSubtitleClip(clip);
-		sliderIndex = Math.max(
-			0,
-			subtitles().findIndex((candidate) => candidate.id === clip.id)
-		);
+	function jumpToSubtitle(clip: SubtitleClip, atStart: boolean = false): void {
+		if (atStart) {
+			globalState.getTimelineState.cursorPosition = clip.startTime;
+			globalState.getTimelineState.movePreviewTo = clip.startTime;
+			globalState.getVideoPreviewState.scrollTimelineToCursor();
+		} else {
+			goToSubtitleClip(clip);
+		}
+		sliderTime = globalState.getTimelineState.cursorPosition;
 		resultMessage = getSubtitleVerseKeyLabel(clip);
 	}
 
@@ -102,10 +108,7 @@
 		showAllTranslationFilters();
 		globalState.getTranslationsState.searchQuery = '';
 		globalState.shared.translationScrollTargetClipId = clip.id;
-		sliderIndex = Math.max(
-			0,
-			subtitles().findIndex((candidate) => candidate.id === clip.id)
-		);
+		sliderTime = clip.startTime;
 		resultMessage = getSubtitleVerseKeyLabel(clip);
 	}
 
@@ -155,16 +158,40 @@
 	 */
 	function handleSliderInput(event: Event): void {
 		const target = event.target as HTMLInputElement;
-		const nextIndex = Number(target.value);
-		const clip = subtitles()[nextIndex];
+		const time = Number(target.value);
+		const clip = subtitles().reduce<SubtitleClip | null>(
+			(closest, candidate) =>
+				!closest || Math.abs(candidate.startTime - time) < Math.abs(closest.startTime - time)
+					? candidate
+					: closest,
+			null
+		);
 		if (!clip) return;
+		target.value = String(clip.startTime);
 
 		if (isTranslationsTab()) {
 			scrollTranslationWorkspaceToSubtitle(clip);
 			return;
 		}
 
-		jumpToSubtitle(clip);
+		jumpToSubtitle(clip, true);
+	}
+
+	/**
+	 * Conserve une navigation de sous-titre en sous-titre avec les flèches du slider.
+	 * @param {KeyboardEvent} event Événement clavier du slider.
+	 * @returns {void}
+	 */
+	function handleSliderKeydown(event: KeyboardEvent): void {
+		if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+		event.preventDefault();
+		const forward = event.key === 'ArrowRight' || event.key === 'ArrowUp';
+		const clip = forward
+			? subtitles().find((clip) => clip.startTime > sliderTime)
+			: subtitles().findLast((clip) => clip.startTime < sliderTime);
+		if (!clip) return;
+		(event.target as HTMLInputElement).value = String(clip.startTime);
+		handleSliderInput(event);
 	}
 
 	$effect(() => {
@@ -179,10 +206,7 @@
 	});
 
 	$effect(() => {
-		const maxIndex = Math.max(0, subtitles().length - 1);
-		if (sliderIndex > maxIndex) {
-			sliderIndex = maxIndex;
-		}
+		sliderTime = globalState.getTimelineState.cursorPosition;
 	});
 </script>
 
@@ -284,23 +308,26 @@
 		</div>
 
 		<div class="rounded-lg border border-color bg-primary px-3 py-2">
-			<div class="mb-1 flex items-center justify-between gap-3 text-xs">
+			<div class="mb-1 flex items-center justify-between gap-3 text-xs" dir="ltr">
 				<span class="text-thirdly">{$LL.editor.timelineLabel()}</span>
-				<span class="truncate font-medium text-primary">
-					{currentSliderClip()
-						? getSubtitleVerseKeyLabel(currentSliderClip()!)
-						: $LL.editor.noSubtitleFallback()}
+				<span class="monospaced shrink-0 font-medium text-primary">
+					{new Duration(sliderTime).getFormattedTime(false)} / {new Duration(
+						durationMs()
+					).getFormattedTime(false)}
 				</span>
 			</div>
 			<input
 				type="range"
 				class="w-full accent-[var(--accent-primary)]"
 				min="0"
-				max={Math.max(0, subtitles().length - 1)}
+				max={Math.max(1, durationMs())}
 				step="1"
-				value={sliderIndex}
+				value={sliderTime}
 				disabled={subtitles().length === 0}
 				oninput={handleSliderInput}
+				onkeydown={handleSliderKeydown}
+				aria-label={$LL.editor.timelineLabel()}
+				dir="ltr"
 			/>
 		</div>
 	</form>

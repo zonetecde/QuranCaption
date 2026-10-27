@@ -1,8 +1,4 @@
 const export_ = {
-	chapterFormat: 'Chapter Format',
-	chapterTextFormat: 'Text format',
-	chapterPlaceholders: 'Placeholders: {placeholders}',
-	chapterTranslation: 'Translation for {placeholder}',
 	subtitleJson: 'Subtitle JSON',
 	memoryError:
 		'It appears your computer cannot allocate enough memory for the export process. Try the following:',
@@ -115,9 +111,7 @@ const export_ = {
 	videoExportDescription: 'Export full rendered video',
 	subtitlesExportOption: 'Subtitles',
 	subtitlesExportDescription: 'Generate .srt / .vtt caption file',
-	youtubeChaptersOption: 'YouTube Chapters',
-	youtubeChaptersDescription: 'Timestamped chapter list',
-	projectDataOption: 'Project Data',
+	projectDataOption: 'Project',
 	projectDataDescription: 'Export project raw data',
 	exportSubtitlesHeading: 'Export Subtitles',
 	exportSubtitlesDescription: 'Export the subtitles from your project in various formats.',
@@ -143,24 +137,6 @@ const export_ = {
 	exportFolderDescription: 'Choose where your exported files will be saved.',
 	exportSubtitlesButton: 'Export Subtitles',
 	exportSubtitlesButtonDescription: 'Generate subtitle files with your selected configuration',
-	exportYoutubeChapters: 'Export YouTube Chapters',
-	exportYoutubeChaptersDescription:
-		'Generate chapter timestamps for your YouTube video description.',
-	chapterGeneration: 'Chapter Generation',
-	chapterGenerationDescription: 'Choose how to organize your video chapters:',
-	eachSurah: 'Each Surah',
-	chapterPerSurah: 'Chapter per Surah',
-	chapterPerSurahDescription: 'Creates one chapter for each surah in your video timeline.',
-	eachVerse: 'Each Verse',
-	chapterPerVerse: 'Chapter per Verse',
-	chapterPerVerseDescription: 'Creates one chapter for each verse in your video timeline.',
-	howToUse: 'How to Use',
-	youtubeIntegration: 'YouTube Integration',
-	youtubeIntegrationDescription:
-		'Paste the generated chapter timestamps into your YouTube video description to add chapters.',
-	exportYoutubeChaptersButton: 'Export YouTube Chapters',
-	exportYoutubeChaptersButtonDescription:
-		'Generate chapter timestamps for your YouTube video description',
 	exportProjectData: 'Export Project Data',
 	exportProjectDataDescription:
 		'Export your project configuration as a standalone JSON file without its media assets.',

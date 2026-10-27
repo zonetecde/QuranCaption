@@ -416,7 +416,7 @@ export interface ExportSkipRange {
 }
 export class ExportState extends SerializableBase {
 	// Indique le type d'export choisie
-	selectedChoice: 'video' | 'subtitles' | 'chapters' | 'project' = $state('video');
+	selectedChoice: 'video' | 'subtitles' | 'project' = $state('video');
 
 	/*
 	 * ============================================
@@ -441,11 +441,6 @@ export class ExportState extends SerializableBase {
 
 	// Indique le format du texte arabe
 	arabicTextFormat: 'Plain' | 'V1' | 'V2' = $state('Plain');
-
-	// Indique la sélection d'exportation des chapitres YouTube
-	ytbChaptersChoice: 'Each Surah' | 'Each Verse' = $state('Each Surah');
-	ytbChaptersFormat: string = $state('<timestamp> Surah <surah-number>, Verse <verse-number>');
-	ytbChaptersTranslationEditionName: string = $state('');
 
 	// Indique la partie de la vidéo à exporter
 	videoStartTime: number = $state(0);

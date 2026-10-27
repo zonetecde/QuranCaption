@@ -289,20 +289,6 @@ export class AnalyticsService {
 		});
 	}
 
-	static trackYtbChaptersExport(
-		choice: string,
-		chaptersCount: number,
-		exportStartMs?: number,
-		exportEndMs?: number
-	) {
-		this.track('ytb_chapters_exported', {
-			choice,
-			chapters_count: chaptersCount,
-			export_start_ms: exportStartMs,
-			export_end_ms: exportEndMs
-		});
-	}
-
 	static trackError(error: Error) {
 		this.track('error', {
 			name: error.name,

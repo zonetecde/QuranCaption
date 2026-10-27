@@ -3,17 +3,21 @@
 	import ExportProjectData from './ExportProjectData.svelte';
 	import ExportSubtitles from './ExportSubtitles.svelte';
 	import ExportVideo from './ExportVideo.svelte';
-	import ExportYtbChapters from './ExportYtbChapters.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 
-	type ExportChoiceId = 'video' | 'subtitles' | 'chapters' | 'project';
+	type ExportChoiceId = 'video' | 'subtitles' | 'project';
 
 	const LL_ = get(LL);
 
 	// Export choices
 	const choices: { id: ExportChoiceId; label: () => string; icon: string; hint: () => string }[] = [
-		{ id: 'video', label: () => LL_.export.videoExportOption(), icon: 'movie', hint: () => LL_.export.videoExportDescription() },
+		{
+			id: 'video',
+			label: () => LL_.export.videoExportOption(),
+			icon: 'movie',
+			hint: () => LL_.export.videoExportDescription()
+		},
 		{
 			id: 'subtitles',
 			label: () => LL_.export.subtitlesExportOption(),
@@ -21,12 +25,11 @@
 			hint: () => LL_.export.subtitlesExportDescription()
 		},
 		{
-			id: 'chapters',
-			label: () => LL_.export.youtubeChaptersOption(),
-			icon: 'schedule',
-			hint: () => LL_.export.youtubeChaptersDescription()
-		},
-		{ id: 'project', label: () => LL_.export.projectDataOption(), icon: 'folder', hint: () => LL_.export.projectDataDescription() }
+			id: 'project',
+			label: () => LL_.export.projectDataOption(),
+			icon: 'folder',
+			hint: () => LL_.export.projectDataDescription()
+		}
 	];
 
 	function select(id: ExportChoiceId) {
@@ -45,7 +48,7 @@
 
 	<div class="mt-4 px-3 pb-4">
 		<div
-			class="grid grid-cols-2 gap-3 mb-3"
+			class="grid grid-cols-3 gap-3 mb-3"
 			role="radiogroup"
 			aria-label={$LL.export.exportType()}
 			tabindex="0"
@@ -93,8 +96,6 @@
 			<ExportVideo />
 		{:else if globalState.getExportState.selectedChoice === 'subtitles'}
 			<ExportSubtitles />
-		{:else if globalState.getExportState.selectedChoice === 'chapters'}
-			<ExportYtbChapters />
 		{:else if globalState.getExportState.selectedChoice === 'project'}
 			<ExportProjectData />
 		{/if}

@@ -9,7 +9,6 @@ import {
 	sliceTranslationTrimUnits
 } from './Translation.svelte';
 import SubtitleFileContentGenerator from './misc/SubtitleFileContentGenerator';
-import { Quran } from './Quran';
 import { Utilities } from './misc/Utilities';
 import ExportService from '$lib/services/ExportService';
 import LL from '$lib/i18n/i18n-svelte';
@@ -26,10 +25,7 @@ import type { Project } from './Project';
 import { ProjectService } from '$lib/services/ProjectService';
 import ModalManager from '$lib/components/modals/ModalManager';
 
-import type { Edition } from './Edition';
 import { AssetType, SourceType, TrackType } from './enums';
-
-export const DEFAULT_YTB_CHAPTERS_FORMAT = '<timestamp> Surah <surah-number>, Verse <verse-number>';
 
 const RANDOM_BACKGROUND_EXTENSIONS = new Set([
 	'png',
@@ -166,16 +162,6 @@ export async function prepareRandomBackgroundProject(
 	}
 }
 
-export type YouTubeChapterFormatValues = {
-	timestamp: string;
-	surahNumber: number;
-	surahTranslation: string;
-	surahTransliteration: string;
-	verseArabic: string;
-	verseNumber: number;
-	verseTranslation: string;
-};
-
 /**
  * Retourne le texte d'une traduction tel qu'il est affichÃ©, avec les numÃ©ros
  * de verset optionnels pour les ancres Quran structurÃ©es.
@@ -230,27 +216,6 @@ function getSubtitleTranslationForExport(
 	}
 
 	return text + (draft.freeTexts[draft.anchors.length] ?? '');
-}
-
-/**
- * Remplace les placeholders connus dans une ligne de chapitres YouTube.
- *
- * @param {string} format Format personnalise saisi par l'utilisateur.
- * @param {YouTubeChapterFormatValues} values Valeurs disponibles pour le chapitre.
- * @returns {string} Ligne formatee avec les placeholders remplaces.
- */
-export function formatYouTubeChapterLine(
-	format: string,
-	values: YouTubeChapterFormatValues
-): string {
-	return format
-		.replaceAll('<timestamp>', values.timestamp)
-		.replaceAll('<surah-number>', values.surahNumber.toString())
-		.replaceAll('<surah-translation>', values.surahTranslation)
-		.replaceAll('<surah-transliteration>', values.surahTransliteration)
-		.replaceAll('<verse-arabic>', values.verseArabic)
-		.replaceAll('<verse-number>', values.verseNumber.toString())
-		.replaceAll('<verse-translation>', values.verseTranslation);
 }
 
 export default class Exporter {
@@ -685,155 +650,6 @@ export default class Exporter {
 			get(LL).settings.projectBackup()
 		);
 	}
-	static async exportYtbChapters() {
-		const choice = globalState.getExportState.ytbChaptersChoice;
-		const subtitlesClips: SubtitleClip[] = globalState.getSubtitleClips;
-		const exportStart = globalState.getExportState.videoStartTime || 0;
-		const exportEnd = globalState.getExportState.videoEndTime || 0;
-		const hasEndBound = exportEnd > exportStart;
-		const format =
-			globalState.getExportState.ytbChaptersFormat?.trim() || DEFAULT_YTB_CHAPTERS_FORMAT;
-		const translationEdition =
-			globalState.getProjectTranslation.addedTranslationEditions.find(
-				(edition) => edition.name === globalState.getExportState.ytbChaptersTranslationEditionName
-			) ?? null;
-
-		const clipWithinExportRange = (clip: SubtitleClip) => {
-			if (clip.endTime <= exportStart) return false;
-			if (hasEndBound && clip.startTime >= exportEnd) return false;
-			return true;
-		};
-
-		const getTimeFormatted = (timeMs: number) =>
-			Exporter.formatTimeForYouTube(Math.max(0, timeMs - exportStart));
-
-		if (!subtitlesClips || subtitlesClips.length === 0) {
-			console.error('No subtitle clips available for export.');
-			return;
-		}
-
-		const chapters: string[] = [];
-
-		if (choice === 'Each Surah') {
-			// Groupe par sourate
-			let lastSurahAdded = -1;
-
-			for (const clip of subtitlesClips) {
-				if (!(clip instanceof QuranSubtitleClip)) continue;
-				if (!clipWithinExportRange(clip)) continue;
-
-				if (clip.surah !== lastSurahAdded) {
-					lastSurahAdded = clip.surah;
-					const timeFormatted = chapters.length === 0 ? '0:00' : getTimeFormatted(clip.startTime);
-					const values = await Exporter.getYouTubeChapterFormatValues(
-						clip,
-						timeFormatted,
-						translationEdition
-					);
-					chapters.push(formatYouTubeChapterLine(format, values));
-				}
-			}
-		} else if (choice === 'Each Verse') {
-			// Groupe par verset
-			let lastSurahVerse = '';
-
-			for (const clip of subtitlesClips) {
-				if (!(clip instanceof QuranSubtitleClip)) continue;
-				if (!clipWithinExportRange(clip)) continue;
-
-				const currentSurahVerse = `${clip.surah}:${clip.verse}`;
-				if (currentSurahVerse !== lastSurahVerse) {
-					lastSurahVerse = currentSurahVerse;
-					const timeFormatted = chapters.length === 0 ? '0:00' : getTimeFormatted(clip.startTime);
-					const values = await Exporter.getYouTubeChapterFormatValues(
-						clip,
-						timeFormatted,
-						translationEdition
-					);
-					chapters.push(formatYouTubeChapterLine(format, values));
-				}
-			}
-		}
-
-		// Génère le contenu du fichier
-		let fileContent = `${get(LL).export.youtubeChaptersOption()}:\n\n`;
-		for (const chapter of chapters) {
-			fileContent += `${chapter}\n`;
-		}
-
-		AnalyticsService.trackYtbChaptersExport(choice, chapters.length, exportStart, exportEnd);
-
-		const projectName = ExportFileService.getProjectNameForFile();
-		const customFileName = globalState.getExportState.customFileName
-			.trim()
-			.replace(/[/\\:*?"<>|]/g, '_');
-		const fileName = customFileName
-			? `${customFileName}.txt`
-			: `minbarcaption_chapters_${projectName}.txt`;
-		await ExportFileService.saveTextFile(
-			fileName,
-			fileContent,
-			get(LL).export.youtubeChaptersOption()
-		);
-	}
-
-	/**
-	 * Construit les valeurs disponibles pour une ligne de chapitres YouTube.
-	 *
-	 * @param {SubtitleClip} clip Clip source du chapitre.
-	 * @param {string} timestamp Timestamp YouTube deja normalise.
-	 * @param {Edition | null} translationEdition Edition de traduction selectionnee.
-	 * @returns {Promise<YouTubeChapterFormatValues>} Valeurs de remplacement des placeholders.
-	 */
-	private static async getYouTubeChapterFormatValues(
-		clip: QuranSubtitleClip,
-		timestamp: string,
-		translationEdition: Edition | null
-	): Promise<YouTubeChapterFormatValues> {
-		const surah = Quran.surahs[clip.surah - 1];
-		let verseArabic = clip.text;
-		try {
-			const verse = await Quran.getVerse(clip.surah, clip.verse);
-			verseArabic = verse
-				? verse.getArabicTextBetweenTwoIndexes(0, verse.words.length - 1)
-				: clip.text;
-		} catch (error) {
-			console.error('Unable to load full verse text for YouTube chapters:', error);
-		}
-		const verseTranslation = translationEdition
-			? globalState.getProjectTranslation.getVerseTranslation(
-					translationEdition,
-					clip.getVerseKey()
-				)
-			: '';
-
-		return {
-			timestamp,
-			surahNumber: clip.surah,
-			surahTranslation: surah?.translation ?? '',
-			surahTransliteration: surah?.name ?? '',
-			verseArabic,
-			verseNumber: clip.verse,
-			verseTranslation
-		};
-	}
-
-	/**
-	 * Convertit le temps en millisecondes au format YouTube (MM:SS ou HH:MM:SS)
-	 */
-	private static formatTimeForYouTube(timeMs: number): string {
-		const totalSeconds = Math.floor(timeMs / 1000);
-		const hours = Math.floor(totalSeconds / 3600);
-		const minutes = Math.floor((totalSeconds % 3600) / 60);
-		const seconds = totalSeconds % 60;
-
-		if (hours > 0) {
-			return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-		} else {
-			return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-		}
-	}
-
 	/**
 	 * Exporte le projet sous forme de vidéo.
 	 */

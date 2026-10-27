@@ -12,7 +12,7 @@ const exporterMonitor = {
 	errorCopiedToClipboard: 'Error copied to clipboard',
 	failedToCopyError: 'Failed to copy error',
 	ffmpegUpdateHelp:
-		'Your FFmpeg version is too old. Run these commands, then fully restart Minbar Studio:',
+		'Your FFmpeg version is too old. Run these commands, then fully restart Minbar Caption:',
 	capturedFrames: 'Frames captured',
 	openExportLogs: 'Open export log file',
 	failedToOpenExportLogs: 'Unable to open the export log file. It may not exist yet.'

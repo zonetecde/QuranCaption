@@ -2963,7 +2963,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "minbar-studio"
+name = "minbar-caption"
 version = "1.1.31"
 dependencies = [
  "dirs",

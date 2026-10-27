@@ -699,7 +699,7 @@ class QuranAuthService {
 
 function isQuranAuthCallbackUrl(url: URL): boolean {
 	return (
-		url.protocol === 'minbarstudio:' && url.hostname === 'oauth' && url.pathname === '/callback'
+		url.protocol === 'minbarcaption:' && url.hostname === 'oauth' && url.pathname === '/callback'
 	);
 }
 

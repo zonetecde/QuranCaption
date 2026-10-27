@@ -46,7 +46,7 @@ export class AnalyticsService {
 			const appVersion = await Promise.race([versionPromise, timeoutPromise]);
 
 			posthog.register({
-				app_name: 'Minbar Studio',
+				app_name: 'Minbar Caption',
 				app_version: appVersion
 			});
 
@@ -83,7 +83,7 @@ export class AnalyticsService {
 	}
 
 	static track(eventName: string, properties?: UnknownRecord) {
-		properties = { ...properties, app_name: 'Minbar Studio' };
+		properties = { ...properties, app_name: 'Minbar Caption' };
 		if (!this.isInitialized) {
 			this.eventQueue.push({ eventName, properties, type: 'capture' });
 			return;

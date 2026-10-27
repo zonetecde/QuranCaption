@@ -1,8 +1,8 @@
 {
 	"$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-	"productName": "Minbar Studio",
+	"productName": "Minbar Caption",
 	"version": "1.1.31",
-	"identifier": "com.minbarstudio",
+	"identifier": "com.minbarcaption",
 	"build": {
 		"frontendDist": "../build",
 		"devUrl": "http://localhost:5173",
@@ -12,7 +12,7 @@
 	"app": {
 		"windows": [
 			{
-				"title": "Minbar Studio",
+				"title": "Minbar Caption",
 				"height": 768,
 				"width": 1024,
 				"minWidth": 1024,
@@ -128,7 +128,7 @@
 		"deep-link": {
 			"desktop": {
 				"schemes": [
-					"minbarstudio"
+					"minbarcaption"
 				]
 			}
 		},

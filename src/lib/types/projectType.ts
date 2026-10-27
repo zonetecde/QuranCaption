@@ -12,7 +12,7 @@ export type ProjectType = string;
 export const DEFAULT_PROJECT_TYPE: ProjectType = 'Lecture / Course';
 
 /**
- * Normalise un type de projet vers les catégories prises en charge par Minbar Studio.
+ * Normalise un type de projet vers les catégories prises en charge par Minbar Caption.
  * @param {unknown} value - Le type de projet à normaliser.
  * @returns {ProjectType} Le type de projet normalisé.
  */

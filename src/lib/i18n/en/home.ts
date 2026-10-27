@@ -1,5 +1,5 @@
 const home = {
-	copyright: '© {year} Minbar Studio. Made by {author}.',
+	copyright: '© {year} Minbar Caption. Made by {author}.',
 	welcomeBack: 'Welcome Back!',
 	letsCreate: "Let's transcribe something meaningful today.",
 	newProject: 'New Project',
@@ -23,7 +23,7 @@ const home = {
 	projectsInSubfolder: '{count} project(s) in this subfolder',
 	showingResultsFor: 'Showing {count} result(s) for "{query}"',
 	createNewProject: 'Create New Project',
-	startYourProject: 'Start your Minbar Studio project',
+	startYourProject: 'Start your Minbar Caption project',
 	projectName: 'Project Name',
 	speaker: 'Speaker',
 	type: 'Content Type',
@@ -85,7 +85,7 @@ const home = {
 	needAssistance: 'Need Assistance?',
 	assistanceDescription:
 		'Watch the walkthrough below or open the full documentation for more details.',
-	quranCaptionOverview: 'Minbar Studio Overview',
+	minbarCaptionOverview: 'Minbar Caption Overview',
 	openOnlineDocumentation: 'Open Online Documentation',
 	githubRepo: 'GitHub Repo',
 	documentation: 'Documentation',
@@ -116,7 +116,7 @@ const home = {
 	migrationCompleteTitle: 'Migration Complete!',
 	projectsImportedSuccess: '{count} projects imported successfully!',
 	projectsFailedToImport: '{count} projects failed to import',
-	projectsImportedV3: 'Your projects have been successfully imported to Minbar Studio V3',
+	projectsImportedV3: 'Your projects have been successfully imported to Minbar Caption V3',
 	importResults: 'Import Results',
 	successfullyImported: 'Successfully Imported',
 	failedToImport_Label: 'Failed to Import',

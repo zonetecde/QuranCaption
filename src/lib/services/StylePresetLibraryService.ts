@@ -59,13 +59,13 @@ function getApiBaseUrl(): string {
 }
 
 /**
- * Builds a Minbar Studio style library API URL.
+ * Builds a Minbar Caption style library API URL.
  *
  * @param {string} path API path starting with a slash.
  * @returns {URL} Absolute API URL.
  */
 function buildApiUrl(path: string): URL {
-	return new URL(`${getApiBaseUrl()}/products/minbar-studio${path}`);
+	return new URL(`${getApiBaseUrl()}/products/minbar-caption${path}`);
 }
 
 /**
@@ -175,7 +175,7 @@ export async function publishCommunityPreset(
 	form.append('resolution', JSON.stringify(params.resolution));
 	form.append(
 		'style',
-		new Blob([JSON.stringify({ ...params.style, product: 'minbar-studio', schemaVersion: 1 })], {
+		new Blob([JSON.stringify({ ...params.style, product: 'minbar-caption', schemaVersion: 1 })], {
 			type: 'application/json'
 		}),
 		'style.json'

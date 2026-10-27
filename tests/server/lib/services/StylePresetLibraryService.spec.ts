@@ -14,7 +14,7 @@ vi.mock('$lib/classes/Settings.svelte', () => ({ default: class {} }));
 vi.mock('$lib/runes/main.svelte', () => ({ globalState: {} }));
 
 const fetchMock = vi.fn();
-const baseUrl = 'https://styles.example.test/products/minbar-studio';
+const baseUrl = 'https://styles.example.test/products/minbar-caption';
 
 beforeEach(() => {
 	fetchMock.mockReset();
@@ -74,7 +74,7 @@ describe('Minbar community style library', () => {
 		const form = request.body as FormData;
 		expect(JSON.parse(await (form.get('style') as Blob).text())).toEqual({
 			...style,
-			product: 'minbar-studio',
+			product: 'minbar-caption',
 			schemaVersion: 1
 		});
 		expect(style).not.toHaveProperty('product');

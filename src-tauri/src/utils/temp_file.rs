@@ -38,7 +38,7 @@ mod tests {
                 let barrier = Arc::clone(&barrier);
                 thread::spawn(move || {
                     barrier.wait();
-                    unique_temp_path("qurancaption-test", "wav").unwrap()
+                    unique_temp_path("minbarcaption-test", "wav").unwrap()
                 })
             })
             .collect::<Vec<_>>();

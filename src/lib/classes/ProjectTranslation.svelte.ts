@@ -42,7 +42,7 @@ export class ProjectTranslation extends SerializableBase {
 	}
 
 	/**
-	 * Convertit les anciennes éditions directes en entrées de langue compatibles avec Minbar Studio.
+	 * Convertit les anciennes éditions directes en entrées de langue compatibles avec Minbar Caption.
 	 * Les clés existantes sont conservées pour ne pas casser les styles ni les traductions sauvegardées.
 	 * @returns {void}
 	 */

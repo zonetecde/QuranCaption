@@ -41,7 +41,7 @@ const editor = {
 	quranReferenceMissing: 'Quran reference does not exist: {reference}.',
 	quranWordRangeMissing: 'Quran word range does not exist: {reference}.',
 	ffprobe: {
-		notFound: 'FFprobe could not be found. Minbar Studio needs FFmpeg (ffmpeg + ffprobe).',
+		notFound: 'FFprobe could not be found. Minbar Caption needs FFmpeg (ffmpeg + ffprobe).',
 		notExecutable:
 			'FFprobe was found but could not be executed.{reason}\n\nTry reinstalling FFmpeg for your CPU architecture and remove macOS quarantine if needed.',
 		failed: 'FFprobe execution failed.{reason}',
@@ -676,7 +676,7 @@ const editor = {
 	tiktokForYou: 'For You',
 	tiktokShare: 'Share',
 	tiktokSampleUsername: '@your_username',
-	tiktokSampleDescription: 'Your description appears here #MinbarStudio',
+	tiktokSampleDescription: 'Your description appears here #MinbarCaption',
 	pasteMediaUrlPlaceholder: 'Paste a public media URL',
 	clickToGenerateWaveform:
 		'Click to generate waveform (disabled by default for long audio to save memory)',

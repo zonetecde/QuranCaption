@@ -8,10 +8,10 @@ mod invoke;
 
 static NEXT_WINDOW_ID: AtomicU64 = AtomicU64::new(1);
 
-/// Returns whether the second launch was triggered by a Minbar Studio deep link.
+/// Returns whether the second launch was triggered by a Minbar Caption deep link.
 fn is_deep_link_launch(argv: &[String]) -> bool {
     argv.iter()
-        .any(|arg| arg.to_ascii_lowercase().starts_with("minbarstudio://"))
+        .any(|arg| arg.to_ascii_lowercase().starts_with("minbarcaption://"))
 }
 
 /// Opens an additional main window using the existing Tauri window configuration.

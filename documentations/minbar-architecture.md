@@ -1,6 +1,6 @@
-# Architecture métier de Minbar Studio
+# Architecture métier de Minbar Caption
 
-Minbar Studio réutilise le moteur multimédia et les outils Quran de Quran Caption. Son modèle de
+Minbar Caption réutilise le moteur multimédia et les outils Quran de Quran Caption. Son modèle de
 transcription est indépendant : un sous-titre contient du texte, un alignement, des traductions et
 des éditions locales. Il n'est pas défini par une sourate ou un verset.
 

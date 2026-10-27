@@ -1,5 +1,5 @@
 const donation = {
-	supportFuture: 'Support the future of Minbar Studio.',
+	supportFuture: 'Support the future of Minbar Caption.',
 	donationsSupport:
 		'Donations support development time, bug fixes, and community-requested features.',
 	makeDonation: 'Make a donation',

@@ -1,4 +1,4 @@
-﻿//! Entrypoint de la bibliothèque Tauri QuranCaption.
+﻿//! Entrypoint de la bibliothèque Tauri Minbar Caption.
 //!
 //! Cette unité reste volontairement mince: elle déclare les modules de domaine
 //! puis délègue l'exécution à `app::run()`.

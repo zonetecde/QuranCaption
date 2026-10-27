@@ -143,7 +143,7 @@ export class QPCFontProvider {
 
 	/**
 	 * Charge toutes les polices de la bibliothèque globale dans le document courant.
-	 * @returns {Promise<ImportedFont[]>} Polices valides disponibles dans Minbar Studio.
+	 * @returns {Promise<ImportedFont[]>} Polices valides disponibles dans Minbar Caption.
 	 */
 	static loadImportedFonts(): Promise<ImportedFont[]> {
 		QPCFontProvider.importedFontsPromise ??= (async () => {

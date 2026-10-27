@@ -3,5 +3,5 @@
 
 fn main() {
     let _ = fix_path_env::fix();
-    minbar_studio_lib::run();
+    minbar_caption_lib::run();
 }

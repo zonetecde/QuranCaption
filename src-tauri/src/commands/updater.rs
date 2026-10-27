@@ -11,23 +11,23 @@ pub struct UpdateMetadata {
     raw_json: serde_json::Value,
 }
 
-/// Vérifie une mise à jour depuis la release Minbar Studio correspondant exactement au tag `MS-*` fourni.
+/// Vérifie une mise à jour depuis la release Minbar Caption correspondant exactement au tag `MC-*` fourni.
 #[cfg(desktop)]
 #[tauri::command]
-pub async fn check_ms_update(
+pub async fn check_mc_update(
     webview: tauri::Webview<tauri::Wry>,
     tag: String,
 ) -> Result<Option<UpdateMetadata>, String> {
     use tauri::Manager;
     use tauri_plugin_updater::UpdaterExt;
 
-    if !tag.strip_prefix("MS-").is_some_and(|version| {
+    if !tag.strip_prefix("MC-").is_some_and(|version| {
         !version.is_empty()
             && version
                 .chars()
                 .all(|character| character.is_ascii_digit() || character == '.')
     }) {
-        return Err("Invalid Minbar Studio release tag".into());
+        return Err("Invalid Minbar Caption release tag".into());
     }
 
     let endpoint =
@@ -56,9 +56,9 @@ pub async fn check_ms_update(
     Ok(Some(metadata))
 }
 
-/// Ignore la vérification des mises à jour Minbar Studio sur mobile.
+/// Ignore la vérification des mises à jour Minbar Caption sur mobile.
 #[cfg(mobile)]
 #[tauri::command]
-pub async fn check_ms_update(_tag: String) -> Result<Option<UpdateMetadata>, String> {
+pub async fn check_mc_update(_tag: String) -> Result<Option<UpdateMetadata>, String> {
     Ok(None)
 }

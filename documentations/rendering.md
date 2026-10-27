@@ -1,8 +1,8 @@
-# Rendu de la prévisualisation vidéo — Minbar Studio
+# Rendu de la prévisualisation vidéo — Minbar Caption
 
-Ce document décrit en détail comment la prévisualisation vidéo est rendue dans Minbar Studio, depuis
-le chargement de la vidéo/audio jusqu'à l'affichage final de chaque élément visuel (sous-titres,
-décorations, effets, etc.).
+Ce document décrit en détail comment la prévisualisation vidéo est rendue dans Minbar Caption,
+depuis le chargement de la vidéo/audio jusqu'à l'affichage final de chaque élément visuel
+(sous-titres, décorations, effets, etc.).
 
 ---
 

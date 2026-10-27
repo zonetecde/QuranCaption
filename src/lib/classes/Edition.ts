@@ -15,7 +15,7 @@ export class Edition {
 
 	/**
 	 * Indique si cette entrée représente une langue du projet plutôt qu'une édition Quran brute.
-	 * @returns {boolean} `true` pour une langue ajoutée dans Minbar Studio.
+	 * @returns {boolean} `true` pour une langue ajoutée dans Minbar Caption.
 	 */
 	isProjectLanguage(): boolean {
 		return this.source === 'project-language';

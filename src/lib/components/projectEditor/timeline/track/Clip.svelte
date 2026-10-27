@@ -424,9 +424,9 @@
 	}
 
 	onMount(() => {
-		window.addEventListener('minbarstudio-release-asset-media', releaseWaveformForAsset);
+		window.addEventListener('minbarcaption-release-asset-media', releaseWaveformForAsset);
 		return () => {
-			window.removeEventListener('minbarstudio-release-asset-media', releaseWaveformForAsset);
+			window.removeEventListener('minbarcaption-release-asset-media', releaseWaveformForAsset);
 		};
 	});
 

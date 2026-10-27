@@ -99,7 +99,7 @@
 				alt={Reflect.get($LL.common, 'logo')()}
 				src="favicon.png"
 			/>
-			<h1 class="text-lg font-semibold text-primary pt-0.75">Minbar Studio</h1>
+			<h1 class="text-lg font-semibold text-primary pt-0.75">{$LL.common.appName()}</h1>
 		</button>
 
 		{#if VersionService.latestUpdate?.hasUpdate}
@@ -213,7 +213,7 @@
 						<iframe
 							class="w-full aspect-video"
 							src="https://www.youtube.com/embed/vCRUjzATRDk"
-							title={$LL.home.quranCaptionOverview()}
+							title={$LL.home.minbarCaptionOverview()}
 							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
 							allowfullscreen
 						></iframe>
@@ -223,7 +223,7 @@
 						class="btn-accent w-full text-center py-2 text-sm font-medium"
 						type="button"
 						onclick={async () => {
-							await openUrl('https://qurancaption-project.vercel.app/documentation');
+							await openUrl('https://minbarcaption.com/documentation');
 							showHelpPopover = false;
 						}}
 					>

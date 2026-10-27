@@ -208,7 +208,7 @@
 					};
 				}
 			} else {
-				// Pour QDC, on passe d'abord par le proxy Minbar Studio pour ne pas exposer les clés.
+				// Pour QDC, on passe d'abord par le proxy Minbar Caption pour ne pas exposer les clés.
 				const chapterAudio = await QdcRecitationService.getChapterAudio(
 					selectedOption.qdcRecitationId!,
 					selectedSurahId

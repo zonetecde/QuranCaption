@@ -477,7 +477,7 @@ export default class Exporter {
 		const customFileName = es.customFileName.trim().replace(/[/\\:*?"<>|]/g, '_');
 		const fileName = customFileName
 			? `${customFileName}.${extension}`
-			: `minbarstudio_subtitles_${projectName}.${extension}`;
+			: `minbarcaption_subtitles_${projectName}.${extension}`;
 		await ExportFileService.saveTextFile(fileName, fileContent, 'Subtitles');
 	}
 	static async exportProjectData(project?: Project | null) {
@@ -490,7 +490,7 @@ export default class Exporter {
 
 		const json = JSON.stringify(projectData, null, 2);
 		const projectName = ExportFileService.getProjectNameForFile();
-		const fileName = `minbarstudio_project_${projectName}.json`;
+		const fileName = `minbarcaption_project_${projectName}.json`;
 		await ExportFileService.saveTextFile(fileName, json, 'Project data');
 	}
 
@@ -508,7 +508,7 @@ export default class Exporter {
 		}
 
 		const projectName = ExportFileService.getProjectNameForFile(projectData);
-		const fileName = `minbarstudio_project_${projectName}.minbar`;
+		const fileName = `minbarcaption_project_${projectName}.minbar`;
 		const exportFolder = await ExportService.getExportFolder();
 		const filePath = await ExportService.constrainFilePathLength(
 			await join(exportFolder, fileName)
@@ -654,7 +654,7 @@ export default class Exporter {
 			2
 		);
 		const projectName = ExportFileService.getProjectNameForFile();
-		const fileName = `minbarstudio_subtitles_data_${projectName}.json`;
+		const fileName = `minbarcaption_subtitles_data_${projectName}.json`;
 		try {
 			await ExportFileService.saveTextFile(
 				fileName,
@@ -680,7 +680,7 @@ export default class Exporter {
 		}
 
 		await ExportFileService.saveTextFile(
-			`minbarstudio_backup_${Date.now()}.json`,
+			`minbarcaption_backup_${Date.now()}.json`,
 			JSON.stringify(projects),
 			get(LL).settings.projectBackup()
 		);
@@ -769,7 +769,7 @@ export default class Exporter {
 			.replace(/[/\\:*?"<>|]/g, '_');
 		const fileName = customFileName
 			? `${customFileName}.txt`
-			: `minbarstudio_chapters_${projectName}.txt`;
+			: `minbarcaption_chapters_${projectName}.txt`;
 		await ExportFileService.saveTextFile(
 			fileName,
 			fileContent,

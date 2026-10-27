@@ -22,7 +22,7 @@ pub mod screenshot;
 pub mod stock_media;
 /// Commandes de transcription audio.
 pub mod speech_to_text;
-/// Commandes de mise à jour de Minbar Studio.
+/// Commandes de mise à jour de Minbar Caption.
 pub mod updater;
 /// Commandes d'analyse de forme d'onde.
 pub mod waveform;

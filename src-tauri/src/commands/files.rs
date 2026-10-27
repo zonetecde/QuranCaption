@@ -763,7 +763,7 @@ pub async fn download_file(
     for attempt in 1..=max_retries {
         let mut request = client
             .get(&url)
-            .header(USER_AGENT, "QuranCaption/3")
+            .header(USER_AGENT, "MinbarCaption/3")
             .header(ACCEPT, "*/*")
             .header(ACCEPT_ENCODING, "identity");
 
@@ -904,7 +904,7 @@ pub async fn send_http_get(url: String) -> Result<u16, String> {
 
     let response = client
         .get(&url)
-        .header(USER_AGENT, "MinbarStudio/3")
+        .header(USER_AGENT, "MinbarCaption/3")
         .send()
         .await
         .map_err(|e| format!("HTTP request failed: {}", e))?;
@@ -927,7 +927,7 @@ pub async fn send_http_text(url: String) -> Result<String, String> {
 
     let response = client
         .get(&url)
-        .header(USER_AGENT, "MinbarStudio/3")
+        .header(USER_AGENT, "MinbarCaption/3")
         .header(ACCEPT, "application/json,text/plain,*/*")
         .send()
         .await

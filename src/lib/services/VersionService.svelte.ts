@@ -56,7 +56,7 @@ class VersionService {
 	// normalise "v1.2.3" -> "1.2.3", garde 3 segments
 	private normalizeVersion(v: string): string {
 		if (!v) return '0.0.0';
-		const s = v.trim().replace(/^ms[-_]?/i, '');
+		const s = v.trim().replace(/^mc[-_]?/i, '');
 		// garder seulement chiffres séparés par non-chiffres
 		const parts = s
 			.split(/[^0-9]+/)
@@ -88,8 +88,8 @@ class VersionService {
 			const updateInfo = this.latestUpdate ?? (await this.checkForUpdates());
 			if (!updateInfo.hasUpdate) return null;
 
-			const metadata = await invoke<TauriUpdateMetadata | null>('check_ms_update', {
-				tag: `MS-${updateInfo.latestVersion}`
+			const metadata = await invoke<TauriUpdateMetadata | null>('check_mc_update', {
+				tag: `MC-${updateInfo.latestVersion}`
 			});
 			const update = metadata ? new Update(metadata) : null;
 			if (update?.available) {
@@ -198,24 +198,24 @@ class VersionService {
 			}
 			const releases = releasesPayload.filter(isGitHubRelease);
 
-			// filtrer seulement les releases Minbar Studio publiées et stables
-			const msReleases = releases.filter((r) => {
+			// filtrer seulement les releases Minbar Caption publiées et stables
+			const mcReleases = releases.filter((r) => {
 				const tag = r.tag_name || '';
-				return !r.draft && !r.prerelease && /^MS-\d+\.\d+\.\d+$/i.test(tag);
+				return !r.draft && !r.prerelease && /^MC-\d+\.\d+\.\d+$/i.test(tag);
 			});
 
-			if (msReleases.length === 0) {
+			if (mcReleases.length === 0) {
 				return { hasUpdate: false, changelog: '', latestVersion: '0.0.0' };
 			}
 
 			// déterminer la version la plus élevée trouvée (au cas où l'ordre GitHub ne suit pas SemVer)
-			const highest = msReleases.reduce((max: string, r) => {
+			const highest = mcReleases.reduce((max: string, r) => {
 				const tag = r.tag_name || '0.0.0';
 				return this.compareSemver(tag, max) === 1 ? tag : max;
-			}, msReleases[0].tag_name || '0.0.0');
+			}, mcReleases[0].tag_name || '0.0.0');
 
 			// filtrer les releases strictement supérieures à la version courante
-			const newer = msReleases
+			const newer = mcReleases
 				.filter((r) => {
 					const tag = r.tag_name || '';
 					return this.compareSemver(tag, currentVersion) === 1;
@@ -233,7 +233,7 @@ class VersionService {
 				.join('\n\n');
 
 			// extraire la partie numérique du tag le plus élevé
-			const latestVersionNumber = highest.replace(/^MS-/i, '');
+			const latestVersionNumber = highest.replace(/^MC-/i, '');
 
 			return {
 				hasUpdate: newer.length > 0,

@@ -28,17 +28,17 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-describe('Minbar Studio analytics', () => {
-	test('marks global and queued events as Minbar Studio even if callers override the name', async () => {
+describe('Minbar Caption analytics', () => {
+	test('marks global and queued events as Minbar Caption even if callers override the name', async () => {
 		expect(posthog.register).toHaveBeenCalledWith({
-			app_name: 'Minbar Studio',
+			app_name: 'Minbar Caption',
 			app_version: '1.1.30'
 		});
 		vi.resetModules();
 		({ AnalyticsService } = await import('$lib/services/AnalyticsService'));
 		AnalyticsService.track('project_created', { app_name: 'Quran Caption' });
 		await AnalyticsService.init();
-		expect(posthog.capture).toHaveBeenCalledWith('project_created', { app_name: 'Minbar Studio' });
+		expect(posthog.capture).toHaveBeenCalledWith('project_created', { app_name: 'Minbar Caption' });
 	});
 
 	test.each([
@@ -64,7 +64,7 @@ describe('Minbar Studio analytics', () => {
 			]);
 			expect(calls[1][1]).toMatchObject({
 				workflow_id: calls[0][1]?.workflow_id,
-				app_name: 'Minbar Studio',
+				app_name: 'Minbar Caption',
 				duration_ms: expect.any(Number)
 			});
 		}

@@ -21,7 +21,7 @@ export function getStatusLabel(status: Status, LL: TranslationFunctions): string
 }
 
 /**
- * Retourne le libellé i18n correspondant au type de projet Minbar Studio.
+ * Retourne le libellé i18n correspondant au type de projet Minbar Caption.
  * @param {string} type - Le type de contenu du projet.
  * @param {TranslationFunctions} LL - Les fonctions de traduction.
  * @returns {string} Le libellé traduit, ou le type brut si non trouvé.

@@ -335,14 +335,14 @@
 		clearOverlappingAudioHowls();
 
 		window.removeEventListener('resize', resizeVideoToFitScreen);
-		window.removeEventListener('minbarstudio-release-asset-media', releaseAssetMedia);
+		window.removeEventListener('minbarcaption-release-asset-media', releaseAssetMedia);
 	});
 
 	// === CYCLE DE VIE DU COMPOSANT ===
 	onMount(() => {
 		resizeVideoToFitScreen(); // Redimensionne initial
 		window.addEventListener('resize', resizeVideoToFitScreen); // Écoute le redimensionnement de fenêtre
-		window.addEventListener('minbarstudio-release-asset-media', releaseAssetMedia);
+		window.addEventListener('minbarcaption-release-asset-media', releaseAssetMedia);
 
 		// Force la synchronisation initiale vidéo/audio avec la position du curseur
 		triggerVideoAndAudioToFitCursor();
@@ -696,7 +696,7 @@
 		speed?: number;
 	};
 	type BoostedMediaElement = HTMLMediaElement & {
-		__quranCaptionAudioBoost?: {
+		__minbarCaptionAudioBoost?: {
 			context: AudioContext;
 			source: MediaElementAudioSourceNode;
 			gain: GainNode;
@@ -1249,7 +1249,7 @@
 				mediaElement.crossOrigin = 'anonymous';
 				mediaElement.load();
 			}
-			let boost = mediaElement.__quranCaptionAudioBoost;
+			let boost = mediaElement.__minbarCaptionAudioBoost;
 			if (volume > 1 && !boost) {
 				try {
 					const context = new AudioContext();
@@ -1257,7 +1257,7 @@
 					const gain = context.createGain();
 					source.connect(gain).connect(context.destination);
 					boost = { context, source, gain };
-					mediaElement.__quranCaptionAudioBoost = boost;
+					mediaElement.__minbarCaptionAudioBoost = boost;
 				} catch (error) {
 					console.warn('Unable to amplify the reused HTML audio element:', error);
 					return;
@@ -1672,7 +1672,7 @@
 	});
 
 	onMount(() => {
-		// Si Minbar Studio a été quitté en fullscreen, on enlève le fullscreen.
+		// Si Minbar Caption a été quitté en fullscreen, on enlève le fullscreen.
 		if (globalState.getVideoPreviewState.isFullscreen) {
 			globalState.getVideoPreviewState.toggleFullScreen();
 		}

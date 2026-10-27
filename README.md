@@ -1,13 +1,13 @@
 <div align="center">
 
-<img src="src-tauri/icons/128x128.png" width="100" alt="Minbar Studio logo" />
+<img src="src-tauri/icons/128x128.png" width="100" alt="Minbar Caption logo" />
 
-<h1>Minbar Studio</h1>
+<h1>Minbar Caption</h1>
 
 <p><strong>Caption and translate lectures, khutbahs, reminders, podcasts, poetry, and nasheeds.</strong></p>
 
 <p>
-  <a href="https://github.com/zonetecde/QuranCaption/releases?q=MS-&amp;expanded=true">Minbar Studio releases</a> |
+  <a href="https://github.com/zonetecde/QuranCaption/releases?q=MC-&amp;expanded=true">Minbar Caption releases</a> |
   <a href="documentations/minbar-architecture.md">Architecture</a> |
   <a href="https://discord.gg/Hxfqq2QA2J">Discord</a>
 </p>
@@ -16,14 +16,14 @@
 
 ---
 
-## What is Minbar Studio?
+## What is Minbar Caption?
 
-Minbar Studio is a desktop video editor for spoken and sung content: courses, Friday khutbahs,
+Minbar Caption is a desktop video editor for spoken and sung content: courses, Friday khutbahs,
 reminders, conferences, podcasts, poetry, and nasheeds. Import audio or video, transcribe the
 speech, add translations, customize the presentation, and export for YouTube, TikTok, or Instagram.
 
-Minbar Studio and Quran Caption are separate applications that share a multimedia foundation. Quran
-Caption focuses on Quranic recitations structured around verses. Minbar Studio uses free-text
+Minbar Caption and Quran Caption are separate applications that share a multimedia foundation. Quran
+Caption focuses on Quranic recitations structured around verses. Minbar Caption uses free-text
 subtitles and can mark Quran passages and other quotations within a transcript.
 
 ## Features
@@ -48,7 +48,7 @@ subtitles and can mark Quran passages and other quotations within a transcript.
 - Customize fonts, colors, outlines, shadows, backgrounds, placement, and margins.
 - Style ordinary speech, Quran passages, and quotations separately, including their translations.
 - Add speaker names, creator branding, custom text, images, and video overlays.
-- Save local presets and share styles through the dedicated Minbar Studio community library.
+- Save local presets and share styles through the dedicated Minbar Caption community library.
 - Undo and redo project edits.
 
 ### Media and export
@@ -60,36 +60,36 @@ subtitles and can mark Quran passages and other quotations within a transcript.
 ## Download
 
 Open the
-[Minbar Studio releases](https://github.com/zonetecde/QuranCaption/releases?q=MS-&expanded=true) and
-choose the newest published stable release tagged **`MS-X.X.X`**. The repository also hosts Quran
-Caption (`QC-*`) and Quran Caption Mobile (`QCM-*`) releases.
+[Minbar Caption releases](https://github.com/zonetecde/QuranCaption/releases?q=MC-&expanded=true)
+and choose the newest published stable release tagged **`MC-X.X.X`**. The repository also hosts
+Quran Caption (`QC-*`) and Quran Caption Mobile (`QCM-*`) releases.
 
-| Platform              | Minbar Studio installer                                   |
-| --------------------- | --------------------------------------------------------- |
-| Windows               | `MinbarStudio.Windows.exe`                                |
-| macOS (Apple Silicon) | `MinbarStudio.MacOS.ARM.dmg`                              |
-| macOS (Intel)         | `MinbarStudio.MacOS.Intel.dmg`                            |
-| Linux                 | `MinbarStudio.Linux.AppImage` or `MinbarStudio.Linux.deb` |
+| Platform              | Minbar Caption installer                                    |
+| --------------------- | ----------------------------------------------------------- |
+| Windows               | `MinbarCaption.Windows.exe`                                 |
+| macOS (Apple Silicon) | `MinbarCaption.MacOS.ARM.dmg`                               |
+| macOS (Intel)         | `MinbarCaption.MacOS.Intel.dmg`                             |
+| Linux                 | `MinbarCaption.Linux.AppImage` or `MinbarCaption.Linux.deb` |
 
-The desktop app checks for newer stable `MS-*` releases and offers their changelogs and an update.
-Minbar Studio is free and open source; external AI providers may charge for API usage.
+The desktop app checks for newer stable `MC-*` releases and offers their changelogs and an update.
+Minbar Caption is free and open source; external AI providers may charge for API usage.
 
 ## For developers
 
-This application lives on the **`minbar-studio`** branch of
-[`zonetecde/QuranCaption`](https://github.com/zonetecde/QuranCaption/tree/minbar-studio).
+This application lives on the **`minbar-caption`** branch of
+[`zonetecde/QuranCaption`](https://github.com/zonetecde/QuranCaption/tree/minbar-caption).
 
 **Stack:** Svelte 5 / TypeScript / Rust / Tauri 2 / Tailwind CSS / FFmpeg
 
 - [Development guide](DEVELOPMENT.md)
-- [Minbar Studio domain architecture](documentations/minbar-architecture.md)
+- [Minbar Caption domain architecture](documentations/minbar-architecture.md)
 - [Video style schema and editor rules](documentations/style-json.md)
 - [Shared foundation ported from Quran Caption](documentations/minbar-main-portage.md)
 - [Required FFmpeg, FFprobe, and yt-dlp binaries](src-tauri/binaries/README.md)
 
 ## Contributing
 
-Issues and pull requests are welcome. Mention **Minbar Studio** when reporting a problem in the
+Issues and pull requests are welcome. Mention **Minbar Caption** when reporting a problem in the
 shared repository, or join the [Discord community](https://discord.gg/Hxfqq2QA2J).
 
 ---

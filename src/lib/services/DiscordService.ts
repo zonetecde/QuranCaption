@@ -64,10 +64,10 @@ class DiscordService {
 	// Méthodes prédéfinies pour différents états
 	async setIdleState(): Promise<void> {
 		await this.updateActivity({
-			details: get(LL).settings.usingQuranCaption(),
+			details: get(LL).settings.usingMinbarCaption(),
 			state: get(LL).settings.atHomeMenu(),
 			large_image_key: 'logo',
-			large_image_text: 'Minbar Studio',
+			large_image_text: get(LL).common.appName(),
 			small_image_key: 'idle',
 			small_image_text: get(LL).settings.idle(),
 			start_timestamp: this.startTimestamp || undefined
@@ -85,7 +85,7 @@ class DiscordService {
 					? get(LL).settings.workingOnProject({ name, speaker: speaker })
 					: Reflect.get(get(LL).settings, 'workingOnProjectWithoutSpeaker')({ name }),
 			large_image_key: 'logo',
-			large_image_text: 'Minbar Studio',
+			large_image_text: get(LL).common.appName(),
 			small_image_key: 'edit',
 			small_image_text: get(LL).settings.captioningStatus(),
 			start_timestamp: this.startTimestamp || undefined

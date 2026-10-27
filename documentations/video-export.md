@@ -139,7 +139,7 @@ Le pretraitement (`preprocess.rs`) produit une video normalisee:
 - blur optionnel (`gblur`);
 - encodage dans un fichier MP4 intermediaire.
 
-Le resultat est mis en cache dans `%TEMP%/minbarstudio-preproc`.
+Le resultat est mis en cache dans `%TEMP%/minbarcaption-preproc`.
 
 ### Voie directe single-pass
 
@@ -247,7 +247,7 @@ Quand aucun encodeur materiel n'est disponible, `libx264` est utilise avec:
 
 ## Cache de pretraitement
 
-Le cache est stocke dans `%TEMP%/minbarstudio-preproc`.
+Le cache est stocke dans `%TEMP%/minbarcaption-preproc`.
 
 La cle de cache inclut:
 

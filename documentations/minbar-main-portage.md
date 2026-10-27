@@ -1,4 +1,4 @@
-# Portage du socle commun de main vers Minbar Studio
+# Portage du socle commun de main vers Minbar Caption
 
 Références de cette passe : `main` à `7f711bc9`, Minbar à `f74b3c11` après la séparation des modèles
 de transcription. Le portage est fonctionnel : les modifications sont adaptées aux fichiers Minbar,
@@ -42,7 +42,7 @@ seule langue activée sur cette branche.
   `95be6ef4` concernant le statut Quran Caption `fetched` ne s'y applique pas.
 - Les workflows de batches coraniques, QuranReflect, la promotion Quran Caption, son catalogue de
   traductions et sa localisation arabe complète ne sont pas importés dans le produit Minbar.
-- Le nom, la version, les mises à jour `MS` et les données propres à Minbar sont conservés. Les
+- Le nom, la version, les mises à jour `MC` et les données propres à Minbar sont conservés. Les
   restructurations de fichiers de `18171794` ne sont pas recopiées sur le modèle Minbar remis au
   propre.
 

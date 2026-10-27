@@ -55,6 +55,6 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::waveform::get_audio_waveform,
         commands::diagnostics::diagnose_media_binaries,
         commands::stock_media::search_stock_media,
-        commands::updater::check_ms_update
+        commands::updater::check_mc_update
     ])
 }

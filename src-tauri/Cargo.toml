@@ -1,5 +1,5 @@
 [package]
-name = "minbar-studio"
+name = "minbar-caption"
 version = "1.1.31"
 description = "Transform Quranic recitations into stunning captioned videos with professional quality subtitles and translations in 40+ languages."
 authors = ["Rayane STASZEWSKI"]
@@ -11,7 +11,7 @@ rust-version = "1.77.2"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-name = "minbar_studio_lib"
+name = "minbar_caption_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

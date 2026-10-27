@@ -1018,7 +1018,7 @@ pub fn preview_audio_effect(
     start_ms: u64,
     duration_ms: u64,
 ) -> Result<String, String> {
-    let output_path = unique_temp_path("qurancaption-audio-effect-preview", "wav")?;
+    let output_path = unique_temp_path("minbarcaption-audio-effect-preview", "wav")?;
     let output = output_path.to_string_lossy().to_string();
     if let Err(error) = run_audio_effect(
         &source_path,
@@ -1364,7 +1364,7 @@ mod timeline_thumbnail_tests {
     #[test]
     fn invalidates_timeline_thumbnail_cache_when_source_changes() {
         let test_root = std::env::temp_dir().join(format!(
-            "qurancaption-thumbnail-cache-test-{}",
+            "minbarcaption-thumbnail-cache-test-{}",
             std::process::id()
         ));
         fs::create_dir_all(&test_root).unwrap();
@@ -1383,7 +1383,7 @@ mod timeline_thumbnail_tests {
     #[test]
     fn rejects_empty_timeline_thumbnail_cache_files() {
         let path = std::env::temp_dir().join(format!(
-            "qurancaption-empty-thumbnail-test-{}.jpg",
+            "minbarcaption-empty-thumbnail-test-{}.jpg",
             std::process::id()
         ));
         fs::write(&path, []).unwrap();
@@ -1416,7 +1416,7 @@ mod directory_size_tests {
     #[test]
     fn totals_nested_directory_files() {
         let test_root = std::env::temp_dir().join(format!(
-            "qurancaption-directory-size-test-{}",
+            "minbarcaption-directory-size-test-{}",
             std::process::id()
         ));
         let nested = test_root.join("nested");

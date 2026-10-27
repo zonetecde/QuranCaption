@@ -225,8 +225,8 @@ pub(crate) async fn stream_ai_response(
         .header(CONTENT_TYPE, "application/json");
     let request_builder = if is_openrouter_endpoint(endpoint) {
         request_builder
-            .header("HTTP-Referer", "https://qurancaption.app")
-            .header("X-OpenRouter-Title", "MinbarStudio")
+            .header("HTTP-Referer", "https://minbarcaption.com")
+            .header("X-OpenRouter-Title", "MinbarCaption")
     } else {
         request_builder
     };

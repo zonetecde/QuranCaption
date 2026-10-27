@@ -86,10 +86,10 @@
 			endpoint.searchParams.set(
 				'subject',
 				activeTab === 'review'
-					? 'Minbar Studio Review'
+					? get(LL).common.reviewSubject()
 					: feedbackType === 'bug'
-						? 'Minbar Studio Bug Report'
-						: 'Minbar Studio Feature Request'
+						? get(LL).common.bugReportSubject()
+						: get(LL).common.featureRequestSubject()
 			);
 			endpoint.searchParams.set('email', trimmedEmail);
 			endpoint.searchParams.set(
@@ -298,7 +298,7 @@
 					class="text-[#5865F2] font-semibold hover:underline cursor-pointer"
 					onclick={() => openUrl('https://discord.gg/Hxfqq2QA2J')}
 				>
-					{$LL.common.quranCaptionDiscord()}
+					{$LL.common.minbarCaptionDiscord()}
 				</button>
 				{$LL.common.forSupportAndTutorials()}
 			</p>

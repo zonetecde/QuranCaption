@@ -18,6 +18,22 @@ export type Translations = RootTranslation;
 type RootTranslation = {
 	common: {
 		/**
+		 * M​i​n​b​a​r​ ​C​a​p​t​i​o​n
+		 */
+		appName: string;
+		/**
+		 * M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​R​e​v​i​e​w
+		 */
+		reviewSubject: string;
+		/**
+		 * M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​B​u​g​ ​R​e​p​o​r​t
+		 */
+		bugReportSubject: string;
+		/**
+		 * M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​F​e​a​t​u​r​e​ ​R​e​q​u​e​s​t
+		 */
+		featureRequestSubject: string;
+		/**
 		 * L​o​g​o
 		 */
 		logo: string;
@@ -367,7 +383,7 @@ type RootTranslation = {
 		 */
 		ratingHelps: string;
 		/**
-		 * S​h​a​r​e​ ​i​d​e​a​s​ ​o​r​ ​i​s​s​u​e​s​ ​s​o​ ​w​e​ ​c​a​n​ ​i​m​p​r​o​v​e​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​.
+		 * S​h​a​r​e​ ​i​d​e​a​s​ ​o​r​ ​i​s​s​u​e​s​ ​s​o​ ​w​e​ ​c​a​n​ ​i​m​p​r​o​v​e​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n​.
 		 */
 		shareIdeas: string;
 		/**
@@ -433,9 +449,9 @@ type RootTranslation = {
 		 */
 		needHelpJoin: string;
 		/**
-		 * M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​D​i​s​c​o​r​d​ ​s​e​r​v​e​r
+		 * M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​D​i​s​c​o​r​d​ ​s​e​r​v​e​r
 		 */
-		quranCaptionDiscord: string;
+		minbarCaptionDiscord: string;
 		/**
 		 * f​o​r​ ​s​u​p​p​o​r​t​ ​a​n​d​ ​t​u​t​o​r​i​a​l​s​.
 		 */
@@ -611,7 +627,7 @@ type RootTranslation = {
 	};
 	home: {
 		/**
-		 * ©​ ​{​y​e​a​r​}​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​.​ ​M​a​d​e​ ​b​y​ ​{​a​u​t​h​o​r​}​.
+		 * ©​ ​{​y​e​a​r​}​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n​.​ ​M​a​d​e​ ​b​y​ ​{​a​u​t​h​o​r​}​.
 		 * @param {unknown} author
 		 * @param {unknown} year
 		 */
@@ -709,7 +725,7 @@ type RootTranslation = {
 		 */
 		createNewProject: string;
 		/**
-		 * S​t​a​r​t​ ​y​o​u​r​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​p​r​o​j​e​c​t
+		 * S​t​a​r​t​ ​y​o​u​r​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​p​r​o​j​e​c​t
 		 */
 		startYourProject: string;
 		/**
@@ -949,9 +965,9 @@ type RootTranslation = {
 		 */
 		assistanceDescription: string;
 		/**
-		 * M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​O​v​e​r​v​i​e​w
+		 * M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​O​v​e​r​v​i​e​w
 		 */
-		quranCaptionOverview: string;
+		minbarCaptionOverview: string;
 		/**
 		 * O​p​e​n​ ​O​n​l​i​n​e​ ​D​o​c​u​m​e​n​t​a​t​i​o​n
 		 */
@@ -1072,7 +1088,7 @@ type RootTranslation = {
 		 */
 		projectsFailedToImport: RequiredParams<'count'>;
 		/**
-		 * Y​o​u​r​ ​p​r​o​j​e​c​t​s​ ​h​a​v​e​ ​b​e​e​n​ ​s​u​c​c​e​s​s​f​u​l​l​y​ ​i​m​p​o​r​t​e​d​ ​t​o​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​V​3
+		 * Y​o​u​r​ ​p​r​o​j​e​c​t​s​ ​h​a​v​e​ ​b​e​e​n​ ​s​u​c​c​e​s​s​f​u​l​l​y​ ​i​m​p​o​r​t​e​d​ ​t​o​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​V​3
 		 */
 		projectsImportedV3: string;
 		/**
@@ -1280,7 +1296,7 @@ type RootTranslation = {
 		quranWordRangeMissing: RequiredParams<'reference'>;
 		ffprobe: {
 			/**
-			 * F​F​p​r​o​b​e​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​f​o​u​n​d​.​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​n​e​e​d​s​ ​F​F​m​p​e​g​ ​(​f​f​m​p​e​g​ ​+​ ​f​f​p​r​o​b​e​)​.
+			 * F​F​p​r​o​b​e​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​f​o​u​n​d​.​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​n​e​e​d​s​ ​F​F​m​p​e​g​ ​(​f​f​m​p​e​g​ ​+​ ​f​f​p​r​o​b​e​)​.
 			 */
 			notFound: string;
 			/**
@@ -3543,7 +3559,7 @@ type RootTranslation = {
 		 */
 		tiktokSampleUsername: string;
 		/**
-		 * Y​o​u​r​ ​d​e​s​c​r​i​p​t​i​o​n​ ​a​p​p​e​a​r​s​ ​h​e​r​e​ ​#​M​i​n​b​a​r​S​t​u​d​i​o
+		 * Y​o​u​r​ ​d​e​s​c​r​i​p​t​i​o​n​ ​a​p​p​e​a​r​s​ ​h​e​r​e​ ​#​M​i​n​b​a​r​C​a​p​t​i​o​n
 		 */
 		tiktokSampleDescription: string;
 		/**
@@ -8320,7 +8336,7 @@ type RootTranslation = {
 		 */
 		taskbarAttention: string;
 		/**
-		 * I​f​ ​y​o​u​ ​e​n​j​o​y​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​,​ ​a​ ​d​o​n​a​t​i​o​n​ ​h​e​l​p​s​ ​m​a​i​n​t​a​i​n​ ​a​n​d​ ​i​m​p​r​o​v​e​ ​t​h​e​ ​a​p​p​.
+		 * I​f​ ​y​o​u​ ​e​n​j​o​y​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n​,​ ​a​ ​d​o​n​a​t​i​o​n​ ​h​e​l​p​s​ ​m​a​i​n​t​a​i​n​ ​a​n​d​ ​i​m​p​r​o​v​e​ ​t​h​e​ ​a​p​p​.
 		 */
 		supportMessage: string;
 		/**
@@ -8437,7 +8453,7 @@ type RootTranslation = {
 		 */
 		unableToOpenProjectsFolder: string;
 		/**
-		 * M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​c​o​u​l​d​ ​n​o​t​ ​o​p​e​n​ ​t​h​e​ ​p​r​o​j​e​c​t​s​ ​d​i​r​e​c​t​o​r​y​ ​o​n​ ​t​h​i​s​ ​s​y​s​t​e​m​.
+		 * M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​c​o​u​l​d​ ​n​o​t​ ​o​p​e​n​ ​t​h​e​ ​p​r​o​j​e​c​t​s​ ​d​i​r​e​c​t​o​r​y​ ​o​n​ ​t​h​i​s​ ​s​y​s​t​e​m​.
 		 */
 		couldNotOpenProjectsDir: string;
 		/**
@@ -8596,7 +8612,7 @@ type RootTranslation = {
 		 */
 		organizeProjectFolders: string;
 		/**
-		 * M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​i​s​ ​a​ ​d​e​s​k​t​o​p​ ​a​p​p​l​i​c​a​t​i​o​n​ ​t​h​a​t​ ​t​r​a​n​s​f​o​r​m​s​ ​Q​u​r​a​n​i​c​ ​r​e​c​i​t​a​t​i​o​n​s​ ​i​n​t​o​ ​b​e​a​u​t​i​f​u​l​l​y​ ​c​a​p​t​i​o​n​e​d​ ​v​i​d​e​o​s​.​ ​I​t​ ​c​o​m​b​i​n​e​s​ ​a​u​d​i​o​ ​p​r​o​c​e​s​s​i​n​g​ ​w​i​t​h​ ​Q​u​r​a​n​i​c​ ​t​e​x​t​ ​t​o​ ​c​r​e​a​t​e​ ​p​r​o​f​e​s​s​i​o​n​a​l​-​q​u​a​l​i​t​y​ ​s​u​b​t​i​t​l​e​d​ ​v​i​d​e​o​s​ ​f​o​r​ ​s​h​a​r​i​n​g​,​ ​l​e​a​r​n​i​n​g​,​ ​a​n​d​ ​d​a​w​a​h​.
+		 * M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​i​s​ ​a​ ​d​e​s​k​t​o​p​ ​a​p​p​l​i​c​a​t​i​o​n​ ​t​h​a​t​ ​t​r​a​n​s​f​o​r​m​s​ ​Q​u​r​a​n​i​c​ ​r​e​c​i​t​a​t​i​o​n​s​ ​i​n​t​o​ ​b​e​a​u​t​i​f​u​l​l​y​ ​c​a​p​t​i​o​n​e​d​ ​v​i​d​e​o​s​.​ ​I​t​ ​c​o​m​b​i​n​e​s​ ​a​u​d​i​o​ ​p​r​o​c​e​s​s​i​n​g​ ​w​i​t​h​ ​Q​u​r​a​n​i​c​ ​t​e​x​t​ ​t​o​ ​c​r​e​a​t​e​ ​p​r​o​f​e​s​s​i​o​n​a​l​-​q​u​a​l​i​t​y​ ​s​u​b​t​i​t​l​e​d​ ​v​i​d​e​o​s​ ​f​o​r​ ​s​h​a​r​i​n​g​,​ ​l​e​a​r​n​i​n​g​,​ ​a​n​d​ ​d​a​w​a​h​.
 		 */
 		aboutDescription: string;
 		/**
@@ -8634,7 +8650,7 @@ type RootTranslation = {
 		 */
 		finishLoginBrowser: string;
 		/**
-		 * Y​o​u​ ​a​r​e​ ​c​u​r​r​e​n​t​l​y​ ​u​s​i​n​g​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​w​i​t​h​o​u​t​ ​a​ ​Q​u​r​a​n​.​c​o​m​ ​a​c​c​o​u​n​t​.
+		 * Y​o​u​ ​a​r​e​ ​c​u​r​r​e​n​t​l​y​ ​u​s​i​n​g​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​w​i​t​h​o​u​t​ ​a​ ​Q​u​r​a​n​.​c​o​m​ ​a​c​c​o​u​n​t​.
 		 */
 		notConnectedMessage: string;
 		/**
@@ -8684,9 +8700,9 @@ type RootTranslation = {
 		 */
 		videoExportFailed: string;
 		/**
-		 * U​s​i​n​g​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o
+		 * U​s​i​n​g​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n
 		 */
-		usingQuranCaption: string;
+		usingMinbarCaption: string;
 		/**
 		 * A​t​ ​t​h​e​ ​H​o​m​e​ ​M​e​n​u
 		 */
@@ -9149,7 +9165,7 @@ type RootTranslation = {
 	};
 	tour: {
 		/**
-		 * W​e​l​c​o​m​e​ ​t​o​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o
+		 * W​e​l​c​o​m​e​ ​t​o​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n
 		 */
 		stepCreateProjectTitle: string;
 		/**
@@ -9336,7 +9352,7 @@ type RootTranslation = {
 		 */
 		newVersionAvailable: string;
 		/**
-		 * A​ ​n​e​w​ ​v​e​r​s​i​o​n​ ​o​f​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​i​s​ ​a​v​a​i​l​a​b​l​e​.​ ​W​o​u​l​d​ ​y​o​u​ ​l​i​k​e​ ​t​o​ ​u​p​d​a​t​e​ ​n​o​w​?
+		 * A​ ​n​e​w​ ​v​e​r​s​i​o​n​ ​o​f​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​i​s​ ​a​v​a​i​l​a​b​l​e​.​ ​W​o​u​l​d​ ​y​o​u​ ​l​i​k​e​ ​t​o​ ​u​p​d​a​t​e​ ​n​o​w​?
 		 */
 		newVersionDescription: string;
 		/**
@@ -9792,7 +9808,7 @@ type RootTranslation = {
 		 */
 		migratingProjects: string;
 		/**
-		 * M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​V​3​ ​M​i​g​r​a​t​i​o​n
+		 * M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​V​3​ ​M​i​g​r​a​t​i​o​n
 		 */
 		v3Migration: string;
 		/**
@@ -9812,7 +9828,7 @@ type RootTranslation = {
 		 */
 		projectsFound: string;
 		/**
-		 * R​e​a​d​y​ ​t​o​ ​b​e​ ​i​m​p​o​r​t​e​d​ ​f​r​o​m​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​V​2
+		 * R​e​a​d​y​ ​t​o​ ​b​e​ ​i​m​p​o​r​t​e​d​ ​f​r​o​m​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​V​2
 		 */
 		readyToImport: string;
 		/**
@@ -9868,7 +9884,7 @@ type RootTranslation = {
 		 */
 		processing: string;
 		/**
-		 * C​o​u​l​d​ ​n​o​t​ ​f​i​n​d​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​ ​V​2​ ​d​a​t​a​ ​d​i​r​e​c​t​o​r​y
+		 * C​o​u​l​d​ ​n​o​t​ ​f​i​n​d​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​V​2​ ​d​a​t​a​ ​d​i​r​e​c​t​o​r​y
 		 */
 		couldNotFindV2Data: string;
 		/**
@@ -9895,7 +9911,7 @@ type RootTranslation = {
 		 */
 		aiVideo: string;
 		/**
-		 * G​e​n​e​r​a​t​e​ ​a​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​e​d​ ​v​i​d​e​o​ ​f​r​o​m​ ​a​ ​Y​o​u​T​u​b​e​ ​l​i​n​k​ ​o​r​ ​y​o​u​r​ ​o​w​n​ ​a​u​d​i​o
+		 * G​e​n​e​r​a​t​e​ ​a​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​v​i​d​e​o​ ​f​r​o​m​ ​a​ ​Y​o​u​T​u​b​e​ ​l​i​n​k​ ​o​r​ ​y​o​u​r​ ​o​w​n​ ​a​u​d​i​o
 		 */
 		aiVideoDescription: string;
 		/**
@@ -10471,7 +10487,7 @@ type RootTranslation = {
 	};
 	donation: {
 		/**
-		 * S​u​p​p​o​r​t​ ​t​h​e​ ​f​u​t​u​r​e​ ​o​f​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​.
+		 * S​u​p​p​o​r​t​ ​t​h​e​ ​f​u​t​u​r​e​ ​o​f​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n​.
 		 */
 		supportFuture: string;
 		/**
@@ -10612,7 +10628,7 @@ type RootTranslation = {
 		 */
 		failedToCopyError: string;
 		/**
-		 * Y​o​u​r​ ​F​F​m​p​e​g​ ​v​e​r​s​i​o​n​ ​i​s​ ​t​o​o​ ​o​l​d​.​ ​R​u​n​ ​t​h​e​s​e​ ​c​o​m​m​a​n​d​s​,​ ​t​h​e​n​ ​f​u​l​l​y​ ​r​e​s​t​a​r​t​ ​M​i​n​b​a​r​ ​S​t​u​d​i​o​:
+		 * Y​o​u​r​ ​F​F​m​p​e​g​ ​v​e​r​s​i​o​n​ ​i​s​ ​t​o​o​ ​o​l​d​.​ ​R​u​n​ ​t​h​e​s​e​ ​c​o​m​m​a​n​d​s​,​ ​t​h​e​n​ ​f​u​l​l​y​ ​r​e​s​t​a​r​t​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n​:
 		 */
 		ffmpegUpdateHelp: string;
 		/**
@@ -10632,6 +10648,22 @@ type RootTranslation = {
 
 export type TranslationFunctions = {
 	common: {
+		/**
+		 * Minbar Caption
+		 */
+		appName: () => LocalizedString;
+		/**
+		 * Minbar Caption Review
+		 */
+		reviewSubject: () => LocalizedString;
+		/**
+		 * Minbar Caption Bug Report
+		 */
+		bugReportSubject: () => LocalizedString;
+		/**
+		 * Minbar Caption Feature Request
+		 */
+		featureRequestSubject: () => LocalizedString;
 		/**
 		 * Logo
 		 */
@@ -10981,7 +11013,7 @@ export type TranslationFunctions = {
 		 */
 		ratingHelps: () => LocalizedString;
 		/**
-		 * Share ideas or issues so we can improve Minbar Studio.
+		 * Share ideas or issues so we can improve Minbar Caption.
 		 */
 		shareIdeas: () => LocalizedString;
 		/**
@@ -11045,9 +11077,9 @@ export type TranslationFunctions = {
 		 */
 		needHelpJoin: () => LocalizedString;
 		/**
-		 * Minbar Studio Discord server
+		 * Minbar Caption Discord server
 		 */
-		quranCaptionDiscord: () => LocalizedString;
+		minbarCaptionDiscord: () => LocalizedString;
 		/**
 		 * for support and tutorials.
 		 */
@@ -11211,7 +11243,7 @@ export type TranslationFunctions = {
 	};
 	home: {
 		/**
-		 * © {year} Minbar Studio. Made by {author}.
+		 * © {year} Minbar Caption. Made by {author}.
 		 */
 		copyright: (arg: { author: unknown; year: unknown }) => LocalizedString;
 		/**
@@ -11299,7 +11331,7 @@ export type TranslationFunctions = {
 		 */
 		createNewProject: () => LocalizedString;
 		/**
-		 * Start your Minbar Studio project
+		 * Start your Minbar Caption project
 		 */
 		startYourProject: () => LocalizedString;
 		/**
@@ -11535,9 +11567,9 @@ export type TranslationFunctions = {
 		 */
 		assistanceDescription: () => LocalizedString;
 		/**
-		 * Minbar Studio Overview
+		 * Minbar Caption Overview
 		 */
-		quranCaptionOverview: () => LocalizedString;
+		minbarCaptionOverview: () => LocalizedString;
 		/**
 		 * Open Online Documentation
 		 */
@@ -11655,7 +11687,7 @@ export type TranslationFunctions = {
 		 */
 		projectsFailedToImport: (arg: { count: unknown }) => LocalizedString;
 		/**
-		 * Your projects have been successfully imported to Minbar Studio V3
+		 * Your projects have been successfully imported to Minbar Caption V3
 		 */
 		projectsImportedV3: () => LocalizedString;
 		/**
@@ -11852,7 +11884,7 @@ export type TranslationFunctions = {
 		quranWordRangeMissing: (arg: { reference: unknown }) => LocalizedString;
 		ffprobe: {
 			/**
-			 * FFprobe could not be found. Minbar Studio needs FFmpeg (ffmpeg + ffprobe).
+			 * FFprobe could not be found. Minbar Caption needs FFmpeg (ffmpeg + ffprobe).
 			 */
 			notFound: () => LocalizedString;
 			/**
@@ -14078,7 +14110,7 @@ export type TranslationFunctions = {
 		 */
 		tiktokSampleUsername: () => LocalizedString;
 		/**
-		 * Your description appears here #MinbarStudio
+		 * Your description appears here #MinbarCaption
 		 */
 		tiktokSampleDescription: () => LocalizedString;
 		/**
@@ -18776,7 +18808,7 @@ export type TranslationFunctions = {
 		 */
 		taskbarAttention: () => LocalizedString;
 		/**
-		 * If you enjoy Minbar Studio, a donation helps maintain and improve the app.
+		 * If you enjoy Minbar Caption, a donation helps maintain and improve the app.
 		 */
 		supportMessage: () => LocalizedString;
 		/**
@@ -18892,7 +18924,7 @@ export type TranslationFunctions = {
 		 */
 		unableToOpenProjectsFolder: () => LocalizedString;
 		/**
-		 * Minbar Studio could not open the projects directory on this system.
+		 * Minbar Caption could not open the projects directory on this system.
 		 */
 		couldNotOpenProjectsDir: () => LocalizedString;
 		/**
@@ -19048,7 +19080,7 @@ export type TranslationFunctions = {
 		 */
 		organizeProjectFolders: () => LocalizedString;
 		/**
-		 * Minbar Studio is a desktop application that transforms Quranic recitations into beautifully captioned videos. It combines audio processing with Quranic text to create professional-quality subtitled videos for sharing, learning, and dawah.
+		 * Minbar Caption is a desktop application that transforms Quranic recitations into beautifully captioned videos. It combines audio processing with Quranic text to create professional-quality subtitled videos for sharing, learning, and dawah.
 		 */
 		aboutDescription: () => LocalizedString;
 		/**
@@ -19084,7 +19116,7 @@ export type TranslationFunctions = {
 		 */
 		finishLoginBrowser: () => LocalizedString;
 		/**
-		 * You are currently using Minbar Studio without a Quran.com account.
+		 * You are currently using Minbar Caption without a Quran.com account.
 		 */
 		notConnectedMessage: () => LocalizedString;
 		/**
@@ -19132,9 +19164,9 @@ export type TranslationFunctions = {
 		 */
 		videoExportFailed: () => LocalizedString;
 		/**
-		 * Using Minbar Studio
+		 * Using Minbar Caption
 		 */
-		usingQuranCaption: () => LocalizedString;
+		usingMinbarCaption: () => LocalizedString;
 		/**
 		 * At the Home Menu
 		 */
@@ -19594,7 +19626,7 @@ export type TranslationFunctions = {
 	};
 	tour: {
 		/**
-		 * Welcome to Minbar Studio
+		 * Welcome to Minbar Caption
 		 */
 		stepCreateProjectTitle: () => LocalizedString;
 		/**
@@ -19780,7 +19812,7 @@ export type TranslationFunctions = {
 		 */
 		newVersionAvailable: () => LocalizedString;
 		/**
-		 * A new version of Minbar Studio is available. Would you like to update now?
+		 * A new version of Minbar Caption is available. Would you like to update now?
 		 */
 		newVersionDescription: () => LocalizedString;
 		/**
@@ -20227,7 +20259,7 @@ export type TranslationFunctions = {
 		 */
 		migratingProjects: () => LocalizedString;
 		/**
-		 * Minbar Studio V3 Migration
+		 * Minbar Caption V3 Migration
 		 */
 		v3Migration: () => LocalizedString;
 		/**
@@ -20247,7 +20279,7 @@ export type TranslationFunctions = {
 		 */
 		projectsFound: () => LocalizedString;
 		/**
-		 * Ready to be imported from Minbar Studio V2
+		 * Ready to be imported from Minbar Caption V2
 		 */
 		readyToImport: () => LocalizedString;
 		/**
@@ -20303,7 +20335,7 @@ export type TranslationFunctions = {
 		 */
 		processing: () => LocalizedString;
 		/**
-		 * Could not find Minbar Studio V2 data directory
+		 * Could not find Minbar Caption V2 data directory
 		 */
 		couldNotFindV2Data: () => LocalizedString;
 		/**
@@ -20329,7 +20361,7 @@ export type TranslationFunctions = {
 		 */
 		aiVideo: () => LocalizedString;
 		/**
-		 * Generate a Minbar Studioed video from a YouTube link or your own audio
+		 * Generate a Minbar Caption video from a YouTube link or your own audio
 		 */
 		aiVideoDescription: () => LocalizedString;
 		/**
@@ -20899,7 +20931,7 @@ export type TranslationFunctions = {
 	};
 	donation: {
 		/**
-		 * Support the future of Minbar Studio.
+		 * Support the future of Minbar Caption.
 		 */
 		supportFuture: () => LocalizedString;
 		/**
@@ -21037,7 +21069,7 @@ export type TranslationFunctions = {
 		 */
 		failedToCopyError: () => LocalizedString;
 		/**
-		 * Your FFmpeg version is too old. Run these commands, then fully restart Minbar Studio:
+		 * Your FFmpeg version is too old. Run these commands, then fully restart Minbar Caption:
 		 */
 		ffmpegUpdateHelp: () => LocalizedString;
 		/**

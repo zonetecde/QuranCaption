@@ -1,6 +1,6 @@
-# Development Documentation — Minbar Studio
+# Development Documentation — Minbar Caption
 
-Welcome to the **Minbar Studio** development guide. This document provides a comprehensive overview
+Welcome to the **Minbar Caption** development guide. This document provides a comprehensive overview
 of the project's architecture, tech stack, and development workflows to help you get started quickly
 and maintain consistency across the codebase.
 
@@ -8,7 +8,7 @@ and maintain consistency across the codebase.
 
 ## 🚀 Tech Stack
 
-Minbar Studio is a desktop application built with the following modern technologies:
+Minbar Caption is a desktop application built with the following modern technologies:
 
 | Layer                     | Technology                                    |
 | :------------------------ | :-------------------------------------------- |
@@ -78,7 +78,7 @@ capabilities:
 1.  **Clone the repository**:
     ```bash
     git clone https://github.com/zonetecde/QuranCaption.git
-    cd MinbarStudio
+    cd MinbarCaption
     ```
 2.  **Install Frontend Dependencies**:
     ```bash

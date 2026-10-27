@@ -1,5 +1,5 @@
 const tour = {
-	stepCreateProjectTitle: 'Welcome to Minbar Studio',
+	stepCreateProjectTitle: 'Welcome to Minbar Caption',
 	stepCreateProjectDesc:
 		'Edit Islamic videos: lectures, khutbahs, reminders, podcasts, nasheeds and recitations. Create a project with this button, choose its name, speaker and video format, or open an existing project to continue.',
 	stepVideoEditorTitle: 'The Video Editor',

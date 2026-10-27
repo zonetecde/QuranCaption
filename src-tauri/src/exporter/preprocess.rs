@@ -403,7 +403,7 @@ pub fn create_video_from_image(
 ///
 /// Parcourt les `video_inputs`, calcule les segments pertinents selon `start_time_ms`
 /// et `duration_ms`, puis appelle `ffmpeg_preprocess_video` ou `create_video_from_image`.
-/// Les résultats sont mis en cache dans `%TEMP%/minbarstudio-preproc`.
+/// Les résultats sont mis en cache dans `%TEMP%/minbarcaption-preproc`.
 ///
 /// # Retourne
 /// La liste des chemins vers les vidéos prétraitées, dans l'ordre.
@@ -427,7 +427,7 @@ pub fn preprocess_background_videos(
     app_handle: &tauri::AppHandle,
 ) -> Vec<PreparedBackgroundVideo> {
     let mut out_paths = Vec::new();
-    let cache_dir = std::env::temp_dir().join("minbarstudio-preproc");
+    let cache_dir = std::env::temp_dir().join("minbarcaption-preproc");
     let preproc_cache_version = "fit-v14-rotation-screen-axes";
     fs::create_dir_all(&cache_dir).ok();
     let total_inputs = video_inputs.len().max(1);

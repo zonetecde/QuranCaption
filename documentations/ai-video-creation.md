@@ -1,7 +1,7 @@
 # AI Video Creation (POC)
 
-Feature de creation automatisee de projets Minbar Studio via un prompt utilisateur. L'IA choisit les
-versets, le intervenant, genere un prompt video, et le pipeline automatise toute la creation du
+Feature de creation automatisee de projets Minbar Caption via un prompt utilisateur. L'IA choisit
+les versets, le intervenant, genere un prompt video, et le pipeline automatise toute la creation du
 projet jusqu'a obtenir un projet pret avec sous-titres segmentes et traductions trimees.
 
 **Branche** : `prompt-v2` **Statut** : POC (Proof of Concept)
@@ -16,7 +16,7 @@ L'utilisateur entre un theme/sujet (ex: "patience dans l'epreuve"), et le system
 2. Affiche un ecran de review ou l'utilisateur peut ajuster les parametres
 3. Execute un pipeline automatise de creation de projet en arriere-plan
 
-Le resultat final est un projet Minbar Studio complet avec audio, sous-titres arabes segmentes, et
+Le resultat final est un projet Minbar Caption complet avec audio, sous-titres arabes segmentes, et
 traductions trimees par l'IA.
 
 ---

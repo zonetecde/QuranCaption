@@ -17,7 +17,7 @@ pub async fn capture_window_screenshot(app: tauri::AppHandle) -> Result<Vec<u8>,
     capture_screen_at(x, y, image::ImageOutputFormat::Jpeg(92))
 }
 
-/// Capture le moniteur contenant Quran Caption en PNG pour préserver les couleurs exactes.
+/// Capture le moniteur contenant Minbar Caption en PNG pour préserver les couleurs exactes.
 #[tauri::command]
 pub async fn capture_screen_for_color_picker(app: tauri::AppHandle) -> Result<Vec<u8>, String> {
     let window = app

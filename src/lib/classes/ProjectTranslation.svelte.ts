@@ -408,12 +408,14 @@ export class ProjectTranslation extends SerializableBase {
 	 * @param {Edition} language Langue du projet.
 	 * @param {SubtitleClip} subtitle Sous-titre source.
 	 * @param {VerseTranslation} translation Traduction structurée.
+	 * @param {boolean} wrapQuranReferences Encadre les passages Quran avec des accolades simples.
 	 * @returns {string} Texte final sans doubles accolades visibles.
 	 */
 	resolveStructuredTranslationText(
 		language: Edition,
 		subtitle: SubtitleClip,
-		translation: VerseTranslation
+		translation: VerseTranslation,
+		wrapQuranReferences = false
 	): string {
 		if (!translation.isStructuredTranslation) return translation.text;
 
@@ -435,15 +437,16 @@ export class ProjectTranslation extends SerializableBase {
 			const units = getTranslationTrimUnits(original);
 			const settings = translation.quranSegments?.[anchor.id];
 			if (settings?.isBruteForce) {
-				resolved += settings.manualText;
+				resolved += wrapQuranReferences ? `{${settings.manualText}}` : settings.manualText;
 				continue;
 			}
 
-			resolved += sliceTranslationTrimUnits(
+			const text = sliceTranslationTrimUnits(
 				original,
 				settings?.startUnitIndex ?? 0,
 				settings?.endUnitIndex ?? Math.max(0, units.length - 1)
 			);
+			resolved += wrapQuranReferences ? `{${text}}` : text;
 		}
 
 		return resolved + (draft.freeTexts[draft.anchors.length] ?? '');

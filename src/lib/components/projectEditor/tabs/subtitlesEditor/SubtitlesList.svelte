@@ -4,11 +4,15 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { untrack } from 'svelte';
+	import { Translation, VerseTranslation } from '$lib/classes/Translation.svelte';
+	import { getTranscriptReferenceRenderParts } from '$lib/components/projectEditor/videoPreview/helpers/transcriptReferences';
+	import { prefetchTranscriptReferences } from '$lib/services/TranscriptReferenceService';
 
 	const TRANSCRIPT_LIST_PAGE_SIZE = 80;
 	const AUTO_SCROLL_THROTTLE_MS = 250;
 
 	let listElement: HTMLDivElement | null = $state(null);
+	let referenceRenderVersion = $state(0);
 	let lastTranscriptId = 0;
 	let lastAutoScrollAt = 0;
 	let visibleClipCount = $state(TRANSCRIPT_LIST_PAGE_SIZE);
@@ -34,6 +38,38 @@
 	});
 
 	const visibleClips = $derived(() => filteredClips().slice(0, visibleClipCount));
+
+	/**
+	 * Résout les versets et citations après le chargement du corpus arabe.
+	 * @param {string} text Texte stocké du sous-titre.
+	 * @returns {ReturnType<typeof getTranscriptReferenceRenderParts>} Portions lisibles ou `null` sans marqueur.
+	 */
+	function getDisplayedTextParts(
+		text: string
+	): ReturnType<typeof getTranscriptReferenceRenderParts> {
+		const _ = referenceRenderVersion;
+		return (
+			getTranscriptReferenceRenderParts(text, 'Uthmani', 'Hafs')?.map((part) =>
+				part.isQuran && part.suffix
+					? {
+							...part,
+							text: `${part.text.slice(0, -part.suffix.length)} ${part.quranReference!.verse}`
+						}
+					: part
+			) ?? null
+		);
+	}
+
+	$effect(() => {
+		const texts = visibleClips()
+			.filter((clip): clip is ClipWithTranslation => clip instanceof ClipWithTranslation)
+			.map((clip) => clip.text);
+		void prefetchTranscriptReferences(texts)
+			.then(() => {
+				referenceRenderVersion += 1;
+			})
+			.catch((error) => console.error('Failed to load transcript references:', error));
+	});
 
 	function loadMoreVisibleClips(): void {
 		visibleClipCount = Math.min(
@@ -173,17 +209,33 @@
 						{$LL.editor.silentSegment()}
 					</p>
 				{:else if clip instanceof ClipWithTranslation}
+					{@const parts = getDisplayedTextParts(clip.text)}
 					<p
 						dir="auto"
 						class="whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-primary)]"
 					>
-						{clip.text}
+						{#if parts}
+							{#each parts as part}
+								<span
+									style={part.isQuran
+										? 'font-family: Hafs, serif; unicode-bidi: isolate;'
+										: part.extraCss}
+									class={part.isQuran
+										? 'text-emerald-200'
+										: part.isCitation
+											? 'text-amber-200'
+											: ''}>{part.isQuran ? `{${part.text}}` : part.text}</span
+								>
+							{/each}
+						{:else}
+							{clip.text}
+						{/if}
 					</p>
 
 					{#if Object.keys(clip.translations).length > 0}
 						<div class="mt-3 flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
 							{#each Object.entries(clip.translations) as [translation, value] (translation)}
-								{#if !translation.startsWith('type')}
+								{#if value instanceof Translation}
 									<div class="flex items-start gap-2">
 										<span
 											class="monospaced shrink-0 rounded border border-[var(--border-color)] bg-[var(--bg-accent)] px-1.5 py-0.5 text-[0.65rem] font-semibold uppercase text-[var(--text-thirdly)]"
@@ -191,7 +243,18 @@
 											{translation.slice(0, 3)}
 										</span>
 										<span dir="auto" class="text-sm leading-relaxed text-[var(--text-secondary)]">
-											{value.text}
+											{clip instanceof SubtitleClip &&
+											value instanceof VerseTranslation &&
+											value.isStructuredTranslation
+												? globalState.getProjectTranslation.resolveStructuredTranslationText(
+														globalState.getProjectTranslation.getEditionFromName(translation),
+														clip,
+														value,
+														true
+													)
+												: clip instanceof SubtitleClip
+													? value.getText(translation, clip)
+													: value.getText()}
 										</span>
 									</div>
 								{/if}

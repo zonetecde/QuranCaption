@@ -6,6 +6,11 @@ import SubtitlesList from '$lib/components/projectEditor/tabs/subtitlesEditor/Su
 import SubtitlesWorkspace from '$lib/components/projectEditor/tabs/subtitlesEditor/SubtitlesWorkspace.svelte';
 
 import { Quran } from '$lib/classes/Quran';
+import { Edition } from '$lib/classes/Edition';
+import { SubtitleClip } from '$lib/classes/Clip.svelte';
+import { ProjectTranslation } from '$lib/classes/ProjectTranslation.svelte';
+import { VerseTranslation } from '$lib/classes/Translation.svelte';
+import QPCFontProvider from '$lib/services/FontProvider';
 import { globalState } from '$lib/runes/main.svelte';
 import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { setLocale } from '$lib/i18n/i18n-svelte';
@@ -60,6 +65,67 @@ describe('Subtitles editor workflow', () => {
 		cleanup();
 		vi.restoreAllMocks();
 		resetSubtitlesEditorProjectFixture();
+	});
+
+	test('renders Quran references and quotations with their resolved translations in the segment list', async () => {
+		loadLocale('en');
+		setLocale('en');
+		vi.spyOn(QPCFontProvider, 'loadQPC2Data').mockResolvedValue(undefined);
+		const subtitle = new SubtitleClip(0, 1000, 'Before {{1:1:1-2}} {{quotation}} after');
+		const fixture = setupSubtitlesEditorProjectFixture({ clips: [subtitle] });
+		const translations = new ProjectTranslation();
+		const edition = new Edition(
+			'english',
+			'english',
+			'English',
+			'English',
+			'ltr',
+			'test',
+			'',
+			'',
+			''
+		);
+		translations.addedTranslationEditions = [edition];
+		translations.versesTranslations.english = { '1:1': 'one two three' };
+		globalState.currentProject!.content.projectTranslation = translations;
+		const translation = new VerseTranslation(
+			'Translated {{1:1:1-2}} {{translated quotation}} end',
+			'ai translated'
+		);
+		translation.isStructuredTranslation = true;
+		const settings = translation.getOrCreateQuranSegment('quran-0', '1:1:1-2', 2);
+		settings.startUnitIndex = 1;
+		settings.endUnitIndex = 2;
+		subtitle.translations.english = translation;
+		const component = render(SubtitlesList);
+
+		await vi.waitFor(() => {
+			expect(component.container.textContent).toContain('{W1V1-1 W1V1-2}');
+			expect(component.container.textContent).toContain(
+				'Translated {two three} translated quotation end'
+			);
+		});
+		expect(component.container.textContent).not.toContain('{{');
+		expect(
+			getComputedStyle(component.container.querySelector('.text-emerald-200')!).fontFamily
+		).toContain('Hafs');
+		expect(component.container.textContent).not.toContain('W1V1-3');
+		expect(component.container.querySelector('.text-amber-200')?.textContent).toBe('quotation');
+
+		translation.quranSegments['quran-0'].isBruteForce = true;
+		translation.quranSegments['quran-0'].manualText = 'Manual verse translation';
+		await tick();
+		expect(component.container.textContent).toContain(
+			'Translated {Manual verse translation} translated quotation end'
+		);
+		expect(fixture.subtitleTrack.clips[0].text).toBe('Before {{1:1:1-2}} {{quotation}} after');
+		expect(translation.text).toBe('Translated {{1:1:1-2}} {{translated quotation}} end');
+		fixture.spies.getStyle.mockReturnValue({ value: true } as never);
+		subtitle.text = 'Before {{1:1}} {{quotation}} after';
+		await vi.waitFor(() => {
+			expect(component.container.textContent).toContain('{W1V1-1 W1V1-2 W1V1-3 1}');
+		});
+		expect(component.container.textContent).not.toContain('\u06dd');
 	});
 
 	test('saves a transcript without any speaker controls or speaker argument', async () => {

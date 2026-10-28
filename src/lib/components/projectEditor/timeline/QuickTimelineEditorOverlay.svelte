@@ -3,7 +3,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { enterManualWordByWordEdit, exitManualWordByWordEdit } from '$lib/services/WbwHelper';
 	import { goToSubtitleClip } from '$lib/services/SubtitleNavigation';
-	import VersePicker from '../tabs/subtitlesEditor/VersePicker.svelte';
+	import TranscriptComposer from '../tabs/subtitlesEditor/TranscriptComposer.svelte';
 	import WordsSelector from '../tabs/subtitlesEditor/WordsSelector.svelte';
 	import TranslationInlineStylePanel from '../tabs/translationsEditor/TranslationInlineStylePanel.svelte';
 	import ArabicText from '../tabs/translationsEditor/workspace/ArabicText.svelte';
@@ -238,10 +238,7 @@
 					<div
 						class="min-h-0 flex-1 flex flex-col gap-4 rounded-xl border border-color bg-secondary overflow-hidden"
 					>
-						<VersePicker />
-						<div class="min-h-0 flex-1">
-							<WordsSelector />
-						</div>
+						<TranscriptComposer />
 					</div>
 				{:else}
 					<div class="min-h-0 overflow-y-auto flex flex-col">

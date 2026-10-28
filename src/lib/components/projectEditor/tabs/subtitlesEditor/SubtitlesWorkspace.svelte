@@ -11,6 +11,8 @@
 >
 	<TranscriptionToolbar />
 	<div class="min-h-0 flex-1">
-		<TranscriptComposer />
+		{#if !globalState.shared.quickTimelineEditor.active || globalState.shared.quickTimelineEditor.mode !== 'subtitle'}
+			<TranscriptComposer />
+		{/if}
 	</div>
 </section>

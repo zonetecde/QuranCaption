@@ -4,6 +4,7 @@ import { tick } from 'svelte';
 
 import SubtitlesList from '$lib/components/projectEditor/tabs/subtitlesEditor/SubtitlesList.svelte';
 import SubtitlesWorkspace from '$lib/components/projectEditor/tabs/subtitlesEditor/SubtitlesWorkspace.svelte';
+import QuickTimelineEditorOverlay from '$lib/components/projectEditor/timeline/QuickTimelineEditorOverlay.svelte';
 
 import { Quran } from '$lib/classes/Quran';
 import { Edition } from '$lib/classes/Edition';
@@ -159,6 +160,30 @@ describe('Subtitles editor workflow', () => {
 		input.element().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 		await expect.poll(() => addTranscript.mock.calls.length).toBe(1);
 		expect(addTranscript).toHaveBeenCalledWith('A single spoken passage');
+	});
+
+	test('edits a timeline subtitle with the transcript composer and saves only once', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const subtitle = new SubtitleClip(0, 1000, 'Original transcript');
+		const { subtitleTrack } = setupSubtitlesEditorProjectFixture({ clips: [subtitle] });
+		const editTranscript = vi.spyOn(subtitleTrack, 'editTranscript').mockReturnValue(true);
+		const workspace = render(SubtitlesWorkspace);
+		globalState.openQuickTimelineEditor(subtitle.id, 'subtitle');
+		const overlay = render(QuickTimelineEditorOverlay);
+		await tick();
+
+		expect(workspace.container.querySelector('[data-structured-transcript-editor]')).toBeNull();
+		const input = overlay.getByRole('textbox');
+		await expect.element(input).toHaveValue('Original transcript');
+		expect(overlay.container.querySelector('input[type="number"]')).toBeNull();
+		await input.fill('Corrected transcript');
+		input.element().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		await expect.poll(() => editTranscript.mock.calls.length).toBe(1);
+		expect(editTranscript).toHaveBeenCalledWith(subtitle, 'Corrected transcript');
+		await tick();
+		expect(globalState.shared.quickTimelineEditor.active).toBe(false);
+		expect(workspace.container.querySelector('[data-structured-transcript-editor]')).not.toBeNull();
 	});
 
 	test('shows the saved surah on mount and updates the verse words after a new surah selection', async () => {

@@ -61,9 +61,12 @@ vi.mock('$lib/services/WbwHelper', () => ({
 	exitManualWordByWordEdit: vi.fn()
 }));
 
-vi.mock('$lib/components/projectEditor/tabs/subtitlesEditor/VersePicker.svelte', async () => ({
-	default: (await import('../../../../stubs/EmptyComponent.svelte')).default
-}));
+vi.mock(
+	'$lib/components/projectEditor/tabs/subtitlesEditor/TranscriptComposer.svelte',
+	async () => ({
+		default: (await import('../../../../stubs/EmptyComponent.svelte')).default
+	})
+);
 vi.mock('$lib/components/projectEditor/tabs/subtitlesEditor/WordsSelector.svelte', async () => ({
 	default: (await import('../../../../stubs/EmptyComponent.svelte')).default
 }));

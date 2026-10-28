@@ -5,6 +5,14 @@ import { tick } from 'svelte';
 import SubtitlesList from '$lib/components/projectEditor/tabs/subtitlesEditor/SubtitlesList.svelte';
 import SubtitlesWorkspace from '$lib/components/projectEditor/tabs/subtitlesEditor/SubtitlesWorkspace.svelte';
 import QuickTimelineEditorOverlay from '$lib/components/projectEditor/timeline/QuickTimelineEditorOverlay.svelte';
+import TranscriptComposer from '$lib/components/projectEditor/tabs/subtitlesEditor/TranscriptComposer.svelte';
+import {
+	buildManualWordByWordDraftWords,
+	enterManualWordByWordEdit,
+	exitManualWordByWordEdit,
+	updateManualWordByWordBoundary
+} from '$lib/services/WbwHelper';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 import { Quran } from '$lib/classes/Quran';
 import { Edition } from '$lib/classes/Edition';
@@ -48,6 +56,206 @@ function createRenderedFixture(initialSurah: number = 2, initialVerse: number = 
 }
 
 type SubtitleEditorFixture = ReturnType<typeof createRenderedFixture>;
+
+describe('Minbar manual word timestamps', () => {
+	beforeEach(() => {
+		loadLocale('en');
+		setLocale('en');
+		seedSubtitlesEditorQuranFixture();
+		vi.spyOn(ProjectHistoryManager, 'track').mockImplementation((_label, action) => action());
+	});
+
+	afterEach(() => {
+		cleanup();
+		exitManualWordByWordEdit(true);
+		globalState.closeQuickTimelineEditor();
+		vi.useRealTimers();
+		vi.restoreAllMocks();
+		resetSubtitlesEditorProjectFixture();
+	});
+
+	test('opens from the edit button and stamps relative boundaries with Enter until completion', async () => {
+		const subtitle = new SubtitleClip(1000, 5000, 'one two three');
+		setupSubtitlesEditorProjectFixture({ clips: [subtitle], editSubtitle: subtitle });
+		globalState.getTimelineState.zoom = 42;
+		const component = render(TranscriptComposer);
+		await component.getByRole('button', { name: 'Edit WBW timestamp' }).click();
+		await expect.poll(() => globalState.shared.wbwEdit.active).toBe(true);
+		expect(globalState.getTimelineState.cursorPosition).toBe(1000);
+		expect(globalState.getTimelineState.zoom).toBe(100);
+		expect(subtitle.alignmentMetadata).toBeNull();
+		expect(component.container.querySelector('[data-manual-wbw-words]')?.textContent).toContain(
+			'three'
+		);
+
+		globalState.getTimelineState.cursorPosition = 2000;
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
+		await tick();
+		expect(globalState.shared.wbwEdit.currentWordIndex).toBe(1);
+		expect(subtitle.alignmentMetadata?.words[0]).toMatchObject({ word: 'one', start: 0, end: 1 });
+		expect(subtitle.wbwTimestampsManuallyEdited).toBe(true);
+		expect(ProjectHistoryManager.track).toHaveBeenCalledWith(
+			'edit wbw timestamps',
+			expect.any(Function)
+		);
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', repeat: true }));
+		expect(globalState.shared.wbwEdit.currentWordIndex).toBe(1);
+
+		globalState.getTimelineState.cursorPosition = 3500;
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
+		await tick();
+		expect(subtitle.alignmentMetadata?.words).toEqual([
+			{ word: 'one', start: 0, end: 1 },
+			{ word: 'two', start: 1, end: 2.5 },
+			{ word: 'three', start: 2.5, end: 4 }
+		]);
+		expect(globalState.shared.wbwEdit.active).toBe(false);
+		expect(globalState.getSubtitlesEditorState.editSubtitle).toBeNull();
+		expect(globalState.getTimelineState.zoom).toBe(42);
+	});
+
+	test('keeps short E for editing and opens manual timing only after holding E over a subtitle', async () => {
+		const subtitle = new SubtitleClip(1000, 5000, 'one two three');
+		setupSubtitlesEditorProjectFixture({ clips: [subtitle], timelineCursorPosition: 2000 });
+		vi.mocked(ShortcutService.registerShortcut).mockClear();
+		render(TranscriptComposer);
+		await tick();
+		const shortcut = vi
+			.mocked(ShortcutService.registerShortcut)
+			.mock.calls.find(([options]) => options.key.keys.includes('E'))![0];
+		vi.useFakeTimers();
+		shortcut.onKeyDown(new KeyboardEvent('keydown', { key: 'e' }));
+		await vi.advanceTimersByTimeAsync(100);
+		shortcut.onKeyUp!(new KeyboardEvent('keyup', { key: 'e' }));
+		expect(globalState.getSubtitlesEditorState.editSubtitle?.id).toBe(subtitle.id);
+		expect(globalState.shared.wbwEdit.active).toBe(false);
+		shortcut.onKeyDown(new KeyboardEvent('keydown', { key: 'e' }));
+		await vi.advanceTimersByTimeAsync(500);
+		shortcut.onKeyUp!(new KeyboardEvent('keyup', { key: 'e' }));
+		await tick();
+		expect(globalState.shared.wbwEdit.active).toBe(true);
+		expect(globalState.getSubtitlesEditorState.editSubtitle?.id).toBe(subtitle.id);
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
+		expect(globalState.shared.wbwEdit.active).toBe(false);
+		expect(subtitle.alignmentMetadata).toBeNull();
+	});
+
+	test('resolves Quran references and quotations into spoken words without markup', async () => {
+		const subtitle = new SubtitleClip(0, 6000, 'Before{{1:1:1-2}}{{quoted words}}after');
+		setupSubtitlesEditorProjectFixture({ clips: [subtitle] });
+		const words = await buildManualWordByWordDraftWords(subtitle);
+		expect(words.map((word) => word.word)).toEqual([
+			'Before',
+			'W1V1-1',
+			'W1V1-2',
+			'quoted',
+			'words',
+			'after'
+		]);
+		expect(words[0]).toMatchObject({ start: 0, end: 6 });
+		expect(words[1]).toMatchObject({ start: 6, end: 6 });
+	});
+
+	test('preserves existing timestamps on opening and tracks boundary changes', async () => {
+		const subtitle = new SubtitleClip(0, 4000, 'one two');
+		subtitle.alignmentMetadata = {
+			source: 'import',
+			timeFrom: 0,
+			timeTo: 4,
+			specialType: 'quotation',
+			words: [
+				{ word: 'one', start: 0, end: 1 },
+				{ word: 'two', start: 1, end: 4 }
+			]
+		};
+		setupSubtitlesEditorProjectFixture({ clips: [subtitle] });
+		expect(await enterManualWordByWordEdit(subtitle)).toBe(true);
+		expect(subtitle.wbwTimestampsManuallyEdited).toBe(false);
+		expect(globalState.shared.wbwEdit.draftWords[0].end).toBe(1);
+		updateManualWordByWordBoundary(0, 2);
+		expect(subtitle.alignmentMetadata?.words[0].end).toBe(2);
+		expect(subtitle.alignmentMetadata?.words[1].start).toBe(2);
+		expect(subtitle.alignmentMetadata?.specialType).toBe('quotation');
+		expect(ProjectHistoryManager.track).toHaveBeenCalledWith(
+			'edit wbw timestamps',
+			expect.any(Function)
+		);
+	});
+
+	test('opens the same manual words in the quick timeline editor and closes after stamping', async () => {
+		const subtitle = new SubtitleClip(1000, 3000, 'one two');
+		setupSubtitlesEditorProjectFixture({ clips: [subtitle] });
+		globalState.openQuickTimelineEditor(subtitle.id, 'wbwTimestamp');
+		const workspace = render(SubtitlesWorkspace);
+		const overlay = render(QuickTimelineEditorOverlay);
+		await expect.poll(() => globalState.shared.wbwEdit.active).toBe(true);
+		await tick();
+		expect(workspace.container.querySelector('[data-manual-wbw-words]')).toBeNull();
+		expect(overlay.container.querySelector('[data-manual-wbw-words]')?.textContent).toContain(
+			'one'
+		);
+		globalState.getTimelineState.cursorPosition = 2000;
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
+		await tick();
+		expect(globalState.shared.quickTimelineEditor.active).toBe(false);
+		expect(subtitle.alignmentMetadata?.words).toHaveLength(2);
+	});
+
+	test('retains the legacy Quran word range', async () => {
+		const { clips } = setupSubtitlesEditorProjectFixture();
+		const words = await buildManualWordByWordDraftWords(clips[0]);
+		expect(words.map((word) => word.location)).toEqual(['1:1:1', '1:1:2']);
+		expect(words.map((word) => word.word)).toEqual(['W1V1-1', 'W1V1-2']);
+	});
+
+	test('saves the current draft before manual timing and keeps arrows within the quick subtitle editor', async () => {
+		const subtitle = new SubtitleClip(1000, 4000, 'Original transcript');
+		const { subtitleTrack } = setupSubtitlesEditorProjectFixture({ clips: [subtitle] });
+		const editTranscript = vi
+			.spyOn(subtitleTrack, 'editTranscript')
+			.mockImplementation((clip, text) => {
+				clip.text = text;
+				return true;
+			});
+		globalState.getTimelineState.zoom = 42;
+		globalState.openQuickTimelineEditor(subtitle.id, 'subtitle');
+		const overlay = render(QuickTimelineEditorOverlay);
+		await overlay.getByRole('textbox').fill('Updated spoken words');
+		await overlay.getByRole('button', { name: 'Edit WBW timestamp' }).click();
+		await expect.poll(() => globalState.shared.wbwEdit.active).toBe(true);
+		expect(editTranscript).toHaveBeenCalledWith(
+			expect.objectContaining({ id: subtitle.id }),
+			'Updated spoken words'
+		);
+		expect(globalState.shared.wbwEdit.draftWords.map((word) => word.word)).toEqual([
+			'Updated',
+			'spoken',
+			'words'
+		]);
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true }));
+		expect(globalState.shared.wbwEdit.currentWordIndex).toBe(1);
+		expect(globalState.shared.quickTimelineEditor.clipId).toBe(subtitle.id);
+		await overlay.getByRole('button', { name: 'Close', exact: true }).first().click();
+		await tick();
+		expect(globalState.shared.quickTimelineEditor.active).toBe(false);
+		expect(globalState.shared.wbwEdit.active).toBe(false);
+		expect(globalState.getTimelineState.zoom).toBe(42);
+	});
+
+	test('rejects an empty transcript and completes a single word with one stamp', async () => {
+		const subtitle = new SubtitleClip(1000, 3000, '');
+		setupSubtitlesEditorProjectFixture({ clips: [subtitle] });
+		expect(await enterManualWordByWordEdit(subtitle)).toBe(false);
+		subtitle.text = 'single';
+		await enterManualWordByWordEdit(subtitle);
+		render(TranscriptComposer);
+		await tick();
+		globalState.getTimelineState.cursorPosition = 2000;
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
+		expect(subtitle.alignmentMetadata?.words).toEqual([{ word: 'single', start: 0, end: 2 }]);
+		expect(globalState.shared.wbwEdit.active).toBe(false);
+	});
+});
 
 async function waitForEditorReady(workspace: SubtitleEditorFixture['workspace'], surahId: number) {
 	const surahName = Quran.getSurahsNames().find((surah) => surah.id === surahId)?.transliteration;

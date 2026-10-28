@@ -18,7 +18,7 @@
 	let clipDurationS = $derived(() => Math.max(0.001, getSubtitleClipDurationSeconds(clip)));
 
 	type DisplayWord = {
-		location: string;
+		location?: string;
 		word: string;
 		start: number;
 		end: number;
@@ -113,7 +113,7 @@
 	)}px; left: {positionLeft()}px;"
 >
 	<div class="absolute inset-0 flex items-stretch">
-		{#each displayWords() as word, index (word.location)}
+		{#each displayWords() as word, index (index)}
 			<button
 				class="absolute top-0 bottom-0 wbw-edit-word cursor-pointer"
 				class:wbw-edit-word-active={index === globalState.shared.wbwEdit.currentWordIndex}
@@ -128,7 +128,7 @@
 		{/each}
 	</div>
 
-	{#each displayWords().slice(0, -1) as word, index (word.location)}
+	{#each displayWords().slice(0, -1) as word, index (index)}
 		<button
 			class="absolute top-0 bottom-0 z-30 w-2 -ml-1 cursor-col-resize wbw-edit-boundary"
 			style={`left: ${((word.end / clipDurationS()) * 100).toFixed(4)}%;`}

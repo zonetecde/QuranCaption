@@ -14,12 +14,37 @@
 	import type { TranscriptBandSelection } from '$lib/services/TranscriptBandService';
 	import ShortcutService from '$lib/services/ShortcutService';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+	import {
+		ensureManualWordByWordEditStateIsValid,
+		enterManualWordByWordEdit,
+		exitManualWordByWordEdit,
+		handleManualWordByWordEditShortcutKeyDown,
+		handleManualWordByWordEditShortcutKeyUp,
+		openManualWordByWordEditFromShortcut,
+		moveManualWordByWordSelection,
+		stampManualWordByWordCurrentWordAtCursor,
+		type ManualWbwShortcutHandlers
+	} from '$lib/services/WbwHelper';
 
 	// État d'orchestration du segment actif; le brouillon structuré appartient au composant enfant.
 	let transcriptText = $state('');
 	let loadedEditId: number | null = $state(null);
 	let selectedTranscriptSelection = $state<TranscriptBandSelection | null>(null);
 	let transcriptBandSelectionResetKey = $state(0);
+	let editShortcutTimer: ReturnType<typeof setTimeout> | null = null;
+	let didTriggerManualEdit = false;
+	const editShortcutHandlers: ManualWbwShortcutHandlers = {
+		getTimer: () => editShortcutTimer,
+		setTimer: (timer) => {
+			editShortcutTimer = timer;
+		},
+		getDidTrigger: () => didTriggerManualEdit,
+		setDidTrigger: (value) => {
+			didTriggerManualEdit = value;
+		},
+		onShortPress: handleEditSubtitleShortcut,
+		onLongPress: openManualWordByWordEditFromShortcut
+	};
 
 	const editorState = $derived(() => globalState.getSubtitlesEditorState);
 	const editedTranscript = $derived(() => {
@@ -51,12 +76,39 @@
 	});
 
 	function cancelEditing(): void {
+		if (globalState.shared.wbwEdit.active) exitManualWordByWordEdit();
 		editorState().editSubtitle = null;
 		editorState().pendingSplitEditNextId = null;
 		selectedTranscriptSelection = null;
 		transcriptBandSelectionResetKey += 1;
 		loadedEditId = null;
 		transcriptText = '';
+	}
+
+	$effect(() => {
+		ensureManualWordByWordEditStateIsValid();
+	});
+
+	/**
+	 * Enregistre le texte courant avant d'ouvrir la saisie manuelle des timestamps.
+	 * @returns {Promise<void>} Promesse résolue après l'ouverture du mode WBW.
+	 */
+	async function openManualTimestamps(): Promise<void> {
+		const clip = editedTranscript();
+		if (!clip) return;
+		const text = transcriptText.trim();
+		if (!text) {
+			toast.error(get(LL).editor.transcriptCannotBeEmpty());
+			return;
+		}
+		if (text !== clip.text) {
+			if (!globalState.getSubtitleTrack.editTranscript(clip, text)) return;
+			globalState.currentProject!.detail.updateVideoDetailAttributes();
+			globalState.updateVideoPreviewUI();
+		}
+		if (!(await enterManualWordByWordEdit(clip))) {
+			toast.error(get(LL).editor.cannotEnterWordEditMode());
+		}
 	}
 
 	/**
@@ -197,6 +249,20 @@
 			event.target instanceof HTMLTextAreaElement ||
 			event.target instanceof HTMLSelectElement ||
 			(event.target instanceof HTMLElement && event.target.isContentEditable);
+		if (globalState.shared.wbwEdit.active && !isTypingTarget) {
+			if (event.key === 'Enter') {
+				event.preventDefault();
+				if (!event.repeat) stampManualWordByWordCurrentWordAtCursor();
+				return;
+			}
+			if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+				if (!event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey) {
+					event.preventDefault();
+					moveManualWordByWordSelection(event.key === 'ArrowRight' ? 1 : -1);
+					return;
+				}
+			}
+		}
 		if (
 			event.key.toLowerCase() === 's' &&
 			editedTranscript() &&
@@ -313,7 +379,8 @@
 
 		ShortcutService.registerShortcut({
 			key: shortcut,
-			onKeyDown: handleEditSubtitleShortcut
+			onKeyDown: (event) => handleManualWordByWordEditShortcutKeyDown(event, editShortcutHandlers),
+			onKeyUp: () => handleManualWordByWordEditShortcutKeyUp(editShortcutHandlers)
 		});
 
 		return () => {
@@ -323,6 +390,10 @@
 	});
 
 	onDestroy(() => {
+		if (editShortcutTimer) clearTimeout(editShortcutTimer);
+		if (globalState.shared.wbwEdit.active && !globalState.shared.quickTimelineEditor.active) {
+			exitManualWordByWordEdit();
+		}
 		if (temporarySpeedShortcutActive) {
 			globalState.getVideoPreviewState.setTemporaryPlaybackSpeed(false);
 		}
@@ -332,18 +403,53 @@
 <svelte:window onkeydown={handleComposerKeydown} onkeyup={handleComposerKeyup} />
 
 <div class="flex h-full min-h-0 flex-col gap-6 overflow-y-auto p-5 lg:p-8">
-	{#key loadedEditId}
-		<StructuredTranscriptEditor
-			bind:value={transcriptText}
-			isEditing={Boolean(editedTranscript())}
-			onCancelEditing={cancelEditing}
-			onSubmit={submitTranscript}
-		/>
-	{/key}
+	{#if globalState.shared.wbwEdit.active}
+		<section class="flex flex-col gap-4 rounded-xl border border-yellow-400/30 bg-secondary p-4">
+			<div class="flex items-start justify-between gap-3">
+				<p>{$LL.editor.wbwTimestampGuide()}</p>
+				<button
+					type="button"
+					class="shrink-0 cursor-pointer rounded-lg border border-color p-2 hover:bg-accent"
+					onclick={cancelEditing}
+					aria-label={$LL.editor.closeButton()}
+				>
+					<span class="material-icons-outlined">close</span>
+				</button>
+			</div>
+			<div class="flex flex-wrap gap-2 text-2xl" dir="auto" data-manual-wbw-words>
+				{#each globalState.shared.wbwEdit.draftWords as word, index (index)}
+					<button
+						type="button"
+						class="cursor-pointer rounded-lg border px-3 py-2"
+						class:border-yellow-400={index === globalState.shared.wbwEdit.currentWordIndex}
+						class:bg-accent={index === globalState.shared.wbwEdit.currentWordIndex}
+						aria-current={index === globalState.shared.wbwEdit.currentWordIndex
+							? 'step'
+							: undefined}
+						onclick={() => {
+							globalState.shared.wbwEdit.currentWordIndex = index;
+						}}
+					>
+						{word.word}
+					</button>
+				{/each}
+			</div>
+		</section>
+	{:else}
+		{#key loadedEditId}
+			<StructuredTranscriptEditor
+				bind:value={transcriptText}
+				isEditing={Boolean(editedTranscript())}
+				onCancelEditing={cancelEditing}
+				onSubmit={submitTranscript}
+				onEditTimestamps={openManualTimestamps}
+			/>
+		{/key}
 
-	<TranscriptBand
-		editedClipId={editedTranscript()?.id ?? null}
-		selectionResetKey={transcriptBandSelectionResetKey}
-		onSelectRange={handleTranscriptBandSelection}
-	/>
+		<TranscriptBand
+			editedClipId={editedTranscript()?.id ?? null}
+			selectionResetKey={transcriptBandSelectionResetKey}
+			onSelectRange={handleTranscriptBandSelection}
+		/>
+	{/if}
 </div>

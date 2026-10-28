@@ -3435,7 +3435,7 @@ type RootTranslation = {
 		 */
 		noTranslationEditionForClip: string;
 		/**
-		 * P​l​a​y​ ​t​h​e​ ​a​u​d​i​o​ ​u​s​i​n​g​ ​s​p​a​c​e​,​ ​a​n​d​ ​p​r​e​s​s​ ​e​n​t​e​r​ ​e​a​c​h​ ​t​i​m​e​ ​a​ ​w​o​r​d​ ​f​i​n​i​s​h​e​s​ ​b​e​i​n​g​ ​r​e​c​i​t​e​d​.​ ​G​o​ ​t​o​ ​t​h​e​ ​s​u​b​t​i​t​l​e​s​ ​e​d​i​t​o​r​ ​f​o​r​ ​m​o​r​e​ ​o​p​t​i​o​n​s​.
+		 * P​l​a​y​ ​t​h​e​ ​a​u​d​i​o​ ​u​s​i​n​g​ ​S​p​a​c​e​,​ ​t​h​e​n​ ​p​r​e​s​s​ ​E​n​t​e​r​ ​e​a​c​h​ ​t​i​m​e​ ​a​ ​s​p​o​k​e​n​ ​w​o​r​d​ ​e​n​d​s​.​ ​T​h​e​ ​l​a​s​t​ ​w​o​r​d​ ​e​n​d​s​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​w​i​t​h​ ​t​h​e​ ​s​u​b​t​i​t​l​e​.
 		 */
 		wbwTimestampGuide: string;
 		/**
@@ -13653,7 +13653,7 @@ export type TranslationFunctions = {
 		 */
 		noTranslationEditionForClip: () => LocalizedString;
 		/**
-		 * Play the audio using space, and press enter each time a word finishes being recited. Go to the subtitles editor for more options.
+		 * Play the audio using Space, then press Enter each time a spoken word ends. The last word ends automatically with the subtitle.
 		 */
 		wbwTimestampGuide: () => LocalizedString;
 		/**

@@ -679,7 +679,7 @@ const editor = {
 		'Click to generate waveform (disabled by default for long audio to save memory)',
 	noTranslationEditionForClip: 'No translation edition is available for this clip.',
 	wbwTimestampGuide:
-		'Play the audio using space, and press enter each time a word finishes being recited. Go to the subtitles editor for more options.',
+		'Play the audio using Space, then press Enter each time a spoken word ends. The last word ends automatically with the subtitle.',
 	experimentalFallbackHint:
 		'Experimental fallback models from the previous open local workflow. They do not use the full Muaalem phonetic path and may be less reliable.',
 	overlayIndividualApplied: 'Overlay applied on this clip',

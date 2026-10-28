@@ -978,7 +978,7 @@ const de = {
 			'Klicken, um Wellenform zu generieren (standardmäßig deaktiviert für lange Audios, um Speicher zu sparen)',
 		noTranslationEditionForClip: 'Keine Übersetzungsausgabe für diesen Clip verfügbar.',
 		wbwTimestampGuide:
-			'Starten Sie die Audiowiedergabe mit der Leertaste und drücken Sie Enter jedes Mal, wenn ein Wort zu Ende rezitiert wurde. Gehen Sie zum Untertitel-Editor für weitere Optionen.',
+			'Starten Sie das Audio mit der Leertaste und drücken Sie Enter am Ende jedes gesprochenen Wortes. Das letzte Wort endet automatisch mit dem Untertitel.',
 		experimentalFallbackHint:
 			'Experimentelle Fallback-Modelle des alten lokalen offenen Workflows. Sie verwenden nicht den vollständigen phonetischen Pfad von Muaalem und können weniger zuverlässig sein.',
 		overlayIndividualApplied: 'Überlagerung auf diesen Clip angewendet',

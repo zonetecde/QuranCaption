@@ -21,6 +21,7 @@
 		isEditing: boolean;
 		onCancelEditing: () => void;
 		onSubmit: () => void | Promise<void>;
+		onEditTimestamps?: () => void | Promise<void>;
 	};
 
 	type TranscriptionCopy = {
@@ -45,7 +46,8 @@
 		input = $bindable(null),
 		isEditing,
 		onCancelEditing,
-		onSubmit
+		onSubmit,
+		onEditTimestamps
 	}: Props = $props();
 
 	const initialValue = untrack(() => value);
@@ -408,6 +410,19 @@
 			</button>
 
 			{#if isEditing}
+				{#if onEditTimestamps}
+					<button
+						type="button"
+						class={`${INSERT_BUTTON_CLASS} border-color bg-secondary hover:bg-accent`}
+						onclick={onEditTimestamps}
+						onkeydown={(event) => {
+							if (event.key === 'Enter') event.stopPropagation();
+						}}
+					>
+						<span class="material-icons-outlined text-sm">timer</span>
+						{$LL.editor.editWbwTimestampContext()}
+					</button>
+				{/if}
 				<button
 					type="button"
 					class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-[var(--accent-primary)] px-3 py-1.5 text-xs font-semibold text-black transition hover:brightness-110"

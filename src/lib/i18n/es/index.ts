@@ -966,7 +966,7 @@ const es = {
 			'Haga clic para generar la forma de onda (desactivado por defecto para audios largos para ahorrar memoria)',
 		noTranslationEditionForClip: 'No hay edición de traducción disponible para este clip.',
 		wbwTimestampGuide:
-			'Inicie la reproducción de audio con espacio, y presione Enter cada vez que una palabra termine de ser recitada. Vaya al editor de subtítulos para más opciones.',
+			'Inicie el audio con Espacio y pulse Enter al terminar cada palabra pronunciada. La última palabra termina automáticamente con el subtítulo.',
 		experimentalFallbackHint:
 			'Modelos de respaldo experimentales del antiguo flujo de trabajo local abierto. No utilizan la ruta fonética completa de Muaalem y pueden ser menos fiables.',
 		overlayIndividualApplied: 'Superposición aplicada en este clip',

@@ -4,7 +4,6 @@
 	import { enterManualWordByWordEdit, exitManualWordByWordEdit } from '$lib/services/WbwHelper';
 	import { goToSubtitleClip } from '$lib/services/SubtitleNavigation';
 	import TranscriptComposer from '../tabs/subtitlesEditor/TranscriptComposer.svelte';
-	import WordsSelector from '../tabs/subtitlesEditor/WordsSelector.svelte';
 	import TranslationInlineStylePanel from '../tabs/translationsEditor/TranslationInlineStylePanel.svelte';
 	import ArabicText from '../tabs/translationsEditor/workspace/ArabicText.svelte';
 	import Translation from '../tabs/translationsEditor/workspace/translation/Translation.svelte';
@@ -104,7 +103,7 @@
 	function closeQuickTimelineEditorOverlay(): void {
 		const wasWbwTimestamp = isWbwTimestampMode();
 
-		if (wasWbwTimestamp && globalState.shared.wbwEdit.active) {
+		if ((wasWbwTimestamp || isSubtitleMode()) && globalState.shared.wbwEdit.active) {
 			exitManualWordByWordEdit();
 		}
 
@@ -145,6 +144,7 @@
 	 * @returns {void}
 	 */
 	function handleQuickTimelineEditorNavigation(event: KeyboardEvent): void {
+		if (globalState.shared.wbwEdit.active) return;
 		const mode = quickTimelineEditor().mode;
 		if (mode !== 'translation' && mode !== 'subtitle' && mode !== 'wbw') return;
 		if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
@@ -222,17 +222,8 @@
 				}`}
 			>
 				{#if isWbwTimestampMode()}
-					<div class="min-h-0 overflow-y-auto">
-						<section
-							class="flex flex-col gap-3 rounded-xl border border-yellow-400/30 bg-secondary p-3"
-						>
-							<p>
-								{$LL.editor.wbwTimestampGuide()}
-							</p>
-							<div class="min-h-0">
-								<WordsSelector />
-							</div>
-						</section>
+					<div class="min-h-0 flex-1">
+						<TranscriptComposer />
 					</div>
 				{:else if isSubtitleMode()}
 					<div

@@ -968,7 +968,7 @@ const fr = {
 			'Cliquez pour générer la forme d’onde (désactivé par défaut pour les longs audios afin d’économiser la mémoire)',
 		noTranslationEditionForClip: 'Aucune édition de traduction n’est disponible pour ce clip.',
 		wbwTimestampGuide:
-			'Lancez la lecture audio avec espace, et appuyez sur Entrée à chaque fois qu’un mot finit d’être récité. Allez dans l’éditeur de sous-titres pour plus d’options.',
+			'Lancez la lecture audio avec Espace, puis appuyez sur Entrée à la fin de chaque mot prononcé. Le dernier mot se termine automatiquement avec le sous-titre.',
 		experimentalFallbackHint:
 			'Modèles de secours expérimentaux de l’ancien workflow local ouvert. Ils n’utilisent pas le chemin phonétique complet de Muaalem et peuvent être moins fiables.',
 		overlayIndividualApplied: 'Superposition appliquée sur ce clip',

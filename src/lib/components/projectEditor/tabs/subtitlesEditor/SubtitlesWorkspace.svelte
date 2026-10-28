@@ -11,7 +11,7 @@
 >
 	<TranscriptionToolbar />
 	<div class="min-h-0 flex-1">
-		{#if !globalState.shared.quickTimelineEditor.active || globalState.shared.quickTimelineEditor.mode !== 'subtitle'}
+		{#if !globalState.shared.quickTimelineEditor.active || (globalState.shared.quickTimelineEditor.mode !== 'subtitle' && globalState.shared.quickTimelineEditor.mode !== 'wbwTimestamp')}
 			<TranscriptComposer />
 		{/if}
 	</div>

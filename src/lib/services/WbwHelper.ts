@@ -1,4 +1,4 @@
-import type { SubtitleClip, TranscriptWordTiming } from '$lib/classes/Clip.svelte';
+import { SubtitleClip, type TranscriptWordTiming } from '$lib/classes/Clip.svelte';
 import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import { Quran } from '$lib/classes/Quran';
 import { globalState } from '$lib/runes/main.svelte';
@@ -6,9 +6,10 @@ import toast from 'svelte-5-french-toast';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import { formatTranscriptReferencesForExport } from '$lib/services/TranscriptReferenceService';
+import { spaceStructuredTranslationMarkers } from '$lib/services/StructuredTranslationService';
 
 export type ManualWordByWordDraftWord = TranscriptWordTiming & {
-	location: string;
 	word: string;
 };
 
@@ -26,17 +27,17 @@ export type ManualWbwShortcutHandlers = {
 };
 
 /**
- * Retourne le clip Quran sous le curseur pour ouvrir l'édition WBW.
+ * Retourne le sous-titre sous le curseur pour ouvrir l'édition WBW.
  *
- * @returns {QuranSubtitleClip | null} Clip Quran cible, sinon `null`.
+ * @returns {SubtitleClip | null} Sous-titre cible, sinon `null`.
  */
-export function resolveManualWordByWordTargetClip(): QuranSubtitleClip | null {
+export function resolveManualWordByWordTargetClip(): SubtitleClip | null {
 	const subtitleTrack = globalState.getSubtitleTrack;
 	if (subtitleTrack.clips.length <= 0) return null;
 
 	const cursorPosition = globalState.getTimelineState.cursorPosition;
 	const clipUnderCursor = subtitleTrack.getCurrentClip(cursorPosition);
-	if (clipUnderCursor instanceof QuranSubtitleClip) {
+	if (clipUnderCursor instanceof SubtitleClip) {
 		return clipUnderCursor;
 	}
 
@@ -151,18 +152,18 @@ export function syncVerseSelectionWithManualWordByWordIndex(
 }
 
 /**
- * Retourne le clip Quran actuellement édité en mode WBW manuel.
+ * Retourne le sous-titre actuellement édité en mode WBW manuel.
  *
- * @returns {QuranSubtitleClip | null} Clip cible, sinon `null`.
+ * @returns {SubtitleClip | null} Clip cible, sinon `null`.
  */
-export function getActiveManualWordByWordClip(): QuranSubtitleClip | null {
+export function getActiveManualWordByWordClip(): SubtitleClip | null {
 	const wbwEdit = globalState.shared.wbwEdit;
 	if (!wbwEdit.active || wbwEdit.clipId === null || !globalState.currentProject) return null;
 
 	const clip = globalState.getSubtitleTrack.clips.find(
-		(trackClip) => trackClip instanceof QuranSubtitleClip && trackClip.id === wbwEdit.clipId
+		(trackClip) => trackClip instanceof SubtitleClip && trackClip.id === wbwEdit.clipId
 	);
-	return clip instanceof QuranSubtitleClip ? clip : null;
+	return clip instanceof SubtitleClip ? clip : null;
 }
 
 /**
@@ -200,7 +201,7 @@ export function ensureManualWordByWordEditStateIsValid(): void {
 
 	const clip = getActiveManualWordByWordClip();
 	const editSubtitle = globalState.getSubtitlesEditorState.editSubtitle;
-	if (!(clip instanceof QuranSubtitleClip) || !(editSubtitle instanceof QuranSubtitleClip)) {
+	if (!(clip instanceof SubtitleClip) || !(editSubtitle instanceof SubtitleClip)) {
 		exitManualWordByWordEdit();
 		return;
 	}
@@ -211,16 +212,14 @@ export function ensureManualWordByWordEditStateIsValid(): void {
 }
 
 /**
- * Ouvre le mode WBW manuel pour un clip Quran cible.
+ * Ouvre le mode WBW manuel pour un sous-titre cible.
  *
- * @param {QuranSubtitleClip} clip Clip Quran à éditer.
+ * @param {SubtitleClip} clip Sous-titre à éditer.
  * @returns {Promise<boolean>} `true` si le mode a été ouvert.
  */
 export async function enterManualWordByWordEdit(clip: SubtitleClip): Promise<boolean> {
-	if (!(clip instanceof QuranSubtitleClip)) return false;
 	const draftWords = await buildManualWordByWordDraftWords(clip);
 	if (draftWords.length === 0) return false;
-	const hasExistingWordByWordTimestamps = (clip.alignmentMetadata?.words.length ?? 0) > 0;
 	const timelineState = globalState.getTimelineState;
 	if (!globalState.shared.wbwEdit.active) {
 		globalState.shared.wbwEdit.previousTimelineZoom = timelineState.zoom;
@@ -237,9 +236,6 @@ export async function enterManualWordByWordEdit(clip: SubtitleClip): Promise<boo
 	globalState.shared.wbwEdit.draftWords = draftWords;
 	globalState.shared.wbwEdit.dragBoundaryIndex = null;
 	syncSubtitlesEditorSelectionToManualWordByWordIndex(clip);
-	if (hasExistingWordByWordTimestamps) {
-		syncManualWordByWordDraftToClip(clip, draftWords);
-	}
 	return true;
 }
 
@@ -396,25 +392,43 @@ export function stampManualWordByWordCurrentWordAtCursor(): void {
 }
 
 /**
- * Construit le brouillon WBW depuis la vraie plage Quran du clip.
+ * Construit le brouillon WBW depuis le texte résolu du sous-titre.
  *
- * @param {QuranSubtitleClip} clip Clip Quran à transformer en brouillon éditable.
+ * @param {SubtitleClip} clip Sous-titre à transformer en brouillon éditable.
  * @returns {Promise<ManualWordByWordDraftWord[]>} Liste des mots à éditer.
  */
 export async function buildManualWordByWordDraftWords(
-	clip: QuranSubtitleClip
+	clip: SubtitleClip
 ): Promise<ManualWordByWordDraftWord[]> {
-	const verse = await Quran.getVerse(clip.surah, clip.verse);
-	if (!verse) return [];
-
-	const expectedWords = verse.words
-		.slice(clip.startWordIndex, clip.endWordIndex + 1)
-		.map((word, index) => ({
-			location: `${clip.surah}:${clip.verse}:${clip.startWordIndex + index + 1}`,
-			word: word.arabic,
-			start: index === 0 ? 0 : 0,
-			end: 0
-		}));
+	let expectedWords: ManualWordByWordDraftWord[];
+	if (clip instanceof QuranSubtitleClip) {
+		const verse = await Quran.getVerse(clip.surah, clip.verse);
+		if (!verse) return [];
+		expectedWords = verse.words
+			.slice(clip.startWordIndex, clip.endWordIndex + 1)
+			.map((word, index) => ({
+				location: `${clip.surah}:${clip.verse}:${clip.startWordIndex + index + 1}`,
+				word: word.arabic,
+				start: 0,
+				end: 0
+			}));
+	} else {
+		const text = await formatTranscriptReferencesForExport(
+			spaceStructuredTranslationMarkers(clip.text),
+			'Plain',
+			false,
+			false
+		);
+		expectedWords = text
+			.trim()
+			.split(/\s+/u)
+			.filter(Boolean)
+			.map((word) => ({
+				word,
+				start: 0,
+				end: 0
+			}));
+	}
 
 	const existingWords = clip.alignmentMetadata?.words ?? [];
 	if (existingWords.length !== expectedWords.length) {
@@ -430,6 +444,7 @@ export async function buildManualWordByWordDraftWords(
 
 	return normalizeManualWordByWordDraftWords(
 		expectedWords.map((word, index) => ({
+			...existingWords[index],
 			...word,
 			start: existingWords[index]?.start ?? word.start,
 			end: existingWords[index]?.end ?? word.end
@@ -439,9 +454,9 @@ export async function buildManualWordByWordDraftWords(
 }
 
 /**
- * Retourne la durée d'un clip Quran en secondes.
+ * Retourne la durée d'un sous-titre en secondes.
  *
- * @param {QuranSubtitleClip} clip Clip cible.
+ * @param {SubtitleClip} clip Clip cible.
  * @returns {number} Durée positive du clip.
  */
 export function getSubtitleClipDurationSeconds(clip: SubtitleClip): number {
@@ -449,12 +464,12 @@ export function getSubtitleClipDurationSeconds(clip: SubtitleClip): number {
 }
 
 /**
- * Retourne la position relative du curseur dans un clip Quran.
+ * Retourne la position relative du curseur dans un sous-titre.
  *
- * @param {QuranSubtitleClip} clip Clip cible.
+ * @param {SubtitleClip} clip Clip cible.
  * @returns {number} Temps relatif au clip, en secondes.
  */
-export function getCursorRelativeTimeForSubtitleClip(clip: QuranSubtitleClip): number {
+export function getCursorRelativeTimeForSubtitleClip(clip: SubtitleClip): number {
 	return clampWordTime(
 		(globalState.getTimelineState.cursorPosition - clip.startTime) / 1000,
 		0,
@@ -465,12 +480,12 @@ export function getCursorRelativeTimeForSubtitleClip(clip: QuranSubtitleClip): n
 /**
  * Retourne l'index du mot WBW actuellement sous le curseur timeline.
  *
- * @param {QuranSubtitleClip} clip Clip Quran cible.
+ * @param {SubtitleClip} clip Sous-titre cible.
  * @param {ManualWordByWordDraftWord[]} draftWords Brouillon source.
  * @returns {number} Index du mot courant sous le curseur.
  */
 function getManualWordByWordWordIndexAtCursor(
-	clip: QuranSubtitleClip,
+	clip: SubtitleClip,
 	draftWords: ManualWordByWordDraftWord[] = globalState.shared.wbwEdit.draftWords
 ): number {
 	if (draftWords.length === 0) return 0;
@@ -489,10 +504,11 @@ function getManualWordByWordWordIndexAtCursor(
 /**
  * Recale le sélecteur de mots sur le mot WBW actuellement actif.
  *
- * @param {QuranSubtitleClip} clip Clip Quran cible.
+ * @param {SubtitleClip} clip Sous-titre cible.
  * @returns {void}
  */
-function syncSubtitlesEditorSelectionToManualWordByWordIndex(clip: QuranSubtitleClip): void {
+function syncSubtitlesEditorSelectionToManualWordByWordIndex(clip: SubtitleClip): void {
+	if (!(clip instanceof QuranSubtitleClip)) return;
 	const selectedWordIndex = clip.startWordIndex + globalState.shared.wbwEdit.currentWordIndex;
 	globalState.getSubtitlesEditorState.selectedSurah = clip.surah;
 	globalState.getSubtitlesEditorState.selectedVerse = clip.verse;
@@ -528,12 +544,12 @@ function normalizeManualWordByWordDraftWords(
 /**
  * Répercute le brouillon WBW courant sur le clip cible et sur l'état runtime.
  *
- * @param {QuranSubtitleClip} clip Clip Quran cible.
+ * @param {SubtitleClip} clip Sous-titre cible.
  * @param {ManualWordByWordDraftWord[]} draftWords Brouillon à appliquer.
  * @returns {void}
  */
 function applyManualWordByWordDraftUpdate(
-	clip: QuranSubtitleClip,
+	clip: SubtitleClip,
 	draftWords: ManualWordByWordDraftWord[]
 ): void {
 	ProjectHistoryManager.track('edit wbw timestamps', () => {
@@ -545,12 +561,12 @@ function applyManualWordByWordDraftUpdate(
 /**
  * Synchronise le brouillon WBW dans `alignmentMetadata.words`.
  *
- * @param {QuranSubtitleClip} clip Clip Quran cible.
+ * @param {SubtitleClip} clip Sous-titre cible.
  * @param {ManualWordByWordDraftWord[]} draftWords Brouillon à persister.
  * @returns {void}
  */
 function syncManualWordByWordDraftToClip(
-	clip: QuranSubtitleClip,
+	clip: SubtitleClip,
 	draftWords: ManualWordByWordDraftWord[]
 ): void {
 	markWordByWordEditAsManual(clip);
@@ -558,8 +574,13 @@ function syncManualWordByWordDraftToClip(
 	clip.alignmentMetadata = {
 		source: clip.alignmentMetadata?.source ?? 'local',
 		segment: clip.alignmentMetadata?.segment ?? 0,
-		refFrom: `${clip.surah}:${clip.verse}:${clip.startWordIndex + 1}`,
-		refTo: `${clip.surah}:${clip.verse}:${clip.endWordIndex + 1}`,
+		...clip.alignmentMetadata,
+		...(clip instanceof QuranSubtitleClip
+			? {
+					refFrom: `${clip.surah}:${clip.verse}:${clip.startWordIndex + 1}`,
+					refTo: `${clip.surah}:${clip.verse}:${clip.endWordIndex + 1}`
+				}
+			: {}),
 		matchedText: clip.text,
 		timeFrom: clip.startTime / 1000,
 		timeTo: clip.endTime / 1000,
@@ -573,10 +594,10 @@ function syncManualWordByWordDraftToClip(
 /**
  * Applique les flags "manuel" du clip sans effacer ses mots WBW.
  *
- * @param {QuranSubtitleClip} clip Clip Quran édité manuellement.
+ * @param {SubtitleClip} clip Sous-titre édité manuellement.
  * @returns {void}
  */
-function markWordByWordEditAsManual(clip: QuranSubtitleClip): void {
+function markWordByWordEditAsManual(clip: SubtitleClip): void {
 	clip.comeFromIA = false;
 	clip.confidence = null;
 	clip.needsReview = false;
@@ -590,11 +611,11 @@ function markWordByWordEditAsManual(clip: QuranSubtitleClip): void {
 /**
  * Définit la fin du dernier mot du brouillon WBW.
  *
- * @param {QuranSubtitleClip} clip Clip Quran actif.
+ * @param {SubtitleClip} clip Sous-titre actif.
  * @param {number} newEndTimeS Nouvelle fin relative.
  * @returns {void}
  */
-function setManualWordByWordLastWordEnd(clip: QuranSubtitleClip, newEndTimeS: number): void {
+function setManualWordByWordLastWordEnd(clip: SubtitleClip, newEndTimeS: number): void {
 	const wbwEdit = globalState.shared.wbwEdit;
 	if (wbwEdit.draftWords.length === 0) return;
 	void newEndTimeS;

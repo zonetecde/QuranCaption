@@ -4,6 +4,7 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
+		convertStructuredQuotationToText,
 		getStructuredTranslationDraft,
 		serializeStructuredTranslation,
 		type StructuredTranslationDraft
@@ -185,14 +186,7 @@
 	 * @returns {void}
 	 */
 	function convertQuotationToText(index: number): void {
-		const anchor = transcriptDraft.anchors[index];
-		if (anchor?.type !== 'citation') return;
-		transcriptDraft.freeTexts[index] =
-			(transcriptDraft.freeTexts[index] ?? '') +
-			anchor.value +
-			(transcriptDraft.freeTexts[index + 1] ?? '');
-		transcriptDraft.freeTexts.splice(index + 1, 1);
-		transcriptDraft.anchors.splice(index, 1);
+		convertStructuredQuotationToText(transcriptDraft, index);
 		syncTranscriptText();
 	}
 

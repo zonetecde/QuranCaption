@@ -26,7 +26,10 @@
 		VerseTranslation
 	} from '$lib/classes/Translation.svelte';
 	import { getTranscriptReferenceRenderParts } from '$lib/components/projectEditor/videoPreview/helpers/transcriptReferences';
-	import { getStructuredTranslationDraft } from '$lib/services/StructuredTranslationService';
+	import {
+		getStructuredTranslationDraft,
+		spaceStructuredTranslationMarkers
+	} from '$lib/services/StructuredTranslationService';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	let {
@@ -47,7 +50,12 @@
 
 	// Timeline clips keep their stored marker syntax, but render its readable content for editing context.
 	const displayedTextParts = $derived(
-		() => getTranscriptReferenceRenderParts(clip.text, 'Uthmani', 'Hafs') ?? []
+		() =>
+			getTranscriptReferenceRenderParts(
+				spaceStructuredTranslationMarkers(clip.text),
+				'Uthmani',
+				'Hafs'
+			) ?? []
 	);
 
 	const displayedTranslationParts = $derived(() =>
@@ -65,7 +73,10 @@
 			);
 			if (!language) return { languageName, text: translation.text, parts: null };
 
-			const draft = getStructuredTranslationDraft(clip.text, translation.text);
+			const draft = getStructuredTranslationDraft(
+				clip.text,
+				spaceStructuredTranslationMarkers(translation.text)
+			);
 			const parts: { text: string; type: 'text' | 'quran' | 'citation' }[] = [];
 			for (let index = 0; index < draft.anchors.length; index++) {
 				const freeText = draft.freeTexts[index] ?? '';

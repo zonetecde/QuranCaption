@@ -5,6 +5,7 @@ import { ProjectTranslation } from '$lib/classes/ProjectTranslation.svelte';
 import { SubtitleClip } from '$lib/classes/Clip.svelte';
 import { VerseTranslation } from '$lib/classes/Translation.svelte';
 import {
+	convertStructuredQuotationToText,
 	createStructuredTranslationSkeleton,
 	getStructuredTranslationDraft,
 	getUniqueQuranReferences,
@@ -14,6 +15,22 @@ import {
 } from '$lib/services/StructuredTranslationService';
 
 describe('StructuredTranslationService', () => {
+	test.each<[string, number, string]>([
+		['قبل{{قول}}بعد', 0, 'قبل قول بعد'],
+		['قبل{{قول}}', 0, 'قبل قول'],
+		['{{قول}}بعد', 0, 'قول بعد'],
+		['{{قول}}', 0, 'قول'],
+		['قبل  {{قول}}\nبعد', 0, 'قبل  قول\nبعد'],
+		['قبل{{ قول }}بعد', 0, 'قبل قول بعد'],
+		['{{قول}}{{قول آخر}}', 0, 'قول {{قول آخر}}'],
+		['{{قول}}{{قول آخر}}', 1, '{{قول}} قول آخر'],
+		['{{1:1}}{{قول}}{{1:2}}', 1, '{{1:1}} قول {{1:2}}']
+	])('preserves block boundaries when converting %s', (source, index, expected) => {
+		const draft = getStructuredTranslationDraft(source, source);
+		convertStructuredQuotationToText(draft, index);
+		expect(serializeStructuredTranslation(draft)).toBe(expected);
+	});
+
 	test.each([
 		[
 			'{{إن الحمد لله}}',
@@ -29,7 +46,14 @@ describe('StructuredTranslationService', () => {
 		],
 		['{{قول}} {{قول}}', 'قول {{قول}}', '{{first}} {{second}}', 'first {{second}}'],
 		['{{قول}} {{قول}}', '{{قول}} قول', '{{first}} {{second}}', '{{first}} second'],
-		['{{قول}} {{1:1}}', 'قول {{1:1}}', '{{a saying}} {{1:1}}', 'a saying {{1:1}}']
+		['{{قول}} {{1:1}}', 'قول {{1:1}}', '{{a saying}} {{1:1}}', 'a saying {{1:1}}'],
+		['قال{{قول}}ثم', 'قال قول ثم', 'He said{{a saying}}then', 'He said a saying then'],
+		['{{قول}}{{قول}}', 'قول {{قول}}', '{{first}}{{second}}', 'first {{second}}'],
+		['{{قول}}{{قول}}', '{{قول}} قول', '{{first}}{{second}}', '{{first}} second'],
+		['{{قول}}{{1:1}}', 'قول {{1:1}}', '{{a saying}}{{1:1}}', 'a saying {{1:1}}'],
+		['قال{{ قول }}ثم', 'قال قول ثم', 'He said{{ a saying }}then', 'He said a saying then'],
+		['قال{{قول}}ثم', 'قال قول ثم', 'He said  {{a saying}}\nthen', 'He said  a saying\nthen'],
+		['{{قول}}{{آخر}}', 'قول آخر', '{{first}}{{second}}', 'first second']
 	])('unwraps only converted citations in %s', (previous, next, translation, expected) => {
 		const draft = unwrapConvertedTranslationQuotations(previous, next, translation);
 		expect(draft).not.toBeNull();

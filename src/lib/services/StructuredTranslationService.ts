@@ -29,6 +29,31 @@ export type StructuredTranslationDraft = {
 	anchors: StructuredTranslationAnchor[];
 };
 
+/**
+ * Convertit une citation en texte libre en conservant les séparations entre les blocs.
+ * @param {StructuredTranslationDraft} draft Brouillon à modifier.
+ * @param {number} index Index de la citation à convertir.
+ * @returns {void}
+ */
+export function convertStructuredQuotationToText(
+	draft: StructuredTranslationDraft,
+	index: number
+): void {
+	const anchor = draft.anchors[index];
+	if (anchor?.type !== 'citation') return;
+	let text = '';
+	for (const part of [draft.freeTexts[index], anchor.value, draft.freeTexts[index + 1]]) {
+		if (!part) continue;
+		if (/\S$/.test(text) && /^\S/.test(part)) text += ' ';
+		text += part;
+	}
+	if (index > 0 && /^\S/.test(text)) text = ' ' + text;
+	if (index < draft.anchors.length - 1 && /\S$/.test(text)) text += ' ';
+	draft.freeTexts[index] = text;
+	draft.freeTexts.splice(index + 1, 1);
+	draft.anchors.splice(index, 1);
+}
+
 type MarkedTextParts = {
 	freeTexts: string[];
 	markers: string[];
@@ -107,8 +132,9 @@ export function unwrapConvertedTranslationQuotations(
 	nextSource: string,
 	translationText: string
 ): StructuredTranslationDraft | null {
-	const previous = previousSource.trim();
-	const next = nextSource.trim();
+	// Les séparateurs ajoutés à la conversion ne changent pas l'identité des ancres restantes.
+	const previous = previousSource.replace(/\s/g, '');
+	const next = nextSource.replace(/\s/g, '');
 	if (previous.replace(MARKER_REGEX, '$1') !== next.replace(MARKER_REGEX, '$1')) return null;
 	const previousMarkers = [...previous.matchAll(MARKER_REGEX)];
 	const nextMarkers = [...next.matchAll(MARKER_REGEX)];
@@ -129,9 +155,7 @@ export function unwrapConvertedTranslationQuotations(
 		if (keptPositions.has(previousMarkers[index].index - index * 4)) continue;
 		const anchor = draft.anchors[index];
 		if (anchor.type !== 'citation') return null;
-		draft.freeTexts[index] += anchor.value + draft.freeTexts[index + 1];
-		draft.freeTexts.splice(index + 1, 1);
-		draft.anchors.splice(index, 1);
+		convertStructuredQuotationToText(draft, index);
 	}
 	return draft;
 }

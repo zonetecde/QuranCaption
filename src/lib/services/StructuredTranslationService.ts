@@ -96,6 +96,47 @@ export function getStructuredTranslationDraft(
 }
 
 /**
+ * Répercute les conversions de citations en texte libre dans une traduction alignée.
+ * @param {string} previousSource Texte source avant conversion.
+ * @param {string} nextSource Texte source après conversion.
+ * @param {string} translationText Traduction actuelle.
+ * @returns {StructuredTranslationDraft | null} Brouillon converti, ou `null` sans conversion sûre.
+ */
+export function unwrapConvertedTranslationQuotations(
+	previousSource: string,
+	nextSource: string,
+	translationText: string
+): StructuredTranslationDraft | null {
+	const previous = previousSource.trim();
+	const next = nextSource.trim();
+	if (previous.replace(MARKER_REGEX, '$1') !== next.replace(MARKER_REGEX, '$1')) return null;
+	const previousMarkers = [...previous.matchAll(MARKER_REGEX)];
+	const nextMarkers = [...next.matchAll(MARKER_REGEX)];
+	if (previousMarkers.length <= nextMarkers.length) return null;
+	if (splitMarkedText(translationText).markers.length !== previousMarkers.length) return null;
+
+	// Quatre accolades sont retirées par marqueur pour comparer les positions dans le texte libre.
+	const previousPositions = new Map(
+		previousMarkers.map((match, index) => [match.index - index * 4, match[1]])
+	);
+	if (
+		nextMarkers.some((match, index) => previousPositions.get(match.index - index * 4) !== match[1])
+	)
+		return null;
+	const keptPositions = new Set(nextMarkers.map((match, index) => match.index - index * 4));
+	const draft = getStructuredTranslationDraft(previousSource, translationText);
+	for (let index = previousMarkers.length - 1; index >= 0; index--) {
+		if (keptPositions.has(previousMarkers[index].index - index * 4)) continue;
+		const anchor = draft.anchors[index];
+		if (anchor.type !== 'citation') return null;
+		draft.freeTexts[index] += anchor.value + draft.freeTexts[index + 1];
+		draft.freeTexts.splice(index + 1, 1);
+		draft.anchors.splice(index, 1);
+	}
+	return draft;
+}
+
+/**
  * Construit la traduction minimale conservant toutes les ancres du texte source.
  * @param {string} sourceText Texte arabe de référence.
  * @returns {string} Traduction vide avec les marqueurs obligatoires.

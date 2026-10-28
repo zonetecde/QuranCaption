@@ -9,10 +9,43 @@ import {
 	getStructuredTranslationDraft,
 	getUniqueQuranReferences,
 	isCompleteQuranOnlySubtitle,
-	serializeStructuredTranslation
+	serializeStructuredTranslation,
+	unwrapConvertedTranslationQuotations
 } from '$lib/services/StructuredTranslationService';
 
 describe('StructuredTranslationService', () => {
+	test.each([
+		[
+			'{{إن الحمد لله}}',
+			'إن الحمد لله',
+			'{{Indeed, all praise is due to Allah}}',
+			'Indeed, all praise is due to Allah'
+		],
+		[
+			'قال {{قول}} ثم {{قول آخر}}',
+			'قال قول ثم {{قول آخر}}',
+			'He said {{a saying}} then {{another saying}}',
+			'He said a saying then {{another saying}}'
+		],
+		['{{قول}} {{قول}}', 'قول {{قول}}', '{{first}} {{second}}', 'first {{second}}'],
+		['{{قول}} {{قول}}', '{{قول}} قول', '{{first}} {{second}}', '{{first}} second'],
+		['{{قول}} {{1:1}}', 'قول {{1:1}}', '{{a saying}} {{1:1}}', 'a saying {{1:1}}']
+	])('unwraps only converted citations in %s', (previous, next, translation, expected) => {
+		const draft = unwrapConvertedTranslationQuotations(previous, next, translation);
+		expect(draft).not.toBeNull();
+		expect(serializeStructuredTranslation(draft!)).toBe(expected);
+	});
+
+	test('preserves unmatched translations, Quran references and ordinary text edits', () => {
+		expect(
+			unwrapConvertedTranslationQuotations('{{قول}}', 'قول', 'Unstructured translation')
+		).toBeNull();
+		expect(unwrapConvertedTranslationQuotations('{{1:1}}', '1:1', '{{1:1}}')).toBeNull();
+		expect(
+			unwrapConvertedTranslationQuotations('{{قول}}', '{{قول جديد}}', '{{a saying}}')
+		).toBeNull();
+	});
+
 	test('creates protected Quran and citation anchors with free slots around them', () => {
 		const source = 'قال {{2:255:1-3}} ثم روى {{إنما الأعمال بالنيات}}';
 		const skeleton = createStructuredTranslationSkeleton(source);

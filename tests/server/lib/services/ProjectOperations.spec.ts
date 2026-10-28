@@ -3,6 +3,7 @@ import { Asset, Duration, Project, ProjectContent, ProjectDetail, Timeline } fro
 import { AssetClip, SilenceClip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { AssetTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import { AssetType, TrackType } from '$lib/classes/enums';
+import { VerseTranslation } from '$lib/classes/Translation.svelte';
 import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 import { Category, Style, StylesData, VideoStyle } from '$lib/classes/VideoStyle.svelte';
 import subtitleDefaults from '../../../../static/styles/styles.json';
@@ -81,6 +82,43 @@ afterEach(() => {
 });
 
 describe('clip timing invariants', () => {
+	it('unwraps converted citations in every translation and restores their structure on undo', () => {
+		const track = globalState.getSubtitleTrack;
+		const translations = {
+			english: new VerseTranslation('{{Praise}} {{1:1}}', 'reviewed'),
+			french: new VerseTranslation('{{Louange}} {{1:1}}', 'reviewed')
+		};
+		for (const translation of Object.values(translations)) {
+			translation.isStructuredTranslation = true;
+			translation.quranSegments['quran-1'] = {
+				reference: '1:1',
+				startUnitIndex: 0,
+				endUnitIndex: 1,
+				isBruteForce: true,
+				manualText: 'Manual verse translation'
+			};
+		}
+		const clip = new SubtitleClip(0, 1000, '{{الحمد}} {{1:1}}', translations);
+		track.clips = [clip];
+		expect(track.editTranscript(clip, 'الحمد {{1:1}}')).toBe(true);
+		expect(clip.translations.english.text).toBe('Praise {{1:1}}');
+		expect(clip.translations.french.text).toBe('Louange {{1:1}}');
+		for (const translation of Object.values(clip.translations) as VerseTranslation[]) {
+			expect(translation.quranSegments['quran-0'].manualText).toBe('Manual verse translation');
+			expect(translation.quranSegments['quran-1']).toBeUndefined();
+			expect(translation.status).toBe('reviewed');
+		}
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		const restored = globalState.getSubtitleClips[0];
+		expect(restored.text).toBe('{{الحمد}} {{1:1}}');
+		expect(restored.translations.english.text).toBe('{{Praise}} {{1:1}}');
+		expect(
+			(restored.translations.english as VerseTranslation).quranSegments['quran-1'].manualText
+		).toBe('Manual verse translation');
+		expect(ProjectHistoryManager.redo()).toBe(true);
+		expect(globalState.getSubtitleClips[0].translations.english.text).toBe('Praise {{1:1}}');
+	});
+
 	it('adds and edits subtitles without a speaker selection while preserving undo and redo', () => {
 		const project = globalState.currentProject!;
 		project.detail.speaker = '';

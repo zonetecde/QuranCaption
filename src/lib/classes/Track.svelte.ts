@@ -31,7 +31,8 @@ import { Quran, type Verse } from './Quran.js';
 import { getTranscriptReferenceLogicalParts } from '$lib/services/TranscriptReferenceService';
 import {
 	getStructuredTranslationDraft,
-	serializeStructuredTranslation
+	serializeStructuredTranslation,
+	unwrapConvertedTranslationQuotations
 } from '$lib/services/StructuredTranslationService';
 
 export type VisualMergeSelection = {
@@ -1586,6 +1587,23 @@ export class SubtitleTrack extends Track {
 		try {
 			if (clip.visualMergeGroupId) this.unmergeVisualGroup(clip.visualMergeGroupId, false);
 			const textChanged = clip.text !== normalizedText;
+			for (const translation of Object.values(clip.translations)) {
+				if (!(translation instanceof VerseTranslation) || !translation.isStructuredTranslation)
+					continue;
+				const draft = unwrapConvertedTranslationQuotations(
+					clip.text,
+					normalizedText,
+					translation.text
+				);
+				if (!draft) continue;
+				translation.text = serializeStructuredTranslation(draft);
+				translation.quranSegments = Object.fromEntries(
+					draft.anchors.flatMap((anchor, index) => {
+						const settings = translation.quranSegments[anchor.id];
+						return anchor.type === 'quran' && settings ? [[`quran-${index}`, settings]] : [];
+					})
+				);
+			}
 			clip.text = normalizedText;
 			if (textChanged) {
 				clip.clearArabicInlineStyles();

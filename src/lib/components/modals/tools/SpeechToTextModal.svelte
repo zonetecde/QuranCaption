@@ -11,7 +11,25 @@
 
 	let { close }: { close: () => void } = $props();
 	const project = untrack(() => globalState.currentProject!);
-	let settings = $state(untrack(() => ({ ...globalState.settings!.speechToTextSettings })));
+	const languages = [
+		['ar', 'arabic'],
+		['en', 'english'],
+		['fr', 'french'],
+		['es', 'spanish'],
+		['de', 'german'],
+		['id', 'indonesian']
+	] as const;
+	let settings = $state(
+		untrack(() => ({
+			...globalState.settings!.speechToTextSettings,
+			language: globalState.settings!.speechToTextSettings.language || 'ar'
+		}))
+	);
+	let selectedLanguage = $state(
+		untrack(() =>
+			languages.some(([code]) => code === settings.language) ? settings.language : 'custom'
+		)
+	);
 	let selectedClipId = $state(0);
 	let busy = $state(false);
 	let errorMessage = $state('');
@@ -204,11 +222,35 @@
 					>
 					{#if !key.trim()}<p class="text-xs text-amber-400">{copy.keyRequired()}</p>{/if}
 				</div>
-				<label class="block space-y-1 text-sm text-secondary"
-					><span>{$LL.common.language()}</span>
-					<input bind:value={settings.language} maxlength="3" class={inputClass} />
-					<span class="block text-xs text-thirdly">{copy.languageHint()}</span>
-				</label>
+				<div class="space-y-1 text-sm text-secondary">
+					<label class="block space-y-1">
+						<span>{$LL.common.language()}</span>
+						<select
+							bind:value={selectedLanguage}
+							class={inputClass}
+							onchange={(event) => {
+								settings.language =
+									event.currentTarget.value === 'custom' ? '' : event.currentTarget.value;
+							}}
+						>
+							{#each languages as [code, name] (code)}
+								<option value={code}
+									>{code === 'ar' ? $LL.editor.arabic() : $LL.common[name]()} ({code})</option
+								>
+							{/each}
+							<option value="custom">{$LL.common.custom()}</option>
+						</select>
+					</label>
+					{#if selectedLanguage === 'custom'}
+						<input
+							bind:value={settings.language}
+							aria-label={$LL.common.language()}
+							maxlength="3"
+							class={inputClass}
+						/>
+						<p class="text-xs text-thirdly">{copy.languageHint()}</p>
+					{/if}
+				</div>
 				<h3 class="pt-2 text-sm font-semibold text-primary">{copy.preferences()}</h3>
 				<div class="grid grid-cols-2 gap-3">
 					<label class="space-y-1 text-sm text-secondary"

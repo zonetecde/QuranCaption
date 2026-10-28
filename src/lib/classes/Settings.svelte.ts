@@ -178,7 +178,7 @@ export default class Settings extends SerializableBase {
 		elevenLabsApiKey: '',
 		groqModel: 'whisper-large-v3',
 		elevenLabsModel: 'scribe_v2',
-		language: '',
+		language: 'ar',
 		maxWords: 8,
 		maxDuration: 6,
 		paddingBeforeMs: 500,

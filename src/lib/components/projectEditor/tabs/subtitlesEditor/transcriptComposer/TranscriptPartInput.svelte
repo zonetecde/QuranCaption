@@ -62,7 +62,7 @@
 		{#if value.trim()}
 			<button
 				type="button"
-				class="pointer-events-none absolute left-0 top-full z-20 flex h-5 w-full cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-b-md border border-amber-500/35 bg-amber-500/90 px-2 text-[10px] font-semibold text-black opacity-0 transition hover:bg-amber-400 group-hover/transcript-block:pointer-events-auto group-hover/transcript-block:opacity-100"
+				class="pointer-events-none absolute left-0 top-full z-20 flex h-5 w-full min-w-max cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-b-md border border-amber-500/35 bg-amber-500/90 px-2 text-[10px] font-semibold text-black opacity-0 transition hover:bg-amber-400 group-hover/transcript-block:pointer-events-auto group-hover/transcript-block:opacity-100"
 				onclick={onConvert}
 				aria-label={convertLabel}
 			>

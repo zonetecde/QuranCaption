@@ -161,7 +161,7 @@ describe('transcribing timeline audio', () => {
 					durationSeconds: 4,
 					provider: 'groq',
 					apiKey: 'test-groq-key',
-					language: '',
+					language: 'ar',
 					model: 'whisper-large-v3'
 				}
 			}

@@ -208,7 +208,7 @@
 		<div class="flex h-full min-h-0 flex-col">
 			<button
 				type="button"
-				class="absolute top-0 left-0 h-6 w-6 shrink-0 items-center justify-center rounded-br-lg border border-color bg-accent text-secondary transition hover:text-primary"
+				class="absolute top-0 left-0 z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-br-lg border border-color bg-accent text-secondary transition hover:text-primary"
 				onclick={closeQuickTimelineEditorOverlay}
 				aria-label={$LL.editor.closeButton()}
 				title={$LL.editor.closeButton()}

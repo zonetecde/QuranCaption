@@ -306,7 +306,8 @@
 	onMount(() => {
 		const shortcut = globalState.settings?.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE;
 		window.addEventListener('keydown', handleComposerEscape, true);
-		if (!shortcut) {
+		// Dans l'overlay rapide, la timeline conserve la gestion du raccourci E.
+		if (!shortcut || globalState.shared.quickTimelineEditor.active) {
 			return () => window.removeEventListener('keydown', handleComposerEscape, true);
 		}
 

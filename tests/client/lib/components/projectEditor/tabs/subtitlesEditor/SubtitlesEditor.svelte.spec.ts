@@ -9,9 +9,11 @@ import QuickTimelineEditorOverlay from '$lib/components/projectEditor/timeline/Q
 import { Quran } from '$lib/classes/Quran';
 import { Edition } from '$lib/classes/Edition';
 import { SubtitleClip } from '$lib/classes/Clip.svelte';
+import { ProjectEditorTabs } from '$lib/classes/enums';
 import { ProjectTranslation } from '$lib/classes/ProjectTranslation.svelte';
 import { VerseTranslation } from '$lib/classes/Translation.svelte';
 import QPCFontProvider from '$lib/services/FontProvider';
+import ShortcutService from '$lib/services/ShortcutService';
 import { globalState } from '$lib/runes/main.svelte';
 import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { setLocale } from '$lib/i18n/i18n-svelte';
@@ -185,6 +187,37 @@ describe('Subtitles editor workflow', () => {
 		expect(globalState.shared.quickTimelineEditor.active).toBe(false);
 		expect(workspace.container.querySelector('[data-structured-transcript-editor]')).not.toBeNull();
 	});
+
+	test.each(['Enter', 'Escape'])(
+		'preserves the timeline edit shortcut across repeated quick edits closed with %s',
+		async (key) => {
+			loadLocale('en');
+			setLocale('en');
+			const subtitle = new SubtitleClip(0, 1000, 'Original transcript');
+			const { subtitleTrack } = setupSubtitlesEditorProjectFixture({ clips: [subtitle] });
+			globalState.currentProject!.projectEditorState.currentTab = ProjectEditorTabs.Style;
+			vi.spyOn(subtitleTrack, 'editTranscript').mockReturnValue(true);
+			vi.mocked(ShortcutService.registerShortcut).mockClear();
+			vi.mocked(ShortcutService.unregisterShortcut).mockClear();
+
+			for (let session = 0; session < 2; session++) {
+				globalState.openQuickTimelineEditor(subtitle.id, 'subtitle');
+				const overlay = render(QuickTimelineEditorOverlay);
+				await tick();
+				await expect.element(overlay.getByRole('textbox')).toHaveValue('Original transcript');
+				overlay
+					.getByRole('textbox')
+					.element()
+					.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+				await tick();
+				expect(globalState.shared.quickTimelineEditor.active).toBe(false);
+				overlay.unmount();
+				await tick();
+			}
+			expect(ShortcutService.registerShortcut).not.toHaveBeenCalled();
+			expect(ShortcutService.unregisterShortcut).not.toHaveBeenCalled();
+		}
+	);
 
 	test('shows the saved surah on mount and updates the verse words after a new surah selection', async () => {
 		const { workspace, list } = createRenderedFixture(2, 1);

@@ -1495,18 +1495,20 @@
 	 */
 	function pause() {
 		isPlaying = false;
-		globalState.getVideoPreviewState.isPlaying = false;
+		// Le projet peut déjà être fermé lors du démontage du lecteur.
+		const projectEditorState = globalState.currentProject?.projectEditorState;
+		if (projectEditorState) projectEditorState.videoPreview.isPlaying = false;
 		stopTransitionAnimationClock();
 		stopNativeAudioClock();
 
 		// Pause audio et vidéo
-		if (nativeAudioReady) {
+		if (nativeAudioReady && projectEditorState) {
 			void pauseNativeAudio();
 		} else if (audioHowl) {
 			audioHowl.pause();
 
 			// Si c'est un audio silencieux (pas de média réel), on le décharge complètement
-			if (!currentVideo() && !currentAudio()) {
+			if (!projectEditorState || (!currentVideo() && !currentAudio())) {
 				audioHowl.unload();
 				audioHowl = null;
 			}
@@ -1524,7 +1526,9 @@
 			audioUpdateInterval = null;
 		}
 
-		getTimelineSettings().movePreviewTo = getTimelineSettings().cursorPosition;
+		if (projectEditorState) {
+			projectEditorState.timeline.movePreviewTo = projectEditorState.timeline.cursorPosition;
+		}
 	}
 
 	/**

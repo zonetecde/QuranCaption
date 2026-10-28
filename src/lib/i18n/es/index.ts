@@ -2233,7 +2233,26 @@ const es = {
 		aiKey: 'Clave de IA de texto',
 		transcriptKey: 'Claves de transcripción',
 		transcriptKeyDescription:
-			'Configura Groq y ElevenLabs para la transcripción de audio. Los cambios se guardan automáticamente.',
+			'Una sola clave API de Groq o ElevenLabs basta para convertir el audio en subtítulos automáticamente. Elige un proveedor y sigue los pasos de abajo. Los cambios se guardan automáticamente.',
+		...{
+			apiSetupTitle: 'Configura tu clave API de transcripción',
+			apiSetupDescription:
+				'Añade una clave de Groq o ElevenLabs para los subtítulos automáticos. La guía también explica cómo añadir una clave opcional de IA de texto.',
+			configureApiKeys: 'Configurar claves API',
+			manualWorkflowHint:
+				'No necesitas ninguna clave API para usar Minbar Caption manualmente: puedes escribir los subtítulos, ajustar sus tiempos, editar las traducciones y exportar tus vídeos.',
+			optionalTextAiTitle: 'Después: IA de texto (opcional)',
+			optionalTextAiDescription:
+				'Una clave de IA de texto permite corregir la transcripción, reorganizar los subtítulos, detectar referencias y traducir automáticamente. Es independiente de la transcripción de audio y es opcional.',
+			configureTextAi: 'Configurar la IA de texto',
+			textAiKeyStep1:
+				'Elige un proveedor abajo e inicia sesión o crea una cuenta en su plataforma API.',
+			textAiKeyStep2:
+				'Crea una clave API y cópiala. Consulta los precios de la API y los créditos disponibles: una suscripción a la aplicación no siempre incluye acceso a la API.',
+			textAiKeyStep3:
+				'Selecciona el ajuste rápido del mismo proveedor y pega la clave en el campo API. El ajuste rellena el endpoint y el modelo. Los cambios se guardan automáticamente al salir de un campo.',
+			textAiKeyPages: 'Abrir la página de claves API de un proveedor:'
+		},
 		groqApiKey: 'Clave API de Groq',
 		elevenLabsApiKey: 'Clave API de ElevenLabs',
 		stockMedia: 'Banco de medios',
@@ -2486,19 +2505,19 @@ const es = {
 	tour: {
 		stepCreateProjectTitle: 'Bienvenido a Minbar Caption',
 		stepCreateProjectDesc:
-			'Edita vídeos islámicos: clases, jutbas, recordatorios, pódcasts, nasheeds y recitaciones. Crea un proyecto con este botón, elige su nombre, ponente y formato de vídeo, o abre uno existente.',
+			'Descubre Minbar Caption, desde la edición de tus medios hasta la transcripción, la traducción y la exportación. Este botón permite crear un nuevo proyecto.',
 		stepVideoEditorTitle: 'El editor de vídeo',
 		stepVideoEditorDesc:
 			'Importa aquí audio, vídeos e imágenes, o descarga un vídeo de YouTube. Estos medios son el punto de partida del montaje.',
 		stepAddToTimelineTitle: 'Agregar a la línea de tiempo',
 		stepAddToTimelineDesc:
-			'Importa tus medios y pulsa «Añadir a la línea de tiempo». Para un vídeo, elige cómo añadir su imagen y audio. Añade un clip de audio o vídeo para continuar.',
+			'Los medios importados se pueden añadir con «Añadir a la línea de tiempo». Para un vídeo, puedes elegir cómo añadir su imagen y audio.',
 		stepSubtitlesEditorTitle: 'Ir a Transcripción',
 		stepSubtitlesEditorDesc:
 			'Ve a Transcripción para añadir lo que dice cada ponente y sincronizar cada segmento con el audio.',
 		stepManualSegmentationTitle: 'Transcribir a cada ponente',
 		stepManualSegmentationDesc:
-			'Coloca el cabezal al final del pasaje, selecciona o añade al ponente, escribe lo que dijo y pulsa Intro para guardar. También puedes usar la transcripción automática en Herramientas con tu clave API de Groq o ElevenLabs.',
+			'Coloca el cabezal al final del pasaje, escribe lo que se dijo y pulsa Intro para guardar. También puedes usar la transcripción automática en Herramientas con tu clave API de Groq o ElevenLabs.',
 		stepShortcutsTitle: 'Atajos y recorrido guiado',
 		stepShortcutsDesc:
 			'El icono ? explica la transcripción y sus atajos: Intro para guardar, Mayús + Intro para una nueva línea y Ctrl/Mayús + Espacio para reproducir o pausar.',

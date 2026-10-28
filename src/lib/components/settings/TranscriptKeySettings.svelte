@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import Settings from '$lib/classes/Settings.svelte';
+	import Settings, { SettingsTab } from '$lib/classes/Settings.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import type { SpeechToTextCopy } from '$lib/services/SpeechToTextService';
@@ -16,6 +16,10 @@
 			transcriptKeyDescription: () => string;
 			groqApiKey: () => string;
 			elevenLabsApiKey: () => string;
+			manualWorkflowHint: () => string;
+			optionalTextAiTitle: () => string;
+			optionalTextAiDescription: () => string;
+			configureTextAi: () => string;
 		}
 	);
 
@@ -52,6 +56,7 @@
 	<div>
 		<h3 class="text-lg font-medium text-primary">{settingsCopy.transcriptKey()}</h3>
 		<p class="mt-1 text-sm text-thirdly">{settingsCopy.transcriptKeyDescription()}</p>
+		<p class="mt-2 text-sm text-secondary">{settingsCopy.manualWorkflowHint()}</p>
 	</div>
 	{#each providers as provider (provider)}
 		<section class="space-y-3 rounded-xl border border-color bg-primary p-4">
@@ -92,5 +97,17 @@
 			>
 		</section>
 	{/each}
+	<section class="space-y-3 rounded-xl border border-color bg-primary p-4">
+		<h4 class="font-medium text-primary">{settingsCopy.optionalTextAiTitle()}</h4>
+		<p class="text-sm text-thirdly">{settingsCopy.optionalTextAiDescription()}</p>
+		<button
+			type="button"
+			class="cursor-pointer rounded-lg bg-accent-primary px-3 py-2 text-sm font-semibold text-[var(--text-on-accent)]"
+			onclick={(event) => {
+				event.currentTarget.closest('[data-settings-content]')?.scrollTo({ top: 0 });
+				globalState.uiState.settingsTab = SettingsTab.AI_KEY;
+			}}>{settingsCopy.configureTextAi()}</button
+		>
+	</section>
 	{#if errorMessage}<p role="alert" class="text-sm text-red-400">{errorMessage}</p>{/if}
 </div>

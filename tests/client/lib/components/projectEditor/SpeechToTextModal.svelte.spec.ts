@@ -20,6 +20,7 @@ import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { setLocale } from '$lib/i18n/i18n-svelte';
 import SpeechToTextModal from '$lib/components/modals/tools/SpeechToTextModal.svelte';
 import TranscriptKeySettings from '$lib/components/settings/TranscriptKeySettings.svelte';
+import DonationProgressBar from '$lib/components/misc/DonationProgressBar.svelte';
 import SettingsModal from '$lib/components/settings/Settings.svelte';
 import { transcribeProjectAudio } from '$lib/services/SpeechToTextService';
 import { rearrangeProjectSubtitles } from '$lib/services/SubtitleRearrangementService';
@@ -91,6 +92,94 @@ test('shows both transcription key guides in settings and opens their key pages'
 	await component.getByRole('button', { name: 'Open API keys page', exact: true }).nth(1).click();
 	expect(openUrl).toHaveBeenLastCalledWith('https://elevenlabs.io/app/developers/api-keys');
 	expect(transcribeProjectAudio).not.toHaveBeenCalled();
+});
+
+test('shows API setup without network access even after a donation dismissal or with only a text AI key', async () => {
+	const fetch = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Offline'));
+	globalState.settings!.persistentUiState.lastClosedDonationBanner = new Date().toISOString();
+	globalState.settings!.aiTranslationSettings.openAiApiKey = 'text-only';
+	globalState.settings!.speechToTextSettings.groqApiKey = '   ';
+	const component = render(DonationProgressBar);
+	await expect.element(component.getByRole('button', { name: 'Set up API keys' })).toBeVisible();
+	expect(component.container.textContent).toContain('optional text AI key');
+	expect(component.container.textContent).not.toContain('Make a donation');
+	expect(fetch).not.toHaveBeenCalled();
+});
+
+test.each(['groqApiKey', 'elevenLabsApiKey'] as const)(
+	'keeps the donation banner when %s is configured without a text AI key',
+	async (key) => {
+		globalState.settings!.speechToTextSettings[key] = 'transcription-key';
+		const fetch = vi
+			.spyOn(globalThis, 'fetch')
+			.mockResolvedValue(
+				new Response(
+					JSON.stringify({ currentAmount: 50, goal: 250, updatedAt: new Date().toISOString() })
+				)
+			);
+		const component = render(DonationProgressBar);
+		await expect
+			.element(component.getByRole('button', { name: 'Donate to help reach the monthly goal' }))
+			.toBeVisible();
+		await expect
+			.element(component.getByRole('button', { name: 'Set up API keys' }))
+			.not.toBeInTheDocument();
+		expect(fetch).toHaveBeenCalledOnce();
+	}
+);
+
+test('updates the API reminder when a transcription key is added or removed', async () => {
+	vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+		new Response(
+			JSON.stringify({ currentAmount: 50, goal: 250, updatedAt: new Date().toISOString() })
+		)
+	);
+	const component = render(DonationProgressBar);
+	await expect.element(component.getByRole('button', { name: 'Set up API keys' })).toBeVisible();
+	globalState.settings!.speechToTextSettings.elevenLabsApiKey = 'eleven-key';
+	await expect
+		.element(component.getByRole('button', { name: 'Set up API keys' }))
+		.not.toBeInTheDocument();
+	globalState.settings!.speechToTextSettings.elevenLabsApiKey = '';
+	await expect.element(component.getByRole('button', { name: 'Set up API keys' })).toBeVisible();
+});
+
+test('allows dismissing API setup for this launch and shows it again on the next mount', async () => {
+	const component = render(DonationProgressBar);
+	await component.getByRole('button', { name: 'Close', exact: true }).click();
+	await expect
+		.element(component.getByRole('button', { name: 'Set up API keys' }))
+		.not.toBeInTheDocument();
+	expect(Settings.save).not.toHaveBeenCalled();
+	component.unmount();
+	const nextLaunch = render(DonationProgressBar);
+	await expect.element(nextLaunch.getByRole('button', { name: 'Set up API keys' })).toBeVisible();
+});
+
+test('opens transcription setup from the banner and offers the optional text AI guide in the same settings', async () => {
+	await page.viewport(1100, 1000);
+	const banner = render(DonationProgressBar);
+	await banner.getByRole('button', { name: 'Set up API keys' }).click();
+	expect(globalState.uiState.isSettingsOpen).toBe(true);
+	expect(globalState.uiState.settingsTab).toBe('transcript-key');
+	banner.unmount();
+	const settings = render(SettingsModal, { resolve: vi.fn() });
+	await expect
+		.element(settings.getByText(/One Groq or ElevenLabs API key is enough/))
+		.toBeVisible();
+	await expect
+		.element(settings.getByText(/No API key is needed to use Minbar Caption manually/))
+		.toBeVisible();
+	await settings.getByRole('button', { name: 'Set up text AI', exact: true }).click();
+	expect(globalState.uiState.settingsTab).toBe('ai-key');
+	await expect
+		.element(settings.getByText(/It is separate from audio transcription and is optional/))
+		.toBeVisible();
+	await expect.element(settings.getByText(/Create an API key and copy it/)).toBeVisible();
+	await settings.getByRole('button', { name: 'OpenAI', exact: true }).click();
+	expect(openUrl).toHaveBeenLastCalledWith('https://platform.openai.com/api-keys');
+	await settings.getByRole('button', { name: 'Groq', exact: true }).click();
+	expect(openUrl).toHaveBeenLastCalledWith('https://console.groq.com/keys');
 });
 
 test('automatically saves both keys independently and preserves them when saving transcription preferences', async () => {

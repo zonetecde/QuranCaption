@@ -8,7 +8,23 @@ const settings = {
 	aiKey: 'Text AI key',
 	transcriptKey: 'Transcription keys',
 	transcriptKeyDescription:
-		'Configure Groq and ElevenLabs for audio transcription. Changes are saved automatically.',
+		'One Groq or ElevenLabs API key is enough to turn audio into subtitles automatically. Choose either provider and follow its steps below. Changes are saved automatically.',
+	apiSetupTitle: 'Set up your transcription API key',
+	apiSetupDescription:
+		'Add a Groq or ElevenLabs key for automatic subtitles. The guide also explains how to add an optional text AI key.',
+	configureApiKeys: 'Set up API keys',
+	manualWorkflowHint:
+		'No API key is needed to use Minbar Caption manually: you can write subtitles, set their timing, edit translations and export your videos yourself.',
+	optionalTextAiTitle: 'Next: text AI (optional)',
+	optionalTextAiDescription:
+		'A text AI key enables automatic transcript correction, subtitle rearrangement, reference detection and translation. It is separate from audio transcription and is optional.',
+	configureTextAi: 'Set up text AI',
+	textAiKeyStep1: 'Choose a provider below and sign in or create an account on its API platform.',
+	textAiKeyStep2:
+		'Create an API key and copy it. Check the provider’s API pricing and available credits: an app subscription does not necessarily include API access.',
+	textAiKeyStep3:
+		'Choose the matching quick preset below, then paste the key into the API key field. The preset fills in the endpoint and model. Changes are saved automatically when you leave a field.',
+	textAiKeyPages: 'Open a provider’s API keys page:',
 	groqApiKey: 'Groq API key',
 	elevenLabsApiKey: 'ElevenLabs API key',
 	stockMedia: 'Stock Media',

@@ -7942,9 +7942,53 @@ type RootTranslation = {
 		 */
 		transcriptKey: string;
 		/**
-		 * C​o​n​f​i​g​u​r​e​ ​G​r​o​q​ ​a​n​d​ ​E​l​e​v​e​n​L​a​b​s​ ​f​o​r​ ​a​u​d​i​o​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​.​ ​C​h​a​n​g​e​s​ ​a​r​e​ ​s​a​v​e​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​.
+		 * O​n​e​ ​G​r​o​q​ ​o​r​ ​E​l​e​v​e​n​L​a​b​s​ ​A​P​I​ ​k​e​y​ ​i​s​ ​e​n​o​u​g​h​ ​t​o​ ​t​u​r​n​ ​a​u​d​i​o​ ​i​n​t​o​ ​s​u​b​t​i​t​l​e​s​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​.​ ​C​h​o​o​s​e​ ​e​i​t​h​e​r​ ​p​r​o​v​i​d​e​r​ ​a​n​d​ ​f​o​l​l​o​w​ ​i​t​s​ ​s​t​e​p​s​ ​b​e​l​o​w​.​ ​C​h​a​n​g​e​s​ ​a​r​e​ ​s​a​v​e​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​.
 		 */
 		transcriptKeyDescription: string;
+		/**
+		 * S​e​t​ ​u​p​ ​y​o​u​r​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​A​P​I​ ​k​e​y
+		 */
+		apiSetupTitle: string;
+		/**
+		 * A​d​d​ ​a​ ​G​r​o​q​ ​o​r​ ​E​l​e​v​e​n​L​a​b​s​ ​k​e​y​ ​f​o​r​ ​a​u​t​o​m​a​t​i​c​ ​s​u​b​t​i​t​l​e​s​.​ ​T​h​e​ ​g​u​i​d​e​ ​a​l​s​o​ ​e​x​p​l​a​i​n​s​ ​h​o​w​ ​t​o​ ​a​d​d​ ​a​n​ ​o​p​t​i​o​n​a​l​ ​t​e​x​t​ ​A​I​ ​k​e​y​.
+		 */
+		apiSetupDescription: string;
+		/**
+		 * S​e​t​ ​u​p​ ​A​P​I​ ​k​e​y​s
+		 */
+		configureApiKeys: string;
+		/**
+		 * N​o​ ​A​P​I​ ​k​e​y​ ​i​s​ ​n​e​e​d​e​d​ ​t​o​ ​u​s​e​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​m​a​n​u​a​l​l​y​:​ ​y​o​u​ ​c​a​n​ ​w​r​i​t​e​ ​s​u​b​t​i​t​l​e​s​,​ ​s​e​t​ ​t​h​e​i​r​ ​t​i​m​i​n​g​,​ ​e​d​i​t​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​a​n​d​ ​e​x​p​o​r​t​ ​y​o​u​r​ ​v​i​d​e​o​s​ ​y​o​u​r​s​e​l​f​.
+		 */
+		manualWorkflowHint: string;
+		/**
+		 * N​e​x​t​:​ ​t​e​x​t​ ​A​I​ ​(​o​p​t​i​o​n​a​l​)
+		 */
+		optionalTextAiTitle: string;
+		/**
+		 * A​ ​t​e​x​t​ ​A​I​ ​k​e​y​ ​e​n​a​b​l​e​s​ ​a​u​t​o​m​a​t​i​c​ ​t​r​a​n​s​c​r​i​p​t​ ​c​o​r​r​e​c​t​i​o​n​,​ ​s​u​b​t​i​t​l​e​ ​r​e​a​r​r​a​n​g​e​m​e​n​t​,​ ​r​e​f​e​r​e​n​c​e​ ​d​e​t​e​c​t​i​o​n​ ​a​n​d​ ​t​r​a​n​s​l​a​t​i​o​n​.​ ​I​t​ ​i​s​ ​s​e​p​a​r​a​t​e​ ​f​r​o​m​ ​a​u​d​i​o​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​a​n​d​ ​i​s​ ​o​p​t​i​o​n​a​l​.
+		 */
+		optionalTextAiDescription: string;
+		/**
+		 * S​e​t​ ​u​p​ ​t​e​x​t​ ​A​I
+		 */
+		configureTextAi: string;
+		/**
+		 * C​h​o​o​s​e​ ​a​ ​p​r​o​v​i​d​e​r​ ​b​e​l​o​w​ ​a​n​d​ ​s​i​g​n​ ​i​n​ ​o​r​ ​c​r​e​a​t​e​ ​a​n​ ​a​c​c​o​u​n​t​ ​o​n​ ​i​t​s​ ​A​P​I​ ​p​l​a​t​f​o​r​m​.
+		 */
+		textAiKeyStep1: string;
+		/**
+		 * C​r​e​a​t​e​ ​a​n​ ​A​P​I​ ​k​e​y​ ​a​n​d​ ​c​o​p​y​ ​i​t​.​ ​C​h​e​c​k​ ​t​h​e​ ​p​r​o​v​i​d​e​r​’​s​ ​A​P​I​ ​p​r​i​c​i​n​g​ ​a​n​d​ ​a​v​a​i​l​a​b​l​e​ ​c​r​e​d​i​t​s​:​ ​a​n​ ​a​p​p​ ​s​u​b​s​c​r​i​p​t​i​o​n​ ​d​o​e​s​ ​n​o​t​ ​n​e​c​e​s​s​a​r​i​l​y​ ​i​n​c​l​u​d​e​ ​A​P​I​ ​a​c​c​e​s​s​.
+		 */
+		textAiKeyStep2: string;
+		/**
+		 * C​h​o​o​s​e​ ​t​h​e​ ​m​a​t​c​h​i​n​g​ ​q​u​i​c​k​ ​p​r​e​s​e​t​ ​b​e​l​o​w​,​ ​t​h​e​n​ ​p​a​s​t​e​ ​t​h​e​ ​k​e​y​ ​i​n​t​o​ ​t​h​e​ ​A​P​I​ ​k​e​y​ ​f​i​e​l​d​.​ ​T​h​e​ ​p​r​e​s​e​t​ ​f​i​l​l​s​ ​i​n​ ​t​h​e​ ​e​n​d​p​o​i​n​t​ ​a​n​d​ ​m​o​d​e​l​.​ ​C​h​a​n​g​e​s​ ​a​r​e​ ​s​a​v​e​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​ ​w​h​e​n​ ​y​o​u​ ​l​e​a​v​e​ ​a​ ​f​i​e​l​d​.
+		 */
+		textAiKeyStep3: string;
+		/**
+		 * O​p​e​n​ ​a​ ​p​r​o​v​i​d​e​r​’​s​ ​A​P​I​ ​k​e​y​s​ ​p​a​g​e​:
+		 */
+		textAiKeyPages: string;
 		/**
 		 * G​r​o​q​ ​A​P​I​ ​k​e​y
 		 */
@@ -8824,7 +8868,7 @@ type RootTranslation = {
 		 */
 		stepCreateProjectTitle: string;
 		/**
-		 * E​d​i​t​ ​I​s​l​a​m​i​c​ ​v​i​d​e​o​s​:​ ​l​e​c​t​u​r​e​s​,​ ​k​h​u​t​b​a​h​s​,​ ​r​e​m​i​n​d​e​r​s​,​ ​p​o​d​c​a​s​t​s​,​ ​n​a​s​h​e​e​d​s​ ​a​n​d​ ​r​e​c​i​t​a​t​i​o​n​s​.​ ​C​r​e​a​t​e​ ​a​ ​p​r​o​j​e​c​t​ ​w​i​t​h​ ​t​h​i​s​ ​b​u​t​t​o​n​,​ ​c​h​o​o​s​e​ ​i​t​s​ ​n​a​m​e​,​ ​s​p​e​a​k​e​r​ ​a​n​d​ ​v​i​d​e​o​ ​f​o​r​m​a​t​,​ ​o​r​ ​o​p​e​n​ ​a​n​ ​e​x​i​s​t​i​n​g​ ​p​r​o​j​e​c​t​ ​t​o​ ​c​o​n​t​i​n​u​e​.
+		 * D​i​s​c​o​v​e​r​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n​,​ ​f​r​o​m​ ​e​d​i​t​i​n​g​ ​y​o​u​r​ ​m​e​d​i​a​ ​t​o​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​,​ ​t​r​a​n​s​l​a​t​i​o​n​ ​a​n​d​ ​e​x​p​o​r​t​.​ ​T​h​i​s​ ​b​u​t​t​o​n​ ​i​s​ ​w​h​e​r​e​ ​y​o​u​ ​c​r​e​a​t​e​ ​a​ ​n​e​w​ ​p​r​o​j​e​c​t​.
 		 */
 		stepCreateProjectDesc: string;
 		/**
@@ -8840,7 +8884,7 @@ type RootTranslation = {
 		 */
 		stepAddToTimelineTitle: string;
 		/**
-		 * I​m​p​o​r​t​ ​y​o​u​r​ ​o​w​n​ ​m​e​d​i​a​,​ ​t​h​e​n​ ​c​l​i​c​k​ ​i​t​s​ ​"​A​d​d​ ​t​o​ ​T​i​m​e​l​i​n​e​"​ ​b​u​t​t​o​n​.​ ​F​o​r​ ​a​ ​v​i​d​e​o​,​ ​c​h​o​o​s​e​ ​h​o​w​ ​t​o​ ​a​d​d​ ​i​t​s​ ​i​m​a​g​e​ ​a​n​d​ ​a​u​d​i​o​.​ ​A​d​d​ ​a​n​ ​a​u​d​i​o​ ​o​r​ ​v​i​d​e​o​ ​c​l​i​p​ ​t​o​ ​c​o​n​t​i​n​u​e​.
+		 * I​m​p​o​r​t​e​d​ ​m​e​d​i​a​ ​c​a​n​ ​b​e​ ​a​d​d​e​d​ ​w​i​t​h​ ​t​h​e​ ​"​A​d​d​ ​t​o​ ​T​i​m​e​l​i​n​e​"​ ​b​u​t​t​o​n​.​ ​F​o​r​ ​a​ ​v​i​d​e​o​,​ ​y​o​u​ ​c​a​n​ ​c​h​o​o​s​e​ ​h​o​w​ ​t​o​ ​a​d​d​ ​i​t​s​ ​i​m​a​g​e​ ​a​n​d​ ​a​u​d​i​o​.
 		 */
 		stepAddToTimelineDesc: string;
 		/**
@@ -8856,7 +8900,7 @@ type RootTranslation = {
 		 */
 		stepManualSegmentationTitle: string;
 		/**
-		 * M​o​v​e​ ​t​h​e​ ​p​l​a​y​h​e​a​d​ ​t​o​ ​t​h​e​ ​e​n​d​ ​o​f​ ​a​ ​p​a​s​s​a​g​e​,​ ​s​e​l​e​c​t​ ​o​r​ ​a​d​d​ ​i​t​s​ ​s​p​e​a​k​e​r​,​ ​t​y​p​e​ ​w​h​a​t​ ​w​a​s​ ​s​a​i​d​,​ ​t​h​e​n​ ​p​r​e​s​s​ ​E​n​t​e​r​ ​t​o​ ​s​a​v​e​ ​t​h​e​ ​s​e​g​m​e​n​t​.​ ​A​u​t​o​m​a​t​i​c​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​i​s​ ​a​l​s​o​ ​a​v​a​i​l​a​b​l​e​ ​i​n​ ​T​o​o​l​s​ ​w​i​t​h​ ​y​o​u​r​ ​o​w​n​ ​G​r​o​q​ ​o​r​ ​E​l​e​v​e​n​L​a​b​s​ ​A​P​I​ ​k​e​y​.
+		 * M​o​v​e​ ​t​h​e​ ​p​l​a​y​h​e​a​d​ ​t​o​ ​t​h​e​ ​e​n​d​ ​o​f​ ​a​ ​p​a​s​s​a​g​e​,​ ​t​y​p​e​ ​w​h​a​t​ ​w​a​s​ ​s​a​i​d​,​ ​t​h​e​n​ ​p​r​e​s​s​ ​E​n​t​e​r​ ​t​o​ ​s​a​v​e​ ​t​h​e​ ​s​e​g​m​e​n​t​.​ ​A​u​t​o​m​a​t​i​c​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​i​s​ ​a​l​s​o​ ​a​v​a​i​l​a​b​l​e​ ​i​n​ ​T​o​o​l​s​ ​w​i​t​h​ ​y​o​u​r​ ​o​w​n​ ​G​r​o​q​ ​o​r​ ​E​l​e​v​e​n​L​a​b​s​ ​A​P​I​ ​k​e​y​.
 		 */
 		stepManualSegmentationDesc: string;
 		/**
@@ -18083,9 +18127,53 @@ export type TranslationFunctions = {
 		 */
 		transcriptKey: () => LocalizedString;
 		/**
-		 * Configure Groq and ElevenLabs for audio transcription. Changes are saved automatically.
+		 * One Groq or ElevenLabs API key is enough to turn audio into subtitles automatically. Choose either provider and follow its steps below. Changes are saved automatically.
 		 */
 		transcriptKeyDescription: () => LocalizedString;
+		/**
+		 * Set up your transcription API key
+		 */
+		apiSetupTitle: () => LocalizedString;
+		/**
+		 * Add a Groq or ElevenLabs key for automatic subtitles. The guide also explains how to add an optional text AI key.
+		 */
+		apiSetupDescription: () => LocalizedString;
+		/**
+		 * Set up API keys
+		 */
+		configureApiKeys: () => LocalizedString;
+		/**
+		 * No API key is needed to use Minbar Caption manually: you can write subtitles, set their timing, edit translations and export your videos yourself.
+		 */
+		manualWorkflowHint: () => LocalizedString;
+		/**
+		 * Next: text AI (optional)
+		 */
+		optionalTextAiTitle: () => LocalizedString;
+		/**
+		 * A text AI key enables automatic transcript correction, subtitle rearrangement, reference detection and translation. It is separate from audio transcription and is optional.
+		 */
+		optionalTextAiDescription: () => LocalizedString;
+		/**
+		 * Set up text AI
+		 */
+		configureTextAi: () => LocalizedString;
+		/**
+		 * Choose a provider below and sign in or create an account on its API platform.
+		 */
+		textAiKeyStep1: () => LocalizedString;
+		/**
+		 * Create an API key and copy it. Check the provider’s API pricing and available credits: an app subscription does not necessarily include API access.
+		 */
+		textAiKeyStep2: () => LocalizedString;
+		/**
+		 * Choose the matching quick preset below, then paste the key into the API key field. The preset fills in the endpoint and model. Changes are saved automatically when you leave a field.
+		 */
+		textAiKeyStep3: () => LocalizedString;
+		/**
+		 * Open a provider’s API keys page:
+		 */
+		textAiKeyPages: () => LocalizedString;
 		/**
 		 * Groq API key
 		 */
@@ -18957,7 +19045,7 @@ export type TranslationFunctions = {
 		 */
 		stepCreateProjectTitle: () => LocalizedString;
 		/**
-		 * Edit Islamic videos: lectures, khutbahs, reminders, podcasts, nasheeds and recitations. Create a project with this button, choose its name, speaker and video format, or open an existing project to continue.
+		 * Discover Minbar Caption, from editing your media to transcription, translation and export. This button is where you create a new project.
 		 */
 		stepCreateProjectDesc: () => LocalizedString;
 		/**
@@ -18973,7 +19061,7 @@ export type TranslationFunctions = {
 		 */
 		stepAddToTimelineTitle: () => LocalizedString;
 		/**
-		 * Import your own media, then click its "Add to Timeline" button. For a video, choose how to add its image and audio. Add an audio or video clip to continue.
+		 * Imported media can be added with the "Add to Timeline" button. For a video, you can choose how to add its image and audio.
 		 */
 		stepAddToTimelineDesc: () => LocalizedString;
 		/**
@@ -18989,7 +19077,7 @@ export type TranslationFunctions = {
 		 */
 		stepManualSegmentationTitle: () => LocalizedString;
 		/**
-		 * Move the playhead to the end of a passage, select or add its speaker, type what was said, then press Enter to save the segment. Automatic transcription is also available in Tools with your own Groq or ElevenLabs API key.
+		 * Move the playhead to the end of a passage, type what was said, then press Enter to save the segment. Automatic transcription is also available in Tools with your own Groq or ElevenLabs API key.
 		 */
 		stepManualSegmentationDesc: () => LocalizedString;
 		/**

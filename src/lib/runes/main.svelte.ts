@@ -162,7 +162,8 @@ class GlobalState {
 			| 'support'
 			| 'contact'
 			| 'about',
-		isTourActive: false
+		isTourActive: false,
+		tourPreviewProject: null as Project | null
 	});
 
 	shared = $state({

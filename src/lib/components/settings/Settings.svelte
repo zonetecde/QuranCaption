@@ -206,7 +206,7 @@
 		</div>
 
 		<!-- Content -->
-		<div class="p-6 overflow-auto">
+		<div class="p-6 overflow-auto" data-settings-content>
 			{#if globalState.uiState.settingsTab === SettingsTab.SHORTCUTS}
 				<ShortcutsManager />
 			{:else if globalState.uiState.settingsTab === SettingsTab.THEME}

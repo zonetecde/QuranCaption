@@ -31,6 +31,9 @@ export class Project extends SerializableBase {
 	 * Sauvegarde le projet sur l'ordinateur
 	 */
 	async save(updateUpdateAt: boolean = true): Promise<void> {
+		// L'aperçu de la visite reste temporaire, y compris lors de l'autosave.
+		if (globalState.uiState.tourPreviewProject === this) return;
+
 		const projectsDetail = globalState.userProjectsDetails.find((p) => p.id === this.detail.id);
 
 		if (projectsDetail) {

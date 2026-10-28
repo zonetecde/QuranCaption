@@ -2240,7 +2240,26 @@ const fr = {
 		aiKey: 'Clé d’IA textuelle',
 		transcriptKey: 'Clés de transcription',
 		transcriptKeyDescription:
-			'Configurez Groq et ElevenLabs pour la transcription audio. Les modifications sont enregistrées automatiquement.',
+			'Une seule clé API Groq ou ElevenLabs suffit pour transformer automatiquement l’audio en sous-titres. Choisissez un fournisseur et suivez les étapes ci-dessous. Les modifications sont enregistrées automatiquement.',
+		...{
+			apiSetupTitle: 'Configurez votre clé API de transcription',
+			apiSetupDescription:
+				'Ajoutez une clé Groq ou ElevenLabs pour les sous-titres automatiques. Le guide explique aussi comment ajouter une clé d’IA textuelle facultative.',
+			configureApiKeys: 'Configurer les clés API',
+			manualWorkflowHint:
+				'Aucune clé API n’est nécessaire pour utiliser Minbar Caption manuellement : vous pouvez écrire les sous-titres, régler leurs timestamps, modifier les traductions et exporter vos vidéos vous-même.',
+			optionalTextAiTitle: 'Ensuite : une IA textuelle (facultatif)',
+			optionalTextAiDescription:
+				'Une clé d’IA textuelle permet de corriger la transcription, réarranger les sous-titres, détecter les références et traduire automatiquement. Elle est distincte de la transcription audio et reste facultative.',
+			configureTextAi: 'Configurer l’IA textuelle',
+			textAiKeyStep1:
+				'Choisissez un fournisseur ci-dessous, puis connectez-vous ou créez un compte sur sa plateforme API.',
+			textAiKeyStep2:
+				'Créez une clé API et copiez-la. Vérifiez les tarifs API et les crédits disponibles chez le fournisseur : un abonnement à son application n’inclut pas forcément l’accès à son API.',
+			textAiKeyStep3:
+				'Sélectionnez le préréglage du même fournisseur ci-dessous, puis collez la clé dans le champ API. Le préréglage remplit l’endpoint et le modèle. Les modifications sont enregistrées automatiquement lorsque vous quittez un champ.',
+			textAiKeyPages: 'Ouvrir la page des clés API d’un fournisseur :'
+		},
 		groqApiKey: 'Clé API Groq',
 		elevenLabsApiKey: 'Clé API ElevenLabs',
 		stockMedia: 'Banque de médias',
@@ -2493,19 +2512,19 @@ const fr = {
 	tour: {
 		stepCreateProjectTitle: 'Bienvenue dans Minbar Caption',
 		stepCreateProjectDesc:
-			'Montez des vidéos islamiques : cours, khutbahs, rappels, podcasts, nasheeds et récitations. Créez un projet avec ce bouton, choisissez son nom, son intervenant et son format vidéo, ou ouvrez un projet existant.',
+			'Découvrez Minbar Caption, du montage de vos médias à la transcription, la traduction et l’export. Ce bouton permet de créer un nouveau projet.',
 		stepVideoEditorTitle: 'L’éditeur vidéo',
 		stepVideoEditorDesc:
 			'Importez vos fichiers audio, vidéos et images ici, ou téléchargez une vidéo YouTube. Ces médias constituent le point de départ du montage.',
 		stepAddToTimelineTitle: 'Ajouter à la timeline',
 		stepAddToTimelineDesc:
-			'Importez vos médias, puis cliquez sur « Ajouter à la timeline ». Pour une vidéo, choisissez comment ajouter l’image et le son. Ajoutez un clip audio ou vidéo pour continuer.',
+			'Les médias importés peuvent être ajoutés avec « Ajouter à la timeline ». Pour une vidéo, vous pouvez choisir comment ajouter l’image et le son.',
 		stepSubtitlesEditorTitle: 'Ouvrir Transcription',
 		stepSubtitlesEditorDesc:
 			'Dans Transcription, saisissez les paroles de chaque intervenant et alignez chaque segment avec l’audio.',
 		stepManualSegmentationTitle: 'Transcrire chaque intervenant',
 		stepManualSegmentationDesc:
-			'Placez la tête de lecture à la fin d’un passage, sélectionnez ou ajoutez son intervenant, saisissez ses paroles, puis appuyez sur Entrée. La transcription automatique est aussi disponible dans Outils avec votre clé API Groq ou ElevenLabs.',
+			'Placez la tête de lecture à la fin d’un passage, saisissez les paroles, puis appuyez sur Entrée. La transcription automatique est aussi disponible dans Outils avec votre clé API Groq ou ElevenLabs.',
 		stepShortcutsTitle: 'Raccourcis et visite guidée',
 		stepShortcutsDesc:
 			'L’icône ? explique la transcription et ses raccourcis : Entrée pour enregistrer, Maj + Entrée pour une nouvelle ligne et Ctrl/Maj + Espace pour lire ou mettre en pause.',

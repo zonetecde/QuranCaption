@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { globalState } from '$lib/runes/main.svelte';
-	import { ProjectEditorTabs, TrackType } from '$lib/classes/enums';
+	import { Project, ProjectContent, ProjectDetail, ProjectEditorTabs } from '$lib/classes';
 	import Settings from '$lib/classes/Settings.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { onDestroy, untrack } from 'svelte';
 
 	const PAD = 10;
 	const TOOLTIP_W = 340;
@@ -13,129 +14,103 @@
 		targetId: string;
 		title: string;
 		description: string;
-		/** 'button' = user clicks Next/Finish; 'auto' = advances when condition becomes true */
-		advanceMode: 'button' | 'auto';
-		advanceCondition?: () => boolean;
 		buttonLabel?: string;
-		/** When true, clicks inside the spotlight area are forwarded to the element below */
-		allowSpotlightClick?: boolean;
-		/** Allow native interactions, including forms, file imports and context menus. */
-		allowInteraction?: boolean;
-		/** Optional hint shown below the progress bar instead of generic action text */
-		hint?: string;
+		tab?: ProjectEditorTabs;
 	};
 
+	let previewProject: Project | null = null;
+	let disposed = false;
+	let preparingPreview = $state(false);
+	onDestroy(() => {
+		disposed = true;
+		if (!previewProject) return;
+		if (globalState.currentProject === previewProject) globalState.currentProject = null;
+		if (globalState.uiState.tourPreviewProject === previewProject) {
+			globalState.uiState.tourPreviewProject = null;
+		}
+	});
 	const TOUR_STEPS = $derived<TourStep[]>([
 		// ── HOME PAGE ──────────────────────────────────────────────────────────
 		{
 			targetId: 'new-project-button',
 			title: $LL.tour.stepCreateProjectTitle(),
-			description: $LL.tour.stepCreateProjectDesc(),
-			advanceMode: 'auto',
-			advanceCondition: () => globalState.currentProject !== null,
-			allowInteraction: true
+			description: $LL.tour.stepCreateProjectDesc()
 		},
 		// ── VIDEO EDITOR ────────────────────────────────────────────────────────
 		{
 			targetId: 'assets-manager',
+			tab: ProjectEditorTabs.VideoEditor,
 			title: $LL.tour.stepVideoEditorTitle(),
 			description: $LL.tour.stepVideoEditorDesc(),
-			advanceMode: 'button',
 			buttonLabel: $LL.common.next()
 		},
 		{
 			targetId: 'assets-manager',
+			tab: ProjectEditorTabs.VideoEditor,
 			title: $LL.tour.stepAddToTimelineTitle(),
-			description: $LL.tour.stepAddToTimelineDesc(),
-			advanceMode: 'auto',
-			advanceCondition: () =>
-				globalState.currentProject?.content.timeline.tracks.some(
-					(track) =>
-						(track.type === TrackType.Audio || track.type === TrackType.Video) &&
-						track.clips.length > 0
-				) ?? false,
-			allowInteraction: true,
-			hint: $LL.tour.hintHoverAndAdd()
+			description: $LL.tour.stepAddToTimelineDesc()
 		},
 		// ── SUBTITLES EDITOR ────────────────────────────────────────────────────
 		{
 			targetId: 'nav-tab-subtitles',
+			tab: ProjectEditorTabs.Transcription,
 			title: $LL.tour.stepSubtitlesEditorTitle(),
-			description: $LL.tour.stepSubtitlesEditorDesc(),
-			advanceMode: 'auto',
-			advanceCondition: () =>
-				globalState.currentProject?.projectEditorState.currentTab ===
-				ProjectEditorTabs.Transcription,
-			allowSpotlightClick: true,
-			hint: $LL.tour.hintClickSubtitlesTab()
+			description: $LL.tour.stepSubtitlesEditorDesc()
 		},
 		{
 			targetId: 'transcription-composer-area',
+			tab: ProjectEditorTabs.Transcription,
 			title: $LL.tour.stepManualSegmentationTitle(),
 			description: $LL.tour.stepManualSegmentationDesc(),
-			advanceMode: 'button',
 			buttonLabel: $LL.common.next()
 		},
 		{
 			targetId: 'transcription-help-button',
+			tab: ProjectEditorTabs.Transcription,
 			title: $LL.tour.stepShortcutsTitle(),
 			description: $LL.tour.stepShortcutsDesc(),
-			advanceMode: 'button',
 			buttonLabel: $LL.common.next()
 		},
 		// ── TRANSLATIONS ────────────────────────────────────────────────────────
 		{
 			targetId: 'nav-tab-translations',
+			tab: ProjectEditorTabs.Translations,
 			title: $LL.tour.stepTranslationsTitle(),
-			description: $LL.tour.stepTranslationsDesc(),
-			advanceMode: 'auto',
-			advanceCondition: () =>
-				globalState.currentProject?.projectEditorState.currentTab ===
-				ProjectEditorTabs.Translations,
-			allowSpotlightClick: true,
-			hint: $LL.tour.hintClickTranslationsTab()
+			description: $LL.tour.stepTranslationsDesc()
 		},
 		{
 			targetId: 'translations-workspace',
+			tab: ProjectEditorTabs.Translations,
 			title: $LL.tour.stepAdaptingTranslationsTitle(),
 			description: $LL.tour.stepAdaptingTranslationsDesc(),
-			advanceMode: 'button',
 			buttonLabel: $LL.common.next()
 		},
 		// ── STYLE ───────────────────────────────────────────────────────────────
 		{
 			targetId: 'nav-tab-style',
+			tab: ProjectEditorTabs.Style,
 			title: $LL.tour.stepStyleTitle(),
-			description: $LL.tour.stepStyleDesc(),
-			advanceMode: 'auto',
-			advanceCondition: () =>
-				globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Style,
-			allowSpotlightClick: true,
-			hint: $LL.tour.hintClickStyleTab()
+			description: $LL.tour.stepStyleDesc()
 		},
 		{
 			targetId: 'style-subtabs',
+			tab: ProjectEditorTabs.Style,
 			title: $LL.tour.stepStyleCategoriesTitle(),
 			description: $LL.tour.stepStyleCategoriesDesc(),
-			advanceMode: 'button',
 			buttonLabel: $LL.common.next()
 		},
 		// ── EXPORT ──────────────────────────────────────────────────────────────
 		{
 			targetId: 'nav-tab-export',
+			tab: ProjectEditorTabs.Export,
 			title: $LL.tour.stepExportTitle(),
-			description: $LL.tour.stepExportDesc(),
-			advanceMode: 'auto',
-			advanceCondition: () =>
-				globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Export,
-			allowSpotlightClick: true,
-			hint: $LL.tour.hintClickExportTab()
+			description: $LL.tour.stepExportDesc()
 		},
 		{
 			targetId: 'export-range',
+			tab: ProjectEditorTabs.Export,
 			title: $LL.tour.stepExportVideoTitle(),
 			description: $LL.tour.stepExportVideoDesc(),
-			advanceMode: 'button',
 			buttonLabel: $LL.common.finish()
 		}
 	]);
@@ -151,8 +126,24 @@
 		}
 	});
 
-	let currentStepIndex = $state(0);
+	let currentStepIndex = $state(untrack(() => (globalState.currentProject ? 1 : 0)));
 	let currentStep = $derived(TOUR_STEPS[currentStepIndex]);
+	let previousStepIndex = $derived(currentStepIndex > 1 ? currentStepIndex - 1 : -1);
+
+	$effect(() => {
+		const tab = currentStep.tab;
+		untrack(() => {
+			if (tab && globalState.currentProject) {
+				globalState.currentProject.projectEditorState.currentTab = tab;
+			}
+		});
+	});
+
+	$effect(() => {
+		if (!globalState.currentProject && currentStepIndex > 0) {
+			currentStepIndex = 0;
+		}
+	});
 
 	let spotlightRect = $state({ x: 0, y: 0, w: 0, h: 0 });
 	let tooltipPlacement = $state<'top' | 'bottom' | 'left' | 'right'>('bottom');
@@ -247,20 +238,28 @@
 
 	$effect(() => {
 		window.addEventListener('resize', handleWindowResize);
+		window.addEventListener('scroll', handleWindowResize, true);
 		return () => {
 			window.removeEventListener('resize', handleWindowResize);
+			window.removeEventListener('scroll', handleWindowResize, true);
 			if (resizeObserver) resizeObserver.disconnect();
 		};
 	});
 
-	// Update spotlight when step changes
+	// Observe targets mounted after switching tabs.
 	$effect(() => {
 		const step = currentStep; // reactive dependency
 		tooltipVisible = false;
-
-		requestAnimationFrame(() => {
-			requestAnimationFrame(() => {
+		let target: Element | null | undefined;
+		let frame = 0;
+		/** @returns {void} Schedule a target refresh after the current DOM updates. */
+		function refreshTarget() {
+			cancelAnimationFrame(frame);
+			frame = requestAnimationFrame(() => {
 				const el = findTarget(step.targetId);
+				if (el === target) return;
+				target = el;
+				resizeObserver?.disconnect();
 				if (el) {
 					updateSpotlight(el);
 					setupResizeObserver(el);
@@ -272,67 +271,44 @@
 				}
 				tooltipVisible = true;
 			});
-		});
+		}
+		const observer = new MutationObserver(refreshTarget);
+		observer.observe(document.body, { childList: true, subtree: true });
+		refreshTarget();
+		return () => {
+			observer.disconnect();
+			cancelAnimationFrame(frame);
+			resizeObserver?.disconnect();
+		};
 	});
 
-	// Auto-advance watcher
-	$effect(() => {
-		const step = currentStep; // reactive dependency
-		if (step.advanceMode !== 'auto' || !step.advanceCondition) return;
-		const met = step.advanceCondition();
-		if (met) {
-			const tid = setTimeout(() => advance(), 400);
-			return () => clearTimeout(tid);
-		}
-	});
-
-	/** Forward a mouse event to the real element below the blocking overlay */
-	function forwardEventThrough(e: MouseEvent) {
-		const blocker = e.currentTarget as HTMLElement;
-		blocker.style.pointerEvents = 'none';
-		const elBelow = document.elementFromPoint(e.clientX, e.clientY);
-		blocker.style.pointerEvents = 'auto';
-		if (elBelow) {
-			elBelow.dispatchEvent(
-				new MouseEvent(e.type, {
-					bubbles: true,
-					cancelable: true,
-					clientX: e.clientX,
-					clientY: e.clientY,
-					screenX: e.screenX,
-					screenY: e.screenY
-				})
-			);
-		}
-	}
-
-	/** Handle click on the blocking overlay: forward only if this step allows spotlight interaction */
+	/** Block clicks on the interface while presenting it. */
 	function handleBlockingClick(e: MouseEvent) {
-		const { clientX, clientY } = e;
-		// clientY is viewport-relative; spotlightRect.y is relative to the overlay container (below titlebar)
-		const relY = clientY - titleBarHeight;
-		const { x, y, w, h } = spotlightRect;
-		const insideSpotlight = clientX >= x && clientX <= x + w && relY >= y && relY <= y + h;
-		if (insideSpotlight && currentStep.allowSpotlightClick) {
-			forwardEventThrough(e);
-		}
-		// All other clicks (outside spotlight OR info-only steps): silently blocked
 		e.stopPropagation();
 		e.preventDefault();
 	}
 
-	/** Pass mousemove through the spotlight area only for interactive steps (hover effects) */
-	function handleBlockingMouseMove(e: MouseEvent) {
-		if (!currentStep.allowSpotlightClick) return;
-		const { clientX, clientY } = e;
-		const relY = clientY - titleBarHeight;
-		const { x, y, w, h } = spotlightRect;
-		if (clientX >= x && clientX <= x + w && relY >= y && relY <= y + h) {
-			forwardEventThrough(e);
+	/** @returns {Promise<void>} Show the next step, opening an unsaved preview when needed. */
+	async function advance(): Promise<void> {
+		if (preparingPreview) return;
+		if (!globalState.currentProject) {
+			preparingPreview = true;
+			try {
+				const content = await ProjectContent.getDefaultProjectContent();
+				if (disposed) return;
+				previewProject = new Project(
+					new ProjectDetail($LL.tour.stepCreateProjectTitle(), ''),
+					content
+				);
+				globalState.uiState.tourPreviewProject = previewProject;
+				globalState.currentProject = previewProject;
+			} catch (error) {
+				console.error('Failed to prepare tutorial preview', error);
+				return;
+			} finally {
+				preparingPreview = false;
+			}
 		}
-	}
-
-	function advance() {
 		if (currentStepIndex < TOUR_STEPS.length - 1) {
 			currentStepIndex++;
 		} else {
@@ -341,17 +317,22 @@
 	}
 
 	function goBack() {
-		if (currentStepIndex > 0) {
-			currentStepIndex--;
+		if (previousStepIndex >= 0) {
+			currentStepIndex = previousStepIndex;
 		}
 	}
 
 	async function completeTour() {
-		if (globalState.settings) {
-			globalState.settings.persistentUiState.hasSeenTour = true;
-			await Settings.save();
+		try {
+			if (globalState.settings) {
+				globalState.settings.persistentUiState.hasSeenTour = true;
+				await Settings.save();
+			}
+		} catch (error) {
+			console.error('Failed to save tutorial completion', error);
+		} finally {
+			close();
 		}
-		close();
 	}
 </script>
 
@@ -359,15 +340,10 @@
 <div
 	style="position: fixed; top: {titleBarHeight}px; left: 0; right: 0; bottom: 0; z-index: 9997; pointer-events: none; overflow: hidden;"
 >
-	<!-- Keep native interactions available while users create projects and import media. -->
-	{#if !currentStep.allowInteraction}
-		<div
-			style="position: absolute; inset: 0; pointer-events: auto; cursor: default;"
-			onclick={handleBlockingClick}
-			onmousemove={handleBlockingMouseMove}
-			onmouseenter={handleBlockingMouseMove}
-		></div>
-	{/if}
+	<div
+		style="position: absolute; inset: 0; pointer-events: auto; cursor: default;"
+		onclick={handleBlockingClick}
+	></div>
 
 	<!-- SVG overlay: dark background with spotlight hole -->
 	<svg
@@ -458,7 +434,7 @@
 
 			<!-- Footer -->
 			<div class="flex items-center justify-between gap-2">
-				{#if currentStepIndex > 0}
+				{#if previousStepIndex >= 0}
 					<button class="tour-btn-secondary" onclick={goBack}>
 						<span class="material-icons rtl-mirror" style="font-size: 14px;">arrow_back</span>
 						{$LL.common.back()}
@@ -467,23 +443,16 @@
 					<div></div>
 				{/if}
 
-				{#if currentStep.advanceMode === 'button'}
-					<button class="tour-btn-primary" onclick={advance}>
-						{currentStep.buttonLabel ?? $LL.common.next()}
-						<span
-							class="material-icons"
-							class:rtl-mirror={currentStep.buttonLabel !== $LL.common.finish()}
-							style="font-size: 14px;"
-						>
-							{currentStep.buttonLabel === $LL.common.finish() ? 'check' : 'arrow_forward'}
-						</span>
-					</button>
-				{:else if currentStep.hint}
-					<div class="flex items-center gap-1 text-xs" style="color: var(--text-thirdly);">
-						<span class="material-icons animate-pulse" style="font-size: 12px;">touch_app</span>
-						{currentStep.hint}
-					</div>
-				{/if}
+				<button class="tour-btn-primary" onclick={advance} disabled={preparingPreview}>
+					{currentStep.buttonLabel ?? $LL.common.next()}
+					<span
+						class="material-icons"
+						class:rtl-mirror={currentStep.buttonLabel !== $LL.common.finish()}
+						style="font-size: 14px;"
+					>
+						{currentStep.buttonLabel === $LL.common.finish() ? 'check' : 'arrow_forward'}
+					</span>
+				</button>
 			</div>
 
 			<!-- Directional arrow -->

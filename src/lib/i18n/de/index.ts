@@ -2249,7 +2249,26 @@ const de = {
 		aiKey: 'Text-KI-Schlüssel',
 		transcriptKey: 'Transkriptionsschlüssel',
 		transcriptKeyDescription:
-			'Richte Groq und ElevenLabs für die Audiotranskription ein. Änderungen werden automatisch gespeichert.',
+			'Ein API-Schlüssel von Groq oder ElevenLabs genügt, um Audio automatisch in Untertitel umzuwandeln. Wähle einen Anbieter und folge den Schritten unten. Änderungen werden automatisch gespeichert.',
+		...{
+			apiSetupTitle: 'Richte deinen API-Schlüssel für die Transkription ein',
+			apiSetupDescription:
+				'Füge einen Groq- oder ElevenLabs-Schlüssel für automatische Untertitel hinzu. Die Anleitung erklärt auch die Einrichtung eines optionalen Text-KI-Schlüssels.',
+			configureApiKeys: 'API-Schlüssel einrichten',
+			manualWorkflowHint:
+				'Für die manuelle Nutzung von Minbar Caption ist kein API-Schlüssel erforderlich: Du kannst Untertitel schreiben, ihre Zeiten festlegen, Übersetzungen bearbeiten und Videos selbst exportieren.',
+			optionalTextAiTitle: 'Danach: Text-KI (optional)',
+			optionalTextAiDescription:
+				'Ein Text-KI-Schlüssel ermöglicht die automatische Korrektur der Transkription, die Neuaufteilung der Untertitel, die Erkennung von Referenzen und Übersetzungen. Er ist von der Audiotranskription unabhängig und optional.',
+			configureTextAi: 'Text-KI einrichten',
+			textAiKeyStep1:
+				'Wähle unten einen Anbieter und melde dich auf seiner API-Plattform an oder erstelle ein Konto.',
+			textAiKeyStep2:
+				'Erstelle einen API-Schlüssel und kopiere ihn. Prüfe die API-Preise und das verfügbare Guthaben: Ein App-Abonnement beinhaltet nicht unbedingt den API-Zugang.',
+			textAiKeyStep3:
+				'Wähle unten die Schnellvorlage desselben Anbieters und füge den Schlüssel in das API-Feld ein. Die Vorlage trägt Endpunkt und Modell ein. Änderungen werden beim Verlassen eines Feldes automatisch gespeichert.',
+			textAiKeyPages: 'API-Schlüsselseite eines Anbieters öffnen:'
+		},
 		groqApiKey: 'Groq-API-Schlüssel',
 		elevenLabsApiKey: 'ElevenLabs-API-Schlüssel',
 		stockMedia: 'Stock-Medien',
@@ -2502,19 +2521,19 @@ const de = {
 	tour: {
 		stepCreateProjectTitle: 'Willkommen bei Minbar Caption',
 		stepCreateProjectDesc:
-			'Bearbeite islamische Videos: Vorträge, Predigten, Erinnerungen, Podcasts, Naschids und Rezitationen. Erstelle mit dieser Schaltfläche ein Projekt, wähle Name, Sprecher und Videoformat oder öffne ein bestehendes Projekt.',
+			'Entdecke Minbar Caption: vom Bearbeiten deiner Medien über Transkription und Übersetzung bis zum Export. Mit dieser Schaltfläche erstellst du ein neues Projekt.',
 		stepVideoEditorTitle: 'Der Videoeditor',
 		stepVideoEditorDesc:
 			'Importiere hier Audio, Videos und Bilder oder lade ein YouTube-Video herunter. Diese Medien bilden den Ausgangspunkt für deinen Schnitt.',
 		stepAddToTimelineTitle: 'Zur Timeline hinzufügen',
 		stepAddToTimelineDesc:
-			'Importiere eigene Medien und klicke dann auf „Zur Zeitleiste hinzufügen“. Wähle bei Videos, wie Bild und Ton hinzugefügt werden. Füge zum Fortfahren einen Audio- oder Videoclip hinzu.',
+			'Importierte Medien lassen sich mit „Zur Zeitleiste hinzufügen“ einfügen. Bei Videos kannst du wählen, wie Bild und Ton hinzugefügt werden.',
 		stepSubtitlesEditorTitle: 'Zur Transkription',
 		stepSubtitlesEditorDesc:
 			'Öffne Transkription, um das Gesprochene jedes Sprechers hinzuzufügen und jedes Segment am Audio auszurichten.',
 		stepManualSegmentationTitle: 'Jeden Sprecher transkribieren',
 		stepManualSegmentationDesc:
-			'Bewege den Abspielkopf ans Ende eines Abschnitts, wähle oder ergänze den Sprecher, tippe das Gesprochene ein und drücke Enter. Automatische Transkription ist unter Werkzeuge mit deinem eigenen Groq- oder ElevenLabs-API-Schlüssel verfügbar.',
+			'Bewege den Abspielkopf ans Ende eines Abschnitts, tippe das Gesprochene ein und drücke Enter. Automatische Transkription ist unter Werkzeuge mit deinem eigenen Groq- oder ElevenLabs-API-Schlüssel verfügbar.',
 		stepShortcutsTitle: 'Tastenkürzel und Rundgang',
 		stepShortcutsDesc:
 			'Das ?-Symbol erklärt die Transkription und ihre Tastenkürzel: Enter zum Speichern, Umschalt + Enter für eine neue Zeile und Strg/Umschalt + Leertaste zum Abspielen oder Pausieren.',

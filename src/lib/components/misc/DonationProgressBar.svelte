@@ -20,6 +20,19 @@
 	let goal = $state(250);
 	let isLoading = $state(true);
 	let isVisible = $state(true);
+	let isSetupDismissed = $state(false);
+	const needsTranscriptionKey = $derived(
+		Boolean(globalState.settings) &&
+			!globalState.settings?.speechToTextSettings.groqApiKey.trim() &&
+			!globalState.settings?.speechToTextSettings.elevenLabsApiKey.trim()
+	);
+	const setupCopy = $derived(
+		$LL.settings as unknown as {
+			apiSetupTitle: () => string;
+			apiSetupDescription: () => string;
+			configureApiKeys: () => string;
+		}
+	);
 
 	let percentage = $derived(Math.min((currentAmount / goal) * 100, 100));
 	let isComplete = $derived(currentAmount >= goal);
@@ -85,7 +98,17 @@
 		globalState.uiState.isSettingsOpen = true;
 	}
 
+	/**
+	 * Ouvre les réglages expliquant la configuration des clés de transcription et d'IA textuelle.
+	 * @returns {void}
+	 */
+	function openApiKeySettings(): void {
+		globalState.uiState.settingsTab = SettingsTab.TRANSCRIPT_KEY;
+		globalState.uiState.isSettingsOpen = true;
+	}
+
 	$effect(() => {
+		if (!globalState.settings || needsTranscriptionKey) return;
 		if (shouldShowBanner()) {
 			void loadProgress();
 		} else {
@@ -94,7 +117,47 @@
 	});
 </script>
 
-{#if isVisible && !isLoading}
+{#if needsTranscriptionKey && !isSetupDismissed && !globalState.uiState.isTourActive}
+	<div class="donation-banner fixed z-[900]">
+		<div class="banner-content flex items-start gap-2 p-3.5 sm:p-4">
+			<button
+				type="button"
+				class="flex min-w-0 flex-1 cursor-pointer items-start gap-3 text-start"
+				onclick={openApiKeySettings}
+				aria-label={setupCopy.configureApiKeys()}
+			>
+				<span class="banner-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
+					<span class="material-icons-outlined text-2xl">key</span>
+				</span>
+				<span class="min-w-0 flex-1">
+					<strong class="block text-[15px] font-bold leading-tight text-primary sm:text-base"
+						>{setupCopy.apiSetupTitle()}</strong
+					>
+					<span class="mt-1 block text-xs leading-snug text-secondary sm:text-[13px]"
+						>{setupCopy.apiSetupDescription()}</span
+					>
+					<span
+						class="donate-btn mt-3 inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold"
+					>
+						{setupCopy.configureApiKeys()}
+						<span class="material-icons-outlined text-lg">arrow_forward</span>
+					</span>
+				</span>
+			</button>
+			<button
+				type="button"
+				class="close-btn flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-thirdly transition-colors hover:bg-white/10 hover:text-primary"
+				onclick={() => {
+					isSetupDismissed = true;
+				}}
+				aria-label={$LL.common.close()}
+				title={$LL.common.close()}
+			>
+				<span class="material-icons-outlined text-base">close</span>
+			</button>
+		</div>
+	</div>
+{:else if !needsTranscriptionKey && isVisible && !isLoading}
 	<div class="donation-banner fixed z-[900]">
 		<div class="banner-content p-3.5 sm:p-4">
 			<div class="flex items-start gap-3">

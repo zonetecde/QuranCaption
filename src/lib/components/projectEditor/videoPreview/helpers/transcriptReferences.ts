@@ -2,6 +2,13 @@ import { globalState } from '$lib/runes/main.svelte';
 import type { Verse } from '$lib/classes/Quran';
 import QPCFontProvider from '$lib/services/FontProvider';
 import {
+	buildTranslationInlineTextSegments,
+	getInlineStyleFlagsForWordIndex,
+	getTranslationWordCount,
+	type TranslationInlineStyleRun,
+	type TranslationInlineTextSegment
+} from '$lib/classes/Translation.svelte';
+import {
 	MARKER_REGEX,
 	hasTranscriptReferenceMarkers,
 	parseQuranTranscriptReference,
@@ -14,6 +21,7 @@ import {
 
 export type TranscriptReferenceRenderPart = {
 	text: string;
+	sourceStartIndex?: number;
 	words?: string[];
 	suffix?: string;
 	suffixFontFamily?: string | null;
@@ -22,6 +30,55 @@ export type TranscriptReferenceRenderPart = {
 	quranReference?: QuranTranscriptReference;
 	extraCss: string;
 };
+
+/**
+ * Retrouve l'index du premier mot source d'une portion rendue sans ses marqueurs.
+ * @param {string} text Texte source du sous-titre.
+ * @param {TranscriptReferenceRenderPart} part Portion rendue.
+ * @returns {number} Index du premier mot dans le texte stocké.
+ */
+export function getTranscriptReferenceWordOffset(
+	text: string,
+	part: TranscriptReferenceRenderPart
+): number {
+	const firstWordOffset = Math.max(0, part.text.search(/\S/));
+	return Math.max(
+		0,
+		getTranslationWordCount(text.slice(0, (part.sourceStartIndex ?? 0) + firstWordOffset + 1)) - 1
+	);
+}
+
+/**
+ * Applique les styles source à une portion résolue en conservant ses espaces.
+ * @param {string} text Texte source du sous-titre.
+ * @param {TranscriptReferenceRenderPart} part Portion rendue.
+ * @param {TranslationInlineStyleRun[]} runs Styles indexés sur les mots source.
+ * @returns {TranslationInlineTextSegment[]} Segments rendus avec leurs styles.
+ */
+export function getTranscriptReferenceInlineStyledSegments(
+	text: string,
+	part: TranscriptReferenceRenderPart,
+	runs: TranslationInlineStyleRun[]
+): TranslationInlineTextSegment[] {
+	const offset = getTranscriptReferenceWordOffset(text, part);
+	if (part.isQuran) {
+		return [{ text: part.text, ...getInlineStyleFlagsForWordIndex(runs, offset) }];
+	}
+	return buildTranslationInlineTextSegments(
+		part.text,
+		runs
+			.filter(
+				(run) =>
+					run.endWordIndex >= offset &&
+					run.startWordIndex < offset + getTranslationWordCount(part.text)
+			)
+			.map((run) => ({
+				...run,
+				startWordIndex: run.startWordIndex - offset,
+				endWordIndex: run.endWordIndex - offset
+			}))
+	);
+}
 
 /**
  * Retourne le texte et la police d'une plage Quran prête à afficher.
@@ -135,6 +192,7 @@ export function getTranscriptReferenceRenderParts(
 		if (match.index > cursor) {
 			parts.push({
 				text: text.slice(cursor, match.index),
+				sourceStartIndex: cursor,
 				isQuran: false,
 				isCitation: false,
 				extraCss: plainCss
@@ -144,16 +202,31 @@ export function getTranscriptReferenceRenderParts(
 		const value = match[1].trim();
 		const reference = parseQuranTranscriptReference(value);
 		if (!reference) {
-			parts.push({ text: value, isQuran: false, isCitation: true, extraCss: plainCss });
+			parts.push({
+				text: value,
+				sourceStartIndex: match.index + 2 + match[1].indexOf(value),
+				isQuran: false,
+				isCitation: true,
+				extraCss: plainCss
+			});
 		} else {
 			const verse = getCachedTranscriptVerse(reference.surah, reference.verse);
 			if (verse) {
-				parts.push(buildQuranRenderPart(reference, verse, mushafStyle, fontFamily));
+				parts.push({
+					...buildQuranRenderPart(reference, verse, mushafStyle, fontFamily),
+					sourceStartIndex: match.index
+				});
 			} else {
 				void loadReferencedVerse(reference.surah, reference.verse).then(() =>
 					globalState.updateVideoPreviewUI()
 				);
-				parts.push({ text: match[0], isQuran: false, isCitation: false, extraCss: plainCss });
+				parts.push({
+					text: match[0],
+					sourceStartIndex: match.index,
+					isQuran: false,
+					isCitation: false,
+					extraCss: plainCss
+				});
 			}
 		}
 		cursor = match.index + match[0].length;
@@ -162,6 +235,7 @@ export function getTranscriptReferenceRenderParts(
 	if (cursor < text.length) {
 		parts.push({
 			text: text.slice(cursor),
+			sourceStartIndex: cursor,
 			isQuran: false,
 			isCitation: false,
 			extraCss: plainCss

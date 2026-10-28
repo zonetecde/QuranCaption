@@ -10,6 +10,7 @@
 		getTranslationTrimUnits,
 		sliceTranslationTrimUnits,
 		type TranslationInlineStyleFlags,
+		type TranslationInlineTextSegment,
 		tokenizeTranslationText,
 		VerseTranslation
 	} from '$lib/classes/Translation.svelte';
@@ -17,6 +18,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import { getStructuredTranslationDraft } from '$lib/services/StructuredTranslationService';
+	import { getTranscriptReferenceInlineStyledSegments } from './helpers/transcriptReferences';
 	import { untrack } from 'svelte';
 	import {
 		createPlainOverlaySegment,
@@ -76,6 +78,7 @@
 	let styleContextMenu: SubtitleStyleContextMenu | undefined = $state();
 
 	type TranslationWbwOverlaySegment = OverlayTextSegment & {
+		inlineSegments?: TranslationInlineTextSegment[];
 		wbwWordIndex?: number;
 		wbwWordIndexes?: number[];
 		unitIndex?: number;
@@ -280,7 +283,26 @@
 			);
 		}
 
-		return segments;
+		if (!translation.inlineStyleRuns?.length) return segments;
+
+		// Les styles sont indexés sur le texte résolu, sans les marqueurs ni les numéros de verset.
+		const resolvedText = segments.map((segment) => segment.text).join('');
+		let sourceStartIndex = 0;
+		return segments.map((segment) => {
+			const inlineSegments = getTranscriptReferenceInlineStyledSegments(
+				resolvedText,
+				{
+					text: segment.text,
+					sourceStartIndex,
+					isQuran: false,
+					isCitation: segment.referenceType === 'citation',
+					extraCss: ''
+				},
+				translation.inlineStyleRuns
+			);
+			sourceStartIndex += segment.text.length;
+			return { ...segment, inlineSegments };
+		});
 	}
 
 	/**
@@ -597,7 +619,7 @@
 			.join('|');
 	}
 
-	function getVisibleTranslationSegments(): OverlayTextSegment[] {
+	function getVisibleTranslationSegments(): TranslationWbwOverlaySegment[] {
 		const subtitle = currentSubtitle();
 		return getVisibleTranslationSegmentsUtil(
 			subtitle instanceof SubtitleClip || subtitle instanceof PredefinedSubtitleClip
@@ -971,7 +993,7 @@
 					{/if}
 					<span class={segmentClass} style={segmentStyle}>
 						{#if state.enabled && data}<span class="wbw-line-background-text">{segment.text}</span
-							>{:else}{segment.text}{/if}
+							>{:else}{@render translationSegmentText(segment)}{/if}
 					</span>
 					{#if segment.verseNumber && segment.verseNumberPosition === 'after'}
 						<span class={segmentClass} style={`${segmentStyle} color: var(--verse-number-color);`}
@@ -987,7 +1009,7 @@
 					{/if}
 					<span class={segmentClass} style={segmentStyle}>
 						{#if state.enabled && data}<span class="wbw-line-background-text">{segment.text}</span
-							>{:else}{segment.text}{/if}
+							>{:else}{@render translationSegmentText(segment)}{/if}
 					</span>
 					{#if segment.verseNumber && segment.verseNumberPosition === 'after'}
 						<span class={segmentClass} style={`${segmentStyle} color: var(--verse-number-color);`}
@@ -995,7 +1017,7 @@
 						>
 					{/if}
 				{:else}
-					{segment.text}
+					{@render translationSegmentText(segment)}
 				{/if}
 				{#if segment.flags.lineBreak}
 					<br />
@@ -1004,3 +1026,13 @@
 		{/if}
 	</span>
 </p>
+
+<!-- Conserve les espaces du texte et les limites des références pendant le rendu des styles. -->
+{#snippet translationSegmentText(segment: TranslationWbwOverlaySegment)}
+	{#if segment.inlineSegments}
+		<!-- prettier-ignore -->
+		{#each segment.inlineSegments as inline}<span style={getInlineStyleCss(inline)}>{inline.text}</span>{#if inline.lineBreak}<br />{/if}{/each}
+	{:else}
+		{segment.text}
+	{/if}
+{/snippet}

@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { highlightStyleCategory } from '$lib/components/projectEditor/tabs/styleEditor/presets/actions/styleActions';
-	import { getTranscriptReferenceRenderParts } from '$lib/components/projectEditor/videoPreview/helpers/transcriptReferences';
+	import {
+		getTranscriptReferenceInlineStyledSegments,
+		getTranscriptReferenceRenderParts,
+		getTranscriptReferenceWordOffset
+	} from '$lib/components/projectEditor/videoPreview/helpers/transcriptReferences';
 	import { collapseSalawatDisplaySegments } from './helpers/salawat';
 	import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
@@ -262,19 +266,26 @@
 				String(globalState.getStyleValue('arabic-quran', 'font-family') ?? 'Hafs')
 			);
 			if (referenceParts) {
-				return referenceParts.map((part, index) => {
+				return referenceParts.flatMap((part, index) => {
 					const referenceType = part.isQuran ? 'quran' : part.isCitation ? 'citation' : undefined;
 					const referenceCss = referenceType
 						? getReferenceStyleCss(referenceType, subtitle.id)
 						: '';
-					return createPlainOverlaySegment(
-						`${keyPrefix}-reference-${index}`,
-						part.text,
-						`${referenceCss} ${part.extraCss}`.trim(),
-						referenceType,
-						part.quranReference,
-						subtitle.id
-					);
+					return getTranscriptReferenceInlineStyledSegments(
+						subtitle.text,
+						part,
+						subtitle.arabicInlineStyleRuns
+					).map((segment, segmentIndex) => ({
+						...createPlainOverlaySegment(
+							`${keyPrefix}-reference-${index}-${segmentIndex}`,
+							segment.text,
+							`${referenceCss} ${part.extraCss}`.trim(),
+							referenceType,
+							part.quranReference,
+							subtitle.id
+						),
+						flags: segment
+					}));
 				});
 			}
 		}
@@ -395,6 +406,7 @@
 	/** Description d'un groupe avant association de ses timings. */
 	type ArabicWordByWordGroupDefinition = Omit<ArabicWordByWordGroup, 'words' | 'startWordIndex'> & {
 		wordTexts: string[];
+		sourceWordIndexes?: number[];
 	};
 
 	/**
@@ -596,6 +608,13 @@
 				: null;
 			definitions.push({
 				wordTexts,
+				sourceWordIndexes: renderedPart
+					? wordTexts.map(
+							(_, wordIndex) =>
+								getTranscriptReferenceWordOffset(sourceClip.text, renderedPart) +
+								(part.referenceType === 'quran' ? 0 : wordIndex)
+						)
+					: undefined,
 				suffix,
 				suffixFontFamily,
 				extraCss: `${referenceCss} ${renderedPart?.extraCss ?? ''}`.trim(),
@@ -676,16 +695,14 @@
 						clipId: sourceClip.id
 					}) as TranscriptWordTiming & { clipId: number }
 			);
-			const hasReferenceParts = getTranscriptReferenceLogicalParts(sourceClip.text) !== null;
+			const sourceWordIndexes = groupDefinitions.flatMap((group) => group.sourceWordIndexes ?? []);
 			const sourceWordCount = splitVisibleWords(sourceClip.text).length;
 			const inlineWordOffset = Math.max(0, sourceWordCount - clipVisibleWords.length);
 			const getWordFlags = (wordIndex: number): TranslationInlineStyleFlags =>
-				hasReferenceParts
-					? EMPTY_INLINE_STYLE_FLAGS
-					: getInlineStyleFlagsForWordIndex(
-							sourceClip.arabicInlineStyleRuns,
-							inlineWordOffset + wordIndex
-						);
+				getInlineStyleFlagsForWordIndex(
+					sourceClip.arabicInlineStyleRuns,
+					sourceWordIndexes[wordIndex] ?? inlineWordOffset + wordIndex
+				);
 
 			const overlapCount = countWordOverlap(visibleWordTexts, clipVisibleWords);
 			const clampedOverlapCount = Math.min(overlapCount, timingCandidates.length);
@@ -1118,7 +1135,7 @@
 		style={hasRtlText ? 'unicode-bidi: isolate;' : undefined}
 	>
 		{#each segments as segment (segment.key)}
-			{@const segmentStyle = `${getInlineStyleCss(segment.flags)} ${segment.extraCss ?? ''}`.trim()}
+			{@const segmentStyle = `${segment.extraCss ?? ''} ${getInlineStyleCss(segment.flags)}`.trim()}
 			{#if segment.referenceType === 'quran' && showDecorativeBrackets()}
 				{@const glyphs = bracketGlyphs()}
 				{@const bracketCss = getDecorativeBracketCss()}

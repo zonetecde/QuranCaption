@@ -70,6 +70,7 @@
 		ProjectHistoryManager.track('reset translation inline styles', () => {
 			for (const clip of globalState.getSubtitleTrack.clips) {
 				if (!(clip instanceof ClipWithTranslation)) continue;
+				clip.clearArabicInlineStyles();
 				for (const translation of Object.values(clip.translations)) {
 					if (translation instanceof VerseTranslation) translation.clearInlineStyles();
 				}

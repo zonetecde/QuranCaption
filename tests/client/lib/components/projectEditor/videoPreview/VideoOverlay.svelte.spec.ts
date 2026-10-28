@@ -6,6 +6,8 @@ import { tick } from 'svelte';
 import VideoOverlay from '$lib/components/projectEditor/videoPreview/VideoOverlay.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { ProjectEditorState } from '$lib/classes/ProjectEditorState.svelte';
+import { Edition } from '$lib/classes/Edition';
+import { ProjectTranslation } from '$lib/classes/ProjectTranslation.svelte';
 import { Timeline } from '$lib/classes/Timeline.svelte';
 import { ProjectEditorTabs, TrackType } from '$lib/classes/enums';
 import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes/Clip.svelte';
@@ -1829,6 +1831,203 @@ describe('Translation inline styles', () => {
 		globalState.currentProject = null;
 		globalState.settings = undefined;
 	});
+
+	test.each([
+		{
+			source: 'نص عادي',
+			text: 'and I bear witness that Muhammad is His servant and His Messenger.',
+			start: 10,
+			end: 11,
+			expected: 'His Messenger.',
+			resolved: 'and I bear witness that Muhammad is His servant and His Messenger.'
+		},
+		{
+			source: 'قال {{حديث}}',
+			text: 'He said {{His Messenger}} today',
+			start: 2,
+			end: 3,
+			expected: 'His Messenger',
+			resolved: 'He said His Messenger today'
+		},
+		{
+			source: 'قال {{حديث}}',
+			text: 'alpha{{beta gamma}}delta',
+			start: 1,
+			end: 1,
+			expected: 'gammadelta',
+			resolved: 'alphabeta gammadelta'
+		},
+		{
+			source: 'قال {{حديث}}',
+			text: '你好{{世界}}',
+			start: 2,
+			end: 2,
+			expected: '世',
+			resolved: '你好世界'
+		}
+	])(
+		'renders and clears structured translation word styles: $text',
+		async ({ source, text, start, end, expected, resolved }) => {
+			const translation = new VerseTranslation(text, 'reviewed');
+			translation.isStructuredTranslation = true;
+			const clip = new SubtitleClip(0, 1000, source, { english: translation });
+			setupVideoOverlayFixture([clip], { cursorPosition: 500 });
+			const projectTranslation = new ProjectTranslation();
+			projectTranslation.addedTranslationEditions = [
+				new Edition(
+					'english',
+					'english',
+					'English',
+					'English',
+					'ltr',
+					'project-language',
+					'',
+					'',
+					''
+				)
+			];
+			globalState.currentProject!.content.projectTranslation = projectTranslation;
+			const component = render(VideoOverlay);
+			await settleOverlay();
+
+			const node = getForegroundTranslationNode(component.container, 'english')!;
+			const initialPreviewText = normalizeText(node.textContent);
+			expect(
+				projectTranslation.resolveStructuredTranslationText(
+					projectTranslation.addedTranslationEditions[0],
+					clip,
+					translation
+				)
+			).toBe(resolved);
+			translation.inlineStyleRuns = [
+				{
+					startWordIndex: start,
+					endWordIndex: end,
+					bold: true,
+					italic: true,
+					underline: true,
+					color: '#ff0000',
+					glow: '#00ff00'
+				}
+			];
+			globalState.updateVideoPreviewUI();
+			await settleOverlay();
+			const styledSpans = Array.from(node.querySelectorAll<HTMLElement>('span')).filter(
+				(span) => span.style.fontWeight === '700'
+			);
+			expect(styledSpans.map((span) => span.textContent).join('')).toBe(expected);
+			for (const span of styledSpans) {
+				expect(span.style.fontStyle).toBe('italic');
+				expect(span.style.textDecoration).toBe('underline');
+				expect(span.style.color).toBe('rgb(255, 0, 0)');
+				expect(span.style.getPropertyValue('--inline-word-glow-color')).toBe('#00ff00');
+			}
+			expect(normalizeText(node.textContent)).toBe(initialPreviewText);
+
+			translation.inlineStyleRuns = [];
+			globalState.updateVideoPreviewUI();
+			await settleOverlay();
+			expect(node.querySelector('[style*="font-weight: 700"]')).toBeNull();
+			expect(normalizeText(node.textContent)).toBe(initialPreviewText);
+		}
+	);
+
+	test.each([
+		{ manual: false, position: 'before' },
+		{ manual: false, position: 'after' },
+		{ manual: true, position: 'before' },
+		{ manual: true, position: 'after' }
+	])(
+		'styles resolved Quran translation words once with manual=$manual and verse number $position',
+		async ({ manual, position }) => {
+			const translation = new VerseTranslation('Before {{2:255}} after', 'reviewed');
+			translation.isStructuredTranslation = true;
+			const settings = translation.getOrCreateQuranSegment('quran-0', '2:255', 3);
+			settings.startUnitIndex = 1;
+			settings.isBruteForce = manual;
+			settings.manualText = 'manual text words';
+			translation.inlineStyleRuns = [
+				{
+					startWordIndex: 2,
+					endWordIndex: 2,
+					bold: true,
+					italic: false,
+					underline: true,
+					color: null
+				}
+			];
+			const clip = new SubtitleClip(0, 1000, 'قبل {{2:255}} بعد', { english: translation });
+			const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 500 });
+			const projectTranslation = new ProjectTranslation();
+			projectTranslation.addedTranslationEditions = [
+				new Edition(
+					'english',
+					'english',
+					'English',
+					'English',
+					'ltr',
+					'project-language',
+					'',
+					'',
+					''
+				)
+			];
+			projectTranslation.versesTranslations.english = { '2:255': 'zero one two three' };
+			globalState.currentProject!.content.projectTranslation = projectTranslation;
+			const styles = fixture.videoStyle.getStylesOfTarget('english-quran');
+			styles.setStyle('show-verse-number', true);
+			styles.setStyle('verse-number-format', '(<number>)');
+			styles.setStyle('verse-number-position', position);
+			styles.setStyle('verse-number-numeral-system', 'Western Arabic');
+			styles.setStyle('show-decorative-brackets', true);
+			styles.setStyle('decorative-brackets-font-family', 'LM');
+			const component = render(VideoOverlay);
+			await settleOverlay();
+
+			const node = getForegroundTranslationNode(component.container, 'english')!;
+			const styledWord = Array.from(node.querySelectorAll<HTMLElement>('span')).find(
+				(span) => span.style.fontWeight === '700' && span.textContent === (manual ? 'text' : 'two')
+			);
+			expect(styledWord).toBeDefined();
+			expect(styledWord!.style.textDecoration).toBe('underline');
+			expect(node.textContent?.match(/\(255\)/g)).toHaveLength(1);
+			expect(node.textContent?.match(/L/g)).toHaveLength(1);
+			expect(node.textContent?.match(/M/g)).toHaveLength(1);
+			expect(node.textContent).not.toContain('{{');
+		}
+	);
+
+	test.each([false, true])(
+		'renders individual Arabic citation styles with WBW highlighting %s',
+		async (wbwEnabled) => {
+			const clip = createTimedTranscriptSubtitle('قال {{إنما الأعمال بالنيات}}', [
+				'قال',
+				'إنما',
+				'الأعمال',
+				'بالنيات'
+			]);
+			clip.toggleArabicInlineStyles(2, 2, {
+				bold: true,
+				italic: true,
+				underline: true,
+				color: '#ff0000'
+			});
+			const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 2500 });
+			fixture.videoStyle.getStylesOfTarget('arabic').setStyle('wbw-current-word-custom-css', '');
+			fixture.videoStyle.getStylesOfTarget('arabic').setStyle('enable-wbw-highlight', wbwEnabled);
+			const component = render(VideoOverlay);
+			await settleOverlay();
+
+			const arabic = getForegroundArabicNode(component.container)!;
+			const styledWord = Array.from(arabic.querySelectorAll<HTMLElement>('span')).find(
+				(span) => span.textContent === 'الأعمال' && span.style.fontWeight === '700'
+			);
+			expect(styledWord).toBeDefined();
+			expect(styledWord!.style.color).toBe('rgb(255, 0, 0)');
+			expect(styledWord!.style.fontStyle).toBe('italic');
+			expect(normalizeText(arabic.textContent)).toBe('قال إنما الأعمال بالنيات');
+		}
+	);
 
 	test('renders translation with bold inline style', async () => {
 		const clip = new QuranSubtitleClip(0, 999, 1, 1, 0, 2, 'Arabic text', [], false, false, {

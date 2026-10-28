@@ -19,6 +19,7 @@ import { VerseTranslation } from '$lib/classes/Translation.svelte';
 import EditionViewer from '$lib/components/projectEditor/tabs/translationsEditor/leftPanel/EditionViewer.svelte';
 import TranslationsEditorSettings from '$lib/components/projectEditor/tabs/translationsEditor/leftPanel/TranslationsEditorSettings.svelte';
 import ArabicText from '$lib/components/projectEditor/tabs/translationsEditor/workspace/ArabicText.svelte';
+import TranslationInlineStylePanel from '$lib/components/projectEditor/tabs/translationsEditor/TranslationInlineStylePanel.svelte';
 import Workspace from '$lib/components/projectEditor/tabs/translationsEditor/workspace/Workspace.svelte';
 import Translation from '$lib/components/projectEditor/tabs/translationsEditor/workspace/translation/Translation.svelte';
 import ModalManager from '$lib/components/modals/ModalManager';
@@ -318,6 +319,124 @@ describe('Structured translation editor', () => {
 		const arabicText = component.container.querySelector<HTMLElement>('.noto-sans-arabic');
 		expect(arabicText).not.toBeNull();
 		expect(getComputedStyle(arabicText!).fontFamily).toContain('Noto Sans Arabic');
+	});
+
+	test('shows the resolved translation only once while styling its words', async () => {
+		const subtitle = createSubtitle('قال {{حديث}}', 'Il dit {{une citation}}');
+		globalState.getTranslationsState.isInlineStyleMode = true;
+		const component = render(Translation, { edition, subtitle });
+		await tick();
+
+		expect(component.container.textContent?.match(/citation/g)).toHaveLength(1);
+		expect(component.container.querySelectorAll('.translation-word-style')).toHaveLength(4);
+	});
+
+	test.each(['قال إنما الأعمال بالنيات', 'قال {{إنما الأعمال بالنيات}}'])(
+		'styles an Arabic word range and toggles it off without changing the source: %s',
+		async (source) => {
+			const subtitle = createSubtitle(source, 'Translation');
+			const state = globalState.getTranslationsState;
+			state.isInlineStyleMode = true;
+			state.inlineStyleBoldEnabled = true;
+			state.inlineStyleItalicEnabled = true;
+			state.inlineStyleUnderlineEnabled = true;
+			state.inlineStyleLineBreakEnabled = true;
+			state.inlineStyleColorEnabled = true;
+			state.inlineStyleColorValue = '#ff0000';
+			state.inlineStyleGlowEnabled = true;
+			state.inlineStyleGlowColorValue = '#00ff00';
+			const component = render(ArabicText, { subtitle });
+			await tick();
+			const words = Array.from(
+				component.container.querySelectorAll<HTMLButtonElement>('.translation-word-style')
+			);
+			expect(words.map((word) => word.textContent?.trim())).toEqual([
+				'قال',
+				'إنما',
+				'الأعمال',
+				'بالنيات'
+			]);
+			expect(getComputedStyle(words[0]).fontSize).toBe(
+				getComputedStyle(component.container.querySelector('.noto-sans-arabic')!).fontSize
+			);
+
+			words[2].dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+			words[1].dispatchEvent(new MouseEvent('mouseenter'));
+			window.dispatchEvent(new MouseEvent('mouseup'));
+			await tick();
+
+			expect(subtitle.text).toBe(source);
+			expect(subtitle.arabicInlineStyleRuns).toEqual([
+				{
+					startWordIndex: 1,
+					endWordIndex: 2,
+					bold: true,
+					italic: true,
+					underline: true,
+					lineBreak: true,
+					color: '#ff0000',
+					glow: '#00ff00'
+				}
+			]);
+			expect(words[1].style.color).toBe('rgb(255, 0, 0)');
+			expect(words[2].style.fontWeight).toBe('700');
+			expect(words[0].style.color).toBe('');
+			expect(ProjectHistoryManager.track).toHaveBeenCalledWith(
+				'style arabic words',
+				expect.any(Function)
+			);
+
+			words[1].dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+			words[2].dispatchEvent(new MouseEvent('mouseenter'));
+			window.dispatchEvent(new MouseEvent('mouseup'));
+			await tick();
+			expect(subtitle.arabicInlineStyleRuns).toEqual([]);
+
+			words[3].dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+			window.dispatchEvent(new MouseEvent('mouseup'));
+			await tick();
+			expect(subtitle.arabicInlineStyleRuns[0].startWordIndex).toBe(3);
+			expect(subtitle.arabicInlineStyleRuns[0].endWordIndex).toBe(3);
+			state.isInlineStyleMode = false;
+			await tick();
+			expect(component.container.querySelector('.translation-word-style')).toBeNull();
+			expect(component.container.querySelector('[style*="font-weight: 700"]')?.textContent).toBe(
+				'بالنيات'
+			);
+		}
+	);
+
+	test('resets Arabic word styles together with translation word styles', async () => {
+		const subtitle = createSubtitle('كلام عادي', 'Une traduction');
+		globalState.getSubtitleTrack.clips.push(subtitle);
+		globalState.getTranslationsState.isInlineStyleMode = true;
+		subtitle.toggleArabicInlineStyles(0, 0, {
+			bold: true,
+			italic: false,
+			underline: false,
+			color: null
+		});
+		(subtitle.translations[edition.name] as VerseTranslation).inlineStyleRuns = [
+			{
+				startWordIndex: 0,
+				endWordIndex: 0,
+				bold: true,
+				italic: false,
+				underline: false,
+				color: null
+			}
+		];
+		vi.spyOn(ModalManager, 'confirmModal').mockResolvedValue(true);
+		const component = render(TranslationInlineStylePanel);
+
+		await component.getByRole('button', { name: 'Reset all segment styles' }).click();
+		await tick();
+		expect(subtitle.arabicInlineStyleRuns).toEqual([]);
+		expect((subtitle.translations[edition.name] as VerseTranslation).inlineStyleRuns).toEqual([]);
+		expect(ProjectHistoryManager.track).toHaveBeenCalledWith(
+			'reset translation inline styles',
+			expect.any(Function)
+		);
 	});
 
 	test('shows a WBW helper for the cited part of a Quran verse', async () => {

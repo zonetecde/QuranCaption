@@ -581,9 +581,6 @@
 
 	{#if translationsEditorState().isInlineStyleMode}
 		<div class="mt-4 rounded-lg border border-color bg-secondary p-3">
-			<p class="mb-3 whitespace-pre-line text-sm text-primary" dir={direction()}>
-				{resolvedText()}
-			</p>
 			<TranslationWordSelector
 				words={getStyledWords()}
 				direction={direction()}

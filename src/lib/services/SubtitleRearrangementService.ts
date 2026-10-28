@@ -5,6 +5,7 @@ import { globalState } from '$lib/runes/main.svelte';
 import { resolveAIReasoning } from './AIReasoning';
 import {
 	buildSpeechSubtitles,
+	extendShortSubtitlesIntoSilence,
 	getSpeechToTextCopy,
 	validateSpeechBoundaries
 } from './SpeechToTextService';
@@ -355,9 +356,19 @@ export async function rearrangeProjectSubtitles(
 	}
 	assertCurrent();
 	output.sort((a, b) => a.startTime - b.startTime);
+	const extendedOutput = extendShortSubtitlesIntoSilence(
+		output,
+		new Set(
+			output.filter(
+				(clip): clip is SubtitleClip => clip instanceof SubtitleClip && !retained.includes(clip)
+			)
+		),
+		project.content.timeline.getLongestTrackDurationIgnoringLoopedVideo().ms
+	);
 	const withSilences: Clip[] = [];
-	if (output[0]?.startTime > 1) withSilences.push(new SilenceClip(0, output[0].startTime - 1));
-	for (const clip of output) {
+	if (extendedOutput[0]?.startTime > 1)
+		withSilences.push(new SilenceClip(0, extendedOutput[0].startTime - 1));
+	for (const clip of extendedOutput) {
 		const previous = withSilences[withSilences.length - 1];
 		if (
 			previous &&

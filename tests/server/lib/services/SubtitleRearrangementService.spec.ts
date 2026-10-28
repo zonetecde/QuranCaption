@@ -160,7 +160,7 @@ test.each(['edit', 'switch', 'cancel', 'translations', 'undo'])(
 	}
 );
 
-test('sends chronological words and immutable silence without old subtitle boundaries, and supports undo', async () => {
+test('sends chronological speech blocks then extends short results into silence with undo support', async () => {
 	const silence = new SilenceClip(1001, 1999);
 	track.clips = [
 		subtitle(0, 'one two'),
@@ -189,10 +189,17 @@ test('sends chronological words and immutable silence without old subtitle bound
 		]
 	});
 	expect(JSON.stringify(request.request.batch)).not.toMatch(/clipId|subtitleId/);
-	expect(track.clips).toContain(silence);
+	expect(track.clips.find((clip) => clip instanceof SilenceClip)).toMatchObject({
+		startTime: 1501,
+		endTime: 1999
+	});
 	const subs = track.clips.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip);
 	expect(subs.map((clip) => clip.text)).toEqual(['one two', 'three four five six']);
-	expect(subs.every((clip) => clip.endTime <= 1001 || clip.startTime >= 1999)).toBe(true);
+	expect(subs.map((clip) => [clip.startTime, clip.endTime])).toEqual([
+		[0, 1500],
+		[2000, 4000]
+	]);
+	expect([silence.startTime, silence.endTime]).toEqual([1001, 1999]);
 	await ProjectHistoryManager.undo();
 	expect(globalState.getSubtitlesEditorState.completedAiSteps.rearrangement).toBe(false);
 	expect(
@@ -212,41 +219,49 @@ test('sends chronological words and immutable silence without old subtitle bound
 	).toHaveLength(2);
 });
 
-test('preserves the final padding before existing silence when splitting and supports undo', async () => {
+test('extends split subtitles into existing silence without losing padding or WBW timing and supports undo', async () => {
 	const padded = subtitle(1000, 'one two');
 	padded.endTime = 2500;
 	padded.duration = 1500;
 	padded.alignmentMetadata!.timeTo = 2.5;
 	const original = SubtitleClip.fromJSON<SubtitleClip>(padded.toJSON());
 	const silence = new SilenceClip(2501, 2999);
-	track.clips = [original, silence, subtitle(3000, 'three four')];
+	track.clips = [original, silence, subtitle(3000, 'three four'), new SilenceClip(4001, 6000)];
+	vi.mocked(invoke).mockResolvedValue({
+		blocks: [
+			{ id: 0, ends: [1, 2] },
+			{ id: 1, ends: [2] }
+		]
+	});
 	const before = JSON.stringify(track.toJSON());
 	const plan = await previewProjectSubtitles(
 		project,
-		{ ...options, maxWords: 1 },
+		{ ...options, maxWords: 2 },
 		new AbortController().signal,
 		vi.fn()
 	);
 	expect(JSON.stringify(track.toJSON())).toBe(before);
 	const last = plan.after.find((clip) => clip.text === 'two')!;
-	expect([last.startTime, last.endTime, last.duration]).toEqual([1500, 2500, 1000]);
+	expect([last.startTime, last.endTime, last.duration]).toEqual([1500, 3000, 1500]);
 	expect(last.alignmentMetadata).toMatchObject({
 		timeFrom: 1.5,
-		timeTo: 2.5,
-		words: [{ word: 'two', start: 0, end: 1, spokenDuration: 0.3 }]
+		timeTo: 3,
+		words: [{ word: 'two', start: 0, end: 1.5, spokenDuration: 0.3 }]
 	});
 	plan.apply();
-	expect(track.clips).toContain(silence);
-	expect(silence.startTime - last.endTime).toBe(1);
+	expect(track.clips).not.toContain(silence);
+	expect(track.clips.some((clip) => clip instanceof SilenceClip && clip.startTime === 4501)).toBe(
+		true
+	);
 	ProjectHistoryManager.undo();
 	expect(JSON.stringify(globalState.getSubtitleTrack.toJSON())).toBe(before);
 	ProjectHistoryManager.redo();
 	expect(globalState.getSubtitleTrack.clips.find((clip) => clip.id === last.id)?.endTime).toBe(
-		2500
+		3000
 	);
 });
 
-test('keeps existing padding and translations when the semantic boundaries do not change', async () => {
+test('extends short results without changing their semantic boundaries or translations', async () => {
 	const first = subtitle(0, 'one two');
 	first.translations.french = new VerseTranslation('un deux', 'reviewed');
 	const silence = new SilenceClip(1001, 1999);
@@ -257,15 +272,18 @@ test('keeps existing padding and translations when the semantic boundaries do no
 		new AbortController().signal,
 		vi.fn()
 	);
-	expect(plan.before).toEqual([]);
-	expect(plan.after).toEqual([]);
+	expect(plan.before).toEqual([first, track.clips[2]]);
+	expect(plan.after.map((clip) => [clip.startTime, clip.endTime])).toEqual([
+		[0, 1500],
+		[1500, 3000]
+	]);
 	plan.apply();
-	expect(track.clips).toContain(first);
+	expect((track.clips[0] as SubtitleClip).translations.french.text).toBe('un deux');
 	expect(first.endTime).toBe(1000);
 	expect(first.translations.french.text).toBe('un deux');
 });
 
-test('turns measured one-second pauses into hard boundaries and never displays text over them', async () => {
+test('keeps measured pauses as semantic boundaries and shares insufficient silence between short results', async () => {
 	const clip = new SubtitleClip(0, 1600, 'before after', {}, true, null, {
 		source: 'api',
 		timeFrom: 0,
@@ -282,32 +300,33 @@ test('turns measured one-second pauses into hard boundaries and never displays t
 			.filter((item) => item instanceof SubtitleClip)
 			.map((item) => [item.startTime, item.endTime])
 	).toEqual([
-		[0, 300],
-		[1300, 1600]
+		[0, 800],
+		[800, 1600]
 	]);
 	expect(
 		track.clips.some(
 			(item) => item instanceof SilenceClip && item.startTime === 301 && item.endTime === 1299
 		)
-	).toBe(true);
+	).toBe(false);
 });
 
 test('adds missing silence from zero to the first subtitle and restores the gap with undo', async () => {
 	track.clips = [subtitle(1000, 'first words')];
 	await rearrangeProjectSubtitles(project, options, new AbortController().signal, vi.fn());
 	expect(track.clips[0]).toBeInstanceOf(SilenceClip);
-	expect([track.clips[0].startTime, track.clips[0].endTime]).toEqual([0, 999]);
+	expect([track.clips[0].startTime, track.clips[0].endTime]).toEqual([0, 499]);
 	ProjectHistoryManager.undo();
 	expect(globalState.getSubtitleTrack.clips).toHaveLength(1);
 	expect(globalState.getSubtitleTrack.clips[0].startTime).toBe(1000);
 });
 
-test('keeps an existing initial silence without duplicating or replacing it', async () => {
+test('shortens an existing initial silence without duplicating it or mutating its source', async () => {
 	const silence = new SilenceClip(0, 999);
 	track.clips = [silence, subtitle(1000, 'first words')];
 	await rearrangeProjectSubtitles(project, options, new AbortController().signal, vi.fn());
-	expect(track.clips[0]).toBe(silence);
-	expect(track.clips.filter((clip) => clip instanceof SilenceClip)).toEqual([silence]);
+	expect(track.clips.filter((clip) => clip instanceof SilenceClip)).toHaveLength(1);
+	expect([track.clips[0].startTime, track.clips[0].endTime]).toEqual([0, 499]);
+	expect(silence.endTime).toBe(999);
 });
 
 test('preserves quotations and Quran ranges when splitting and merging', async () => {
@@ -350,7 +369,7 @@ test.each([
 	expect(JSON.stringify(track.toJSON())).toBe(before);
 });
 
-test('enforces local limits even if AI requests one long subtitle', async () => {
+test('enforces word limits even if AI requests one long subtitle before extending short results', async () => {
 	track.clips = [subtitle(0, 'one two three four five six')];
 	await rearrangeProjectSubtitles(
 		project,
@@ -368,7 +387,7 @@ test('enforces local limits even if AI requests one long subtitle', async () => 
 		'six'
 	]);
 	expect(
-		clips.every((item) => item.alignmentMetadata!.words.length <= 2 && item.duration <= 1000)
+		clips.every((item) => item.alignmentMetadata!.words.length <= 2 && item.duration <= 1500)
 	).toBe(true);
 });
 
@@ -387,7 +406,13 @@ test('keeps unchanged translations, resets changed ones and restores them with u
 	const silence = new SilenceClip(1001, 1999);
 	track.clips = [first, silence, second, third];
 	await rearrangeProjectSubtitles(project, options, new AbortController().signal, vi.fn());
-	expect(track.clips).toContain(first);
+	expect(
+		(
+			track.clips.find(
+				(clip) => clip instanceof SubtitleClip && clip.text === first.text
+			) as SubtitleClip
+		).translations.french.text
+	).toBe('Translation: one two');
 	expect(first.translations.french.text).toBe('Translation: one two');
 	const changed = track.clips.find(
 		(clip): clip is SubtitleClip =>

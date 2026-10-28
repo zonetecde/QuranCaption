@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { get } from 'svelte/store';
-import { AssetClip, SilenceClip, SubtitleClip, TrackType } from '$lib/classes';
+import { AssetClip, SilenceClip, SubtitleClip, TrackType, type Clip } from '$lib/classes';
 import type { Project } from '$lib/classes/Project';
 import type { SpeechToTextSettings } from '$lib/classes/Settings.svelte';
 import type editor from '$lib/i18n/en/editor';
@@ -143,6 +143,81 @@ export function buildSpeechSubtitles(
 		}
 	}
 	return subtitles;
+}
+
+/**
+ * Étend les sous-titres courts dans le silence sans modifier les clips sources.
+ * Répartit la durée manquante des deux côtés et reporte le manque sur le côté disponible.
+ * @param {Clip[]} clips Clips de la piste, silences et voisins protégés compris.
+ * @param {ReadonlySet<SubtitleClip>} editable Sous-titres issus du traitement automatique.
+ * @param {number} rangeEnd Fin disponible en millisecondes.
+ * @returns {Clip[]} Clips étendus et silences raccourcis, dans l'ordre chronologique.
+ */
+export function extendShortSubtitlesIntoSilence(
+	clips: Clip[],
+	editable: ReadonlySet<SubtitleClip>,
+	rangeEnd: number
+): Clip[] {
+	const ordered = [...clips].sort((a, b) => a.startTime - b.startTime);
+	const speech = ordered.filter((clip) => !(clip instanceof SilenceClip));
+	const needs = speech.map((clip) =>
+		clip instanceof SubtitleClip && editable.has(clip)
+			? Math.max(0, 1500 - (clip.endTime - clip.startTime))
+			: 0
+	);
+	const requiredBefore = [...needs];
+	// Réserve le silence nécessaire aux voisins suivants pour ne pas avantager le premier clip.
+	for (let index = speech.length - 1; index >= 0; index--) {
+		const after = Math.max(
+			0,
+			Math.min(speech[index + 1]?.startTime ?? rangeEnd, rangeEnd) - speech[index].endTime
+		);
+		requiredBefore[index] = Math.max(
+			0,
+			needs[index] - Math.max(0, after - (requiredBefore[index + 1] ?? 0))
+		);
+	}
+	for (let index = 0; index < speech.length; index++) {
+		const clip = speech[index];
+		if (!(clip instanceof SubtitleClip) || !editable.has(clip)) continue;
+		const missing = needs[index];
+		if (missing <= 0) continue;
+		const availableBefore = Math.max(0, clip.startTime - (speech[index - 1]?.endTime ?? 0));
+		let availableAfter = Math.max(
+			0,
+			Math.min(speech[index + 1]?.startTime ?? rangeEnd, rangeEnd) - clip.endTime
+		);
+		const neededAfter = Math.max(0, missing - availableBefore);
+		const nextNeeds = requiredBefore[index + 1] ?? 0;
+		if (nextNeeds > 0) {
+			availableAfter =
+				neededAfter + nextNeeds > availableAfter
+					? Math.floor((availableAfter * neededAfter) / (neededAfter + nextNeeds))
+					: availableAfter - nextNeeds;
+		}
+		const extension = Math.min(missing, availableBefore + availableAfter);
+		let before = Math.min(availableBefore, Math.ceil(extension / 2));
+		const after = Math.min(availableAfter, extension - before);
+		before = Math.min(availableBefore, extension - after);
+		if (!extension) continue;
+		const extended = clip.cloneWithTimes(clip.startTime, clip.endTime);
+		// L'aperçu reste détaché du projet ; son application conserve l'action undo/redo du traitement.
+		ProjectHistoryManager.ignore(() => {
+			extended.setStartTimeSilently(clip.startTime - before);
+			extended.setEndTimeSilently(clip.endTime + after);
+		});
+		speech[index] = extended;
+	}
+	let index = 0;
+	return ordered.flatMap((clip) => {
+		if (!(clip instanceof SilenceClip)) return [speech[index++]];
+		const start = Math.max(clip.startTime, speech[index - 1] ? speech[index - 1].endTime + 1 : 0);
+		const end = Math.min(clip.endTime, speech[index] ? speech[index].startTime - 1 : clip.endTime);
+		if (end <= start) return [];
+		return start === clip.startTime && end === clip.endTime
+			? [clip]
+			: [new SilenceClip(start, end)];
+	});
 }
 
 /**
@@ -329,21 +404,29 @@ export async function transcribeProjectAudio(
 				}
 			)
 	);
+	const existingClips = overwriteExisting ? [] : track.clips;
+	const output = extendShortSubtitlesIntoSilence(
+		[...existingClips, ...clips],
+		new Set(clips),
+		source.end
+	);
+	const imported = output.filter(
+		(item) => item instanceof SubtitleClip && !existingClips.includes(item)
+	);
 	ProjectHistoryManager.track(
 		copy.title(),
 		() => {
 			if (overwriteExisting) {
-				track.clips = [];
 				project.projectEditorState.subtitlesEditor.editSubtitle = null;
 				project.projectEditorState.subtitlesEditor.pendingSplitEditNextId = null;
 				project.projectEditorState.stylesEditor.selectedSubtitles = [];
 			}
-			for (const [index, clip] of clips.entries()) {
-				const previous = clips[index - 1];
+			track.clips = output;
+			for (const [index, clip] of imported.entries()) {
+				const previous = imported[index - 1];
 				if (previous && clip.startTime - previous.endTime > 2) {
 					track.clips.push(new SilenceClip(previous.endTime + 1, clip.startTime - 1));
 				}
-				track.clips.push(clip);
 			}
 			track.clips.sort((a, b) => a.startTime - b.startTime);
 			const first = track.clips[0];

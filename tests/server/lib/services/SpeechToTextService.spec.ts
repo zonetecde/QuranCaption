@@ -21,6 +21,7 @@ import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryMana
 import { VerseTranslation } from '$lib/classes/Translation.svelte';
 import {
 	buildSpeechSubtitles,
+	extendShortSubtitlesIntoSilence,
 	normalizeSpeechWords,
 	validateSpeechBoundaries,
 	transcribeProjectAudio
@@ -29,6 +30,71 @@ import {
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 
 describe('speech subtitle segmentation', () => {
+	test.each([
+		{ times: [[1000, 2000]], end: 4000, expected: [[750, 2250]] },
+		{ times: [[100, 1100]], end: 4000, expected: [[0, 1500]] },
+		{ times: [[1000, 2000]], end: 2000, expected: [[500, 2000]] },
+		{ times: [[0, 1000]], end: 2000, expected: [[0, 1500]] },
+		{
+			times: [
+				[0, 500],
+				[500, 1000]
+			],
+			end: 1000,
+			expected: [
+				[0, 500],
+				[500, 1000]
+			]
+		},
+		{
+			times: [
+				[0, 300],
+				[1300, 1600]
+			],
+			end: 1600,
+			expected: [
+				[0, 800],
+				[800, 1600]
+			]
+		},
+		{
+			times: [
+				[1000, 1500],
+				[2500, 3000]
+			],
+			end: 3000,
+			expected: [
+				[0, 1500],
+				[1500, 3000]
+			]
+		},
+		{ times: [[1000, 3000]], end: 5000, expected: [[1000, 3000]] }
+	])('extends short subtitles only into available silence: $times', ({ times, end, expected }) => {
+		const clips = times.map(([start, end]) => new SubtitleClip(start, end, 'word'));
+		const before = clips.map((clip) => clip.toJSON());
+		const output = extendShortSubtitlesIntoSilence(clips, new Set(clips), end);
+		expect(output.map((clip) => [clip.startTime, clip.endTime])).toEqual(expected);
+		expect(clips.map((clip) => clip.toJSON())).toEqual(before);
+	});
+
+	test('reserves protected neighbors and preserves a trailing silence outside the processed range', () => {
+		const short = new SubtitleClip(1000, 2000, 'short');
+		const protectedClip = new SubtitleClip(2200, 2500, 'manual');
+		const silence = new SilenceClip(2501, 8000);
+		const output = extendShortSubtitlesIntoSilence(
+			[short, protectedClip, silence],
+			new Set([short]),
+			4000
+		);
+		expect(output.map((clip) => [clip.startTime, clip.endTime])).toEqual([
+			[700, 2200],
+			[2200, 2500],
+			[2501, 8000]
+		]);
+		expect(output[1]).toBe(protectedClip);
+		expect(output[2]).toBe(silence);
+	});
+
 	test('accepts only increasing boundaries covering every original word', () => {
 		expect(validateSpeechBoundaries({ ends: [2, 5] }, 5)).toEqual([2, 5]);
 		for (const ends of [[2, 2, 5], [3, 2, 5], [2, 4], [0, 5], ['2', 5], [6]]) {
@@ -252,6 +318,42 @@ describe('transcribing timeline audio', () => {
 		]);
 	});
 
+	test('reaches 1.5 seconds with disabled padding, trims existing silence and preserves WBW timing through undo', async () => {
+		const initial = new SilenceClip(0, 9999);
+		track.clips = [initial];
+		vi.mocked(invoke).mockResolvedValue({
+			words: [
+				{ word: 'one', start: 0, end: 0.5 },
+				{ word: 'two', start: 0.5, end: 1 }
+			]
+		});
+		await transcribeProjectAudio(
+			project,
+			clip.id,
+			{ ...globalState.settings!.speechToTextSettings },
+			new AbortController().signal,
+			vi.fn()
+		);
+		const subtitle = globalState.getSubtitleClips[0];
+		expect([subtitle.startTime, subtitle.endTime, subtitle.duration]).toEqual([9750, 11250, 1500]);
+		expect(subtitle.alignmentMetadata).toMatchObject({
+			timeFrom: 9.75,
+			timeTo: 11.25,
+			words: [
+				{ word: 'one', start: 0, end: 0.75, spokenDuration: 0.5 },
+				{ word: 'two', start: 0.75, end: 1.5, spokenDuration: 0.5 }
+			]
+		});
+		expect(track.clips[0].endTime).toBe(9749);
+		expect(initial.endTime).toBe(9999);
+		ProjectHistoryManager.undo();
+		expect(
+			globalState.getSubtitleTrack.clips.map((item) => [item.startTime, item.endTime])
+		).toEqual([[0, 9999]]);
+		ProjectHistoryManager.redo();
+		expect(globalState.getSubtitleClips[0].duration).toBe(1500);
+	});
+
 	test('keeps consecutive subtitle boundaries unchanged and stays inside the timeline and audio end', async () => {
 		clip.startTime = 0;
 		clip.endTime = 2000;
@@ -288,19 +390,19 @@ describe('transcribing timeline audio', () => {
 			after: 500,
 			expected: [
 				[0, 1300],
-				[1300, 2500]
+				[1300, 2800]
 			]
 		},
 		{
 			before: 0,
 			after: 300,
 			expected: [
-				[0, 1300],
-				[1600, 2300]
+				[0, 1500],
+				[1500, 3000]
 			]
 		}
 	])(
-		'uses only the available silence and supports disabling one padding side: $before/$after',
+		'extends short padded subtitles only into the remaining silence: $before/$after',
 		async ({ before, after, expected }) => {
 			clip.startTime = 0;
 			clip.endTime = 3000;

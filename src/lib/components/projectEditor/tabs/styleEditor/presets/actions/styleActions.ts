@@ -82,6 +82,7 @@ export async function resetProjectStyles(project: Project): Promise<void> {
 		return;
 	if (globalState.currentProject !== project) return;
 	const { VideoStyle } = await import('$lib/classes/VideoStyle.svelte');
+	const { applyProjectCreationPreset } = await import('$lib/services/ProjectService');
 	if (globalState.currentProject !== project) return;
 	const defaults = await VideoStyle.getDefaultVideoStyle(
 		project.content.projectTranslation.addedTranslationEditions.map((edition) => edition.name)
@@ -90,7 +91,11 @@ export async function resetProjectStyles(project: Project): Promise<void> {
 	ProjectHistoryManager.track(
 		'reset styles',
 		() => {
+			const dimensions = project.content.videoStyle
+				.getStylesOfTarget('global')
+				.findStyle('video-dimension')?.value as { width: number; height: number } | undefined;
 			project.content.videoStyle = defaults;
+			applyProjectCreationPreset(project.content, dimensions ?? { width: 1920, height: 1080 });
 		},
 		project
 	);

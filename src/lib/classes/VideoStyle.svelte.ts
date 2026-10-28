@@ -319,22 +319,30 @@ function getNonArabicSubtitleCategories(categories: RawCategory[]): RawCategory[
 }
 
 /**
- * Applique le preset de mise en page initial d'un sous-titre selon l'orientation vidéo.
+ * Applique la mise en page initiale des sous-titres en bas de la vidéo.
  * @param {StylesData} styles Styles du sous-titre à initialiser.
  * @param {'arabic' | 'translation'} target Type de sous-titre.
- * @param {boolean} portrait Indique si la vidéo est en portrait.
  * @returns {void}
  */
 export function applySubtitleCreationLayout(
 	styles: StylesData,
-	target: 'arabic' | 'translation',
-	portrait: boolean
+	target: 'arabic' | 'translation'
 ): void {
-	styles.setStyle('font-size', target === 'arabic' ? (portrait ? 60 : 90) : portrait ? 40 : 60);
-	styles.setStyle('vertical-position', target === 'arabic' ? -70 : portrait ? 100 : 175);
+	const isReference = styles.target.endsWith('-quran') || styles.target.endsWith('-citation');
+	styles.setStyle('font-size', target === 'arabic' ? 90 : 60);
+	styles.setStyle(
+		'vertical-position',
+		target === 'arabic' ? (isReference ? -70 : 231) : isReference ? 175 : 413
+	);
 	styles.setStyle('vertical-text-alignment', target === 'arabic' ? 'bottom' : 'top');
-	if (target === 'translation') styles.setStyle('max-height', portrait ? 175 : 265);
-	else if (portrait) styles.setStyle('max-height', 145);
+	styles.setStyle(
+		'max-height',
+		target === 'arabic' ? (isReference ? 0 : 176) : isReference ? 265 : 179
+	);
+	if (!isReference) {
+		styles.setStyle('outline-enable', true);
+		styles.setStyle('text-outline', 5);
+	}
 }
 
 const GLOBAL_CLIP_STYLE_IDS = new Set<StyleName>([
@@ -1558,14 +1566,7 @@ export class VideoStyle extends SerializableBase {
 			// Styles par défaut pour les traductions
 			stylesData.setStyle('font-family', 'Georgia'); // Définit la police par défaut
 			// stylesData.setStyle('max-height', 280); // 3 lignes max
-			const dimensions = this.getStylesOfTarget('global').findStyle('video-dimension')?.value as
-				| { width: number; height: number }
-				| undefined;
-			applySubtitleCreationLayout(
-				stylesData,
-				'translation',
-				Boolean(dimensions && dimensions.width < dimensions.height)
-			);
+			applySubtitleCreationLayout(stylesData, 'translation');
 			// Styles spécifiques pour les traductions du Coran et les citations
 			if (target === `${translationEdition}-quran`) {
 				stylesData.setStyle('text-color', '#ffffff');

@@ -37,7 +37,7 @@ export function getProjectVideoDimensions(
 }
 
 /**
- * Applique les dimensions choisies et le preset texte adapté à l'orientation d'un nouveau projet.
+ * Applique les dimensions choisies et le preset de sous-titres en bas d'un nouveau projet.
  * @param {ProjectContent} content Contenu initial du projet.
  * @param {{ width: number; height: number }} videoDimensions Dimensions vidéo sélectionnées.
  * @returns {void}
@@ -55,12 +55,16 @@ export function applyProjectCreationPreset(
 			.getStylesOfTarget('global')
 			.findStyle('anti-collision');
 		if (antiCollision) antiCollision.value = false;
-		const portrait = videoDimensions.width < videoDimensions.height;
+		const globalStyles = content.videoStyle.getStylesOfTarget('global');
+		globalStyles.setStyle('speaker-name-vertical-position', -425);
+		globalStyles.setStyle('overlay-opacity', 0.86);
+		globalStyles.setStyle('background-overlay-mode', 'fade-up');
+		globalStyles.setStyle('background-overlay-fade-coverage', 0.96);
+		globalStyles.setStyle('background-overlay-fade-softness', 0.43);
 		for (const styles of content.videoStyle.styles) {
 			if (['arabic', 'arabic-quran', 'arabic-citation'].includes(styles.target))
-				applySubtitleCreationLayout(styles, 'arabic', portrait);
-			else if (styles.target !== 'global')
-				applySubtitleCreationLayout(styles, 'translation', portrait);
+				applySubtitleCreationLayout(styles, 'arabic');
+			else if (styles.target !== 'global') applySubtitleCreationLayout(styles, 'translation');
 		}
 	});
 }

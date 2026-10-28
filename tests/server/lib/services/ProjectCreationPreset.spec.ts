@@ -28,6 +28,10 @@ function createContent(): ProjectContent {
 						valueType: 'dimension'
 					}),
 					new Style({ id: 'anti-collision', value: true, valueType: 'boolean' }),
+					new Style({ id: 'overlay-opacity', value: 0.65, valueType: 'number' }),
+					new Style({ id: 'background-overlay-mode', value: 'uniform', valueType: 'select' }),
+					new Style({ id: 'background-overlay-fade-coverage', value: 0.75, valueType: 'number' }),
+					new Style({ id: 'background-overlay-fade-softness', value: 1, valueType: 'number' }),
 					new Style({ id: 'show-speaker-name', value: true, valueType: 'boolean' })
 				]
 			})
@@ -37,6 +41,8 @@ function createContent(): ProjectContent {
 				id: 'text',
 				styles: [
 					new Style({ id: 'font-size', value: 90, valueType: 'number' }),
+					new Style({ id: 'outline-enable', value: false, valueType: 'boolean' }),
+					new Style({ id: 'text-outline', value: 0.25, valueType: 'number' }),
 					new Style({ id: 'max-height', value: 0, valueType: 'number' }),
 					new Style({ id: 'vertical-position', value: -110, valueType: 'number' }),
 					new Style({ id: 'vertical-text-alignment', value: 'center', valueType: 'select' })
@@ -48,6 +54,8 @@ function createContent(): ProjectContent {
 				id: 'text',
 				styles: [
 					new Style({ id: 'font-size', value: 60, valueType: 'number' }),
+					new Style({ id: 'outline-enable', value: false, valueType: 'boolean' }),
+					new Style({ id: 'text-outline', value: 0.25, valueType: 'number' }),
 					new Style({ id: 'max-height', value: 0, valueType: 'number' }),
 					new Style({ id: 'vertical-position', value: 70, valueType: 'number' }),
 					new Style({ id: 'vertical-text-alignment', value: 'center', valueType: 'select' })
@@ -70,7 +78,7 @@ describe('applyProjectCreationPreset', () => {
 		expect(content.videoStyle.getStylesOfTarget('arabic').findStyle('font-size')?.value).toBe(90);
 		expect(
 			content.videoStyle.getStylesOfTarget('arabic').findStyle('vertical-position')?.value
-		).toBe(-70);
+		).toBe(231);
 		expect(
 			content.videoStyle.getStylesOfTarget('arabic').findStyle('vertical-text-alignment')?.value
 		).toBe('bottom');
@@ -78,11 +86,11 @@ describe('applyProjectCreationPreset', () => {
 			60
 		);
 		expect(content.videoStyle.getStylesOfTarget('translation').findStyle('max-height')?.value).toBe(
-			265
+			179
 		);
 		expect(
 			content.videoStyle.getStylesOfTarget('translation').findStyle('vertical-position')?.value
-		).toBe(175);
+		).toBe(413);
 		expect(
 			content.videoStyle.getStylesOfTarget('translation').findStyle('vertical-text-alignment')
 				?.value
@@ -100,23 +108,23 @@ describe('applyProjectCreationPreset', () => {
 		expect(
 			content.videoStyle.getStylesOfTarget('global').findStyle('video-dimension')?.value
 		).toEqual({ width: 1000, height: 1600 });
-		expect(content.videoStyle.getStylesOfTarget('arabic').findStyle('font-size')?.value).toBe(60);
-		expect(content.videoStyle.getStylesOfTarget('arabic').findStyle('max-height')?.value).toBe(145);
+		expect(content.videoStyle.getStylesOfTarget('arabic').findStyle('font-size')?.value).toBe(90);
+		expect(content.videoStyle.getStylesOfTarget('arabic').findStyle('max-height')?.value).toBe(176);
 		expect(
 			content.videoStyle.getStylesOfTarget('arabic').findStyle('vertical-position')?.value
-		).toBe(-70);
+		).toBe(231);
 		expect(
 			content.videoStyle.getStylesOfTarget('arabic').findStyle('vertical-text-alignment')?.value
 		).toBe('bottom');
 		expect(content.videoStyle.getStylesOfTarget('translation').findStyle('font-size')?.value).toBe(
-			40
+			60
 		);
 		expect(content.videoStyle.getStylesOfTarget('translation').findStyle('max-height')?.value).toBe(
-			175
+			179
 		);
 		expect(
 			content.videoStyle.getStylesOfTarget('translation').findStyle('vertical-position')?.value
-		).toBe(100);
+		).toBe(413);
 		expect(
 			content.videoStyle.getStylesOfTarget('translation').findStyle('vertical-text-alignment')
 				?.value
@@ -126,7 +134,23 @@ describe('applyProjectCreationPreset', () => {
 		);
 	});
 
-	it('uses the portrait defaults for translations added later', async () => {
+	it('enables the reference outline and bottom fade without changing unrelated styles', () => {
+		const content = createContent();
+		applyProjectCreationPreset(content, { width: 1920, height: 1080 });
+		for (const target of ['arabic', 'translation']) {
+			const styles = content.videoStyle.getStylesOfTarget(target);
+			expect(styles.findStyle('outline-enable')?.value).toBe(true);
+			expect(styles.findStyle('text-outline')?.value).toBe(5);
+		}
+		const styles = content.videoStyle.getStylesOfTarget('global');
+		expect(styles.findStyle('overlay-opacity')?.value).toBe(0.86);
+		expect(styles.findStyle('background-overlay-mode')?.value).toBe('fade-up');
+		expect(styles.findStyle('background-overlay-fade-coverage')?.value).toBe(0.96);
+		expect(styles.findStyle('background-overlay-fade-softness')?.value).toBe(0.43);
+		expect(styles.findStyle('show-speaker-name')?.value).toBe(true);
+	});
+
+	it('uses the reference layout for translations added later', async () => {
 		const content = createContent();
 		content.videoStyle.styles = content.videoStyle.styles.filter(
 			(styles) => styles.target !== 'translation'
@@ -149,10 +173,16 @@ describe('applyProjectCreationPreset', () => {
 				'new-translation-quran',
 				'new-translation-citation'
 			]) {
-				expect(content.videoStyle.getStylesOfTarget(target).findStyle('font-size')?.value).toBe(40);
+				expect(content.videoStyle.getStylesOfTarget(target).findStyle('font-size')?.value).toBe(60);
 				expect(content.videoStyle.getStylesOfTarget(target).findStyle('max-height')?.value).toBe(
-					175
+					target === 'new-translation' ? 179 : 265
 				);
+				expect(
+					content.videoStyle.getStylesOfTarget(target).findStyle('vertical-position')?.value
+				).toBe(target === 'new-translation' ? 413 : 175);
+				expect(
+					content.videoStyle.getStylesOfTarget(target).findStyle('outline-enable')?.value
+				).toBe(target === 'new-translation');
 			}
 		} finally {
 			vi.unstubAllGlobals();

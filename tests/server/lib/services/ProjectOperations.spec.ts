@@ -4,7 +4,9 @@ import { AssetClip, SilenceClip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { AssetTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import { AssetType, TrackType } from '$lib/classes/enums';
 import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
-import { StylesData, VideoStyle } from '$lib/classes/VideoStyle.svelte';
+import { Category, Style, StylesData, VideoStyle } from '$lib/classes/VideoStyle.svelte';
+import subtitleDefaults from '../../../../static/styles/styles.json';
+import globalDefaults from '../../../../static/styles/globalStyles.json';
 import { getTimelineClipWidth } from '$lib/components/projectEditor/timeline/track/timelineClipLayout';
 import { globalState } from '$lib/runes/main.svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
@@ -291,6 +293,56 @@ describe('style and media UI boundaries', () => {
 		await expect(pending).rejects.toThrow();
 		expect(JSON.stringify(project.toJSON())).toBe(before);
 		expect(globalState.currentProject.content.videoStyle.styles).toEqual([]);
+	});
+
+	it('resets to the creation theme while preserving dimensions and supporting undo and redo', async () => {
+		const project = globalState.currentProject!;
+		project.content.videoStyle.styles = [
+			new StylesData('global', [
+				new Category({
+					id: 'general',
+					styles: [new Style({ id: 'video-dimension', value: { width: 1080, height: 1920 } })]
+				})
+			])
+		];
+		const defaults = new VideoStyle();
+		defaults.styles = [
+			new StylesData(
+				'global',
+				globalDefaults.map((category) => new Category(category as Partial<Category>))
+			),
+			new StylesData(
+				'arabic',
+				subtitleDefaults.map((category) => new Category(category as Partial<Category>))
+			),
+			new StylesData(
+				'english',
+				subtitleDefaults.map((category) => new Category(category as Partial<Category>))
+			)
+		];
+		vi.spyOn(VideoStyle, 'getDefaultVideoStyle').mockResolvedValue(defaults);
+		mocks.confirm.mockResolvedValue(true);
+		const before = project.content.videoStyle.toJSON();
+		await resetProjectStyles(project);
+		const global = globalState.getVideoStyle.getStylesOfTarget('global');
+		expect(global.findStyle('video-dimension')?.value).toEqual({ width: 1080, height: 1920 });
+		expect(global.findStyle('background-overlay-mode')?.value).toBe('fade-up');
+		expect(global.findStyle('overlay-opacity')?.value).toBe(0.86);
+		for (const [target, size, position] of [
+			['arabic', 90, 231],
+			['english', 60, 413]
+		] as const) {
+			const styles = globalState.getVideoStyle.getStylesOfTarget(target);
+			expect(styles.findStyle('font-size')?.value).toBe(size);
+			expect(styles.findStyle('vertical-position')?.value).toBe(position);
+			expect(styles.findStyle('outline-enable')?.value).toBe(true);
+			expect(styles.findStyle('text-outline')?.value).toBe(5);
+		}
+		const after = globalState.getVideoStyle.toJSON();
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(globalState.getVideoStyle.toJSON()).toEqual(before);
+		expect(ProjectHistoryManager.redo()).toBe(true);
+		expect(globalState.getVideoStyle.toJSON()).toEqual(after);
 	});
 
 	it('does not reset the next project when a reset confirmation resolves late', async () => {

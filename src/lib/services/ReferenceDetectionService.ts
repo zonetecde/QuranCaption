@@ -7,6 +7,7 @@ import type editor from '$lib/i18n/en/editor';
 import LL from '$lib/i18n/i18n-svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { resolveAIReasoning } from './AIReasoning';
+import type { ManualAiSession } from './ManualAiSession.svelte';
 import { MinimalQuranProvider } from './MinimalQuranProvider';
 import { MARKER_REGEX, parseQuranTranscriptReference } from './TranscriptMarkup';
 import { ProjectHistoryManager } from './undoRedo/ProjectHistoryManager';
@@ -163,17 +164,19 @@ function findCandidates(
  * @param {ReferenceDetectionOptions} options Catégories et préférences éditoriales.
  * @param {AbortSignal} signal Annulation empêchant les requêtes suivantes.
  * @param {(progress: number) => void} onProgress Progression de zéro à un.
+ * @param {ManualAiSession} [manual] Parcours copier-coller optionnel, sans fournisseur API.
  * @returns {Promise<ReferenceDetectionPlan>} Propositions vérifiées à prévisualiser.
  */
 export async function detectProjectReferences(
 	project: Project,
 	options: ReferenceDetectionOptions,
 	signal: AbortSignal,
-	onProgress: (progress: number) => void
+	onProgress: (progress: number) => void,
+	manual?: ManualAiSession
 ): Promise<ReferenceDetectionPlan> {
 	const copy = getReferenceDetectionCopy();
 	const settings = { ...globalState.settings!.aiTranslationSettings };
-	if (!settings.openAiApiKey.trim()) throw new Error(copy.keyRequired());
+	if (!manual && !settings.openAiApiKey.trim()) throw new Error(copy.keyRequired());
 	if (!options.detectQuran && !options.detectCitations) throw new Error(copy.chooseCategory());
 	const plan: ReferenceDetectionPlan = {
 		project,
@@ -278,111 +281,127 @@ export async function detectProjectReferences(
 					duration: (clip.endTime - clip.startTime) / 1000
 				}))
 		};
-		let response: unknown;
-		try {
-			response = await invoke('detect_subtitle_references', {
-				request: {
-					apiKey: settings.openAiApiKey,
-					endpoint: settings.textAiApiEndpoint,
-					model: settings.advancedTrimModel,
-					reasoningEffort: reasoning.effort,
-					thinkingEnabled: reasoning.thinkingEnabled,
-					batch
-				}
-			});
-		} catch {
+		/**
+		 * Valide toutes les annotations du lot avant de les retenir.
+		 * @param {unknown} response Réponse de l'IA.
+		 * @returns {ReferenceProposal[]} Annotations vérifiées.
+		 */
+		function validate(response: unknown): ReferenceProposal[] {
+			const proposals: ReferenceProposal[] = [];
+			assertCurrent(plan);
 			signal.throwIfAborted();
-			throw new Error(copy.requestError());
-		}
-		assertCurrent(plan);
-		signal.throwIfAborted();
-		const findings = (response as { findings?: unknown } | null)?.findings;
-		if (!Array.isArray(findings) || findings.length > context.length + local.length)
-			throw new Error(copy.invalidResponse());
-		const verdicts = new Set<number>();
-		for (const value of findings) {
-			const item = value as Record<string, unknown> | null;
-			if (
-				!item ||
-				!['quran', 'citation', 'none'].includes(String(item.kind)) ||
-				!['confirmed', 'uncertain', 'rejected'].includes(String(item.status)) ||
-				!Number.isInteger(item.from) ||
-				!Number.isInteger(item.to) ||
-				(item.from as number) < from ||
-				(item.from as number) > to ||
-				(item.to as number) < (item.from as number) ||
-				(item.to as number) > context[context.length - 1].id ||
-				typeof item.reason !== 'string'
-			)
+			const findings = (response as { findings?: unknown } | null)?.findings;
+			if (!Array.isArray(findings) || findings.length > context.length + local.length)
 				throw new Error(copy.invalidResponse());
-			const candidate = local.find((entry) => entry.id === item.candidateId);
-			if (item.candidateId !== null) {
+			const verdicts = new Set<number>();
+			for (const value of findings) {
+				const item = value as Record<string, unknown> | null;
 				if (
-					!Number.isInteger(item.candidateId) ||
-					!candidate ||
-					(item.from as number) > candidate.to ||
-					(item.to as number) < candidate.from ||
-					verdicts.has(item.candidateId as number)
+					!item ||
+					!['quran', 'citation', 'none'].includes(String(item.kind)) ||
+					!['confirmed', 'uncertain', 'rejected'].includes(String(item.status)) ||
+					!Number.isInteger(item.from) ||
+					!Number.isInteger(item.to) ||
+					(item.from as number) < from ||
+					(item.from as number) > to ||
+					(item.to as number) < (item.from as number) ||
+					(item.to as number) > context[context.length - 1].id ||
+					typeof item.reason !== 'string'
 				)
 					throw new Error(copy.invalidResponse());
-				verdicts.add(item.candidateId as number);
-			}
-			const words = plan.words.slice((item.from as number) - 1, item.to as number);
-			if (words.some((word) => word.protected)) throw new Error(copy.invalidResponse());
-			const proposal: ReferenceProposal = {
-				id: plan.proposals.length,
-				kind: item.kind as ReferenceProposal['kind'],
-				status: item.status as ReferenceProposal['status'],
-				from: item.from as number,
-				to: item.to as number,
-				reference: item.kind === 'none' && candidate ? { ...candidate.reference } : null,
-				reason: item.reason.slice(0, 2000),
-				source: words.map((word) => word.text).join(' '),
-				canonical: item.kind === 'none' && candidate ? candidate.text : ''
-			};
-			if (
-				proposal.status === 'confirmed' &&
-				(proposal.kind === 'none' ||
-					(proposal.kind === 'quran' && !options.detectQuran) ||
-					(proposal.kind === 'citation' && !options.detectCitations))
-			)
-				throw new Error(copy.invalidResponse());
-			if (proposal.kind === 'quran') {
-				const reference = item.reference as QuranRange | null;
-				const canonical = reference && corpus[`${reference.surah}:${reference.verse}`];
-				if (
-					!reference ||
-					![reference.surah, reference.verse, reference.startWord, reference.endWord].every(
-						Number.isInteger
-					) ||
-					!canonical ||
-					reference.startWord < 1 ||
-					reference.endWord > canonical.length ||
-					reference.endWord - reference.startWord + 1 !== words.length ||
-					words.some(
-						(word, i) =>
-							!normalizeWord(word.text) ||
-							normalizeWord(word.text) !== normalizeWord(canonical[reference.startWord - 1 + i])
+				const candidate = local.find((entry) => entry.id === item.candidateId);
+				if (item.candidateId !== null) {
+					if (
+						!Number.isInteger(item.candidateId) ||
+						!candidate ||
+						(item.from as number) > candidate.to ||
+						(item.to as number) < candidate.from ||
+						verdicts.has(item.candidateId as number)
 					)
-				) {
-					if (proposal.status === 'confirmed') proposal.status = 'uncertain';
-					proposal.reason = `${copy.unverifiedQuran()} ${proposal.reason}`;
-				} else {
-					proposal.reference = { ...reference };
-					proposal.canonical = canonical
-						.slice(reference.startWord - 1, reference.endWord)
-						.join(' ');
+						throw new Error(copy.invalidResponse());
+					verdicts.add(item.candidateId as number);
 				}
+				const words = plan.words.slice((item.from as number) - 1, item.to as number);
+				if (words.some((word) => word.protected)) throw new Error(copy.invalidResponse());
+				const proposal: ReferenceProposal = {
+					id: plan.proposals.length + proposals.length,
+					kind: item.kind as ReferenceProposal['kind'],
+					status: item.status as ReferenceProposal['status'],
+					from: item.from as number,
+					to: item.to as number,
+					reference: item.kind === 'none' && candidate ? { ...candidate.reference } : null,
+					reason: item.reason.slice(0, 2000),
+					source: words.map((word) => word.text).join(' '),
+					canonical: item.kind === 'none' && candidate ? candidate.text : ''
+				};
+				if (
+					proposal.status === 'confirmed' &&
+					(proposal.kind === 'none' ||
+						(proposal.kind === 'quran' && !options.detectQuran) ||
+						(proposal.kind === 'citation' && !options.detectCitations))
+				)
+					throw new Error(copy.invalidResponse());
+				if (proposal.kind === 'quran') {
+					const reference = item.reference as QuranRange | null;
+					const canonical = reference && corpus[`${reference.surah}:${reference.verse}`];
+					if (
+						!reference ||
+						![reference.surah, reference.verse, reference.startWord, reference.endWord].every(
+							Number.isInteger
+						) ||
+						!canonical ||
+						reference.startWord < 1 ||
+						reference.endWord > canonical.length ||
+						reference.endWord - reference.startWord + 1 !== words.length ||
+						words.some(
+							(word, i) =>
+								!normalizeWord(word.text) ||
+								normalizeWord(word.text) !== normalizeWord(canonical[reference.startWord - 1 + i])
+						)
+					) {
+						if (proposal.status === 'confirmed') proposal.status = 'uncertain';
+						proposal.reason = `${copy.unverifiedQuran()} ${proposal.reason}`;
+					} else {
+						proposal.reference = { ...reference };
+						proposal.canonical = canonical
+							.slice(reference.startWord - 1, reference.endWord)
+							.join(' ');
+					}
+				}
+				if (proposal.kind === 'citation' && words.some((word) => /[{}]/u.test(word.text)))
+					throw new Error(copy.invalidResponse());
+				if (proposal.kind === 'citation' && parseQuranTranscriptReference(proposal.source)) {
+					proposal.status = 'uncertain';
+					proposal.reason = copy.ambiguousMarker();
+				}
+				proposals.push(proposal);
 			}
-			if (proposal.kind === 'citation' && words.some((word) => /[{}]/u.test(word.text)))
-				throw new Error(copy.invalidResponse());
-			if (proposal.kind === 'citation' && parseQuranTranscriptReference(proposal.source)) {
-				proposal.status = 'uncertain';
-				proposal.reason = copy.ambiguousMarker();
-			}
-			plan.proposals.push(proposal);
+			if (verdicts.size !== local.length) throw new Error(copy.invalidResponse());
+			return proposals;
 		}
-		if (verdicts.size !== local.length) throw new Error(copy.invalidResponse());
+		if (manual) {
+			plan.proposals.push(
+				...(await manual.request('detect_subtitle_references', { batch }, validate))
+			);
+		} else {
+			let response: unknown;
+			try {
+				response = await invoke('detect_subtitle_references', {
+					request: {
+						apiKey: settings.openAiApiKey,
+						endpoint: settings.textAiApiEndpoint,
+						model: settings.advancedTrimModel,
+						reasoningEffort: reasoning.effort,
+						thinkingEnabled: reasoning.thinkingEnabled,
+						batch
+					}
+				});
+			} catch {
+				signal.throwIfAborted();
+				throw new Error(copy.requestError());
+			}
+			plan.proposals.push(...validate(response));
+		}
 	}
 	const accepted: ReferenceProposal[] = [];
 	for (const proposal of [...plan.proposals].sort(

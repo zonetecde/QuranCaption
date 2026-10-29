@@ -7,6 +7,7 @@ import type editor from '$lib/i18n/en/editor';
 import LL, { locale } from '$lib/i18n/i18n-svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { resolveAIReasoning } from './AIReasoning';
+import type { ManualAiSession } from './ManualAiSession.svelte';
 import { ProjectHistoryManager } from './undoRedo/ProjectHistoryManager';
 
 export type SubtitleCorrectionCopy = {
@@ -64,16 +65,18 @@ function assertCurrent(plan: SubtitleCorrectionPlan): void {
  * @param {Project} project Projet à analyser.
  * @param {AbortSignal} signal Annulation de l'analyse.
  * @param {(progress: number) => void} onProgress Progression entre zéro et un.
+ * @param {ManualAiSession} [manual] Parcours copier-coller optionnel, sans fournisseur API.
  * @returns {Promise<SubtitleCorrectionPlan>} Corrections à approuver individuellement.
  */
 export async function detectSubtitleCorrections(
 	project: Project,
 	signal: AbortSignal,
-	onProgress: (progress: number) => void
+	onProgress: (progress: number) => void,
+	manual?: ManualAiSession
 ): Promise<SubtitleCorrectionPlan> {
 	const copy = getCopy();
 	const settings = { ...globalState.settings!.aiTranslationSettings };
-	if (!settings.openAiApiKey.trim()) throw new Error(copy.keyRequired());
+	if (!manual && !settings.openAiApiKey.trim()) throw new Error(copy.keyRequired());
 	const plan: SubtitleCorrectionPlan = {
 		project,
 		snapshot: snapshot(project),
@@ -111,67 +114,84 @@ export async function detectSubtitleCorrections(
 		onProgress(offset / subtitles.length);
 		const batch = subtitles.slice(offset, offset + 24);
 		if (!batch.some(({ editable }) => editable)) continue;
-		let response: unknown;
-		try {
-			response = await invoke('detect_subtitle_corrections', {
-				request: {
-					apiKey: settings.openAiApiKey,
-					endpoint: settings.textAiApiEndpoint,
-					model: settings.advancedTrimModel,
-					reasoningEffort: reasoning.effort,
-					thinkingEnabled: reasoning.thinkingEnabled,
-					batch: {
-						language: get(locale),
-						subtitles: subtitles
-							.slice(Math.max(0, offset - 2), offset + 26)
-							.map(({ id, text, editable }) => ({
-								id,
-								text,
-								editable: editable && batch.some((entry) => entry.id === id)
-							}))
-					}
-				}
-			});
-		} catch {
+		const input = {
+			language: get(locale),
+			subtitles: subtitles
+				.slice(Math.max(0, offset - 2), offset + 26)
+				.map(({ id, text, editable }) => ({
+					id,
+					text,
+					editable: editable && batch.some((entry) => entry.id === id)
+				}))
+		};
+		/**
+		 * Valide tout le lot avant de retenir ses propositions.
+		 * @param {unknown} response Réponse de l'IA.
+		 * @returns {SubtitleCorrectionProposal[]} Corrections valides.
+		 */
+		function validate(response: unknown): SubtitleCorrectionProposal[] {
+			const proposals: SubtitleCorrectionProposal[] = [];
+			assertCurrent(plan);
 			signal.throwIfAborted();
-			throw new Error(copy.requestError());
-		}
-		assertCurrent(plan);
-		signal.throwIfAborted();
-		const corrections = (response as { corrections?: unknown } | null)?.corrections;
-		if (!Array.isArray(corrections) || corrections.length > batch.length)
-			throw new Error(copy.invalidResponse());
-		const seen = new Set<number>();
-		for (const value of corrections) {
-			const item = value as Record<string, unknown> | null;
-			const entry = batch.find(({ id }) => id === item?.id);
-			if (
-				!item ||
-				!Number.isInteger(item.id) ||
-				!entry?.editable ||
-				seen.has(entry.id) ||
-				item.before !== entry.text ||
-				typeof item.after !== 'string' ||
-				!item.after.trim() ||
-				item.after.length > Math.max(500, entry.text.length * 2) ||
-				/[{}]/u.test(item.after) ||
-				typeof item.reason !== 'string' ||
-				!item.reason.trim() ||
-				typeof item.confidence !== 'number' ||
-				!Number.isFinite(item.confidence) ||
-				item.confidence < 0 ||
-				item.confidence > 1
-			)
+			const corrections = (response as { corrections?: unknown } | null)?.corrections;
+			if (!Array.isArray(corrections) || corrections.length > batch.length)
 				throw new Error(copy.invalidResponse());
-			seen.add(entry.id);
-			if (item.confidence < 0.98 || item.after.trim() === entry.text.trim()) continue;
-			plan.proposals.push({
-				id: entry.id,
-				clip: entry.clip,
-				before: entry.text,
-				after: item.after.trim(),
-				reason: item.reason.slice(0, 2000)
-			});
+			const seen = new Set<number>();
+			for (const value of corrections) {
+				const item = value as Record<string, unknown> | null;
+				const entry = batch.find(({ id }) => id === item?.id);
+				if (
+					!item ||
+					!Number.isInteger(item.id) ||
+					!entry?.editable ||
+					seen.has(entry.id) ||
+					item.before !== entry.text ||
+					typeof item.after !== 'string' ||
+					!item.after.trim() ||
+					item.after.length > Math.max(500, entry.text.length * 2) ||
+					/[{}]/u.test(item.after) ||
+					typeof item.reason !== 'string' ||
+					!item.reason.trim() ||
+					typeof item.confidence !== 'number' ||
+					!Number.isFinite(item.confidence) ||
+					item.confidence < 0 ||
+					item.confidence > 1
+				)
+					throw new Error(copy.invalidResponse());
+				seen.add(entry.id);
+				if (item.confidence < 0.98 || item.after.trim() === entry.text.trim()) continue;
+				proposals.push({
+					id: entry.id,
+					clip: entry.clip,
+					before: entry.text,
+					after: item.after.trim(),
+					reason: item.reason.slice(0, 2000)
+				});
+			}
+			return proposals;
+		}
+		if (manual) {
+			plan.proposals.push(
+				...(await manual.request('detect_subtitle_corrections', { batch: input }, validate))
+			);
+		} else {
+			let response: unknown;
+			try {
+				response = await invoke('detect_subtitle_corrections', {
+					request: {
+						apiKey: settings.openAiApiKey,
+						endpoint: settings.textAiApiEndpoint,
+						model: settings.advancedTrimModel,
+						reasoningEffort: reasoning.effort,
+						thinkingEnabled: reasoning.thinkingEnabled,
+						batch: input
+					}
+				});
+			} catch {
+				signal.throwIfAborted();
+				throw new Error(copy.requestError());
+			}
+			plan.proposals.push(...validate(response));
 		}
 	}
 	assertCurrent(plan);

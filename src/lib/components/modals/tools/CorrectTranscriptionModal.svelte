@@ -3,6 +3,9 @@
 	import { AssetClip, AssetType, Duration, SubtitleClip, TrackType } from '$lib/classes';
 	import { SettingsTab } from '$lib/classes/Settings.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import AiAccessTabs from '$lib/components/modals/AiAccessTabs.svelte';
+	import ManualAiWorkflow from '$lib/components/modals/ManualAiWorkflow.svelte';
+	import { ManualAiSession, type ManualAiCopy } from '$lib/services/ManualAiSession.svelte';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
@@ -16,6 +19,9 @@
 
 	let { close }: { close: () => void } = $props();
 	const project = untrack(() => globalState.currentProject!);
+	let manualMode = $state(false);
+	const manualSession = new ManualAiSession();
+	const manualCopy = $derived(($LL.editor as unknown as { manualAi: ManualAiCopy }).manualAi);
 	const timeline = project.projectEditorState.timeline;
 	const preview = project.projectEditorState.videoPreview;
 	const controller = new AbortController();
@@ -58,6 +64,7 @@
 	});
 	onDestroy(() => {
 		controller.abort();
+		manualSession.cancel();
 		stopPlayback();
 	});
 
@@ -107,6 +114,7 @@
 	 */
 	function dismiss(): void {
 		controller.abort();
+		manualSession.cancel();
 		stopPlayback();
 		close();
 	}
@@ -124,20 +132,32 @@
 		errorMessage = '';
 		busy = true;
 		progress = 0;
+		if (manualMode) manualSession.start();
 		try {
-			const result = await AnalyticsService.trackSubtitleAiRequest(
-				'transcription_correction',
-				controller.signal,
-				() =>
-					detectSubtitleCorrections(project, controller.signal, (value) => {
+			/** Lance le parcours choisi. @returns {Promise<SubtitleCorrectionPlan>} Aperçu validé. */
+			const run = () =>
+				detectSubtitleCorrections(
+					project,
+					controller.signal,
+					(value) => {
 						progress = Math.round(value * 100);
-					}),
-				{ subtitles_count: subtitles.length }
-			);
+					},
+					manualMode ? manualSession : undefined
+				);
+			const result = manualMode
+				? await run()
+				: await AnalyticsService.trackSubtitleAiRequest(
+						'transcription_correction',
+						controller.signal,
+						run,
+						{ subtitles_count: subtitles.length }
+					);
 			if (controller.signal.aborted) return;
 			plan = result;
+			if (manualMode) manualSession.finish();
 			selectedIds = result.proposals.map(({ id }) => id);
 		} catch (error) {
+			if (manualMode) manualSession.cancel();
 			if (!controller.signal.aborted)
 				errorMessage = error instanceof Error ? error.message : copy.requestError();
 		} finally {
@@ -177,6 +197,16 @@
 		globalState.uiState.isSettingsOpen = true;
 		dismiss();
 	}
+
+	/** Efface l'aperçu lorsque le mode de connexion change. @returns {void} */
+	function resetMode(): void {
+		stopPlayback();
+		plan = null;
+		selectedIds = [];
+		errorMessage = '';
+		appliedCount = null;
+		manualSession.cancel();
+	}
 </script>
 
 <div role="dialog" tabindex="-1" aria-modal="true" aria-label={copy.title()}>
@@ -188,8 +218,18 @@
 		bodyClass="min-h-0 flex-1 overflow-y-auto md:grid md:grid-cols-[minmax(0,1fr)_300px] md:overflow-hidden"
 	>
 		{#snippet subtitle()}{copy.description()}{/snippet}
+		{#snippet afterHeader()}<AiAccessTabs
+				bind:manual={manualMode}
+				disabled={busy}
+				onchange={resetMode}
+			/>{/snippet}
 		<section class="flex flex-col border-b border-color md:min-h-0 md:border-b-0 md:border-e">
-			{#if plan && plan.proposals.length}
+			{#if manualMode && plan}<ManualAiWorkflow session={manualSession} {progress} />{/if}
+			{#if manualMode && !plan}
+				<div class="min-h-0 overflow-y-auto">
+					<ManualAiWorkflow session={manualSession} {progress} />
+				</div>
+			{:else if plan && plan.proposals.length}
 				<div
 					class="flex flex-wrap items-center justify-between gap-3 border-b border-color px-5 py-4"
 				>
@@ -376,14 +416,14 @@
 			{#if plan?.skipped}<p class="text-xs leading-relaxed text-amber-400">
 					{copy.skipped()} ({plan.skipped})
 				</p>{/if}
-			<button
-				type="button"
-				onclick={openSettings}
-				disabled={busy}
-				class="self-start cursor-pointer text-xs text-accent underline underline-offset-4 disabled:opacity-50"
-				>{speechCopy.textAiSettings()}</button
-			>
-			{#if !hasKey}<p class="text-xs text-amber-400">{copy.keyRequired()}</p>{/if}
+			{#if !manualMode}<button
+					type="button"
+					onclick={openSettings}
+					disabled={busy}
+					class="self-start cursor-pointer text-xs text-accent underline underline-offset-4 disabled:opacity-50"
+					>{speechCopy.textAiSettings()}</button
+				>{/if}
+			{#if !manualMode && !hasKey}<p class="text-xs text-amber-400">{copy.keyRequired()}</p>{/if}
 			{#if errorMessage}<p
 					role="alert"
 					class="rounded-lg border border-red-400/20 bg-red-400/5 p-3 text-sm text-red-400"
@@ -417,14 +457,15 @@
 				<button
 					type="button"
 					onclick={detect}
-					disabled={busy || !hasKey || !subtitles.length}
+					disabled={busy || (!manualMode && !hasKey) || !subtitles.length}
 					class="{plan?.proposals.length
 						? 'btn'
 						: 'btn-accent'} flex w-full items-center justify-center gap-2 px-3 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
-					><span class="material-icons text-lg" aria-hidden="true">manage_search</span
-					>{copy.start()}</button
+					><span class="material-icons text-lg" aria-hidden="true">manage_search</span>{manualMode
+						? manualCopy.prepare()
+						: copy.start()}</button
 				>
-				{#if busy}<p class="text-xs text-thirdly">{speechCopy.cancelHint()}</p>
+				{#if busy && !manualMode}<p class="text-xs text-thirdly">{speechCopy.cancelHint()}</p>
 					<button type="button" onclick={dismiss} class="btn w-full px-3 py-2.5 text-sm"
 						>{$LL.common.cancel()}</button
 					>{/if}

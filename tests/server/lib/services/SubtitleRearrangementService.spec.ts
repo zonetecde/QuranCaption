@@ -16,6 +16,7 @@ import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { setLocale } from '$lib/i18n/i18n-svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import { ManualAiSession } from '$lib/services/ManualAiSession.svelte';
 import { VerseTranslation } from '$lib/classes/Translation.svelte';
 import {
 	rearrangeProjectSubtitles as previewProjectSubtitles,
@@ -31,6 +32,37 @@ const options = {
 	maxDuration: 6,
 	additionalPreferences: 'Keep poetic lines together.'
 };
+
+test('checks complete manual word coverage before allowing preview and undoable application without a key', async () => {
+	globalState.settings!.aiTranslationSettings.openAiApiKey = '';
+	track.clips = [subtitle(0, 'One two three four')];
+	vi.mocked(invoke).mockResolvedValue('Rearrangement instructions');
+	const session = new ManualAiSession();
+	session.start();
+	const result = previewProjectSubtitles(
+		project,
+		{ ...options, maxWords: 2 },
+		new AbortController().signal,
+		vi.fn(),
+		session
+	);
+	await vi.waitFor(() => expect(session.steps).toHaveLength(1));
+	const step = session.steps[0];
+	const requestId = step.prompt.match(/"requestId":"([^"]+)"/)![1];
+	step.response = JSON.stringify({ requestId, result: { blocks: [{ id: 0, ends: [2] }] } });
+	session.submit();
+	expect(step.status).toBe('waiting');
+	expect(track.clips).toHaveLength(1);
+	step.response = JSON.stringify({ requestId, result: { blocks: [{ id: 0, ends: [2, 4] }] } });
+	session.submit();
+	const plan = await result;
+	expect(track.clips).toHaveLength(1);
+	expect(invoke).toHaveBeenCalledTimes(1);
+	plan.apply();
+	expect(track.clips.filter((clip) => clip instanceof SubtitleClip)).toHaveLength(2);
+	ProjectHistoryManager.undo();
+	expect((globalState.getSubtitleTrack.clips[0] as SubtitleClip).text).toBe('One two three four');
+});
 
 /**
  * Exécute la préparation et l'approbation pour les tests du découpage existant.

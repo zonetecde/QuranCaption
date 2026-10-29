@@ -12,6 +12,7 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::speech_to_text::rearrange_subtitle_words,
         commands::speech_to_text::detect_subtitle_references,
         commands::speech_to_text::detect_subtitle_corrections,
+        commands::speech_to_text::prepare_manual_ai_prompt,
         commands::downloads::download_from_youtube,
         commands::media::get_duration,
         commands::files::get_new_file_path,

@@ -1009,6 +1009,136 @@ type RootTranslation = {
 		continue: string;
 	};
 	editor: {
+		manualAi: {
+			/**
+			 * A​I​ ​c​o​n​n​e​c​t​i​o​n​ ​m​e​t​h​o​d
+			 */
+			method: string;
+			/**
+			 * W​i​t​h​ ​A​P​I
+			 */
+			withApi: string;
+			/**
+			 * W​i​t​h​o​u​t​ ​A​P​I​ ​k​e​y
+			 */
+			withoutApi: string;
+			/**
+			 * U​s​e​ ​y​o​u​r​ ​u​s​u​a​l​ ​A​I​ ​c​h​a​t
+			 */
+			title: string;
+			/**
+			 * P​r​e​p​a​r​e​ ​p​r​o​m​p​t​s​ ​h​e​r​e​,​ ​s​e​n​d​ ​t​h​e​m​ ​t​o​ ​C​h​a​t​G​P​T​ ​o​r​ ​a​n​o​t​h​e​r​ ​A​I​ ​c​h​a​t​,​ ​t​h​e​n​ ​p​a​s​t​e​ ​i​t​s​ ​r​e​p​l​i​e​s​ ​b​a​c​k​.​ ​N​o​ ​t​e​x​t​ ​A​I​ ​A​P​I​ ​k​e​y​ ​i​s​ ​n​e​e​d​e​d​.
+			 */
+			description: string;
+			/**
+			 * C​o​p​y​ ​t​h​e​ ​p​r​o​m​p​t
+			 */
+			copyStep: string;
+			/**
+			 * S​e​n​d​ ​i​t​ ​t​o​ ​y​o​u​r​ ​A​I​ ​c​h​a​t
+			 */
+			chatStep: string;
+			/**
+			 * P​a​s​t​e​ ​t​h​e​ ​f​u​l​l​ ​r​e​p​l​y​ ​h​e​r​e
+			 */
+			pasteStep: string;
+			/**
+			 * P​r​e​p​a​r​e​ ​p​r​o​m​p​t​s
+			 */
+			prepare: string;
+			/**
+			 * P​r​e​p​a​r​i​n​g​ ​t​h​e​ ​n​e​x​t​ ​s​t​e​p​…
+			 */
+			preparing: string;
+			/**
+			 * P​r​o​m​p​t
+			 */
+			prompt: string;
+			/**
+			 * A​I​ ​r​e​p​l​i​e​s
+			 */
+			responses: string;
+			/**
+			 * R​e​p​l​i​e​s​ ​c​h​e​c​k​e​d​:
+			 */
+			validated: string;
+			/**
+			 * C​o​p​y​ ​p​r​o​m​p​t
+			 */
+			copyPrompt: string;
+			/**
+			 * C​o​p​i​e​d
+			 */
+			copied: string;
+			/**
+			 * P​a​s​t​e​ ​t​h​i​s​ ​p​r​o​m​p​t​ ​i​n​t​o​ ​a​ ​n​e​w​ ​C​h​a​t​G​P​T​ ​c​o​n​v​e​r​s​a​t​i​o​n​.​ ​E​a​c​h​ ​p​r​o​m​p​t​ ​i​n​c​l​u​d​e​s​ ​t​h​e​ ​c​o​n​t​e​x​t​ ​i​t​ ​n​e​e​d​s​.
+			 */
+			newChatHint: string;
+			/**
+			 * O​p​e​n​ ​C​h​a​t​G​P​T
+			 */
+			openChatGpt: string;
+			/**
+			 * P​a​s​t​e​ ​t​h​e​ ​A​I​’​s​ ​c​o​m​p​l​e​t​e​ ​r​e​p​l​y​…
+			 */
+			placeholder: string;
+			/**
+			 * K​e​e​p​ ​t​h​e​ ​c​o​m​p​l​e​t​e​ ​r​e​p​l​y​,​ ​i​n​c​l​u​d​i​n​g​ ​i​t​s​ ​f​i​r​s​t​ ​a​n​d​ ​l​a​s​t​ ​l​i​n​e​s​.​ ​T​h​e​ ​a​p​p​ ​w​i​l​l​ ​c​h​e​c​k​ ​i​t​ ​f​o​r​ ​y​o​u​.
+			 */
+			pasteHint: string;
+			/**
+			 * C​h​e​c​k​ ​r​e​p​l​y​ ​a​n​d​ ​c​o​n​t​i​n​u​e
+			 */
+			validate: string;
+			/**
+			 * R​e​p​l​y​ ​c​h​e​c​k​e​d​ ​a​n​d​ ​s​a​v​e​d​ ​f​o​r​ ​t​h​i​s​ ​s​e​s​s​i​o​n​.
+			 */
+			responseValid: string;
+			/**
+			 * T​h​i​s​ ​r​e​p​l​y​ ​n​e​e​d​s​ ​t​o​ ​b​e​ ​r​e​g​e​n​e​r​a​t​e​d
+			 */
+			responseInvalid: string;
+			/**
+			 * C​o​p​y​ ​t​h​e​ ​r​e​t​r​y​ ​p​r​o​m​p​t​ ​i​n​t​o​ ​a​ ​n​e​w​ ​A​I​ ​c​o​n​v​e​r​s​a​t​i​o​n​,​ ​t​h​e​n​ ​r​e​p​l​a​c​e​ ​o​n​l​y​ ​t​h​i​s​ ​r​e​p​l​y​.​ ​P​r​e​v​i​o​u​s​l​y​ ​c​h​e​c​k​e​d​ ​r​e​p​l​i​e​s​ ​a​r​e​ ​k​e​p​t​.
+			 */
+			retryHint: string;
+			/**
+			 * C​o​p​y​ ​r​e​t​r​y​ ​p​r​o​m​p​t
+			 */
+			copyRetry: string;
+			/**
+			 * A​l​l​ ​r​e​p​l​i​e​s​ ​h​a​v​e​ ​b​e​e​n​ ​c​h​e​c​k​e​d
+			 */
+			ready: string;
+			/**
+			 * R​e​v​i​e​w​ ​t​h​e​ ​r​e​s​u​l​t​s​ ​b​e​f​o​r​e​ ​a​p​p​l​y​i​n​g​ ​t​h​e​m​.​ ​Y​o​u​ ​c​a​n​ ​u​n​d​o​ ​t​h​e​ ​c​h​a​n​g​e​s​ ​a​f​t​e​r​w​a​r​d​s​.
+			 */
+			reviewHint: string;
+			/**
+			 * A​p​p​l​y​ ​t​r​a​n​s​l​a​t​i​o​n​s
+			 */
+			applyTranslations: string;
+			/**
+			 * T​h​e​ ​r​e​p​l​y​ ​i​s​ ​i​n​c​o​m​p​l​e​t​e​ ​o​r​ ​i​t​s​ ​f​o​r​m​a​t​ ​c​a​n​n​o​t​ ​b​e​ ​r​e​a​d​.​ ​C​o​p​y​ ​t​h​e​ ​f​u​l​l​ ​r​e​p​l​y​ ​o​r​ ​r​e​g​e​n​e​r​a​t​e​ ​i​t​.
+			 */
+			invalidJson: string;
+			/**
+			 * T​h​i​s​ ​r​e​p​l​y​ ​d​o​e​s​ ​n​o​t​ ​m​a​t​c​h​ ​t​h​i​s​ ​p​r​o​m​p​t​.​ ​U​s​e​ ​t​h​e​ ​p​r​o​m​p​t​ ​f​o​r​ ​t​h​i​s​ ​s​t​e​p​ ​a​n​d​ ​k​e​e​p​ ​t​h​e​ ​c​o​m​p​l​e​t​e​ ​r​e​p​l​y​.
+			 */
+			wrongPrompt: string;
+			/**
+			 * T​h​e​ ​p​r​o​m​p​t​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​p​r​e​p​a​r​e​d​.​ ​C​a​n​c​e​l​ ​t​h​i​s​ ​s​e​s​s​i​o​n​ ​a​n​d​ ​t​r​y​ ​a​g​a​i​n​.
+			 */
+			prepareError: string;
+			/**
+			 * T​h​e​ ​p​r​o​m​p​t​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​c​o​p​i​e​d​.​ ​C​h​e​c​k​ ​c​l​i​p​b​o​a​r​d​ ​a​c​c​e​s​s​ ​a​n​d​ ​t​r​y​ ​a​g​a​i​n​.
+			 */
+			copyError: string;
+			/**
+			 * C​h​a​t​G​P​T​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​o​p​e​n​e​d​.​ ​O​p​e​n​ ​c​h​a​t​g​p​t​.​c​o​m​ ​i​n​ ​y​o​u​r​ ​b​r​o​w​s​e​r​.
+			 */
+			openError: string;
+		};
 		/**
 		 * A​c​t​i​v​i​t​y​ ​l​o​g
 		 */
@@ -11323,6 +11453,136 @@ export type TranslationFunctions = {
 		continue: () => LocalizedString;
 	};
 	editor: {
+		manualAi: {
+			/**
+			 * AI connection method
+			 */
+			method: () => LocalizedString;
+			/**
+			 * With API
+			 */
+			withApi: () => LocalizedString;
+			/**
+			 * Without API key
+			 */
+			withoutApi: () => LocalizedString;
+			/**
+			 * Use your usual AI chat
+			 */
+			title: () => LocalizedString;
+			/**
+			 * Prepare prompts here, send them to ChatGPT or another AI chat, then paste its replies back. No text AI API key is needed.
+			 */
+			description: () => LocalizedString;
+			/**
+			 * Copy the prompt
+			 */
+			copyStep: () => LocalizedString;
+			/**
+			 * Send it to your AI chat
+			 */
+			chatStep: () => LocalizedString;
+			/**
+			 * Paste the full reply here
+			 */
+			pasteStep: () => LocalizedString;
+			/**
+			 * Prepare prompts
+			 */
+			prepare: () => LocalizedString;
+			/**
+			 * Preparing the next step…
+			 */
+			preparing: () => LocalizedString;
+			/**
+			 * Prompt
+			 */
+			prompt: () => LocalizedString;
+			/**
+			 * AI replies
+			 */
+			responses: () => LocalizedString;
+			/**
+			 * Replies checked:
+			 */
+			validated: () => LocalizedString;
+			/**
+			 * Copy prompt
+			 */
+			copyPrompt: () => LocalizedString;
+			/**
+			 * Copied
+			 */
+			copied: () => LocalizedString;
+			/**
+			 * Paste this prompt into a new ChatGPT conversation. Each prompt includes the context it needs.
+			 */
+			newChatHint: () => LocalizedString;
+			/**
+			 * Open ChatGPT
+			 */
+			openChatGpt: () => LocalizedString;
+			/**
+			 * Paste the AI’s complete reply…
+			 */
+			placeholder: () => LocalizedString;
+			/**
+			 * Keep the complete reply, including its first and last lines. The app will check it for you.
+			 */
+			pasteHint: () => LocalizedString;
+			/**
+			 * Check reply and continue
+			 */
+			validate: () => LocalizedString;
+			/**
+			 * Reply checked and saved for this session.
+			 */
+			responseValid: () => LocalizedString;
+			/**
+			 * This reply needs to be regenerated
+			 */
+			responseInvalid: () => LocalizedString;
+			/**
+			 * Copy the retry prompt into a new AI conversation, then replace only this reply. Previously checked replies are kept.
+			 */
+			retryHint: () => LocalizedString;
+			/**
+			 * Copy retry prompt
+			 */
+			copyRetry: () => LocalizedString;
+			/**
+			 * All replies have been checked
+			 */
+			ready: () => LocalizedString;
+			/**
+			 * Review the results before applying them. You can undo the changes afterwards.
+			 */
+			reviewHint: () => LocalizedString;
+			/**
+			 * Apply translations
+			 */
+			applyTranslations: () => LocalizedString;
+			/**
+			 * The reply is incomplete or its format cannot be read. Copy the full reply or regenerate it.
+			 */
+			invalidJson: () => LocalizedString;
+			/**
+			 * This reply does not match this prompt. Use the prompt for this step and keep the complete reply.
+			 */
+			wrongPrompt: () => LocalizedString;
+			/**
+			 * The prompt could not be prepared. Cancel this session and try again.
+			 */
+			prepareError: () => LocalizedString;
+			/**
+			 * The prompt could not be copied. Check clipboard access and try again.
+			 */
+			copyError: () => LocalizedString;
+			/**
+			 * ChatGPT could not be opened. Open chatgpt.com in your browser.
+			 */
+			openError: () => LocalizedString;
+		};
 		/**
 		 * Activity log
 		 */

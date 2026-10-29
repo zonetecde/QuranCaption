@@ -3,6 +3,7 @@ import { Clip, SilenceClip, SubtitleClip, TrackType } from '$lib/classes';
 import type { Project } from '$lib/classes/Project';
 import { globalState } from '$lib/runes/main.svelte';
 import { resolveAIReasoning } from './AIReasoning';
+import type { ManualAiSession } from './ManualAiSession.svelte';
 import {
 	buildSpeechSubtitles,
 	extendShortSubtitlesIntoSilence,
@@ -42,13 +43,15 @@ type TimelineEntry =
  * @param {RearrangementPreferences} preferences Limites et indications sémantiques.
  * @param {AbortSignal} signal Annulation empêchant toute application tardive.
  * @param {(progress: number) => void} onProgress Progression entre les requêtes bornées.
+ * @param {ManualAiSession} [manual] Parcours copier-coller optionnel, sans fournisseur API.
  * @returns {Promise<SubtitleRearrangementPlan>} Aperçu des changements et application différée.
  */
 export async function rearrangeProjectSubtitles(
 	project: Project,
 	preferences: RearrangementPreferences,
 	signal: AbortSignal,
-	onProgress: (progress: number) => void
+	onProgress: (progress: number) => void,
+	manual?: ManualAiSession
 ): Promise<SubtitleRearrangementPlan> {
 	const copy = getSpeechToTextCopy();
 	if (
@@ -61,7 +64,7 @@ export async function rearrangeProjectSubtitles(
 	)
 		throw new Error(copy.invalidLimits());
 	const settings = { ...globalState.settings!.aiTranslationSettings };
-	if (!settings.openAiApiKey.trim()) throw new Error(copy.rearrangeKeyRequired());
+	if (!manual && !settings.openAiApiKey.trim()) throw new Error(copy.rearrangeKeyRequired());
 	const track = project.content.timeline.getFirstTrack(TrackType.Subtitle);
 	const originals = [...track.clips].sort((a, b) => a.startTime - b.startTime);
 	const snapshot = JSON.stringify([track.toJSON(), project.content.projectTranslation.toJSON()]);
@@ -247,30 +250,49 @@ export async function rearrangeProjectSubtitles(
 					: [];
 			})
 		};
-		let response: unknown;
-		try {
-			response = await invoke('rearrange_subtitle_words', {
-				request: {
-					apiKey: settings.openAiApiKey,
-					endpoint: settings.textAiApiEndpoint,
-					model: settings.advancedTrimModel,
-					reasoningEffort: reasoning.effort,
-					thinkingEnabled: reasoning.thinkingEnabled,
-					batch
-				}
-			});
-		} catch {
-			signal.throwIfAborted();
-			throw new Error(copy.rearrangeProviderError());
+		/**
+		 * Vérifie la couverture complète des mots avant de créer les clips.
+		 * @param {unknown} response Réponse de l'IA.
+		 * @returns {{id: number; ends: number[]}[]} Frontières vérifiées.
+		 */
+		function validate(response: unknown): { id: number; ends: number[] }[] {
+			assertCurrent();
+			const results = (response as { blocks?: { id: number; ends: number[] }[] } | null)?.blocks;
+			if (
+				!Array.isArray(results) ||
+				results.length !== selected.length ||
+				new Set(results.map((item) => item?.id)).size !== selected.length
+			)
+				throw new Error(copy.invalidBoundaries());
+			for (const block of selected)
+				validateSpeechBoundaries(
+					results.find((result) => result?.id === block.id),
+					block.words.length
+				);
+			return results;
 		}
-		assertCurrent();
-		const results = (response as { blocks?: { id: number; ends: number[] }[] } | null)?.blocks;
-		if (
-			!Array.isArray(results) ||
-			results.length !== selected.length ||
-			new Set(results.map((item) => item?.id)).size !== selected.length
-		)
-			throw new Error(copy.invalidBoundaries());
+		let results: { id: number; ends: number[] }[];
+		if (manual) {
+			results = await manual.request('rearrange_subtitle_words', { batch }, validate);
+		} else {
+			let response: unknown;
+			try {
+				response = await invoke('rearrange_subtitle_words', {
+					request: {
+						apiKey: settings.openAiApiKey,
+						endpoint: settings.textAiApiEndpoint,
+						model: settings.advancedTrimModel,
+						reasoningEffort: reasoning.effort,
+						thinkingEnabled: reasoning.thinkingEnabled,
+						batch
+					}
+				});
+			} catch {
+				signal.throwIfAborted();
+				throw new Error(copy.rearrangeProviderError());
+			}
+			results = validate(response);
+		}
 		for (const block of selected) {
 			const ends = validateSpeechBoundaries(
 				results.find((result) => result?.id === block.id),

@@ -3,6 +3,9 @@
 	import { SubtitleClip, TrackType } from '$lib/classes';
 	import { SettingsTab } from '$lib/classes/Settings.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import AiAccessTabs from '$lib/components/modals/AiAccessTabs.svelte';
+	import ManualAiWorkflow from '$lib/components/modals/ManualAiWorkflow.svelte';
+	import { ManualAiSession, type ManualAiCopy } from '$lib/services/ManualAiSession.svelte';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import {
@@ -16,6 +19,9 @@
 
 	let { close }: { close: () => void } = $props();
 	const project = untrack(() => globalState.currentProject!);
+	let manualMode = $state(false);
+	const manualSession = new ManualAiSession();
+	const manualCopy = $derived(($LL.editor as unknown as { manualAi: ManualAiCopy }).manualAi);
 	const controller = new AbortController();
 	let detectQuran = $state(true);
 	let detectCitations = $state(true);
@@ -48,7 +54,10 @@
 	);
 	const inputClass =
 		'w-full rounded-lg border border-color bg-primary px-3 py-2 text-sm text-primary';
-	onDestroy(() => controller.abort());
+	onDestroy(() => {
+		controller.abort();
+		manualSession.cancel();
+	});
 
 	/**
 	 * Ferme le modal et empêche les résultats d'une requête tardive.
@@ -56,6 +65,7 @@
 	 */
 	function dismiss(): void {
 		controller.abort();
+		manualSession.cancel();
 		close();
 	}
 
@@ -64,6 +74,7 @@
 	 * @returns {void}
 	 */
 	function resetResults(): void {
+		manualSession.cancel();
 		plan = null;
 		selectedIds = [];
 		appliedCount = null;
@@ -79,29 +90,37 @@
 		resetResults();
 		busy = true;
 		progress = 0;
+		if (manualMode) manualSession.start();
 		try {
-			const result = await AnalyticsService.trackSubtitleAiRequest(
-				'reference_detection',
-				controller.signal,
-				() =>
-					detectProjectReferences(
-						project,
-						{ detectQuran, detectCitations, additionalPreferences },
+			/** Lance le parcours choisi. @returns {Promise<ReferenceDetectionPlan>} Aperçu validé. */
+			const run = () =>
+				detectProjectReferences(
+					project,
+					{ detectQuran, detectCitations, additionalPreferences },
+					controller.signal,
+					(value) => {
+						progress = Math.round(value * 100);
+					},
+					manualMode ? manualSession : undefined
+				);
+			const result = manualMode
+				? await run()
+				: await AnalyticsService.trackSubtitleAiRequest(
+						'reference_detection',
 						controller.signal,
-						(value) => {
-							progress = Math.round(value * 100);
+						run,
+						{
+							subtitles_count: subtitles.length,
+							detect_quran: detectQuran,
+							detect_citations: detectCitations
 						}
-					),
-				{
-					subtitles_count: subtitles.length,
-					detect_quran: detectQuran,
-					detect_citations: detectCitations
-				}
-			);
+					);
 			if (controller.signal.aborted) return;
 			plan = result;
+			if (manualMode) manualSession.finish();
 			selectedIds = confirmedIds;
 		} catch (error) {
+			if (manualMode) manualSession.cancel();
 			if (!controller.signal.aborted)
 				errorMessage = error instanceof Error ? error.message : copy.requestError();
 		} finally {
@@ -149,10 +168,20 @@
 		bodyClass="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto md:grid-cols-[minmax(0,1fr)_320px] md:overflow-hidden"
 	>
 		{#snippet subtitle()}{copy.description()}{/snippet}
+		{#snippet afterHeader()}<AiAccessTabs
+				bind:manual={manualMode}
+				disabled={busy}
+				onchange={resetResults}
+			/>{/snippet}
 		<section
 			class="min-h-0 space-y-4 overflow-y-auto border-b border-color p-5 md:border-b-0 md:border-e"
 		>
-			{#if plan}
+			{#if manualMode && plan}<ManualAiWorkflow session={manualSession} {progress} />{/if}
+			{#if manualMode && !plan}
+				<div class="min-h-0 overflow-y-auto">
+					<ManualAiWorkflow session={manualSession} {progress} />
+				</div>
+			{:else if plan}
 				<h3 class="text-sm font-semibold text-primary">
 					{copy.proposals()} ({proposals.length})
 				</h3>
@@ -227,21 +256,25 @@
 						class={inputClass}
 					></textarea></label
 				>
-				<button
-					type="button"
-					onclick={openSettings}
-					class="cursor-pointer text-sm text-accent underline">{speechCopy.textAiSettings()}</button
-				>
+				{#if !manualMode}<button
+						type="button"
+						onclick={openSettings}
+						class="cursor-pointer text-sm text-accent underline"
+						>{speechCopy.textAiSettings()}</button
+					>{/if}
 			</fieldset>
 			<p class="text-xs text-thirdly">{copy.notice()}</p>
 			<p class="text-xs text-thirdly">{copy.preserved()}</p>
-			{#if !hasKey}<p class="text-xs text-amber-400">{copy.keyRequired()}</p>{/if}
+			{#if !manualMode && !hasKey}<p class="text-xs text-amber-400">{copy.keyRequired()}</p>{/if}
 			<button
 				type="button"
 				onclick={detect}
-				disabled={busy || !hasKey || !subtitles.length || (!detectQuran && !detectCitations)}
+				disabled={busy ||
+					(!manualMode && !hasKey) ||
+					!subtitles.length ||
+					(!detectQuran && !detectCitations)}
 				class="btn-accent w-full px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-				>{copy.start()}</button
+				>{manualMode ? manualCopy.prepare() : copy.start()}</button
 			>
 			{#if plan}<button
 					type="button"
@@ -257,7 +290,7 @@
 					class="btn-accent w-full px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
 					>{copy.applyAll()} ({confirmedIds.length})</button
 				>{/if}
-			{#if busy}
+			{#if busy && !manualMode}
 				<p role="status" class="text-sm text-secondary">{copy.analyzing()} ({progress}%)</p>
 				<p class="text-xs text-thirdly">{speechCopy.cancelHint()}</p>
 				<button

@@ -40,13 +40,6 @@ pub fn compute_ffmpeg_thread_cap(profile: ExportPerformanceProfile) -> Option<us
     }
 }
 
-/// Ajoute l'argument `-threads` à une commande FFmpeg si le profil le demande.
-pub fn append_thread_cap(cmd: &mut Command, profile: ExportPerformanceProfile) {
-    if let Some(thread_cap) = compute_ffmpeg_thread_cap(profile) {
-        cmd.arg("-threads").arg(thread_cap.to_string());
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Détection des encodeurs hardware
 // ---------------------------------------------------------------------------

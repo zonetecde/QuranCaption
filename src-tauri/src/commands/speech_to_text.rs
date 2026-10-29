@@ -106,6 +106,50 @@ Suggest a correction ONLY when both the transcription mistake and its intended r
 Only subtitles with editable true may have corrections; all others are read-only context. Return at most one correction per subtitle, keeping subtitle boundaries intact. before MUST be the exact complete input text, including whitespace; after MUST be the complete subtitle with the smallest necessary correction. Never introduce annotations or curly braces. Omit unchanged or uncertain subtitles. Reasons must be brief, specific and written in the requested language. Return an empty corrections array when nothing is almost certain.
 Return JSON only: {"corrections":[{"id":1,"before":"exact original subtitle","after":"minimally corrected subtitle","reason":"Why this is a likely transcription confusion.","confidence":0.99}]}. Every correction must contain exactly those five fields. confidence is a number from 0 to 1, not a percentage."#;
 
+/// Prépare localement les mêmes instructions que l'API, sans clé ni requête réseau.
+#[tauri::command]
+pub fn prepare_manual_ai_prompt(kind: String, request: Value) -> Result<String, String> {
+    let batch = request.get("batch").ok_or("MANUAL_AI_INPUT")?;
+    let (system, user) = match kind.as_str() {
+        "detect_subtitle_corrections" => (
+            CORRECT_TRANSCRIPTION_SYSTEM_PROMPT,
+            serde_json::to_string_pretty(batch).map_err(|error| error.to_string())?,
+        ),
+        "detect_subtitle_references" => (
+            DETECT_REFERENCES_SYSTEM_PROMPT,
+            serde_json::to_string_pretty(batch).map_err(|error| error.to_string())?,
+        ),
+        "rearrange_subtitle_words" => (
+            REARRANGE_SYSTEM_PROMPT,
+            serde_json::to_string_pretty(batch).map_err(|error| error.to_string())?,
+        ),
+        "project_translation" => (
+            prompts::PROJECT_TRANSLATION_SYSTEM_PROMPT,
+            prompts::build_project_translation_user_prompt(
+                request
+                    .get("targetLanguage")
+                    .and_then(Value::as_str)
+                    .ok_or("MANUAL_AI_INPUT")?,
+                request
+                    .get("islamicTermMode")
+                    .and_then(Value::as_str)
+                    .ok_or("MANUAL_AI_INPUT")?,
+                request
+                    .get("additionalPreferences")
+                    .and_then(Value::as_str)
+                    .unwrap_or(""),
+                request
+                    .get("useSalawatSymbol")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(true),
+                batch,
+            )?,
+        ),
+        _ => return Err("MANUAL_AI_INPUT".into()),
+    };
+    Ok(format!("{}\n\nINPUT DATA:\n{}", system, user))
+}
+
 /// Propose des corrections prudentes via le fournisseur IA texte déjà configuré.
 #[tauri::command]
 pub async fn detect_subtitle_corrections(

@@ -18,6 +18,7 @@ import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { setLocale } from '$lib/i18n/i18n-svelte';
 import { MinimalQuranProvider } from '$lib/services/MinimalQuranProvider';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import { ManualAiSession } from '$lib/services/ManualAiSession.svelte';
 import {
 	detectProjectReferences,
 	previewReferenceAnnotations,
@@ -80,6 +81,45 @@ afterEach(() => {
 	ProjectHistoryManager.clear();
 	globalState.currentProject = null;
 	globalState.settings = originalSettings;
+});
+
+test('retries an invalid manual annotation without retaining partial findings or requiring a key', async () => {
+	globalState.settings!.aiTranslationSettings.openAiApiKey = '';
+	track.clips = [new SubtitleClip(0, 2000, 'He said quoted words')];
+	vi.mocked(invoke).mockResolvedValue('Reference instructions');
+	const session = new ManualAiSession();
+	session.start();
+	const result = detectProjectReferences(
+		project,
+		{ ...options, detectQuran: false },
+		new AbortController().signal,
+		vi.fn(),
+		session
+	);
+	await vi.waitFor(() => expect(session.steps).toHaveLength(1));
+	const step = session.steps[0];
+	const requestId = step.prompt.match(/"requestId":"([^"]+)"/)![1];
+	step.response = JSON.stringify({
+		requestId,
+		result: { findings: [finding({ from: 3, to: 4 }), finding({ from: 900, to: 901 })] }
+	});
+	session.submit();
+	expect(step.status).toBe('waiting');
+	expect(step.error).not.toBe('');
+	step.response = JSON.stringify({
+		requestId,
+		result: { findings: [finding({ from: 3, to: 4 })] }
+	});
+	session.submit();
+	const plan = await result;
+	expect(plan.proposals).toHaveLength(1);
+	expect(plan.proposals[0].id).toBe(0);
+	expect((track.clips[0] as SubtitleClip).text).toBe('He said quoted words');
+	expect(invoke).toHaveBeenCalledTimes(1);
+	applyReferenceAnnotations(project, plan, [0]);
+	expect((track.clips[0] as SubtitleClip).text).toBe('He said {{quoted words}}');
+	ProjectHistoryManager.undo();
+	expect((globalState.getSubtitleTrack.clips[0] as SubtitleClip).text).toBe('He said quoted words');
 });
 
 test('annotates reported speech across subtitles without changing words, silence, translations or timings', async () => {

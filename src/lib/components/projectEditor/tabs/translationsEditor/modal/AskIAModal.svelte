@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import type { Edition } from '$lib/classes';
+	import type { Project } from '$lib/classes/Project';
+	import AiAccessTabs from '$lib/components/modals/AiAccessTabs.svelte';
+	import ManualAiWorkflow from '$lib/components/modals/ManualAiWorkflow.svelte';
+	import { ManualAiSession, type ManualAiCopy } from '$lib/services/ManualAiSession.svelte';
 	import Settings, {
 		SettingsTab,
 		type IslamicTermTranslationMode
@@ -58,6 +62,12 @@
 	const PROJECT_TRANSLATION_CONCURRENCY = 3;
 	let { close, edition }: { close: () => void; edition: Edition } = $props();
 	const copy = $derived($LL.translations as unknown as TranslationCopy);
+	const manualCopy = $derived(($LL.editor as unknown as { manualAi: ManualAiCopy }).manualAi);
+	let manualMode = $state(false);
+	const manualSession = new ManualAiSession();
+	let manualSuccesses: AIProjectTranslationSuccess[] = [];
+	let manualOptions: AIProjectTranslationOptions;
+	let manualProject: Project | null = null;
 	let scope = $state('missing');
 	let overwriteManualQuran = $state(false);
 	let additionalPreferences = $state('');
@@ -100,9 +110,113 @@
 		totalBatches > 0 ? Math.round((completedBatches / totalBatches) * 100) : 0
 	);
 
-	/** Ferme le modal lorsqu'aucune requête n'est en cours. @returns {void} */
+	/** Ferme le modal et annule les réponses manuelles en attente. @returns {void} */
 	function closeSafely(): void {
-		if (!isRunning) close();
+		if (!isRunning || manualMode) {
+			manualSession.cancel();
+			close();
+		}
+	}
+
+	/** Réinitialise les résultats affichés lors d'un changement de mode. @returns {void} */
+	function resetMode(): void {
+		manualSession.cancel();
+		manualSuccesses = [];
+		hasFinished = false;
+		previews = [];
+		errors = [];
+		currentMessage = '';
+		totalBatches = 0;
+		completedBatches = 0;
+		translatedSubtitles = 0;
+		failedSubtitles = 0;
+	}
+
+	/** Prépare et vérifie les réponses manuelles sans appliquer de traduction. @returns {Promise<void>} */
+	async function prepareManualTranslation(): Promise<void> {
+		if (isRunning) return;
+		manualSession.start();
+		isRunning = true;
+		hasFinished = false;
+		errors = [];
+		previews = [];
+		currentMessage = '';
+		completedBatches = 0;
+		translatedSubtitles = 0;
+		failedSubtitles = 0;
+		manualSuccesses = [];
+		manualOptions = { ...options };
+		manualProject = globalState.currentProject;
+		const provider = { ...settings() };
+		const preferences = additionalPreferences;
+		const salawat = useSalawatSymbol;
+		try {
+			const batches = await buildAIProjectTranslationBatches(edition, manualOptions);
+			if (!batches.length) throw new Error(copy.aiTranslationNoEligible());
+			totalBatches = batches.length;
+			for (const [index, batch] of batches.entries()) {
+				if (disposed || globalState.currentProject !== manualProject)
+					throw new Error(copy.aiTranslationSourceChanged());
+				/**
+				 * Refuse le lot entier si une traduction est invalide.
+				 * @param {unknown} response Réponse du chat.
+				 * @returns {AIProjectTranslationSuccess[]} Traductions vérifiées.
+				 */
+				function validate(response: unknown): AIProjectTranslationSuccess[] {
+					if (disposed || globalState.currentProject !== manualProject)
+						throw new Error(copy.aiTranslationSourceChanged());
+					const validation = validateAIProjectTranslationBatch(batch, response);
+					if (validation.errors.length) throw new Error(validation.errors.join('\n'));
+					return validation.validItems;
+				}
+				const successes = await manualSession.request(
+					'project_translation',
+					{
+						batch: batch.request,
+						targetLanguage: edition.language,
+						islamicTermMode: provider.projectTranslationIslamicTerms,
+						additionalPreferences: preferences,
+						useSalawatSymbol: salawat
+					},
+					validate
+				);
+				manualSuccesses.push(...successes);
+				completedBatches += 1;
+				previews.push({
+					index: index + 1,
+					status: 'completed',
+					texts: successes.map((success) =>
+						resolveAIProjectTranslationSuccessContext(edition, success)
+					)
+				});
+			}
+			manualSession.finish();
+		} catch (error) {
+			manualSession.cancel();
+			if (!disposed && error instanceof Error && error.message) errors = [error.message];
+		} finally {
+			isRunning = false;
+		}
+	}
+
+	/** Applique toutes les traductions manuelles vérifiées en une action annulable. @returns {Promise<void>} */
+	async function applyManualTranslation(): Promise<void> {
+		if (isRunning || !manualSession.ready || hasFinished) return;
+		errors = [];
+		try {
+			if (globalState.currentProject !== manualProject)
+				throw new Error(copy.aiTranslationSourceChanged());
+			translatedSubtitles = applyAIProjectTranslationResults(
+				edition,
+				manualSuccesses,
+				manualOptions
+			).appliedSubtitles;
+			hasFinished = true;
+			currentMessage = copy.aiTranslationCompleted({ count: translatedSubtitles });
+			await manualProject?.save(false);
+		} catch (error) {
+			errors = [error instanceof Error ? error.message : String(error)];
+		}
 	}
 
 	/**
@@ -131,6 +245,7 @@
 	onDestroy(() => {
 		disposed = true;
 		stopRequested = true;
+		manualSession.cancel();
 	});
 
 	/** Traduit les passages en parallèle puis applique les résultats validés. @returns {Promise<void>} */
@@ -253,71 +368,82 @@
 	bodyClass="min-h-0 overflow-y-auto"
 >
 	{#snippet subtitle()}{copy.aiTranslationSubtitle({ language: edition.language })}{/snippet}
+	{#snippet afterHeader()}<AiAccessTabs
+			bind:manual={manualMode}
+			disabled={isRunning}
+			onchange={resetMode}
+		/>{/snippet}
 	<div class="space-y-5 p-5">
-		<div>
-			<label class="text-sm font-medium text-primary" for="ai-translation-scope"
-				>{copy.aiTranslationScope()}</label
-			>
-			<select
-				id="ai-translation-scope"
-				class="mt-2 w-full rounded-md border border-color bg-secondary px-3 py-2 text-sm text-primary"
-				bind:value={scope}
-				disabled={isRunning}
-			>
-				<option value="missing">{copy.aiTranslationScopeMissing()}</option>
-				<option value="ai">{copy.aiTranslationScopeAi()}</option>
-				<option value="all">{copy.aiTranslationScopeAll()}</option>
-			</select>
-		</div>
-		<div>
-			<label class="text-sm font-medium text-primary" for="ai-translation-islamic-terms"
-				>{copy.aiTranslationIslamicTerms()}</label
-			>
-			<p class="mt-1 text-xs text-secondary">{copy.aiTranslationIslamicTermsDescription()}</p>
-			<select
-				id="ai-translation-islamic-terms"
-				class="mt-2 w-full rounded-md border border-color bg-secondary px-3 py-2 text-sm text-primary"
-				value={settings().projectTranslationIslamicTerms}
-				disabled={isRunning}
-				onchange={(event) =>
-					updateIslamicTermMode(event.currentTarget.value as IslamicTermTranslationMode)}
-			>
-				<option value="translated">{copy.aiTranslationTermsTranslated()}</option>
-				<option value="both">{copy.aiTranslationTermsBoth()}</option>
-				<option value="transliterated">{copy.aiTranslationTermsTransliterated()}</option>
-			</select>
-		</div>
-		<div>
-			<label class="text-sm font-medium text-primary" for="ai-translation-preferences"
-				>{copy.aiTranslationPreferences()}</label
-			>
-			<textarea
-				id="ai-translation-preferences"
-				class="mt-2 min-h-24 w-full rounded-md border border-color bg-secondary px-3 py-2 text-sm text-primary"
-				bind:value={additionalPreferences}
-				disabled={isRunning}
-				placeholder={copy.aiTranslationPreferencesHint()}
-			></textarea>
-		</div>
-		<div>
-			<label class="flex cursor-pointer items-center gap-2 text-sm text-primary">
-				<input type="checkbox" bind:checked={useSalawatSymbol} disabled={isRunning} />
-				{copy.aiTranslationSalawatSymbol()}
-			</label>
-			<p class="mt-1 text-xs text-secondary">{copy.aiTranslationSalawatSymbolHint()}</p>
-		</div>
-		<details class="rounded-lg border border-color p-3">
-			<summary class="cursor-pointer text-sm text-secondary">{copy.aiTranslationAdvanced()}</summary
-			>
-			<label class="mt-3 flex items-center gap-2 text-sm text-secondary">
-				<input type="checkbox" bind:checked={overwriteManualQuran} disabled={isRunning} />
-				{copy.aiTranslationOverwriteManualQuran()}
-			</label>
-		</details>
-		<p class="text-sm text-secondary">
-			{copy.aiTranslationEligibleCount({ count: eligibleCount() })}
-		</p>
-		{#if !providerConfigured()}
+		<fieldset
+			disabled={isRunning}
+			class={manualMode && (isRunning || manualSession.ready) ? 'hidden' : 'space-y-5'}
+		>
+			<div>
+				<label class="text-sm font-medium text-primary" for="ai-translation-scope"
+					>{copy.aiTranslationScope()}</label
+				>
+				<select
+					id="ai-translation-scope"
+					class="mt-2 w-full rounded-md border border-color bg-secondary px-3 py-2 text-sm text-primary"
+					bind:value={scope}
+					disabled={isRunning}
+				>
+					<option value="missing">{copy.aiTranslationScopeMissing()}</option>
+					<option value="ai">{copy.aiTranslationScopeAi()}</option>
+					<option value="all">{copy.aiTranslationScopeAll()}</option>
+				</select>
+			</div>
+			<div>
+				<label class="text-sm font-medium text-primary" for="ai-translation-islamic-terms"
+					>{copy.aiTranslationIslamicTerms()}</label
+				>
+				<p class="mt-1 text-xs text-secondary">{copy.aiTranslationIslamicTermsDescription()}</p>
+				<select
+					id="ai-translation-islamic-terms"
+					class="mt-2 w-full rounded-md border border-color bg-secondary px-3 py-2 text-sm text-primary"
+					value={settings().projectTranslationIslamicTerms}
+					disabled={isRunning}
+					onchange={(event) =>
+						updateIslamicTermMode(event.currentTarget.value as IslamicTermTranslationMode)}
+				>
+					<option value="translated">{copy.aiTranslationTermsTranslated()}</option>
+					<option value="both">{copy.aiTranslationTermsBoth()}</option>
+					<option value="transliterated">{copy.aiTranslationTermsTransliterated()}</option>
+				</select>
+			</div>
+			<div>
+				<label class="text-sm font-medium text-primary" for="ai-translation-preferences"
+					>{copy.aiTranslationPreferences()}</label
+				>
+				<textarea
+					id="ai-translation-preferences"
+					class="mt-2 min-h-24 w-full rounded-md border border-color bg-secondary px-3 py-2 text-sm text-primary"
+					bind:value={additionalPreferences}
+					disabled={isRunning}
+					placeholder={copy.aiTranslationPreferencesHint()}
+				></textarea>
+			</div>
+			<div>
+				<label class="flex cursor-pointer items-center gap-2 text-sm text-primary">
+					<input type="checkbox" bind:checked={useSalawatSymbol} disabled={isRunning} />
+					{copy.aiTranslationSalawatSymbol()}
+				</label>
+				<p class="mt-1 text-xs text-secondary">{copy.aiTranslationSalawatSymbolHint()}</p>
+			</div>
+			<details class="rounded-lg border border-color p-3">
+				<summary class="cursor-pointer text-sm text-secondary"
+					>{copy.aiTranslationAdvanced()}</summary
+				>
+				<label class="mt-3 flex items-center gap-2 text-sm text-secondary">
+					<input type="checkbox" bind:checked={overwriteManualQuran} disabled={isRunning} />
+					{copy.aiTranslationOverwriteManualQuran()}
+				</label>
+			</details>
+			<p class="text-sm text-secondary">
+				{copy.aiTranslationEligibleCount({ count: eligibleCount() })}
+			</p>
+		</fieldset>
+		{#if !manualMode && !providerConfigured()}
 			<div class="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
 				<p>{copy.aiTranslationProviderMissing()}</p>
 				<button class="mt-2 underline" onclick={openSettings}
@@ -325,6 +451,10 @@
 				>
 			</div>
 		{/if}
+		{#if manualMode && !hasFinished}<ManualAiWorkflow
+				session={manualSession}
+				progress={progressPercent()}
+			/>{/if}
 		{#if currentMessage}
 			<div class="rounded-lg border border-color bg-accent p-4" role="status">
 				<div class="flex items-center justify-between gap-3 text-sm text-primary">
@@ -350,7 +480,7 @@
 					</p>{/if}
 			</div>
 		{/if}
-		{#if previews.length > 0}
+		{#if previews.length > 0 && (!manualMode || manualSession.ready)}
 			<details class="rounded-lg border border-color p-3" open>
 				<summary class="cursor-pointer text-sm font-medium text-primary"
 					>{copy.aiTranslationPreview()}</summary
@@ -394,10 +524,24 @@
 			</div>
 		{/if}
 		<div class="flex justify-end gap-3 border-t border-color pt-4">
-			<button class="btn px-4 py-2" onclick={closeSafely} disabled={isRunning}
+			<button class="btn px-4 py-2" onclick={closeSafely} disabled={isRunning && !manualMode}
 				>{$LL.common.close()}</button
 			>
-			{#if isRunning}
+			{#if manualMode}
+				{#if !isRunning && !hasFinished}
+					<button
+						class="{manualSession.ready ? 'btn' : 'btn-accent'} px-4 py-2"
+						onclick={manualSession.ready ? resetMode : prepareManualTranslation}
+						disabled={!manualSession.ready && eligibleCount() === 0}
+						>{manualSession.ready ? $LL.common.reset() : manualCopy.prepare()}</button
+					>
+				{/if}
+				{#if manualSession.ready && !hasFinished}
+					<button class="btn-accent px-5 py-2" onclick={applyManualTranslation}
+						>{manualCopy.applyTranslations()}</button
+					>
+				{/if}
+			{:else if isRunning}
 				<button class="btn px-4 py-2" onclick={stop} disabled={stopRequested}
 					>{copy.aiTranslationStop()}</button
 				>

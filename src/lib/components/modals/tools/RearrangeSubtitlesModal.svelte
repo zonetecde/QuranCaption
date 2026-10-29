@@ -3,6 +3,9 @@
 	import { Duration, SubtitleClip, TrackType } from '$lib/classes';
 	import { SettingsTab } from '$lib/classes/Settings.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import AiAccessTabs from '$lib/components/modals/AiAccessTabs.svelte';
+	import ManualAiWorkflow from '$lib/components/modals/ManualAiWorkflow.svelte';
+	import { ManualAiSession, type ManualAiCopy } from '$lib/services/ManualAiSession.svelte';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import type { SpeechToTextCopy } from '$lib/services/SpeechToTextService';
@@ -14,6 +17,9 @@
 
 	let { close }: { close: () => void } = $props();
 	const project = untrack(() => globalState.currentProject!);
+	let manualMode = $state(false);
+	const manualSession = new ManualAiSession();
+	const manualCopy = $derived(($LL.editor as unknown as { manualAi: ManualAiCopy }).manualAi);
 	let maxWords = $state(untrack(() => globalState.settings!.speechToTextSettings.maxWords));
 	let maxDuration = $state(untrack(() => globalState.settings!.speechToTextSettings.maxDuration));
 	let additionalPreferences = $state('');
@@ -36,7 +42,10 @@
 
 	const inputClass =
 		'w-full rounded-lg border border-color bg-primary px-3 py-2 text-sm text-primary';
-	onDestroy(() => controller.abort());
+	onDestroy(() => {
+		controller.abort();
+		manualSession.cancel();
+	});
 
 	/**
 	 * Ferme le modal et empêche toute application tardive d'un résultat.
@@ -44,6 +53,7 @@
 	 */
 	function dismiss(): void {
 		controller.abort();
+		manualSession.cancel();
 		close();
 	}
 
@@ -57,23 +67,33 @@
 		progress = 0;
 		errorMessage = '';
 		plan = null;
+		if (manualMode) manualSession.start();
 		try {
-			const result = await AnalyticsService.trackSubtitleAiRequest(
-				'subtitle_rearrangement',
-				controller.signal,
-				() =>
-					rearrangeProjectSubtitles(
-						project,
-						{ maxWords, maxDuration, additionalPreferences },
+			/** Lance le parcours choisi. @returns {Promise<SubtitleRearrangementPlan>} Aperçu validé. */
+			const run = () =>
+				rearrangeProjectSubtitles(
+					project,
+					{ maxWords, maxDuration, additionalPreferences },
+					controller.signal,
+					(value) => {
+						progress = Math.round(value * 100);
+					},
+					manualMode ? manualSession : undefined
+				);
+			const result = manualMode
+				? await run()
+				: await AnalyticsService.trackSubtitleAiRequest(
+						'subtitle_rearrangement',
 						controller.signal,
-						(value) => {
-							progress = Math.round(value * 100);
-						}
-					),
-				{ subtitles_count: subtitles.length, max_words: maxWords, max_duration: maxDuration }
-			);
-			if (!controller.signal.aborted) plan = result;
+						run,
+						{ subtitles_count: subtitles.length, max_words: maxWords, max_duration: maxDuration }
+					);
+			if (!controller.signal.aborted) {
+				plan = result;
+				if (manualMode) manualSession.finish();
+			}
 		} catch (error) {
+			if (manualMode) manualSession.cancel();
 			if (!controller.signal.aborted)
 				errorMessage = error instanceof Error ? error.message : copy.rearrangeProviderError();
 		} finally {
@@ -110,6 +130,13 @@
 		globalState.uiState.isSettingsOpen = true;
 		dismiss();
 	}
+
+	/** Invalide le découpage lorsque ses préférences ou son mode changent. @returns {void} */
+	function resetResults(): void {
+		plan = null;
+		errorMessage = '';
+		manualSession.cancel();
+	}
 </script>
 
 <div role="dialog" tabindex="-1" aria-modal="true" aria-label={copy.rearrangeTitle()}>
@@ -121,8 +148,18 @@
 		bodyClass="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto md:grid-cols-[minmax(0,1fr)_320px] md:overflow-hidden"
 	>
 		{#snippet subtitle()}{copy.rearrangeDescription()}{/snippet}
+		{#snippet afterHeader()}<AiAccessTabs
+				bind:manual={manualMode}
+				disabled={busy}
+				onchange={resetResults}
+			/>{/snippet}
 		<section class="flex min-h-0 flex-col border-b border-color md:border-b-0 md:border-e">
-			{#if plan}
+			{#if manualMode && plan}<ManualAiWorkflow session={manualSession} {progress} />{/if}
+			{#if manualMode && !plan}
+				<div class="min-h-0 overflow-y-auto">
+					<ManualAiWorkflow session={manualSession} {progress} />
+				</div>
+			{:else if plan}
 				<div class="border-b border-color px-5 py-4">
 					<h3 class="text-sm font-semibold text-primary">
 						{$LL.editor.referenceDetection.preview()}
@@ -199,7 +236,7 @@
 			{/if}
 		</section>
 		<section class="space-y-5 overflow-y-auto p-5">
-			<fieldset disabled={busy} oninput={() => (plan = null)} class="space-y-5 disabled:opacity-60">
+			<fieldset disabled={busy} oninput={resetResults} class="space-y-5 disabled:opacity-60">
 				<h3 class="text-sm font-semibold text-primary">{copy.preferences()}</h3>
 				<label class="block space-y-1 text-sm text-secondary">
 					<span>{$LL.editor.maxWordsPerSegment()}</span>
@@ -225,21 +262,23 @@
 						placeholder={copy.additionalPreferencesHint()}
 					></textarea>
 				</label>
-				<button
-					type="button"
-					onclick={openTextAiSettings}
-					class="cursor-pointer text-sm text-accent underline">{copy.textAiSettings()}</button
-				>
-				{#if !hasTextAiKey}<p class="text-xs text-thirdly">{copy.rearrangeKeyRequired()}</p>{/if}
+				{#if !manualMode}<button
+						type="button"
+						onclick={openTextAiSettings}
+						class="cursor-pointer text-sm text-accent underline">{copy.textAiSettings()}</button
+					>{/if}
+				{#if !manualMode && !hasTextAiKey}<p class="text-xs text-thirdly">
+						{copy.rearrangeKeyRequired()}
+					</p>{/if}
 			</fieldset>
 			<p class="text-xs text-thirdly">{copy.rearrangeNotice()}</p>
 			<button
 				type="button"
-				disabled={busy || !hasTextAiKey || !subtitles.length}
+				disabled={busy || (!manualMode && !hasTextAiKey) || !subtitles.length}
 				onclick={rearrange}
 				class="btn-accent w-full px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
 			>
-				{copy.rearrangeAction()}
+				{manualMode ? manualCopy.prepare() : copy.rearrangeAction()}
 			</button>
 			{#if plan}
 				<button
@@ -250,7 +289,7 @@
 					>{copy.rearrangeApplyAll()}</button
 				>
 			{/if}
-			{#if busy}
+			{#if busy && !manualMode}
 				<p role="status" class="text-sm text-secondary">{copy.rearranging()} ({progress}%)</p>
 				<p class="text-xs text-thirdly">{copy.cancelHint()}</p>
 				<button

@@ -257,6 +257,50 @@ const fr = {
 		continue: 'Continuer'
 	},
 	editor: {
+		...{
+			manualAi: {
+				method: 'Mode d’utilisation de l’IA',
+				withApi: 'Avec API',
+				withoutApi: 'Sans clé API',
+				title: 'Utilisez votre conversation IA habituelle',
+				description:
+					'Préparez les prompts ici, envoyez-les à ChatGPT ou à une autre IA, puis collez ses réponses dans le logiciel. Aucune clé d’API textuelle n’est nécessaire.',
+				copyStep: 'Copiez le prompt',
+				chatStep: 'Envoyez-le à votre IA',
+				pasteStep: 'Collez la réponse complète ici',
+				prepare: 'Préparer les prompts',
+				preparing: 'Préparation de l’étape suivante…',
+				prompt: 'Prompt',
+				responses: 'Réponses de l’IA',
+				validated: 'Réponses vérifiées :',
+				copyPrompt: 'Copier le prompt',
+				copied: 'Copié',
+				newChatHint:
+					'Collez ce prompt dans une nouvelle conversation ChatGPT. Chaque prompt contient le contexte nécessaire.',
+				openChatGpt: 'Ouvrir ChatGPT',
+				placeholder: 'Collez la réponse complète de l’IA…',
+				pasteHint:
+					'Gardez toute la réponse, y compris ses premières et dernières lignes. Le logiciel la vérifiera pour vous.',
+				validate: 'Vérifier la réponse et continuer',
+				responseValid: 'Réponse vérifiée et conservée pour cette session.',
+				responseInvalid: 'Cette réponse doit être régénérée',
+				retryHint:
+					'Copiez le prompt de correction dans une nouvelle conversation IA, puis remplacez uniquement cette réponse. Les réponses déjà vérifiées sont conservées.',
+				copyRetry: 'Copier le prompt de correction',
+				ready: 'Toutes les réponses ont été vérifiées',
+				reviewHint:
+					'Vérifiez les résultats avant de les appliquer. Vous pourrez ensuite annuler les modifications.',
+				applyTranslations: 'Appliquer les traductions',
+				invalidJson:
+					'La réponse est incomplète ou son format est illisible. Copiez la réponse entière ou régénérez-la.',
+				wrongPrompt:
+					'Cette réponse ne correspond pas à ce prompt. Utilisez le prompt de cette étape et gardez la réponse complète.',
+				prepareError: 'Le prompt n’a pas pu être préparé. Annulez cette session et réessayez.',
+				copyError:
+					'Le prompt n’a pas pu être copié. Vérifiez l’accès au presse-papiers et réessayez.',
+				openError: 'Impossible d’ouvrir ChatGPT. Ouvrez chatgpt.com dans votre navigateur.'
+			}
+		},
 		activityLog: 'Journal d’activité',
 		unknownSpeaker: 'Intervenant inconnu',
 		unknownTrack: 'Piste inconnue',

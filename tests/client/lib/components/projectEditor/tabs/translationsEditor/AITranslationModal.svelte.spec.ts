@@ -1,5 +1,7 @@
 import { cleanup, render } from 'vitest-browser-svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { invoke } from '@tauri-apps/api/core';
+import { applyAIProjectTranslationResults } from '$lib/services/AIProjectTranslationService';
 
 import { Edition } from '$lib/classes';
 import Settings from '$lib/classes/Settings.svelte';
@@ -36,6 +38,11 @@ const mocks = vi.hoisted(() => {
 	};
 });
 
+vi.mock('@tauri-apps/api/core', async (importOriginal) => ({
+	...(await importOriginal<typeof import('@tauri-apps/api/core')>()),
+	invoke: vi.fn()
+}));
+
 vi.mock('@tauri-apps/api/event', () => ({
 	listen: vi.fn(
 		async (eventName: string, callback: (event: { payload: Record<string, string> }) => void) => {
@@ -68,6 +75,74 @@ describe('AI translation modal', () => {
 		mocks.buildBatches.mockClear();
 		mocks.runBatch.mockClear();
 		mocks.validateBatch.mockClear();
+		vi.mocked(applyAIProjectTranslationResults).mockClear();
+		vi.mocked(invoke).mockResolvedValue('Translation instructions');
+	});
+
+	test('collects and retries manual replies without a key before explicitly applying all translations', async () => {
+		globalState.settings!.aiTranslationSettings.openAiApiKey = '';
+		mocks.buildBatches.mockResolvedValueOnce(
+			Array.from({ length: 2 }, (_, index) => ({
+				batchId: `manual-${index}`,
+				candidates: [{}],
+				beforeSubtitleIds: [],
+				afterSubtitleIds: [],
+				request: { b: [], i: [], a: [] },
+				wordCount: 1
+			}))
+		);
+		const edition = new Edition(
+			'test',
+			'test',
+			'French',
+			'French',
+			'ltr',
+			'project-language',
+			'',
+			'',
+			''
+		);
+		const component = render(AskIAModal, { edition, close: vi.fn() });
+		await component.getByRole('tab', { name: 'Without API key' }).click();
+		await component.getByRole('button', { name: 'Prepare prompts', exact: true }).click();
+		await expect
+			.element(component.getByRole('textbox', { name: '2. Paste the full reply here' }))
+			.toBeVisible();
+		const prompts: string[] = [];
+		const write = vi.spyOn(navigator.clipboard, 'writeText').mockImplementation(async (text) => {
+			prompts.push(text);
+		});
+		await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
+		const firstId = prompts.at(-1)!.match(/"requestId":"([^"]+)"/)![1];
+		await component
+			.getByRole('textbox', { name: '2. Paste the full reply here' })
+			.fill(JSON.stringify({ requestId: firstId, result: { i: [] } }));
+		await component.getByRole('button', { name: 'Check reply and continue' }).click();
+		await expect
+			.element(component.getByRole('button', { name: 'Prompt 2', exact: true }))
+			.toBeVisible();
+		await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
+		const secondId = prompts.at(-1)!.match(/"requestId":"([^"]+)"/)![1];
+		await component
+			.getByRole('textbox', { name: '2. Paste the full reply here' })
+			.fill('Truncated reply');
+		await component.getByRole('button', { name: 'Check reply and continue' }).click();
+		await expect.element(component.getByRole('alert')).toHaveTextContent('incomplete');
+		await component.getByRole('button', { name: 'Copy retry prompt' }).click();
+		expect(prompts.at(-1)).toContain(secondId);
+		expect(prompts.at(-1)).toContain('Validation feedback');
+		expect(prompts.at(-1)).not.toContain(firstId);
+		expect(applyAIProjectTranslationResults).not.toHaveBeenCalled();
+		await component
+			.getByRole('textbox', { name: '2. Paste the full reply here' })
+			.fill(JSON.stringify({ requestId: secondId, result: { i: [] } }));
+		await component.getByRole('button', { name: 'Check reply and continue' }).click();
+		await expect.element(component.getByText('All replies have been checked')).toBeVisible();
+		expect(mocks.runBatch).not.toHaveBeenCalled();
+		expect(invoke).toHaveBeenCalledTimes(2);
+		await component.getByRole('button', { name: 'Apply translations', exact: true }).click();
+		expect(applyAIProjectTranslationResults).toHaveBeenCalledOnce();
+		write.mockRestore();
 	});
 
 	afterEach(() => {

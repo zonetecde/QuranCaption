@@ -16,6 +16,7 @@ import { globalState } from '$lib/runes/main.svelte';
 import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { setLocale } from '$lib/i18n/i18n-svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import { ManualAiSession } from '$lib/services/ManualAiSession.svelte';
 import {
 	applySubtitleCorrections,
 	detectSubtitleCorrections
@@ -67,6 +68,42 @@ afterEach(() => {
 	ProjectHistoryManager.clear();
 	globalState.currentProject = null;
 	globalState.settings = originalSettings;
+});
+
+test('rejects stale and invalid manual corrections before retrying without a key', async () => {
+	globalState.settings!.aiTranslationSettings.openAiApiKey = '';
+	vi.mocked(invoke).mockResolvedValue('Correction instructions');
+	const session = new ManualAiSession();
+	session.start();
+	const result = detectSubtitleCorrections(project, new AbortController().signal, vi.fn(), session);
+	await vi.waitFor(() => expect(session.steps).toHaveLength(1));
+	const step = session.steps[0];
+	const requestId = step.prompt.match(/"requestId":"([^"]+)"/)![1];
+	track.clips.push(new SubtitleClip(4000, 6000, 'A new subtitle'));
+	step.response = JSON.stringify({ requestId, result: { corrections: [correction()] } });
+	session.submit();
+	expect(step.error).toContain('changed');
+	track.clips.pop();
+	step.response = JSON.stringify({
+		requestId,
+		result: { corrections: [correction({ before: 'Wrong source' })] }
+	});
+	session.submit();
+	expect(step.status).toBe('waiting');
+	step.response = JSON.stringify({ requestId, result: { corrections: [correction()] } });
+	session.submit();
+	const plan = await result;
+	expect(plan.proposals).toHaveLength(1);
+	expect((track.clips[0] as SubtitleClip).text).toBe('He read a massage.');
+	expect(invoke).toHaveBeenCalledTimes(1);
+	expect(invoke).toHaveBeenCalledWith(
+		'prepare_manual_ai_prompt',
+		expect.objectContaining({ request: expect.not.objectContaining({ apiKey: expect.anything() }) })
+	);
+	applySubtitleCorrections(project, plan, [1]);
+	expect((track.clips[0] as SubtitleClip).text).toBe('He read a message.');
+	ProjectHistoryManager.undo();
+	expect((globalState.getSubtitleTrack.clips[0] as SubtitleClip).text).toBe('He read a massage.');
 });
 
 test('previews changes without mutation and applies only approved subtitles in one undoable action', async () => {

@@ -1,4 +1,44 @@
 const editor = {
+	manualAi: {
+		method: 'AI connection method',
+		withApi: 'With API',
+		withoutApi: 'Without API key',
+		title: 'Use your usual AI chat',
+		description:
+			'Prepare prompts here, send them to ChatGPT or another AI chat, then paste its replies back. No text AI API key is needed.',
+		copyStep: 'Copy the prompt',
+		chatStep: 'Send it to your AI chat',
+		pasteStep: 'Paste the full reply here',
+		prepare: 'Prepare prompts',
+		preparing: 'Preparing the next step…',
+		prompt: 'Prompt',
+		responses: 'AI replies',
+		validated: 'Replies checked:',
+		copyPrompt: 'Copy prompt',
+		copied: 'Copied',
+		newChatHint:
+			'Paste this prompt into a new ChatGPT conversation. Each prompt includes the context it needs.',
+		openChatGpt: 'Open ChatGPT',
+		placeholder: 'Paste the AI’s complete reply…',
+		pasteHint:
+			'Keep the complete reply, including its first and last lines. The app will check it for you.',
+		validate: 'Check reply and continue',
+		responseValid: 'Reply checked and saved for this session.',
+		responseInvalid: 'This reply needs to be regenerated',
+		retryHint:
+			'Copy the retry prompt into a new AI conversation, then replace only this reply. Previously checked replies are kept.',
+		copyRetry: 'Copy retry prompt',
+		ready: 'All replies have been checked',
+		reviewHint: 'Review the results before applying them. You can undo the changes afterwards.',
+		applyTranslations: 'Apply translations',
+		invalidJson:
+			'The reply is incomplete or its format cannot be read. Copy the full reply or regenerate it.',
+		wrongPrompt:
+			'This reply does not match this prompt. Use the prompt for this step and keep the complete reply.',
+		prepareError: 'The prompt could not be prepared. Cancel this session and try again.',
+		copyError: 'The prompt could not be copied. Check clipboard access and try again.',
+		openError: 'ChatGPT could not be opened. Open chatgpt.com in your browser.'
+	},
 	activityLog: 'Activity log',
 	unknownSpeaker: 'Unknown speaker',
 	unknownTrack: 'Unknown Track',

@@ -459,6 +459,7 @@ const fr = {
 			overwriteConfirm:
 				'La timeline contient déjà des sous-titres. Les remplacer tous par une nouvelle transcription ? Ils seront conservés si la transcription échoue. Vous pouvez annuler le remplacement.',
 			openKeysPage: 'Ouvrir la page des clés API',
+			containsArabicTerms: 'L’audio peut aussi contenir des termes arabes',
 			languageHint:
 				'Laissez vide pour la détection automatique ou saisissez un code de langue, comme ar, fr ou en.',
 			textAiSettings: 'Paramètres d’IA textuelle',

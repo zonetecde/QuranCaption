@@ -35,6 +35,7 @@ export type SpeechToTextSettings = {
 	groqModel: string;
 	elevenLabsModel: string;
 	language: string;
+	containsArabicTerms: boolean;
 	maxWords: number;
 	maxDuration: number;
 	paddingBeforeMs: number;
@@ -179,6 +180,7 @@ export default class Settings extends SerializableBase {
 		groqModel: 'whisper-large-v3',
 		elevenLabsModel: 'scribe_v2',
 		language: 'ar',
+		containsArabicTerms: false,
 		maxWords: 8,
 		maxDuration: 6,
 		paddingBeforeMs: 500,

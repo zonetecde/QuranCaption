@@ -22,7 +22,8 @@
 	let settings = $state(
 		untrack(() => ({
 			...globalState.settings!.speechToTextSettings,
-			language: globalState.settings!.speechToTextSettings.language || 'ar'
+			language: globalState.settings!.speechToTextSettings.language || 'ar',
+			containsArabicTerms: globalState.settings!.speechToTextSettings.containsArabicTerms ?? false
 		}))
 	);
 	let selectedLanguage = $state(
@@ -249,6 +250,12 @@
 							class={inputClass}
 						/>
 						<p class="text-xs text-thirdly">{copy.languageHint()}</p>
+					{/if}
+					{#if settings.language.trim() && settings.language.trim() !== 'ar'}
+						<label class="flex cursor-pointer items-center gap-2">
+							<input type="checkbox" bind:checked={settings.containsArabicTerms} />
+							<span>{copy.containsArabicTerms()}</span>
+						</label>
 					{/if}
 				</div>
 				<h3 class="pt-2 text-sm font-semibold text-primary">{copy.preferences()}</h3>

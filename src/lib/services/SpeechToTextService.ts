@@ -330,7 +330,10 @@ export async function transcribeProjectAudio(
 					durationSeconds: to - from,
 					provider: options.provider,
 					apiKey,
-					language: options.language.trim(),
+					language:
+						options.language.trim() !== 'ar' && options.containsArabicTerms
+							? ''
+							: options.language.trim(),
 					model: options.provider === 'groq' ? options.groqModel : options.elevenLabsModel
 				}
 			});

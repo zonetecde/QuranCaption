@@ -455,6 +455,7 @@ const es = {
 			overwriteConfirm:
 				'La línea de tiempo ya contiene subtítulos. ¿Reemplazarlos todos con una nueva transcripción? Se conservarán si la transcripción falla. Puedes deshacer el reemplazo.',
 			openKeysPage: 'Abrir página de claves API',
+			containsArabicTerms: 'El audio también puede contener términos árabes',
 			languageHint:
 				'Déjalo vacío para la detección automática o introduce un código de idioma como ar, fr o en.',
 			textAiSettings: 'Ajustes de IA de texto',

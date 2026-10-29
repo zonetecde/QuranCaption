@@ -186,6 +186,7 @@ const editor = {
 		overwriteConfirm:
 			'This timeline already contains subtitles. Replace all existing subtitles with a new transcription? The existing subtitles will be kept if transcription fails. You can undo the replacement.',
 		openKeysPage: 'Open API keys page',
+		containsArabicTerms: 'The audio may also contain Arabic terms',
 		languageHint:
 			'Leave empty for automatic detection, or enter a language code such as ar, fr or en.',
 		textAiSettings: 'Text AI settings',

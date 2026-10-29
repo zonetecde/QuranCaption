@@ -467,6 +467,7 @@ const de = {
 			overwriteConfirm:
 				'Die Zeitleiste enthält bereits Untertitel. Alle durch eine neue Transkription ersetzen? Bei einem Fehler bleiben die vorhandenen Untertitel erhalten. Du kannst den Austausch rückgängig machen.',
 			openKeysPage: 'API-Schlüsselseite öffnen',
+			containsArabicTerms: 'Das Audio kann auch arabische Begriffe enthalten',
 			languageHint:
 				'Für automatische Erkennung leer lassen oder einen Sprachcode wie ar, fr oder en eingeben.',
 			textAiSettings: 'Text-KI-Einstellungen',

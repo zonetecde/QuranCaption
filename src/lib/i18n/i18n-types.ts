@@ -1632,6 +1632,10 @@ type RootTranslation = {
 			 */
 			openKeysPage: string;
 			/**
+			 * T​h​e​ ​a​u​d​i​o​ ​m​a​y​ ​a​l​s​o​ ​c​o​n​t​a​i​n​ ​A​r​a​b​i​c​ ​t​e​r​m​s
+			 */
+			containsArabicTerms: string;
+			/**
 			 * L​e​a​v​e​ ​e​m​p​t​y​ ​f​o​r​ ​a​u​t​o​m​a​t​i​c​ ​d​e​t​e​c​t​i​o​n​,​ ​o​r​ ​e​n​t​e​r​ ​a​ ​l​a​n​g​u​a​g​e​ ​c​o​d​e​ ​s​u​c​h​ ​a​s​ ​a​r​,​ ​f​r​ ​o​r​ ​e​n​.
 			 */
 			languageHint: string;
@@ -11927,6 +11931,10 @@ export type TranslationFunctions = {
 			 * Open API keys page
 			 */
 			openKeysPage: () => LocalizedString;
+			/**
+			 * The audio may also contain Arabic terms
+			 */
+			containsArabicTerms: () => LocalizedString;
 			/**
 			 * Leave empty for automatic detection, or enter a language code such as ar, fr or en.
 			 */

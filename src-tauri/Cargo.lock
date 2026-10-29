@@ -2827,7 +2827,7 @@ dependencies = [
 
 [[package]]
 name = "minbar-caption"
-version = "1.1.42"
+version = "1.1.43"
 dependencies = [
  "dirs",
  "discord-rich-presence",

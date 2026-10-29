@@ -1,5 +1,4 @@
 const settings = {
-	workingOnProjectWithoutSpeaker: 'Working on {name}',
 	settings: 'Settings',
 	customizeExperience: 'Customize your experience, shortcuts, and backups',
 	shortcuts: 'Shortcuts',
@@ -148,13 +147,8 @@ const settings = {
 	pressAKey: 'Press a key',
 	videoExportFinished: 'Video export finished',
 	videoExportFailed: 'Video export failed',
-	usingMinbarCaption: 'Using Minbar Caption',
-	atHomeMenu: 'At the Home Menu',
 	idle: 'Idle',
-	creatingQuranVideo: 'Creating a Quran video',
-	workingOnProject: 'Working on {name} ({speaker})',
 	workingOn: 'Working on {name}',
-	captioningStatus: 'Captioning',
 	shortcutCat: {
 		VIDEO_PREVIEW: 'Video Preview',
 		SUBTITLES_EDITOR: 'Transcription',

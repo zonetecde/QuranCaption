@@ -13,7 +13,6 @@
 	import { Status } from '$lib/classes/Status';
 	import { slide } from 'svelte/transition';
 	import MigrationService from '$lib/services/MigrationService';
-	import { discordService } from '$lib/services/DiscordService';
 	import { onDestroy } from 'svelte';
 	import Exporter from '$lib/classes/Exporter';
 	import toast from 'svelte-5-french-toast';
@@ -113,9 +112,6 @@
 		);
 		await MigrationService.hydrateStyleEditorUiMetadata(project);
 		globalState.currentProject = project;
-
-		// Discord Rich Presence
-		discordService.setEditingState();
 	}
 
 	// Gestion du menu de statut

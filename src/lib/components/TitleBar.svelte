@@ -7,7 +7,6 @@
 	import ExportService from '$lib/services/ExportService';
 	import ExportMonitor from './ExportMonitor.svelte';
 	import ModalManager from './modals/ModalManager';
-	import { discordService } from '$lib/services/DiscordService';
 	import { VersionService } from '$lib/services/VersionService.svelte';
 	import { slide, fade } from 'svelte/transition';
 	import Settings from './settings/Settings.svelte';
@@ -91,8 +90,6 @@
 					globalState.currentProject = null;
 				}
 				globalState.currentPage = 'home';
-				// Discord Rich Presence
-				discordService.setIdleState();
 			}}
 		>
 			<img

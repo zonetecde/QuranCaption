@@ -41,10 +41,6 @@ vi.mock('@tauri-apps/api/core', async (importOriginal) => ({
 	invoke: vi.fn().mockResolvedValue({})
 }));
 
-vi.mock('$lib/services/DiscordService', () => ({
-	discordService: { setEditingState: vi.fn() }
-}));
-
 beforeEach(async () => {
 	vi.mocked(invoke).mockResolvedValue({});
 	await page.viewport(1280, 900);

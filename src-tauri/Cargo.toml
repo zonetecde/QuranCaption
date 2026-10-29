@@ -1,6 +1,6 @@
 [package]
 name = "minbar-caption"
-version = "1.1.43"
+version = "1.1.44"
 description = "Transform Quranic recitations into stunning captioned videos with professional quality subtitles and translations in 40+ languages."
 authors = ["Rayane STASZEWSKI"]
 license = "Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)"
@@ -41,7 +41,6 @@ image = "0.24"
 rayon = "1.10"
 rodio = { version = "0.20.1", default-features = false, features = ["symphonia-all"] }
 pitch_shift = "2.1.0"
-discord-rich-presence = "0.2"
 fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }
 futures-util = "0.3"
 tauri-plugin-process = "2"

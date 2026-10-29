@@ -17,12 +17,6 @@ vi.mock('svelte-5-french-toast', () => ({
 	}
 }));
 
-vi.mock('$lib/services/DiscordService', () => ({
-	discordService: {
-		setEditingState: vi.fn()
-	}
-}));
-
 describe('CreateProjectModal', () => {
 	beforeEach(() => {
 		loadLocale('en');

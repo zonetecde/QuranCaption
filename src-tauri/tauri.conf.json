@@ -1,7 +1,7 @@
 {
 	"$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
 	"productName": "Minbar Caption",
-	"version": "1.1.43",
+	"version": "1.1.44",
 	"identifier": "com.minbarcaption",
 	"build": {
 		"frontendDist": "../build",

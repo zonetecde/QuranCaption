@@ -9,7 +9,6 @@
 	import TitleBar from '$lib/components/TitleBar.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import ShortcutService from '$lib/services/ShortcutService';
-	import { discordService } from '$lib/services/DiscordService';
 	import { get } from 'svelte/store';
 	import LL from '$lib/i18n/i18n-svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
@@ -72,16 +71,6 @@
 
 		// Charge les paramètres utilisateur (une seconde fois pour etre sur)
 		await Settings.load();
-
-		// Initialiser Discord Rich Presence
-		discordService
-			.init()
-			.then(() => {
-				discordService.setIdleState();
-			})
-			.catch((err) => {
-				console.error('Failed to initialize Discord Rich Presence:', err);
-			});
 
 		unlistenCloseRequest = await getCurrentWindow().onCloseRequested(handleMainWindowClose);
 	});

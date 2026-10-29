@@ -9,7 +9,6 @@ import {
 } from '$lib/classes';
 import { Quran } from '$lib/classes/Quran';
 import { globalState } from '$lib/runes/main.svelte';
-import { discordService } from '$lib/services/DiscordService';
 import { Mp3QuranService } from '$lib/services/Mp3QuranService';
 import { ProjectService } from '$lib/services/ProjectService';
 import {
@@ -113,7 +112,6 @@ export async function createAiVideoProject(): Promise<void> {
 		// Ouvre le projet en arriere-plan (l'overlay reste visible)
 		globalState.currentProject = project;
 		globalState.currentPage = 'home';
-		discordService.setEditingState();
 
 		const assetFolder = await ProjectService.getAssetFolderForProject(project.detail.id);
 		const backgroundVideoUrl =

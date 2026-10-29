@@ -11,7 +11,6 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 	import AutocompleteInput from '$lib/components/misc/AutocompleteInput.svelte';
-	import { discordService } from '$lib/services/DiscordService';
 	import { AnalyticsService } from '$lib/services/AnalyticsService';
 	import { getProjectTypeLabel } from '$lib/i18n/statusMapper';
 	import {
@@ -114,9 +113,6 @@
 
 		// Ouvre le projet
 		globalState.currentProject = project;
-
-		// Discord Rich Presence
-		discordService.setEditingState();
 
 		close();
 	}

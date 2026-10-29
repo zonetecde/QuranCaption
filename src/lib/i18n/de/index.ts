@@ -2299,7 +2299,6 @@ const de = {
 		groupTransitions: 'Übergänge'
 	},
 	settings: {
-		workingOnProjectWithoutSpeaker: 'Arbeitet an {name}',
 		settings: 'Einstellungen',
 		customizeExperience: 'Passen Sie Ihr Erlebnis, Tastenkürzel und Backups an',
 		shortcuts: 'Tastenkürzel',
@@ -2454,13 +2453,8 @@ const de = {
 		pressAKey: 'Taste drücken',
 		videoExportFinished: 'Videoexport abgeschlossen',
 		videoExportFailed: 'Videoexport fehlgeschlagen',
-		usingMinbarCaption: 'Verwendet Minbar Caption',
-		atHomeMenu: 'Im Hauptmenü',
 		idle: 'Inaktiv',
-		creatingQuranVideo: 'Erstellt ein Koranvideo',
-		workingOnProject: 'Arbeitet an {name} ({speaker})',
 		workingOn: 'Arbeitet an {name}',
-		captioningStatus: 'Untertitelung',
 		shortcutCat: {
 			VIDEO_PREVIEW: 'Videovorschau',
 			SUBTITLES_EDITOR: 'Transkription',

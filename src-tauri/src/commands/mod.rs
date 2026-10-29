@@ -2,8 +2,6 @@
 pub mod ai_translation;
 /// Commandes de diagnostic des binaires.
 pub mod diagnostics;
-/// Commandes Discord RPC.
-pub mod discord;
 /// Commandes de téléchargement externes.
 pub mod downloads;
 /// Commandes de persistance du moniteur d'exports.

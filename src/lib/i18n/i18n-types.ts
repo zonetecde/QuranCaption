@@ -8067,11 +8067,6 @@ type RootTranslation = {
 	};
 	settings: {
 		/**
-		 * W​o​r​k​i​n​g​ ​o​n​ ​{​n​a​m​e​}
-		 * @param {unknown} name
-		 */
-		workingOnProjectWithoutSpeaker: RequiredParams<'name'>;
-		/**
 		 * S​e​t​t​i​n​g​s
 		 */
 		settings: string;
@@ -8601,36 +8596,14 @@ type RootTranslation = {
 		 */
 		videoExportFailed: string;
 		/**
-		 * U​s​i​n​g​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n
-		 */
-		usingMinbarCaption: string;
-		/**
-		 * A​t​ ​t​h​e​ ​H​o​m​e​ ​M​e​n​u
-		 */
-		atHomeMenu: string;
-		/**
 		 * I​d​l​e
 		 */
 		idle: string;
-		/**
-		 * C​r​e​a​t​i​n​g​ ​a​ ​Q​u​r​a​n​ ​v​i​d​e​o
-		 */
-		creatingQuranVideo: string;
-		/**
-		 * W​o​r​k​i​n​g​ ​o​n​ ​{​n​a​m​e​}​ ​(​{​s​p​e​a​k​e​r​}​)
-		 * @param {unknown} name
-		 * @param {unknown} speaker
-		 */
-		workingOnProject: RequiredParams<'name' | 'speaker'>;
 		/**
 		 * W​o​r​k​i​n​g​ ​o​n​ ​{​n​a​m​e​}
 		 * @param {unknown} name
 		 */
 		workingOn: RequiredParams<'name'>;
-		/**
-		 * C​a​p​t​i​o​n​i​n​g
-		 */
-		captioningStatus: string;
 		shortcutCat: {
 			/**
 			 * V​i​d​e​o​ ​P​r​e​v​i​e​w
@@ -18411,10 +18384,6 @@ export type TranslationFunctions = {
 	};
 	settings: {
 		/**
-		 * Working on {name}
-		 */
-		workingOnProjectWithoutSpeaker: (arg: { name: unknown }) => LocalizedString;
-		/**
 		 * Settings
 		 */
 		settings: () => LocalizedString;
@@ -18939,33 +18908,13 @@ export type TranslationFunctions = {
 		 */
 		videoExportFailed: () => LocalizedString;
 		/**
-		 * Using Minbar Caption
-		 */
-		usingMinbarCaption: () => LocalizedString;
-		/**
-		 * At the Home Menu
-		 */
-		atHomeMenu: () => LocalizedString;
-		/**
 		 * Idle
 		 */
 		idle: () => LocalizedString;
 		/**
-		 * Creating a Quran video
-		 */
-		creatingQuranVideo: () => LocalizedString;
-		/**
-		 * Working on {name} ({speaker})
-		 */
-		workingOnProject: (arg: { name: unknown; speaker: unknown }) => LocalizedString;
-		/**
 		 * Working on {name}
 		 */
 		workingOn: (arg: { name: unknown }) => LocalizedString;
-		/**
-		 * Captioning
-		 */
-		captioningStatus: () => LocalizedString;
 		shortcutCat: {
 			/**
 			 * Video Preview

@@ -2289,7 +2289,6 @@ const fr = {
 		groupTransitions: 'Transitions'
 	},
 	settings: {
-		workingOnProjectWithoutSpeaker: 'Travail sur {name}',
 		settings: 'Paramètres',
 		customizeExperience: 'Personnalisez votre expérience, raccourcis et sauvegardes',
 		shortcuts: 'Raccourcis',
@@ -2447,13 +2446,8 @@ const fr = {
 		pressAKey: 'Appuyez sur une touche',
 		videoExportFinished: 'Export vidéo terminé',
 		videoExportFailed: "Échec de l'export vidéo",
-		usingMinbarCaption: 'Utilise Minbar Caption',
-		atHomeMenu: "Au menu d'accueil",
 		idle: 'Inactif',
-		creatingQuranVideo: "Création d'une vidéo coranique",
-		workingOnProject: 'Travail sur {name} ({speaker})',
 		workingOn: 'Travail sur {name}',
-		captioningStatus: 'Sous-titrage',
 		shortcutCat: {
 			VIDEO_PREVIEW: 'Aperçu vidéo',
 			SUBTITLES_EDITOR: 'Transcription',

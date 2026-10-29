@@ -2163,7 +2163,6 @@ const ar = {
 		groupTransitions: 'التحولات'
 	},
 	settings: {
-		workingOnProjectWithoutSpeaker: 'العمل على {name}',
 		settings: 'الإعدادات',
 		customizeExperience: 'قم بتخصيص تجربتك، والاختصارات، والنسخ الاحتياطية',
 		shortcuts: 'الاختصارات',
@@ -2314,13 +2313,8 @@ const ar = {
 		pressAKey: 'اضغط على المفتاح',
 		videoExportFinished: 'انتهى تصدير الفيديو',
 		videoExportFailed: 'فشل تصدير الفيديو',
-		usingMinbarCaption: 'استخدام Minbar Caption',
-		atHomeMenu: 'في القائمة الرئيسية',
 		idle: 'خامل',
-		creatingQuranVideo: 'إنشاء فيديو قرآني',
-		workingOnProject: 'العمل على {name} ({speaker})',
 		workingOn: 'العمل على {name}',
-		captioningStatus: 'التسمية التوضيحية',
 		shortcutCat: {
 			VIDEO_PREVIEW: 'معاينة الفيديو',
 			SUBTITLES_EDITOR: 'التفريغ النصي',

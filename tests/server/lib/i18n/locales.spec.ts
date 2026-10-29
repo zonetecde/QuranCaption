@@ -60,9 +60,6 @@ describe.each(Object.entries({ fr, ar, de, es }))(
 			await loadLocaleAsync(locale);
 			expect(loadedLocales[locale]).toEqual(dictionary);
 			expect(i18nObject(locale).editor.speaker()).toBe(dictionary.editor.speaker);
-			expect(
-				i18nObject(locale).settings.workingOnProject({ name: 'Project', speaker: 'Speaker' })
-			).toContain('Speaker');
 			expect(i18nObject(locale).export.exportTranslationReviewWarning({ count: 3 })).toContain('3');
 		});
 	}

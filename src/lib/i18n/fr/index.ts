@@ -356,6 +356,13 @@ const fr = {
 				'Installez la version officielle de FFmpeg pour votre plateforme depuis https://ffmpeg.org/download.html et ajoutez ffmpeg et ffprobe au PATH.'
 		},
 		subtitleCorrection: {
+			...{
+				warningsTitle: 'Passages de transcription à vérifier',
+				warningsDescription:
+					'Ces passages peuvent contenir des erreurs de transcription sans remplacement fiable. Écoutez-les, modifiez le texte, puis confirmez votre correction. Les passages non corrigés restent en jaune comme sous-titres de faible confiance dans la timeline et la navigation de vérification, même après fermeture de cette fenêtre.',
+				confirmCorrection: 'Confirmer la correction',
+				warningText: 'Transcription à corriger'
+			},
 			title: 'Corriger les erreurs de transcription',
 			description: 'Repérez les erreurs évidentes, puis écoutez et choisissez les corrections.',
 			start: 'Rechercher les erreurs probables',
@@ -1908,6 +1915,12 @@ const fr = {
 		textExport: 'Export texte'
 	},
 	translations: {
+		...{
+			aiTranslationNeedsReview:
+				'Certains passages doivent être vérifiés. L’éditeur affiche désormais uniquement les traductions à revoir.',
+			aiTranslationUnclearOutput:
+				'L’IA a renvoyé une note d’incertitude au lieu d’une traduction utilisable. Vérifiez le texte source, puis retraduisez ce passage.'
+		},
 		aiCost: {
 			approximation: 'Estimation basée uniquement sur la taille des entrées et sorties.',
 			unavailable:
@@ -2084,8 +2097,8 @@ const fr = {
 		translateVideoWithAi: 'Traduire la vidéo avec l’IA',
 		aiTranslationTitle: 'Traduction vidéo par IA',
 		aiTranslationScope: 'Sous-titres à traduire',
-		aiTranslationScopeMissing: 'Traductions manquantes et en échec',
-		aiTranslationScopeAi: 'Traductions manquantes, en échec et par IA',
+		aiTranslationScopeMissing: 'Traductions manquantes, en échec ou signalées à revoir',
+		aiTranslationScopeAi: 'Traductions manquantes, en échec, signalées à revoir et par IA',
 		aiTranslationScopeAll: 'Toutes les traductions, y compris manuelles',
 		aiTranslationPreferences: 'Préférences supplémentaires',
 		aiTranslationSalawatSymbol: 'Écrire les prières sur le Prophète avec ﷺ',

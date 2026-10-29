@@ -386,6 +386,7 @@ export class TranslationsEditorState extends SerializableBase {
 	// Indique le filtre actuellement appliqué dans l'éditeur de traductions
 	filters: { [statut: string]: boolean } = $state({
 		'to translate': true,
+		'to review': true,
 		'ai translated': true,
 		reviewed: true
 	});

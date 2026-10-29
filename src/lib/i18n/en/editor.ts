@@ -94,6 +94,11 @@ const editor = {
 			'Install the official FFmpeg build for your platform from https://ffmpeg.org/download.html and add both ffmpeg and ffprobe to your PATH.'
 	},
 	subtitleCorrection: {
+		warningsTitle: 'Transcription passages to verify',
+		warningsDescription:
+			'These passages may contain transcription errors with no reliable replacement. Listen, edit the text, then confirm your correction. Uncorrected passages stay yellow as low-confidence subtitles in the timeline and review navigation, even after closing this window.',
+		confirmCorrection: 'Confirm correction',
+		warningText: 'Transcription to correct',
 		title: 'Correct transcription errors',
 		description: 'Find obvious speech-to-text mistakes, then listen and choose what to correct.',
 		start: 'Find likely errors',

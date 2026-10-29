@@ -359,6 +359,13 @@ const de = {
 				'Installiere die offizielle FFmpeg-Version für deine Plattform von https://ffmpeg.org/download.html und füge ffmpeg sowie ffprobe zum PATH hinzu.'
 		},
 		subtitleCorrection: {
+			...{
+				warningsTitle: 'Zu prüfende Transkriptionsstellen',
+				warningsDescription:
+					'Diese Stellen können Transkriptionsfehler enthalten, für die kein verlässlicher Ersatz vorliegt. Hören Sie sie an, bearbeiten Sie den Text und bestätigen Sie die Korrektur. Unkorrigierte Stellen bleiben in der Zeitleiste und der Prüfnavigation gelb als Untertitel mit geringer Sicherheit markiert, auch nach dem Schließen dieses Fensters.',
+				confirmCorrection: 'Korrektur bestätigen',
+				warningText: 'Zu korrigierende Transkription'
+			},
 			title: 'Transkriptionsfehler korrigieren',
 			description: 'Finde eindeutige Erkennungsfehler, höre nach und wähle die Korrekturen aus.',
 			start: 'Wahrscheinliche Fehler suchen',
@@ -1918,6 +1925,12 @@ const de = {
 		textExport: 'Textexport'
 	},
 	translations: {
+		...{
+			aiTranslationNeedsReview:
+				'Einige Stellen müssen geprüft werden. Der Editor zeigt jetzt nur zu prüfende Übersetzungen an.',
+			aiTranslationUnclearOutput:
+				'Die KI hat einen Unsicherheitshinweis statt einer verwendbaren Übersetzung zurückgegeben. Prüfen Sie den Ausgangstext und übersetzen Sie diese Stelle erneut.'
+		},
 		aiCost: {
 			approximation: 'Schätzung nur anhand der Ein- und Ausgabegröße.',
 			unavailable:
@@ -2092,8 +2105,8 @@ const de = {
 		translateVideoWithAi: 'Video mit KI übersetzen',
 		aiTranslationTitle: 'KI-Videoübersetzung',
 		aiTranslationScope: 'Zu übersetzende Untertitel',
-		aiTranslationScopeMissing: 'Fehlende und fehlgeschlagene Übersetzungen',
-		aiTranslationScopeAi: 'Fehlende, fehlgeschlagene und KI-Übersetzungen',
+		aiTranslationScopeMissing: 'Fehlende, fehlgeschlagene und zur Prüfung markierte Übersetzungen',
+		aiTranslationScopeAi: 'Fehlende, fehlgeschlagene, zur Prüfung markierte und KI-Übersetzungen',
 		aiTranslationScopeAll: 'Alle Übersetzungen einschließlich manueller',
 		aiTranslationPreferences: 'Weitere Vorgaben',
 		aiTranslationSalawatSymbol: 'Segenswünsche für den Propheten als ﷺ schreiben',

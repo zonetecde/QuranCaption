@@ -43,6 +43,7 @@ function makePlan(): SubtitleCorrectionPlan {
 	return {
 		project,
 		snapshot: '',
+		warnings: [],
 		skipped: 0,
 		proposals: clips.map((clip, index) => ({
 			id: index + 1,
@@ -129,6 +130,53 @@ test('supports deselecting, selecting and applying all suggestions', async () =>
 	await component.getByRole('button', { name: 'Apply all corrections', exact: true }).click();
 	expect(vi.mocked(applySubtitleCorrections).mock.calls[0][2]).toEqual([1, 2]);
 	expect(close).toHaveBeenCalledOnce();
+});
+
+test('shows suggested corrections before editable warnings without a mark-as-reviewed action', async () => {
+	const plan = makePlan();
+	plan.proposals = plan.proposals.slice(0, 1);
+	plan.warnings = [
+		{ id: 2, clip: clips[1], text: clips[1].text, reason: 'Uncertain transcription.' }
+	];
+	vi.mocked(detectSubtitleCorrections).mockResolvedValue(plan);
+	const component = render(CorrectTranscriptionModal, { close: vi.fn() });
+	await component.getByRole('button', { name: 'Find likely errors' }).click();
+	const suggestion = component.getByText('He read a message.', { exact: true }).element();
+	const warning = component
+		.getByRole('textbox', { name: 'Transcription to correct 2', exact: true })
+		.element();
+	expect(
+		suggestion.compareDocumentPosition(warning) & Node.DOCUMENT_POSITION_FOLLOWING
+	).toBeTruthy();
+	expect(component.container.textContent).not.toContain('Mark as reviewed');
+});
+
+test('keeps mixed Arabic explanations in the interface direction instead of the first quoted word direction', async () => {
+	const result = makePlan();
+	result.proposals = result.proposals.slice(0, 1);
+	result.proposals[0].reason = 'اللهم is the quoted word; this explanation is in English.';
+	result.warnings = [
+		{
+			id: 2,
+			clip: clips[1],
+			text: clips[1].text,
+			reason: 'اللهم appears garbled. Listen to the recording.'
+		}
+	];
+	vi.mocked(detectSubtitleCorrections).mockResolvedValue(result);
+	const component = render(CorrectTranscriptionModal, { close: vi.fn() });
+	await component.getByRole('button', { name: 'Find likely errors' }).click();
+	for (const text of [result.proposals[0].reason, result.warnings[0].reason]) {
+		await expect.element(component.getByText(text, { exact: true })).toHaveAttribute('dir', 'ltr');
+		expect(getComputedStyle(component.getByText(text, { exact: true }).element()).direction).toBe(
+			'ltr'
+		);
+	}
+	loadLocale('ar');
+	setLocale('ar');
+	for (const text of [result.proposals[0].reason, result.warnings[0].reason]) {
+		await expect.element(component.getByText(text, { exact: true })).toHaveAttribute('dir', 'rtl');
+	}
 });
 
 test('keeps the correction preview open when applying fails', async () => {

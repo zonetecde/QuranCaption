@@ -1,4 +1,10 @@
 const translations = {
+	...{
+		aiTranslationNeedsReview:
+			'Some passages need verification. The editor now shows only translations to review.',
+		aiTranslationUnclearOutput:
+			'The AI returned an uncertainty note instead of a usable translation. Check the source wording and translate this passage again.'
+	},
 	aiCost: {
 		approximation: 'Approximation based on prompt/output size only.',
 		unavailable:
@@ -167,8 +173,8 @@ const translations = {
 	translateVideoWithAi: 'Translate video with AI',
 	aiTranslationTitle: 'AI video translation',
 	aiTranslationScope: 'Subtitles to translate',
-	aiTranslationScopeMissing: 'Missing and failed translations',
-	aiTranslationScopeAi: 'Missing, failed and AI translations',
+	aiTranslationScopeMissing: 'Missing, failed and flagged translations',
+	aiTranslationScopeAi: 'Missing, failed, flagged and AI translations',
 	aiTranslationScopeAll: 'All translations, including manual translations',
 	aiTranslationPreferences: 'Additional preferences',
 	aiTranslationSalawatSymbol: 'Write prayers on the Prophet as ﷺ',

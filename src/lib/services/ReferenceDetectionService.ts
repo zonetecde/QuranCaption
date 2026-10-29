@@ -4,7 +4,7 @@ import { SubtitleClip, TrackType } from '$lib/classes';
 import type { Project } from '$lib/classes/Project';
 import { VerseTranslation } from '$lib/classes/Translation.svelte';
 import type editor from '$lib/i18n/en/editor';
-import LL from '$lib/i18n/i18n-svelte';
+import LL, { locale } from '$lib/i18n/i18n-svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { resolveAIReasoning } from './AIReasoning';
 import type { ManualAiSession } from './ManualAiSession.svelte';
@@ -262,6 +262,7 @@ export async function detectProjectReferences(
 			.slice(0, 48)
 			.map((candidate, id) => ({ ...candidate, id }));
 		const batch = {
+			language: get(locale),
 			preferences: options,
 			editableFrom: from,
 			editableTo: to,

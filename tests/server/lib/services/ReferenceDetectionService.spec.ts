@@ -84,6 +84,8 @@ afterEach(() => {
 });
 
 test('retries an invalid manual annotation without retaining partial findings or requiring a key', async () => {
+	loadLocale('fr');
+	setLocale('fr');
 	globalState.settings!.aiTranslationSettings.openAiApiKey = '';
 	track.clips = [new SubtitleClip(0, 2000, 'He said quoted words')];
 	vi.mocked(invoke).mockResolvedValue('Reference instructions');
@@ -116,6 +118,12 @@ test('retries an invalid manual annotation without retaining partial findings or
 	expect(plan.proposals[0].id).toBe(0);
 	expect((track.clips[0] as SubtitleClip).text).toBe('He said quoted words');
 	expect(invoke).toHaveBeenCalledTimes(1);
+	expect(invoke).toHaveBeenCalledWith(
+		'prepare_manual_ai_prompt',
+		expect.objectContaining({
+			request: expect.objectContaining({ batch: expect.objectContaining({ language: 'fr' }) })
+		})
+	);
 	applyReferenceAnnotations(project, plan, [0]);
 	expect((track.clips[0] as SubtitleClip).text).toBe('He said {{quoted words}}');
 	ProjectHistoryManager.undo();
@@ -306,6 +314,8 @@ test('refuses applying a preview after subtitles have changed', async () => {
 });
 
 test('does not load Quran data when only ordinary quotations are requested', async () => {
+	loadLocale('fr');
+	setLocale('fr');
 	track.clips = [new SubtitleClip(0, 2000, 'reported words')];
 	await detectProjectReferences(
 		project,
@@ -314,6 +324,12 @@ test('does not load Quran data when only ordinary quotations are requested', asy
 		vi.fn()
 	);
 	expect(MinimalQuranProvider.getVerses).not.toHaveBeenCalled();
+	expect(invoke).toHaveBeenCalledWith(
+		'detect_subtitle_references',
+		expect.objectContaining({
+			request: expect.objectContaining({ batch: expect.objectContaining({ language: 'fr' }) })
+		})
+	);
 	expect(project.projectEditorState.subtitlesEditor.completedAiSteps.references).toBe(true);
 	ProjectHistoryManager.undo();
 	expect(globalState.getSubtitlesEditorState.completedAiSteps.references).toBe(false);

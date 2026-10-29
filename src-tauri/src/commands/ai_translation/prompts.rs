@@ -69,7 +69,7 @@ Read the entire chronological timeline before translating. Work out sentence str
 
 FAITHFULNESS AND TIMING
 - Preserve the speaker's substantive meaning, viewpoint, names, qualifications, repetitions used for emphasis, and tone. Do not summarize, censor, correct the speaker's claims, authenticate a quotation, add sources, or insert explanations.
-- Translate idiomatically rather than copying source-language syntax. Correct an obvious transcription error or false start only when the intended wording is unambiguous from the supplied source context. Otherwise retain uncertainty instead of inventing a correction.
+- Translate idiomatically rather than copying source-language syntax. Correct an obvious transcription error or false start only when the intended wording is unambiguous from the supplied source context. If garbled or ambiguous source wording prevents a faithful translation, report the item using issue instead of inventing words, translating nonsensical wording literally or silently omitting meaning. You have text only: never claim to have verified the recording.
 - Each item has durationMs and pauseBeforeMs. Prefer concise natural wording that can be read in that duration, while preserving meaning. Never sacrifice a substantive detail just to fit a length target.
 - Keep the translated meaning with the item where it is spoken. Reorder words within an item as the target grammar requires; allow only the smallest adjustment across immediately adjacent editable items when grammar requires it. Never move meaning across a pause of 1000 ms or more, a read-only item, or an unrelated clause. Never duplicate or lose meaning.
 - Punctuation and capitalization follow sentences, not item boundaries. A continuation can start with lowercase or end without punctuation. Apply the typography and spacing of the target language consistently.
@@ -92,7 +92,8 @@ INPUT AND OUTPUT CONTRACT
 - The input timeline contains editable and read-only items in chronological order. i is a batch-local identifier, not a project id. Return every editable i exactly once and no read-only item.
 - Read each item's parts in order. k=t is free text: its integer i identifies its output f slot. Include every slot, including empty ones, in the same order. k=c is a citation: its string i identifies the output c entry. k=q is Quran: its string i identifies an editable output q range when applicable. IDs for anchors are local to their item.
 - Keep every anchor in its original relative order. Translate free text in f and citation wording in c. You may distribute grammar and punctuation among that item's free-text slots, but never shift meaning into or out of a protected anchor.
-- Output exactly {"i":[{"i":0,"f":["..."],"c":[{"i":"citation-0","t":"..."}],"q":[{"i":"quran-1","s":0,"e":3}]}]}. Use empty c and q arrays when appropriate. Include every citation once and every unlocked partial Quran range once.
+- Output exactly {"i":[{"i":0,"f":["..."],"c":[{"i":"citation-0","t":"..."}],"q":[{"i":"quran-1","s":0,"e":3}],"issue":""}]}. Use empty c and q arrays when appropriate. Include every citation once and every unlocked partial Quran range once.
+- issue is an empty string for a faithful translation. If you cannot translate an item faithfully, return that editable i exactly once with f, c and q all empty arrays and a brief, specific issue explaining what needs human verification. Write issue in input.language (the application's UI language); subtitle translations use the requested target language. The application preserves its existing translation and marks it for review. Do not mix a partial translation with an issue. Review notices belong ONLY in issue: NEVER put placeholders such as [unclear phrase], [inaudible], editorial explanations or uncertainty notes in f or c.
 - Generated strings must never contain {{ or }}. Return only the JSON object, with no commentary or Markdown.
 "#;
 
@@ -226,6 +227,7 @@ pub fn build_project_translation_response_schema() -> Value {
                     "additionalProperties": false,
                     "properties": {
                         "i": { "type": "integer" },
+                        "issue": { "type": "string" },
                         "f": { "type": "array", "items": { "type": "string" } },
                         "c": {
                             "type": "array",
@@ -253,7 +255,7 @@ pub fn build_project_translation_response_schema() -> Value {
                             }
                         }
                     },
-                    "required": ["i", "f", "c", "q"]
+                    "required": ["i", "f", "c", "q", "issue"]
                 }
             }
         },

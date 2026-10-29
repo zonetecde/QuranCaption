@@ -89,16 +89,12 @@
 		globalState.getProjectTranslation.normalizeProjectLanguages();
 		const supportedStatuses = new Set([
 			'to translate',
+			'to review',
 			'ai translated',
 			'reviewed',
 			'completed by default',
 			'error'
 		]);
-		const filters = translationsEditorState().filters;
-		if (filters['to review'] !== undefined && filters['to translate'] === undefined) {
-			filters['to translate'] = filters['to review'];
-		}
-		delete filters['to review'];
 
 		for (const subtitle of globalState.getSubtitleClips) {
 			for (const language of globalState.getProjectTranslation.addedTranslationEditions) {
@@ -118,8 +114,7 @@
 					existing.clearInlineStyles();
 					existing.clearWbwRanges();
 				}
-				if (existing.status === 'to review') existing.status = 'to translate';
-				else if (!supportedStatuses.has(existing.status)) existing.status = 'to translate';
+				if (!supportedStatuses.has(existing.status)) existing.status = 'to translate';
 			}
 		}
 	}

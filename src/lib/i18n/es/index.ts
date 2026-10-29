@@ -356,6 +356,13 @@ const es = {
 				'Instala la versión oficial de FFmpeg para tu plataforma desde https://ffmpeg.org/download.html y añade ffmpeg y ffprobe a PATH.'
 		},
 		subtitleCorrection: {
+			...{
+				warningsTitle: 'Pasajes de transcripción por verificar',
+				warningsDescription:
+					'Estos pasajes pueden contener errores de transcripción sin una sustitución fiable. Escúchalos, edita el texto y confirma la corrección. Los pasajes sin corregir seguirán en amarillo como subtítulos de baja confianza en la línea de tiempo y la navegación de revisión, incluso después de cerrar esta ventana.',
+				confirmCorrection: 'Confirmar corrección',
+				warningText: 'Transcripción por corregir'
+			},
 			title: 'Corregir errores de transcripción',
 			description: 'Detecta errores claros de reconocimiento, escucha y elige qué corregir.',
 			start: 'Buscar posibles errores',
@@ -1903,6 +1910,12 @@ const es = {
 		textExport: 'Exportación de texto'
 	},
 	translations: {
+		...{
+			aiTranslationNeedsReview:
+				'Algunos pasajes necesitan verificación. El editor muestra ahora solo las traducciones por revisar.',
+			aiTranslationUnclearOutput:
+				'La IA devolvió una nota de incertidumbre en lugar de una traducción utilizable. Verifica el texto original y vuelve a traducir este pasaje.'
+		},
 		aiCost: {
 			approximation: 'Estimación basada solo en el tamaño de entrada y salida.',
 			unavailable:
@@ -2078,8 +2091,8 @@ const es = {
 		translateVideoWithAi: 'Traducir vídeo con IA',
 		aiTranslationTitle: 'Traducción de vídeo por IA',
 		aiTranslationScope: 'Subtítulos que traducir',
-		aiTranslationScopeMissing: 'Traducciones ausentes y fallidas',
-		aiTranslationScopeAi: 'Traducciones ausentes, fallidas y de IA',
+		aiTranslationScopeMissing: 'Traducciones ausentes, fallidas y señaladas para revisión',
+		aiTranslationScopeAi: 'Traducciones ausentes, fallidas, señaladas para revisión y de IA',
 		aiTranslationScopeAll: 'Todas las traducciones, incluidas las manuales',
 		aiTranslationPreferences: 'Preferencias adicionales',
 		aiTranslationSalawatSymbol: 'Escribir las oraciones sobre el Profeta como ﷺ',

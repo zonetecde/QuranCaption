@@ -24,7 +24,14 @@ export type SubtitleCorrectionPlan = {
 	project: Project;
 	snapshot: string;
 	proposals: SubtitleCorrectionProposal[];
+	warnings: SubtitleCorrectionWarning[];
 	skipped: number;
+};
+export type SubtitleCorrectionWarning = {
+	id: number;
+	clip: SubtitleClip;
+	text: string;
+	reason: string;
 };
 
 /**
@@ -37,12 +44,15 @@ function getCopy(): SubtitleCorrectionCopy {
 }
 
 /**
- * Capture la piste pour refuser un résultat périmé, y compris après undo/redo.
+ * Capture la piste sans le statut de vérification que la timeline modifie à la lecture.
  * @param {Project} project Projet analysé.
  * @returns {string} État sérialisé de la piste.
  */
 function snapshot(project: Project): string {
-	return JSON.stringify(project.content.timeline.getFirstTrack(TrackType.Subtitle).toJSON());
+	return JSON.stringify(
+		project.content.timeline.getFirstTrack(TrackType.Subtitle).toJSON(),
+		(key, value) => (key === 'hasBeenVerified' ? undefined : value)
+	);
 }
 
 /**
@@ -55,13 +65,13 @@ function assertCurrent(plan: SubtitleCorrectionPlan): void {
 	if (
 		globalState.currentProject !== plan.project ||
 		snapshot(plan.project) !== plan.snapshot ||
-		plan.proposals.some(({ clip }) => !track.clips.includes(clip))
+		[...plan.proposals, ...plan.warnings].some(({ clip }) => !track.clips.includes(clip))
 	)
 		throw new Error(getCopy().sourceChanged());
 }
 
 /**
- * Recherche uniquement les erreurs de transcription très probables sans modifier les sous-titres.
+ * Recherche les corrections certaines et signale les passages suspects sans réécrire leur texte.
  * @param {Project} project Projet à analyser.
  * @param {AbortSignal} signal Annulation de l'analyse.
  * @param {(progress: number) => void} onProgress Progression entre zéro et un.
@@ -81,6 +91,7 @@ export async function detectSubtitleCorrections(
 		project,
 		snapshot: snapshot(project),
 		proposals: [],
+		warnings: [],
 		skipped: 0
 	};
 	const subtitles = project.content.timeline
@@ -127,10 +138,14 @@ export async function detectSubtitleCorrections(
 		/**
 		 * Valide tout le lot avant de retenir ses propositions.
 		 * @param {unknown} response Réponse de l'IA.
-		 * @returns {SubtitleCorrectionProposal[]} Corrections valides.
+		 * @returns {{proposals: SubtitleCorrectionProposal[]; warnings: SubtitleCorrectionWarning[]}} Corrections et signalements valides.
 		 */
-		function validate(response: unknown): SubtitleCorrectionProposal[] {
+		function validate(response: unknown): {
+			proposals: SubtitleCorrectionProposal[];
+			warnings: SubtitleCorrectionWarning[];
+		} {
 			const proposals: SubtitleCorrectionProposal[] = [];
+			const warnings: SubtitleCorrectionWarning[] = [];
 			assertCurrent(plan);
 			signal.throwIfAborted();
 			const corrections = (response as { corrections?: unknown } | null)?.corrections;
@@ -168,12 +183,35 @@ export async function detectSubtitleCorrections(
 					reason: item.reason.slice(0, 2000)
 				});
 			}
-			return proposals;
+			const { warnings: notices = [] } = response as { warnings?: unknown };
+			if (!Array.isArray(notices) || notices.length > batch.length)
+				throw new Error(copy.invalidResponse());
+			for (const value of notices) {
+				const item = value as Record<string, unknown> | null;
+				const entry = batch.find(({ id }) => id === item?.id);
+				if (
+					!item ||
+					!Number.isInteger(item.id) ||
+					!entry?.editable ||
+					seen.has(entry.id) ||
+					item.text !== entry.text ||
+					typeof item.reason !== 'string' ||
+					!item.reason.trim()
+				)
+					throw new Error(copy.invalidResponse());
+				seen.add(entry.id);
+				warnings.push({
+					id: entry.id,
+					clip: entry.clip,
+					text: entry.text,
+					reason: item.reason.trim().slice(0, 2000)
+				});
+			}
+			return { proposals, warnings };
 		}
+		let result: ReturnType<typeof validate>;
 		if (manual) {
-			plan.proposals.push(
-				...(await manual.request('detect_subtitle_corrections', { batch: input }, validate))
-			);
+			result = await manual.request('detect_subtitle_corrections', { batch: input }, validate);
 		} else {
 			let response: unknown;
 			try {
@@ -191,22 +229,59 @@ export async function detectSubtitleCorrections(
 				signal.throwIfAborted();
 				throw new Error(copy.requestError());
 			}
-			plan.proposals.push(...validate(response));
+			result = validate(response);
 		}
+		plan.proposals.push(...result.proposals);
+		plan.warnings.push(...result.warnings);
 	}
 	assertCurrent(plan);
 	signal.throwIfAborted();
 	plan.proposals.sort((a, b) => a.id - b.id);
-	if (!project.projectEditorState.subtitlesEditor.completedAiSteps.correction)
-		ProjectHistoryManager.track(
-			copy.title(),
-			() => {
-				project.projectEditorState.subtitlesEditor.completedAiSteps.correction = true;
-			},
-			project
-		);
+	plan.warnings.sort((a, b) => a.id - b.id);
+	ProjectHistoryManager.track(
+		copy.title(),
+		() => {
+			for (const { clip } of plan.warnings) {
+				clip.needsReview = true;
+				clip.hasBeenVerified = false;
+			}
+			project.projectEditorState.subtitlesEditor.completedAiSteps.correction = true;
+		},
+		project
+	);
+	plan.snapshot = snapshot(project);
+	if (plan.warnings.length) globalState.updateVideoPreviewUI();
 	onProgress(1);
 	return plan;
+}
+
+/**
+ * Corrige un passage suspect avec le traitement existant, sans invalider les autres propositions.
+ * @param {SubtitleCorrectionPlan} plan Analyse courante.
+ * @param {number} id Identifiant du passage à corriger.
+ * @param {string} text Texte corrigé et confirmé par l'utilisateur.
+ * @returns {void}
+ */
+export function correctSubtitleCorrectionWarning(
+	plan: SubtitleCorrectionPlan,
+	id: number,
+	text: string
+): void {
+	assertCurrent(plan);
+	const warning = plan.warnings.find((item) => item.id === id);
+	const after = text.trim();
+	if (!warning || !after || after === warning.text.trim() || /[{}]/u.test(after))
+		throw new Error(getCopy().invalidSelection());
+	applySubtitleCorrections(
+		plan.project,
+		{
+			...plan,
+			proposals: [{ id, clip: warning.clip, before: warning.text, after, reason: warning.reason }]
+		},
+		[id]
+	);
+	warning.text = after;
+	plan.snapshot = snapshot(plan.project);
 }
 
 /**

@@ -24,6 +24,9 @@ describe('Translation filter categories', () => {
 		);
 		expect(new VerseTranslation('', 'error').getFilterStatus()).toBe('to translate');
 		expect(new VerseTranslation('', 'ai error').getFilterStatus()).toBe('to translate');
+		expect(new VerseTranslation('Existing translation', 'to review').getFilterStatus()).toBe(
+			'to review'
+		);
 	});
 });
 

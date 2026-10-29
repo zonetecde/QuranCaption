@@ -208,6 +208,7 @@
 		translation().setTextAndClearInlineStyles(serializeStructuredTranslation(nextDraft));
 		translation().clearWbwRanges();
 		translation().status = 'reviewed';
+		translation().reviewReason = '';
 		globalState.currentProject!.detail.updatePercentageTranslated(edition);
 		globalState.updateVideoPreviewUI();
 	}
@@ -395,6 +396,7 @@
 		translation().clearWbwRanges();
 		translation().status = 'reviewed';
 		globalState.currentProject!.detail.updatePercentageTranslated(edition);
+		translation().reviewReason = '';
 		globalState.updateVideoPreviewUI();
 	}
 
@@ -566,18 +568,39 @@
 			<span
 				class="rounded-full border px-2 py-1 text-xs {translation().status === 'ai translated'
 					? 'border-blue-500/30 bg-blue-500/15 text-blue-300'
-					: translation().isStatusComplete()
-						? 'border-green-500/30 bg-green-500/15 text-green-300'
-						: 'border-orange-500/30 bg-orange-500/15 text-orange-300'}"
+					: translation().status === 'to review'
+						? 'border-yellow-500/30 bg-yellow-500/15 text-yellow-300'
+						: translation().isStatusComplete()
+							? 'border-green-500/30 bg-green-500/15 text-green-300'
+							: 'border-orange-500/30 bg-orange-500/15 text-orange-300'}"
 			>
 				{translation().getFilterStatus() === 'ai translated'
 					? copy.aiTranslatedStatus()
-					: translation().getFilterStatus() === 'reviewed'
-						? copy.manuallyTranslatedStatus()
-						: $LL.editor.toReview()}
+					: translation().status === 'to review'
+						? $LL.status.toReview()
+						: translation().getFilterStatus() === 'reviewed'
+							? copy.manuallyTranslatedStatus()
+							: $LL.editor.toReview()}
 			</span>
 		</div>
 	</div>
+
+	{#if translation().status === 'to review' && translation().reviewReason}
+		<div
+			class="mt-3 space-y-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm text-yellow-300"
+		>
+			<p dir="auto">{translation().reviewReason}</p>
+			<button
+				type="button"
+				class="btn px-3 py-2 text-xs disabled:opacity-50"
+				disabled={!resolvedText().trim()}
+				onclick={() =>
+					ProjectHistoryManager.track('review translation', () =>
+						translation().updateStatus('reviewed', edition)
+					)}>{$LL.translations.markAsReviewed()}</button
+			>
+		</div>
+	{/if}
 
 	{#if translationsEditorState().isInlineStyleMode}
 		<div class="mt-4 rounded-lg border border-color bg-secondary p-3">

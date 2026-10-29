@@ -38,6 +38,7 @@
 		aiTranslationPreparing: () => string;
 		aiTranslationBatchProgress: (args: { current: number; total: number }) => string;
 		aiTranslationCompleted: (args: { count: number }) => string;
+		aiTranslationNeedsReview: () => string;
 		aiTranslationFailed: (args: { count: number }) => string;
 		aiTranslationProviderMissing: () => string;
 		aiTranslationScope: () => string;
@@ -85,6 +86,7 @@
 	let completedBatches = $state(0);
 	let totalBatches = $state(0);
 	let translatedSubtitles = $state(0);
+	let reviewSubtitles = $state(0);
 	let failedSubtitles = $state(0);
 	let errors = $state<string[]>([]);
 	let currentMessage = $state('');
@@ -129,6 +131,7 @@
 		totalBatches = 0;
 		completedBatches = 0;
 		translatedSubtitles = 0;
+		reviewSubtitles = 0;
 		failedSubtitles = 0;
 	}
 
@@ -143,6 +146,7 @@
 		currentMessage = '';
 		completedBatches = 0;
 		translatedSubtitles = 0;
+		reviewSubtitles = 0;
 		failedSubtitles = 0;
 		manualSuccesses = [];
 		manualOptions = { ...options };
@@ -186,7 +190,9 @@
 					index: index + 1,
 					status: 'completed',
 					texts: successes.map((success) =>
-						resolveAIProjectTranslationSuccessContext(edition, success)
+						success.reviewReason
+							? `${$LL.status.toReview()}: ${success.reviewReason}`
+							: resolveAIProjectTranslationSuccessContext(edition, success)
 					)
 				});
 			}
@@ -206,11 +212,9 @@
 		try {
 			if (globalState.currentProject !== manualProject)
 				throw new Error(copy.aiTranslationSourceChanged());
-			translatedSubtitles = applyAIProjectTranslationResults(
-				edition,
-				manualSuccesses,
-				manualOptions
-			).appliedSubtitles;
+			const report = applyAIProjectTranslationResults(edition, manualSuccesses, manualOptions);
+			translatedSubtitles = report.appliedSubtitles;
+			reviewSubtitles = report.reviewSubtitles;
 			hasFinished = true;
 			currentMessage = copy.aiTranslationCompleted({ count: translatedSubtitles });
 			await manualProject?.save(false);
@@ -260,6 +264,7 @@
 		completedBatches = 0;
 		totalBatches = 0;
 		translatedSubtitles = 0;
+		reviewSubtitles = 0;
 		failedSubtitles = 0;
 		errors = [];
 		previews = [];
@@ -312,7 +317,9 @@
 						const validation = validateAIProjectTranslationBatch(batch, response.parsed);
 						previews[batchIndex].status = validation.errors.length ? 'failed' : 'completed';
 						previews[batchIndex].texts = validation.validItems.map((success) =>
-							resolveAIProjectTranslationSuccessContext(edition, success)
+							success.reviewReason
+								? `${$LL.status.toReview()}: ${success.reviewReason}`
+								: resolveAIProjectTranslationSuccessContext(edition, success)
 						);
 						batchSuccesses[batchIndex] = validation.validItems;
 						batchErrors[batchIndex] = validation.errors;
@@ -338,11 +345,9 @@
 			if (globalState.currentProject !== project)
 				throw new Error(copy.aiTranslationSourceChanged());
 			if (successes.length > 0) {
-				translatedSubtitles = applyAIProjectTranslationResults(
-					edition,
-					successes,
-					runOptions
-				).appliedSubtitles;
+				const report = applyAIProjectTranslationResults(edition, successes, runOptions);
+				translatedSubtitles = report.appliedSubtitles;
+				reviewSubtitles = report.reviewSubtitles;
 				await project?.save(false);
 			}
 			currentMessage = stopRequested
@@ -474,6 +479,9 @@
 					</p>{/if}
 				{#if failedSubtitles > 0}<p class="mt-2 text-xs text-red-300">
 						{copy.aiTranslationFailed({ count: failedSubtitles })}
+					</p>{/if}
+				{#if reviewSubtitles > 0}<p class="mt-2 text-sm text-yellow-300">
+						{copy.aiTranslationNeedsReview()} ({reviewSubtitles})
 					</p>{/if}
 				{#if stopRequested}<p class="mt-2 text-xs text-secondary">
 						{copy.aiTranslationStopHint()}

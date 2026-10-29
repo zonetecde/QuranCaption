@@ -145,6 +145,31 @@ describe('Structured translation editor', () => {
 		expect(onTranslateWithAi).toHaveBeenCalledOnce();
 	});
 
+	test('preserves yellow review statuses and shows only pending review translations until confirmed', async () => {
+		Object.assign(globalState.currentProject!, { save: vi.fn().mockResolvedValue(undefined) });
+		const suspect = createSubtitle('Suspicious source', 'Existing safe translation');
+		const translation = suspect.translations[edition.name];
+		translation.status = 'to review';
+		translation.reviewReason = 'The source wording needs checking against the recording.';
+		const missing = createSubtitle('Missing translation source', '');
+		const completed = createSubtitle('Completed source', 'Completed translation');
+		completed.translations[edition.name].status = 'ai translated';
+		globalState.getSubtitleTrack.clips.push(suspect, missing, completed);
+		globalState.getTranslationsState.checkOnlyFilters(['to review']);
+		const component = render(Workspace, { setAddTranslationModalVisibility: vi.fn() });
+		await tick();
+		expect(translation.status).toBe('to review');
+		await expect.element(component.getByText('Suspicious source', { exact: true })).toBeVisible();
+		expect(component.container.textContent).not.toContain('Missing translation source');
+		expect(component.container.textContent).not.toContain('Completed source');
+		const badge = component.getByText('To Review', { exact: true }).element();
+		expect(badge.className).toContain('yellow');
+		await expect.element(component.getByText(translation.reviewReason)).toBeVisible();
+		await component.getByRole('button', { name: 'Mark as reviewed', exact: true }).click();
+		expect(translation.status).toBe('reviewed');
+		expect(translation.reviewReason).toBe('');
+	});
+
 	test.each([
 		{ source: 'كلام عادي', text: 'Une traduction IA.', expected: ['Une traduction IA.'] },
 		{

@@ -346,6 +346,13 @@ const ar = {
 				'ثبّت النسخة الرسمية من FFmpeg لنظامك من https://ffmpeg.org/download.html وأضف ffmpeg وffprobe إلى PATH.'
 		},
 		subtitleCorrection: {
+			...{
+				warningsTitle: 'مقاطع تفريغ تحتاج إلى التحقق',
+				warningsDescription:
+					'قد تحتوي هذه المقاطع على أخطاء في التفريغ دون بديل موثوق. استمع إليها وعدّل النص ثم أكّد التصحيح. ستبقى المقاطع غير المصححة باللون الأصفر كمقاطع منخفضة الثقة في الخط الزمني وأداة التنقل بين المقاطع المطلوب مراجعتها، حتى بعد إغلاق هذه النافذة.',
+				confirmCorrection: 'تأكيد التصحيح',
+				warningText: 'نص التفريغ المطلوب تصحيحه'
+			},
 			title: 'تصحيح أخطاء التفريغ النصي',
 			description: 'اعثر على أخطاء التعرف الواضحة، ثم استمع واختر ما تريد تصحيحه.',
 			start: 'البحث عن الأخطاء المحتملة',
@@ -1797,6 +1804,12 @@ const ar = {
 		textExport: 'تصدير النص'
 	},
 	translations: {
+		...{
+			aiTranslationNeedsReview:
+				'تحتاج بعض المقاطع إلى التحقق. يعرض المحرر الآن الترجمات التي تحتاج إلى المراجعة فقط.',
+			aiTranslationUnclearOutput:
+				'أعاد الذكاء الاصطناعي ملاحظة عن عدم الوضوح بدلاً من ترجمة قابلة للاستخدام. تحقق من النص الأصلي ثم أعد ترجمة هذا المقطع.'
+		},
 		aiCost: {
 			approximation: 'تقدير يعتمد على حجم المدخلات والمخرجات فقط.',
 			unavailable:
@@ -1965,8 +1978,9 @@ const ar = {
 		translateVideoWithAi: 'ترجمة الفيديو بالذكاء الاصطناعي',
 		aiTranslationTitle: 'ترجمة الفيديو بالذكاء الاصطناعي',
 		aiTranslationScope: 'المقاطع المطلوب ترجمتها',
-		aiTranslationScopeMissing: 'الترجمات الناقصة والفاشلة',
-		aiTranslationScopeAi: 'الترجمات الناقصة والفاشلة والمترجمة بالذكاء الاصطناعي',
+		aiTranslationScopeMissing: 'الترجمات الناقصة والفاشلة والمعلّمة للمراجعة',
+		aiTranslationScopeAi:
+			'الترجمات الناقصة والفاشلة والمعلّمة للمراجعة والمترجمة بالذكاء الاصطناعي',
 		aiTranslationScopeAll: 'جميع الترجمات بما فيها اليدوية',
 		aiTranslationPreferences: 'تفضيلات إضافية',
 		aiTranslationSalawatSymbol: 'كتابة الصلاة على النبي بالرمز ﷺ',

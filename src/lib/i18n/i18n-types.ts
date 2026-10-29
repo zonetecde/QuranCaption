@@ -1334,6 +1334,22 @@ type RootTranslation = {
 		};
 		subtitleCorrection: {
 			/**
+			 * T​r​a​n​s​c​r​i​p​t​i​o​n​ ​p​a​s​s​a​g​e​s​ ​t​o​ ​v​e​r​i​f​y
+			 */
+			warningsTitle: string;
+			/**
+			 * T​h​e​s​e​ ​p​a​s​s​a​g​e​s​ ​m​a​y​ ​c​o​n​t​a​i​n​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​e​r​r​o​r​s​ ​w​i​t​h​ ​n​o​ ​r​e​l​i​a​b​l​e​ ​r​e​p​l​a​c​e​m​e​n​t​.​ ​L​i​s​t​e​n​,​ ​e​d​i​t​ ​t​h​e​ ​t​e​x​t​,​ ​t​h​e​n​ ​c​o​n​f​i​r​m​ ​y​o​u​r​ ​c​o​r​r​e​c​t​i​o​n​.​ ​U​n​c​o​r​r​e​c​t​e​d​ ​p​a​s​s​a​g​e​s​ ​s​t​a​y​ ​y​e​l​l​o​w​ ​a​s​ ​l​o​w​-​c​o​n​f​i​d​e​n​c​e​ ​s​u​b​t​i​t​l​e​s​ ​i​n​ ​t​h​e​ ​t​i​m​e​l​i​n​e​ ​a​n​d​ ​r​e​v​i​e​w​ ​n​a​v​i​g​a​t​i​o​n​,​ ​e​v​e​n​ ​a​f​t​e​r​ ​c​l​o​s​i​n​g​ ​t​h​i​s​ ​w​i​n​d​o​w​.
+			 */
+			warningsDescription: string;
+			/**
+			 * C​o​n​f​i​r​m​ ​c​o​r​r​e​c​t​i​o​n
+			 */
+			confirmCorrection: string;
+			/**
+			 * T​r​a​n​s​c​r​i​p​t​i​o​n​ ​t​o​ ​c​o​r​r​e​c​t
+			 */
+			warningText: string;
+			/**
 			 * C​o​r​r​e​c​t​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​e​r​r​o​r​s
 			 */
 			title: string;
@@ -6732,6 +6748,14 @@ type RootTranslation = {
 		textExport: string;
 	};
 	translations: {
+		/**
+		 * S​o​m​e​ ​p​a​s​s​a​g​e​s​ ​n​e​e​d​ ​v​e​r​i​f​i​c​a​t​i​o​n​.​ ​T​h​e​ ​e​d​i​t​o​r​ ​n​o​w​ ​s​h​o​w​s​ ​o​n​l​y​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​t​o​ ​r​e​v​i​e​w​.
+		 */
+		aiTranslationNeedsReview: string;
+		/**
+		 * T​h​e​ ​A​I​ ​r​e​t​u​r​n​e​d​ ​a​n​ ​u​n​c​e​r​t​a​i​n​t​y​ ​n​o​t​e​ ​i​n​s​t​e​a​d​ ​o​f​ ​a​ ​u​s​a​b​l​e​ ​t​r​a​n​s​l​a​t​i​o​n​.​ ​C​h​e​c​k​ ​t​h​e​ ​s​o​u​r​c​e​ ​w​o​r​d​i​n​g​ ​a​n​d​ ​t​r​a​n​s​l​a​t​e​ ​t​h​i​s​ ​p​a​s​s​a​g​e​ ​a​g​a​i​n​.
+		 */
+		aiTranslationUnclearOutput: string;
 		aiCost: {
 			/**
 			 * A​p​p​r​o​x​i​m​a​t​i​o​n​ ​b​a​s​e​d​ ​o​n​ ​p​r​o​m​p​t​/​o​u​t​p​u​t​ ​s​i​z​e​ ​o​n​l​y​.
@@ -7341,11 +7365,11 @@ type RootTranslation = {
 		 */
 		aiTranslationScope: string;
 		/**
-		 * M​i​s​s​i​n​g​ ​a​n​d​ ​f​a​i​l​e​d​ ​t​r​a​n​s​l​a​t​i​o​n​s
+		 * M​i​s​s​i​n​g​,​ ​f​a​i​l​e​d​ ​a​n​d​ ​f​l​a​g​g​e​d​ ​t​r​a​n​s​l​a​t​i​o​n​s
 		 */
 		aiTranslationScopeMissing: string;
 		/**
-		 * M​i​s​s​i​n​g​,​ ​f​a​i​l​e​d​ ​a​n​d​ ​A​I​ ​t​r​a​n​s​l​a​t​i​o​n​s
+		 * M​i​s​s​i​n​g​,​ ​f​a​i​l​e​d​,​ ​f​l​a​g​g​e​d​ ​a​n​d​ ​A​I​ ​t​r​a​n​s​l​a​t​i​o​n​s
 		 */
 		aiTranslationScopeAi: string;
 		/**
@@ -11763,6 +11787,22 @@ export type TranslationFunctions = {
 			installOther: () => LocalizedString;
 		};
 		subtitleCorrection: {
+			/**
+			 * Transcription passages to verify
+			 */
+			warningsTitle: () => LocalizedString;
+			/**
+			 * These passages may contain transcription errors with no reliable replacement. Listen, edit the text, then confirm your correction. Uncorrected passages stay yellow as low-confidence subtitles in the timeline and review navigation, even after closing this window.
+			 */
+			warningsDescription: () => LocalizedString;
+			/**
+			 * Confirm correction
+			 */
+			confirmCorrection: () => LocalizedString;
+			/**
+			 * Transcription to correct
+			 */
+			warningText: () => LocalizedString;
 			/**
 			 * Correct transcription errors
 			 */
@@ -17092,6 +17132,14 @@ export type TranslationFunctions = {
 		textExport: () => LocalizedString;
 	};
 	translations: {
+		/**
+		 * Some passages need verification. The editor now shows only translations to review.
+		 */
+		aiTranslationNeedsReview: () => LocalizedString;
+		/**
+		 * The AI returned an uncertainty note instead of a usable translation. Check the source wording and translate this passage again.
+		 */
+		aiTranslationUnclearOutput: () => LocalizedString;
 		aiCost: {
 			/**
 			 * Approximation based on prompt/output size only.
@@ -17671,11 +17719,11 @@ export type TranslationFunctions = {
 		 */
 		aiTranslationScope: () => LocalizedString;
 		/**
-		 * Missing and failed translations
+		 * Missing, failed and flagged translations
 		 */
 		aiTranslationScopeMissing: () => LocalizedString;
 		/**
-		 * Missing, failed and AI translations
+		 * Missing, failed, flagged and AI translations
 		 */
 		aiTranslationScopeAi: () => LocalizedString;
 		/**

@@ -17,8 +17,10 @@ import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { setLocale } from '$lib/i18n/i18n-svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import { ManualAiSession } from '$lib/services/ManualAiSession.svelte';
+import { markClipAsVerified } from '$lib/classes/Clip.svelte';
 import {
 	applySubtitleCorrections,
+	correctSubtitleCorrectionWarning,
 	detectSubtitleCorrections
 } from '$lib/services/SubtitleCorrectionService';
 
@@ -158,6 +160,178 @@ test('omits uncertain and unchanged proposals', async () => {
 	expect(globalState.getSubtitlesEditorState.completedAiSteps.correction).toBe(false);
 	ProjectHistoryManager.redo();
 	expect(globalState.getSubtitlesEditorState.completedAiSteps.correction).toBe(true);
+});
+
+test.each(['api', 'manual'])(
+	'persists suspected transcription warnings without applying a correction via %s',
+	async (mode) => {
+		loadLocale('fr');
+		setLocale('fr');
+		const clip = track.clips[0] as SubtitleClip;
+		clip.hasBeenVerified = true;
+		const response = {
+			corrections: [],
+			warnings: [{ id: 1, text: clip.text, reason: 'Wording is garbled; listen to the recording.' }]
+		};
+		const session = mode === 'manual' ? new ManualAiSession() : undefined;
+		if (session) {
+			globalState.settings!.aiTranslationSettings.openAiApiKey = '';
+			vi.mocked(invoke).mockResolvedValue('Correction instructions');
+			session.start();
+		} else vi.mocked(invoke).mockResolvedValue(response);
+		const detecting = detectSubtitleCorrections(
+			project,
+			new AbortController().signal,
+			vi.fn(),
+			session
+		);
+		if (session) {
+			await vi.waitFor(() => expect(session.steps).toHaveLength(1));
+			const step = session.steps[0];
+			const requestId = step.prompt.match(/"requestId":"([^"]+)"/)![1];
+			step.response = JSON.stringify({ requestId, result: response });
+			session.submit();
+		}
+		const plan = await detecting;
+		expect(invoke).toHaveBeenCalledWith(
+			session ? 'prepare_manual_ai_prompt' : 'detect_subtitle_corrections',
+			expect.objectContaining({
+				request: expect.objectContaining({ batch: expect.objectContaining({ language: 'fr' }) })
+			})
+		);
+		expect(plan.proposals).toEqual([]);
+		expect(plan.warnings).toHaveLength(1);
+		expect(clip.text).toBe('He read a massage.');
+		expect(clip.needsReview).toBe(true);
+		expect(clip.hasBeenVerified).toBe(false);
+		const restored = Project.fromJSON(project.toJSON()) as Project;
+		expect(
+			(restored.content.timeline.getFirstTrack(track.type).clips[0] as SubtitleClip).needsReview
+		).toBe(true);
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect((globalState.getSubtitleTrack.clips[0] as SubtitleClip).needsReview).toBe(false);
+		ProjectHistoryManager.redo();
+		expect((globalState.getSubtitleTrack.clips[0] as SubtitleClip).needsReview).toBe(true);
+	}
+);
+
+test('can correct a warning and still apply another correction without losing pending warnings', async () => {
+	const second = new SubtitleClip(4000, 6000, 'Garbled wording');
+	const third = new SubtitleClip(7000, 9000, 'Other garbled wording');
+	track.clips.push(second, third);
+	vi.mocked(invoke).mockResolvedValue({
+		corrections: [correction()],
+		warnings: [second, third].map((clip, index) => ({
+			id: index + 2,
+			text: clip.text,
+			reason: 'Listen to confirm these words.'
+		}))
+	});
+	const plan = await detectSubtitleCorrections(project, new AbortController().signal, vi.fn());
+	correctSubtitleCorrectionWarning(plan, 2, 'Corrected wording');
+	expect(second.text).toBe('Corrected wording');
+	expect(second.needsReview).toBe(false);
+	expect(third.hasBeenVerified).toBe(false);
+	applySubtitleCorrections(project, plan, [1]);
+	expect((track.clips[0] as SubtitleClip).text).toBe('He read a message.');
+	expect(third.needsReview).toBe(true);
+	expect(third.hasBeenVerified).toBe(false);
+});
+
+test('allows confirming warning edits and existing suggestions after the timeline automatically verifies a clip', async () => {
+	const suspect = new SubtitleClip(4000, 6000, 'Garbled wording');
+	track.clips.push(suspect);
+	vi.mocked(invoke).mockResolvedValue({
+		corrections: [correction()],
+		warnings: [{ id: 2, text: suspect.text, reason: 'Listen to confirm.' }]
+	});
+	const plan = await detectSubtitleCorrections(project, new AbortController().signal, vi.fn());
+	markClipAsVerified(suspect);
+	expect(suspect.hasBeenVerified).toBe(true);
+	correctSubtitleCorrectionWarning(plan, 2, 'Corrected wording');
+	expect(suspect.text).toBe('Corrected wording');
+	markClipAsVerified(track.clips[0] as SubtitleClip);
+	expect(applySubtitleCorrections(project, plan, [1])).toBe(1);
+	expect((track.clips[0] as SubtitleClip).text).toBe('He read a message.');
+});
+
+test('allows applying suggestions directly after automatic verification without confirming a warning first', async () => {
+	const suspect = new SubtitleClip(4000, 6000, 'Garbled wording');
+	track.clips.push(suspect);
+	vi.mocked(invoke).mockResolvedValue({
+		corrections: [correction()],
+		warnings: [{ id: 2, text: suspect.text, reason: 'Listen to confirm.' }]
+	});
+	const plan = await detectSubtitleCorrections(project, new AbortController().signal, vi.fn());
+	markClipAsVerified(suspect);
+	expect(applySubtitleCorrections(project, plan, [1])).toBe(1);
+	expect(suspect.text).toBe('Garbled wording');
+});
+
+test('confirms a manual warning correction with word alignment and undo/redo', async () => {
+	const clip = track.clips[0] as SubtitleClip;
+	clip.translations.french = new VerseTranslation('Existing translation', 'reviewed');
+	clip.alignmentMetadata = {
+		source: 'api',
+		timeFrom: 1,
+		timeTo: 3,
+		matchedText: clip.text,
+		words: clip.text
+			.split(' ')
+			.map((word, index) => ({ word, start: index / 2, end: (index + 1) / 2 }))
+	};
+	vi.mocked(invoke).mockResolvedValue({
+		corrections: [],
+		warnings: [{ id: 1, text: clip.text, reason: 'Check this wording.' }]
+	});
+	const plan = await detectSubtitleCorrections(project, new AbortController().signal, vi.fn());
+	correctSubtitleCorrectionWarning(plan, 1, 'He read a message.');
+	expect(clip.text).toBe('He read a message.');
+	expect(plan.warnings[0].text).toBe('He read a message.');
+	expect(clip.needsReview).toBe(false);
+	expect(clip.startTime).toBe(1000);
+	expect(clip.endTime).toBe(3000);
+	expect(clip.alignmentMetadata.words[3]).toEqual({ word: 'message.', start: 1.5, end: 2 });
+	expect(clip.translations.french.text).toBe('Existing translation');
+	expect(() => correctSubtitleCorrectionWarning(plan, 1, 'He read a message.')).toThrow();
+	ProjectHistoryManager.undo();
+	const restored = globalState.getSubtitleTrack.clips[0] as SubtitleClip;
+	expect(restored.text).toBe('He read a massage.');
+	expect(restored.needsReview).toBe(true);
+	ProjectHistoryManager.redo();
+	expect((globalState.getSubtitleTrack.clips[0] as SubtitleClip).text).toBe('He read a message.');
+});
+
+test.each(['', '   ', '{{1:1}}', 'He read a massage.'])(
+	'rejects invalid manual warning corrections: %j',
+	async (text) => {
+		vi.mocked(invoke).mockResolvedValue({
+			corrections: [],
+			warnings: [{ id: 1, text: 'He read a massage.', reason: 'Check this wording.' }]
+		});
+		const plan = await detectSubtitleCorrections(project, new AbortController().signal, vi.fn());
+		expect(() => correctSubtitleCorrectionWarning(plan, 1, text)).toThrow();
+		expect((track.clips[0] as SubtitleClip).text).toBe('He read a massage.');
+		expect((track.clips[0] as SubtitleClip).needsReview).toBe(true);
+	}
+);
+
+test.each(
+	[
+		[{ id: 99, text: 'He read a massage.', reason: 'Suspect' }],
+		[{ id: 1, text: 'Wrong text', reason: 'Suspect' }],
+		[{ id: 1, text: 'He read a massage.', reason: '' }],
+		[
+			{ id: 1, text: 'He read a massage.', reason: 'Suspect' },
+			{ id: 1, text: 'He read a massage.', reason: 'Duplicate' }
+		]
+	].map((warnings) => ({ warnings }))
+)('rejects invalid warnings without persisting any flag: %j', async ({ warnings }) => {
+	vi.mocked(invoke).mockResolvedValue({ corrections: [], warnings });
+	await expect(
+		detectSubtitleCorrections(project, new AbortController().signal, vi.fn())
+	).rejects.toThrow();
+	expect((track.clips[0] as SubtitleClip).needsReview).toBe(false);
 });
 
 test('preserves measured word timings for one-to-one substitutions and resets them when word counts change', async () => {

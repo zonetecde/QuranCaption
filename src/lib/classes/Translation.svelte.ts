@@ -665,6 +665,7 @@ export class Translation extends SerializableBase {
 
 	// Status
 	status: TranslationStatus = $state('undefined');
+	reviewReason: string = $state('');
 
 	// Type de la traduction
 	type: 'verse' | 'predefined' | 'other' = 'other';
@@ -686,10 +687,11 @@ export class Translation extends SerializableBase {
 	}
 
 	/**
-	 * Regroupe les statuts historiques dans les trois filtres de traduction.
-	 * @returns {'to translate' | 'ai translated' | 'reviewed'} Catégorie visible dans l'éditeur.
+	 * Regroupe les statuts historiques dans les filtres de traduction.
+	 * @returns {'to translate' | 'to review' | 'ai translated' | 'reviewed'} Catégorie visible dans l'éditeur.
 	 */
-	getFilterStatus(): 'to translate' | 'ai translated' | 'reviewed' {
+	getFilterStatus(): 'to translate' | 'to review' | 'ai translated' | 'reviewed' {
+		if (this.status === 'to review') return 'to review';
 		if (this.status === 'ai translated') return 'ai translated';
 		return this.isStatusComplete() ? 'reviewed' : 'to translate';
 	}
@@ -708,6 +710,7 @@ export class Translation extends SerializableBase {
 
 	updateStatus(status: TranslationStatus, edition: Edition) {
 		this.status = status;
+		if (status !== 'to review') this.reviewReason = '';
 
 		globalState.currentProject!.detail.updatePercentageTranslated(edition);
 	}

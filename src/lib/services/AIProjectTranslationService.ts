@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { get } from 'svelte/store';
-import LL from '$lib/i18n/i18n-svelte';
+import LL, { locale } from '$lib/i18n/i18n-svelte';
 
 import type { Edition, SubtitleClip } from '$lib/classes';
 import type { IslamicTermTranslationMode } from '$lib/classes/Settings.svelte';
@@ -68,6 +68,7 @@ export type AIProjectTranslationBatch = {
 	beforeSubtitleIds: number[];
 	afterSubtitleIds: number[];
 	request: {
+		language?: string;
 		timeline: AIProjectTranslationInputItem[];
 	};
 	wordCount: number;
@@ -108,6 +109,7 @@ export type AIProjectTranslationSuccess = {
 	freeTexts: string[];
 	citations: Record<string, string>;
 	quranRanges: Record<string, { startUnitIndex: number; endUnitIndex: number }>;
+	reviewReason?: string;
 };
 
 export type AIProjectTranslationValidationReport = {
@@ -117,6 +119,7 @@ export type AIProjectTranslationValidationReport = {
 
 export type AIProjectTranslationApplyReport = {
 	appliedSubtitles: number;
+	reviewSubtitles: number;
 };
 
 /**
@@ -151,6 +154,7 @@ function shouldTranslate(
 	options: AIProjectTranslationOptions
 ): boolean {
 	if (translation.status === 'to translate') return true;
+	if (translation.status === 'to review' && translation.reviewReason) return true;
 	if (translation.status === 'error' || translation.status === 'ai error')
 		return options.retryErrors;
 	if (translation.status === 'ai translated') return options.overwriteAiTranslated;
@@ -456,7 +460,7 @@ export async function buildAIProjectTranslationBatches(
 			candidates: current,
 			beforeSubtitleIds: beforeSubtitles.map((subtitle) => subtitle.id),
 			afterSubtitleIds: afterSubtitles.map((subtitle) => subtitle.id),
-			request: { timeline },
+			request: { language: get(locale), timeline },
 			wordCount: currentWords
 		});
 		current = [];
@@ -551,6 +555,25 @@ export function validateAIProjectTranslationBatch(
 			continue;
 		}
 		seenIds.add(id);
+		const issue = item.issue === undefined ? '' : item.issue;
+		if (typeof issue !== 'string' || issue.length > 2000) {
+			errors.push(copy.invalidItem());
+			continue;
+		}
+		if (issue.trim()) {
+			if (![item.f, item.c, item.q].every((value) => Array.isArray(value) && value.length === 0)) {
+				errors.push(copy.invalidItem());
+				continue;
+			}
+			validItems.push({
+				candidate,
+				freeTexts: [],
+				citations: {},
+				quranRanges: {},
+				reviewReason: issue.trim()
+			});
+			continue;
+		}
 
 		const freeTexts = item.f;
 		if (
@@ -590,6 +613,23 @@ export function validateAIProjectTranslationBatch(
 		}
 		if (invalid || Object.keys(citations).length !== candidate.citationIds.length) {
 			errors.push(copy.citationMismatch({ id }));
+			continue;
+		}
+		// Les marqueurs d'incertitude usuels ne doivent jamais devenir du texte vidéo.
+		if (
+			[...freeTexts, ...Object.values(citations)].some((text) =>
+				/\[\s*(?:unclear(?: phrase| text| passage)?|inaudible|unintelligible|phrase peu claire|passage incompréhensible|unverständlich|unklare (?:phrase|stelle)|frase poco clara|ininteligible|غير واضح|عبارة غير واضحة)\s*\]/iu.test(
+					text
+				)
+			)
+		) {
+			validItems.push({
+				candidate,
+				freeTexts: [],
+				citations: {},
+				quranRanges: {},
+				reviewReason: Reflect.get(get(LL).translations, 'aiTranslationUnclearOutput')()
+			});
 			continue;
 		}
 
@@ -656,6 +696,7 @@ export function resolveAIProjectTranslationSuccessContext(
 	edition: Edition,
 	success: AIProjectTranslationSuccess
 ): string {
+	if (success.reviewReason) return '';
 	const draft = getStructuredTranslationDraft(
 		success.candidate.subtitle.text,
 		success.candidate.translation.text
@@ -701,10 +742,12 @@ export function resolveAIProjectTranslationSuccessContext(
 /**
  * Réinitialise les réglages manuels des occurrences Quran couvrant un verset complet.
  * @param {Edition} edition Langue cible.
+ * @param {Set<SubtitleClip>} excluded Sous-titres signalés dont la traduction doit rester intacte.
  * @returns {void}
  */
-function resetFullVerseQuranTranslations(edition: Edition): void {
+function resetFullVerseQuranTranslations(edition: Edition, excluded: Set<SubtitleClip>): void {
 	for (const subtitle of globalState.getSubtitleClips) {
+		if (excluded.has(subtitle)) continue;
 		const translation = subtitle.translations[edition.name] as VerseTranslation | undefined;
 		if (!translation?.isStructuredTranslation) continue;
 		const draft = getStructuredTranslationDraft(subtitle.text, translation.text);
@@ -765,9 +808,19 @@ export function applyAIProjectTranslationResults(
 		);
 	}
 	return ProjectHistoryManager.track('apply AI project translation', () => {
-		if (options.overwriteManualQuran) resetFullVerseQuranTranslations(edition);
+		const reviews = successes.filter((success) => success.reviewReason);
+		if (options.overwriteManualQuran)
+			resetFullVerseQuranTranslations(
+				edition,
+				new Set(reviews.map(({ candidate }) => candidate.subtitle))
+			);
 		for (const success of successes) {
 			const { candidate } = success;
+			if (success.reviewReason) {
+				candidate.translation.status = 'to review';
+				candidate.translation.reviewReason = success.reviewReason;
+				continue;
+			}
 			const draft = getStructuredTranslationDraft(
 				candidate.subtitle.text,
 				candidate.translation.text
@@ -794,10 +847,27 @@ export function applyAIProjectTranslationResults(
 				settings.manualText = '';
 			}
 			candidate.translation.status = 'ai translated';
+			candidate.translation.reviewReason = '';
+		}
+		const pendingReviews = globalState.getSubtitleClips.filter(
+			(clip) => clip.translations[edition.name]?.status === 'to review'
+		);
+		if (pendingReviews.length) {
+			const state = globalState.getTranslationsState;
+			state.filters['to translate'] ??= false;
+			state.filters['ai translated'] ??= false;
+			state.filters.reviewed ??= false;
+			state.checkOnlyFilters(['to review']);
+			state.searchQuery = '';
+			edition.showInTranslationsEditor = true;
+			globalState.shared.translationScrollTargetClipId = pendingReviews[0].id;
 		}
 		globalState.currentProject!.detail.updatePercentageTranslated(edition);
 		globalState.updateVideoPreviewUI();
-		return { appliedSubtitles: successes.length };
+		return {
+			appliedSubtitles: successes.length - reviews.length,
+			reviewSubtitles: pendingReviews.length
+		};
 	});
 }
 

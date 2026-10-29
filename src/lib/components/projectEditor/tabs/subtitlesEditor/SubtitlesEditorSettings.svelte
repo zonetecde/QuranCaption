@@ -6,6 +6,7 @@
 	import type { SpeechToTextCopy } from '$lib/services/SpeechToTextService';
 	import type { ReferenceDetectionCopy } from '$lib/services/ReferenceDetectionService';
 	import type { SubtitleCorrectionCopy } from '$lib/services/SubtitleCorrectionService';
+	import SegmentsToReview from './SegmentsToReview.svelte';
 
 	const speechCopy = $derived(
 		($LL.editor as unknown as { speechToText: SpeechToTextCopy }).speechToText
@@ -74,6 +75,7 @@
 			</div>
 		</div>
 	</div>
+	<SegmentsToReview />
 	<div class="space-y-2">
 		<button
 			type="button"

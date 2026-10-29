@@ -22,9 +22,9 @@
 		setAiTranslationEdition: (edition: Edition) => void;
 	} = $props();
 
-	let localSearchQuery = $state(globalState.getTranslationsState.searchQuery);
+	let localSearchQuery = $derived(globalState.getTranslationsState.searchQuery);
 	let searchDebounceTimer: ReturnType<typeof setTimeout> | undefined;
-	const visibleStatuses = ['to translate', 'ai translated', 'reviewed'] as const;
+	const visibleStatuses = ['to translate', 'to review', 'ai translated', 'reviewed'] as const;
 
 	/**
 	 * Applique la recherche locale au workspace.
@@ -165,9 +165,11 @@
 						<span class="min-w-0 flex-1 text-xs text-secondary font-medium">
 							{status === 'to translate'
 								? $LL.editor.toReview()
-								: status === 'ai translated'
-									? copy.aiTranslatedStatus()
-									: copy.manuallyTranslatedStatus()}
+								: status === 'to review'
+									? $LL.status.toReview()
+									: status === 'ai translated'
+										? copy.aiTranslatedStatus()
+										: copy.manuallyTranslatedStatus()}
 						</span>
 						<span class="rounded-full bg-primary px-1.5 py-0.5 text-[10px] text-thirdly">
 							{countStatus(status)}
@@ -179,9 +181,9 @@
 			<div class="grid grid-cols-2 gap-2 px-1">
 				<button
 					class="btn px-2 py-2 text-xs"
-					onclick={() => globalState.getTranslationsState.checkOnlyFilters(['to translate'])}
+					onclick={() => globalState.getTranslationsState.checkOnlyFilters(['to review'])}
 				>
-					{$LL.editor.toReview()}
+					{$LL.status.toReview()}
 				</button>
 				<button
 					class="btn px-2 py-2 text-xs"

@@ -2,7 +2,8 @@
 	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import { AssetClip, AssetType, Duration, SubtitleClip, TrackType } from '$lib/classes';
 	import { SettingsTab } from '$lib/classes/Settings.svelte';
-	import LL from '$lib/i18n/i18n-svelte';
+	import LL, { locale } from '$lib/i18n/i18n-svelte';
+	import { getLocaleDirection } from '$lib/i18n/direction';
 	import AiAccessTabs from '$lib/components/modals/AiAccessTabs.svelte';
 	import ManualAiWorkflow from '$lib/components/modals/ManualAiWorkflow.svelte';
 	import { ManualAiSession, type ManualAiCopy } from '$lib/services/ManualAiSession.svelte';
@@ -11,6 +12,7 @@
 	import {
 		detectSubtitleCorrections,
 		applySubtitleCorrections,
+		correctSubtitleCorrectionWarning,
 		type SubtitleCorrectionCopy,
 		type SubtitleCorrectionPlan
 	} from '$lib/services/SubtitleCorrectionService';
@@ -31,6 +33,7 @@
 	let appliedCount = $state<number | null>(null);
 	let plan = $state<SubtitleCorrectionPlan | null>(null);
 	let selectedIds = $state<number[]>([]);
+	let warningDrafts = $state<Record<number, string>>({});
 	let activeClip = $state<SubtitleClip | null>(null);
 	const copy = $derived(
 		($LL.editor as unknown as { subtitleCorrection: SubtitleCorrectionCopy }).subtitleCorrection
@@ -128,6 +131,7 @@
 		stopPlayback();
 		plan = null;
 		selectedIds = [];
+		warningDrafts = {};
 		appliedCount = null;
 		errorMessage = '';
 		busy = true;
@@ -154,6 +158,7 @@
 					);
 			if (controller.signal.aborted) return;
 			plan = result;
+			warningDrafts = Object.fromEntries(result.warnings.map(({ id, text }) => [id, text]));
 			if (manualMode) manualSession.finish();
 			selectedIds = result.proposals.map(({ id }) => id);
 		} catch (error) {
@@ -185,6 +190,23 @@
 		} catch (error) {
 			errorMessage = error instanceof Error ? error.message : copy.sourceChanged();
 			AnalyticsService.track('ai_transcription_correction_failed', { stage: 'applying' });
+		}
+	}
+
+	/**
+	 * Applique le texte corrigé d'un passage suspect en conservant les autres résultats.
+	 * @param {number} id Identifiant du passage suspect.
+	 * @returns {void}
+	 */
+	function correctWarning(id: number): void {
+		if (!plan || busy) return;
+		stopPlayback();
+		errorMessage = '';
+		try {
+			correctSubtitleCorrectionWarning(plan, id, warningDrafts[id]);
+			warningDrafts[id] = plan.warnings.find((warning) => warning.id === id)!.text;
+		} catch (error) {
+			errorMessage = error instanceof Error ? error.message : copy.sourceChanged();
 		}
 	}
 
@@ -229,118 +251,190 @@
 				<div class="min-h-0 overflow-y-auto">
 					<ManualAiWorkflow session={manualSession} {progress} />
 				</div>
-			{:else if plan && plan.proposals.length}
+			{:else if plan && (plan.proposals.length || plan.warnings.length)}
 				<div
 					class="flex flex-wrap items-center justify-between gap-3 border-b border-color px-5 py-4"
 				>
 					<div>
 						<h3 class="font-semibold text-primary">
-							{copy.reviewTitle()}
+							{plan.proposals.length ? copy.reviewTitle() : copy.warningsTitle()}
 							<span class="ms-2 rounded-full bg-accent px-2 py-0.5 text-sm text-accent"
-								>{plan.proposals.length}</span
+								>{plan.proposals.length + plan.warnings.length}</span
 							>
 						</h3>
 						<p class="mt-1 text-xs text-secondary">{copy.reviewDescription()}</p>
 					</div>
-					<button
-						type="button"
-						class="btn px-3 py-2 text-xs"
-						onclick={() =>
-							(selectedIds =
-								selectedIds.length === plan!.proposals.length
-									? []
-									: plan!.proposals.map(({ id }) => id))}
-					>
-						{selectedIds.length === plan.proposals.length
-							? $LL.common.deselectAll()
-							: $LL.common.selectAll()}
-					</button>
-				</div>
-				<ol class="space-y-4 p-4 md:min-h-0 md:flex-1 md:overflow-y-auto md:p-5">
-					{#each plan.proposals as proposal (proposal.id)}
-						{@const selected = selectedIds.includes(proposal.id)}
-						{@const playing = activeClip === proposal.clip && preview.isPlaying}
-						{@const hasAudio = audioClips.some(
-							(clip) =>
-								clip.startTime < proposal.clip.endTime && clip.endTime > proposal.clip.startTime
-						)}
-						<li
-							class="overflow-hidden rounded-xl border bg-primary transition-colors {selected
-								? 'border-[var(--accent-primary)]'
-								: 'border-color'}"
+					{#if plan.proposals.length}<button
+							type="button"
+							class="btn px-3 py-2 text-xs"
+							onclick={() =>
+								(selectedIds =
+									selectedIds.length === plan!.proposals.length
+										? []
+										: plan!.proposals.map(({ id }) => id))}
 						>
-							<div class="flex items-center justify-between gap-3 border-b border-color px-4 py-3">
-								<label class="flex cursor-pointer items-center gap-3 text-sm text-primary">
-									<input
-										type="checkbox"
-										value={proposal.id}
-										bind:group={selectedIds}
-										aria-label={`${copy.select()} ${proposal.id}`}
-										class="h-4 w-4 rounded accent-[var(--accent-primary)]"
-									/>
-									<span class="font-semibold">#{proposal.id}</span>
-									<span class="monospaced text-xs text-secondary"
-										>{new Duration(proposal.clip.startTime).getFormattedTime(false, true)} – {new Duration(
-											proposal.clip.endTime
-										).getFormattedTime(false, true)}</span
-									>
-								</label>
-								<button
-									type="button"
-									onclick={() => toggleAudio(proposal.clip)}
-									disabled={!hasAudio}
-									aria-label={`${playing ? copy.pause() : copy.listen()} ${proposal.id}`}
-									title={hasAudio ? copy.listenHint() : copy.noAudio()}
-									class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-accent text-accent transition hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-30"
-									aria-pressed={playing}
-								>
-									<span class="material-icons text-xl" aria-hidden="true"
-										>{playing ? 'pause' : 'play_arrow'}</span
-									>
-								</button>
-							</div>
-							<div class="grid grid-cols-1 sm:grid-cols-2">
-								<div class="space-y-2 border-b border-color p-4 sm:border-e sm:border-b-0">
-									<p class="text-xs font-medium text-secondary">{copy.original()}</p>
-									<p
-										dir="auto"
-										class="whitespace-pre-wrap break-words text-base leading-relaxed text-secondary"
-									>
-										{proposal.before}
-									</p>
-								</div>
-								<div class="space-y-2 bg-accent/30 p-4">
-									<p class="flex items-center gap-1.5 text-xs font-medium text-accent">
-										<span class="material-icons text-sm" aria-hidden="true">auto_fix_high</span
-										>{copy.corrected()}
-									</p>
-									<p
-										dir="auto"
-										class="whitespace-pre-wrap break-words text-base leading-relaxed text-primary"
-									>
-										{proposal.after}
-									</p>
-								</div>
-							</div>
-							<div
-								class="flex items-start gap-2 border-t border-color px-4 py-3 text-xs leading-relaxed text-secondary"
+							{selectedIds.length === plan.proposals.length
+								? $LL.common.deselectAll()
+								: $LL.common.selectAll()}
+						</button>{/if}
+				</div>
+				<div class="space-y-4 p-4 md:min-h-0 md:flex-1 md:overflow-y-auto md:p-5">
+					<ol class="space-y-4">
+						{#each plan.proposals as proposal (proposal.id)}
+							{@const selected = selectedIds.includes(proposal.id)}
+							{@const playing = activeClip === proposal.clip && preview.isPlaying}
+							{@const hasAudio = audioClips.some(
+								(clip) =>
+									clip.startTime < proposal.clip.endTime && clip.endTime > proposal.clip.startTime
+							)}
+							<li
+								class="overflow-hidden rounded-xl border bg-primary transition-colors {selected
+									? 'border-[var(--accent-primary)]'
+									: 'border-color'}"
 							>
-								<span class="material-icons text-base text-accent" aria-hidden="true"
-									>lightbulb</span
+								<div
+									class="flex items-center justify-between gap-3 border-b border-color px-4 py-3"
 								>
-								<p dir="auto">{proposal.reason}</p>
-							</div>
-							{#if activeClip === proposal.clip}
-								<div class="h-0.5 bg-secondary" aria-hidden="true">
-									<div
-										class="h-full bg-accent-primary transition-[width] duration-100"
-										style:width={`${Math.min(100, Math.max(0, ((timeline.cursorPosition - proposal.clip.startTime) / (proposal.clip.endTime - proposal.clip.startTime)) * 100))}%`}
-									></div>
+									<label class="flex cursor-pointer items-center gap-3 text-sm text-primary">
+										<input
+											type="checkbox"
+											value={proposal.id}
+											bind:group={selectedIds}
+											aria-label={`${copy.select()} ${proposal.id}`}
+											class="h-4 w-4 rounded accent-[var(--accent-primary)]"
+										/>
+										<span class="font-semibold">#{proposal.id}</span>
+										<span class="monospaced text-xs text-secondary"
+											>{new Duration(proposal.clip.startTime).getFormattedTime(false, true)} – {new Duration(
+												proposal.clip.endTime
+											).getFormattedTime(false, true)}</span
+										>
+									</label>
+									<button
+										type="button"
+										onclick={() => toggleAudio(proposal.clip)}
+										disabled={!hasAudio}
+										aria-label={`${playing ? copy.pause() : copy.listen()} ${proposal.id}`}
+										title={hasAudio ? copy.listenHint() : copy.noAudio()}
+										class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full bg-accent text-accent transition hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-30"
+										aria-pressed={playing}
+									>
+										<span class="material-icons text-xl" aria-hidden="true"
+											>{playing ? 'pause' : 'play_arrow'}</span
+										>
+									</button>
 								</div>
-							{/if}
-						</li>
-					{/each}
-				</ol>
+								<div class="grid grid-cols-1 sm:grid-cols-2">
+									<div class="space-y-2 border-b border-color p-4 sm:border-e sm:border-b-0">
+										<p class="text-xs font-medium text-secondary">{copy.original()}</p>
+										<p
+											dir="auto"
+											class="whitespace-pre-wrap break-words text-base leading-relaxed text-secondary"
+										>
+											{proposal.before}
+										</p>
+									</div>
+									<div class="space-y-2 bg-accent/30 p-4">
+										<p class="flex items-center gap-1.5 text-xs font-medium text-accent">
+											<span class="material-icons text-sm" aria-hidden="true">auto_fix_high</span
+											>{copy.corrected()}
+										</p>
+										<p
+											dir="auto"
+											class="whitespace-pre-wrap break-words text-base leading-relaxed text-primary"
+										>
+											{proposal.after}
+										</p>
+									</div>
+								</div>
+								<div
+									class="flex items-start gap-2 border-t border-color px-4 py-3 text-xs leading-relaxed text-secondary"
+								>
+									<span class="material-icons text-base text-accent" aria-hidden="true"
+										>lightbulb</span
+									>
+									<p dir={getLocaleDirection($locale)}>{proposal.reason}</p>
+								</div>
+								{#if activeClip === proposal.clip}
+									<div class="h-0.5 bg-secondary" aria-hidden="true">
+										<div
+											class="h-full bg-accent-primary transition-[width] duration-100"
+											style:width={`${Math.min(100, Math.max(0, ((timeline.cursorPosition - proposal.clip.startTime) / (proposal.clip.endTime - proposal.clip.startTime)) * 100))}%`}
+										></div>
+									</div>
+								{/if}
+							</li>
+						{/each}
+					</ol>
+					{#if plan.warnings.length}
+						<section class="space-y-3">
+							<h4 class="flex items-center gap-2 text-sm font-semibold text-yellow-300">
+								<span class="material-icons text-lg" aria-hidden="true">warning_amber</span
+								>{copy.warningsTitle()} ({plan.warnings.length})
+							</h4>
+							<p class="text-xs leading-relaxed text-secondary">{copy.warningsDescription()}</p>
+							{#each plan.warnings as warning (warning.id)}
+								{@const playing = activeClip === warning.clip && preview.isPlaying}
+								{@const hasAudio = audioClips.some(
+									(clip) =>
+										clip.startTime < warning.clip.endTime && clip.endTime > warning.clip.startTime
+								)}
+								<article
+									class="space-y-3 rounded-xl border bg-primary p-4 {!warning.clip.needsReview
+										? 'border-green-500/30'
+										: 'border-yellow-500/40'}"
+								>
+									<div class="flex flex-wrap items-center justify-between gap-3">
+										<p class="monospaced text-xs text-secondary">
+											#{warning.id} · {new Duration(warning.clip.startTime).getFormattedTime(
+												false,
+												true
+											)}
+										</p>
+										<div class="flex items-center gap-2">
+											<button
+												type="button"
+												onclick={() => toggleAudio(warning.clip)}
+												disabled={!hasAudio}
+												aria-label={`${playing ? copy.pause() : copy.listen()} ${warning.id}`}
+												title={hasAudio ? copy.listenHint() : copy.noAudio()}
+												class="btn flex h-9 w-9 items-center justify-center disabled:opacity-30"
+												aria-pressed={playing}
+												><span class="material-icons text-lg" aria-hidden="true"
+													>{playing ? 'pause' : 'play_arrow'}</span
+												></button
+											>
+											{#if warningDrafts[warning.id].trim() !== warning.text.trim()}<button
+													type="button"
+													onclick={() => correctWarning(warning.id)}
+													disabled={!warningDrafts[warning.id].trim() ||
+														/[{}]/u.test(warningDrafts[warning.id])}
+													class="btn-accent px-3 py-2 text-xs disabled:opacity-50"
+													>{copy.confirmCorrection()}</button
+												>{/if}
+										</div>
+									</div>
+									<label class="block space-y-2">
+										<span class="text-xs font-medium text-secondary">{copy.warningText()}</span>
+										<textarea
+											dir="auto"
+											rows="2"
+											bind:value={warningDrafts[warning.id]}
+											aria-label={`${copy.warningText()} ${warning.id}`}
+											class="w-full resize-y rounded-lg border border-color bg-secondary px-3 py-2 text-base leading-relaxed text-primary focus:border-[var(--accent-primary)]"
+										></textarea>
+									</label>
+									<p
+										dir={getLocaleDirection($locale)}
+										class="text-xs leading-relaxed text-secondary"
+									>
+										{warning.reason}
+									</p>
+								</article>
+							{/each}
+						</section>
+					{/if}
+				</div>
 			{:else}
 				<div
 					class="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 py-10 text-center md:px-14"

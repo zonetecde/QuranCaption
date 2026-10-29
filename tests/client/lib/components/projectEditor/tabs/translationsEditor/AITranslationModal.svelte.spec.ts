@@ -1,7 +1,10 @@
 import { cleanup, render } from 'vitest-browser-svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
-import { applyAIProjectTranslationResults } from '$lib/services/AIProjectTranslationService';
+import {
+	applyAIProjectTranslationResults,
+	type AIProjectTranslationSuccess
+} from '$lib/services/AIProjectTranslationService';
 
 import { Edition } from '$lib/classes';
 import Settings from '$lib/classes/Settings.svelte';
@@ -34,7 +37,10 @@ const mocks = vi.hoisted(() => {
 			});
 			return { batchId: batch.batchId, rawText: '{"i":[]}', parsed: { i: [] } };
 		}),
-		validateBatch: vi.fn(() => ({ validItems: [], errors: [] }))
+		validateBatch: vi.fn(() => ({
+			validItems: [] as AIProjectTranslationSuccess[],
+			errors: [] as string[]
+		}))
 	};
 });
 
@@ -53,7 +59,7 @@ vi.mock('@tauri-apps/api/event', () => ({
 }));
 
 vi.mock('$lib/services/AIProjectTranslationService', () => ({
-	applyAIProjectTranslationResults: vi.fn(() => ({ appliedSubtitles: 0 })),
+	applyAIProjectTranslationResults: vi.fn(() => ({ appliedSubtitles: 0, reviewSubtitles: 0 })),
 	buildAIProjectTranslationBatches: mocks.buildBatches,
 	getEligibleAIProjectTranslationSubtitles: mocks.getEligible,
 	resolveAIProjectTranslationSuccessContext: vi.fn(() => ''),
@@ -78,6 +84,66 @@ describe('AI translation modal', () => {
 		vi.mocked(applyAIProjectTranslationResults).mockClear();
 		vi.mocked(invoke).mockResolvedValue('Translation instructions');
 	});
+
+	test.each(['api', 'manual'])(
+		'shows the review summary after applying uncertain translations via %s',
+		async (mode) => {
+			mocks.validateBatch.mockReturnValueOnce({
+				validItems: [
+					{
+						candidate: {} as AIProjectTranslationSuccess['candidate'],
+						freeTexts: [],
+						citations: {},
+						quranRanges: {},
+						reviewReason: 'Source wording needs listening.'
+					}
+				],
+				errors: []
+			});
+			vi.mocked(applyAIProjectTranslationResults).mockReturnValueOnce({
+				appliedSubtitles: 0,
+				reviewSubtitles: 1
+			});
+			const edition = new Edition(
+				'test',
+				'test',
+				'French',
+				'French',
+				'ltr',
+				'project-language',
+				'',
+				'',
+				''
+			);
+			const component = render(AskIAModal, { edition, close: vi.fn() });
+			if (mode === 'manual') {
+				await component.getByRole('tab', { name: 'Without API key' }).click();
+				await component.getByRole('button', { name: 'Prepare prompts', exact: true }).click();
+				let prompt = '';
+				vi.spyOn(navigator.clipboard, 'writeText').mockImplementation(async (text) => {
+					prompt = text;
+				});
+				await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
+				const requestId = prompt.match(/"requestId":"([^"]+)"/)![1];
+				await component
+					.getByRole('textbox', { name: '2. Paste the full reply here' })
+					.fill(JSON.stringify({ requestId, result: { i: [] } }));
+				await component.getByRole('button', { name: 'Check reply and continue' }).click();
+				await expect
+					.element(component.getByText('To Review: Source wording needs listening.'))
+					.toBeVisible();
+				await component.getByRole('button', { name: 'Apply translations', exact: true }).click();
+			} else await component.getByRole('button', { name: 'Translate video', exact: true }).click();
+			await expect
+				.element(
+					component.getByText(
+						'Some passages need verification. The editor now shows only translations to review. (1)',
+						{ exact: true }
+					)
+				)
+				.toBeVisible();
+		}
+	);
 
 	test('collects and retries manual replies without a key before explicitly applying all translations', async () => {
 		globalState.settings!.aiTranslationSettings.openAiApiKey = '';

@@ -31,6 +31,9 @@
 		if (globalState.getTranslationsState.filters.error === undefined) {
 			globalState.getTranslationsState.filters.error = true;
 		}
+		if (globalState.getTranslationsState.filters.fetched === undefined) {
+			globalState.getTranslationsState.filters.fetched = false;
+		}
 	});
 
 	// Fonction pour valider le search query

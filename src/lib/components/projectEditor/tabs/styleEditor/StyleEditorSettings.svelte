@@ -467,7 +467,13 @@
 			return true;
 		if (
 			category.id === 'general' &&
-			['media-fill', 'media-scale', 'media-position-x', 'media-position-y'].includes(style.id) &&
+			[
+				'media-fill',
+				'media-scale',
+				'media-rotation',
+				'media-position-x',
+				'media-position-y'
+			].includes(style.id) &&
 			globalState.getVideoTrack.clips.length === 0
 		)
 			return true;
@@ -486,8 +492,10 @@
 		if (style.id === 'show-decorative-brackets' && selection !== 'arabic') return true;
 		if (style.id === 'decorative-brackets-font-family' && selection !== 'arabic') return true;
 		if (style.id === 'riwayah' && selection !== 'arabic') return true;
-		if (style.id === 'basmala-style' || style.id === 'basmala-scale') {
+		if (['basmala-style', 'basmala-scale', 'istiadha-style', 'istiadha-scale'].includes(style.id)) {
 			if (selection !== 'arabic') return true;
+			const isIstiadha = style.id.startsWith('istiadha-');
+			const subtitleType = isIstiadha ? "Isti'adha" : 'Basmala';
 			const selected = globalState.getStylesState.selectedSubtitles;
 			const hasUnsupportedSelection =
 				selected.length > 0
@@ -495,17 +503,18 @@
 							(clip) =>
 								!(
 									clip instanceof PredefinedSubtitleClip &&
-									clip.predefinedSubtitleType === 'Basmala'
+									clip.predefinedSubtitleType === subtitleType
 								)
 						)
 					: !globalState.getSubtitleTrack.clips.some(
 							(clip) =>
-								clip instanceof PredefinedSubtitleClip && clip.predefinedSubtitleType === 'Basmala'
+								clip instanceof PredefinedSubtitleClip &&
+								clip.predefinedSubtitleType === subtitleType
 						);
 			if (hasUnsupportedSelection) return true;
 			return (
-				style.id === 'basmala-scale' &&
-				getEffectiveStyleValues('basmala-style', category).every(
+				style.id.endsWith('-scale') &&
+				getEffectiveStyleValues(isIstiadha ? 'istiadha-style' : 'basmala-style', category).every(
 					(value) => String(value) === 'current-font'
 				)
 			);
@@ -705,7 +714,13 @@
 				return true;
 			if (id === 'reciter-size' && !isFeatureEnabled('reciter-show-arabic', category)) return true;
 			if (
-				['reciter-name-format', 'reciter-latin-spacing', 'reciter-latin-text-style'].includes(id) &&
+				['reciter-name-format', 'reciter-latin-spacing'].includes(id) &&
+				!isFeatureEnabled('reciter-show-latin', category)
+			)
+				return true;
+			if (
+				id === 'reciter-latin-text-style' &&
+				!isFeatureEnabled('reciter-show-arabic', category) &&
 				!isFeatureEnabled('reciter-show-latin', category)
 			)
 				return true;
@@ -912,9 +927,10 @@
 		if (!definitions) return [{ styles }];
 
 		const stylesById = new Map(styles.map((style) => [style.id, style]));
-		const groups = definitions
-			.map(({ id, styleIds }) => ({
+		const groups: StyleControlGroup[] = definitions
+			.map(({ id, styleIds, layerControl }) => ({
 				label: getStyleGroupCopyKey(id),
+				layerControl,
 				styles: styleIds.flatMap((styleId) => {
 					const style = stylesById.get(styleId);
 					if (!style) return [];
@@ -931,7 +947,7 @@
 			else groups.push({ label: 'groupAdvanced', styles: remainingStyles });
 		}
 
-		return groups.length > 1 ? groups : [{ styles }];
+		return groups.length > 1 || groups.some((group) => group.layerControl) ? groups : [{ styles }];
 	}
 
 	/**

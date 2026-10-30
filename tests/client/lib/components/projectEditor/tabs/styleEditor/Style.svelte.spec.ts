@@ -7,6 +7,12 @@ import NumberControl from '$lib/components/projectEditor/tabs/styleEditor/contro
 import { ProjectEditorState } from '$lib/classes/ProjectEditorState.svelte';
 import { Style } from '$lib/classes/VideoStyle.svelte';
 import { globalState } from '$lib/runes/main.svelte';
+import { ProjectContent } from '$lib/classes/ProjectContent.svelte';
+import { moveOverlayLayer } from '$lib/services/OverlayLayerService';
+import OverlayLayerControl from '$lib/components/projectEditor/tabs/styleEditor/controls/OverlayLayerControl.svelte';
+import { createRawSnippet, tick } from 'svelte';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import CompositeText from '$lib/components/projectEditor/tabs/styleEditor/CompositeText.svelte';
 
 vi.mock('svelte-5-french-toast', () => ({ default: vi.fn() }));
 vi.mock('$lib/services/undoRedo/ProjectHistoryManager', () => ({
@@ -19,7 +25,42 @@ describe('direct style controls', () => {
 	afterEach(() => {
 		cleanup();
 		vi.mocked(toast).mockClear();
+		vi.restoreAllMocks();
 		globalState.currentProject = null;
+	});
+
+	test('renders the shared rotation slider and records its changes in history', async () => {
+		const compositeDefinitions = await (await fetch('/styles/compositeStyles.json')).json();
+		globalState.currentProject = {
+			projectEditorState: new ProjectEditorState(),
+			content: new ProjectContent()
+		} as never;
+		const rotation = new Style(
+			(compositeDefinitions as Partial<Style>[]).find((style) => style.id === 'rotation')
+		);
+		const history = vi.spyOn(ProjectHistoryManager, 'track');
+		const preview = render(CompositeText, {
+			compositeStyle: new Style({ valueType: 'composite', value: [rotation] }),
+			children: createRawSnippet(() => ({ render: () => '<span>Reciter name</span>' }))
+		});
+		const component = render(StyleComponent, {
+			style: rotation,
+			disabled: false,
+			showControl: true,
+			applyValueSimple: (value) => {
+				rotation.value = value;
+			}
+		});
+		const slider = component.container.querySelector<HTMLInputElement>('input[type="range"]')!;
+		expect(slider.min).toBe('-180');
+		expect(slider.max).toBe('180');
+		expect(slider.step).toBe('1');
+		slider.value = '-45';
+		slider.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		expect(rotation.value).toBe(-45);
+		expect(getComputedStyle(preview.container.querySelector('p')!).rotate).toBe('-45deg');
+		expect(history).toHaveBeenCalledWith('set style value', expect.any(Function));
 	});
 
 	test('renders a boolean control as one flat row', () => {
@@ -87,6 +128,25 @@ describe('direct style controls', () => {
 
 		expect(onChange).not.toHaveBeenCalled();
 		expect(range.value).toBe('50');
+	});
+
+	test('keeps the bounded Z slider synchronized with context menu layer moves', async () => {
+		const content = new ProjectContent();
+		globalState.currentProject = {
+			projectEditorState: new ProjectEditorState(),
+			content
+		} as never;
+		const component = render(OverlayLayerControl, { layerId: 'arabic' });
+		const slider = component.container.querySelector<HTMLInputElement>('input[type="range"]')!;
+		expect(slider.min).toBe('1');
+		expect(slider.value).toBe('2');
+		slider.value = slider.max;
+		slider.dispatchEvent(new Event('input', { bubbles: true }));
+		await tick();
+		expect(content.overlayLayerOrder.at(-1)).toBe('arabic');
+		moveOverlayLayer('arabic', -1);
+		await tick();
+		expect(Number(slider.value)).toBe(Number(slider.max) - 1);
 	});
 
 	test('shows the interpolation notice only for the first project keyframe', async () => {

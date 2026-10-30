@@ -571,6 +571,22 @@ const es = {
 			'¿Seguro que desea eliminar el lote «{name}»? Sus {count} proyectos también se eliminarán permanentemente.'
 	},
 	editor: {
+		cloudModelBase: 'Base',
+		cloudModelLarge: 'Large',
+		cloudDeviceGpu: 'GPU',
+		cloudDeviceCpu: 'CPU',
+		segmentationHafs: 'Hafs',
+		segmentationWarsh: 'Warsh',
+		segmentationQalun: 'Qalun',
+		segmentationShuba: 'Shu‘bah',
+		overlayLayerOrder: 'Orden de capas (Z)',
+		moveLayerUp: 'Subir',
+		moveLayerDown: 'Bajar',
+		animateImageZoom: 'Zoom progresivo de la imagen',
+		imageZoomEnd: 'Zoom final',
+		appendImportedSubtitles: 'Añadir después de los subtítulos existentes',
+		appendImportedSubtitlesDescription:
+			'Conservar los subtítulos actuales y añadir los importados a continuación, ajustando sus tiempos automáticamente.',
 		videoEditor: 'Video',
 		subtitlesEditor: 'Subtítulos',
 		translations: 'Traducciones',
@@ -845,6 +861,11 @@ const es = {
 		aiTrimmingFinishedWithErrors: 'Recorte IA finalizado con errores',
 		checkActivityLog: 'Consulte el registro de actividad para más detalles.',
 		aiSegmentationFailed: 'Error de segmentación IA',
+		cloudAlignerUnavailable: 'Alineador en la nube no disponible',
+		cloudAlignerUnavailableDetails:
+			'El Space de Hugging Face no está accesible. Puede deberse a una caída de Hugging Face o a un error excepcional del Space, independientemente de Quran Caption.',
+		cloudAlignerUnavailableAdvice: 'Espera a que se restablezca el servicio y vuelve a intentarlo.',
+		cloudAlignerSpaceLink: 'Abrir el Space de Hugging Face',
 		aiSegmentationFinished: 'Segmentación IA finalizada',
 		convertToMp4Error:
 			'Por favor convierta su archivo a mp4 para usarlo en la pista de audio (este archivo está actualmente en un formato no compatible)',
@@ -968,6 +989,9 @@ const es = {
 		resetOverlay: 'Restablecer superposición',
 		noOverlay: 'Sin superposición',
 		fullscreenMode: 'Pantalla completa',
+		skipBackwardTenSeconds: 'Retroceder 10 segundos',
+		skipForwardTenSeconds: 'Avanzar 10 segundos',
+		seekVideo: 'Posición del vídeo',
 		exitFullscreen: 'Salir de pantalla completa',
 		playbackControls: 'Controles de reproducción',
 		controlHelpPreset: 'Insertar silencio, basmala u otro preajuste',
@@ -1572,6 +1596,8 @@ const es = {
 			'mushaf-style': 'Mushaf',
 			'basmala-style': 'Estilo de la basmala',
 			'basmala-scale': 'Escala de la basmala',
+			'istiadha-style': 'Estilo de la istiʿādha',
+			'istiadha-scale': 'Escala de la istiʿādha',
 			'current-font': 'Fuente actual',
 			'verse-number-format': 'Formato del número de versículo',
 			'verse-number-position': 'Posición del número de versículo',
@@ -1658,6 +1684,7 @@ const es = {
 			'line-background-color': 'Color de la barra',
 			'line-background-position': 'Posición de la barra',
 			'line-background-height': 'Altura de la barra',
+			'line-background-roundness': 'Redondez de la barra (%)',
 			effects: 'Efectos visuales',
 			opacity: 'Opacidad del texto',
 			blur: 'Efecto de desenfoque',
@@ -1670,6 +1697,7 @@ const es = {
 			'video-dimension': 'Calidad y orientación del video',
 			'media-fill': 'Llenar el encuadre',
 			'media-scale': 'Zoom',
+			'media-rotation': 'Rotación',
 			'media-position-x': 'Posición horizontal',
 			'media-position-y': 'Posición vertical',
 			'fade-duration': 'Duración del fundido de subtítulos',
@@ -1734,7 +1762,7 @@ const es = {
 			'surah-size': 'Tamaño',
 			'surah-latin-spacing': 'Espaciado',
 			'surah-opacity': 'Opacidad',
-			'surah-latin-text-style': 'Estilos de texto',
+			'surah-latin-text-style': 'Apariencia compartida',
 			'reciter-name': 'Nombre del recitador',
 			'show-reciter-name': 'Mostrar nombre del recitador',
 			'reciter-name-always-show': 'Mostrar siempre',
@@ -1748,7 +1776,7 @@ const es = {
 			'reciter-size': 'Tamaño',
 			'reciter-latin-spacing': 'Espaciado',
 			'reciter-opacity': 'Opacidad',
-			'reciter-latin-text-style': 'Estilos de texto',
+			'reciter-latin-text-style': 'Apariencia compartida',
 			'ayah-container': 'Contenedor del versículo',
 			'ayah-container-image': 'Imagen del contenedor',
 			'ayah-container-vertical-position': 'Posición vertical',
@@ -1781,6 +1809,10 @@ const es = {
 			'basmala-style': 'Usar la fuente árabe actual o elegir una de las 122 basmalas caligráficas.',
 			'basmala-scale':
 				'Escalar las basmalas predefinidas caligráficas independientemente de los demás subtítulos.',
+			'istiadha-style':
+				'Usar la fuente árabe actual o elegir una de las 16 istiʿādhas caligráficas.',
+			'istiadha-scale':
+				'Escalar las istiʿādhas caligráficas independientemente de los demás subtítulos.',
 			'verse-number-format':
 				'Modificar el formato de los números de versículos. Usar la etiqueta <number> para personalizar.',
 			'verse-number-position': 'Establecer la posición de los números de versículos',
@@ -1884,6 +1916,8 @@ const es = {
 			'line-background-color': 'Establecer el color de la barra de fondo',
 			'line-background-position': 'Ajustar la posición vertical de la barra respecto al texto',
 			'line-background-height': 'Ajustar la altura de la barra de fondo',
+			'line-background-roundness':
+				'Ajustar el redondeo: 0% para esquinas rectas, 100% para extremos totalmente redondeados',
 			effects: 'Agregar efectos visuales y filtros para mejorar la apariencia de los subtítulos',
 			opacity: 'Controlar la transparencia del texto',
 			blur: 'Aplicar un efecto de desenfoque al texto',
@@ -1891,12 +1925,13 @@ const es = {
 			contrast: 'Ajustar el contraste del texto',
 			animation: 'Agregar efectos de movimiento y transición a los subtítulos',
 			scale: 'Escalar el subtítulo',
-			rotation: 'Rotar el subtítulo en grados',
+			rotation: 'Girar el texto en grados',
 			'custom-css':
 				'Escribir CSS personalizado para los subtítulos. Usar !important si es necesario.',
 			'video-dimension': 'Calidad y orientación del video',
 			'media-fill': 'Recortar los videos e imágenes de fondo para llenar todo el encuadre',
 			'media-scale': 'Ampliar el medio de fondo',
+			'media-rotation': 'Girar el medio de fondo en grados',
 			'media-position-x': 'Mover el medio de fondo horizontalmente respecto al centro',
 			'media-position-y': 'Mover el medio de fondo verticalmente respecto al centro',
 			'fade-duration': 'Duración del efecto de fundido entrada/salida en milisegundos',
@@ -1956,7 +1991,8 @@ const es = {
 			'surah-latin-spacing':
 				'Ajustar el espaciado entre el nombre árabe de la sura y su equivalente latino',
 			'surah-opacity': 'Ajustar la opacidad del nombre de la sura',
-			'surah-latin-text-style': 'Estilo para la transliteración latina del nombre de la sura',
+			'surah-latin-text-style':
+				'Apariencia compartida por la caligrafía árabe y el texto latino; la fuente, el tamaño y las mayúsculas solo afectan al texto latino.',
 			'reciter-name': 'Controlar la visualización del nombre del recitador',
 			'show-reciter-name': 'Mostrar u ocultar el nombre del recitador',
 			'reciter-name-always-show': 'Mostrar siempre el nombre del recitador (ignorar temporización)',
@@ -1974,7 +2010,8 @@ const es = {
 			'reciter-latin-spacing':
 				'Ajustar el espaciado entre el nombre árabe del recitador y su equivalente latino',
 			'reciter-opacity': 'Ajustar la opacidad del nombre del recitador',
-			'reciter-latin-text-style': 'Estilo para la transliteración latina del nombre del recitador',
+			'reciter-latin-text-style':
+				'Apariencia compartida por la caligrafía árabe y el texto latino; la fuente, el tamaño y las mayúsculas solo afectan al texto latino.',
 			'ayah-container': 'Agregar una imagen de fondo decorativa detrás del versículo',
 			'ayah-container-image': 'Seleccionar una imagen de contenedor decorativa para el versículo',
 			'ayah-container-vertical-position':
@@ -2211,6 +2248,15 @@ const es = {
 		youtubeChaptersDescription: 'Lista de capítulos con marcas de tiempo',
 		projectDataOption: 'Datos del proyecto',
 		projectDataDescription: 'Exportar los datos brutos del proyecto',
+		generateThumbnail: 'Generar miniatura',
+		thumbnailDescription:
+			'El botón de abajo abre Quran Thumbnails, un sitio creado por @sadaalayat en Discord para crear miniaturas rápidamente. Los datos de tu proyecto se rellenarán automáticamente.',
+		thumbnailSummary: 'Datos de la miniatura',
+		thumbnailTranslationLanguage: 'Idioma de traducción',
+		thumbnailOpen: 'Abrir Quran Thumbnails',
+		thumbnailOpenError: 'No se pudo abrir Quran Thumbnails.',
+		thumbnailTemplates: 'Elegir una plantilla',
+		thumbnailTemplatesError: 'No se pudieron cargar las plantillas de Quran Thumbnails.',
 		exportSubtitlesHeading: 'Exportar subtítulos',
 		exportSubtitlesDescription: 'Exporte los subtítulos de su proyecto en diferentes formatos.',
 		subtitleFormat: 'Formato de subtítulos',
@@ -2234,7 +2280,8 @@ const es = {
 		uthmani1405: 'Mushaf 1405H por Uthman Taha',
 		uthmani1423: 'Mushaf 1423H por Uthman Taha',
 		exportFolder: 'Carpeta de exportación',
-		exportFolderDescription: 'Elija dónde se guardarán sus archivos exportados.',
+		exportFolderDescription:
+			'Todos los archivos exportados se guardan automáticamente en la carpeta Descargas de su dispositivo.',
 		exportSubtitlesButton: 'Exportar subtítulos',
 		exportSubtitlesButtonDescription: 'Generar archivos de subtítulos con su configuración',
 		exportYoutubeChapters: 'Exportar capítulos YouTube',
@@ -2508,7 +2555,8 @@ const es = {
 		presetsSubtitle: 'Biblioteca local y estilos comunitarios',
 		backToStylePresets: 'Volver a presets de estilo',
 		backToStyleEditor: 'Volver al editor de estilo',
-		saveLocally: 'Guardar localmente',
+		saveLocally: 'Nuevo',
+		updatePreset: 'Actualizar',
 		sortNewest: 'Más reciente',
 		sortMostDownloaded: 'Más descargado',
 		sortMostLiked: 'Más gustado',
@@ -2559,6 +2607,9 @@ const es = {
 		fontControlledByMushaf: 'Esta fuente está controlada por el Mushaf seleccionado.',
 		groupBasics: 'Básico',
 		groupTypography: 'Tipografía',
+		groupArabicCalligraphy: 'Caligrafía árabe',
+		groupLatinText: 'Texto latino',
+		groupSharedAppearance: 'Apariencia compartida',
 		groupColors: 'Colores',
 		groupSpacing: 'Espaciado',
 		groupLayout: 'Disposición',
@@ -2592,6 +2643,8 @@ const es = {
 		huggingFaceConnectedBadge: 'HF conectado',
 		huggingFaceConfigureBadge: 'Añadir token HF',
 		huggingFaceInvalidToken: 'Este token no es válido o ha sido revocado.',
+		huggingFaceInvalidTokenFallback:
+			'Su token de Hugging Face no es v?lido o ha sido revocado. Genere uno nuevo y actual?celo en los ajustes. La segmentaci?n continuar? sin este token.',
 		huggingFaceConnect: 'Añadir token',
 		huggingFaceDisconnect: 'Desconectar',
 		huggingFaceCreateToken: 'Crear un token gratuito',
@@ -2957,6 +3010,15 @@ const es = {
 		restart: 'Reiniciar'
 	},
 	tools: {
+		mediaSpeed: 'Cambiar velocidad del medio',
+		mediaSpeedDescription:
+			'Ralentiza o acelera un archivo de audio o vídeo o un clip de la línea de tiempo.',
+		mediaSpeedScale: '−3: 3× más lento · 0: normal · +3: 3× más rápido',
+		mediaSpeedHint:
+			'Se añade un archivo nuevo a los recursos. El clip seleccionado en la línea de tiempo lo utiliza y ajusta su duración.',
+		mediaSpeedAdaptSubtitles: 'Adaptar los subtítulos a la nueva duración del audio',
+		mediaSpeedSuccess: 'Medio con la nueva velocidad añadido al proyecto.',
+		mediaSpeedFailed: 'No se pudo cambiar la velocidad del medio: {error}',
 		hifzRepetition: 'Repetición Hifz',
 		hifzDescription: 'Repetir los subtítulos existentes y generar el audio correspondiente',
 		hifzBody:
@@ -3329,6 +3391,7 @@ const es = {
 	},
 	exporterMonitor: {
 		exportsMonitor: 'Monitor de exportaciones',
+		downloadsHint: 'Todas las exportaciones se guardan en la carpeta Descargas.',
 		closeExportMonitor: 'Cerrar monitor de exportaciones',
 		cancelExport: 'Cancelar exportación',
 		cancelExportConfirm:
@@ -3358,6 +3421,7 @@ const es = {
 		stateRendering: 'Renderizando vídeo',
 		stateMerging: 'Combinando archivos',
 		stateCapturing: 'Capturando fotogramas',
+		capturedFrames: 'Fotogramas capturados',
 		stateInitializing: 'Inicializando',
 		stateExported: 'Exportado',
 		stateError: 'Error',

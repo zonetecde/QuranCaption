@@ -1,5 +1,8 @@
 import type { ProjectContent } from '../ProjectContent.svelte.js';
-import { ensureCustomStyleSchema } from '$lib/services/ProjectStyleContentService';
+import {
+	ensureCustomStyleSchema,
+	getCustomStyleClips
+} from '$lib/services/ProjectStyleContentService';
 import {
 	loadCompositeStyleDefinitions,
 	loadCustomStyleCategoryDefinition,
@@ -11,6 +14,7 @@ import { Style } from './Style.svelte.js';
 import { StylesData } from './StylesData.svelte.js';
 import { getNonArabicSubtitleCategories } from './styleRuntime.js';
 import { getTimedOverlayRangesFromStyles } from '$lib/services/TimedOverlayRanges';
+import { ensureOverlayLayerOrder } from '$lib/services/OverlayLayerService';
 
 /** Maintient les styles persistés compatibles avec le schéma JSON courant. */
 export class VideoStyleSchemaService {
@@ -49,17 +53,30 @@ export class VideoStyleSchemaService {
 			hasChanges = true;
 		}
 
-		if (!projectContent) return hasChanges;
-		const customTextDefaults = await loadCustomStyleCategoryDefinition('text');
+		const customTextDefaults = projectContent
+			? await loadCustomStyleCategoryDefinition('text')
+			: undefined;
 		const compositeDefaults = await loadCompositeStyleDefinitions();
-		return (
+		for (const stylesData of styles) {
+			for (const category of stylesData.categories) {
+				hasChanges = (await category.loadCompositeStyle(compositeDefaults)) || hasChanges;
+			}
+		}
+
+		if (!projectContent || !customTextDefaults) return hasChanges;
+		hasChanges = ensureOverlayLayerOrder(projectContent) || hasChanges;
+		hasChanges =
 			ensureCustomStyleSchema(
 				projectContent,
 				customTextDefaults,
 				compositeDefaults,
 				(definition) => new Style(definition)
-			) || hasChanges
-		);
+			) || hasChanges;
+		for (const clip of getCustomStyleClips(projectContent)) {
+			if (clip.category)
+				hasChanges = (await clip.category.loadCompositeStyle(compositeDefaults)) || hasChanges;
+		}
+		return hasChanges;
 	}
 
 	/**

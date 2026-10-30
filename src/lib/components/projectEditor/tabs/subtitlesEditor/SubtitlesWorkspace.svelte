@@ -20,6 +20,7 @@
 		showManualGuide = false,
 		onCloseControlHelp = () => {},
 		onTogglePresetPicker = () => {},
+		onApplyPreset = () => false,
 		onClosePresetPicker = () => {},
 		onOpenAutoSegmentation = () => {}
 	}: {
@@ -30,6 +31,7 @@
 		showManualGuide?: boolean;
 		onCloseControlHelp?: () => void;
 		onTogglePresetPicker?: () => void;
+		onApplyPreset?: () => boolean;
 		onClosePresetPicker?: () => void;
 		onOpenAutoSegmentation?: () => void;
 	} = $props();
@@ -405,7 +407,9 @@
 						type="button"
 						aria-label={$LL.common.confirm()}
 						data-help={$LL.settings.shortcutActionDesc.ADD_SUBTITLE()}
-						onclick={() => void addSubtitle()}
+						onclick={() => {
+							if (!onApplyPreset()) void addSubtitle();
+						}}
 					>
 						<span class="material-icons">check</span>
 					</button>

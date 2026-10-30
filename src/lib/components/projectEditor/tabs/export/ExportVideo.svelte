@@ -575,19 +575,6 @@
 	}
 
 	/**
-	 * Normalise et sauvegarde le nombre de renderers utilisés pour capturer les frames.
-	 * @returns {Promise<void>}
-	 */
-	async function saveParallelCaptureWorkers(): Promise<void> {
-		if (!globalState.settings) return;
-		globalState.settings.exportSettings.parallelCaptureWorkers = Math.max(
-			1,
-			Math.min(4, Math.round(globalState.settings.exportSettings.parallelCaptureWorkers || 1))
-		);
-		await Settings.save();
-	}
-
-	/**
 	 * Active ou désactive l'ajout d'un arrière-plan aléatoire pour les exports vidéo.
 	 * @param {boolean} enabled Nouvel état de l'option.
 	 * @returns {void}
@@ -630,29 +617,25 @@
 	}
 
 	/**
-	 * Active ou désactive la carte promotionnelle Quran Caption pour l'export.
+	 * Sauvegarde l'activation globale de la carte promotionnelle Quran Caption.
 	 * @param {boolean} enabled Nouvel état de l'option.
-	 * @returns {void}
+	 * @returns {Promise<void>} Promesse terminée après la sauvegarde du réglage.
 	 */
-	function setQuranCaptionPromotionEnabled(enabled: boolean): void {
-		if (globalState.getExportState.includeQuranCaptionPromotion === enabled) return;
-
-		ProjectHistoryManager.track('toggle Quran Caption promotion', () => {
-			globalState.getExportState.includeQuranCaptionPromotion = enabled;
-		});
+	async function setQuranCaptionPromotionEnabled(enabled: boolean): Promise<void> {
+		if (!globalState.settings) return;
+		globalState.settings.exportSettings.includeQuranCaptionPromotion = enabled;
+		await Settings.save();
 	}
 
 	/**
-	 * Modifie la position de la carte promotionnelle dans la vidéo exportée.
+	 * Sauvegarde la position globale de la carte promotionnelle dans les vidéos exportées.
 	 * @param {'start' | 'end'} position Nouvelle position.
-	 * @returns {void}
+	 * @returns {Promise<void>} Promesse terminée après la sauvegarde du réglage.
 	 */
-	function setQuranCaptionPromotionPosition(position: 'start' | 'end'): void {
-		if (globalState.getExportState.quranCaptionPromotionPosition === position) return;
-
-		ProjectHistoryManager.track('set Quran Caption promotion position', () => {
-			globalState.getExportState.quranCaptionPromotionPosition = position;
-		});
+	async function setQuranCaptionPromotionPosition(position: 'start' | 'end'): Promise<void> {
+		if (!globalState.settings) return;
+		globalState.settings.exportSettings.quranCaptionPromotionPosition = position;
+		await Settings.save();
 	}
 
 	/**
@@ -1222,7 +1205,7 @@
 						<input
 							type="checkbox"
 							class="mt-0.5 h-4 w-4 rounded border border-color bg-secondary accent-[var(--accent-primary)]"
-							checked={globalState.getExportState.includeQuranCaptionPromotion}
+							checked={globalState.settings?.exportSettings.includeQuranCaptionPromotion ?? false}
 							onchange={(event) =>
 								setQuranCaptionPromotionEnabled((event.currentTarget as HTMLInputElement).checked)}
 						/>
@@ -1234,7 +1217,7 @@
 						</span>
 					</label>
 
-					{#if globalState.getExportState.includeQuranCaptionPromotion}
+					{#if globalState.settings?.exportSettings.includeQuranCaptionPromotion ?? false}
 						<div class="mt-4 border-t border-color pt-4">
 							<label
 								class="mb-2 block text-sm font-medium text-primary"
@@ -1245,7 +1228,7 @@
 							<select
 								id="quran-caption-promotion-position"
 								class="input w-full"
-								value={globalState.getExportState.quranCaptionPromotionPosition}
+								value={globalState.settings?.exportSettings.quranCaptionPromotionPosition ?? 'end'}
 								onchange={(event) =>
 									setQuranCaptionPromotionPosition(
 										(event.currentTarget as HTMLSelectElement).value as 'start' | 'end'
@@ -1479,29 +1462,6 @@
 							</div>
 						{/if}
 					</div>
-
-					{#if globalState.settings}
-						<div class="mt-4 rounded-lg border border-color bg-secondary p-2.5">
-							<div class="flex items-center justify-between gap-3">
-								<label class="text-xs font-medium text-secondary" for="parallel-capture-workers">
-									{$LL.export.parallelCaptureWorkers()}
-								</label>
-								<input
-									id="parallel-capture-workers"
-									type="number"
-									min="1"
-									max="4"
-									step="1"
-									class="input h-9 w-16 px-2 text-sm"
-									bind:value={globalState.settings.exportSettings.parallelCaptureWorkers}
-									onchange={saveParallelCaptureWorkers}
-								/>
-							</div>
-							<p class="mt-1.5 text-[11px] leading-4 text-thirdly">
-								{$LL.export.parallelCaptureWorkersDescription()}
-							</p>
-						</div>
-					{/if}
 				</div>
 			{/if}
 		</div>

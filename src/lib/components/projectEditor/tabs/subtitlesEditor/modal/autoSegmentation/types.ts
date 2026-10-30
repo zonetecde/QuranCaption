@@ -2,15 +2,6 @@ import type { SubtitleApplicationMode } from '$lib/services/AutoSegmentation';
 
 export type { SubtitleApplicationMode };
 
-/** Represents one segmentation timing preset. */
-export type SegmentationPreset = {
-	id: string;
-	label: string;
-	minSilenceMs: number;
-	minSpeechMs: number;
-	padMs: number;
-};
-
 export type DimensionValue = {
 	width: number;
 	height: number;

@@ -40,12 +40,14 @@ export type StyleEditorGroupMetadata = {
 	id: string;
 	styleIds: string[];
 	shared?: boolean;
+	layerControl?: boolean;
 };
 
 export type StyleCategoryUiMetadata = {
 	panel: StyleEditorPanelMetadata;
 	groups?: StyleEditorGroupMetadata[];
 	headerStyle?: string;
+	layerControl?: boolean;
 };
 
 export type ClipStyleOverrides = {
@@ -59,6 +61,7 @@ export type ClipStyleOverrides = {
 };
 
 export interface VideoStyleFileData {
+	overlayLayerOrder?: string[];
 	videoStyle: Record<string, unknown>;
 	customClips: Array<Record<string, unknown>>;
 	customTextClips?: Array<Record<string, unknown>>;

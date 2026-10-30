@@ -19,6 +19,7 @@ export function getNonArabicSubtitleCategories(
 export const GLOBAL_CLIP_STYLE_IDS = new Set<StyleName>([
 	'media-fill',
 	'media-scale',
+	'media-rotation',
 	'media-position-x',
 	'media-position-y',
 	'overlay-enable',

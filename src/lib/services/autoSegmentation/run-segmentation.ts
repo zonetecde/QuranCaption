@@ -1,4 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
+import toast from 'svelte-5-french-toast';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import ModalManager from '$lib/components/modals/ModalManager';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
@@ -43,16 +45,16 @@ function shouldRetryCloudOnCpu(message: string, device: SegmentationDevice): boo
 }
 
 /**
- * Determines whether word timestamps are required for the selected application mode.
+ * Keeps word timestamps for every cloud alignment, including legacy saved preferences.
  * @param {boolean} requested Saved word-timestamp preference.
  * @param {SubtitleApplicationMode} subtitleApplicationMode Selected subtitle application mode.
  * @returns {boolean} Whether the segmentation response must include word timestamps.
  */
 export function resolveIncludeWbwTimestamps(
-	requested: boolean,
-	subtitleApplicationMode: SubtitleApplicationMode
+	_requested: boolean,
+	_subtitleApplicationMode: SubtitleApplicationMode
 ): boolean {
-	return subtitleApplicationMode === 'align' || requested;
+	return true;
 }
 
 /**
@@ -69,9 +71,6 @@ export async function runAutoSegmentationForProject(
 	_mode?: SegmentationMode,
 	executionOptions: AutoSegmentationExecutionOptions = {}
 ): Promise<AutoSegmentationResult | null> {
-	const minSilenceMs = options.minSilenceMs ?? 200;
-	const minSpeechMs = options.minSpeechMs ?? 1000;
-	const padMs = options.padMs ?? 100;
 	const padLeftMs = options.padLeftMs ?? 100;
 	const padRightMs = options.padRightMs ?? 200;
 	const subtitleApplicationMode = options.subtitleApplicationMode ?? 'replace';
@@ -82,8 +81,8 @@ export async function runAutoSegmentationForProject(
 	const cloudModel = options.cloudModel ?? 'Base';
 	const device = options.device ?? 'GPU';
 	const fillBySilence = options.fillBySilence ?? true;
-	const extendBeforeSilence = options.extendBeforeSilence ?? false;
-	const extendBeforeSilenceMs = options.extendBeforeSilenceMs ?? 0;
+	const extendBeforeSilence = false;
+	const extendBeforeSilenceMs = 0;
 
 	const audioInfo = getAutoSegmentationAudioInfo(project);
 	const audioClips = getAutoSegmentationAudioClips(project);
@@ -117,6 +116,16 @@ export async function runAutoSegmentationForProject(
 	await options.onRunConfirmed?.();
 
 	try {
+		try {
+			const status = await invoke<{ configured: boolean; valid: boolean }>(
+				'hugging_face_account_status'
+			);
+			if (status.configured && !status.valid) {
+				toast(get(LL).settings.huggingFaceInvalidTokenFallback(), { icon: '⚠️', duration: 10000 });
+			}
+		} catch {
+			// A network failure does not invalidate the saved token.
+		}
 		const basePayload = {
 			audioPath: audioInfo.filePath,
 			audioClips: audioClips.map((clip) => ({
@@ -125,9 +134,6 @@ export async function runAutoSegmentationForProject(
 				endMs: clip.endMs,
 				sourceStartMs: clip.sourceStartMs
 			})),
-			minSilenceMs,
-			minSpeechMs,
-			padMs,
 			modelName: cloudModel
 		};
 		const invokeCloud = async (targetDevice: SegmentationDevice): Promise<SegmentationResponse> =>
@@ -154,25 +160,11 @@ export async function runAutoSegmentationForProject(
 			cloudGpuFallbackToCpu = true;
 		}
 
-		let response = payload;
-		if (includeWbwTimestamps) {
-			response = await enrichSegmentationResponseWithWordTimestamps(payload, undefined, riwayah);
-		} else {
-			if (!payload.audio_id) throw new Error('Alignment result did not include audio_id.');
-			const splitResponse = (await invoke('split_quran_alignment_session', {
-				audioId: payload.audio_id
-			})) as SegmentationResponse;
-			response = {
-				...splitResponse,
-				device: splitResponse.device ?? payload.device,
-				warning: splitResponse.warning ?? payload.warning,
-				segments: (splitResponse.segments ?? []).map((segment) => {
-					const withoutWords = { ...segment };
-					delete withoutWords.words;
-					return withoutWords;
-				})
-			};
-		}
+		const response = await enrichSegmentationResponseWithWordTimestamps(
+			payload,
+			undefined,
+			riwayah
+		);
 		executionOptions.onApplying?.();
 		const result = await applySegmentationResponseToProject({
 			response,
@@ -220,7 +212,9 @@ export async function runAutoSegmentation(
 	try {
 		const project = globalState.currentProject;
 		if (!project) return { status: 'failed', message: get(LL).home.anErrorOccurred() };
-		return await runAutoSegmentationForProject(project, options, mode);
+		return await ProjectHistoryManager.trackAsync('auto segmentation', () =>
+			runAutoSegmentationForProject(project, options, mode)
+		);
 	} finally {
 		release();
 	}

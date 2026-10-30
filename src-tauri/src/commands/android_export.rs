@@ -3,11 +3,63 @@ use tauri::Manager;
 #[cfg(target_os = "android")]
 use tauri_plugin_android_media::AndroidMediaExt;
 
-/// Enregistre un fichier JSON dans le dossier public Download du téléphone.
+/// Dessine et enregistre un overlay transparent sur le renderer Android partagé.
+///
+/// @param payload Paramètres JSON du DOM, des polices et de la destination du PNG.
+/// @returns Durées et taille du PNG, ou erreur native.
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn capture_android_export_overlay(
+    payload: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::commands::android_media::capture_overlay(&payload.to_string())
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+/// Ferme la WebView de capture après la fin ou l'annulation d'un export.
+///
+/// @param export_id Identifiant de l'export terminé.
+/// @returns Erreur native éventuelle.
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn release_android_export_overlay(export_id: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::commands::android_media::release_overlay_capture(&export_id)
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+/// Résout un dossier Tauri sans conserver le verrou des plugins pendant l'appel Android.
+///
+/// @param app_handle Handle de l'application.
+/// @param directory Répertoire système à résoudre.
+/// @param path Chemin relatif optionnel dans ce répertoire.
+/// @returns Chemin absolu résolu ou erreur native.
+#[tauri::command]
+pub async fn resolve_android_directory(
+    app_handle: tauri::AppHandle,
+    directory: tauri::path::BaseDirectory,
+    path: Option<std::path::PathBuf>,
+) -> Result<std::path::PathBuf, String> {
+    tokio::task::spawn_blocking(move || {
+        app_handle
+            .path()
+            .resolve(path.unwrap_or_default(), directory)
+            .map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+/// Enregistre un fichier texte dans le dossier public Download du téléphone.
 ///
 /// @param app_handle Handle de l'application.
 /// @param file_name Nom du fichier à créer.
-/// @param content Contenu JSON à enregistrer.
+/// @param content Contenu UTF-8 à enregistrer.
 /// @returns URI Android ou chemin du fichier enregistré.
 #[tauri::command]
 pub async fn save_android_download_file(
@@ -41,11 +93,11 @@ pub async fn save_android_download_file(
     }
 }
 
-/// Publie un rendu privé vers la destination choisie par le sélecteur Android.
+/// Publie un rendu privé dans le dossier public Download Android.
 ///
 /// @param app_handle Handle de l'application.
 /// @param source_path Chemin réel du rendu FFmpeg.
-/// @param destination_uri URI SAF ou chemin final.
+/// @param destination_uri Nom proposé pour le fichier publié.
 /// @returns URI ou chemin effectivement publié.
 #[tauri::command]
 pub async fn publish_android_export(
@@ -221,9 +273,9 @@ pub async fn set_android_export_keep_screen_on(
     }
 }
 
-/// Autorise le paysage Android uniquement pour la prévisualisation plein écran.
+/// Force le paysage Android pour la prévisualisation plein écran ou restaure le portrait.
 ///
-/// @param allowed `true` pour suivre le capteur, `false` pour forcer le portrait.
+/// @param allowed `true` pour forcer le paysage, `false` pour forcer le portrait.
 /// @returns Erreur native éventuelle.
 #[tauri::command]
 pub fn set_android_landscape_allowed(allowed: bool) -> Result<(), String> {

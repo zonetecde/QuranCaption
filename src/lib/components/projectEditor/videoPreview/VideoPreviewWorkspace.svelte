@@ -25,6 +25,8 @@
 		typeof window !== 'undefined' && window.location.pathname.includes('/exporter');
 	const NATIVE_SILENCE_PATH = '__qurancaption_silence__';
 	let lastTimeErrorShown = 0; // Timestamp of the last error shown (prevent spam)
+	let fullscreenControlsVisible = $state(false);
+	let fullscreenControlsTimer: ReturnType<typeof setTimeout> | undefined;
 
 	// === ÉTATS RÉACTIFS DÉRIVÉS ===
 	// Récupère les paramètres de la timeline depuis l'état global
@@ -56,11 +58,11 @@
 	});
 
 	// Récupère l'asset audio actuellement sous le curseur de la timeline
+	let currentAudioAsset = $derived(
+		globalState.currentProject!.content.timeline.getCurrentAssetOnTrack(TrackType.Audio)
+	);
 	let currentAudio = $derived(() => {
-		if (getTimelineSettings().movePreviewTo !== undefined)
-			return untrack(() => {
-				return globalState.currentProject!.content.timeline.getCurrentAssetOnTrack(TrackType.Audio);
-			});
+		if (getTimelineSettings().movePreviewTo !== undefined) return currentAudioAsset;
 	});
 
 	let currentVideoClip = $derived(() => {
@@ -80,10 +82,28 @@
 		return clip instanceof AssetClip && clip.loopUntilAudioEnd;
 	});
 
+	let imageZoom = $derived.by(() => {
+		const track = globalState.getVideoTrack;
+		const clip =
+			currentVideoClip() ??
+			(track.clips.length === 1 && track.clips[0].endTime === 0 ? track.clips[0] : null);
+		if (!(clip instanceof AssetClip) || !clip.animateImageZoom) return 1;
+		return clip.getImageZoomScale(
+			globalState.getTimelineState.cursorPosition,
+			track.getVisualClipStartTime(track.clips.indexOf(clip)),
+			clip.duration ||
+				globalState.currentProject!.content.timeline.getLongestTrackDurationIgnoringLoopedVideo().ms
+		);
+	});
+
 	let backgroundMediaStyle = $derived.by(() => {
 		const clipId = currentVideoClip()?.id;
 		const globalStyles = globalState.getVideoStyle.getStylesOfTarget('global');
 		const mediaFill = Boolean(globalStyles.getEffectiveValue('media-fill', clipId));
+		const rotation = Math.min(
+			180,
+			Math.max(-180, Number(globalStyles.getEffectiveValue('media-rotation', clipId) ?? 0))
+		);
 		const scale = Math.min(
 			3,
 			Math.max(1, Number(globalStyles.getEffectiveValue('media-scale', clipId) ?? 100) / 100)
@@ -103,7 +123,10 @@
 				100) /
 			200;
 
-		return `position: absolute; width: ${scale * 100}% !important; height: ${scale * 100}% !important; max-width: none; left: ${-(scale - 1) * positionX * 100}%; top: ${-(scale - 1) * positionY * 100}%; object-fit: ${mediaFill ? 'cover' : 'contain'}; object-position: ${positionX * 100}% ${positionY * 100}%;`;
+		// Le cadrage interne pivote avec le média ; seul le cadre doit déplacer un média pivoté.
+		const objectPosition = rotation === 0 ? `${positionX * 100}% ${positionY * 100}%` : '50% 50%';
+
+		return `position: absolute; width: ${scale * 100}% !important; height: ${scale * 100}% !important; max-width: none; left: ${-(scale - 1) * positionX * 100}%; top: ${-(scale - 1) * positionY * 100}%; object-fit: ${mediaFill ? 'cover' : 'contain'}; object-position: ${objectPosition}; transform: rotate(${rotation}deg);`;
 	});
 
 	// === ÉTATS LOCAUX ===
@@ -111,6 +134,9 @@
 	type VideoClipTransitionMode = 'none' | 'fade-through-black' | 'crossfade';
 
 	// === EFFETS RÉACTIFS ===
+	$effect(() => {
+		if (!globalState.getVideoPreviewState.isFullscreen) fullscreenControlsVisible = false;
+	});
 
 	// Effect qui redimensionne la vidéo quand la hauteur de la prévisualisation change
 	$effect(() => {
@@ -121,8 +147,15 @@
 	});
 
 	$effect(() => {
+		// Le plein écran du renderer d'export sert uniquement aux captures.
+		if (isExportRenderer) return;
+		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
+			| { width: number; height: number }
+			| undefined;
 		void invoke('set_android_landscape_allowed', {
-			allowed: globalState.getVideoPreviewState.isFullscreen
+			allowed:
+				globalState.getVideoPreviewState.isFullscreen &&
+				Boolean(dimensions && dimensions.width >= dimensions.height)
 		}).catch((error) => console.error('Android orientation error:', error));
 	});
 
@@ -300,7 +333,7 @@
 
 	onDestroy(() => {
 		pause(); // Met en pause la lecture pour éviter les fuites de mémoire
-		void invoke('set_android_landscape_allowed', { allowed: false });
+		if (!isExportRenderer) void invoke('set_android_landscape_allowed', { allowed: false });
 
 		// Supprime la div de fond fullscreen si elle existe
 		const backgroundDiv = document.getElementById('fullscreen-background');
@@ -512,7 +545,7 @@
 					backgroundDiv.style.backgroundColor = '#11151c';
 					backgroundDiv.style.background =
 						'repeating-linear-gradient(45deg, #161b22, #161b22 5px, #11151c 5px, #11151c 25px)';
-					backgroundDiv.addEventListener('click', exitMobileFullscreen);
+					backgroundDiv.addEventListener('click', toggleFullscreenControls);
 					document.body.appendChild(backgroundDiv);
 				}
 
@@ -669,6 +702,11 @@
 		if (isPlaying) {
 			pause();
 		} else {
+			const end = globalState.currentProject?.content.timeline.getLongestTrackDuration().ms ?? 0;
+			if (end > 0 && getTimelineSettings().cursorPosition >= end) {
+				getTimelineSettings().cursorPosition = 1;
+				getTimelineSettings().movePreviewTo = 1;
+			}
 			play(true);
 		}
 	}
@@ -1249,21 +1287,40 @@
 	}
 
 	/**
-	 * Quitte le plein écran mobile depuis la vidéo ou son arrière-plan quadrillé.
+	 * Affiche ou masque les contrôles depuis la vidéo ou son arrière-plan en plein écran.
 	 * @param {MouseEvent} event Événement de clic reçu par la vidéo ou son arrière-plan.
 	 * @returns {void}
 	 */
-	function exitMobileFullscreen(event: MouseEvent): void {
-		if (!isAndroid || !globalState.getVideoPreviewState.isFullscreen) return;
+	function toggleFullscreenControls(event: MouseEvent): void {
+		if (!globalState.getVideoPreviewState.isFullscreen) return;
 		if (
 			event.target instanceof Element &&
 			event.target.closest('button, input, select, textarea, a, [contenteditable="true"]')
 		) {
 			return;
 		}
-		globalState.getVideoPreviewState.isFullscreen = false;
-		resizeVideoToFitScreen();
+		revealFullscreenControls();
 	}
+
+	/**
+	 * Affiche les contrôles tactiles plein écran pendant deux secondes.
+	 * @returns {void} Rien.
+	 */
+	function revealFullscreenControls(): void {
+		if (!globalState.getVideoPreviewState.isFullscreen) return;
+		fullscreenControlsVisible = true;
+		clearTimeout(fullscreenControlsTimer);
+		fullscreenControlsTimer = setTimeout(() => {
+			fullscreenControlsVisible = false;
+		}, 2000);
+	}
+
+	$effect(() => {
+		if (globalState.getVideoPreviewState.isFullscreen) revealFullscreenControls();
+		return () => clearTimeout(fullscreenControlsTimer);
+	});
+
+	onDestroy(() => clearTimeout(fullscreenControlsTimer));
 
 	onMount(() => {
 		// Si Quran Caption a été quitté en fullscreen, on enlève le fullscreen.
@@ -1274,6 +1331,8 @@
 		globalState.getVideoPreviewState.togglePlayPause = togglePlayPause;
 	});
 </script>
+
+<svelte:window onpointerdown={revealFullscreenControls} />
 
 <section
 	dir="ltr"
@@ -1288,7 +1347,7 @@
 		dir="ltr"
 		class="w-full h-full flex flex-col relative overflow-hidden background-primary"
 		id="preview-container"
-		onclick={exitMobileFullscreen}
+		onclick={toggleFullscreenControls}
 	>
 		<!-- Conteneur de la prévisualisation vidéo avec mise à l'échelle -->
 		<div class="relative origin-top-left overflow-hidden bg-black" id="preview">
@@ -1313,11 +1372,15 @@
 						<div class="crossfade-preview-notice">{getCrossfadePreviewNotice()}</div>
 					{/if}
 				{:else if currentImage()}
-					<img
-						src={`${convertFileSrc(currentImage()!.filePath)}?v=${currentImage()!.mediaReloadToken}`}
-						style={backgroundMediaStyle}
-						alt=""
-					/>
+					<div
+						style={`position: absolute; inset: 0; overflow: hidden; transform: scale(${imageZoom});`}
+					>
+						<img
+							src={`${convertFileSrc(currentImage()!.filePath)}?v=${currentImage()!.mediaReloadToken}`}
+							style={backgroundMediaStyle}
+							alt=""
+						/>
+					</div>
 				{/if}
 			{/if}
 
@@ -1327,11 +1390,26 @@
 	</div>
 </section>
 
-{#if showControls}
+{#if globalState.getVideoPreviewState.isFullscreen}
+	{#if fullscreenControlsVisible}
+		<div class="fullscreen-preview-controls" hidden={globalState.presetLibrary.isGeneratingPreview}>
+			<VideoPreviewControlsBar {togglePlayPause} overlay />
+		</div>
+	{/if}
+{:else if showControls}
 	<VideoPreviewControlsBar {togglePlayPause} />
 {/if}
 
 <style>
+	.fullscreen-preview-controls {
+		position: fixed;
+		inset-inline: 0;
+		bottom: 0;
+		z-index: 10000;
+		padding: 8px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom))
+			max(8px, env(safe-area-inset-left));
+	}
+
 	/* Styles pour assurer un dimensionnement correct */
 	#preview-container {
 		height: 100%;

@@ -1,6 +1,12 @@
 import type { ProjectContent } from '$lib/classes/ProjectContent.svelte';
-import type { StylesData, VideoStyle, VideoStyleFileData } from '$lib/classes/VideoStyle.svelte';
-import { importCustomStyleClips } from './ProjectStyleContentService';
+import type {
+	StyleName,
+	StylesData,
+	VideoStyle,
+	VideoStyleFileData
+} from '$lib/classes/VideoStyle.svelte';
+import { getCustomStyleClips, importCustomStyleClips } from './ProjectStyleContentService';
+import { getOverlayLayerOrder } from './OverlayLayerService';
 
 type ApplyStylePresetOptions = {
 	videoStyle: VideoStyle;
@@ -29,6 +35,17 @@ export function getPresetTranslationTargets(data: VideoStyleFileData): string[] 
  * @returns {Promise<void>} Promesse résolue après la mise à niveau du schéma.
  */
 export async function applyStylePresetToProject(options: ApplyStylePresetOptions): Promise<void> {
+	const preservedStyleIds: StyleName[] = [
+		'video-clip-transition',
+		'video-clip-transition-duration',
+		'media-position-x',
+		'media-position-y',
+		'media-rotation',
+		'media-scale'
+	];
+	const previousGlobalStyles = options.videoStyle.styles.find(
+		(styles) => styles.target === 'global'
+	);
 	const videoStyleConstructor = options.videoStyle.constructor as unknown as {
 		fromJSON(data: Record<string, unknown>): VideoStyle;
 	};
@@ -58,13 +75,58 @@ export async function applyStylePresetToProject(options: ApplyStylePresetOptions
 		replaceTargetStyles(options.videoStyle, target, copied);
 	}
 
-	importCustomStyleClips(
-		options.projectContent,
-		options.data.customClips?.length
-			? options.data.customClips
-			: (options.data.customTextClips ?? [])
+	const customClips = options.data.customClips?.length
+		? options.data.customClips
+		: (options.data.customTextClips ?? []);
+	const existingCustomCount = getCustomStyleClips(options.projectContent).length;
+	importCustomStyleClips(options.projectContent, customClips);
+	const importedCustomClips = getCustomStyleClips(options.projectContent).slice(
+		existingCustomCount
 	);
 	await options.videoStyle.ensureStylesSchemaUpToDate(options.projectContent);
+	const presetOrder = Array.isArray(options.data.overlayLayerOrder)
+		? options.data.overlayLayerOrder.flatMap((id) => {
+				if (typeof id !== 'string') return [];
+				if (id.startsWith('custom:')) {
+					const clip =
+						importedCustomClips[customClips.findIndex((raw) => `custom:${raw.id}` === id)];
+					return clip ? [`custom:${clip.id}`] : [];
+				}
+				const targets = projectTranslations
+					.filter(
+						(edition) =>
+							edition.name === id || options.translationAssignments?.[edition.name] === id
+					)
+					.map((edition) => edition.name);
+				return targets.length ? targets : [id];
+			})
+		: [];
+	options.projectContent.overlayLayerOrder = getOverlayLayerOrder(
+		options.projectContent,
+		presetOrder
+	);
+	const globalStyles = options.videoStyle.styles.find((styles) => styles.target === 'global');
+	if (previousGlobalStyles && globalStyles) {
+		for (const id of preservedStyleIds) {
+			const previous = previousGlobalStyles.findStyle(id);
+			const current = globalStyles.findStyle(id);
+			if (previous && current) {
+				current.value = previous.value;
+				current.keyframes = previous.keyframes;
+			}
+			for (const key of ['overrides', 'overrideKeyframes'] as const) {
+				const clipIds = new Set([
+					...Object.keys(previousGlobalStyles[key]),
+					...Object.keys(globalStyles[key])
+				]);
+				for (const clipId of clipIds) {
+					const value = previousGlobalStyles[key][Number(clipId)]?.[id];
+					if (value === undefined) delete globalStyles[key][Number(clipId)]?.[id];
+					else (globalStyles[key][Number(clipId)] ??= {})[id] = value;
+				}
+			}
+		}
+	}
 }
 
 /**

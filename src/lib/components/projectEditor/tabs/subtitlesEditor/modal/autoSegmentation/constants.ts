@@ -1,8 +1,4 @@
-import type { SegmentationPreset } from './types';
-
-/** Timing presets shown in the mobile segmentation settings. */
-export const SEGMENTATION_PRESETS: SegmentationPreset[] = [
-	{ id: 'mujawwad', label: 'Mujawwad (Slow)', minSilenceMs: 600, minSpeechMs: 1500, padMs: 300 },
-	{ id: 'murattal', label: 'Murattal (Normal)', minSilenceMs: 200, minSpeechMs: 1000, padMs: 100 },
-	{ id: 'hadr', label: 'Hadr (Fast)', minSilenceMs: 75, minSpeechMs: 750, padMs: 40 }
-];
+/** Official Quranic Universal Aligner links. */
+export const ALIGNER_SITE_URL = 'https://aligner.qud.dev/';
+export const ALIGNER_SPACE_URL = 'https://huggingface.co/spaces/QUD-Technologies/quranic-universal-aligner';
+export const ALIGNER_DISCUSSIONS_URL = `${ALIGNER_SPACE_URL}/discussions`;

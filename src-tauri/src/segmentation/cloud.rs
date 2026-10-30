@@ -114,12 +114,12 @@ fn request_error(context: &str, error: reqwest::Error) -> String {
 }
 
 /// Ajoute le token Hugging Face stocké sur Android sans l'exposer au frontend.
-fn authenticated(
+async fn authenticated(
     app: &tauri::AppHandle,
     request: reqwest::RequestBuilder,
 ) -> Result<reqwest::RequestBuilder, String> {
     Ok(
-        match hugging_face_cloud_token(app)?.as_deref().map(str::trim) {
+        match hugging_face_cloud_token(app).await?.as_deref().map(str::trim) {
             Some(token) if !token.is_empty() => request.bearer_auth(token),
             _ => request,
         },
@@ -284,7 +284,7 @@ pub async fn mfa_timestamps_session(
     let request = client(Duration::from_secs(300))?
 		.post(url(&format!("/sessions/{}/timestamps", audio_id)))
 		.json(&serde_json::json!({"segments": segments, "granularity": granularity.unwrap_or_else(|| "words".into())}));
-    let response = authenticated(&app, request)?
+    let response = authenticated(&app, request).await?
         .send()
         .await
         .map_err(|e| format!("Session timestamps request failed: {}", e))?;
@@ -372,7 +372,7 @@ pub async fn mfa_timestamps_direct(
     let request = client(Duration::from_secs(300))?
         .post(url("/timestamps"))
         .multipart(form);
-    let response = authenticated(&app_handle, request)?
+    let response = authenticated(&app_handle, request).await?
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -474,7 +474,7 @@ pub async fn segment_quran_audio(
         .text("riwayah", selected_riwayah);
     let http = client(Duration::from_secs(60 * 60))?;
     let request = http.post(url("/align/audio/stream")).multipart(form);
-    let response = authenticated(&app, request)?
+    let response = authenticated(&app, request).await?
         .send()
         .await
         .map_err(|error| request_error("Alignment request failed", error))?;
@@ -506,27 +506,6 @@ pub async fn segment_quran_audio(
 }
 
 /// Découpe une session cloud déjà alignée sans relancer le calcul des timestamps.
-pub async fn split_quran_alignment_session(
-    app: tauri::AppHandle,
-    audio_id: String,
-) -> Result<serde_json::Value, String> {
-    if audio_id.len() != 32
-        || !audio_id
-            .chars()
-            .all(|character| character.is_ascii_hexdigit())
-    {
-        return Err("Invalid audio_id".into());
-    }
-    emit_status(&app, "splitting", None);
-    let http = client(Duration::from_secs(60 * 60))?;
-    let request = http.post(url(&format!("/sessions/{}/split", audio_id))).json(&serde_json::json!({"max_verses":1,"max_words":null,"max_duration":null,"require_stop_sign":false}));
-    let response = authenticated(&app, request)?
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
-    json(response, "one-verse split").await
-}
-
 #[cfg(test)]
 mod tests {
     use super::validate_riwayah;

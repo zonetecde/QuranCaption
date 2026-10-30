@@ -578,6 +578,22 @@ const de = {
 			'Möchten Sie den Batch „{name}“ wirklich löschen? Seine {count} Projekte werden ebenfalls dauerhaft gelöscht.'
 	},
 	editor: {
+		cloudModelBase: 'Base',
+		cloudModelLarge: 'Large',
+		cloudDeviceGpu: 'GPU',
+		cloudDeviceCpu: 'CPU',
+		segmentationHafs: 'Hafs',
+		segmentationWarsh: 'Warsh',
+		segmentationQalun: 'Qalun',
+		segmentationShuba: 'Shu‘bah',
+		overlayLayerOrder: 'Ebenenreihenfolge (Z)',
+		moveLayerUp: 'Nach vorne',
+		moveLayerDown: 'Nach hinten',
+		animateImageZoom: 'Bild schrittweise vergrößern',
+		imageZoomEnd: 'Endzoom',
+		appendImportedSubtitles: 'Nach vorhandenen Untertiteln hinzufügen',
+		appendImportedSubtitlesDescription:
+			'Aktuelle Untertitel beibehalten und importierte Untertitel danach hinzufügen. Ihre Zeitangaben werden automatisch verschoben.',
 		videoEditor: 'Video',
 		subtitlesEditor: 'Untertitel',
 		translations: 'Übersetzungen',
@@ -851,6 +867,12 @@ const de = {
 		aiTrimmingFinishedWithErrors: 'KI-Zuschnitt mit Fehlern abgeschlossen',
 		checkActivityLog: 'Siehe Aktivitätsprotokoll für weitere Details.',
 		aiSegmentationFailed: 'KI-Segmentierung fehlgeschlagen',
+		cloudAlignerUnavailable: 'Cloud-Aligner nicht verfügbar',
+		cloudAlignerUnavailableDetails:
+			'Der Hugging Face Space ist nicht erreichbar. Die Ursache kann ein Ausfall bei Hugging Face oder ein unerwarteter Fehler im Space sein, unabhängig von Quran Caption.',
+		cloudAlignerUnavailableAdvice:
+			'Warte, bis der Dienst wieder verfügbar ist, und versuche es erneut.',
+		cloudAlignerSpaceLink: 'Hugging Face Space öffnen',
 		aiSegmentationFinished: 'KI-Segmentierung abgeschlossen',
 		convertToMp4Error:
 			'Bitte konvertieren Sie Ihre Datei in MP4, um sie in der Audiospur zu verwenden (diese Datei ist derzeit in einem nicht unterstützten Format)',
@@ -973,6 +995,9 @@ const de = {
 		resetOverlay: 'Überlagerung zurücksetzen',
 		noOverlay: 'Keine Überlagerung',
 		fullscreenMode: 'Vollbild',
+		skipBackwardTenSeconds: '10 Sekunden zurück',
+		skipForwardTenSeconds: '10 Sekunden vor',
+		seekVideo: 'Videoposition',
 		exitFullscreen: 'Vollbild verlassen',
 		playbackControls: 'Wiedergabesteuerung',
 		controlHelpPreset: 'Stille, Basmala oder eine andere Vorlage einfügen',
@@ -1576,6 +1601,8 @@ const de = {
 			'mushaf-style': 'Mushaf',
 			'basmala-style': 'Basmala-Stil',
 			'basmala-scale': 'Basmala-Skalierung',
+			'istiadha-style': 'Istiʿādha-Stil',
+			'istiadha-scale': 'Istiʿādha-Skalierung',
 			'current-font': 'Aktuelle Schrift',
 			'verse-number-format': 'Format der Versnummer',
 			'verse-number-position': 'Position der Versnummer',
@@ -1662,6 +1689,7 @@ const de = {
 			'line-background-color': 'Balkenfarbe',
 			'line-background-position': 'Balkenposition',
 			'line-background-height': 'Balkenhöhe',
+			'line-background-roundness': 'Balkenrundung (%)',
 			effects: 'Visuelle Effekte',
 			opacity: 'Textdeckkraft',
 			blur: 'Unschärfeeffekt',
@@ -1674,6 +1702,7 @@ const de = {
 			'video-dimension': 'Videoqualität und -ausrichtung',
 			'media-fill': 'Rahmen ausfüllen',
 			'media-scale': 'Zoom',
+			'media-rotation': 'Drehung',
 			'media-position-x': 'Horizontale Position',
 			'media-position-y': 'Vertikale Position',
 			'fade-duration': 'Ein-/Ausblendedauer der Untertitel',
@@ -1738,7 +1767,7 @@ const de = {
 			'surah-size': 'Größe',
 			'surah-latin-spacing': 'Abstand',
 			'surah-opacity': 'Deckkraft',
-			'surah-latin-text-style': 'Textstile',
+			'surah-latin-text-style': 'Gemeinsames Aussehen',
 			'reciter-name': 'Name des Rezitators',
 			'show-reciter-name': 'Name des Rezitators anzeigen',
 			'reciter-name-always-show': 'Immer anzeigen',
@@ -1752,7 +1781,7 @@ const de = {
 			'reciter-size': 'Größe',
 			'reciter-latin-spacing': 'Abstand',
 			'reciter-opacity': 'Deckkraft',
-			'reciter-latin-text-style': 'Textstile',
+			'reciter-latin-text-style': 'Gemeinsames Aussehen',
 			'ayah-container': 'Vers-Container',
 			'ayah-container-image': 'Container-Bild',
 			'ayah-container-vertical-position': 'Vertikale Position',
@@ -1785,6 +1814,9 @@ const de = {
 				'Aktuelle arabische Schrift verwenden oder eine von 122 kalligrafischen Basmalas wählen.',
 			'basmala-scale':
 				'Kalligrafische vordefinierte Basmalas unabhängig von anderen Untertiteln skalieren.',
+			'istiadha-style':
+				'Aktuelle arabische Schrift verwenden oder eine von 16 kalligrafischen Istiʿādhas wählen.',
+			'istiadha-scale': 'Kalligrafische Istiʿādhas unabhängig von anderen Untertiteln skalieren.',
 			'verse-number-format':
 				'Format der Versnummern ändern. Verwenden Sie das <number>-Tag zur Anpassung.',
 			'verse-number-position': 'Position der Versnummern festlegen',
@@ -1890,6 +1922,8 @@ const de = {
 			'line-background-color': 'Farbe des Hintergrundbalkens festlegen',
 			'line-background-position': 'Vertikale Position des Balkens relativ zum Text anpassen',
 			'line-background-height': 'Höhe des Hintergrundbalkens anpassen',
+			'line-background-roundness':
+				'Eckenrundung anpassen: 0% für rechte Winkel, 100% für vollständig abgerundete Enden',
 			effects:
 				'Visuelle Effekte und Filter hinzufügen, um das Erscheinungsbild der Untertitel zu verbessern',
 			opacity: 'Transparenz des Textes steuern',
@@ -1898,12 +1932,13 @@ const de = {
 			contrast: 'Kontrast des Textes anpassen',
 			animation: 'Bewegungs- und Übergangseffekte zu Untertiteln hinzufügen',
 			scale: 'Untertitel skalieren',
-			rotation: 'Untertitel in Grad drehen',
+			rotation: 'Text in Grad drehen',
 			'custom-css':
 				'Benutzerdefiniertes CSS für Untertitel schreiben. Bei Bedarf !important verwenden.',
 			'video-dimension': 'Videoqualität und -ausrichtung',
 			'media-fill': 'Hintergrundvideos und -bilder auf den gesamten Rahmen zuschneiden',
 			'media-scale': 'Das Hintergrundmedium vergrößern',
+			'media-rotation': 'Das Hintergrundmedium in Grad drehen',
 			'media-position-x': 'Das Hintergrundmedium relativ zur Mitte horizontal verschieben',
 			'media-position-y': 'Das Hintergrundmedium relativ zur Mitte vertikal verschieben',
 			'fade-duration': 'Dauer des Ein-/Ausblendeffekts in Millisekunden',
@@ -1963,7 +1998,8 @@ const de = {
 			'surah-latin-spacing':
 				'Abstand zwischen arabischem Surennamen und seinem lateinischen Äquivalent anpassen',
 			'surah-opacity': 'Deckkraft des Surennamens anpassen',
-			'surah-latin-text-style': 'Stil für die lateinische Transliteration des Surennamens',
+			'surah-latin-text-style':
+				'Gemeinsames Aussehen für arabische Kalligrafie und lateinischen Text; Schriftart, Schriftgröße und Großschreibung gelten nur für lateinischen Text.',
 			'reciter-name': 'Anzeige des Rezitatorennamens steuern',
 			'show-reciter-name': 'Rezitatorennamen ein- oder ausblenden',
 			'reciter-name-always-show': 'Rezitatorennamen immer anzeigen (Zeit ignorieren)',
@@ -1982,7 +2018,8 @@ const de = {
 			'reciter-latin-spacing':
 				'Abstand zwischen arabischem Rezitatorennamen und seinem lateinischen Äquivalent anpassen',
 			'reciter-opacity': 'Deckkraft des Rezitatorennamens anpassen',
-			'reciter-latin-text-style': 'Stil für die lateinische Transliteration des Rezitatorennamens',
+			'reciter-latin-text-style':
+				'Gemeinsames Aussehen für arabische Kalligrafie und lateinischen Text; Schriftart, Schriftgröße und Großschreibung gelten nur für lateinischen Text.',
 			'ayah-container': 'Dekoratives Hintergrundbild hinter dem Vers hinzufügen',
 			'ayah-container-image': 'Ein dekoratives Container-Bild für den Vers auswählen',
 			'ayah-container-vertical-position':
@@ -2216,6 +2253,15 @@ const de = {
 		youtubeChaptersDescription: 'Liste mit Zeitstempel-Kapiteln',
 		projectDataOption: 'Projektdaten',
 		projectDataDescription: 'Rohdaten des Projekts exportieren',
+		generateThumbnail: 'Vorschaubild erstellen',
+		thumbnailDescription:
+			'Die Schaltfläche unten öffnet Quran Thumbnails, eine Website von @sadaalayat auf Discord zum schnellen Erstellen von Vorschaubildern. Die Angaben deines Projekts werden automatisch übernommen.',
+		thumbnailSummary: 'Angaben zum Vorschaubild',
+		thumbnailTranslationLanguage: 'Übersetzungssprache',
+		thumbnailOpen: 'Quran Thumbnails öffnen',
+		thumbnailOpenError: 'Quran Thumbnails konnte nicht geöffnet werden.',
+		thumbnailTemplates: 'Vorlage auswählen',
+		thumbnailTemplatesError: 'Die Vorlagen von Quran Thumbnails konnten nicht geladen werden.',
 		exportSubtitlesHeading: 'Untertitel exportieren',
 		exportSubtitlesDescription:
 			'Exportieren Sie die Untertitel Ihres Projekts in verschiedenen Formaten.',
@@ -2239,7 +2285,8 @@ const de = {
 		uthmani1405: 'Mushaf 1405H von Uthman Taha',
 		uthmani1423: 'Mushaf 1423H von Uthman Taha',
 		exportFolder: 'Exportordner',
-		exportFolderDescription: 'Wählen Sie, wo Ihre exportierten Dateien gespeichert werden sollen.',
+		exportFolderDescription:
+			'Alle exportierten Dateien werden automatisch im Downloads-Ordner Ihres Geräts gespeichert.',
 		exportSubtitlesButton: 'Untertitel exportieren',
 		exportSubtitlesButtonDescription: 'Untertiteldateien mit Ihrer Konfiguration generieren',
 		exportYoutubeChapters: 'YouTube-Kapitel exportieren',
@@ -2510,7 +2557,8 @@ const de = {
 		presetsSubtitle: 'Lokale Bibliothek und Community-Stile',
 		backToStylePresets: 'Zurück zu den Stil-Voreinstellungen',
 		backToStyleEditor: 'Zurück zum Stil-Editor',
-		saveLocally: 'Lokal speichern',
+		saveLocally: 'Neu',
+		updatePreset: 'Aktualisieren',
 		sortNewest: 'Neueste',
 		sortMostDownloaded: 'Am häufigsten heruntergeladen',
 		sortMostLiked: 'Am beliebtesten',
@@ -2563,6 +2611,9 @@ const de = {
 		fontControlledByMushaf: 'Diese Schrift wird vom ausgewählten Mushaf gesteuert.',
 		groupBasics: 'Grundlagen',
 		groupTypography: 'Typografie',
+		groupArabicCalligraphy: 'Arabische Kalligrafie',
+		groupLatinText: 'Lateinischer Text',
+		groupSharedAppearance: 'Gemeinsames Aussehen',
 		groupColors: 'Farben',
 		groupSpacing: 'Abstände',
 		groupLayout: 'Layout',
@@ -2596,6 +2647,8 @@ const de = {
 		huggingFaceConnectedBadge: 'HF verbunden',
 		huggingFaceConfigureBadge: 'HF-Token hinzufügen',
 		huggingFaceInvalidToken: 'Dieses Token ist ungültig oder wurde widerrufen.',
+		huggingFaceInvalidTokenFallback:
+			'Ihr Hugging-Face-Token ist ung?ltig oder wurde widerrufen. Erstellen Sie ein neues Token und aktualisieren Sie es in den Einstellungen. Die Segmentierung wird ohne dieses Token fortgesetzt.',
 		huggingFaceConnect: 'Token hinzufügen',
 		huggingFaceDisconnect: 'Trennen',
 		huggingFaceCreateToken: 'Kostenloses Token erstellen',
@@ -2967,6 +3020,15 @@ const de = {
 		restart: 'Neustarten'
 	},
 	tools: {
+		mediaSpeed: 'Mediengeschwindigkeit ändern',
+		mediaSpeedDescription:
+			'Audio- oder Videodateien und Timeline-Clips verlangsamen oder beschleunigen.',
+		mediaSpeedScale: '−3: 3× langsamer · 0: normal · +3: 3× schneller',
+		mediaSpeedHint:
+			'Eine neue Datei wird zu den Medien hinzugefügt. Ein ausgewählter Timeline-Clip verwendet sie und passt seine Dauer an.',
+		mediaSpeedAdaptSubtitles: 'Untertitel an die neue Audiodauer anpassen',
+		mediaSpeedSuccess: 'Medium mit angepasster Geschwindigkeit zum Projekt hinzugefügt.',
+		mediaSpeedFailed: 'Mediengeschwindigkeit konnte nicht geändert werden: {error}',
 		hifzRepetition: 'Hifz-Wiederholung',
 		hifzDescription: 'Vorhandene Untertitel wiederholen und entsprechendes Audio generieren',
 		hifzBody:
@@ -3339,6 +3401,7 @@ const de = {
 	},
 	exporterMonitor: {
 		exportsMonitor: 'Export-Monitor',
+		downloadsHint: 'Alle Exporte werden im Downloads-Ordner gespeichert.',
 		closeExportMonitor: 'Export-Monitor schließen',
 		cancelExport: 'Export abbrechen',
 		cancelExportConfirm:
@@ -3368,6 +3431,7 @@ const de = {
 		stateRendering: 'Video wird gerendert',
 		stateMerging: 'Dateien werden zusammengeführt',
 		stateCapturing: 'Frames werden erfasst',
+		capturedFrames: 'Erfasste Bilder',
 		stateInitializing: 'Initialisierung',
 		stateExported: 'Exportiert',
 		stateError: 'Fehlgeschlagen',

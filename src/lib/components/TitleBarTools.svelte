@@ -9,6 +9,7 @@
 
 	let showToolsPopover = $state(false);
 	let audioEffectsLabel = $derived((Reflect.get(get(LL).tools, 'audioEffects') as () => string)());
+	let mediaSpeedLabel = $derived((Reflect.get(get(LL).tools, 'mediaSpeed') as () => string)());
 
 	/**
 	 * Ferme les outils après un toucher hors du menu.
@@ -85,7 +86,7 @@
 	aria-haspopup="dialog"
 	aria-expanded={showToolsPopover}
 >
-	<span class="material-icons pt-1.5 text-[1.125rem]">construction</span>
+	<span class="material-icons pt-1.5 text-[1.125rem]!">construction</span>
 	{#if showToolsPopover}
 		<div
 			id="tools-popover"
@@ -148,6 +149,17 @@
 			>
 				<span class="material-icons text-lg text-accent">content_cut</span>
 				{$LL.editor.assetTrimmer()}
+			</button>
+			<!-- svelte-ignore node_invalid_placement_ssr -->
+			<button
+				class="w-full text-start px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
+				onclick={(event) => {
+					event.stopPropagation();
+					runAction(() => ModalManager.mediaSpeedModal());
+				}}
+			>
+				<span class="material-icons text-lg text-accent">speed</span>
+				{mediaSpeedLabel}
 			</button>
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button

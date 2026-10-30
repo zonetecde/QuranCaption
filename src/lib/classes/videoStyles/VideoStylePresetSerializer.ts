@@ -1,6 +1,7 @@
 import type { ProjectContent } from '../ProjectContent.svelte.js';
 import { exportCustomStyleClips } from '$lib/services/ProjectStyleContentService.js';
 import type { VideoStyleFileData } from './types.js';
+import { getOverlayLayerOrder } from '$lib/services/OverlayLayerService';
 
 /** Sérialise les presets de styles sans leurs overrides propres aux clips. */
 export class VideoStylePresetSerializer {
@@ -22,6 +23,11 @@ export class VideoStylePresetSerializer {
 		for (const style of serialized.styles) style.overrides = {};
 		return {
 			videoStyle: serialized,
+			overlayLayerOrder: projectContent
+				? getOverlayLayerOrder(projectContent).filter(
+						(id) => !id.startsWith('custom:') || includedExportClips.has(Number(id.slice(7)))
+					)
+				: undefined,
 			customClips: projectContent ? exportCustomStyleClips(projectContent, includedExportClips) : []
 		};
 	}

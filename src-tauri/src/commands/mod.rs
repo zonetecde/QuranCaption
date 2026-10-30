@@ -13,6 +13,8 @@ pub mod files;
 pub mod media;
 /// Commandes du lecteur audio natif Android.
 pub mod native_audio;
+/// Détection des modèles de miniatures et cache de leurs aperçus.
+pub mod thumbnail_templates;
 /// Commandes de segmentation cloud/local.
 pub mod segmentation;
 /// Commandes de recherche de medias stock (Pexels / Pixabay).

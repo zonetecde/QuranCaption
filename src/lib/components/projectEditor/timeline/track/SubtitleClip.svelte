@@ -5,7 +5,11 @@
 		ProjectEditorTabs,
 		type Track
 	} from '$lib/classes';
-	import { getClipPrimaryReviewIssueCategory, markClipAsVerified } from '$lib/classes/Clip.svelte';
+	import {
+		canonicalizePredefinedSubtitleType,
+		getClipPrimaryReviewIssueCategory,
+		markClipAsVerified
+	} from '$lib/classes/Clip.svelte';
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { globalState, type QuickTimelineEditorMode } from '$lib/runes/main.svelte';
 	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
@@ -23,7 +27,8 @@
 		AUTO_REALIGN_DRAG_THRESHOLD_MS
 	} from '$lib/services/AutoSegmentation';
 	import LL from '$lib/i18n/i18n-svelte';
-	import { stripWbwDisplayMarkers } from '$lib/services/WbwHelper';
+	import { getTimelineWbwWordLabel } from '$lib/services/WbwHelper';
+	import { Quran } from '$lib/classes/Quran';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import AndroidMediaService from '$lib/services/AndroidMediaService';
 	import { showContextMenuInViewport } from '$lib/services/ContextMenuService';
@@ -142,23 +147,29 @@
 
 	const canBookmarkWithQuran = $derived(() => quranAuthService.publicState.status === 'connected');
 
-	/**
-	 * Retourne le libellé à afficher pour un mot WBW sur la timeline.
-	 * @param {{ location: string; word?: string }} word Mot WBW source.
-	 * @returns {string} Texte lisible du mot.
-	 */
-	function getWordBoundaryLabel(word: { location: string; word?: string }): string {
-		// Retire le petit zéro rond « lettre muette » à l'affichage uniquement.
-		const directLabel = stripWbwDisplayMarkers(String(word.word ?? '').trim());
-		if (directLabel) return directLabel;
-		if (!(clip instanceof SubtitleClip)) return String(word.location ?? '').trim();
-
-		const relativeWordIndex = Number(word.location.split(':')[2]) - clip.startWordIndex - 1;
-		const clipWords = clip.text.split(/\s+/).filter(Boolean);
-		const fallbackLabel = clipWords[relativeWordIndex];
-
-		return String(fallbackLabel ?? word.location ?? '').trim();
-	}
+	let resolvedWbwLabels = $state<string[]>([]);
+	$effect(() => {
+		const currentClip = clip;
+		const words = currentClip.alignmentMetadata?.words ?? [];
+		resolvedWbwLabels = [];
+		if (
+			!(currentClip instanceof SubtitleClip) ||
+			words.every((word, index) => getTimelineWbwWordLabel(currentClip, word, index))
+		)
+			return;
+		let active = true;
+		void Quran.getVerse(currentClip.surah, currentClip.verse)
+			.then(() => {
+				if (active)
+					resolvedWbwLabels = words.map((word, index) =>
+						getTimelineWbwWordLabel(currentClip, word, index)
+					);
+			})
+			.catch(() => undefined);
+		return () => {
+			active = false;
+		};
+	});
 
 	const wordBoundaryMarkers = $derived(() => {
 		if (!isWbwTimestampClip(clip)) return [];
@@ -175,7 +186,7 @@
 					key: `${clip.id}-wbw-marker-${index}`,
 					leftPercent,
 					widthPercent: Math.max(0.8, rightPercent - leftPercent),
-					label: getWordBoundaryLabel(word)
+					label: resolvedWbwLabels[index] || getTimelineWbwWordLabel(clip, word, index)
 				};
 			})
 			.filter((marker) => marker.leftPercent < 100 && marker.widthPercent > 0);
@@ -545,6 +556,13 @@
 </script>
 
 <div
+	class:timeline-silence={clip.type === 'Silence'}
+	class:predefined-continuity={clip instanceof PredefinedSubtitleClip &&
+		!isSelected() &&
+		!fullReviewClass}
+	data-predefined-type={clip instanceof PredefinedSubtitleClip
+		? canonicalizePredefinedSubtitleType(clip.predefinedSubtitleType)
+		: undefined}
 	class={'absolute inset-0 z-10 border border-[var(--timeline-subtitle-clip-border)] bg-[var(--timeline-subtitle-clip-color)] rounded-md group overflow-visible duration-200 ' +
 		(isSelected()
 			? visualMergeGroup()
@@ -653,8 +671,8 @@
 		</div>
 	{:else if clip.type === 'Silence'}
 		<div
-			class="absolute inset-0 z-5 flex px-2 py-2"
-			style="background: repeating-linear-gradient(45deg, transparent 0px, transparent 8px, var(--timeline-clip-color) 8px, var(--timeline-clip-color) 16px);"
+			class="absolute inset-0 z-5 opacity-10"
+			style="background: repeating-linear-gradient(45deg, transparent 0px, transparent 8px, var(--timeline-subtitle-clip-border) 8px, var(--timeline-subtitle-clip-border) 16px);"
 		></div>
 	{/if}
 
@@ -679,7 +697,9 @@
 			<div class="verse-indicator-start"></div>
 		{/if}
 		<!-- Ligne du milieu -->
-		<div class="flex-1 -mx-0.5 mb-1 h-[4px] bg-black/40"></div>
+		{#if clip.type !== 'Silence'}
+			<div class="flex-1 -mx-0.5 mb-1 h-[4px] bg-black/40"></div>
+		{/if}
 		<!-- Fin du verset (si le suivant n'est pas le même verset) -->
 		{#if !nextIsSameVerse && clip.type !== 'Silence'}
 			<div class="verse-indicator-end"></div>
@@ -805,6 +825,35 @@
 </ContextMenu>
 
 <style>
+	[data-predefined-type] {
+		--predefined-clip-tint: #70a7d6;
+		background-color: color-mix(in srgb, var(--predefined-clip-tint) 24%, transparent);
+		border-color: color-mix(in srgb, var(--predefined-clip-tint) 48%, transparent);
+	}
+
+	[data-predefined-type='Basmala'] {
+		--predefined-clip-tint: #66afc4;
+	}
+
+	[data-predefined-type="Isti'adha"] {
+		--predefined-clip-tint: #7c9ed1;
+	}
+
+	.predefined-continuity {
+		background: linear-gradient(
+			to top,
+			var(--timeline-subtitle-clip-color) 6px,
+			color-mix(in srgb, var(--predefined-clip-tint) 24%, transparent) 6px
+		);
+		border-bottom-color: var(--timeline-subtitle-clip-border);
+	}
+
+	.timeline-silence {
+		overflow-x: clip;
+		background-color: color-mix(in srgb, var(--timeline-subtitle-clip-color) 25%, transparent);
+		border-color: color-mix(in srgb, var(--timeline-subtitle-clip-border) 30%, transparent);
+	}
+
 	/* Formes pour l'indicateur de verset sans clip-path pour eviter les soucis de stacking */
 	.verse-indicator-start {
 		width: 0;

@@ -18,7 +18,12 @@ import {
 import { PROJECT_TYPE_OPTIONS } from '$lib/types/projectType';
 
 export type HomeSortProperty =
-	'updatedAt' | 'createdAt' | 'name' | 'reciter' | 'duration' | 'surah';
+	| 'updatedAt'
+	| 'createdAt'
+	| 'name'
+	| 'reciter'
+	| 'duration'
+	| 'surah';
 
 export type AutoSegmentationSettings = {
 	minSilenceMs: number;
@@ -61,6 +66,8 @@ export type ExportSettings = {
 	videoCodec: 'h264' | 'h265';
 	performanceProfile: PerformanceProfile;
 	randomBackgroundFolder: string;
+	includeQuranCaptionPromotion: boolean;
+	quranCaptionPromotionPosition: 'start' | 'end';
 };
 
 export type DefaultValuesSettings = {
@@ -98,7 +105,9 @@ export default class Settings extends SerializableBase {
 		parallelCaptureWorkers: 1,
 		videoCodec: 'h264',
 		performanceProfile: 'balanced',
-		randomBackgroundFolder: ''
+		randomBackgroundFolder: '',
+		includeQuranCaptionPromotion: false,
+		quranCaptionPromotionPosition: 'end'
 	};
 
 	// État UI persistant
@@ -247,9 +256,71 @@ export default class Settings extends SerializableBase {
 		const fileContent = await readTextFile(filePath);
 		const settingsData = JSON.parse(fileContent);
 
-		globalState.settings = Settings.fromJSON(settingsData) as Settings;
-		const settings = globalState.settings;
+		const settings = Settings.fromJSON(settingsData) as Settings;
 		let shouldSave = false;
+		if (
+			!settings.persistentUiState ||
+			typeof settings.persistentUiState !== 'object' ||
+			Array.isArray(settings.persistentUiState)
+		) {
+			settings.persistentUiState = new Settings().persistentUiState;
+			shouldSave = true;
+		}
+		const projectEditorLayout = settings.persistentUiState.projectEditorLayout as
+			| Partial<ProjectEditorLayout>
+			| undefined;
+		if (
+			!projectEditorLayout ||
+			typeof projectEditorLayout !== 'object' ||
+			Array.isArray(projectEditorLayout)
+		) {
+			settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
+			shouldSave = true;
+		} else {
+			// Migre les proportions du premier layout mobile vers la zone de styles agrandie.
+			if (
+				projectEditorLayout.stylePreviewHeight === 34 &&
+				projectEditorLayout.styleTimelineHeight === 18
+			) {
+				projectEditorLayout.stylePreviewHeight = DEFAULT_PROJECT_EDITOR_LAYOUT.stylePreviewHeight;
+				projectEditorLayout.styleTimelineHeight = DEFAULT_PROJECT_EDITOR_LAYOUT.styleTimelineHeight;
+				shouldSave = true;
+			} else if (
+				projectEditorLayout.stylePreviewHeight === 28 &&
+				projectEditorLayout.styleTimelineHeight === 11
+			) {
+				projectEditorLayout.styleTimelineHeight = DEFAULT_PROJECT_EDITOR_LAYOUT.styleTimelineHeight;
+				shouldSave = true;
+			}
+
+			const usesPreviousDefaults =
+				projectEditorLayout.upperSectionHeight === 68 &&
+				projectEditorLayout.videoEditorPanelWidth === 300 &&
+				projectEditorLayout.stylePanelWidth === 438 &&
+				projectEditorLayout.subtitlesEditorLeftPanelWidth === 225 &&
+				projectEditorLayout.subtitlesEditorRightPanelWidth === 200 &&
+				projectEditorLayout.translationsEditorLeftPanelWidth === 230 &&
+				projectEditorLayout.translationsEditorRightPanelWidth === 330 &&
+				projectEditorLayout.exportPanelWidth === 350;
+
+			if (usesPreviousDefaults) {
+				settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
+				shouldSave = true;
+			} else {
+				for (const key of Object.keys(DEFAULT_PROJECT_EDITOR_LAYOUT) as Array<
+					keyof ProjectEditorLayout
+				>) {
+					if (
+						typeof projectEditorLayout[key] !== 'number' ||
+						!Number.isFinite(projectEditorLayout[key])
+					) {
+						projectEditorLayout[key] = DEFAULT_PROJECT_EDITOR_LAYOUT[key];
+						shouldSave = true;
+					}
+				}
+			}
+		}
+		globalState.settings = settings;
 
 		// Migrations ================
 		if (!settings.exportSettings || typeof settings.exportSettings !== 'object') {
@@ -312,53 +383,6 @@ export default class Settings extends SerializableBase {
 			shouldSave = true;
 		}
 
-		const projectEditorLayout = settings.persistentUiState.projectEditorLayout as
-			Partial<ProjectEditorLayout> | undefined;
-		if (!projectEditorLayout || typeof projectEditorLayout !== 'object') {
-			settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
-			shouldSave = true;
-		} else {
-			// Migre les proportions du premier layout mobile vers la zone de styles agrandie.
-			if (
-				projectEditorLayout.stylePreviewHeight === 34 &&
-				projectEditorLayout.styleTimelineHeight === 18
-			) {
-				projectEditorLayout.stylePreviewHeight = DEFAULT_PROJECT_EDITOR_LAYOUT.stylePreviewHeight;
-				projectEditorLayout.styleTimelineHeight = DEFAULT_PROJECT_EDITOR_LAYOUT.styleTimelineHeight;
-				shouldSave = true;
-			} else if (
-				projectEditorLayout.stylePreviewHeight === 28 &&
-				projectEditorLayout.styleTimelineHeight === 11
-			) {
-				projectEditorLayout.styleTimelineHeight = DEFAULT_PROJECT_EDITOR_LAYOUT.styleTimelineHeight;
-				shouldSave = true;
-			}
-
-			const usesPreviousDefaults =
-				projectEditorLayout.upperSectionHeight === 68 &&
-				projectEditorLayout.videoEditorPanelWidth === 300 &&
-				projectEditorLayout.stylePanelWidth === 438 &&
-				projectEditorLayout.subtitlesEditorLeftPanelWidth === 225 &&
-				projectEditorLayout.subtitlesEditorRightPanelWidth === 200 &&
-				projectEditorLayout.translationsEditorLeftPanelWidth === 230 &&
-				projectEditorLayout.translationsEditorRightPanelWidth === 330 &&
-				projectEditorLayout.exportPanelWidth === 350;
-
-			if (usesPreviousDefaults) {
-				settings.persistentUiState.projectEditorLayout = { ...DEFAULT_PROJECT_EDITOR_LAYOUT };
-				shouldSave = true;
-			} else {
-				for (const key of Object.keys(DEFAULT_PROJECT_EDITOR_LAYOUT) as Array<
-					keyof ProjectEditorLayout
-				>) {
-					if (typeof projectEditorLayout[key] !== 'number') {
-						projectEditorLayout[key] = DEFAULT_PROJECT_EDITOR_LAYOUT[key];
-						shouldSave = true;
-					}
-				}
-			}
-		}
-
 		if (typeof settings.persistentUiState.hideReflectionPromptAfterExport !== 'boolean') {
 			settings.persistentUiState.hideReflectionPromptAfterExport = false;
 			shouldSave = true;
@@ -408,6 +432,20 @@ export default class Settings extends SerializableBase {
 		if (typeof settings.exportSettings.randomBackgroundFolder !== 'string') {
 			settings.exportSettings.randomBackgroundFolder =
 				Settings.DEFAULT_EXPORT_SETTINGS.randomBackgroundFolder;
+			shouldSave = true;
+		}
+
+		if (typeof settings.exportSettings.includeQuranCaptionPromotion !== 'boolean') {
+			settings.exportSettings.includeQuranCaptionPromotion =
+				Settings.DEFAULT_EXPORT_SETTINGS.includeQuranCaptionPromotion;
+			shouldSave = true;
+		}
+		if (
+			settings.exportSettings.quranCaptionPromotionPosition !== 'start' &&
+			settings.exportSettings.quranCaptionPromotionPosition !== 'end'
+		) {
+			settings.exportSettings.quranCaptionPromotionPosition =
+				Settings.DEFAULT_EXPORT_SETTINGS.quranCaptionPromotionPosition;
 			shouldSave = true;
 		}
 

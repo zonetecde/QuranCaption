@@ -48,6 +48,8 @@ export default class Exportation extends SerializableBase {
 	currentState: ExportState;
 	percentageProgress: number;
 	currentTreatedTime: number;
+	capturedFrames = $state(0);
+	totalCaptureFrames = $state<number | null>(null);
 	hasSecondarySegmentProgress: boolean;
 	processingBackgroundProgress: number;
 	processingBackgroundCurrentSegment: number;

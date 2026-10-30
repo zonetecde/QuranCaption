@@ -5,6 +5,7 @@
 	import ModalManager from '$lib/components/modals/ModalManager';
 	import { get } from 'svelte/store';
 	import StyleComponent from './Style.svelte';
+	import OverlayLayerControl from './controls/OverlayLayerControl.svelte';
 	import type { StyleControlGroup, StyleUiCopyKey } from './styleEditorTypes';
 
 	let {
@@ -100,10 +101,17 @@
 							applyValueSimple={(value) => (style.value = value as typeof style.value)}
 						/>
 					{/each}
+					{#if group.layerControl && !searchActive}
+						<OverlayLayerControl layerId={target === 'global' ? category.id : target} />
+					{/if}
 				</div>
 			</div>
 		{/each}
 	</div>
+
+	{#if category.ui?.layerControl && !searchActive && (target !== 'global' || visibleStyles.length > 0)}
+		<OverlayLayerControl layerId={target === 'global' ? category.id : target} />
+	{/if}
 
 	{#if category.id === 'general' && target === 'global' && !searchActive}
 		<div class="mt-2 flex items-center justify-between gap-3 border-t border-color pt-2">

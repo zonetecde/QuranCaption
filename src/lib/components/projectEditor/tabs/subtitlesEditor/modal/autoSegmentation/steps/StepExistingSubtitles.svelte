@@ -2,7 +2,14 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { getSharedWizard } from '../sharedWizard';
 
+	let { isImport = false }: { isImport?: boolean } = $props();
 	const wizard = getSharedWizard();
+	const importCopy = $derived(
+		$LL.editor as unknown as Record<
+			'appendImportedSubtitles' | 'appendImportedSubtitlesDescription',
+			() => string
+		>
+	);
 </script>
 
 <section class="space-y-5">
@@ -39,5 +46,21 @@
 				{$LL.editor.alignCurrentSubtitlesDescription()}
 			</div>
 		</button>
+
+		{#if isImport}
+			<button
+				type="button"
+				class="rounded-xl border p-4 text-start transition-colors md:col-span-2"
+				class:border-accent-primary={wizard.subtitleApplicationMode === 'append'}
+				class:bg-accent={wizard.subtitleApplicationMode === 'append'}
+				class:border-color={wizard.subtitleApplicationMode !== 'append'}
+				onclick={() => wizard.setSubtitleApplicationMode('append')}
+			>
+				<div class="font-medium text-primary">{importCopy.appendImportedSubtitles()}</div>
+				<div class="mt-1 text-xs text-thirdly">
+					{importCopy.appendImportedSubtitlesDescription()}
+				</div>
+			</button>
+		{/if}
 	</div>
 </section>

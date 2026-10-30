@@ -1,6 +1,7 @@
 import { cleanup, render } from 'vitest-browser-svelte';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { tick } from 'svelte';
+import { page } from '@vitest/browser/context';
 
 import VideoOverlay from '$lib/components/projectEditor/videoPreview/VideoOverlay.svelte';
 import { globalState } from '$lib/runes/main.svelte';
@@ -440,6 +441,24 @@ function getArabicVerseNumberSpans(container: HTMLElement): HTMLElement[] {
 	);
 }
 
+/**
+ * Lit les pixels réellement rendus afin de détecter les raccords du fond par ligne.
+ * @param {HTMLElement} element Élément à capturer dans le navigateur.
+ * @returns {Promise<ImageData>} Pixels de la capture, sans fichier de référence.
+ */
+async function capturePixels(element: HTMLElement): Promise<ImageData> {
+	const screenshot = await page.screenshot({ element, save: false });
+	const image = new Image();
+	image.src = `data:image/png;base64,${screenshot}`;
+	await image.decode();
+	const canvas = document.createElement('canvas');
+	canvas.width = image.naturalWidth;
+	canvas.height = image.naturalHeight;
+	const context = canvas.getContext('2d')!;
+	context.drawImage(image, 0, 0);
+	return context.getImageData(0, 0, canvas.width, canvas.height);
+}
+
 describe('Video overlay subtitle preview', () => {
 	afterEach(() => {
 		cleanup();
@@ -449,6 +468,122 @@ describe('Video overlay subtitle preview', () => {
 		QPCFontProvider.qpc2Glyphs = undefined;
 		QPCFontProvider.verseMappingV2 = undefined;
 	});
+
+	test('finishes export layout only after fonts and fitting, even when timers are suspended', async () => {
+		const originalUrl = window.location.href;
+		let releaseFonts!: () => void;
+		const fontsReady = new Promise<void>((resolve) => {
+			releaseFonts = resolve;
+		});
+		vi.spyOn(QPCFontProvider, 'waitForFontsInElement').mockReturnValue(fontsReady);
+		vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+		window.history.replaceState(null, '', '/exporter?id=layout-test');
+		try {
+			const fixture = setupVideoOverlayFixture(
+				[createVerseSubtitle(0, 999, 'Arabic '.repeat(30), 'Translation '.repeat(30))],
+				{ cursorPosition: 100 }
+			);
+			fixture.videoStyle.getStylesOfTarget('arabic').setStyle('max-line', 1);
+			const component = render(VideoOverlay);
+			await tick();
+			const container = getSubtitlesContainer(component.container)!;
+			expect(container.dataset.exportLayoutState).toBe('pending');
+			await fixture.setCursor(150);
+			expect(container.dataset.exportLayoutState).toBe('pending');
+			releaseFonts();
+			// Flush Svelte updates without running any background-window timer callbacks.
+			for (let update = 0; update < 100; update++) await tick();
+			expect(container.dataset.exportLayoutState).toBe('ready');
+			expect(container.dataset.exportLayoutTiming).toBe('150');
+			expect(container.style.opacity).toBe('1');
+		} finally {
+			releaseFonts();
+			vi.useRealTimers();
+			window.history.replaceState(null, '', originalUrl);
+		}
+	});
+
+	test('reorders subtitle layers from the preview context menu without trapping them in a parent layer', async () => {
+		setupVideoOverlayFixture([createVerseSubtitle(0, 999, 'Arabic', 'Translation')], {
+			cursorPosition: 500
+		});
+		vi.spyOn(ProjectHistoryManager, 'track').mockImplementation((_label, action) => action());
+		const component = render(VideoOverlay);
+		await settleOverlay();
+		const arabic = getForegroundArabicNode(component.container)!;
+		const translation = getForegroundTranslationNode(component.container, 'english')!;
+		expect(Number(getComputedStyle(arabic).zIndex)).toBeLessThan(
+			Number(getComputedStyle(translation).zIndex)
+		);
+		expect(getComputedStyle(getSubtitlesContainer(component.container)!).zIndex).toBe('auto');
+		arabic.dispatchEvent(
+			new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 100, clientY: 100 })
+		);
+		await tick();
+		const moveUpIcon = Array.from(
+			document.querySelectorAll('button .material-icons-outlined')
+		).find(
+			(element) => element.textContent === 'flip_to_front' && element.getClientRects().length > 0
+		);
+		expect(moveUpIcon).toBeDefined();
+		moveUpIcon!.closest<HTMLButtonElement>('button')!.click();
+		await tick();
+		expect(Number(getComputedStyle(arabic).zIndex)).toBeGreaterThan(
+			Number(getComputedStyle(translation).zIndex)
+		);
+		expect(getComputedStyle(getSubtitlesContainer(component.container)!).zIndex).toBe('auto');
+		expect(ProjectHistoryManager.track).toHaveBeenCalledWith(
+			'move overlay layer',
+			expect.any(Function)
+		);
+	});
+
+	test.each([0, 50, 100, undefined])(
+		'renders square or rounded line backgrounds without dark seams at %s percent',
+		async (roundness) => {
+			setupVideoOverlayFixture([createVerseSubtitle(0, 999, 'Arabic', 'Translation')], {
+				cursorPosition: 500
+			});
+			const component = render(VideoOverlay);
+			await settleOverlay();
+			const host = document.createElement('div');
+			host.style.cssText =
+				'position: fixed; top: 10px; left: 10px; width: 330px; padding: 20px; background: black; color: transparent; font: 24px/120px monospace; white-space: pre; transform: scale(0.83); transform-origin: top left; z-index: 9999; --line-background-height: 73px; --line-background-position: 0px; --line-background-color: #c08020;';
+			if (roundness !== undefined)
+				host.style.setProperty('--line-background-roundness', String(roundness));
+			const bar = document.createElement('span');
+			bar.className = 'line-background';
+			bar.textContent = 'AAAAAAAAAAAA\nAAAAAA';
+			host.append(bar);
+			getSubtitlesContainer(component.container)!.append(host);
+			const bounds = host.getBoundingClientRect();
+			const fragments = Array.from(bar.getClientRects());
+			expect(fragments).toHaveLength(2);
+			const pixels = await capturePixels(host);
+			const scaleX = pixels.width / bounds.width;
+			const scaleY = pixels.height / bounds.height;
+			for (const fragment of fragments) {
+				const left = Math.round((fragment.left - bounds.left) * scaleX);
+				const right = Math.round((fragment.right - bounds.left) * scaleX);
+				const centerY = Math.round(((fragment.top + fragment.bottom) / 2 - bounds.top) * scaleY);
+				for (const y of [centerY - 1, centerY, centerY + 1]) {
+					for (let x = left + 2; x < right - 2; x++) {
+						const index = (y * pixels.width + x) * 4;
+						for (const [channel, expected] of [192, 128, 32].entries()) {
+							expect(
+								Math.abs(pixels.data[index + channel] - expected),
+								`Seam at ${x}, ${y}`
+							).toBeLessThanOrEqual(4);
+						}
+					}
+				}
+				const cornerY = Math.round(centerY - (73 * 0.83 * scaleY) / 2 + 3);
+				const cornerIndex = (cornerY * pixels.width + left + 2) * 4;
+				if (roundness === 0) expect(pixels.data[cornerIndex]).toBeGreaterThan(180);
+				else expect(pixels.data[cornerIndex]).toBeLessThan(10);
+			}
+		}
+	);
 
 	test('keeps the subtitle container visible when playback advances within the new subtitle', async () => {
 		const fixture = setupVideoOverlayFixture(
@@ -1001,6 +1136,33 @@ describe('Video overlay subtitle preview', () => {
 		expect(subtitlesContainer.dataset.positionDragCommit).toBeUndefined();
 		expect(subtitlesContainer.style.opacity).toBe('1');
 		action.destroy();
+	});
+
+	test('moves an imported SRT translation with spaces in its name below Arabic', async () => {
+		const edition = '_MConverter.eu_ali imran çeviri.srt';
+		const clip = createVerseSubtitle(0, 999, 'Arabic', 'Translation');
+		clip.translations = { [edition]: clip.translations.english };
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 500 });
+		const globalStyles = fixture.videoStyle.getStylesOfTarget('global');
+		globalStyles.setStyle('anti-collision', true);
+		globalStyles.setStyle('spacing', 9);
+		fixture.videoStyle.getStylesOfTarget('arabic').generateCSS = () =>
+			'position: absolute; top: 0; width: 100px; height: 50px;';
+		fixture.videoStyle.getStylesOfTarget(edition).generateCSS = () =>
+			'position: absolute; top: 40px; width: 100px; height: 50px; transform: translateY(var(--reactive-y-position, 0px));';
+
+		const component = render(VideoOverlay);
+		await settleOverlay();
+		const arabicNode = getForegroundArabicNode(component.container)!;
+		const translationNode = component.container.querySelector<HTMLElement>(
+			'#subtitles-container .translation.subtitle'
+		)!;
+
+		await vi.waitFor(() => {
+			expect(translationNode.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+				arabicNode.getBoundingClientRect().bottom + 9
+			);
+		});
 	});
 
 	test('keeps the anti-collision offset when a subtitle is repositioned', async () => {

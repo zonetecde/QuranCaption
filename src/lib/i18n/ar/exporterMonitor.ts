@@ -1,5 +1,6 @@
 const exporterMonitor = {
 	exportsMonitor: 'مراقب الصادرات',
+	downloadsHint: 'تُحفظ جميع الصادرات في مجلد التنزيلات.',
 	closeExportMonitor: 'إغلاق مراقب التصدير',
 	exportFolderSizeLabel: 'مجلد الصادرات:',
 	openExportFolder: 'افتح مجلد الصادرات',
@@ -75,6 +76,7 @@ const exporterMonitor = {
 	stateRendering: 'جارٍ إنشاء الفيديو',
 	stateMerging: 'جارٍ دمج الملفات',
 	stateCapturing: 'جارٍ التقاط الإطارات',
+	capturedFrames: 'الإطارات الملتقطة',
 	stateInitializing: 'جارٍ البدء',
 	stateExported: 'تم التصدير',
 	stateError: 'فشل',

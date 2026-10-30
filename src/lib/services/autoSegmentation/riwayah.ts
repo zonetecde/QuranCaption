@@ -41,7 +41,7 @@ export async function applySegmentationRiwayahToProject(
 
 	const arabicStyles = project.content.videoStyle.getStylesOfTarget('arabic');
 	const style = arabicStyles.findStyle('riwayah');
-	if (!style) return;
+	if (!style || style.value === projectRiwayah) return;
 	const result = applyStyleMutation({
 		videoStyle: project.content.videoStyle,
 		style,

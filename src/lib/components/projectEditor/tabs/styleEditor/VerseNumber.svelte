@@ -1,8 +1,10 @@
 <script lang="ts">
+	import { getOverlayLayerZIndex } from '$lib/services/OverlayLayerService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { untrack } from 'svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import CompositeText from './CompositeText.svelte';
+	import { isNonHafsRiwayah, RiwayahProvider } from '$lib/services/RiwayahProvider';
 	import { SubtitleClip, VerseRange } from '$lib/classes';
 	import { resolveStyleVisibilityOpacity } from '$lib/services/StyleVisualResolver';
 
@@ -32,6 +34,7 @@
 	let verseSubtitleRange = $derived(() => {
 		const subtitle = currentSubtitle();
 		if (!(subtitle instanceof SubtitleClip)) return null;
+		const verse = getVerseNumber(subtitle);
 
 		// Les splits contigus du même verset partagent un seul cycle de fondu.
 		const clips = globalState.getSubtitleTrack.clips;
@@ -44,7 +47,7 @@
 			if (
 				!(clip instanceof SubtitleClip) ||
 				clip.surah !== currentSurah ||
-				clip.verse !== currentVerse ||
+				getVerseNumber(clip) !== verse ||
 				clip.endTime + 1 < startTime
 			) {
 				break;
@@ -57,7 +60,7 @@
 			if (
 				!(clip instanceof SubtitleClip) ||
 				clip.surah !== currentSurah ||
-				clip.verse !== currentVerse ||
+				getVerseNumber(clip) !== verse ||
 				clip.startTime > endTime + 1
 			) {
 				break;
@@ -116,6 +119,28 @@
 		// Opacité maximale entre les fades
 		return maxOpacity;
 	});
+	/**
+	 * Résout le numéro ou la plage de versets selon la riwayah effective du clip.
+	 * @param {SubtitleClip} subtitle Sous-titre à résoudre.
+	 * @returns {number | string} Numéro affiché, ou une chaîne vide sans numéro disponible.
+	 */
+	function getVerseNumber(subtitle: SubtitleClip): number | string {
+		const riwayah = globalState.getVideoStyle
+			.getStylesOfTarget('arabic')
+			.getEffectiveValue('riwayah', subtitle.id);
+		if (isNonHafsRiwayah(riwayah)) {
+			const slice = RiwayahProvider.getVerseSlice(
+				riwayah,
+				subtitle.surah,
+				subtitle.verse,
+				subtitle.startWordIndex,
+				subtitle.endWordIndex,
+				false
+			);
+			return slice?.targetAyahs.join('-') ?? '';
+		}
+		return subtitle.verse;
+	}
 </script>
 
 {#if verseNumberSettings().show && currentSurah > 0 && currentVerse > 0 && verseNumberSubtitleOpacity() > 0}
@@ -128,6 +153,8 @@
 			verticalStyleId: 'verse-number-vertical-position',
 			horizontalStyleId: 'verse-number-horizontal-position'
 		}}
+		data-overlay-layer="verse-number"
+		style:z-index={getOverlayLayerZIndex('verse-number')}
 		class="w-[100px] absolute flex flex-col items-center cursor-move select-none z-10"
 		style={`opacity: ${verseNumberSubtitleOpacity()}; transform: translateY(${verseNumberSettings().verticalPosition}px) translateX(${verseNumberSettings().horizontalPosition}px);`}
 	>
@@ -135,7 +162,12 @@
 			<CompositeText compositeStyle={globalState.getStyle('global', 'verse-number-text-style')!}>
 				{verseNumberSettings()
 					.verseNumberFormat.replace('<surah>', currentSurah.toString())
-					.replace('<verse>', currentVerse.toString())
+					.replace(
+						'<verse>',
+						currentSubtitle() instanceof SubtitleClip
+							? String(getVerseNumber(currentSubtitle() as SubtitleClip))
+							: currentVerse.toString()
+					)
 					.replace(
 						'<min-range>',
 						VerseRange.getExportVerseRange().getRangeForSurah(currentSurah).verseStart.toString()

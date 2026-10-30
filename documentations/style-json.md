@@ -126,6 +126,17 @@ même instance de style. Réservez ce partage aux prérequis utiles dans plusieu
 les duplications accidentelles. Pendant une recherche, seule l'occurrence de la catégorie d'origine
 est affichée afin de ne pas répéter le même résultat.
 
+### `ui.layerControl` et `ui.groups[].layerControl`
+
+`ui.layerControl: true` ajoute le curseur d'ordre des calques à la catégorie. Dans une catégorie
+regroupée, utilisez plutôt `layerControl: true` sur le groupe de positionnement concerné. Ce
+contrôle utilise l'ordre partagé de `ProjectContent.overlayLayerOrder`, comme le menu contextuel de
+l'aperçu, sans ajouter de valeur de style. L'ordre est également enregistré dans les métadonnées
+`overlayLayerOrder` des presets. Les informations Z absentes sont complétées à l'ouverture d'un
+projet ou à l'import d'un ancien preset : images personnalisées, nom de sourate, puis sous-titres
+arabes et traduits. Un ordre déjà enregistré est conservé. Les identifiants des clips et des
+traductions sont réaffectés lors de l'import d'un preset.
+
 ### `ui.headerStyle`
 
 `headerStyle` place le switch principal à droite du titre de la catégorie et le retire de la liste :

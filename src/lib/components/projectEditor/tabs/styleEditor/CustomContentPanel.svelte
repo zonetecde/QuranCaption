@@ -6,6 +6,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { get } from 'svelte/store';
 	import StyleComponent from './Style.svelte';
+	import OverlayLayerControl from './controls/OverlayLayerControl.svelte';
 	import { getVisibleCustomStyles } from './customContentStyleUtils';
 
 	type CustomContentClip = CustomTextClip | CustomImageClip;
@@ -197,6 +198,9 @@
 						disabled={false}
 						applyValueSimple={(value) => applyStyleValue(category, style, value)}
 					/>
+					{#if style.id === 'horizontal-position' && searchQuery === ''}
+						<OverlayLayerControl layerId={`custom:${customClip.id}`} />
+					{/if}
 				{/each}
 			</div>
 		</div>

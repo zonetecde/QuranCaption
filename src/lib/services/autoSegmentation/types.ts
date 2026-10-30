@@ -99,7 +99,7 @@ export type ImportedSegmentationParseResult = {
  * Mode de traitement de la segmentation.
  */
 export type SegmentationMode = 'api';
-export type SubtitleApplicationMode = 'replace' | 'align';
+export type SubtitleApplicationMode = 'replace' | 'align' | 'append';
 export type MultiAlignerModel = 'Base' | 'Large';
 export type SegmentationDevice = 'GPU' | 'CPU';
 export type SegmentationRiwayah = 'hafs' | 'warsh' | 'qalun' | 'shuba';

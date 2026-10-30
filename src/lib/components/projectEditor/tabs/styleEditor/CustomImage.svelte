@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getOverlayLayerZIndex } from '$lib/services/OverlayLayerService';
 	import type { Category } from '$lib/classes/VideoStyle.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
@@ -52,6 +53,12 @@
 		horizontalMax: horizontalStyle.valueMax,
 		horizontalMin: horizontalStyle.valueMin
 	}}
+	data-overlay-layer={`custom:${clipId}`}
+	style:z-index={customImage
+		.getStyle('above-overlay')
+		?.getValueAt(globalState.getTimelineState.cursorPosition)
+		? getOverlayLayerZIndex(`custom:${clipId}`)
+		: -1}
 	class={'absolute customtext cursor-move select-none ' +
 		(customImage.getStyle('above-overlay')?.getValueAt(globalState.getTimelineState.cursorPosition)
 			? 'z-5'

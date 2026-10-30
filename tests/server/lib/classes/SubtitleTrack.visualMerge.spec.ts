@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PredefinedSubtitleClip, SilenceClip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { SubtitleTrack } from '$lib/classes/Track.svelte';
+import { VerseTranslation } from '$lib/classes/Translation.svelte';
+import { getMergedClipsWithoutWordOverlap } from '$lib/components/projectEditor/videoPreview/visualMergeOverlayUtils';
 import { globalState } from '$lib/runes/main.svelte';
 
 describe('subtitle visual merge helpers', () => {
@@ -173,6 +175,24 @@ describe('subtitle visual merge helpers', () => {
 		expect(track.applyVisualMerge([first, second], 'arabic')).toBe(false);
 		expect(track.applyVisualMerge([first, second], 'both')).toBe(false);
 		expect(track.applyVisualMerge([first, second], 'translation')).toBe(false);
+	});
+
+	it('does not mutate a source translation with an empty range while rendering a merge', () => {
+		const first = createSubtitle(0, 999, 1);
+		const second = createSubtitle(1000, 1999, 1);
+		second.startWordIndex = 1;
+		second.endWordIndex = 1;
+		first.translations.english = new VerseTranslation('comes', 'reviewed');
+		const emptyRange = new VerseTranslation('grateful.', 'to review');
+		emptyRange.startWordIndex = 1;
+		emptyRange.endWordIndex = 0;
+		second.translations.english = emptyRange;
+
+		const rendered = getMergedClipsWithoutWordOverlap([first, second]);
+
+		expect(rendered[1]).not.toBe(second);
+		expect(rendered[1].translations.english.text).toBe('');
+		expect(emptyRange.text).toBe('grateful.');
 	});
 
 	it('unmerges the whole group when editing one merged subtitle', async () => {

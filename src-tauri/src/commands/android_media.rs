@@ -28,9 +28,9 @@ pub fn initialize_ffmpeg(app_handle: tauri::AppHandle) -> Result<(), String> {
         .map_err(|_| "Android FFmpeg handle is already initialized".to_string())
 }
 
-/// Autorise le paysage Android ou restaure le verrouillage en portrait.
+/// Force le paysage Android ou restaure le verrouillage en portrait.
 ///
-/// @param allowed `true` pour suivre le capteur, `false` pour forcer le portrait.
+/// @param allowed `true` pour forcer le paysage, `false` pour forcer le portrait.
 /// @returns Erreur JNI éventuelle.
 pub fn set_landscape_allowed(allowed: bool) -> Result<(), String> {
     let context = ndk_context::android_context();
@@ -415,4 +415,90 @@ fn extract_metadata(
     env.get_string(&value)
         .map(|value| Some(value.into()))
         .map_err(|e| format!("Unable to read Android media metadata string: {}", e))
+}
+
+/// Charge la galerie de miniatures dans une WebView Android temporaire.
+///
+/// @param script Script de collecte des modèles et de leurs aperçus.
+/// @returns Liste JSON des modèles ou erreur JNI.
+pub fn load_thumbnail_templates(script: &str) -> Result<String, String> {
+    let context = ndk_context::android_context();
+    let vm = unsafe { JavaVM::from_raw(context.vm().cast()) }.map_err(|error| error.to_string())?;
+    let mut env = vm
+        .attach_current_thread()
+        .map_err(|error| error.to_string())?;
+    let activity = unsafe { JObject::from_raw(context.context().cast()) };
+    let script = env.new_string(script).map_err(|error| error.to_string())?;
+    let result = env
+        .call_method(
+            &activity,
+            "nativeLoadThumbnailTemplates",
+            "(Ljava/lang/String;)Ljava/lang/String;",
+            &[JValue::Object(&script)],
+        )
+        .map_err(|error| error.to_string())?
+        .l()
+        .map_err(|error| error.to_string())?;
+    let result = JString::from(result);
+    let data = env.get_string(&result).map_err(|error| error.to_string())?;
+    Ok(data.into())
+}
+
+/// Capture un overlay dans la WebView native et écrit son PNG sans transférer ses pixels en IPC.
+///
+/// @param payload Paramètres JSON de la capture, dont le chemin absolu dans le dossier d'export.
+/// @returns Durées et taille du PNG, ou erreur native.
+pub fn capture_overlay(payload: &str) -> Result<serde_json::Value, String> {
+    let context = ndk_context::android_context();
+    let vm = unsafe { JavaVM::from_raw(context.vm().cast()) }.map_err(|error| error.to_string())?;
+    let mut env = vm
+        .attach_current_thread()
+        .map_err(|error| error.to_string())?;
+    let activity = unsafe { JObject::from_raw(context.context().cast()) };
+    let payload = env.new_string(payload).map_err(|error| error.to_string())?;
+    let result = env
+        .call_method(
+            &activity,
+            "nativeCaptureOverlay",
+            "(Ljava/lang/String;)Ljava/lang/String;",
+            &[JValue::Object(&payload)],
+        )
+        .map_err(|error| error.to_string())?
+        .l()
+        .map_err(|error| error.to_string())?;
+    let result = JString::from(result);
+    let data: String = env
+        .get_string(&result)
+        .map_err(|error| error.to_string())?
+        .into();
+    let response: serde_json::Value =
+        serde_json::from_str(&data).map_err(|error| error.to_string())?;
+    if let Some(error) = response.get("error").and_then(|error| error.as_str()) {
+        return Err(error.to_string());
+    }
+    Ok(response)
+}
+
+/// Libère le renderer natif d'un export terminé ou annulé.
+///
+/// @param export_id Identifiant de l'export dont le renderer doit être fermé.
+/// @returns Erreur JNI éventuelle.
+pub fn release_overlay_capture(export_id: &str) -> Result<(), String> {
+    let context = ndk_context::android_context();
+    let vm = unsafe { JavaVM::from_raw(context.vm().cast()) }.map_err(|error| error.to_string())?;
+    let mut env = vm
+        .attach_current_thread()
+        .map_err(|error| error.to_string())?;
+    let activity = unsafe { JObject::from_raw(context.context().cast()) };
+    let export_id = env
+        .new_string(export_id)
+        .map_err(|error| error.to_string())?;
+    env.call_method(
+        &activity,
+        "nativeReleaseOverlayCapture",
+        "(Ljava/lang/String;)V",
+        &[JValue::Object(&export_id)],
+    )
+    .map_err(|error| error.to_string())?;
+    Ok(())
 }

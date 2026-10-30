@@ -118,7 +118,14 @@ export class VideoStyle extends SerializableBase {
 	 */
 	async addStylesForEdition(translationEdition: string) {
 		if (this.doesTargetStyleExist(translationEdition)) return;
-		this.styles.push(await VideoStyleFactory.createTranslationStyles(translationEdition));
+		const dimensions = this.getStylesOfTarget('global').findStyle('video-dimension')?.value as
+			| { width?: unknown; height?: unknown }
+			| undefined;
+		const portrait =
+			typeof dimensions?.width === 'number' &&
+			typeof dimensions.height === 'number' &&
+			dimensions.width < dimensions.height;
+		this.styles.push(await VideoStyleFactory.createTranslationStyles(translationEdition, portrait));
 	}
 
 	/**
@@ -223,6 +230,8 @@ export class VideoStyle extends SerializableBase {
 	 * @returns {Promise<void>} Promesse résolue après la mise à jour du schéma.
 	 */
 	async importStyles(json: VideoStyleFileData, projectContent?: ProjectContent): Promise<void> {
+		const stylesState = projectContent ? undefined : globalState.getStylesState;
+		const currentPanel = stylesState?.currentPanel;
 		if (!projectContent) ProjectHistoryManager.begin('import styles');
 		try {
 			const content = projectContent ?? globalState.currentProject?.content;
@@ -250,7 +259,9 @@ export class VideoStyle extends SerializableBase {
 				data: json,
 				translationAssignments
 			});
+			if (stylesState) stylesState.activeLocalPresetId = null;
 		} finally {
+			if (stylesState && currentPanel !== undefined) stylesState.currentPanel = currentPanel;
 			if (!projectContent) ProjectHistoryManager.commit();
 		}
 	}
@@ -280,6 +291,7 @@ export class VideoStyle extends SerializableBase {
 
 			// Réinitialise les styles
 			globalState.currentProject!.content.videoStyle = await VideoStyle.getDefaultVideoStyle();
+			globalState.getStylesState.activeLocalPresetId = null;
 		} finally {
 			ProjectHistoryManager.commit();
 		}

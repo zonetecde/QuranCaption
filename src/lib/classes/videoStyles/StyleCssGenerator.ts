@@ -51,7 +51,7 @@ export class StyleCssGenerator {
 					css += fontRule;
 					continue;
 				}
-				const scaleRule = this.getBasmalaScaleRule(source, style.id, clipId);
+				const scaleRule = this.getCalligraphicScaleRule(source, style.id, clipId);
 				if (scaleRule !== null) {
 					css += scaleRule;
 					continue;
@@ -152,6 +152,12 @@ export class StyleCssGenerator {
 		if (clip.predefinedSubtitleType === 'Basmala' && basmalaStyle !== 'current-font') {
 			return 'font-family: Basmalah;\n';
 		}
+		const istiadhaStyle = String(
+			source.getEffectiveValue('istiadha-style', clip.id) ?? 'current-font'
+		);
+		if (clip.predefinedSubtitleType === "Isti'adha" && istiadhaStyle !== 'current-font') {
+			return 'font-family: Elgharib-istieadha;\n';
+		}
 		const forcedFont = getForcedFontForPredefinedSubtitle(
 			clip.predefinedSubtitleType,
 			String(effectiveValue)
@@ -163,27 +169,32 @@ export class StyleCssGenerator {
 	}
 
 	/**
-	 * Résout l'échelle calligraphique particulière de la basmala.
+	 * Résout l'échelle calligraphique de la basmala ou de l'istiʿādha.
 	 * @param {StyleCssSource} source Collection de styles.
 	 * @param {string} styleId Identifiant du style courant.
 	 * @param {number} [clipId] Identifiant du clip courant.
 	 * @returns {string | null} Règle CSS, ou `null` lorsque ce cas ne s'applique pas.
 	 */
-	private static getBasmalaScaleRule(
+	private static getCalligraphicScaleRule(
 		source: StyleCssSource,
 		styleId: string,
 		clipId?: number
 	): string | null {
 		if (source.target !== 'arabic' || styleId !== 'scale' || !clipId) return null;
 		const clip = globalState.getSubtitleTrack.getClipById(clipId);
-		const basmalaStyle = String(
-			source.getEffectiveValue('basmala-style', clipId) ?? 'current-font'
-		);
-		return clip instanceof PredefinedSubtitleClip &&
-			clip.predefinedSubtitleType === 'Basmala' &&
-			basmalaStyle !== 'current-font'
-			? `--scale: ${source.getEffectiveValue('basmala-scale', clipId) ?? 100}%;\n`
-			: null;
+		if (!(clip instanceof PredefinedSubtitleClip)) return null;
+		const styleName =
+			clip.predefinedSubtitleType === 'Basmala'
+				? 'basmala'
+				: clip.predefinedSubtitleType === "Isti'adha"
+					? 'istiadha'
+					: null;
+		if (
+			!styleName ||
+			(source.getEffectiveValue(`${styleName}-style`, clipId) ?? 'current-font') === 'current-font'
+		)
+			return null;
+		return `--scale: ${source.getEffectiveValue(`${styleName}-scale`, clipId) ?? 100}%;\n`;
 	}
 
 	/**

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { getOverlayLayerZIndex } from '$lib/services/OverlayLayerService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import CompositeText from './CompositeText.svelte';
@@ -85,6 +86,8 @@
 			verticalStyleId: 'reciter-name-vertical-position',
 			horizontalStyleId: 'reciter-name-horizontal-position'
 		}}
+		data-overlay-layer="reciter-name"
+		style:z-index={getOverlayLayerZIndex('reciter-name')}
 		class="w-[100px] absolute flex flex-col items-center cursor-move select-none z-10"
 		data-overlay-max-opacity={reciterNameSettings().opacity}
 		style={`transform: translateY(${reciterNameSettings().verticalPosition}px) translateX(${reciterNameSettings().horizontalPosition}px); opacity: ${timedReciterOpacity()};`}
@@ -99,6 +102,7 @@
 		{:else}
 			<p
 				class="arabic w-[300px] text-center h-[155px] pt-7"
+				style:rotate={`${globalState.getStyle('global', 'reciter-latin-text-style').getCompositeStyle('rotation')!.getValueAt(globalState.getTimelineState.cursorPosition)}deg`}
 				style={`opacity: ${reciterNameSettings().showArabic}; font-size: ${reciterNameSettings().size / 2}rem;`}
 			>
 				{reciter().arabic}

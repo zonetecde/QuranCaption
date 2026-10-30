@@ -1,3 +1,4 @@
+import { invoke } from '@tauri-apps/api/core';
 import { SubtitleClip, TrackType, VerseRange, type Project } from '$lib/classes';
 import { exists, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
@@ -84,6 +85,9 @@ export interface AddExportOptions {
 
 export default class ExportService {
 	static exportFolder: string = 'exports/';
+	private static exportLogBuffers = new Map<number, string[]>();
+	private static exportLogFlushTimer: ReturnType<typeof setTimeout> | undefined;
+	private static exportLogWrite: Promise<void> = Promise.resolve();
 	private static isListenerSetup = false;
 	private static progressSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -114,14 +118,10 @@ export default class ExportService {
 	}
 
 	/**
-	 * Retourne le chemin du dossier d'export.
-	 * @returns Le chemin du dossier d'export
+	 * Retourne le dossier privé des fichiers de travail avant publication dans Download.
+	 * @returns {Promise<string>} Chemin du dossier de travail.
 	 */
 	static async getExportFolder(): Promise<string> {
-		if (globalState.settings?.persistentUiState.videoExportFolder) {
-			return globalState.settings.persistentUiState.videoExportFolder;
-		}
-
 		return join(await appDataDir(), this.exportFolder);
 	}
 
@@ -149,7 +149,7 @@ export default class ExportService {
 		let filePath = options.finalFilePath ?? (await join(await this.getExportFolder(), fileName));
 
 		filePath = await this.constrainFilePathLength(filePath);
-		fileName = filePath.split(/[/\\]/).at(-1)!;
+		if (!options.finalFileName) fileName = filePath.split(/[/\\]/).at(-1)!;
 		if (options.finalFilePath && (await exists(filePath))) throw new Error('EXPORT_FILE_EXISTS');
 
 		console.log('Final export file path:', filePath);
@@ -341,6 +341,63 @@ export default class ExportService {
 		}, 750);
 	}
 
+	/**
+	 * Regroupe les lignes de log sans modifier l'état réactif du moniteur.
+	 * @param {ExportLogPayload} log Ligne reçue depuis un renderer d'export.
+	 * @returns {void} Rien.
+	 */
+	static bufferExportLog(log: ExportLogPayload): void {
+		const exportId = Number(log.exportId);
+		if (!Number.isSafeInteger(exportId) || exportId <= 0) return;
+		const lines = this.exportLogBuffers.get(exportId) ?? [];
+		lines.push(`[${log.timestamp}] [${log.level}] [${log.source}] ${log.message}\n`);
+		this.exportLogBuffers.set(exportId, lines);
+		if (this.exportLogFlushTimer !== undefined) return;
+		this.exportLogFlushTimer = setTimeout(() => {
+			this.exportLogFlushTimer = undefined;
+			void this.flushExportLogs().catch((error) =>
+				console.error('Unable to write export logs:', error)
+			);
+		}, 500);
+	}
+
+	/**
+	 * Ajoute les lots en attente aux fichiers, dans l'ordre de réception des lots.
+	 * @returns {Promise<void>} Promesse résolue après les écritures déjà demandées.
+	 */
+	static flushExportLogs(): Promise<void> {
+		if (this.exportLogFlushTimer !== undefined) clearTimeout(this.exportLogFlushTimer);
+		this.exportLogFlushTimer = undefined;
+		const buffers = this.exportLogBuffers;
+		this.exportLogBuffers = new Map();
+		// Sérialiser les écritures empêche deux lots de se dépasser ou de s'écraser.
+		this.exportLogWrite = this.exportLogWrite
+			.catch(() => undefined)
+			.then(async () => {
+				if (buffers.size === 0) return;
+				const folder = await ProjectService.ensureFolder('logs');
+				for (const [exportId, lines] of buffers) {
+					await writeTextFile(await join(folder, `export_${exportId}.txt`), lines.join(''), {
+						append: true
+					});
+				}
+			});
+		return this.exportLogWrite;
+	}
+
+	/**
+	 * Vide le tampon puis ouvre le fichier de log dans l'application associée.
+	 * @param {number} exportId Identifiant de l'export.
+	 * @returns {Promise<void>} Promesse résolue après l'ouverture du fichier.
+	 */
+	static async openExportLogs(exportId: number): Promise<void> {
+		await this.flushExportLogs();
+		await invoke('share_android_export', {
+			uri: await join(await appDataDir(), 'logs', `export_${exportId}.txt`),
+			mimeType: 'text/plain'
+		});
+	}
+
 	static currentlyExportingProjects() {
 		return globalState.exportations.filter((exp) => exp.isOnGoing());
 	}
@@ -361,18 +418,7 @@ function exportLog(event: TauriEvent<ExportLogPayload>): void {
  * @returns {void}
  */
 export function applyExportLog(data: ExportLogPayload): void {
-	const exportation = globalState.exportations.find(
-		(exp) => exp.exportId === Number(data.exportId)
-	);
-
-	if (!exportation) return;
-
-	exportation.addExportLog({
-		timestamp: data.timestamp || new Date().toISOString(),
-		source: data.source,
-		level: data.level,
-		message: data.message
-	});
+	ExportService.bufferExportLog(data);
 }
 
 function exportProgress(event: TauriEvent<ExportProgress>): void {
@@ -385,6 +431,11 @@ function exportProgress(event: TauriEvent<ExportProgress>): void {
  * @returns {void}
  */
 export function applyExportProgress(data: ExportProgress): void {
+	if ([ExportState.Exported, ExportState.Error, ExportState.Canceled].includes(data.currentState)) {
+		void ExportService.flushExportLogs().catch((error) =>
+			console.error('Unable to write export logs:', error)
+		);
+	}
 	const exportation = globalState.exportations.find((exp) => exp.exportId === data.exportId);
 	if (exportation) {
 		const previousState = exportation.currentState;
@@ -398,6 +449,10 @@ export function applyExportProgress(data: ExportProgress): void {
 		exportation.percentageProgress = data.progress;
 		exportation.currentState = data.currentState;
 		exportation.currentTreatedTime = data.currentTime;
+		if (typeof data.capturedFrames === 'number') exportation.capturedFrames = data.capturedFrames;
+		if (typeof data.totalCaptureFrames === 'number') {
+			exportation.totalCaptureFrames = data.totalCaptureFrames;
+		}
 		if (data.finalFilePath) exportation.finalFilePath = data.finalFilePath;
 		if (typeof data.fileSizeBytes === 'number') exportation.fileSizeBytes = data.fileSizeBytes;
 		exportation.hasSecondarySegmentProgress = data.hasSecondarySegmentProgress ?? false;
@@ -492,6 +547,8 @@ export interface ExportProgress {
 	progress: number;
 	currentState: ExportState;
 	currentTime: number;
+	capturedFrames?: number;
+	totalCaptureFrames?: number;
 	hasSecondarySegmentProgress?: boolean;
 	processingBackgroundProgress?: number;
 	processingBackgroundCurrentSegment?: number;

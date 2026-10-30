@@ -48,6 +48,7 @@
 	);
 	let lastEditedSubtitleId: number | null = null;
 	let subtitlesWorkspace: { addSubtitle: () => Promise<void> } | null = $state(null);
+	let subtitlePresetPicker: { applyPreset: () => boolean } | null = $state(null);
 
 	const WORKSPACE_HEIGHT_MIN = 35;
 	const WORKSPACE_HEIGHT_MAX = 80;
@@ -258,6 +259,7 @@
 				showManualGuide={!hasSubtitles && subtitleStartMode === 'manual'}
 				onCloseControlHelp={() => (controlHelpOpen = false)}
 				onTogglePresetPicker={() => (presetPickerOpen = !presetPickerOpen)}
+				onApplyPreset={() => presetPickerOpen && (subtitlePresetPicker?.applyPreset() ?? false)}
 				onClosePresetPicker={() => {
 					presetPickerOpen = false;
 				}}
@@ -284,6 +286,7 @@
 			{#if presetPickerOpen}
 				<div class="preset-picker-overlay">
 					<SubtitlePresetPicker
+						bind:this={subtitlePresetPicker}
 						onClose={() => {
 							presetPickerOpen = false;
 						}}

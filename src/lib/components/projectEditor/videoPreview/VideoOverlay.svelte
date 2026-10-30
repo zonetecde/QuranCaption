@@ -35,6 +35,10 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { tick, untrack } from 'svelte';
+	import ContextMenu from 'svelte-contextmenu';
+	import OverlayLayerActions from './OverlayLayerActions.svelte';
+	import { getOverlayLayerZIndex } from '$lib/services/OverlayLayerService';
+
 	import ReciterName from '../tabs/styleEditor/ReciterName.svelte';
 	import SurahName from '../tabs/styleEditor/SurahName.svelte';
 	import VerseNumber from '../tabs/styleEditor/VerseNumber.svelte';
@@ -65,6 +69,23 @@
 	} from '$lib/services/StyleVisualResolver';
 	import { applyReactiveFontSize } from './helpers/reactiveFontSize';
 	import { resolveSubtitleCollisions } from './helpers/antiCollision';
+
+	let layerMenu: ContextMenu | undefined = $state();
+	let selectedLayerId = $state('');
+
+	/**
+	 * Ouvre les actions du calque cliqué sans remplacer le menu propre aux sous-titres.
+	 * @param {MouseEvent} event Clic droit dans l'aperçu.
+	 * @returns {void}
+	 */
+	function showLayerMenu(event: MouseEvent): void {
+		if (event.defaultPrevented || isExportCapturePreview()) return;
+		const element = (event.target as Element).closest<HTMLElement>('[data-overlay-layer]');
+		if (!element?.dataset.overlayLayer) return;
+		selectedLayerId = element.dataset.overlayLayer;
+		event.preventDefault();
+		layerMenu?.show(event);
+	}
 
 	type RuntimeSubtitleLayout = {
 		fontSize: number | null;
@@ -315,7 +336,8 @@
 			Math.max(0, Number(globalStyles.getEffectiveValue('video-frame-softness', clipId) ?? 0))
 		);
 		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
-			{ width: number; height: number } | undefined;
+			| { width: number; height: number }
+			| undefined;
 		const width = Math.max(1, Number(dimensions?.width ?? 1920));
 		const height = Math.max(1, Number(dimensions?.height ?? 1080));
 		const innerWidth = width * (1 - horizontalSize / 50);
@@ -362,7 +384,8 @@
 		const isStyleTab =
 			globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Style;
 		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
-			{ width?: number; height?: number } | undefined;
+			| { width?: number; height?: number }
+			| undefined;
 		const isPortrait = Number(dimensions?.width) < Number(dimensions?.height);
 
 		return (
@@ -944,10 +967,17 @@
 	function consumeReactiveDependencies(..._deps: unknown[]): void {}
 
 	/**
-	 * Promesse qui attend 1ms et s'annule si le signal est aborté.
-	 * Permet de céder au navigateur entre deux ajustements DOM.
+	 * Attend la mise à jour DOM en export, ou 1ms dans l'éditeur, avec annulation.
+	 * @param {AbortSignal} abortSignal Signal d'annulation du layout.
+	 * @returns {Promise<void>} Résolution après application de l'ajustement DOM.
 	 */
 	async function wait(abortSignal: AbortSignal) {
+		if (isExportCapturePreview()) {
+			// Les timers des WebViews hors écran peuvent retarder chaque étape du fit.
+			await tick();
+			if (abortSignal.aborted) throw new Error('Aborted');
+			return;
+		}
 		await new Promise((resolve, reject) => {
 			if (abortSignal.aborted) {
 				reject(new Error('Aborted'));
@@ -1043,6 +1073,8 @@
 			const targets = isResizing ? [resizingTarget!] : layoutTargets;
 			const layoutKey = getLayoutCacheKey(targets);
 			if (!isPositionDragCommit && layoutKey === lastLayoutKey) {
+				// Une clé identique peut encore être en cours de calcul dans l'effet précédent.
+				if (subtitlesContainer?.dataset.exportLayoutState === 'pending') return;
 				// Le layout est réutilisé, mais l'export attend un timing à jour pour chaque frame.
 				if (subtitlesContainer) {
 					subtitlesContainer.style.opacity = '1';
@@ -1204,7 +1236,12 @@
 
 <svelte:window onpointerdown={updateSubtitleResizeSelection} />
 
-<div class="inset-0 absolute" id="overlay">
+<ContextMenu bind:this={layerMenu}>
+	<OverlayLayerActions layerId={selectedLayerId} />
+</ContextMenu>
+
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="inset-0 absolute" id="overlay" oncontextmenu={showLayerMenu}>
 	<!-- Couche 1 : Grille d'alignement (onglet Style uniquement) -->
 	{#if canShowAlignmentOverlay()}
 		<div class="alignment-overlay absolute inset-0 pointer-events-none" aria-hidden="true">
@@ -1274,7 +1311,7 @@
 		{#if currentSubtitle()}
 			<div
 				id="subtitles-container"
-				class="absolute inset-0 z-1 flex flex-col items-center justify-center"
+				class="absolute inset-0 flex flex-col items-center justify-center"
 				style="opacity: 1;"
 			>
 				<div class="anti-collision-drag-notice" role="status">
@@ -1342,6 +1379,7 @@
 		<!-- À z-0, l'overlay déclaré avant reste dessous et les contenus à partir de z-1 passent dessus. -->
 		<svg
 			class={`pointer-events-none absolute inset-0 h-full w-full ${videoFrameSettings.contentAbove ? 'z-0' : 'z-20'}`}
+			style:z-index={videoFrameSettings.contentAbove ? 0 : getOverlayLayerZIndex('video-frame')}
 			style:opacity={videoFrameSettings.opacity}
 			viewBox="0 0 100 100"
 			preserveAspectRatio="none"
@@ -1404,6 +1442,9 @@
 
 	/** Clone le décor sur chaque fragment créé par le retour à la ligne automatique. */
 	:global(#subtitles-container .line-background) {
+		--line-background-radius: calc(
+			var(--line-background-height, 0px) * var(--line-background-roundness, 100) / 200
+		);
 		position: relative;
 		z-index: 0;
 		-webkit-box-decoration-break: clone;
@@ -1413,15 +1454,16 @@
 			var(--line-background-height) / 2 +
 				max(var(--line-background-position), calc(0px - var(--line-background-position)))
 		);
+		/* Des extrémités continues évitent les raccords visibles entre les coins. */
 		background:
-			radial-gradient(circle closest-side, var(--line-background-color) 99%, transparent) left
-				calc(50% + var(--line-background-position)) / var(--line-background-height)
+			radial-gradient(ellipse closest-side, var(--line-background-color) 99%, transparent) left
+				calc(50% + var(--line-background-position)) / calc(2 * var(--line-background-radius))
 				var(--line-background-height) no-repeat,
-			radial-gradient(circle closest-side, var(--line-background-color) 99%, transparent) right
-				calc(50% + var(--line-background-position)) / var(--line-background-height)
+			radial-gradient(ellipse closest-side, var(--line-background-color) 99%, transparent) right
+				calc(50% + var(--line-background-position)) / calc(2 * var(--line-background-radius))
 				var(--line-background-height) no-repeat,
 			linear-gradient(var(--line-background-color), var(--line-background-color)) center
-				calc(50% + var(--line-background-position)) / calc(100% - var(--line-background-height))
+				calc(50% + var(--line-background-position)) / calc(100% - 2 * var(--line-background-radius))
 				var(--line-background-height) no-repeat;
 	}
 

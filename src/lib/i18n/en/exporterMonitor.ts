@@ -1,5 +1,6 @@
 const exporterMonitor = {
 	exportsMonitor: 'Exports Monitor',
+	downloadsHint: 'All exports are saved in the Downloads folder.',
 	closeExportMonitor: 'Close export monitor',
 	cancelExport: 'Cancel Export',
 	cancelExportConfirm: 'Are you sure you want to cancel this export? Your progress will be lost.',
@@ -26,6 +27,7 @@ const exporterMonitor = {
 	stateRendering: 'Rendering video',
 	stateMerging: 'Merging files',
 	stateCapturing: 'Capturing frames',
+	capturedFrames: 'Frames captured',
 	stateInitializing: 'Initializing',
 	stateExported: 'Exported',
 	stateError: 'Failed',

@@ -35,6 +35,7 @@
 		'video-dimension',
 		'media-fill',
 		'media-scale',
+		'media-rotation',
 		'media-position-x',
 		'media-position-y',
 		'fade-duration',
@@ -144,6 +145,37 @@
 	let extended = $state(false);
 	let styleTooltipVisible = $state(false);
 
+	/**
+	 * Masque les réglages composites dont le texte ou l'effet parent est désactivé.
+	 * @param {Style} subStyle Réglage composite évalué.
+	 * @returns {boolean} Vrai si le réglage reste utile.
+	 */
+	function isCompositeControlVisible(subStyle: Style): boolean {
+		const prefix =
+			style.id === 'surah-latin-text-style'
+				? 'surah'
+				: style.id === 'reciter-latin-text-style'
+					? 'reciter'
+					: undefined;
+		if (!prefix) return true;
+		if (
+			['opacity', 'font-family', 'font-size', 'text-transform'].includes(subStyle.id) &&
+			!globalState.getStyleValue('global', `${prefix}-show-latin`)
+		)
+			return false;
+		const styles = style.value as Style[];
+		if (['text-outline', 'text-outline-color'].includes(subStyle.id))
+			return Boolean(
+				styles.find((item) => item.id === 'outline-enable')?.getValueAt(getKeyframeCursorTime())
+			);
+		if (['text-glow-color', 'text-glow-blur'].includes(subStyle.id))
+			return Boolean(
+				styles.find((item) => item.id === 'text-glow-enable')?.getValueAt(getKeyframeCursorTime())
+			);
+		return true;
+	}
+
+
 	$effect(() => {
 		globalState.getSectionsState[style.id] = {
 			extended: extended
@@ -181,7 +213,8 @@
 	 * @returns {ReturnType<typeof globalState.getVideoStyle.getStylesOfTarget> | undefined} Portée gérée, si disponible.
 	 */
 	function getManagedStylesData():
-		ReturnType<typeof globalState.getVideoStyle.getStylesOfTarget> | undefined {
+		| ReturnType<typeof globalState.getVideoStyle.getStylesOfTarget>
+		| undefined {
 		const videoStyle = globalState.currentProject?.content?.videoStyle;
 		if (!target || !videoStyle) return undefined;
 		const styles = videoStyle.getStylesOfTarget(target);
@@ -792,8 +825,13 @@
 					<ColorControl value={inputValue} onChange={applyValue} />
 				{:else if style.id === 'font-family'}
 					<FontFamilyControl value={inputValue} onChange={applySelectValue} />
-				{:else if style.id === 'basmala-style'}
-					<BasmalaStyleControl {style} value={inputValue} onChange={applySelectValue} />
+				{:else if style.id === 'basmala-style' || style.id === 'istiadha-style'}
+					<BasmalaStyleControl
+						{style}
+						value={inputValue}
+						onChange={applySelectValue}
+						fontFamily={style.id === 'basmala-style' ? 'Basmalah' : 'Elgharib-istieadha'}
+					/>
 				{:else if style.valueType === 'select'}
 					<SelectControl {style} value={inputValue} onChange={applySelectValue} />
 				{:else if style.valueType === 'brackets-font'}
@@ -820,7 +858,7 @@
 					<FadeControl value={inputValue} onChange={applyValue} />
 				{:else if style.valueType === 'composite'}
 					<div class="style-control-list">
-						{#each style.value as Style[] as subStyle (subStyle.id)}
+						{#each (style.value as Style[]).filter(isCompositeControlVisible) as subStyle (subStyle.id)}
 							<StyleComponent
 								style={subStyle}
 								target={style.id}

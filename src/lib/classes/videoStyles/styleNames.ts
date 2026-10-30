@@ -27,6 +27,8 @@ export type GeneralStyleName =
 	| 'mushaf-style'
 	| 'basmala-style'
 	| 'basmala-scale'
+	| 'istiadha-style'
+	| 'istiadha-scale'
 	| 'verse-number-format'
 	| 'verse-number-position'
 	| 'verse-number-numeral-system'
@@ -36,6 +38,7 @@ export type GlobalAnimationStyleName =
 	| 'video-dimension'
 	| 'media-fill'
 	| 'media-scale'
+	| 'media-rotation'
 	| 'media-position-x'
 	| 'media-position-y'
 	| 'fade-duration'
@@ -98,7 +101,8 @@ export type LineBackgroundStyleName =
 	| 'line-background-enable'
 	| 'line-background-color'
 	| 'line-background-position'
-	| 'line-background-height';
+	| 'line-background-height'
+	| 'line-background-roundness';
 
 export type AnimationStyleName = 'scale' | 'rotation';
 

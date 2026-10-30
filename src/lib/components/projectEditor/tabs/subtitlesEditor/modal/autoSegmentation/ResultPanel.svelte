@@ -1,11 +1,28 @@
 <script lang="ts">
+	import { ALIGNER_SPACE_URL } from './constants';
 	import { getSharedWizard } from './sharedWizard';
 	import { Quran } from '$lib/classes/Quran';
 	import { audioNormalizationStatus } from '$lib/services/autoSegmentation/audio-normalize.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { get } from 'svelte/store';
+	import toast from 'svelte-5-french-toast';
+	import { openUrl } from '@tauri-apps/plugin-opener';
 
 	let { isImportMode = false } = $props<{ isImportMode?: boolean }>();
 	const wizard = getSharedWizard();
+
+	/**
+	 * Copies the complete segmentation error to the clipboard.
+	 * @returns {Promise<void>} Resolves after showing copy success or failure feedback.
+	 */
+	async function copyError(): Promise<void> {
+		try {
+			await navigator.clipboard.writeText(wizard.errorMessage ?? '');
+			toast.success(get(LL).exporterMonitor.errorCopiedToClipboard());
+		} catch {
+			toast.error(get(LL).exporterMonitor.failedToCopyError());
+		}
+	}
 </script>
 
 {#if wizard.isRunning}
@@ -136,7 +153,41 @@
 	</div>
 {:else if wizard.errorMessage}
 	<div class="rounded-xl border border-danger-color bg-danger-color/10 px-4 py-3">
-		<div class="text-sm font-semibold text-danger-color">{$LL.editor.aiSegmentationFailed()}</div>
+		<div class="flex items-center justify-between gap-3">
+			<div class="text-sm font-semibold text-danger-color">{$LL.editor.aiSegmentationFailed()}</div>
+			<button
+				type="button"
+				class="btn inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs"
+				onclick={copyError}
+			>
+				<span class="material-icons text-sm leading-none">content_copy</span>
+				{get(LL).export.copyErrorButton()}
+			</button>
+		</div>
 		<div class="max-h-36 overflow-y-auto text-sm text-secondary">{wizard.errorMessage}</div>
+		{#if wizard.errorMessage.includes('error sending request')}
+			<div
+				class="mt-3 space-y-3 rounded-lg border border-color bg-primary/60 p-4 text-sm leading-relaxed"
+			>
+				<div class="flex items-center gap-2 font-bold text-primary">
+					<span class="material-icons text-xl" aria-hidden="true">cloud_off</span>
+					{(Reflect.get($LL.editor, 'cloudAlignerUnavailable') as () => string)()}
+				</div>
+				<p class="text-secondary">
+					{(Reflect.get($LL.editor, 'cloudAlignerUnavailableDetails') as () => string)()}
+				</p>
+				<p class="font-semibold text-primary">
+					{(Reflect.get($LL.editor, 'cloudAlignerUnavailableAdvice') as () => string)()}
+				</p>
+				<button
+					type="button"
+					class="inline-flex items-center gap-1.5 text-accent-primary underline underline-offset-4 hover:no-underline"
+					onclick={() => openUrl(ALIGNER_SPACE_URL)}
+				>
+					{(Reflect.get($LL.editor, 'cloudAlignerSpaceLink') as () => string)()}
+					<span class="material-icons text-base" aria-hidden="true">open_in_new</span>
+				</button>
+			</div>
+		{/if}
 	</div>
 {/if}

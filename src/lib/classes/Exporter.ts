@@ -8,7 +8,6 @@ import ExportService from '$lib/services/ExportService';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { appDataDir, join } from '@tauri-apps/api/path';
-import { save } from '@tauri-apps/plugin-dialog';
 import { exists, readDir, remove, type DirEntry } from '@tauri-apps/plugin-fs';
 import { isPermissionGranted, requestPermission } from '@tauri-apps/plugin-notification';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
@@ -367,6 +366,8 @@ export default class Exporter {
 			nextExport.currentState = ExportState.CapturingFrames;
 			nextExport.percentageProgress = 0;
 			nextExport.currentTreatedTime = 0;
+			nextExport.capturedFrames = 0;
+			nextExport.totalCaptureFrames = null;
 			await ExportService.saveExports();
 
 			Exporter.startExportRenderer(nextExport.exportId.toString());
@@ -529,7 +530,7 @@ export default class Exporter {
 		const json = JSON.stringify(projectData, null, 2);
 		const projectName = ExportFileService.getProjectNameForFile();
 		const fileName = `qurancaption_project_${projectName}.json`;
-		await ExportFileService.saveTextFile(fileName, json, 'Project data', true);
+		await ExportFileService.saveTextFile(fileName, json, 'Project data');
 	}
 
 	/**
@@ -547,18 +548,6 @@ export default class Exporter {
 
 		const projectName = ExportFileService.getProjectNameForFile(projectData);
 		const fileName = `qurancaption_project_${projectName}.qc`;
-		let destinationUri: string | null;
-		try {
-			destinationUri = await save({
-				defaultPath: fileName,
-				filters: [{ name: get(LL).home.exportProject(), extensions: ['qc'] }]
-			});
-		} catch (error) {
-			if (String(error).includes('File picker cancelled')) return;
-			throw error;
-		}
-		if (!destinationUri) return;
-
 		const filePath = await join(
 			await appDataDir(),
 			ExportService.exportFolder,
@@ -568,7 +557,7 @@ export default class Exporter {
 			await ProjectService.exportProjectPackage(projectData, filePath);
 			const publishedUri = await invoke<string>('publish_android_export', {
 				sourcePath: filePath,
-				destinationUri
+				destinationUri: fileName
 			});
 			await ExportFileService.trackExportedFile(
 				publishedUri,
@@ -741,8 +730,7 @@ export default class Exporter {
 		await ExportFileService.saveTextFile(
 			`qurancaption_backup_${Date.now()}.json`,
 			JSON.stringify(projects),
-			get(LL).settings.projectBackup(),
-			true
+			get(LL).settings.projectBackup()
 		);
 	}
 	/**
@@ -982,18 +970,6 @@ export default class Exporter {
 			: 'mp4';
 		const exportFileName =
 			globalState.currentProject!.detail.generateExportFileName() + '.' + videoExtension;
-		let destinationUri: string | null;
-		try {
-			destinationUri = await save({
-				defaultPath: exportFileName,
-				filters: [{ name: get(LL).export.exportVideo(), extensions: [videoExtension] }]
-			});
-		} catch (error) {
-			// Le sélecteur Android rejette actuellement la promesse lorsque l'utilisateur revient en arrière.
-			if (String(error).includes('File picker cancelled')) return;
-			throw error;
-		}
-		if (!destinationUri) return;
 		await Exporter.requestExportNotificationPermission();
 
 		// Génère un ID d'export unique.
@@ -1023,7 +999,7 @@ export default class Exporter {
 		await ExportService.addExport(project, shouldQueue ? 'recording' : 'stable', {
 			finalFileName: exportFileName,
 			finalFilePath: exportFilePath,
-			destinationUri,
+			destinationUri: exportFileName,
 			sourceProjectId: sourceProject.detail.id
 		});
 
@@ -1088,7 +1064,7 @@ export default class Exporter {
 	 * Ajoute un projet explicite à la queue vidéo existante sans modifier le projet courant.
 	 * @param {Project} sourceProject Projet sauvegardé contenant ses propres réglages d'export.
 	 * @param {string} finalFileName Nom final déjà sécurisé.
-	 * @param {string} finalFilePath Destination Android réservée sans écrasement.
+	 * @param {string} finalFilePath Chemin réservé pour identifier le nom final du lot.
 	 * @returns {Promise<number>} Identifiant runtime visible dans l'Export Monitor.
 	 */
 	static async queueProjectVideo(
@@ -1125,7 +1101,7 @@ export default class Exporter {
 		await ExportService.addExport(project, shouldQueue ? 'recording' : 'stable', {
 			finalFileName,
 			finalFilePath: internalFilePath,
-			destinationUri: finalFilePath,
+			destinationUri: finalFilePath.split(/[/\\]/).at(-1)!,
 			exportLabel: sourceProject.detail.name,
 			sourceProjectId: sourceProject.detail.id
 		});

@@ -76,7 +76,7 @@ pub(super) fn export_error(message: impl Into<String>) -> ExportError {
     Box::new(io::Error::new(io::ErrorKind::Other, message.into()))
 }
 
-/// Cree un dossier temporaire unique pour les fichiers intermediaires.
+/// Cree un dossier temporaire unique hors du cache purgeable par Android.
 pub(super) fn create_temp_export_dir(
 	export_id: &str,
 	app_handle: &tauri::AppHandle,
@@ -97,8 +97,8 @@ pub(super) fn create_temp_export_dir(
         .collect();
 	let temp_root = app_handle
 		.path()
-		.app_cache_dir()
-		.unwrap_or_else(|_| std::env::temp_dir());
+		.app_data_dir()?
+		.join("export-temp");
 	let path = temp_root.join(format!(
         "qurancaption-fast-export-{}-{}-{}",
         safe_export_id,

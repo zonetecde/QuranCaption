@@ -13,6 +13,7 @@
 						"video-dimension",
 						"media-fill",
 						"media-scale",
+						"media-rotation",
 						"media-position-x",
 						"media-position-y"
 					]
@@ -64,6 +65,19 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "zoom_in"
+			},
+			{
+				"id": "media-rotation",
+				"name": "Rotation",
+				"description": "Rotate the background media in degrees",
+				"value": 0,
+				"valueType": "number",
+				"valueMin": -180,
+				"valueMax": 180,
+				"step": 1,
+				"css": "",
+				"tailwind": false,
+				"icon": "rotate_right"
 			},
 			{
 				"id": "media-position-x",
@@ -503,20 +517,23 @@
 			"groups": [
 				{
 					"id": "basics",
-					"styleIds": ["show-surah-name", "surah-show-arabic", "surah-show-latin"]
+					"styleIds": ["show-surah-name"]
 				},
 				{
-					"id": "typography",
-					"styleIds": [
-						"surah-name-format",
-						"surah-calligraphy-style",
-						"surah-size",
-						"surah-latin-spacing",
-						"surah-latin-text-style"
-					]
+					"id": "arabicCalligraphy",
+					"styleIds": ["surah-show-arabic", "surah-calligraphy-style", "surah-size"]
+				},
+				{
+					"id": "latinText",
+					"styleIds": ["surah-show-latin", "surah-name-format", "surah-latin-spacing"]
+				},
+				{
+					"id": "sharedAppearance",
+					"styleIds": ["surah-latin-text-style"]
 				},
 				{
 					"id": "layout",
+					"layerControl": true,
 					"styleIds": [
 						"surah-name-vertical-position",
 						"surah-name-horizontal-position",
@@ -717,24 +734,23 @@
 			"groups": [
 				{
 					"id": "basics",
-					"styleIds": [
-						"show-reciter-name",
-						"reciter-name",
-						"reciter-show-arabic",
-						"reciter-show-latin"
-					]
+					"styleIds": ["show-reciter-name", "reciter-name"]
 				},
 				{
-					"id": "typography",
-					"styleIds": [
-						"reciter-name-format",
-						"reciter-size",
-						"reciter-latin-spacing",
-						"reciter-latin-text-style"
-					]
+					"id": "arabicCalligraphy",
+					"styleIds": ["reciter-show-arabic", "reciter-size"]
+				},
+				{
+					"id": "latinText",
+					"styleIds": ["reciter-show-latin", "reciter-name-format", "reciter-latin-spacing"]
+				},
+				{
+					"id": "sharedAppearance",
+					"styleIds": ["reciter-latin-text-style"]
 				},
 				{
 					"id": "layout",
+					"layerControl": true,
 					"styleIds": [
 						"reciter-name-vertical-position",
 						"reciter-name-horizontal-position",
@@ -1084,6 +1100,7 @@
 				},
 				{
 					"id": "layout",
+					"layerControl": true,
 					"styleIds": ["verse-number-vertical-position", "verse-number-horizontal-position"]
 				}
 			]

@@ -75,7 +75,7 @@ impl<R: Runtime> AndroidMedia<R> {
             .map_err(Into::into)
     }
 
-    /// Copie un fichier local vers une URI Android ou un chemin de destination.
+    /// Publie un fichier local dans Download sous le nom de destination proposé.
     pub fn publish_file(&self, source_path: String, destination_uri: String) -> Result<String> {
         self.0
             .run_mobile_plugin::<PublishFileResponse>(

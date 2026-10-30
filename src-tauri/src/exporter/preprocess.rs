@@ -22,12 +22,30 @@ pub fn build_background_fit_filter(
     media_scale: f64,
     media_position_x: f64,
     media_position_y: f64,
+    media_rotation: f64,
 ) -> String {
     let scale = (media_scale / 100.0).clamp(1.0, 3.0);
     let scaled_w = ((w as f64 * scale).round() as i32).max(w);
     let scaled_h = ((h as f64 * scale).round() as i32).max(h);
     let position_x = ((media_position_x.clamp(-100.0, 100.0) + 100.0) / 200.0).clamp(0.0, 1.0);
     let position_y = ((media_position_y.clamp(-100.0, 100.0) + 100.0) / 200.0).clamp(0.0, 1.0);
+
+    if media_rotation.abs() > f64::EPSILON {
+        let angle = media_rotation.clamp(-180.0, 180.0).to_radians();
+        let fit = if media_fill {
+            format!(
+                "scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=increase,crop={scaled_w}:{scaled_h}:(in_w-{scaled_w})/2:(in_h-{scaled_h})/2"
+            )
+        } else {
+            format!(
+                "scale={scaled_w}:{scaled_h}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad={scaled_w}:{scaled_h}:(ow-iw)/2:(oh-ih)/2:color=black"
+            )
+        };
+        // Conserve les coins pivotés avant le recadrage final, comme la preview CSS.
+        return format!(
+            "{fit},setsar=1,rotate={angle:.12}:ow='ceil(max(iw,rotw({angle:.12}))/2)*2':oh='ceil(max(ih,roth({angle:.12}))/2)*2':c=black,crop={w}:{h}:(in_w-{scaled_w})/2+({scaled_w}-{w})*{position_x:.6}:(in_h-{scaled_h})/2+({scaled_h}-{h})*{position_y:.6},setsar=1"
+        );
+    }
 
     if !media_fill {
         return format!(
@@ -53,15 +71,42 @@ pub fn build_background_fit_filter(
     )
 }
 
+/// Construit un zoom centré jusqu'au facteur choisi sans redémarrer lors d'un export partiel.
+fn build_image_zoom_filter(
+    w: i32,
+    h: i32,
+    fps: i32,
+    duration_ms: i64,
+    offset_ms: i64,
+    end_zoom: f64,
+) -> String {
+    let fps = fps.max(1);
+    let duration_ms = duration_ms.max(1);
+    let offset_ms = offset_ms.max(0);
+    let end_zoom = end_zoom.clamp(1.0, 3.0);
+    format!(
+        "scale=iw*2:ih*2,zoompan=z='min({end_zoom},1+({end_zoom}-1)*({offset_ms}+on*1000/{fps})/{duration_ms})':x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':d=1:s={w}x{h}:fps={fps},setsar=1"
+    )
+}
+
 #[cfg(test)]
 mod tests {
-    use super::build_background_fit_filter;
+    use super::{build_background_fit_filter, build_image_zoom_filter};
+
+    /// Vérifie le zoom continu à la cadence d'export et son décalage dans l'image.
+    #[test]
+    fn image_zoom_preserves_timing_for_partial_exports() {
+        let filter = build_image_zoom_filter(1920, 1080, 30, 10000, 2500, 2.0);
+        assert!(filter.contains("(2500+on*1000/30)/10000"));
+        assert!(filter.contains("min(2,1+(2-1)*"));
+        assert!(filter.contains("d=1:s=1920x1080:fps=30"));
+    }
 
     /// Vérifie que tous les cadrages produisent des pixels carrés avant concaténation.
     #[test]
     fn background_fit_filter_normalizes_sample_aspect_ratio() {
-        let contained = build_background_fit_filter(1920, 1080, false, 153.0, -100.0, 0.0);
-        let filled = build_background_fit_filter(1920, 1080, true, 100.0, 0.0, 0.0);
+        let contained = build_background_fit_filter(1920, 1080, false, 153.0, -100.0, 0.0, 0.0);
+        let filled = build_background_fit_filter(1920, 1080, true, 100.0, 0.0, 0.0, 0.0);
 
         assert!(contained.ends_with(",setsar=1"));
         assert!(filled.ends_with(",setsar=1"));
@@ -92,6 +137,7 @@ pub fn ffmpeg_preprocess_video(
     media_scale: f64,
     media_position_x: f64,
     media_position_y: f64,
+    media_rotation: f64,
     blur: Option<f64>,
     loop_video: bool,
     performance_profile: ExportPerformanceProfile,
@@ -121,6 +167,7 @@ pub fn ffmpeg_preprocess_video(
         media_scale,
         media_position_x,
         media_position_y,
+        media_rotation,
     )];
 
     // Ajouter le flou si spécifié et > 0
@@ -259,6 +306,8 @@ pub fn create_video_from_image(
     media_scale: f64,
     media_position_x: f64,
     media_position_y: f64,
+    media_rotation: f64,
+    image_zoom: Option<(i64, i64, f64)>,
     blur: Option<f64>,
     performance_profile: ExportPerformanceProfile,
     export_id: &str,
@@ -280,6 +329,7 @@ pub fn create_video_from_image(
         media_scale,
         media_position_x,
         media_position_y,
+        media_rotation,
     )];
 
     if let Some(blur_value) = blur {
@@ -288,6 +338,16 @@ pub fn create_video_from_image(
         }
     }
 
+    if let Some((duration_ms, offset_ms, end_zoom)) = image_zoom {
+        vf_parts.push(build_image_zoom_filter(
+            w,
+            h,
+            fps,
+            duration_ms,
+            offset_ms,
+            end_zoom,
+        ));
+    }
     let video_filter = vf_parts.join(",");
 
     let (codec, codec_params, codec_extra) = codec::choose_best_codec(
@@ -398,6 +458,7 @@ pub fn preprocess_background_videos(
     media_scale: f64,
     media_position_x: f64,
     media_position_y: f64,
+    media_rotation: f64,
     blur: Option<f64>,
     performance_profile: ExportPerformanceProfile,
     export_id: &str,
@@ -410,7 +471,7 @@ pub fn preprocess_background_videos(
         .app_cache_dir()
         .unwrap_or_else(|_| std::env::temp_dir())
         .join("qurancaption-preproc");
-    let preproc_cache_version = "fit-v13-square-sar";
+    let preproc_cache_version = "fit-v14-rotation-screen-axes";
     fs::create_dir_all(&cache_dir).ok();
     let total_inputs = video_inputs.len().max(1);
     let clamped_total_s = total_duration_s.max(0.001);
@@ -453,11 +514,19 @@ pub fn preprocess_background_videos(
         let clip_media_scale = input.media_scale.unwrap_or(media_scale);
         let clip_media_position_x = input.media_position_x.unwrap_or(media_position_x);
         let clip_media_position_y = input.media_position_y.unwrap_or(media_position_y);
+        let clip_media_rotation = input.media_rotation.unwrap_or(media_rotation);
         let duration_s = if let Some(dur_ms) = duration_ms {
             dur_ms as f64 / 1000.0
         } else {
             30.0 // Durée par défaut si non spécifiée
         };
+        let image_zoom = input.image_zoom_duration_ms.map(|duration| {
+            (
+                duration,
+                start_time_ms as i64,
+                input.image_zoom_end.unwrap_or(1.5),
+            )
+        });
 
         // Construction d'un nom de cache unique (inclut mtime pour détecter un fichier remplacé)
         let blur_suffix = if let Some(b) = blur {
@@ -471,7 +540,7 @@ pub fn preprocess_background_videos(
         };
         let mtime = file_mtime_sec(image_path);
         let hash_input = format!(
-            "{}-{}-{}x{}-{}-dur{}-mtime{}-profile{:?}-hw{}-fill{}-scale{}-x{}-y{}{}",
+            "{}-{}-{}x{}-{}-dur{}-mtime{}-profile{:?}-hw{}-fill{}-scale{}-x{}-y{}-rotation{}{}-zoom{:?}",
             preproc_cache_version,
             image_path,
             w,
@@ -485,7 +554,9 @@ pub fn preprocess_background_videos(
             clip_media_scale,
             clip_media_position_x,
             clip_media_position_y,
-            blur_suffix
+            clip_media_rotation,
+            blur_suffix,
+            image_zoom
         );
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
         let stem_hash = &stem_hash[..10.min(stem_hash.len())];
@@ -513,6 +584,8 @@ pub fn preprocess_background_videos(
                 clip_media_scale,
                 clip_media_position_x,
                 clip_media_position_y,
+                clip_media_rotation,
+                image_zoom,
                 blur,
                 performance_profile,
                 export_id,
@@ -584,12 +657,17 @@ pub fn preprocess_background_videos(
         .first()
         .and_then(|input| input.media_position_y)
         .unwrap_or(media_position_y);
+    let first_input_media_rotation = video_inputs
+        .first()
+        .and_then(|input| input.media_rotation)
+        .unwrap_or(media_rotation);
     let can_direct_single_pass = !has_timeline_metadata
         && video_inputs.len() == 1
         && !first_input_media_fill
         && (first_input_media_scale - 100.0).abs() < f64::EPSILON
         && first_input_media_position_x.abs() < f64::EPSILON
         && first_input_media_position_y.abs() < f64::EPSILON
+        && first_input_media_rotation.abs() < f64::EPSILON
         && !blur.map_or(false, |b| b > 0.0);
 
     // Parcourir les vidéos et extraire uniquement les segments pertinents
@@ -611,6 +689,7 @@ pub fn preprocess_background_videos(
         let clip_media_scale = input.media_scale.unwrap_or(media_scale);
         let clip_media_position_x = input.media_position_x.unwrap_or(media_position_x);
         let clip_media_position_y = input.media_position_y.unwrap_or(media_position_y);
+        let clip_media_rotation = input.media_rotation.unwrap_or(media_rotation);
 
         // Si la vidéo boucle, elle peut couvrir tout le reste de la plage
         if is_loop {
@@ -650,6 +729,13 @@ pub fn preprocess_background_videos(
             (clip_end - intersection_start).max(0)
         };
         let take_ms = remaining_needed.min(available_in_this_clip);
+        let image_zoom = input.image_zoom_duration_ms.map(|duration| {
+            (
+                duration,
+                intersection_start - clip_start,
+                input.image_zoom_end.unwrap_or(1.5),
+            )
+        });
 
         if take_ms <= 0 {
             cum_start = clip_end;
@@ -672,7 +758,7 @@ pub fn preprocess_background_videos(
         let should_prefer_hw = prefer_hw && !(cfg!(target_os = "macos") && is_loop);
 
         let hash_input = format!(
-            "{}-{}-{}x{}-{}-start{}-len{}-mtime{}-profile{:?}-hw{}-fill{}-scale{}-x{}-y{}{}{}",
+            "{}-{}-{}x{}-{}-start{}-len{}-mtime{}-profile{:?}-hw{}-fill{}-scale{}-x{}-y{}-rotation{}{}{}-zoom{:?}",
             preproc_cache_version,
             vid_path,
             w,
@@ -687,8 +773,10 @@ pub fn preprocess_background_videos(
             clip_media_scale,
             clip_media_position_x,
             clip_media_position_y,
+            clip_media_rotation,
             blur_suffix,
-            loop_suffix
+            loop_suffix,
+            image_zoom
         );
         let stem_hash = format!("{:x}", md5::compute(hash_input.as_bytes()));
         let stem_hash = &stem_hash[..10.min(stem_hash.len())];
@@ -747,6 +835,8 @@ pub fn preprocess_background_videos(
                     clip_media_scale,
                     clip_media_position_x,
                     clip_media_position_y,
+                    clip_media_rotation,
+                    image_zoom,
                     blur,
                     performance_profile,
                     export_id,
@@ -766,6 +856,7 @@ pub fn preprocess_background_videos(
                     clip_media_scale,
                     clip_media_position_x,
                     clip_media_position_y,
+                    clip_media_rotation,
                     blur,
                     is_loop,
                     performance_profile,

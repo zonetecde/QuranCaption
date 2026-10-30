@@ -515,6 +515,8 @@ const id = {
 		huggingFaceConnectedBadge: 'HF terhubung',
 		huggingFaceConfigureBadge: 'Tambahkan token HF',
 		huggingFaceInvalidToken: 'Token ini tidak valid atau telah dicabut.',
+		huggingFaceInvalidTokenFallback:
+			'Token Hugging Face Anda tidak valid atau telah dicabut. Buat token baru dan perbarui di pengaturan. Segmentasi akan dilanjutkan tanpa token ini.',
 		huggingFaceConnect: 'Tambahkan token',
 		huggingFaceDisconnect: 'Putuskan koneksi',
 		huggingFaceCreateToken: 'Buat token gratis',
@@ -769,6 +771,28 @@ const id = {
 	},
 	editor: {
 		...baseEn.editor,
+		cloudModelBase: 'Base',
+		cloudModelLarge: 'Large',
+		cloudDeviceGpu: 'GPU',
+		cloudDeviceCpu: 'CPU',
+		segmentationHafs: 'Hafs',
+		segmentationWarsh: 'Warsh',
+		segmentationQalun: 'Qalun',
+		segmentationShuba: 'Shu‘bah',
+		overlayLayerOrder: 'Urutan lapisan (Z)',
+		moveLayerUp: 'Naikkan',
+		moveLayerDown: 'Turunkan',
+		animateImageZoom: 'Zoom gambar bertahap',
+		imageZoomEnd: 'Zoom akhir',
+		appendImportedSubtitles: 'Tambahkan setelah subtitle yang ada',
+		appendImportedSubtitlesDescription:
+			'Pertahankan subtitle saat ini dan tambahkan subtitle impor setelahnya dengan menggeser waktunya secara otomatis.',
+		cloudAlignerUnavailable: 'Penyelaras cloud tidak tersedia',
+		cloudAlignerUnavailableDetails:
+			'Space Hugging Face tidak dapat diakses. Penyebabnya mungkin gangguan Hugging Face atau kesalahan tak terduga pada Space, terlepas dari Quran Caption.',
+		cloudAlignerUnavailableAdvice: 'Tunggu hingga layanan pulih lalu coba lagi.',
+		cloudAlignerSpaceLink: 'Buka Space Hugging Face',
+		quranwordtimingLabel: 'Penyelarasan kata Quran Karim',
 		howItWorksDescription2:
 			'Tebal, miring, garis bawah, dan baris baru dialihkan pada rentang yang dipilih. Warna dan cahaya diterapkan dengan pilihan warna saat ini. Mengedit teks terjemahan akan menghapus gaya kata terjemahan.',
 		alignmentStage: {
@@ -929,6 +953,10 @@ const id = {
 		timeline: 'Timeline',
 		assets: 'Aset',
 		videoPreview: 'Pratinjau video',
+		skipBackwardTenSeconds: 'Mundur 10 detik',
+		skipForwardTenSeconds: 'Maju 10 detik',
+		seekVideo: 'Posisi video',
+		exitFullscreen: 'Keluar dari layar penuh',
 		searchTranslations: 'Teks terjemahan',
 		addNewTranslation: 'Tambah terjemahan baru',
 		translationFilters: 'Filter terjemahan',
@@ -1029,9 +1057,12 @@ const id = {
 		saveStylesCommunityPresets: 'Simpan gaya & preset komunitas',
 		styleName: {
 			...baseEn.editor.styleName,
+			rotation: 'Rotasi',
 			riwayah: 'Riwayah',
 			'basmala-style': 'Gaya Basmala',
 			'basmala-scale': 'Skala Basmala',
+			'istiadha-style': 'Gaya Istiʿādha',
+			'istiadha-scale': 'Skala Istiʿādha',
 			'current-font': 'Font saat ini',
 			general: 'Umum',
 			'verse-number': 'Nomor Ayat',
@@ -1039,6 +1070,7 @@ const id = {
 			'video-dimension': 'Kualitas & Orientasi Video',
 			'media-fill': 'Penuhi Bingkai',
 			'media-scale': 'Zoom',
+			'media-rotation': 'Rotasi',
 			'media-position-x': 'Posisi Horizontal',
 			'media-position-y': 'Posisi Vertikal',
 			'fade-duration': 'Durasi Fade Subtitle',
@@ -1101,19 +1133,27 @@ const id = {
 			'line-background-color': 'Warna bilah',
 			'line-background-position': 'Posisi bilah',
 			'line-background-height': 'Tinggi bilah',
+			'line-background-roundness': 'Kelengkungan bilah (%)',
 			'text-glow': 'Cahaya Teks',
-			'text-glow-color': 'Warna Cahaya'
+			'text-glow-color': 'Warna Cahaya',
+			'surah-latin-text-style': 'Tampilan bersama',
+			'reciter-latin-text-style': 'Tampilan bersama'
 		} as Translation['editor']['styleName'],
 		styleDescription: {
 			...baseEn.editor.styleDescription,
+			rotation: 'Putar teks dalam derajat',
 			riwayah: 'Pilih riwayat bacaan Al-Qur’an untuk subtitle bahasa Arab.',
 			'basmala-style':
 				'Gunakan font Arab saat ini atau pilih salah satu dari 122 basmala kaligrafi.',
 			'basmala-scale': 'Ubah skala basmala kaligrafi bawaan secara terpisah dari subtitle lainnya.',
+			'istiadha-style':
+				'Gunakan font Arab saat ini atau pilih salah satu dari 16 istiʿādha kaligrafi.',
+			'istiadha-scale': 'Ubah skala istiʿādha kaligrafi secara terpisah dari subtitle lainnya.',
 			'video-clip-transition-duration':
 				'Durasi default transisi antar klip video dalam milidetik. Dalam mode Crossfade, setiap crossfade dapat disesuaikan secara terpisah dengan menggeser klip di timeline. Tampilannya mungkin tidak akurat di pratinjau video, tetapi hasil video yang diekspor akan tetap benar.',
 			'media-fill': 'Pangkas video dan gambar latar agar memenuhi seluruh bingkai',
 			'media-scale': 'Perbesar media latar',
+			'media-rotation': 'Putar media latar dalam derajat',
 			'media-position-x': 'Geser media latar secara horizontal dari posisi tengah',
 			'media-position-y': 'Geser media latar secara vertikal dari posisi tengah',
 			'background-overlay-mode': 'Pilih arah atau bentuk fade overlay',
@@ -1153,7 +1193,13 @@ const id = {
 			'line-background-enable': 'Aktifkan atau nonaktifkan bilah latar di belakang setiap baris',
 			'line-background-color': 'Atur warna bilah latar',
 			'line-background-position': 'Atur posisi vertikal bilah terhadap teks',
-			'line-background-height': 'Atur tinggi bilah latar'
+			'line-background-height': 'Atur tinggi bilah latar',
+			'line-background-roundness':
+				'Atur kelengkungan sudut: 0% untuk sudut siku-siku, 100% untuk ujung yang sepenuhnya membulat',
+			'surah-latin-text-style':
+				'Tampilan bersama untuk kaligrafi Arab dan teks Latin; jenis huruf, ukuran, dan kapitalisasi hanya berlaku untuk teks Latin.',
+			'reciter-latin-text-style':
+				'Tampilan bersama untuk kaligrafi Arab dan teks Latin; jenis huruf, ukuran, dan kapitalisasi hanya berlaku untuk teks Latin.'
 		} as Translation['editor']['styleDescription'],
 		chooseTarget: 'Pilih target',
 		selectTranslation: 'Pilih terjemahan',
@@ -1525,6 +1571,15 @@ const id = {
 		youtubeChaptersOption: 'Chapter YT',
 		youtubeChaptersDescription: 'Daftar chapter dengan timestamp',
 		projectDataDescription: 'Ekspor data mentah proyek',
+		generateThumbnail: 'Buat thumbnail',
+		thumbnailDescription:
+			'Tombol di bawah membuka Quran Thumbnails, situs buatan @sadaalayat di Discord untuk membuat thumbnail dengan cepat. Detail proyek Anda akan diisi secara otomatis.',
+		thumbnailSummary: 'Detail thumbnail',
+		thumbnailTranslationLanguage: 'Bahasa terjemahan',
+		thumbnailOpen: 'Buka Quran Thumbnails',
+		thumbnailOpenError: 'Tidak dapat membuka Quran Thumbnails.',
+		thumbnailTemplates: 'Pilih template',
+		thumbnailTemplatesError: 'Tidak dapat memuat template dari Quran Thumbnails.',
 		exportSubtitlesHeading: 'Ekspor Subtitle',
 		exportSubtitlesDescription: 'Ekspor subtitle dari proyek kamu dalam berbagai format.',
 		subtitleFormat: 'Format subtitle',
@@ -1538,7 +1593,8 @@ const id = {
 		arabicTextFormat: 'Format teks Arab',
 		arabicTextFormatDescription: 'Format tulisan Arab untuk subtitle kamu.',
 		exportFolder: 'Folder export',
-		exportFolderDescription: 'Pilih lokasi penyimpanan file hasil export.',
+		exportFolderDescription:
+			'Semua file hasil ekspor otomatis disimpan di folder Download perangkat Anda.',
 		exportSubtitlesButton: 'Ekspor Subtitle',
 		exportSubtitlesButtonDescription: 'Generate file subtitle dengan konfigurasi yang kamu pilih',
 		exportYoutubeChapters: 'Ekspor Chapter YouTube',
@@ -1701,7 +1757,8 @@ const id = {
 		presetsSubtitle: 'Library lokal dan style komunitas',
 		backToStylePresets: 'Kembali ke preset style',
 		backToStyleEditor: 'Kembali ke editor style',
-		saveLocally: 'Simpan lokal',
+		saveLocally: 'Baru',
+		updatePreset: 'Perbarui',
 		sortNewest: 'Terbaru',
 		sortMostDownloaded: 'Paling banyak didownload',
 		sortMostLiked: 'Paling banyak disukai',
@@ -1750,6 +1807,9 @@ const id = {
 		fontControlledByMushaf: 'Font ini dikontrol oleh Mushaf yang dipilih.',
 		groupBasics: 'Dasar',
 		groupTypography: 'Tipografi',
+		groupArabicCalligraphy: 'Kaligrafi Arab',
+		groupLatinText: 'Teks Latin',
+		groupSharedAppearance: 'Tampilan bersama',
 		groupColors: 'Warna',
 		groupSpacing: 'Jarak',
 		groupLayout: 'Tata letak',
@@ -1764,6 +1824,14 @@ const id = {
 	} as Translation['style'] & Record<string, string>,
 	tools: {
 		...baseEn.tools,
+		mediaSpeed: 'Ubah kecepatan media',
+		mediaSpeedDescription: 'Perlambat atau percepat aset audio atau video, atau klip di lini masa.',
+		mediaSpeedScale: '−3: 3× lebih lambat · 0: normal · +3: 3× lebih cepat',
+		mediaSpeedHint:
+			'File baru ditambahkan ke aset. Klip yang dipilih di lini masa menggunakannya dan durasinya disesuaikan.',
+		mediaSpeedAdaptSubtitles: 'Sesuaikan takarir dengan durasi audio yang baru',
+		mediaSpeedSuccess: 'Media dengan kecepatan baru ditambahkan ke proyek.',
+		mediaSpeedFailed: 'Gagal mengubah kecepatan media: {error}',
 		hifzRepetition: 'Hifz Repetition',
 		hifzDescription: 'Ulang subtitle yang sudah ada dan generate audio yang sesuai',
 		hifzBody:
@@ -1992,6 +2060,7 @@ const id = {
 	exporterMonitor: {
 		...baseEn.exporterMonitor,
 		exportsMonitor: 'Monitor Ekspor',
+		downloadsHint: 'Semua ekspor disimpan di folder Download.',
 		closeExportMonitor: 'Tutup monitor export',
 		cancelExport: 'Batalkan export',
 		cancelExportConfirm: 'Yakin ingin membatalkan export ini? Progres kamu akan hilang.',
@@ -2019,6 +2088,7 @@ const id = {
 		stateRendering: 'Merender video',
 		stateMerging: 'Menggabungkan file',
 		stateCapturing: 'Mengambil frame',
+		capturedFrames: 'Frame yang diambil',
 		stateInitializing: 'Menginisialisasi',
 		stateExported: 'Diekspor',
 		stateError: 'Gagal',

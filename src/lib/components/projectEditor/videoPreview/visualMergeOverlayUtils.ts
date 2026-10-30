@@ -1,5 +1,6 @@
 import { QuranSubtitleClip } from '$lib/compatibility/QuranSubtitleClip.svelte';
 import {
+	type Clip,
 	ClipWithTranslation,
 	PredefinedSubtitleClip,
 	SubtitleClip
@@ -11,7 +12,10 @@ import {
 	type TranslationInlineStyleRun
 } from '$lib/classes/Translation.svelte';
 import type { VisualMergeGroup } from '$lib/classes/Track.svelte';
-import type { QuranTranscriptReference } from '$lib/services/TranscriptReferenceService';
+import {
+	parseQuranTranscriptReference,
+	type QuranTranscriptReference
+} from '$lib/services/TranscriptReferenceService';
 
 export type OverlayTextSegment = {
 	key: string;
@@ -24,6 +28,43 @@ export type OverlayTextSegment = {
 	verseNumberPosition?: 'before' | 'after';
 	sourceClipId?: number;
 };
+
+/**
+ * Indique si une plage Quran continue dans le sous-titre adjacent.
+ * @param {Clip[]} clips Sous-titres de la piste.
+ * @param {OverlayTextSegment} segment Portion Quran affichée.
+ * @param {-1 | 1} direction Sous-titre précédent ou suivant.
+ * @returns {boolean} `true` si les deux plages sont consécutives dans le même verset.
+ */
+export function isQuranReferenceContinued(
+	clips: Clip[],
+	segment: Pick<OverlayTextSegment, 'quranReference' | 'sourceClipId'>,
+	direction: -1 | 1
+): boolean {
+	const reference = segment.quranReference;
+	if (!reference || !segment.sourceClipId) return false;
+
+	const sourceIndex = clips.findIndex((clip) => clip.id === segment.sourceClipId);
+	if (sourceIndex < 0) return false;
+	const adjacentClip = clips
+		.slice(direction < 0 ? 0 : sourceIndex + 1, direction < 0 ? sourceIndex : undefined)
+		.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
+		.at(direction < 0 ? -1 : 0);
+	if (!adjacentClip) return false;
+
+	return Array.from(adjacentClip.text.matchAll(/\{\{([^{}]+)\}\}/g)).some((match) => {
+		const adjacentReference = parseQuranTranscriptReference(match[1]);
+		if (
+			!adjacentReference ||
+			adjacentReference.surah !== reference.surah ||
+			adjacentReference.verse !== reference.verse
+		)
+			return false;
+		return direction < 0
+			? reference.startWord !== null && adjacentReference.endWord === reference.startWord - 1
+			: reference.endWord !== null && adjacentReference.startWord === reference.endWord + 1;
+	});
+}
 
 /**
  * Indique si une cible de rendu utilise le fusion visuelle active.

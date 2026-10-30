@@ -19,7 +19,6 @@
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import {
 		getTranscriptReferenceLogicalParts,
-		parseQuranTranscriptReference,
 		prefetchTranscriptReferences,
 		type QuranTranscriptReference
 	} from '$lib/services/TranscriptReferenceService';
@@ -28,6 +27,7 @@
 		createPlainOverlaySegment,
 		getMergedClipsWithoutWordOverlap,
 		getVisibleArabicSegments as getVisibleArabicSegmentsUtil,
+		isQuranReferenceContinued,
 		isVisualMergeTargetMerged,
 		type OverlayTextSegment
 	} from './visualMergeOverlayUtils';
@@ -178,42 +178,6 @@
 			referenceCss += `opacity: ${Number(opacity)};`;
 		}
 		return referenceCss;
-	}
-
-	/**
-	 * Indique si une plage Quran continue dans le sous-titre adjacent.
-	 * @param {OverlayTextSegment} segment Portion Quran affichée.
-	 * @param {-1 | 1} direction Sous-titre précédent ou suivant.
-	 * @returns {boolean} `true` si les deux plages sont consécutives dans le même verset.
-	 */
-	function isQuranReferenceContinued(
-		segment: Pick<OverlayTextSegment, 'quranReference' | 'sourceClipId'>,
-		direction: -1 | 1
-	): boolean {
-		const reference = segment.quranReference;
-		if (!reference || !segment.sourceClipId) return false;
-
-		const clips = globalState.getSubtitleTrack.clips;
-		const sourceIndex = clips.findIndex((clip) => clip.id === segment.sourceClipId);
-		if (sourceIndex < 0) return false;
-		const adjacentClip = clips
-			.slice(direction < 0 ? 0 : sourceIndex + 1, direction < 0 ? sourceIndex : undefined)
-			.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
-			.at(direction < 0 ? -1 : 0);
-		if (!adjacentClip) return false;
-
-		return Array.from(adjacentClip.text.matchAll(/\{\{([^{}]+)\}\}/g)).some((match) => {
-			const adjacentReference = parseQuranTranscriptReference(match[1]);
-			if (
-				!adjacentReference ||
-				adjacentReference.surah !== reference.surah ||
-				adjacentReference.verse !== reference.verse
-			)
-				return false;
-			return direction < 0
-				? reference.startWord !== null && adjacentReference.endWord === reference.startWord - 1
-				: reference.endWord !== null && adjacentReference.startWord === reference.endWord + 1;
-		});
 	}
 
 	/**
@@ -1040,7 +1004,7 @@
 							{#if group.referenceType === 'quran' && showDecorativeBrackets()}
 								{@const glyphs = bracketGlyphs()}
 								{@const bracketStyle = `${group.extraCss} ${getDecorativeBracketCss()}`.trim()}
-								{#if !isQuranReferenceContinued(group, -1)}
+								{#if !isQuranReferenceContinued(globalState.getSubtitleTrack.clips, group, -1)}
 									<span style={bracketStyle}>{glyphs.closing}</span>
 								{/if}
 							{/if}
@@ -1110,7 +1074,7 @@
 							{#if group.referenceType === 'quran' && showDecorativeBrackets()}
 								{@const glyphs = bracketGlyphs()}
 								{@const bracketStyle = `${group.extraCss} ${getDecorativeBracketCss()}`.trim()}
-								{#if !isQuranReferenceContinued(group, 1)}
+								{#if !isQuranReferenceContinued(globalState.getSubtitleTrack.clips, group, 1)}
 									<span style={bracketStyle}>{glyphs.opening}</span>
 								{/if}
 							{/if}
@@ -1140,8 +1104,16 @@
 				{@const glyphs = bracketGlyphs()}
 				{@const bracketCss = getDecorativeBracketCss()}
 				{@const bracketStyle = `${segmentStyle} ${bracketCss}`.trim()}
-				{@const continuesPrevious = isQuranReferenceContinued(segment, -1)}
-				{@const continuesNext = isQuranReferenceContinued(segment, 1)}
+				{@const continuesPrevious = isQuranReferenceContinued(
+					globalState.getSubtitleTrack.clips,
+					segment,
+					-1
+				)}
+				{@const continuesNext = isQuranReferenceContinued(
+					globalState.getSubtitleTrack.clips,
+					segment,
+					1
+				)}
 				<span dir="rtl" style="unicode-bidi: isolate;">
 					{#if !continuesPrevious}<span style={bracketStyle}>{glyphs.closing}</span>{/if}
 					<span style={segmentStyle}>{segment.text}</span>

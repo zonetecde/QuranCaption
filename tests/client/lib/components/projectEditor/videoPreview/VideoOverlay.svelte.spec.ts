@@ -1933,6 +1933,62 @@ describe('Translation inline styles', () => {
 	);
 
 	test.each([
+		{ references: ['38:49:1-2', '38:49:3-4', '38:49:5-6'], brackets: ['L', '', 'M'] },
+		{ references: ['38:49:1-2', '38:49:5-6'], brackets: ['LM', 'LM'] },
+		{ references: ['38:49:1-2', '38:50:3-4'], brackets: ['LM', 'LM'] },
+		{ references: ['38:49'], brackets: ['LM'] }
+	])(
+		'keeps translation brackets at the boundaries of consecutive Quran ranges: $references',
+		async ({ references, brackets }) => {
+			const clips = references.map((reference, index) => {
+				const translation = new VerseTranslation(`Before {{${reference}}} after`, 'reviewed');
+				translation.isStructuredTranslation = true;
+				const settings = translation.getOrCreateQuranSegment('quran-0', reference, 1);
+				settings.isBruteForce = true;
+				settings.manualText = 'translated passage';
+				return new SubtitleClip(index * 2000, index * 2000 + 1000, `??? {{${reference}}}`, {
+					english: translation
+				});
+			});
+			const fixture = setupVideoOverlayFixture(clips, { cursorPosition: 500 });
+			const projectTranslation = new ProjectTranslation();
+			projectTranslation.addedTranslationEditions = [
+				new Edition(
+					'english',
+					'english',
+					'English',
+					'English',
+					'ltr',
+					'project-language',
+					'',
+					'',
+					''
+				)
+			];
+			globalState.currentProject!.content.projectTranslation = projectTranslation;
+			fixture.videoStyle
+				.getStylesOfTarget('english-quran')
+				.setStyle('show-decorative-brackets', true);
+			const component = render(VideoOverlay);
+			await settleOverlay();
+
+			for (let index = 0; index < clips.length; index++) {
+				await fixture.setCursor(index * 2000 + 500);
+				await settleOverlay();
+				const node = getForegroundTranslationNode(component.container, 'english')!;
+				expect(
+					Array.from(node.querySelectorAll('span[style*="QPC2BSML"]'))
+						.map((span) => span.textContent)
+						.join('')
+				).toBe(brackets[index]);
+				expect(normalizeText(node.textContent?.replace(/[LM]/g, ''))).toBe(
+					'Before translated passage after'
+				);
+			}
+		}
+	);
+
+	test.each([
 		{ manual: false, position: 'before' },
 		{ manual: false, position: 'after' },
 		{ manual: true, position: 'before' },

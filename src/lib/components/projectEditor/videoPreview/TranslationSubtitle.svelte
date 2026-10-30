@@ -25,6 +25,7 @@
 		getMergedClipsWithoutWordOverlap,
 		getVisibleTranslationSegments as getVisibleTranslationSegmentsUtil,
 		hasSharedMergedTranslation,
+		isQuranReferenceContinued,
 		isVisualMergeTargetMerged,
 		type OverlayTextSegment
 	} from './visualMergeOverlayUtils';
@@ -985,7 +986,9 @@
 				{#if segment.referenceType === 'quran' && showTranslationDecorativeBrackets()}
 					{@const glyphs = getTranslationBracketGlyphs()}
 					{@const bracketStyle = `${segmentStyle} ${getDecorativeBracketCss()}`.trim()}
-					<span style={bracketStyle}>{glyphs.opening}</span>
+					{#if !isQuranReferenceContinued(globalState.getSubtitleTrack.clips, segment, -1)}
+						<span style={bracketStyle}>{glyphs.opening}</span>
+					{/if}
 					{#if segment.verseNumber && segment.verseNumberPosition === 'before'}
 						<span class={segmentClass} style={`${segmentStyle} color: var(--verse-number-color);`}
 							>{segment.verseNumber}</span
@@ -1000,7 +1003,9 @@
 							>{segment.verseNumber}</span
 						>
 					{/if}
-					<span style={bracketStyle}>{glyphs.closing}</span>
+					{#if !isQuranReferenceContinued(globalState.getSubtitleTrack.clips, segment, 1)}
+						<span style={bracketStyle}>{glyphs.closing}</span>
+					{/if}
 				{:else if segmentStyle}
 					{#if segment.verseNumber && segment.verseNumberPosition === 'before'}
 						<span class={segmentClass} style={`${segmentStyle} color: var(--verse-number-color);`}

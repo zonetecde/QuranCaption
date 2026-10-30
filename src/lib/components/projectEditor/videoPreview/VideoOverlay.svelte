@@ -1314,9 +1314,11 @@
 				class="absolute inset-0 flex flex-col items-center justify-center"
 				style="opacity: 1;"
 			>
-				<div class="anti-collision-drag-notice" role="status">
-					{antiCollisionStyleEnabledCopy}
-				</div>
+				{#if !isExportCapturePreview()}
+					<div class="anti-collision-drag-notice" role="status">
+						{antiCollisionStyleEnabledCopy}
+					</div>
+				{/if}
 				<!-- Couche 5 : Sous-titre arabe -->
 				{#if currentSubtitle() && currentSubtitle()!.id}
 					{@const arabicRefClip = getReferenceClipForTarget('arabic')}

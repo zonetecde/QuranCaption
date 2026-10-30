@@ -22,6 +22,7 @@ import { VerseTranslation } from '$lib/classes/Translation.svelte';
 import {
 	buildSpeechSubtitles,
 	extendShortSubtitlesIntoSilence,
+	normalizeArabicSubtitlePunctuation,
 	normalizeSpeechWords,
 	validateSpeechBoundaries,
 	transcribeProjectAudio
@@ -30,6 +31,36 @@ import {
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 
 describe('speech subtitle segmentation', () => {
+	test.each([
+		['انت عارف انت عملت ايه كويس?', 'انت عارف انت عملت ايه كويس؟'],
+		['هَلْ تَعْرِفُ؟', 'هَلْ تَعْرِفُ؟'],
+		['«ماذا» ? 123', '«ماذا» ؟ 123'],
+		['هل {{2:255}} صحيح?', 'هل {{2:255}} صحيح؟'],
+		['من? ماذا??', 'من؟ ماذا؟؟'],
+		['هل قال bonjour?', 'هل قال bonjour?'],
+		['Bonjour مرحبا?', 'Bonjour مرحبا?'],
+		['123 ?!', '123 ?!'],
+		['Pourquoi ?', 'Pourquoi ?']
+	])('normalizes question marks only for Arabic-script subtitles: %s', (text, expected) => {
+		expect(normalizeArabicSubtitlePunctuation(text)).toBe(expected);
+	});
+
+	test('normalizes final Arabic segments and their aligned words without changing input or timings', () => {
+		const words = ['Bonjour?', 'كيف', 'حالك', '?'].map((word, i) => ({
+			word,
+			start: i,
+			end: i + 0.8
+		}));
+		const before = structuredClone(words);
+		const segments = buildSpeechSubtitles(words, [1, 4], 8, 6);
+		expect(segments.map((segment) => segment.text)).toEqual(['Bonjour?', 'كيف حالك ؟']);
+		expect(segments[1].words.map((word) => word.word)).toEqual(['كيف', 'حالك', '؟']);
+		expect(
+			segments.flatMap((segment) => segment.words).map(({ start, end }) => ({ start, end }))
+		).toEqual(words.map(({ start, end }) => ({ start, end })));
+		expect(words).toEqual(before);
+	});
+
 	test.each([
 		{ times: [[1000, 2000]], end: 4000, expected: [[750, 2250]] },
 		{ times: [[100, 1100]], end: 4000, expected: [[0, 1500]] },

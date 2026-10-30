@@ -231,6 +231,24 @@ test('previews only changed subtitles without mutating the track until approval'
 	]);
 });
 
+test('normalizes Arabic punctuation after rearrangement with consistent aligned words and undo', async () => {
+	track.clips = [subtitle(0, 'كيف حالك?')];
+	const plan = await previewProjectSubtitles(
+		project,
+		options,
+		new AbortController().signal,
+		vi.fn()
+	);
+	expect((track.clips[0] as SubtitleClip).text).toBe('كيف حالك?');
+	expect(plan.after[0].text).toBe('كيف حالك؟');
+	expect(plan.after[0].alignmentMetadata!.matchedText).toBe('كيف حالك؟');
+	expect(plan.after[0].alignmentMetadata!.words.map((word) => word.word)).toEqual(['كيف', 'حالك؟']);
+	plan.apply();
+	expect(globalState.getSubtitleClips[0].text).toBe('كيف حالك؟');
+	ProjectHistoryManager.undo();
+	expect(globalState.getSubtitleClips[0].text).toBe('كيف حالك?');
+});
+
 test.each(['edit', 'switch', 'cancel', 'translations', 'undo'])(
 	'refuses applying an outdated preview after %s',
 	async (action) => {

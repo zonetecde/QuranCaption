@@ -9,6 +9,7 @@ import {
 	buildSpeechSubtitles,
 	extendShortSubtitlesIntoSilence,
 	getSpeechToTextCopy,
+	normalizeArabicSubtitlePunctuation,
 	validateSpeechBoundaries
 } from './SpeechToTextService';
 import {
@@ -345,11 +346,12 @@ export async function rearrangeProjectSubtitles(
 					lastWord.clipWordIndex === lastSource.alignmentMetadata!.words.length - 1
 						? lastSource.endTime
 						: Math.round(segment.end * 1000);
-				const text = serializeTranscriptBandSelection(
+				const originalText = serializeTranscriptBandSelection(
 					words,
 					words[0].globalIndex,
 					words[words.length - 1].globalIndex
 				);
+				const text = normalizeArabicSubtitlePunctuation(originalText);
 				if (
 					words.every((word) => word.clipId === source.id) &&
 					source.alignmentMetadata!.words.length === words.length &&
@@ -374,7 +376,7 @@ export async function rearrangeProjectSubtitles(
 						matchedText: text,
 						words: words.map((word) => ({
 							...eligible.get(word.clipId!)!.alignmentMetadata!.words[word.clipWordIndex],
-							word: word.text,
+							word: text === originalText ? word.text : word.text.replace(/\?/gu, '؟'),
 							start: (word.startMs - start) / 1000,
 							end: (word.endMs - start) / 1000
 						}))

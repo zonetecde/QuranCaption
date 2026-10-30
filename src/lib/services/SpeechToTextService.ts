@@ -85,6 +85,19 @@ export function validateSpeechBoundaries(response: unknown, wordCount: number): 
 }
 
 /**
+ * Remplace les points d'interrogation latins des sous-titres entièrement en écriture arabe.
+ * @param {string} text Texte final du sous-titre.
+ * @returns {string} Texte avec la ponctuation arabe, ou texte original pour les autres langues.
+ */
+export function normalizeArabicSubtitlePunctuation(text: string): string {
+	if (!text.includes('?')) return text;
+	const letters = text.match(/\p{L}/gu);
+	return letters?.length && letters.every((letter) => /\p{Script_Extensions=Arabic}/u.test(letter))
+		? text.replace(/\?/gu, '؟')
+		: text;
+}
+
+/**
  * Applique les frontières sémantiques et les limites sans couper un mot prolongé.
  * @param {SpeechWord[]} words Mots originaux horodatés.
  * @param {number[]} ends Frontières sémantiques exclusives.
@@ -133,11 +146,16 @@ export function buildSpeechSubtitles(
 				}
 			}
 			const part = words.slice(start, cut);
+			const originalText = part.map((word) => word.word).join(' ');
+			const text = normalizeArabicSubtitlePunctuation(originalText);
 			subtitles.push({
-				text: part.map((word) => word.word).join(' '),
+				text,
 				start: part[0].start,
 				end: part[part.length - 1].end,
-				words: part
+				words:
+					text === originalText
+						? part
+						: part.map((word) => ({ ...word, word: word.word.replace(/\?/gu, '؟') }))
 			});
 			start = cut;
 		}

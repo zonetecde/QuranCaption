@@ -217,7 +217,7 @@ function collectAdvancedTrimRuleErrors(
 	candidate: AdvancedTrimVerseCandidate,
 	verseTranslations: Array<VerseTranslation | null>,
 	checkedIndexes: Set<number>,
-	errorStatusLabel = 'Error'
+	errorStatusLabel: string | null = 'Error'
 ): {
 	erroredIndexes: Set<number>;
 	remapFailedIndexes: Set<number>;
@@ -228,6 +228,9 @@ function collectAdvancedTrimRuleErrors(
 	const verseErrors: string[] = [];
 	const sourceTokens = tokenizeForCoverage(candidate.sourceTranslation);
 	const sourceTokenSet = new Set(sourceTokens);
+	const markNotice = errorStatusLabel
+		? ` The segment was marked as "${errorStatusLabel}" for review.`
+		: '';
 
 	for (let index = 0; index < candidate.subtitles.length; index++) {
 		if (!checkedIndexes.has(index)) continue;
@@ -242,7 +245,7 @@ function collectAdvancedTrimRuleErrors(
 		if (inventedTokens.length > 0) {
 			erroredIndexes.add(index);
 			verseErrors.push(
-				`Verse ${candidate.verseKey}, segment ${index + 1}: the translation contains token(s) not present in the original translation (${inventedTokens.join(', ')}). The segment was marked as "${errorStatusLabel}" for review.`
+				`Verse ${candidate.verseKey}, segment ${index + 1}: the translation contains token(s) not present in the original translation (${inventedTokens.join(', ')}).${markNotice}`
 			);
 		}
 
@@ -250,7 +253,7 @@ function collectAdvancedTrimRuleErrors(
 			erroredIndexes.add(index);
 			remapFailedIndexes.add(index);
 			verseErrors.push(
-				`Verse ${candidate.verseKey}, segment ${index + 1}: failed to map the translation back to a contiguous source range in the original translation. The segment was marked as "${errorStatusLabel}" for review.`
+				`Verse ${candidate.verseKey}, segment ${index + 1}: failed to map the translation back to a contiguous source range in the original translation.${markNotice}`
 			);
 		}
 	}
@@ -372,7 +375,7 @@ function collectAdvancedTrimRuleErrors(
 					if (erroredIndexes.has(index)) continue;
 					erroredIndexes.add(index);
 					verseErrors.push(
-						`Verse ${candidate.verseKey}, segment ${index + 1}: the combined trimmed segments do not cover the full original translation. This segment was marked as "${errorStatusLabel}" because one or more original words are still missing from the verse coverage.`
+						`Verse ${candidate.verseKey}, segment ${index + 1}: the combined trimmed segments do not cover the full original translation.${errorStatusLabel ? ` This segment was marked as "${errorStatusLabel}" because one or more original words are still missing from the verse coverage.` : ''}`
 					);
 				}
 			}
@@ -783,6 +786,43 @@ export function validateAdvancedTrimBatchResult(
 		validVerses,
 		errors
 	};
+}
+
+/**
+ * Vérifie les réponses manuelles et leur remapping sur des copies avant toute application.
+ * @param {Edition} edition Edition à traduire.
+ * @param {AdvancedTrimBatch} batch Lot attendu.
+ * @param {unknown} parsed Réponse JSON de l'IA.
+ * @returns {AdvancedTrimValidationReport} Réponses valides et erreurs à régénérer.
+ */
+export function validateManualAdvancedTrimBatchResult(
+	edition: Edition,
+	batch: AdvancedTrimBatch,
+	parsed: unknown
+): AdvancedTrimValidationReport {
+	const report = validateAdvancedTrimBatchResult(batch, parsed);
+	for (const { candidate, result } of report.validVerses) {
+		// Les contrôles de couverture et de remapping ne doivent jamais toucher au projet.
+		const translations = candidate.subtitles.map(
+			(subtitle) =>
+				(subtitle.translations[edition.name]?.clone() as VerseTranslation | undefined) ?? null
+		);
+		const checkedIndexes = new Set(result.segments.map((segment) => segment.i));
+		for (const segment of result.segments) {
+			translations[segment.i]?.setTextAndClearInlineStyles(segment.text);
+		}
+		for (const translation of translations) {
+			translation?.tryRecalculateTranslationIndexes(
+				edition,
+				candidate.verseKey,
+				candidate.sourceTranslation
+			);
+		}
+		report.errors.push(
+			...collectAdvancedTrimRuleErrors(candidate, translations, checkedIndexes, null).errors
+		);
+	}
+	return report;
 }
 
 /**

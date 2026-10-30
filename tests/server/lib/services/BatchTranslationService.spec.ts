@@ -83,7 +83,6 @@ const secondEdition = new Edition(
 	''
 );
 const aiSettings = {
-	omitPromptPrefix: false,
 	openAiApiKey: 'key',
 	textAiApiEndpoint: 'https://example.com',
 	advancedTrimModel: 'model',

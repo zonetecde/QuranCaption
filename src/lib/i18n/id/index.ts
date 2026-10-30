@@ -791,6 +791,49 @@ const id = {
 	},
 	editor: {
 		...baseEn.editor,
+		manualAi: {
+			method: 'Metode koneksi AI',
+			withApi: 'Dengan API',
+			withoutApi: 'Tanpa kunci API',
+			title: 'Gunakan percakapan AI biasa',
+			description:
+				'Siapkan prompt di sini, kirim ke ChatGPT atau percakapan AI lain, lalu tempel jawabannya kembali. Tidak perlu kunci API AI teks.',
+			copyStep: 'Salin prompt',
+			chatStep: 'Kirim ke percakapan AI',
+			pasteStep: 'Tempel jawaban lengkap di sini',
+			prepare: 'Siapkan prompt',
+			preparing: 'Menyiapkan langkah berikutnya…',
+			prompt: 'Prompt',
+			responses: 'Jawaban AI',
+			validated: 'Jawaban diperiksa:',
+			copyPrompt: 'Salin prompt',
+			copied: 'Tersalin',
+			newChatHint:
+				'Tempel prompt ini dalam percakapan ChatGPT baru. Setiap prompt menyertakan konteks yang diperlukan.',
+			openChatGpt: 'Buka ChatGPT',
+			placeholder: 'Tempel jawaban lengkap AI…',
+			pasteHint:
+				'Sertakan seluruh jawaban, termasuk baris pertama dan terakhir. Aplikasi akan memeriksanya.',
+			validate: 'Periksa jawaban dan lanjutkan',
+			responseValid: 'Jawaban telah diperiksa dan disimpan untuk sesi ini.',
+			responseInvalid: 'Jawaban ini perlu dibuat ulang',
+			retryHint:
+				'Salin prompt percobaan ulang ke percakapan AI baru, lalu ganti hanya jawaban ini. Jawaban yang sudah diperiksa tetap disimpan.',
+			copyRetry: 'Salin prompt percobaan ulang',
+			ready: 'Semua jawaban telah diperiksa',
+			reviewHint: 'Tinjau hasilnya sebelum menerapkan. Perubahan dapat dibatalkan setelahnya.',
+			applyTranslations: 'Terapkan terjemahan',
+			invalidJson:
+				'Jawaban tidak lengkap atau formatnya tidak dapat dibaca. Salin jawaban lengkap atau buat ulang.',
+			wrongPrompt:
+				'Jawaban ini tidak sesuai dengan prompt ini. Gunakan prompt untuk langkah ini dan sertakan jawaban lengkap.',
+			prepareError: 'Prompt tidak dapat disiapkan. Batalkan sesi ini lalu coba lagi.',
+			copyError: 'Prompt tidak dapat disalin. Periksa akses papan klip lalu coba lagi.',
+			openError: 'ChatGPT tidak dapat dibuka. Buka chatgpt.com di browser.',
+			sourceChanged:
+				'Proyek, subtitel, atau terjemahan telah berubah. Siapkan prompt baru sebelum menerapkan jawaban ini.',
+			includeReviewed: 'Sertakan terjemahan yang sudah ditinjau'
+		},
 		overlayLayerOrder: 'Urutan lapisan (Z)',
 		moveLayerUp: 'Naikkan',
 		moveLayerDown: 'Turunkan',

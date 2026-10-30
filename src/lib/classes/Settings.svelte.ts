@@ -47,7 +47,6 @@ export type StockMediaSettings = {
 export type PerformanceProfile = 'balanced' | 'max_quality';
 
 export type AITranslationSettings = {
-	omitPromptPrefix: boolean; // If true, only include JSON input in the prompt.
 	openAiApiKey: string;
 	textAiApiEndpoint: string;
 	advancedTrimModel: string;
@@ -55,7 +54,7 @@ export type AITranslationSettings = {
 	advancedAlsoAskReviewed: boolean;
 	aiBoldCustomNote: string;
 	aiWbwTranslationCustomNote: string;
-	activeModalTab: 'legacy' | 'advanced';
+	activeModalTab: 'advanced' | 'manual';
 };
 
 export type ExportSettings = {
@@ -178,7 +177,6 @@ export default class Settings extends SerializableBase {
 	});
 
 	aiTranslationSettings = $state<AITranslationSettings>({
-		omitPromptPrefix: false,
 		openAiApiKey: '',
 		textAiApiEndpoint: DEFAULT_TEXT_AI_ENDPOINT,
 		advancedTrimModel: 'gpt-5.4',
@@ -186,7 +184,7 @@ export default class Settings extends SerializableBase {
 		advancedAlsoAskReviewed: false,
 		aiBoldCustomNote: '',
 		aiWbwTranslationCustomNote: '',
-		activeModalTab: 'legacy'
+		activeModalTab: 'advanced'
 	});
 
 	stockMediaSettings = $state<StockMediaSettings>({
@@ -693,6 +691,10 @@ export default class Settings extends SerializableBase {
 		}
 		if (!settings.aiTranslationSettings.textAiApiEndpoint?.trim()) {
 			settings.aiTranslationSettings.textAiApiEndpoint = DEFAULT_TEXT_AI_ENDPOINT;
+			shouldSave = true;
+		}
+		if (!['advanced', 'manual'].includes(settings.aiTranslationSettings.activeModalTab)) {
+			settings.aiTranslationSettings.activeModalTab = 'advanced';
 			shouldSave = true;
 		}
 		if (typeof settings.aiTranslationSettings.aiWbwTranslationCustomNote !== 'string') {

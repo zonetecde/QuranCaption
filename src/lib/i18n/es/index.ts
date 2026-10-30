@@ -581,6 +581,50 @@ const es = {
 			'¿Seguro que desea eliminar el lote «{name}»? Sus {count} proyectos también se eliminarán permanentemente.'
 	},
 	editor: {
+		manualAi: {
+			method: 'Modo de uso de la IA',
+			withApi: 'Con API',
+			withoutApi: 'Sin clave API',
+			title: 'Usa tu chat de IA habitual',
+			description:
+				'Prepara los prompts aquí, envíalos a ChatGPT u otra IA y pega sus respuestas en la aplicación. No necesitas una clave de API de IA de texto.',
+			copyStep: 'Copia el prompt',
+			chatStep: 'Envíalo a tu IA',
+			pasteStep: 'Pega aquí la respuesta completa',
+			prepare: 'Preparar prompts',
+			preparing: 'Preparando el siguiente paso…',
+			prompt: 'Prompt',
+			responses: 'Respuestas de la IA',
+			validated: 'Respuestas verificadas:',
+			copyPrompt: 'Copiar prompt',
+			copied: 'Copiado',
+			newChatHint:
+				'Pega este prompt en una conversación nueva de ChatGPT. Cada prompt incluye el contexto necesario.',
+			openChatGpt: 'Abrir ChatGPT',
+			placeholder: 'Pega la respuesta completa de la IA…',
+			pasteHint:
+				'Conserva toda la respuesta, incluidas la primera y la última línea. La aplicación la verificará.',
+			validate: 'Verificar respuesta y continuar',
+			responseValid: 'Respuesta verificada y guardada para esta sesión.',
+			responseInvalid: 'Esta respuesta debe regenerarse',
+			retryHint:
+				'Copia el prompt de corrección en una conversación nueva y sustituye solo esta respuesta. Las respuestas ya verificadas se conservan.',
+			copyRetry: 'Copiar prompt de corrección',
+			ready: 'Todas las respuestas se han verificado',
+			reviewHint: 'Revisa los resultados antes de aplicarlos. Después podrás deshacer los cambios.',
+			applyTranslations: 'Aplicar traducciones',
+			invalidJson:
+				'La respuesta está incompleta o su formato no se puede leer. Copia toda la respuesta o regénérala.',
+			wrongPrompt:
+				'Esta respuesta no corresponde a este prompt. Usa el prompt de este paso y conserva la respuesta completa.',
+			prepareError: 'No se pudo preparar el prompt. Cancela esta sesión e inténtalo de nuevo.',
+			copyError:
+				'No se pudo copiar el prompt. Comprueba el acceso al portapapeles e inténtalo de nuevo.',
+			openError: 'No se pudo abrir ChatGPT. Abre chatgpt.com en tu navegador.',
+			sourceChanged:
+				'El proyecto, los subtítulos o las traducciones han cambiado. Prepara nuevas instrucciones antes de aplicar estas respuestas.',
+			includeReviewed: 'Incluir las traducciones ya revisadas'
+		},
 		overlayLayerOrder: 'Orden de capas (Z)',
 		moveLayerUp: 'Subir',
 		moveLayerDown: 'Bajar',

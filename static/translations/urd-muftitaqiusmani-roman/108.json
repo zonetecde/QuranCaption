@@ -1,0 +1,33 @@
+[
+  {
+    "id": 108,
+    "city": "makkah",
+    "name": {
+      "translated": "The Abundance",
+      "transliterated": "Al-Kawthar",
+      "codepoints": [
+        1575,
+        1604,
+        1603,
+        1608,
+        1579,
+        1585
+      ]
+    },
+    "ayahs": 3,
+    "slug": "al-kawthar",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    ". ( aey payghumber ! ) yaqeen jano hum ney tumhen kausar ata kerdi hai ,"
+  ],
+  [
+    2,
+    "lehaza tum apney perwerdigar ( ki khushnoodi ) kay liye namaz parho , aur qurbani kero ,"
+  ],
+  [
+    3,
+    "yaqeen jano tumhara dushman hi woh hai jiss ki jarr katti hoi hai ."
+  ]
+]

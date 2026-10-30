@@ -1,0 +1,40 @@
+[
+  {
+    "id": 105,
+    "city": "makkah",
+    "name": {
+      "translated": "The Elephant",
+      "transliterated": "Al-Fil",
+      "codepoints": [
+        1575,
+        1604,
+        1601,
+        1610,
+        1604
+      ]
+    },
+    "ayahs": 5,
+    "slug": "al-fil",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "kiya tum ney nahi dekha kay tumharay perwerdigar ney haathi walon kay sath kaisa moamla kiya-?"
+  ],
+  [
+    2,
+    "kiya uss ney unn logon  ki sari chaalen beykaar nahi kerdi then-?"
+  ],
+  [
+    3,
+    "aur unn per ghol kay ghol perinday chorr diye thay ,"
+  ],
+  [
+    4,
+    "jo unn per pakki mitti kay pathar phenk rahey thay ,"
+  ],
+  [
+    5,
+    "chunacheh unhen aisa ker daala jaisay khaya huwa bhoosa !"
+  ]
+]

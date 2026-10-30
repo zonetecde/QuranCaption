@@ -1,0 +1,52 @@
+[
+  {
+    "id": 94,
+    "city": "makkah",
+    "name": {
+      "translated": "The Relief",
+      "transliterated": "Ash-Sharh",
+      "codepoints": [
+        1575,
+        1604,
+        1588,
+        1585,
+        1581
+      ]
+    },
+    "ayahs": 8,
+    "slug": "ash-sharh",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    ". ( aey payghumber ! ) kiya hum ney tumhari khatir tumhara seena khol nahi diya-?"
+  ],
+  [
+    2,
+    "aur hum ney tum say tumhara woh bojh utaar diya hai"
+  ],
+  [
+    3,
+    "jiss ney tumhari kamar torr rakhi thi ,"
+  ],
+  [
+    4,
+    "aur hum ney tumhari khatir tumharay tazakaray ko ooncha maqam ata kerdiya hai ."
+  ],
+  [
+    5,
+    "chunacheh haqeeqat yeh hai kay mushkilaat kay sath aasani bhi hoti hai ,"
+  ],
+  [
+    6,
+    "yaqeenan mushkilaat kay sath aasani bhi hoti hai ."
+  ],
+  [
+    7,
+    "lehaza jab tum farigh hojao to ( ibadat mein ) apney aap ko thakao ,"
+  ],
+  [
+    8,
+    "aur apney perwerdigar hi say dil lagao ."
+  ]
+]

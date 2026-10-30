@@ -1,0 +1,47 @@
+[
+  {
+    "id": 109,
+    "city": "makkah",
+    "name": {
+      "translated": "The Disbelievers",
+      "transliterated": "Al-Kafirun",
+      "codepoints": [
+        1575,
+        1604,
+        1603,
+        1575,
+        1601,
+        1585,
+        1608,
+        1606
+      ]
+    },
+    "ayahs": 6,
+    "slug": "al-kafirun",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "tum keh do kay :  aey haq ka inkar kernay walo !"
+  ],
+  [
+    2,
+    "mein unn cheezon ki ibadat nahi kerta jinn ki tum ibadat kertay ho ,"
+  ],
+  [
+    3,
+    "aur tum uss ki ibadat nahi kertay jiss ki mein ibadat kerta hun ,"
+  ],
+  [
+    4,
+    "aur naa mein ( aaenda ) uss ki ibadat kernay wala hun jiss ki ibadat tum kertay ho ,"
+  ],
+  [
+    5,
+    "aur naa tum uss ki ibadat kernay walay ho jiss ki mein ibadat kerta hun ."
+  ],
+  [
+    6,
+    "tumharay liye tumhara deen hai , aur meray liye mera deen ."
+  ]
+]

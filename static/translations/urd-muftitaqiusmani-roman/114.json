@@ -1,0 +1,44 @@
+[
+  {
+    "id": 114,
+    "city": "makkah",
+    "name": {
+      "translated": "Mankind",
+      "transliterated": "An-Nas",
+      "codepoints": [
+        1575,
+        1604,
+        1606,
+        1575,
+        1587
+      ]
+    },
+    "ayahs": 6,
+    "slug": "an-nas",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "kaho   kay :  mein panah maangta hun sabb logon  kay perwerdigar ki ,"
+  ],
+  [
+    2,
+    "sabb logon  kay badshah ki ,"
+  ],
+  [
+    3,
+    "sabb logon  kay mabood ki ,"
+  ],
+  [
+    4,
+    "uss waswasa daalney walay kay sharr say jo peechay ko chup jata hai"
+  ],
+  [
+    5,
+    "jo logon  kay dilon mein waswasay daalta hai ,"
+  ],
+  [
+    6,
+    "chahye woh jinnaat mein say ho , ya insanon mein say ."
+  ]
+]

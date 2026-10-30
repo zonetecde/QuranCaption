@@ -1,0 +1,38 @@
+[
+  {
+    "id": 112,
+    "city": "makkah",
+    "name": {
+      "translated": "The Sincerity",
+      "transliterated": "Al-Ikhlas",
+      "codepoints": [
+        1575,
+        1604,
+        1573,
+        1582,
+        1604,
+        1575,
+        1589
+      ]
+    },
+    "ayahs": 4,
+    "slug": "al-ikhlas",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "keh do :    baat yeh hai kay Allah her lehaz say aik hai ."
+  ],
+  [
+    2,
+    "Allah hi aisa hai kay sabb uss kay mohtaj hain , woh kissi ka mohtaj nahi ,"
+  ],
+  [
+    3,
+    "naa uss ki koi aulad hai , aur naa woh kissi ki aulad hai ."
+  ],
+  [
+    4,
+    "aur uss kay jorr ka koi bhi nahi ."
+  ]
+]

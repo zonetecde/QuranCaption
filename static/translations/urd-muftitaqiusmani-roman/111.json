@@ -1,0 +1,40 @@
+[
+  {
+    "id": 111,
+    "city": "makkah",
+    "name": {
+      "translated": "The Palm Fiber",
+      "transliterated": "Al-Masad",
+      "codepoints": [
+        1575,
+        1604,
+        1605,
+        1587,
+        1583
+      ]
+    },
+    "ayahs": 5,
+    "slug": "al-masad",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "haath abu-lahab kay barbad hon , aur woh khud barbad hochuka hai ,"
+  ],
+  [
+    2,
+    "uss ki dolat aur uss ney jo kamai ki thi , woh uss kay kuch kaam nahi aai ."
+  ],
+  [
+    3,
+    "woh bharaktay sholon wali aag mein dakhil hoga ,"
+  ],
+  [
+    4,
+    "aur uss ki biwi bhi ,   lakriyan dhoti hoi ,"
+  ],
+  [
+    5,
+    "apni gardan mein moonjh ki rassi liye huye ."
+  ]
+]

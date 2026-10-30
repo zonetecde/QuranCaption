@@ -1,0 +1,750 @@
+[
+  {
+    "id": 37,
+    "city": "makkah",
+    "name": {
+      "translated": "Those who set the Ranks",
+      "transliterated": "As-Saffat",
+      "codepoints": [
+        1575,
+        1604,
+        1589,
+        1575,
+        1601,
+        1575,
+        1578
+      ]
+    },
+    "ayahs": 182,
+    "slug": "as-saffat",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "qasam unn ki   jo paray baandh ker saff banatay hain ,"
+  ],
+  [
+    2,
+    "phir unn ki jo rok tok kertay hain ,"
+  ],
+  [
+    3,
+    "phir unn ki jo ziker ki tilawat kertay hain ,"
+  ],
+  [
+    4,
+    "tumhara mabood aik hi hai ,"
+  ],
+  [
+    5,
+    "jo tamam aasmano aur zameen ka aur unn kay darmiyan ki her cheez ka malik hai , aur unn tamam maqamaat ka malik jahan say sitaray tuloo hotay hain ."
+  ],
+  [
+    6,
+    "beyshak hum ney nazdeek walay aasman ko sitaron ki shakal mein aik sajawat ata ki hai ,"
+  ],
+  [
+    7,
+    "aur her shareer shetan say hifazat ka zariya banaya hai ."
+  ],
+  [
+    8,
+    "woh oopper kay jahan ki baaten nahi sunn saktay , aur her taraf say unn per maar parrti hai ,"
+  ],
+  [
+    9,
+    "unhen dhakkay diye jatay hain , aur unn ko ( aakhirat mein ) daemi azab hoga ."
+  ],
+  [
+    10,
+    "albatta jo koi kuch uchak ley jaye to aik roshan shola uss ka peecha kerta hai ."
+  ],
+  [
+    11,
+    "abb zara inn ( kafiron ) say poocho kay inn ki takhleeq ziyada mushkil hai ya humari peda ki hoi doosri makhlooqaat ki ?   inn ko to hum ney lais daar garay say peda kiya hai ."
+  ],
+  [
+    12,
+    ". ( aey payghumber ! ) haqeeqat to yeh hai kay tum ( inn ki baaton per ) taajjub kertay ho , aur yeh hansi uratay hain ,"
+  ],
+  [
+    13,
+    "aur jab enhen naseehat ki jati hai to naseehat mantay nahi ,"
+  ],
+  [
+    14,
+    "aur jab koi nishani dekhtay hain to mazaq uratay hain ,"
+  ],
+  [
+    15,
+    "aur kehtay hain kay :  yeh aik khulay jadoo kay siwa kuch bhi nahi hai ,"
+  ],
+  [
+    16,
+    "bhala jab hum mar ker mitti aur haddiyon ki soorat ikhtiyar kerlen gay , to kiya hamen dobara zinda kiya jaye ga-?"
+  ],
+  [
+    17,
+    "aur bhala kiya humaray pichlay baap dadon ko bhi ?"
+  ],
+  [
+    18,
+    "keh do kay :  haan ! aur tum zaleel bhi hogay ."
+  ],
+  [
+    19,
+    "bus woh to aik hi zor daar aawaz hogi , jiss kay baad woh achanak ( saray holnaak manazir ) dekhney lagen gay ,"
+  ],
+  [
+    20,
+    "aur kahen gay kay :  haaye humari shamat ! yeh to hisab o kitab ka din hai ."
+  ],
+  [
+    21,
+    ". ( ji haan ! ) yehi woh faislay ka din hai jissay tum jhutlaya kertay thay ."
+  ],
+  [
+    22,
+    ". ( farishton say kaha jaye ga kay : )  gher lao unn sabb ko jinhon ney zulm kiya tha , aur unn kay sathiyon ko bhi , aur unn ko bhi"
+  ],
+  [
+    23,
+    "jinn ki yeh Allah ko chorr ker ibadat kiya kertay thay , phir enhen dozakh ka raasta dikhao ,"
+  ],
+  [
+    24,
+    "aur zara enhen thehrao , inn say kuch poocha jaye ga ."
+  ],
+  [
+    25,
+    ".  kiyon ji-? tumhen kiya huwa kay tum aik doosray ki madad nahi ker rahey ?"
+  ],
+  [
+    26,
+    "iss kay bajaye yeh to aaj sar jhukaye kharray hain ."
+  ],
+  [
+    27,
+    "aur woh aik doosray ki taraf rukh ker kay aapas mein sawal jawab keren gay ."
+  ],
+  [
+    28,
+    ". ( matehat log apney baron say ) kahen gay kay :  tum thay jo hum per baray zoron say charh charh ker aatay thay"
+  ],
+  [
+    29,
+    "woh kahen gay kay :  nahi , balkay tum khud emaan laney walay nahi thay ."
+  ],
+  [
+    30,
+    "aur tum per humara koi zor nahi tha , asal baat yeh hai kay tum khud sarkash log thay ."
+  ],
+  [
+    31,
+    "abb to humaray perwerdigar ki yeh baat hum per sabit hogaee hai kay hum sabb ko yeh maza chakhna hai ,"
+  ],
+  [
+    32,
+    "kiyonkay hum ney tumhen behkaya   hum khud behkay huye thay ."
+  ],
+  [
+    33,
+    "gharz uss din yeh sabb azab mein aik doosray kay sath shareek hon gay ."
+  ],
+  [
+    34,
+    "hum mujrimon kay sath aisa hi kertay hain ."
+  ],
+  [
+    35,
+    "inn ka haal yeh tha kay jab unn say yeh kaha jata kay Allah kay siwa koi mabood nahi hai to yeh akarr dikhatay thay ."
+  ],
+  [
+    36,
+    "aur kaha kertay thay kay :  kiya hum aesay hain kay aik deewaney shaeer ki wajeh say apney maboodon ko chorr bethen-?"
+  ],
+  [
+    37,
+    "halankay woh ( payghumber SallAllaho-alehi-wa-aalihi-wasallam ) haq ley ker aaye thay , aur enhon ney doosray payghumberon ki tasdeeq ki thi !"
+  ],
+  [
+    38,
+    "chunacheh ( inn say kaha jaye ga kay : )  tum sabb ko dardnak azab ka maza chakhna hoga ,"
+  ],
+  [
+    39,
+    "aur tumhen kissi aur baat ka nahi , khud tumharay aemal ka badla diya jaye ga ."
+  ],
+  [
+    40,
+    "albatta jo Allah kay barguzida banday hain ,"
+  ],
+  [
+    41,
+    "unn kay liye tey shuda rizq hai ,"
+  ],
+  [
+    42,
+    "meway hain ,"
+  ],
+  [
+    43,
+    "aur naimat bharay baaghaat mein unn ki poori poori izzat hogi ,"
+  ],
+  [
+    44,
+    "woh oonchi nishiston per aamney samney bethay hon gay ,"
+  ],
+  [
+    45,
+    "aesi lateef sharab kay jaam unn kay liye gardish mein ayen gay ,"
+  ],
+  [
+    46,
+    "jo safaid rang ki hogi , peenay walon kay liye sarapa lazzat !"
+  ],
+  [
+    47,
+    "naa uss say sar mein khumaar hoga , aur naa unn ki aqal behkay gi ."
+  ],
+  [
+    48,
+    "aur unn kay paas woh bari bari aankhon wali khawateen hongi jinn ki nigahen ( apney shohron per ) markooz hon gi ,"
+  ],
+  [
+    49,
+    ". ( unn ka bey-daagh wajood ) aisa lagay ga jaisay woh ( gard o ghubar say ) chupa ker rakhay huye anday hon ."
+  ],
+  [
+    50,
+    "phir jannati log aik doosray ki taraf mutawajjah ho ker aapas mein sawalaat keren gay ."
+  ],
+  [
+    51,
+    "unn mein say aik kehney wala kahey ga kay mera aik sathi tha ,"
+  ],
+  [
+    52,
+    "jo ( mujh say ) kaha kerta tha kay :  kiya tum waqaee unn logon  mein say ho jo ( aakhirat ki zindagi ko ) sach mantay hain-?"
+  ],
+  [
+    53,
+    "kiya jab hum mar-jayen gay aur mitti aur haddiyon mein tabdeel hojayen gay to kiya waqaee hamen ( apney kamon ka ) badla diya jaye ga-?"
+  ],
+  [
+    54,
+    "woh jannati ( doosray jannatiyon say ) kahey ga kay :  kiya tum ( meray uss sathi ) ko jhank ker dekhna chahtay ho-?"
+  ],
+  [
+    55,
+    "phir woh khud ( dozakh mein ) jhank ker dekhay ga to woh ussay dozakh kay beechon beech nazar aajaye ga ."
+  ],
+  [
+    56,
+    "woh jannati ( iss/uss say ) kahey ga kay :  Allah ki qasam ! tum to mujhay bilkul hi barbad kernay lagay thay ,"
+  ],
+  [
+    57,
+    "aur agar meray perwerdigar ka fazal shamil-e-haal naa hota to aur logon  kay sath mujhay bhi dhar liya jata ."
+  ],
+  [
+    58,
+    ". ( phir woh khushi kay aalam mein apney jannati sathiyon say kahey ga : )  acha to kiya abb hamen moat nahi aaye gi-?"
+  ],
+  [
+    59,
+    "siwaye uss moat kay jo hamen pehlay aa-chuki-? aur hamen azab bhi nahi hoga-?"
+  ],
+  [
+    60,
+    "haqeeqat yeh hai kay zabardast kamiyabi yehi hai ,"
+  ],
+  [
+    61,
+    "issi jaisi kamiyabi kay liye amal kernay walon ko amal kerna chahiye ."
+  ],
+  [
+    62,
+    "bhala yeh mehmani achi hai , ya zaqoom ka darkht-?"
+  ],
+  [
+    63,
+    "hum ney uss darkht ko inn zalimon kay liye aik aazmaesh bana diya hai ."
+  ],
+  [
+    64,
+    "darasal woh darkht hi aisa hai jo dozakh ki teh say nikalta hai ,"
+  ],
+  [
+    65,
+    "uss ka khosha aisa hai jaisay shetanon kay sar ,"
+  ],
+  [
+    66,
+    "chunacheh dozakhi log ussi mein say khurak hasil keren gay , aur ussi say pet bharen gay ."
+  ],
+  [
+    67,
+    "phir unhen uss kay oopper say kholtay huye paani ka aameza milay ga ,"
+  ],
+  [
+    68,
+    "phir woh loten gay to ussi dozakh ki taraf loten gay ."
+  ],
+  [
+    69,
+    "unhon ney apney baap dadon ko gumrahi ki halat mein paya tha ,"
+  ],
+  [
+    70,
+    "chunacheh yeh unhi kay naqsh-e-qadam per lapak lapak ker dorrtay rahey ."
+  ],
+  [
+    71,
+    "aur inn say pehlay jo log guzar chukay hain , unn mein say aksar log bhi gumrah huye ,"
+  ],
+  [
+    72,
+    "aur haqeeqat yeh hai kay hum ney unn kay darmiyan khabrdar kernay walay ( payghumber ) bhejay thay ,"
+  ],
+  [
+    73,
+    "abb dekh lo kay jinn ko khabrdar kiya gaya tha , unn ka anjam kaisa huwa-?"
+  ],
+  [
+    74,
+    "albatta jo Allah kay barguzida banday thay , ( woh mehfooz rahey ) ."
+  ],
+  [
+    75,
+    "aur nooh ney hamen pukara tha , to ( dekh lo kay ) hum pukar ka kitna acha jawab denay walay hain !"
+  ],
+  [
+    76,
+    "aur hum ney unhen aur unn kay ghar walon ko baray karb say nijat di ,"
+  ],
+  [
+    77,
+    "aur hum ney unn ki nasal hi ko baqi rakha ,"
+  ],
+  [
+    78,
+    "aur jo log unn kay baad aaye unn mein yeh riwayat qaeem ki ,"
+  ],
+  [
+    79,
+    ". ( kay woh yeh kaha keren kay : )  salam ho nooh per duniya jahan kay logon  mein !"
+  ],
+  [
+    80,
+    "hum naik amal kernay walon ko issi tarah sila detay hain"
+  ],
+  [
+    81,
+    "beyshak woh humaray momin bandon mein say thay ."
+  ],
+  [
+    82,
+    "phir hum ney doosray logon  ko paani mein gharq kerdiya ."
+  ],
+  [
+    83,
+    "aur unhi kay tareeqay per chalney walon mein yaqeenan Ibrahim bhi thay ,"
+  ],
+  [
+    84,
+    "jab woh apney perwerdigar kay paas saaf suthra dil ley ker aaye ,"
+  ],
+  [
+    85,
+    "jab unhon ney apney baap aur apni qoam say kaha kay :  tum kinn cheezon ki ibadat kertay ho-?"
+  ],
+  [
+    86,
+    "kiya Allah ko chorr ker jhoot moott kay khuda chahtay ho-?"
+  ],
+  [
+    87,
+    "to phir jo zaat saray jahano ko paalney wali hai , uss kay baaray mein tumhara kiya khayal hai ?"
+  ],
+  [
+    88,
+    "uss kay ( kuch arsay ) baad unhon ney sitaron ki taraf aik nigah daal ker dekha ,"
+  ],
+  [
+    89,
+    "aur kaha kay :  meri tabiyat kharab hai ."
+  ],
+  [
+    90,
+    "chunacheh woh log peeth morr ker unn kay paas say chalay gaye ."
+  ],
+  [
+    91,
+    "uss kay baad yeh unn kay banaye huye maboodon ( yani button ) mein jaa ghusay , ( aur unn say ) kaha :  kiya tum khatay nahi ho-?"
+  ],
+  [
+    92,
+    "tumhen kiya hogaya  hai kay tum boltay nahi-?"
+  ],
+  [
+    93,
+    "phir woh poori quooat say maartay huye unn ( button ) per pil parray ,"
+  ],
+  [
+    94,
+    "iss per unn ki qoam kay log unn kay paas dorray huye aaye ,"
+  ],
+  [
+    95,
+    "Ibrahim ney kaha :  kiya tum inn ( button ) ko poojtay ho jinhen khud tarashtey ho-?"
+  ],
+  [
+    96,
+    "halankay Allah ney tumhen bhi peda kiya hai , aur jo kuch tum banatay ho , uss ko bhi ."
+  ],
+  [
+    97,
+    "unn logon  ney kaha :  Ibrahim kay liye aik imarat banao , aur ussay dehakti hoi aag mein phenk do ."
+  ],
+  [
+    98,
+    "iss tarah unhon ney Ibrahim kay khilaf aik bura mansooba banana chaha , lekin hum ney unhen neecha dikha diya ."
+  ],
+  [
+    99,
+    "aur Ibrahim ney kaha :  mein apney rab kay paas jaraha hun , wohi meri rehnumai farmaye ga ."
+  ],
+  [
+    100,
+    "meray perwerdigar ! mujhay aik aisa beta deydey jo naik logon  mein say ho ."
+  ],
+  [
+    101,
+    "chunacheh hum ney unhen aik burdbaar larkay ki khushkhabri di ."
+  ],
+  [
+    102,
+    "phir jab woh larka Ibrahim kay sath chalney phirney kay qabil hogaya to unhon ney kaha :  betay ! mein khuwab mein dekhta hun kay tumhen zibah ker raha hun , abb soch ker batao , tumhari kiya raye hai-?  betay ney kaha :  abba jaan ! aap wohi kijiye jiss ka aap ko hukum diya jaraha hai ,   in-sha-Allah aap mujhay sabar kernay walon mein say payen gay ."
+  ],
+  [
+    103,
+    "chunacheh ( woh ajeeb manzar tha ) jab dono ney sar jhuka diya , aur baap ney betay ko paishani kay ball giraya ,"
+  ],
+  [
+    104,
+    "aur hum ney unhen aawaz di kay :  aey Ibrahim !"
+  ],
+  [
+    105,
+    "tum ney khuwab ko sach ker dikhaya . yaqeenan hum naiki kernay walon ko issi tarah sila detay hain ."
+  ],
+  [
+    106,
+    "yaqeenan yeh aik khula huwa imtihan tha ,"
+  ],
+  [
+    107,
+    "aur hum ney aik azeem zabiha ka fidya dey ker uss bacchay ko bacha liya ."
+  ],
+  [
+    108,
+    "aur jo log unn kay baad aaye , unn mein yeh riwayat qaeem ki"
+  ],
+  [
+    109,
+    ". ( kay woh yeh kaha keren kay : )  salam ho Ibrahim per !"
+  ],
+  [
+    110,
+    "hum naiki kernay walon ko issi tarah sila detay hain ."
+  ],
+  [
+    111,
+    "yaqeenan woh humaray momin bandon mein say thay ."
+  ],
+  [
+    112,
+    "aur hum ney unhen Ishaq ki khushkhabri di , kay woh sualeheen mein say aik nabi hon gay ,"
+  ],
+  [
+    113,
+    "aur hum ney unn per bhi barkaten nazil ken , aur Ishaq per bhi , aur unn ki aulad mein say kuch log naik amal kernay walay hain , aur kuch apni jaan per khula zulm kernay walay ."
+  ],
+  [
+    114,
+    "aur beyshak hum ney musa aur Haroon per bhi ehsan kiya ."
+  ],
+  [
+    115,
+    "aur hum ney unhen aur unn ki qoam ko aik baray karb say nijat di ,"
+  ],
+  [
+    116,
+    "aur hum ney unn ki madad ki jiss kay nateejay mein wohi ghalib rahey ,"
+  ],
+  [
+    117,
+    "aur hum ney unn dono ko aesi kitab ata ki jo bilkul wazeh thi ,"
+  ],
+  [
+    118,
+    "aur unn dono ko seedhay raastay ki hidayat di ,"
+  ],
+  [
+    119,
+    "aur jo log unn kay baad aaye , unn mein yeh riwayat qaeem ki"
+  ],
+  [
+    120,
+    ". ( kay woh yeh kaha keren kay : )  salam ho musa aur Haroon per !"
+  ],
+  [
+    121,
+    "yaqeenan hum naiki kernay walon ko issi tarah sila detay hain ."
+  ],
+  [
+    122,
+    "beyshak woh dono humaray momin bandon mein say thay ."
+  ],
+  [
+    123,
+    "aur Ilyas bhi yaqeenan payghumberon mein say thay ,"
+  ],
+  [
+    124,
+    "jab unhon ney apni qoam say kaha tha kay :  kiya tum log Allah say dartay nahi ho-?"
+  ],
+  [
+    125,
+    "kiya tum baa-al ( naami butt ) ko poojtay ho , aur uss ko chorr detay ho jo sabb say behtar takhleeq kernay wala hai-?"
+  ],
+  [
+    126,
+    "uss Allah ko jo tumhara bhi perwerdigar hai , aur tumharay baap dadon ka bhi jo pehlay guzar chukay hain-?"
+  ],
+  [
+    127,
+    "phir huwa yeh kay unhon ney Ilyas ko jhutlaya , iss liye woh zaroor ( azab mein ) dhar liye jayen gay ."
+  ],
+  [
+    128,
+    "albatta Allah kay barguzida banday ( mehfooz rahen gay )"
+  ],
+  [
+    129,
+    "aur jo log unn kay baad aaye , unn mein hum ney yeh riwayat qaeem ki"
+  ],
+  [
+    130,
+    ". ( kay woh yeh kaha keren kay : )  salam ho ilyaseen per !"
+  ],
+  [
+    131,
+    "yaqeenan hum naiki kernay walon ko issi tarah sila detay hain ."
+  ],
+  [
+    132,
+    "beyshak woh humaray momin bandon mein say thay ."
+  ],
+  [
+    133,
+    "aur yaqeenan loot bhi payghumberon mein say thay ."
+  ],
+  [
+    134,
+    "jab hum ney unn ko aur unn kay saray ghar walon ko ( azab say ) nijat di thi ,"
+  ],
+  [
+    135,
+    "siwaye aik burhiya kay jo peechay reh janey walon mein shamil rahi ,"
+  ],
+  [
+    136,
+    "phir hum ney doosray logon  ko malya mait kerdiya ,"
+  ],
+  [
+    137,
+    "aur ( aey makkah walo ! ) tum unn ( ki bastiyon ) per say guzra kertay ho , ( kabhi ) subha hotay ,"
+  ],
+  [
+    138,
+    "aur ( kabhi ) raat kay waqt .   kiya phir bhi tumhen aqal nahi aati-?"
+  ],
+  [
+    139,
+    "aur yaqeenan Younus bhi payghumberon mein say thay ,"
+  ],
+  [
+    140,
+    "jab woh bhag ker bhari hoi kashti mein phonchay ,"
+  ],
+  [
+    141,
+    "phir woh quraa andazi mein shareek huye , aur qurey mein maghloob huye"
+  ],
+  [
+    142,
+    "phir machli ney unhen nigal liya , jabkay woh apney aap ko malamat ker rahey thay ."
+  ],
+  [
+    143,
+    "chunacheh agar woh tasbeeh kernay walon mein say naa hotay ,"
+  ],
+  [
+    144,
+    "tu woh uss din tak ussi machli kay pet mein rehtay jiss din murdon ko zinda kiya jaye ga ."
+  ],
+  [
+    145,
+    "phir hum ney unhen aesi halat mein aik khulay meydan mein laaker daal diya kay woh beemar thay ,"
+  ],
+  [
+    146,
+    "aur unn kay oopper aik bail daar darkht uga diya ,"
+  ],
+  [
+    147,
+    "aur hum ney unhen aik lakh , balkay iss say bhi ziyada logon  kay paas payghumber bana ker bheja tha ,"
+  ],
+  [
+    148,
+    "phir woh emaan ley aaye thay ,   iss liye hum ney unhen aik zamaney tak zindagi say faeeda uthaney ka moaqa diya ."
+  ],
+  [
+    149,
+    "abb inn ( makkah kay mushrikon ) say poocho kay :  kiya ( aey payghumber ! ) tumharay rab kay hissay mein to betiyan aai hain , aur khud inn kay hissay mein betay-?"
+  ],
+  [
+    150,
+    "ya phir jab hum ney farishton ko aurat banaya tha to kiya yeh dekh rahey thay ?"
+  ],
+  [
+    151,
+    "yaad rakho ! yeh apni mann gharrat baat ki wajeh say kehtay hain"
+  ],
+  [
+    152,
+    "kay Allah kay koi aulad hai , aur yeh log yaqeeni tor per jhootay hain ."
+  ],
+  [
+    153,
+    "kiya Allah ney beton kay bajaye betiyan pasand ki hain-?"
+  ],
+  [
+    154,
+    "tumhen kiya hogaya hai-? tum kaisa insaf kertay ho-?"
+  ],
+  [
+    155,
+    "bhala kiya tum itna bhi dhiyan nahi detay-?"
+  ],
+  [
+    156,
+    "ya agar tumharay paas koi wazeh daleel hai ,"
+  ],
+  [
+    157,
+    "tu lao apni woh kitab agar tum sachay ho ."
+  ],
+  [
+    158,
+    "aur unhon ney Allah aur jinnaat kay darmiyan bhi nasbi rishta daari bana rakhi hai ,   halankay khud jinnaat ko yeh baat maloom hai kay yeh log mujrim ban ker paish hon gay ,"
+  ],
+  [
+    159,
+    ". ( kiyonkay ) jo baaten yeh banatay hain , Allah unn sabb say pak hai ,"
+  ],
+  [
+    160,
+    "albatta Allah kay barguzida banday ( mehfooz rahen gay )"
+  ],
+  [
+    161,
+    "kiyonkay tum aur jinn jinn ki tum ibadat kertay ho ,"
+  ],
+  [
+    162,
+    "woh kissi ko Allah kay baaray mein gumrah nahi ker-saktay ,"
+  ],
+  [
+    163,
+    "siwaye aesay shaks kay jo dozakh mein jalney wala ho ."
+  ],
+  [
+    164,
+    "aur ( farishtay to yeh kehtay hain kay : )  hum mein say her aik ka aik moyyan maqam hai ,"
+  ],
+  [
+    165,
+    "aur hum to ( Allah taalaa ki itaat mein ) saff baandhay rehtay hain ,"
+  ],
+  [
+    166,
+    "aur hum to Allah ki paki biyan kertay rehtay hain ."
+  ],
+  [
+    167,
+    "aur yeh ( kafir ) log pehlay to yeh kaha kertay thay ."
+  ],
+  [
+    168,
+    "kay :  agar humaray paas pichlay logon  ki tarah koi naseehat ki kitab hoti ,"
+  ],
+  [
+    169,
+    "tu hum bhi zaroor Allah kay barguzida bandon mein shamil hotay ."
+  ],
+  [
+    170,
+    "phir bhi enhon ney kufr ki rawish apnai hai . iss liye enhen sabb pata chala jaye ga ."
+  ],
+  [
+    171,
+    "aur hum pehlay hi apney payghumber bandon kay baaray mein yeh baat tey ker-chukay hain"
+  ],
+  [
+    172,
+    "kay yaqeeni tor per unn ki madad ki jaye gi ,"
+  ],
+  [
+    173,
+    "aur haqeeqat yeh hai kay humaray lashkar kay log hi ghalib rehtay hain ."
+  ],
+  [
+    174,
+    "lehaza ( aey payghumber ! ) tum kuch waqt tak inn logon  say bey perwa hojao ,"
+  ],
+  [
+    175,
+    "aur enhen dekhtay raho , unqareeb yeh khud bhi dekh len gay ."
+  ],
+  [
+    176,
+    "bhala kiya yeh humaray azab kay liye jaldi macha rahey hain-?"
+  ],
+  [
+    177,
+    "so jab woh inn kay sehan mein aa-utray ga to jinn logon  ko khabrdar kiya ja-chuka tha , unn ki woh subha boht buri subha hogi ."
+  ],
+  [
+    178,
+    "aur tum kuch waqt tak inn logon  say bey perwa hojao ,"
+  ],
+  [
+    179,
+    "aur dekhtay raho , unqareeb yeh khud bhi dekh len gay ."
+  ],
+  [
+    180,
+    "tumhara perwerdigar , izzat ka malik , unn sabb baaton say pak hai jo yeh log banatay hain ."
+  ],
+  [
+    181,
+    "aur salam ho payghumberon per"
+  ],
+  [
+    182,
+    "aur tamam tarr tareef Allah ki hai jo saray jahano ka perwerdigar hai ."
+  ]
+]

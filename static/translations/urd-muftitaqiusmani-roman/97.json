@@ -1,0 +1,40 @@
+[
+  {
+    "id": 97,
+    "city": "makkah",
+    "name": {
+      "translated": "The Power",
+      "transliterated": "Al-Qadr",
+      "codepoints": [
+        1575,
+        1604,
+        1602,
+        1583,
+        1585
+      ]
+    },
+    "ayahs": 5,
+    "slug": "al-qadr",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "beyshak hum ney iss ( Quran ) ko shabb-e-qadar mein nazil kiya hai ."
+  ],
+  [
+    2,
+    "aur tumhen kiya maloom kay shabb-e-qadar kiya cheez hai-?"
+  ],
+  [
+    3,
+    "shabb-e-qadar aik hazar maheenon say bhi behtar hai ."
+  ],
+  [
+    4,
+    "uss mein farishtay aur rooh apney perwerdigar ki ijazat say her kaam kay liye utartey hain ,"
+  ],
+  [
+    5,
+    "woh raat sarapa salamti hai fajar kay tuloo honey tak ."
+  ]
+]

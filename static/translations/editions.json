@@ -4392,6 +4392,29 @@
 			}
 		]
 	},
+	"Urdu (Roman)": {
+		"flag": "https://flagsapi.com/PK/flat/64.png",
+		"basmala": "shuroo Allah kay naam say jo sabb per meharban hai , boht meharban hai",
+		"istiadhah": "mein mardood shetan say Allah ki panah mangta hoon",
+		"amin": "Aameen",
+		"takbir": "Allah sab say bara hai",
+		"tahmeed": "Allah uss ki sunta hai jo uss ki tareef karta hai",
+		"tasleem": "tum per salamati aur Allah ki rehmat ho",
+		"sadaqa": "Allah azeem ney sach farmaya",
+		"translations": [
+			{
+				"key": "urd_muftitaqiusmani_roman",
+				"name": "urd-muftitaqiusmani-roman",
+				"author": "Mufti Taqi Usmani",
+				"language": "Urdu (Roman)",
+				"direction": "ltr",
+				"source": "https://quran.gtaf.org/ (translation 178: Mufti Taqi Usmani, Roman Urdu Translation)",
+				"comments": "Ponctuation",
+				"link": "/translations/urd-muftitaqiusmani-roman/{chapter}.json",
+				"linkmin": "/translations/urd-muftitaqiusmani-roman/{chapter}.json"
+			}
+		]
+	},
 	"Uzbek": {
 		"flag": "https://flagsapi.com/UZ/flat/64.png",
 		"basmala": "Mehribon va rahmli Alloh nomi bilan",

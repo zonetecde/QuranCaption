@@ -1,0 +1,32 @@
+[
+  {
+    "id": 103,
+    "city": "makkah",
+    "name": {
+      "translated": "The Declining Day",
+      "transliterated": "Al-'Asr",
+      "codepoints": [
+        1575,
+        1604,
+        1593,
+        1589,
+        1585
+      ]
+    },
+    "ayahs": 3,
+    "slug": "al-asr",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "zamaney ki qasam ,"
+  ],
+  [
+    2,
+    "insan dar-haqeeqat baray ghatay mein hai ,"
+  ],
+  [
+    3,
+    "siwaye unn logon  kay jo emaan layen , aur naik amal keren , aur aik doosray ko haq baat ki naseehat keren , aur aik doosray ko sabar ki naseehat keren ."
+  ]
+]

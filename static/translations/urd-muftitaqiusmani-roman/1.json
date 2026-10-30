@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "city": "makkah",
+    "name": {
+      "translated": "The Opener",
+      "transliterated": "Al-Fatihah",
+      "codepoints": [
+        1575,
+        1604,
+        1601,
+        1575,
+        1578,
+        1581,
+        1577
+      ]
+    },
+    "ayahs": 7,
+    "slug": "al-fatihah",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "shuroo Allah kay naam say jo sabb per meharban hai , boht meharban hai"
+  ],
+  [
+    2,
+    "tamam tareefen Allah ki hain jo tamam jahano ka perwerdigar hai"
+  ],
+  [
+    3,
+    "jo sabb per meharban hai , boht meharban hai"
+  ],
+  [
+    4,
+    "jo roz-e-jaza ka malik hai"
+  ],
+  [
+    5,
+    ". ( aey Allah ! ) hum teri hi ibadat kertay hain , aur tujhi say madad maangtay hain"
+  ],
+  [
+    6,
+    "hamen seedhay raastay ki hidayat ata farma"
+  ],
+  [
+    7,
+    "unn logon  kay raastay ki jinn per tu ney inaam kiya hai, naa kay unn logon  kay raastay ki jinn per ghazab nazil huwa hai , aur naa unn kay raastay ki jo bhatkay huye hain"
+  ]
+]

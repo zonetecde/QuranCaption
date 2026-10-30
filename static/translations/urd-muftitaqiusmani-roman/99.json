@@ -1,0 +1,54 @@
+[
+  {
+    "id": 99,
+    "city": "madinah",
+    "name": {
+      "translated": "The Earthquake",
+      "transliterated": "Az-Zalzalah",
+      "codepoints": [
+        1575,
+        1604,
+        1586,
+        1604,
+        1586,
+        1604,
+        1577
+      ]
+    },
+    "ayahs": 8,
+    "slug": "az-zalzalah",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "jab zameen apney bhonchal say jhanjorr-di jaye gi ,"
+  ],
+  [
+    2,
+    "aur zameen apney bojh bahir nikal dey gi ,"
+  ],
+  [
+    3,
+    "aur insan kahey ga kay iss ko kiya hogaya hai ?"
+  ],
+  [
+    4,
+    "uss din zameen apni sari khabren bata dey gi ,"
+  ],
+  [
+    5,
+    "kiyonkay tumharay perwerdigar ney ussay yehi hukum diya hoga ."
+  ],
+  [
+    6,
+    "uss roz log mukhtalif toliyon mein wapis hon gay , takay unn kay aemal unhen dikha diye jayen ."
+  ],
+  [
+    7,
+    "chunacheh jiss ney zarra barabar koi achai ki hogi , woh ussay dekhay ga ,"
+  ],
+  [
+    8,
+    "aur jiss ney zarra barabar koi burai ki hogi , woh ussay dekhay ga ."
+  ]
+]

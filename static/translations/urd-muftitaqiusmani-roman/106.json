@@ -1,0 +1,35 @@
+[
+  {
+    "id": 106,
+    "city": "makkah",
+    "name": {
+      "translated": "Quraysh",
+      "transliterated": "Quraysh",
+      "codepoints": [
+        1602,
+        1585,
+        1610,
+        1588
+      ]
+    },
+    "ayahs": 4,
+    "slug": "quraysh",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "chunkay quraish kay log aadi hain ,"
+  ],
+  [
+    2,
+    "yani woh sardi aur garmi kay moasmon mein ( yamen aur shaam kay ) safar kernay kay aadi hain ,"
+  ],
+  [
+    3,
+    "iss liye unhen chahiye kay woh uss ghar kay malik ki ibadat keren"
+  ],
+  [
+    4,
+    "jiss ney bhook ki halat mein unhen khaney ko diya , aur bad-amni say unhen mehfooz rakha ."
+  ]
+]

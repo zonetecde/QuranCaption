@@ -1,0 +1,32 @@
+[
+  {
+    "id": 110,
+    "city": "madinah",
+    "name": {
+      "translated": "The Divine Support",
+      "transliterated": "An-Nasr",
+      "codepoints": [
+        1575,
+        1604,
+        1606,
+        1589,
+        1585
+      ]
+    },
+    "ayahs": 3,
+    "slug": "an-nasr",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "jab Allah ki madad aur fatah aajaye"
+  ],
+  [
+    2,
+    "aur tum logon  ko dekh lo kay woh foaj darr foaj Allah kay deen mein dakhil horahey hain ,"
+  ],
+  [
+    3,
+    "to apney perwerdigar ki hamd kay sath uss ki tasbeeh kero , aur uss say maghfirat maango .   yaqeen jano woh boht moaaf kernay wala hai ."
+  ]
+]

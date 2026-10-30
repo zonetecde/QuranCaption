@@ -1,0 +1,66 @@
+[
+  {
+    "id": 101,
+    "city": "makkah",
+    "name": {
+      "translated": "The Calamity",
+      "transliterated": "Al-Qari'ah",
+      "codepoints": [
+        1575,
+        1604,
+        1602,
+        1575,
+        1585,
+        1593,
+        1577
+      ]
+    },
+    "ayahs": 11,
+    "slug": "al-qariah",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    ". ( yaad kero ) woh waqiaa jo dil dehla ker rakh dey ga !"
+  ],
+  [
+    2,
+    "kiya hai woh dil dehlaney wala waqiaa-?"
+  ],
+  [
+    3,
+    "aur tumhen kiya maloom woh dil dehlaney wala waqiaa kiya hai ?"
+  ],
+  [
+    4,
+    "jiss din saray log phelay huye perwanon ki tarah hojayen gay ,"
+  ],
+  [
+    5,
+    "aur pahar dhunki hoi rangeen oon ki tarah hojayen gay ,"
+  ],
+  [
+    6,
+    "abb jiss shaks kay palray wazni hon gay"
+  ],
+  [
+    7,
+    "to woh mann pasand zindagi mein hoga ,"
+  ],
+  [
+    8,
+    "aur woh jiss kay palray halkay hon gay"
+  ],
+  [
+    9,
+    "to uss ka thikana aik gehra garrha hoga ."
+  ],
+  [
+    10,
+    "aur tumhen kiya maloom kay woh gehra garrha kiya cheez hai-?"
+  ],
+  [
+    11,
+    "aik dehakti hoi aag !"
+  ]
+]

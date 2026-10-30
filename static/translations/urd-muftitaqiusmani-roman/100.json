@@ -1,0 +1,67 @@
+[
+  {
+    "id": 100,
+    "city": "makkah",
+    "name": {
+      "translated": "The Courser",
+      "transliterated": "Al-'Adiyat",
+      "codepoints": [
+        1575,
+        1604,
+        1593,
+        1575,
+        1583,
+        1610,
+        1575,
+        1578
+      ]
+    },
+    "ayahs": 11,
+    "slug": "al-adiyat",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "qasam hai unn ghorron ki jo haanp haanp ker dorrtay hain ,"
+  ],
+  [
+    2,
+    "phir jo ( apni taapon say ) chingariyan uratay hain ,"
+  ],
+  [
+    3,
+    "phir subha kay waqt yalghaar kertay hain ,"
+  ],
+  [
+    4,
+    "phir uss moaqa per ghubar uratay hain ,"
+  ],
+  [
+    5,
+    "phir ussi waqt kissi jhamgathay kay beechon beech ja-ghustay hain ,"
+  ],
+  [
+    6,
+    "kay insan apney perwerdigar ka bara nashukra hai ,"
+  ],
+  [
+    7,
+    "aur woh khud iss baat ka gawah hai ."
+  ],
+  [
+    8,
+    "aur haqeeqat yeh hai kay woh maal ki mohabbat mein boht paka hai ."
+  ],
+  [
+    9,
+    "bhala kiya woh waqt ussay maloom nahi hai jab qabron mein jo kuch hai , ussay bahir bikhair diya jaye ga ,"
+  ],
+  [
+    10,
+    "aur seenon mein jo kuch hai , ussay zahir kerdiya jaye ga ."
+  ],
+  [
+    11,
+    "yaqeenan unn ka perwerdigar uss din unn ( ki jo halat hogi uss ) say poori tarah ba-khabar hai ."
+  ]
+]

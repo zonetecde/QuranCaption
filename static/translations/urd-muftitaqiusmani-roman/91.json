@@ -1,0 +1,80 @@
+[
+  {
+    "id": 91,
+    "city": "makkah",
+    "name": {
+      "translated": "The Sun",
+      "transliterated": "Ash-Shams",
+      "codepoints": [
+        1575,
+        1604,
+        1588,
+        1605,
+        1587
+      ]
+    },
+    "ayahs": 15,
+    "slug": "ash-shams",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "qasam hai sooraj ki aur uss ki pheli howi dhoop ki ,"
+  ],
+  [
+    2,
+    "aur chaand ki jab woh sooraj kay peechay peechay aaye ,"
+  ],
+  [
+    3,
+    "aur din ki jab woh sooraj ka jalwa dikha dey ,"
+  ],
+  [
+    4,
+    "aur raat ki jab woh uss per chah ker ussay chupa ley ,"
+  ],
+  [
+    5,
+    "aur qasam hai aasman ki , aur uss ki jiss ney ussay banaya ,"
+  ],
+  [
+    6,
+    "aur zameen ki , aur uss ki jiss ney ussay bichaya ,"
+  ],
+  [
+    7,
+    "aur insani jaan ki , aur uss ki jiss ney ussay sanwara ,"
+  ],
+  [
+    8,
+    "phir uss kay dil mein woh baat bhi daal di jo uss kay liye bad-kaari ki hai , aur woh bhi jo uss kay liye perhezgari ki hai ,"
+  ],
+  [
+    9,
+    "falah ussay milay gi jo iss nafs ko pakeezah banaye ,"
+  ],
+  [
+    10,
+    "aur na-murad woh hoga jo uss ko ( gunah mein ) dhansa dey ."
+  ],
+  [
+    11,
+    "qoam-e-samood ney apni sarkashi say ( payghumber ko ) jhutlaya ,"
+  ],
+  [
+    12,
+    "jab unn ka sabb say sangdil shaks uth kharra huwa ,"
+  ],
+  [
+    13,
+    "to Allah kay payghumber ney unn say kaha kay :  khabrdar ! Allah ki oontni ka aur uss kay paani peenay ka poora khayal rakhna ."
+  ],
+  [
+    14,
+    "phir bhi unhon ney payghumber ko jhutlaya , aur uss oontni ko maar daala .   nateeja yeh kay unn kay perwerdigar ney unn kay gunah ki wajeh say unn ki eent say eent baja ker sabb ko barabar kerdiya ."
+  ],
+  [
+    15,
+    "aur Allah ko uss kay kissi buray anjam ka koi khof nahi hai ."
+  ]
+]

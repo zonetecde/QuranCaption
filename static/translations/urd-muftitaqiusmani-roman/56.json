@@ -1,0 +1,406 @@
+[
+  {
+    "id": 56,
+    "city": "makkah",
+    "name": {
+      "translated": "The Inevitable",
+      "transliterated": "Al-Waqi'ah",
+      "codepoints": [
+        1575,
+        1604,
+        1608,
+        1575,
+        1602,
+        1593,
+        1577
+      ]
+    },
+    "ayahs": 96,
+    "slug": "al-waqiah",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "jab woh honey wala waqiaa paish aajaye ga ,"
+  ],
+  [
+    2,
+    "to uss kay paish aaney ko koi jhutlaney wala nahi hoga ,"
+  ],
+  [
+    3,
+    "woh aik teh o baala kernay wali cheez hogi ,"
+  ],
+  [
+    4,
+    "jab zameen aik bhonchal say jhanjorr di jaye gi ,"
+  ],
+  [
+    5,
+    "aur paharon ko pees ker choora kerdiya jaye ga"
+  ],
+  [
+    6,
+    "yahan tak kay woh bikhra huwa ghubar ban ker reh jayen gay ,"
+  ],
+  [
+    7,
+    "aur ( logo ! ) tum teen qismon mein butt jao gay ."
+  ],
+  [
+    8,
+    "chunacheh jo dayen haath walay hain , kiya kehna unn dayen haath walon ka !"
+  ],
+  [
+    9,
+    "aur jo bayen haath walay hain , kiya batayen woh bayen haath walay kiya hain-?"
+  ],
+  [
+    10,
+    "aur jo sabqat ley janey walay hain , woh to hain hi sabqat ley janey walay !"
+  ],
+  [
+    11,
+    "wohi hain jo Allah kay khaas muqarrab banday hain ,"
+  ],
+  [
+    12,
+    "woh naimaton kay baaghaat mein hon gay ,"
+  ],
+  [
+    13,
+    ". shuroo kay logon  mein say boht say ,"
+  ],
+  [
+    14,
+    "aur baad kay logon  mein say thoray"
+  ],
+  [
+    15,
+    "soney kay taaron say bani hoi oonchi nishiston per"
+  ],
+  [
+    16,
+    "aik doosray kay samney unn per takiya lagaye huye !"
+  ],
+  [
+    17,
+    "sada rehney walay larkay unn kay samney gardish mein hon gay ,"
+  ],
+  [
+    18,
+    "aesi sharab kay piyalay , jug aur jaam ley ker"
+  ],
+  [
+    19,
+    "jiss say naa unn kay sar mein dard hoga , aur naa unn kay hosh uren gay ,"
+  ],
+  [
+    20,
+    "aur woh phal ley ker jo woh pasand keren ,"
+  ],
+  [
+    21,
+    "aur parindon ka woh gosht ley ker jiss ko unn ka dil chahye !"
+  ],
+  [
+    22,
+    "aur woh bari bari aankhon wali hooren !"
+  ],
+  [
+    23,
+    "aesi jaisay chupa ker rakhay huye moti !"
+  ],
+  [
+    24,
+    "yeh sabb badla hoga unn kamon ka jo woh kiya kertay thay ."
+  ],
+  [
+    25,
+    "woh uss jannat mein naa koi beyhooda baat sunen gay , aur naa koi gunah ki baat ,"
+  ],
+  [
+    26,
+    "haan jo baat hogi , salamti hi salamti ki hogi ."
+  ],
+  [
+    27,
+    "aur woh jo dayen haath walay hon gay , kiya kehna unn dayen haath walon ka !"
+  ],
+  [
+    28,
+    ". ( woh aesh keren gay ) kaantton say pak bairiyon mein !"
+  ],
+  [
+    29,
+    "aur oopper talay laday huye kelay kay darakhton mein ,"
+  ],
+  [
+    30,
+    "aur door tak phelay huye saye mein ,"
+  ],
+  [
+    31,
+    "aur behtay huye paani mein ,"
+  ],
+  [
+    32,
+    "aur dher saray phalon mein"
+  ],
+  [
+    33,
+    "jo naa kabhi khatam hon gay , aur naa unn per koi rok tok hogi ,"
+  ],
+  [
+    34,
+    "aur oonchay rakhay huye farshon mein ."
+  ],
+  [
+    35,
+    "yaqeen jano , hum ney unn aurton ko naee uthaan di hai ,"
+  ],
+  [
+    36,
+    "chunacheh unhen kanwariyan banaya hai ,"
+  ],
+  [
+    37,
+    ". ( shohron kay liye ) mohabbat say bhari hoi , umar mein barabar !"
+  ],
+  [
+    38,
+    "sabb kuch dayen haath walon kay liye ,"
+  ],
+  [
+    39,
+    ". ( jinn mein say ) boht say shuroo kay logon  mein say hon gay ,"
+  ],
+  [
+    40,
+    "aur boht say baad walon mein say ."
+  ],
+  [
+    41,
+    "aur jo bayen haath walay hain , kiya batayen bayen haath walay kiya hain-?"
+  ],
+  [
+    42,
+    "woh hon gay tapti hoi lo mein , aur kholtay huye paani mein ,"
+  ],
+  [
+    43,
+    "aur siyah dhuyen kay saye mein ,"
+  ],
+  [
+    44,
+    "jo naa thanda hoga , naa koi faeeda phonchaney wala ."
+  ],
+  [
+    45,
+    "yeh log iss say pehlay baray aesh mein thay ,"
+  ],
+  [
+    46,
+    "aur baray bhari gunah per array rehtay thay"
+  ],
+  [
+    47,
+    "aur kaha kertay thay kay :  kiya jab hum mar-jayen gay , aur mitti aur haddiyan ban ker reh jayen gay , to kiya hamen dobara zinda kiya jaye ga-?"
+  ],
+  [
+    48,
+    "aur kiya humaray pehlay guzray huye baap dadon ko bhi-?"
+  ],
+  [
+    49,
+    "keh do kay :  yaqeenan sabb aglay aur pichlay log"
+  ],
+  [
+    50,
+    "aik mutayyan din kay tey shuda waqt per zaroor ikatthay kiye jayen gay ,"
+  ],
+  [
+    51,
+    "phir aey jhutlaney walay gumraho ! tum logon  ko"
+  ],
+  [
+    52,
+    "aik aesay darkht mein say khana parray ga jiss ka naam zaqoom hai ,"
+  ],
+  [
+    53,
+    "phir ussi say pet bharney hon gay ,"
+  ],
+  [
+    54,
+    "phir uss kay oopper say kholta huwa paani peena parray ga ,"
+  ],
+  [
+    55,
+    "aur peena bhi iss tarah jaisay piyas ki beemari walay oont peetay hain ."
+  ],
+  [
+    56,
+    "yeh hogi jaza o saza kay din unn logon  ki mehmani !"
+  ],
+  [
+    57,
+    "hum ney tumhen peda kiya hai , phir tum tasdeeq kiyon nahi kertay-?"
+  ],
+  [
+    58,
+    "zara yeh batlao kay jo nutfa tum tapkatay ho ,"
+  ],
+  [
+    59,
+    "kiya ussay tum peda kertay ho ya peda kernay walay hum hain-?"
+  ],
+  [
+    60,
+    "hum ney hi tumharay darmiyan moat kay faislay ker rakhay hain , aur koi nahi hai jo hamen iss baat say aajiz ker-sakay"
+  ],
+  [
+    61,
+    "kay hum tumhari jagah tum jaisay aur log ley ayen , aur tumhen phir say kissi aesi halat mein peda kerden jissay tum nahi jantay ."
+  ],
+  [
+    62,
+    "aur tumhen apni pehli pedaeesh ka poora pata hai , phir kiyon sabaq nahi letay-?"
+  ],
+  [
+    63,
+    "acha yeh batao kay jo kuch tum zameen mein botay ho ,"
+  ],
+  [
+    64,
+    "kiya ussay tum ugatay ho , ya uganey walay hum hain-?"
+  ],
+  [
+    65,
+    "agar hum chahen to ussay choora choora ker daalen , jiss per tum bhonchkay reh jao"
+  ],
+  [
+    66,
+    "kay hum per to tawaan parr-gaya ,"
+  ],
+  [
+    67,
+    "balkay hum hain hi badd naseeb !"
+  ],
+  [
+    68,
+    "acha yeh batao kay yeh paani jo tum peetay ho ,"
+  ],
+  [
+    69,
+    "kiya ussay badalon say tum ney utaara hai , ya utaarney walay hum hain-?"
+  ],
+  [
+    70,
+    "agar hum chahen to ussay karrwa bana ker rakh den , phir tum kiyon shukar ada nahi kertay-?"
+  ],
+  [
+    71,
+    "acha yeh batao kay yeh aag jo tum sulgatay ho ,"
+  ],
+  [
+    72,
+    "kiya uss ka darkht tum ney peda kiya hai ,   ya peda kernay walay hum hain-?"
+  ],
+  [
+    73,
+    "hum ney hi uss ko naseehat ka saman aur sehrai musfiron kay liye faeeday ki cheez banaya hai ."
+  ],
+  [
+    74,
+    "lehaza ( aey payghumber ! ) tum apney azeem perwerdigar ka naam ley ker uss ki tasbeeh kero ."
+  ],
+  [
+    75,
+    "abb mein unn jagahon ki qasam kha ker kehta hun jahan sitaray girtay hain ,"
+  ],
+  [
+    76,
+    ". aur agar tum samjho to yeh bari zabardast qasam hai"
+  ],
+  [
+    77,
+    "kay yeh bara ba-waqar Quran hai"
+  ],
+  [
+    78,
+    "jo aik mehfooz kitab mein ( pehlay say ) darj hai ,"
+  ],
+  [
+    79,
+    "iss ko wohi log chootay hain jo khoob pak hain ,"
+  ],
+  [
+    80,
+    "yeh tamam jahano kay perwerdigar ki taraf say thora thora ker kay utaara jaraha hai ."
+  ],
+  [
+    81,
+    "kiya phir bhi tum iss kalam say bey perwai barattay ho-?"
+  ],
+  [
+    82,
+    "aur tum ney issi ko apna rozgar bana liya hai kay ( iss ko ) jhutlatay raho-?"
+  ],
+  [
+    83,
+    "phir aisa kiyon nahi hota hai kay jab ( kissi ki ) jaan galay tak phonch jati hai ,"
+  ],
+  [
+    84,
+    "aur uss waqt tum ( hasrat say uss ko ) dekh rahey hotay ho ,"
+  ],
+  [
+    85,
+    ". aur tum say ziyada hum uss kay qareeb hotay hain , magar tumhen nazar nahi aata"
+  ],
+  [
+    86,
+    "agar tumhara hisab kitab honey wala nahi hai to aisa kiyon nahi hota"
+  ],
+  [
+    87,
+    "kay tum uss jaan ko wapis ley aao , agar tum sachay ho-?"
+  ],
+  [
+    88,
+    "phir agar woh ( marney wala ) Allah kay muqarrab bandon mein say ho"
+  ],
+  [
+    89,
+    "to ( uss kay liye ) aaram hi aaram hai , khushboo hi khushboo hai , aur naimaton say bhara baagh hai ."
+  ],
+  [
+    90,
+    "aur agar woh dayen haath walon mein say ho"
+  ],
+  [
+    91,
+    "to ( uss say kaha jaye ga kay : )  tumharay liye salamti hi salamti hai kay tum dayen haath walon mein say ho ."
+  ],
+  [
+    92,
+    "aur agar woh unn gumrahon mein say ho jo haq ko jhutlaney walay thay"
+  ],
+  [
+    93,
+    "to ( uss kay liye ) kholtay huye paani ki mehmani hai ,"
+  ],
+  [
+    94,
+    "aur dozakh ka dakhila hai !"
+  ],
+  [
+    95,
+    "uss mein koi shak nahi kay bilkul sahih maani mein yehi yaqeeni baat hai ."
+  ],
+  [
+    96,
+    "lehaza ( aey payghumber ! ) tum apney azeem perwerdigar ka naam ley ker uss ki tasbeeh kero ."
+  ]
+]

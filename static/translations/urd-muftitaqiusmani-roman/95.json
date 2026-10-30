@@ -1,0 +1,52 @@
+[
+  {
+    "id": 95,
+    "city": "makkah",
+    "name": {
+      "translated": "The Fig",
+      "transliterated": "At-Tin",
+      "codepoints": [
+        1575,
+        1604,
+        1578,
+        1610,
+        1606
+      ]
+    },
+    "ayahs": 8,
+    "slug": "at-tin",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "qasam hai injeer aur zaitoon ki ,"
+  ],
+  [
+    2,
+    "aur sehraye seena kay pahar toor ki ,"
+  ],
+  [
+    3,
+    "aur iss aman o aman walay shehar ki ,"
+  ],
+  [
+    4,
+    "kay hum ney insan ko behtareen sanchay mein dhaal ker peda kiya hai ,"
+  ],
+  [
+    5,
+    "phir hum ussay pasti walon mein sabb say ziyada nichli halat mein ker-detay hain ,"
+  ],
+  [
+    6,
+    "siwaye unn kay jo emaan laye , aur unhon ney naik amal kiye , to unn ko aisa ajar milay ga jo kabhi khatam nahi hoga ."
+  ],
+  [
+    7,
+    "phir ( aey insan ! ) woh kiya cheez hai jo tujhay jaza o saza ko jhutlaney per aamada ker rahi hai ?"
+  ],
+  [
+    8,
+    "kiya Allah saray hukmranon say barh ker hukmran nahi hai ?"
+  ]
+]

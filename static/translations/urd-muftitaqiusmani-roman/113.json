@@ -1,0 +1,40 @@
+[
+  {
+    "id": 113,
+    "city": "makkah",
+    "name": {
+      "translated": "The Daybreak",
+      "transliterated": "Al-Falaq",
+      "codepoints": [
+        1575,
+        1604,
+        1601,
+        1604,
+        1602
+      ]
+    },
+    "ayahs": 5,
+    "slug": "al-falaq",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "kaho   kay :  mein subha kay malik ki panah maangta hun ,"
+  ],
+  [
+    2,
+    "her uss cheez kay sharr say jo uss ney peda ki hai ,"
+  ],
+  [
+    3,
+    "aur andheri raat kay sharr say jab woh phel jaye ,"
+  ],
+  [
+    4,
+    "aur unn janon kay sharr say jo ( ganday ki ) girahon mein phoonk maarti hain"
+  ],
+  [
+    5,
+    "aur hasad kernay walay kay sharr say jab woh hasad keray ."
+  ]
+]

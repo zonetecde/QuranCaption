@@ -1,0 +1,50 @@
+[
+  {
+    "id": 107,
+    "city": "makkah",
+    "name": {
+      "translated": "The Small kindnesses",
+      "transliterated": "Al-Ma'un",
+      "codepoints": [
+        1575,
+        1604,
+        1605,
+        1575,
+        1593,
+        1608,
+        1606
+      ]
+    },
+    "ayahs": 7,
+    "slug": "al-maun",
+    "translator": "Mufti Taqi Usmani (Roman Urdu Translation)"
+  },
+  [
+    1,
+    "kiya tum ney ussay dekha jo jaza o saza ko jhutlata hai-?"
+  ],
+  [
+    2,
+    "wohi to hai jo yateem ko dhakkay deta hai ."
+  ],
+  [
+    3,
+    "aur miskeen ko khana denay ki targheeb nahi deta ."
+  ],
+  [
+    4,
+    "phir bari kharabi hai unn namaz parhney walon ki"
+  ],
+  [
+    5,
+    "jo apni namaz say ghaflat barattay hain ,"
+  ],
+  [
+    6,
+    "jo dikhawa kertay hain"
+  ],
+  [
+    7,
+    "aur doosron ko mamooli cheez denay say bhi inkar kertay hain ."
+  ]
+]

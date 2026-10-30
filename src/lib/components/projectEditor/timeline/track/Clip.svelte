@@ -75,6 +75,7 @@
 	let clipDragOriginalStartTime = 0;
 	let clipDragVisualStarts: number[] | null = null;
 	let timelineVideoThumbnails = $state<Array<TimelineVideoThumbnailSlot & { src: string }>>([]);
+	let thumbnailWidthPx = $state(120);
 	let thumbnailRequestId = 0;
 
 	let isFullVideoBackgroundImage = $derived(
@@ -114,6 +115,7 @@
 			viewportStartMs: thumbnailRangeStartMs,
 			viewportEndMs: thumbnailRangeEndMs,
 			zoom: track.getPixelPerSecond(),
+			thumbnailWidthPx,
 			loop: clip.loopUntilAudioEnd
 		});
 		const filePath = asset.filePath;
@@ -632,11 +634,14 @@
 	{#if timelineVideoThumbnails.length > 0}
 		<div class="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
 			{#each timelineVideoThumbnails as thumbnail (thumbnail.key)}
-				<div
-					class="absolute inset-y-0"
+				<img
+					class="absolute inset-y-0 h-full w-auto max-w-none"
 					aria-hidden="true"
-					style={`left: ${thumbnail.leftPx}px; width: ${thumbnail.widthPx}px; background-image: url('${thumbnail.src}'); background-position: left center; background-repeat: repeat-x; background-size: auto 100%;`}
-				></div>
+					alt=""
+					src={thumbnail.src}
+					style={`left: ${thumbnail.leftPx}px;`}
+					bind:clientWidth={thumbnailWidthPx}
+				/>
 			{/each}
 		</div>
 	{/if}

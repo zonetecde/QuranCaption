@@ -1734,6 +1734,14 @@ export class VideoStyle extends SerializableBase {
 					continue;
 				}
 
+				if (
+					['text-intensity', 'text-glow-blur'].includes(defaultStyleRaw.id) &&
+					existingStyle.valueMax !== defaultStyleRaw.valueMax
+				) {
+					existingStyle.valueMax = defaultStyleRaw.valueMax;
+					hasChanges = true;
+				}
+
 				// Refresh select option lists from defaults so newly added options
 				// (e.g. a new mushaf variant) appear in older projects.
 				if (

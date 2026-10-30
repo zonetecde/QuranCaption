@@ -13,7 +13,11 @@ describe('timeline video thumbnails', () => {
 		tauriMocks.invoke.mockReset();
 	});
 
-	it('only requests frames intersecting the current viewport of a long clip', () => {
+	it.each([
+		[200, 5],
+		[125, 8],
+		[62.5, 16]
+	])('spaces visible frames by their displayed width of %s px', (thumbnailWidthPx, count) => {
 		const slots = getVisibleTimelineVideoThumbnailSlots({
 			clipStartMs: 0,
 			clipEndMs: 3_600_000,
@@ -22,10 +26,12 @@ describe('timeline video thumbnails', () => {
 			viewportStartMs: 1_800_000,
 			viewportEndMs: 1_810_000,
 			zoom: 100,
+			thumbnailWidthPx,
 			loop: false
 		});
 
-		expect(slots).toHaveLength(5);
+		expect(slots).toHaveLength(count);
+		expect(slots[1].leftPx - slots[0].leftPx).toBeCloseTo(thumbnailWidthPx);
 		expect(slots.every((slot) => slot.leftPx >= 180_000 && slot.leftPx < 181_000)).toBe(true);
 		expect(slots.every((slot) => slot.timestampMs >= 1_800_000)).toBe(true);
 	});
@@ -39,6 +45,7 @@ describe('timeline video thumbnails', () => {
 			viewportStartMs: 10_000,
 			viewportEndMs: 20_000,
 			zoom: 20,
+			thumbnailWidthPx: 200,
 			loop: false
 		});
 

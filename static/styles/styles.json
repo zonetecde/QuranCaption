@@ -1165,7 +1165,7 @@
 				"value": 10,
 				"valueType": "number",
 				"valueMin": 0,
-				"valueMax": 50,
+				"valueMax": 100,
 				"css": "--text-glow-blur: {value}px;",
 				"tailwind": false,
 				"icon": "blur_on"
@@ -1209,7 +1209,7 @@
 				"value": 10,
 				"valueType": "number",
 				"valueMin": 0,
-				"valueMax": 50,
+				"valueMax": 100,
 				"css": "--text-neon-size: {value}px; color: var(--text-neon-color); text-shadow: 0 0 calc(var(--text-neon-size) * 0.5) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 1) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 2) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 4) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 8) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 9) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 10) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 15) var(--text-neon-color);",
 				"tailwind": false,
 				"icon": "blur_on"

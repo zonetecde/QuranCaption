@@ -26,24 +26,12 @@ export type TimelineVideoThumbnailOptions = {
 	viewportStartMs: number;
 	viewportEndMs: number;
 	zoom: number;
+	thumbnailWidthPx?: number;
 	loop: boolean;
 };
 
 const thumbnailPathCache = new Map<string, string>();
 const pendingThumbnailPaths = new Map<string, Promise<string | null>>();
-
-/**
- * Retourne un intervalle 1/2/5 stable afin qu'un léger scroll ne change pas les timestamps.
- * @param {number} minimumIntervalMs Intervalle minimal demandé en millisecondes.
- * @returns {number} Intervalle arrondi vers le palier supérieur.
- */
-function getStableThumbnailIntervalMs(minimumIntervalMs: number): number {
-	const safeInterval = Math.max(1, minimumIntervalMs);
-	const magnitude = 10 ** Math.floor(Math.log10(safeInterval));
-	const normalized = safeInterval / magnitude;
-	const factor = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
-	return factor * magnitude;
-}
 
 /**
  * Construit les emplacements de miniatures qui croisent réellement le viewport de la timeline.
@@ -58,7 +46,7 @@ export function getVisibleTimelineVideoThumbnailSlots(
 	if (visibleEndMs <= visibleStartMs || options.sourceDurationMs <= 0) return [];
 
 	const zoom = Math.max(options.zoom, 0.0001);
-	const intervalMs = getStableThumbnailIntervalMs((TIMELINE_THUMBNAIL_WIDTH_PX / zoom) * 1000);
+	const intervalMs = ((options.thumbnailWidthPx || TIMELINE_THUMBNAIL_WIDTH_PX) / zoom) * 1000;
 	const firstIndex = Math.max(0, Math.floor((visibleStartMs - options.clipStartMs) / intervalMs));
 	const lastIndex = Math.min(
 		Math.ceil((visibleEndMs - options.clipStartMs) / intervalMs) - 1,

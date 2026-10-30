@@ -2,7 +2,7 @@ use serde_json::{json, Value};
 use tauri::Emitter;
 
 use super::prompts;
-use super::types::AdvancedTrimCommandRequest;
+use super::types::{AdvancedTrimBatchPayload, AdvancedTrimCommandRequest};
 use super::{
     normalize_usage, stream_ai_response, validate_model, validate_reasoning_effort,
     AiStreamCallbacks, AiStreamRequest,
@@ -53,6 +53,25 @@ fn emit_complete(
 // ---------------------------------------------------------------------------
 // Tauri command
 // ---------------------------------------------------------------------------
+
+/// Prépare les mêmes instructions que le trimmer API, sans clé ni requête réseau.
+#[tauri::command]
+pub fn prepare_manual_ai_prompt(kind: String, request: Value) -> Result<String, String> {
+    if kind != "translation_trim" {
+        return Err("MANUAL_AI_KIND".to_string());
+    }
+    let batch: AdvancedTrimBatchPayload =
+        serde_json::from_value(request.get("batch").cloned().ok_or("MANUAL_AI_INPUT")?)
+            .map_err(|_| "MANUAL_AI_INPUT".to_string())?;
+    if batch.verses.is_empty() {
+        return Err("MANUAL_AI_INPUT".to_string());
+    }
+    Ok(format!(
+        "{}\n\n{}",
+        prompts::ADVANCED_TRIM_SYSTEM_PROMPT,
+        prompts::build_user_prompt(&batch)?
+    ))
+}
 
 #[tauri::command]
 pub async fn run_advanced_ai_trim_batch_streaming(

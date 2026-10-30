@@ -5,7 +5,8 @@ import {
 	buildAdvancedTrimBatches,
 	type AdvancedTrimValidationSuccess,
 	type AdvancedTrimVerseCandidate,
-	validateAdvancedTrimBatchResult
+	validateAdvancedTrimBatchResult,
+	validateManualAdvancedTrimBatchResult
 } from '$lib/services/AdvancedAITrimming';
 import { Edition, SubtitleClip } from '$lib/classes';
 import { VerseTranslation } from '$lib/classes/Translation.svelte';
@@ -178,4 +179,40 @@ describe('AdvancedAITrimming batches', () => {
 
 		expect(validation.validVerses[0].result.segments[0].text).toBe('Source words');
 	});
+
+	it.each(['Source words', 'Source invented'])(
+		'validates manual text %s without changing the project',
+		(text) => {
+			const edition = new Edition('key', 'edition', 'Author', 'English', 'ltr', '', '', '', '');
+			const translation = new VerseTranslation('Source words', 'to review');
+			const subtitle = {
+				startWordIndex: 0,
+				endWordIndex: 1,
+				translations: { [edition.name]: translation }
+			} as unknown as SubtitleClip;
+			const candidate = {
+				...createCandidate(0, 2),
+				sourceTranslation: 'Source words',
+				subtitles: [subtitle],
+				segments: [
+					{
+						i: 0,
+						arabic: 'النص',
+						wordByWordEnglish: [],
+						needsAi: true,
+						lockedRange: null,
+						existingText: 'Source words',
+						subtitle
+					}
+				]
+			} satisfies AdvancedTrimVerseCandidate;
+			const [batch] = buildAdvancedTrimBatches([candidate], '', 'none', 0, Infinity);
+			const before = translation.toJSON();
+			const validation = validateManualAdvancedTrimBatchResult(edition, batch, {
+				verses: [{ verseKey: candidate.verseKey, segments: [{ i: 0, text }] }]
+			});
+			expect(validation.errors.length === 0).toBe(text === 'Source words');
+			expect(translation.toJSON()).toEqual(before);
+		}
+	);
 });

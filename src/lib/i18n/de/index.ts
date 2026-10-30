@@ -586,6 +586,52 @@ const de = {
 		segmentationWarsh: 'Warsh',
 		segmentationQalun: 'Qalun',
 		segmentationShuba: 'Shu‘bah',
+		manualAi: {
+			method: 'KI-Nutzungsmodus',
+			withApi: 'Mit API',
+			withoutApi: 'Ohne API-Schlüssel',
+			title: 'Nutzen Sie Ihren gewohnten KI-Chat',
+			description:
+				'Bereiten Sie hier Prompts vor, senden Sie sie an ChatGPT oder einen anderen KI-Chat und fügen Sie dessen Antworten hier ein. Ein API-Schlüssel für Text-KI ist nicht erforderlich.',
+			copyStep: 'Prompt kopieren',
+			chatStep: 'An Ihren KI-Chat senden',
+			pasteStep: 'Vollständige Antwort hier einfügen',
+			prepare: 'Prompts vorbereiten',
+			preparing: 'Nächster Schritt wird vorbereitet…',
+			prompt: 'Prompt',
+			responses: 'KI-Antworten',
+			validated: 'Geprüfte Antworten:',
+			copyPrompt: 'Prompt kopieren',
+			copied: 'Kopiert',
+			newChatHint:
+				'Fügen Sie diesen Prompt in einen neuen ChatGPT-Chat ein. Jeder Prompt enthält den benötigten Kontext.',
+			openChatGpt: 'ChatGPT öffnen',
+			placeholder: 'Vollständige KI-Antwort einfügen…',
+			pasteHint:
+				'Übernehmen Sie die gesamte Antwort einschließlich der ersten und letzten Zeilen. Die App prüft sie für Sie.',
+			validate: 'Antwort prüfen und fortfahren',
+			responseValid: 'Antwort geprüft und für diese Sitzung gespeichert.',
+			responseInvalid: 'Diese Antwort muss neu erstellt werden',
+			retryHint:
+				'Kopieren Sie den Korrektur-Prompt in einen neuen KI-Chat und ersetzen Sie nur diese Antwort. Bereits geprüfte Antworten bleiben erhalten.',
+			copyRetry: 'Korrektur-Prompt kopieren',
+			ready: 'Alle Antworten wurden geprüft',
+			reviewHint:
+				'Prüfen Sie die Ergebnisse vor dem Anwenden. Änderungen können anschließend rückgängig gemacht werden.',
+			applyTranslations: 'Übersetzungen anwenden',
+			invalidJson:
+				'Die Antwort ist unvollständig oder ihr Format ist nicht lesbar. Kopieren Sie die gesamte Antwort oder lassen Sie sie neu erstellen.',
+			wrongPrompt:
+				'Diese Antwort gehört nicht zu diesem Prompt. Verwenden Sie den Prompt dieses Schritts und übernehmen Sie die vollständige Antwort.',
+			prepareError:
+				'Der Prompt konnte nicht vorbereitet werden. Brechen Sie diese Sitzung ab und versuchen Sie es erneut.',
+			copyError:
+				'Der Prompt konnte nicht kopiert werden. Prüfen Sie den Zugriff auf die Zwischenablage und versuchen Sie es erneut.',
+			openError: 'ChatGPT konnte nicht geöffnet werden. Öffnen Sie chatgpt.com in Ihrem Browser.',
+			sourceChanged:
+				'Das Projekt, die Untertitel oder Übersetzungen wurden geändert. Erstelle neue Prompts, bevor du diese Antworten anwendest.',
+			includeReviewed: 'Bereits geprüfte Übersetzungen einbeziehen'
+		},
 		overlayLayerOrder: 'Ebenenreihenfolge (Z)',
 		moveLayerUp: 'Nach vorne',
 		moveLayerDown: 'Nach hinten',

@@ -29,6 +29,23 @@ describe('loading legacy editor layout settings', () => {
 		vi.clearAllMocks();
 	});
 
+	it.each([
+		['legacy', 'advanced'],
+		['advanced', 'advanced'],
+		['manual', 'manual']
+	])('loads AI translation tab %s as %s', async (savedTab, expectedTab) => {
+		const defaults = new Settings();
+		vi.mocked(readTextFile).mockResolvedValue(
+			JSON.stringify({
+				...defaults.toJSON(),
+				appVersion: '3.7.80',
+				aiTranslationSettings: { ...defaults.aiTranslationSettings, activeModalTab: savedTab }
+			})
+		);
+		await Settings.load();
+		expect(globalState.settings!.aiTranslationSettings.activeModalTab).toBe(expectedTab);
+	});
+
 	it.each([undefined, null, false, [], 'invalid'])(
 		'restores missing UI defaults when the saved UI state is %j',
 		async (persistentUiState) => {

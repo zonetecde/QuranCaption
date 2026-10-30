@@ -70,7 +70,8 @@
 
 	const AI_TRANSLATION_WORKER_COUNT = 3;
 
-	let { edition }: { edition: Edition } = $props();
+	let { edition, isRunning = $bindable(false) }: { edition: Edition; isRunning?: boolean } =
+		$props();
 
 	let advancedCandidates: AdvancedTrimVerseCandidate[] = $state([]);
 	let advancedBatches: AdvancedTrimBatch[] = $state([]);
@@ -88,7 +89,6 @@
 	let selectedEndTimeMs: number = $state(0);
 	let maxBatchWords: number = $state(500);
 
-	let isRunning: boolean = $state(false);
 	let completedBatches: number = $state(0);
 	let successfulVerses: number = $state(0);
 	let failedVerses: number = $state(0);

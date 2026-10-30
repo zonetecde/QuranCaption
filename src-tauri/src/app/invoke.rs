@@ -5,6 +5,7 @@ use crate::exporter;
 pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::Wry> {
     builder.invoke_handler(tauri::generate_handler![
         commands::ai_translation::trim::run_advanced_ai_trim_batch_streaming,
+        commands::ai_translation::trim::prepare_manual_ai_prompt,
         commands::ai_translation::bold::run_advanced_ai_bold_batch_streaming,
         commands::ai_translation::subtitle_split::run_advanced_ai_subtitle_split_batch_streaming,
         commands::ai_translation::wbw_translation::run_advanced_ai_wbw_translation_batch_streaming,

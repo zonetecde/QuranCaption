@@ -154,6 +154,7 @@ class GlobalState {
 			| 'theme'
 			| 'notifications'
 			| 'ai-key'
+			| 'ai-batches'
 			| 'transcript-key'
 			| 'stock-media'
 			| 'quran-integration'

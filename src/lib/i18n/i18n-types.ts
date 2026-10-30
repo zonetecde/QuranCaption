@@ -1338,7 +1338,7 @@ type RootTranslation = {
 			 */
 			warningsTitle: string;
 			/**
-			 * T​h​e​s​e​ ​p​a​s​s​a​g​e​s​ ​m​a​y​ ​c​o​n​t​a​i​n​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​e​r​r​o​r​s​ ​w​i​t​h​ ​n​o​ ​r​e​l​i​a​b​l​e​ ​r​e​p​l​a​c​e​m​e​n​t​.​ ​L​i​s​t​e​n​,​ ​e​d​i​t​ ​t​h​e​ ​t​e​x​t​,​ ​t​h​e​n​ ​c​o​n​f​i​r​m​ ​y​o​u​r​ ​c​o​r​r​e​c​t​i​o​n​.​ ​U​n​c​o​r​r​e​c​t​e​d​ ​p​a​s​s​a​g​e​s​ ​s​t​a​y​ ​y​e​l​l​o​w​ ​a​s​ ​l​o​w​-​c​o​n​f​i​d​e​n​c​e​ ​s​u​b​t​i​t​l​e​s​ ​i​n​ ​t​h​e​ ​t​i​m​e​l​i​n​e​ ​a​n​d​ ​r​e​v​i​e​w​ ​n​a​v​i​g​a​t​i​o​n​,​ ​e​v​e​n​ ​a​f​t​e​r​ ​c​l​o​s​i​n​g​ ​t​h​i​s​ ​w​i​n​d​o​w​.
+			 * E​a​c​h​ ​p​a​s​s​a​g​e​ ​i​n​c​l​u​d​e​s​ ​t​h​e​ ​A​I​’​s​ ​b​e​s​t​ ​c​o​n​t​e​x​t​u​a​l​ ​g​u​e​s​s​,​ ​e​v​e​n​ ​w​h​e​n​ ​u​n​c​e​r​t​a​i​n​.​ ​L​i​s​t​e​n​,​ ​e​d​i​t​ ​i​t​ ​i​f​ ​n​e​e​d​e​d​,​ ​t​h​e​n​ ​c​o​n​f​i​r​m​.​ ​T​h​e​s​e​ ​s​u​b​t​i​t​l​e​s​ ​r​e​m​a​i​n​ ​y​e​l​l​o​w​ ​a​n​d​ ​m​a​r​k​e​d​ ​f​o​r​ ​r​e​v​i​e​w​ ​a​f​t​e​r​ ​a​p​p​l​y​i​n​g​ ​a​ ​p​r​o​p​o​s​a​l​ ​o​r​ ​c​l​o​s​i​n​g​ ​t​h​i​s​ ​w​i​n​d​o​w​.
 			 */
 			warningsDescription: string;
 			/**
@@ -1346,7 +1346,7 @@ type RootTranslation = {
 			 */
 			confirmCorrection: string;
 			/**
-			 * T​r​a​n​s​c​r​i​p​t​i​o​n​ ​t​o​ ​c​o​r​r​e​c​t
+			 * C​o​n​t​e​x​t​u​a​l​ ​g​u​e​s​s​ ​—​ ​n​e​e​d​s​ ​v​e​r​i​f​i​c​a​t​i​o​n
 			 */
 			warningText: string;
 			/**
@@ -1370,7 +1370,7 @@ type RootTranslation = {
 			 */
 			introTitle: string;
 			/**
-			 * A​I​ ​r​e​a​d​s​ ​y​o​u​r​ ​s​u​b​t​i​t​l​e​s​ ​i​n​ ​c​o​n​t​e​x​t​ ​a​n​d​ ​s​u​g​g​e​s​t​s​ ​s​m​a​l​l​ ​c​o​r​r​e​c​t​i​o​n​s​ ​o​n​l​y​ ​w​h​e​n​ ​a​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​e​r​r​o​r​ ​i​s​ ​v​e​r​y​ ​l​i​k​e​l​y​.
+			 * A​I​ ​r​e​a​d​s​ ​y​o​u​r​ ​s​u​b​t​i​t​l​e​s​ ​i​n​ ​c​o​n​t​e​x​t​,​ ​s​u​g​g​e​s​t​s​ ​c​l​e​a​r​ ​c​o​r​r​e​c​t​i​o​n​s​ ​a​n​d​ ​a​l​w​a​y​s​ ​p​r​o​p​o​s​e​s​ ​a​ ​r​e​c​o​n​s​t​r​u​c​t​i​o​n​ ​f​o​r​ ​g​a​r​b​l​e​d​ ​p​a​s​s​a​g​e​s​,​ ​f​l​a​g​g​e​d​ ​f​o​r​ ​r​e​v​i​e​w​.
 			 */
 			introDescription: string;
 			/**
@@ -8066,6 +8066,64 @@ type RootTranslation = {
 		groupTransitions: string;
 	};
 	settings: {
+		aiBatches: {
+			/**
+			 * R​e​q​u​e​s​t​s​ ​f​o​r​ ​t​h​i​s​ ​r​u​n
+			 */
+			total: string;
+			/**
+			 * A​I​ ​r​e​q​u​e​s​t​s
+			 */
+			title: string;
+			/**
+			 * C​h​o​o​s​e​ ​h​o​w​ ​m​u​c​h​ ​t​e​x​t​ ​t​o​ ​s​e​n​d​ ​p​e​r​ ​r​e​q​u​e​s​t​.​ ​T​h​e​s​e​ ​s​e​t​t​i​n​g​s​ ​a​p​p​l​y​ ​t​o​ ​a​l​l​ ​p​r​o​j​e​c​t​s​,​ ​w​i​t​h​ ​o​r​ ​w​i​t​h​o​u​t​ ​a​n​ ​A​P​I​ ​k​e​y​.​ ​C​h​a​n​g​e​s​ ​a​r​e​ ​s​a​v​e​d​ ​a​u​t​o​m​a​t​i​c​a​l​l​y​.
+			 */
+			description: string;
+			/**
+			 * C​o​r​r​e​c​t​i​o​n​,​ ​r​e​f​e​r​e​n​c​e​s​ ​a​n​d​ ​r​e​a​r​r​a​n​g​e​m​e​n​t
+			 */
+			analysisTitle: string;
+			/**
+			 * S​h​a​r​e​d​ ​s​i​z​e​ ​f​o​r​ ​t​r​a​n​s​c​r​i​p​t​ ​c​o​r​r​e​c​t​i​o​n​,​ ​r​e​f​e​r​e​n​c​e​ ​d​e​t​e​c​t​i​o​n​ ​a​n​d​ ​s​u​b​t​i​t​l​e​ ​r​e​a​r​r​a​n​g​e​m​e​n​t​.​ ​W​o​r​d​-​b​a​s​e​d​ ​s​t​e​p​s​ ​u​s​e​ ​a​n​ ​e​q​u​i​v​a​l​e​n​t​ ​w​o​r​d​ ​b​u​d​g​e​t​.
+			 */
+			analysisDescription: string;
+			/**
+			 * T​r​a​n​s​l​a​t​i​o​n
+			 */
+			translationTitle: string;
+			/**
+			 * A​ ​s​e​p​a​r​a​t​e​ ​s​i​z​e​ ​b​e​c​a​u​s​e​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​g​e​n​e​r​a​t​e​ ​m​o​r​e​ ​t​e​x​t​.
+			 */
+			translationDescription: string;
+			/**
+			 * F​e​w​e​r​ ​r​e​q​u​e​s​t​s
+			 */
+			fewer: string;
+			/**
+			 * M​o​r​e​ ​r​e​q​u​e​s​t​s
+			 */
+			more: string;
+			/**
+			 * s​u​b​t​i​t​l​e​s​ ​p​e​r​ ​r​e​q​u​e​s​t​ ​(​a​p​p​r​o​x​.​)
+			 */
+			subtitlesUnit: string;
+			/**
+			 * w​o​r​d​s​ ​p​e​r​ ​r​e​q​u​e​s​t
+			 */
+			wordsUnit: string;
+			/**
+			 * L​a​r​g​e​r​ ​b​a​t​c​h​e​s​ ​m​e​a​n​ ​f​e​w​e​r​ ​p​r​o​m​p​t​s​,​ ​b​u​t​ ​v​e​r​y​ ​l​a​r​g​e​ ​r​e​p​l​i​e​s​ ​m​a​y​ ​b​e​ ​i​n​c​o​m​p​l​e​t​e​ ​o​r​ ​l​e​s​s​ ​p​r​e​c​i​s​e​.​ ​C​h​o​o​s​e​ ​a​ ​s​m​a​l​l​e​r​ ​s​i​z​e​ ​i​f​ ​t​h​i​s​ ​h​a​p​p​e​n​s​.​ ​T​h​e​ ​l​a​r​g​e​s​t​ ​s​i​z​e​ ​a​i​m​s​ ​f​o​r​ ​o​n​e​ ​r​e​q​u​e​s​t​ ​w​h​e​n​ ​p​o​s​s​i​b​l​e​;​ ​l​e​n​g​t​h​ ​l​i​m​i​t​s​ ​a​n​d​ ​p​a​s​s​a​g​e​ ​b​o​u​n​d​a​r​i​e​s​ ​m​a​y​ ​s​t​i​l​l​ ​s​p​l​i​t​ ​t​h​e​ ​t​e​x​t​.
+			 */
+			note: string;
+			/**
+			 * E​s​t​i​m​a​t​e​d​ ​r​e​q​u​e​s​t​s
+			 */
+			preview: string;
+			/**
+			 * A​p​p​r​o​x​i​m​a​t​e​:​ ​t​e​x​t​ ​l​e​n​g​t​h​,​ ​p​a​u​s​e​s​ ​a​n​d​ ​p​r​o​t​e​c​t​e​d​ ​p​a​s​s​a​g​e​s​ ​c​a​n​ ​c​h​a​n​g​e​ ​t​h​e​ ​t​o​t​a​l​.​ ​A​d​j​u​s​t​ ​t​h​e​ ​s​i​z​e​ ​i​n​ ​S​e​t​t​i​n​g​s​ ​→​ ​A​I​ ​r​e​q​u​e​s​t​s​.
+			 */
+			estimate: string;
+		};
 		/**
 		 * S​e​t​t​i​n​g​s
 		 */
@@ -11765,7 +11823,7 @@ export type TranslationFunctions = {
 			 */
 			warningsTitle: () => LocalizedString;
 			/**
-			 * These passages may contain transcription errors with no reliable replacement. Listen, edit the text, then confirm your correction. Uncorrected passages stay yellow as low-confidence subtitles in the timeline and review navigation, even after closing this window.
+			 * Each passage includes the AI’s best contextual guess, even when uncertain. Listen, edit it if needed, then confirm. These subtitles remain yellow and marked for review after applying a proposal or closing this window.
 			 */
 			warningsDescription: () => LocalizedString;
 			/**
@@ -11773,7 +11831,7 @@ export type TranslationFunctions = {
 			 */
 			confirmCorrection: () => LocalizedString;
 			/**
-			 * Transcription to correct
+			 * Contextual guess — needs verification
 			 */
 			warningText: () => LocalizedString;
 			/**
@@ -11797,7 +11855,7 @@ export type TranslationFunctions = {
 			 */
 			introTitle: () => LocalizedString;
 			/**
-			 * AI reads your subtitles in context and suggests small corrections only when a transcription error is very likely.
+			 * AI reads your subtitles in context, suggests clear corrections and always proposes a reconstruction for garbled passages, flagged for review.
 			 */
 			introDescription: () => LocalizedString;
 			/**
@@ -18383,6 +18441,64 @@ export type TranslationFunctions = {
 		groupTransitions: () => LocalizedString;
 	};
 	settings: {
+		aiBatches: {
+			/**
+			 * Requests for this run
+			 */
+			total: () => LocalizedString;
+			/**
+			 * AI requests
+			 */
+			title: () => LocalizedString;
+			/**
+			 * Choose how much text to send per request. These settings apply to all projects, with or without an API key. Changes are saved automatically.
+			 */
+			description: () => LocalizedString;
+			/**
+			 * Correction, references and rearrangement
+			 */
+			analysisTitle: () => LocalizedString;
+			/**
+			 * Shared size for transcript correction, reference detection and subtitle rearrangement. Word-based steps use an equivalent word budget.
+			 */
+			analysisDescription: () => LocalizedString;
+			/**
+			 * Translation
+			 */
+			translationTitle: () => LocalizedString;
+			/**
+			 * A separate size because translations generate more text.
+			 */
+			translationDescription: () => LocalizedString;
+			/**
+			 * Fewer requests
+			 */
+			fewer: () => LocalizedString;
+			/**
+			 * More requests
+			 */
+			more: () => LocalizedString;
+			/**
+			 * subtitles per request (approx.)
+			 */
+			subtitlesUnit: () => LocalizedString;
+			/**
+			 * words per request
+			 */
+			wordsUnit: () => LocalizedString;
+			/**
+			 * Larger batches mean fewer prompts, but very large replies may be incomplete or less precise. Choose a smaller size if this happens. The largest size aims for one request when possible; length limits and passage boundaries may still split the text.
+			 */
+			note: () => LocalizedString;
+			/**
+			 * Estimated requests
+			 */
+			preview: () => LocalizedString;
+			/**
+			 * Approximate: text length, pauses and protected passages can change the total. Adjust the size in Settings → AI requests.
+			 */
+			estimate: () => LocalizedString;
+		};
 		/**
 		 * Settings
 		 */

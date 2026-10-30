@@ -136,15 +136,26 @@ test('shows suggested corrections before editable warnings without a mark-as-rev
 	const plan = makePlan();
 	plan.proposals = plan.proposals.slice(0, 1);
 	plan.warnings = [
-		{ id: 2, clip: clips[1], text: clips[1].text, reason: 'Uncertain transcription.' }
+		{
+			id: 2,
+			clip: clips[1],
+			text: clips[1].text,
+			suggestion: 'He read a message.',
+			reason: 'Uncertain transcription.'
+		}
 	];
 	vi.mocked(detectSubtitleCorrections).mockResolvedValue(plan);
 	const component = render(CorrectTranscriptionModal, { close: vi.fn() });
 	await component.getByRole('button', { name: 'Find likely errors' }).click();
 	const suggestion = component.getByText('He read a message.', { exact: true }).element();
 	const warning = component
-		.getByRole('textbox', { name: 'Transcription to correct 2', exact: true })
+		.getByRole('textbox', { name: 'Contextual guess — needs verification 2', exact: true })
 		.element();
+	expect((warning as HTMLTextAreaElement).value).toBe(plan.warnings[0].suggestion);
+	await expect.element(component.getByText(clips[1].text, { exact: true })).toBeVisible();
+	await expect
+		.element(component.getByRole('button', { name: 'Confirm correction', exact: true }))
+		.toBeVisible();
 	expect(
 		suggestion.compareDocumentPosition(warning) & Node.DOCUMENT_POSITION_FOLLOWING
 	).toBeTruthy();
@@ -160,6 +171,7 @@ test('keeps mixed Arabic explanations in the interface direction instead of the 
 			id: 2,
 			clip: clips[1],
 			text: clips[1].text,
+			suggestion: 'He read a message.',
 			reason: 'اللهم appears garbled. Listen to the recording.'
 		}
 	];

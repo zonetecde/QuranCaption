@@ -33,6 +33,72 @@ const options = {
 	additionalPreferences: 'Keep poetic lines together.'
 };
 
+test('prepares a large manual project without repeatedly serializing the whole track or blocking timers', async () => {
+	track.clips = Array.from({ length: 1000 }, (_, index) =>
+		subtitle(index * 2000, 'one two three four')
+	);
+	const serializeTrack = vi.spyOn(track, 'toJSON');
+	const serializeTranslations = vi.spyOn(project.content.projectTranslation, 'toJSON');
+	const session = new ManualAiSession();
+	session.start();
+	let yielded = false;
+	let yieldedBeforePrompt = false;
+	vi.mocked(invoke).mockImplementation(async () => {
+		yieldedBeforePrompt = yielded;
+		return 'Rearrangement instructions';
+	});
+	const timer = setTimeout(() => {
+		yielded = true;
+	}, 0);
+	const result = previewProjectSubtitles(
+		project,
+		options,
+		new AbortController().signal,
+		vi.fn(),
+		session
+	);
+	const rejected = expect(result).rejects.toMatchObject({ name: 'AbortError' });
+	try {
+		await vi.waitFor(() => expect(session.steps).toHaveLength(1));
+		expect(serializeTrack.mock.calls.length).toBeLessThan(100);
+		expect(serializeTranslations.mock.calls.length).toBeLessThan(100);
+		expect(yieldedBeforePrompt).toBe(true);
+		expect(track.clips).toHaveLength(1000);
+	} finally {
+		clearTimeout(timer);
+		session.cancel();
+		await rejected;
+	}
+});
+
+test.each(['edit', 'translations', 'switch', 'cancel'])(
+	'stops preparation before the first prompt after %s while yielding to the UI',
+	async (action) => {
+		track.clips = Array.from({ length: 100 }, (_, index) => subtitle(index * 1000, 'one two'));
+		const controller = new AbortController();
+		const session = new ManualAiSession();
+		session.start();
+		const timer = setTimeout(() => {
+			if (action === 'edit') (track.clips[0] as SubtitleClip).text = 'Manual edit';
+			if (action === 'translations')
+				project.content.projectTranslation.versesTranslations.english = { '1:1': 'Updated' };
+			if (action === 'switch') globalState.currentProject = null;
+			if (action === 'cancel') controller.abort();
+		}, 0);
+		try {
+			await expect(
+				previewProjectSubtitles(project, options, controller.signal, vi.fn(), session)
+			).rejects.toThrow();
+			expect(session.steps).toHaveLength(0);
+			expect(invoke).not.toHaveBeenCalled();
+			expect(track.clips).toHaveLength(100);
+		} finally {
+			clearTimeout(timer);
+			session.cancel();
+		}
+	}
+);
+
 test('checks complete manual word coverage before allowing preview and undoable application without a key', async () => {
 	globalState.settings!.aiTranslationSettings.openAiApiKey = '';
 	track.clips = [subtitle(0, 'One two three four')];
@@ -462,7 +528,7 @@ test('processes long speech with overlapping context and no missing or duplicate
 	const tokens = Array.from({ length: 900 }, (_, i) => `word${i}`);
 	track.clips = [subtitle(0, tokens.join(' '))];
 	await rearrangeProjectSubtitles(project, options, new AbortController().signal, vi.fn());
-	expect(invoke).toHaveBeenCalledTimes(3);
+	expect(invoke).toHaveBeenCalledTimes(2);
 	expect(
 		track.clips
 			.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
@@ -473,7 +539,7 @@ test('processes long speech with overlapping context and no missing or duplicate
 			.batch;
 		expect(
 			batch.timeline.reduce((sum, entry) => sum + (entry.words?.length ?? 0), 0)
-		).toBeLessThanOrEqual(400);
+		).toBeLessThanOrEqual(650);
 	}
 	const secondBatch = (
 		vi.mocked(invoke).mock.calls[1][1] as { request: { batch: { contextBefore: string } } }
@@ -481,11 +547,51 @@ test('processes long speech with overlapping context and no missing or duplicate
 	expect(secondBatch.contextBefore.split(' ')).toHaveLength(25);
 });
 
+test.each([false, true])(
+	'preserves every word with configurable rearrangement batches in manual mode: %s',
+	async (manual) => {
+		const tokens = Array.from({ length: 900 }, (_, i) => `word${i}`);
+		const session = new ManualAiSession();
+		const request = vi
+			.spyOn(session, 'request')
+			.mockImplementation(async (_kind, input, validate) => {
+				const timeline = (
+					input.batch as { timeline: { type: string; id: number; words?: unknown[] }[] }
+				).timeline;
+				return validate({
+					blocks: timeline
+						.filter((entry) => entry.type === 'speech')
+						.map((entry) => ({ id: entry.id, ends: [entry.words!.length] }))
+				});
+			});
+		for (const [size, calls] of [
+			[25, 8],
+			[100, 2],
+			[2000, 1]
+		]) {
+			globalState.settings!.aiTranslationSettings.analysisBatchSize = size;
+			track.clips = [subtitle(0, tokens.join(' '))];
+			vi.mocked(invoke).mockClear();
+			request.mockClear();
+			const plan = await previewProjectSubtitles(
+				project,
+				options,
+				new AbortController().signal,
+				vi.fn(),
+				manual ? session : undefined
+			);
+			expect(manual ? request : invoke).toHaveBeenCalledTimes(calls);
+			plan.apply();
+			expect(globalState.getSubtitleClips.flatMap((clip) => clip.text.split(' '))).toEqual(tokens);
+		}
+	}
+);
+
 test('does not apply earlier batches when a later request fails', async () => {
-	track.clips = [subtitle(0, Array.from({ length: 500 }, (_, i) => `word${i}`).join(' '))];
+	track.clips = [subtitle(0, Array.from({ length: 900 }, (_, i) => `word${i}`).join(' '))];
 	const original = track.clips[0];
 	vi.mocked(invoke)
-		.mockResolvedValueOnce({ blocks: [{ id: 0, ends: [400] }] })
+		.mockResolvedValueOnce({ blocks: [{ id: 0, ends: [650] }] })
 		.mockRejectedValueOnce(new Error('failed'));
 	await expect(
 		rearrangeProjectSubtitles(project, options, new AbortController().signal, vi.fn())

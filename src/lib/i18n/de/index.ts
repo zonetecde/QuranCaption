@@ -362,9 +362,9 @@ const de = {
 			...{
 				warningsTitle: 'Zu prüfende Transkriptionsstellen',
 				warningsDescription:
-					'Diese Stellen können Transkriptionsfehler enthalten, für die kein verlässlicher Ersatz vorliegt. Hören Sie sie an, bearbeiten Sie den Text und bestätigen Sie die Korrektur. Unkorrigierte Stellen bleiben in der Zeitleiste und der Prüfnavigation gelb als Untertitel mit geringer Sicherheit markiert, auch nach dem Schließen dieses Fensters.',
+					'Jede Stelle enthält die beste Vermutung der KI aus dem Kontext, auch bei Unsicherheit. Höre nach, bearbeite sie bei Bedarf und bestätige sie. Diese Untertitel bleiben auch nach dem Anwenden oder Schließen dieses Fensters gelb und zur Prüfung markiert.',
 				confirmCorrection: 'Korrektur bestätigen',
-				warningText: 'Zu korrigierende Transkription'
+				warningText: 'Vermutung aus dem Kontext — bitte prüfen'
 			},
 			title: 'Transkriptionsfehler korrigieren',
 			description: 'Finde eindeutige Erkennungsfehler, höre nach und wähle die Korrekturen aus.',
@@ -372,7 +372,7 @@ const de = {
 			analyzing: 'Transkription und Kontext werden geprüft',
 			introTitle: 'Ein zweiter Blick auf dein Transkript',
 			introDescription:
-				'Die KI liest deine Untertitel im Kontext und schlägt nur kleine Korrekturen vor, wenn ein Transkriptionsfehler sehr wahrscheinlich ist.',
+				'Die KI liest deine Untertitel im Kontext, schlägt eindeutige Korrekturen vor und liefert für unverständliche Stellen immer eine Rekonstruktion, die zur Prüfung markiert ist.',
 			conservative: 'Nur eindeutige Fehler',
 			conservativeDescription:
 				'Ungewöhnliche Formulierungen, Dialekt, Namen und Stilentscheidungen bleiben bei Zweifeln unverändert.',
@@ -2299,6 +2299,27 @@ const de = {
 		groupTransitions: 'Übergänge'
 	},
 	settings: {
+		...{
+			aiBatches: {
+				total: 'Anfragen für diesen Durchlauf',
+				title: 'KI-Anfragen',
+				description:
+					'Wähle die Textmenge pro Anfrage. Diese Einstellungen gelten für alle Projekte, mit und ohne API-Schlüssel. Änderungen werden automatisch gespeichert.',
+				analysisTitle: 'Korrektur, Referenzen und Neuanordnung',
+				analysisDescription:
+					'Gemeinsame Größe für Transkriptkorrektur, Referenzerkennung und Neuanordnung der Untertitel. Wortbasierte Schritte verwenden ein entsprechendes Wortbudget.',
+				translationTitle: 'Übersetzung',
+				translationDescription: 'Eine eigene Größe, da Übersetzungen mehr Text erzeugen.',
+				fewer: 'Weniger Anfragen',
+				more: 'Mehr Anfragen',
+				subtitlesUnit: 'Untertitel pro Anfrage (ungefähr)',
+				wordsUnit: 'Wörter pro Anfrage',
+				note: 'Größere Pakete bedeuten weniger Prompts, aber sehr lange Antworten können unvollständig oder ungenauer sein. Wähle dann eine kleinere Größe. Die größte Einstellung zielt nach Möglichkeit auf eine Anfrage ab; Längenbegrenzungen und Abschnittsgrenzen können den Text weiterhin aufteilen.',
+				preview: 'Geschätzte Anfragen',
+				estimate:
+					'Schätzung: Textlänge, Pausen und geschützte Passagen können die Anzahl verändern. Größe unter Einstellungen → KI-Anfragen anpassen.'
+			}
+		},
 		settings: 'Einstellungen',
 		customizeExperience: 'Passen Sie Ihr Erlebnis, Tastenkürzel und Backups an',
 		shortcuts: 'Tastenkürzel',

@@ -3,13 +3,18 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { type ManualAiCopy, type ManualAiSession } from '$lib/services/ManualAiSession.svelte';
 
-	let { session, progress = 0 }: { session: ManualAiSession; progress?: number } = $props();
+	let {
+		session,
+		progress = 0,
+		total = null
+	}: { session: ManualAiSession; progress?: number; total?: number | null } = $props();
 	const copy = $derived(($LL.editor as unknown as { manualAi: ManualAiCopy }).manualAi);
 	let selectedIndex = $state(0);
 	let copied = $state('');
 	let clipboardError = $state('');
 	const step = $derived(session.steps[selectedIndex]);
 	const validCount = $derived(session.steps.filter((entry) => entry.status === 'valid').length);
+	const displayedProgress = $derived(total ? Math.round((validCount / total) * 100) : progress);
 
 	$effect(() => {
 		selectedIndex = Math.max(0, session.steps.length - 1);
@@ -79,8 +84,11 @@
 		{:else if session.steps.length}
 			<div class="flex flex-wrap items-center justify-between gap-3">
 				<p class="text-xs text-secondary" role="status">
-					{copy.validated()} <span class="font-semibold text-primary">{validCount}</span>
-					<span class="ms-2 text-thirdly">{progress}%</span>
+					{copy.validated()}
+					<span class="font-semibold text-primary"
+						>{total === null ? validCount : `${validCount} / ${total}`}</span
+					>
+					<span class="ms-2 text-thirdly">{displayedProgress}%</span>
 				</p>
 				<button
 					type="button"
@@ -92,13 +100,13 @@
 				class="h-1 overflow-hidden rounded-full bg-primary"
 				role="progressbar"
 				aria-label={copy.validated()}
-				aria-valuenow={progress}
+				aria-valuenow={displayedProgress}
 				aria-valuemin="0"
 				aria-valuemax="100"
 			>
 				<div
 					class="h-full rounded-full bg-accent-primary transition-all"
-					style:width={`${progress}%`}
+					style:width={`${displayedProgress}%`}
 				></div>
 			</div>
 			<nav class="flex gap-2 overflow-x-auto pb-1" aria-label={copy.responses()}>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AiBatchSummary from '$lib/components/ai/AiBatchSummary.svelte';
 	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import { AssetClip, AssetType, Duration, SubtitleClip, TrackType } from '$lib/classes';
 	import { SettingsTab } from '$lib/classes/Settings.svelte';
@@ -29,6 +30,7 @@
 	const controller = new AbortController();
 	let busy = $state(false);
 	let progress = $state(0);
+	let batchCount = $state<number | null>(null);
 	let errorMessage = $state('');
 	let appliedCount = $state<number | null>(null);
 	let plan = $state<SubtitleCorrectionPlan | null>(null);
@@ -136,6 +138,7 @@
 		errorMessage = '';
 		busy = true;
 		progress = 0;
+		batchCount = null;
 		if (manualMode) manualSession.start();
 		try {
 			/** Lance le parcours choisi. @returns {Promise<SubtitleCorrectionPlan>} Aperçu validé. */
@@ -143,8 +146,9 @@
 				detectSubtitleCorrections(
 					project,
 					controller.signal,
-					(value) => {
+					(value, total) => {
 						progress = Math.round(value * 100);
+						batchCount = total;
 					},
 					manualMode ? manualSession : undefined
 				);
@@ -158,11 +162,14 @@
 					);
 			if (controller.signal.aborted) return;
 			plan = result;
-			warningDrafts = Object.fromEntries(result.warnings.map(({ id, text }) => [id, text]));
+			warningDrafts = Object.fromEntries(
+				result.warnings.map(({ id, suggestion }) => [id, suggestion])
+			);
 			if (manualMode) manualSession.finish();
 			selectedIds = result.proposals.map(({ id }) => id);
 		} catch (error) {
 			if (manualMode) manualSession.cancel();
+			batchCount = null;
 			if (!controller.signal.aborted)
 				errorMessage = error instanceof Error ? error.message : copy.requestError();
 		} finally {
@@ -227,6 +234,7 @@
 		selectedIds = [];
 		errorMessage = '';
 		appliedCount = null;
+		batchCount = null;
 		manualSession.cancel();
 	}
 </script>
@@ -246,10 +254,14 @@
 				onchange={resetMode}
 			/>{/snippet}
 		<section class="flex flex-col border-b border-color md:min-h-0 md:border-b-0 md:border-e">
-			{#if manualMode && plan}<ManualAiWorkflow session={manualSession} {progress} />{/if}
+			{#if manualMode && plan}<ManualAiWorkflow
+					session={manualSession}
+					{progress}
+					total={batchCount}
+				/>{/if}
 			{#if manualMode && !plan}
 				<div class="min-h-0 overflow-y-auto">
-					<ManualAiWorkflow session={manualSession} {progress} />
+					<ManualAiWorkflow session={manualSession} {progress} total={batchCount} />
 				</div>
 			{:else if plan && (plan.proposals.length || plan.warnings.length)}
 				<div
@@ -415,6 +427,12 @@
 										</div>
 									</div>
 									<label class="block space-y-2">
+										<span class="block text-xs font-medium text-secondary">{copy.original()}</span>
+										<span
+											dir="auto"
+											class="block whitespace-pre-wrap break-words text-sm text-secondary"
+											>{warning.text}</span
+										>
 										<span class="text-xs font-medium text-secondary">{copy.warningText()}</span>
 										<textarea
 											dir="auto"
@@ -495,6 +513,7 @@
 			{/if}
 		</section>
 		<aside class="flex flex-col gap-5 p-5 md:min-h-0 md:overflow-y-auto">
+			<AiBatchSummary {subtitles} feature="correction" total={batchCount} />
 			<div class="flex items-center justify-between text-sm text-secondary">
 				<span>{$LL.editor.transcriptSegments()}</span><span
 					class="rounded-md bg-primary px-2.5 py-1 font-semibold text-primary"

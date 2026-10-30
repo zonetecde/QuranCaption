@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AiBatchSummary from '$lib/components/ai/AiBatchSummary.svelte';
 	import { onDestroy } from 'svelte';
 	import type { Edition } from '$lib/classes';
 	import type { Project } from '$lib/classes/Project';
@@ -379,6 +380,11 @@
 			onchange={resetMode}
 		/>{/snippet}
 	<div class="space-y-5 p-5">
+		<AiBatchSummary
+			subtitles={getEligibleAIProjectTranslationSubtitles(edition, options)}
+			feature="translation"
+			total={totalBatches > 0 ? totalBatches : null}
+		/>
 		<fieldset
 			disabled={isRunning}
 			class={manualMode && (isRunning || manualSession.ready) ? 'hidden' : 'space-y-5'}
@@ -459,6 +465,7 @@
 		{#if manualMode && !hasFinished}<ManualAiWorkflow
 				session={manualSession}
 				progress={progressPercent()}
+				total={totalBatches > 0 ? totalBatches : null}
 			/>{/if}
 		{#if currentMessage}
 			<div class="rounded-lg border border-color bg-accent p-4" role="status">

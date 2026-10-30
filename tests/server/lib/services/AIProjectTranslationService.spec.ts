@@ -30,6 +30,7 @@ import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { setLocale } from '$lib/i18n/i18n-svelte';
 import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import Settings from '$lib/classes/Settings.svelte';
 
 /**
  * Construit un batch de test avec un passage Quran partiel et une citation.
@@ -115,14 +116,17 @@ function createProject(): Project {
 }
 
 describe('AIProjectTranslationService', () => {
+	const originalSettings = globalState.settings;
 	beforeEach(() => {
 		loadLocale('en');
 		setLocale('en');
+		globalState.settings = new Settings();
 	});
 
 	afterEach(() => {
 		ProjectHistoryManager.clear();
 		globalState.currentProject = null;
+		globalState.settings = originalSettings;
 		vi.unstubAllGlobals();
 	});
 
@@ -206,6 +210,81 @@ describe('AIProjectTranslationService', () => {
 			)
 		).toHaveLength(1);
 	});
+
+	test.each(['plain', 'structured'])(
+		'applies an uncertain %s proposal as editable text with its review reason and undo/redo',
+		(kind) => {
+			initializeClassRegistry();
+			const project = createProject();
+			const edition = new Edition('test', 'test', 'English', 'English', 'ltr', 'test', '', '', '');
+			const batch = createBatch();
+			const candidate = batch.candidates[0];
+			if (kind === 'plain') {
+				candidate.subtitle.text = 'ده كم شخص يأخذ كم شخص';
+				candidate.payload.a = [];
+				candidate.citationIds = [];
+				candidate.quranExpectations = [];
+			}
+			candidate.translation.text = '';
+			candidate.snapshot = JSON.stringify([
+				candidate.subtitle.text,
+				candidate.subtitle.startTime,
+				candidate.subtitle.endTime,
+				candidate.translation
+			]);
+			const originalSource = candidate.subtitle.text;
+			const before = JSON.stringify(candidate.translation.toJSON());
+			project.content.timeline.getFirstTrack(TrackType.Subtitle).clips.push(candidate.subtitle);
+			project.content.projectTranslation.addedTranslationEditions = [edition];
+			globalState.currentProject = project;
+			ProjectHistoryManager.resetForCurrentProject();
+			const issue = 'Contextual guess: listen to verify the intended wording.';
+			const report = validateAIProjectTranslationBatch(batch, {
+				i: [
+					{
+						i: candidate.subtitle.id,
+						f:
+							kind === 'plain'
+								? ['How many people does this involve?']
+								: ['He said ', ' then ', ''],
+						c: kind === 'plain' ? [] : [{ i: 'citation-1', t: 'Actions depend on intentions' }],
+						q: kind === 'plain' ? [] : [{ i: 'quran-0', s: 0, e: 1 }],
+						issue
+					}
+				]
+			});
+			expect(report.errors).toEqual([]);
+			expect(report.validItems).toHaveLength(1);
+			// Une supposition ne doit pas devenir une référence fiable pour les lots suivants.
+			expect(resolveAIProjectTranslationSuccessContext(edition, report.validItems[0])).toBe('');
+			expect(applyAIProjectTranslationResults(edition, report.validItems)).toEqual({
+				appliedSubtitles: 0,
+				reviewSubtitles: 1
+			});
+			const proposal =
+				kind === 'plain'
+					? 'How many people does this involve?'
+					: 'He said {{2:255:1-2}} then {{Actions depend on intentions}}';
+			expect(candidate.translation.text).toBe(proposal);
+			expect(candidate.translation.status).toBe('to review');
+			expect(candidate.translation.reviewReason).toBe(issue);
+			expect(candidate.subtitle.text).toBe(originalSource);
+			expect(globalState.getTranslationsState.filters['to review']).toBe(true);
+			if (kind === 'structured') {
+				const segment = candidate.translation.getQuranSegment('quran-0', '2:255:1-2', 4);
+				expect(segment.startUnitIndex).toBe(0);
+				expect(segment.endUnitIndex).toBe(1);
+			}
+			expect(ProjectHistoryManager.undo()).toBe(true);
+			expect(JSON.stringify(globalState.getSubtitleClips[0].getTranslation('test').toJSON())).toBe(
+				before
+			);
+			expect(ProjectHistoryManager.redo()).toBe(true);
+			expect(globalState.getSubtitleClips[0].getTranslation('test').text).toBe(proposal);
+			expect(globalState.getSubtitleClips[0].getTranslation('test').reviewReason).toBe(issue);
+			expect(globalState.getSubtitleClips[0].getTranslation('test').status).toBe('to review');
+		}
+	);
 
 	test('focuses remaining review translations after another subtitle is translated successfully', () => {
 		const project = createProject();
@@ -442,6 +521,60 @@ describe('AIProjectTranslationService', () => {
 		expect(report.validItems.map((item) => item.candidate.subtitle)).toEqual([first, last]);
 	});
 
+	test('groups scattered review subtitles without resending the whole translated video', async () => {
+		globalState.settings!.aiTranslationSettings.projectTranslationBatchWords = 1500;
+		const project = createProject();
+		const edition = new Edition('test', 'test', 'French', 'French', 'ltr', 'test', '', '', '');
+		const clips = Array.from({ length: 1200 }, (_, index) => {
+			const clip = new SubtitleClip(
+				index * 3000,
+				(index + 1) * 3000,
+				`Source phrase number ${index}`
+			);
+			clip.translations.test = new VerseTranslation(
+				`Traduction du passage ${index}`,
+				'ai translated'
+			);
+			return clip;
+		});
+		const targets = Array.from({ length: 36 }, (_, index) => clips[index * 33 + 10]);
+		for (const clip of targets) {
+			clip.translations.test.status = 'to review';
+			clip.translations.test.reviewReason = 'Verify the source';
+		}
+		project.content.timeline.getFirstTrack(TrackType.Subtitle).clips.push(...clips);
+		globalState.currentProject = project;
+		const before = JSON.stringify(project.content.timeline.toJSON());
+		const batches = await buildAIProjectTranslationBatches(edition, {
+			retryErrors: true,
+			overwriteAiTranslated: false,
+			overwriteReviewed: false,
+			overwriteManualQuran: false
+		});
+		expect(batches).toHaveLength(1);
+		const batch = batches[0];
+		expect(batch.candidates.map(({ subtitle }) => subtitle)).toEqual(targets);
+		expect(batch.request.timeline.filter((item) => item.editable)).toHaveLength(36);
+		expect(JSON.stringify(batch.request).length).toBeLessThan(20000);
+		for (const target of targets) {
+			const targetIndex = clips.indexOf(target);
+			const promptIndex = batch.request.timeline.findIndex(
+				(item) => item.editable && item.parts.some((part) => part.s === target.text)
+			);
+			expect(batch.request.timeline[promptIndex - 1].t).toBe(
+				clips[targetIndex - 1].translations.test.text
+			);
+			expect(batch.request.timeline[promptIndex + 1].t).toBe(
+				clips[targetIndex + 1].translations.test.text
+			);
+		}
+		expect(batch.request.timeline.some((item) => item.contextGapBefore)).toBe(true);
+		expect(batch.request.timeline.map((item) => item.i)).toEqual(
+			batch.request.timeline.map((_, index) => index)
+		);
+		expect(JSON.stringify(project.content.timeline.toJSON())).toBe(before);
+	});
+
 	test('protects existing text by default and includes legacy statuses in the all scope', () => {
 		const project = createProject();
 		const edition = new Edition('test', 'test', 'French', 'French', 'ltr', 'test', '', '', '');
@@ -471,8 +604,8 @@ describe('AIProjectTranslationService', () => {
 		const project = createProject();
 		const edition = new Edition('test', 'test', 'French', 'French', 'ltr', 'test', '', '', '');
 		const clips = [
-			new SubtitleClip(0, 1000, 'word '.repeat(310) + '.'),
-			new SubtitleClip(1000, 2000, 'word '.repeat(100))
+			new SubtitleClip(0, 1000, 'word '.repeat(590) + '.'),
+			new SubtitleClip(1000, 2000, 'word '.repeat(30))
 		];
 		for (const clip of clips) clip.translations.test = new VerseTranslation('', 'to translate');
 		project.content.timeline.getFirstTrack(TrackType.Subtitle)!.clips.push(...clips);
@@ -485,6 +618,37 @@ describe('AIProjectTranslationService', () => {
 		});
 		expect(batches.map((batch) => batch.candidates.length)).toEqual([1, 1]);
 	});
+
+	test.each([
+		{ size: 150, count: 10 },
+		{ size: 650, count: 2 },
+		{ size: 8000, count: 1 }
+	])(
+		'uses the separate translation size without losing candidates: $size',
+		async ({ size, count }) => {
+			globalState.settings!.aiTranslationSettings.projectTranslationBatchWords = size;
+			globalState.settings!.aiTranslationSettings.analysisBatchSize = 25;
+			const project = createProject();
+			const edition = new Edition('test', 'test', 'French', 'French', 'ltr', 'test', '', '', '');
+			const clips = Array.from(
+				{ length: 30 },
+				(_, i) => new SubtitleClip(i * 1000, (i + 1) * 1000, 'word '.repeat(40))
+			);
+			for (const clip of clips) clip.translations.test = new VerseTranslation('', 'to translate');
+			project.content.timeline.getFirstTrack(TrackType.Subtitle).clips.push(...clips);
+			globalState.currentProject = project;
+			const batches = await buildAIProjectTranslationBatches(edition, {
+				retryErrors: true,
+				overwriteAiTranslated: false,
+				overwriteReviewed: false,
+				overwriteManualQuran: false
+			});
+			expect(batches).toHaveLength(count);
+			expect(
+				batches.flatMap((batch) => batch.candidates.map((candidate) => candidate.subtitle.id))
+			).toEqual(clips.map((clip) => clip.id));
+		}
+	);
 
 	test('bounds requests with long unspaced text and trims distant context', async () => {
 		const project = createProject();

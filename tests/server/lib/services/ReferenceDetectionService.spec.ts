@@ -338,10 +338,10 @@ test('does not load Quran data when only ordinary quotations are requested', asy
 });
 
 test('provides context on both sides of long batches and supports a quotation crossing the batch boundary', async () => {
-	const text = Array.from({ length: 620 }, (_, i) => `word${i}`).join(' ');
+	const text = Array.from({ length: 900 }, (_, i) => `word${i}`).join(' ');
 	track.clips = [new SubtitleClip(0, 60000, text)];
 	vi.mocked(invoke)
-		.mockResolvedValueOnce({ findings: [finding({ from: 394, to: 410 })] })
+		.mockResolvedValueOnce({ findings: [finding({ from: 644, to: 660 })] })
 		.mockResolvedValueOnce({ findings: [] });
 	const plan = await detectProjectReferences(
 		project,
@@ -361,15 +361,45 @@ test('provides context on both sides of long batches and supports a quotation cr
 			).request.batch
 	);
 	expect([batches[0].editableFrom, batches[0].editableTo, batches[0].words.length]).toEqual([
-		1, 400, 550
+		1, 650, 800
 	]);
 	expect([batches[1].editableFrom, batches[1].editableTo, batches[1].words[0].id]).toEqual([
-		401, 620, 251
+		651, 900, 501
 	]);
 	const after = previewReferenceAnnotations(plan, [0])[0].after;
-	expect(after).toContain(`{{${Array.from({ length: 17 }, (_, i) => `word${i + 393}`).join(' ')}}`);
+	expect(after).toContain(`{{${Array.from({ length: 17 }, (_, i) => `word${i + 643}`).join(' ')}}`);
 	expect(after.replace('{{', '').replace('}}', '')).toBe(text);
 });
+
+test.each([false, true])(
+	'shares configurable reference batches between API and manual mode: %s',
+	async (manual) => {
+		const text = Array.from({ length: 900 }, (_, i) => `word${i}`).join(' ');
+		track.clips = [new SubtitleClip(0, 60000, text)];
+		const session = new ManualAiSession();
+		const request = vi
+			.spyOn(session, 'request')
+			.mockImplementation(async (_kind, _input, validate) => validate({ findings: [] }));
+		for (const [size, calls] of [
+			[25, 6],
+			[100, 2],
+			[2000, 1]
+		]) {
+			globalState.settings!.aiTranslationSettings.analysisBatchSize = size;
+			vi.mocked(invoke).mockClear();
+			request.mockClear();
+			await detectProjectReferences(
+				project,
+				options,
+				new AbortController().signal,
+				vi.fn(),
+				manual ? session : undefined
+			);
+			expect(manual ? request : invoke).toHaveBeenCalledTimes(calls);
+			expect((track.clips[0] as SubtitleClip).text).toBe(text);
+		}
+	}
+);
 
 test('keeps overlapping alternatives uncertain instead of nesting Quran and quotation markers', async () => {
 	track.clips = [new SubtitleClip(0, 2000, 'قال قول محدد')];
@@ -406,7 +436,7 @@ test('does not apply earlier batches if a later detection request fails', async 
 	const clip = new SubtitleClip(
 		0,
 		60000,
-		Array.from({ length: 500 }, (_, i) => `word${i}`).join(' ')
+		Array.from({ length: 900 }, (_, i) => `word${i}`).join(' ')
 	);
 	track.clips = [clip];
 	const before = clip.text;

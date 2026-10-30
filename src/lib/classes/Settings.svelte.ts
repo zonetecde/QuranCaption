@@ -1,3 +1,8 @@
+import {
+	ANALYSIS_BATCH_SIZES,
+	TRANSLATION_BATCH_SIZES,
+	normalizeAiBatchSize
+} from '$lib/services/AiBatchSettings';
 import { SerializableBase } from './misc/SerializableBase';
 import { writeTextFile, readTextFile, exists } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
@@ -47,6 +52,7 @@ export type PerformanceProfile = 'balanced' | 'max_quality';
 export type IslamicTermTranslationMode = 'translated' | 'both' | 'transliterated';
 
 export type AITranslationSettings = {
+	analysisBatchSize: number;
 	omitPromptPrefix: boolean; // If true, only include JSON input in the prompt.
 	openAiApiKey: string;
 	textAiApiEndpoint: string;
@@ -160,7 +166,8 @@ export default class Settings extends SerializableBase {
 		advancedTrimModel: 'gpt-5.4-mini',
 		advancedTrimReasoningEffort: 'none',
 		projectTranslationReasoningMode: 'auto',
-		projectTranslationBatchWords: 450,
+		analysisBatchSize: 100,
+		projectTranslationBatchWords: 650,
 		projectTranslationIslamicTerms: 'both',
 		advancedAlsoAskReviewed: false,
 		aiBoldCustomNote: '',
@@ -737,15 +744,21 @@ export default class Settings extends SerializableBase {
 			settings.aiTranslationSettings.projectTranslationReasoningMode = 'auto';
 			shouldSave = true;
 		}
-		const projectTranslationBatchWords = Math.min(
-			640,
-			Math.max(160, Number(settings.aiTranslationSettings.projectTranslationBatchWords) || 450)
-		);
-		if (
-			settings.aiTranslationSettings.projectTranslationBatchWords !== projectTranslationBatchWords
-		) {
-			settings.aiTranslationSettings.projectTranslationBatchWords = projectTranslationBatchWords;
-			shouldSave = true;
+		for (const [key, sizes, fallback] of [
+			['analysisBatchSize', ANALYSIS_BATCH_SIZES, 100],
+			['projectTranslationBatchWords', TRANSLATION_BATCH_SIZES, 650]
+		] as const) {
+			const value = settings.aiTranslationSettings[key];
+			// L'ancien défaut de traduction était enregistré mais jamais utilisé.
+			const normalized = normalizeAiBatchSize(
+				key === 'projectTranslationBatchWords' && value === 450 ? undefined : value,
+				sizes,
+				fallback
+			);
+			if (value !== normalized) {
+				settings.aiTranslationSettings[key] = normalized;
+				shouldSave = true;
+			}
 		}
 		if (
 			!['translated', 'both', 'transliterated'].includes(
@@ -866,6 +879,7 @@ export enum SettingsTab {
 	THEME = 'theme',
 	NOTIFICATIONS = 'notifications',
 	AI_KEY = 'ai-key',
+	AI_BATCHES = 'ai-batches',
 	TRANSCRIPT_KEY = 'transcript-key',
 	STOCK_MEDIA = 'stock-media',
 	BACKUP = 'backup',

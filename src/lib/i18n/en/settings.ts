@@ -1,4 +1,23 @@
 const settings = {
+	aiBatches: {
+		total: 'Requests for this run',
+		title: 'AI requests',
+		description:
+			'Choose how much text to send per request. These settings apply to all projects, with or without an API key. Changes are saved automatically.',
+		analysisTitle: 'Correction, references and rearrangement',
+		analysisDescription:
+			'Shared size for transcript correction, reference detection and subtitle rearrangement. Word-based steps use an equivalent word budget.',
+		translationTitle: 'Translation',
+		translationDescription: 'A separate size because translations generate more text.',
+		fewer: 'Fewer requests',
+		more: 'More requests',
+		subtitlesUnit: 'subtitles per request (approx.)',
+		wordsUnit: 'words per request',
+		note: 'Larger batches mean fewer prompts, but very large replies may be incomplete or less precise. Choose a smaller size if this happens. The largest size aims for one request when possible; length limits and passage boundaries may still split the text.',
+		preview: 'Estimated requests',
+		estimate:
+			'Approximate: text length, pauses and protected passages can change the total. Adjust the size in Settings → AI requests.'
+	},
 	settings: 'Settings',
 	customizeExperience: 'Customize your experience, shortcuts, and backups',
 	shortcuts: 'Shortcuts',

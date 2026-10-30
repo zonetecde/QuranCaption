@@ -22,9 +22,8 @@ import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryMana
 import { WbwTranslationService } from '$lib/services/WbwTranslationService';
 import type { AIReasoningEffort } from '$lib/services/AIReasoning';
 
-const MAX_BATCH_WORDS = 450;
+import { getAiBatchLimits } from './AiBatchSettings';
 const CONTEXT_CLIP_COUNT = 10;
-const MAX_BATCH_CHARACTERS = 24000;
 const MAX_CONTEXT_CHARACTERS = 12000;
 
 export type AIProjectTranslationOptions = {
@@ -39,6 +38,7 @@ export type AIProjectTranslationInputItem = {
 	editable: boolean;
 	durationMs: number;
 	pauseBeforeMs: number;
+	contextGapBefore?: boolean;
 	parts: (AIProjectTranslationAnchorPayload | { k: 't'; i: number; s: string })[];
 	t?: string;
 };
@@ -403,6 +403,7 @@ export async function buildAIProjectTranslationBatches(
 	edition: Edition,
 	options: AIProjectTranslationOptions
 ): Promise<AIProjectTranslationBatch[]> {
+	const limits = getAiBatchLimits(globalState.settings?.aiTranslationSettings, true);
 	await MinimalQuranProvider.prefetch();
 	const subtitles = getEligibleAIProjectTranslationSubtitles(edition, options);
 	const candidates = await Promise.all(
@@ -422,44 +423,49 @@ export async function buildAIProjectTranslationBatches(
 		if (current.length === 0) return;
 		const firstIndex = positions.get(current[0].subtitle.id)!;
 		const lastIndex = positions.get(current[current.length - 1].subtitle.id)!;
-		let beforeSubtitles = allSubtitles.slice(
-			Math.max(0, firstIndex - CONTEXT_CLIP_COUNT),
-			Math.max(0, firstIndex)
-		);
-		let afterSubtitles = allSubtitles.slice(lastIndex + 1, lastIndex + 1 + CONTEXT_CLIP_COUNT);
-		while (
-			JSON.stringify(beforeSubtitles.map((subtitle) => buildContextItem(subtitle, edition, 0)))
-				.length >
-			MAX_CONTEXT_CHARACTERS / 2
-		)
-			beforeSubtitles = beforeSubtitles.slice(1);
-		while (
-			JSON.stringify(afterSubtitles.map((subtitle) => buildContextItem(subtitle, edition, 0)))
-				.length >
-			MAX_CONTEXT_CHARACTERS / 2
-		)
-			afterSubtitles = afterSubtitles.slice(0, -1);
 		const candidateBySubtitle = new Map(
 			current.map((candidate) => [candidate.subtitle.id, candidate])
 		);
-		const timeline = [
-			...beforeSubtitles,
-			...allSubtitles.slice(firstIndex, lastIndex + 1),
-			...afterSubtitles
-		].map((subtitle, index) =>
-			buildContextItem(
-				subtitle,
+		const included = new Set(current.map(({ subtitle }) => positions.get(subtitle.id)!));
+		let contextCharacters = 0;
+		const contextBudget = Math.min(
+			MAX_CONTEXT_CHARACTERS,
+			Math.max(0, limits.characters - currentCharacters)
+		);
+		// Répartit le contexte autour de chaque cible, en privilégiant les voisins immédiats.
+		for (let distance = 1; distance <= CONTEXT_CLIP_COUNT; distance++) {
+			for (const { subtitle } of current) {
+				const position = positions.get(subtitle.id)!;
+				for (const index of [position - distance, position + distance]) {
+					if (!allSubtitles[index] || included.has(index)) continue;
+					const length = JSON.stringify(buildContextItem(allSubtitles[index], edition, 0)).length;
+					if (length > MAX_CONTEXT_CHARACTERS / 2 || contextCharacters + length > contextBudget)
+						continue;
+					included.add(index);
+					contextCharacters += length;
+				}
+			}
+		}
+		const indexes = [...included].sort((a, b) => a - b);
+		const timeline = indexes.map((position, index) => ({
+			...buildContextItem(
+				allSubtitles[position],
 				edition,
 				index,
-				allSubtitles[(positions.get(subtitle.id) ?? 0) - 1],
-				candidateBySubtitle.get(subtitle.id)
-			)
-		);
+				allSubtitles[position - 1],
+				candidateBySubtitle.get(allSubtitles[position].id)
+			),
+			...(index > 0 && position > indexes[index - 1] + 1 ? { contextGapBefore: true } : {})
+		}));
 		batches.push({
 			batchId: `project-translation-${batches.length + 1}-${current[0].subtitle.id}`,
 			candidates: current,
-			beforeSubtitleIds: beforeSubtitles.map((subtitle) => subtitle.id),
-			afterSubtitleIds: afterSubtitles.map((subtitle) => subtitle.id),
+			beforeSubtitleIds: indexes
+				.filter((index) => index < firstIndex)
+				.map((index) => allSubtitles[index].id),
+			afterSubtitleIds: indexes
+				.filter((index) => index > lastIndex)
+				.map((index) => allSubtitles[index].id),
 			request: { language: get(locale), timeline },
 			wordCount: currentWords
 		});
@@ -470,35 +476,25 @@ export async function buildAIProjectTranslationBatches(
 
 	for (const candidate of candidates) {
 		const previous = current.at(-1);
-		const between = previous
-			? allSubtitles.slice(
-					positions.get(previous.subtitle.id)! + 1,
-					positions.get(candidate.subtitle.id)!
-				)
-			: [];
 		const candidateCharacters = JSON.stringify(
 			buildContextItem(candidate.subtitle, edition, 0, undefined, candidate)
 		).length;
-		const characters =
-			candidateCharacters +
-			JSON.stringify(between.map((subtitle) => buildContextItem(subtitle, edition, 0))).length;
 		const naturalBoundary =
 			previous &&
-			currentWords >= (MAX_BATCH_WORDS * 2) / 3 &&
+			currentWords >= limits.words * 0.9 &&
 			(/[.!?؟。！？」»]\s*$/u.test(previous.subtitle.text) ||
 				candidate.subtitle.startTime - previous.subtitle.endTime >= 1200);
 		if (
 			current.length > 0 &&
-			(currentWords + candidate.wordCount > MAX_BATCH_WORDS ||
+			(currentWords + candidate.wordCount > limits.words ||
 				naturalBoundary ||
-				currentCharacters + characters > MAX_BATCH_CHARACTERS ||
-				between.length > CONTEXT_CLIP_COUNT * 2)
+				currentCharacters + candidateCharacters > limits.characters)
 		) {
 			pushCurrent();
 		}
 		current.push(candidate);
 		currentWords += candidate.wordCount;
-		currentCharacters += current.length === 1 ? candidateCharacters : characters;
+		currentCharacters += candidateCharacters;
 	}
 	pushCurrent();
 	return batches;
@@ -560,11 +556,11 @@ export function validateAIProjectTranslationBatch(
 			errors.push(copy.invalidItem());
 			continue;
 		}
-		if (issue.trim()) {
-			if (![item.f, item.c, item.q].every((value) => Array.isArray(value) && value.length === 0)) {
-				errors.push(copy.invalidItem());
-				continue;
-			}
+		// Accepte encore les avertissements de prompts copiés avant l'ajout des propositions.
+		if (
+			issue.trim() &&
+			[item.f, item.c, item.q].every((value) => Array.isArray(value) && value.length === 0)
+		) {
 			validItems.push({
 				candidate,
 				freeTexts: [],
@@ -673,7 +669,8 @@ export function validateAIProjectTranslationBatch(
 			candidate,
 			freeTexts: freeTexts as string[],
 			citations,
-			quranRanges
+			quranRanges,
+			...(issue.trim() ? { reviewReason: issue.trim() } : {})
 		});
 	}
 
@@ -816,7 +813,7 @@ export function applyAIProjectTranslationResults(
 			);
 		for (const success of successes) {
 			const { candidate } = success;
-			if (success.reviewReason) {
+			if (success.reviewReason && !success.freeTexts.length) {
 				candidate.translation.status = 'to review';
 				candidate.translation.reviewReason = success.reviewReason;
 				continue;
@@ -846,8 +843,8 @@ export function applyAIProjectTranslationResults(
 				settings.isBruteForce = false;
 				settings.manualText = '';
 			}
-			candidate.translation.status = 'ai translated';
-			candidate.translation.reviewReason = '';
+			candidate.translation.status = success.reviewReason ? 'to review' : 'ai translated';
+			candidate.translation.reviewReason = success.reviewReason ?? '';
 		}
 		const pendingReviews = globalState.getSubtitleClips.filter(
 			(clip) => clip.translations[edition.name]?.status === 'to review'

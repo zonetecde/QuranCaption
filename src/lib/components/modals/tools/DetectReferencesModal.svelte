@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AiBatchSummary from '$lib/components/ai/AiBatchSummary.svelte';
 	import { onDestroy, untrack } from 'svelte';
 	import { SubtitleClip, TrackType } from '$lib/classes';
 	import { SettingsTab } from '$lib/classes/Settings.svelte';
@@ -233,6 +234,7 @@
 			{/if}
 		</section>
 		<section class="space-y-5 overflow-y-auto p-5">
+			<AiBatchSummary {subtitles} feature="references" />
 			<fieldset disabled={busy} class="space-y-4 disabled:opacity-60">
 				<label class="flex items-center gap-2 text-sm text-primary"
 					><input

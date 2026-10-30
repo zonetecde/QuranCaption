@@ -359,9 +359,9 @@ const fr = {
 			...{
 				warningsTitle: 'Passages de transcription à vérifier',
 				warningsDescription:
-					'Ces passages peuvent contenir des erreurs de transcription sans remplacement fiable. Écoutez-les, modifiez le texte, puis confirmez votre correction. Les passages non corrigés restent en jaune comme sous-titres de faible confiance dans la timeline et la navigation de vérification, même après fermeture de cette fenêtre.',
+					'Chaque passage contient la meilleure hypothèse de l’IA à partir du contexte, même incertaine. Écoutez, ajustez si nécessaire, puis confirmez. Ces sous-titres restent en jaune et à vérifier après application ou fermeture de cette fenêtre.',
 				confirmCorrection: 'Confirmer la correction',
-				warningText: 'Transcription à corriger'
+				warningText: 'Hypothèse déduite du contexte — à vérifier'
 			},
 			title: 'Corriger les erreurs de transcription',
 			description: 'Repérez les erreurs évidentes, puis écoutez et choisissez les corrections.',
@@ -369,7 +369,7 @@ const fr = {
 			analyzing: 'Vérification de la transcription et du contexte',
 			introTitle: 'Un second regard sur votre transcription',
 			introDescription:
-				'L’IA lit les sous-titres dans leur contexte et ne propose de petites corrections que lorsqu’une erreur de transcription est très probable.',
+				'L’IA lit les sous-titres dans leur contexte, propose les corrections évidentes et fournit toujours une reconstruction des passages incohérents, signalée comme à vérifier.',
 			conservative: 'Uniquement les erreurs évidentes',
 			conservativeDescription:
 				'En cas de doute, les formulations inhabituelles, dialectes, noms et choix de style sont conservés.',
@@ -2289,6 +2289,27 @@ const fr = {
 		groupTransitions: 'Transitions'
 	},
 	settings: {
+		...{
+			aiBatches: {
+				total: 'Requêtes pour cette analyse',
+				title: 'Requêtes IA',
+				description:
+					'Choisissez la quantité de texte à envoyer par requête. Ces réglages s’appliquent à tous les projets, avec ou sans clé API. Les modifications sont enregistrées automatiquement.',
+				analysisTitle: 'Correction, références et réorganisation',
+				analysisDescription:
+					'Taille commune à la correction de transcription, à la détection des références et à la réorganisation des sous-titres. Les étapes travaillant par mots utilisent un budget équivalent.',
+				translationTitle: 'Traduction',
+				translationDescription: 'Une taille distincte car la traduction génère davantage de texte.',
+				fewer: 'Moins de requêtes',
+				more: 'Plus de requêtes',
+				subtitlesUnit: 'sous-titres par requête (environ)',
+				wordsUnit: 'mots par requête',
+				note: 'De grands lots réduisent le nombre de prompts, mais une réponse très longue peut être incomplète ou moins précise. Réduisez la taille dans ce cas. La taille maximale vise une seule requête si possible ; les limites de longueur et les frontières des passages peuvent encore découper le texte.',
+				preview: 'Nombre estimé de requêtes',
+				estimate:
+					'Estimation : la longueur du texte, les pauses et les passages protégés peuvent modifier le total. Réglez la taille dans Paramètres → Requêtes IA.'
+			}
+		},
 		settings: 'Paramètres',
 		customizeExperience: 'Personnalisez votre expérience, raccourcis et sauvegardes',
 		shortcuts: 'Raccourcis',

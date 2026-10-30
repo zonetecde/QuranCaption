@@ -359,9 +359,9 @@ const es = {
 			...{
 				warningsTitle: 'Pasajes de transcripción por verificar',
 				warningsDescription:
-					'Estos pasajes pueden contener errores de transcripción sin una sustitución fiable. Escúchalos, edita el texto y confirma la corrección. Los pasajes sin corregir seguirán en amarillo como subtítulos de baja confianza en la línea de tiempo y la navegación de revisión, incluso después de cerrar esta ventana.',
+					'Cada pasaje incluye la mejor hipótesis de la IA según el contexto, aunque sea incierta. Escucha, ajústala si es necesario y confirma. Estos subtítulos siguen en amarillo y pendientes de revisión después de aplicar la propuesta o cerrar esta ventana.',
 				confirmCorrection: 'Confirmar corrección',
-				warningText: 'Transcripción por corregir'
+				warningText: 'Hipótesis según el contexto — por verificar'
 			},
 			title: 'Corregir errores de transcripción',
 			description: 'Detecta errores claros de reconocimiento, escucha y elige qué corregir.',
@@ -369,7 +369,7 @@ const es = {
 			analyzing: 'Comprobando transcripción y contexto',
 			introTitle: 'Una segunda revisión de tu transcripción',
 			introDescription:
-				'La IA lee tus subtítulos en contexto y solo propone pequeñas correcciones cuando un error de transcripción es muy probable.',
+				'La IA lee los subtítulos en contexto, propone correcciones claras y siempre ofrece una reconstrucción de los pasajes incoherentes, marcada para revisión.',
 			conservative: 'Solo errores claros',
 			conservativeDescription:
 				'Ante cualquier duda, se conservan las expresiones inusuales, los dialectos, los nombres y las elecciones de estilo.',
@@ -2282,6 +2282,28 @@ const es = {
 		groupTransitions: 'Transiciones'
 	},
 	settings: {
+		...{
+			aiBatches: {
+				total: 'Solicitudes para este análisis',
+				title: 'Solicitudes de IA',
+				description:
+					'Elige cuánto texto enviar por solicitud. Estos ajustes se aplican a todos los proyectos, con o sin clave API. Los cambios se guardan automáticamente.',
+				analysisTitle: 'Corrección, referencias y reorganización',
+				analysisDescription:
+					'Tamaño compartido para corregir la transcripción, detectar referencias y reorganizar subtítulos. Los pasos basados en palabras utilizan un presupuesto equivalente.',
+				translationTitle: 'Traducción',
+				translationDescription:
+					'Un tamaño independiente porque las traducciones generan más texto.',
+				fewer: 'Menos solicitudes',
+				more: 'Más solicitudes',
+				subtitlesUnit: 'subtítulos por solicitud (aprox.)',
+				wordsUnit: 'palabras por solicitud',
+				note: 'Los lotes grandes reducen los prompts, pero las respuestas muy largas pueden ser incompletas o menos precisas. Reduce el tamaño si ocurre. El tamaño máximo intenta usar una sola solicitud cuando sea posible; los límites de longitud y los límites de los pasajes pueden seguir dividiendo el texto.',
+				preview: 'Solicitudes estimadas',
+				estimate:
+					'Estimación: la longitud del texto, las pausas y los pasajes protegidos pueden cambiar el total. Ajusta el tamaño en Ajustes → Solicitudes de IA.'
+			}
+		},
 		settings: 'Configuración',
 		customizeExperience: 'Personalice su experiencia, atajos y copias de seguridad',
 		shortcuts: 'Atajos',

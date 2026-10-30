@@ -7,6 +7,7 @@ import type editor from '$lib/i18n/en/editor';
 import LL, { locale } from '$lib/i18n/i18n-svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { resolveAIReasoning } from './AIReasoning';
+import { getAiBatchEnd, getAiBatchLimits } from './AiBatchSettings';
 import type { ManualAiSession } from './ManualAiSession.svelte';
 import { ProjectHistoryManager } from './undoRedo/ProjectHistoryManager';
 
@@ -31,6 +32,7 @@ export type SubtitleCorrectionWarning = {
 	id: number;
 	clip: SubtitleClip;
 	text: string;
+	suggestion: string;
 	reason: string;
 };
 
@@ -74,14 +76,14 @@ function assertCurrent(plan: SubtitleCorrectionPlan): void {
  * Recherche les corrections certaines et signale les passages suspects sans réécrire leur texte.
  * @param {Project} project Projet à analyser.
  * @param {AbortSignal} signal Annulation de l'analyse.
- * @param {(progress: number) => void} onProgress Progression entre zéro et un.
+ * @param {(progress: number, totalBatches: number) => void} onProgress Progression des lots et total figé au lancement.
  * @param {ManualAiSession} [manual] Parcours copier-coller optionnel, sans fournisseur API.
  * @returns {Promise<SubtitleCorrectionPlan>} Corrections à approuver individuellement.
  */
 export async function detectSubtitleCorrections(
 	project: Project,
 	signal: AbortSignal,
-	onProgress: (progress: number) => void,
+	onProgress: (progress: number, totalBatches: number) => void,
 	manual?: ManualAiSession
 ): Promise<SubtitleCorrectionPlan> {
 	const copy = getCopy();
@@ -119,16 +121,23 @@ export async function detectSubtitleCorrections(
 		settings.advancedTrimModel,
 		settings.projectTranslationReasoningMode
 	);
-	for (let offset = 0; offset < subtitles.length; offset += 24) {
+	const limits = getAiBatchLimits(settings);
+	const batches: { offset: number; end: number }[] = [];
+	for (let offset = 0; offset < subtitles.length; ) {
+		const end = getAiBatchEnd(subtitles, offset, limits.items, limits.characters);
+		if (subtitles.slice(offset, end).some(({ editable }) => editable))
+			batches.push({ offset, end });
+		offset = end;
+	}
+	for (const [index, { offset, end }] of batches.entries()) {
 		assertCurrent(plan);
 		signal.throwIfAborted();
-		onProgress(offset / subtitles.length);
-		const batch = subtitles.slice(offset, offset + 24);
-		if (!batch.some(({ editable }) => editable)) continue;
+		onProgress(index / batches.length, batches.length);
+		const batch = subtitles.slice(offset, end);
 		const input = {
 			language: get(locale),
 			subtitles: subtitles
-				.slice(Math.max(0, offset - 2), offset + 26)
+				.slice(Math.max(0, offset - 2), end + 2)
 				.map(({ id, text, editable }) => ({
 					id,
 					text,
@@ -174,7 +183,17 @@ export async function detectSubtitleCorrections(
 				)
 					throw new Error(copy.invalidResponse());
 				seen.add(entry.id);
-				if (item.confidence < 0.98 || item.after.trim() === entry.text.trim()) continue;
+				if (item.after.trim() === entry.text.trim()) continue;
+				if (item.confidence < 0.98) {
+					warnings.push({
+						id: entry.id,
+						clip: entry.clip,
+						text: entry.text,
+						suggestion: item.after.trim(),
+						reason: item.reason.trim().slice(0, 2000)
+					});
+					continue;
+				}
 				proposals.push({
 					id: entry.id,
 					clip: entry.clip,
@@ -195,6 +214,11 @@ export async function detectSubtitleCorrections(
 					!entry?.editable ||
 					seen.has(entry.id) ||
 					item.text !== entry.text ||
+					typeof item.suggestion !== 'string' ||
+					!item.suggestion.trim() ||
+					item.suggestion.trim() === entry.text.trim() ||
+					item.suggestion.length > Math.max(500, entry.text.length * 2) ||
+					/[{}]/u.test(item.suggestion) ||
 					typeof item.reason !== 'string' ||
 					!item.reason.trim()
 				)
@@ -204,6 +228,7 @@ export async function detectSubtitleCorrections(
 					id: entry.id,
 					clip: entry.clip,
 					text: entry.text,
+					suggestion: item.suggestion.trim(),
 					reason: item.reason.trim().slice(0, 2000)
 				});
 			}
@@ -251,7 +276,7 @@ export async function detectSubtitleCorrections(
 	);
 	plan.snapshot = snapshot(project);
 	if (plan.warnings.length) globalState.updateVideoPreviewUI();
-	onProgress(1);
+	onProgress(1, batches.length);
 	return plan;
 }
 
@@ -323,6 +348,11 @@ export function applySubtitleCorrections(
 					if (!aligned) clip.wbwTimestampsManuallyEdited = false;
 				}
 				clip.markAsManualEdit();
+				// Une reconstruction incertaine reste à vérifier après son application.
+				if (plan.warnings.some((warning) => warning.clip === clip)) {
+					clip.needsReview = true;
+					clip.hasBeenVerified = false;
+				}
 			}
 			project.detail.updateVideoDetailAttributes();
 		},

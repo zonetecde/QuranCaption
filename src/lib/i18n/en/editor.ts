@@ -96,16 +96,16 @@ const editor = {
 	subtitleCorrection: {
 		warningsTitle: 'Transcription passages to verify',
 		warningsDescription:
-			'These passages may contain transcription errors with no reliable replacement. Listen, edit the text, then confirm your correction. Uncorrected passages stay yellow as low-confidence subtitles in the timeline and review navigation, even after closing this window.',
+			'Each passage includes the AI’s best contextual guess, even when uncertain. Listen, edit it if needed, then confirm. These subtitles remain yellow and marked for review after applying a proposal or closing this window.',
 		confirmCorrection: 'Confirm correction',
-		warningText: 'Transcription to correct',
+		warningText: 'Contextual guess — needs verification',
 		title: 'Correct transcription errors',
 		description: 'Find obvious speech-to-text mistakes, then listen and choose what to correct.',
 		start: 'Find likely errors',
 		analyzing: 'Checking transcription and context',
 		introTitle: 'A second look at your transcript',
 		introDescription:
-			'AI reads your subtitles in context and suggests small corrections only when a transcription error is very likely.',
+			'AI reads your subtitles in context, suggests clear corrections and always proposes a reconstruction for garbled passages, flagged for review.',
 		conservative: 'Only clear mistakes',
 		conservativeDescription:
 			'Unusual wording, dialect, names and stylistic choices are left alone when there is any doubt.',

@@ -122,8 +122,40 @@ test('switches connection tabs from the keyboard', async () => {
 	expect(document.activeElement?.textContent).toContain('Without API key');
 });
 
+test('uses the frozen batch total for the summary, validated replies and percentage', async () => {
+	await page.viewport(1280, 900);
+	globalState.settings!.aiTranslationSettings.analysisBatchSize = 25;
+	globalState.getSubtitleTrack.clips = Array.from(
+		{ length: 31 },
+		(_, i) => new SubtitleClip(i * 1000, (i + 1) * 1000, `Subtitle ${i}`)
+	);
+	const component = render(CorrectTranscriptionModal, { close: vi.fn() });
+	await component.getByRole('tab', { name: 'Without API key' }).click();
+	await component.getByRole('button', { name: 'Prepare prompts', exact: true }).click();
+	await expect
+		.element(component.getByText('Requests for this run : 2', { exact: true }))
+		.toBeVisible();
+	globalState.settings!.aiTranslationSettings.analysisBatchSize = 2000;
+	let prompt = '';
+	vi.spyOn(navigator.clipboard, 'writeText').mockImplementation(async (text) => {
+		prompt = text;
+	});
+	await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
+	const requestId = prompt.match(/"requestId":"([^"]+)"/)![1];
+	await component
+		.getByRole('textbox', { name: '2. Paste the full reply here' })
+		.fill(JSON.stringify({ requestId, result: { corrections: [], warnings: [] } }));
+	await component.getByRole('button', { name: 'Check reply and continue' }).click();
+	await expect.element(component.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
+	await expect.element(component.getByText('1 / 2', { exact: true })).toBeVisible();
+	await expect
+		.element(component.getByText('Requests for this run : 2', { exact: true }))
+		.toBeVisible();
+	await component.getByRole('button', { name: 'Cancel', exact: true }).click();
+});
+
 test.each([false, true])(
-	'keeps a suspicious transcript flagged unless edited and confirmed in the correction modal: %s',
+	'prefills a contextual guess and keeps it flagged after confirmation: %s',
 	async (review) => {
 		await page.viewport(1280, 900);
 		const close = vi.fn();
@@ -142,7 +174,14 @@ test.each([false, true])(
 				requestId,
 				result: {
 					corrections: [],
-					warnings: [{ id: 1, text: clip.text, reason: 'Listen to confirm this garbled phrase.' }]
+					warnings: [
+						{
+							id: 1,
+							text: clip.text,
+							suggestion: 'He read a message.',
+							reason: 'Listen to confirm this garbled phrase.'
+						}
+					]
 				}
 			})
 		);
@@ -154,12 +193,14 @@ test.each([false, true])(
 		expect(clip.hasBeenVerified).toBe(false);
 		markClipAsVerified(clip);
 		expect(component.container.textContent).not.toContain('Mark as reviewed');
-		expect(component.container.textContent).not.toContain('Confirm correction');
+		await expect
+			.element(component.getByRole('button', { name: 'Confirm correction', exact: true }))
+			.toBeVisible();
 		const input = component.getByRole('textbox', {
-			name: 'Transcription to correct 1',
+			name: 'Contextual guess — needs verification 1',
 			exact: true
 		});
-		await input.fill('He read a message.');
+		await expect.element(input).toHaveValue('He read a message.');
 		expect(clip.text).toBe('He read a massage.');
 		await expect
 			.element(component.getByRole('button', { name: 'Confirm correction', exact: true }))
@@ -177,7 +218,7 @@ test.each([false, true])(
 		}
 		await component.getByRole('button', { name: 'close', exact: true }).click();
 		expect(close).toHaveBeenCalledOnce();
-		expect(clip.needsReview).toBe(!review);
+		expect(clip.needsReview).toBe(true);
 		expect(clip.text).toBe(review ? 'He read a message.' : 'He read a massage.');
 	}
 );
@@ -210,17 +251,29 @@ test('can apply existing suggestions after a timeline verification and a confirm
 						confidence: 0.99
 					}
 				],
-				warnings: [{ id: 2, text: suspect.text, reason: 'Listen to confirm.' }]
+				warnings: [
+					{
+						id: 2,
+						text: suspect.text,
+						suggestion: 'He read a message.',
+						reason: 'Listen to confirm.'
+					}
+				]
 			}
 		})
 	);
 	await component.getByRole('button', { name: 'Check reply and continue' }).click();
 	await expect
-		.element(component.getByRole('textbox', { name: 'Transcription to correct 2', exact: true }))
+		.element(
+			component.getByRole('textbox', {
+				name: 'Contextual guess — needs verification 2',
+				exact: true
+			})
+		)
 		.toBeVisible();
 	markClipAsVerified(suspect);
 	await component
-		.getByRole('textbox', { name: 'Transcription to correct 2', exact: true })
+		.getByRole('textbox', { name: 'Contextual guess — needs verification 2', exact: true })
 		.fill('Corrected wording');
 	await component.getByRole('button', { name: 'Confirm correction', exact: true }).click();
 	expect(suspect.text).toBe('Corrected wording');

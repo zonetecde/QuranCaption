@@ -3,6 +3,7 @@ import { Clip, SilenceClip, SubtitleClip, TrackType } from '$lib/classes';
 import type { Project } from '$lib/classes/Project';
 import { globalState } from '$lib/runes/main.svelte';
 import { resolveAIReasoning } from './AIReasoning';
+import { getAiBatchEnd, getAiBatchLimits } from './AiBatchSettings';
 import type { ManualAiSession } from './ManualAiSession.svelte';
 import {
 	buildSpeechSubtitles,
@@ -97,8 +98,13 @@ export async function rearrangeProjectSubtitles(
 	const eligible = new Map<number, SubtitleClip>();
 	let wordCount = 0;
 	let skipped = 0;
-	for (const clip of originals) {
-		assertCurrent();
+	for (const [index, clip] of originals.entries()) {
+		signal.throwIfAborted();
+		if ((index + 1) % 50 === 0) {
+			// Laisse l'interface répondre sans sérialiser toute la piste pour chaque clip.
+			await new Promise<void>((resolve) => setTimeout(resolve, 0));
+			assertCurrent();
+		}
 		if (clip.type === 'Silence') {
 			retained.push(clip);
 			timeline.push({ type: 'silence', start: clip.startTime / 1000, end: clip.endTime / 1000 });
@@ -206,6 +212,7 @@ export async function rearrangeProjectSubtitles(
 		settings.advancedTrimModel,
 		settings.projectTranslationReasoningMode
 	);
+	const limits = getAiBatchLimits(settings);
 	let blockIndex = 0;
 	let offset = 0;
 	let processed = 0;
@@ -214,12 +221,21 @@ export async function rearrangeProjectSubtitles(
 		onProgress(processed / wordCount);
 		const selected: SpeechBlock[] = [];
 		let size = 0;
+		let characters = 0;
 		for (let i = blockIndex; i < blocks.length; i++) {
 			const words = blocks[i].words.slice(i === blockIndex ? offset : 0);
-			if (size && size + words.length > 400) break;
-			selected.push({ ...blocks[i], words: words.slice(0, 400) });
-			size += Math.min(400, words.length);
-			if (size >= 400) break;
+			if (
+				size &&
+				(size + words.length > limits.words ||
+					characters + words.reduce((sum, word) => sum + word.text.length, 0) > limits.characters)
+			)
+				break;
+			const end = getAiBatchEnd(words, 0, limits.words, limits.characters);
+			const part = words.slice(0, end);
+			selected.push({ ...blocks[i], words: part });
+			size += part.length;
+			characters += part.reduce((sum, word) => sum + word.text.length, 0);
+			if (end < words.length || size >= limits.words || characters >= limits.characters) break;
 		}
 		const from = selected[0].words[0].startMs / 1000;
 		const last = selected[selected.length - 1].words;
@@ -312,7 +328,12 @@ export async function rearrangeProjectSubtitles(
 			const partial = offset + block.words.length < blocks[blockIndex].words.length;
 			let used = 0;
 			for (const segment of segments) {
-				if (partial && used > 0 && used + segment.words.length > 350) break;
+				if (
+					partial &&
+					used > 0 &&
+					used + segment.words.length > Math.max(1, block.words.length - 50)
+				)
+					break;
 				const words = block.words.slice(used, used + segment.words.length);
 				used += words.length;
 				const start = Math.round(segment.start * 1000);

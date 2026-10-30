@@ -163,6 +163,45 @@ describe('loading legacy editor layout settings', () => {
 		expect(writeTextFile).not.toHaveBeenCalled();
 	});
 
+	it('migrates the previously unused translation batch default and adds the shared analysis size', async () => {
+		const saved: Record<string, unknown> = { ...new Settings().toJSON(), appVersion: '3.7.80' };
+		const ai = saved.aiTranslationSettings as Record<string, unknown>;
+		delete ai.analysisBatchSize;
+		ai.projectTranslationBatchWords = 450;
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify(saved));
+		await Settings.load();
+		expect(globalState.settings!.aiTranslationSettings).toMatchObject({
+			analysisBatchSize: 100,
+			projectTranslationBatchWords: 650
+		});
+	});
+
+	it.each([
+		{ analysis: 2000, translation: 8000, expected: [2000, 8000] },
+		{ analysis: 25, translation: 150, expected: [25, 150] },
+		{ analysis: -1, translation: null, expected: [100, 650] },
+		{ analysis: 9000, translation: 100000, expected: [2000, 8000] }
+	])(
+		'loads saved AI batch sizes with safety bounds: $expected',
+		async ({ analysis, translation, expected }) => {
+			const saved: Record<string, unknown> = { ...new Settings().toJSON(), appVersion: '3.7.80' };
+			Object.assign(saved.aiTranslationSettings as object, {
+				analysisBatchSize: analysis,
+				projectTranslationBatchWords: translation
+			});
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify(saved));
+			await Settings.load();
+			const ai = globalState.settings!.aiTranslationSettings;
+			expect([ai.analysisBatchSize, ai.projectTranslationBatchWords]).toEqual(expected);
+			await Settings.save();
+			const persisted = JSON.parse(vi.mocked(writeTextFile).mock.calls.at(-1)![1]);
+			expect(persisted.aiTranslationSettings).toMatchObject({
+				analysisBatchSize: expected[0],
+				projectTranslationBatchWords: expected[1]
+			});
+		}
+	);
+
 	it('repairs individual dimensions while preserving custom widths and other settings', async () => {
 		const saved = {
 			...new Settings().toJSON(),

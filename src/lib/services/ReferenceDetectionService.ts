@@ -7,6 +7,7 @@ import type editor from '$lib/i18n/en/editor';
 import LL, { locale } from '$lib/i18n/i18n-svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { resolveAIReasoning } from './AIReasoning';
+import { getAiBatchEnd, getAiBatchLimits } from './AiBatchSettings';
 import type { ManualAiSession } from './ManualAiSession.svelte';
 import { MinimalQuranProvider } from './MinimalQuranProvider';
 import { MARKER_REGEX, parseQuranTranscriptReference } from './TranscriptMarkup';
@@ -241,15 +242,17 @@ export async function detectProjectReferences(
 		settings.advancedTrimModel,
 		settings.projectTranslationReasoningMode
 	);
-	for (let offset = 0; offset < plan.words.length; offset += 400) {
+	const limits = getAiBatchLimits(settings);
+	for (let offset = 0, end = 0; offset < plan.words.length; offset = end) {
 		assertCurrent(plan);
 		signal.throwIfAborted();
 		onProgress(0.1 + (0.8 * offset) / plan.words.length);
+		end = getAiBatchEnd(plan.words, offset, limits.words, limits.characters);
 		const from = offset + 1;
-		const to = Math.min(offset + 400, plan.words.length);
+		const to = end;
 		const context = plan.words.slice(
 			Math.max(0, offset - 150),
-			Math.min(plan.words.length, offset + 550)
+			Math.min(plan.words.length, end + 150)
 		);
 		if (!context.some((word) => word.id >= from && word.id <= to && !word.protected)) continue;
 		const local = candidates

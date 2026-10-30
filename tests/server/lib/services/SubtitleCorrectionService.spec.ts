@@ -144,11 +144,12 @@ test('previews changes without mutation and applies only approved subtitles in o
 	expect((globalState.getSubtitleTrack.clips[0] as SubtitleClip).text).toBe('He read a message.');
 });
 
-test('omits uncertain and unchanged proposals', async () => {
+test('routes uncertain corrections to editable warnings and omits unchanged proposals', async () => {
 	vi.mocked(invoke).mockResolvedValue({ corrections: [correction({ confidence: 0.97 })] });
-	expect(
-		(await detectSubtitleCorrections(project, new AbortController().signal, vi.fn())).proposals
-	).toEqual([]);
+	const plan = await detectSubtitleCorrections(project, new AbortController().signal, vi.fn());
+	expect(plan.proposals).toEqual([]);
+	expect(plan.warnings).toMatchObject([{ id: 1, suggestion: 'He read a message.' }]);
+	expect((track.clips[0] as SubtitleClip).needsReview).toBe(true);
 	vi.mocked(invoke).mockResolvedValue({
 		corrections: [correction({ after: 'He read a massage.' })]
 	});
@@ -171,7 +172,14 @@ test.each(['api', 'manual'])(
 		clip.hasBeenVerified = true;
 		const response = {
 			corrections: [],
-			warnings: [{ id: 1, text: clip.text, reason: 'Wording is garbled; listen to the recording.' }]
+			warnings: [
+				{
+					id: 1,
+					text: clip.text,
+					suggestion: 'He read a message.',
+					reason: 'Wording is garbled; listen to the recording.'
+				}
+			]
 		};
 		const session = mode === 'manual' ? new ManualAiSession() : undefined;
 		if (session) {
@@ -189,6 +197,14 @@ test.each(['api', 'manual'])(
 			await vi.waitFor(() => expect(session.steps).toHaveLength(1));
 			const step = session.steps[0];
 			const requestId = step.prompt.match(/"requestId":"([^"]+)"/)![1];
+			step.response = JSON.stringify({
+				requestId,
+				result: { corrections: [], warnings: [{ ...response.warnings[0], suggestion: '' }] }
+			});
+			session.submit();
+			expect(step.status).toBe('waiting');
+			expect(step.error).not.toBe('');
+			expect(clip.needsReview).toBe(false);
 			step.response = JSON.stringify({ requestId, result: response });
 			session.submit();
 		}
@@ -201,6 +217,7 @@ test.each(['api', 'manual'])(
 		);
 		expect(plan.proposals).toEqual([]);
 		expect(plan.warnings).toHaveLength(1);
+		expect(plan.warnings[0].suggestion).toBe('He read a message.');
 		expect(clip.text).toBe('He read a massage.');
 		expect(clip.needsReview).toBe(true);
 		expect(clip.hasBeenVerified).toBe(false);
@@ -224,13 +241,14 @@ test('can correct a warning and still apply another correction without losing pe
 		warnings: [second, third].map((clip, index) => ({
 			id: index + 2,
 			text: clip.text,
+			suggestion: 'He read a message.',
 			reason: 'Listen to confirm these words.'
 		}))
 	});
 	const plan = await detectSubtitleCorrections(project, new AbortController().signal, vi.fn());
 	correctSubtitleCorrectionWarning(plan, 2, 'Corrected wording');
 	expect(second.text).toBe('Corrected wording');
-	expect(second.needsReview).toBe(false);
+	expect(second.needsReview).toBe(true);
 	expect(third.hasBeenVerified).toBe(false);
 	applySubtitleCorrections(project, plan, [1]);
 	expect((track.clips[0] as SubtitleClip).text).toBe('He read a message.');
@@ -243,7 +261,9 @@ test('allows confirming warning edits and existing suggestions after the timelin
 	track.clips.push(suspect);
 	vi.mocked(invoke).mockResolvedValue({
 		corrections: [correction()],
-		warnings: [{ id: 2, text: suspect.text, reason: 'Listen to confirm.' }]
+		warnings: [
+			{ id: 2, text: suspect.text, suggestion: 'He read a message.', reason: 'Listen to confirm.' }
+		]
 	});
 	const plan = await detectSubtitleCorrections(project, new AbortController().signal, vi.fn());
 	markClipAsVerified(suspect);
@@ -260,7 +280,9 @@ test('allows applying suggestions directly after automatic verification without 
 	track.clips.push(suspect);
 	vi.mocked(invoke).mockResolvedValue({
 		corrections: [correction()],
-		warnings: [{ id: 2, text: suspect.text, reason: 'Listen to confirm.' }]
+		warnings: [
+			{ id: 2, text: suspect.text, suggestion: 'He read a message.', reason: 'Listen to confirm.' }
+		]
 	});
 	const plan = await detectSubtitleCorrections(project, new AbortController().signal, vi.fn());
 	markClipAsVerified(suspect);
@@ -282,13 +304,15 @@ test('confirms a manual warning correction with word alignment and undo/redo', a
 	};
 	vi.mocked(invoke).mockResolvedValue({
 		corrections: [],
-		warnings: [{ id: 1, text: clip.text, reason: 'Check this wording.' }]
+		warnings: [
+			{ id: 1, text: clip.text, suggestion: 'He read a message.', reason: 'Check this wording.' }
+		]
 	});
 	const plan = await detectSubtitleCorrections(project, new AbortController().signal, vi.fn());
 	correctSubtitleCorrectionWarning(plan, 1, 'He read a message.');
 	expect(clip.text).toBe('He read a message.');
 	expect(plan.warnings[0].text).toBe('He read a message.');
-	expect(clip.needsReview).toBe(false);
+	expect(clip.needsReview).toBe(true);
 	expect(clip.startTime).toBe(1000);
 	expect(clip.endTime).toBe(3000);
 	expect(clip.alignmentMetadata.words[3]).toEqual({ word: 'message.', start: 1.5, end: 2 });
@@ -300,14 +324,38 @@ test('confirms a manual warning correction with word alignment and undo/redo', a
 	expect(restored.needsReview).toBe(true);
 	ProjectHistoryManager.redo();
 	expect((globalState.getSubtitleTrack.clips[0] as SubtitleClip).text).toBe('He read a message.');
+	expect((globalState.getSubtitleTrack.clips[0] as SubtitleClip).needsReview).toBe(true);
+	expect((globalState.getSubtitleTrack.clips[0] as SubtitleClip).hasBeenVerified).toBe(false);
 });
+
+test.each([undefined, null, '', '   ', 'He read a massage.', '{{1:1}}', 'x'.repeat(501)])(
+	'rejects a warning without a usable contextual proposal: %j',
+	async (suggestion) => {
+		vi.mocked(invoke).mockResolvedValue({
+			corrections: [],
+			warnings: [{ id: 1, text: 'He read a massage.', suggestion, reason: 'Garbled wording.' }]
+		});
+		await expect(
+			detectSubtitleCorrections(project, new AbortController().signal, vi.fn())
+		).rejects.toThrow();
+		expect((track.clips[0] as SubtitleClip).text).toBe('He read a massage.');
+		expect((track.clips[0] as SubtitleClip).needsReview).toBe(false);
+	}
+);
 
 test.each(['', '   ', '{{1:1}}', 'He read a massage.'])(
 	'rejects invalid manual warning corrections: %j',
 	async (text) => {
 		vi.mocked(invoke).mockResolvedValue({
 			corrections: [],
-			warnings: [{ id: 1, text: 'He read a massage.', reason: 'Check this wording.' }]
+			warnings: [
+				{
+					id: 1,
+					text: 'He read a massage.',
+					suggestion: 'He read a message.',
+					reason: 'Check this wording.'
+				}
+			]
 		});
 		const plan = await detectSubtitleCorrections(project, new AbortController().signal, vi.fn());
 		expect(() => correctSubtitleCorrectionWarning(plan, 1, text)).toThrow();
@@ -318,12 +366,12 @@ test.each(['', '   ', '{{1:1}}', 'He read a massage.'])(
 
 test.each(
 	[
-		[{ id: 99, text: 'He read a massage.', reason: 'Suspect' }],
-		[{ id: 1, text: 'Wrong text', reason: 'Suspect' }],
-		[{ id: 1, text: 'He read a massage.', reason: '' }],
+		[{ id: 99, text: 'He read a massage.', suggestion: 'He read a message.', reason: 'Suspect' }],
+		[{ id: 1, text: 'Wrong text', suggestion: 'He read a message.', reason: 'Suspect' }],
+		[{ id: 1, text: 'He read a massage.', suggestion: 'He read a message.', reason: '' }],
 		[
-			{ id: 1, text: 'He read a massage.', reason: 'Suspect' },
-			{ id: 1, text: 'He read a massage.', reason: 'Duplicate' }
+			{ id: 1, text: 'He read a massage.', suggestion: 'He read a message.', reason: 'Suspect' },
+			{ id: 1, text: 'He read a massage.', suggestion: 'He read a message.', reason: 'Duplicate' }
 		]
 	].map((warnings) => ({ warnings }))
 )('rejects invalid warnings without persisting any flag: %j', async ({ warnings }) => {
@@ -410,7 +458,7 @@ test('keeps annotations, styling and mapped translations protected while supplyi
 
 test('supplies read-only context across batches and never accepts a correction to a context-only subtitle', async () => {
 	track.clips = Array.from(
-		{ length: 28 },
+		{ length: 104 },
 		(_, i) => new SubtitleClip(i * 1000, (i + 1) * 1000, `Subtitle ${i + 1}`)
 	);
 	vi.mocked(invoke).mockResolvedValue({ corrections: [] });
@@ -422,15 +470,120 @@ test('supplies read-only context across batches and never accepts a correction t
 				(call[1] as { request: { batch: { subtitles: { id: number; editable: boolean }[] } } })
 					.request.batch.subtitles
 		);
-	expect(batches[0]).toHaveLength(26);
-	expect(batches[0][24]).toEqual({ id: 25, text: 'Subtitle 25', editable: false });
-	expect(batches[1][0]).toEqual({ id: 23, text: 'Subtitle 23', editable: false });
+	expect(batches[0]).toHaveLength(102);
+	expect(batches[0][100]).toEqual({ id: 101, text: 'Subtitle 101', editable: false });
+	expect(batches[1][0]).toEqual({ id: 99, text: 'Subtitle 99', editable: false });
 	vi.mocked(invoke).mockResolvedValueOnce({
-		corrections: [correction({ id: 25, before: 'Subtitle 25' })]
+		corrections: [correction({ id: 101, before: 'Subtitle 101' })]
 	});
 	await expect(
 		detectSubtitleCorrections(project, new AbortController().signal, vi.fn())
 	).rejects.toThrow();
+});
+
+test.each([
+	{ texts: Array.from({ length: 205 }, (_, i) => `Subtitle ${i + 1}`), sizes: [100, 100, 5] },
+	{
+		texts: Array.from({ length: 1090 }, (_, i) => `Subtitle ${i + 1}`),
+		sizes: [250, 250, 250, 250, 90],
+		batchSize: 250
+	},
+	{
+		texts: Array.from({ length: 55 }, (_, i) => `Subtitle ${i + 1}`),
+		sizes: [25, 25, 5],
+		batchSize: 25
+	},
+	{
+		texts: Array.from({ length: 205 }, (_, i) => `Subtitle ${i + 1}`),
+		sizes: [205],
+		batchSize: 2000
+	},
+	{ texts: ['a'.repeat(3500), 'b'.repeat(3500), 'short', 'last'], sizes: [1, 3] },
+	{ texts: ['a'.repeat(6500), 'short', 'last'], sizes: [1, 2] }
+])(
+	'limits manual batches by subtitle count and text length: $sizes',
+	async ({ texts, sizes, batchSize }) => {
+		track.clips = texts.map((text, i) => new SubtitleClip(i * 1000, (i + 1) * 1000, text));
+		globalState.settings!.aiTranslationSettings.analysisBatchSize = batchSize ?? 100;
+		globalState.settings!.aiTranslationSettings.openAiApiKey = '';
+		vi.mocked(invoke).mockResolvedValue('Correction instructions');
+		const session = new ManualAiSession();
+		session.start();
+		const progress = vi.fn();
+		const detecting = detectSubtitleCorrections(
+			project,
+			new AbortController().signal,
+			progress,
+			session
+		);
+		let offset = 0;
+		for (const [index, size] of sizes.entries()) {
+			await vi.waitFor(() => expect(session.steps).toHaveLength(index + 1));
+			const { request } = vi.mocked(invoke).mock.calls[index][1] as {
+				request: { batch: { subtitles: { id: number; text: string; editable: boolean }[] } };
+			};
+			const input = request.batch.subtitles;
+			expect(input.filter((entry) => entry.editable).map((entry) => entry.id)).toEqual(
+				Array.from({ length: size }, (_, i) => offset + i + 1)
+			);
+			expect(input.map((entry) => entry.text)).toEqual(
+				texts.slice(Math.max(0, offset - 2), offset + size + 2)
+			);
+			expect(progress).toHaveBeenLastCalledWith(index / sizes.length, sizes.length);
+			// Modifier les préférences ne doit pas changer les lots d'une session en cours.
+			globalState.settings!.aiTranslationSettings.analysisBatchSize = 2000;
+			const step = session.steps[index];
+			const requestId = step.prompt.match(/"requestId":"([^"]+)"/)![1];
+			const context = input.find((entry) => !entry.editable);
+			if (context) {
+				step.response = JSON.stringify({
+					requestId,
+					result: { corrections: [], warnings: [{ ...context, reason: 'Read-only context' }] }
+				});
+				session.submit();
+				expect(step.status).toBe('waiting');
+				expect(step.error).not.toBe('');
+			}
+			step.response = JSON.stringify({ requestId, result: { corrections: [], warnings: [] } });
+			session.submit();
+			expect(step.status).toBe('valid');
+			offset += size;
+		}
+		await detecting;
+		expect(invoke).toHaveBeenCalledTimes(sizes.length);
+		expect(progress).toHaveBeenLastCalledWith(1, sizes.length);
+		expect((track.clips as SubtitleClip[]).map((clip) => clip.text)).toEqual(texts);
+	}
+);
+
+test('counts only batches containing editable subtitles in the actual request total', async () => {
+	globalState.settings!.aiTranslationSettings.analysisBatchSize = 25;
+	track.clips = Array.from(
+		{ length: 28 },
+		(_, i) => new SubtitleClip(i * 1000, (i + 1) * 1000, i < 25 ? '{{1:1}}' : `Subtitle ${i}`)
+	);
+	const progress = vi.fn();
+	vi.mocked(invoke).mockResolvedValue({ corrections: [], warnings: [] });
+	await detectSubtitleCorrections(project, new AbortController().signal, progress);
+	expect(invoke).toHaveBeenCalledTimes(1);
+	expect(progress.mock.calls).toEqual([
+		[0, 1],
+		[1, 1]
+	]);
+});
+
+test.each([
+	{ size: 25, calls: 3 },
+	{ size: 2000, calls: 1 }
+])('uses the saved analysis size with an API key: $size', async ({ size, calls }) => {
+	globalState.settings!.aiTranslationSettings.analysisBatchSize = size;
+	track.clips = Array.from(
+		{ length: 55 },
+		(_, i) => new SubtitleClip(i * 1000, (i + 1) * 1000, `Subtitle ${i}`)
+	);
+	vi.mocked(invoke).mockResolvedValue({ corrections: [], warnings: [] });
+	await detectSubtitleCorrections(project, new AbortController().signal, vi.fn());
+	expect(invoke).toHaveBeenCalledTimes(calls);
 });
 
 test.each(['cancel', 'edit', 'switch', 'network'])(

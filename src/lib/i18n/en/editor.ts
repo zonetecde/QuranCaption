@@ -1,4 +1,6 @@
 const editor = {
+	subtitleResizeShiftHint:
+		'Tip: hold Shift while dragging to transfer words between neighboring subtitles (same verse, WBW timestamps required).',
 	manualAi: {
 		method: 'AI connection method',
 		withApi: 'With API',

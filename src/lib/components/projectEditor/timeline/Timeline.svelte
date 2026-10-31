@@ -1,4 +1,5 @@
 <script lang="ts">
+	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState, type QuickTimelineEditorMode } from '$lib/runes/main.svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import TrackComponent from './track/Track.svelte';
@@ -493,8 +494,10 @@
 	/**
 	 * Definit la fin du sous-titre actuel (sous le curseur) a la position du curseur.
 	 * Si un sous-titre suivant existe, ajuste son temps de debut a cursorPosition + 1.
+	 * @param {KeyboardEvent} event Raccourci clavier ; Shift transfère aussi les mots.
+	 * @returns {Promise<void>} Résolution après la mise à jour des sous-titres.
 	 */
-	function handleSetSubtitleEndTime(): void {
+	async function handleSetSubtitleEndTime(event: KeyboardEvent): Promise<void> {
 		if (globalState.shared.wbwEdit.active) {
 			moveManualWordByWordSelectedWordEndToCursor();
 			return;
@@ -505,6 +508,13 @@
 
 		// Trouve le sous-titre sous le curseur
 		const currentClip = subtitleTrack.getCurrentClip(cursorPosition);
+
+		if (event.shiftKey) {
+			const resize = currentClip && subtitleTrack.createWordBoundaryResize(currentClip.id, 'end');
+			if (await resize?.(cursorPosition))
+				globalState.currentProject?.detail.updateVideoDetailAttributes();
+			return;
+		}
 
 		if (currentClip) {
 			// Verifie que le curseur est dans une position valide (pas au tout debut du clip)
@@ -538,8 +548,10 @@
 	/**
 	 * Definit le debut du sous-titre actuel (sous le curseur) a la position du curseur.
 	 * Si un sous-titre precedent existe, ajuste son temps de fin a cursorPosition - 1.
+	 * @param {KeyboardEvent} event Raccourci clavier ; Shift transfère aussi les mots.
+	 * @returns {Promise<void>} Résolution après la mise à jour des sous-titres.
 	 */
-	function handleSetSubtitleStartTime(): void {
+	async function handleSetSubtitleStartTime(event: KeyboardEvent): Promise<void> {
 		if (globalState.shared.wbwEdit.active) {
 			moveManualWordByWordSelectedWordStartToCursor();
 			return;
@@ -550,6 +562,13 @@
 
 		// Trouve le sous-titre sous le curseur
 		const currentClip = subtitleTrack.getCurrentClip(cursorPosition);
+
+		if (event.shiftKey) {
+			const resize = currentClip && subtitleTrack.createWordBoundaryResize(currentClip.id, 'start');
+			if (await resize?.(cursorPosition))
+				globalState.currentProject?.detail.updateVideoDetailAttributes();
+			return;
+		}
 
 		if (currentClip) {
 			// Verifie que le curseur est dans une position valide (pas a la toute fin du clip)
@@ -1411,6 +1430,11 @@
 		{#if globalState.shared.quickTimelineEditor.active}
 			<QuickTimelineEditorOverlay />
 		{/if}
+		<div
+			class="subtitle-resize-hint hidden absolute bottom-5 left-[188px] right-2 z-50 w-fit max-w-[calc(100%-196px)] rounded-md bg-white px-3 py-2 text-xs text-black shadow-md pointer-events-none"
+		>
+			{Reflect.get($LL.editor, 'subtitleResizeShiftHint')()}
+		</div>
 	</div>
 </section>
 
@@ -1435,6 +1459,10 @@
 {/if}
 
 <style>
+	.timeline-container:has(:global([data-resizing-without-shift='true'])) .subtitle-resize-hint {
+		display: block;
+	}
+
 	.timeline-container {
 		display: flex;
 		flex-direction: column;

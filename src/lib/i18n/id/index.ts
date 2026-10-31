@@ -791,6 +791,10 @@ const id = {
 	},
 	editor: {
 		...baseEn.editor,
+		...{
+			subtitleResizeShiftHint:
+				'Tips: tahan Shift saat menyeret untuk memindahkan kata di antara subtitel bersebelahan dari ayat yang sama (memerlukan cap waktu per kata).'
+		},
 		manualAi: {
 			method: 'Metode koneksi AI',
 			withApi: 'Dengan API',

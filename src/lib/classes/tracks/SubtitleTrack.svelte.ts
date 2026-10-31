@@ -14,11 +14,175 @@ import toast from 'svelte-5-french-toast';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
 import { SubtitleVisualMergeTrack } from './SubtitleVisualMergeTrack.svelte.js';
+import { Quran } from '../Quran.js';
+import { refreshSegmentationContextFromTrack } from '$lib/services/autoSegmentation/context';
+import { cancelWbwRealign } from '$lib/services/autoSegmentation/auto-realign.svelte';
 
 export class SubtitleTrack extends SubtitleVisualMergeTrack {
 	/** Initialise la piste dédiée aux sous-titres. */
 	constructor() {
 		super(TrackType.Subtitle);
+	}
+
+	/**
+	 * Prépare un transfert de mots entre deux segments consécutifs du même verset.
+	 * @param {number} clipId Sous-titre dont le bord est déplacé.
+	 * @param {'start' | 'end'} edge Bord manipulé.
+	 * @returns {((timeMs: number | null) => Promise<boolean>) | null} Redimensionnement annulable ; null annule les mises à jour en attente.
+	 */
+	createWordBoundaryResize(
+		clipId: number,
+		edge: 'start' | 'end'
+	): ((timeMs: number | null) => Promise<boolean>) | null {
+		const index = this.clips.findIndex((clip) => clip.id === clipId);
+		if (index === -1) return null;
+		const leftIndex = edge === 'start' ? index - 1 : index;
+		const left = this.clips[leftIndex];
+		const right = this.clips[leftIndex + 1];
+		if (
+			!(left instanceof SubtitleClip) ||
+			!(right instanceof SubtitleClip) ||
+			left.surah !== right.surah ||
+			left.verse !== right.verse ||
+			left.endWordIndex + 1 !== right.startWordIndex ||
+			!right.alignmentMetadata?.words.length
+		)
+			return null;
+
+		const project = globalState.currentProject;
+		// Les instantanés permettent de revenir en arrière sans dégrader les timestamps.
+		const originals = [left, right].map((clip) =>
+			clip.cloneWithTimes(clip.startTime, clip.endTime)
+		);
+		const candidates = [{ time: left.endTime, offset: 0 }];
+		for (const [side, original] of originals.entries()) {
+			const metadata = original.alignmentMetadata;
+			if (!metadata) continue;
+			if (
+				metadata.words.length !== original.endWordIndex - original.startWordIndex + 1 ||
+				metadata.words.some(
+					(word, i) =>
+						word.location !==
+							`${original.surah}:${original.verse}:${original.startWordIndex + i + 1}` ||
+						!Number.isFinite(word.start) ||
+						!Number.isFinite(word.end) ||
+						word.end <= word.start ||
+						word.start < 0 ||
+						word.start < (metadata.words[i - 1]?.end ?? 0)
+				)
+			)
+				return null;
+			for (let i = 0; i < metadata.words.length - 1; i++) {
+				const time = Math.round((metadata.timeFrom + metadata.words[i].end) * 1000) - 1;
+				if (time - left.startTime < 100 || right.endTime - time - 1 < 100) continue;
+				candidates.push({ time, offset: side === 0 ? i + 1 - metadata.words.length : i + 1 });
+			}
+		}
+		let revision = 0;
+		let appliedOffset = 0;
+		cancelWbwRealign([left, right]);
+
+		/**
+		 * Déplace la frontière au mot le plus proche et actualise le contenu Quran et son alignement.
+		 * @param {number | null} timeMs Position demandée, ou null pour annuler les mises à jour en attente.
+		 * @returns {Promise<boolean>} Vrai si la répartition a changé.
+		 */
+		return async (timeMs: number | null): Promise<boolean> => {
+			const currentRevision = ++revision;
+			if (timeMs === null || !Number.isFinite(timeMs)) return false;
+			const target = timeMs - (edge === 'start' ? 1 : 0);
+			const candidate = candidates.reduce((best, item) =>
+				Math.abs(item.time - target) < Math.abs(best.time - target) ? item : best
+			);
+			if (candidate.offset === appliedOffset) return false;
+			const lastLeftWord = originals[0].endWordIndex + candidate.offset;
+			const ranges = [
+				[originals[0].startWordIndex, lastLeftWord],
+				[lastLeftWord + 1, originals[1].endWordIndex]
+			];
+			const verse = await Quran.getVerse(left.surah, left.verse).catch(() => null);
+			if (!verse) return false;
+			const properties =
+				candidate.offset === 0
+					? originals
+					: await Promise.all(
+							ranges.map(([start, end]) =>
+								this.getSubtitlesProperties(
+									verse,
+									start,
+									end,
+									left.surah,
+									project?.content.projectTranslation ?? null
+								)
+							)
+						).catch(() => null);
+			if (
+				!properties ||
+				currentRevision !== revision ||
+				globalState.currentProject !== project ||
+				this.clips[leftIndex] !== left ||
+				this.clips[leftIndex + 1] !== right
+			)
+				return false;
+
+			const absoluteWords = originals.flatMap((original) =>
+				(original.alignmentMetadata?.words ?? []).map((word) => ({
+					...word,
+					start: word.start + original.alignmentMetadata!.timeFrom,
+					end: word.end + original.alignmentMetadata!.timeFrom
+				}))
+			);
+			return ProjectHistoryManager.track('resize subtitle with words', () => {
+				left.setEndTime(candidate.time);
+				right.setStartTime(candidate.offset === 0 ? originals[1].startTime : candidate.time + 1);
+				for (const [side, clip] of [left, right].entries()) {
+					const [start, end] = ranges[side];
+					clip.startWordIndex = start;
+					clip.endWordIndex = end;
+					clip.text =
+						candidate.offset === 0
+							? originals[side].text
+							: verse.getArabicTextBetweenTwoIndexes(start, end);
+					clip.wbwTranslation =
+						candidate.offset === 0
+							? originals[side].wbwTranslation
+							: verse.getWordByWordTranslationBetweenTwoIndexes(start, end);
+					clip.isFullVerse = properties[side].isFullVerse;
+					clip.isLastWordsOfVerse = properties[side].isLastWordsOfVerse;
+					clip.translations = properties[side].translations;
+					clip.arabicInlineStyleRuns =
+						candidate.offset === 0 ? originals[side].arabicInlineStyleRuns : [];
+					const words = absoluteWords.filter((word) => {
+						const index = Number(word.location.split(':')[2]) - 1;
+						return index >= start && index <= end;
+					});
+					const metadata = originals[side].alignmentMetadata;
+					clip.alignmentMetadata = metadata
+						? {
+								...metadata,
+								refFrom: `${clip.surah}:${clip.verse}:${start + 1}`,
+								refTo: `${clip.surah}:${clip.verse}:${end + 1}`,
+								matchedText: clip.text,
+								timeFrom: clip.startTime / 1000,
+								timeTo: clip.endTime / 1000,
+								words: words.map((word, i) => ({
+									...word,
+									start: i === 0 ? 0 : Math.max(0, word.start - clip.startTime / 1000),
+									end:
+										i === words.length - 1
+											? clip.duration / 1000
+											: Math.min(clip.duration / 1000, word.end - clip.startTime / 1000)
+								}))
+							}
+						: null;
+				}
+				appliedOffset = candidate.offset;
+				refreshSegmentationContextFromTrack(true);
+				project?.detail.updateVideoDetailAttributes();
+				globalState.updateVideoPreviewUI();
+				return true;
+			});
+		};
 	}
 
 	/**

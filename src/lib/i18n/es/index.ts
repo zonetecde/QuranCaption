@@ -581,6 +581,10 @@ const es = {
 			'¿Seguro que desea eliminar el lote «{name}»? Sus {count} proyectos también se eliminarán permanentemente.'
 	},
 	editor: {
+		...{
+			subtitleResizeShiftHint:
+				'Consejo: mantén Shift pulsado mientras arrastras para transferir palabras entre subtítulos vecinos del mismo versículo (se requieren marcas de tiempo WBW).'
+		},
 		manualAi: {
 			method: 'Modo de uso de la IA',
 			withApi: 'Con API',

@@ -1107,6 +1107,10 @@ type RootTranslation = {
 		continue: string;
 	};
 	editor: {
+		/**
+		 * T​i​p​:​ ​h​o​l​d​ ​S​h​i​f​t​ ​w​h​i​l​e​ ​d​r​a​g​g​i​n​g​ ​t​o​ ​t​r​a​n​s​f​e​r​ ​w​o​r​d​s​ ​b​e​t​w​e​e​n​ ​n​e​i​g​h​b​o​r​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​(​s​a​m​e​ ​v​e​r​s​e​,​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​s​ ​r​e​q​u​i​r​e​d​)​.
+		 */
+		subtitleResizeShiftHint: string;
 		manualAi: {
 			/**
 			 * A​I​ ​c​o​n​n​e​c​t​i​o​n​ ​m​e​t​h​o​d
@@ -13553,6 +13557,10 @@ export type TranslationFunctions = {
 		continue: () => LocalizedString;
 	};
 	editor: {
+		/**
+		 * Tip: hold Shift while dragging to transfer words between neighboring subtitles (same verse, WBW timestamps required).
+		 */
+		subtitleResizeShiftHint: () => LocalizedString;
 		manualAi: {
 			/**
 			 * AI connection method

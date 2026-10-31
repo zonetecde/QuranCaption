@@ -586,6 +586,10 @@ const fr = {
 			'Êtes-vous sûr de vouloir supprimer le batch « {name} » ? Ses {count} projet(s) seront également supprimés définitivement.'
 	},
 	editor: {
+		...{
+			subtitleResizeShiftHint:
+				'Astuce : maintenez Shift pendant le glissement pour transférer des mots entre sous-titres voisins (même verset, timestamps WBW requis).'
+		},
 		manualAi: {
 			method: 'Mode d’utilisation de l’IA',
 			withApi: 'Avec API',

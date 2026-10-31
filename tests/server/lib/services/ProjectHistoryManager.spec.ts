@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
@@ -16,7 +16,15 @@ import {
 	VideoStyle
 } from '$lib/classes';
 import { AssetTrack, CustomTextTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
-import { CustomImageClip } from '$lib/classes/Clip.svelte';
+import { CustomImageClip, SilenceClip } from '$lib/classes/Clip.svelte';
+import { Quran, Verse, Word } from '$lib/classes/Quran';
+import { VerseTranslation } from '$lib/classes/Translation.svelte';
+import * as segmentationAudio from '$lib/services/autoSegmentation/audio';
+import * as segmentationReview from '$lib/services/autoSegmentation/review';
+import {
+	getAutoRealignStatus,
+	scheduleWbwRealign
+} from '$lib/services/autoSegmentation/auto-realign.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { applyStyleMutation } from '$lib/services/StyleMutationService';
 import {
@@ -74,6 +82,243 @@ function createAssetSplitTestProject(assetTrack: AssetTrack): Project {
 		new ProjectContent(new Timeline([assetTrack, new SubtitleTrack()]), [], undefined, videoStyle)
 	);
 }
+
+describe('Quran subtitle word boundary resizing', () => {
+	let left: SubtitleClip;
+	let right: SubtitleClip;
+	let track: SubtitleTrack;
+
+	beforeEach(() => {
+		initializeClassRegistry();
+		globalState.currentProject = createHistoryTestProject();
+		globalState.currentProject.content.timeline.tracks.push(new AssetTrack(TrackType.Audio));
+		const verse = new Verse(
+			1,
+			['one', 'two', 'three', 'four', 'five'].map(
+				(word) => new Word(word, word, `translation-${word}`)
+			)
+		);
+		vi.spyOn(Quran, 'getVerse').mockResolvedValue(verse);
+		left = new SubtitleClip(
+			1000,
+			2999,
+			1,
+			1,
+			0,
+			1,
+			'one two',
+			['translation-one', 'translation-two'],
+			false,
+			false
+		);
+		right = new SubtitleClip(
+			3000,
+			5999,
+			1,
+			1,
+			2,
+			4,
+			'three four five',
+			['translation-three', 'translation-four', 'translation-five'],
+			false,
+			true
+		);
+		for (const clip of [left, right]) {
+			clip.alignmentMetadata = {
+				source: 'local',
+				segment: 1,
+				refFrom: `1:1:${clip.startWordIndex + 1}`,
+				refTo: `1:1:${clip.endWordIndex + 1}`,
+				matchedText: clip.text,
+				timeFrom: clip.startTime / 1000,
+				timeTo: clip.endTime / 1000,
+				words: clip.text.split(' ').map((word, index) => ({
+					word,
+					location: `1:1:${clip.startWordIndex + index + 1}`,
+					start: index,
+					end: index === clip.endWordIndex - clip.startWordIndex ? clip.duration / 1000 : index + 1
+				}))
+			};
+		}
+		track = globalState.getSubtitleTrack;
+		track.clips = [left, right];
+		ProjectHistoryManager.resetForCurrentProject();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.restoreAllMocks();
+		ProjectHistoryManager.clear();
+	});
+
+	it.each([false, true])(
+		'cancels an older automatic realignment before word transfer (already running: %s)',
+		async (running) => {
+			vi.useFakeTimers();
+			vi.spyOn(segmentationAudio, 'getAutoSegmentationAudioClips').mockReturnValue([
+				{
+					filePath: 'test.wav',
+					fileName: 'test.wav',
+					startMs: 0,
+					endMs: 6000,
+					sourceStartMs: 0
+				}
+			]);
+			let resolve!: (value: { enriched: number; total: number }) => void;
+			const calculation = new Promise<{ enriched: number; total: number }>((done) => {
+				resolve = done;
+			});
+			const compute = vi
+				.spyOn(segmentationReview, 'computeWbwTimestampsForClipsSliced')
+				.mockReturnValue(calculation);
+			scheduleWbwRealign([left, right], { reason: 'drag' });
+			expect(getAutoRealignStatus(left.id)).toBe('computing');
+			if (running) await vi.advanceTimersByTimeAsync(300);
+			expect(track.createWordBoundaryResize(left.id, 'end')).not.toBeNull();
+			expect(getAutoRealignStatus(left.id)).toBe('idle');
+			expect(getAutoRealignStatus(right.id)).toBe('idle');
+			if (running) {
+				expect(compute.mock.calls[0][1].shouldCommit!(left)).toBe(false);
+				expect(compute.mock.calls[0][1].shouldCommit!(right)).toBe(false);
+			} else expect(vi.getTimerCount()).toBe(0);
+			resolve({ enriched: 0, total: 2 });
+			await vi.advanceTimersByTimeAsync(0);
+		}
+	);
+
+	it.each(['start', 'end'] as const)(
+		'transfers whole words from the %s edge and supports one-step undo/redo',
+		async (edge) => {
+			const resize = track.createWordBoundaryResize(edge === 'start' ? right.id : left.id, edge)!;
+			ProjectHistoryManager.begin('resize subtitle');
+			expect(await resize(3200)).toBe(false);
+			expect(await resize(4000)).toBe(true);
+			expect([left.text, right.text]).toEqual(['one two three', 'four five']);
+			expect([left.endTime, right.startTime]).toEqual([3999, 4000]);
+			expect([left.endWordIndex, right.startWordIndex]).toEqual([2, 3]);
+			expect(left.wbwTranslation).toEqual([
+				'translation-one',
+				'translation-two',
+				'translation-three'
+			]);
+			expect(right.alignmentMetadata?.words[0]).toMatchObject({
+				location: '1:1:4',
+				start: 0,
+				end: 1
+			});
+			expect(right.alignmentMetadata!.timeFrom + right.alignmentMetadata!.words[1].start).toBe(5);
+			expect([left.isFullVerse, left.isLastWordsOfVerse, right.isLastWordsOfVerse]).toEqual([
+				false,
+				false,
+				true
+			]);
+			expect(await resize(2000)).toBe(true);
+			expect([left.text, right.text]).toEqual(['one', 'two three four five']);
+			expect([left.endTime, right.startTime]).toEqual([1999, 2000]);
+			expect(await resize(3000)).toBe(true);
+			expect([left.text, right.text]).toEqual(['one two', 'three four five']);
+			expect([left.endTime, right.startTime]).toEqual([2999, 3000]);
+			expect(await resize(100000)).toBe(true);
+			expect([left.text, right.text]).toEqual(['one two three four', 'five']);
+			expect(
+				globalState.getSubtitlesEditorState.segmentationContext.alignedSegments[1]
+			).toMatchObject({
+				clipId: right.id,
+				refFrom: '1:1:5',
+				startMs: 5000
+			});
+			ProjectHistoryManager.commit();
+			expect(ProjectHistoryManager.undo()).toBe(true);
+			expect(globalState.getSubtitleTrack.clips[0]).toMatchObject({
+				text: 'one two',
+				endWordIndex: 1,
+				endTime: 2999
+			});
+			expect(ProjectHistoryManager.undo()).toBe(false);
+			expect(ProjectHistoryManager.redo()).toBe(true);
+			expect(globalState.getSubtitleTrack.clips[1]).toMatchObject({
+				text: 'five',
+				startWordIndex: 4,
+				startTime: 5000
+			});
+		}
+	);
+
+	it('tracks a single shortcut transfer without an outer drag transaction', async () => {
+		expect(await track.createWordBoundaryResize(left.id, 'end')!(2000)).toBe(true);
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(globalState.getSubtitleTrack.clips[0]).toMatchObject({
+			text: 'one two',
+			endWordIndex: 1
+		});
+		expect(ProjectHistoryManager.undo()).toBe(false);
+	});
+
+	it('requires consecutive ranges of the same verse, a right WBW alignment and direct neighbors', () => {
+		expect(track.createWordBoundaryResize(left.id, 'start')).toBeNull();
+		expect(track.createWordBoundaryResize(right.id, 'end')).toBeNull();
+		right.verse = 2;
+		expect(track.createWordBoundaryResize(left.id, 'end')).toBeNull();
+		right.verse = 1;
+		right.startWordIndex = 3;
+		expect(track.createWordBoundaryResize(left.id, 'end')).toBeNull();
+		right.startWordIndex = 2;
+		const metadata = right.alignmentMetadata;
+		right.alignmentMetadata = null;
+		expect(track.createWordBoundaryResize(left.id, 'end')).toBeNull();
+		right.alignmentMetadata = metadata;
+		track.clips.splice(1, 0, new SilenceClip(3000, 3100));
+		expect(track.createWordBoundaryResize(left.id, 'end')).toBeNull();
+	});
+
+	it('rejects incomplete or non-finite word timestamps', () => {
+		right.alignmentMetadata!.words[1].start = NaN;
+		expect(track.createWordBoundaryResize(left.id, 'end')).toBeNull();
+		right.alignmentMetadata!.words.shift();
+		expect(track.createWordBoundaryResize(left.id, 'end')).toBeNull();
+	});
+
+	it('can absorb timed words into an untimed left clip without inventing its alignment', async () => {
+		left.alignmentMetadata = null;
+		const resize = track.createWordBoundaryResize(left.id, 'end')!;
+		expect(await resize(4000)).toBe(true);
+		expect(left.text).toBe('one two three');
+		expect(left.alignmentMetadata).toBeNull();
+		expect(await resize(1000)).toBe(true);
+		expect(left.text).toBe('one two');
+	});
+
+	it('refreshes translations and restores the original manual translation on returning to the original boundary', async () => {
+		left.translations.english = new VerseTranslation('manually trimmed', 'to review');
+		vi.spyOn(globalState.getProjectTranslation, 'getTranslations').mockResolvedValue({
+			english: new VerseTranslation('full verse', 'to review')
+		});
+		const resize = track.createWordBoundaryResize(left.id, 'end')!;
+		expect(await resize(4000)).toBe(true);
+		expect(left.translations.english.text).toBe('full verse');
+		expect(await resize(3000)).toBe(true);
+		expect(left.translations.english.text).toBe('manually trimmed');
+	});
+
+	it('cancels pending transfers and applies only the latest mouse position', async () => {
+		const resize = track.createWordBoundaryResize(left.id, 'end')!;
+		const pending = resize(4000);
+		await resize(null);
+		expect(await pending).toBe(false);
+		expect(left.text).toBe('one two');
+		const outdated = resize(4000);
+		expect(await resize(5000)).toBe(true);
+		expect(await outdated).toBe(false);
+		expect([left.text, right.text]).toEqual(['one two three four', 'five']);
+	});
+
+	it('does not apply a pending transfer after switching projects', async () => {
+		const pending = track.createWordBoundaryResize(left.id, 'end')!(4000);
+		globalState.currentProject = createHistoryTestProject();
+		expect(await pending).toBe(false);
+		expect(left.text).toBe('one two');
+	});
+});
 
 describe('ProjectHistoryManager', () => {
 	beforeEach(() => {

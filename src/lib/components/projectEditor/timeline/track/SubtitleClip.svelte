@@ -15,7 +15,7 @@
 	import { quranAuthService } from '$lib/services/QuranAuthService.svelte';
 	import ContextMenu, { Divider, Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
-	import type { SubtitleTrack } from '$lib/classes/Track.svelte';
+	import { SubtitleTrack } from '$lib/classes/Track.svelte';
 	import { onDestroy, tick } from 'svelte';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import toast from 'svelte-5-french-toast';
@@ -193,8 +193,9 @@
 	let dragStartX: number | null = null;
 	let didDrag = false;
 	let suppressNextClick = false;
+	let wordBoundaryResize: ReturnType<SubtitleTrack['createWordBoundaryResize']> = null;
 
-	// Animation de la barre de mots : vidée pendant le redimensionnement, spinner pendant le re-MFA.
+	// Masque les mots pendant le redimensionnement sans Shift, puis affiche le spinner du re-MFA.
 	let isResizing = $state(false);
 	let dragBoundaryStartMs: number | null = null;
 	const realignStatus = $derived(
@@ -208,7 +209,7 @@
 			dragStartX = e.clientX;
 			didDrag = false;
 			if (clip instanceof SubtitleClip) {
-				isResizing = true;
+				isResizing = !e.shiftKey;
 			}
 			if (clip instanceof SubtitleClip || clip.type === 'Silence') {
 				dragBoundaryStartMs = clip.startTime;
@@ -219,15 +220,24 @@
 		}
 	}
 
-	function onLeftDragging(_e: MouseEvent) {
+	function onLeftDragging(e: MouseEvent) {
 		if (dragStartX === null) return;
+		if (clip instanceof SubtitleClip) isResizing = !e.shiftKey;
 		const cursorPosition = globalState.currentProject?.projectEditorState.timeline.cursorPosition;
 		if (cursorPosition === undefined) return;
-		clip.updateStartTime(cursorPosition);
+		if (e.shiftKey && track instanceof SubtitleTrack) {
+			wordBoundaryResize ??= track.createWordBoundaryResize(clip.id, 'start');
+			void wordBoundaryResize?.(cursorPosition);
+		} else {
+			void wordBoundaryResize?.(null);
+			wordBoundaryResize = null;
+			clip.updateStartTime(cursorPosition);
+		}
 		didDrag = true;
 	}
 
 	function stopLeftDragging() {
+		void wordBoundaryResize?.(null);
 		dragStartX = null;
 		document.removeEventListener('mousemove', onLeftDragging);
 		document.removeEventListener('mouseup', stopLeftDragging);
@@ -240,7 +250,7 @@
 			const movedMs =
 				dragBoundaryStartMs === null ? 0 : Math.abs(clip.startTime - dragBoundaryStartMs);
 			dragBoundaryStartMs = null;
-			if (didDrag && movedMs > AUTO_REALIGN_DRAG_THRESHOLD_MS) {
+			if (didDrag && !wordBoundaryResize && movedMs > AUTO_REALIGN_DRAG_THRESHOLD_MS) {
 				// Un drag à gauche déplace aussi la fin du clip précédent → réaligner les sous-titres touchés.
 				const previous = (track as SubtitleTrack).getClipBefore(clip.id);
 				const group = clip instanceof SubtitleClip ? [clip] : [];
@@ -251,6 +261,7 @@
 		if (didDrag) {
 			suppressNextClick = true;
 		}
+		wordBoundaryResize = null;
 		ProjectHistoryManager.commit();
 	}
 
@@ -260,7 +271,7 @@
 		dragStartX = e.clientX;
 		didDrag = false;
 		if (clip instanceof SubtitleClip) {
-			isResizing = true;
+			isResizing = !e.shiftKey;
 		}
 		if (clip instanceof SubtitleClip || clip.type === 'Silence') {
 			dragBoundaryStartMs = clip.endTime;
@@ -270,15 +281,24 @@
 		globalState.getTimelineState.showCursor = false;
 	}
 
-	function onRightDragging(_e: MouseEvent) {
+	function onRightDragging(e: MouseEvent) {
 		if (dragStartX === null) return;
+		if (clip instanceof SubtitleClip) isResizing = !e.shiftKey;
 		const cursorPosition = globalState.currentProject?.projectEditorState.timeline.cursorPosition;
 		if (cursorPosition === undefined) return;
-		clip.updateEndTime(cursorPosition);
+		if (e.shiftKey && track instanceof SubtitleTrack) {
+			wordBoundaryResize ??= track.createWordBoundaryResize(clip.id, 'end');
+			void wordBoundaryResize?.(cursorPosition);
+		} else {
+			void wordBoundaryResize?.(null);
+			wordBoundaryResize = null;
+			clip.updateEndTime(cursorPosition);
+		}
 		didDrag = true;
 	}
 
 	function stopRightDragging() {
+		void wordBoundaryResize?.(null);
 		dragStartX = null;
 		document.removeEventListener('mousemove', onRightDragging);
 		document.removeEventListener('mouseup', stopRightDragging);
@@ -291,7 +311,7 @@
 			const movedMs =
 				dragBoundaryStartMs === null ? 0 : Math.abs(clip.endTime - dragBoundaryStartMs);
 			dragBoundaryStartMs = null;
-			if (didDrag && movedMs > AUTO_REALIGN_DRAG_THRESHOLD_MS) {
+			if (didDrag && !wordBoundaryResize && movedMs > AUTO_REALIGN_DRAG_THRESHOLD_MS) {
 				// Un drag à droite recale aussi le début du clip suivant → réaligner les sous-titres touchés.
 				const next = (track as SubtitleTrack).getClipAfter(clip.id);
 				const group = clip instanceof SubtitleClip ? [clip] : [];
@@ -302,6 +322,7 @@
 		if (didDrag) {
 			suppressNextClick = true;
 		}
+		wordBoundaryResize = null;
 		ProjectHistoryManager.commit();
 	}
 
@@ -549,6 +570,7 @@
 </script>
 
 <div
+	data-resizing-without-shift={isResizing}
 	class:timeline-silence={clip.type === 'Silence'}
 	class:predefined-continuity={clip instanceof PredefinedSubtitleClip &&
 		!isSelected() &&

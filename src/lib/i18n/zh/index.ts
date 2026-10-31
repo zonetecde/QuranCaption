@@ -554,6 +554,10 @@ const zh = {
 		deleteBatchConfirm: '确定要删除批次“{name}”吗？其中的 {count} 个项目也将被永久删除。'
 	},
 	editor: {
+		...{
+			subtitleResizeShiftHint:
+				'提示：拖动时按住 Shift，可在同一节经文的相邻字幕之间转移词语（需要逐词时间戳）。'
+		},
 		manualAi: {
 			method: 'AI 连接方式',
 			withApi: '使用 API',

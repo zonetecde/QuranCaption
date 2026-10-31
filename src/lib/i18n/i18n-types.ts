@@ -9,7 +9,7 @@ import type {
 export type BaseTranslation = BaseTranslationType;
 export type BaseLocale = 'en';
 
-export type Locales = 'ar' | 'de' | 'en' | 'es' | 'fr' | 'id' | 'zh';
+export type Locales = 'ar' | 'de' | 'en' | 'es' | 'fr' | 'id' | 'tr' | 'zh';
 
 export type Translation = RootTranslation;
 
@@ -6804,6 +6804,18 @@ type RootTranslation = {
 		 * E​x​p​o​r​t​ ​p​r​o​j​e​c​t​ ​r​a​w​ ​d​a​t​a
 		 */
 		projectDataDescription: string;
+		/**
+		 * I​m​a​g​e
+		 */
+		imageExportOption: string;
+		/**
+		 * E​x​p​o​r​t​ ​i​m​a​g​e​s
+		 */
+		exportImages: string;
+		/**
+		 * E​x​p​o​r​t​ ​o​n​e​ ​P​N​G​ ​p​e​r​ ​s​u​b​t​i​t​l​e​ ​i​n​t​e​r​s​e​c​t​i​n​g​ ​t​h​e​ ​s​e​l​e​c​t​e​d​ ​r​a​n​g​e​,​ ​a​t​ ​i​t​s​ ​e​n​d​ ​m​i​n​u​s​ ​1​ ​m​s​,​ ​w​i​t​h​ ​m​a​x​i​m​u​m​ ​s​t​y​l​e​ ​o​p​a​c​i​t​y​ ​a​n​d​ ​t​h​e​ ​b​a​c​k​g​r​o​u​n​d​.​ ​E​a​c​h​ ​e​x​p​o​r​t​ ​c​r​e​a​t​e​s​ ​a​ ​s​e​p​a​r​a​t​e​ ​n​u​m​b​e​r​e​d​ ​i​m​a​g​e​ ​f​o​l​d​e​r​.
+		 */
+		imageExportDescription: string;
 		/**
 		 * G​e​n​e​r​a​t​e​ ​t​h​u​m​b​n​a​i​l
 		 */
@@ -19171,6 +19183,18 @@ export type TranslationFunctions = {
 		 * Export project raw data
 		 */
 		projectDataDescription: () => LocalizedString;
+		/**
+		 * Image
+		 */
+		imageExportOption: () => LocalizedString;
+		/**
+		 * Export images
+		 */
+		exportImages: () => LocalizedString;
+		/**
+		 * Export one PNG per subtitle intersecting the selected range, at its end minus 1 ms, with maximum style opacity and the background. Each export creates a separate numbered image folder.
+		 */
+		imageExportDescription: () => LocalizedString;
 		/**
 		 * Generate thumbnail
 		 */

@@ -24,6 +24,7 @@
 		{ value: 'de', label: 'Deutsch' },
 		{ value: 'es', label: 'Espa\u00f1ol' },
 		{ value: 'id', label: 'Indonesia' },
+		{ value: 'tr', label: 'Türkçe' },
 		{ value: 'zh', label: '\u4e2d\u6587' }
 	];
 </script>

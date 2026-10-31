@@ -143,7 +143,7 @@ export default class Settings extends SerializableBase {
 		dimmedModalBackdrop: false,
 		hasSeenTour: false,
 		showFirstVideoGuide: true,
-		language: 'en' as 'ar' | 'en' | 'fr' | 'de' | 'es' | 'zh' | 'id',
+		language: 'en' as 'ar' | 'en' | 'fr' | 'de' | 'es' | 'zh' | 'id' | 'tr',
 		theme: 'default' as
 			| 'default'
 			| 'emerald-forest'

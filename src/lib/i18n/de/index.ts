@@ -316,6 +316,10 @@ const de = {
 		fadeOut: 'Ausblenden:',
 		fadeDuration: 'Überblenddauer:',
 		timelineWheelZoom: 'Strg + Scrollen = Zoom',
+		...{
+			subtitleResizeShiftHint:
+				'Tipp: Halte beim Ziehen Shift gedrückt, um Wörter zwischen benachbarten Untertiteln zu verschieben (WBW-Zeitstempel erforderlich).'
+		},
 		timelineWheelHorizontal: 'Strg + Umschalt + Scrollen = Horizontal scrollen',
 		timelineWheelVertical: 'Scrollen = Vertikal scrollen',
 		timelineWheelFrame: 'Alt + Scrollen = Cursor bildweise bewegen',

@@ -1097,6 +1097,138 @@ export class SubtitleTrack extends Track {
 	}
 
 	/**
+	 * Prépare le transfert de mots entre les deux voisins d'une frontière déplacée.
+	 * @param {number} clipId Sous-titre dont le bord est manipulé.
+	 * @param {'start' | 'end'} edge Bord déplacé.
+	 * @returns {((timeMs: number | null) => Promise<boolean>) | null} Redimensionnement annulable ; null annule les mises à jour en attente.
+	 */
+	createWordBoundaryResize(
+		clipId: number,
+		edge: 'start' | 'end'
+	): ((timeMs: number | null) => Promise<boolean>) | null {
+		const index = this.clips.findIndex((clip) => clip.id === clipId);
+		if (index === -1) return null;
+		const left = this.clips[edge === 'start' ? index - 1 : index];
+		const right = this.clips[edge === 'start' ? index : index + 1];
+		if (
+			!(left instanceof SubtitleClip) ||
+			!(right instanceof SubtitleClip) ||
+			left instanceof QuranSubtitleClip ||
+			right instanceof QuranSubtitleClip ||
+			!right.alignmentMetadata?.words.length
+		)
+			return null;
+
+		// Les instantanés gardent les timestamps d'origine lors des allers-retours de la souris.
+		const originals = [left, right].map((clip) => ({
+			text: clip.text,
+			startTime: clip.startTime,
+			alignmentMetadata: clip.alignmentMetadata,
+			arabicInlineStyleRuns: clip.arabicInlineStyleRuns
+		}));
+		const candidates = [{ time: left.endTime, offset: 0 }];
+		for (const [side, original] of originals.entries()) {
+			const metadata = original.alignmentMetadata;
+			if (!metadata) continue;
+			for (let i = 0; i < metadata.words.length - 1; i++) {
+				const time = Math.round((metadata.timeFrom + metadata.words[i].end) * 1000) - 1;
+				if (time - left.startTime < 100 || right.endTime - time - 1 < 100) continue;
+				candidates.push({
+					time,
+					offset: side === 0 ? i + 1 - metadata.words.length : i + 1
+				});
+			}
+		}
+		let revision = 0;
+		let appliedOffset = 0;
+
+		/**
+		 * Applique la frontière la plus proche en conservant les mots et leurs timestamps.
+		 * @param {number | null} timeMs Position du bord, ou null pour annuler une mise à jour en attente.
+		 * @returns {Promise<boolean>} Vrai si la répartition a changé.
+		 */
+		return async (timeMs: number | null): Promise<boolean> => {
+			const currentRevision = ++revision;
+			if (timeMs === null || !Number.isFinite(timeMs)) return false;
+			const target = timeMs - (edge === 'start' ? 1 : 0);
+			const candidate = candidates.reduce((best, item) =>
+				Math.abs(item.time - target) < Math.abs(best.time - target) ? item : best
+			);
+			if (candidate.offset === appliedOffset) return false;
+
+			let texts = originals.map((original) => original.text);
+			const wordGroups = originals.map((original) => original.alignmentMetadata?.words ?? []);
+			const absoluteWords = wordGroups.map((words, side) =>
+				words.map((word) => ({
+					...word,
+					start: word.start + originals[side].startTime / 1000,
+					end: word.end + originals[side].startTime / 1000
+				}))
+			);
+			if (candidate.offset !== 0) {
+				const donor = candidate.offset > 0 ? 1 : 0;
+				const count = donor === 1 ? candidate.offset : wordGroups[0].length + candidate.offset;
+				let split = await splitTranscriptTextAtWordBoundary(
+					originals[donor].text,
+					count,
+					wordGroups[donor].length
+				);
+				if (!split && !getTranscriptReferenceLogicalParts(originals[donor].text)) {
+					const tokens = originals[donor].text.trim().split(/\s+/).filter(Boolean);
+					if (tokens.length === wordGroups[donor].length)
+						split = [tokens.slice(0, count).join(' '), tokens.slice(count).join(' ')];
+				}
+				if (!split) return false;
+				texts =
+					donor === 1
+						? [`${texts[0]} ${split[0]}`, split[1]]
+						: [split[0], `${split[1]} ${texts[1]}`];
+				const transferred =
+					donor === 1 ? absoluteWords[1].splice(0, count) : absoluteWords[0].splice(count);
+				if (donor === 1) absoluteWords[0].push(...transferred);
+				else absoluteWords[1].unshift(...transferred);
+			}
+			if (currentRevision !== revision || this.clips[index] !== (edge === 'start' ? right : left))
+				return false;
+
+			return ProjectHistoryManager.track('resize subtitle with words', () => {
+				left.setEndTimeSilently(candidate.time);
+				right.setStartTimeSilently(
+					candidate.offset === 0 ? originals[1].startTime : candidate.time + 1
+				);
+				for (const [side, clip] of [left, right].entries()) {
+					clip.text = texts[side];
+					const metadata = originals[side].alignmentMetadata;
+					clip.alignmentMetadata = metadata
+						? {
+								...metadata,
+								matchedText: clip.text,
+								timeFrom: clip.startTime / 1000,
+								timeTo: clip.endTime / 1000,
+								refFrom: absoluteWords[side][0]?.location,
+								refTo: absoluteWords[side].at(-1)?.location,
+								words: normalizeTranscriptWordTimings(
+									absoluteWords[side].map((word) => ({
+										...word,
+										start: word.start - clip.startTime / 1000,
+										end: word.end - clip.startTime / 1000
+									})),
+									clip.duration / 1000
+								)
+							}
+						: null;
+					clip.arabicInlineStyleRuns =
+						candidate.offset === 0 ? originals[side].arabicInlineStyleRuns : [];
+					clip.markAsManualEdit();
+				}
+				appliedOffset = candidate.offset;
+				globalState.updateVideoPreviewUI();
+				return true;
+			});
+		};
+	}
+
+	/**
 	 * Indique si la timeline contient au moins un sous-titre avec des timestamps mot a mot.
 	 * @returns {boolean} `true` si au moins un `SubtitleClip` porte des mots alignes.
 	 */

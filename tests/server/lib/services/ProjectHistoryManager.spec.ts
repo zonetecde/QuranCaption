@@ -9,6 +9,7 @@ import {
 	Project,
 	ProjectContent,
 	ProjectDetail,
+	SilenceClip,
 	Style,
 	StylesData,
 	SubtitleClip,
@@ -67,11 +68,117 @@ function createAssetSplitTestProject(assetTrack: AssetTrack): Project {
 	);
 }
 
+/**
+ * Crée deux sous-titres voisins avec des mots horodatés pour tester leur frontière.
+ * @returns {[SubtitleClip, SubtitleClip]} Sous-titres gauche et droit ajoutés au projet.
+ */
+function createWordResizeClips(): [SubtitleClip, SubtitleClip] {
+	const clips = [
+		new SubtitleClip(1000, 2999, 'one two'),
+		new SubtitleClip(3000, 5999, 'three four five')
+	] as [SubtitleClip, SubtitleClip];
+	for (const clip of clips) {
+		clip.alignmentMetadata = {
+			source: 'manual',
+			timeFrom: clip.startTime / 1000,
+			timeTo: clip.endTime / 1000,
+			words: clip.text.split(' ').map((word, index) => ({
+				word,
+				start: index,
+				end: index + 1
+			}))
+		};
+	}
+	globalState.getSubtitleTrack.clips = clips;
+	return clips;
+}
+
 describe('ProjectHistoryManager', () => {
 	beforeEach(() => {
 		initializeClassRegistry();
 		globalState.currentProject = createHistoryTestProject();
 		ProjectHistoryManager.resetForCurrentProject();
+	});
+
+	it.each(['start', 'end'] as const)(
+		'transfers whole words in both directions from the %s handle and restores the original boundary',
+		async (edge) => {
+			const [left, right] = createWordResizeClips();
+			const resize = globalState.getSubtitleTrack.createWordBoundaryResize(
+				edge === 'start' ? right.id : left.id,
+				edge
+			)!;
+			ProjectHistoryManager.begin('resize subtitle');
+			expect(await resize(3200)).toBe(false);
+			expect(await resize(4000)).toBe(true);
+			expect([left.text, right.text]).toEqual(['one two three', 'four five']);
+			expect([left.endTime, right.startTime]).toEqual([3999, 4000]);
+			expect(right.alignmentMetadata?.words[0]).toMatchObject({ word: 'four', start: 0, end: 1 });
+			expect(right.alignmentMetadata!.timeFrom + right.alignmentMetadata!.words[1].start).toBe(5);
+			expect(await resize(2000)).toBe(true);
+			expect([left.text, right.text]).toEqual(['one', 'two three four five']);
+			expect([left.endTime, right.startTime]).toEqual([1999, 2000]);
+			expect(await resize(3000)).toBe(true);
+			expect([left.text, right.text]).toEqual(['one two', 'three four five']);
+			expect([left.endTime, right.startTime]).toEqual([2999, 3000]);
+			expect(await resize(100000)).toBe(true);
+			expect([left.text, right.text]).toEqual(['one two three four', 'five']);
+			ProjectHistoryManager.commit();
+
+			expect(ProjectHistoryManager.undo()).toBe(true);
+			expect(globalState.getSubtitleTrack.clips.map((clip) => (clip as SubtitleClip).text)).toEqual(
+				['one two', 'three four five']
+			);
+			expect(ProjectHistoryManager.undo()).toBe(false);
+			expect(ProjectHistoryManager.redo()).toBe(true);
+			expect(globalState.getSubtitleTrack.clips[1]).toMatchObject({
+				text: 'five',
+				startTime: 5000
+			});
+		}
+	);
+
+	it('requires a timed right neighbor and never crosses silence or the track edges', () => {
+		const [left, right] = createWordResizeClips();
+		const track = globalState.getSubtitleTrack;
+		expect(track.createWordBoundaryResize(left.id, 'start')).toBeNull();
+		expect(track.createWordBoundaryResize(right.id, 'end')).toBeNull();
+		right.alignmentMetadata = null;
+		expect(track.createWordBoundaryResize(left.id, 'end')).toBeNull();
+		track.clips.splice(1, 0, new SilenceClip(3000, 3100));
+		expect(track.createWordBoundaryResize(left.id, 'end')).toBeNull();
+	});
+
+	it('absorbs timed words into an untimed left subtitle without inventing its alignment', async () => {
+		const [left, right] = createWordResizeClips();
+		left.alignmentMetadata = null;
+		const resize = globalState.getSubtitleTrack.createWordBoundaryResize(left.id, 'end')!;
+		expect(await resize(4000)).toBe(true);
+		expect(left.text).toBe('one two three');
+		expect(left.alignmentMetadata).toBeNull();
+		expect(right.text).toBe('four five');
+	});
+
+	it('preserves reference and quotation markers while transferring words', async () => {
+		const [left, right] = createWordResizeClips();
+		right.text = '{{2:153:2-3}} {{five}}';
+		const resize = globalState.getSubtitleTrack.createWordBoundaryResize(left.id, 'end')!;
+		expect(await resize(4000)).toBe(true);
+		expect(left.text).toBe('one two {{2:153:2-2}}');
+		expect(right.text).toBe('{{2:153:3-3}} {{five}}');
+	});
+
+	it('cancels pending transfers and applies only the latest mouse position', async () => {
+		const [left, right] = createWordResizeClips();
+		const resize = globalState.getSubtitleTrack.createWordBoundaryResize(left.id, 'end')!;
+		const pending = resize(4000);
+		await resize(null);
+		expect(await pending).toBe(false);
+		expect([left.text, right.text]).toEqual(['one two', 'three four five']);
+		const outdated = resize(4000);
+		expect(await resize(5000)).toBe(true);
+		expect(await outdated).toBe(false);
+		expect([left.text, right.text]).toEqual(['one two three four', 'five']);
 	});
 
 	it('undoes and redoes a simple style change', () => {

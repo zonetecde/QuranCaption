@@ -313,6 +313,10 @@ const es = {
 		fadeOut: 'Fundido de salida:',
 		fadeDuration: 'Duración del fundido:',
 		timelineWheelZoom: 'Ctrl + rueda = Zoom',
+		...{
+			subtitleResizeShiftHint:
+				'Consejo: mantén Shift pulsado mientras arrastras para transferir palabras entre subtítulos vecinos (se requieren marcas de tiempo WBW).'
+		},
 		timelineWheelHorizontal: 'Ctrl + Mayús + rueda = Desplazamiento horizontal',
 		timelineWheelVertical: 'Rueda = Desplazamiento vertical',
 		timelineWheelFrame: 'Alt + rueda = Cursor fotograma a fotograma',

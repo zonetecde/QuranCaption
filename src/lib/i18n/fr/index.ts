@@ -314,6 +314,10 @@ const fr = {
 		fadeOut: 'Fondu sortant :',
 		fadeDuration: 'Durée du fondu :',
 		timelineWheelZoom: 'Ctrl + molette = Zoom',
+		...{
+			subtitleResizeShiftHint:
+				'Astuce : maintenez Shift pendant le glissement pour transférer des mots entre sous-titres voisins (timestamps WBW requis).'
+		},
 		timelineWheelHorizontal: 'Ctrl + Maj + molette = Défilement horizontal',
 		timelineWheelVertical: 'Molette = Défilement vertical',
 		timelineWheelFrame: 'Alt + molette = Curseur image par image',

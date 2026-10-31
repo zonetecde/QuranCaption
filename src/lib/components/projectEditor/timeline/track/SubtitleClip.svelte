@@ -16,7 +16,7 @@
 	import { globalState, type QuickTimelineEditorMode } from '$lib/runes/main.svelte';
 	import ContextMenu, { Divider, Item } from 'svelte-contextmenu';
 	import { currentMenu } from 'svelte-contextmenu/stores';
-	import type { SubtitleTrack } from '$lib/classes/Track.svelte';
+	import { SubtitleTrack } from '$lib/classes/Track.svelte';
 	import { onDestroy, tick } from 'svelte';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import LL from '$lib/i18n/i18n-svelte';
@@ -256,8 +256,9 @@
 	let dragStartX: number | null = null;
 	let didDrag = false;
 	let suppressNextClick = false;
+	let wordBoundaryResize: ReturnType<SubtitleTrack['createWordBoundaryResize']> = null;
 
-	// Masque la barre de mots pendant le redimensionnement.
+	// Masque la barre de mots pendant le redimensionnement sans Shift.
 	let isResizing = $state(false);
 
 	function startLeftDragging(e: MouseEvent) {
@@ -267,7 +268,7 @@
 			dragStartX = e.clientX;
 			didDrag = false;
 			if (clip instanceof SubtitleClip) {
-				isResizing = true;
+				isResizing = !e.shiftKey;
 			}
 			globalState.getTimelineState.showCursor = false;
 			document.addEventListener('mousemove', onLeftDragging);
@@ -275,15 +276,25 @@
 		}
 	}
 
-	function onLeftDragging(_e: MouseEvent) {
+	function onLeftDragging(e: MouseEvent) {
 		if (dragStartX === null) return;
+		if (clip instanceof SubtitleClip) isResizing = !e.shiftKey;
 		const cursorPosition = globalState.currentProject?.projectEditorState.timeline.cursorPosition;
 		if (cursorPosition === undefined) return;
-		track.updateClipStartTime(clip.id, cursorPosition);
+		if (e.shiftKey && track instanceof SubtitleTrack) {
+			wordBoundaryResize ??= track.createWordBoundaryResize(clip.id, 'start');
+			void wordBoundaryResize?.(cursorPosition);
+		} else {
+			void wordBoundaryResize?.(null);
+			wordBoundaryResize = null;
+			track.updateClipStartTime(clip.id, cursorPosition);
+		}
 		didDrag = true;
 	}
 
 	function stopLeftDragging() {
+		void wordBoundaryResize?.(null);
+		wordBoundaryResize = null;
 		dragStartX = null;
 		document.removeEventListener('mousemove', onLeftDragging);
 		document.removeEventListener('mouseup', stopLeftDragging);
@@ -306,22 +317,32 @@
 		dragStartX = e.clientX;
 		didDrag = false;
 		if (clip instanceof SubtitleClip) {
-			isResizing = true;
+			isResizing = !e.shiftKey;
 		}
 		document.addEventListener('mousemove', onRightDragging);
 		document.addEventListener('mouseup', stopRightDragging);
 		globalState.getTimelineState.showCursor = false;
 	}
 
-	function onRightDragging(_e: MouseEvent) {
+	function onRightDragging(e: MouseEvent) {
 		if (dragStartX === null) return;
+		if (clip instanceof SubtitleClip) isResizing = !e.shiftKey;
 		const cursorPosition = globalState.currentProject?.projectEditorState.timeline.cursorPosition;
 		if (cursorPosition === undefined) return;
-		track.updateClipEndTime(clip.id, cursorPosition);
+		if (e.shiftKey && track instanceof SubtitleTrack) {
+			wordBoundaryResize ??= track.createWordBoundaryResize(clip.id, 'end');
+			void wordBoundaryResize?.(cursorPosition);
+		} else {
+			void wordBoundaryResize?.(null);
+			wordBoundaryResize = null;
+			track.updateClipEndTime(clip.id, cursorPosition);
+		}
 		didDrag = true;
 	}
 
 	function stopRightDragging() {
+		void wordBoundaryResize?.(null);
+		wordBoundaryResize = null;
 		dragStartX = null;
 		document.removeEventListener('mousemove', onRightDragging);
 		document.removeEventListener('mouseup', stopRightDragging);
@@ -547,6 +568,7 @@
 </script>
 
 <div
+	data-resizing-without-shift={isResizing}
 	class:timeline-silence={clip.type === 'Silence'}
 	class:predefined-continuity={clip instanceof PredefinedSubtitleClip &&
 		!isSelected() &&

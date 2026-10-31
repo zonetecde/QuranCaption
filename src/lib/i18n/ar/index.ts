@@ -305,6 +305,10 @@ const ar = {
 		fadeOut: 'تلاشي الخروج:',
 		fadeDuration: 'مدة التلاشي:',
 		timelineWheelZoom: 'Ctrl + تمرير = تكبير',
+		...{
+			subtitleResizeShiftHint:
+				'نصيحة: اضغط باستمرار على Shift أثناء السحب لنقل الكلمات بين الترجمات المتجاورة (يلزم وجود توقيت لكل كلمة).'
+		},
 		timelineWheelHorizontal: 'Ctrl + Shift + تمرير = تمرير أفقي',
 		timelineWheelVertical: 'تمرير = تمرير عمودي',
 		timelineWheelFrame: 'Alt + تمرير = تحريك المؤشر إطارًا بإطار',

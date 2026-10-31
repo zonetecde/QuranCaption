@@ -52,6 +52,8 @@ const editor = {
 	fadeOut: 'Fade Out:',
 	fadeDuration: 'Fade Duration:',
 	timelineWheelZoom: 'Ctrl + Scroll = Zoom',
+	subtitleResizeShiftHint:
+		'Tip: hold Shift while dragging to transfer words between neighboring subtitles (WBW timestamps required).',
 	timelineWheelHorizontal: 'Ctrl + Shift + Scroll = Horizontal Scroll',
 	timelineWheelVertical: 'Scroll = Vertical Scroll',
 	timelineWheelFrame: 'Alt + Scroll = Frame-by-frame Cursor',

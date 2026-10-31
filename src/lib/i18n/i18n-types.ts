@@ -1189,6 +1189,10 @@ type RootTranslation = {
 		 */
 		timelineWheelZoom: string;
 		/**
+		 * T​i​p​:​ ​h​o​l​d​ ​S​h​i​f​t​ ​w​h​i​l​e​ ​d​r​a​g​g​i​n​g​ ​t​o​ ​t​r​a​n​s​f​e​r​ ​w​o​r​d​s​ ​b​e​t​w​e​e​n​ ​n​e​i​g​h​b​o​r​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​(​W​B​W​ ​t​i​m​e​s​t​a​m​p​s​ ​r​e​q​u​i​r​e​d​)​.
+		 */
+		subtitleResizeShiftHint: string;
+		/**
 		 * C​t​r​l​ ​+​ ​S​h​i​f​t​ ​+​ ​S​c​r​o​l​l​ ​=​ ​H​o​r​i​z​o​n​t​a​l​ ​S​c​r​o​l​l
 		 */
 		timelineWheelHorizontal: string;
@@ -11710,6 +11714,10 @@ export type TranslationFunctions = {
 		 * Ctrl + Scroll = Zoom
 		 */
 		timelineWheelZoom: () => LocalizedString;
+		/**
+		 * Tip: hold Shift while dragging to transfer words between neighboring subtitles (WBW timestamps required).
+		 */
+		subtitleResizeShiftHint: () => LocalizedString;
 		/**
 		 * Ctrl + Shift + Scroll = Horizontal Scroll
 		 */

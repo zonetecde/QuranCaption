@@ -2,6 +2,10 @@ import { cleanup, render } from 'vitest-browser-svelte';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { get } from 'svelte/store';
 import ExportVideo from '$lib/components/projectEditor/tabs/export/ExportVideo.svelte';
+import ExportImages from '$lib/components/projectEditor/tabs/export/ExportImages.svelte';
+import Exporter from '$lib/classes/Exporter';
+import { ExportKind } from '$lib/classes/Exportation.svelte';
+import ExportService from '$lib/services/ExportService';
 import Settings from '$lib/classes/Settings.svelte';
 import { ExportState, ProjectEditorState } from '$lib/classes/ProjectEditorState.svelte';
 import { Timeline } from '$lib/classes/Timeline.svelte';
@@ -13,6 +17,7 @@ import LL, { setLocale } from '$lib/i18n/i18n-svelte';
 import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { exists, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { VersionService } from '$lib/services/VersionService.svelte';
+import { appDataDir, join } from '@tauri-apps/api/path';
 
 vi.mock('@tauri-apps/plugin-fs', async () => ({
 	...(await vi.importActual<typeof import('@tauri-apps/plugin-fs')>('@tauri-apps/plugin-fs')),
@@ -55,6 +60,8 @@ function openProject(): void {
 }
 
 beforeEach(() => {
+	vi.mocked(appDataDir).mockResolvedValue('/test-settings');
+	vi.mocked(join).mockImplementation(async (...parts: string[]) => parts.join('/'));
 	loadLocale('en');
 	setLocale('en');
 	globalState.settings = new Settings();
@@ -155,4 +162,43 @@ test('defaults legacy settings to disabled and ignores old project-specific prom
 		includeQuranCaptionPromotion: false,
 		quranCaptionPromotionPosition: 'end'
 	});
+});
+
+test('launches image export on an isolated clone with the selected range and background settings', async () => {
+	const source = globalState.currentProject!;
+	source.projectEditorState.export.videoStartTime = 1000;
+	source.projectEditorState.export.videoEndTime = 4000;
+	source.projectEditorState.export.exportWithoutBackground = true;
+	const project = {
+		detail: { id: 123, name: 'Image project' },
+		projectEditorState: { export: { ...source.projectEditorState.export } }
+	} as never;
+	source.clone = vi.fn().mockReturnValue(project);
+	const saveProject = vi.spyOn(ExportService, 'saveProject').mockResolvedValue(undefined);
+	const addExport = vi.spyOn(ExportService, 'addExport').mockResolvedValue(undefined);
+	vi.spyOn(ExportService, 'getExportFolder').mockResolvedValue('/images');
+	const internals = Exporter as unknown as {
+		openExportWindow: (id: string, mode?: 'images') => Promise<void>;
+		ensureBackgroundWorkersStarted: () => void;
+	};
+	const openWindow = vi.spyOn(internals, 'openExportWindow').mockResolvedValue(undefined);
+	vi.spyOn(internals, 'ensureBackgroundWorkersStarted').mockImplementation(() => undefined);
+	const component = render(ExportImages);
+	const copy = get(LL).export as unknown as { exportImages: () => string };
+	await component.getByRole('button', { name: copy.exportImages() }).click();
+	await vi.waitFor(() => expect(openWindow).toHaveBeenCalledOnce());
+	expect(saveProject).toHaveBeenCalledWith(project);
+	expect(addExport).toHaveBeenCalledWith(
+		project,
+		'stable',
+		expect.objectContaining({
+			exportKind: ExportKind.Image,
+			finalFilePath: expect.stringMatching(/^\/images\/Image project_images_\d+$/)
+		})
+	);
+	expect(openWindow.mock.calls[0][1]).toBe('images');
+	expect(globalState.currentProject).toBe(source);
+	expect(source.projectEditorState.export.videoStartTime).toBe(1000);
+	expect(source.projectEditorState.export.videoEndTime).toBe(4000);
+	expect(source.projectEditorState.export.exportWithoutBackground).toBe(true);
 });

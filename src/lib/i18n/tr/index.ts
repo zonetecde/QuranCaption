@@ -1875,7 +1875,7 @@ const tr = {
 		projectDataOption: 'Proje Verileri',
 		projectDataDescription: 'Proje ham verilerini dışa aktar',
 		...{
-			imageExportOption: 'Görsel',
+			imageExportOption: 'Görseller',
 			exportImages: 'Görselleri dışa aktar',
 			imageExportDescription:
 				'Seçili aralıkla kesişen her altyazıyı, bitişinden 1 ms önce, stilin en yüksek opaklığı ve arka planıyla PNG olarak dışa aktarır. Her dışa aktarım numaralı görseller için ayrı bir klasör oluşturur.'

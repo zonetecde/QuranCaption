@@ -144,6 +144,10 @@ const export_ = {
 	youtubeChaptersDescription: 'Timestamped chapter list',
 	projectDataOption: 'Project Data',
 	projectDataDescription: 'Export project raw data',
+	imageExportOption: 'Images',
+	exportImages: 'Export images',
+	imageExportDescription:
+		'Export one PNG per subtitle intersecting the selected range, at its end minus 1 ms, with maximum style opacity and the background. Each export creates a separate numbered image folder.',
 	generateThumbnail: 'Generate thumbnail',
 	thumbnailDescription:
 		'The button below opens Quran Thumbnails, a website by @sadaalayat on Discord for quickly creating thumbnails. Your project details will be filled in automatically.',

@@ -2270,6 +2270,10 @@ const fr = {
 		youtubeChaptersDescription: 'Liste de chapitres horodatés',
 		projectDataOption: 'Données du projet',
 		projectDataDescription: 'Exporter les données brutes du projet',
+		imageExportOption: 'Images',
+		exportImages: 'Exporter les images',
+		imageExportDescription:
+			'Exporte un PNG par sous-titre intersectant la plage sélectionnée, à sa fin moins 1 ms, avec l’opacité maximale du style et le fond. Chaque export crée un dossier distinct d’images numérotées.',
 		generateThumbnail: 'Générer une miniature',
 		thumbnailDescription:
 			'Le bouton ci-dessous ouvre Quran Thumbnails, un site créé par @sadaalayat sur Discord pour réaliser rapidement des miniatures. Les informations de votre projet seront préremplies automatiquement.',

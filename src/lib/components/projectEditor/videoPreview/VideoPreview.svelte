@@ -8,6 +8,14 @@
 	export function togglePlayPause(): void {
 		workspace?.togglePlayPause();
 	}
+
+	/**
+	 * Attend le fond courant pour l'export d'images.
+	 * @returns {Promise<void>} Promesse résolue lorsque le fond est prêt.
+	 */
+	export async function waitForBackgroundMedia(): Promise<void> {
+		await workspace?.waitForBackgroundMedia();
+	}
 </script>
 
 <VideoPreviewWorkspace bind:this={workspace} {showControls} />

@@ -375,7 +375,7 @@ export default class Exporter {
 		}
 	}
 
-	private static async openExportWindow(exportId: string) {
+	private static async openExportWindow(exportId: string, mode?: 'images') {
 		// Créer une fenêtre Tauri avec la bonne taille
 		const w = new WebviewWindow(exportId, {
 			center: false,
@@ -390,7 +390,7 @@ export default class Exporter {
 			alwaysOnTop: false,
 			alwaysOnBottom: true,
 			title: 'QC - ' + exportId,
-			url: '/exporter?' + new URLSearchParams({ id: exportId }) // Met en paramètre l'ID de l'export pour que l'exportateur puisse le récupérer
+			url: '/exporter?' + new URLSearchParams({ id: exportId, ...(mode ? { mode } : {}) }) // Met en paramètre l'ID de l'export pour que l'exportateur puisse le récupérer
 		});
 
 		w.once('tauri://created', async () => {
@@ -998,6 +998,32 @@ export default class Exporter {
 		} else {
 			return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 		}
+	}
+
+	/**
+	 * Lance un export PNG des sous-titres sur une copie isolée du projet.
+	 * @returns {Promise<void>} Promesse résolue après l'ouverture de la fenêtre d'export.
+	 */
+	static async exportImages(): Promise<void> {
+		const sourceProject = globalState.currentProject!;
+		const project = sourceProject.clone();
+		const exportId = Utilities.randomId().toString();
+		project.detail.id = Number(exportId);
+		const folderName = `${ExportFileService.getProjectNameForFile(project)}_images_${exportId}`;
+		const folderPath = await join(await ExportService.getExportFolder(), folderName);
+		await ExportService.saveProject(project);
+		await ExportService.addExport(project, 'stable', {
+			finalFileName: folderName,
+			finalFilePath: folderPath,
+			exportKind: ExportKind.Image,
+			exportLabel: (
+				get(LL).export as unknown as { imageExportOption: () => string }
+			).imageExportOption(),
+			sourceProjectId: sourceProject.detail.id
+		});
+		globalState.uiState.showExportMonitor = true;
+		Exporter.ensureBackgroundWorkersStarted();
+		await Exporter.openExportWindow(exportId, 'images');
 	}
 
 	/**

@@ -441,6 +441,13 @@
 			clipId
 		);
 
+		if (
+			isExportCapturePreview() &&
+			new URLSearchParams(window.location.search).get('mode') === 'images'
+		) {
+			return maxOpacity;
+		}
+
 		const currentTime = getTimelineSettings().cursorPosition;
 		const activeRange = isTargetMerged(target)
 			? currentVisualMergeGroup()

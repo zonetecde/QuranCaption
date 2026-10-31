@@ -6805,7 +6805,7 @@ type RootTranslation = {
 		 */
 		projectDataDescription: string;
 		/**
-		 * I​m​a​g​e
+		 * I​m​a​g​e​s
 		 */
 		imageExportOption: string;
 		/**
@@ -19184,7 +19184,7 @@ export type TranslationFunctions = {
 		 */
 		projectDataDescription: () => LocalizedString;
 		/**
-		 * Image
+		 * Images
 		 */
 		imageExportOption: () => LocalizedString;
 		/**

@@ -2261,6 +2261,10 @@ const es = {
 		youtubeChaptersDescription: 'Lista de capítulos con marcas de tiempo',
 		projectDataOption: 'Datos del proyecto',
 		projectDataDescription: 'Exportar los datos brutos del proyecto',
+		imageExportOption: 'Imágenes',
+		exportImages: 'Exportar imágenes',
+		imageExportDescription:
+			'Exporta un PNG por subtítulo que intersecta el intervalo seleccionado, al final menos 1 ms, con la opacidad máxima del estilo y el fondo. Cada exportación crea una carpeta independiente de imágenes numeradas.',
 		generateThumbnail: 'Generar miniatura',
 		thumbnailDescription:
 			'El botón de abajo abre Quran Thumbnails, un sitio creado por @sadaalayat en Discord para crear miniaturas rápidamente. Los datos de tu proyecto se rellenarán automáticamente.',

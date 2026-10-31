@@ -3,6 +3,7 @@
 	import ExportProjectData from './ExportProjectData.svelte';
 	import ExportSubtitles from './ExportSubtitles.svelte';
 	import ExportVideo from './ExportVideo.svelte';
+	import ExportImages from './ExportImages.svelte';
 	import ExportYtbChapters from './ExportYtbChapters.svelte';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
@@ -11,12 +12,14 @@
 	import toast from 'svelte-5-french-toast';
 	import { invoke } from '@tauri-apps/api/core';
 
-	type ExportChoiceId = 'video' | 'subtitles' | 'chapters' | 'project' | 'thumbnail';
+	type ExportChoiceId = 'video' | 'subtitles' | 'chapters' | 'project' | 'thumbnail' | 'images';
 
 	const LL_ = get(LL);
 	let thumbnailCopy = $derived(
 		$LL.export as unknown as Record<
 			| 'generateThumbnail'
+			| 'imageExportOption'
+			| 'imageExportDescription'
 			| 'thumbnailDescription'
 			| 'thumbnailSummary'
 			| 'thumbnailTranslationLanguage'
@@ -71,6 +74,12 @@
 			label: () => LL_.export.projectDataOption(),
 			icon: 'folder',
 			hint: () => LL_.export.projectDataDescription()
+		},
+		{
+			id: 'images',
+			label: () => thumbnailCopy.imageExportOption(),
+			icon: 'photo_library',
+			hint: () => thumbnailCopy.imageExportDescription()
 		},
 		{
 			id: 'thumbnail',
@@ -150,7 +159,6 @@
 					onclick={() => select(c.id)}
 					class="group relative flex flex-col items-start rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-start transition focus-visible:outline-none focus-visible:ring-2 ring-accent/70 hover:bg-white/10 hover:border-white/20 [&.selected]:border-accent/60 [&.selected]:bg-accent/10 cursor-pointer group"
 					class:selected={globalState.getExportState.selectedChoice === c.id}
-					class:col-span-2={c.id === 'thumbnail'}
 					title={`${c.label()} — ${c.hint()}`}
 				>
 					<div class="flex flex-row items-center gap-x-2">
@@ -193,6 +201,8 @@
 				<ExportYtbChapters />
 			{:else if globalState.getExportState.selectedChoice === 'project'}
 				<ExportProjectData />
+			{:else if globalState.getExportState.selectedChoice === 'images'}
+				<ExportImages />
 			{:else if globalState.getExportState.selectedChoice === 'thumbnail'}
 				<div class="flex h-full min-h-0 flex-col rounded-lg border border-color bg-secondary p-6">
 					<div class="min-h-0 flex-1 overflow-y-auto">
@@ -317,7 +327,7 @@
 
 	@media (width < 1280px), (height < 720px) {
 		.export-choices {
-			grid-template-columns: repeat(5, minmax(0, 1fr));
+			grid-template-columns: repeat(6, minmax(0, 1fr));
 		}
 
 		.export-choices > button {

@@ -25,6 +25,9 @@ vi.mock('@tauri-apps/plugin-opener', async () => ({
 vi.mock('$lib/components/projectEditor/tabs/export/ExportVideo.svelte', async () => ({
 	default: (await import('../../../../../stubs/EmptyComponent.svelte')).default
 }));
+vi.mock('$lib/components/projectEditor/tabs/export/ExportImages.svelte', async () => ({
+	default: (await import('../../../../../stubs/EmptyComponent.svelte')).default
+}));
 vi.mock('$lib/components/projectEditor/tabs/export/ExportSubtitles.svelte', async () => ({
 	default: (await import('../../../../../stubs/EmptyComponent.svelte')).default
 }));
@@ -42,7 +45,7 @@ afterEach(() => {
 	globalState.currentProject = null;
 });
 
-test('opens the thumbnail editor with project details from a full-width fifth choice', async () => {
+test('opens the thumbnail editor with project details after the image export choice', async () => {
 	loadLocale('en');
 	setLocale('en');
 	const preview =
@@ -62,10 +65,11 @@ test('opens the thumbnail editor with project details from a full-width fifth ch
 	} as never;
 	const component = render(ExportSettings);
 	const choices = component.container.querySelectorAll('[role="radio"]');
-	expect(choices).toHaveLength(5);
-	const thumbnailChoice = choices[4] as HTMLElement;
+	expect(choices).toHaveLength(6);
+	expect((choices[4] as HTMLElement).dataset.choice).toBe('images');
+	const thumbnailChoice = choices[5] as HTMLElement;
 	expect(thumbnailChoice.dataset.choice).toBe('thumbnail');
-	expect(thumbnailChoice.classList.contains('col-span-2')).toBe(true);
+	expect(thumbnailChoice.classList.contains('col-span-2')).toBe(false);
 	thumbnailChoice.click();
 	await expect.element(component.getByText('@sadaalayat', { exact: false })).toBeVisible();
 	await expect.element(component.getByText('Yasser Al Dosari')).toBeVisible();

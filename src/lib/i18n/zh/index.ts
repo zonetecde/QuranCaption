@@ -2058,6 +2058,10 @@ const zh = {
 		youtubeChaptersDescription: '带时间戳的章节列表',
 		projectDataOption: '项目数据',
 		projectDataDescription: '导出原始项目数据',
+		imageExportOption: '图像',
+		exportImages: '导出图像',
+		imageExportDescription:
+			'为与所选范围重叠的每条字幕导出一张 PNG，截取时间为字幕结束前 1 毫秒，使用样式的最大不透明度并包含背景。每次导出都会创建单独的编号图像文件夹。',
 		generateThumbnail: '生成缩略图',
 		thumbnailDescription:
 			'下方按钮将打开 Quran Thumbnails，这是由 Discord 上的 @sadaalayat 创建的网站，可快速制作缩略图。您的项目详情将自动填入。',

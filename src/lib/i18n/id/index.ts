@@ -1621,6 +1621,10 @@ const id = {
 		subtitlesExportDescription: 'Generate file caption .srt / .vtt',
 		youtubeChaptersDescription: 'Daftar chapter dengan timestamp',
 		projectDataDescription: 'Ekspor data mentah proyek',
+		imageExportOption: 'Gambar',
+		exportImages: 'Ekspor gambar',
+		imageExportDescription:
+			'Ekspor satu PNG per subtitel yang beririsan dengan rentang pilihan, pada waktu akhir dikurangi 1 md, dengan opasitas gaya maksimum dan latar belakang. Setiap ekspor membuat folder gambar bernomor tersendiri.',
 		generateThumbnail: 'Buat thumbnail',
 		thumbnailDescription:
 			'Tombol di bawah membuka Quran Thumbnails, situs buatan @sadaalayat di Discord untuk membuat thumbnail dengan cepat. Detail proyek Anda akan diisi secara otomatis.',

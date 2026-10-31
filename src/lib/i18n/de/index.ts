@@ -2267,6 +2267,10 @@ const de = {
 		youtubeChaptersDescription: 'Liste mit Zeitstempel-Kapiteln',
 		projectDataOption: 'Projektdaten',
 		projectDataDescription: 'Rohdaten des Projekts exportieren',
+		imageExportOption: 'Bilder',
+		exportImages: 'Bilder exportieren',
+		imageExportDescription:
+			'Exportiert für jeden Untertitel im gewählten Bereich ein PNG, 1 ms vor seinem Ende, mit maximaler Stil-Deckkraft und Hintergrund. Jeder Export erstellt einen eigenen Ordner mit nummerierten Bildern.',
 		generateThumbnail: 'Vorschaubild erstellen',
 		thumbnailDescription:
 			'Die Schaltfläche unten öffnet Quran Thumbnails, eine Website von @sadaalayat auf Discord zum schnellen Erstellen von Vorschaubildern. Die Angaben deines Projekts werden automatisch übernommen.',

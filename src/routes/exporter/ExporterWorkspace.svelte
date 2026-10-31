@@ -27,6 +27,7 @@
 	} from '$lib/services/OverlayBlurSegmentation';
 	import {
 		calculateCaptureTimingsForRange,
+		getSubtitleImageCaptureTimings,
 		getExportWordByWordHighlightTimings as getExportWordByWordHighlightTimingsUtil,
 		getExportWordByWordHiddenArabicTimings as getExportWordByWordHiddenArabicTimingsUtil,
 		hasTiming,
@@ -74,6 +75,7 @@
 
 	// Affichage ou non des fenêtres
 	const DEBUG_EXPORT_MODE = false;
+	const isImageExport = new URLSearchParams(window.location.search).get('mode') === 'images';
 
 	// Contient l'ID de l'export
 	let exportId = '';
@@ -707,6 +709,10 @@
 	 */
 	async function startExport() {
 		if (!exportData) return;
+		if (isImageExport) {
+			await exportSubtitleImages();
+			return;
+		}
 		resetSegmentProgressTracking();
 
 		const exportStart = Math.round(exportData.videoStartTime);
@@ -2100,6 +2106,43 @@
 	}
 
 	/**
+	 * Capture chaque sous-titre de la plage à sa fin moins une milliseconde.
+	 * @returns {Promise<void>} Promesse résolue après l'écriture des PNG et le nettoyage.
+	 */
+	async function exportSubtitleImages(): Promise<void> {
+		const timings = getSubtitleImageCaptureTimings(
+			globalState.getSubtitleTrack.clips.filter(
+				(clip) => clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip
+			),
+			exportData!.videoStartTime,
+			exportData!.videoEndTime
+		);
+		if (!timings.length) throw new Error(get(LL).editor.noSubtitlesInTimeline());
+		await mkdir(exportData!.finalFilePath, { recursive: true });
+		for (const [index, timing] of timings.entries()) {
+			globalState.getTimelineState.cursorPosition = timing;
+			globalState.getTimelineState.movePreviewTo = timing;
+			if (await wait(timing)) throw new Error('Image export subtitle layout timed out');
+			await videoPreview!.waitForBackgroundMedia();
+			await takeScreenshot(`${String(index + 1).padStart(4, '0')}_${Math.round(timing)}ms`);
+			await emitProgress({
+				exportId: Number(exportId),
+				progress: ((index + 1) / timings.length) * 100,
+				currentState: ExportState.CapturingFrames,
+				currentTime: timing - exportData!.videoStartTime,
+				capturedFrames: index + 1,
+				totalCaptureFrames: timings.length
+			});
+		}
+		await emitProgress({
+			exportId: Number(exportId),
+			progress: 100,
+			currentState: ExportState.Exported
+		} as ExportProgress);
+		await finalCleanup();
+	}
+
+	/**
 	 * Capture l'overlay courant dans un fichier PNG prêt pour FFmpeg.
 	 * @param {string} fileName Nom du fichier sans extension.
 	 * @param {string | null} subfolder Sous-dossier temporaire facultatif.
@@ -2114,7 +2157,7 @@
 		hideArabicText: boolean = false
 	) {
 		// L'element a transformer en image
-		const node = document.getElementById('overlay')!;
+		const node = document.getElementById(isImageExport ? 'preview' : 'overlay')!;
 
 		// Pour les blanks, forcer les overlays (surahName, reciterName, customText) à leur opacité max
 		// afin d'éviter une capture en cours de fade-in, et masquer les sous-titres (arabe/traduction).
@@ -2152,13 +2195,33 @@
 		const scaleX = targetWidth / node.clientWidth;
 		const scaleY = targetHeight / node.clientHeight;
 		const scale = Math.min(scaleX, scaleY);
+		let backgroundVideo: HTMLVideoElement | null = null;
+		let backgroundFrame: HTMLImageElement | null = null;
 
 		try {
 			const pathComponents = [ExportService.exportFolder, exportId];
 			if (subfolder) pathComponents.push(subfolder);
 			pathComponents.push(fileName + '.png');
 
-			const filePathWithName = await join(...pathComponents);
+			const filePathWithName = isImageExport
+				? await join(exportData!.finalFilePath, fileName + '.png')
+				: await join(...pathComponents);
+
+			if (isImageExport) {
+				backgroundVideo = node.querySelector('video');
+				if (backgroundVideo) {
+					// Figer la frame décodée en conservant son cadrage CSS pendant le clonage.
+					const canvas = document.createElement('canvas');
+					canvas.width = backgroundVideo.videoWidth;
+					canvas.height = backgroundVideo.videoHeight;
+					canvas.getContext('2d')!.drawImage(backgroundVideo, 0, 0);
+					backgroundFrame = document.createElement('img');
+					backgroundFrame.src = canvas.toDataURL('image/png');
+					backgroundFrame.style.cssText = backgroundVideo.style.cssText;
+					await backgroundFrame.decode();
+					backgroundVideo.replaceWith(backgroundFrame);
+				}
+			}
 
 			const isMacOS = shouldRedrawExportTextWithCanvas();
 
@@ -2274,6 +2337,7 @@
 			toast.error(get(LL).editor.exportScreenshotError({ error: message }));
 			throw error;
 		} finally {
+			if (backgroundFrame && backgroundVideo) backgroundFrame.replaceWith(backgroundVideo);
 			// Restaurer l'opacité originale des overlays forcés
 			for (const { el, prev } of forcedOverlayElements) {
 				el.style.opacity = prev;

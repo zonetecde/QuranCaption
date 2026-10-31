@@ -28,6 +28,7 @@ function parseIsoDateMs(value: string): number | null {
 }
 
 export interface AddExportOptions {
+	exportKind?: ExportKind;
 	finalFileName?: string;
 	finalFilePath?: string;
 	exportLabel?: string;
@@ -147,7 +148,7 @@ export default class ExportService {
 			0,
 			0,
 			'',
-			ExportKind.Video,
+			options.exportKind ?? ExportKind.Video,
 			options.exportLabel ?? '',
 			options.sourceProjectId ?? null,
 			reflectionContext

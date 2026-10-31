@@ -139,6 +139,10 @@ const export_ = {
 	youtubeChaptersDescription: 'قائمة الفصول ذات الطابع الزمني',
 	projectDataOption: 'بيانات المشروع',
 	projectDataDescription: 'تصدير البيانات الخام للمشروع',
+	imageExportOption: 'صور',
+	exportImages: 'تصدير الصور',
+	imageExportDescription:
+		'تصدير صورة PNG لكل مقطع ترجمة يتداخل مع النطاق المحدد، قبل نهايته بمقدار 1 مللي ثانية، بأقصى عتامة للنمط ومع الخلفية. ينشئ كل تصدير مجلدًا منفصلًا للصور المرقمة.',
 	generateThumbnail: 'إنشاء صورة مصغرة',
 	thumbnailDescription:
 		'يفتح الزر أدناه موقع Quran Thumbnails الذي أنشأه @sadaalayat على Discord لإنشاء الصور المصغرة بسرعة. ستتم تعبئة تفاصيل مشروعك تلقائيًا.',

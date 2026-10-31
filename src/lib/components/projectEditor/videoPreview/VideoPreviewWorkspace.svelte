@@ -23,6 +23,8 @@
 	const isLinux = $derived(navigator?.userAgent?.toLowerCase()?.includes('linux') ?? false);
 	const isExportCapturePreview =
 		typeof window !== 'undefined' && window.location.pathname.includes('/exporter');
+	const isImageExportPreview =
+		isExportCapturePreview && new URLSearchParams(window.location.search).get('mode') === 'images';
 	let lastTimeErrorShown = 0; // Timestamp of the last error shown (prevent spam)
 	let antiCollisionNoticeCopy = $derived(
 		$LL.editor as unknown as {
@@ -1613,6 +1615,36 @@
 		syncOverlappingAudioPlaybackAtCursor(true);
 	}
 
+	/**
+	 * Attend le fond chargé et synchronisé avant une capture d'image.
+	 * @returns {Promise<void>} Promesse résolue lorsque le média courant est prêt.
+	 */
+	export async function waitForBackgroundMedia(): Promise<void> {
+		const video = videoElement;
+		if (video && currentVideo()) {
+			const deadline = Date.now() + 10_000;
+			while (video.readyState < 1 || video.currentSrc !== video.src) {
+				if (video.error || Date.now() > deadline)
+					throw new Error('Image export background failed to load');
+				await new Promise((resolve) => setTimeout(resolve, 20));
+			}
+			video.currentTime = Math.min(
+				getCurrentVideoTimeToPlay(),
+				Math.max(0, video.duration - 0.001)
+			);
+			while (video.seeking || video.readyState < 2) {
+				if (video.error || Date.now() > deadline)
+					throw new Error('Image export background seek timed out');
+				await new Promise((resolve) => setTimeout(resolve, 20));
+			}
+		}
+		await Promise.all(
+			Array.from(document.querySelectorAll<HTMLImageElement>('#preview img')).map((image) =>
+				image.decode()
+			)
+		);
+	}
+
 	// === NAVIGATION ENTRE MÉDIAS ===
 	/**
 	 * Continue la lecture dans l'espace situé après un clip vidéo.
@@ -1743,17 +1775,18 @@
 					onDismiss={dismissAntiCollisionNotice}
 				/>
 			{/if}
-			{#if !globalState.getVideoPreviewState.showVideosAndAudios}
+			{#if !globalState.getVideoPreviewState.showVideosAndAudios || isImageExportPreview}
 				{@const transitionState = videoClipTransitionState()}
 				<PreviewBackgroundMedia
 					bind:videoElement
+					crossOrigin={isImageExportPreview ? 'anonymous' : undefined}
 					video={currentVideo()}
 					image={currentImage()}
 					loop={isVideoLooping()}
 					style={backgroundMediaStyle}
 					zoom={imageZoom}
 					opacity={transitionState.currentOpacity}
-					showCrossfadeNotice={transitionState.showCrossfadeNotice}
+					showCrossfadeNotice={transitionState.showCrossfadeNotice && !isImageExportPreview}
 					crossfadeNotice={getCrossfadePreviewNotice()}
 					onVideoEnded={goNextVideo}
 				/>

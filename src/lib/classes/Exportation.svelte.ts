@@ -22,6 +22,7 @@ export enum ExportState {
 
 export enum ExportKind {
 	Video = 'Video',
+	Image = 'Image',
 	Text = 'Text'
 }
 

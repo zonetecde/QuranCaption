@@ -597,7 +597,7 @@
 								{:else}
 									<div class="flex items-center justify-between text-xs text-gray-500 mt-1">
 										<span>
-											{#if getStepInfo(exportation.currentState)}
+											{#if exportation.exportKind !== ExportKind.Image && getStepInfo(exportation.currentState)}
 												{get(LL).export.stepOf({
 													current: getStepInfo(exportation.currentState)?.current ?? 1,
 													total: getStepInfo(exportation.currentState)?.total ?? 1
@@ -778,7 +778,7 @@
 								<div class="flex items-center gap-2 text-green-200 text-sm mb-1">
 									<span class="material-icons text-sm">check_circle</span>
 									<span class="font-medium">{get(LL).export.exportCompleted()}</span>
-									{#if !isTextExport(exportation)}
+									{#if exportation.exportKind === ExportKind.Video}
 										{#if publication?.status === 'uploading'}
 											<span class="ms-auto text-[11px] text-green-100/60">
 												{monitorMessage('youtubePublishing')} · {publication.progress}%

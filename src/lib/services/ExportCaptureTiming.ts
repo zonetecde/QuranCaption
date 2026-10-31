@@ -3,6 +3,28 @@ import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
 import { getTimedOverlayRanges, type TimedOverlayRange } from './TimedOverlayRanges';
 
 /**
+ * Calcule une capture à la fin de chaque sous-titre intersectant la plage d'images.
+ * @param {readonly { startTime: number; endTime: number }[]} clips Sous-titres à exporter, hors silences.
+ * @param {number} rangeStart Début inclus de la plage en millisecondes.
+ * @param {number} rangeEnd Fin exclue de la plage en millisecondes.
+ * @returns {number[]} Instants de capture ordonnés, à la fin de chaque sous-titre moins 1 ms.
+ */
+export function getSubtitleImageCaptureTimings(
+	clips: readonly { startTime: number; endTime: number }[],
+	rangeStart: number,
+	rangeEnd: number
+): number[] {
+	if (!(rangeEnd > rangeStart)) return [];
+	return clips
+		.filter(
+			(clip) =>
+				clip.endTime > rangeStart && clip.startTime < rangeEnd && clip.endTime > clip.startTime
+		)
+		.sort((a, b) => a.startTime - b.startTime)
+		.map((clip) => Math.max(clip.startTime, clip.endTime - 1));
+}
+
+/**
  * Calcule les instants d'overlay à matérialiser pendant l'export vidéo.
  *
  * L'export ne capture pas chaque frame de la vidéo. Il capture seulement des timings clés

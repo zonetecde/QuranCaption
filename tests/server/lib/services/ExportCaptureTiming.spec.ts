@@ -4,6 +4,7 @@ import {
 	calculateCaptureTimingsForRange,
 	buildExportCaptureJobPlan,
 	getBlankImageFileName,
+	getSubtitleImageCaptureTimings,
 	getExportWordByWordHighlightTimings,
 	getExportWordByWordHiddenArabicTimings,
 	getTimedOverlayStateAt,
@@ -14,6 +15,37 @@ import {
 	type ExportSubtitleWbwSourceClip,
 	type ExportTimedOverlayCaptureClip
 } from '$lib/services/ExportCaptureTiming';
+
+describe('subtitle image capture range', () => {
+	it('captures overlapping subtitles in timeline order at their actual end minus 1 ms', () => {
+		const clips = [
+			{ startTime: 4000, endTime: 6000 },
+			{ startTime: 0, endTime: 1000 },
+			{ startTime: 900, endTime: 2000 },
+			{ startTime: 2000, endTime: 4000 },
+			{ startTime: 5000, endTime: 7000 }
+		];
+		expect(getSubtitleImageCaptureTimings(clips, 1000, 5000)).toEqual([1999, 3999, 5999]);
+		expect(clips[0].startTime).toBe(4000);
+		expect(getSubtitleImageCaptureTimings(clips, 5000, 1000)).toEqual([]);
+		expect(getSubtitleImageCaptureTimings(clips, 1000, 1000)).toEqual([]);
+	});
+
+	it('ignores empty clips and keeps sub-millisecond captures inside the subtitle', () => {
+		expect(
+			getSubtitleImageCaptureTimings(
+				[
+					{ startTime: 1000, endTime: 1000 },
+					{ startTime: 2000, endTime: 1999 },
+					{ startTime: 3000, endTime: 3000.5 }
+				],
+				0,
+				4000
+			)
+		).toEqual([3000]);
+		expect(getSubtitleImageCaptureTimings([], 0, 4000)).toEqual([]);
+	});
+});
 
 function subtitle(
 	startTime: number,

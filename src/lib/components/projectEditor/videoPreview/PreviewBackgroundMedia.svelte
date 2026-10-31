@@ -4,6 +4,7 @@
 
 	let {
 		videoElement = $bindable(null),
+		crossOrigin,
 		video,
 		image,
 		loop,
@@ -15,6 +16,7 @@
 		onVideoEnded
 	}: {
 		videoElement?: HTMLVideoElement | null;
+		crossOrigin?: 'anonymous';
 		video: Asset | null | undefined;
 		image: Asset | null | undefined;
 		loop: boolean;
@@ -30,6 +32,7 @@
 {#if video}
 	<video
 		bind:this={videoElement}
+		crossorigin={crossOrigin}
 		src={`${convertFileSrc(video.filePath)}?v=${video.mediaReloadToken}`}
 		muted
 		{loop}

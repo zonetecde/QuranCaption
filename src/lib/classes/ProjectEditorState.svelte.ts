@@ -454,7 +454,8 @@ export class ExportState extends SerializableBase {
 	] as const;
 
 	// Indique le type d'export choisie
-	selectedChoice: 'video' | 'subtitles' | 'chapters' | 'project' | 'thumbnail' = $state('video');
+	selectedChoice: 'video' | 'subtitles' | 'chapters' | 'project' | 'thumbnail' | 'images' =
+		$state('video');
 
 	/*
 	 * ============================================

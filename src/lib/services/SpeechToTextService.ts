@@ -437,6 +437,7 @@ export async function transcribeProjectAudio(
 	ProjectHistoryManager.track(
 		copy.title(),
 		() => {
+			project.detail.audioLanguage = options.language.trim().toLowerCase() || 'ar';
 			if (overwriteExisting) {
 				project.projectEditorState.subtitlesEditor.editSubtitle = null;
 				project.projectEditorState.subtitlesEditor.pendingSplitEditNextId = null;

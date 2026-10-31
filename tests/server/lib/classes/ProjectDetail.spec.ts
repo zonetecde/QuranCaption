@@ -43,6 +43,16 @@ describe('ProjectDetail metadata', () => {
 		expect(ProjectDetail.NAME_MAX_LENGTH).toBe(150);
 	});
 
+	it('defaults new and legacy projects to Arabic and preserves the saved audio language', () => {
+		const detail = new ProjectDetail('Lecture', 'Speaker');
+		expect(detail.audioLanguage).toBe('ar');
+		const legacy = detail.toJSON();
+		delete legacy.audioLanguage;
+		expect((ProjectDetail.fromJSON(legacy) as ProjectDetail).audioLanguage).toBe('ar');
+		detail.audioLanguage = 'fr';
+		expect((ProjectDetail.fromJSON(detail.toJSON()) as ProjectDetail).audioLanguage).toBe('fr');
+	});
+
 	it('uses Unknown speaker when no speaker is provided', () => {
 		const detail = new ProjectDetail('Friday khutbah', '');
 

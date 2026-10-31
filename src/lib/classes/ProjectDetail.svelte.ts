@@ -24,6 +24,7 @@ export class ProjectDetail extends SerializableBase {
 	name: string;
 	speaker: string;
 	projectType: ProjectType;
+	audioLanguage: string;
 	createdAt: Date;
 	updatedAt: Date;
 
@@ -54,6 +55,7 @@ export class ProjectDetail extends SerializableBase {
 		this.name = $state(name);
 		this.speaker = $state(speaker || 'Unknown speaker');
 		this.projectType = $state(normalizeProjectType(projectType));
+		this.audioLanguage = $state('ar');
 		this.createdAt = $state(createdAt || new Date());
 		this.updatedAt = $state(updatedAt || new Date());
 

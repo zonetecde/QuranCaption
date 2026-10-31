@@ -285,6 +285,22 @@ describe('transcribing timeline audio', () => {
 		expect(globalState.getSubtitleTrack.clips).toHaveLength(4);
 	});
 
+	test('saves the selected audio language even in multilingual mode and restores it with undo', async () => {
+		await transcribeProjectAudio(
+			project,
+			clip.id,
+			{ ...globalState.settings!.speechToTextSettings, language: 'fr', containsArabicTerms: true },
+			new AbortController().signal,
+			vi.fn()
+		);
+		expect(vi.mocked(invoke).mock.calls[0][1]).toMatchObject({ request: { language: '' } });
+		expect(project.detail.audioLanguage).toBe('fr');
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(globalState.currentProject!.detail.audioLanguage).toBe('ar');
+		expect(ProjectHistoryManager.redo()).toBe(true);
+		expect(globalState.currentProject!.detail.audioLanguage).toBe('fr');
+	});
+
 	test('uses the ElevenLabs key and model independently of the Groq key', async () => {
 		const options = {
 			...globalState.settings!.speechToTextSettings,
@@ -533,12 +549,13 @@ describe('transcribing timeline audio', () => {
 				transcribeProjectAudio(
 					project,
 					clip.id,
-					{ ...globalState.settings!.speechToTextSettings },
+					{ ...globalState.settings!.speechToTextSettings, language: 'fr' },
 					controller.signal,
 					vi.fn(),
 					true
 				)
 			).rejects.toThrow();
+			expect(project.detail.audioLanguage).toBe('ar');
 			expect(track.clips).toEqual([existing]);
 			expect(existing.text).toBe(
 				action === 'edit' ? 'Manual edit during transcription' : 'Existing subtitle'

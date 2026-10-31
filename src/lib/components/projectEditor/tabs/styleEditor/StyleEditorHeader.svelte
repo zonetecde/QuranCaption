@@ -21,6 +21,20 @@
 		selectPanel: (panelId: string) => void;
 	} = $props();
 
+	const audioLanguage = $derived(globalState.currentProject?.detail?.audioLanguage || 'ar');
+	const audioLanguageLabel = $derived(
+		(
+			{
+				ar: $LL.editor.arabic(),
+				en: $LL.common.english(),
+				fr: $LL.common.french(),
+				es: $LL.common.spanish(),
+				de: $LL.common.german(),
+				id: $LL.common.indonesian()
+			} as Record<string, string>
+		)[audioLanguage] ?? audioLanguage
+	);
+
 	const visualMergeSelection = $derived(
 		globalState.getSubtitleTrack.getVisualMergeSelection(
 			globalState.getStylesState.selectedSubtitles
@@ -119,7 +133,7 @@
 						? 'style-target-tab-active'
 						: '')}
 				title={selection === 'arabic'
-					? $LL.editor.arabic()
+					? audioLanguageLabel
 					: selection === 'translation'
 						? $LL.editor.translation()
 						: $LL.status.video()}
@@ -129,7 +143,7 @@
 				</span>
 				<span class="truncate">
 					{selection === 'arabic'
-						? $LL.editor.arabic()
+						? audioLanguageLabel
 						: selection === 'translation'
 							? $LL.editor.translation()
 							: $LL.status.video()}

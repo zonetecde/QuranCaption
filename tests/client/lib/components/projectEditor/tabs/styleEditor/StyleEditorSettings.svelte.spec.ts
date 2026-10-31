@@ -67,6 +67,36 @@ describe('style editor visual merge actions', () => {
 		globalState.currentProject = null;
 	});
 
+	test.each([
+		[undefined, 'Arabic'],
+		['fr', 'Français'],
+		['en', 'English'],
+		['tr', 'tr']
+	])(
+		'labels the source style tab using the project audio language: %s',
+		async (language, label) => {
+			const projectEditorState = new ProjectEditorState();
+			globalState.currentProject = {
+				detail: { audioLanguage: language },
+				projectEditorState,
+				content: {
+					timeline: new Timeline([new SubtitleTrack(), new CustomTextTrack()]),
+					projectTranslation: { addedTranslationEditions: [] },
+					videoStyle: createMockVideoStyle()
+				}
+			} as never;
+			const component = render(StyleEditorSettings);
+			const sourceTab = component.container.querySelector<HTMLButtonElement>(
+				'[data-tour-id="style-subtabs"] button:nth-child(2)'
+			)!;
+			await expect.element(sourceTab.querySelector('.truncate')).toHaveTextContent(label!);
+			await expect.element(sourceTab).toHaveAttribute('title', label!);
+			sourceTab.click();
+			await tick();
+			expect(projectEditorState.stylesEditor.currentSelection).toBe('arabic');
+		}
+	);
+
 	test('shows visual merge actions for a valid consecutive Quran selection', async () => {
 		const first = createSubtitle(0, 999, 1);
 		const second = createSubtitle(1000, 1999, 2);

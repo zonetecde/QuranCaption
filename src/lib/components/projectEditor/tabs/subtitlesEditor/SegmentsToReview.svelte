@@ -29,38 +29,6 @@
 				clip.hasBeenVerified === true
 		).length
 	);
-	let lowConfidenceSegmentsNeedingReview = $derived(
-		(globalState.getSubtitleTrack?.clips || []).filter(
-			(clip): clip is SubtitleClip | PredefinedSubtitleClip =>
-				(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
-				isClipPendingVerification(clip) &&
-				clip.needsReview
-		).length
-	);
-	let coverageSegmentsNeedingReview = $derived(
-		(globalState.getSubtitleTrack?.clips || []).filter(
-			(clip): clip is SubtitleClip | PredefinedSubtitleClip =>
-				(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
-				isClipPendingVerification(clip) &&
-				clip.needsCoverageReview
-		).length
-	);
-	let longSegmentsNeedingReview = $derived(
-		(globalState.getSubtitleTrack?.clips || []).filter(
-			(clip): clip is SubtitleClip | PredefinedSubtitleClip =>
-				(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
-				isClipPendingVerification(clip) &&
-				clip.needsLongReview
-		).length
-	);
-	let missingWbwTimestampsCount = $derived(
-		(globalState.getSubtitleTrack?.clips || []).filter(
-			(clip): clip is SubtitleClip | PredefinedSubtitleClip =>
-				(clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) &&
-				isClipPendingVerification(clip) &&
-				clip.needsWbwTimestampReview
-		).length
-	);
 
 	/**
 	 * Déplace le curseur de la timeline sur un sous-titre donné.
@@ -124,40 +92,6 @@
 		<div class="flex items-center justify-between text-[10px] text-thirdly">
 			<span>{$LL.editor.reviewedVerified({ count: reviewedCount })}</span>
 			<span>{$LL.editor.totalFlagged({ count: initialLowConfidenceCount })}</span>
-		</div>
-		<div class="grid grid-cols-3 gap-2 text-[10px]">
-			<div
-				class="min-h-16 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-2 py-2 flex flex-col justify-between"
-			>
-				<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">
-					{$LL.editor.lowConfidence()}
-				</p>
-				<p class="text-sm font-semibold leading-none text-yellow-300 self-start">
-					{lowConfidenceSegmentsNeedingReview}
-				</p>
-			</div>
-			<div
-				class="min-h-16 rounded-md border border-orange-500/30 bg-orange-500/10 px-2 py-2 flex flex-col justify-between"
-			>
-				<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">
-					{$LL.editor.coverageIssues()}
-				</p>
-				<p class="text-sm font-semibold leading-none text-orange-300 self-start">
-					{coverageSegmentsNeedingReview}
-				</p>
-			</div>
-			<div
-				class="min-h-16 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-2 flex flex-col justify-between"
-			>
-				<p class="min-h-8 text-thirdly leading-tight text-wrap break-words">
-					{$LL.editor.tooLong()}{missingWbwTimestampsCount > 0
-						? ` / ${$LL.editor.missingWbwTimestampsShort()}`
-						: ''}
-				</p>
-				<p class="text-sm font-semibold leading-none text-rose-300 self-start">
-					{longSegmentsNeedingReview + missingWbwTimestampsCount}
-				</p>
-			</div>
 		</div>
 		{#if segmentsNeedingReview > 0}
 			<button

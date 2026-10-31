@@ -1214,6 +1214,11 @@ const ar = {
 			'verse-number': 'رقم الآية',
 			'show-verse-number': 'إظهار رقم الآية',
 			'text-direction': 'من اليمين إلى اليسار',
+			...{
+				'text-orientation': 'اتجاه النص',
+				ltr: 'LTR',
+				rtl: 'RTL'
+			},
 			'show-decorative-brackets': 'بين قوسين الزخرفية',
 			'decorative-brackets-font-family': 'نمط الأقواس الزخرفية',
 			'mushaf-style': 'مصحف',
@@ -1419,6 +1424,10 @@ const ar = {
 			'show-subtitles': 'تبديل رؤية الترجمة',
 			'show-verse-number': 'تبديل رؤية أرقام الآية',
 			'text-direction': 'اضبط اتجاه النص من اليمين إلى اليسار',
+			...{
+				'text-orientation':
+					'اختر اتجاه نص الترجمة: من اليسار إلى اليمين (LTR) أو من اليمين إلى اليسار (RTL).'
+			},
 			'show-decorative-brackets': 'إحاطة المقاطع القرآنية بأقواس مزخرفة',
 			'decorative-brackets-font-family':
 				'اختر زوج الحروف الرسومية المستخدم للأقواس المزخرفة (الفتح أولاً، والإغلاق ثانيًا). يستخدم الخط QPC2BSML.',

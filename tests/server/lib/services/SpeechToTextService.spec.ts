@@ -19,6 +19,7 @@ import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 import { globalState } from '$lib/runes/main.svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import { VerseTranslation } from '$lib/classes/Translation.svelte';
+import { Category, Style, StylesData } from '$lib/classes/VideoStyle.svelte';
 import {
 	buildSpeechSubtitles,
 	extendShortSubtitlesIntoSilence,
@@ -209,6 +210,14 @@ describe('transcribing timeline audio', () => {
 			new ProjectContent(new Timeline([audio, track]), [asset])
 		);
 		globalState.currentProject = project;
+		project.content.videoStyle.styles = [
+			new StylesData('arabic', [
+				new Category({
+					id: 'general',
+					styles: [new Style({ id: 'text-orientation', value: 'rtl' })]
+				})
+			])
+		];
 		globalState.settings = new Settings();
 		globalState.settings.speechToTextSettings.groqApiKey = 'test-groq-key';
 		globalState.settings.speechToTextSettings.maxWords = 2;
@@ -295,10 +304,42 @@ describe('transcribing timeline audio', () => {
 		);
 		expect(vi.mocked(invoke).mock.calls[0][1]).toMatchObject({ request: { language: '' } });
 		expect(project.detail.audioLanguage).toBe('fr');
+		expect(
+			project.content.videoStyle.getStylesOfTarget('arabic').findStyle('text-orientation')?.value
+		).toBe('ltr');
 		expect(ProjectHistoryManager.undo()).toBe(true);
 		expect(globalState.currentProject!.detail.audioLanguage).toBe('ar');
+		expect(
+			globalState.getVideoStyle.getStylesOfTarget('arabic').findStyle('text-orientation')?.value
+		).toBe('rtl');
 		expect(ProjectHistoryManager.redo()).toBe(true);
 		expect(globalState.currentProject!.detail.audioLanguage).toBe('fr');
+		expect(
+			globalState.getVideoStyle.getStylesOfTarget('arabic').findStyle('text-orientation')?.value
+		).toBe('ltr');
+	});
+
+	test.each([
+		['en', 'ltr'],
+		['ar', 'rtl'],
+		['fa', 'rtl'],
+		['fas', 'rtl'],
+		['he', 'rtl'],
+		['ur', 'rtl'],
+		['ckb', 'rtl'],
+		['ku', 'ltr'],
+		['dv', 'rtl']
+	])('sets subtitle orientation from the audio language %s', async (language, expected) => {
+		const styles = project.content.videoStyle.getStylesOfTarget('arabic');
+		styles.setStyle('text-orientation', expected === 'ltr' ? 'rtl' : 'ltr');
+		await transcribeProjectAudio(
+			project,
+			clip.id,
+			{ ...globalState.settings!.speechToTextSettings, language },
+			new AbortController().signal,
+			vi.fn()
+		);
+		expect(styles.findStyle('text-orientation')?.value).toBe(expected);
 	});
 
 	test('uses the ElevenLabs key and model independently of the Groq key', async () => {
@@ -556,6 +597,9 @@ describe('transcribing timeline audio', () => {
 				)
 			).rejects.toThrow();
 			expect(project.detail.audioLanguage).toBe('ar');
+			expect(
+				project.content.videoStyle.getStylesOfTarget('arabic').findStyle('text-orientation')?.value
+			).toBe('rtl');
 			expect(track.clips).toEqual([existing]);
 			expect(existing.text).toBe(
 				action === 'edit' ? 'Manual edit during transcription' : 'Existing subtitle'

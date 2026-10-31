@@ -4538,6 +4538,18 @@ type RootTranslation = {
 			 */
 			'text-direction': string;
 			/**
+			 * O​r​i​e​n​t​a​t​i​o​n
+			 */
+			'text-orientation': string;
+			/**
+			 * L​T​R
+			 */
+			ltr: string;
+			/**
+			 * R​T​L
+			 */
+			rtl: string;
+			/**
 			 * D​e​c​o​r​a​t​i​v​e​ ​B​r​a​c​k​e​t​s
 			 */
 			'show-decorative-brackets': string;
@@ -5347,6 +5359,10 @@ type RootTranslation = {
 			 * S​e​t​ ​t​h​e​ ​t​e​x​t​ ​d​i​r​e​c​t​i​o​n​ ​t​o​ ​R​i​g​h​t​-​t​o​-​L​e​f​t
 			 */
 			'text-direction': string;
+			/**
+			 * C​h​o​o​s​e​ ​l​e​f​t​-​t​o​-​r​i​g​h​t​ ​(​L​T​R​)​ ​o​r​ ​r​i​g​h​t​-​t​o​-​l​e​f​t​ ​(​R​T​L​)​ ​s​u​b​t​i​t​l​e​ ​t​e​x​t​.
+			 */
+			'text-orientation': string;
 			/**
 			 * W​r​a​p​ ​Q​u​r​a​n​ ​p​a​s​s​a​g​e​s​ ​w​i​t​h​ ​d​e​c​o​r​a​t​i​v​e​ ​b​r​a​c​k​e​t​s
 			 */
@@ -14969,6 +14985,18 @@ export type TranslationFunctions = {
 			 */
 			'text-direction': () => LocalizedString;
 			/**
+			 * Orientation
+			 */
+			'text-orientation': () => LocalizedString;
+			/**
+			 * LTR
+			 */
+			ltr: () => LocalizedString;
+			/**
+			 * RTL
+			 */
+			rtl: () => LocalizedString;
+			/**
 			 * Decorative Brackets
 			 */
 			'show-decorative-brackets': () => LocalizedString;
@@ -15778,6 +15806,10 @@ export type TranslationFunctions = {
 			 * Set the text direction to Right-to-Left
 			 */
 			'text-direction': () => LocalizedString;
+			/**
+			 * Choose left-to-right (LTR) or right-to-left (RTL) subtitle text.
+			 */
+			'text-orientation': () => LocalizedString;
 			/**
 			 * Wrap Quran passages with decorative brackets
 			 */

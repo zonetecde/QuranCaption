@@ -274,16 +274,6 @@
 					</p>{/if}
 			</fieldset>
 			<p class="text-xs text-thirdly">{copy.rearrangeNotice()}</p>
-			{#if !manualMode || !plan}
-				<button
-					type="button"
-					disabled={busy || (!manualMode && !hasTextAiKey) || !subtitles.length}
-					onclick={rearrange}
-					class="btn-accent w-full px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-				>
-					{manualMode ? manualCopy.prepare() : copy.rearrangeAction()}
-				</button>
-			{/if}
 			{#if plan}
 				<button
 					type="button"
@@ -292,6 +282,18 @@
 					class="btn-accent w-full px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
 					>{copy.rearrangeApplyAll()}</button
 				>
+			{/if}
+			{#if !manualMode || !plan}
+				<button
+					type="button"
+					disabled={busy || (!manualMode && !hasTextAiKey) || !subtitles.length}
+					onclick={rearrange}
+					class="{plan
+						? 'btn'
+						: 'btn-accent'} w-full px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+				>
+					{manualMode ? manualCopy.prepare() : copy.rearrangeAction()}
+				</button>
 			{/if}
 			{#if busy && !manualMode}
 				<p role="status" class="text-sm text-secondary">{copy.rearranging()} ({progress}%)</p>

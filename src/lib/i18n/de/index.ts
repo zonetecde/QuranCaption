@@ -1282,6 +1282,11 @@ const de = {
 			'verse-number': 'Versnummer',
 			'show-verse-number': 'Versnummer anzeigen',
 			'text-direction': 'Von rechts nach links',
+			...{
+				'text-orientation': 'Textrichtung',
+				ltr: 'LTR',
+				rtl: 'RTL'
+			},
 			'show-decorative-brackets': 'Dekorative Klammern',
 			'decorative-brackets-font-family': 'Klammern-Stil',
 			'mushaf-style': 'Mushaf',
@@ -1487,6 +1492,10 @@ const de = {
 			'show-subtitles': 'Sichtbarkeit der Untertitel ein- oder ausschalten',
 			'show-verse-number': 'Sichtbarkeit der Versnummern ein- oder ausschalten',
 			'text-direction': 'Textrichtung von rechts nach links festlegen',
+			...{
+				'text-orientation':
+					'Untertitel von links nach rechts (LTR) oder von rechts nach links (RTL) anzeigen.'
+			},
 			'show-decorative-brackets': 'Koranpassagen mit Zierklammern umschließen',
 			'decorative-brackets-font-family':
 				'Wählen Sie das Glyphenpaar für dekorative Klammern (öffnende zuerst, schließende danach). Verwendet die Schriftart QPC2BSML.',

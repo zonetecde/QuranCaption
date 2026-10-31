@@ -975,6 +975,9 @@ const editor = {
 		'verse-number': 'Verse Number',
 		'show-verse-number': 'Show Verse Number',
 		'text-direction': 'Right-to-Left',
+		'text-orientation': 'Orientation',
+		ltr: 'LTR',
+		rtl: 'RTL',
 		'show-decorative-brackets': 'Decorative Brackets',
 		'decorative-brackets-font-family': 'Decorative Brackets Style',
 		'mushaf-style': 'Mushaf',
@@ -1180,6 +1183,7 @@ const editor = {
 		'show-subtitles': 'Toggle the visibility of subtitles',
 		'show-verse-number': 'Toggle the visibility of verse numbers',
 		'text-direction': 'Set the text direction to Right-to-Left',
+		'text-orientation': 'Choose left-to-right (LTR) or right-to-left (RTL) subtitle text.',
 		'show-decorative-brackets': 'Wrap Quran passages with decorative brackets',
 		'decorative-brackets-font-family':
 			'Choose the glyph pair used for decorative brackets (opening first, closing second). Uses QPC2BSML font.',

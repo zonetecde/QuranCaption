@@ -438,6 +438,19 @@ export async function transcribeProjectAudio(
 		copy.title(),
 		() => {
 			project.detail.audioLanguage = options.language.trim().toLowerCase() || 'ar';
+			const script = new Intl.Locale(
+				/^[a-z]{2,3}$/.test(project.detail.audioLanguage) ? project.detail.audioLanguage : 'und'
+			).maximize().script;
+			project.content.videoStyle
+				.getStylesOfTarget('arabic')
+				.setStyle(
+					'text-orientation',
+					['Arab', 'Hebr', 'Thaa', 'Nkoo', 'Adlm', 'Rohg', 'Syrc', 'Samr', 'Mand'].includes(
+						script ?? ''
+					)
+						? 'rtl'
+						: 'ltr'
+				);
 			if (overwriteExisting) {
 				project.projectEditorState.subtitlesEditor.editSubtitle = null;
 				project.projectEditorState.subtitlesEditor.pendingSplitEditNextId = null;

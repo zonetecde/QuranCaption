@@ -6,7 +6,7 @@ import { Category, Style, StylesData, VideoStyle } from '$lib/classes/VideoStyle
 import { globalState } from '$lib/runes/main.svelte';
 
 describe('Style keyframes', () => {
-	it('adds the salawat display option to old styles without overwriting an existing choice', async () => {
+	it('adds subtitle options to old styles without overwriting existing choices', async () => {
 		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(
 			async (input) =>
 				({
@@ -20,18 +20,30 @@ describe('Style keyframes', () => {
 		);
 		const previousProject = globalState.currentProject;
 		globalState.currentProject = null;
+		const videoStyle = new VideoStyle();
+		const stylesSpy = vi.spyOn(globalState, 'getVideoStyle', 'get').mockReturnValue(videoStyle);
 		try {
-			const videoStyle = new VideoStyle();
 			videoStyle.styles = [new StylesData('arabic', [])];
 			await videoStyle.ensureStylesSchemaUpToDate([]);
 			const arabic = videoStyle.getStylesOfTarget('arabic');
 			expect(arabic.findStyle('salawat-as-symbol')?.value).toBe(false);
+			expect(arabic.findStyle('text-orientation')?.value).toBe('rtl');
 			arabic.setStyle('salawat-as-symbol', true);
+			arabic.setStyle('text-orientation', 'ltr');
 			await videoStyle.ensureStylesSchemaUpToDate([]);
 			expect(arabic.findStyle('salawat-as-symbol')?.value).toBe(true);
+			expect(arabic.findStyle('text-orientation')?.value).toBe('ltr');
+			expect(arabic.generateCSS()).toContain('direction: ltr;');
+			arabic.setStyle('text-orientation', 'rtl');
+			expect(arabic.generateCSS()).toContain('direction: rtl;');
+			const translation = new StylesData('english', [
+				new Category({ id: 'general', styles: [arabic.findStyle('text-orientation')!] })
+			]);
+			expect(translation.generateCSS()).not.toContain('direction:');
 		} finally {
 			globalState.currentProject = previousProject;
 			fetchSpy.mockRestore();
+			stylesSpy.mockRestore();
 		}
 	});
 	it('keeps the base value until the first keyframe is reached', () => {

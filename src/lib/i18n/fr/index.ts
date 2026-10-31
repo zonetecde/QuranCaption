@@ -1272,6 +1272,11 @@ const fr = {
 			'verse-number': 'Numéro de verset',
 			'show-verse-number': 'Afficher le numéro de verset',
 			'text-direction': 'De droite à gauche',
+			...{
+				'text-orientation': 'Orientation',
+				ltr: 'LTR',
+				rtl: 'RTL'
+			},
 			'show-decorative-brackets': 'Parenthèses décoratives',
 			'decorative-brackets-font-family': 'Style des parenthèses',
 			'mushaf-style': 'Mushaf',
@@ -1477,6 +1482,10 @@ const fr = {
 			'show-subtitles': 'Activer ou désactiver la visibilité des sous-titres',
 			'show-verse-number': 'Activer ou désactiver la visibilité des numéros de versets',
 			'text-direction': 'Définir la direction du texte de droite à gauche',
+			...{
+				'text-orientation':
+					'Choisir le sens des sous-titres : de gauche à droite (LTR) ou de droite à gauche (RTL).'
+			},
 			'show-decorative-brackets': 'Entourer les passages coraniques de parenthèses décoratives',
 			'decorative-brackets-font-family':
 				'Choisir la paire de glyphes utilisée pour les parenthèses décoratives (ouvrante en premier, fermante en second). Utilise la police QPC2BSML.',

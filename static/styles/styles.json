@@ -9,7 +9,7 @@
 			"groups": [
 				{
 					"id": "basics",
-					"styleIds": ["show-subtitles", "mushaf-style", "text-direction", "salawat-as-symbol"]
+					"styleIds": ["show-subtitles", "mushaf-style", "text-direction", "text-orientation", "salawat-as-symbol"]
 				},
 				{
 					"id": "verseNumber",
@@ -56,6 +56,17 @@
 				"css": "",
 				"tailwind": false,
 				"icon": "123"
+			},
+			{
+				"id": "text-orientation",
+				"name": "Orientation",
+				"description": "Choose left-to-right (LTR) or right-to-left (RTL) subtitle text.",
+				"value": "rtl",
+				"valueType": "select",
+				"options": ["ltr", "rtl"],
+				"css": "direction: {value};",
+				"tailwind": false,
+				"icon": "format_textdirection_r_to_l"
 			},
 			{
 				"id": "text-direction",

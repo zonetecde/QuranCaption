@@ -268,18 +268,6 @@
 			<p class="text-xs text-thirdly">{copy.notice()}</p>
 			<p class="text-xs text-thirdly">{copy.preserved()}</p>
 			{#if !manualMode && !hasKey}<p class="text-xs text-amber-400">{copy.keyRequired()}</p>{/if}
-			{#if !manualMode || !plan}
-				<button
-					type="button"
-					onclick={detect}
-					disabled={busy ||
-						(!manualMode && !hasKey) ||
-						!subtitles.length ||
-						(!detectQuran && !detectCitations)}
-					class="btn-accent w-full px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-					>{manualMode ? manualCopy.prepare() : copy.start()}</button
-				>
-			{/if}
 			{#if plan}<button
 					type="button"
 					onclick={() => apply(selectedIds)}
@@ -294,6 +282,20 @@
 					class="btn-accent w-full px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
 					>{copy.applyAll()} ({confirmedIds.length})</button
 				>{/if}
+			{#if !manualMode || !plan}
+				<button
+					type="button"
+					onclick={detect}
+					disabled={busy ||
+						(!manualMode && !hasKey) ||
+						!subtitles.length ||
+						(!detectQuran && !detectCitations)}
+					class="{plan
+						? 'btn'
+						: 'btn-accent'} w-full px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+					>{manualMode ? manualCopy.prepare() : copy.start()}</button
+				>
+			{/if}
 			{#if busy && !manualMode}
 				<p role="status" class="text-sm text-secondary">{copy.analyzing()} ({progress}%)</p>
 				<p class="text-xs text-thirdly">{speechCopy.cancelHint()}</p>

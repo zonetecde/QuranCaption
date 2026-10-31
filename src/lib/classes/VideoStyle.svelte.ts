@@ -65,6 +65,7 @@ export type GeneralStyleName =
 	| 'verse-number-format'
 	| 'verse-number-position'
 	| 'verse-number-numeral-system'
+	| 'text-orientation'
 	| 'text-direction';
 
 export type GlobalAnimationStyleName =
@@ -847,6 +848,7 @@ export class StylesData extends SerializableBase {
 			let skipCategory = false;
 
 			for (const style of category.styles) {
+				if (style.id === 'text-orientation' && this.target !== 'arabic') continue;
 				if (RUNTIME_LAYOUT_STYLE_IDS.has(style.id as StyleName)) continue;
 
 				const effectiveValue = this.getEffectiveValue(style.id as StyleName, clipId);
@@ -1000,7 +1002,7 @@ export class StylesData extends SerializableBase {
 					}
 				}
 
-				if (style.id === 'text-direction' && !effectiveValue) {
+				if (style.id === 'text-direction' && (this.target === 'arabic' || !effectiveValue)) {
 					continue;
 				}
 

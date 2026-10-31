@@ -924,15 +924,16 @@
 		return Boolean(styles.getEffectiveValue('show-subtitles', referenceClip?.id));
 	});
 
-	let shouldForceRtlJustify = $derived(() => {
-		const subtitle = currentSubtitle();
-		if (!(subtitle instanceof SubtitleClip)) return false;
-
+	/**
+	 * Retourne le sens du texte normal, RTL par défaut pour les anciens projets.
+	 * @returns {'ltr' | 'rtl'} Sens d'écriture du sous-titre.
+	 */
+	let textOrientation = $derived(() => {
 		const referenceClip = arabicReferenceClip();
 		const styles = globalState.getVideoStyle.getStylesOfTarget('arabic');
-		return (
-			String(styles.getEffectiveValue('horizontal-text-alignment', referenceClip?.id)) === 'justify'
-		);
+		return styles.getEffectiveValue('text-orientation', referenceClip?.id) === 'ltr'
+			? 'ltr'
+			: 'rtl';
 	});
 
 	/** CSS de capture qui garde le `display: block` attendu par modern-screenshot. */
@@ -976,7 +977,7 @@
 			verticalStyleId: 'vertical-position',
 			horizontalStyleId: 'horizontal-position'
 		}}
-		dir={shouldForceRtlJustify() ? 'rtl' : undefined}
+		dir={textOrientation()}
 		class={'arabic absolute subtitle select-none z-10 ' + tailwind + helperStyles}
 		style="opacity: {wbwState().enabled
 			? 1
@@ -994,11 +995,19 @@
 
 			{#if state.enabled && subtitle instanceof SubtitleClip}
 				<!-- Rendu WBW -->
-				<span class="arabic-wbw-flow line-background" dir="rtl" style="unicode-bidi: isolate;">
+				<span
+					class="arabic-wbw-flow line-background"
+					dir={textOrientation()}
+					style="unicode-bidi: isolate;"
+				>
 					{#each groups as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
 						<span
 							class="arabic-wbw-group"
-							dir="rtl"
+							dir={group.referenceType === 'quran'
+								? 'rtl'
+								: group.referenceType === 'citation'
+									? 'auto'
+									: textOrientation()}
 							style="unicode-bidi: isolate; {group.extraCss}"
 						>
 							{#if group.referenceType === 'quran' && showDecorativeBrackets()}
@@ -1091,12 +1100,10 @@
 {/if}
 
 {#snippet overlaySegmentsContent(segments: OverlayTextSegment[])}
-	{@const hasQuranReference = segments.some((segment) => segment.referenceType === 'quran')}
-	{@const hasRtlText = segments.some((segment) => /[\u0590-\u08FF]/u.test(segment.text))}
 	<span
 		class="translation-inline-flow line-background"
-		dir={hasQuranReference || hasRtlText ? 'rtl' : undefined}
-		style={hasRtlText ? 'unicode-bidi: isolate;' : undefined}
+		dir={textOrientation()}
+		style="unicode-bidi: isolate;"
 	>
 		{#each segments as segment (segment.key)}
 			{@const segmentStyle = `${segment.extraCss ?? ''} ${getInlineStyleCss(segment.flags)}`.trim()}
@@ -1120,7 +1127,7 @@
 					{#if !continuesNext}<span style={bracketStyle}>{glyphs.opening}</span>{/if}
 				</span>
 			{:else if segment.referenceType === 'citation'}
-				<span dir="rtl" style={`unicode-bidi: isolate; ${segmentStyle}`}>{segment.text}</span>
+				<span dir="auto" style={`unicode-bidi: isolate; ${segmentStyle}`}>{segment.text}</span>
 			{:else if segmentStyle}
 				<span style={segmentStyle}>{segment.text}</span>
 			{:else}

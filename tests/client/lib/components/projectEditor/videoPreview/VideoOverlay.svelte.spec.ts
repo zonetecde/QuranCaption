@@ -464,6 +464,40 @@ describe('Video overlay subtitle preview', () => {
 		QPCFontProvider.verseMappingV2 = undefined;
 	});
 
+	test.each([
+		['ltr', false],
+		['ltr', true],
+		['rtl', false],
+		['rtl', true]
+	] as const)('respects text orientation %s with WBW enabled: %s', async (direction, wbw) => {
+		const clip = createTimedTranscriptSubtitle('Comment va-t-il ? {{السلام عليكم}}', [
+			'Comment',
+			'va-t-il',
+			'?',
+			'السلام',
+			'عليكم'
+		]);
+		clip.translations = {};
+		if (!wbw) clip.alignmentMetadata = null;
+		const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 1500 });
+		const styles = fixture.videoStyle.getStylesOfTarget('arabic');
+		styles.setStyle('text-orientation', direction);
+		styles.setStyle('enable-wbw-highlight', wbw);
+		styles.setStyle('horizontal-text-alignment', 'justify');
+		const component = render(VideoOverlay);
+		await settleOverlay();
+		const subtitle = getForegroundArabicNode(component.container)!;
+		expect(subtitle.getAttribute('dir')).toBe(direction);
+		const flow = subtitle.querySelector(wbw ? '.arabic-wbw-flow' : '.translation-inline-flow')!;
+		expect(flow.getAttribute('dir')).toBe(direction);
+		if (wbw) expect(flow.querySelector('.arabic-wbw-group')?.getAttribute('dir')).toBe(direction);
+		const citation = Array.from(flow.querySelectorAll('span[dir="auto"]')).find(
+			(span) => normalizeText(span.textContent) === 'السلام عليكم'
+		);
+		expect(citation).toBeDefined();
+		expect(getComputedStyle(citation!).direction).toBe('rtl');
+	});
+
 	test.each([false, true])(
 		'renders plain and quoted Arabic with salawat substitution set to %s',
 		async (enabled) => {
@@ -507,6 +541,42 @@ describe('Video overlay subtitle preview', () => {
 		}
 	);
 
+	test.each([false, true])(
+		'keeps an English citation period on the right with WBW: %s',
+		async (wbw) => {
+			const clip = createTimedTranscriptSubtitle('{{O Allah, forgive me.}}', [
+				'O',
+				'Allah,',
+				'forgive',
+				'me.'
+			]);
+			clip.translations = {};
+			if (!wbw) clip.alignmentMetadata = null;
+			const fixture = setupVideoOverlayFixture([clip], { cursorPosition: 1500 });
+			fixture.videoStyle.getStylesOfTarget('arabic').setStyle('text-orientation', 'ltr');
+			const component = render(VideoOverlay);
+			await settleOverlay();
+			const citation = getForegroundArabicNode(component.container)!.querySelector(
+				'span[dir="auto"]'
+			)!;
+			expect(getComputedStyle(citation).direction).toBe('ltr');
+			expect(normalizeText(citation.textContent)).toBe('O Allah, forgive me.');
+			const words = citation.querySelectorAll('.wbw-line-background-text');
+			const firstText = (wbw ? words[0] : citation).firstChild!;
+			const lastText = (wbw ? words[words.length - 1] : citation).firstChild!;
+			const firstLetter = document.createRange();
+			firstLetter.setStart(firstText, 0);
+			firstLetter.setEnd(firstText, 1);
+			const period = document.createRange();
+			const periodIndex = lastText.textContent!.indexOf('.');
+			period.setStart(lastText, periodIndex);
+			period.setEnd(lastText, periodIndex + 1);
+			expect(period.getBoundingClientRect().left).toBeGreaterThan(
+				firstLetter.getBoundingClientRect().right
+			);
+		}
+	);
+
 	test('renders an Arabic citation in an isolated RTL context', async () => {
 		setupVideoOverlayFixture([
 			new SubtitleClip(0, 999, '{{ولمَّا ماتَ أظلمَ منها كل شيء،}}', {
@@ -526,7 +596,8 @@ describe('Video overlay subtitle preview', () => {
 
 		expect(flow?.getAttribute('dir')).toBe('rtl');
 		expect(flow?.getAttribute('style')).toContain('unicode-bidi: isolate');
-		expect(citation?.getAttribute('dir')).toBe('rtl');
+		expect(citation?.getAttribute('dir')).toBe('auto');
+		expect(getComputedStyle(citation!).direction).toBe('rtl');
 		expect(citation?.getAttribute('style')).toContain('unicode-bidi: isolate');
 		expect(citation?.textContent).toBe('ولمَّا ماتَ أظلمَ منها كل شيء،');
 	});
@@ -544,7 +615,7 @@ describe('Video overlay subtitle preview', () => {
 		for (const cursor of [79500, 82000]) {
 			await fixture.setCursor(cursor);
 			const citations = getArabicInlineFlowSpans(component.container).filter(
-				(span) => span.getAttribute('dir') === 'rtl'
+				(span) => span.getAttribute('dir') === 'auto'
 			);
 			expect(citations.map((span) => span.textContent)).toEqual([
 				'وأحسن الهدي هدي محمد',

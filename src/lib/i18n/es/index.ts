@@ -1269,6 +1269,11 @@ const es = {
 			'verse-number': 'Número de versículo',
 			'show-verse-number': 'Mostrar número de versículo',
 			'text-direction': 'De derecha a izquierda',
+			...{
+				'text-orientation': 'Orientación',
+				ltr: 'LTR',
+				rtl: 'RTL'
+			},
 			'show-decorative-brackets': 'Paréntesis decorativos',
 			'decorative-brackets-font-family': 'Estilo de paréntesis',
 			'mushaf-style': 'Mushaf',
@@ -1474,6 +1479,10 @@ const es = {
 			'show-subtitles': 'Activar o desactivar la visibilidad de los subtítulos',
 			'show-verse-number': 'Activar o desactivar la visibilidad de los números de versículos',
 			'text-direction': 'Establecer la dirección del texto de derecha a izquierda',
+			...{
+				'text-orientation':
+					'Elegir subtítulos de izquierda a derecha (LTR) o de derecha a izquierda (RTL).'
+			},
 			'show-decorative-brackets': 'Rodear los pasajes del Corán con corchetes decorativos',
 			'decorative-brackets-font-family':
 				'Elegir el par de glifos usado para los paréntesis decorativos (apertura primero, cierre después). Usa la fuente QPC2BSML.',

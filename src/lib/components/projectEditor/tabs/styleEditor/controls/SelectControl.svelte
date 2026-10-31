@@ -19,7 +19,9 @@
 >
 	{#each style.options || [] as option (`${option}`)}
 		<option value={option}>
-			{style.id === 'background-overlay-mode' || style.id === 'background-overlay-fade-curve'
+			{['background-overlay-mode', 'background-overlay-fade-curve', 'text-orientation'].includes(
+				style.id
+			)
 				? getStyleName(String(option), get(LL))
 				: option === 'Minimal Quran'
 					? $LL.editor.minimalQuran()

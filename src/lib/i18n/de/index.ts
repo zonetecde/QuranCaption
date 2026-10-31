@@ -360,6 +360,9 @@ const de = {
 		},
 		subtitleCorrection: {
 			...{
+				convertArabicPhonetics: 'Lautschriftliches Arabisch in arabischen Text umwandeln',
+				convertArabicPhoneticsDescription:
+					'Nur echte arabische Sätze oder Teilsätze umwandeln. Einzelne Wörter, Namen und Ausdrücke in anderssprachigen Sätzen in ihrer ursprünglichen Schrift belassen.',
 				warningsTitle: 'Zu prüfende Transkriptionsstellen',
 				warningsDescription:
 					'Jede Stelle enthält die beste Vermutung der KI aus dem Kontext, auch bei Unsicherheit. Höre nach, bearbeite sie bei Bedarf und bestätige sie. Diese Untertitel bleiben auch nach dem Anwenden oder Schließen dieses Fensters gelb und zur Prüfung markiert.',

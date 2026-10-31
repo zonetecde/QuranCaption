@@ -357,6 +357,9 @@ const fr = {
 		},
 		subtitleCorrection: {
 			...{
+				convertArabicPhonetics: 'Convertir le phonétique arabe en texte arabe',
+				convertArabicPhoneticsDescription:
+					'Convertir uniquement les véritables phrases ou propositions arabes. Conserver l’écriture des mots isolés, noms et expressions dans les phrases d’une autre langue.',
 				warningsTitle: 'Passages de transcription à vérifier',
 				warningsDescription:
 					'Chaque passage contient la meilleure hypothèse de l’IA à partir du contexte, même incertaine. Écoutez, ajustez si nécessaire, puis confirmez. Ces sous-titres restent en jaune et à vérifier après application ou fermeture de cette fenêtre.',

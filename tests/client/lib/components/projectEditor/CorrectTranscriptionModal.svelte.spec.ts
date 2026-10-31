@@ -94,6 +94,20 @@ afterEach(() => {
 	globalState.uiState.isSettingsOpen = false;
 });
 
+test.each([false, true])(
+	'enables Arabic phrase conversion by default and sends enabled=%s',
+	async (enabled) => {
+		const component = render(CorrectTranscriptionModal, { close: vi.fn() });
+		const option = component.getByRole('checkbox', {
+			name: /^Convert phonetic Arabic to Arabic text/
+		});
+		await expect.element(option).toBeChecked();
+		if (!enabled) await option.click();
+		await component.getByRole('button', { name: 'Find likely errors' }).click();
+		expect(vi.mocked(detectSubtitleCorrections).mock.calls[0][4]).toBe(enabled);
+	}
+);
+
 test('previews before/after without applying and lets users approve a subset', async () => {
 	await page.viewport(1280, 900);
 	const close = vi.fn();
@@ -269,6 +283,9 @@ test('cancels pending analysis and ignores late results', async () => {
 	const start = component.getByRole('button', { name: 'Find likely errors' });
 	await start.click();
 	await expect.element(start).toBeDisabled();
+	await expect
+		.element(component.getByRole('checkbox', { name: /^Convert phonetic Arabic to Arabic text/ }))
+		.toBeDisabled();
 	await component.getByRole('button', { name: 'Cancel', exact: true }).click();
 	expect(vi.mocked(detectSubtitleCorrections).mock.calls[0][1].aborted).toBe(true);
 	expect(close).toHaveBeenCalledOnce();

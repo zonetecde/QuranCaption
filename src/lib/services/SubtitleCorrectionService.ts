@@ -78,13 +78,15 @@ function assertCurrent(plan: SubtitleCorrectionPlan): void {
  * @param {AbortSignal} signal Annulation de l'analyse.
  * @param {(progress: number, totalBatches: number) => void} onProgress Progression des lots et total figé au lancement.
  * @param {ManualAiSession} [manual] Parcours copier-coller optionnel, sans fournisseur API.
+ * @param {boolean} [convertArabicPhonetics=true] Proposer la conversion des phrases arabes phonétiques.
  * @returns {Promise<SubtitleCorrectionPlan>} Corrections à approuver individuellement.
  */
 export async function detectSubtitleCorrections(
 	project: Project,
 	signal: AbortSignal,
 	onProgress: (progress: number, totalBatches: number) => void,
-	manual?: ManualAiSession
+	manual?: ManualAiSession,
+	convertArabicPhonetics: boolean = true
 ): Promise<SubtitleCorrectionPlan> {
 	const copy = getCopy();
 	const settings = { ...globalState.settings!.aiTranslationSettings };
@@ -136,6 +138,7 @@ export async function detectSubtitleCorrections(
 		const batch = subtitles.slice(offset, end);
 		const input = {
 			language: get(locale),
+			convertArabicPhonetics,
 			subtitles: subtitles
 				.slice(Math.max(0, offset - 2), end + 2)
 				.map(({ id, text, editable }) => ({

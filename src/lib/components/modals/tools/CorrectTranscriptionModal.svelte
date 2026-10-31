@@ -23,6 +23,7 @@
 	let { close }: { close: () => void } = $props();
 	const project = untrack(() => globalState.currentProject!);
 	let manualMode = $state(false);
+	let convertArabicPhonetics = $state(true);
 	const manualSession = new ManualAiSession();
 	const manualCopy = $derived(($LL.editor as unknown as { manualAi: ManualAiCopy }).manualAi);
 	const timeline = project.projectEditorState.timeline;
@@ -150,7 +151,8 @@
 						progress = Math.round(value * 100);
 						batchCount = total;
 					},
-					manualMode ? manualSession : undefined
+					manualMode ? manualSession : undefined,
+					convertArabicPhonetics
 				);
 			const result = manualMode
 				? await run()
@@ -520,6 +522,25 @@
 					>{subtitles.length}</span
 				>
 			</div>
+			<label
+				class="flex cursor-pointer items-start gap-3 rounded-xl border border-color bg-primary p-4"
+			>
+				<input
+					type="checkbox"
+					bind:checked={convertArabicPhonetics}
+					disabled={busy}
+					class="mt-1 h-4 w-4 shrink-0 rounded accent-[var(--accent-primary)]"
+				/>
+				<span class="text-sm font-medium text-primary">
+					{copy.convertArabicPhonetics()}
+					<span
+						class="material-icons cursor-help align-middle text-sm! opacity-50 text-secondary"
+						title={copy.convertArabicPhoneticsDescription()}
+						aria-label={copy.convertArabicPhoneticsDescription()}
+						role="img">info_outline</span
+					>
+				</span>
+			</label>
 			<div class="space-y-3 rounded-xl border border-color bg-primary p-4">
 				<span class="material-icons text-xl text-accent" aria-hidden="true">headphones</span>
 				<p class="text-sm leading-relaxed text-primary">{copy.notice()}</p>

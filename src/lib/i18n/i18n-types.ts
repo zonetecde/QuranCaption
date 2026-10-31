@@ -1334,6 +1334,14 @@ type RootTranslation = {
 		};
 		subtitleCorrection: {
 			/**
+			 * C​o​n​v​e​r​t​ ​p​h​o​n​e​t​i​c​ ​A​r​a​b​i​c​ ​t​o​ ​A​r​a​b​i​c​ ​t​e​x​t
+			 */
+			convertArabicPhonetics: string;
+			/**
+			 * C​o​n​v​e​r​t​ ​o​n​l​y​ ​g​e​n​u​i​n​e​ ​A​r​a​b​i​c​ ​s​e​n​t​e​n​c​e​s​ ​o​r​ ​c​l​a​u​s​e​s​.​ ​K​e​e​p​ ​i​s​o​l​a​t​e​d​ ​w​o​r​d​s​,​ ​n​a​m​e​s​ ​a​n​d​ ​e​x​p​r​e​s​s​i​o​n​s​ ​w​i​t​h​i​n​ ​s​e​n​t​e​n​c​e​s​ ​i​n​ ​a​n​o​t​h​e​r​ ​l​a​n​g​u​a​g​e​ ​i​n​ ​t​h​e​i​r​ ​o​r​i​g​i​n​a​l​ ​s​c​r​i​p​t​.
+			 */
+			convertArabicPhoneticsDescription: string;
+			/**
 			 * T​r​a​n​s​c​r​i​p​t​i​o​n​ ​p​a​s​s​a​g​e​s​ ​t​o​ ​v​e​r​i​f​y
 			 */
 			warningsTitle: string;
@@ -11818,6 +11826,14 @@ export type TranslationFunctions = {
 			installOther: () => LocalizedString;
 		};
 		subtitleCorrection: {
+			/**
+			 * Convert phonetic Arabic to Arabic text
+			 */
+			convertArabicPhonetics: () => LocalizedString;
+			/**
+			 * Convert only genuine Arabic sentences or clauses. Keep isolated words, names and expressions within sentences in another language in their original script.
+			 */
+			convertArabicPhoneticsDescription: () => LocalizedString;
 			/**
 			 * Transcription passages to verify
 			 */

@@ -94,6 +94,9 @@ const editor = {
 			'Install the official FFmpeg build for your platform from https://ffmpeg.org/download.html and add both ffmpeg and ffprobe to your PATH.'
 	},
 	subtitleCorrection: {
+		convertArabicPhonetics: 'Convert phonetic Arabic to Arabic text',
+		convertArabicPhoneticsDescription:
+			'Convert only genuine Arabic sentences or clauses. Keep isolated words, names and expressions within sentences in another language in their original script.',
 		warningsTitle: 'Transcription passages to verify',
 		warningsDescription:
 			'Each passage includes the AI’s best contextual guess, even when uncertain. Listen, edit it if needed, then confirm. These subtitles remain yellow and marked for review after applying a proposal or closing this window.',

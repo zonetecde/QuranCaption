@@ -109,25 +109,37 @@ For every clearly garbled passage whose replacement is uncertain, return a warni
 Write every reason in corrections and warnings in input.language (the application's UI language).
 Return JSON only: {"corrections":[{"id":1,"before":"exact original subtitle","after":"minimally corrected subtitle","reason":"Why this is a likely transcription confusion.","confidence":0.99}],"warnings":[{"id":2,"text":"exact original subtitle","suggestion":"best contextual reconstruction of the complete subtitle","reason":"Contextual guess; listen to verify the actual words."}]}. Every correction must contain exactly those five fields. confidence is a number from 0 to 1, not a percentage. Every warning must contain exactly id, text, suggestion and reason. Use empty arrays when there are no corrections or warnings."#;
 
+/// Adapte la consigne de conversion phonétique au choix du lot.
+/// `batch` contient l'option ; retourne le prompt complet de correction.
+fn correction_system_prompt(batch: &Value) -> String {
+    let instruction = if batch.get("convertArabicPhonetics").and_then(Value::as_bool) == Some(true)
+    {
+        "Convert phonetic Arabic sentences or clauses to Arabic script, preserving subtitle boundaries. Leave isolated words, names and expressions within other-language sentences unchanged (e.g. At-Tirmidhi); do not translate."
+    } else {
+        "Do not convert phonetic Arabic to Arabic script."
+    };
+    format!("{CORRECT_TRANSCRIPTION_SYSTEM_PROMPT}\n{instruction}")
+}
+
 /// Prépare localement les mêmes instructions que l'API, sans clé ni requête réseau.
 #[tauri::command]
 pub fn prepare_manual_ai_prompt(kind: String, request: Value) -> Result<String, String> {
     let batch = request.get("batch").ok_or("MANUAL_AI_INPUT")?;
     let (system, user) = match kind.as_str() {
         "detect_subtitle_corrections" => (
-            CORRECT_TRANSCRIPTION_SYSTEM_PROMPT,
+            correction_system_prompt(batch),
             serde_json::to_string_pretty(batch).map_err(|error| error.to_string())?,
         ),
         "detect_subtitle_references" => (
-            DETECT_REFERENCES_SYSTEM_PROMPT,
+            DETECT_REFERENCES_SYSTEM_PROMPT.to_owned(),
             serde_json::to_string_pretty(batch).map_err(|error| error.to_string())?,
         ),
         "rearrange_subtitle_words" => (
-            REARRANGE_SYSTEM_PROMPT,
+            REARRANGE_SYSTEM_PROMPT.to_owned(),
             serde_json::to_string_pretty(batch).map_err(|error| error.to_string())?,
         ),
         "project_translation" => (
-            prompts::PROJECT_TRANSLATION_SYSTEM_PROMPT,
+            prompts::PROJECT_TRANSLATION_SYSTEM_PROMPT.to_owned(),
             prompts::build_project_translation_user_prompt(
                 request
                     .get("targetLanguage")
@@ -185,6 +197,7 @@ pub async fn detect_subtitle_corrections(
         },"required":["id","text","suggestion","reason"],"additionalProperties":false
     }}},"required":["corrections","warnings"],"additionalProperties":false});
     let user = serde_json::to_string(&request.batch).map_err(|_| "CORRECTIONS_INPUT")?;
+    let system = correction_system_prompt(&request.batch);
     let is_chat_completions = prompts::is_chat_completions_endpoint(&endpoint);
     let body = if is_chat_completions {
         prompts::build_chat_completions_body(
@@ -192,7 +205,7 @@ pub async fn detect_subtitle_corrections(
             &request.reasoning_effort,
             request.thinking_enabled,
             &endpoint,
-            CORRECT_TRANSCRIPTION_SYSTEM_PROMPT,
+            &system,
             &user,
             "subtitle_corrections",
             "Minimal corrections and uncertain contextual reconstructions for user review.",
@@ -202,7 +215,7 @@ pub async fn detect_subtitle_corrections(
         prompts::build_responses_api_body(
             &request.model,
             &request.reasoning_effort,
-            CORRECT_TRANSCRIPTION_SYSTEM_PROMPT,
+            &system,
             &user,
             "subtitle_corrections",
             "Minimal corrections and uncertain contextual reconstructions for user review.",

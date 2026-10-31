@@ -108,6 +108,83 @@ test('rejects stale and invalid manual corrections before retrying without a key
 	expect((globalState.getSubtitleTrack.clips[0] as SubtitleClip).text).toBe('He read a massage.');
 });
 
+test.each([
+	{ mode: 'api', enabled: undefined },
+	{ mode: 'api', enabled: true },
+	{ mode: 'api', enabled: false },
+	{ mode: 'manual', enabled: undefined },
+	{ mode: 'manual', enabled: true },
+	{ mode: 'manual', enabled: false }
+])(
+	'passes phonetic Arabic conversion preference via $mode with enabled=$enabled',
+	async ({ mode, enabled }) => {
+		const session = mode === 'manual' ? new ManualAiSession() : undefined;
+		if (session) {
+			globalState.settings!.aiTranslationSettings.openAiApiKey = '';
+			vi.mocked(invoke).mockResolvedValue('Correction instructions');
+			session.start();
+		} else vi.mocked(invoke).mockResolvedValue({ corrections: [] });
+		const detecting = detectSubtitleCorrections(
+			project,
+			new AbortController().signal,
+			vi.fn(),
+			session,
+			enabled
+		);
+		if (session) {
+			await vi.waitFor(() => expect(session.steps).toHaveLength(1));
+			const step = session.steps[0];
+			const requestId = step.prompt.match(/"requestId":"([^"]+)"/)![1];
+			step.response = JSON.stringify({ requestId, result: { corrections: [] } });
+			session.submit();
+		}
+		await detecting;
+		expect(invoke).toHaveBeenCalledWith(
+			session ? 'prepare_manual_ai_prompt' : 'detect_subtitle_corrections',
+			expect.objectContaining({
+				request: expect.objectContaining({
+					batch: expect.objectContaining({ convertArabicPhonetics: enabled ?? true })
+				})
+			})
+		);
+	}
+);
+
+test('previews Arabic script conversion and applies it with undo while resetting changed word alignment', async () => {
+	const clip = track.clips[0] as SubtitleClip;
+	clip.text = 'alhamdoulilah rabbi alameen';
+	clip.alignmentMetadata = {
+		source: 'api',
+		matchedText: clip.text,
+		timeFrom: 1,
+		timeTo: 3,
+		words: clip.text
+			.split(' ')
+			.map((word, index) => ({ word, start: index * 0.5, end: (index + 1) * 0.5 }))
+	};
+	vi.mocked(invoke).mockResolvedValue({
+		corrections: [correction({ before: clip.text, after: 'الحمد لله رب العالمين' })]
+	});
+	const plan = await detectSubtitleCorrections(project, new AbortController().signal, vi.fn());
+	expect(clip.text).toBe('alhamdoulilah rabbi alameen');
+	applySubtitleCorrections(project, plan, [1]);
+	expect(clip.text).toBe('الحمد لله رب العالمين');
+	expect(clip.startTime).toBe(1000);
+	expect(clip.endTime).toBe(3000);
+	expect(clip.alignmentMetadata.words).toEqual([]);
+	ProjectHistoryManager.undo();
+	expect((globalState.getSubtitleTrack.clips[0] as SubtitleClip).text).toBe(
+		'alhamdoulilah rabbi alameen'
+	);
+	expect(
+		(globalState.getSubtitleTrack.clips[0] as SubtitleClip).alignmentMetadata?.words
+	).toHaveLength(3);
+	ProjectHistoryManager.redo();
+	expect((globalState.getSubtitleTrack.clips[0] as SubtitleClip).text).toBe(
+		'الحمد لله رب العالمين'
+	);
+});
+
 test('previews changes without mutation and applies only approved subtitles in one undoable action', async () => {
 	const first = track.clips[0] as SubtitleClip;
 	first.alignmentMetadata = {

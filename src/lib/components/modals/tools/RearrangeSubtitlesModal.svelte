@@ -274,14 +274,16 @@
 					</p>{/if}
 			</fieldset>
 			<p class="text-xs text-thirdly">{copy.rearrangeNotice()}</p>
-			<button
-				type="button"
-				disabled={busy || (!manualMode && !hasTextAiKey) || !subtitles.length}
-				onclick={rearrange}
-				class="btn-accent w-full px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-			>
-				{manualMode ? manualCopy.prepare() : copy.rearrangeAction()}
-			</button>
+			{#if !manualMode || !plan}
+				<button
+					type="button"
+					disabled={busy || (!manualMode && !hasTextAiKey) || !subtitles.length}
+					onclick={rearrange}
+					class="btn-accent w-full px-3 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+				>
+					{manualMode ? manualCopy.prepare() : copy.rearrangeAction()}
+				</button>
+			{/if}
 			{#if plan}
 				<button
 					type="button"

@@ -588,17 +588,19 @@
 						class="btn w-full px-3 py-2.5 text-sm">{copy.applyAll()}</button
 					>
 				{/if}
-				<button
-					type="button"
-					onclick={detect}
-					disabled={busy || (!manualMode && !hasKey) || !subtitles.length}
-					class="{plan?.proposals.length
-						? 'btn'
-						: 'btn-accent'} flex w-full items-center justify-center gap-2 px-3 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
-					><span class="material-icons text-lg" aria-hidden="true">manage_search</span>{manualMode
-						? manualCopy.prepare()
-						: copy.start()}</button
-				>
+				{#if !manualMode || !plan}
+					<button
+						type="button"
+						onclick={detect}
+						disabled={busy || (!manualMode && !hasKey) || !subtitles.length}
+						class="{plan?.proposals.length
+							? 'btn'
+							: 'btn-accent'} flex w-full items-center justify-center gap-2 px-3 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+						><span class="material-icons text-lg" aria-hidden="true">manage_search</span>{manualMode
+							? manualCopy.prepare()
+							: copy.start()}</button
+					>
+				{/if}
 				{#if busy && !manualMode}<p class="text-xs text-thirdly">{speechCopy.cancelHint()}</p>
 					<button type="button" onclick={dismiss} class="btn w-full px-3 py-2.5 text-sm"
 						>{$LL.common.cancel()}</button

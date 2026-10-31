@@ -543,12 +543,11 @@
 				>{$LL.common.close()}</button
 			>
 			{#if manualMode}
-				{#if !isRunning && !hasFinished}
+				{#if !isRunning && !hasFinished && !manualSession.ready}
 					<button
-						class="{manualSession.ready ? 'btn' : 'btn-accent'} px-4 py-2"
-						onclick={manualSession.ready ? resetMode : prepareManualTranslation}
-						disabled={!manualSession.ready && eligibleCount() === 0}
-						>{manualSession.ready ? $LL.common.reset() : manualCopy.prepare()}</button
+						class="btn-accent px-4 py-2"
+						onclick={prepareManualTranslation}
+						disabled={eligibleCount() === 0}>{manualCopy.prepare()}</button
 					>
 				{/if}
 				{#if manualSession.ready && !hasFinished}

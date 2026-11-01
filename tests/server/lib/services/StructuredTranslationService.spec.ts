@@ -82,6 +82,26 @@ describe('StructuredTranslationService', () => {
 		expect(draft.anchors[0].sourceValue).toBe('2:255:1-3');
 	});
 
+	test.each([
+		['{{1:1:1-2}}dsdsd{{citation}}', '{{1:1:1-2}}', '{{1:1:1-2}}{{}}'],
+		['{{citation}}{{1:1}}', '{{1:1}}', '{{}}{{1:1}}'],
+		['before{{1:1}}', 'translated {{1:1}}{{a saying}} end', 'translated {{1:1}}a saying end'],
+		[
+			'{{1:1}}{{new citation}}{{1:2}}',
+			'{{1:1}} between {{1:2}} end',
+			'{{1:1}}{{}} between {{1:2}} end'
+		],
+		['plain text', '{{a saying}} after', 'a saying after'],
+		['{{1:2}}', '{{1:1}}{{1:2}}', '{{1:2}}']
+	])(
+		'realigns changed source blocks without exposing markers: %s',
+		(source, translation, expected) => {
+			const draft = getStructuredTranslationDraft(source, translation);
+			expect(serializeStructuredTranslation(draft)).toBe(expected);
+			expect(draft.freeTexts.join('')).not.toContain('{{');
+		}
+	);
+
 	test('allows attribution text to move after a protected quotation', () => {
 		const source = 'قال {{إنما الأعمال بالنيات}}';
 		const draft = getStructuredTranslationDraft(

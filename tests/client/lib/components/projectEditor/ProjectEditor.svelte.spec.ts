@@ -8,6 +8,10 @@ import { SubtitleTrack } from '$lib/classes/Track.svelte';
 import { ProjectTranslation } from '$lib/classes/ProjectTranslation.svelte';
 import { VerseTranslation } from '$lib/classes/Translation.svelte';
 import ProjectEditor from '$lib/components/projectEditor/ProjectEditor.svelte';
+import TimelineSubtitleClip from '$lib/components/projectEditor/timeline/track/SubtitleClip.svelte';
+import { Quran, Verse, Word } from '$lib/classes/Quran';
+import { loadLocale } from '$lib/i18n/i18n-util.sync';
+import { setLocale } from '$lib/i18n/i18n-svelte';
 import { globalState } from '$lib/runes/main.svelte';
 
 vi.mock('$lib/components/projectEditor/Navigator.svelte', async () => ({
@@ -154,5 +158,50 @@ describe('Project Quran translation loading', () => {
 		await tick();
 		await new Promise((resolve) => setTimeout(resolve, 0));
 		expect(translations.versesTranslations).toEqual({});
+	});
+
+	test('refreshes timeline Quran text when Arabic and translation loads finish without an UI refresh', async () => {
+		loadLocale('en');
+		setLocale('en');
+		let finishArabic!: (verse: Verse) => void;
+		const arabic = new Promise<Verse>((resolve) => {
+			finishArabic = resolve;
+		});
+		vi.spyOn(Quran, 'load').mockResolvedValue(undefined);
+		vi.spyOn(Quran, 'getVerse').mockReturnValue(arabic);
+		let finishTranslation!: (text: string) => void;
+		const translated = new Promise<string>((resolve) => {
+			finishTranslation = resolve;
+		});
+		vi.spyOn(translations, 'downloadVerseTranslation').mockReturnValue(translated);
+		const refresh = vi
+			.spyOn(globalState, 'updateVideoPreviewUI')
+			.mockImplementation(() => undefined);
+		subtitle.text = '{{37:104:1-2}} {{new quotation}}';
+		const language = translations.addedTranslationEditions[0];
+		subtitle.translations = { [language.name]: new VerseTranslation('{{37:104:1-2}}', 'reviewed') };
+		(subtitle.translations[language.name] as VerseTranslation).isStructuredTranslation = true;
+		render(ProjectEditor);
+		const component = render(TimelineSubtitleClip, {
+			clip: subtitle,
+			track: globalState.getSubtitleTrack
+		});
+		await tick();
+		expect(component.container.querySelector('.timeline-arabic')?.textContent).toContain(
+			'{{37:104:1-2}}'
+		);
+		expect(component.container.querySelector('p[dir="auto"]')?.textContent).not.toContain('{{');
+		finishArabic(new Verse(104, [new Word('وَنَادَيْنَاهُ', '', ''), new Word('أَنْ', '', '')]));
+		finishTranslation('We called out to him');
+		await expect
+			.poll(() => component.container.querySelector('.timeline-arabic')?.textContent)
+			.toContain('وَنَادَيْنَاهُ أَنْ');
+		await expect
+			.poll(() => component.container.querySelector('p[dir="auto"]')?.textContent)
+			.toContain('We called out to him');
+		expect(component.container.querySelector('.timeline-arabic')?.textContent).not.toContain('{{');
+		expect(subtitle.text).toBe('{{37:104:1-2}} {{new quotation}}');
+		expect(subtitle.translations[language.name].text).toBe('{{37:104:1-2}}');
+		expect(refresh).toHaveBeenCalled();
 	});
 });

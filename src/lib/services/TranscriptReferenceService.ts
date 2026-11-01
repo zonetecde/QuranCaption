@@ -2,6 +2,7 @@ import { Quran, type Verse } from '$lib/classes/Quran';
 import QPCFontProvider from '$lib/services/FontProvider';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
+import { SvelteMap } from 'svelte/reactivity';
 
 import {
 	MARKER_REGEX,
@@ -16,7 +17,7 @@ export type { QuranTranscriptReference, TranscriptReferenceLogicalPart } from '.
 
 export type TranscriptReferenceExportFormat = 'Plain' | 'V1' | 'V2';
 
-const verseCache = new Map<string, Verse>();
+const verseCache = new SvelteMap<string, Verse>();
 const versePromises = new Map<string, Promise<Verse | null>>();
 
 /**

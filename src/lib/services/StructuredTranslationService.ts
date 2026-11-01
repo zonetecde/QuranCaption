@@ -92,13 +92,39 @@ export function getStructuredTranslationDraft(
 	const source = splitMarkedText(sourceText);
 	const translation = splitMarkedText(translationText);
 	const hasMatchingMarkerCount = translation.markers.length === source.markers.length;
-	const freeTexts = hasMatchingMarkerCount
+	let freeTexts = hasMatchingMarkerCount
 		? translation.freeTexts
 		: [translationText, ...Array.from({ length: source.markers.length }, () => '')];
+	const translatedValues = hasMatchingMarkerCount ? translation.markers : [];
+
+	if (!hasMatchingMarkerCount && translation.markers.length > 0) {
+		// Réaligne les blocs après une insertion/suppression sans afficher les anciens marqueurs.
+		freeTexts = Array.from({ length: source.markers.length + 1 }, () => '');
+		let sourceSlot = 0;
+		for (const [translationIndex, value] of translation.markers.entries()) {
+			const reference = parseQuranTranscriptReference(value.trim());
+			const sourceIndex = source.markers.findIndex(
+				(sourceValue, index) =>
+					index >= sourceSlot &&
+					(reference
+						? sourceValue.trim() === value.trim()
+						: !parseQuranTranscriptReference(sourceValue.trim()))
+			);
+			freeTexts[sourceIndex < 0 ? sourceSlot : sourceIndex] +=
+				translation.freeTexts[translationIndex] ?? '';
+			if (sourceIndex < 0) {
+				if (!reference) freeTexts[sourceSlot] += value;
+				continue;
+			}
+			translatedValues[sourceIndex] = value;
+			sourceSlot = sourceIndex + 1;
+		}
+		freeTexts[sourceSlot] += translation.freeTexts[translation.markers.length] ?? '';
+	}
 
 	const anchors: StructuredTranslationAnchor[] = source.markers.map((sourceValue, index) => {
 		const quranReference = parseQuranTranscriptReference(sourceValue.trim());
-		const translatedValue = hasMatchingMarkerCount ? (translation.markers[index] ?? '') : '';
+		const translatedValue = translatedValues[index] ?? '';
 
 		return {
 			id: `${quranReference ? 'quran' : 'citation'}-${index}`,

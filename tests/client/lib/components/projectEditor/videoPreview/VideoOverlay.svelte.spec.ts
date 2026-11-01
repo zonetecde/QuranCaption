@@ -1324,6 +1324,43 @@ describe('Decorative brackets', () => {
 		globalState.settings = undefined;
 	});
 
+	test.each([
+		{ wbw: false, sources: ['{{1:1:1-2}}', '{{1:1:3-4}}'], counts: [1, 1] },
+		{ wbw: true, sources: ['{{1:1:1-2}}', '{{1:1:3-4}}'], counts: [1, 1] },
+		{ wbw: false, sources: ['{{1:1:1-2}}على', '{{1:1:3-4}}'], counts: [2, 2] },
+		{ wbw: true, sources: ['{{1:1:1-2}}على', '{{1:1:3-4}}'], counts: [2, 2] },
+		{ wbw: false, sources: ['{{1:1:1-2}}', 'على{{1:1:3-4}}'], counts: [2, 2] },
+		{ wbw: true, sources: ['{{1:1:1-2}}', 'على{{1:1:3-4}}'], counts: [2, 2] }
+	])(
+		'respects Arabic passage interruptions with WBW=$wbw: $sources',
+		async ({ wbw, sources, counts }) => {
+			await prefetchTranscriptReferences(sources);
+			const clips = sources.map((source, index) => {
+				const words = source.includes('على') ? ['first', 'second', 'على'] : ['first', 'second'];
+				const clip = createTimedTranscriptSubtitle(source, words);
+				clip.startTime = index * 4000;
+				clip.endTime = index * 4000 + 3000;
+				if (!wbw) clip.alignmentMetadata = null;
+				return clip;
+			});
+			const fixture = setupVideoOverlayFixture(clips, { cursorPosition: 1500 });
+			fixture.videoStyle
+				.getStylesOfTarget('arabic-quran')
+				.setStyle('show-decorative-brackets', true);
+			fixture.videoStyle.getStylesOfTarget('arabic').setStyle('enable-wbw-highlight', wbw);
+			const component = render(VideoOverlay);
+			await settleOverlay();
+
+			for (let index = 0; index < clips.length; index++) {
+				await fixture.setCursor(index * 4000 + 1500);
+				await settleOverlay();
+				const node = getForegroundArabicNode(component.container)!;
+				expect(node.querySelectorAll('span[style*="QPC2BSML"]')).toHaveLength(counts[index]);
+				expect(Boolean(node.querySelector('.arabic-wbw-flow'))).toBe(wbw);
+			}
+		}
+	);
+
 	test('shows decorative brackets when enabled', async () => {
 		const fixture = setupVideoOverlayFixture(
 			[createVerseSubtitle(0, 999, 'Test Arabic', 'Test translation')],
@@ -2004,20 +2041,41 @@ describe('Translation inline styles', () => {
 	);
 
 	test.each([
-		{ references: ['38:49:1-2', '38:49:3-4', '38:49:5-6'], brackets: ['L', '', 'M'] },
-		{ references: ['38:49:1-2', '38:49:5-6'], brackets: ['LM', 'LM'] },
-		{ references: ['38:49:1-2', '38:50:3-4'], brackets: ['LM', 'LM'] },
-		{ references: ['38:49'], brackets: ['LM'] }
+		{
+			sources: ['{{38:49:1-2}}', '{{38:49:3-4}}', '{{38:49:5-6}}'],
+			brackets: ['L', '', 'M'],
+			numbers: [1, 0, 0]
+		},
+		{ sources: ['{{38:49:1-2}}', '{{38:49:5-6}}'], brackets: ['LM', 'LM'], numbers: [1, 0] },
+		{ sources: ['{{38:49:1-2}}', '{{38:50:3-4}}'], brackets: ['LM', 'LM'], numbers: [1, 0] },
+		{ sources: ['{{38:49}}'], brackets: ['LM'], numbers: [1] },
+		{ sources: ['{{38:49:3-4}}'], brackets: ['LM'], numbers: [0] },
+		{ sources: ['{{38:49:1-2}}', '{{38:49:1-2}}'], brackets: ['LM', 'LM'], numbers: [1, 0] },
+		{ sources: ['{{38:49:3-4}}', '{{38:49:1-2}}'], brackets: ['LM', 'LM'], numbers: [0, 0] },
+		{ sources: ['{{38:49:1-2}}على', '{{38:49:3-4}}'], brackets: ['LM', 'LM'], numbers: [1, 0] },
+		{ sources: ['{{38:49:1-2}}', 'على{{38:49:3-4}}'], brackets: ['LM', 'LM'], numbers: [1, 0] },
+		{
+			sources: ['{{38:49:1-2}}', 'على', '{{38:49:3-4}}'],
+			brackets: ['LM', '', 'LM'],
+			numbers: [1, 0, 0]
+		},
+		{ sources: [' {{38:49:1-2}} \n', '\t{{38:49:3-4}} '], brackets: ['L', 'M'], numbers: [1, 0] }
 	])(
-		'keeps translation brackets at the boundaries of consecutive Quran ranges: $references',
-		async ({ references, brackets }) => {
-			const clips = references.map((reference, index) => {
-				const translation = new VerseTranslation(`Before {{${reference}}} after`, 'reviewed');
+		'keeps translation brackets and verse numbers at passage boundaries: $sources',
+		async ({ sources, brackets, numbers }) => {
+			const clips = sources.map((source, index) => {
+				const reference = source.match(/\{\{([^{}]+)\}\}/)?.[1];
+				const translation = new VerseTranslation(
+					reference ? `{{${reference}}}` : source,
+					'reviewed'
+				);
 				translation.isStructuredTranslation = true;
-				const settings = translation.getOrCreateQuranSegment('quran-0', reference, 1);
-				settings.isBruteForce = true;
-				settings.manualText = 'translated passage';
-				return new SubtitleClip(index * 2000, index * 2000 + 1000, `??? {{${reference}}}`, {
+				if (reference) {
+					const settings = translation.getOrCreateQuranSegment('quran-0', reference, 1);
+					settings.isBruteForce = true;
+					settings.manualText = 'translated passage';
+				}
+				return new SubtitleClip(index * 2000, index * 2000 + 1000, source, {
 					english: translation
 				});
 			});
@@ -2040,6 +2098,10 @@ describe('Translation inline styles', () => {
 			fixture.videoStyle
 				.getStylesOfTarget('english-quran')
 				.setStyle('show-decorative-brackets', true);
+			fixture.videoStyle.getStylesOfTarget('english-quran').setStyle('show-verse-number', true);
+			fixture.videoStyle
+				.getStylesOfTarget('english-quran')
+				.setStyle('verse-number-format', '#<number>#');
 			const component = render(VideoOverlay);
 			await settleOverlay();
 
@@ -2052,8 +2114,9 @@ describe('Translation inline styles', () => {
 						.map((span) => span.textContent)
 						.join('')
 				).toBe(brackets[index]);
-				expect(normalizeText(node.textContent?.replace(/[LM]/g, ''))).toBe(
-					'Before translated passage after'
+				expect(node.textContent?.match(/#\d+#/g) ?? []).toHaveLength(numbers[index]);
+				expect(normalizeText(node.textContent?.replace(/[LM]|#\d+#/g, ''))).toBe(
+					sources[index].includes('{{') ? 'translated passage' : sources[index]
 				);
 			}
 		}

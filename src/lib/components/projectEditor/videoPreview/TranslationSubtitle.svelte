@@ -18,6 +18,7 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import { getStructuredTranslationDraft } from '$lib/services/StructuredTranslationService';
+	import { parseQuranTranscriptReference } from '$lib/services/TranscriptReferenceService';
 	import { getTranscriptReferenceInlineStyledSegments } from './helpers/transcriptReferences';
 	import { untrack } from 'svelte';
 	import {
@@ -238,9 +239,21 @@
 						settings?.startUnitIndex ?? 0,
 						settings?.endUnitIndex ?? Math.max(0, units.length - 1)
 					);
-			const showVerseNumber = Boolean(
-				quranStyles.getEffectiveValue('show-verse-number', subtitle.id)
+			const firstSubtitle = globalState.getSubtitleTrack.clips.find(
+				(clip) =>
+					clip instanceof SubtitleClip &&
+					Array.from(clip.text.matchAll(/\{\{([^{}]+)\}\}/g)).some((match) => {
+						const previousReference = parseQuranTranscriptReference(match[1]);
+						return (
+							previousReference?.surah === reference.surah &&
+							previousReference.verse === reference.verse
+						);
+					})
 			);
+			const showVerseNumber =
+				Boolean(quranStyles.getEffectiveValue('show-verse-number', subtitle.id)) &&
+				(reference.startWord ?? 1) === 1 &&
+				firstSubtitle?.id === subtitle.id;
 			const verseNumberNumeralSystem = String(
 				quranStyles.getEffectiveValue('verse-number-numeral-system', subtitle.id) ??
 					'Western Arabic'

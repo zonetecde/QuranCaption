@@ -34,7 +34,7 @@ export type OverlayTextSegment = {
  * @param {Clip[]} clips Sous-titres de la piste.
  * @param {OverlayTextSegment} segment Portion Quran affichée.
  * @param {-1 | 1} direction Sous-titre précédent ou suivant.
- * @returns {boolean} `true` si les deux plages sont consécutives dans le même verset.
+ * @returns {boolean} `true` si les plages se suivent dans le même verset sans texte intercalé.
  */
 export function isQuranReferenceContinued(
 	clips: Clip[],
@@ -46,24 +46,38 @@ export function isQuranReferenceContinued(
 
 	const sourceIndex = clips.findIndex((clip) => clip.id === segment.sourceClipId);
 	if (sourceIndex < 0) return false;
+	const sourceClip = clips[sourceIndex];
+	if (!(sourceClip instanceof SubtitleClip)) return false;
+	const startMarker = /^\s*\{\{([^{}]+)\}\}/;
+	const endMarker = /\{\{([^{}]+)\}\}\s*$/;
+	const sourceMatch = sourceClip.text.match(direction < 0 ? startMarker : endMarker);
+	const sourceReference = sourceMatch && parseQuranTranscriptReference(sourceMatch[1]);
+	if (
+		!sourceReference ||
+		sourceReference.surah !== reference.surah ||
+		sourceReference.verse !== reference.verse ||
+		sourceReference.startWord !== reference.startWord ||
+		sourceReference.endWord !== reference.endWord
+	)
+		return false;
+
 	const adjacentClip = clips
 		.slice(direction < 0 ? 0 : sourceIndex + 1, direction < 0 ? sourceIndex : undefined)
 		.filter((clip): clip is SubtitleClip => clip instanceof SubtitleClip)
 		.at(direction < 0 ? -1 : 0);
 	if (!adjacentClip) return false;
 
-	return Array.from(adjacentClip.text.matchAll(/\{\{([^{}]+)\}\}/g)).some((match) => {
-		const adjacentReference = parseQuranTranscriptReference(match[1]);
-		if (
-			!adjacentReference ||
-			adjacentReference.surah !== reference.surah ||
-			adjacentReference.verse !== reference.verse
-		)
-			return false;
-		return direction < 0
-			? reference.startWord !== null && adjacentReference.endWord === reference.startWord - 1
-			: reference.endWord !== null && adjacentReference.startWord === reference.endWord + 1;
-	});
+	const adjacentMatch = adjacentClip.text.match(direction < 0 ? endMarker : startMarker);
+	const adjacentReference = adjacentMatch && parseQuranTranscriptReference(adjacentMatch[1]);
+	if (
+		!adjacentReference ||
+		adjacentReference.surah !== reference.surah ||
+		adjacentReference.verse !== reference.verse
+	)
+		return false;
+	return direction < 0
+		? reference.startWord !== null && adjacentReference.endWord === reference.startWord - 1
+		: reference.endWord !== null && adjacentReference.startWord === reference.endWord + 1;
 }
 
 /**

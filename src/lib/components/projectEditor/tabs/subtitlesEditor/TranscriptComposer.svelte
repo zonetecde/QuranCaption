@@ -281,8 +281,11 @@
 			}
 		}
 		if (
-			event.key.toLowerCase() === 's' &&
-			editedTranscript() &&
+			(editedTranscript()
+				? event.key.toLowerCase() === 's'
+				: globalState.settings?.shortcuts.SUBTITLES_EDITOR.ADD_SILENCE.keys.some(
+						(key) => key.toLowerCase() === event.key.toLowerCase()
+					)) &&
 			!event.ctrlKey &&
 			!event.metaKey &&
 			!event.altKey &&
@@ -291,7 +294,11 @@
 		) {
 			event.preventDefault();
 			event.stopPropagation();
-			replaceEditedSubtitleWithSilence();
+			if (editedTranscript()) {
+				replaceEditedSubtitleWithSilence();
+			} else if (!event.repeat && globalState.getSubtitleTrack.addSilence()) {
+				globalState.currentProject!.detail.updateVideoDetailAttributes();
+			}
 			return;
 		}
 

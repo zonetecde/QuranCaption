@@ -16,7 +16,7 @@ import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryMana
 
 import { Quran } from '$lib/classes/Quran';
 import { Edition } from '$lib/classes/Edition';
-import { SubtitleClip } from '$lib/classes/Clip.svelte';
+import { SilenceClip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { ProjectEditorTabs } from '$lib/classes/enums';
 import { ProjectTranslation } from '$lib/classes/ProjectTranslation.svelte';
 import { VerseTranslation } from '$lib/classes/Translation.svelte';
@@ -371,6 +371,46 @@ describe('Subtitles editor workflow', () => {
 		await expect.poll(() => addTranscript.mock.calls.length).toBe(1);
 		expect(addTranscript).toHaveBeenCalledWith('A single spoken passage');
 	});
+
+	test.each(['S', 'P'])(
+		'adds silence up to the cursor with the configured shortcut %s outside editing',
+		async (key) => {
+			const subtitle = new SubtitleClip(0, 1000, 'Last subtitle');
+			const { subtitleTrack, spies } = setupSubtitlesEditorProjectFixture({
+				clips: [subtitle],
+				timelineCursorPosition: 3000
+			});
+			spies.addSilence.mockRestore();
+			vi.spyOn(ProjectHistoryManager, 'begin').mockImplementation(() => undefined);
+			vi.spyOn(ProjectHistoryManager, 'commit').mockImplementation(() => undefined);
+			globalState.settings!.shortcuts.SUBTITLES_EDITOR.ADD_SILENCE.keys = [key];
+			const component = render(TranscriptComposer);
+			await tick();
+			component
+				.getByRole('textbox')
+				.element()
+				.dispatchEvent(
+					new KeyboardEvent('keydown', {
+						key: key.toLowerCase(),
+						bubbles: true,
+						cancelable: true
+					})
+				);
+			window.dispatchEvent(new KeyboardEvent('keydown', { key, ctrlKey: true, cancelable: true }));
+			window.dispatchEvent(new KeyboardEvent('keydown', { key, repeat: true, cancelable: true }));
+			expect(subtitleTrack.clips).toHaveLength(1);
+			window.dispatchEvent(
+				new KeyboardEvent('keydown', { key: key.toLowerCase(), cancelable: true })
+			);
+			expect(subtitleTrack.clips).toHaveLength(2);
+			expect(subtitleTrack.clips[1]).toBeInstanceOf(SilenceClip);
+			expect(subtitleTrack.clips[1]).toMatchObject({ startTime: 1001, endTime: 3000 });
+			expect(spies.updateVideoDetailAttributes).toHaveBeenCalledTimes(1);
+			expect(ProjectHistoryManager.begin).toHaveBeenCalledWith('add silence');
+			expect(ProjectHistoryManager.commit).toHaveBeenCalled();
+			expect(globalState.getSubtitlesEditorState.editSubtitle).toBeNull();
+		}
+	);
 
 	test('edits a timeline subtitle with the transcript composer and saves only once', async () => {
 		loadLocale('en');

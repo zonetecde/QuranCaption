@@ -377,7 +377,12 @@ describe('Subtitles editor workflow', () => {
 		setLocale('en');
 		const subtitle = new SubtitleClip(0, 1000, 'Original transcript');
 		const { subtitleTrack } = setupSubtitlesEditorProjectFixture({ clips: [subtitle] });
-		const editTranscript = vi.spyOn(subtitleTrack, 'editTranscript').mockReturnValue(true);
+		const editTranscript = vi
+			.spyOn(subtitleTrack, 'editTranscript')
+			.mockImplementation((clip, text) => {
+				clip.text = text;
+				return true;
+			});
 		const workspace = render(SubtitlesWorkspace);
 		globalState.openQuickTimelineEditor(subtitle.id, 'subtitle');
 		const overlay = render(QuickTimelineEditorOverlay);
@@ -388,12 +393,83 @@ describe('Subtitles editor workflow', () => {
 		await expect.element(input).toHaveValue('Original transcript');
 		expect(overlay.container.querySelector('input[type="number"]')).toBeNull();
 		await input.fill('Corrected transcript');
+		await expect.poll(() => subtitle.text).toBe('Corrected transcript');
+		expect(globalState.shared.quickTimelineEditor.active).toBe(true);
 		input.element().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 		await expect.poll(() => editTranscript.mock.calls.length).toBe(1);
 		expect(editTranscript).toHaveBeenCalledWith(subtitle, 'Corrected transcript');
 		await tick();
 		expect(globalState.shared.quickTimelineEditor.active).toBe(false);
 		expect(workspace.container.querySelector('[data-structured-transcript-editor]')).not.toBeNull();
+	});
+
+	test('saves subtitle edits immediately and reloads restored text without saving it again', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const subtitle = new SubtitleClip(0, 1000, 'Original transcript');
+		const { subtitleTrack } = setupSubtitlesEditorProjectFixture({
+			clips: [subtitle],
+			editSubtitle: subtitle
+		});
+		vi.spyOn(ProjectHistoryManager, 'begin').mockImplementation(() => undefined);
+		vi.spyOn(ProjectHistoryManager, 'commit').mockImplementation(() => undefined);
+		const editTranscript = vi.spyOn(subtitleTrack, 'editTranscript');
+		const component = render(TranscriptComposer);
+		const input = component.getByRole('textbox');
+		await input.fill('Corrected transcript ');
+		expect(subtitle.text).toBe('Corrected transcript');
+		await expect.element(input).toHaveValue('Corrected transcript ');
+		expect(globalState.getSubtitlesEditorState.editSubtitle?.id).toBe(subtitle.id);
+		expect(component.container.querySelector('button[aria-label="Confirm edit"]')).toBeNull();
+		expect(ProjectHistoryManager.begin).toHaveBeenCalledWith('edit transcript');
+		expect(ProjectHistoryManager.commit).toHaveBeenCalled();
+
+		await input.fill('');
+		expect(editTranscript).toHaveBeenCalledTimes(1);
+		await input.fill('Another correction');
+		expect(subtitle.text).toBe('Another correction');
+		subtitle.text = 'Original transcript';
+		await expect.element(input).toHaveValue('Original transcript');
+		expect(editTranscript).toHaveBeenCalledTimes(2);
+		await component.getByRole('button', { name: 'Exit edit' }).click();
+		expect(subtitle.text).toBe('Original transcript');
+	});
+
+	test('saves quotation conversions, input and removal without confirming the edit', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const subtitle = new SubtitleClip(0, 1000, 'ee{{1:1:1-2}}');
+		setupSubtitlesEditorProjectFixture({ clips: [subtitle], editSubtitle: subtitle });
+		vi.spyOn(ProjectHistoryManager, 'begin').mockImplementation(() => undefined);
+		vi.spyOn(ProjectHistoryManager, 'commit').mockImplementation(() => undefined);
+		const component = render(TranscriptComposer);
+		const convert = component.getByRole('button', { name: 'Convert to quotation' });
+		expect(convert.element().getAttribute('title')).toBe('Convert to quotation');
+		expect(convert.element().textContent).not.toContain('Convert to quotation');
+		(convert.element() as HTMLButtonElement).click();
+		await tick();
+		expect(subtitle.text).toBe('{{ee}}{{1:1:1-2}}');
+		await component.getByRole('textbox').nth(1).fill('Updated quotation');
+		expect(subtitle.text).toBe('{{Updated quotation}}{{1:1:1-2}}');
+		(
+			component
+				.getByRole('button', { name: 'Convert to normal text' })
+				.element() as HTMLButtonElement
+		).click();
+		await tick();
+		expect(subtitle.text).toBe('Updated quotation {{1:1:1-2}}');
+		await component.getByRole('button', { name: 'Insert quotation' }).click();
+		expect(subtitle.text).toBe('Updated quotation {{1:1:1-2}}');
+		await component.getByRole('textbox').nth(2).fill('New quotation');
+		expect(subtitle.text).toBe('Updated quotation {{1:1:1-2}}{{New quotation}}');
+		(
+			component
+				.getByRole('button', { name: 'Remove', exact: true })
+				.last()
+				.element() as HTMLButtonElement
+		).click();
+		await tick();
+		expect(subtitle.text).toBe('Updated quotation {{1:1:1-2}}');
 	});
 
 	test.each(['Enter', 'Escape'])(

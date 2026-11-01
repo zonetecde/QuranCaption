@@ -29,6 +29,7 @@
 	// État d'orchestration du segment actif; le brouillon structuré appartient au composant enfant.
 	let transcriptText = $state('');
 	let loadedEditId: number | null = $state(null);
+	let lastSavedText = '';
 	let selectedTranscriptSelection = $state<TranscriptBandSelection | null>(null);
 	let transcriptBandSelectionResetKey = $state(0);
 	let editShortcutTimer: ReturnType<typeof setTimeout> | null = null;
@@ -54,9 +55,10 @@
 	// Synchronise l'orchestration locale avec le segment choisi dans la timeline.
 	$effect(() => {
 		const clip = editedTranscript();
-		if (clip && clip.id !== loadedEditId) {
+		if (clip && (clip.id !== loadedEditId || clip.text !== lastSavedText)) {
 			loadedEditId = clip.id;
 			selectedTranscriptSelection = null;
+			lastSavedText = clip.text;
 			transcriptText = clip.text;
 			return;
 		}
@@ -121,6 +123,7 @@
 		if (!editedTranscript() || !selection.text) return;
 		selectedTranscriptSelection = selection;
 		transcriptText = selection.text;
+		void submitTranscript(true);
 	}
 
 	/**
@@ -136,7 +139,7 @@
 		selection: TranscriptBandSelection | null,
 		text: string
 	): TranscriptAlignmentMetadata | null {
-		if (!selection) return null;
+		if (!selection || selection.text.trim() !== text) return null;
 		const selectedWords = selection.words;
 		if (selectedWords.length === 0 || selectedWords.some((word) => word.estimatedTiming))
 			return null;
@@ -189,11 +192,19 @@
 		});
 	}
 
-	async function submitTranscript(): Promise<void> {
-		const normalizedText = transcriptText.trim();
+	/**
+	 * Enregistre le texte courant et conserve l'édition lors d'une sauvegarde automatique.
+	 * @param {boolean} [keepEditing=false] Garde les champs ouverts sans notification.
+	 * @returns {Promise<void>} Promesse résolue après l'enregistrement.
+	 */
+	async function submitTranscript(keepEditing: boolean = false): Promise<void> {
+		// Les citations vides restent dans le brouillon pendant leur saisie.
+		const normalizedText = (
+			keepEditing ? transcriptText.replace(/\{\{\s*\}\}/g, '') : transcriptText
+		).trim();
 
 		if (!normalizedText) {
-			toast.error(get(LL).editor.transcriptCannotBeEmpty());
+			if (!keepEditing) toast.error(get(LL).editor.transcriptCannotBeEmpty());
 			return;
 		}
 
@@ -201,6 +212,10 @@
 		const selectionAlignment = clip
 			? buildSelectionAlignmentMetadata(clip, selectedTranscriptSelection, normalizedText)
 			: null;
+		if (clip?.text === normalizedText && !selectionAlignment) {
+			if (!keepEditing) cancelEditing();
+			return;
+		}
 		/**
 		 * Applique la modification et rattache les timestamps issus de la bande si nécessaire.
 		 *
@@ -222,8 +237,10 @@
 
 		if (!success) return;
 
+		lastSavedText = normalizedText;
 		globalState.currentProject!.detail.updateVideoDetailAttributes();
 		globalState.updateVideoPreviewUI();
+		if (keepEditing) return;
 		toast.success(clip ? get(LL).editor.transcriptUpdated() : get(LL).editor.transcriptAdded());
 
 		editorState().editSubtitle = null;

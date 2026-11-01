@@ -20,7 +20,7 @@
 		input?: HTMLTextAreaElement | null;
 		isEditing: boolean;
 		onCancelEditing: () => void;
-		onSubmit: () => void | Promise<void>;
+		onSubmit: (keepEditing?: boolean) => void | Promise<void>;
 		onEditTimestamps?: () => void | Promise<void>;
 	};
 
@@ -32,7 +32,6 @@
 		selectQuranPassage: () => string;
 		decreaseTranscriptTextSize: () => string;
 		increaseTranscriptTextSize: () => string;
-		confirmEditing: () => string;
 		exitEditing: () => string;
 	};
 
@@ -116,6 +115,7 @@
 	function syncTranscriptText(): void {
 		lastSerializedText = serializeStructuredTranslation(transcriptDraft);
 		value = lastSerializedText;
+		if (isEditing) void onSubmit(true);
 	}
 
 	/**
@@ -423,15 +423,6 @@
 						{$LL.editor.editWbwTimestampContext()}
 					</button>
 				{/if}
-				<button
-					type="button"
-					class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-[var(--accent-primary)] px-3 py-1.5 text-xs font-semibold text-black transition hover:brightness-110"
-					onclick={submitTranscriptDraft}
-					aria-label={copy.confirmEditing()}
-				>
-					<span class="material-icons text-sm">check</span>
-					{copy.confirmEditing()}
-				</button>
 			{/if}
 		</div>
 	</div>

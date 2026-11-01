@@ -13,7 +13,7 @@
 	const setupCopy = $derived(
 		$LL.settings as unknown as {
 			optionalTextAiDescription: () => string;
-			manualWorkflowHint: () => string;
+			manualTextAiHint: () => string;
 			textAiKeyStep1: () => string;
 			textAiKeyStep2: () => string;
 			textAiKeyStep3: () => string;
@@ -34,8 +34,10 @@
 		</p>
 	</div>
 	<section class="space-y-3 rounded-xl border border-color bg-primary p-4">
+		<p class="rounded-lg bg-secondary p-3 text-sm font-medium text-primary">
+			{setupCopy.manualTextAiHint()}
+		</p>
 		<p class="text-sm text-secondary">{setupCopy.optionalTextAiDescription()}</p>
-		<p class="text-sm text-thirdly">{setupCopy.manualWorkflowHint()}</p>
 		<ol class="list-decimal space-y-2 ps-4 text-sm text-thirdly">
 			<li>{setupCopy.textAiKeyStep1()}</li>
 			<li>{setupCopy.textAiKeyStep2()}</li>

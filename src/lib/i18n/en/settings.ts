@@ -32,8 +32,10 @@ const settings = {
 		'Add a Groq or ElevenLabs key for automatic subtitles. The guide also explains how to add an optional text AI key.',
 	configureApiKeys: 'Set up API keys',
 	manualWorkflowHint:
-		'No API key is needed to use Minbar Caption manually: you can write subtitles, set their timing, edit translations and export your videos yourself.',
+		'You don’t need an API key if you’re willing to add subtitles to your video manually. However, automatic transcription is faster.',
 	optionalTextAiTitle: 'Next: text AI (optional)',
+	manualTextAiHint:
+		'Using a capable text AI in the app requires an API key, often billed by usage. If you prefer not to pay, each dialog that asks for one offers an alternative without an API key: copy and paste the prompts into an AI website, then paste the responses back into the app.',
 	optionalTextAiDescription:
 		'A text AI key enables automatic transcript correction, subtitle rearrangement, reference detection and translation. It is separate from audio transcription and is optional.',
 	configureTextAi: 'Set up text AI',

@@ -1746,7 +1746,7 @@ type RootTranslation = {
 			 */
 			keyHelp: string;
 			/**
-			 * O​p​e​n​ ​G​r​o​q​ ​C​o​n​s​o​l​e​ ​a​n​d​ ​s​i​g​n​ ​i​n​ ​o​r​ ​c​r​e​a​t​e​ ​a​n​ ​a​c​c​o​u​n​t​.
+			 * G​r​o​q​ ​o​f​f​e​r​s​ ​f​r​e​e​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​.​ ​O​p​e​n​ ​G​r​o​q​ ​C​o​n​s​o​l​e​ ​a​n​d​ ​s​i​g​n​ ​i​n​ ​o​r​ ​c​r​e​a​t​e​ ​a​n​ ​a​c​c​o​u​n​t​.
 			 */
 			groqKeyStep1: string;
 			/**
@@ -1758,7 +1758,7 @@ type RootTranslation = {
 			 */
 			groqKeyStep3: string;
 			/**
-			 * O​p​e​n​ ​E​l​e​v​e​n​L​a​b​s​ ​a​n​d​ ​s​i​g​n​ ​i​n​ ​o​r​ ​c​r​e​a​t​e​ ​a​n​ ​a​c​c​o​u​n​t​.
+			 * E​l​e​v​e​n​L​a​b​s​ ​i​s​ ​p​a​i​d​ ​b​u​t​ ​o​f​f​e​r​s​ ​m​o​r​e​ ​a​c​c​u​r​a​t​e​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​t​h​a​n​ ​G​r​o​q​.​ ​O​p​e​n​ ​E​l​e​v​e​n​L​a​b​s​ ​a​n​d​ ​s​i​g​n​ ​i​n​ ​o​r​ ​c​r​e​a​t​e​ ​a​n​ ​a​c​c​o​u​n​t​.
 			 */
 			elevenLabsKeyStep1: string;
 			/**
@@ -8197,13 +8197,17 @@ type RootTranslation = {
 		 */
 		configureApiKeys: string;
 		/**
-		 * N​o​ ​A​P​I​ ​k​e​y​ ​i​s​ ​n​e​e​d​e​d​ ​t​o​ ​u​s​e​ ​M​i​n​b​a​r​ ​C​a​p​t​i​o​n​ ​m​a​n​u​a​l​l​y​:​ ​y​o​u​ ​c​a​n​ ​w​r​i​t​e​ ​s​u​b​t​i​t​l​e​s​,​ ​s​e​t​ ​t​h​e​i​r​ ​t​i​m​i​n​g​,​ ​e​d​i​t​ ​t​r​a​n​s​l​a​t​i​o​n​s​ ​a​n​d​ ​e​x​p​o​r​t​ ​y​o​u​r​ ​v​i​d​e​o​s​ ​y​o​u​r​s​e​l​f​.
+		 * Y​o​u​ ​d​o​n​’​t​ ​n​e​e​d​ ​a​n​ ​A​P​I​ ​k​e​y​ ​i​f​ ​y​o​u​’​r​e​ ​w​i​l​l​i​n​g​ ​t​o​ ​a​d​d​ ​s​u​b​t​i​t​l​e​s​ ​t​o​ ​y​o​u​r​ ​v​i​d​e​o​ ​m​a​n​u​a​l​l​y​.​ ​H​o​w​e​v​e​r​,​ ​a​u​t​o​m​a​t​i​c​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​i​s​ ​f​a​s​t​e​r​.
 		 */
 		manualWorkflowHint: string;
 		/**
 		 * N​e​x​t​:​ ​t​e​x​t​ ​A​I​ ​(​o​p​t​i​o​n​a​l​)
 		 */
 		optionalTextAiTitle: string;
+		/**
+		 * U​s​i​n​g​ ​a​ ​c​a​p​a​b​l​e​ ​t​e​x​t​ ​A​I​ ​i​n​ ​t​h​e​ ​a​p​p​ ​r​e​q​u​i​r​e​s​ ​a​n​ ​A​P​I​ ​k​e​y​,​ ​o​f​t​e​n​ ​b​i​l​l​e​d​ ​b​y​ ​u​s​a​g​e​.​ ​I​f​ ​y​o​u​ ​p​r​e​f​e​r​ ​n​o​t​ ​t​o​ ​p​a​y​,​ ​e​a​c​h​ ​d​i​a​l​o​g​ ​t​h​a​t​ ​a​s​k​s​ ​f​o​r​ ​o​n​e​ ​o​f​f​e​r​s​ ​a​n​ ​a​l​t​e​r​n​a​t​i​v​e​ ​w​i​t​h​o​u​t​ ​a​n​ ​A​P​I​ ​k​e​y​:​ ​c​o​p​y​ ​a​n​d​ ​p​a​s​t​e​ ​t​h​e​ ​p​r​o​m​p​t​s​ ​i​n​t​o​ ​a​n​ ​A​I​ ​w​e​b​s​i​t​e​,​ ​t​h​e​n​ ​p​a​s​t​e​ ​t​h​e​ ​r​e​s​p​o​n​s​e​s​ ​b​a​c​k​ ​i​n​t​o​ ​t​h​e​ ​a​p​p​.
+		 */
+		manualTextAiHint: string;
 		/**
 		 * A​ ​t​e​x​t​ ​A​I​ ​k​e​y​ ​e​n​a​b​l​e​s​ ​a​u​t​o​m​a​t​i​c​ ​t​r​a​n​s​c​r​i​p​t​ ​c​o​r​r​e​c​t​i​o​n​,​ ​s​u​b​t​i​t​l​e​ ​r​e​a​r​r​a​n​g​e​m​e​n​t​,​ ​r​e​f​e​r​e​n​c​e​ ​d​e​t​e​c​t​i​o​n​ ​a​n​d​ ​t​r​a​n​s​l​a​t​i​o​n​.​ ​I​t​ ​i​s​ ​s​e​p​a​r​a​t​e​ ​f​r​o​m​ ​a​u​d​i​o​ ​t​r​a​n​s​c​r​i​p​t​i​o​n​ ​a​n​d​ ​i​s​ ​o​p​t​i​o​n​a​l​.
 		 */
@@ -12259,7 +12263,7 @@ export type TranslationFunctions = {
 			 */
 			keyHelp: () => LocalizedString;
 			/**
-			 * Open Groq Console and sign in or create an account.
+			 * Groq offers free transcription. Open Groq Console and sign in or create an account.
 			 */
 			groqKeyStep1: () => LocalizedString;
 			/**
@@ -12271,7 +12275,7 @@ export type TranslationFunctions = {
 			 */
 			groqKeyStep3: () => LocalizedString;
 			/**
-			 * Open ElevenLabs and sign in or create an account.
+			 * ElevenLabs is paid but offers more accurate transcription than Groq. Open ElevenLabs and sign in or create an account.
 			 */
 			elevenLabsKeyStep1: () => LocalizedString;
 			/**
@@ -18600,13 +18604,17 @@ export type TranslationFunctions = {
 		 */
 		configureApiKeys: () => LocalizedString;
 		/**
-		 * No API key is needed to use Minbar Caption manually: you can write subtitles, set their timing, edit translations and export your videos yourself.
+		 * You don’t need an API key if you’re willing to add subtitles to your video manually. However, automatic transcription is faster.
 		 */
 		manualWorkflowHint: () => LocalizedString;
 		/**
 		 * Next: text AI (optional)
 		 */
 		optionalTextAiTitle: () => LocalizedString;
+		/**
+		 * Using a capable text AI in the app requires an API key, often billed by usage. If you prefer not to pay, each dialog that asks for one offers an alternative without an API key: copy and paste the prompts into an AI website, then paste the responses back into the app.
+		 */
+		manualTextAiHint: () => LocalizedString;
 		/**
 		 * A text AI key enables automatic transcript correction, subtitle rearrangement, reference detection and translation. It is separate from audio transcription and is optional.
 		 */

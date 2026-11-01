@@ -503,10 +503,12 @@ const fr = {
 				'Par exemple : garder les vers poétiques ensemble ou préférer les phrases courtes.',
 			keyHint: 'Vos clés personnelles sont enregistrées dans vos paramètres utilisateur locaux.',
 			keyHelp: 'Comment obtenir une clé API ?',
-			groqKeyStep1: 'Ouvrez Groq Console et connectez-vous ou créez un compte.',
+			groqKeyStep1:
+				'Groq propose une transcription gratuite. Ouvrez Groq Console et connectez-vous ou créez un compte.',
 			groqKeyStep2: 'Dans API Keys, choisissez Create API Key et nommez votre clé.',
 			groqKeyStep3: 'Créez la clé et copiez la valeur affichée.',
-			elevenLabsKeyStep1: 'Ouvrez ElevenLabs et connectez-vous ou créez un compte.',
+			elevenLabsKeyStep1:
+				'ElevenLabs est payant, mais propose une transcription plus précise que Groq. Ouvrez ElevenLabs et connectez-vous ou créez un compte.',
 			elevenLabsKeyStep2: 'Allez dans Developers, puis API Keys, et créez une clé.',
 			elevenLabsKeyStep3:
 				'Nommez la clé, activez l’autorisation Speech to Text, puis créez-la et copiez-la.',
@@ -2341,8 +2343,10 @@ const fr = {
 				'Ajoutez une clé Groq ou ElevenLabs pour les sous-titres automatiques. Le guide explique aussi comment ajouter une clé d’IA textuelle facultative.',
 			configureApiKeys: 'Configurer les clés API',
 			manualWorkflowHint:
-				'Aucune clé API n’est nécessaire pour utiliser Minbar Caption manuellement : vous pouvez écrire les sous-titres, régler leurs timestamps, modifier les traductions et exporter vos vidéos vous-même.',
+				'Vous n’avez pas besoin de clé API si vous souhaitez ajouter les sous-titres à votre vidéo à la main. La transcription automatique est toutefois plus rapide.',
 			optionalTextAiTitle: 'Ensuite : une IA textuelle (facultatif)',
+			manualTextAiHint:
+				'Pour utiliser une IA textuelle performante dans le logiciel, il faut une clé API, souvent facturée à l’usage. Si vous préférez ne pas payer, chaque fenêtre qui la demande propose une alternative sans clé API : copiez-collez les prompts dans un site d’IA, puis les réponses dans le logiciel.',
 			optionalTextAiDescription:
 				'Une clé d’IA textuelle permet de corriger la transcription, réarranger les sous-titres, détecter les références et traduire automatiquement. Elle est distincte de la transcription audio et reste facultative.',
 			configureTextAi: 'Configurer l’IA textuelle',

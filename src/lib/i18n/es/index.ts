@@ -499,10 +499,12 @@ const es = {
 				'Por ejemplo: mantener juntos los versos poéticos o preferir frases cortas.',
 			keyHint: 'Tus claves personales se guardan en tus ajustes de usuario locales.',
 			keyHelp: '¿Cómo obtengo una clave API?',
-			groqKeyStep1: 'Abre Groq Console e inicia sesión o crea una cuenta.',
+			groqKeyStep1:
+				'Groq ofrece transcripción gratuita. Abre Groq Console e inicia sesión o crea una cuenta.',
 			groqKeyStep2: 'En API Keys, selecciona Create API Key y asigna un nombre a la clave.',
 			groqKeyStep3: 'Crea la clave y copia el valor mostrado.',
-			elevenLabsKeyStep1: 'Abre ElevenLabs e inicia sesión o crea una cuenta.',
+			elevenLabsKeyStep1:
+				'ElevenLabs es de pago, pero ofrece una transcripción más precisa que Groq. Abre ElevenLabs e inicia sesión o crea una cuenta.',
 			elevenLabsKeyStep2: 'Ve a Developers, después a API Keys y crea una clave nueva.',
 			elevenLabsKeyStep3:
 				'Asigna un nombre a la clave, activa el permiso Speech to Text, créala y cópiala.',
@@ -2335,8 +2337,10 @@ const es = {
 				'Añade una clave de Groq o ElevenLabs para los subtítulos automáticos. La guía también explica cómo añadir una clave opcional de IA de texto.',
 			configureApiKeys: 'Configurar claves API',
 			manualWorkflowHint:
-				'No necesitas ninguna clave API para usar Minbar Caption manualmente: puedes escribir los subtítulos, ajustar sus tiempos, editar las traducciones y exportar tus vídeos.',
+				'No necesitas una clave API si prefieres añadir los subtítulos a tu vídeo a mano. Sin embargo, la transcripción automática es más rápida.',
 			optionalTextAiTitle: 'Después: IA de texto (opcional)',
+			manualTextAiHint:
+				'Para usar una IA de texto potente en la aplicación necesitas una clave API, que suele facturarse según el uso. Si prefieres no pagar, cada ventana que la solicita ofrece una alternativa sin clave API: copia y pega los prompts en un sitio web de IA y después pega las respuestas en la aplicación.',
 			optionalTextAiDescription:
 				'Una clave de IA de texto permite corregir la transcripción, reorganizar los subtítulos, detectar referencias y traducir automáticamente. Es independiente de la transcripción de audio y es opcional.',
 			configureTextAi: 'Configurar la IA de texto',

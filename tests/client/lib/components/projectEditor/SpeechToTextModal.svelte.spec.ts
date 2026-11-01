@@ -168,10 +168,16 @@ test('opens transcription setup from the banner and offers the optional text AI 
 		.element(settings.getByText(/One Groq or ElevenLabs API key is enough/))
 		.toBeVisible();
 	await expect
-		.element(settings.getByText(/No API key is needed to use Minbar Caption manually/))
+		.element(settings.getByText(/You don’t need an API key if you’re willing to add subtitles/))
 		.toBeVisible();
 	await settings.getByRole('button', { name: 'Set up text AI', exact: true }).click();
 	expect(globalState.uiState.settingsTab).toBe('ai-key');
+	await expect
+		.element(settings.getByText(/Using a capable text AI in the app requires an API key/))
+		.toBeVisible();
+	await expect
+		.element(settings.getByText(/You don’t need an API key if you’re willing to add subtitles/))
+		.not.toBeInTheDocument();
 	await expect
 		.element(settings.getByText(/It is separate from audio transcription and is optional/))
 		.toBeVisible();

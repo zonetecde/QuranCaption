@@ -191,9 +191,15 @@
 		<!-- Sidebar -->
 		<div class="bg-primary border-e border-color p-3 overflow-auto flex flex-col">
 			<div class="flex flex-col gap-2">
-				{#each [{ name: $LL.settings.support(), tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' }, { name: $LL.settings.shortcuts(), tab: SettingsTab.SHORTCUTS, icon: 'keyboard' }, { name: $LL.settings.theme(), tab: SettingsTab.THEME, icon: 'light_mode' }, { name: $LL.settings.notifications(), tab: SettingsTab.NOTIFICATIONS, icon: 'notifications' }, { name: $LL.settings.aiKey(), tab: SettingsTab.AI_KEY, icon: 'key' }, { name: ($LL.settings as unknown as { aiBatches: AiBatchCopy }).aiBatches.title(), tab: SettingsTab.AI_BATCHES, icon: 'tune' }, { name: transcriptKeyCopy.transcriptKey(), tab: SettingsTab.TRANSCRIPT_KEY, icon: 'record_voice_over' }, { name: $LL.settings.stockMedia(), tab: SettingsTab.STOCK_MEDIA, icon: 'public' }, { name: defaultValuesCopy.defaultValues(), tab: SettingsTab.DEFAULT_VALUES, icon: 'tune' }, { name: $LL.settings.backup(), tab: SettingsTab.BACKUP, icon: 'archive' }, { name: $LL.settings.contact(), tab: SettingsTab.CONTACT, icon: 'mail' }, { name: $LL.settings.about(), tab: SettingsTab.ABOUT, icon: 'info' }] as setting (setting.tab)}
+				{#each [{ name: transcriptKeyCopy.transcriptKey(), tab: SettingsTab.TRANSCRIPT_KEY, icon: 'record_voice_over' }, { name: $LL.settings.aiKey(), tab: SettingsTab.AI_KEY, icon: 'key' }, { name: ($LL.settings as unknown as { aiBatches: AiBatchCopy }).aiBatches.title(), tab: SettingsTab.AI_BATCHES, icon: 'tune' }, { name: $LL.settings.support(), tab: SettingsTab.SUPPORT, icon: 'volunteer_activism' }, { name: $LL.settings.shortcuts(), tab: SettingsTab.SHORTCUTS, icon: 'keyboard' }, { name: $LL.settings.theme(), tab: SettingsTab.THEME, icon: 'light_mode' }, { name: $LL.settings.notifications(), tab: SettingsTab.NOTIFICATIONS, icon: 'notifications' }, { name: $LL.settings.stockMedia(), tab: SettingsTab.STOCK_MEDIA, icon: 'public' }, { name: defaultValuesCopy.defaultValues(), tab: SettingsTab.DEFAULT_VALUES, icon: 'tune' }, { name: $LL.settings.backup(), tab: SettingsTab.BACKUP, icon: 'archive' }, { name: $LL.settings.contact(), tab: SettingsTab.CONTACT, icon: 'mail' }, { name: $LL.settings.about(), tab: SettingsTab.ABOUT, icon: 'info' }] as setting, index (setting.tab)}
+					{#if setting.tab === SettingsTab.SUPPORT}
+						<hr class="my-2 border-color" />
+					{/if}
 					<button
 						class="flex items-center gap-3 text-sm px-3 py-2 rounded-lg w-full transition-colors duration-150 justify-start"
+						class:font-semibold={index < 3}
+						class:bg-secondary={index < 3}
+						class:text-accent={index < 3}
 						class:selected={globalState.uiState.settingsTab === setting.tab}
 						onclick={() => (globalState.uiState.settingsTab = setting.tab)}
 					>

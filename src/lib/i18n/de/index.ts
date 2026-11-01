@@ -510,11 +510,13 @@ const de = {
 			keyHint:
 				'Deine persönlichen Schlüssel werden in deinen lokalen Benutzereinstellungen gespeichert.',
 			keyHelp: 'Wie erhalte ich einen API-Schlüssel?',
-			groqKeyStep1: 'Öffne Groq Console und melde dich an oder erstelle ein Konto.',
+			groqKeyStep1:
+				'Groq bietet kostenlose Transkription. Öffne Groq Console und melde dich an oder erstelle ein Konto.',
 			groqKeyStep2:
 				'Wähle unter API Keys die Option Create API Key und gib deinem Schlüssel einen Namen.',
 			groqKeyStep3: 'Erstelle den Schlüssel und kopiere den angezeigten Wert.',
-			elevenLabsKeyStep1: 'Öffne ElevenLabs und melde dich an oder erstelle ein Konto.',
+			elevenLabsKeyStep1:
+				'ElevenLabs ist kostenpflichtig, bietet aber eine genauere Transkription als Groq. Öffne ElevenLabs und melde dich an oder erstelle ein Konto.',
 			elevenLabsKeyStep2: 'Gehe zu Developers, dann API Keys und erstelle einen neuen Schlüssel.',
 			elevenLabsKeyStep3:
 				'Benenne den Schlüssel, aktiviere die Berechtigung Speech to Text, erstelle und kopiere ihn.',
@@ -2351,8 +2353,10 @@ const de = {
 				'Füge einen Groq- oder ElevenLabs-Schlüssel für automatische Untertitel hinzu. Die Anleitung erklärt auch die Einrichtung eines optionalen Text-KI-Schlüssels.',
 			configureApiKeys: 'API-Schlüssel einrichten',
 			manualWorkflowHint:
-				'Für die manuelle Nutzung von Minbar Caption ist kein API-Schlüssel erforderlich: Du kannst Untertitel schreiben, ihre Zeiten festlegen, Übersetzungen bearbeiten und Videos selbst exportieren.',
+				'Du brauchst keinen API-Schlüssel, wenn du die Untertitel von Hand zu deinem Video hinzufügen möchtest. Die automatische Transkription ist jedoch schneller.',
 			optionalTextAiTitle: 'Danach: Text-KI (optional)',
+			manualTextAiHint:
+				'Für eine leistungsfähige Text-KI in der App brauchst du einen API-Schlüssel, der oft nach Nutzung abgerechnet wird. Wenn du nicht bezahlen möchtest, bietet jeder Dialog, der einen solchen Schlüssel verlangt, eine Alternative ohne API-Schlüssel: Kopiere die Prompts in eine KI-Website und füge anschließend die Antworten in die App ein.',
 			optionalTextAiDescription:
 				'Ein Text-KI-Schlüssel ermöglicht die automatische Korrektur der Transkription, die Neuaufteilung der Untertitel, die Erkennung von Referenzen und Übersetzungen. Er ist von der Audiotranskription unabhängig und optional.',
 			configureTextAi: 'Text-KI einrichten',

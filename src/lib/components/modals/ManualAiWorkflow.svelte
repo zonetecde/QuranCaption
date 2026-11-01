@@ -18,6 +18,21 @@
 	});
 
 	/**
+	 * Ne conserve que le JSON lors du collage d'une réponse entourée de texte ou de Markdown.
+	 * @param {ClipboardEvent} event Événement de collage de la réponse.
+	 * @returns {void}
+	 */
+	function pasteResponse(event: ClipboardEvent): void {
+		const text = event.clipboardData?.getData('text/plain') ?? '';
+		const start = text.indexOf('{');
+		const end = text.lastIndexOf('}');
+		if (start < 0 || end < start || !step || step.status === 'valid') return;
+		event.preventDefault();
+		step.response = text.slice(start, end + 1);
+		step.error = '';
+	}
+
+	/**
 	 * Copie les instructions, avec un retour ciblé lors d'une régénération.
 	 * @param {boolean} retry Ajoute l'erreur du lot courant.
 	 * @returns {Promise<void>} Fin de la copie.
@@ -177,6 +192,7 @@
 							readonly={step.status === 'valid'}
 							aria-invalid={Boolean(step.error)}
 							aria-describedby={step.error ? 'manual-ai-error' : 'manual-ai-hint'}
+							onpaste={pasteResponse}
 							oninput={() => (step.error = '')}
 							placeholder={copy.placeholder()}
 							class="w-full resize-y rounded-lg border bg-secondary px-3 py-3 text-sm leading-relaxed text-primary outline-none focus:border-[var(--accent-primary)] {step.error

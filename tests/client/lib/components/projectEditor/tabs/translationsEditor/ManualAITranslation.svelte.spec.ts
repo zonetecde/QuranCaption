@@ -183,6 +183,28 @@ test('keeps the API workflow and validates manual replies before one undoable ap
 	]);
 });
 
+test.each([
+	['```json\n', '\n```'],
+	['Here is the JSON response:\n', '\nThe response is complete.'],
+	['Here is the response:\n```json\n', '\n```\nThe response is complete.']
+])('cleans pasted replies wrapped in %s and %s before validation', async (prefix, suffix) => {
+	const component = render(AskIAModal, { close: vi.fn(), edition });
+	await component.getByRole('tab', { name: 'Without API key' }).click();
+	await component.getByRole('button', { name: 'Prepare prompts', exact: true }).click();
+	await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
+	const input = component.getByRole('textbox', { name: '2. Paste the full reply here' });
+	const json = reply();
+	const clipboardData = new DataTransfer();
+	clipboardData.setData('text/plain', prefix + json + suffix);
+	input
+		.element()
+		.dispatchEvent(new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }));
+
+	await expect.element(input).toHaveValue(json);
+	await component.getByRole('button', { name: 'Check reply and continue' }).click();
+	await expect.element(component.getByText('All replies have been checked')).toBeVisible();
+});
+
 test('keeps accepted batches when the next reply must be regenerated, then cancels without partial edits', async () => {
 	const words = Array.from({ length: 101 }, (_, index) => `word${index}`);
 	const source = words.join(' ');

@@ -258,6 +258,8 @@ const fr = {
 	},
 	editor: {
 		...{
+			transcriptionWorkflowHint:
+				'Suivez ces quatre étapes dans l’ordre pour obtenir des sous-titres de qualité pour votre vidéo.',
 			manualAi: {
 				method: 'Mode d’utilisation de l’IA',
 				withApi: 'Avec API',

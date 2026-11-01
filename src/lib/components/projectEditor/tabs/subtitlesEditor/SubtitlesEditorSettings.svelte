@@ -77,6 +77,9 @@
 	</div>
 	<SegmentsToReview />
 	<div class="space-y-2">
+		<p class="text-xs leading-relaxed text-secondary">
+			{Reflect.get($LL.editor, 'transcriptionWorkflowHint')()}
+		</p>
 		<button
 			type="button"
 			onclick={() => ModalManager.speechToTextModal()}

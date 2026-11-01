@@ -254,6 +254,8 @@ const ar = {
 	},
 	editor: {
 		...{
+			transcriptionWorkflowHint:
+				'اتبع هذه الخطوات الأربع بالترتيب للحصول على ترجمات نصية عالية الجودة لفيديوك.',
 			manualAi: {
 				method: 'طريقة استخدام الذكاء الاصطناعي',
 				withApi: 'باستخدام API',

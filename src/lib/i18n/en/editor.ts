@@ -1,4 +1,6 @@
 const editor = {
+	transcriptionWorkflowHint:
+		'Follow these four steps in order to create quality subtitles for your video.',
 	manualAi: {
 		method: 'AI connection method',
 		withApi: 'With API',

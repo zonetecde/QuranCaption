@@ -259,6 +259,8 @@ const de = {
 	},
 	editor: {
 		...{
+			transcriptionWorkflowHint:
+				'Befolge diese vier Schritte der Reihe nach, um hochwertige Untertitel für dein Video zu erstellen.',
 			manualAi: {
 				method: 'KI-Nutzungsmodus',
 				withApi: 'Mit API',

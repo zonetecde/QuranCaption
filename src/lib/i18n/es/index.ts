@@ -257,6 +257,8 @@ const es = {
 	},
 	editor: {
 		...{
+			transcriptionWorkflowHint:
+				'Sigue estos cuatro pasos en orden para obtener subtítulos de calidad para tu vídeo.',
 			manualAi: {
 				method: 'Modo de uso de la IA',
 				withApi: 'Con API',

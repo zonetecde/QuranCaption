@@ -130,6 +130,41 @@ describe('loading legacy editor layout settings', () => {
 		expect(writeTextFile).not.toHaveBeenCalled();
 	});
 
+	it('keeps legacy shortcuts hidden while awaiting the app version, then migrates them', async () => {
+		const settings = new Settings();
+		settings.appVersion = '3.7.80';
+		settings.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE.keys = ['q'];
+		const legacyShortcuts: Partial<Settings['shortcuts']['SUBTITLES_EDITOR']> = {
+			...settings.shortcuts.SUBTITLES_EDITOR
+		};
+		const actions = [
+			'EDIT_SUBTITLE_AT_CURSOR',
+			'EDIT_TRANSLATION_AT_CURSOR',
+			'EDIT_WBW_TIMESTAMP_AT_CURSOR',
+			'EDIT_WBW_STYLE_AT_CURSOR'
+		] as const;
+		for (const action of actions) delete legacyShortcuts[action];
+		vi.mocked(readTextFile).mockResolvedValue(
+			JSON.stringify({
+				...settings.toJSON(),
+				shortcuts: { ...settings.shortcuts, SUBTITLES_EDITOR: legacyShortcuts }
+			})
+		);
+		vi.mocked(VersionService.getAppVersion).mockImplementationOnce(async () => {
+			expect(globalState.settings).toBeUndefined();
+			return '3.7.80';
+		});
+
+		await Settings.load();
+
+		for (const action of actions) {
+			expect(globalState.settings!.shortcuts.SUBTITLES_EDITOR[action]).toEqual(
+				settings.shortcuts.SUBTITLES_EDITOR[action]
+			);
+		}
+		expect(globalState.settings!.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE.keys).toEqual(['q']);
+	});
+
 	it('repairs individual dimensions while preserving custom widths and other settings', async () => {
 		const saved = {
 			...new Settings().toJSON(),

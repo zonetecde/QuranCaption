@@ -561,6 +561,8 @@ export default class Settings extends SerializableBase {
 				}
 			}
 		}
+		// Évite une pause asynchrone entre la publication des paramètres et la migration des raccourcis.
+		const latestVersion = await VersionService.getAppVersion();
 		globalState.settings = settings;
 		if (!settings.shortcuts.TIMELINE.NEXT_MARKED_SEGMENT) {
 			settings.shortcuts.TIMELINE.NEXT_MARKED_SEGMENT = {
@@ -712,7 +714,6 @@ export default class Settings extends SerializableBase {
 
 		// Regarde la version des settings. Si c'est pas la même, ça veut dire
 		// que l'utilisateur vient de mettre à jour
-		const latestVersion = await VersionService.getAppVersion();
 		if (settings.appVersion !== latestVersion) {
 			// Telemetry
 			AnalyticsService.trackAppUpdated(settings.appVersion || 'unknown', latestVersion || '0.0.0');

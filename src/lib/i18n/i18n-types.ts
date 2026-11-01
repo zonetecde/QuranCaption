@@ -1009,6 +1009,10 @@ type RootTranslation = {
 		continue: string;
 	};
 	editor: {
+		/**
+		 * F​o​l​l​o​w​ ​t​h​e​s​e​ ​f​o​u​r​ ​s​t​e​p​s​ ​i​n​ ​o​r​d​e​r​ ​t​o​ ​c​r​e​a​t​e​ ​q​u​a​l​i​t​y​ ​s​u​b​t​i​t​l​e​s​ ​f​o​r​ ​y​o​u​r​ ​v​i​d​e​o​.
+		 */
+		transcriptionWorkflowHint: string;
 		manualAi: {
 			/**
 			 * A​I​ ​c​o​n​n​e​c​t​i​o​n​ ​m​e​t​h​o​d
@@ -11540,6 +11544,10 @@ export type TranslationFunctions = {
 		continue: () => LocalizedString;
 	};
 	editor: {
+		/**
+		 * Follow these four steps in order to create quality subtitles for your video.
+		 */
+		transcriptionWorkflowHint: () => LocalizedString;
 		manualAi: {
 			/**
 			 * AI connection method

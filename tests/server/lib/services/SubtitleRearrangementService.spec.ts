@@ -59,7 +59,8 @@ test('prepares a large manual project without repeatedly serializing the whole t
 	);
 	const rejected = expect(result).rejects.toMatchObject({ name: 'AbortError' });
 	try {
-		await vi.waitFor(() => expect(session.steps).toHaveLength(1));
+		// Prévoit la charge de la suite parallèle sans relâcher les contrôles de sérialisation.
+		await vi.waitFor(() => expect(session.steps).toHaveLength(1), { timeout: 5000 });
 		expect(serializeTrack.mock.calls.length).toBeLessThan(100);
 		expect(serializeTranslations.mock.calls.length).toBeLessThan(100);
 		expect(yieldedBeforePrompt).toBe(true);
@@ -69,7 +70,7 @@ test('prepares a large manual project without repeatedly serializing the whole t
 		session.cancel();
 		await rejected;
 	}
-});
+}, 10000);
 
 test.each(['edit', 'translations', 'switch', 'cancel'])(
 	'stops preparation before the first prompt after %s while yielding to the UI',

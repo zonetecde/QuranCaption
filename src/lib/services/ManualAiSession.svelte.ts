@@ -96,7 +96,17 @@ export class ManualAiSession {
 						let parsed: { requestId?: unknown; result?: unknown };
 						try {
 							const raw = step.response.trim();
-							parsed = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
+							const json = raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1).replace(
+								/\\\\|\\([[\]])/g,
+								/**
+								 * Retire les échappements Markdown des crochets en préservant les antislashs JSON.
+								 * @param {string} escape Séquence échappée.
+								 * @param {string | undefined} bracket Crochet échappé en Markdown.
+								 * @returns {string} Séquence JSON conservée ou crochet sans échappement.
+								 */
+								(escape: string, bracket: string | undefined) => bracket ?? escape
+							);
+							parsed = JSON.parse(json);
 						} catch {
 							throw new Error(getManualAiCopy().invalidJson());
 						}

@@ -12,7 +12,7 @@
 		applyAdvancedTrimValidationSuccess,
 		buildAdvancedTrimBatches,
 		buildAdvancedTrimVerseCandidates,
-		validateManualAdvancedTrimBatchResult,
+		validateAdvancedTrimBatchResult,
 		type AdvancedTrimVerseCandidate,
 		type AdvancedTrimValidationSuccess
 	} from '$lib/services/AdvancedAITrimming';
@@ -132,7 +132,7 @@
 		}
 	}
 
-	/** Prépare les lots puis valide chaque réponse sans modifier le projet. @returns {Promise<void>} */
+	/** Prépare les lots puis applique les traductions après validation de toutes les réponses. @returns {Promise<void>} */
 	async function preparePrompts(): Promise<void> {
 		if (preparing || applying || !globalState.currentProject) return;
 		sourceProject = globalState.currentProject;
@@ -157,7 +157,7 @@
 					{ batch: batch.request },
 					(parsed) => {
 						assertSourceUnchanged();
-						const validation = validateManualAdvancedTrimBatchResult(edition, batch, parsed);
+						const validation = validateAdvancedTrimBatchResult(batch, parsed);
 						if (validation.errors.length || validation.validVerses.length !== batch.verses.length) {
 							throw new Error(validation.errors.join('\n') || copy.invalidJson());
 						}
@@ -169,6 +169,7 @@
 			}
 			assertSourceUnchanged();
 			session.finish();
+			await applyTranslations();
 		} catch (cause) {
 			session.cancel();
 			results = [];
@@ -271,37 +272,9 @@
 			>
 		</fieldset>
 		<ManualAiWorkflow {session} {progress} />
-		{#if session.ready}
-			<div class="space-y-3 px-4 pb-4">
-				<h3 class="text-sm font-semibold text-primary">{$LL.editor.translationPreview()}</h3>
-				{#each results as result (result.candidate.verseKey)}
-					<div class="space-y-3 break-words rounded-xl border border-color bg-primary p-4">
-						<p class="text-xs text-thirdly">{result.candidate.verseKey}</p>
-						{#each result.result.segments as segment (segment.i)}
-							<div class="space-y-1 text-sm">
-								<p dir="auto" class="text-secondary">
-									{result.candidate.segments[segment.i].arabic}
-								</p>
-								<p dir="auto" class="text-primary">{segment.text}</p>
-							</div>
-						{/each}
-					</div>
-				{/each}
-			</div>
-		{/if}
 		{#if error}<p role="alert" dir="auto" class="break-words px-4 pb-4 text-sm text-red-400">
 				{error}
 			</p>{/if}
-		{#if session.ready}
-			<div class="sticky bottom-0 border-t border-color bg-secondary p-4">
-				<button
-					type="button"
-					class="btn-accent min-h-11 w-full px-4 py-3 text-sm font-semibold disabled:opacity-40"
-					disabled={applying}
-					onclick={applyTranslations}>{copy.applyTranslations()}</button
-				>
-			</div>
-		{/if}
 	{:else}
 		<div class="p-4"><AdvancedAITrimmingTab {edition} bind:isRunning={apiRunning} /></div>
 	{/if}

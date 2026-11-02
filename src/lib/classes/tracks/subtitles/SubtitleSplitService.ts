@@ -1,4 +1,10 @@
-import { type Clip, PredefinedSubtitleClip, SilenceClip, SubtitleClip } from '../../Clip.svelte.js';
+import {
+	type Clip,
+	type ClipWithTranslation,
+	PredefinedSubtitleClip,
+	SilenceClip,
+	SubtitleClip
+} from '../../Clip.svelte.js';
 import { Quran, type Verse } from '../../Quran.js';
 import { Translation } from '../../Translation.svelte.js';
 import {
@@ -22,6 +28,26 @@ type WordBoundarySplitRequest = {
 
 /** Regroupe les règles métier propres au découpage des sous-titres. */
 export class SubtitleSplitService {
+	/**
+	 * Conserve les traductions du parent sur chaque moitié en demandant leur vérification.
+	 * @param {ClipWithTranslation['translations']} translations Traductions avant la coupe.
+	 * @param {ClipWithTranslation[]} clips Sous-titres issus de la coupe.
+	 * @returns {void}
+	 */
+	static inheritTranslations(
+		translations: ClipWithTranslation['translations'],
+		clips: ClipWithTranslation[]
+	): void {
+		for (const [edition, translation] of Object.entries(translations)) {
+			if (!translation.isStatusComplete() && translation.status !== 'to review') continue;
+			for (const clip of clips) {
+				const inherited = translation.clone();
+				inherited.status = 'to review';
+				clip.translations[edition] = inherited;
+			}
+		}
+	}
+
 	/**
 	 * Retourne l'index Quran 0-based porté par une location MFA.
 	 * @param {string} location Clé au format `surah:verse:word`.
@@ -129,6 +155,7 @@ export class SubtitleSplitService {
 		const originalStartWordIndex = clip.startWordIndex;
 		const originalEndWordIndex = clip.endWordIndex;
 		const rightStartWordIndex = leftEndWordIndex + 1;
+		const originalTranslations = clip.translations;
 		const rightClip = clip.cloneWithTimes(splitTimeMs, originalEndTime);
 
 		clip.setEndTimeSilently(splitTimeMs);
@@ -146,6 +173,7 @@ export class SubtitleSplitService {
 			originalEndWordIndex,
 			request.resolveProperties
 		);
+		this.inheritTranslations(originalTranslations, [clip, rightClip]);
 
 		clip.alignmentMetadata = this.buildAlignmentMetadata(
 			metadata,

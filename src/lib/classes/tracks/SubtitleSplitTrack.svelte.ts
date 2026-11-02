@@ -136,7 +136,7 @@ export abstract class SubtitleSplitTrack extends Track {
 						toast.error(get(LL).editor.clipsTooShort());
 						return false;
 					}
-					return SubtitleSplitService.splitAtWordBoundary({
+					return await SubtitleSplitService.splitAtWordBoundary({
 						clips: this.clips,
 						clipIndex,
 						clip,
@@ -146,7 +146,7 @@ export abstract class SubtitleSplitTrack extends Track {
 					});
 				}
 				if (exactWordIndex !== null) {
-					return SubtitleSplitService.splitAtWordBoundary({
+					return await SubtitleSplitService.splitAtWordBoundary({
 						clips: this.clips,
 						clipIndex,
 						clip,
@@ -159,6 +159,9 @@ export abstract class SubtitleSplitTrack extends Track {
 			const originalEndTime = clip.endTime;
 			clip.setEndTime(splitTime);
 			const newClip = SubtitleSplitService.cloneRightClip(clip, splitTime, originalEndTime);
+			if (clip instanceof ClipWithTranslation && newClip instanceof ClipWithTranslation) {
+				SubtitleSplitService.inheritTranslations(clip.translations, [newClip, clip]);
+			}
 			if (clip instanceof SubtitleClip || clip instanceof PredefinedSubtitleClip) {
 				clip.markAsManualEdit();
 			}

@@ -134,7 +134,7 @@ afterEach(() => {
 	globalState.settings = originalSettings;
 });
 
-test('keeps the API workflow and validates manual replies before one undoable application', async () => {
+test('keeps the API workflow and automatically applies the final reply in one undoable operation', async () => {
 	const close = vi.fn();
 	const component = render(AskIAModal, { close, edition });
 	await expect
@@ -161,8 +161,6 @@ test('keeps the API workflow and validates manual replies before one undoable ap
 		.element(component.getByText('This reply does not match this prompt.', { exact: false }))
 		.toBeVisible();
 	await input.fill(reply());
-	await component.getByRole('button', { name: 'Check reply and continue' }).click();
-	await expect.element(component.getByText('All replies have been checked')).toBeVisible();
 	expect(globalState.getSubtitleClips.map((clip) => clip.translations[edition.name].text)).toEqual([
 		'Source words',
 		'Source words'
@@ -170,7 +168,7 @@ test('keeps the API workflow and validates manual replies before one undoable ap
 	expect(
 		vi.mocked(invoke).mock.calls.every(([command]) => command === 'prepare_manual_ai_prompt')
 	).toBe(true);
-	await component.getByRole('button', { name: 'Apply translations' }).click();
+	await component.getByRole('button', { name: 'Check reply and continue' }).click();
 	await expect.poll(() => close.mock.calls.length).toBe(1);
 	expect(globalState.getSubtitleClips.map((clip) => clip.translations[edition.name].text)).toEqual([
 		'Source',
@@ -188,21 +186,17 @@ test.each([
 	['Here is the JSON response:\n', '\nThe response is complete.'],
 	['Here is the response:\n```json\n', '\n```\nThe response is complete.']
 ])('cleans pasted replies wrapped in %s and %s before validation', async (prefix, suffix) => {
-	const component = render(AskIAModal, { close: vi.fn(), edition });
+	const close = vi.fn();
+	const component = render(AskIAModal, { close, edition });
 	await component.getByRole('tab', { name: 'Without API key' }).click();
 	await component.getByRole('button', { name: 'Prepare prompts', exact: true }).click();
 	await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
 	const input = component.getByRole('textbox', { name: '2. Paste the full reply here' });
 	const json = reply();
-	const clipboardData = new DataTransfer();
-	clipboardData.setData('text/plain', prefix + json + suffix);
-	input
-		.element()
-		.dispatchEvent(new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }));
-
-	await expect.element(input).toHaveValue(json);
+	await input.fill(prefix + json + suffix);
+	await expect.element(input).toHaveValue(prefix + json + suffix);
 	await component.getByRole('button', { name: 'Check reply and continue' }).click();
-	await expect.element(component.getByText('All replies have been checked')).toBeVisible();
+	await expect.poll(() => close.mock.calls.length).toBe(1);
 });
 
 test('keeps accepted batches when the next reply must be regenerated, then cancels without partial edits', async () => {
@@ -223,7 +217,7 @@ test('keeps accepted batches when the next reply must be regenerated, then cance
 	await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
 	await component
 		.getByRole('textbox', { name: '2. Paste the full reply here' })
-		.fill(reply('1:2', ['invented', 'words']));
+		.fill(reply('1:2', ['words']));
 	await component.getByRole('button', { name: 'Check reply and continue' }).click();
 	await expect.element(component.getByRole('button', { name: 'Copy retry prompt' })).toBeVisible();
 	await component.getByRole('button', { name: 'Prompt 1', exact: true }).click();
@@ -236,6 +230,80 @@ test('keeps accepted batches when the next reply must be regenerated, then cance
 		globalState.getSubtitleClips.every((clip) => clip.translations[edition.name].text === source)
 	).toBe(true);
 	expect(project.save).not.toHaveBeenCalled();
+});
+
+test.each([
+	['missing coverage', ['Source', 'Source']],
+	['unmappable text', ['Source words', 'Source invented']]
+])(
+	'accepts content errors and marks only affected translations on application: %s',
+	async (_, texts) => {
+		const close = vi.fn();
+		const component = render(AskIAModal, { close, edition });
+		await component.getByRole('tab', { name: 'Without API key' }).click();
+		await component.getByRole('button', { name: 'Prepare prompts', exact: true }).click();
+		await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
+		await component
+			.getByRole('textbox', { name: '2. Paste the full reply here' })
+			.fill(reply('1:1', texts));
+		expect(
+			globalState.getSubtitleClips.map((clip) => clip.translations[edition.name].status)
+		).toEqual(['to review', 'to review']);
+		await component.getByRole('button', { name: 'Check reply and continue' }).click();
+		await expect.poll(() => close.mock.calls.length).toBe(1);
+		expect(
+			globalState.getSubtitleClips.map((clip) => clip.translations[edition.name].status)
+		).toEqual(['ai trimmed', 'ai error']);
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(
+			globalState.getSubtitleClips.map((clip) => clip.translations[edition.name].status)
+		).toEqual(['to review', 'to review']);
+		expect(ProjectHistoryManager.redo()).toBe(true);
+		expect(
+			globalState.getSubtitleClips.map((clip) => clip.translations[edition.name].status)
+		).toEqual(['ai trimmed', 'ai error']);
+	}
+);
+
+test('waits for every batch before automatically applying and saving once', async () => {
+	const words = Array.from({ length: 101 }, (_, index) => `word${index}`);
+	const source = words.join(' ');
+	const project = setupProject(source, 2);
+	const close = vi.fn();
+	const component = render(AskIAModal, { close, edition });
+	await component.getByRole('tab', { name: 'Without API key' }).click();
+	const slider = component.container.querySelector('#manual-ai-batch-size') as HTMLInputElement;
+	slider.value = '100';
+	slider.dispatchEvent(new Event('input', { bubbles: true }));
+	await component.getByRole('button', { name: 'Prepare prompts', exact: true }).click();
+	const texts = [words.slice(0, 50).join(' '), words.slice(50).join(' ')];
+	await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
+	await component
+		.getByRole('textbox', { name: '2. Paste the full reply here' })
+		.fill(reply('1:1', texts));
+	await component.getByRole('button', { name: 'Check reply and continue' }).click();
+	await expect.poll(() => vi.mocked(invoke).mock.calls.length).toBe(2);
+	expect(project.save).not.toHaveBeenCalled();
+	expect(close).not.toHaveBeenCalled();
+	expect(
+		globalState.getSubtitleClips.every((clip) => clip.translations[edition.name].text === source)
+	).toBe(true);
+	await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
+	await component
+		.getByRole('textbox', { name: '2. Paste the full reply here' })
+		.fill(reply('1:2', texts));
+	await component.getByRole('button', { name: 'Check reply and continue' }).click();
+	await expect.poll(() => close.mock.calls.length).toBe(1);
+	expect(project.save).toHaveBeenCalledTimes(1);
+	expect(globalState.getSubtitleClips.map((clip) => clip.translations[edition.name].text)).toEqual([
+		...texts,
+		...texts
+	]);
+	expect(ProjectHistoryManager.undo()).toBe(true);
+	expect(
+		globalState.getSubtitleClips.every((clip) => clip.translations[edition.name].text === source)
+	).toBe(true);
+	expect(ProjectHistoryManager.undo()).toBe(false);
 });
 
 test('selects every verse by default and counts the chosen verses when their timings overlap', async () => {
@@ -263,19 +331,19 @@ test('selects every verse by default and counts the chosen verses when their tim
 	});
 });
 
-test('rejects stale previews after a subtitle changes', async () => {
+test('rejects replies after a subtitle changes without applying translations', async () => {
 	const component = render(AskIAModal, { close: vi.fn(), edition });
 	await component.getByRole('tab', { name: 'Without API key' }).click();
 	await component.getByRole('button', { name: 'Prepare prompts', exact: true }).click();
 	await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
 	await component.getByRole('textbox', { name: '2. Paste the full reply here' }).fill(reply());
-	await component.getByRole('button', { name: 'Check reply and continue' }).click();
-	await expect.element(component.getByRole('button', { name: 'Apply translations' })).toBeVisible();
 	globalState.getSubtitleClips[0].text = 'Changed source';
-	await component.getByRole('button', { name: 'Apply translations' }).click();
+	await component.getByRole('button', { name: 'Check reply and continue' }).click();
 	await expect
-		.element(component.getByRole('alert'))
-		.toHaveTextContent('The project, subtitles or translations changed.');
+		.element(
+			component.getByText('The project, subtitles or translations changed.', { exact: false })
+		)
+		.toBeVisible();
 	expect(globalState.getSubtitleClips[0].translations[edition.name].text).toBe('Source words');
 });
 

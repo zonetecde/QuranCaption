@@ -789,43 +789,6 @@ export function validateAdvancedTrimBatchResult(
 }
 
 /**
- * Vérifie les réponses manuelles et leur remapping sur des copies avant toute application.
- * @param {Edition} edition Edition à traduire.
- * @param {AdvancedTrimBatch} batch Lot attendu.
- * @param {unknown} parsed Réponse JSON de l'IA.
- * @returns {AdvancedTrimValidationReport} Réponses valides et erreurs à régénérer.
- */
-export function validateManualAdvancedTrimBatchResult(
-	edition: Edition,
-	batch: AdvancedTrimBatch,
-	parsed: unknown
-): AdvancedTrimValidationReport {
-	const report = validateAdvancedTrimBatchResult(batch, parsed);
-	for (const { candidate, result } of report.validVerses) {
-		// Les contrôles de couverture et de remapping ne doivent jamais toucher au projet.
-		const translations = candidate.subtitles.map(
-			(subtitle) =>
-				(subtitle.translations[edition.name]?.clone() as VerseTranslation | undefined) ?? null
-		);
-		const checkedIndexes = new Set(result.segments.map((segment) => segment.i));
-		for (const segment of result.segments) {
-			translations[segment.i]?.setTextAndClearInlineStyles(segment.text);
-		}
-		for (const translation of translations) {
-			translation?.tryRecalculateTranslationIndexes(
-				edition,
-				candidate.verseKey,
-				candidate.sourceTranslation
-			);
-		}
-		report.errors.push(
-			...collectAdvancedTrimRuleErrors(candidate, translations, checkedIndexes, null).errors
-		);
-	}
-	return report;
-}
-
-/**
  * Lit le texte d'un segment IA, avec compatibilité pour certains fournisseurs.
  *
  * @param {Record<string, unknown>} segment Segment renvoyé par le fournisseur IA.

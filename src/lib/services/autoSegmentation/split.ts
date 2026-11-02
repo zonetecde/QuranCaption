@@ -1,6 +1,7 @@
 import { Quran } from '$lib/classes/Quran';
 import { globalState } from '$lib/runes/main.svelte';
 import { SubtitleClip, TrackType, type Project } from '$lib/classes';
+import { SubtitleSplitService } from '$lib/classes/tracks/subtitles/SubtitleSplitService';
 import { SUBDIVIDE_MAX_WORDS_DISABLED, SUBDIVIDE_MAX_DURATION_DISABLED } from './types';
 import { refreshSegmentationContextFromTrack } from './context';
 import { getSubtitleClipWordCount } from './review';
@@ -81,6 +82,7 @@ export async function splitSubtitleClipLocally(
 	const originalEndTime = clip.endTime;
 	const originalStartWordIndex = clip.startWordIndex;
 	const originalEndWordIndex = clip.endWordIndex;
+	const originalTranslations = clip.translations;
 	const originalMetadata = metadata;
 	const originalNeedsReview = clip.needsReview;
 	const originalNeedsCoverageReview = clip.needsCoverageReview;
@@ -106,6 +108,7 @@ export async function splitSubtitleClipLocally(
 		originalEndWordIndex,
 		project
 	);
+	SubtitleSplitService.inheritTranslations(originalTranslations, [clip, rightClip]);
 
 	const splitOffsetS = splitWord.end;
 	const leftWords = originalMetadata.words

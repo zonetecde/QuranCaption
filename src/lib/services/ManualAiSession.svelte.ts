@@ -22,7 +22,7 @@ function getManualAiCopy(): ManualAiCopy {
 }
 
 /**
- * Décode la réponse en ne corrigeant le formatage Markdown qu'en cas d'échec.
+ * Décode la réponse en ne corrigeant les erreurs de formatage qu'en cas d'échec.
  * @param {string} json Objet JSON extrait de la réponse.
  * @returns {{ requestId?: unknown; result?: unknown }} Enveloppe décodée.
  */
@@ -35,7 +35,25 @@ function parseManualAiJson(json: string): { requestId?: unknown; result?: unknow
 			return JSON.parse(formatted);
 		} catch {
 			// Le premier essai préserve les guillemets et antislashs déjà valides.
-			return JSON.parse(formatted.replace(/(?<!\\)\\\\"/g, '\\"'));
+			const escaped = formatted.replace(/(?<!\\)\\\\"/g, '\\"');
+			try {
+				return JSON.parse(escaped);
+			} catch {
+				return JSON.parse(
+					escaped.replace(
+						/("text"\s*:\s*")((?:\\.|(?!"\s*:)[^\\}\r\n])*?)"(?=\s*})/g,
+						/**
+						 * Échappe les guillemets du texte sans absorber d'accolade ou de clé JSON.
+						 * @param {string} _match Champ text complet.
+						 * @param {string} prefix Clé et guillemet ouvrant.
+						 * @param {string} text Contenu avec ses échappements existants.
+						 * @returns {string} Champ text aux guillemets échappés.
+						 */
+						(_match: string, prefix: string, text: string) =>
+							`${prefix}${text.replace(/\\([\s\S])|(")/g, '\\$1$2')}"`
+					)
+				);
+			}
 		}
 	}
 }

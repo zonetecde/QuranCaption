@@ -199,6 +199,28 @@ test.each([
 	await expect.poll(() => close.mock.calls.length).toBe(1);
 });
 
+test('repairs Gemini text quotes before removing unit indexes and automatically applying translations', async () => {
+	setupProject('He said: "Hello".');
+	const close = vi.fn();
+	const component = render(AskIAModal, { close, edition });
+	await component.getByRole('tab', { name: 'Without API key' }).click();
+	await component.getByRole('button', { name: 'Prepare prompts', exact: true }).click();
+	await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
+	const response = reply('1:1', ['0:He 1:said:', '2:"Hello".']).replace(/\\"/g, '"');
+	const input = component.getByRole('textbox', { name: '2. Paste the full reply here' });
+	await input.fill(response);
+	await expect.element(input).toHaveValue(response);
+	await component.getByRole('button', { name: 'Check reply and continue' }).click();
+	await expect.poll(() => close.mock.calls.length).toBe(1);
+	expect(globalState.getSubtitleClips.map((clip) => clip.translations[edition.name].text)).toEqual([
+		'He said:',
+		'"Hello".'
+	]);
+	expect(
+		globalState.getSubtitleClips.map((clip) => clip.translations[edition.name].status)
+	).toEqual(['ai trimmed', 'ai trimmed']);
+});
+
 test('keeps accepted batches when the next reply must be regenerated, then cancels without partial edits', async () => {
 	const words = Array.from({ length: 101 }, (_, index) => `word${index}`);
 	const source = words.join(' ');

@@ -71,6 +71,31 @@ describe('manual AI response validation', () => {
 &#x20; "result": {"text":"literal &#x20;"}\
 }`,
 			'literal &#x20;'
+		],
+		[
+			'unescaped opening quote from the Gemini reply',
+			'{"requestId":"REQUEST_ID","result":{"text":"0:[Through 1:a 2:messenger, 3:saying], 4:"Do 5:not 6:worship 7:except 8:Allāh."}}',
+			'0:[Through 1:a 2:messenger, 3:saying], 4:"Do 5:not 6:worship 7:except 8:Allāh.'
+		],
+		[
+			'unescaped closing quote from the Gemini reply',
+			'{"requestId":"REQUEST_ID","result":{"text":"9:Indeed, 10:I 11:am 12:to 13:you 14:from 15:Him 16:a 17:warner 18:and 19:a 20:bringer 21:of 22:good 23:tidings,""}}',
+			'9:Indeed, 10:I 11:am 12:to 13:you 14:from 15:Him 16:a 17:warner 18:and 19:a 20:bringer 21:of 22:good 23:tidings,"'
+		],
+		[
+			'unescaped quotes inside the Gemini question',
+			'{"requestId":"REQUEST_ID","result":{"text":"0:Or 1:do 2:they 3:say, 4:"He 5:invented 6:it"?"}}',
+			'0:Or 1:do 2:they 3:say, 4:"He 5:invented 6:it"?'
+		],
+		[
+			'quoted phrase followed by a comma',
+			'{"requestId":"REQUEST_ID","result":{"text":"He said "Hello", then left."}}',
+			'He said "Hello", then left.'
+		],
+		[
+			'mixed valid escapes and unescaped quotes',
+			String.raw`{"requestId":"REQUEST_ID","result":{"text":"\"valid\"\n\\path and "unescaped""}}`,
+			'"valid"\n\\path and "unescaped"'
 		]
 	])('accepts %s only when submitted', async (_, response, expected) => {
 		const session = new ManualAiSession();
@@ -92,6 +117,14 @@ describe('manual AI response validation', () => {
 		['{"requestId":"REQUEST_ID","result":{broken}}', 'Invalid JSON'],
 		[String.raw`{"requestId":"REQUEST_ID","result":{"text":"\q"}}`, 'Invalid JSON'],
 		['{"requestId":"REQUEST_ID","result":{"text":"unfinished', 'Invalid JSON'],
+		[
+			'{"requestId":"REQUEST_ID","result":{"segments":[{"i":0,"text":"unfinished},{"i":1,"text":"ok"}]}}',
+			'Invalid JSON'
+		],
+		['{"requestId":"REQUEST_ID","result":{"verseKey":"11:"2","text":"ok"}}', 'Invalid JSON'],
+		['{"requestId":"REQUEST_ID","result":{"text":"unfinished,"other":"ok"}}', 'Invalid JSON'],
+		[String.raw`{"requestId":"REQUEST_ID","result":{"text":"bad \q and "quote""}}`, 'Invalid JSON'],
+		['{"requestId":"other","result":{"text":"He said "Hello"."}}', 'Wrong prompt'],
 		[
 			String.raw`{\
 &#x20; "requestId": "other",\

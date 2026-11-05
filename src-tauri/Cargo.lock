@@ -4029,7 +4029,7 @@ dependencies = [
 
 [[package]]
 name = "qurancaption"
-version = "3.8.32"
+version = "3.8.40"
 dependencies = [
  "base64 0.22.1",
  "bytes",

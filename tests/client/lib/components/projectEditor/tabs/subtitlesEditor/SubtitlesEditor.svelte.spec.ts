@@ -4,9 +4,12 @@ import { tick } from 'svelte';
 
 import SubtitlesList from '$lib/components/projectEditor/tabs/subtitlesEditor/SubtitlesList.svelte';
 import SubtitlesWorkspace from '$lib/components/projectEditor/tabs/subtitlesEditor/SubtitlesWorkspace.svelte';
+import QuickTimelineEditorOverlay from '$lib/components/projectEditor/timeline/QuickTimelineEditorOverlay.svelte';
 
 import { Quran } from '$lib/classes/Quran';
+import { ProjectEditorTabs } from '$lib/classes';
 import Settings from '$lib/classes/Settings.svelte';
+import ShortcutService from '$lib/services/ShortcutService';
 import { setLocale } from '$lib/i18n/i18n-svelte';
 import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { globalState } from '$lib/runes/main.svelte';
@@ -15,13 +18,6 @@ import {
 	setupSubtitlesEditorProjectFixture,
 	seedSubtitlesEditorQuranFixture
 } from '../../../../../fixtures/subtitlesEditor/projectFixture';
-
-vi.mock('$lib/services/ShortcutService', () => ({
-	default: {
-		registerShortcut: vi.fn(),
-		unregisterShortcut: vi.fn()
-	}
-}));
 
 vi.mock('svelte-5-french-toast', () => ({
 	default: {
@@ -61,12 +57,36 @@ describe('Subtitles editor workflow', () => {
 		loadLocale('en');
 		setLocale('en');
 		seedSubtitlesEditorQuranFixture();
+		ShortcutService.init();
 	});
 
 	afterEach(() => {
 		cleanup();
+		ShortcutService.cleanup();
 		vi.restoreAllMocks();
 		resetSubtitlesEditorProjectFixture();
+	});
+
+	test('Enter still applies a subtitle edit after closing the quick timeline editor', async () => {
+		const { workspace, clips, spies } = createRenderedFixture(1, 1);
+		globalState.currentProject!.projectEditorState.currentTab = ProjectEditorTabs.SubtitlesEditor;
+		await waitForEditorReady(workspace, 1);
+
+		globalState.openQuickTimelineEditor(clips[0].id, 'subtitle');
+		const overlay = render(QuickTimelineEditorOverlay);
+		await tick();
+		globalState.closeQuickTimelineEditor();
+		overlay.unmount();
+		await tick();
+
+		globalState.getSubtitlesEditorState.editSubtitle = clips[0];
+		await tick();
+		await workspace.getByText('W1V1-2', { exact: true }).first().click();
+		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+		await vi.waitFor(() => expect(spies.editSubtitle).toHaveBeenCalledOnce());
+		expect(spies.editSubtitle.mock.calls[0].slice(2)).toEqual([1, 1, 1]);
+		expect(globalState.getSubtitlesEditorState.editSubtitle).toBeNull();
 	});
 
 	test('shows the saved surah on mount and updates the verse words after a new surah selection', async () => {

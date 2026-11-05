@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { SubtitleClip } from '$lib/classes';
+	import { ProjectEditorTabs, SubtitleClip } from '$lib/classes';
 	import {
 		ClipWithTranslation,
 		type PredefinedSubtitleClip,
@@ -39,6 +39,7 @@
 	let editShortcutLongPressTimer: ReturnType<typeof setTimeout> | null = $state(null);
 	let didTriggerManualWbwEdit = $state(false);
 	let didRegisterEditLastSubtitleShortcut = false;
+	let didRegisterShortcuts = false;
 
 	const wbwShortcutHandlers = {
 		getTimer: () => editShortcutLongPressTimer,
@@ -118,6 +119,16 @@
 	);
 
 	onMount(() => {
+		document.addEventListener('mouseup', handleGlobalWordMouseUp);
+		// L'overlay réutilise les raccourcis du sélecteur déjà monté dans l'éditeur.
+		if (
+			globalState.shared.quickTimelineEditor.active &&
+			globalState.currentProject!.projectEditorState.currentTab ===
+				ProjectEditorTabs.SubtitlesEditor
+		)
+			return;
+		didRegisterShortcuts = true;
+
 		// Set up les shortcuts pour sélectionner les mots
 		ShortcutService.registerShortcut({
 			key: globalState.settings!.shortcuts.SUBTITLES_EDITOR.SELECT_NEXT_WORD,
@@ -254,11 +265,17 @@
 				globalState.getSubtitlesEditorState.pendingSplitEditNextId = null;
 			}
 		});
-
-		document.addEventListener('mouseup', handleGlobalWordMouseUp);
 	});
 
 	onDestroy(() => {
+		document.removeEventListener('mouseup', handleGlobalWordMouseUp);
+		currentMenu.set(null);
+		if (editShortcutLongPressTimer) {
+			clearTimeout(editShortcutLongPressTimer);
+			editShortcutLongPressTimer = null;
+		}
+		if (!didRegisterShortcuts) return;
+
 		// Clean up les shortcuts
 		ShortcutService.unregisterShortcut(
 			globalState.settings!.shortcuts.SUBTITLES_EDITOR.SELECT_NEXT_WORD
@@ -321,13 +338,6 @@
 			keys: ['Escape'],
 			description: get(LL).editor.exitSubtitleEditing()
 		});
-
-		document.removeEventListener('mouseup', handleGlobalWordMouseUp);
-		currentMenu.set(null);
-		if (editShortcutLongPressTimer) {
-			clearTimeout(editShortcutLongPressTimer);
-			editShortcutLongPressTimer = null;
-		}
 	});
 
 	/**
@@ -347,9 +357,7 @@
 			if (nextClip) {
 				// Modifie le sous-titre
 				globalState.getSubtitlesEditorState.editSubtitle = nextClip as
-					| SubtitleClip
-					| PredefinedSubtitleClip
-					| ClipWithTranslation;
+					SubtitleClip | PredefinedSubtitleClip | ClipWithTranslation;
 				return true;
 			}
 		}

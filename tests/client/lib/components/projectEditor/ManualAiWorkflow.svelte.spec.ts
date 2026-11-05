@@ -106,6 +106,34 @@ test('keeps retry controls and response input reachable on a narrow window', asy
 	expect(dialog.scrollWidth).toBeLessThanOrEqual(dialog.clientWidth);
 });
 
+test.each([
+	['correction', CorrectTranscriptionModal, { corrections: [], warnings: [] }],
+	['rearrangement', RearrangeSubtitlesModal, { blocks: [{ id: 0, ends: [4] }] }],
+	['references', DetectReferencesModal, { findings: [] }]
+] as const)('accepts formatted external replies in the %s modal', async (kind, Modal, result) => {
+	const component = render(Modal, { close: vi.fn() });
+	await component.getByRole('tab', { name: 'Without API key' }).click();
+	if (kind === 'references')
+		await component.getByRole('checkbox', { name: 'Quran quotations', exact: true }).click();
+	await component.getByRole('button', { name: 'Prepare prompts', exact: true }).click();
+	let prompt = '';
+	vi.spyOn(navigator.clipboard, 'writeText').mockImplementation(async (text) => {
+		prompt = text;
+	});
+	await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
+	const requestId = prompt.match(/"requestId":"([^"]+)"/)![1];
+	const response = JSON.stringify({ requestId, result }, null, 2)
+		.replace(/[[\]]/g, '\\$&')
+		.replace(/\n/g, '\\\n')
+		.replace(/^ /gm, '&#x20;');
+	await component
+		.getByRole('textbox', { name: '2. Paste the full reply here' })
+		.fill(`Here is the result:\n\`\`\`json\n${response}\n\`\`\``);
+	await component.getByRole('button', { name: 'Check reply and continue' }).click();
+	await expect.element(component.getByText('All replies have been checked')).toBeVisible();
+	expect((globalState.getSubtitleTrack.clips[0] as SubtitleClip).text).toBe('He read a massage.');
+});
+
 test('switches connection tabs from the keyboard', async () => {
 	const component = render(CorrectTranscriptionModal, { close: vi.fn() });
 	const apiTab = component

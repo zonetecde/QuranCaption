@@ -929,6 +929,20 @@ describe('AIProjectTranslationService', () => {
 		);
 	});
 
+	test('marks invalid manual translations as AI errors in an undoable action', () => {
+		initializeClassRegistry();
+		const project = createProject();
+		globalState.currentProject = project;
+		const candidate = createBatch().candidates[0];
+		project.content.timeline.getFirstTrack(TrackType.Subtitle)!.clips.push(candidate.subtitle);
+		const edition = new Edition('test', 'test', 'French', 'French', 'ltr', 'test', '', '', '');
+		applyAIProjectTranslationResults(edition, [], undefined, [candidate]);
+		expect(candidate.translation.status).toBe('ai error');
+		expect(candidate.translation.text).toBe('{{2:255:1-2}}{{}}');
+		ProjectHistoryManager.undo();
+		expect(globalState.getSubtitleClips.at(-1)!.translations.test.status).toBe('to translate');
+	});
+
 	test('rejects late results after a source edit without overwriting the translation', () => {
 		loadLocale('en');
 		setLocale('en');
@@ -945,5 +959,8 @@ describe('AIProjectTranslationService', () => {
 			])
 		).toThrow('changed during translation');
 		expect(candidate.translation.text).toBe('{{2:255:1-2}}{{}}');
+		expect(() => applyAIProjectTranslationResults(edition, [], undefined, [candidate])).toThrow(
+			'changed during translation'
+		);
 	});
 });

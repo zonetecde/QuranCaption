@@ -773,6 +773,7 @@ function resetFullVerseQuranTranslations(edition: Edition, excluded: Set<Subtitl
  * @param {Edition} edition Langue cible.
  * @param {AIProjectTranslationSuccess[]} successes Résultats validés.
  * @param {AIProjectTranslationOptions} options Options d'écrasement du workflow.
+ * @param {AIProjectTranslationCandidate[]} failures Traductions invalides à marquer en erreur.
  * @returns {AIProjectTranslationApplyReport} Rapport d'application.
  */
 export function applyAIProjectTranslationResults(
@@ -783,11 +784,12 @@ export function applyAIProjectTranslationResults(
 		overwriteAiTranslated: false,
 		overwriteReviewed: false,
 		overwriteManualQuran: false
-	}
+	},
+	failures: AIProjectTranslationCandidate[] = []
 ): AIProjectTranslationApplyReport {
 	if (
-		successes.some(
-			({ candidate }) =>
+		[...successes.map(({ candidate }) => candidate), ...failures].some(
+			(candidate) =>
 				!globalState.getSubtitleClips.includes(candidate.subtitle) ||
 				candidate.snapshot !==
 					JSON.stringify([
@@ -809,8 +811,12 @@ export function applyAIProjectTranslationResults(
 		if (options.overwriteManualQuran)
 			resetFullVerseQuranTranslations(
 				edition,
-				new Set(reviews.map(({ candidate }) => candidate.subtitle))
+				new Set([
+					...reviews.map(({ candidate }) => candidate.subtitle),
+					...failures.map((candidate) => candidate.subtitle)
+				])
 			);
+		for (const candidate of failures) candidate.translation.status = 'ai error';
 		for (const success of successes) {
 			const { candidate } = success;
 			if (success.reviewReason && !success.freeTexts.length) {

@@ -21,6 +21,43 @@ function getManualAiCopy(): ManualAiCopy {
 	return (get(LL).editor as unknown as { manualAi: ManualAiCopy }).manualAi;
 }
 
+/**
+ * Décode la réponse en ne corrigeant les erreurs de formatage qu'en cas d'échec.
+ * @param {string} json Objet JSON extrait de la réponse.
+ * @returns {{ requestId?: unknown; result?: unknown }} Enveloppe décodée.
+ */
+function parseManualAiJson(json: string): { requestId?: unknown; result?: unknown } {
+	try {
+		return JSON.parse(json);
+	} catch {
+		const formatted = json.replace(/\\[ \t]*\r?\n/g, '\n').replace(/^([ \t]*)&#x20;/gim, '$1 ');
+		try {
+			return JSON.parse(formatted);
+		} catch {
+			// Le premier essai préserve les guillemets et antislashs déjà valides.
+			const escaped = formatted.replace(/(?<!\\)\\\\"/g, '\\"');
+			try {
+				return JSON.parse(escaped);
+			} catch {
+				return JSON.parse(
+					escaped.replace(
+						/("(?:text|t|before|after|suggestion|reason|issue)"\s*:\s*"|(?:\[|,)\s*")((?:\\.|(?!"\s*:)[^\\}\r\n])*?)"(?=\s*(?:[}\]]|,\s*"))/g,
+						/**
+						 * Échappe les guillemets du texte sans absorber d'accolade ou de clé JSON.
+						 * @param {string} _match Valeur textuelle complète.
+						 * @param {string} prefix Clé ou séparateur et guillemet ouvrant.
+						 * @param {string} text Contenu avec ses échappements existants.
+						 * @returns {string} Valeur aux guillemets échappés.
+						 */
+						(_match: string, prefix: string, text: string) =>
+							`${prefix}${text.replace(/\\([\s\S])|(")/g, '\\$1$2')}"`
+					)
+				);
+			}
+		}
+	}
+}
+
 /** Maintient les réponses manuelles en mémoire jusqu'à leur validation ou l'annulation. */
 export class ManualAiSession {
 	steps = $state<ManualAiStep[]>([]);
@@ -93,7 +130,17 @@ export class ManualAiSession {
 						let parsed: { requestId?: unknown; result?: unknown };
 						try {
 							const raw = step.response.trim();
-							parsed = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
+							const json = raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1).replace(
+								/\\\\|\\([[\]])/g,
+								/**
+								 * Retire les échappements Markdown des crochets en préservant les antislashs JSON.
+								 * @param {string} escape Séquence échappée.
+								 * @param {string | undefined} bracket Crochet échappé en Markdown.
+								 * @returns {string} Séquence JSON conservée ou crochet sans échappement.
+								 */
+								(escape: string, bracket: string | undefined) => bracket ?? escape
+							);
+							parsed = parseManualAiJson(json);
 						} catch {
 							throw new Error(getManualAiCopy().invalidJson());
 						}

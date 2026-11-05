@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => {
 	const listeners = new Map<string, (event: { payload: Record<string, string> }) => void>();
 	return {
 		listeners,
-		getEligible: vi.fn(() => [{}]),
+		getEligible: vi.fn(() => [{ text: 'Source text' }]),
 		buildBatches: vi.fn(async () => [
 			{
 				batchId: 'batch-1',
@@ -132,7 +132,6 @@ describe('AI translation modal', () => {
 				await expect
 					.element(component.getByText('To Review: Source wording needs listening.'))
 					.toBeVisible();
-				await component.getByRole('button', { name: 'Apply translations', exact: true }).click();
 			} else await component.getByRole('button', { name: 'Translate video', exact: true }).click();
 			await expect
 				.element(
@@ -145,8 +144,9 @@ describe('AI translation modal', () => {
 		}
 	);
 
-	test('collects and retries manual replies without a key before explicitly applying all translations', async () => {
+	test('collects and retries manual replies without a key and automatically applies translations after the final reply', async () => {
 		globalState.settings!.aiTranslationSettings.openAiApiKey = '';
+		mocks.validateBatch.mockReturnValueOnce({ validItems: [], errors: ['Invalid translation'] });
 		mocks.buildBatches.mockResolvedValueOnce(
 			Array.from({ length: 2 }, (_, index) => ({
 				batchId: `manual-${index}`,
@@ -203,11 +203,18 @@ describe('AI translation modal', () => {
 			.getByRole('textbox', { name: '2. Paste the full reply here' })
 			.fill(JSON.stringify({ requestId: secondId, result: { i: [] } }));
 		await component.getByRole('button', { name: 'Check reply and continue' }).click();
-		await expect.element(component.getByText('All replies have been checked')).toBeVisible();
+		await vi.waitFor(() => expect(applyAIProjectTranslationResults).toHaveBeenCalledOnce());
 		expect(mocks.runBatch).not.toHaveBeenCalled();
 		expect(invoke).toHaveBeenCalledTimes(2);
-		await component.getByRole('button', { name: 'Apply translations', exact: true }).click();
+		expect(component.container.textContent).not.toContain('Apply translations');
 		expect(applyAIProjectTranslationResults).toHaveBeenCalledOnce();
+		expect(applyAIProjectTranslationResults).toHaveBeenCalledWith(
+			edition,
+			[],
+			expect.any(Object),
+			expect.arrayContaining([expect.any(Object)])
+		);
+		expect(component.container.textContent).toContain('Invalid translation');
 		write.mockRestore();
 	});
 

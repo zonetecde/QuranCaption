@@ -20,6 +20,7 @@
 		validateAIProjectTranslationBatch,
 		resolveAIProjectTranslationSuccessContext,
 		type AIProjectTranslationOptions,
+		type AIProjectTranslationCandidate,
 		type AIProjectTranslationSuccess
 	} from '$lib/services/AIProjectTranslationService';
 	import { resolveAIReasoning } from '$lib/services/AIReasoning';
@@ -68,6 +69,7 @@
 	let manualMode = $state(false);
 	const manualSession = new ManualAiSession();
 	let manualSuccesses: AIProjectTranslationSuccess[] = [];
+	let manualFailures: AIProjectTranslationCandidate[] = [];
 	let manualOptions: AIProjectTranslationOptions;
 	let manualProject: Project | null = null;
 	let scope = $state('missing');
@@ -125,6 +127,7 @@
 	function resetMode(): void {
 		manualSession.cancel();
 		manualSuccesses = [];
+		manualFailures = [];
 		hasFinished = false;
 		previews = [];
 		errors = [];
@@ -136,7 +139,7 @@
 		failedSubtitles = 0;
 	}
 
-	/** Prépare et vérifie les réponses manuelles sans appliquer de traduction. @returns {Promise<void>} */
+	/** Vérifie les réponses manuelles puis applique les traductions après le dernier lot. @returns {Promise<void>} */
 	async function prepareManualTranslation(): Promise<void> {
 		if (isRunning) return;
 		manualSession.start();
@@ -150,6 +153,7 @@
 		reviewSubtitles = 0;
 		failedSubtitles = 0;
 		manualSuccesses = [];
+		manualFailures = [];
 		manualOptions = { ...options };
 		manualProject = globalState.currentProject;
 		const provider = { ...settings() };
@@ -163,18 +167,18 @@
 				if (disposed || globalState.currentProject !== manualProject)
 					throw new Error(copy.aiTranslationSourceChanged());
 				/**
-				 * Refuse le lot entier si une traduction est invalide.
+				 * Vérifie le format du lot et conserve les erreurs de traduction individuelles.
 				 * @param {unknown} response Réponse du chat.
-				 * @returns {AIProjectTranslationSuccess[]} Traductions vérifiées.
+				 * @returns {ReturnType<typeof validateAIProjectTranslationBatch>} Traductions vérifiées et erreurs.
 				 */
-				function validate(response: unknown): AIProjectTranslationSuccess[] {
+				function validate(response: unknown): ReturnType<typeof validateAIProjectTranslationBatch> {
 					if (disposed || globalState.currentProject !== manualProject)
 						throw new Error(copy.aiTranslationSourceChanged());
-					const validation = validateAIProjectTranslationBatch(batch, response);
-					if (validation.errors.length) throw new Error(validation.errors.join('\n'));
-					return validation.validItems;
+					if (!response || !Array.isArray((response as { i?: unknown }).i))
+						throw new Error(manualCopy.invalidJson());
+					return validateAIProjectTranslationBatch(batch, response);
 				}
-				const successes = await manualSession.request(
+				const validation = await manualSession.request(
 					'project_translation',
 					{
 						batch: batch.request,
@@ -185,11 +189,19 @@
 					},
 					validate
 				);
+				const successes = validation.validItems;
 				manualSuccesses.push(...successes);
+				manualFailures.push(
+					...batch.candidates.filter(
+						(candidate) => !successes.some((item) => item.candidate === candidate)
+					)
+				);
+				errors.push(...validation.errors);
+				failedSubtitles = manualFailures.length;
 				completedBatches += 1;
 				previews.push({
 					index: index + 1,
-					status: 'completed',
+					status: validation.errors.length ? 'failed' : 'completed',
 					texts: successes.map((success) =>
 						success.reviewReason
 							? `${$LL.status.toReview()}: ${success.reviewReason}`
@@ -204,16 +216,21 @@
 		} finally {
 			isRunning = false;
 		}
+		if (manualSession.ready && !disposed) await applyManualTranslation();
 	}
 
 	/** Applique toutes les traductions manuelles vérifiées en une action annulable. @returns {Promise<void>} */
 	async function applyManualTranslation(): Promise<void> {
 		if (isRunning || !manualSession.ready || hasFinished) return;
-		errors = [];
 		try {
 			if (globalState.currentProject !== manualProject)
 				throw new Error(copy.aiTranslationSourceChanged());
-			const report = applyAIProjectTranslationResults(edition, manualSuccesses, manualOptions);
+			const report = applyAIProjectTranslationResults(
+				edition,
+				manualSuccesses,
+				manualOptions,
+				manualFailures
+			);
 			translatedSubtitles = report.appliedSubtitles;
 			reviewSubtitles = report.reviewSubtitles;
 			hasFinished = true;
@@ -548,11 +565,6 @@
 						class="btn-accent px-4 py-2"
 						onclick={prepareManualTranslation}
 						disabled={eligibleCount() === 0}>{manualCopy.prepare()}</button
-					>
-				{/if}
-				{#if manualSession.ready && !hasFinished}
-					<button class="btn-accent px-5 py-2" onclick={applyManualTranslation}
-						>{manualCopy.applyTranslations()}</button
 					>
 				{/if}
 			{:else if isRunning}

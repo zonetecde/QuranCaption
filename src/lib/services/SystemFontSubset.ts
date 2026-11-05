@@ -112,7 +112,10 @@ export async function getSystemFontSubsetDataUrl(
 	fontIndex: number,
 	text: string
 ): Promise<string> {
-	const characters = Array.from(new Set(text)).sort().join('');
+	// Les transformations CSS de casse s'appliquent après la collecte du texte DOM.
+	const characters = Array.from(new Set(text + text.toUpperCase() + text.toLowerCase()))
+		.sort()
+		.join('');
 	const cacheKey = `${fontUrl}|${fontIndex}|${characters}`;
 	let subsetPromise = subsetDataUrls.get(cacheKey);
 	if (!subsetPromise) {

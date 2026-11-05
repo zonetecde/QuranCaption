@@ -25,6 +25,7 @@
 		typeof window !== 'undefined' && window.location.pathname.includes('/exporter');
 	const isImageExportPreview =
 		isExportCapturePreview && new URLSearchParams(window.location.search).get('mode') === 'images';
+	let showVideoPreview = $derived(isExportCapturePreview || globalState.uiState.showVideoPreview);
 	let lastTimeErrorShown = 0; // Timestamp of the last error shown (prevent spam)
 	let antiCollisionNoticeCopy = $derived(
 		$LL.editor as unknown as {
@@ -69,6 +70,7 @@
 	// Récupère l'asset vidéo actuellement sous le curseur de la timeline
 	// Seulement si movePreviewTo est défini (pour éviter les recalculs inutiles)
 	let currentVideo = $derived(() => {
+		if (!showVideoPreview) return null;
 		if (getTimelineSettings().movePreviewTo !== undefined) {
 			return untrack(() => {
 				const asset = globalState.currentProject!.content.timeline.getCurrentAssetOnTrack(
@@ -265,11 +267,13 @@
 
 	/**
 	 * Calcule le temps à jouer dans la vidéo en fonction de la position du curseur
+	 * @param {number} refTime Position de référence en millisecondes.
 	 * @returns {number} Temps en secondes dans la vidéo.
 	 */
-	function getCurrentVideoTimeToPlay(): number {
+	function getCurrentVideoTimeToPlay(
+		refTime = getTimelineSettings().movePreviewTo ?? getTimelineSettings().cursorPosition
+	): number {
 		const track = globalState.getVideoTrack;
-		const refTime = getTimelineSettings().movePreviewTo ?? getTimelineSettings().cursorPosition;
 		const currentClip = track.getCurrentVisualClip(refTime);
 		const asset = currentVideo();
 
@@ -487,6 +491,17 @@
 	$effect(() => {
 		if (videoElement) {
 			videoElement.ontimeupdate = handleVideoTimeUpdate;
+			/** Recale la vidéo réactivée sans interrompre l'audio. @returns {void} */
+			videoElement.onloadedmetadata = () => {
+				if (!videoElement) return;
+				videoElement.currentTime = getCurrentVideoTimeToPlay(getTimelineSettings().cursorPosition);
+				videoElement.playbackRate = getSpeed();
+				if (isPlaying) void videoElement.play().catch(() => {});
+			};
+		} else if (!showVideoPreview) {
+			untrack(() => {
+				if (isPlaying && !currentAudio() && !audioUpdateInterval) playSilentAudio();
+			});
 		}
 	});
 
@@ -696,14 +711,7 @@
 
 	// === GESTION AUDIO NATIVE AVEC FALLBACK HOWLER ===
 	type NativePreviewAudioAction =
-		| 'load'
-		| 'play'
-		| 'pause'
-		| 'seek'
-		| 'setVolume'
-		| 'setSpeed'
-		| 'status'
-		| 'unload';
+		'load' | 'play' | 'pause' | 'seek' | 'setVolume' | 'setSpeed' | 'status' | 'unload';
 	type NativePreviewAudioStatus = {
 		loaded: boolean;
 		playing: boolean;
@@ -1779,6 +1787,7 @@
 				{@const transitionState = videoClipTransitionState()}
 				<PreviewBackgroundMedia
 					bind:videoElement
+					enabled={showVideoPreview}
 					crossOrigin={isImageExportPreview ? 'anonymous' : undefined}
 					video={currentVideo()}
 					image={currentImage()}

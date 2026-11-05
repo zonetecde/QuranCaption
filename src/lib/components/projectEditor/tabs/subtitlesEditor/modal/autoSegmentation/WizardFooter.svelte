@@ -2,10 +2,13 @@
 	import { getSharedWizard } from './sharedWizard';
 	import LL from '$lib/i18n/i18n-svelte';
 
-	let { onClose, onOpenVerseRangeCrop } = $props<{
+	let {
+		onClose,
+		onOpenVerseRangeCrop
+	}: {
 		onClose: () => void;
 		onOpenVerseRangeCrop: () => Promise<void>;
-	}>();
+	} = $props();
 	const wizard = getSharedWizard();
 	const isLastStep = $derived(() => wizard.currentStep >= wizard.maxStep);
 </script>

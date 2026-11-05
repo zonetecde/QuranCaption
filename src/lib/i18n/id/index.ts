@@ -791,6 +791,9 @@ const id = {
 	},
 	editor: {
 		...baseEn.editor,
+		showVideoPreview: 'Tampilkan video dalam pratinjau',
+		videoPreviewHelp:
+			'Hapus centang agar navigasi lebih lancar tanpa memuat video dalam pratinjau. Video yang diekspor tidak terpengaruh.',
 		...{
 			subtitleResizeShiftHint:
 				'Tips: tahan Shift saat menyeret untuk memindahkan kata di antara subtitel bersebelahan dari ayat yang sama (memerlukan cap waktu per kata).'

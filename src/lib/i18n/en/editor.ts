@@ -1,4 +1,7 @@
 const editor = {
+	showVideoPreview: 'Show video in preview',
+	videoPreviewHelp:
+		'Uncheck for smoother scrubbing without loading the video in the preview. The exported video is unaffected.',
 	subtitleResizeShiftHint:
 		'Tip: hold Shift while dragging to transfer words between neighboring subtitles (same verse, WBW timestamps required).',
 	manualAi: {

@@ -8,7 +8,7 @@
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { ALIGNER_SPACE_URL } from './constants';
 
-	let { isImportMode = false } = $props<{ isImportMode?: boolean }>();
+	let { isImportMode = false }: { isImportMode?: boolean } = $props();
 	const wizard = getSharedWizard();
 
 	/**

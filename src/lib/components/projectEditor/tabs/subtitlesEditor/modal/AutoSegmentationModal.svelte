@@ -16,7 +16,7 @@
 	import StepExistingSubtitles from './autoSegmentation/steps/StepExistingSubtitles.svelte';
 	import StepVersion from './autoSegmentation/steps/StepVersion.svelte';
 
-	let { close } = $props<{ close: () => void }>();
+	let { close }: { close: () => void } = $props();
 	const wizard = useAutoSegmentationWizard();
 	let activeView = $state<'wizard' | 'import'>('wizard');
 	let importResultVisible = $state(false);

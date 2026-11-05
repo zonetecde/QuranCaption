@@ -589,6 +589,9 @@ const de = {
 			'Möchten Sie den Batch „{name}“ wirklich löschen? Seine {count} Projekte werden ebenfalls dauerhaft gelöscht.'
 	},
 	editor: {
+		showVideoPreview: 'Video in der Vorschau anzeigen',
+		videoPreviewHelp:
+			'Für flüssigeres Navigieren deaktivieren, ohne das Video in der Vorschau zu laden. Das exportierte Video bleibt unverändert.',
 		...{
 			subtitleResizeShiftHint:
 				'Tipp: Halte beim Ziehen Shift gedrückt, um Wörter zwischen benachbarten Untertiteln desselben Verses zu verschieben (WBW-Zeitstempel erforderlich).'

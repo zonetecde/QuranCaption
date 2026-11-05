@@ -4,6 +4,7 @@
 
 	let {
 		videoElement = $bindable(null),
+		enabled = true,
 		crossOrigin,
 		video,
 		image,
@@ -16,6 +17,7 @@
 		onVideoEnded
 	}: {
 		videoElement?: HTMLVideoElement | null;
+		enabled?: boolean;
 		crossOrigin?: 'anonymous';
 		video: Asset | null | undefined;
 		image: Asset | null | undefined;
@@ -27,9 +29,20 @@
 		crossfadeNotice: string;
 		onVideoEnded: () => void;
 	} = $props();
+
+	$effect(() => {
+		const video = videoElement;
+		/** Libère le décodeur lorsque la vidéo quitte l'aperçu. @returns {void} */
+		return () => {
+			if (!video) return;
+			video.pause();
+			video.removeAttribute('src');
+			video.load();
+		};
+	});
 </script>
 
-{#if video}
+{#if enabled && video}
 	<video
 		bind:this={videoElement}
 		crossorigin={crossOrigin}
@@ -39,7 +52,7 @@
 		onended={onVideoEnded}
 		style={`${style} opacity: ${opacity};`}
 	></video>
-{:else if image}
+{:else if enabled && image}
 	<div style={`position: absolute; inset: 0; overflow: hidden; transform: scale(${zoom});`}>
 		<img
 			src={`${convertFileSrc(image.filePath)}?v=${image.mediaReloadToken}`}
@@ -48,7 +61,7 @@
 		/>
 	</div>
 {/if}
-{#if (video || image) && showCrossfadeNotice}
+{#if enabled && (video || image) && showCrossfadeNotice}
 	<div class="crossfade-preview-notice">{crossfadeNotice}</div>
 {/if}
 

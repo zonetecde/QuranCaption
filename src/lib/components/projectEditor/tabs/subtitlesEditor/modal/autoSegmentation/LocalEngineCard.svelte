@@ -10,7 +10,7 @@
 		isInstalled,
 		progress = null,
 		statusMessage = ''
-	} = $props<{
+	}: {
 		title: string;
 		status: LocalEngineStatus | null;
 		isInstalling: boolean;
@@ -18,7 +18,7 @@
 		isInstalled: boolean;
 		progress?: number | null;
 		statusMessage?: string;
-	}>();
+	} = $props();
 
 	const badgeTone = $derived(() =>
 		status?.usable ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'

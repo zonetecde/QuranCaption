@@ -586,6 +586,9 @@ const fr = {
 			'Êtes-vous sûr de vouloir supprimer le batch « {name} » ? Ses {count} projet(s) seront également supprimés définitivement.'
 	},
 	editor: {
+		showVideoPreview: 'Afficher la vidéo dans l’aperçu',
+		videoPreviewHelp:
+			'Décochez pour naviguer plus rapidement sans charger la vidéo dans l’aperçu. La vidéo exportée reste inchangée.',
 		...{
 			subtitleResizeShiftHint:
 				'Astuce : maintenez Shift pendant le glissement pour transférer des mots entre sous-titres voisins (même verset, timestamps WBW requis).'

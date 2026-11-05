@@ -86,7 +86,7 @@ export async function captureMacOsOverlayPngBytes(
 	targetWidth: number,
 	targetHeight: number,
 	options: LiveTextCanvasCaptureOptions = {}
-): Promise<Uint8Array> {
+): Promise<Uint8Array<ArrayBuffer>> {
 	const roundedTargetWidth = Math.round(targetWidth);
 	const roundedTargetHeight = Math.round(targetHeight);
 	const compensateTextWeight = options.compensateTextWeight ?? true;
@@ -160,7 +160,7 @@ export async function captureMacOsOverlayPngBytes(
  * @param canvas Canvas source.
  * @returns Les octets PNG.
  */
-async function canvasToPngBytes(canvas: HTMLCanvasElement): Promise<Uint8Array> {
+async function canvasToPngBytes(canvas: HTMLCanvasElement): Promise<Uint8Array<ArrayBuffer>> {
 	const blob = await new Promise<Blob>((resolve, reject) => {
 		canvas.toBlob((value) => {
 			if (value) resolve(value);
@@ -1047,7 +1047,7 @@ async function blobToExactPngBytesWithLiveText(
 	targetWidth: number,
 	targetHeight: number,
 	compensateTextWeight: boolean
-): Promise<Uint8Array> {
+): Promise<Uint8Array<ArrayBuffer>> {
 	const image = await decodeBlobAsImage(blob);
 	const canvas = document.createElement('canvas');
 	canvas.width = targetWidth;

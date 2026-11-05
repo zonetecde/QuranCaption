@@ -161,6 +161,7 @@ class GlobalState {
 	settings: Settings | undefined = $state(undefined);
 
 	uiState = $state({
+		showVideoPreview: true,
 		// Indique si on affiche le moniteur d'exportation
 		showExportMonitor: false,
 		showReflectionPrompt: false,
@@ -303,8 +304,7 @@ class GlobalState {
 		if (!content) return [];
 		const videoStyleTimes = content.videoStyle.getAllKeyframeTimes();
 		const customTrack = content.timeline.getFirstTrack(TrackType.CustomClip) as
-			| CustomTextTrack
-			| undefined;
+			CustomTextTrack | undefined;
 		const customTimes = (customTrack?.clips as CustomClip[] | undefined)?.flatMap(
 			(clip) => clip.category?.getAllKeyframeTimes() ?? []
 		);
@@ -367,9 +367,7 @@ class GlobalState {
 
 		if (mode === 'subtitle' || mode === 'wbwTimestamp') {
 			subtitlesEditorState.editSubtitle = this.getSubtitleTrack.getClipById(clipId) as
-				| SubtitleClip
-				| PredefinedSubtitleClip
-				| null;
+				SubtitleClip | PredefinedSubtitleClip | null;
 			subtitlesEditorState.pendingSplitEditNextId = null;
 		}
 	}

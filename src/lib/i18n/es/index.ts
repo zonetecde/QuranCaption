@@ -581,6 +581,9 @@ const es = {
 			'¿Seguro que desea eliminar el lote «{name}»? Sus {count} proyectos también se eliminarán permanentemente.'
 	},
 	editor: {
+		showVideoPreview: 'Mostrar el vídeo en la vista previa',
+		videoPreviewHelp:
+			'Desmarca para desplazarte con mayor fluidez sin cargar el vídeo en la vista previa. El vídeo exportado no cambia.',
 		...{
 			subtitleResizeShiftHint:
 				'Consejo: mantén Shift pulsado mientras arrastras para transferir palabras entre subtítulos vecinos del mismo versículo (se requieren marcas de tiempo WBW).'

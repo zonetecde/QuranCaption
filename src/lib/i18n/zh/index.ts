@@ -554,6 +554,8 @@ const zh = {
 		deleteBatchConfirm: '确定要删除批次“{name}”吗？其中的 {count} 个项目也将被永久删除。'
 	},
 	editor: {
+		showVideoPreview: '在预览中显示视频',
+		videoPreviewHelp: '取消勾选可停止加载预览视频，使时间轴拖动更流畅。导出的视频不受影响。',
 		...{
 			subtitleResizeShiftHint:
 				'提示：拖动时按住 Shift，可在同一节经文的相邻字幕之间转移词语（需要逐词时间戳）。'

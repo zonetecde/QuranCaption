@@ -1108,6 +1108,14 @@ type RootTranslation = {
 	};
 	editor: {
 		/**
+		 * S​h​o​w​ ​v​i​d​e​o​ ​i​n​ ​p​r​e​v​i​e​w
+		 */
+		showVideoPreview: string;
+		/**
+		 * U​n​c​h​e​c​k​ ​f​o​r​ ​s​m​o​o​t​h​e​r​ ​s​c​r​u​b​b​i​n​g​ ​w​i​t​h​o​u​t​ ​l​o​a​d​i​n​g​ ​t​h​e​ ​v​i​d​e​o​ ​i​n​ ​t​h​e​ ​p​r​e​v​i​e​w​.​ ​T​h​e​ ​e​x​p​o​r​t​e​d​ ​v​i​d​e​o​ ​i​s​ ​u​n​a​f​f​e​c​t​e​d​.
+		 */
+		videoPreviewHelp: string;
+		/**
 		 * T​i​p​:​ ​h​o​l​d​ ​S​h​i​f​t​ ​w​h​i​l​e​ ​d​r​a​g​g​i​n​g​ ​t​o​ ​t​r​a​n​s​f​e​r​ ​w​o​r​d​s​ ​b​e​t​w​e​e​n​ ​n​e​i​g​h​b​o​r​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​(​s​a​m​e​ ​v​e​r​s​e​,​ ​W​B​W​ ​t​i​m​e​s​t​a​m​p​s​ ​r​e​q​u​i​r​e​d​)​.
 		 */
 		subtitleResizeShiftHint: string;
@@ -13569,6 +13577,14 @@ export type TranslationFunctions = {
 		continue: () => LocalizedString;
 	};
 	editor: {
+		/**
+		 * Show video in preview
+		 */
+		showVideoPreview: () => LocalizedString;
+		/**
+		 * Uncheck for smoother scrubbing without loading the video in the preview. The exported video is unaffected.
+		 */
+		videoPreviewHelp: () => LocalizedString;
 		/**
 		 * Tip: hold Shift while dragging to transfer words between neighboring subtitles (same verse, WBW timestamps required).
 		 */

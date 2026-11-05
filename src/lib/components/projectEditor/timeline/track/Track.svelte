@@ -40,6 +40,12 @@
 	} = $props();
 
 	let visibleClips = $derived(() => track.getClipsInRange(visibleRangeStartMs, visibleRangeEndMs));
+	let videoPreviewCopy = $derived(
+		$LL.editor as unknown as {
+			showVideoPreview: () => string;
+			videoPreviewHelp: () => string;
+		}
+	);
 	let audioClipLayout = $derived(() =>
 		getTimelineClipLayout(
 			track.type === TrackType.Audio ? track.clips : [],
@@ -280,6 +286,22 @@
 						<span class="material-icons text-sm! -ml-1">graphic_eq</span>
 					</label>
 				</section>
+			</div>
+		{/if}
+		{#if track.type === TrackType.Video}
+			<div class="absolute bottom-0 right-0.5 flex items-center gap-1 opacity-60 hover:opacity-100">
+				<input
+					type="checkbox"
+					bind:checked={globalState.uiState.showVideoPreview}
+					class="cursor-pointer scale-75"
+					aria-label={videoPreviewCopy.showVideoPreview()}
+					title={videoPreviewCopy.showVideoPreview()}
+				/>
+				<span
+					class="material-icons text-sm! cursor-help"
+					title={videoPreviewCopy.videoPreviewHelp()}
+					aria-label={videoPreviewCopy.videoPreviewHelp()}>info_outline</span
+				>
 			</div>
 		{/if}
 	</div>

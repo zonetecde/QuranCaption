@@ -283,6 +283,9 @@ const tr = {
 		continue: 'Devam et'
 	},
 	editor: {
+		showVideoPreview: 'Videoyu önizlemede göster',
+		videoPreviewHelp:
+			'Videoyu önizlemede yüklemeden daha akıcı gezinmek için işareti kaldırın. Dışa aktarılan video etkilenmez.',
 		subtitleResizeShiftHint:
 			'İpucu: Kelimeleri komşu altyazılar arasında aktarmak için sürüklerken Shift tuşunu basılı tutun (aynı ayet, WBW zaman damgaları gereklidir).',
 		manualAi: {

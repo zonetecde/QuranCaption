@@ -36,11 +36,15 @@
 		error?: string;
 	};
 
-	let { exportation, close, onUpdate } = $props<{
+	let {
+		exportation,
+		close,
+		onUpdate
+	}: {
 		exportation: Exportation;
 		close: () => void;
 		onUpdate: (update: PublicationUpdate) => void;
-	}>();
+	} = $props();
 
 	let auth = $state<AuthStatus>({ configured: false, connected: false, accountEmail: null });
 	let title = $state('');

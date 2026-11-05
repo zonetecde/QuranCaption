@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import { webcrypto } from 'node:crypto';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ManualAiSession } from '$lib/services/ManualAiSession.svelte';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(async () => 'Instructions') }));
@@ -19,6 +20,9 @@ vi.mock('$lib/i18n/i18n-svelte', () => ({
 }));
 
 describe('manual AI response validation', () => {
+	beforeAll(() => vi.stubGlobal('crypto', webcrypto));
+	afterAll(() => vi.unstubAllGlobals());
+
 	it.each([
 		['plain JSON', '{"requestId":"REQUEST_ID","result":{"text":"[yourselves]"}}', '[yourselves]'],
 		[

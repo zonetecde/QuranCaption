@@ -165,6 +165,65 @@ describe('loading legacy editor layout settings', () => {
 		expect(globalState.settings!.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE.keys).toEqual(['q']);
 	});
 
+	it.each([undefined, {}])(
+		'loads legacy settings with timeline shortcuts %j and persists their migration',
+		async (timeline) => {
+			const settings = new Settings();
+			settings.appVersion = '3.7.80';
+			settings.persistentUiState.language = 'ar';
+			settings.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE.keys = ['q'];
+			const categories: Partial<Settings['shortcutCategories']> = {
+				...settings.shortcutCategories
+			};
+			delete categories.TIMELINE;
+			vi.mocked(readTextFile).mockResolvedValue(
+				JSON.stringify({
+					...settings.toJSON(),
+					shortcutCategories: categories,
+					shortcuts: { ...settings.shortcuts, TIMELINE: timeline }
+				})
+			);
+
+			await Settings.load();
+
+			expect(globalState.settings!.shortcuts.TIMELINE).toEqual(settings.shortcuts.TIMELINE);
+			expect(globalState.settings!.shortcutCategories.TIMELINE).toEqual(
+				settings.shortcutCategories.TIMELINE
+			);
+			expect(globalState.settings!.persistentUiState.language).toBe('ar');
+			expect(globalState.settings!.shortcuts.SUBTITLES_EDITOR.EDIT_LAST_SUBTITLE.keys).toEqual([
+				'q'
+			]);
+			await vi.waitFor(() => expect(writeTextFile).toHaveBeenCalled());
+			expect(JSON.parse(vi.mocked(writeTextFile).mock.calls.at(-1)![1]).shortcuts.TIMELINE).toEqual(
+				settings.shortcuts.TIMELINE
+			);
+		}
+	);
+
+	it('adds missing marked-segment shortcuts without changing custom timeline bindings', async () => {
+		const settings = new Settings();
+		settings.appVersion = '3.7.80';
+		settings.shortcuts.TIMELINE.ZOOM.keys = ['shift'];
+		const timeline: Partial<Settings['shortcuts']['TIMELINE']> = { ...settings.shortcuts.TIMELINE };
+		delete timeline.NEXT_MARKED_SEGMENT;
+		delete timeline.PREVIOUS_MARKED_SEGMENT;
+		vi.mocked(readTextFile).mockResolvedValue(
+			JSON.stringify({
+				...settings.toJSON(),
+				shortcuts: { ...settings.shortcuts, TIMELINE: timeline }
+			})
+		);
+
+		await Settings.load();
+
+		expect(globalState.settings!.shortcuts.TIMELINE).toEqual(settings.shortcuts.TIMELINE);
+		await vi.waitFor(() => expect(writeTextFile).toHaveBeenCalled());
+		expect(JSON.parse(vi.mocked(writeTextFile).mock.calls.at(-1)![1]).shortcuts.TIMELINE).toEqual(
+			settings.shortcuts.TIMELINE
+		);
+	});
+
 	it('repairs individual dimensions while preserving custom widths and other settings', async () => {
 		const saved = {
 			...new Settings().toJSON(),

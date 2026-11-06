@@ -206,7 +206,8 @@ export default class ExportService {
 					break;
 				suffix = candidate;
 			}
-			const newFileName = '...' + suffix;
+			// Un point initial masquerait le fichier dans le Finder sur macOS.
+			const newFileName = '…' + suffix;
 			filePath = await join(dirPath, newFileName);
 		}
 

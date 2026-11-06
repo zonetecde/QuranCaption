@@ -1115,6 +1115,8 @@ const zh = {
 		redownloadLabel: '重新下载',
 		downloadingLabel: '下载中...',
 		addToTimelineLabel: '添加到时间轴',
+		addAtCursorHint: '按住 Ctrl 并点击，在光标位置添加。',
+		cannotAddAssetAtCursor: '无法在光标位置添加：片段会与现有片段重叠。',
 		videoAndAudio: '视频和音频',
 		videoOnly: '仅视频',
 		audioOnly: '仅音频',

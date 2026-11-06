@@ -7,13 +7,14 @@ import { exists } from '@tauri-apps/plugin-fs';
 import { globalState } from '$lib/runes/main.svelte.js';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
-import { Duration } from './index.js';
+import { AssetClip, Duration } from './index.js';
 import ModalManager from '$lib/components/modals/ModalManager.js';
 import { WaveformService } from '$lib/services/WaveformService.svelte.js';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager.js';
 import type { UnknownRecord } from '$lib/types/common.js';
 import type { Project } from './Project.js';
 import type { AssetTrack } from './Track.svelte.js';
+import { DEFAULT_IMAGE_CLIP_DURATION_MS } from './tracks/AssetTrack.svelte.js';
 
 type DurationLoadState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -90,11 +91,22 @@ export class Asset extends SerializableBase {
 	 * @param {boolean} asVideo Ajouter en tant que piste vidéo.
 	 * @param {boolean} asAudio Ajouter en tant que piste audio.
 	 * @param {boolean} skipDimensionPrompt Si true, ne demande pas la confirmation pour adapter les dimensions.
+	 * @param {number | undefined} startTime Position explicite en millisecondes, si l'emplacement est libre.
 	 * @returns {Promise<void>}
 	 */
-	async addToTimeline(asVideo: boolean, asAudio: boolean, skipDimensionPrompt = false) {
+	async addToTimeline(
+		asVideo: boolean,
+		asAudio: boolean,
+		skipDimensionPrompt = false,
+		startTime?: number
+	) {
 		let imageAsFullBackground = true;
-		if (asVideo && this.type === AssetType.Image && globalState.getVideoTrack.clips.length === 0) {
+		if (
+			startTime === undefined &&
+			asVideo &&
+			this.type === AssetType.Image &&
+			globalState.getVideoTrack.clips.length === 0
+		) {
 			const message = Reflect.get(
 				get(LL).editor,
 				'setImageAsFullBackgroundConfirm'
@@ -103,8 +115,37 @@ export class Asset extends SerializableBase {
 		}
 
 		let wasAddedToVideo = false;
-		if (asVideo) wasAddedToVideo = globalState.getVideoTrack.addAsset(this, imageAsFullBackground);
-		if (asAudio) globalState.getAudioTrack.addAsset(this);
+		if (startTime !== undefined) {
+			const tracks: AssetTrack[] = [];
+			if (asVideo) tracks.push(globalState.getVideoTrack);
+			if (asAudio) tracks.push(globalState.getAudioTrack);
+			const duration =
+				this.type === AssetType.Image ? DEFAULT_IMAGE_CLIP_DURATION_MS : this.duration.ms;
+			const endTime = startTime + duration;
+			if (
+				tracks.some(
+					(track) =>
+						track.getClipsInRange(startTime, endTime).length > 0 ||
+						track.clips.some((clip) => clip instanceof AssetClip && clip.loopUntilAudioEnd)
+				)
+			) {
+				const message = Reflect.get(get(LL).editor, 'cannotAddAssetAtCursor') as () => string;
+				ModalManager.errorModal(get(LL).editor.clipAdditionError(), message());
+				return;
+			}
+			ProjectHistoryManager.track('add asset at cursor', () => {
+				for (const track of tracks) {
+					track.clips.push(new AssetClip(startTime, endTime, this.id));
+					track.clips.sort((left, right) => left.startTime - right.startTime);
+				}
+			});
+			globalState.updateVideoPreviewUI();
+			wasAddedToVideo = asVideo;
+		} else {
+			if (asVideo)
+				wasAddedToVideo = globalState.getVideoTrack.addAsset(this, imageAsFullBackground);
+			if (asAudio) globalState.getAudioTrack.addAsset(this);
+		}
 
 		if (asVideo && wasAddedToVideo && this.type === AssetType.Video) {
 			// Demande à l'utilisateur s'il veut que le format de les dimensions de la vidéo soient appliquées au projet

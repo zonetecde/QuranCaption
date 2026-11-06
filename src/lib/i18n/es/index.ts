@@ -1215,6 +1215,9 @@ const es = {
 		redownloadLabel: 'Redescargar',
 		downloadingLabel: 'Descargando...',
 		addToTimelineLabel: 'Agregar a la línea de tiempo',
+		addAtCursorHint: 'Mantén Ctrl al hacer clic para agregar en la posición del cursor.',
+		cannotAddAssetAtCursor:
+			'No se puede agregar en el cursor: el clip se superpondría a uno existente.',
 		videoAndAudio: 'Video y audio',
 		videoOnly: 'Solo video',
 		audioOnly: 'Solo audio',

@@ -596,6 +596,8 @@ const editor = {
 	redownloadLabel: 'إعادة التحميل',
 	downloadingLabel: 'جارٍ التنزيل...',
 	addToTimelineLabel: 'أضف إلى الجدول الزمني',
+	addAtCursorHint: 'اضغط مع الاستمرار على Ctrl أثناء النقر للإضافة عند موضع المؤشر.',
+	cannotAddAssetAtCursor: 'لا يمكن الإضافة عند المؤشر: سيتداخل المقطع مع مقطع موجود.',
 	videoAndAudio: 'الفيديو والصوت',
 	videoOnly: 'فيديو فقط',
 	audioOnly: 'الصوت فقط',

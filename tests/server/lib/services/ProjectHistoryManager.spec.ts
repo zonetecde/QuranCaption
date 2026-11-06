@@ -3,8 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import { initializeClassRegistry } from '$lib/classes/ClassRegistry';
 import {
+	Asset,
 	AssetClip,
+	AssetType,
 	Category,
+	Duration,
 	Project,
 	ProjectContent,
 	ProjectDetail,
@@ -27,6 +30,10 @@ import {
 } from '$lib/services/autoSegmentation/auto-realign.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { applyStyleMutation } from '$lib/services/StyleMutationService';
+import { invoke } from '@tauri-apps/api/core';
+import ModalManager from '$lib/components/modals/ModalManager';
+import { loadAllLocales } from '$lib/i18n/i18n-util.sync';
+import { setLocale } from '$lib/i18n/i18n-svelte';
 import {
 	getOverlayLayerOrder,
 	ensureOverlayLayerOrder,
@@ -34,6 +41,11 @@ import {
 	moveOverlayLayer,
 	setOverlayLayerPosition
 } from '$lib/services/OverlayLayerService';
+
+vi.mock('@tauri-apps/api/core', async (importOriginal) => ({
+	...(await importOriginal<typeof import('@tauri-apps/api/core')>()),
+	invoke: vi.fn()
+}));
 
 /**
  * Crée un projet minimal pour tester l'historique sans charger les JSON de styles.
@@ -317,6 +329,83 @@ describe('Quran subtitle word boundary resizing', () => {
 		globalState.currentProject = createHistoryTestProject();
 		expect(await pending).toBe(false);
 		expect(left.text).toBe('one two');
+	});
+});
+
+describe('asset insertion at the cursor', () => {
+	let asset: Asset;
+	const originalProject = globalState.currentProject;
+
+	beforeEach(() => {
+		initializeClassRegistry();
+		loadAllLocales();
+		setLocale('en');
+		globalState.currentProject = createAssetSplitTestProject(new AssetTrack(TrackType.Video));
+		globalState.currentProject.content.timeline.tracks.push(new AssetTrack(TrackType.Audio));
+		asset = new Asset();
+		asset.id = 42;
+		asset.type = AssetType.Video;
+		asset.duration = new Duration(2000);
+		globalState.currentProject.content.assets.push(asset);
+		ProjectHistoryManager.resetForCurrentProject();
+		vi.mocked(invoke).mockResolvedValue({ width: 0, height: 0 });
+		vi.spyOn(ModalManager, 'errorModal').mockResolvedValue(undefined);
+	});
+
+	afterEach(() => {
+		ProjectHistoryManager.clear();
+		globalState.currentProject = originalProject;
+		vi.restoreAllMocks();
+	});
+
+	it.each([0, 12000])('adds video and audio at %i with a single undo/redo', async (startTime) => {
+		await asset.addToTimeline(true, true, false, startTime);
+		for (const track of [globalState.getVideoTrack, globalState.getAudioTrack]) {
+			expect(track.clips).toHaveLength(1);
+			expect(track.clips[0]).toMatchObject({ startTime, endTime: startTime + 2000, assetId: 42 });
+		}
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(globalState.getVideoTrack.clips).toHaveLength(0);
+		expect(globalState.getAudioTrack.clips).toHaveLength(0);
+		expect(ProjectHistoryManager.redo()).toBe(true);
+		expect(globalState.getVideoTrack.clips[0].startTime).toBe(startTime);
+		expect(globalState.getAudioTrack.clips[0].startTime).toBe(startTime);
+	});
+
+	it('inserts into a gap without moving existing clips and keeps chronological order', async () => {
+		globalState.getVideoTrack.clips = [new AssetClip(0, 1000, 1), new AssetClip(9000, 11000, 2)];
+		await asset.addToTimeline(true, false, false, 4000);
+		expect(globalState.getVideoTrack.clips.map((clip) => [clip.startTime, clip.endTime])).toEqual([
+			[0, 1000],
+			[4000, 6000],
+			[9000, 11000]
+		]);
+	});
+
+	it.each([1000, 2000, 3500, 4000])(
+		'rejects an overlapping insertion at %i without adding either stream',
+		async (startTime) => {
+			globalState.getAudioTrack.clips = [new AssetClip(3000, 4000, 1)];
+			await asset.addToTimeline(true, true, false, startTime);
+			expect(globalState.getVideoTrack.clips).toHaveLength(0);
+			expect(globalState.getAudioTrack.clips).toHaveLength(1);
+			expect(ModalManager.errorModal).toHaveBeenCalled();
+		}
+	);
+
+	it('rejects insertion after a looped clip', async () => {
+		const clip = new AssetClip(0, 1000, 1);
+		clip.loopUntilAudioEnd = true;
+		globalState.getVideoTrack.clips = [clip];
+		await asset.addToTimeline(true, false, false, 4000);
+		expect(globalState.getVideoTrack.clips).toHaveLength(1);
+		expect(ModalManager.errorModal).toHaveBeenCalled();
+	});
+
+	it('keeps normal additions at the end of the track', async () => {
+		globalState.getVideoTrack.clips = [new AssetClip(0, 1000, 1)];
+		await asset.addToTimeline(true, false);
+		expect(globalState.getVideoTrack.clips[1]).toMatchObject({ startTime: 1001, endTime: 3001 });
 	});
 });
 

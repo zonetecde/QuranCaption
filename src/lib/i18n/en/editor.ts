@@ -606,6 +606,8 @@ const editor = {
 	redownloadLabel: 'Re-download',
 	downloadingLabel: 'Downloading...',
 	addToTimelineLabel: 'Add to Timeline',
+	addAtCursorHint: 'Hold Ctrl while clicking to add at the cursor position.',
+	cannotAddAssetAtCursor: 'Cannot add at the cursor: the clip would overlap an existing clip.',
 	videoAndAudio: 'Video & Audio',
 	videoOnly: 'Video Only',
 	audioOnly: 'Audio Only',

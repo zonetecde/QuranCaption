@@ -1224,6 +1224,9 @@ const de = {
 		redownloadLabel: 'Erneut herunterladen',
 		downloadingLabel: 'Wird heruntergeladen...',
 		addToTimelineLabel: 'Zur Timeline hinzufügen',
+		addAtCursorHint: 'Beim Klicken Strg gedrückt halten, um an der Cursorposition einzufügen.',
+		cannotAddAssetAtCursor:
+			'Einfügen am Cursor nicht möglich: Der Clip würde einen vorhandenen Clip überlappen.',
 		videoAndAudio: 'Video und Audio',
 		videoOnly: 'Nur Video',
 		audioOnly: 'Nur Audio',

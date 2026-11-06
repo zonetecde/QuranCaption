@@ -901,6 +901,9 @@ const id = {
 		export: 'Ekspor',
 		addToTimeline: 'Tambahkan ke timeline',
 		addToTimelineLabel: 'Tambahkan ke timeline',
+		addAtCursorHint: 'Tahan Ctrl saat mengeklik untuk menambahkan di posisi kursor.',
+		cannotAddAssetAtCursor:
+			'Tidak dapat menambahkan di kursor: klip akan tumpang tindih dengan klip yang ada.',
 		removeAsset: 'Hapus aset',
 		removeAssetConfirm: 'Yakin ingin menghapus aset ini dari proyek?',
 		removeSelectedAssetsConfirm: 'Yakin ingin menghapus {count} aset yang dipilih dari proyek?',

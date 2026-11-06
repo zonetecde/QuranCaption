@@ -3313,6 +3313,14 @@ type RootTranslation = {
 		 */
 		addToTimelineLabel: string;
 		/**
+		 * H​o​l​d​ ​C​t​r​l​ ​w​h​i​l​e​ ​c​l​i​c​k​i​n​g​ ​t​o​ ​a​d​d​ ​a​t​ ​t​h​e​ ​c​u​r​s​o​r​ ​p​o​s​i​t​i​o​n​.
+		 */
+		addAtCursorHint: string;
+		/**
+		 * C​a​n​n​o​t​ ​a​d​d​ ​a​t​ ​t​h​e​ ​c​u​r​s​o​r​:​ ​t​h​e​ ​c​l​i​p​ ​w​o​u​l​d​ ​o​v​e​r​l​a​p​ ​a​n​ ​e​x​i​s​t​i​n​g​ ​c​l​i​p​.
+		 */
+		cannotAddAssetAtCursor: string;
+		/**
 		 * V​i​d​e​o​ ​&​ ​A​u​d​i​o
 		 */
 		videoAndAudio: string;
@@ -15741,6 +15749,14 @@ export type TranslationFunctions = {
 		 * Add to Timeline
 		 */
 		addToTimelineLabel: () => LocalizedString;
+		/**
+		 * Hold Ctrl while clicking to add at the cursor position.
+		 */
+		addAtCursorHint: () => LocalizedString;
+		/**
+		 * Cannot add at the cursor: the clip would overlap an existing clip.
+		 */
+		cannotAddAssetAtCursor: () => LocalizedString;
 		/**
 		 * Video & Audio
 		 */

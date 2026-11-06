@@ -898,6 +898,8 @@ const tr = {
 		redownloadLabel: 'Yeniden indir',
 		downloadingLabel: 'İndiriliyor...',
 		addToTimelineLabel: 'Zaman Çizelgesine Ekle',
+		addAtCursorHint: 'İmleç konumuna eklemek için tıklarken Ctrl tuşunu basılı tutun.',
+		cannotAddAssetAtCursor: 'İmleç konumuna eklenemiyor: klip mevcut bir kliple çakışır.',
 		videoAndAudio: 'Video ve Ses',
 		videoOnly: 'Yalnızca Video',
 		audioOnly: 'Yalnızca Ses',

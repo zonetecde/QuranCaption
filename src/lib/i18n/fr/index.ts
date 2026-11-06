@@ -1221,6 +1221,8 @@ const fr = {
 		redownloadLabel: 'Re-télécharger',
 		downloadingLabel: 'Téléchargement...',
 		addToTimelineLabel: 'Ajouter à la timeline',
+		addAtCursorHint: 'Maintenez Ctrl en cliquant pour ajouter à la position du curseur.',
+		cannotAddAssetAtCursor: 'Ajout au curseur impossible : le clip chevaucherait un clip existant.',
 		videoAndAudio: 'Vidéo et audio',
 		videoOnly: 'Vidéo uniquement',
 		audioOnly: 'Audio uniquement',

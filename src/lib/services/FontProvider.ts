@@ -695,6 +695,9 @@ export class QPCFontProvider {
 			fontFamily.startsWith('QCImported-') ||
 			fontFamily === 'IBM Plex Sans Arabic Medium' ||
 			fontFamily === 'Noto Sans Arabic' ||
+			fontFamily === 'Scheherazade New' ||
+			fontFamily === 'Noto Naskh Arabic' ||
+			fontFamily === 'Amiri' ||
 			fontFamily === 'Hafs' ||
 			fontFamily === 'IndoPak' ||
 			fontFamily === 'Soosi' ||

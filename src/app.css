@@ -26,6 +26,27 @@
 }
 
 @font-face {
+	font-family: 'Scheherazade New';
+	src: url('/ScheherazadeNew-Regular.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Noto Naskh Arabic';
+	src: url('/NotoNaskhArabic-VariableFont_wght.ttf') format('truetype');
+	font-weight: 400 700;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: 'Amiri';
+	src: url('/Amiri-Regular.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+@font-face {
 	font-family: 'IndoPak';
 	src: url('/IndoPak.ttf') format('truetype');
 	font-weight: normal;

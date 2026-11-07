@@ -24,6 +24,9 @@
 	const LATIN_PREVIEW = 'In the name of Allah, the Most Gracious, the Most Merciful';
 	const ARABIC_PREVIEW = 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ';
 	const BUILTIN_FONTS: FontOption[] = [
+		{ value: 'Scheherazade New', label: 'Scheherazade', preview: 'arabic' },
+		{ value: 'Noto Naskh Arabic', label: 'Naskh', preview: 'arabic' },
+		{ value: 'Amiri', label: 'Amiri', preview: 'arabic' },
 		{ value: 'QPC2', label: 'Uthamic Mushaf QPC2', preview: 'qpc2' },
 		{ value: 'QPC1', label: 'Uthamic Mushaf QPC1', preview: 'qpc1' },
 		{

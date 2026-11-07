@@ -245,6 +245,9 @@ export async function checkMissingFonts(styleData: VideoStyleFileData): Promise<
 	const builtin = [
 		'IBM Plex Sans Arabic Medium',
 		'Noto Sans Arabic',
+		'Scheherazade New',
+		'Noto Naskh Arabic',
+		'Amiri',
 		'Hafs',
 		'IndoPak',
 		'Speakers',

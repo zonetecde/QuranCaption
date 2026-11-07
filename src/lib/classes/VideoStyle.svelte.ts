@@ -1481,7 +1481,7 @@ export class VideoStyle extends SerializableBase {
 		videoStyle.styles.push(new StylesData('arabic-citation', subtitleStyles));
 
 		// Set les styles par défaut pour l'arabe
-		videoStyle.getStylesOfTarget('arabic').setStyle('font-family', 'Noto Sans Arabic');
+		videoStyle.getStylesOfTarget('arabic').setStyle('font-family', 'Scheherazade New');
 		// videoStyle.getStylesOfTarget('arabic').setStyle('max-height', 220); // Une ligne max
 		videoStyle.getStylesOfTarget('arabic').setStyle('line-height', 1.6);
 		videoStyle.getStylesOfTarget('arabic').setStyle('font-size', 90);
@@ -1493,7 +1493,7 @@ export class VideoStyle extends SerializableBase {
 		videoStyle.getStylesOfTarget('arabic-quran').setStyle('text-glow-blur', 50);
 		videoStyle.getStylesOfTarget('arabic-quran').setStyle('font-size', 90);
 		videoStyle.getStylesOfTarget('arabic-quran').setStyle('line-height', 1.6);
-		videoStyle.getStylesOfTarget('arabic-citation').setStyle('font-family', 'Noto Sans Arabic');
+		videoStyle.getStylesOfTarget('arabic-citation').setStyle('font-family', 'Scheherazade New');
 		videoStyle.getStylesOfTarget('arabic-citation').setStyle('text-color', '#f7ff8a');
 		videoStyle.getStylesOfTarget('arabic-citation').setStyle('font-size', 90);
 		videoStyle.getStylesOfTarget('arabic-citation').setStyle('line-height', 1.6);

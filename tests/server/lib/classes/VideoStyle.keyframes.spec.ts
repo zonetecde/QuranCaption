@@ -1,11 +1,43 @@
 import { describe, expect, it, vi } from 'vitest';
 import defaults from '../../../../static/styles/styles.json';
+import globalDefaults from '../../../../static/styles/globalStyles.json';
+import compositeDefaults from '../../../../static/styles/compositeStyles.json';
 
 import { CustomTextClip } from '$lib/classes/Clip.svelte';
 import { Category, Style, StylesData, VideoStyle } from '$lib/classes/VideoStyle.svelte';
 import { globalState } from '$lib/runes/main.svelte';
 
 describe('Style keyframes', () => {
+	it('uses Scheherazade for new transcript styles while preserving Quran and translation defaults', async () => {
+		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(
+			async (input) =>
+				({
+					json: async () =>
+						String(input).endsWith('/globalStyles.json')
+							? globalDefaults
+							: String(input).endsWith('/compositeStyles.json')
+								? compositeDefaults
+								: defaults
+				}) as Response
+		);
+		try {
+			const videoStyle = await VideoStyle.getDefaultVideoStyle(['english']);
+			expect(videoStyle.getStylesOfTarget('arabic').findStyle('font-family')?.value).toBe(
+				'Scheherazade New'
+			);
+			expect(videoStyle.getStylesOfTarget('arabic-citation').findStyle('font-family')?.value).toBe(
+				'Scheherazade New'
+			);
+			expect(videoStyle.getStylesOfTarget('arabic-quran').findStyle('font-family')?.value).toBe(
+				'QPC2'
+			);
+			expect(videoStyle.getStylesOfTarget('english').findStyle('font-family')?.value).toBe(
+				'Georgia'
+			);
+		} finally {
+			fetchSpy.mockRestore();
+		}
+	});
 	it('adds subtitle options to old styles without overwriting existing choices', async () => {
 		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(
 			async (input) =>
@@ -30,9 +62,11 @@ describe('Style keyframes', () => {
 			expect(arabic.findStyle('text-orientation')?.value).toBe('rtl');
 			arabic.setStyle('salawat-as-symbol', true);
 			arabic.setStyle('text-orientation', 'ltr');
+			arabic.setStyle('font-family', 'Amiri');
 			await videoStyle.ensureStylesSchemaUpToDate([]);
 			expect(arabic.findStyle('salawat-as-symbol')?.value).toBe(true);
 			expect(arabic.findStyle('text-orientation')?.value).toBe('ltr');
+			expect(arabic.findStyle('font-family')?.value).toBe('Amiri');
 			expect(arabic.generateCSS()).toContain('direction: ltr;');
 			arabic.setStyle('text-orientation', 'rtl');
 			expect(arabic.generateCSS()).toContain('direction: rtl;');

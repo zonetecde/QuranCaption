@@ -5,6 +5,7 @@ import {
 	releaseExportScreenshotContext
 } from '../../../../src/routes/exporter/ExportScreenshot';
 import { captureMacOsOverlayPngBytes } from '../../../../src/routes/exporter/MacOSExport';
+import appCss from '../../../../src/app.css?raw';
 import { getSystemFontSubsetDataUrl } from '$lib/services/SystemFontSubset';
 
 const elements: HTMLElement[] = [];
@@ -187,6 +188,27 @@ describe('contexte de capture réutilisé par worker', () => {
 			);
 		}
 	});
+
+	it.each(['Scheherazade New', 'Noto Naskh Arabic', 'Amiri'])(
+		'charge la police embarquée %s et conserve son rendu à l’export',
+		async (family) => {
+			const root = await createOverlay();
+			const style = document.createElement('style');
+			style.textContent = appCss.match(/@font-face\s*\{[^}]+\}/g)!.join('\n');
+			document.head.append(style);
+			elements.push(style);
+			const arabic = root.querySelector<HTMLElement>('.arabic')!;
+			arabic.style.fontFamily = family;
+			const fonts = await document.fonts.load(`32px "${family}"`, arabic.textContent!);
+			expect(fonts.length).toBeGreaterThan(0);
+			expect(fonts.every((font) => font.status === 'loaded')).toBe(true);
+			const options = { width: 320, height: 180 };
+			await expectSamePixels(
+				await domToBlob(root, options),
+				await captureExportOverlayBlob(root, options)
+			);
+		}
+	);
 
 	it.each([
 		['uppercase', 'For those are two proofs from your Lord to Pharaoh and his establishment.'],

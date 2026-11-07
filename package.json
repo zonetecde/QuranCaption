@@ -1,7 +1,7 @@
 {
 	"name": "qurancaption",
 	"private": true,
-	"version": "3.8.41",
+	"version": "3.8.42",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",

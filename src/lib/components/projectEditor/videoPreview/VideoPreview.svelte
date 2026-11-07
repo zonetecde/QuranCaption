@@ -72,7 +72,9 @@
 
 	// Récupère l'asset vidéo actuellement sous le curseur de la timeline
 	// Seulement si movePreviewTo est défini (pour éviter les recalculs inutiles)
+	let showVideoPreview = $derived(isExportCapturePreview || globalState.uiState.showVideoPreview);
 	let currentVideo = $derived(() => {
+		if (!showVideoPreview) return null;
 		if (getTimelineSettings().movePreviewTo !== undefined) {
 			return untrack(() => {
 				const asset = globalState.currentProject!.content.timeline.getCurrentAssetOnTrack(
@@ -255,11 +257,13 @@
 
 	/**
 	 * Calcule le temps à jouer dans la vidéo en fonction de la position du curseur
-	 * @returns Temps en secondes dans la vidéo
+	 * @param {number} refTime Position de référence en millisecondes.
+	 * @returns {number} Temps en secondes dans la vidéo.
 	 */
-	function getCurrentVideoTimeToPlay(): number {
+	function getCurrentVideoTimeToPlay(
+		refTime = getTimelineSettings().movePreviewTo ?? getTimelineSettings().cursorPosition
+	): number {
 		const track = globalState.getVideoTrack;
-		const refTime = getTimelineSettings().movePreviewTo ?? getTimelineSettings().cursorPosition;
 		const currentClip = track.getCurrentVisualClip(refTime);
 		const asset = currentVideo();
 
@@ -467,6 +471,17 @@
 	$effect(() => {
 		if (videoElement) {
 			videoElement.ontimeupdate = handleVideoTimeUpdate;
+			/** Recale la vidéo réactivée sans interrompre l'audio. @returns {void} */
+			videoElement.onloadedmetadata = () => {
+				if (!videoElement) return;
+				videoElement.currentTime = getCurrentVideoTimeToPlay(getTimelineSettings().cursorPosition);
+				videoElement.playbackRate = getSpeed();
+				if (isPlaying) void videoElement.play().catch(() => {});
+			};
+		} else if (!showVideoPreview) {
+			untrack(() => {
+				if (isPlaying && !currentAudio() && !audioUpdateInterval) playSilentAudio();
+			});
 		}
 	});
 
@@ -1686,6 +1701,16 @@
 			setPlaybackSpeed(enabled ? getSpeed() + 1 : getSpeed());
 		};
 	});
+	$effect(() => {
+		const video = videoElement;
+		/** Libère le décodeur lorsque la vidéo quitte l'aperçu. @returns {void} */
+		return () => {
+			if (!video) return;
+			video.pause();
+			video.removeAttribute('src');
+			video.load();
+		};
+	});
 </script>
 
 <svelte:window
@@ -1774,7 +1799,7 @@
 					</button>
 				</div>
 			{/if}
-			{#if !globalState.getVideoPreviewState.showVideosAndAudios}
+			{#if showVideoPreview && !globalState.getVideoPreviewState.showVideosAndAudios}
 				{#if currentVideo() || currentImage()}
 					{@const transitionState = videoClipTransitionState()}
 					{#if currentVideo()}

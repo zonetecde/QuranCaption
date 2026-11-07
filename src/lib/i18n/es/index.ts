@@ -256,6 +256,12 @@ const es = {
 		continue: 'Continuar'
 	},
 	editor: {
+		showVideoPreview: 'Mostrar el vídeo en la vista previa',
+		videoPreviewHelp:
+			'Desmarca para desplazarte con mayor fluidez sin cargar el vídeo en la vista previa. El vídeo exportado no cambia.',
+		cannotAddAssetAtCursor:
+			'No se puede agregar en el cursor: el clip se superpondría a uno existente.',
+		addAtCursorHint: 'Mantén Ctrl al hacer clic para agregar en la posición del cursor.',
 		...{
 			transcriptionWorkflowHint:
 				'Sigue estos cuatro pasos en orden para obtener subtítulos de calidad para tu vídeo.',

@@ -188,6 +188,29 @@ describe('contexte de capture réutilisé par worker', () => {
 		}
 	});
 
+	it.each([
+		['uppercase', 'For those are two proofs from your Lord to Pharaoh and his establishment.'],
+		['lowercase', 'FOR THOSE ARE TWO PROOFS FROM YOUR LORD'],
+		['capitalize', 'for those are two proofs from your lord']
+	])('conserve la police des lettres transformées en %s à l’export', async (transform, text) => {
+		const root = document.createElement('div');
+		root.style.cssText = 'width:640px;height:120px;color:white';
+		root.innerHTML = `<p style="margin:0;font:32px QCExportCase;text-transform:${transform}">${text}</p>`;
+		const style = document.createElement('style');
+		const fontUrl = new URL('/IBMPlexSansArabic-Medium.ttf', document.baseURI).href;
+		style.textContent = `@font-face { font-family: QCExportCase; src: url('${fontUrl}'); }`;
+		document.head.append(style);
+		document.body.append(root);
+		elements.push(style, root);
+		await document.fonts.load('32px QCExportCase', text + text.toUpperCase() + text.toLowerCase());
+		const options = { width: 640, height: 120 };
+		const expected = await domToBlob(root, options);
+		const subsetUrl = await getSystemFontSubsetDataUrl(fontUrl, 0, text);
+		style.textContent = `@font-face { font-family: QCExportCase; src: url('${subsetUrl}'); }`;
+		await document.fonts.load('32px QCExportCase', text + text.toUpperCase() + text.toLowerCase());
+		await expectSamePixels(expected, await captureExportOverlayBlob(root, options));
+	});
+
 	it('libère le contexte en erreur et permet la capture suivante', async () => {
 		const root = await createOverlay();
 		const options = { width: 320, height: 180 };

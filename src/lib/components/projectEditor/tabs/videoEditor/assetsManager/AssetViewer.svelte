@@ -134,7 +134,14 @@
 		asset.updateFilePath(element);
 	}
 
-	function addInTheTimelineButtonClick(video: boolean, audio: boolean) {
+	/**
+	 * Ajoute l'asset à la suite ou au curseur lorsque Ctrl est maintenu.
+	 * @param {boolean} video Ajouter le flux vidéo.
+	 * @param {boolean} audio Ajouter le flux audio.
+	 * @param {MouseEvent} event Clic sur l'option d'ajout.
+	 * @returns {void}
+	 */
+	function addInTheTimelineButtonClick(video: boolean, audio: boolean, event: MouseEvent) {
 		if (asset.type !== AssetType.Image && asset.isDurationLoading()) {
 			toast(get(LL).editor.waitForAssetLoad(), {
 				duration: 5000
@@ -156,7 +163,14 @@
 			return;
 		}
 
-		addAssetToTimeline(globalState.currentProject!, asset, video, audio);
+		addAssetToTimeline(
+			globalState.currentProject!,
+			asset,
+			video,
+			audio,
+			false,
+			event.ctrlKey ? globalState.getTimelineState.cursorPosition : undefined
+		);
 	}
 
 	async function redownloadAsset() {
@@ -303,7 +317,7 @@
 						timelineContextMenuElement !== null && get(currentMenu) === timelineContextMenuElement)}
 				onclick={(event) =>
 					asset.type === AssetType.Audio
-						? addInTheTimelineButtonClick(false, true)
+						? addInTheTimelineButtonClick(false, true, event)
 						: openTimelineContextMenu(event)}
 			>
 				<span class="material-icons text-lg!">add_to_queue</span>
@@ -362,33 +376,33 @@
 		{get(LL).editor.addToTimelineLabel()}
 	</li>
 	{#if asset.type === AssetType.Video}
-		<Item on:click={() => addInTheTimelineButtonClick(true, true)}>
+		<Item on:click={(event) => addInTheTimelineButtonClick(true, true, event)}>
 			<div class="btn-icon">
 				<span class="material-icons-outlined me-1 text-sm">video_library</span>
 				{get(LL).editor.videoAndAudio()}
 			</div>
 		</Item>
-		<Item on:click={() => addInTheTimelineButtonClick(true, false)}>
+		<Item on:click={(event) => addInTheTimelineButtonClick(true, false, event)}>
 			<div class="btn-icon">
 				<span class="material-icons-outlined me-1 text-sm">videocam</span>
 				{get(LL).editor.videoOnly()}
 			</div>
 		</Item>
-		<Item on:click={() => addInTheTimelineButtonClick(false, true)}>
+		<Item on:click={(event) => addInTheTimelineButtonClick(false, true, event)}>
 			<div class="btn-icon">
 				<span class="material-icons-outlined me-1 text-sm">music_note</span>
 				{get(LL).editor.audioOnly()}
 			</div>
 		</Item>
 	{:else if asset.type === AssetType.Audio}
-		<Item on:click={() => addInTheTimelineButtonClick(false, true)}>
+		<Item on:click={(event) => addInTheTimelineButtonClick(false, true, event)}>
 			<div class="btn-icon">
 				<span class="material-icons-outlined me-1 text-sm">music_note</span>
 				{get(LL).editor.audioOnly()}
 			</div>
 		</Item>
 	{:else}
-		<Item on:click={() => addInTheTimelineButtonClick(true, false)}>
+		<Item on:click={(event) => addInTheTimelineButtonClick(true, false, event)}>
 			<div class="btn-icon">
 				<span class="material-icons-outlined me-1 text-sm">image</span>
 				{globalState.getVideoTrack.clips.length === 0
@@ -397,6 +411,13 @@
 			</div>
 		</Item>
 	{/if}
+	<Divider />
+	<li
+		class="pointer-events-none max-w-64 px-2 py-1 text-xs whitespace-normal text-thirdly"
+		role="presentation"
+	>
+		{(Reflect.get(get(LL).editor, 'addAtCursorHint') as () => string)()}
+	</li>
 </ContextMenu>
 
 <ContextMenu bind:this={contextMenu}>

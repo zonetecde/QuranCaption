@@ -268,6 +268,25 @@ async function waitForEditorReady(workspace: SubtitleEditorFixture['workspace'],
 }
 
 describe('Subtitles editor workflow', () => {
+	test('Enter still closes a transcript edit after closing the quick timeline editor', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const subtitle = new SubtitleClip(0, 1000, 'Original transcript');
+		setupSubtitlesEditorProjectFixture({ clips: [subtitle] });
+		const workspace = render(SubtitlesWorkspace);
+		globalState.openQuickTimelineEditor(subtitle.id, 'subtitle');
+		const overlay = render(QuickTimelineEditorOverlay);
+		await tick();
+		globalState.closeQuickTimelineEditor();
+		overlay.unmount();
+		await tick();
+		globalState.getSubtitlesEditorState.editSubtitle = subtitle;
+		await tick();
+		await expect.element(workspace.getByRole('textbox')).toHaveValue('Original transcript');
+		window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
+		await expect.poll(() => globalState.getSubtitlesEditorState.editSubtitle).toBeNull();
+	});
+
 	beforeEach(() => {
 		seedSubtitlesEditorQuranFixture();
 	});

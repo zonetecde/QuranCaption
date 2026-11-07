@@ -257,6 +257,11 @@ const fr = {
 		continue: 'Continuer'
 	},
 	editor: {
+		showVideoPreview: 'Afficher la vidéo dans l’aperçu',
+		videoPreviewHelp:
+			'Décochez pour naviguer plus rapidement sans charger la vidéo dans l’aperçu. La vidéo exportée reste inchangée.',
+		cannotAddAssetAtCursor: 'Ajout au curseur impossible : le clip chevaucherait un clip existant.',
+		addAtCursorHint: 'Maintenez Ctrl en cliquant pour ajouter à la position du curseur.',
 		...{
 			transcriptionWorkflowHint:
 				'Suivez ces quatre étapes dans l’ordre pour obtenir des sous-titres de qualité pour votre vidéo.',

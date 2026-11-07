@@ -1,3 +1,4 @@
+import { webcrypto } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
 import { loadLocale } from '$lib/i18n/i18n-util.sync';
@@ -18,6 +19,7 @@ function reply(result: unknown): string {
 }
 
 beforeEach(() => {
+	vi.stubGlobal('crypto', webcrypto);
 	loadLocale('en');
 	setLocale('en');
 	session = new ManualAiSession();
@@ -27,6 +29,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	session.cancel();
+	vi.unstubAllGlobals();
 	vi.mocked(invoke).mockReset();
 });
 

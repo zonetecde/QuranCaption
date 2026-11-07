@@ -1,4 +1,9 @@
 const editor = {
+	showVideoPreview: 'Show video in preview',
+	videoPreviewHelp:
+		'Uncheck for smoother scrubbing without loading the video in the preview. The exported video is unaffected.',
+	cannotAddAssetAtCursor: 'Cannot add at the cursor: the clip would overlap an existing clip.',
+	addAtCursorHint: 'Hold Ctrl while clicking to add at the cursor position.',
 	transcriptionWorkflowHint:
 		'Follow these four steps in order to create quality subtitles for your video.',
 	manualAi: {

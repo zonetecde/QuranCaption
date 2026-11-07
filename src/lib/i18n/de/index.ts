@@ -258,6 +258,12 @@ const de = {
 		continue: 'Fortfahren'
 	},
 	editor: {
+		showVideoPreview: 'Video in der Vorschau anzeigen',
+		videoPreviewHelp:
+			'Für flüssigeres Navigieren deaktivieren, ohne das Video in der Vorschau zu laden. Das exportierte Video bleibt unverändert.',
+		cannotAddAssetAtCursor:
+			'Einfügen am Cursor nicht möglich: Der Clip würde einen vorhandenen Clip überlappen.',
+		addAtCursorHint: 'Beim Klicken Strg gedrückt halten, um an der Cursorposition einzufügen.',
 		...{
 			transcriptionWorkflowHint:
 				'Befolge diese vier Schritte der Reihe nach, um hochwertige Untertitel für dein Video zu erstellen.',

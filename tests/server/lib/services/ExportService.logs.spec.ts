@@ -191,3 +191,28 @@ describe('export log files', () => {
 		expect(writeTextFile).not.toHaveBeenCalled();
 	});
 });
+
+describe('export filenames', () => {
+	it.each(['mp4', 'mov', 'webm'])(
+		'keeps shortened macOS video filenames visible in Finder (%s)',
+		async (extension) => {
+			const folder = '/Users/mac/Documents';
+			const filePath = await ExportService.constrainFilePathLength(
+				`${folder}/${'An-Naba 1-40, النازعات, 🌙 '.repeat(30)}.${extension}`
+			);
+			const fileName = filePath.split('/').at(-1)!;
+
+			expect(filePath.startsWith(`${folder}/`)).toBe(true);
+			expect(fileName.startsWith('.')).toBe(false);
+			expect(fileName.endsWith(`.${extension}`)).toBe(true);
+			expect(filePath.length).toBeLessThanOrEqual(220 - 48);
+			expect(new TextEncoder().encode(fileName).length).toBeLessThanOrEqual(255 - 48);
+			expect(fileName).not.toMatch(/[\uD800-\uDFFF]/u);
+		}
+	);
+
+	it('leaves a short export path unchanged', async () => {
+		const filePath = '/Users/mac/Documents/An-Naba 1-40.mp4';
+		expect(await ExportService.constrainFilePathLength(filePath)).toBe(filePath);
+	});
+});

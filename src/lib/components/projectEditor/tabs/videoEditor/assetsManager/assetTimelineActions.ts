@@ -1,5 +1,7 @@
 import type { Asset } from '$lib/classes/Asset.svelte';
 import type { Project } from '$lib/classes/Project';
+import { AssetClip } from '$lib/classes/Clip.svelte';
+import { DEFAULT_IMAGE_CLIP_DURATION_MS } from '$lib/classes/Track.svelte';
 import type { AssetTrack } from '$lib/classes/Track.svelte';
 import { AssetType, TrackType } from '$lib/classes/enums';
 import { globalState } from '$lib/runes/main.svelte';
@@ -16,6 +18,7 @@ import { get } from 'svelte/store';
  * @param {boolean} asVideo Ajouter en tant que piste vidéo.
  * @param {boolean} asAudio Ajouter en tant que piste audio.
  * @param {boolean} skipDimensionPrompt Si true, ne demande pas la confirmation pour adapter les dimensions.
+ * @param {number | undefined} startTime Position explicite en millisecondes, si l'emplacement est libre.
  * @returns {Promise<void>}
  */
 export async function addAssetToTimeline(
@@ -23,7 +26,8 @@ export async function addAssetToTimeline(
 	asset: Asset,
 	asVideo: boolean,
 	asAudio: boolean,
-	skipDimensionPrompt = false
+	skipDimensionPrompt = false,
+	startTime?: number
 ): Promise<void> {
 	if (globalState.currentProject !== project) return;
 	const videoTrack = asVideo
@@ -33,16 +37,45 @@ export async function addAssetToTimeline(
 		? (project.content.timeline.getFirstTrack(TrackType.Audio) as AssetTrack)
 		: null;
 	let imageAsFullBackground = true;
-	if (asVideo && asset.type === AssetType.Image && videoTrack!.clips.length === 0) {
+	if (
+		startTime === undefined &&
+		asVideo &&
+		asset.type === AssetType.Image &&
+		videoTrack!.clips.length === 0
+	) {
 		const message = Reflect.get(get(LL).editor, 'setImageAsFullBackgroundConfirm') as () => string;
 		imageAsFullBackground = await ModalManager.confirmModal(message(), true);
 	}
 
 	if (globalState.currentProject !== project) return;
+	const tracks = [videoTrack, audioTrack].filter((track): track is AssetTrack => track !== null);
+	const duration =
+		asset.type === AssetType.Image ? DEFAULT_IMAGE_CLIP_DURATION_MS : asset.duration.ms;
+	if (
+		startTime !== undefined &&
+		tracks.some(
+			(track) =>
+				track.getClipsInRange(startTime, startTime + duration).length > 0 ||
+				track.clips.some((clip) => clip instanceof AssetClip && clip.loopUntilAudioEnd)
+		)
+	) {
+		const message = Reflect.get(get(LL).editor, 'cannotAddAssetAtCursor') as () => string;
+		ModalManager.errorModal(get(LL).editor.clipAdditionError(), message());
+		return;
+	}
 	let wasAddedToVideo = false;
 	ProjectHistoryManager.track(
 		'add asset to timeline',
 		() => {
+			if (startTime !== undefined) {
+				for (const track of tracks) {
+					track.clips.push(new AssetClip(startTime, startTime + duration, asset.id));
+					track.clips.sort((left, right) => left.startTime - right.startTime);
+				}
+				globalState.updateVideoPreviewUI();
+				wasAddedToVideo = asVideo;
+				return;
+			}
 			if (asVideo) wasAddedToVideo = videoTrack!.addAsset(asset, imageAsFullBackground);
 			if (asAudio) audioTrack!.addAsset(asset);
 		},

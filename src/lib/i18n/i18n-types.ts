@@ -1010,6 +1010,22 @@ type RootTranslation = {
 	};
 	editor: {
 		/**
+		 * S​h​o​w​ ​v​i​d​e​o​ ​i​n​ ​p​r​e​v​i​e​w
+		 */
+		showVideoPreview: string;
+		/**
+		 * U​n​c​h​e​c​k​ ​f​o​r​ ​s​m​o​o​t​h​e​r​ ​s​c​r​u​b​b​i​n​g​ ​w​i​t​h​o​u​t​ ​l​o​a​d​i​n​g​ ​t​h​e​ ​v​i​d​e​o​ ​i​n​ ​t​h​e​ ​p​r​e​v​i​e​w​.​ ​T​h​e​ ​e​x​p​o​r​t​e​d​ ​v​i​d​e​o​ ​i​s​ ​u​n​a​f​f​e​c​t​e​d​.
+		 */
+		videoPreviewHelp: string;
+		/**
+		 * C​a​n​n​o​t​ ​a​d​d​ ​a​t​ ​t​h​e​ ​c​u​r​s​o​r​:​ ​t​h​e​ ​c​l​i​p​ ​w​o​u​l​d​ ​o​v​e​r​l​a​p​ ​a​n​ ​e​x​i​s​t​i​n​g​ ​c​l​i​p​.
+		 */
+		cannotAddAssetAtCursor: string;
+		/**
+		 * H​o​l​d​ ​C​t​r​l​ ​w​h​i​l​e​ ​c​l​i​c​k​i​n​g​ ​t​o​ ​a​d​d​ ​a​t​ ​t​h​e​ ​c​u​r​s​o​r​ ​p​o​s​i​t​i​o​n​.
+		 */
+		addAtCursorHint: string;
+		/**
 		 * F​o​l​l​o​w​ ​t​h​e​s​e​ ​f​o​u​r​ ​s​t​e​p​s​ ​i​n​ ​o​r​d​e​r​ ​t​o​ ​c​r​e​a​t​e​ ​q​u​a​l​i​t​y​ ​s​u​b​t​i​t​l​e​s​ ​f​o​r​ ​y​o​u​r​ ​v​i​d​e​o​.
 		 */
 		transcriptionWorkflowHint: string;
@@ -11544,6 +11560,22 @@ export type TranslationFunctions = {
 		continue: () => LocalizedString;
 	};
 	editor: {
+		/**
+		 * Show video in preview
+		 */
+		showVideoPreview: () => LocalizedString;
+		/**
+		 * Uncheck for smoother scrubbing without loading the video in the preview. The exported video is unaffected.
+		 */
+		videoPreviewHelp: () => LocalizedString;
+		/**
+		 * Cannot add at the cursor: the clip would overlap an existing clip.
+		 */
+		cannotAddAssetAtCursor: () => LocalizedString;
+		/**
+		 * Hold Ctrl while clicking to add at the cursor position.
+		 */
+		addAtCursorHint: () => LocalizedString;
 		/**
 		 * Follow these four steps in order to create quality subtitles for your video.
 		 */

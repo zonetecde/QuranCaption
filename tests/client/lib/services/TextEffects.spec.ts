@@ -265,6 +265,57 @@ describe('contours natifs et composition des effets', () => {
 		}
 	);
 
+	it.each([11.44, 20])('remplit le contour du point Georgia à %s px sans creux', async (width) => {
+		const root = await createText('Georgia', '.');
+		const paragraph = root.querySelector('p')!;
+		paragraph.style.fontSize = '38px';
+		const base = paragraph.style.cssText;
+		const css = generateEffects({
+			'outline-enable': true,
+			'text-outline': width,
+			'text-outline-color': '#ff0000'
+		});
+		for (const scale of [1, 2]) {
+			paragraph.style.cssText = base;
+			const reference = await pixels(await captureExportOverlayBlob(root, { scale }));
+			let centerX = 0,
+				centerY = 0,
+				fill = 0;
+			for (let y = 0; y < reference.height; y++) {
+				for (let x = 0; x < reference.width; x++) {
+					if (reference.data[(y * reference.width + x) * 4 + 3] < 250) continue;
+					centerX += x;
+					centerY += y;
+					fill++;
+				}
+			}
+			expect(fill).toBeGreaterThan(0);
+			centerX /= fill;
+			centerY /= fill;
+			paragraph.style.cssText = base + css;
+			if (!paragraph.querySelector('.native-text-effects')) mountEffects(paragraph, css);
+			for (const blob of [
+				await captureExportOverlayBlob(root, { scale }),
+				new Blob([
+					await captureMacOsOverlayPngBytes(root, scale, 800 * scale, 220 * scale, {
+						compensateTextWeight: false
+					})
+				])
+			]) {
+				const actual = await pixels(blob);
+				let holes = 0;
+				const radius = (width - 2) * scale;
+				for (let y = Math.floor(centerY - radius); y <= centerY + radius; y++) {
+					for (let x = Math.floor(centerX - radius); x <= centerX + radius; x++) {
+						if ((x - centerX) ** 2 + (y - centerY) ** 2 > radius ** 2) continue;
+						if (actual.data[(y * actual.width + x) * 4 + 3] < 240) holes++;
+					}
+				}
+				expect(holes).toBe(0);
+			}
+		}
+	});
+
 	it.each([
 		['Georgia', 'All praise is for Allah'],
 		['EffectsHafs', 'ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ'],

@@ -203,6 +203,8 @@ export function roundedTextOutline(node: HTMLElement, _css: string) {
 					outline.setAttribute('stroke-width', strokeStyle.webkitTextStrokeWidth);
 					outline.setAttribute('stroke-linejoin', 'round');
 					outline.setAttribute('stroke-linecap', 'round');
+					// Des segments sans espace évitent les creux des traits épais sur les petits glyphes fermés.
+					outline.setAttribute('stroke-dasharray', '1 0');
 					outline.setAttribute('transform', transform.toString());
 					outline.style.opacity = String(opacity);
 					outline.style.filter = filters.join(' ') || 'none';

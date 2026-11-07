@@ -815,6 +815,9 @@ function drawTextRunContent(
 			context.save();
 			context.strokeStyle = run.strokeColor;
 			context.lineWidth = run.strokeWidth * Math.max(scaleX, scaleY);
+			// Comme en SVG, des segments jointifs arrondis évitent les creux sur les petits glyphes.
+			context.lineCap = 'round';
+			context.setLineDash([Math.max(scaleX, scaleY), 0]);
 			context.strokeText(run.text, x, y);
 			context.restore();
 		}

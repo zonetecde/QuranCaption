@@ -5,6 +5,7 @@ import {
 	type Context,
 	type Options
 } from 'modern-screenshot';
+import { refreshRoundedTextOutlines } from '$lib/services/RoundedTextOutline';
 
 let context: Context<HTMLElement> | null = null;
 let contextKey = '';
@@ -33,6 +34,7 @@ export async function captureExportOverlayBlob(
 	options: Pick<Options, 'width' | 'height' | 'scale' | 'quality' | 'style' | 'onCloneNode'>,
 	timings?: Record<string, number>
 ): Promise<Blob> {
+	refreshRoundedTextOutlines(node);
 	const key = JSON.stringify({ ...options, onCloneNode: undefined });
 	if (context && (context.node !== node || contextKey !== key)) releaseExportScreenshotContext();
 	if (!context) {

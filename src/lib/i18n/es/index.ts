@@ -1925,7 +1925,7 @@ const es = {
 			'box-shadow-color': 'Establecer el color de la sombra del contenedor',
 			outline: 'Agregar contornos y filetes alrededor del texto',
 			'outline-enable': 'Activar o desactivar el contorno del texto',
-			'text-outline': 'Establecer el ancho del contorno del texto (basado en sombra)',
+			'text-outline': 'Establecer el ancho del contorno del texto',
 			'text-outline-color': 'Establecer el color del contorno del texto',
 			'text-glow': 'Agregar un efecto de brillo al texto',
 			'text-glow-enable': 'Activar o desactivar el brillo del texto',

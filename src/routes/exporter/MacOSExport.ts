@@ -1,4 +1,5 @@
-﻿import { captureExportOverlayBlob } from './ExportScreenshot';
+import { applyTextTransform, getTextLineRects } from '$lib/services/TextLayout';
+import { captureExportOverlayBlob } from './ExportScreenshot';
 
 const EXPORT_TEXT_WEIGHT_COMPENSATION_MAX_PX = 0.45;
 const EXPORT_TEXT_WEIGHT_COMPENSATION_RATIO = 0.0125;
@@ -19,6 +20,8 @@ type TextDrawRun = {
 	height: number;
 	font: string;
 	color: string;
+	strokeColor: string;
+	strokeWidth: number;
 	opacity: number;
 	direction: CanvasDirection;
 	align: CanvasTextAlign;
@@ -41,18 +44,6 @@ type StableTextRunPosition = Pick<TextDrawRun, 'x' | 'y' | 'width' | 'height'>;
 type TextFilterScratch = {
 	canvas: HTMLCanvasElement;
 	context: CanvasRenderingContext2D;
-};
-
-type TextTokenRect = {
-	start: number;
-	end: number;
-	rect: DOMRect;
-};
-
-type TextLineRect = {
-	start: number;
-	end: number;
-	rect: DOMRect;
 };
 
 type LiveTextCanvasCaptureOptions = {
@@ -384,151 +375,6 @@ function toCanvasTextAlign(direction: CanvasDirection): CanvasTextAlign {
 }
 
 /**
- * Reproduit le comportement de `text-transform` pour le texte capture.
- * @param text Texte source.
- * @param transform Valeur CSS `text-transform`.
- * @returns Texte transforme.
- */
-function applyTextTransform(text: string, transform: string): string {
-	if (transform === 'uppercase') return text.toUpperCase();
-	if (transform === 'lowercase') return text.toLowerCase();
-	if (transform === 'capitalize') {
-		return text.replace(/\b\S/g, (char) => char.toUpperCase());
-	}
-	return text;
-}
-
-/**
- * Decoupe un intervalle texte en bornes de graphemes.
- * @param {string} text Texte source complet.
- * @param {number} start Debut de l'intervalle.
- * @param {number} end Fin de l'intervalle.
- * @returns {Array<{ start: number; end: number }>} Bornes de graphemes dans le texte source.
- */
-function getGraphemeRanges(
-	text: string,
-	start: number,
-	end: number
-): Array<{ start: number; end: number }> {
-	const ranges: Array<{ start: number; end: number }> = [];
-	const slicedText = text.slice(start, end);
-	const segmenter =
-		'Segmenter' in Intl ? new Intl.Segmenter(undefined, { granularity: 'grapheme' }) : null;
-
-	if (segmenter) {
-		for (const { segment, index } of segmenter.segment(slicedText)) {
-			ranges.push({
-				start: start + index,
-				end: start + index + segment.length
-			});
-		}
-		return ranges;
-	}
-
-	let offset = start;
-	for (const grapheme of Array.from(slicedText)) {
-		const nextOffset = offset + grapheme.length;
-		ranges.push({ start: offset, end: nextOffset });
-		offset = nextOffset;
-	}
-
-	return ranges;
-}
-
-/**
- * Extrait les bornes de chaque token visible pour reconstruire les lignes.
- * @param text Texte brut.
- * @returns Tableau des bornes de tokens.
- */
-function getTextTokenRanges(text: string): Array<{ start: number; end: number }> {
-	const tokens: Array<{ start: number; end: number }> = [];
-	const tokenPattern = /\S+\s*/g;
-	let match: RegExpExecArray | null;
-
-	while ((match = tokenPattern.exec(text)) !== null) {
-		tokens.push({
-			start: match.index,
-			end: match.index + match[0].length
-		});
-	}
-
-	return tokens;
-}
-
-/**
- * Calcule un identifiant de ligne stable base sur la position verticale.
- * @param rect Rectangle du token.
- * @param rootScaleY Echelle verticale locale.
- * @returns Bucket de ligne.
- */
-function getLineBucket(rect: DOMRect, rootScaleY: number): number {
-	return Math.round(rect.top * rootScaleY);
-}
-
-/**
- * Reconstruit des lignes de texte depuis les rects DOM de tokens.
- * @param textNode Noeud texte source.
- * @param rootScaleY Echelle verticale locale.
- * @returns Liste des lignes detectees.
- */
-function getTextLineRects(textNode: Text, rootScaleY: number): TextLineRect[] {
-	const tokenRects: TextTokenRect[] = [];
-
-	for (const token of getTextTokenRanges(textNode.data)) {
-		const range = document.createRange();
-		range.setStart(textNode, token.start);
-		range.setEnd(textNode, token.end);
-		const rects = Array.from(range.getClientRects());
-		range.detach();
-		const lineCount = new Set(rects.map((rect) => getLineBucket(rect, rootScaleY))).size;
-
-		if (lineCount > 1) {
-			for (const grapheme of getGraphemeRanges(textNode.data, token.start, token.end)) {
-				const graphemeRange = document.createRange();
-				graphemeRange.setStart(textNode, grapheme.start);
-				graphemeRange.setEnd(textNode, grapheme.end);
-				const graphemeRects = Array.from(graphemeRange.getClientRects());
-				graphemeRange.detach();
-
-				for (const rect of graphemeRects) {
-					if (!rect.width || !rect.height) continue;
-					tokenRects.push({ ...grapheme, rect });
-				}
-			}
-			continue;
-		}
-
-		for (const rect of rects) {
-			if (!rect.width || !rect.height) continue;
-			tokenRects.push({ ...token, rect });
-		}
-	}
-
-	const lineGroups = new Map<number, TextTokenRect[]>();
-	for (const tokenRect of tokenRects) {
-		const bucket = getLineBucket(tokenRect.rect, rootScaleY);
-		const group = lineGroups.get(bucket);
-		if (group) group.push(tokenRect);
-		else lineGroups.set(bucket, [tokenRect]);
-	}
-
-	return Array.from(lineGroups.values()).map((group) => {
-		const start = Math.min(...group.map((token) => token.start));
-		const end = Math.max(...group.map((token) => token.end));
-		const left = Math.min(...group.map((token) => token.rect.left));
-		const right = Math.max(...group.map((token) => token.rect.right));
-		const top = Math.min(...group.map((token) => token.rect.top));
-		const bottom = Math.max(...group.map((token) => token.rect.bottom));
-
-		return {
-			start,
-			end,
-			rect: new DOMRect(left, top, right - left, bottom - top)
-		};
-	});
-}
-
-/**
  * Calcule l'opacite cumulée du noeud jusqu'a la racine de capture.
  * @param element Element courant.
  * @param root Racine de capture.
@@ -668,9 +514,15 @@ function collectLiveTextDrawRuns(root: HTMLElement, textRootSelector?: string): 
 			const textNode = walker.currentNode as Text;
 			const parent = textNode.parentElement;
 			if (!parent || !textNode.data.trim()) continue;
+			// Les deux calques DOM représentent un seul texte à retracer dans le canvas.
+			if (parent.closest('.native-text-foreground')) continue;
 			if (textRootSelector && !parent.closest(textRootSelector)) continue;
 
 			const computedStyle = getComputedStyle(parent);
+			const shadowLayer = parent.closest('.native-text-shadows');
+			const strokeStyle = shadowLayer?.parentElement
+				? getComputedStyle(shadowLayer.parentElement)
+				: computedStyle;
 			if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') continue;
 
 			const opacity = getCumulativeOpacity(parent, root);
@@ -720,6 +572,8 @@ function collectLiveTextDrawRuns(root: HTMLElement, textRootSelector?: string): 
 					height: stablePosition.height,
 					font: computedStyle.font,
 					color: computedStyle.color,
+					strokeColor: strokeStyle.webkitTextStrokeColor,
+					strokeWidth: Number.parseFloat(strokeStyle.webkitTextStrokeWidth) || 0,
 					opacity,
 					direction,
 					align,
@@ -756,11 +610,15 @@ function collectLiveTextDrawRuns(root: HTMLElement, textRootSelector?: string): 
  * @param root Racine de capture.
  */
 function hideTextForOverlayCapture(root: HTMLElement): void {
+	for (const outline of root.querySelectorAll<SVGElement>('.rounded-text-outline')) {
+		outline.style.visibility = 'hidden';
+	}
 	for (const element of Array.from(root.querySelectorAll<HTMLElement>('*'))) {
 		if (!element.textContent?.trim()) continue;
 
 		element.style.color = 'transparent';
 		element.style.webkitTextFillColor = 'transparent';
+		element.style.webkitTextStrokeColor = 'transparent';
 		element.style.textShadow = 'none';
 		element.style.textDecorationColor = 'transparent';
 	}
@@ -953,6 +811,13 @@ function drawTextRunContent(
 
 	const fillCompensatedText = () => {
 		clearShadow();
+		if (run.strokeWidth > 0) {
+			context.save();
+			context.strokeStyle = run.strokeColor;
+			context.lineWidth = run.strokeWidth * Math.max(scaleX, scaleY);
+			context.strokeText(run.text, x, y);
+			context.restore();
+		}
 
 		if (compensationWidth > 0) {
 			// Le trait leger compense la perte de poids visible sur certains rendus macOS.

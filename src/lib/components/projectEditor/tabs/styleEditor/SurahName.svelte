@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NativeTextEffects from '../../videoPreview/NativeTextEffects.svelte';
 	import { getOverlayLayerZIndex } from '$lib/services/OverlayLayerService';
 	import { Quran } from '$lib/classes/Quran';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -152,7 +153,11 @@
 			class="surahs-font"
 			style={`opacity: ${surahNameSettings().showArabic} !important; font-size: ${surahNameSettings().size}rem !important; ${globalState.getStyle('global', 'surah-latin-text-style')!.generateCSSForComposite()}; font-family: '${surahNameSettings().calligraphyFontFamily}' !important;`}
 		>
-			{currentSurah().toString().padStart(3, '0')}
+			<NativeTextEffects
+				css={globalState.getStyle('global', 'surah-latin-text-style')!.generateCSSForComposite()}
+			>
+				{currentSurah().toString().padStart(3, '0')}
+			</NativeTextEffects>
 		</p>
 		<div
 			class="w-[700px] text-center"

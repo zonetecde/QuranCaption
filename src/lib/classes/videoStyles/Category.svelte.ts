@@ -91,8 +91,12 @@ export class Category extends SerializableBase {
 			if (Array.isArray(style.value)) {
 				const children = style.value as Style[];
 				for (const definition of raw) {
-					if (!children.some((existing) => existing.id === definition.id)) {
+					const existing = children.find((child) => child.id === definition.id);
+					if (!existing) {
 						children.push(new Style(definition));
+						hasChanges = true;
+					} else if (typeof definition.css === 'string' && existing.css !== definition.css) {
+						existing.css = definition.css;
 						hasChanges = true;
 					}
 				}

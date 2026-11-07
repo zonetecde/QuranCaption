@@ -1931,7 +1931,7 @@ const fr = {
 			'box-shadow-color': 'Définir la couleur de l\u2019ombre du conteneur',
 			outline: 'Ajouter des contours et des filets autour du texte',
 			'outline-enable': 'Activer ou désactiver le contour du texte',
-			'text-outline': 'Définir la largeur du contour du texte (basé sur l\u2019ombre)',
+			'text-outline': 'Définir la largeur du contour du texte',
 			'text-outline-color': 'Définir la couleur du contour du texte',
 			'text-glow': 'Ajouter un effet de lueur au texte',
 			'text-glow-enable': 'Activer ou désactiver la lueur du texte',

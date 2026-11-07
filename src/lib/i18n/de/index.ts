@@ -1931,7 +1931,7 @@ const de = {
 			'box-shadow-color': 'Farbe des Container-Schattens festlegen',
 			outline: 'Konturen und Umrandungen um Text hinzufügen',
 			'outline-enable': 'Textkontur ein- oder ausschalten',
-			'text-outline': 'Breite der Textkontur festlegen (schattenbasiert)',
+			'text-outline': 'Breite der Textkontur festlegen',
 			'text-outline-color': 'Farbe der Textkontur festlegen',
 			'text-glow': 'Leuchteffekt zum Text hinzufügen',
 			'text-glow-enable': 'Textleuchten ein- oder ausschalten',

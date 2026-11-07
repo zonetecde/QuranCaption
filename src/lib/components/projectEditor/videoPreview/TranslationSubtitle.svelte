@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NativeTextEffects from './NativeTextEffects.svelte';
 	import { getOverlayLayerZIndex } from '$lib/services/OverlayLayerService';
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 	import {
@@ -772,34 +773,37 @@
 		<SubtitleStyleContextMenu bind:this={styleContextMenu} target={edition} />
 	{/if}
 	<!-- Le wrapper externe porte le layout flex, le fond interne reste fragmentable par ligne. -->
-	<span class="translation-inline-flow">
-		<span class="line-background">
-			{#if true}
-				{@const state = wbwState()}
-				{@const data = wbwRenderData()}
-				{@const renderedSegments = state.enabled && data ? visibleWbwSegments() : visibleSegments()}
-				{#each renderedSegments as segment, segmentIndex (segment.key)}
-					{@const segmentStyle = getTranslationSegmentCss(segment, state, data)}
-					{@const segmentClass = getTranslationSegmentLineBackgroundClass(
-						segmentIndex,
-						renderedSegments,
-						segment,
-						state
-					)}
-					{#if state.enabled && data}
-						<span class={segmentClass} style={segmentStyle}>
-							<span class="wbw-line-background-text">{segment.text}</span>
-						</span>
-					{:else if segmentStyle || segmentClass}
-						<span class={segmentClass} style={segmentStyle}>{segment.text}</span>
-					{:else}
-						{segment.text}
-					{/if}
-					{#if segment.flags.lineBreak}
-						<br />
-					{/if}
-				{/each}
-			{/if}
+	<NativeTextEffects {css}>
+		<span class="translation-inline-flow">
+			<span class="line-background">
+				{#if true}
+					{@const state = wbwState()}
+					{@const data = wbwRenderData()}
+					{@const renderedSegments =
+						state.enabled && data ? visibleWbwSegments() : visibleSegments()}
+					{#each renderedSegments as segment, segmentIndex (segment.key)}
+						{@const segmentStyle = getTranslationSegmentCss(segment, state, data)}
+						{@const segmentClass = getTranslationSegmentLineBackgroundClass(
+							segmentIndex,
+							renderedSegments,
+							segment,
+							state
+						)}
+						{#if state.enabled && data}
+							<span class={segmentClass} style={segmentStyle}>
+								<span class="wbw-line-background-text">{segment.text}</span>
+							</span>
+						{:else if segmentStyle || segmentClass}
+							<span class={segmentClass} style={segmentStyle}>{segment.text}</span>
+						{:else}
+							{segment.text}
+						{/if}
+						{#if segment.flags.lineBreak}
+							<br />
+						{/if}
+					{/each}
+				{/if}
+			</span>
 		</span>
-	</span>
+	</NativeTextEffects>
 </p>

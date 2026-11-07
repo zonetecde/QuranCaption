@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Style } from '$lib/classes';
 	import type { Snippet } from 'svelte';
+	import NativeTextEffects from '../../videoPreview/NativeTextEffects.svelte';
 
 	let {
 		compositeStyle,
@@ -16,5 +17,5 @@
 </script>
 
 <p class="whitespace-pre-line" style={getCss()}>
-	{@render children()}
+	<NativeTextEffects css={getCss()}>{@render children()}</NativeTextEffects>
 </p>

@@ -66,6 +66,53 @@ describe('style architecture modules', () => {
 		expect(customComposite.generateCSSForComposite()).toContain('rotate: 35deg;');
 	});
 
+	it('refreshes legacy outline CSS and maximum without changing values, overrides or keyframes', async () => {
+		const catalogs: Record<string, unknown> = {
+			'./styles/globalStyles.json': globalDefinitions,
+			'./styles/styles.json': subtitleDefinitions,
+			'./styles/compositeStyles.json': compositeDefinitions
+		};
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(async (path: string) => ({ json: async () => catalogs[path] }))
+		);
+		const videoStyle = new VideoStyle();
+		const outline = new Style({
+			id: 'text-outline',
+			value: 5,
+			valueMax: 10,
+			css: 'text-shadow: old;'
+		});
+		outline.keyframes = [{ time: 1000, value: 3 }];
+		const subtitles = new StylesData('arabic', [
+			new Category({ id: 'outline', styles: [outline] })
+		]);
+		subtitles.overrides = { 101: { 'text-outline': 2.5 } };
+		subtitles.overrideKeyframes = { 101: { 'text-outline': [{ time: 2000, value: 4 }] } };
+		const child = new Style({ id: 'text-outline', value: 6, css: 'text-shadow: old !important;' });
+		const composite = new Style({
+			id: 'surah-latin-text-style',
+			valueType: 'composite',
+			value: [child]
+		});
+		videoStyle.styles = [
+			subtitles,
+			new StylesData('global', [new Category({ id: 'surah-name', styles: [composite] })])
+		];
+
+		expect(await videoStyle.ensureStylesSchemaUpToDate()).toBe(true);
+		for (const style of [outline, child]) {
+			expect(style.css).toContain('-webkit-text-stroke:');
+			expect(style.css).not.toContain('text-shadow:');
+		}
+		expect(outline).toMatchObject({ value: 5, valueMax: 20 });
+		expect(child.value).toBe(6);
+		expect(outline.keyframes).toEqual([{ time: 1000, value: 3 }]);
+		expect(subtitles.overrides[101]['text-outline']).toBe(2.5);
+		expect(subtitles.overrideKeyframes[101]['text-outline']).toEqual([{ time: 2000, value: 4 }]);
+		expect(await videoStyle.ensureStylesSchemaUpToDate()).toBe(false);
+	});
+
 	it('migrates subtitle spacing minimums without changing existing values', async () => {
 		const videoStyle = new VideoStyle();
 		/**

@@ -1172,6 +1172,7 @@ const id = {
 		} as Translation['editor']['styleName'],
 		styleDescription: {
 			...baseEn.editor.styleDescription,
+			'text-outline': 'Atur ketebalan garis tepi teks',
 			rotation: 'Putar teks dalam derajat',
 			'verse-number-format': 'Ubah format nomor ayat. Tag yang didukung: <number>, <br>.',
 			'surah-name-format':

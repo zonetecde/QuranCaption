@@ -1289,7 +1289,7 @@ const editor = {
 		'box-shadow-color': 'Set the color of the container shadow',
 		outline: 'Add outlines and strokes around text',
 		'outline-enable': 'Enable or disable text outline',
-		'text-outline': 'Set the width of the text outline (shadow-based)',
+		'text-outline': 'Set the width of the text outline',
 		'text-outline-color': 'Set the color of the text outline',
 		'text-glow': 'Add a glow effect to the text',
 		'text-glow-enable': 'Enable or disable text glow',

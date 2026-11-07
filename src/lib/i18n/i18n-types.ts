@@ -5909,7 +5909,7 @@ type RootTranslation = {
 			 */
 			'outline-enable': string;
 			/**
-			 * S​e​t​ ​t​h​e​ ​w​i​d​t​h​ ​o​f​ ​t​h​e​ ​t​e​x​t​ ​o​u​t​l​i​n​e​ ​(​s​h​a​d​o​w​-​b​a​s​e​d​)
+			 * S​e​t​ ​t​h​e​ ​w​i​d​t​h​ ​o​f​ ​t​h​e​ ​t​e​x​t​ ​o​u​t​l​i​n​e
 			 */
 			'text-outline': string;
 			/**
@@ -18310,7 +18310,7 @@ export type TranslationFunctions = {
 			 */
 			'outline-enable': () => LocalizedString;
 			/**
-			 * Set the width of the text outline (shadow-based)
+			 * Set the width of the text outline
 			 */
 			'text-outline': () => LocalizedString;
 			/**

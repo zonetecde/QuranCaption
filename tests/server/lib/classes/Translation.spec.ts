@@ -192,7 +192,8 @@ describe('translation inline style runs', () => {
 		]);
 		expect(getInlineStyleCss(runs[0])).toContain('--inline-word-glow-color: #00ff88;');
 		expect(getInlineStyleCss(runs[0])).toContain('text-shadow:');
-		expect(getInlineStyleCss(runs[0])).toContain('filter: drop-shadow(');
+		expect(getInlineStyleCss(runs[0])).toContain('var(--text-drop-shadow,');
+		expect(getInlineStyleCss(runs[0])).not.toContain('filter:');
 	});
 
 	it('adds a style range to an empty translation', () => {

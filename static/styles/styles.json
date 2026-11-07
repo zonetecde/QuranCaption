@@ -1074,7 +1074,7 @@
 				"valueType": "number",
 				"valueMin": 0,
 				"valueMax": 20,
-				"css": "text-shadow: {value}px {value}px 8px var(--text-shadow-color);",
+				"css": "--text-drop-shadow: {value}px {value}px 8px var(--text-shadow-color); text-shadow: var(--wbw-word-glow-shadow, 0 0 0 transparent), var(--inline-word-glow-shadow, 0 0 0 transparent), var(--text-neon-shadow, 0 0 0 transparent), var(--text-glow-shadow, 0 0 0 transparent), var(--text-drop-shadow, 0 0 0 transparent);",
 				"tailwind": false,
 				"icon": "text_fields"
 			},
@@ -1135,13 +1135,13 @@
 			{
 				"id": "text-outline",
 				"name": "Outline Width",
-				"description": "Set the width of the text outline (shadow-based)",
+				"description": "Set the width of the text outline",
 				"value": 0.25,
 				"valueType": "number",
 				"valueMin": 0,
-				"valueMax": 10,
+				"valueMax": 20,
 				"step": 0.01,
-				"css": "text-shadow: {value}px 0 0 var(--text-outline-color), calc({value}px * 0.9239) calc({value}px * 0.3827) 0 var(--text-outline-color), calc({value}px * 0.7071) calc({value}px * 0.7071) 0 var(--text-outline-color), calc({value}px * 0.3827) calc({value}px * 0.9239) 0 var(--text-outline-color), 0 {value}px 0 var(--text-outline-color), calc({value}px * -0.3827) calc({value}px * 0.9239) 0 var(--text-outline-color), calc({value}px * -0.7071) calc({value}px * 0.7071) 0 var(--text-outline-color), calc({value}px * -0.9239) calc({value}px * 0.3827) 0 var(--text-outline-color), -{value}px 0 0 var(--text-outline-color), calc({value}px * -0.9239) calc({value}px * -0.3827) 0 var(--text-outline-color), calc({value}px * -0.7071) calc({value}px * -0.7071) 0 var(--text-outline-color), calc({value}px * -0.3827) calc({value}px * -0.9239) 0 var(--text-outline-color), 0 -{value}px 0 var(--text-outline-color), calc({value}px * 0.3827) calc({value}px * -0.9239) 0 var(--text-outline-color), calc({value}px * 0.7071) calc({value}px * -0.7071) 0 var(--text-outline-color), calc({value}px * 0.9239) calc({value}px * -0.3827) 0 var(--text-outline-color), calc({value}px * 0.6) 0 0 var(--text-outline-color), calc({value}px * 0.4243) calc({value}px * 0.4243) 0 var(--text-outline-color), 0 calc({value}px * 0.6) 0 var(--text-outline-color), calc({value}px * -0.4243) calc({value}px * 0.4243) 0 var(--text-outline-color), calc({value}px * -0.6) 0 0 var(--text-outline-color), calc({value}px * -0.4243) calc({value}px * -0.4243) 0 var(--text-outline-color), 0 calc({value}px * -0.6) 0 var(--text-outline-color), calc({value}px * 0.4243) calc({value}px * -0.4243) 0 var(--text-outline-color);",
+				"css": "-webkit-text-stroke: calc({value}px * 2) var(--text-outline-color); paint-order: stroke fill;",
 				"tailwind": false,
 				"icon": "line_weight"
 			},
@@ -1254,7 +1254,7 @@
 				"description": "Set the color of the text glow",
 				"value": "#ffffff",
 				"valueType": "color",
-				"css": "--text-glow-color: {value};  text-shadow: 0 0 calc(var(--text-glow-blur) * 0.5) var(--text-glow-color), 0 0 var(--text-glow-blur) var(--text-glow-color), 0 0 calc(var(--text-glow-blur) * 1.5) var(--text-glow-color), 0 0 calc(var(--text-glow-blur) * 2) var(--text-glow-color); filter: drop-shadow(0 0 var(--text-glow-blur) var(--text-glow-color)) brightness(calc(100% + 5 * 50%));",
+				"css": "--text-glow-color: {value}; --text-glow-shadow: 0 0 calc(var(--text-glow-blur) * 0.5) var(--text-glow-color), 0 0 var(--text-glow-blur) var(--text-glow-color), 0 0 calc(var(--text-glow-blur) * 2) var(--text-glow-color); text-shadow: var(--wbw-word-glow-shadow, 0 0 0 transparent), var(--inline-word-glow-shadow, 0 0 0 transparent), var(--text-neon-shadow, 0 0 0 transparent), var(--text-glow-shadow, 0 0 0 transparent), var(--text-drop-shadow, 0 0 0 transparent);",
 				"tailwind": false,
 				"icon": "palette"
 			},
@@ -1310,7 +1310,7 @@
 				"valueType": "number",
 				"valueMin": 0,
 				"valueMax": 50,
-				"css": "--text-neon-size: {value}px; color: var(--text-neon-color); text-shadow: 0 0 calc(var(--text-neon-size) * 0.5) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 1) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 2) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 4) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 8) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 9) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 10) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 15) var(--text-neon-color);",
+				"css": "--text-neon-size: {value}px; color: color-mix(in srgb, var(--text-neon-color) 20%, white); --text-neon-shadow: 0 0 calc(var(--text-neon-size) * 0.25) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 0.75) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 1.5) var(--text-neon-color), 0 0 calc(var(--text-neon-size) * 3) var(--text-neon-color); text-shadow: var(--wbw-word-glow-shadow, 0 0 0 transparent), var(--inline-word-glow-shadow, 0 0 0 transparent), var(--text-neon-shadow, 0 0 0 transparent), var(--text-glow-shadow, 0 0 0 transparent), var(--text-drop-shadow, 0 0 0 transparent);",
 				"tailwind": false,
 				"icon": "blur_on"
 			}

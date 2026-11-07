@@ -274,6 +274,8 @@ Pour un simple ajout :
 - `ensureStylesSchemaUpToDate()` ajoute le style manquant aux anciens projets ;
 - les valeurs existantes ne sont pas écrasées ;
 - les listes `options` des selects peuvent être rafraîchies ;
+- les déclarations `css` des styles et composites sont réactualisées depuis le catalogue sans
+  modifier les valeurs, overrides ou images clés enregistrés ;
 - aucune migration dédiée n’est normalement nécessaire.
 
 Une migration dans `src/lib/services/MigrationService.ts` est nécessaire pour :
@@ -290,6 +292,31 @@ d’un projet existant. L’undo/redo les recopie également lors de la restaura
 
 Changer uniquement `ui.panel`, `ui.groups` ou `ui.headerStyle` ne nécessite donc aucune migration
 persistante.
+
+### Contour et halos du texte
+
+Le catalogue transmet la couleur et l'épaisseur avec `-webkit-text-stroke`. Dans
+`NativeTextEffects.svelte`, `RoundedTextOutline.ts` mesure les lignes HTML et dessine leur contour
+en SVG avec des jointures arrondies : cela élimine les pointes du tracé HTML aux grandes épaisseurs.
+Le remplissage HTML reste au-dessus, avec ses polices et sa mise en page d'origine, pour conserver
+les traits fins des glyphes QPC. La largeur du tracé vaut deux fois `text-outline`, afin que le
+contour extérieur conserve la largeur choisie. La capture actualise les mesures avant chaque image.
+L'échelle des anciens sous-titres est conservée : une valeur de 5 produit toujours un contour
+extérieur de 5 px (tracé SVG de 10 px, dont la moitié intérieure est recouverte par le remplissage).
+La limite des sous-titres passe de 10 à 20 px et est réactualisée à l'ouverture des anciens projets,
+sans modifier leurs valeurs, overrides ou images clés.
+
+Les halos et l'ombre portée définissent chacun leur variable (`--text-glow-shadow`,
+`--text-neon-shadow`, `--text-drop-shadow`). Ils partagent une même liste `text-shadow`, également
+recomposée par les halos inline et WBW via `TextEffects.ts`. N'ajoutez pas un `text-shadow` isolé
+pour un nouvel effet, sinon il masquera les autres. Le glow ne modifie ni `filter` ni la couleur du
+remplissage. Les filtres de flou, luminosité et contraste restent indépendants.
+
+WebKit ne peint pas les ombres du texte lorsque `paint-order` place le tracé avant le remplissage.
+`NativeTextEffects.svelte` sépare donc les fonds et halos du premier calque du tracé et remplissage
+du second calque. Cela conserve aussi la couleur du contour lorsqu'un halo est activé. Le renderer
+canvas d'export macOS masque le SVG, fusionne ces deux calques en un seul texte et redessine le
+tracé arrondi avant le remplissage. Les mesures de lignes sont partagées dans `TextLayout.ts`.
 
 ## Vérifications avant de terminer
 

@@ -1772,7 +1772,7 @@ const zh = {
 			'box-shadow-color': '设置容器阴影的颜色',
 			outline: '为文本添加轮廓和描边',
 			'outline-enable': '启用或禁用文本轮廓',
-			'text-outline': '设置文本轮廓的宽度（基于阴影）',
+			'text-outline': '设置文字描边宽度',
 			'text-outline-color': '设置文本轮廓的颜色',
 			'text-glow': '为文本添加发光效果',
 			'text-glow-enable': '启用或禁用文本发光',

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NativeTextEffects from './NativeTextEffects.svelte';
 	import { getOverlayLayerZIndex } from '$lib/services/OverlayLayerService';
 	import { PredefinedSubtitleClip, SubtitleClip } from '$lib/classes';
 	import { ClipWithTranslation } from '$lib/classes/Clip.svelte';
@@ -773,20 +774,105 @@
 			<SubtitleResizeHandles target="arabic" />
 			<SubtitleStyleContextMenu bind:this={styleContextMenu} target="arabic" />
 		{/if}
-		{#if currentSubtitle() instanceof SubtitleClip || currentSubtitle() instanceof PredefinedSubtitleClip}
-			{@const subtitle = currentSubtitle()}
-			{@const segments = arabicSegments()}
-			{@const groups = currentArabicPreviewGroups()}
-			{@const state = wbwState()}
-			{@const glyphs = bracketGlyphs()}
-			{@const showBrackets = showDecorativeBrackets()}
+		<NativeTextEffects {css}>
+			{#if currentSubtitle() instanceof SubtitleClip || currentSubtitle() instanceof PredefinedSubtitleClip}
+				{@const subtitle = currentSubtitle()}
+				{@const segments = arabicSegments()}
+				{@const groups = currentArabicPreviewGroups()}
+				{@const state = wbwState()}
+				{@const glyphs = bracketGlyphs()}
+				{@const showBrackets = showDecorativeBrackets()}
 
-			{#if showBrackets && ((state.enabled && groups.length > 0) || segments.some((segment) => segment.text.trim().length > 0))}
-				{@const bracketCss = getDecorativeBracketCss()}
-				<span style={bracketCss}>{glyphs.closing}</span>
+				{#if showBrackets && ((state.enabled && groups.length > 0) || segments.some((segment) => segment.text.trim().length > 0))}
+					{@const bracketCss = getDecorativeBracketCss()}
+					<span style={bracketCss}>{glyphs.closing}</span>
 
-				{#if state.enabled && subtitle instanceof SubtitleClip}
-					<!-- Rendu WBW avec crochets décoratifs -->
+					{#if state.enabled && subtitle instanceof SubtitleClip}
+						<!-- Rendu WBW avec crochets décoratifs -->
+						<span class="arabic-wbw-flow line-background" dir="rtl" style="unicode-bidi: isolate;">
+							{#each groups as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
+								<span
+									class="arabic-wbw-group"
+									dir="rtl"
+									style="unicode-bidi: isolate; {group.extraCss}"
+								>
+									{#each group.words as wordEntry, i (`${subtitle.id}-wbw-preview-${group.startWordIndex + i}-${wordEntry.text}`)}
+										{@const wordIndex = group.startWordIndex + i}
+										{@const highlightProgress = computeWordByWordHighlightProgress(
+											wordIndex,
+											state,
+											wbwPreviewFadeDuration()
+										)}
+										<span
+											class={getWordByWordLineBackgroundClass(
+												wordIndex,
+												state,
+												highlightProgress,
+												wbwPreviewFadeDuration()
+											)}
+											style={getCombinedWordByWordCss(
+												wordIndex,
+												state,
+												highlightProgress,
+												wordEntry.flags
+											)}
+										>
+											<span class="wbw-line-background-text">
+												{wordEntry.text}
+											</span>
+										</span>
+										{i < group.words.length - 1 && !wordEntry.flags.lineBreak ? ' ' : ''}
+										{#if wordEntry.flags.lineBreak}
+											<br />
+										{/if}
+									{/each}
+									{#if group.suffix}
+										{#if verseNumberOnNewLine()}<br />{/if}
+										{@const lastWordIndex = group.startWordIndex + group.words.length - 1}
+										{@const lastWordProgress = computeWordByWordHighlightProgress(
+											lastWordIndex,
+											state,
+											wbwPreviewFadeDuration()
+										)}
+										{@const suffixOpacity = getWordByWordVerseNumberOpacity(
+											lastWordIndex,
+											state,
+											lastWordProgress,
+											wbwPreviewFadeDuration()
+										)}
+										{@const lastWordWbwCss = buildWordByWordWordCss(
+											lastWordIndex,
+											state,
+											lastWordProgress,
+											wbwPreviewFadeDuration(),
+											state.verseNumberColor
+										)}
+										<span
+											class="wbw-line-background-text"
+											style={(group.suffixFontFamily
+												? `font-family: ${group.suffixFontFamily}; `
+												: '') +
+												`color: var(--verse-number-color); ` +
+												lastWordWbwCss +
+												` opacity: ${suffixOpacity};`}
+										>
+											{verseNumberOnNewLine() ? group.suffix.trimStart() : group.suffix}
+										</span>
+									{/if}
+								</span>
+								{#if groupIndex < groups.length - 1}
+									{' '}
+								{/if}
+							{/each}
+						</span>
+					{:else}
+						<!-- Rendu standard avec crochets décoratifs -->
+						{@render overlaySegmentsContent(segments)}
+					{/if}
+
+					<span style={bracketCss}>{glyphs.opening}</span>
+				{:else if state.enabled && subtitle instanceof SubtitleClip}
+					<!-- Rendu WBW sans crochets décoratifs -->
 					<span class="arabic-wbw-flow line-background" dir="rtl" style="unicode-bidi: isolate;">
 						{#each groups as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
 							<span
@@ -864,94 +950,11 @@
 						{/each}
 					</span>
 				{:else}
-					<!-- Rendu standard avec crochets décoratifs -->
+					<!-- Fallback standard : rendu arabe sans WBW -->
 					{@render overlaySegmentsContent(segments)}
 				{/if}
-
-				<span style={bracketCss}>{glyphs.opening}</span>
-			{:else if state.enabled && subtitle instanceof SubtitleClip}
-				<!-- Rendu WBW sans crochets décoratifs -->
-				<span class="arabic-wbw-flow line-background" dir="rtl" style="unicode-bidi: isolate;">
-					{#each groups as group, groupIndex (`${subtitle.id}-wbw-group-${group.startWordIndex}-${groupIndex}`)}
-						<span
-							class="arabic-wbw-group"
-							dir="rtl"
-							style="unicode-bidi: isolate; {group.extraCss}"
-						>
-							{#each group.words as wordEntry, i (`${subtitle.id}-wbw-preview-${group.startWordIndex + i}-${wordEntry.text}`)}
-								{@const wordIndex = group.startWordIndex + i}
-								{@const highlightProgress = computeWordByWordHighlightProgress(
-									wordIndex,
-									state,
-									wbwPreviewFadeDuration()
-								)}
-								<span
-									class={getWordByWordLineBackgroundClass(
-										wordIndex,
-										state,
-										highlightProgress,
-										wbwPreviewFadeDuration()
-									)}
-									style={getCombinedWordByWordCss(
-										wordIndex,
-										state,
-										highlightProgress,
-										wordEntry.flags
-									)}
-								>
-									<span class="wbw-line-background-text">
-										{wordEntry.text}
-									</span>
-								</span>
-								{i < group.words.length - 1 && !wordEntry.flags.lineBreak ? ' ' : ''}
-								{#if wordEntry.flags.lineBreak}
-									<br />
-								{/if}
-							{/each}
-							{#if group.suffix}
-								{#if verseNumberOnNewLine()}<br />{/if}
-								{@const lastWordIndex = group.startWordIndex + group.words.length - 1}
-								{@const lastWordProgress = computeWordByWordHighlightProgress(
-									lastWordIndex,
-									state,
-									wbwPreviewFadeDuration()
-								)}
-								{@const suffixOpacity = getWordByWordVerseNumberOpacity(
-									lastWordIndex,
-									state,
-									lastWordProgress,
-									wbwPreviewFadeDuration()
-								)}
-								{@const lastWordWbwCss = buildWordByWordWordCss(
-									lastWordIndex,
-									state,
-									lastWordProgress,
-									wbwPreviewFadeDuration(),
-									state.verseNumberColor
-								)}
-								<span
-									class="wbw-line-background-text"
-									style={(group.suffixFontFamily
-										? `font-family: ${group.suffixFontFamily}; `
-										: '') +
-										`color: var(--verse-number-color); ` +
-										lastWordWbwCss +
-										` opacity: ${suffixOpacity};`}
-								>
-									{verseNumberOnNewLine() ? group.suffix.trimStart() : group.suffix}
-								</span>
-							{/if}
-						</span>
-						{#if groupIndex < groups.length - 1}
-							{' '}
-						{/if}
-					{/each}
-				</span>
-			{:else}
-				<!-- Fallback standard : rendu arabe sans WBW -->
-				{@render overlaySegmentsContent(segments)}
 			{/if}
-		{/if}
+		</NativeTextEffects>
 	</p>
 {/if}
 

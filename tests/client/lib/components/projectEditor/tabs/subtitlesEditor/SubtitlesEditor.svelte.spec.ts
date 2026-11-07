@@ -14,7 +14,6 @@ import {
 } from '$lib/services/WbwHelper';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
-import { Quran } from '$lib/classes/Quran';
 import { Edition } from '$lib/classes/Edition';
 import { SilenceClip, SubtitleClip } from '$lib/classes/Clip.svelte';
 import { ProjectEditorTabs } from '$lib/classes/enums';
@@ -46,16 +45,6 @@ vi.mock('svelte-5-french-toast', () => ({
 		warning: vi.fn()
 	}
 }));
-
-function createRenderedFixture(initialSurah: number = 2, initialVerse: number = 1) {
-	const fixture = setupSubtitlesEditorProjectFixture({ initialSurah, initialVerse });
-	const workspace = render(SubtitlesWorkspace);
-	const list = render(SubtitlesList);
-
-	return { ...fixture, workspace, list };
-}
-
-type SubtitleEditorFixture = ReturnType<typeof createRenderedFixture>;
 
 describe('Minbar manual word timestamps', () => {
 	beforeEach(() => {
@@ -256,16 +245,6 @@ describe('Minbar manual word timestamps', () => {
 		expect(globalState.shared.wbwEdit.active).toBe(false);
 	});
 });
-
-async function waitForEditorReady(workspace: SubtitleEditorFixture['workspace'], surahId: number) {
-	const surahName = Quran.getSurahsNames().find((surah) => surah.id === surahId)?.transliteration;
-	if (!surahName) {
-		throw new Error(`Missing surah ${surahId} in the test Quran fixture.`);
-	}
-
-	await expect.element(workspace.getByRole('textbox')).toHaveValue(`${surahId}. ${surahName}`);
-	await tick();
-}
 
 describe('Subtitles editor workflow', () => {
 	test('Enter still closes a transcript edit after closing the quick timeline editor', async () => {
@@ -562,53 +541,71 @@ describe('Subtitles editor workflow', () => {
 		}
 	);
 
-	test('shows the saved surah on mount and updates the verse words after a new surah selection', async () => {
-		const { workspace, list } = createRenderedFixture(2, 1);
+	test('shows the saved passage and updates its words after changing the surah and verse', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const subtitle = new SubtitleClip(0, 1000, '{{2:1}}');
+		setupSubtitlesEditorProjectFixture({ clips: [subtitle], editSubtitle: subtitle });
+		const workspace = render(SubtitlesWorkspace);
+		await workspace.getByRole('button', { name: 'W2V1-1 W2V1-2', exact: true }).click();
 
-		await waitForEditorReady(workspace, 2);
+		const surahInput = workspace.getByRole('textbox').last();
+		const verseInput = workspace.getByRole('spinbutton', { name: 'Verse:' });
+		await expect.element(surahInput).toHaveValue('2. Al-Baqarah');
+		await expect.element(verseInput).toHaveValue(1);
 
-		await expect.element(workspace.getByPlaceholder('1')).toHaveValue(1);
-		expect(list.container.querySelectorAll('[data-subtitle-id]')).toHaveLength(3);
-
-		const surahInput = workspace.getByRole('textbox');
 		await surahInput.fill('1');
-		await expect.element(workspace.getByText('1. Al-Fatihah')).toBeVisible();
-		await workspace.getByText('1. Al-Fatihah').click();
+		await workspace.getByText('1. Al-Fatihah', { exact: true }).click();
 
 		await expect.element(surahInput).toHaveValue('1. Al-Fatihah');
-		await expect.element(workspace.getByPlaceholder('1')).toHaveValue(1);
-		await expect.element(workspace.getByText('W1V1-1', { exact: true }).first()).toBeVisible();
+		await expect.element(verseInput).toHaveValue(1);
+		await expect
+			.element(workspace.getByRole('button', { name: 'W1V1-1', exact: true }))
+			.toBeVisible();
 
-		const verseInput = workspace.getByPlaceholder('1');
 		await verseInput.fill('2');
+		(verseInput.element() as HTMLInputElement).blur();
 		await expect.element(verseInput).toHaveValue(2);
-		await expect.element(workspace.getByText('W1V2-1', { exact: true }).first()).toBeVisible();
-		await expect.element(workspace.getByText('W1V2-2', { exact: true }).first()).toBeVisible();
+		await expect
+			.element(workspace.getByRole('button', { name: 'W1V2-1', exact: true }))
+			.toBeVisible();
+		await expect
+			.element(workspace.getByRole('button', { name: 'W1V2-2', exact: true }))
+			.toBeVisible();
+		await workspace.getByRole('button', { name: 'Cancel', exact: true }).click();
+		await tick();
 	});
 
-	test('clicking an added subtitle syncs the selected verse and word range', async () => {
-		const { workspace, list, clips } = createRenderedFixture(1, 1);
-
-		await waitForEditorReady(workspace, 1);
-
-		const targetClip = clips[2];
-		const targetSubtitle = list.container.querySelector(
-			`[data-subtitle-id="${targetClip.id}"]`
-		) as HTMLElement | null;
+	test('clicking a transcript loads its saved Quran passage and word range for editing', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const subtitle = new SubtitleClip(2000, 3000, 'Before {{2:2:2-3}} after');
+		setupSubtitlesEditorProjectFixture({ clips: [subtitle] });
+		const workspace = render(SubtitlesWorkspace);
+		const list = render(SubtitlesList);
+		const targetSubtitle = list.container.querySelector<HTMLElement>(
+			`[data-transcript-id="${subtitle.id}"]`
+		);
 
 		expect(targetSubtitle).not.toBeNull();
 		targetSubtitle!.click();
 		await tick();
+		expect(globalState.getSubtitlesEditorState.editSubtitle?.id).toBe(subtitle.id);
+		expect(globalState.getTimelineState.cursorPosition).toBe(2000);
+		await expect.element(workspace.getByRole('textbox').first()).toHaveValue('Before ');
+		await expect.element(workspace.getByRole('textbox').last()).toHaveValue(' after');
+		await workspace.getByRole('button', { name: 'W2V2-2 W2V2-3', exact: true }).click();
 
-		await expect.element(workspace.getByRole('textbox')).toHaveValue('2. Al-Baqarah');
-		await expect.element(workspace.getByPlaceholder('1')).toHaveValue(2);
-
-		const selectedWords = Array.from(workspace.container.querySelectorAll('.word-selected')).map(
-			(node) => node.textContent?.replace(/\s+/g, ' ').trim()
-		);
-
-		expect(selectedWords).toHaveLength(2);
-		expect(selectedWords.join(' ')).toContain('W2V2-2');
-		expect(selectedWords.join(' ')).toContain('W2V2-3');
+		await expect.element(workspace.getByRole('textbox').last()).toHaveValue('2. Al-Baqarah');
+		await expect.element(workspace.getByRole('spinbutton', { name: 'Verse:' })).toHaveValue(2);
+		await expect
+			.poll(() =>
+				Array.from(workspace.container.querySelectorAll('.verse-selector-word-selected')).map(
+					(node) => node.textContent?.trim()
+				)
+			)
+			.toEqual(['W2V2-2', 'W2V2-3']);
+		await workspace.getByRole('button', { name: 'Cancel', exact: true }).click();
+		await tick();
 	});
 });

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { ManualAiSession } from '$lib/services/ManualAiSession.svelte';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import Settings from '$lib/classes/Settings.svelte';
 	import type { AdvancedTrimUsage } from '$lib/services/AdvancedAITrimming';
@@ -106,6 +108,8 @@
 	);
 
 	let isRunning = $state(false);
+	let manualMode = $state(!globalState.settings?.aiTranslationSettings.openAiApiKey.trim());
+	const session = new ManualAiSession();
 	let aiBoldStartTimeMs = $state(0);
 	let aiBoldEndTimeMs = $state(0);
 	let completedBatches = $state(0);
@@ -256,13 +260,13 @@
 		}
 
 		const apiKey = globalState.settings!.aiTranslationSettings.openAiApiKey.trim();
-		if (!apiKey) {
+		if (!manualMode && !apiKey) {
 			toast.error(get(LL).translations.configureAiKeyFirst());
 			return;
 		}
 
 		const endpoint = globalState.settings!.aiTranslationSettings.textAiApiEndpoint.trim();
-		if (!endpoint) {
+		if (!manualMode && !endpoint) {
 			toast.error(get(LL).translations.configureTextAiFirst());
 			return;
 		}
@@ -285,6 +289,33 @@
 
 		resetRunState();
 		isRunning = true;
+
+		let manualResponses: Awaited<ReturnType<ManualAiSession['prepareBatches']>> | undefined;
+		if (manualMode) {
+			const sourceProject = globalState.currentProject;
+			try {
+				manualResponses = await session.prepareBatches(
+					'translation_bold',
+					batches,
+					validateAiBoldBatchResult,
+					/**
+					 * Capture le contenu source sans les états de lecture ou de configuration.
+					 * @returns {string} Contenu sérialisé, ou chaîne vide si le projet a changé.
+					 */
+					() =>
+						globalState.currentProject === sourceProject
+							? JSON.stringify(sourceProject?.content.toJSON())
+							: '',
+					globalState.settings!.aiTranslationSettings.aiBoldCustomNote
+				);
+			} catch (error) {
+				isRunning = false;
+				if (!(error instanceof DOMException && error.name === 'AbortError')) {
+					toast.error(error instanceof Error ? error.message : String(error));
+				}
+				return;
+			}
+		}
 		activeBatchIds = new Set<string>(batches.map((batch) => batch.batchId));
 		addActivity(
 			'queued',
@@ -308,21 +339,28 @@
 			);
 
 			try {
-				const response = await runAiBoldBatchStreaming({
-					apiKey,
-					endpoint,
-					model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
-					reasoningEffort: globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
-					batchId: batch.batchId,
-					customPromptNote: globalState.settings!.aiTranslationSettings.aiBoldCustomNote,
-					batch: batch.request
-				});
+				const response =
+					manualResponses?.get(batch.batchId) ??
+					(await runAiBoldBatchStreaming({
+						apiKey,
+						endpoint,
+						model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
+						reasoningEffort:
+							globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
+						batchId: batch.batchId,
+						customPromptNote: globalState.settings!.aiTranslationSettings.aiBoldCustomNote,
+						batch: batch.request
+					}));
 
 				streamedResponse = response.rawText;
 				addActivity('validating', `Validating ${currentBatchLabel}...`, 'info', batch.batchId);
 
 				const validation = validateAiBoldBatchResult(batch, response.parsed);
-				const applyReport = applyAiBoldValidationSuccess(edition, validation.validSegments);
+				const applyReport = ProjectHistoryManager.track(
+					'apply ai bold',
+					/** Applique le gras validé avec undo/redo. @returns {ReturnType<typeof applyAiBoldValidationSuccess>} Bilan. */
+					() => applyAiBoldValidationSuccess(edition, validation.validSegments)
+				);
 				const validationFailedSegments = batch.segments.length - validation.validSegments.length;
 
 				if (validationFailedSegments === 0 && applyReport.erroredSegments === 0) {
@@ -406,6 +444,7 @@
 		} else {
 			toast.success(get(LL).editor.aiBoldApplied());
 		}
+		if (manualMode) close();
 	}
 
 	onMount(async () => {
@@ -431,6 +470,7 @@
 	});
 
 	onDestroy(() => {
+		session.cancel();
 		if (aiBoldNoteSaveTimeoutId !== null) {
 			window.clearTimeout(aiBoldNoteSaveTimeoutId);
 			aiBoldNoteSaveTimeoutId = null;
@@ -458,6 +498,9 @@
 </script>
 
 <TranslationsEditorModalShell
+	manualSession={session}
+	bind:manual={manualMode}
+	busy={isRunning}
 	{close}
 	title={$LL.editor.aiBoldAssistant()}
 	icon="format_bold"

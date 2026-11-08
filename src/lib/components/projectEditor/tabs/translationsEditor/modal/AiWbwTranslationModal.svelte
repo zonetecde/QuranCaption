@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ManualAiSession } from '$lib/services/ManualAiSession.svelte';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import Settings from '$lib/classes/Settings.svelte';
 	import type {
@@ -102,6 +103,8 @@
 	);
 
 	let isRunning = $state(false);
+	let manualMode = $state(!globalState.settings?.aiTranslationSettings.openAiApiKey.trim());
+	const session = new ManualAiSession();
 	let aiWbwTranslationStartTimeMs = $state(0);
 	let aiWbwTranslationEndTimeMs = $state(0);
 	let completedBatches = $state(0);
@@ -363,13 +366,13 @@
 		}
 
 		const apiKey = globalState.settings!.aiTranslationSettings.openAiApiKey.trim();
-		if (!apiKey) {
+		if (!manualMode && !apiKey) {
 			toast.error(get(LL).translations.configureAiKeyFirst());
 			return;
 		}
 
 		const endpoint = globalState.settings!.aiTranslationSettings.textAiApiEndpoint.trim();
-		if (!endpoint) {
+		if (!manualMode && !endpoint) {
 			toast.error(get(LL).translations.configureTextAiFirst());
 			return;
 		}
@@ -391,6 +394,33 @@
 
 		resetRunState();
 		isRunning = true;
+
+		let manualResponses: Awaited<ReturnType<ManualAiSession['prepareBatches']>> | undefined;
+		if (manualMode) {
+			const sourceProject = globalState.currentProject;
+			try {
+				manualResponses = await session.prepareBatches(
+					'translation_wbw',
+					batches,
+					validateAiWbwTranslationBatchResult,
+					/**
+					 * Capture le contenu source sans les états de lecture ou de configuration.
+					 * @returns {string} Contenu sérialisé, ou chaîne vide si le projet a changé.
+					 */
+					() =>
+						globalState.currentProject === sourceProject
+							? JSON.stringify(sourceProject?.content.toJSON())
+							: '',
+					globalState.settings!.aiTranslationSettings.aiWbwTranslationCustomNote
+				);
+			} catch (error) {
+				isRunning = false;
+				if (!(error instanceof DOMException && error.name === 'AbortError')) {
+					toast.error(error instanceof Error ? error.message : String(error));
+				}
+				return;
+			}
+		}
 		activeBatchIds = new Set<string>(batches.map((batch) => batch.batchId));
 		addActivity(
 			'queued',
@@ -430,17 +460,19 @@
 				);
 
 				try {
-					const response = await runAiWbwTranslationBatchStreaming({
-						apiKey,
-						endpoint,
-						model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
-						reasoningEffort:
-							globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
-						batchId: batch.batchId,
-						customPromptNote:
-							globalState.settings!.aiTranslationSettings.aiWbwTranslationCustomNote,
-						batch: batch.request
-					});
+					const response =
+						manualResponses?.get(batch.batchId) ??
+						(await runAiWbwTranslationBatchStreaming({
+							apiKey,
+							endpoint,
+							model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
+							reasoningEffort:
+								globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
+							batchId: batch.batchId,
+							customPromptNote:
+								globalState.settings!.aiTranslationSettings.aiWbwTranslationCustomNote,
+							batch: batch.request
+						}));
 
 					chunkBuffer.flush();
 					worker.response = response.rawText;
@@ -549,6 +581,7 @@
 		} else {
 			toast.success(get(LL).editor.aiWbwTranslationApplied());
 		}
+		if (manualMode) close();
 	}
 
 	onMount(async () => {
@@ -565,6 +598,7 @@
 	});
 
 	onDestroy(() => {
+		session.cancel();
 		chunkBuffer.clear();
 		if (aiWbwTranslationNoteSaveTimeoutId !== null) {
 			window.clearTimeout(aiWbwTranslationNoteSaveTimeoutId);
@@ -630,6 +664,9 @@
 </script>
 
 <TranslationsEditorModalShell
+	manualSession={session}
+	bind:manual={manualMode}
+	busy={isRunning}
 	{close}
 	title={$LL.editor.aiWbwTranslationAssistant()}
 	icon="auto_fix_high"

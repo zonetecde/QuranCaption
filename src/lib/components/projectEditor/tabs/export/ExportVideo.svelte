@@ -1,5 +1,7 @@
 ﻿<script lang="ts">
 	import Exporter from '$lib/classes/Exporter';
+	import ModalManager from '$lib/components/modals/ModalManager';
+	import type { ManualAiCopy } from '$lib/services/ManualAiSession.svelte';
 	import Settings, { type PerformanceProfile } from '$lib/classes/Settings.svelte';
 	import type { FadeValue } from '$lib/components/projectEditor/tabs/subtitlesEditor/modal/autoSegmentation/types';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -20,7 +22,8 @@
 		buildMeaningExportPrompts,
 		buildMeaningExportVerses,
 		validateMeaningExportRanges,
-		type MeaningExportRange
+		type MeaningExportRange,
+		type MeaningExportRangeValidationResult
 	} from '$lib/services/MeaningExportRangeService';
 	import {
 		buildTextAIRequestBody,
@@ -256,79 +259,97 @@
 		if (isGeneratingMeaningRanges) return;
 
 		const exportCopy = get(LL).export as unknown as MeaningExportCopy;
+		const manualCopy = (get(LL).editor as unknown as { manualAi: ManualAiCopy }).manualAi;
 		const aiSettings = globalState.settings?.aiTranslationSettings;
-		if (!aiSettings?.openAiApiKey || !aiSettings.textAiApiEndpoint) {
-			toast.error(get(LL).translations.configureTextAiFirst());
-			return;
-		}
-
+		const sourceProject = globalState.currentProject;
+		const sourceSnapshot = JSON.stringify(sourceProject?.content.toJSON());
+		const maxDuration = globalState.getExportState.meaningMaxDurationSeconds;
+		const includeAll = globalState.getExportState.includeAllMeaningVerses;
 		isGeneratingMeaningRanges = true;
 		meaningRanges = [];
 		selectedMeaningRangeId = null;
 		selectedMeaningRangeIds = [];
 		meaningSkippedRangeCount = 0;
 		meaningMissingVerseCount = 0;
-		let errorShown = false;
 
 		try {
 			const verses = await buildMeaningExportVerses(globalState.getSubtitleClips);
 			if (verses.length === 0) {
-				errorShown = true;
 				toast.error(exportCopy.noMeaningVerses());
 				return;
 			}
 
 			const { systemPrompt, userPrompt } = buildMeaningExportPrompts(
 				verses,
-				globalState.getExportState.meaningMaxDurationSeconds,
-				globalState.getExportState.includeAllMeaningVerses
+				maxDuration,
+				includeAll
 			);
-			const response = await fetch(aiSettings.textAiApiEndpoint, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${aiSettings.openAiApiKey}`
-				},
-				body: JSON.stringify(
-					buildTextAIRequestBody(
-						aiSettings.textAiApiEndpoint,
-						aiSettings.advancedTrimModel || 'gpt-4o-mini',
-						systemPrompt,
-						userPrompt
-					)
+			/**
+			 * Contrôle les mêmes plages pour les réponses API et manuelles, sans mutation.
+			 * @param {unknown} parsed Réponse JSON décodée.
+			 * @returns {MeaningExportRangeValidationResult} Plages et avertissements validés.
+			 */
+			function validateResponse(parsed: unknown): MeaningExportRangeValidationResult {
+				if (
+					globalState.currentProject !== sourceProject ||
+					JSON.stringify(sourceProject?.content.toJSON()) !== sourceSnapshot ||
+					globalState.getExportState.meaningMaxDurationSeconds !== maxDuration ||
+					globalState.getExportState.includeAllMeaningVerses !== includeAll
 				)
-			});
-
-			if (!response.ok) {
-				const errorText = await response.text();
-				errorShown = true;
-				toast.error(get(LL).aiVideo.aiApiError({ status: String(response.status) }));
-				throw new Error(`AI API returned ${response.status}: ${errorText}`);
+					throw new Error(manualCopy.sourceChanged());
+				const validation = validateMeaningExportRanges(parsed, verses, maxDuration, includeAll);
+				if (!validation.ranges.length) throw new Error(exportCopy.meaningRangesEmpty());
+				return validation;
 			}
 
-			const text = extractTextFromResponse(await response.json());
-			if (!text) {
-				errorShown = true;
-				toast.error(get(LL).aiVideo.aiEmptyResponse());
-				throw new Error('No text response from AI');
+			let validation: MeaningExportRangeValidationResult | undefined;
+			let apiError = '';
+			if (aiSettings?.openAiApiKey.trim() && aiSettings.textAiApiEndpoint.trim()) {
+				try {
+					const response = await fetch(aiSettings.textAiApiEndpoint, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							Authorization: `Bearer ${aiSettings.openAiApiKey}`
+						},
+						body: JSON.stringify(
+							buildTextAIRequestBody(
+								aiSettings.textAiApiEndpoint,
+								aiSettings.advancedTrimModel || 'gpt-4o-mini',
+								systemPrompt,
+								userPrompt
+							)
+						)
+					});
+					if (!response.ok)
+						throw new Error(get(LL).aiVideo.aiApiError({ status: String(response.status) }));
+					const text = extractTextFromResponse(await response.json());
+					if (!text) throw new Error(get(LL).aiVideo.aiEmptyResponse());
+					validation = validateResponse(parseAiJsonResponse<unknown>(text));
+				} catch (error) {
+					console.error('[ExportVideo] Failed to generate meaning ranges via API:', error);
+					apiError = exportCopy.meaningRangesGenerationFailed();
+				}
 			}
-
-			const validation = validateMeaningExportRanges(
-				parseAiJsonResponse<unknown>(text),
-				verses,
-				globalState.getExportState.meaningMaxDurationSeconds,
-				globalState.getExportState.includeAllMeaningVerses
-			);
+			if (!validation) {
+				validation = await ModalManager.manualAiPrompt(
+					exportCopy.generateMeaningRanges(),
+					`${systemPrompt}\n\n${userPrompt}`,
+					validateResponse,
+					apiError
+				);
+			}
 			ProjectHistoryManager.track('generate meaning export ranges', () => {
 				globalState.getExportState.meaningRanges = validation.ranges;
 			});
 			meaningRanges = validation.ranges;
 			meaningSkippedRangeCount = validation.skippedCount;
 			meaningMissingVerseCount = validation.missingVerseKeys.length;
-			if (meaningRanges.length === 0) toast.error(exportCopy.meaningRangesEmpty());
 		} catch (error) {
-			console.error('[ExportVideo] Failed to generate meaning ranges:', error);
-			if (!errorShown) toast.error(exportCopy.meaningRangesGenerationFailed());
+			if (!(error instanceof DOMException && error.name === 'AbortError')) {
+				console.error('[ExportVideo] Failed to generate meaning ranges:', error);
+				toast.error(exportCopy.meaningRangesGenerationFailed());
+			}
 		} finally {
 			isGeneratingMeaningRanges = false;
 		}

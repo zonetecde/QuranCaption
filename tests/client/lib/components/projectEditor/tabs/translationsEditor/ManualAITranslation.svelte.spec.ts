@@ -13,7 +13,8 @@ import {
 	ProjectDetail,
 	SubtitleClip,
 	Timeline,
-	TrackType
+	TrackType,
+	VerseRange
 } from '$lib/classes';
 import { AssetTrack, SubtitleTrack } from '$lib/classes/Track.svelte';
 import { VerseTranslation } from '$lib/classes/Translation.svelte';
@@ -24,6 +25,21 @@ import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { setLocale } from '$lib/i18n/i18n-svelte';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import AskIAModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AskIAModal.svelte';
+import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
+import AiTranslationReviewModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiTranslationReviewModal.svelte';
+import AiWbwTranslationModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiWbwTranslationModal.svelte';
+import AiSubtitleSplitModal from '$lib/components/projectEditor/tabs/subtitlesEditor/AiSubtitleSplitModal.svelte';
+import ExportVideo from '$lib/components/projectEditor/tabs/export/ExportVideo.svelte';
+import { buildAiWbwTranslationCandidates } from '$lib/services/AiWbwTranslationMappingService';
+import { buildAiSubtitleSplitCandidates } from '$lib/services/AiSubtitleSplittingService';
+import { buildMeaningExportVerses } from '$lib/services/MeaningExportRangeService';
+
+vi.mock('$lib/services/AiWbwTranslationMappingService', { spy: true });
+vi.mock('$lib/services/AiSubtitleSplittingService', { spy: true });
+vi.mock('$lib/services/MeaningExportRangeService', { spy: true });
+vi.mock('$lib/components/projectEditor/tabs/styleEditor/Style.svelte', async () => ({
+	default: (await import('../../../../../stubs/EmptyComponent.svelte')).default
+}));
 
 vi.mock('@tauri-apps/api/core', async (original) => ({
 	...(await original<typeof import('@tauri-apps/api/core')>()),
@@ -130,9 +146,197 @@ afterEach(() => {
 	cleanup();
 	vi.restoreAllMocks();
 	vi.mocked(invoke).mockReset();
+	vi.unstubAllGlobals();
 	globalState.currentProject = null;
 	globalState.settings = originalSettings;
 });
+
+/**
+ * Wraps any feature response using the currently copied prompt identifier.
+ * @param {unknown} result Feature-specific JSON result.
+ * @returns {string} Complete response envelope.
+ */
+function featureReply(result: unknown): string {
+	return JSON.stringify({ requestId: copied.match(/"requestId":"([^"]+)"/)![1], result });
+}
+
+test('runs manual bold with the API validator and supports undo', async () => {
+	const close = vi.fn();
+	const component = render(AiBoldModal, { close });
+	await component.getByRole('button', { name: 'Prepare prompts', exact: true }).click();
+	await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
+	const input = component.getByRole('textbox', { name: '2. Paste the full reply here' });
+	await input.fill(featureReply({ segments: [{ segmentIndex: 0, boldWordIndexes: [99] }] }));
+	await component.getByRole('button', { name: 'Check reply and continue' }).click();
+	await expect.element(component.getByRole('button', { name: 'Copy retry prompt' })).toBeVisible();
+	await input.fill(
+		featureReply({
+			segments: [
+				{ segmentIndex: 0, boldWordIndexes: [0] },
+				{ segmentIndex: 1, boldWordIndexes: [] }
+			]
+		})
+	);
+	await component.getByRole('button', { name: 'Check reply and continue' }).click();
+	await expect.poll(() => close.mock.calls.length).toBe(1);
+	expect(
+		(globalState.getSubtitleClips[0].translations[edition.name] as VerseTranslation)
+			.inlineStyleRuns?.[0].bold
+	).toBe(true);
+	expect(
+		vi.mocked(invoke).mock.calls.every(([command]) => command === 'prepare_manual_ai_prompt')
+	).toBe(true);
+	expect(vi.mocked(invoke).mock.calls[0][1]).toMatchObject({ kind: 'translation_bold' });
+	expect(ProjectHistoryManager.undo()).toBe(true);
+	expect(
+		(globalState.getSubtitleClips[0].translations[edition.name] as VerseTranslation).inlineStyleRuns
+	).toEqual([]);
+});
+
+test('reviews translations manually using the existing issue marking and undo', async () => {
+	globalState.getSubtitleClips.forEach((clip) => {
+		clip.translations[edition.name].status = 'ai trimmed';
+	});
+	const close = vi.fn();
+	const component = render(AiTranslationReviewModal, { close });
+	await component.getByRole('button', { name: 'Prepare prompts', exact: true }).click();
+	await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
+	await component.getByRole('textbox', { name: '2. Paste the full reply here' }).fill(
+		featureReply({
+			issues: [{ id: 0, reason: 'semantic_mismatch' }]
+		})
+	);
+	await component.getByRole('button', { name: 'Check reply and continue' }).click();
+	await expect.poll(() => close.mock.calls.length).toBe(1);
+	expect(
+		globalState.getSubtitleClips.map((clip) => clip.translations[edition.name].status)
+	).toEqual(['to review', 'ai trimmed']);
+	expect(ProjectHistoryManager.undo()).toBe(true);
+	expect(globalState.getSubtitleClips[0].translations[edition.name].status).toBe('ai trimmed');
+});
+
+test('maps WBW manually with the same indexed ranges and undo', async () => {
+	const subtitle = globalState.getSubtitleClips[0];
+	vi.mocked(buildAiWbwTranslationCandidates).mockResolvedValue([
+		{
+			segmentIndex: 0,
+			verseKey: '1:1',
+			startTime: 0,
+			endTime: 2000,
+			segmentArabic: subtitle.text,
+			arabicWords: [{ index: 0, arabic: subtitle.text, helper: 'Source' }],
+			translationText: 'Source words',
+			translationIndexed: '0:Source 1:words',
+			translationUnits: ['Source', 'words'],
+			wordCount: 2,
+			arabicWordCount: 1,
+			subtitle
+		}
+	]);
+	const close = vi.fn();
+	const component = render(AiWbwTranslationModal, { close });
+	await expect
+		.element(component.getByRole('button', { name: 'Prepare prompts', exact: true }))
+		.toBeEnabled();
+	await component.getByRole('button', { name: 'Prepare prompts', exact: true }).click();
+	await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
+	await component.getByRole('textbox', { name: '2. Paste the full reply here' }).fill(
+		featureReply({
+			s: [{ i: 0, r: [{ i: 0, s: 0, e: 1 }] }]
+		})
+	);
+	await component.getByRole('button', { name: 'Check reply and continue' }).click();
+	await expect.poll(() => close.mock.calls.length).toBe(1);
+	expect((subtitle.translations[edition.name] as VerseTranslation).wbwRanges).toEqual([
+		{ arabicWordIndex: 0, startUnitIndex: 0, endUnitIndex: 1 }
+	]);
+	expect(ProjectHistoryManager.undo()).toBe(true);
+	expect(
+		(globalState.getSubtitleClips[0].translations[edition.name] as VerseTranslation).wbwRanges
+	).toEqual([]);
+});
+
+test('validates semantic split boundaries manually and cancels without editing subtitles', async () => {
+	const subtitle = globalState.getSubtitleClips[0];
+	subtitle.endWordIndex = 5;
+	vi.mocked(buildAiSubtitleSplitCandidates).mockResolvedValue([
+		{
+			segmentIndex: 0,
+			verseKey: '1:1',
+			startTime: 0,
+			endTime: 2000,
+			wordCount: 6,
+			maxWords: 5,
+			words: Array.from({ length: 6 }, (_, index) => ({ index, arabic: `word${index}` })),
+			subtitle
+		}
+	]);
+	const component = render(AiSubtitleSplitModal, { close: vi.fn() });
+	await expect
+		.element(component.getByRole('button', { name: 'Prepare prompts', exact: true }))
+		.toBeEnabled();
+	await component.getByRole('button', { name: 'Prepare prompts', exact: true }).click();
+	await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
+	await component
+		.getByRole('textbox', { name: '2. Paste the full reply here' })
+		.fill(featureReply({ s: [{ i: 0, e: [5] }] }));
+	await component.getByRole('button', { name: 'Check reply and continue' }).click();
+	await expect.element(component.getByRole('button', { name: 'Copy retry prompt' })).toBeVisible();
+	await component.getByRole('button', { name: 'Cancel', exact: true }).click();
+	await expect
+		.element(component.getByRole('button', { name: 'Prepare prompts', exact: true }))
+		.toBeEnabled();
+	expect(globalState.getSubtitleClips).toHaveLength(2);
+	expect(subtitle.endWordIndex).toBe(5);
+});
+
+test.each(['missing-key', 'quota-error', 'success'])(
+	'opens the meaning export manual modal only when needed: %s',
+	async (mode) => {
+		vi.spyOn(VerseRange.prototype, 'toString').mockReturnValue('Surah 1: 1');
+		vi.mocked(buildMeaningExportVerses).mockResolvedValue([
+			{
+				key: '1:1',
+				surah: 1,
+				verse: 1,
+				startTime: 0,
+				endTime: 4000,
+				durationMs: 4000,
+				arabic: 'Source'
+			}
+		]);
+		globalState.getExportState.exportRangeMode = 'meaning';
+		globalState.settings!.persistentUiState.videoExportFolder = 'C:/exports';
+		globalState.settings!.aiTranslationSettings.openAiApiKey =
+			mode === 'missing-key' ? '' : 'test-key';
+		const fetchMock = vi.fn().mockResolvedValue(
+			mode === 'quota-error'
+				? new Response('', { status: 429 })
+				: Response.json({
+						choices: [{ message: { content: '{"ranges":[{"start":"1:1","end":"1:1"}]}' } }]
+					})
+		);
+		vi.stubGlobal('fetch', fetchMock);
+		const component = render(ExportVideo);
+		await component.getByRole('button', { name: 'Generate meaning ranges', exact: true }).click();
+		if (mode !== 'success') {
+			await expect
+				.element(page.getByRole('button', { name: 'Copy prompt', exact: true }))
+				.toBeVisible();
+			await page.getByRole('button', { name: 'Copy prompt', exact: true }).click();
+			expect(copied).toContain('You are a Quran video semantic range assistant.');
+			await page
+				.getByRole('textbox', { name: '2. Paste the full reply here' })
+				.fill(featureReply({ ranges: [{ start: '1:1', end: '1:1' }] }));
+			await page.getByRole('button', { name: 'Check reply and continue' }).click();
+		}
+		await expect.poll(() => globalState.getExportState.meaningRanges.length).toBe(1);
+		expect(document.querySelector('.modal-wrapper')).toBeNull();
+		expect(fetchMock).toHaveBeenCalledTimes(mode === 'missing-key' ? 0 : 1);
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(globalState.getExportState.meaningRanges).toEqual([]);
+	}
+);
 
 test('keeps the API workflow and automatically applies the final reply in one undoable operation', async () => {
 	const close = vi.fn();

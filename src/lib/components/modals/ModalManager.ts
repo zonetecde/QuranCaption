@@ -22,6 +22,8 @@ import { type UpdateInfo } from '$lib/services/VersionService.svelte';
 import LL from '$lib/i18n/i18n-svelte';
 import YouTubeUploadModal from '../YouTubeUploadModal.svelte';
 import type Exportation from '$lib/classes/Exportation.svelte';
+import { ManualAiSession } from '$lib/services/ManualAiSession.svelte';
+import ManualAiPromptModal from './ManualAiPromptModal.svelte';
 
 type YouTubePublicationUpdate = {
 	status: 'uploading' | 'published' | 'failed';
@@ -33,6 +35,44 @@ type YouTubePublicationUpdate = {
 type AudioEffectId = 'denoise' | 'clarity' | 'echo' | 'reverb';
 
 export default class ModalManager {
+	/**
+	 * Attend une réponse manuelle au prompt API et nettoie la fenêtre après validation ou annulation.
+	 * @param {string} title Titre localisé de la fonctionnalité.
+	 * @param {string} prompt Instructions exactes construites pour l'API.
+	 * @param {(result: unknown) => T} validate Validation métier sans mutation du projet.
+	 * @param {string} error Échec API localisé à afficher, le cas échéant.
+	 * @returns {Promise<T>} Réponse validée.
+	 */
+	static async manualAiPrompt<T>(
+		title: string,
+		prompt: string,
+		validate: (result: unknown) => T,
+		error = ''
+	): Promise<T> {
+		const session = new ManualAiSession();
+		const container = document.createElement('div');
+		container.classList.add('modal-wrapper');
+		document.body.appendChild(container);
+		const modal = mount(ManualAiPromptModal, {
+			target: container,
+			props: {
+				title,
+				session,
+				error,
+				/** Annule l'attente lorsque la fenêtre est fermée. @returns {void} */
+				close: () => session.cancel()
+			}
+		});
+		session.start();
+		try {
+			return await session.request('local', {}, validate, prompt);
+		} finally {
+			session.cancel();
+			void unmount(modal);
+			container.remove();
+		}
+	}
+
 	static async confirmModal(text: string, yesNo: boolean = false): Promise<boolean> {
 		return new Promise<boolean>((resolve) => {
 			// Créer un conteneur pour le modal

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ManualAiSession } from '$lib/services/ManualAiSession.svelte';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { onDestroy, onMount } from 'svelte';
 	import toast from 'svelte-5-french-toast';
@@ -50,6 +51,8 @@
 	let candidates: AiSubtitleSplitCandidate[] = $state([]);
 	let isLoadingCandidates = $state(true);
 	let isRunning = $state(false);
+	let manualMode = $state(!globalState.settings?.aiTranslationSettings.openAiApiKey.trim());
+	const session = new ManualAiSession();
 	let completedBatches = $state(0);
 	let successfulBatches = $state(0);
 	let successfulSegments = $state(0);
@@ -233,12 +236,12 @@
 	async function runAiSubtitleSplit(): Promise<void> {
 		if (isRunning) return;
 		const apiKey = globalState.settings!.aiTranslationSettings.openAiApiKey.trim();
-		if (!apiKey) {
+		if (!manualMode && !apiKey) {
 			toast.error(get(LL).translations.configureAiKeyFirst());
 			return;
 		}
 		const endpoint = globalState.settings!.aiTranslationSettings.textAiApiEndpoint.trim();
-		if (!endpoint) {
+		if (!manualMode && !endpoint) {
 			toast.error(get(LL).translations.configureTextAiFirst());
 			return;
 		}
@@ -250,6 +253,32 @@
 		const runBatches = [...batches];
 		resetRunState();
 		isRunning = true;
+
+		let manualResponses: Awaited<ReturnType<ManualAiSession['prepareBatches']>> | undefined;
+		if (manualMode) {
+			const sourceProject = globalState.currentProject;
+			try {
+				manualResponses = await session.prepareBatches(
+					'subtitle_split',
+					runBatches,
+					validateAiSubtitleSplitBatchResult,
+					/**
+					 * Capture le contenu source sans les états de lecture ou de configuration.
+					 * @returns {string} Contenu sérialisé, ou chaîne vide si le projet a changé.
+					 */
+					() =>
+						globalState.currentProject === sourceProject
+							? JSON.stringify(sourceProject?.content.toJSON())
+							: ''
+				);
+			} catch (error) {
+				isRunning = false;
+				if (!(error instanceof DOMException && error.name === 'AbortError')) {
+					toast.error(error instanceof Error ? error.message : String(error));
+				}
+				return;
+			}
+		}
 		activeBatchIds = new Set(runBatches.map((batch) => batch.batchId));
 		addActivity(
 			'queued',
@@ -277,14 +306,17 @@
 			);
 
 			try {
-				const response = await runAiSubtitleSplitBatchStreaming({
-					apiKey,
-					endpoint,
-					model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
-					reasoningEffort: globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
-					batchId: batch.batchId,
-					batch: batch.request
-				});
+				const response =
+					manualResponses?.get(batch.batchId) ??
+					(await runAiSubtitleSplitBatchStreaming({
+						apiKey,
+						endpoint,
+						model: globalState.settings!.aiTranslationSettings.advancedTrimModel,
+						reasoningEffort:
+							globalState.settings!.aiTranslationSettings.advancedTrimReasoningEffort,
+						batchId: batch.batchId,
+						batch: batch.request
+					}));
 				streamedResponse = response.rawText;
 				addActivity('validating', get(LL).editor.validatingBatch({ label }));
 
@@ -327,6 +359,7 @@
 		});
 		if (failedSegments > 0) toast.error(get(LL).editor.aiSemanticSplitCompletedWithIssues());
 		else toast.success(get(LL).editor.aiSemanticSplitApplied({ count: appliedSplits }));
+		if (manualMode) close();
 	}
 
 	onMount(async () => {
@@ -338,6 +371,7 @@
 	});
 
 	onDestroy(() => {
+		session.cancel();
 		candidatesRequestId++;
 		for (const unlisten of unlistenFns) unlisten();
 		unlistenFns = [];
@@ -349,6 +383,9 @@
 </script>
 
 <TranslationsEditorModalShell
+	manualSession={session}
+	bind:manual={manualMode}
+	busy={isRunning}
 	{close}
 	title={$LL.editor.aiSemanticSplitAssistant()}
 	icon="call_split"

@@ -106,14 +106,16 @@ export class ManualAiSession {
 	): Promise<T> {
 		if (!this.active) throw new DOMException('', 'AbortError');
 		let instructions: string;
+		let requestId = '';
 		try {
 			instructions = await invoke<string>('prepare_manual_ai_prompt', { kind, request });
+			const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(instructions));
+			for (const byte of new Uint8Array(hash)) requestId += byte.toString(16).padStart(2, '0');
 		} catch {
 			throw new Error(getManualAiCopy().prepareError());
 		}
 		if (!this.active) throw new DOMException('', 'AbortError');
-		// L'enveloppe empêche d'accepter par erreur une réponse d'un autre lot ou projet.
-		const requestId = crypto.randomUUID();
+		// L'enveloppe identifie le contenu du prompt de façon stable entre les sessions.
 		this.steps = [
 			...this.steps,
 			{

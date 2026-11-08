@@ -1,4 +1,5 @@
 import { webcrypto } from 'node:crypto';
+import { invoke } from '@tauri-apps/api/core';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ManualAiSession } from '$lib/services/ManualAiSession.svelte';
 
@@ -22,6 +23,25 @@ vi.mock('$lib/i18n/i18n-svelte', () => ({
 describe('manual AI response validation', () => {
 	beforeAll(() => vi.stubGlobal('crypto', webcrypto));
 	afterAll(() => vi.unstubAllGlobals());
+
+	it('reuses the request ID across sessions only when the prompt is identical', async () => {
+		const prompts: string[] = [];
+		for (const instructions of ['Instructions', 'Instructions', 'Instructions modifiées العربية']) {
+			vi.mocked(invoke).mockResolvedValueOnce(instructions);
+			const session = new ManualAiSession();
+			session.start();
+			const pending = session.request('translation_trim', {}, vi.fn());
+			await vi.waitFor(() => expect(session.steps).toHaveLength(1));
+			prompts.push(session.steps[0].prompt);
+			const rejection = expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+			session.cancel();
+			await rejection;
+		}
+		expect(prompts[0]).toBe(prompts[1]);
+		expect(prompts[0].match(/"requestId":"([^"]+)"/)![1]).not.toBe(
+			prompts[2].match(/"requestId":"([^"]+)"/)![1]
+		);
+	});
 
 	it.each([
 		['plain JSON', '{"requestId":"REQUEST_ID","result":{"text":"[yourselves]"}}', '[yourselves]'],

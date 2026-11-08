@@ -289,6 +289,41 @@ export default class Exporter {
 	private static isQueueTickRunning = false;
 	private static isExportListenerSetup = false;
 	private static readonly QUEUE_POLL_INTERVAL_MS = 750;
+	private static zeroFrameCaptureStartedAt = new Map<number, number>();
+	private static retriedCaptureIds = new Set<number>();
+
+	/**
+	 * Retries stalled captures once, then cancels if no frame is captured within another 30 seconds.
+	 * @returns {Promise<void>} Resolves after stalled exports are requeued or canceled and saved.
+	 */
+	private static async cancelStalledCaptures(): Promise<void> {
+		const stalledCandidates = ExportService.currentlyExportingProjects().filter(
+			(exp) =>
+				exp.exportKind === ExportKind.Video &&
+				exp.currentState === ExportState.CapturingFrames &&
+				exp.capturedFrames === 0
+		);
+		for (const exportId of Exporter.zeroFrameCaptureStartedAt.keys()) {
+			if (!stalledCandidates.some((exp) => exp.exportId === exportId)) {
+				Exporter.zeroFrameCaptureStartedAt.delete(exportId);
+			}
+		}
+		for (const exp of stalledCandidates) {
+			const startedAt = Exporter.zeroFrameCaptureStartedAt.get(exp.exportId);
+			if (startedAt === undefined) {
+				Exporter.zeroFrameCaptureStartedAt.set(exp.exportId, performance.now());
+			} else if (performance.now() - startedAt >= 30_000) {
+				const shouldRetry = !Exporter.retriedCaptureIds.has(exp.exportId);
+				await exp.cancelExport('export_monitor', shouldRetry);
+				Exporter.zeroFrameCaptureStartedAt.delete(exp.exportId);
+				if (shouldRetry) {
+					Exporter.retriedCaptureIds.add(exp.exportId);
+					exp.currentState = ExportState.WaitingForRecord;
+				}
+				await ExportService.saveExports();
+			}
+		}
+	}
 
 	/**
 	 * Ensure that background workers are started for exporting.
@@ -346,6 +381,7 @@ export default class Exporter {
 		let nextExport: Exportation | undefined;
 
 		try {
+			await Exporter.cancelStalledCaptures();
 			if (Exporter.hasActiveVideoExport()) return;
 
 			nextExport = Exporter.getNextPendingVideoExport();

@@ -226,7 +226,13 @@ export default class Exportation extends SerializableBase {
 		);
 	}
 
-	async cancelExport(source: ExportCancelSource = 'export_monitor') {
+	/**
+	 * Annule l'export et attend la destruction des fenêtres avant une éventuelle relance.
+	 * @param {ExportCancelSource} source Origine de l'annulation.
+	 * @param {boolean} forRetry Attend le nettoyage sans terminer le workflow analytique.
+	 * @returns {Promise<void>} Promesse résolue après l'annulation.
+	 */
+	async cancelExport(source: ExportCancelSource = 'export_monitor', forRetry = false) {
 		const wasOnGoing = this.isOnGoing();
 		if (
 			this.currentState === ExportState.Initializing ||
@@ -241,20 +247,31 @@ export default class Exportation extends SerializableBase {
 		}
 
 		// Ferme la fenêtre d'exportation si elle est ouverte
-		(await getAllWindows()).forEach((win) => {
-			console.log(win.label, this.exportId.toString());
-			if (
-				win.label === this.exportId.toString() ||
-				win.label.startsWith(`${this.exportId.toString()}-capture-`)
-			) {
-				win.close();
-				// La fenêtre d'exportation va supprimer le dossier temporaire des images à sa fermeture
-			}
-		});
+		await Promise.all(
+			(await getAllWindows()).map(async (win) => {
+				console.log(win.label, this.exportId.toString());
+				if (
+					win.label === this.exportId.toString() ||
+					win.label.startsWith(`${this.exportId.toString()}-capture-`)
+				) {
+					if (forRetry) {
+						await new Promise<void>((resolve, reject) => {
+							void win
+								.once('tauri://destroyed', () => resolve())
+								.then(() => win.close())
+								.catch(reject);
+						});
+					} else {
+						await win.close();
+					}
+					// La fenêtre d'exportation va supprimer le dossier temporaire des images à sa fermeture
+				}
+			})
+		);
 
 		// Set state to canceled
 		this.currentState = ExportState.Canceled;
-		if (wasOnGoing) {
+		if (wasOnGoing && !forRetry) {
 			this.trackAnalyticsTerminal(ExportState.Canceled, { cancelSource: source });
 		}
 	}

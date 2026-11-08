@@ -25,6 +25,8 @@ import { ProjectService } from '$lib/services/ProjectService';
 import ExportFileService from '$lib/services/ExportFileService';
 import { ExportMediaInputBuilder } from '../../../../src/routes/exporter/ExportMediaInputBuilder';
 import { globalState } from '$lib/runes/main.svelte';
+import ExportService from '$lib/services/ExportService';
+import Exportation, { ExportKind, ExportState } from '$lib/classes/Exportation.svelte';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -40,6 +42,109 @@ const baseValues: YouTubeChapterFormatValues = {
 	rubNumber: 127,
 	verseTranslation: 'We have not sent down to you the Quran that you be distressed'
 };
+
+describe('Stalled capture guard', () => {
+	it.each([
+		[ExportKind.Video, ExportState.CapturingFrames, 0, true],
+		[ExportKind.Video, ExportState.CapturingFrames, 1, false],
+		[ExportKind.Video, ExportState.WaitingForRecord, 0, false],
+		[ExportKind.Video, ExportState.Initializing, 0, false],
+		[ExportKind.Video, ExportState.CreatingVideo, 0, false],
+		[ExportKind.Image, ExportState.CapturingFrames, 0, false]
+	])('guards %s / %s / %i frames', async (exportKind, currentState, capturedFrames, cancels) => {
+		Reflect.get(Exporter, 'zeroFrameCaptureStartedAt').clear();
+		Reflect.get(Exporter, 'retriedCaptureIds').clear();
+		const exp = { exportId: 123, exportKind, currentState, capturedFrames, cancelExport: vi.fn() };
+		vi.spyOn(ExportService, 'currentlyExportingProjects').mockReturnValue([
+			exp as unknown as Exportation
+		]);
+		const save = vi.spyOn(ExportService, 'saveExports').mockResolvedValue(undefined);
+		const now = vi.spyOn(performance, 'now').mockReturnValue(0);
+
+		await Reflect.get(Exporter, 'cancelStalledCaptures')();
+		now.mockReturnValue(29_999);
+		await Reflect.get(Exporter, 'cancelStalledCaptures')();
+		expect(exp.cancelExport).not.toHaveBeenCalled();
+		now.mockReturnValue(30_000);
+		await Reflect.get(Exporter, 'cancelStalledCaptures')();
+		expect(exp.cancelExport).toHaveBeenCalledTimes(cancels ? 1 : 0);
+		expect(save).toHaveBeenCalledTimes(cancels ? 1 : 0);
+		if (cancels) {
+			expect(exp.cancelExport).toHaveBeenCalledWith('export_monitor', true);
+			expect(exp.currentState).toBe(ExportState.WaitingForRecord);
+		}
+	});
+
+	it('reopens a stalled export once through the queue and cancels a second stall', async () => {
+		Reflect.get(Exporter, 'zeroFrameCaptureStartedAt').clear();
+		Reflect.get(Exporter, 'retriedCaptureIds').clear();
+		const exp = {
+			exportId: 123,
+			exportKind: ExportKind.Video,
+			currentState: ExportState.CapturingFrames,
+			capturedFrames: 0,
+			cancelExport: vi.fn(async () => {
+				exp.currentState = ExportState.Canceled;
+			})
+		};
+		vi.spyOn(ExportService, 'currentlyExportingProjects').mockReturnValue([
+			exp as unknown as Exportation
+		]);
+		vi.spyOn(ExportService, 'saveExports').mockResolvedValue(undefined);
+		const open = vi.spyOn(Exporter as never, 'openExportWindow').mockResolvedValue(undefined);
+		const now = vi.spyOn(performance, 'now').mockReturnValue(0);
+		const previousExports = globalState.exportations;
+		globalState.exportations = [exp as unknown as Exportation];
+		try {
+			await Reflect.get(Exporter, 'processExportQueue')();
+			now.mockReturnValue(30_000);
+			await Reflect.get(Exporter, 'processExportQueue')();
+			expect(open).toHaveBeenCalledExactlyOnceWith('123');
+			expect(exp.currentState).toBe(ExportState.CapturingFrames);
+			now.mockReturnValue(30_750);
+			await Reflect.get(Exporter, 'processExportQueue')();
+			now.mockReturnValue(60_750);
+			await Reflect.get(Exporter, 'processExportQueue')();
+			expect(exp.cancelExport.mock.calls).toEqual([
+				['export_monitor', true],
+				['export_monitor', false]
+			]);
+			expect(exp.currentState).toBe(ExportState.Canceled);
+			expect(open).toHaveBeenCalledTimes(1);
+		} finally {
+			globalState.exportations = previousExports;
+		}
+	});
+
+	it('resets the timeout when capture ends and ignores exports no longer owned', async () => {
+		Reflect.get(Exporter, 'zeroFrameCaptureStartedAt').clear();
+		const exp = {
+			exportId: 123,
+			exportKind: ExportKind.Video,
+			currentState: ExportState.CapturingFrames,
+			capturedFrames: 0,
+			cancelExport: vi.fn()
+		};
+		const owned = vi
+			.spyOn(ExportService, 'currentlyExportingProjects')
+			.mockReturnValue([exp as unknown as Exportation]);
+		const now = vi.spyOn(performance, 'now').mockReturnValue(0);
+		await Reflect.get(Exporter, 'cancelStalledCaptures')();
+		now.mockReturnValue(20_000);
+		exp.currentState = ExportState.CreatingVideo;
+		await Reflect.get(Exporter, 'cancelStalledCaptures')();
+		exp.currentState = ExportState.CapturingFrames;
+		await Reflect.get(Exporter, 'cancelStalledCaptures')();
+		now.mockReturnValue(30_000);
+		await Reflect.get(Exporter, 'cancelStalledCaptures')();
+		expect(exp.cancelExport).not.toHaveBeenCalled();
+		owned.mockReturnValue([]);
+		now.mockReturnValue(60_000);
+		await Reflect.get(Exporter, 'cancelStalledCaptures')();
+		expect(exp.cancelExport).not.toHaveBeenCalled();
+		expect(Reflect.get(Exporter, 'zeroFrameCaptureStartedAt').size).toBe(0);
+	});
+});
 
 describe('YouTube chapter formatting', () => {
 	it('keeps the default chapter output shape', () => {

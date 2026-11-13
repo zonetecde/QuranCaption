@@ -561,7 +561,7 @@ describe('Subtitles editor workflow', () => {
 		);
 	});
 
-	test('saves quotation conversions, input and removal without confirming the edit', async () => {
+	test('saves quotation and Quran conversions, input and removal without confirming the edit', async () => {
 		loadLocale('en');
 		setLocale('en');
 		const subtitle = new SubtitleClip(0, 1000, 'ee{{1:1:1-2}}');
@@ -580,6 +580,7 @@ describe('Subtitles editor workflow', () => {
 		(
 			component
 				.getByRole('button', { name: 'Convert to normal text' })
+				.first()
 				.element() as HTMLButtonElement
 		).click();
 		await tick();
@@ -596,6 +597,13 @@ describe('Subtitles editor workflow', () => {
 		).click();
 		await tick();
 		expect(subtitle.text).toBe('Updated quotation {{1:1:1-2}}');
+		const convertQuran = component.getByRole('button', { name: 'Convert to normal text' });
+		await expect.element(convertQuran).toBeInTheDocument();
+		(convertQuran.element() as HTMLButtonElement).click();
+		await tick();
+		expect(subtitle.text).toBe('Updated quotation W1V1-1 W1V1-2');
+		expect(ProjectHistoryManager.begin).toHaveBeenCalledWith('edit transcript');
+		expect(ProjectHistoryManager.commit).toHaveBeenCalled();
 	});
 
 	test.each(['Enter', 'Escape'])(

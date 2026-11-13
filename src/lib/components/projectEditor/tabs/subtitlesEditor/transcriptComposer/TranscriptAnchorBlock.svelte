@@ -15,6 +15,7 @@
 		onUpdateQuotation: (index: number, value: string) => void;
 		convertQuotationToTextLabel: string;
 		onConvertQuotationToText: (index: number) => void;
+		onConvertQuranToText: (index: number, text: string) => void;
 		onRemove: (index: number) => void;
 		onKeydown: (event: KeyboardEvent) => void;
 	};
@@ -29,9 +30,12 @@
 		onUpdateQuotation,
 		convertQuotationToTextLabel,
 		onConvertQuotationToText,
+		onConvertQuranToText,
 		onRemove,
 		onKeydown
 	}: Props = $props();
+
+	const quranText = $derived(getQuranText(anchor.quranReference));
 
 	/**
 	 * Retourne le texte arabe couvert par une référence Quran.
@@ -63,7 +67,7 @@
 				dir="rtl"
 				style={fontStyle}
 			>
-				{#await getQuranText(anchor.quranReference)}
+				{#await quranText}
 					{$LL.common.loading()}
 				{:then arabicText}
 					{arabicText}
@@ -95,12 +99,28 @@
 
 	<button
 		type="button"
-		class={`pointer-events-none absolute left-0 z-10 flex h-4 w-full cursor-pointer items-center justify-center rounded-b-lg bg-red-500 text-white opacity-0 transition hover:bg-red-700 group-hover/transcript-block:pointer-events-auto group-hover/transcript-block:opacity-100 ${anchor.type === 'citation' ? 'top-[calc(100%+1.25rem)]' : 'top-full'}`}
+		class="pointer-events-none absolute left-0 top-[calc(100%+1.25rem)] z-10 flex h-4 w-full cursor-pointer items-center justify-center rounded-b-lg bg-red-500 text-white opacity-0 transition hover:bg-red-700 group-hover/transcript-block:pointer-events-auto group-hover/transcript-block:opacity-100"
 		onclick={() => onRemove(index)}
 		aria-label={$LL.common.remove()}
 	>
 		<span class="material-icons text-base!">close</span>
 	</button>
+
+	{#if anchor.type === 'quran'}
+		{#await quranText then arabicText}
+			{#if arabicText}
+				<button
+					type="button"
+					class="pointer-events-none absolute left-0 top-full z-20 flex h-5 w-full cursor-pointer items-center justify-center rounded-b-md border border-amber-500/35 bg-amber-500/90 text-black opacity-0 transition hover:bg-amber-400 group-hover/transcript-block:pointer-events-auto group-hover/transcript-block:opacity-100 group-focus-within/transcript-block:pointer-events-auto group-focus-within/transcript-block:opacity-100"
+					onclick={() => onConvertQuranToText(index, arabicText)}
+					aria-label={convertQuotationToTextLabel}
+					title={convertQuotationToTextLabel}
+				>
+					<span class="material-icons text-sm!" aria-hidden="true">format_clear</span>
+				</button>
+			{/if}
+		{/await}
+	{/if}
 </div>
 
 <style>

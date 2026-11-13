@@ -197,6 +197,20 @@
 	}
 
 	/**
+	 * Convertit un passage Quran en texte libre en conservant son contenu arabe.
+	 * @param {number} index Index de l'ancre Quran.
+	 * @param {string} text Texte arabe du passage sélectionné.
+	 * @returns {void}
+	 */
+	function convertQuranToText(index: number, text: string): void {
+		const anchor = transcriptDraft.anchors[index];
+		if (anchor?.type !== 'quran' || !text) return;
+		anchor.type = 'citation';
+		anchor.value = text;
+		convertQuotationToText(index);
+	}
+
+	/**
 	 * Ajoute une ancre à la fin logique du sous-titre.
 	 * @param {'quran' | 'citation'} type Type de bloc à insérer.
 	 * @returns {void}
@@ -472,6 +486,7 @@
 						onUpdateQuotation={updateQuotation}
 						convertQuotationToTextLabel={copy.convertQuotationToText()}
 						onConvertQuotationToText={convertQuotationToText}
+						onConvertQuranToText={convertQuranToText}
 						onRemove={removeAnchor}
 						onKeydown={handleTranscriptKeydown}
 					/>

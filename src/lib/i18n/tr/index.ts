@@ -283,6 +283,47 @@ const tr = {
 		continue: 'Devam et'
 	},
 	editor: {
+		recitationIntro: {
+			button: 'İstiâze / besmele ekle',
+			title: 'Tilavet girişi',
+			description: 'Projenizin başına altyazılarıyla birlikte bir açılış tilaveti ekleyin.',
+			formulas: 'Açılış ifadeleri',
+			istiadha: 'İstiâze',
+			basmala: 'Besmele',
+			both: 'İkisi de',
+			reciter: 'Kâri',
+			sourceNote:
+				'EveryAyah sesleri, kaynak klasörlerine göre adlandırılır. Bazı kâriler aynı kaydı paylaşır.',
+			preview: 'Eklemeden önce dinle',
+			addPadding: 'Sessizlik ekle',
+			paddingStart: 'Girişten önceki sessizlik',
+			paddingEnd: 'Girişten sonraki sessizlik',
+			timingHint:
+				'Süreler saniye cinsindendir. Mevcut ses, video ve altyazılar birlikte sağa kaydırılır.',
+			existingProject: 'Mevcut proje',
+			apply: 'Başa ekle',
+			adding: 'İndiriliyor ve ekleniyor…',
+			success: 'Giriş eklendi. Bu işlemi geri alabilirsiniz.',
+			downloadError: 'Ses indirilemedi veya okunamadı. Bağlantınızı kontrol edip yeniden deneyin.',
+			invalidSettings: 'Bir kâri seçin ve geçerli, negatif olmayan sessizlik süreleri girin.',
+			projectChanged: 'Açık proje değişti. Bu pencereyi yeniden açıp deneyin.',
+			previewError: 'Ön dinleme kullanılamıyor. Yeniden deneyin veya başka bir kâri seçin.',
+			reciters: {
+				husary: 'Mahmoud Khalil Al-Husary',
+				shatri: 'Abu Bakr Ash-Shatri',
+				abdulBasit: 'Abdul Basit Abdus Samad',
+				basfar: 'Abdullah Basfar',
+				ajmi: 'Ahmed Al-Ajmi',
+				alafasy: 'Mishary Rashid Alafasy',
+				aliJaber: 'Ali Jaber',
+				ghamdi: 'Saad Al-Ghamdi',
+				rifai: 'Hani Ar-Rifai',
+				hudhaify: 'Ali Al-Hudhaify',
+				minshawi: 'Muhammad Siddiq Al-Minshawi',
+				ayyoub: 'Muhammad Ayyoub',
+				shuraym: 'Saud Ash-Shuraym'
+			}
+		},
 		showVideoPreview: 'Videoyu önizlemede göster',
 		videoPreviewHelp:
 			'Videoyu önizlemede yüklemeden daha akıcı gezinmek için işareti kaldırın. Dışa aktarılan video etkilenmez.',

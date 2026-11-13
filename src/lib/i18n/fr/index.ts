@@ -586,6 +586,49 @@ const fr = {
 			'Êtes-vous sûr de vouloir supprimer le batch « {name} » ? Ses {count} projet(s) seront également supprimés définitivement.'
 	},
 	editor: {
+		recitationIntro: {
+			button: 'Ajouter istiʿādha / basmala',
+			title: 'Introduction de la récitation',
+			description: 'Ajoutez une récitation d’ouverture et ses sous-titres avant votre projet.',
+			formulas: 'Formules d’ouverture',
+			istiadha: 'Istiʿādha',
+			basmala: 'Basmala',
+			both: 'Les deux',
+			reciter: 'Récitateur',
+			sourceNote:
+				'Audios EveryAyah, nommés selon les dossiers du site. Certains récitateurs partagent le même enregistrement.',
+			preview: 'Écouter avant d’ajouter',
+			addPadding: 'Ajouter des pauses',
+			paddingStart: 'Pause avant l’introduction',
+			paddingEnd: 'Pause après l’introduction',
+			timingHint:
+				'Pauses en secondes. Les audios, vidéos et sous-titres existants sont décalés ensemble vers la droite.',
+			existingProject: 'Projet actuel',
+			apply: 'Ajouter au début',
+			adding: 'Téléchargement et ajout…',
+			success: 'Introduction ajoutée. Vous pouvez annuler cette action.',
+			downloadError:
+				'Impossible de télécharger ou de lire l’audio. Vérifiez votre connexion et réessayez.',
+			invalidSettings:
+				'Choisissez un récitateur et des durées de pause valides, positives ou nulles.',
+			projectChanged: 'Le projet ouvert a changé. Rouvrez cette fenêtre et réessayez.',
+			previewError: 'Préécoute indisponible. Réessayez ou choisissez un autre récitateur.',
+			reciters: {
+				husary: 'Mahmoud Khalil Al-Husary',
+				shatri: 'Abu Bakr Ash-Shatri',
+				abdulBasit: 'Abdul Basit Abdus Samad',
+				basfar: 'Abdullah Basfar',
+				ajmi: 'Ahmed Al-Ajmi',
+				alafasy: 'Mishary Rashid Alafasy',
+				aliJaber: 'Ali Jaber',
+				ghamdi: 'Saad Al-Ghamdi',
+				rifai: 'Hani Ar-Rifai',
+				hudhaify: 'Ali Al-Hudhaify',
+				minshawi: 'Muhammad Siddiq Al-Minshawi',
+				ayyoub: 'Muhammad Ayyoub',
+				shuraym: 'Saud Ash-Shuraym'
+			}
+		},
 		showVideoPreview: 'Afficher la vidéo dans l’aperçu',
 		videoPreviewHelp:
 			'Décochez pour naviguer plus rapidement sans charger la vidéo dans l’aperçu. La vidéo exportée reste inchangée.',

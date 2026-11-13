@@ -1107,6 +1107,150 @@ type RootTranslation = {
 		continue: string;
 	};
 	editor: {
+		recitationIntro: {
+			/**
+			 * A​d​d​ ​i​s​t​i​ʿ​ā​d​h​a​ ​/​ ​b​a​s​m​a​l​a
+			 */
+			button: string;
+			/**
+			 * R​e​c​i​t​a​t​i​o​n​ ​i​n​t​r​o​d​u​c​t​i​o​n
+			 */
+			title: string;
+			/**
+			 * A​d​d​ ​a​n​ ​o​p​e​n​i​n​g​ ​r​e​c​i​t​a​t​i​o​n​ ​w​i​t​h​ ​m​a​t​c​h​i​n​g​ ​s​u​b​t​i​t​l​e​s​ ​b​e​f​o​r​e​ ​y​o​u​r​ ​p​r​o​j​e​c​t​.
+			 */
+			description: string;
+			/**
+			 * O​p​e​n​i​n​g​ ​f​o​r​m​u​l​a​s
+			 */
+			formulas: string;
+			/**
+			 * I​s​t​i​ʿ​ā​d​h​a
+			 */
+			istiadha: string;
+			/**
+			 * B​a​s​m​a​l​a
+			 */
+			basmala: string;
+			/**
+			 * B​o​t​h
+			 */
+			both: string;
+			/**
+			 * R​e​c​i​t​e​r
+			 */
+			reciter: string;
+			/**
+			 * A​u​d​i​o​ ​f​r​o​m​ ​E​v​e​r​y​A​y​a​h​,​ ​l​a​b​e​l​e​d​ ​b​y​ ​s​o​u​r​c​e​ ​f​o​l​d​e​r​.​ ​S​o​m​e​ ​r​e​c​i​t​e​r​s​ ​s​h​a​r​e​ ​t​h​e​ ​s​a​m​e​ ​r​e​c​o​r​d​i​n​g​.
+			 */
+			sourceNote: string;
+			/**
+			 * L​i​s​t​e​n​ ​b​e​f​o​r​e​ ​a​d​d​i​n​g
+			 */
+			preview: string;
+			/**
+			 * A​d​d​ ​p​a​d​d​i​n​g
+			 */
+			addPadding: string;
+			/**
+			 * P​a​u​s​e​ ​b​e​f​o​r​e​ ​t​h​e​ ​i​n​t​r​o​d​u​c​t​i​o​n
+			 */
+			paddingStart: string;
+			/**
+			 * P​a​u​s​e​ ​a​f​t​e​r​ ​t​h​e​ ​i​n​t​r​o​d​u​c​t​i​o​n
+			 */
+			paddingEnd: string;
+			/**
+			 * P​a​u​s​e​s​ ​a​r​e​ ​i​n​ ​s​e​c​o​n​d​s​.​ ​E​x​i​s​t​i​n​g​ ​a​u​d​i​o​,​ ​v​i​d​e​o​ ​a​n​d​ ​s​u​b​t​i​t​l​e​s​ ​m​o​v​e​ ​t​o​g​e​t​h​e​r​ ​t​o​ ​t​h​e​ ​r​i​g​h​t​.
+			 */
+			timingHint: string;
+			/**
+			 * C​u​r​r​e​n​t​ ​p​r​o​j​e​c​t
+			 */
+			existingProject: string;
+			/**
+			 * A​d​d​ ​a​t​ ​t​h​e​ ​b​e​g​i​n​n​i​n​g
+			 */
+			apply: string;
+			/**
+			 * D​o​w​n​l​o​a​d​i​n​g​ ​a​n​d​ ​a​d​d​i​n​g​…
+			 */
+			adding: string;
+			/**
+			 * I​n​t​r​o​d​u​c​t​i​o​n​ ​a​d​d​e​d​.​ ​Y​o​u​ ​c​a​n​ ​u​n​d​o​ ​t​h​i​s​ ​a​c​t​i​o​n​.
+			 */
+			success: string;
+			/**
+			 * T​h​e​ ​a​u​d​i​o​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​d​o​w​n​l​o​a​d​e​d​ ​o​r​ ​r​e​a​d​.​ ​C​h​e​c​k​ ​y​o​u​r​ ​c​o​n​n​e​c​t​i​o​n​ ​a​n​d​ ​t​r​y​ ​a​g​a​i​n​.
+			 */
+			downloadError: string;
+			/**
+			 * C​h​o​o​s​e​ ​a​ ​r​e​c​i​t​e​r​ ​a​n​d​ ​e​n​t​e​r​ ​v​a​l​i​d​,​ ​n​o​n​-​n​e​g​a​t​i​v​e​ ​p​a​u​s​e​ ​d​u​r​a​t​i​o​n​s​.
+			 */
+			invalidSettings: string;
+			/**
+			 * T​h​e​ ​o​p​e​n​ ​p​r​o​j​e​c​t​ ​c​h​a​n​g​e​d​.​ ​R​e​o​p​e​n​ ​t​h​i​s​ ​d​i​a​l​o​g​ ​a​n​d​ ​t​r​y​ ​a​g​a​i​n​.
+			 */
+			projectChanged: string;
+			/**
+			 * P​r​e​v​i​e​w​ ​u​n​a​v​a​i​l​a​b​l​e​.​ ​Y​o​u​ ​c​a​n​ ​r​e​t​r​y​ ​o​r​ ​s​e​l​e​c​t​ ​a​n​o​t​h​e​r​ ​r​e​c​i​t​e​r​.
+			 */
+			previewError: string;
+			reciters: {
+				/**
+				 * M​a​h​m​o​u​d​ ​K​h​a​l​i​l​ ​A​l​-​H​u​s​a​r​y
+				 */
+				husary: string;
+				/**
+				 * A​b​u​ ​B​a​k​r​ ​A​s​h​-​S​h​a​t​r​i
+				 */
+				shatri: string;
+				/**
+				 * A​b​d​u​l​ ​B​a​s​i​t​ ​A​b​d​u​s​ ​S​a​m​a​d
+				 */
+				abdulBasit: string;
+				/**
+				 * A​b​d​u​l​l​a​h​ ​B​a​s​f​a​r
+				 */
+				basfar: string;
+				/**
+				 * A​h​m​e​d​ ​A​l​-​A​j​m​i
+				 */
+				ajmi: string;
+				/**
+				 * M​i​s​h​a​r​y​ ​R​a​s​h​i​d​ ​A​l​a​f​a​s​y
+				 */
+				alafasy: string;
+				/**
+				 * A​l​i​ ​J​a​b​e​r
+				 */
+				aliJaber: string;
+				/**
+				 * S​a​a​d​ ​A​l​-​G​h​a​m​d​i
+				 */
+				ghamdi: string;
+				/**
+				 * H​a​n​i​ ​A​r​-​R​i​f​a​i
+				 */
+				rifai: string;
+				/**
+				 * A​l​i​ ​A​l​-​H​u​d​h​a​i​f​y
+				 */
+				hudhaify: string;
+				/**
+				 * M​u​h​a​m​m​a​d​ ​S​i​d​d​i​q​ ​A​l​-​M​i​n​s​h​a​w​i
+				 */
+				minshawi: string;
+				/**
+				 * M​u​h​a​m​m​a​d​ ​A​y​y​o​u​b
+				 */
+				ayyoub: string;
+				/**
+				 * S​a​u​d​ ​A​s​h​-​S​h​u​r​a​y​m
+				 */
+				shuraym: string;
+			};
+		};
 		/**
 		 * S​h​o​w​ ​v​i​d​e​o​ ​i​n​ ​p​r​e​v​i​e​w
 		 */
@@ -13585,6 +13729,150 @@ export type TranslationFunctions = {
 		continue: () => LocalizedString;
 	};
 	editor: {
+		recitationIntro: {
+			/**
+			 * Add istiʿādha / basmala
+			 */
+			button: () => LocalizedString;
+			/**
+			 * Recitation introduction
+			 */
+			title: () => LocalizedString;
+			/**
+			 * Add an opening recitation with matching subtitles before your project.
+			 */
+			description: () => LocalizedString;
+			/**
+			 * Opening formulas
+			 */
+			formulas: () => LocalizedString;
+			/**
+			 * Istiʿādha
+			 */
+			istiadha: () => LocalizedString;
+			/**
+			 * Basmala
+			 */
+			basmala: () => LocalizedString;
+			/**
+			 * Both
+			 */
+			both: () => LocalizedString;
+			/**
+			 * Reciter
+			 */
+			reciter: () => LocalizedString;
+			/**
+			 * Audio from EveryAyah, labeled by source folder. Some reciters share the same recording.
+			 */
+			sourceNote: () => LocalizedString;
+			/**
+			 * Listen before adding
+			 */
+			preview: () => LocalizedString;
+			/**
+			 * Add padding
+			 */
+			addPadding: () => LocalizedString;
+			/**
+			 * Pause before the introduction
+			 */
+			paddingStart: () => LocalizedString;
+			/**
+			 * Pause after the introduction
+			 */
+			paddingEnd: () => LocalizedString;
+			/**
+			 * Pauses are in seconds. Existing audio, video and subtitles move together to the right.
+			 */
+			timingHint: () => LocalizedString;
+			/**
+			 * Current project
+			 */
+			existingProject: () => LocalizedString;
+			/**
+			 * Add at the beginning
+			 */
+			apply: () => LocalizedString;
+			/**
+			 * Downloading and adding…
+			 */
+			adding: () => LocalizedString;
+			/**
+			 * Introduction added. You can undo this action.
+			 */
+			success: () => LocalizedString;
+			/**
+			 * The audio could not be downloaded or read. Check your connection and try again.
+			 */
+			downloadError: () => LocalizedString;
+			/**
+			 * Choose a reciter and enter valid, non-negative pause durations.
+			 */
+			invalidSettings: () => LocalizedString;
+			/**
+			 * The open project changed. Reopen this dialog and try again.
+			 */
+			projectChanged: () => LocalizedString;
+			/**
+			 * Preview unavailable. You can retry or select another reciter.
+			 */
+			previewError: () => LocalizedString;
+			reciters: {
+				/**
+				 * Mahmoud Khalil Al-Husary
+				 */
+				husary: () => LocalizedString;
+				/**
+				 * Abu Bakr Ash-Shatri
+				 */
+				shatri: () => LocalizedString;
+				/**
+				 * Abdul Basit Abdus Samad
+				 */
+				abdulBasit: () => LocalizedString;
+				/**
+				 * Abdullah Basfar
+				 */
+				basfar: () => LocalizedString;
+				/**
+				 * Ahmed Al-Ajmi
+				 */
+				ajmi: () => LocalizedString;
+				/**
+				 * Mishary Rashid Alafasy
+				 */
+				alafasy: () => LocalizedString;
+				/**
+				 * Ali Jaber
+				 */
+				aliJaber: () => LocalizedString;
+				/**
+				 * Saad Al-Ghamdi
+				 */
+				ghamdi: () => LocalizedString;
+				/**
+				 * Hani Ar-Rifai
+				 */
+				rifai: () => LocalizedString;
+				/**
+				 * Ali Al-Hudhaify
+				 */
+				hudhaify: () => LocalizedString;
+				/**
+				 * Muhammad Siddiq Al-Minshawi
+				 */
+				minshawi: () => LocalizedString;
+				/**
+				 * Muhammad Ayyoub
+				 */
+				ayyoub: () => LocalizedString;
+				/**
+				 * Saud Ash-Shuraym
+				 */
+				shuraym: () => LocalizedString;
+			};
+		};
 		/**
 		 * Show video in preview
 		 */

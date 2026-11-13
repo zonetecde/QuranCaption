@@ -589,6 +589,50 @@ const de = {
 			'Möchten Sie den Batch „{name}“ wirklich löschen? Seine {count} Projekte werden ebenfalls dauerhaft gelöscht.'
 	},
 	editor: {
+		recitationIntro: {
+			button: 'Istiʿādha / Basmala hinzufügen',
+			title: 'Einleitung der Rezitation',
+			description:
+				'Füge eine Eröffnungsrezitation mit passenden Untertiteln vor deinem Projekt ein.',
+			formulas: 'Eröffnungsformeln',
+			istiadha: 'Istiʿādha',
+			basmala: 'Basmala',
+			both: 'Beide',
+			reciter: 'Rezitator',
+			sourceNote:
+				'Audios von EveryAyah, nach den Quellordnern benannt. Manche Rezitatoren teilen dieselbe Aufnahme.',
+			preview: 'Vor dem Hinzufügen anhören',
+			addPadding: 'Pausen hinzufügen',
+			paddingStart: 'Pause vor der Einleitung',
+			paddingEnd: 'Pause nach der Einleitung',
+			timingHint:
+				'Pausen in Sekunden. Bestehende Audios, Videos und Untertitel werden gemeinsam nach rechts verschoben.',
+			existingProject: 'Aktuelles Projekt',
+			apply: 'Am Anfang hinzufügen',
+			adding: 'Wird heruntergeladen und hinzugefügt…',
+			success: 'Einleitung hinzugefügt. Du kannst diese Aktion rückgängig machen.',
+			downloadError:
+				'Das Audio konnte nicht heruntergeladen oder gelesen werden. Prüfe deine Verbindung und versuche es erneut.',
+			invalidSettings: 'Wähle einen Rezitator und gib gültige, nicht negative Pausenzeiten ein.',
+			projectChanged: 'Das geöffnete Projekt hat sich geändert. Öffne diesen Dialog erneut.',
+			previewError:
+				'Vorschau nicht verfügbar. Versuche es erneut oder wähle einen anderen Rezitator.',
+			reciters: {
+				husary: 'Mahmoud Khalil Al-Husary',
+				shatri: 'Abu Bakr Ash-Shatri',
+				abdulBasit: 'Abdul Basit Abdus Samad',
+				basfar: 'Abdullah Basfar',
+				ajmi: 'Ahmed Al-Ajmi',
+				alafasy: 'Mishary Rashid Alafasy',
+				aliJaber: 'Ali Jaber',
+				ghamdi: 'Saad Al-Ghamdi',
+				rifai: 'Hani Ar-Rifai',
+				hudhaify: 'Ali Al-Hudhaify',
+				minshawi: 'Muhammad Siddiq Al-Minshawi',
+				ayyoub: 'Muhammad Ayyoub',
+				shuraym: 'Saud Ash-Shuraym'
+			}
+		},
 		showVideoPreview: 'Video in der Vorschau anzeigen',
 		videoPreviewHelp:
 			'Für flüssigeres Navigieren deaktivieren, ohne das Video in der Vorschau zu laden. Das exportierte Video bleibt unverändert.',

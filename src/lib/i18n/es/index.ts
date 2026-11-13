@@ -581,6 +581,49 @@ const es = {
 			'¿Seguro que desea eliminar el lote «{name}»? Sus {count} proyectos también se eliminarán permanentemente.'
 	},
 	editor: {
+		recitationIntro: {
+			button: 'Añadir istiʿādha / basmala',
+			title: 'Introducción de la recitación',
+			description: 'Añade una recitación de apertura con sus subtítulos al inicio de tu proyecto.',
+			formulas: 'Fórmulas de apertura',
+			istiadha: 'Istiʿādha',
+			basmala: 'Basmala',
+			both: 'Ambas',
+			reciter: 'Recitador',
+			sourceNote:
+				'Audios de EveryAyah, identificados por las carpetas de origen. Algunos recitadores comparten la misma grabación.',
+			preview: 'Escuchar antes de añadir',
+			addPadding: 'Añadir pausas',
+			paddingStart: 'Pausa antes de la introducción',
+			paddingEnd: 'Pausa después de la introducción',
+			timingHint:
+				'Pausas en segundos. Los audios, vídeos y subtítulos existentes se desplazan juntos hacia la derecha.',
+			existingProject: 'Proyecto actual',
+			apply: 'Añadir al inicio',
+			adding: 'Descargando y añadiendo…',
+			success: 'Introducción añadida. Puedes deshacer esta acción.',
+			downloadError:
+				'No se pudo descargar o leer el audio. Comprueba tu conexión e inténtalo de nuevo.',
+			invalidSettings: 'Elige un recitador e introduce duraciones de pausa válidas y no negativas.',
+			projectChanged:
+				'El proyecto abierto ha cambiado. Vuelve a abrir esta ventana e inténtalo de nuevo.',
+			previewError: 'Vista previa no disponible. Reinténtalo o elige otro recitador.',
+			reciters: {
+				husary: 'Mahmoud Khalil Al-Husary',
+				shatri: 'Abu Bakr Ash-Shatri',
+				abdulBasit: 'Abdul Basit Abdus Samad',
+				basfar: 'Abdullah Basfar',
+				ajmi: 'Ahmed Al-Ajmi',
+				alafasy: 'Mishary Rashid Alafasy',
+				aliJaber: 'Ali Jaber',
+				ghamdi: 'Saad Al-Ghamdi',
+				rifai: 'Hani Ar-Rifai',
+				hudhaify: 'Ali Al-Hudhaify',
+				minshawi: 'Muhammad Siddiq Al-Minshawi',
+				ayyoub: 'Muhammad Ayyoub',
+				shuraym: 'Saud Ash-Shuraym'
+			}
+		},
 		showVideoPreview: 'Mostrar el vídeo en la vista previa',
 		videoPreviewHelp:
 			'Desmarca para desplazarte con mayor fluidez sin cargar el vídeo en la vista previa. El vídeo exportado no cambia.',

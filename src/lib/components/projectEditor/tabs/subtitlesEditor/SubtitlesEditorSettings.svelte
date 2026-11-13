@@ -5,6 +5,8 @@
 	import { globalState } from '$lib/runes/main.svelte';
 	import { enterManualWordByWordEdit, exitManualWordByWordEdit } from '$lib/services/WbwHelper';
 	import AutoSegmentationModal from './modal/AutoSegmentationModal.svelte';
+	import RecitationIntroModal from './modal/RecitationIntroModal.svelte';
+	import type { RecitationIntroTranslations } from '$lib/services/RecitationIntroService';
 	import SegmentsToReview from './SegmentsToReview.svelte';
 	import MarkLongSubtitles from './MarkLongSubtitles.svelte';
 	import MarkMissingWbwTimestamps from './MarkMissingWbwTimestamps.svelte';
@@ -18,6 +20,10 @@
 
 	let presetChoice: string = $state('');
 	let autoSegmentationModalVisible = $state(false);
+	let recitationIntroModalVisible = $state(false);
+	const introCopy = $derived(
+		Reflect.get($LL.editor, 'recitationIntro') as RecitationIntroTranslations
+	);
 
 	type SpecialPreset =
 		| 'Silence'
@@ -468,6 +474,15 @@
 			</div>
 		</div>
 
+		<button
+			type="button"
+			class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-[var(--accent-primary)]/30 bg-[var(--accent-primary)]/10 px-3 py-3 text-xs font-medium text-accent-primary transition hover:bg-[var(--accent-primary)]/20"
+			onclick={() => (recitationIntroModalVisible = true)}
+		>
+			<span class="material-icons text-lg" aria-hidden="true">playlist_add</span>
+			{introCopy.button()}
+		</button>
+
 		{#if (globalState.getAudioTrack?.clips || []).some((c) => c instanceof AssetClip && (globalState.currentProject?.content.getAssetById(c.assetId)?.metadata?.nativeTiming || globalState.currentProject?.content.getAssetById(c.assetId)?.metadata?.mp3Quran))}
 			<div class="space-y-4">
 				<h3 class="text-sm font-medium text-secondary mb-3">{$LL.editor.nativeTiming()}</h3>
@@ -494,6 +509,12 @@
 		</div>
 	{/if}
 </div>
+
+{#if recitationIntroModalVisible}
+	<div class="modal-wrapper">
+		<RecitationIntroModal close={() => (recitationIntroModalVisible = false)} />
+	</div>
+{/if}
 
 {#if autoSegmentationModalVisible}
 	<div class="modal-wrapper" transition:fade>

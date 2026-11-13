@@ -88,6 +88,7 @@ const common = {
 	german: 'Deutsch',
 	spanish: 'Español',
 	indonesian: 'Indonesia',
+	urdu: 'Urdu',
 	closeDonationPrompt: 'Close donation prompt',
 	copyWalletAddress: 'Copy {wallet} wallet address',
 	leaveReview: 'Leave a Review',

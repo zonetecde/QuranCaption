@@ -17,7 +17,8 @@
 		['fr', 'french'],
 		['es', 'spanish'],
 		['de', 'german'],
-		['id', 'indonesian']
+		['id', 'indonesian'],
+		['ur', 'urdu']
 	] as const;
 	let settings = $state(
 		untrack(() => ({
@@ -239,7 +240,7 @@
 						>
 							{#each languages as [code, name] (code)}
 								<option value={code}
-									>{code === 'ar' ? $LL.editor.arabic() : $LL.common[name]()} ({code})</option
+									>{code === 'ar' ? $LL.editor.arabic() : Reflect.get($LL.common, name)()} ({code})</option
 								>
 							{/each}
 							<option value="custom">{$LL.common.custom()}</option>

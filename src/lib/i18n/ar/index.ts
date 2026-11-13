@@ -88,6 +88,7 @@ const ar = {
 		english: 'English',
 		french: 'Français',
 		indonesian: 'الإندونيسية',
+		urdu: 'الأردية',
 		closeDonationPrompt: 'إغلاق موجه التبرع',
 		copyWalletAddress: 'انسخ عنوان المحفظة {wallet}',
 		leaveReview: 'ترك تقييم',

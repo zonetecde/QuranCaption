@@ -89,6 +89,7 @@ const de = {
 		english: 'English',
 		french: 'Français',
 		indonesian: 'Indonesisch',
+		urdu: 'Urdu',
 		closeDonationPrompt: 'Spendenaufforderung schließen',
 		copyWalletAddress: 'Wallet-Adresse {wallet} kopieren',
 		leaveReview: 'Bewertung hinterlassen',

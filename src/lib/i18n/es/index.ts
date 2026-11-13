@@ -88,6 +88,7 @@ const es = {
 		english: 'English',
 		french: 'Français',
 		indonesian: 'Indonesio',
+		urdu: 'Urdu',
 		closeDonationPrompt: 'Cerrar solicitud de donación',
 		copyWalletAddress: 'Copiar dirección de billetera {wallet}',
 		leaveReview: 'Dejar una reseña',

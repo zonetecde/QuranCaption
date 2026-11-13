@@ -374,6 +374,10 @@ type RootTranslation = {
 		 */
 		indonesian: string;
 		/**
+		 * U​r​d​u
+		 */
+		urdu: string;
+		/**
 		 * C​l​o​s​e​ ​d​o​n​a​t​i​o​n​ ​p​r​o​m​p​t
 		 */
 		closeDonationPrompt: string;
@@ -11042,6 +11046,10 @@ export type TranslationFunctions = {
 		 * Indonesia
 		 */
 		indonesian: () => LocalizedString;
+		/**
+		 * Urdu
+		 */
+		urdu: () => LocalizedString;
 		/**
 		 * Close donation prompt
 		 */

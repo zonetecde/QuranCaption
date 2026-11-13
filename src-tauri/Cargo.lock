@@ -2814,7 +2814,7 @@ dependencies = [
 
 [[package]]
 name = "minbar-caption"
-version = "1.1.71"
+version = "1.1.80"
 dependencies = [
  "dirs",
  "fix-path-env",

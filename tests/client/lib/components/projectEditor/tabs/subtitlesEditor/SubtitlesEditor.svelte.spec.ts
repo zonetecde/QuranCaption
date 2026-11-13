@@ -6,6 +6,7 @@ import SubtitlesList from '$lib/components/projectEditor/tabs/subtitlesEditor/Su
 import SubtitlesWorkspace from '$lib/components/projectEditor/tabs/subtitlesEditor/SubtitlesWorkspace.svelte';
 import QuickTimelineEditorOverlay from '$lib/components/projectEditor/timeline/QuickTimelineEditorOverlay.svelte';
 import TranscriptComposer from '$lib/components/projectEditor/tabs/subtitlesEditor/TranscriptComposer.svelte';
+import TimelineSubtitleClip from '$lib/components/projectEditor/timeline/track/SubtitleClip.svelte';
 import {
 	buildManualWordByWordDraftWords,
 	enterManualWordByWordEdit,
@@ -471,6 +472,93 @@ describe('Subtitles editor workflow', () => {
 		expect(editTranscript).toHaveBeenCalledTimes(2);
 		await component.getByRole('button', { name: 'Exit edit' }).click();
 		expect(subtitle.text).toBe('Original transcript');
+	});
+
+	test.each(['Enter', 'button'])(
+		'opens a silence from the timeline and converts it only after confirming with %s',
+		async (confirmation) => {
+			loadLocale('en');
+			setLocale('en');
+			const silence = new SilenceClip(1000, 3000);
+			const following = new SubtitleClip(3001, 4000, 'Following subtitle');
+			const { subtitleTrack } = setupSubtitlesEditorProjectFixture({ clips: [following] });
+			subtitleTrack.clips.unshift(silence);
+			globalState.currentProject!.content.projectTranslation = new ProjectTranslation();
+			globalState.currentProject!.projectEditorState.currentTab = ProjectEditorTabs.Transcription;
+			vi.spyOn(ProjectHistoryManager, 'track').mockImplementation((_label, action) => action());
+			const timelineClip = render(TimelineSubtitleClip, {
+				clip: silence as SubtitleClip,
+				track: subtitleTrack
+			});
+			const composer = render(TranscriptComposer);
+			timelineClip.container.querySelector<HTMLElement>('.timeline-silence')!.click();
+			await tick();
+			expect(globalState.getSubtitlesEditorState.editSubtitle).toBe(silence);
+			await expect.element(composer.getByRole('textbox')).toHaveValue('');
+			expect(composer.container.textContent).toContain('SILENCE');
+			await composer.getByRole('textbox').fill('Missed speech');
+			expect(subtitleTrack.clips[0]).toBe(silence);
+			if (confirmation === 'Enter') {
+				composer
+					.getByRole('textbox')
+					.element()
+					.dispatchEvent(
+						new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+					);
+			} else {
+				await composer.getByRole('button', { name: 'Confirm edit' }).click();
+			}
+			await expect.poll(() => globalState.getSubtitlesEditorState.editSubtitle).toBeNull();
+			expect(subtitleTrack.clips).toHaveLength(2);
+			expect(subtitleTrack.clips[0]).toBeInstanceOf(SubtitleClip);
+			expect(subtitleTrack.clips[0]).toMatchObject({
+				startTime: 1000,
+				endTime: 3000,
+				text: 'Missed speech'
+			});
+			expect(subtitleTrack.clips[1]).toBe(following);
+			expect(ProjectHistoryManager.track).toHaveBeenCalledWith(
+				'convert silence to subtitle',
+				expect.any(Function)
+			);
+		}
+	);
+
+	test('keeps a silence unchanged when confirming empty text or cancelling its draft', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const silence = new SilenceClip(1000, 3000);
+		const { subtitleTrack } = setupSubtitlesEditorProjectFixture({ clips: [] });
+		subtitleTrack.clips.push(silence);
+		globalState.getSubtitlesEditorState.editSubtitle = silence;
+		const composer = render(TranscriptComposer);
+		await composer.getByRole('button', { name: 'Confirm edit' }).click();
+		expect(globalState.getSubtitlesEditorState.editSubtitle).toBe(silence);
+		await composer.getByRole('textbox').fill('Unsaved speech');
+		await composer.getByRole('button', { name: 'Exit edit' }).click();
+		expect(subtitleTrack.clips[0]).toBe(silence);
+		expect(globalState.getSubtitlesEditorState.editSubtitle).toBeNull();
+	});
+
+	test('converts an edited subtitle to silence from the button while preserving its timing', async () => {
+		loadLocale('en');
+		setLocale('en');
+		const subtitle = new SubtitleClip(1000, 3000, 'Unwanted speech');
+		const { subtitleTrack } = setupSubtitlesEditorProjectFixture({
+			clips: [subtitle],
+			editSubtitle: subtitle
+		});
+		vi.spyOn(ProjectHistoryManager, 'track').mockImplementation((_label, action) => action());
+		const composer = render(TranscriptComposer);
+		await composer.getByRole('button', { name: 'SILENCE' }).click();
+		expect(subtitleTrack.clips).toHaveLength(1);
+		expect(subtitleTrack.clips[0]).toBeInstanceOf(SilenceClip);
+		expect(subtitleTrack.clips[0]).toMatchObject({ startTime: 1000, endTime: 3000 });
+		expect(globalState.getSubtitlesEditorState.editSubtitle).toBeNull();
+		expect(ProjectHistoryManager.track).toHaveBeenCalledWith(
+			'replace subtitle with silence',
+			expect.any(Function)
+		);
 	});
 
 	test('saves quotation conversions, input and removal without confirming the edit', async () => {

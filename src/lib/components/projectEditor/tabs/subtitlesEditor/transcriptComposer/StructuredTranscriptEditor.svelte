@@ -19,9 +19,11 @@
 		value: string;
 		input?: HTMLTextAreaElement | null;
 		isEditing: boolean;
+		isSilence?: boolean;
 		onCancelEditing: () => void;
 		onSubmit: (keepEditing?: boolean) => void | Promise<void>;
 		onEditTimestamps?: () => void | Promise<void>;
+		onConvertToSilence?: () => void;
 	};
 
 	type TranscriptionCopy = {
@@ -44,9 +46,11 @@
 		value = $bindable(),
 		input = $bindable(null),
 		isEditing,
+		isSilence = false,
 		onCancelEditing,
 		onSubmit,
-		onEditTimestamps
+		onEditTimestamps,
+		onConvertToSilence
 	}: Props = $props();
 
 	const initialValue = untrack(() => value);
@@ -378,7 +382,7 @@
 			{#if isEditing}
 				<div class="ms-1 flex items-center gap-2 text-xs font-semibold text-accent-primary">
 					<span class="material-icons text-sm">edit</span>
-					{$LL.editor.editingTranscript()}
+					{isSilence ? $LL.editor.silenceLabel() : $LL.editor.editingTranscript()}
 					<button
 						type="button"
 						class="cursor-pointer rounded-md border border-color bg-secondary px-2 py-1 text-xs font-semibold text-secondary transition hover:bg-accent hover:text-primary"
@@ -392,6 +396,19 @@
 		</div>
 
 		<div class="flex flex-wrap items-center justify-end gap-2">
+			{#if isEditing && onConvertToSilence}
+				<button
+					type="button"
+					class={`${INSERT_BUTTON_CLASS} border-color bg-secondary hover:bg-accent`}
+					onclick={onConvertToSilence}
+					onkeydown={(event) => {
+						if (event.key === 'Enter') event.stopPropagation();
+					}}
+				>
+					<span class="material-icons-outlined text-sm">space_bar</span>
+					{$LL.editor.silenceLabel()}
+				</button>
+			{/if}
 			<button
 				type="button"
 				class={`${INSERT_BUTTON_CLASS} border-emerald-500/35 bg-emerald-500/10 hover:bg-emerald-500/20`}
@@ -488,4 +505,13 @@
 			/>
 		{/if}
 	</div>
+	{#if isEditing && isSilence}
+		<button
+			type="button"
+			class={`${INSERT_BUTTON_CLASS} self-end border-emerald-500/35 bg-emerald-500/10 hover:bg-emerald-500/20`}
+			onclick={submitTranscriptDraft}
+		>
+			{$LL.editor.confirmEditing()}
+		</button>
+	{/if}
 </div>

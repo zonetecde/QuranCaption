@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { SubtitleClip } from '$lib/classes';
+	import { SilenceClip, SubtitleClip } from '$lib/classes';
 	import {
 		normalizeTranscriptWordTimings,
 		type TranscriptAlignmentMetadata
@@ -50,16 +50,17 @@
 	const editorState = $derived(() => globalState.getSubtitlesEditorState);
 	const editedTranscript = $derived(() => {
 		const clip = editorState().editSubtitle;
-		return clip instanceof SubtitleClip ? clip : null;
+		return clip instanceof SubtitleClip || clip instanceof SilenceClip ? clip : null;
 	});
 	// Synchronise l'orchestration locale avec le segment choisi dans la timeline.
 	$effect(() => {
 		const clip = editedTranscript();
-		if (clip && (clip.id !== loadedEditId || clip.text !== lastSavedText)) {
+		const text = clip instanceof SubtitleClip ? clip.text : '';
+		if (clip && (clip.id !== loadedEditId || text !== lastSavedText)) {
 			loadedEditId = clip.id;
 			selectedTranscriptSelection = null;
-			lastSavedText = clip.text;
-			transcriptText = clip.text;
+			lastSavedText = text;
+			transcriptText = text;
 			return;
 		}
 
@@ -97,7 +98,7 @@
 	 */
 	async function openManualTimestamps(): Promise<void> {
 		const clip = editedTranscript();
-		if (!clip) return;
+		if (!(clip instanceof SubtitleClip)) return;
 		const text = transcriptText.trim();
 		if (!text) {
 			toast.error(get(LL).editor.transcriptCannotBeEmpty());
@@ -180,7 +181,8 @@
 			const clipUnderCursor = subtitleTrack.getCurrentClip(
 				globalState.getTimelineState.cursorPosition
 			);
-			if (!(clipUnderCursor instanceof SubtitleClip)) return;
+			if (!(clipUnderCursor instanceof SubtitleClip || clipUnderCursor instanceof SilenceClip))
+				return;
 			const clip = clipUnderCursor;
 
 			if (editorState().editSubtitle?.id === clip.id) {
@@ -198,6 +200,10 @@
 	 * @returns {Promise<void>} Promesse résolue après l'enregistrement.
 	 */
 	async function submitTranscript(keepEditing: boolean = false): Promise<void> {
+		const clip = editedTranscript();
+		// Un silence reste intact pendant la saisie jusqu'à la validation explicite.
+		if (keepEditing && clip instanceof SilenceClip) return;
+
 		// Les citations vides restent dans le brouillon pendant leur saisie.
 		const normalizedText = (
 			keepEditing ? transcriptText.replace(/\{\{\s*\}\}/g, '') : transcriptText
@@ -208,11 +214,11 @@
 			return;
 		}
 
-		const clip = editedTranscript();
-		const selectionAlignment = clip
-			? buildSelectionAlignmentMetadata(clip, selectedTranscriptSelection, normalizedText)
-			: null;
-		if (clip?.text === normalizedText && !selectionAlignment) {
+		const selectionAlignment =
+			clip instanceof SubtitleClip
+				? buildSelectionAlignmentMetadata(clip, selectedTranscriptSelection, normalizedText)
+				: null;
+		if (clip instanceof SubtitleClip && clip.text === normalizedText && !selectionAlignment) {
 			if (!keepEditing) cancelEditing();
 			return;
 		}
@@ -223,6 +229,20 @@
 		 */
 		const editTranscript = (): boolean => {
 			if (!clip) return globalState.getSubtitleTrack.addTranscript(normalizedText);
+			if (clip instanceof SilenceClip) {
+				return ProjectHistoryManager.track('convert silence to subtitle', () => {
+					const track = globalState.getSubtitleTrack;
+					const index = track.clips.findIndex((candidate) => candidate.id === clip.id);
+					if (index === -1) return false;
+					track.clips[index] = new SubtitleClip(
+						clip.startTime,
+						clip.endTime,
+						normalizedText,
+						globalState.getProjectTranslation.createTranslationsForSubtitleText(normalizedText)
+					);
+					return true;
+				});
+			}
 
 			const success = globalState.getSubtitleTrack.editTranscript(clip, normalizedText);
 			if (success && selectionAlignment) {
@@ -368,7 +388,7 @@
 	 */
 	function replaceEditedSubtitleWithSilence(): void {
 		const clip = editedTranscript();
-		if (!clip) return;
+		if (!(clip instanceof SubtitleClip)) return;
 
 		ProjectHistoryManager.track('replace subtitle with silence', () => {
 			globalState.getSubtitleTrack.editSubtitleToSpecial(clip, 'Silence');
@@ -464,9 +484,15 @@
 			<StructuredTranscriptEditor
 				bind:value={transcriptText}
 				isEditing={Boolean(editedTranscript())}
+				isSilence={editedTranscript() instanceof SilenceClip}
 				onCancelEditing={cancelEditing}
 				onSubmit={submitTranscript}
-				onEditTimestamps={openManualTimestamps}
+				onEditTimestamps={editedTranscript() instanceof SubtitleClip
+					? openManualTimestamps
+					: undefined}
+				onConvertToSilence={editedTranscript() instanceof SubtitleClip
+					? replaceEditedSubtitleWithSilence
+					: undefined}
 			/>
 		{/key}
 

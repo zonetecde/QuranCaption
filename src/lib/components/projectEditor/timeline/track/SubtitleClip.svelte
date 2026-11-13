@@ -459,7 +459,10 @@
 		markClipAsVerified(clip);
 
 		const currentTab = globalState.currentProject!.projectEditorState.currentTab;
-		if (currentTab === ProjectEditorTabs.Transcription && clip instanceof SubtitleClip) {
+		if (
+			currentTab === ProjectEditorTabs.Transcription &&
+			(clip instanceof SubtitleClip || clip.type === 'Silence')
+		) {
 			editSubtitle();
 		} else {
 			clipClicked(event);
@@ -750,7 +753,7 @@
 			</div></Item
 		>
 	{/if}
-	{#if globalState.currentProject!.projectEditorState.currentTab === 'Transcription' && clip.type === 'Subtitle'}
+	{#if globalState.currentProject!.projectEditorState.currentTab === 'Transcription' && (clip.type === 'Subtitle' || clip.type === 'Silence')}
 		<Item on:click={editSubtitle}
 			><div class="btn-icon">
 				<span class="material-icons-outlined text-sm mr-1">edit</span

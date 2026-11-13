@@ -1,4 +1,8 @@
-﻿<script lang="ts">
+<script module lang="ts">
+	const audioErrorNotifiedProjects = new Set<number>();
+</script>
+
+<script lang="ts">
 	import {
 		AssetType,
 		ProjectEditorTabs,
@@ -29,7 +33,6 @@
 	const isLinux = $derived(navigator?.userAgent?.toLowerCase()?.includes('linux') ?? false);
 	const isExportCapturePreview =
 		typeof window !== 'undefined' && window.location.pathname.includes('/exporter');
-	let lastTimeErrorShown = 0; // Timestamp of the last error shown (prevent spam)
 	let antiCollisionNoticeCopy = $derived(
 		$LL.editor as unknown as {
 			antiCollisionNotice: () => string;
@@ -822,6 +825,8 @@
 			if (!howl) {
 				howl = new Howl({
 					src: [`${convertFileSrc(asset.filePath)}?v=${asset.mediaReloadToken}`],
+					// MKV utilise le conteneur Matroska de WebM ; laisser le décodeur tenter sa lecture.
+					format: asset.getFileExtension() === 'mkv' ? ['webm'] : undefined,
 					html5: !isLinux,
 					rate: audioSpeed,
 					mute: globalState.getVideoPreviewState.showVideosAndAudios,
@@ -960,7 +965,7 @@
 		const audioAsset = currentAudio();
 		if (!audioAsset) return;
 		console.warn('Native audio unavailable, using Howler fallback:', error);
-		nativeAudioSetupId++;
+		const setupId = ++nativeAudioSetupId;
 		nativeAudioSeekId++;
 		nativeAudioReady = false;
 		stopNativeAudioClock();
@@ -969,6 +974,7 @@
 		} catch (_unloadError) {
 			// Le fallback reste utilisable même si le thread natif est indisponible.
 		}
+		if (setupId !== nativeAudioSetupId) return;
 		if (audioHowl) audioHowl.unload();
 		const fallbackAudio = setupHowlerFallback(audioAsset);
 		if (isPlaying) fallbackAudio.play();
@@ -1289,14 +1295,34 @@
 	}
 
 	/**
+	 * Affiche une seule erreur audio par projet pendant la session de l'application.
+	 * @param {string} message Message localisé à afficher.
+	 * @param {number} projectId Projet propriétaire du lecteur en erreur.
+	 * @returns {void}
+	 */
+	function showAudioPreviewError(message: string, projectId: number): void {
+		if (
+			globalState.currentProject?.detail.id !== projectId ||
+			audioErrorNotifiedProjects.has(projectId)
+		)
+			return;
+		audioErrorNotifiedProjects.add(projectId);
+		toast.error(message, { id: `audio-preview-error-${projectId}`, position: 'bottom-left' });
+	}
+
+	/**
 	 * Configure le fallback Howler lorsqu'un format n'est pas lu nativement.
 	 * @param {Asset} audioAsset Asset à lire avec Howler.
 	 * @returns {Howl} Instance Howler prête à être utilisée.
 	 */
 	function setupHowlerFallback(audioAsset: Asset): Howl {
+		const projectId = globalState.currentProject!.detail.id;
+		const setupId = nativeAudioSetupId;
 		audioHowl = new Howl({
 			mute: globalState.getVideoPreviewState.showVideosAndAudios,
 			src: [`${convertFileSrc(audioAsset.filePath)}?v=${audioAsset.mediaReloadToken}`],
+			// Howler ne reconnaît pas MKV, même si le décodeur du navigateur sait le lire.
+			format: audioAsset.getFileExtension() === 'mkv' ? ['webm'] : undefined,
 			html5: !isLinux,
 			rate: audioSpeed,
 			onplay: () => {
@@ -1307,24 +1333,24 @@
 				}
 			},
 			onloaderror: (_id, error) => {
+				if (setupId !== nativeAudioSetupId) return;
 				console.error('Howler load error:', error);
 				if (error === 'No codec support for selected audio sources.') {
-					toast.error(get(LL).editor.convertToMp4Error());
+					showAudioPreviewError(get(LL).editor.convertToMp4Error(), projectId);
 					return;
 				}
 				if (isLinux && error === 'Decoding audio data failed.') return;
-				if (Date.now() - lastTimeErrorShown > 5000) {
-					if (error === 4) {
-						toast.error(get(LL).editor.audioFileMissing(), { duration: 1000 });
-					} else {
-						toast.error(get(LL).editor.unknownAudioError({ error: JSON.stringify(error) }), {
-							duration: 1000
-						});
-					}
-					lastTimeErrorShown = Date.now();
+				if (error === 4) {
+					showAudioPreviewError(get(LL).editor.audioFileMissing(), projectId);
+				} else {
+					showAudioPreviewError(
+						get(LL).editor.unknownAudioError({ error: JSON.stringify(error) }),
+						projectId
+					);
 				}
 			},
 			onplayerror: (_id, error) => {
+				if (setupId !== nativeAudioSetupId) return;
 				console.error('Howler play error:', error);
 				if (isPlaybackUnlockError(error)) {
 					audioHowl?.once('unlock', () => {
@@ -1332,7 +1358,10 @@
 					});
 					return;
 				}
-				toast.error(get(LL).editor.audioFailedToPlay({ error: JSON.stringify(error) }));
+				showAudioPreviewError(
+					get(LL).editor.audioFailedToPlay({ error: JSON.stringify(error) }),
+					projectId
+				);
 				pause();
 			},
 			onpause: () => {

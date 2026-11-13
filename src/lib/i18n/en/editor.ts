@@ -197,6 +197,14 @@ const editor = {
 		provider: 'Provider',
 		model: 'Model',
 		maxDuration: 'Max duration (seconds)',
+		transcribeInBatches: 'Send audio in batches',
+		batchDuration: 'Audio batch duration (seconds)',
+		batchesHint: 'Useful for long videos.',
+		invalidBatchDuration:
+			'Choose a whole number of seconds between 30 and 600 for each audio batch.',
+		waiting: 'Rate limit reached. Waiting before retrying…',
+		audioTooLarge:
+			'The audio exceeds the provider’s file size limit. Enable batches or reduce their duration.',
 		paddingBefore: 'Padding before (ms)',
 		paddingAfter: 'Padding after (ms)',
 		paddingHint:

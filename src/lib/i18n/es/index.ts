@@ -472,6 +472,14 @@ const es = {
 			provider: 'Proveedor',
 			model: 'Modelo',
 			maxDuration: 'Duración máxima (segundos)',
+			transcribeInBatches: 'Enviar el audio por lotes',
+			batchDuration: 'Duración de los lotes de audio (segundos)',
+			batchesHint: 'Útil para vídeos largos.',
+			invalidBatchDuration:
+				'Elige un número entero de segundos entre 30 y 600 para cada lote de audio.',
+			waiting: 'Límite alcanzado. Esperando antes de reintentar…',
+			audioTooLarge:
+				'El audio supera el tamaño de archivo permitido por el proveedor. Activa los lotes o reduce su duración.',
 			paddingBefore: 'Margen anterior (ms)',
 			paddingAfter: 'Margen posterior (ms)',
 			paddingHint:

@@ -232,6 +232,7 @@ describe('transcribing timeline audio', () => {
 	});
 
 	afterEach(() => {
+		vi.useRealTimers();
 		vi.restoreAllMocks();
 		vi.mocked(invoke).mockReset();
 		ProjectHistoryManager.clear();
@@ -705,26 +706,243 @@ describe('transcribing timeline audio', () => {
 		expect(track.clips).toHaveLength(0);
 	});
 
-	test('owns each overlap word only once across long audio chunks', async () => {
+	test('sends the entire long clip by default, including with older saved settings', async () => {
 		clip.endTime = 614000;
 		const options = { ...globalState.settings!.speechToTextSettings };
-		vi.mocked(invoke).mockImplementation(async (_command, args) => {
-			const request = (args as { request: { startSeconds: number; durationSeconds: number } })
-				.request;
-			const from = request.startSeconds - 5;
-			return {
-				words: [0, 299.8, 300.5, 599.9, 603]
-					.filter((start) => start >= from && start < from + request.durationSeconds)
-					.map((start) => ({ word: String(start), start: start - from, end: start + 0.1 - from }))
-			};
-		});
+		Reflect.deleteProperty(options, 'transcribeInBatches');
+		Reflect.deleteProperty(options, 'transcriptionBatchSeconds');
 		await transcribeProjectAudio(project, clip.id, options, new AbortController().signal, vi.fn());
-		expect(
-			track.clips
-				.filter((item) => item instanceof SubtitleClip)
-				.map((item) => (item as SubtitleClip).text)
-				.join(' ')
-		).toBe('0 299.8 300.5 599.9 603');
-		expect(invoke).toHaveBeenCalledTimes(3);
+		expect(invoke).toHaveBeenCalledOnce();
+		expect(vi.mocked(invoke).mock.calls[0][1]).toMatchObject({
+			request: { startSeconds: 5, durationSeconds: 604 }
+		});
 	});
+
+	test.each(['groq', 'elevenlabs'] as const)(
+		'owns each overlap word only once across sequential %s batches with timeline and source offsets',
+		async (provider) => {
+			clip.endTime = 614000;
+			const options = {
+				...globalState.settings!.speechToTextSettings,
+				provider,
+				elevenLabsApiKey: 'test-eleven-key',
+				transcribeInBatches: true
+			};
+			vi.mocked(invoke).mockImplementation(async (_command, args) => {
+				expect(track.clips).toEqual([]);
+				const request = (args as { request: { startSeconds: number; durationSeconds: number } })
+					.request;
+				const from = request.startSeconds - 5;
+				return {
+					words: [0, 298.9, 300.5, 599.9, 602]
+						.filter((start) => start >= from && start < from + request.durationSeconds)
+						.map((start) => ({ word: String(start), start: start - from, end: start + 1.6 - from }))
+				};
+			});
+			await transcribeProjectAudio(
+				project,
+				clip.id,
+				options,
+				new AbortController().signal,
+				vi.fn()
+			);
+			expect(
+				track.clips
+					.filter((item) => item instanceof SubtitleClip)
+					.map((item) => (item as SubtitleClip).text)
+					.join(' ')
+			).toBe('0 298.9 300.5 599.9 602');
+			expect(invoke).toHaveBeenCalledTimes(3);
+			expect(vi.mocked(invoke).mock.calls.map(([, args]) => args)).toEqual([
+				expect.objectContaining({
+					request: expect.objectContaining({ startSeconds: 5, durationSeconds: 301.5 })
+				}),
+				expect.objectContaining({
+					request: expect.objectContaining({ startSeconds: 303.5, durationSeconds: 303 })
+				}),
+				expect.objectContaining({
+					request: expect.objectContaining({ startSeconds: 603.5, durationSeconds: 5.5 })
+				})
+			]);
+			const words = globalState.getSubtitleClips.flatMap((subtitle) =>
+				subtitle.alignmentMetadata!.words.map((word) => ({
+					word: word.word,
+					start: subtitle.startTime / 1000 + word.start
+				}))
+			);
+			expect(words.map((word) => word.start)).toEqual([10, 308.9, 310.5, 609.9, 612]);
+			expect(ProjectHistoryManager.undo()).toBe(true);
+			expect(globalState.getSubtitleTrack.clips).toEqual([]);
+			expect(ProjectHistoryManager.redo()).toBe(true);
+			expect(
+				globalState.getSubtitleClips.flatMap((subtitle) => subtitle.text.split(' '))
+			).toHaveLength(5);
+		}
+	);
+
+	test.each([0, 29, 601, 30.5, NaN, Infinity])(
+		'rejects invalid batch duration %s before uploading',
+		async (transcriptionBatchSeconds) => {
+			await expect(
+				transcribeProjectAudio(
+					project,
+					clip.id,
+					{
+						...globalState.settings!.speechToTextSettings,
+						transcribeInBatches: true,
+						transcriptionBatchSeconds
+					},
+					new AbortController().signal,
+					vi.fn()
+				)
+			).rejects.toThrow(/between 30 and 600/);
+			expect(invoke).not.toHaveBeenCalled();
+		}
+	);
+
+	test('retries only the limited batch, honors Retry-After and never imports partial results', async () => {
+		vi.useFakeTimers();
+		clip.endTime = 75000;
+		const existing = new SubtitleClip(10000, 12000, 'Existing');
+		track.clips = [existing];
+		vi.mocked(invoke)
+			.mockResolvedValueOnce({ words: [{ word: 'first', start: 1, end: 2 }] })
+			.mockRejectedValueOnce('STT_HTTP_429:45')
+			.mockResolvedValueOnce({ words: [{ word: 'second', start: 2, end: 3 }] })
+			.mockResolvedValueOnce({ words: [{ word: 'last', start: 2, end: 3 }] });
+		const onProgress = vi.fn();
+		const pending = transcribeProjectAudio(
+			project,
+			clip.id,
+			{
+				...globalState.settings!.speechToTextSettings,
+				transcribeInBatches: true,
+				transcriptionBatchSeconds: 30
+			},
+			new AbortController().signal,
+			onProgress,
+			true
+		);
+		await vi.advanceTimersByTimeAsync(0);
+		expect(invoke).toHaveBeenCalledTimes(2);
+		expect(onProgress).toHaveBeenLastCalledWith('waiting', 30 / 65);
+		expect(track.clips).toEqual([existing]);
+		await vi.advanceTimersByTimeAsync(44999);
+		expect(invoke).toHaveBeenCalledTimes(2);
+		await vi.advanceTimersByTimeAsync(1);
+		await pending;
+		expect(invoke).toHaveBeenCalledTimes(4);
+		expect(vi.mocked(invoke).mock.calls[1]).toEqual(vi.mocked(invoke).mock.calls[2]);
+		expect(globalState.getSubtitleClips.map((subtitle) => subtitle.text)).toEqual([
+			'first',
+			'second',
+			'last'
+		]);
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(globalState.getSubtitleClips[0].text).toBe('Existing');
+	});
+
+	test.each(['cancel', 'edit', 'switch'])(
+		'stops before another paid request if %s happens while waiting after a rate limit',
+		async (action) => {
+			vi.useFakeTimers();
+			vi.mocked(invoke).mockRejectedValue('STT_HTTP_429');
+			const controller = new AbortController();
+			const pending = transcribeProjectAudio(
+				project,
+				clip.id,
+				{
+					...globalState.settings!.speechToTextSettings,
+					transcribeInBatches: true
+				},
+				controller.signal,
+				vi.fn()
+			);
+			const rejection = expect(pending).rejects.toThrow();
+			await vi.advanceTimersByTimeAsync(0);
+			if (action === 'cancel') controller.abort();
+			if (action === 'edit') clip.sourceStartTime = 7000;
+			if (action === 'switch') globalState.currentProject = null;
+			await vi.runAllTimersAsync();
+			await rejection;
+			expect(invoke).toHaveBeenCalledOnce();
+			expect(track.clips).toEqual([]);
+			expect(vi.getTimerCount()).toBe(0);
+		}
+	);
+
+	test.each(['failure', 'cancel', 'silence'])(
+		'handles a later batch ending with %s without losing or partially replacing existing subtitles',
+		async (ending) => {
+			clip.endTime = 75000;
+			const existing = new SubtitleClip(10000, 12000, 'Existing');
+			track.clips = [existing];
+			const controller = new AbortController();
+			vi.mocked(invoke)
+				.mockResolvedValueOnce({ words: [{ word: 'first', start: 1, end: 3 }] })
+				.mockImplementationOnce(async () => {
+					expect(track.clips).toEqual([existing]);
+					if (ending === 'failure') throw 'STT_NETWORK';
+					if (ending === 'cancel') controller.abort();
+					return { words: [] };
+				})
+				.mockResolvedValueOnce({ words: [{ word: 'last', start: 2, end: 4 }] });
+			const pending = transcribeProjectAudio(
+				project,
+				clip.id,
+				{
+					...globalState.settings!.speechToTextSettings,
+					transcribeInBatches: true,
+					transcriptionBatchSeconds: 30
+				},
+				controller.signal,
+				vi.fn(),
+				true
+			);
+			if (ending === 'silence') {
+				await pending;
+				expect(invoke).toHaveBeenCalledTimes(3);
+				expect(globalState.getSubtitleClips.map((subtitle) => subtitle.text)).toEqual([
+					'first',
+					'last'
+				]);
+			} else {
+				await expect(pending).rejects.toThrow();
+				expect(invoke).toHaveBeenCalledTimes(2);
+				expect(track.clips).toEqual([existing]);
+			}
+		}
+	);
+
+	test.each([
+		{ error: 'STT_HTTP_429', batches: true, calls: 4, message: /quota or rate limit/ },
+		{ error: 'STT_HTTP_429:3600', batches: true, calls: 1, message: /quota or rate limit/ },
+		{ error: 'STT_HTTP_429', batches: false, calls: 1, message: /quota or rate limit/ },
+		{ error: 'STT_HTTP_401', batches: true, calls: 1, message: /valid API key/ },
+		{ error: 'STT_SIZE', batches: true, calls: 1, message: /Enable batches or reduce/ }
+	])(
+		'limits retries and preserves subtitles on failure: $error, batches=$batches',
+		async ({ error, batches, calls, message }) => {
+			vi.useFakeTimers();
+			const existing = new SubtitleClip(10000, 12000, 'Existing');
+			track.clips = [existing];
+			vi.mocked(invoke).mockRejectedValue(error);
+			const pending = transcribeProjectAudio(
+				project,
+				clip.id,
+				{
+					...globalState.settings!.speechToTextSettings,
+					transcribeInBatches: batches
+				},
+				new AbortController().signal,
+				vi.fn(),
+				true
+			);
+			const rejection = expect(pending).rejects.toThrow(message);
+			await vi.runAllTimersAsync();
+			await rejection;
+			expect(invoke).toHaveBeenCalledTimes(calls);
+			expect(track.clips).toEqual([existing]);
+		}
+	);
 });

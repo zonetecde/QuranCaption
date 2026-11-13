@@ -41,6 +41,8 @@ export type SpeechToTextSettings = {
 	elevenLabsModel: string;
 	language: string;
 	containsArabicTerms: boolean;
+	transcribeInBatches: boolean;
+	transcriptionBatchSeconds: number;
 	maxWords: number;
 	maxDuration: number;
 	paddingBeforeMs: number;
@@ -188,6 +190,8 @@ export default class Settings extends SerializableBase {
 		elevenLabsModel: 'scribe_v2',
 		language: 'ar',
 		containsArabicTerms: false,
+		transcribeInBatches: false,
+		transcriptionBatchSeconds: 300,
 		maxWords: 8,
 		maxDuration: 6,
 		paddingBeforeMs: 500,

@@ -248,9 +248,32 @@ function speechRequestError(error: unknown): Error {
 	const code = String(error);
 	if (code.includes('STT_HTTP_429')) return new Error(copy.rateLimit());
 	if (/STT_HTTP_40[13]/u.test(code)) return new Error(copy.invalidKey());
+	if (/STT_SIZE|STT_HTTP_413/u.test(code)) return new Error(copy.audioTooLarge());
 	if (code.includes('STT_AUDIO')) return new Error(copy.audioError());
 	if (code.includes('STT_RESPONSE')) return new Error(copy.invalidTimings());
 	return new Error(copy.providerError());
+}
+
+/**
+ * Attend une reprise sans bloquer l'annulation ni conserver d'écouteur après le délai.
+ * @param {number} milliseconds Délai avant la prochaine tentative.
+ * @param {AbortSignal} signal Annulation du traitement.
+ * @returns {Promise<void>} Résolution à la fin du délai, rejet en cas d'annulation.
+ */
+function waitForSpeechRetry(milliseconds: number, signal: AbortSignal): Promise<void> {
+	signal.throwIfAborted();
+	return new Promise((resolve, reject) => {
+		/** Termine immédiatement l'attente lors d'une annulation. @returns {void} */
+		function abort(): void {
+			clearTimeout(timer);
+			reject(signal.reason);
+		}
+		const timer = setTimeout(() => {
+			signal.removeEventListener('abort', abort);
+			resolve();
+		}, milliseconds);
+		signal.addEventListener('abort', abort, { once: true });
+	});
 }
 
 /**
@@ -259,7 +282,7 @@ function speechRequestError(error: unknown): Error {
  * @param {number} clipId Clip audio sélectionné.
  * @param {SpeechToTextSettings} options Réglages et clés personnels copiés au lancement.
  * @param {AbortSignal} signal Annulation empêchant toute requête suivante et tout ajout tardif.
- * @param {(phase: 'transcribing' | 'segmenting', progress: number) => void} onProgress Progression locale.
+ * @param {(phase: 'transcribing' | 'waiting' | 'segmenting', progress: number) => void} onProgress Progression locale.
  * @param {boolean} overwriteExisting Autorise le remplacement de la piste après confirmation utilisateur.
  * @returns {Promise<{ count: number }>} Nombre de sous-titres ajoutés.
  */
@@ -268,7 +291,7 @@ export async function transcribeProjectAudio(
 	clipId: number,
 	options: SpeechToTextSettings,
 	signal: AbortSignal,
-	onProgress: (phase: 'transcribing' | 'segmenting', progress: number) => void,
+	onProgress: (phase: 'transcribing' | 'waiting' | 'segmenting', progress: number) => void,
 	overwriteExisting = false
 ): Promise<{ count: number }> {
 	const copy = getSpeechToTextCopy();
@@ -301,6 +324,12 @@ export async function transcribeProjectAudio(
 		options.maxDuration > 30
 	)
 		throw new Error(copy.invalidLimits());
+	const batchSeconds = options.transcriptionBatchSeconds ?? 300;
+	if (
+		options.transcribeInBatches &&
+		(!Number.isInteger(batchSeconds) || batchSeconds < 30 || batchSeconds > 600)
+	)
+		throw new Error(copy.invalidBatchDuration());
 
 	/**
 	 * Empêche d'appliquer un résultat à un clip modifié, un autre projet ou une plage déjà sous-titrée.
@@ -332,31 +361,41 @@ export async function transcribeProjectAudio(
 	}
 	assertCurrentSource();
 	const duration = (source.end - source.start) / 1000;
+	const chunkSeconds = options.transcribeInBatches ? batchSeconds : duration;
 	const words: SpeechWord[] = [];
-	for (let start = 0; start < duration; start += 300) {
+	for (let start = 0; start < duration; start += chunkSeconds) {
 		assertCurrentSource();
-		onProgress('transcribing', start / duration);
-		const coreEnd = Math.min(duration, start + 300);
+		const coreEnd = Math.min(duration, start + chunkSeconds);
 		const from = Math.max(0, start - 1.5);
 		const to = Math.min(duration, coreEnd + 1.5);
 		let response: unknown;
-		try {
-			response = await invoke('transcribe_audio_chunk', {
-				request: {
-					sourcePath: asset.filePath,
-					startSeconds: source.offset / 1000 + from,
-					durationSeconds: to - from,
-					provider: options.provider,
-					apiKey,
-					language:
-						options.language.trim() !== 'ar' && options.containsArabicTerms
-							? ''
-							: options.language.trim(),
-					model: options.provider === 'groq' ? options.groqModel : options.elevenLabsModel
-				}
-			});
-		} catch (error) {
-			throw speechRequestError(error);
+		for (let attempt = 0; ; attempt++) {
+			assertCurrentSource();
+			onProgress('transcribing', start / duration);
+			try {
+				response = await invoke('transcribe_audio_chunk', {
+					request: {
+						sourcePath: asset.filePath,
+						startSeconds: source.offset / 1000 + from,
+						durationSeconds: to - from,
+						provider: options.provider,
+						apiKey,
+						language:
+							options.language.trim() !== 'ar' && options.containsArabicTerms
+								? ''
+								: options.language.trim(),
+						model: options.provider === 'groq' ? options.groqModel : options.elevenLabsModel
+					}
+				});
+				break;
+			} catch (error) {
+				const rateLimit = String(error).match(/STT_HTTP_429(?::([\d.]+))?/u);
+				const waitSeconds = Math.max(Number(rateLimit?.[1]) || 0, 30 * 2 ** attempt);
+				if (!options.transcribeInBatches || !rateLimit || attempt >= 3 || waitSeconds > 300)
+					throw speechRequestError(error);
+				onProgress('waiting', start / duration);
+				await waitForSpeechRetry(waitSeconds * 1000, signal);
+			}
 		}
 		assertCurrentSource();
 		const timelineStart = source.start / 1000;

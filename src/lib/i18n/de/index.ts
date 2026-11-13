@@ -480,6 +480,14 @@ const de = {
 			provider: 'Anbieter',
 			model: 'Modell',
 			maxDuration: 'Maximale Dauer (Sekunden)',
+			transcribeInBatches: 'Audio in Abschnitten senden',
+			batchDuration: 'Dauer der Audioabschnitte (Sekunden)',
+			batchesHint: 'Hilfreich bei langen Videos.',
+			invalidBatchDuration:
+				'Wähle für jeden Audioabschnitt eine ganze Sekundenzahl zwischen 30 und 600.',
+			waiting: 'Limit erreicht. Warte vor dem nächsten Versuch…',
+			audioTooLarge:
+				'Das Audio überschreitet die Dateigrößenbegrenzung des Anbieters. Aktiviere Abschnitte oder verkürze deren Dauer.',
 			paddingBefore: 'Vorlauf (ms)',
 			paddingAfter: 'Nachlauf (ms)',
 			paddingHint:

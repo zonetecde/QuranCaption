@@ -1666,6 +1666,30 @@ type RootTranslation = {
 			 */
 			maxDuration: string;
 			/**
+			 * S​e​n​d​ ​a​u​d​i​o​ ​i​n​ ​b​a​t​c​h​e​s
+			 */
+			transcribeInBatches: string;
+			/**
+			 * A​u​d​i​o​ ​b​a​t​c​h​ ​d​u​r​a​t​i​o​n​ ​(​s​e​c​o​n​d​s​)
+			 */
+			batchDuration: string;
+			/**
+			 * U​s​e​f​u​l​ ​f​o​r​ ​l​o​n​g​ ​v​i​d​e​o​s​.
+			 */
+			batchesHint: string;
+			/**
+			 * C​h​o​o​s​e​ ​a​ ​w​h​o​l​e​ ​n​u​m​b​e​r​ ​o​f​ ​s​e​c​o​n​d​s​ ​b​e​t​w​e​e​n​ ​3​0​ ​a​n​d​ ​6​0​0​ ​f​o​r​ ​e​a​c​h​ ​a​u​d​i​o​ ​b​a​t​c​h​.
+			 */
+			invalidBatchDuration: string;
+			/**
+			 * R​a​t​e​ ​l​i​m​i​t​ ​r​e​a​c​h​e​d​.​ ​W​a​i​t​i​n​g​ ​b​e​f​o​r​e​ ​r​e​t​r​y​i​n​g​…
+			 */
+			waiting: string;
+			/**
+			 * T​h​e​ ​a​u​d​i​o​ ​e​x​c​e​e​d​s​ ​t​h​e​ ​p​r​o​v​i​d​e​r​’​s​ ​f​i​l​e​ ​s​i​z​e​ ​l​i​m​i​t​.​ ​E​n​a​b​l​e​ ​b​a​t​c​h​e​s​ ​o​r​ ​r​e​d​u​c​e​ ​t​h​e​i​r​ ​d​u​r​a​t​i​o​n​.
+			 */
+			audioTooLarge: string;
+			/**
 			 * P​a​d​d​i​n​g​ ​b​e​f​o​r​e​ ​(​m​s​)
 			 */
 			paddingBefore: string;
@@ -12276,6 +12300,30 @@ export type TranslationFunctions = {
 			 * Max duration (seconds)
 			 */
 			maxDuration: () => LocalizedString;
+			/**
+			 * Send audio in batches
+			 */
+			transcribeInBatches: () => LocalizedString;
+			/**
+			 * Audio batch duration (seconds)
+			 */
+			batchDuration: () => LocalizedString;
+			/**
+			 * Useful for long videos.
+			 */
+			batchesHint: () => LocalizedString;
+			/**
+			 * Choose a whole number of seconds between 30 and 600 for each audio batch.
+			 */
+			invalidBatchDuration: () => LocalizedString;
+			/**
+			 * Rate limit reached. Waiting before retrying…
+			 */
+			waiting: () => LocalizedString;
+			/**
+			 * The audio exceeds the provider’s file size limit. Enable batches or reduce their duration.
+			 */
+			audioTooLarge: () => LocalizedString;
 			/**
 			 * Padding before (ms)
 			 */

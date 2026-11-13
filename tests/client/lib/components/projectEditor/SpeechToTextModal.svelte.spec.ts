@@ -277,6 +277,42 @@ test.each([true, false])(
 	}
 );
 
+test('sends the full audio by default and saves an optional batch duration', async () => {
+	globalState.settings!.speechToTextSettings.groqApiKey = 'groq-personal';
+	const component = render(SpeechToTextModal, { close: vi.fn() });
+	const batches = component.getByRole('checkbox', { name: 'Send audio in batches', exact: true });
+	await expect.element(batches).not.toBeChecked();
+	await expect
+		.element(component.getByLabelText('Audio batch duration (seconds)', { exact: true }))
+		.not.toBeInTheDocument();
+	await component.getByRole('button', { name: 'Transcribe and add subtitles' }).click();
+	await vi.waitFor(() => expect(transcribeProjectAudio).toHaveBeenCalledOnce());
+	expect(vi.mocked(transcribeProjectAudio).mock.calls[0][2].transcribeInBatches).toBe(false);
+	await batches.click();
+	const duration = component.getByLabelText('Audio batch duration (seconds)', { exact: true });
+	await expect.element(duration).toHaveValue(300);
+	await duration.fill('120');
+	await component.getByRole('button', { name: 'Save', exact: true }).click();
+	expect(globalState.settings!.speechToTextSettings).toMatchObject({
+		transcribeInBatches: true,
+		transcriptionBatchSeconds: 120
+	});
+	component.unmount();
+	const reopened = render(SpeechToTextModal, { close: vi.fn() });
+	await expect
+		.element(reopened.getByRole('checkbox', { name: 'Send audio in batches', exact: true }))
+		.toBeChecked();
+	await expect
+		.element(reopened.getByLabelText('Audio batch duration (seconds)', { exact: true }))
+		.toHaveValue(120);
+	await reopened.getByRole('button', { name: 'Transcribe and add subtitles' }).click();
+	await vi.waitFor(() => expect(transcribeProjectAudio).toHaveBeenCalledTimes(2));
+	expect(vi.mocked(transcribeProjectAudio).mock.calls[1][2]).toMatchObject({
+		transcribeInBatches: true,
+		transcriptionBatchSeconds: 120
+	});
+});
+
 test('passes segmentation preferences to the workflow and disables duplicate submissions', async () => {
 	globalState.settings!.speechToTextSettings.groqApiKey = 'groq-personal';
 	let finish!: (value: { count: number }) => void;
@@ -306,6 +342,10 @@ test('passes segmentation preferences to the workflow and disables duplicate sub
 		paddingBeforeMs: 250,
 		paddingAfterMs: 750
 	});
+	vi.mocked(transcribeProjectAudio).mock.calls[0][4]('waiting', 0.5);
+	await expect
+		.element(component.getByRole('status'))
+		.toHaveTextContent('Waiting before retrying… · 40%');
 	finish({ count: 2 });
 	await vi.waitFor(() => expect(close).toHaveBeenCalledOnce());
 });

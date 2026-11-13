@@ -23,7 +23,10 @@
 		untrack(() => ({
 			...globalState.settings!.speechToTextSettings,
 			language: globalState.settings!.speechToTextSettings.language || 'ar',
-			containsArabicTerms: globalState.settings!.speechToTextSettings.containsArabicTerms ?? false
+			containsArabicTerms: globalState.settings!.speechToTextSettings.containsArabicTerms ?? false,
+			transcribeInBatches: globalState.settings!.speechToTextSettings.transcribeInBatches ?? false,
+			transcriptionBatchSeconds:
+				globalState.settings!.speechToTextSettings.transcriptionBatchSeconds ?? 300
 		}))
 	);
 	let selectedLanguage = $state(
@@ -34,7 +37,7 @@
 	let selectedClipId = $state(0);
 	let busy = $state(false);
 	let errorMessage = $state('');
-	let phase = $state<'transcribing' | 'segmenting'>('transcribing');
+	let phase = $state<'transcribing' | 'waiting' | 'segmenting'>('transcribing');
 	let progress = $state(0);
 	const controller = new AbortController();
 	const copy = $derived(($LL.editor as unknown as { speechToText: SpeechToTextCopy }).speechToText);
@@ -125,7 +128,7 @@
 						(nextPhase, value) => {
 							phase = nextPhase;
 							progress = Math.round(
-								(nextPhase === 'transcribing' ? value * 0.8 : 0.8 + value * 0.2) * 100
+								(nextPhase === 'segmenting' ? 0.8 + value * 0.2 : value * 0.8) * 100
 							);
 						},
 						overwrite
@@ -255,6 +258,29 @@
 						<label class="flex cursor-pointer items-center gap-2">
 							<input type="checkbox" bind:checked={settings.containsArabicTerms} />
 							<span>{copy.containsArabicTerms()}</span>
+						</label>
+					{/if}
+				</div>
+				<div class="space-y-2">
+					<div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+						<label class="flex cursor-pointer items-center gap-2">
+							<input type="checkbox" bind:checked={settings.transcribeInBatches} />
+							<span>{copy.transcribeInBatches()}</span>
+						</label>
+						<p class="text-xs text-thirdly">{copy.batchesHint()}</p>
+					</div>
+					{#if settings.transcribeInBatches}
+						<label class="block space-y-1 text-sm text-secondary">
+							<span>{copy.batchDuration()}</span>
+							<input
+								type="number"
+								min="30"
+								max="600"
+								step="1"
+								required
+								bind:value={settings.transcriptionBatchSeconds}
+								class={inputClass}
+							/>
 						</label>
 					{/if}
 				</div>

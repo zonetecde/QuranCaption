@@ -4336,17 +4336,6 @@
 				"linkmin": "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/urd-muhammadjunagar.min.json"
 			},
 			{
-				"key": "urd_muhammadjunagar1",
-				"name": "urd-muhammadjunagar1",
-				"author": "Muhammad Junagarhi, Muhammad Kazim",
-				"language": "Urdu",
-				"direction": "ltr",
-				"source": "",
-				"comments": "",
-				"link": "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/urd-muhammadjunagar1.json",
-				"linkmin": "https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/urd-muhammadjunagar1.min.json"
-			},
-			{
 				"key": "urd_muhammadkaramsh",
 				"name": "urd-muhammadkaramsh",
 				"author": "Muhammad Karam Shah Al Azhari",
@@ -4412,6 +4401,17 @@
 				"comments": "Ponctuation",
 				"link": "/translations/urd-muftitaqiusmani-roman/{chapter}.json",
 				"linkmin": "/translations/urd-muftitaqiusmani-roman/{chapter}.json"
+			},
+			{
+				"key": "urd_muhammadjunagar1",
+				"name": "urd-muhammadjunagar1",
+				"author": "Muhammad Junagarhi, Muhammad Kazim",
+				"language": "Urdu (Roman)",
+				"direction": "ltr",
+				"source": "https://github.com/fawazahmed0/quran-api/blob/93e6f64925ae76273520d636fcaaf061129f2316/editions/urd-muhammadjunagar1.json",
+				"comments": "",
+				"link": "/translations/urd-muhammadjunagar1.json",
+				"linkmin": "/translations/urd-muhammadjunagar1.json"
 			}
 		]
 	},

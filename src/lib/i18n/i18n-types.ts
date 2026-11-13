@@ -6150,6 +6150,80 @@ type RootTranslation = {
 		 * E​x​p​o​r​t​ ​R​a​n​g​e
 		 */
 		exportRange: string;
+		meaning: {
+			/**
+			 * B​y​ ​t​i​m​e
+			 */
+			timeMode: string;
+			/**
+			 * B​y​ ​m​e​a​n​i​n​g
+			 */
+			mode: string;
+			/**
+			 * A​I​ ​e​x​c​e​r​p​t​ ​a​s​s​i​s​t​a​n​t
+			 */
+			title: string;
+			/**
+			 * S​u​g​g​e​s​t​ ​s​e​l​f​-​c​o​n​t​a​i​n​e​d​ ​e​x​c​e​r​p​t​s​ ​f​r​o​m​ ​t​h​e​ ​f​u​l​l​ ​t​a​l​k​,​ ​k​e​e​p​i​n​g​ ​t​h​e​ ​s​e​t​u​p​,​ ​e​x​p​l​a​n​a​t​i​o​n​ ​a​n​d​ ​c​o​n​c​l​u​s​i​o​n​ ​w​i​t​h​i​n​ ​t​h​e​ ​m​a​x​i​m​u​m​ ​d​u​r​a​t​i​o​n​.​ ​I​d​e​a​s​ ​t​h​a​t​ ​n​e​e​d​ ​m​o​r​e​ ​t​i​m​e​ ​a​r​e​ ​s​k​i​p​p​e​d​.
+			 */
+			description: string;
+			/**
+			 * M​a​x​i​m​u​m​ ​e​x​c​e​r​p​t​ ​d​u​r​a​t​i​o​n​ ​(​s​e​c​o​n​d​s​)
+			 */
+			maxDuration: string;
+			/**
+			 * F​o​r​ ​e​x​a​m​p​l​e​:​ ​f​o​c​u​s​ ​o​n​ ​p​a​t​i​e​n​c​e​,​ ​o​r​ ​f​a​v​o​r​ ​p​r​a​c​t​i​c​a​l​ ​a​d​v​i​c​e​.
+			 */
+			preferencesHint: string;
+			/**
+			 * S​u​g​g​e​s​t​ ​e​x​c​e​r​p​t​s
+			 */
+			generate: string;
+			/**
+			 * A​n​a​l​y​z​i​n​g​ ​t​h​e​ ​f​u​l​l​ ​t​a​l​k​…
+			 */
+			generating: string;
+			/**
+			 * U​s​e​ ​t​h​e​s​e​ ​s​u​g​g​e​s​t​i​o​n​s
+			 */
+			apply: string;
+			/**
+			 * O​p​e​n​ ​t​h​e​ ​A​I​ ​a​s​s​i​s​t​a​n​t​ ​t​o​ ​s​u​g​g​e​s​t​ ​c​o​m​p​l​e​t​e​ ​e​x​c​e​r​p​t​s​ ​f​r​o​m​ ​y​o​u​r​ ​t​a​l​k​.
+			 */
+			empty: string;
+			/**
+			 * N​o​ ​c​o​m​p​l​e​t​e​ ​e​x​c​e​r​p​t​ ​f​i​t​s​ ​t​h​i​s​ ​d​u​r​a​t​i​o​n​.​ ​I​n​c​r​e​a​s​e​ ​t​h​e​ ​l​i​m​i​t​ ​o​r​ ​t​r​y​ ​a​g​a​i​n​.
+			 */
+			noResults: string;
+			/**
+			 * A​d​d​ ​a​ ​t​r​a​n​s​c​r​i​p​t​ ​b​e​f​o​r​e​ ​s​u​g​g​e​s​t​i​n​g​ ​e​x​c​e​r​p​t​s​.
+			 */
+			noTranscript: string;
+			/**
+			 * E​n​t​e​r​ ​a​ ​m​a​x​i​m​u​m​ ​d​u​r​a​t​i​o​n​ ​o​f​ ​a​t​ ​l​e​a​s​t​ ​o​n​e​ ​s​e​c​o​n​d​.
+			 */
+			invalidDuration: string;
+			/**
+			 * T​h​e​ ​r​e​s​p​o​n​s​e​ ​c​o​n​t​a​i​n​s​ ​i​n​v​a​l​i​d​,​ ​o​v​e​r​l​a​p​p​i​n​g​ ​o​r​ ​o​v​e​r​l​o​n​g​ ​e​x​c​e​r​p​t​s​.​ ​G​e​n​e​r​a​t​e​ ​a​ ​n​e​w​ ​r​e​s​p​o​n​s​e​ ​w​i​t​h​ ​c​o​m​p​l​e​t​e​ ​e​x​c​e​r​p​t​s​ ​w​i​t​h​i​n​ ​t​h​e​ ​d​u​r​a​t​i​o​n​ ​l​i​m​i​t​.
+			 */
+			invalidResponse: string;
+			/**
+			 * T​h​e​ ​e​x​c​e​r​p​t​s​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​g​e​n​e​r​a​t​e​d​.​ ​C​h​e​c​k​ ​y​o​u​r​ ​A​I​ ​s​e​t​t​i​n​g​s​ ​a​n​d​ ​t​r​y​ ​a​g​a​i​n​.
+			 */
+			requestError: string;
+			/**
+			 * T​h​e​ ​t​r​a​n​s​c​r​i​p​t​ ​c​h​a​n​g​e​d​.​ ​G​e​n​e​r​a​t​e​ ​n​e​w​ ​e​x​c​e​r​p​t​ ​s​u​g​g​e​s​t​i​o​n​s​.
+			 */
+			sourceChanged: string;
+			/**
+			 * S​e​l​e​c​t​ ​a​n​ ​e​x​c​e​r​p​t​,​ ​o​r​ ​u​s​e​ ​C​t​r​l​/​C​m​d​-​c​l​i​c​k​ ​t​o​ ​s​e​l​e​c​t​ ​s​e​v​e​r​a​l​ ​f​o​r​ ​s​e​p​a​r​a​t​e​ ​v​i​d​e​o​s​.
+			 */
+			selectionHint: string;
+			/**
+			 * E​x​p​o​r​t​ ​s​e​l​e​c​t​e​d​ ​e​x​c​e​r​p​t​s
+			 */
+			exportSelected: string;
+		};
 		/**
 		 * S​e​l​e​c​t​ ​t​h​e​ ​t​i​m​e​ ​r​a​n​g​e​ ​o​f​ ​y​o​u​r​ ​v​i​d​e​o​ ​t​o​ ​e​x​p​o​r​t​:
 		 */
@@ -16625,6 +16699,80 @@ export type TranslationFunctions = {
 		 * Export Range
 		 */
 		exportRange: () => LocalizedString;
+		meaning: {
+			/**
+			 * By time
+			 */
+			timeMode: () => LocalizedString;
+			/**
+			 * By meaning
+			 */
+			mode: () => LocalizedString;
+			/**
+			 * AI excerpt assistant
+			 */
+			title: () => LocalizedString;
+			/**
+			 * Suggest self-contained excerpts from the full talk, keeping the setup, explanation and conclusion within the maximum duration. Ideas that need more time are skipped.
+			 */
+			description: () => LocalizedString;
+			/**
+			 * Maximum excerpt duration (seconds)
+			 */
+			maxDuration: () => LocalizedString;
+			/**
+			 * For example: focus on patience, or favor practical advice.
+			 */
+			preferencesHint: () => LocalizedString;
+			/**
+			 * Suggest excerpts
+			 */
+			generate: () => LocalizedString;
+			/**
+			 * Analyzing the full talk…
+			 */
+			generating: () => LocalizedString;
+			/**
+			 * Use these suggestions
+			 */
+			apply: () => LocalizedString;
+			/**
+			 * Open the AI assistant to suggest complete excerpts from your talk.
+			 */
+			empty: () => LocalizedString;
+			/**
+			 * No complete excerpt fits this duration. Increase the limit or try again.
+			 */
+			noResults: () => LocalizedString;
+			/**
+			 * Add a transcript before suggesting excerpts.
+			 */
+			noTranscript: () => LocalizedString;
+			/**
+			 * Enter a maximum duration of at least one second.
+			 */
+			invalidDuration: () => LocalizedString;
+			/**
+			 * The response contains invalid, overlapping or overlong excerpts. Generate a new response with complete excerpts within the duration limit.
+			 */
+			invalidResponse: () => LocalizedString;
+			/**
+			 * The excerpts could not be generated. Check your AI settings and try again.
+			 */
+			requestError: () => LocalizedString;
+			/**
+			 * The transcript changed. Generate new excerpt suggestions.
+			 */
+			sourceChanged: () => LocalizedString;
+			/**
+			 * Select an excerpt, or use Ctrl/Cmd-click to select several for separate videos.
+			 */
+			selectionHint: () => LocalizedString;
+			/**
+			 * Export selected excerpts
+			 */
+			exportSelected: () => LocalizedString;
+		};
 		/**
 		 * Select the time range of your video to export:
 		 */

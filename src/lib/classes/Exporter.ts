@@ -651,55 +651,89 @@ export default class Exporter {
 		);
 	}
 	/**
-	 * Exporte le projet sous forme de vidéo.
+	 * Exporte la plage courante ou met plusieurs extraits en file avec des noms distincts.
+	 * @param {ReadonlyArray<{ startTime: number; endTime: number }>} [ranges] Extraits à exporter séparément.
+	 * @returns {Promise<void>} Résolution après la mise en file des vidéos.
 	 */
-	static async exportVideo() {
-		const videoExtension = globalState.getExportState.exportWithoutBackground
-			? globalState.getExportState.transparentExportFormat === 'webm_vp9_alpha'
+	static async exportVideo(
+		ranges?: ReadonlyArray<{ startTime: number; endTime: number }>
+	): Promise<void> {
+		const sourceProject = ranges
+			? globalState.currentProject!.clone()
+			: globalState.currentProject!;
+		const exportRanges = ranges?.length ? ranges.map((range) => ({ ...range })) : [null];
+		const settings = sourceProject.projectEditorState.export;
+		const videoExtension = settings.exportWithoutBackground
+			? settings.transparentExportFormat === 'webm_vp9_alpha'
 				? 'webm'
 				: 'mov'
 			: 'mp4';
-		const exportFileName =
-			globalState.currentProject!.detail.generateExportFileName() + '.' + videoExtension;
-		const exportFilePath = await join(await ExportService.getExportFolder(), exportFileName);
-		if (await exists(exportFilePath)) {
-			const confirmOverwrite = await ModalManager.confirmModal(
-				get(LL).export.overwriteExistingVideo(),
-				true
-			);
-			if (!confirmOverwrite) {
-				return;
-			}
-		}
-
-		// Génère un ID d'export unique.
-		const exportId = Utilities.randomId().toString();
-		const shouldQueue =
-			Exporter.hasActiveVideoExport() || Exporter.getNextPendingVideoExport() !== undefined;
-
-		// Fait une copie du projet à l'état actuelle
-		const project = globalState.currentProject!.clone();
-		await prepareRandomBackgroundProject(
-			project,
-			globalState.settings?.exportSettings.randomBackgroundFolder ?? ''
+		const baseFileName = sourceProject.detail.generateExportFileName();
+		const folder = await ExportService.getExportFolder();
+		const reservedPaths = new Set(
+			globalState.exportations.map((exportation) => exportation.finalFilePath)
 		);
-		project.detail.id = Number(exportId); // L'ID du projet est l'ID d'export
+		for (const [index, range] of exportRanges.entries()) {
+			let exportFileName = `${baseFileName}${range ? `-${index + 1}` : ''}.${videoExtension}`;
+			let exportFilePath = await ExportService.constrainFilePathLength(
+				await join(folder, exportFileName)
+			);
+			if (range) {
+				let suffix = 1;
+				while (reservedPaths.has(exportFilePath) || (await exists(exportFilePath))) {
+					exportFileName = `${baseFileName}-${index + 1}-${suffix++}.${videoExtension}`;
+					exportFilePath = await ExportService.constrainFilePathLength(
+						await join(folder, exportFileName)
+					);
+				}
+			} else if (await exists(exportFilePath)) {
+				const confirmOverwrite = await ModalManager.confirmModal(
+					get(LL).export.overwriteExistingVideo(),
+					true
+				);
+				if (!confirmOverwrite) {
+					return;
+				}
+			}
+			exportFileName = exportFilePath.split(/[/\\]/).at(-1)!;
+			reservedPaths.add(exportFilePath);
 
-		// Créer le fichier du projet dans le dossier Export afin que l'Exporter le récupère
-		await ExportService.saveProject(project);
+			// Génère un ID d'export unique.
+			const exportId = Utilities.randomId().toString();
+			const shouldQueue =
+				Exporter.hasActiveVideoExport() || Exporter.getNextPendingVideoExport() !== undefined;
 
-		// Ajoute à la liste des exports en cours
-		await ExportService.addExport(project, shouldQueue ? 'recording' : 'stable');
+			// Fait une copie du projet à l'état actuelle
+			const project = sourceProject.clone();
+			if (range) {
+				project.projectEditorState.export.videoStartTime = range.startTime;
+				project.projectEditorState.export.videoEndTime = range.endTime;
+			}
+			await prepareRandomBackgroundProject(
+				project,
+				globalState.settings?.exportSettings.randomBackgroundFolder ?? ''
+			);
+			project.detail.id = Number(exportId); // L'ID du projet est l'ID d'export
 
-		// Ouvre le popup de monitor d'export
-		globalState.uiState.showExportMonitor = true;
+			// Créer le fichier du projet dans le dossier Export afin que l'Exporter le récupère
+			await ExportService.saveProject(project);
 
-		// Set-up l'écouteur d'évènement pour suivre
-		// le progrès des projets en cours d'exportation
-		Exporter.ensureBackgroundWorkersStarted();
+			// Ajoute à la liste des exports en cours
+			await ExportService.addExport(project, shouldQueue ? 'recording' : 'stable', {
+				fileName: exportFileName,
+				filePath: exportFilePath
+			});
 
-		if (!shouldQueue) {
-			await Exporter.openExportWindow(exportId);
+			// Ouvre le popup de monitor d'export
+			globalState.uiState.showExportMonitor = true;
+
+			// Set-up l'écouteur d'évènement pour suivre
+			// le progrès des projets en cours d'exportation
+			Exporter.ensureBackgroundWorkersStarted();
+
+			if (!shouldQueue) {
+				await Exporter.openExportWindow(exportId);
+			}
 		}
 	}
 }

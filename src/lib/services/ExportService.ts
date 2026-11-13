@@ -74,9 +74,16 @@ export default class ExportService {
 
 	/**
 	 * Ajoute un projet à la liste des exports en cours.
-	 * @param project Le projet à ajouter
+	 * @param {Project} project Le projet à ajouter.
+	 * @param {'recording' | 'stable'} mode Mise en attente ou capture immédiate.
+	 * @param {{ fileName: string; filePath: string }} [output] Destination déjà réservée pour un extrait.
+	 * @returns {Promise<void>} Résolution après sauvegarde de l'entrée d'export.
 	 */
-	static async addExport(project: Project, mode: 'recording' | 'stable' = 'stable') {
+	static async addExport(
+		project: Project,
+		mode: 'recording' | 'stable' = 'stable',
+		output?: { fileName: string; filePath: string }
+	) {
 		// Ajoute le projet à la liste des exports en cours
 
 		const videoExtension = project.projectEditorState.export.exportWithoutBackground
@@ -84,8 +91,9 @@ export default class ExportService {
 				? 'webm'
 				: 'mov'
 			: 'mp4';
-		let fileName = project.detail.generateExportFileName() + '.' + videoExtension;
-		let filePath = await join(await this.getExportFolder(), fileName);
+		let fileName =
+			output?.fileName ?? project.detail.generateExportFileName() + '.' + videoExtension;
+		let filePath = output?.filePath ?? (await join(await this.getExportFolder(), fileName));
 
 		filePath = await this.constrainFilePathLength(filePath);
 		fileName = filePath.split(/[/\\]/).at(-1)!;

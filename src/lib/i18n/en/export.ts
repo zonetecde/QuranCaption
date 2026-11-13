@@ -12,6 +12,29 @@ const export_ = {
 	exportVideo: 'Export Video',
 	configureExportSettings: 'Configure your video export settings and select the portion to export.',
 	exportRange: 'Export Range',
+	meaning: {
+		timeMode: 'By time',
+		mode: 'By meaning',
+		title: 'AI excerpt assistant',
+		description:
+			'Suggest self-contained excerpts from the full talk, keeping the setup, explanation and conclusion within the maximum duration. Ideas that need more time are skipped.',
+		maxDuration: 'Maximum excerpt duration (seconds)',
+		preferencesHint: 'For example: focus on patience, or favor practical advice.',
+		generate: 'Suggest excerpts',
+		generating: 'Analyzing the full talk…',
+		apply: 'Use these suggestions',
+		empty: 'Open the AI assistant to suggest complete excerpts from your talk.',
+		noResults: 'No complete excerpt fits this duration. Increase the limit or try again.',
+		noTranscript: 'Add a transcript before suggesting excerpts.',
+		invalidDuration: 'Enter a maximum duration of at least one second.',
+		invalidResponse:
+			'The response contains invalid, overlapping or overlong excerpts. Generate a new response with complete excerpts within the duration limit.',
+		requestError: 'The excerpts could not be generated. Check your AI settings and try again.',
+		sourceChanged: 'The transcript changed. Generate new excerpt suggestions.',
+		selectionHint:
+			'Select an excerpt, or use Ctrl/Cmd-click to select several for separate videos.',
+		exportSelected: 'Export selected excerpts'
+	},
 	selectTimeRange: 'Select the time range of your video to export:',
 	startTime: 'Start Time',
 	endTime: 'End Time',

@@ -1751,6 +1751,33 @@ const de = {
 		configureExportSettings:
 			'Konfigurieren Sie Ihre Videoexport-Einstellungen und wählen Sie den zu exportierenden Bereich.',
 		exportRange: 'Exportbereich',
+		meaning: {
+			timeMode: 'Nach Zeit',
+			mode: 'Nach Sinn',
+			title: 'KI-Assistent für Ausschnitte',
+			description:
+				'Schlägt eigenständige Ausschnitte aus dem gesamten Vortrag vor, mit Einleitung, Erklärung und Schluss innerhalb der Höchstdauer. Gedanken, die mehr Zeit benötigen, werden ausgelassen.',
+			maxDuration: 'Maximale Dauer eines Ausschnitts (Sekunden)',
+			preferencesHint:
+				'Zum Beispiel: Geduld in den Mittelpunkt stellen oder praktische Ratschläge bevorzugen.',
+			generate: 'Ausschnitte vorschlagen',
+			generating: 'Der gesamte Vortrag wird analysiert…',
+			apply: 'Diese Vorschläge übernehmen',
+			empty:
+				'Öffne den KI-Assistenten, um vollständige Ausschnitte aus deinem Vortrag vorzuschlagen.',
+			noResults:
+				'Kein vollständiger Ausschnitt passt in diese Dauer. Erhöhe das Limit oder versuche es erneut.',
+			noTranscript: 'Füge zuerst ein Transkript hinzu, um Ausschnitte vorzuschlagen.',
+			invalidDuration: 'Gib eine Höchstdauer von mindestens einer Sekunde ein.',
+			invalidResponse:
+				'Die Antwort enthält ungültige, überlappende oder zu lange Ausschnitte. Erzeuge eine neue Antwort mit vollständigen Ausschnitten innerhalb des Zeitlimits.',
+			requestError:
+				'Die Ausschnitte konnten nicht erzeugt werden. Prüfe deine KI-Einstellungen und versuche es erneut.',
+			sourceChanged: 'Das Transkript wurde geändert. Erzeuge neue Vorschläge für Ausschnitte.',
+			selectionHint:
+				'Wähle einen Ausschnitt oder mehrere mit Strg/Cmd-Klick, um sie als separate Videos zu exportieren.',
+			exportSelected: 'Ausgewählte Ausschnitte exportieren'
+		},
 		selectTimeRange: 'Wählen Sie den Zeitbereich Ihres zu exportierenden Videos:',
 		startTime: 'Start',
 		endTime: 'Ende',
@@ -3042,6 +3069,6 @@ const de = {
 		failedToOpenExportLogs:
 			'Die Exportprotokolldatei konnte nicht geöffnet werden. Möglicherweise existiert sie noch nicht.'
 	}
-} satisfies Translation;
+} as const;
 
-export default de;
+export default de satisfies Translation;

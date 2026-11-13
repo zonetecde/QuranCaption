@@ -1736,6 +1736,31 @@ const es = {
 		configureExportSettings:
 			'Configure sus ajustes de exportación de video y seleccione la porción a exportar.',
 		exportRange: 'Rango de exportación',
+		meaning: {
+			timeMode: 'Por tiempo',
+			mode: 'Por sentido',
+			title: 'Asistente de extractos con IA',
+			description:
+				'Propone extractos autónomos del discurso completo, con su introducción, explicación y conclusión dentro de la duración máxima. Se omiten las ideas que necesitan más tiempo.',
+			maxDuration: 'Duración máxima de un extracto (segundos)',
+			preferencesHint: 'Por ejemplo: centrarse en la paciencia o priorizar los consejos prácticos.',
+			generate: 'Proponer extractos',
+			generating: 'Analizando el discurso completo…',
+			apply: 'Usar estas propuestas',
+			empty: 'Abre el asistente de IA para proponer extractos completos de tu discurso.',
+			noResults:
+				'Ningún extracto completo cabe en esta duración. Aumenta el límite o inténtalo de nuevo.',
+			noTranscript: 'Añade una transcripción antes de proponer extractos.',
+			invalidDuration: 'Introduce una duración máxima de al menos un segundo.',
+			invalidResponse:
+				'La respuesta contiene extractos inválidos, superpuestos o demasiado largos. Genera otra respuesta con extractos completos que respeten el límite.',
+			requestError:
+				'No se pudieron generar los extractos. Revisa la configuración de IA e inténtalo de nuevo.',
+			sourceChanged: 'La transcripción ha cambiado. Genera nuevas propuestas de extractos.',
+			selectionHint:
+				'Selecciona un extracto o usa Ctrl/Cmd-clic para exportar varios como vídeos separados.',
+			exportSelected: 'Exportar extractos seleccionados'
+		},
 		selectTimeRange: 'Seleccione el rango temporal de su video a exportar :',
 		startTime: 'Inicio',
 		endTime: 'Fin',
@@ -3024,6 +3049,6 @@ const es = {
 		failedToOpenExportLogs:
 			'No se pudo abrir el archivo de registro de exportación. Puede que aún no exista.'
 	}
-} satisfies Translation;
+} as const;
 
-export default es;
+export default es satisfies Translation;

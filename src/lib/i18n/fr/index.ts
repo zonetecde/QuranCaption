@@ -1739,6 +1739,31 @@ const fr = {
 		configureExportSettings:
 			'Configurez vos paramètres d’export vidéo et sélectionnez la portion à exporter.',
 		exportRange: 'Plage d’export',
+		meaning: {
+			timeMode: 'Par temps',
+			mode: 'Par sens',
+			title: 'Assistant IA d’extraits',
+			description:
+				'Propose des extraits autonomes du discours complet, avec leur introduction, leur explication et leur conclusion dans la durée maximale. Les idées qui demandent plus de temps sont écartées.',
+			maxDuration: 'Durée maximale d’un extrait (secondes)',
+			preferencesHint:
+				'Par exemple : privilégier le thème de la patience ou les conseils pratiques.',
+			generate: 'Proposer des extraits',
+			generating: 'Analyse du discours complet…',
+			apply: 'Utiliser ces propositions',
+			empty: 'Ouvrez l’assistant IA pour proposer des extraits complets de votre discours.',
+			noResults:
+				'Aucun extrait complet ne tient dans cette durée. Augmentez la limite ou réessayez.',
+			noTranscript: 'Ajoutez une transcription avant de proposer des extraits.',
+			invalidDuration: 'Saisissez une durée maximale d’au moins une seconde.',
+			invalidResponse:
+				'La réponse contient des extraits invalides, qui se chevauchent ou dépassent la durée. Générez une nouvelle réponse avec des extraits complets respectant la limite.',
+			requestError: 'Impossible de générer les extraits. Vérifiez vos réglages IA et réessayez.',
+			sourceChanged: 'La transcription a changé. Générez de nouvelles propositions d’extraits.',
+			selectionHint:
+				'Sélectionnez un extrait, ou utilisez Ctrl/Cmd-clic pour en exporter plusieurs en vidéos séparées.',
+			exportSelected: 'Exporter les extraits sélectionnés'
+		},
 		selectTimeRange: 'Sélectionnez la plage temporelle de votre vidéo à exporter :',
 		startTime: 'Début',
 		endTime: 'Fin',
@@ -3028,6 +3053,6 @@ const fr = {
 		failedToOpenExportLogs:
 			'Impossible d’ouvrir le fichier de logs d’export. Il n’existe peut-être pas encore.'
 	}
-} satisfies Translation;
+} as const;
 
-export default fr;
+export default fr satisfies Translation;

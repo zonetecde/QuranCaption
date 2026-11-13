@@ -13,6 +13,11 @@
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 	import { open } from '@tauri-apps/plugin-dialog';
 	import type { ExportSkipRange } from '$lib/classes/ProjectEditorState.svelte';
+	import ModalManager from '$lib/components/modals/ModalManager';
+	import type {
+		MeaningExportCopy,
+		MeaningExportRange
+	} from '$lib/services/MeaningExportRangeService';
 
 	type VideoCodec = 'h264' | 'h265';
 
@@ -20,6 +25,13 @@
 	const videoCodecIds: VideoCodec[] = ['h264', 'h265'];
 
 	let showAdvancedSettings = $state(false);
+	const meaningCopy = $derived(($LL.export as unknown as { meaning: MeaningExportCopy }).meaning);
+	let selectedMeaningRangeIds = $state<string[]>([]);
+	const selectedMeaningRanges = $derived(
+		globalState.getExportState.meaningRanges.filter((range) =>
+			selectedMeaningRangeIds.includes(range.id)
+		)
+	);
 	let skipCopy = $derived(
 		$LL.export as unknown as {
 			addSkip: () => string;
@@ -40,6 +52,10 @@
 	let exportReviewCounts = $derived.by(() => {
 		const rangeStart = globalState.getExportState.videoStartTime;
 		const rangeEnd = globalState.getExportState.videoEndTime;
+		const reviewRanges =
+			globalState.getExportState.exportRangeMode === 'meaning' && selectedMeaningRanges.length > 1
+				? selectedMeaningRanges
+				: [{ startTime: rangeStart, endTime: rangeEnd }];
 		const counts = { lowConfidence: 0, missingWords: 0, translations: 0 };
 		const visibleTranslationEditions = new Set(
 			globalState.getProjectTranslation.addedTranslationEditions
@@ -54,8 +70,9 @@
 		for (const clip of globalState.getSubtitleTrack.clips) {
 			if (
 				!(clip instanceof ClipWithTranslation) ||
-				clip.endTime <= rangeStart ||
-				clip.startTime >= rangeEnd
+				!reviewRanges.some(
+					(range) => clip.endTime > range.startTime && clip.startTime < range.endTime
+				)
 			)
 				continue;
 
@@ -81,6 +98,57 @@
 			exportReviewCounts.missingWords > 0 ||
 			exportReviewCounts.translations > 0
 	);
+
+	/**
+	 * Change le mode de sélection sans démarrer de requête IA.
+	 * @param {'time' | 'meaning'} mode Mode de plage souhaité.
+	 * @returns {void}
+	 */
+	function setExportRangeMode(mode: 'time' | 'meaning'): void {
+		ProjectHistoryManager.track('set export range mode', () => {
+			globalState.getExportState.exportRangeMode = mode;
+		});
+		selectedMeaningRangeIds = [];
+	}
+
+	/** Ouvre le choix avec/sans clé avant toute génération. @returns {Promise<void>} Fermeture de la modale. */
+	async function openMeaningAssistant(): Promise<void> {
+		await ModalManager.meaningExportModal();
+		selectedMeaningRangeIds = [];
+	}
+
+	/**
+	 * Sélectionne un extrait ou ajoute une plage à l'export multiple.
+	 * @param {MeaningExportRange} range Proposition retenue.
+	 * @param {MouseEvent} event Clic avec éventuel modificateur Ctrl/Cmd.
+	 * @returns {void}
+	 */
+	function selectMeaningRange(range: MeaningExportRange, event: MouseEvent): void {
+		selectedMeaningRangeIds =
+			event.ctrlKey || event.metaKey
+				? selectedMeaningRangeIds.includes(range.id)
+					? selectedMeaningRangeIds.filter((id) => id !== range.id)
+					: [...selectedMeaningRangeIds, range.id]
+				: [range.id];
+		const active = selectedMeaningRangeIds.includes(range.id)
+			? range
+			: selectedMeaningRanges.at(-1);
+		if (!active) return;
+		ProjectHistoryManager.track('select meaning export range', () => {
+			globalState.getExportState.videoStartTime = active.startTime;
+			globalState.getExportState.videoEndTime = active.endTime;
+		});
+		exportReviewAcknowledged = false;
+	}
+
+	/** Exporte la plage courante ou les extraits sélectionnés séparément. @returns {Promise<void>} Mise en file des vidéos. */
+	async function startVideoExport(): Promise<void> {
+		await Exporter.exportVideo(
+			globalState.getExportState.exportRangeMode === 'meaning' && selectedMeaningRanges.length > 1
+				? selectedMeaningRanges
+				: undefined
+		);
+	}
 
 	/**
 	 * Ajoute une zone ignorée d'une seconde à la position du curseur.
@@ -255,6 +323,62 @@
 	<!-- Time Range Selection -->
 	<div data-tour-id="export-range" class="mb-6">
 		<h4 class="text-base font-medium text-secondary mb-3">{$LL.export.exportRange()}</h4>
+		<div class="mb-4 flex gap-2">
+			{#each ['time', 'meaning'] as mode (mode)}
+				<button
+					type="button"
+					class="flex-1 cursor-pointer rounded-lg border border-color px-3 py-2 text-sm"
+					class:bg-accent={globalState.getExportState.exportRangeMode === mode}
+					aria-pressed={globalState.getExportState.exportRangeMode === mode}
+					onclick={() => setExportRangeMode(mode as 'time' | 'meaning')}
+				>
+					{mode === 'time' ? meaningCopy.timeMode() : meaningCopy.mode()}
+				</button>
+			{/each}
+		</div>
+		{#if globalState.getExportState.exportRangeMode === 'meaning'}
+			<div class="mb-4 space-y-3 rounded-lg border border-color bg-accent p-4">
+				<p class="text-sm text-secondary">{meaningCopy.description()}</p>
+				<button
+					type="button"
+					class="btn-accent w-full px-3 py-2 text-sm"
+					onclick={openMeaningAssistant}
+					disabled={!globalState.getSubtitleClips.length}
+				>
+					<span class="material-icons me-2 align-middle text-base" aria-hidden="true"
+						>auto_awesome</span
+					>{meaningCopy.generate()}
+				</button>
+				{#if globalState.getExportState.meaningRanges.length}
+					<p class="text-xs text-secondary">{meaningCopy.selectionHint()}</p>
+					<div class="space-y-2">
+						{#each globalState.getExportState.meaningRanges as range (range.id)}
+							<button
+								type="button"
+								onclick={(event) => selectMeaningRange(range, event)}
+								aria-pressed={selectedMeaningRangeIds.includes(range.id)}
+								class="meaning-export-range w-full cursor-pointer space-y-1 rounded-lg border border-color bg-secondary p-3 text-start"
+							>
+								{#if selectedMeaningRangeIds.includes(range.id)}
+									<span class="material-icons float-end ms-2 text-accent" aria-hidden="true"
+										>check_circle</span
+									>
+								{/if}
+								<span class="block text-sm font-semibold text-primary" dir="auto"
+									>{range.title}</span
+								>
+								<span class="block text-xs text-secondary"
+									>{formatDuration(range.startTime)}–{formatDuration(range.endTime)} · {formatDuration(
+										range.endTime - range.startTime
+									)}</span
+								>
+								<span class="block text-xs text-secondary" dir="auto">{range.context}</span>
+							</button>
+						{/each}
+					</div>
+				{:else}<p class="text-sm text-secondary">{meaningCopy.empty()}</p>{/if}
+			</div>
+		{/if}
 		<p class="text-thirdly text-sm mb-4">{$LL.export.selectTimeRange()}</p>
 
 		<div class="bg-accent rounded-lg p-4 border border-color">
@@ -476,10 +600,13 @@
 		{/if}
 		<button
 			class="btn-accent px-6 py-3 font-medium disabled:cursor-not-allowed disabled:opacity-50"
-			disabled={hasExportReviewIssues && !exportReviewAcknowledged}
-			onclick={Exporter.exportVideo}
+			disabled={(hasExportReviewIssues && !exportReviewAcknowledged) ||
+				(globalState.getExportState.exportRangeMode === 'meaning' && !selectedMeaningRanges.length)}
+			onclick={startVideoExport}
 		>
-			{$LL.export.exportButton()}
+			{globalState.getExportState.exportRangeMode === 'meaning' && selectedMeaningRanges.length > 1
+				? meaningCopy.exportSelected()
+				: $LL.export.exportButton()}
 		</button>
 		<p class="text-thirdly text-xs mt-2 text-center">
 			{$LL.export.startExportDescription()}
@@ -749,3 +876,11 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	.meaning-export-range[aria-pressed='true'] {
+		border-color: var(--accent-primary);
+		background-color: var(--subtitle-selection-bg);
+		box-shadow: 0 0 0 1px var(--accent-primary);
+	}
+</style>

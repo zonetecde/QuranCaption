@@ -10,6 +10,7 @@ import AudioCutterModal from './tools/AudioCutterModal.svelte';
 import AudioEffectsModal from './tools/AudioEffectsModal.svelte';
 import SpeechToTextModal from './tools/SpeechToTextModal.svelte';
 import RearrangeSubtitlesModal from './tools/RearrangeSubtitlesModal.svelte';
+import MeaningExportModal from './tools/MeaningExportModal.svelte';
 import DetectReferencesModal from './tools/DetectReferencesModal.svelte';
 import CorrectTranscriptionModal from './tools/CorrectTranscriptionModal.svelte';
 import AiBoldModal from '$lib/components/projectEditor/tabs/translationsEditor/modal/AiBoldModal.svelte';
@@ -21,6 +22,28 @@ import LL from '$lib/i18n/i18n-svelte';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 
 export default class ModalManager {
+	/**
+	 * Ouvre l'assistant d'extraits avec les parcours avec et sans clé API.
+	 * @returns {Promise<void>} Résolution après fermeture de la modale.
+	 */
+	static async meaningExportModal(): Promise<void> {
+		return new Promise<void>((resolve) => {
+			const container = document.createElement('div');
+			container.classList.add('modal-wrapper');
+			document.body.appendChild(container);
+			const modal = mount(MeaningExportModal, {
+				target: container,
+				props: {
+					close: () => {
+						void unmount(modal);
+						container.remove();
+						resolve();
+					}
+				}
+			});
+		});
+	}
+
 	/**
 	 * Ouvre la correction prudente des erreurs de transcription avec préécoute et validation.
 	 * @returns {Promise<void>} Résolution après fermeture du modal.

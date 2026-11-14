@@ -63,12 +63,21 @@ export class ManualAiSession {
 	steps = $state<ManualAiStep[]>([]);
 	active = $state(false);
 	ready = $state(false);
+	totalSteps = $state(0);
 	private pending: { accept: () => void; reject: (error: Error) => void } | null = null;
+
+	/** Retourne la progression des réponses attendues. @returns {number} Pourcentage validé. */
+	get progress(): number {
+		let valid = 0;
+		for (const step of this.steps) if (step.status === 'valid') valid++;
+		return this.totalSteps ? Math.round((valid / this.totalSteps) * 100) : 0;
+	}
 
 	/** Réinitialise les réponses avant une nouvelle préparation. @returns {void} */
 	start(): void {
 		this.cancel();
 		this.steps = [];
+		this.totalSteps = 0;
 		this.ready = false;
 		this.active = true;
 	}
@@ -93,27 +102,80 @@ export class ManualAiSession {
 	}
 
 	/**
+	 * Valide tous les lots avant de laisser le parcours existant appliquer leurs réponses.
+	 * @param {string} kind Fonctionnalité concernée.
+	 * @param {T[]} batches Lots construits pour le parcours API.
+	 * @param {(batch: T, parsed: unknown) => { errors: string[] }} validate Validateur métier existant.
+	 * @param {() => string} snapshot Capture des données source pour détecter une modification.
+	 * @param {string} customPromptNote Instruction personnalisée du parcours API.
+	 * @returns {Promise<Map<string, { parsed: unknown; rawText: string; usage?: never }>>} Réponses validées par lot.
+	 */
+	async prepareBatches<T extends { batchId: string; request: unknown }>(
+		kind: string,
+		batches: T[],
+		validate: (batch: T, parsed: unknown) => { errors: string[] },
+		snapshot: () => string,
+		customPromptNote = ''
+	): Promise<Map<string, { parsed: unknown; rawText: string; usage?: never }>> {
+		const source = snapshot();
+		const responses = new Map<string, { parsed: unknown; rawText: string }>();
+		this.start();
+		this.totalSteps = batches.length;
+		try {
+			for (const batch of batches) {
+				const parsed = await this.request(
+					kind,
+					{ batch: batch.request, customPromptNote },
+					/**
+					 * Refuse les réponses obsolètes ou non conformes sans appliquer de résultat partiel.
+					 * @param {unknown} result Résultat extrait de l'enveloppe.
+					 * @returns {unknown} Résultat conforme.
+					 */
+					(result) => {
+						if (snapshot() !== source) throw new Error(getManualAiCopy().sourceChanged());
+						const validation = validate(batch, result);
+						if (validation.errors.length) throw new Error(validation.errors.join('\n'));
+						return result;
+					}
+				);
+				responses.set(batch.batchId, { parsed, rawText: JSON.stringify(parsed) });
+			}
+			if (snapshot() !== source) throw new Error(getManualAiCopy().sourceChanged());
+			this.finish();
+			return responses;
+		} catch (error) {
+			this.cancel();
+			throw error;
+		}
+	}
+
+	/**
 	 * Prépare un prompt local puis attend une réponse conforme au validateur métier existant.
 	 * @param {string} kind Fonctionnalité concernée.
 	 * @param {Record<string, unknown>} request Données du lot, sans identifiants du fournisseur.
 	 * @param {(response: unknown) => T} validate Validation complète du lot sans mutation du projet.
+	 * @param {string} [prompt] Instructions déjà construites pour les appels IA côté interface.
 	 * @returns {Promise<T>} Résultat validé.
 	 */
 	async request<T>(
 		kind: string,
 		request: Record<string, unknown>,
-		validate: (response: unknown) => T
+		validate: (response: unknown) => T,
+		prompt?: string
 	): Promise<T> {
 		if (!this.active) throw new DOMException('', 'AbortError');
 		let instructions: string;
+		let requestId = '';
 		try {
-			instructions = await invoke<string>('prepare_manual_ai_prompt', { kind, request });
+			instructions =
+				prompt ?? (await invoke<string>('prepare_manual_ai_prompt', { kind, request }));
+			const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(instructions));
+			for (const byte of new Uint8Array(hash)) requestId += byte.toString(16).padStart(2, '0');
 		} catch {
 			throw new Error(getManualAiCopy().prepareError());
 		}
 		if (!this.active) throw new DOMException('', 'AbortError');
-		// L'enveloppe empêche d'accepter par erreur une réponse d'un autre lot ou projet.
-		const requestId = crypto.randomUUID();
+		// L'enveloppe identifie le contenu du prompt de façon stable entre les sessions.
 		this.steps = [
 			...this.steps,
 			{

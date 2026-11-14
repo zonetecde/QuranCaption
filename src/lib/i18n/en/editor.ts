@@ -1,4 +1,49 @@
 const editor = {
+	recitationIntro: {
+		button: 'Add istiʿādha / basmala',
+		title: 'Recitation introduction',
+		description: 'Add an opening recitation with matching subtitles before your project.',
+		formulas: 'Opening formulas',
+		istiadha: 'Istiʿādha',
+		basmala: 'Basmala',
+		both: 'Both',
+		reciter: 'Reciter',
+		sourceNote:
+			'Audio from EveryAyah, labeled by source folder. Some reciters share the same recording.',
+		preview: 'Listen before adding',
+		addPadding: 'Add padding',
+		paddingStart: 'Pause before the introduction',
+		paddingEnd: 'Pause after the introduction',
+		timingHint:
+			'Pauses are in seconds. Existing audio, video and subtitles move together to the right.',
+		existingProject: 'Current project',
+		apply: 'Add at the beginning',
+		adding: 'Downloading and adding…',
+		success: 'Introduction added. You can undo this action.',
+		downloadError:
+			'The audio could not be downloaded or read. Check your connection and try again.',
+		invalidSettings: 'Choose a reciter and enter valid, non-negative pause durations.',
+		projectChanged: 'The open project changed. Reopen this dialog and try again.',
+		previewError: 'Preview unavailable. You can retry or select another reciter.',
+		reciters: {
+			husary: 'Mahmoud Khalil Al-Husary',
+			shatri: 'Abu Bakr Ash-Shatri',
+			abdulBasit: 'Abdul Basit Abdus Samad',
+			basfar: 'Abdullah Basfar',
+			ajmi: 'Ahmed Al-Ajmi',
+			alafasy: 'Mishary Rashid Alafasy',
+			aliJaber: 'Ali Jaber',
+			ghamdi: 'Saad Al-Ghamdi',
+			rifai: 'Hani Ar-Rifai',
+			hudhaify: 'Ali Al-Hudhaify',
+			minshawi: 'Muhammad Siddiq Al-Minshawi',
+			ayyoub: 'Muhammad Ayyoub',
+			shuraym: 'Saud Ash-Shuraym'
+		}
+	},
+	showVideoPreview: 'Show video in preview',
+	videoPreviewHelp:
+		'Uncheck for smoother scrubbing without loading the video in the preview. The exported video is unaffected.',
 	cloudModelBase: 'Base',
 	cloudModelLarge: 'Large',
 	cloudDeviceGpu: 'GPU',
@@ -1323,7 +1368,7 @@ const editor = {
 		'box-shadow-color': 'Set the color of the container shadow',
 		outline: 'Add outlines and strokes around text',
 		'outline-enable': 'Enable or disable text outline',
-		'text-outline': 'Set the width of the text outline (shadow-based)',
+		'text-outline': 'Set the width of the text outline',
 		'text-outline-color': 'Set the color of the text outline',
 		'text-glow': 'Add a glow effect to the text',
 		'text-glow-enable': 'Enable or disable text glow',

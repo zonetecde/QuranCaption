@@ -4,6 +4,10 @@
 	import { mobileModalSheet } from '$lib/services/mobileModalSheet';
 	import AiActivityLogCard from './AiActivityLogCard.svelte';
 	import AiRunStatusCard from './AiRunStatusCard.svelte';
+	import AiAccessTabs from '$lib/components/modals/AiAccessTabs.svelte';
+	import ManualAiWorkflow from '$lib/components/modals/ManualAiWorkflow.svelte';
+	import LL from '$lib/i18n/i18n-svelte';
+	import type { ManualAiCopy, ManualAiSession } from '$lib/services/ManualAiSession.svelte';
 
 	type MetricItem = {
 		label: string;
@@ -62,6 +66,9 @@
 		iconClass = 'text-xl',
 		panelScale,
 		workspace,
+		manualSession,
+		manual = $bindable(false),
+		busy = false,
 		subtitle,
 		afterHeader,
 		configurationFields,
@@ -78,6 +85,9 @@
 		iconClass?: string;
 		panelScale?: number;
 		workspace?: AssistantWorkspace;
+		manualSession?: ManualAiSession;
+		manual?: boolean;
+		busy?: boolean;
 		subtitle?: Snippet;
 		afterHeader?: Snippet;
 		configurationFields?: Snippet;
@@ -85,6 +95,12 @@
 		afterStatus?: Snippet;
 		children?: Snippet;
 	} = $props();
+	const copy = $derived(($LL.editor as unknown as { manualAi: ManualAiCopy }).manualAi);
+
+	/** Annule les réponses lors d'un changement de méthode. @returns {void} */
+	function resetManualSession(): void {
+		manualSession?.cancel();
+	}
 </script>
 
 <div
@@ -117,6 +133,7 @@
 				<button
 					type="button"
 					class="flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-secondary transition-all duration-200 hover:bg-[rgba(255,255,255,0.1)] hover:text-primary"
+					disabled={manual && busy && manualSession?.ready}
 					onclick={close}
 				>
 					<span class="material-icons text-lg">close</span>
@@ -125,8 +142,26 @@
 		</div>
 
 		{@render afterHeader?.()}
+		{#if manualSession}
+			<AiAccessTabs bind:manual disabled={busy} onchange={resetManualSession} />
+		{/if}
 
-		{#if workspace}
+		{#if workspace && manualSession && manual}
+			<div class="min-h-0 overflow-y-auto">
+				{#if !manualSession.active && !manualSession.ready}
+					<fieldset disabled={busy} class="space-y-5 p-5">
+						{@render configurationFields?.()}
+						<button
+							type="button"
+							class="btn-accent w-full px-4 py-3 text-sm font-semibold"
+							disabled={workspace.run.disabled}
+							onclick={workspace.run.onclick}>{copy.prepare()}</button
+						>
+					</fieldset>
+				{/if}
+				<ManualAiWorkflow session={manualSession} progress={manualSession.progress} />
+			</div>
+		{:else if workspace}
 			<div class={bodyClass}>
 				<div class="shrink-0 space-y-4 border-b border-color p-4">
 					<div class="rounded-xl border border-color bg-accent px-4 py-4">

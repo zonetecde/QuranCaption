@@ -124,7 +124,7 @@
 		"valueMin": 0,
 		"valueMax": 20,
 		"step": 0.01,
-		"css": "text-shadow: -{value}px -{value}px 0 var(--text-outline-color), {value}px -{value}px 0 var(--text-outline-color), -{value}px {value}px 0 var(--text-outline-color), {value}px {value}px 0 var(--text-outline-color), -{value}px 0 0 var(--text-outline-color), {value}px 0 0 var(--text-outline-color), 0 -{value}px 0 var(--text-outline-color), 0 {value}px 0 var(--text-outline-color), calc(-{value}px * 0.707) calc(-{value}px * 0.707) 0 var(--text-outline-color), calc({value}px * 0.707) calc(-{value}px * 0.707) 0 var(--text-outline-color), calc(-{value}px * 0.707) calc({value}px * 0.707) 0 var(--text-outline-color), calc({value}px * 0.707) calc({value}px * 0.707) 0 var(--text-outline-color), calc(-{value}px * 0.5) calc(-{value}px * 0.866) 0 var(--text-outline-color), calc({value}px * 0.5) calc(-{value}px * 0.866) 0 var(--text-outline-color), calc(-{value}px * 0.866) calc(-{value}px * 0.5) 0 var(--text-outline-color), calc({value}px * 0.866) calc(-{value}px * 0.5) 0 var(--text-outline-color), calc(-{value}px * 0.5) calc({value}px * 0.866) 0 var(--text-outline-color), calc({value}px * 0.5) calc({value}px * 0.866) 0 var(--text-outline-color), calc(-{value}px * 0.866) calc({value}px * 0.5) 0 var(--text-outline-color), calc({value}px * 0.866) calc({value}px * 0.5) 0 var(--text-outline-color) !important;",
+		"css": "-webkit-text-stroke: calc({value}px * 2) var(--text-outline-color); paint-order: stroke fill;",
 		"tailwind": false,
 
 		"icon": "line_weight"
@@ -156,7 +156,7 @@
 		"description": "Set the color of the text glow",
 		"value": "#ffffff",
 		"valueType": "color",
-		"css": "--text-glow-color: {value};  text-shadow: 0 0 calc(var(--text-glow-blur) * 0.5) var(--text-glow-color), 0 0 var(--text-glow-blur) var(--text-glow-color), 0 0 calc(var(--text-glow-blur) * 1.5) var(--text-glow-color), 0 0 calc(var(--text-glow-blur) * 2) var(--text-glow-color); filter: drop-shadow(0 0 var(--text-glow-blur) var(--text-glow-color)) brightness(calc(100% + 5 * 50%));",
+		"css": "--text-glow-color: {value}; --text-glow-shadow: 0 0 calc(var(--text-glow-blur) * 0.5) var(--text-glow-color), 0 0 var(--text-glow-blur) var(--text-glow-color), 0 0 calc(var(--text-glow-blur) * 2) var(--text-glow-color); text-shadow: var(--wbw-word-glow-shadow, 0 0 0 transparent), var(--inline-word-glow-shadow, 0 0 0 transparent), var(--text-neon-shadow, 0 0 0 transparent), var(--text-glow-shadow, 0 0 0 transparent), var(--text-drop-shadow, 0 0 0 transparent);",
 		"tailwind": false,
 		"icon": "palette"
 	},

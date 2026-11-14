@@ -144,6 +144,15 @@ export class VideoStyleSchemaService {
 				hasChanges = true;
 				continue;
 			}
+			if (typeof defaultStyle.css === 'string' && existingStyle.css !== defaultStyle.css) {
+				// Le CSS est une implémentation du catalogue ; les choix utilisateur restent dans value.
+				existingStyle.css = defaultStyle.css;
+				hasChanges = true;
+			}
+			if (defaultStyle.id === 'text-outline' && existingStyle.valueMax !== defaultStyle.valueMax) {
+				existingStyle.valueMax = defaultStyle.valueMax;
+				hasChanges = true;
+			}
 			if (
 				(defaultStyle.id === 'letter-spacing' || defaultStyle.id === 'word-spacing') &&
 				existingStyle.valueMin !== defaultStyle.valueMin

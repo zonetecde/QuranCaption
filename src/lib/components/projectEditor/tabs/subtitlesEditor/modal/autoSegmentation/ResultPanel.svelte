@@ -8,7 +8,7 @@
 	import toast from 'svelte-5-french-toast';
 	import { openUrl } from '@tauri-apps/plugin-opener';
 
-	let { isImportMode = false } = $props<{ isImportMode?: boolean }>();
+	let { isImportMode = false }: { isImportMode?: boolean } = $props();
 	const wizard = getSharedWizard();
 
 	/**

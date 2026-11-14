@@ -1,4 +1,5 @@
 import { domToForeignObjectSvg, type Context } from 'modern-screenshot';
+import { refreshRoundedTextOutlines } from '$lib/services/RoundedTextOutline';
 
 /**
  * Prépare au plus une capture en avance et attend les écritures avant de terminer.
@@ -96,6 +97,7 @@ function collectFontRules(
 export async function prepareAndroidOverlay(
 	context: Context<HTMLElement>
 ): Promise<{ html: string; fontCss: string[] }> {
+	refreshRoundedTextOutlines(context.node);
 	context.fontFamilies.clear();
 	context.shadowRoots.length = 0;
 	context.svgStyles.clear();

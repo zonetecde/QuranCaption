@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createContext, destroyContext, type Context } from 'modern-screenshot';
+import { roundedTextOutline } from '$lib/services/RoundedTextOutline';
 import {
 	prepareAndroidOverlay,
 	runAndroidCapturePipeline
@@ -135,6 +136,28 @@ afterEach(() => {
 });
 
 describe('capture DOM pour le renderer Android', () => {
+	it('actualise les contours modifiés juste avant de cloner le DOM Android', async () => {
+		const context = await createOverlay();
+		const paragraph = context.node.querySelector('p')!;
+		paragraph.innerHTML = '<span>بِسْمِ اللَّهِ</span>';
+		context.node.style.webkitTextStroke = '8px red';
+		const outline = roundedTextOutline(paragraph, '');
+		try {
+			await prepareAndroidOverlay(context);
+			paragraph.querySelector('span')!.textContent = 'اللَّهِ';
+			const capture = await prepareAndroidOverlay(context);
+			const clone = document.createElement('div');
+			clone.innerHTML = capture.html;
+			const text = clone.querySelector('svg.rounded-text-outline text')!;
+			expect(text).not.toBeNull();
+			expect(text.textContent).toBe('اللَّهِ');
+			expect(text.getAttribute('stroke-width')).toBe('8px');
+			expect(text.getAttribute('stroke-dasharray')).toBe('1 0');
+		} finally {
+			outline.destroy();
+		}
+	});
+
 	it.each(['QCNativeCapture', 'Inter', 'IBM Plex Mono'])(
 		'exclut les imports Google Fonts inutilisés avec %s quand leur CSSOM est inaccessible',
 		async (font) => {

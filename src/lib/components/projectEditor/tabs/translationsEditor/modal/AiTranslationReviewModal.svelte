@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { ManualAiSession } from '$lib/services/ManualAiSession.svelte';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import LL from '$lib/i18n/i18n-svelte';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -40,6 +41,8 @@
 
 	let maxBatchWords = $state(500);
 	let isRunning = $state(false);
+	let manualMode = $state(!globalState.settings?.aiTranslationSettings.openAiApiKey.trim());
+	const session = new ManualAiSession();
 	let completedBatches = $state(0);
 	let successfulBatches = $state(0);
 	let failedSegments = $state(0);
@@ -200,11 +203,11 @@
 		const aiSettings = globalState.settings!.aiTranslationSettings;
 		const apiKey = aiSettings.openAiApiKey.trim();
 		const endpoint = aiSettings.textAiApiEndpoint.trim();
-		if (!apiKey) {
+		if (!manualMode && !apiKey) {
 			toast.error(get(LL).translations.configureAiKeyFirst());
 			return;
 		}
-		if (!endpoint) {
+		if (!manualMode && !endpoint) {
 			toast.error(get(LL).translations.configureTextAiFirst());
 			return;
 		}
@@ -216,6 +219,32 @@
 		let successfullyCheckedSegments = 0;
 		resetRunState();
 		isRunning = true;
+
+		let manualResponses: Awaited<ReturnType<ManualAiSession['prepareBatches']>> | undefined;
+		if (manualMode) {
+			const sourceProject = globalState.currentProject;
+			try {
+				manualResponses = await session.prepareBatches(
+					'translation_review',
+					runBatches,
+					validateAiTranslationReviewBatchResult,
+					/**
+					 * Capture le contenu source sans les états de lecture ou de configuration.
+					 * @returns {string} Contenu sérialisé, ou chaîne vide si le projet a changé.
+					 */
+					() =>
+						globalState.currentProject === sourceProject
+							? JSON.stringify(sourceProject?.content.toJSON())
+							: ''
+				);
+			} catch (error) {
+				isRunning = false;
+				if (!(error instanceof DOMException && error.name === 'AbortError')) {
+					toast.error(error instanceof Error ? error.message : String(error));
+				}
+				return;
+			}
+		}
 		activeBatchIds = new Set(runBatches.map((batch) => batch.batchId));
 		addActivity('queued', get(LL).editor.aiTranslationReviewDescription());
 
@@ -241,14 +270,16 @@
 				addActivity('queued', `${batchLabel} · ${worker.detail}`, 'info', batch.batchId);
 
 				try {
-					const response = await runAiTranslationReviewBatch({
-						apiKey,
-						endpoint,
-						model: aiSettings.advancedTrimModel,
-						reasoningEffort: aiSettings.advancedTrimReasoningEffort,
-						batchId: batch.batchId,
-						batch: batch.request
-					});
+					const response =
+						manualResponses?.get(batch.batchId) ??
+						(await runAiTranslationReviewBatch({
+							apiKey,
+							endpoint,
+							model: aiSettings.advancedTrimModel,
+							reasoningEffort: aiSettings.advancedTrimReasoningEffort,
+							batchId: batch.batchId,
+							batch: batch.request
+						}));
 					chunkBuffer.flush();
 					worker.response = response.rawText;
 					worker.step = 'validating';
@@ -310,6 +341,7 @@
 		} else {
 			toast.success(latestSummary);
 		}
+		if (manualMode) close();
 	}
 
 	onMount(async () => {
@@ -320,6 +352,7 @@
 	});
 
 	onDestroy(() => {
+		session.cancel();
 		chunkBuffer.clear();
 		for (const unlisten of unlistenFns) unlisten();
 		unlistenFns = [];
@@ -327,8 +360,11 @@
 </script>
 
 <TranslationsEditorModalShell
+	manualSession={session}
+	bind:manual={manualMode}
+	busy={isRunning}
 	close={() => {
-		if (!isRunning) close();
+		if (!isRunning || manualMode) close();
 	}}
 	title={$LL.editor.reviewTranslationsWithAi()}
 	icon="fact_check"

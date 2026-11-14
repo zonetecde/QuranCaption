@@ -47,7 +47,7 @@
 		message?: string;
 	};
 
-	let { close } = $props<{ close: () => void }>();
+	let { close }: { close: () => void } = $props();
 
 	let repeatCount = $state(3);
 	let repeatTarget = $state<HifzRepeatTarget>('verse');

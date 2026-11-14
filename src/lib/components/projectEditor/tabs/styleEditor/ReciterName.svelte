@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NativeTextEffects from '../../videoPreview/NativeTextEffects.svelte';
 	import { getOverlayLayerZIndex } from '$lib/services/OverlayLayerService';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
@@ -97,7 +98,13 @@
 				class="reciters-font"
 				style={`opacity: ${reciter().number !== -1 ? reciterNameSettings().showArabic : 0} !important; font-size: ${reciterNameSettings().size}rem !important; ${globalState.getStyle('global', 'reciter-latin-text-style')!.generateCSSForComposite()}; font-family: 'Reciters' !important;`}
 			>
-				{reciter().number}
+				<NativeTextEffects
+					css={globalState
+						.getStyle('global', 'reciter-latin-text-style')!
+						.generateCSSForComposite()}
+				>
+					{reciter().number}
+				</NativeTextEffects>
 			</p>
 		{:else}
 			<p

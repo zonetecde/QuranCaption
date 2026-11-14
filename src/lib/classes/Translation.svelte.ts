@@ -2,6 +2,7 @@
 import type { SubtitleClip } from './Clip.svelte';
 import type { Edition } from './Edition';
 import { SerializableBase } from './misc/SerializableBase';
+import { getWordGlowCss } from '$lib/services/TextEffects';
 
 export type TranslationStatus =
 	| 'completed by default'
@@ -88,11 +89,7 @@ export function getInlineStyleCss(flags: TranslationInlineStyleFlags): string {
 	if (flags.underline) parts.push('text-decoration: underline;');
 	if (flags.color) parts.push(`color: ${flags.color};`);
 	if (flags.glow) {
-		parts.push(
-			`--inline-word-glow-color: ${flags.glow};`,
-			'text-shadow: 0 0 calc(var(--text-glow-blur, 10px) * 0.5) var(--inline-word-glow-color), 0 0 var(--text-glow-blur, 10px) var(--inline-word-glow-color), 0 0 calc(var(--text-glow-blur, 10px) * 1.5) var(--inline-word-glow-color), 0 0 calc(var(--text-glow-blur, 10px) * 2) var(--inline-word-glow-color);',
-			'filter: drop-shadow(0 0 var(--text-glow-blur, 10px) var(--inline-word-glow-color)) brightness(calc(100% + 5 * 50%));'
-		);
+		parts.push(getWordGlowCss(flags.glow, 'var(--text-glow-blur, 10px)'));
 	}
 	return parts.join(' ');
 }

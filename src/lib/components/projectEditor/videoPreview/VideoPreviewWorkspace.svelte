@@ -1,3 +1,7 @@
+<script module lang="ts">
+	const audioErrorNotifiedProjects = new Set<number>();
+</script>
+
 <script lang="ts">
 	import { AssetType, ProjectEditorTabs, TrackType, AssetClip, type Asset } from '$lib/classes';
 	import { globalState } from '$lib/runes/main.svelte';
@@ -24,7 +28,8 @@
 	const isExportRenderer =
 		typeof window !== 'undefined' && window.location.pathname.includes('/exporter');
 	const NATIVE_SILENCE_PATH = '__qurancaption_silence__';
-	let lastTimeErrorShown = 0; // Timestamp of the last error shown (prevent spam)
+	let showVideoPreview = $derived(isExportRenderer || globalState.uiState.showVideoPreview);
+	let audioSetupId = 0;
 	let fullscreenControlsVisible = $state(false);
 	let fullscreenControlsTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -37,6 +42,7 @@
 	// Récupère l'asset vidéo actuellement sous le curseur de la timeline
 	// Seulement si movePreviewTo est défini (pour éviter les recalculs inutiles)
 	let currentVideo = $derived(() => {
+		if (!showVideoPreview) return null;
 		if (getTimelineSettings().movePreviewTo !== undefined) {
 			return untrack(() => {
 				const asset = globalState.currentProject!.content.timeline.getCurrentAssetOnTrack(
@@ -48,6 +54,7 @@
 	});
 
 	let currentImage = $derived(() => {
+		if (!showVideoPreview) return null;
 		if (getTimelineSettings().movePreviewTo !== undefined) {
 			return untrack(() => {
 				const timeline = globalState.currentProject!.content.timeline;
@@ -150,8 +157,7 @@
 		// Le plein écran du renderer d'export sert uniquement aux captures.
 		if (isExportRenderer) return;
 		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
-			| { width: number; height: number }
-			| undefined;
+			{ width: number; height: number } | undefined;
 		void invoke('set_android_landscape_allowed', {
 			allowed:
 				globalState.getVideoPreviewState.isFullscreen &&
@@ -213,11 +219,13 @@
 
 	/**
 	 * Calcule le temps à jouer dans la vidéo en fonction de la position du curseur
-	 * @returns Temps en secondes dans la vidéo
+	 * @param {number} refTime Position de référence dans la timeline, en millisecondes.
+	 * @returns {number} Temps en secondes dans la vidéo.
 	 */
-	function getCurrentVideoTimeToPlay(): number {
+	function getCurrentVideoTimeToPlay(
+		refTime = getTimelineSettings().movePreviewTo ?? getTimelineSettings().cursorPosition
+	): number {
 		const track = globalState.getVideoTrack;
-		const refTime = getTimelineSettings().movePreviewTo ?? getTimelineSettings().cursorPosition;
 		const currentClip = track.getCurrentVisualClip(refTime);
 		const asset = currentVideo();
 
@@ -277,6 +285,7 @@
 	}
 
 	onDestroy(() => {
+		audioSetupId++;
 		if (audioHowl) {
 			audioHowl.unload(); // Libère les ressources audio
 			audioHowl = null;
@@ -847,9 +856,27 @@
 	}
 
 	/**
+	 * Affiche une seule erreur audio par projet pendant la session de l'application.
+	 * @param {string} message Message localisé à afficher.
+	 * @param {number} projectId Projet propriétaire du lecteur en erreur.
+	 * @returns {void}
+	 */
+	function showAudioPreviewError(message: string, projectId: number): void {
+		if (
+			globalState.currentProject?.detail.id !== projectId ||
+			audioErrorNotifiedProjects.has(projectId)
+		)
+			return;
+		audioErrorNotifiedProjects.add(projectId);
+		toast.error(message, { id: `audio-preview-error-${projectId}`, position: 'bottom-left' });
+	}
+
+	/**
 	 * Configure et initialise l'instance Howler pour l'audio actuel
 	 */
 	function setupAudio() {
+		const setupId = ++audioSetupId;
+		const projectId = globalState.currentProject!.detail.id;
 		const audioAsset = currentAudio();
 		const currentAudioClip = globalState.getAudioTrack.getCurrentClip();
 		requestedAudioClipId = currentAudioClip?.id ?? null;
@@ -898,11 +925,12 @@
 					speed: audioSpeed,
 					volume
 				}).catch((error) => {
+					if (setupId !== audioSetupId) return;
 					console.error('Media3 load error:', error);
-					if (Date.now() - lastTimeErrorShown > 5000) {
-						toast.error(get(LL).editor.audioFailedToPlay({ error: JSON.stringify(error) }));
-						lastTimeErrorShown = Date.now();
-					}
+					showAudioPreviewError(
+						get(LL).editor.audioFailedToPlay({ error: JSON.stringify(error) }),
+						projectId
+					);
 				});
 				return;
 			}
@@ -910,6 +938,8 @@
 			audioHowl = new Howl({
 				mute: globalState.getVideoPreviewState.showVideosAndAudios,
 				src: [`${convertFileSrc(audioAsset.filePath)}?v=${audioAsset.mediaReloadToken}`],
+				// Howler ne reconnaît pas MKV, même si le décodeur du navigateur sait le lire.
+				format: audioAsset.getFileExtension() === 'mkv' ? ['webm'] : undefined,
 				html5: !isLinux, // Use Web Audio API only on Linux for better compatibility
 				rate: audioSpeed, // Vitesse de lecture initiale
 				onplay: () => {
@@ -923,27 +953,27 @@
 					}
 				},
 				onloaderror: (id, error) => {
+					if (setupId !== audioSetupId) return;
 					console.error('Howler load error:', error);
 					if (error === 'No codec support for selected audio sources.') {
-						toast.error(get(LL).editor.convertToMp4Error());
+						showAudioPreviewError(get(LL).editor.convertToMp4Error(), projectId);
 						return;
 					}
 					// On Linux, Web Audio API might report decoding errors even if it works partially or for VBR.
 					if (isLinux && error === 'Decoding audio data failed.') {
 						return;
 					}
-					if (Date.now() - lastTimeErrorShown > 5000) {
-						if (error === 4) {
-							toast.error(get(LL).editor.audioFileMissing(), { duration: 1000 });
-						} else {
-							toast.error(get(LL).editor.unknownAudioError({ error: JSON.stringify(error) }), {
-								duration: 1000
-							});
-						}
-						lastTimeErrorShown = Date.now();
+					if (error === 4) {
+						showAudioPreviewError(get(LL).editor.audioFileMissing(), projectId);
+					} else {
+						showAudioPreviewError(
+							get(LL).editor.unknownAudioError({ error: JSON.stringify(error) }),
+							projectId
+						);
 					}
 				},
 				onplayerror: (id, error) => {
+					if (setupId !== audioSetupId) return;
 					console.error('Howler play error:', error);
 
 					if (isPlaybackUnlockError(error)) {
@@ -955,7 +985,10 @@
 						return;
 					}
 
-					toast.error(get(LL).editor.audioFailedToPlay({ error: JSON.stringify(error) }));
+					showAudioPreviewError(
+						get(LL).editor.audioFailedToPlay({ error: JSON.stringify(error) }),
+						projectId
+					);
 					// Fallback si la lecture échoue réellement
 					pause();
 				},
@@ -1167,6 +1200,17 @@
 	}
 
 	/**
+	 * Recale la vidéo rechargée sans interrompre l'audio déjà en lecture.
+	 * @returns {void}
+	 */
+	function syncLoadedVideoToCursor(): void {
+		if (!videoElement) return;
+		videoElement.currentTime = getCurrentVideoTimeToPlay(getTimelineSettings().cursorPosition);
+		videoElement.playbackRate = audioSpeed;
+		if (isPlaying) void videoElement.play().catch(() => {});
+	}
+
+	/**
 	 * Synchronise les médias avec le curseur sans redémarrer inutilement
 	 * la lecture quand un simple seek suffit.
 	 */
@@ -1364,7 +1408,7 @@
 						loop={isVideoLooping()}
 						playsinline
 						preload="auto"
-						onloadedmetadata={syncMediaToCursorPosition}
+						onloadedmetadata={syncLoadedVideoToCursor}
 						onended={goNextVideo}
 						style={`${backgroundMediaStyle} opacity: ${transitionState.currentOpacity};`}
 					></video>

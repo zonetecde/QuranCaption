@@ -145,6 +145,7 @@ class GlobalState {
 	settings: Settings | undefined = $state(undefined);
 
 	uiState = $state({
+		showVideoPreview: true,
 		// Indique si on affiche le moniteur d'exportation
 		showExportMonitor: false,
 		showReflectionPrompt: false,

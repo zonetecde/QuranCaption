@@ -1,7 +1,7 @@
 <script lang="ts">
 	import LL from '$lib/i18n/i18n-svelte';
 
-	let { onClose } = $props<{ onClose: () => void }>();
+	let { onClose }: { onClose: () => void } = $props();
 </script>
 
 <header class="border-b border-color bg-gradient-to-r from-accent to-bg-accent px-6 py-4">

@@ -20,7 +20,7 @@
 		clipIds: number[];
 	};
 
-	let { close } = $props<{ close: () => void }>();
+	let { close }: { close: () => void } = $props();
 
 	const quranClips = globalState.currentProject
 		? globalState.getSubtitleTrack.clips.filter(

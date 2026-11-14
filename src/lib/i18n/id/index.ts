@@ -771,6 +771,49 @@ const id = {
 	},
 	editor: {
 		...baseEn.editor,
+		recitationIntro: {
+			button: 'Tambahkan istiʿādha / basmalah',
+			title: 'Pembuka tilawah',
+			description: 'Tambahkan bacaan pembuka beserta subtitelnya di awal proyek Anda.',
+			formulas: 'Bacaan pembuka',
+			istiadha: 'Istiʿādha',
+			basmala: 'Basmalah',
+			both: 'Keduanya',
+			reciter: 'Qari',
+			sourceNote:
+				'Audio dari EveryAyah, diberi nama sesuai folder sumber. Beberapa qari menggunakan rekaman yang sama.',
+			preview: 'Dengarkan sebelum menambahkan',
+			addPadding: 'Tambahkan jeda',
+			paddingStart: 'Jeda sebelum pembuka',
+			paddingEnd: 'Jeda setelah pembuka',
+			timingHint: 'Jeda dalam detik. Audio, video, dan subtitel yang ada digeser bersama ke kanan.',
+			existingProject: 'Proyek saat ini',
+			apply: 'Tambahkan di awal',
+			adding: 'Mengunduh dan menambahkan…',
+			success: 'Pembuka ditambahkan. Anda dapat membatalkan tindakan ini.',
+			downloadError: 'Audio tidak dapat diunduh atau dibaca. Periksa koneksi Anda lalu coba lagi.',
+			invalidSettings: 'Pilih qari dan masukkan durasi jeda yang valid dan tidak negatif.',
+			projectChanged: 'Proyek yang terbuka telah berubah. Buka kembali dialog ini lalu coba lagi.',
+			previewError: 'Pratinjau tidak tersedia. Coba lagi atau pilih qari lain.',
+			reciters: {
+				husary: 'Mahmoud Khalil Al-Husary',
+				shatri: 'Abu Bakr Ash-Shatri',
+				abdulBasit: 'Abdul Basit Abdus Samad',
+				basfar: 'Abdullah Basfar',
+				ajmi: 'Ahmed Al-Ajmi',
+				alafasy: 'Mishary Rashid Alafasy',
+				aliJaber: 'Ali Jaber',
+				ghamdi: 'Saad Al-Ghamdi',
+				rifai: 'Hani Ar-Rifai',
+				hudhaify: 'Ali Al-Hudhaify',
+				minshawi: 'Muhammad Siddiq Al-Minshawi',
+				ayyoub: 'Muhammad Ayyoub',
+				shuraym: 'Saud Ash-Shuraym'
+			}
+		},
+		showVideoPreview: 'Tampilkan video dalam pratinjau',
+		videoPreviewHelp:
+			'Hapus centang agar navigasi lebih lancar tanpa memuat video dalam pratinjau. Video yang diekspor tidak terpengaruh.',
 		cloudModelBase: 'Base',
 		cloudModelLarge: 'Large',
 		cloudDeviceGpu: 'GPU',
@@ -1184,6 +1227,7 @@ const id = {
 		} as Translation['editor']['styleName'],
 		styleDescription: {
 			...baseEn.editor.styleDescription,
+			'text-outline': 'Atur ketebalan garis tepi teks',
 			rotation: 'Putar teks dalam derajat',
 			riwayah: 'Pilih riwayat bacaan Al-Qur’an untuk subtitle bahasa Arab.',
 			'basmala-style':

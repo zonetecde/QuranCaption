@@ -1,6 +1,7 @@
 import type { SubtitleClip } from '$lib/classes/Clip.svelte';
 import { Utilities } from '$lib/classes/misc/Utilities';
 import type { SegmentationWordTimestamp } from '$lib/services/AutoSegmentation';
+import { getWordGlowCss } from '$lib/services/TextEffects';
 import {
 	isWordByWordVisualEnabled,
 	type ResolveStyleValue
@@ -381,9 +382,7 @@ export function getWordByWordWordCss(
 	if (state.glowEnabled && state.glowColor && state.glowColor !== '#00000000') {
 		const glowColor = interpolateCssColor('', state.glowColor, clampedProgress);
 		const glowBlur = Math.max(0, state.glowBlur);
-		parts.push(
-			`text-shadow: 0 0 ${glowBlur * 0.5}px ${glowColor}, 0 0 ${glowBlur}px ${glowColor}, 0 0 ${glowBlur * 1.5}px ${glowColor}, 0 0 ${glowBlur * 2}px ${glowColor};`
-		);
+		parts.push(getWordGlowCss(glowColor, `${glowBlur}px`, 'wbw'));
 	}
 	if (shouldWriteOpacity) {
 		parts.push(`opacity: ${opacity};`);

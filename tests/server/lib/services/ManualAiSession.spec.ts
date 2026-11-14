@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { webcrypto } from 'node:crypto';
+import { invoke } from '@tauri-apps/api/core';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ManualAiSession } from '$lib/services/ManualAiSession.svelte';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(async () => 'Instructions') }));
@@ -9,7 +11,8 @@ vi.mock('$lib/i18n/i18n-svelte', () => ({
 				editor: {
 					manualAi: {
 						invalidJson: () => 'Invalid JSON',
-						wrongPrompt: () => 'Wrong prompt'
+						wrongPrompt: () => 'Wrong prompt',
+						sourceChanged: () => 'Source changed'
 					}
 				}
 			});
@@ -18,7 +21,132 @@ vi.mock('$lib/i18n/i18n-svelte', () => ({
 	}
 }));
 
+/**
+ * Colle une réponse avec l'identifiant exact du prompt courant et la soumet.
+ * @param {ManualAiSession} session Session en attente d'une réponse.
+ * @param {unknown} result Résultat JSON à envelopper.
+ * @returns {void}
+ */
+function submitResult(session: ManualAiSession, result: unknown): void {
+	const step = session.steps.at(-1)!;
+	const requestId = step.prompt.match(/"requestId":"([^"]+)"/)![1];
+	step.response = JSON.stringify({ requestId, result });
+	session.submit();
+}
+
 describe('manual AI response validation', () => {
+	beforeAll(() => vi.stubGlobal('crypto', webcrypto));
+	afterAll(() => vi.unstubAllGlobals());
+
+	it.each(['translation_bold', 'translation_wbw', 'translation_review', 'subtitle_split'])(
+		'prepares all %s batches with the API payload and retries invalid replies before returning',
+		async (kind) => {
+			const session = new ManualAiSession();
+			const batches = [
+				{ batchId: 'first', request: { segments: [{ text: 'العربية' }] } },
+				{ batchId: 'second', request: { segments: [{ text: 'second' }] } }
+			];
+			const validate = vi.fn((_batch, parsed) => ({ errors: parsed.ok ? [] : ['Invalid range'] }));
+			const snapshot = vi.fn(() => 'unchanged');
+			const finished = vi.fn();
+			const pending = session.prepareBatches(kind, batches, validate, snapshot, 'Custom note');
+			void pending.then(finished);
+			await vi.waitFor(() => expect(session.steps).toHaveLength(1));
+			expect(invoke).toHaveBeenLastCalledWith('prepare_manual_ai_prompt', {
+				kind,
+				request: { batch: batches[0].request, customPromptNote: 'Custom note' }
+			});
+			submitResult(session, { ok: false });
+			expect(session.steps[0].error).toBe('Invalid range');
+			expect(session.steps[0].status).toBe('waiting');
+			submitResult(session, { ok: true });
+			await vi.waitFor(() => expect(session.steps).toHaveLength(2));
+			expect(session.progress).toBe(50);
+			expect(session.steps[0].status).toBe('valid');
+			expect(finished).not.toHaveBeenCalled();
+			submitResult(session, { ok: true, second: true });
+			const responses = await pending;
+			expect(responses.get('first')?.parsed).toEqual({ ok: true });
+			expect(responses.get('second')?.parsed).toEqual({ ok: true, second: true });
+			expect(session.ready).toBe(true);
+			expect(session.progress).toBe(100);
+		}
+	);
+
+	it('discards a partially validated run on cancellation', async () => {
+		const session = new ManualAiSession();
+		const pending = session.prepareBatches(
+			'subtitle_split',
+			[
+				{ batchId: 'first', request: {} },
+				{ batchId: 'second', request: {} }
+			],
+			vi.fn(() => ({ errors: [] })),
+			vi.fn(() => 'source')
+		);
+		await vi.waitFor(() => expect(session.steps).toHaveLength(1));
+		submitResult(session, { s: [] });
+		await vi.waitFor(() => expect(session.steps).toHaveLength(2));
+		const rejection = expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+		session.cancel();
+		await rejection;
+		expect(session.ready).toBe(false);
+		expect(session.active).toBe(false);
+	});
+
+	it('rejects a reply if its project content changed while waiting', async () => {
+		const session = new ManualAiSession();
+		const snapshot = vi.fn().mockReturnValue('original');
+		const validate = vi.fn(() => ({ errors: [] }));
+		const pending = session.prepareBatches(
+			'translation_bold',
+			[{ batchId: 'first', request: {} }],
+			validate,
+			snapshot
+		);
+		await vi.waitFor(() => expect(session.steps).toHaveLength(1));
+		snapshot.mockReturnValue('changed');
+		submitResult(session, { segments: [] });
+		expect(session.steps[0].error).toBe('Source changed');
+		expect(validate).not.toHaveBeenCalled();
+		const rejection = expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+		session.cancel();
+		await rejection;
+	});
+
+	it('uses frontend API prompts verbatim without requesting a Rust prompt', async () => {
+		const session = new ManualAiSession();
+		const callsBefore = vi.mocked(invoke).mock.calls.length;
+		session.start();
+		const prompt = 'System instructions\n\nOrdered verses العربية';
+		const validate = vi.fn((parsed: unknown) => parsed);
+		const pending = session.request('local', {}, validate, prompt);
+		await vi.waitFor(() => expect(session.steps).toHaveLength(1));
+		expect(session.steps[0].prompt).toMatch(`${prompt}\n\nRESPONSE ENVELOPE:`);
+		expect(vi.mocked(invoke).mock.calls).toHaveLength(callsBefore);
+		submitResult(session, { ranges: [{ start: '1:1', end: '1:4' }] });
+		await expect(pending).resolves.toEqual({ ranges: [{ start: '1:1', end: '1:4' }] });
+	});
+
+	it('reuses the request ID across sessions only when the prompt is identical', async () => {
+		const prompts: string[] = [];
+		for (const instructions of ['Instructions', 'Instructions', 'Instructions modifiées العربية']) {
+			vi.mocked(invoke).mockResolvedValueOnce(instructions);
+			const session = new ManualAiSession();
+			session.start();
+			const pending = session.request('translation_trim', {}, vi.fn());
+			await vi.waitFor(() => expect(session.steps).toHaveLength(1));
+			prompts.push(session.steps[0].prompt);
+			const rejection = expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+			session.cancel();
+			await rejection;
+		}
+		expect(prompts[0]).toBe(prompts[1]);
+		expect(prompts[0].match(/"requestId":"([^"]+)"/)![1]).not.toBe(
+			prompts[2].match(/"requestId":"([^"]+)"/)![1]
+		);
+	});
+
 	it.each([
 		['plain JSON', '{"requestId":"REQUEST_ID","result":{"text":"[yourselves]"}}', '[yourselves]'],
 		[

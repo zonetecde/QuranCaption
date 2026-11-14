@@ -51,6 +51,9 @@
 	let trackHeight = $state(56);
 
 	let visibleClips = $derived(() => track.getClipsInRange(visibleRangeStartMs, visibleRangeEndMs));
+	const videoPreviewCopy = $derived(
+		$LL.editor as unknown as { showVideoPreview: () => string; videoPreviewHelp: () => string }
+	);
 
 	let customClipLayout = $derived(() => getTimelineCustomClipLayout(getTimelineCustomClips()));
 	let visibleCustomClips = $derived(() =>
@@ -239,11 +242,27 @@
 		class="left-0 top-0 bottom-0 h-full border-r border-[var(--timeline-track-border)] flex items-center px-3 gap-2 z-20 track-left-part sticky"
 		style="width: {trackLeftPartWidthPx}px; background: linear-gradient(135deg, var(--timeline-bg-accent) 0%, var(--timeline-bg-secondary) 100%);"
 	>
-		<span
-			class="material-icons leading-none opacity-80"
-			style={`font-size: ${Math.min(24, Math.max(10, trackHeight * 0.45))}px;`}
-			>{track.getIcon()}</span
-		>
+		{#if track.type === TrackType.Video}
+			<button
+				type="button"
+				class="-mx-2 flex size-11 shrink-0 items-center justify-center text-secondary"
+				aria-label={videoPreviewCopy.showVideoPreview()}
+				aria-pressed={globalState.uiState.showVideoPreview}
+				title={videoPreviewCopy.videoPreviewHelp()}
+				onclick={() =>
+					(globalState.uiState.showVideoPreview = !globalState.uiState.showVideoPreview)}
+			>
+				<span class="material-icons text-base" aria-hidden="true"
+					>{globalState.uiState.showVideoPreview ? 'visibility' : 'visibility_off'}</span
+				>
+			</button>
+		{:else}
+			<span
+				class="material-icons leading-none opacity-80"
+				style={`font-size: ${Math.min(24, Math.max(10, trackHeight * 0.45))}px;`}
+				>{track.getIcon()}</span
+			>
+		{/if}
 		<span
 			class="text-[var(--text-secondary)] text-xs font-medium truncate"
 			class:hidden={globalState.isAndroidPortrait}

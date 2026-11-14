@@ -14,7 +14,7 @@
 	import StepExistingSubtitles from './autoSegmentation/steps/StepExistingSubtitles.svelte';
 	import StepSettings from './autoSegmentation/steps/StepSettings.svelte';
 
-	let { close } = $props<{ close: () => void }>();
+	let { close }: { close: () => void } = $props();
 	let panelScale = $derived(
 		1 + (globalState.settings?.persistentUiState.editorPanelScalePercent ?? -15) / 100
 	);

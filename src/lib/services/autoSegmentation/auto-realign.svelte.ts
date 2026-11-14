@@ -42,6 +42,25 @@ export function getAutoRealignStatus(clipId: number): AutoRealignStatus {
 }
 
 /**
+ * Annule les anciens réalignements avant de décaler les sous-titres.
+ * @param {SubtitleClip[]} clips Sous-titres dont les timestamps doivent être conservés.
+ * @returns {void}
+ */
+export function cancelWbwRealign(clips: SubtitleClip[]): void {
+	for (const clip of clips) {
+		clipGeneration.set(clip.id, (clipGeneration.get(clip.id) ?? 0) + 1);
+		delete statusByClipId[clip.id];
+		for (const [key, pending] of pendingGroups) {
+			pending.clipIds.delete(clip.id);
+			if (pending.clipIds.size === 0) {
+				clearTimeout(pending.timer);
+				pendingGroups.delete(key);
+			}
+		}
+	}
+}
+
+/**
  * Indique si deux ensembles d'ids partagent au moins un élément.
  *
  * @param {Set<number>} a Premier ensemble.

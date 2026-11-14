@@ -2643,27 +2643,47 @@
 			const previousCapture = pendingNativeScreenshot;
 			const capture = (async () => {
 				await previousCapture;
-				ensureCaptureNotCancelled();
-				return invoke<{
-					rasterMs: number;
-					drawMs: number;
-					pngEncodeMs: number;
-					bytes: number;
-				}>('capture_android_export_overlay', {
-					payload: {
-						exportId,
-						baseUrl: document.baseURI,
-						...overlay,
-						width: targetWidth,
-						height: targetHeight,
-						path
+				for (let attempt = 0; ; attempt++) {
+					ensureCaptureNotCancelled();
+					try {
+						return await withScreenshotTimeout(
+							invoke<{
+								rasterMs: number;
+								drawMs: number;
+								pngEncodeMs: number;
+								bytes: number;
+							}>('capture_android_export_overlay', {
+								payload: {
+									exportId,
+									baseUrl: document.baseURI,
+									...overlay,
+									width: targetWidth,
+									height: targetHeight,
+									path
+								}
+							})
+						);
+					} catch (error) {
+						const message = error instanceof Error ? error.message : String(error);
+						if (attempt > 0 || message !== 'Overlay capture timed out') throw error;
+						ensureCaptureNotCancelled();
+						await emitExportLog(
+							'warn',
+							'Overlay capture timed out, recreating renderer and retrying',
+							{
+								file: fileName,
+								subfolder
+							}
+						);
+						await invoke('release_android_export_overlay', { exportId });
 					}
-				});
+				}
 			})();
 			pendingNativeScreenshot = capture;
 			void capture.catch(() => {});
 			onPrepared?.();
-			const result = await withScreenshotTimeout(capture);
+			// Chaque tentative a son propre délai, sans compter l'attente de la capture précédente.
+			const result = await capture;
 			const totalMs = performance.now() - screenshotStartedAt;
 			screenshotPerformance.count += 1;
 			screenshotPerformance.totalMs += totalMs;

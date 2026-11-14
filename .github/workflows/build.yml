@@ -59,6 +59,8 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
+          # screenshots 0.8.10 fails to compile on Linux with Rust 1.100.0.
+          toolchain: ${{ matrix.os == 'ubuntu-latest' && '1.99.1' || 'stable' }}
           targets: ${{ matrix.target }}
 
       # Set up build environment variables for faster builds

@@ -293,7 +293,7 @@ export default class Exporter {
 	private static retriedCaptureIds = new Set<number>();
 
 	/**
-	 * Retries stalled captures once, then cancels if no frame is captured within another 30 seconds.
+	 * Retries stalled captures once after planning, then cancels after another 30 seconds without frames.
 	 * @returns {Promise<void>} Resolves after stalled exports are requeued or canceled and saved.
 	 */
 	private static async cancelStalledCaptures(): Promise<void> {
@@ -301,6 +301,7 @@ export default class Exporter {
 			(exp) =>
 				exp.exportKind === ExportKind.Video &&
 				exp.currentState === ExportState.CapturingFrames &&
+				(exp.totalCaptureFrames ?? 0) > 0 &&
 				exp.capturedFrames === 0
 		);
 		for (const exportId of Exporter.zeroFrameCaptureStartedAt.keys()) {

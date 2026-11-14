@@ -54,7 +54,14 @@ describe('Stalled capture guard', () => {
 	])('guards %s / %s / %i frames', async (exportKind, currentState, capturedFrames, cancels) => {
 		Reflect.get(Exporter, 'zeroFrameCaptureStartedAt').clear();
 		Reflect.get(Exporter, 'retriedCaptureIds').clear();
-		const exp = { exportId: 123, exportKind, currentState, capturedFrames, cancelExport: vi.fn() };
+		const exp = {
+			exportId: 123,
+			exportKind,
+			currentState,
+			capturedFrames,
+			totalCaptureFrames: 10,
+			cancelExport: vi.fn()
+		};
 		vi.spyOn(ExportService, 'currentlyExportingProjects').mockReturnValue([
 			exp as unknown as Exportation
 		]);
@@ -75,6 +82,39 @@ describe('Stalled capture guard', () => {
 		}
 	});
 
+	it('starts the timeout only after a long capture plan calculation finishes', async () => {
+		Reflect.get(Exporter, 'zeroFrameCaptureStartedAt').clear();
+		Reflect.get(Exporter, 'retriedCaptureIds').clear();
+		const exp = {
+			exportId: 123,
+			exportKind: ExportKind.Video,
+			currentState: ExportState.CapturingFrames,
+			capturedFrames: 0,
+			totalCaptureFrames: null as number | null,
+			cancelExport: vi.fn()
+		};
+		vi.spyOn(ExportService, 'currentlyExportingProjects').mockReturnValue([
+			exp as unknown as Exportation
+		]);
+		vi.spyOn(ExportService, 'saveExports').mockResolvedValue(undefined);
+		const now = vi.spyOn(performance, 'now').mockReturnValue(0);
+
+		await Reflect.get(Exporter, 'cancelStalledCaptures')();
+		now.mockReturnValue(120_000);
+		await Reflect.get(Exporter, 'cancelStalledCaptures')();
+		expect(exp.cancelExport).not.toHaveBeenCalled();
+		expect(Reflect.get(Exporter, 'zeroFrameCaptureStartedAt').size).toBe(0);
+
+		exp.totalCaptureFrames = 10;
+		await Reflect.get(Exporter, 'cancelStalledCaptures')();
+		now.mockReturnValue(149_999);
+		await Reflect.get(Exporter, 'cancelStalledCaptures')();
+		expect(exp.cancelExport).not.toHaveBeenCalled();
+		now.mockReturnValue(150_000);
+		await Reflect.get(Exporter, 'cancelStalledCaptures')();
+		expect(exp.cancelExport).toHaveBeenCalledExactlyOnceWith('export_monitor', true);
+	});
+
 	it('reopens a stalled export once through the queue and cancels a second stall', async () => {
 		Reflect.get(Exporter, 'zeroFrameCaptureStartedAt').clear();
 		Reflect.get(Exporter, 'retriedCaptureIds').clear();
@@ -83,6 +123,7 @@ describe('Stalled capture guard', () => {
 			exportKind: ExportKind.Video,
 			currentState: ExportState.CapturingFrames,
 			capturedFrames: 0,
+			totalCaptureFrames: 10 as number | null,
 			cancelExport: vi.fn(async () => {
 				exp.currentState = ExportState.Canceled;
 			})
@@ -101,9 +142,15 @@ describe('Stalled capture guard', () => {
 			await Reflect.get(Exporter, 'processExportQueue')();
 			expect(open).toHaveBeenCalledExactlyOnceWith('123');
 			expect(exp.currentState).toBe(ExportState.CapturingFrames);
+			expect(exp.totalCaptureFrames).toBeNull();
 			now.mockReturnValue(30_750);
 			await Reflect.get(Exporter, 'processExportQueue')();
-			now.mockReturnValue(60_750);
+			now.mockReturnValue(150_000);
+			await Reflect.get(Exporter, 'processExportQueue')();
+			expect(exp.cancelExport).toHaveBeenCalledTimes(1);
+			exp.totalCaptureFrames = 10;
+			await Reflect.get(Exporter, 'processExportQueue')();
+			now.mockReturnValue(180_000);
 			await Reflect.get(Exporter, 'processExportQueue')();
 			expect(exp.cancelExport.mock.calls).toEqual([
 				['export_monitor', true],
@@ -123,6 +170,7 @@ describe('Stalled capture guard', () => {
 			exportKind: ExportKind.Video,
 			currentState: ExportState.CapturingFrames,
 			capturedFrames: 0,
+			totalCaptureFrames: 10,
 			cancelExport: vi.fn()
 		};
 		const owned = vi

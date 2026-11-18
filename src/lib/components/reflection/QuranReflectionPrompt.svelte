@@ -358,6 +358,7 @@
 		} catch {
 			submitFailed = true;
 			stage = 'composer';
+			pendingAction = null;
 			persistPending();
 			AnalyticsService.track('reflection_submit_failed', analyticsProperties(mode));
 		} finally {

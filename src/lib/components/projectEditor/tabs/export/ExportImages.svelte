@@ -13,7 +13,10 @@
 	onMount(() => {
 		if (!globalState.getExportState.videoEndTime) {
 			ProjectHistoryManager.track('initialize image export range', () => {
-				globalState.getExportState.videoEndTime = globalState.getAudioTrack.getDuration().ms;
+				const audioTrack = globalState.getAudioTrack;
+				globalState.getExportState.videoEndTime = (
+					audioTrack.clips.length ? audioTrack : globalState.getSubtitleTrack
+				).getDuration().ms;
 			});
 		}
 	});

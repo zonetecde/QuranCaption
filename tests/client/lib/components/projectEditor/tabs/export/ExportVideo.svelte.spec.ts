@@ -4,6 +4,9 @@ import { get } from 'svelte/store';
 import ExportVideo from '$lib/components/projectEditor/tabs/export/ExportVideo.svelte';
 import ExportImages from '$lib/components/projectEditor/tabs/export/ExportImages.svelte';
 import Exporter from '$lib/classes/Exporter';
+import { AssetClip, SubtitleClip } from '$lib/classes/Clip.svelte';
+import { VerseRange } from '$lib/classes/VerseRange.svelte';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import { ExportKind } from '$lib/classes/Exportation.svelte';
 import ExportService from '$lib/services/ExportService';
 import Settings from '$lib/classes/Settings.svelte';
@@ -78,6 +81,27 @@ afterEach(() => {
 	globalState.currentProject = null;
 	globalState.settings = undefined;
 });
+
+test.each([ExportVideo, ExportImages])(
+	'uses subtitle duration when the audio track is empty',
+	(component) => {
+		vi.spyOn(ProjectHistoryManager, 'track').mockImplementation((_label, mutate) => mutate());
+		vi.spyOn(VerseRange.prototype, 'toString').mockReturnValue('1:1');
+		globalState.getSubtitleTrack.clips = [
+			new SubtitleClip(1000, 4500, 1, 1, 0, 1, 'Verse', [], true, true)
+		];
+
+		render(component);
+		expect(globalState.getExportState.videoEndTime).toBe(4500);
+
+		cleanup();
+		globalState.getExportState.videoEndTime = 0;
+		globalState.getAudioTrack.clips = [new AssetClip(500, 2500, 1)];
+
+		render(component);
+		expect(globalState.getExportState.videoEndTime).toBe(2500);
+	}
+);
 
 test('persists promotion activation and position across projects and application restarts', async () => {
 	const copy = get(LL).export;

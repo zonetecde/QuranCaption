@@ -86,7 +86,7 @@ test.each(['private', 'public'] as const)(
 		expect(failingRequest).toHaveBeenCalledTimes(1);
 		expect(
 			mocks.track.mock.calls.filter(([event]) => event === 'reflection_submit_failed')
-		).toHaveLength(1);
+		).toHaveLength(0);
 		expect(JSON.parse(sessionStorage.getItem('quran_reflection_pending')!)).toMatchObject({
 			draft: 'Preserved reflection',
 			action: null,

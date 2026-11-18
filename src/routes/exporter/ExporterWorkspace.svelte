@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Timeline from '$lib/components/projectEditor/timeline/Timeline.svelte';
 	import VideoPreview from '$lib/components/projectEditor/videoPreview/VideoPreview.svelte';
+	import { getDisplayedVerseNumber } from '$lib/services/VerseNumberTimeline';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { invoke } from '@tauri-apps/api/core';
 	import { getCurrentWebviewWindow, WebviewWindow } from '@tauri-apps/api/webviewWindow';
@@ -1781,6 +1782,10 @@
 	 * @returns {ExportCaptureTimingResult} Timings uniques et métadonnées de réutilisation.
 	 */
 	function calculateTimingsForRange(rangeStart: number, rangeEnd: number) {
+		const verseNumberStyle = globalState.getStyle('global', 'show-verse-number');
+		const showVerseNumber = Boolean(
+			verseNumberStyle?.value || verseNumberStyle?.keyframes.some(({ value }) => value)
+		);
 		const subtitleClips: ExportSubtitleCaptureClip[] = globalState.getSubtitleTrack.clips.map(
 			(clip) => {
 				const wbwHighlightTimings =
@@ -1800,6 +1805,10 @@
 								: 'subtitle',
 					surah: 'surah' in clip && typeof clip.surah === 'number' ? clip.surah : undefined,
 					verse: 'verse' in clip && typeof clip.verse === 'number' ? clip.verse : undefined,
+					displayVerse:
+						showVerseNumber && clip instanceof SubtitleClip
+							? getDisplayedVerseNumber(clip)
+							: undefined,
 					visualMergeGroupId:
 						'visualMergeGroupId' in clip &&
 						(typeof clip.visualMergeGroupId === 'string' || clip.visualMergeGroupId === null)
@@ -1836,7 +1845,7 @@
 				clip.endTime + 1
 			]),
 			getCurrentSurah: (time) => globalState.getSubtitleTrack.getCurrentSurah(time),
-			showVerseNumber: Boolean(globalState.getStyle('global', 'show-verse-number')!.value)
+			showVerseNumber
 		});
 	}
 
@@ -2170,11 +2179,12 @@
 				forcedOverlayElements.push({ el, prev: el.style.opacity });
 				el.style.opacity = el.dataset.overlayMaxOpacity!;
 			});
-			for (const id of [
-				'subtitles-container',
-				...(keepSubtitleBackgrounds ? [] : ['subtitles-backgrounds'])
+			for (const selector of [
+				'#subtitles-container',
+				'[data-overlay-layer="verse-number"]',
+				...(keepSubtitleBackgrounds ? [] : ['#subtitles-backgrounds'])
 			]) {
-				const el = node.querySelector<HTMLElement>(`#${id}`);
+				const el = node.querySelector<HTMLElement>(selector);
 				if (el) forcedOverlayElements.push({ el, prev: el.style.opacity });
 				if (el) el.style.opacity = '0';
 			}
@@ -2304,7 +2314,9 @@
 						(clip) => (clip.category?.getAllKeyframeTimes().length ?? 0) > 0
 					);
 				const backgroundBlob =
-					hasStyleKeyframes || ExportOverlayInspector.hasVisibleSubtitleBackground(node)
+					hasStyleKeyframes ||
+					node.querySelector('[data-overlay-layer="verse-number"]') ||
+					ExportOverlayInspector.hasVisibleSubtitleBackground(node)
 						? null
 						: await readReusableBlankBlob(reusableBlankFileName);
 				await emitExportLog('info', 'macOS canvas capture started', {

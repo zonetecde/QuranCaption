@@ -318,8 +318,7 @@
 			Math.max(0, Number(globalStyles.getEffectiveValue('video-frame-softness', clipId) ?? 0))
 		);
 		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
-			| { width: number; height: number }
-			| undefined;
+			{ width: number; height: number } | undefined;
 		const width = Math.max(1, Number(dimensions?.width ?? 1920));
 		const height = Math.max(1, Number(dimensions?.height ?? 1080));
 		const innerWidth = width * (1 - horizontalSize / 50);
@@ -366,8 +365,7 @@
 		const isStyleTab =
 			globalState.currentProject?.projectEditorState.currentTab === ProjectEditorTabs.Style;
 		const dimensions = globalState.getStyle('global', 'video-dimension')?.value as
-			| { width?: number; height?: number }
-			| undefined;
+			{ width?: number; height?: number } | undefined;
 		const isPortrait = Number(dimensions?.width) < Number(dimensions?.height);
 
 		return (
@@ -1329,10 +1327,7 @@
 		<SurahName />
 		<ReciterName />
 
-		{#if currentSubtitle() instanceof SubtitleClip}
-			{@const verseSubtitle = currentSubtitle() as SubtitleClip}
-			<VerseNumber currentSurah={verseSubtitle.surah} currentVerse={verseSubtitle.verse} />
-		{/if}
+		<VerseNumber />
 
 		<!-- Couche 8 : Clips custom (texte / images) -->
 		{#each currentCustomClips() as customText (customText.id)}

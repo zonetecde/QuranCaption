@@ -666,6 +666,53 @@ describe('calculateCaptureTimingsForRange', () => {
 		);
 	});
 
+	it('captures a same-verse silence even when an export starts inside it', () => {
+		const clips = [
+			{ ...subtitle(0, 500, 1), displayVerse: '1-2' },
+			silence(501, 999),
+			{ ...subtitle(1000, 1500, 1), verse: 2, displayVerse: '1-2' }
+		];
+		const full = calculateTimings(clips, [], 0, 1500, 200, true);
+		expect(full.exactCaptureTimingValues.get(500)).toBe(500);
+		expect(full.verseNumberSilenceTimings).toEqual(new Set([501, 999]));
+		expect(full.imgWithNothingShown).toEqual({ [blankKey(1)]: 1500 });
+
+		const partial = calculateTimings(clips, [], 700, 1500, 200, true);
+		const plan = buildExportCaptureJobPlan({
+			timings: partial,
+			rangeStart: 700,
+			rangeEnd: 1500,
+			fadeDuration: 200,
+			workerCount: 1,
+			isBlankCaptureTiming: () => true,
+			getReusableBlankFileName: () => 'blank'
+		});
+		for (const timing of [700, 999]) {
+			expect(plan.captureJobs).toContainEqual(
+				expect.objectContaining({
+					timing,
+					captureTiming: timing,
+					isBlankImage: false,
+					reusableBlankFileName: null
+				})
+			);
+		}
+	});
+
+	it('keeps a blank silence between different verses', () => {
+		const result = calculateTimings(
+			[subtitle(0, 500, 1), silence(501, 999), { ...subtitle(1000, 1500, 1), verse: 2 }],
+			[],
+			0,
+			1500,
+			200,
+			true
+		);
+		expect(result.verseNumberSilenceTimings?.size).toBe(0);
+		expect(result.imgWithNothingShown).toEqual({ [blankKey(1)]: 500 });
+		expect(result.blankImgs[blankKey(1)]).toContain(999);
+	});
+
 	it('keeps the blank boundary when the next subtitle belongs to another verse', () => {
 		const result = calculateTimings(
 			[subtitle(0, 500, 1), { ...subtitle(500, 1_000, 1), verse: 2 }],

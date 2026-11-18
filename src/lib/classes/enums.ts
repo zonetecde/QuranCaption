@@ -20,7 +20,8 @@ export enum SourceType {
 	QuranFoundation = 'quranfoundation',
 	QuranicUniversalAudio = 'quranic-universal-audio',
 	Pexels = 'pexels',
-	Pixabay = 'pixabay'
+	Pixabay = 'pixabay',
+	Pinterest = 'pinterest'
 }
 
 export enum ProjectEditorTabs {

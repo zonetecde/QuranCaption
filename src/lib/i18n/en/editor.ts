@@ -1012,6 +1012,9 @@ const editor = {
 	allMedia: 'All media',
 	images: 'Images',
 	videos: 'Videos',
+	pinterestUsageDisclaimer:
+		'By using this Pinterest media in my video, I confirm that I have the rights or permissions needed to use it and to publish my video if I choose to share it.',
+	stockMediaEndOfResults: "You've reached the end of the results.",
 	noStockMediaResults: 'No results found',
 	noStockMediaResultsMessage: 'Try different keywords or change the source.',
 	downloadMediaAsset: 'Download and import',
@@ -1021,6 +1024,7 @@ const editor = {
 		'You are responsible for crediting the author and providing a link to the original content on {source} as required by their terms of service.',
 	configureApiKeys: 'Configure API keys in Settings > API Keys > Stock Media',
 	pexelsSource: 'Pexels',
+	pinterestSource: 'Pinterest',
 	pixabaySource: 'Pixabay',
 	stockMediaError: 'Search error',
 	backToAssets: 'Back to assets',

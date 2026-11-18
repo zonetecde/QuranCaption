@@ -1374,6 +1374,9 @@ const id = {
 		allMedia: 'Semua media',
 		images: 'Gambar',
 		videos: 'Video',
+		pinterestUsageDisclaimer:
+			'Dengan menggunakan media Pinterest ini dalam video saya, saya menyatakan bahwa saya memiliki hak atau izin untuk menggunakannya dan memublikasikan video jika saya memilih untuk membagikannya.',
+		stockMediaEndOfResults: 'Anda telah mencapai akhir hasil pencarian.',
 		noStockMediaResults: 'Tidak ada hasil ditemukan',
 		noStockMediaResultsMessage: 'Coba kata kunci lain atau ganti sumber.',
 		downloadMediaAsset: 'Unduh dan impor',
@@ -1383,6 +1386,7 @@ const id = {
 			'Kamu bertanggung jawab untuk mencantumkan kredit penulis dan memberikan tautan ke konten asli di {source} sesuai syarat layanan mereka.',
 		configureApiKeys: 'Atur API key di Pengaturan > Kunci API > Stok Media',
 		pexelsSource: 'Pexels',
+		pinterestSource: 'Pinterest',
 		pixabaySource: 'Pixabay',
 		stockMediaError: 'Error pencarian',
 		backToAssets: 'Kembali ke aset'

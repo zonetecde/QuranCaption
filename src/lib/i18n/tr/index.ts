@@ -1311,6 +1311,9 @@ const tr = {
 		allMedia: 'Tüm medya',
 		images: 'Görseller',
 		videos: 'Videolar',
+		pinterestUsageDisclaimer:
+			'Bu Pinterest içeriğini videomda kullanarak, içeriği kullanmak ve videomu paylaşmayı seçersem yayımlamak için gerekli haklara veya izinlere sahip olduğumu onaylıyorum.',
+		stockMediaEndOfResults: 'Sonuçların sonuna ulaştınız.',
 		noStockMediaResults: 'Sonuç bulunamadı',
 		noStockMediaResultsMessage: 'Farklı anahtar kelimeler deneyin veya kaynağı değiştirin.',
 		downloadMediaAsset: 'İndirin ve içe aktarın',
@@ -1320,6 +1323,7 @@ const tr = {
 			"Hizmet koşullarının gerektirdiği şekilde, {source}'de yazara atıfta bulunmak ve orijinal içeriğe bir bağlantı sağlamak sizin sorumluluğunuzdadır.",
 		configureApiKeys: "Ayarlar > API Anahtarları > Stok Medya'da API anahtarlarını yapılandırın",
 		pexelsSource: 'Pexels',
+		pinterestSource: 'Pinterest',
 		pixabaySource: 'Pixabay',
 		stockMediaError: 'Arama hatası',
 		backToAssets: 'Varlıklara geri dön',

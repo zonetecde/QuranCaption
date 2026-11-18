@@ -4836,6 +4836,14 @@ type RootTranslation = {
 		 */
 		videos: string;
 		/**
+		 * B​y​ ​u​s​i​n​g​ ​t​h​i​s​ ​P​i​n​t​e​r​e​s​t​ ​m​e​d​i​a​ ​i​n​ ​m​y​ ​v​i​d​e​o​,​ ​I​ ​c​o​n​f​i​r​m​ ​t​h​a​t​ ​I​ ​h​a​v​e​ ​t​h​e​ ​r​i​g​h​t​s​ ​o​r​ ​p​e​r​m​i​s​s​i​o​n​s​ ​n​e​e​d​e​d​ ​t​o​ ​u​s​e​ ​i​t​ ​a​n​d​ ​t​o​ ​p​u​b​l​i​s​h​ ​m​y​ ​v​i​d​e​o​ ​i​f​ ​I​ ​c​h​o​o​s​e​ ​t​o​ ​s​h​a​r​e​ ​i​t​.
+		 */
+		pinterestUsageDisclaimer: string;
+		/**
+		 * Y​o​u​'​v​e​ ​r​e​a​c​h​e​d​ ​t​h​e​ ​e​n​d​ ​o​f​ ​t​h​e​ ​r​e​s​u​l​t​s​.
+		 */
+		stockMediaEndOfResults: string;
+		/**
 		 * N​o​ ​r​e​s​u​l​t​s​ ​f​o​u​n​d
 		 */
 		noStockMediaResults: string;
@@ -4869,6 +4877,10 @@ type RootTranslation = {
 		 * P​e​x​e​l​s
 		 */
 		pexelsSource: string;
+		/**
+		 * P​i​n​t​e​r​e​s​t
+		 */
+		pinterestSource: string;
 		/**
 		 * P​i​x​a​b​a​y
 		 */
@@ -17383,6 +17395,14 @@ export type TranslationFunctions = {
 		 */
 		videos: () => LocalizedString;
 		/**
+		 * By using this Pinterest media in my video, I confirm that I have the rights or permissions needed to use it and to publish my video if I choose to share it.
+		 */
+		pinterestUsageDisclaimer: () => LocalizedString;
+		/**
+		 * You've reached the end of the results.
+		 */
+		stockMediaEndOfResults: () => LocalizedString;
+		/**
 		 * No results found
 		 */
 		noStockMediaResults: () => LocalizedString;
@@ -17414,6 +17434,10 @@ export type TranslationFunctions = {
 		 * Pexels
 		 */
 		pexelsSource: () => LocalizedString;
+		/**
+		 * Pinterest
+		 */
+		pinterestSource: () => LocalizedString;
 		/**
 		 * Pixabay
 		 */

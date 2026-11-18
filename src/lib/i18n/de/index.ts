@@ -1644,6 +1644,9 @@ const de = {
 		allMedia: 'Alle Medien',
 		images: 'Bilder',
 		videos: 'Videos',
+		pinterestUsageDisclaimer:
+			'Wenn ich dieses Pinterest-Medium in meinem Video verwende, bestätige ich, dass ich die nötigen Rechte oder Genehmigungen für die Nutzung und eine mögliche Veröffentlichung meines Videos habe.',
+		stockMediaEndOfResults: 'Du hast das Ende der Ergebnisse erreicht.',
 		noStockMediaResults: 'Keine Ergebnisse gefunden',
 		noStockMediaResultsMessage:
 			'Versuchen Sie andere Schlüsselwörter oder wechseln Sie die Quelle.',
@@ -1655,6 +1658,7 @@ const de = {
 		configureApiKeys:
 			'Konfigurieren Sie Ihre API-Schlüssel unter Einstellungen > API-Schlüssel > Stock-Medien',
 		pexelsSource: 'Pexels',
+		pinterestSource: 'Pinterest',
 		pixabaySource: 'Pixabay',
 		stockMediaError: 'Suchfehler',
 		backToAssets: 'Zurück zu Assets',

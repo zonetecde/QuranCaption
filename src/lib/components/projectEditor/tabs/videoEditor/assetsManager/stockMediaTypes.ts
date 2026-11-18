@@ -1,4 +1,4 @@
-export type StockMediaSource = 'pexels' | 'pixabay';
+export type StockMediaSource = 'pexels' | 'pixabay' | 'pinterest';
 
 export type StockMediaType = 'all' | 'photo' | 'video';
 

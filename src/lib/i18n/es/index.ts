@@ -1637,6 +1637,9 @@ const es = {
 		allMedia: 'Todos los medios',
 		images: 'ImÃ¡genes',
 		videos: 'Videos',
+		pinterestUsageDisclaimer:
+			'Al usar este contenido de Pinterest en mi vídeo, confirmo que tengo los derechos o permisos necesarios para usarlo y publicar el vídeo si decido compartirlo.',
+		stockMediaEndOfResults: 'Has llegado al final de los resultados.',
 		noStockMediaResults: 'Sin resultados',
 		noStockMediaResultsMessage: 'Pruebe con otras palabras clave o cambie la fuente.',
 		downloadMediaAsset: 'Descargar e importar',
@@ -1646,6 +1649,7 @@ const es = {
 			'Usted es responsable de acreditar al autor y proporcionar un enlace al contenido original en {source}, como exigen sus condiciones de uso.',
 		configureApiKeys: 'Configure sus claves API en Ajustes > Claves API > Banco de medios',
 		pexelsSource: 'Pexels',
+		pinterestSource: 'Pinterest',
 		pixabaySource: 'Pixabay',
 		stockMediaError: 'Error de bÃºsqueda',
 		backToAssets: 'Volver a recursos',

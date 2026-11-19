@@ -5,6 +5,32 @@
 	import { locale, setLocale } from '$lib/i18n/i18n-svelte';
 	import { isLocale } from '$lib/i18n/i18n-util';
 	import { getLocaleDirection } from '$lib/i18n/direction';
+	import {
+		RIWAYAH_OPTIONS,
+		getRiwayahFontFamily,
+		isNonHafsRiwayah
+	} from '$lib/services/RiwayahProvider';
+
+	if (browser) {
+		const riwayahFontStyle = document.createElement('style');
+		const isMacOS = navigator.userAgent.toLowerCase().includes('mac');
+		for (const riwayah of RIWAYAH_OPTIONS) {
+			if (!isNonHafsRiwayah(riwayah)) continue;
+			const baseUrl = `/riwayat/${riwayah.toLowerCase()}/font`;
+			const source = isMacOS
+				? `url('${baseUrl}.ttf') format('truetype')`
+				: `url('${baseUrl}.woff2') format('woff2'), url('${baseUrl}.ttf') format('truetype')`;
+			riwayahFontStyle.textContent += `
+				@font-face {
+					font-family: '${getRiwayahFontFamily(riwayah)}';
+					src: ${source};
+					font-weight: normal;
+					font-style: normal;
+				}
+			`;
+		}
+		document.head.appendChild(riwayahFontStyle);
+	}
 
 	let { children } = $props();
 

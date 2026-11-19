@@ -22,7 +22,7 @@ import {
 import { parseSegmentationResponseFromThrownError } from './parsing';
 import { enrichSegmentationResponseWithWordTimestamps } from './enrichment';
 import { applySegmentationResponseToProject } from './apply-segmentation';
-import { applySegmentationRiwayahToProject } from './riwayah';
+import { applySegmentationRiwayahToProject, normalizeRiwayahSegmentationResponse } from './riwayah';
 import {
 	beginAudioNormalizationIfNeeded,
 	normalizeAudioForProject
@@ -293,6 +293,10 @@ export async function runAutoSegmentationForProject(
 				audioLaneIndex,
 				riwayah
 			);
+		}
+		if (effectiveMode === 'api') {
+			// MFA uses native reading references; project clips use internal Hafs references.
+			response = await normalizeRiwayahSegmentationResponse(response, riwayah);
 		}
 
 		const contextModelName = resolveContextModelName(

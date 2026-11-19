@@ -6,6 +6,7 @@ import LL, { setLocale } from '$lib/i18n/i18n-svelte';
 import { loadLocale } from '$lib/i18n/i18n-util.sync';
 import { get } from 'svelte/store';
 import { applySegmentationResponseToProject } from '$lib/services/autoSegmentation/apply-segmentation';
+import RiwayahProvider from '$lib/services/RiwayahProvider';
 
 import {
 	resolveIncludeWbwTimestamps,
@@ -38,6 +39,54 @@ vi.mock('$lib/services/autoSegmentation/apply-segmentation', () => ({
  * d'intégration et les tests manuels.
  */
 describe('runAutoSegmentation exports', () => {
+	it('converts cloud Warsh references before creating subtitle clips', async () => {
+		vi.resetAllMocks();
+		const prefetch = vi.spyOn(RiwayahProvider, 'prefetch').mockResolvedValue(undefined);
+		const mapping = vi
+			.spyOn(RiwayahProvider, 'getHafsWordMapping')
+			.mockImplementation((_riwayah, _surah, _verse, word) => ({
+				locations: [`55:2:${word - 1}`],
+				text: `word-${word}`
+			}));
+		try {
+			const project = {
+				content: { timeline: { getFirstTrack: () => ({ clips: [] }) } }
+			} as unknown as Project;
+			vi.mocked(invoke).mockResolvedValueOnce({ configured: false, valid: false });
+			vi.mocked(invoke).mockResolvedValueOnce({
+				segments: [
+					{
+						ref_from: '55:1:2',
+						ref_to: '55:1:3',
+						time_from: 5.08,
+						time_to: 10.38,
+						words: [{ location: '55:1:2', start: 0.14, end: 0.97 }]
+					}
+				]
+			});
+			vi.mocked(applySegmentationResponseToProject).mockResolvedValueOnce({ status: 'cancelled' });
+			await runAutoSegmentationForProject(project, { riwayah: 'warsh' }, 'api', { headless: true });
+			expect(applySegmentationResponseToProject).toHaveBeenCalledWith(
+				expect.objectContaining({
+					response: {
+						segments: [
+							{
+								ref_from: '55:2:1',
+								ref_to: '55:2:2',
+								time_from: 5.08,
+								time_to: 10.38,
+								words: [{ location: '55:2:1', start: 0.14, end: 0.97, word: 'word-2' }]
+							}
+						]
+					}
+				})
+			);
+		} finally {
+			prefetch.mockRestore();
+			mapping.mockRestore();
+		}
+	});
+
 	it.each(['en', 'fr', 'ar', 'de', 'es', 'id', 'zh'] as const)(
 		'provides the invalid cloud token warning in %s',
 		(locale) => {
@@ -115,7 +164,7 @@ describe('runAutoSegmentation exports', () => {
 			vi.mocked(applySegmentationResponseToProject).mockResolvedValueOnce({ status: 'cancelled' });
 			await runAutoSegmentationForProject(
 				project,
-				{ localAsrMode, includeWbwTimestamps: true },
+				{ localAsrMode, includeWbwTimestamps: true, riwayah: 'warsh' },
 				'local',
 				{ headless: true }
 			);

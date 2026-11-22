@@ -8,6 +8,8 @@ import LL from '$lib/i18n/i18n-svelte';
 import { globalState } from '$lib/runes/main.svelte';
 import { ProjectHistoryManager } from './undoRedo/ProjectHistoryManager';
 
+const AUDIO_TOO_LARGE_ERROR = /STT_SIZE|STT_HTTP_413/u;
+
 export type SpeechToTextCopy = {
 	[K in keyof typeof editor.speechToText]: () => string;
 };
@@ -251,7 +253,7 @@ function speechRequestError(error: unknown): Error {
 	const code = String(error);
 	if (code.includes('STT_HTTP_429')) return new Error(copy.rateLimit());
 	if (/STT_HTTP_40[13]/u.test(code)) return new Error(copy.invalidKey());
-	if (/STT_SIZE|STT_HTTP_413/u.test(code)) return new Error(copy.audioTooLarge());
+	if (AUDIO_TOO_LARGE_ERROR.test(code)) return new Error(copy.audioTooLarge());
 	if (code.includes('STT_AUDIO')) return new Error(copy.audioError());
 	if (code.includes('STT_RESPONSE')) return new Error(copy.invalidTimings());
 	return new Error(copy.providerError());
@@ -327,7 +329,8 @@ export async function transcribeProjectAudio(
 		options.maxDuration > 30
 	)
 		throw new Error(copy.invalidLimits());
-	const batchSeconds = options.transcriptionBatchSeconds ?? 300;
+	const defaultBatchSeconds = 300;
+	const batchSeconds = options.transcriptionBatchSeconds ?? defaultBatchSeconds;
 	if (
 		options.transcribeInBatches &&
 		(!Number.isInteger(batchSeconds) || batchSeconds < 30 || batchSeconds > 600)
@@ -364,13 +367,14 @@ export async function transcribeProjectAudio(
 	}
 	assertCurrentSource();
 	const duration = (source.end - source.start) / 1000;
-	const chunkSeconds = options.transcribeInBatches ? batchSeconds : duration;
+	const overlapSeconds = 1.5;
+	let chunkSeconds = options.transcribeInBatches ? batchSeconds : null;
 	const words: SpeechWord[] = [];
-	for (let start = 0; start < duration; start += chunkSeconds) {
+	chunks: for (let start = 0; start < duration; ) {
 		assertCurrentSource();
-		const coreEnd = Math.min(duration, start + chunkSeconds);
-		const from = Math.max(0, start - 1.5);
-		const to = Math.min(duration, coreEnd + 1.5);
+		const coreEnd = Math.min(duration, start + (chunkSeconds ?? duration));
+		const from = Math.max(0, start - overlapSeconds);
+		const to = Math.min(duration, coreEnd + overlapSeconds);
 		let response: unknown;
 		for (let attempt = 0; ; attempt++) {
 			assertCurrentSource();
@@ -392,9 +396,20 @@ export async function transcribeProjectAudio(
 				});
 				break;
 			} catch (error) {
-				const rateLimit = String(error).match(/STT_HTTP_429(?::([\d.]+))?/u);
+				const code = String(error);
+				if (
+					chunkSeconds === null &&
+					duration > 2 * overlapSeconds &&
+					AUDIO_TOO_LARGE_ERROR.test(code)
+				) {
+					// Repart au même point avec un premier lot plus court, même avec le chevauchement.
+					chunkSeconds =
+						duration > defaultBatchSeconds + overlapSeconds ? defaultBatchSeconds : duration / 2;
+					continue chunks;
+				}
+				const rateLimit = code.match(/STT_HTTP_429(?::([\d.]+))?/u);
 				const waitSeconds = Math.max(Number(rateLimit?.[1]) || 0, 30 * 2 ** attempt);
-				if (!options.transcribeInBatches || !rateLimit || attempt >= 3 || waitSeconds > 300)
+				if (chunkSeconds === null || !rateLimit || attempt >= 3 || waitSeconds > 300)
 					throw speechRequestError(error);
 				onProgress('waiting', start / duration);
 				await waitForSpeechRetry(waitSeconds * 1000, signal);
@@ -408,6 +423,7 @@ export async function transcribeProjectAudio(
 				return midpoint >= start && midpoint < coreEnd;
 			})
 		);
+		start = coreEnd;
 	}
 	if (!words.length) throw new Error(copy.noSpeech());
 	// Certains fournisseurs font légèrement se chevaucher les mots; conserve des bornes monotones.

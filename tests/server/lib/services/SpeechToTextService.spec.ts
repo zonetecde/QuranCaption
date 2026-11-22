@@ -736,6 +736,36 @@ describe('transcribing timeline audio', () => {
 		});
 	});
 
+	test.each(['STT_SIZE', 'STT_HTTP_413'])(
+		'falls back to standard batches on %s without enabling batches in settings',
+		async (error) => {
+			clip.endTime = 614000;
+			const options = {
+				...globalState.settings!.speechToTextSettings,
+				transcribeInBatches: false,
+				transcriptionBatchSeconds: 600
+			};
+			vi.mocked(invoke).mockRejectedValueOnce(error);
+			await transcribeProjectAudio(
+				project,
+				clip.id,
+				options,
+				new AbortController().signal,
+				vi.fn()
+			);
+			expect(vi.mocked(invoke).mock.calls.map(([, args]) => args)).toMatchObject([
+				{ request: { startSeconds: 5, durationSeconds: 604 } },
+				{ request: { startSeconds: 5, durationSeconds: 301.5 } },
+				{ request: { startSeconds: 303.5, durationSeconds: 303 } },
+				{ request: { startSeconds: 603.5, durationSeconds: 5.5 } }
+			]);
+			expect(options).toMatchObject({ transcribeInBatches: false, transcriptionBatchSeconds: 600 });
+			expect(globalState.getSubtitleClips.length).toBeGreaterThan(0);
+			expect(ProjectHistoryManager.undo()).toBe(true);
+			expect(globalState.getSubtitleClips).toHaveLength(0);
+		}
+	);
+
 	test.each(['groq', 'elevenlabs'] as const)(
 		'owns each overlap word only once across sequential %s batches with timeline and source offsets',
 		async (provider) => {

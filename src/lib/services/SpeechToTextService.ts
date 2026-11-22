@@ -42,7 +42,7 @@ export function normalizeSpeechWords(
 				throw new Error(getSpeechToTextCopy().invalidTimings());
 			return !value.type || value.type === 'word';
 		})
-		.map((value) => {
+		.flatMap((value) => {
 			const word = value.word ?? value.text;
 			const { start, end } = value;
 			if (
@@ -52,16 +52,19 @@ export function normalizeSpeechWords(
 				!Number.isFinite(end) ||
 				start < 0 ||
 				end < start ||
-				start >= duration ||
 				end > duration + 1
 			) {
 				throw new Error(getSpeechToTextCopy().invalidTimings());
 			}
-			return {
-				word: word.trim(),
-				start: offset + start,
-				end: offset + Math.min(duration, Math.max(start + 0.001, end))
-			};
+			// Dans la marge tolérée, un mot entièrement hors du lot n'a pas de plage audio.
+			if (start >= duration) return [];
+			return [
+				{
+					word: word.trim(),
+					start: offset + start,
+					end: offset + Math.min(duration, Math.max(start + 0.001, end))
+				}
+			];
 		});
 }
 

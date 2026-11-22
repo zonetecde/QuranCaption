@@ -179,10 +179,28 @@ describe('speech subtitle segmentation', () => {
 		]);
 	});
 
+	test('keeps valid words when a timestamp starts just after the audio batch ends', () => {
+		expect(
+			normalizeSpeechWords(
+				{
+					words: [
+						{ word: 'Bonjour', start: 299, end: 299.25 },
+						{ word: 'toi', start: 301.56427, end: 301.86426 }
+					]
+				},
+				0,
+				301.5
+			)
+		).toEqual([{ word: 'Bonjour', start: 299, end: 299.25 }]);
+	});
+
 	test('rejects missing or invalid timings instead of silently discarding words', () => {
 		expect(() => normalizeSpeechWords({ text: 'hello' }, 0, 2)).toThrow();
 		expect(() =>
 			normalizeSpeechWords({ words: [{ word: 'hello', start: -1, end: 1 }] }, 0, 2)
+		).toThrow();
+		expect(() =>
+			normalizeSpeechWords({ words: [{ word: 'hello', start: 2.5, end: 3.1 }] }, 0, 2)
 		).toThrow();
 	});
 });

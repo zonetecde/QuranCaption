@@ -1,5 +1,8 @@
-import { domToForeignObjectSvg, type Context } from 'modern-screenshot';
+import { domToCanvas, domToForeignObjectSvg, type Context } from 'modern-screenshot';
+import { releaseExportScreenshotResources } from '$lib/services/ExportScreenshotResources';
 import { refreshRoundedTextOutlines } from '$lib/services/RoundedTextOutline';
+
+const cssUrl = /url\(\s*(['"]?)(.*?)\1\s*\)/g;
 
 /**
  * Prépare au plus une capture en avance et attend les écritures avant de terminer.
@@ -62,7 +65,7 @@ function collectFontRules(
 				.toLowerCase();
 			if (!families.has(family)) continue;
 			result.add(
-				rule.cssText.replace(/url\(\s*(['"]?)(.*?)\1\s*\)/g, (_, _quote, source: string) => {
+				rule.cssText.replace(cssUrl, (_, _quote, source: string) => {
 					return `url(${JSON.stringify(new URL(source, baseUrl).href)})`;
 				})
 			);
@@ -90,13 +93,13 @@ function collectFontRules(
 }
 
 /**
- * Prépare le DOM existant pour la WebView native, sans sérialiser les fichiers de polices.
+ * Prépare une copie indépendante du DOM pour la capture, avec les règles de police utilisées.
  * @param {Context<HTMLElement>} context Contexte de clonage avec l'option font désactivée.
- * @returns {Promise<{html: string; fontCss: string[]}>} Overlay et règles des polices utilisées.
+ * @returns {Promise<{svg: SVGElement; fontCss: string[]}>} Overlay et règles des polices utilisées.
  */
 export async function prepareAndroidOverlay(
 	context: Context<HTMLElement>
-): Promise<{ html: string; fontCss: string[] }> {
+): Promise<{ svg: SVGElement; fontCss: string[] }> {
 	refreshRoundedTextOutlines(context.node);
 	context.fontFamilies.clear();
 	context.shadowRoots.length = 0;
@@ -126,6 +129,10 @@ export async function prepareAndroidOverlay(
 	}
 	const fontCss = new Set<string>();
 	const document = context.node.ownerDocument;
+	// La préparation suivante peut réutiliser ces nœuds pendant la rasterisation du SVG.
+	for (const element of [context.svgStyleElement, context.svgDefsElement]) {
+		element?.replaceWith(element.cloneNode(true));
+	}
 	for (const sheet of Array.from(document.styleSheets)) {
 		try {
 			collectFontRules(
@@ -138,5 +145,86 @@ export async function prepareAndroidOverlay(
 			if (sheet.href) fontCss.add(`@import url(${JSON.stringify(sheet.href)});`);
 		}
 	}
-	return { html: svg.outerHTML, fontCss: Array.from(fontCss) };
+	return { svg, fontCss: Array.from(fontCss) };
+}
+
+/**
+ * Charge une ressource de police requise par l'image SVG isolée.
+ * @param {string} url URL de la ressource.
+ * @returns {Promise<Response>} Réponse utilisable.
+ */
+async function fetchOverlayFont(url: string): Promise<Response> {
+	const response = await fetch(url);
+	if (!response.ok) throw new Error(`Overlay font download failed: ${response.status} (${url})`);
+	return response;
+}
+
+/**
+ * Incorpore les fichiers de police dans une règle CSS pour le rendu SVG en image.
+ * @param {string} css Règle ou feuille de style à incorporer.
+ * @param {Map<string, Promise<string>>} fontCache Fichiers de police déjà chargés pendant l'export.
+ * @param {string} baseUrl URL servant à résoudre les sources relatives.
+ * @returns {Promise<string>} CSS autonome.
+ */
+async function embedOverlayFontCss(
+	css: string,
+	fontCache: Map<string, Promise<string>>,
+	baseUrl: string
+): Promise<string> {
+	const matches = Array.from(css.matchAll(cssUrl));
+	if (css.startsWith('@import') && matches[0]) {
+		const url = new URL(matches[0][2], baseUrl).href;
+		return embedOverlayFontCss(await (await fetchOverlayFont(url)).text(), fontCache, url);
+	}
+	const dataUrls = await Promise.all(
+		matches.map(async ([, , source]) => {
+			const url = new URL(source, baseUrl).href;
+			if (url.startsWith('data:')) return url;
+			let dataUrl = fontCache.get(url);
+			if (!dataUrl) {
+				dataUrl = fetchOverlayFont(url)
+					.then((response) => response.blob())
+					.then(
+						(blob) =>
+							new Promise<string>((resolve, reject) => {
+								const reader = new FileReader();
+								reader.onload = () => resolve(String(reader.result));
+								reader.onerror = () => reject(reader.error);
+								reader.readAsDataURL(blob);
+							})
+					);
+				fontCache.set(url, dataUrl);
+			}
+			return dataUrl;
+		})
+	);
+	let index = 0;
+	return css.replace(cssUrl, () => `url(${JSON.stringify(dataUrls[index++])})`);
+}
+
+/**
+ * Rasterise le SVG en PNG sans passer par le dessin logiciel de la WebView Android.
+ * @param {Awaited<ReturnType<typeof prepareAndroidOverlay>>} overlay Overlay indépendant à rasteriser.
+ * @param {number} width Largeur finale du PNG.
+ * @param {number} height Hauteur finale du PNG.
+ * @param {Map<string, Promise<string>>} fontCache Fichiers de police de l'export.
+ * @returns {Promise<Blob>} PNG transparent.
+ */
+export async function rasterizeAndroidOverlay(
+	{ svg, fontCss }: Awaited<ReturnType<typeof prepareAndroidOverlay>>,
+	width: number,
+	height: number,
+	fontCache: Map<string, Promise<string>>
+): Promise<Blob> {
+	const css = await Promise.all(
+		fontCss.map((rule) => embedOverlayFontCss(rule, fontCache, svg.ownerDocument.baseURI))
+	);
+	svg.querySelector('style')!.append(css.join('\n'));
+	const canvas = await domToCanvas(svg, { width, height, font: false });
+	try {
+		// La WebView masquée retarde l'encodage asynchrone de canvas.toBlob().
+		return await (await fetch(canvas.toDataURL())).blob();
+	} finally {
+		releaseExportScreenshotResources(canvas, null);
+	}
 }

@@ -3,6 +3,7 @@ import { createContext, destroyContext, type Context } from 'modern-screenshot';
 import { roundedTextOutline } from '$lib/services/RoundedTextOutline';
 import {
 	prepareAndroidOverlay,
+	rasterizeAndroidOverlay,
 	runAndroidCapturePipeline
 } from '../../../../src/routes/exporter/AndroidExport';
 
@@ -136,6 +137,34 @@ afterEach(() => {
 });
 
 describe('capture DOM pour le renderer Android', () => {
+	it('garde les pixels du texte fixe quand un sous-titre avec halo apparaît', async () => {
+		const context = await createOverlay();
+		const subtitle = context.node.querySelector('p')!;
+		subtitle.style.cssText = 'position:absolute;top:80px;text-shadow:0 0 7px gold,0 0 28px gold';
+		const label = document.createElement('span');
+		label.textContent = 'PAGE 2/604';
+		label.style.cssText = 'position:absolute;top:16px;font:20px sans-serif;color:white';
+		context.node.append(label);
+		const fontCache = new Map<string, Promise<string>>();
+		const canvas = document.createElement('canvas');
+		canvas.width = 320;
+		canvas.height = 160;
+		const pixels = canvas.getContext('2d')!;
+		const captures = [];
+		for (const visibility of ['hidden', 'visible']) {
+			subtitle.style.visibility = visibility;
+			const overlay = await prepareAndroidOverlay(context);
+			const blob = await rasterizeAndroidOverlay(overlay, 320, 160, fontCache);
+			const bitmap = await createImageBitmap(blob);
+			pixels.clearRect(0, 0, 320, 160);
+			pixels.drawImage(bitmap, 0, 0);
+			bitmap.close();
+			captures.push(pixels.getImageData(0, 0, 320, 48).data);
+		}
+		expect(captures[0].some((channel) => channel > 0)).toBe(true);
+		expect(captures[1]).toEqual(captures[0]);
+	});
+
 	it('actualise les contours modifiés juste avant de cloner le DOM Android', async () => {
 		const context = await createOverlay();
 		const paragraph = context.node.querySelector('p')!;
@@ -147,7 +176,7 @@ describe('capture DOM pour le renderer Android', () => {
 			paragraph.querySelector('span')!.textContent = 'اللَّهِ';
 			const capture = await prepareAndroidOverlay(context);
 			const clone = document.createElement('div');
-			clone.innerHTML = capture.html;
+			clone.innerHTML = capture.svg.outerHTML;
 			const text = clone.querySelector('svg.rounded-text-outline text')!;
 			expect(text).not.toBeNull();
 			expect(text.textContent).toBe('اللَّهِ');
@@ -191,9 +220,9 @@ describe('capture DOM pour le renderer Android', () => {
 		const context = await createOverlay();
 		const capture = await prepareAndroidOverlay(context);
 		expect(capture.fontCss.join('\n')).toContain(new URL('/Hafs.ttf', document.baseURI).href);
-		expect(capture.html).not.toContain('data:font');
-		expect(capture.html).not.toContain('base64');
-		expect(capture.html).toContain('بِسْمِ اللَّهِ');
+		expect(capture.svg.outerHTML).not.toContain('data:font');
+		expect(capture.svg.outerHTML).not.toContain('base64');
+		expect(capture.svg.outerHTML).toContain('بِسْمِ اللَّهِ');
 		expect(context.requests.size).toBe(0);
 	});
 
@@ -212,7 +241,7 @@ describe('capture DOM pour le renderer Android', () => {
 		const loaded = new Promise<void>((resolve) =>
 			frame.addEventListener('load', () => resolve(), { once: true })
 		);
-		frame.srcdoc = `<html><head><style>html,body{margin:0;background:transparent}</style>${capture.fontCss.map((css) => `<style>${css}</style>`).join('')}</head><body>${capture.html}</body></html>`;
+		frame.srcdoc = `<html><head><style>html,body{margin:0;background:transparent}</style>${capture.fontCss.map((css) => `<style>${css}</style>`).join('')}</head><body>${capture.svg.outerHTML}</body></html>`;
 		document.body.append(frame);
 		await loaded;
 		const target = frame.contentDocument!;
@@ -287,7 +316,7 @@ describe('capture DOM pour le renderer Android', () => {
 			const loaded = new Promise<void>((resolve) =>
 				frame.addEventListener('load', () => resolve(), { once: true })
 			);
-			frame.srcdoc = `<html><head><style>html,body{margin:0;background:transparent;overflow:hidden}</style>${capture.fontCss.map((css) => `<style>${css}</style>`).join('')}</head><body>${capture.html}</body></html>`;
+			frame.srcdoc = `<html><head><style>html,body{margin:0;background:transparent;overflow:hidden}</style>${capture.fontCss.map((css) => `<style>${css}</style>`).join('')}</head><body>${capture.svg.outerHTML}</body></html>`;
 			document.body.append(frame);
 			await loaded;
 			const target = frame.contentDocument!;
@@ -335,7 +364,7 @@ describe('capture DOM pour le renderer Android', () => {
 				contexts.push(context);
 				const capture = await prepareAndroidOverlay(context);
 				const target = document.createElement('div');
-				target.innerHTML = capture.html;
+				target.innerHTML = capture.svg.outerHTML;
 				document.body.append(target);
 				elements.push(target);
 				const svg = target.querySelector('svg')!.getBoundingClientRect();
@@ -356,7 +385,7 @@ describe('capture DOM pour le renderer Android', () => {
 		context.node.style.backdropFilter = 'blur(0px)';
 		context.node.querySelector('p')!.style.filter = 'blur(2px) brightness(0.9)';
 		const capture = await prepareAndroidOverlay(context);
-		const target = new DOMParser().parseFromString(capture.html, 'text/html');
+		const target = new DOMParser().parseFromString(capture.svg.outerHTML, 'text/html');
 		expect(target.querySelector<HTMLElement>('foreignObject > div')!.style.backdropFilter).toBe(
 			'none'
 		);
@@ -364,7 +393,7 @@ describe('capture DOM pour le renderer Android', () => {
 		expect(context.node.style.backdropFilter).toBe('blur(0px)');
 		context.node.style.backdropFilter = 'blur(4px)';
 		const next = await prepareAndroidOverlay(context);
-		const nextTarget = new DOMParser().parseFromString(next.html, 'text/html');
+		const nextTarget = new DOMParser().parseFromString(next.svg.outerHTML, 'text/html');
 		expect(nextTarget.querySelector<HTMLElement>('foreignObject > div')!.style.backdropFilter).toBe(
 			'none'
 		);
@@ -378,7 +407,7 @@ describe('capture DOM pour le renderer Android', () => {
 		const first = await prepareAndroidOverlay(context);
 		for (let index = 0; index < 24; index++) {
 			const capture = await prepareAndroidOverlay(context);
-			expect(capture.html.length).toBeLessThan(first.html.length + 100);
+			expect(capture.svg.outerHTML.length).toBeLessThan(first.svg.outerHTML.length + 100);
 			expect(capture.fontCss).toEqual(first.fontCss);
 		}
 		context.node.querySelector('p')!.style.fontFamily = 'serif';
@@ -428,7 +457,7 @@ describe('capture DOM pour le renderer Android', () => {
 			const loaded = new Promise<void>((resolve) =>
 				frame.addEventListener('load', () => resolve(), { once: true })
 			);
-			frame.srcdoc = `<html><head><style>html,body{margin:0;background:transparent}</style>${capture.fontCss.map((css) => `<style>${css}</style>`).join('')}</head><body>${capture.html}</body></html>`;
+			frame.srcdoc = `<html><head><style>html,body{margin:0;background:transparent}</style>${capture.fontCss.map((css) => `<style>${css}</style>`).join('')}</head><body>${capture.svg.outerHTML}</body></html>`;
 			document.body.append(frame);
 			await loaded;
 			const target = frame.contentDocument!;

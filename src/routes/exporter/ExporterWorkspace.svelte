@@ -57,7 +57,11 @@
 		destroyContext,
 		type Context as ScreenshotContext
 	} from 'modern-screenshot';
-	import { prepareAndroidOverlay, runAndroidCapturePipeline } from './AndroidExport';
+	import {
+		prepareAndroidOverlay,
+		rasterizeAndroidOverlay,
+		runAndroidCapturePipeline
+	} from './AndroidExport';
 	import {
 		ClipWithTranslation,
 		CustomClip,
@@ -132,7 +136,8 @@
 	let reusableScreenshotContext: ScreenshotContext<HTMLElement> | null = null;
 	let reusableScreenshotContextKey = '';
 	let preparedScreenshotCount = 0;
-	let pendingNativeScreenshot: Promise<unknown> | null = null;
+	let pendingScreenshot: Promise<unknown> | null = null;
+	const screenshotFontCache = new Map<string, Promise<string>>();
 	let screenshotDomPhases = {
 		startedAt: 0,
 		cloneMs: 0,
@@ -1154,11 +1159,7 @@
 		for (const unlisten of exporterUnlisteners) unlisten();
 		exporterUnlisteners = [];
 		destroyReusableScreenshotContext();
-		if (currentCaptureWorkerId === null) {
-			void invoke('release_android_export_overlay', { exportId }).catch((error) =>
-				console.warn('Could not release native overlay renderer:', error)
-			);
-		}
+		screenshotFontCache.clear();
 		if (currentCaptureWorkerId === null) void setExportScreenAwake(false);
 	});
 
@@ -1585,14 +1586,14 @@
 	}
 
 	/**
-	 * Libère les ressources natives et demande le démontage des renderers de capture.
+	 * Libère les ressources et demande le démontage des renderers de capture.
 	 * @returns {Promise<void>}
 	 */
 	async function closeCaptureWorkerRenderers(): Promise<void> {
-		await pendingNativeScreenshot?.catch(() => {});
-		pendingNativeScreenshot = null;
+		await pendingScreenshot?.catch(() => {});
+		pendingScreenshot = null;
 		destroyReusableScreenshotContext();
-		await invoke('release_android_export_overlay', { exportId });
+		screenshotFontCache.clear();
 		captureWorkerIds = [];
 		window.parent.postMessage(
 			{
@@ -2541,7 +2542,7 @@
 	}
 
 	/**
-	 * Capture l'overlay existant et enregistre son PNG sur le renderer natif Android.
+	 * Capture l'overlay existant et écrit son PNG dans le dossier d'export.
 	 * @param {string} fileName Nom du PNG sans extension.
 	 * @param {string | null} subfolder Sous-dossier de sortie éventuel.
 	 * @param {boolean} hideArabicText Indique si le texte arabe doit être masqué.
@@ -2605,7 +2606,7 @@
 			await emitExportLog('info', 'Screenshot started', {
 				file: fileName,
 				subfolder,
-				mode: 'native-webview',
+				mode: 'svg-image',
 				width: targetWidth,
 				height: targetHeight,
 				scale
@@ -2625,7 +2626,7 @@
 				foreignObjectMs: 0
 			};
 			const domCaptureStartedAt = performance.now();
-			let overlay: { html: string; fontCss: string[] };
+			let overlay: Awaited<ReturnType<typeof prepareAndroidOverlay>>;
 			try {
 				overlay = await withScreenshotTimeout(prepareAndroidOverlay(context));
 			} finally {
@@ -2639,50 +2640,23 @@
 			const domCaptureMs = performance.now() - domCaptureStartedAt;
 			const domPhases = { ...screenshotDomPhases };
 			if (++preparedScreenshotCount % 16 === 0) destroyReusableScreenshotContext();
-			const path = await join(await appDataDir(), filePathWithName);
-			const previousCapture = pendingNativeScreenshot;
+			const previousCapture = pendingScreenshot;
 			const capture = (async () => {
 				await previousCapture;
-				for (let attempt = 0; ; attempt++) {
-					ensureCaptureNotCancelled();
-					try {
-						return await withScreenshotTimeout(
-							invoke<{
-								rasterMs: number;
-								drawMs: number;
-								pngEncodeMs: number;
-								bytes: number;
-							}>('capture_android_export_overlay', {
-								payload: {
-									exportId,
-									baseUrl: document.baseURI,
-									...overlay,
-									width: targetWidth,
-									height: targetHeight,
-									path
-								}
-							})
-						);
-					} catch (error) {
-						const message = error instanceof Error ? error.message : String(error);
-						if (attempt > 0 || message !== 'Overlay capture timed out') throw error;
-						ensureCaptureNotCancelled();
-						await emitExportLog(
-							'warn',
-							'Overlay capture timed out, recreating renderer and retrying',
-							{
-								file: fileName,
-								subfolder
-							}
-						);
-						await invoke('release_android_export_overlay', { exportId });
-					}
-				}
+				ensureCaptureNotCancelled();
+				const rasterStartedAt = performance.now();
+				const blob = await withScreenshotTimeout(
+					rasterizeAndroidOverlay(overlay, targetWidth, targetHeight, screenshotFontCache)
+				);
+				const rasterMs = performance.now() - rasterStartedAt;
+				const bytes = new Uint8Array(await blob.arrayBuffer());
+				ensureCaptureNotCancelled();
+				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
+				return { rasterMs, bytes: blob.size };
 			})();
-			pendingNativeScreenshot = capture;
+			pendingScreenshot = capture;
 			void capture.catch(() => {});
 			onPrepared?.();
-			// Chaque tentative a son propre délai, sans compter l'attente de la capture précédente.
 			const result = await capture;
 			const totalMs = performance.now() - screenshotStartedAt;
 			screenshotPerformance.count += 1;
@@ -2692,21 +2666,17 @@
 			screenshotPerformance.cloneMs += domPhases.cloneMs;
 			screenshotPerformance.embedMs += domPhases.embedMs;
 			screenshotPerformance.rasterMs += result.rasterMs;
-			screenshotPerformance.pngEncodeMs += result.pngEncodeMs;
 			screenshotPerformance.domCaptureMs += domCaptureMs;
 			screenshotPerformance.bytes += result.bytes;
 			await emitExportLog('info', 'Screenshot performance', {
 				file: fileName,
-				mode: 'native-webview',
+				mode: 'svg-image',
 				totalMs: Math.round(totalMs),
 				contextMs: Math.round(contextMs),
 				cloneMs: Math.round(domPhases.cloneMs),
 				embedMs: Math.round(domPhases.embedMs),
 				domCaptureMs: Math.round(domCaptureMs),
 				rasterMs: Math.round(result.rasterMs),
-				drawMs: Math.round(result.drawMs),
-				pngEncodeMs: Math.round(result.pngEncodeMs),
-				htmlCharacters: overlay.html.length,
 				bytes: result.bytes
 			});
 			await emitExportLog('info', 'Screenshot saved', { file: fileName, path: filePathWithName });

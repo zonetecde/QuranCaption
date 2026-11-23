@@ -5,6 +5,8 @@ import RiwayahProvider, {
 	RIWAYAH_OPTIONS,
 	type NonHafsRiwayah
 } from '$lib/services/RiwayahProvider';
+import { normalizeRiwayahSegmentationResponse } from '$lib/services/autoSegmentation/riwayah';
+import type { SegmentationResponse } from '$lib/services/autoSegmentation/types';
 
 const riwayat = RIWAYAH_OPTIONS.filter((riwayah): riwayah is NonHafsRiwayah => riwayah !== 'Hafs');
 const warsh = {
@@ -27,6 +29,167 @@ describe('RiwayahProvider', () => {
 	});
 
 	afterAll(() => vi.unstubAllGlobals());
+
+	it('maps merged and split Warsh verses back to internal Hafs word references', () => {
+		expect(RiwayahProvider.getHafsWordMapping('Warsh', 55, 1, 2)?.locations).toEqual(['55:2:1']);
+		expect(RiwayahProvider.getHafsWordMapping('Warsh', 55, 2, 3)?.locations).toEqual(['55:4:1']);
+		expect(RiwayahProvider.getHafsWordMapping('Warsh', 2, 254, 1)?.locations).toEqual(['2:255:8']);
+		expect(RiwayahProvider.getHafsWordMapping('Warsh', 1, 7, 1)?.locations).toEqual(['1:7:5']);
+		expect(RiwayahProvider.getHafsWordMapping('Warsh', 1, 0, 1)?.locations).toEqual(['1:1:1']);
+	});
+
+	it('corrects the second Ar-Rahman segment without changing its timings or source payload', async () => {
+		const response: SegmentationResponse = {
+			audio_id: 'cropped-audio',
+			segments: [
+				{
+					segment: 2,
+					time_from: 5.08,
+					time_to: 10.38,
+					ref_from: '55:1:2',
+					ref_to: '55:1:3',
+					matched_text: 'عَلَّمَ اَ۬لْقُرْءَانَۖ',
+					words: [
+						{ location: '55:1:2', start: 0.14, end: 0.97 },
+						{ location: '55:1:3', start: 0.97, end: 5.07 }
+					]
+				}
+			]
+		};
+		const original = structuredClone(response);
+		const result = await normalizeRiwayahSegmentationResponse(response, 'warsh');
+		expect(result.segments?.[0]).toMatchObject({
+			segment: 2,
+			time_from: 5.08,
+			time_to: 10.38,
+			ref_from: '55:2:1',
+			ref_to: '55:2:2',
+			matched_text: response.segments![0].matched_text,
+			words: [
+				{ location: '55:2:1', start: 0.14, end: 0.97, word: 'عَلَّمَ' },
+				{ location: '55:2:2', start: 0.97, end: 5.07, word: 'اَ۬لْقُرْءَانَۖ' }
+			]
+		});
+		expect(response).toEqual(original);
+	});
+
+	it('maps words across both Hafs verses covered by a Warsh segment', async () => {
+		const result = await normalizeRiwayahSegmentationResponse(
+			{
+				segments: [
+					{
+						ref_from: '55:2:1',
+						ref_to: '55:2:4',
+						time_from: 10.98,
+						time_to: 17.3,
+						words: [1, 2, 3, 4].map((word) => ({
+							location: `55:2:${word}`,
+							start: word - 1,
+							end: word
+						}))
+					}
+				]
+			},
+			'warsh'
+		);
+		expect(result.segments?.[0]).toMatchObject({
+			ref_from: '55:3:1',
+			ref_to: '55:4:2',
+			time_from: 10.98,
+			time_to: 17.3
+		});
+		expect(result.segments?.[0].words?.map((word) => word.location)).toEqual([
+			'55:3:1',
+			'55:3:2',
+			'55:4:1',
+			'55:4:2'
+		]);
+	});
+
+	it('combines split reading words without losing real recitation repetitions', async () => {
+		const result = await normalizeRiwayahSegmentationResponse(
+			{
+				segments: [
+					{
+						ref_from: '2:180:3',
+						ref_to: '2:180:4',
+						words: [
+							{ location: '2:180:3', start: 0, end: 0.2 },
+							{ location: '2:180:4', start: 0.2, end: 0.5 },
+							{ location: '2:180:3', start: 0.6, end: 0.8 },
+							{ location: '2:180:4', start: 0.8, end: 1 }
+						]
+					}
+				]
+			},
+			'warsh'
+		);
+		expect(result.segments?.[0].words).toEqual([
+			{ location: '2:181:3', start: 0, end: 0.5, word: 'بَعْدَ مَا' },
+			{ location: '2:181:3', start: 0.6, end: 1, word: 'بَعْدَ مَا' }
+		]);
+	});
+
+	it('preserves the word range when one reading word covers two Hafs words', async () => {
+		const result = await normalizeRiwayahSegmentationResponse(
+			{
+				segments: [
+					{
+						ref_from: '57:23:10',
+						ref_to: '57:23:10',
+						words: [{ location: '57:23:10', start: 0.2, end: 0.8 }]
+					}
+				]
+			},
+			'warsh'
+		);
+		expect(result.segments?.[0]).toMatchObject({ ref_from: '57:24:10', ref_to: '57:24:11' });
+		expect(
+			result.segments?.[0].words?.map((word) => [word.location, word.start, word.end])
+		).toEqual([
+			['57:24:10', 0.2, 0.8],
+			['57:24:11', 0.2, 0.8]
+		]);
+	});
+
+	it('normalizes segments without word timings and preserves special subtitles', async () => {
+		const special = { ref_from: 'basmala', ref_to: 'basmala', special_type: 'Basmala' };
+		const result = await normalizeRiwayahSegmentationResponse(
+			{ segments: [special, { ref_from: '55:1:2', ref_to: '55:1:3' }] },
+			'warsh'
+		);
+		expect(result.segments?.[0]).toEqual(special);
+		expect(result.segments?.[1]).toEqual({ ref_from: '55:2:1', ref_to: '55:2:2' });
+	});
+
+	it.each([undefined, null, 'hafs'] as const)('leaves %s references unchanged', async (riwayah) => {
+		const response = { segments: [{ ref_from: '55:2:1', ref_to: '55:2:2' }] };
+		expect(await normalizeRiwayahSegmentationResponse(response, riwayah)).toBe(response);
+	});
+
+	it.each([
+		['qalun', '55:1:2', '55:2:1'],
+		['shuba', '55:2:1', '55:2:1']
+	] as const)('uses the selected %s word mapping', async (riwayah, native, hafs) => {
+		const result = await normalizeRiwayahSegmentationResponse(
+			{
+				segments: [{ ref_from: native, ref_to: native }]
+			},
+			riwayah
+		);
+		expect(result.segments?.[0]).toEqual({ ref_from: hafs, ref_to: hafs });
+	});
+
+	it('rejects unmapped Quran references instead of silently clamping them to another word', async () => {
+		await expect(
+			normalizeRiwayahSegmentationResponse(
+				{
+					segments: [{ ref_from: '55:1:99', ref_to: '55:1:99' }]
+				},
+				'warsh'
+			)
+		).rejects.toThrow('55:1:99');
+	});
 
 	it('loads a regular one-to-one ayah from the actual Warsh text', () => {
 		const slice = warsh.getVerseSlice(57, 10, 0, 36, true);

@@ -120,7 +120,7 @@ class GlobalState {
 	stockMediaLibrary: StockMediaLibraryState = $state({
 		libraryOpen: false,
 		searchQuery: '',
-		source: 'pixabay',
+		source: 'pinterest',
 		mediaType: 'video',
 		results: [],
 		isLoading: false,

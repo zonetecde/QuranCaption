@@ -2,6 +2,9 @@ import { cleanup, render } from 'vitest-browser-svelte';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { get } from 'svelte/store';
 import ExportVideo from '$lib/components/projectEditor/tabs/export/ExportVideo.svelte';
+import { AssetClip, SubtitleClip } from '$lib/classes/Clip.svelte';
+import { VerseRange } from '$lib/classes/VerseRange.svelte';
+import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 import Settings from '$lib/classes/Settings.svelte';
 import { ExportState, ProjectEditorState } from '$lib/classes/ProjectEditorState.svelte';
 import { Timeline } from '$lib/classes/Timeline.svelte';
@@ -164,4 +167,22 @@ test('defaults legacy settings to disabled and ignores old project-specific prom
 		includeQuranCaptionPromotion: false,
 		quranCaptionPromotionPosition: 'end'
 	});
+});
+
+test('uses subtitle duration when the audio track is empty', () => {
+	vi.spyOn(ProjectHistoryManager, 'track').mockImplementation((_label, mutate) => mutate());
+	vi.spyOn(VerseRange.prototype, 'toString').mockReturnValue('1:1');
+	globalState.getSubtitleTrack.clips = [
+		new SubtitleClip(1000, 4500, 1, 1, 0, 1, 'Verse', [], true, true)
+	];
+
+	render(ExportVideo);
+	expect(globalState.getExportState.videoEndTime).toBe(4500);
+
+	cleanup();
+	globalState.getExportState.videoEndTime = 0;
+	globalState.getAudioTrack.clips = [new AssetClip(500, 2500, 1)];
+
+	render(ExportVideo);
+	expect(globalState.getExportState.videoEndTime).toBe(2500);
 });

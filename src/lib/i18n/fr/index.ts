@@ -1663,6 +1663,9 @@ const fr = {
 		allMedia: 'Tous les médias',
 		images: 'Images',
 		videos: 'Vidéos',
+		pinterestUsageDisclaimer:
+			'En utilisant ce média Pinterest dans ma vidéo, je confirme disposer des droits ou des autorisations nécessaires pour l’utiliser et, si je partage ma vidéo, pour la publier.',
+		stockMediaEndOfResults: 'Vous avez atteint la fin des résultats.',
 		noStockMediaResults: 'Aucun résultat trouvé',
 		noStockMediaResultsMessage: 'Essayez avec d’autres mots-clés ou changez de source.',
 		downloadMediaAsset: 'Télécharger et importer',
@@ -1672,6 +1675,7 @@ const fr = {
 			'Vous êtes responsable de créditer l’auteur et de fournir un lien vers le contenu original sur {source}, comme l’exigent leurs conditions d’utilisation.',
 		configureApiKeys: 'Configurez vos clés API dans Paramètres > Clés API > Banque de médias',
 		pexelsSource: 'Pexels',
+		pinterestSource: 'Pinterest',
 		pixabaySource: 'Pixabay',
 		stockMediaError: 'Erreur de recherche',
 		backToAssets: 'Retour aux assets',

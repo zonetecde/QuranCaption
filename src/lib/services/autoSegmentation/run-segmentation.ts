@@ -17,7 +17,7 @@ import type {
 import { getAutoSegmentationAudioInfo, getAutoSegmentationAudioClips } from './audio';
 import { enrichSegmentationResponseWithWordTimestamps } from './enrichment';
 import { applySegmentationResponseToProject } from './apply-segmentation';
-import { applySegmentationRiwayahToProject } from './riwayah';
+import { applySegmentationRiwayahToProject, normalizeRiwayahSegmentationResponse } from './riwayah';
 import {
 	beginAudioNormalizationIfNeeded,
 	normalizeAudioForProject
@@ -159,12 +159,13 @@ export async function runAutoSegmentationForProject(
 			payload = await invokeCloud('CPU');
 			cloudGpuFallbackToCpu = true;
 		}
-
-		const response = await enrichSegmentationResponseWithWordTimestamps(
+		const enrichedResponse = await enrichSegmentationResponseWithWordTimestamps(
 			payload,
 			undefined,
 			riwayah
 		);
+		// MFA uses native reading references; project clips use internal Hafs references.
+		const response = await normalizeRiwayahSegmentationResponse(enrichedResponse, riwayah);
 		executionOptions.onApplying?.();
 		const result = await applySegmentationResponseToProject({
 			response,

@@ -1520,6 +1520,9 @@ const zh = {
 		allMedia: 'All media',
 		images: 'Images',
 		videos: 'Videos',
+		pinterestUsageDisclaimer:
+			'在我的视频中使用此 Pinterest 素材，即表示我确认拥有使用该素材所需的权利或许可。如果我选择分享视频，我也确认拥有发布该视频所需的权利或许可。',
+		stockMediaEndOfResults: '已显示全部结果。',
 		noStockMediaResults: 'No results found',
 		noStockMediaResultsMessage: 'Try different keywords or change the source.',
 		downloadMediaAsset: 'Download and import',
@@ -1529,6 +1532,7 @@ const zh = {
 			'You are responsible for crediting the author and providing a link to the original content on {source} as required by their terms of service.',
 		configureApiKeys: '在设置 > API 密钥 > Stock Media 中配置 API 密钥',
 		pexelsSource: 'Pexels',
+		pinterestSource: 'Pinterest',
 		pixabaySource: 'Pixabay',
 		stockMediaError: 'Search error',
 		backToAssets: 'Back to assets',

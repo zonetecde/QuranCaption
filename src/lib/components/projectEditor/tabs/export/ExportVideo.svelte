@@ -689,7 +689,14 @@
 			globalState.getExportState.videoStartTime = 0;
 		}
 		if (!globalState.getExportState.videoEndTime) {
-			globalState.getExportState.videoEndTime = globalState.getAudioTrack.getDuration().ms || 0;
+			const audioTrack = globalState.getAudioTrack;
+			const endTime = (
+				audioTrack.clips.length ? audioTrack : globalState.getSubtitleTrack
+			).getDuration().ms;
+			if (!endTime) return;
+			ProjectHistoryManager.track('initialize video export range', () => {
+				globalState.getExportState.videoEndTime = endTime;
+			});
 		}
 	});
 

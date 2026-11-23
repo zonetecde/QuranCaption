@@ -1354,10 +1354,7 @@
 		<SurahName />
 		<ReciterName />
 
-		{#if currentSubtitle() instanceof SubtitleClip}
-			{@const verseSubtitle = currentSubtitle() as SubtitleClip}
-			<VerseNumber currentSurah={verseSubtitle.surah} currentVerse={verseSubtitle.verse} />
-		{/if}
+		<VerseNumber />
 
 		<!-- Couche 8 : Clips custom (texte / images) -->
 		{#each currentCustomClips() as customText (customText.id)}

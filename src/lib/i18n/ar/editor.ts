@@ -1016,6 +1016,9 @@ const editor = {
 	allMedia: 'جميع وسائل الإعلام',
 	images: 'الصور',
 	videos: 'فيديوهات',
+	pinterestUsageDisclaimer:
+		'باستخدام هذا المحتوى من Pinterest في الفيديو الخاص بي، أؤكد أنني أملك الحقوق أو الأذونات اللازمة لاستخدامه ولنشر الفيديو إذا اخترت مشاركته.',
+	stockMediaEndOfResults: 'لقد وصلت إلى نهاية النتائج.',
 	noStockMediaResults: 'لم يتم العثور على نتائج',
 	noStockMediaResultsMessage: 'جرب كلمات رئيسية مختلفة أو قم بتغيير المصدر.',
 	downloadMediaAsset: 'تحميل واستيراد',
@@ -1025,6 +1028,7 @@ const editor = {
 		'أنت مسؤول عن نسب المؤلف وتوفير رابط للمحتوى الأصلي على {source} كما هو مطلوب بموجب شروط الخدمة الخاصة بهم.',
 	configureApiKeys: 'قم بتكوين مفاتيح API في الإعدادات > مفاتيح API > وسائط المخزون',
 	pexelsSource: 'بيكسلز',
+	pinterestSource: 'بينترست',
 	pixabaySource: 'بيكساباي',
 	stockMediaError: 'خطأ في البحث',
 	backToAssets: 'العودة إلى الأصول',

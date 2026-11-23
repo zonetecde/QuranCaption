@@ -32,6 +32,7 @@ export type ExportSubtitleCaptureClip = {
 	kind: 'subtitle' | 'silence' | 'predefined';
 	surah?: number;
 	verse?: number;
+	displayVerse?: number | string;
 	id?: number;
 	visualMergeGroupId?: string | null;
 	visualMergeMode?: 'arabic' | 'translation' | 'both' | null;
@@ -442,6 +443,7 @@ export type ExportCaptureTimingResult = {
 	hiddenArabicTextTimingValues?: Map<number, number>;
 	styleKeyframeTimings: Set<number>;
 	videoClipChangeTimings?: Set<number>;
+	verseNumberSilenceTimings?: Set<number>;
 };
 
 export type ExportFrameCaptureJob = {
@@ -491,6 +493,34 @@ type BuildExportCaptureJobPlanParams = {
 	getBlankSourceCaptureTiming?: (timing: number) => number;
 };
 
+/**
+ * Repere les transitions contigues qui affichent le meme numero de verset.
+ * @param {ExportSubtitleCaptureClip[]} clips Clips de la piste dans leur ordre temporel.
+ * @returns {{ boundaries: Set<number>; silences: Set<number> }} Index des fins et silences avec numero.
+ */
+function getVerseNumberContinuity(clips: ExportSubtitleCaptureClip[]) {
+	const boundaries = new Set<number>();
+	const silences = new Set<number>();
+	let previous = -1;
+	for (let index = 0; index < clips.length; index++) {
+		const clip = clips[index];
+		if (index > 0 && clip.startTime > clips[index - 1].endTime + 1) previous = -1;
+		if (clip.kind === 'silence') continue;
+		const verse = clip.displayVerse ?? clip.verse;
+		if (clip.kind === 'subtitle' && clip.surah && verse !== undefined && verse !== '') {
+			const left = clips[previous];
+			if (left?.surah === clip.surah && (left.displayVerse ?? left.verse) === verse) {
+				boundaries.add(previous);
+				for (let silence = previous + 1; silence < index; silence++) silences.add(silence);
+			}
+			previous = index;
+		} else {
+			previous = -1;
+		}
+	}
+	return { boundaries, silences };
+}
+
 export function calculateCaptureTimingsForRange({
 	rangeStart,
 	rangeEnd,
@@ -503,6 +533,7 @@ export function calculateCaptureTimingsForRange({
 	showVerseNumber = false
 }: CalculateCaptureTimingParams): ExportCaptureTimingResult {
 	const timingsToTakeScreenshots: number[] = [rangeStart, rangeEnd];
+	const verseContinuity = showVerseNumber ? getVerseNumberContinuity(subtitleClips) : null;
 	const imgWithNothingShown: { [blankVisualStateKey: string]: number } = {}; // Timing ou rien n'est affiche (pour dupliquer)
 	const blankImgs: { [blankVisualStateKey: string]: number[] } = {};
 	// Map des timings duplicables: target -> source.
@@ -554,15 +585,7 @@ export function calculateCaptureTimingsForRange({
 		const nextClip = subtitleClips[clipIndex + 1];
 		const endsInsideVisualMerge = isInternalVisualMergeTransition(subtitleClips, clipIndex);
 		const endsInsideFullVisualMerge = endsInsideVisualMerge && clip.visualMergeMode === 'both';
-		const keepsVerseNumberVisibleAtBoundary =
-			showVerseNumber &&
-			clip.kind === 'subtitle' &&
-			nextClip?.kind === 'subtitle' &&
-			typeof clip.verse === 'number' &&
-			typeof nextClip.verse === 'number' &&
-			clip.surah === nextClip.surah &&
-			clip.verse === nextClip.verse &&
-			nextClip.startTime <= endTime + 1;
+		const keepsVerseNumberVisibleAtBoundary = verseContinuity?.boundaries.has(clipIndex);
 		if (endsInsideVisualMerge && !endsInsideFullVisualMerge) {
 			const roundedEndTime = Math.round(endTime);
 			exactCaptureTimings.add(roundedEndTime);
@@ -632,6 +655,9 @@ export function calculateCaptureTimingsForRange({
 			}
 
 			if (!endsInsideFullVisualMerge) add(endTime);
+		} else if (verseContinuity?.silences.has(clipIndex)) {
+			add(startTime);
+			add(endTime);
 		} else {
 			// Clip de silence: pas de bornes fade-in/fade-out à ajouter.
 			const surah = getCurrentSurah(clip.startTime);
@@ -703,8 +729,25 @@ export function calculateCaptureTimingsForRange({
 		.filter((t) => t >= rangeStart && t <= rangeEnd)
 		.sort((a, b) => a - b);
 
+	const verseNumberSilenceTimings = new Set<number>();
+	if (verseContinuity) {
+		const silences = Array.from(verseContinuity.silences, (index) => subtitleClips[index]);
+		let index = 0;
+		for (const timing of uniqueSorted) {
+			while (silences[index] && Math.round(silences[index].endTime) < timing) index++;
+			const silence = silences[index];
+			if (!silence || Math.round(silence.startTime) > timing) continue;
+			verseNumberSilenceTimings.add(timing);
+			exactCaptureTimingValues.set(
+				timing,
+				Math.max(silence.startTime, Math.min(timing, silence.endTime))
+			);
+		}
+	}
+
 	return {
 		uniqueSorted,
+		verseNumberSilenceTimings,
 		imgWithNothingShown,
 		blankImgs,
 		duplicableTimings,
@@ -778,7 +821,8 @@ export function buildExportCaptureJobPlan({
 		imageIndexesByTiming.set(timing, imageIndex);
 		const blankTimingInfo = hasTiming(timings.blankImgs, timing);
 		const isVideoClipChange = timings.videoClipChangeTimings?.has(timing) ?? false;
-		const isBlankImage = !isVideoClipChange && isBlankCaptureTiming(timing);
+		const keepsVerseNumber = timings.verseNumberSilenceTimings?.has(timing);
+		const isBlankImage = !keepsVerseNumber && !isVideoClipChange && isBlankCaptureTiming(timing);
 
 		if (isBlankImage) {
 			blankImageIndexes.add(imageIndex);
@@ -822,7 +866,9 @@ export function buildExportCaptureJobPlan({
 				fileName: `${imageIndex}`,
 				isBlankImage,
 				reusableBlankFileName:
-					isBlankImage || isVideoClipChange ? null : getReusableBlankFileName(timing),
+					isBlankImage || isVideoClipChange || keepsVerseNumber
+						? null
+						: getReusableBlankFileName(timing),
 				hideArabicText: false
 			};
 			captureJobs.push(job);

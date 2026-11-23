@@ -1,75 +1,76 @@
 <script lang="ts">
 	import { getOverlayLayerZIndex } from '$lib/services/OverlayLayerService';
 	import { globalState } from '$lib/runes/main.svelte';
-	import { untrack } from 'svelte';
 	import { mouseDrag } from '$lib/services/verticalDrag';
 	import CompositeText from './CompositeText.svelte';
-	import { isNonHafsRiwayah, RiwayahProvider } from '$lib/services/RiwayahProvider';
-	import { SubtitleClip, VerseRange } from '$lib/classes';
+	import { type Clip, SilenceClip, SubtitleClip, VerseRange } from '$lib/classes';
 	import { resolveStyleVisibilityOpacity } from '$lib/services/StyleVisualResolver';
-
-	let {
-		currentSurah,
-		currentVerse
-	}: {
-		currentSurah: number;
-		currentVerse: number;
-	} = $props();
+	import { getDisplayedVerseNumber } from '$lib/services/VerseNumberTimeline';
 
 	const fadeDuration = $derived(() => {
 		return globalState.getStyleValue('global', 'fade-duration') as number;
 	});
 
-	let getTimelineSettings = $derived(() => {
-		return globalState.currentProject!.projectEditorState.timeline;
-	});
-
-	let currentSubtitle = $derived(() => {
-		const _ = getTimelineSettings().cursorPosition;
-		return untrack(() => {
-			return globalState.getSubtitleTrack.getCurrentSubtitleToDisplay();
-		});
-	});
-
 	let verseSubtitleRange = $derived(() => {
-		const subtitle = currentSubtitle();
-		if (!(subtitle instanceof SubtitleClip)) return null;
-		const verse = getVerseNumber(subtitle);
+		const track = globalState.getSubtitleTrack;
+		const clip = track.getCurrentClip(globalState.getTimelineState.cursorPosition);
+		if (!(clip instanceof SubtitleClip || clip instanceof SilenceClip)) return null;
 
-		// Les splits contigus du même verset partagent un seul cycle de fondu.
-		const clips = globalState.getSubtitleTrack.clips;
-		const currentIndex = clips.findIndex((clip) => clip.id === subtitle.id);
-		let startTime = subtitle.startTime;
-		let endTime = subtitle.endTime;
+		const clips = track.clips;
+		const currentIndex = clips.findIndex((candidate) => candidate.id === clip.id);
+		let anchorIndex = currentIndex;
+		while (clips[anchorIndex] instanceof SilenceClip) anchorIndex--;
+		const anchor = clips[anchorIndex];
+		if (!(anchor instanceof SubtitleClip) || anchor.surah <= 0 || anchor.verse <= 0) return null;
 
-		for (let i = currentIndex - 1; i >= 0; i--) {
-			const clip = clips[i];
-			if (
-				!(clip instanceof SubtitleClip) ||
-				clip.surah !== currentSurah ||
-				getVerseNumber(clip) !== verse ||
-				clip.endTime + 1 < startTime
-			) {
-				break;
-			}
-			startTime = clip.startTime;
-		}
+		const verse = getDisplayedVerseNumber(anchor);
+		const last = findVerseBoundary(clips, anchorIndex, 1, anchor.surah, verse);
+		if (last < currentIndex) return null;
 
-		for (let i = currentIndex + 1; i < clips.length; i++) {
-			const clip = clips[i];
-			if (
-				!(clip instanceof SubtitleClip) ||
-				clip.surah !== currentSurah ||
-				getVerseNumber(clip) !== verse ||
-				clip.startTime > endTime + 1
-			) {
-				break;
-			}
-			endTime = clip.endTime;
-		}
-
-		return { startTime, endTime };
+		const first = findVerseBoundary(clips, anchorIndex, -1, anchor.surah, verse);
+		return {
+			surah: anchor.surah,
+			verse,
+			startTime: clips[first].startTime,
+			endTime: clips[last].endTime
+		};
 	});
+
+	/**
+	 * Cherche le dernier sous-titre du verset dans une direction en traversant les silences contigus.
+	 * @param {Clip[]} clips Clips de la piste.
+	 * @param {number} anchorIndex Index du sous-titre de depart.
+	 * @param {-1 | 1} direction Sens de parcours.
+	 * @param {number} surah Sourate du sous-titre de depart.
+	 * @param {number | string} verse Numero affiche du verset.
+	 * @returns {number} Index du dernier sous-titre compatible.
+	 */
+	function findVerseBoundary(
+		clips: Clip[],
+		anchorIndex: number,
+		direction: -1 | 1,
+		surah: number,
+		verse: number | string
+	): number {
+		let boundary = anchorIndex;
+		for (let index = anchorIndex + direction; clips[index]; index += direction) {
+			const clip = clips[index];
+			const adjacent = clips[index - direction];
+			const gap =
+				direction === 1 ? clip.startTime - adjacent.endTime : adjacent.startTime - clip.endTime;
+			if (gap > 1) break;
+			if (clip instanceof SilenceClip) continue;
+			if (
+				!(clip instanceof SubtitleClip) ||
+				clip.surah !== surah ||
+				getDisplayedVerseNumber(clip) !== verse
+			) {
+				break;
+			}
+			boundary = index;
+		}
+		return boundary;
+	}
 
 	let verseNumberSettings = $derived(() => {
 		const showOpacity = resolveStyleVisibilityOpacity(
@@ -100,50 +101,42 @@
 		if (!range || !verseNumberSettings().show) return 0;
 
 		const maxOpacity = verseNumberSettings().opacity * verseNumberSettings().showOpacity;
-		const currentTime = getTimelineSettings().cursorPosition;
-		const { startTime, endTime } = range;
+		const currentTime = globalState.getTimelineState.cursorPosition;
 		const halfFade = fadeDuration() / 2;
+		if (halfFade <= 0) return maxOpacity;
 
-		// Fade out à la fin
-		const timeLeft = endTime - currentTime;
-		if (timeLeft <= halfFade) {
-			return Math.max(0, (timeLeft / halfFade) * maxOpacity);
-		}
-
-		// Fade in au début
-		const timeSinceStart = currentTime - startTime;
-		if (timeSinceStart <= halfFade) {
-			return Math.min(maxOpacity, (timeSinceStart / halfFade) * maxOpacity);
-		}
-
-		// Opacité maximale entre les fades
-		return maxOpacity;
+		return (
+			maxOpacity *
+			Math.max(
+				0,
+				Math.min(
+					1,
+					(currentTime - range.startTime) / halfFade,
+					(range.endTime - currentTime) / halfFade
+				)
+			)
+		);
 	});
+
 	/**
-	 * Résout le numéro ou la plage de versets selon la riwayah effective du clip.
-	 * @param {SubtitleClip} subtitle Sous-titre à résoudre.
-	 * @returns {number | string} Numéro affiché, ou une chaîne vide sans numéro disponible.
+	 * Remplace les balises du format de numéro de verset par leurs valeurs courantes.
+	 * @returns {string} Format résolu pour le verset affiché.
 	 */
-	function getVerseNumber(subtitle: SubtitleClip): number | string {
-		const riwayah = globalState.getVideoStyle
-			.getStylesOfTarget('arabic')
-			.getEffectiveValue('riwayah', subtitle.id);
-		if (isNonHafsRiwayah(riwayah)) {
-			const slice = RiwayahProvider.getVerseSlice(
-				riwayah,
-				subtitle.surah,
-				subtitle.verse,
-				subtitle.startWordIndex,
-				subtitle.endWordIndex,
-				false
-			);
-			return slice?.targetAyahs.join('-') ?? '';
-		}
-		return subtitle.verse;
+	function formatVerseNumber(): string {
+		const context = verseSubtitleRange();
+		if (!context || context.verse === '') return '';
+		const { surah, verse } = context;
+		const range = VerseRange.getExportVerseRange().getRangeForSurah(surah);
+		return verseNumberSettings()
+			.verseNumberFormat.replaceAll('<number>', String(verse))
+			.replaceAll('<surah>', String(surah))
+			.replaceAll('<verse>', String(verse))
+			.replaceAll('<min-range>', String(range.verseStart))
+			.replaceAll('<max-range>', String(range.verseEnd));
 	}
 </script>
 
-{#if verseNumberSettings().show && currentSurah > 0 && currentVerse > 0 && verseNumberSubtitleOpacity() > 0}
+{#if verseNumberSubtitleOpacity() > 0}
 	<div
 		ondblclick={() => {
 			globalState.getVideoStyle.highlightCategory('global', 'verse-number');
@@ -160,22 +153,7 @@
 	>
 		<div class="w-[700px] text-center">
 			<CompositeText compositeStyle={globalState.getStyle('global', 'verse-number-text-style')!}>
-				{verseNumberSettings()
-					.verseNumberFormat.replace('<surah>', currentSurah.toString())
-					.replace(
-						'<verse>',
-						currentSubtitle() instanceof SubtitleClip
-							? String(getVerseNumber(currentSubtitle() as SubtitleClip))
-							: currentVerse.toString()
-					)
-					.replace(
-						'<min-range>',
-						VerseRange.getExportVerseRange().getRangeForSurah(currentSurah).verseStart.toString()
-					)
-					.replace(
-						'<max-range>',
-						VerseRange.getExportVerseRange().getRangeForSurah(currentSurah).verseEnd.toString()
-					)}
+				{formatVerseNumber()}
 			</CompositeText>
 		</div>
 	</div>

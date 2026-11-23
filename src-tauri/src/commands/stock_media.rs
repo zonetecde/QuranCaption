@@ -1,5 +1,10 @@
 use reqwest::header::{AUTHORIZATION, USER_AGENT};
 use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+#[cfg(target_os = "android")]
+use tauri::Manager;
+#[cfg(any(target_os = "android", test))]
+use tokio::io::AsyncWriteExt;
 
 const USER_AGENT_VALUE: &str = "QuranCaption/3";
 
@@ -36,6 +41,8 @@ pub struct StockMediaResponse {
     pub has_more: bool,
     #[serde(rename = "totalResults")]
     pub total_results: u32,
+    #[serde(rename = "pinterestBookmarks", skip_serializing_if = "Option::is_none")]
+    pub pinterest_bookmarks: Option<[Option<String>; 2]>,
 }
 
 /// Recherche des medias depuis Pexels.
@@ -213,6 +220,7 @@ async fn search_pexels(
         page,
         has_more,
         total_results: total,
+        pinterest_bookmarks: None,
     })
 }
 
@@ -367,6 +375,442 @@ async fn search_pixabay(
         page,
         has_more,
         total_results: total,
+        pinterest_bookmarks: None,
+    })
+}
+
+/// Verifie le CDN et le format avant de proposer un media Pinterest a l'import.
+fn pinterest_media_url(media: &Value, video: bool) -> Option<&str> {
+    let url = media["url"].as_str()?;
+    let parsed = reqwest::Url::parse(url).ok()?;
+    let host = parsed.host_str()?;
+    let extension = parsed.path().rsplit_once('.')?.1.to_ascii_lowercase();
+    let supported = if video {
+        is_pinterest_video_cdn(&parsed) && matches!(extension.as_str(), "mp4" | "m3u8")
+    } else {
+        host == "i.pinimg.com"
+            && matches!(extension.as_str(), "jpg" | "jpeg" | "png" | "webp" | "gif")
+    };
+    (parsed.scheme() == "https"
+        && parsed.port().is_none()
+        && parsed.username().is_empty()
+        && parsed.password().is_none()
+        && supported)
+        .then_some(url)
+}
+
+/// Vérifie l'origine des playlists et des médias vidéo Pinterest.
+/// @param url URL à vérifier.
+/// @returns Vrai pour une URL HTTPS du CDN vidéo Pinterest.
+fn is_pinterest_video_cdn(url: &reqwest::Url) -> bool {
+    url.scheme() == "https"
+        && matches!(url.host_str(), Some("v.pinimg.com" | "v1.pinimg.com"))
+        && url.port().is_none()
+        && url.username().is_empty()
+        && url.password().is_none()
+}
+
+/// Accepte les identifiants numeriques et opaques utilises dans les liens et noms de fichier.
+fn valid_pinterest_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= 128
+        && id
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
+}
+
+/// Convertit un pin public en resultat importable, avec son lien d'origine.
+fn pinterest_item(pin: &Value, video: bool) -> Option<StockMediaItem> {
+    let id = pin["id"].as_str()?;
+    if !valid_pinterest_id(id) {
+        return None;
+    }
+
+    let images = ["orig", "736x", "474x", "236x"].map(|size| &pin["images"][size]);
+    let image = images
+        .into_iter()
+        .find(|image| pinterest_media_url(image, false).is_some());
+    let thumbnail = pinterest_media_url(&pin["images"]["236x"], false)
+        .or_else(|| image.and_then(|image| pinterest_media_url(image, false)));
+    let media = if video {
+        let story_videos = pin["story_pin_data"]["pages"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .flat_map(|page| page["blocks"].as_array().into_iter().flatten())
+            .map(|block| &block["video"]["video_list"]);
+        std::iter::once(&pin["videos"]["video_list"])
+            .chain(story_videos)
+            .filter_map(Value::as_object)
+            .flat_map(|formats| formats.values())
+            .filter_map(|format| Some((format, pinterest_media_url(format, true)?)))
+            .max_by_key(|(format, url)| {
+                (!pinterest_hls(url), format["width"].as_u64().unwrap_or(0))
+            })
+            .map(|(format, _)| format)
+    } else {
+        if pin["is_video"].as_bool() == Some(true) || !pin["videos"].is_null() {
+            return None;
+        }
+        image
+    }?;
+    let download_url = pinterest_media_url(media, video)?;
+    let thumbnail = thumbnail.or_else(|| pinterest_media_url(&media["thumbnail"], false));
+    let username = pin["pinner"]["username"].as_str().filter(|name| {
+        !name.is_empty()
+            && name
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
+    });
+
+    Some(StockMediaItem {
+        id: format!("pinterest-{}-{id}", if video { "video" } else { "photo" }),
+        source: "pinterest".into(),
+        media_type: if video { "video" } else { "photo" }.into(),
+        preview_url: thumbnail.unwrap_or_default().into(),
+        thumbnail_url: thumbnail.unwrap_or_default().into(),
+        download_url: download_url.into(),
+        preview_video_url: if video && !pinterest_hls(download_url) {
+            download_url
+        } else {
+            ""
+        }
+        .into(),
+        width: media["width"].as_u64().unwrap_or(0) as u32,
+        height: media["height"].as_u64().unwrap_or(0) as u32,
+        duration: media["duration"].as_f64().map(|ms| ms / 1000.0),
+        author_name: pin["pinner"]["full_name"]
+            .as_str()
+            .or(username)
+            .unwrap_or_default()
+            .into(),
+        author_url: username
+            .map(|name| format!("https://www.pinterest.com/{name}/"))
+            .unwrap_or_default(),
+        page_url: format!("https://www.pinterest.com/pin/{id}/"),
+    })
+}
+
+/// Identifie une playlist HLS a partir du chemin de son URL.
+fn pinterest_hls(url: &str) -> bool {
+    reqwest::Url::parse(url).is_ok_and(|url| {
+        url.path()
+            .rsplit_once('.')
+            .is_some_and(|(_, extension)| extension.eq_ignore_ascii_case("m3u8"))
+    })
+}
+
+/// Réécrit une playlist locale en conservant la meilleure variante et les pistes associées.
+/// @param playlist Contenu de la playlist Pinterest.
+/// @param localize Résout une référence distante vers un nom de fichier local.
+/// @returns Playlist avec des chemins locaux et des plages d'octets intactes.
+#[cfg(any(target_os = "android", test))]
+fn rewrite_pinterest_playlist(
+    playlist: &str,
+    mut localize: impl FnMut(&str) -> Result<String, String>,
+) -> Result<String, String> {
+    const VARIANT: &str = "#EXT-X-STREAM-INF:";
+    let lines: Vec<_> = playlist.lines().map(str::trim).collect();
+    if lines.first() != Some(&"#EXTM3U") {
+        return Err("Pinterest: invalid HLS playlist".into());
+    }
+    let best_variant = lines
+        .iter()
+        .enumerate()
+        .filter_map(|(index, line)| {
+            let attributes = line.strip_prefix(VARIANT)?;
+            let bandwidth = attributes
+                .split(',')
+                .find_map(|attribute| attribute.strip_prefix("BANDWIDTH="))
+                .and_then(|value| value.parse::<u64>().ok())
+                .unwrap_or(0);
+            Some((index, bandwidth))
+        })
+        .max_by_key(|&(_, bandwidth)| bandwidth)
+        .map(|(index, _)| index);
+    let mut output = String::new();
+    for (index, &line) in lines.iter().enumerate() {
+        if best_variant.is_some_and(|best| {
+            (line.starts_with(VARIANT) && index != best)
+                || (index > 0 && lines[index - 1].starts_with(VARIANT) && index != best + 1)
+        }) {
+            continue;
+        }
+        if let Some((prefix, attribute)) = line
+            .starts_with('#')
+            .then(|| line.split_once("URI=\""))
+            .flatten()
+        {
+            let (uri, suffix) = attribute
+                .split_once('"')
+                .ok_or("Pinterest: invalid HLS URI")?;
+            output.push_str(&format!("{prefix}URI=\"{}\"{suffix}", localize(uri)?));
+        } else if !line.is_empty() && !line.starts_with('#') {
+            output.push_str(&localize(line)?);
+        } else {
+            output.push_str(line);
+        }
+        output.push('\n');
+    }
+    Ok(output)
+}
+
+/// Télécharge en HTTPS les ressources HLS d'un clip pour les remettre à FFmpegKit en local.
+/// @param url URL de la playlist principale.
+/// @param directory Dossier temporaire de conversion.
+/// @returns Chemin de la playlist locale.
+#[cfg(any(target_os = "android", test))]
+async fn download_pinterest_playlist(
+    url: reqwest::Url,
+    directory: &std::path::Path,
+) -> Result<std::path::PathBuf, String> {
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .connect_timeout(std::time::Duration::from_secs(15))
+        .read_timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|error| error.to_string())?;
+    let mut pending = vec![url.clone()];
+    let mut files = std::collections::HashMap::from([(url, "0.m3u8".to_string())]);
+    while let Some(url) = pending.pop() {
+        let name = &files[&url];
+        let path = directory.join(name);
+        let response = client
+            .get(url.clone())
+            .send()
+            .await
+            .map_err(|error| format!("Pinterest: {}", error.without_url()))?;
+        if !response.status().is_success() {
+            return Err(format!("Pinterest: HTTP {}", response.status()));
+        }
+        if name.ends_with(".m3u8") {
+            let playlist = response.text().await.map_err(|error| error.to_string())?;
+            let local = rewrite_pinterest_playlist(&playlist, |uri| {
+                let resource = url.join(uri).map_err(|error| error.to_string())?;
+                if !is_pinterest_video_cdn(&resource) {
+                    return Err("Pinterest: unsupported HLS resource".into());
+                }
+                if let Some(name) = files.get(&resource) {
+                    return Ok(name.clone());
+                }
+                let extension = resource.path().rsplit_once('.').map(|(_, ext)| ext);
+                let extension = extension
+                    .filter(|ext| {
+                        ext.len() <= 8
+                            && !ext.is_empty()
+                            && ext.bytes().all(|b| b.is_ascii_alphanumeric())
+                    })
+                    .unwrap_or("bin")
+                    .to_ascii_lowercase();
+                let name = format!("{}.{extension}", files.len());
+                files.insert(resource.clone(), name.clone());
+                pending.push(resource);
+                Ok(name)
+            })?;
+            tokio::fs::write(path, local)
+                .await
+                .map_err(|error| error.to_string())?;
+        } else {
+            let mut response = response;
+            let mut file = tokio::fs::File::create(path)
+                .await
+                .map_err(|error| error.to_string())?;
+            while let Some(chunk) = response.chunk().await.map_err(|error| error.to_string())? {
+                file.write_all(&chunk)
+                    .await
+                    .map_err(|error| error.to_string())?;
+            }
+            file.flush().await.map_err(|error| error.to_string())?;
+        }
+    }
+    Ok(directory.join("0.m3u8"))
+}
+
+/// Enregistre une playlist Pinterest en MP4 dans le cache des medias du projet.
+///
+/// @param app Accès au dossier de données de l'application.
+/// @param url URL HTTPS de la playlist Pinterest.
+/// @param id Identifiant du média dans le cache.
+/// @param expected_duration Durée attendue en secondes, si connue.
+/// @returns Chemin du MP4 après validation.
+#[cfg(target_os = "android")]
+#[tauri::command]
+pub async fn download_pinterest_hls(
+    app: tauri::AppHandle,
+    url: String,
+    id: String,
+    expected_duration: Option<f64>,
+) -> Result<String, String> {
+    let url = reqwest::Url::parse(&url).map_err(|_| "Pinterest: invalid video")?;
+    if !id
+        .strip_prefix("pinterest-video-")
+        .is_some_and(valid_pinterest_id)
+        || !pinterest_hls(url.as_str())
+        || !is_pinterest_video_cdn(&url)
+    {
+        return Err("Pinterest: invalid video".into());
+    }
+
+    let directory = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| error.to_string())?
+        .join("downloads")
+        .join("stock-media");
+    tokio::fs::create_dir_all(&directory)
+        .await
+        .map_err(|error| error.to_string())?;
+    let path = directory.join(format!("{id}.mp4"));
+    static TEMP_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let sequence = TEMP_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let staging = directory.join(format!("{id}.{}.{sequence}.part", std::process::id()));
+    tokio::fs::create_dir(&staging)
+        .await
+        .map_err(|error| error.to_string())?;
+    let result = async {
+        let playlist = tokio::time::timeout(
+            std::time::Duration::from_secs(120),
+            download_pinterest_playlist(url, &staging),
+        )
+        .await
+        .map_err(|error| format!("Pinterest: {error}"))??;
+        let temp = staging.join("output.mp4");
+        let arguments = [
+            "-nostdin",
+            "-v",
+            "error",
+            "-protocol_whitelist",
+            "file,crypto",
+            "-i",
+            &playlist.to_string_lossy(),
+            "-c",
+            "copy",
+            "-movflags",
+            "+faststart",
+            &temp.to_string_lossy(),
+        ]
+        .map(str::to_owned);
+        let output =
+            tokio::task::spawn_blocking(move || super::android_media::execute_ffmpeg(&arguments))
+                .await
+                .map_err(|error| format!("FFmpeg: {error}"))??;
+        if !output.success {
+            return Err(format!("FFmpeg: {}", output.output));
+        }
+
+        let probe_path = temp.clone();
+        let duration_ms = tokio::task::spawn_blocking(move || {
+            super::media::get_duration(&probe_path.to_string_lossy())
+        })
+        .await
+        .map_err(|error| error.to_string())??;
+        let expected_ms = (expected_duration.unwrap_or(0.0) * 1000.0).round() as i64;
+        if duration_ms <= 0 || duration_ms < expected_ms.saturating_sub(1000) {
+            return Err(format!(
+                "Pinterest HLS: {duration_ms} ms / {expected_ms} ms"
+            ));
+        }
+
+        tokio::fs::rename(&temp, &path)
+            .await
+            .map_err(|error| error.to_string())
+    }
+    .await;
+    let _ = tokio::fs::remove_dir_all(&staging).await;
+    result?;
+    Ok(path.to_string_lossy().into_owned())
+}
+
+/// Recherche une page de pins publics selon le protocole de x7007x/PinterestDownloader.
+/// https://github.com/x7007x/PinterestDownloader/blob/main/pinterest_downloader/pinterest.py
+async fn search_pinterest_page(
+    client: &reqwest::Client,
+    query: &str,
+    video: bool,
+    page_size: u32,
+    bookmark: Option<&str>,
+) -> Result<(Vec<StockMediaItem>, Option<String>), String> {
+    let Some(bookmark) = bookmark else {
+        return Ok((Vec::new(), None));
+    };
+    let scope = if video { "videos" } else { "pins" };
+    let source_url = format!("/search/{scope}/?q={}", urlencoding(query));
+    let bookmarks = if bookmark.is_empty() {
+        &[][..]
+    } else {
+        std::slice::from_ref(&bookmark)
+    };
+    let data = json!({
+        "options": { "query": query, "scope": scope, "page_size": page_size, "bookmarks": bookmarks },
+        "context": {},
+    });
+    let body: Value = client
+        .get("https://www.pinterest.com/resource/BaseSearchResource/get/")
+        .header(USER_AGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+        .header("X-Pinterest-PWS-Handler", "www/[username]/search/pins.js")
+        .query(&[("source_url", source_url), ("data", data.to_string())])
+        .timeout(std::time::Duration::from_secs(20))
+        .send().await
+        .and_then(reqwest::Response::error_for_status)
+        .map_err(|error| format!("Pinterest: {}", error.without_url()))?
+        .json().await
+        .map_err(|error| format!("Pinterest: {error}"))?;
+    let response = &body["resource_response"];
+    let results = response["data"]["results"].as_array().ok_or("Pinterest")?;
+    let mut seen = std::collections::HashSet::new();
+    let items = results
+        .iter()
+        .filter_map(|pin| pinterest_item(pin, video))
+        .filter(|item| seen.insert(item.id.clone()))
+        .collect();
+    let next = response["bookmark"]
+        .as_str()
+        .filter(|next| !next.is_empty() && *next != "-end-" && *next != bookmark)
+        .map(str::to_owned);
+    Ok((items, next))
+}
+
+/// Fusionne les recherches photo et video en gardant un curseur par filtre.
+async fn search_pinterest(
+    query: &str,
+    media_type: &str,
+    page: u32,
+    per_page: u32,
+    bookmarks: Option<[Option<String>; 2]>,
+) -> Result<StockMediaResponse, String> {
+    let query = if query.is_empty() {
+        "nature landscapes"
+    } else {
+        query
+    };
+    let [photos, videos] = bookmarks.unwrap_or_else(|| {
+        if page == 1 {
+            [
+                (media_type != "video").then(String::new),
+                (media_type != "photo").then(String::new),
+            ]
+        } else {
+            [None, None]
+        }
+    });
+    let page_size = if media_type == "all" {
+        per_page / 2
+    } else {
+        per_page
+    }
+    .clamp(1, 25);
+    let client = reqwest::Client::new();
+    let ((mut results, photos), (videos_results, videos)) = tokio::try_join!(
+        search_pinterest_page(&client, query, false, page_size, photos.as_deref()),
+        search_pinterest_page(&client, query, true, page_size, videos.as_deref()),
+    )?;
+    results.extend(videos_results);
+    Ok(StockMediaResponse {
+        total_results: results.len() as u32,
+        results,
+        page,
+        has_more: photos.is_some() || videos.is_some(),
+        pinterest_bookmarks: Some([photos, videos]),
     })
 }
 
@@ -388,14 +832,15 @@ fn urlencoding(s: &str) -> String {
     result
 }
 
-/// Commande Tauri pour rechercher des medias sur Pexels ou Pixabay.
+/// Commande Tauri pour rechercher des medias sur Pexels, Pixabay ou Pinterest.
 ///
 /// @param query Termes de recherche.
-/// @param source Source (`pexels` ou `pixabay`).
+/// @param source Source (`pexels`, `pixabay` ou `pinterest`).
 /// @param media_type Type de media (`photo`, `video` ou `all`).
 /// @param api_key Cle API pour la source choisie.
 /// @param page Numero de page (1-based).
 /// @param per_page Nombre de resultats par page (max 80 pour Pexels, 200 pour Pixabay).
+/// @param pinterest_bookmarks Curseurs photo et video renvoyes par la page precedente.
 #[tauri::command]
 pub async fn search_stock_media(
     query: String,
@@ -404,6 +849,7 @@ pub async fn search_stock_media(
     api_key: String,
     page: u32,
     per_page: u32,
+    pinterest_bookmarks: Option<[Option<String>; 2]>,
 ) -> Result<StockMediaResponse, String> {
     let per_page = per_page.min(80);
 
@@ -462,6 +908,65 @@ pub async fn search_stock_media(
                 }
             }
         }
+        "pinterest" => {
+            search_pinterest(
+                query.trim(),
+                &media_type,
+                page,
+                per_page,
+                pinterest_bookmarks,
+            )
+            .await
+        }
         _ => Err(format!("Unknown source: {}", source)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Ne télécharge que la meilleure variante et conserve les références audio et CMAF.
+    #[test]
+    fn pinterest_hls_keeps_the_best_variant_and_rewrites_local_references() {
+        let master = "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=375107\nlow.m3u8\n\n\
+            #EXT-X-STREAM-INF:BANDWIDTH=2806292,AUDIO=\"audio\"\nhigh.m3u8\n\
+            #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",URI=\"audio.m3u8\"\n";
+        let localize = |uri: &str| Ok(format!("local-{uri}"));
+        let master = rewrite_pinterest_playlist(master, localize).unwrap();
+        assert!(!master.contains("low.m3u8"));
+        assert!(master.contains("AUDIO=\"audio\"\nlocal-high.m3u8"));
+        assert!(master.contains("URI=\"local-audio.m3u8\""));
+
+        let media = "#EXTM3U\n#EXT-X-MAP:URI=\"video.cmfv\",BYTERANGE=\"984@0\"\n\
+            #EXTINF:4.004,\n#EXT-X-BYTERANGE:1368330@984\nvideo.cmfv\n#EXT-X-ENDLIST\n";
+        let media = rewrite_pinterest_playlist(media, localize).unwrap();
+        assert!(media.contains("URI=\"local-video.cmfv\",BYTERANGE=\"984@0\""));
+        assert!(media.contains("#EXT-X-BYTERANGE:1368330@984\nlocal-video.cmfv"));
+    }
+
+    /// Verifie les identifiants opaques et les videos sans MP4 direct.
+    #[test]
+    fn pinterest_accepts_opaque_ids_and_hls() {
+        let pin = json!({
+            "id": "e1_test-pin",
+            "images": { "orig": { "url": "https://i.pinimg.com/originals/pin.jpg" } }
+        });
+        let photo = pinterest_item(&pin, false).unwrap();
+        assert_eq!(photo.id, "pinterest-photo-e1_test-pin");
+
+        let mut pin = pin;
+        let hls = "https://v1.pinimg.com/videos/iht/hls/pin.m3u8";
+        pin["videos"] = json!({ "video_list": { "HLS": { "url": hls, "width": 720 } } });
+        let video = pinterest_item(&pin, true).unwrap();
+        assert_eq!(video.download_url, hls);
+        assert!(video.preview_video_url.is_empty());
+
+        let mp4 = "https://v1.pinimg.com/videos/pin.mp4";
+        pin["videos"]["video_list"]["MP4"] = json!({ "url": mp4, "width": 480 });
+        assert_eq!(pinterest_item(&pin, true).unwrap().download_url, mp4);
+
+        pin["id"] = json!("../pin");
+        assert!(pinterest_item(&pin, true).is_none());
     }
 }

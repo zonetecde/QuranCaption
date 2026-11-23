@@ -87,6 +87,8 @@ pub fn register_invoke_handler(builder: tauri::Builder<tauri::Wry>) -> tauri::Bu
         commands::segmentation::preload_audio_recitations,
         commands::segmentation::preload_audio,
         commands::waveform::get_audio_waveform,
+        #[cfg(target_os = "android")]
+        commands::stock_media::download_pinterest_hls,
         commands::stock_media::search_stock_media
     ])
 }

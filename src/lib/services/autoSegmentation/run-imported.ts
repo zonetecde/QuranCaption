@@ -11,6 +11,7 @@ import {
 } from '$lib/services/AutoSegmentationExecutionCoordinator';
 import type { Project } from '$lib/classes/Project';
 import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
+import { normalizeRiwayahSegmentationResponse } from './riwayah';
 
 /**
  * Applique les sous-titres à partir d'un JSON exporté par Hugging Face Multi-Aligner.
@@ -46,10 +47,11 @@ async function runAutoSegmentationFromImportedJsonCore(
 
 	try {
 		const parsed = parseImportedSegmentationJson(importedPayload);
-		const response =
+		const enrichedResponse =
 			!headless && audioClips.length > 0
 				? await enrichSegmentationResponseWithWordTimestamps(parsed.response, undefined, riwayah)
 				: parsed.response;
+		const response = await normalizeRiwayahSegmentationResponse(enrichedResponse, riwayah);
 		return await applySegmentationResponseToProject({
 			response,
 			fillBySilence,

@@ -43,7 +43,10 @@ type RiwayahAyahMapping = {
 type RiwayahData = {
 	verses: RiwayahPayload['verses'];
 	mapping: RiwayahAyahMapping;
+	wordMappings: Map<number, Map<string, RiwayahWordMapping>>;
 };
+
+type RiwayahWordMapping = { locations: string[]; text: string };
 
 export type RiwayahRenderSlice = {
 	text: string;
@@ -92,7 +95,7 @@ async function loadRiwayahData(riwayah: NonHafsRiwayah): Promise<void> {
 				versesResponse.json() as Promise<RiwayahPayload>,
 				mappingResponse.json() as Promise<RiwayahAyahMapping>
 			]);
-			dataCache.set(riwayah, { verses: payload.verses, mapping });
+			dataCache.set(riwayah, { verses: payload.verses, mapping, wordMappings: new Map() });
 			try {
 				globalState.updateVideoPreviewUI();
 			} catch {
@@ -163,6 +166,47 @@ export class RiwayahProvider {
 	 */
 	static isReady(riwayah: NonHafsRiwayah): boolean {
 		return dataCache.has(riwayah);
+	}
+
+	/**
+	 * Retrouve les références Hafs couvertes par un mot du découpage natif d'une riwāyah.
+	 * @param {NonHafsRiwayah} riwayah Riwāyah préchargée.
+	 * @param {number} surah Numéro de sourate.
+	 * @param {number} verse Numéro d'āyah dans la riwāyah, ou zéro pour la basmala non numérotée.
+	 * @param {number} word Position du mot dans l'āyah, à partir de un.
+	 * @returns {RiwayahWordMapping | undefined} Références internes et texte du mot, si disponibles.
+	 */
+	static getHafsWordMapping(
+		riwayah: NonHafsRiwayah,
+		surah: number,
+		verse: number,
+		word: number
+	): RiwayahWordMapping | undefined {
+		const data = dataCache.get(riwayah);
+		if (!data) return undefined;
+		let mappings = data.wordMappings.get(surah);
+		if (!mappings) {
+			mappings = new Map();
+			const wordCounts = new Map<number, number>();
+			for (const [hafsVerse, mapping] of Object.entries(
+				data.mapping.hafs_to_riwayah[surah] ?? {}
+			)) {
+				let riwayahVerse = mapping.targets[0] ?? 0;
+				for (const entry of data.verses[`${surah}:${hafsVerse}`]?.words ?? []) {
+					const wordNumber = (wordCounts.get(riwayahVerse) ?? 0) + 1;
+					wordCounts.set(riwayahVerse, wordNumber);
+					mappings.set(`${surah}:${riwayahVerse}:${wordNumber}`, {
+						locations: (entry.source.length > 0 ? entry.source : [entry.owner]).map(
+							(index) => `${surah}:${hafsVerse}:${index + 1}`
+						),
+						text: entry.text
+					});
+					if (entry.verseEnd) riwayahVerse = entry.verseEnd + 1;
+				}
+			}
+			data.wordMappings.set(surah, mappings);
+		}
+		return mappings.get(`${surah}:${verse}:${word}`);
 	}
 
 	/**

@@ -126,6 +126,31 @@ describe('Track lookup helpers', () => {
 		expect(restored.sourceStartTime).toBe(0);
 	});
 
+	it('finds one clip from the same source at the same timeline and source bounds', () => {
+		const video = new AssetClip(500, 1500, 42);
+		video.sourceStartTime = 250;
+		const aligned = AssetClip.fromJSON(video.toJSON()) as AssetClip;
+		aligned.id = nextClipId++;
+		const shifted = new AssetClip(501, 1501, 42);
+		shifted.sourceStartTime = 250;
+		const otherSource = new AssetClip(500, 1500, 43);
+		otherSource.sourceStartTime = 250;
+		const differentOffset = new AssetClip(500, 1500, 42);
+		const differentEnd = new AssetClip(500, 1499, 42);
+		differentEnd.sourceStartTime = 250;
+		const track = new Track(TrackType.Audio);
+		track.clips = [shifted, otherSource, differentOffset, differentEnd, aligned];
+
+		expect(track.getAlignedAssetClip(video)).toBe(aligned);
+
+		aligned.loopUntilAudioEnd = true;
+		expect(track.getAlignedAssetClip(video)).toBeNull();
+
+		aligned.loopUntilAudioEnd = false;
+		track.clips.push(AssetClip.fromJSON(aligned.toJSON()) as AssetClip);
+		expect(track.getAlignedAssetClip(video)).toBeNull();
+	});
+
 	it('preserves individual asset clip volume and defaults legacy clips to 100%', () => {
 		const clip = new AssetClip(0, 1000, 42);
 		clip.volumePercent = 35;

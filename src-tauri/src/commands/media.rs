@@ -981,41 +981,143 @@ pub fn get_video_dimensions(file_path: &str) -> Result<serde_json::Value, String
     }
 }
 
-/// Coupe une portion audio sans ré-encodage (copie de flux).
+/// Coupe une portion audio à la position demandée.
 #[tauri::command]
-pub fn cut_audio(
+pub async fn cut_audio(
     source_path: String,
     start_ms: u64,
     end_ms: u64,
     output_path: String,
 ) -> Result<(), String> {
-    if !std::path::Path::new(&source_path).exists() {
+    cut_media(&source_path, start_ms, end_ms, &output_path, false).await
+}
+
+/// Identifie le codec à utiliser pour conserver le canal alpha des vidéos MOV et WebM.
+fn trim_alpha_codec(source_path: &str) -> Option<&'static str> {
+    let extension = Path::new(source_path)
+        .extension()?
+        .to_str()?
+        .to_ascii_lowercase();
+    if !matches!(extension.as_str(), "mov" | "webm") {
+        return None;
+    }
+
+    let mut cmd = Command::new(binaries::resolve_binary("ffprobe")?);
+    cmd.args([
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=codec_name,pix_fmt:stream_tags=alpha_mode",
+        "-of",
+        "default=noprint_wrappers=1",
+        source_path,
+    ]);
+    configure_command_no_window(&mut cmd);
+    let output = cmd.output().ok()?;
+    let probe = String::from_utf8_lossy(&output.stdout);
+    if extension == "webm"
+        && probe
+            .lines()
+            .any(|line| line.eq_ignore_ascii_case("TAG:alpha_mode=1"))
+    {
+        if probe.lines().any(|line| line == "codec_name=vp9") {
+            return Some("libvpx-vp9");
+        }
+        if probe.lines().any(|line| line == "codec_name=vp8") {
+            return Some("libvpx");
+        }
+    }
+    if extension == "mov"
+        && probe.lines().any(|line| {
+            line.strip_prefix("pix_fmt=").is_some_and(|format| {
+                matches!(
+                    format,
+                    "argb" | "abgr" | "rgba" | "bgra" | "ayuv64le" | "ayuv64be"
+                ) || format.starts_with("yuva")
+                    || format.starts_with("gbrap")
+            })
+        })
+    {
+        return Some("qtrle");
+    }
+    None
+}
+
+/// Décode la plage demandée et réencode les flux média avec une origine temporelle commune.
+async fn cut_media(
+    source_path: &str,
+    start_ms: u64,
+    end_ms: u64,
+    output_path: &str,
+    is_video: bool,
+) -> Result<(), String> {
+    if !Path::new(source_path).exists() {
         return Err(format!("Source file not found: {}", source_path));
+    }
+    if end_ms <= start_ms {
+        return Err("Duration must be positive".to_string());
     }
 
     let ffmpeg_path =
         binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
     let start_secs = start_ms as f64 / 1000.0;
-    let duration_secs = (end_ms as f64 - start_ms as f64) / 1000.0;
-    if duration_secs <= 0.0 {
-        return Err("Duration must be positive".to_string());
-    }
+    let duration_secs = (end_ms - start_ms) as f64 / 1000.0;
+    let source_path = source_path.to_owned();
+    let output_path = output_path.to_owned();
 
-    let mut cmd = Command::new(&ffmpeg_path);
-    cmd.args([
-        "-ss",
-        &start_secs.to_string(),
-        "-t",
-        &duration_secs.to_string(),
-        "-i",
-        &source_path,
-        "-c",
-        "copy",
-        "-y",
-        &output_path,
-    ]);
-    configure_command_no_window(&mut cmd);
-    match cmd.output() {
+    let output = tauri::async_runtime::spawn_blocking(move || {
+        let alpha_codec = if is_video {
+            trim_alpha_codec(&source_path)
+        } else {
+            None
+        };
+        let mut cmd = Command::new(ffmpeg_path);
+        if let Some(codec) = alpha_codec.filter(|codec| *codec != "qtrle") {
+            // Les décodeurs VP8/VP9 natifs n'exposent pas le canal alpha WebM.
+            cmd.args(["-c:v:0", codec]);
+        }
+        cmd.args([
+            "-ss",
+            &start_secs.to_string(),
+            "-i",
+            &source_path,
+            "-t",
+            &duration_secs.to_string(),
+        ]);
+        if is_video {
+            cmd.args([
+                "-map",
+                "0",
+                "-c:s",
+                "copy",
+                "-c:d",
+                "copy",
+                "-c:t",
+                "copy",
+                "-fps_mode:v",
+                "passthrough",
+                "-enc_time_base:v",
+                "1:1000",
+            ]);
+            if let Some(codec) = alpha_codec {
+                let pixel_format = if codec == "qtrle" { "argb" } else { "yuva420p" };
+                cmd.args(["-c:v:0", codec, "-pix_fmt:v:0", pixel_format]);
+                if codec == "libvpx" {
+                    cmd.args(["-auto-alt-ref:v:0", "0"]);
+                }
+            }
+        } else {
+            cmd.args(["-map", "0:a:0"]);
+        }
+        cmd.args(["-y", &output_path]);
+        configure_command_no_window(&mut cmd);
+        cmd.output()
+    })
+    .await
+    .map_err(|error| error.to_string())?;
+    match output {
         Ok(result) if result.status.success() => Ok(()),
         Ok(result) => Err(format!(
             "ffmpeg error: {}",
@@ -1255,50 +1357,15 @@ pub fn preview_audio_effect(
     Ok(output)
 }
 
-/// Coupe une portion vidéo sans ré-encodage (copie de flux).
+/// Coupe une portion vidéo en préservant l'alignement des flux audio et vidéo.
 #[tauri::command]
-pub fn cut_video(
+pub async fn cut_video(
     source_path: String,
     start_ms: u64,
     end_ms: u64,
     output_path: String,
 ) -> Result<(), String> {
-    if !std::path::Path::new(&source_path).exists() {
-        return Err(format!("Source file not found: {}", source_path));
-    }
-
-    let ffmpeg_path =
-        binaries::resolve_binary("ffmpeg").ok_or_else(|| "ffmpeg binary not found".to_string())?;
-    let start_secs = start_ms as f64 / 1000.0;
-    let duration_secs = (end_ms as f64 - start_ms as f64) / 1000.0;
-    if duration_secs <= 0.0 {
-        return Err("Duration must be positive".to_string());
-    }
-
-    let mut cmd = Command::new(&ffmpeg_path);
-    cmd.args([
-        "-ss",
-        &start_secs.to_string(),
-        "-t",
-        &duration_secs.to_string(),
-        "-i",
-        &source_path,
-        "-map",
-        "0",
-        "-c",
-        "copy",
-        "-y",
-        &output_path,
-    ]);
-    configure_command_no_window(&mut cmd);
-    match cmd.output() {
-        Ok(result) if result.status.success() => Ok(()),
-        Ok(result) => Err(format!(
-            "ffmpeg error: {}",
-            String::from_utf8_lossy(&result.stderr)
-        )),
-        Err(e) => Err(format!("Unable to execute ffmpeg: {}", e)),
-    }
+    cut_media(&source_path, start_ms, end_ms, &output_path, true).await
 }
 
 /// Concatène plusieurs fichiers audio à l'aide du demuxer concat de ffmpeg.

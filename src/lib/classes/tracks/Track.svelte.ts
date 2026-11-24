@@ -233,6 +233,24 @@ export class Track extends SerializableBase {
 	}
 
 	/**
+	 * Retrouve un clip média unique avec les mêmes limites sur la timeline et dans la source.
+	 * @param {AssetClip} clip Clip média de référence.
+	 * @returns {AssetClip | null} Clip aligné, si la correspondance est unique.
+	 */
+	getAlignedAssetClip(clip: AssetClip): AssetClip | null {
+		const matches = this.clips.filter(
+			(candidate): candidate is AssetClip =>
+				candidate instanceof AssetClip &&
+				!candidate.loopUntilAudioEnd &&
+				candidate.assetId === clip.assetId &&
+				candidate.startTime === clip.startTime &&
+				candidate.endTime === clip.endTime &&
+				(candidate.sourceStartTime ?? 0) === (clip.sourceStartTime ?? 0)
+		);
+		return matches.length === 1 ? matches[0] : null;
+	}
+
+	/**
 	 * Retourne les clips qui chevauchent une plage.
 	 * @param {number} startMs Début de plage.
 	 * @param {number} endMs Fin de plage.

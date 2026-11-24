@@ -507,13 +507,6 @@
 					<span class="material-icons text-xl">folder_open</span>
 				</button>
 				<button
-					class="text-xs text-gray-300 hover:text-white disabled:opacity-50 disabled:cursor-default cursor-pointer whitespace-nowrap"
-					onclick={clearExportCache}
-					disabled={clearingExportCache}
-				>
-					{$LL.exporterMonitor.clearExportCache()}
-				</button>
-				<button
 					class="flex text-gray-400 hover:text-white transition-colors cursor-pointer"
 					onclick={() => (globalState.uiState.showExportMonitor = false)}
 					aria-label={$LL.exporterMonitor.closeExportMonitor()}
@@ -897,17 +890,26 @@
 						count: globalState.exportations.filter((e) => e.isOnGoing()).length
 					})}
 				</div>
-				{#if globalState.exportations.some((e) => !e.isOnGoing())}
+				<div class="flex items-center gap-4">
 					<button
-						class="text-xs text-gray-400 hover:text-white transition-colors cursor-pointer"
-						onclick={() => {
-							// Remove completed/error/canceled exports
-							globalState.exportations = globalState.exportations.filter((e) => e.isOnGoing());
-						}}
+						class="text-xs text-gray-400 hover:text-white transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50"
+						onclick={clearExportCache}
+						disabled={clearingExportCache}
 					>
-						{get(LL).export.clearCompleted()}
+						{$LL.exporterMonitor.clearExportCache()}
 					</button>
-				{/if}
+					{#if globalState.exportations.some((e) => !e.isOnGoing())}
+						<button
+							class="text-xs text-gray-400 hover:text-white transition-colors cursor-pointer"
+							onclick={() => {
+								// Remove completed/error/canceled exports
+								globalState.exportations = globalState.exportations.filter((e) => e.isOnGoing());
+							}}
+						>
+							{get(LL).export.clearCompleted()}
+						</button>
+					{/if}
+				</div>
 			</div>
 		</div>
 	</div>

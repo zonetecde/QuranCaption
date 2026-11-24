@@ -7,6 +7,7 @@
 	import toast from 'svelte-5-french-toast';
 	import { get } from 'svelte/store';
 	import LL from '$lib/i18n/i18n-svelte';
+	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
 
 	interface Props {
 		close: () => void;
@@ -93,11 +94,10 @@
 				endMs: endTimeTotal,
 				outputPath: output_path
 			});
-			await invoke('normalize_audio_timestamps', { filePath: output_path });
-
-			// Add new asset to project
 			const newAsset = new Asset(output_path);
-			globalState.currentProject?.content.assets.push(newAsset);
+			ProjectHistoryManager.track('trim asset', () => {
+				globalState.currentProject?.content.assets.push(newAsset);
+			});
 
 			toast.success(get(LL).tools.assetTrimmedSuccess(), {
 				duration: 7500

@@ -70,6 +70,7 @@
 	let trimOriginalStartTime = 0;
 	let trimOriginalEndTime = 0;
 	let trimOriginalSourceStartTime = 0;
+	let alignedTrimClip: AssetClip | null = null;
 	let clipDragStartX: number | null = null;
 	let clipDragOriginalStartTime = 0;
 	let clipDragVisualStarts: number[] | null = null;
@@ -327,13 +328,20 @@
 	 * @returns {void}
 	 */
 	function startTrim(edge: 'left' | 'right', event: MouseEvent): void {
-		if (event.button !== 0 || !canTrim) return;
+		if (event.button !== 0 || !(clip instanceof AssetClip) || !canTrim) return;
 		event.stopPropagation();
 		ProjectHistoryManager.begin('trim asset clip');
 		trimDragStartX = event.clientX;
 		trimOriginalStartTime = clip.startTime;
 		trimOriginalEndTime = clip.endTime;
-		trimOriginalSourceStartTime = (clip as AssetClip).sourceStartTime ?? 0;
+		trimOriginalSourceStartTime = clip.sourceStartTime ?? 0;
+		if (asset.type === AssetType.Video && track.getAlignedAssetClip(clip) === clip) {
+			const oppositeType = track.type === TrackType.Video ? TrackType.Audio : TrackType.Video;
+			const oppositeTrack = globalState.currentProject?.content.timeline.tracks.find(
+				(candidate) => candidate.type === oppositeType
+			);
+			alignedTrimClip = oppositeTrack?.getAlignedAssetClip(clip) ?? null;
+		}
 		globalState.getTimelineState.showCursor = false;
 		document.addEventListener('mousemove', edge === 'left' ? trimLeft : trimRight);
 		document.addEventListener('mouseup', stopTrim);
@@ -349,7 +357,10 @@
 		const deltaMs = Math.round(
 			((event.clientX - trimDragStartX) / track.getPixelPerSecond()) * 1000
 		);
-		const previousClip = track.type === TrackType.Audio ? null : track.getClipBefore(clip.id);
+		const previousClip =
+			track.type === TrackType.Audio
+				? alignedTrimClip && globalState.getVideoTrack.getClipBefore(alignedTrimClip.id)
+				: track.getClipBefore(clip.id);
 		const minimumStart = Math.max(
 			0,
 			asset.type === AssetType.Image ? 0 : trimOriginalStartTime - trimOriginalSourceStartTime,
@@ -358,12 +369,15 @@
 		const rawStart = getSnappedAssetClipTime(trimOriginalStartTime + deltaMs, [0], previousClip);
 		const newStart = Math.min(trimOriginalEndTime - 100, Math.max(minimumStart, rawStart));
 
-		clip.startTime = newStart;
-		clip.duration = clip.endTime - newStart;
-		clip.sourceStartTime =
+		const sourceStartTime =
 			asset.type === AssetType.Image
 				? 0
 				: trimOriginalSourceStartTime + (newStart - trimOriginalStartTime);
+		for (const trimmedClip of alignedTrimClip ? [clip, alignedTrimClip] : [clip]) {
+			trimmedClip.startTime = newStart;
+			trimmedClip.duration = trimmedClip.endTime - newStart;
+			trimmedClip.sourceStartTime = sourceStartTime;
+		}
 	}
 
 	/**
@@ -376,7 +390,10 @@
 		const deltaMs = Math.round(
 			((event.clientX - trimDragStartX) / track.getPixelPerSecond()) * 1000
 		);
-		const nextClip = track.type === TrackType.Audio ? null : track.getClipAfter(clip.id);
+		const nextClip =
+			track.type === TrackType.Audio
+				? alignedTrimClip && globalState.getVideoTrack.getClipAfter(alignedTrimClip.id)
+				: track.getClipAfter(clip.id);
 		const sourceEndTime =
 			trimOriginalSourceStartTime + (trimOriginalEndTime - trimOriginalStartTime);
 		const maximumEnd = Math.min(
@@ -388,8 +405,10 @@
 		const rawEnd = getSnappedAssetClipTime(trimOriginalEndTime + deltaMs, [0], null, nextClip);
 		const newEnd = Math.max(trimOriginalStartTime + 100, Math.min(maximumEnd, rawEnd));
 
-		clip.endTime = newEnd;
-		clip.duration = newEnd - clip.startTime;
+		for (const trimmedClip of alignedTrimClip ? [clip, alignedTrimClip] : [clip]) {
+			trimmedClip.endTime = newEnd;
+			trimmedClip.duration = newEnd - trimmedClip.startTime;
+		}
 	}
 
 	/**
@@ -399,7 +418,10 @@
 	function stopTrim(): void {
 		if (track.type === TrackType.Audio) {
 			track.clips.sort((left, right) => left.startTime - right.startTime);
+		} else if (alignedTrimClip) {
+			globalState.getAudioTrack.clips.sort((left, right) => left.startTime - right.startTime);
 		}
+		alignedTrimClip = null;
 		trimDragStartX = null;
 		document.removeEventListener('mousemove', trimLeft);
 		document.removeEventListener('mousemove', trimRight);

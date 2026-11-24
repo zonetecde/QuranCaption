@@ -11267,17 +11267,31 @@ type RootTranslation = {
 		 */
 		closeExportMonitor: string;
 		/**
-		 * E​x​p​o​r​t​s​ ​f​o​l​d​e​r​:
+		 * E​x​p​o​r​t​ ​c​a​c​h​e​:
 		 */
 		exportFolderSizeLabel: string;
 		/**
-		 * O​p​e​n​ ​e​x​p​o​r​t​s​ ​f​o​l​d​e​r
+		 * O​p​e​n​ ​e​x​p​o​r​t​ ​c​a​c​h​e​ ​f​o​l​d​e​r
 		 */
 		openExportFolder: string;
 		/**
-		 * U​n​a​b​l​e​ ​t​o​ ​o​p​e​n​ ​t​h​e​ ​e​x​p​o​r​t​s​ ​f​o​l​d​e​r
+		 * U​n​a​b​l​e​ ​t​o​ ​o​p​e​n​ ​t​h​e​ ​e​x​p​o​r​t​ ​c​a​c​h​e​ ​f​o​l​d​e​r
 		 */
 		failedToOpenExportFolder: string;
+		/**
+		 * C​l​e​a​r​ ​C​a​c​h​e
+		 */
+		clearExportCache: string;
+		/**
+		 * {​s​i​z​e​}​ ​M​B​ ​o​f​ ​t​e​m​p​o​r​a​r​y​ ​e​x​p​o​r​t​ ​f​i​l​e​s​ ​r​e​m​o​v​e​d​.
+		 * @param {string} size
+		 */
+		exportCacheCleared: RequiredParams<'size'>;
+		/**
+		 * {​s​i​z​e​}​ ​M​B​ ​o​f​ ​t​e​m​p​o​r​a​r​y​ ​e​x​p​o​r​t​ ​f​i​l​e​s​ ​r​e​m​o​v​e​d​.​ ​S​o​m​e​ ​f​i​l​e​s​ ​c​o​u​l​d​ ​n​o​t​ ​b​e​ ​c​l​e​a​r​e​d​.
+		 * @param {string} size
+		 */
+		exportCacheClearIncomplete: RequiredParams<'size'>;
 		/**
 		 * C​a​n​c​e​l​ ​E​x​p​o​r​t
 		 */
@@ -23759,17 +23773,29 @@ export type TranslationFunctions = {
 		 */
 		closeExportMonitor: () => LocalizedString;
 		/**
-		 * Exports folder:
+		 * Export cache:
 		 */
 		exportFolderSizeLabel: () => LocalizedString;
 		/**
-		 * Open exports folder
+		 * Open export cache folder
 		 */
 		openExportFolder: () => LocalizedString;
 		/**
-		 * Unable to open the exports folder
+		 * Unable to open the export cache folder
 		 */
 		failedToOpenExportFolder: () => LocalizedString;
+		/**
+		 * Clear Cache
+		 */
+		clearExportCache: () => LocalizedString;
+		/**
+		 * {size} MB of temporary export files removed.
+		 */
+		exportCacheCleared: (arg: { size: string }) => LocalizedString;
+		/**
+		 * {size} MB of temporary export files removed. Some files could not be cleared.
+		 */
+		exportCacheClearIncomplete: (arg: { size: string }) => LocalizedString;
 		/**
 		 * Cancel Export
 		 */

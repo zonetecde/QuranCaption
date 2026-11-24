@@ -3,12 +3,12 @@
 	import Exportation, { ExportKind, ExportState } from '$lib/classes/Exportation.svelte';
 	import { exists, mkdir } from '@tauri-apps/plugin-fs';
 	import { invoke } from '@tauri-apps/api/core';
-	import { appDataDir, join } from '@tauri-apps/api/path';
+	import { appDataDir, dirname, join } from '@tauri-apps/api/path';
 	import ModalManager from './modals/ModalManager';
 	import { slide } from 'svelte/transition';
 	import { onMount, onDestroy } from 'svelte';
 	import toast from 'svelte-5-french-toast';
-	import LL from '$lib/i18n/i18n-svelte';
+	import LL, { locale } from '$lib/i18n/i18n-svelte';
 	import { get } from 'svelte/store';
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { getFfmpegUpdateCommands } from '$lib/services/FfmpegUpdateHelp';
@@ -34,8 +34,8 @@
 	let currentTime = $state(Date.now());
 	let intervalId: ReturnType<typeof setInterval> | undefined;
 	let youtubePublications = $state<Record<number, YouTubePublicationState>>({});
-	let exportFolderPath = '';
 	let exportFolderSize = $state<number | null>(null);
+	let clearingExportCache = $state(false);
 	let lastExportFolderSizeRefresh = 0;
 
 	/**
@@ -61,19 +61,61 @@
 	}
 
 	/**
+	 * Mesure ou vide les caches connus du moniteur.
+	 * @param {boolean} clear Supprime les caches inactifs si vrai.
+	 * @returns {Promise<{ bytes: number; failed: boolean }>} Taille mesurée ou libérée et état de l'opération.
+	 */
+	async function manageExportCache(clear: boolean): Promise<{ bytes: number; failed: boolean }> {
+		const destinations = await Promise.all([
+			join(await appDataDir(), ExportService.exportFolder),
+			ExportService.getExportFolder(),
+			...globalState.exportations
+				.filter((exp) => exp.exportKind === ExportKind.Video && exp.finalFilePath)
+				.map((exp) => dirname(exp.finalFilePath))
+		]);
+		const cacheFolders = await Promise.all(
+			[...new Set(destinations)].map((folder) => ExportService.getVideoCacheFolder(folder))
+		);
+		return invoke('manage_export_cache', {
+			cacheFolders,
+			activeExportIds: globalState.exportations
+				.filter((exp) => exp.isOnGoing())
+				.map((exp) => String(exp.exportId)),
+			clear
+		});
+	}
+
+	/**
 	 * Actualise la taille du dossier de travail des exports.
 	 * @returns {Promise<void>} Promesse résolue après le calcul.
 	 */
 	async function refreshExportFolderSize(): Promise<void> {
 		lastExportFolderSizeRefresh = Date.now();
 		try {
-			exportFolderPath ||= await join(await appDataDir(), ExportService.exportFolder);
-			await mkdir(exportFolderPath, { recursive: true });
-			exportFolderSize = await invoke<number>('get_directory_size', {
-				directoryPath: exportFolderPath
-			});
+			exportFolderSize = (await manageExportCache(false)).bytes;
 		} catch {
 			exportFolderSize = null;
+		}
+	}
+
+	/**
+	 * Supprime les caches inactifs et affiche le nombre de mégaoctets libérés.
+	 * @returns {Promise<void>} Promesse résolue après le nettoyage et son affichage.
+	 */
+	async function clearExportCache(): Promise<void> {
+		if (clearingExportCache) return;
+		clearingExportCache = true;
+		try {
+			const { bytes, failed } = await manageExportCache(true);
+			const size = (bytes / 1_000_000).toLocaleString(get(locale), { maximumFractionDigits: 6 });
+			const messages = get(LL).exporterMonitor;
+			if (failed) toast.error(messages.exportCacheClearIncomplete({ size }));
+			else toast.success(messages.exportCacheCleared({ size }));
+		} catch {
+			toast.error(get(LL).exporterMonitor.exportCacheClearIncomplete({ size: '0' }));
+		} finally {
+			await refreshExportFolderSize();
+			clearingExportCache = false;
 		}
 	}
 
@@ -83,8 +125,10 @@
 	 */
 	async function openExportFolder(): Promise<void> {
 		try {
-			if (!exportFolderPath) await refreshExportFolderSize();
-			await invoke('open_directory', { directoryPath: exportFolderPath });
+			const destination = await ExportService.getExportFolder();
+			const directoryPath = await ExportService.getVideoCacheFolder(destination);
+			await mkdir(directoryPath, { recursive: true });
+			await invoke('open_directory', { directoryPath });
 		} catch {
 			toast.error(get(LL).exporterMonitor.failedToOpenExportFolder());
 		}
@@ -412,6 +456,7 @@
 			currentTime = Date.now();
 			if (
 				globalState.uiState.showExportMonitor &&
+				!clearingExportCache &&
 				currentTime - lastExportFolderSizeRefresh >= 10_000
 			) {
 				void refreshExportFolderSize();
@@ -460,6 +505,13 @@
 					aria-label={$LL.exporterMonitor.openExportFolder()}
 				>
 					<span class="material-icons text-xl">folder_open</span>
+				</button>
+				<button
+					class="text-xs text-gray-300 hover:text-white disabled:opacity-50 disabled:cursor-default cursor-pointer whitespace-nowrap"
+					onclick={clearExportCache}
+					disabled={clearingExportCache}
+				>
+					{$LL.exporterMonitor.clearExportCache()}
 				</button>
 				<button
 					class="flex text-gray-400 hover:text-white transition-colors cursor-pointer"

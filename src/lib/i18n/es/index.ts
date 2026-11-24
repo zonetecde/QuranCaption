@@ -3482,9 +3482,13 @@ const es = {
 		capturedFrames: 'Fotogramas capturados',
 		exportsMonitor: 'Monitor de exportaciones',
 		closeExportMonitor: 'Cerrar monitor de exportaciones',
-		exportFolderSizeLabel: 'Carpeta de exportaciones:',
-		openExportFolder: 'Abrir carpeta de exportaciones',
-		failedToOpenExportFolder: 'No se pudo abrir la carpeta de exportaciones',
+		exportFolderSizeLabel: 'Caché de exportación:',
+		openExportFolder: 'Abrir la carpeta de caché de exportación',
+		failedToOpenExportFolder: 'No se pudo abrir la carpeta de caché de exportación',
+		clearExportCache: 'Vaciar caché',
+		exportCacheCleared: 'Se eliminaron {size} MB de archivos temporales de exportación.',
+		exportCacheClearIncomplete:
+			'Se eliminaron {size} MB de archivos temporales de exportación. No se pudieron eliminar algunos archivos.',
 		cancelExport: 'Cancelar exportación',
 		cancelExportConfirm:
 			'¿Está seguro de que desea cancelar esta exportación? Se perderá su progreso.',

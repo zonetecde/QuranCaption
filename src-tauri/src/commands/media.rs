@@ -784,17 +784,151 @@ fn directory_size(path: &Path) -> Result<u64, String> {
         })
 }
 
-/// Retourne la taille totale d'un dossier sans bloquer le thread de commande Tauri.
-#[tauri::command]
-pub async fn get_directory_size(directory_path: String) -> Result<u64, String> {
-    let path = path_utils::normalize_existing_path(&directory_path);
-    if !path.is_dir() {
-        return Err(format!("Directory not found: {}", path.to_string_lossy()));
-    }
+#[derive(Default, Serialize)]
+pub struct ExportCacheUsage {
+    bytes: u64,
+    failed: bool,
+}
 
-    tauri::async_runtime::spawn_blocking(move || directory_size(&path))
-        .await
+/// Reconnaît les captures et les segments produits dans l'ancien dossier mixte AppData/exports.
+fn is_legacy_export_cache(path: &Path) -> bool {
+    fs::read_dir(path).is_ok_and(|mut entries| {
+        entries.all(|entry| {
+            let Ok(entry) = entry else { return false };
+            let Ok(kind) = entry.file_type() else {
+                return false;
+            };
+            let name = entry.file_name();
+            let Some(name) = name.to_str() else {
+                return false;
+            };
+            if kind.is_dir() {
+                return name
+                    .strip_prefix("segment_")
+                    .is_some_and(|index| index.parse::<u32>().is_ok())
+                    && is_legacy_export_cache(&entry.path());
+            }
+            kind.is_file()
+                && (name.strip_suffix(".png").is_some_and(|stem| {
+                    stem.parse::<i32>().is_ok()
+                        || stem.strip_prefix("blank_").is_some_and(|key| {
+                            !key.is_empty() && key.bytes().all(|byte| byte.is_ascii_alphanumeric())
+                        })
+                }) || name
+                    .strip_prefix("segment_")
+                    .and_then(|name| name.split_once("_video."))
+                    .is_some_and(|(index, extension)| {
+                        index.parse::<u32>().is_ok() && matches!(extension, "mp4" | "mov" | "webm")
+                    }))
+        })
+    })
+}
+
+/// Mesure le cache d'export ou supprime ses dossiers inactifs en comptant les octets libérés.
+fn process_export_cache(
+    root: &Path,
+    legacy: bool,
+    clear: bool,
+    is_active: impl Fn(&str) -> bool,
+) -> Result<ExportCacheUsage, String> {
+    let entries = match fs::read_dir(root) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(ExportCacheUsage::default());
+        }
+        Err(error) => return Err(error.to_string()),
+    };
+    let mut usage = ExportCacheUsage::default();
+    for entry in entries {
+        let Ok(entry) = entry else {
+            usage.failed = true;
+            continue;
+        };
+        let name = entry.file_name();
+        let Some(id) = name.to_str() else { continue };
+        if id.len() != 16 || !id.bytes().all(|byte| byte.is_ascii_digit()) {
+            continue;
+        }
+        if !entry.file_type().is_ok_and(|kind| kind.is_dir()) || (clear && is_active(id)) {
+            continue;
+        }
+        let path = entry.path();
+        if legacy && !is_legacy_export_cache(&path) {
+            continue;
+        }
+        let size = match directory_size(&path) {
+            Ok(size) => size,
+            Err(_) if !path.exists() => continue,
+            Err(_) => {
+                usage.failed = true;
+                continue;
+            }
+        };
+        if clear {
+            if is_active(id) {
+                continue;
+            }
+            if let Err(error) = fs::remove_dir_all(&path) {
+                if error.kind() != std::io::ErrorKind::NotFound {
+                    usage.failed = true;
+                    if let Ok(remaining) = directory_size(&path) {
+                        usage.bytes = usage.bytes.saturating_add(size.saturating_sub(remaining));
+                    }
+                }
+                continue;
+            }
+        }
+        usage.bytes = usage.bytes.saturating_add(size);
+    }
+    Ok(usage)
+}
+
+/// Gère les dossiers de cache dédiés et les anciens dossiers de capture dans AppData.
+#[tauri::command]
+pub async fn manage_export_cache(
+    app: AppHandle,
+    cache_folders: Vec<PathBuf>,
+    active_export_ids: HashSet<String>,
+    clear: bool,
+) -> Result<ExportCacheUsage, String> {
+    let legacy_root = app
+        .path()
+        .app_data_dir()
         .map_err(|error| error.to_string())?
+        .join("exports");
+
+    tauri::async_runtime::spawn_blocking(move || {
+        let legacy_root = legacy_root.canonicalize().unwrap_or(legacy_root);
+        let roots: HashSet<_> = cache_folders
+            .into_iter()
+            .filter(|path| path.is_absolute() && path.ends_with("qurancaption-export-cache"))
+            .filter(|path| fs::symlink_metadata(path).map_or(true, |metadata| metadata.is_dir()))
+            .chain([legacy_root.clone()])
+            .map(|path| path.canonicalize().unwrap_or(path))
+            .collect();
+        let is_active = |id: &str| {
+            active_export_ids.contains(id)
+                || app.webview_windows().keys().any(|label| {
+                    label == id
+                        || label
+                            .strip_prefix(id)
+                            .is_some_and(|suffix| suffix.starts_with("-capture-"))
+                })
+        };
+        let mut total = ExportCacheUsage::default();
+        for root in roots {
+            match process_export_cache(&root, root == legacy_root, clear, is_active) {
+                Ok(usage) => {
+                    total.bytes = total.bytes.saturating_add(usage.bytes);
+                    total.failed |= usage.failed;
+                }
+                Err(_) => total.failed = true,
+            }
+        }
+        total
+    })
+    .await
+    .map_err(|error| error.to_string())
 }
 
 /// Retourne les dimensions vidéo (width/height) du premier stream vidéo.
@@ -1707,6 +1841,45 @@ mod timeline_thumbnail_tests {
 #[cfg(test)]
 mod directory_size_tests {
     use super::*;
+
+    /// Vérifie que le nettoyage retire uniquement les dossiers d'export inactifs.
+    #[test]
+    fn clears_inactive_export_cache_and_counts_removed_bytes() {
+        let test_root = std::env::temp_dir().join(format!(
+            "qurancaption-export-cache-test-{}",
+            std::process::id()
+        ));
+        let inactive = test_root.join("1760000000000001");
+        let active = test_root.join("1760000000000002");
+        let images = test_root.join("project_images_1760000000000003");
+        let unrelated = test_root.join("1760000000000004");
+        let video = test_root.join("final.mp4");
+        let snapshot = test_root.join("1760000000000001.json");
+        fs::create_dir_all(inactive.join("segment_0")).unwrap();
+        fs::create_dir_all(&active).unwrap();
+        fs::create_dir_all(&images).unwrap();
+        fs::create_dir_all(&unrelated).unwrap();
+        fs::write(inactive.join("segment_0").join("0.png"), [0_u8; 5]).unwrap();
+        fs::write(active.join("0.png"), [0_u8; 7]).unwrap();
+        fs::write(images.join("0001_0ms.png"), [0_u8; 11]).unwrap();
+        fs::write(&video, [0_u8; 13]).unwrap();
+        fs::write(&snapshot, "{}").unwrap();
+        fs::write(unrelated.join("original.png"), [0_u8; 17]).unwrap();
+
+        let usage = process_export_cache(&test_root, true, false, |_| false).unwrap();
+        assert_eq!(usage.bytes, 12);
+        let cleared =
+            process_export_cache(&test_root, true, true, |id| id == "1760000000000002").unwrap();
+        assert_eq!(cleared.bytes, 5);
+        assert!(!cleared.failed);
+        assert!(!inactive.exists());
+        assert!(active.join("0.png").is_file());
+        assert!(images.join("0001_0ms.png").is_file());
+        assert!(video.is_file());
+        assert!(snapshot.is_file());
+        assert!(unrelated.join("original.png").is_file());
+        fs::remove_dir_all(test_root).unwrap();
+    }
 
     /// Vérifie que la taille d'un dossier inclut les fichiers de ses sous-dossiers.
     #[test]

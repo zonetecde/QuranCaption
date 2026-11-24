@@ -3494,9 +3494,13 @@ const de = {
 		capturedFrames: 'Erfasste Bilder',
 		exportsMonitor: 'Export-Monitor',
 		closeExportMonitor: 'Export-Monitor schließen',
-		exportFolderSizeLabel: 'Exportordner:',
-		openExportFolder: 'Exportordner öffnen',
-		failedToOpenExportFolder: 'Der Exportordner konnte nicht geöffnet werden',
+		exportFolderSizeLabel: 'Exportcache:',
+		openExportFolder: 'Ordner für den Exportcache öffnen',
+		failedToOpenExportFolder: 'Der Ordner für den Exportcache konnte nicht geöffnet werden',
+		clearExportCache: 'Cache leeren',
+		exportCacheCleared: '{size} MB an temporären Exportdateien gelöscht.',
+		exportCacheClearIncomplete:
+			'{size} MB an temporären Exportdateien gelöscht. Einige Dateien konnten nicht gelöscht werden.',
 		cancelExport: 'Export abbrechen',
 		cancelExportConfirm:
 			'Sind Sie sicher, dass Sie diesen Export abbrechen möchten? Ihr Fortschritt geht verloren.',

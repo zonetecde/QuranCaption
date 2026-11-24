@@ -4,9 +4,13 @@ const exporterMonitor = {
 	capturedFrames: 'الإطارات الملتقطة',
 	exportsMonitor: 'مراقب الصادرات',
 	closeExportMonitor: 'إغلاق مراقب التصدير',
-	exportFolderSizeLabel: 'مجلد الصادرات:',
-	openExportFolder: 'افتح مجلد الصادرات',
-	failedToOpenExportFolder: 'غير قادر على فتح مجلد الصادرات',
+	exportFolderSizeLabel: 'ذاكرة التخزين المؤقت للتصدير:',
+	openExportFolder: 'فتح مجلد التخزين المؤقت للتصدير',
+	failedToOpenExportFolder: 'تعذر فتح مجلد التخزين المؤقت للتصدير',
+	clearExportCache: 'مسح التخزين المؤقت',
+	exportCacheCleared: 'تم حذف {size} ميغابايت من ملفات التصدير المؤقتة.',
+	exportCacheClearIncomplete:
+		'تم حذف {size} ميغابايت من ملفات التصدير المؤقتة. تعذر حذف بعض الملفات.',
 	cancelExport: 'إلغاء التصدير',
 	cancelExportConfirm:
 		'هل أنت متأكد أنك تريد إلغاء عملية التصدير هذه؟ سيتم فقدان التقدم المحرز الخاص بك.',

@@ -3512,9 +3512,13 @@ const fr = {
 		capturedFrames: 'Images capturées',
 		exportsMonitor: 'Moniteur d\u2019exports',
 		closeExportMonitor: 'Fermer le moniteur d\u2019exports',
-		exportFolderSizeLabel: 'Dossier exports\u00a0:',
-		openExportFolder: 'Ouvrir le dossier exports',
-		failedToOpenExportFolder: 'Impossible d\u2019ouvrir le dossier exports',
+		exportFolderSizeLabel: 'Cache des exports\u00a0:',
+		openExportFolder: 'Ouvrir le dossier du cache des exports',
+		failedToOpenExportFolder: 'Impossible d’ouvrir le dossier du cache des exports',
+		clearExportCache: 'Vider le cache',
+		exportCacheCleared: '{size} Mo de fichiers temporaires d’export supprimés.',
+		exportCacheClearIncomplete:
+			'{size} Mo de fichiers temporaires d’export supprimés. Certains fichiers n’ont pas pu être supprimés.',
 		cancelExport: 'Annuler l\u2019export',
 		cancelExportConfirm:
 			'Êtes-vous sûr de vouloir annuler cet export\u00a0? Votre progression sera perdue.',

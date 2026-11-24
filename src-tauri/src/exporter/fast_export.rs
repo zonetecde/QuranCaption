@@ -246,7 +246,10 @@ pub(super) fn run_fast_export(
             && input.duration_ms.is_some()
     });
 
-    let mut temp_dir = create_temp_export_dir(export_id)?;
+    let capture_folder = Path::new(&image_paths[0])
+        .parent()
+        .ok_or_else(|| export_error("Dossier de capture introuvable"))?;
+    let mut temp_dir = create_temp_export_dir(capture_folder, export_id)?;
 
     ffmpeg_runner::emit_export_progress(
         &app_handle,
@@ -285,7 +288,7 @@ pub(super) fn run_fast_export(
                 error
             );
             fs::remove_dir_all(&temp_dir.path).ok();
-            temp_dir = create_temp_export_dir(export_id)?;
+            temp_dir = create_temp_export_dir(capture_folder, export_id)?;
             build_overlay_concat_plan(
                 export_id,
                 image_paths,

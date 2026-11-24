@@ -76,7 +76,10 @@ pub(super) fn export_error(message: impl Into<String>) -> ExportError {
 }
 
 /// Cree un dossier temporaire unique pour les fichiers intermediaires.
-pub(super) fn create_temp_export_dir(export_id: &str) -> ExportResult<TempExportDir> {
+pub(super) fn create_temp_export_dir(
+    parent: &Path,
+    export_id: &str,
+) -> ExportResult<TempExportDir> {
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_nanos())
@@ -91,7 +94,7 @@ pub(super) fn create_temp_export_dir(export_id: &str) -> ExportResult<TempExport
             }
         })
         .collect();
-    let path = std::env::temp_dir().join(format!(
+    let path = parent.join(format!(
         "qurancaption-fast-export-{}-{}-{}",
         safe_export_id,
         std::process::id(),

@@ -3123,9 +3123,13 @@ const tr = {
 		capturedFrames: 'Yakalanan kareler',
 		exportsMonitor: 'Dışa aktarma izleyicisi',
 		closeExportMonitor: 'Dışa aktarma monitörünü kapat',
-		exportFolderSizeLabel: 'Dışa aktarma klasörü:',
-		openExportFolder: 'Dışa aktarma klasörünü aç',
-		failedToOpenExportFolder: 'Dışa aktarma klasörü açılamıyor',
+		exportFolderSizeLabel: 'Dışa aktarma önbelleği:',
+		openExportFolder: 'Dışa aktarma önbelleği klasörünü aç',
+		failedToOpenExportFolder: 'Dışa aktarma önbelleği klasörü açılamıyor',
+		clearExportCache: 'Önbelleği temizle',
+		exportCacheCleared: '{size} MB geçici dışa aktarma dosyası silindi.',
+		exportCacheClearIncomplete:
+			'{size} MB geçici dışa aktarma dosyası silindi. Bazı dosyalar silinemedi.',
 		cancelExport: 'Dışa Aktarmayı İptal Et',
 		cancelExportConfirm:
 			'Bu dışa aktarma işlemini iptal etmek istediğinizden emin misiniz? İlerlemeniz kaybolacak.',

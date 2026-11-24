@@ -8,7 +8,7 @@ import { Utilities } from './misc/Utilities';
 import ExportService from '$lib/services/ExportService';
 import LL from '$lib/i18n/i18n-svelte';
 import { get } from 'svelte/store';
-import { BaseDirectory, join } from '@tauri-apps/api/path';
+import { dirname, join } from '@tauri-apps/api/path';
 import { exists, readDir, remove, type DirEntry } from '@tauri-apps/plugin-fs';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
 import ExportFileService from '$lib/services/ExportFileService';
@@ -413,6 +413,14 @@ export default class Exporter {
 	}
 
 	private static async openExportWindow(exportId: string, mode?: 'images') {
+		const exportation = ExportService.findExportById(Number(exportId));
+		const cacheFolder =
+			mode !== 'images' && exportation
+				? await ExportService.getVideoCacheFolder(
+						await dirname(exportation.finalFilePath),
+						exportId
+					)
+				: undefined;
 		// Créer une fenêtre Tauri avec la bonne taille
 		const w = new WebviewWindow(exportId, {
 			center: false,
@@ -442,10 +450,9 @@ export default class Exporter {
 		w.listen('tauri://close-requested', async () => {
 			try {
 				// Supprime le dossier temporaire des images
-				await remove(await join(ExportService.exportFolder, exportId), {
-					baseDir: BaseDirectory.AppData,
-					recursive: true
-				});
+				if (cacheFolder && (await exists(cacheFolder))) {
+					await remove(cacheFolder, { recursive: true });
+				}
 			} catch (error) {
 				console.error('Error removing temporary images folder:', error);
 			} finally {

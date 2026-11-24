@@ -82,6 +82,17 @@ export default class ExportService {
 	}
 
 	/**
+	 * Retourne le cache vidéo situé à côté des exports terminés.
+	 * @param {string} destinationFolder Dossier de destination des vidéos.
+	 * @param {string} [exportId] Identifiant du cache individuel.
+	 * @returns {Promise<string>} Chemin du cache.
+	 */
+	static async getVideoCacheFolder(destinationFolder: string, exportId?: string): Promise<string> {
+		const root = await join(destinationFolder, 'qurancaption-export-cache');
+		return exportId ? join(root, exportId) : root;
+	}
+
+	/**
 	 * Ajoute un projet à la liste des exports en cours.
 	 * @param {Project} project Projet à ajouter.
 	 * @param {'recording' | 'stable'} mode État initial dans la queue existante.

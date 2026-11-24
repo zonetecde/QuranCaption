@@ -8,16 +8,8 @@
 	import { LogicalPosition } from '@tauri-apps/api/dpi';
 	import { emitTo, listen } from '@tauri-apps/api/event';
 	import { onDestroy, onMount } from 'svelte';
-	import {
-		exists,
-		BaseDirectory,
-		mkdir,
-		writeFile,
-		remove,
-		readFile,
-		readDir
-	} from '@tauri-apps/plugin-fs';
-	import { appDataDir, join } from '@tauri-apps/api/path';
+	import { exists, mkdir, writeFile, remove, readFile, readDir } from '@tauri-apps/plugin-fs';
+	import { dirname, join } from '@tauri-apps/api/path';
 	import ExportService, { type ExportProgress } from '$lib/services/ExportService';
 	import {
 		buildBlurSegmentsForRange,
@@ -80,6 +72,7 @@
 
 	// Contient l'ID de l'export
 	let exportId = '';
+	let exportCacheFolder = '';
 
 	// VideoPreview
 	let videoPreview: VideoPreview | undefined = $state(undefined);
@@ -665,42 +658,54 @@
 			listen('export-error', exportError);
 		}
 
-		await loadExportProject(id);
-		await emitExportLog('info', 'Export project loaded', {
-			file: exportData?.finalFileName,
-			start: exportData?.videoStartTime,
-			end: exportData?.videoEndTime
-		});
-
-		await mkdir(await join(ExportService.exportFolder, exportId), {
-			baseDir: BaseDirectory.AppData,
-			recursive: true
-		});
-		await emitExportLog('info', 'Export image folder ready');
-
-		await prepareVideoPreviewForExport();
-		await emitExportLog('info', 'Video preview ready');
-
-		if (isWorker) {
-			await runCaptureWorker(workerId);
-			return;
-		}
-
 		try {
+			await loadExportProject(id);
+			await emitExportLog('info', 'Export project loaded', {
+				file: exportData?.finalFileName,
+				start: exportData?.videoStartTime,
+				end: exportData?.videoEndTime
+			});
+
+			if (!isImageExport) {
+				exportCacheFolder = await ExportService.getVideoCacheFolder(
+					await dirname(exportData!.finalFilePath),
+					exportId
+				);
+				if (!isWorker) await mkdir(exportCacheFolder, { recursive: true });
+				await emitExportLog('info', 'Export image folder ready');
+			}
+
+			await prepareVideoPreviewForExport();
+			await emitExportLog('info', 'Video preview ready');
+
+			if (isWorker) {
+				await runCaptureWorker(workerId);
+				return;
+			}
+
 			await emitExportLog('info', 'Export started');
 			await startExport();
 		} catch (error) {
-			await closeCaptureWorkerWindows();
 			console.error('Export failed:', error);
-			await emitExportLog('error', 'Export failed', {
-				error: error instanceof Error ? error.message : String(error)
-			});
-			emitProgress({
-				exportId: Number(exportId),
-				progress: 100,
-				currentState: ExportState.Error,
-				errorLog: JSON.stringify(error, Object.getOwnPropertyNames(error))
-			} as ExportProgress);
+			const message = error instanceof Error ? error.message : String(error);
+			if (isWorker) {
+				await emitToCoordinator(WORKER_ERROR_EVENT, { exportId, workerId, error: message });
+				return;
+			}
+			try {
+				await emitExportLog('error', 'Export failed', { error: message });
+				await emitProgress({
+					exportId: Number(exportId),
+					progress: 100,
+					currentState: ExportState.Error,
+					errorLog:
+						error instanceof Error
+							? JSON.stringify(error, Object.getOwnPropertyNames(error))
+							: message
+				} as ExportProgress);
+			} finally {
+				await finalCleanup();
+			}
 		}
 	});
 
@@ -916,11 +921,8 @@
 	 * @returns {Promise<void>} Promesse résolue lorsque le dossier existe.
 	 */
 	async function createSegmentImageFolder(segmentImageFolder: string) {
-		const segmentPath = await join(ExportService.exportFolder, exportId, segmentImageFolder);
-		await mkdir(segmentPath, {
-			baseDir: BaseDirectory.AppData,
-			recursive: true
-		});
+		const segmentPath = await join(exportCacheFolder, segmentImageFolder);
+		await mkdir(segmentPath, { recursive: true });
 		console.log(`Created segment folder: ${segmentPath}`);
 	}
 
@@ -1508,24 +1510,14 @@
 					: 'mov'
 				: 'mp4';
 		const segmentVideoFileName = `segment_${segmentIndex}_video.${segmentVideoExtension}`;
-		const segmentFinalFilePath = await join(
-			await appDataDir(),
-			ExportService.exportFolder,
-			exportId,
-			segmentVideoFileName
-		);
+		const segmentFinalFilePath = await join(exportCacheFolder, segmentVideoFileName);
 
 		console.log(`Generating video for segment ${segmentIndex}: ${segmentFinalFilePath}`);
 
 		try {
 			await invoke('export_video', {
 				exportId: exportId,
-				imgsFolder: await join(
-					await appDataDir(),
-					ExportService.exportFolder,
-					exportId,
-					segmentImageFolder
-				),
+				imgsFolder: await join(exportCacheFolder, segmentImageFolder),
 				finalFilePath: segmentFinalFilePath,
 				fps: Math.round(exportData!.fps),
 				fadeDuration: fadeDuration,
@@ -1615,7 +1607,7 @@
 			// Supprimer les vidéos de segments individuelles
 			for (const videoPath of videoFilePaths) {
 				try {
-					await remove(videoPath, { baseDir: BaseDirectory.AppData });
+					await remove(videoPath);
 					console.log(`Deleted segment video: ${videoPath}`);
 				} catch (e) {
 					console.warn(`Could not delete segment video ${videoPath}:`, e);
@@ -2030,7 +2022,7 @@
 		try {
 			await invoke('export_video', {
 				exportId: exportId,
-				imgsFolder: await join(await appDataDir(), ExportService.exportFolder, exportId),
+				imgsFolder: exportCacheFolder,
 				finalFilePath: exportData!.finalFilePath,
 				fps: Math.round(exportData!.fps),
 				fadeDuration: fadeDuration,
@@ -2084,13 +2076,9 @@
 		releaseExportScreenshotContext();
 		await closeCaptureWorkerWindows();
 		try {
-			// Supprime le dossier temporaire des images
-			await remove(await join(ExportService.exportFolder, exportId), {
-				baseDir: BaseDirectory.AppData,
-				recursive: true
-			});
-
-			console.log('Temporary images folder removed.');
+			if (exportCacheFolder && (await exists(exportCacheFolder))) {
+				await remove(exportCacheFolder, { recursive: true });
+			}
 		} catch (e) {
 			console.warn('Could not remove temporary folder:', e);
 		}
@@ -2107,10 +2095,10 @@
 	async function readReusableBlankBlob(fileName: string | null): Promise<Blob | null> {
 		if (!fileName) return null;
 
-		const filePath = await join(ExportService.exportFolder, exportId, fileName + '.png');
-		if (!(await exists(filePath, { baseDir: BaseDirectory.AppData }))) return null;
+		const filePath = await join(exportCacheFolder, fileName + '.png');
+		if (!(await exists(filePath))) return null;
 
-		const bytes = await readFile(filePath, { baseDir: BaseDirectory.AppData });
+		const bytes = await readFile(filePath);
 		return new Blob([bytes], { type: 'image/png' });
 	}
 
@@ -2209,7 +2197,7 @@
 		let backgroundFrame: HTMLImageElement | null = null;
 
 		try {
-			const pathComponents = [ExportService.exportFolder, exportId];
+			const pathComponents = [exportCacheFolder];
 			if (subfolder) pathComponents.push(subfolder);
 			pathComponents.push(fileName + '.png');
 
@@ -2298,7 +2286,7 @@
 				timings.bufferMs = Math.round(performance.now() - bufferStarted);
 
 				const writeStarted = performance.now();
-				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
+				await writeFile(filePathWithName, bytes);
 				timings.writeMs = Math.round(performance.now() - writeStarted);
 				timings.totalMs = Math.round(performance.now() - screenshotStarted);
 				await emitExportLog('info', 'Screenshot saved', {
@@ -2330,7 +2318,7 @@
 					textRootSelector: backgroundBlob ? '#subtitles-container' : undefined
 				});
 
-				await writeFile(filePathWithName, bytes, { baseDir: BaseDirectory.AppData });
+				await writeFile(filePathWithName, bytes);
 				await emitExportLog('info', 'Screenshot saved', {
 					file: fileName,
 					path: filePathWithName
@@ -2373,8 +2361,8 @@
 		subfolder: string | null = null
 	) {
 		// Construire les chemins source et cible
-		const sourcePathComponents = [ExportService.exportFolder, exportId];
-		const targetPathComponents = [ExportService.exportFolder, exportId];
+		const sourcePathComponents = [exportCacheFolder];
+		const targetPathComponents = [exportCacheFolder];
 
 		if (subfolder) {
 			if (!sourceFileName.toString().includes('blank')) sourcePathComponents.push(subfolder);
@@ -2391,17 +2379,17 @@
 		// évitant de charger tout le contenu du fichier en mémoire JS
 		try {
 			await invoke('copy_file', {
-				source: await join(await appDataDir(), sourceFilePathWithName),
-				destination: await join(await appDataDir(), targetFilePathWithName)
+				source: sourceFilePathWithName,
+				destination: targetFilePathWithName
 			});
 		} catch (error) {
 			// Fallback: lire et écrire si la commande Rust n'existe pas
-			if (!(await exists(sourceFilePathWithName, { baseDir: BaseDirectory.AppData }))) {
+			if (!(await exists(sourceFilePathWithName))) {
 				console.error('Source screenshot does not exist:', sourceFilePathWithName);
 				throw new Error(`Source screenshot does not exist: ${sourceFilePathWithName}`);
 			}
-			const data = await readFile(sourceFilePathWithName, { baseDir: BaseDirectory.AppData });
-			await writeFile(targetFilePathWithName, data, { baseDir: BaseDirectory.AppData });
+			const data = await readFile(sourceFilePathWithName);
+			await writeFile(targetFilePathWithName, data);
 			console.warn('copy_file failed, fallback copy used:', error);
 		}
 	}
@@ -2413,16 +2401,13 @@
 	async function deleteBlankImages() {
 		try {
 			// Construire le chemin du dossier
-			const pathComponents = [ExportService.exportFolder, exportId];
-			const exportPath = await join(...pathComponents);
-
-			for (const entry of await readDir(exportPath, { baseDir: BaseDirectory.AppData })) {
+			for (const entry of await readDir(exportCacheFolder)) {
 				if (!entry.name.startsWith('blank_') || !entry.name.endsWith('.png')) continue;
 				const blankFileName = entry.name;
-				const blankFilePath = await join(...pathComponents, blankFileName);
+				const blankFilePath = await join(exportCacheFolder, blankFileName);
 
-				if (await exists(blankFilePath, { baseDir: BaseDirectory.AppData })) {
-					await remove(blankFilePath, { baseDir: BaseDirectory.AppData });
+				if (await exists(blankFilePath)) {
+					await remove(blankFilePath);
 					console.log(`Deleted blank image: ${blankFileName}`);
 				}
 			}

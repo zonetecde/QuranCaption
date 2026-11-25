@@ -3151,6 +3151,10 @@ const es = {
 		hifzConfirmationMessage:
 			'Esto creará una nueva pista con subtítulos repetidos. Los subtítulos existentes no se modificarán.',
 		shiftAllSubtitles: 'Desplazar todos los subtítulos',
+		mergeAllSubtitles: 'Fusionar todos los subtítulos',
+		mergeVerseScope: 'Alcance de la fusión',
+		mergeSameVerse: 'Solo dentro del mismo versículo',
+		mergeAcrossVerses: 'Entre versículos',
 		importSrtTranslation: 'Importar traducción SRT',
 		srtFileFilter: 'Archivos de subtítulos SRT',
 		srtImportSuccess: 'Se importó «{fileName}» y se asoció con {count} subtítulos del proyecto.',

@@ -52,6 +52,10 @@ const tools = {
 	hifzConfirmationMessage:
 		'سيؤدي هذا إلى إنشاء مسار جديد مع ترجمات متكررة. لن يتم تعديل الترجمات الموجودة.',
 	shiftAllSubtitles: 'تحويل كافة الترجمات',
+	mergeAllSubtitles: 'دمج جميع الترجمات',
+	mergeVerseScope: 'نطاق الدمج',
+	mergeSameVerse: 'داخل الآية نفسها فقط',
+	mergeAcrossVerses: 'عبر الآيات',
 	importSrtTranslation: 'استيراد ترجمة SRT',
 	srtFileFilter: 'ملفات الترجمة SRT',
 	srtImportSuccess: 'تم استيراد "{fileName}" وترجمات مشروع {count} المطابقة.',

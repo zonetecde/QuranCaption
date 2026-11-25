@@ -2800,6 +2800,10 @@ const tr = {
 		hifzConfirmationMessage:
 			'Bu, tekrarlanan altyazılara sahip yeni bir parça oluşturacaktır. Mevcut altyazılar değiştirilmeyecektir.',
 		shiftAllSubtitles: 'Tüm Altyazıları Kaydır',
+		mergeAllSubtitles: 'Tüm altyazıları birleştir',
+		mergeVerseScope: 'Birleştirme kapsamı',
+		mergeSameVerse: 'Yalnızca aynı ayet içinde',
+		mergeAcrossVerses: 'Ayetler arasında',
 		importSrtTranslation: 'SRT çevirisini içe aktar',
 		srtFileFilter: 'SRT altyazı dosyaları',
 		srtImportSuccess: '"{fileName}" içe aktarıldı ve {count} proje altyazılarıyla eşleştirildi.',

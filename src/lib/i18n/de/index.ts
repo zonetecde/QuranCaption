@@ -3162,6 +3162,10 @@ const de = {
 		hifzConfirmationMessage:
 			'Dies erstellt eine neue Spur mit wiederholten Untertiteln. Vorhandene Untertitel werden nicht verändert.',
 		shiftAllSubtitles: 'Alle Untertitel verschieben',
+		mergeAllSubtitles: 'Alle Untertitel zusammenführen',
+		mergeVerseScope: 'Bereich der Zusammenführung',
+		mergeSameVerse: 'Nur innerhalb eines Verses',
+		mergeAcrossVerses: 'Versübergreifend',
 		importSrtTranslation: 'SRT-Übersetzung importieren',
 		srtFileFilter: 'SRT-Untertiteldateien',
 		srtImportSuccess: '„{fileName}“ importiert und {count} Projektuntertiteln zugeordnet.',

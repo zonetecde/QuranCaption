@@ -3,6 +3,7 @@
 	import { open } from '@tauri-apps/plugin-dialog';
 	import { readTextFile } from '@tauri-apps/plugin-fs';
 	import { Edition } from '$lib/classes';
+	import type { VisualMergeMode } from '$lib/classes/Clip.svelte';
 	import { VerseTranslation } from '$lib/classes/Translation.svelte';
 	import { globalState } from '$lib/runes/main.svelte';
 	import { ProjectHistoryManager } from '$lib/services/undoRedo/ProjectHistoryManager';
@@ -17,8 +18,15 @@
 	import toast from 'svelte-5-french-toast';
 
 	let showToolsPopover = $state(false);
+	let mergeAcrossVerses = $state(false);
+	const mergeModes = ['arabic', 'translation', 'both'] as const;
 	let audioEffectsLabel = $derived((Reflect.get(get(LL).tools, 'audioEffects') as () => string)());
 	let mediaSpeedLabel = $derived((Reflect.get(get(LL).tools, 'mediaSpeed') as () => string)());
+	let mergeLabels = $derived({
+		arabic: $LL.editor.mergeArabic(),
+		translation: $LL.editor.mergeTranslation(),
+		both: $LL.editor.mergeBoth()
+	});
 
 	function handleClickOutside(event: Event) {
 		if (!showToolsPopover) return;
@@ -39,6 +47,15 @@
 	function runAction(action: () => void) {
 		showToolsPopover = false;
 		action();
+	}
+
+	/**
+	 * Ferme le menu et lance la fusion visuelle des sous-titres sur la timeline.
+	 * @param {VisualMergeMode} mode Mode de fusion choisi.
+	 * @returns {void}
+	 */
+	function mergeAllSubtitles(mode: VisualMergeMode): void {
+		runAction(() => globalState.getSubtitleTrack.applyVisualMergeToAll(mode, mergeAcrossVerses));
 	}
 
 	/**
@@ -152,23 +169,25 @@
 
 <svelte:window on:click={handleClickOutside} />
 
-<button
-	id="tools-popover-button"
-	class="w-10 cursor-pointer rounded-full hover:bg-gray-700 relative"
-	type="button"
-	disabled={globalState.uiState.isTourActive}
-	onclick={(event) => {
-		event.stopPropagation();
-		showToolsPopover = !showToolsPopover;
-	}}
-	aria-haspopup="dialog"
-	aria-expanded={showToolsPopover}
->
-	<span class="material-icons pt-2">construction</span>
+<div class="relative">
+	<button
+		id="tools-popover-button"
+		class="w-10 cursor-pointer rounded-full hover:bg-gray-700"
+		type="button"
+		disabled={globalState.uiState.isTourActive}
+		onclick={(event) => {
+			event.stopPropagation();
+			showToolsPopover = !showToolsPopover;
+		}}
+		aria-haspopup="dialog"
+		aria-expanded={showToolsPopover}
+	>
+		<span class="material-icons pt-2">construction</span>
+	</button>
 	{#if showToolsPopover}
 		<div
 			id="tools-popover"
-			class="absolute end-0 mt-2 w-56 bg-primary border border-color rounded-lg shadow-xl py-2 z-50 overflow-hidden"
+			class="absolute end-0 top-full z-50 mt-2 max-h-[calc(100dvh-3rem)] w-56 overflow-y-auto rounded-lg border border-color bg-primary py-2 shadow-xl"
 			transition:slide
 		>
 			<div class="px-4 py-2">
@@ -178,7 +197,6 @@
 				</div>
 				<div class="grid grid-cols-5 gap-1">
 					{#each [0.75, 1, 1.5, 1.75, 2] as speed (speed)}
-						<!-- svelte-ignore node_invalid_placement_ssr -->
 						<button
 							class="rounded py-1 text-xs transition-colors {globalState.getVideoPreviewState
 								.playbackSpeed === speed
@@ -206,6 +224,34 @@
 				<span class="material-icons text-lg text-accent">move_down</span>
 				{$LL.editor.shiftAllSubtitles()}
 			</button>
+			<details>
+				<summary
+					class="flex cursor-pointer items-center gap-3 px-4 py-2 text-start text-sm text-secondary"
+				>
+					<span class="material-icons text-lg text-accent" aria-hidden="true">merge_type</span>
+					{$LL.tools.mergeAllSubtitles()}
+					<span class="material-icons ms-auto text-base" aria-hidden="true">expand_more</span>
+				</summary>
+				<div class="space-y-1 px-4 pb-2">
+					<select
+						class="w-full rounded border border-color bg-secondary px-2 py-1 text-xs text-secondary"
+						aria-label={$LL.tools.mergeVerseScope()}
+						bind:value={mergeAcrossVerses}
+					>
+						<option value={false}>{$LL.tools.mergeSameVerse()}</option>
+						<option value={true}>{$LL.tools.mergeAcrossVerses()}</option>
+					</select>
+					{#each mergeModes as mode (mode)}
+						<button
+							type="button"
+							class="w-full rounded px-2 py-1 text-start text-sm text-secondary hover:bg-accent"
+							onclick={() => mergeAllSubtitles(mode)}
+						>
+							{mergeLabels[mode]}
+						</button>
+					{/each}
+				</div>
+			</details>
 			<!-- svelte-ignore node_invalid_placement_ssr -->
 			<button
 				class="w-full text-start px-4 py-2 text-sm text-secondary transition-colors flex items-center gap-3"
@@ -301,4 +347,4 @@
 			</button>
 		</div>
 	{/if}
-</button>
+</div>

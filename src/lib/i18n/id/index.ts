@@ -791,6 +791,9 @@ const id = {
 	},
 	editor: {
 		...baseEn.editor,
+		mergeArabic: 'Gabungkan teks Arab',
+		mergeTranslation: 'Gabungkan terjemahan',
+		mergeBoth: 'Gabungkan keduanya',
 		recitationIntro: {
 			button: 'Tambahkan istiʿādha / basmalah',
 			title: 'Pembuka tilawah',
@@ -1986,6 +1989,10 @@ const id = {
 		hifzConfirmationMessage:
 			'Ini akan membuat track baru dengan subtitle berulang. Subtitle yang sudah ada tidak akan diubah.',
 		shiftAllSubtitles: 'Geser semua subtitle',
+		mergeAllSubtitles: 'Gabungkan semua subtitle',
+		mergeVerseScope: 'Cakupan penggabungan',
+		mergeSameVerse: 'Hanya dalam ayat yang sama',
+		mergeAcrossVerses: 'Lintas ayat',
 		importSrtTranslation: 'Impor terjemahan SRT',
 		srtFileFilter: 'File subtitle SRT',
 		srtImportSuccess:

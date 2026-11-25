@@ -71,6 +71,58 @@ describe('subtitle visual merge helpers', () => {
 		expect(second.visualMergeGroupId).toBe(first.visualMergeGroupId);
 	});
 
+	it.each(['translation', 'arabic', 'both'] as const)(
+		'applies %s to each same-verse run and can extend it across verse boundaries',
+		(mode) => {
+			const first = createSubtitle(0, 999, 1);
+			const second = createSubtitle(1000, 1999, 1);
+			const third = createSubtitle(2000, 2999, 2);
+			const fourth = createSubtitle(3000, 3999, 2);
+			const fifth = createSubtitle(4000, 4999, 3);
+			const track = new SubtitleTrack();
+			const clips = [first, second, third, fourth, fifth];
+			track.clips = clips;
+
+			track.applyVisualMergeToAll(mode, true);
+			expect(first.visualMergeGroupId).toBeTruthy();
+			expect(clips.map((clip) => clip.visualMergeGroupId)).toEqual(
+				Array(5).fill(first.visualMergeGroupId)
+			);
+
+			track.applyVisualMergeToAll(mode, false);
+			expect(first.visualMergeMode).toBe(mode);
+			expect(third.visualMergeMode).toBe(mode);
+			expect(first.visualMergeGroupId).toBe(second.visualMergeGroupId);
+			expect(third.visualMergeGroupId).toBe(fourth.visualMergeGroupId);
+			expect(third.visualMergeGroupId).not.toBe(first.visualMergeGroupId);
+			expect(fifth.visualMergeGroupId).toBeNull();
+		}
+	);
+
+	it('only merges across boundaries eligible for quick merge', () => {
+		const first = createSubtitle(0, 999, 1);
+		const second = createSubtitle(1000, 1999, 1);
+		const third = createSubtitle(2000, 2999, 1);
+		const fourth = createSubtitle(4000, 4999, 2);
+		const fifth = createSubtitle(6000, 6999, 3);
+		third.startWordIndex = 3;
+		third.endWordIndex = 3;
+		const silence = new SilenceClip(3000, 3999);
+		const predefined = new PredefinedSubtitleClip(5000, 5999, 'Basmala');
+		const track = new SubtitleTrack();
+		track.clips = [first, second, third, silence, fourth, predefined, fifth];
+
+		track.applyVisualMergeToAll('translation', true);
+
+		expect(first.visualMergeGroupId).toBeTruthy();
+		expect(second.visualMergeGroupId).toBe(first.visualMergeGroupId);
+		expect([third, fourth, fifth].map((clip) => clip.visualMergeGroupId)).toEqual([
+			null,
+			null,
+			null
+		]);
+	});
+
 	it('cleans previous groups before re-merging a touched selection', () => {
 		const first = createSubtitle(0, 999, 1);
 		const second = createSubtitle(1000, 1999, 2);

@@ -57,6 +57,10 @@ const tools = {
 	hifzConfirmationMessage:
 		'This will create a new track with repeated subtitles. Existing subtitles will not be modified.',
 	shiftAllSubtitles: 'Shift All Subtitles',
+	mergeAllSubtitles: 'Merge All Subtitles',
+	mergeVerseScope: 'Merge scope',
+	mergeSameVerse: 'Same verse only',
+	mergeAcrossVerses: 'Across verses',
 	importSrtTranslation: 'Import SRT translation',
 	srtFileFilter: 'SRT subtitle files',
 	srtImportSuccess: 'Imported "{fileName}" and matched {count} project subtitles.',

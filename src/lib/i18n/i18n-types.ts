@@ -10065,6 +10065,22 @@ type RootTranslation = {
 		 */
 		shiftAllSubtitles: string;
 		/**
+		 * M​e​r​g​e​ ​A​l​l​ ​S​u​b​t​i​t​l​e​s
+		 */
+		mergeAllSubtitles: string;
+		/**
+		 * M​e​r​g​e​ ​s​c​o​p​e
+		 */
+		mergeVerseScope: string;
+		/**
+		 * S​a​m​e​ ​v​e​r​s​e​ ​o​n​l​y
+		 */
+		mergeSameVerse: string;
+		/**
+		 * A​c​r​o​s​s​ ​v​e​r​s​e​s
+		 */
+		mergeAcrossVerses: string;
+		/**
 		 * I​m​p​o​r​t​ ​S​R​T​ ​t​r​a​n​s​l​a​t​i​o​n
 		 */
 		importSrtTranslation: string;
@@ -22589,6 +22605,22 @@ export type TranslationFunctions = {
 		 * Shift All Subtitles
 		 */
 		shiftAllSubtitles: () => LocalizedString;
+		/**
+		 * Merge All Subtitles
+		 */
+		mergeAllSubtitles: () => LocalizedString;
+		/**
+		 * Merge scope
+		 */
+		mergeVerseScope: () => LocalizedString;
+		/**
+		 * Same verse only
+		 */
+		mergeSameVerse: () => LocalizedString;
+		/**
+		 * Across verses
+		 */
+		mergeAcrossVerses: () => LocalizedString;
 		/**
 		 * Import SRT translation
 		 */

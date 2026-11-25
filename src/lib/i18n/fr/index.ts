@@ -3182,6 +3182,10 @@ const fr = {
 		hifzConfirmationMessage:
 			'Cela créera une nouvelle piste avec des sous-titres répétés. Les sous-titres existants ne seront pas modifiés.',
 		shiftAllSubtitles: 'Décaler tous les sous-titres',
+		mergeAllSubtitles: 'Fusionner tous les sous-titres',
+		mergeVerseScope: 'Portée de la fusion',
+		mergeSameVerse: 'Même verset uniquement',
+		mergeAcrossVerses: 'Entre versets',
 		importSrtTranslation: 'Importer une traduction SRT',
 		srtFileFilter: 'Fichiers de sous-titres SRT',
 		srtImportSuccess:

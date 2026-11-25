@@ -416,6 +416,30 @@ describe('ProjectHistoryManager', () => {
 		ProjectHistoryManager.resetForCurrentProject();
 	});
 
+	it('undoes and redoes every group of a bulk subtitle merge in one step', () => {
+		const track = globalState.getSubtitleTrack;
+		track.clips = [
+			new SubtitleClip(0, 999, 1, 1, 0, 0, 'one', [], false, false),
+			new SubtitleClip(1000, 1999, 1, 1, 1, 1, 'two', [], false, true),
+			new SubtitleClip(2000, 2999, 1, 2, 0, 0, 'three', [], false, false),
+			new SubtitleClip(3000, 3999, 1, 2, 1, 1, 'four', [], false, true)
+		];
+
+		track.applyVisualMergeToAll('translation', false);
+		expect(globalState.getSubtitleClips.map((clip) => clip.visualMergeMode)).toEqual(
+			Array(4).fill('translation')
+		);
+		expect(ProjectHistoryManager.undo()).toBe(true);
+		expect(globalState.getSubtitleClips.map((clip) => clip.visualMergeMode)).toEqual(
+			Array(4).fill(null)
+		);
+		expect(ProjectHistoryManager.undo()).toBe(false);
+		expect(ProjectHistoryManager.redo()).toBe(true);
+		expect(globalState.getSubtitleClips.map((clip) => clip.visualMergeMode)).toEqual(
+			Array(4).fill('translation')
+		);
+	});
+
 	it('undoes and redoes a simple style change', () => {
 		const styles = globalState.getVideoStyle.getStylesOfTarget('arabic');
 

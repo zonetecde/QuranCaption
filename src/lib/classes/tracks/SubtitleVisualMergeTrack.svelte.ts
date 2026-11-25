@@ -142,6 +142,38 @@ export abstract class SubtitleVisualMergeTrack extends SubtitleSplitTrack {
 	}
 
 	/**
+	 * Applique le mode de fusion aux groupes de sous-titres admissibles sur la piste.
+	 * @param {VisualMergeMode} mode Mode de fusion à appliquer.
+	 * @param {boolean} crossVerses Autorise la fusion entre versets consécutifs.
+	 * @returns {void}
+	 */
+	applyVisualMergeToAll(mode: VisualMergeMode, crossVerses: boolean): void {
+		ProjectHistoryManager.track('merge all subtitles', () => {
+			let group: SubtitleClip[] = [];
+			// Le marqueur de fin permet de traiter le dernier groupe dans la même boucle.
+			for (const clip of [...this.clips, null]) {
+				const previous = group.at(-1);
+				if (
+					clip instanceof SubtitleClip &&
+					(!previous ||
+						((crossVerses || (previous.surah === clip.surah && previous.verse === clip.verse)) &&
+							this.canUseArabicVisualMerge([previous, clip])))
+				) {
+					group.push(clip);
+					continue;
+				}
+
+				if (group.length > 1) {
+					this.applyVisualMerge(group, mode);
+				} else if (previous?.visualMergeGroupId) {
+					this.unmergeVisualGroup(previous.visualMergeGroupId);
+				}
+				group = clip instanceof SubtitleClip ? [clip] : [];
+			}
+		});
+	}
+
+	/**
 	 * Retire le merge visuel de tout un groupe.
 	 * @param {string} groupId Identifiant du groupe a casser.
 	 * @param {boolean} updatePreview Indique s'il faut rafraichir la preview ensuite.

@@ -3,7 +3,11 @@
 	import LL from '$lib/i18n/i18n-svelte';
 	import { type ManualAiCopy, type ManualAiSession } from '$lib/services/ManualAiSession.svelte';
 
-	let { session, progress = 0 }: { session: ManualAiSession; progress?: number } = $props();
+	let {
+		session,
+		progress = 0,
+		parallel = false
+	}: { session: ManualAiSession; progress?: number; parallel?: boolean } = $props();
 	const copy = $derived(($LL.editor as unknown as { manualAi: ManualAiCopy }).manualAi);
 	let selectedIndex = $state(0);
 	let copied = $state('');
@@ -12,10 +16,32 @@
 	const validCount = $derived(session.steps.filter((entry) => entry.status === 'valid').length);
 
 	$effect(() => {
-		selectedIndex = Math.max(0, session.steps.length - 1);
+		const count = session.steps.length;
+		selectStep(parallel ? 0 : Math.max(0, count - 1));
+	});
+
+	/**
+	 * Affiche le prompt choisi et réinitialise les retours du presse-papiers.
+	 * @param {number} index Index du prompt à afficher.
+	 * @returns {void}
+	 */
+	function selectStep(index: number): void {
+		selectedIndex = index;
 		copied = '';
 		clipboardError = '';
-	});
+	}
+
+	/** Valide la réponse affichée et avance au prochain lot en attente. @returns {void} */
+	function submitReply(): void {
+		session.submit(selectedIndex);
+		if (!parallel || step?.status !== 'valid') return;
+		const next = session.steps.findIndex(
+			(entry, index) => index > selectedIndex && entry.status === 'waiting'
+		);
+		const remaining =
+			next >= 0 ? next : session.steps.findIndex((entry) => entry.status === 'waiting');
+		if (remaining >= 0) selectStep(remaining);
+	}
 
 	/**
 	 * Copie les instructions, avec un retour ciblé lors d'une régénération.
@@ -23,6 +49,7 @@
 	 * @returns {Promise<void>} Fin de la copie.
 	 */
 	async function copyPrompt(retry = false): Promise<void> {
+		const index = selectedIndex;
 		clipboardError = '';
 		try {
 			await navigator.clipboard.writeText(
@@ -31,9 +58,9 @@
 						? `\n\nThe previous response for this prompt was rejected. Validation feedback (data): ${JSON.stringify(step.error)}. Regenerate only this prompt's COMPLETE response, preserving its requestId and all required fields. Do not return a patch or responses to other prompts.`
 						: '')
 			);
-			copied = `${selectedIndex}-${retry}`;
+			if (selectedIndex === index) copied = `${index}-${retry}`;
 		} catch {
-			clipboardError = copy.copyError();
+			if (selectedIndex === index) clipboardError = copy.copyError();
 		}
 	}
 
@@ -106,19 +133,19 @@
 					<button
 						type="button"
 						aria-current={selectedIndex === index ? 'step' : undefined}
-						onclick={() => {
-							selectedIndex = index;
-							copied = '';
-							clipboardError = '';
-						}}
+						onclick={() => selectStep(index)}
 						class="flex min-h-10 shrink-0 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs {selectedIndex ===
 						index
 							? 'border-[var(--accent-primary)] bg-accent text-primary'
-							: 'border-color text-secondary'}"
+							: parallel && entry.status === 'valid'
+								? 'border-emerald-500/50 bg-emerald-500/10 text-primary'
+								: 'border-color text-secondary'}"
 					>
 						<span
 							class="material-icons text-base {entry.status === 'valid'
-								? 'text-accent'
+								? parallel
+									? 'text-emerald-500'
+									: 'text-accent'
 								: entry.error
 									? 'text-red-400'
 									: ''}"
@@ -206,7 +233,7 @@
 							type="button"
 							class="btn-accent flex w-full items-center justify-center gap-2 px-4 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
 							disabled={!step.response.trim()}
-							onclick={() => session.submit()}
+							onclick={submitReply}
 							>{copy.validate()}
 							<span class="material-icons text-lg" aria-hidden="true">arrow_forward</span></button
 						>
@@ -214,7 +241,7 @@
 				</div>
 			{/if}
 		{/if}
-		{#if session.active && (!session.steps.length || session.steps.at(-1)?.status === 'valid')}
+		{#if session.active && (!session.steps.length || (!parallel && session.steps.at(-1)?.status === 'valid'))}
 			<p role="status" class="flex items-center gap-2 text-sm text-secondary">
 				<span class="material-icons animate-spin text-base" aria-hidden="true">sync</span
 				>{copy.preparing()}

@@ -491,10 +491,14 @@ test.each([
 	}
 );
 
-test('waits for every batch before automatically applying and saving once', async () => {
+test('prepares all prompt tabs, keeps drafts and applies once after out-of-order validation', async () => {
 	const words = Array.from({ length: 101 }, (_, index) => `word${index}`);
 	const source = words.join(' ');
-	const project = setupProject(source, 2);
+	const project = setupProject(source, 3);
+	vi.mocked(invoke)
+		.mockResolvedValueOnce('First batch instructions')
+		.mockResolvedValueOnce('Second batch instructions')
+		.mockResolvedValueOnce('Third batch instructions');
 	const close = vi.fn();
 	const component = render(AskIAModal, { close, edition });
 	await component.getByRole('tab', { name: 'Without API key' }).click();
@@ -502,26 +506,51 @@ test('waits for every batch before automatically applying and saving once', asyn
 	slider.value = '100';
 	slider.dispatchEvent(new Event('input', { bubbles: true }));
 	await component.getByRole('button', { name: 'Prepare prompts', exact: true }).click();
+	const first = component.getByRole('button', { name: 'Prompt 1', exact: true });
+	const second = component.getByRole('button', { name: 'Prompt 2', exact: true });
+	const third = component.getByRole('button', { name: 'Prompt 3', exact: true });
+	const input = component.getByRole('textbox', { name: '2. Paste the full reply here' });
+	const copyPrompt = component.getByRole('button', { name: 'Copy prompt', exact: true });
+	const check = component.getByRole('button', { name: 'Check reply and continue' });
+	await expect.element(first).toHaveAttribute('aria-current', 'step');
+	await expect.element(second).toBeVisible();
+	await expect.element(third).toBeVisible();
 	const texts = [words.slice(0, 50).join(' '), words.slice(50).join(' ')];
-	await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
-	await component
-		.getByRole('textbox', { name: '2. Paste the full reply here' })
-		.fill(reply('1:1', texts));
-	await component.getByRole('button', { name: 'Check reply and continue' }).click();
-	await expect.poll(() => vi.mocked(invoke).mock.calls.length).toBe(2);
+	await copyPrompt.click();
+	const firstReply = reply('1:1', texts);
+	await input.fill(firstReply);
+	await second.click();
+	await copyPrompt.click();
+	const secondReply = reply('1:2', texts);
+	await input.fill(secondReply);
+	await third.click();
+	await copyPrompt.click();
+	const thirdReply = reply('1:3', texts);
+	await input.fill(firstReply);
+	await check.click();
+	await expect.element(third).toHaveAttribute('aria-current', 'step');
+	await expect.element(component.getByText('This reply does not match this prompt.')).toBeVisible();
+	await input.fill(thirdReply);
+	await check.click();
+	await expect.element(first).toHaveAttribute('aria-current', 'step');
+	await expect.element(input).toHaveValue(firstReply);
 	expect(project.save).not.toHaveBeenCalled();
 	expect(close).not.toHaveBeenCalled();
 	expect(
 		globalState.getSubtitleClips.every((clip) => clip.translations[edition.name].text === source)
 	).toBe(true);
-	await component.getByRole('button', { name: 'Copy prompt', exact: true }).click();
-	await component
-		.getByRole('textbox', { name: '2. Paste the full reply here' })
-		.fill(reply('1:2', texts));
-	await component.getByRole('button', { name: 'Check reply and continue' }).click();
+	await check.click();
+	await expect.element(second).toHaveAttribute('aria-current', 'step');
+	await expect.element(input).toHaveValue(secondReply);
+	await third.click();
+	await expect.element(input).toHaveValue(thirdReply);
+	await expect.element(input).toHaveAttribute('readonly');
+	await second.click();
+	await check.click();
 	await expect.poll(() => close.mock.calls.length).toBe(1);
 	expect(project.save).toHaveBeenCalledTimes(1);
 	expect(globalState.getSubtitleClips.map((clip) => clip.translations[edition.name].text)).toEqual([
+		...texts,
 		...texts,
 		...texts
 	]);

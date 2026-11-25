@@ -12,6 +12,11 @@ export type ManualAiStep = {
 	error: string;
 	status: 'waiting' | 'valid';
 };
+type ManualAiRequest<T> = {
+	request: Record<string, unknown>;
+	validate: (response: unknown) => T;
+	prompt?: string;
+};
 
 /**
  * Résout les libellés du parcours manuel dans la langue active.
@@ -64,7 +69,7 @@ export class ManualAiSession {
 	active = $state(false);
 	ready = $state(false);
 	totalSteps = $state(0);
-	private pending: { accept: () => void; reject: (error: Error) => void } | null = null;
+	private pending = new Map<number, { accept: () => void; reject: (error: Error) => void }>();
 
 	/** Retourne la progression des réponses attendues. @returns {number} Pourcentage validé. */
 	get progress(): number {
@@ -92,13 +97,17 @@ export class ManualAiSession {
 	cancel(): void {
 		this.active = false;
 		this.ready = false;
-		this.pending?.reject(new DOMException('', 'AbortError'));
-		this.pending = null;
+		for (const reply of this.pending.values()) reply.reject(new DOMException('', 'AbortError'));
+		this.pending = new Map();
 	}
 
-	/** Vérifie la réponse courante, en conservant les réponses précédemment validées. @returns {void} */
-	submit(): void {
-		this.pending?.accept();
+	/**
+	 * Vérifie la réponse du prompt sélectionné.
+	 * @param {number} index Index du prompt, par défaut le dernier.
+	 * @returns {void}
+	 */
+	submit(index = this.steps.length - 1): void {
+		this.pending.get(index)?.accept();
 	}
 
 	/**
@@ -163,7 +172,44 @@ export class ManualAiSession {
 		validate: (response: unknown) => T,
 		prompt?: string
 	): Promise<T> {
+		const [result] = await this.requestAll(kind, [{ request, validate, prompt }]);
+		return result;
+	}
+
+	/**
+	 * Affiche tous les prompts dans l'ordre des lots et attend leurs réponses indépendamment.
+	 * @param {string} kind Fonctionnalité concernée.
+	 * @param {ManualAiRequest<T>[]} requests Données et validateur de chaque lot.
+	 * @returns {Promise<T[]>} Résultats validés dans l'ordre des lots.
+	 */
+	async requestAll<T>(kind: string, requests: ManualAiRequest<T>[]): Promise<T[]> {
 		if (!this.active) throw new DOMException('', 'AbortError');
+		const pending = this.pending;
+		const prepared = await Promise.all(
+			requests.map(({ request, prompt }) => this.preparePrompt(kind, request, prompt))
+		);
+		if (!this.active || this.pending !== pending) throw new DOMException('', 'AbortError');
+		const offset = this.steps.length;
+		this.steps = [...this.steps, ...prepared.map(({ step }) => step)];
+		return Promise.all(
+			prepared.map(({ requestId }, index) =>
+				this.waitForReply(offset + index, requestId, requests[index].validate)
+			)
+		);
+	}
+
+	/**
+	 * Construit le prompt et son enveloppe de réponse identifiée.
+	 * @param {string} kind Fonctionnalité concernée.
+	 * @param {Record<string, unknown>} request Données du lot.
+	 * @param {string} [prompt] Instructions déjà construites.
+	 * @returns {Promise<{ requestId: string; step: ManualAiStep }>} Prompt prêt à afficher.
+	 */
+	private async preparePrompt(
+		kind: string,
+		request: Record<string, unknown>,
+		prompt?: string
+	): Promise<{ requestId: string; step: ManualAiStep }> {
 		let instructions: string;
 		let requestId = '';
 		try {
@@ -174,20 +220,33 @@ export class ManualAiSession {
 		} catch {
 			throw new Error(getManualAiCopy().prepareError());
 		}
-		if (!this.active) throw new DOMException('', 'AbortError');
 		// L'enveloppe identifie le contenu du prompt de façon stable entre les sessions.
-		this.steps = [
-			...this.steps,
-			{
+		return {
+			requestId,
+			step: {
 				prompt: `${instructions}\n\nRESPONSE ENVELOPE: Put the requested JSON result inside this exact outer object: {"requestId":"${requestId}","result":<requested JSON object>}. Copy requestId exactly. Return the complete outer JSON object only, with no Markdown or explanation.`,
 				response: '',
 				error: '',
 				status: 'waiting'
 			}
-		];
-		const step = this.steps[this.steps.length - 1];
+		};
+	}
+
+	/**
+	 * Attend une réponse valide pour un prompt affiché.
+	 * @param {number} index Index du prompt dans la session.
+	 * @param {string} requestId Identifiant attendu dans l'enveloppe.
+	 * @param {(response: unknown) => T} validate Validateur du lot.
+	 * @returns {Promise<T>} Résultat validé.
+	 */
+	private waitForReply<T>(
+		index: number,
+		requestId: string,
+		validate: (response: unknown) => T
+	): Promise<T> {
+		const step = this.steps[index];
 		return new Promise<T>((resolve, reject) => {
-			this.pending = {
+			this.pending.set(index, {
 				reject,
 				/** Valide uniquement la réponse attendue. @returns {void} */
 				accept: () => {
@@ -214,13 +273,13 @@ export class ManualAiSession {
 						const result = validate(parsed.result);
 						step.status = 'valid';
 						step.error = '';
-						this.pending = null;
+						this.pending.delete(index);
 						resolve(result);
 					} catch (error) {
 						step.error = error instanceof Error ? error.message : getManualAiCopy().invalidJson();
 					}
 				}
-			};
+			});
 		});
 	}
 }

@@ -34,9 +34,6 @@
 	let selectedStartIndex = $state(0);
 	let selectedEndIndex = $state(0);
 	let maxBatchWords = $state(500);
-	let completedBatches = $state(0);
-	let totalBatches = $state(0);
-	let results = $state<AdvancedTrimValidationSuccess[]>([]);
 	let error = $state('');
 	const session = new ManualAiSession();
 	let sourceProject: Project | null = null;
@@ -60,7 +57,6 @@
 			maxBatchWords
 		)
 	);
-	const progress = $derived(totalBatches ? Math.round((completedBatches / totalBatches) * 100) : 0);
 
 	$effect(() => {
 		const project = globalState.currentProject;
@@ -75,9 +71,7 @@
 	/** Réinitialise les réponses lors d'un changement de méthode. @returns {void} */
 	function resetMode(): void {
 		session.cancel();
-		results = [];
 		error = '';
-		completedBatches = 0;
 		if (globalState.settings) {
 			globalState.settings.aiTranslationSettings.activeModalTab = manualMode
 				? 'manual'
@@ -144,18 +138,21 @@
 		}
 		sourceSnapshot = snapshot(candidates);
 		sourceSubtitles = candidates.flatMap((candidate) => candidate.subtitles);
-		results = [];
 		error = '';
-		completedBatches = 0;
-		totalBatches = runBatches.length;
 		preparing = true;
 		session.start();
+		session.totalSteps = runBatches.length;
 		try {
-			for (const batch of runBatches) {
-				const validated = await session.request(
-					'translation_trim',
-					{ batch: batch.request },
-					(parsed) => {
+			const validated = await session.requestAll(
+				'translation_trim',
+				runBatches.map((batch) => ({
+					request: { batch: batch.request },
+					/**
+					 * Vérifie la réponse avant d'autoriser son application au projet.
+					 * @param {unknown} parsed Résultat extrait de la réponse.
+					 * @returns {AdvancedTrimValidationSuccess[]} Traductions validées pour le lot.
+					 */
+					validate: (parsed: unknown) => {
 						assertSourceUnchanged();
 						const validation = validateAdvancedTrimBatchResult(batch, parsed);
 						if (validation.errors.length || validation.validVerses.length !== batch.verses.length) {
@@ -163,16 +160,13 @@
 						}
 						return validation.validVerses;
 					}
-				);
-				results.push(...validated);
-				completedBatches++;
-			}
+				}))
+			);
 			assertSourceUnchanged();
 			session.finish();
-			await applyTranslations();
+			await applyTranslations(validated.flat());
 		} catch (cause) {
 			session.cancel();
-			results = [];
 			if (!disposed && !(cause instanceof DOMException && cause.name === 'AbortError')) {
 				error = cause instanceof Error ? cause.message : copy.prepareError();
 			}
@@ -181,8 +175,12 @@
 		}
 	}
 
-	/** Applique tous les lots validés dans l'historique existant. @returns {Promise<void>} */
-	async function applyTranslations(): Promise<void> {
+	/**
+	 * Applique tous les lots validés dans l'historique existant.
+	 * @param {AdvancedTrimValidationSuccess[]} results Traductions validées.
+	 * @returns {Promise<void>}
+	 */
+	async function applyTranslations(results: AdvancedTrimValidationSuccess[]): Promise<void> {
 		if (!session.ready || applying) return;
 		applying = true;
 		try {
@@ -273,7 +271,7 @@
 				onclick={preparePrompts}>{copy.prepare()}</button
 			>
 		</fieldset>
-		<ManualAiWorkflow {session} {progress} />
+		<ManualAiWorkflow {session} progress={session.progress} parallel />
 		{#if error}<p role="alert" class="px-5 pb-4 text-sm text-red-400">{error}</p>{/if}
 	{:else}
 		<div class="px-6 py-4"><AdvancedAITrimmingTab {edition} bind:isRunning={apiRunning} /></div>

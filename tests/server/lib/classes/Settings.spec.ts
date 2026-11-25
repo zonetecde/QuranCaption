@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { copyFile, exists, mkdir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import Settings from '$lib/classes/Settings.svelte';
 import { DEFAULT_PROJECT_EDITOR_LAYOUT } from '$lib/constants/projectEditor';
 import { globalState } from '$lib/runes/main.svelte';
 import { VersionService } from '$lib/services/VersionService.svelte';
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
+	copyFile: vi.fn(async () => undefined),
 	exists: vi.fn(async () => true),
+	mkdir: vi.fn(async () => undefined),
 	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(async () => undefined)
 }));
@@ -27,6 +29,50 @@ describe('loading legacy editor layout settings', () => {
 		globalState.settings = originalSettings;
 		vi.restoreAllMocks();
 		vi.clearAllMocks();
+	});
+
+	it.each(['\0\0\0', '{"persistentUiState":'])(
+		'backs up malformed settings (%j) before saving defaults',
+		async (fileContent) => {
+			vi.mocked(readTextFile).mockResolvedValue(fileContent);
+
+			await Settings.load();
+
+			expect(copyFile).toHaveBeenCalledWith(
+				'/test-settings/settings.json',
+				expect.stringMatching(/^\/test-settings\/settings\.json\.corrupt-\d+$/)
+			);
+			expect(vi.mocked(copyFile).mock.invocationCallOrder[0]).toBeLessThan(
+				vi.mocked(writeTextFile).mock.invocationCallOrder[0]
+			);
+			expect(globalState.settings!.appVersion).toBe('3.7.80');
+			expect(JSON.parse(vi.mocked(writeTextFile).mock.calls[0][1]).persistentUiState).toEqual(
+				new Settings().persistentUiState
+			);
+		}
+	);
+
+	it('keeps the malformed file if the backup fails', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('');
+		const backupError = new Error('Backup failed');
+		vi.mocked(copyFile).mockRejectedValueOnce(backupError);
+
+		await expect(Settings.load()).rejects.toThrow(backupError);
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+	});
+
+	it('creates the app data directory before saving settings on first launch', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+
+		await Settings.load();
+
+		expect(mkdir).toHaveBeenCalledWith('/test-settings', { recursive: true });
+		expect(vi.mocked(mkdir).mock.invocationCallOrder[0]).toBeLessThan(
+			vi.mocked(writeTextFile).mock.invocationCallOrder[0]
+		);
+		expect(globalState.settings!.appVersion).toBe('3.7.80');
+		expect(copyFile).not.toHaveBeenCalled();
 	});
 
 	it.each([

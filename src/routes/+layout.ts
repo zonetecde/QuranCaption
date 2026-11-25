@@ -17,9 +17,10 @@ export const ssr = false;
 initializeClassRegistry();
 
 // Initialize PostHog on the main application surface
-export const load = () => {
+export const load = async () => {
 	void AnalyticsService.init();
 	AnalyticsService.trackAppOpened();
+	await Settings.load();
 };
 
 // Load all i18n locales at startup
@@ -37,9 +38,6 @@ QPCFontProvider.loadImportedFonts();
 
 // Charge les exports
 ExportService.loadExports();
-
-// Charge les paramètres utilisateur
-Settings.load();
 
 // Charge les traductions si pas déjà fait
 ProjectTranslation.loadAvailableTranslations();

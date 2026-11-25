@@ -1,5 +1,5 @@
 import { SerializableBase } from './misc/SerializableBase';
-import { writeTextFile, readTextFile, exists } from '@tauri-apps/plugin-fs';
+import { writeTextFile, readTextFile, exists, copyFile, mkdir } from '@tauri-apps/plugin-fs';
 import { appDataDir, join } from '@tauri-apps/api/path';
 import { globalState } from '$lib/runes/main.svelte';
 import { AnalyticsService } from '$lib/services/AnalyticsService';
@@ -487,11 +487,13 @@ export default class Settings extends SerializableBase {
 			return;
 		}
 
-		// Construis le chemin d'accès vers le projet
-		const filePath = await join(await appDataDir(), this.settingsFile);
+		// Construis le chemin d'accès vers le fichier de paramètres
+		const directory = await appDataDir();
+		const filePath = await join(directory, this.settingsFile);
 
 		// Vérifie que le fichier existe
 		if (!(await exists(filePath))) {
+			await mkdir(directory, { recursive: true });
 			// Créer des paramètres par défaut
 			globalState.settings = new Settings();
 
@@ -507,7 +509,20 @@ export default class Settings extends SerializableBase {
 
 		// Lit le fichier JSON
 		const fileContent = await readTextFile(filePath);
-		const settingsData = JSON.parse(fileContent);
+		let settingsData: Record<string, unknown>;
+		try {
+			settingsData = JSON.parse(fileContent);
+		} catch {
+			const backupPath = `${filePath}.corrupt-${Date.now()}`;
+			await copyFile(filePath, backupPath);
+			console.warn('Invalid settings JSON backed up to', backupPath);
+
+			const settings = new Settings();
+			settings.appVersion = await VersionService.getAppVersion();
+			globalState.settings = settings;
+			await this.save();
+			return;
+		}
 
 		const settings = Settings.fromJSON(settingsData) as Settings;
 		const previousVersion = settings.appVersion;

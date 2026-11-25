@@ -125,8 +125,6 @@
 		// Init le gestionnaire de shortcuts
 		ShortcutService.init();
 
-		// Charge les paramètres utilisateur (une seconde fois pour etre sur)
-		await Settings.load();
 		void loadHomepageMessage();
 		await quranAuthService.init();
 

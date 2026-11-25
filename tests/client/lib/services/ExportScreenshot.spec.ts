@@ -7,6 +7,11 @@ import {
 import { captureMacOsOverlayPngBytes } from '../../../../src/routes/exporter/MacOSExport';
 import { ExportOverlayInspector } from '../../../../src/routes/exporter/ExportOverlayInspector';
 import { getSystemFontSubsetDataUrl } from '$lib/services/SystemFontSubset';
+import {
+	getRiwayahFontFamily,
+	isNonHafsRiwayah,
+	RIWAYAH_OPTIONS
+} from '$lib/services/RiwayahProvider';
 
 vi.mock('$lib/runes/main.svelte', () => ({ globalState: {} }));
 
@@ -426,4 +431,29 @@ describe('contexte de capture réutilisé par worker', () => {
 			expect(root.querySelector<HTMLElement>('.translation')!.style.visibility).not.toBe('hidden');
 		}
 	});
+
+	it.each(RIWAYAH_OPTIONS.filter(isNonHafsRiwayah))(
+		'dessine les voyelles de %s dans la capture macOS sans passer par fillText',
+		async (riwayah) => {
+			const root = await createOverlay();
+			root.replaceChildren();
+			const backgroundBlob = await domToBlob(root);
+			const font = getRiwayahFontFamily(riwayah);
+			const style = document.createElement('style');
+			style.textContent = `@font-face { font-family: ${font}; src: url('/riwayat/${riwayah.toLowerCase()}/font.woff2'); }`;
+			document.head.append(style);
+			elements.push(style);
+			await document.fonts.load(`48px ${font}`);
+			root.innerHTML = `<p dir="rtl" style="margin:35px 0 0;font:48px ${font};color:cyan">عَلَّمَ ١٢</p>`;
+			const fillText = vi.spyOn(CanvasRenderingContext2D.prototype, 'fillText');
+			const png = await captureMacOsOverlayPngBytes(root, 1, 320, 180, {
+				backgroundBlob,
+				compensateTextWeight: false
+			});
+			expect(fillText.mock.calls.map(([text]) => text)).toEqual(['١٢']);
+			const pixels = await readPixels(new Blob([png]));
+			const [top, bottom] = getColorVerticalBounds(pixels, [0, 255, 255]);
+			expect(bottom - top).toBeGreaterThan(25);
+		}
+	);
 });

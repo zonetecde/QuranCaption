@@ -1,5 +1,7 @@
 import { applyTextTransform, getTextLineRects } from '$lib/services/TextLayout';
+import { getRiwayahForFontFamily, type NonHafsRiwayah } from '$lib/services/RiwayahProvider';
 import { captureExportOverlayBlob } from './ExportScreenshot';
+import { getRiwayahWordPath, type RiwayahWordPath } from './RiwayahCanvasText';
 
 const EXPORT_TEXT_WEIGHT_COMPENSATION_MAX_PX = 0.45;
 const EXPORT_TEXT_WEIGHT_COMPENSATION_RATIO = 0.0125;
@@ -19,6 +21,10 @@ type TextDrawRun = {
 	width: number;
 	height: number;
 	font: string;
+	fontStyle: string;
+	fontWeight: string;
+	riwayah: NonHafsRiwayah | null;
+	wordPath?: RiwayahWordPath | null;
 	color: string;
 	strokeColor: string;
 	strokeWidth: number;
@@ -82,6 +88,11 @@ export async function captureMacOsOverlayPngBytes(
 	const roundedTargetHeight = Math.round(targetHeight);
 	const compensateTextWeight = options.compensateTextWeight ?? true;
 	const textRuns = collectLiveTextDrawRuns(root, options.textRootSelector);
+	await Promise.all(
+		textRuns.map(async (run) => {
+			if (run.riwayah) run.wordPath = await getRiwayahWordPath(run.riwayah, run.text);
+		})
+	);
 
 	if (options.backgroundBlob) {
 		return await blobToExactPngBytesWithLiveText(
@@ -539,13 +550,19 @@ function collectLiveTextDrawRuns(root: HTMLElement, textRootSelector?: string): 
 
 			const direction = toCanvasDirection(computedStyle.direction);
 			const align = toCanvasTextAlign(direction);
+			const primaryFont = computedStyle.fontFamily
+				.split(',')[0]
+				.trim()
+				.replace(/^['"]|['"]$/g, '');
+			const riwayah = getRiwayahForFontFamily(primaryFont);
 			const shadows = parseTextShadows(
 				computedStyle.textShadow,
 				computedStyle.color,
 				computedStyle
 			);
 
-			for (const line of getTextLineRects(textNode, localScaleY)) {
+			// Le DOM place les mots et les chiffres selon leurs règles bidi et leurs espacements CSS.
+			for (const line of getTextLineRects(textNode, localScaleY, riwayah !== null)) {
 				const text = textNode.data.slice(line.start, line.end).trim();
 				if (!text) continue;
 
@@ -571,6 +588,9 @@ function collectLiveTextDrawRuns(root: HTMLElement, textRootSelector?: string): 
 					width: stablePosition.width,
 					height: stablePosition.height,
 					font: computedStyle.font,
+					fontStyle: computedStyle.fontStyle,
+					fontWeight: computedStyle.fontWeight,
+					riwayah: /\p{Mark}/u.test(text) ? riwayah : null,
 					color: computedStyle.color,
 					strokeColor: strokeStyle.webkitTextStrokeColor,
 					strokeWidth: Number.parseFloat(strokeStyle.webkitTextStrokeWidth) || 0,
@@ -778,6 +798,24 @@ function drawTextRunContent(
 	// Le haut du cadre DOM peut dépasser le repère « top » du canvas selon la police.
 	const fontAscent = context.measureText(run.text).fontBoundingBoxAscent;
 	if (Number.isFinite(fontAscent)) y += fontAscent;
+	let outline: Path2D | undefined;
+	let syntheticBoldWidth = 0;
+	if (run.wordPath && fontSizePx !== null) {
+		const { outline: wordOutline, advance, unitsPerEm } = run.wordPath;
+		const scale = (fontSizePx * scaleY) / unitsPerEm;
+		context.textBaseline = 'alphabetic';
+		const ascent = context.measureText(run.text).fontBoundingBoxAscent;
+		context.textBaseline = 'top';
+		const baseline = run.y * scaleY + (Number.isFinite(ascent) ? ascent : fontSizePx * scaleY);
+		const originX = run.align === 'right' ? x - advance * scale : x;
+		const italic = run.fontStyle === 'italic' || run.fontStyle.startsWith('oblique');
+		outline = new Path2D();
+		outline.addPath(
+			wordOutline,
+			new DOMMatrix([scale, 0, italic ? -0.25 * scale : 0, scale, originX, baseline])
+		);
+		if (Number(run.fontWeight) >= 600) syntheticBoldWidth = (fontSizePx * scaleY) / 24;
+	}
 	const extendedContext = context as CanvasRenderingContext2D & {
 		letterSpacing?: string;
 		wordSpacing?: string;
@@ -809,6 +847,19 @@ function drawTextRunContent(
 		context.shadowOffsetY = 0;
 	};
 
+	/**
+	 * Applique la peinture du run aux glyphes positionnés par HarfBuzz ou au texte natif.
+	 * @param {boolean} stroke Dessine le contour quand il est activé.
+	 * @returns {void}
+	 */
+	const paintText = (stroke = false) => {
+		if (outline) {
+			if (stroke) context.stroke(outline);
+			else context.fill(outline);
+		} else if (stroke) context.strokeText(run.text, x, y);
+		else context.fillText(run.text, x, y);
+	};
+
 	const fillCompensatedText = () => {
 		clearShadow();
 		if (run.strokeWidth > 0) {
@@ -818,19 +869,19 @@ function drawTextRunContent(
 			// Comme en SVG, des segments jointifs arrondis évitent les creux sur les petits glyphes.
 			context.lineCap = 'round';
 			context.setLineDash([Math.max(scaleX, scaleY), 0]);
-			context.strokeText(run.text, x, y);
+			paintText(true);
 			context.restore();
 		}
 
-		if (compensationWidth > 0) {
+		if (compensationWidth > 0 || syntheticBoldWidth > 0) {
 			// Le trait leger compense la perte de poids visible sur certains rendus macOS.
 			context.save();
-			context.lineWidth = compensationWidth;
-			context.strokeText(run.text, x, y);
+			context.lineWidth = compensationWidth + syntheticBoldWidth;
+			paintText(true);
 			context.restore();
 		}
 
-		context.fillText(run.text, x, y);
+		paintText();
 	};
 
 	fillCompensatedText();
@@ -850,7 +901,7 @@ function drawTextRunContent(
 				(run.transform
 					? run.transform.b * shadow.offsetX + run.transform.d * shadow.offsetY
 					: shadow.offsetY) * scaleY;
-			context.fillText(run.text, x, y);
+			paintText();
 			context.restore();
 		}
 	}

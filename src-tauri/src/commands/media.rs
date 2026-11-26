@@ -587,6 +587,9 @@ fn default_system_font_directories() -> Vec<PathBuf> {
         if let Some(windir) = std::env::var_os("WINDIR") {
             directories.push(PathBuf::from(windir).join("Fonts"));
         }
+        if let Some(local_data) = dirs::data_local_dir() {
+            directories.push(local_data.join("Microsoft/Windows/Fonts"));
+        }
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
@@ -1968,6 +1971,14 @@ mod directory_size_tests {
 #[cfg(test)]
 mod system_font_source_tests {
     use super::*;
+
+    /// Vérifie que l'export recherche aussi les polices installées pour l'utilisateur Windows.
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn searches_current_user_font_directory() {
+        let user_fonts = dirs::data_local_dir().unwrap().join("Microsoft/Windows/Fonts");
+        assert!(default_system_font_directories().contains(&user_fonts));
+    }
 
     /// Vérifie qu'Arial et Arial Narrow restent deux familles distinctes pendant l'export.
     #[cfg(target_os = "windows")]

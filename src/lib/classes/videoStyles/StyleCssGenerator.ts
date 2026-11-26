@@ -149,14 +149,15 @@ export class StyleCssGenerator {
 		const basmalaStyle = String(
 			source.getEffectiveValue('basmala-style', clip.id) ?? 'current-font'
 		);
+		// L'espacement des lettres désactive les ligatures qui remplacent les numéros.
 		if (clip.predefinedSubtitleType === 'Basmala' && basmalaStyle !== 'current-font') {
-			return 'font-family: Basmalah;\n';
+			return 'font-family: Basmalah;\nletter-spacing: 0px !important;\n';
 		}
 		const istiadhaStyle = String(
 			source.getEffectiveValue('istiadha-style', clip.id) ?? 'current-font'
 		);
 		if (clip.predefinedSubtitleType === "Isti'adha" && istiadhaStyle !== 'current-font') {
-			return 'font-family: Elgharib-istieadha;\n';
+			return 'font-family: Elgharib-istieadha;\nletter-spacing: 0px !important;\n';
 		}
 		const forcedFont = getForcedFontForPredefinedSubtitle(
 			clip.predefinedSubtitleType,

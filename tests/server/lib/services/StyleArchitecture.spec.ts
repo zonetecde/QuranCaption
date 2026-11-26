@@ -601,6 +601,12 @@ describe('style architecture modules', () => {
 						value: 'QPC2',
 						valueType: 'select',
 						css: "font-family: '{value}', sans-serif;"
+					}),
+					new Style({
+						id: 'letter-spacing',
+						value: 2,
+						valueType: 'number',
+						css: 'letter-spacing: {value}px;'
 					})
 				]
 			}),
@@ -624,7 +630,11 @@ describe('style architecture modules', () => {
 		try {
 			expect(clip.getText()).toBe('122');
 			expect(arabicStyles.generateCSS(clip.id)).toContain('font-family: Basmalah;');
+			expect(arabicStyles.generateCSS(clip.id)).toContain('letter-spacing: 0px !important;');
 			expect(arabicStyles.generateCSS(clip.id)).toContain('--scale: 125%;');
+			arabicStyles.findStyle('basmala-style')!.value = 'current-font';
+			expect(arabicStyles.generateCSS(clip.id)).toContain('letter-spacing: 2px;');
+			expect(arabicStyles.generateCSS(clip.id)).not.toContain('letter-spacing: 0px');
 		} finally {
 			globalState.currentProject = originalProject;
 		}
@@ -648,6 +658,12 @@ describe('style architecture modules', () => {
 						value: 'QPC2',
 						valueType: 'select',
 						css: "font-family: '{value}', sans-serif;"
+					}),
+					new Style({
+						id: 'letter-spacing',
+						value: -2,
+						valueType: 'number',
+						css: 'letter-spacing: {value}px;'
 					})
 				]
 			}),
@@ -671,7 +687,11 @@ describe('style architecture modules', () => {
 		try {
 			expect(clip.getText()).toBe('16');
 			expect(arabicStyles.generateCSS(clip.id)).toContain('font-family: Elgharib-istieadha;');
+			expect(arabicStyles.generateCSS(clip.id)).toContain('letter-spacing: 0px !important;');
 			expect(arabicStyles.generateCSS(clip.id)).toContain('--scale: 125%;');
+			arabicStyles.findStyle('istiadha-style')!.value = 'current-font';
+			expect(arabicStyles.generateCSS(clip.id)).toContain('letter-spacing: -2px;');
+			expect(arabicStyles.generateCSS(clip.id)).not.toContain('letter-spacing: 0px');
 		} finally {
 			globalState.currentProject = originalProject;
 		}
